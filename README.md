@@ -103,14 +103,14 @@ Run with explicit UMC22 routing:
   --playback-device 1 \
   --input-channel right \
   --output-channel both \
-  --ir-samples 4096
+  --ir-samples 8192
 ```
 
 Stop with `Ctrl-C`.
 
 Use `--input-channel left` for input 1 and `--input-channel right` for input 2. On the UMC22, the instrument input is commonly the right/second capture channel.
 
-Realtime mode trims long IRs to `4096` samples by default because the current POC uses a simple FIR convolver. Use `--ir-samples N` to choose a different limit. `0` currently means "use the default realtime limit"; full-length realtime IRs need partitioned convolution.
+Realtime mode trims long IRs to `4096` samples by default because the current POC uses a simple FIR convolver. On macOS with the UMC22, `--block-size 64 --ir-samples 8192` is the current known-good setting. Use `--ir-samples N` to choose a different limit. `0` currently means "use the default realtime limit"; full-length realtime IRs need partitioned convolution.
 
 First target settings:
 
@@ -140,4 +140,4 @@ The package installs:
 
 ## Hardware Validation
 
-See `docs/hardware-validation.md` for the macOS UMC22 test, Raspberry Pi Codec Zero test, and loopback latency measurement notes.
+See `docs/hardware-validation.md` for the macOS UMC22 test notes and Raspberry Pi Codec Zero checklist.

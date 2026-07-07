@@ -5,14 +5,38 @@
 Command:
 
 ```sh
-./build/pedal-poc --realtime --model models/test.nam --ir irs/test.wav --sample-rate 48000 --block-size 64
+./build/pedal-poc \
+  --realtime \
+  --model models/test.nam \
+  --ir irs/test.wav \
+  --sample-rate 48000 \
+  --block-size 64 \
+  --capture-device 1 \
+  --playback-device 1 \
+  --input-channel right \
+  --output-channel both \
+  --ir-samples 8192
 ```
 
 Pass:
 
-- Runs for 10 minutes.
+- Runs without xruns.
 - No audible dropouts.
 - Status prints increasing callback count.
+
+Current result:
+
+```text
+date: 2026-07-07
+device: Behringer U-Phoria UMC22, shown as USB Audio CODEC
+sample rate: 48000
+block size: 64
+IR samples: 8192
+input channel: right
+output channel: both
+xruns: 0
+notes: sounds good in realtime; 12000 eventually produced xruns, 14000 produced a few xruns, 16000 was unusable
+```
 
 ## Raspberry Pi Codec Zero Realtime Test
 
@@ -29,7 +53,7 @@ Pass:
 - Guitar input produces stereo output.
 - No ALSA xrun messages for 10 minutes.
 
-## Latency Measurement
+## Latency Measurement Later
 
 Method:
 
