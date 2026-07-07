@@ -19,6 +19,7 @@ FetchContent_MakeAvailable(miniaudio)
 
 add_library(ardor_dsp
   src/dsp/IrConvolver.cpp
+  src/dsp/PedalEngine.cpp
 )
 target_include_directories(ardor_dsp PUBLIC src)
 target_compile_features(ardor_dsp PUBLIC cxx_std_20)
