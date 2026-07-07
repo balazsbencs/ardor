@@ -50,6 +50,16 @@ if(UNIX AND NOT APPLE)
   target_link_libraries(ardor_dsp PUBLIC stdc++fs)
 endif()
 
+add_library(ardor_preset
+  src/preset/Preset.cpp
+)
+target_include_directories(ardor_preset PUBLIC
+  src
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies/nlohmann
+)
+target_compile_features(ardor_preset PUBLIC cxx_std_20)
+
 add_library(ardor_audio
   src/audio/MiniaudioBackend.cpp
 )
@@ -64,8 +74,12 @@ target_link_libraries(pedal-poc PRIVATE ardor_audio ardor_dsp)
 add_executable(pedal-offline-smoke tests/offline_smoke.cpp)
 target_link_libraries(pedal-offline-smoke PRIVATE ardor_dsp)
 
+add_executable(pedal-preset-smoke tests/preset_smoke.cpp)
+target_link_libraries(pedal-preset-smoke PRIVATE ardor_preset)
+
 enable_testing()
 add_test(NAME pedal-offline-smoke COMMAND pedal-offline-smoke)
+add_test(NAME pedal-preset-smoke COMMAND pedal-preset-smoke)
 add_test(NAME pedal-devices-indexed COMMAND pedal-poc --devices)
 set_tests_properties(pedal-devices-indexed PROPERTIES PASS_REGULAR_EXPRESSION "\\[0\\]")
 
