@@ -1,5 +1,5 @@
-/build*/
-/Buildroot*/
+/build/
+/build-*/
 /output/
 /models/*
 !/models/.gitkeep

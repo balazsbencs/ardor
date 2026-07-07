@@ -1,0 +1,24 @@
+#!/bin/sh
+
+case "$1" in
+  start)
+    echo "Starting ardor-pedal"
+    start-stop-daemon -S -b -m -p /var/run/ardor-pedal.pid --exec /usr/bin/ardor-pedal -- \
+      --realtime \
+      --model /opt/ardor-pedal/model.nam \
+      --ir /opt/ardor-pedal/cab.wav \
+      --sample-rate 48000 \
+      --block-size 64
+    ;;
+  stop)
+    echo "Stopping ardor-pedal"
+    start-stop-daemon -K -p /var/run/ardor-pedal.pid
+    ;;
+  restart)
+    "$0" stop
+    "$0" start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+esac
