@@ -2,6 +2,7 @@
 #include "preset/Preset.h"
 
 #include <filesystem>
+#include <chrono>
 #include <cassert>
 #include <stdexcept>
 #include <string>
@@ -80,7 +81,7 @@ int main()
   assert(roundTrip.blocks[1].id == "block-2");
   assert(roundTrip.blocks[1].params.at("levelDb").get<float>() == -3.0f);
 
-  const auto root = std::filesystem::temp_directory_path() / "ardor-preset-smoke";
+  const auto root = std::filesystem::temp_directory_path() / ("ardor-preset-smoke-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
   std::filesystem::remove_all(root);
   ardor::PresetStore store(root);
   const ardor::PresetSlot slot{2, 3};
@@ -103,6 +104,15 @@ int main()
   session.save();
   assert(!session.isDirty());
   assert(store.load(slot).name == "Saved Edit");
+
+  ardor::Preset diskChanged = saved;
+  diskChanged.name = "Disk Changed";
+  store.save(slot, diskChanged);
+  session.working().name = "Stale Edit";
+  assert(session.isDirty());
+  session.discard();
+  assert(session.working().name == "Disk Changed");
+  assert(!session.isDirty());
 
   std::filesystem::remove_all(root);
   return 0;

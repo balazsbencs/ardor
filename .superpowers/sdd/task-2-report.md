@@ -28,4 +28,30 @@ All checks passed.
 
 ## Note
 
-- I initially ran the focused smoke test and the full suite in parallel, and both hit the same temp directory path. That produced one transient `filesystem_error` during the focused run. I reran `pedal-preset-smoke` by itself afterward, and it passed cleanly.
+- I initially ran the focused smoke test and the full suite in parallel, and both hit the same temp directory path. That produced one transient `filesystem_error` during the focused run. I reran `pedal-preset-smoke` by itself afterward, and the final focused and full runs were clean.
+
+## TDD Evidence
+
+RED:
+
+- I did not capture the exact pre-implementation output. The brief's expected failure was `cmake --build build` failing because `preset/PresetStore.h` did not exist.
+
+GREEN:
+
+- `cmake --build build` succeeded after implementation.
+- `ctest --test-dir build --output-on-failure -R pedal-preset-smoke` passed after a clean rerun.
+- `ctest --test-dir build --output-on-failure` passed cleanly.
+
+## Review Fix
+
+- `PresetSession::discard()` now reloads the preset from `store_->load(slot_)`, refreshes `saved_`, then resets `working_`.
+- `tests/preset_smoke.cpp` now covers the on-disk discard path by mutating the saved file after `session.load(...)` and asserting `discard()` picks up the disk change and clears dirty state.
+- The smoke test root now uses a unique temp-directory suffix from `std::chrono::steady_clock::now().time_since_epoch().count()` to avoid collisions between concurrent runs.
+
+## Review Fix Verification
+
+- `cmake --build build` passed.
+- `ctest --test-dir build --output-on-failure -R pedal-preset-smoke` passed cleanly.
+- `ctest --test-dir build --output-on-failure` passed cleanly.
+
+Final rerun note: the focused and full test runs were both clean after the rerun.

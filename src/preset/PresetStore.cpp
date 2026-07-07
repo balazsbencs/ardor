@@ -110,6 +110,10 @@ void PresetSession::save()
 
 void PresetSession::discard()
 {
+  if (!store_) {
+    throw std::runtime_error("no preset store loaded");
+  }
+  saved_ = store_->load(slot_);
   working_ = saved_;
 }
 
