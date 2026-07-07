@@ -1,5 +1,7 @@
+#include "preset/PresetStore.h"
 #include "preset/Preset.h"
 
+#include <filesystem>
 #include <cassert>
 #include <stdexcept>
 #include <string>
@@ -77,5 +79,31 @@ int main()
   assert(roundTrip.blocks.size() == 2);
   assert(roundTrip.blocks[1].id == "block-2");
   assert(roundTrip.blocks[1].params.at("levelDb").get<float>() == -3.0f);
+
+  const auto root = std::filesystem::temp_directory_path() / "ardor-preset-smoke";
+  std::filesystem::remove_all(root);
+  ardor::PresetStore store(root);
+  const ardor::PresetSlot slot{2, 3};
+
+  ardor::Preset saved;
+  saved.name = "Bank 2 Slot 3";
+  saved.blocks.push_back({"block-a", "nam", true, "models/a.nam", nlohmann::json::object()});
+  store.save(slot, saved);
+  assert(std::filesystem::exists(root / "presets/bank-002/preset-3.json"));
+
+  ardor::PresetSession session;
+  session.load(store, slot);
+  assert(!session.isDirty());
+  session.working().name = "Edited";
+  assert(session.isDirty());
+  session.discard();
+  assert(session.working().name == "Bank 2 Slot 3");
+  assert(!session.isDirty());
+  session.working().name = "Saved Edit";
+  session.save();
+  assert(!session.isDirty());
+  assert(store.load(slot).name == "Saved Edit");
+
+  std::filesystem::remove_all(root);
   return 0;
 }
