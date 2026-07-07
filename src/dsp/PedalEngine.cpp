@@ -32,7 +32,12 @@ void PedalEngine::setMasterVolume(float gain)
 
 void PedalEngine::setEffectsBypassed(bool bypassed)
 {
+  if (effectsBypassed_ == bypassed) {
+    return;
+  }
+
   effectsBypassed_ = bypassed;
+  reset();
 }
 
 void PedalEngine::setSafetyLimit(float limit)

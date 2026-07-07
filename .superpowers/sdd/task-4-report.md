@@ -63,3 +63,43 @@ Result:
 ## Notes
 
 - The build emitted an existing linker warning about `/usr/local/opt/llvm/lib` not being found on this machine, but the build completed successfully and all tests passed.
+
+## Review Fix Follow-Up
+
+Addressed the two review items with a minimal follow-up:
+
+- Updated `PedalEngine::setEffectsBypassed(bool)` to call `reset()` only when the bypass state actually changes
+- Left repeated calls with the same bypass value as a no-op to avoid unnecessary resets
+- Extended `tests/engine_contract_smoke.cpp` with a wet `processBlock()` assertion that verifies master volume is applied before the safety limiter on the non-bypassed block path
+
+### Follow-Up Verification
+
+Build:
+
+```sh
+cmake --build build
+```
+
+Result:
+
+- Build passed
+
+Focused test:
+
+```sh
+ctest --test-dir build --output-on-failure -R pedal-engine-contract-smoke
+```
+
+Result:
+
+- `pedal-engine-contract-smoke` passed
+
+Full suite:
+
+```sh
+ctest --test-dir build --output-on-failure
+```
+
+Result:
+
+- 4/4 tests passed
