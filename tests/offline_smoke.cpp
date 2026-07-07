@@ -1,5 +1,6 @@
 #include "dsp/IrConvolver.h"
 #include "dsp/PedalEngine.h"
+#include "NAM/model_config.h"
 
 #include <cmath>
 #include <filesystem>
@@ -16,6 +17,8 @@ int require(bool condition)
 
 int main()
 {
+  if (require(nam::ConfigParserRegistry::instance().has("SlimmableContainer"))) return 1;
+
   ardor::IrConvolver ir;
   ir.loadImpulse({1.0f, 0.5f});
 
