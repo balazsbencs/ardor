@@ -33,6 +33,8 @@ bool NamProcessor::load(const std::filesystem::path& modelPath, double sampleRat
     return false;
   }
 
+  sampleRate_ = sampleRate;
+  maxBlockSize_ = maxBlockSize;
   model_->Reset(sampleRate, maxBlockSize);
   return true;
 }
@@ -48,6 +50,15 @@ float NamProcessor::process(float input)
   float* out[] = {output_.data()};
   model_->process(in, out, 1);
   return output_[0];
+}
+
+void NamProcessor::reset()
+{
+  if (!model_) {
+    return;
+  }
+
+  model_->Reset(sampleRate_, maxBlockSize_);
 }
 
 bool NamProcessor::loaded() const

@@ -17,12 +17,15 @@ public:
 
   bool load(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize);
   float process(float input);
+  void reset();
   bool loaded() const;
 
 private:
   std::unique_ptr<nam::DSP> model_;
   std::vector<float> input_{0.0f};
   std::vector<float> output_{0.0f};
+  double sampleRate_ = 0.0;
+  int maxBlockSize_ = 0;
 };
 
 } // namespace ardor

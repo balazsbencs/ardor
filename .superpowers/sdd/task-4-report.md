@@ -103,3 +103,53 @@ ctest --test-dir build --output-on-failure
 Result:
 
 - 4/4 tests passed
+
+## Re-Review Fix Follow-Up
+
+Addressed the remaining wet-chain reset gap:
+
+- Added `NamProcessor::reset()`
+- Stored `sampleRate` and `maxBlockSize` in `NamProcessor` during successful model load
+- Made `NamProcessor::reset()` call `model_->Reset(sampleRate_, maxBlockSize_)` when a model is loaded
+- Updated `PedalEngine::reset()` to reset the whole wet path by calling `nam_.reset()` and `ir_.reset()`
+- Kept `NamProcessor::reset()` as a no-op when no model is loaded
+
+### Test Coverage Note
+
+No new NAM-specific smoke test was added. The current harness has no real NAM asset to load, and the task explicitly ruled out fake NAM model infrastructure. This fix is covered by:
+
+- code inspection of the `PedalEngine::reset()` path used by bypass toggles
+- existing smoke tests proving the no-model path remains healthy
+- fresh full-suite verification after the reset-path change
+
+### Re-Review Verification
+
+Build:
+
+```sh
+cmake --build build
+```
+
+Result:
+
+- Build passed
+
+Focused test:
+
+```sh
+ctest --test-dir build --output-on-failure -R pedal-engine-contract-smoke
+```
+
+Result:
+
+- `pedal-engine-contract-smoke` passed
+
+Full suite:
+
+```sh
+ctest --test-dir build --output-on-failure
+```
+
+Result:
+
+- 4/4 tests passed

@@ -52,6 +52,7 @@ void PedalEngine::setSafetyLimiterEnabled(bool enabled)
 
 void PedalEngine::reset()
 {
+  nam_.reset();
   ir_.reset();
 }
 
