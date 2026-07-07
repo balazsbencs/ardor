@@ -23,6 +23,14 @@ struct RealtimeOptions {
   OutputChannel outputChannel = OutputChannel::Both;
 };
 
+struct RealtimeStats {
+  uint64_t callbacks = 0;
+  uint64_t overBudget = 0;
+  double averageMs = 0.0;
+  double maxMs = 0.0;
+  double budgetMs = 0.0;
+};
+
 class MiniaudioBackend {
 public:
   ~MiniaudioBackend();
@@ -31,6 +39,7 @@ public:
   void stop();
   uint64_t callbackCount() const;
   uint64_t xrunCount() const;
+  RealtimeStats stats() const;
 
 private:
   MiniaudioBackendState* state_ = nullptr;

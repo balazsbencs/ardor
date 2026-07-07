@@ -8,6 +8,7 @@
 #include <exception>
 #include <filesystem>
 #include <iostream>
+#include <iomanip>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -254,7 +255,18 @@ int main(int argc, char** argv)
 
       for (;;) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
-        std::cerr << "callbacks=" << backend.callbackCount() << " xruns=" << backend.xrunCount() << "\n";
+        const auto stats = backend.stats();
+        const double overPercent = stats.callbacks == 0
+                                     ? 0.0
+                                     : static_cast<double>(stats.overBudget) * 100.0 / static_cast<double>(stats.callbacks);
+        std::cerr << std::fixed << std::setprecision(2)
+                  << "callbacks=" << stats.callbacks
+                  << " over=" << stats.overBudget
+                  << " over%=" << overPercent
+                  << " max=" << stats.maxMs << "ms"
+                  << " avg=" << stats.averageMs << "ms"
+                  << " budget=" << stats.budgetMs << "ms"
+                  << "\n";
       }
     }
 

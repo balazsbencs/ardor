@@ -112,6 +112,14 @@ Use `--input-channel left` for input 1 and `--input-channel right` for input 2. 
 
 Realtime mode trims long IRs to `4096` samples by default because the current POC uses a simple FIR convolver. On macOS with the UMC22, `--block-size 64 --ir-samples 8192` is the current known-good setting. Use `--ir-samples N` to choose a different limit. `0` currently means "use the default realtime limit"; full-length realtime IRs need partitioned convolution.
 
+Realtime status prints once per second:
+
+```text
+callbacks=28125 over=0 over%=0.00 max=0.41ms avg=0.23ms budget=1.33ms
+```
+
+`over` counts callbacks that took longer than the audio budget. For `--block-size 64` at 48 kHz, the callback budget is about `1.33 ms`.
+
 First target settings:
 
 - sample rate: `48000`

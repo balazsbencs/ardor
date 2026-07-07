@@ -21,6 +21,9 @@ struct MiniaudioBackendState {
   bool deviceReady = false;
   std::atomic<uint64_t> callbacks{0};
   std::atomic<uint64_t> xruns{0};
+  std::atomic<uint64_t> totalCallbackNs{0};
+  std::atomic<uint64_t> maxCallbackNs{0};
+  double budgetMs = 0.0;
   double sampleRate = 48000.0;
 };
 
@@ -47,6 +50,12 @@ void callback(ma_device* device, void* output, const void* input, ma_uint32 fram
   const auto elapsed = std::chrono::steady_clock::now() - start;
   const double elapsedSeconds = std::chrono::duration<double>(elapsed).count();
   const double budgetSeconds = static_cast<double>(frameCount) / state->sampleRate;
+  const auto elapsedNs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count());
+  state->totalCallbackNs.fetch_add(elapsedNs, std::memory_order_relaxed);
+  auto currentMax = state->maxCallbackNs.load(std::memory_order_relaxed);
+  while (elapsedNs > currentMax
+         && !state->maxCallbackNs.compare_exchange_weak(currentMax, elapsedNs, std::memory_order_relaxed)) {
+  }
   if (elapsedSeconds > budgetSeconds) {
     state->xruns.fetch_add(1, std::memory_order_relaxed);
   }
@@ -69,6 +78,7 @@ bool MiniaudioBackend::start(PedalEngine& engine, const RealtimeOptions& options
   state_->inputChannel = options.inputChannel;
   state_->outputChannel = options.outputChannel;
   state_->sampleRate = static_cast<double>(options.sampleRate);
+  state_->budgetMs = static_cast<double>(options.blockSize) / static_cast<double>(options.sampleRate) * 1000.0;
 
   if (ma_context_init(nullptr, 0, nullptr, &state_->context) != MA_SUCCESS) {
     delete state_;
@@ -147,6 +157,22 @@ uint64_t MiniaudioBackend::callbackCount() const
 uint64_t MiniaudioBackend::xrunCount() const
 {
   return state_ ? state_->xruns.load(std::memory_order_relaxed) : 0;
+}
+
+RealtimeStats MiniaudioBackend::stats() const
+{
+  RealtimeStats out;
+  if (!state_) return out;
+
+  out.callbacks = state_->callbacks.load(std::memory_order_relaxed);
+  out.overBudget = state_->xruns.load(std::memory_order_relaxed);
+  out.maxMs = static_cast<double>(state_->maxCallbackNs.load(std::memory_order_relaxed)) / 1000000.0;
+  out.budgetMs = state_->budgetMs;
+  if (out.callbacks > 0) {
+    out.averageMs = static_cast<double>(state_->totalCallbackNs.load(std::memory_order_relaxed)) / 1000000.0
+                    / static_cast<double>(out.callbacks);
+  }
+  return out;
 }
 
 } // namespace ardor
