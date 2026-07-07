@@ -210,6 +210,10 @@
       gap: 8px;
       margin-bottom: 14px;
     }
+    .param-value {
+      color: var(--text);
+      font-weight: 650;
+    }
     label {
       display: grid;
       gap: 6px;
@@ -359,12 +363,12 @@
         </div>
         <div class="param-row">
           <label>
-            Level
-            <input type="range" min="-24" max="12" value="0">
+            Level <span id="level-value" class="param-value">0.0 dB</span>
+            <input id="level-control" type="range" min="-24" max="12" step="0.5" value="0">
           </label>
           <label>
-            Mix
-            <input type="range" min="0" max="100" value="100">
+            Mix <span id="mix-value" class="param-value">100%</span>
+            <input id="mix-control" type="range" min="0" max="100" step="1" value="100">
           </label>
         </div>
         <div class="actions">
@@ -375,32 +379,99 @@
       </aside>
     </main>
     <footer class="presets">
-      <button class="preset-card active"><strong>Clean Lead</strong><span>Bank 000 / Slot 1</span></button>
-      <button class="preset-card"><strong>Crunch</strong><span>Bank 000 / Slot 2</span></button>
-      <button class="preset-card"><strong>Ambient</strong><span>Bank 000 / Slot 3</span></button>
-      <button class="preset-card"><strong>Solo</strong><span>Bank 000 / Slot 4</span></button>
+      <button class="preset-card active" data-slot="0"><strong>Clean Lead</strong><span>Bank 000 / Slot 1</span></button>
+      <button class="preset-card" data-slot="1"><strong>Crunch</strong><span>Bank 000 / Slot 2</span></button>
+      <button class="preset-card" data-slot="2"><strong>Ambient</strong><span>Bank 000 / Slot 3</span></button>
+      <button class="preset-card" data-slot="3"><strong>Solo</strong><span>Bank 000 / Slot 4</span></button>
     </footer>
   </div>
   <script>
-    const preset = {
-      version: 1,
-      name: "Clean Lead",
-      routing: "serial",
-      global: { inputGainDb: -12, outputGainDb: -6, safetyLimitDb: -1 },
-      blocks: [
-        { id: "block-1", type: "nam", enabled: true, asset: "models/clean.nam", params: { levelDb: 0 } },
-        { id: "block-2", type: "cab", enabled: true, asset: "irs/open-back.wav", params: { mix: 1, levelDb: 0 } }
-      ]
-    };
+    const presets = [
+      {
+        saved: {
+          version: 1,
+          name: "Clean Lead",
+          routing: "serial",
+          global: { inputGainDb: -12, outputGainDb: -6, safetyLimitDb: -1 },
+          blocks: [
+            { id: "block-1", type: "nam", enabled: true, asset: "models/clean.nam", params: { levelDb: 0 } },
+            { id: "block-2", type: "cab", enabled: true, asset: "irs/open-back.wav", params: { mix: 100, levelDb: 0 } }
+          ]
+        }
+      },
+      {
+        saved: {
+          version: 1,
+          name: "Crunch",
+          routing: "serial",
+          global: { inputGainDb: -12, outputGainDb: -6, safetyLimitDb: -1 },
+          blocks: [
+            { id: "block-3", type: "nam", enabled: true, asset: "models/crunch.nam", params: { levelDb: -1 } },
+            { id: "block-4", type: "cab", enabled: true, asset: "irs/vintage.wav", params: { mix: 85, levelDb: -1 } }
+          ]
+        }
+      },
+      {
+        saved: {
+          version: 1,
+          name: "Ambient",
+          routing: "serial",
+          global: { inputGainDb: -12, outputGainDb: -6, safetyLimitDb: -1 },
+          blocks: [
+            { id: "block-5", type: "cab", enabled: true, asset: "irs/open-back.wav", params: { mix: 100, levelDb: 0 } },
+            { id: "block-6", type: "nam", enabled: true, asset: "models/ambient.nam", params: { levelDb: -2 } }
+          ]
+        }
+      },
+      {
+        saved: {
+          version: 1,
+          name: "Solo",
+          routing: "serial",
+          global: { inputGainDb: -12, outputGainDb: -6, safetyLimitDb: -1 },
+          blocks: [
+            { id: "block-7", type: "nam", enabled: true, asset: "models/solo.nam", params: { levelDb: 1 } },
+            { id: "block-8", type: "cab", enabled: true, asset: "irs/focus.wav", params: { mix: 100, levelDb: 1 } }
+          ]
+        }
+      }
+    ].map(preset => ({ saved: preset.saved, working: clonePreset(preset.saved) }));
 
-    let selected = preset.blocks[0];
+    let activeIndex = 0;
+    let selected = presets[activeIndex].working.blocks[0];
     let mode = "preset";
-    let dirty = true;
+    let dirty = false;
     let bypassed = true;
     let masterVolume = 82;
 
+    function clonePreset(source) {
+      return JSON.parse(JSON.stringify(source));
+    }
+
     function blockLabel(block) {
       return block.type === "nam" ? "Neural Amp" : block.type === "cab" ? "Cab" : block.type.toUpperCase();
+    }
+
+    function activePreset() {
+      return presets[activeIndex];
+    }
+
+    function syncSelection() {
+      selected = activePreset().working.blocks.find(block => block.id === selected?.id) || activePreset().working.blocks[0];
+    }
+
+    function markDirty() {
+      dirty = JSON.stringify(activePreset().working) !== JSON.stringify(activePreset().saved);
+    }
+
+    function setActivePreset(index) {
+      activeIndex = index;
+      presets[activeIndex].working = clonePreset(presets[activeIndex].saved);
+      bypassed = false;
+      selected = presets[activeIndex].working.blocks[0];
+      dirty = false;
+      mode = "preset";
+      render();
     }
 
     function renderBlocks() {
@@ -412,7 +483,7 @@
       });
 
       lanes[0].insertAdjacentHTML("beforeend", '<div class="io">Input</div>');
-      preset.blocks.forEach((block, index) => {
+      activePreset().working.blocks.forEach((block, index) => {
         const el = document.createElement("button");
         el.className = "block" + (block === selected ? " selected" : "") + (block.asset ? "" : " missing");
         el.innerHTML = `<span>${blockLabel(block)}</span><small>${block.asset || "missing asset"}</small>`;
@@ -435,17 +506,30 @@
       document.getElementById("preset-view").classList.toggle("active", mode === "preset");
       document.getElementById("edit-view").classList.toggle("active", mode === "edit");
       document.getElementById("block-drawer").classList.toggle("hidden", mode !== "edit");
+      syncSelection();
       document.getElementById("param-title").textContent = blockLabel(selected).toUpperCase();
       document.getElementById("param-asset").textContent = selected.asset;
+      document.getElementById("level-value").textContent = `${Number(selected.params.levelDb ?? 0).toFixed(1)} dB`;
+      document.getElementById("mix-value").textContent = `${Math.round(Number(selected.params.mix ?? 100))}%`;
+      document.getElementById("level-control").value = selected.params.levelDb ?? 0;
+      document.getElementById("mix-control").value = selected.params.mix ?? 100;
       document.getElementById("dirty-pill").textContent = dirty ? "DIRTY" : "SAVED";
       document.getElementById("dirty-pill").className = "pill " + (dirty ? "dirty" : "clean");
       document.getElementById("overload-pill").classList.toggle("hidden", !bypassed);
       document.getElementById("master-volume").textContent = masterVolume;
       document.getElementById("master-slider").value = masterVolume;
-      document.getElementById("active-preset-name").textContent = preset.name;
+      document.getElementById("active-preset-name").textContent = activePreset().working.name;
+      document.querySelectorAll("[data-slot]").forEach(button => {
+        const index = Number(button.dataset.slot);
+        button.classList.toggle("active", index === activeIndex);
+        button.querySelector("strong").textContent = presets[index].working.name;
+      });
       renderBlocks();
     }
 
+    document.querySelectorAll("[data-slot]").forEach(button => {
+      button.onclick = () => setActivePreset(Number(button.dataset.slot));
+    });
     document.getElementById("preset-mode-btn").onclick = () => {
       mode = "preset";
       render();
@@ -461,34 +545,44 @@
     document.querySelectorAll("[data-add]").forEach(button => {
       button.onclick = () => {
         const type = button.dataset.add;
+        const active = activePreset();
         const block = {
           id: `block-${crypto.randomUUID()}`,
           type,
           enabled: true,
           asset: type === "nam" ? "models/new.nam" : "irs/new.wav",
-          params: {}
+          params: { levelDb: 0, mix: type === "cab" ? 100 : 100 }
         };
-        preset.blocks.push(block);
+        active.working.blocks.push(block);
         selected = block;
-        dirty = true;
+        markDirty();
         mode = "edit";
         render();
       };
     });
     document.getElementById("save-btn").onclick = () => {
+      const active = activePreset();
+      active.saved = clonePreset(active.working);
       dirty = false;
       render();
     };
     document.getElementById("discard-btn").onclick = () => {
+      const active = activePreset();
+      active.working = clonePreset(active.saved);
       dirty = false;
-      selected = preset.blocks[0];
+      selected = active.working.blocks[0];
       render();
     };
     document.getElementById("param-save").onclick = () => {
+      const active = activePreset();
+      active.saved = clonePreset(active.working);
       dirty = false;
       render();
     };
     document.getElementById("param-discard").onclick = () => {
+      const active = activePreset();
+      active.working = clonePreset(active.saved);
+      selected = active.working.blocks[0];
       dirty = false;
       render();
     };
@@ -498,6 +592,16 @@
     };
     document.getElementById("param-bypass").onclick = () => {
       bypassed = false;
+      render();
+    };
+    document.getElementById("level-control").oninput = event => {
+      selected.params.levelDb = Number(event.target.value);
+      markDirty();
+      render();
+    };
+    document.getElementById("mix-control").oninput = event => {
+      selected.params.mix = Number(event.target.value);
+      markDirty();
       render();
     };
 
