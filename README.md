@@ -135,6 +135,16 @@ First target settings:
 - output: stereo
 - round-trip latency goal: under `10 ms`
 
+## UI Mockup
+
+The first UI mockup is static HTML:
+
+```sh
+open mockups/preset-ui/index.html
+```
+
+It uses the same preset shape as `docs/superpowers/specs/2026-07-07-preset-ui-architecture-design.md`.
+
 ## Buildroot Firmware Seed
 
 This repo contains a Buildroot external tree under `buildroot/external`. It does not vendor Buildroot.
