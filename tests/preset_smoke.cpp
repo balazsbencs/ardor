@@ -1,3 +1,4 @@
+#include "preset/RuntimeState.h"
 #include "preset/ChainPlan.h"
 #include "preset/PresetStore.h"
 #include "preset/Preset.h"
@@ -138,5 +139,19 @@ int main()
   std::filesystem::remove_all(dataRoot);
 
   std::filesystem::remove_all(root);
+
+  ardor::RuntimeState runtime;
+  assert(!runtime.effectsBypassed());
+  runtime.reportOverload();
+  assert(runtime.effectsBypassed());
+  runtime.reportStableCallback();
+  assert(runtime.effectsBypassed());
+  runtime.clearEffectsBypass();
+  assert(!runtime.effectsBypassed());
+  runtime.reportOverload();
+  assert(runtime.effectsBypassed());
+  runtime.changePreset();
+  assert(!runtime.effectsBypassed());
+
   return 0;
 }
