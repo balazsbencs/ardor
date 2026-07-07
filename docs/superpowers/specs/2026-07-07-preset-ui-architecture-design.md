@@ -15,6 +15,7 @@ The first UI-capable pedal version has:
 - Four footswitches.
 - Preset mode for performance.
 - Edit mode for changing the active preset.
+- Encoder-controlled master output volume.
 - One serial signal chain.
 - Manual preset save and discard.
 - Live audio preview while editing.
@@ -107,6 +108,19 @@ flush/close
 replace preset-0.json
 ```
 
+## Master Output Volume
+
+The encoder controls the pedal's master output volume.
+
+This is a system-level volume, not a preset parameter:
+
+- Turning the encoder does not mark the active preset dirty.
+- Changing preset does not reset master volume.
+- Master volume is applied after the active chain or dry bypass path.
+- Master volume is applied before the final safety limiter.
+
+Preset `global.outputGainDb` remains the preset's saved level trim. Master volume is the physical output level control for the whole pedal.
+
 ## Engine Chain Contract
 
 The audio engine consumes the working preset.
@@ -127,6 +141,7 @@ For this phase, the engine only needs real DSP implementations for:
 - `cab`
 - global input gain
 - global output gain
+- system master output volume
 - global safety limit
 
 Unknown block types are preserved but bypassed:
@@ -181,6 +196,7 @@ It shows:
 - Four preset names in the current bank.
 - Active preset.
 - Dirty state if the active working preset is edited.
+- Master output volume.
 - CPU or callback budget usage.
 - Xrun/overload state.
 - Effects bypass state.
@@ -196,7 +212,7 @@ Footswitch behavior:
 
 Changing preset replaces the working preset with the saved preset from that slot and rebuilds the chain.
 
-The encoder may scroll banks in preset mode. Exact encoder acceleration and press behavior are left for the input implementation phase.
+The encoder adjusts master output volume in preset mode.
 
 ## Edit Mode
 
@@ -216,6 +232,7 @@ Edit interactions:
 - Drag an existing chain block to reorder it.
 - Tap a block to open its parameter drawer.
 - Parameter changes update the working preset and live audio immediately.
+- The encoder continues to adjust master output volume.
 - Save persists the working preset.
 - Discard reloads the saved preset.
 
@@ -253,6 +270,7 @@ The first implementation plan should include small checks for:
 - Missing assets mark blocks unavailable without deleting them.
 - Unsupported block types are skipped without deleting them.
 - Overload event latches effects bypass until manually cleared or preset changes.
+- Encoder master volume changes do not dirty the active preset.
 
 ## Out Of Scope
 
