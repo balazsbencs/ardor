@@ -1,5 +1,7 @@
 #include "preset/Preset.h"
 
+#include <stdexcept>
+
 namespace ardor {
 
 nlohmann::json toJson(const Preset& preset)
@@ -34,6 +36,9 @@ Preset presetFromJson(const nlohmann::json& json)
   preset.version = json.at("version").get<int>();
   preset.name = json.value("name", "");
   preset.routing = json.at("routing").get<std::string>();
+  if (preset.routing != "serial") {
+    throw std::invalid_argument("preset routing must be serial");
+  }
 
   const auto& global = json.at("global");
   preset.global.inputGainDb = global.value("inputGainDb", 0.0f);

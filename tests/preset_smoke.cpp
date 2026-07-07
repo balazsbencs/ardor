@@ -1,6 +1,7 @@
 #include "preset/Preset.h"
 
 #include <cassert>
+#include <stdexcept>
 #include <string>
 
 int main()
@@ -47,6 +48,20 @@ int main()
   assert(preset.blocks[1].type == "cab");
   assert(!preset.blocks[1].enabled);
   assert(preset.blocks[1].params.at("mix").get<float>() == 1.0f);
+
+  bool rejectedParallel = false;
+  try {
+    (void)ardor::presetFromJson(nlohmann::json::parse(R"({
+      "version": 1,
+      "name": "Parallel Fail",
+      "routing": "parallel",
+      "global": {},
+      "blocks": []
+    })"));
+  } catch (const std::invalid_argument&) {
+    rejectedParallel = true;
+  }
+  assert(rejectedParallel);
 
   const ardor::Preset roundTrip = ardor::presetFromJson(ardor::toJson(preset));
   assert(roundTrip.blocks.size() == 2);
