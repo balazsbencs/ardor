@@ -1,0 +1,11 @@
+/build*/
+/Buildroot*/
+/output/
+/models/*
+!/models/.gitkeep
+/irs/*
+!/irs/.gitkeep
+*.nam
+*.wav
+*.aiff
+*.flac
