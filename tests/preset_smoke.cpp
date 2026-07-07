@@ -63,6 +63,16 @@ int main()
   }
   assert(rejectedParallel);
 
+  ardor::Preset badWrite = preset;
+  badWrite.routing = "parallel";
+  bool rejectedWrite = false;
+  try {
+    (void)ardor::toJson(badWrite);
+  } catch (const std::invalid_argument&) {
+    rejectedWrite = true;
+  }
+  assert(rejectedWrite);
+
   const ardor::Preset roundTrip = ardor::presetFromJson(ardor::toJson(preset));
   assert(roundTrip.blocks.size() == 2);
   assert(roundTrip.blocks[1].id == "block-2");

@@ -50,3 +50,13 @@ GREEN:
   - `ctest --test-dir build --output-on-failure -R pedal-preset-smoke`
   - `ctest --test-dir build --output-on-failure`
 - Result: all commands passed.
+
+## Write-Path Fix Follow-up
+
+- Added the same serial-only guard to `toJson()` so invalid public `routing` values cannot be written back out.
+- Added a smoke-test assertion that `toJson()` rejects a preset with `routing = "parallel"`.
+- Verification rerun:
+  - `cmake --build build`
+  - `ctest --test-dir build --output-on-failure -R pedal-preset-smoke`
+  - `ctest --test-dir build --output-on-failure`
+- Result: all commands passed again.

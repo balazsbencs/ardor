@@ -4,8 +4,21 @@
 
 namespace ardor {
 
+namespace {
+
+void requireSerialRouting(const std::string& routing)
+{
+  if (routing != "serial") {
+    throw std::invalid_argument("preset routing must be serial");
+  }
+}
+
+} // namespace
+
 nlohmann::json toJson(const Preset& preset)
 {
+  requireSerialRouting(preset.routing);
+
   nlohmann::json blocks = nlohmann::json::array();
   for (const auto& block : preset.blocks) {
     blocks.push_back({
@@ -36,9 +49,7 @@ Preset presetFromJson(const nlohmann::json& json)
   preset.version = json.at("version").get<int>();
   preset.name = json.value("name", "");
   preset.routing = json.at("routing").get<std::string>();
-  if (preset.routing != "serial") {
-    throw std::invalid_argument("preset routing must be serial");
-  }
+  requireSerialRouting(preset.routing);
 
   const auto& global = json.at("global");
   preset.global.inputGainDb = global.value("inputGainDb", 0.0f);
