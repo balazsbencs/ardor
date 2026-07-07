@@ -16,6 +16,9 @@ README was updated with the UI mockup section and launch command.
 Verification:
 - `test -f mockups/preset-ui/index.html`
 
+Follow-up:
+- Rendered the preset-mode row from the same preset state as the footer, and made those row tiles use the same preset selection handler.
+
 Commit:
 - `38483e1` `docs: add preset ui mockup`
 

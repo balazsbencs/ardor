@@ -326,10 +326,7 @@
           <div class="lane">
             <div class="lane-label">Preset</div>
             <div class="io">Input</div>
-            <div class="preset-card active"><strong>Clean Lead</strong><span>Active</span></div>
-            <div class="preset-card"><strong>Crunch</strong><span>Saved</span></div>
-            <div class="preset-card"><strong>Ambient</strong><span>Saved</span></div>
-            <div class="preset-card"><strong>Solo</strong><span>Saved</span></div>
+            <div id="preset-mode-row" class="presets"></div>
             <div class="io">Output</div>
           </div>
           <div class="lane">
@@ -379,10 +376,7 @@
       </aside>
     </main>
     <footer class="presets">
-      <button class="preset-card active" data-slot="0"><strong>Clean Lead</strong><span>Bank 000 / Slot 1</span></button>
-      <button class="preset-card" data-slot="1"><strong>Crunch</strong><span>Bank 000 / Slot 2</span></button>
-      <button class="preset-card" data-slot="2"><strong>Ambient</strong><span>Bank 000 / Slot 3</span></button>
-      <button class="preset-card" data-slot="3"><strong>Solo</strong><span>Bank 000 / Slot 4</span></button>
+      <div id="footer-presets" class="presets"></div>
     </footer>
   </div>
   <script>
@@ -474,6 +468,19 @@
       render();
     }
 
+    function renderPresetTiles(containerId, activeLabel) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      presets.forEach((preset, index) => {
+        const button = document.createElement("button");
+        button.className = "preset-card" + (index === activeIndex ? " active" : "");
+        button.dataset.slot = index;
+        button.innerHTML = `<strong>${preset.working.name}</strong><span>${activeLabel(index)}</span>`;
+        button.onclick = () => setActivePreset(index);
+        container.appendChild(button);
+      });
+    }
+
     function renderBlocks() {
       const lanes = [document.getElementById("lane-top"), document.getElementById("lane-bottom")];
       lanes.forEach(lane => {
@@ -519,17 +526,10 @@
       document.getElementById("master-volume").textContent = masterVolume;
       document.getElementById("master-slider").value = masterVolume;
       document.getElementById("active-preset-name").textContent = activePreset().working.name;
-      document.querySelectorAll("[data-slot]").forEach(button => {
-        const index = Number(button.dataset.slot);
-        button.classList.toggle("active", index === activeIndex);
-        button.querySelector("strong").textContent = presets[index].working.name;
-      });
+      renderPresetTiles("preset-mode-row", index => index === activeIndex ? "Active" : "Saved");
+      renderPresetTiles("footer-presets", index => `Bank 000 / Slot ${index + 1}`);
       renderBlocks();
     }
-
-    document.querySelectorAll("[data-slot]").forEach(button => {
-      button.onclick = () => setActivePreset(Number(button.dataset.slot));
-    });
     document.getElementById("preset-mode-btn").onclick = () => {
       mode = "preset";
       render();
