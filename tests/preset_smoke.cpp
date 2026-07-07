@@ -123,14 +123,16 @@ int main()
 
   ardor::Preset chainPreset;
   chainPreset.blocks.push_back({"ready", "nam", true, "models/ok.nam", nlohmann::json::object()});
+  chainPreset.blocks.push_back({"empty", "cab", true, "", nlohmann::json::object()});
   chainPreset.blocks.push_back({"missing", "cab", true, "irs/missing.wav", nlohmann::json::object()});
   chainPreset.blocks.push_back({"future", "delay", true, "", nlohmann::json::object()});
 
   const ardor::ChainPlan plan = ardor::buildChainPlan(chainPreset, dataRoot);
-  assert(plan.blocks.size() == 3);
+  assert(plan.blocks.size() == 4);
   assert(plan.blocks[0].status == ardor::ChainBlockStatus::Ready);
   assert(plan.blocks[1].status == ardor::ChainBlockStatus::MissingAsset);
-  assert(plan.blocks[2].status == ardor::ChainBlockStatus::Unsupported);
+  assert(plan.blocks[2].status == ardor::ChainBlockStatus::MissingAsset);
+  assert(plan.blocks[3].status == ardor::ChainBlockStatus::Unsupported);
   assert(plan.runnableBlockCount == 1);
 
   std::filesystem::remove_all(dataRoot);
