@@ -104,7 +104,8 @@ Run with explicit UMC22 routing:
   --input-channel right \
   --output-channel both \
   --input-gain-db -12 \
-  --output-gain-db -6
+  --output-gain-db -6 \
+  --safety-limit-db -1
 ```
 
 Stop with `Ctrl-C`.
@@ -112,6 +113,8 @@ Stop with `Ctrl-C`.
 Use `--input-channel left` for input 1 and `--input-channel right` for input 2. On the UMC22, the instrument input is commonly the right/second capture channel.
 
 Realtime mode uses the full IR by default through partitioned convolution. Use `--ir-samples N` to cap long IRs when comparing performance or testing slower hardware.
+
+The output safety limiter is on by default at `-1 dBFS`; adjust it with `--safety-limit-db DB` or disable it with `--no-safety-limit`.
 
 If the sound is overloaded, reduce `--input-gain-db` first. That lowers the signal before NAM. If the amp character is right but the final output clips, reduce `--output-gain-db`.
 

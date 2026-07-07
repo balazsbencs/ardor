@@ -59,17 +59,23 @@ int main()
   const auto [left, right] = engine.process(0.25f);
   if (require(std::fabs(left - 0.25f) < 0.0001f)) return 1;
   if (require(std::fabs(right - 0.25f) < 0.0001f)) return 1;
+  engine.setSafetyLimit(0.5f);
+  const auto [limitedLeft, limitedRight] = engine.process(1.0f);
+  if (require(std::fabs(limitedLeft - 0.5f) < 0.0001f)) return 1;
+  if (require(std::fabs(limitedRight - 0.5f) < 0.0001f)) return 1;
 
   ardor::PedalEngine blockEngine;
   blockEngine.loadIr(impulse);
+  blockEngine.setSafetyLimit(0.5f);
   std::vector<float> blockLeft(input.size(), 0.0f);
   std::vector<float> blockRight(input.size(), 0.0f);
   for (size_t offset = 0; offset < input.size(); offset += 64) {
     blockEngine.processBlock(input.data() + offset, blockLeft.data() + offset, blockRight.data() + offset, 64);
   }
   for (size_t i = 0; i < input.size(); ++i) {
-    if (require(std::fabs(expected[i] - blockLeft[i]) < 0.0005f)) return 1;
-    if (require(std::fabs(expected[i] - blockRight[i]) < 0.0005f)) return 1;
+    const float limited = std::fmax(-0.5f, std::fmin(0.5f, expected[i]));
+    if (require(std::fabs(limited - blockLeft[i]) < 0.0005f)) return 1;
+    if (require(std::fabs(limited - blockRight[i]) < 0.0005f)) return 1;
   }
 
   if (require(!engine.loadNam(std::filesystem::path{"missing.nam"}, 48000.0, 128))) return 1;

@@ -15,6 +15,8 @@ public:
   void loadIr(std::vector<float> impulse);
   void setInputGain(float gain);
   void setOutputGain(float gain);
+  void setSafetyLimit(float limit);
+  void setSafetyLimiterEnabled(bool enabled);
   std::pair<float, float> process(float input);
   void processBlock(const float* input, float* left, float* right, size_t frames);
   void reset();
@@ -22,10 +24,14 @@ public:
 private:
   float inputGain_ = 1.0f;
   float outputGain_ = 1.0f;
+  float safetyLimit_ = 0.8912509f;
+  bool safetyLimiterEnabled_ = true;
   NamProcessor nam_;
   IrConvolver ir_;
   std::vector<float> namBlock_;
   std::vector<float> irBlock_;
+
+  float applySafety(float sample) const;
 };
 
 } // namespace ardor

@@ -1,5 +1,6 @@
 #include "PedalEngine.h"
 
+#include <algorithm>
 #include <utility>
 
 namespace ardor {
@@ -24,6 +25,16 @@ void PedalEngine::setOutputGain(float gain)
   outputGain_ = gain;
 }
 
+void PedalEngine::setSafetyLimit(float limit)
+{
+  safetyLimit_ = std::max(0.0f, limit);
+}
+
+void PedalEngine::setSafetyLimiterEnabled(bool enabled)
+{
+  safetyLimiterEnabled_ = enabled;
+}
+
 void PedalEngine::reset()
 {
   ir_.reset();
@@ -33,7 +44,7 @@ std::pair<float, float> PedalEngine::process(float input)
 {
   const float afterGain = input * inputGain_;
   const float afterNam = nam_.process(afterGain);
-  const float wet = ir_.processSample(afterNam) * outputGain_;
+  const float wet = applySafety(ir_.processSample(afterNam) * outputGain_);
   return {wet, wet};
 }
 
@@ -51,10 +62,18 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
   ir_.processBlock(namBlock_.data(), irBlock_.data(), frames);
 
   for (size_t i = 0; i < frames; ++i) {
-    const float wet = irBlock_[i] * outputGain_;
+    const float wet = applySafety(irBlock_[i] * outputGain_);
     left[i] = wet;
     right[i] = wet;
   }
+}
+
+float PedalEngine::applySafety(float sample) const
+{
+  if (!safetyLimiterEnabled_ || safetyLimit_ <= 0.0f) {
+    return sample;
+  }
+  return std::clamp(sample, -safetyLimit_, safetyLimit_);
 }
 
 } // namespace ardor

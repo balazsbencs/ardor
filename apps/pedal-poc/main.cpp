@@ -30,6 +30,8 @@ struct Args {
   size_t irSamples = 0;
   float inputGainDb = 0.0f;
   float outputGainDb = 0.0f;
+  float safetyLimitDb = -1.0f;
+  bool safetyLimiter = true;
   int captureDeviceIndex = -1;
   int playbackDeviceIndex = -1;
   uint32_t inputChannel = 0;
@@ -92,6 +94,12 @@ bool parse(int argc, char** argv, Args& args)
       const char* v = value();
       if (!v) return false;
       args.outputGainDb = std::stof(v);
+    } else if (a == "--safety-limit-db") {
+      const char* v = value();
+      if (!v) return false;
+      args.safetyLimitDb = std::stof(v);
+    } else if (a == "--no-safety-limit") {
+      args.safetyLimiter = false;
     } else if (a == "--capture-device") {
       const char* v = value();
       if (!v) return false;
@@ -223,7 +231,8 @@ int main(int argc, char** argv)
                 << "  pedal-poc --realtime --model amp.nam --ir cab.wav [--sample-rate 48000] [--block-size 64]\n"
                 << "            [--capture-device N] [--playback-device N] [--input-channel left|right]\n"
                 << "            [--output-channel both|left|right] [--ir-samples N]\n"
-                << "            [--input-gain-db DB] [--output-gain-db DB]\n";
+                << "            [--input-gain-db DB] [--output-gain-db DB]\n"
+                << "            [--safety-limit-db DB] [--no-safety-limit]\n";
       return 2;
     }
 
@@ -251,7 +260,15 @@ int main(int argc, char** argv)
     engine.loadIr(std::move(impulse));
     engine.setInputGain(dbToGain(args.inputGainDb));
     engine.setOutputGain(dbToGain(args.outputGainDb));
-    std::cerr << "Gains: input " << args.inputGainDb << " dB, output " << args.outputGainDb << " dB\n";
+    engine.setSafetyLimiterEnabled(args.safetyLimiter);
+    engine.setSafetyLimit(dbToGain(args.safetyLimitDb));
+    std::cerr << "Gains: input " << args.inputGainDb << " dB, output " << args.outputGainDb << " dB"
+              << ", safety ";
+    if (args.safetyLimiter) {
+      std::cerr << args.safetyLimitDb << " dB\n";
+    } else {
+      std::cerr << "off\n";
+    }
 
     if (args.realtime) {
       if (!engine.loadNam(args.model, args.sampleRate, static_cast<int>(args.blockSize))) {
