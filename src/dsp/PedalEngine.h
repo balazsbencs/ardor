@@ -15,6 +15,8 @@ public:
   void loadIr(std::vector<float> impulse);
   void setInputGain(float gain);
   void setOutputGain(float gain);
+  void setMasterVolume(float gain);
+  void setEffectsBypassed(bool bypassed);
   void setSafetyLimit(float limit);
   void setSafetyLimiterEnabled(bool enabled);
   std::pair<float, float> process(float input);
@@ -24,7 +26,9 @@ public:
 private:
   float inputGain_ = 1.0f;
   float outputGain_ = 1.0f;
+  float masterVolume_ = 1.0f;
   float safetyLimit_ = 0.8912509f;
+  bool effectsBypassed_ = false;
   bool safetyLimiterEnabled_ = true;
   NamProcessor nam_;
   IrConvolver ir_;
