@@ -50,10 +50,16 @@ if(UNIX AND NOT APPLE)
   target_link_libraries(ardor_dsp PUBLIC stdc++fs)
 endif()
 
+add_library(ardor_audio
+  src/audio/MiniaudioBackend.cpp
+)
+target_include_directories(ardor_audio PUBLIC src ${miniaudio_SOURCE_DIR})
+target_link_libraries(ardor_audio PUBLIC ardor_dsp)
+
 add_executable(pedal-poc apps/pedal-poc/main.cpp)
 target_compile_features(pedal-poc PRIVATE cxx_std_20)
 target_include_directories(pedal-poc PRIVATE ${miniaudio_SOURCE_DIR})
-target_link_libraries(pedal-poc PRIVATE ardor_dsp)
+target_link_libraries(pedal-poc PRIVATE ardor_audio)
 
 add_executable(pedal-offline-smoke tests/offline_smoke.cpp)
 target_link_libraries(pedal-offline-smoke PRIVATE ardor_dsp)
@@ -63,6 +69,8 @@ add_test(NAME pedal-offline-smoke COMMAND pedal-offline-smoke)
 
 if(APPLE)
   target_link_libraries(pedal-poc PRIVATE "-framework CoreAudio" "-framework AudioToolbox" "-framework AudioUnit")
+  target_link_libraries(ardor_audio PRIVATE "-framework CoreAudio" "-framework AudioToolbox" "-framework AudioUnit")
 elseif(UNIX)
   target_link_libraries(pedal-poc PRIVATE pthread m dl)
+  target_link_libraries(ardor_audio PRIVATE pthread m dl)
 endif()
