@@ -53,6 +53,7 @@ endif()
 add_library(ardor_preset
   src/preset/Preset.cpp
   src/preset/PresetStore.cpp
+  src/preset/ChainPlan.cpp
 )
 target_include_directories(ardor_preset PUBLIC
   src
