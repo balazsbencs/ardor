@@ -12,6 +12,7 @@ public:
 
 private:
   bool effectsBypassed_ = false;
+  int consecutiveOverloads_ = 0;
 };
 
 } // namespace ardor

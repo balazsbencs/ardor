@@ -19,6 +19,14 @@ Deferred for now: LVGL UI, display integration, footswitches, encoders, presets,
 
 Real `.nam` and IR files are ignored by git. Keep licensed/user-provided assets local unless redistribution is allowed.
 
+## Preset Storage
+
+Preset files live under the data root in bank/slot folders, for example:
+
+- `presets/bank-000/preset-0.json`
+
+Block assets inside preset JSON stay relative to that same data root, such as `models/clean.nam` or `irs/open-back.wav`. Absolute paths and `..` traversal are rejected. Real `.nam` models and IRs stay local and are not committed unless redistribution is allowed.
+
 ## Build
 
 ```sh

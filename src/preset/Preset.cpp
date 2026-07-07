@@ -1,5 +1,6 @@
 #include "preset/Preset.h"
 
+#include <filesystem>
 #include <stdexcept>
 
 namespace ardor {
@@ -13,11 +14,41 @@ void requireSerialRouting(const std::string& routing)
   }
 }
 
+void validateBlockAssets(const std::vector<PresetBlock>& blocks)
+{
+  for (const auto& block : blocks) {
+    if (!block.asset.empty() && !isValidBlockAssetPath(block.asset)) {
+      throw std::invalid_argument("preset asset must stay under data root");
+    }
+  }
+}
+
 } // namespace
+
+bool isValidBlockAssetPath(std::string_view asset)
+{
+  if (asset.empty()) {
+    return true;
+  }
+
+  const std::filesystem::path path(asset);
+  if (path.is_absolute()) {
+    return false;
+  }
+
+  for (const auto& part : path) {
+    if (part == "..") {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 nlohmann::json toJson(const Preset& preset)
 {
   requireSerialRouting(preset.routing);
+  validateBlockAssets(preset.blocks);
 
   nlohmann::json blocks = nlohmann::json::array();
   for (const auto& block : preset.blocks) {
@@ -65,6 +96,8 @@ Preset presetFromJson(const nlohmann::json& json)
     block.params = blockJson.value("params", nlohmann::json::object());
     preset.blocks.push_back(block);
   }
+
+  validateBlockAssets(preset.blocks);
 
   return preset;
 }

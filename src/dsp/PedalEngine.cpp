@@ -17,37 +17,35 @@ void PedalEngine::loadIr(std::vector<float> impulse)
 
 void PedalEngine::setInputGain(float gain)
 {
-  inputGain_ = gain;
+  inputGain_.store(gain, std::memory_order_relaxed);
 }
 
 void PedalEngine::setOutputGain(float gain)
 {
-  outputGain_ = gain;
+  outputGain_.store(gain, std::memory_order_relaxed);
 }
 
 void PedalEngine::setMasterVolume(float gain)
 {
-  masterVolume_ = std::max(0.0f, gain);
+  masterVolume_.store(std::max(0.0f, gain), std::memory_order_relaxed);
 }
 
 void PedalEngine::setEffectsBypassed(bool bypassed)
 {
-  if (effectsBypassed_ == bypassed) {
-    return;
+  const bool previous = effectsBypassed_.exchange(bypassed, std::memory_order_relaxed);
+  if (previous != bypassed) {
+    resetRequested_.store(true, std::memory_order_relaxed);
   }
-
-  effectsBypassed_ = bypassed;
-  reset();
 }
 
 void PedalEngine::setSafetyLimit(float limit)
 {
-  safetyLimit_ = std::max(0.0f, limit);
+  safetyLimit_.store(std::max(0.0f, limit), std::memory_order_relaxed);
 }
 
 void PedalEngine::setSafetyLimiterEnabled(bool enabled)
 {
-  safetyLimiterEnabled_ = enabled;
+  safetyLimiterEnabled_.store(enabled, std::memory_order_relaxed);
 }
 
 void PedalEngine::reset()
@@ -56,24 +54,37 @@ void PedalEngine::reset()
   ir_.reset();
 }
 
+void PedalEngine::applyPendingReset()
+{
+  if (resetRequested_.exchange(false, std::memory_order_relaxed)) {
+    reset();
+  }
+}
+
 std::pair<float, float> PedalEngine::process(float input)
 {
-  if (effectsBypassed_) {
-    const float dry = applySafety(input * masterVolume_);
+  applyPendingReset();
+
+  const float masterVolume = masterVolume_.load(std::memory_order_relaxed);
+  if (effectsBypassed_.load(std::memory_order_relaxed)) {
+    const float dry = applySafety(input * masterVolume);
     return {dry, dry};
   }
 
-  const float afterGain = input * inputGain_;
+  const float afterGain = input * inputGain_.load(std::memory_order_relaxed);
   const float afterNam = nam_.process(afterGain);
-  const float wet = applySafety(ir_.processSample(afterNam) * outputGain_ * masterVolume_);
+  const float wet = applySafety(ir_.processSample(afterNam) * outputGain_.load(std::memory_order_relaxed) * masterVolume);
   return {wet, wet};
 }
 
 void PedalEngine::processBlock(const float* input, float* left, float* right, size_t frames)
 {
-  if (effectsBypassed_) {
+  applyPendingReset();
+
+  const float masterVolume = masterVolume_.load(std::memory_order_relaxed);
+  if (effectsBypassed_.load(std::memory_order_relaxed)) {
     for (size_t i = 0; i < frames; ++i) {
-      const float dry = applySafety(input[i] * masterVolume_);
+      const float dry = applySafety(input[i] * masterVolume);
       left[i] = dry;
       right[i] = dry;
     }
@@ -85,14 +96,16 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
     irBlock_.resize(frames);
   }
 
+  const float inputGain = inputGain_.load(std::memory_order_relaxed);
   for (size_t i = 0; i < frames; ++i) {
-    namBlock_[i] = nam_.process(input[i] * inputGain_);
+    namBlock_[i] = nam_.process(input[i] * inputGain);
   }
 
   ir_.processBlock(namBlock_.data(), irBlock_.data(), frames);
 
+  const float outputGain = outputGain_.load(std::memory_order_relaxed);
   for (size_t i = 0; i < frames; ++i) {
-    const float wet = applySafety(irBlock_[i] * outputGain_ * masterVolume_);
+    const float wet = applySafety(irBlock_[i] * outputGain * masterVolume);
     left[i] = wet;
     right[i] = wet;
   }
@@ -100,10 +113,15 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
 
 float PedalEngine::applySafety(float sample) const
 {
-  if (!safetyLimiterEnabled_ || safetyLimit_ <= 0.0f) {
+  if (!safetyLimiterEnabled_.load(std::memory_order_relaxed)) {
     return sample;
   }
-  return std::clamp(sample, -safetyLimit_, safetyLimit_);
+
+  const float safetyLimit = safetyLimit_.load(std::memory_order_relaxed);
+  if (safetyLimit <= 0.0f) {
+    return sample;
+  }
+  return std::clamp(sample, -safetyLimit, safetyLimit);
 }
 
 } // namespace ardor

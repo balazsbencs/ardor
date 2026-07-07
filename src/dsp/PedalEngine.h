@@ -3,6 +3,7 @@
 #include "IrConvolver.h"
 #include "NamProcessor.h"
 
+#include <atomic>
 #include <filesystem>
 #include <utility>
 #include <vector>
@@ -24,17 +25,19 @@ public:
   void reset();
 
 private:
-  float inputGain_ = 1.0f;
-  float outputGain_ = 1.0f;
-  float masterVolume_ = 1.0f;
-  float safetyLimit_ = 0.8912509f;
-  bool effectsBypassed_ = false;
-  bool safetyLimiterEnabled_ = true;
+  std::atomic<float> inputGain_{1.0f};
+  std::atomic<float> outputGain_{1.0f};
+  std::atomic<float> masterVolume_{1.0f};
+  std::atomic<float> safetyLimit_{0.8912509f};
+  std::atomic<bool> effectsBypassed_{false};
+  std::atomic<bool> safetyLimiterEnabled_{true};
+  std::atomic<bool> resetRequested_{false};
   NamProcessor nam_;
   IrConvolver ir_;
   std::vector<float> namBlock_;
   std::vector<float> irBlock_;
 
+  void applyPendingReset();
   float applySafety(float sample) const;
 };
 

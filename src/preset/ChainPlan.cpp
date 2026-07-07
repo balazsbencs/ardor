@@ -25,6 +25,8 @@ ChainPlan buildChainPlan(const Preset& preset, const std::filesystem::path& data
       blockPlan.status = ChainBlockStatus::Unsupported;
     } else if (block.asset.empty()) {
       blockPlan.status = ChainBlockStatus::MissingAsset;
+    } else if (!isValidBlockAssetPath(block.asset)) {
+      blockPlan.status = ChainBlockStatus::MissingAsset;
     } else if (!std::filesystem::exists(dataRoot / block.asset)) {
       blockPlan.status = ChainBlockStatus::MissingAsset;
     } else {

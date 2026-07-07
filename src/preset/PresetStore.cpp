@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iomanip>
+#include <ios>
 #include <sstream>
 #include <stdexcept>
 
@@ -58,14 +59,26 @@ void PresetStore::save(PresetSlot slot, const Preset& preset) const
 {
   const auto path = pathFor(slot);
   std::filesystem::create_directories(path.parent_path());
-  const auto tmp = path.string() + ".tmp";
+  const auto tmp = path.parent_path() / (path.filename().string() + ".tmp");
 
-  {
-    std::ofstream out(tmp, std::ios::trunc);
-    if (!out) {
-      throw std::runtime_error("failed to write preset: " + tmp);
-    }
-    out << toJson(preset).dump(2) << '\n';
+  std::ofstream out(tmp, std::ios::trunc);
+  if (!out) {
+    throw std::runtime_error("failed to write preset: " + tmp.string());
+  }
+
+  out << toJson(preset).dump(2) << '\n';
+  if (!out.good()) {
+    throw std::runtime_error("failed to write preset: " + tmp.string());
+  }
+
+  out.flush();
+  if (!out.good()) {
+    throw std::runtime_error("failed to flush preset: " + tmp.string());
+  }
+
+  out.close();
+  if (out.fail()) {
+    throw std::runtime_error("failed to close preset: " + tmp.string());
   }
 
   std::filesystem::rename(tmp, path);

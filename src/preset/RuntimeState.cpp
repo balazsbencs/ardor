@@ -4,21 +4,31 @@ namespace ardor {
 
 void RuntimeState::reportOverload()
 {
-  effectsBypassed_ = true;
+  if (effectsBypassed_) {
+    return;
+  }
+
+  ++consecutiveOverloads_;
+  if (consecutiveOverloads_ >= 3) {
+    effectsBypassed_ = true;
+  }
 }
 
 void RuntimeState::reportStableCallback()
 {
+  consecutiveOverloads_ = 0;
 }
 
 void RuntimeState::clearEffectsBypass()
 {
   effectsBypassed_ = false;
+  consecutiveOverloads_ = 0;
 }
 
 void RuntimeState::changePreset()
 {
   effectsBypassed_ = false;
+  consecutiveOverloads_ = 0;
 }
 
 bool RuntimeState::effectsBypassed() const

@@ -2,6 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <string_view>
 #include <string>
 #include <vector>
 
@@ -31,5 +32,6 @@ struct Preset {
 
 nlohmann::json toJson(const Preset& preset);
 Preset presetFromJson(const nlohmann::json& json);
+bool isValidBlockAssetPath(std::string_view asset);
 
 } // namespace ardor
