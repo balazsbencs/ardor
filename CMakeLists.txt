@@ -14,15 +14,41 @@ FetchContent_Declare(
   miniaudio
   GIT_REPOSITORY https://github.com/mackron/miniaudio.git
   GIT_TAG 0.11.25
+  SOURCE_SUBDIR cmake-do-not-add
 )
 FetchContent_MakeAvailable(miniaudio)
 
+FetchContent_Declare(
+  NeuralAmpModelerCore
+  GIT_REPOSITORY https://github.com/sdatkinson/NeuralAmpModelerCore.git
+  GIT_TAG 4c0ee78b71abd5eb20aec58562e7540f43caac3b
+  GIT_SUBMODULES_RECURSE TRUE
+  SOURCE_SUBDIR cmake-do-not-add
+)
+FetchContent_MakeAvailable(NeuralAmpModelerCore)
+
+file(GLOB NAM_SOURCES
+  ${neuralampmodelercore_SOURCE_DIR}/NAM/*.cpp
+  ${neuralampmodelercore_SOURCE_DIR}/NAM/*/*.cpp
+)
+
 add_library(ardor_dsp
   src/dsp/IrConvolver.cpp
+  src/dsp/NamProcessor.cpp
   src/dsp/PedalEngine.cpp
+  ${NAM_SOURCES}
 )
-target_include_directories(ardor_dsp PUBLIC src)
+target_include_directories(ardor_dsp PUBLIC
+  src
+  ${neuralampmodelercore_SOURCE_DIR}
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies/eigen
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies/nlohmann
+)
 target_compile_features(ardor_dsp PUBLIC cxx_std_20)
+target_compile_definitions(ardor_dsp PRIVATE NAM_ENABLE_A2_FAST NAM_SAMPLE_FLOAT)
+if(UNIX AND NOT APPLE)
+  target_link_libraries(ardor_dsp PUBLIC stdc++fs)
+endif()
 
 add_executable(pedal-poc apps/pedal-poc/main.cpp)
 target_compile_features(pedal-poc PRIVATE cxx_std_20)

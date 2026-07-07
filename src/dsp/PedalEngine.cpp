@@ -4,6 +4,11 @@
 
 namespace ardor {
 
+bool PedalEngine::loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize)
+{
+  return nam_.load(modelPath, sampleRate, maxBlockSize);
+}
+
 void PedalEngine::loadIr(std::vector<float> impulse)
 {
   ir_.loadImpulse(std::move(impulse));
@@ -26,7 +31,9 @@ void PedalEngine::reset()
 
 std::pair<float, float> PedalEngine::process(float input)
 {
-  const float wet = ir_.processSample(input * inputGain_) * outputGain_;
+  const float afterGain = input * inputGain_;
+  const float afterNam = nam_.process(afterGain);
+  const float wet = ir_.processSample(afterNam) * outputGain_;
   return {wet, wet};
 }
 
