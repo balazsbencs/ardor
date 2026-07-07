@@ -23,6 +23,7 @@ struct Args {
   bool devices = false;
   uint32_t sampleRate = 48000;
   uint32_t blockSize = 64;
+  size_t irSamples = 0;
   int captureDeviceIndex = -1;
   int playbackDeviceIndex = -1;
   uint32_t inputChannel = 0;
@@ -73,6 +74,10 @@ bool parse(int argc, char** argv, Args& args)
       const char* v = value();
       if (!v) return false;
       args.blockSize = static_cast<uint32_t>(std::stoul(v));
+    } else if (a == "--ir-samples") {
+      const char* v = value();
+      if (!v) return false;
+      args.irSamples = static_cast<size_t>(std::stoull(v));
     } else if (a == "--capture-device") {
       const char* v = value();
       if (!v) return false;
@@ -197,7 +202,8 @@ int main(int argc, char** argv)
                 << "  pedal-poc --devices\n"
                 << "  pedal-poc --offline --ir cab.wav --input dry.wav --output wet.wav (--model amp.nam | --bypass-nam)\n"
                 << "  pedal-poc --realtime --model amp.nam --ir cab.wav [--sample-rate 48000] [--block-size 64]\n"
-                << "            [--capture-device N] [--playback-device N] [--input-channel left|right] [--output-channel both|left|right]\n";
+                << "            [--capture-device N] [--playback-device N] [--input-channel left|right]\n"
+                << "            [--output-channel both|left|right] [--ir-samples N]\n";
       return 2;
     }
 
@@ -213,6 +219,17 @@ int main(int argc, char** argv)
     }
 
     ardor::PedalEngine engine;
+    if (args.realtime) {
+      const size_t maxRealtimeIr = args.irSamples == 0 ? 4096 : args.irSamples;
+      if (impulse.size() > maxRealtimeIr) {
+        // ponytail: naive FIR; use partitioned convolution when long realtime IRs matter.
+        impulse.resize(maxRealtimeIr);
+        std::cerr << "Trimmed realtime IR to " << maxRealtimeIr << " samples\n";
+      }
+    } else if (args.irSamples > 0 && impulse.size() > args.irSamples) {
+      impulse.resize(args.irSamples);
+      std::cerr << "Trimmed IR to " << args.irSamples << " samples\n";
+    }
     engine.loadIr(std::move(impulse));
 
     if (args.realtime) {

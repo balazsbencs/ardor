@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <iostream>
 
 namespace ardor {
@@ -20,6 +21,7 @@ struct MiniaudioBackendState {
   bool deviceReady = false;
   std::atomic<uint64_t> callbacks{0};
   std::atomic<uint64_t> xruns{0};
+  double sampleRate = 48000.0;
 };
 
 namespace {
@@ -35,11 +37,18 @@ void callback(ma_device* device, void* output, const void* input, ma_uint32 fram
     return;
   }
 
+  const auto start = std::chrono::steady_clock::now();
   for (ma_uint32 i = 0; i < frameCount; ++i) {
     const float sample = in[i * state->captureChannels + state->inputChannel];
     const auto [left, right] = state->engine->process(sample);
     out[i * 2] = (state->outputChannel == OutputChannel::Right) ? 0.0f : left;
     out[i * 2 + 1] = (state->outputChannel == OutputChannel::Left) ? 0.0f : right;
+  }
+  const auto elapsed = std::chrono::steady_clock::now() - start;
+  const double elapsedSeconds = std::chrono::duration<double>(elapsed).count();
+  const double budgetSeconds = static_cast<double>(frameCount) / state->sampleRate;
+  if (elapsedSeconds > budgetSeconds) {
+    state->xruns.fetch_add(1, std::memory_order_relaxed);
   }
   state->callbacks.fetch_add(1, std::memory_order_relaxed);
 }
@@ -59,6 +68,7 @@ bool MiniaudioBackend::start(PedalEngine& engine, const RealtimeOptions& options
   state_->captureChannels = options.inputChannel + 1;
   state_->inputChannel = options.inputChannel;
   state_->outputChannel = options.outputChannel;
+  state_->sampleRate = static_cast<double>(options.sampleRate);
 
   if (ma_context_init(nullptr, 0, nullptr, &state_->context) != MA_SUCCESS) {
     delete state_;
