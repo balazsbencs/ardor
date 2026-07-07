@@ -102,15 +102,14 @@ Run with explicit UMC22 routing:
   --capture-device 1 \
   --playback-device 1 \
   --input-channel right \
-  --output-channel both \
-  --ir-samples 8192
+  --output-channel both
 ```
 
 Stop with `Ctrl-C`.
 
 Use `--input-channel left` for input 1 and `--input-channel right` for input 2. On the UMC22, the instrument input is commonly the right/second capture channel.
 
-Realtime mode trims long IRs to `4096` samples by default because the current POC uses a simple FIR convolver. On macOS with the UMC22, `--block-size 64 --ir-samples 8192` is the current known-good setting. Use `--ir-samples N` to choose a different limit. `0` currently means "use the default realtime limit"; full-length realtime IRs need partitioned convolution.
+Realtime mode uses the full IR by default through partitioned convolution. Use `--ir-samples N` to cap long IRs when comparing performance or testing slower hardware.
 
 Realtime status prints once per second:
 

@@ -37,4 +37,24 @@ std::pair<float, float> PedalEngine::process(float input)
   return {wet, wet};
 }
 
+void PedalEngine::processBlock(const float* input, float* left, float* right, size_t frames)
+{
+  if (namBlock_.size() < frames) {
+    namBlock_.resize(frames);
+    irBlock_.resize(frames);
+  }
+
+  for (size_t i = 0; i < frames; ++i) {
+    namBlock_[i] = nam_.process(input[i] * inputGain_);
+  }
+
+  ir_.processBlock(namBlock_.data(), irBlock_.data(), frames);
+
+  for (size_t i = 0; i < frames; ++i) {
+    const float wet = irBlock_[i] * outputGain_;
+    left[i] = wet;
+    right[i] = wet;
+  }
+}
+
 } // namespace ardor

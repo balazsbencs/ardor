@@ -3,7 +3,9 @@
 #include "audio/MiniaudioBackend.h"
 #include "dsp/PedalEngine.h"
 
+#include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
@@ -221,11 +223,9 @@ int main(int argc, char** argv)
 
     ardor::PedalEngine engine;
     if (args.realtime) {
-      const size_t maxRealtimeIr = args.irSamples == 0 ? 4096 : args.irSamples;
-      if (impulse.size() > maxRealtimeIr) {
-        // ponytail: naive FIR; use partitioned convolution when long realtime IRs matter.
-        impulse.resize(maxRealtimeIr);
-        std::cerr << "Trimmed realtime IR to " << maxRealtimeIr << " samples\n";
+      if (args.irSamples > 0 && impulse.size() > args.irSamples) {
+        impulse.resize(args.irSamples);
+        std::cerr << "Trimmed realtime IR to " << args.irSamples << " samples\n";
       }
     } else if (args.irSamples > 0 && impulse.size() > args.irSamples) {
       impulse.resize(args.irSamples);
@@ -284,10 +284,20 @@ int main(int argc, char** argv)
 
     std::vector<float> out;
     out.reserve(input.size() * 2);
-    for (float x : input) {
-      const auto [left, right] = engine.process(x);
-      out.push_back(left);
-      out.push_back(right);
+    std::vector<float> inBlock(args.blockSize, 0.0f);
+    std::vector<float> leftBlock(args.blockSize, 0.0f);
+    std::vector<float> rightBlock(args.blockSize, 0.0f);
+    for (size_t offset = 0; offset < input.size(); offset += args.blockSize) {
+      const size_t frames = std::min<size_t>(args.blockSize, input.size() - offset);
+      std::fill(inBlock.begin(), inBlock.end(), 0.0f);
+      std::copy(input.begin() + static_cast<std::ptrdiff_t>(offset),
+                input.begin() + static_cast<std::ptrdiff_t>(offset + frames),
+                inBlock.begin());
+      engine.processBlock(inBlock.data(), leftBlock.data(), rightBlock.data(), args.blockSize);
+      for (size_t i = 0; i < frames; ++i) {
+        out.push_back(leftBlock[i]);
+        out.push_back(rightBlock[i]);
+      }
     }
 
     writeStereo(args.output, out, inputRate);

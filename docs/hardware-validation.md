@@ -14,8 +14,7 @@ Command:
   --capture-device 1 \
   --playback-device 1 \
   --input-channel right \
-  --output-channel both \
-  --ir-samples 8192
+  --output-channel both
 ```
 
 Pass:
@@ -36,6 +35,23 @@ input channel: right
 output channel: both
 xruns: 0
 notes: sounds good in realtime; 12000 eventually produced xruns, 14000 produced a few xruns, 16000 was unusable
+```
+
+Partitioned convolution result:
+
+```text
+date: 2026-07-07
+device: Behringer U-Phoria UMC22, shown as USB Audio CODEC
+sample rate: 48000
+block size: 64
+IR samples: 24000 full irs/test.wav
+input channel: right
+output channel: both
+over-budget callbacks: 0
+max callback: about 0.86 ms
+average callback: about 0.27 ms
+budget: 1.33 ms
+notes: short smoke run; full IR became practical after partitioned convolution
 ```
 
 ## Raspberry Pi Codec Zero Realtime Test

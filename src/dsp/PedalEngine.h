@@ -16,6 +16,7 @@ public:
   void setInputGain(float gain);
   void setOutputGain(float gain);
   std::pair<float, float> process(float input);
+  void processBlock(const float* input, float* left, float* right, size_t frames);
   void reset();
 
 private:
@@ -23,6 +24,8 @@ private:
   float outputGain_ = 1.0f;
   NamProcessor nam_;
   IrConvolver ir_;
+  std::vector<float> namBlock_;
+  std::vector<float> irBlock_;
 };
 
 } // namespace ardor

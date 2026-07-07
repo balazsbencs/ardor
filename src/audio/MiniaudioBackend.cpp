@@ -7,6 +7,7 @@
 #include <atomic>
 #include <chrono>
 #include <iostream>
+#include <vector>
 
 namespace ardor {
 
@@ -25,6 +26,9 @@ struct MiniaudioBackendState {
   std::atomic<uint64_t> maxCallbackNs{0};
   double budgetMs = 0.0;
   double sampleRate = 48000.0;
+  std::vector<float> inputBlock;
+  std::vector<float> leftBlock;
+  std::vector<float> rightBlock;
 };
 
 namespace {
@@ -41,11 +45,21 @@ void callback(ma_device* device, void* output, const void* input, ma_uint32 fram
   }
 
   const auto start = std::chrono::steady_clock::now();
+  if (state->inputBlock.size() < frameCount) {
+    state->inputBlock.resize(frameCount);
+    state->leftBlock.resize(frameCount);
+    state->rightBlock.resize(frameCount);
+  }
+
   for (ma_uint32 i = 0; i < frameCount; ++i) {
-    const float sample = in[i * state->captureChannels + state->inputChannel];
-    const auto [left, right] = state->engine->process(sample);
-    out[i * 2] = (state->outputChannel == OutputChannel::Right) ? 0.0f : left;
-    out[i * 2 + 1] = (state->outputChannel == OutputChannel::Left) ? 0.0f : right;
+    state->inputBlock[i] = in[i * state->captureChannels + state->inputChannel];
+  }
+
+  state->engine->processBlock(state->inputBlock.data(), state->leftBlock.data(), state->rightBlock.data(), frameCount);
+
+  for (ma_uint32 i = 0; i < frameCount; ++i) {
+    out[i * 2] = (state->outputChannel == OutputChannel::Right) ? 0.0f : state->leftBlock[i];
+    out[i * 2 + 1] = (state->outputChannel == OutputChannel::Left) ? 0.0f : state->rightBlock[i];
   }
   const auto elapsed = std::chrono::steady_clock::now() - start;
   const double elapsedSeconds = std::chrono::duration<double>(elapsed).count();
