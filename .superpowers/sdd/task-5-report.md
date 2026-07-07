@@ -19,3 +19,8 @@ Verification:
 Notes:
 - I did not wire the latch into the realtime backend yet, per the task brief.
 - The focused preset smoke test initially raced when run in parallel with the full suite because both runs use the same temp path; rerunning it serially passed.
+
+TDD Evidence:
+- RED: `cmake --build build` initially failed before `src/preset/RuntimeState.h` existed, per the brief.
+- GREEN: `cmake --build build`, `ctest --test-dir build --output-on-failure -R pedal-preset-smoke`, and `ctest --test-dir build --output-on-failure` all passed after the fix.
+- The temp path flake in `tests/preset_smoke.cpp` was fixed by giving `dataRoot` the same unique suffix pattern as the preset root.

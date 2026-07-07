@@ -117,7 +117,7 @@ int main()
   assert(session.working().name == "Disk Changed");
   assert(!session.isDirty());
 
-  const auto dataRoot = std::filesystem::temp_directory_path() / "ardor-chain-smoke";
+  const auto dataRoot = std::filesystem::temp_directory_path() / ("ardor-chain-smoke-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
   std::filesystem::remove_all(dataRoot);
   std::filesystem::create_directories(dataRoot / "models");
   std::ofstream(dataRoot / "models/ok.nam").put('\n');
