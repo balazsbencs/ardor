@@ -75,16 +75,39 @@ Input and IR WAV files must be 48 kHz for this POC.
 
 ## Realtime Run
 
+List devices first:
+
+```sh
+./build/pedal-poc --devices
+```
+
+Example output:
+
+```text
+Playback devices:
+  [1] USB Audio CODEC
+Capture devices:
+  [1] USB Audio CODEC
+```
+
+Run with explicit UMC22 routing:
+
 ```sh
 ./build/pedal-poc \
   --realtime \
   --model models/test.nam \
   --ir irs/test.wav \
   --sample-rate 48000 \
-  --block-size 64
+  --block-size 64 \
+  --capture-device 1 \
+  --playback-device 1 \
+  --input-channel right \
+  --output-channel both
 ```
 
 Stop with `Ctrl-C`.
+
+Use `--input-channel left` for input 1 and `--input-channel right` for input 2. On the UMC22, the instrument input is commonly the right/second capture channel.
 
 First target settings:
 

@@ -66,6 +66,8 @@ target_link_libraries(pedal-offline-smoke PRIVATE ardor_dsp)
 
 enable_testing()
 add_test(NAME pedal-offline-smoke COMMAND pedal-offline-smoke)
+add_test(NAME pedal-devices-indexed COMMAND pedal-poc --devices)
+set_tests_properties(pedal-devices-indexed PROPERTIES PASS_REGULAR_EXPRESSION "\\[0\\]")
 
 if(APPLE)
   target_link_libraries(pedal-poc PRIVATE "-framework CoreAudio" "-framework AudioToolbox" "-framework AudioUnit")

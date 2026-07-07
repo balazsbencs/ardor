@@ -23,6 +23,10 @@ struct Args {
   bool devices = false;
   uint32_t sampleRate = 48000;
   uint32_t blockSize = 64;
+  int captureDeviceIndex = -1;
+  int playbackDeviceIndex = -1;
+  uint32_t inputChannel = 0;
+  ardor::OutputChannel outputChannel = ardor::OutputChannel::Both;
   std::filesystem::path model;
   std::filesystem::path ir;
   std::filesystem::path input;
@@ -31,6 +35,18 @@ struct Args {
 
 bool parse(int argc, char** argv, Args& args)
 {
+  auto parseChannel = [](const std::string& value, uint32_t& channel) {
+    if (value == "left" || value == "0") {
+      channel = 0;
+      return true;
+    }
+    if (value == "right" || value == "1") {
+      channel = 1;
+      return true;
+    }
+    return false;
+  };
+
   for (int i = 1; i < argc; ++i) {
     const std::string a = argv[i];
     auto value = [&]() -> const char* {
@@ -57,6 +73,25 @@ bool parse(int argc, char** argv, Args& args)
       const char* v = value();
       if (!v) return false;
       args.blockSize = static_cast<uint32_t>(std::stoul(v));
+    } else if (a == "--capture-device") {
+      const char* v = value();
+      if (!v) return false;
+      args.captureDeviceIndex = std::stoi(v);
+    } else if (a == "--playback-device") {
+      const char* v = value();
+      if (!v) return false;
+      args.playbackDeviceIndex = std::stoi(v);
+    } else if (a == "--input-channel") {
+      const char* v = value();
+      if (!v || !parseChannel(v, args.inputChannel)) return false;
+    } else if (a == "--output-channel") {
+      const char* v = value();
+      if (!v) return false;
+      const std::string channel = v;
+      if (channel == "both") args.outputChannel = ardor::OutputChannel::Both;
+      else if (channel == "left") args.outputChannel = ardor::OutputChannel::Left;
+      else if (channel == "right") args.outputChannel = ardor::OutputChannel::Right;
+      else return false;
     } else if (a == "--model") {
       const char* v = value();
       if (!v) return false;
@@ -140,11 +175,11 @@ int printDevices()
 
   std::cout << "Playback devices:\n";
   for (ma_uint32 i = 0; i < playbackCount; ++i) {
-    std::cout << "  " << playback[i].name << "\n";
+    std::cout << "  [" << i << "] " << playback[i].name << "\n";
   }
   std::cout << "Capture devices:\n";
   for (ma_uint32 i = 0; i < captureCount; ++i) {
-    std::cout << "  " << capture[i].name << "\n";
+    std::cout << "  [" << i << "] " << capture[i].name << "\n";
   }
 
   ma_context_uninit(&context);
@@ -161,7 +196,8 @@ int main(int argc, char** argv)
       std::cerr << "Usage:\n"
                 << "  pedal-poc --devices\n"
                 << "  pedal-poc --offline --ir cab.wav --input dry.wav --output wet.wav (--model amp.nam | --bypass-nam)\n"
-                << "  pedal-poc --realtime --model amp.nam --ir cab.wav [--sample-rate 48000] [--block-size 64]\n";
+                << "  pedal-poc --realtime --model amp.nam --ir cab.wav [--sample-rate 48000] [--block-size 64]\n"
+                << "            [--capture-device N] [--playback-device N] [--input-channel left|right] [--output-channel both|left|right]\n";
       return 2;
     }
 
@@ -185,8 +221,16 @@ int main(int argc, char** argv)
         return 1;
       }
 
+      ardor::RealtimeOptions options;
+      options.sampleRate = args.sampleRate;
+      options.blockSize = args.blockSize;
+      options.captureDeviceIndex = args.captureDeviceIndex;
+      options.playbackDeviceIndex = args.playbackDeviceIndex;
+      options.inputChannel = args.inputChannel;
+      options.outputChannel = args.outputChannel;
+
       ardor::MiniaudioBackend backend;
-      if (!backend.start(engine, args.sampleRate, args.blockSize)) {
+      if (!backend.start(engine, options)) {
         std::cerr << "Failed to start realtime audio\n";
         return 1;
       }
