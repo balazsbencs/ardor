@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdlib>
 #include <exception>
@@ -27,6 +28,8 @@ struct Args {
   uint32_t sampleRate = 48000;
   uint32_t blockSize = 64;
   size_t irSamples = 0;
+  float inputGainDb = 0.0f;
+  float outputGainDb = 0.0f;
   int captureDeviceIndex = -1;
   int playbackDeviceIndex = -1;
   uint32_t inputChannel = 0;
@@ -81,6 +84,14 @@ bool parse(int argc, char** argv, Args& args)
       const char* v = value();
       if (!v) return false;
       args.irSamples = static_cast<size_t>(std::stoull(v));
+    } else if (a == "--input-gain-db") {
+      const char* v = value();
+      if (!v) return false;
+      args.inputGainDb = std::stof(v);
+    } else if (a == "--output-gain-db") {
+      const char* v = value();
+      if (!v) return false;
+      args.outputGainDb = std::stof(v);
     } else if (a == "--capture-device") {
       const char* v = value();
       if (!v) return false;
@@ -129,6 +140,11 @@ bool parse(int argc, char** argv, Args& args)
     return !args.ir.empty() && !args.model.empty();
   }
   return false;
+}
+
+float dbToGain(float db)
+{
+  return std::pow(10.0f, db / 20.0f);
 }
 
 std::vector<float> readMono(const std::filesystem::path& path, ma_uint32& sampleRate)
@@ -206,7 +222,8 @@ int main(int argc, char** argv)
                 << "  pedal-poc --offline --ir cab.wav --input dry.wav --output wet.wav (--model amp.nam | --bypass-nam)\n"
                 << "  pedal-poc --realtime --model amp.nam --ir cab.wav [--sample-rate 48000] [--block-size 64]\n"
                 << "            [--capture-device N] [--playback-device N] [--input-channel left|right]\n"
-                << "            [--output-channel both|left|right] [--ir-samples N]\n";
+                << "            [--output-channel both|left|right] [--ir-samples N]\n"
+                << "            [--input-gain-db DB] [--output-gain-db DB]\n";
       return 2;
     }
 
@@ -232,6 +249,9 @@ int main(int argc, char** argv)
       std::cerr << "Trimmed IR to " << args.irSamples << " samples\n";
     }
     engine.loadIr(std::move(impulse));
+    engine.setInputGain(dbToGain(args.inputGainDb));
+    engine.setOutputGain(dbToGain(args.outputGainDb));
+    std::cerr << "Gains: input " << args.inputGainDb << " dB, output " << args.outputGainDb << " dB\n";
 
     if (args.realtime) {
       if (!engine.loadNam(args.model, args.sampleRate, static_cast<int>(args.blockSize))) {

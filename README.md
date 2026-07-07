@@ -102,7 +102,9 @@ Run with explicit UMC22 routing:
   --capture-device 1 \
   --playback-device 1 \
   --input-channel right \
-  --output-channel both
+  --output-channel both \
+  --input-gain-db -12 \
+  --output-gain-db -6
 ```
 
 Stop with `Ctrl-C`.
@@ -110,6 +112,8 @@ Stop with `Ctrl-C`.
 Use `--input-channel left` for input 1 and `--input-channel right` for input 2. On the UMC22, the instrument input is commonly the right/second capture channel.
 
 Realtime mode uses the full IR by default through partitioned convolution. Use `--ir-samples N` to cap long IRs when comparing performance or testing slower hardware.
+
+If the sound is overloaded, reduce `--input-gain-db` first. That lowers the signal before NAM. If the amp character is right but the final output clips, reduce `--output-gain-db`.
 
 Realtime status prints once per second:
 
