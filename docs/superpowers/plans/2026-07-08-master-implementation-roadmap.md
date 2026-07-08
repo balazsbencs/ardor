@@ -86,6 +86,7 @@ Why this order:
 
 - [ ] Cross-compile `pedal-poc` for aarch64 (any working toolchain; a full Buildroot image is not required for this spike — SSH into Raspberry Pi OS Lite is fine).
 - [ ] Set the cpufreq governor to `performance` for the measurement.
+- [ ] Build and run the per-component DSP microbenchmark from `docs/superpowers/plans/2026-07-09-ir-convolver-performance.md` Task 1 — it separates NAM cost from IR-convolver cost, which the lumped telemetry cannot.
 - [ ] Run `--offline` renders with a representative standard WaveNet `.nam` and a feather/lite `.nam`, timed; compute per-block cost vs the 1.33 ms budget.
 - [ ] If audio hardware is available, run `--realtime` and record the once-per-second telemetry for 10 minutes; record `vcgencmd measure_temp` and `vcgencmd get_throttled` before/after.
 - [ ] Record results in `docs/hardware-validation.md`, including which model tier fits with >30% headroom.
@@ -97,6 +98,7 @@ Why this order:
 **Stop If:**
 
 - No model tier fits at block 64 → decide block 128 fallback or model constraints **now**, update the baseline constants in every plan, then continue.
+- The IR convolver measures above 200 µs/block (15% of budget) on the Pi → execute `docs/superpowers/plans/2026-07-09-ir-convolver-performance.md` Tasks 2–3 (and 4 only if its gate fails) before declaring the spike done. If the convolver is under 200 µs, that plan's optimization tasks do **not** run — record the numbers and move on.
 
 ---
 
