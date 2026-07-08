@@ -43,6 +43,8 @@ void redraw(UiEventContext* context)
   context->ui->build(lv_screen_active(), *context->state);
 }
 
+lv_obj_t* button(lv_obj_t* parent, const std::string& value);
+
 void onPresetClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
@@ -92,11 +94,6 @@ void onBlockClicked(lv_event_t* event)
   redraw(context);
 }
 
-void onBlockPressed(lv_event_t* event)
-{
-  lv_obj_set_style_opa(lv_event_get_target_obj(event), LV_OPA_50, 0);
-}
-
 std::size_t chainSlotFromPoint(const UiState& state, const lv_point_t& point)
 {
   const auto blockCount = state.bank.presets[state.activePreset].blocks.size();
@@ -109,11 +106,47 @@ std::size_t chainSlotFromPoint(const UiState& state, const lv_point_t& point)
   return std::min<std::size_t>(static_cast<std::size_t>(row * 4 + col), blockCount - 1);
 }
 
-void onBlockReleased(lv_event_t* event)
+void moveToFront(lv_obj_t* object)
 {
-  lv_obj_set_style_opa(lv_event_get_target_obj(event), LV_OPA_COVER, 0);
+  lv_obj_t* parent = lv_obj_get_parent(object);
+  lv_obj_move_to_index(object, static_cast<int32_t>(lv_obj_get_child_count(parent)) - 1);
+}
 
-  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+void placeDragIndicator(UiEventContext* context, const lv_point_t& point)
+{
+  const auto slot = chainSlotFromPoint(*context->state, point);
+  const auto row = static_cast<int>(slot / 4);
+  const auto col = static_cast<int>(slot % 4);
+
+  if (!context->indicator) {
+    context->indicator = lv_obj_create(lv_screen_active());
+    lv_obj_set_size(context->indicator, 5, 104);
+    lv_obj_set_style_bg_color(context->indicator, lv_color_hex(accent), 0);
+    lv_obj_set_style_border_width(context->indicator, 0, 0);
+    lv_obj_set_style_radius(context->indicator, 3, 0);
+  }
+
+  lv_obj_set_pos(context->indicator, 28 + col * 172, row == 0 ? 93 : 239);
+  moveToFront(context->indicator);
+}
+
+void placeDragGhost(UiEventContext* context, const lv_point_t& point)
+{
+  if (!context->ghost) {
+    const auto& block = context->state->bank.presets[context->state->activePreset].blocks[context->index];
+    context->ghost = button(lv_screen_active(), block.label + "\n" + block.assetName);
+    lv_obj_set_size(context->ghost, 160, 84);
+    lv_obj_set_style_bg_color(context->ghost, lv_color_hex(0x243044), 0);
+    lv_obj_set_style_opa(context->ghost, LV_OPA_50, 0);
+    lv_obj_add_flag(context->ghost, LV_OBJ_FLAG_FLOATING);
+  }
+
+  lv_obj_set_pos(context->ghost, point.x - 80, point.y - 42);
+  moveToFront(context->ghost);
+}
+
+void updateDragVisuals(UiEventContext* context, lv_event_t* event)
+{
   lv_indev_t* input = lv_event_get_indev(event);
   if (!input) {
     return;
@@ -121,7 +154,50 @@ void onBlockReleased(lv_event_t* event)
 
   lv_point_t point{};
   lv_indev_get_point(input, &point);
+  placeDragGhost(context, point);
+  placeDragIndicator(context, point);
+}
+
+void clearDragVisuals(UiEventContext* context)
+{
+  if (context->ghost) {
+    lv_obj_delete(context->ghost);
+    context->ghost = nullptr;
+  }
+  if (context->indicator) {
+    lv_obj_delete(context->indicator);
+    context->indicator = nullptr;
+  }
+}
+
+void onBlockPressed(lv_event_t* event)
+{
+  lv_obj_set_style_opa(lv_event_get_target_obj(event), LV_OPA_50, 0);
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  updateDragVisuals(context, event);
+}
+
+void onBlockPressing(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  updateDragVisuals(context, event);
+}
+
+void onBlockReleased(lv_event_t* event)
+{
+  lv_obj_set_style_opa(lv_event_get_target_obj(event), LV_OPA_COVER, 0);
+
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (!input) {
+    clearDragVisuals(context);
+    return;
+  }
+
+  lv_point_t point{};
+  lv_indev_get_point(input, &point);
   const auto target = chainSlotFromPoint(*context->state, point);
+  clearDragVisuals(context);
   if (target == context->index) {
     return;
   }
@@ -159,14 +235,13 @@ lv_obj_t* button(lv_obj_t* parent, const std::string& value)
 
 UiEventContext* LvglUi::remember(UiState& state, std::size_t index, std::string filter)
 {
-  contexts_.push_back({this, &state, index, std::move(filter)});
+  contexts_.push_back({this, &state, index, std::move(filter), nullptr, nullptr});
   return &contexts_.back();
 }
 
 void LvglUi::build(lv_obj_t* root, UiState& state)
 {
   contexts_.clear();
-  contexts_.reserve(128);
   lv_obj_clean(root);
   lv_obj_set_style_bg_color(root, lv_color_hex(bg), 0);
 
@@ -247,9 +322,11 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
     lv_obj_t* object = button(row, block.label + "\n" + block.assetName);
     lv_obj_set_size(object, 160, 84);
     lv_obj_set_style_bg_color(object, lv_color_hex(block.enabled ? 0x243044 : 0x262626), 0);
-    lv_obj_add_event_cb(object, onBlockPressed, LV_EVENT_PRESSED, nullptr);
-    lv_obj_add_event_cb(object, onBlockClicked, LV_EVENT_CLICKED, remember(state, i));
-    lv_obj_add_event_cb(object, onBlockReleased, LV_EVENT_RELEASED, remember(state, i));
+    auto* context = remember(state, i);
+    lv_obj_add_event_cb(object, onBlockPressed, LV_EVENT_PRESSED, context);
+    lv_obj_add_event_cb(object, onBlockPressing, LV_EVENT_PRESSING, context);
+    lv_obj_add_event_cb(object, onBlockClicked, LV_EVENT_CLICKED, context);
+    lv_obj_add_event_cb(object, onBlockReleased, LV_EVENT_RELEASED, context);
   }
 
   if (state.blockDrawerOpen) {

@@ -3,8 +3,8 @@
 #include "ui/UiModel.h"
 
 #include <cstddef>
+#include <deque>
 #include <string>
-#include <vector>
 
 #include <lvgl.h>
 
@@ -17,6 +17,8 @@ struct UiEventContext {
   UiState* state = nullptr;
   std::size_t index = 0;
   std::string filter = "all";
+  lv_obj_t* ghost = nullptr;
+  lv_obj_t* indicator = nullptr;
 };
 
 class LvglUi {
@@ -31,7 +33,7 @@ private:
 
   UiEventContext* remember(UiState& state, std::size_t index = 0, std::string filter = "all");
 
-  std::vector<UiEventContext> contexts_;
+  std::deque<UiEventContext> contexts_;
 };
 
 } // namespace ardor
