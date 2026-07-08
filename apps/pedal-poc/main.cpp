@@ -1,8 +1,11 @@
 #include "miniaudio.h"
 
+#include "audio/EngineLoader.h"
 #include "audio/MiniaudioBackend.h"
 #include "audio/WavIo.h"
 #include "dsp/PedalEngine.h"
+#include "preset/ChainPlan.h"
+#include "preset/Preset.h"
 #include "preset/RuntimeState.h"
 
 #include <algorithm>
@@ -12,6 +15,7 @@
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <iomanip>
 #include <stdexcept>
@@ -38,6 +42,8 @@ struct Args {
   int playbackDeviceIndex = -1;
   uint32_t inputChannel = 0;
   ardor::OutputChannel outputChannel = ardor::OutputChannel::Both;
+  std::filesystem::path preset;
+  std::filesystem::path dataRoot = ".";
   std::filesystem::path model;
   std::filesystem::path ir;
   std::filesystem::path input;
@@ -76,6 +82,14 @@ bool parse(int argc, char** argv, Args& args)
       args.devices = true;
     } else if (a == "--bypass-nam") {
       args.bypassNam = true;
+    } else if (a == "--preset") {
+      const char* v = value();
+      if (!v) return false;
+      args.preset = v;
+    } else if (a == "--data-root") {
+      const char* v = value();
+      if (!v) return false;
+      args.dataRoot = v;
     } else if (a == "--sample-rate") {
       const char* v = value();
       if (!v) return false;
@@ -144,9 +158,15 @@ bool parse(int argc, char** argv, Args& args)
 
   if (args.devices) return true;
   if (args.offline) {
+    if (!args.preset.empty()) {
+      return !args.input.empty() && !args.output.empty();
+    }
     return !args.ir.empty() && !args.input.empty() && !args.output.empty() && (args.bypassNam || !args.model.empty());
   }
   if (args.realtime) {
+    if (!args.preset.empty()) {
+      return true;
+    }
     return !args.ir.empty() && !args.model.empty();
   }
   return false;
@@ -166,6 +186,22 @@ void writeStereo(const std::filesystem::path& path, const std::vector<float>& in
   }
   ma_encoder_write_pcm_frames(&encoder, interleaved.data(), interleaved.size() / 2, nullptr);
   ma_encoder_uninit(&encoder);
+}
+
+bool loadPresetIntoEngine(ardor::PedalEngine& engine, const Args& args, std::string& error)
+{
+  std::ifstream in(args.preset);
+  if (!in) {
+    error = "failed to open preset: " + args.preset.string();
+    return false;
+  }
+
+  nlohmann::json json;
+  in >> json;
+  const ardor::Preset preset = ardor::presetFromJson(json);
+  const ardor::ChainPlan plan = ardor::buildChainPlan(preset, args.dataRoot);
+  const size_t irSamples = args.irSamples == 0 ? 8192 : args.irSamples;
+  return ardor::applyChainPlan(engine, plan, {args.sampleRate, args.blockSize, irSamples}, error);
 }
 
 int printDevices()
@@ -208,7 +244,9 @@ int main(int argc, char** argv)
     if (!parse(argc, argv, args)) {
       std::cerr << "Usage:\n"
                 << "  pedal-poc --devices\n"
+                << "  pedal-poc --offline --preset preset.json --data-root data --input dry.wav --output wet.wav\n"
                 << "  pedal-poc --offline --ir cab.wav --input dry.wav --output wet.wav (--model amp.nam | --bypass-nam)\n"
+                << "  pedal-poc --realtime --preset preset.json --data-root data [--sample-rate 48000] [--block-size 64]\n"
                 << "  pedal-poc --realtime --model amp.nam --ir cab.wav [--sample-rate 48000] [--block-size 64]\n"
                 << "            [--capture-device N] [--playback-device N] [--input-channel left|right]\n"
                 << "            [--output-channel both|left|right] [--ir-samples N]\n"
@@ -221,39 +259,47 @@ int main(int argc, char** argv)
       return printDevices();
     }
 
-    auto irWav = ardor::readMonoWav(args.ir);
-    auto impulse = std::move(irWav.samples);
-    const ma_uint32 irRate = irWav.sampleRate;
-    if (irRate != args.sampleRate) {
-      std::cerr << "Expected " << args.sampleRate << " Hz IR\n";
-      return 1;
-    }
-
     ardor::PedalEngine engine;
-    if (args.realtime) {
-      if (args.irSamples > 0 && impulse.size() > args.irSamples) {
-        impulse.resize(args.irSamples);
-        std::cerr << "Trimmed realtime IR to " << args.irSamples << " samples\n";
+    if (!args.preset.empty()) {
+      std::string error;
+      if (!loadPresetIntoEngine(engine, args, error)) {
+        std::cerr << error << "\n";
+        return 1;
       }
-    } else if (args.irSamples > 0 && impulse.size() > args.irSamples) {
-      impulse.resize(args.irSamples);
-      std::cerr << "Trimmed IR to " << args.irSamples << " samples\n";
-    }
-    engine.loadIr(std::move(impulse));
-    engine.setInputGain(dbToGain(args.inputGainDb));
-    engine.setOutputGain(dbToGain(args.outputGainDb));
-    engine.setSafetyLimiterEnabled(args.safetyLimiter);
-    engine.setSafetyLimit(dbToGain(args.safetyLimitDb));
-    std::cerr << "Gains: input " << args.inputGainDb << " dB, output " << args.outputGainDb << " dB"
-              << ", safety ";
-    if (args.safetyLimiter) {
-      std::cerr << args.safetyLimitDb << " dB\n";
     } else {
-      std::cerr << "off\n";
+      auto irWav = ardor::readMonoWav(args.ir);
+      auto impulse = std::move(irWav.samples);
+      const ma_uint32 irRate = irWav.sampleRate;
+      if (irRate != args.sampleRate) {
+        std::cerr << "Expected " << args.sampleRate << " Hz IR\n";
+        return 1;
+      }
+
+      if (args.realtime) {
+        if (args.irSamples > 0 && impulse.size() > args.irSamples) {
+          impulse.resize(args.irSamples);
+          std::cerr << "Trimmed realtime IR to " << args.irSamples << " samples\n";
+        }
+      } else if (args.irSamples > 0 && impulse.size() > args.irSamples) {
+        impulse.resize(args.irSamples);
+        std::cerr << "Trimmed IR to " << args.irSamples << " samples\n";
+      }
+      engine.loadIr(std::move(impulse));
+      engine.setInputGain(dbToGain(args.inputGainDb));
+      engine.setOutputGain(dbToGain(args.outputGainDb));
+      engine.setSafetyLimiterEnabled(args.safetyLimiter);
+      engine.setSafetyLimit(dbToGain(args.safetyLimitDb));
+      std::cerr << "Gains: input " << args.inputGainDb << " dB, output " << args.outputGainDb << " dB"
+                << ", safety ";
+      if (args.safetyLimiter) {
+        std::cerr << args.safetyLimitDb << " dB\n";
+      } else {
+        std::cerr << "off\n";
+      }
     }
 
     if (args.realtime) {
-      if (!engine.loadNam(args.model, args.sampleRate, static_cast<int>(args.blockSize))) {
+      if (args.preset.empty() && !engine.loadNam(args.model, args.sampleRate, static_cast<int>(args.blockSize))) {
         std::cerr << "Failed to load NAM model\n";
         return 1;
       }
@@ -303,7 +349,7 @@ int main(int argc, char** argv)
       return 1;
     }
 
-    if (!args.bypassNam && !engine.loadNam(args.model, args.sampleRate, 128)) {
+    if (args.preset.empty() && !args.bypassNam && !engine.loadNam(args.model, args.sampleRate, 128)) {
       std::cerr << "Failed to load NAM model\n";
       return 1;
     }

@@ -119,11 +119,17 @@ target_link_libraries(pedal-engine-contract-smoke PRIVATE ardor_dsp)
 add_executable(pedal-ui-model-smoke tests/ui_model_smoke.cpp)
 target_link_libraries(pedal-ui-model-smoke PRIVATE ardor_ui)
 
+add_executable(pedal-preset-cli-smoke tests/preset_cli_smoke.cpp)
+target_include_directories(pedal-preset-cli-smoke PRIVATE ${miniaudio_SOURCE_DIR})
+target_link_libraries(pedal-preset-cli-smoke PRIVATE ardor_audio)
+add_dependencies(pedal-preset-cli-smoke pedal-poc)
+
 enable_testing()
 add_test(NAME pedal-offline-smoke COMMAND pedal-offline-smoke)
 add_test(NAME pedal-preset-smoke COMMAND pedal-preset-smoke)
 add_test(NAME pedal-engine-contract-smoke COMMAND pedal-engine-contract-smoke)
 add_test(NAME pedal-ui-model-smoke COMMAND pedal-ui-model-smoke)
+add_test(NAME pedal-preset-cli-smoke COMMAND pedal-preset-cli-smoke)
 add_test(NAME pedal-devices-indexed COMMAND pedal-poc --devices)
 set_tests_properties(pedal-devices-indexed PROPERTIES PASS_REGULAR_EXPRESSION "\\[0\\]")
 
