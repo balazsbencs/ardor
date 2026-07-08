@@ -56,6 +56,27 @@ budget: 1.33 ms
 notes: short smoke run; full IR became practical after partitioned convolution
 ```
 
+## DSP Microbenchmark Baseline
+
+Per-component cost at `48000 Hz / block 64 / IR 8192`, Release build, measured with:
+
+```sh
+cmake --build build --target pedal-dsp-bench
+./build/pedal-dsp-bench          # uses models/test.nam if present
+```
+
+| Host | Component | avg µs/block | % of 1333 µs budget |
+| --- | --- | ---: | ---: |
+| macOS dev machine (2026-07-09) | IrConvolver | 24.6 | 1.8% |
+| macOS dev machine (2026-07-09) | NamProcessor (test.nam, SlimmableContainer/WaveNet) | 50.4 | 3.8% |
+| Pi 4B (`performance` governor) | IrConvolver | TBD (Phase 0) | — |
+| Pi 4B (`performance` governor) | NamProcessor | TBD (Phase 0) | — |
+
+The Pi rows gate the optimization tasks in
+`docs/superpowers/plans/2026-07-09-ir-convolver-performance.md`: if the Pi
+convolver row is under 200 µs/block, those tasks do not run. Expect roughly
+5–10× the macOS per-core numbers on the Cortex-A72.
+
 ## Raspberry Pi Codec Zero Realtime Test
 
 Command on Pi:
