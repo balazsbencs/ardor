@@ -2,42 +2,42 @@
 
 namespace ardor {
 
-void RuntimeState::reportOverload()
+void RuntimeState::observeRealtimeStats(uint64_t previousCallbacks,
+                                        uint64_t currentCallbacks,
+                                        uint64_t previousOverBudget,
+                                        uint64_t currentOverBudget)
 {
-  if (effectsBypassed_) {
-    return;
-  }
+  const uint64_t callbackDelta = currentCallbacks - previousCallbacks;
+  const uint64_t overDelta = currentOverBudget - previousOverBudget;
+  const bool overloaded = callbackDelta > 0 && overDelta * 100 > callbackDelta * 5;
 
-  ++consecutiveOverloads_;
-  if (consecutiveOverloads_ >= 3) {
-    effectsBypassed_ = true;
-  }
-}
-
-void RuntimeState::reportStableCallback()
-{
-  consecutiveOverloads_ = 0;
-}
-
-void RuntimeState::observeRealtimeStats(uint64_t previousOverBudget, uint64_t currentOverBudget)
-{
-  if (currentOverBudget > previousOverBudget) {
-    reportOverload();
+  if (overloaded) {
+    ++consecutiveBadSeconds_;
+    consecutiveStableSeconds_ = 0;
+    if (consecutiveBadSeconds_ >= 3) {
+      effectsBypassed_ = true;
+    }
   } else {
-    reportStableCallback();
+    consecutiveBadSeconds_ = 0;
+    ++consecutiveStableSeconds_;
+    if (consecutiveStableSeconds_ >= 3) {
+      effectsBypassed_ = false;
+    }
   }
 }
 
 void RuntimeState::clearEffectsBypass()
 {
   effectsBypassed_ = false;
-  consecutiveOverloads_ = 0;
+  consecutiveBadSeconds_ = 0;
+  consecutiveStableSeconds_ = 0;
 }
 
 void RuntimeState::changePreset()
 {
   effectsBypassed_ = false;
-  consecutiveOverloads_ = 0;
+  consecutiveBadSeconds_ = 0;
+  consecutiveStableSeconds_ = 0;
 }
 
 bool RuntimeState::effectsBypassed() const

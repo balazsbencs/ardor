@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <exception>
 #include <utility>
 
 namespace ardor {
@@ -27,6 +28,21 @@ std::string assetNameForPath(const UiState& state, const std::string& path, cons
     }
   }
   return path.empty() ? type : path;
+}
+
+std::string nextBlockId(const std::vector<UiBlock>& blocks)
+{
+  int maxId = 0;
+  for (const auto& block : blocks) {
+    if (block.id.rfind("block-", 0) != 0) {
+      continue;
+    }
+    try {
+      maxId = std::max(maxId, std::stoi(block.id.substr(6)));
+    } catch (const std::exception&) {
+    }
+  }
+  return "block-" + std::to_string(maxId + 1);
 }
 
 } // namespace
@@ -129,7 +145,7 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
   auto& blocks = state.bank.presets[state.activePreset].blocks;
   const auto insertAt = std::min(blockIndex, blocks.size());
   blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(insertAt),
-                {"block-" + std::to_string(blocks.size() + 1), type, label, asset.name, asset.path, true});
+                {nextBlockId(blocks), type, label, asset.name, asset.path, true});
   state.selectedBlock = insertAt;
   state.dirty = true;
 }

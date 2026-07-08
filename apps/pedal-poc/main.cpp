@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <csignal>
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
@@ -25,6 +26,13 @@
 #include <vector>
 
 namespace {
+
+volatile std::sig_atomic_t running = 1;
+
+void handleSignal(int)
+{
+  running = 0;
+}
 
 struct Args {
   bool offline = false;
@@ -64,96 +72,104 @@ bool parse(int argc, char** argv, Args& args)
     return false;
   };
 
-  for (int i = 1; i < argc; ++i) {
-    const std::string a = argv[i];
-    auto value = [&]() -> const char* {
-      if (i + 1 >= argc) return nullptr;
-      return argv[++i];
-    };
+  try {
+    for (int i = 1; i < argc; ++i) {
+      const std::string a = argv[i];
+      auto value = [&]() -> const char* {
+        if (i + 1 >= argc) return nullptr;
+        return argv[++i];
+      };
 
-    if (a == "--version") {
-      std::cout << "ardor pedal poc\n";
-      std::exit(0);
-    } else if (a == "--offline") {
-      args.offline = true;
-    } else if (a == "--realtime") {
-      args.realtime = true;
-    } else if (a == "--devices") {
-      args.devices = true;
-    } else if (a == "--bypass-nam") {
-      args.bypassNam = true;
-    } else if (a == "--preset") {
-      const char* v = value();
-      if (!v) return false;
-      args.preset = v;
-    } else if (a == "--data-root") {
-      const char* v = value();
-      if (!v) return false;
-      args.dataRoot = v;
-    } else if (a == "--sample-rate") {
-      const char* v = value();
-      if (!v) return false;
-      args.sampleRate = static_cast<uint32_t>(std::stoul(v));
-    } else if (a == "--block-size") {
-      const char* v = value();
-      if (!v) return false;
-      args.blockSize = static_cast<uint32_t>(std::stoul(v));
-    } else if (a == "--ir-samples") {
-      const char* v = value();
-      if (!v) return false;
-      args.irSamples = static_cast<size_t>(std::stoull(v));
-    } else if (a == "--input-gain-db") {
-      const char* v = value();
-      if (!v) return false;
-      args.inputGainDb = std::stof(v);
-    } else if (a == "--output-gain-db") {
-      const char* v = value();
-      if (!v) return false;
-      args.outputGainDb = std::stof(v);
-    } else if (a == "--safety-limit-db") {
-      const char* v = value();
-      if (!v) return false;
-      args.safetyLimitDb = std::stof(v);
-    } else if (a == "--no-safety-limit") {
-      args.safetyLimiter = false;
-    } else if (a == "--capture-device") {
-      const char* v = value();
-      if (!v) return false;
-      args.captureDeviceIndex = std::stoi(v);
-    } else if (a == "--playback-device") {
-      const char* v = value();
-      if (!v) return false;
-      args.playbackDeviceIndex = std::stoi(v);
-    } else if (a == "--input-channel") {
-      const char* v = value();
-      if (!v || !parseChannel(v, args.inputChannel)) return false;
-    } else if (a == "--output-channel") {
-      const char* v = value();
-      if (!v) return false;
-      const std::string channel = v;
-      if (channel == "both") args.outputChannel = ardor::OutputChannel::Both;
-      else if (channel == "left") args.outputChannel = ardor::OutputChannel::Left;
-      else if (channel == "right") args.outputChannel = ardor::OutputChannel::Right;
-      else return false;
-    } else if (a == "--model") {
-      const char* v = value();
-      if (!v) return false;
-      args.model = v;
-    } else if (a == "--ir") {
-      const char* v = value();
-      if (!v) return false;
-      args.ir = v;
-    } else if (a == "--input") {
-      const char* v = value();
-      if (!v) return false;
-      args.input = v;
-    } else if (a == "--output") {
-      const char* v = value();
-      if (!v) return false;
-      args.output = v;
-    } else {
-      return false;
+      if (a == "--version") {
+        std::cout << "ardor pedal poc\n";
+        std::exit(0);
+      } else if (a == "--offline") {
+        args.offline = true;
+      } else if (a == "--realtime") {
+        args.realtime = true;
+      } else if (a == "--devices") {
+        args.devices = true;
+      } else if (a == "--bypass-nam") {
+        args.bypassNam = true;
+      } else if (a == "--preset") {
+        const char* v = value();
+        if (!v) return false;
+        args.preset = v;
+      } else if (a == "--data-root") {
+        const char* v = value();
+        if (!v) return false;
+        args.dataRoot = v;
+      } else if (a == "--sample-rate") {
+        const char* v = value();
+        if (!v) return false;
+        args.sampleRate = static_cast<uint32_t>(std::stoul(v));
+      } else if (a == "--block-size") {
+        const char* v = value();
+        if (!v) return false;
+        args.blockSize = static_cast<uint32_t>(std::stoul(v));
+      } else if (a == "--ir-samples") {
+        const char* v = value();
+        if (!v) return false;
+        args.irSamples = static_cast<size_t>(std::stoull(v));
+      } else if (a == "--input-gain-db") {
+        const char* v = value();
+        if (!v) return false;
+        args.inputGainDb = std::stof(v);
+      } else if (a == "--output-gain-db") {
+        const char* v = value();
+        if (!v) return false;
+        args.outputGainDb = std::stof(v);
+      } else if (a == "--safety-limit-db") {
+        const char* v = value();
+        if (!v) return false;
+        args.safetyLimitDb = std::stof(v);
+      } else if (a == "--no-safety-limit") {
+        args.safetyLimiter = false;
+      } else if (a == "--capture-device") {
+        const char* v = value();
+        if (!v) return false;
+        args.captureDeviceIndex = std::stoi(v);
+      } else if (a == "--playback-device") {
+        const char* v = value();
+        if (!v) return false;
+        args.playbackDeviceIndex = std::stoi(v);
+      } else if (a == "--input-channel") {
+        const char* v = value();
+        if (!v || !parseChannel(v, args.inputChannel)) return false;
+      } else if (a == "--output-channel") {
+        const char* v = value();
+        if (!v) return false;
+        const std::string channel = v;
+        if (channel == "both") args.outputChannel = ardor::OutputChannel::Both;
+        else if (channel == "left") args.outputChannel = ardor::OutputChannel::Left;
+        else if (channel == "right") args.outputChannel = ardor::OutputChannel::Right;
+        else return false;
+      } else if (a == "--model") {
+        const char* v = value();
+        if (!v) return false;
+        args.model = v;
+      } else if (a == "--ir") {
+        const char* v = value();
+        if (!v) return false;
+        args.ir = v;
+      } else if (a == "--input") {
+        const char* v = value();
+        if (!v) return false;
+        args.input = v;
+      } else if (a == "--output") {
+        const char* v = value();
+        if (!v) return false;
+        args.output = v;
+      } else {
+        return false;
+      }
     }
+  } catch (const std::exception&) {
+    return false;
+  }
+
+  if (!args.preset.empty() && args.bypassNam) {
+    return false;
   }
 
   if (args.devices) return true;
@@ -184,7 +200,12 @@ void writeStereo(const std::filesystem::path& path, const std::vector<float>& in
   if (ma_encoder_init_file(path.string().c_str(), &cfg, &encoder) != MA_SUCCESS) {
     throw std::runtime_error("failed to create wav: " + path.string());
   }
-  ma_encoder_write_pcm_frames(&encoder, interleaved.data(), interleaved.size() / 2, nullptr);
+  ma_uint64 framesWritten = 0;
+  if (ma_encoder_write_pcm_frames(&encoder, interleaved.data(), interleaved.size() / 2, &framesWritten) != MA_SUCCESS
+      || framesWritten != interleaved.size() / 2) {
+    ma_encoder_uninit(&encoder);
+    throw std::runtime_error("failed to write wav: " + path.string());
+  }
   ma_encoder_uninit(&encoder);
 }
 
@@ -319,11 +340,15 @@ int main(int argc, char** argv)
       }
 
       ardor::RuntimeState runtime;
+      uint64_t previousCallbacks = 0;
       uint64_t previousOverBudget = 0;
-      for (;;) {
+      std::signal(SIGINT, handleSignal);
+      std::signal(SIGTERM, handleSignal);
+      while (running) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         const auto stats = backend.stats();
-        runtime.observeRealtimeStats(previousOverBudget, stats.overBudget);
+        runtime.observeRealtimeStats(previousCallbacks, stats.callbacks, previousOverBudget, stats.overBudget);
+        previousCallbacks = stats.callbacks;
         previousOverBudget = stats.overBudget;
         engine.setEffectsBypassed(runtime.effectsBypassed());
         const double overPercent = stats.callbacks == 0
@@ -339,6 +364,8 @@ int main(int argc, char** argv)
                   << " bypassed=" << (runtime.effectsBypassed() ? 1 : 0)
                   << "\n";
       }
+      backend.stop();
+      return 0;
     }
 
     auto inputWav = ardor::readMonoWav(args.input);

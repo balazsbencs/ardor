@@ -6,6 +6,11 @@
 #include <sstream>
 #include <stdexcept>
 
+#ifndef _WIN32
+#include <fcntl.h>
+#include <unistd.h>
+#endif
+
 namespace ardor {
 
 namespace {
@@ -23,6 +28,25 @@ void validateSlot(PresetSlot slot)
     throw std::out_of_range("preset slot out of range");
   }
 }
+
+#ifndef _WIN32
+void fsyncPath(const std::filesystem::path& path)
+{
+  const int fd = ::open(path.string().c_str(), O_RDONLY);
+  if (fd < 0) {
+    throw std::runtime_error("failed to open for sync: " + path.string());
+  }
+  if (::fsync(fd) != 0) {
+    ::close(fd);
+    throw std::runtime_error("failed to sync: " + path.string());
+  }
+  ::close(fd);
+}
+#else
+void fsyncPath(const std::filesystem::path&)
+{
+}
+#endif
 
 } // namespace
 
@@ -81,7 +105,9 @@ void PresetStore::save(PresetSlot slot, const Preset& preset) const
     throw std::runtime_error("failed to close preset: " + tmp.string());
   }
 
+  fsyncPath(tmp);
   std::filesystem::rename(tmp, path);
+  fsyncPath(path.parent_path());
 }
 
 void PresetSession::load(const PresetStore& store, PresetSlot slot)

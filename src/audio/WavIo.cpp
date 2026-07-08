@@ -19,7 +19,11 @@ MonoWav readMonoWav(const std::filesystem::path& path)
   float chunk[4096];
   for (;;) {
     ma_uint64 framesRead = 0;
-    ma_decoder_read_pcm_frames(&decoder, chunk, 4096, &framesRead);
+    const ma_result result = ma_decoder_read_pcm_frames(&decoder, chunk, 4096, &framesRead);
+    if (result != MA_SUCCESS && result != MA_AT_END) {
+      ma_decoder_uninit(&decoder);
+      throw std::runtime_error("failed to read wav: " + path.string());
+    }
     if (framesRead == 0) break;
     wav.samples.insert(wav.samples.end(), chunk, chunk + framesRead);
   }

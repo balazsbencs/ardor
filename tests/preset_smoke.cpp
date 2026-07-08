@@ -202,35 +202,21 @@ int main()
 
     ardor::RuntimeState runtime;
     require(!runtime.effectsBypassed(), "runtime starts enabled");
-    runtime.reportOverload();
-    require(!runtime.effectsBypassed(), "first overload does not bypass");
-    runtime.reportOverload();
-    require(!runtime.effectsBypassed(), "second overload does not bypass");
-    runtime.reportStableCallback();
-    runtime.reportOverload();
-    require(!runtime.effectsBypassed(), "stable callback resets overload streak");
-    runtime.reportOverload();
-    runtime.reportOverload();
-    require(runtime.effectsBypassed(), "third consecutive overload bypasses effects");
-    runtime.reportStableCallback();
-    require(runtime.effectsBypassed(), "stable callback keeps latched bypass");
-    runtime.clearEffectsBypass();
-    require(!runtime.effectsBypassed(), "clear bypass unlatches");
-    runtime.reportOverload();
-    runtime.reportOverload();
-    require(!runtime.effectsBypassed(), "clear also resets overload count");
-    runtime.reportOverload();
-    require(runtime.effectsBypassed(), "three new overloads latch again");
+    runtime.observeRealtimeStats(0, 100, 0, 1);
+    runtime.observeRealtimeStats(100, 200, 1, 2);
+    runtime.observeRealtimeStats(200, 300, 2, 3);
+    require(!runtime.effectsBypassed(), "single over-budget callbacks should not bypass");
+    runtime.observeRealtimeStats(300, 400, 3, 10);
+    runtime.observeRealtimeStats(400, 500, 10, 17);
+    require(!runtime.effectsBypassed(), "second high-rate second should not bypass");
+    runtime.observeRealtimeStats(500, 600, 17, 24);
+    require(runtime.effectsBypassed(), "third high-rate second bypasses effects");
+    runtime.observeRealtimeStats(600, 700, 24, 24);
+    runtime.observeRealtimeStats(700, 800, 24, 24);
+    runtime.observeRealtimeStats(800, 900, 24, 24);
+    require(!runtime.effectsBypassed(), "three stable seconds recover bypass");
     runtime.changePreset();
     require(!runtime.effectsBypassed(), "preset change clears bypass");
-
-    ardor::RuntimeState statsRuntime;
-    statsRuntime.observeRealtimeStats(0, 1);
-    require(!statsRuntime.effectsBypassed(), "first stats overload does not bypass");
-    statsRuntime.observeRealtimeStats(1, 2);
-    require(!statsRuntime.effectsBypassed(), "second stats overload does not bypass");
-    statsRuntime.observeRealtimeStats(2, 3);
-    require(statsRuntime.effectsBypassed(), "third stats overload bypasses");
 
     return 0;
   } catch (const std::exception& error) {

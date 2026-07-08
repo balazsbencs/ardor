@@ -93,6 +93,13 @@ int main()
   if (require(state.bank.presets[state.activePreset].blocks[0].assetPath == "irs/loaded.wav", "preset load updates asset path")) return 1;
   if (require(!state.dirty, "loading preset clears dirty flag")) return 1;
 
+  ardor::insertAssetBlock(state, 0, 0);
+  ardor::insertAssetBlock(state, 0, 0);
+  if (require(state.bank.presets[state.activePreset].blocks[0].id != state.bank.presets[state.activePreset].blocks[1].id,
+              "inserted block ids should be unique")) return 1;
+  if (require(state.bank.presets[state.activePreset].blocks[0].id != state.bank.presets[state.activePreset].blocks[2].id,
+              "inserted ids should not collide with loaded ids")) return 1;
+
   ardor::enterPresetMode(state);
   if (require(state.mode == ardor::UiMode::Preset, "preset mode should be active")) return 1;
   if (require(!state.blockDrawerOpen && !state.paramDrawerOpen, "preset mode should close drawers")) return 1;

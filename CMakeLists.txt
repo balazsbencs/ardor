@@ -5,8 +5,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(ARDOR_ENABLE_REALTIME "Build realtime audio backend" ON)
-option(ARDOR_ENABLE_NAM "Build with NeuralAmpModelerCore" ON)
 option(ARDOR_ENABLE_LVGL_UI "Build LVGL desktop UI simulator" ON)
 
 include(FetchContent)
