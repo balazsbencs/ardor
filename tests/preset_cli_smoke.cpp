@@ -93,6 +93,17 @@ int main()
     require(std::fabs(output[0] - 0.25f) < 0.0001f, "left sample");
     require(std::fabs(output[1] - 0.25f) < 0.0001f, "right sample");
 
+    const auto legacyOutPath = root / "legacy-wet.wav";
+    const std::string legacyCommand = "./pedal-poc --offline --bypass-nam --ir " + (root / "irs/test.wav").string()
+                                    + " --input " + (root / "dry.wav").string()
+                                    + " --output " + legacyOutPath.string();
+    require(std::system(legacyCommand.c_str()) == 0, "legacy cli command");
+
+    const auto legacyOutput = readStereoWav(legacyOutPath);
+    require(legacyOutput.size() == 2, "legacy stereo frame count");
+    require(std::fabs(legacyOutput[0] - 0.25f) < 0.0001f, "legacy left sample");
+    require(std::fabs(legacyOutput[1] - 0.25f) < 0.0001f, "legacy right sample");
+
     std::filesystem::remove_all(root);
     return 0;
   } catch (const std::exception& error) {
