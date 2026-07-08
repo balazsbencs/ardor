@@ -80,6 +80,7 @@ Rules:
 - There is no fixed block-count limit in the preset file.
 - Block `id` values are stable across reorder, save, and load.
 - Block `asset` values are relative paths, such as `models/foo.nam` and `irs/bar.wav`.
+- Assets should have a human-readable name for UI lists, separate from the file path.
 - The first implemented block types are `nam` and `cab`.
 - Future block types may be stored before the engine supports them.
 
@@ -228,10 +229,12 @@ The visual wrapping does not mean split routing. Processing order is still the o
 Edit interactions:
 
 - Swipe from the left opens the block drawer.
+- The block drawer floats over the chain and can be closed.
+- The block drawer groups assets into categories, starting with Amps and Cabs.
 - Drag a block from the drawer onto the chain to insert it.
 - Drag an existing chain block to reorder it.
 - Tap a block to open a bottom parameter drawer.
-- The parameter drawer floats over the chain and is hidden when no block is selected.
+- The parameter drawer floats over the chain, can be closed, and is hidden when no block is selected.
 - Parameter changes update the working preset and live audio immediately.
 - The encoder continues to adjust master output volume.
 - Save persists the working preset.

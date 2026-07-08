@@ -102,7 +102,6 @@
     main {
       position: relative;
       display: grid;
-      grid-template-columns: 220px minmax(0, 1fr);
       min-height: 0;
       overflow: hidden;
     }
@@ -112,9 +111,21 @@
       padding: 14px;
       min-height: 0;
     }
+    aside.drawer {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      bottom: 14px;
+      z-index: 6;
+      width: 300px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: 18px 0 50px rgba(0, 0, 0, 0.34);
+      overflow: auto;
+    }
     aside.params {
       position: absolute;
-      left: 220px;
+      left: 0;
       right: 0;
       bottom: 0;
       z-index: 5;
@@ -127,6 +138,27 @@
     h2, h3 {
       margin: 0 0 10px;
       font-size: 16px;
+    }
+    .drawer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .drawer-head h3 {
+      margin: 0;
+    }
+    .category {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .category-title {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0;
     }
     .drawer-item {
       width: 100%;
@@ -143,7 +175,6 @@
       display: grid;
       grid-template-rows: 1fr 1fr;
       gap: 16px;
-      grid-column: 2;
       min-width: 0;
       min-height: 0;
       background:
@@ -242,6 +273,11 @@
       border-radius: 10px;
       background: rgba(19, 23, 29, 0.75);
       margin-bottom: 12px;
+    }
+    .asset-path {
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
     }
     .meta .value {
       color: var(--text);
@@ -352,6 +388,7 @@
     <div class="subbar">
       <button id="preset-mode-btn" class="active">Preset Mode</button>
       <button id="edit-mode-btn">Edit Mode</button>
+      <button id="block-drawer-btn" class="ghost">Add Block</button>
       <button id="bypass-toggle" class="ghost">Clear Bypass</button>
       <button id="save-btn" class="ghost">Save</button>
       <button id="discard-btn" class="ghost">Discard</button>
@@ -361,10 +398,19 @@
       </label>
     </div>
     <main>
-      <aside id="block-drawer">
-        <h3>Block Drawer</h3>
-        <button class="drawer-item" data-add="nam">Neural Amp <small>models/foo.nam</small></button>
-        <button class="drawer-item" data-add="cab">Cab <small>irs/bar.wav</small></button>
+      <aside id="block-drawer" class="drawer">
+        <div class="drawer-head">
+          <h3>Block Drawer</h3>
+          <button id="close-block-drawer" class="ghost">Close</button>
+        </div>
+        <div class="category">
+          <div class="category-title">Amps</div>
+          <div id="amp-assets"></div>
+        </div>
+        <div class="category">
+          <div class="category-title">Cabs</div>
+          <div id="cab-assets"></div>
+        </div>
         <p class="muted">Drag-and-drop is not modeled here; this mockup focuses on layout and state.</p>
       </aside>
 
@@ -383,12 +429,16 @@
       </section>
 
       <aside class="params">
-        <h3>Parameter Drawer</h3>
+        <div class="drawer-head">
+          <h3>Parameter Drawer</h3>
+          <button id="close-param-drawer" class="ghost">Close</button>
+        </div>
         <div class="meta">
           <div class="muted">Selected Block</div>
           <div id="param-title" class="value">NEURAL AMP</div>
           <div class="muted">Asset</div>
           <div id="param-asset" class="value">models/clean.nam</div>
+          <div id="param-asset-path" class="asset-path"></div>
         </div>
         <div class="param-row">
           <label>
@@ -409,6 +459,20 @@
     </main>
   </div>
   <script>
+    const assetCatalog = {
+      amps: [
+        { name: "Clean Twin", path: "models/clean.nam" },
+        { name: "British Crunch", path: "models/crunch.nam" },
+        { name: "Ambient Glass", path: "models/ambient.nam" },
+        { name: "Focused Lead", path: "models/solo.nam" }
+      ],
+      cabs: [
+        { name: "Open Back 2x12", path: "irs/open-back.wav" },
+        { name: "Vintage 4x12", path: "irs/vintage.wav" },
+        { name: "Focused 1x12", path: "irs/focus.wav" }
+      ]
+    };
+
     const presets = [
       {
         saved: {
@@ -417,8 +481,8 @@
           routing: "serial",
           global: { inputGainDb: -12, outputGainDb: -6, safetyLimitDb: -1 },
           blocks: [
-            { id: "block-1", type: "nam", enabled: true, asset: "models/clean.nam", params: { levelDb: 0 } },
-            { id: "block-2", type: "cab", enabled: true, asset: "irs/open-back.wav", params: { mix: 100, levelDb: 0 } }
+            { id: "block-1", type: "nam", enabled: true, asset: "models/clean.nam", assetName: "Clean Twin", params: { levelDb: 0 } },
+            { id: "block-2", type: "cab", enabled: true, asset: "irs/open-back.wav", assetName: "Open Back 2x12", params: { mix: 100, levelDb: 0 } }
           ]
         }
       },
@@ -429,8 +493,8 @@
           routing: "serial",
           global: { inputGainDb: -12, outputGainDb: -6, safetyLimitDb: -1 },
           blocks: [
-            { id: "block-3", type: "nam", enabled: true, asset: "models/crunch.nam", params: { levelDb: -1 } },
-            { id: "block-4", type: "cab", enabled: true, asset: "irs/vintage.wav", params: { mix: 85, levelDb: -1 } }
+            { id: "block-3", type: "nam", enabled: true, asset: "models/crunch.nam", assetName: "British Crunch", params: { levelDb: -1 } },
+            { id: "block-4", type: "cab", enabled: true, asset: "irs/vintage.wav", assetName: "Vintage 4x12", params: { mix: 85, levelDb: -1 } }
           ]
         }
       },
@@ -441,8 +505,8 @@
           routing: "serial",
           global: { inputGainDb: -12, outputGainDb: -6, safetyLimitDb: -1 },
           blocks: [
-            { id: "block-5", type: "cab", enabled: true, asset: "irs/open-back.wav", params: { mix: 100, levelDb: 0 } },
-            { id: "block-6", type: "nam", enabled: true, asset: "models/ambient.nam", params: { levelDb: -2 } }
+            { id: "block-5", type: "cab", enabled: true, asset: "irs/open-back.wav", assetName: "Open Back 2x12", params: { mix: 100, levelDb: 0 } },
+            { id: "block-6", type: "nam", enabled: true, asset: "models/ambient.nam", assetName: "Ambient Glass", params: { levelDb: -2 } }
           ]
         }
       },
@@ -453,8 +517,8 @@
           routing: "serial",
           global: { inputGainDb: -12, outputGainDb: -6, safetyLimitDb: -1 },
           blocks: [
-            { id: "block-7", type: "nam", enabled: true, asset: "models/solo.nam", params: { levelDb: 1 } },
-            { id: "block-8", type: "cab", enabled: true, asset: "irs/focus.wav", params: { mix: 100, levelDb: 1 } }
+            { id: "block-7", type: "nam", enabled: true, asset: "models/solo.nam", assetName: "Focused Lead", params: { levelDb: 1 } },
+            { id: "block-8", type: "cab", enabled: true, asset: "irs/focus.wav", assetName: "Focused 1x12", params: { mix: 100, levelDb: 1 } }
           ]
         }
       }
@@ -463,6 +527,7 @@
     let activeIndex = 0;
     let selected = presets[activeIndex].working.blocks[0];
     let mode = "preset";
+    let drawerOpen = false;
     let paramOpen = false;
     let dirty = false;
     let bypassed = true;
@@ -474,6 +539,10 @@
 
     function blockLabel(block) {
       return block.type === "nam" ? "Neural Amp" : block.type === "cab" ? "Cab" : block.type.toUpperCase();
+    }
+
+    function blockAssetName(block) {
+      return block.assetName || block.asset || "missing asset";
     }
 
     function activePreset() {
@@ -493,6 +562,7 @@
       presets[activeIndex].working = clonePreset(presets[activeIndex].saved);
       bypassed = false;
       selected = presets[activeIndex].working.blocks[0];
+      drawerOpen = false;
       paramOpen = false;
       dirty = false;
       mode = "preset";
@@ -512,6 +582,18 @@
       });
     }
 
+    function renderAssetCategory(containerId, type, assets) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      assets.forEach(asset => {
+        const button = document.createElement("button");
+        button.className = "drawer-item";
+        button.innerHTML = `${asset.name}<small>${asset.path}</small>`;
+        button.onclick = () => addBlock(type, asset);
+        container.appendChild(button);
+      });
+    }
+
     function renderBlocks() {
       const lanes = [document.getElementById("lane-top"), document.getElementById("lane-bottom")];
       lanes.forEach(lane => {
@@ -524,7 +606,7 @@
       activePreset().working.blocks.forEach((block, index) => {
         const el = document.createElement("button");
         el.className = "block" + (block === selected ? " selected" : "") + (block.asset ? "" : " missing");
-        el.innerHTML = `<span>${blockLabel(block)}</span><small>${block.asset || "missing asset"}</small>`;
+        el.innerHTML = `<span>${blockLabel(block)}</span><small>${blockAssetName(block)}</small>`;
         el.onclick = () => {
           selected = block;
           paramOpen = true;
@@ -546,11 +628,12 @@
       document.getElementById("edit-mode-btn").classList.toggle("active", mode === "edit");
       document.getElementById("preset-view").classList.toggle("active", mode === "preset");
       document.getElementById("edit-view").classList.toggle("active", mode === "edit");
-      document.getElementById("block-drawer").classList.toggle("hidden", mode !== "edit");
+      document.getElementById("block-drawer").classList.toggle("hidden", mode !== "edit" || !drawerOpen);
       document.querySelector("aside.params").classList.toggle("hidden", mode !== "edit" || !paramOpen);
       syncSelection();
       document.getElementById("param-title").textContent = blockLabel(selected).toUpperCase();
-      document.getElementById("param-asset").textContent = selected.asset;
+      document.getElementById("param-asset").textContent = blockAssetName(selected);
+      document.getElementById("param-asset-path").textContent = selected.asset || "";
       document.getElementById("level-value").textContent = `${Number(selected.params.levelDb ?? 0).toFixed(1)} dB`;
       document.getElementById("mix-value").textContent = `${Math.round(Number(selected.params.mix ?? 100))}%`;
       document.getElementById("level-control").value = selected.params.levelDb ?? 0;
@@ -561,16 +644,21 @@
       document.getElementById("master-volume").textContent = masterVolume;
       document.getElementById("master-slider").value = masterVolume;
       document.getElementById("active-preset-name").textContent = activePreset().working.name;
+      document.getElementById("block-drawer-btn").classList.toggle("hidden", mode !== "edit");
       renderPresetTiles("preset-mode-row", index => index === activeIndex ? "Active" : `Slot ${index + 1}`);
+      renderAssetCategory("amp-assets", "nam", assetCatalog.amps);
+      renderAssetCategory("cab-assets", "cab", assetCatalog.cabs);
       renderBlocks();
     }
     document.getElementById("preset-mode-btn").onclick = () => {
       mode = "preset";
+      drawerOpen = false;
       paramOpen = false;
       render();
     };
     document.getElementById("edit-mode-btn").onclick = () => {
       mode = "edit";
+      drawerOpen = true;
       paramOpen = false;
       render();
     };
@@ -578,25 +666,37 @@
       masterVolume = Number(event.target.value);
       render();
     };
-    document.querySelectorAll("[data-add]").forEach(button => {
-      button.onclick = () => {
-        const type = button.dataset.add;
-        const active = activePreset();
-        const block = {
-          id: `block-${crypto.randomUUID()}`,
-          type,
-          enabled: true,
-          asset: type === "nam" ? "models/new.nam" : "irs/new.wav",
-          params: { levelDb: 0, mix: type === "cab" ? 100 : 100 }
-        };
-        active.working.blocks.push(block);
-        selected = block;
-        paramOpen = true;
-        markDirty();
-        mode = "edit";
-        render();
+    function addBlock(type, asset) {
+      const active = activePreset();
+      const block = {
+        id: `block-${crypto.randomUUID()}`,
+        type,
+        enabled: true,
+        asset: asset.path,
+        assetName: asset.name,
+        params: { levelDb: 0, mix: type === "cab" ? 100 : 100 }
       };
-    });
+      active.working.blocks.push(block);
+      selected = block;
+      drawerOpen = false;
+      paramOpen = true;
+      markDirty();
+      mode = "edit";
+      render();
+    }
+    document.getElementById("block-drawer-btn").onclick = () => {
+      mode = "edit";
+      drawerOpen = true;
+      render();
+    };
+    document.getElementById("close-block-drawer").onclick = () => {
+      drawerOpen = false;
+      render();
+    };
+    document.getElementById("close-param-drawer").onclick = () => {
+      paramOpen = false;
+      render();
+    };
     document.getElementById("save-btn").onclick = () => {
       const active = activePreset();
       active.saved = clonePreset(active.working);
