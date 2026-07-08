@@ -1,5 +1,6 @@
 #include "ui/LvglUi.h"
 
+#include <algorithm>
 #include <array>
 #include <string>
 
@@ -88,6 +89,37 @@ void onBlockClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   selectBlock(*context->state, context->index);
+  redraw(context);
+}
+
+std::size_t chainSlotFromPoint(const UiState& state, const lv_point_t& point)
+{
+  const auto blockCount = state.bank.presets[state.activePreset].blocks.size();
+  if (blockCount == 0) {
+    return 0;
+  }
+
+  const int row = point.y >= 218 ? 1 : 0;
+  const int col = std::clamp((point.x - 20) / 172, 0, 3);
+  return std::min<std::size_t>(static_cast<std::size_t>(row * 4 + col), blockCount - 1);
+}
+
+void onBlockReleased(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (!input) {
+    return;
+  }
+
+  lv_point_t point{};
+  lv_indev_get_point(input, &point);
+  const auto target = chainSlotFromPoint(*context->state, point);
+  if (target == context->index) {
+    return;
+  }
+
+  moveBlock(*context->state, context->index, target);
   redraw(context);
 }
 
@@ -209,6 +241,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
     lv_obj_set_size(object, 160, 84);
     lv_obj_set_style_bg_color(object, lv_color_hex(block.enabled ? 0x243044 : 0x262626), 0);
     lv_obj_add_event_cb(object, onBlockClicked, LV_EVENT_CLICKED, remember(state, i));
+    lv_obj_add_event_cb(object, onBlockReleased, LV_EVENT_RELEASED, remember(state, i));
   }
 
   if (state.blockDrawerOpen) {

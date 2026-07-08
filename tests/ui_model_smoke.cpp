@@ -60,6 +60,14 @@ int main()
   if (require(state.selectedBlock == beforeAdd, "added block should be selected")) return 1;
   if (require(state.paramDrawerOpen, "added block should open parameter drawer")) return 1;
 
+  const auto firstBeforeMove = state.bank.presets[state.activePreset].blocks[0].id;
+  const auto secondBeforeMove = state.bank.presets[state.activePreset].blocks[1].id;
+  ardor::moveBlock(state, 0, 1);
+  if (require(state.bank.presets[state.activePreset].blocks[0].id == secondBeforeMove, "target block should move forward")) return 1;
+  if (require(state.bank.presets[state.activePreset].blocks[1].id == firstBeforeMove, "source block should land at target")) return 1;
+  if (require(state.selectedBlock == 1, "moved block should stay selected")) return 1;
+  if (require(state.dirty, "moving block should dirty preset")) return 1;
+
   ardor::enterPresetMode(state);
   if (require(state.mode == ardor::UiMode::Preset, "preset mode should be active")) return 1;
   if (require(!state.blockDrawerOpen && !state.paramDrawerOpen, "preset mode should close drawers")) return 1;

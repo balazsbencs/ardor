@@ -103,6 +103,20 @@ void appendAssetBlock(UiState& state, std::size_t assetIndex)
   state.paramDrawerOpen = true;
 }
 
+void moveBlock(UiState& state, std::size_t from, std::size_t to)
+{
+  auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (from >= blocks.size() || to >= blocks.size() || from == to) {
+    return;
+  }
+
+  auto block = std::move(blocks[from]);
+  blocks.erase(blocks.begin() + static_cast<std::ptrdiff_t>(from));
+  blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(to), std::move(block));
+  state.selectedBlock = to;
+  state.dirty = true;
+}
+
 void closeParamDrawer(UiState& state)
 {
   state.paramDrawerOpen = false;
