@@ -1,6 +1,8 @@
+#include "audio/WavIo.h"
 #include "dsp/IrConvolver.h"
 #include "dsp/PedalEngine.h"
 #include "NAM/model_config.h"
+#include "miniaudio.h"
 
 #include <cmath>
 #include <filesystem>
@@ -18,6 +20,21 @@ int require(bool condition)
 int main()
 {
   if (require(nam::ConfigParserRegistry::instance().has("SlimmableContainer"))) return 1;
+
+  const auto wavPath = std::filesystem::temp_directory_path() / "ardor-wav-io-smoke.wav";
+  {
+    const float samples[] = {0.25f, -0.5f};
+    ma_encoder_config cfg = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 1, 48000);
+    ma_encoder encoder;
+    if (require(ma_encoder_init_file(wavPath.string().c_str(), &cfg, &encoder) == MA_SUCCESS)) return 1;
+    ma_encoder_write_pcm_frames(&encoder, samples, 2, nullptr);
+    ma_encoder_uninit(&encoder);
+  }
+  const auto wav = ardor::readMonoWav(wavPath);
+  if (require(wav.sampleRate == 48000)) return 1;
+  if (require(wav.samples.size() == 2)) return 1;
+  if (require(std::fabs(wav.samples[0] - 0.25f) < 0.0001f)) return 1;
+  std::filesystem::remove(wavPath);
 
   ardor::IrConvolver ir;
   ir.loadImpulse({1.0f, 0.5f});

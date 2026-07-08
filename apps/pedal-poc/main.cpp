@@ -1,6 +1,7 @@
 #include "miniaudio.h"
 
 #include "audio/MiniaudioBackend.h"
+#include "audio/WavIo.h"
 #include "dsp/PedalEngine.h"
 
 #include <algorithm>
@@ -155,27 +156,6 @@ float dbToGain(float db)
   return std::pow(10.0f, db / 20.0f);
 }
 
-std::vector<float> readMono(const std::filesystem::path& path, ma_uint32& sampleRate)
-{
-  ma_decoder_config cfg = ma_decoder_config_init(ma_format_f32, 1, 48000);
-  ma_decoder decoder;
-  if (ma_decoder_init_file(path.string().c_str(), &cfg, &decoder) != MA_SUCCESS) {
-    throw std::runtime_error("failed to open wav: " + path.string());
-  }
-
-  sampleRate = decoder.outputSampleRate;
-  std::vector<float> samples;
-  float chunk[4096];
-  for (;;) {
-    ma_uint64 framesRead = 0;
-    ma_decoder_read_pcm_frames(&decoder, chunk, 4096, &framesRead);
-    if (framesRead == 0) break;
-    samples.insert(samples.end(), chunk, chunk + framesRead);
-  }
-  ma_decoder_uninit(&decoder);
-  return samples;
-}
-
 void writeStereo(const std::filesystem::path& path, const std::vector<float>& interleaved, ma_uint32 sampleRate)
 {
   ma_encoder_config cfg = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 2, sampleRate);
@@ -240,8 +220,9 @@ int main(int argc, char** argv)
       return printDevices();
     }
 
-    ma_uint32 irRate = 0;
-    auto impulse = readMono(args.ir, irRate);
+    auto irWav = ardor::readMonoWav(args.ir);
+    auto impulse = std::move(irWav.samples);
+    const ma_uint32 irRate = irWav.sampleRate;
     if (irRate != args.sampleRate) {
       std::cerr << "Expected " << args.sampleRate << " Hz IR\n";
       return 1;
@@ -307,8 +288,9 @@ int main(int argc, char** argv)
       }
     }
 
-    ma_uint32 inputRate = 0;
-    auto input = readMono(args.input, inputRate);
+    auto inputWav = ardor::readMonoWav(args.input);
+    auto input = std::move(inputWav.samples);
+    const ma_uint32 inputRate = inputWav.sampleRate;
     if (inputRate != args.sampleRate) {
       std::cerr << "Expected " << args.sampleRate << " Hz input\n";
       return 1;

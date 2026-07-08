@@ -96,6 +96,7 @@ endif()
 
 add_library(ardor_audio
   src/audio/MiniaudioBackend.cpp
+  src/audio/WavIo.cpp
 )
 target_include_directories(ardor_audio PUBLIC src ${miniaudio_SOURCE_DIR})
 target_link_libraries(ardor_audio PUBLIC ardor_dsp)
@@ -106,7 +107,7 @@ target_include_directories(pedal-poc PRIVATE ${miniaudio_SOURCE_DIR})
 target_link_libraries(pedal-poc PRIVATE ardor_audio ardor_dsp)
 
 add_executable(pedal-offline-smoke tests/offline_smoke.cpp)
-target_link_libraries(pedal-offline-smoke PRIVATE ardor_dsp)
+target_link_libraries(pedal-offline-smoke PRIVATE ardor_dsp ardor_audio)
 
 add_executable(pedal-preset-smoke tests/preset_smoke.cpp)
 target_link_libraries(pedal-preset-smoke PRIVATE ardor_preset)
