@@ -1,5 +1,7 @@
 # Hardware Validation
 
+Assembly, pin assignments, and first-power checks live in `docs/hardware-assembly.md`.
+
 ## macOS UMC22 Realtime Test
 
 Command:
