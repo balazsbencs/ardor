@@ -187,8 +187,6 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   lv_obj_add_event_cb(blocksButton, onOpenBlockDrawer, LV_EVENT_CLICKED, remember(state));
 
   const auto& blocks = state.bank.presets[state.activePreset].blocks;
-  label(root, "Input", LV_ALIGN_LEFT_MID, 18, -34, &lv_font_montserrat_18, muted);
-  label(root, "Output", LV_ALIGN_RIGHT_MID, -18, 34, &lv_font_montserrat_18, muted);
 
   lv_obj_t* top = lv_obj_create(root);
   lv_obj_t* bottom = lv_obj_create(root);
@@ -201,6 +199,8 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   }
   lv_obj_align(top, LV_ALIGN_TOP_MID, 0, 86);
   lv_obj_align(bottom, LV_ALIGN_TOP_MID, 0, 232);
+  label(root, "Input", LV_ALIGN_TOP_LEFT, 28, 64, &lv_font_montserrat_18, muted);
+  label(root, "Output", LV_ALIGN_TOP_RIGHT, -28, 360, &lv_font_montserrat_18, muted);
 
   for (std::size_t i = 0; i < blocks.size(); ++i) {
     const auto& block = blocks[i];
