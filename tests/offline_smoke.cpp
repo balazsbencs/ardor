@@ -1,5 +1,6 @@
 #include "audio/WavIo.h"
 #include "audio/EngineLoader.h"
+#include "audio/MiniaudioBackend.h"
 #include "dsp/IrConvolver.h"
 #include "dsp/PedalEngine.h"
 #include "preset/ChainPlan.h"
@@ -8,6 +9,8 @@
 
 #include <cmath>
 #include <filesystem>
+#include <fstream>
+#include <string>
 #include <vector>
 
 namespace {
@@ -37,6 +40,21 @@ int main()
   if (require(wav.samples.size() == 2)) return 1;
   if (require(std::fabs(wav.samples[0] - 0.25f) < 0.0001f)) return 1;
 
+  const auto wav441Path = std::filesystem::temp_directory_path() / "ardor-wav-io-44100-smoke.wav";
+  {
+    const float samples[] = {0.25f, -0.5f};
+    ma_encoder_config cfg = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 1, 44100);
+    ma_encoder encoder;
+    if (require(ma_encoder_init_file(wav441Path.string().c_str(), &cfg, &encoder) == MA_SUCCESS)) return 1;
+    ma_encoder_write_pcm_frames(&encoder, samples, 2, nullptr);
+    ma_encoder_uninit(&encoder);
+  }
+  const auto wav441 = ardor::readMonoWav(wav441Path);
+  if (require(wav441.sampleRate == 44100)) return 1;
+
+  if (require(ardor::captureChannelCountForInput(0) == 2)) return 1;
+  if (require(ardor::captureChannelCountForInput(1) == 2)) return 1;
+
   ardor::ChainPlan cabOnly;
   cabOnly.inputGain = 1.0f;
   cabOnly.outputGain = 0.5f;
@@ -49,6 +67,38 @@ int main()
   auto [loadedLeft, loadedRight] = loadedEngine.process(0.5f);
   if (require(std::fabs(loadedLeft - 0.0625f) < 0.0001f)) return 1;
   if (require(std::fabs(loadedRight - 0.0625f) < 0.0001f)) return 1;
+
+  ardor::ChainPlan wrongRateCab;
+  wrongRateCab.blocks.push_back({"cab-441", "cab", ardor::ChainBlockStatus::Ready, wav441Path, nlohmann::json::object()});
+  if (require(!ardor::applyChainPlan(loadedEngine, wrongRateCab, {48000, 64, 8192}, loadError))) return 1;
+  if (require(loadError.find("sample rate mismatch") != std::string::npos)) return 1;
+  std::filesystem::remove(wav441Path);
+
+  ardor::ChainPlan missingCab;
+  missingCab.blocks.push_back({"cab-missing", "cab", ardor::ChainBlockStatus::MissingAsset, {}, nlohmann::json::object()});
+  if (require(!ardor::applyChainPlan(loadedEngine, missingCab, {48000, 64, 8192}, loadError))) return 1;
+  if (require(loadError.find("cab-missing") != std::string::npos)) return 1;
+
+  const auto badWavPath = std::filesystem::temp_directory_path() / "ardor-bad-wav-smoke.wav";
+  {
+    std::ofstream badWav(badWavPath);
+    badWav << "not a wav";
+  }
+  ardor::ChainPlan badCab;
+  badCab.blocks.push_back({"cab-bad", "cab", ardor::ChainBlockStatus::Ready, badWavPath, nlohmann::json::object()});
+  if (require(!ardor::applyChainPlan(loadedEngine, badCab, {48000, 64, 8192}, loadError))) return 1;
+  if (require(loadError.find("failed to load IR") != std::string::npos)) return 1;
+  std::filesystem::remove(badWavPath);
+
+  loadedEngine.loadIr({0.0f});
+  ardor::ChainPlan dryPlan;
+  dryPlan.inputGain = 1.0f;
+  dryPlan.outputGain = 1.0f;
+  dryPlan.safetyLimit = 1.0f;
+  if (require(ardor::applyChainPlan(loadedEngine, dryPlan, {48000, 64, 8192}, loadError))) return 1;
+  auto [dryLeft, dryRight] = loadedEngine.process(0.5f);
+  if (require(std::fabs(dryLeft - 0.5f) < 0.0001f)) return 1;
+  if (require(std::fabs(dryRight - 0.5f) < 0.0001f)) return 1;
   std::filesystem::remove(wavPath);
 
   ardor::IrConvolver ir;

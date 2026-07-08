@@ -19,6 +19,7 @@ int main()
 
   while (true) {
     lv_timer_handler();
+    ui.refresh(lv_screen_active(), state);
     lv_delay_ms(5);
   }
 }

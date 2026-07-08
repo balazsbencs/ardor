@@ -98,6 +98,11 @@ MiniaudioBackend::~MiniaudioBackend()
   stop();
 }
 
+uint32_t captureChannelCountForInput(uint32_t inputChannel)
+{
+  return std::max<uint32_t>(2, inputChannel + 1);
+}
+
 bool MiniaudioBackend::start(PedalEngine& engine, const RealtimeOptions& options)
 {
   if (options.blockSize == 0) {
@@ -108,7 +113,7 @@ bool MiniaudioBackend::start(PedalEngine& engine, const RealtimeOptions& options
   stop();
   state_ = new MiniaudioBackendState();
   state_->engine = &engine;
-  state_->captureChannels = options.inputChannel + 1;
+  state_->captureChannels = captureChannelCountForInput(options.inputChannel);
   state_->inputChannel = options.inputChannel;
   state_->outputChannel = options.outputChannel;
   state_->sampleRate = static_cast<double>(options.sampleRate);

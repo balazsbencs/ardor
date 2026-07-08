@@ -31,6 +31,8 @@ struct RealtimeStats {
   double budgetMs = 0.0;
 };
 
+uint32_t captureChannelCountForInput(uint32_t inputChannel);
+
 class MiniaudioBackend {
 public:
   ~MiniaudioBackend();

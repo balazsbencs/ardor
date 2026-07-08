@@ -76,6 +76,15 @@ void NamProcessor::processBlock(const float* input, float* output, size_t frames
   }
 }
 
+void NamProcessor::clear()
+{
+  model_.reset();
+  input_.assign(1, 0.0f);
+  output_.assign(1, 0.0f);
+  sampleRate_ = 0.0;
+  maxBlockSize_ = 0;
+}
+
 void NamProcessor::reset()
 {
   if (!model_) {

@@ -40,7 +40,7 @@ void label(lv_obj_t* parent, const std::string& value, lv_align_t align, int x, 
 
 void redraw(UiEventContext* context)
 {
-  context->ui->build(lv_screen_active(), *context->state);
+  context->ui->requestRebuild();
 }
 
 lv_obj_t* button(lv_obj_t* parent, const std::string& value);
@@ -350,6 +350,7 @@ UiEventContext* LvglUi::remember(UiState& state, std::size_t index, std::string 
 
 void LvglUi::build(lv_obj_t* root, UiState& state)
 {
+  rebuildPending_ = false;
   contexts_.clear();
   lv_obj_clean(root);
   lv_obj_set_style_bg_color(root, lv_color_hex(bg), 0);
@@ -359,6 +360,18 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   } else {
     renderEditMode(root, state);
   }
+}
+
+void LvglUi::refresh(lv_obj_t* root, UiState& state)
+{
+  if (rebuildPending_) {
+    build(root, state);
+  }
+}
+
+void LvglUi::requestRebuild()
+{
+  rebuildPending_ = true;
 }
 
 void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)

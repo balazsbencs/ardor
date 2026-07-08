@@ -19,6 +19,7 @@ public:
   bool load(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize);
   float process(float input);
   void processBlock(const float* input, float* output, size_t frames);
+  void clear();
   void reset();
   bool loaded() const;
 

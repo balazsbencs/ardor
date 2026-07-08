@@ -2,12 +2,34 @@
 
 #include "audio/WavIo.h"
 
+#include <exception>
 #include <utility>
 
 namespace ardor {
 
+namespace {
+
+const char* statusName(ChainBlockStatus status)
+{
+  switch (status) {
+  case ChainBlockStatus::Ready:
+    return "ready";
+  case ChainBlockStatus::MissingAsset:
+    return "missing asset";
+  case ChainBlockStatus::Unsupported:
+    return "unsupported";
+  case ChainBlockStatus::Disabled:
+    return "disabled";
+  }
+  return "unknown";
+}
+
+} // namespace
+
 bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoadOptions& options, std::string& error)
 {
+  error.clear();
+  engine.clearEffects();
   engine.prepareBlockSize(options.blockSize);
   engine.setInputGain(plan.inputGain);
   engine.setOutputGain(plan.outputGain);
@@ -18,6 +40,10 @@ bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoad
   bool loadedCab = false;
   for (const auto& block : plan.blocks) {
     if (block.status != ChainBlockStatus::Ready) {
+      if (block.status != ChainBlockStatus::Disabled) {
+        error = "block not ready: " + block.id + " (" + statusName(block.status) + ")";
+        return false;
+      }
       continue;
     }
     if (block.type == "nam" && !loadedNam) {
@@ -29,7 +55,13 @@ bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoad
       continue;
     }
     if (block.type == "cab" && !loadedCab) {
-      auto wav = readMonoWav(block.assetPath);
+      MonoWav wav;
+      try {
+        wav = readMonoWav(block.assetPath);
+      } catch (const std::exception& e) {
+        error = "failed to load IR: " + block.assetPath.string() + ": " + e.what();
+        return false;
+      }
       if (wav.sampleRate != options.sampleRate) {
         error = "IR sample rate mismatch: " + block.assetPath.string();
         return false;

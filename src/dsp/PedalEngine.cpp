@@ -28,6 +28,12 @@ void PedalEngine::prepareBlockSize(size_t frames)
   ir_.prepareBlockSize(frames);
 }
 
+void PedalEngine::clearEffects()
+{
+  nam_.clear();
+  ir_.loadImpulse({});
+}
+
 void PedalEngine::setInputGain(float gain)
 {
   inputGain_.store(gain, std::memory_order_relaxed);

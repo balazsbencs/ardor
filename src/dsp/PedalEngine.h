@@ -15,6 +15,7 @@ public:
   bool loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize);
   void loadIr(std::vector<float> impulse);
   void prepareBlockSize(size_t frames);
+  void clearEffects();
   void setInputGain(float gain);
   void setOutputGain(float gain);
   void setMasterVolume(float gain);

@@ -28,6 +28,8 @@ struct UiEventContext {
 class LvglUi {
 public:
   void build(lv_obj_t* root, UiState& state);
+  void refresh(lv_obj_t* root, UiState& state);
+  void requestRebuild();
 
 private:
   void renderPresetMode(lv_obj_t* root, UiState& state);
@@ -38,6 +40,7 @@ private:
   UiEventContext* remember(UiState& state, std::size_t index = 0, std::string filter = "all");
 
   std::deque<UiEventContext> contexts_;
+  bool rebuildPending_ = false;
 };
 
 } // namespace ardor
