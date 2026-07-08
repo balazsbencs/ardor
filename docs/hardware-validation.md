@@ -58,24 +58,95 @@ notes: short smoke run; full IR became practical after partitioned convolution
 
 ## DSP Microbenchmark Baseline
 
-Per-component cost at `48000 Hz / block 64 / IR 8192`, Release build, measured with:
+Per-component realtime cost at `48000 Hz / block 64 / IR 8192`. The realtime
+telemetry lumps everything into one number; `pedal-dsp-bench` separates the two
+expensive components (NAM inference, IR convolution) so we can see where the
+1333 µs/block budget goes.
 
-```sh
-cmake --build build --target pedal-dsp-bench
-./build/pedal-dsp-bench          # uses models/test.nam if present
-```
+### Why this matters (context for whoever runs it)
+
+The whole roadmap rests on one unvalidated assumption: that NAM + convolution
+fit the Pi 4B's per-block budget at block size 64. All numbers so far are from
+a Mac, which is roughly 5–10× faster per core than the Pi's Cortex-A72. The Pi
+rows below are the roadmap **Phase 0 gate** — they decide model-tier targets
+and whether the convolver optimization tasks in
+`docs/superpowers/plans/2026-07-09-ir-convolver-performance.md` run at all.
+
+### Recorded results
 
 | Host | Component | avg µs/block | % of 1333 µs budget |
 | --- | --- | ---: | ---: |
 | macOS dev machine (2026-07-09) | IrConvolver | 22.8 (24.6 before precomputed twiddles; max 125→78) | 1.7% |
 | macOS dev machine (2026-07-09) | NamProcessor (test.nam, SlimmableContainer/WaveNet) | 50.4 | 3.8% |
 | Pi 4B (`performance` governor) | IrConvolver | TBD (Phase 0) | — |
-| Pi 4B (`performance` governor) | NamProcessor | TBD (Phase 0) | — |
+| Pi 4B (`performance` governor) | NamProcessor — standard-tier model | TBD (Phase 0) | — |
+| Pi 4B (`performance` governor) | NamProcessor — feather/lite-tier model | TBD (Phase 0) | — |
 
-The Pi rows gate the optimization tasks in
-`docs/superpowers/plans/2026-07-09-ir-convolver-performance.md`: if the Pi
-convolver row is under 200 µs/block, those tasks do not run. Expect roughly
-5–10× the macOS per-core numbers on the Cortex-A72.
+### Pi measurement procedure (delegable, ~1–2 h including build time)
+
+You need: a Raspberry Pi 4B (the 1GB target unit or any Pi 4B — the CPU is the
+same), an SD card with 64-bit Raspberry Pi OS Lite, network access, and two
+`.nam` files: one standard WaveNet and one feather/lite variant (ask in the
+project channel if you don't have them; they are not in git).
+
+1. **Prepare the Pi.** Full Buildroot image not required — SSH into Raspberry
+   Pi OS Lite is fine for this measurement.
+
+   ```sh
+   sudo apt update && sudo apt install -y git cmake g++ ninja-build
+   ```
+
+2. **Add swap before building.** The 1GB board cannot compile the
+   Eigen-heavy NAM sources in RAM alone:
+
+   ```sh
+   sudo dphys-swapfile swapoff
+   sudo sed -i 's/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=2048/' /etc/dphys-swapfile
+   sudo dphys-swapfile setup && sudo dphys-swapfile swapon
+   ```
+
+3. **Clone and build** (needs network — CMake fetches miniaudio, NAM core,
+   and LVGL at configure time; `-j1` on the 1GB board, `-j4` on a 4/8GB board):
+
+   ```sh
+   git clone <repo-url> ardor && cd ardor
+   cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DARDOR_ENABLE_LVGL_UI=OFF
+   cmake --build build --target pedal-dsp-bench -j1
+   ```
+
+4. **Set the governor and check for throttling.** Skipping this invalidates
+   the measurement — `ondemand` frequency ramping inflates and destabilizes
+   the numbers:
+
+   ```sh
+   echo performance | sudo tee /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+   vcgencmd get_throttled    # must print throttled=0x0 before AND after the runs
+   ```
+
+5. **Run three times per model**, take the middle run:
+
+   ```sh
+   ./build/pedal-dsp-bench /path/to/standard-model.nam
+   ./build/pedal-dsp-bench /path/to/feather-model.nam
+   ```
+
+   Each run prints one line per component with min/avg/max µs and % of budget.
+   If `vcgencmd get_throttled` is non-zero afterwards, cool the board and
+   re-run — throttled numbers go in the bin, not the table.
+
+6. **Record**: fill the TBD rows above (avg µs and %; note the max if it is
+   more than ~3× the avg), plus the exact model filenames, the commit hash
+   (`git rev-parse --short HEAD`), and `vcgencmd measure_temp` after the runs.
+   Commit the edit to this file.
+
+### How to read the result (decision table)
+
+| Pi result | Action |
+| --- | --- |
+| IrConvolver < 200 µs/block | Convolver optimization Tasks 3–4 in the convolver plan **do not run**. Note it in that plan and move on. |
+| IrConvolver ≥ 200 µs/block | Execute the convolver plan Tasks 2–3 (conjugate symmetry), re-measure; Task 4 (pffft) only if still ≥ 200 µs. |
+| NAM (any tier) + convolver < ~65% of budget combined | Phase 0 gate passes with that tier — record which tier and continue the roadmap. |
+| No model tier fits at block 64 | Stop; escalate to the roadmap owner — block-size 128 fallback or model constraints must be decided before any further phases (see roadmap Phase 0 "Stop If"). |
 
 ## Raspberry Pi Codec Zero Realtime Test
 
