@@ -7,6 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(ARDOR_ENABLE_REALTIME "Build realtime audio backend" ON)
 option(ARDOR_ENABLE_NAM "Build with NeuralAmpModelerCore" ON)
+option(ARDOR_ENABLE_LVGL_UI "Build LVGL desktop UI simulator" ON)
 
 include(FetchContent)
 
@@ -26,6 +27,21 @@ FetchContent_Declare(
   SOURCE_SUBDIR cmake-do-not-add
 )
 FetchContent_MakeAvailable(NeuralAmpModelerCore)
+
+if(ARDOR_ENABLE_LVGL_UI)
+  find_package(SDL2 REQUIRED)
+  set(CONFIG_LV_BUILD_DEMOS OFF CACHE BOOL "" FORCE)
+  set(CONFIG_LV_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+  set(LV_BUILD_CONF_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lv_conf.h" CACHE PATH "" FORCE)
+  FetchContent_Declare(
+    lvgl
+    GIT_REPOSITORY https://github.com/lvgl/lvgl.git
+    GIT_TAG v9.5.0
+  )
+  FetchContent_MakeAvailable(lvgl)
+  target_include_directories(lvgl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${SDL2_INCLUDE_DIRS})
+  target_link_libraries(lvgl PUBLIC ${SDL2_LIBRARIES})
+endif()
 
 file(GLOB NAM_SOURCES
   ${neuralampmodelercore_SOURCE_DIR}/NAM/*.cpp
@@ -63,6 +79,21 @@ target_include_directories(ardor_preset PUBLIC
 )
 target_compile_features(ardor_preset PUBLIC cxx_std_20)
 
+add_library(ardor_ui
+  src/ui/UiModel.cpp
+)
+target_include_directories(ardor_ui PUBLIC src)
+target_compile_features(ardor_ui PUBLIC cxx_std_20)
+target_link_libraries(ardor_ui PUBLIC ardor_preset)
+
+if(ARDOR_ENABLE_LVGL_UI)
+  target_sources(ardor_ui PRIVATE src/ui/LvglUi.cpp)
+  target_link_libraries(ardor_ui PUBLIC lvgl)
+
+  add_executable(pedal-ui-sim apps/pedal-ui-sim/main.cpp)
+  target_link_libraries(pedal-ui-sim PRIVATE ardor_ui)
+endif()
+
 add_library(ardor_audio
   src/audio/MiniaudioBackend.cpp
 )
@@ -83,10 +114,14 @@ target_link_libraries(pedal-preset-smoke PRIVATE ardor_preset)
 add_executable(pedal-engine-contract-smoke tests/engine_contract_smoke.cpp)
 target_link_libraries(pedal-engine-contract-smoke PRIVATE ardor_dsp)
 
+add_executable(pedal-ui-model-smoke tests/ui_model_smoke.cpp)
+target_link_libraries(pedal-ui-model-smoke PRIVATE ardor_ui)
+
 enable_testing()
 add_test(NAME pedal-offline-smoke COMMAND pedal-offline-smoke)
 add_test(NAME pedal-preset-smoke COMMAND pedal-preset-smoke)
 add_test(NAME pedal-engine-contract-smoke COMMAND pedal-engine-contract-smoke)
+add_test(NAME pedal-ui-model-smoke COMMAND pedal-ui-model-smoke)
 add_test(NAME pedal-devices-indexed COMMAND pedal-poc --devices)
 set_tests_properties(pedal-devices-indexed PROPERTIES PASS_REGULAR_EXPRESSION "\\[0\\]")
 

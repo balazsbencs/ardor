@@ -2,15 +2,16 @@
 
 Standalone proof-of-concept for a Raspberry Pi guitar pedal platform.
 
-The first target is deliberately small: load a Neural Amp Modeler `.nam` file, load a cabinet IR `.wav`, process mono guitar input, and output stereo audio with low latency. The same C++ app builds on macOS for desktop testing and Linux/Buildroot for Raspberry Pi.
+The first target is deliberately small: load a Neural Amp Modeler `.nam` file, load a cabinet IR `.wav`, process mono guitar input, output stereo audio with low latency, and prototype the pedal UI on desktop with LVGL.
 
-Deferred for now: LVGL UI, display integration, footswitches, encoders, presets, OTA updates, and plugin formats.
+Deferred for now: display integration on Raspberry Pi, footswitches, encoders, OTA updates, and plugin formats.
 
 ## Requirements
 
 - CMake 3.20+
 - C++20 compiler
 - Git access during CMake configure, for `miniaudio` and `NeuralAmpModelerCore`
+- SDL2 for the LVGL desktop simulator
 - macOS for desktop testing, or Linux for target-style builds
 - Local test assets:
   - `models/test.nam`
@@ -38,6 +39,7 @@ This builds:
 
 - `build/pedal-poc`
 - `build/pedal-offline-smoke`
+- `build/pedal-ui-sim`
 
 ## Test
 
@@ -152,6 +154,18 @@ open mockups/preset-ui/index.html
 ```
 
 It uses the same preset shape as `docs/superpowers/specs/2026-07-07-preset-ui-architecture-design.md`.
+
+## LVGL UI Simulator
+
+The first LVGL UI target is a desktop simulator for preset and edit screens:
+
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target pedal-ui-sim
+./build/pedal-ui-sim
+```
+
+It validates screen layout and UI state only. It does not wire footswitch GPIO, the encoder, Codec Zero, or realtime audio yet.
 
 ## Buildroot Firmware Seed
 
