@@ -385,6 +385,8 @@ While it runs, type:
 
 Expected: audio pauses briefly, resumes with the selected preset, and telemetry continues printing. No file loading happens in the callback.
 
+**Measure the switch gap:** record (audibly, or by timestamping the stop/start log lines) how long the audio hole is, and write the number into `docs/preset-runtime-testing.md`. This defines "unacceptable" for the deferred lock-free swap instead of leaving it to taste: if the measured gap exceeds ~150 ms, the lock-free swap moves ahead of the Buildroot phase (see roadmap Deferred section).
+
 - [ ] **Step 7: Commit**
 
 ```bash
@@ -444,6 +446,7 @@ git commit -m "docs: document realtime preset switching"
 
 ## Skipped For This Phase
 
-- Lock-free double-buffered engine swapping; add when stop/start switching produces an unacceptable audio gap.
-- UI-to-audio process integration; add after the simulator owns real preset files.
+- Lock-free double-buffered engine swapping; add when the **measured** stop/start gap (Task 3 Step 6) exceeds ~150 ms.
+- UI-to-audio process integration; owned by `docs/superpowers/plans/2026-07-09-ui-audio-integration.md` (roadmap Phase 6) — it reuses this plan's `requestedSlot` boundary, so keep that boundary the single switch path.
 - Bank switching while running; add with the physical footswitch combination.
+- Deleting the legacy `--model/--ir` flags; flagged for removal once slot mode is the Pi boot path (tracked in the roadmap Deferred section).

@@ -288,3 +288,11 @@ The first implementation plan should include small checks for:
 - Encoder acceleration details.
 - Asset catalog database.
 - Preset cloud sync or sharing.
+
+## V1 Scope Adjustments (2026-07-09)
+
+Recorded so dropped spec behaviors are decisions, not silent omissions:
+
+- **Live audio preview while editing** ("Edit mode changes the working preset immediately. The player hears those changes immediately") is **deferred, not v1**. V1 behavior: edits become audible after pressing Save, which reloads the active slot through the runtime switch boundary. Owned by `docs/superpowers/plans/2026-07-09-ui-audio-integration.md`; revisit per-keystroke preview only if Save-then-hear proves unusable in practice.
+- **Footswitch bank combinations** (Switch 1+2 / 3+4 bank up/down) are **v2**. V1 exposes bank 0 only; the four footswitches select slots 0–3.
+- **Preset banks**: the 100-bank × 4-slot format and its validation stay as specified so files remain forward-compatible, but v1 hardware and UI expose exactly one bank. Do not build bank-navigation UI for v1.

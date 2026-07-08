@@ -154,7 +154,7 @@ struct ControlEvent {
 
 struct ControlState {
   int activeSlot = 0;
-  int masterVolume = 100;
+  int masterVolume = 80; // boot default: never full-scale into an amp on power-up
 };
 
 bool applyControlEvent(ControlState& state, const ControlEvent& event);
@@ -311,6 +311,11 @@ bool LinuxInputDevice::poll(ControlEvent& event)
 
   return false;
 }
+```
+
+Note: the `EV_REL` branch deliberately accepts *any* relative axis, not just `REL_X`. That is correct for v1 because the encoder is opened as its own `--control-device` (per-device fds, no cross-talk from other input hardware). If a second relative-axis device is ever added, match `input.code == REL_X` here.
+
+```cpp
 
 void LinuxInputDevice::close()
 {
@@ -417,9 +422,11 @@ Add to usage:
 Inside the realtime slot branch, after the backend starts:
 
 ```cpp
-      ardor::ControlState controls{args.slot, 100};
+      ardor::ControlState controls{args.slot, 80};
       liveEngine->setMasterVolume(static_cast<float>(controls.masterVolume) / 100.0f);
 ```
+
+Boot volume is deliberately below full scale: the pedal feeds an amp, and 100% on power-up is a user-safety hazard. Volume persistence across boots is deferred (see Skipped).
 
 - [ ] **Step 4: Poll Linux input outside the callback**
 
@@ -582,3 +589,8 @@ git commit -m "docs: document pi hardware controls"
 - Raw GPIO polling in the app; kernel input drivers are smaller and easier to test.
 - Simulator keyboard shortcuts for hardware controls; the simulator remains mouse/keyboard UI only.
 - Bank up/down footswitch combinations; add after slot selection works on the actual Pi.
+- Persisting master volume across boots; the 80% boot default covers safety for v1. Add a small settings file on the data partition when a second persisted setting appears.
+
+## Keycode Contract
+
+`KEY_F1`..`KEY_F4` is the single source of truth for footswitch codes — this plan's `LinuxInput.cpp`, the device-tree overlay in `docs/hardware-assembly.md` § Linux Device Tree Sketch, and the Buildroot `ardor-controls.dts` all use these codes. If any of them disagrees, footswitches silently do nothing; fix the outlier, never fork the mapping.

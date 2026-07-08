@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **STATUS: COMPLETE — DO NOT RE-EXECUTE.** All tasks landed on or before 2026-07-08; the unchecked boxes below are historical. Verify against the source tree, not the checkboxes. Listed under "Already Implemented" in the master roadmap.
+
 **Goal:** Add `pedal-poc --preset` so offline and realtime runs can load the same preset JSON format the UI will save.
 
 **Architecture:** Reuse `Preset`, `buildChainPlan`, and `applyChainPlan`; do not add another runtime format. Keep legacy `--model/--ir` flags working while adding a preset path that configures the engine before offline processing or realtime startup.

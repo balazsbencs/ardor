@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Store editable params per block.
-- Start with globals: input gain, output gain, safety limit.
+- Start with globals: input gain and output gain. `safetyLimitDb` stays stored per preset and applied by the engine, but is **not user-editable in the UI** — the safety clipper is a protective device, not a tone control; exposing ± buttons for it invites setting a clipping ceiling as an "effect".
 - Cab V1 supports `levelDb` and `mix` for the first ready cab block.
 - Skip modulation, delay, and reverb params until the save/load path is solid.
 - Keep one serial chain for v1.
@@ -53,7 +53,6 @@
   - `UiBlock::params`
   - `void setActiveInputGainDb(UiState& state, float db)`
   - `void setActiveOutputGainDb(UiState& state, float db)`
-  - `void setActiveSafetyLimitDb(UiState& state, float db)`
   - `void setSelectedBlockParam(UiState& state, const std::string& key, float value)`
 
 - [ ] **Step 1: Write the failing test**
@@ -77,10 +76,9 @@ Add this block in `tests/ui_model_smoke.cpp` after the existing `replaceActivePr
 
   ardor::setActiveInputGainDb(state, 20.0f);
   ardor::setActiveOutputGainDb(state, -80.0f);
-  ardor::setActiveSafetyLimitDb(state, 6.0f);
   if (require(state.bank.presets[state.activePreset].global.inputGainDb == 12.0f, "input gain should clamp high")) return 1;
   if (require(state.bank.presets[state.activePreset].global.outputGainDb == -60.0f, "output gain should clamp low")) return 1;
-  if (require(state.bank.presets[state.activePreset].global.safetyLimitDb == 0.0f, "safety limit should clamp high")) return 1;
+  if (require(state.bank.presets[state.activePreset].global.safetyLimitDb == -1.5f, "safety limit round-trips but has no UI setter")) return 1;
   if (require(state.dirty, "global edit should dirty preset")) return 1;
 
   state.dirty = false;
@@ -136,7 +134,6 @@ Add declarations:
 void selectGlobalParams(UiState& state);
 void setActiveInputGainDb(UiState& state, float db);
 void setActiveOutputGainDb(UiState& state, float db);
-void setActiveSafetyLimitDb(UiState& state, float db);
 void setSelectedBlockParam(UiState& state, const std::string& key, float value);
 ```
 
@@ -198,12 +195,6 @@ void setActiveOutputGainDb(UiState& state, float db)
   state.dirty = true;
 }
 
-void setActiveSafetyLimitDb(UiState& state, float db)
-{
-  state.bank.presets[state.activePreset].global.safetyLimitDb = clampFloat(db, -24.0f, 0.0f);
-  state.dirty = true;
-}
-
 void setSelectedBlockParam(UiState& state, const std::string& key, float value)
 {
   auto& blocks = state.bank.presets[state.activePreset].blocks;
@@ -249,9 +240,8 @@ git commit -m "feat: round trip ui effect params"
 - Consumes:
   - `setActiveInputGainDb(UiState&, float)`
   - `setActiveOutputGainDb(UiState&, float)`
-  - `setActiveSafetyLimitDb(UiState&, float)`
 - Produces:
-  - A Global button that opens the bottom drawer for input gain, output gain, and safety limit.
+  - A Global button that opens the bottom drawer for input gain and output gain. The safety limit is displayed read-only (so a support conversation can reference it) but has no edit controls.
 
 - [ ] **Step 1: Add parameter-step callbacks**
 
@@ -267,8 +257,7 @@ void onGlobalParamsClicked(lv_event_t* event)
 
 enum class GlobalParam {
   Input,
-  Output,
-  Safety
+  Output
 };
 
 void stepGlobalParam(UiState& state, GlobalParam param, float delta)
@@ -276,10 +265,8 @@ void stepGlobalParam(UiState& state, GlobalParam param, float delta)
   auto& global = state.bank.presets[state.activePreset].global;
   if (param == GlobalParam::Input) {
     setActiveInputGainDb(state, global.inputGainDb + delta);
-  } else if (param == GlobalParam::Output) {
-    setActiveOutputGainDb(state, global.outputGainDb + delta);
   } else {
-    setActiveSafetyLimitDb(state, global.safetyLimitDb + delta);
+    setActiveOutputGainDb(state, global.outputGainDb + delta);
   }
 }
 
@@ -308,20 +295,6 @@ void onOutputGainUp(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   stepGlobalParam(*context->state, GlobalParam::Output, 1.0f);
-  redraw(context);
-}
-
-void onSafetyLimitDown(lv_event_t* event)
-{
-  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  stepGlobalParam(*context->state, GlobalParam::Safety, -1.0f);
-  redraw(context);
-}
-
-void onSafetyLimitUp(lv_event_t* event)
-{
-  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  stepGlobalParam(*context->state, GlobalParam::Safety, 1.0f);
   redraw(context);
 }
 ```
@@ -378,7 +351,8 @@ void LvglUi::renderParamDrawer(lv_obj_t* root, UiState& state)
     auto* context = remember(state);
     globalControl(drawer, state, "In", global.inputGainDb, 0, onInputGainDown, onInputGainUp, context);
     globalControl(drawer, state, "Out", global.outputGainDb, 150, onOutputGainDown, onOutputGainUp, context);
-    globalControl(drawer, state, "Limit", global.safetyLimitDb, 300, onSafetyLimitDown, onSafetyLimitUp, context);
+    label(drawer, "Limit " + std::to_string(static_cast<int>(global.safetyLimitDb)) + " dB (fixed)",
+          LV_ALIGN_TOP_LEFT, 300, 0, &lv_font_montserrat_18, muted);
     lv_obj_t* close = button(drawer, "X");
     lv_obj_set_size(close, 42, 36);
     lv_obj_align(close, LV_ALIGN_TOP_RIGHT, 0, -4);
@@ -700,7 +674,7 @@ Preset globals:
 
 - `global.inputGainDb`: input gain before NAM.
 - `global.outputGainDb`: output gain after cab.
-- `global.safetyLimitDb`: limiter ceiling, where `-1.0` is the default.
+- `global.safetyLimitDb`: limiter ceiling, where `-1.0` is the default. Stored and applied, but not editable from the UI — it is a protective clipper, not a tone control.
 
 Cab block params:
 
@@ -734,3 +708,4 @@ git commit -m "docs: document effect params v1"
 - NAM-specific model params; NAM files are static models in v1.
 - Modulation, delay, and reverb DSP.
 - Arbitrary typed parameter schemas; JSON storage plus two cab params is enough for this phase.
+- User-editable `safetyLimitDb`; deliberately excluded (see Global Constraints), not merely deferred.

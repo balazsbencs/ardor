@@ -25,13 +25,13 @@
 
 ## Execution Position
 
-Run this plan after these existing plans are complete:
+**Deferred until after Pi validation.** The master roadmap (`docs/superpowers/plans/2026-07-08-master-implementation-roadmap.md` § Deferred Until After Pi Validation) is authoritative and supersedes the earlier version of this section, which asked to run before the Buildroot target. Rationale: this plan is a large CPU unknown (three new DSP block types), and landing it before the NAM baseline is validated on the Cortex-A72 would make Pi overruns undiagnosable — is it NAM, the convolver, or Daisy?
 
-1. `docs/superpowers/plans/2026-07-08-ui-save-load-wiring.md`
-2. `docs/superpowers/plans/2026-07-08-runtime-preset-switching.md`
-3. `docs/superpowers/plans/2026-07-08-effect-parameters-v1.md`
+When this plan does run:
 
-Then run this plan before the Pi Buildroot target is finalized, so the target image packages the real effect set.
+1. All roadmap phases 0–7 are complete and the Pi baseline is measured.
+2. Task 8's headroom rule (>30%) is measured **on the Pi 4B with the `performance` governor**, not on macOS. macOS numbers do not transfer (roughly 5–10× per-core difference).
+3. The v1 image ships without these effects; they arrive in a post-v1 image.
 
 ---
 

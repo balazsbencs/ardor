@@ -189,28 +189,28 @@ gpio-keys {
 
     footswitch_1 {
         label = "preset-1";
-        linux,code = <KEY_1>;
+        linux,code = <KEY_F1>;
         gpios = <&gpio 5 GPIO_ACTIVE_LOW>;
         debounce-interval = <20>;
     };
 
     footswitch_2 {
         label = "preset-2";
-        linux,code = <KEY_2>;
+        linux,code = <KEY_F2>;
         gpios = <&gpio 6 GPIO_ACTIVE_LOW>;
         debounce-interval = <20>;
     };
 
     footswitch_3 {
         label = "preset-3";
-        linux,code = <KEY_3>;
+        linux,code = <KEY_F3>;
         gpios = <&gpio 13 GPIO_ACTIVE_LOW>;
         debounce-interval = <20>;
     };
 
     footswitch_4 {
         label = "preset-4";
-        linux,code = <KEY_4>;
+        linux,code = <KEY_F4>;
         gpios = <&gpio 16 GPIO_ACTIVE_LOW>;
         debounce-interval = <20>;
     };
@@ -224,7 +224,9 @@ rotary {
 };
 ```
 
-This is a sketch, not a ready `.dtbo` file.
+This is a sketch, not a ready `.dtbo` file. The compiled overlay is owned by the Buildroot plan (`board/ardor-pedal/ardor-controls.dts`).
+
+The keycodes are `KEY_F1`..`KEY_F4` on purpose: they must match what `LinuxInput.cpp` listens for (see the Keycode Contract section in `docs/superpowers/plans/2026-07-08-hardware-controls-integration.md`). Do not change them here without changing the reader.
 
 ## Validation
 
@@ -258,6 +260,7 @@ Pass criteria:
 - Encoder produces relative turn events in both directions.
 - Guitar input produces stereo output.
 - No ALSA xruns during a 10 minute test at `48000 Hz`, block size `64`, IR samples `8192`.
+- Thermal: with the enclosure closed, record `vcgencmd measure_temp` before and after the 10 minute soak, and `vcgencmd get_throttled` must stay `0x0`. A sustained near-loaded core in a closed pedal enclosure will hit the Pi 4's 80 °C soft throttle, and throttling at a 1.33 ms budget means audible dropouts — catch it on the bench, not on stage.
 
 ## References
 

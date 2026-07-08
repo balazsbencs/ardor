@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **STATUS: COMPLETE — DO NOT RE-EXECUTE.** All tasks landed on or before 2026-07-08; the unchecked boxes below are historical. Verify against the source tree, not the checkboxes. Listed under "Already Implemented" in the master roadmap.
+
 **Goal:** Build the preset data model, store, engine contract hooks, overload bypass state, and a small HTML mockup path defined by `docs/superpowers/specs/2026-07-07-preset-ui-architecture-design.md`.
 
 **Architecture:** Add a small preset module that owns JSON serialization, preset slots, dirty working state, and chain validation. Keep the existing DSP engine as the realtime processor, adding only the master-volume and dry-bypass hooks needed by the preset contract. Keep the HTML mockup static and schema-driven so it validates layout without becoming production UI.

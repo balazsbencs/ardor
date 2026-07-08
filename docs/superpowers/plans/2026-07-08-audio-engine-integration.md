@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **STATUS: COMPLETE — DO NOT RE-EXECUTE.** All tasks landed on or before 2026-07-08; the unchecked boxes below are historical. Verify against the source tree, not the checkboxes. Listed under "Already Implemented" in the master roadmap.
+
 **Goal:** Make saved presets drive the realtime/offline audio engine through a small, testable chain contract.
 
 **Architecture:** Reuse the existing preset JSON, `ChainPlan`, `PedalEngine`, and `MiniaudioBackend`. Add only the missing glue: resolved chain assets, shared WAV loading, a preset-to-engine loader, UI/preset conversion, and telemetry state.

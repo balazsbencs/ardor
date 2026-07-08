@@ -27,7 +27,7 @@
 - `src/ui/UiModel.h`: add telemetry fields to `UiState`.
 - `src/ui/UiModel.cpp`: add `updateRealtimeTelemetry`.
 - `src/ui/LvglUi.cpp`: render telemetry and bypass state on preset/edit screens.
-- `apps/pedal-poc/main.cpp`: use the shared formatter for CLI logs.
+- `apps/pedal-poc/main.cpp`: use the shared formatter for CLI logs; lock process memory in realtime mode.
 - `tests/preset_reload_stress.cpp`: offline stress test that repeatedly applies preset slots to a `PedalEngine`.
 - `CMakeLists.txt`: build/register stress test.
 - `docs/preset-runtime-testing.md`: add realtime stress procedure.
@@ -183,6 +183,8 @@ git commit -m "feat: share runtime telemetry formatting"
 ---
 
 ### Task 2: Show Telemetry In LVGL UI State
+
+**Scope note:** in this phase the simulator renders test-fed telemetry values only — nothing populates them from a live engine yet. The live wiring arrives in `docs/superpowers/plans/2026-07-09-ui-audio-integration.md` (roadmap Phase 6), which calls `updateRealtimeTelemetry` from the integrated control loop each second. This task builds the state plumbing and rendering so Phase 6 has something to feed; it is not the finished feature.
 
 **Files:**
 - Modify: `src/ui/UiModel.h`
@@ -426,7 +428,55 @@ git commit -m "test: stress preset reloads"
 
 ---
 
-### Task 4: Document Robustness Baseline
+### Task 4: Lock Memory In Realtime Mode
+
+Page faults are allocation's quieter sibling: a page-out of engine buffers mid-callback blows the 1.33 ms budget just as surely as a `resize`. On a 1GB Pi running a UI next to the engine, this is a real risk, not theory.
+
+**Files:**
+- Modify: `apps/pedal-poc/main.cpp`
+
+**Interfaces:**
+- Consumes:
+  - POSIX `mlockall(2)`
+- Produces:
+  - Locked resident memory for the whole realtime process.
+
+- [ ] **Step 1: Lock memory when entering realtime mode**
+
+In the realtime branch of `main`, after the engine is loaded and before the backend starts:
+
+```cpp
+#if defined(__linux__)
+#include <sys/mman.h>
+// ... in the realtime branch:
+      if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
+        std::cerr << "mlockall failed (running without locked memory): " << std::strerror(errno) << "\n";
+      }
+#endif
+```
+
+A failure is a warning, not an exit — desktop dev boxes may hit `RLIMIT_MEMLOCK`; the Buildroot image runs as root where the call succeeds. Note for the Buildroot plan: no rlimit configuration is needed for a root-run SysV service.
+
+- [ ] **Step 2: Build on both platforms**
+
+Run:
+
+```bash
+cmake --build build --target pedal-poc
+```
+
+Expected: macOS build unaffected (the block is Linux-only); Linux build compiles and logs nothing on success.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add apps/pedal-poc/main.cpp
+git commit -m "feat: lock realtime process memory on linux"
+```
+
+---
+
+### Task 5: Document Robustness Baseline
 
 **Files:**
 - Modify: `docs/preset-runtime-testing.md`
@@ -509,5 +559,6 @@ git commit -m "docs: document realtime robustness baseline"
 ## Skipped For This Phase
 
 - Realtime callback instrumentation beyond existing duration stats.
-- Automatic recovery after latched bypass; current behavior stays latched until preset change or explicit clear.
+- Automatic recovery after latched bypass; current behavior stays latched until preset change or explicit clear. Revisit the latch trigger too: today one over-budget callback per second for 3 consecutive seconds latches — on the Pi, tune this against measured baseline noise so a transient hiccup cannot silence the pedal mid-set.
+- Explicit `SCHED_FIFO` for the audio thread. miniaudio already requests elevated priority; during the Pi soak, verify with `chrt -p $(pidof ardor-pedal)` that the audio thread is actually RT-scheduled, and add an explicit `pthread_setschedparam` only if it is not. The cpufreq governor is handled by the Buildroot plan's init script.
 - Hardware-in-the-loop stress automation; add after the Pi is available.

@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **STATUS: COMPLETE — DO NOT RE-EXECUTE.** All tasks landed on or before 2026-07-08; the unchecked boxes below are historical. Verify against the source tree, not the checkboxes. Listed under "Already Implemented" in the master roadmap.
+
 **Goal:** Build a desktop-testable LVGL UI shell that matches the approved HTML mockup for preset mode and edit mode without wiring hardware controls or realtime audio.
 
 **Architecture:** Add a small `ardor_ui` module that renders LVGL screens from simple preset/view-model data. Add a `pedal-ui-sim` executable that opens an LVGL SDL window at the target display size so the UI can be tested on macOS before the Raspberry Pi arrives. Keep audio and UI separate in this phase.
