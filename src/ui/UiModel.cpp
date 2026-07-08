@@ -107,7 +107,6 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
                 {"block-" + std::to_string(blocks.size() + 1), type, label, asset.name, asset.path, true});
   state.selectedBlock = insertAt;
   state.dirty = true;
-  state.paramDrawerOpen = true;
 }
 
 void moveBlock(UiState& state, std::size_t from, std::size_t to)
