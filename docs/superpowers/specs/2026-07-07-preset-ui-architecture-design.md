@@ -231,6 +231,7 @@ Edit interactions:
 - Swipe from the left opens the block drawer.
 - The block drawer floats over the chain and can be closed.
 - The block drawer groups assets into categories, starting with Amps and Cabs.
+- The block drawer has quick filter buttons so the player can show one category at a time.
 - Drag a block from the drawer onto the chain to insert it.
 - Drag an existing chain block to reorder it.
 - Tap a block to open a bottom parameter drawer.

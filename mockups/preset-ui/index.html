@@ -154,6 +154,16 @@
       gap: 8px;
       margin-bottom: 16px;
     }
+    .category-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .category-tabs button {
+      padding: 6px 9px;
+      font-size: 13px;
+    }
     .category-title {
       color: var(--muted);
       font-size: 12px;
@@ -403,13 +413,29 @@
           <h3>Block Drawer</h3>
           <button id="close-block-drawer" class="ghost">Close</button>
         </div>
-        <div class="category">
+        <div id="category-tabs" class="category-tabs"></div>
+        <div class="category" data-category="amps">
           <div class="category-title">Amps</div>
           <div id="amp-assets"></div>
         </div>
-        <div class="category">
+        <div class="category" data-category="cabs">
           <div class="category-title">Cabs</div>
           <div id="cab-assets"></div>
+        </div>
+        <div class="category" data-category="dynamics">
+          <div class="category-title">Dynamics</div>
+          <button class="drawer-item" disabled>Compressor <small>coming later</small></button>
+          <button class="drawer-item" disabled>Noise Gate <small>coming later</small></button>
+        </div>
+        <div class="category" data-category="modulation">
+          <div class="category-title">Modulation</div>
+          <button class="drawer-item" disabled>Chorus <small>coming later</small></button>
+          <button class="drawer-item" disabled>Phaser <small>coming later</small></button>
+        </div>
+        <div class="category" data-category="time">
+          <div class="category-title">Delay / Reverb</div>
+          <button class="drawer-item" disabled>Delay <small>coming later</small></button>
+          <button class="drawer-item" disabled>Reverb <small>coming later</small></button>
         </div>
         <p class="muted">Drag-and-drop is not modeled here; this mockup focuses on layout and state.</p>
       </aside>
@@ -528,6 +554,7 @@
     let selected = presets[activeIndex].working.blocks[0];
     let mode = "preset";
     let drawerOpen = false;
+    let drawerCategory = "all";
     let paramOpen = false;
     let dirty = false;
     let bypassed = true;
@@ -594,6 +621,32 @@
       });
     }
 
+    function renderCategoryTabs() {
+      const tabs = [
+        ["all", "All"],
+        ["amps", "Amps"],
+        ["cabs", "Cabs"],
+        ["dynamics", "Dynamics"],
+        ["modulation", "Mod"],
+        ["time", "Time"]
+      ];
+      const container = document.getElementById("category-tabs");
+      container.innerHTML = "";
+      tabs.forEach(([id, label]) => {
+        const button = document.createElement("button");
+        button.className = drawerCategory === id ? "active" : "";
+        button.textContent = label;
+        button.onclick = () => {
+          drawerCategory = id;
+          render();
+        };
+        container.appendChild(button);
+      });
+      document.querySelectorAll("#block-drawer .category").forEach(category => {
+        category.classList.toggle("hidden", drawerCategory !== "all" && category.dataset.category !== drawerCategory);
+      });
+    }
+
     function renderBlocks() {
       const lanes = [document.getElementById("lane-top"), document.getElementById("lane-bottom")];
       lanes.forEach(lane => {
@@ -645,6 +698,7 @@
       document.getElementById("master-slider").value = masterVolume;
       document.getElementById("active-preset-name").textContent = activePreset().working.name;
       document.getElementById("block-drawer-btn").classList.toggle("hidden", mode !== "edit");
+      renderCategoryTabs();
       renderPresetTiles("preset-mode-row", index => index === activeIndex ? "Active" : `Slot ${index + 1}`);
       renderAssetCategory("amp-assets", "nam", assetCatalog.amps);
       renderAssetCategory("cab-assets", "cab", assetCatalog.cabs);
