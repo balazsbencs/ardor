@@ -92,6 +92,11 @@ void onBlockClicked(lv_event_t* event)
   redraw(context);
 }
 
+void onBlockPressed(lv_event_t* event)
+{
+  lv_obj_set_style_opa(lv_event_get_target_obj(event), LV_OPA_50, 0);
+}
+
 std::size_t chainSlotFromPoint(const UiState& state, const lv_point_t& point)
 {
   const auto blockCount = state.bank.presets[state.activePreset].blocks.size();
@@ -106,6 +111,8 @@ std::size_t chainSlotFromPoint(const UiState& state, const lv_point_t& point)
 
 void onBlockReleased(lv_event_t* event)
 {
+  lv_obj_set_style_opa(lv_event_get_target_obj(event), LV_OPA_COVER, 0);
+
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   lv_indev_t* input = lv_event_get_indev(event);
   if (!input) {
@@ -240,6 +247,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
     lv_obj_t* object = button(row, block.label + "\n" + block.assetName);
     lv_obj_set_size(object, 160, 84);
     lv_obj_set_style_bg_color(object, lv_color_hex(block.enabled ? 0x243044 : 0x262626), 0);
+    lv_obj_add_event_cb(object, onBlockPressed, LV_EVENT_PRESSED, nullptr);
     lv_obj_add_event_cb(object, onBlockClicked, LV_EVENT_CLICKED, remember(state, i));
     lv_obj_add_event_cb(object, onBlockReleased, LV_EVENT_RELEASED, remember(state, i));
   }
