@@ -96,10 +96,11 @@ endif()
 
 add_library(ardor_audio
   src/audio/MiniaudioBackend.cpp
+  src/audio/EngineLoader.cpp
   src/audio/WavIo.cpp
 )
 target_include_directories(ardor_audio PUBLIC src ${miniaudio_SOURCE_DIR})
-target_link_libraries(ardor_audio PUBLIC ardor_dsp)
+target_link_libraries(ardor_audio PUBLIC ardor_dsp ardor_preset)
 
 add_executable(pedal-poc apps/pedal-poc/main.cpp)
 target_compile_features(pedal-poc PRIVATE cxx_std_20)

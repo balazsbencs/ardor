@@ -1,6 +1,8 @@
 #include "audio/WavIo.h"
+#include "audio/EngineLoader.h"
 #include "dsp/IrConvolver.h"
 #include "dsp/PedalEngine.h"
+#include "preset/ChainPlan.h"
 #include "NAM/model_config.h"
 #include "miniaudio.h"
 
@@ -34,6 +36,19 @@ int main()
   if (require(wav.sampleRate == 48000)) return 1;
   if (require(wav.samples.size() == 2)) return 1;
   if (require(std::fabs(wav.samples[0] - 0.25f) < 0.0001f)) return 1;
+
+  ardor::ChainPlan cabOnly;
+  cabOnly.inputGain = 1.0f;
+  cabOnly.outputGain = 0.5f;
+  cabOnly.safetyLimit = 1.0f;
+  cabOnly.blocks.push_back({"cab-1", "cab", ardor::ChainBlockStatus::Ready, wavPath, nlohmann::json::object()});
+
+  ardor::PedalEngine loadedEngine;
+  std::string loadError;
+  if (require(ardor::applyChainPlan(loadedEngine, cabOnly, {48000, 64, 8192}, loadError))) return 1;
+  auto [loadedLeft, loadedRight] = loadedEngine.process(0.5f);
+  if (require(std::fabs(loadedLeft - 0.0625f) < 0.0001f)) return 1;
+  if (require(std::fabs(loadedRight - 0.0625f) < 0.0001f)) return 1;
   std::filesystem::remove(wavPath);
 
   ardor::IrConvolver ir;
