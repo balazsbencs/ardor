@@ -78,6 +78,21 @@ int main()
   if (require(state.selectedBlock == 1, "moved block should stay selected")) return 1;
   if (require(state.dirty, "moving block should dirty preset")) return 1;
 
+  const ardor::Preset savedPreset = ardor::activePresetToPreset(state);
+  if (require(savedPreset.name == state.bank.presets[state.activePreset].name, "ui preset name maps to preset")) return 1;
+  if (require(savedPreset.routing == "serial", "ui preset routing is serial")) return 1;
+  if (require(savedPreset.blocks.size() == state.bank.presets[state.activePreset].blocks.size(), "ui blocks map to preset blocks")) return 1;
+  if (require(savedPreset.blocks[0].asset == state.bank.presets[state.activePreset].blocks[0].assetPath, "ui block asset maps")) return 1;
+
+  ardor::Preset replacement;
+  replacement.name = "Loaded From Disk";
+  replacement.blocks.push_back({"loaded-1", "cab", true, "irs/loaded.wav", nlohmann::json::object()});
+  ardor::replaceActivePreset(state, replacement);
+  if (require(state.bank.presets[state.activePreset].name == "Loaded From Disk", "preset load updates ui name")) return 1;
+  if (require(state.bank.presets[state.activePreset].blocks.size() == 1, "preset load updates ui block count")) return 1;
+  if (require(state.bank.presets[state.activePreset].blocks[0].assetPath == "irs/loaded.wav", "preset load updates asset path")) return 1;
+  if (require(!state.dirty, "loading preset clears dirty flag")) return 1;
+
   ardor::enterPresetMode(state);
   if (require(state.mode == ardor::UiMode::Preset, "preset mode should be active")) return 1;
   if (require(!state.blockDrawerOpen && !state.paramDrawerOpen, "preset mode should close drawers")) return 1;

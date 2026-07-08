@@ -1,5 +1,7 @@
 #pragma once
 
+#include "preset/Preset.h"
+
 #include <array>
 #include <cstddef>
 #include <string>
@@ -63,5 +65,7 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
 void moveBlock(UiState& state, std::size_t from, std::size_t to);
 void closeParamDrawer(UiState& state);
 void setCategoryFilter(UiState& state, std::string filter);
+Preset activePresetToPreset(const UiState& state);
+void replaceActivePreset(UiState& state, const Preset& preset);
 
 } // namespace ardor

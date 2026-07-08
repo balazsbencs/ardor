@@ -6,6 +6,31 @@
 
 namespace ardor {
 
+namespace {
+
+std::string labelForBlockType(const std::string& type)
+{
+  if (type == "nam") {
+    return "Neural Amp";
+  }
+  if (type == "cab") {
+    return "Cab";
+  }
+  return type;
+}
+
+std::string assetNameForPath(const UiState& state, const std::string& path, const std::string& type)
+{
+  for (const auto& asset : state.assets) {
+    if (asset.path == path) {
+      return asset.name;
+    }
+  }
+  return path.empty() ? type : path;
+}
+
+} // namespace
+
 UiState makeDemoUiState()
 {
   UiState state;
@@ -133,6 +158,36 @@ void setCategoryFilter(UiState& state, std::string filter)
   static constexpr std::array valid = {"all", "amps", "cabs", "dynamics", "modulation", "time"};
   const auto found = std::find(valid.begin(), valid.end(), filter);
   state.categoryFilter = found == valid.end() ? "all" : std::move(filter);
+}
+
+Preset activePresetToPreset(const UiState& state)
+{
+  Preset preset;
+  const auto& uiPreset = state.bank.presets[state.activePreset];
+  preset.name = uiPreset.name;
+  preset.routing = "serial";
+  for (const auto& block : uiPreset.blocks) {
+    preset.blocks.push_back({block.id, block.type, block.enabled, block.assetPath, nlohmann::json::object()});
+  }
+  return preset;
+}
+
+void replaceActivePreset(UiState& state, const Preset& preset)
+{
+  auto& uiPreset = state.bank.presets[state.activePreset];
+  uiPreset.name = preset.name;
+  uiPreset.blocks.clear();
+  for (const auto& block : preset.blocks) {
+    uiPreset.blocks.push_back({block.id,
+                               block.type,
+                               labelForBlockType(block.type),
+                               assetNameForPath(state, block.asset, block.type),
+                               block.asset,
+                               block.enabled});
+  }
+  state.selectedBlock = 0;
+  state.dirty = false;
+  state.paramDrawerOpen = false;
 }
 
 } // namespace ardor
