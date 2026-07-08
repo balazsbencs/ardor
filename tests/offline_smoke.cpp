@@ -71,6 +71,7 @@ int main()
   ardor::IrConvolver fast;
   naive.loadImpulse(impulse);
   fast.loadImpulse(impulse);
+  fast.prepareBlockSize(64);
 
   std::vector<float> expected(input.size(), 0.0f);
   std::vector<float> actual(input.size(), 0.0f);
@@ -97,6 +98,7 @@ int main()
   if (require(std::fabs(limitedRight - 0.5f) < 0.0001f)) return 1;
 
   ardor::PedalEngine blockEngine;
+  blockEngine.prepareBlockSize(64);
   blockEngine.loadIr(impulse);
   blockEngine.setSafetyLimit(0.5f);
   std::vector<float> blockLeft(input.size(), 0.0f);

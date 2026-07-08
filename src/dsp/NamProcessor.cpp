@@ -3,6 +3,7 @@
 #include "NAM/dsp.h"
 #include "NAM/get_dsp.h"
 
+#include <algorithm>
 #include <cmath>
 #include <exception>
 #include <iostream>
@@ -34,8 +35,12 @@ bool NamProcessor::load(const std::filesystem::path& modelPath, double sampleRat
   }
 
   sampleRate_ = sampleRate;
-  maxBlockSize_ = maxBlockSize;
-  model_->Reset(sampleRate, maxBlockSize);
+  maxBlockSize_ = std::max(1, maxBlockSize);
+  input_.assign(static_cast<size_t>(maxBlockSize_), 0.0f);
+  output_.assign(static_cast<size_t>(maxBlockSize_), 0.0f);
+  model_->ResetAndPrewarm(sampleRate, maxBlockSize_);
+  // ponytail: prewarm once on load; bypass/reset calls must stay cheap in the audio callback.
+  model_->SetPrewarmOnReset(false);
   return true;
 }
 
@@ -50,6 +55,25 @@ float NamProcessor::process(float input)
   float* out[] = {output_.data()};
   model_->process(in, out, 1);
   return output_[0];
+}
+
+void NamProcessor::processBlock(const float* input, float* output, size_t frames)
+{
+  if (!model_) {
+    std::copy(input, input + frames, output);
+    return;
+  }
+
+  size_t offset = 0;
+  while (offset < frames) {
+    const size_t chunk = std::min<size_t>(static_cast<size_t>(maxBlockSize_), frames - offset);
+    std::copy(input + offset, input + offset + chunk, input_.begin());
+    float* in[] = {input_.data()};
+    float* out[] = {output_.data()};
+    model_->process(in, out, static_cast<int>(chunk));
+    std::copy(output_.begin(), output_.begin() + static_cast<std::ptrdiff_t>(chunk), output + offset);
+    offset += chunk;
+  }
 }
 
 void NamProcessor::reset()

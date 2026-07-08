@@ -14,6 +14,7 @@ class PedalEngine {
 public:
   bool loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize);
   void loadIr(std::vector<float> impulse);
+  void prepareBlockSize(size_t frames);
   void setInputGain(float gain);
   void setOutputGain(float gain);
   void setMasterVolume(float gain);
@@ -36,6 +37,7 @@ private:
   IrConvolver ir_;
   std::vector<float> namBlock_;
   std::vector<float> irBlock_;
+  size_t blockSize_ = 0;
 
   void applyPendingReset();
   float applySafety(float sample) const;

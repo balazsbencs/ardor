@@ -72,6 +72,14 @@ void IrConvolver::loadImpulse(std::vector<float> impulse)
   inputPartitions_.clear();
 }
 
+void IrConvolver::prepareBlockSize(size_t frames)
+{
+  if (frames == 0 || impulse_.empty() || blockSize_ == frames) {
+    return;
+  }
+  preparePartitions(frames);
+}
+
 void IrConvolver::reset()
 {
   std::fill(history_.begin(), history_.end(), 0.0f);
@@ -135,7 +143,14 @@ void IrConvolver::processBlock(const float* input, float* output, size_t frames)
     return;
   }
   if (blockSize_ != frames) {
-    preparePartitions(frames);
+    if (blockSize_ == 0) {
+      preparePartitions(frames);
+    } else {
+      for (size_t i = 0; i < frames; ++i) {
+        output[i] = processSample(input[i]);
+      }
+      return;
+    }
   }
 
   std::fill(scratch_.begin(), scratch_.end(), std::complex<float>{});

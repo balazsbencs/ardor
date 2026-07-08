@@ -8,6 +8,7 @@ namespace ardor {
 
 bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoadOptions& options, std::string& error)
 {
+  engine.prepareBlockSize(options.blockSize);
   engine.setInputGain(plan.inputGain);
   engine.setOutputGain(plan.outputGain);
   engine.setSafetyLimit(plan.safetyLimit);
@@ -42,7 +43,6 @@ bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoad
     }
   }
 
-  engine.reset();
   return true;
 }
 

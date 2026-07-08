@@ -7,12 +7,25 @@ namespace ardor {
 
 bool PedalEngine::loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize)
 {
+  prepareBlockSize(static_cast<size_t>(std::max(1, maxBlockSize)));
   return nam_.load(modelPath, sampleRate, maxBlockSize);
 }
 
 void PedalEngine::loadIr(std::vector<float> impulse)
 {
   ir_.loadImpulse(std::move(impulse));
+  ir_.prepareBlockSize(blockSize_);
+}
+
+void PedalEngine::prepareBlockSize(size_t frames)
+{
+  if (frames == 0 || blockSize_ == frames) {
+    return;
+  }
+  blockSize_ = frames;
+  namBlock_.assign(frames, 0.0f);
+  irBlock_.assign(frames, 0.0f);
+  ir_.prepareBlockSize(frames);
 }
 
 void PedalEngine::setInputGain(float gain)
@@ -91,16 +104,25 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
     return;
   }
 
-  if (namBlock_.size() < frames) {
-    namBlock_.resize(frames);
-    irBlock_.resize(frames);
+  if (blockSize_ == 0) {
+    prepareBlockSize(frames);
+  }
+  if (frames > blockSize_) {
+    size_t offset = 0;
+    while (offset < frames) {
+      const size_t chunk = std::min(blockSize_, frames - offset);
+      processBlock(input + offset, left + offset, right + offset, chunk);
+      offset += chunk;
+    }
+    return;
   }
 
   const float inputGain = inputGain_.load(std::memory_order_relaxed);
   for (size_t i = 0; i < frames; ++i) {
-    namBlock_[i] = nam_.process(input[i] * inputGain);
+    namBlock_[i] = input[i] * inputGain;
   }
 
+  nam_.processBlock(namBlock_.data(), namBlock_.data(), frames);
   ir_.processBlock(namBlock_.data(), irBlock_.data(), frames);
 
   const float outputGain = outputGain_.load(std::memory_order_relaxed);

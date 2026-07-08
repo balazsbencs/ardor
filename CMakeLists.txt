@@ -116,6 +116,9 @@ target_link_libraries(pedal-preset-smoke PRIVATE ardor_preset)
 add_executable(pedal-engine-contract-smoke tests/engine_contract_smoke.cpp)
 target_link_libraries(pedal-engine-contract-smoke PRIVATE ardor_dsp)
 
+add_executable(pedal-nam-processor-smoke tests/nam_processor_smoke.cpp)
+target_link_libraries(pedal-nam-processor-smoke PRIVATE ardor_dsp)
+
 add_executable(pedal-ui-model-smoke tests/ui_model_smoke.cpp)
 target_link_libraries(pedal-ui-model-smoke PRIVATE ardor_ui)
 
@@ -128,6 +131,7 @@ enable_testing()
 add_test(NAME pedal-offline-smoke COMMAND pedal-offline-smoke)
 add_test(NAME pedal-preset-smoke COMMAND pedal-preset-smoke)
 add_test(NAME pedal-engine-contract-smoke COMMAND pedal-engine-contract-smoke)
+add_test(NAME pedal-nam-processor-smoke COMMAND pedal-nam-processor-smoke)
 add_test(NAME pedal-ui-model-smoke COMMAND pedal-ui-model-smoke)
 add_test(NAME pedal-preset-cli-smoke COMMAND pedal-preset-cli-smoke)
 add_test(NAME pedal-devices-indexed COMMAND pedal-poc --devices)

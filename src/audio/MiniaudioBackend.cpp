@@ -26,6 +26,10 @@ struct MiniaudioBackendState {
   std::atomic<uint64_t> maxCallbackNs{0};
   double budgetMs = 0.0;
   double sampleRate = 48000.0;
+  ma_uint32 blockSize = 64;
+  ma_uint32 inputFill = 0;
+  ma_uint32 outputRead = 0;
+  ma_uint32 outputAvailable = 0;
   std::vector<float> inputBlock;
   std::vector<float> leftBlock;
   std::vector<float> rightBlock;
@@ -45,21 +49,32 @@ void callback(ma_device* device, void* output, const void* input, ma_uint32 fram
   }
 
   const auto start = std::chrono::steady_clock::now();
-  if (state->inputBlock.size() < frameCount) {
-    state->inputBlock.resize(frameCount);
-    state->leftBlock.resize(frameCount);
-    state->rightBlock.resize(frameCount);
-  }
 
   for (ma_uint32 i = 0; i < frameCount; ++i) {
-    state->inputBlock[i] = in[i * state->captureChannels + state->inputChannel];
-  }
+    state->inputBlock[state->inputFill++] = in[i * state->captureChannels + state->inputChannel];
 
-  state->engine->processBlock(state->inputBlock.data(), state->leftBlock.data(), state->rightBlock.data(), frameCount);
+    float left = 0.0f;
+    float right = 0.0f;
+    if (state->outputRead < state->outputAvailable) {
+      left = state->leftBlock[state->outputRead];
+      right = state->rightBlock[state->outputRead];
+      ++state->outputRead;
+      if (state->outputRead == state->outputAvailable) {
+        state->outputRead = 0;
+        state->outputAvailable = 0;
+      }
+    }
 
-  for (ma_uint32 i = 0; i < frameCount; ++i) {
-    out[i * 2] = (state->outputChannel == OutputChannel::Right) ? 0.0f : state->leftBlock[i];
-    out[i * 2 + 1] = (state->outputChannel == OutputChannel::Left) ? 0.0f : state->rightBlock[i];
+    out[i * 2] = (state->outputChannel == OutputChannel::Right) ? 0.0f : left;
+    out[i * 2 + 1] = (state->outputChannel == OutputChannel::Left) ? 0.0f : right;
+
+    if (state->inputFill == state->blockSize) {
+      state->engine->processBlock(state->inputBlock.data(), state->leftBlock.data(), state->rightBlock.data(),
+                                  state->blockSize);
+      state->inputFill = 0;
+      state->outputRead = 0;
+      state->outputAvailable = state->blockSize;
+    }
   }
   const auto elapsed = std::chrono::steady_clock::now() - start;
   const double elapsedSeconds = std::chrono::duration<double>(elapsed).count();
@@ -85,6 +100,11 @@ MiniaudioBackend::~MiniaudioBackend()
 
 bool MiniaudioBackend::start(PedalEngine& engine, const RealtimeOptions& options)
 {
+  if (options.blockSize == 0) {
+    std::cerr << "Realtime block size must be greater than zero.\n";
+    return false;
+  }
+
   stop();
   state_ = new MiniaudioBackendState();
   state_->engine = &engine;
@@ -93,6 +113,11 @@ bool MiniaudioBackend::start(PedalEngine& engine, const RealtimeOptions& options
   state_->outputChannel = options.outputChannel;
   state_->sampleRate = static_cast<double>(options.sampleRate);
   state_->budgetMs = static_cast<double>(options.blockSize) / static_cast<double>(options.sampleRate) * 1000.0;
+  state_->blockSize = options.blockSize;
+  state_->inputBlock.assign(options.blockSize, 0.0f);
+  state_->leftBlock.assign(options.blockSize, 0.0f);
+  state_->rightBlock.assign(options.blockSize, 0.0f);
+  engine.prepareBlockSize(options.blockSize);
 
   if (ma_context_init(nullptr, 0, nullptr, &state_->context) != MA_SUCCESS) {
     delete state_;

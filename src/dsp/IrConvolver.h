@@ -9,6 +9,7 @@ namespace ardor {
 class IrConvolver {
 public:
   void loadImpulse(std::vector<float> impulse);
+  void prepareBlockSize(size_t frames);
   float processSample(float input);
   void processBlock(const float* input, float* output, size_t frames);
   void reset();
