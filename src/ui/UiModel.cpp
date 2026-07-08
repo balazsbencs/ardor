@@ -81,6 +81,11 @@ void selectBlock(UiState& state, std::size_t blockIndex)
 
 void appendAssetBlock(UiState& state, std::size_t assetIndex)
 {
+  insertAssetBlock(state, assetIndex, state.bank.presets[state.activePreset].blocks.size());
+}
+
+void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockIndex)
+{
   if (assetIndex >= state.assets.size()) {
     return;
   }
@@ -97,8 +102,10 @@ void appendAssetBlock(UiState& state, std::size_t assetIndex)
   }
 
   auto& blocks = state.bank.presets[state.activePreset].blocks;
-  blocks.push_back({"block-" + std::to_string(blocks.size() + 1), type, label, asset.name, asset.path, true});
-  state.selectedBlock = blocks.size() - 1;
+  const auto insertAt = std::min(blockIndex, blocks.size());
+  blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(insertAt),
+                {"block-" + std::to_string(blocks.size() + 1), type, label, asset.name, asset.path, true});
+  state.selectedBlock = insertAt;
   state.dirty = true;
   state.paramDrawerOpen = true;
 }

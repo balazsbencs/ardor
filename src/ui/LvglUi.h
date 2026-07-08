@@ -19,6 +19,10 @@ struct UiEventContext {
   std::string filter = "all";
   lv_obj_t* ghost = nullptr;
   lv_obj_t* indicator = nullptr;
+  lv_point_t pressPoint{};
+  bool dragging = false;
+  bool suppressClick = false;
+  std::string dragText;
 };
 
 class LvglUi {

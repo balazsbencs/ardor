@@ -60,6 +60,16 @@ int main()
   if (require(state.selectedBlock == beforeAdd, "added block should be selected")) return 1;
   if (require(state.paramDrawerOpen, "added block should open parameter drawer")) return 1;
 
+  const auto beforeInsert = state.bank.presets[state.activePreset].blocks.size();
+  ardor::insertAssetBlock(state, 0, 1);
+  const auto& inserted = state.bank.presets[state.activePreset].blocks[1];
+  if (require(state.bank.presets[state.activePreset].blocks.size() == beforeInsert + 1, "asset should insert block")) return 1;
+  if (require(inserted.assetName == "Clean Twin", "inserted block should use asset name")) return 1;
+  if (require(inserted.assetPath == "models/clean.nam", "inserted block should use asset path")) return 1;
+  if (require(state.selectedBlock == 1, "inserted block should be selected")) return 1;
+  if (require(state.dirty, "inserting block should dirty preset")) return 1;
+  if (require(state.paramDrawerOpen, "inserted block should open parameter drawer")) return 1;
+
   const auto firstBeforeMove = state.bank.presets[state.activePreset].blocks[0].id;
   const auto secondBeforeMove = state.bank.presets[state.activePreset].blocks[1].id;
   ardor::moveBlock(state, 0, 1);

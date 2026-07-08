@@ -59,6 +59,7 @@ void openBlockDrawer(UiState& state);
 void closeBlockDrawer(UiState& state);
 void selectBlock(UiState& state, std::size_t blockIndex);
 void appendAssetBlock(UiState& state, std::size_t assetIndex);
+void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockIndex);
 void moveBlock(UiState& state, std::size_t from, std::size_t to);
 void closeParamDrawer(UiState& state);
 void setCategoryFilter(UiState& state, std::string filter);
