@@ -16,6 +16,8 @@ public:
 
 private:
   void preparePartitions(size_t frames);
+  void prepareFftTables();
+  void fftInPlace(std::vector<std::complex<float>>& values, bool inverse) const;
 
   std::vector<float> impulse_;
   std::vector<float> history_;
@@ -29,6 +31,8 @@ private:
   std::vector<std::complex<float>> sum_;
   std::vector<std::vector<std::complex<float>>> impulsePartitions_;
   std::vector<std::vector<std::complex<float>>> inputPartitions_;
+  std::vector<size_t> bitReverse_;
+  std::vector<std::complex<float>> twiddles_;
 };
 
 } // namespace ardor

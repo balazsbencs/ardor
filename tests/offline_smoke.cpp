@@ -132,7 +132,8 @@ int main()
     fast.processBlock(input.data() + offset, actual.data() + offset, 64);
   }
   for (size_t i = 0; i < input.size(); ++i) {
-    if (require(std::fabs(expected[i] - actual[i]) < 0.0005f)) return 1;
+    // Tolerance tightened 5x with precomputed twiddles; loosening it back is a bug.
+    if (require(std::fabs(expected[i] - actual[i]) < 0.0001f)) return 1;
   }
 
   ardor::PedalEngine engine;

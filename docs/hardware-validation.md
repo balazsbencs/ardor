@@ -67,7 +67,7 @@ cmake --build build --target pedal-dsp-bench
 
 | Host | Component | avg µs/block | % of 1333 µs budget |
 | --- | --- | ---: | ---: |
-| macOS dev machine (2026-07-09) | IrConvolver | 24.6 | 1.8% |
+| macOS dev machine (2026-07-09) | IrConvolver | 22.8 (24.6 before precomputed twiddles; max 125→78) | 1.7% |
 | macOS dev machine (2026-07-09) | NamProcessor (test.nam, SlimmableContainer/WaveNet) | 50.4 | 3.8% |
 | Pi 4B (`performance` governor) | IrConvolver | TBD (Phase 0) | — |
 | Pi 4B (`performance` governor) | NamProcessor | TBD (Phase 0) | — |
