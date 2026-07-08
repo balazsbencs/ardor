@@ -69,6 +69,8 @@ The Codec Zero is an I2S HAT. Raspberry Pi 4 and earlier expose I2S on GPIO18, G
 
 Use any convenient ground pins for the switch common rail. Good choices are physical pins `9`, `14`, `20`, `25`, `30`, `34`, or `39`.
 
+![GPIO control wiring](assets/gpio-controls.svg)
+
 ## Header Map
 
 View looking down at the Raspberry Pi GPIO header, USB/Ethernet ports to the right:
