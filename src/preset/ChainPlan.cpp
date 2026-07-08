@@ -1,5 +1,7 @@
 #include "preset/ChainPlan.h"
 
+#include <cmath>
+
 namespace ardor {
 
 namespace {
@@ -11,13 +13,26 @@ bool isSupportedBlockType(const std::string& type)
 
 } // namespace
 
+float dbToGain(float db)
+{
+  return std::pow(10.0f, db / 20.0f);
+}
+
 ChainPlan buildChainPlan(const Preset& preset, const std::filesystem::path& dataRoot)
 {
   ChainPlan plan;
+  plan.inputGain = dbToGain(preset.global.inputGainDb);
+  plan.outputGain = dbToGain(preset.global.outputGainDb);
+  plan.safetyLimit = dbToGain(preset.global.safetyLimitDb);
+
   for (const auto& block : preset.blocks) {
     ChainBlockPlan blockPlan;
     blockPlan.id = block.id;
     blockPlan.type = block.type;
+    blockPlan.params = block.params.is_null() ? nlohmann::json::object() : block.params;
+    if (isValidBlockAssetPath(block.asset)) {
+      blockPlan.assetPath = dataRoot / block.asset;
+    }
 
     if (!block.enabled) {
       blockPlan.status = ChainBlockStatus::Disabled;
@@ -27,7 +42,7 @@ ChainPlan buildChainPlan(const Preset& preset, const std::filesystem::path& data
       blockPlan.status = ChainBlockStatus::MissingAsset;
     } else if (!isValidBlockAssetPath(block.asset)) {
       blockPlan.status = ChainBlockStatus::MissingAsset;
-    } else if (!std::filesystem::exists(dataRoot / block.asset)) {
+    } else if (!std::filesystem::exists(blockPlan.assetPath)) {
       blockPlan.status = ChainBlockStatus::MissingAsset;
     } else {
       blockPlan.status = ChainBlockStatus::Ready;

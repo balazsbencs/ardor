@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <chrono>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -163,25 +164,38 @@ int main()
     const auto dataRoot = std::filesystem::temp_directory_path() / ("ardor-chain-smoke-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     std::filesystem::remove_all(dataRoot);
     std::filesystem::create_directories(dataRoot / "models");
+    std::filesystem::create_directories(dataRoot / "irs");
     std::ofstream(dataRoot / "models/ok.nam").put('\n');
+    std::ofstream(dataRoot / "irs/ok.wav").put('\n');
 
     ardor::Preset chainPreset;
+    chainPreset.global.inputGainDb = -6.0f;
+    chainPreset.global.outputGainDb = -3.0f;
+    chainPreset.global.safetyLimitDb = -2.0f;
     chainPreset.blocks.push_back({"ready", "nam", true, "models/ok.nam", nlohmann::json::object()});
+    chainPreset.blocks[0].params = nlohmann::json{{"levelDb", -1.0f}};
     chainPreset.blocks.push_back({"disabled", "cab", false, "irs/missing.wav", nlohmann::json::object()});
     chainPreset.blocks.push_back({"empty", "cab", true, "", nlohmann::json::object()});
     chainPreset.blocks.push_back({"missing", "cab", true, "irs/missing.wav", nlohmann::json::object()});
     chainPreset.blocks.push_back({"escape", "nam", true, "../outside.nam", nlohmann::json::object()});
     chainPreset.blocks.push_back({"future", "delay", true, "", nlohmann::json::object()});
+    chainPreset.blocks.push_back({"cab-ready", "cab", true, "irs/ok.wav", nlohmann::json{{"mix", 1.0f}}});
 
     const ardor::ChainPlan plan = ardor::buildChainPlan(chainPreset, dataRoot);
-    require(plan.blocks.size() == 6, "chain plan block count");
+    require(plan.blocks.size() == 7, "chain plan block count");
+    require(std::fabs(plan.inputGain - ardor::dbToGain(-6.0f)) < 0.0001f, "chain input gain");
+    require(std::fabs(plan.outputGain - ardor::dbToGain(-3.0f)) < 0.0001f, "chain output gain");
+    require(std::fabs(plan.safetyLimit - ardor::dbToGain(-2.0f)) < 0.0001f, "chain safety limit");
     require(plan.blocks[0].status == ardor::ChainBlockStatus::Ready, "ready block");
+    require(plan.blocks[0].assetPath == dataRoot / "models/ok.nam", "resolved nam asset");
+    require(plan.blocks[0].params.at("levelDb").get<float>() == -1.0f, "chain params copied");
     require(plan.blocks[1].status == ardor::ChainBlockStatus::Disabled, "disabled block");
     require(plan.blocks[2].status == ardor::ChainBlockStatus::MissingAsset, "empty asset");
     require(plan.blocks[3].status == ardor::ChainBlockStatus::MissingAsset, "missing asset");
     require(plan.blocks[4].status == ardor::ChainBlockStatus::MissingAsset, "escaped asset");
     require(plan.blocks[5].status == ardor::ChainBlockStatus::Unsupported, "unsupported block");
-    require(plan.runnableBlockCount == 1, "runnable block count");
+    require(plan.blocks.back().assetPath == dataRoot / "irs/ok.wav", "resolved cab asset");
+    require(plan.runnableBlockCount == 2, "runnable block count");
 
     std::filesystem::remove_all(dataRoot);
     std::filesystem::remove_all(root);
