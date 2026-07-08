@@ -59,6 +59,19 @@ On macOS with a Behringer U-Phoria UMC22, it usually appears as `USB Audio CODEC
 
 ## Offline Render
 
+Preset files use relative asset paths under `--data-root`.
+
+Preset-driven offline render:
+
+```sh
+./build/pedal-poc \
+  --offline \
+  --preset ./presets/bank-000/preset-0.json \
+  --data-root . \
+  --input ./dryguitar.wav \
+  --output ./wet.wav
+```
+
 Bypass NAM and test only IR/output rendering:
 
 ```sh
@@ -116,6 +129,21 @@ Run with explicit UMC22 routing:
   --input-gain-db -12 \
   --output-gain-db -6 \
   --safety-limit-db -1
+```
+
+Preset-driven realtime run:
+
+```sh
+./build/pedal-poc \
+  --realtime \
+  --preset ./presets/bank-000/preset-0.json \
+  --data-root . \
+  --capture-device 1 \
+  --playback-device 1 \
+  --input-channel left \
+  --output-channel both \
+  --block-size 64 \
+  --ir-samples 8192
 ```
 
 Stop with `Ctrl-C`.
