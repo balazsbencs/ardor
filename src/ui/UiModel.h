@@ -58,6 +58,7 @@ void enterEditMode(UiState& state);
 void openBlockDrawer(UiState& state);
 void closeBlockDrawer(UiState& state);
 void selectBlock(UiState& state, std::size_t blockIndex);
+void appendAssetBlock(UiState& state, std::size_t assetIndex);
 void closeParamDrawer(UiState& state);
 void setCategoryFilter(UiState& state, std::string filter);
 

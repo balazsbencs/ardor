@@ -98,6 +98,13 @@ void onFilterClicked(lv_event_t* event)
   redraw(context);
 }
 
+void onAssetClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  appendAssetBlock(*context->state, context->index);
+  redraw(context);
+}
+
 lv_obj_t* button(lv_obj_t* parent, const std::string& value)
 {
   lv_obj_t* object = lv_button_create(parent);
@@ -180,6 +187,9 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   lv_obj_add_event_cb(blocksButton, onOpenBlockDrawer, LV_EVENT_CLICKED, remember(state));
 
   const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  label(root, "Input", LV_ALIGN_LEFT_MID, 18, -34, &lv_font_montserrat_18, muted);
+  label(root, "Output", LV_ALIGN_RIGHT_MID, -18, 34, &lv_font_montserrat_18, muted);
+
   lv_obj_t* top = lv_obj_create(root);
   lv_obj_t* bottom = lv_obj_create(root);
   for (lv_obj_t* row : {top, bottom}) {
@@ -256,7 +266,8 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   lv_obj_set_style_pad_row(list, 8, 0);
   lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
 
-  for (const auto& asset : state.assets) {
+  for (std::size_t i = 0; i < state.assets.size(); ++i) {
+    const auto& asset = state.assets[i];
     if (state.categoryFilter != "all" && asset.type != state.categoryFilter) {
       continue;
     }
@@ -264,6 +275,7 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
     lv_obj_set_width(item, 230);
     lv_obj_set_height(item, 38);
     lv_obj_set_style_bg_color(item, lv_color_hex(0x242b36), 0);
+    lv_obj_add_event_cb(item, onAssetClicked, LV_EVENT_CLICKED, remember(state, i));
   }
 }
 

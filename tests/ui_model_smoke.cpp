@@ -50,6 +50,16 @@ int main()
   ardor::closeParamDrawer(state);
   if (require(!state.paramDrawerOpen, "parameter drawer close failed")) return 1;
 
+  const auto beforeAdd = state.bank.presets[state.activePreset].blocks.size();
+  ardor::appendAssetBlock(state, 1);
+  const auto& added = state.bank.presets[state.activePreset].blocks.back();
+  if (require(state.bank.presets[state.activePreset].blocks.size() == beforeAdd + 1, "asset should append block")) return 1;
+  if (require(added.assetName == "British Crunch", "added block should use asset name")) return 1;
+  if (require(added.assetPath == "models/crunch.nam", "added block should use asset path")) return 1;
+  if (require(state.dirty, "adding block should dirty preset")) return 1;
+  if (require(state.selectedBlock == beforeAdd, "added block should be selected")) return 1;
+  if (require(state.paramDrawerOpen, "added block should open parameter drawer")) return 1;
+
   ardor::enterPresetMode(state);
   if (require(state.mode == ardor::UiMode::Preset, "preset mode should be active")) return 1;
   if (require(!state.blockDrawerOpen && !state.paramDrawerOpen, "preset mode should close drawers")) return 1;

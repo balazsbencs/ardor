@@ -79,6 +79,30 @@ void selectBlock(UiState& state, std::size_t blockIndex)
   state.paramDrawerOpen = true;
 }
 
+void appendAssetBlock(UiState& state, std::size_t assetIndex)
+{
+  if (assetIndex >= state.assets.size()) {
+    return;
+  }
+
+  const auto& asset = state.assets[assetIndex];
+  std::string type = asset.type;
+  std::string label = asset.name;
+  if (asset.type == "amps") {
+    type = "nam";
+    label = "Neural Amp";
+  } else if (asset.type == "cabs") {
+    type = "cab";
+    label = "Cab";
+  }
+
+  auto& blocks = state.bank.presets[state.activePreset].blocks;
+  blocks.push_back({"block-" + std::to_string(blocks.size() + 1), type, label, asset.name, asset.path, true});
+  state.selectedBlock = blocks.size() - 1;
+  state.dirty = true;
+  state.paramDrawerOpen = true;
+}
+
 void closeParamDrawer(UiState& state)
 {
   state.paramDrawerOpen = false;
