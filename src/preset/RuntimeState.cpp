@@ -19,6 +19,15 @@ void RuntimeState::reportStableCallback()
   consecutiveOverloads_ = 0;
 }
 
+void RuntimeState::observeRealtimeStats(uint64_t previousOverBudget, uint64_t currentOverBudget)
+{
+  if (currentOverBudget > previousOverBudget) {
+    reportOverload();
+  } else {
+    reportStableCallback();
+  }
+}
+
 void RuntimeState::clearEffectsBypass()
 {
   effectsBypassed_ = false;

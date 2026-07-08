@@ -224,6 +224,14 @@ int main()
     runtime.changePreset();
     require(!runtime.effectsBypassed(), "preset change clears bypass");
 
+    ardor::RuntimeState statsRuntime;
+    statsRuntime.observeRealtimeStats(0, 1);
+    require(!statsRuntime.effectsBypassed(), "first stats overload does not bypass");
+    statsRuntime.observeRealtimeStats(1, 2);
+    require(!statsRuntime.effectsBypassed(), "second stats overload does not bypass");
+    statsRuntime.observeRealtimeStats(2, 3);
+    require(statsRuntime.effectsBypassed(), "third stats overload bypasses");
+
     return 0;
   } catch (const std::exception& error) {
     std::cerr << "preset_smoke failed: " << error.what() << '\n';

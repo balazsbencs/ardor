@@ -3,6 +3,7 @@
 #include "audio/MiniaudioBackend.h"
 #include "audio/WavIo.h"
 #include "dsp/PedalEngine.h"
+#include "preset/RuntimeState.h"
 
 #include <algorithm>
 #include <chrono>
@@ -271,9 +272,14 @@ int main(int argc, char** argv)
         return 1;
       }
 
+      ardor::RuntimeState runtime;
+      uint64_t previousOverBudget = 0;
       for (;;) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         const auto stats = backend.stats();
+        runtime.observeRealtimeStats(previousOverBudget, stats.overBudget);
+        previousOverBudget = stats.overBudget;
+        engine.setEffectsBypassed(runtime.effectsBypassed());
         const double overPercent = stats.callbacks == 0
                                      ? 0.0
                                      : static_cast<double>(stats.overBudget) * 100.0 / static_cast<double>(stats.callbacks);
@@ -284,6 +290,7 @@ int main(int argc, char** argv)
                   << " max=" << stats.maxMs << "ms"
                   << " avg=" << stats.averageMs << "ms"
                   << " budget=" << stats.budgetMs << "ms"
+                  << " bypassed=" << (runtime.effectsBypassed() ? 1 : 0)
                   << "\n";
       }
     }
