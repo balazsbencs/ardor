@@ -449,9 +449,11 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
 void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
 {
   lv_obj_t* drawer = lv_obj_create(root);
-  lv_obj_set_size(drawer, 280, 420);
-  lv_obj_align(drawer, LV_ALIGN_LEFT_MID, 14, 0);
+  lv_obj_set_size(drawer, 280, 480);
+  lv_obj_align(drawer, LV_ALIGN_LEFT_MID, 0, 0);
   stylePanel(drawer, panel);
+  lv_obj_set_style_radius(drawer, 0, 0);
+  lv_obj_set_style_border_side(drawer, LV_BORDER_SIDE_RIGHT, 0);
   lv_obj_set_style_pad_all(drawer, 14, 0);
   lv_obj_set_scroll_dir(drawer, LV_DIR_VER);
 
@@ -519,9 +521,11 @@ void LvglUi::renderParamDrawer(lv_obj_t* root, UiState& state)
 
   const auto& block = blocks[state.selectedBlock];
   lv_obj_t* drawer = lv_obj_create(root);
-  lv_obj_set_size(drawer, 720, 128);
-  lv_obj_align(drawer, LV_ALIGN_BOTTOM_MID, 0, -14);
+  lv_obj_set_size(drawer, 800, 142);
+  lv_obj_align(drawer, LV_ALIGN_BOTTOM_MID, 0, 0);
   stylePanel(drawer, panelAlt);
+  lv_obj_set_style_radius(drawer, 0, 0);
+  lv_obj_set_style_border_side(drawer, LV_BORDER_SIDE_TOP, 0);
   lv_obj_set_style_pad_all(drawer, 16, 0);
 
   label(drawer, block.label + " - " + block.assetName, LV_ALIGN_TOP_LEFT, 0, 0, &lv_font_montserrat_22);
