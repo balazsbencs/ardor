@@ -192,8 +192,8 @@ Preset mode is the main performance screen.
 
 It shows:
 
-- Current bank number.
-- Four preset names in the current bank.
+- Bank name.
+- Four large preset blocks in a 2x2 grid.
 - Active preset.
 - Dirty state if the active working preset is edited.
 - Master output volume.
@@ -230,7 +230,8 @@ Edit interactions:
 - Swipe from the left opens the block drawer.
 - Drag a block from the drawer onto the chain to insert it.
 - Drag an existing chain block to reorder it.
-- Tap a block to open its parameter drawer.
+- Tap a block to open a bottom parameter drawer.
+- The parameter drawer floats over the chain and is hidden when no block is selected.
 - Parameter changes update the working preset and live audio immediately.
 - The encoder continues to adjust master output volume.
 - Save persists the working preset.
