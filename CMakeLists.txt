@@ -100,10 +100,19 @@ add_library(ardor_audio
 target_include_directories(ardor_audio PUBLIC src ${miniaudio_SOURCE_DIR})
 target_link_libraries(ardor_audio PUBLIC ardor_dsp ardor_preset)
 
+add_library(ardor_control
+  src/control/ControlEvents.cpp
+)
+target_include_directories(ardor_control PUBLIC src)
+target_compile_features(ardor_control PUBLIC cxx_std_20)
+if(UNIX AND NOT APPLE)
+  target_sources(ardor_control PRIVATE src/control/LinuxInput.cpp)
+endif()
+
 add_executable(pedal-poc apps/pedal-poc/main.cpp)
 target_compile_features(pedal-poc PRIVATE cxx_std_20)
 target_include_directories(pedal-poc PRIVATE ${miniaudio_SOURCE_DIR})
-target_link_libraries(pedal-poc PRIVATE ardor_audio ardor_dsp)
+target_link_libraries(pedal-poc PRIVATE ardor_audio ardor_dsp ardor_control)
 
 add_executable(pedal-offline-smoke tests/offline_smoke.cpp)
 target_link_libraries(pedal-offline-smoke PRIVATE ardor_dsp ardor_audio)
@@ -135,6 +144,9 @@ add_executable(pedal-preset-reload-stress tests/preset_reload_stress.cpp)
 target_include_directories(pedal-preset-reload-stress PRIVATE ${miniaudio_SOURCE_DIR})
 target_link_libraries(pedal-preset-reload-stress PRIVATE ardor_audio ardor_dsp ardor_preset)
 
+add_executable(pedal-control-smoke tests/control_smoke.cpp)
+target_link_libraries(pedal-control-smoke PRIVATE ardor_control)
+
 enable_testing()
 add_test(NAME pedal-offline-smoke COMMAND pedal-offline-smoke)
 add_test(NAME pedal-preset-smoke COMMAND pedal-preset-smoke)
@@ -143,6 +155,7 @@ add_test(NAME pedal-nam-processor-smoke COMMAND pedal-nam-processor-smoke)
 add_test(NAME pedal-ui-model-smoke COMMAND pedal-ui-model-smoke)
 add_test(NAME pedal-preset-cli-smoke COMMAND pedal-preset-cli-smoke)
 add_test(NAME pedal-preset-reload-stress COMMAND pedal-preset-reload-stress)
+add_test(NAME pedal-control-smoke COMMAND pedal-control-smoke)
 add_test(NAME pedal-devices-indexed COMMAND pedal-poc --devices)
 set_tests_properties(pedal-devices-indexed PROPERTIES PASS_REGULAR_EXPRESSION "\\[0\\]")
 
