@@ -26,12 +26,13 @@ ui_arg=""
 [ "$UI" = "1" ] && ui_arg="--ui"
 
 run_supervised() {
-  # Detach the kernel console from the framebuffer: fbcon scrolling the
-  # boot log would overwrite the LVGL UI (LVGL only repaints dirty areas).
+  # Silence the framebuffer console so it stops drawing over the LVGL UI.
+  # Do NOT unbind vtcon: dropping fbcon releases the DRM pipe and freezes
+  # the DSI panel on a decaying last frame. Muting printk and the cursor
+  # keeps the pipe alive while nothing overdraws the UI after boot.
   if [ "$UI" = "1" ]; then
-    for v in /sys/class/vtconsole/vtcon*; do
-      grep -q 'frame buffer' "$v/name" 2>/dev/null && echo 0 > "$v/bind" 2>/dev/null
-    done
+    dmesg -n 1
+    echo 0 > /sys/class/graphics/fbcon/cursor_blink 2>/dev/null
   fi
 
   # Mute -> route -> start -> unmute: no boot pop, and a crash-looping
