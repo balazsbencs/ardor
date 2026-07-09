@@ -151,6 +151,45 @@ void onOutputGainUp(lv_event_t* event)
   redraw(context);
 }
 
+float selectedParamValue(const UiState& state, const std::string& key, float fallback)
+{
+  const auto& block = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
+  return block.params.value(key, fallback);
+}
+
+void stepSelectedParam(UiState& state, const std::string& key, float delta, float low, float high, float fallback)
+{
+  setSelectedBlockParam(state, key, std::clamp(selectedParamValue(state, key, fallback) + delta, low, high));
+}
+
+void onCabLevelDown(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  stepSelectedParam(*context->state, "levelDb", -1.0f, -60.0f, 12.0f, 0.0f);
+  redraw(context);
+}
+
+void onCabLevelUp(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  stepSelectedParam(*context->state, "levelDb", 1.0f, -60.0f, 12.0f, 0.0f);
+  redraw(context);
+}
+
+void onCabMixDown(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  stepSelectedParam(*context->state, "mix", -0.05f, 0.0f, 1.0f, 1.0f);
+  redraw(context);
+}
+
+void onCabMixUp(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  stepSelectedParam(*context->state, "mix", 0.05f, 0.0f, 1.0f, 1.0f);
+  redraw(context);
+}
+
 void onBlockClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
@@ -656,6 +695,23 @@ void LvglUi::renderParamDrawer(lv_obj_t* root, UiState& state)
   label(drawer, block.label + " - " + block.assetName, LV_ALIGN_TOP_LEFT, 0, 0, &lv_font_montserrat_22);
   label(drawer, "Enabled", LV_ALIGN_BOTTOM_LEFT, 0, -8, &lv_font_montserrat_18, muted);
   label(drawer, block.enabled ? "On" : "Off", LV_ALIGN_BOTTOM_LEFT, 102, -8, &lv_font_montserrat_18, accent);
+
+  if (block.type == "cab") {
+    const float levelDb = block.params.value("levelDb", 0.0f);
+    const float mix = block.params.value("mix", 1.0f);
+    auto* context = remember(state);
+    globalControl(drawer, "Level", levelDb, 190, onCabLevelDown, onCabLevelUp, context);
+    label(drawer, "Mix " + std::to_string(static_cast<int>(mix * 100.0f)) + "%",
+          LV_ALIGN_BOTTOM_LEFT, 330, -8, &lv_font_montserrat_18, muted);
+    lv_obj_t* mixMinus = button(drawer, "-");
+    lv_obj_set_size(mixMinus, 36, 32);
+    lv_obj_align(mixMinus, LV_ALIGN_BOTTOM_LEFT, 430, -4);
+    lv_obj_add_event_cb(mixMinus, onCabMixDown, LV_EVENT_CLICKED, context);
+    lv_obj_t* mixPlus = button(drawer, "+");
+    lv_obj_set_size(mixPlus, 36, 32);
+    lv_obj_align(mixPlus, LV_ALIGN_BOTTOM_LEFT, 472, -4);
+    lv_obj_add_event_cb(mixPlus, onCabMixUp, LV_EVENT_CLICKED, context);
+  }
 
   lv_obj_t* close = button(drawer, "X");
   lv_obj_set_size(close, 42, 36);

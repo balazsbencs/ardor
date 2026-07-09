@@ -129,6 +129,12 @@ int main()
   if (require(editedPreset.blocks[0].params.value("mix", 0.0f) == 0.25f, "saved block params should round-trip")) return 1;
   if (require(state.dirty, "block param edit should dirty preset")) return 1;
 
+  ardor::setSelectedBlockParam(state, "levelDb", -2.0f);
+  ardor::setSelectedBlockParam(state, "mix", 0.5f);
+  const auto cabParamPreset = ardor::activePresetToPreset(state);
+  if (require(cabParamPreset.blocks[0].params.value("levelDb", 0.0f) == -2.0f, "cab level should save")) return 1;
+  if (require(cabParamPreset.blocks[0].params.value("mix", 0.0f) == 0.5f, "cab mix should save")) return 1;
+
   ardor::insertAssetBlock(state, 0, 0);
   ardor::insertAssetBlock(state, 0, 0);
   if (require(state.bank.presets[state.activePreset].blocks[0].id != state.bank.presets[state.activePreset].blocks[1].id,
