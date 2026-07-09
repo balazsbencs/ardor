@@ -148,6 +148,18 @@ Preset-driven realtime run:
 
 Stop with `Ctrl-C`.
 
+### Realtime preset slot switching
+
+Slot-based realtime mode loads presets from `--data-root`:
+
+```sh
+./build/pedal-poc --realtime --data-root . --bank 0 --slot 0 \
+  --capture-device 1 --playback-device 1 --input-channel left --output-channel both \
+  --block-size 64 --ir-samples 8192
+```
+
+While it is running, type `0`, `1`, `2`, or `3`, then Enter, to switch presets in the current bank. The app reloads outside the audio callback, restarts the realtime device, and resumes telemetry.
+
 Use `--input-channel left` for input 1 and `--input-channel right` for input 2. On the UMC22, the instrument input is commonly the right/second capture channel.
 
 Realtime mode uses the full IR by default through partitioned convolution. Use `--ir-samples N` to cap long IRs when comparing performance or testing slower hardware.
