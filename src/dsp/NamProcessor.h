@@ -34,6 +34,7 @@ private:
   std::vector<float> output_{0.0f};
   double sampleRate_ = 0.0;
   int maxBlockSize_ = 0;
+  float normGain_ = 1.0f; // loudness normalization to kTargetLoudnessDb
 };
 
 } // namespace ardor

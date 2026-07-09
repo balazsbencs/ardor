@@ -9,6 +9,11 @@
 #include <exception>
 #include <iostream>
 
+namespace {
+// Matches the NAM plugin convention; normalizes model output to a consistent level.
+constexpr double kTargetLoudnessDb = -18.0;
+} // namespace
+
 namespace ardor {
 
 NamProcessor::NamProcessor() = default;
@@ -42,6 +47,11 @@ bool NamProcessor::load(const std::filesystem::path& modelPath, double sampleRat
   model_->ResetAndPrewarm(sampleRate, maxBlockSize_);
   // ponytail: prewarm once on load; bypass/reset calls must stay cheap in the audio callback.
   model_->SetPrewarmOnReset(false);
+
+  normGain_ = model_->HasLoudness()
+    ? static_cast<float>(std::pow(10.0, (kTargetLoudnessDb - model_->GetLoudness()) / 20.0))
+    : 1.0f;
+
   return true;
 }
 
@@ -55,7 +65,7 @@ float NamProcessor::process(float input)
   float* in[] = {input_.data()};
   float* out[] = {output_.data()};
   model_->process(in, out, 1);
-  return output_[0];
+  return output_[0] * normGain_;
 }
 
 void NamProcessor::processBlock(const float* input, float* output, size_t frames)
@@ -72,7 +82,9 @@ void NamProcessor::processBlock(const float* input, float* output, size_t frames
     float* in[] = {input_.data()};
     float* out[] = {output_.data()};
     model_->process(in, out, static_cast<int>(chunk));
-    std::copy(output_.begin(), output_.begin() + static_cast<std::ptrdiff_t>(chunk), output + offset);
+    const float ng = normGain_;
+    std::transform(output_.begin(), output_.begin() + static_cast<std::ptrdiff_t>(chunk),
+                   output + offset, [ng](float s) { return s * ng; });
     offset += chunk;
   }
 }
@@ -84,6 +96,7 @@ void NamProcessor::clear()
   output_.assign(1, 0.0f);
   sampleRate_ = 0.0;
   maxBlockSize_ = 0;
+  normGain_ = 1.0f;
 }
 
 void NamProcessor::reset()
