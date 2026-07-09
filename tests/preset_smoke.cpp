@@ -161,6 +161,34 @@ int main()
     require(session.working().name == "Disk Changed", "discard reloads disk change");
     require(!session.isDirty(), "clean after reload");
 
+    // Corrupt preset: garbage bytes → load must throw
+    {
+      const auto corruptPath = store.pathFor(slot);
+      {
+        std::ofstream out(corruptPath, std::ios::trunc);
+        out << "this is not json {{{{";
+      }
+      bool threw = false;
+      try {
+        store.load(slot);
+      } catch (const std::exception&) {
+        threw = true;
+      }
+      require(threw, "load should throw on corrupt preset");
+
+      // Stale .tmp from interrupted save: save should remove it
+      const auto tmpPath = corruptPath.parent_path() / (corruptPath.filename().string() + ".tmp");
+      {
+        std::ofstream(tmpPath, std::ios::trunc) << "stale content";
+      }
+      require(std::filesystem::exists(tmpPath), "stale tmp exists before save");
+      ardor::Preset recover;
+      recover.name = "Recovered";
+      store.save(slot, recover);
+      require(!std::filesystem::exists(tmpPath), "save removes stale tmp");
+      require(store.load(slot).name == "Recovered", "load succeeds after recovery save");
+    }
+
     const auto dataRoot = std::filesystem::temp_directory_path() / ("ardor-chain-smoke-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     std::filesystem::remove_all(dataRoot);
     std::filesystem::create_directories(dataRoot / "models");

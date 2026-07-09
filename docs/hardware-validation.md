@@ -148,6 +148,44 @@ project channel if you don't have them; they are not in git).
 | NAM (any tier) + convolver < ~65% of budget combined | Phase 0 gate passes with that tier — record which tier and continue the roadmap. |
 | No model tier fits at block 64 | Stop; escalate to the roadmap owner — block-size 128 fallback or model constraints must be decided before any further phases (see roadmap Phase 0 "Stop If"). |
 
+## Raspberry Pi Buildroot First Boot
+
+Flash `output/images/sdcard.img`. No preparation is required — the image ships pass-through presets. To hear an amp, copy assets onto the data partition:
+
+- `/opt/ardor-pedal/models/*.nam`
+- `/opt/ardor-pedal/irs/*.wav` (48 kHz mono)
+- edit `/opt/ardor-pedal/presets/bank-000/preset-0.json` with relative assets
+
+First boot checks:
+
+```sh
+cat /etc/ardor-pedal.env
+mount | grep ardor            # data partition rw, rootfs ro
+cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor   # performance
+aplay -l                      # Codec Zero is card 0
+arecord -l
+cat /proc/bus/input/devices   # footswitches + encoder present
+```
+
+Runtime checks:
+
+- LVGL UI is fullscreen on the DSI display.
+- Guitar input produces stereo output (mixer state restored by S99).
+- Touching a preset slot on screen is audible.
+- `kill $(pidof ardor-pedal)` → respawn within ~2 s.
+- Telemetry stays near the `64 / 8192` baseline without repeated overruns.
+
+Thermal soak (enclosure closed, 10 minutes of playing):
+
+```sh
+vcgencmd measure_temp
+vcgencmd get_throttled   # must stay 0x0
+```
+
+Power-loss check: yank power mid preset-save five times; every boot must load presets (worst case: the affected slot falls back to pass-through with a log line, never a crash loop).
+
+Factory reset / update story (v1): reflash the SD card. There is no OTA.
+
 ## Raspberry Pi Codec Zero Realtime Test
 
 Command on Pi:

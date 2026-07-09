@@ -329,8 +329,10 @@ int main(int argc, char** argv)
       ardor::PresetStore store(args.dataRoot);
       std::string loadError;
       if (!ardor::applyPresetSlot(*liveEngine, store, {args.bank, args.slot}, args.dataRoot, loadOptions, loadError)) {
-        std::cerr << loadError << "\n";
-        return 1;
+        std::cerr << "Warning: preset " << args.bank << ":" << args.slot << " failed (" << loadError
+                  << "), using pass-through\n";
+        liveEngine->clearEffects();
+        liveEngine->prepareBlockSize(loadOptions.blockSize);
       }
 
       std::atomic<int> requestedSlot{-1};

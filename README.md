@@ -286,9 +286,13 @@ make
 
 The package installs:
 
-- `/usr/bin/ardor-pedal`
-- `/etc/init.d/S99ardor-pedal`
-- `/opt/ardor-pedal/` for local `model.nam` and `cab.wav`
+- `/usr/bin/ardor-pedal` — the integrated realtime + UI binary
+- `/etc/init.d/S99ardor-pedal` — supervised SysV init script with governor and mixer restore
+- `/etc/ardor-pedal.env` — runtime configuration (sample rate, block size, data root, etc.)
+- `/etc/ardor-codec-zero.state` — ALSA mixer state for the Codec Zero AUX in/out routing
+- Data partition mounted at `/opt/ardor-pedal` — writable preset and asset storage
+
+CMake FetchContent clones miniaudio, NeuralAmpModelerCore, and LVGL from git at configure time. The Buildroot host therefore needs network access during `make ardor-pedal`; all three dependencies are pinned to specific commits.
 
 ## Hardware Validation
 

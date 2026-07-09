@@ -84,6 +84,7 @@ void PresetStore::save(PresetSlot slot, const Preset& preset) const
   const auto path = pathFor(slot);
   std::filesystem::create_directories(path.parent_path());
   const auto tmp = path.parent_path() / (path.filename().string() + ".tmp");
+  std::filesystem::remove(tmp);
 
   std::ofstream out(tmp, std::ios::trunc);
   if (!out) {
