@@ -118,6 +118,7 @@ void selectPreset(UiState& state, std::size_t index)
   }
   state.activePreset = index;
   state.selectedBlock = 0;
+  state.pendingSlotRequest = static_cast<int>(index);
   enterPresetMode(state);
   state.dirty = false;
   state.effectsBypassed = false;
@@ -278,6 +279,13 @@ void updateRealtimeTelemetry(UiState& state, const RuntimeTelemetry& telemetry)
 {
   state.telemetry = telemetry;
   state.effectsBypassed = telemetry.bypassed;
+}
+
+int consumePendingSlotRequest(UiState& state)
+{
+  const int slot = state.pendingSlotRequest;
+  state.pendingSlotRequest = -1;
+  return slot;
 }
 
 void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoot)

@@ -63,6 +63,7 @@ struct UiState {
   int masterVolume = 82;
   std::string categoryFilter = "all";
   RuntimeTelemetry telemetry;
+  int pendingSlotRequest = -1;
 };
 
 UiState makeDemoUiState();
@@ -86,6 +87,7 @@ void setActiveOutputGainDb(UiState& state, float db);
 void setSelectedBlockParam(UiState& state, const std::string& key, float value);
 
 void updateRealtimeTelemetry(UiState& state, const RuntimeTelemetry& telemetry);
+int consumePendingSlotRequest(UiState& state);
 void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoot);
 void loadBankFromStore(UiState& state, const PresetStore& store, int bank);
 bool loadPresetSlotFromStore(UiState& state, const PresetStore& store, PresetSlot slot, std::string& error);

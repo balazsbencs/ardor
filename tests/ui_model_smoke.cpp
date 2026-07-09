@@ -33,7 +33,11 @@ int main()
   if (require(state.mode == ardor::UiMode::Preset, "expected preset mode")) return 1;
   if (require(state.masterVolume == 82, "expected demo master volume")) return 1;
 
+  if (require(ardor::consumePendingSlotRequest(state) == -1, "initial pending slot should be empty")) return 1;
+  if (require(ardor::consumePendingSlotRequest(state) == -1, "consume is idempotent when empty")) return 1;
   ardor::selectPreset(state, 2);
+  if (require(ardor::consumePendingSlotRequest(state) == 2, "select should post pending slot")) return 1;
+  if (require(ardor::consumePendingSlotRequest(state) == -1, "consume clears the request")) return 1;
   if (require(state.activePreset == 2, "preset selection failed")) return 1;
   if (require(state.mode == ardor::UiMode::Preset, "preset selection should return to preset mode")) return 1;
   if (require(!state.blockDrawerOpen, "preset selection should close block drawer")) return 1;

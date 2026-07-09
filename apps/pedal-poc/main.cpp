@@ -392,6 +392,8 @@ int main(int argc, char** argv)
             std::string saveError;
             if (!ardor::saveActivePresetToStore(uiState, store, args.bank, saveError)) {
               std::cerr << saveError << "\n";
+            } else {
+              requestedSlot.store(static_cast<int>(uiState.activePreset), std::memory_order_relaxed);
             }
           },
         });
@@ -452,6 +454,15 @@ int main(int argc, char** argv)
               std::cerr << "Master volume " << controls.masterVolume << "%\n";
             }
           }
+        }
+#endif
+#if defined(ARDOR_HAS_UI)
+        if (args.enableUi && ui) {
+          const int uiSlot = ardor::consumePendingSlotRequest(uiState);
+          if (uiSlot >= 0) {
+            requestedSlot.store(uiSlot, std::memory_order_relaxed);
+          }
+          uiState.masterVolume = controls.masterVolume;
         }
 #endif
         const int nextSlot = requestedSlot.exchange(-1, std::memory_order_relaxed);
