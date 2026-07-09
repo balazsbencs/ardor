@@ -1,10 +1,22 @@
-BR2_aarch64=y
-BR2_cortex_a72=y
-BR2_TOOLCHAIN_BUILDROOT_CXX=y
-BR2_LINUX_KERNEL=y
-BR2_LINUX_KERNEL_DEFCONFIG="bcm2711"
+# Base: upstream configs/raspberrypi4_64_defconfig (not vendored here).
+# To produce a bootable image, merge this file on top of the upstream base:
+#
+#   cp configs/raspberrypi4_64_defconfig \
+#      BR2_EXTERNAL_ARDOR_PEDAL_PATH/configs/raspberrypi4_ardor_pedal_defconfig
+#   # append the Ardor additions below
+#
+# The upstream base already carries: BR2_aarch64, cortex_a72 toolchain,
+# Linux/bcm2711 defconfig, rpi-firmware, DTBs, genimage host tools,
+# and BR2_ROOTFS_POST_IMAGE_SCRIPT pointing to the upstream rpi post-image.sh.
+
+# --- Ardor additions ---
 BR2_PACKAGE_ALSA_UTILS=y
+BR2_PACKAGE_ALSA_UTILS_ALSACTL=y
+BR2_PACKAGE_ALSA_UTILS_AMIXER=y
 BR2_PACKAGE_ARDOR_PEDAL=y
-BR2_TARGET_ROOTFS_EXT2=y
-BR2_TARGET_ROOTFS_EXT2_4=y
-BR2_TARGET_ROOTFS_EXT2_SIZE="256M"
+BR2_PACKAGE_OPENSSH=y
+# Read-only rootfs: do NOT remount rw at boot.
+# BR2_TARGET_GENERIC_REMOUNT_ROOTFS_RW is not set
+BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_ARDOR_PEDAL_PATH)/board/ardor-pedal/rootfs-overlay"
+BR2_PACKAGE_RPI_FIRMWARE_CONFIG_FILE="$(BR2_EXTERNAL_ARDOR_PEDAL_PATH)/board/ardor-pedal/config.txt"
+BR2_ROOTFS_POST_IMAGE_SCRIPT="$(BR2_EXTERNAL_ARDOR_PEDAL_PATH)/board/ardor-pedal/post-image.sh"

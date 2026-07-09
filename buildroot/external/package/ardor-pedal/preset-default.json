@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "name": "Init",
+  "routing": "serial",
+  "global": { "inputGainDb": 0.0, "outputGainDb": 0.0, "safetyLimitDb": -1.0 },
+  "blocks": []
+}

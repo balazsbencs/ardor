@@ -1,0 +1,53 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/input/linux-event-codes.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	compatible = "brcm,bcm2711";
+
+	fragment@0 {
+		target-path = "/";
+		__overlay__ {
+			gpio-keys {
+				compatible = "gpio-keys";
+
+				footswitch_1 {
+					label = "preset-1";
+					linux,code = <KEY_F1>;
+					gpios = <&gpio 5 GPIO_ACTIVE_LOW>;
+					debounce-interval = <20>;
+				};
+
+				footswitch_2 {
+					label = "preset-2";
+					linux,code = <KEY_F2>;
+					gpios = <&gpio 6 GPIO_ACTIVE_LOW>;
+					debounce-interval = <20>;
+				};
+
+				footswitch_3 {
+					label = "preset-3";
+					linux,code = <KEY_F3>;
+					gpios = <&gpio 13 GPIO_ACTIVE_LOW>;
+					debounce-interval = <20>;
+				};
+
+				footswitch_4 {
+					label = "preset-4";
+					linux,code = <KEY_F4>;
+					gpios = <&gpio 16 GPIO_ACTIVE_LOW>;
+					debounce-interval = <20>;
+				};
+			};
+
+			rotary: rotary@0 {
+				compatible = "rotary-encoder";
+				gpios = <&gpio 17 GPIO_ACTIVE_LOW>, <&gpio 22 GPIO_ACTIVE_LOW>;
+				linux,axis = <REL_X>;
+				rotary-encoder,relative-axis;
+			};
+		};
+	};
+};

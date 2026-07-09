@@ -1,0 +1,11 @@
+# PLACEHOLDER: Replace this file before first-target use.
+#
+# Source: https://github.com/raspberrypi/Pi-Codec
+# File:   Codec_Zero_AUXIN_record_and_HP_playback.state
+#
+# Procedure:
+#   git clone https://github.com/raspberrypi/Pi-Codec /tmp/pi-codec
+#   cp /tmp/pi-codec/Codec_Zero_AUXIN_record_and_HP_playback.state \
+#      buildroot/external/board/ardor-pedal/codec-zero.state
+#   # Verify on target: alsactl restore -f /etc/ardor-codec-zero.state
+#   # Confirm AUX IN is routed to the codec input and AUX OUT is audible.

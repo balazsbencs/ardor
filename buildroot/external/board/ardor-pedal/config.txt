@@ -1,0 +1,10 @@
+kernel=Image
+arm_64bit=1
+enable_uart=1
+# Codec Zero (I2S DAC/ADC, DA7212)
+dtparam=audio=off
+dtparam=i2c_arm=on
+dtparam=i2s=on
+dtoverlay=rpi-codeczero
+# Footswitches + encoder (compiled from ardor-controls.dts)
+dtoverlay=ardor-controls
