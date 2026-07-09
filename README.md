@@ -28,6 +28,21 @@ Preset files live under the data root in bank/slot folders, for example:
 
 Block assets inside preset JSON stay relative to that same data root, such as `models/clean.nam` or `irs/open-back.wav`. Absolute paths and `..` traversal are rejected. Real `.nam` models and IRs stay local and are not committed unless redistribution is allowed.
 
+### Supported V1 Parameters
+
+Preset globals:
+
+- `global.inputGainDb`: input gain before NAM.
+- `global.outputGainDb`: output gain after cab.
+- `global.safetyLimitDb`: limiter ceiling, where `-1.0` is the default. Stored and applied, but not editable from the UI — it is a protective clipper, not a tone control.
+
+Cab block params:
+
+- `params.levelDb`: cab level before output gain.
+- `params.mix`: `0.0` dry after-NAM signal, `1.0` full cab signal.
+
+Other block params may be stored in JSON, but modulation, delay, and reverb are not processed yet.
+
 ## Build
 
 ```sh
