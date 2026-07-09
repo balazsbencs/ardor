@@ -6,9 +6,11 @@
 #include "dsp/PedalEngine.h"
 #include "preset/ChainPlan.h"
 #include "preset/Preset.h"
+#include "preset/PresetStore.h"
 #include "preset/RuntimeState.h"
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <csignal>
 #include <cmath>
@@ -19,6 +21,7 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -52,6 +55,9 @@ struct Args {
   ardor::OutputChannel outputChannel = ardor::OutputChannel::Both;
   std::filesystem::path preset;
   std::filesystem::path dataRoot = ".";
+  bool presetSlotMode = false;
+  int bank = 0;
+  int slot = 0;
   std::filesystem::path model;
   std::filesystem::path ir;
   std::filesystem::path input;
@@ -99,6 +105,16 @@ bool parse(int argc, char** argv, Args& args)
         const char* v = value();
         if (!v) return false;
         args.dataRoot = v;
+      } else if (a == "--bank") {
+        const char* v = value();
+        if (!v) return false;
+        args.bank = std::stoi(v);
+        args.presetSlotMode = true;
+      } else if (a == "--slot") {
+        const char* v = value();
+        if (!v) return false;
+        args.slot = std::stoi(v);
+        args.presetSlotMode = true;
       } else if (a == "--sample-rate") {
         const char* v = value();
         if (!v) return false;
@@ -172,15 +188,19 @@ bool parse(int argc, char** argv, Args& args)
     return false;
   }
 
+  if (args.presetSlotMode && (args.bank < 0 || args.bank >= 100 || args.slot < 0 || args.slot >= 4)) {
+    return false;
+  }
+
   if (args.devices) return true;
   if (args.offline) {
-    if (!args.preset.empty()) {
+    if (!args.preset.empty() || args.presetSlotMode) {
       return !args.input.empty() && !args.output.empty();
     }
     return !args.ir.empty() && !args.input.empty() && !args.output.empty() && (args.bypassNam || !args.model.empty());
   }
   if (args.realtime) {
-    if (!args.preset.empty()) {
+    if (!args.preset.empty() || args.presetSlotMode) {
       return true;
     }
     return !args.ir.empty() && !args.model.empty();
@@ -207,22 +227,6 @@ void writeStereo(const std::filesystem::path& path, const std::vector<float>& in
     throw std::runtime_error("failed to write wav: " + path.string());
   }
   ma_encoder_uninit(&encoder);
-}
-
-bool loadPresetIntoEngine(ardor::PedalEngine& engine, const Args& args, std::string& error)
-{
-  std::ifstream in(args.preset);
-  if (!in) {
-    error = "failed to open preset: " + args.preset.string();
-    return false;
-  }
-
-  nlohmann::json json;
-  in >> json;
-  const ardor::Preset preset = ardor::presetFromJson(json);
-  const ardor::ChainPlan plan = ardor::buildChainPlan(preset, args.dataRoot);
-  const size_t irSamples = args.irSamples == 0 ? 8192 : args.irSamples;
-  return ardor::applyChainPlan(engine, plan, {args.sampleRate, args.blockSize, irSamples}, error);
 }
 
 int printDevices()
@@ -266,8 +270,10 @@ int main(int argc, char** argv)
       std::cerr << "Usage:\n"
                 << "  pedal-poc --devices\n"
                 << "  pedal-poc --offline --preset preset.json --data-root data --input dry.wav --output wet.wav\n"
+                << "  pedal-poc --offline --data-root data --bank 0 --slot 0 --input dry.wav --output wet.wav\n"
                 << "  pedal-poc --offline --ir cab.wav --input dry.wav --output wet.wav (--model amp.nam | --bypass-nam)\n"
                 << "  pedal-poc --realtime --preset preset.json --data-root data [--sample-rate 48000] [--block-size 64]\n"
+                << "  pedal-poc --realtime --data-root data --bank 0 --slot 0 [--sample-rate 48000] [--block-size 64]\n"
                 << "  pedal-poc --realtime --model amp.nam --ir cab.wav [--sample-rate 48000] [--block-size 64]\n"
                 << "            [--capture-device N] [--playback-device N] [--input-channel left|right]\n"
                 << "            [--output-channel both|left|right] [--ir-samples N]\n"
@@ -280,10 +286,114 @@ int main(int argc, char** argv)
       return printDevices();
     }
 
+    const ardor::EngineLoadOptions loadOptions{
+      args.sampleRate,
+      args.blockSize,
+      args.irSamples == 0 ? size_t{8192} : args.irSamples,
+    };
+
+    // Realtime slot mode: unique_ptr engine enables stop/swap/restart switching
+    if (args.realtime && args.presetSlotMode) {
+      auto liveEngine = std::make_unique<ardor::PedalEngine>();
+      ardor::PresetStore store(args.dataRoot);
+      std::string loadError;
+      if (!ardor::applyPresetSlot(*liveEngine, store, {args.bank, args.slot}, args.dataRoot, loadOptions, loadError)) {
+        std::cerr << loadError << "\n";
+        return 1;
+      }
+
+      std::atomic<int> requestedSlot{-1};
+      std::thread controlThread([&]() {
+        char c = 0;
+        while (std::cin >> c) {
+          if (c >= '0' && c <= '3') {
+            requestedSlot.store(c - '0', std::memory_order_relaxed);
+          }
+        }
+      });
+      controlThread.detach();
+
+      ardor::RealtimeOptions options;
+      options.sampleRate = args.sampleRate;
+      options.blockSize = args.blockSize;
+      options.captureDeviceIndex = args.captureDeviceIndex;
+      options.playbackDeviceIndex = args.playbackDeviceIndex;
+      options.inputChannel = args.inputChannel;
+      options.outputChannel = args.outputChannel;
+
+      ardor::MiniaudioBackend backend;
+      if (!backend.start(*liveEngine, options)) {
+        std::cerr << "Failed to start realtime audio\n";
+        return 1;
+      }
+
+      ardor::RuntimeState runtime;
+      uint64_t previousCallbacks = 0;
+      uint64_t previousOverBudget = 0;
+      std::signal(SIGINT, handleSignal);
+      std::signal(SIGTERM, handleSignal);
+      while (running) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        const int nextSlot = requestedSlot.exchange(-1, std::memory_order_relaxed);
+        if (nextSlot >= 0 && nextSlot != args.slot) {
+          auto nextEngine = std::make_unique<ardor::PedalEngine>();
+          std::string swapError;
+          if (!ardor::applyPresetSlot(*nextEngine, store, {args.bank, nextSlot}, args.dataRoot, loadOptions, swapError)) {
+            std::cerr << "Preset switch failed: " << swapError << "\n";
+          } else {
+            backend.stop();
+            liveEngine = std::move(nextEngine);
+            liveEngine->reset();
+            if (!backend.start(*liveEngine, options)) {
+              std::cerr << "Failed to restart realtime audio\n";
+              return 1;
+            }
+            args.slot = nextSlot;
+            previousOverBudget = 0;
+            std::cerr << "Switched to preset " << args.bank << ":" << args.slot << "\n";
+          }
+        }
+        const auto stats = backend.stats();
+        runtime.observeRealtimeStats(previousCallbacks, stats.callbacks, previousOverBudget, stats.overBudget);
+        previousCallbacks = stats.callbacks;
+        previousOverBudget = stats.overBudget;
+        liveEngine->setEffectsBypassed(runtime.effectsBypassed());
+        const double overPercent = stats.callbacks == 0
+                                     ? 0.0
+                                     : static_cast<double>(stats.overBudget) * 100.0 / static_cast<double>(stats.callbacks);
+        std::cerr << std::fixed << std::setprecision(2)
+                  << "callbacks=" << stats.callbacks
+                  << " over=" << stats.overBudget
+                  << " over%=" << overPercent
+                  << " max=" << stats.maxMs << "ms"
+                  << " avg=" << stats.averageMs << "ms"
+                  << " budget=" << stats.budgetMs << "ms"
+                  << " bypassed=" << (runtime.effectsBypassed() ? 1 : 0)
+                  << "\n";
+      }
+      backend.stop();
+      return 0;
+    }
+
+    // All other paths use a stack engine
     ardor::PedalEngine engine;
-    if (!args.preset.empty()) {
+    if (args.presetSlotMode) {
       std::string error;
-      if (!loadPresetIntoEngine(engine, args, error)) {
+      ardor::PresetStore store(args.dataRoot);
+      if (!ardor::applyPresetSlot(engine, store, {args.bank, args.slot}, args.dataRoot, loadOptions, error)) {
+        std::cerr << error << "\n";
+        return 1;
+      }
+    } else if (!args.preset.empty()) {
+      std::string error;
+      std::ifstream in(args.preset);
+      if (!in) {
+        std::cerr << "failed to open preset: " << args.preset << "\n";
+        return 1;
+      }
+      nlohmann::json json;
+      in >> json;
+      if (!ardor::applyPreset(engine, ardor::presetFromJson(json), args.dataRoot, loadOptions, error)) {
         std::cerr << error << "\n";
         return 1;
       }
@@ -376,7 +486,7 @@ int main(int argc, char** argv)
       return 1;
     }
 
-    if (args.preset.empty() && !args.bypassNam && !engine.loadNam(args.model, args.sampleRate, 128)) {
+    if (args.preset.empty() && !args.presetSlotMode && !args.bypassNam && !engine.loadNam(args.model, args.sampleRate, 128)) {
       std::cerr << "Failed to load NAM model\n";
       return 1;
     }
