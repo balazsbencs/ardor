@@ -70,6 +70,8 @@ bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoad
         wav.samples.resize(options.irSamples);
       }
       engine.loadIr(std::move(wav.samples));
+      engine.setCabLevel(block.level);
+      engine.setCabMix(block.mix);
       loadedCab = true;
       continue;
     }

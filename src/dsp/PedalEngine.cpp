@@ -67,6 +67,16 @@ void PedalEngine::setSafetyLimiterEnabled(bool enabled)
   safetyLimiterEnabled_.store(enabled, std::memory_order_relaxed);
 }
 
+void PedalEngine::setCabLevel(float gain)
+{
+  cabLevel_.store(std::max(0.0f, gain), std::memory_order_relaxed);
+}
+
+void PedalEngine::setCabMix(float mix)
+{
+  cabMix_.store(std::clamp(mix, 0.0f, 1.0f), std::memory_order_relaxed);
+}
+
 void PedalEngine::reset()
 {
   nam_.reset();
@@ -92,7 +102,11 @@ std::pair<float, float> PedalEngine::process(float input)
 
   const float afterGain = input * inputGain_.load(std::memory_order_relaxed);
   const float afterNam = nam_.process(afterGain);
-  const float wet = applySafety(ir_.processSample(afterNam) * outputGain_.load(std::memory_order_relaxed) * masterVolume);
+  const float cabLevel = cabLevel_.load(std::memory_order_relaxed);
+  const float cabMix = cabMix_.load(std::memory_order_relaxed);
+  const float cabWet = ir_.processSample(afterNam) * cabLevel;
+  const float wet = applySafety(((cabWet * cabMix) + (afterNam * (1.0f - cabMix)))
+                                * outputGain_.load(std::memory_order_relaxed) * masterVolume);
   return {wet, wet};
 }
 
@@ -132,8 +146,12 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
   ir_.processBlock(namBlock_.data(), irBlock_.data(), frames);
 
   const float outputGain = outputGain_.load(std::memory_order_relaxed);
+  const float cabLevel = cabLevel_.load(std::memory_order_relaxed);
+  const float cabMix = cabMix_.load(std::memory_order_relaxed);
   for (size_t i = 0; i < frames; ++i) {
-    const float wet = applySafety(irBlock_[i] * outputGain * masterVolume);
+    const float cabWet = irBlock_[i] * cabLevel;
+    const float wet = applySafety(((cabWet * cabMix) + (namBlock_[i] * (1.0f - cabMix)))
+                                  * outputGain * masterVolume);
     left[i] = wet;
     right[i] = wet;
   }

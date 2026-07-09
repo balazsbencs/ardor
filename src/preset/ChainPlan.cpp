@@ -1,5 +1,6 @@
 #include "preset/ChainPlan.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace ardor {
@@ -30,6 +31,10 @@ ChainPlan buildChainPlan(const Preset& preset, const std::filesystem::path& data
     blockPlan.id = block.id;
     blockPlan.type = block.type;
     blockPlan.params = block.params.is_null() ? nlohmann::json::object() : block.params;
+    if (block.type == "cab") {
+      blockPlan.level = dbToGain(blockPlan.params.value("levelDb", 0.0f));
+      blockPlan.mix = std::clamp(blockPlan.params.value("mix", 1.0f), 0.0f, 1.0f);
+    }
     if (isValidBlockAssetPath(block.asset)) {
       blockPlan.assetPath = dataRoot / block.asset;
     }

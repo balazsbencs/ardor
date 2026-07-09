@@ -22,6 +22,8 @@ public:
   void setEffectsBypassed(bool bypassed);
   void setSafetyLimit(float limit);
   void setSafetyLimiterEnabled(bool enabled);
+  void setCabLevel(float gain);
+  void setCabMix(float mix);
   std::pair<float, float> process(float input);
   void processBlock(const float* input, float* left, float* right, size_t frames);
   void reset();
@@ -31,6 +33,8 @@ private:
   std::atomic<float> outputGain_{1.0f};
   std::atomic<float> masterVolume_{1.0f};
   std::atomic<float> safetyLimit_{0.8912509f};
+  std::atomic<float> cabLevel_{1.0f};
+  std::atomic<float> cabMix_{1.0f};
   std::atomic<bool> effectsBypassed_{false};
   std::atomic<bool> safetyLimiterEnabled_{true};
   std::atomic<bool> resetRequested_{false};

@@ -80,6 +80,15 @@ int main()
     historyEngine.processBlock(resetInput.data(), resetLeft.data(), resetRight.data(), resetInput.size());
     require(near(resetLeft[0], 0.0f), "reset block left sample");
     require(near(resetRight[0], 0.0f), "reset block right sample");
+
+    ardor::PedalEngine cabMixEngine;
+    cabMixEngine.loadIr({1.0f});
+    cabMixEngine.setSafetyLimiterEnabled(false);
+    cabMixEngine.setCabLevel(0.5f);
+    cabMixEngine.setCabMix(0.5f);
+    const auto mixed = cabMixEngine.process(1.0f);
+    require(near(mixed.first, 0.75f), "cab mix should blend dry and wet");
+
     return 0;
   } catch (const std::exception& error) {
     std::cerr << "engine_contract_smoke failed: " << error.what() << '\n';
