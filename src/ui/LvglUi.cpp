@@ -101,6 +101,56 @@ void onCloseParamDrawer(lv_event_t* event)
   redraw(context);
 }
 
+void onGlobalParamsClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  selectGlobalParams(*context->state);
+  redraw(context);
+}
+
+enum class GlobalParam {
+  Input,
+  Output
+};
+
+void stepGlobalParam(UiState& state, GlobalParam param, float delta)
+{
+  auto& global = state.bank.presets[state.activePreset].global;
+  if (param == GlobalParam::Input) {
+    setActiveInputGainDb(state, global.inputGainDb + delta);
+  } else {
+    setActiveOutputGainDb(state, global.outputGainDb + delta);
+  }
+}
+
+void onInputGainDown(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  stepGlobalParam(*context->state, GlobalParam::Input, -1.0f);
+  redraw(context);
+}
+
+void onInputGainUp(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  stepGlobalParam(*context->state, GlobalParam::Input, 1.0f);
+  redraw(context);
+}
+
+void onOutputGainDown(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  stepGlobalParam(*context->state, GlobalParam::Output, -1.0f);
+  redraw(context);
+}
+
+void onOutputGainUp(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  stepGlobalParam(*context->state, GlobalParam::Output, 1.0f);
+  redraw(context);
+}
+
 void onBlockClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
@@ -343,6 +393,22 @@ void onAssetReleased(lv_event_t* event)
   redraw(context);
 }
 
+void globalControl(lv_obj_t* parent, const std::string& name, float value, int x,
+                   lv_event_cb_t down, lv_event_cb_t up, UiEventContext* context)
+{
+  label(parent, name + " " + std::to_string(static_cast<int>(value)) + " dB",
+        LV_ALIGN_TOP_LEFT, x, 0, &lv_font_montserrat_18, muted);
+  lv_obj_t* minus = button(parent, "-");
+  lv_obj_set_size(minus, 36, 32);
+  lv_obj_align(minus, LV_ALIGN_TOP_LEFT, x, 28);
+  lv_obj_add_event_cb(minus, down, LV_EVENT_CLICKED, context);
+
+  lv_obj_t* plus = button(parent, "+");
+  lv_obj_set_size(plus, 36, 32);
+  lv_obj_align(plus, LV_ALIGN_TOP_LEFT, x + 42, 28);
+  lv_obj_add_event_cb(plus, up, LV_EVENT_CLICKED, context);
+}
+
 lv_obj_t* button(lv_obj_t* parent, const std::string& value)
 {
   lv_obj_t* object = lv_button_create(parent);
@@ -435,6 +501,11 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   lv_obj_set_size(presets, 112, 44);
   lv_obj_align(presets, LV_ALIGN_TOP_LEFT, 18, 14);
   lv_obj_add_event_cb(presets, onPresetModeClicked, LV_EVENT_CLICKED, remember(state));
+
+  lv_obj_t* globalButton = button(root, "Global");
+  lv_obj_set_size(globalButton, 112, 44);
+  lv_obj_align(globalButton, LV_ALIGN_TOP_RIGHT, -264, 14);
+  lv_obj_add_event_cb(globalButton, onGlobalParamsClicked, LV_EVENT_CLICKED, remember(state));
 
   lv_obj_t* save = button(root, state.dirty ? "Save*" : "Save");
   lv_obj_set_size(save, 96, 44);
@@ -552,12 +623,6 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
 
 void LvglUi::renderParamDrawer(lv_obj_t* root, UiState& state)
 {
-  const auto& blocks = state.bank.presets[state.activePreset].blocks;
-  if (state.selectedBlock >= blocks.size()) {
-    return;
-  }
-
-  const auto& block = blocks[state.selectedBlock];
   lv_obj_t* drawer = lv_obj_create(root);
   lv_obj_set_size(drawer, 800, 142);
   lv_obj_align(drawer, LV_ALIGN_BOTTOM_MID, 0, 0);
@@ -566,6 +631,28 @@ void LvglUi::renderParamDrawer(lv_obj_t* root, UiState& state)
   lv_obj_set_style_border_side(drawer, LV_BORDER_SIDE_TOP, 0);
   lv_obj_set_style_pad_all(drawer, 16, 0);
 
+  if (state.paramTarget == UiParamTarget::Globals) {
+    const auto& global = state.bank.presets[state.activePreset].global;
+    label(drawer, "Global", LV_ALIGN_TOP_LEFT, 0, 0, &lv_font_montserrat_22);
+    auto* context = remember(state);
+    globalControl(drawer, "In", global.inputGainDb, 0, onInputGainDown, onInputGainUp, context);
+    globalControl(drawer, "Out", global.outputGainDb, 150, onOutputGainDown, onOutputGainUp, context);
+    label(drawer, "Limit " + std::to_string(static_cast<int>(global.safetyLimitDb)) + " dB (fixed)",
+          LV_ALIGN_TOP_LEFT, 300, 0, &lv_font_montserrat_18, muted);
+    lv_obj_t* close = button(drawer, "X");
+    lv_obj_set_size(close, 42, 36);
+    lv_obj_align(close, LV_ALIGN_TOP_RIGHT, 0, -4);
+    lv_obj_add_event_cb(close, onCloseParamDrawer, LV_EVENT_CLICKED, remember(state));
+    return;
+  }
+
+  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (state.selectedBlock >= blocks.size()) {
+    lv_obj_delete(drawer);
+    return;
+  }
+
+  const auto& block = blocks[state.selectedBlock];
   label(drawer, block.label + " - " + block.assetName, LV_ALIGN_TOP_LEFT, 0, 0, &lv_font_montserrat_22);
   label(drawer, "Enabled", LV_ALIGN_BOTTOM_LEFT, 0, -8, &lv_font_montserrat_18, muted);
   label(drawer, block.enabled ? "On" : "Off", LV_ALIGN_BOTTOM_LEFT, 102, -8, &lv_font_montserrat_18, accent);
