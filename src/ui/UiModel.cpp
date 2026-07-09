@@ -274,6 +274,12 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
   state.dirty = true;
 }
 
+void updateRealtimeTelemetry(UiState& state, const RuntimeTelemetry& telemetry)
+{
+  state.telemetry = telemetry;
+  state.effectsBypassed = telemetry.bypassed;
+}
+
 void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoot)
 {
   state.assets.clear();

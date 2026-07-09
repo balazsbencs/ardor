@@ -1,4 +1,5 @@
 #include "preset/PresetStore.h"
+#include "preset/RuntimeState.h"
 #include "ui/UiModel.h"
 
 #include <filesystem>
@@ -178,6 +179,11 @@ int main()
   const auto saved = store.load({0, 0});
   if (require(saved.blocks.size() == 2, "saved preset should include edited chain")) return 1;
   std::filesystem::remove_all(root);
+
+  ardor::RuntimeTelemetry telemetry = ardor::makeRuntimeTelemetry(1000, 2, 0.9, 0.3, 1.33, true);
+  ardor::updateRealtimeTelemetry(diskState, telemetry);
+  if (require(diskState.telemetry.callbacks == 1000, "ui telemetry callbacks")) return 1;
+  if (require(diskState.effectsBypassed, "ui bypass follows telemetry")) return 1;
 
   return 0;
 }

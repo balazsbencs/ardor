@@ -498,6 +498,16 @@ void LvglUi::requestRebuild()
   rebuildPending_ = true;
 }
 
+void telemetryLine(lv_obj_t* root, const RuntimeTelemetry& telemetry, bool bypassed)
+{
+  const std::string status = bypassed ? "BYPASS" : "LIVE";
+  const int color = bypassed ? 0xf97373 : muted;
+  label(root,
+        status + "  over " + std::to_string(telemetry.overBudget) + "  max "
+          + std::to_string(static_cast<int>(telemetry.maxMs * 100.0) / 100.0) + "ms",
+        LV_ALIGN_BOTTOM_LEFT, 18, -14, &lv_font_montserrat_18, color);
+}
+
 void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
 {
   label(root, state.bank.name, LV_ALIGN_TOP_MID, 0, 18, &lv_font_montserrat_28);
@@ -530,6 +540,7 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     lv_obj_set_style_border_width(preset, i == state.activePreset ? 3 : 1, 0);
     lv_obj_add_event_cb(preset, onPresetClicked, LV_EVENT_CLICKED, remember(state, i));
   }
+  telemetryLine(root, state.telemetry, state.effectsBypassed);
 }
 
 void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
@@ -586,6 +597,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
     lv_obj_add_event_cb(object, onBlockReleased, LV_EVENT_RELEASED, context);
   }
 
+  telemetryLine(root, state.telemetry, state.effectsBypassed);
   if (state.blockDrawerOpen) {
     renderBlockDrawer(root, state);
   }
