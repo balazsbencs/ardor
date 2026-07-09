@@ -195,6 +195,23 @@ cmake --build build --target pedal-ui-sim
 
 It validates screen layout and UI state only. It does not wire footswitch GPIO, the encoder, Codec Zero, or realtime audio yet.
 
+### LVGL simulator with preset files
+
+The simulator can load the same preset files used by `pedal-poc`:
+
+```sh
+./build/pedal-ui-sim --data-root . --bank 0
+```
+
+It reads:
+
+- `presets/bank-000/preset-0.json`
+- `presets/bank-000/preset-1.json`
+- `presets/bank-000/preset-2.json`
+- `presets/bank-000/preset-3.json`
+
+Assets are discovered from `models/*.nam` and `irs/*.wav`. Editing the chain only changes memory until the Save button is pressed.
+
 ## Buildroot Firmware Seed
 
 This repo contains a Buildroot external tree under `buildroot/external`. It does not vendor Buildroot.
