@@ -16,7 +16,8 @@ Command:
   --capture-device 1 \
   --playback-device 1 \
   --input-channel right \
-  --output-channel both
+  --output-channel both \
+  --output-gain-db -8
 ```
 
 Pass:
@@ -36,7 +37,8 @@ IR samples: 8192
 input channel: right
 output channel: both
 xruns: 0
-notes: sounds good in realtime; 12000 eventually produced xruns, 14000 produced a few xruns, 16000 was unusable; loudness normalization now automatic (target -18 dBFS), --output-gain-db is a trim to taste
+output gain: -8 dB trim on top of automatic loudness normalization (-4.5 dB for this model, target -18 dBFS)
+notes: sounds good in realtime; 12000 eventually produced xruns, 14000 produced a few xruns, 16000 was unusable
 ```
 
 Partitioned convolution result:
