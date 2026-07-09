@@ -16,8 +16,13 @@ Command:
   --capture-device 1 \
   --playback-device 1 \
   --input-channel right \
-  --output-channel both
+  --output-channel both \
+  --output-gain-db -12
 ```
+
+Note: `--output-gain-db -12` is required because `PedalEngine` does not yet
+apply the model's loudness metadata for normalization. Without it the Friedman
+model clips the −1 dB safety hard-clipper and distorts.
 
 Pass:
 
@@ -36,6 +41,7 @@ IR samples: 8192
 input channel: right
 output channel: both
 xruns: 0
+output gain: -12 dB (without it the Friedman model clips the safety limiter)
 notes: sounds good in realtime; 12000 eventually produced xruns, 14000 produced a few xruns, 16000 was unusable
 ```
 
