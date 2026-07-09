@@ -218,6 +218,16 @@ int main()
     runtime.changePreset();
     require(!runtime.effectsBypassed(), "preset change clears bypass");
 
+    const auto telemetry = ardor::makeRuntimeTelemetry(100, 5, 0.8, 0.2, 1.33, true);
+    require(telemetry.callbacks == 100, "telemetry callbacks");
+    require(telemetry.overBudget == 5, "telemetry over budget");
+    require(std::fabs(telemetry.overBudgetPercent - 5.0) < 0.0001, "telemetry over percent");
+    require(telemetry.bypassed, "telemetry bypassed");
+    const auto line = ardor::formatRuntimeTelemetry(telemetry);
+    require(line.find("callbacks=100") != std::string::npos, "formatted callbacks");
+    require(line.find("over%=5.00") != std::string::npos, "formatted over percent");
+    require(line.find("bypassed=1") != std::string::npos, "formatted bypass");
+
     return 0;
   } catch (const std::exception& error) {
     std::cerr << "preset_smoke failed: " << error.what() << '\n';

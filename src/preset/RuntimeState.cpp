@@ -1,6 +1,37 @@
 #include "preset/RuntimeState.h"
 
+#include <iomanip>
+#include <sstream>
+
 namespace ardor {
+
+RuntimeTelemetry makeRuntimeTelemetry(uint64_t callbacks, uint64_t overBudget, double maxMs,
+                                      double averageMs, double budgetMs, bool bypassed)
+{
+  RuntimeTelemetry telemetry;
+  telemetry.callbacks = callbacks;
+  telemetry.overBudget = overBudget;
+  telemetry.overBudgetPercent = callbacks == 0 ? 0.0 : static_cast<double>(overBudget) * 100.0 / static_cast<double>(callbacks);
+  telemetry.maxMs = maxMs;
+  telemetry.averageMs = averageMs;
+  telemetry.budgetMs = budgetMs;
+  telemetry.bypassed = bypassed;
+  return telemetry;
+}
+
+std::string formatRuntimeTelemetry(const RuntimeTelemetry& telemetry)
+{
+  std::ostringstream out;
+  out << std::fixed << std::setprecision(2)
+      << "callbacks=" << telemetry.callbacks
+      << " over=" << telemetry.overBudget
+      << " over%=" << telemetry.overBudgetPercent
+      << " max=" << telemetry.maxMs << "ms"
+      << " avg=" << telemetry.averageMs << "ms"
+      << " budget=" << telemetry.budgetMs << "ms"
+      << " bypassed=" << (telemetry.bypassed ? 1 : 0);
+  return out.str();
+}
 
 void RuntimeState::observeRealtimeStats(uint64_t previousCallbacks,
                                         uint64_t currentCallbacks,

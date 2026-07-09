@@ -1,8 +1,23 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace ardor {
+
+struct RuntimeTelemetry {
+  uint64_t callbacks = 0;
+  uint64_t overBudget = 0;
+  double overBudgetPercent = 0.0;
+  double maxMs = 0.0;
+  double averageMs = 0.0;
+  double budgetMs = 0.0;
+  bool bypassed = false;
+};
+
+RuntimeTelemetry makeRuntimeTelemetry(uint64_t callbacks, uint64_t overBudget, double maxMs,
+                                      double averageMs, double budgetMs, bool bypassed);
+std::string formatRuntimeTelemetry(const RuntimeTelemetry& telemetry);
 
 class RuntimeState {
 public:

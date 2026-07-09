@@ -358,18 +358,10 @@ int main(int argc, char** argv)
         previousCallbacks = stats.callbacks;
         previousOverBudget = stats.overBudget;
         liveEngine->setEffectsBypassed(runtime.effectsBypassed());
-        const double overPercent = stats.callbacks == 0
-                                     ? 0.0
-                                     : static_cast<double>(stats.overBudget) * 100.0 / static_cast<double>(stats.callbacks);
-        std::cerr << std::fixed << std::setprecision(2)
-                  << "callbacks=" << stats.callbacks
-                  << " over=" << stats.overBudget
-                  << " over%=" << overPercent
-                  << " max=" << stats.maxMs << "ms"
-                  << " avg=" << stats.averageMs << "ms"
-                  << " budget=" << stats.budgetMs << "ms"
-                  << " bypassed=" << (runtime.effectsBypassed() ? 1 : 0)
-                  << "\n";
+        const auto telemetry = ardor::makeRuntimeTelemetry(stats.callbacks, stats.overBudget, stats.maxMs,
+                                                           stats.averageMs, stats.budgetMs,
+                                                           runtime.effectsBypassed());
+        std::cerr << ardor::formatRuntimeTelemetry(telemetry) << "\n";
       }
       backend.stop();
       return 0;
@@ -461,18 +453,10 @@ int main(int argc, char** argv)
         previousCallbacks = stats.callbacks;
         previousOverBudget = stats.overBudget;
         engine.setEffectsBypassed(runtime.effectsBypassed());
-        const double overPercent = stats.callbacks == 0
-                                     ? 0.0
-                                     : static_cast<double>(stats.overBudget) * 100.0 / static_cast<double>(stats.callbacks);
-        std::cerr << std::fixed << std::setprecision(2)
-                  << "callbacks=" << stats.callbacks
-                  << " over=" << stats.overBudget
-                  << " over%=" << overPercent
-                  << " max=" << stats.maxMs << "ms"
-                  << " avg=" << stats.averageMs << "ms"
-                  << " budget=" << stats.budgetMs << "ms"
-                  << " bypassed=" << (runtime.effectsBypassed() ? 1 : 0)
-                  << "\n";
+        const auto telemetry = ardor::makeRuntimeTelemetry(stats.callbacks, stats.overBudget, stats.maxMs,
+                                                           stats.averageMs, stats.budgetMs,
+                                                           runtime.effectsBypassed());
+        std::cerr << ardor::formatRuntimeTelemetry(telemetry) << "\n";
       }
       backend.stop();
       return 0;
