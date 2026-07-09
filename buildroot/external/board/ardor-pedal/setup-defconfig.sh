@@ -19,26 +19,24 @@ fi
 
 echo "Building complete defconfig from $UPSTREAM + Ardor additions..."
 
-cat "$UPSTREAM" > "$DEFCONFIG_OUT"
+# Start with the upstream RPI4 64-bit base, then append Ardor overrides.
+# In Buildroot defconfig format, last assignment wins, so appending is safe.
+{
+  cat "$UPSTREAM"
+  cat << EOF
 
-cat >> "$DEFCONFIG_OUT" << 'EOF'
-
-# --- Ardor additions ---
+# --- Ardor additions (override upstream values where duplicated) ---
+BR2_PACKAGE_ALSA_UTILS=y
 BR2_PACKAGE_ALSA_UTILS_ALSACTL=y
 BR2_PACKAGE_ALSA_UTILS_AMIXER=y
 BR2_PACKAGE_ARDOR_PEDAL=y
 BR2_PACKAGE_OPENSSH=y
 # BR2_TARGET_GENERIC_REMOUNT_ROOTFS_RW is not set
-EOF
-
-# Override upstream post-image script with Ardor's
-sed -i "s|BR2_ROOTFS_POST_IMAGE_SCRIPT=.*|BR2_ROOTFS_POST_IMAGE_SCRIPT=\"\$(BR2_EXTERNAL_ARDOR_PEDAL_PATH)/board/ardor-pedal/post-image.sh\"|" "$DEFCONFIG_OUT"
-
-# Set firmware config and rootfs overlay
-cat >> "$DEFCONFIG_OUT" << EOF
 BR2_ROOTFS_OVERLAY="\$(BR2_EXTERNAL_ARDOR_PEDAL_PATH)/board/ardor-pedal/rootfs-overlay"
 BR2_PACKAGE_RPI_FIRMWARE_CONFIG_FILE="\$(BR2_EXTERNAL_ARDOR_PEDAL_PATH)/board/ardor-pedal/config.txt"
+BR2_ROOTFS_POST_IMAGE_SCRIPT="\$(BR2_EXTERNAL_ARDOR_PEDAL_PATH)/board/ardor-pedal/post-image.sh"
 EOF
+} > "$DEFCONFIG_OUT"
 
 echo "Written: $DEFCONFIG_OUT"
 echo ""
