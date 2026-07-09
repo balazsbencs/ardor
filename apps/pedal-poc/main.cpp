@@ -2,6 +2,10 @@
 
 #include "audio/EngineLoader.h"
 #include "audio/MiniaudioBackend.h"
+#include "control/ControlEvents.h"
+#if defined(__linux__)
+#include "control/LinuxInput.h"
+#endif
 #include "audio/WavIo.h"
 #include "dsp/PedalEngine.h"
 #include "preset/ChainPlan.h"
@@ -63,6 +67,7 @@ struct Args {
   bool presetSlotMode = false;
   int bank = 0;
   int slot = 0;
+  std::vector<std::filesystem::path> controlDevices;
   std::filesystem::path model;
   std::filesystem::path ir;
   std::filesystem::path input;
@@ -165,6 +170,10 @@ bool parse(int argc, char** argv, Args& args)
         else if (channel == "left") args.outputChannel = ardor::OutputChannel::Left;
         else if (channel == "right") args.outputChannel = ardor::OutputChannel::Right;
         else return false;
+      } else if (a == "--control-device") {
+        const char* v = value();
+        if (!v) return false;
+        args.controlDevices.emplace_back(v);
       } else if (a == "--model") {
         const char* v = value();
         if (!v) return false;
@@ -283,7 +292,8 @@ int main(int argc, char** argv)
                 << "            [--capture-device N] [--playback-device N] [--input-channel left|right]\n"
                 << "            [--output-channel both|left|right] [--ir-samples N]\n"
                 << "            [--input-gain-db DB] [--output-gain-db DB]\n"
-                << "            [--safety-limit-db DB] [--no-safety-limit]\n";
+                << "            [--safety-limit-db DB] [--no-safety-limit]\n"
+                << "            [--control-device /dev/input/eventX]...\n";
       return 2;
     }
 
@@ -337,13 +347,51 @@ int main(int argc, char** argv)
         return 1;
       }
 
+      ardor::ControlState controls{args.slot, 80};
+      liveEngine->setMasterVolume(static_cast<float>(controls.masterVolume) / 100.0f);
+
       ardor::RuntimeState runtime;
       uint64_t previousCallbacks = 0;
       uint64_t previousOverBudget = 0;
       std::signal(SIGINT, handleSignal);
       std::signal(SIGTERM, handleSignal);
+#if defined(__linux__)
+      std::vector<ardor::LinuxInputDevice> inputDevices;
+      inputDevices.resize(args.controlDevices.size());
+      for (std::size_t i = 0; i < args.controlDevices.size(); ++i) {
+        std::string error;
+        if (!inputDevices[i].open(args.controlDevices[i], error)) {
+          std::cerr << "Failed to open control device " << args.controlDevices[i] << ": " << error << "\n";
+          return 1;
+        }
+      }
+#else
+      if (!args.controlDevices.empty()) {
+        std::cerr << "--control-device is only supported on Linux\n";
+        return 1;
+      }
+#endif
       while (running) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
+#if defined(__linux__)
+        for (auto& inputDevice : inputDevices) {
+          ardor::ControlEvent controlEvent;
+          while (inputDevice.poll(controlEvent)) {
+            const int previousSlot = controls.activeSlot;
+            const int previousVolume = controls.masterVolume;
+            if (!ardor::applyControlEvent(controls, controlEvent)) {
+              continue;
+            }
+            if (controls.activeSlot != previousSlot) {
+              requestedSlot.store(controls.activeSlot, std::memory_order_relaxed);
+            }
+            if (controls.masterVolume != previousVolume) {
+              liveEngine->setMasterVolume(static_cast<float>(controls.masterVolume) / 100.0f);
+              std::cerr << "Master volume " << controls.masterVolume << "%\n";
+            }
+          }
+        }
+#endif
         const int nextSlot = requestedSlot.exchange(-1, std::memory_order_relaxed);
         if (nextSlot >= 0 && nextSlot != args.slot) {
           auto nextEngine = std::make_unique<ardor::PedalEngine>();
@@ -354,6 +402,7 @@ int main(int argc, char** argv)
             backend.stop();
             liveEngine = std::move(nextEngine);
             liveEngine->reset();
+            liveEngine->setMasterVolume(static_cast<float>(controls.masterVolume) / 100.0f);
             if (!backend.start(*liveEngine, options)) {
               std::cerr << "Failed to restart realtime audio\n";
               return 1;
