@@ -6,7 +6,12 @@
 #define LV_USE_STDLIB_STRING LV_STDLIB_BUILTIN
 #define LV_USE_STDLIB_SPRINTF LV_STDLIB_BUILTIN
 
+#ifdef ARDOR_UI_BACKEND_FBDEV
+// Pi DSI framebuffer is RGB565; LVGL must render in the same format
+#define LV_COLOR_DEPTH 16
+#else
 #define LV_COLOR_DEPTH 32
+#endif
 
 #ifdef ARDOR_UI_BACKEND_FBDEV
 #define LV_USE_LINUX_FBDEV 1
