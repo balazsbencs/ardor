@@ -46,7 +46,7 @@ dtc -@ -I dts -O dtb -o "${BOOT}/overlays/ardor-controls.dtbo" \
 # keeps us compatible with whatever version Buildroot provides.
 truncate -s 64M "${BINARIES}/boot.vfat"
 mkdosfs -F 32 -n "boot" "${BINARIES}/boot.vfat"
-MTOOLS_SKIP_CHECK=1 mcopy -i "${BINARIES}/boot.vfat" -s "${BOOT}/." "::"
+MTOOLS_SKIP_CHECK=1 mcopy -i "${BINARIES}/boot.vfat" -s "${BOOT}"/* "::"
 
 # Run genimage
 rm -rf "${GENIMAGE_TMP}"
