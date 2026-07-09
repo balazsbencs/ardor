@@ -1,3 +1,7 @@
+#if defined(ARDOR_HAS_UI) && !defined(ARDOR_UI_BACKEND_FBDEV)
+#define SDL_MAIN_HANDLED
+#endif
+
 #include "miniaudio.h"
 
 #include "audio/EngineLoader.h"
@@ -37,6 +41,12 @@
 #include <utility>
 #include <vector>
 
+#if defined(ARDOR_HAS_UI)
+#include "ui/LvglUi.h"
+#include "ui/UiModel.h"
+#include <lvgl.h>
+#endif
+
 namespace {
 
 volatile std::sig_atomic_t running = 1;
@@ -68,6 +78,7 @@ struct Args {
   int bank = 0;
   int slot = 0;
   std::vector<std::filesystem::path> controlDevices;
+  bool enableUi = false;
   std::filesystem::path model;
   std::filesystem::path ir;
   std::filesystem::path input;
@@ -174,6 +185,10 @@ bool parse(int argc, char** argv, Args& args)
         const char* v = value();
         if (!v) return false;
         args.controlDevices.emplace_back(v);
+#if defined(ARDOR_HAS_UI)
+      } else if (a == "--ui") {
+        args.enableUi = true;
+#endif
       } else if (a == "--model") {
         const char* v = value();
         if (!v) return false;
@@ -293,7 +308,8 @@ int main(int argc, char** argv)
                 << "            [--output-channel both|left|right] [--ir-samples N]\n"
                 << "            [--input-gain-db DB] [--output-gain-db DB]\n"
                 << "            [--safety-limit-db DB] [--no-safety-limit]\n"
-                << "            [--control-device /dev/input/eventX]...\n";
+                << "            [--control-device /dev/input/eventX]...\n"
+                << "            [--ui]\n";
       return 2;
     }
 
@@ -350,6 +366,39 @@ int main(int argc, char** argv)
       ardor::ControlState controls{args.slot, 80};
       liveEngine->setMasterVolume(static_cast<float>(controls.masterVolume) / 100.0f);
 
+#if defined(ARDOR_HAS_UI)
+      std::unique_ptr<ardor::LvglUi> ui;
+      ardor::UiState uiState;
+      if (args.enableUi) {
+        lv_init();
+#if defined(ARDOR_UI_BACKEND_FBDEV)
+        lv_linux_fbdev_create("/dev/fb0");
+#else
+        lv_sdl_window_create(800, 480);
+        lv_sdl_mouse_create();
+        lv_sdl_mousewheel_create();
+        lv_sdl_keyboard_create();
+#endif
+        uiState = ardor::makeDemoUiState();
+        ardor::loadAssetsFromDataRoot(uiState, args.dataRoot);
+        ardor::loadBankFromStore(uiState, store, args.bank);
+        ardor::selectPreset(uiState, static_cast<std::size_t>(args.slot));
+        ui = std::make_unique<ardor::LvglUi>(ardor::UiActions{
+          [&](std::size_t index) {
+            requestedSlot.store(static_cast<int>(index), std::memory_order_relaxed);
+            ardor::selectPreset(uiState, index);
+          },
+          [&]() {
+            std::string saveError;
+            if (!ardor::saveActivePresetToStore(uiState, store, args.bank, saveError)) {
+              std::cerr << saveError << "\n";
+            }
+          },
+        });
+        ui->build(lv_screen_active(), uiState);
+      }
+#endif
+
       ardor::RuntimeState runtime;
       uint64_t previousCallbacks = 0;
       uint64_t previousOverBudget = 0;
@@ -371,8 +420,21 @@ int main(int argc, char** argv)
         return 1;
       }
 #endif
+      int tickCount = 0;
       while (running) {
+#if defined(ARDOR_HAS_UI)
+        if (args.enableUi && ui) {
+          lv_timer_handler();
+          ui->refresh(lv_screen_active(), uiState);
+          lv_delay_ms(5);
+          if (++tickCount < 200) continue;
+          tickCount = 0;
+        } else {
+          std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+#else
         std::this_thread::sleep_for(std::chrono::seconds(1));
+#endif
 #if defined(__linux__)
         for (auto& inputDevice : inputDevices) {
           ardor::ControlEvent controlEvent;
@@ -410,6 +472,12 @@ int main(int argc, char** argv)
             args.slot = nextSlot;
             previousOverBudget = 0;
             std::cerr << "Switched to preset " << args.bank << ":" << args.slot << "\n";
+#if defined(ARDOR_HAS_UI)
+            if (args.enableUi && ui) {
+              std::string uiLoadError;
+              ardor::loadPresetSlotFromStore(uiState, store, {args.bank, args.slot}, uiLoadError);
+            }
+#endif
           }
         }
         const auto stats = backend.stats();
@@ -421,6 +489,11 @@ int main(int argc, char** argv)
                                                            stats.averageMs, stats.budgetMs,
                                                            runtime.effectsBypassed());
         std::cerr << ardor::formatRuntimeTelemetry(telemetry) << "\n";
+#if defined(ARDOR_HAS_UI)
+        if (args.enableUi && ui) {
+          ardor::updateRealtimeTelemetry(uiState, telemetry);
+        }
+#endif
       }
       backend.stop();
       return 0;

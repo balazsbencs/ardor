@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(ARDOR_ENABLE_LVGL_UI "Build LVGL desktop UI simulator" ON)
+set(ARDOR_UI_BACKEND "sdl" CACHE STRING "UI backend: sdl (desktop) or fbdev (Linux/Pi)")
 
 include(FetchContent)
 
@@ -26,8 +26,10 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(NeuralAmpModelerCore)
 
-if(ARDOR_ENABLE_LVGL_UI)
-  find_package(SDL2 REQUIRED)
+if(NOT ARDOR_UI_BACKEND STREQUAL "none")
+  if(ARDOR_UI_BACKEND STREQUAL "sdl")
+    find_package(SDL2 REQUIRED)
+  endif()
   set(CONFIG_LV_BUILD_DEMOS OFF CACHE BOOL "" FORCE)
   set(CONFIG_LV_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
   set(LV_BUILD_CONF_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lv_conf.h" CACHE PATH "" FORCE)
@@ -37,8 +39,13 @@ if(ARDOR_ENABLE_LVGL_UI)
     GIT_TAG v9.5.0
   )
   FetchContent_MakeAvailable(lvgl)
-  target_include_directories(lvgl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${SDL2_INCLUDE_DIRS})
-  target_link_libraries(lvgl PUBLIC ${SDL2_LIBRARIES})
+  target_include_directories(lvgl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+  if(ARDOR_UI_BACKEND STREQUAL "sdl")
+    target_include_directories(lvgl PUBLIC ${SDL2_INCLUDE_DIRS})
+    target_link_libraries(lvgl PUBLIC ${SDL2_LIBRARIES})
+  elseif(ARDOR_UI_BACKEND STREQUAL "fbdev")
+    target_compile_definitions(lvgl PUBLIC ARDOR_UI_BACKEND_FBDEV)
+  endif()
 endif()
 
 file(GLOB NAM_SOURCES
@@ -84,12 +91,14 @@ target_include_directories(ardor_ui PUBLIC src)
 target_compile_features(ardor_ui PUBLIC cxx_std_20)
 target_link_libraries(ardor_ui PUBLIC ardor_preset)
 
-if(ARDOR_ENABLE_LVGL_UI)
+if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   target_sources(ardor_ui PRIVATE src/ui/LvglUi.cpp)
   target_link_libraries(ardor_ui PUBLIC lvgl)
 
-  add_executable(pedal-ui-sim apps/pedal-ui-sim/main.cpp)
-  target_link_libraries(pedal-ui-sim PRIVATE ardor_ui)
+  if(ARDOR_UI_BACKEND STREQUAL "sdl")
+    add_executable(pedal-ui-sim apps/pedal-ui-sim/main.cpp)
+    target_link_libraries(pedal-ui-sim PRIVATE ardor_ui)
+  endif()
 endif()
 
 add_library(ardor_audio
@@ -113,6 +122,10 @@ add_executable(pedal-poc apps/pedal-poc/main.cpp)
 target_compile_features(pedal-poc PRIVATE cxx_std_20)
 target_include_directories(pedal-poc PRIVATE ${miniaudio_SOURCE_DIR})
 target_link_libraries(pedal-poc PRIVATE ardor_audio ardor_dsp ardor_control)
+if(NOT ARDOR_UI_BACKEND STREQUAL "none")
+  target_link_libraries(pedal-poc PRIVATE ardor_ui)
+  target_compile_definitions(pedal-poc PRIVATE ARDOR_HAS_UI)
+endif()
 
 add_executable(pedal-offline-smoke tests/offline_smoke.cpp)
 target_link_libraries(pedal-offline-smoke PRIVATE ardor_dsp ardor_audio)
