@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <deque>
+#include <functional>
 #include <string>
 
 #include <lvgl.h>
@@ -25,11 +26,20 @@ struct UiEventContext {
   std::string dragText;
 };
 
+struct UiActions {
+  std::function<void(std::size_t)> selectPreset;
+  std::function<void()> savePreset;
+};
+
 class LvglUi {
 public:
+  explicit LvglUi(UiActions actions = {});
+
   void build(lv_obj_t* root, UiState& state);
   void refresh(lv_obj_t* root, UiState& state);
   void requestRebuild();
+
+  const UiActions& actions() const { return actions_; }
 
 private:
   void renderPresetMode(lv_obj_t* root, UiState& state);
@@ -39,6 +49,7 @@ private:
 
   UiEventContext* remember(UiState& state, std::size_t index = 0, std::string filter = "all");
 
+  UiActions actions_;
   std::deque<UiEventContext> contexts_;
   bool rebuildPending_ = false;
 };

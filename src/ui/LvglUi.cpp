@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <string>
+#include <utility>
 
 namespace ardor {
 
@@ -48,7 +49,20 @@ lv_obj_t* button(lv_obj_t* parent, const std::string& value);
 void onPresetClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  selectPreset(*context->state, context->index);
+  if (context->ui->actions().selectPreset) {
+    context->ui->actions().selectPreset(context->index);
+  } else {
+    selectPreset(*context->state, context->index);
+  }
+  redraw(context);
+}
+
+void onSaveClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  if (context->ui->actions().savePreset) {
+    context->ui->actions().savePreset();
+  }
   redraw(context);
 }
 
@@ -342,6 +356,11 @@ lv_obj_t* button(lv_obj_t* parent, const std::string& value)
 
 } // namespace
 
+LvglUi::LvglUi(UiActions actions)
+  : actions_(std::move(actions))
+{
+}
+
 UiEventContext* LvglUi::remember(UiState& state, std::size_t index, std::string filter)
 {
   contexts_.push_back({this, &state, index, std::move(filter)});
@@ -416,6 +435,12 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   lv_obj_set_size(presets, 112, 44);
   lv_obj_align(presets, LV_ALIGN_TOP_LEFT, 18, 14);
   lv_obj_add_event_cb(presets, onPresetModeClicked, LV_EVENT_CLICKED, remember(state));
+
+  lv_obj_t* save = button(root, state.dirty ? "Save*" : "Save");
+  lv_obj_set_size(save, 96, 44);
+  lv_obj_align(save, LV_ALIGN_TOP_RIGHT, -140, 14);
+  lv_obj_set_style_bg_color(save, lv_color_hex(state.dirty ? 0x25634f : 0x2b3442), 0);
+  lv_obj_add_event_cb(save, onSaveClicked, LV_EVENT_CLICKED, remember(state));
 
   lv_obj_t* blocksButton = button(root, "Blocks");
   lv_obj_set_size(blocksButton, 112, 44);
