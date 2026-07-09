@@ -7,7 +7,16 @@
 #define LV_USE_STDLIB_SPRINTF LV_STDLIB_BUILTIN
 
 #define LV_COLOR_DEPTH 32
+
+#ifdef ARDOR_UI_BACKEND_FBDEV
+#define LV_USE_LINUX_FBDEV 1
+#define LV_USE_EVDEV 1
+#define LV_USE_SDL 0
+#else
 #define LV_USE_SDL 1
+#define LV_USE_LINUX_FBDEV 0
+#define LV_USE_EVDEV 0
+#endif
 
 #define LV_USE_OS LV_OS_NONE
 #define LV_USE_LOG 0
