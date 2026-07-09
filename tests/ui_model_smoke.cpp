@@ -1,8 +1,16 @@
+#include "preset/PresetStore.h"
 #include "ui/UiModel.h"
 
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 
 namespace {
+
+int require(bool condition)
+{
+  return condition ? 0 : 1;
+}
 
 int require(bool ok, const char* message)
 {
@@ -103,6 +111,39 @@ int main()
   ardor::enterPresetMode(state);
   if (require(state.mode == ardor::UiMode::Preset, "preset mode should be active")) return 1;
   if (require(!state.blockDrawerOpen && !state.paramDrawerOpen, "preset mode should close drawers")) return 1;
+
+  const auto root = std::filesystem::temp_directory_path() / "ardor-ui-model-smoke";
+  std::filesystem::remove_all(root);
+  std::filesystem::create_directories(root / "models");
+  std::filesystem::create_directories(root / "irs");
+  {
+    std::ofstream(root / "models/clean.nam").put('\n');
+    std::ofstream(root / "irs/open.wav").put('\n');
+  }
+
+  ardor::PresetStore store(root);
+  ardor::Preset diskPreset;
+  diskPreset.name = "Disk Clean";
+  diskPreset.blocks.push_back({"amp-1", "nam", true, "models/clean.nam", nlohmann::json::object()});
+  store.save({0, 0}, diskPreset);
+
+  auto diskState = ardor::makeDemoUiState();
+  ardor::loadAssetsFromDataRoot(diskState, root);
+  if (require(diskState.assets.size() >= 2, "data root assets should load")) return 1;
+  if (require(diskState.assets[0].name == "clean", "model asset should use file stem")) return 1;
+
+  ardor::loadBankFromStore(diskState, store, 0);
+  if (require(diskState.bank.name == "Bank 000", "disk bank name")) return 1;
+  if (require(diskState.bank.presets[0].name == "Disk Clean", "bank slot should load preset")) return 1;
+  if (require(diskState.bank.presets[1].name == "Empty 2", "missing slot should become empty")) return 1;
+
+  ardor::appendAssetBlock(diskState, 1);
+  std::string ioError;
+  if (require(ardor::saveActivePresetToStore(diskState, store, 0, ioError), "active preset save should succeed")) return 1;
+  if (require(!diskState.dirty, "saving should clear dirty flag")) return 1;
+  const auto saved = store.load({0, 0});
+  if (require(saved.blocks.size() == 2, "saved preset should include edited chain")) return 1;
+  std::filesystem::remove_all(root);
 
   return 0;
 }

@@ -1,9 +1,11 @@
 #pragma once
 
 #include "preset/Preset.h"
+#include "preset/PresetStore.h"
 
 #include <array>
 #include <cstddef>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -67,5 +69,10 @@ void closeParamDrawer(UiState& state);
 void setCategoryFilter(UiState& state, std::string filter);
 Preset activePresetToPreset(const UiState& state);
 void replaceActivePreset(UiState& state, const Preset& preset);
+
+void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoot);
+void loadBankFromStore(UiState& state, const PresetStore& store, int bank);
+bool loadPresetSlotFromStore(UiState& state, const PresetStore& store, PresetSlot slot, std::string& error);
+bool saveActivePresetToStore(UiState& state, const PresetStore& store, int bank, std::string& error);
 
 } // namespace ardor

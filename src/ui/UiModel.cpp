@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <array>
 #include <exception>
+#include <filesystem>
+#include <iomanip>
+#include <sstream>
 #include <utility>
 
 namespace ardor {
@@ -43,6 +46,33 @@ std::string nextBlockId(const std::vector<UiBlock>& blocks)
     }
   }
   return "block-" + std::to_string(maxId + 1);
+}
+
+std::string bankName(int bank)
+{
+  std::ostringstream out;
+  out << "Bank " << std::setw(3) << std::setfill('0') << bank;
+  return out.str();
+}
+
+UiPreset emptyPreset(std::size_t index)
+{
+  return {"Empty " + std::to_string(index + 1), {}};
+}
+
+void appendAssetsFrom(UiState& state, const std::filesystem::path& dir, const std::string& ext, const std::string& type)
+{
+  if (!std::filesystem::exists(dir)) {
+    return;
+  }
+
+  for (const auto& entry : std::filesystem::directory_iterator(dir)) {
+    if (!entry.is_regular_file() || entry.path().extension() != ext) {
+      continue;
+    }
+    const auto relative = std::filesystem::relative(entry.path(), dir.parent_path()).generic_string();
+    state.assets.push_back({entry.path().stem().string(), relative, type});
+  }
 }
 
 } // namespace
@@ -204,6 +234,56 @@ void replaceActivePreset(UiState& state, const Preset& preset)
   state.selectedBlock = 0;
   state.dirty = false;
   state.paramDrawerOpen = false;
+}
+
+void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoot)
+{
+  state.assets.clear();
+  appendAssetsFrom(state, dataRoot / "models", ".nam", "amps");
+  appendAssetsFrom(state, dataRoot / "irs", ".wav", "cabs");
+  state.assets.push_back({"Compressor", "", "dynamics"});
+  state.assets.push_back({"Wide Chorus", "", "modulation"});
+  state.assets.push_back({"Tape Delay", "", "time"});
+}
+
+bool loadPresetSlotFromStore(UiState& state, const PresetStore& store, PresetSlot slot, std::string& error)
+{
+  try {
+    state.activePreset = static_cast<std::size_t>(slot.preset);
+    replaceActivePreset(state, store.load(slot));
+    return true;
+  } catch (const std::exception& e) {
+    error = e.what();
+    return false;
+  }
+}
+
+void loadBankFromStore(UiState& state, const PresetStore& store, int bank)
+{
+  state.bank.name = bankName(bank);
+  const auto previous = state.activePreset;
+  for (std::size_t i = 0; i < state.bank.presets.size(); ++i) {
+    std::string error;
+    if (!loadPresetSlotFromStore(state, store, {bank, static_cast<int>(i)}, error)) {
+      state.bank.presets[i] = emptyPreset(i);
+    }
+  }
+  state.activePreset = std::min(previous, state.bank.presets.size() - 1);
+  state.selectedBlock = 0;
+  state.dirty = false;
+  state.paramDrawerOpen = false;
+}
+
+bool saveActivePresetToStore(UiState& state, const PresetStore& store, int bank, std::string& error)
+{
+  try {
+    store.save({bank, static_cast<int>(state.activePreset)}, activePresetToPreset(state));
+    state.dirty = false;
+    return true;
+  } catch (const std::exception& e) {
+    error = e.what();
+    return false;
+  }
 }
 
 } // namespace ardor
