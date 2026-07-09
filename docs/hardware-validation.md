@@ -110,7 +110,7 @@ project channel if you don't have them; they are not in git).
 
    ```sh
    git clone <repo-url> ardor && cd ardor
-   cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DARDOR_ENABLE_LVGL_UI=OFF
+   cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DARDOR_UI_BACKEND=none
    cmake --build build --target pedal-dsp-bench -j1
    ```
 
