@@ -61,7 +61,9 @@ for ov in vc4-kms-v3d vc4-kms-v3d-pi4 rpi-codeczero vc4-kms-dsi-ili9881-7inch; d
 done
 # The panel overlay is the whole point — fail loudly if it did not build.
 [ -f "${OVL_SRC}/vc4-kms-dsi-ili9881-7inch-overlay.dts" ] || {
-    echo "ERROR: TD2 overlay source missing from kernel tree" >&2
+    echo "ERROR: TD2 overlay source missing from kernel tree." >&2
+    echo "The kernel build dir is probably stale (tarball changes do not" >&2
+    echo "invalidate Buildroot stamps): run 'make linux-dirclean' and rebuild." >&2
     exit 1
 }
 
