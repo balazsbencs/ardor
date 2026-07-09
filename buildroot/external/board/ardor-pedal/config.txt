@@ -1,6 +1,13 @@
 kernel=Image
 arm_64bit=1
 enable_uart=1
+gpu_mem=128
+# Force 1080p60 on HDMI; prevents mode cycling when no DSI display is attached
+hdmi_force_hotplug=1
+hdmi_group=1
+hdmi_mode=16
+disable_overscan=1
+dtoverlay=vc4-fkms-v3d
 # Codec Zero (I2S DAC/ADC, DA7212)
 dtparam=audio=off
 dtparam=i2c_arm=on
