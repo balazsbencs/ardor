@@ -6,12 +6,13 @@ BR2_TOOLCHAIN_BUILDROOT_CXX=y
 
 BR2_SYSTEM_DHCP="eth0"
 
-# Linux headers same as kernel, a 6.1 series
+# Toolchain headers stay at 6.1 (must only be <= runtime kernel)
 BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_1=y
 
+# rpi-6.12.y — needed for Touch Display 2 (ILI9881C panel + Goodix touch)
 BR2_LINUX_KERNEL=y
 BR2_LINUX_KERNEL_CUSTOM_TARBALL=y
-BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION="$(call github,raspberrypi,linux,17f135b742c4edb340afb365873c3a574f7e16cb)/linux-17f135b742c4edb340afb365873c3a574f7e16cb.tar.gz"
+BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION="$(call github,raspberrypi,linux,a923c1dcd822385aaa82a4388c6a6ad92cbf9280)/linux-a923c1dcd822385aaa82a4388c6a6ad92cbf9280.tar.gz"
 BR2_LINUX_KERNEL_DEFCONFIG="bcm2711"
 
 # Build the DTB from the kernel sources

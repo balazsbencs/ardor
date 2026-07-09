@@ -45,6 +45,26 @@ cp "${BOARD_DIR}/config.txt" "${BOOT}/config.txt"
 dtc -@ -I dts -O dtb -o "${BOOT}/overlays/ardor-controls.dtbo" \
     "${BOARD_DIR}/ardor-controls.dts" || true
 
+# Recompile version-sensitive overlays from OUR kernel source, overwriting the
+# (older) rpi-firmware copies. The firmware's precompiled overlays are built
+# from a different kernel vintage; the DSI panel overlay especially must match
+# the running kernel's driver bindings.
+KDIR="${BUILD_DIR}/linux-custom"
+OVL_SRC="${KDIR}/arch/arm/boot/dts/overlays"
+for ov in vc4-kms-v3d vc4-kms-v3d-pi4 rpi-codeczero vc4-kms-dsi-ili9881-7inch; do
+    src="${OVL_SRC}/${ov}-overlay.dts"
+    [ -f "${src}" ] || continue
+    cpp -nostdinc -I "${KDIR}/include" -I "${OVL_SRC}" \
+        -I "${KDIR}/arch/arm/boot/dts" -undef -D__DTS__ \
+        -x assembler-with-cpp "${src}" \
+        | dtc -@ -I dts -O dtb -o "${BOOT}/overlays/${ov}.dtbo" -
+done
+# The panel overlay is the whole point — fail loudly if it did not build.
+[ -f "${OVL_SRC}/vc4-kms-dsi-ili9881-7inch-overlay.dts" ] || {
+    echo "ERROR: TD2 overlay source missing from kernel tree" >&2
+    exit 1
+}
+
 # Build boot.vfat from the staging directory using mtools.
 # genimage's vfat 'directory' option requires genimage >=17; using mtools
 # keeps us compatible with whatever version Buildroot provides.
