@@ -187,3 +187,29 @@ measured samples:
 measured ms:
 notes:
 ```
+
+## Footswitch And Encoder Input
+
+V1 expects Linux input devices, not app-level GPIO polling.
+
+Recommended Pi path:
+
+- Expose four footswitches with the kernel `gpio-keys` overlay.
+- Map them to `KEY_F1`, `KEY_F2`, `KEY_F3`, and `KEY_F4`.
+- Expose the rotary encoder with the kernel `rotary-encoder` overlay.
+- Confirm events with:
+
+```sh
+evtest /dev/input/eventX
+```
+
+Runtime command:
+
+```sh
+./build/pedal-poc --realtime --data-root . --bank 0 --slot 0 \
+  --control-device /dev/input/event-footswitches \
+  --control-device /dev/input/event-encoder \
+  --block-size 64 --ir-samples 8192
+```
+
+Footswitches select slots `0` through `3`. Encoder relative motion changes master output volume from `0%` to `100%`.

@@ -202,6 +202,17 @@ First target settings:
 - output: stereo
 - round-trip latency goal: under `10 ms`
 
+Hardware controls on Raspberry Pi use Linux input events:
+
+```sh
+./build/pedal-poc --realtime --data-root . --bank 0 --slot 0 \
+  --control-device /dev/input/event-footswitches \
+  --control-device /dev/input/event-encoder \
+  --block-size 64 --ir-samples 8192
+```
+
+The app maps `KEY_F1` through `KEY_F4` to preset slots and relative encoder movement to master output volume.
+
 ## UI Mockup
 
 The first UI mockup is static HTML:
