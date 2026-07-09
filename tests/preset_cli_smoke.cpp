@@ -104,6 +104,21 @@ int main()
     require(std::fabs(legacyOutput[0] - 0.25f) < 0.0001f, "legacy left sample");
     require(std::fabs(legacyOutput[1] - 0.25f) < 0.0001f, "legacy right sample");
 
+    std::filesystem::create_directories(root / "presets/bank-000");
+    std::filesystem::copy_file(presetPath, root / "presets/bank-000/preset-0.json",
+                               std::filesystem::copy_options::overwrite_existing);
+    const auto slotOutPath = root / "slot-wet.wav";
+    const std::string slotCommand = "./pedal-poc --offline --data-root " + root.string()
+                                  + " --bank 0 --slot 0"
+                                  + " --input " + (root / "dry.wav").string()
+                                  + " --output " + slotOutPath.string();
+    require(std::system(slotCommand.c_str()) == 0, "preset slot cli command");
+
+    const auto slotOutput = readStereoWav(slotOutPath);
+    require(slotOutput.size() == 2, "slot stereo frame count");
+    require(std::fabs(slotOutput[0] - 0.25f) < 0.0001f, "slot left sample");
+    require(std::fabs(slotOutput[1] - 0.25f) < 0.0001f, "slot right sample");
+
     std::filesystem::remove_all(root);
     return 0;
   } catch (const std::exception& error) {

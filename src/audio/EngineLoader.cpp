@@ -78,4 +78,21 @@ bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoad
   return true;
 }
 
+bool applyPreset(PedalEngine& engine, const Preset& preset, const std::filesystem::path& dataRoot,
+                 const EngineLoadOptions& options, std::string& error)
+{
+  return applyChainPlan(engine, buildChainPlan(preset, dataRoot), options, error);
+}
+
+bool applyPresetSlot(PedalEngine& engine, const PresetStore& store, PresetSlot slot,
+                     const std::filesystem::path& dataRoot, const EngineLoadOptions& options, std::string& error)
+{
+  try {
+    return applyPreset(engine, store.load(slot), dataRoot, options, error);
+  } catch (const std::exception& e) {
+    error = e.what();
+    return false;
+  }
+}
+
 } // namespace ardor
