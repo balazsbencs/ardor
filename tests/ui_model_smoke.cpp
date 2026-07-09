@@ -101,6 +101,34 @@ int main()
   if (require(state.bank.presets[state.activePreset].blocks[0].assetPath == "irs/loaded.wav", "preset load updates asset path")) return 1;
   if (require(!state.dirty, "loading preset clears dirty flag")) return 1;
 
+  replacement.global.inputGainDb = -6.0f;
+  replacement.global.outputGainDb = -3.0f;
+  replacement.global.safetyLimitDb = -1.5f;
+  replacement.blocks[0].params = {{"levelDb", -4.0f}, {"mix", 0.75f}};
+  ardor::replaceActivePreset(state, replacement);
+  if (require(state.bank.presets[state.activePreset].global.inputGainDb == -6.0f, "input global should load")) return 1;
+  if (require(state.bank.presets[state.activePreset].global.outputGainDb == -3.0f, "output global should load")) return 1;
+  if (require(state.bank.presets[state.activePreset].global.safetyLimitDb == -1.5f, "safety global should load")) return 1;
+  if (require(state.bank.presets[state.activePreset].blocks[0].params.value("levelDb", 0.0f) == -4.0f,
+              "block params should load")) return 1;
+  ardor::selectGlobalParams(state);
+  if (require(state.paramTarget == ardor::UiParamTarget::Globals, "global param drawer target")) return 1;
+  if (require(state.paramDrawerOpen, "global params should open drawer")) return 1;
+
+  ardor::setActiveInputGainDb(state, 20.0f);
+  ardor::setActiveOutputGainDb(state, -80.0f);
+  if (require(state.bank.presets[state.activePreset].global.inputGainDb == 12.0f, "input gain should clamp high")) return 1;
+  if (require(state.bank.presets[state.activePreset].global.outputGainDb == -60.0f, "output gain should clamp low")) return 1;
+  if (require(state.bank.presets[state.activePreset].global.safetyLimitDb == -1.5f, "safety limit round-trips but has no UI setter")) return 1;
+  if (require(state.dirty, "global edit should dirty preset")) return 1;
+
+  state.dirty = false;
+  ardor::setSelectedBlockParam(state, "mix", 0.25f);
+  const auto editedPreset = ardor::activePresetToPreset(state);
+  if (require(editedPreset.global.inputGainDb == 12.0f, "saved input global should round-trip")) return 1;
+  if (require(editedPreset.blocks[0].params.value("mix", 0.0f) == 0.25f, "saved block params should round-trip")) return 1;
+  if (require(state.dirty, "block param edit should dirty preset")) return 1;
+
   ardor::insertAssetBlock(state, 0, 0);
   ardor::insertAssetBlock(state, 0, 0);
   if (require(state.bank.presets[state.activePreset].blocks[0].id != state.bank.presets[state.activePreset].blocks[1].id,

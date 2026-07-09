@@ -33,6 +33,11 @@ std::string assetNameForPath(const UiState& state, const std::string& path, cons
   return path.empty() ? type : path;
 }
 
+float clampFloat(float value, float low, float high)
+{
+  return std::clamp(value, low, high);
+}
+
 std::string nextBlockId(const std::vector<UiBlock>& blocks)
 {
   int maxId = 0;
@@ -147,6 +152,7 @@ void selectBlock(UiState& state, std::size_t blockIndex)
     return;
   }
   state.selectedBlock = blockIndex;
+  state.paramTarget = UiParamTarget::Block;
   state.paramDrawerOpen = true;
 }
 
@@ -212,8 +218,10 @@ Preset activePresetToPreset(const UiState& state)
   const auto& uiPreset = state.bank.presets[state.activePreset];
   preset.name = uiPreset.name;
   preset.routing = "serial";
+  preset.global = uiPreset.global;
   for (const auto& block : uiPreset.blocks) {
-    preset.blocks.push_back({block.id, block.type, block.enabled, block.assetPath, nlohmann::json::object()});
+    preset.blocks.push_back({block.id, block.type, block.enabled, block.assetPath,
+                             block.params.is_null() ? nlohmann::json::object() : block.params});
   }
   return preset;
 }
@@ -222,6 +230,7 @@ void replaceActivePreset(UiState& state, const Preset& preset)
 {
   auto& uiPreset = state.bank.presets[state.activePreset];
   uiPreset.name = preset.name;
+  uiPreset.global = preset.global;
   uiPreset.blocks.clear();
   for (const auto& block : preset.blocks) {
     uiPreset.blocks.push_back({block.id,
@@ -229,11 +238,40 @@ void replaceActivePreset(UiState& state, const Preset& preset)
                                labelForBlockType(block.type),
                                assetNameForPath(state, block.asset, block.type),
                                block.asset,
-                               block.enabled});
+                               block.enabled,
+                               block.params.is_null() ? nlohmann::json::object() : block.params});
   }
   state.selectedBlock = 0;
   state.dirty = false;
   state.paramDrawerOpen = false;
+}
+
+void selectGlobalParams(UiState& state)
+{
+  state.paramTarget = UiParamTarget::Globals;
+  state.paramDrawerOpen = true;
+}
+
+void setActiveInputGainDb(UiState& state, float db)
+{
+  state.bank.presets[state.activePreset].global.inputGainDb = clampFloat(db, -60.0f, 12.0f);
+  state.dirty = true;
+}
+
+void setActiveOutputGainDb(UiState& state, float db)
+{
+  state.bank.presets[state.activePreset].global.outputGainDb = clampFloat(db, -60.0f, 12.0f);
+  state.dirty = true;
+}
+
+void setSelectedBlockParam(UiState& state, const std::string& key, float value)
+{
+  auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (state.selectedBlock >= blocks.size()) {
+    return;
+  }
+  blocks[state.selectedBlock].params[key] = value;
+  state.dirty = true;
 }
 
 void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoot)

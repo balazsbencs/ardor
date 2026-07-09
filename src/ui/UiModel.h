@@ -24,11 +24,13 @@ struct UiBlock {
   std::string assetName;
   std::string assetPath;
   bool enabled = true;
+  nlohmann::json params = nlohmann::json::object();
 };
 
 struct UiPreset {
   std::string name;
   std::vector<UiBlock> blocks;
+  PresetGlobal global;
 };
 
 struct UiBank {
@@ -41,12 +43,18 @@ enum class UiMode {
   Edit
 };
 
+enum class UiParamTarget {
+  Block,
+  Globals
+};
+
 struct UiState {
   UiBank bank;
   std::vector<UiAsset> assets;
   std::size_t activePreset = 0;
   std::size_t selectedBlock = 0;
   UiMode mode = UiMode::Preset;
+  UiParamTarget paramTarget = UiParamTarget::Block;
   bool dirty = false;
   bool blockDrawerOpen = false;
   bool paramDrawerOpen = false;
@@ -69,6 +77,11 @@ void closeParamDrawer(UiState& state);
 void setCategoryFilter(UiState& state, std::string filter);
 Preset activePresetToPreset(const UiState& state);
 void replaceActivePreset(UiState& state, const Preset& preset);
+
+void selectGlobalParams(UiState& state);
+void setActiveInputGainDb(UiState& state, float db);
+void setActiveOutputGainDb(UiState& state, float db);
+void setSelectedBlockParam(UiState& state, const std::string& key, float value);
 
 void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoot);
 void loadBankFromStore(UiState& state, const PresetStore& store, int bank);
