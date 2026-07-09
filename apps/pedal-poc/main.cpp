@@ -11,6 +11,11 @@
 
 #include <algorithm>
 #include <atomic>
+#if defined(__linux__)
+#include <cerrno>
+#include <cstring>
+#include <sys/mman.h>
+#endif
 #include <chrono>
 #include <csignal>
 #include <cmath>
@@ -321,6 +326,11 @@ int main(int argc, char** argv)
       options.inputChannel = args.inputChannel;
       options.outputChannel = args.outputChannel;
 
+#if defined(__linux__)
+      if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
+        std::cerr << "mlockall failed (running without locked memory): " << std::strerror(errno) << "\n";
+      }
+#endif
       ardor::MiniaudioBackend backend;
       if (!backend.start(*liveEngine, options)) {
         std::cerr << "Failed to start realtime audio\n";
@@ -435,6 +445,11 @@ int main(int argc, char** argv)
       options.inputChannel = args.inputChannel;
       options.outputChannel = args.outputChannel;
 
+#if defined(__linux__)
+      if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
+        std::cerr << "mlockall failed (running without locked memory): " << std::strerror(errno) << "\n";
+      }
+#endif
       ardor::MiniaudioBackend backend;
       if (!backend.start(engine, options)) {
         std::cerr << "Failed to start realtime audio\n";
