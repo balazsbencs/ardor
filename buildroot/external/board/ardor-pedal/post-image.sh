@@ -37,6 +37,10 @@ cp -a "${BINARIES}/rpi-firmware/overlays/." "${BOOT}/overlays/"
 cp "${BINARIES}/Image" "${BOOT}/"
 cp "${BINARIES}/bcm2711-rpi-4-b.dtb" "${BOOT}/"
 
+# Always take config.txt from the board dir, not the (stamped, possibly stale)
+# rpi-firmware copy in BINARIES — config.txt edits must reach every image.
+cp "${BOARD_DIR}/config.txt" "${BOOT}/config.txt"
+
 # Compile the controls overlay
 dtc -@ -I dts -O dtb -o "${BOOT}/overlays/ardor-controls.dtbo" \
     "${BOARD_DIR}/ardor-controls.dts" || true
