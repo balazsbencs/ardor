@@ -41,6 +41,19 @@ cp "${BINARIES}/bcm2711-rpi-4-b.dtb" "${BOOT}/"
 # rpi-firmware copy in BINARIES — config.txt edits must reach every image.
 cp "${BOARD_DIR}/config.txt" "${BOOT}/config.txt"
 
+# Era-match the GPU firmware with the rpi-6.18.y kernel (Buildroot 2024.02
+# ships Apr-2024 blobs). Pinned release; cached in BINARIES across builds.
+FW_TAG="1.20260521"
+FW_CACHE="${BINARIES}/rpi-firmware-${FW_TAG}"
+mkdir -p "${FW_CACHE}"
+for blob in start4.elf fixup4.dat; do
+    if [ ! -f "${FW_CACHE}/${blob}" ]; then
+        curl -fsSL -o "${FW_CACHE}/${blob}" \
+            "https://github.com/raspberrypi/firmware/raw/${FW_TAG}/boot/${blob}"
+    fi
+    cp "${FW_CACHE}/${blob}" "${BOOT}/${blob}"
+done
+
 # Compile the controls overlay
 dtc -@ -I dts -O dtb -o "${BOOT}/overlays/ardor-controls.dtbo" \
     "${BOARD_DIR}/ardor-controls.dts" || true
