@@ -131,6 +131,10 @@ target_include_directories(pedal-preset-cli-smoke PRIVATE ${miniaudio_SOURCE_DIR
 target_link_libraries(pedal-preset-cli-smoke PRIVATE ardor_audio)
 add_dependencies(pedal-preset-cli-smoke pedal-poc)
 
+add_executable(pedal-preset-reload-stress tests/preset_reload_stress.cpp)
+target_include_directories(pedal-preset-reload-stress PRIVATE ${miniaudio_SOURCE_DIR})
+target_link_libraries(pedal-preset-reload-stress PRIVATE ardor_audio ardor_dsp ardor_preset)
+
 enable_testing()
 add_test(NAME pedal-offline-smoke COMMAND pedal-offline-smoke)
 add_test(NAME pedal-preset-smoke COMMAND pedal-preset-smoke)
@@ -138,6 +142,7 @@ add_test(NAME pedal-engine-contract-smoke COMMAND pedal-engine-contract-smoke)
 add_test(NAME pedal-nam-processor-smoke COMMAND pedal-nam-processor-smoke)
 add_test(NAME pedal-ui-model-smoke COMMAND pedal-ui-model-smoke)
 add_test(NAME pedal-preset-cli-smoke COMMAND pedal-preset-cli-smoke)
+add_test(NAME pedal-preset-reload-stress COMMAND pedal-preset-reload-stress)
 add_test(NAME pedal-devices-indexed COMMAND pedal-poc --devices)
 set_tests_properties(pedal-devices-indexed PROPERTIES PASS_REGULAR_EXPRESSION "\\[0\\]")
 
