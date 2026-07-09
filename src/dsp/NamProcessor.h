@@ -23,6 +23,11 @@ public:
   void reset();
   bool loaded() const;
 
+  // Returns tier breakpoints if the model is a SlimmableContainer; empty otherwise.
+  std::vector<double> slimmableSizeBreakpoints() const;
+  // No-op if model is not slimmable.
+  void setSlimmableSize(double val);
+
 private:
   std::unique_ptr<nam::DSP> model_;
   std::vector<float> input_{0.0f};

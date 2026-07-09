@@ -79,8 +79,8 @@ and whether the convolver optimization tasks in
 | macOS dev machine (2026-07-09) | IrConvolver | 22.8 (24.6 before precomputed twiddles; max 125→78) | 1.7% |
 | macOS dev machine (2026-07-09) | NamProcessor (test.nam, SlimmableContainer/WaveNet) | 50.4 | 3.8% |
 | Pi 4B (`performance` governor) | IrConvolver | TBD (Phase 0) | — |
-| Pi 4B (`performance` governor) | NamProcessor — standard-tier model | TBD (Phase 0) | — |
-| Pi 4B (`performance` governor) | NamProcessor — feather/lite-tier model | TBD (Phase 0) | — |
+| Pi 4B (`performance` governor) | NAM[tier-1] — standard/full model | TBD (Phase 0) | — |
+| Pi 4B (`performance` governor) | NAM[tier-0] — nano/feather model | TBD (Phase 0) | — |
 
 ### Pi measurement procedure (delegable, ~1–2 h including build time)
 
@@ -123,12 +123,16 @@ project channel if you don't have them; they are not in git).
    vcgencmd get_throttled    # must print throttled=0x0 before AND after the runs
    ```
 
-5. **Run three times per model**, take the middle run:
+5. **Run three times**, take the middle run:
 
    ```sh
-   ./build/pedal-dsp-bench /path/to/standard-model.nam
-   ./build/pedal-dsp-bench /path/to/feather-model.nam
+   ./build/pedal-dsp-bench /path/to/model.nam
    ```
+
+   NAM A2 files (SlimmableContainer) embed both tiers in one file. The bench
+   detects this automatically and prints one `NAM[tier-N]` line per tier:
+   tier-0 is the nano/feather model, tier-1 is the standard/full model.
+   Non-slimmable files print a single `NamProcessor` line.
 
    Each run prints one line per component with min/avg/max µs and % of budget.
    If `vcgencmd get_throttled` is non-zero afterwards, cool the board and

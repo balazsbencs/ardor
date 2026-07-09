@@ -2,6 +2,7 @@
 
 #include "NAM/dsp.h"
 #include "NAM/get_dsp.h"
+#include "NAM/slimmable.h"
 
 #include <algorithm>
 #include <cmath>
@@ -97,6 +98,20 @@ void NamProcessor::reset()
 bool NamProcessor::loaded() const
 {
   return model_ != nullptr;
+}
+
+std::vector<double> NamProcessor::slimmableSizeBreakpoints() const
+{
+  if (!model_) return {};
+  auto* slim = dynamic_cast<nam::SlimmableModel*>(model_.get());
+  return slim ? slim->GetSlimmableSizeBreakpoints() : std::vector<double>{};
+}
+
+void NamProcessor::setSlimmableSize(double val)
+{
+  if (!model_) return;
+  auto* slim = dynamic_cast<nam::SlimmableModel*>(model_.get());
+  if (slim) slim->SetSlimmableSize(val);
 }
 
 } // namespace ardor

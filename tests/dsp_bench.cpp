@@ -101,9 +101,25 @@ int main(int argc, char** argv)
       std::fprintf(stderr, "failed to load %s\n", modelPath.string().c_str());
       return 1;
     }
-    report("NamProcessor", bench([&](const float* in, float* out, size_t frames) {
-      nam.processBlock(in, out, frames);
-    }));
+    const auto breakpoints = nam.slimmableSizeBreakpoints();
+    if (breakpoints.empty()) {
+      report("NamProcessor", bench([&](const float* in, float* out, size_t frames) {
+        nam.processBlock(in, out, frames);
+      }));
+    } else {
+      // SlimmableContainer: bench each tier. Tier i is selected by slim_val in
+      // [breakpoints[i-1], breakpoints[i]). Use 0.0 for the first tier.
+      const size_t tiers = breakpoints.size() + 1;
+      for (size_t i = 0; i < tiers; ++i) {
+        const double slim_val = (i == 0) ? 0.0 : breakpoints[i - 1];
+        nam.setSlimmableSize(slim_val);
+        char label[32];
+        std::snprintf(label, sizeof(label), "NAM[tier-%zu]", i);
+        report(label, bench([&](const float* in, float* out, size_t frames) {
+          nam.processBlock(in, out, frames);
+        }));
+      }
+    }
   } else {
     std::printf("NamProcessor  skipped (no model at %s)\n", modelPath.string().c_str());
   }
