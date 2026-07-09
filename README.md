@@ -191,6 +191,8 @@ callbacks=28125 over=0 over%=0.00 max=0.41ms avg=0.23ms budget=1.33ms
 
 `over` counts callbacks that took longer than the audio budget. For `--block-size 64` at 48 kHz, the callback budget is about `1.33 ms`.
 
+Realtime telemetry is shared between CLI and UI. The known-good baseline remains `--block-size 64 --ir-samples 8192`. If the overload bypass latches, the CLI prints `bypassed=1` and the UI shows `BYPASS`.
+
 First target settings:
 
 - sample rate: `48000`

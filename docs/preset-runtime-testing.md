@@ -193,3 +193,35 @@ This phase passes when:
 - Realtime preset run produces the expected amp/cab tone.
 - `--block-size 64 --ir-samples 8192` runs for several minutes without growing `over`.
 - Legacy `--model/--ir` command still works.
+
+## Realtime Robustness Baseline
+
+Known-good realtime baseline:
+
+- sample rate: `48000`
+- block size: `64`
+- IR samples: `8192`
+
+Automated reload stress:
+
+```sh
+cmake --build build --target pedal-preset-reload-stress
+ctest --test-dir build -R pedal-preset-reload-stress --output-on-failure
+```
+
+Manual realtime soak:
+
+```sh
+./build/pedal-poc --realtime --data-root . --bank 0 --slot 0 \
+  --capture-device 1 --playback-device 1 \
+  --input-channel left --output-channel both \
+  --block-size 64 --ir-samples 8192
+```
+
+Pass:
+
+- Telemetry prints once per second.
+- `over` does not grow continuously.
+- UI shows `LIVE` during normal operation.
+- UI shows `BYPASS` if overload bypass latches.
+- Preset reloads do not crash and do not run inside the audio callback.
