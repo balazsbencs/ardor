@@ -20,12 +20,13 @@ done
 cp "${BOARD_DIR}/../../package/ardor-pedal/README-assets.txt" \
    "${DATA_SEED}/README-assets.txt"
 
-# Build the data.ext4 image seeded with default presets
-mkfs.ext4 -L "ardor-data" -d "${DATA_SEED}" \
-    "${BINARIES}/data.ext4" 268435456  # 256M
+# Build the data.ext4 image seeded with default presets (256 MiB)
+truncate -s 256M "${BINARIES}/data.ext4"
+mkfs.ext4 -F -L "ardor-data" -d "${DATA_SEED}" "${BINARIES}/data.ext4"
 
-# Compile the controls overlay
-dtc -@ -I dts -O dtb -o "${BINARIES}/ardor-controls.dtbo" \
+# Compile the controls overlay into overlays/ (where genimage expects it)
+mkdir -p "${BINARIES}/overlays"
+dtc -@ -I dts -O dtb -o "${BINARIES}/overlays/ardor-controls.dtbo" \
     "${BOARD_DIR}/ardor-controls.dts" || true
 
 # Run genimage

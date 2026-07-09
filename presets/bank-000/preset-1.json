@@ -1,0 +1,33 @@
+{
+  "blocks": [
+    {
+      "asset": "",
+      "enabled": true,
+      "id": "block-1",
+      "params": {},
+      "type": "dynamics"
+    },
+    {
+      "asset": "models/test.nam",
+      "enabled": true,
+      "id": "block-2",
+      "params": {},
+      "type": "nam"
+    },
+    {
+      "asset": "",
+      "enabled": true,
+      "id": "block-3",
+      "params": {},
+      "type": "dynamics"
+    }
+  ],
+  "global": {
+    "inputGainDb": 0.0,
+    "outputGainDb": 0.0,
+    "safetyLimitDb": -1.0
+  },
+  "name": "Empty 2",
+  "routing": "serial",
+  "version": 1
+}

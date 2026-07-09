@@ -374,7 +374,7 @@ int main(int argc, char** argv)
       if (args.enableUi) {
         lv_init();
 #if defined(ARDOR_UI_BACKEND_FBDEV)
-        lv_linux_fbdev_create("/dev/fb0");
+        lv_linux_fbdev_set_file(lv_linux_fbdev_create(), "/dev/fb0");
 #else
         lv_sdl_window_create(800, 480);
         lv_sdl_mouse_create();
