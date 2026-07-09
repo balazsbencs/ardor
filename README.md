@@ -233,7 +233,7 @@ cmake --build build --target pedal-ui-sim
 ./build/pedal-ui-sim
 ```
 
-It validates screen layout and UI state only. It does not wire footswitch GPIO, the encoder, Codec Zero, or realtime audio yet.
+`pedal-ui-sim` is a desktop-only tool. It does not wire footswitch GPIO, the encoder, Codec Zero, or realtime audio. For the integrated UI+audio experience use `pedal-poc --ui` (see below).
 
 ### LVGL simulator with preset files
 
@@ -251,6 +251,27 @@ It reads:
 - `presets/bank-000/preset-3.json`
 
 Assets are discovered from `models/*.nam` and `irs/*.wav`. Editing the chain only changes memory until the Save button is pressed.
+
+## Integrated UI and Audio
+
+Pass `--ui` to `pedal-poc` in slot mode to run the LVGL UI alongside the audio engine in a single process:
+
+```sh
+./build/pedal-poc \
+  --realtime \
+  --ui \
+  --data-root . \
+  --bank 0 --slot 0 \
+  --capture-device 1 \
+  --playback-device 1 \
+  --input-channel left \
+  --output-channel both \
+  --block-size 64 --ir-samples 8192
+```
+
+The UI shows the preset screen. Tapping a preset slot requests an audio engine swap. Save writes the preset to disk and reloads the engine. Telemetry (callback count, overruns, bypass state) updates once per second. Master volume set by the encoder is reflected in the UI.
+
+`--ui` requires `ARDOR_UI_BACKEND=sdl` (desktop default) or `ARDOR_UI_BACKEND=fbdev` (Pi). It has no effect on the non-slot realtime or offline paths.
 
 ## Buildroot Firmware Seed
 

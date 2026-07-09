@@ -225,3 +225,22 @@ Pass:
 - UI shows `LIVE` during normal operation.
 - UI shows `BYPASS` if overload bypass latches.
 - Preset reloads do not crash and do not run inside the audio callback.
+
+## Integrated UI and Audio Checklist
+
+Run with `--ui` to exercise the full integrated loop:
+
+```sh
+./build/pedal-poc --realtime --ui --data-root . --bank 0 --slot 0 \
+  --capture-device 1 --playback-device 1 \
+  --input-channel left --output-channel both \
+  --block-size 64 --ir-samples 8192
+```
+
+- [ ] UI window opens and shows the preset screen.
+- [ ] Guitar audio is audible immediately.
+- [ ] Touching a different slot card switches the audio engine and highlights the new slot.
+- [ ] Pressing Save writes the preset to disk and reloads the engine audibly.
+- [ ] Telemetry updates once per second in the UI status line.
+- [ ] Master volume adjusted via encoder is reflected in the UI percentage.
+- [ ] Forcing overload (tiny block size) causes UI to show `BYPASS`; removing overload returns it to `LIVE`.
