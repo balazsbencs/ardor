@@ -78,9 +78,9 @@ and whether the convolver optimization tasks in
 | --- | --- | ---: | ---: |
 | macOS dev machine (2026-07-09) | IrConvolver | 22.8 (24.6 before precomputed twiddles; max 125→78) | 1.7% |
 | macOS dev machine (2026-07-09) | NamProcessor (test.nam, SlimmableContainer/WaveNet) | 50.4 | 3.8% |
-| Pi 4B (`performance` governor) | IrConvolver | TBD (Phase 0) | — |
-| Pi 4B (`performance` governor) | NAM[tier-1] — standard/full model | TBD (Phase 0) | — |
-| Pi 4B (`performance` governor) | NAM[tier-0] — nano/feather model | TBD (Phase 0) | — |
+| Pi 4B (`performance` governor, 2026-07-09, commit 5634c92, test.nam) | IrConvolver | 91.25 (max 140) | 6.8% |
+| Pi 4B (`performance` governor, 2026-07-09, commit 5634c92, test.nam) | NAM[tier-1] — standard/full model | 370.66 (max 431) | 27.8% |
+| Pi 4B (`performance` governor, 2026-07-09, commit 5634c92, test.nam) | NAM[tier-0] — nano/feather model | 102.09 (max 152) | 7.7% |
 
 ### Pi measurement procedure (delegable, ~1–2 h including build time)
 
