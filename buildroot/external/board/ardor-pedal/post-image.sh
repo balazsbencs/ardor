@@ -64,7 +64,7 @@ dtc -@ -I dts -O dtb -o "${BOOT}/overlays/ardor-controls.dtbo" \
 # the running kernel's driver bindings.
 KDIR="${BUILD_DIR}/linux-custom"
 OVL_SRC="${KDIR}/arch/arm/boot/dts/overlays"
-for ov in vc4-kms-v3d vc4-kms-v3d-pi4 rpi-codeczero vc4-kms-dsi-ili9881-7inch; do
+for ov in vc4-kms-v3d vc4-kms-v3d-pi4 rpi-codeczero vc4-kms-dsi-ili9881-5inch; do
     src="${OVL_SRC}/${ov}-overlay.dts"
     [ -f "${src}" ] || continue
     cpp -nostdinc -I "${KDIR}/include" -I "${OVL_SRC}" \
@@ -73,7 +73,7 @@ for ov in vc4-kms-v3d vc4-kms-v3d-pi4 rpi-codeczero vc4-kms-dsi-ili9881-7inch; d
         | dtc -@ -I dts -O dtb -o "${BOOT}/overlays/${ov}.dtbo" -
 done
 # The panel overlay is the whole point — fail loudly if it did not build.
-[ -f "${OVL_SRC}/vc4-kms-dsi-ili9881-7inch-overlay.dts" ] || {
+[ -f "${OVL_SRC}/vc4-kms-dsi-ili9881-5inch-overlay.dts" ] || {
     echo "ERROR: TD2 overlay source missing from kernel tree." >&2
     echo "The kernel build dir is probably stale (tarball changes do not" >&2
     echo "invalidate Buildroot stamps): run 'make linux-dirclean' and rebuild." >&2

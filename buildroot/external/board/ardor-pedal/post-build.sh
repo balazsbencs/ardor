@@ -16,3 +16,9 @@ for type in rsa ecdsa ed25519; do
         chmod 644 "${key}.pub"
     fi
 done
+
+# Drop the framebuffer console getty. The DSI panel is owned by the LVGL UI;
+# a login prompt on tty1 just overdraws the app (and reappears on logout).
+# Serial getty (ttyAMA0) stays for debugging. Boot text on tty1 is unaffected.
+INITTAB="${TARGET}/etc/inittab"
+[ -f "${INITTAB}" ] && sed -i '/^tty1::/d' "${INITTAB}"

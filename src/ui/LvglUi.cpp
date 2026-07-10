@@ -9,6 +9,11 @@ namespace ardor {
 
 namespace {
 
+// The layout below is authored against this fixed design grid; build() scales
+// the whole canvas to the real display resolution.
+constexpr int32_t kDesignWidth = 800;
+constexpr int32_t kDesignHeight = 480;
+
 constexpr auto bg = 0x101214;
 constexpr auto panel = 0x171b22;
 constexpr auto panelAlt = 0x1b2028;
@@ -237,7 +242,7 @@ void placeDragIndicatorAtSlot(UiEventContext* context, std::size_t slot)
   const auto col = static_cast<int>(slot % 4);
 
   if (!context->indicator) {
-    context->indicator = lv_obj_create(lv_screen_active());
+    context->indicator = lv_obj_create(context->ui->canvas());
     lv_obj_set_size(context->indicator, 5, 104);
     lv_obj_set_style_bg_color(context->indicator, lv_color_hex(accent), 0);
     lv_obj_set_style_border_width(context->indicator, 0, 0);
@@ -261,7 +266,7 @@ void placeDragGhost(UiEventContext* context, const lv_point_t& point)
       const auto& block = context->state->bank.presets[context->state->activePreset].blocks[context->index];
       textValue = block.label + "\n" + block.assetName;
     }
-    context->ghost = button(lv_screen_active(), textValue);
+    context->ghost = button(context->ui->canvas(), textValue);
     lv_obj_set_size(context->ghost, 160, 84);
     lv_obj_set_style_bg_color(context->ghost, lv_color_hex(0x243044), 0);
     lv_obj_set_style_opa(context->ghost, LV_OPA_50, 0);
@@ -281,6 +286,7 @@ void updateDragVisuals(UiEventContext* context, lv_event_t* event)
 
   lv_point_t point{};
   lv_indev_get_point(input, &point);
+  point = context->ui->toCanvas(point);
   placeDragGhost(context, point);
   placeDragIndicator(context, point);
 }
@@ -325,6 +331,7 @@ void onBlockReleased(lv_event_t* event)
 
   lv_point_t point{};
   lv_indev_get_point(input, &point);
+  point = context->ui->toCanvas(point);
   const auto target = chainSlotFromPoint(*context->state, point);
   clearDragVisuals(context);
   if (target == context->index) {
@@ -361,6 +368,7 @@ void onAssetPressed(lv_event_t* event)
   lv_indev_t* input = lv_event_get_indev(event);
   if (input) {
     lv_indev_get_point(input, &context->pressPoint);
+    context->pressPoint = context->ui->toCanvas(context->pressPoint);
   }
 }
 
@@ -385,6 +393,7 @@ void onAssetPressing(lv_event_t* event)
 
   lv_point_t point{};
   lv_indev_get_point(input, &point);
+  point = context->ui->toCanvas(point);
   const int dx = point.x - context->pressPoint.x;
   const int dy = point.y - context->pressPoint.y;
   if (!context->dragging && dx * dx + dy * dy < 64) {
@@ -421,6 +430,7 @@ void onAssetReleased(lv_event_t* event)
 
   lv_point_t point{};
   lv_indev_get_point(input, &point);
+  point = context->ui->toCanvas(point);
   const bool droppedOnChain = pointInChain(point);
   const auto target = insertSlotFromPoint(*context->state, point);
   clearDragVisuals(context);
@@ -479,11 +489,47 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   lv_obj_clean(root);
   lv_obj_set_style_bg_color(root, lv_color_hex(bg), 0);
 
+  // The UI is authored on an 800x480 design grid. Rather than re-flow every
+  // widget for the panel, build it on a fixed 800x480 canvas and scale that
+  // uniformly to fill the active display. LVGL inverse-transforms pointer input
+  // for hit-testing, so touches still land; fonts and paddings scale for free.
+  // The screen and canvas must never scroll: a scrollable ancestor wins gesture
+  // arbitration on a jittery finger touch and cancels child clicks/drags.
+  lv_obj_remove_flag(root, LV_OBJ_FLAG_SCROLLABLE);
+
+  lv_obj_t* canvas = lv_obj_create(root);
+  lv_obj_remove_style_all(canvas);
+  lv_obj_remove_flag(canvas, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_size(canvas, kDesignWidth, kDesignHeight);
+
+  lv_display_t* display = lv_obj_get_display(root);
+  const int32_t dispW = lv_display_get_horizontal_resolution(display);
+  const int32_t dispH = lv_display_get_vertical_resolution(display);
+  const int32_t scale =
+    LV_MIN((dispW * 256) / kDesignWidth, (dispH * 256) / kDesignHeight);
+  const int32_t offsetX = (dispW - (kDesignWidth * scale) / 256) / 2;
+  const int32_t offsetY = (dispH - (kDesignHeight * scale) / 256) / 2;
+  lv_obj_set_style_transform_pivot_x(canvas, 0, 0);
+  lv_obj_set_style_transform_pivot_y(canvas, 0, 0);
+  lv_obj_set_style_transform_scale(canvas, scale, 0);
+  lv_obj_set_pos(canvas, offsetX, offsetY);
+
+  canvas_ = canvas;
+  canvasScale_ = scale;
+  canvasOffset_ = {offsetX, offsetY};
+
   if (state.mode == UiMode::Preset) {
-    renderPresetMode(root, state);
+    renderPresetMode(canvas, state);
   } else {
-    renderEditMode(root, state);
+    renderEditMode(canvas, state);
   }
+}
+
+lv_point_t LvglUi::toCanvas(lv_point_t displayPoint) const
+{
+  const int32_t scale = canvasScale_ == 0 ? 256 : canvasScale_;
+  return {((displayPoint.x - canvasOffset_.x) * 256) / scale,
+          ((displayPoint.y - canvasOffset_.y) * 256) / scale};
 }
 
 void LvglUi::refresh(lv_obj_t* root, UiState& state)
@@ -521,6 +567,7 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
 
   lv_obj_t* grid = lv_obj_create(root);
   lv_obj_set_size(grid, 760, 360);
+  lv_obj_remove_flag(grid, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_align(grid, LV_ALIGN_BOTTOM_MID, 0, -18);
   lv_obj_set_style_bg_opa(grid, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(grid, 0, 0);
@@ -574,6 +621,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   lv_obj_t* bottom = lv_obj_create(root);
   for (lv_obj_t* row : {top, bottom}) {
     lv_obj_set_size(row, 760, 118);
+    lv_obj_remove_flag(row, LV_OBJ_FLAG_SCROLLABLE);
     stylePanel(row, 0x141820);
     lv_obj_set_style_pad_all(row, 14, 0);
     lv_obj_set_style_pad_column(row, 12, 0);
@@ -615,7 +663,9 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   lv_obj_set_style_radius(drawer, 0, 0);
   lv_obj_set_style_border_side(drawer, LV_BORDER_SIDE_RIGHT, 0);
   lv_obj_set_style_pad_all(drawer, 14, 0);
-  lv_obj_set_scroll_dir(drawer, LV_DIR_VER);
+  // Content fits; the inner list scrolls on its own. A scrollable drawer would
+  // steal taps on the close button on a jittery finger touch.
+  lv_obj_remove_flag(drawer, LV_OBJ_FLAG_SCROLLABLE);
 
   label(drawer, "Blocks", LV_ALIGN_TOP_LEFT, 0, 0, &lv_font_montserrat_22);
   lv_obj_t* close = button(drawer, "X");
@@ -676,6 +726,7 @@ void LvglUi::renderParamDrawer(lv_obj_t* root, UiState& state)
 {
   lv_obj_t* drawer = lv_obj_create(root);
   lv_obj_set_size(drawer, 800, 142);
+  lv_obj_remove_flag(drawer, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_align(drawer, LV_ALIGN_BOTTOM_MID, 0, 0);
   stylePanel(drawer, panelAlt);
   lv_obj_set_style_radius(drawer, 0, 0);

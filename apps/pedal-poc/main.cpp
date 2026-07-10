@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cctype>
 #if defined(__linux__)
 #include <cerrno>
 #include <cstring>
@@ -55,6 +56,80 @@ void handleSignal(int)
 {
   running = 0;
 }
+
+#if defined(ARDOR_HAS_UI) && defined(ARDOR_UI_BACKEND_FBDEV)
+// Locate the touchscreen evdev node by device name. On the Touch Display 2 the
+// controller enumerates as "Goodix Capacitive TouchScreen"; the event number is
+// not stable across boots, so match on name rather than hardcoding event0.
+std::string findTouchDevice()
+{
+  namespace fs = std::filesystem;
+  std::error_code ec;
+  for (const auto& entry : fs::directory_iterator{"/sys/class/input", ec}) {
+    const std::string node = entry.path().filename().string();
+    if (node.rfind("event", 0) != 0) continue;
+    std::ifstream nameFile{entry.path() / "device" / "name"};
+    std::string name;
+    std::getline(nameFile, name);
+    std::transform(name.begin(), name.end(), name.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    if (name.find("goodix") != std::string::npos ||
+        name.find("touch") != std::string::npos) {
+      return "/dev/input/" + node;
+    }
+  }
+  return {};
+}
+
+// Live touch-coordinate overlay for calibration (ARDOR_TOUCH_DEBUG=1).
+struct TouchDebug {
+  lv_obj_t* label;
+  lv_obj_t* dot;
+  lv_indev_t* indev;
+};
+
+void touchDebugTick(lv_timer_t* timer)
+{
+  auto* d = static_cast<TouchDebug*>(lv_timer_get_user_data(timer));
+  lv_point_t p;
+  lv_indev_get_point(d->indev, &p);
+  const bool down = lv_indev_get_state(d->indev) == LV_INDEV_STATE_PRESSED;
+  lv_label_set_text_fmt(d->label, "touch %s  x:%d  y:%d", down ? "DOWN" : "up",
+                        static_cast<int>(p.x), static_cast<int>(p.y));
+  if (down) {
+    lv_obj_remove_flag(d->dot, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_pos(d->dot, static_cast<int32_t>(p.x) - 12, static_cast<int32_t>(p.y) - 12);
+  } else {
+    lv_obj_add_flag(d->dot, LV_OBJ_FLAG_HIDDEN);
+  }
+}
+
+// Overlay lives on the top layer (above the UI, survives screen rebuilds).
+void installTouchDebug(lv_indev_t* touch)
+{
+  lv_obj_t* top = lv_layer_top();
+
+  lv_obj_t* label = lv_label_create(top);
+  lv_obj_set_style_bg_opa(label, LV_OPA_70, 0);
+  lv_obj_set_style_bg_color(label, lv_color_black(), 0);
+  lv_obj_set_style_text_color(label, lv_color_white(), 0);
+  lv_obj_set_style_pad_all(label, 6, 0);
+  lv_obj_align(label, LV_ALIGN_TOP_LEFT, 4, 4);
+  lv_label_set_text(label, "touch: --");
+
+  lv_obj_t* dot = lv_obj_create(top);
+  lv_obj_remove_style_all(dot);
+  lv_obj_set_size(dot, 24, 24);
+  lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, 0);
+  lv_obj_set_style_bg_opa(dot, LV_OPA_COVER, 0);
+  lv_obj_set_style_bg_color(dot, lv_color_hex(0xff3b30), 0);
+  lv_obj_add_flag(dot, LV_OBJ_FLAG_HIDDEN);
+
+  // Lives for the process lifetime; freeing is not worth the bookkeeping.
+  auto* dbg = new TouchDebug{label, dot, touch};
+  lv_timer_create(touchDebugTick, 30, dbg);
+}
+#endif
 
 struct Args {
   bool offline = false;
@@ -379,6 +454,29 @@ int main(int argc, char** argv)
           lv_linux_fbdev_set_file(disp, "/dev/fb0");
           // Panel is 720x1280 portrait; present the UI as 1280x720 landscape
           lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_90);
+
+          // Touch: Goodix reports raw coords matching the panel's PHYSICAL
+          // portrait orientation (x:0..719, y:0..1279). LVGL itself rotates the
+          // pointer to the logical landscape frame (lv_display_rotate_point,
+          // driven by the display rotation set above), so evdev must emit
+          // *unrotated physical* coords — do NOT swap or pre-rotate here, or the
+          // rotation is applied twice. Raw already equals physical 1:1, verified
+          // by capturing swipes: horizontal motion drives raw Y, vertical drives
+          // raw X, both straight through. Calibration just pins the ranges.
+          // Set ARDOR_TOUCH_DEBUG=1 to overlay the live coordinate for tuning.
+          const std::string touchDev = findTouchDevice();
+          if (!touchDev.empty()) {
+            lv_indev_t* touch = lv_evdev_create(LV_INDEV_TYPE_POINTER, touchDev.c_str());
+            lv_indev_set_display(touch, disp);
+            lv_evdev_set_swap_axes(touch, false);
+            lv_evdev_set_calibration(touch, /*min_x*/ 0, /*min_y*/ 0,
+                                            /*max_x*/ 719, /*max_y*/ 1279);
+            if (std::getenv("ARDOR_TOUCH_DEBUG") != nullptr) {
+              installTouchDebug(touch);
+            }
+          } else {
+            std::cerr << "Warning: no touchscreen (Goodix) found under /dev/input\n";
+          }
         }
 #else
         lv_sdl_window_create(800, 480);

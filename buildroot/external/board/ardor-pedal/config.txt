@@ -5,8 +5,8 @@ enable_uart=1
 dtoverlay=vc4-kms-v3d
 # Firmware must not pre-configure the display pipeline (matches RPi OS)
 disable_fw_kms_setup=1
-# Touch Display 2 (ILI9881 panel, Goodix touch)
-dtoverlay=vc4-kms-dsi-ili9881-7inch
+# Raspberry Pi 5-inch Touch Display 2 (ILI9881 panel, Goodix touch)
+dtoverlay=vc4-kms-dsi-ili9881-5inch
 # Codec Zero (I2S DAC/ADC, DA7212)
 dtparam=audio=off
 dtparam=i2c_arm=on

@@ -41,6 +41,12 @@ public:
 
   const UiActions& actions() const { return actions_; }
 
+  // The UI is built on a scaled canvas (see build()). Drag handlers read the
+  // pointer in display space; these translate to the canvas' design space so
+  // hit-testing and overlay placement stay correct at any resolution.
+  lv_obj_t* canvas() const { return canvas_; }
+  lv_point_t toCanvas(lv_point_t displayPoint) const;
+
 private:
   void renderPresetMode(lv_obj_t* root, UiState& state);
   void renderEditMode(lv_obj_t* root, UiState& state);
@@ -52,6 +58,9 @@ private:
   UiActions actions_;
   std::deque<UiEventContext> contexts_;
   bool rebuildPending_ = false;
+  lv_obj_t* canvas_ = nullptr;
+  int32_t canvasScale_ = 256;  // 8.8 fixed point; 256 == 1.0
+  lv_point_t canvasOffset_{};
 };
 
 } // namespace ardor
