@@ -1,0 +1,5 @@
+config BR2_PACKAGE_ARDOR_MANAGERD
+	bool "ardor-managerd"
+	depends on BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS
+	help
+	  REST management daemon for Ardor pedal assets and presets.

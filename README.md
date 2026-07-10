@@ -41,7 +41,16 @@ Cab block params:
 - `params.levelDb`: cab level before output gain.
 - `params.mix`: `0.0` dry after-NAM signal, `1.0` full cab signal.
 
-Other block params may be stored in JSON, but modulation, delay, and reverb are not processed yet.
+Daisy effect blocks use no asset path and store normalized `0.0..1.0`
+parameters. Supported modes:
+
+- `mod` / `vintage_trem`: `speed`, `depth`, `mix`, `tone`, `p1`, `p2`, `level`
+- `delay` / `digital`: `time`, `repeats`, `mix`, `filter`, `grit`, `mod_spd`, `mod_dep`
+- `reverb` / `room`: `decay`, `pre_delay`, `mix`, `tone`, `mod`, `param1`, `param2`
+
+The hosted Daisy source lives under `third_party/daisy-multi-fx-hosted/`.
+Copied source should stay functionally unchanged; host adaptation belongs in
+`src/daisyfx/` or `compat/`.
 
 ## Build
 
@@ -213,6 +222,50 @@ Hardware controls on Raspberry Pi use Linux input events:
 
 The app maps `KEY_F1` through `KEY_F4` to preset slots and relative encoder movement to master output volume.
 
+## Manager Daemon
+
+The REST manager daemon lives in `services/managerd`. It manages `.nam`, `.wav`,
+and preset files without doing management work in the realtime process.
+
+Run locally without auth:
+
+```sh
+cd services/managerd
+ARDOR_API_AUTH=off \
+ARDOR_DATA_ROOT=../.. \
+ARDOR_API_BIND=127.0.0.1 \
+ARDOR_API_PORT=8080 \
+go run ./cmd/ardor-managerd
+```
+
+The device status endpoint is:
+
+```sh
+curl http://127.0.0.1:8080/api/device
+```
+
+Auth is enabled by default when no environment override is supplied. Set
+`ARDOR_API_AUTH=on` and provide `ARDOR_API_TOKEN` for a protected device.
+
+## Desktop Manager
+
+The Mac-first Tauri desktop manager lives in `apps/manager`.
+
+```sh
+cd apps/manager
+npm install
+npm run tauri dev
+```
+
+For local testing, run the Go daemon with auth disabled and use
+`http://127.0.0.1:8080` as the manager base URL:
+
+```sh
+cd services/managerd
+ARDOR_API_AUTH=off ARDOR_DATA_ROOT=../.. ARDOR_API_BIND=127.0.0.1 ARDOR_API_PORT=8080 \
+go run ./cmd/ardor-managerd
+```
+
 ## UI Mockup
 
 The first UI mockup is static HTML:
@@ -250,7 +303,9 @@ It reads:
 - `presets/bank-000/preset-2.json`
 - `presets/bank-000/preset-3.json`
 
-Assets are discovered from `models/*.nam` and `irs/*.wav`. Editing the chain only changes memory until the Save button is pressed.
+Assets are discovered from `models/*.nam` and `irs/*.wav`. Daisy effects are
+listed from the built-in catalog. Editing the chain only changes memory until
+the Save button is pressed.
 
 ## Integrated UI and Audio
 

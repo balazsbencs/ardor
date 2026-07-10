@@ -1,0 +1,133 @@
+package server
+
+import (
+	"bytes"
+	"encoding/json"
+	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"ardor.local/managerd/internal/config"
+)
+
+func TestDeviceAndAuth(t *testing.T) {
+	handler := New(config.Config{DataRoot: t.TempDir(), AuthEnabled: true, Token: "secret"})
+
+	device := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/device", nil)
+	handler.ServeHTTP(device, req)
+	if device.Code != http.StatusOK {
+		t.Fatalf("device status=%d", device.Code)
+	}
+	if !bytes.Contains(device.Body.Bytes(), []byte(`"authEnabled":true`)) {
+		t.Fatalf("device body=%s", device.Body.String())
+	}
+
+	unauthorized := httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/api/assets/models", nil)
+	handler.ServeHTTP(unauthorized, req)
+	if unauthorized.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthorized status=%d", unauthorized.Code)
+	}
+}
+
+func TestAuthCanBeDisabledForTesting(t *testing.T) {
+	handler := New(config.Config{DataRoot: t.TempDir(), AuthEnabled: false})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/assets/models", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("auth-off status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestAssetUploadPresetSaveAndApply(t *testing.T) {
+	handler := New(config.Config{DataRoot: t.TempDir(), AuthEnabled: true, Token: "secret"})
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", "Clean Amp.nam")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := part.Write([]byte("nam-bytes")); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	upload := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/assets/models", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer secret")
+	handler.ServeHTTP(upload, req)
+	if upload.Code != http.StatusCreated {
+		t.Fatalf("upload status=%d body=%s", upload.Code, upload.Body.String())
+	}
+	if !bytes.Contains(upload.Body.Bytes(), []byte(`models/Clean_Amp.nam`)) {
+		t.Fatalf("upload body=%s", upload.Body.String())
+	}
+
+	preset := map[string]any{
+		"version": float64(1),
+		"name":    "HTTP Preset",
+		"routing": "serial",
+		"global": map[string]any{
+			"inputGainDb":   float64(0),
+			"outputGainDb":  float64(0),
+			"safetyLimitDb": float64(-1),
+		},
+		"blocks": []any{
+			map[string]any{"id": "block-1", "type": "nam", "enabled": true, "asset": "models/Clean_Amp.nam", "params": map[string]any{}},
+		},
+	}
+	presetBytes, _ := json.Marshal(preset)
+	save := httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodPut, "/api/presets/banks/0/slots/0", bytes.NewReader(presetBytes))
+	req.Header.Set("Authorization", "Bearer secret")
+	handler.ServeHTTP(save, req)
+	if save.Code != http.StatusOK {
+		t.Fatalf("save status=%d body=%s", save.Code, save.Body.String())
+	}
+
+	get := httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/api/presets/banks/0/slots/0", nil)
+	req.Header.Set("Authorization", "Bearer secret")
+	handler.ServeHTTP(get, req)
+	if get.Code != http.StatusOK || !bytes.Contains(get.Body.Bytes(), []byte("HTTP Preset")) {
+		t.Fatalf("get status=%d body=%s", get.Code, get.Body.String())
+	}
+
+	apply := httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodPost, "/api/presets/banks/0/slots/0/apply", nil)
+	req.Header.Set("Authorization", "Bearer secret")
+	handler.ServeHTTP(apply, req)
+	if apply.Code != http.StatusAccepted {
+		t.Fatalf("apply status=%d body=%s", apply.Code, apply.Body.String())
+	}
+}
+
+func TestDuplicateUploadReturnsConflict(t *testing.T) {
+	handler := New(config.Config{DataRoot: t.TempDir(), AuthEnabled: false})
+	for range 2 {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		part, err := writer.CreateFormFile("file", "same.nam")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = part.Write([]byte("nam"))
+		_ = writer.Close()
+		request := httptest.NewRequest(http.MethodPost, "/api/assets/models", body)
+		request.Header.Set("Content-Type", writer.FormDataContentType())
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code == http.StatusCreated {
+			continue
+		}
+		if response.Code != http.StatusConflict {
+			t.Fatalf("duplicate status=%d body=%s", response.Code, response.Body.String())
+		}
+	}
+}

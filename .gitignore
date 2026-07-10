@@ -10,3 +10,9 @@
 *.aiff
 *.flac
 .idea
+
+/apps/manager/node_modules/
+/apps/manager/dist/
+/apps/manager/src-tauri/target/
+/apps/manager/src-tauri/gen/
+/services/managerd/ardor-managerd

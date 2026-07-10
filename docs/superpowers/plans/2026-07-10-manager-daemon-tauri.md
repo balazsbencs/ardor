@@ -1,6 +1,6 @@
 # Manager Daemon And Tauri App Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build a REST-managed asset and preset workflow for Ardor, with a Go `ardor-managerd` daemon on the pedal and a Mac-first Tauri desktop manager app.
 
@@ -102,7 +102,7 @@ Modify docs:
   - `presets.Store.Load(bank int, slot int) (presets.Slot, error)`
   - `presets.Store.Save(bank int, slot int, preset presets.Preset) (presets.Slot, error)`
 
-- [ ] **Step 1: Create the Go module**
+- [x] **Step 1: Create the Go module**
 
 Create `services/managerd/go.mod`:
 
@@ -112,7 +112,7 @@ module ardor.local/managerd
 go 1.22
 ```
 
-- [ ] **Step 2: Write failing asset tests**
+- [x] **Step 2: Write failing asset tests**
 
 Create `services/managerd/internal/assets/assets_test.go`:
 
@@ -204,7 +204,7 @@ func TestStoreSaveListDelete(t *testing.T) {
 }
 ```
 
-- [ ] **Step 3: Write failing preset tests**
+- [x] **Step 3: Write failing preset tests**
 
 Create `services/managerd/internal/presets/presets_test.go`:
 
@@ -301,7 +301,7 @@ func TestStoreSaveLoadList(t *testing.T) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they fail**
+- [x] **Step 4: Run tests to verify they fail**
 
 Run:
 
@@ -312,7 +312,7 @@ go test ./...
 
 Expected: tests fail because `assets` and `presets` implementations do not exist.
 
-- [ ] **Step 5: Implement config**
+- [x] **Step 5: Implement config**
 
 Create `services/managerd/internal/config/config.go`:
 
@@ -359,7 +359,7 @@ func env(key string, fallback string) string {
 }
 ```
 
-- [ ] **Step 6: Implement asset storage**
+- [x] **Step 6: Implement asset storage**
 
 Create `services/managerd/internal/assets/assets.go`:
 
@@ -531,7 +531,7 @@ func jsonKind(kind Kind) string {
 }
 ```
 
-- [ ] **Step 7: Implement preset storage**
+- [x] **Step 7: Implement preset storage**
 
 Create `services/managerd/internal/presets/presets.go`:
 
@@ -696,7 +696,7 @@ func validRelativeAsset(asset string) bool {
 }
 ```
 
-- [ ] **Step 8: Run core tests**
+- [x] **Step 8: Run core tests**
 
 Run:
 
@@ -708,7 +708,7 @@ go test ./...
 
 Expected: all Go tests pass.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add services/managerd
@@ -730,7 +730,7 @@ git commit -m "feat: add go manager daemon core"
   - `server.New(config.Config) http.Handler`
   - executable command `cmd/ardor-managerd`
 
-- [ ] **Step 1: Write failing server tests**
+- [x] **Step 1: Write failing server tests**
 
 Create `services/managerd/internal/server/server_test.go`:
 
@@ -837,7 +837,7 @@ func TestAssetUploadPresetSaveAndApply(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run server tests to verify they fail**
+- [x] **Step 2: Run server tests to verify they fail**
 
 Run:
 
@@ -848,7 +848,7 @@ go test ./internal/server
 
 Expected: package fails because `New` does not exist.
 
-- [ ] **Step 3: Implement HTTP server**
+- [x] **Step 3: Implement HTTP server**
 
 Create `services/managerd/internal/server/server.go`:
 
@@ -1077,7 +1077,7 @@ func ListenAddress(cfg config.Config) string {
 }
 ```
 
-- [ ] **Step 4: Add command main**
+- [x] **Step 4: Add command main**
 
 Create `services/managerd/cmd/ardor-managerd/main.go`:
 
@@ -1105,7 +1105,7 @@ func main() {
 }
 ```
 
-- [ ] **Step 5: Run server tests**
+- [x] **Step 5: Run server tests**
 
 Run:
 
@@ -1118,7 +1118,7 @@ go build ./cmd/ardor-managerd
 
 Expected: tests pass and the command builds.
 
-- [ ] **Step 6: Run the daemon locally**
+- [x] **Step 6: Run the daemon locally**
 
 Run:
 
@@ -1135,7 +1135,7 @@ curl http://127.0.0.1:8080/api/device
 
 Expected: JSON includes `"authEnabled":false`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add services/managerd
@@ -1159,7 +1159,7 @@ git commit -m "feat: add go manager rest api"
 - Consumes: Go command `services/managerd/cmd/ardor-managerd`.
 - Produces: Buildroot package `BR2_PACKAGE_ARDOR_MANAGERD`.
 
-- [ ] **Step 1: Add package Config.in**
+- [x] **Step 1: Add package Config.in**
 
 Create `buildroot/external/package/ardor-managerd/Config.in`:
 
@@ -1171,7 +1171,7 @@ config BR2_PACKAGE_ARDOR_MANAGERD
 	  REST management daemon for Ardor pedal assets and presets.
 ```
 
-- [ ] **Step 2: Add package makefile**
+- [x] **Step 2: Add package makefile**
 
 Create `buildroot/external/package/ardor-managerd/ardor-managerd.mk`:
 
@@ -1193,7 +1193,7 @@ endef
 $(eval $(golang-package))
 ```
 
-- [ ] **Step 3: Add init script**
+- [x] **Step 3: Add init script**
 
 Create `buildroot/external/package/ardor-managerd/S98ardor-managerd`:
 
@@ -1231,7 +1231,7 @@ case "$1" in
 esac
 ```
 
-- [ ] **Step 4: Add default env file**
+- [x] **Step 4: Add default env file**
 
 Create `buildroot/external/board/ardor-pedal/rootfs-overlay/etc/ardor-managerd.env`:
 
@@ -1243,7 +1243,7 @@ ARDOR_API_AUTH=off
 ARDOR_API_TOKEN=
 ```
 
-- [ ] **Step 5: Include package in external tree**
+- [x] **Step 5: Include package in external tree**
 
 Modify `buildroot/external/Config.in`:
 
@@ -1252,7 +1252,7 @@ source "$BR2_EXTERNAL_ARDOR_PEDAL_PATH/package/ardor-pedal/Config.in"
 source "$BR2_EXTERNAL_ARDOR_PEDAL_PATH/package/ardor-managerd/Config.in"
 ```
 
-- [ ] **Step 6: Enable package in defconfig**
+- [x] **Step 6: Enable package in defconfig**
 
 Add to `buildroot/external/configs/raspberrypi4_ardor_pedal_defconfig` near the Ardor additions:
 
@@ -1260,7 +1260,7 @@ Add to `buildroot/external/configs/raspberrypi4_ardor_pedal_defconfig` near the 
 BR2_PACKAGE_ARDOR_MANAGERD=y
 ```
 
-- [ ] **Step 7: Document daemon workflow**
+- [x] **Step 7: Document daemon workflow**
 
 Add to `README.md`:
 
@@ -1287,7 +1287,7 @@ curl http://127.0.0.1:8080/api/device
 ```
 ```
 
-- [ ] **Step 8: Run verification**
+- [x] **Step 8: Run verification**
 
 Run:
 
@@ -1301,7 +1301,7 @@ git diff --check
 
 Expected: Go tests pass, local binary builds, and whitespace check prints nothing.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add services/managerd buildroot/external/package/ardor-managerd buildroot/external/Config.in buildroot/external/configs/raspberrypi4_ardor_pedal_defconfig buildroot/external/board/ardor-pedal/rootfs-overlay/etc/ardor-managerd.env README.md
@@ -1336,7 +1336,7 @@ git commit -m "feat: package go manager daemon"
   - `class ArdorApiClient`
   - `getDevice`, `listAssets`, `uploadAsset`, `listPresets`, `getPreset`, `savePreset`, `applyPreset`
 
-- [ ] **Step 1: Create package and config files**
+- [x] **Step 1: Create package and config files**
 
 Create `apps/manager/package.json`:
 
@@ -1454,7 +1454,7 @@ module.exports = {
 };
 ```
 
-- [ ] **Step 2: Create minimal Tauri files**
+- [x] **Step 2: Create minimal Tauri files**
 
 Create `apps/manager/src-tauri/Cargo.toml`:
 
@@ -1515,7 +1515,7 @@ Create `apps/manager/src-tauri/tauri.conf.json`:
 }
 ```
 
-- [ ] **Step 3: Add API types and client test**
+- [x] **Step 3: Add API types and client test**
 
 Create `apps/manager/src/api/types.ts`:
 
@@ -1634,7 +1634,7 @@ describe("ArdorApiClient", () => {
 });
 ```
 
-- [ ] **Step 4: Implement API client**
+- [x] **Step 4: Implement API client**
 
 Create `apps/manager/src/api/client.ts` with:
 
@@ -1711,7 +1711,7 @@ export class ArdorApiClient {
 }
 ```
 
-- [ ] **Step 5: Add minimal React entrypoint**
+- [x] **Step 5: Add minimal React entrypoint**
 
 Create `apps/manager/src/main.tsx`:
 
@@ -1762,7 +1762,7 @@ body {
 
 Create `apps/manager/src/main.tsx`, `apps/manager/src/App.tsx`, and `apps/manager/src/styles.css`. The first screen must be the manager workspace shell with connection controls, not a landing page.
 
-- [ ] **Step 6: Run frontend tests and build**
+- [x] **Step 6: Run frontend tests and build**
 
 Run:
 
@@ -1775,7 +1775,7 @@ npm run build
 
 Expected: tests pass and Vite builds.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/manager
@@ -1801,7 +1801,7 @@ git commit -m "feat: scaffold tauri manager app"
   - `setBlockParam(preset: Preset, blockId: string, key: string, value: number): Preset`
   - `isKnownEditableBlock(block: PresetBlock): boolean`
 
-- [ ] **Step 1: Write failing draft tests**
+- [x] **Step 1: Write failing draft tests**
 
 Create `apps/manager/src/presets/presetDraft.test.ts`:
 
@@ -1853,7 +1853,7 @@ describe("preset drafts", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run:
 
@@ -1864,7 +1864,7 @@ npm test -- presetDraft
 
 Expected: test fails because `presetDraft.ts` does not exist.
 
-- [ ] **Step 3: Implement draft helpers**
+- [x] **Step 3: Implement draft helpers**
 
 Create `apps/manager/src/presets/presetDraft.ts`:
 
@@ -1904,7 +1904,7 @@ export function isKnownEditableBlock(block: PresetBlock): boolean {
 }
 ```
 
-- [ ] **Step 4: Replace initial UI with the manager workspace**
+- [x] **Step 4: Replace initial UI with the manager workspace**
 
 Replace `apps/manager/src/App.tsx` with:
 
@@ -2098,7 +2098,7 @@ export default function App() {
 }
 ```
 
-- [ ] **Step 5: Run tests and build**
+- [x] **Step 5: Run tests and build**
 
 Run:
 
@@ -2110,7 +2110,7 @@ npm run build
 
 Expected: tests pass and build succeeds.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/manager/src
@@ -2129,7 +2129,7 @@ git commit -m "feat: add offline preset editor"
 - Consumes: all earlier tasks.
 - Produces: documented local workflow for Go daemon plus Tauri manager.
 
-- [ ] **Step 1: Run Go daemon tests**
+- [x] **Step 1: Run Go daemon tests**
 
 Run:
 
@@ -2141,7 +2141,7 @@ go build ./cmd/ardor-managerd
 
 Expected: Go tests pass and command builds.
 
-- [ ] **Step 2: Run frontend tests and build**
+- [x] **Step 2: Run frontend tests and build**
 
 Run:
 
@@ -2153,7 +2153,7 @@ npm run build
 
 Expected: Vitest passes and Vite builds.
 
-- [ ] **Step 3: Run local daemon integration manually**
+- [x] **Step 3: Run local daemon integration manually**
 
 Terminal 1:
 
@@ -2171,7 +2171,7 @@ curl http://127.0.0.1:8080/api/presets
 
 Expected: `/api/device` returns JSON with `"authEnabled":false`; `/api/presets` returns a `presets` array.
 
-- [ ] **Step 4: Run the Tauri app locally**
+- [x] **Step 4: Run the Tauri app locally**
 
 Run:
 
@@ -2182,7 +2182,7 @@ npm run tauri dev
 
 Expected: the desktop window opens on macOS, connects to `http://127.0.0.1:8080`, lists assets/presets, edits a preset draft without network writes, saves through `PUT`, and sends apply through `POST`.
 
-- [ ] **Step 5: Update README with app workflow**
+- [x] **Step 5: Update README with app workflow**
 
 Add:
 
@@ -2207,7 +2207,7 @@ ARDOR_API_AUTH=off ARDOR_DATA_ROOT=../.. ARDOR_API_BIND=127.0.0.1 ARDOR_API_PORT
 Use `http://127.0.0.1:8080` as the manager base URL.
 ```
 
-- [ ] **Step 6: Run final whitespace check**
+- [x] **Step 6: Run final whitespace check**
 
 Run:
 
@@ -2217,7 +2217,7 @@ git diff --check
 
 Expected: no output.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add README.md docs/api/ardor-managerd.openapi.yaml
