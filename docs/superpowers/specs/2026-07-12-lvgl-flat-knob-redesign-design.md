@@ -11,8 +11,9 @@ unchanged.
 ## Approved visual direction
 
 - Canvas: solid black (`#000000`).
-- Surfaces: charcoal/dark grey (`#242424` family), one-pixel black borders,
-  and no shadows, gradients, or raised-card effects.
+- Surfaces: charcoal/dark grey (`#242424` family) with no visible borders,
+  shadows, gradients, or raised-card effects. Every block-like surface has a
+  5px corner radius.
 - Functional accent: acid green (`#43F05A`) only for an active value arc, the
   selected chain block, the focused parameter label, and attention states such
   as an unsaved preset. It is not decorative panel fill or default text color.
@@ -32,8 +33,8 @@ desktop simulator continues to work at other resolutions.
 
 Each screen has a thin header: preset/bank identity on the left or centre,
 status and actions on the opposite side. Header actions use flat charcoal
-buttons with black borders. There are no rounded, shadowed, or coloured panels
-outside their functional states.
+buttons with a 5px radius and no border. There are no shadowed or coloured
+panels outside their functional states.
 
 ### Preset mode
 
@@ -49,11 +50,11 @@ Edit mode uses the selected Studio Chain hierarchy:
 1. Header with current preset, Presets, Global, Save, and Blocks actions.
 2. A full-width left-to-right signal chain from Input to Output. Each enabled
    block is a charcoal module with category, block name, and asset name. The
-   selected module receives a thin acid-green outline; disabled modules are
-   visibly dimmed but readable.
-3. A selected-block control panel below the chain. It displays up to four
-   large knobs, the block name/category, and a compact `PAGE n / total`
-   indicator.
+   selected module uses acid-green category text and a small indicator; disabled
+   modules are visibly dimmed but readable.
+3. A selected-block control panel below the chain. It displays the block
+   name/category and compact `PAGE n / total` indicator at the top, with a
+   bottom-aligned row of up to six compact knobs.
 
 Blocks retain tap-to-select, drag-to-reorder, and the existing drawer-driven
 asset insertion flow. Block, global, and parameter drawers inherit the same
@@ -62,28 +63,30 @@ black/charcoal flat system.
 ### Parameters and paging
 
 Every adjustable continuous parameter is displayed and changed through a
-virtual knob. Effects that expose more than four parameters use pages of at
-most four knobs. The page indicator is always visible. Left/right touch
+virtual knob. Effects that expose more than six parameters use pages of at
+most six knobs. The page indicator is always visible. Left/right touch
 targets and a horizontal swipe move between pages; page navigation is not a
 parameter control and therefore is not represented by a knob.
 
 Global input and output gain use exactly the same control panel and knob
 language. Boolean state such as block enable/bypass remains an explicit on/off
-control, not an artificial knob.
+switch, not an artificial knob. The bypass switch sits beside the page
+indicator in the selected-block control-panel header.
 
 ## Knob design and interaction
 
 The approved knob directly follows the supplied reference:
 
 - A 270° sweep with a dark unfilled outer track.
-- A thick acid-green arc from the minimum position to the current value.
+- A slim acid-green arc from the minimum position to the current value.
 - A dark charcoal centre with a black inner rim.
 - A crisp white radial pointer showing the current position.
 - Parameter name and formatted value below the dial; no numeric readout inside
   the dial.
 
-The active/focused knob has an acid-green label and a subtle flat selection
-state; it does not get a drop shadow or a second decorative glow. Values remain
+Knobs are compact, with generous spacing in their six-control row. The
+active/focused knob has an acid-green label and a subtle flat selection state;
+it does not get a drop shadow, outline, or decorative glow. Values remain
 readable below every knob, including unselected controls.
 
 Touching a knob focuses it. A vertical drag over that knob changes it
@@ -131,5 +134,6 @@ setters, rather than duplicating or bypassing model validation.
 - Manually verify knob vertical drag, range clamping, formatted units, focus
   transfer, physical-encoder adjustment, and parameter-page navigation.
 - Confirm no parameter editing control still renders as `+` or `−`.
-- Inspect the screens for black backgrounds, charcoal blocks, black borders,
-  no shadows, Open Sans rendering, and acid green limited to functional state.
+- Inspect the screens for black backgrounds, borderless 5px-radius charcoal
+  blocks, no shadows, Open Sans rendering, and acid green limited to
+  functional state.
