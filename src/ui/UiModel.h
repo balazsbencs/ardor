@@ -84,6 +84,7 @@ Preset activePresetToPreset(const UiState& state);
 void replaceActivePreset(UiState& state, const Preset& preset);
 
 void selectGlobalParams(UiState& state);
+void setSelectedBlockEnabled(UiState& state, bool enabled);
 void setActiveInputGainDb(UiState& state, float db);
 void setActiveOutputGainDb(UiState& state, float db);
 void setSelectedBlockParam(UiState& state, const std::string& key, float value);

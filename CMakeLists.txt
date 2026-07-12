@@ -124,6 +124,7 @@ target_link_libraries(ardor_preset PUBLIC ardor_daisyfx)
 
 add_library(ardor_ui
   src/ui/UiModel.cpp
+  src/ui/ParameterControls.cpp
 )
 target_include_directories(ardor_ui PUBLIC src)
 target_compile_features(ardor_ui PUBLIC cxx_std_20)
@@ -136,6 +137,9 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
     src/ui/fonts/OpenSansSemibold.c
   )
   target_link_libraries(ardor_ui PUBLIC lvgl)
+
+  add_executable(pedal-lvgl-ui-smoke tests/lvgl_ui_smoke.cpp)
+  target_link_libraries(pedal-lvgl-ui-smoke PRIVATE ardor_ui)
 
   if(ARDOR_UI_BACKEND STREQUAL "sdl")
     add_executable(pedal-ui-sim apps/pedal-ui-sim/main.cpp)
@@ -223,6 +227,9 @@ add_test(NAME pedal-runtime-chain-smoke COMMAND pedal-runtime-chain-smoke)
 add_test(NAME pedal-engine-contract-smoke COMMAND pedal-engine-contract-smoke)
 add_test(NAME pedal-nam-processor-smoke COMMAND pedal-nam-processor-smoke)
 add_test(NAME pedal-ui-model-smoke COMMAND pedal-ui-model-smoke)
+if(NOT ARDOR_UI_BACKEND STREQUAL "none")
+  add_test(NAME pedal-lvgl-ui-smoke COMMAND pedal-lvgl-ui-smoke)
+endif()
 add_test(NAME pedal-preset-cli-smoke COMMAND pedal-preset-cli-smoke)
 add_test(NAME pedal-preset-reload-stress COMMAND pedal-preset-reload-stress)
 add_test(NAME pedal-control-smoke COMMAND pedal-control-smoke)

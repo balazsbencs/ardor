@@ -1,11 +1,12 @@
 #pragma once
 
-#include "ui/UiModel.h"
+#include "ui/ParameterControls.h"
 
 #include <cstddef>
 #include <deque>
 #include <functional>
 #include <string>
+#include <utility>
 
 #include <lvgl.h>
 
@@ -38,6 +39,26 @@ public:
   void build(lv_obj_t* root, UiState& state);
   void refresh(lv_obj_t* root, UiState& state);
   void requestRebuild();
+  void focusParameter(std::string key) { focusedKey_ = std::move(key); }
+  void resetParameterPage()
+  {
+    focusedKey_.clear();
+    parameterPage_ = 0;
+  }
+  void setParameterPage(std::size_t page) { parameterPage_ = page; }
+  std::size_t parameterPage() const { return parameterPage_; }
+  bool applyFocusedParameterDelta(UiState& state, int delta)
+  {
+    if (focusedKey_.empty()) {
+      return false;
+    }
+    for (const auto& control : ardor::parameterPage(state, parameterPage_)) {
+      if (control.key == focusedKey_) {
+        return applyParameterDelta(state, control, delta);
+      }
+    }
+    return false;
+  }
 
   const UiActions& actions() const { return actions_; }
 
@@ -58,6 +79,8 @@ private:
   UiActions actions_;
   std::deque<UiEventContext> contexts_;
   bool rebuildPending_ = false;
+  std::string focusedKey_;
+  std::size_t parameterPage_ = 0;
   lv_obj_t* canvas_ = nullptr;
   int32_t canvasScale_ = 256;  // 8.8 fixed point; 256 == 1.0
   lv_point_t canvasOffset_{};

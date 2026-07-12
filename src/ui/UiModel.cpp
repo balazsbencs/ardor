@@ -299,6 +299,16 @@ void selectGlobalParams(UiState& state)
   state.paramDrawerOpen = true;
 }
 
+void setSelectedBlockEnabled(UiState& state, bool enabled)
+{
+  auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (state.selectedBlock >= blocks.size()) {
+    return;
+  }
+  blocks[state.selectedBlock].enabled = enabled;
+  state.dirty = true;
+}
+
 void setActiveInputGainDb(UiState& state, float db)
 {
   state.bank.presets[state.activePreset].global.inputGainDb = clampFloat(db, -60.0f, 12.0f);
