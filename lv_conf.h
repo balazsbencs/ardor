@@ -40,8 +40,3 @@
 #else
 #define LV_USE_LOG 0
 #endif
-
-#define LV_FONT_MONTSERRAT_14 1
-#define LV_FONT_MONTSERRAT_18 1
-#define LV_FONT_MONTSERRAT_22 1
-#define LV_FONT_MONTSERRAT_28 1

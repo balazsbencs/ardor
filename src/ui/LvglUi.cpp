@@ -1,5 +1,8 @@
 #include "ui/LvglUi.h"
 
+#include "ui/fonts/OpenSansRegular.h"
+#include "ui/fonts/OpenSansSemibold.h"
+
 #include "daisyfx/DaisyFxCatalog.h"
 
 #include <algorithm>
@@ -23,7 +26,7 @@ constexpr auto text = 0xedf2f7;
 constexpr auto muted = 0xa8b3c1;
 constexpr auto accent = 0x6ee7b7;
 
-void setText(lv_obj_t* object, int color = text, const lv_font_t* font = &lv_font_montserrat_18)
+void setText(lv_obj_t* object, int color = text, const lv_font_t* font = &ardor_font_open_sans_regular_18)
 {
   lv_obj_set_style_text_color(object, lv_color_hex(color), 0);
   lv_obj_set_style_text_font(object, font, 0);
@@ -38,7 +41,7 @@ void stylePanel(lv_obj_t* object, int color)
 }
 
 void label(lv_obj_t* parent, const std::string& value, lv_align_t align, int x, int y,
-           const lv_font_t* font = &lv_font_montserrat_18, int color = text)
+           const lv_font_t* font = &ardor_font_open_sans_regular_18, int color = text)
 {
   lv_obj_t* object = lv_label_create(parent);
   lv_label_set_text(object, value.c_str());
@@ -462,7 +465,7 @@ void globalControl(lv_obj_t* parent, const std::string& name, float value, int x
                    lv_event_cb_t down, lv_event_cb_t up, UiEventContext* context)
 {
   label(parent, name + " " + std::to_string(static_cast<int>(value)) + " dB",
-        LV_ALIGN_TOP_LEFT, x, 0, &lv_font_montserrat_18, muted);
+        LV_ALIGN_TOP_LEFT, x, 0, &ardor_font_open_sans_regular_18, muted);
   lv_obj_t* minus = button(parent, "-");
   lv_obj_set_size(minus, 36, 32);
   lv_obj_align(minus, LV_ALIGN_TOP_LEFT, x, 28);
@@ -567,14 +570,14 @@ void telemetryLine(lv_obj_t* root, const RuntimeTelemetry& telemetry, bool bypas
   label(root,
         status + "  over " + std::to_string(telemetry.overBudget) + "  max "
           + std::to_string(static_cast<int>(telemetry.maxMs * 100.0) / 100.0) + "ms",
-        LV_ALIGN_BOTTOM_LEFT, 18, -14, &lv_font_montserrat_18, color);
+        LV_ALIGN_BOTTOM_LEFT, 18, -14, &ardor_font_open_sans_regular_18, color);
 }
 
 void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
 {
-  label(root, state.bank.name, LV_ALIGN_TOP_MID, 0, 18, &lv_font_montserrat_28);
+  label(root, state.bank.name, LV_ALIGN_TOP_MID, 0, 18, &ardor_font_open_sans_semibold_28);
   label(root, "Master " + std::to_string(state.masterVolume) + "%", LV_ALIGN_TOP_LEFT, 18, 18,
-        &lv_font_montserrat_18, muted);
+        &ardor_font_open_sans_regular_18, muted);
 
   lv_obj_t* edit = button(root, "Edit");
   lv_obj_set_size(edit, 96, 44);
@@ -608,7 +611,7 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
 
 void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
 {
-  label(root, state.bank.presets[state.activePreset].name, LV_ALIGN_TOP_MID, 0, 18, &lv_font_montserrat_28);
+  label(root, state.bank.presets[state.activePreset].name, LV_ALIGN_TOP_MID, 0, 18, &ardor_font_open_sans_semibold_28);
 
   lv_obj_t* presets = button(root, "Presets");
   lv_obj_set_size(presets, 112, 44);
@@ -645,8 +648,8 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   }
   lv_obj_align(top, LV_ALIGN_TOP_MID, 0, 86);
   lv_obj_align(bottom, LV_ALIGN_TOP_MID, 0, 232);
-  label(root, "Input", LV_ALIGN_TOP_LEFT, 28, 64, &lv_font_montserrat_18, muted);
-  label(root, "Output", LV_ALIGN_TOP_RIGHT, -28, 360, &lv_font_montserrat_18, muted);
+  label(root, "Input", LV_ALIGN_TOP_LEFT, 28, 64, &ardor_font_open_sans_regular_18, muted);
+  label(root, "Output", LV_ALIGN_TOP_RIGHT, -28, 360, &ardor_font_open_sans_regular_18, muted);
 
   for (std::size_t i = 0; i < blocks.size(); ++i) {
     const auto& block = blocks[i];
@@ -683,7 +686,7 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   // steal taps on the close button on a jittery finger touch.
   lv_obj_remove_flag(drawer, LV_OBJ_FLAG_SCROLLABLE);
 
-  label(drawer, "Blocks", LV_ALIGN_TOP_LEFT, 0, 0, &lv_font_montserrat_22);
+  label(drawer, "Blocks", LV_ALIGN_TOP_LEFT, 0, 0, &ardor_font_open_sans_semibold_22);
   lv_obj_t* close = button(drawer, "X");
   lv_obj_set_size(close, 40, 36);
   lv_obj_align(close, LV_ALIGN_TOP_RIGHT, 0, -4);
@@ -751,12 +754,12 @@ void LvglUi::renderParamDrawer(lv_obj_t* root, UiState& state)
 
   if (state.paramTarget == UiParamTarget::Globals) {
     const auto& global = state.bank.presets[state.activePreset].global;
-    label(drawer, "Global", LV_ALIGN_TOP_LEFT, 0, 0, &lv_font_montserrat_22);
+    label(drawer, "Global", LV_ALIGN_TOP_LEFT, 0, 0, &ardor_font_open_sans_semibold_22);
     auto* context = remember(state);
     globalControl(drawer, "In", global.inputGainDb, 0, onInputGainDown, onInputGainUp, context);
     globalControl(drawer, "Out", global.outputGainDb, 150, onOutputGainDown, onOutputGainUp, context);
     label(drawer, "Limit " + std::to_string(static_cast<int>(global.safetyLimitDb)) + " dB (fixed)",
-          LV_ALIGN_TOP_LEFT, 300, 0, &lv_font_montserrat_18, muted);
+          LV_ALIGN_TOP_LEFT, 300, 0, &ardor_font_open_sans_regular_18, muted);
     lv_obj_t* close = button(drawer, "X");
     lv_obj_set_size(close, 42, 36);
     lv_obj_align(close, LV_ALIGN_TOP_RIGHT, 0, -4);
@@ -771,9 +774,9 @@ void LvglUi::renderParamDrawer(lv_obj_t* root, UiState& state)
   }
 
   const auto& block = blocks[state.selectedBlock];
-  label(drawer, block.label + " - " + block.assetName, LV_ALIGN_TOP_LEFT, 0, 0, &lv_font_montserrat_22);
-  label(drawer, "Enabled", LV_ALIGN_BOTTOM_LEFT, 0, -8, &lv_font_montserrat_18, muted);
-  label(drawer, block.enabled ? "On" : "Off", LV_ALIGN_BOTTOM_LEFT, 102, -8, &lv_font_montserrat_18, accent);
+  label(drawer, block.label + " - " + block.assetName, LV_ALIGN_TOP_LEFT, 0, 0, &ardor_font_open_sans_semibold_22);
+  label(drawer, "Enabled", LV_ALIGN_BOTTOM_LEFT, 0, -8, &ardor_font_open_sans_regular_18, muted);
+  label(drawer, block.enabled ? "On" : "Off", LV_ALIGN_BOTTOM_LEFT, 102, -8, &ardor_font_open_sans_regular_18, accent);
 
   if (block.type == "cab") {
     const float levelDb = block.params.value("levelDb", 0.0f);
@@ -781,7 +784,7 @@ void LvglUi::renderParamDrawer(lv_obj_t* root, UiState& state)
     auto* context = remember(state);
     globalControl(drawer, "Level", levelDb, 190, onCabLevelDown, onCabLevelUp, context);
     label(drawer, "Mix " + std::to_string(static_cast<int>(mix * 100.0f)) + "%",
-          LV_ALIGN_BOTTOM_LEFT, 330, -8, &lv_font_montserrat_18, muted);
+          LV_ALIGN_BOTTOM_LEFT, 330, -8, &ardor_font_open_sans_regular_18, muted);
     lv_obj_t* mixMinus = button(drawer, "-");
     lv_obj_set_size(mixMinus, 36, 32);
     lv_obj_align(mixMinus, LV_ALIGN_BOTTOM_LEFT, 430, -4);
@@ -799,7 +802,7 @@ void LvglUi::renderParamDrawer(lv_obj_t* root, UiState& state)
       const auto& param = descriptor->params[i];
       const int value = static_cast<int>(block.params.value(param.key, param.defaultValue) * 100.0f);
       label(drawer, param.label + " " + std::to_string(value), LV_ALIGN_TOP_LEFT, x, y,
-            &lv_font_montserrat_14, muted);
+            &ardor_font_open_sans_regular_18, muted);
       auto* context = remember(state, 0, param.key);
       lv_obj_t* minus = button(drawer, "-");
       lv_obj_set_size(minus, 30, 28);

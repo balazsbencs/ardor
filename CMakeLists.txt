@@ -130,7 +130,11 @@ target_compile_features(ardor_ui PUBLIC cxx_std_20)
 target_link_libraries(ardor_ui PUBLIC ardor_preset)
 
 if(NOT ARDOR_UI_BACKEND STREQUAL "none")
-  target_sources(ardor_ui PRIVATE src/ui/LvglUi.cpp)
+  target_sources(ardor_ui PRIVATE
+    src/ui/LvglUi.cpp
+    src/ui/fonts/OpenSansRegular.c
+    src/ui/fonts/OpenSansSemibold.c
+  )
   target_link_libraries(ardor_ui PUBLIC lvgl)
 
   if(ARDOR_UI_BACKEND STREQUAL "sdl")
