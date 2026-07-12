@@ -1,6 +1,7 @@
 #include "ui/LvglUi.h"
 
 #include <algorithm>
+#include <cstring>
 #include <iostream>
 
 namespace {
@@ -19,6 +20,48 @@ bool containsKey(const std::vector<ardor::ParameterControl>& controls, const cha
   return std::any_of(controls.begin(), controls.end(), [key](const auto& control) {
     return control.key == key;
   });
+}
+
+lv_obj_t* findLabel(lv_obj_t* parent, const char* text)
+{
+  if (lv_obj_check_type(parent, &lv_label_class) && std::strcmp(lv_label_get_text(parent), text) == 0) {
+    return parent;
+  }
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    if (auto* result = findLabel(lv_obj_get_child(parent, static_cast<int32_t>(i)), text)) {
+      return result;
+    }
+  }
+  return nullptr;
+}
+
+lv_obj_t* findKnobPointer(lv_obj_t* parent)
+{
+  if (lv_obj_get_width(parent) == 3 && lv_obj_get_height(parent) == 20) {
+    return parent;
+  }
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    if (auto* result = findKnobPointer(lv_obj_get_child(parent, static_cast<int32_t>(i)))) {
+      return result;
+    }
+  }
+  return nullptr;
+}
+
+lv_obj_t* findKnobPointer(lv_obj_t* parent, const char* controlLabel)
+{
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    lv_obj_t* child = lv_obj_get_child(parent, static_cast<int32_t>(i));
+    if (lv_obj_check_type(child, &lv_label_class) && std::strcmp(lv_label_get_text(child), controlLabel) == 0) {
+      return findKnobPointer(parent);
+    }
+  }
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    if (auto* result = findKnobPointer(lv_obj_get_child(parent, static_cast<int32_t>(i)), controlLabel)) {
+      return result;
+    }
+  }
+  return nullptr;
 }
 
 } // namespace
@@ -99,6 +142,56 @@ int main()
 
   if (require(ardor::parameterPage(state, 0).size() <= 6, "page must contain <= six knobs")) return 1;
   if (require(ardor::parameterPageCount(state) == 2, "seven params require two pages")) return 1;
+
+  lv_init();
+  lv_display_t* display = lv_display_create(1280, 720);
+  ardor::enterEditMode(state);
+  const auto tremControls = ardor::parameterPage(state, 0);
+  const auto depth = std::find_if(tremControls.begin(), tremControls.end(),
+                                  [](const auto& control) { return control.key == "depth"; });
+  if (require(depth != tremControls.end(), "Vintage Trem depth control should be available")) return 1;
+  ardor::setSelectedBlockParam(state, "depth", depth->minimum);
+  ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+
+  const auto& selected = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
+  const std::string titleText = selected.label + "  /  " + selected.assetName;
+  lv_obj_t* previous = findLabel(lv_screen_active(), "<");
+  lv_obj_t* page = findLabel(lv_screen_active(), "PAGE 1/2");
+  lv_obj_t* next = findLabel(lv_screen_active(), ">");
+  lv_obj_t* title = findLabel(lv_screen_active(), titleText.c_str());
+  lv_obj_t* pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
+  if (require(previous && next && title && pointer, "parameter header and knob pointer should render")) return 1;
+  if (require(page, "parameter header should show PAGE n/total")) return 1;
+
+  lv_area_t previousArea{};
+  lv_area_t pageArea{};
+  lv_area_t nextArea{};
+  lv_area_t titleArea{};
+  lv_obj_get_coords(lv_obj_get_parent(previous), &previousArea);
+  lv_obj_get_coords(page, &pageArea);
+  lv_obj_get_coords(lv_obj_get_parent(next), &nextArea);
+  lv_obj_get_coords(title, &titleArea);
+  if (require(previousArea.x2 < pageArea.x1 && pageArea.x2 < nextArea.x1 && nextArea.x2 < titleArea.x1,
+              "parameter header controls and title should not overlap")) return 1;
+  if (require(lv_obj_get_style_transform_pivot_x(pointer, LV_PART_MAIN) == 1
+                && lv_obj_get_style_transform_pivot_y(pointer, LV_PART_MAIN) == 21,
+              "knob pointer should rotate from its radial base")) return 1;
+  if (require(lv_obj_get_x(pointer) + 1 == lv_obj_get_width(lv_obj_get_parent(pointer)) / 2
+                && lv_obj_get_y(pointer) + 21 == lv_obj_get_height(lv_obj_get_parent(pointer)) / 2,
+              "knob pointer base should be at the rim centre")) return 1;
+  if (require(lv_obj_get_style_transform_rotation(pointer, LV_PART_MAIN) == 450,
+              "minimum knob value should point to the start of the arc")) return 1;
+
+  ardor::setSelectedBlockParam(state, "depth", depth->maximum);
+  ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
+  if (require(pointer && lv_obj_get_style_transform_rotation(pointer, LV_PART_MAIN) == 3150,
+              "maximum knob value should point to the end of the arc")) return 1;
+
+  lv_display_delete(display);
+  lv_deinit();
 
   return 0;
 }

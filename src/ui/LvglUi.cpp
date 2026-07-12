@@ -42,13 +42,14 @@ void styleSurface(lv_obj_t* object, int color = panel)
   lv_obj_set_style_shadow_width(object, 0, 0);
 }
 
-void label(lv_obj_t* parent, const std::string& value, lv_align_t align, int x, int y,
-           const lv_font_t* font = &ardor_font_open_sans_regular_18, int color = text)
+lv_obj_t* label(lv_obj_t* parent, const std::string& value, lv_align_t align, int x, int y,
+                const lv_font_t* font = &ardor_font_open_sans_regular_18, int color = text)
 {
   lv_obj_t* object = lv_label_create(parent);
   lv_label_set_text(object, value.c_str());
   setText(object, color, font);
   lv_obj_align(object, align, x, y);
+  return object;
 }
 
 void redraw(UiEventContext* context)
@@ -513,8 +514,8 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, U
   lv_obj_set_style_bg_color(pointer, lv_color_hex(text), 0);
   lv_obj_set_style_border_width(pointer, 0, 0);
   lv_obj_set_style_radius(pointer, 2, 0);
-  lv_obj_set_style_transform_pivot_x(pointer, 1, 21);
-  lv_obj_set_style_transform_pivot_y(pointer, 1, 21);
+  lv_obj_set_style_transform_pivot_x(pointer, 1, LV_PART_MAIN);
+  lv_obj_set_style_transform_pivot_y(pointer, 21, LV_PART_MAIN);
   lv_obj_set_style_transform_rotation(pointer, static_cast<int32_t>((45.0f + ratio * 270.0f) * 10.0f), 0);
   lv_obj_remove_flag(pointer, LV_OBJ_FLAG_CLICKABLE);
 
@@ -555,11 +556,13 @@ void renderPageNavigation(lv_obj_t* parent, UiState& state, UiEventContext* cont
   lv_obj_set_size(previous, 36, 32);
   lv_obj_align(previous, LV_ALIGN_TOP_LEFT, 28, 20);
   lv_obj_add_event_cb(previous, onPreviousParameterPage, LV_EVENT_CLICKED, context);
-  label(parent, std::to_string(page + 1) + " / " + std::to_string(count), LV_ALIGN_TOP_LEFT, 72, 25,
-        &ardor_font_open_sans_regular_18, muted);
+  lv_obj_t* pageLabel = label(parent, "PAGE " + std::to_string(page + 1) + "/" + std::to_string(count),
+                              LV_ALIGN_TOP_LEFT, 76, 25, &ardor_font_open_sans_regular_18, muted);
+  lv_obj_set_width(pageLabel, 88);
+  lv_label_set_long_mode(pageLabel, LV_LABEL_LONG_CLIP);
   lv_obj_t* next = button(parent, ">");
   lv_obj_set_size(next, 36, 32);
-  lv_obj_align(next, LV_ALIGN_TOP_LEFT, 134, 20);
+  lv_obj_align(next, LV_ALIGN_TOP_LEFT, 172, 20);
   lv_obj_add_event_cb(next, onNextParameterPage, LV_EVENT_CLICKED, context);
 }
 
@@ -578,15 +581,19 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
   lv_obj_add_event_cb(close, onCloseParamDrawer, LV_EVENT_CLICKED, context);
 
   if (state.paramTarget == UiParamTarget::Globals) {
-    label(panelObject, "Global", LV_ALIGN_TOP_LEFT, 28, 22, &ardor_font_open_sans_semibold_22);
+    lv_obj_t* title = label(panelObject, "Global", LV_ALIGN_TOP_LEFT, 236, 22, &ardor_font_open_sans_semibold_22);
+    lv_obj_set_width(title, 700);
+    lv_label_set_long_mode(title, LV_LABEL_LONG_CLIP);
   } else {
     const auto& blocks = state.bank.presets[state.activePreset].blocks;
     if (state.selectedBlock >= blocks.size()) {
       return;
     }
     const auto& block = blocks[state.selectedBlock];
-    label(panelObject, block.label + "  /  " + block.assetName, LV_ALIGN_TOP_LEFT, 28, 22,
-          &ardor_font_open_sans_semibold_22);
+    lv_obj_t* title = label(panelObject, block.label + "  /  " + block.assetName,
+                            LV_ALIGN_TOP_LEFT, 236, 22, &ardor_font_open_sans_semibold_22);
+    lv_obj_set_width(title, 700);
+    lv_label_set_long_mode(title, LV_LABEL_LONG_CLIP);
     renderBypassSwitch(panelObject, state, context);
   }
 
