@@ -1,5 +1,7 @@
 #include "ui/LvglUi.h"
 
+#include "daisyfx/DaisyFxCatalog.h"
+
 #include <algorithm>
 #include <array>
 #include <string>
@@ -192,6 +194,20 @@ void onCabMixUp(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   stepSelectedParam(*context->state, "mix", 0.05f, 0.0f, 1.0f, 1.0f);
+  redraw(context);
+}
+
+void onDaisyParamDown(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  stepSelectedParam(*context->state, context->filter, -0.05f, 0.0f, 1.0f, 0.5f);
+  redraw(context);
+}
+
+void onDaisyParamUp(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  stepSelectedParam(*context->state, context->filter, 0.05f, 0.0f, 1.0f, 0.5f);
   redraw(context);
 }
 
@@ -774,6 +790,31 @@ void LvglUi::renderParamDrawer(lv_obj_t* root, UiState& state)
     lv_obj_set_size(mixPlus, 36, 32);
     lv_obj_align(mixPlus, LV_ALIGN_BOTTOM_LEFT, 472, -4);
     lv_obj_add_event_cb(mixPlus, onCabMixUp, LV_EVENT_CLICKED, context);
+  }
+
+  if (const auto* descriptor = findDaisyFxDescriptor(block.type, block.params.value("mode", ""))) {
+    int x = 190;
+    int y = 0;
+    for (std::size_t i = 0; i < descriptor->params.size(); ++i) {
+      const auto& param = descriptor->params[i];
+      const int value = static_cast<int>(block.params.value(param.key, param.defaultValue) * 100.0f);
+      label(drawer, param.label + " " + std::to_string(value), LV_ALIGN_TOP_LEFT, x, y,
+            &lv_font_montserrat_14, muted);
+      auto* context = remember(state, 0, param.key);
+      lv_obj_t* minus = button(drawer, "-");
+      lv_obj_set_size(minus, 30, 28);
+      lv_obj_align(minus, LV_ALIGN_TOP_LEFT, x, y + 28);
+      lv_obj_add_event_cb(minus, onDaisyParamDown, LV_EVENT_CLICKED, context);
+      lv_obj_t* plus = button(drawer, "+");
+      lv_obj_set_size(plus, 30, 28);
+      lv_obj_align(plus, LV_ALIGN_TOP_LEFT, x + 36, y + 28);
+      lv_obj_add_event_cb(plus, onDaisyParamUp, LV_EVENT_CLICKED, context);
+      x += 86;
+      if (i == 3) {
+        x = 190;
+        y = 66;
+      }
+    }
   }
 
   lv_obj_t* close = button(drawer, "X");

@@ -69,10 +69,14 @@ bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoad
       if (options.irSamples > 0 && wav.samples.size() > options.irSamples) {
         wav.samples.resize(options.irSamples);
       }
-      engine.loadIr(std::move(wav.samples));
-      engine.setCabLevel(block.level);
-      engine.setCabMix(block.mix);
+      engine.addCab(std::move(wav.samples), block.level, block.mix);
       loadedCab = true;
+      continue;
+    }
+    if (block.type == "mod" || block.type == "delay" || block.type == "reverb") {
+      if (!engine.addDaisyFx(block.type, block.params, static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
       continue;
     }
   }

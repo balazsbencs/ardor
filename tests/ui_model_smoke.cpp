@@ -63,6 +63,38 @@ int main()
   ardor::closeParamDrawer(state);
   if (require(!state.paramDrawerOpen, "parameter drawer close failed")) return 1;
 
+  auto tremAsset = std::find_if(state.assets.begin(), state.assets.end(), [](const ardor::UiAsset& asset) {
+    return asset.name == "Vintage Trem";
+  });
+  if (require(tremAsset != state.assets.end(), "daisy effect should be in asset list")) return 1;
+  const auto tremIndex = static_cast<std::size_t>(std::distance(state.assets.begin(), tremAsset));
+  const auto beforeTremAdd = state.bank.presets[state.activePreset].blocks.size();
+  ardor::appendAssetBlock(state, tremIndex);
+  const auto& trem = state.bank.presets[state.activePreset].blocks.back();
+  if (require(state.bank.presets[state.activePreset].blocks.size() == beforeTremAdd + 1, "daisy asset should append block")) return 1;
+  if (require(trem.type == "mod", "daisy block should use catalog block type")) return 1;
+  if (require(trem.assetPath.empty(), "daisy block should not use asset path")) return 1;
+  if (require(trem.params.value("mode", "") == "vintage_trem", "daisy block should use catalog mode")) return 1;
+  if (require(trem.params.contains("depth"), "daisy block should include default params")) return 1;
+  if (require(!state.paramDrawerOpen, "daisy add should not open parameter drawer")) return 1;
+
+  ardor::selectBlock(state, state.bank.presets[state.activePreset].blocks.size() - 1);
+  ardor::setSelectedBlockParam(state, "depth", 0.25f);
+  const auto tremPreset = ardor::activePresetToPreset(state);
+  if (require(tremPreset.blocks.back().type == "mod", "daisy block should save as mod")) return 1;
+  if (require(tremPreset.blocks.back().asset.empty(), "daisy block should save empty asset")) return 1;
+  if (require(tremPreset.blocks.back().params.value("depth", 0.0f) == 0.25f, "daisy params should save")) return 1;
+  ardor::closeParamDrawer(state);
+
+  auto delayAsset = std::find_if(state.assets.begin(), state.assets.end(), [](const ardor::UiAsset& asset) {
+    return asset.name == "Digital Delay";
+  });
+  auto reverbAsset = std::find_if(state.assets.begin(), state.assets.end(), [](const ardor::UiAsset& asset) {
+    return asset.name == "Room Reverb";
+  });
+  if (require(delayAsset != state.assets.end(), "digital delay should be in asset list")) return 1;
+  if (require(reverbAsset != state.assets.end(), "room reverb should be in asset list")) return 1;
+
   const auto beforeAdd = state.bank.presets[state.activePreset].blocks.size();
   ardor::appendAssetBlock(state, 1);
   const auto& added = state.bank.presets[state.activePreset].blocks.back();

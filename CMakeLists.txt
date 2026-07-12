@@ -55,10 +55,44 @@ file(GLOB NAM_SOURCES
   ${neuralampmodelercore_SOURCE_DIR}/NAM/*/*.cpp
 )
 
+add_library(ardor_daisyfx_vendor
+  third_party/daisy-multi-fx-hosted/src/params/mod_param_set.cpp
+  third_party/daisy-multi-fx-hosted/src/params/mod_param_map.cpp
+  third_party/daisy-multi-fx-hosted/src/params/delay_param_set.cpp
+  third_party/daisy-multi-fx-hosted/src/params/delay_param_map.cpp
+  third_party/daisy-multi-fx-hosted/src/params/reverb_param_set.cpp
+  third_party/daisy-multi-fx-hosted/src/params/reverb_param_map.cpp
+  third_party/daisy-multi-fx-hosted/src/dsp/lfo.cpp
+  third_party/daisy-multi-fx-hosted/src/dsp/delay_line_sdram.cpp
+  third_party/daisy-multi-fx-hosted/src/dsp/tone_filter.cpp
+  third_party/daisy-multi-fx-hosted/src/dsp/diffuser.cpp
+  third_party/daisy-multi-fx-hosted/src/dsp/fdn.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/vintage_trem_mode.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/digital_delay.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/room_reverb.cpp
+)
+target_include_directories(ardor_daisyfx_vendor PUBLIC
+  third_party/daisy-multi-fx-hosted/compat
+  third_party/daisy-multi-fx-hosted/src
+)
+target_compile_features(ardor_daisyfx_vendor PUBLIC cxx_std_20)
+
+add_library(ardor_daisyfx
+  src/daisyfx/DaisyFxCatalog.cpp
+  src/daisyfx/DaisyFxProcessor.cpp
+)
+target_include_directories(ardor_daisyfx PUBLIC
+  src
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies
+)
+target_compile_features(ardor_daisyfx PUBLIC cxx_std_20)
+target_link_libraries(ardor_daisyfx PUBLIC ardor_daisyfx_vendor)
+
 add_library(ardor_dsp OBJECT
   src/dsp/IrConvolver.cpp
   src/dsp/NamProcessor.cpp
   src/dsp/PedalEngine.cpp
+  src/dsp/RuntimeChain.cpp
   ${NAM_SOURCES}
 )
 target_include_directories(ardor_dsp PUBLIC
@@ -69,6 +103,7 @@ target_include_directories(ardor_dsp PUBLIC
 )
 target_compile_features(ardor_dsp PUBLIC cxx_std_20)
 target_compile_definitions(ardor_dsp PRIVATE NAM_ENABLE_A2_FAST NAM_SAMPLE_FLOAT)
+target_link_libraries(ardor_dsp PUBLIC ardor_daisyfx)
 if(UNIX AND NOT APPLE)
   target_link_libraries(ardor_dsp PUBLIC stdc++fs)
 endif()
@@ -85,6 +120,7 @@ target_include_directories(ardor_preset PUBLIC
   ${neuralampmodelercore_SOURCE_DIR}/Dependencies/nlohmann
 )
 target_compile_features(ardor_preset PUBLIC cxx_std_20)
+target_link_libraries(ardor_preset PUBLIC ardor_daisyfx)
 
 add_library(ardor_ui
   src/ui/UiModel.cpp
@@ -129,11 +165,23 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   target_compile_definitions(pedal-poc PRIVATE ARDOR_HAS_UI)
 endif()
 
+add_executable(audio-probe apps/audio-probe/main.c)
+target_include_directories(audio-probe PRIVATE ${miniaudio_SOURCE_DIR})
+
 add_executable(pedal-offline-smoke tests/offline_smoke.cpp)
 target_link_libraries(pedal-offline-smoke PRIVATE ardor_dsp ardor_audio)
 
 add_executable(pedal-preset-smoke tests/preset_smoke.cpp)
 target_link_libraries(pedal-preset-smoke PRIVATE ardor_preset)
+
+add_executable(pedal-daisy-fx-catalog-smoke tests/daisy_fx_catalog_smoke.cpp)
+target_link_libraries(pedal-daisy-fx-catalog-smoke PRIVATE ardor_daisyfx)
+
+add_executable(pedal-daisy-fx-smoke tests/daisy_fx_smoke.cpp)
+target_link_libraries(pedal-daisy-fx-smoke PRIVATE ardor_daisyfx)
+
+add_executable(pedal-runtime-chain-smoke tests/runtime_chain_smoke.cpp)
+target_link_libraries(pedal-runtime-chain-smoke PRIVATE ardor_dsp ardor_daisyfx)
 
 add_executable(pedal-engine-contract-smoke tests/engine_contract_smoke.cpp)
 target_link_libraries(pedal-engine-contract-smoke PRIVATE ardor_dsp)
@@ -165,6 +213,9 @@ target_link_libraries(pedal-control-smoke PRIVATE ardor_control)
 enable_testing()
 add_test(NAME pedal-offline-smoke COMMAND pedal-offline-smoke)
 add_test(NAME pedal-preset-smoke COMMAND pedal-preset-smoke)
+add_test(NAME pedal-daisy-fx-catalog-smoke COMMAND pedal-daisy-fx-catalog-smoke)
+add_test(NAME pedal-daisy-fx-smoke COMMAND pedal-daisy-fx-smoke)
+add_test(NAME pedal-runtime-chain-smoke COMMAND pedal-runtime-chain-smoke)
 add_test(NAME pedal-engine-contract-smoke COMMAND pedal-engine-contract-smoke)
 add_test(NAME pedal-nam-processor-smoke COMMAND pedal-nam-processor-smoke)
 add_test(NAME pedal-ui-model-smoke COMMAND pedal-ui-model-smoke)
@@ -180,4 +231,5 @@ if(APPLE)
 elseif(UNIX)
   target_link_libraries(pedal-poc PRIVATE pthread m dl)
   target_link_libraries(ardor_audio PRIVATE pthread m dl)
+  target_link_libraries(audio-probe PRIVATE pthread m dl)
 endif()

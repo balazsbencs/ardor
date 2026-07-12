@@ -1,5 +1,7 @@
 #include "PedalEngine.h"
 
+#include "daisyfx/DaisyFxProcessor.h"
+
 #include <algorithm>
 #include <utility>
 
@@ -8,13 +10,27 @@ namespace ardor {
 bool PedalEngine::loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize)
 {
   prepareBlockSize(static_cast<size_t>(std::max(1, maxBlockSize)));
-  return nam_.load(modelPath, sampleRate, maxBlockSize);
+  return chain_.addNam(modelPath, sampleRate, maxBlockSize);
 }
 
 void PedalEngine::loadIr(std::vector<float> impulse)
 {
-  ir_.loadImpulse(std::move(impulse));
-  ir_.prepareBlockSize(blockSize_);
+  addCab(std::move(impulse), cabLevel_.load(std::memory_order_relaxed), cabMix_.load(std::memory_order_relaxed));
+}
+
+void PedalEngine::addCab(std::vector<float> impulse, float level, float mix)
+{
+  chain_.addCab(std::move(impulse), level, mix);
+}
+
+bool PedalEngine::addDaisyFx(const std::string& blockType, const nlohmann::json& params, float sampleRate, std::string& error)
+{
+  DaisyFxProcessor processor;
+  if (!processor.configure(blockType, params, sampleRate, error)) {
+    return false;
+  }
+  chain_.addDaisy(std::move(processor));
+  return true;
 }
 
 void PedalEngine::prepareBlockSize(size_t frames)
@@ -23,15 +39,12 @@ void PedalEngine::prepareBlockSize(size_t frames)
     return;
   }
   blockSize_ = frames;
-  namBlock_.assign(frames, 0.0f);
-  irBlock_.assign(frames, 0.0f);
-  ir_.prepareBlockSize(frames);
+  chain_.prepareBlockSize(frames);
 }
 
 void PedalEngine::clearEffects()
 {
-  nam_.clear();
-  ir_.loadImpulse({});
+  chain_.clear();
 }
 
 void PedalEngine::setInputGain(float gain)
@@ -69,18 +82,21 @@ void PedalEngine::setSafetyLimiterEnabled(bool enabled)
 
 void PedalEngine::setCabLevel(float gain)
 {
-  cabLevel_.store(std::max(0.0f, gain), std::memory_order_relaxed);
+  const float level = std::max(0.0f, gain);
+  cabLevel_.store(level, std::memory_order_relaxed);
+  chain_.setCabParams(level, cabMix_.load(std::memory_order_relaxed));
 }
 
 void PedalEngine::setCabMix(float mix)
 {
-  cabMix_.store(std::clamp(mix, 0.0f, 1.0f), std::memory_order_relaxed);
+  const float cabMix = std::clamp(mix, 0.0f, 1.0f);
+  cabMix_.store(cabMix, std::memory_order_relaxed);
+  chain_.setCabParams(cabLevel_.load(std::memory_order_relaxed), cabMix);
 }
 
 void PedalEngine::reset()
 {
-  nam_.reset();
-  ir_.reset();
+  chain_.reset();
 }
 
 void PedalEngine::applyPendingReset()
@@ -101,13 +117,9 @@ std::pair<float, float> PedalEngine::process(float input)
   }
 
   const float afterGain = input * inputGain_.load(std::memory_order_relaxed);
-  const float afterNam = nam_.process(afterGain);
-  const float cabLevel = cabLevel_.load(std::memory_order_relaxed);
-  const float cabMix = cabMix_.load(std::memory_order_relaxed);
-  const float cabWet = ir_.processSample(afterNam) * cabLevel;
-  const float wet = applySafety(((cabWet * cabMix) + (afterNam * (1.0f - cabMix)))
-                                * outputGain_.load(std::memory_order_relaxed) * masterVolume);
-  return {wet, wet};
+  const auto wet = chain_.process({afterGain, afterGain});
+  const float output = outputGain_.load(std::memory_order_relaxed) * masterVolume;
+  return {applySafety(wet.left * output), applySafety(wet.right * output)};
 }
 
 void PedalEngine::processBlock(const float* input, float* left, float* right, size_t frames)
@@ -138,22 +150,11 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
   }
 
   const float inputGain = inputGain_.load(std::memory_order_relaxed);
-  for (size_t i = 0; i < frames; ++i) {
-    namBlock_[i] = input[i] * inputGain;
-  }
-
-  nam_.processBlock(namBlock_.data(), namBlock_.data(), frames);
-  ir_.processBlock(namBlock_.data(), irBlock_.data(), frames);
-
   const float outputGain = outputGain_.load(std::memory_order_relaxed);
-  const float cabLevel = cabLevel_.load(std::memory_order_relaxed);
-  const float cabMix = cabMix_.load(std::memory_order_relaxed);
   for (size_t i = 0; i < frames; ++i) {
-    const float cabWet = irBlock_[i] * cabLevel;
-    const float wet = applySafety(((cabWet * cabMix) + (namBlock_[i] * (1.0f - cabMix)))
-                                  * outputGain * masterVolume);
-    left[i] = wet;
-    right[i] = wet;
+    const auto wet = chain_.process({input[i] * inputGain, input[i] * inputGain});
+    left[i] = applySafety(wet.left * outputGain * masterVolume);
+    right[i] = applySafety(wet.right * outputGain * masterVolume);
   }
 }
 

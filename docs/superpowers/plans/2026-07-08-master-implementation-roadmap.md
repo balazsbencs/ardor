@@ -217,7 +217,8 @@ Expected:
 - Block `params` round-trip through UI save/load.
 - Cab `levelDb` and `mix` are applied by the engine.
 - The safety limiter ceiling is stored per preset but is **not** user-editable in the UI (it is a protective device, not a tone control).
-- Modulation, delay, and reverb remain stored-only or unsupported.
+- Daisy modulation, delay, and reverb are available only on the
+  `codex/daisy-effects-integration` branch until Pi headroom is measured.
 
 **Stop If:**
 
@@ -448,7 +449,7 @@ Final expected state:
 
 ## Deferred Until After Pi Validation
 
-- **Daisy effects integration** (`docs/superpowers/plans/2026-07-08-daisy-effects-integration.md`) — the entire plan. This supersedes that plan's own "Execution Position" section, which asked to run before the Buildroot target: it lands a large CPU unknown on the Pi before the NAM baseline is validated. Its Task 8 headroom rule (>30%) must be re-measured on the Pi, not macOS.
+- **Daisy effects integration** (`docs/superpowers/plans/2026-07-08-daisy-effects-integration.md`) — developed early on `codex/daisy-effects-integration`, but do not merge into the Pi validation line until Task 8's headroom rule (>30%) is measured on the Pi, not macOS.
 - Bank up/down footswitch combinations.
 - Multiple NAM/cab stereo chains.
 - Modulation, delay, and reverb DSP (arrives with the Daisy plan).

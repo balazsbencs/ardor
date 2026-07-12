@@ -1,5 +1,7 @@
 #include "ui/UiModel.h"
 
+#include "daisyfx/DaisyFxCatalog.h"
+
 #include <algorithm>
 #include <array>
 #include <exception>
@@ -20,7 +22,28 @@ std::string labelForBlockType(const std::string& type)
   if (type == "cab") {
     return "Cab";
   }
+  if (type == "mod") {
+    return "Modulation";
+  }
+  if (type == "delay") {
+    return "Delay";
+  }
+  if (type == "reverb") {
+    return "Reverb";
+  }
   return type;
+}
+
+std::string categoryForDaisyKind(DaisyFxKind kind)
+{
+  switch (kind) {
+  case DaisyFxKind::Mod:
+    return "modulation";
+  case DaisyFxKind::Delay:
+  case DaisyFxKind::Reverb:
+    return "time";
+  }
+  return "time";
 }
 
 std::string assetNameForPath(const UiState& state, const std::string& path, const std::string& type)
@@ -31,6 +54,14 @@ std::string assetNameForPath(const UiState& state, const std::string& path, cons
     }
   }
   return path.empty() ? type : path;
+}
+
+std::string assetNameForBlock(const UiState& state, const PresetBlock& block)
+{
+  if (const auto* descriptor = findDaisyFxDescriptor(block.type, block.params.value("mode", ""))) {
+    return descriptor->name;
+  }
+  return assetNameForPath(state, block.asset, block.type);
 }
 
 float clampFloat(float value, float low, float high)
@@ -80,6 +111,14 @@ void appendAssetsFrom(UiState& state, const std::filesystem::path& dir, const st
   }
 }
 
+void appendDaisyAssets(UiState& state)
+{
+  for (const auto& descriptor : daisyFxCatalog()) {
+    state.assets.push_back({descriptor.name, "", categoryForDaisyKind(descriptor.kind),
+                            descriptor.blockType, descriptor.mode});
+  }
+}
+
 } // namespace
 
 UiState makeDemoUiState()
@@ -105,9 +144,9 @@ UiState makeDemoUiState()
     {"Vintage 4x12", "irs/vintage.wav", "cabs"},
     {"Focused 1x12", "irs/focus.wav", "cabs"},
     {"Compressor", "", "dynamics"},
-    {"Wide Chorus", "", "modulation"},
     {"Tape Delay", "", "time"},
   };
+  appendDaisyAssets(state);
   return state;
 }
 
@@ -171,18 +210,25 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
   const auto& asset = state.assets[assetIndex];
   std::string type = asset.type;
   std::string label = asset.name;
+  nlohmann::json params = nlohmann::json::object();
   if (asset.type == "amps") {
     type = "nam";
     label = "Neural Amp";
   } else if (asset.type == "cabs") {
     type = "cab";
     label = "Cab";
+  } else if (!asset.blockType.empty()) {
+    type = asset.blockType;
+    label = labelForBlockType(asset.blockType);
+    if (const auto* descriptor = findDaisyFxDescriptor(asset.blockType, asset.mode)) {
+      params = defaultDaisyFxParams(*descriptor);
+    }
   }
 
   auto& blocks = state.bank.presets[state.activePreset].blocks;
   const auto insertAt = std::min(blockIndex, blocks.size());
   blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(insertAt),
-                {nextBlockId(blocks), type, label, asset.name, asset.path, true});
+                {nextBlockId(blocks), type, label, asset.name, asset.path, true, params});
   state.selectedBlock = insertAt;
   state.dirty = true;
 }
@@ -237,7 +283,7 @@ void replaceActivePreset(UiState& state, const Preset& preset)
     uiPreset.blocks.push_back({block.id,
                                block.type,
                                labelForBlockType(block.type),
-                               assetNameForPath(state, block.asset, block.type),
+                               assetNameForBlock(state, block),
                                block.asset,
                                block.enabled,
                                block.params.is_null() ? nlohmann::json::object() : block.params});
@@ -272,6 +318,15 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
     return;
   }
   blocks[state.selectedBlock].params[key] = value;
+  if (const auto* descriptor = findDaisyFxDescriptor(blocks[state.selectedBlock].type,
+                                                     blocks[state.selectedBlock].params.value("mode", ""))) {
+    for (const auto& param : descriptor->params) {
+      if (param.key == key) {
+        blocks[state.selectedBlock].params[key] = clampFloat(value, 0.0f, 1.0f);
+        break;
+      }
+    }
+  }
   state.dirty = true;
 }
 
@@ -294,8 +349,8 @@ void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoo
   appendAssetsFrom(state, dataRoot / "models", ".nam", "amps");
   appendAssetsFrom(state, dataRoot / "irs", ".wav", "cabs");
   state.assets.push_back({"Compressor", "", "dynamics"});
-  state.assets.push_back({"Wide Chorus", "", "modulation"});
   state.assets.push_back({"Tape Delay", "", "time"});
+  appendDaisyAssets(state);
 }
 
 bool loadPresetSlotFromStore(UiState& state, const PresetStore& store, PresetSlot slot, std::string& error)

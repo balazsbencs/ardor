@@ -206,11 +206,13 @@ int main()
     chainPreset.blocks.push_back({"empty", "cab", true, "", nlohmann::json::object()});
     chainPreset.blocks.push_back({"missing", "cab", true, "irs/missing.wav", nlohmann::json::object()});
     chainPreset.blocks.push_back({"escape", "nam", true, "../outside.nam", nlohmann::json::object()});
+    chainPreset.blocks.push_back({"trem", "mod", true, "", nlohmann::json{{"mode", "vintage_trem"}}});
+    chainPreset.blocks.push_back({"bad-mod", "mod", true, "", nlohmann::json{{"mode", "bogus"}}});
     chainPreset.blocks.push_back({"future", "delay", true, "", nlohmann::json::object()});
     chainPreset.blocks.push_back({"cab-ready", "cab", true, "irs/ok.wav", nlohmann::json{{"mix", 1.0f}}});
 
     const ardor::ChainPlan plan = ardor::buildChainPlan(chainPreset, dataRoot);
-    require(plan.blocks.size() == 7, "chain plan block count");
+    require(plan.blocks.size() == 9, "chain plan block count");
     require(std::fabs(plan.inputGain - ardor::dbToGain(-6.0f)) < 0.0001f, "chain input gain");
     require(std::fabs(plan.outputGain - ardor::dbToGain(-3.0f)) < 0.0001f, "chain output gain");
     require(std::fabs(plan.safetyLimit - ardor::dbToGain(-2.0f)) < 0.0001f, "chain safety limit");
@@ -221,9 +223,11 @@ int main()
     require(plan.blocks[2].status == ardor::ChainBlockStatus::MissingAsset, "empty asset");
     require(plan.blocks[3].status == ardor::ChainBlockStatus::MissingAsset, "missing asset");
     require(plan.blocks[4].status == ardor::ChainBlockStatus::MissingAsset, "escaped asset");
-    require(plan.blocks[5].status == ardor::ChainBlockStatus::Unsupported, "unsupported block");
+    require(plan.blocks[5].status == ardor::ChainBlockStatus::Ready, "daisy mod block");
+    require(plan.blocks[6].status == ardor::ChainBlockStatus::Unsupported, "unsupported daisy mode");
+    require(plan.blocks[7].status == ardor::ChainBlockStatus::Unsupported, "unsupported block");
     require(plan.blocks.back().assetPath == dataRoot / "irs/ok.wav", "resolved cab asset");
-    require(plan.runnableBlockCount == 2, "runnable block count");
+    require(plan.runnableBlockCount == 3, "runnable block count");
 
     std::filesystem::remove_all(dataRoot);
     std::filesystem::remove_all(root);

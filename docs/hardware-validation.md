@@ -168,8 +168,11 @@ First boot checks:
 cat /etc/ardor-pedal.env
 mount | grep ardor            # data partition rw, rootfs ro
 cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor   # performance
+cat /proc/asound/cards        # Codec Zero should appear
 aplay -l                      # Codec Zero is card 0
 arecord -l
+/usr/bin/ardor-pedal --devices
+pidof ardor-pedal
 cat /proc/bus/input/devices   # footswitches + encoder present
 ```
 

@@ -16,6 +16,8 @@ struct UiAsset {
   std::string name;
   std::string path;
   std::string type;
+  std::string blockType;
+  std::string mode;
 };
 
 struct UiBlock {

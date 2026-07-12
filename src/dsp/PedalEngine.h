@@ -1,10 +1,10 @@
 #pragma once
 
-#include "IrConvolver.h"
-#include "NamProcessor.h"
+#include "RuntimeChain.h"
 
 #include <atomic>
 #include <filesystem>
+#include <nlohmann/json.hpp>
 #include <utility>
 #include <vector>
 
@@ -14,6 +14,8 @@ class PedalEngine {
 public:
   bool loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize);
   void loadIr(std::vector<float> impulse);
+  void addCab(std::vector<float> impulse, float level, float mix);
+  bool addDaisyFx(const std::string& blockType, const nlohmann::json& params, float sampleRate, std::string& error);
   void prepareBlockSize(size_t frames);
   void clearEffects();
   void setInputGain(float gain);
@@ -38,10 +40,7 @@ private:
   std::atomic<bool> effectsBypassed_{false};
   std::atomic<bool> safetyLimiterEnabled_{true};
   std::atomic<bool> resetRequested_{false};
-  NamProcessor nam_;
-  IrConvolver ir_;
-  std::vector<float> namBlock_;
-  std::vector<float> irBlock_;
+  RuntimeChain chain_;
   size_t blockSize_ = 0;
 
   void applyPendingReset();

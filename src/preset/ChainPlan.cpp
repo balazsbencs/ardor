@@ -1,5 +1,7 @@
 #include "preset/ChainPlan.h"
 
+#include "daisyfx/DaisyFxCatalog.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -10,6 +12,16 @@ namespace {
 bool isSupportedBlockType(const std::string& type)
 {
   return type == "nam" || type == "cab";
+}
+
+bool isDaisyBlockType(const std::string& type)
+{
+  return type == "mod" || type == "delay" || type == "reverb";
+}
+
+bool isSupportedDaisyBlock(const std::string& type, const nlohmann::json& params)
+{
+  return isDaisyBlockType(type) && findDaisyFxDescriptor(type, params.value("mode", "")) != nullptr;
 }
 
 } // namespace
@@ -41,6 +53,13 @@ ChainPlan buildChainPlan(const Preset& preset, const std::filesystem::path& data
 
     if (!block.enabled) {
       blockPlan.status = ChainBlockStatus::Disabled;
+    } else if (isDaisyBlockType(block.type)) {
+      if (isSupportedDaisyBlock(block.type, blockPlan.params)) {
+        blockPlan.status = ChainBlockStatus::Ready;
+        ++plan.runnableBlockCount;
+      } else {
+        blockPlan.status = ChainBlockStatus::Unsupported;
+      }
     } else if (!isSupportedBlockType(block.type)) {
       blockPlan.status = ChainBlockStatus::Unsupported;
     } else if (block.asset.empty()) {

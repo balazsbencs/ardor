@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Guitar buffer preamp to Raspberry Pi Codec Zero AUX left</title>
+  <desc id="desc">High impedance guitar input buffer and adjustable non-inverting gain stage feeding Codec Zero AUX left through an AC coupling capacitor.</desc>
+  <defs>
+    <style>
+      .bg { fill: #ffffff; }
+      .wire { stroke: #1f2937; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .thin { stroke: #1f2937; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .part { stroke: #1f2937; stroke-width: 3; fill: #ffffff; stroke-linecap: round; stroke-linejoin: round; }
+      .node { fill: #1f2937; }
+      .label { font: 18px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #111827; }
+      .small { font: 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #374151; }
+      .tiny { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #4b5563; }
+      .title { font: 24px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 700; fill: #111827; }
+      .box { fill: #f9fafb; stroke: #374151; stroke-width: 2; rx: 10; }
+      .note { fill: #fff7ed; stroke: #f97316; stroke-width: 2; rx: 10; }
+      .ground { stroke: #1f2937; stroke-width: 3; fill: none; stroke-linecap: round; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1200" height="760"/>
+  <text class="title" x="40" y="50">Passive guitar to Codec Zero AUX_L: high-Z buffer / preamp</text>
+
+  <!-- Power rails -->
+  <line class="wire" x1="80" y1="105" x2="1120" y2="105"/>
+  <text class="label" x="84" y="93">+5V or +3V3 analog rail</text>
+  <line class="wire" x1="80" y1="690" x2="1120" y2="690"/>
+  <text class="label" x="84" y="722">GND: guitar sleeve, buffer ground, Codec Zero P1 ground, Pi ground</text>
+
+  <!-- VREF divider -->
+  <text class="label" x="80" y="155">VREF = half supply</text>
+  <line class="wire" x1="180" y1="105" x2="180" y2="155"/>
+  <polyline class="thin" points="180,155 165,165 195,180 165,195 195,210 165,225 180,235"/>
+  <text class="small" x="205" y="200">47k</text>
+  <circle class="node" cx="180" cy="265" r="5"/>
+  <line class="wire" x1="180" y1="235" x2="180" y2="265"/>
+  <polyline class="thin" points="180,265 165,275 195,290 165,305 195,320 165,335 180,345"/>
+  <text class="small" x="205" y="310">47k</text>
+  <line class="wire" x1="180" y1="345" x2="180" y2="690"/>
+  <line class="wire" x1="180" y1="265" x2="355" y2="265"/>
+  <text class="label" x="205" y="258">VREF</text>
+  <line class="thin" x1="230" y1="265" x2="230" y2="320"/>
+  <line class="thin" x1="214" y1="320" x2="246" y2="320"/>
+  <line class="thin" x1="214" y1="332" x2="246" y2="332"/>
+  <line class="wire" x1="230" y1="332" x2="230" y2="690"/>
+  <text class="small" x="250" y="327">10uF + 100nF</text>
+
+  <!-- Guitar jack -->
+  <rect class="box" x="55" y="385" width="190" height="135"/>
+  <text class="label" x="78" y="415">GUITAR IN</text>
+  <text class="small" x="78" y="445">TS jack</text>
+  <text class="small" x="78" y="475">tip</text>
+  <text class="small" x="78" y="505">sleeve</text>
+  <line class="wire" x1="150" y1="470" x2="300" y2="470"/>
+  <line class="wire" x1="150" y1="500" x2="150" y2="690"/>
+
+  <!-- Input coupling cap C1 -->
+  <line class="wire" x1="300" y1="470" x2="330" y2="470"/>
+  <line class="part" x1="330" y1="440" x2="330" y2="500"/>
+  <line class="part" x1="350" y1="440" x2="350" y2="500"/>
+  <line class="wire" x1="350" y1="470" x2="420" y2="470"/>
+  <text class="small" x="312" y="430">C1 220nF film</text>
+  <circle class="node" cx="420" cy="470" r="5"/>
+
+  <!-- Input bias resistor -->
+  <line class="wire" x1="420" y1="470" x2="420" y2="520"/>
+  <polyline class="thin" points="420,520 405,530 435,545 405,560 435,575 405,590 420,600"/>
+  <line class="wire" x1="420" y1="600" x2="420" y2="625"/>
+  <line class="wire" x1="420" y1="625" x2="355" y2="625"/>
+  <line class="wire" x1="355" y1="625" x2="355" y2="265"/>
+  <text class="small" x="442" y="565">1M</text>
+  <text class="tiny" x="438" y="590">high input impedance</text>
+
+  <!-- Op amp -->
+  <polygon class="part" points="520,390 520,555 700,472"/>
+  <text class="label" x="570" y="465">U1A</text>
+  <text class="small" x="548" y="492">RRIO op-amp</text>
+  <text class="small" x="504" y="432">+</text>
+  <text class="small" x="504" y="518">-</text>
+  <line class="wire" x1="420" y1="470" x2="520" y2="430"/>
+  <line class="wire" x1="700" y1="472" x2="820" y2="472"/>
+  <circle class="node" cx="780" cy="472" r="5"/>
+  <text class="small" x="535" y="360">Power U1 from same quiet rail; decouple at IC</text>
+  <line class="thin" x1="590" y1="105" x2="590" y2="150"/>
+  <line class="thin" x1="574" y1="150" x2="606" y2="150"/>
+  <line class="thin" x1="574" y1="162" x2="606" y2="162"/>
+  <line class="wire" x1="590" y1="162" x2="590" y2="690"/>
+  <text class="small" x="610" y="158">100nF</text>
+
+  <!-- Feedback network -->
+  <line class="wire" x1="780" y1="472" x2="780" y2="305"/>
+  <line class="wire" x1="780" y1="305" x2="610" y2="305"/>
+  <polyline class="thin" points="610,305 595,315 625,330 595,345 625,360 595,375 610,385"/>
+  <line class="wire" x1="610" y1="385" x2="610" y2="515"/>
+  <line class="wire" x1="610" y1="515" x2="520" y2="515"/>
+  <text class="small" x="635" y="350">Rf 100k pot</text>
+  <line class="wire" x1="610" y1="515" x2="610" y2="560"/>
+  <polyline class="thin" points="610,560 595,570 625,585 595,600 625,615 595,630 610,640"/>
+  <line class="wire" x1="610" y1="640" x2="610" y2="690"/>
+  <line class="wire" x1="610" y1="640" x2="355" y2="640"/>
+  <text class="small" x="630" y="605">Rg 4.7k to VREF</text>
+  <text class="small" x="640" y="650">Gain = 1 + Rf/Rg</text>
+
+  <!-- Output coupling to Codec Zero -->
+  <line class="wire" x1="820" y1="472" x2="865" y2="472"/>
+  <line class="part" x1="865" y1="442" x2="865" y2="502"/>
+  <line class="part" x1="887" y1="442" x2="887" y2="502"/>
+  <line class="wire" x1="887" y1="472" x2="925" y2="472"/>
+  <text class="small" x="844" y="430">C2 2.2uF</text>
+  <polyline class="thin" points="925,472 940,462 955,482 970,462 985,482 1000,462 1015,472"/>
+  <text class="small" x="940" y="452">1k</text>
+  <line class="wire" x1="1015" y1="472" x2="1080" y2="472"/>
+
+  <!-- Codec connector -->
+  <rect class="box" x="1030" y="355" width="125" height="230"/>
+  <text class="label" x="1050" y="385">Codec</text>
+  <text class="label" x="1050" y="410">Zero P1</text>
+  <circle class="node" cx="1080" cy="472" r="5"/>
+  <text class="small" x="1048" y="466">pin 1</text>
+  <text class="small" x="1048" y="488">AUX_L</text>
+  <line class="wire" x1="1080" y1="530" x2="1080" y2="690"/>
+  <circle class="node" cx="1080" cy="530" r="5"/>
+  <text class="small" x="1048" y="528">pin 2</text>
+  <text class="small" x="1048" y="550">GND</text>
+
+  <!-- Optional protection / notes -->
+  <rect class="note" x="55" y="585" width="420" height="75"/>
+  <text class="small" x="75" y="615">Start with Rf low. Raise gain until hard strums peak around</text>
+  <text class="small" x="75" y="638">0.2 to 0.6 in audio-probe. Avoid peaks near 1.0.</text>
+
+  <rect class="note" x="700" y="585" width="455" height="75"/>
+  <text class="small" x="720" y="615">Do not connect guitar to Pi GPIO. Audio goes only to</text>
+  <text class="small" x="720" y="638">Codec Zero AUX_L and Codec/Pi GND.</text>
+</svg>

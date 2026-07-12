@@ -113,28 +113,20 @@ Changing only app code (`apps/`, `src/`, `lv_conf.h`)? Rebuild just the binary
 and swap it over SSH instead of reflashing:
 
 ```bash
-# 1. Rebuild only the app package inside the volume, copy the binary out.
-#    The host tools must be reinstalled each run — --rm discards the container
-#    filesystem, and the volume only holds Buildroot's output, not `make` etc.
-docker run --rm -v buildroot_vol:/buildroot -v /Users/bbalazs/Documents/Ardor:/ardor \
-  -w /buildroot -e FORCE_UNSAFE_CONFIGURE=1 ubuntu:24.04 bash -c "
-    apt-get update -qq && \
-    apt-get install -y -qq build-essential git curl wget rsync cpio unzip bc \
-      python3 python3-dev file pkg-config libssl-dev libelf-dev \
-      dosfstools genimage e2fsprogs mtools device-tree-compiler openssh-client > /dev/null && \
-    make ardor-pedal-dirclean BR2_EXTERNAL=/ardor/buildroot/external && \
-    make ardor-pedal BR2_EXTERNAL=/ardor/buildroot/external && \
-    cp output/build/ardor-pedal-1.0/pedal-poc /ardor/ardor-pedal
-  "
+./scripts/deploy-lan.sh <pi-ip>
+```
 
-# 2. Push to the running pedal and restart the app
-scp ardor-pedal root@<pi-ip>:/tmp/ardor-pedal
-ssh root@<pi-ip> '
-  mount -o remount,rw / &&
-  cp /tmp/ardor-pedal /usr/bin/ardor-pedal &&
-  mount -o remount,ro / &&
-  /etc/init.d/S99ardor-pedal restart
-'
+The script uses the Docker Buildroot flow above by default, runs
+`ardor-pedal-dirclean` so the local source tree is re-synced, uploads only the
+new `ardor-pedal` binary, remounts `/` writable for the swap, then restarts
+`/etc/init.d/S99ardor-pedal`.
+
+Useful knobs:
+
+```bash
+ARDOR_PI_HOST=<pi-ip> ./scripts/deploy-lan.sh
+ARDOR_SKIP_BUILD=1 ./scripts/deploy-lan.sh <pi-ip>        # upload ./ardor-pedal
+ARDOR_BUILD_MODE=native ARDOR_BUILDROOT=/path/to/buildroot ./scripts/deploy-lan.sh <pi-ip>
 ```
 
 Note: this only works for changes baked into the binary. Changes to `config.txt`,
