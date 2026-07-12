@@ -862,9 +862,13 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
 void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
 {
   lv_obj_t* drawer = lv_obj_create(root);
-  lv_obj_set_size(drawer, 320, 720);
-  lv_obj_align(drawer, LV_ALIGN_LEFT_MID, 0, 0);
-  styleSurface(drawer, panel);
+  lv_obj_set_size(drawer, 360, 720);
+  lv_obj_align(drawer, LV_ALIGN_RIGHT_MID, 0, 0);
+  lv_obj_set_style_bg_color(drawer, lv_color_hex(0x000000), 0);
+  lv_obj_set_style_border_color(drawer, lv_color_hex(panel), 0);
+  lv_obj_set_style_border_width(drawer, 1, 0);
+  lv_obj_set_style_border_side(drawer, LV_BORDER_SIDE_LEFT, 0);
+  lv_obj_set_style_radius(drawer, 0, 0);
   lv_obj_set_style_pad_all(drawer, 18, 0);
   // Content fits; the inner list scrolls on its own. A scrollable drawer would
   // steal taps on the close button on a jittery finger touch.
@@ -882,14 +886,14 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   };
 
   lv_obj_t* filterRow = lv_obj_create(drawer);
-  lv_obj_set_size(filterRow, 284, 92);
+  lv_obj_set_size(filterRow, 324, 34);
   lv_obj_align(filterRow, LV_ALIGN_TOP_LEFT, 0, 42);
   lv_obj_set_style_bg_opa(filterRow, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(filterRow, 0, 0);
   lv_obj_set_style_pad_all(filterRow, 0, 0);
   lv_obj_set_style_pad_column(filterRow, 6, 0);
-  lv_obj_set_style_pad_row(filterRow, 6, 0);
-  lv_obj_set_flex_flow(filterRow, LV_FLEX_FLOW_ROW_WRAP);
+  lv_obj_set_scroll_dir(filterRow, LV_DIR_HOR);
+  lv_obj_set_flex_flow(filterRow, LV_FLEX_FLOW_ROW);
 
   for (const auto& [name, filter] : filters) {
     lv_obj_t* filterButton = button(filterRow, name);
@@ -901,7 +905,7 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   }
 
   lv_obj_t* list = lv_obj_create(drawer);
-  lv_obj_set_size(list, 284, 540);
+  lv_obj_set_size(list, 324, 556);
   lv_obj_align(list, LV_ALIGN_TOP_LEFT, 0, 146);
   lv_obj_set_style_bg_opa(list, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(list, 0, 0);
@@ -915,9 +919,9 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
       continue;
     }
     lv_obj_t* item = button(list, asset.name);
-    lv_obj_set_width(item, 270);
+    lv_obj_set_width(item, 310);
     lv_obj_set_height(item, 38);
-    styleSurface(item, 0x1b1b1b);
+    styleSurface(item, panel);
     auto* context = remember(state, i);
     lv_obj_add_event_cb(item, onAssetPressed, LV_EVENT_PRESSED, context);
     lv_obj_add_event_cb(item, onAssetPressing, LV_EVENT_PRESSING, context);

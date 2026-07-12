@@ -310,6 +310,29 @@ int main()
   if (require(ardor::LvglUi::chainIndicatorX(largeBlockCount, largeBlockCount) <= 1246,
               "large chain indicator should remain within the chain")) return 1;
 
+  ardor::enterEditMode(state);
+  ardor::openBlockDrawer(state);
+  ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* allFilter = findLabel(lv_screen_active(), "All");
+  lv_obj_t* timeFilter = findLabel(lv_screen_active(), "Time");
+  lv_obj_t* tremAssetLabel = findLabel(lv_screen_active(), "Vintage Trem");
+  lv_obj_t* drawer = findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x000000), 360);
+  if (require(drawer && allFilter && timeFilter && tremAssetLabel, "block drawer content should render")) return 1;
+  lv_obj_t* allFilterButton = lv_obj_get_parent(allFilter);
+  lv_obj_t* timeFilterButton = lv_obj_get_parent(timeFilter);
+  lv_obj_t* tremAssetButton = lv_obj_get_parent(tremAssetLabel);
+  lv_area_t drawerArea{};
+  lv_obj_get_coords(drawer, &drawerArea);
+  if (require(lv_obj_get_width(drawer) == 360 && lv_obj_get_height(drawer) == 720 && drawerArea.x2 == 1279,
+              "block drawer should fill the right display edge")) return 1;
+  if (require(lv_color_eq(lv_obj_get_style_bg_color(drawer, LV_PART_MAIN), lv_color_hex(0x000000)),
+              "block drawer should be black")) return 1;
+  if (require(lv_obj_get_y(allFilterButton) == lv_obj_get_y(timeFilterButton),
+              "drawer filters should remain in one horizontal row")) return 1;
+  if (require(lv_color_eq(lv_obj_get_style_bg_color(tremAssetButton, LV_PART_MAIN), lv_color_hex(0x242424)),
+              "drawer asset tiles should be charcoal")) return 1;
+
   lv_display_delete(display);
   lv_deinit();
 
