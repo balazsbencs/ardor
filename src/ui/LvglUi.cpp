@@ -7,6 +7,8 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
+#include <cmath>
 #include <string>
 #include <utility>
 
@@ -16,15 +18,15 @@ namespace {
 
 // The layout below is authored against this fixed design grid; build() scales
 // the whole canvas to the real display resolution.
-constexpr int32_t kDesignWidth = 800;
-constexpr int32_t kDesignHeight = 480;
+constexpr int32_t kDesignWidth = 1280;
+constexpr int32_t kDesignHeight = 720;
 
-constexpr auto bg = 0x101214;
-constexpr auto panel = 0x171b22;
-constexpr auto panelAlt = 0x1b2028;
-constexpr auto text = 0xedf2f7;
-constexpr auto muted = 0xa8b3c1;
-constexpr auto accent = 0x6ee7b7;
+constexpr auto bg = 0x000000;
+constexpr auto panel = 0x242424;
+constexpr auto panelAlt = 0x242424;
+constexpr auto text = 0xf5f5f5;
+constexpr auto muted = 0xa6a6a6;
+constexpr auto accent = 0xb6ff00;
 
 void setText(lv_obj_t* object, int color = text, const lv_font_t* font = &ardor_font_open_sans_regular_18)
 {
@@ -32,12 +34,12 @@ void setText(lv_obj_t* object, int color = text, const lv_font_t* font = &ardor_
   lv_obj_set_style_text_font(object, font, 0);
 }
 
-void stylePanel(lv_obj_t* object, int color)
+void styleSurface(lv_obj_t* object, int color = panel)
 {
   lv_obj_set_style_bg_color(object, lv_color_hex(color), 0);
-  lv_obj_set_style_border_color(object, lv_color_hex(0x303744), 0);
-  lv_obj_set_style_border_width(object, 1, 0);
-  lv_obj_set_style_radius(object, 8, 0);
+  lv_obj_set_style_border_width(object, 0, 0);
+  lv_obj_set_style_radius(object, 5, 0);
+  lv_obj_set_style_shadow_width(object, 0, 0);
 }
 
 void label(lv_obj_t* parent, const std::string& value, lv_align_t align, int x, int y,
@@ -118,99 +120,91 @@ void onGlobalParamsClicked(lv_event_t* event)
   redraw(context);
 }
 
-enum class GlobalParam {
-  Input,
-  Output
-};
-
-void stepGlobalParam(UiState& state, GlobalParam param, float delta)
+void changeParameterPage(UiEventContext* context, int delta)
 {
-  auto& global = state.bank.presets[state.activePreset].global;
-  if (param == GlobalParam::Input) {
-    setActiveInputGainDb(state, global.inputGainDb + delta);
-  } else {
-    setActiveOutputGainDb(state, global.outputGainDb + delta);
+  const auto count = parameterPageCount(*context->state);
+  if (count == 0) {
+    return;
+  }
+  const auto current = context->ui->parameterPage();
+  const auto next = delta < 0
+    ? (current == 0 ? 0 : current - 1)
+    : std::min(current + 1, count - 1);
+  if (next != current) {
+    context->ui->setParameterPage(next);
+    context->ui->focusParameter("");
+    redraw(context);
   }
 }
 
-void onInputGainDown(lv_event_t* event)
+void onPreviousParameterPage(lv_event_t* event)
+{
+  changeParameterPage(static_cast<UiEventContext*>(lv_event_get_user_data(event)), -1);
+}
+
+void onNextParameterPage(lv_event_t* event)
+{
+  changeParameterPage(static_cast<UiEventContext*>(lv_event_get_user_data(event)), 1);
+}
+
+void onParameterGesture(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  stepGlobalParam(*context->state, GlobalParam::Input, -1.0f);
-  redraw(context);
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (!input) {
+    return;
+  }
+  const auto direction = lv_indev_get_gesture_dir(input);
+  if (direction == LV_DIR_LEFT) {
+    changeParameterPage(context, 1);
+  } else if (direction == LV_DIR_RIGHT) {
+    changeParameterPage(context, -1);
+  }
 }
 
-void onInputGainUp(lv_event_t* event)
+void onKnobPressed(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  stepGlobalParam(*context->state, GlobalParam::Input, 1.0f);
-  redraw(context);
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (!input) {
+    return;
+  }
+  lv_indev_get_point(input, &context->pressPoint);
+  context->pressPoint = context->ui->toCanvas(context->pressPoint);
+  const auto index = reinterpret_cast<uintptr_t>(lv_obj_get_user_data(lv_event_get_target_obj(event)));
+  const auto controls = parameterPage(*context->state, context->ui->parameterPage());
+  if (index == 0 || index > controls.size()) {
+    return;
+  }
+  context->filter = controls[index - 1].key;
+  context->ui->focusParameter(context->filter);
 }
 
-void onOutputGainDown(lv_event_t* event)
+void onKnobPressing(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  stepGlobalParam(*context->state, GlobalParam::Output, -1.0f);
-  redraw(context);
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (!input) {
+    return;
+  }
+  lv_point_t current{};
+  lv_indev_get_point(input, &current);
+  current = context->ui->toCanvas(current);
+  const int delta = (context->pressPoint.y - current.y) / 12;
+  if (delta == 0) {
+    return;
+  }
+  context->pressPoint.y = current.y;
+  if (context->ui->applyFocusedParameterDelta(*context->state, delta)) {
+    redraw(context);
+  }
 }
 
-void onOutputGainUp(lv_event_t* event)
+void onBypassChanged(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  stepGlobalParam(*context->state, GlobalParam::Output, 1.0f);
-  redraw(context);
-}
-
-float selectedParamValue(const UiState& state, const std::string& key, float fallback)
-{
-  const auto& block = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
-  return block.params.value(key, fallback);
-}
-
-void stepSelectedParam(UiState& state, const std::string& key, float delta, float low, float high, float fallback)
-{
-  setSelectedBlockParam(state, key, std::clamp(selectedParamValue(state, key, fallback) + delta, low, high));
-}
-
-void onCabLevelDown(lv_event_t* event)
-{
-  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  stepSelectedParam(*context->state, "levelDb", -1.0f, -60.0f, 12.0f, 0.0f);
-  redraw(context);
-}
-
-void onCabLevelUp(lv_event_t* event)
-{
-  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  stepSelectedParam(*context->state, "levelDb", 1.0f, -60.0f, 12.0f, 0.0f);
-  redraw(context);
-}
-
-void onCabMixDown(lv_event_t* event)
-{
-  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  stepSelectedParam(*context->state, "mix", -0.05f, 0.0f, 1.0f, 1.0f);
-  redraw(context);
-}
-
-void onCabMixUp(lv_event_t* event)
-{
-  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  stepSelectedParam(*context->state, "mix", 0.05f, 0.0f, 1.0f, 1.0f);
-  redraw(context);
-}
-
-void onDaisyParamDown(lv_event_t* event)
-{
-  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  stepSelectedParam(*context->state, context->filter, -0.05f, 0.0f, 1.0f, 0.5f);
-  redraw(context);
-}
-
-void onDaisyParamUp(lv_event_t* event)
-{
-  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  stepSelectedParam(*context->state, context->filter, 0.05f, 0.0f, 1.0f, 0.5f);
+  lv_obj_t* switchObject = lv_event_get_target_obj(event);
+  setSelectedBlockEnabled(*context->state, lv_obj_has_state(switchObject, LV_STATE_CHECKED));
   redraw(context);
 }
 
@@ -227,26 +221,23 @@ std::size_t chainSlotFromPoint(const UiState& state, const lv_point_t& point)
   if (blockCount == 0) {
     return 0;
   }
-
-  const int row = point.y >= 218 ? 1 : 0;
-  const int col = std::clamp((point.x - 20) / 172, 0, 3);
-  return std::min<std::size_t>(static_cast<std::size_t>(row * 4 + col), blockCount - 1);
+  const int slotWidth = 1224 / static_cast<int>(blockCount);
+  return std::min<std::size_t>(static_cast<std::size_t>(std::max(0, point.x - 28) / slotWidth), blockCount - 1);
 }
 
 std::size_t insertSlotFromPoint(const UiState& state, const lv_point_t& point)
 {
   const auto blockCount = state.bank.presets[state.activePreset].blocks.size();
-  const int row = point.y >= 218 ? 1 : 0;
-  const int col = std::clamp((point.x - 20) / 172, 0, 3);
-  return std::min<std::size_t>(static_cast<std::size_t>(row * 4 + col), blockCount);
+  if (blockCount == 0) {
+    return 0;
+  }
+  const int slotWidth = 1224 / static_cast<int>(blockCount);
+  return std::min<std::size_t>(static_cast<std::size_t>(std::max(0, point.x - 28) / slotWidth), blockCount);
 }
 
 bool pointInChain(const lv_point_t& point)
 {
-  const bool insideX = point.x >= 20 && point.x <= 780;
-  const bool insideTop = point.y >= 86 && point.y <= 204;
-  const bool insideBottom = point.y >= 232 && point.y <= 350;
-  return insideX && (insideTop || insideBottom);
+  return point.x >= 20 && point.x <= 1260 && point.y >= 116 && point.y <= 232;
 }
 
 void moveToFront(lv_obj_t* object)
@@ -257,18 +248,18 @@ void moveToFront(lv_obj_t* object)
 
 void placeDragIndicatorAtSlot(UiEventContext* context, std::size_t slot)
 {
-  const auto row = static_cast<int>(slot / 4);
-  const auto col = static_cast<int>(slot % 4);
+  const auto blockCount = context->state->bank.presets[context->state->activePreset].blocks.size();
+  const int slotWidth = blockCount == 0 ? 1224 : 1224 / static_cast<int>(blockCount);
 
   if (!context->indicator) {
     context->indicator = lv_obj_create(context->ui->canvas());
     lv_obj_set_size(context->indicator, 5, 104);
     lv_obj_set_style_bg_color(context->indicator, lv_color_hex(accent), 0);
     lv_obj_set_style_border_width(context->indicator, 0, 0);
-    lv_obj_set_style_radius(context->indicator, 3, 0);
+    lv_obj_set_style_radius(context->indicator, 2, 0);
   }
 
-  lv_obj_set_pos(context->indicator, 28 + col * 172, row == 0 ? 93 : 239);
+  lv_obj_set_pos(context->indicator, 28 + static_cast<int>(slot) * slotWidth, 126);
   moveToFront(context->indicator);
 }
 
@@ -461,31 +452,152 @@ void onAssetReleased(lv_event_t* event)
   redraw(context);
 }
 
-void globalControl(lv_obj_t* parent, const std::string& name, float value, int x,
-                   lv_event_cb_t down, lv_event_cb_t up, UiEventContext* context)
-{
-  label(parent, name + " " + std::to_string(static_cast<int>(value)) + " dB",
-        LV_ALIGN_TOP_LEFT, x, 0, &ardor_font_open_sans_regular_18, muted);
-  lv_obj_t* minus = button(parent, "-");
-  lv_obj_set_size(minus, 36, 32);
-  lv_obj_align(minus, LV_ALIGN_TOP_LEFT, x, 28);
-  lv_obj_add_event_cb(minus, down, LV_EVENT_CLICKED, context);
-
-  lv_obj_t* plus = button(parent, "+");
-  lv_obj_set_size(plus, 36, 32);
-  lv_obj_align(plus, LV_ALIGN_TOP_LEFT, x + 42, 28);
-  lv_obj_add_event_cb(plus, up, LV_EVENT_CLICKED, context);
-}
-
 lv_obj_t* button(lv_obj_t* parent, const std::string& value)
 {
   lv_obj_t* object = lv_button_create(parent);
-  lv_obj_set_style_radius(object, 8, 0);
+  styleSurface(object);
   lv_obj_t* buttonLabel = lv_label_create(object);
   lv_label_set_text(buttonLabel, value.c_str());
   setText(buttonLabel);
   lv_obj_center(buttonLabel);
   return object;
+}
+
+lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, UiEventContext* context)
+{
+  const float range = control.maximum - control.minimum;
+  const float ratio = range == 0.0f ? 0.0f : std::clamp((control.value - control.minimum) / range, 0.0f, 1.0f);
+
+  lv_obj_t* knob = lv_obj_create(parent);
+  lv_obj_set_size(knob, 154, 184);
+  lv_obj_set_pos(knob, x, 68);
+  lv_obj_remove_flag(knob, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_add_flag(knob, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_style_bg_opa(knob, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_width(knob, 0, 0);
+  lv_obj_add_event_cb(knob, onKnobPressed, LV_EVENT_PRESSED, context);
+  lv_obj_add_event_cb(knob, onKnobPressing, LV_EVENT_PRESSING, context);
+
+  lv_obj_t* arc = lv_arc_create(knob);
+  lv_obj_set_size(arc, 94, 94);
+  lv_obj_center(arc);
+  lv_obj_set_y(arc, -25);
+  lv_arc_set_rotation(arc, 135);
+  lv_arc_set_bg_angles(arc, 0, 270);
+  lv_arc_set_range(arc, 0, 1000);
+  lv_arc_set_value(arc, static_cast<int>(std::lround(ratio * 1000.0f)));
+  lv_obj_set_style_arc_width(arc, 3, LV_PART_MAIN);
+  lv_obj_set_style_arc_color(arc, lv_color_hex(0x454545), LV_PART_MAIN);
+  lv_obj_set_style_arc_width(arc, 3, LV_PART_INDICATOR);
+  lv_obj_set_style_arc_color(arc, lv_color_hex(accent), LV_PART_INDICATOR);
+  lv_obj_set_style_opa(arc, LV_OPA_TRANSP, LV_PART_KNOB);
+  lv_obj_remove_flag(arc, LV_OBJ_FLAG_CLICKABLE);
+
+  lv_obj_t* rim = lv_obj_create(knob);
+  lv_obj_set_size(rim, 56, 56);
+  lv_obj_align(rim, LV_ALIGN_TOP_MID, 0, 20);
+  styleSurface(rim, 0x000000);
+  lv_obj_set_style_radius(rim, LV_RADIUS_CIRCLE, 0);
+  lv_obj_remove_flag(rim, LV_OBJ_FLAG_CLICKABLE);
+
+  lv_obj_t* centre = lv_obj_create(rim);
+  lv_obj_set_size(centre, 48, 48);
+  lv_obj_center(centre);
+  styleSurface(centre, panel);
+  lv_obj_set_style_radius(centre, LV_RADIUS_CIRCLE, 0);
+  lv_obj_remove_flag(centre, LV_OBJ_FLAG_CLICKABLE);
+
+  lv_obj_t* pointer = lv_obj_create(rim);
+  lv_obj_set_size(pointer, 3, 20);
+  lv_obj_set_pos(pointer, 27, 7);
+  lv_obj_set_style_bg_color(pointer, lv_color_hex(text), 0);
+  lv_obj_set_style_border_width(pointer, 0, 0);
+  lv_obj_set_style_radius(pointer, 2, 0);
+  lv_obj_set_style_transform_pivot_x(pointer, 1, 21);
+  lv_obj_set_style_transform_pivot_y(pointer, 1, 21);
+  lv_obj_set_style_transform_rotation(pointer, static_cast<int32_t>((45.0f + ratio * 270.0f) * 10.0f), 0);
+  lv_obj_remove_flag(pointer, LV_OBJ_FLAG_CLICKABLE);
+
+  label(knob, control.label, LV_ALIGN_BOTTOM_MID, 0, -30, &ardor_font_open_sans_semibold_22, text);
+  label(knob, control.formatted, LV_ALIGN_BOTTOM_MID, 0, -7, &ardor_font_open_sans_regular_18, muted);
+  return knob;
+}
+
+void renderBypassSwitch(lv_obj_t* parent, UiState& state, UiEventContext* context)
+{
+  const auto& block = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
+  label(parent, "Bypass", LV_ALIGN_TOP_RIGHT, -132, 24, &ardor_font_open_sans_regular_18, muted);
+  lv_obj_t* switchObject = lv_switch_create(parent);
+  lv_obj_set_size(switchObject, 64, 30);
+  lv_obj_align(switchObject, LV_ALIGN_TOP_RIGHT, -28, 20);
+  lv_obj_set_style_bg_color(switchObject, lv_color_hex(0x111111), LV_PART_MAIN);
+  lv_obj_set_style_bg_color(switchObject, lv_color_hex(accent),
+                            static_cast<lv_style_selector_t>(LV_PART_MAIN)
+                              | static_cast<lv_style_selector_t>(LV_STATE_CHECKED));
+  lv_obj_set_style_bg_color(switchObject, lv_color_hex(text), LV_PART_KNOB);
+  lv_obj_set_style_radius(switchObject, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+  lv_obj_set_style_radius(switchObject, LV_RADIUS_CIRCLE, LV_PART_KNOB);
+  lv_obj_set_style_border_width(switchObject, 0, LV_PART_MAIN);
+  if (block.enabled) {
+    lv_obj_add_state(switchObject, LV_STATE_CHECKED);
+  }
+  lv_obj_add_event_cb(switchObject, onBypassChanged, LV_EVENT_VALUE_CHANGED, context);
+}
+
+void renderPageNavigation(lv_obj_t* parent, UiState& state, UiEventContext* context)
+{
+  const auto count = parameterPageCount(state);
+  if (count < 2) {
+    return;
+  }
+  const auto page = context->ui->parameterPage();
+  lv_obj_t* previous = button(parent, "<");
+  lv_obj_set_size(previous, 36, 32);
+  lv_obj_align(previous, LV_ALIGN_TOP_LEFT, 28, 20);
+  lv_obj_add_event_cb(previous, onPreviousParameterPage, LV_EVENT_CLICKED, context);
+  label(parent, std::to_string(page + 1) + " / " + std::to_string(count), LV_ALIGN_TOP_LEFT, 72, 25,
+        &ardor_font_open_sans_regular_18, muted);
+  lv_obj_t* next = button(parent, ">");
+  lv_obj_set_size(next, 36, 32);
+  lv_obj_align(next, LV_ALIGN_TOP_LEFT, 134, 20);
+  lv_obj_add_event_cb(next, onNextParameterPage, LV_EVENT_CLICKED, context);
+}
+
+void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* context)
+{
+  lv_obj_t* panelObject = lv_obj_create(root);
+  lv_obj_set_size(panelObject, 1240, 286);
+  lv_obj_align(panelObject, LV_ALIGN_BOTTOM_MID, 0, -14);
+  lv_obj_remove_flag(panelObject, LV_OBJ_FLAG_SCROLLABLE);
+  styleSurface(panelObject, panelAlt);
+  lv_obj_add_event_cb(panelObject, onParameterGesture, LV_EVENT_GESTURE, context);
+
+  lv_obj_t* close = button(panelObject, "X");
+  lv_obj_set_size(close, 36, 32);
+  lv_obj_align(close, LV_ALIGN_TOP_RIGHT, -220, 20);
+  lv_obj_add_event_cb(close, onCloseParamDrawer, LV_EVENT_CLICKED, context);
+
+  if (state.paramTarget == UiParamTarget::Globals) {
+    label(panelObject, "Global", LV_ALIGN_TOP_LEFT, 28, 22, &ardor_font_open_sans_semibold_22);
+  } else {
+    const auto& blocks = state.bank.presets[state.activePreset].blocks;
+    if (state.selectedBlock >= blocks.size()) {
+      return;
+    }
+    const auto& block = blocks[state.selectedBlock];
+    label(panelObject, block.label + "  /  " + block.assetName, LV_ALIGN_TOP_LEFT, 28, 22,
+          &ardor_font_open_sans_semibold_22);
+    renderBypassSwitch(panelObject, state, context);
+  }
+
+  renderPageNavigation(panelObject, state, context);
+  const auto controls = parameterPage(state, context->ui->parameterPage());
+  const int firstX = 180;
+  const int spacing = 164;
+  for (std::size_t i = 0; i < controls.size(); ++i) {
+    lv_obj_t* knob = createKnob(panelObject, controls[i], firstX + static_cast<int>(i) * spacing, context);
+    lv_obj_set_user_data(knob, reinterpret_cast<void*>(static_cast<uintptr_t>(i + 1)));
+  }
 }
 
 } // namespace
@@ -524,8 +636,8 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   lv_obj_clean(root);
   lv_obj_set_style_bg_color(root, lv_color_hex(bg), 0);
 
-  // The UI is authored on an 800x480 design grid. Rather than re-flow every
-  // widget for the panel, build it on a fixed 800x480 canvas and scale that
+  // The UI is authored on a 1280x720 design grid. Rather than re-flow every
+  // widget for the panel, build it on a fixed 1280x720 canvas and scale that
   // uniformly to fill the active display. LVGL inverse-transforms pointer input
   // for hit-testing, so touches still land; fonts and paddings scale for free.
   // The screen and canvas must never scroll: a scrollable ancestor wins gesture
@@ -591,19 +703,19 @@ void telemetryLine(lv_obj_t* root, const RuntimeTelemetry& telemetry, bool bypas
 
 void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
 {
-  label(root, state.bank.name, LV_ALIGN_TOP_MID, 0, 18, &ardor_font_open_sans_semibold_28);
-  label(root, "Master " + std::to_string(state.masterVolume) + "%", LV_ALIGN_TOP_LEFT, 18, 18,
+  label(root, state.bank.name, LV_ALIGN_TOP_MID, 0, 28, &ardor_font_open_sans_semibold_28);
+  label(root, "Master " + std::to_string(state.masterVolume) + "%", LV_ALIGN_TOP_LEFT, 28, 28,
         &ardor_font_open_sans_regular_18, muted);
 
   lv_obj_t* edit = button(root, "Edit");
-  lv_obj_set_size(edit, 96, 44);
-  lv_obj_align(edit, LV_ALIGN_TOP_RIGHT, -18, 14);
+  lv_obj_set_size(edit, 112, 46);
+  lv_obj_align(edit, LV_ALIGN_TOP_RIGHT, -28, 20);
   lv_obj_add_event_cb(edit, onEditModeClicked, LV_EVENT_CLICKED, remember(state));
 
   lv_obj_t* grid = lv_obj_create(root);
-  lv_obj_set_size(grid, 760, 360);
+  lv_obj_set_size(grid, 1200, 580);
   lv_obj_remove_flag(grid, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_align(grid, LV_ALIGN_BOTTOM_MID, 0, -18);
+  lv_obj_align(grid, LV_ALIGN_BOTTOM_MID, 0, -28);
   lv_obj_set_style_bg_opa(grid, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(grid, 0, 0);
   lv_obj_set_style_pad_all(grid, 0, 0);
@@ -617,9 +729,8 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     lv_obj_t* preset = button(grid, state.bank.presets[i].name);
     lv_obj_set_grid_cell(preset, LV_GRID_ALIGN_STRETCH, static_cast<int32_t>(i % 2), 1,
                          LV_GRID_ALIGN_STRETCH, static_cast<int32_t>(i / 2), 1);
-    lv_obj_set_style_bg_color(preset, lv_color_hex(i == state.activePreset ? 0x143a32 : 0x212733), 0);
-    lv_obj_set_style_border_color(preset, lv_color_hex(i == state.activePreset ? accent : 0x303744), 0);
-    lv_obj_set_style_border_width(preset, i == state.activePreset ? 3 : 1, 0);
+    styleSurface(preset, panel);
+    lv_obj_set_style_text_color(lv_obj_get_child(preset, 0), lv_color_hex(i == state.activePreset ? accent : text), 0);
     lv_obj_add_event_cb(preset, onPresetClicked, LV_EVENT_CLICKED, remember(state, i));
   }
   telemetryLine(root, state.telemetry, state.effectsBypassed);
@@ -627,52 +738,56 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
 
 void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
 {
-  label(root, state.bank.presets[state.activePreset].name, LV_ALIGN_TOP_MID, 0, 18, &ardor_font_open_sans_semibold_28);
+  label(root, state.bank.presets[state.activePreset].name, LV_ALIGN_TOP_MID, 0, 24, &ardor_font_open_sans_semibold_28);
 
   lv_obj_t* presets = button(root, "Presets");
-  lv_obj_set_size(presets, 112, 44);
-  lv_obj_align(presets, LV_ALIGN_TOP_LEFT, 18, 14);
+  lv_obj_set_size(presets, 112, 42);
+  lv_obj_align(presets, LV_ALIGN_TOP_LEFT, 28, 20);
   lv_obj_add_event_cb(presets, onPresetModeClicked, LV_EVENT_CLICKED, remember(state));
 
   lv_obj_t* globalButton = button(root, "Global");
-  lv_obj_set_size(globalButton, 112, 44);
-  lv_obj_align(globalButton, LV_ALIGN_TOP_RIGHT, -264, 14);
+  lv_obj_set_size(globalButton, 112, 42);
+  lv_obj_align(globalButton, LV_ALIGN_TOP_RIGHT, -292, 20);
   lv_obj_add_event_cb(globalButton, onGlobalParamsClicked, LV_EVENT_CLICKED, remember(state));
 
   lv_obj_t* save = button(root, state.dirty ? "Save*" : "Save");
-  lv_obj_set_size(save, 96, 44);
-  lv_obj_align(save, LV_ALIGN_TOP_RIGHT, -140, 14);
-  lv_obj_set_style_bg_color(save, lv_color_hex(state.dirty ? 0x25634f : 0x2b3442), 0);
+  lv_obj_set_size(save, 96, 42);
+  lv_obj_align(save, LV_ALIGN_TOP_RIGHT, -170, 20);
+  lv_obj_set_style_text_color(lv_obj_get_child(save, 0), lv_color_hex(state.dirty ? accent : text), 0);
   lv_obj_add_event_cb(save, onSaveClicked, LV_EVENT_CLICKED, remember(state));
 
   lv_obj_t* blocksButton = button(root, "Blocks");
-  lv_obj_set_size(blocksButton, 112, 44);
-  lv_obj_align(blocksButton, LV_ALIGN_TOP_RIGHT, -18, 14);
+  lv_obj_set_size(blocksButton, 112, 42);
+  lv_obj_align(blocksButton, LV_ALIGN_TOP_RIGHT, -28, 20);
   lv_obj_add_event_cb(blocksButton, onOpenBlockDrawer, LV_EVENT_CLICKED, remember(state));
 
   const auto& blocks = state.bank.presets[state.activePreset].blocks;
 
-  lv_obj_t* top = lv_obj_create(root);
-  lv_obj_t* bottom = lv_obj_create(root);
-  for (lv_obj_t* row : {top, bottom}) {
-    lv_obj_set_size(row, 760, 118);
-    lv_obj_remove_flag(row, LV_OBJ_FLAG_SCROLLABLE);
-    stylePanel(row, 0x141820);
-    lv_obj_set_style_pad_all(row, 14, 0);
-    lv_obj_set_style_pad_column(row, 12, 0);
-    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-  }
-  lv_obj_align(top, LV_ALIGN_TOP_MID, 0, 86);
-  lv_obj_align(bottom, LV_ALIGN_TOP_MID, 0, 232);
-  label(root, "Input", LV_ALIGN_TOP_LEFT, 28, 64, &ardor_font_open_sans_regular_18, muted);
-  label(root, "Output", LV_ALIGN_TOP_RIGHT, -28, 360, &ardor_font_open_sans_regular_18, muted);
+  lv_obj_t* chain = lv_obj_create(root);
+  lv_obj_set_size(chain, 1240, 126);
+  lv_obj_align(chain, LV_ALIGN_TOP_MID, 0, 110);
+  lv_obj_remove_flag(chain, LV_OBJ_FLAG_SCROLLABLE);
+  styleSurface(chain);
+  label(root, "Input", LV_ALIGN_TOP_LEFT, 28, 88, &ardor_font_open_sans_regular_18, muted);
+  label(root, "Output", LV_ALIGN_TOP_RIGHT, -28, 248, &ardor_font_open_sans_regular_18, muted);
 
   for (std::size_t i = 0; i < blocks.size(); ++i) {
     const auto& block = blocks[i];
-    lv_obj_t* row = i < 4 ? top : bottom;
-    lv_obj_t* object = button(row, block.label + "\n" + block.assetName);
-    lv_obj_set_size(object, 160, 84);
-    lv_obj_set_style_bg_color(object, lv_color_hex(block.enabled ? 0x243044 : 0x262626), 0);
+    const int slotWidth = 1212 / std::max<int>(1, static_cast<int>(blocks.size()));
+    lv_obj_t* object = button(chain, block.label + "\n" + block.assetName);
+    lv_obj_set_size(object, slotWidth - 10, 92);
+    lv_obj_set_pos(object, 14 + static_cast<int>(i) * slotWidth, 17);
+    styleSurface(object, block.enabled ? panel : 0x171717);
+    const bool selected = state.paramTarget == UiParamTarget::Block && state.selectedBlock == i;
+    label(object, block.type, LV_ALIGN_TOP_LEFT, 9, 7, &ardor_font_open_sans_regular_18, selected ? accent : muted);
+    if (selected) {
+      lv_obj_t* indicator = lv_obj_create(object);
+      lv_obj_set_size(indicator, 5, 5);
+      lv_obj_align(indicator, LV_ALIGN_BOTTOM_MID, 0, -7);
+      styleSurface(indicator, accent);
+      lv_obj_set_style_radius(indicator, LV_RADIUS_CIRCLE, 0);
+      lv_obj_remove_flag(indicator, LV_OBJ_FLAG_CLICKABLE);
+    }
     auto* context = remember(state, i);
     lv_obj_add_event_cb(object, onBlockPressed, LV_EVENT_PRESSED, context);
     lv_obj_add_event_cb(object, onBlockPressing, LV_EVENT_PRESSING, context);
@@ -685,19 +800,17 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
     renderBlockDrawer(root, state);
   }
   if (state.paramDrawerOpen) {
-    renderParamDrawer(root, state);
+    renderParameterPanel(root, state, remember(state));
   }
 }
 
 void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
 {
   lv_obj_t* drawer = lv_obj_create(root);
-  lv_obj_set_size(drawer, 280, 480);
+  lv_obj_set_size(drawer, 320, 720);
   lv_obj_align(drawer, LV_ALIGN_LEFT_MID, 0, 0);
-  stylePanel(drawer, panel);
-  lv_obj_set_style_radius(drawer, 0, 0);
-  lv_obj_set_style_border_side(drawer, LV_BORDER_SIDE_RIGHT, 0);
-  lv_obj_set_style_pad_all(drawer, 14, 0);
+  styleSurface(drawer, panel);
+  lv_obj_set_style_pad_all(drawer, 18, 0);
   // Content fits; the inner list scrolls on its own. A scrollable drawer would
   // steal taps on the close button on a jittery finger touch.
   lv_obj_remove_flag(drawer, LV_OBJ_FLAG_SCROLLABLE);
@@ -714,7 +827,7 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   };
 
   lv_obj_t* filterRow = lv_obj_create(drawer);
-  lv_obj_set_size(filterRow, 244, 92);
+  lv_obj_set_size(filterRow, 284, 92);
   lv_obj_align(filterRow, LV_ALIGN_TOP_LEFT, 0, 42);
   lv_obj_set_style_bg_opa(filterRow, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(filterRow, 0, 0);
@@ -726,13 +839,14 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   for (const auto& [name, filter] : filters) {
     lv_obj_t* filterButton = button(filterRow, name);
     lv_obj_set_size(filterButton, 74, 34);
-    lv_obj_set_style_bg_color(filterButton,
-                              lv_color_hex(state.categoryFilter == filter ? 0x25634f : 0x2b3442), 0);
+    styleSurface(filterButton, state.categoryFilter == filter ? 0x333333 : 0x1b1b1b);
+    lv_obj_set_style_text_color(lv_obj_get_child(filterButton, 0),
+                                lv_color_hex(state.categoryFilter == filter ? accent : text), 0);
     lv_obj_add_event_cb(filterButton, onFilterClicked, LV_EVENT_CLICKED, remember(state, 0, filter));
   }
 
   lv_obj_t* list = lv_obj_create(drawer);
-  lv_obj_set_size(list, 244, 250);
+  lv_obj_set_size(list, 284, 540);
   lv_obj_align(list, LV_ALIGN_TOP_LEFT, 0, 146);
   lv_obj_set_style_bg_opa(list, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(list, 0, 0);
@@ -746,100 +860,15 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
       continue;
     }
     lv_obj_t* item = button(list, asset.name);
-    lv_obj_set_width(item, 230);
+    lv_obj_set_width(item, 270);
     lv_obj_set_height(item, 38);
-    lv_obj_set_style_bg_color(item, lv_color_hex(0x242b36), 0);
+    styleSurface(item, 0x1b1b1b);
     auto* context = remember(state, i);
     lv_obj_add_event_cb(item, onAssetPressed, LV_EVENT_PRESSED, context);
     lv_obj_add_event_cb(item, onAssetPressing, LV_EVENT_PRESSING, context);
     lv_obj_add_event_cb(item, onAssetReleased, LV_EVENT_RELEASED, context);
     lv_obj_add_event_cb(item, onAssetClicked, LV_EVENT_CLICKED, context);
   }
-}
-
-void LvglUi::renderParamDrawer(lv_obj_t* root, UiState& state)
-{
-  lv_obj_t* drawer = lv_obj_create(root);
-  lv_obj_set_size(drawer, 800, 142);
-  lv_obj_remove_flag(drawer, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_align(drawer, LV_ALIGN_BOTTOM_MID, 0, 0);
-  stylePanel(drawer, panelAlt);
-  lv_obj_set_style_radius(drawer, 0, 0);
-  lv_obj_set_style_border_side(drawer, LV_BORDER_SIDE_TOP, 0);
-  lv_obj_set_style_pad_all(drawer, 16, 0);
-
-  if (state.paramTarget == UiParamTarget::Globals) {
-    const auto& global = state.bank.presets[state.activePreset].global;
-    label(drawer, "Global", LV_ALIGN_TOP_LEFT, 0, 0, &ardor_font_open_sans_semibold_22);
-    auto* context = remember(state);
-    globalControl(drawer, "In", global.inputGainDb, 0, onInputGainDown, onInputGainUp, context);
-    globalControl(drawer, "Out", global.outputGainDb, 150, onOutputGainDown, onOutputGainUp, context);
-    label(drawer, "Limit " + std::to_string(static_cast<int>(global.safetyLimitDb)) + " dB (fixed)",
-          LV_ALIGN_TOP_LEFT, 300, 0, &ardor_font_open_sans_regular_18, muted);
-    lv_obj_t* close = button(drawer, "X");
-    lv_obj_set_size(close, 42, 36);
-    lv_obj_align(close, LV_ALIGN_TOP_RIGHT, 0, -4);
-    lv_obj_add_event_cb(close, onCloseParamDrawer, LV_EVENT_CLICKED, remember(state));
-    return;
-  }
-
-  const auto& blocks = state.bank.presets[state.activePreset].blocks;
-  if (state.selectedBlock >= blocks.size()) {
-    lv_obj_delete(drawer);
-    return;
-  }
-
-  const auto& block = blocks[state.selectedBlock];
-  label(drawer, block.label + " - " + block.assetName, LV_ALIGN_TOP_LEFT, 0, 0, &ardor_font_open_sans_semibold_22);
-  label(drawer, "Enabled", LV_ALIGN_BOTTOM_LEFT, 0, -8, &ardor_font_open_sans_regular_18, muted);
-  label(drawer, block.enabled ? "On" : "Off", LV_ALIGN_BOTTOM_LEFT, 102, -8, &ardor_font_open_sans_regular_18, accent);
-
-  if (block.type == "cab") {
-    const float levelDb = block.params.value("levelDb", 0.0f);
-    const float mix = block.params.value("mix", 1.0f);
-    auto* context = remember(state);
-    globalControl(drawer, "Level", levelDb, 190, onCabLevelDown, onCabLevelUp, context);
-    label(drawer, "Mix " + std::to_string(static_cast<int>(mix * 100.0f)) + "%",
-          LV_ALIGN_BOTTOM_LEFT, 330, -8, &ardor_font_open_sans_regular_18, muted);
-    lv_obj_t* mixMinus = button(drawer, "-");
-    lv_obj_set_size(mixMinus, 36, 32);
-    lv_obj_align(mixMinus, LV_ALIGN_BOTTOM_LEFT, 430, -4);
-    lv_obj_add_event_cb(mixMinus, onCabMixDown, LV_EVENT_CLICKED, context);
-    lv_obj_t* mixPlus = button(drawer, "+");
-    lv_obj_set_size(mixPlus, 36, 32);
-    lv_obj_align(mixPlus, LV_ALIGN_BOTTOM_LEFT, 472, -4);
-    lv_obj_add_event_cb(mixPlus, onCabMixUp, LV_EVENT_CLICKED, context);
-  }
-
-  if (const auto* descriptor = findDaisyFxDescriptor(block.type, block.params.value("mode", ""))) {
-    int x = 190;
-    int y = 0;
-    for (std::size_t i = 0; i < descriptor->params.size(); ++i) {
-      const auto& param = descriptor->params[i];
-      const int value = static_cast<int>(block.params.value(param.key, param.defaultValue) * 100.0f);
-      label(drawer, param.label + " " + std::to_string(value), LV_ALIGN_TOP_LEFT, x, y,
-            &ardor_font_open_sans_regular_18, muted);
-      auto* context = remember(state, 0, param.key);
-      lv_obj_t* minus = button(drawer, "-");
-      lv_obj_set_size(minus, 30, 28);
-      lv_obj_align(minus, LV_ALIGN_TOP_LEFT, x, y + 28);
-      lv_obj_add_event_cb(minus, onDaisyParamDown, LV_EVENT_CLICKED, context);
-      lv_obj_t* plus = button(drawer, "+");
-      lv_obj_set_size(plus, 30, 28);
-      lv_obj_align(plus, LV_ALIGN_TOP_LEFT, x + 36, y + 28);
-      lv_obj_add_event_cb(plus, onDaisyParamUp, LV_EVENT_CLICKED, context);
-      x += 86;
-      if (i == 3) {
-        x = 190;
-        y = 66;
-      }
-    }
-  }
-
-  lv_obj_t* close = button(drawer, "X");
-  lv_obj_set_size(close, 42, 36);
-  lv_obj_align(close, LV_ALIGN_TOP_RIGHT, 0, -4);
-  lv_obj_add_event_cb(close, onCloseParamDrawer, LV_EVENT_CLICKED, remember(state));
 }
 
 } // namespace ardor

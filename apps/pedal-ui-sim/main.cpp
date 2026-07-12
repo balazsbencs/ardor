@@ -43,7 +43,7 @@ int main(int argc, char** argv)
   }
 
   lv_init();
-  lv_sdl_window_create(800, 480);
+  lv_sdl_window_create(1280, 720);
   lv_sdl_mouse_create();
   lv_sdl_mousewheel_create();
   lv_sdl_keyboard_create();
