@@ -114,7 +114,7 @@ void onCloseParamDrawer(lv_event_t* event)
 void onGlobalParamsClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  selectGlobalParams(*context->state);
+  context->ui->selectGlobalParams(*context->state);
   redraw(context);
 }
 
@@ -217,7 +217,7 @@ void onDaisyParamUp(lv_event_t* event)
 void onBlockClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  selectBlock(*context->state, context->index);
+  context->ui->selectBlock(*context->state, context->index);
   redraw(context);
 }
 
@@ -493,6 +493,22 @@ lv_obj_t* button(lv_obj_t* parent, const std::string& value)
 LvglUi::LvglUi(UiActions actions)
   : actions_(std::move(actions))
 {
+}
+
+void LvglUi::selectBlock(UiState& state, std::size_t blockIndex)
+{
+  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (blockIndex >= blocks.size()) {
+    return;
+  }
+  ardor::selectBlock(state, blockIndex);
+  resetParameterPage();
+}
+
+void LvglUi::selectGlobalParams(UiState& state)
+{
+  ardor::selectGlobalParams(state);
+  resetParameterPage();
 }
 
 UiEventContext* LvglUi::remember(UiState& state, std::size_t index, std::string filter)

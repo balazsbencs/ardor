@@ -91,19 +91,18 @@ bool applyParameterDelta(UiState& state, const ParameterControl& control, int de
     return false;
   }
 
-  const float value = std::clamp(control.value + control.step * static_cast<float>(delta),
-                                 control.minimum, control.maximum);
+  const float value = control.value + control.step * static_cast<float>(delta);
   if (state.paramTarget == UiParamTarget::Globals) {
     const auto& global = state.bank.presets[state.activePreset].global;
     if (control.key == "inputGainDb") {
-      const bool changed = global.inputGainDb != value;
+      const float before = global.inputGainDb;
       setActiveInputGainDb(state, value);
-      return changed;
+      return global.inputGainDb != before;
     }
     if (control.key == "outputGainDb") {
-      const bool changed = global.outputGainDb != value;
+      const float before = global.outputGainDb;
       setActiveOutputGainDb(state, value);
-      return changed;
+      return global.outputGainDb != before;
     }
     return false;
   }
@@ -112,9 +111,9 @@ bool applyParameterDelta(UiState& state, const ParameterControl& control, int de
   if (state.selectedBlock >= blocks.size()) {
     return false;
   }
-  const bool changed = blocks[state.selectedBlock].params.value(control.key, control.value) != value;
+  const float before = blocks[state.selectedBlock].params.value(control.key, control.value);
   setSelectedBlockParam(state, control.key, value);
-  return changed;
+  return blocks[state.selectedBlock].params.value(control.key, control.value) != before;
 }
 
 } // namespace ardor

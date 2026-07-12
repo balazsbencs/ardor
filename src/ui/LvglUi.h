@@ -39,6 +39,8 @@ public:
   void build(lv_obj_t* root, UiState& state);
   void refresh(lv_obj_t* root, UiState& state);
   void requestRebuild();
+  void selectBlock(UiState& state, std::size_t blockIndex);
+  void selectGlobalParams(UiState& state);
   void focusParameter(std::string key) { focusedKey_ = std::move(key); }
   void resetParameterPage()
   {

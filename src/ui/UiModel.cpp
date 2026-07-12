@@ -327,16 +327,22 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
   if (state.selectedBlock >= blocks.size()) {
     return;
   }
-  blocks[state.selectedBlock].params[key] = value;
-  if (const auto* descriptor = findDaisyFxDescriptor(blocks[state.selectedBlock].type,
-                                                     blocks[state.selectedBlock].params.value("mode", ""))) {
+  auto& block = blocks[state.selectedBlock];
+  if (block.type == "cab") {
+    if (key == "levelDb") {
+      value = clampFloat(value, -60.0f, 12.0f);
+    } else if (key == "mix") {
+      value = clampFloat(value, 0.0f, 1.0f);
+    }
+  } else if (const auto* descriptor = findDaisyFxDescriptor(block.type, block.params.value("mode", ""))) {
     for (const auto& param : descriptor->params) {
       if (param.key == key) {
-        blocks[state.selectedBlock].params[key] = clampFloat(value, 0.0f, 1.0f);
+        value = clampFloat(value, 0.0f, 1.0f);
         break;
       }
     }
   }
+  block.params[key] = value;
   state.dirty = true;
 }
 
