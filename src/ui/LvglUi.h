@@ -56,7 +56,8 @@ public:
     }
     for (const auto& control : ardor::parameterPage(state, parameterPage_)) {
       if (control.key == focusedKey_) {
-        return applyParameterDelta(state, control, delta);
+        applyParameterDelta(state, control, delta);
+        return true;
       }
     }
     return false;

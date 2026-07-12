@@ -546,6 +546,15 @@ int main(int argc, char** argv)
         for (auto& inputDevice : inputDevices) {
           ardor::ControlEvent controlEvent;
           while (inputDevice.poll(controlEvent)) {
+#if defined(ARDOR_HAS_UI)
+            if (args.enableUi && ui && controlEvent.type == ardor::ControlEventType::EncoderTurned
+                && ui->applyFocusedParameterDelta(uiState, controlEvent.delta)) {
+              const auto& global = uiState.bank.presets[uiState.activePreset].global;
+              liveEngine->setInputGain(ardor::dbToGain(global.inputGainDb));
+              liveEngine->setOutputGain(ardor::dbToGain(global.outputGainDb));
+              continue;
+            }
+#endif
             const int previousSlot = controls.activeSlot;
             const int previousVolume = controls.masterVolume;
             if (!ardor::applyControlEvent(controls, controlEvent)) {

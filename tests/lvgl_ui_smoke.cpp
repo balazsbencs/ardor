@@ -101,6 +101,23 @@ int main()
   if (require(state.dirty, "clamped delta should preserve setter dirty behavior")) return 1;
 
   ardor::LvglUi ui;
+  const int masterVolume = state.masterVolume;
+  ui.focusParameter("levelDb");
+  state.dirty = false;
+  if (require(ui.applyFocusedParameterDelta(state, 1), "focused cab control should consume encoder tick")) return 1;
+  if (require(state.bank.presets[state.activePreset].blocks[state.selectedBlock].params.value("levelDb", 0.0f) == -59.0f,
+              "focused cab control should change by its descriptor step")) return 1;
+  if (require(state.dirty, "focused cab control should dirty preset")) return 1;
+  if (require(state.masterVolume == masterVolume, "focused cab control should leave master volume unchanged")) return 1;
+
+  ardor::setSelectedBlockParam(state, "levelDb", level->maximum);
+  state.dirty = false;
+  if (require(ui.applyFocusedParameterDelta(state, 1), "focused cab control should consume a clamped encoder tick")) return 1;
+  if (require(state.bank.presets[state.activePreset].blocks[state.selectedBlock].params.value("levelDb", 0.0f) == level->maximum,
+              "focused cab control should clamp at its maximum")) return 1;
+  if (require(state.dirty, "clamped focused cab control should dirty preset")) return 1;
+  if (require(state.masterVolume == masterVolume, "clamped focused cab control should leave master volume unchanged")) return 1;
+
   ui.setParameterPage(1);
   ui.focusParameter("mix");
   ui.selectBlock(state, 1);
@@ -134,7 +151,22 @@ int main()
   });
   if (require(tremAsset != state.assets.end(), "Vintage Trem should be available")) return 1;
   ardor::appendAssetBlock(state, static_cast<std::size_t>(std::distance(state.assets.begin(), tremAsset)));
-  ardor::selectBlock(state, state.bank.presets[state.activePreset].blocks.size() - 1);
+  ui.selectBlock(state, state.bank.presets[state.activePreset].blocks.size() - 1);
+
+  const auto tremControls = ardor::parameterPage(state, 0);
+  const auto depthControl = std::find_if(tremControls.begin(), tremControls.end(), [](const auto& control) {
+    return control.key == "depth";
+  });
+  if (require(depthControl != tremControls.end(), "Daisy depth control should be available")) return 1;
+  const float depthBefore = depthControl->value;
+  state.dirty = false;
+  ui.focusParameter("depth");
+  if (require(ui.applyFocusedParameterDelta(state, 1), "focused Daisy control should consume encoder tick")) return 1;
+  if (require(state.bank.presets[state.activePreset].blocks[state.selectedBlock].params.value("depth", 0.0f)
+                == depthBefore + depthControl->step,
+              "focused Daisy control should change by its descriptor step")) return 1;
+  if (require(state.dirty, "focused Daisy control should dirty preset")) return 1;
+  if (require(state.masterVolume == masterVolume, "focused Daisy control should leave master volume unchanged")) return 1;
 
   ardor::setSelectedBlockParam(state, "depth", 2.0f);
   if (require(state.bank.presets[state.activePreset].blocks[state.selectedBlock].params.value("depth", 0.0f) == 1.0f,
@@ -143,13 +175,28 @@ int main()
   if (require(ardor::parameterPage(state, 0).size() <= 6, "page must contain <= six knobs")) return 1;
   if (require(ardor::parameterPageCount(state) == 2, "seven params require two pages")) return 1;
 
+  ui.selectGlobalParams(state);
+  ardor::setActiveInputGainDb(state, 0.0f);
+  state.dirty = false;
+  ui.focusParameter("inputGainDb");
+  if (require(ui.applyFocusedParameterDelta(state, 1), "focused global control should consume encoder tick")) return 1;
+  if (require(state.bank.presets[state.activePreset].global.inputGainDb == 1.0f,
+              "focused global control should change by its descriptor step")) return 1;
+  if (require(state.dirty, "focused global control should dirty preset")) return 1;
+  if (require(state.masterVolume == masterVolume, "focused global control should leave master volume unchanged")) return 1;
+
+  ui.focusParameter("");
+  if (require(!ui.applyFocusedParameterDelta(state, 1), "no focused control should leave encoder available to master-volume fallback")) return 1;
+  if (require(state.masterVolume == masterVolume, "no-focus UI handling should not change master volume itself")) return 1;
+
   lv_init();
   lv_display_t* display = lv_display_create(1280, 720);
+  ui.selectBlock(state, state.selectedBlock);
   ardor::enterEditMode(state);
-  const auto tremControls = ardor::parameterPage(state, 0);
-  const auto depth = std::find_if(tremControls.begin(), tremControls.end(),
+  const auto renderControls = ardor::parameterPage(state, 0);
+  const auto depth = std::find_if(renderControls.begin(), renderControls.end(),
                                   [](const auto& control) { return control.key == "depth"; });
-  if (require(depth != tremControls.end(), "Vintage Trem depth control should be available")) return 1;
+  if (require(depth != renderControls.end(), "Vintage Trem depth control should be available")) return 1;
   ardor::setSelectedBlockParam(state, "depth", depth->minimum);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());

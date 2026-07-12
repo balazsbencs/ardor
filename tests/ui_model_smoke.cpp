@@ -33,6 +33,11 @@ int main()
   if (require(state.mode == ardor::UiMode::Preset, "expected preset mode")) return 1;
   if (require(state.masterVolume == 82, "expected demo master volume")) return 1;
 
+  const int masterVolume = state.masterVolume;
+  ardor::setActiveInputGainDb(state, 1.0f);
+  if (require(state.masterVolume == masterVolume, "preset parameter edits should not change master volume")) return 1;
+  state.dirty = false;
+
   if (require(ardor::consumePendingSlotRequest(state) == -1, "initial pending slot should be empty")) return 1;
   if (require(ardor::consumePendingSlotRequest(state) == -1, "consume is idempotent when empty")) return 1;
   ardor::selectPreset(state, 2);
