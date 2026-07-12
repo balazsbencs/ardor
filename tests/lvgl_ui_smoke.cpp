@@ -266,6 +266,15 @@ int main()
   if (require(focusedLabel && lv_color_eq(lv_obj_get_style_text_color(focusedLabel, LV_PART_MAIN), lv_color_hex(0x43f05a)),
               "focused knob label should use acid green")) return 1;
 
+  pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
+  const auto minimumRotation = lv_obj_get_style_transform_rotation(pointer, LV_PART_MAIN);
+  if (require(ui.applyFocusedParameterDelta(state, 1), "focused encoder adjustment should be consumed")) return 1;
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
+  if (require(pointer && lv_obj_get_style_transform_rotation(pointer, LV_PART_MAIN) > minimumRotation,
+              "focused encoder adjustment should rebuild the knob pointer")) return 1;
+
   ardor::setSelectedBlockParam(state, "depth", depth->maximum);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
