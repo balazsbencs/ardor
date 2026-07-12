@@ -64,6 +64,20 @@ lv_obj_t* findKnobPointer(lv_obj_t* parent, const char* controlLabel)
   return nullptr;
 }
 
+lv_obj_t* findObjectWithBgColor(lv_obj_t* parent, lv_color_t color, int width)
+{
+  if (lv_obj_get_width(parent) == width
+      && lv_color_eq(lv_obj_get_style_bg_color(parent, LV_PART_MAIN), color)) {
+    return parent;
+  }
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    if (auto* result = findObjectWithBgColor(lv_obj_get_child(parent, static_cast<int32_t>(i)), color, width)) {
+      return result;
+    }
+  }
+  return nullptr;
+}
+
 } // namespace
 
 int main()
@@ -146,6 +160,21 @@ int main()
   if (require(ui.parameterPage() == 0, "global selection should reset parameter page")) return 1;
   if (require(!ui.applyFocusedParameterDelta(state, 1), "global selection should clear focused parameter")) return 1;
 
+  bool customPresetActionCalled = false;
+  ardor::LvglUi presetUi({
+    [&](std::size_t index) {
+      customPresetActionCalled = true;
+      ardor::selectPreset(state, index);
+    },
+    {},
+  });
+  presetUi.setParameterPage(1);
+  presetUi.focusParameter("inputGainDb");
+  presetUi.selectPreset(state, 1);
+  if (require(customPresetActionCalled, "custom preset action should be called")) return 1;
+  if (require(presetUi.parameterPage() == 0, "preset selection should reset parameter page")) return 1;
+  if (require(!presetUi.applyFocusedParameterDelta(state, 1), "preset selection should clear focused parameter")) return 1;
+
   const auto tremAsset = std::find_if(state.assets.begin(), state.assets.end(), [](const ardor::UiAsset& asset) {
     return asset.name == "Vintage Trem";
   });
@@ -204,7 +233,7 @@ int main()
   const auto& selected = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
   const std::string titleText = selected.label + "  /  " + selected.assetName;
   lv_obj_t* previous = findLabel(lv_screen_active(), "<");
-  lv_obj_t* page = findLabel(lv_screen_active(), "PAGE 1/2");
+  lv_obj_t* page = findLabel(lv_screen_active(), "PAGE 1 / 2");
   lv_obj_t* next = findLabel(lv_screen_active(), ">");
   lv_obj_t* title = findLabel(lv_screen_active(), titleText.c_str());
   lv_obj_t* pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
@@ -230,12 +259,47 @@ int main()
   if (require(lv_obj_get_style_transform_rotation(pointer, LV_PART_MAIN) == 450,
               "minimum knob value should point to the start of the arc")) return 1;
 
+  ui.focusParameter(depth->key);
+  ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* focusedLabel = findLabel(lv_screen_active(), depth->label.c_str());
+  if (require(focusedLabel && lv_color_eq(lv_obj_get_style_text_color(focusedLabel, LV_PART_MAIN), lv_color_hex(0x43f05a)),
+              "focused knob label should use acid green")) return 1;
+
   ardor::setSelectedBlockParam(state, "depth", depth->maximum);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
   if (require(pointer && lv_obj_get_style_transform_rotation(pointer, LV_PART_MAIN) == 3150,
               "maximum knob value should point to the end of the arc")) return 1;
+
+  ui.selectGlobalParams(state);
+  ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "PAGE 1 / 1"),
+              "single-page global controls should show page status")) return 1;
+
+  ui.selectBlock(state, 1);
+  ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "PAGE 1 / 1"),
+              "single-page cab controls should show page status")) return 1;
+
+  ardor::enterPresetMode(state);
+  ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x43f05a), 4),
+              "active preset should have a thin acid-green indicator")) return 1;
+
+  constexpr std::size_t largeBlockCount = 10000;
+  if (require(ardor::LvglUi::chainSlotForX(largeBlockCount, 34) == 0,
+              "large chains should map their left edge to the first block")) return 1;
+  if (require(ardor::LvglUi::chainSlotForX(largeBlockCount, 1260) == largeBlockCount - 1,
+              "large chains should map their right edge to the final block")) return 1;
+  if (require(ardor::LvglUi::chainInsertionSlotForX(largeBlockCount, 1260) == largeBlockCount,
+              "large chains should allow insertion after the final block")) return 1;
+  if (require(ardor::LvglUi::chainIndicatorX(largeBlockCount, largeBlockCount) <= 1246,
+              "large chain indicator should remain within the chain")) return 1;
 
   lv_display_delete(display);
   lv_deinit();

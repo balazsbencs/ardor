@@ -2630,4 +2630,3 @@ lv_font_t ardor_font_open_sans_semibold_28 = {
 
 
 #endif /*#if ARDOR_FONT_OPEN_SANS_SEMIBOLD_28*/
-

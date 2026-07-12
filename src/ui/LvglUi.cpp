@@ -26,7 +26,9 @@ constexpr auto panel = 0x242424;
 constexpr auto panelAlt = 0x242424;
 constexpr auto text = 0xf5f5f5;
 constexpr auto muted = 0xa6a6a6;
-constexpr auto accent = 0xb6ff00;
+constexpr auto accent = 0x43f05a;
+constexpr int kChainLeft = 34;
+constexpr int kChainWidth = 1212;
 
 void setText(lv_obj_t* object, int color = text, const lv_font_t* font = &ardor_font_open_sans_regular_18)
 {
@@ -62,11 +64,7 @@ lv_obj_t* button(lv_obj_t* parent, const std::string& value);
 void onPresetClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  if (context->ui->actions().selectPreset) {
-    context->ui->actions().selectPreset(context->index);
-  } else {
-    selectPreset(*context->state, context->index);
-  }
+  context->ui->selectPreset(*context->state, context->index);
   redraw(context);
 }
 
@@ -179,6 +177,7 @@ void onKnobPressed(lv_event_t* event)
   }
   context->filter = controls[index - 1].key;
   context->ui->focusParameter(context->filter);
+  redraw(context);
 }
 
 void onKnobPressing(lv_event_t* event)
@@ -218,22 +217,12 @@ void onBlockClicked(lv_event_t* event)
 
 std::size_t chainSlotFromPoint(const UiState& state, const lv_point_t& point)
 {
-  const auto blockCount = state.bank.presets[state.activePreset].blocks.size();
-  if (blockCount == 0) {
-    return 0;
-  }
-  const int slotWidth = 1224 / static_cast<int>(blockCount);
-  return std::min<std::size_t>(static_cast<std::size_t>(std::max(0, point.x - 28) / slotWidth), blockCount - 1);
+  return LvglUi::chainSlotForX(state.bank.presets[state.activePreset].blocks.size(), point.x);
 }
 
 std::size_t insertSlotFromPoint(const UiState& state, const lv_point_t& point)
 {
-  const auto blockCount = state.bank.presets[state.activePreset].blocks.size();
-  if (blockCount == 0) {
-    return 0;
-  }
-  const int slotWidth = 1224 / static_cast<int>(blockCount);
-  return std::min<std::size_t>(static_cast<std::size_t>(std::max(0, point.x - 28) / slotWidth), blockCount);
+  return LvglUi::chainInsertionSlotForX(state.bank.presets[state.activePreset].blocks.size(), point.x);
 }
 
 bool pointInChain(const lv_point_t& point)
@@ -250,7 +239,6 @@ void moveToFront(lv_obj_t* object)
 void placeDragIndicatorAtSlot(UiEventContext* context, std::size_t slot)
 {
   const auto blockCount = context->state->bank.presets[context->state->activePreset].blocks.size();
-  const int slotWidth = blockCount == 0 ? 1224 : 1224 / static_cast<int>(blockCount);
 
   if (!context->indicator) {
     context->indicator = lv_obj_create(context->ui->canvas());
@@ -260,7 +248,7 @@ void placeDragIndicatorAtSlot(UiEventContext* context, std::size_t slot)
     lv_obj_set_style_radius(context->indicator, 2, 0);
   }
 
-  lv_obj_set_pos(context->indicator, 28 + static_cast<int>(slot) * slotWidth, 126);
+  lv_obj_set_pos(context->indicator, LvglUi::chainIndicatorX(blockCount, slot), 126);
   moveToFront(context->indicator);
 }
 
@@ -519,7 +507,8 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, U
   lv_obj_set_style_transform_rotation(pointer, static_cast<int32_t>((45.0f + ratio * 270.0f) * 10.0f), 0);
   lv_obj_remove_flag(pointer, LV_OBJ_FLAG_CLICKABLE);
 
-  label(knob, control.label, LV_ALIGN_BOTTOM_MID, 0, -30, &ardor_font_open_sans_semibold_22, text);
+  label(knob, control.label, LV_ALIGN_BOTTOM_MID, 0, -30, &ardor_font_open_sans_semibold_22,
+        context->ui->isParameterFocused(control.key) ? accent : text);
   label(knob, control.formatted, LV_ALIGN_BOTTOM_MID, 0, -7, &ardor_font_open_sans_regular_18, muted);
   return knob;
 }
@@ -547,23 +536,24 @@ void renderBypassSwitch(lv_obj_t* parent, UiState& state, UiEventContext* contex
 
 void renderPageNavigation(lv_obj_t* parent, UiState& state, UiEventContext* context)
 {
-  const auto count = parameterPageCount(state);
-  if (count < 2) {
-    return;
+  const auto count = std::max<std::size_t>(1, parameterPageCount(state));
+  const auto page = std::min(context->ui->parameterPage(), count - 1);
+  if (count > 1) {
+    lv_obj_t* previous = button(parent, "<");
+    lv_obj_set_size(previous, 36, 32);
+    lv_obj_align(previous, LV_ALIGN_TOP_LEFT, 28, 20);
+    lv_obj_add_event_cb(previous, onPreviousParameterPage, LV_EVENT_CLICKED, context);
   }
-  const auto page = context->ui->parameterPage();
-  lv_obj_t* previous = button(parent, "<");
-  lv_obj_set_size(previous, 36, 32);
-  lv_obj_align(previous, LV_ALIGN_TOP_LEFT, 28, 20);
-  lv_obj_add_event_cb(previous, onPreviousParameterPage, LV_EVENT_CLICKED, context);
-  lv_obj_t* pageLabel = label(parent, "PAGE " + std::to_string(page + 1) + "/" + std::to_string(count),
+  lv_obj_t* pageLabel = label(parent, "PAGE " + std::to_string(page + 1) + " / " + std::to_string(count),
                               LV_ALIGN_TOP_LEFT, 76, 25, &ardor_font_open_sans_regular_18, muted);
-  lv_obj_set_width(pageLabel, 88);
+  lv_obj_set_width(pageLabel, 128);
   lv_label_set_long_mode(pageLabel, LV_LABEL_LONG_CLIP);
-  lv_obj_t* next = button(parent, ">");
-  lv_obj_set_size(next, 36, 32);
-  lv_obj_align(next, LV_ALIGN_TOP_LEFT, 172, 20);
-  lv_obj_add_event_cb(next, onNextParameterPage, LV_EVENT_CLICKED, context);
+  if (count > 1) {
+    lv_obj_t* next = button(parent, ">");
+    lv_obj_set_size(next, 36, 32);
+    lv_obj_align(next, LV_ALIGN_TOP_LEFT, 214, 20);
+    lv_obj_add_event_cb(next, onNextParameterPage, LV_EVENT_CLICKED, context);
+  }
 }
 
 void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* context)
@@ -581,7 +571,7 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
   lv_obj_add_event_cb(close, onCloseParamDrawer, LV_EVENT_CLICKED, context);
 
   if (state.paramTarget == UiParamTarget::Globals) {
-    lv_obj_t* title = label(panelObject, "Global", LV_ALIGN_TOP_LEFT, 236, 22, &ardor_font_open_sans_semibold_22);
+    lv_obj_t* title = label(panelObject, "Global", LV_ALIGN_TOP_LEFT, 270, 22, &ardor_font_open_sans_semibold_22);
     lv_obj_set_width(title, 700);
     lv_label_set_long_mode(title, LV_LABEL_LONG_CLIP);
   } else {
@@ -591,7 +581,7 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
     }
     const auto& block = blocks[state.selectedBlock];
     lv_obj_t* title = label(panelObject, block.label + "  /  " + block.assetName,
-                            LV_ALIGN_TOP_LEFT, 236, 22, &ardor_font_open_sans_semibold_22);
+                            LV_ALIGN_TOP_LEFT, 270, 22, &ardor_font_open_sans_semibold_22);
     lv_obj_set_width(title, 700);
     lv_label_set_long_mode(title, LV_LABEL_LONG_CLIP);
     renderBypassSwitch(panelObject, state, context);
@@ -612,6 +602,54 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
 LvglUi::LvglUi(UiActions actions)
   : actions_(std::move(actions))
 {
+}
+
+void LvglUi::selectPreset(UiState& state, std::size_t presetIndex)
+{
+  if (actions_.selectPreset) {
+    actions_.selectPreset(presetIndex);
+  } else {
+    ardor::selectPreset(state, presetIndex);
+  }
+  resetParameterPage();
+}
+
+std::size_t LvglUi::chainSlotForX(std::size_t blockCount, int canvasX)
+{
+  if (blockCount == 0) {
+    return 0;
+  }
+  if (canvasX <= kChainLeft) {
+    return 0;
+  }
+  if (canvasX >= kChainLeft + kChainWidth) {
+    return blockCount - 1;
+  }
+  const auto position = static_cast<std::size_t>(canvasX - kChainLeft);
+  return (blockCount / kChainWidth) * position + (blockCount % kChainWidth) * position / kChainWidth;
+}
+
+std::size_t LvglUi::chainInsertionSlotForX(std::size_t blockCount, int canvasX)
+{
+  if (blockCount == 0 || canvasX <= kChainLeft) {
+    return 0;
+  }
+  if (canvasX >= kChainLeft + kChainWidth) {
+    return blockCount;
+  }
+  const auto position = static_cast<std::size_t>(canvasX - kChainLeft);
+  return (blockCount / kChainWidth) * position + (blockCount % kChainWidth) * position / kChainWidth;
+}
+
+int LvglUi::chainIndicatorX(std::size_t blockCount, std::size_t slot)
+{
+  if (blockCount == 0) {
+    return kChainLeft;
+  }
+  slot = std::min(slot, blockCount);
+  const auto offset = (slot / blockCount) * kChainWidth
+    + (slot % blockCount) * kChainWidth / blockCount;
+  return kChainLeft + static_cast<int>(offset);
 }
 
 void LvglUi::selectBlock(UiState& state, std::size_t blockIndex)
@@ -738,6 +776,13 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
                          LV_GRID_ALIGN_STRETCH, static_cast<int32_t>(i / 2), 1);
     styleSurface(preset, panel);
     lv_obj_set_style_text_color(lv_obj_get_child(preset, 0), lv_color_hex(i == state.activePreset ? accent : text), 0);
+    if (i == state.activePreset) {
+      lv_obj_t* indicator = lv_obj_create(preset);
+      lv_obj_set_size(indicator, 4, LV_PCT(100));
+      lv_obj_align(indicator, LV_ALIGN_LEFT_MID, 0, 0);
+      styleSurface(indicator, accent);
+      lv_obj_remove_flag(indicator, LV_OBJ_FLAG_CLICKABLE);
+    }
     lv_obj_add_event_cb(preset, onPresetClicked, LV_EVENT_CLICKED, remember(state, i));
   }
   telemetryLine(root, state.telemetry, state.effectsBypassed);
@@ -780,10 +825,13 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
 
   for (std::size_t i = 0; i < blocks.size(); ++i) {
     const auto& block = blocks[i];
-    const int slotWidth = 1212 / std::max<int>(1, static_cast<int>(blocks.size()));
+    const int slotWidth = std::max(1, static_cast<int>(kChainWidth / std::max<std::size_t>(1, blocks.size())));
     lv_obj_t* object = button(chain, block.label + "\n" + block.assetName);
-    lv_obj_set_size(object, slotWidth - 10, 92);
-    lv_obj_set_pos(object, 14 + static_cast<int>(i) * slotWidth, 17);
+    const auto slotOffset = i >= static_cast<std::size_t>(kChainWidth / slotWidth)
+      ? static_cast<std::size_t>(kChainWidth - 1)
+      : i * static_cast<std::size_t>(slotWidth);
+    lv_obj_set_size(object, std::max(1, slotWidth - 10), 92);
+    lv_obj_set_pos(object, 14 + static_cast<int>(slotOffset), 17);
     styleSurface(object, block.enabled ? panel : 0x171717);
     const bool selected = state.paramTarget == UiParamTarget::Block && state.selectedBlock == i;
     label(object, block.type, LV_ALIGN_TOP_LEFT, 9, 7, &ardor_font_open_sans_regular_18, selected ? accent : muted);

@@ -39,9 +39,15 @@ public:
   void build(lv_obj_t* root, UiState& state);
   void refresh(lv_obj_t* root, UiState& state);
   void requestRebuild();
+  void selectPreset(UiState& state, std::size_t presetIndex);
   void selectBlock(UiState& state, std::size_t blockIndex);
   void selectGlobalParams(UiState& state);
-  void focusParameter(std::string key) { focusedKey_ = std::move(key); }
+  void focusParameter(std::string key)
+  {
+    focusedKey_ = std::move(key);
+    requestRebuild();
+  }
+  bool isParameterFocused(const std::string& key) const { return focusedKey_ == key; }
   void resetParameterPage()
   {
     focusedKey_.clear();
@@ -49,6 +55,9 @@ public:
   }
   void setParameterPage(std::size_t page) { parameterPage_ = page; }
   std::size_t parameterPage() const { return parameterPage_; }
+  static std::size_t chainSlotForX(std::size_t blockCount, int canvasX);
+  static std::size_t chainInsertionSlotForX(std::size_t blockCount, int canvasX);
+  static int chainIndicatorX(std::size_t blockCount, std::size_t slot);
   bool applyFocusedParameterDelta(UiState& state, int delta)
   {
     if (focusedKey_.empty()) {

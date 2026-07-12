@@ -922,4 +922,3 @@ lv_font_t ardor_font_open_sans_regular_18 = {
 
 
 #endif /*#if ARDOR_FONT_OPEN_SANS_REGULAR_18*/
-
