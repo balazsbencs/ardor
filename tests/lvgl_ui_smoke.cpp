@@ -1,4 +1,5 @@
 #include "ui/LvglUi.h"
+#include "ui/fonts/OpenSansRegular.h"
 
 #include <algorithm>
 #include <cstring>
@@ -219,6 +220,15 @@ int main()
   if (require(state.masterVolume == masterVolume, "no-focus UI handling should not change master volume itself")) return 1;
 
   lv_init();
+  lv_font_glyph_dsc_t glyph{};
+  if (require(lv_font_get_glyph_dsc(&ardor_font_open_sans_regular_18, &glyph, 'A', 0),
+              "Open Sans should provide glyph descriptors")) return 1;
+  lv_draw_buf_t* glyphBuffer = lv_draw_buf_create(glyph.box_w, glyph.box_h, LV_COLOR_FORMAT_A8, LV_STRIDE_AUTO);
+  if (require(glyphBuffer, "glyph buffer should allocate")) return 1;
+  const void* glyphBitmap = lv_font_get_glyph_bitmap(&glyph, glyphBuffer);
+  lv_draw_buf_destroy(glyphBuffer);
+  if (require(glyphBitmap, "Open Sans glyphs should render in LVGL")) return 1;
+
   lv_display_t* display = lv_display_create(1280, 720);
   ui.selectBlock(state, state.selectedBlock);
   ardor::enterEditMode(state);
