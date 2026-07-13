@@ -51,7 +51,7 @@ lv_obj_t* findLabel(lv_obj_t* parent, const char* text)
 
 lv_obj_t* findKnobPointer(lv_obj_t* parent)
 {
-  if (lv_obj_get_width(parent) == 3 && lv_obj_get_height(parent) == 20) {
+  if (lv_obj_check_type(parent, &lv_line_class) && lv_line_get_point_count(parent) == 2) {
     return parent;
   }
   for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
@@ -290,29 +290,46 @@ int main()
   lv_obj_t* pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
   if (require(previous && next && title && pointer, "parameter header and knob pointer should render")) return 1;
   if (require(page, "parameter header should show PAGE n/total")) return 1;
-  lv_obj_t* arc = findObjectOfClass(lv_screen_active(), &lv_arc_class);
-  lv_obj_t* rim = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x000000), 56, 56);
+  lv_obj_t* pointerLayer = lv_obj_get_parent(pointer);
+  lv_obj_t* knobObject = lv_obj_get_parent(pointerLayer);
+  lv_obj_t* arc = findObjectOfClass(knobObject, &lv_arc_class);
+  lv_obj_t* rim = findObjectWithSizeAndBgColor(knobObject, lv_color_hex(0x000000), 82, 82);
   if (require(arc && rim, "knob arc and dial rim should render")) return 1;
   if (require(lv_obj_get_style_bg_opa(arc, LV_PART_KNOB) == LV_OPA_TRANSP,
               "native arc knob should be transparent")) return 1;
   if (require(!lv_obj_has_flag(rim, LV_OBJ_FLAG_SCROLLABLE),
               "dial rim should not create scrollbars")) return 1;
-  lv_obj_t* pointerLayer = lv_obj_get_parent(pointer);
   if (require(lv_obj_get_width(pointerLayer) == 56 && lv_obj_get_height(pointerLayer) == 56,
-              "custom pointer should rotate inside a dial-sized layer")) return 1;
-  if (require(lv_obj_get_style_transform_pivot_x(pointerLayer, LV_PART_MAIN) == 28
-                && lv_obj_get_style_transform_pivot_y(pointerLayer, LV_PART_MAIN) == 28,
-              "custom pointer layer should pivot at the dial centre")) return 1;
+              "custom pointer should sit inside a dial-sized layer")) return 1;
+  if (require(lv_obj_get_style_transform_rotation(pointerLayer, LV_PART_MAIN) == 0,
+              "pointer layer should remain stationary")) return 1;
+  const lv_point_precise_t* pointerPoints = lv_line_get_points(pointer);
+  if (require(lv_obj_get_style_pad_left(pointerLayer, LV_PART_MAIN) == 0
+                && lv_obj_get_style_pad_right(pointerLayer, LV_PART_MAIN) == 0
+                && lv_obj_get_style_pad_top(pointerLayer, LV_PART_MAIN) == 0
+                && lv_obj_get_style_pad_bottom(pointerLayer, LV_PART_MAIN) == 0,
+              "pointer layer should not offset or clip its line with inherited padding")) return 1;
+  if (require(pointerPoints && pointerPoints[0].x == 28 && pointerPoints[0].y == 28,
+              "custom pointer should start at the dial centre")) return 1;
   lv_area_t arcArea{};
   lv_area_t rimArea{};
+  lv_area_t pointerLayerArea{};
   lv_obj_get_coords(arc, &arcArea);
   lv_obj_get_coords(rim, &rimArea);
+  lv_obj_get_coords(pointerLayer, &pointerLayerArea);
   if (require(arcArea.x1 + arcArea.x2 == rimArea.x1 + rimArea.x2
                 && arcArea.y1 + arcArea.y2 == rimArea.y1 + rimArea.y2,
               "knob arc and dial should share one centre")) return 1;
-  if (require(lv_obj_get_x(pointerLayer) == lv_obj_get_x(rim)
-                && lv_obj_get_y(pointerLayer) == lv_obj_get_y(rim),
+  if (require(pointerLayerArea.x1 + pointerLayerArea.x2 == rimArea.x1 + rimArea.x2
+                && pointerLayerArea.y1 + pointerLayerArea.y2 == rimArea.y1 + rimArea.y2,
               "pointer layer should be laid out at the dial centre")) return 1;
+  lv_obj_t* dialCentre = lv_obj_get_child(rim, 0);
+  if (require(dialCentre && lv_obj_get_width(dialCentre) == 76
+                && lv_obj_get_height(dialCentre) == 76,
+              "black rim should be three pixels thick")) return 1;
+  if (require((lv_obj_get_width(arc) / 2 - lv_obj_get_style_arc_width(arc, LV_PART_INDICATOR))
+                  - lv_obj_get_width(rim) / 2 == 3,
+              "gap between black rim and green arc should be three pixels")) return 1;
 
   lv_obj_t* depthLabel = findLabel(lv_screen_active(), depth->label.c_str());
   lv_obj_t* depthArc = findObjectOfClass(lv_obj_get_parent(depthLabel), &lv_arc_class);
@@ -337,7 +354,8 @@ int main()
                                          [](const auto& control) { return control.key == "depth"; });
   if (require(lv_arc_get_value(depthArc) > 0,
               "simulator knob drag should update the arc before release")) return 1;
-  if (require(lv_obj_get_style_transform_rotation(pointerLayer, LV_PART_MAIN) > 450,
+  pointerPoints = lv_line_get_points(pointer);
+  if (require(pointerPoints && (pointerPoints[1].x != 14 || pointerPoints[1].y != 42),
               "simulator knob drag should update the needle before release")) return 1;
   if (require(updatedDepth != updatedControls.end()
                 && findLabel(lv_obj_get_parent(depthLabel), updatedDepth->formatted.c_str()),
@@ -401,9 +419,10 @@ int main()
   lv_obj_get_coords(title, &titleArea);
   if (require(previousArea.x2 < pageArea.x1 && pageArea.x2 < nextArea.x1 && nextArea.x2 < titleArea.x1,
               "parameter header controls and title should not overlap")) return 1;
-  if (require(lv_obj_get_x(pointer) + 1 == 28 && lv_obj_get_y(pointer) + 20 == 28,
-              "knob pointer should end at the dial centre")) return 1;
-  if (require(lv_obj_get_style_transform_rotation(pointerLayer, LV_PART_MAIN) == 450,
+  pointerPoints = lv_line_get_points(pointer);
+  if (require(pointerPoints && pointerPoints[0].x == 28 && pointerPoints[0].y == 28,
+              "knob pointer should start at the dial centre")) return 1;
+  if (require(pointerPoints && pointerPoints[1].x == 14 && pointerPoints[1].y == 42,
               "minimum knob value should point to the start of the arc")) return 1;
 
   ui.focusParameter(depth->key);
@@ -414,20 +433,24 @@ int main()
               "focused knob label should use acid green")) return 1;
 
   pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
-  const auto minimumRotation =
-      lv_obj_get_style_transform_rotation(lv_obj_get_parent(pointer), LV_PART_MAIN);
+  pointerPoints = lv_line_get_points(pointer);
+  const lv_point_precise_t minimumPointerEnd = pointerPoints[1];
   if (require(ui.applyFocusedParameterDelta(state, 1), "focused encoder adjustment should be consumed")) return 1;
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
-  if (require(pointer && lv_obj_get_style_transform_rotation(lv_obj_get_parent(pointer), LV_PART_MAIN) > minimumRotation,
+  pointerPoints = pointer ? lv_line_get_points(pointer) : nullptr;
+  if (require(pointerPoints && (pointerPoints[1].x != minimumPointerEnd.x
+                                || pointerPoints[1].y != minimumPointerEnd.y),
               "focused encoder adjustment should rebuild the knob pointer")) return 1;
 
   ardor::setSelectedBlockParam(state, "depth", depth->maximum);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
-  if (require(pointer && lv_obj_get_style_transform_rotation(lv_obj_get_parent(pointer), LV_PART_MAIN) == 3150,
+  pointerPoints = pointer ? lv_line_get_points(pointer) : nullptr;
+  if (require(pointerPoints && pointerPoints[0].x == 28 && pointerPoints[0].y == 28
+                && pointerPoints[1].x == 42 && pointerPoints[1].y == 42,
               "maximum knob value should point to the end of the arc")) return 1;
 
   ui.selectGlobalParams(state);

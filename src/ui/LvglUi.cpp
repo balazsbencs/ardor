@@ -33,6 +33,36 @@ constexpr int kChainWidth = 1212;
 constexpr int kVisibleChainBlocks = 5;
 constexpr int kChainSlotWidth = kChainWidth / kVisibleChainBlocks;
 constexpr int kChainTileWidth = kChainSlotWidth - 10;
+constexpr float kKnobPointerStartDegrees = -135.0f;
+constexpr float kKnobPointerSweepDegrees = 270.0f;
+constexpr int32_t kKnobPointerCentre = 28;
+constexpr int32_t kKnobPointerLength = 20;
+constexpr int32_t kKnobArcDiameter = 64;
+constexpr int32_t kKnobStrokeWidth = 4;
+constexpr int32_t kKnobStrokeGap = 4;
+constexpr int32_t kKnobRimDiameter = kKnobArcDiameter - 2 * (kKnobStrokeWidth + kKnobStrokeGap);
+constexpr int32_t kKnobCentreDiameter = kKnobRimDiameter - 2 * kKnobStrokeWidth;
+
+void updateKnobPointer(lv_obj_t* pointer, float ratio)
+{
+  lv_point_precise_t* points = lv_line_get_points_mutable(pointer);
+  if (!points || lv_line_get_point_count(pointer) != 2) {
+    return;
+  }
+
+  constexpr float degreesToRadians = 3.14159265358979323846f / 180.0f;
+  const float angle = (kKnobPointerStartDegrees + ratio * kKnobPointerSweepDegrees) * degreesToRadians;
+  points[0].x = kKnobPointerCentre;
+  points[0].y = kKnobPointerCentre;
+  points[1].x = kKnobPointerCentre + static_cast<int32_t>(std::lround(std::sin(angle) * kKnobPointerLength));
+  points[1].y = kKnobPointerCentre - static_cast<int32_t>(std::lround(std::cos(angle) * kKnobPointerLength));
+  lv_line_set_points_mutable(pointer, points, 2);
+}
+
+void freeKnobPointerPoints(lv_event_t* event)
+{
+  lv_free(lv_event_get_user_data(event));
+}
 
 void setText(lv_obj_t* object, int color = text, const lv_font_t* font = &ardor_font_open_sans_regular_18)
 {
@@ -201,9 +231,8 @@ void refreshKnobVisual(lv_obj_t* knob, const ParameterControl& control)
       }
     } else if (lv_obj_get_width(child) == 56 && lv_obj_get_height(child) == 56) {
       lv_obj_t* marker = lv_obj_get_child(child, 0);
-      if (marker && lv_obj_get_width(marker) == 3 && lv_obj_get_height(marker) == 20) {
-        lv_obj_set_style_transform_rotation(child,
-                                            static_cast<int32_t>((45.0f + ratio * 270.0f) * 10.0f), 0);
+      if (marker && lv_obj_check_type(marker, &lv_line_class)) {
+        updateKnobPointer(marker, ratio);
       }
     }
   }
@@ -514,30 +543,32 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, U
   lv_obj_add_event_cb(knob, onKnobReleased, LV_EVENT_PRESS_LOST, context);
 
   lv_obj_t* arc = lv_arc_create(knob);
-  lv_obj_set_size(arc, 94, 94);
+  lv_obj_set_size(arc, kKnobArcDiameter, kKnobArcDiameter);
   lv_obj_center(arc);
   lv_obj_set_y(arc, -25);
   lv_arc_set_rotation(arc, 135);
   lv_arc_set_bg_angles(arc, 0, 270);
   lv_arc_set_range(arc, 0, 1000);
   lv_arc_set_value(arc, static_cast<int>(std::lround(ratio * 1000.0f)));
-  lv_obj_set_style_arc_width(arc, 3, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(arc, 0, LV_PART_MAIN);
+  lv_obj_set_style_arc_width(arc, kKnobStrokeWidth, LV_PART_MAIN);
   lv_obj_set_style_arc_color(arc, lv_color_hex(0x454545), LV_PART_MAIN);
-  lv_obj_set_style_arc_width(arc, 3, LV_PART_INDICATOR);
+  lv_obj_set_style_arc_width(arc, kKnobStrokeWidth, LV_PART_INDICATOR);
   lv_obj_set_style_arc_color(arc, lv_color_hex(accent), LV_PART_INDICATOR);
   lv_obj_set_style_bg_opa(arc, LV_OPA_TRANSP, LV_PART_KNOB);
   lv_obj_remove_flag(arc, LV_OBJ_FLAG_CLICKABLE);
 
   lv_obj_t* rim = lv_obj_create(knob);
-  lv_obj_set_size(rim, 56, 56);
+  lv_obj_set_size(rim, kKnobRimDiameter, kKnobRimDiameter);
   lv_obj_align_to(rim, arc, LV_ALIGN_CENTER, 0, 0);
   styleSurface(rim, 0x000000);
+  lv_obj_set_style_pad_all(rim, 0, 0);
   lv_obj_set_style_radius(rim, LV_RADIUS_CIRCLE, 0);
   lv_obj_remove_flag(rim, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(rim, LV_OBJ_FLAG_CLICKABLE);
 
   lv_obj_t* centre = lv_obj_create(rim);
-  lv_obj_set_size(centre, 48, 48);
+  lv_obj_set_size(centre, kKnobCentreDiameter, kKnobCentreDiameter);
   lv_obj_center(centre);
   styleSurface(centre, panel);
   lv_obj_set_style_radius(centre, LV_RADIUS_CIRCLE, 0);
@@ -549,22 +580,23 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, U
   lv_obj_align_to(pointerLayer, arc, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_bg_opa(pointerLayer, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(pointerLayer, 0, 0);
-  lv_obj_set_style_transform_pivot_x(pointerLayer, 28, LV_PART_MAIN);
-  lv_obj_set_style_transform_pivot_y(pointerLayer, 28, LV_PART_MAIN);
-  lv_obj_set_style_transform_rotation(pointerLayer,
-                                      static_cast<int32_t>((45.0f + ratio * 270.0f) * 10.0f), 0);
+  lv_obj_set_style_pad_all(pointerLayer, 0, 0);
   lv_obj_remove_flag(pointerLayer, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(pointerLayer, LV_OBJ_FLAG_CLICKABLE);
 
-  lv_obj_t* pointer = lv_obj_create(pointerLayer);
-  lv_obj_set_size(pointer, 3, 20);
-  lv_obj_set_pos(pointer, 27, 8);
-  lv_obj_set_style_bg_color(pointer, lv_color_hex(text), 0);
-  lv_obj_set_style_bg_opa(pointer, LV_OPA_COVER, 0);
-  lv_obj_set_style_border_width(pointer, 0, 0);
-  lv_obj_set_style_radius(pointer, 2, 0);
-  lv_obj_remove_flag(pointer, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(pointer, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_t* pointer = lv_line_create(pointerLayer);
+  lv_obj_set_size(pointer, 56, 56);
+  lv_obj_set_pos(pointer, 0, 0);
+  lv_obj_set_style_line_color(pointer, lv_color_hex(text), LV_PART_MAIN);
+  lv_obj_set_style_line_width(pointer, 3, LV_PART_MAIN);
+  lv_obj_set_style_line_rounded(pointer, true, LV_PART_MAIN);
+  auto* pointerPoints = static_cast<lv_point_precise_t*>(lv_malloc(sizeof(lv_point_precise_t) * 2));
+  LV_ASSERT_MALLOC(pointerPoints);
+  if (pointerPoints) {
+    lv_line_set_points_mutable(pointer, pointerPoints, 2);
+    lv_obj_add_event_cb(pointer, freeKnobPointerPoints, LV_EVENT_DELETE, pointerPoints);
+    updateKnobPointer(pointer, ratio);
+  }
 
   label(knob, control.label, LV_ALIGN_BOTTOM_MID, 0, -30, &ardor_font_open_sans_semibold_22,
         context->ui->isParameterFocused(control.key) ? accent : text);
@@ -575,7 +607,7 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, U
 void renderBypassSwitch(lv_obj_t* parent, UiState& state, UiEventContext* context)
 {
   const auto& block = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
-  label(parent, "Bypass", LV_ALIGN_TOP_RIGHT, -200, 24, &ardor_font_open_sans_regular_18, muted);
+  label(parent, "BYPASS", LV_ALIGN_TOP_RIGHT, -200, 24, &ardor_font_open_sans_regular_18, muted);
   lv_obj_t* switchObject = lv_switch_create(parent);
   lv_obj_set_size(switchObject, 64, 30);
   lv_obj_align(switchObject, LV_ALIGN_TOP_RIGHT, -100, 20);
@@ -892,8 +924,8 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
     lv_obj_set_pos(object, 14 + static_cast<int>(i) * kChainSlotWidth, 17);
     styleSurface(object, block.enabled ? panel : 0x171717);
     const bool selected = state.paramTarget == UiParamTarget::Block && state.selectedBlock == i;
-    label(object, category, LV_ALIGN_TOP_LEFT, 10, 8, &ardor_font_open_sans_regular_18, muted);
-    label(object, block.assetName, LV_ALIGN_CENTER, 0, 8, &ardor_font_open_sans_semibold_22);
+    label(object, category, LV_ALIGN_TOP_LEFT, 0, 8, &ardor_font_open_sans_regular_18, muted);
+    label(object, block.assetName, LV_ALIGN_LEFT_MID, 0, 8, &ardor_font_open_sans_semibold_22);
     if (selected) {
       lv_obj_t* indicator = lv_obj_create(object);
       lv_obj_set_size(indicator, 5, 5);
