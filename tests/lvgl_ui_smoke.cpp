@@ -315,6 +315,7 @@ int main()
               "pointer layer should be laid out at the dial centre")) return 1;
 
   lv_obj_t* depthLabel = findLabel(lv_screen_active(), depth->label.c_str());
+  lv_obj_t* depthArc = findObjectOfClass(lv_obj_get_parent(depthLabel), &lv_arc_class);
   lv_area_t depthKnobArea{};
   lv_obj_get_coords(lv_obj_get_parent(depthLabel), &depthKnobArea);
   SimulatedPointer simulatedPointer{{(depthKnobArea.x1 + depthKnobArea.x2) / 2,
@@ -331,6 +332,16 @@ int main()
   if (require(state.bank.presets[state.activePreset].blocks[state.selectedBlock].params.value("depth", 0.0f)
                 > depth->minimum,
               "simulator knob drag should change the focused parameter")) return 1;
+  const auto updatedControls = ardor::parameterPage(state, 0);
+  const auto updatedDepth = std::find_if(updatedControls.begin(), updatedControls.end(),
+                                         [](const auto& control) { return control.key == "depth"; });
+  if (require(lv_arc_get_value(depthArc) > 0,
+              "simulator knob drag should update the arc before release")) return 1;
+  if (require(lv_obj_get_style_transform_rotation(pointerLayer, LV_PART_MAIN) > 450,
+              "simulator knob drag should update the needle before release")) return 1;
+  if (require(updatedDepth != updatedControls.end()
+                && findLabel(lv_obj_get_parent(depthLabel), updatedDepth->formatted.c_str()),
+              "simulator knob drag should update the value label before release")) return 1;
   simulatedPointer.state = LV_INDEV_STATE_RELEASED;
   lv_indev_read(simulatedInput);
   ui.refresh(lv_screen_active(), state);

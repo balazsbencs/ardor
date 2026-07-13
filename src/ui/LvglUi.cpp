@@ -184,6 +184,31 @@ void onKnobPressed(lv_event_t* event)
   context->ui->focusParameter(context->filter);
 }
 
+void refreshKnobVisual(lv_obj_t* knob, const ParameterControl& control)
+{
+  const float range = control.maximum - control.minimum;
+  const float ratio = range == 0.0f ? 0.0f : std::clamp((control.value - control.minimum) / range, 0.0f, 1.0f);
+
+  for (uint32_t index = 0; index < lv_obj_get_child_count(knob); ++index) {
+    lv_obj_t* child = lv_obj_get_child(knob, static_cast<int32_t>(index));
+    if (lv_obj_check_type(child, &lv_arc_class)) {
+      lv_arc_set_value(child, static_cast<int>(std::lround(ratio * 1000.0f)));
+    } else if (lv_obj_check_type(child, &lv_label_class)) {
+      if (control.label == lv_label_get_text(child)) {
+        lv_obj_set_style_text_color(child, lv_color_hex(accent), 0);
+      } else {
+        lv_label_set_text(child, control.formatted.c_str());
+      }
+    } else if (lv_obj_get_width(child) == 56 && lv_obj_get_height(child) == 56) {
+      lv_obj_t* marker = lv_obj_get_child(child, 0);
+      if (marker && lv_obj_get_width(marker) == 3 && lv_obj_get_height(marker) == 20) {
+        lv_obj_set_style_transform_rotation(child,
+                                            static_cast<int32_t>((45.0f + ratio * 270.0f) * 10.0f), 0);
+      }
+    }
+  }
+}
+
 void onKnobPressing(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
@@ -199,7 +224,15 @@ void onKnobPressing(lv_event_t* event)
     return;
   }
   context->pressPoint.y = current.y;
-  context->ui->applyFocusedParameterDelta(*context->state, delta);
+  if (context->ui->applyFocusedParameterDelta(*context->state, delta)) {
+    const auto controls = parameterPage(*context->state, context->ui->parameterPage());
+    const auto control = std::find_if(controls.begin(), controls.end(), [context](const auto& item) {
+      return item.key == context->filter;
+    });
+    if (control != controls.end()) {
+      refreshKnobVisual(lv_event_get_target_obj(event), *control);
+    }
+  }
 }
 
 void onKnobReleased(lv_event_t* event)
