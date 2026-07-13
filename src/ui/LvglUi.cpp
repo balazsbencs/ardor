@@ -485,7 +485,7 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, U
   lv_obj_set_style_arc_color(arc, lv_color_hex(0x454545), LV_PART_MAIN);
   lv_obj_set_style_arc_width(arc, 3, LV_PART_INDICATOR);
   lv_obj_set_style_arc_color(arc, lv_color_hex(accent), LV_PART_INDICATOR);
-  lv_obj_set_style_opa(arc, LV_OPA_TRANSP, LV_PART_KNOB);
+  lv_obj_set_style_bg_opa(arc, LV_OPA_TRANSP, LV_PART_KNOB);
   lv_obj_remove_flag(arc, LV_OBJ_FLAG_CLICKABLE);
 
   lv_obj_t* rim = lv_obj_create(knob);
@@ -493,6 +493,7 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, U
   lv_obj_align(rim, LV_ALIGN_TOP_MID, 0, 20);
   styleSurface(rim, 0x000000);
   lv_obj_set_style_radius(rim, LV_RADIUS_CIRCLE, 0);
+  lv_obj_remove_flag(rim, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(rim, LV_OBJ_FLAG_CLICKABLE);
 
   lv_obj_t* centre = lv_obj_create(rim);
@@ -500,17 +501,20 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, U
   lv_obj_center(centre);
   styleSurface(centre, panel);
   lv_obj_set_style_radius(centre, LV_RADIUS_CIRCLE, 0);
+  lv_obj_remove_flag(centre, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(centre, LV_OBJ_FLAG_CLICKABLE);
 
-  lv_obj_t* pointer = lv_obj_create(rim);
+  lv_obj_t* pointer = lv_obj_create(knob);
   lv_obj_set_size(pointer, 3, 20);
-  lv_obj_set_pos(pointer, 27, 7);
+  lv_obj_set_pos(pointer, 76, 27);
   lv_obj_set_style_bg_color(pointer, lv_color_hex(text), 0);
+  lv_obj_set_style_bg_opa(pointer, LV_OPA_COVER, 0);
   lv_obj_set_style_border_width(pointer, 0, 0);
   lv_obj_set_style_radius(pointer, 2, 0);
   lv_obj_set_style_transform_pivot_x(pointer, 1, LV_PART_MAIN);
   lv_obj_set_style_transform_pivot_y(pointer, 21, LV_PART_MAIN);
   lv_obj_set_style_transform_rotation(pointer, static_cast<int32_t>((45.0f + ratio * 270.0f) * 10.0f), 0);
+  lv_obj_remove_flag(pointer, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(pointer, LV_OBJ_FLAG_CLICKABLE);
 
   label(knob, control.label, LV_ALIGN_BOTTOM_MID, 0, -30, &ardor_font_open_sans_semibold_22,

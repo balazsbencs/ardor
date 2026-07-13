@@ -277,6 +277,15 @@ int main()
   lv_obj_t* pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
   if (require(previous && next && title && pointer, "parameter header and knob pointer should render")) return 1;
   if (require(page, "parameter header should show PAGE n/total")) return 1;
+  lv_obj_t* arc = findObjectOfClass(lv_screen_active(), &lv_arc_class);
+  lv_obj_t* rim = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x000000), 56, 56);
+  if (require(arc && rim, "knob arc and dial rim should render")) return 1;
+  if (require(lv_obj_get_style_bg_opa(arc, LV_PART_KNOB) == LV_OPA_TRANSP,
+              "native arc knob should be transparent")) return 1;
+  if (require(!lv_obj_has_flag(rim, LV_OBJ_FLAG_SCROLLABLE),
+              "dial rim should not create scrollbars")) return 1;
+  if (require(lv_obj_get_width(lv_obj_get_parent(pointer)) == 154,
+              "custom pointer should be a sibling above the dial rim")) return 1;
 
   lv_obj_t* chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x000000), 1240, 126);
   if (require(chain, "signal chain should be black behind charcoal blocks")) return 1;
@@ -320,8 +329,7 @@ int main()
   if (require(lv_obj_get_style_transform_pivot_x(pointer, LV_PART_MAIN) == 1
                 && lv_obj_get_style_transform_pivot_y(pointer, LV_PART_MAIN) == 21,
               "knob pointer should rotate from its radial base")) return 1;
-  if (require(lv_obj_get_x(pointer) + 1 == lv_obj_get_width(lv_obj_get_parent(pointer)) / 2
-                && lv_obj_get_y(pointer) + 21 == lv_obj_get_height(lv_obj_get_parent(pointer)) / 2,
+  if (require(lv_obj_get_x(pointer) + 1 == 77 && lv_obj_get_y(pointer) + 21 == 48,
               "knob pointer base should be at the rim centre")) return 1;
   if (require(lv_obj_get_style_transform_rotation(pointer, LV_PART_MAIN) == 450,
               "minimum knob value should point to the start of the arc")) return 1;
