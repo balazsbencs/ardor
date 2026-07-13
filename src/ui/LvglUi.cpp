@@ -516,10 +516,10 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, U
 void renderBypassSwitch(lv_obj_t* parent, UiState& state, UiEventContext* context)
 {
   const auto& block = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
-  label(parent, "Bypass", LV_ALIGN_TOP_RIGHT, -132, 24, &ardor_font_open_sans_regular_18, muted);
+  label(parent, "Bypass", LV_ALIGN_TOP_RIGHT, -200, 24, &ardor_font_open_sans_regular_18, muted);
   lv_obj_t* switchObject = lv_switch_create(parent);
   lv_obj_set_size(switchObject, 64, 30);
-  lv_obj_align(switchObject, LV_ALIGN_TOP_RIGHT, -28, 20);
+  lv_obj_align(switchObject, LV_ALIGN_TOP_RIGHT, -100, 20);
   lv_obj_set_style_bg_color(switchObject, lv_color_hex(0x111111), LV_PART_MAIN);
   lv_obj_set_style_bg_color(switchObject, lv_color_hex(accent),
                             static_cast<lv_style_selector_t>(LV_PART_MAIN)
@@ -567,7 +567,7 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
 
   lv_obj_t* close = button(panelObject, "X");
   lv_obj_set_size(close, 36, 32);
-  lv_obj_align(close, LV_ALIGN_TOP_RIGHT, -220, 20);
+  lv_obj_align(close, LV_ALIGN_TOP_RIGHT, -8, 20);
   lv_obj_add_event_cb(close, onCloseParamDrawer, LV_EVENT_CLICKED, context);
 
   if (state.paramTarget == UiParamTarget::Globals) {
@@ -819,7 +819,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   lv_obj_set_size(chain, 1240, 126);
   lv_obj_align(chain, LV_ALIGN_TOP_MID, 0, 110);
   lv_obj_remove_flag(chain, LV_OBJ_FLAG_SCROLLABLE);
-  styleSurface(chain);
+  styleSurface(chain, bg);
   label(root, "Input", LV_ALIGN_TOP_LEFT, 28, 88, &ardor_font_open_sans_regular_18, muted);
   label(root, "Output", LV_ALIGN_TOP_RIGHT, -28, 248, &ardor_font_open_sans_regular_18, muted);
 

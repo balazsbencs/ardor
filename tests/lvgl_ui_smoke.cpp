@@ -79,6 +79,34 @@ lv_obj_t* findObjectWithBgColor(lv_obj_t* parent, lv_color_t color, int width)
   return nullptr;
 }
 
+lv_obj_t* findObjectWithSizeAndBgColor(lv_obj_t* parent, lv_color_t color, int width, int height)
+{
+  if (lv_obj_get_width(parent) == width && lv_obj_get_height(parent) == height
+      && lv_color_eq(lv_obj_get_style_bg_color(parent, LV_PART_MAIN), color)) {
+    return parent;
+  }
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    if (auto* result = findObjectWithSizeAndBgColor(lv_obj_get_child(parent, static_cast<int32_t>(i)), color,
+                                                     width, height)) {
+      return result;
+    }
+  }
+  return nullptr;
+}
+
+lv_obj_t* findObjectOfClass(lv_obj_t* parent, const lv_obj_class_t* objectClass)
+{
+  if (lv_obj_check_type(parent, objectClass)) {
+    return parent;
+  }
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    if (auto* result = findObjectOfClass(lv_obj_get_child(parent, static_cast<int32_t>(i)), objectClass)) {
+      return result;
+    }
+  }
+  return nullptr;
+}
+
 } // namespace
 
 int main()
@@ -249,6 +277,30 @@ int main()
   lv_obj_t* pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
   if (require(previous && next && title && pointer, "parameter header and knob pointer should render")) return 1;
   if (require(page, "parameter header should show PAGE n/total")) return 1;
+
+  lv_obj_t* chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x000000), 1240, 126);
+  if (require(chain, "signal chain should be black behind charcoal blocks")) return 1;
+
+  lv_obj_t* parameterPanel = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x242424), 1240, 286);
+  lv_obj_t* parameterClose = findLabel(lv_screen_active(), "X");
+  lv_obj_t* bypassLabel = findLabel(lv_screen_active(), "Bypass");
+  lv_obj_t* bypassSwitch = findObjectOfClass(lv_screen_active(), &lv_switch_class);
+  if (require(parameterPanel && parameterClose && bypassLabel && bypassSwitch,
+              "parameter panel header controls should render")) return 1;
+  lv_area_t parameterPanelArea{};
+  lv_area_t parameterCloseArea{};
+  lv_area_t bypassLabelArea{};
+  lv_area_t bypassSwitchArea{};
+  lv_obj_get_coords(parameterPanel, &parameterPanelArea);
+  lv_obj_get_coords(lv_obj_get_parent(parameterClose), &parameterCloseArea);
+  lv_obj_get_coords(bypassLabel, &bypassLabelArea);
+  lv_obj_get_coords(bypassSwitch, &bypassSwitchArea);
+  if (require(parameterCloseArea.x2 == parameterPanelArea.x2 - 28,
+              "parameter close button should be in the top-right corner")) return 1;
+  if (require(bypassSwitchArea.x2 < parameterCloseArea.x1,
+              "bypass switch should sit left of the close button")) return 1;
+  if (require(bypassLabelArea.x2 < bypassSwitchArea.x1,
+              "bypass label should sit left of its switch")) return 1;
 
   lv_area_t previousArea{};
   lv_area_t pageArea{};
