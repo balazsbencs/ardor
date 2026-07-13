@@ -504,16 +504,25 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, U
   lv_obj_remove_flag(centre, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(centre, LV_OBJ_FLAG_CLICKABLE);
 
-  lv_obj_t* pointer = lv_obj_create(knob);
+  lv_obj_t* pointerLayer = lv_obj_create(knob);
+  lv_obj_set_size(pointerLayer, 56, 56);
+  lv_obj_align(pointerLayer, LV_ALIGN_TOP_MID, 0, 20);
+  lv_obj_set_style_bg_opa(pointerLayer, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_width(pointerLayer, 0, 0);
+  lv_obj_set_style_transform_pivot_x(pointerLayer, 28, LV_PART_MAIN);
+  lv_obj_set_style_transform_pivot_y(pointerLayer, 28, LV_PART_MAIN);
+  lv_obj_set_style_transform_rotation(pointerLayer,
+                                      static_cast<int32_t>((45.0f + ratio * 270.0f) * 10.0f), 0);
+  lv_obj_remove_flag(pointerLayer, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(pointerLayer, LV_OBJ_FLAG_CLICKABLE);
+
+  lv_obj_t* pointer = lv_obj_create(pointerLayer);
   lv_obj_set_size(pointer, 3, 20);
-  lv_obj_set_pos(pointer, 76, 27);
+  lv_obj_set_pos(pointer, 27, 8);
   lv_obj_set_style_bg_color(pointer, lv_color_hex(text), 0);
   lv_obj_set_style_bg_opa(pointer, LV_OPA_COVER, 0);
   lv_obj_set_style_border_width(pointer, 0, 0);
   lv_obj_set_style_radius(pointer, 2, 0);
-  lv_obj_set_style_transform_pivot_x(pointer, 1, LV_PART_MAIN);
-  lv_obj_set_style_transform_pivot_y(pointer, 21, LV_PART_MAIN);
-  lv_obj_set_style_transform_rotation(pointer, static_cast<int32_t>((45.0f + ratio * 270.0f) * 10.0f), 0);
   lv_obj_remove_flag(pointer, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(pointer, LV_OBJ_FLAG_CLICKABLE);
 
