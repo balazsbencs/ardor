@@ -298,6 +298,12 @@ int main()
               "single-block chain should use the fixed five-slot tile width")) return 1;
   if (require(lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE) && lv_obj_get_scroll_dir(chain) == LV_DIR_HOR,
               "chain should scroll horizontally")) return 1;
+  if (require(findLabel(lv_screen_active(), "MODULATION"),
+              "chain card should render an uppercase category")) return 1;
+  if (require(findLabel(lv_screen_active(), "Vintage Trem"),
+              "chain card should render its asset name")) return 1;
+  if (require(!findLabel(lv_screen_active(), "mod"),
+              "chain card should not render its short internal type")) return 1;
 
   lv_obj_t* parameterPanel = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x242424), 1240, 286);
   lv_obj_t* parameterClose = findLabel(lv_screen_active(), "X");

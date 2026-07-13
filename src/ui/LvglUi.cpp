@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cstdint>
 #include <cmath>
 #include <string>
@@ -840,12 +841,18 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
 
   for (std::size_t i = 0; i < blocks.size(); ++i) {
     const auto& block = blocks[i];
-    lv_obj_t* object = button(chain, block.label + "\n" + block.assetName);
+    std::string category = block.label;
+    std::transform(category.begin(), category.end(), category.begin(), [](unsigned char character) {
+      return static_cast<char>(std::toupper(character));
+    });
+
+    lv_obj_t* object = button(chain, "");
     lv_obj_set_size(object, kChainTileWidth, 92);
     lv_obj_set_pos(object, 14 + static_cast<int>(i) * kChainSlotWidth, 17);
     styleSurface(object, block.enabled ? panel : 0x171717);
     const bool selected = state.paramTarget == UiParamTarget::Block && state.selectedBlock == i;
-    label(object, block.type, LV_ALIGN_TOP_LEFT, 9, 7, &ardor_font_open_sans_regular_18, selected ? accent : muted);
+    label(object, category, LV_ALIGN_TOP_LEFT, 10, 8, &ardor_font_open_sans_regular_18, muted);
+    label(object, block.assetName, LV_ALIGN_CENTER, 0, 8, &ardor_font_open_sans_semibold_22);
     if (selected) {
       lv_obj_t* indicator = lv_obj_create(object);
       lv_obj_set_size(indicator, 5, 5);

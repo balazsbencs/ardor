@@ -7,7 +7,7 @@ and effect name without repeating the short internal block type.
 
 ## Card content
 
-- The category appears at the top-left in uppercase, light grey Open Sans 14.
+- The category appears at the top-left in uppercase, light grey Open Sans 18.
 - The effect asset name remains the sole main title, centred in Open Sans 22.
 - The internal short type (`mod`, `nam`, `reverb`, and similar) is not shown.
 - The existing acid-green dot remains the selected-card affordance; category
