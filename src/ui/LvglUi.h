@@ -39,6 +39,12 @@ public:
   void build(lv_obj_t* root, UiState& state);
   void refresh(lv_obj_t* root, UiState& state);
   void requestRebuild();
+  void beginKnobInteraction() { knobInteractionActive_ = true; }
+  void endKnobInteraction()
+  {
+    knobInteractionActive_ = false;
+    requestRebuild();
+  }
   void selectPreset(UiState& state, std::size_t presetIndex);
   void selectBlock(UiState& state, std::size_t blockIndex);
   void selectGlobalParams(UiState& state);
@@ -94,6 +100,7 @@ private:
   UiActions actions_;
   std::deque<UiEventContext> contexts_;
   bool rebuildPending_ = false;
+  bool knobInteractionActive_ = false;
   std::string focusedKey_;
   std::size_t parameterPage_ = 0;
   lv_obj_t* canvas_ = nullptr;

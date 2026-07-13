@@ -16,6 +16,19 @@ int require(bool condition, const char* message)
   return 0;
 }
 
+struct SimulatedPointer {
+  lv_point_t point{};
+  lv_indev_state_t state = LV_INDEV_STATE_RELEASED;
+};
+
+void readSimulatedPointer(lv_indev_t* input, lv_indev_data_t* data)
+{
+  const auto* pointer = static_cast<const SimulatedPointer*>(lv_indev_get_user_data(input));
+  data->point = pointer->point;
+  data->state = pointer->state;
+  data->continue_reading = false;
+}
+
 bool containsKey(const std::vector<ardor::ParameterControl>& controls, const char* key)
 {
   return std::any_of(controls.begin(), controls.end(), [key](const auto& control) {
@@ -290,6 +303,47 @@ int main()
   if (require(lv_obj_get_style_transform_pivot_x(pointerLayer, LV_PART_MAIN) == 28
                 && lv_obj_get_style_transform_pivot_y(pointerLayer, LV_PART_MAIN) == 28,
               "custom pointer layer should pivot at the dial centre")) return 1;
+  lv_area_t arcArea{};
+  lv_area_t rimArea{};
+  lv_obj_get_coords(arc, &arcArea);
+  lv_obj_get_coords(rim, &rimArea);
+  if (require(arcArea.x1 + arcArea.x2 == rimArea.x1 + rimArea.x2
+                && arcArea.y1 + arcArea.y2 == rimArea.y1 + rimArea.y2,
+              "knob arc and dial should share one centre")) return 1;
+  if (require(lv_obj_get_x(pointerLayer) == lv_obj_get_x(rim)
+                && lv_obj_get_y(pointerLayer) == lv_obj_get_y(rim),
+              "pointer layer should be laid out at the dial centre")) return 1;
+
+  lv_obj_t* depthLabel = findLabel(lv_screen_active(), depth->label.c_str());
+  lv_area_t depthKnobArea{};
+  lv_obj_get_coords(lv_obj_get_parent(depthLabel), &depthKnobArea);
+  SimulatedPointer simulatedPointer{{(depthKnobArea.x1 + depthKnobArea.x2) / 2,
+                                     (depthKnobArea.y1 + depthKnobArea.y2) / 2},
+                                    LV_INDEV_STATE_PRESSED};
+  lv_indev_t* simulatedInput = lv_indev_create();
+  lv_indev_set_type(simulatedInput, LV_INDEV_TYPE_POINTER);
+  lv_indev_set_user_data(simulatedInput, &simulatedPointer);
+  lv_indev_set_read_cb(simulatedInput, readSimulatedPointer);
+  lv_indev_read(simulatedInput);
+  ui.refresh(lv_screen_active(), state);
+  simulatedPointer.point.y -= 24;
+  lv_indev_read(simulatedInput);
+  if (require(state.bank.presets[state.activePreset].blocks[state.selectedBlock].params.value("depth", 0.0f)
+                > depth->minimum,
+              "simulator knob drag should change the focused parameter")) return 1;
+  simulatedPointer.state = LV_INDEV_STATE_RELEASED;
+  lv_indev_read(simulatedInput);
+  ui.refresh(lv_screen_active(), state);
+  lv_indev_delete(simulatedInput);
+  ardor::setSelectedBlockParam(state, "depth", depth->minimum);
+  ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  previous = findLabel(lv_screen_active(), "<");
+  page = findLabel(lv_screen_active(), "PAGE 1 / 2");
+  next = findLabel(lv_screen_active(), ">");
+  title = findLabel(lv_screen_active(), titleText.c_str());
+  pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
+  pointerLayer = lv_obj_get_parent(pointer);
 
   lv_obj_t* chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x000000), 1240, 126);
   if (require(chain, "signal chain should be black behind charcoal blocks")) return 1;

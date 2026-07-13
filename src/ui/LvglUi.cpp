@@ -180,8 +180,8 @@ void onKnobPressed(lv_event_t* event)
     return;
   }
   context->filter = controls[index - 1].key;
+  context->ui->beginKnobInteraction();
   context->ui->focusParameter(context->filter);
-  redraw(context);
 }
 
 void onKnobPressing(lv_event_t* event)
@@ -199,9 +199,13 @@ void onKnobPressing(lv_event_t* event)
     return;
   }
   context->pressPoint.y = current.y;
-  if (context->ui->applyFocusedParameterDelta(*context->state, delta)) {
-    redraw(context);
-  }
+  context->ui->applyFocusedParameterDelta(*context->state, delta);
+}
+
+void onKnobReleased(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->endKnobInteraction();
 }
 
 void onBypassChanged(lv_event_t* event)
@@ -473,6 +477,8 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, U
   lv_obj_set_style_border_width(knob, 0, 0);
   lv_obj_add_event_cb(knob, onKnobPressed, LV_EVENT_PRESSED, context);
   lv_obj_add_event_cb(knob, onKnobPressing, LV_EVENT_PRESSING, context);
+  lv_obj_add_event_cb(knob, onKnobReleased, LV_EVENT_RELEASED, context);
+  lv_obj_add_event_cb(knob, onKnobReleased, LV_EVENT_PRESS_LOST, context);
 
   lv_obj_t* arc = lv_arc_create(knob);
   lv_obj_set_size(arc, 94, 94);
@@ -491,7 +497,7 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, U
 
   lv_obj_t* rim = lv_obj_create(knob);
   lv_obj_set_size(rim, 56, 56);
-  lv_obj_align(rim, LV_ALIGN_TOP_MID, 0, 20);
+  lv_obj_align_to(rim, arc, LV_ALIGN_CENTER, 0, 0);
   styleSurface(rim, 0x000000);
   lv_obj_set_style_radius(rim, LV_RADIUS_CIRCLE, 0);
   lv_obj_remove_flag(rim, LV_OBJ_FLAG_SCROLLABLE);
@@ -507,7 +513,7 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, U
 
   lv_obj_t* pointerLayer = lv_obj_create(knob);
   lv_obj_set_size(pointerLayer, 56, 56);
-  lv_obj_align(pointerLayer, LV_ALIGN_TOP_MID, 0, 20);
+  lv_obj_align_to(pointerLayer, arc, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_bg_opa(pointerLayer, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(pointerLayer, 0, 0);
   lv_obj_set_style_transform_pivot_x(pointerLayer, 28, LV_PART_MAIN);
@@ -746,7 +752,9 @@ void LvglUi::refresh(lv_obj_t* root, UiState& state)
 
 void LvglUi::requestRebuild()
 {
-  rebuildPending_ = true;
+  if (!knobInteractionActive_) {
+    rebuildPending_ = true;
+  }
 }
 
 void telemetryLine(lv_obj_t* root, const RuntimeTelemetry& telemetry, bool bypassed)
