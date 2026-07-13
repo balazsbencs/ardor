@@ -80,6 +80,7 @@ public:
   // pointer in display space; these translate to the canvas' design space so
   // hit-testing and overlay placement stay correct at any resolution.
   lv_obj_t* canvas() const { return canvas_; }
+  lv_obj_t* chain() const { return chain_; }
   lv_point_t toCanvas(lv_point_t displayPoint) const;
 
 private:
@@ -96,6 +97,7 @@ private:
   std::string focusedKey_;
   std::size_t parameterPage_ = 0;
   lv_obj_t* canvas_ = nullptr;
+  lv_obj_t* chain_ = nullptr;
   int32_t canvasScale_ = 256;  // 8.8 fixed point; 256 == 1.0
   lv_point_t canvasOffset_{};
 };

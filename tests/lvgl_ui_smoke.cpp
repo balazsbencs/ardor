@@ -280,6 +280,11 @@ int main()
 
   lv_obj_t* chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x000000), 1240, 126);
   if (require(chain, "signal chain should be black behind charcoal blocks")) return 1;
+  lv_obj_t* firstChainBlock = lv_obj_get_child(chain, 0);
+  if (require(firstChainBlock && lv_obj_get_width(firstChainBlock) == 232,
+              "single-block chain should use the fixed five-slot tile width")) return 1;
+  if (require(lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE) && lv_obj_get_scroll_dir(chain) == LV_DIR_HOR,
+              "chain should scroll horizontally")) return 1;
 
   lv_obj_t* parameterPanel = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x242424), 1240, 286);
   lv_obj_t* parameterClose = findLabel(lv_screen_active(), "X");
@@ -362,15 +367,31 @@ int main()
   if (require(findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x43f05a), 4),
               "active preset should have a thin acid-green indicator")) return 1;
 
+  ardor::enterEditMode(state);
+  auto& chainBlocks = state.bank.presets[state.activePreset].blocks;
+  while (chainBlocks.size() < 6) {
+    chainBlocks.push_back(chainBlocks.front());
+  }
+  ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x000000), 1240, 126);
+  lv_obj_t* sixthChainBlock = chain ? lv_obj_get_child(chain, 5) : nullptr;
+  lv_area_t chainArea{};
+  lv_area_t sixthChainBlockArea{};
+  if (chain) lv_obj_get_coords(chain, &chainArea);
+  if (sixthChainBlock) lv_obj_get_coords(sixthChainBlock, &sixthChainBlockArea);
+  if (require(sixthChainBlock && sixthChainBlockArea.x1 > chainArea.x2,
+              "sixth chain tile should begin outside the initial viewport")) return 1;
+
   constexpr std::size_t largeBlockCount = 10000;
   if (require(ardor::LvglUi::chainSlotForX(largeBlockCount, 34) == 0,
               "large chains should map their left edge to the first block")) return 1;
-  if (require(ardor::LvglUi::chainSlotForX(largeBlockCount, 1260) == largeBlockCount - 1,
-              "large chains should map their right edge to the final block")) return 1;
-  if (require(ardor::LvglUi::chainInsertionSlotForX(largeBlockCount, 1260) == largeBlockCount,
-              "large chains should allow insertion after the final block")) return 1;
-  if (require(ardor::LvglUi::chainIndicatorX(largeBlockCount, largeBlockCount) <= 1246,
-              "large chain indicator should remain within the chain")) return 1;
+  if (require(ardor::LvglUi::chainSlotForX(largeBlockCount, 34 + 242 * 5) == 5,
+              "large chains should map fixed-width content slots")) return 1;
+  if (require(ardor::LvglUi::chainInsertionSlotForX(largeBlockCount, 34 + 242 * 5) == 5,
+              "large chains should insert at fixed-width content slots")) return 1;
+  if (require(ardor::LvglUi::chainIndicatorX(largeBlockCount, 5) == 34 + 242 * 5,
+              "large chain indicator should use fixed-width content slots")) return 1;
 
   ardor::enterEditMode(state);
   ardor::openBlockDrawer(state);

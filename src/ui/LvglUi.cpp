@@ -29,6 +29,9 @@ constexpr auto muted = 0xa6a6a6;
 constexpr auto accent = 0x43f05a;
 constexpr int kChainLeft = 34;
 constexpr int kChainWidth = 1212;
+constexpr int kVisibleChainBlocks = 5;
+constexpr int kChainSlotWidth = kChainWidth / kVisibleChainBlocks;
+constexpr int kChainTileWidth = kChainSlotWidth - 10;
 
 void setText(lv_obj_t* object, int color = text, const lv_font_t* font = &ardor_font_open_sans_regular_18)
 {
@@ -215,14 +218,16 @@ void onBlockClicked(lv_event_t* event)
   redraw(context);
 }
 
-std::size_t chainSlotFromPoint(const UiState& state, const lv_point_t& point)
+std::size_t chainSlotFromPoint(const UiState& state, const LvglUi& ui, const lv_point_t& point)
 {
-  return LvglUi::chainSlotForX(state.bank.presets[state.activePreset].blocks.size(), point.x);
+  const int scrollX = ui.chain() ? lv_obj_get_scroll_x(ui.chain()) : 0;
+  return LvglUi::chainSlotForX(state.bank.presets[state.activePreset].blocks.size(), point.x + scrollX);
 }
 
-std::size_t insertSlotFromPoint(const UiState& state, const lv_point_t& point)
+std::size_t insertSlotFromPoint(const UiState& state, const LvglUi& ui, const lv_point_t& point)
 {
-  return LvglUi::chainInsertionSlotForX(state.bank.presets[state.activePreset].blocks.size(), point.x);
+  const int scrollX = ui.chain() ? lv_obj_get_scroll_x(ui.chain()) : 0;
+  return LvglUi::chainInsertionSlotForX(state.bank.presets[state.activePreset].blocks.size(), point.x + scrollX);
 }
 
 bool pointInChain(const lv_point_t& point)
@@ -248,13 +253,14 @@ void placeDragIndicatorAtSlot(UiEventContext* context, std::size_t slot)
     lv_obj_set_style_radius(context->indicator, 2, 0);
   }
 
-  lv_obj_set_pos(context->indicator, LvglUi::chainIndicatorX(blockCount, slot), 126);
+  const int scrollX = context->ui->chain() ? lv_obj_get_scroll_x(context->ui->chain()) : 0;
+  lv_obj_set_pos(context->indicator, LvglUi::chainIndicatorX(blockCount, slot) - scrollX, 126);
   moveToFront(context->indicator);
 }
 
 void placeDragIndicator(UiEventContext* context, const lv_point_t& point)
 {
-  placeDragIndicatorAtSlot(context, chainSlotFromPoint(*context->state, point));
+  placeDragIndicatorAtSlot(context, chainSlotFromPoint(*context->state, *context->ui, point));
 }
 
 void placeDragGhost(UiEventContext* context, const lv_point_t& point)
@@ -331,7 +337,7 @@ void onBlockReleased(lv_event_t* event)
   lv_point_t point{};
   lv_indev_get_point(input, &point);
   point = context->ui->toCanvas(point);
-  const auto target = chainSlotFromPoint(*context->state, point);
+  const auto target = chainSlotFromPoint(*context->state, *context->ui, point);
   clearDragVisuals(context);
   if (target == context->index) {
     return;
@@ -404,7 +410,7 @@ void onAssetPressing(lv_event_t* event)
   lv_obj_set_style_opa(lv_event_get_target_obj(event), LV_OPA_50, 0);
   placeDragGhost(context, point);
   if (pointInChain(point)) {
-    placeDragIndicatorAtSlot(context, insertSlotFromPoint(*context->state, point));
+    placeDragIndicatorAtSlot(context, insertSlotFromPoint(*context->state, *context->ui, point));
   } else if (context->indicator) {
     lv_obj_delete(context->indicator);
     context->indicator = nullptr;
@@ -431,7 +437,7 @@ void onAssetReleased(lv_event_t* event)
   lv_indev_get_point(input, &point);
   point = context->ui->toCanvas(point);
   const bool droppedOnChain = pointInChain(point);
-  const auto target = insertSlotFromPoint(*context->state, point);
+  const auto target = insertSlotFromPoint(*context->state, *context->ui, point);
   clearDragVisuals(context);
   if (!droppedOnChain) {
     return;
@@ -622,11 +628,8 @@ std::size_t LvglUi::chainSlotForX(std::size_t blockCount, int canvasX)
   if (canvasX <= kChainLeft) {
     return 0;
   }
-  if (canvasX >= kChainLeft + kChainWidth) {
-    return blockCount - 1;
-  }
   const auto position = static_cast<std::size_t>(canvasX - kChainLeft);
-  return (blockCount / kChainWidth) * position + (blockCount % kChainWidth) * position / kChainWidth;
+  return std::min(blockCount - 1, position / kChainSlotWidth);
 }
 
 std::size_t LvglUi::chainInsertionSlotForX(std::size_t blockCount, int canvasX)
@@ -634,11 +637,8 @@ std::size_t LvglUi::chainInsertionSlotForX(std::size_t blockCount, int canvasX)
   if (blockCount == 0 || canvasX <= kChainLeft) {
     return 0;
   }
-  if (canvasX >= kChainLeft + kChainWidth) {
-    return blockCount;
-  }
   const auto position = static_cast<std::size_t>(canvasX - kChainLeft);
-  return (blockCount / kChainWidth) * position + (blockCount % kChainWidth) * position / kChainWidth;
+  return std::min(blockCount, position / kChainSlotWidth);
 }
 
 int LvglUi::chainIndicatorX(std::size_t blockCount, std::size_t slot)
@@ -647,9 +647,7 @@ int LvglUi::chainIndicatorX(std::size_t blockCount, std::size_t slot)
     return kChainLeft;
   }
   slot = std::min(slot, blockCount);
-  const auto offset = (slot / blockCount) * kChainWidth
-    + (slot % blockCount) * kChainWidth / blockCount;
-  return kChainLeft + static_cast<int>(offset);
+  return kChainLeft + static_cast<int>(slot) * kChainSlotWidth;
 }
 
 void LvglUi::selectBlock(UiState& state, std::size_t blockIndex)
@@ -678,6 +676,7 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
 {
   rebuildPending_ = false;
   contexts_.clear();
+  chain_ = nullptr;
   lv_obj_clean(root);
   lv_obj_set_style_bg_color(root, lv_color_hex(bg), 0);
 
@@ -818,20 +817,19 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   lv_obj_t* chain = lv_obj_create(root);
   lv_obj_set_size(chain, 1240, 126);
   lv_obj_align(chain, LV_ALIGN_TOP_MID, 0, 110);
-  lv_obj_remove_flag(chain, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_add_flag(chain, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_scroll_dir(chain, LV_DIR_HOR);
+  lv_obj_set_scrollbar_mode(chain, LV_SCROLLBAR_MODE_OFF);
   styleSurface(chain, bg);
+  chain_ = chain;
   label(root, "Input", LV_ALIGN_TOP_LEFT, 28, 88, &ardor_font_open_sans_regular_18, muted);
   label(root, "Output", LV_ALIGN_TOP_RIGHT, -28, 248, &ardor_font_open_sans_regular_18, muted);
 
   for (std::size_t i = 0; i < blocks.size(); ++i) {
     const auto& block = blocks[i];
-    const int slotWidth = std::max(1, static_cast<int>(kChainWidth / std::max<std::size_t>(1, blocks.size())));
     lv_obj_t* object = button(chain, block.label + "\n" + block.assetName);
-    const auto slotOffset = i >= static_cast<std::size_t>(kChainWidth / slotWidth)
-      ? static_cast<std::size_t>(kChainWidth - 1)
-      : i * static_cast<std::size_t>(slotWidth);
-    lv_obj_set_size(object, std::max(1, slotWidth - 10), 92);
-    lv_obj_set_pos(object, 14 + static_cast<int>(slotOffset), 17);
+    lv_obj_set_size(object, kChainTileWidth, 92);
+    lv_obj_set_pos(object, 14 + static_cast<int>(i) * kChainSlotWidth, 17);
     styleSurface(object, block.enabled ? panel : 0x171717);
     const bool selected = state.paramTarget == UiParamTarget::Block && state.selectedBlock == i;
     label(object, block.type, LV_ALIGN_TOP_LEFT, 9, 7, &ardor_font_open_sans_regular_18, selected ? accent : muted);
