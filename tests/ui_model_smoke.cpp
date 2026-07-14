@@ -1,5 +1,6 @@
 #include "preset/PresetStore.h"
 #include "preset/RuntimeState.h"
+#include "ui/ParameterControls.h"
 #include "ui/UiModel.h"
 
 #include <filesystem>
@@ -99,6 +100,23 @@ int main()
   });
   if (require(delayAsset != state.assets.end(), "digital delay should be in asset list")) return 1;
   if (require(reverbAsset != state.assets.end(), "room reverb should be in asset list")) return 1;
+
+  auto compressorAsset = std::find_if(state.assets.begin(), state.assets.end(), [](const ardor::UiAsset& asset) {
+    return asset.name == "Compressor";
+  });
+  if (require(compressorAsset != state.assets.end(), "compressor should be in asset list")) return 1;
+  ardor::appendAssetBlock(state, static_cast<std::size_t>(std::distance(state.assets.begin(), compressorAsset)));
+  const auto& compressor = state.bank.presets[state.activePreset].blocks.back();
+  if (require(compressor.type == "dynamics", "compressor block should use dynamics type")) return 1;
+  if (require(compressor.params.value("mode", "") == "compressor", "compressor block should set compressor mode")) return 1;
+  if (require(compressor.params.contains("threshold_db") && compressor.params.contains("auto_makeup"),
+              "compressor should include complete defaults")) return 1;
+  ardor::selectBlock(state, state.bank.presets[state.activePreset].blocks.size() - 1);
+  if (require(ardor::parameterPageCount(state) == 2, "compressor controls should paginate")) return 1;
+  const auto compressorControls = ardor::parameterPage(state, 0);
+  if (require(compressorControls.size() == 7 && compressorControls[0].label == "Threshold"
+              && compressorControls[1].label == "Ratio", "compressor controls should have meaningful labels")) return 1;
+  ardor::closeParamDrawer(state);
 
   const auto beforeAdd = state.bank.presets[state.activePreset].blocks.size();
   ardor::appendAssetBlock(state, 1);

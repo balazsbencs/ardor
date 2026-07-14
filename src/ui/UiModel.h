@@ -90,6 +90,7 @@ void setSelectedBlockEnabled(UiState& state, bool enabled);
 void setActiveInputGainDb(UiState& state, float db);
 void setActiveOutputGainDb(UiState& state, float db);
 void setSelectedBlockParam(UiState& state, const std::string& key, float value);
+void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann::json value);
 
 void updateRealtimeTelemetry(UiState& state, const RuntimeTelemetry& telemetry);
 int consumePendingSlotRequest(UiState& state);

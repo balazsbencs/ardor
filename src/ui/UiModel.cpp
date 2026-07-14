@@ -31,6 +31,9 @@ std::string labelForBlockType(const std::string& type)
   if (type == "reverb") {
     return "Reverb";
   }
+  if (type == "dynamics") {
+    return "Dynamics";
+  }
   return type;
 }
 
@@ -67,6 +70,24 @@ std::string assetNameForBlock(const UiState& state, const PresetBlock& block)
 float clampFloat(float value, float low, float high)
 {
   return std::clamp(value, low, high);
+}
+
+nlohmann::json defaultCompressorParams()
+{
+  return {
+    {"mode", "compressor"},
+    {"threshold_db", -24.0f},
+    {"ratio", 4.0f},
+    {"attack_ms", 10.0f},
+    {"release_ms", 150.0f},
+    {"knee_db", 6.0f},
+    {"makeup_db", 0.0f},
+    {"input_gain_db", 0.0f},
+    {"mix", 1.0f},
+    {"sidechain_hpf_hz", 80.0f},
+    {"detector", "peak"},
+    {"auto_makeup", false},
+  };
 }
 
 std::string nextBlockId(const std::vector<UiBlock>& blocks)
@@ -143,7 +164,7 @@ UiState makeDemoUiState()
     {"Open Back 2x12", "irs/open-back.wav", "cabs"},
     {"Vintage 4x12", "irs/vintage.wav", "cabs"},
     {"Focused 1x12", "irs/focus.wav", "cabs"},
-    {"Compressor", "", "dynamics"},
+    {"Compressor", "", "dynamics", "dynamics", "compressor"},
     {"Tape Delay", "", "time"},
   };
   appendDaisyAssets(state);
@@ -227,6 +248,8 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
     label = labelForBlockType(asset.blockType);
     if (const auto* descriptor = findDaisyFxDescriptor(asset.blockType, asset.mode)) {
       params = defaultDaisyFxParams(*descriptor);
+    } else if (asset.blockType == "dynamics" && asset.mode == "compressor") {
+      params = defaultCompressorParams();
     }
   }
 
@@ -348,8 +371,34 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
         break;
       }
     }
+  } else if (block.type == "dynamics" && block.params.value("mode", "") == "compressor") {
+    if (key == "threshold_db") value = clampFloat(value, -60.0f, 0.0f);
+    else if (key == "ratio") value = clampFloat(value, 1.0f, 20.0f);
+    else if (key == "attack_ms") value = clampFloat(value, 0.1f, 200.0f);
+    else if (key == "release_ms") value = clampFloat(value, 10.0f, 2000.0f);
+    else if (key == "knee_db" || key == "makeup_db") value = clampFloat(value, 0.0f, 24.0f);
+    else if (key == "input_gain_db") value = clampFloat(value, -24.0f, 24.0f);
+    else if (key == "mix") value = clampFloat(value, 0.0f, 1.0f);
+    else if (key == "sidechain_hpf_hz") value = clampFloat(value, 20.0f, 500.0f);
   }
   block.params[key] = value;
+  state.dirty = true;
+}
+
+void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann::json value)
+{
+  auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (state.selectedBlock >= blocks.size()) {
+    return;
+  }
+  auto& block = blocks[state.selectedBlock];
+  if (block.type != "dynamics" || block.params.value("mode", "") != "compressor") {
+    return;
+  }
+  if (key != "detector" && key != "auto_makeup") {
+    return;
+  }
+  block.params[key] = std::move(value);
   state.dirty = true;
 }
 
@@ -371,7 +420,7 @@ void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoo
   state.assets.clear();
   appendAssetsFrom(state, dataRoot / "models", ".nam", "amps");
   appendAssetsFrom(state, dataRoot / "irs", ".wav", "cabs");
-  state.assets.push_back({"Compressor", "", "dynamics"});
+  state.assets.push_back({"Compressor", "", "dynamics", "dynamics", "compressor"});
   state.assets.push_back({"Tape Delay", "", "time"});
   appendDaisyAssets(state);
 }

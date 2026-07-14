@@ -45,9 +45,12 @@ std::vector<DaisyFxParamDescriptor> reverbParams()
   };
 }
 
-DaisyFxDescriptor mod(std::string mode, std::string name)
+DaisyFxDescriptor mod(std::string mode, std::string name, std::string p1 = "P1", std::string p2 = "P2")
 {
-  return {DaisyFxKind::Mod, "mod", std::move(mode), std::move(name), modParams()};
+  auto params = modParams();
+  params[4].label = std::move(p1);
+  params[5].label = std::move(p2);
+  return {DaisyFxKind::Mod, "mod", std::move(mode), std::move(name), std::move(params)};
 }
 
 DaisyFxDescriptor delay(std::string mode, std::string name)
@@ -55,9 +58,12 @@ DaisyFxDescriptor delay(std::string mode, std::string name)
   return {DaisyFxKind::Delay, "delay", std::move(mode), std::move(name), delayParams()};
 }
 
-DaisyFxDescriptor reverb(std::string mode, std::string name)
+DaisyFxDescriptor reverb(std::string mode, std::string name, std::string param1 = "Param 1", std::string param2 = "Param 2")
 {
-  return {DaisyFxKind::Reverb, "reverb", std::move(mode), std::move(name), reverbParams()};
+  auto params = reverbParams();
+  params[5].label = std::move(param1);
+  params[6].label = std::move(param2);
+  return {DaisyFxKind::Reverb, "reverb", std::move(mode), std::move(name), std::move(params)};
 }
 
 } // namespace
@@ -65,19 +71,19 @@ DaisyFxDescriptor reverb(std::string mode, std::string name)
 const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
 {
   static const std::vector<DaisyFxDescriptor> catalog{
-    mod("chorus", "Chorus"),
-    mod("flanger", "Flanger"),
-    mod("rotary", "Rotary"),
-    mod("vibe", "Vibe"),
-    mod("phaser", "Phaser"),
-    mod("vintage_trem", "Vintage Trem"),
-    mod("poly_octave", "Poly Octave"),
-    mod("pattern_trem", "Pattern Trem"),
-    mod("auto_swell", "Auto Swell"),
-    mod("filter", "Filter"),
-    mod("formant", "Formant"),
-    mod("quadrature", "Quadrature"),
-    mod("destroyer", "Destroyer"),
+    mod("chorus", "Chorus", "Delay", "Type"),
+    mod("flanger", "Flanger", "Regen", "Type"),
+    mod("rotary", "Rotary", "Drive", "Speed"),
+    mod("vibe", "Vibe", "Regen", "Shape"),
+    mod("phaser", "Phaser", "Regen", "Stages"),
+    mod("vintage_trem", "Vintage Trem", "Shape", "Type"),
+    mod("poly_octave", "Poly Octave", "Oct Up", "Oct Down"),
+    mod("pattern_trem", "Pattern Trem", "Pattern", "Shape"),
+    mod("auto_swell", "Auto Swell", "Attack", "Sensitivity"),
+    mod("filter", "Filter", "Mode", "Resonance"),
+    mod("formant", "Formant", "Vowel", "Resonance"),
+    mod("quadrature", "Quadrature", "Frequency", "Feedback"),
+    mod("destroyer", "Destroyer", "Bits", "Drive"),
     delay("digital", "Digital Delay"),
     delay("tape", "Tape Delay"),
     delay("dual", "Dual Delay"),
@@ -88,18 +94,18 @@ const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
     delay("pattern", "Pattern Delay"),
     delay("swell", "Swell Delay"),
     delay("trem", "Tremolo Delay"),
-    reverb("room", "Room Reverb"),
-    reverb("hall", "Hall Reverb"),
-    reverb("plate", "Plate Reverb"),
-    reverb("spring", "Spring Reverb"),
-    reverb("bloom", "Bloom Reverb"),
-    reverb("cloud", "Cloud Reverb"),
-    reverb("shimmer", "Shimmer Reverb"),
-    reverb("chorale", "Chorale Reverb"),
-    reverb("nonlinear", "Nonlinear Reverb"),
-    reverb("swell", "Swell Reverb"),
-    reverb("magneto", "Magneto Reverb"),
-    reverb("reflections", "Reflections Reverb"),
+    reverb("room", "Room Reverb", "Size", "Diffusion"),
+    reverb("hall", "Hall Reverb", "Size", "Mid EQ"),
+    reverb("plate", "Plate Reverb", "Size", "Character"),
+    reverb("spring", "Spring Reverb", "Dwell", "Springs"),
+    reverb("bloom", "Bloom Reverb", "Bloom Time", "Feedback"),
+    reverb("cloud", "Cloud Reverb", "Diffusion", "Darkness"),
+    reverb("shimmer", "Shimmer Reverb", "Pitch 1", "Pitch 2"),
+    reverb("chorale", "Chorale Reverb", "Vowel", "Resonance"),
+    reverb("nonlinear", "Nonlinear Reverb", "Shape", "Diffusion"),
+    reverb("swell", "Swell Reverb", "Rise Time", "Direction"),
+    reverb("magneto", "Magneto Reverb", "Heads", "Spacing"),
+    reverb("reflections", "Reflections Reverb", "Depth", "Width"),
   };
   return catalog;
 }

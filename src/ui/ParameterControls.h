@@ -8,6 +8,12 @@
 
 namespace ardor {
 
+enum class ParameterControlKind {
+  Continuous,
+  Choice,
+  Toggle
+};
+
 struct ParameterControl {
   std::string key;
   std::string label;
@@ -16,6 +22,8 @@ struct ParameterControl {
   float step = 0.0f;
   float value = 0.0f;
   std::string formatted;
+  ParameterControlKind kind = ParameterControlKind::Continuous;
+  std::vector<std::string> choices;
 };
 
 std::vector<ParameterControl> parameterPage(const UiState& state, std::size_t page);

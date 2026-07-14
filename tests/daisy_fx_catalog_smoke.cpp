@@ -53,4 +53,9 @@ int main()
   require(reverb->kind == ardor::DaisyFxKind::Reverb, "room reverb kind");
   require(ardor::defaultDaisyFxParams(*reverb).value("mode", "") == "room", "room reverb default mode");
   require(ardor::defaultDaisyFxParams(*reverb).contains("decay"), "room reverb defaults");
+
+  const auto* shimmer = ardor::findDaisyFxDescriptor("reverb", "shimmer");
+  require(shimmer != nullptr, "find shimmer reverb");
+  require(shimmer->params[5].label == "Pitch 1", "shimmer first algorithm parameter is named");
+  require(shimmer->params[6].label == "Pitch 2", "shimmer second algorithm parameter is named");
 }
