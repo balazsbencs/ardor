@@ -133,6 +133,16 @@ target_include_directories(ardor_dynamics PUBLIC
 target_compile_features(ardor_dynamics PUBLIC cxx_std_20)
 target_link_libraries(ardor_dynamics PUBLIC ardor_daisyfx)
 
+add_library(ardor_equalizer
+  src/equalizer/EqParameters.cpp
+  src/equalizer/ParametricEqMath.cpp
+)
+target_include_directories(ardor_equalizer PUBLIC
+  src
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies
+)
+target_compile_features(ardor_equalizer PUBLIC cxx_std_20)
+
 add_library(ardor_dsp OBJECT
   src/dsp/IrConvolver.cpp
   src/dsp/NamProcessor.cpp
@@ -236,6 +246,9 @@ target_link_libraries(pedal-daisy-fx-smoke PRIVATE ardor_daisyfx)
 add_executable(pedal-compressor-smoke tests/compressor_smoke.cpp)
 target_link_libraries(pedal-compressor-smoke PRIVATE ardor_dynamics)
 
+add_executable(pedal-parametric-eq-smoke tests/parametric_eq_smoke.cpp)
+target_link_libraries(pedal-parametric-eq-smoke PRIVATE ardor_equalizer)
+
 add_executable(pedal-runtime-chain-smoke tests/runtime_chain_smoke.cpp)
 target_link_libraries(pedal-runtime-chain-smoke PRIVATE ardor_dsp ardor_daisyfx)
 
@@ -272,6 +285,7 @@ add_test(NAME pedal-preset-smoke COMMAND pedal-preset-smoke)
 add_test(NAME pedal-daisy-fx-catalog-smoke COMMAND pedal-daisy-fx-catalog-smoke)
 add_test(NAME pedal-daisy-fx-smoke COMMAND pedal-daisy-fx-smoke)
 add_test(NAME pedal-compressor-smoke COMMAND pedal-compressor-smoke)
+add_test(NAME pedal-parametric-eq-smoke COMMAND pedal-parametric-eq-smoke)
 add_test(NAME pedal-runtime-chain-smoke COMMAND pedal-runtime-chain-smoke)
 add_test(NAME pedal-engine-contract-smoke COMMAND pedal-engine-contract-smoke)
 add_test(NAME pedal-nam-processor-smoke COMMAND pedal-nam-processor-smoke)
