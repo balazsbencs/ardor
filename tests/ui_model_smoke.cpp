@@ -252,5 +252,18 @@ int main()
   if (require(diskState.telemetry.callbacks == 1000, "ui telemetry callbacks")) return 1;
   if (require(diskState.effectsBypassed, "ui bypass follows telemetry")) return 1;
 
+  auto migrationState = ardor::makeDemoUiState();
+  ardor::Preset legacyEffects;
+  legacyEffects.name = "Legacy Effects";
+  legacyEffects.blocks.push_back({"legacy-shimmer", "reverb", true, "", {{"mode", "shimmer"}}});
+  legacyEffects.blocks.push_back({"legacy-compressor", "dynamics", true, "", {{"mode", "compressor"}}});
+  ardor::replaceActivePreset(migrationState, legacyEffects);
+  const auto& migratedShimmer = migrationState.bank.presets[migrationState.activePreset].blocks[0].params;
+  const auto& migratedCompressor = migrationState.bank.presets[migrationState.activePreset].blocks[1].params;
+  if (require(migratedShimmer.contains("decay") && migratedShimmer.contains("param2"),
+              "legacy Daisy block should receive missing defaults")) return 1;
+  if (require(migratedCompressor.contains("threshold_db") && migratedCompressor.contains("auto_makeup"),
+              "legacy compressor should receive missing defaults")) return 1;
+
   return 0;
 }

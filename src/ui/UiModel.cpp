@@ -90,6 +90,23 @@ nlohmann::json defaultCompressorParams()
   };
 }
 
+nlohmann::json paramsWithKnownDefaults(const std::string& type, const nlohmann::json& supplied)
+{
+  nlohmann::json params = supplied.is_object() ? supplied : nlohmann::json::object();
+  nlohmann::json defaults = nlohmann::json::object();
+  if (const auto* descriptor = findDaisyFxDescriptor(type, params.value("mode", ""))) {
+    defaults = defaultDaisyFxParams(*descriptor);
+  } else if (type == "dynamics" && params.value("mode", "") == "compressor") {
+    defaults = defaultCompressorParams();
+  }
+  for (auto it = defaults.begin(); it != defaults.end(); ++it) {
+    if (!params.contains(it.key())) {
+      params[it.key()] = it.value();
+    }
+  }
+  return params;
+}
+
 std::string nextBlockId(const std::vector<UiBlock>& blocks)
 {
   int maxId = 0;
@@ -316,7 +333,7 @@ void replaceActivePreset(UiState& state, const Preset& preset)
                                assetNameForBlock(state, block),
                                block.asset,
                                block.enabled,
-                               block.params.is_null() ? nlohmann::json::object() : block.params});
+                               paramsWithKnownDefaults(block.type, block.params)});
   }
   state.selectedBlock = 0;
   state.dirty = false;
