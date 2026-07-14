@@ -1,4 +1,5 @@
 #include "daisyfx/DaisyFxProcessor.h"
+#include "daisyfx/DaisyFxCatalog.h"
 
 #include <cmath>
 #include <stdexcept>
@@ -28,6 +29,16 @@ std::vector<ardor::StereoSample> renderBlock(ardor::DaisyFxProcessor& processor,
 
 int main()
 {
+  for (const auto& descriptor : ardor::daisyFxCatalog()) {
+    ardor::DaisyFxProcessor catalogProcessor;
+    std::string catalogError;
+    require(catalogProcessor.configure(descriptor.blockType, ardor::defaultDaisyFxParams(descriptor),
+                                       48000.0f, catalogError),
+            catalogError);
+    const auto sample = catalogProcessor.process({0.5f, 0.5f});
+    require(std::isfinite(sample.left) && std::isfinite(sample.right), "catalog output finite");
+  }
+
   ardor::DaisyFxProcessor processor;
   std::string error;
   const nlohmann::json params{

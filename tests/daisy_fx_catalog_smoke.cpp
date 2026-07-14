@@ -16,6 +16,14 @@ void require(bool condition, const std::string& message)
 
 int main()
 {
+  require(ardor::daisyFxCatalog().size() == 35, "all Daisy modes are cataloged");
+  for (const auto& effect : ardor::daisyFxCatalog()) {
+    require(!effect.blockType.empty() && !effect.mode.empty(), "effect has identifier");
+    require(!effect.name.empty() && !effect.params.empty(), "effect has editable schema");
+    require(ardor::findDaisyFxDescriptor(effect.blockType, effect.mode) == &effect,
+            "catalog identifier resolves");
+  }
+
   const auto* descriptor = ardor::findDaisyFxDescriptor("mod", "vintage_trem");
   require(descriptor != nullptr, "find vintage trem");
   require(descriptor->kind == ardor::DaisyFxKind::Mod, "vintage trem kind");
