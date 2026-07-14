@@ -1,10 +1,13 @@
 #pragma once
 
+#include "ui/EqEditorModel.h"
 #include "ui/ParameterControls.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <deque>
 #include <functional>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -30,6 +33,7 @@ struct UiEventContext {
 struct UiActions {
   std::function<void(std::size_t)> selectPreset;
   std::function<void()> savePreset;
+  std::function<void(const std::string&, std::size_t, const EqBandParams&)> updateEqBand;
 };
 
 class LvglUi {
@@ -50,13 +54,30 @@ public:
   void selectGlobalParams(UiState& state);
   void focusParameter(std::string key)
   {
+    focusedEqField_.reset();
     focusedKey_ = std::move(key);
     requestRebuild();
   }
+  void focusEqBandField(EqBandField field)
+  {
+    focusedKey_.clear();
+    focusedEqField_ = field;
+    requestRebuild();
+  }
+  void selectEqBand(std::size_t bandIndex)
+  {
+    selectedEqBand_ = std::min(bandIndex, kParametricEqBandCount - 1);
+    requestRebuild();
+  }
+  std::size_t selectedEqBand() const { return selectedEqBand_; }
+  bool isEqBandFieldFocused(EqBandField field) const { return focusedEqField_ == field; }
+  bool updateSelectedEqBand(UiState& state, EqBandParams params);
+  UiEventContext* remember(UiState& state, std::size_t index = 0, std::string filter = "all");
   bool isParameterFocused(const std::string& key) const { return focusedKey_ == key; }
   void resetParameterPage()
   {
     focusedKey_.clear();
+    focusedEqField_.reset();
     parameterPage_ = 0;
   }
   void setParameterPage(std::size_t page) { parameterPage_ = page; }
@@ -66,6 +87,16 @@ public:
   static lv_point_t chainIndicatorPosition(std::size_t blockCount, std::size_t slot);
   bool applyFocusedParameterDelta(UiState& state, int delta)
   {
+    if (focusedEqField_.has_value()) {
+      const auto& blocks = state.bank.presets[state.activePreset].blocks;
+      if (state.paramTarget != UiParamTarget::Block || state.selectedBlock >= blocks.size()
+          || blocks[state.selectedBlock].type != "eq" || !isParametricEqMode(blocks[state.selectedBlock].params)) {
+        return false;
+      }
+      auto params = selectedParametricEqParams(state);
+      adjustEqBandField(params.bands[selectedEqBand_], *focusedEqField_, delta);
+      return updateSelectedEqBand(state, params.bands[selectedEqBand_]);
+    }
     if (focusedKey_.empty()) {
       return false;
     }
@@ -94,13 +125,13 @@ private:
   void renderBlockDrawer(lv_obj_t* root, UiState& state);
   void renderParamDrawer(lv_obj_t* root, UiState& state);
 
-  UiEventContext* remember(UiState& state, std::size_t index = 0, std::string filter = "all");
-
   UiActions actions_;
   std::deque<UiEventContext> contexts_;
   bool rebuildPending_ = false;
   bool knobInteractionActive_ = false;
   std::string focusedKey_;
+  std::optional<EqBandField> focusedEqField_;
+  std::size_t selectedEqBand_ = 0;
   std::size_t parameterPage_ = 0;
   lv_obj_t* canvas_ = nullptr;
   int32_t canvasScale_ = 256;  // 8.8 fixed point; 256 == 1.0

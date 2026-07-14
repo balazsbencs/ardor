@@ -519,6 +519,11 @@ int main(int argc, char** argv)
               requestedSlot.store(static_cast<int>(uiState.activePreset), std::memory_order_relaxed);
             }
           },
+          [&](const std::string& blockId, std::size_t bandIndex, const ardor::EqBandParams& params) {
+            if (!liveEngine->setParametricEqBand(blockId, bandIndex, params)) {
+              std::cerr << "Unable to update EQ band for block " << blockId << "\n";
+            }
+          },
         });
         ui->build(lv_screen_active(), uiState);
       }

@@ -1,4 +1,5 @@
 #include "ui/LvglUi.h"
+#include "ui/EqEditorModel.h"
 #include "ui/fonts/OpenSansRegular.h"
 
 #include <algorithm>
@@ -229,6 +230,36 @@ int main()
   if (require(customPresetActionCalled, "custom preset action should be called")) return 1;
   if (require(presetUi.parameterPage() == 0, "preset selection should reset parameter page")) return 1;
   if (require(!presetUi.applyFocusedParameterDelta(state, 1), "preset selection should clear focused parameter")) return 1;
+
+  auto eqState = ardor::makeDemoUiState();
+  const auto eqAsset = std::find_if(eqState.assets.begin(), eqState.assets.end(), [](const ardor::UiAsset& asset) {
+    return asset.name == "Five Band EQ";
+  });
+  if (require(eqAsset != eqState.assets.end(), "EQ asset should be available")) return 1;
+  ardor::appendAssetBlock(eqState, static_cast<std::size_t>(std::distance(eqState.assets.begin(), eqAsset)));
+  bool eqActionCalled = false;
+  std::string updatedEqId;
+  std::size_t updatedEqBand = ardor::kParametricEqBandCount;
+  ardor::EqBandParams updatedEqParams;
+  ardor::LvglUi eqUi({
+    {}, {},
+    [&](const std::string& id, std::size_t band, const ardor::EqBandParams& params) {
+      eqActionCalled = true;
+      updatedEqId = id;
+      updatedEqBand = band;
+      updatedEqParams = params;
+    },
+  });
+  eqUi.selectBlock(eqState, eqState.bank.presets[eqState.activePreset].blocks.size() - 1);
+  const auto eqBefore = ardor::selectedParametricEqParams(eqState).bands[0];
+  eqUi.focusEqBandField(ardor::EqBandField::Gain);
+  if (require(eqUi.applyFocusedParameterDelta(eqState, 2), "focused EQ gain should consume encoder ticks")) return 1;
+  const auto eqAfter = ardor::selectedParametricEqParams(eqState).bands[0];
+  if (require(eqAfter.gainDb == eqBefore.gainDb + 1.0f, "EQ gain should move in 0.5 dB ticks")) return 1;
+  if (require(eqActionCalled && updatedEqBand == 0 && updatedEqParams == eqAfter,
+              "EQ changes should invoke the live update action")) return 1;
+  if (require(updatedEqId == eqState.bank.presets[eqState.activePreset].blocks.back().id,
+              "EQ live update should retain the stable block id")) return 1;
 
   const auto tremAsset = std::find_if(state.assets.begin(), state.assets.end(), [](const ardor::UiAsset& asset) {
     return asset.name == "Vintage Trem";
@@ -542,6 +573,21 @@ int main()
               "drawer filters should remain in one horizontal row")) return 1;
   if (require(lv_color_eq(lv_obj_get_style_bg_color(tremAssetButton, LV_PART_MAIN), lv_color_hex(0x242424)),
               "drawer asset tiles should be charcoal")) return 1;
+
+  ardor::closeBlockDrawer(state);
+  auto eqRenderAsset = std::find_if(state.assets.begin(), state.assets.end(), [](const ardor::UiAsset& asset) {
+    return asset.name == "Five Band EQ";
+  });
+  if (require(eqRenderAsset != state.assets.end(), "EQ asset should be available to the LVGL editor")) return 1;
+  ardor::appendAssetBlock(state, static_cast<std::size_t>(std::distance(state.assets.begin(), eqRenderAsset)));
+  ui.selectBlock(state, state.bank.presets[state.activePreset].blocks.size() - 1);
+  ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "Parametric EQ"), "EQ should render its dedicated editor title")) return 1;
+  if (require(findLabel(lv_screen_active(), "Band 1"), "EQ should render its selected-band strip")) return 1;
+  if (require(findLabel(lv_screen_active(), "Reset Band"), "EQ should render a reset-band control")) return 1;
+  if (require(findLineWithPointCount(lv_screen_active(), ardor::kEqCurvePointCount),
+              "EQ should render a sampled response curve")) return 1;
 
   lv_display_delete(display);
   lv_deinit();

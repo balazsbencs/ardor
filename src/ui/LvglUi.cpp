@@ -9,6 +9,7 @@
 #include <array>
 #include <cctype>
 #include <cstdint>
+#include <cstdio>
 #include <cmath>
 #include <string>
 #include <utility>
@@ -28,6 +29,15 @@ constexpr auto panelAlt = 0x242424;
 constexpr auto text = 0xf5f5f5;
 constexpr auto muted = 0xa6a6a6;
 constexpr auto accent = 0x43f05a;
+constexpr auto eqCombined = 0xff9f43;
+constexpr std::array<int, kParametricEqBandCount> eqBandColors = {
+  0x56c7ff, 0x8be28b, 0xf5d76e, 0xff8c69, 0xc792ea,
+};
+constexpr int kEqPanelHeight = 310;
+constexpr int kEqGraphX = 28;
+constexpr int kEqGraphY = 50;
+constexpr int kEqGraphWidth = 1184;
+constexpr int kEqGraphHeight = 132;
 constexpr int kChainLeft = 34;
 constexpr int kChainWidth = 1212;
 constexpr int kChainTop = 110;
@@ -74,6 +84,11 @@ void updateKnobPointer(lv_obj_t* pointer, float ratio)
 }
 
 void freeKnobPointerPoints(lv_event_t* event)
+{
+  lv_free(lv_event_get_user_data(event));
+}
+
+void freeLinePoints(lv_event_t* event)
 {
   lv_free(lv_event_get_user_data(event));
 }
@@ -326,6 +341,87 @@ void onBypassChanged(lv_event_t* event)
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   lv_obj_t* switchObject = lv_event_get_target_obj(event);
   setSelectedBlockEnabled(*context->state, lv_obj_has_state(switchObject, LV_STATE_CHECKED));
+  redraw(context);
+}
+
+void onEqBandSelected(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->selectEqBand(context->index);
+  redraw(context);
+}
+
+void onEqFieldSelected(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->selectEqBand(context->index);
+  if (context->filter == "frequency") {
+    context->ui->focusEqBandField(EqBandField::Frequency);
+  } else if (context->filter == "q") {
+    context->ui->focusEqBandField(EqBandField::Q);
+  } else {
+    context->ui->focusEqBandField(EqBandField::Gain);
+  }
+  redraw(context);
+}
+
+void onEqBandEnabled(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->selectEqBand(context->index);
+  auto params = selectedParametricEqParams(*context->state);
+  auto& band = params.bands[context->index];
+  band.enabled = !band.enabled;
+  context->ui->updateSelectedEqBand(*context->state, band);
+  redraw(context);
+}
+
+void onEqBandReset(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->selectEqBand(context->index);
+  context->ui->updateSelectedEqBand(*context->state, defaultParametricEqBand(context->index));
+  redraw(context);
+}
+
+void onEqNodePressed(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (!input) {
+    return;
+  }
+  context->ui->selectEqBand(context->index);
+  context->ui->focusEqBandField(EqBandField::Gain);
+  lv_indev_get_point(input, &context->pressPoint);
+  context->pressPoint = context->ui->toCanvas(context->pressPoint);
+  context->ui->beginKnobInteraction();
+}
+
+void onEqNodePressing(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (!input) {
+    return;
+  }
+  lv_point_t point{};
+  lv_indev_get_point(input, &point);
+  point = context->ui->toCanvas(point);
+  const int x = std::clamp(static_cast<int>(point.x) - 48, 0, kEqGraphWidth - 1);
+  const int y = std::clamp(static_cast<int>(point.y) - 456, 0, kEqGraphHeight - 1);
+  auto params = selectedParametricEqParams(*context->state);
+  auto& band = params.bands[context->index];
+  band.frequencyHz = eqFrequencyFromX(x, kEqGraphWidth);
+  band.gainDb = eqGainFromY(y, kEqGraphHeight);
+  context->ui->updateSelectedEqBand(*context->state, band);
+  lv_obj_set_pos(lv_event_get_target_obj(event), x - 16, y - 16);
+}
+
+void onEqNodeReleased(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->endKnobInteraction();
   redraw(context);
 }
 
@@ -698,6 +794,173 @@ void renderPageNavigation(lv_obj_t* parent, UiState& state, UiEventContext* cont
   }
 }
 
+lv_obj_t* createEqResponseLine(lv_obj_t* parent, const std::array<float, kEqCurvePointCount>& response,
+                               int color, lv_opa_t opacity)
+{
+  auto* points = static_cast<lv_point_precise_t*>(lv_malloc(sizeof(lv_point_precise_t) * kEqCurvePointCount));
+  LV_ASSERT_MALLOC(points);
+  if (!points) {
+    return nullptr;
+  }
+  for (std::size_t i = 0; i < kEqCurvePointCount; ++i) {
+    points[i] = {static_cast<int32_t>(i * (kEqGraphWidth - 1) / (kEqCurvePointCount - 1)),
+                 static_cast<int32_t>(eqYFromGain(response[i], kEqGraphHeight))};
+  }
+  lv_obj_t* line = lv_line_create(parent);
+  lv_obj_set_size(line, kEqGraphWidth, kEqGraphHeight);
+  lv_line_set_points_mutable(line, points, kEqCurvePointCount);
+  lv_obj_set_style_line_color(line, lv_color_hex(color), LV_PART_MAIN);
+  lv_obj_set_style_line_width(line, 2, LV_PART_MAIN);
+  lv_obj_set_style_line_opa(line, opacity, LV_PART_MAIN);
+  lv_obj_add_event_cb(line, freeLinePoints, LV_EVENT_DELETE, points);
+  lv_obj_remove_flag(line, LV_OBJ_FLAG_CLICKABLE);
+  return line;
+}
+
+std::string eqFrequencyLabel(float frequencyHz)
+{
+  if (frequencyHz >= 1000.0f) {
+    char buffer[16]{};
+    std::snprintf(buffer, sizeof(buffer), "%.1f kHz", frequencyHz / 1000.0f);
+    return buffer;
+  }
+  return std::to_string(static_cast<int>(std::lround(frequencyHz))) + " Hz";
+}
+
+std::string eqQLabel(float q)
+{
+  char buffer[16]{};
+  std::snprintf(buffer, sizeof(buffer), "Q %.2f", q);
+  return buffer;
+}
+
+std::string eqGainLabel(float gainDb)
+{
+  char buffer[16]{};
+  std::snprintf(buffer, sizeof(buffer), "%+.1f dB", gainDb);
+  return buffer;
+}
+
+void renderEqField(lv_obj_t* parent, const std::string& title, const std::string& value,
+                   int x, bool focused, UiEventContext* context)
+{
+  lv_obj_t* field = button(parent, title + "\n" + value);
+  lv_obj_set_size(field, 150, 48);
+  lv_obj_set_pos(field, x, 240);
+  styleSurface(field, focused ? 0x333333 : 0x171717);
+  lv_obj_set_style_text_color(lv_obj_get_child(field, 0), lv_color_hex(focused ? accent : text), 0);
+  lv_obj_add_event_cb(field, onEqFieldSelected, LV_EVENT_CLICKED, context);
+}
+
+void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* context)
+{
+  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (state.selectedBlock >= blocks.size()) {
+    return;
+  }
+
+  lv_obj_t* panelObject = lv_obj_create(root);
+  lv_obj_set_size(panelObject, 1240, kEqPanelHeight);
+  lv_obj_align(panelObject, LV_ALIGN_BOTTOM_MID, 0, -4);
+  lv_obj_remove_flag(panelObject, LV_OBJ_FLAG_SCROLLABLE);
+  styleSurface(panelObject, panelAlt);
+  label(panelObject, "Parametric EQ", LV_ALIGN_TOP_LEFT, 28, 15, &ardor_font_open_sans_semibold_22);
+  label(panelObject, "Five bands", LV_ALIGN_TOP_LEFT, 205, 18, &ardor_font_open_sans_regular_18, muted);
+
+  lv_obj_t* close = button(panelObject, "X");
+  lv_obj_set_size(close, 36, 32);
+  lv_obj_align(close, LV_ALIGN_TOP_RIGHT, -8, 16);
+  styleSurface(close, bg);
+  lv_obj_add_event_cb(close, onCloseParamDrawer, LV_EVENT_CLICKED, context);
+  renderBypassSwitch(panelObject, state, context);
+
+  const auto params = selectedParametricEqParams(state);
+  const auto curve = makeEqCurveData(params, 48000.0f);
+  lv_obj_t* graph = lv_obj_create(panelObject);
+  lv_obj_set_size(graph, kEqGraphWidth, kEqGraphHeight);
+  lv_obj_set_pos(graph, kEqGraphX, kEqGraphY);
+  lv_obj_remove_flag(graph, LV_OBJ_FLAG_SCROLLABLE);
+  styleSurface(graph, 0x111111);
+  lv_obj_set_style_border_color(graph, lv_color_hex(0x3a3a3a), 0);
+  lv_obj_set_style_border_width(graph, 1, 0);
+
+  for (int i = 1; i < 4; ++i) {
+    lv_obj_t* gridLine = lv_obj_create(graph);
+    lv_obj_set_size(gridLine, kEqGraphWidth - 2, 1);
+    lv_obj_set_pos(gridLine, 1, i * (kEqGraphHeight - 1) / 4);
+    styleSurface(gridLine, 0x2f2f2f);
+    lv_obj_remove_flag(gridLine, LV_OBJ_FLAG_CLICKABLE);
+  }
+  for (const float frequency : {100.0f, 1000.0f, 10000.0f}) {
+    lv_obj_t* gridLine = lv_obj_create(graph);
+    lv_obj_set_size(gridLine, 1, kEqGraphHeight - 2);
+    lv_obj_set_pos(gridLine, eqXFromFrequency(frequency, kEqGraphWidth), 1);
+    styleSurface(gridLine, 0x2f2f2f);
+    lv_obj_remove_flag(gridLine, LV_OBJ_FLAG_CLICKABLE);
+  }
+
+  for (std::size_t i = 0; i < kParametricEqBandCount; ++i) {
+    createEqResponseLine(graph, curve.bandDb[i], eqBandColors[i], params.bands[i].enabled ? LV_OPA_40 : LV_OPA_20);
+  }
+  createEqResponseLine(graph, curve.combinedDb, eqCombined, LV_OPA_COVER);
+
+  for (std::size_t i = 0; i < kParametricEqBandCount; ++i) {
+    const auto& band = params.bands[i];
+    lv_obj_t* node = button(graph, std::to_string(i + 1));
+    lv_obj_set_size(node, 32, 32);
+    lv_obj_set_pos(node, eqXFromFrequency(band.frequencyHz, kEqGraphWidth) - 16,
+                   eqYFromGain(band.gainDb, kEqGraphHeight) - 16);
+    styleSurface(node, eqBandColors[i]);
+    lv_obj_set_style_radius(node, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_opa(node, band.enabled ? LV_OPA_COVER : LV_OPA_50, 0);
+    lv_obj_set_style_text_color(lv_obj_get_child(node, 0), lv_color_hex(bg), 0);
+    if (context->ui->selectedEqBand() == i) {
+      lv_obj_set_style_border_color(node, lv_color_hex(text), 0);
+      lv_obj_set_style_border_width(node, 2, 0);
+    }
+    auto* nodeContext = context->ui->remember(state, i);
+    lv_obj_add_event_cb(node, onEqNodePressed, LV_EVENT_PRESSED, nodeContext);
+    lv_obj_add_event_cb(node, onEqNodePressing, LV_EVENT_PRESSING, nodeContext);
+    lv_obj_add_event_cb(node, onEqNodeReleased, LV_EVENT_RELEASED, nodeContext);
+    lv_obj_add_event_cb(node, onEqNodeReleased, LV_EVENT_PRESS_LOST, nodeContext);
+  }
+
+  for (std::size_t i = 0; i < kParametricEqBandCount; ++i) {
+    lv_obj_t* bandButton = button(panelObject, "Band " + std::to_string(i + 1));
+    lv_obj_set_size(bandButton, 98, 38);
+    lv_obj_set_pos(bandButton, 28 + static_cast<int>(i) * 104, 194);
+    styleSurface(bandButton, context->ui->selectedEqBand() == i ? eqBandColors[i] : 0x171717);
+    lv_obj_set_style_text_color(lv_obj_get_child(bandButton, 0),
+                                lv_color_hex(context->ui->selectedEqBand() == i ? bg : text), 0);
+    lv_obj_add_event_cb(bandButton, onEqBandSelected, LV_EVENT_CLICKED, context->ui->remember(state, i));
+  }
+
+  const auto selectedBand = context->ui->selectedEqBand();
+  const auto& band = params.bands[selectedBand];
+  lv_obj_t* enabled = button(panelObject, band.enabled ? "Band On" : "Band Off");
+  lv_obj_set_size(enabled, 120, 38);
+  lv_obj_set_pos(enabled, 550, 194);
+  styleSurface(enabled, band.enabled ? 0x25442a : 0x3a2020);
+  lv_obj_set_style_text_color(lv_obj_get_child(enabled, 0), lv_color_hex(band.enabled ? accent : 0xf97373), 0);
+  lv_obj_add_event_cb(enabled, onEqBandEnabled, LV_EVENT_CLICKED, context->ui->remember(state, selectedBand));
+
+  lv_obj_t* reset = button(panelObject, "Reset Band");
+  lv_obj_set_size(reset, 140, 38);
+  lv_obj_set_pos(reset, 690, 194);
+  styleSurface(reset, 0x171717);
+  lv_obj_add_event_cb(reset, onEqBandReset, LV_EVENT_CLICKED, context->ui->remember(state, selectedBand));
+
+  renderEqField(panelObject, "Frequency", eqFrequencyLabel(band.frequencyHz), 550,
+                context->ui->isEqBandFieldFocused(EqBandField::Frequency),
+                context->ui->remember(state, selectedBand, "frequency"));
+  renderEqField(panelObject, "Q", eqQLabel(band.q), 710,
+                context->ui->isEqBandFieldFocused(EqBandField::Q),
+                context->ui->remember(state, selectedBand, "q"));
+  renderEqField(panelObject, "Gain", eqGainLabel(band.gainDb), 870,
+                context->ui->isEqBandFieldFocused(EqBandField::Gain),
+                context->ui->remember(state, selectedBand, "gain"));
+}
+
 void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* context)
 {
   lv_obj_t* panelObject = lv_obj_create(root);
@@ -789,6 +1052,7 @@ void LvglUi::selectBlock(UiState& state, std::size_t blockIndex)
     return;
   }
   ardor::selectBlock(state, blockIndex);
+  selectedEqBand_ = 0;
   resetParameterPage();
 }
 
@@ -796,6 +1060,28 @@ void LvglUi::selectGlobalParams(UiState& state)
 {
   ardor::selectGlobalParams(state);
   resetParameterPage();
+}
+
+bool LvglUi::updateSelectedEqBand(UiState& state, EqBandParams params)
+{
+  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (state.selectedBlock >= blocks.size()) {
+    return false;
+  }
+  const auto& block = blocks[state.selectedBlock];
+  const auto before = selectedParametricEqParams(state).bands[selectedEqBand_];
+  if (!setSelectedEqBand(state, selectedEqBand_, params)) {
+    return false;
+  }
+  const auto after = selectedParametricEqParams(state).bands[selectedEqBand_];
+  if (after == before) {
+    return false;
+  }
+  if (actions_.updateEqBand) {
+    actions_.updateEqBand(block.id, selectedEqBand_, after);
+  }
+  requestRebuild();
+  return true;
 }
 
 UiEventContext* LvglUi::remember(UiState& state, std::size_t index, std::string filter)
@@ -993,7 +1279,12 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
     renderBlockDrawer(root, state);
   }
   if (state.paramDrawerOpen) {
-    renderParameterPanel(root, state, remember(state));
+    if (state.paramTarget == UiParamTarget::Block && state.selectedBlock < blocks.size()
+        && blocks[state.selectedBlock].type == "eq" && isParametricEqMode(blocks[state.selectedBlock].params)) {
+      renderParametricEqPanel(root, state, remember(state));
+    } else {
+      renderParameterPanel(root, state, remember(state));
+    }
   }
 }
 
@@ -1020,7 +1311,8 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
 
   static constexpr std::array filters = {
     std::pair{"All", "all"}, std::pair{"Amps", "amps"}, std::pair{"Cabs", "cabs"},
-    std::pair{"Dyn", "dynamics"}, std::pair{"Mod", "modulation"}, std::pair{"Time", "time"},
+    std::pair{"EQ", "eq"}, std::pair{"Dyn", "dynamics"}, std::pair{"Mod", "modulation"},
+    std::pair{"Time", "time"},
   };
 
   lv_obj_t* filterRow = lv_obj_create(drawer);
