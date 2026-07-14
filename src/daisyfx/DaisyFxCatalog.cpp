@@ -15,7 +15,8 @@ std::vector<DaisyFxParamDescriptor> modParams()
     {"tone", "Tone", 0.50f},
     {"p1", "P1", 0.0f},
     {"p2", "P2", 0.0f},
-    {"level", "Level", 1.0f},
+    // The hosted range is 0..2 linear; normalized 0.5 is unity gain.
+    {"level", "Level", 0.5f},
   };
 }
 

@@ -12,6 +12,7 @@ namespace ardor {
 
 class PedalEngine {
 public:
+  void setSampleRate(double sampleRate);
   bool loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize);
   void loadIr(std::vector<float> impulse);
   void addCab(std::vector<float> impulse, float level, float mix);
@@ -27,9 +28,13 @@ public:
   void setSafetyLimiterEnabled(bool enabled);
   void setCabLevel(float gain);
   void setCabMix(float mix);
+  // Exchanges a fully prepared program. This is a control-thread operation;
+  // the caller must stop audio processing before invoking it.
+  void replacePreparedProgram(PedalEngine&& prepared);
   std::pair<float, float> process(float input);
   void processBlock(const float* input, float* left, float* right, size_t frames);
   void reset();
+  size_t tailFrames() const noexcept;
 
 private:
   std::atomic<float> inputGain_{1.0f};
@@ -40,11 +45,25 @@ private:
   std::atomic<float> cabMix_{1.0f};
   std::atomic<bool> effectsBypassed_{false};
   std::atomic<bool> safetyLimiterEnabled_{true};
-  std::atomic<bool> resetRequested_{false};
   RuntimeChain chain_;
   size_t blockSize_ = 0;
+  std::vector<float> gainedInput_;
+  std::vector<float> cabLevelBlock_;
+  std::vector<float> cabMixBlock_;
+  float sampleRate_ = 48000.0f;
+  float gainSmoothingCoefficient_ = 0.004157998f; // 5 ms at 48 kHz.
+  float currentInputGain_ = 1.0f;
+  float currentOutputGain_ = 1.0f;
+  float currentMasterVolume_ = 1.0f;
+  float currentCabLevel_ = 1.0f;
+  float currentCabMix_ = 1.0f;
+  float currentEffectsMix_ = 1.0f;
+  bool audioStarted_ = false;
 
-  void applyPendingReset();
+  void beginAudioProcessing();
+  float smoothGain(float& current, const std::atomic<float>& target);
+  float smoothEffectsMix();
+  static StereoSample equalPowerMix(StereoSample dry, StereoSample wet, float wetMix);
   float applySafety(float sample) const;
 };
 

@@ -2,6 +2,7 @@
 
 #include "audio/WavIo.h"
 
+#include <cmath>
 #include <exception>
 #include <utility>
 
@@ -26,10 +27,21 @@ const char* statusName(ChainBlockStatus status)
 
 } // namespace
 
-bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoadOptions& options, std::string& error)
+namespace {
+
+bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoadOptions& options, std::string& error)
 {
   error.clear();
+  if (options.sampleRate != 48000) {
+    error = "the pedal engine requires a 48000 Hz sample rate";
+    return false;
+  }
+  if (options.blockSize == 0) {
+    error = "audio block size must be greater than zero";
+    return false;
+  }
   engine.clearEffects();
+  engine.setSampleRate(options.sampleRate);
   engine.prepareBlockSize(options.blockSize);
   engine.setInputGain(plan.inputGain);
   engine.setOutputGain(plan.outputGain);
@@ -38,6 +50,7 @@ bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoad
 
   bool loadedNam = false;
   bool loadedCab = false;
+  bool stereoEstablished = false;
   for (const auto& block : plan.blocks) {
     if (block.status != ChainBlockStatus::Ready) {
       if (block.status != ChainBlockStatus::Disabled) {
@@ -46,7 +59,15 @@ bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoad
       }
       continue;
     }
-    if (block.type == "nam" && !loadedNam) {
+    if (block.type == "nam") {
+      if (loadedNam) {
+        error = "multiple NAM blocks are not supported: " + block.id;
+        return false;
+      }
+      if (stereoEstablished) {
+        error = "NAM must precede stereo effects: " + block.id;
+        return false;
+      }
       if (!engine.loadNam(block.assetPath, options.sampleRate, static_cast<int>(options.blockSize))) {
         error = "failed to load NAM: " + block.assetPath.string();
         return false;
@@ -54,7 +75,15 @@ bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoad
       loadedNam = true;
       continue;
     }
-    if (block.type == "cab" && !loadedCab) {
+    if (block.type == "cab") {
+      if (loadedCab) {
+        error = "multiple cabinet blocks are not supported: " + block.id;
+        return false;
+      }
+      if (stereoEstablished) {
+        error = "cabinet must precede stereo effects: " + block.id;
+        return false;
+      }
       MonoWav wav;
       try {
         wav = readMonoWav(block.assetPath);
@@ -66,8 +95,10 @@ bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoad
         error = "IR sample rate mismatch: " + block.assetPath.string();
         return false;
       }
-      if (options.irSamples > 0 && wav.samples.size() > options.irSamples) {
-        wav.samples.resize(options.irSamples);
+      std::string irError;
+      if (!prepareMonoIr(wav, options.irSamples, irError)) {
+        error = "invalid IR: " + block.assetPath.string() + ": " + irError;
+        return false;
       }
       engine.addCab(std::move(wav.samples), block.level, block.mix);
       loadedCab = true;
@@ -77,6 +108,7 @@ bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoad
       if (!engine.addDaisyFx(block.type, block.params, static_cast<float>(options.sampleRate), error)) {
         return false;
       }
+      stereoEstablished = true;
       continue;
     }
     if (block.type == "dynamics") {
@@ -87,6 +119,18 @@ bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoad
     }
   }
 
+  return true;
+}
+
+} // namespace
+
+bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoadOptions& options, std::string& error)
+{
+  PedalEngine prepared;
+  if (!prepareChainPlan(prepared, plan, options, error)) {
+    return false;
+  }
+  engine.replacePreparedProgram(std::move(prepared));
   return true;
 }
 

@@ -56,6 +56,7 @@ int main()
     std::filesystem::create_directories(root / "irs");
 
     writeMonoWav(root / "irs/test.wav", {0.5f});
+    writeMonoWav(root / "irs/tail.wav", {0.5f, 0.25f});
     writeMonoWav(root / "dry.wav", {0.5f});
 
     const auto presetPath = root / "preset.json";
@@ -103,6 +104,23 @@ int main()
     require(legacyOutput.size() == 2, "legacy stereo frame count");
     require(std::fabs(legacyOutput[0] - 0.25f) < 0.0001f, "legacy left sample");
     require(std::fabs(legacyOutput[1] - 0.25f) < 0.0001f, "legacy right sample");
+
+    const auto tailOutPath = root / "tail-wet.wav";
+    const std::string tailCommand = "./pedal-poc --offline --bypass-nam --ir " + (root / "irs/tail.wav").string()
+                                  + " --input " + (root / "dry.wav").string()
+                                  + " --output " + tailOutPath.string();
+    require(std::system(tailCommand.c_str()) == 0, "offline default tail command");
+    const auto tailOutput = readStereoWav(tailOutPath);
+    require(tailOutput.size() == 4, "default cabinet tail frame count");
+    require(std::fabs(tailOutput[2] - 0.125f) < 0.0001f, "default cabinet tail sample");
+
+    const auto noTailOutPath = root / "no-tail-wet.wav";
+    const std::string noTailCommand = "./pedal-poc --offline --no-tail --bypass-nam --ir "
+                                    + (root / "irs/tail.wav").string()
+                                    + " --input " + (root / "dry.wav").string()
+                                    + " --output " + noTailOutPath.string();
+    require(std::system(noTailCommand.c_str()) == 0, "offline no-tail command");
+    require(readStereoWav(noTailOutPath).size() == 2, "no-tail frame count");
 
     std::filesystem::create_directories(root / "presets/bank-000");
     std::filesystem::copy_file(presetPath, root / "presets/bank-000/preset-0.json",

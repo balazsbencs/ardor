@@ -36,8 +36,7 @@ private:
   float sidechainPreviousOutputRight_ = 0.0f;
   float envelopeLeft_ = 0.0f;
   float envelopeRight_ = 0.0f;
-  float gainLeft_ = 1.0f;
-  float gainRight_ = 1.0f;
+  float gain_ = 1.0f;
 
   float detectorLevel(float input, float& previousInput, float& previousOutput, float& envelope) const;
   float gainForLevel(float level) const;

@@ -52,6 +52,36 @@ int main()
   const auto wav441 = ardor::readMonoWav(wav441Path);
   if (require(wav441.sampleRate == 44100)) return 1;
 
+  ardor::MonoWav emptyIr;
+  emptyIr.sampleRate = 48000;
+  emptyIr.channels = 1;
+  std::string irValidationError;
+  if (require(!ardor::prepareMonoIr(emptyIr, 8192, irValidationError))) return 1;
+  if (require(irValidationError.find("no audio") != std::string::npos)) return 1;
+
+  ardor::MonoWav cappedIr{{1.0f, 0.5f, 0.25f, 0.125f}, 48000, 1};
+  if (require(ardor::prepareMonoIr(cappedIr, 2, irValidationError))) return 1;
+  if (require(cappedIr.samples.size() == 2)) return 1;
+  if (require(cappedIr.samples.back() == 0.0f)) return 1;
+
+  const auto stereoWavPath = std::filesystem::temp_directory_path() / "ardor-stereo-ir-smoke.wav";
+  {
+    const float samples[] = {0.25f, -0.25f};
+    ma_encoder_config cfg = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 2, 48000);
+    ma_encoder encoder;
+    if (require(ma_encoder_init_file(stereoWavPath.string().c_str(), &cfg, &encoder) == MA_SUCCESS)) return 1;
+    ma_encoder_write_pcm_frames(&encoder, samples, 1, nullptr);
+    ma_encoder_uninit(&encoder);
+  }
+  bool stereoRejected = false;
+  try {
+    (void)ardor::readMonoWav(stereoWavPath);
+  } catch (const std::exception&) {
+    stereoRejected = true;
+  }
+  if (require(stereoRejected)) return 1;
+  std::filesystem::remove(stereoWavPath);
+
   if (require(ardor::captureChannelCountForInput(0) == 2)) return 1;
   if (require(ardor::captureChannelCountForInput(1) == 2)) return 1;
 
@@ -68,10 +98,34 @@ int main()
   if (require(std::fabs(loadedLeft - 0.0625f) < 0.0001f)) return 1;
   if (require(std::fabs(loadedRight - 0.0625f) < 0.0001f)) return 1;
 
+  auto duplicateCab = cabOnly;
+  duplicateCab.blocks.push_back({"cab-2", "cab", ardor::ChainBlockStatus::Ready, wavPath, nlohmann::json::object()});
+  if (require(!ardor::applyChainPlan(loadedEngine, duplicateCab, {48000, 64, 8192}, loadError))) return 1;
+  if (require(loadError.find("multiple cabinet") != std::string::npos)) return 1;
+
+  ardor::ChainPlan stereoBeforeCab;
+  stereoBeforeCab.blocks.push_back({"trem", "mod", ardor::ChainBlockStatus::Ready, {},
+                                    nlohmann::json{{"mode", "vintage_trem"}}});
+  stereoBeforeCab.blocks.push_back({"cab-after", "cab", ardor::ChainBlockStatus::Ready, wavPath,
+                                    nlohmann::json::object()});
+  if (require(!ardor::applyChainPlan(loadedEngine, stereoBeforeCab, {48000, 64, 8192}, loadError))) return 1;
+  if (require(loadError.find("must precede stereo") != std::string::npos)) return 1;
+
+  if (require(!ardor::applyChainPlan(loadedEngine, cabOnly, {44100, 64, 8192}, loadError))) return 1;
+  if (require(loadError.find("48000") != std::string::npos)) return 1;
+
+  ardor::PedalEngine expectedAfterFailedLoad;
+  if (require(ardor::applyChainPlan(expectedAfterFailedLoad, cabOnly, {48000, 64, 8192}, loadError))) return 1;
+  expectedAfterFailedLoad.process(0.5f);
+
   ardor::ChainPlan wrongRateCab;
   wrongRateCab.blocks.push_back({"cab-441", "cab", ardor::ChainBlockStatus::Ready, wav441Path, nlohmann::json::object()});
   if (require(!ardor::applyChainPlan(loadedEngine, wrongRateCab, {48000, 64, 8192}, loadError))) return 1;
   if (require(loadError.find("sample rate mismatch") != std::string::npos)) return 1;
+  const auto expectedContinuation = expectedAfterFailedLoad.process(0.0f);
+  const auto preservedContinuation = loadedEngine.process(0.0f);
+  if (require(std::fabs(expectedContinuation.first - preservedContinuation.first) < 0.0001f)) return 1;
+  if (require(std::fabs(expectedContinuation.second - preservedContinuation.second) < 0.0001f)) return 1;
   std::filesystem::remove(wav441Path);
 
   ardor::ChainPlan missingCab;
@@ -96,6 +150,11 @@ int main()
   dryPlan.outputGain = 1.0f;
   dryPlan.safetyLimit = 1.0f;
   if (require(ardor::applyChainPlan(loadedEngine, dryPlan, {48000, 64, 8192}, loadError))) return 1;
+  // Loading a new plan into an already-running engine changes gain through the
+  // live-control ramp rather than stepping the output.
+  for (int i = 0; i < 4096; ++i) {
+    loadedEngine.process(0.0f);
+  }
   auto [dryLeft, dryRight] = loadedEngine.process(0.5f);
   if (require(std::fabs(dryLeft - 0.5f) < 0.0001f)) return 1;
   if (require(std::fabs(dryRight - 0.5f) < 0.0001f)) return 1;

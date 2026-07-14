@@ -139,6 +139,8 @@ struct Args {
   uint32_t sampleRate = 48000;
   uint32_t blockSize = 64;
   size_t irSamples = 0;
+  float tailSeconds = -1.0f;
+  bool noTail = false;
   float inputGainDb = 0.0f;
   float outputGainDb = 0.0f;
   float safetyLimitDb = -1.0f;
@@ -223,6 +225,13 @@ bool parse(int argc, char** argv, Args& args)
         const char* v = value();
         if (!v) return false;
         args.irSamples = static_cast<size_t>(std::stoull(v));
+      } else if (a == "--tail-seconds") {
+        const char* v = value();
+        if (!v) return false;
+        args.tailSeconds = std::stof(v);
+        if (!std::isfinite(args.tailSeconds) || args.tailSeconds < 0.0f) return false;
+      } else if (a == "--no-tail") {
+        args.noTail = true;
       } else if (a == "--input-gain-db") {
         const char* v = value();
         if (!v) return false;
@@ -293,6 +302,10 @@ bool parse(int argc, char** argv, Args& args)
   }
 
   if (args.presetSlotMode && (args.bank < 0 || args.bank >= 100 || args.slot < 0 || args.slot >= 4)) {
+    return false;
+  }
+
+  if (args.sampleRate != 48000) {
     return false;
   }
 
@@ -376,6 +389,7 @@ int main(int argc, char** argv)
                 << "  pedal-poc --offline --preset preset.json --data-root data --input dry.wav --output wet.wav\n"
                 << "  pedal-poc --offline --data-root data --bank 0 --slot 0 --input dry.wav --output wet.wav\n"
                 << "  pedal-poc --offline --ir cab.wav --input dry.wav --output wet.wav (--model amp.nam | --bypass-nam)\n"
+                << "            [--tail-seconds N | --no-tail]\n"
                 << "  pedal-poc --realtime --preset preset.json --data-root data [--sample-rate 48000] [--block-size 64]\n"
                 << "  pedal-poc --realtime --data-root data --bank 0 --slot 0 [--sample-rate 48000] [--block-size 64]\n"
                 << "  pedal-poc --realtime --model amp.nam --ir cab.wav [--sample-rate 48000] [--block-size 64]\n"
@@ -585,28 +599,56 @@ int main(int argc, char** argv)
 #endif
         const int nextSlot = requestedSlot.exchange(-1, std::memory_order_relaxed);
         if (nextSlot >= 0 && nextSlot != args.slot) {
+          // Hosted Daisy modes still contain vendor-owned static delay/reverb
+          // buffers. Preparing a replacement while a Daisy preset runs can
+          // reset or alias the live effect state. Move through a muted engine
+          // first: the backend fades to silence without stopping the device,
+          // the old engine is then destroyed, and only then is the next Daisy
+          // program constructed. This trades a documented short silent switch
+          // for state integrity until the vendor buffers become instance-owned.
+          auto mutedEngine = std::make_unique<ardor::PedalEngine>();
+          mutedEngine->setSampleRate(loadOptions.sampleRate);
+          mutedEngine->prepareBlockSize(loadOptions.blockSize);
+          mutedEngine->setMasterVolume(0.0f);
+          if (!backend.replaceEngine(*mutedEngine)) {
+            std::cerr << "Failed to enter safe preset-switch mute\n";
+            continue;
+          }
+          liveEngine = std::move(mutedEngine);
+
           auto nextEngine = std::make_unique<ardor::PedalEngine>();
           std::string swapError;
           if (!ardor::applyPresetSlot(*nextEngine, store, {args.bank, nextSlot}, args.dataRoot, loadOptions, swapError)) {
             std::cerr << "Preset switch failed: " << swapError << "\n";
+            auto recoveredEngine = std::make_unique<ardor::PedalEngine>();
+            std::string recoveryError;
+            if (ardor::applyPresetSlot(*recoveredEngine, store, {args.bank, args.slot}, args.dataRoot,
+                                       loadOptions, recoveryError)) {
+              recoveredEngine->setMasterVolume(static_cast<float>(controls.masterVolume) / 100.0f);
+              if (backend.replaceEngine(*recoveredEngine)) {
+                liveEngine = std::move(recoveredEngine);
+              }
+            } else {
+              std::cerr << "Failed to restore previous preset: " << recoveryError << "\n";
+            }
           } else {
-            backend.stop();
-            liveEngine = std::move(nextEngine);
-            liveEngine->reset();
-            liveEngine->setMasterVolume(static_cast<float>(controls.masterVolume) / 100.0f);
-            if (!backend.start(*liveEngine, options)) {
-              std::cerr << "Failed to restart realtime audio\n";
-              return 1;
-            }
-            args.slot = nextSlot;
-            previousOverBudget = 0;
-            std::cerr << "Switched to preset " << args.bank << ":" << args.slot << "\n";
+            nextEngine->setMasterVolume(static_cast<float>(controls.masterVolume) / 100.0f);
+            if (!backend.replaceEngine(*nextEngine)) {
+              std::cerr << "Failed to activate prepared preset\n";
+            } else {
+              // replaceEngine() waits until any callback that could still hold
+              // liveEngine has completed, so it is safe to release it now.
+              liveEngine = std::move(nextEngine);
+              runtime.changePreset();
+              args.slot = nextSlot;
+              std::cerr << "Switched to preset " << args.bank << ":" << args.slot << "\n";
 #if defined(ARDOR_HAS_UI)
-            if (args.enableUi && ui) {
-              std::string uiLoadError;
-              ardor::loadPresetSlotFromStore(uiState, store, {args.bank, args.slot}, uiLoadError);
-            }
+              if (args.enableUi && ui) {
+                std::string uiLoadError;
+                ardor::loadPresetSlotFromStore(uiState, store, {args.bank, args.slot}, uiLoadError);
+              }
 #endif
+            }
           }
         }
         const auto stats = backend.stats();
@@ -652,23 +694,22 @@ int main(int argc, char** argv)
       }
     } else {
       auto irWav = ardor::readMonoWav(args.ir);
-      auto impulse = std::move(irWav.samples);
       const ma_uint32 irRate = irWav.sampleRate;
       if (irRate != args.sampleRate) {
         std::cerr << "Expected " << args.sampleRate << " Hz IR\n";
         return 1;
       }
 
-      if (args.realtime) {
-        if (args.irSamples > 0 && impulse.size() > args.irSamples) {
-          impulse.resize(args.irSamples);
-          std::cerr << "Trimmed realtime IR to " << args.irSamples << " samples\n";
-        }
-      } else if (args.irSamples > 0 && impulse.size() > args.irSamples) {
-        impulse.resize(args.irSamples);
-        std::cerr << "Trimmed IR to " << args.irSamples << " samples\n";
+      const size_t originalIrFrames = irWav.samples.size();
+      std::string irError;
+      if (!ardor::prepareMonoIr(irWav, args.irSamples, irError)) {
+        std::cerr << "Invalid IR: " << irError << "\n";
+        return 1;
       }
-      engine.loadIr(std::move(impulse));
+      if (irWav.samples.size() != originalIrFrames) {
+        std::cerr << "Trimmed IR from " << originalIrFrames << " to " << irWav.samples.size() << " samples\n";
+      }
+      engine.loadIr(std::move(irWav.samples));
       engine.setInputGain(dbToGain(args.inputGainDb));
       engine.setOutputGain(dbToGain(args.outputGainDb));
       engine.setSafetyLimiterEnabled(args.safetyLimiter);
@@ -741,11 +782,21 @@ int main(int argc, char** argv)
       return 1;
     }
 
+    const size_t requestedTailFrames = args.noTail ? 0
+      : args.tailSeconds >= 0.0f ? static_cast<size_t>(std::llround(args.tailSeconds * args.sampleRate))
+                                 : engine.tailFrames();
     std::vector<float> out;
-    out.reserve(input.size() * 2);
+    out.reserve((input.size() + requestedTailFrames) * 2);
     std::vector<float> inBlock(args.blockSize, 0.0f);
     std::vector<float> leftBlock(args.blockSize, 0.0f);
     std::vector<float> rightBlock(args.blockSize, 0.0f);
+    size_t remainingTailFrames = requestedTailFrames;
+    auto appendOutput = [&](size_t frames) {
+      for (size_t i = 0; i < frames; ++i) {
+        out.push_back(leftBlock[i]);
+        out.push_back(rightBlock[i]);
+      }
+    };
     for (size_t offset = 0; offset < input.size(); offset += args.blockSize) {
       const size_t frames = std::min<size_t>(args.blockSize, input.size() - offset);
       std::fill(inBlock.begin(), inBlock.end(), 0.0f);
@@ -753,10 +804,26 @@ int main(int argc, char** argv)
                 input.begin() + static_cast<std::ptrdiff_t>(offset + frames),
                 inBlock.begin());
       engine.processBlock(inBlock.data(), leftBlock.data(), rightBlock.data(), args.blockSize);
-      for (size_t i = 0; i < frames; ++i) {
-        out.push_back(leftBlock[i]);
-        out.push_back(rightBlock[i]);
+      appendOutput(frames);
+      if (offset + frames == input.size() && remainingTailFrames > 0) {
+        const size_t paddedFrames = args.blockSize - frames;
+        const size_t retainedPadding = std::min(paddedFrames, remainingTailFrames);
+        if (retainedPadding > 0) {
+          const size_t start = frames;
+          for (size_t i = 0; i < retainedPadding; ++i) {
+            out.push_back(leftBlock[start + i]);
+            out.push_back(rightBlock[start + i]);
+          }
+          remainingTailFrames -= retainedPadding;
+        }
       }
+    }
+    std::fill(inBlock.begin(), inBlock.end(), 0.0f);
+    while (remainingTailFrames > 0) {
+      engine.processBlock(inBlock.data(), leftBlock.data(), rightBlock.data(), args.blockSize);
+      const size_t frames = std::min<size_t>(args.blockSize, remainingTailFrames);
+      appendOutput(frames);
+      remainingTailFrames -= frames;
     }
 
     writeStereo(args.output, out, inputRate);

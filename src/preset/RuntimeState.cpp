@@ -44,16 +44,14 @@ void RuntimeState::observeRealtimeStats(uint64_t previousCallbacks,
 
   if (overloaded) {
     ++consecutiveBadSeconds_;
-    consecutiveStableSeconds_ = 0;
     if (consecutiveBadSeconds_ >= 3) {
       effectsBypassed_ = true;
     }
   } else {
     consecutiveBadSeconds_ = 0;
-    ++consecutiveStableSeconds_;
-    if (consecutiveStableSeconds_ >= 3) {
-      effectsBypassed_ = false;
-    }
+    // An overload bypass is intentionally latched. Re-enabling expensive DSP
+    // every few seconds can cause a repeating xrun/bypass cycle; recovery is
+    // an explicit user or preset action through clearEffectsBypass/changePreset.
   }
 }
 

@@ -57,6 +57,8 @@ namespace ardor {
 
 namespace {
 
+constexpr float kHostedDaisySampleRate = 48000.0f;
+
 float normalizedParam(const nlohmann::json& params, const DaisyFxParamDescriptor& descriptor)
 {
   const auto it = params.find(descriptor.key);
@@ -144,12 +146,31 @@ struct DaisyFxProcessor::Impl {
   pedal::delay_fx::ParamSet delayParams = pedal::delay_fx::ParamSet::make_default();
   std::unique_ptr<pedal::ReverbMode> reverb;
   pedal::reverb_fx::ParamSet reverbParams = pedal::reverb_fx::ParamSet::make_default();
+  size_t samplesUntilPrepare = 48;
+
+  void prepare()
+  {
+    if (mod) mod->Prepare(modParams);
+    if (delay) delay->Prepare(delayParams);
+    if (reverb) reverb->Prepare(reverbParams);
+    samplesUntilPrepare = 48;
+  }
+
+  void advanceControlRate()
+  {
+    if (samplesUntilPrepare == 0) {
+      prepare();
+    }
+    --samplesUntilPrepare;
+  }
 
   void reset()
   {
     if (mod) mod->Reset();
     if (delay) delay->Reset();
     if (reverb) reverb->Reset();
+    // Recompute control-rate coefficients before the first post-reset sample.
+    samplesUntilPrepare = 0;
   }
 };
 
@@ -159,14 +180,29 @@ DaisyFxProcessor::DaisyFxProcessor(DaisyFxProcessor&&) noexcept = default;
 DaisyFxProcessor& DaisyFxProcessor::operator=(DaisyFxProcessor&&) noexcept = default;
 
 bool DaisyFxProcessor::configure(const std::string& blockType, const nlohmann::json& params,
-                                 float, std::string& error)
+                                 float sampleRate, std::string& error)
 {
   error.clear();
+  // The hosted vendor implementation has fixed 48 kHz delay lengths, LFO
+  // increments, and reverb internals. Accepting another rate here would make
+  // time-based effects audibly wrong even though configuration succeeded.
+  if (!std::isfinite(sampleRate) || std::fabs(sampleRate - kHostedDaisySampleRate) > 0.5f) {
+    error = "hosted Daisy effects require a 48000 Hz sample rate";
+    return false;
+  }
+
   const std::string mode = params.value("mode", "");
   const auto* descriptor = findDaisyFxDescriptor(blockType, mode);
   if (!descriptor) {
     error = "unsupported Daisy effect: " + blockType + "/" + mode;
     return false;
+  }
+  for (const auto& item : descriptor->params) {
+    const auto it = params.find(item.key);
+    if (it != params.end() && (!it->is_number() || !std::isfinite(it->get<float>()))) {
+      error = "Daisy parameter must be finite: " + item.key;
+      return false;
+    }
   }
 
   auto next = std::make_unique<Impl>();
@@ -192,7 +228,7 @@ bool DaisyFxProcessor::configure(const std::string& blockType, const nlohmann::j
     next->modParams.p2 = mappedModParam(param("p2"), modeId, pedal::mod_fx::ParamId::P2);
     next->modParams.level = mappedModParam(param("level"), modeId, pedal::mod_fx::ParamId::Level);
     next->mod->Init();
-    next->mod->Prepare(next->modParams);
+    next->prepare();
   } else if (blockType == "delay") {
     pedal::DelayModeId modeId{};
     next->delay = makeDelayMode(mode, modeId);
@@ -208,7 +244,7 @@ bool DaisyFxProcessor::configure(const std::string& blockType, const nlohmann::j
     next->delayParams.mod_spd = mappedDelayParam(param("mod_spd"), modeId, pedal::delay_fx::ParamId::ModSpd);
     next->delayParams.mod_dep = mappedDelayParam(param("mod_dep"), modeId, pedal::delay_fx::ParamId::ModDep);
     next->delay->Init();
-    next->delay->Prepare(next->delayParams);
+    next->prepare();
   } else if (blockType == "reverb") {
     pedal::ReverbModeId modeId{};
     next->reverb = makeReverbMode(mode, modeId);
@@ -224,7 +260,7 @@ bool DaisyFxProcessor::configure(const std::string& blockType, const nlohmann::j
     next->reverbParams.param1 = mappedReverbParam(param("param1"), modeId, pedal::reverb_fx::ParamId::Param1);
     next->reverbParams.param2 = mappedReverbParam(param("param2"), modeId, pedal::reverb_fx::ParamId::Param2);
     next->reverb->Init();
-    next->reverb->Prepare(next->reverbParams);
+    next->prepare();
   } else {
     error = "unsupported Daisy effect: " + blockType + "/" + mode;
     return false;
@@ -242,6 +278,9 @@ void DaisyFxProcessor::reset()
 StereoSample DaisyFxProcessor::process(StereoSample input)
 {
   if (!impl_) return input;
+  // The vendor effects expect Prepare() at their 48-frame control interval.
+  // Ardor's 64-frame audio quantum must not change those time constants.
+  impl_->advanceControlRate();
 
   if (impl_->mod) {
     const auto wet = impl_->mod->Process({input.left, input.right}, impl_->modParams);

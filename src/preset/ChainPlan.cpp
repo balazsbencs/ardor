@@ -29,6 +29,16 @@ bool isSupportedDynamicsBlock(const std::string& type, const nlohmann::json& par
   return type == "dynamics" && params.value("mode", "") == "compressor";
 }
 
+float finiteNumberOr(const nlohmann::json& object, const char* key, float fallback)
+{
+  const auto it = object.find(key);
+  if (it == object.end() || !it->is_number()) {
+    return fallback;
+  }
+  const float value = it->get<float>();
+  return std::isfinite(value) ? value : fallback;
+}
+
 } // namespace
 
 float dbToGain(float db)
@@ -39,9 +49,9 @@ float dbToGain(float db)
 ChainPlan buildChainPlan(const Preset& preset, const std::filesystem::path& dataRoot)
 {
   ChainPlan plan;
-  plan.inputGain = dbToGain(preset.global.inputGainDb);
-  plan.outputGain = dbToGain(preset.global.outputGainDb);
-  plan.safetyLimit = dbToGain(preset.global.safetyLimitDb);
+  plan.inputGain = dbToGain(std::clamp(preset.global.inputGainDb, -60.0f, 24.0f));
+  plan.outputGain = dbToGain(std::clamp(preset.global.outputGainDb, -60.0f, 24.0f));
+  plan.safetyLimit = dbToGain(std::clamp(preset.global.safetyLimitDb, -60.0f, 0.0f));
 
   for (const auto& block : preset.blocks) {
     ChainBlockPlan blockPlan;
@@ -49,8 +59,8 @@ ChainPlan buildChainPlan(const Preset& preset, const std::filesystem::path& data
     blockPlan.type = block.type;
     blockPlan.params = block.params.is_null() ? nlohmann::json::object() : block.params;
     if (block.type == "cab") {
-      blockPlan.level = dbToGain(blockPlan.params.value("levelDb", 0.0f));
-      blockPlan.mix = std::clamp(blockPlan.params.value("mix", 1.0f), 0.0f, 1.0f);
+      blockPlan.level = dbToGain(std::clamp(finiteNumberOr(blockPlan.params, "levelDb", 0.0f), -60.0f, 24.0f));
+      blockPlan.mix = std::clamp(finiteNumberOr(blockPlan.params, "mix", 1.0f), 0.0f, 1.0f);
     }
     if (isValidBlockAssetPath(block.asset)) {
       blockPlan.assetPath = dataRoot / block.asset;

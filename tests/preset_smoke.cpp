@@ -248,7 +248,9 @@ int main()
     runtime.observeRealtimeStats(600, 700, 24, 24);
     runtime.observeRealtimeStats(700, 800, 24, 24);
     runtime.observeRealtimeStats(800, 900, 24, 24);
-    require(!runtime.effectsBypassed(), "three stable seconds recover bypass");
+    require(runtime.effectsBypassed(), "stable seconds must not automatically retry a latched overload bypass");
+    runtime.clearEffectsBypass();
+    require(!runtime.effectsBypassed(), "explicit recovery clears bypass");
     runtime.changePreset();
     require(!runtime.effectsBypassed(), "preset change clears bypass");
 

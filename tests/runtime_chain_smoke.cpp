@@ -101,22 +101,31 @@ int main()
   require(compressorOutput < 0.7f, "compressor should affect engine output");
 
   compressorEngine.setEffectsBypassed(true);
-  const auto compressorDry = compressorEngine.process(0.5f);
-  require(near(compressorDry.first, 0.5f), "compressor bypass should return dry audio");
-
-  engine.setEffectsBypassed(true);
-  const auto dry = engine.process(0.5f);
-  require(near(dry.first, 0.5f), "bypass should return dry left");
-  require(near(dry.second, 0.5f), "bypass should return dry right");
-
-  engine.setEffectsBypassed(false);
-  std::vector<float> resetWetA;
-  for (int i = 0; i < 16; ++i) {
-    resetWetA.push_back(engine.process(0.5f).first);
+  ardor::StereoSample compressorDry{};
+  for (int i = 0; i < 2400; ++i) {
+    const auto output = compressorEngine.process(0.5f);
+    compressorDry = {output.first, output.second};
   }
+  require(near(compressorDry.left, 0.5f), "compressor bypass should return dry audio");
+
   engine.setEffectsBypassed(true);
+  ardor::StereoSample dry{};
+  for (int i = 0; i < 2400; ++i) {
+    const auto output = engine.process(0.5f);
+    dry = {output.first, output.second};
+  }
+  require(near(dry.left, 0.5f), "bypass should return dry left");
+  require(near(dry.right, 0.5f), "bypass should return dry right");
+
+  // A bypass request is a short equal-power transition. It must remain finite
+  // and converge to the dry signal without a hard state reset.
   engine.setEffectsBypassed(false);
-  for (int i = 0; i < 16; ++i) {
-    require(near(resetWetA[static_cast<std::size_t>(i)], engine.process(0.5f).first), "bypass should reset block state");
+  float previous = engine.process(0.5f).first;
+  engine.setEffectsBypassed(true);
+  for (int i = 0; i < 512; ++i) {
+    const float current = engine.process(0.5f).first;
+    require(std::isfinite(current), "bypass transition output finite");
+    require(std::fabs(current - previous) < 0.2f, "bypass transition avoids a hard discontinuity");
+    previous = current;
   }
 }

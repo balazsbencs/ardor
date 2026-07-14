@@ -109,6 +109,11 @@ void IrConvolver::reset()
   }
 }
 
+size_t IrConvolver::tailFrames() const noexcept
+{
+  return impulse_.empty() ? 0 : impulse_.size() - 1;
+}
+
 float IrConvolver::processSample(float input)
 {
   if (impulse_.empty()) {
@@ -178,7 +183,10 @@ void IrConvolver::processBlock(const float* input, float* output, size_t frames)
   }
   fftInPlace(scratch_, false);
 
-  inputPartitions_[writeIndex_] = scratch_;
+  // Both vectors are allocated during preparePartitions(). Copy into the
+  // existing slot so the realtime path never relies on vector assignment
+  // capacity behavior.
+  std::copy(scratch_.begin(), scratch_.end(), inputPartitions_[writeIndex_].begin());
 
   std::fill(sum_.begin(), sum_.end(), std::complex<float>{});
   const size_t partitionCount = impulsePartitions_.size();

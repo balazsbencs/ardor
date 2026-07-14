@@ -13,6 +13,7 @@ public:
   float processSample(float input);
   void processBlock(const float* input, float* output, size_t frames);
   void reset();
+  size_t tailFrames() const noexcept;
 
 private:
   void preparePartitions(size_t frames);

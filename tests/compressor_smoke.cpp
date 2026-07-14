@@ -42,6 +42,15 @@ int main()
   require(compressed < 0.7f, "compressor reduces above-threshold steady signal");
 
   compressor.reset();
+  ardor::StereoSample linked{};
+  for (int i = 0; i < 48000; ++i) {
+    const float polarity = i % 2 == 0 ? 1.0f : -1.0f;
+    linked = compressor.process({polarity, polarity * 0.1f});
+  }
+  require(std::fabs(std::fabs(linked.left) - std::fabs(linked.right) * 10.0f) < 0.001f,
+          "linked compressor must apply the same gain to both channels");
+
+  compressor.reset();
   const float firstAfterReset = compressor.process({1.0f, 1.0f}).left;
   compressor.reset();
   require(firstAfterReset == compressor.process({1.0f, 1.0f}).left, "reset deterministic");

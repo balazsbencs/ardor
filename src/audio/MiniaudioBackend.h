@@ -38,6 +38,10 @@ public:
   ~MiniaudioBackend();
 
   bool start(PedalEngine& engine, const RealtimeOptions& options);
+  // Fades the active program out, adopts a preconfigured engine at silence,
+  // then fades in without stopping the device. The caller keeps the previous
+  // engine alive until this returns.
+  bool replaceEngine(PedalEngine& engine);
   void stop();
   uint64_t callbackCount() const;
   uint64_t xrunCount() const;

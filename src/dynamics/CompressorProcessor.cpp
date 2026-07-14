@@ -73,8 +73,7 @@ void CompressorProcessor::reset()
   sidechainPreviousOutputRight_ = 0.0f;
   envelopeLeft_ = 0.0f;
   envelopeRight_ = 0.0f;
-  gainLeft_ = 1.0f;
-  gainRight_ = 1.0f;
+  gain_ = 1.0f;
 }
 
 float CompressorProcessor::detectorLevel(float input, float& previousInput, float& previousOutput, float& envelope) const
@@ -112,16 +111,18 @@ float CompressorProcessor::gainForLevel(float level) const
 StereoSample CompressorProcessor::process(StereoSample input)
 {
   const StereoSample driven{input.left * inputGain_, input.right * inputGain_};
-  const float targetGainLeft = gainForLevel(detectorLevel(driven.left, sidechainPreviousInputLeft_,
-                                                          sidechainPreviousOutputLeft_, envelopeLeft_));
-  const float targetGainRight = gainForLevel(detectorLevel(driven.right, sidechainPreviousInputRight_,
-                                                           sidechainPreviousOutputRight_, envelopeRight_));
-  const float gainCoefficientLeft = targetGainLeft < gainLeft_ ? attackCoefficient_ : releaseCoefficient_;
-  const float gainCoefficientRight = targetGainRight < gainRight_ ? attackCoefficient_ : releaseCoefficient_;
-  gainLeft_ = gainCoefficientLeft * gainLeft_ + (1.0f - gainCoefficientLeft) * targetGainLeft;
-  gainRight_ = gainCoefficientRight * gainRight_ + (1.0f - gainCoefficientRight) * targetGainRight;
+  // Keep the detector filters per channel, then link them with the maximum
+  // level. One gain envelope is applied to both channels so a guitar part
+  // panned to one side cannot make the stereo image wander under compression.
+  const float leftLevel = detectorLevel(driven.left, sidechainPreviousInputLeft_,
+                                        sidechainPreviousOutputLeft_, envelopeLeft_);
+  const float rightLevel = detectorLevel(driven.right, sidechainPreviousInputRight_,
+                                         sidechainPreviousOutputRight_, envelopeRight_);
+  const float targetGain = gainForLevel(std::max(leftLevel, rightLevel));
+  const float gainCoefficient = targetGain < gain_ ? attackCoefficient_ : releaseCoefficient_;
+  gain_ = gainCoefficient * gain_ + (1.0f - gainCoefficient) * targetGain;
 
-  const StereoSample wet{driven.left * gainLeft_ * makeupGain_, driven.right * gainRight_ * makeupGain_};
+  const StereoSample wet{driven.left * gain_ * makeupGain_, driven.right * gain_ * makeupGain_};
   return {
     input.left * (1.0f - mix_) + wet.left * mix_,
     input.right * (1.0f - mix_) + wet.right * mix_,

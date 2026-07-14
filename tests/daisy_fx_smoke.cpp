@@ -2,6 +2,7 @@
 #include "daisyfx/DaisyFxCatalog.h"
 
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -53,6 +54,9 @@ int main()
   };
 
   require(processor.configure("mod", params, 48000.0f, error), error);
+  require(!processor.configure("mod", params, 44100.0f, error), "non-48 kHz Daisy configuration should fail");
+  require(error.find("48000") != std::string::npos, "non-48 kHz Daisy error should explain the constraint");
+  require(processor.configure("mod", params, 48000.0f, error), error);
   const auto first = renderBlock(processor, 256);
   bool changed = false;
   for (const auto& sample : first) {
@@ -78,6 +82,11 @@ int main()
   bad["mode"] = "bogus";
   require(!processor.configure("mod", bad, 48000.0f, error), "unknown mode should fail");
   require(error.find("unsupported") != std::string::npos, "unknown mode error");
+
+  nlohmann::json nonFinite = params;
+  nonFinite["depth"] = std::numeric_limits<float>::infinity();
+  require(!processor.configure("mod", nonFinite, 48000.0f, error), "non-finite Daisy parameter should fail");
+  require(error.find("finite") != std::string::npos, "non-finite Daisy parameter error");
 
   const nlohmann::json delayParams{
     {"mode", "digital"},
