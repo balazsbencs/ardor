@@ -12,6 +12,8 @@
 
 namespace ardor {
 
+inline constexpr std::size_t kMaxEffectBlocks = 10;
+
 struct UiAsset {
   std::string name;
   std::string path;

@@ -452,8 +452,10 @@ int main(int argc, char** argv)
         {
           lv_display_t* disp = lv_linux_fbdev_create();
           lv_linux_fbdev_set_file(disp, "/dev/fb0");
-          // Panel is 720x1280 portrait; present the UI as 1280x720 landscape
-          lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_90);
+          // Panel is 720x1280 portrait; present the UI as 1280x720 landscape.
+          // The display is mounted upside down, so use the opposite landscape
+          // rotation from the usual 90° orientation.
+          lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_270);
 
           // Touch: Goodix reports raw coords matching the panel's PHYSICAL
           // portrait orientation (x:0..719, y:0..1279). LVGL itself rotates the
@@ -462,7 +464,9 @@ int main(int argc, char** argv)
           // *unrotated physical* coords — do NOT swap or pre-rotate here, or the
           // rotation is applied twice. Raw already equals physical 1:1, verified
           // by capturing swipes: horizontal motion drives raw Y, vertical drives
-          // raw X, both straight through. Calibration just pins the ranges.
+          // raw X, both straight through. This remains true at 270°: LVGL
+          // applies the inverse transform for the selected display rotation.
+          // Calibration just pins the ranges.
           // Set ARDOR_TOUCH_DEBUG=1 to overlay the live coordinate for tuning.
           const std::string touchDev = findTouchDevice();
           if (!touchDev.empty()) {

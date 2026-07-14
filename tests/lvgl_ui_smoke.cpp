@@ -120,6 +120,19 @@ lv_obj_t* findObjectOfClass(lv_obj_t* parent, const lv_obj_class_t* objectClass)
   return nullptr;
 }
 
+lv_obj_t* findLineWithPointCount(lv_obj_t* parent, uint32_t pointCount)
+{
+  if (lv_obj_check_type(parent, &lv_line_class) && lv_line_get_point_count(parent) == pointCount) {
+    return parent;
+  }
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    if (auto* result = findLineWithPointCount(lv_obj_get_child(parent, static_cast<int32_t>(i)), pointCount)) {
+      return result;
+    }
+  }
+  return nullptr;
+}
+
 } // namespace
 
 int main()
@@ -243,8 +256,8 @@ int main()
   if (require(state.bank.presets[state.activePreset].blocks[state.selectedBlock].params.value("depth", 0.0f) == 1.0f,
               "Daisy setter should enforce descriptor range")) return 1;
 
-  if (require(ardor::parameterPage(state, 0).size() <= 6, "page must contain <= six knobs")) return 1;
-  if (require(ardor::parameterPageCount(state) == 2, "seven params require two pages")) return 1;
+  if (require(ardor::parameterPage(state, 0).size() <= 7, "page must contain <= seven knobs")) return 1;
+  if (require(ardor::parameterPageCount(state) == 1, "seven params should fit on one page")) return 1;
 
   ui.selectGlobalParams(state);
   ardor::setActiveInputGainDb(state, 0.0f);
@@ -284,16 +297,17 @@ int main()
   const auto& selected = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
   const std::string titleText = selected.label + "  /  " + selected.assetName;
   lv_obj_t* previous = findLabel(lv_screen_active(), "<");
-  lv_obj_t* page = findLabel(lv_screen_active(), "PAGE 1 / 2");
+  lv_obj_t* page = findLabel(lv_screen_active(), "PAGE 1 / 1");
   lv_obj_t* next = findLabel(lv_screen_active(), ">");
   lv_obj_t* title = findLabel(lv_screen_active(), titleText.c_str());
   lv_obj_t* pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
-  if (require(previous && next && title && pointer, "parameter header and knob pointer should render")) return 1;
+  if (require(title && pointer, "parameter header and knob pointer should render")) return 1;
   if (require(page, "parameter header should show PAGE n/total")) return 1;
+  if (require(!previous && !next, "seven controls should not require page navigation")) return 1;
   lv_obj_t* pointerLayer = lv_obj_get_parent(pointer);
   lv_obj_t* knobObject = lv_obj_get_parent(pointerLayer);
   lv_obj_t* arc = findObjectOfClass(knobObject, &lv_arc_class);
-  lv_obj_t* rim = findObjectWithSizeAndBgColor(knobObject, lv_color_hex(0x000000), 82, 82);
+  lv_obj_t* rim = findObjectWithSizeAndBgColor(knobObject, lv_color_hex(0x000000), 48, 48);
   if (require(arc && rim, "knob arc and dial rim should render")) return 1;
   if (require(lv_obj_get_style_bg_opa(arc, LV_PART_KNOB) == LV_OPA_TRANSP,
               "native arc knob should be transparent")) return 1;
@@ -324,12 +338,12 @@ int main()
                 && pointerLayerArea.y1 + pointerLayerArea.y2 == rimArea.y1 + rimArea.y2,
               "pointer layer should be laid out at the dial centre")) return 1;
   lv_obj_t* dialCentre = lv_obj_get_child(rim, 0);
-  if (require(dialCentre && lv_obj_get_width(dialCentre) == 76
-                && lv_obj_get_height(dialCentre) == 76,
+  if (require(dialCentre && lv_obj_get_width(dialCentre) == 40
+                && lv_obj_get_height(dialCentre) == 40,
               "black rim should be three pixels thick")) return 1;
   if (require((lv_obj_get_width(arc) / 2 - lv_obj_get_style_arc_width(arc, LV_PART_INDICATOR))
-                  - lv_obj_get_width(rim) / 2 == 3,
-              "gap between black rim and green arc should be three pixels")) return 1;
+                  - lv_obj_get_width(rim) / 2 == 4,
+              "gap between black rim and green arc should be four pixels")) return 1;
 
   lv_obj_t* depthLabel = findLabel(lv_screen_active(), depth->label.c_str());
   lv_obj_t* depthArc = findObjectOfClass(lv_obj_get_parent(depthLabel), &lv_arc_class);
@@ -368,19 +382,19 @@ int main()
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   previous = findLabel(lv_screen_active(), "<");
-  page = findLabel(lv_screen_active(), "PAGE 1 / 2");
+  page = findLabel(lv_screen_active(), "PAGE 1 / 1");
   next = findLabel(lv_screen_active(), ">");
   title = findLabel(lv_screen_active(), titleText.c_str());
   pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
   pointerLayer = lv_obj_get_parent(pointer);
 
-  lv_obj_t* chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x000000), 1240, 126);
+  lv_obj_t* chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x000000), 1240, 276);
   if (require(chain, "signal chain should be black behind charcoal blocks")) return 1;
   lv_obj_t* firstChainBlock = lv_obj_get_child(chain, 0);
   if (require(firstChainBlock && lv_obj_get_width(firstChainBlock) == 232,
               "single-block chain should use the fixed five-slot tile width")) return 1;
-  if (require(lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE) && lv_obj_get_scroll_dir(chain) == LV_DIR_HOR,
-              "chain should scroll horizontally")) return 1;
+  if (require(!lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE),
+              "chain should not scroll while blocks are draggable")) return 1;
   if (require(findLabel(lv_screen_active(), "MODULATION"),
               "chain card should render an uppercase category")) return 1;
   if (require(findLabel(lv_screen_active(), "Vintage Trem"),
@@ -408,17 +422,19 @@ int main()
               "bypass switch should sit left of the close button")) return 1;
   if (require(bypassLabelArea.x2 < bypassSwitchArea.x1,
               "bypass label should sit left of its switch")) return 1;
+  if (require(lv_color_eq(lv_obj_get_style_bg_color(bypassSwitch, LV_PART_INDICATOR),
+                          lv_color_hex(0x43f05a)),
+              "checked bypass switch should use acid green")) return 1;
+  if (require(lv_color_eq(lv_obj_get_style_bg_color(lv_obj_get_parent(parameterClose), LV_PART_MAIN),
+                          lv_color_hex(0x000000)),
+              "parameter close button should have a black background")) return 1;
 
-  lv_area_t previousArea{};
   lv_area_t pageArea{};
-  lv_area_t nextArea{};
   lv_area_t titleArea{};
-  lv_obj_get_coords(lv_obj_get_parent(previous), &previousArea);
   lv_obj_get_coords(page, &pageArea);
-  lv_obj_get_coords(lv_obj_get_parent(next), &nextArea);
   lv_obj_get_coords(title, &titleArea);
-  if (require(previousArea.x2 < pageArea.x1 && pageArea.x2 < nextArea.x1 && nextArea.x2 < titleArea.x1,
-              "parameter header controls and title should not overlap")) return 1;
+  if (require(pageArea.x2 < titleArea.x1,
+              "parameter page status and title should not overlap")) return 1;
   pointerPoints = lv_line_get_points(pointer);
   if (require(pointerPoints && pointerPoints[0].x == 28 && pointerPoints[0].y == 28,
               "knob pointer should start at the dial centre")) return 1;
@@ -478,24 +494,31 @@ int main()
   }
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x000000), 1240, 126);
+  chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x000000), 1240, 276);
   lv_obj_t* sixthChainBlock = chain ? lv_obj_get_child(chain, 5) : nullptr;
   lv_area_t chainArea{};
   lv_area_t sixthChainBlockArea{};
   if (chain) lv_obj_get_coords(chain, &chainArea);
   if (sixthChainBlock) lv_obj_get_coords(sixthChainBlock, &sixthChainBlockArea);
-  if (require(sixthChainBlock && sixthChainBlockArea.x1 > chainArea.x2,
-              "sixth chain tile should begin outside the initial viewport")) return 1;
+  if (require(sixthChainBlock && sixthChainBlockArea.y1 > chainArea.y1,
+              "sixth chain tile should begin on the second row")) return 1;
+  lv_obj_t* chainWrapConnector = findLineWithPointCount(lv_screen_active(), 20);
+  const lv_point_precise_t* chainWrapPoints = chainWrapConnector ? lv_line_get_points(chainWrapConnector) : nullptr;
+  if (require(chainWrapPoints && chainWrapPoints[0].x == 1233 && chainWrapPoints[0].y == 173
+                && chainWrapPoints[1].x > chainWrapPoints[0].x && chainWrapPoints[1].y > chainWrapPoints[0].y
+                && chainWrapPoints[19].x == 34 && chainWrapPoints[19].y == 313,
+              "chain should smoothly wrap from the first row into the second")) return 1;
 
-  constexpr std::size_t largeBlockCount = 10000;
-  if (require(ardor::LvglUi::chainSlotForX(largeBlockCount, 34) == 0,
-              "large chains should map their left edge to the first block")) return 1;
-  if (require(ardor::LvglUi::chainSlotForX(largeBlockCount, 34 + 242 * 5) == 5,
-              "large chains should map fixed-width content slots")) return 1;
-  if (require(ardor::LvglUi::chainInsertionSlotForX(largeBlockCount, 34 + 242 * 5) == 5,
-              "large chains should insert at fixed-width content slots")) return 1;
-  if (require(ardor::LvglUi::chainIndicatorX(largeBlockCount, 5) == 34 + 242 * 5,
-              "large chain indicator should use fixed-width content slots")) return 1;
+  constexpr std::size_t blockCount = 10;
+  if (require(ardor::LvglUi::chainSlotForPoint(blockCount, {34, 127}) == 0,
+              "chain's top-left slot should map to the first block")) return 1;
+  if (require(ardor::LvglUi::chainSlotForPoint(blockCount, {34, 277}) == 5,
+              "chain's second row should map to the sixth block")) return 1;
+  if (require(ardor::LvglUi::chainInsertionSlotForPoint(blockCount, {34 + 242 * 4, 277}) == 9,
+              "chain insertion should use the second row's column")) return 1;
+  const auto secondRowIndicator = ardor::LvglUi::chainIndicatorPosition(blockCount, 5);
+  if (require(secondRowIndicator.x == 34 && secondRowIndicator.y == 267,
+              "sixth-slot insertion indicator should be placed on the second row")) return 1;
 
   ardor::enterEditMode(state);
   ardor::openBlockDrawer(state);

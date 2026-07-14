@@ -19,9 +19,9 @@
       "enabled": true,
       "id": "block-5",
       "params": {
-        "depth": 0.699999988079071,
+        "depth": 0.34999990463256836,
         "level": 1.0,
-        "mix": 1.0,
+        "mix": 0.6000000238418579,
         "mode": "vintage_trem",
         "p1": 0.0,
         "p2": 0.0,
@@ -43,6 +43,38 @@
       "id": "block-3",
       "params": {},
       "type": "nam"
+    },
+    {
+      "asset": "",
+      "enabled": true,
+      "id": "block-6",
+      "params": {
+        "depth": 0.699999988079071,
+        "level": 1.0,
+        "mix": 1.0,
+        "mode": "vintage_trem",
+        "p1": 0.0,
+        "p2": 0.0,
+        "speed": 0.3499999940395355,
+        "tone": 0.5
+      },
+      "type": "mod"
+    },
+    {
+      "asset": "",
+      "enabled": true,
+      "id": "block-7",
+      "params": {
+        "filter": 0.5,
+        "grit": 0.0,
+        "mix": 0.25,
+        "mod_dep": 0.0,
+        "mod_spd": 0.0,
+        "mode": "digital",
+        "repeats": 0.3499999940395355,
+        "time": 0.25
+      },
+      "type": "delay"
     }
   ],
   "global": {

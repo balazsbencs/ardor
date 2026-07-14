@@ -9,7 +9,7 @@ namespace ardor {
 
 namespace {
 
-constexpr std::size_t kControlsPerPage = 6;
+constexpr std::size_t kControlsPerPage = 7;
 
 std::string formatDb(float value)
 {

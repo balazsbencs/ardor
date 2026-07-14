@@ -134,12 +134,14 @@ overlays, the kernel, or `post-build.sh` still require a full build + reflash.
 
 ## Hardware notes
 
-- Panel is native **720×1280 portrait**; the UI runs rotated 90° to **1280×720
-  landscape** (software rotation in the fbdev flush).
+- Panel is native **720×1280 portrait**; the UI runs rotated 270° to **1280×720
+  landscape** (software rotation in the fbdev flush), because the installed
+  panel is upside down.
 - LVGL fbdev is configured **FULL render mode + double buffer** (`lv_conf.h`) so
   the whole frame is rotated at once — PARTIAL mode leaves horizontal seams and
   lets the console text/cursor show through.
-- Touch (Goodix, `/dev/input/event*`, matched by name) is mapped to the rotated
-  display: axes swapped + Y inverted. If touch is mirrored or rotated after a
-  build, adjust the calibration in `apps/pedal-poc/main.cpp` (the fbdev block
-  documents which knob to flip).
+- Touch (Goodix, `/dev/input/event*`, matched by name) reports native portrait
+  coordinates. LVGL applies the selected display rotation to those coordinates,
+  keeping touch aligned with the upside-down landscape display. If touch is
+  mirrored after a build, adjust the calibration in `apps/pedal-poc/main.cpp`
+  (the fbdev block documents which knob to flip).

@@ -207,6 +207,11 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
     return;
   }
 
+  auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (blocks.size() >= kMaxEffectBlocks) {
+    return;
+  }
+
   const auto& asset = state.assets[assetIndex];
   std::string type = asset.type;
   std::string label = asset.name;
@@ -225,7 +230,6 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
     }
   }
 
-  auto& blocks = state.bank.presets[state.activePreset].blocks;
   const auto insertAt = std::min(blockIndex, blocks.size());
   blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(insertAt),
                 {nextBlockId(blocks), type, label, asset.name, asset.path, true, params});
@@ -280,6 +284,9 @@ void replaceActivePreset(UiState& state, const Preset& preset)
   uiPreset.global = preset.global;
   uiPreset.blocks.clear();
   for (const auto& block : preset.blocks) {
+    if (uiPreset.blocks.size() == kMaxEffectBlocks) {
+      break;
+    }
     uiPreset.blocks.push_back({block.id,
                                block.type,
                                labelForBlockType(block.type),

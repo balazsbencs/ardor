@@ -61,9 +61,9 @@ public:
   }
   void setParameterPage(std::size_t page) { parameterPage_ = page; }
   std::size_t parameterPage() const { return parameterPage_; }
-  static std::size_t chainSlotForX(std::size_t blockCount, int canvasX);
-  static std::size_t chainInsertionSlotForX(std::size_t blockCount, int canvasX);
-  static int chainIndicatorX(std::size_t blockCount, std::size_t slot);
+  static std::size_t chainSlotForPoint(std::size_t blockCount, lv_point_t canvasPoint);
+  static std::size_t chainInsertionSlotForPoint(std::size_t blockCount, lv_point_t canvasPoint);
+  static lv_point_t chainIndicatorPosition(std::size_t blockCount, std::size_t slot);
   bool applyFocusedParameterDelta(UiState& state, int delta)
   {
     if (focusedKey_.empty()) {
@@ -86,7 +86,6 @@ public:
   // pointer in display space; these translate to the canvas' design space so
   // hit-testing and overlay placement stay correct at any resolution.
   lv_obj_t* canvas() const { return canvas_; }
-  lv_obj_t* chain() const { return chain_; }
   lv_point_t toCanvas(lv_point_t displayPoint) const;
 
 private:
@@ -104,7 +103,6 @@ private:
   std::string focusedKey_;
   std::size_t parameterPage_ = 0;
   lv_obj_t* canvas_ = nullptr;
-  lv_obj_t* chain_ = nullptr;
   int32_t canvasScale_ = 256;  // 8.8 fixed point; 256 == 1.0
   lv_point_t canvasOffset_{};
 };
