@@ -142,6 +142,9 @@ target_include_directories(ardor_equalizer PUBLIC
   ${neuralampmodelercore_SOURCE_DIR}/Dependencies
 )
 target_compile_features(ardor_equalizer PUBLIC cxx_std_20)
+target_sources(ardor_equalizer PRIVATE
+  src/equalizer/ParametricEqProcessor.cpp
+)
 
 add_library(ardor_dsp OBJECT
   src/dsp/IrConvolver.cpp
