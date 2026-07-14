@@ -10,8 +10,11 @@
 #include "daisyfx/DaisyFxCatalog.h"
 #include "daisyfx/DaisyFxProcessor.h"
 #include "dynamics/CompressorProcessor.h"
+#include "equalizer/EqParameters.h"
+#include "equalizer/ParametricEqProcessor.h"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -159,6 +162,23 @@ int main(int argc, char** argv)
       const auto sample = compressor.process({in[i], in[i]});
       out[i] = 0.5f * (sample.left + sample.right);
     }
+  }));
+
+  ardor::ParametricEqProcessor equalizer;
+  auto eqParams = ardor::defaultParametricEqParams();
+  constexpr std::array<float, ardor::kParametricEqBandCount> eqGains = {6.0f, -6.0f, 9.0f, -9.0f, 12.0f};
+  for (std::size_t i = 0; i < eqParams.bands.size(); ++i) {
+    eqParams.bands[i].enabled = true;
+    eqParams.bands[i].gainDb = eqGains[i];
+  }
+  std::string eqError;
+  if (!equalizer.configure(eqParams, static_cast<float>(kSampleRate), eqError)) {
+    throw std::runtime_error(eqError);
+  }
+  report("eq/parametric5", bench([&](const float* in, float* out, size_t frames) {
+    std::array<float, kBlockSize> right{};
+    std::copy(in, in + frames, right.begin());
+    equalizer.processBlock(in, right.data(), out, right.data(), frames);
   }));
 
   return 0;

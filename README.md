@@ -52,6 +52,11 @@ The hosted Daisy source lives under `third_party/daisy-multi-fx-hosted/`.
 Copied source should stay functionally unchanged; host adaptation belongs in
 `src/daisyfx/` or `compat/`.
 
+Five-band EQ blocks use `type: "eq"`, mode `parametric_eq_5`, and five entries
+in `params.bands`. Each band stores `enabled`, `frequency_hz` (20–20,000 Hz),
+`q` (0.1–18), and `gain_db` (-18 to +18 dB). Missing fields receive indexed
+band defaults; saved presets always contain exactly five complete bands.
+
 ## Build
 
 ```sh
