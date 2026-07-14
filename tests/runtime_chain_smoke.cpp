@@ -89,6 +89,21 @@ int main()
   }
   require(engineChanged, "trem should affect engine output");
 
+  ardor::PedalEngine compressorEngine;
+  require(compressorEngine.addCompressor({
+    {"threshold_db", -24.0f}, {"ratio", 8.0f}, {"attack_ms", 1.0f},
+    {"release_ms", 100.0f}, {"mix", 1.0f}, {"sidechain_hpf_hz", 20.0f},
+  }, 48000.0f, error), error);
+  float compressorOutput = 0.0f;
+  for (int i = 0; i < 48000; ++i) {
+    compressorOutput = std::fabs(compressorEngine.process(i % 2 == 0 ? 1.0f : -1.0f).first);
+  }
+  require(compressorOutput < 0.7f, "compressor should affect engine output");
+
+  compressorEngine.setEffectsBypassed(true);
+  const auto compressorDry = compressorEngine.process(0.5f);
+  require(near(compressorDry.first, 0.5f), "compressor bypass should return dry audio");
+
   engine.setEffectsBypassed(true);
   const auto dry = engine.process(0.5f);
   require(near(dry.first, 0.5f), "bypass should return dry left");

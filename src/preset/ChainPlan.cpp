@@ -24,6 +24,11 @@ bool isSupportedDaisyBlock(const std::string& type, const nlohmann::json& params
   return isDaisyBlockType(type) && findDaisyFxDescriptor(type, params.value("mode", "")) != nullptr;
 }
 
+bool isSupportedDynamicsBlock(const std::string& type, const nlohmann::json& params)
+{
+  return type == "dynamics" && params.value("mode", "") == "compressor";
+}
+
 } // namespace
 
 float dbToGain(float db)
@@ -55,6 +60,13 @@ ChainPlan buildChainPlan(const Preset& preset, const std::filesystem::path& data
       blockPlan.status = ChainBlockStatus::Disabled;
     } else if (isDaisyBlockType(block.type)) {
       if (isSupportedDaisyBlock(block.type, blockPlan.params)) {
+        blockPlan.status = ChainBlockStatus::Ready;
+        ++plan.runnableBlockCount;
+      } else {
+        blockPlan.status = ChainBlockStatus::Unsupported;
+      }
+    } else if (block.type == "dynamics") {
+      if (isSupportedDynamicsBlock(block.type, blockPlan.params)) {
         blockPlan.status = ChainBlockStatus::Ready;
         ++plan.runnableBlockCount;
       } else {

@@ -1,6 +1,7 @@
 #include "PedalEngine.h"
 
 #include "daisyfx/DaisyFxProcessor.h"
+#include "dynamics/CompressorProcessor.h"
 
 #include <algorithm>
 #include <utility>
@@ -30,6 +31,16 @@ bool PedalEngine::addDaisyFx(const std::string& blockType, const nlohmann::json&
     return false;
   }
   chain_.addDaisy(std::move(processor));
+  return true;
+}
+
+bool PedalEngine::addCompressor(const nlohmann::json& params, float sampleRate, std::string& error)
+{
+  CompressorProcessor processor;
+  if (!processor.configure(params, sampleRate, error)) {
+    return false;
+  }
+  chain_.addCompressor(std::move(processor));
   return true;
 }
 

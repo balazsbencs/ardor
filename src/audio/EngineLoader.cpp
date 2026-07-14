@@ -79,6 +79,12 @@ bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoad
       }
       continue;
     }
+    if (block.type == "dynamics") {
+      if (!engine.addCompressor(block.params, static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
+      continue;
+    }
   }
 
   return true;

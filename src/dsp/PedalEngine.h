@@ -16,6 +16,7 @@ public:
   void loadIr(std::vector<float> impulse);
   void addCab(std::vector<float> impulse, float level, float mix);
   bool addDaisyFx(const std::string& blockType, const nlohmann::json& params, float sampleRate, std::string& error);
+  bool addCompressor(const nlohmann::json& params, float sampleRate, std::string& error);
   void prepareBlockSize(size_t frames);
   void clearEffects();
   void setInputGain(float gain);

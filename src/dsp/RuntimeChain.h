@@ -1,6 +1,7 @@
 #pragma once
 
 #include "daisyfx/DaisyFxProcessor.h"
+#include "dynamics/CompressorProcessor.h"
 
 #include <cstddef>
 #include <filesystem>
@@ -22,6 +23,7 @@ public:
   bool addNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize);
   void addCab(std::vector<float> impulse, float level, float mix);
   void addDaisy(DaisyFxProcessor processor);
+  void addCompressor(CompressorProcessor processor);
   void setCabParams(float level, float mix);
   StereoSample process(StereoSample input);
   void reset();

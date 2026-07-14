@@ -209,10 +209,11 @@ int main()
     chainPreset.blocks.push_back({"trem", "mod", true, "", nlohmann::json{{"mode", "vintage_trem"}}});
     chainPreset.blocks.push_back({"bad-mod", "mod", true, "", nlohmann::json{{"mode", "bogus"}}});
     chainPreset.blocks.push_back({"future", "delay", true, "", nlohmann::json::object()});
+    chainPreset.blocks.push_back({"compressor", "dynamics", true, "", nlohmann::json{{"mode", "compressor"}}});
     chainPreset.blocks.push_back({"cab-ready", "cab", true, "irs/ok.wav", nlohmann::json{{"mix", 1.0f}}});
 
     const ardor::ChainPlan plan = ardor::buildChainPlan(chainPreset, dataRoot);
-    require(plan.blocks.size() == 9, "chain plan block count");
+    require(plan.blocks.size() == 10, "chain plan block count");
     require(std::fabs(plan.inputGain - ardor::dbToGain(-6.0f)) < 0.0001f, "chain input gain");
     require(std::fabs(plan.outputGain - ardor::dbToGain(-3.0f)) < 0.0001f, "chain output gain");
     require(std::fabs(plan.safetyLimit - ardor::dbToGain(-2.0f)) < 0.0001f, "chain safety limit");
@@ -226,8 +227,9 @@ int main()
     require(plan.blocks[5].status == ardor::ChainBlockStatus::Ready, "daisy mod block");
     require(plan.blocks[6].status == ardor::ChainBlockStatus::Unsupported, "unsupported daisy mode");
     require(plan.blocks[7].status == ardor::ChainBlockStatus::Unsupported, "unsupported block");
+    require(plan.blocks[8].status == ardor::ChainBlockStatus::Ready, "compressor block");
     require(plan.blocks.back().assetPath == dataRoot / "irs/ok.wav", "resolved cab asset");
-    require(plan.runnableBlockCount == 3, "runnable block count");
+    require(plan.runnableBlockCount == 4, "runnable block count");
 
     std::filesystem::remove_all(dataRoot);
     std::filesystem::remove_all(root);

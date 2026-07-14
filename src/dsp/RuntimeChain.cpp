@@ -12,13 +12,15 @@ struct RuntimeChain::Block {
   enum class Kind {
     Nam,
     Cab,
-    Daisy
+    Daisy,
+    Compressor
   };
 
   Kind kind = Kind::Cab;
   std::unique_ptr<NamProcessor> nam;
   std::unique_ptr<IrConvolver> cab;
   std::unique_ptr<DaisyFxProcessor> daisy;
+  std::unique_ptr<CompressorProcessor> compressor;
   float level = 1.0f;
   float mix = 1.0f;
 };
@@ -79,6 +81,14 @@ void RuntimeChain::addDaisy(DaisyFxProcessor processor)
   blocks_.push_back(std::move(block));
 }
 
+void RuntimeChain::addCompressor(CompressorProcessor processor)
+{
+  Block block;
+  block.kind = Block::Kind::Compressor;
+  block.compressor = std::make_unique<CompressorProcessor>(std::move(processor));
+  blocks_.push_back(std::move(block));
+}
+
 void RuntimeChain::setCabParams(float level, float mix)
 {
   const float clampedLevel = std::max(0.0f, level);
@@ -111,6 +121,9 @@ StereoSample RuntimeChain::process(StereoSample input)
     case Block::Kind::Daisy:
       current = block.daisy->process(current);
       break;
+    case Block::Kind::Compressor:
+      current = block.compressor->process(current);
+      break;
     }
   }
   return current;
@@ -127,6 +140,9 @@ void RuntimeChain::reset()
     }
     if (block.daisy) {
       block.daisy->reset();
+    }
+    if (block.compressor) {
+      block.compressor->reset();
     }
   }
 }
