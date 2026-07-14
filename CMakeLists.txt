@@ -183,6 +183,7 @@ target_link_libraries(ardor_preset PUBLIC ardor_daisyfx ardor_equalizer)
 add_library(ardor_ui
   src/ui/UiModel.cpp
   src/ui/ParameterControls.cpp
+  src/ui/EqEditorModel.cpp
 )
 target_include_directories(ardor_ui PUBLIC src)
 target_compile_features(ardor_ui PUBLIC cxx_std_20)
@@ -270,6 +271,9 @@ target_compile_definitions(pedal-dsp-bench PRIVATE ARDOR_SOURCE_DIR="${CMAKE_CUR
 add_executable(pedal-ui-model-smoke tests/ui_model_smoke.cpp)
 target_link_libraries(pedal-ui-model-smoke PRIVATE ardor_ui)
 
+add_executable(pedal-eq-editor-model-smoke tests/eq_editor_model_smoke.cpp)
+target_link_libraries(pedal-eq-editor-model-smoke PRIVATE ardor_ui)
+
 add_executable(pedal-preset-cli-smoke tests/preset_cli_smoke.cpp)
 target_include_directories(pedal-preset-cli-smoke PRIVATE ${miniaudio_SOURCE_DIR})
 target_link_libraries(pedal-preset-cli-smoke PRIVATE ardor_audio)
@@ -293,6 +297,7 @@ add_test(NAME pedal-runtime-chain-smoke COMMAND pedal-runtime-chain-smoke)
 add_test(NAME pedal-engine-contract-smoke COMMAND pedal-engine-contract-smoke)
 add_test(NAME pedal-nam-processor-smoke COMMAND pedal-nam-processor-smoke)
 add_test(NAME pedal-ui-model-smoke COMMAND pedal-ui-model-smoke)
+add_test(NAME pedal-eq-editor-model-smoke COMMAND pedal-eq-editor-model-smoke)
 if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   add_test(NAME pedal-lvgl-ui-smoke COMMAND pedal-lvgl-ui-smoke)
 endif()

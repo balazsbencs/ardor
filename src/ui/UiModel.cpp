@@ -34,6 +34,9 @@ std::string labelForBlockType(const std::string& type)
   if (type == "dynamics") {
     return "Dynamics";
   }
+  if (type == "eq") {
+    return "EQ";
+  }
   return type;
 }
 
@@ -98,6 +101,8 @@ nlohmann::json paramsWithKnownDefaults(const std::string& type, const nlohmann::
     defaults = defaultDaisyFxParams(*descriptor);
   } else if (type == "dynamics" && params.value("mode", "") == "compressor") {
     defaults = defaultCompressorParams();
+  } else if (type == "eq" && isParametricEqMode(params)) {
+    return parametricEqParamsToJson(parametricEqParamsFromJson(params));
   }
   for (auto it = defaults.begin(); it != defaults.end(); ++it) {
     if (!params.contains(it.key())) {
@@ -182,6 +187,7 @@ UiState makeDemoUiState()
     {"Vintage 4x12", "irs/vintage.wav", "cabs"},
     {"Focused 1x12", "irs/focus.wav", "cabs"},
     {"Compressor", "", "dynamics", "dynamics", "compressor"},
+    {"Five Band EQ", "", "eq", "eq", "parametric_eq_5"},
     {"Tape Delay", "", "time"},
   };
   appendDaisyAssets(state);
@@ -267,6 +273,8 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
       params = defaultDaisyFxParams(*descriptor);
     } else if (asset.blockType == "dynamics" && asset.mode == "compressor") {
       params = defaultCompressorParams();
+    } else if (asset.blockType == "eq" && asset.mode == "parametric_eq_5") {
+      params = parametricEqParamsToJson(defaultParametricEqParams());
     }
   }
 
@@ -298,7 +306,7 @@ void closeParamDrawer(UiState& state)
 
 void setCategoryFilter(UiState& state, std::string filter)
 {
-  static constexpr std::array valid = {"all", "amps", "cabs", "dynamics", "modulation", "time"};
+  static constexpr std::array valid = {"all", "amps", "cabs", "dynamics", "eq", "modulation", "time"};
   const auto found = std::find(valid.begin(), valid.end(), filter);
   state.categoryFilter = found == valid.end() ? "all" : std::move(filter);
 }
@@ -419,6 +427,51 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
   state.dirty = true;
 }
 
+ParametricEqParams selectedParametricEqParams(const UiState& state)
+{
+  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (state.selectedBlock >= blocks.size()) {
+    return defaultParametricEqParams();
+  }
+  const auto& block = blocks[state.selectedBlock];
+  if (block.type != "eq" || !isParametricEqMode(block.params)) {
+    return defaultParametricEqParams();
+  }
+  return parametricEqParamsFromJson(block.params);
+}
+
+bool setSelectedEqBand(UiState& state, std::size_t bandIndex, EqBandParams params)
+{
+  auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (state.selectedBlock >= blocks.size() || bandIndex >= kParametricEqBandCount) {
+    return false;
+  }
+  auto& block = blocks[state.selectedBlock];
+  if (block.type != "eq" || !isParametricEqMode(block.params)) {
+    return false;
+  }
+
+  auto eqParams = parametricEqParamsFromJson(block.params);
+  auto normalization = defaultParametricEqParams();
+  normalization.bands[0] = params;
+  params = parametricEqParamsFromJson(parametricEqParamsToJson(normalization)).bands[0];
+  if (eqParams.bands[bandIndex] == params) {
+    return true;
+  }
+  eqParams.bands[bandIndex] = params;
+  block.params = parametricEqParamsToJson(eqParams);
+  state.dirty = true;
+  return true;
+}
+
+bool resetSelectedEqBand(UiState& state, std::size_t bandIndex)
+{
+  if (bandIndex >= kParametricEqBandCount) {
+    return false;
+  }
+  return setSelectedEqBand(state, bandIndex, defaultParametricEqBand(bandIndex));
+}
+
 void updateRealtimeTelemetry(UiState& state, const RuntimeTelemetry& telemetry)
 {
   state.telemetry = telemetry;
@@ -438,6 +491,7 @@ void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoo
   appendAssetsFrom(state, dataRoot / "models", ".nam", "amps");
   appendAssetsFrom(state, dataRoot / "irs", ".wav", "cabs");
   state.assets.push_back({"Compressor", "", "dynamics", "dynamics", "compressor"});
+  state.assets.push_back({"Five Band EQ", "", "eq", "eq", "parametric_eq_5"});
   state.assets.push_back({"Tape Delay", "", "time"});
   appendDaisyAssets(state);
 }

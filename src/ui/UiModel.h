@@ -1,5 +1,6 @@
 #pragma once
 
+#include "equalizer/EqParameters.h"
 #include "preset/Preset.h"
 #include "preset/PresetStore.h"
 #include "preset/RuntimeState.h"
@@ -91,6 +92,9 @@ void setActiveInputGainDb(UiState& state, float db);
 void setActiveOutputGainDb(UiState& state, float db);
 void setSelectedBlockParam(UiState& state, const std::string& key, float value);
 void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann::json value);
+ParametricEqParams selectedParametricEqParams(const UiState& state);
+bool setSelectedEqBand(UiState& state, std::size_t bandIndex, EqBandParams params);
+bool resetSelectedEqBand(UiState& state, std::size_t bandIndex);
 
 void updateRealtimeTelemetry(UiState& state, const RuntimeTelemetry& telemetry);
 int consumePendingSlotRequest(UiState& state);

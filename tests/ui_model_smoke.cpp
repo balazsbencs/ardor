@@ -265,5 +265,33 @@ int main()
   if (require(migratedCompressor.contains("threshold_db") && migratedCompressor.contains("auto_makeup"),
               "legacy compressor should receive missing defaults")) return 1;
 
+  auto eqAsset = std::find_if(migrationState.assets.begin(), migrationState.assets.end(), [](const ardor::UiAsset& asset) {
+    return asset.name == "Five Band EQ";
+  });
+  if (require(eqAsset != migrationState.assets.end(), "EQ should be in the asset list")) return 1;
+  migrationState.dirty = false;
+  ardor::appendAssetBlock(migrationState, static_cast<std::size_t>(std::distance(migrationState.assets.begin(), eqAsset)));
+  const auto& eqBlock = migrationState.bank.presets[migrationState.activePreset].blocks.back();
+  if (require(eqBlock.type == "eq" && eqBlock.label == "EQ", "EQ asset should create a native EQ block")) return 1;
+  if (require(eqBlock.params.value("mode", "") == "parametric_eq_5", "EQ block should use the supported mode")) return 1;
+  if (require(eqBlock.params.at("bands").size() == ardor::kParametricEqBandCount,
+              "EQ block should include five bands")) return 1;
+  if (require(migrationState.dirty, "adding an EQ block should dirty the preset")) return 1;
+
+  const auto originalEq = ardor::selectedParametricEqParams(migrationState);
+  auto editedBand = originalEq.bands[2];
+  editedBand.enabled = false;
+  editedBand.frequencyHz = 1200.0f;
+  editedBand.q = 1.8f;
+  editedBand.gainDb = 7.0f;
+  migrationState.dirty = false;
+  if (require(ardor::setSelectedEqBand(migrationState, 2, editedBand), "EQ band edit should succeed")) return 1;
+  const auto editedEq = ardor::selectedParametricEqParams(migrationState);
+  if (require(editedEq.bands[2] == editedBand, "EQ band edit should canonicalize and persist")) return 1;
+  if (require(migrationState.dirty, "EQ band edit should dirty the preset")) return 1;
+  if (require(ardor::resetSelectedEqBand(migrationState, 2), "EQ band reset should succeed")) return 1;
+  if (require(ardor::selectedParametricEqParams(migrationState).bands[2] == ardor::defaultParametricEqBand(2),
+              "EQ band reset should restore the indexed default")) return 1;
+
   return 0;
 }
