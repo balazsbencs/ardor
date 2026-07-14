@@ -67,13 +67,48 @@ add_library(ardor_daisyfx_vendor
   third_party/daisy-multi-fx-hosted/src/dsp/tone_filter.cpp
   third_party/daisy-multi-fx-hosted/src/dsp/diffuser.cpp
   third_party/daisy-multi-fx-hosted/src/dsp/fdn.cpp
+  third_party/daisy-multi-fx-hosted/src/dsp/envelope_follower.cpp
+  third_party/daisy-multi-fx-hosted/src/dsp/pitch_shifter.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/auto_swell_mode.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/chorus_mode.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/destroyer_mode.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/filter_mode.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/flanger_mode.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/formant_mode.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/pattern_trem_mode.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/phaser_mode.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/poly_octave_mode.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/quadrature_mode.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/rotary_mode.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/vibe_mode.cpp
   third_party/daisy-multi-fx-hosted/src/modes/vintage_trem_mode.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/dbucket_delay.cpp
   third_party/daisy-multi-fx-hosted/src/modes/digital_delay.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/dual_delay.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/duck_delay.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/filter_delay.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/lofi_delay.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/pattern_delay.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/swell_delay.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/tape_delay.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/trem_delay.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/bloom_reverb.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/chorale_reverb.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/cloud_reverb.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/hall_reverb.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/magneto_reverb.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/nonlinear_reverb.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/plate_reverb.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/reflections_reverb.cpp
   third_party/daisy-multi-fx-hosted/src/modes/room_reverb.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/shimmer_reverb.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/spring_reverb.cpp
+  third_party/daisy-multi-fx-hosted/src/modes/swell_reverb.cpp
 )
 target_include_directories(ardor_daisyfx_vendor PUBLIC
   third_party/daisy-multi-fx-hosted/compat
   third_party/daisy-multi-fx-hosted/src
+  third_party/cycfi-q/include
 )
 target_compile_features(ardor_daisyfx_vendor PUBLIC cxx_std_20)
 

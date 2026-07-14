@@ -9,7 +9,16 @@ used by Ardor's hosted effect blocks. Keep copied source files functionally
 unchanged when possible; put host adaptation in Ardor-owned wrappers or
 `compat/`.
 
-Copied first-slice files:
+The hosted source now includes every portable modulation, delay, and reverb
+mode from the upstream project, together with their portable DSP and parameter
+dependencies. It deliberately excludes hardware audio, display, controls,
+MIDI, QSPI preset storage, tempo, and application code.
+
+`Poly Octave` uses a small header-only subset of Cycfi Q, vendored under
+`third_party/cycfi-q/` with its MIT license and the preserved license notice in
+the included fast-math header.
+
+Originally copied first-slice files:
 
 - `audio/stereo_frame.h`
 - `config/constants.h`
