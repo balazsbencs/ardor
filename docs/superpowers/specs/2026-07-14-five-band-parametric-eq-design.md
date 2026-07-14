@@ -135,10 +135,11 @@ It occupies the existing 1240 x 286 bottom parameter panel:
 The graph shows 20 Hz through 20 kHz on a logarithmic x-axis and -18 dB through
 +18 dB on a fixed linear y-axis. A combined response beyond that viewport is
 clipped only at the graph boundary; the audio is not clipped. The graph
-evaluates 256 logarithmically spaced points. Enabled individual-band responses
-appear as faint traces; their combined magnitude appears as the bright orange
-curve. The response evaluator consumes the same coefficients as the audio
-processor, preventing audible and visual behavior from diverging.
+evaluates 256 logarithmically spaced points. Every individual-band response
+appears as a faint trace; disabled traces are further dimmed and omitted from
+the bright orange combined response. The response evaluator consumes the same
+coefficients as the audio processor, preventing audible and visual behavior
+from diverging.
 
 Touch interaction updates the affected node, curve, and value text directly
 instead of rebuilding the complete LVGL object tree. Graph rendering is
