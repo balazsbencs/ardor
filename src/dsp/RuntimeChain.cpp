@@ -2,6 +2,7 @@
 
 #include "dsp/IrConvolver.h"
 #include "dsp/NamProcessor.h"
+#include "equalizer/ParametricEqProcessor.h"
 
 #include <algorithm>
 #include <utility>
@@ -13,14 +14,17 @@ struct RuntimeChain::Block {
     Nam,
     Cab,
     Daisy,
-    Compressor
+    Compressor,
+    Equalizer
   };
 
   Kind kind = Kind::Cab;
+  std::string id;
   std::unique_ptr<NamProcessor> nam;
   std::unique_ptr<IrConvolver> cab;
   std::unique_ptr<DaisyFxProcessor> daisy;
   std::unique_ptr<CompressorProcessor> compressor;
+  std::unique_ptr<ParametricEqProcessor> equalizer;
   float level = 1.0f;
   float mix = 1.0f;
 };
@@ -101,6 +105,32 @@ void RuntimeChain::addCompressor(CompressorProcessor processor)
   blocks_.push_back(std::move(block));
 }
 
+bool RuntimeChain::addParametricEq(std::string id, const ParametricEqParams& params,
+                                   float sampleRate, std::string& error)
+{
+  auto equalizer = std::make_unique<ParametricEqProcessor>();
+  if (!equalizer->configure(params, sampleRate, error)) {
+    return false;
+  }
+
+  Block block;
+  block.kind = Block::Kind::Equalizer;
+  block.id = std::move(id);
+  block.equalizer = std::move(equalizer);
+  blocks_.push_back(std::move(block));
+  return true;
+}
+
+bool RuntimeChain::setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params)
+{
+  for (auto& block : blocks_) {
+    if (block.kind == Block::Kind::Equalizer && block.id == id) {
+      return block.equalizer->setBandTarget(band, params);
+    }
+  }
+  return false;
+}
+
 StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cabMix)
 {
   StereoSample current = input;
@@ -123,6 +153,9 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
       break;
     case Block::Kind::Compressor:
       current = block.compressor->process(current);
+      break;
+    case Block::Kind::Equalizer:
+      block.equalizer->process(current.left, current.right);
       break;
     }
   }
@@ -199,6 +232,10 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
         nextRight[i] = processed.right;
       }
       break;
+    case Block::Kind::Equalizer:
+      block.equalizer->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);
+      currentIsStereo = true;
+      break;
     }
 
     std::swap(currentLeft, nextLeft);
@@ -223,6 +260,9 @@ void RuntimeChain::reset()
     }
     if (block.compressor) {
       block.compressor->reset();
+    }
+    if (block.equalizer) {
+      block.equalizer->reset();
     }
   }
 }

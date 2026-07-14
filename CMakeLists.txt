@@ -161,7 +161,7 @@ target_include_directories(ardor_dsp PUBLIC
 )
 target_compile_features(ardor_dsp PUBLIC cxx_std_20)
 target_compile_definitions(ardor_dsp PRIVATE NAM_ENABLE_A2_FAST NAM_SAMPLE_FLOAT)
-target_link_libraries(ardor_dsp PUBLIC ardor_daisyfx ardor_dynamics)
+target_link_libraries(ardor_dsp PUBLIC ardor_daisyfx ardor_dynamics ardor_equalizer)
 if(UNIX AND NOT APPLE)
   target_link_libraries(ardor_dsp PUBLIC stdc++fs)
 endif()
@@ -178,7 +178,7 @@ target_include_directories(ardor_preset PUBLIC
   ${neuralampmodelercore_SOURCE_DIR}/Dependencies/nlohmann
 )
 target_compile_features(ardor_preset PUBLIC cxx_std_20)
-target_link_libraries(ardor_preset PUBLIC ardor_daisyfx)
+target_link_libraries(ardor_preset PUBLIC ardor_daisyfx ardor_equalizer)
 
 add_library(ardor_ui
   src/ui/UiModel.cpp

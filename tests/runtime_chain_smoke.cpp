@@ -1,6 +1,7 @@
 #include "daisyfx/DaisyFxProcessor.h"
 #include "dsp/PedalEngine.h"
 #include "dsp/RuntimeChain.h"
+#include "equalizer/EqParameters.h"
 
 #include <cmath>
 #include <stdexcept>
@@ -69,6 +70,19 @@ int main()
     diff += std::fabs(a[i] - b[i]);
   }
   require(diff > 0.0001f, "serial block order should change output");
+
+  ardor::RuntimeChain eqChain;
+  eqChain.prepareBlockSize(64);
+  std::string eqError;
+  auto eqParams = ardor::defaultParametricEqParams();
+  eqParams.bands[2].gainDb = 6.0f;
+  require(eqChain.addParametricEq("eq-a", eqParams, 48000.0f, eqError), eqError);
+  require(eqChain.setParametricEqBand("eq-a", 2, {true, 1000.0f, 1.0f, 12.0f}),
+          "target existing EQ by stable ID");
+  require(!eqChain.setParametricEqBand("missing", 2, {true, 1000.0f, 1.0f, 12.0f}),
+          "missing EQ ID rejected");
+  require(!eqChain.setParametricEqBand("eq-a", 5, {true, 1000.0f, 1.0f, 12.0f}),
+          "invalid EQ band rejected");
 
   ardor::PedalEngine engine;
   std::string error;

@@ -2,6 +2,7 @@
 
 #include "daisyfx/DaisyFxProcessor.h"
 #include "dynamics/CompressorProcessor.h"
+#include "equalizer/EqParameters.h"
 
 #include <algorithm>
 #include <cmath>
@@ -58,6 +59,17 @@ bool PedalEngine::addCompressor(const nlohmann::json& params, float sampleRate, 
   }
   chain_.addCompressor(std::move(processor));
   return true;
+}
+
+bool PedalEngine::addParametricEq(const std::string& id, const nlohmann::json& params,
+                                  float sampleRate, std::string& error)
+{
+  return chain_.addParametricEq(id, parametricEqParamsFromJson(params), sampleRate, error);
+}
+
+bool PedalEngine::setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params)
+{
+  return chain_.setParametricEqBand(id, band, params);
 }
 
 void PedalEngine::prepareBlockSize(size_t frames)

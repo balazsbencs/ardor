@@ -1,6 +1,7 @@
 #include "preset/ChainPlan.h"
 
 #include "daisyfx/DaisyFxCatalog.h"
+#include "equalizer/EqParameters.h"
 
 #include <algorithm>
 #include <cmath>
@@ -27,6 +28,11 @@ bool isSupportedDaisyBlock(const std::string& type, const nlohmann::json& params
 bool isSupportedDynamicsBlock(const std::string& type, const nlohmann::json& params)
 {
   return type == "dynamics" && params.value("mode", "") == "compressor";
+}
+
+bool isSupportedEqBlock(const std::string& type, const nlohmann::json& params)
+{
+  return type == "eq" && isParametricEqMode(params);
 }
 
 float finiteNumberOr(const nlohmann::json& object, const char* key, float fallback)
@@ -77,6 +83,14 @@ ChainPlan buildChainPlan(const Preset& preset, const std::filesystem::path& data
       }
     } else if (block.type == "dynamics") {
       if (isSupportedDynamicsBlock(block.type, blockPlan.params)) {
+        blockPlan.status = ChainBlockStatus::Ready;
+        ++plan.runnableBlockCount;
+      } else {
+        blockPlan.status = ChainBlockStatus::Unsupported;
+      }
+    } else if (block.type == "eq") {
+      if (isSupportedEqBlock(block.type, blockPlan.params)) {
+        blockPlan.params = parametricEqParamsToJson(parametricEqParamsFromJson(blockPlan.params));
         blockPlan.status = ChainBlockStatus::Ready;
         ++plan.runnableBlockCount;
       } else {

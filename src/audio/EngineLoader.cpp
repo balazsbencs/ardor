@@ -117,6 +117,12 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       }
       continue;
     }
+    if (block.type == "eq") {
+      if (!engine.addParametricEq(block.id, block.params, static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
+      continue;
+    }
   }
 
   return true;

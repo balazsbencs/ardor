@@ -2,10 +2,12 @@
 
 #include "daisyfx/DaisyFxProcessor.h"
 #include "dynamics/CompressorProcessor.h"
+#include "equalizer/EqParameters.h"
 
 #include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace ardor {
@@ -28,6 +30,8 @@ public:
   void addCab(std::vector<float> impulse, float level, float mix);
   void addDaisy(DaisyFxProcessor processor);
   void addCompressor(CompressorProcessor processor);
+  bool addParametricEq(std::string id, const ParametricEqParams& params, float sampleRate, std::string& error);
+  bool setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params);
   StereoSample process(StereoSample input, float cabLevel = 1.0f, float cabMix = 1.0f);
   // The live path processes complete, preallocated blocks. `input` is mono;
   // `left` and `right` receive the final stereo block.

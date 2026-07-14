@@ -18,6 +18,8 @@ public:
   void addCab(std::vector<float> impulse, float level, float mix);
   bool addDaisyFx(const std::string& blockType, const nlohmann::json& params, float sampleRate, std::string& error);
   bool addCompressor(const nlohmann::json& params, float sampleRate, std::string& error);
+  bool addParametricEq(const std::string& id, const nlohmann::json& params, float sampleRate, std::string& error);
+  bool setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params);
   void prepareBlockSize(size_t frames);
   void clearEffects();
   void setInputGain(float gain);
