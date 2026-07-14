@@ -7,12 +7,17 @@
 
 #include "dsp/IrConvolver.h"
 #include "dsp/NamProcessor.h"
+#include "daisyfx/DaisyFxCatalog.h"
+#include "daisyfx/DaisyFxProcessor.h"
+#include "dynamics/CompressorProcessor.h"
 
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <filesystem>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace {
@@ -123,6 +128,38 @@ int main(int argc, char** argv)
   } else {
     std::printf("NamProcessor  skipped (no model at %s)\n", modelPath.string().c_str());
   }
+
+  for (const auto& descriptor : ardor::daisyFxCatalog()) {
+    ardor::DaisyFxProcessor effect;
+    std::string error;
+    if (!effect.configure(descriptor.blockType, ardor::defaultDaisyFxParams(descriptor),
+                          static_cast<float>(kSampleRate), error)) {
+      throw std::runtime_error(error);
+    }
+    const std::string label = descriptor.blockType + "/" + descriptor.mode;
+    report(label.c_str(), bench([&](const float* in, float* out, size_t frames) {
+      for (size_t i = 0; i < frames; ++i) {
+        const auto sample = effect.process({in[i], in[i]});
+        out[i] = 0.5f * (sample.left + sample.right);
+      }
+    }));
+  }
+
+  ardor::CompressorProcessor compressor;
+  std::string compressorError;
+  if (!compressor.configure({{"threshold_db", -24.0f}, {"ratio", 4.0f}, {"attack_ms", 10.0f},
+                             {"release_ms", 150.0f}, {"knee_db", 6.0f}, {"makeup_db", 0.0f},
+                             {"input_gain_db", 0.0f}, {"mix", 1.0f}, {"sidechain_hpf_hz", 80.0f},
+                             {"detector", "peak"}, {"auto_makeup", false}},
+                            static_cast<float>(kSampleRate), compressorError)) {
+    throw std::runtime_error(compressorError);
+  }
+  report("dynamics/compressor", bench([&](const float* in, float* out, size_t frames) {
+    for (size_t i = 0; i < frames; ++i) {
+      const auto sample = compressor.process({in[i], in[i]});
+      out[i] = 0.5f * (sample.left + sample.right);
+    }
+  }));
 
   return 0;
 }
