@@ -333,51 +333,31 @@ The UI shows the preset screen. Tapping a preset slot requests an audio engine s
 
 `--ui` requires `ARDOR_UI_BACKEND=sdl` (desktop default) or `ARDOR_UI_BACKEND=fbdev` (Pi). It has no effect on the non-slot realtime or offline paths.
 
-## Buildroot Firmware Seed
+## Buildroot Firmware Image
 
-This repo contains a Buildroot external tree under `buildroot/external`. Buildroot itself is not vendored here — you need a separate checkout.
+The repository contains a Buildroot external tree for a Raspberry Pi 4 pedal
+image. The build pins and verifies Buildroot 2025.02.15, runs in a native Docker
+container on Apple Silicon or x86_64, and preserves the validated Raspberry Pi
+Linux 6.18 hardware stack.
 
-### Step 1: Clone Buildroot
-
-```sh
-git clone https://git.buildroot.net/buildroot --branch 2024.02.11 ~/buildroot
-```
-
-Any 2024.02.x LTS release works. The `make` commands below must be run from **inside the Buildroot directory**.
-
-### Step 2: Create the complete defconfig
-
-The external tree ships only the Ardor-specific additions. Merge them onto the upstream `raspberrypi4_64_defconfig` base:
+Build the complete image from the repository root:
 
 ```sh
-cd ~/buildroot
-sh /Users/bbalazs/Documents/Ardor/buildroot/external/board/ardor-pedal/setup-defconfig.sh \
-  /Users/bbalazs/Documents/Ardor/buildroot/external
+./scripts/build-image.sh
 ```
 
-This writes a complete `raspberrypi4_ardor_pedal_defconfig` into the external tree's `configs/` directory.
+The resulting `sdcard.img` contains:
 
-> **Note:** `buildroot/external/board/ardor-pedal/codec-zero.state` is a placeholder. Before building, replace it with the verified ALSA state from [Pi-Codec](https://github.com/raspberrypi/Pi-Codec) (`Codec_Zero_AUXIN_record_and_HP_playback.state`).
+- `/usr/bin/ardor-pedal` and `/etc/init.d/S99ardor-pedal`.
+- `/usr/bin/ardor-managerd` and `/etc/init.d/S98ardor-managerd`.
+- `/etc/ardor-pedal.env`, `/etc/ardor-managerd.env`, and the Codec Zero mixer
+  state.
+- A read-only root filesystem and writable `/opt/ardor-pedal` data partition
+  seeded with four presets.
 
-### Step 3: Configure and build
-
-```sh
-cd ~/buildroot
-make BR2_EXTERNAL=/Users/bbalazs/Documents/Ardor/buildroot/external raspberrypi4_ardor_pedal_defconfig
-make
-```
-
-The build takes 30–90 minutes on first run. The result is `output/images/sdcard.img`.
-
-### What gets installed on the Pi
-
-- `/usr/bin/ardor-pedal` — the integrated realtime + UI binary
-- `/etc/init.d/S99ardor-pedal` — supervised SysV init script with governor and mixer restore
-- `/etc/ardor-pedal.env` — runtime configuration (sample rate, block size, data root, etc.)
-- `/etc/ardor-codec-zero.state` — ALSA mixer state for the Codec Zero AUX in/out routing
-- Data partition mounted at `/opt/ardor-pedal` — writable preset and asset storage
-
-CMake FetchContent clones miniaudio, NeuralAmpModelerCore, and LVGL from git at configure time. The build host therefore needs network access during `make ardor-pedal`; all three dependencies are pinned to specific commits.
+See [BUILD.md](BUILD.md) for prerequisites, versioned-volume behavior, flashing,
+rollback, troubleshooting, hardware checks, REST verification, and deferred
+upgrade work.
 
 ## Hardware Validation
 

@@ -282,7 +282,7 @@ tmp=$(mktemp -d "${TMPDIR:-/tmp}/ardor-defconfig.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT HUP INT TERM
 mkdir -p "$tmp/output"
 
-KCONFIG_CONFIG="$tmp/merged.config" \
+CONFIG_=BR2_ KCONFIG_CONFIG="$tmp/merged.config" \
   "$topdir/support/kconfig/merge_config.sh" -m \
   -e "$external_dir" "$upstream" "$fragment"
 
