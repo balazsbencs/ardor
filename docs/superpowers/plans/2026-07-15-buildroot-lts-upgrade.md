@@ -197,9 +197,10 @@ BR2_PACKAGE_HOST_GENIMAGE=y
 BR2_PACKAGE_HOST_MTOOLS=y
 ```
 
-Do not add the Linux 6.6 toolchain-header symbol to the fragment. It must come
-from the exact upstream 2025.02.15 Raspberry Pi base so the generated defconfig
-demonstrates that the LTS baseline is in effect.
+Buildroot selects `BR2_KERNEL_HEADERS_AS_KERNEL=y` by default when Linux is
+enabled. Set `BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_12=y` in the fragment;
+this is the highest series Buildroot 2025.02 exposes and declares the
+compatibility floor for headers built from the pinned Linux 6.18 source.
 
 - [ ] **Step 3: Add the custom Linux archive hash**
 
@@ -210,6 +211,12 @@ Create
 # Locally calculated from the pinned GitHub archive
 sha256  c295269861734859d3f2f756d8981b7104c6b0fe14614ee81981540608173142  linux-256d6b4bc33527fae9967773b2a0d3b92e1bd000.tar.gz
 ```
+
+Add the same entry at
+`buildroot/external/board/ardor-pedal/patches/linux-headers/linux-headers.hash`.
+Buildroot downloads the configured kernel separately while preparing the libc
+headers, and forced hash verification requires a package-local hash file for
+that stage as well.
 
 The external patch directory must precede Buildroot's Raspberry Pi patch
 directory in `BR2_GLOBAL_PATCH_DIR`. Buildroot uses the first matching hash file,
@@ -355,14 +362,14 @@ The Kconfig output must not contain `warning: override: reassigning`.
 Run:
 
 ```sh
-rg -n 'BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_6=y|BR2_DOWNLOAD_FORCE_CHECK_HASHES=y|BR2_PACKAGE_ARDOR_PEDAL=y|BR2_PACKAGE_ARDOR_MANAGERD=y|256d6b4bc33527fae9967773b2a0d3b92e1bd000|BR2_TARGET_ROOTFS_EXT2_SIZE="256M"' \
+rg -n 'BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_12=y|BR2_DOWNLOAD_FORCE_CHECK_HASHES=y|BR2_PACKAGE_ARDOR_PEDAL=y|BR2_PACKAGE_ARDOR_MANAGERD=y|256d6b4bc33527fae9967773b2a0d3b92e1bd000|BR2_TARGET_ROOTFS_EXT2_SIZE="256M"' \
   buildroot/external/configs/raspberrypi4_ardor_pedal_defconfig
 rg -n 'c295269861734859d3f2f756d8981b7104c6b0fe14614ee81981540608173142' \
   buildroot/external/board/ardor-pedal/patches/linux/linux.hash
 ```
 
-Expected: one match for each required setting, including Linux 6.6 toolchain
-headers and the preserved Linux 6.18 source commit.
+Expected: one match for each required setting, including toolchain headers
+from the preserved Linux 6.18 source commit.
 
 - [ ] **Step 7: Commit the deterministic configuration**
 
@@ -762,7 +769,8 @@ make raspberrypi4_ardor_pedal_defconfig BR2_EXTERNAL="$external"
 
 require_config 'BR2_aarch64=y'
 require_config 'BR2_cortex_a72=y'
-require_config 'BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_6=y'
+require_config 'BR2_KERNEL_HEADERS_AS_KERNEL=y'
+require_config 'BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_12=y'
 require_config 'BR2_DOWNLOAD_FORCE_CHECK_HASHES=y'
 require_config 'BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS=y'
 require_config 'BR2_PACKAGE_ARDOR_PEDAL=y'

@@ -70,7 +70,8 @@ make raspberrypi4_ardor_pedal_defconfig BR2_EXTERNAL="$external"
 
 require_config 'BR2_aarch64=y'
 require_config 'BR2_cortex_a72=y'
-require_config 'BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_6=y'
+require_config 'BR2_KERNEL_HEADERS_AS_KERNEL=y'
+require_config 'BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_12=y'
 require_config 'BR2_DOWNLOAD_FORCE_CHECK_HASHES=y'
 require_config 'BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS=y'
 require_config 'BR2_PACKAGE_ARDOR_PEDAL=y'

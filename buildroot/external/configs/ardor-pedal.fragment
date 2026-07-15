@@ -25,6 +25,11 @@ BR2_LINUX_KERNEL_DTS_SUPPORT=y
 BR2_LINUX_KERNEL_INTREE_DTS_NAME="broadcom/bcm2711-rpi-4-b"
 BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
 
+# Buildroot selects "same as kernel" by default when Linux is enabled. Its
+# header menu only names versions through 6.12, so record that compatibility
+# floor while building libc headers from the exact pinned 6.18 source.
+BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_12=y
+
 # Raspberry Pi firmware and board-owned boot configuration.
 BR2_PACKAGE_RPI_FIRMWARE=y
 BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI4=y

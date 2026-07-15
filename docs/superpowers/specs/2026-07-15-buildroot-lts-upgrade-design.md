@@ -145,9 +145,10 @@ Normalization must avoid duplicate-symbol override warnings. The complete
 image build runs `--check`, so edits to either the fragment or generated
 defconfig cannot drift silently.
 
-The migration adopts the upstream LTS toolchain header baseline of Linux 6.6.
-The runtime kernel remains 6.18. Building userspace against older 6.6 headers
-and running it on a newer 6.18 kernel is the supported compatibility direction.
+The migration builds toolchain headers from the same pinned Linux 6.18 source
+as the runtime kernel. Buildroot 2025.02 represents this as its `6.12 or later`
+compatibility floor, the highest series it exposes. This removes the header
+version mismatch while preserving the tested 6.18 hardware stack.
 
 ## Build Entrypoint
 

@@ -66,8 +66,9 @@ The script:
    versioned Docker volume.
 3. Checks that the normalized Ardor defconfig matches Buildroot's 2025.02.15
    Raspberry Pi 4 base plus `ardor-pedal.fragment`.
-4. Verifies Linux 6.6 toolchain headers, AArch64 target selection, host-Go
-   support, and both Ardor packages before compiling.
+4. Verifies that toolchain headers come from the pinned Linux 6.18 source
+   (declared as Buildroot's `6.12 or later` compatibility floor), the AArch64
+   target selection, host-Go support, and both Ardor packages before compiling.
 5. Cleans both local packages so Buildroot re-syncs the current repository.
 6. Verifies both AArch64 executables, init scripts, environment files, boot
    files, filesystems, and `sdcard.img`.
