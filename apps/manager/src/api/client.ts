@@ -24,7 +24,7 @@ export class ArdorApiClient {
   constructor(config: ApiClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/+$/, "");
     this.token = config.token;
-    this.fetchImpl = config.fetchImpl ?? fetch;
+    this.fetchImpl = config.fetchImpl ?? globalThis.fetch.bind(globalThis);
   }
 
   getDevice(): Promise<DeviceStatus> {

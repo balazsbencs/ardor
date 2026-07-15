@@ -20,6 +20,32 @@ describe("ArdorApiClient", () => {
     }));
   });
 
+  it("calls the default fetch with the window receiver", async () => {
+    const fetchMock = vi.fn(async function (this: unknown) {
+      if (this !== globalThis) {
+        throw new TypeError("Can only call Window.fetch on instances of Window");
+      }
+      return new Response(JSON.stringify({
+        deviceName: "Ardor Pedal",
+        apiVersion: "0.1.0",
+        authEnabled: false,
+        dataRootWritable: true,
+        maxBanks: 100,
+        slotsPerBank: 4,
+        supportedPresetVersion: 1,
+        capabilities: { modelUpload: true, irUpload: true, presetRead: true, presetWrite: true, presetApply: true },
+      }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      await new ArdorApiClient({ baseUrl: "http://pedal" }).getDevice();
+      expect(fetchMock).toHaveBeenCalledWith("http://pedal/api/device", expect.any(Object));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("saves presets through the slot endpoint", async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
       bank: 1,
