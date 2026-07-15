@@ -583,6 +583,10 @@ int main()
   ui.selectBlock(state, state.bank.presets[state.activePreset].blocks.size() - 1);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
+  if (require(findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x242424), 1240, 600),
+              "EQ should open as the main editor surface")) return 1;
+  if (require(findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x111111), 1184, 270),
+              "EQ main editor should reserve a tall response graph")) return 1;
   if (require(findLabel(lv_screen_active(), "Parametric EQ"), "EQ should render its dedicated editor title")) return 1;
   if (require(findLabel(lv_screen_active(), "Band 1"), "EQ should render its selected-band strip")) return 1;
   if (require(findLabel(lv_screen_active(), "Reset Band"), "EQ should render a reset-band control")) return 1;

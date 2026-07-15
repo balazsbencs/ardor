@@ -25,11 +25,17 @@ std::string labelForBlockType(const std::string& type)
   if (type == "mod") {
     return "Modulation";
   }
+  if (type == "modulation") {
+    return "Modulation";
+  }
   if (type == "delay") {
     return "Delay";
   }
   if (type == "reverb") {
     return "Reverb";
+  }
+  if (type == "time") {
+    return "Time";
   }
   if (type == "dynamics") {
     return "Dynamics";
@@ -54,6 +60,9 @@ std::string categoryForDaisyKind(DaisyFxKind kind)
 
 std::string assetNameForPath(const UiState& state, const std::string& path, const std::string& type)
 {
+  if (path.empty()) {
+    return type;
+  }
   for (const auto& asset : state.assets) {
     if (asset.path == path) {
       return asset.name;
@@ -66,6 +75,12 @@ std::string assetNameForBlock(const UiState& state, const PresetBlock& block)
 {
   if (const auto* descriptor = findDaisyFxDescriptor(block.type, block.params.value("mode", ""))) {
     return descriptor->name;
+  }
+  if (block.type == "dynamics" && block.params.value("mode", "") == "compressor") {
+    return "Compressor";
+  }
+  if (block.type == "eq" && isParametricEqMode(block.params)) {
+    return "Five Band EQ";
   }
   return assetNameForPath(state, block.asset, block.type);
 }

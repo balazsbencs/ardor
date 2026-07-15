@@ -305,5 +305,13 @@ int main()
               "selected block delete should remove the selected id")) return 1;
   if (require(migrationState.dirty, "selected block delete should dirty the preset")) return 1;
 
+  ardor::Preset eqAssetNamePreset;
+  eqAssetNamePreset.name = "EQ Asset Name";
+  eqAssetNamePreset.blocks.push_back({"eq-asset", "eq", true, "",
+                                      ardor::parametricEqParamsToJson(ardor::defaultParametricEqParams())});
+  ardor::replaceActivePreset(migrationState, eqAssetNamePreset);
+  if (require(migrationState.bank.presets[migrationState.activePreset].blocks[0].assetName == "Five Band EQ",
+              "EQ blocks without file assets should retain the EQ asset name")) return 1;
+
   return 0;
 }

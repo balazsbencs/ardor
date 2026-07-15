@@ -33,11 +33,14 @@ constexpr auto eqCombined = 0xff9f43;
 constexpr std::array<int, kParametricEqBandCount> eqBandColors = {
   0x56c7ff, 0x8be28b, 0xf5d76e, 0xff8c69, 0xc792ea,
 };
-constexpr int kEqPanelHeight = 310;
+constexpr int kEqPanelTop = 100;
+constexpr int kEqPanelHeight = 600;
 constexpr int kEqGraphX = 28;
-constexpr int kEqGraphY = 50;
+constexpr int kEqGraphY = 60;
 constexpr int kEqGraphWidth = 1184;
-constexpr int kEqGraphHeight = 132;
+constexpr int kEqGraphHeight = 270;
+constexpr int kEqGraphCanvasX = (kDesignWidth - 1240) / 2 + kEqGraphX;
+constexpr int kEqGraphCanvasY = kEqPanelTop + kEqGraphY;
 constexpr int kChainLeft = 34;
 constexpr int kChainWidth = 1212;
 constexpr int kChainTop = 110;
@@ -417,8 +420,8 @@ void onEqNodePressing(lv_event_t* event)
   lv_point_t point{};
   lv_indev_get_point(input, &point);
   point = context->ui->toCanvas(point);
-  const int x = std::clamp(static_cast<int>(point.x) - 48, 0, kEqGraphWidth - 1);
-  const int y = std::clamp(static_cast<int>(point.y) - 456, 0, kEqGraphHeight - 1);
+  const int x = std::clamp(static_cast<int>(point.x) - kEqGraphCanvasX, 0, kEqGraphWidth - 1);
+  const int y = std::clamp(static_cast<int>(point.y) - kEqGraphCanvasY, 0, kEqGraphHeight - 1);
   auto params = selectedParametricEqParams(*context->state);
   auto& band = params.bands[context->index];
   band.frequencyHz = eqFrequencyFromX(x, kEqGraphWidth);
@@ -870,7 +873,7 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
 
   lv_obj_t* panelObject = lv_obj_create(root);
   lv_obj_set_size(panelObject, 1240, kEqPanelHeight);
-  lv_obj_align(panelObject, LV_ALIGN_BOTTOM_MID, 0, -4);
+  lv_obj_align(panelObject, LV_ALIGN_TOP_MID, 0, kEqPanelTop);
   lv_obj_remove_flag(panelObject, LV_OBJ_FLAG_SCROLLABLE);
   styleSurface(panelObject, panelAlt);
   label(panelObject, "Parametric EQ", LV_ALIGN_TOP_LEFT, 28, 15, &ardor_font_open_sans_semibold_22);
@@ -942,8 +945,8 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
 
   for (std::size_t i = 0; i < kParametricEqBandCount; ++i) {
     lv_obj_t* bandButton = button(panelObject, "Band " + std::to_string(i + 1));
-    lv_obj_set_size(bandButton, 98, 38);
-    lv_obj_set_pos(bandButton, 28 + static_cast<int>(i) * 104, 194);
+    lv_obj_set_size(bandButton, 106, 42);
+    lv_obj_set_pos(bandButton, 28 + static_cast<int>(i) * 112, 350);
     styleSurface(bandButton, context->ui->selectedEqBand() == i ? eqBandColors[i] : 0x171717);
     lv_obj_set_style_text_color(lv_obj_get_child(bandButton, 0),
                                 lv_color_hex(context->ui->selectedEqBand() == i ? bg : text), 0);
@@ -953,25 +956,25 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
   const auto selectedBand = context->ui->selectedEqBand();
   const auto& band = params.bands[selectedBand];
   lv_obj_t* enabled = button(panelObject, band.enabled ? "Band On" : "Band Off");
-  lv_obj_set_size(enabled, 120, 38);
-  lv_obj_set_pos(enabled, 550, 194);
+  lv_obj_set_size(enabled, 130, 42);
+  lv_obj_set_pos(enabled, 600, 350);
   styleSurface(enabled, band.enabled ? 0x25442a : 0x3a2020);
   lv_obj_set_style_text_color(lv_obj_get_child(enabled, 0), lv_color_hex(band.enabled ? accent : 0xf97373), 0);
   lv_obj_add_event_cb(enabled, onEqBandEnabled, LV_EVENT_CLICKED, context->ui->remember(state, selectedBand));
 
   lv_obj_t* reset = button(panelObject, "Reset Band");
-  lv_obj_set_size(reset, 140, 38);
-  lv_obj_set_pos(reset, 690, 194);
+  lv_obj_set_size(reset, 148, 42);
+  lv_obj_set_pos(reset, 744, 350);
   styleSurface(reset, 0x171717);
   lv_obj_add_event_cb(reset, onEqBandReset, LV_EVENT_CLICKED, context->ui->remember(state, selectedBand));
 
-  renderEqField(panelObject, "Frequency", eqFrequencyLabel(band.frequencyHz), 28, 240,
+  renderEqField(panelObject, "Frequency", eqFrequencyLabel(band.frequencyHz), 28, 420,
                 context->ui->isEqBandFieldFocused(EqBandField::Frequency),
                 context->ui->remember(state, selectedBand, "frequency"));
-  renderEqField(panelObject, "Q", eqQLabel(band.q), 230, 240,
+  renderEqField(panelObject, "Q", eqQLabel(band.q), 248, 420,
                 context->ui->isEqBandFieldFocused(EqBandField::Q),
                 context->ui->remember(state, selectedBand, "q"));
-  renderEqField(panelObject, "Gain", eqGainLabel(band.gainDb), 432, 240,
+  renderEqField(panelObject, "Gain", eqGainLabel(band.gainDb), 468, 420,
                 context->ui->isEqBandFieldFocused(EqBandField::Gain),
                 context->ui->remember(state, selectedBand, "gain"));
 }
@@ -1253,6 +1256,16 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   lv_obj_add_event_cb(blocksButton, onOpenBlockDrawer, LV_EVENT_CLICKED, remember(state));
 
   const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  const bool editingEq = state.paramDrawerOpen && state.paramTarget == UiParamTarget::Block
+    && state.selectedBlock < blocks.size() && blocks[state.selectedBlock].type == "eq"
+    && isParametricEqMode(blocks[state.selectedBlock].params);
+  if (editingEq) {
+    renderParametricEqPanel(root, state, remember(state));
+    if (state.blockDrawerOpen) {
+      renderBlockDrawer(root, state);
+    }
+    return;
+  }
 
   lv_obj_t* chain = lv_obj_create(root);
   lv_obj_set_size(chain, 1240, kChainHeight);
@@ -1300,12 +1313,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
     renderBlockDrawer(root, state);
   }
   if (state.paramDrawerOpen) {
-    if (state.paramTarget == UiParamTarget::Block && state.selectedBlock < blocks.size()
-        && blocks[state.selectedBlock].type == "eq" && isParametricEqMode(blocks[state.selectedBlock].params)) {
-      renderParametricEqPanel(root, state, remember(state));
-    } else {
-      renderParameterPanel(root, state, remember(state));
-    }
+    renderParameterPanel(root, state, remember(state));
   }
 }
 
