@@ -1,6 +1,6 @@
 # Buildroot 2025.02 LTS Upgrade Design
 
-**Status:** Approved design, pending written-spec review
+**Status:** Approved
 
 **Date:** 2026-07-15
 
