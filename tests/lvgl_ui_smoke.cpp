@@ -515,6 +515,9 @@ int main()
   ardor::enterPresetMode(state);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* presetTitle = findLabel(lv_screen_active(), state.bank.name.c_str());
+  if (require(presetTitle && lv_obj_get_style_transform_scale_x(presetTitle, LV_PART_MAIN) >= 3 * LV_SCALE_NONE,
+              "preset title should be at least three times the standard title size")) return 1;
   if (require(findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x43f05a), 4),
               "active preset should have a thin acid-green indicator")) return 1;
 

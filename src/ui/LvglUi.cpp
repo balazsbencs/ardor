@@ -1254,7 +1254,12 @@ void telemetryLine(lv_obj_t* root, const RuntimeTelemetry& telemetry, bool bypas
 
 void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
 {
-  label(root, state.bank.name, LV_ALIGN_TOP_MID, 0, 28, &ardor_font_open_sans_semibold_28);
+  lv_obj_t* title = label(root, state.bank.name, LV_ALIGN_TOP_MID, 0, 28, &ardor_font_open_sans_semibold_28);
+  // The preset name is the primary screen landmark. Scale around its centre
+  // so it is visually three times the standard 28 px editor title.
+  lv_obj_set_style_transform_pivot_x(title, LV_PCT(50), 0);
+  lv_obj_set_style_transform_pivot_y(title, LV_PCT(50), 0);
+  lv_obj_set_style_transform_scale(title, 3 * LV_SCALE_NONE, 0);
   label(root, "Master " + std::to_string(state.masterVolume) + "%", LV_ALIGN_TOP_LEFT, 28, 28,
         &ardor_font_open_sans_regular_18, muted);
 
