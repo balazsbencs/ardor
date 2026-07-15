@@ -171,7 +171,34 @@ func New(cfg config.Config) http.Handler {
 		})
 	})
 
-	return mux
+	return withCORS(mux)
+}
+
+var allowedOrigins = map[string]struct{}{
+	"tauri://localhost":       {},
+	"https://tauri.localhost": {},
+	"http://tauri.localhost":  {},
+	"http://localhost:1420":   {},
+	"http://127.0.0.1:1420":   {},
+}
+
+func withCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		_, allowed := allowedOrigins[origin]
+		if allowed {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+			w.Header().Set("Access-Control-Max-Age", "600")
+			w.Header().Add("Vary", "Origin")
+		}
+		if r.Method == http.MethodOptions && allowed {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func authorized(w http.ResponseWriter, r *http.Request, cfg config.Config) bool {

@@ -40,7 +40,7 @@ function assetOptions(block: PresetBlock, assets: Asset[]) {
 
 export default function App() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [baseUrl, setBaseUrl] = useState("http://127.0.0.1:8080");
+  const [baseUrl, setBaseUrl] = useState(() => localStorage.getItem("ardor-manager.base-url") ?? "http://127.0.0.1:8080");
   const [token, setToken] = useState("");
   const [authEnabled, setAuthEnabled] = useState<boolean | null>(null);
   const [connected, setConnected] = useState(false);
@@ -77,6 +77,7 @@ export default function App() {
       ]);
       setAuthEnabled(device.authEnabled);
       setConnected(true);
+      localStorage.setItem("ardor-manager.base-url", baseUrl);
       setModels(nextModels);
       setIrs(nextIrs);
       setPresets(nextPresets);

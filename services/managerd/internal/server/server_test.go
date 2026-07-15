@@ -41,6 +41,34 @@ func TestAuthCanBeDisabledForTesting(t *testing.T) {
 	}
 }
 
+func TestTauriCORS(t *testing.T) {
+	handler := New(config.Config{DataRoot: t.TempDir(), AuthEnabled: false})
+
+	request := httptest.NewRequest(http.MethodGet, "/api/device", nil)
+	request.Header.Set("Origin", "tauri://localhost")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("device status=%d", response.Code)
+	}
+	if origin := response.Header().Get("Access-Control-Allow-Origin"); origin != "tauri://localhost" {
+		t.Fatalf("allow origin=%q", origin)
+	}
+
+	preflight := httptest.NewRequest(http.MethodOptions, "/api/assets/models", nil)
+	preflight.Header.Set("Origin", "tauri://localhost")
+	preflight.Header.Set("Access-Control-Request-Method", http.MethodPost)
+	preflight.Header.Set("Access-Control-Request-Headers", "authorization,content-type")
+	preflightResponse := httptest.NewRecorder()
+	handler.ServeHTTP(preflightResponse, preflight)
+	if preflightResponse.Code != http.StatusNoContent {
+		t.Fatalf("preflight status=%d", preflightResponse.Code)
+	}
+	if headers := preflightResponse.Header().Get("Access-Control-Allow-Headers"); headers != "Authorization, Content-Type" {
+		t.Fatalf("allow headers=%q", headers)
+	}
+}
+
 func TestAssetUploadPresetSaveAndApply(t *testing.T) {
 	handler := New(config.Config{DataRoot: t.TempDir(), AuthEnabled: true, Token: "secret"})
 
