@@ -28,6 +28,23 @@ export function setBlockParam(preset: Preset, blockId: string, key: string, valu
   return draft;
 }
 
+export function addAssetBlock(preset: Preset, type: "nam" | "cab", asset: string): Preset {
+  const draft = clonePreset(preset);
+  const prefix = type === "nam" ? "nam" : "cab";
+  let number = 1;
+  while (draft.blocks.some((block) => block.id === `${prefix}-${number}`)) {
+    number += 1;
+  }
+  draft.blocks.push({
+    id: `${prefix}-${number}`,
+    type,
+    enabled: true,
+    asset,
+    params: type === "cab" ? { levelDb: 0, mix: 1 } : {},
+  });
+  return draft;
+}
+
 export function isKnownEditableBlock(block: PresetBlock): boolean {
   return ["nam", "cab", "mod", "delay", "reverb"].includes(block.type);
 }

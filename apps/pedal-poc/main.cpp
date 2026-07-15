@@ -15,6 +15,7 @@
 #include "preset/ChainPlan.h"
 #include "preset/Preset.h"
 #include "preset/PresetStore.h"
+#include "preset/RuntimeCommands.h"
 #include "preset/RuntimeState.h"
 
 #include <algorithm>
@@ -425,6 +426,7 @@ int main(int argc, char** argv)
       }
 
       std::atomic<int> requestedSlot{-1};
+      std::atomic<int> requestedBank{-1};
       std::thread controlThread([&]() {
         char c = 0;
         while (std::cin >> c) {
@@ -602,8 +604,24 @@ int main(int argc, char** argv)
           uiState.masterVolume = controls.masterVolume;
         }
 #endif
+        bool reloadAssets = false;
+        for (const auto& command : ardor::consumeRuntimeCommands(args.dataRoot)) {
+          if (command.type == ardor::RuntimeCommandType::ReloadAssets) {
+            reloadAssets = true;
+          } else if (command.type == ardor::RuntimeCommandType::ApplyPreset) {
+            requestedBank.store(command.bank, std::memory_order_relaxed);
+            requestedSlot.store(command.slot, std::memory_order_relaxed);
+          }
+        }
+#if defined(ARDOR_HAS_UI)
+        if (reloadAssets && args.enableUi && ui) {
+          ardor::loadAssetsFromDataRoot(uiState, args.dataRoot);
+        }
+#endif
+        const int nextBank = requestedBank.exchange(-1, std::memory_order_relaxed);
         const int nextSlot = requestedSlot.exchange(-1, std::memory_order_relaxed);
-        if (nextSlot >= 0 && nextSlot != args.slot) {
+        if (nextSlot >= 0) {
+          const int targetBank = nextBank >= 0 ? nextBank : args.bank;
           // Hosted Daisy modes still contain vendor-owned static delay/reverb
           // buffers. Preparing a replacement while a Daisy preset runs can
           // reset or alias the live effect state. Move through a muted engine
@@ -623,7 +641,7 @@ int main(int argc, char** argv)
 
           auto nextEngine = std::make_unique<ardor::PedalEngine>();
           std::string swapError;
-          if (!ardor::applyPresetSlot(*nextEngine, store, {args.bank, nextSlot}, args.dataRoot, loadOptions, swapError)) {
+          if (!ardor::applyPresetSlot(*nextEngine, store, {targetBank, nextSlot}, args.dataRoot, loadOptions, swapError)) {
             std::cerr << "Preset switch failed: " << swapError << "\n";
             auto recoveredEngine = std::make_unique<ardor::PedalEngine>();
             std::string recoveryError;
@@ -645,12 +663,14 @@ int main(int argc, char** argv)
               // liveEngine has completed, so it is safe to release it now.
               liveEngine = std::move(nextEngine);
               runtime.changePreset();
+              args.bank = targetBank;
               args.slot = nextSlot;
+              controls.activeSlot = nextSlot;
               std::cerr << "Switched to preset " << args.bank << ":" << args.slot << "\n";
 #if defined(ARDOR_HAS_UI)
               if (args.enableUi && ui) {
-                std::string uiLoadError;
-                ardor::loadPresetSlotFromStore(uiState, store, {args.bank, args.slot}, uiLoadError);
+                ardor::loadBankFromStore(uiState, store, args.bank);
+                ardor::selectPreset(uiState, static_cast<std::size_t>(args.slot));
               }
 #endif
             }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Preset } from "../api/types";
-import { isKnownEditableBlock, setBlockAsset, setBlockParam, setGlobalParam, setPresetName } from "./presetDraft";
+import { addAssetBlock, isKnownEditableBlock, setBlockAsset, setBlockParam, setGlobalParam, setPresetName } from "./presetDraft";
 
 const basePreset: Preset = {
   version: 1,
@@ -41,5 +41,19 @@ describe("preset drafts", () => {
     expect(isKnownEditableBlock(basePreset.blocks[0])).toBe(true);
     expect(isKnownEditableBlock(basePreset.blocks[1])).toBe(true);
     expect(isKnownEditableBlock(basePreset.blocks[2])).toBe(false);
+  });
+
+  it("adds NAM and cabinet blocks with usable defaults", () => {
+    const withNam = addAssetBlock(basePreset, "nam", "models/new.nam");
+    expect(withNam.blocks[withNam.blocks.length - 1]).toMatchObject({ id: "nam-2", type: "nam", asset: "models/new.nam", params: {} });
+
+    const withCab = addAssetBlock(withNam, "cab", "irs/new.wav");
+    expect(withCab.blocks[withCab.blocks.length - 1]).toMatchObject({
+      id: "cab-2",
+      type: "cab",
+      asset: "irs/new.wav",
+      params: { levelDb: 0, mix: 1 },
+    });
+    expect(basePreset.blocks).toHaveLength(3);
   });
 });

@@ -6,6 +6,8 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"ardor.local/managerd/internal/config"
@@ -70,7 +72,8 @@ func TestTauriCORS(t *testing.T) {
 }
 
 func TestAssetUploadPresetSaveAndApply(t *testing.T) {
-	handler := New(config.Config{DataRoot: t.TempDir(), AuthEnabled: true, Token: "secret"})
+	dataRoot := t.TempDir()
+	handler := New(config.Config{DataRoot: dataRoot, AuthEnabled: true, Token: "secret"})
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -96,6 +99,7 @@ func TestAssetUploadPresetSaveAndApply(t *testing.T) {
 	if !bytes.Contains(upload.Body.Bytes(), []byte(`models/Clean_Amp.nam`)) {
 		t.Fatalf("upload body=%s", upload.Body.String())
 	}
+	assertQueuedCommand(t, dataRoot, "reload_assets")
 
 	preset := map[string]any{
 		"version": float64(1),
@@ -134,6 +138,25 @@ func TestAssetUploadPresetSaveAndApply(t *testing.T) {
 	if apply.Code != http.StatusAccepted {
 		t.Fatalf("apply status=%d body=%s", apply.Code, apply.Body.String())
 	}
+	assertQueuedCommand(t, dataRoot, "apply_preset")
+}
+
+func assertQueuedCommand(t *testing.T, dataRoot, commandType string) {
+	t.Helper()
+	entries, err := os.ReadDir(filepath.Join(dataRoot, "runtime", "commands"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		body, err := os.ReadFile(filepath.Join(dataRoot, "runtime", "commands", entry.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if bytes.Contains(body, []byte(`"type":"`+commandType+`"`)) {
+			return
+		}
+	}
+	t.Fatalf("missing queued command %q", commandType)
 }
 
 func TestDuplicateUploadReturnsConflict(t *testing.T) {

@@ -239,7 +239,9 @@ paths:
       description: >
         Requests that the active pedal runtime switch to the saved preset slot.
         The switch must not parse JSON, load files, allocate buffers, or do any
-        other blocking management work inside the realtime audio callback.
+        other blocking management work inside the realtime audio callback. The
+        daemon persists an atomic runtime command; the pedal consumes it from
+        its management loop without restarting audio.
       operationId: applyPresetSlot
       parameters:
         - $ref: "#/components/parameters/Bank"

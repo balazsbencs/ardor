@@ -230,7 +230,10 @@ The app maps `KEY_F1` through `KEY_F4` to preset slots and relative encoder move
 ## Manager Daemon
 
 The REST manager daemon lives in `services/managerd`. It manages `.nam`, `.wav`,
-and preset files without doing management work in the realtime process.
+and preset files without doing management work in the realtime process. Asset
+uploads queue a catalog refresh for the pedal UI. Applying a saved slot queues
+a live engine swap, handled by the pedal management loop without restarting the
+audio process; a short muted transition protects the active audio callback.
 
 Run locally without auth:
 

@@ -170,6 +170,8 @@ add_library(ardor_preset
   src/preset/Preset.cpp
   src/preset/PresetStore.cpp
   src/preset/ChainPlan.cpp
+
+  src/preset/RuntimeCommands.cpp
   src/preset/RuntimeState.cpp
 )
 target_include_directories(ardor_preset PUBLIC
@@ -241,6 +243,9 @@ target_link_libraries(pedal-offline-smoke PRIVATE ardor_dsp ardor_audio)
 add_executable(pedal-preset-smoke tests/preset_smoke.cpp)
 target_link_libraries(pedal-preset-smoke PRIVATE ardor_preset)
 
+add_executable(pedal-runtime-commands-smoke tests/runtime_commands_smoke.cpp)
+target_link_libraries(pedal-runtime-commands-smoke PRIVATE ardor_preset)
+
 add_executable(pedal-daisy-fx-catalog-smoke tests/daisy_fx_catalog_smoke.cpp)
 target_link_libraries(pedal-daisy-fx-catalog-smoke PRIVATE ardor_daisyfx)
 
@@ -289,6 +294,7 @@ target_link_libraries(pedal-control-smoke PRIVATE ardor_control)
 enable_testing()
 add_test(NAME pedal-offline-smoke COMMAND pedal-offline-smoke)
 add_test(NAME pedal-preset-smoke COMMAND pedal-preset-smoke)
+add_test(NAME pedal-runtime-commands-smoke COMMAND pedal-runtime-commands-smoke)
 add_test(NAME pedal-daisy-fx-catalog-smoke COMMAND pedal-daisy-fx-catalog-smoke)
 add_test(NAME pedal-daisy-fx-smoke COMMAND pedal-daisy-fx-smoke)
 add_test(NAME pedal-compressor-smoke COMMAND pedal-compressor-smoke)

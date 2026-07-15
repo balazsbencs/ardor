@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ArdorApiClient } from "./api/client";
 import type { Asset, AssetKind, Preset, PresetBlock, PresetSlotSummary } from "./api/types";
 import {
+	addAssetBlock,
   isKnownEditableBlock,
   setBlockAsset,
   setBlockParam,
@@ -112,6 +113,12 @@ export default function App() {
     });
   }
 
+  function addBlock(type: "nam" | "cab") {
+    const assets = type === "nam" ? models : irs;
+    if (assets.length === 0) return;
+    setDraft(addAssetBlock(draft, type, assets[0].path));
+  }
+
   function upload(kind: AssetKind, file?: File) {
     if (!file) return;
     return run(async () => {
@@ -182,6 +189,8 @@ export default function App() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {dirty && <span className="badge badge-warning">Unsaved changes</span>}
+              <button className="btn btn-outline btn-sm" onClick={() => addBlock("nam")} disabled={!connected || models.length === 0 || busy}>Add NAM</button>
+              <button className="btn btn-outline btn-sm" onClick={() => addBlock("cab")} disabled={!connected || irs.length === 0 || busy}>Add Cab</button>
               <button className="btn btn-ghost btn-sm" onClick={() => setDraft(savedPreset)} disabled={!dirty || busy}>Discard</button>
               <button className="btn btn-primary btn-sm" onClick={savePreset} disabled={!connected || !dirty || busy}>Save</button>
               <button className="btn btn-outline btn-sm" onClick={applyPreset} disabled={!connected || dirty || busy}>Apply</button>

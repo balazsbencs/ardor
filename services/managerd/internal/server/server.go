@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"ardor.local/managerd/internal/assets"
 	"ardor.local/managerd/internal/config"
 	"ardor.local/managerd/internal/presets"
+	"ardor.local/managerd/internal/runtimecontrol"
 )
 
 type errorResponse struct {
@@ -83,6 +85,11 @@ func New(cfg config.Config) http.Handler {
 			}
 			writeError(w, status, code, err.Error())
 			return
+		}
+		if err := runtimecontrol.QueueAssetReload(cfg.DataRoot); err != nil {
+			// The asset is already durable and listed by the API. Keep the upload
+			// successful, but make a missed runtime refresh diagnosable on-device.
+			log.Printf("queue asset reload: %v", err)
 		}
 		writeJSON(w, http.StatusCreated, info)
 	})
@@ -165,9 +172,13 @@ func New(cfg config.Config) http.Handler {
 			writeError(w, http.StatusNotFound, "preset_not_found", err.Error())
 			return
 		}
+		if err := runtimecontrol.QueueApplyPreset(cfg.DataRoot, bank, slot); err != nil {
+			writeError(w, http.StatusServiceUnavailable, "runtime_command_failed", err.Error())
+			return
+		}
 		writeJSON(w, http.StatusAccepted, map[string]any{
 			"accepted": true, "bank": bank, "slot": slot,
-			"message": "apply request accepted",
+			"message": "apply request queued",
 		})
 	})
 
