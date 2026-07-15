@@ -348,6 +348,56 @@ void onKnobReleased(lv_event_t* event)
   context->ui->endKnobInteraction();
 }
 
+EqBandField eqBandFieldForKey(const std::string& key)
+{
+  if (key == "frequency") {
+    return EqBandField::Frequency;
+  }
+  if (key == "q") {
+    return EqBandField::Q;
+  }
+  return EqBandField::Gain;
+}
+
+ParameterControl eqKnobControl(EqBandField field, const EqBandParams& band);
+
+void onEqKnobPressed(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (!input) {
+    return;
+  }
+  const auto field = eqBandFieldForKey(context->filter);
+  context->ui->selectEqBand(context->index);
+  context->ui->focusEqBandField(field);
+  lv_indev_get_point(input, &context->pressPoint);
+  context->pressPoint = context->ui->toCanvas(context->pressPoint);
+  context->ui->beginKnobInteraction();
+}
+
+void onEqKnobPressing(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (!input) {
+    return;
+  }
+  lv_point_t current{};
+  lv_indev_get_point(input, &current);
+  current = context->ui->toCanvas(current);
+  const int delta = (context->pressPoint.y - current.y) / 12;
+  if (delta == 0) {
+    return;
+  }
+  context->pressPoint.y = current.y;
+  if (context->ui->applyFocusedParameterDelta(*context->state, delta)) {
+    const auto params = selectedParametricEqParams(*context->state);
+    refreshKnobVisual(lv_event_get_target_obj(event),
+                      eqKnobControl(eqBandFieldForKey(context->filter), params.bands[context->index]));
+  }
+}
+
 void onBypassChanged(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
@@ -360,20 +410,6 @@ void onEqBandSelected(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   context->ui->selectEqBand(context->index);
-  redraw(context);
-}
-
-void onEqFieldSelected(lv_event_t* event)
-{
-  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  context->ui->selectEqBand(context->index);
-  if (context->filter == "frequency") {
-    context->ui->focusEqBandField(EqBandField::Frequency);
-  } else if (context->filter == "q") {
-    context->ui->focusEqBandField(EqBandField::Q);
-  } else {
-    context->ui->focusEqBandField(EqBandField::Gain);
-  }
   redraw(context);
 }
 
@@ -682,20 +718,21 @@ lv_obj_t* button(lv_obj_t* parent, const std::string& value)
   return object;
 }
 
-lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, UiEventContext* context)
+lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, int y, bool focused,
+                     UiEventContext* context, lv_event_cb_t onPressed, lv_event_cb_t onPressing)
 {
   const float range = control.maximum - control.minimum;
   const float ratio = range == 0.0f ? 0.0f : std::clamp((control.value - control.minimum) / range, 0.0f, 1.0f);
 
   lv_obj_t* knob = lv_obj_create(parent);
   lv_obj_set_size(knob, 154, 184);
-  lv_obj_set_pos(knob, x, 68);
+  lv_obj_set_pos(knob, x, y);
   lv_obj_remove_flag(knob, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(knob, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_style_bg_opa(knob, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(knob, 0, 0);
-  lv_obj_add_event_cb(knob, onKnobPressed, LV_EVENT_PRESSED, context);
-  lv_obj_add_event_cb(knob, onKnobPressing, LV_EVENT_PRESSING, context);
+  lv_obj_add_event_cb(knob, onPressed, LV_EVENT_PRESSED, context);
+  lv_obj_add_event_cb(knob, onPressing, LV_EVENT_PRESSING, context);
   lv_obj_add_event_cb(knob, onKnobReleased, LV_EVENT_RELEASED, context);
   lv_obj_add_event_cb(knob, onKnobReleased, LV_EVENT_PRESS_LOST, context);
 
@@ -756,7 +793,7 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, U
   }
 
   label(knob, control.label, LV_ALIGN_BOTTOM_MID, 0, -30, &ardor_font_open_sans_semibold_22,
-        context->ui->isParameterFocused(control.key) ? accent : text);
+        focused ? accent : text);
   label(knob, control.formatted, LV_ALIGN_BOTTOM_MID, 0, -7, &ardor_font_open_sans_regular_18, muted);
   return knob;
 }
@@ -853,15 +890,36 @@ std::string eqGainLabel(float gainDb)
   return buffer;
 }
 
-void renderEqField(lv_obj_t* parent, const std::string& title, const std::string& value,
-                   int x, int y, bool focused, UiEventContext* context)
+ParameterControl eqKnobControl(EqBandField field, const EqBandParams& band)
 {
-  lv_obj_t* field = button(parent, title + "\n" + value);
-  lv_obj_set_size(field, 190, 48);
-  lv_obj_set_pos(field, x, y);
-  styleSurface(field, focused ? 0x333333 : 0x171717);
-  lv_obj_set_style_text_color(lv_obj_get_child(field, 0), lv_color_hex(focused ? accent : text), 0);
-  lv_obj_add_event_cb(field, onEqFieldSelected, LV_EVENT_CLICKED, context);
+  ParameterControl control;
+  control.minimum = 0.0f;
+  control.maximum = 1.0f;
+  switch (field) {
+  case EqBandField::Frequency:
+    control.key = "frequency";
+    control.label = "Frequency";
+    control.value = std::log(band.frequencyHz / kEqMinimumFrequencyHz)
+      / std::log(kEqMaximumFrequencyHz / kEqMinimumFrequencyHz);
+    control.formatted = eqFrequencyLabel(band.frequencyHz);
+    break;
+  case EqBandField::Q:
+    control.key = "q";
+    control.label = "Q";
+    control.value = std::log(band.q / kEqMinimumQ) / std::log(kEqMaximumQ / kEqMinimumQ);
+    control.formatted = eqQLabel(band.q);
+    break;
+  case EqBandField::Gain:
+    control.key = "gain";
+    control.label = "Gain";
+    control.minimum = kEqMinimumGainDb;
+    control.maximum = kEqMaximumGainDb;
+    control.value = band.gainDb;
+    control.formatted = eqGainLabel(band.gainDb);
+    break;
+  }
+  control.value = std::clamp(control.value, control.minimum, control.maximum);
+  return control;
 }
 
 void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* context)
@@ -968,15 +1026,19 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
   styleSurface(reset, 0x171717);
   lv_obj_add_event_cb(reset, onEqBandReset, LV_EVENT_CLICKED, context->ui->remember(state, selectedBand));
 
-  renderEqField(panelObject, "Frequency", eqFrequencyLabel(band.frequencyHz), 28, 420,
-                context->ui->isEqBandFieldFocused(EqBandField::Frequency),
-                context->ui->remember(state, selectedBand, "frequency"));
-  renderEqField(panelObject, "Q", eqQLabel(band.q), 248, 420,
-                context->ui->isEqBandFieldFocused(EqBandField::Q),
-                context->ui->remember(state, selectedBand, "q"));
-  renderEqField(panelObject, "Gain", eqGainLabel(band.gainDb), 468, 420,
-                context->ui->isEqBandFieldFocused(EqBandField::Gain),
-                context->ui->remember(state, selectedBand, "gain"));
+  constexpr std::array<EqBandField, 3> eqKnobFields = {
+    EqBandField::Frequency, EqBandField::Q, EqBandField::Gain,
+  };
+  for (std::size_t i = 0; i < eqKnobFields.size(); ++i) {
+    const auto field = eqKnobFields[i];
+    lv_obj_t* knob = createKnob(panelObject, eqKnobControl(field, band), 205 + static_cast<int>(i) * 338, 394,
+                                 context->ui->isEqBandFieldFocused(field),
+                                 context->ui->remember(state, selectedBand,
+                                                       field == EqBandField::Frequency ? "frequency"
+                                                       : field == EqBandField::Q ? "q" : "gain"),
+                                 onEqKnobPressed, onEqKnobPressing);
+    lv_obj_remove_flag(knob, LV_OBJ_FLAG_SCROLLABLE);
+  }
 }
 
 void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* context)
@@ -1022,7 +1084,9 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
   const int firstX = 72;
   const int spacing = 164;
   for (std::size_t i = 0; i < controls.size(); ++i) {
-    lv_obj_t* knob = createKnob(panelObject, controls[i], firstX + static_cast<int>(i) * spacing, context);
+    lv_obj_t* knob = createKnob(panelObject, controls[i], firstX + static_cast<int>(i) * spacing, 68,
+                                 context->ui->isParameterFocused(controls[i].key), context,
+                                 onKnobPressed, onKnobPressing);
     lv_obj_set_user_data(knob, reinterpret_cast<void*>(static_cast<uintptr_t>(i + 1)));
   }
 }

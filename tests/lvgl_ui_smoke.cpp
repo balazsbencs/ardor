@@ -590,6 +590,34 @@ int main()
   if (require(findLabel(lv_screen_active(), "Parametric EQ"), "EQ should render its dedicated editor title")) return 1;
   if (require(findLabel(lv_screen_active(), "Band 1"), "EQ should render its selected-band strip")) return 1;
   if (require(findLabel(lv_screen_active(), "Reset Band"), "EQ should render a reset-band control")) return 1;
+  lv_obj_t* frequencyLabel = findLabel(lv_screen_active(), "Frequency");
+  lv_obj_t* qLabel = findLabel(lv_screen_active(), "Q");
+  lv_obj_t* gainLabel = findLabel(lv_screen_active(), "Gain");
+  if (require(frequencyLabel && qLabel && gainLabel,
+              "EQ should render frequency, Q, and gain as dedicated knobs")) return 1;
+  lv_obj_t* qKnob = lv_obj_get_parent(qLabel);
+  lv_obj_t* qArc = findObjectOfClass(qKnob, &lv_arc_class);
+  if (require(qArc && findKnobPointer(qKnob), "EQ controls should use the regular knob visuals")) return 1;
+  const float qBeforeDrag = ardor::selectedParametricEqParams(state).bands[0].q;
+  lv_area_t qKnobArea{};
+  lv_obj_get_coords(qKnob, &qKnobArea);
+  SimulatedPointer eqPointer{{(qKnobArea.x1 + qKnobArea.x2) / 2,
+                              (qKnobArea.y1 + qKnobArea.y2) / 2},
+                             LV_INDEV_STATE_PRESSED};
+  lv_indev_t* eqInput = lv_indev_create();
+  lv_indev_set_type(eqInput, LV_INDEV_TYPE_POINTER);
+  lv_indev_set_user_data(eqInput, &eqPointer);
+  lv_indev_set_read_cb(eqInput, readSimulatedPointer);
+  lv_indev_read(eqInput);
+  eqPointer.point.y -= 24;
+  lv_indev_read(eqInput);
+  if (require(ardor::selectedParametricEqParams(state).bands[0].q > qBeforeDrag,
+              "EQ Q knob drag should update the selected band's Q factor")) return 1;
+  if (require(lv_arc_get_value(qArc) > 0, "EQ Q knob drag should update its arc before release")) return 1;
+  eqPointer.state = LV_INDEV_STATE_RELEASED;
+  lv_indev_read(eqInput);
+  ui.refresh(lv_screen_active(), state);
+  lv_indev_delete(eqInput);
   lv_obj_t* deleteBlockLabel = findLabel(lv_screen_active(), "Delete Block");
   if (require(deleteBlockLabel, "EQ should render a delete-block control")) return 1;
   if (require(findLineWithPointCount(lv_screen_active(), ardor::kEqCurvePointCount),
