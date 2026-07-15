@@ -1254,12 +1254,7 @@ void telemetryLine(lv_obj_t* root, const RuntimeTelemetry& telemetry, bool bypas
 
 void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
 {
-  lv_obj_t* title = label(root, state.bank.name, LV_ALIGN_TOP_MID, 0, 28, &ardor_font_open_sans_semibold_28);
-  // The preset name is the primary screen landmark. Scale around its centre
-  // so it is visually three times the standard 28 px editor title.
-  lv_obj_set_style_transform_pivot_x(title, LV_PCT(50), 0);
-  lv_obj_set_style_transform_pivot_y(title, LV_PCT(50), 0);
-  lv_obj_set_style_transform_scale(title, 3 * LV_SCALE_NONE, 0);
+  label(root, state.bank.name, LV_ALIGN_TOP_MID, 0, 28, &ardor_font_open_sans_semibold_28);
   label(root, "Master " + std::to_string(state.masterVolume) + "%", LV_ALIGN_TOP_LEFT, 28, 28,
         &ardor_font_open_sans_regular_18, muted);
 
@@ -1286,7 +1281,14 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     lv_obj_set_grid_cell(preset, LV_GRID_ALIGN_STRETCH, static_cast<int32_t>(i % 2), 1,
                          LV_GRID_ALIGN_STRETCH, static_cast<int32_t>(i / 2), 1);
     styleSurface(preset, panel);
-    lv_obj_set_style_text_color(lv_obj_get_child(preset, 0), lv_color_hex(i == state.activePreset ? accent : text), 0);
+    lv_obj_t* presetName = lv_obj_get_child(preset, 0);
+    lv_obj_set_style_text_color(presetName, lv_color_hex(i == state.activePreset ? accent : text), 0);
+    lv_obj_set_style_text_font(presetName, &ardor_font_open_sans_semibold_28, 0);
+    // Use the ample card space for the preset name: 28 px at 2x scale gives
+    // a 56 px label, more than triple the standard 18 px button text.
+    lv_obj_set_style_transform_pivot_x(presetName, LV_PCT(50), 0);
+    lv_obj_set_style_transform_pivot_y(presetName, LV_PCT(50), 0);
+    lv_obj_set_style_transform_scale(presetName, 2 * LV_SCALE_NONE, 0);
     if (i == state.activePreset) {
       lv_obj_t* indicator = lv_obj_create(preset);
       lv_obj_set_size(indicator, 4, LV_PCT(100));

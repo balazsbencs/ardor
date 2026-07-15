@@ -1,6 +1,7 @@
 #include "ui/LvglUi.h"
 #include "ui/EqEditorModel.h"
 #include "ui/fonts/OpenSansRegular.h"
+#include "ui/fonts/OpenSansSemibold.h"
 
 #include <algorithm>
 #include <cstring>
@@ -516,8 +517,12 @@ int main()
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   lv_obj_t* presetTitle = findLabel(lv_screen_active(), state.bank.name.c_str());
-  if (require(presetTitle && lv_obj_get_style_transform_scale_x(presetTitle, LV_PART_MAIN) >= 3 * LV_SCALE_NONE,
-              "preset title should be at least three times the standard title size")) return 1;
+  if (require(presetTitle && lv_obj_get_style_transform_scale_x(presetTitle, LV_PART_MAIN) == LV_SCALE_NONE,
+              "bank title should keep its standard size")) return 1;
+  lv_obj_t* presetName = findLabel(lv_screen_active(), state.bank.presets[state.activePreset].name.c_str());
+  if (require(presetName && lv_obj_get_style_text_font(presetName, LV_PART_MAIN) == &ardor_font_open_sans_semibold_28
+                && lv_obj_get_style_transform_scale_x(presetName, LV_PART_MAIN) >= 2 * LV_SCALE_NONE,
+              "preset-card names should be at least three times standard button text size")) return 1;
   if (require(findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x43f05a), 4),
               "active preset should have a thin acid-green indicator")) return 1;
 
