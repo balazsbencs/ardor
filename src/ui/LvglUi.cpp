@@ -212,6 +212,15 @@ void onCloseParamDrawer(lv_event_t* event)
   redraw(context);
 }
 
+void onDeleteSelectedBlock(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  if (deleteSelectedBlock(*context->state)) {
+    context->ui->resetParameterPage();
+  }
+  redraw(context);
+}
+
 void onGlobalParamsClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
@@ -830,7 +839,7 @@ std::string eqFrequencyLabel(float frequencyHz)
 std::string eqQLabel(float q)
 {
   char buffer[16]{};
-  std::snprintf(buffer, sizeof(buffer), "Q %.2f", q);
+  std::snprintf(buffer, sizeof(buffer), "%.2f", q);
   return buffer;
 }
 
@@ -842,11 +851,11 @@ std::string eqGainLabel(float gainDb)
 }
 
 void renderEqField(lv_obj_t* parent, const std::string& title, const std::string& value,
-                   int x, bool focused, UiEventContext* context)
+                   int x, int y, bool focused, UiEventContext* context)
 {
   lv_obj_t* field = button(parent, title + "\n" + value);
-  lv_obj_set_size(field, 150, 48);
-  lv_obj_set_pos(field, x, 240);
+  lv_obj_set_size(field, 190, 48);
+  lv_obj_set_pos(field, x, y);
   styleSurface(field, focused ? 0x333333 : 0x171717);
   lv_obj_set_style_text_color(lv_obj_get_child(field, 0), lv_color_hex(focused ? accent : text), 0);
   lv_obj_add_event_cb(field, onEqFieldSelected, LV_EVENT_CLICKED, context);
@@ -873,6 +882,12 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
   styleSurface(close, bg);
   lv_obj_add_event_cb(close, onCloseParamDrawer, LV_EVENT_CLICKED, context);
   renderBypassSwitch(panelObject, state, context);
+  lv_obj_t* remove = button(panelObject, "Delete Block");
+  lv_obj_set_size(remove, 142, 32);
+  lv_obj_set_pos(remove, 792, 16);
+  styleSurface(remove, 0x4a2024);
+  lv_obj_set_style_text_color(lv_obj_get_child(remove, 0), lv_color_hex(0xf97373), 0);
+  lv_obj_add_event_cb(remove, onDeleteSelectedBlock, LV_EVENT_CLICKED, context);
 
   const auto params = selectedParametricEqParams(state);
   const auto curve = makeEqCurveData(params, 48000.0f);
@@ -950,13 +965,13 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
   styleSurface(reset, 0x171717);
   lv_obj_add_event_cb(reset, onEqBandReset, LV_EVENT_CLICKED, context->ui->remember(state, selectedBand));
 
-  renderEqField(panelObject, "Frequency", eqFrequencyLabel(band.frequencyHz), 550,
+  renderEqField(panelObject, "Frequency", eqFrequencyLabel(band.frequencyHz), 28, 240,
                 context->ui->isEqBandFieldFocused(EqBandField::Frequency),
                 context->ui->remember(state, selectedBand, "frequency"));
-  renderEqField(panelObject, "Q", eqQLabel(band.q), 710,
+  renderEqField(panelObject, "Q", eqQLabel(band.q), 230, 240,
                 context->ui->isEqBandFieldFocused(EqBandField::Q),
                 context->ui->remember(state, selectedBand, "q"));
-  renderEqField(panelObject, "Gain", eqGainLabel(band.gainDb), 870,
+  renderEqField(panelObject, "Gain", eqGainLabel(band.gainDb), 432, 240,
                 context->ui->isEqBandFieldFocused(EqBandField::Gain),
                 context->ui->remember(state, selectedBand, "gain"));
 }
@@ -988,9 +1003,15 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
     const auto& block = blocks[state.selectedBlock];
     lv_obj_t* title = label(panelObject, block.label + "  /  " + block.assetName,
                             LV_ALIGN_TOP_LEFT, 270, 22, &ardor_font_open_sans_semibold_22);
-    lv_obj_set_width(title, 660);
+    lv_obj_set_width(title, 500);
     lv_label_set_long_mode(title, LV_LABEL_LONG_CLIP);
     renderBypassSwitch(panelObject, state, context);
+    lv_obj_t* remove = button(panelObject, "Delete Block");
+    lv_obj_set_size(remove, 142, 32);
+    lv_obj_set_pos(remove, 800, 20);
+    styleSurface(remove, 0x4a2024);
+    lv_obj_set_style_text_color(lv_obj_get_child(remove, 0), lv_color_hex(0xf97373), 0);
+    lv_obj_add_event_cb(remove, onDeleteSelectedBlock, LV_EVENT_CLICKED, context);
   }
 
   renderPageNavigation(panelObject, state, context);

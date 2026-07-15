@@ -299,6 +299,25 @@ void moveBlock(UiState& state, std::size_t from, std::size_t to)
   state.dirty = true;
 }
 
+bool deleteSelectedBlock(UiState& state)
+{
+  auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (state.selectedBlock >= blocks.size()) {
+    return false;
+  }
+
+  blocks.erase(blocks.begin() + static_cast<std::ptrdiff_t>(state.selectedBlock));
+  if (blocks.empty()) {
+    state.selectedBlock = 0;
+    state.paramDrawerOpen = false;
+  } else {
+    state.selectedBlock = std::min(state.selectedBlock, blocks.size() - 1);
+    state.paramTarget = UiParamTarget::Block;
+  }
+  state.dirty = true;
+  return true;
+}
+
 void closeParamDrawer(UiState& state)
 {
   state.paramDrawerOpen = false;

@@ -586,8 +586,15 @@ int main()
   if (require(findLabel(lv_screen_active(), "Parametric EQ"), "EQ should render its dedicated editor title")) return 1;
   if (require(findLabel(lv_screen_active(), "Band 1"), "EQ should render its selected-band strip")) return 1;
   if (require(findLabel(lv_screen_active(), "Reset Band"), "EQ should render a reset-band control")) return 1;
+  lv_obj_t* deleteBlockLabel = findLabel(lv_screen_active(), "Delete Block");
+  if (require(deleteBlockLabel, "EQ should render a delete-block control")) return 1;
   if (require(findLineWithPointCount(lv_screen_active(), ardor::kEqCurvePointCount),
               "EQ should render a sampled response curve")) return 1;
+  const auto blocksBeforeDelete = state.bank.presets[state.activePreset].blocks.size();
+  lv_obj_send_event(lv_obj_get_parent(deleteBlockLabel), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  if (require(state.bank.presets[state.activePreset].blocks.size() == blocksBeforeDelete - 1,
+              "delete-block control should remove the selected EQ block")) return 1;
 
   lv_display_delete(display);
   lv_deinit();

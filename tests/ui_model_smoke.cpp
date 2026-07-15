@@ -293,5 +293,17 @@ int main()
   if (require(ardor::selectedParametricEqParams(migrationState).bands[2] == ardor::defaultParametricEqBand(2),
               "EQ band reset should restore the indexed default")) return 1;
 
+  const auto blocksBeforeDelete = migrationState.bank.presets[migrationState.activePreset].blocks.size();
+  const auto deletedBlockId = migrationState.bank.presets[migrationState.activePreset].blocks[migrationState.selectedBlock].id;
+  migrationState.dirty = false;
+  if (require(ardor::deleteSelectedBlock(migrationState), "selected block delete should succeed")) return 1;
+  if (require(migrationState.bank.presets[migrationState.activePreset].blocks.size() == blocksBeforeDelete - 1,
+              "selected block delete should remove exactly one block")) return 1;
+  if (require(std::none_of(migrationState.bank.presets[migrationState.activePreset].blocks.begin(),
+                           migrationState.bank.presets[migrationState.activePreset].blocks.end(),
+                           [&](const ardor::UiBlock& block) { return block.id == deletedBlockId; }),
+              "selected block delete should remove the selected id")) return 1;
+  if (require(migrationState.dirty, "selected block delete should dirty the preset")) return 1;
+
   return 0;
 }
