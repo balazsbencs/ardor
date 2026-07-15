@@ -108,8 +108,10 @@ fi
 [ -x "$local_bin" ] || die "built binary is missing or not executable: $local_bin"
 
 echo "Uploading $local_bin to $ssh_target:$remote_tmp"
+# OpenSSH 9+ clients use SFTP for scp by default. The pedal image does not
+# expose the SFTP subsystem, so force the compatible legacy SCP protocol.
 # ARDOR_SSH_OPTS is intentionally split into separate ssh/scp arguments.
-scp $ssh_opts "$local_bin" "$ssh_target:$remote_tmp"
+scp -O $ssh_opts "$local_bin" "$ssh_target:$remote_tmp"
 
 echo "Installing and restarting ardor-pedal on $ssh_target"
 # ARDOR_SSH_OPTS is intentionally split into separate ssh/scp arguments.
