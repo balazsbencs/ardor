@@ -33,13 +33,19 @@ The app itself is built from the repo root: `apps/`, `src/`, and `lv_conf.h`.
 - A persistent named volume for Buildroot's output (so rebuilds are incremental):
 
 ```bash
-docker volume create buildroot_vol
+docker volume create buildroot_vol_amd64
 ```
+
+On Apple Silicon Macs, Buildroot 2024.02.11 must run in an x86_64 container:
+its Go bootstrap stage does not support an ARM64 build host, which would cause
+Buildroot to drop `BR2_PACKAGE_ARDOR_MANAGERD`. Docker Desktop provides the
+x86_64 emulation. Use a fresh x86_64 volume; do not reuse a volume populated by
+an ARM64 Buildroot container because its host tools have the wrong architecture.
 
 - Buildroot checked out **inside** that volume once (first time only):
 
 ```bash
-docker run --rm -v buildroot_vol:/buildroot -w /buildroot ubuntu:24.04 bash -c "
+docker run --platform linux/amd64 --rm -v buildroot_vol_amd64:/buildroot -w /buildroot ubuntu:24.04 bash -c "
   apt-get update -qq && apt-get install -y -qq git > /dev/null && \
   git clone --depth 1 -b 2024.02.11 https://gitlab.com/buildroot.org/buildroot.git .
 "
@@ -49,7 +55,8 @@ docker run --rm -v buildroot_vol:/buildroot -w /buildroot ubuntu:24.04 bash -c "
 
 ```bash
 docker run --rm \
-  -v buildroot_vol:/buildroot \
+  --platform linux/amd64 \
+  -v buildroot_vol_amd64:/buildroot \
   -v /Users/bbalazs/Documents/Ardor:/ardor \
   -w /buildroot \
   -e FORCE_UNSAFE_CONFIGURE=1 \
@@ -82,7 +89,7 @@ daemon binary, init script, or environment file is absent from the rootfs.
 
 Both Ardor packages use `SITE_METHOD = local`, which **rsyncs the working tree
 into the package build directory only at the _extract_ step**. Because
-`buildroot_vol` persists across container runs:
+`buildroot_vol_amd64` persists across container runs:
 
 - A plain `make` sees the package's build stamp and **skips it** → your source
   edits never make it into the image.
