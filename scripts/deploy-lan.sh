@@ -1,6 +1,19 @@
 #!/bin/sh
 set -eu
 
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+repo_dir=$(CDPATH= cd -- "$script_dir/.." && pwd)
+version_file="$repo_dir/buildroot/buildroot-version.env"
+
+[ -f "$version_file" ] || {
+  echo "deploy-lan: missing version manifest: $version_file" >&2
+  exit 1
+}
+# shellcheck disable=SC1090
+. "$version_file"
+: "${BUILDROOT_VERSION:?BUILDROOT_VERSION is required}"
+: "${BUILDROOT_DOCKER_VOLUME:?BUILDROOT_DOCKER_VOLUME is required}"
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -14,7 +27,8 @@ Environment:
 
 Docker build defaults:
   ARDOR_BUILD_MODE       docker or native. Default: docker
-  ARDOR_BUILDROOT_VOLUME Docker volume with Buildroot. Default: buildroot_vol
+  ARDOR_BUILDROOT_VOLUME Docker volume initialized by build-image.sh.
+                         Default comes from buildroot/buildroot-version.env.
   ARDOR_DOCKER_IMAGE     Build container image. Default: ubuntu:24.04
 
 Native build mode:
@@ -42,9 +56,6 @@ host="${1:-${ARDOR_PI_HOST:-}}"
 }
 [ "$#" -le 1 ] || die "expected one host/IP argument"
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-repo_dir=$(CDPATH= cd -- "$script_dir/.." && pwd)
-
 ssh_user="${ARDOR_SSH_USER:-root}"
 ssh_opts="${ARDOR_SSH_OPTS:-}"
 ssh_target="$ssh_user@$host"
@@ -57,7 +68,7 @@ service="${ARDOR_SERVICE:-/etc/init.d/S99ardor-pedal}"
 build_with_docker() {
   command -v docker >/dev/null 2>&1 || die "docker is required for ARDOR_BUILD_MODE=docker"
 
-  volume="${ARDOR_BUILDROOT_VOLUME:-buildroot_vol}"
+  volume="${ARDOR_BUILDROOT_VOLUME:-$BUILDROOT_DOCKER_VOLUME}"
   image="${ARDOR_DOCKER_IMAGE:-ubuntu:24.04}"
 
   docker run --rm \
@@ -67,6 +78,16 @@ build_with_docker() {
     -e FORCE_UNSAFE_CONFIGURE=1 \
     "$image" bash -lc '
       set -eu
+      . /ardor/buildroot/buildroot-version.env
+      marker=/buildroot/.ardor-buildroot-version
+      [ -f "$marker" ] || {
+        echo "deploy-lan: run scripts/build-image.sh once to initialize the Buildroot volume" >&2
+        exit 1
+      }
+      [ "$(cat "$marker")" = "$BUILDROOT_VERSION" ] || {
+        echo "deploy-lan: Buildroot volume version does not match $BUILDROOT_VERSION" >&2
+        exit 1
+      }
       export DEBIAN_FRONTEND=noninteractive
       apt-get update -qq
       apt-get install -y -qq build-essential git curl wget rsync cpio unzip bc \
