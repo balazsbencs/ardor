@@ -41,44 +41,96 @@ cp "${BINARIES}/bcm2711-rpi-4-b.dtb" "${BOOT}/"
 # rpi-firmware copy in BINARIES — config.txt edits must reach every image.
 cp "${BOARD_DIR}/config.txt" "${BOOT}/config.txt"
 
-# Era-match the GPU firmware with the rpi-6.18.y kernel (Buildroot 2024.02
-# ships Apr-2024 blobs). Pinned release; cached in BINARIES across builds.
+# Keep the GPU firmware era-matched with the validated rpi-6.18.y kernel.
+# The exact blobs are cached in BINARIES and verified on every image build.
 FW_TAG="1.20260521"
+START4_SHA256="3484b5ddc0f655e0e562680b7e2462ec21177763cc2d884b37d31e53b800bb02"
+FIXUP4_SHA256="c571fe712649b66409a4834b06af39dcef8dca6727e3abc10c6043f02028b5e5"
 FW_CACHE="${BINARIES}/rpi-firmware-${FW_TAG}"
 mkdir -p "${FW_CACHE}"
-for blob in start4.elf fixup4.dat; do
-    if [ ! -f "${FW_CACHE}/${blob}" ]; then
-        curl -fsSL -o "${FW_CACHE}/${blob}" \
+
+verify_sha256() {
+    expected="$1"
+    path="$2"
+    actual=$(sha256sum "${path}" | awk '{print $1}')
+    [ "${actual}" = "${expected}" ] || {
+        echo "ERROR: checksum mismatch for ${path}" >&2
+        echo "Expected: ${expected}" >&2
+        echo "Actual:   ${actual}" >&2
+        return 1
+    }
+}
+
+fetch_firmware_blob() {
+    blob="$1"
+    expected="$2"
+    destination="${FW_CACHE}/${blob}"
+    temporary="${destination}.tmp"
+
+    if [ -f "${destination}" ]; then
+        verify_sha256 "${expected}" "${destination}" || {
+            echo "Remove the invalid cached file and rebuild." >&2
+            exit 1
+        }
+    else
+        rm -f "${temporary}"
+        curl -fsSL -o "${temporary}" \
             "https://github.com/raspberrypi/firmware/raw/${FW_TAG}/boot/${blob}"
+        verify_sha256 "${expected}" "${temporary}"
+        mv "${temporary}" "${destination}"
     fi
-    cp "${FW_CACHE}/${blob}" "${BOOT}/${blob}"
-done
 
-# Compile the controls overlay
+    cp "${destination}" "${BOOT}/${blob}"
+}
+
+fetch_firmware_blob start4.elf "${START4_SHA256}"
+fetch_firmware_blob fixup4.dat "${FIXUP4_SHA256}"
+
+# Compile the Ardor controls overlay. Missing hardware controls are an image
+# failure, not an optional degradation.
 dtc -@ -I dts -O dtb -o "${BOOT}/overlays/ardor-controls.dtbo" \
-    "${BOARD_DIR}/ardor-controls.dts" || true
+    "${BOARD_DIR}/ardor-controls.dts"
+[ -s "${BOOT}/overlays/ardor-controls.dtbo" ] || {
+    echo "ERROR: ardor-controls.dtbo was not generated." >&2
+    exit 1
+}
 
-# Recompile version-sensitive overlays from OUR kernel source, overwriting the
-# (older) rpi-firmware copies. The firmware's precompiled overlays are built
-# from a different kernel vintage; the DSI panel overlay especially must match
-# the running kernel's driver bindings.
+# Recompile version-sensitive overlays from the validated kernel source.
 KDIR="${BUILD_DIR}/linux-custom"
 OVL_SRC="${KDIR}/arch/arm/boot/dts/overlays"
 for ov in vc4-kms-v3d vc4-kms-v3d-pi4 rpi-codeczero vc4-kms-dsi-ili9881-5inch; do
     src="${OVL_SRC}/${ov}-overlay.dts"
-    [ -f "${src}" ] || continue
+    output="${BOOT}/overlays/${ov}.dtbo"
+    [ -f "${src}" ] || {
+        echo "ERROR: required overlay source missing: ${src}" >&2
+        echo "Run 'make linux-dirclean' before rebuilding after a kernel-source change." >&2
+        exit 1
+    }
     cpp -nostdinc -I "${KDIR}/include" -I "${OVL_SRC}" \
         -I "${KDIR}/arch/arm/boot/dts" -undef -D__DTS__ \
         -x assembler-with-cpp "${src}" \
-        | dtc -@ -I dts -O dtb -o "${BOOT}/overlays/${ov}.dtbo" -
+        | dtc -@ -I dts -O dtb -o "${output}" -
+    [ -s "${output}" ] || {
+        echo "ERROR: required overlay was not generated: ${output}" >&2
+        exit 1
+    }
 done
-# The panel overlay is the whole point — fail loudly if it did not build.
-[ -f "${OVL_SRC}/vc4-kms-dsi-ili9881-5inch-overlay.dts" ] || {
-    echo "ERROR: TD2 overlay source missing from kernel tree." >&2
-    echo "The kernel build dir is probably stale (tarball changes do not" >&2
-    echo "invalidate Buildroot stamps): run 'make linux-dirclean' and rebuild." >&2
-    exit 1
-}
+
+for required in \
+    "${BOOT}/start4.elf" \
+    "${BOOT}/fixup4.dat" \
+    "${BOOT}/config.txt" \
+    "${BOOT}/Image" \
+    "${BOOT}/bcm2711-rpi-4-b.dtb" \
+    "${BOOT}/overlays/ardor-controls.dtbo" \
+    "${BOOT}/overlays/vc4-kms-dsi-ili9881-5inch.dtbo" \
+    "${BINARIES}/rootfs.ext4" \
+    "${BINARIES}/data.ext4"; do
+    [ -s "${required}" ] || {
+        echo "ERROR: required image input is missing or empty: ${required}" >&2
+        exit 1
+    }
+done
 
 # Build boot.vfat from the staging directory using mtools.
 # genimage's vfat 'directory' option requires genimage >=17; using mtools
@@ -97,3 +149,14 @@ genimage \
     --inputpath "${BINARIES}" \
     --outputpath "${BINARIES}" \
     --config "${GENIMAGE_CFG}"
+
+for generated in \
+    "${BINARIES}/boot.vfat" \
+    "${BINARIES}/rootfs.ext4" \
+    "${BINARIES}/data.ext4" \
+    "${BINARIES}/sdcard.img"; do
+    [ -s "${generated}" ] || {
+        echo "ERROR: generated image is missing or empty: ${generated}" >&2
+        exit 1
+    }
+done
