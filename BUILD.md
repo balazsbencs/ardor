@@ -12,7 +12,7 @@ host (macOS or Linux).
 | Partition | FS | Contents |
 |-----------|----|----------|
 | `p1` boot | FAT32 | firmware blobs, kernel `Image`, DTB, overlays, `config.txt` |
-| `p2` root | ext4 (ro) | Buildroot rootfs + `ardor-pedal` app |
+| `p2` root | ext4 (ro) | Buildroot rootfs + `ardor-pedal` app + `ardor-managerd` REST daemon |
 | `p3` data | ext4 (rw) | presets, NAM models, IRs (`/opt/ardor-pedal`) |
 
 Key config lives under `buildroot/external/`:
@@ -22,6 +22,8 @@ Key config lives under `buildroot/external/`:
 - `board/ardor-pedal/post-build.sh` — SSH host keys, removes the tty1 getty
 - `board/ardor-pedal/post-image.sh` — assembles the boot partition + `sdcard.img`
 - `package/ardor-pedal/` — the app package (`ardor-pedal.mk`, init script)
+- `package/ardor-managerd/` — the Go REST daemon package and init script
+- `board/ardor-pedal/rootfs-overlay/etc/ardor-managerd.env` — daemon bind, port, and auth defaults
 
 The app itself is built from the repo root: `apps/`, `src/`, and `lv_conf.h`.
 
@@ -57,31 +59,41 @@ docker run --rm \
       python3 python3-dev file pkg-config libssl-dev libelf-dev \
       dosfstools genimage e2fsprogs mtools device-tree-compiler openssh-client > /dev/null && \
     make raspberrypi4_ardor_pedal_defconfig BR2_EXTERNAL=/ardor/buildroot/external && \
+    grep -q '^BR2_PACKAGE_ARDOR_MANAGERD=y$' .config && \
+    make ardor-managerd-dirclean BR2_EXTERNAL=/ardor/buildroot/external && \
     make ardor-pedal-dirclean BR2_EXTERNAL=/ardor/buildroot/external && \
     make BR2_EXTERNAL=/ardor/buildroot/external && \
+    test -x output/target/usr/bin/ardor-managerd && \
+    test -x output/target/etc/init.d/S98ardor-managerd && \
+    test -f output/target/etc/ardor-managerd.env && \
     cp output/images/sdcard.img /ardor/sdcard.img
   "
 ```
 
 The image lands at `./sdcard.img` in the repo.
 
+The `grep` check intentionally fails the build if the daemon is missing from
+the generated Buildroot configuration. The `test` checks fail the build if the
+daemon binary, init script, or environment file is absent from the rootfs.
+
 > First build takes ~30–60 min (toolchain + kernel). Later builds are minutes.
 
-### ⚠️ The `ardor-pedal-dirclean` line is not optional
+### ⚠️ The local package `dirclean` lines are not optional
 
-The app package uses `SITE_METHOD = local`, which **rsyncs the working tree into
-the build dir only at the _extract_ step**. Because `buildroot_vol` persists
-across container runs:
+Both Ardor packages use `SITE_METHOD = local`, which **rsyncs the working tree
+into the package build directory only at the _extract_ step**. Because
+`buildroot_vol` persists across container runs:
 
 - A plain `make` sees the package's build stamp and **skips it** → your source
-  edits (`apps/`, `src/`, `lv_conf.h`) never make it into the image.
-- Even `make ardor-pedal-rebuild` rebuilds from the **stale already-synced
-  copy** — it does not re-rsync.
+  edits never make it into the image.
+- Even `make ardor-pedal-rebuild` or `make ardor-managerd-rebuild` rebuilds from
+  the **stale already-synced copy** — it does not re-rsync.
 
-`make ardor-pedal-dirclean` wipes the package build dir, forcing a fresh rsync +
-reconfigure + rebuild. Always run it before `make` when you've changed app code
-or `lv_conf.h`. (Changes to `board/` scripts and `config.txt` are picked up by a
-plain `make` since they are read directly from `BR2_EXTERNAL`, not rsynced.)
+`make ardor-pedal-dirclean` and `make ardor-managerd-dirclean` wipe their package
+build directories, forcing a fresh rsync + reconfigure + rebuild. The main
+build command runs both every time. (Changes to `board/` scripts, the overlay,
+and `config.txt` are picked up by a plain `make` since they are read directly
+from `BR2_EXTERNAL`, not rsynced.)
 
 ## Flash (macOS)
 
@@ -106,6 +118,30 @@ ssh root@<pi-ip>       # password: ardor
 - Serial console: `ttyAMA0` @ 115200.
 - The rootfs is **read-only**; the data partition (`/opt/ardor-pedal`) is
   read-write for presets/models/IRs.
+
+The manager daemon starts as `S98ardor-managerd`, listens on TCP port `8080`,
+and uses `/opt/ardor-pedal` as its data root. The checked-in image defaults to
+auth disabled for first-device testing. Enable auth by changing
+`/etc/ardor-managerd.env` to `ARDOR_API_AUTH=on` and setting
+`ARDOR_API_TOKEN` before exposing the device beyond a trusted LAN.
+
+Verify the daemon locally on the device:
+
+```bash
+ls -l /usr/bin/ardor-managerd /etc/init.d/S98ardor-managerd /etc/ardor-managerd.env
+netstat -lnt | grep 8080
+wget -qO- http://127.0.0.1:8080/api/device
+wget -qO- http://127.0.0.1:8080/api/presets | head -c 300
+```
+
+Verify it from the Mac after replacing `<pi-ip>`:
+
+```bash
+curl http://<pi-ip>:8080/api/device
+curl http://<pi-ip>:8080/api/presets | jq '.presets | length'
+```
+
+The second command should print `400`.
 
 ## Fast iteration (app code only, no reflash)
 
