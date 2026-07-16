@@ -1,0 +1,92 @@
+#include "swell_reverb.h"
+#include "../config/constants.h"
+
+using namespace pedal::reverb_fx;
+
+namespace pedal {
+
+void SwellReverb::Init() {
+    pre_delay_.Init(buf_pre_delay_, 24000);
+    pre_delay_.SetDelay(1.0f);
+
+    Fdn::Config fdn_cfg;
+    fdn_cfg.n_lines     = 4;
+    fdn_cfg.sample_rate = REVERB_SAMPLE_RATE;
+    fdn_cfg.bufs[0]     = buf_fdn0_;
+    fdn_cfg.bufs[1]     = buf_fdn1_;
+    fdn_cfg.bufs[2]     = buf_fdn2_;
+    fdn_cfg.bufs[3]     = buf_fdn3_;
+    fdn_cfg.delays[0]   = 1261;
+    fdn_cfg.delays[1]   = 1540;
+    fdn_cfg.delays[2]   = 1830;
+    fdn_cfg.delays[3]   = 2116;
+    for (int i = 4; i < Fdn::MAX_LINES; ++i) {
+        fdn_cfg.bufs[i]   = nullptr;
+        fdn_cfg.delays[i] = 0;
+    }
+    fdn_.Init(fdn_cfg);
+    fdn_.SetDecay(2.0f);
+    fdn_.SetDamping(0.3f);
+
+    tone_[0].Init(REVERB_SAMPLE_RATE);
+    tone_[1].Init(REVERB_SAMPLE_RATE);
+    env_follow_.Init(5.0f, 100.0f);
+
+    ramp_gain_ = 0.0f;
+    ramp_rate_ = 1.0f / (0.5f * REVERB_SAMPLE_RATE);
+}
+
+void SwellReverb::Reset() {
+    pre_delay_.Reset();
+    fdn_.Reset();
+    tone_[0].Init(REVERB_SAMPLE_RATE);
+    tone_[1].Init(REVERB_SAMPLE_RATE);
+    ramp_gain_ = 0.0f;
+}
+
+void SwellReverb::Prepare(const ParamSet& params) {
+    const float delay_samples = params.pre_delay * REVERB_SAMPLE_RATE;
+    pre_delay_.SetDelay(delay_samples < 1.0f ? 1.0f : delay_samples);
+    fdn_.SetDecay(params.decay);
+    fdn_.SetDamping(0.15f + params.tone * 0.35f);
+    fdn_.SetModulation(params.mod * 4.0f);
+    tone_[0].SetKnob(params.tone);
+    tone_[1].SetKnob(params.tone);
+
+    const float rise_time_s = 0.08f + params.param1 * 3.92f;
+    ramp_rate_ = 1.0f / (rise_time_s * REVERB_SAMPLE_RATE);
+    fdn_.PrepareBlock();
+}
+
+StereoFrame SwellReverb::Process(float input, const ParamSet& params) {
+    pre_delay_.Write(input);
+    const float pre = pre_delay_.Read();
+
+    // Envelope follower drives the swell ramp
+    const float env = env_follow_.Process(pre);
+
+    if (env > 0.01f) {
+        ramp_gain_ += ramp_rate_;
+        if (ramp_gain_ > 1.0f) ramp_gain_ = 1.0f;
+    } else {
+        ramp_gain_ -= ramp_rate_ * 0.5f;
+        if (ramp_gain_ < 0.0f) ramp_gain_ = 0.0f;
+    }
+
+    StereoFrame out{};
+    if (params.param2 < 0.5f) {
+        // Swell Wet: reverb fades in
+        const StereoFrame late = fdn_.Process(pre * ramp_gain_);
+        out.left  = tone_[0].Process(late.left);
+        out.right = tone_[1].Process(late.right);
+    } else {
+        // Swell Dry: reverb fades out
+        const StereoFrame late = fdn_.Process(pre);
+        const float scale = 1.0f - ramp_gain_;
+        out.left  = tone_[0].Process(late.left  * scale);
+        out.right = tone_[1].Process(late.right * scale);
+    }
+    return out;
+}
+
+} // namespace pedal

@@ -84,6 +84,34 @@ paths:
           $ref: "#/components/responses/UnsupportedMediaType"
 
   /api/assets/models/{assetId}:
+    patch:
+      tags:
+        - Assets
+      summary: Rename a NAM model asset and update saved preset references
+      operationId: renameModelAsset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetRenameRequest"
+      responses:
+        "200":
+          description: NAM model renamed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetRenameResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
     delete:
       tags:
         - Assets
@@ -146,6 +174,34 @@ paths:
           $ref: "#/components/responses/UnsupportedMediaType"
 
   /api/assets/irs/{assetId}:
+    patch:
+      tags:
+        - Assets
+      summary: Rename a cabinet IR asset and update saved preset references
+      operationId: renameIrAsset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetRenameRequest"
+      responses:
+        "200":
+          description: Cabinet IR renamed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetRenameResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
     delete:
       tags:
         - Assets
@@ -386,6 +442,7 @@ components:
             - presetRead
             - presetWrite
             - presetApply
+            - assetRename
           properties:
             modelUpload:
               type: boolean
@@ -396,6 +453,8 @@ components:
             presetWrite:
               type: boolean
             presetApply:
+              type: boolean
+            assetRename:
               type: boolean
 
     ActivePreset:
@@ -431,6 +490,28 @@ components:
           type: string
           maxLength: 120
           description: Optional human-readable label shown by clients.
+
+    AssetRenameRequest:
+      type: object
+      required:
+        - filename
+      properties:
+        filename:
+          type: string
+          description: New filename. It must retain the endpoint's .nam or .wav extension.
+
+    AssetRenameResponse:
+      type: object
+      required:
+        - asset
+        - updatedPresetCount
+      properties:
+        asset:
+          $ref: "#/components/schemas/Asset"
+        updatedPresetCount:
+          type: integer
+          minimum: 0
+          description: Number of saved preset documents whose asset path was updated.
 
     AssetList:
       type: object

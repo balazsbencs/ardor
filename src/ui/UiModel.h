@@ -58,21 +58,33 @@ struct UiState {
   UiBank bank;
   std::vector<UiAsset> assets;
   std::size_t activePreset = 0;
+  int activeBank = 0;
   std::size_t selectedBlock = 0;
   UiMode mode = UiMode::Preset;
   UiParamTarget paramTarget = UiParamTarget::Block;
   bool dirty = false;
+  // Topology, asset, and discrete-mode changes cannot be applied to the
+  // running program incrementally. Continuous targets leave this false.
+  bool requiresEngineReload = false;
   bool blockDrawerOpen = false;
   bool paramDrawerOpen = false;
   bool effectsBypassed = false;
   int masterVolume = 82;
   std::string categoryFilter = "all";
+  // The Blocks category strip is rebuilt when a filter changes; retain its
+  // horizontal position so selecting an off-screen category does not snap back.
+  int categoryScrollOffset = 0;
   RuntimeTelemetry telemetry;
+  std::string statusMessage;
+  bool statusIsError = false;
   int pendingSlotRequest = -1;
 };
 
 UiState makeDemoUiState();
 void selectPreset(UiState& state, std::size_t index);
+// Updates the visible preset after the audio engine has already loaded it.
+// Unlike selectPreset(), this never queues another audio-engine swap.
+void synchronizePresetSelection(UiState& state, std::size_t index);
 void enterPresetMode(UiState& state);
 void enterEditMode(UiState& state);
 void openBlockDrawer(UiState& state);
@@ -98,6 +110,7 @@ bool setSelectedEqBand(UiState& state, std::size_t bandIndex, EqBandParams param
 bool resetSelectedEqBand(UiState& state, std::size_t bandIndex);
 
 void updateRealtimeTelemetry(UiState& state, const RuntimeTelemetry& telemetry);
+void setUiStatus(UiState& state, std::string message, bool isError = false);
 int consumePendingSlotRequest(UiState& state);
 void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoot);
 void loadBankFromStore(UiState& state, const PresetStore& store, int bank);

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <complex>
+#include <cstdint>
 #include <vector>
 
 namespace ardor {
@@ -14,6 +15,7 @@ public:
   void processBlock(const float* input, float* output, size_t frames);
   void reset();
   size_t tailFrames() const noexcept;
+  uint64_t blockSizeMismatchCount() const noexcept;
 
 private:
   void preparePartitions(size_t frames);
@@ -25,6 +27,7 @@ private:
   size_t pos_ = 0;
 
   size_t blockSize_ = 0;
+  uint64_t blockSizeMismatchCount_ = 0;
   size_t fftSize_ = 0;
   size_t writeIndex_ = 0;
   std::vector<float> overlap_;

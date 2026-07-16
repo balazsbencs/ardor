@@ -142,6 +142,39 @@ func (s Store) Delete(kind Kind, id string) error {
 	return os.Remove(filepath.Join(s.dir(kind), id))
 }
 
+// Rename changes the durable filename used by presets. Callers that persist
+// preset references must replace Info.Path with the returned path as part of
+// the same management operation.
+func (s Store) Rename(kind Kind, id, filename string) (Info, error) {
+	if id == "" || filepath.Base(id) != id || strings.Contains(id, "..") {
+		return Info{}, errors.New("invalid asset id")
+	}
+	safe, err := SanitizeFilename(filename, kind)
+	if err != nil {
+		return Info{}, err
+	}
+	oldPath := filepath.Join(s.dir(kind), id)
+	stat, err := os.Stat(oldPath)
+	if err != nil {
+		return Info{}, err
+	}
+	if !stat.Mode().IsRegular() {
+		return Info{}, errors.New("asset is not a regular file")
+	}
+	if safe != id {
+		newPath := filepath.Join(s.dir(kind), safe)
+		if _, err := os.Stat(newPath); err == nil {
+			return Info{}, ErrExists
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return Info{}, err
+		}
+		if err := os.Rename(oldPath, newPath); err != nil {
+			return Info{}, err
+		}
+	}
+	return Info{ID: safe, Kind: jsonKind(kind), Filename: safe, Path: s.rel(kind, safe), SizeBytes: stat.Size()}, nil
+}
+
 func (s Store) dir(kind Kind) string {
 	if kind == KindModel {
 		return filepath.Join(s.root, "models")

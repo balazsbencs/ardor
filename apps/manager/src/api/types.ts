@@ -8,9 +8,15 @@ export type DeviceStatus = {
   maxBanks: 100;
   slotsPerBank: 4;
   supportedPresetVersion: 1;
+  active?: {
+    bank: number;
+    slot: number;
+    name?: string;
+  };
   capabilities: {
     modelUpload: boolean;
     irUpload: boolean;
+    assetRename?: boolean;
     presetRead: boolean;
     presetWrite: boolean;
     presetApply: boolean;
@@ -23,6 +29,11 @@ export type Asset = {
   filename: string;
   path: string;
   sizeBytes: number;
+};
+
+export type RenameAssetResponse = {
+  asset: Asset;
+  updatedPresetCount: number;
 };
 
 export type PresetBlock = {

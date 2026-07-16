@@ -3,6 +3,7 @@
 #include "RuntimeChain.h"
 
 #include <atomic>
+#include <cstdint>
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <utility>
@@ -13,13 +14,17 @@ namespace ardor {
 class PedalEngine {
 public:
   void setSampleRate(double sampleRate);
-  bool loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize);
+  bool loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
+               std::string id = "nam");
   void loadIr(std::vector<float> impulse);
-  void addCab(std::vector<float> impulse, float level, float mix);
-  bool addDaisyFx(const std::string& blockType, const nlohmann::json& params, float sampleRate, std::string& error);
-  bool addCompressor(const nlohmann::json& params, float sampleRate, std::string& error);
+  void addCab(std::vector<float> impulse, float level, float mix, std::string id = "cab");
+  bool addDaisyFx(std::string id, const std::string& blockType, const nlohmann::json& params,
+                  float sampleRate, std::string& error);
+  bool addCompressor(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool addParametricEq(const std::string& id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params);
+  bool setDaisyParameter(const std::string& id, const std::string& key, float normalized);
+  bool setCompressorParameter(const std::string& id, const std::string& key, float value);
   void prepareBlockSize(size_t frames);
   void clearEffects();
   void setInputGain(float gain);
@@ -30,6 +35,10 @@ public:
   void setSafetyLimiterEnabled(bool enabled);
   void setCabLevel(float gain);
   void setCabMix(float mix);
+  uint64_t nonFiniteInputSamples() const noexcept;
+  uint64_t blockSizeMismatchCount() const noexcept;
+  uint64_t nonFiniteBlockCount() const noexcept;
+  std::string firstNonFiniteBlockId() const;
   // Exchanges a fully prepared program. This is a control-thread operation;
   // the caller must stop audio processing before invoking it.
   void replacePreparedProgram(PedalEngine&& prepared);
@@ -47,8 +56,11 @@ private:
   std::atomic<float> cabMix_{1.0f};
   std::atomic<bool> effectsBypassed_{false};
   std::atomic<bool> safetyLimiterEnabled_{true};
+  std::atomic<uint64_t> nonFiniteInputSamples_{0};
+  std::atomic<uint64_t> blockSizeMismatchCount_{0};
   RuntimeChain chain_;
   size_t blockSize_ = 0;
+  std::vector<float> sanitizedInput_;
   std::vector<float> gainedInput_;
   std::vector<float> cabLevelBlock_;
   std::vector<float> cabMixBlock_;

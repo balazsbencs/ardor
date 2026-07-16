@@ -102,11 +102,14 @@ ChainPlan buildChainPlan(const Preset& preset, const std::filesystem::path& data
       blockPlan.status = ChainBlockStatus::MissingAsset;
     } else if (!isValidBlockAssetPath(block.asset)) {
       blockPlan.status = ChainBlockStatus::MissingAsset;
-    } else if (!std::filesystem::exists(blockPlan.assetPath)) {
-      blockPlan.status = ChainBlockStatus::MissingAsset;
     } else {
-      blockPlan.status = ChainBlockStatus::Ready;
-      ++plan.runnableBlockCount;
+      std::error_code ec;
+      if (!std::filesystem::exists(blockPlan.assetPath, ec) || ec) {
+        blockPlan.status = ChainBlockStatus::MissingAsset;
+      } else {
+        blockPlan.status = ChainBlockStatus::Ready;
+        ++plan.runnableBlockCount;
+      }
     }
 
     plan.blocks.push_back(std::move(blockPlan));

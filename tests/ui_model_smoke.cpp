@@ -37,6 +37,7 @@ int main()
   const int masterVolume = state.masterVolume;
   ardor::setActiveInputGainDb(state, 1.0f);
   if (require(state.masterVolume == masterVolume, "preset parameter edits should not change master volume")) return 1;
+  if (require(!state.requiresEngineReload, "global gain is a live edit")) return 1;
   state.dirty = false;
 
   if (require(ardor::consumePendingSlotRequest(state) == -1, "initial pending slot should be empty")) return 1;
@@ -48,6 +49,12 @@ int main()
   if (require(state.mode == ardor::UiMode::Preset, "preset selection should return to preset mode")) return 1;
   if (require(!state.blockDrawerOpen, "preset selection should close block drawer")) return 1;
   if (require(!state.paramDrawerOpen, "preset selection should close parameter drawer")) return 1;
+
+  ardor::enterEditMode(state);
+  ardor::synchronizePresetSelection(state, 2);
+  if (require(state.mode == ardor::UiMode::Preset, "synchronized selection should update the visible mode")) return 1;
+  if (require(ardor::consumePendingSlotRequest(state) == -1,
+              "synchronized selection must not queue a redundant preset switch")) return 1;
 
   ardor::selectPreset(state, 99);
   if (require(state.activePreset == 2, "invalid preset selection should be ignored")) return 1;
@@ -74,6 +81,8 @@ int main()
   });
   if (require(tremAsset != state.assets.end(), "daisy effect should be in asset list")) return 1;
   const auto tremIndex = static_cast<std::size_t>(std::distance(state.assets.begin(), tremAsset));
+  ardor::selectPreset(state, 0);
+  (void)ardor::consumePendingSlotRequest(state);
   const auto beforeTremAdd = state.bank.presets[state.activePreset].blocks.size();
   ardor::appendAssetBlock(state, tremIndex);
   const auto& trem = state.bank.presets[state.activePreset].blocks.back();
@@ -83,9 +92,15 @@ int main()
   if (require(trem.params.value("mode", "") == "vintage_trem", "daisy block should use catalog mode")) return 1;
   if (require(trem.params.contains("depth"), "daisy block should include default params")) return 1;
   if (require(!state.paramDrawerOpen, "daisy add should not open parameter drawer")) return 1;
+  if (require(state.requiresEngineReload, "adding a block requires a prepared engine")) return 1;
+
+  ardor::appendAssetBlock(state, tremIndex);
+  if (require(state.bank.presets[state.activePreset].blocks.size() == beforeTremAdd + 2,
+              "UI should allow multiple Daisy blocks in the same category")) return 1;
 
   ardor::selectBlock(state, state.bank.presets[state.activePreset].blocks.size() - 1);
   ardor::setSelectedBlockParam(state, "depth", 0.25f);
+  if (require(state.requiresEngineReload, "a prior structural edit remains pending")) return 1;
   const auto tremPreset = ardor::activePresetToPreset(state);
   if (require(tremPreset.blocks.back().type == "mod", "daisy block should save as mod")) return 1;
   if (require(tremPreset.blocks.back().asset.empty(), "daisy block should save empty asset")) return 1;
@@ -160,6 +175,7 @@ int main()
   if (require(state.bank.presets[state.activePreset].blocks.size() == 1, "preset load updates ui block count")) return 1;
   if (require(state.bank.presets[state.activePreset].blocks[0].assetPath == "irs/loaded.wav", "preset load updates asset path")) return 1;
   if (require(!state.dirty, "loading preset clears dirty flag")) return 1;
+  if (require(!state.requiresEngineReload, "loading a prepared preset clears structural reload")) return 1;
 
   replacement.global.inputGainDb = -6.0f;
   replacement.global.outputGainDb = -3.0f;
@@ -184,6 +200,7 @@ int main()
 
   state.dirty = false;
   ardor::setSelectedBlockParam(state, "mix", 0.25f);
+  if (require(!state.requiresEngineReload, "cab mix is a live edit")) return 1;
   const auto editedPreset = ardor::activePresetToPreset(state);
   if (require(editedPreset.global.inputGainDb == 12.0f, "saved input global should round-trip")) return 1;
   if (require(editedPreset.blocks[0].params.value("mix", 0.0f) == 0.25f, "saved block params should round-trip")) return 1;
@@ -243,14 +260,22 @@ int main()
   std::string ioError;
   if (require(ardor::saveActivePresetToStore(diskState, store, 0, ioError), "active preset save should succeed")) return 1;
   if (require(!diskState.dirty, "saving should clear dirty flag")) return 1;
+  if (require(diskState.requiresEngineReload, "saving does not erase a pending structural reload")) return 1;
   const auto saved = store.load({0, 0});
   if (require(saved.blocks.size() == 2, "saved preset should include edited chain")) return 1;
   std::filesystem::remove_all(root);
 
-  ardor::RuntimeTelemetry telemetry = ardor::makeRuntimeTelemetry(1000, 2, 0.9, 0.3, 1.33, true);
+  ardor::RuntimeTelemetry telemetry = ardor::makeRuntimeTelemetry(1000, 2, 1, 0.9, 0.3, 1.33, true);
   ardor::updateRealtimeTelemetry(diskState, telemetry);
   if (require(diskState.telemetry.callbacks == 1000, "ui telemetry callbacks")) return 1;
+  if (require(diskState.telemetry.callbackGaps == 1, "ui telemetry callback gaps")) return 1;
   if (require(diskState.effectsBypassed, "ui bypass follows telemetry")) return 1;
+  ardor::setUiStatus(diskState, "Saved preset");
+  if (require(diskState.statusMessage == "Saved preset" && !diskState.statusIsError,
+              "success status should persist")) return 1;
+  ardor::setUiStatus(diskState, "Preset load failed", true);
+  if (require(diskState.statusMessage == "Preset load failed" && diskState.statusIsError,
+              "error status should persist")) return 1;
 
   auto migrationState = ardor::makeDemoUiState();
   ardor::Preset legacyEffects;

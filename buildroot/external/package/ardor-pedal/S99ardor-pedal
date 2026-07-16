@@ -39,7 +39,9 @@ run_supervised() {
   # app never plays half-initialized audio at full volume.
   amixer -q set 'Headphone' mute 2>/dev/null
   alsactl restore -f /etc/ardor-codec-zero.state 2>/dev/null
-  echo performance > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null
+  for policy in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do
+    [ -w "$policy" ] && echo performance > "$policy"
+  done
   while :; do
     /usr/bin/ardor-pedal \
       --realtime $ui_arg \

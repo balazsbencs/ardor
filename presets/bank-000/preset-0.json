@@ -66,10 +66,10 @@
       "id": "block-7",
       "params": {
         "filter": 0.5,
-        "grit": 0.0,
+        "grit": 0.49999988079071045,
         "mix": 0.25,
         "mod_dep": 0.0,
-        "mod_spd": 0.0,
+        "mod_spd": 0.5000000596046448,
         "mode": "digital",
         "repeats": 0.3499999940395355,
         "time": 0.25

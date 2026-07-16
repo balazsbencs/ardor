@@ -48,9 +48,9 @@ parameters. Supported modes:
 - `delay` / `digital`: `time`, `repeats`, `mix`, `filter`, `grit`, `mod_spd`, `mod_dep`
 - `reverb` / `room`: `decay`, `pre_delay`, `mix`, `tone`, `mod`, `param1`, `param2`
 
-The hosted Daisy source lives under `third_party/daisy-multi-fx-hosted/`.
-Copied source should stay functionally unchanged; host adaptation belongs in
-`src/daisyfx/` or `compat/`.
+The Ardor-maintained Daisy effect engine lives under `src/daisyfx/hosted/`.
+Its upstream origin and license are preserved there; host adaptation and effect
+implementation now live together under `src/daisyfx/`.
 
 Five-band EQ blocks use `type: "eq"`, mode `parametric_eq_5`, and five entries
 in `params.bands`. Each band stores `enabled`, `frequency_hz` (20–20,000 Hz),
@@ -215,6 +215,10 @@ First target settings:
 - input: mono
 - output: stereo
 - round-trip latency goal: under `10 ms`
+
+Chain layout contract: NAM and cabinet blocks are mono stages. Modulation preserves
+stereo input. The hosted delay and reverb effects preserve the stereo dry field but
+sum their wet input to mono before producing their vendor-defined stereo wet output.
 
 Hardware controls on Raspberry Pi use Linux input events:
 

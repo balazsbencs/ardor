@@ -55,13 +55,13 @@ int main()
 {
   ardor::RuntimeChain modThenCab;
   modThenCab.prepareBlockSize(64);
-  modThenCab.addDaisy(makeTrem());
+  modThenCab.addDaisy("mod-a", makeTrem());
   modThenCab.addCab({1.0f, 0.5f}, 1.0f, 1.0f);
 
   ardor::RuntimeChain cabThenMod;
   cabThenMod.prepareBlockSize(64);
   cabThenMod.addCab({1.0f, 0.5f}, 1.0f, 1.0f);
-  cabThenMod.addDaisy(makeTrem());
+  cabThenMod.addDaisy("mod-b", makeTrem());
 
   const auto a = render(modThenCab);
   const auto b = render(cabThenMod);
@@ -70,6 +70,21 @@ int main()
     diff += std::fabs(a[i] - b[i]);
   }
   require(diff > 0.0001f, "serial block order should change output");
+  require(modThenCab.tailFrames() == 1, "cabinet tail contributes to the serial chain estimate");
+
+  ardor::DaisyFxProcessor delay;
+  std::string delayError;
+  require(delay.configure("delay", {
+    {"mode", "digital"}, {"time", 0.0f}, {"repeats", 0.0f}, {"mix", 1.0f},
+    {"filter", 0.5f}, {"grit", 0.0f}, {"mod_spd", 0.0f}, {"mod_dep", 0.0f},
+  }, 48000.0f, delayError), delayError);
+  const auto delayTail = delay.tailFrames();
+  ardor::RuntimeChain cabThenDelay;
+  cabThenDelay.prepareBlockSize(64);
+  cabThenDelay.addCab({1.0f, 0.5f, 0.25f}, 1.0f, 1.0f);
+  cabThenDelay.addDaisy("delay-a", std::move(delay));
+  require(cabThenDelay.tailFrames() == 2 + delayTail,
+          "serial cabinet and delay tails must accumulate");
 
   ardor::RuntimeChain eqChain;
   eqChain.prepareBlockSize(64);
@@ -86,7 +101,7 @@ int main()
 
   ardor::PedalEngine engine;
   std::string error;
-  require(engine.addDaisyFx("mod", {
+  require(engine.addDaisyFx("trem", "mod", {
     {"mode", "vintage_trem"},
     {"speed", 0.8f},
     {"depth", 1.0f},
@@ -96,6 +111,8 @@ int main()
     {"p2", 0.0f},
     {"level", 1.0f},
   }, 48000.0f, error), error);
+  require(engine.setDaisyParameter("trem", "depth", 0.0f), "target Daisy by stable ID");
+  require(!engine.setDaisyParameter("missing", "depth", 0.0f), "missing Daisy ID rejected");
   bool engineChanged = false;
   for (int i = 0; i < 128; ++i) {
     const auto wet = engine.process(0.5f);
@@ -104,10 +121,12 @@ int main()
   require(engineChanged, "trem should affect engine output");
 
   ardor::PedalEngine compressorEngine;
-  require(compressorEngine.addCompressor({
+  require(compressorEngine.addCompressor("compressor", {
     {"threshold_db", -24.0f}, {"ratio", 8.0f}, {"attack_ms", 1.0f},
     {"release_ms", 100.0f}, {"mix", 1.0f}, {"sidechain_hpf_hz", 20.0f},
   }, 48000.0f, error), error);
+  require(compressorEngine.setCompressorParameter("compressor", "mix", 0.5f), "target compressor by stable ID");
+  require(!compressorEngine.setCompressorParameter("missing", "mix", 0.5f), "missing compressor ID rejected");
   float compressorOutput = 0.0f;
   for (int i = 0; i < 48000; ++i) {
     compressorOutput = std::fabs(compressorEngine.process(i % 2 == 0 ? 1.0f : -1.0f).first);

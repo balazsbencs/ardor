@@ -42,6 +42,11 @@ int main()
   require(ardor::findDaisyFxDescriptor("mod", "bogus") == nullptr, "reject unknown mode");
   require(ardor::findDaisyFxDescriptor("delay", "vintage_trem") == nullptr, "reject wrong block type");
 
+  const auto* chorus = ardor::findDaisyFxDescriptor("mod", "chorus");
+  require(chorus != nullptr, "find chorus");
+  require(ardor::defaultDaisyFxParams(*chorus).value("mix", 0.0f) == 0.5f,
+          "chorus defaults to equal dry/wet mix");
+
   const auto* delay = ardor::findDaisyFxDescriptor("delay", "digital");
   require(delay != nullptr, "find digital delay");
   require(delay->kind == ardor::DaisyFxKind::Delay, "digital delay kind");

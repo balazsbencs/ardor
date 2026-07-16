@@ -41,6 +41,34 @@ int main()
   require(std::isfinite(compressed), "compressed output finite");
   require(compressed < 0.7f, "compressor reduces above-threshold steady signal");
 
+  ardor::CompressorProcessor stepResponse;
+  require(stepResponse.configure(settings, 48000.0f, error), error);
+  const float attackStart = std::fabs(stepResponse.process({1.0f, 1.0f}).left);
+  const float attackSettled = renderSteady(stepResponse, 1.0f, 480);
+  require(attackSettled < attackStart, "attack should reduce gain over its configured interval");
+  const float releaseStart = std::fabs(stepResponse.process({0.01f, 0.01f}).left);
+  float releaseSettled = releaseStart;
+  for (int i = 0; i < 4800; ++i) {
+    releaseSettled = std::fabs(stepResponse.process({0.01f, 0.01f}).left);
+  }
+  require(releaseSettled > releaseStart, "release should restore gain over its configured interval");
+
+  nlohmann::json rmsSettings = settings;
+  rmsSettings["detector"] = "rms";
+  ardor::CompressorProcessor rmsStepResponse;
+  require(rmsStepResponse.configure(rmsSettings, 48000.0f, error), error);
+  const float rmsAttackStart = std::fabs(rmsStepResponse.process({1.0f, 1.0f}).left);
+  const float rmsAttackSettled = renderSteady(rmsStepResponse, 1.0f, 480);
+  require(rmsAttackSettled < rmsAttackStart, "RMS attack should reduce gain over its configured interval");
+  const float rmsReleaseStart = std::fabs(rmsStepResponse.process({0.01f, 0.01f}).left);
+  float rmsReleaseSettled = rmsReleaseStart;
+  for (int i = 0; i < 4800; ++i) {
+    rmsReleaseSettled = std::fabs(rmsStepResponse.process({0.01f, 0.01f}).left);
+  }
+  require(rmsReleaseSettled > rmsReleaseStart, "RMS release should restore gain over its configured interval");
+  require(compressor.setParameterTarget("mix", 0.5f), "publish live compressor target");
+  require(!compressor.setParameterTarget("detector", 0.0f), "detector is not a live target");
+
   compressor.reset();
   ardor::StereoSample linked{};
   for (int i = 0; i < 48000; ++i) {

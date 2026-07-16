@@ -6,6 +6,7 @@
 
 #include "audio/EngineLoader.h"
 #include "audio/MiniaudioBackend.h"
+#include "audio/PresetActivation.h"
 #include "control/ControlEvents.h"
 #if defined(__linux__)
 #include "control/LinuxInput.h"
@@ -52,11 +53,84 @@
 namespace {
 
 volatile std::sig_atomic_t running = 1;
+// The stdin helper is detached because formatted stdin reads are not
+// cancellation-friendly. These requests therefore need process lifetime rather
+// than stack lifetime.
+std::atomic<int> requestedSlot{-1};
+std::atomic<int> requestedBank{-1};
 
 void handleSignal(int)
 {
   running = 0;
 }
+
+const char* replaceResultName(ardor::EngineReplaceResult result)
+{
+  switch (result) {
+  case ardor::EngineReplaceResult::Activated:
+    return "activated";
+  case ardor::EngineReplaceResult::Busy:
+    return "another replacement is already pending";
+  case ardor::EngineReplaceResult::DeviceStopped:
+    return "the audio device stopped";
+  case ardor::EngineReplaceResult::TimedOut:
+    return "the audio callback did not acknowledge the replacement within 2 seconds";
+  }
+  return "unknown replacement result";
+}
+
+enum class DeviceRecoveryResult {
+  NotNeeded,
+  Waiting,
+  Restarted,
+  Failed,
+};
+
+class DeviceRecoveryController {
+public:
+  bool pending() const { return pending_; }
+
+  DeviceRecoveryResult service(ardor::MiniaudioBackend& backend,
+                               ardor::PedalEngine& engine,
+                               const ardor::RealtimeOptions& options)
+  {
+    if (!backend.deviceStopped()) {
+      return DeviceRecoveryResult::NotNeeded;
+    }
+
+    const auto now = std::chrono::steady_clock::now();
+    if (!pending_) {
+      pending_ = true;
+      attempts_ = 0;
+      nextAttempt_ = now;
+    }
+    if (now < nextAttempt_) {
+      return DeviceRecoveryResult::Waiting;
+    }
+
+    backend.stop();
+    ++attempts_;
+    std::cerr << "Attempting audio-device restart " << attempts_ << "/" << kMaxAttempts << "\n";
+    if (backend.start(engine, options)) {
+      pending_ = false;
+      return DeviceRecoveryResult::Restarted;
+    }
+    if (attempts_ == kMaxAttempts) {
+      pending_ = false;
+      return DeviceRecoveryResult::Failed;
+    }
+
+    const auto delay = std::chrono::milliseconds(100 * (1 << (attempts_ - 1)));
+    nextAttempt_ = now + delay;
+    return DeviceRecoveryResult::Waiting;
+  }
+
+private:
+  static constexpr int kMaxAttempts = 3;
+  bool pending_ = false;
+  int attempts_ = 0;
+  std::chrono::steady_clock::time_point nextAttempt_{};
+};
 
 #if defined(ARDOR_HAS_UI) && defined(ARDOR_UI_BACKEND_FBDEV)
 // Locate the touchscreen evdev node by device name. On the Touch Display 2 the
@@ -66,7 +140,8 @@ std::string findTouchDevice()
 {
   namespace fs = std::filesystem;
   std::error_code ec;
-  for (const auto& entry : fs::directory_iterator{"/sys/class/input", ec}) {
+  for (fs::directory_iterator it{"/sys/class/input", ec}, end; !ec && it != end; it.increment(ec)) {
+    const auto& entry = *it;
     const std::string node = entry.path().filename().string();
     if (node.rfind("event", 0) != 0) continue;
     std::ifstream nameFile{entry.path() / "device" / "name"};
@@ -135,6 +210,8 @@ void installTouchDebug(lv_indev_t* touch)
 struct Args {
   bool offline = false;
   bool realtime = false;
+  bool allowNonRealtime = false;
+  bool allowDeviceResampling = false;
   bool bypassNam = false;
   bool devices = false;
   uint32_t sampleRate = 48000;
@@ -192,6 +269,10 @@ bool parse(int argc, char** argv, Args& args)
         args.offline = true;
       } else if (a == "--realtime") {
         args.realtime = true;
+      } else if (a == "--allow-non-realtime") {
+        args.allowNonRealtime = true;
+      } else if (a == "--allow-device-resampling") {
+        args.allowDeviceResampling = true;
       } else if (a == "--devices") {
         args.devices = true;
       } else if (a == "--bypass-nam") {
@@ -309,6 +390,9 @@ bool parse(int argc, char** argv, Args& args)
   if (args.sampleRate != 48000) {
     return false;
   }
+  if (args.blockSize == 0) {
+    return false;
+  }
 
   if (args.devices) return true;
   if (args.offline) {
@@ -394,6 +478,8 @@ int main(int argc, char** argv)
                 << "  pedal-poc --realtime --preset preset.json --data-root data [--sample-rate 48000] [--block-size 64]\n"
                 << "  pedal-poc --realtime --data-root data --bank 0 --slot 0 [--sample-rate 48000] [--block-size 64]\n"
                 << "  pedal-poc --realtime --model amp.nam --ir cab.wav [--sample-rate 48000] [--block-size 64]\n"
+                << "            [--allow-non-realtime] (development only)\n"
+                << "            [--allow-device-resampling] (development only)\n"
                 << "            [--capture-device N] [--playback-device N] [--input-channel left|right]\n"
                 << "            [--output-channel both|left|right] [--ir-samples N]\n"
                 << "            [--input-gain-db DB] [--output-gain-db DB]\n"
@@ -405,6 +491,11 @@ int main(int argc, char** argv)
 
     if (args.devices) {
       return printDevices();
+    }
+
+    if (args.realtime) {
+      std::signal(SIGINT, handleSignal);
+      std::signal(SIGTERM, handleSignal);
     }
 
     const ardor::EngineLoadOptions loadOptions{
@@ -425,9 +516,9 @@ int main(int argc, char** argv)
         liveEngine->prepareBlockSize(loadOptions.blockSize);
       }
 
-      std::atomic<int> requestedSlot{-1};
-      std::atomic<int> requestedBank{-1};
-      std::thread controlThread([&]() {
+      requestedSlot.store(-1, std::memory_order_relaxed);
+      requestedBank.store(-1, std::memory_order_relaxed);
+      std::thread controlThread([]() {
         char c = 0;
         while (std::cin >> c) {
           if (c >= '0' && c <= '3') {
@@ -444,6 +535,10 @@ int main(int argc, char** argv)
       options.playbackDeviceIndex = args.playbackDeviceIndex;
       options.inputChannel = args.inputChannel;
       options.outputChannel = args.outputChannel;
+#if defined(__linux__)
+      options.requireRealtimeScheduler = !args.allowNonRealtime;
+      options.requireNativeSampleRate = !args.allowDeviceResampling;
+#endif
 
 #if defined(__linux__)
       if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
@@ -455,8 +550,10 @@ int main(int argc, char** argv)
         std::cerr << "Failed to start realtime audio\n";
         return 1;
       }
+      DeviceRecoveryController deviceRecovery;
 
       ardor::ControlState controls{args.slot, 80};
+      ardor::ActivePresetSelection activeSelection{args.bank, args.slot};
       liveEngine->setMasterVolume(static_cast<float>(controls.masterVolume) / 100.0f);
 
 #if defined(ARDOR_HAS_UI)
@@ -507,7 +604,9 @@ int main(int argc, char** argv)
         uiState = ardor::makeDemoUiState();
         ardor::loadAssetsFromDataRoot(uiState, args.dataRoot);
         ardor::loadBankFromStore(uiState, store, args.bank);
-        ardor::selectPreset(uiState, static_cast<std::size_t>(args.slot));
+        // The engine was loaded immediately above. Reflect that state in the
+        // UI without queuing the same preset for another audio-engine swap.
+        ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
         ui = std::make_unique<ardor::LvglUi>(ardor::UiActions{
           [&](std::size_t index) {
             requestedSlot.store(static_cast<int>(index), std::memory_order_relaxed);
@@ -515,15 +614,50 @@ int main(int argc, char** argv)
           },
           [&]() {
             std::string saveError;
+            const bool requiresEngineReload = uiState.requiresEngineReload;
             if (!ardor::saveActivePresetToStore(uiState, store, args.bank, saveError)) {
               std::cerr << saveError << "\n";
+              ardor::setUiStatus(uiState, "Save failed: " + saveError, true);
             } else {
-              requestedSlot.store(static_cast<int>(uiState.activePreset), std::memory_order_relaxed);
+              ardor::setUiStatus(uiState, "Preset saved");
+              if (requiresEngineReload) {
+                requestedSlot.store(static_cast<int>(uiState.activePreset), std::memory_order_relaxed);
+              }
             }
           },
           [&](const std::string& blockId, std::size_t bandIndex, const ardor::EqBandParams& params) {
             if (!liveEngine->setParametricEqBand(blockId, bandIndex, params)) {
               std::cerr << "Unable to update EQ band for block " << blockId << "\n";
+              ardor::setUiStatus(uiState, "EQ update failed", true);
+            }
+          },
+          [&](const std::string& blockId, const std::string& key, float normalized) {
+            if (!liveEngine->setDaisyParameter(blockId, key, normalized)) {
+              std::cerr << "Unable to update Daisy parameter " << blockId << ":" << key << "\n";
+              ardor::setUiStatus(uiState, "Effect update failed", true);
+            }
+          },
+          [&](const std::string& blockId, const std::string& key, float value) {
+            if (!liveEngine->setCompressorParameter(blockId, key, value)) {
+              std::cerr << "Unable to update compressor parameter " << blockId << ":" << key << "\n";
+              ardor::setUiStatus(uiState, "Compressor update failed", true);
+            }
+          },
+          [&](float inputGainDb, float outputGainDb) {
+            liveEngine->setInputGain(ardor::dbToGain(inputGainDb));
+            liveEngine->setOutputGain(ardor::dbToGain(outputGainDb));
+          },
+          [&](float levelDb, float mix) {
+            liveEngine->setCabLevel(ardor::dbToGain(levelDb));
+            liveEngine->setCabMix(mix);
+          },
+          [&](int delta) {
+            const int pending = requestedBank.load(std::memory_order_relaxed);
+            const int current = pending >= 0 ? pending : args.bank;
+            const int target = std::clamp(current + delta, 0, 99);
+            if (target != current) {
+              requestedBank.store(target, std::memory_order_relaxed);
+              requestedSlot.store(args.slot, std::memory_order_relaxed);
             }
           },
         });
@@ -534,8 +668,7 @@ int main(int argc, char** argv)
       ardor::RuntimeState runtime;
       uint64_t previousCallbacks = 0;
       uint64_t previousOverBudget = 0;
-      std::signal(SIGINT, handleSignal);
-      std::signal(SIGTERM, handleSignal);
+      uint64_t previousNonFiniteBlocks = 0;
 #if defined(__linux__)
       std::vector<ardor::LinuxInputDevice> inputDevices;
       inputDevices.resize(args.controlDevices.size());
@@ -552,21 +685,52 @@ int main(int argc, char** argv)
         return 1;
       }
 #endif
-      int tickCount = 0;
+      auto nextRuntimeCommandPoll = std::chrono::steady_clock::now();
+      auto nextTelemetry = nextRuntimeCommandPoll;
       while (running) {
 #if defined(ARDOR_HAS_UI)
         if (args.enableUi && ui) {
           lv_timer_handler();
           ui->refresh(lv_screen_active(), uiState);
           lv_delay_ms(5);
-          if (++tickCount < 200) continue;
-          tickCount = 0;
         } else {
-          std::this_thread::sleep_for(std::chrono::seconds(1));
+          std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
 #else
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
 #endif
+        if (backend.deviceStopped()) {
+          const bool startingRecovery = !deviceRecovery.pending();
+          const auto recoveryResult = deviceRecovery.service(backend, *liveEngine, options);
+#if defined(ARDOR_HAS_UI)
+          if (args.enableUi && ui && startingRecovery) {
+            ardor::setUiStatus(uiState, "Audio device lost; reconnecting", true);
+            ui->requestRebuild();
+          }
+#endif
+          if (recoveryResult == DeviceRecoveryResult::Failed) {
+            std::cerr << "Audio-device restart failed after bounded retries\n";
+#if defined(ARDOR_HAS_UI)
+            if (args.enableUi && ui) {
+              ardor::setUiStatus(uiState, "Audio restart failed", true);
+              ui->requestRebuild();
+            }
+#endif
+            return 1;
+          }
+          if (recoveryResult == DeviceRecoveryResult::Restarted) {
+            previousCallbacks = 0;
+            previousOverBudget = 0;
+#if defined(ARDOR_HAS_UI)
+            if (args.enableUi && ui) {
+              ardor::setUiStatus(uiState, "Audio device reconnected");
+              ui->requestRebuild();
+            }
+#endif
+          } else {
+            continue;
+          }
+        }
 #if defined(__linux__)
         for (auto& inputDevice : inputDevices) {
           ardor::ControlEvent controlEvent;
@@ -601,95 +765,153 @@ int main(int argc, char** argv)
           if (uiSlot >= 0) {
             requestedSlot.store(uiSlot, std::memory_order_relaxed);
           }
-          uiState.masterVolume = controls.masterVolume;
-        }
-#endif
-        bool reloadAssets = false;
-        for (const auto& command : ardor::consumeRuntimeCommands(args.dataRoot)) {
-          if (command.type == ardor::RuntimeCommandType::ReloadAssets) {
-            reloadAssets = true;
-          } else if (command.type == ardor::RuntimeCommandType::ApplyPreset) {
-            requestedBank.store(command.bank, std::memory_order_relaxed);
-            requestedSlot.store(command.slot, std::memory_order_relaxed);
+          if (uiState.masterVolume != controls.masterVolume) {
+            uiState.masterVolume = controls.masterVolume;
+            ui->requestRebuild();
           }
         }
-#if defined(ARDOR_HAS_UI)
-        if (reloadAssets && args.enableUi && ui) {
-          ardor::loadAssetsFromDataRoot(uiState, args.dataRoot);
-        }
 #endif
+        const auto now = std::chrono::steady_clock::now();
+        if (now >= nextRuntimeCommandPoll) {
+          nextRuntimeCommandPoll = now + std::chrono::milliseconds(100);
+          bool reloadAssets = false;
+          for (const auto& command : ardor::consumeRuntimeCommands(args.dataRoot)) {
+            if (command.type == ardor::RuntimeCommandType::ReloadAssets) {
+              reloadAssets = true;
+            } else if (command.type == ardor::RuntimeCommandType::ApplyPreset) {
+              requestedBank.store(command.bank, std::memory_order_relaxed);
+              requestedSlot.store(command.slot, std::memory_order_relaxed);
+            }
+          }
+#if defined(ARDOR_HAS_UI)
+          if (reloadAssets && args.enableUi && ui) {
+            ardor::loadAssetsFromDataRoot(uiState, args.dataRoot);
+            ardor::setUiStatus(uiState, "Assets reloaded");
+            ui->requestRebuild();
+          }
+#endif
+        }
         const int nextBank = requestedBank.exchange(-1, std::memory_order_relaxed);
         const int nextSlot = requestedSlot.exchange(-1, std::memory_order_relaxed);
         if (nextSlot >= 0) {
           const int targetBank = nextBank >= 0 ? nextBank : args.bank;
-          // Hosted Daisy modes still contain vendor-owned static delay/reverb
-          // buffers. Preparing a replacement while a Daisy preset runs can
-          // reset or alias the live effect state. Move through a muted engine
-          // first: the backend fades to silence without stopping the device,
-          // the old engine is then destroyed, and only then is the next Daisy
-          // program constructed. This trades a documented short silent switch
-          // for state integrity until the vendor buffers become instance-owned.
-          auto mutedEngine = std::make_unique<ardor::PedalEngine>();
-          mutedEngine->setSampleRate(loadOptions.sampleRate);
-          mutedEngine->prepareBlockSize(loadOptions.blockSize);
-          mutedEngine->setMasterVolume(0.0f);
-          if (!backend.replaceEngine(*mutedEngine)) {
-            std::cerr << "Failed to enter safe preset-switch mute\n";
+          std::string preflightError;
+          if (!ardor::preflightPresetSlot(store, {targetBank, nextSlot}, args.dataRoot, loadOptions, preflightError)) {
+            std::cerr << "Preset switch rejected before activation: " << preflightError << "\n";
+#if defined(ARDOR_HAS_UI)
+            if (args.enableUi && ui) {
+              ardor::loadBankFromStore(uiState, store, args.bank);
+              ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
+              ardor::setUiStatus(uiState, "Preset load failed: " + preflightError, true);
+              ui->requestRebuild();
+            }
+#endif
             continue;
           }
-          liveEngine = std::move(mutedEngine);
-
-          auto nextEngine = std::make_unique<ardor::PedalEngine>();
-          std::string swapError;
-          if (!ardor::applyPresetSlot(*nextEngine, store, {targetBank, nextSlot}, args.dataRoot, loadOptions, swapError)) {
-            std::cerr << "Preset switch failed: " << swapError << "\n";
-            auto recoveredEngine = std::make_unique<ardor::PedalEngine>();
-            std::string recoveryError;
-            if (ardor::applyPresetSlot(*recoveredEngine, store, {args.bank, args.slot}, args.dataRoot,
-                                       loadOptions, recoveryError)) {
-              recoveredEngine->setMasterVolume(static_cast<float>(controls.masterVolume) / 100.0f);
-              if (backend.replaceEngine(*recoveredEngine)) {
-                liveEngine = std::move(recoveredEngine);
-              }
-            } else {
-              std::cerr << "Failed to restore previous preset: " << recoveryError << "\n";
+          ardor::Preset targetPreset;
+          try {
+            targetPreset = store.load({targetBank, nextSlot});
+          } catch (const std::exception& e) {
+            std::cerr << "Preset switch rejected before activation: " << e.what() << "\n";
+#if defined(ARDOR_HAS_UI)
+            if (args.enableUi && ui) {
+              ardor::loadBankFromStore(uiState, store, args.bank);
+              ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
+              ardor::setUiStatus(uiState, "Preset load failed: " + std::string{e.what()}, true);
+              ui->requestRebuild();
             }
-          } else {
-            nextEngine->setMasterVolume(static_cast<float>(controls.masterVolume) / 100.0f);
-            if (!backend.replaceEngine(*nextEngine)) {
-              std::cerr << "Failed to activate prepared preset\n";
-            } else {
-              // replaceEngine() waits until any callback that could still hold
-              // liveEngine has completed, so it is safe to release it now.
-              liveEngine = std::move(nextEngine);
-              runtime.changePreset();
-              args.bank = targetBank;
-              args.slot = nextSlot;
-              controls.activeSlot = nextSlot;
-              std::cerr << "Switched to preset " << args.bank << ":" << args.slot << "\n";
+#endif
+            continue;
+          }
+          const auto activation = ardor::prepareAndActivatePreset(
+            liveEngine, activeSelection, targetPreset, {targetBank, nextSlot}, args.dataRoot,
+            loadOptions, static_cast<float>(controls.masterVolume) / 100.0f,
+            [&](ardor::PedalEngine& prepared) { return backend.replaceEngine(prepared); });
+          if (!activation.activated()) {
+            if (activation.status == ardor::PresetActivationStatus::PreparationFailed) {
+              std::cerr << "Preset switch failed: " << activation.error << "\n";
 #if defined(ARDOR_HAS_UI)
               if (args.enableUi && ui) {
                 ardor::loadBankFromStore(uiState, store, args.bank);
-                ardor::selectPreset(uiState, static_cast<std::size_t>(args.slot));
+                ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
+                ardor::setUiStatus(uiState, "Preset load failed: " + activation.error, true);
+                ui->requestRebuild();
               }
 #endif
+              continue;
+            }
+            std::cerr << "Failed to activate prepared preset: "
+                      << replaceResultName(activation.replacementResult) << "\n";
+            if (activation.replacementResult == ardor::EngineReplaceResult::DeviceStopped) {
+              requestedBank.store(targetBank, std::memory_order_relaxed);
+              requestedSlot.store(nextSlot, std::memory_order_relaxed);
+              continue;
+            }
+            return 1;
+          }
+          runtime.changePreset();
+          args.bank = activeSelection.bank;
+          args.slot = activeSelection.slot;
+          controls.activeSlot = activeSelection.slot;
+          std::cerr << "Switched to preset " << args.bank << ":" << args.slot << "\n";
+#if defined(ARDOR_HAS_UI)
+          uiState.requiresEngineReload = false;
+          if (args.enableUi && ui) {
+            ardor::loadBankFromStore(uiState, store, args.bank);
+            ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
+            ardor::setUiStatus(uiState, "Preset " + std::to_string(args.bank) + ":"
+                                      + std::to_string(args.slot) + " active");
+            ui->requestRebuild();
+          }
+#endif
+          continue;
+        }
+        if (now >= nextTelemetry) {
+          nextTelemetry = now + std::chrono::seconds(1);
+          const auto stats = backend.stats();
+          const auto nonFiniteBlocks = liveEngine->nonFiniteBlockCount();
+          if (nonFiniteBlocks != previousNonFiniteBlocks) {
+            previousNonFiniteBlocks = nonFiniteBlocks;
+            const auto blockId = liveEngine->firstNonFiniteBlockId();
+            const std::string message = "DSP fault: " + (blockId.empty() ? std::string{"unnamed block"} : blockId);
+            std::cerr << message << "\n";
+            // Prepare and swap a clean program from the control thread. Never
+            // reset a potentially large effect state from the audio callback.
+            requestedBank.store(args.bank, std::memory_order_relaxed);
+            requestedSlot.store(args.slot, std::memory_order_relaxed);
+#if defined(ARDOR_HAS_UI)
+            if (args.enableUi && ui) {
+              ardor::setUiStatus(uiState, message, true);
+              ui->requestRebuild();
+            }
+#endif
+          }
+          runtime.observeRealtimeStats(previousCallbacks, stats.callbacks, previousOverBudget, stats.overBudget);
+          previousCallbacks = stats.callbacks;
+          previousOverBudget = stats.overBudget;
+          liveEngine->setEffectsBypassed(runtime.effectsBypassed());
+          const auto telemetry = ardor::makeRuntimeTelemetry(stats.callbacks, stats.overBudget, stats.callbackGaps,
+                                                             stats.maxMs, stats.averageMs, stats.budgetMs,
+                                                             runtime.effectsBypassed());
+          std::cerr << ardor::formatRuntimeTelemetry(telemetry) << "\n";
+#if defined(ARDOR_HAS_UI)
+          if (args.enableUi && ui) {
+            const auto& previousTelemetry = uiState.telemetry;
+            const bool telemetryChanged = previousTelemetry.callbacks != telemetry.callbacks
+              || previousTelemetry.overBudget != telemetry.overBudget
+              || previousTelemetry.overBudgetPercent != telemetry.overBudgetPercent
+              || previousTelemetry.callbackGaps != telemetry.callbackGaps
+              || previousTelemetry.maxMs != telemetry.maxMs
+              || previousTelemetry.averageMs != telemetry.averageMs
+              || previousTelemetry.budgetMs != telemetry.budgetMs
+              || uiState.effectsBypassed != telemetry.bypassed;
+            ardor::updateRealtimeTelemetry(uiState, telemetry);
+            if (telemetryChanged) {
+              ui->requestRebuild();
             }
           }
-        }
-        const auto stats = backend.stats();
-        runtime.observeRealtimeStats(previousCallbacks, stats.callbacks, previousOverBudget, stats.overBudget);
-        previousCallbacks = stats.callbacks;
-        previousOverBudget = stats.overBudget;
-        liveEngine->setEffectsBypassed(runtime.effectsBypassed());
-        const auto telemetry = ardor::makeRuntimeTelemetry(stats.callbacks, stats.overBudget, stats.maxMs,
-                                                           stats.averageMs, stats.budgetMs,
-                                                           runtime.effectsBypassed());
-        std::cerr << ardor::formatRuntimeTelemetry(telemetry) << "\n";
-#if defined(ARDOR_HAS_UI)
-        if (args.enableUi && ui) {
-          ardor::updateRealtimeTelemetry(uiState, telemetry);
-        }
 #endif
+        }
       }
       backend.stop();
       return 0;
@@ -761,6 +983,10 @@ int main(int argc, char** argv)
       options.playbackDeviceIndex = args.playbackDeviceIndex;
       options.inputChannel = args.inputChannel;
       options.outputChannel = args.outputChannel;
+#if defined(__linux__)
+      options.requireRealtimeScheduler = !args.allowNonRealtime;
+      options.requireNativeSampleRate = !args.allowDeviceResampling;
+#endif
 
 #if defined(__linux__)
       if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
@@ -773,20 +999,43 @@ int main(int argc, char** argv)
         return 1;
       }
 
+      DeviceRecoveryController deviceRecovery;
       ardor::RuntimeState runtime;
       uint64_t previousCallbacks = 0;
       uint64_t previousOverBudget = 0;
-      std::signal(SIGINT, handleSignal);
-      std::signal(SIGTERM, handleSignal);
+      uint64_t previousNonFiniteBlocks = 0;
+      auto nextTelemetry = std::chrono::steady_clock::now();
       while (running) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        if (backend.deviceStopped()) {
+          const auto recoveryResult = deviceRecovery.service(backend, engine, options);
+          if (recoveryResult == DeviceRecoveryResult::Failed) {
+            std::cerr << "Audio-device restart failed after bounded retries\n";
+            return 1;
+          }
+          if (recoveryResult == DeviceRecoveryResult::Restarted) {
+            previousCallbacks = 0;
+            previousOverBudget = 0;
+          } else {
+            continue;
+          }
+        }
+        const auto now = std::chrono::steady_clock::now();
+        if (now < nextTelemetry) continue;
+        nextTelemetry = now + std::chrono::seconds(1);
         const auto stats = backend.stats();
+        const auto nonFiniteBlocks = engine.nonFiniteBlockCount();
+        if (nonFiniteBlocks != previousNonFiniteBlocks) {
+          previousNonFiniteBlocks = nonFiniteBlocks;
+          const auto blockId = engine.firstNonFiniteBlockId();
+          std::cerr << "DSP fault: " << (blockId.empty() ? "unnamed block" : blockId) << "\n";
+        }
         runtime.observeRealtimeStats(previousCallbacks, stats.callbacks, previousOverBudget, stats.overBudget);
         previousCallbacks = stats.callbacks;
         previousOverBudget = stats.overBudget;
         engine.setEffectsBypassed(runtime.effectsBypassed());
-        const auto telemetry = ardor::makeRuntimeTelemetry(stats.callbacks, stats.overBudget, stats.maxMs,
-                                                           stats.averageMs, stats.budgetMs,
+        const auto telemetry = ardor::makeRuntimeTelemetry(stats.callbacks, stats.overBudget, stats.callbackGaps,
+                                                           stats.maxMs, stats.averageMs, stats.budgetMs,
                                                            runtime.effectsBypassed());
         std::cerr << ardor::formatRuntimeTelemetry(telemetry) << "\n";
       }

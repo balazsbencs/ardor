@@ -81,6 +81,7 @@ void IrConvolver::loadImpulse(std::vector<float> impulse)
   history_.assign(impulse_.size(), 0.0f);
   pos_ = 0;
   blockSize_ = 0;
+  blockSizeMismatchCount_ = 0;
   fftSize_ = 0;
   writeIndex_ = 0;
   overlap_.clear();
@@ -112,6 +113,11 @@ void IrConvolver::reset()
 size_t IrConvolver::tailFrames() const noexcept
 {
   return impulse_.empty() ? 0 : impulse_.size() - 1;
+}
+
+uint64_t IrConvolver::blockSizeMismatchCount() const noexcept
+{
+  return blockSizeMismatchCount_;
 }
 
 float IrConvolver::processSample(float input)
@@ -170,9 +176,12 @@ void IrConvolver::processBlock(const float* input, float* output, size_t frames)
     if (blockSize_ == 0) {
       preparePartitions(frames);
     } else {
-      for (size_t i = 0; i < frames; ++i) {
-        output[i] = processSample(input[i]);
-      }
+      // Partitioned overlap-add state cannot be combined correctly with the
+      // direct-convolution history. Never turn a malformed realtime quantum
+      // into an unbounded O(IR length) fallback; the adapter must supply the
+      // prepared size, so contain this contract violation as silence instead.
+      ++blockSizeMismatchCount_;
+      std::fill(output, output + frames, 0.0f);
       return;
     }
   }

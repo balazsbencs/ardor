@@ -24,6 +24,7 @@ struct UiEventContext {
   std::string filter = "all";
   lv_obj_t* ghost = nullptr;
   lv_obj_t* indicator = nullptr;
+  lv_obj_t* controlledObject = nullptr;
   lv_point_t pressPoint{};
   bool dragging = false;
   bool suppressClick = false;
@@ -34,6 +35,11 @@ struct UiActions {
   std::function<void(std::size_t)> selectPreset;
   std::function<void()> savePreset;
   std::function<void(const std::string&, std::size_t, const EqBandParams&)> updateEqBand;
+  std::function<void(const std::string&, const std::string&, float)> updateDaisyParameter;
+  std::function<void(const std::string&, const std::string&, float)> updateCompressorParameter;
+  std::function<void(float, float)> updateGlobalGains;
+  std::function<void(float, float)> updateCabParameters;
+  std::function<void(int)> changeBank;
 };
 
 class LvglUi {
@@ -56,28 +62,36 @@ public:
   {
     focusedEqField_.reset();
     focusedKey_ = std::move(key);
-    requestRebuild();
+    if (!focusedKnob_) {
+      requestRebuild();
+    }
   }
   void focusEqBandField(EqBandField field)
   {
     focusedKey_.clear();
     focusedEqField_ = field;
-    requestRebuild();
+    if (!focusedKnob_ && !focusedEqGraph_) {
+      requestRebuild();
+    }
   }
   void selectEqBand(std::size_t bandIndex)
   {
     selectedEqBand_ = std::min(bandIndex, kParametricEqBandCount - 1);
-    requestRebuild();
+    if (!focusedEqGraph_) {
+      requestRebuild();
+    }
   }
   std::size_t selectedEqBand() const { return selectedEqBand_; }
   bool isEqBandFieldFocused(EqBandField field) const { return focusedEqField_ == field; }
-  bool updateSelectedEqBand(UiState& state, EqBandParams params);
+  bool updateSelectedEqBand(UiState& state, EqBandParams params, bool requestRebuild = true);
   UiEventContext* remember(UiState& state, std::size_t index = 0, std::string filter = "all");
   bool isParameterFocused(const std::string& key) const { return focusedKey_ == key; }
   void resetParameterPage()
   {
     focusedKey_.clear();
     focusedEqField_.reset();
+    focusedKnob_ = nullptr;
+    focusedEqGraph_ = nullptr;
     parameterPage_ = 0;
   }
   void setParameterPage(std::size_t page) { parameterPage_ = page; }
@@ -85,30 +99,11 @@ public:
   static std::size_t chainSlotForPoint(std::size_t blockCount, lv_point_t canvasPoint);
   static std::size_t chainInsertionSlotForPoint(std::size_t blockCount, lv_point_t canvasPoint);
   static lv_point_t chainIndicatorPosition(std::size_t blockCount, std::size_t slot);
-  bool applyFocusedParameterDelta(UiState& state, int delta)
+  bool applyFocusedParameterDelta(UiState& state, int delta);
+  void setFocusedWidgets(lv_obj_t* knob, lv_obj_t* eqGraph = nullptr)
   {
-    if (focusedEqField_.has_value()) {
-      const auto& blocks = state.bank.presets[state.activePreset].blocks;
-      if (state.paramTarget != UiParamTarget::Block || state.selectedBlock >= blocks.size()
-          || blocks[state.selectedBlock].type != "eq" || !isParametricEqMode(blocks[state.selectedBlock].params)) {
-        return false;
-      }
-      auto params = selectedParametricEqParams(state);
-      adjustEqBandField(params.bands[selectedEqBand_], *focusedEqField_, delta);
-      return updateSelectedEqBand(state, params.bands[selectedEqBand_]);
-    }
-    if (focusedKey_.empty()) {
-      return false;
-    }
-    for (const auto& control : ardor::parameterPage(state, parameterPage_)) {
-      if (control.key == focusedKey_) {
-        if (applyParameterDelta(state, control, delta)) {
-          requestRebuild();
-        }
-        return true;
-      }
-    }
-    return false;
+    focusedKnob_ = knob;
+    focusedEqGraph_ = eqGraph;
   }
 
   const UiActions& actions() const { return actions_; }
@@ -133,6 +128,8 @@ private:
   std::optional<EqBandField> focusedEqField_;
   std::size_t selectedEqBand_ = 0;
   std::size_t parameterPage_ = 0;
+  lv_obj_t* focusedKnob_ = nullptr;
+  lv_obj_t* focusedEqGraph_ = nullptr;
   lv_obj_t* canvas_ = nullptr;
   int32_t canvasScale_ = 256;  // 8.8 fixed point; 256 == 1.0
   lv_point_t canvasOffset_{};

@@ -139,6 +139,41 @@ func (s Store) Save(bank int, slot int, preset Preset) (Slot, error) {
 	return Slot{Bank: bank, Slot: slot, Preset: preset}, nil
 }
 
+// ReplaceAssetReferences updates every saved slot that uses oldPath and
+// returns the number of changed presets. It intentionally uses Save so every
+// rewritten JSON document keeps the same validation and atomic-write rules as
+// a normal manager save.
+func (s Store) ReplaceAssetReferences(oldPath, newPath string) (int, error) {
+	changed := 0
+	for bank := 0; bank < 100; bank++ {
+		for slot := 0; slot < 4; slot++ {
+			loaded, err := s.Load(bank, slot)
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			if err != nil {
+				return changed, fmt.Errorf("load bank %d slot %d: %w", bank, slot, err)
+			}
+			dirty := false
+			for _, item := range loaded.Preset["blocks"].([]any) {
+				block := item.(map[string]any)
+				if asset, _ := block["asset"].(string); asset == oldPath {
+					block["asset"] = newPath
+					dirty = true
+				}
+			}
+			if !dirty {
+				continue
+			}
+			if _, err := s.Save(bank, slot, loaded.Preset); err != nil {
+				return changed, fmt.Errorf("save bank %d slot %d: %w", bank, slot, err)
+			}
+			changed++
+		}
+	}
+	return changed, nil
+}
+
 func (s Store) pathFor(bank int, slot int) string {
 	return filepath.Join(s.root, "presets", fmt.Sprintf("bank-%03d", bank), fmt.Sprintf("preset-%d.json", slot))
 }

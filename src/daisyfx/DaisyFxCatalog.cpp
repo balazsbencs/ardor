@@ -46,9 +46,11 @@ std::vector<DaisyFxParamDescriptor> reverbParams()
   };
 }
 
-DaisyFxDescriptor mod(std::string mode, std::string name, std::string p1 = "P1", std::string p2 = "P2")
+DaisyFxDescriptor mod(std::string mode, std::string name, std::string p1 = "P1", std::string p2 = "P2",
+                      float mix = 1.0f)
 {
   auto params = modParams();
+  params[2].defaultValue = mix;
   params[4].label = std::move(p1);
   params[5].label = std::move(p2);
   return {DaisyFxKind::Mod, "mod", std::move(mode), std::move(name), std::move(params)};
@@ -72,7 +74,9 @@ DaisyFxDescriptor reverb(std::string mode, std::string name, std::string param1 
 const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
 {
   static const std::vector<DaisyFxDescriptor> catalog{
-    mod("chorus", "Chorus", "Delay", "Type"),
+    // Chorus' vendor mode returns wet signal only. A 50/50 default retains
+    // dry signal and produces an actual chorus rather than vibrato.
+    mod("chorus", "Chorus", "Delay", "Type", 0.5f),
     mod("flanger", "Flanger", "Regen", "Type"),
     mod("rotary", "Rotary", "Drive", "Speed"),
     mod("vibe", "Vibe", "Regen", "Shape"),

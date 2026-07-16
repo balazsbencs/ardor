@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <iomanip>
 #include <sstream>
+#include <system_error>
 #include <utility>
 
 namespace ardor {
@@ -156,15 +157,24 @@ UiPreset emptyPreset(std::size_t index)
 
 void appendAssetsFrom(UiState& state, const std::filesystem::path& dir, const std::string& ext, const std::string& type)
 {
-  if (!std::filesystem::exists(dir)) {
+  namespace fs = std::filesystem;
+
+  std::error_code ec;
+  if (!fs::exists(dir, ec) || ec) {
     return;
   }
 
-  for (const auto& entry : std::filesystem::directory_iterator(dir)) {
-    if (!entry.is_regular_file() || entry.path().extension() != ext) {
+  for (fs::directory_iterator it(dir, ec), end; !ec && it != end; it.increment(ec)) {
+    const auto& entry = *it;
+    std::error_code entryEc;
+    if (!entry.is_regular_file(entryEc) || entryEc || entry.path().extension() != ext) {
       continue;
     }
-    const auto relative = std::filesystem::relative(entry.path(), dir.parent_path()).generic_string();
+    const auto relativePath = fs::relative(entry.path(), dir.parent_path(), entryEc);
+    if (entryEc) {
+      continue;
+    }
+    const auto relative = relativePath.generic_string();
     state.assets.push_back({entry.path().stem().string(), relative, type});
   }
 }
@@ -209,17 +219,29 @@ UiState makeDemoUiState()
   return state;
 }
 
-void selectPreset(UiState& state, std::size_t index)
+void setActivePreset(UiState& state, std::size_t index, bool requestAudioSwap)
 {
   if (index >= state.bank.presets.size()) {
     return;
   }
   state.activePreset = index;
   state.selectedBlock = 0;
-  state.pendingSlotRequest = static_cast<int>(index);
+  if (requestAudioSwap) {
+    state.pendingSlotRequest = static_cast<int>(index);
+  }
   enterPresetMode(state);
   state.dirty = false;
   state.effectsBypassed = false;
+}
+
+void selectPreset(UiState& state, std::size_t index)
+{
+  setActivePreset(state, index, true);
+}
+
+void synchronizePresetSelection(UiState& state, std::size_t index)
+{
+  setActivePreset(state, index, false);
 }
 
 void enterPresetMode(UiState& state)
@@ -298,6 +320,7 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
                 {nextBlockId(blocks), type, label, asset.name, asset.path, true, params});
   state.selectedBlock = insertAt;
   state.dirty = true;
+  state.requiresEngineReload = true;
 }
 
 void moveBlock(UiState& state, std::size_t from, std::size_t to)
@@ -312,6 +335,7 @@ void moveBlock(UiState& state, std::size_t from, std::size_t to)
   blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(to), std::move(block));
   state.selectedBlock = to;
   state.dirty = true;
+  state.requiresEngineReload = true;
 }
 
 bool deleteSelectedBlock(UiState& state)
@@ -330,6 +354,7 @@ bool deleteSelectedBlock(UiState& state)
     state.paramTarget = UiParamTarget::Block;
   }
   state.dirty = true;
+  state.requiresEngineReload = true;
   return true;
 }
 
@@ -379,6 +404,7 @@ void replaceActivePreset(UiState& state, const Preset& preset)
   }
   state.selectedBlock = 0;
   state.dirty = false;
+  state.requiresEngineReload = false;
   state.paramDrawerOpen = false;
 }
 
@@ -396,6 +422,7 @@ void setSelectedBlockEnabled(UiState& state, bool enabled)
   }
   blocks[state.selectedBlock].enabled = enabled;
   state.dirty = true;
+  state.requiresEngineReload = true;
 }
 
 void setActiveInputGainDb(UiState& state, float db)
@@ -459,6 +486,7 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
   }
   block.params[key] = std::move(value);
   state.dirty = true;
+  state.requiresEngineReload = true;
 }
 
 ParametricEqParams selectedParametricEqParams(const UiState& state)
@@ -512,6 +540,12 @@ void updateRealtimeTelemetry(UiState& state, const RuntimeTelemetry& telemetry)
   state.effectsBypassed = telemetry.bypassed;
 }
 
+void setUiStatus(UiState& state, std::string message, bool isError)
+{
+  state.statusMessage = std::move(message);
+  state.statusIsError = isError;
+}
+
 int consumePendingSlotRequest(UiState& state)
 {
   const int slot = state.pendingSlotRequest;
@@ -544,6 +578,8 @@ bool loadPresetSlotFromStore(UiState& state, const PresetStore& store, PresetSlo
 
 void loadBankFromStore(UiState& state, const PresetStore& store, int bank)
 {
+  bank = std::clamp(bank, 0, 99);
+  state.activeBank = bank;
   state.bank.name = bankName(bank);
   const auto previous = state.activePreset;
   for (std::size_t i = 0; i < state.bank.presets.size(); ++i) {
@@ -555,6 +591,7 @@ void loadBankFromStore(UiState& state, const PresetStore& store, int bank)
   state.activePreset = std::min(previous, state.bank.presets.size() - 1);
   state.selectedBlock = 0;
   state.dirty = false;
+  state.requiresEngineReload = false;
   state.paramDrawerOpen = false;
 }
 

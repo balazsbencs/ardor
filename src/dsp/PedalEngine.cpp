@@ -1,5 +1,7 @@
 #include "PedalEngine.h"
 
+#include "DenormalGuard.h"
+
 #include "daisyfx/DaisyFxProcessor.h"
 #include "dynamics/CompressorProcessor.h"
 #include "equalizer/EqParameters.h"
@@ -20,11 +22,12 @@ void PedalEngine::setSampleRate(double sampleRate)
   gainSmoothingCoefficient_ = 1.0f - std::exp(-1.0f / (kGainSmoothingSeconds * sampleRate_));
 }
 
-bool PedalEngine::loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize)
+bool PedalEngine::loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
+                          std::string id)
 {
   setSampleRate(sampleRate);
   prepareBlockSize(static_cast<size_t>(std::max(1, maxBlockSize)));
-  return chain_.addNam(modelPath, sampleRate, maxBlockSize);
+  return chain_.addNam(modelPath, sampleRate, maxBlockSize, std::move(id));
 }
 
 void PedalEngine::loadIr(std::vector<float> impulse)
@@ -32,33 +35,44 @@ void PedalEngine::loadIr(std::vector<float> impulse)
   addCab(std::move(impulse), cabLevel_.load(std::memory_order_relaxed), cabMix_.load(std::memory_order_relaxed));
 }
 
-void PedalEngine::addCab(std::vector<float> impulse, float level, float mix)
+void PedalEngine::addCab(std::vector<float> impulse, float level, float mix, std::string id)
 {
   const float safeLevel = std::isfinite(level) ? std::max(0.0f, level) : 1.0f;
   const float safeMix = std::isfinite(mix) ? std::clamp(mix, 0.0f, 1.0f) : 1.0f;
   cabLevel_.store(safeLevel, std::memory_order_relaxed);
   cabMix_.store(safeMix, std::memory_order_relaxed);
-  chain_.addCab(std::move(impulse), safeLevel, safeMix);
+  chain_.addCab(std::move(impulse), safeLevel, safeMix, std::move(id));
 }
 
-bool PedalEngine::addDaisyFx(const std::string& blockType, const nlohmann::json& params, float sampleRate, std::string& error)
+bool PedalEngine::addDaisyFx(std::string id, const std::string& blockType, const nlohmann::json& params,
+                             float sampleRate, std::string& error)
 {
   DaisyFxProcessor processor;
   if (!processor.configure(blockType, params, sampleRate, error)) {
     return false;
   }
-  chain_.addDaisy(std::move(processor));
+  chain_.addDaisy(std::move(id), std::move(processor));
   return true;
 }
 
-bool PedalEngine::addCompressor(const nlohmann::json& params, float sampleRate, std::string& error)
+bool PedalEngine::setDaisyParameter(const std::string& id, const std::string& key, float normalized)
+{
+  return chain_.setDaisyParameter(id, key, normalized);
+}
+
+bool PedalEngine::addCompressor(std::string id, const nlohmann::json& params, float sampleRate, std::string& error)
 {
   CompressorProcessor processor;
   if (!processor.configure(params, sampleRate, error)) {
     return false;
   }
-  chain_.addCompressor(std::move(processor));
+  chain_.addCompressor(std::move(id), std::move(processor));
   return true;
+}
+
+bool PedalEngine::setCompressorParameter(const std::string& id, const std::string& key, float value)
+{
+  return chain_.setCompressorParameter(id, key, value);
 }
 
 bool PedalEngine::addParametricEq(const std::string& id, const nlohmann::json& params,
@@ -78,6 +92,7 @@ void PedalEngine::prepareBlockSize(size_t frames)
     return;
   }
   blockSize_ = frames;
+  sanitizedInput_.assign(frames, 0.0f);
   gainedInput_.assign(frames, 0.0f);
   cabLevelBlock_.assign(frames, 1.0f);
   cabMixBlock_.assign(frames, 1.0f);
@@ -134,10 +149,31 @@ void PedalEngine::setCabMix(float mix)
   cabMix_.store(cabMix, std::memory_order_relaxed);
 }
 
+uint64_t PedalEngine::nonFiniteInputSamples() const noexcept
+{
+  return nonFiniteInputSamples_.load(std::memory_order_relaxed);
+}
+
+uint64_t PedalEngine::blockSizeMismatchCount() const noexcept
+{
+  return blockSizeMismatchCount_.load(std::memory_order_relaxed);
+}
+
+uint64_t PedalEngine::nonFiniteBlockCount() const noexcept
+{
+  return chain_.nonFiniteBlockCount();
+}
+
+std::string PedalEngine::firstNonFiniteBlockId() const
+{
+  return chain_.firstNonFiniteBlockId();
+}
+
 void PedalEngine::replacePreparedProgram(PedalEngine&& prepared)
 {
   chain_ = std::move(prepared.chain_);
   blockSize_ = prepared.blockSize_;
+  sanitizedInput_ = std::move(prepared.sanitizedInput_);
   gainedInput_ = std::move(prepared.gainedInput_);
   cabLevelBlock_ = std::move(prepared.cabLevelBlock_);
   cabMixBlock_ = std::move(prepared.cabMixBlock_);
@@ -208,7 +244,12 @@ StereoSample PedalEngine::equalPowerMix(StereoSample dry, StereoSample wet, floa
 
 std::pair<float, float> PedalEngine::process(float input)
 {
+  const ScopedDenormalGuard denormalGuard;
   beginAudioProcessing();
+  if (!std::isfinite(input)) {
+    nonFiniteInputSamples_.fetch_add(1, std::memory_order_relaxed);
+    input = 0.0f;
+  }
   const float masterVolume = smoothGain(currentMasterVolume_, masterVolume_);
   const float afterGain = input * smoothGain(currentInputGain_, inputGain_);
   const auto wet = chain_.process({afterGain, afterGain}, smoothGain(currentCabLevel_, cabLevel_),
@@ -221,22 +262,28 @@ std::pair<float, float> PedalEngine::process(float input)
 
 void PedalEngine::processBlock(const float* input, float* left, float* right, size_t frames)
 {
+  const ScopedDenormalGuard denormalGuard;
   beginAudioProcessing();
   if (blockSize_ == 0) {
     prepareBlockSize(frames);
   }
-  if (frames > blockSize_) {
-    size_t offset = 0;
-    while (offset < frames) {
-      const size_t chunk = std::min(blockSize_, frames - offset);
-      processBlock(input + offset, left + offset, right + offset, chunk);
-      offset += chunk;
-    }
+  if (frames != blockSize_) {
+    // The realtime adapter owns fixed-quantum assembly. Processing a partial
+    // remainder would force a prepared convolver into a different algorithm
+    // and corrupt its state, so fail boundedly and make the fault observable.
+    blockSizeMismatchCount_.fetch_add(1, std::memory_order_relaxed);
+    std::fill(left, left + frames, 0.0f);
+    std::fill(right, right + frames, 0.0f);
     return;
   }
 
   for (size_t i = 0; i < frames; ++i) {
-    gainedInput_[i] = input[i] * smoothGain(currentInputGain_, inputGain_);
+    const float safeInput = std::isfinite(input[i]) ? input[i] : 0.0f;
+    if (!std::isfinite(input[i])) {
+      nonFiniteInputSamples_.fetch_add(1, std::memory_order_relaxed);
+    }
+    sanitizedInput_[i] = safeInput;
+    gainedInput_[i] = safeInput * smoothGain(currentInputGain_, inputGain_);
     cabLevelBlock_[i] = smoothGain(currentCabLevel_, cabLevel_);
     cabMixBlock_[i] = smoothGain(currentCabMix_, cabMix_);
   }
@@ -245,7 +292,7 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
     const float output = smoothGain(currentOutputGain_, outputGain_)
                          * smoothGain(currentMasterVolume_, masterVolume_);
     const float master = currentMasterVolume_;
-    const StereoSample mixed = equalPowerMix({input[i] * master, input[i] * master},
+    const StereoSample mixed = equalPowerMix({sanitizedInput_[i] * master, sanitizedInput_[i] * master},
                                              {left[i] * output, right[i] * output}, smoothEffectsMix());
     left[i] = applySafety(mixed.left);
     right[i] = applySafety(mixed.right);

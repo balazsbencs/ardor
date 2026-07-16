@@ -171,7 +171,11 @@ int main()
   if (require(!ardor::applyParameterDelta(state, *lowLevelControl, -1), "minimum cab delta should not change value")) return 1;
   if (require(state.dirty, "clamped delta should preserve setter dirty behavior")) return 1;
 
-  ardor::LvglUi ui;
+  int requestedBankDelta = 0;
+  ardor::LvglUi ui({
+    {}, {}, {}, {}, {}, {}, {},
+    [&](int delta) { requestedBankDelta += delta; },
+  });
   const int masterVolume = state.masterVolume;
   ui.focusParameter("levelDb");
   state.dirty = false;
@@ -323,6 +327,7 @@ int main()
                                   [](const auto& control) { return control.key == "depth"; });
   if (require(depth != renderControls.end(), "Vintage Trem depth control should be available")) return 1;
   ardor::setSelectedBlockParam(state, "depth", depth->minimum);
+  ardor::setUiStatus(state, "Preset saved");
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
 
@@ -332,8 +337,11 @@ int main()
   lv_obj_t* page = findLabel(lv_screen_active(), "PAGE 1 / 1");
   lv_obj_t* next = findLabel(lv_screen_active(), ">");
   lv_obj_t* title = findLabel(lv_screen_active(), titleText.c_str());
+  lv_obj_t* status = findLabel(lv_screen_active(), "Preset saved");
   lv_obj_t* pointer = findKnobPointer(lv_screen_active(), depth->label.c_str());
   if (require(title && pointer, "parameter header and knob pointer should render")) return 1;
+  if (require(status && lv_color_eq(lv_obj_get_style_text_color(status, LV_PART_MAIN), lv_color_hex(0x43f05a)),
+              "success status should render in accent green")) return 1;
   if (require(page, "parameter header should show PAGE n/total")) return 1;
   if (require(!previous && !next, "seven controls should not require page navigation")) return 1;
   lv_obj_t* pointerLayer = lv_obj_get_parent(pointer);
@@ -347,6 +355,15 @@ int main()
               "dial rim should not create scrollbars")) return 1;
   if (require(lv_obj_get_width(pointerLayer) == 56 && lv_obj_get_height(pointerLayer) == 56,
               "custom pointer should sit inside a dial-sized layer")) return 1;
+  const auto depthIndex = static_cast<int>(std::distance(renderControls.begin(), depth));
+  const int knobRowWidth = 154 + static_cast<int>(renderControls.size() - 1) * 164;
+  const int expectedDepthX = (1240 - knobRowWidth) / 2 + depthIndex * 164;
+  lv_area_t knobArea{};
+  lv_area_t knobPanelArea{};
+  lv_obj_get_coords(knobObject, &knobArea);
+  lv_obj_get_coords(lv_obj_get_parent(knobObject), &knobPanelArea);
+  if (require(knobArea.x1 - knobPanelArea.x1 == expectedDepthX,
+              "visible parameter knobs should be centered as a row")) return 1;
   if (require(lv_obj_get_style_transform_rotation(pointerLayer, LV_PART_MAIN) == 0,
               "pointer layer should remain stationary")) return 1;
   const lv_point_precise_t* pointerPoints = lv_line_get_points(pointer);
@@ -448,10 +465,13 @@ int main()
   lv_obj_get_coords(lv_obj_get_parent(parameterClose), &parameterCloseArea);
   lv_obj_get_coords(bypassLabel, &bypassLabelArea);
   lv_obj_get_coords(bypassSwitch, &bypassSwitchArea);
-  if (require(parameterCloseArea.x2 == parameterPanelArea.x2 - 28,
-              "parameter close button should be in the top-right corner")) return 1;
-  if (require(bypassSwitchArea.x2 < parameterCloseArea.x1,
-              "bypass switch should sit left of the close button")) return 1;
+  if (require(parameterCloseArea.x2 > parameterPanelArea.x1 + (lv_obj_get_width(parameterPanel) * 9) / 10,
+              "parameter close button should stay in the top-right corner")) return 1;
+  if (require(lv_obj_get_width(lv_obj_get_parent(parameterClose)) == 64
+                && lv_obj_get_height(lv_obj_get_parent(parameterClose)) == 52,
+              "parameter close button should be a large dedicated target")) return 1;
+  if (require(bypassSwitchArea.x2 + 32 < parameterCloseArea.x1,
+              "bypass switch should leave a generous gap before the close button")) return 1;
   if (require(bypassLabelArea.x2 < bypassSwitchArea.x1,
               "bypass label should sit left of its switch")) return 1;
   if (require(lv_color_eq(lv_obj_get_style_bg_color(bypassSwitch, LV_PART_INDICATOR),
@@ -491,6 +511,26 @@ int main()
   if (require(pointerPoints && (pointerPoints[1].x != minimumPointerEnd.x
                                 || pointerPoints[1].y != minimumPointerEnd.y),
               "focused encoder adjustment should rebuild the knob pointer")) return 1;
+
+  ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* stableDepthLabel = findLabel(lv_screen_active(), depth->label.c_str());
+  lv_obj_t* stableDepthKnob = stableDepthLabel ? lv_obj_get_parent(stableDepthLabel) : nullptr;
+  lv_obj_t* stablePointer = stableDepthKnob ? findKnobPointer(stableDepthKnob) : nullptr;
+  const lv_point_precise_t* stablePointerPoints = stablePointer ? lv_line_get_points(stablePointer) : nullptr;
+  if (require(stableDepthKnob && stablePointerPoints, "focused knob should expose stable visual handles")) return 1;
+  const lv_point_precise_t stablePointerEnd = stablePointerPoints[1];
+  ui.setFocusedWidgets(stableDepthKnob);
+  ui.focusParameter(depth->key);
+  if (require(ui.applyFocusedParameterDelta(state, 1), "targeted encoder adjustment should be consumed")) return 1;
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_t* retainedDepthLabel = findLabel(lv_screen_active(), depth->label.c_str());
+  const lv_point_precise_t* retainedPointerPoints = stablePointer ? lv_line_get_points(stablePointer) : nullptr;
+  if (require(retainedDepthLabel && lv_obj_get_parent(retainedDepthLabel) == stableDepthKnob,
+              "targeted encoder adjustment should retain the knob object")) return 1;
+  if (require(retainedPointerPoints && (retainedPointerPoints[1].x != stablePointerEnd.x
+                                       || retainedPointerPoints[1].y != stablePointerEnd.y),
+              "targeted encoder adjustment should update the retained pointer")) return 1;
 
   ardor::setSelectedBlockParam(state, "depth", depth->maximum);
   ui.build(lv_screen_active(), state);
@@ -559,27 +599,89 @@ int main()
   if (require(secondRowIndicator.x == 34 && secondRowIndicator.y == 267,
               "sixth-slot insertion indicator should be placed on the second row")) return 1;
 
-  ardor::enterEditMode(state);
-  ardor::openBlockDrawer(state);
+  ardor::enterPresetMode(state);
   ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* editButtonLabel = findLabel(lv_screen_active(), "Edit");
+  lv_obj_t* editButton = editButtonLabel ? lv_obj_get_parent(editButtonLabel) : nullptr;
+  lv_obj_t* bankDownLabel = findLabel(lv_screen_active(), "Bank -");
+  lv_obj_t* bankUpLabel = findLabel(lv_screen_active(), "Bank +");
+  lv_obj_t* bankNameLabel = findLabel(lv_screen_active(), state.bank.name.c_str());
+  lv_obj_t* bankDownButton = bankDownLabel ? lv_obj_get_parent(bankDownLabel) : nullptr;
+  lv_obj_t* bankUpButton = bankUpLabel ? lv_obj_get_parent(bankUpLabel) : nullptr;
+  if (require(editButton && lv_obj_get_width(editButton) == 164 && lv_obj_get_height(editButton) == 60,
+              "Edit should have a large, finger-friendly hit target")) return 1;
+  if (require(bankDownButton && bankUpButton && lv_obj_get_width(bankUpButton) == 144
+                && lv_obj_get_height(bankUpButton) == 52,
+              "preset screen should render dedicated bank up and down buttons")) return 1;
+  lv_area_t bankDownArea{};
+  lv_area_t bankUpArea{};
+  lv_area_t bankNameArea{};
+  lv_obj_get_coords(bankDownButton, &bankDownArea);
+  lv_obj_get_coords(bankUpButton, &bankUpArea);
+  lv_obj_get_coords(bankNameLabel, &bankNameArea);
+  if (require(bankDownArea.x2 < bankNameArea.x1 && bankUpArea.x1 > bankNameArea.x2
+                && bankDownArea.y1 <= bankNameArea.y1 && bankDownArea.y2 >= bankNameArea.y2,
+              "bank controls should flank the bank name in the header")) return 1;
+  if (require(lv_obj_has_state(bankDownButton, LV_STATE_DISABLED),
+              "bank down should be disabled at the first bank")) return 1;
+  if (require(lv_obj_get_style_text_font(bankUpLabel, LV_PART_MAIN) == &ardor_font_open_sans_semibold_22,
+              "buttons should use the larger, more legible font")) return 1;
+  lv_obj_send_event(bankUpButton, LV_EVENT_CLICKED, nullptr);
+  if (require(requestedBankDelta == 1, "bank up should request the next bank")) return 1;
+  lv_obj_send_event(editButton, LV_EVENT_PRESSED, nullptr);
+  if (require(state.mode == ardor::UiMode::Edit,
+              "pressing Edit should enter the editor before opening Blocks")) return 1;
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* blocksButtonLabel = findLabel(lv_screen_active(), "Blocks");
+  lv_obj_t* blocksButton = blocksButtonLabel ? lv_obj_get_parent(blocksButtonLabel) : nullptr;
+  if (require(blocksButton && lv_obj_get_width(blocksButton) == 164 && lv_obj_get_height(blocksButton) == 60,
+              "Blocks should have a large, finger-friendly hit target")) return 1;
+  lv_obj_send_event(blocksButton, LV_EVENT_PRESSED, nullptr);
+  if (require(state.mode == ardor::UiMode::Edit && state.blockDrawerOpen,
+              "pressing Blocks should reliably keep the edit screen open and show the drawer")) return 1;
+  ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   lv_obj_t* allFilter = findLabel(lv_screen_active(), "All");
   lv_obj_t* timeFilter = findLabel(lv_screen_active(), "Time");
   lv_obj_t* tremAssetLabel = findLabel(lv_screen_active(), "Vintage Trem");
-  lv_obj_t* drawer = findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x000000), 360);
+  lv_obj_t* drawer = findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x000000), 480);
   if (require(drawer && allFilter && timeFilter && tremAssetLabel, "block drawer content should render")) return 1;
   lv_obj_t* allFilterButton = lv_obj_get_parent(allFilter);
   lv_obj_t* timeFilterButton = lv_obj_get_parent(timeFilter);
   lv_obj_t* tremAssetButton = lv_obj_get_parent(tremAssetLabel);
   lv_area_t drawerArea{};
   lv_obj_get_coords(drawer, &drawerArea);
-  if (require(lv_obj_get_width(drawer) == 360 && lv_obj_get_height(drawer) == 720 && drawerArea.x2 == 1279,
+  if (require(lv_obj_get_width(drawer) == 480 && lv_obj_get_height(drawer) == 720 && drawerArea.x2 == 1279,
               "block drawer should fill the right display edge")) return 1;
   if (require(lv_color_eq(lv_obj_get_style_bg_color(drawer, LV_PART_MAIN), lv_color_hex(0x000000)),
               "block drawer should be black")) return 1;
-  if (require(lv_obj_get_y(allFilterButton) == lv_obj_get_y(timeFilterButton),
+  if (require(lv_obj_get_y(allFilterButton) == lv_obj_get_y(timeFilterButton)
+                && lv_obj_get_width(allFilterButton) == 104 && lv_obj_get_height(allFilterButton) == 48,
               "drawer filters should remain in one horizontal row")) return 1;
-  if (require(lv_color_eq(lv_obj_get_style_bg_color(tremAssetButton, LV_PART_MAIN), lv_color_hex(0x242424)),
+  lv_obj_t* categorySlider = findObjectOfClass(drawer, &lv_slider_class);
+  if (require(categorySlider && lv_obj_get_y(categorySlider) > lv_obj_get_y(allFilterButton) + lv_obj_get_height(allFilterButton),
+              "category slider should sit below, not on top of, its buttons")) return 1;
+  constexpr int categoryScrollOffset = 180;
+  lv_slider_set_value(categorySlider, categoryScrollOffset, LV_ANIM_OFF);
+  lv_obj_send_event(categorySlider, LV_EVENT_VALUE_CHANGED, nullptr);
+  lv_obj_t* filterRow = lv_obj_get_parent(allFilterButton);
+  if (require(lv_obj_get_scroll_x(filterRow) == categoryScrollOffset,
+              "category slider should scroll the category buttons")) return 1;
+  lv_obj_send_event(timeFilterButton, LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  drawer = findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x000000), 480);
+  categorySlider = findObjectOfClass(drawer, &lv_slider_class);
+  allFilter = findLabel(lv_screen_active(), "All");
+  tremAssetLabel = findLabel(lv_screen_active(), "Vintage Trem");
+  tremAssetButton = tremAssetLabel ? lv_obj_get_parent(tremAssetLabel) : nullptr;
+  filterRow = lv_obj_get_parent(lv_obj_get_parent(allFilter));
+  if (require(lv_slider_get_value(categorySlider) == categoryScrollOffset
+                && lv_obj_get_scroll_x(filterRow) == categoryScrollOffset,
+              "choosing a category should preserve the category strip position")) return 1;
+  if (require(tremAssetButton && lv_color_eq(lv_obj_get_style_bg_color(tremAssetButton, LV_PART_MAIN), lv_color_hex(0x242424)),
               "drawer asset tiles should be charcoal")) return 1;
 
   ardor::closeBlockDrawer(state);
@@ -619,17 +721,49 @@ int main()
   lv_indev_read(eqInput);
   eqPointer.point.y -= 24;
   lv_indev_read(eqInput);
-  if (require(ardor::selectedParametricEqParams(state).bands[0].q > qBeforeDrag,
-              "EQ Q knob drag should update the selected band's Q factor")) return 1;
+  if (require(ardor::selectedParametricEqParams(state).bands[0].q > qBeforeDrag * 1.5f,
+              "EQ Q knob drag should change at the same brisk rate as other knobs")) return 1;
   if (require(lv_arc_get_value(qArc) > 0, "EQ Q knob drag should update its arc before release")) return 1;
   eqPointer.state = LV_INDEV_STATE_RELEASED;
   lv_indev_read(eqInput);
   ui.refresh(lv_screen_active(), state);
   lv_indev_delete(eqInput);
+  lv_obj_t* graph = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x111111), 1184, 270);
+  lv_obj_t* responseLine = findLineWithPointCount(graph, ardor::kEqCurvePointCount);
+  lv_obj_t* gainKnob = lv_obj_get_parent(findLabel(lv_screen_active(), "Gain"));
+  const int responsePoint = 51;  // Band 1 is centred at 80 Hz, roughly 20% into the log graph.
+  const int32_t responseYBefore = lv_line_get_points(responseLine)[responsePoint].y;
+  lv_area_t gainKnobArea{};
+  lv_obj_get_coords(gainKnob, &gainKnobArea);
+  SimulatedPointer gainPointer{{(gainKnobArea.x1 + gainKnobArea.x2) / 2,
+                                (gainKnobArea.y1 + gainKnobArea.y2) / 2},
+                               LV_INDEV_STATE_PRESSED};
+  lv_indev_t* gainInput = lv_indev_create();
+  lv_indev_set_type(gainInput, LV_INDEV_TYPE_POINTER);
+  lv_indev_set_user_data(gainInput, &gainPointer);
+  lv_indev_set_read_cb(gainInput, readSimulatedPointer);
+  lv_indev_read(gainInput);
+  gainPointer.point.y -= 24;
+  lv_indev_read(gainInput);
+  if (require(lv_line_get_points(responseLine)[responsePoint].y != responseYBefore,
+              "EQ response graph should redraw during a knob drag")) return 1;
+  gainPointer.state = LV_INDEV_STATE_RELEASED;
+  lv_indev_read(gainInput);
+  ui.refresh(lv_screen_active(), state);
+  lv_indev_delete(gainInput);
   lv_obj_t* deleteBlockLabel = findLabel(lv_screen_active(), "Delete Block");
   if (require(deleteBlockLabel, "EQ should render a delete-block control")) return 1;
   if (require(findLineWithPointCount(lv_screen_active(), ardor::kEqCurvePointCount),
               "EQ should render a sampled response curve")) return 1;
+  lv_obj_t* eqCloseLabel = findLabel(lv_screen_active(), "X");
+  lv_obj_t* eqCloseButton = eqCloseLabel ? lv_obj_get_parent(eqCloseLabel) : nullptr;
+  lv_obj_send_event(eqCloseButton, LV_EVENT_PRESSED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  if (require(!state.paramDrawerOpen, "EQ close should act on touch-down")) return 1;
+  ui.selectBlock(state, state.bank.presets[state.activePreset].blocks.size() - 1);
+  ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  deleteBlockLabel = findLabel(lv_screen_active(), "Delete Block");
   const auto blocksBeforeDelete = state.bank.presets[state.activePreset].blocks.size();
   lv_obj_send_event(lv_obj_get_parent(deleteBlockLabel), LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);

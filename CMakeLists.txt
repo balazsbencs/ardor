@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 project(ardor_pedal LANGUAGES C CXX)
 
+# A single-config generator otherwise leaves CMAKE_BUILD_TYPE empty, which
+# produces an unoptimized benchmark/build unless every caller remembers -D.
+# Multi-config generators choose their configuration at build time instead.
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -55,62 +62,64 @@ file(GLOB NAM_SOURCES
   ${neuralampmodelercore_SOURCE_DIR}/NAM/*/*.cpp
 )
 
-add_library(ardor_daisyfx_vendor
-  third_party/daisy-multi-fx-hosted/src/params/mod_param_set.cpp
-  third_party/daisy-multi-fx-hosted/src/params/mod_param_map.cpp
-  third_party/daisy-multi-fx-hosted/src/params/delay_param_set.cpp
-  third_party/daisy-multi-fx-hosted/src/params/delay_param_map.cpp
-  third_party/daisy-multi-fx-hosted/src/params/reverb_param_set.cpp
-  third_party/daisy-multi-fx-hosted/src/params/reverb_param_map.cpp
-  third_party/daisy-multi-fx-hosted/src/dsp/lfo.cpp
-  third_party/daisy-multi-fx-hosted/src/dsp/delay_line_sdram.cpp
-  third_party/daisy-multi-fx-hosted/src/dsp/tone_filter.cpp
-  third_party/daisy-multi-fx-hosted/src/dsp/diffuser.cpp
-  third_party/daisy-multi-fx-hosted/src/dsp/fdn.cpp
-  third_party/daisy-multi-fx-hosted/src/dsp/envelope_follower.cpp
-  third_party/daisy-multi-fx-hosted/src/dsp/pitch_shifter.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/auto_swell_mode.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/chorus_mode.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/destroyer_mode.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/filter_mode.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/flanger_mode.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/formant_mode.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/pattern_trem_mode.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/phaser_mode.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/poly_octave_mode.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/quadrature_mode.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/rotary_mode.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/vibe_mode.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/vintage_trem_mode.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/dbucket_delay.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/digital_delay.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/dual_delay.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/duck_delay.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/filter_delay.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/lofi_delay.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/pattern_delay.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/swell_delay.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/tape_delay.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/trem_delay.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/bloom_reverb.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/chorale_reverb.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/cloud_reverb.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/hall_reverb.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/magneto_reverb.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/nonlinear_reverb.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/plate_reverb.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/reflections_reverb.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/room_reverb.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/shimmer_reverb.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/spring_reverb.cpp
-  third_party/daisy-multi-fx-hosted/src/modes/swell_reverb.cpp
+# Ardor-maintained hosted Daisy FX sources. This is a source-only copy; no
+# upstream CMake module is included or linked.
+set(ARDOR_DAISYFX_HOSTED_DIR src/daisyfx/hosted)
+add_library(ardor_daisyfx_runtime
+  ${ARDOR_DAISYFX_HOSTED_DIR}/params/mod_param_set.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/params/mod_param_map.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/params/delay_param_set.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/params/delay_param_map.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/params/reverb_param_set.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/params/reverb_param_map.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/lfo.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/delay_line_sdram.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/tone_filter.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/diffuser.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/fdn.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/envelope_follower.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/pitch_shifter.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/auto_swell_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/chorus_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/destroyer_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/filter_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/flanger_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/formant_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/pattern_trem_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/phaser_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/poly_octave_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/quadrature_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/rotary_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/vibe_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/vintage_trem_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/dbucket_delay.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/digital_delay.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/dual_delay.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/duck_delay.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/filter_delay.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/lofi_delay.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/pattern_delay.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/swell_delay.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/tape_delay.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/trem_delay.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/bloom_reverb.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/chorale_reverb.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/cloud_reverb.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/hall_reverb.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/magneto_reverb.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/nonlinear_reverb.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/plate_reverb.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/reflections_reverb.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/room_reverb.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/shimmer_reverb.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/spring_reverb.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/swell_reverb.cpp
 )
-target_include_directories(ardor_daisyfx_vendor PUBLIC
-  third_party/daisy-multi-fx-hosted/compat
-  third_party/daisy-multi-fx-hosted/src
+target_include_directories(ardor_daisyfx_runtime PUBLIC
+  ${ARDOR_DAISYFX_HOSTED_DIR}
   third_party/cycfi-q/include
 )
-target_compile_features(ardor_daisyfx_vendor PUBLIC cxx_std_20)
+target_compile_features(ardor_daisyfx_runtime PUBLIC cxx_std_20)
 
 add_library(ardor_daisyfx
   src/daisyfx/DaisyFxCatalog.cpp
@@ -121,7 +130,7 @@ target_include_directories(ardor_daisyfx PUBLIC
   ${neuralampmodelercore_SOURCE_DIR}/Dependencies
 )
 target_compile_features(ardor_daisyfx PUBLIC cxx_std_20)
-target_link_libraries(ardor_daisyfx PUBLIC ardor_daisyfx_vendor)
+target_link_libraries(ardor_daisyfx PUBLIC ardor_daisyfx_runtime)
 
 add_library(ardor_dynamics
   src/dynamics/CompressorProcessor.cpp
@@ -211,6 +220,7 @@ endif()
 add_library(ardor_audio
   src/audio/MiniaudioBackend.cpp
   src/audio/EngineLoader.cpp
+  src/audio/PresetActivation.cpp
   src/audio/WavIo.cpp
 )
 target_include_directories(ardor_audio PUBLIC src ${miniaudio_SOURCE_DIR})
@@ -241,13 +251,22 @@ add_executable(pedal-offline-smoke tests/offline_smoke.cpp)
 target_link_libraries(pedal-offline-smoke PRIVATE ardor_dsp ardor_audio)
 
 add_executable(pedal-preset-smoke tests/preset_smoke.cpp)
-target_link_libraries(pedal-preset-smoke PRIVATE ardor_preset)
+target_link_libraries(pedal-preset-smoke PRIVATE ardor_preset ardor_audio)
+
+add_executable(pedal-preset-activation-smoke tests/preset_activation_smoke.cpp)
+target_link_libraries(pedal-preset-activation-smoke PRIVATE ardor_audio ardor_ui)
 
 add_executable(pedal-runtime-commands-smoke tests/runtime_commands_smoke.cpp)
 target_link_libraries(pedal-runtime-commands-smoke PRIVATE ardor_preset)
 
 add_executable(pedal-daisy-fx-catalog-smoke tests/daisy_fx_catalog_smoke.cpp)
 target_link_libraries(pedal-daisy-fx-catalog-smoke PRIVATE ardor_daisyfx)
+
+add_executable(pedal-manager-effect-catalog-smoke tests/manager_effect_catalog_smoke.cpp)
+target_link_libraries(pedal-manager-effect-catalog-smoke PRIVATE ardor_daisyfx)
+target_compile_definitions(pedal-manager-effect-catalog-smoke PRIVATE
+  ARDOR_MANAGER_EFFECT_CATALOG="${CMAKE_CURRENT_SOURCE_DIR}/apps/manager/src/effects/catalog.v1.json"
+)
 
 add_executable(pedal-daisy-fx-smoke tests/daisy_fx_smoke.cpp)
 target_link_libraries(pedal-daisy-fx-smoke PRIVATE ardor_daisyfx)
@@ -271,7 +290,12 @@ target_compile_definitions(pedal-nam-processor-smoke PRIVATE ARDOR_SOURCE_DIR="$
 # Benchmark, not a ctest: timings are not pass/fail on shared hardware.
 add_executable(pedal-dsp-bench tests/dsp_bench.cpp)
 target_link_libraries(pedal-dsp-bench PRIVATE ardor_dsp)
-target_compile_definitions(pedal-dsp-bench PRIVATE ARDOR_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+target_compile_definitions(pedal-dsp-bench PRIVATE
+  ARDOR_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+  ARDOR_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
+  ARDOR_COMPILER="${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}"
+  ARDOR_CXX_FLAGS="${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}"
+)
 
 add_executable(pedal-ui-model-smoke tests/ui_model_smoke.cpp)
 target_link_libraries(pedal-ui-model-smoke PRIVATE ardor_ui)
@@ -294,8 +318,10 @@ target_link_libraries(pedal-control-smoke PRIVATE ardor_control)
 enable_testing()
 add_test(NAME pedal-offline-smoke COMMAND pedal-offline-smoke)
 add_test(NAME pedal-preset-smoke COMMAND pedal-preset-smoke)
+add_test(NAME pedal-preset-activation-smoke COMMAND pedal-preset-activation-smoke)
 add_test(NAME pedal-runtime-commands-smoke COMMAND pedal-runtime-commands-smoke)
 add_test(NAME pedal-daisy-fx-catalog-smoke COMMAND pedal-daisy-fx-catalog-smoke)
+add_test(NAME pedal-manager-effect-catalog-smoke COMMAND pedal-manager-effect-catalog-smoke)
 add_test(NAME pedal-daisy-fx-smoke COMMAND pedal-daisy-fx-smoke)
 add_test(NAME pedal-compressor-smoke COMMAND pedal-compressor-smoke)
 add_test(NAME pedal-parametric-eq-smoke COMMAND pedal-parametric-eq-smoke)

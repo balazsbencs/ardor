@@ -1,8 +1,10 @@
 #include "preset/RuntimeState.h"
 #include "preset/ChainPlan.h"
+#include "audio/EngineLoader.h"
 #include "preset/PresetStore.h"
 #include "preset/Preset.h"
 
+#include <array>
 #include <filesystem>
 #include <chrono>
 #include <cmath>
@@ -231,6 +233,44 @@ int main()
     require(plan.blocks.back().assetPath == dataRoot / "irs/ok.wav", "resolved cab asset");
     require(plan.runnableBlockCount == 4, "runnable block count");
 
+    ardor::PresetStore preflightStore(dataRoot);
+    ardor::Preset preflightReady;
+    preflightReady.name = "Preflight ready";
+    preflightReady.blocks.push_back({"trem", "mod", true, "", {{"mode", "vintage_trem"}}});
+    preflightStore.save({0, 0}, preflightReady);
+    std::string preflightError;
+    require(ardor::preflightPresetSlot(preflightStore, {0, 0}, dataRoot, {48000, 64, 8192}, preflightError),
+            "side-effect-free preset preflight should accept a valid plan");
+
+    ardor::Preset preflightBadCab;
+    preflightBadCab.name = "Preflight invalid cabinet";
+    preflightBadCab.blocks.push_back({"cab", "cab", true, "irs/ok.wav", nlohmann::json::object()});
+    preflightStore.save({0, 1}, preflightBadCab);
+    require(!ardor::preflightPresetSlot(preflightStore, {0, 1}, dataRoot, {48000, 64, 8192}, preflightError),
+            "preflight must reject a bad cabinet before a live-engine swap");
+    require(preflightError.find("failed to load IR") != std::string::npos,
+            "preflight cabinet error should explain the rejection");
+
+    ardor::Preset duplicateDaisy;
+    duplicateDaisy.name = "Duplicate Daisy";
+    duplicateDaisy.blocks.push_back({"mod-a", "mod", true, "", {{"mode", "vintage_trem"}}});
+    duplicateDaisy.blocks.push_back({"mod-b", "mod", true, "", {{"mode", "phaser"}}});
+    ardor::PedalEngine duplicateDaisyEngine;
+    std::string duplicateDaisyError;
+    require(ardor::applyPreset(duplicateDaisyEngine, duplicateDaisy, dataRoot, {48000, 64, 8192}, duplicateDaisyError),
+            "multiple Daisy blocks in one category should have independent state");
+    std::array<float, 64> duplicateInput{};
+    std::array<float, 64> duplicateLeft{};
+    std::array<float, 64> duplicateRight{};
+    duplicateInput[0] = 0.5f;
+    duplicateDaisyEngine.processBlock(duplicateInput.data(), duplicateLeft.data(), duplicateRight.data(), duplicateLeft.size());
+    for (const float sample : duplicateLeft) {
+      require(std::isfinite(sample), "duplicate Daisy chain left output must be finite");
+    }
+    for (const float sample : duplicateRight) {
+      require(std::isfinite(sample), "duplicate Daisy chain right output must be finite");
+    }
+
     std::filesystem::remove_all(dataRoot);
     std::filesystem::remove_all(root);
 
@@ -254,14 +294,16 @@ int main()
     runtime.changePreset();
     require(!runtime.effectsBypassed(), "preset change clears bypass");
 
-    const auto telemetry = ardor::makeRuntimeTelemetry(100, 5, 0.8, 0.2, 1.33, true);
+    const auto telemetry = ardor::makeRuntimeTelemetry(100, 5, 1, 0.8, 0.2, 1.33, true);
     require(telemetry.callbacks == 100, "telemetry callbacks");
     require(telemetry.overBudget == 5, "telemetry over budget");
     require(std::fabs(telemetry.overBudgetPercent - 5.0) < 0.0001, "telemetry over percent");
+    require(telemetry.callbackGaps == 1, "telemetry callback gaps");
     require(telemetry.bypassed, "telemetry bypassed");
     const auto line = ardor::formatRuntimeTelemetry(telemetry);
     require(line.find("callbacks=100") != std::string::npos, "formatted callbacks");
     require(line.find("over%=5.00") != std::string::npos, "formatted over percent");
+    require(line.find("gaps=1") != std::string::npos, "formatted callback gaps");
     require(line.find("bypassed=1") != std::string::npos, "formatted bypass");
 
     return 0;

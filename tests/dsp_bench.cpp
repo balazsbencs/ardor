@@ -6,6 +6,7 @@
 // Falls back to <source>/models/test.nam when no argument is given.
 
 #include "dsp/IrConvolver.h"
+#include "dsp/DenormalGuard.h"
 #include "dsp/NamProcessor.h"
 #include "daisyfx/DaisyFxCatalog.h"
 #include "daisyfx/DaisyFxProcessor.h"
@@ -42,8 +43,21 @@ float nextNoise(uint32_t& state)
 struct BenchResult {
   double minUs = 0.0;
   double avgUs = 0.0;
+  double p50Us = 0.0;
+  double p99Us = 0.0;
+  double p999Us = 0.0;
   double maxUs = 0.0;
 };
+
+double percentile(std::vector<double> samples, double fraction)
+{
+  if (samples.empty()) {
+    return 0.0;
+  }
+  std::sort(samples.begin(), samples.end());
+  const auto index = static_cast<size_t>(std::ceil(fraction * static_cast<double>(samples.size() - 1)));
+  return samples[index];
+}
 
 template <typename ProcessBlock>
 BenchResult bench(ProcessBlock&& processBlock)
@@ -59,6 +73,8 @@ BenchResult bench(ProcessBlock&& processBlock)
 
   BenchResult result;
   result.minUs = 1e12;
+  std::vector<double> samples;
+  samples.reserve(kTimedBlocks);
   double totalUs = 0.0;
   for (size_t b = 0; b < kTimedBlocks; ++b) {
     for (auto& s : in) s = nextNoise(noise);
@@ -66,24 +82,46 @@ BenchResult bench(ProcessBlock&& processBlock)
     processBlock(in.data(), out.data(), kBlockSize);
     const auto elapsed = std::chrono::steady_clock::now() - start;
     const double us = std::chrono::duration<double, std::micro>(elapsed).count();
+    samples.push_back(us);
     totalUs += us;
     result.minUs = std::min(result.minUs, us);
     result.maxUs = std::max(result.maxUs, us);
   }
   result.avgUs = totalUs / static_cast<double>(kTimedBlocks);
+  result.p50Us = percentile(samples, 0.50);
+  result.p99Us = percentile(samples, 0.99);
+  result.p999Us = percentile(samples, 0.999);
   return result;
 }
 
 void report(const char* name, const BenchResult& r)
 {
-  std::printf("%-14s min=%8.2fus avg=%8.2fus max=%8.2fus  budget%%=%5.1f\n",
-              name, r.minUs, r.avgUs, r.maxUs, r.avgUs / kBudgetUs * 100.0);
+  std::printf("%-20s min=%7.2fus p50=%7.2fus p99=%7.2fus p999=%7.2fus max=%7.2fus avg=%7.2fus budget%%=%5.1f\n",
+              name, r.minUs, r.p50Us, r.p99Us, r.p999Us, r.maxUs, r.avgUs,
+              r.avgUs / kBudgetUs * 100.0);
 }
 
 } // namespace
 
 int main(int argc, char** argv)
 {
+  const ardor::ScopedDenormalGuard denormalGuard;
+#if defined(__aarch64__)
+  constexpr const char* architecture = "aarch64";
+#elif defined(__x86_64__) || defined(_M_X64)
+  constexpr const char* architecture = "x86_64";
+#elif defined(__arm__)
+  constexpr const char* architecture = "arm";
+#else
+  constexpr const char* architecture = "unknown";
+#endif
+#if defined(NDEBUG)
+  constexpr const char* assertions = "disabled";
+#else
+  constexpr const char* assertions = "enabled";
+#endif
+  std::printf("dsp-bench: build=%s assertions=%s compiler=%s arch=%s flags=%s\n",
+              ARDOR_BUILD_TYPE, assertions, ARDOR_COMPILER, architecture, ARDOR_CXX_FLAGS);
   std::printf("dsp-bench: block=%zu ir=%zu rate=%.0f budget=%.0fus blocks=%zu\n",
               kBlockSize, kIrSamples, kSampleRate, kBudgetUs, kTimedBlocks);
 

@@ -182,3 +182,44 @@ func TestDuplicateUploadReturnsConflict(t *testing.T) {
 		}
 	}
 }
+
+func TestRenameAssetUpdatesSavedPresetReferences(t *testing.T) {
+	dataRoot := t.TempDir()
+	handler := New(config.Config{DataRoot: dataRoot, AuthEnabled: false})
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", "raw capture.nam")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = part.Write([]byte("nam"))
+	_ = writer.Close()
+	upload := httptest.NewRecorder()
+	uploadRequest := httptest.NewRequest(http.MethodPost, "/api/assets/models", body)
+	uploadRequest.Header.Set("Content-Type", writer.FormDataContentType())
+	handler.ServeHTTP(upload, uploadRequest)
+	if upload.Code != http.StatusCreated {
+		t.Fatalf("upload status=%d body=%s", upload.Code, upload.Body.String())
+	}
+
+	preset := []byte(`{"version":1,"name":"Uses model","routing":"serial","global":{},"blocks":[{"id":"nam-1","type":"nam","enabled":true,"asset":"models/raw_capture.nam","params":{}}]}`)
+	save := httptest.NewRecorder()
+	handler.ServeHTTP(save, httptest.NewRequest(http.MethodPut, "/api/presets/banks/2/slots/1", bytes.NewReader(preset)))
+	if save.Code != http.StatusOK {
+		t.Fatalf("save status=%d body=%s", save.Code, save.Body.String())
+	}
+
+	rename := httptest.NewRecorder()
+	handler.ServeHTTP(rename, httptest.NewRequest(http.MethodPatch, "/api/assets/models/raw_capture.nam", bytes.NewBufferString(`{"filename":"01-Clean.nam"}`)))
+	if rename.Code != http.StatusOK || !bytes.Contains(rename.Body.Bytes(), []byte(`"updatedPresetCount":1`)) {
+		t.Fatalf("rename status=%d body=%s", rename.Code, rename.Body.String())
+	}
+	get := httptest.NewRecorder()
+	handler.ServeHTTP(get, httptest.NewRequest(http.MethodGet, "/api/presets/banks/2/slots/1", nil))
+	if get.Code != http.StatusOK || !bytes.Contains(get.Body.Bytes(), []byte("models/01-Clean.nam")) {
+		t.Fatalf("preset after rename status=%d body=%s", get.Code, get.Body.String())
+	}
+	if _, err := os.Stat(filepath.Join(dataRoot, "models", "01-Clean.nam")); err != nil {
+		t.Fatal(err)
+	}
+}

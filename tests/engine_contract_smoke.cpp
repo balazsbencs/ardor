@@ -1,4 +1,5 @@
 #include "dsp/PedalEngine.h"
+#include "dsp/DenormalGuard.h"
 
 #include <cmath>
 #include <iostream>
@@ -25,6 +26,14 @@ void require(bool condition, const char* message)
 int main()
 {
   try {
+    const bool flushToZeroWasEnabled = ardor::flushToZeroEnabled();
+    {
+      const ardor::ScopedDenormalGuard denormalGuard;
+      require(ardor::flushToZeroEnabled(), "denormal guard enables flush-to-zero");
+    }
+    require(ardor::flushToZeroEnabled() == flushToZeroWasEnabled,
+            "denormal guard restores the caller floating-point mode");
+
     ardor::PedalEngine engine;
     engine.loadIr({1.0f});
     engine.setInputGain(1.0f);
@@ -64,6 +73,7 @@ int main()
     require(near(wetRight[0], 0.075f), "wet block right sample");
 
     engine.setEffectsBypassed(true);
+    engine.prepareBlockSize(input.size());
     engine.processBlock(input.data(), leftBlock.data(), rightBlock.data(), input.size());
     for (int i = 0; i < 512; ++i) {
       engine.process(0.0f);
@@ -109,6 +119,14 @@ int main()
     require(near(finiteGain.first, 0.25f), "non-finite gain must fall back safely");
     const auto finiteOutput = safetyEngine.process(std::nanf(""));
     require(near(finiteOutput.first, 0.0f), "non-finite audio must be silenced");
+    require(safetyEngine.nonFiniteInputSamples() == 1, "non-finite sample counter");
+    const float invalidBlock[] = {std::nanf(""), 0.25f};
+    float invalidLeft[2]{};
+    float invalidRight[2]{};
+    safetyEngine.processBlock(invalidBlock, invalidLeft, invalidRight, 2);
+    require(std::isfinite(invalidLeft[0]) && std::isfinite(invalidRight[0]),
+            "non-finite block input must be contained");
+    require(safetyEngine.nonFiniteInputSamples() == 2, "non-finite block counter");
 
     ardor::PedalEngine smoothingEngine;
     smoothingEngine.setSafetyLimiterEnabled(false);

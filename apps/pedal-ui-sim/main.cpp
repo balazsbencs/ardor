@@ -4,6 +4,7 @@
 #include "ui/LvglUi.h"
 #include "ui/UiModel.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -66,6 +67,19 @@ int main(int argc, char** argv)
       if (!ardor::saveActivePresetToStore(state, store, args.bank, error)) {
         std::cerr << error << "\n";
       }
+    },
+    {},
+    {},
+    {},
+    {},
+    {},
+    [&](int delta) {
+      const int nextBank = std::clamp(args.bank + delta, 0, 99);
+      if (nextBank == args.bank) {
+        return;
+      }
+      args.bank = nextBank;
+      ardor::loadBankFromStore(state, store, args.bank);
     },
   });
   ui.build(lv_screen_active(), state);

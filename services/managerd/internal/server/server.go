@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -37,7 +38,7 @@ func New(cfg config.Config) http.Handler {
 			"supportedPresetVersion": 1,
 			"capabilities": map[string]bool{
 				"modelUpload": true, "irUpload": true, "presetRead": true,
-				"presetWrite": true, "presetApply": true,
+				"presetWrite": true, "presetApply": true, "assetRename": true,
 			},
 		})
 	})
@@ -108,6 +109,50 @@ func New(cfg config.Config) http.Handler {
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
+	})
+
+	mux.HandleFunc("PATCH /api/assets/{kind}/{assetId}", func(w http.ResponseWriter, r *http.Request) {
+		if !authorized(w, r, cfg) {
+			return
+		}
+		kind, ok := assetKindFromPath(r.PathValue("kind"))
+		if !ok {
+			writeError(w, http.StatusNotFound, "not_found", "asset kind not found")
+			return
+		}
+		var body struct {
+			Filename string `json:"filename"`
+		}
+		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<10)).Decode(&body); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_rename", "request body must contain a filename")
+			return
+		}
+		oldID := r.PathValue("assetId")
+		oldPath := "models/" + oldID
+		if kind == assets.KindIR {
+			oldPath = "irs/" + oldID
+		}
+		info, err := assetStore.Rename(kind, oldID, body.Filename)
+		if err != nil {
+			status := http.StatusBadRequest
+			code := "asset_rename_failed"
+			if errors.Is(err, assets.ErrExists) {
+				status, code = http.StatusConflict, "asset_exists"
+			} else if errors.Is(err, os.ErrNotExist) {
+				status, code = http.StatusNotFound, "asset_not_found"
+			}
+			writeError(w, status, code, err.Error())
+			return
+		}
+		updated, err := presetStore.ReplaceAssetReferences(oldPath, info.Path)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "asset_reference_update_failed", err.Error())
+			return
+		}
+		if err := runtimecontrol.QueueAssetReload(cfg.DataRoot); err != nil {
+			log.Printf("queue asset reload: %v", err)
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"asset": info, "updatedPresetCount": updated})
 	})
 
 	mux.HandleFunc("GET /api/presets", func(w http.ResponseWriter, r *http.Request) {

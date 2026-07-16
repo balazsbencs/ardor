@@ -5,13 +5,14 @@
 
 namespace ardor {
 
-RuntimeTelemetry makeRuntimeTelemetry(uint64_t callbacks, uint64_t overBudget, double maxMs,
-                                      double averageMs, double budgetMs, bool bypassed)
+RuntimeTelemetry makeRuntimeTelemetry(uint64_t callbacks, uint64_t overBudget, uint64_t callbackGaps,
+                                      double maxMs, double averageMs, double budgetMs, bool bypassed)
 {
   RuntimeTelemetry telemetry;
   telemetry.callbacks = callbacks;
   telemetry.overBudget = overBudget;
   telemetry.overBudgetPercent = callbacks == 0 ? 0.0 : static_cast<double>(overBudget) * 100.0 / static_cast<double>(callbacks);
+  telemetry.callbackGaps = callbackGaps;
   telemetry.maxMs = maxMs;
   telemetry.averageMs = averageMs;
   telemetry.budgetMs = budgetMs;
@@ -26,6 +27,7 @@ std::string formatRuntimeTelemetry(const RuntimeTelemetry& telemetry)
       << "callbacks=" << telemetry.callbacks
       << " over=" << telemetry.overBudget
       << " over%=" << telemetry.overBudgetPercent
+      << " gaps=" << telemetry.callbackGaps
       << " max=" << telemetry.maxMs << "ms"
       << " avg=" << telemetry.averageMs << "ms"
       << " budget=" << telemetry.budgetMs << "ms"

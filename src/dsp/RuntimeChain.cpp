@@ -5,6 +5,8 @@
 #include "equalizer/ParametricEqProcessor.h"
 
 #include <algorithm>
+#include <atomic>
+#include <cmath>
 #include <utility>
 
 namespace ardor {
@@ -29,7 +31,12 @@ struct RuntimeChain::Block {
   float mix = 1.0f;
 };
 
-RuntimeChain::RuntimeChain() = default;
+struct RuntimeChain::FaultState {
+  std::atomic<uint64_t> count{0};
+  std::atomic<int> firstIndex{-1};
+};
+
+RuntimeChain::RuntimeChain() : faults_(std::make_shared<FaultState>()) {}
 RuntimeChain::~RuntimeChain() = default;
 RuntimeChain::RuntimeChain(RuntimeChain&&) noexcept = default;
 RuntimeChain& RuntimeChain::operator=(RuntimeChain&&) noexcept = default;
@@ -60,9 +67,11 @@ void RuntimeChain::prepareBlockSize(size_t frames)
 void RuntimeChain::clear()
 {
   blocks_.clear();
+  faults_ = std::make_shared<FaultState>();
 }
 
-bool RuntimeChain::addNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize)
+bool RuntimeChain::addNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
+                          std::string id)
 {
   auto nam = std::make_unique<NamProcessor>();
   if (!nam->load(modelPath, sampleRate, maxBlockSize)) {
@@ -70,12 +79,13 @@ bool RuntimeChain::addNam(const std::filesystem::path& modelPath, double sampleR
   }
   Block block;
   block.kind = Block::Kind::Nam;
+  block.id = std::move(id);
   block.nam = std::move(nam);
   blocks_.push_back(std::move(block));
   return true;
 }
 
-void RuntimeChain::addCab(std::vector<float> impulse, float level, float mix)
+void RuntimeChain::addCab(std::vector<float> impulse, float level, float mix, std::string id)
 {
   auto cab = std::make_unique<IrConvolver>();
   cab->loadImpulse(std::move(impulse));
@@ -83,26 +93,49 @@ void RuntimeChain::addCab(std::vector<float> impulse, float level, float mix)
 
   Block block;
   block.kind = Block::Kind::Cab;
+  block.id = std::move(id);
   block.cab = std::move(cab);
   block.level = std::max(0.0f, level);
   block.mix = std::clamp(mix, 0.0f, 1.0f);
   blocks_.push_back(std::move(block));
 }
 
-void RuntimeChain::addDaisy(DaisyFxProcessor processor)
+void RuntimeChain::addDaisy(std::string id, DaisyFxProcessor processor)
 {
   Block block;
   block.kind = Block::Kind::Daisy;
+  block.id = std::move(id);
   block.daisy = std::make_unique<DaisyFxProcessor>(std::move(processor));
   blocks_.push_back(std::move(block));
 }
 
-void RuntimeChain::addCompressor(CompressorProcessor processor)
+bool RuntimeChain::setDaisyParameter(const std::string& id, const std::string& key, float normalized)
+{
+  for (auto& block : blocks_) {
+    if (block.kind == Block::Kind::Daisy && block.id == id) {
+      return block.daisy->setParameterTarget(key, normalized);
+    }
+  }
+  return false;
+}
+
+void RuntimeChain::addCompressor(std::string id, CompressorProcessor processor)
 {
   Block block;
   block.kind = Block::Kind::Compressor;
+  block.id = std::move(id);
   block.compressor = std::make_unique<CompressorProcessor>(std::move(processor));
   blocks_.push_back(std::move(block));
+}
+
+bool RuntimeChain::setCompressorParameter(const std::string& id, const std::string& key, float value)
+{
+  for (auto& block : blocks_) {
+    if (block.kind == Block::Kind::Compressor && block.id == id) {
+      return block.compressor->setParameterTarget(key, value);
+    }
+  }
+  return false;
 }
 
 bool RuntimeChain::addParametricEq(std::string id, const ParametricEqParams& params,
@@ -134,7 +167,8 @@ bool RuntimeChain::setParametricEqBand(const std::string& id, std::size_t band, 
 StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cabMix)
 {
   StereoSample current = input;
-  for (auto& block : blocks_) {
+  for (size_t index = 0; index < blocks_.size(); ++index) {
+    auto& block = blocks_[index];
     switch (block.kind) {
     case Block::Kind::Nam: {
       const float mono = block.nam->process(current.left);
@@ -157,6 +191,13 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
     case Block::Kind::Equalizer:
       block.equalizer->process(current.left, current.right);
       break;
+    }
+    if (!std::isfinite(current.left) || !std::isfinite(current.right)) {
+      current = {};
+      faults_->count.fetch_add(1, std::memory_order_relaxed);
+      int expected = -1;
+      faults_->firstIndex.compare_exchange_strong(expected, static_cast<int>(index),
+                                                   std::memory_order_relaxed);
     }
   }
   return current;
@@ -238,12 +279,39 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       break;
     }
 
+    bool nonFinite = false;
+    for (size_t i = 0; i < frames; ++i) {
+      if (!std::isfinite(nextLeft[i]) || !std::isfinite(nextRight[i])) {
+        nextLeft[i] = 0.0f;
+        nextRight[i] = 0.0f;
+        nonFinite = true;
+      }
+    }
+    if (nonFinite) {
+      faults_->count.fetch_add(1, std::memory_order_relaxed);
+      const int index = static_cast<int>(&block - blocks_.data());
+      int expected = -1;
+      faults_->firstIndex.compare_exchange_strong(expected, index, std::memory_order_relaxed);
+    }
+
     std::swap(currentLeft, nextLeft);
     std::swap(currentRight, nextRight);
   }
 
   std::copy(currentLeft, currentLeft + frames, left);
   std::copy(currentRight, currentRight + frames, right);
+}
+
+uint64_t RuntimeChain::nonFiniteBlockCount() const noexcept
+{
+  return faults_->count.load(std::memory_order_relaxed);
+}
+
+std::string RuntimeChain::firstNonFiniteBlockId() const
+{
+  const int index = faults_->firstIndex.load(std::memory_order_relaxed);
+  if (index < 0 || static_cast<size_t>(index) >= blocks_.size()) return {};
+  return blocks_[static_cast<size_t>(index)].id;
 }
 
 void RuntimeChain::reset()
@@ -272,7 +340,10 @@ size_t RuntimeChain::tailFrames() const noexcept
   size_t tail = 0;
   for (const auto& block : blocks_) {
     if (block.cab) {
-      tail = std::max(tail, block.cab->tailFrames());
+      tail += block.cab->tailFrames();
+    }
+    if (block.daisy) {
+      tail += block.daisy->tailFrames();
     }
   }
   return tail;

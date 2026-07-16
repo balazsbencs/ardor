@@ -83,3 +83,24 @@ func TestStoreSaveListDelete(t *testing.T) {
 		t.Fatalf("models len after delete=%d", len(models))
 	}
 }
+
+func TestStoreRename(t *testing.T) {
+	root := t.TempDir()
+	store := NewStore(root)
+	if _, err := store.Save(KindModel, "Raw Capture.nam", strings.NewReader("nam"), false); err != nil {
+		t.Fatal(err)
+	}
+	renamed, err := store.Rename(KindModel, "Raw_Capture.nam", "01 - Clean Amp.nam")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if renamed.Filename != "01_-_Clean_Amp.nam" || renamed.Path != "models/01_-_Clean_Amp.nam" {
+		t.Fatalf("bad renamed info: %+v", renamed)
+	}
+	if _, err := os.Stat(filepath.Join(root, "models", "Raw_Capture.nam")); !os.IsNotExist(err) {
+		t.Fatalf("old asset remains, err=%v", err)
+	}
+	if _, err := store.Rename(KindModel, "01_-_Clean_Amp.nam", "wrong.wav"); err == nil {
+		t.Fatal("expected mismatched extension to fail")
+	}
+}

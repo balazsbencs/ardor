@@ -21,13 +21,18 @@ std::vector<RuntimeCommand> consumeRuntimeCommands(const std::filesystem::path& 
   }
 
   std::vector<fs::path> paths;
-  for (const auto& entry : fs::directory_iterator(directory, ec)) {
-    if (ec) {
-      return {};
-    }
-    if (entry.is_regular_file(ec) && entry.path().extension() == ".json") {
+  for (fs::directory_iterator it(directory, ec), end; !ec && it != end; it.increment(ec)) {
+    const auto& entry = *it;
+    std::error_code entryEc;
+    if (entry.is_regular_file(entryEc) && entry.path().extension() == ".json") {
       paths.push_back(entry.path());
     }
+    if (entryEc) {
+      return {};
+    }
+  }
+  if (ec) {
+    return {};
   }
   std::sort(paths.begin(), paths.end());
 

@@ -122,6 +122,13 @@ int main()
     require(std::system(noTailCommand.c_str()) == 0, "offline no-tail command");
     require(readStereoWav(noTailOutPath).size() == 2, "no-tail frame count");
 
+    const std::string zeroBlockCommand = "./pedal-poc --offline --block-size 0 --bypass-nam --ir "
+                                       + (root / "irs/test.wav").string()
+                                       + " --input " + (root / "dry.wav").string()
+                                       + " --output " + (root / "zero-block.wav").string();
+    require(std::system(zeroBlockCommand.c_str()) != 0,
+            "offline block size zero must fail instead of entering a zero-step render loop");
+
     std::filesystem::create_directories(root / "presets/bank-000");
     std::filesystem::copy_file(presetPath, root / "presets/bank-000/preset-0.json",
                                std::filesystem::copy_options::overwrite_existing);

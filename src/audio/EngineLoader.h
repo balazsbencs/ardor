@@ -19,6 +19,13 @@ struct EngineLoadOptions {
 
 bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoadOptions& options, std::string& error);
 
+// Checks a stored preset's structural constraints and cabinet asset before a
+// caller changes the live audio program. Daisy processor state is owned by
+// each instance, so preparing a replacement is safe while another runs.
+bool preflightPresetSlot(const PresetStore& store, PresetSlot slot,
+                         const std::filesystem::path& dataRoot,
+                         const EngineLoadOptions& options, std::string& error);
+
 bool applyPreset(PedalEngine& engine, const Preset& preset, const std::filesystem::path& dataRoot,
                  const EngineLoadOptions& options, std::string& error);
 bool applyPresetSlot(PedalEngine& engine, const PresetStore& store, PresetSlot slot,

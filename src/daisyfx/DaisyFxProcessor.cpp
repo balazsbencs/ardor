@@ -49,8 +49,11 @@
 #include "params/reverb_param_map.h"
 
 #include <algorithm>
+#include <array>
+#include <atomic>
 #include <cmath>
 #include <memory>
+#include <optional>
 #include <utility>
 
 namespace ardor {
@@ -58,6 +61,17 @@ namespace ardor {
 namespace {
 
 constexpr float kHostedDaisySampleRate = 48000.0f;
+constexpr float kTailThreshold = 0.001f; // -60 dB
+constexpr float kTailEstimateCapSeconds = 60.0f;
+
+size_t estimatedTailFrames(float seconds) noexcept
+{
+  if (!std::isfinite(seconds) || seconds <= 0.0f) {
+    return 0;
+  }
+  const float cappedSeconds = std::min(seconds, kTailEstimateCapSeconds);
+  return static_cast<size_t>(std::ceil(cappedSeconds * kHostedDaisySampleRate));
+}
 
 float normalizedParam(const nlohmann::json& params, const DaisyFxParamDescriptor& descriptor)
 {
@@ -140,6 +154,13 @@ std::unique_ptr<pedal::ReverbMode> makeReverbMode(const std::string& mode, pedal
 } // namespace
 
 struct DaisyFxProcessor::Impl {
+  enum class Kind { None, Mod, Delay, Reverb };
+  enum Target : size_t { Speed, Depth, Mix, Tone, P1, P2, Level, Count };
+  Kind kind = Kind::None;
+  pedal::ModModeId modId{};
+  pedal::DelayModeId delayId{};
+  pedal::ReverbModeId reverbId{};
+  std::array<std::atomic<float>, Count> targets{};
   std::unique_ptr<pedal::ModMode> mod;
   pedal::mod_fx::ParamSet modParams = pedal::mod_fx::ParamSet::make_default();
   std::unique_ptr<pedal::DelayMode> delay;
@@ -148,8 +169,39 @@ struct DaisyFxProcessor::Impl {
   pedal::reverb_fx::ParamSet reverbParams = pedal::reverb_fx::ParamSet::make_default();
   size_t samplesUntilPrepare = 48;
 
+  void refreshParameters()
+  {
+    const auto target = [this](Target index) { return targets[index].load(std::memory_order_relaxed); };
+    if (kind == Kind::Mod) {
+      modParams.speed = mappedModParam(target(Speed), modId, pedal::mod_fx::ParamId::Speed);
+      modParams.depth = mappedModParam(target(Depth), modId, pedal::mod_fx::ParamId::Depth);
+      modParams.mix = mappedModParam(target(Mix), modId, pedal::mod_fx::ParamId::Mix);
+      modParams.tone = mappedModParam(target(Tone), modId, pedal::mod_fx::ParamId::Tone);
+      modParams.p1 = mappedModParam(target(P1), modId, pedal::mod_fx::ParamId::P1);
+      modParams.p2 = mappedModParam(target(P2), modId, pedal::mod_fx::ParamId::P2);
+      modParams.level = mappedModParam(target(Level), modId, pedal::mod_fx::ParamId::Level);
+    } else if (kind == Kind::Delay) {
+      delayParams.time = mappedDelayParam(target(Speed), delayId, pedal::delay_fx::ParamId::Time);
+      delayParams.repeats = mappedDelayParam(target(Depth), delayId, pedal::delay_fx::ParamId::Repeats);
+      delayParams.mix = mappedDelayParam(target(Mix), delayId, pedal::delay_fx::ParamId::Mix);
+      delayParams.filter = mappedDelayParam(target(Tone), delayId, pedal::delay_fx::ParamId::Filter);
+      delayParams.grit = mappedDelayParam(target(P1), delayId, pedal::delay_fx::ParamId::Grit);
+      delayParams.mod_spd = mappedDelayParam(target(P2), delayId, pedal::delay_fx::ParamId::ModSpd);
+      delayParams.mod_dep = mappedDelayParam(target(Level), delayId, pedal::delay_fx::ParamId::ModDep);
+    } else if (kind == Kind::Reverb) {
+      reverbParams.decay = mappedReverbParam(target(Speed), reverbId, pedal::reverb_fx::ParamId::Decay);
+      reverbParams.pre_delay = mappedReverbParam(target(Depth), reverbId, pedal::reverb_fx::ParamId::PreDelay);
+      reverbParams.mix = mappedReverbParam(target(Mix), reverbId, pedal::reverb_fx::ParamId::Mix);
+      reverbParams.tone = mappedReverbParam(target(Tone), reverbId, pedal::reverb_fx::ParamId::Tone);
+      reverbParams.mod = mappedReverbParam(target(P1), reverbId, pedal::reverb_fx::ParamId::Mod);
+      reverbParams.param1 = mappedReverbParam(target(P2), reverbId, pedal::reverb_fx::ParamId::Param1);
+      reverbParams.param2 = mappedReverbParam(target(Level), reverbId, pedal::reverb_fx::ParamId::Param2);
+    }
+  }
+
   void prepare()
   {
+    refreshParameters();
     if (mod) mod->Prepare(modParams);
     if (delay) delay->Prepare(delayParams);
     if (reverb) reverb->Prepare(reverbParams);
@@ -220,13 +272,15 @@ bool DaisyFxProcessor::configure(const std::string& blockType, const nlohmann::j
       error = "unsupported Daisy effect: " + blockType + "/" + mode;
       return false;
     }
-    next->modParams.speed = mappedModParam(param("speed"), modeId, pedal::mod_fx::ParamId::Speed);
-    next->modParams.depth = mappedModParam(param("depth"), modeId, pedal::mod_fx::ParamId::Depth);
-    next->modParams.mix = mappedModParam(param("mix"), modeId, pedal::mod_fx::ParamId::Mix);
-    next->modParams.tone = mappedModParam(param("tone"), modeId, pedal::mod_fx::ParamId::Tone);
-    next->modParams.p1 = mappedModParam(param("p1"), modeId, pedal::mod_fx::ParamId::P1);
-    next->modParams.p2 = mappedModParam(param("p2"), modeId, pedal::mod_fx::ParamId::P2);
-    next->modParams.level = mappedModParam(param("level"), modeId, pedal::mod_fx::ParamId::Level);
+    next->kind = Impl::Kind::Mod;
+    next->modId = modeId;
+    next->targets[Impl::Speed].store(param("speed"));
+    next->targets[Impl::Depth].store(param("depth"));
+    next->targets[Impl::Mix].store(param("mix"));
+    next->targets[Impl::Tone].store(param("tone"));
+    next->targets[Impl::P1].store(param("p1"));
+    next->targets[Impl::P2].store(param("p2"));
+    next->targets[Impl::Level].store(param("level"));
     next->mod->Init();
     next->prepare();
   } else if (blockType == "delay") {
@@ -236,13 +290,15 @@ bool DaisyFxProcessor::configure(const std::string& blockType, const nlohmann::j
       error = "unsupported Daisy effect: " + blockType + "/" + mode;
       return false;
     }
-    next->delayParams.time = mappedDelayParam(param("time"), modeId, pedal::delay_fx::ParamId::Time);
-    next->delayParams.repeats = mappedDelayParam(param("repeats"), modeId, pedal::delay_fx::ParamId::Repeats);
-    next->delayParams.mix = mappedDelayParam(param("mix"), modeId, pedal::delay_fx::ParamId::Mix);
-    next->delayParams.filter = mappedDelayParam(param("filter"), modeId, pedal::delay_fx::ParamId::Filter);
-    next->delayParams.grit = mappedDelayParam(param("grit"), modeId, pedal::delay_fx::ParamId::Grit);
-    next->delayParams.mod_spd = mappedDelayParam(param("mod_spd"), modeId, pedal::delay_fx::ParamId::ModSpd);
-    next->delayParams.mod_dep = mappedDelayParam(param("mod_dep"), modeId, pedal::delay_fx::ParamId::ModDep);
+    next->kind = Impl::Kind::Delay;
+    next->delayId = modeId;
+    next->targets[Impl::Speed].store(param("time"));
+    next->targets[Impl::Depth].store(param("repeats"));
+    next->targets[Impl::Mix].store(param("mix"));
+    next->targets[Impl::Tone].store(param("filter"));
+    next->targets[Impl::P1].store(param("grit"));
+    next->targets[Impl::P2].store(param("mod_spd"));
+    next->targets[Impl::Level].store(param("mod_dep"));
     next->delay->Init();
     next->prepare();
   } else if (blockType == "reverb") {
@@ -252,13 +308,15 @@ bool DaisyFxProcessor::configure(const std::string& blockType, const nlohmann::j
       error = "unsupported Daisy effect: " + blockType + "/" + mode;
       return false;
     }
-    next->reverbParams.decay = mappedReverbParam(param("decay"), modeId, pedal::reverb_fx::ParamId::Decay);
-    next->reverbParams.pre_delay = mappedReverbParam(param("pre_delay"), modeId, pedal::reverb_fx::ParamId::PreDelay);
-    next->reverbParams.mix = mappedReverbParam(param("mix"), modeId, pedal::reverb_fx::ParamId::Mix);
-    next->reverbParams.tone = mappedReverbParam(param("tone"), modeId, pedal::reverb_fx::ParamId::Tone);
-    next->reverbParams.mod = mappedReverbParam(param("mod"), modeId, pedal::reverb_fx::ParamId::Mod);
-    next->reverbParams.param1 = mappedReverbParam(param("param1"), modeId, pedal::reverb_fx::ParamId::Param1);
-    next->reverbParams.param2 = mappedReverbParam(param("param2"), modeId, pedal::reverb_fx::ParamId::Param2);
+    next->kind = Impl::Kind::Reverb;
+    next->reverbId = modeId;
+    next->targets[Impl::Speed].store(param("decay"));
+    next->targets[Impl::Depth].store(param("pre_delay"));
+    next->targets[Impl::Mix].store(param("mix"));
+    next->targets[Impl::Tone].store(param("tone"));
+    next->targets[Impl::P1].store(param("mod"));
+    next->targets[Impl::P2].store(param("param1"));
+    next->targets[Impl::Level].store(param("param2"));
     next->reverb->Init();
     next->prepare();
   } else {
@@ -267,6 +325,26 @@ bool DaisyFxProcessor::configure(const std::string& blockType, const nlohmann::j
   }
 
   impl_ = std::move(next);
+  return true;
+}
+
+bool DaisyFxProcessor::setParameterTarget(const std::string& key, float normalized)
+{
+  if (!impl_ || !std::isfinite(normalized)) {
+    return false;
+  }
+  std::optional<Impl::Target> target;
+  if (key == "speed" || key == "time" || key == "decay") target = Impl::Speed;
+  else if (key == "depth" || key == "repeats" || key == "pre_delay") target = Impl::Depth;
+  else if (key == "mix") target = Impl::Mix;
+  else if (key == "tone" || key == "filter") target = Impl::Tone;
+  else if (key == "p1" || key == "grit" || key == "mod") target = Impl::P1;
+  else if (key == "p2" || key == "mod_spd" || key == "param1") target = Impl::P2;
+  else if (key == "level" || key == "mod_dep" || key == "param2") target = Impl::Level;
+  if (!target.has_value()) {
+    return false;
+  }
+  impl_->targets[*target].store(std::clamp(normalized, 0.0f, 1.0f), std::memory_order_release);
   return true;
 }
 
@@ -290,6 +368,9 @@ StereoSample DaisyFxProcessor::process(StereoSample input)
     };
   }
   if (impl_->delay) {
+    // Hosted delay modes accept a mono input and generate a stereo wet signal.
+    // Preserve the incoming stereo dry field, but intentionally sum it for
+    // the wet feed. This is a v1 chain contract, not an accidental collapse.
     const auto wet = impl_->delay->Process((input.left + input.right) * 0.5f, impl_->delayParams);
     return {
       (input.left * (1.0f - impl_->delayParams.mix)) + (wet.left * impl_->delayParams.mix),
@@ -297,6 +378,7 @@ StereoSample DaisyFxProcessor::process(StereoSample input)
     };
   }
   if (impl_->reverb) {
+    // Hosted reverb has the same mono-in/stereo-wet contract as delay.
     const auto wet = impl_->reverb->Process((input.left + input.right) * 0.5f, impl_->reverbParams);
     return {
       (input.left * (1.0f - impl_->reverbParams.mix)) + (wet.left * impl_->reverbParams.mix),
@@ -304,6 +386,54 @@ StereoSample DaisyFxProcessor::process(StereoSample input)
     };
   }
   return input;
+}
+
+size_t DaisyFxProcessor::tailFrames() const noexcept
+{
+  if (!impl_) {
+    return 0;
+  }
+
+  const auto target = [this](Impl::Target index) {
+    return impl_->targets[index].load(std::memory_order_relaxed);
+  };
+
+  if (impl_->kind == Impl::Kind::Delay) {
+    const float mix = target(Impl::Mix);
+    if (mix <= 0.0f) {
+      return 0;
+    }
+    const float delaySeconds = mappedDelayParam(target(Impl::Speed), impl_->delayId,
+                                                 pedal::delay_fx::ParamId::Time);
+    const float repeats = mappedDelayParam(target(Impl::Depth), impl_->delayId,
+                                           pedal::delay_fx::ParamId::Repeats);
+    // A feedback delay remains audible until its repeated gain falls below
+    // -60 dB. Account for the first repeat and a small stereo/modulation
+    // margin; the public offline override handles deliberately extreme loops.
+    float repeatsUntilSilent = 1.0f;
+    if (repeats > 0.0f && repeats < 1.0f) {
+      repeatsUntilSilent += std::ceil(std::log(kTailThreshold) / std::log(repeats));
+    }
+    return estimatedTailFrames(delaySeconds * repeatsUntilSilent + 0.01f);
+  }
+
+  if (impl_->kind == Impl::Kind::Reverb) {
+    const float mix = target(Impl::Mix);
+    if (mix <= 0.0f) {
+      return 0;
+    }
+    const float decaySeconds = mappedReverbParam(target(Impl::Speed), impl_->reverbId,
+                                                  pedal::reverb_fx::ParamId::Decay);
+    const float preDelaySeconds = impl_->reverbId == pedal::ReverbModeId::Magneto
+      ? 0.0f
+      : mappedReverbParam(target(Impl::Depth), impl_->reverbId,
+                          pedal::reverb_fx::ParamId::PreDelay);
+    // Vendor decay parameters are RT60-style durations. Add a short margin
+    // for the algorithm's longest internal delay line after the pre-delay.
+    return estimatedTailFrames(preDelaySeconds + decaySeconds + 0.1f);
+  }
+
+  return 0;
 }
 
 } // namespace ardor

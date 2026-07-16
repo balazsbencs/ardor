@@ -22,6 +22,25 @@ namespace {
 // the whole canvas to the real display resolution.
 constexpr int32_t kDesignWidth = 1280;
 constexpr int32_t kDesignHeight = 720;
+constexpr int kHeaderButtonHeight = 60;
+constexpr int kHeaderBlocksButtonWidth = 164;
+constexpr int kBlockDrawerWidth = 480;
+constexpr int kBlockDrawerContentWidth = kBlockDrawerWidth - 36;
+constexpr int kCategoryButtonWidth = 104;
+constexpr int kCategoryButtonHeight = 48;
+constexpr int kCategoryButtonGap = 8;
+constexpr int kPanelCloseButtonWidth = 64;
+constexpr int kPanelCloseButtonHeight = 52;
+constexpr int kBypassLabelX = 910;
+constexpr int kBypassSwitchX = 985;
+constexpr int kDeleteBlockX = 760;
+constexpr int kParameterKnobWidth = 154;
+constexpr int kParameterKnobSpacing = 164;
+constexpr int kParameterPanelWidth = 1240;
+constexpr int kMinBank = 0;
+constexpr int kMaxBank = 99;
+constexpr int kKnobDragPixelsPerTick = 12;
+constexpr float kKnobDragRangeFraction = 0.05f;
 
 constexpr auto bg = 0x000000;
 constexpr auto panel = 0x242424;
@@ -39,8 +58,6 @@ constexpr int kEqGraphX = 28;
 constexpr int kEqGraphY = 60;
 constexpr int kEqGraphWidth = 1184;
 constexpr int kEqGraphHeight = 270;
-constexpr int kEqGraphCanvasX = (kDesignWidth - 1240) / 2 + kEqGraphX;
-constexpr int kEqGraphCanvasY = kEqPanelTop + kEqGraphY;
 constexpr int kChainLeft = 34;
 constexpr int kChainWidth = 1212;
 constexpr int kChainTop = 110;
@@ -70,6 +87,19 @@ constexpr int32_t kKnobStrokeGap = 4;
 constexpr int32_t kKnobRimDiameter = kKnobArcDiameter - 2 * (kKnobStrokeWidth + kKnobStrokeGap);
 constexpr int32_t kKnobCentreDiameter = kKnobRimDiameter - 2 * kKnobStrokeWidth;
 
+struct KnobVisual {
+  std::size_t controlIndex = 0;
+  lv_obj_t* arc = nullptr;
+  lv_obj_t* pointer = nullptr;
+  lv_obj_t* label = nullptr;
+  lv_obj_t* value = nullptr;
+};
+
+struct EqGraphVisual {
+  std::array<lv_obj_t*, kParametricEqBandCount + 1> responseLines{};
+  std::array<lv_obj_t*, kParametricEqBandCount> nodes{};
+};
+
 void updateKnobPointer(lv_obj_t* pointer, float ratio)
 {
   lv_point_precise_t* points = lv_line_get_points_mutable(pointer);
@@ -94,6 +124,16 @@ void freeKnobPointerPoints(lv_event_t* event)
 void freeLinePoints(lv_event_t* event)
 {
   lv_free(lv_event_get_user_data(event));
+}
+
+void freeKnobVisual(lv_event_t* event)
+{
+  delete static_cast<KnobVisual*>(lv_event_get_user_data(event));
+}
+
+void freeEqGraphVisual(lv_event_t* event)
+{
+  delete static_cast<EqGraphVisual*>(lv_event_get_user_data(event));
 }
 
 void setText(lv_obj_t* object, int color = text, const lv_font_t* font = &ardor_font_open_sans_regular_18)
@@ -169,6 +209,25 @@ void onPresetClicked(lv_event_t* event)
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   context->ui->selectPreset(*context->state, context->index);
   redraw(context);
+}
+
+void requestBankChange(UiEventContext* context, int delta)
+{
+  const int target = context->state->activeBank + delta;
+  if (target < kMinBank || target > kMaxBank || !context->ui->actions().changeBank) {
+    return;
+  }
+  context->ui->actions().changeBank(delta);
+}
+
+void onBankDownClicked(lv_event_t* event)
+{
+  requestBankChange(static_cast<UiEventContext*>(lv_event_get_user_data(event)), -1);
+}
+
+void onBankUpClicked(lv_event_t* event)
+{
+  requestBankChange(static_cast<UiEventContext*>(lv_event_get_user_data(event)), 1);
 }
 
 void onSaveClicked(lv_event_t* event)
@@ -282,38 +341,56 @@ void onKnobPressed(lv_event_t* event)
   }
   lv_indev_get_point(input, &context->pressPoint);
   context->pressPoint = context->ui->toCanvas(context->pressPoint);
-  const auto index = reinterpret_cast<uintptr_t>(lv_obj_get_user_data(lv_event_get_target_obj(event)));
+  const auto* visual = static_cast<const KnobVisual*>(lv_obj_get_user_data(lv_event_get_target_obj(event)));
   const auto controls = parameterPage(*context->state, context->ui->parameterPage());
-  if (index == 0 || index > controls.size()) {
+  if (!visual || visual->controlIndex >= controls.size()) {
     return;
   }
-  context->filter = controls[index - 1].key;
+  context->filter = controls[visual->controlIndex].key;
+  context->ui->setFocusedWidgets(lv_event_get_target_obj(event));
   context->ui->beginKnobInteraction();
   context->ui->focusParameter(context->filter);
 }
 
 void refreshKnobVisual(lv_obj_t* knob, const ParameterControl& control)
 {
+  const auto* visual = static_cast<const KnobVisual*>(lv_obj_get_user_data(knob));
+  if (!visual) {
+    return;
+  }
   const float range = control.maximum - control.minimum;
   const float ratio = range == 0.0f ? 0.0f : std::clamp((control.value - control.minimum) / range, 0.0f, 1.0f);
-
-  for (uint32_t index = 0; index < lv_obj_get_child_count(knob); ++index) {
-    lv_obj_t* child = lv_obj_get_child(knob, static_cast<int32_t>(index));
-    if (lv_obj_check_type(child, &lv_arc_class)) {
-      lv_arc_set_value(child, static_cast<int>(std::lround(ratio * 1000.0f)));
-    } else if (lv_obj_check_type(child, &lv_label_class)) {
-      if (control.label == lv_label_get_text(child)) {
-        lv_obj_set_style_text_color(child, lv_color_hex(accent), 0);
-      } else {
-        lv_label_set_text(child, control.formatted.c_str());
-      }
-    } else if (lv_obj_get_width(child) == 56 && lv_obj_get_height(child) == 56) {
-      lv_obj_t* marker = lv_obj_get_child(child, 0);
-      if (marker && lv_obj_check_type(marker, &lv_line_class)) {
-        updateKnobPointer(marker, ratio);
-      }
-    }
+  if (visual->arc) {
+    lv_arc_set_value(visual->arc, static_cast<int>(std::lround(ratio * 1000.0f)));
   }
+  if (visual->label) {
+    lv_obj_set_style_text_color(visual->label, lv_color_hex(accent), 0);
+  }
+  if (visual->value) {
+    lv_label_set_text(visual->value, control.formatted.c_str());
+  }
+  if (visual->pointer) {
+    updateKnobPointer(visual->pointer, ratio);
+  }
+}
+
+int dragDeltaForControl(const ParameterControl& control, int motionTicks)
+{
+  if (control.step <= 0.0f || control.maximum <= control.minimum) {
+    return motionTicks;
+  }
+  const int stepsPerMotionTick = std::max(1, static_cast<int>(std::lround(
+    ((control.maximum - control.minimum) * kKnobDragRangeFraction) / control.step)));
+  return motionTicks * stepsPerMotionTick;
+}
+
+int dragDeltaForEqField(EqBandField field, int motionTicks)
+{
+  // These match one ordinary knob drag tick to roughly 5% of each EQ
+  // control's displayed range. The encoder retains its finer adjustment.
+  const int stepsPerMotionTick = field == EqBandField::Frequency ? 12
+    : field == EqBandField::Q ? 9 : 2;
+  return motionTicks * stepsPerMotionTick;
 }
 
 void onKnobPressing(lv_event_t* event)
@@ -326,18 +403,23 @@ void onKnobPressing(lv_event_t* event)
   lv_point_t current{};
   lv_indev_get_point(input, &current);
   current = context->ui->toCanvas(current);
-  const int delta = (context->pressPoint.y - current.y) / 12;
-  if (delta == 0) {
+  const int motionTicks = (context->pressPoint.y - current.y) / kKnobDragPixelsPerTick;
+  if (motionTicks == 0) {
     return;
   }
   context->pressPoint.y = current.y;
-  if (context->ui->applyFocusedParameterDelta(*context->state, delta)) {
-    const auto controls = parameterPage(*context->state, context->ui->parameterPage());
-    const auto control = std::find_if(controls.begin(), controls.end(), [context](const auto& item) {
+  const auto controls = parameterPage(*context->state, context->ui->parameterPage());
+  const auto control = std::find_if(controls.begin(), controls.end(), [context](const auto& item) {
+    return item.key == context->filter;
+  });
+  if (control != controls.end()
+      && context->ui->applyFocusedParameterDelta(*context->state, dragDeltaForControl(*control, motionTicks))) {
+    const auto updatedControls = parameterPage(*context->state, context->ui->parameterPage());
+    const auto updatedControl = std::find_if(updatedControls.begin(), updatedControls.end(), [context](const auto& item) {
       return item.key == context->filter;
     });
-    if (control != controls.end()) {
-      refreshKnobVisual(lv_event_get_target_obj(event), *control);
+    if (updatedControl != updatedControls.end()) {
+      refreshKnobVisual(lv_event_get_target_obj(event), *updatedControl);
     }
   }
 }
@@ -360,6 +442,7 @@ EqBandField eqBandFieldForKey(const std::string& key)
 }
 
 ParameterControl eqKnobControl(EqBandField field, const EqBandParams& band);
+void refreshEqGraphCurve(lv_obj_t* graph, const ParametricEqParams& params);
 
 void onEqKnobPressed(lv_event_t* event)
 {
@@ -369,11 +452,14 @@ void onEqKnobPressed(lv_event_t* event)
     return;
   }
   const auto field = eqBandFieldForKey(context->filter);
+  // Focus changes request a redraw. Mark the interaction first so the
+  // currently-dragged LVGL object cannot be deleted before release.
+  context->ui->setFocusedWidgets(lv_event_get_target_obj(event), context->controlledObject);
+  context->ui->beginKnobInteraction();
   context->ui->selectEqBand(context->index);
   context->ui->focusEqBandField(field);
   lv_indev_get_point(input, &context->pressPoint);
   context->pressPoint = context->ui->toCanvas(context->pressPoint);
-  context->ui->beginKnobInteraction();
 }
 
 void onEqKnobPressing(lv_event_t* event)
@@ -386,15 +472,17 @@ void onEqKnobPressing(lv_event_t* event)
   lv_point_t current{};
   lv_indev_get_point(input, &current);
   current = context->ui->toCanvas(current);
-  const int delta = (context->pressPoint.y - current.y) / 12;
-  if (delta == 0) {
+  const int motionTicks = (context->pressPoint.y - current.y) / kKnobDragPixelsPerTick;
+  if (motionTicks == 0) {
     return;
   }
   context->pressPoint.y = current.y;
-  if (context->ui->applyFocusedParameterDelta(*context->state, delta)) {
+  const auto field = eqBandFieldForKey(context->filter);
+  if (context->ui->applyFocusedParameterDelta(*context->state, dragDeltaForEqField(field, motionTicks))) {
     const auto params = selectedParametricEqParams(*context->state);
     refreshKnobVisual(lv_event_get_target_obj(event),
-                      eqKnobControl(eqBandFieldForKey(context->filter), params.bands[context->index]));
+                      eqKnobControl(field, params.bands[context->index]));
+    refreshEqGraphCurve(context->controlledObject, params);
   }
 }
 
@@ -439,11 +527,13 @@ void onEqNodePressed(lv_event_t* event)
   if (!input) {
     return;
   }
+  // See onEqKnobPressed(): suppress rebuilds before selecting the node.
+  context->ui->setFocusedWidgets(nullptr, context->controlledObject);
+  context->ui->beginKnobInteraction();
   context->ui->selectEqBand(context->index);
   context->ui->focusEqBandField(EqBandField::Gain);
   lv_indev_get_point(input, &context->pressPoint);
   context->pressPoint = context->ui->toCanvas(context->pressPoint);
-  context->ui->beginKnobInteraction();
 }
 
 void onEqNodePressing(lv_event_t* event)
@@ -456,13 +546,16 @@ void onEqNodePressing(lv_event_t* event)
   lv_point_t point{};
   lv_indev_get_point(input, &point);
   point = context->ui->toCanvas(point);
-  const int x = std::clamp(static_cast<int>(point.x) - kEqGraphCanvasX, 0, kEqGraphWidth - 1);
-  const int y = std::clamp(static_cast<int>(point.y) - kEqGraphCanvasY, 0, kEqGraphHeight - 1);
+  lv_area_t graphArea{};
+  lv_obj_get_content_coords(context->controlledObject, &graphArea);
+  const int x = std::clamp(static_cast<int>(point.x) - graphArea.x1, 0, kEqGraphWidth - 1);
+  const int y = std::clamp(static_cast<int>(point.y) - graphArea.y1, 0, kEqGraphHeight - 1);
   auto params = selectedParametricEqParams(*context->state);
   auto& band = params.bands[context->index];
   band.frequencyHz = eqFrequencyFromX(x, kEqGraphWidth);
   band.gainDb = eqGainFromY(y, kEqGraphHeight);
   context->ui->updateSelectedEqBand(*context->state, band);
+  refreshEqGraphCurve(context->controlledObject, params);
   lv_obj_set_pos(lv_event_get_target_obj(event), x - 16, y - 16);
 }
 
@@ -476,6 +569,10 @@ void onEqNodeReleased(lv_event_t* event)
 void onBlockClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  if (context->suppressClick) {
+    context->suppressClick = false;
+    return;
+  }
   context->ui->selectBlock(*context->state, context->index);
   redraw(context);
 }
@@ -572,14 +669,35 @@ void clearDragVisuals(UiEventContext* context)
 
 void onBlockPressed(lv_event_t* event)
 {
-  lv_obj_set_style_opa(lv_event_get_target_obj(event), LV_OPA_50, 0);
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  updateDragVisuals(context, event);
+  context->dragging = false;
+  context->suppressClick = false;
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (input) {
+    lv_indev_get_point(input, &context->pressPoint);
+    context->pressPoint = context->ui->toCanvas(context->pressPoint);
+  }
 }
 
 void onBlockPressing(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (!input) {
+    return;
+  }
+  lv_point_t point{};
+  lv_indev_get_point(input, &point);
+  point = context->ui->toCanvas(point);
+  const int dx = point.x - context->pressPoint.x;
+  const int dy = point.y - context->pressPoint.y;
+  if (!context->dragging && dx * dx + dy * dy < 64) {
+    return;
+  }
+  if (!context->dragging) {
+    context->dragging = true;
+    lv_obj_set_style_opa(lv_event_get_target_obj(event), LV_OPA_50, 0);
+  }
   updateDragVisuals(context, event);
 }
 
@@ -588,6 +706,10 @@ void onBlockReleased(lv_event_t* event)
   lv_obj_set_style_opa(lv_event_get_target_obj(event), LV_OPA_COVER, 0);
 
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  if (!context->dragging) {
+    return;
+  }
+  context->suppressClick = true;
   lv_indev_t* input = lv_event_get_indev(event);
   if (!input) {
     clearDragVisuals(context);
@@ -607,11 +729,30 @@ void onBlockReleased(lv_event_t* event)
   redraw(context);
 }
 
+void onBlockPressLost(lv_event_t* event)
+{
+  lv_obj_set_style_opa(lv_event_get_target_obj(event), LV_OPA_COVER, 0);
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->suppressClick = context->dragging;
+  clearDragVisuals(context);
+}
+
 void onFilterClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   setCategoryFilter(*context->state, context->filter);
   redraw(context);
+}
+
+void onCategoryScrollChanged(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  if (!context->controlledObject) {
+    return;
+  }
+  const int offset = lv_slider_get_value(lv_event_get_target_obj(event));
+  context->state->categoryScrollOffset = offset;
+  lv_obj_scroll_to_x(context->controlledObject, offset, LV_ANIM_OFF);
 }
 
 void onAssetClicked(lv_event_t* event)
@@ -707,30 +848,43 @@ void onAssetReleased(lv_event_t* event)
   redraw(context);
 }
 
+void onAssetPressLost(lv_event_t* event)
+{
+  lv_obj_set_style_opa(lv_event_get_target_obj(event), LV_OPA_COVER, 0);
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->suppressClick = context->dragging;
+  clearDragVisuals(context);
+}
+
 lv_obj_t* button(lv_obj_t* parent, const std::string& value)
 {
   lv_obj_t* object = lv_button_create(parent);
   styleSurface(object);
   lv_obj_t* buttonLabel = lv_label_create(object);
   lv_label_set_text(buttonLabel, value.c_str());
-  setText(buttonLabel);
+  setText(buttonLabel, text, &ardor_font_open_sans_semibold_22);
   lv_obj_center(buttonLabel);
   return object;
 }
 
 lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, int y, bool focused,
-                     UiEventContext* context, lv_event_cb_t onPressed, lv_event_cb_t onPressing)
+                     UiEventContext* context, lv_event_cb_t onPressed, lv_event_cb_t onPressing,
+                     std::size_t controlIndex = 0)
 {
   const float range = control.maximum - control.minimum;
   const float ratio = range == 0.0f ? 0.0f : std::clamp((control.value - control.minimum) / range, 0.0f, 1.0f);
 
   lv_obj_t* knob = lv_obj_create(parent);
-  lv_obj_set_size(knob, 154, 184);
+  lv_obj_set_size(knob, kParameterKnobWidth, 184);
   lv_obj_set_pos(knob, x, y);
   lv_obj_remove_flag(knob, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(knob, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_style_bg_opa(knob, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(knob, 0, 0);
+  auto* visual = new KnobVisual{};
+  visual->controlIndex = controlIndex;
+  lv_obj_set_user_data(knob, visual);
+  lv_obj_add_event_cb(knob, freeKnobVisual, LV_EVENT_DELETE, visual);
   lv_obj_add_event_cb(knob, onPressed, LV_EVENT_PRESSED, context);
   lv_obj_add_event_cb(knob, onPressing, LV_EVENT_PRESSING, context);
   lv_obj_add_event_cb(knob, onKnobReleased, LV_EVENT_RELEASED, context);
@@ -751,6 +905,7 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, i
   lv_obj_set_style_arc_color(arc, lv_color_hex(accent), LV_PART_INDICATOR);
   lv_obj_set_style_bg_opa(arc, LV_OPA_TRANSP, LV_PART_KNOB);
   lv_obj_remove_flag(arc, LV_OBJ_FLAG_CLICKABLE);
+  visual->arc = arc;
 
   lv_obj_t* rim = lv_obj_create(knob);
   lv_obj_set_size(rim, kKnobRimDiameter, kKnobRimDiameter);
@@ -791,20 +946,24 @@ lv_obj_t* createKnob(lv_obj_t* parent, const ParameterControl& control, int x, i
     lv_obj_add_event_cb(pointer, freeKnobPointerPoints, LV_EVENT_DELETE, pointerPoints);
     updateKnobPointer(pointer, ratio);
   }
+  visual->pointer = pointer;
 
-  label(knob, control.label, LV_ALIGN_BOTTOM_MID, 0, -30, &ardor_font_open_sans_semibold_22,
-        focused ? accent : text);
-  label(knob, control.formatted, LV_ALIGN_BOTTOM_MID, 0, -7, &ardor_font_open_sans_regular_18, muted);
+  visual->label = label(knob, control.label, LV_ALIGN_BOTTOM_MID, 0, -30, &ardor_font_open_sans_semibold_22,
+                        focused ? accent : text);
+  visual->value = label(knob, control.formatted, LV_ALIGN_BOTTOM_MID, 0, -7,
+                        &ardor_font_open_sans_regular_18, muted);
   return knob;
 }
 
 void renderBypassSwitch(lv_obj_t* parent, UiState& state, UiEventContext* context)
 {
   const auto& block = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
-  label(parent, "Bypass", LV_ALIGN_TOP_LEFT, 970, 25, &ardor_font_open_sans_regular_18, muted);
+  // Keep this control well clear of the dedicated close-button area. Both
+  // panels use this header, so a fixed gap protects their touch targets too.
+  label(parent, "Bypass", LV_ALIGN_TOP_LEFT, kBypassLabelX, 25, &ardor_font_open_sans_regular_18, muted);
   lv_obj_t* switchObject = lv_switch_create(parent);
   lv_obj_set_size(switchObject, 64, 30);
-  lv_obj_set_pos(switchObject, 1060, 20);
+  lv_obj_set_pos(switchObject, kBypassSwitchX, 20);
   lv_obj_set_style_bg_color(switchObject, lv_color_hex(0x111111), LV_PART_MAIN);
   lv_obj_set_style_bg_color(switchObject, lv_color_hex(0x343434), LV_PART_INDICATOR);
   lv_obj_set_style_bg_color(switchObject, lv_color_hex(accent),
@@ -864,6 +1023,45 @@ lv_obj_t* createEqResponseLine(lv_obj_t* parent, const std::array<float, kEqCurv
   lv_obj_add_event_cb(line, freeLinePoints, LV_EVENT_DELETE, points);
   lv_obj_remove_flag(line, LV_OBJ_FLAG_CLICKABLE);
   return line;
+}
+
+void refreshEqGraphCurve(lv_obj_t* graph, const ParametricEqParams& params)
+{
+  const auto* visual = graph ? static_cast<const EqGraphVisual*>(lv_obj_get_user_data(graph)) : nullptr;
+  if (!visual) {
+    return;
+  }
+
+  const auto curve = makeEqCurveData(params, 48000.0f);
+  for (std::size_t responseIndex = 0; responseIndex < visual->responseLines.size(); ++responseIndex) {
+    lv_obj_t* line = visual->responseLines[responseIndex];
+    if (!line) {
+      continue;
+    }
+    lv_point_precise_t* points = lv_line_get_points_mutable(line);
+    if (!points) {
+      continue;
+    }
+    const auto& response = responseIndex < kParametricEqBandCount
+      ? curve.bandDb[responseIndex] : curve.combinedDb;
+    for (std::size_t point = 0; point < kEqCurvePointCount; ++point) {
+      points[point].y = eqYFromGain(response[point], kEqGraphHeight);
+    }
+    if (responseIndex < kParametricEqBandCount) {
+      lv_obj_set_style_line_opa(line, params.bands[responseIndex].enabled ? LV_OPA_40 : LV_OPA_20, LV_PART_MAIN);
+    }
+    lv_obj_invalidate(line);
+  }
+
+  for (std::size_t bandIndex = 0; bandIndex < visual->nodes.size(); ++bandIndex) {
+    lv_obj_t* node = visual->nodes[bandIndex];
+    if (!node) {
+      continue;
+    }
+    const auto& band = params.bands[bandIndex];
+    lv_obj_set_pos(node, eqXFromFrequency(band.frequencyHz, kEqGraphWidth) - 16,
+                   eqYFromGain(band.gainDb, kEqGraphHeight) - 16);
+  }
 }
 
 std::string eqFrequencyLabel(float frequencyHz)
@@ -938,14 +1136,16 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
   label(panelObject, "Five bands", LV_ALIGN_TOP_LEFT, 205, 18, &ardor_font_open_sans_regular_18, muted);
 
   lv_obj_t* close = button(panelObject, "X");
-  lv_obj_set_size(close, 36, 32);
-  lv_obj_align(close, LV_ALIGN_TOP_RIGHT, -8, 16);
+  lv_obj_set_size(close, kPanelCloseButtonWidth, kPanelCloseButtonHeight);
+  lv_obj_align(close, LV_ALIGN_TOP_RIGHT, -28, 16);
   styleSurface(close, bg);
-  lv_obj_add_event_cb(close, onCloseParamDrawer, LV_EVENT_CLICKED, context);
+  // Close on touch-down: a finger can move slightly before release, which
+  // would otherwise cancel LV_EVENT_CLICKED on these overlay panels.
+  lv_obj_add_event_cb(close, onCloseParamDrawer, LV_EVENT_PRESSED, context);
   renderBypassSwitch(panelObject, state, context);
   lv_obj_t* remove = button(panelObject, "Delete Block");
   lv_obj_set_size(remove, 142, 32);
-  lv_obj_set_pos(remove, 792, 16);
+  lv_obj_set_pos(remove, kDeleteBlockX, 16);
   styleSurface(remove, 0x4a2024);
   lv_obj_set_style_text_color(lv_obj_get_child(remove, 0), lv_color_hex(0xf97373), 0);
   lv_obj_add_event_cb(remove, onDeleteSelectedBlock, LV_EVENT_CLICKED, context);
@@ -959,6 +1159,9 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
   styleSurface(graph, 0x111111);
   lv_obj_set_style_border_color(graph, lv_color_hex(0x3a3a3a), 0);
   lv_obj_set_style_border_width(graph, 1, 0);
+  auto* graphVisual = new EqGraphVisual{};
+  lv_obj_set_user_data(graph, graphVisual);
+  lv_obj_add_event_cb(graph, freeEqGraphVisual, LV_EVENT_DELETE, graphVisual);
 
   for (int i = 1; i < 4; ++i) {
     lv_obj_t* gridLine = lv_obj_create(graph);
@@ -976,13 +1179,16 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
   }
 
   for (std::size_t i = 0; i < kParametricEqBandCount; ++i) {
-    createEqResponseLine(graph, curve.bandDb[i], eqBandColors[i], params.bands[i].enabled ? LV_OPA_40 : LV_OPA_20);
+    graphVisual->responseLines[i] = createEqResponseLine(graph, curve.bandDb[i], eqBandColors[i],
+                                                           params.bands[i].enabled ? LV_OPA_40 : LV_OPA_20);
   }
-  createEqResponseLine(graph, curve.combinedDb, eqCombined, LV_OPA_COVER);
+  graphVisual->responseLines[kParametricEqBandCount] = createEqResponseLine(graph, curve.combinedDb,
+                                                                               eqCombined, LV_OPA_COVER);
 
   for (std::size_t i = 0; i < kParametricEqBandCount; ++i) {
     const auto& band = params.bands[i];
     lv_obj_t* node = button(graph, std::to_string(i + 1));
+    graphVisual->nodes[i] = node;
     lv_obj_set_size(node, 32, 32);
     lv_obj_set_pos(node, eqXFromFrequency(band.frequencyHz, kEqGraphWidth) - 16,
                    eqYFromGain(band.gainDb, kEqGraphHeight) - 16);
@@ -995,6 +1201,7 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
       lv_obj_set_style_border_width(node, 2, 0);
     }
     auto* nodeContext = context->ui->remember(state, i);
+    nodeContext->controlledObject = graph;
     lv_obj_add_event_cb(node, onEqNodePressed, LV_EVENT_PRESSED, nodeContext);
     lv_obj_add_event_cb(node, onEqNodePressing, LV_EVENT_PRESSING, nodeContext);
     lv_obj_add_event_cb(node, onEqNodeReleased, LV_EVENT_RELEASED, nodeContext);
@@ -1031,11 +1238,12 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
   };
   for (std::size_t i = 0; i < eqKnobFields.size(); ++i) {
     const auto field = eqKnobFields[i];
+    auto* knobContext = context->ui->remember(state, selectedBand,
+                                               field == EqBandField::Frequency ? "frequency"
+                                               : field == EqBandField::Q ? "q" : "gain");
+    knobContext->controlledObject = graph;
     lv_obj_t* knob = createKnob(panelObject, eqKnobControl(field, band), 205 + static_cast<int>(i) * 338, 394,
-                                 context->ui->isEqBandFieldFocused(field),
-                                 context->ui->remember(state, selectedBand,
-                                                       field == EqBandField::Frequency ? "frequency"
-                                                       : field == EqBandField::Q ? "q" : "gain"),
+                                 context->ui->isEqBandFieldFocused(field), knobContext,
                                  onEqKnobPressed, onEqKnobPressing);
     lv_obj_remove_flag(knob, LV_OBJ_FLAG_SCROLLABLE);
   }
@@ -1051,10 +1259,10 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
   lv_obj_add_event_cb(panelObject, onParameterGesture, LV_EVENT_GESTURE, context);
 
   lv_obj_t* close = button(panelObject, "X");
-  lv_obj_set_size(close, 36, 32);
-  lv_obj_align(close, LV_ALIGN_TOP_RIGHT, -8, 20);
+  lv_obj_set_size(close, kPanelCloseButtonWidth, kPanelCloseButtonHeight);
+  lv_obj_align(close, LV_ALIGN_TOP_RIGHT, -28, 16);
   styleSurface(close, bg);
-  lv_obj_add_event_cb(close, onCloseParamDrawer, LV_EVENT_CLICKED, context);
+  lv_obj_add_event_cb(close, onCloseParamDrawer, LV_EVENT_PRESSED, context);
 
   if (state.paramTarget == UiParamTarget::Globals) {
     lv_obj_t* title = label(panelObject, "Global", LV_ALIGN_TOP_LEFT, 270, 22, &ardor_font_open_sans_semibold_22);
@@ -1073,7 +1281,7 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
     renderBypassSwitch(panelObject, state, context);
     lv_obj_t* remove = button(panelObject, "Delete Block");
     lv_obj_set_size(remove, 142, 32);
-    lv_obj_set_pos(remove, 800, 20);
+    lv_obj_set_pos(remove, kDeleteBlockX, 20);
     styleSurface(remove, 0x4a2024);
     lv_obj_set_style_text_color(lv_obj_get_child(remove, 0), lv_color_hex(0xf97373), 0);
     lv_obj_add_event_cb(remove, onDeleteSelectedBlock, LV_EVENT_CLICKED, context);
@@ -1081,13 +1289,16 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
 
   renderPageNavigation(panelObject, state, context);
   const auto controls = parameterPage(state, context->ui->parameterPage());
-  const int firstX = 72;
-  const int spacing = 164;
+  const int rowWidth = controls.empty() ? 0
+    : kParameterKnobWidth + static_cast<int>(controls.size() - 1) * kParameterKnobSpacing;
+  const int contentWidth = kParameterPanelWidth
+    - lv_obj_get_style_pad_left(panelObject, LV_PART_MAIN)
+    - lv_obj_get_style_pad_right(panelObject, LV_PART_MAIN);
+  const int firstX = (contentWidth - rowWidth) / 2;
   for (std::size_t i = 0; i < controls.size(); ++i) {
-    lv_obj_t* knob = createKnob(panelObject, controls[i], firstX + static_cast<int>(i) * spacing, 68,
+    lv_obj_t* knob = createKnob(panelObject, controls[i], firstX + static_cast<int>(i) * kParameterKnobSpacing, 68,
                                  context->ui->isParameterFocused(controls[i].key), context,
-                                 onKnobPressed, onKnobPressing);
-    lv_obj_set_user_data(knob, reinterpret_cast<void*>(static_cast<uintptr_t>(i + 1)));
+                                 onKnobPressed, onKnobPressing, i);
   }
 }
 
@@ -1150,7 +1361,7 @@ void LvglUi::selectGlobalParams(UiState& state)
   resetParameterPage();
 }
 
-bool LvglUi::updateSelectedEqBand(UiState& state, EqBandParams params)
+bool LvglUi::updateSelectedEqBand(UiState& state, EqBandParams params, bool requestUiRebuild)
 {
   const auto& blocks = state.bank.presets[state.activePreset].blocks;
   if (state.selectedBlock >= blocks.size()) {
@@ -1168,8 +1379,87 @@ bool LvglUi::updateSelectedEqBand(UiState& state, EqBandParams params)
   if (actions_.updateEqBand) {
     actions_.updateEqBand(block.id, selectedEqBand_, after);
   }
-  requestRebuild();
+  if (requestUiRebuild) {
+    requestRebuild();
+  }
   return true;
+}
+
+bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta)
+{
+  if (focusedEqField_.has_value()) {
+    const auto& blocks = state.bank.presets[state.activePreset].blocks;
+    if (state.paramTarget != UiParamTarget::Block || state.selectedBlock >= blocks.size()
+        || blocks[state.selectedBlock].type != "eq" || !isParametricEqMode(blocks[state.selectedBlock].params)) {
+      return false;
+    }
+    auto params = selectedParametricEqParams(state);
+    adjustEqBandField(params.bands[selectedEqBand_], *focusedEqField_, delta);
+    if (!updateSelectedEqBand(state, params.bands[selectedEqBand_], focusedEqGraph_ == nullptr)) {
+      return false;
+    }
+    const auto updated = selectedParametricEqParams(state);
+    if (focusedKnob_) {
+      refreshKnobVisual(focusedKnob_, eqKnobControl(*focusedEqField_, updated.bands[selectedEqBand_]));
+    }
+    refreshEqGraphCurve(focusedEqGraph_, updated);
+    return true;
+  }
+  if (focusedKey_.empty()) {
+    return false;
+  }
+  for (const auto& control : ardor::parameterPage(state, parameterPage_)) {
+    if (control.key != focusedKey_) {
+      continue;
+    }
+    if (applyParameterDelta(state, control, delta)) {
+      if (state.paramTarget == UiParamTarget::Globals && actions_.updateGlobalGains) {
+        const auto& global = state.bank.presets[state.activePreset].global;
+        actions_.updateGlobalGains(global.inputGainDb, global.outputGainDb);
+      }
+      if (actions_.updateDaisyParameter && state.paramTarget == UiParamTarget::Block) {
+        const auto& blocks = state.bank.presets[state.activePreset].blocks;
+        if (state.selectedBlock < blocks.size()) {
+          const auto& block = blocks[state.selectedBlock];
+          if ((block.type == "mod" || block.type == "delay" || block.type == "reverb")
+              && block.params.contains(control.key) && block.params[control.key].is_number()) {
+            actions_.updateDaisyParameter(block.id, control.key, block.params[control.key].get<float>());
+          }
+        }
+      }
+      if (actions_.updateCompressorParameter && state.paramTarget == UiParamTarget::Block) {
+        const auto& blocks = state.bank.presets[state.activePreset].blocks;
+        if (state.selectedBlock < blocks.size()) {
+          const auto& block = blocks[state.selectedBlock];
+          if (block.type == "dynamics" && block.params.value("mode", "") == "compressor"
+              && block.params.contains(control.key) && block.params[control.key].is_number()) {
+            actions_.updateCompressorParameter(block.id, control.key, block.params[control.key].get<float>());
+          }
+        }
+      }
+      if (actions_.updateCabParameters && state.paramTarget == UiParamTarget::Block) {
+        const auto& blocks = state.bank.presets[state.activePreset].blocks;
+        if (state.selectedBlock < blocks.size()) {
+          const auto& block = blocks[state.selectedBlock];
+          if (block.type == "cab") {
+            actions_.updateCabParameters(block.params.value("levelDb", 0.0f),
+                                         block.params.value("mix", 1.0f));
+          }
+        }
+      }
+      const auto updatedControls = ardor::parameterPage(state, parameterPage_);
+      const auto updated = std::find_if(updatedControls.begin(), updatedControls.end(), [this](const auto& item) {
+        return item.key == focusedKey_;
+      });
+      if (focusedKnob_ && updated != updatedControls.end()) {
+        refreshKnobVisual(focusedKnob_, *updated);
+      } else {
+        requestRebuild();
+      }
+    }
+    return true;
+  }
+  return false;
 }
 
 UiEventContext* LvglUi::remember(UiState& state, std::size_t index, std::string filter)
@@ -1181,8 +1471,11 @@ UiEventContext* LvglUi::remember(UiState& state, std::size_t index, std::string 
 void LvglUi::build(lv_obj_t* root, UiState& state)
 {
   rebuildPending_ = false;
-  contexts_.clear();
+  knobInteractionActive_ = false;
+  focusedKnob_ = nullptr;
+  focusedEqGraph_ = nullptr;
   lv_obj_clean(root);
+  contexts_.clear();
   lv_obj_set_style_bg_color(root, lv_color_hex(bg), 0);
 
   // The UI is authored on a 1280x720 design grid. Rather than re-flow every
@@ -1230,7 +1523,7 @@ lv_point_t LvglUi::toCanvas(lv_point_t displayPoint) const
 
 void LvglUi::refresh(lv_obj_t* root, UiState& state)
 {
-  if (rebuildPending_) {
+  if (rebuildPending_ && !knobInteractionActive_) {
     build(root, state);
   }
 }
@@ -1244,12 +1537,24 @@ void LvglUi::requestRebuild()
 
 void telemetryLine(lv_obj_t* root, const RuntimeTelemetry& telemetry, bool bypassed)
 {
-  const std::string status = bypassed ? "BYPASS" : "LIVE";
   const int color = bypassed ? 0xf97373 : muted;
-  label(root,
-        status + "  over " + std::to_string(telemetry.overBudget) + "  max "
-          + std::to_string(static_cast<int>(telemetry.maxMs * 100.0) / 100.0) + "ms",
-        LV_ALIGN_BOTTOM_LEFT, 18, -14, &ardor_font_open_sans_regular_18, color);
+  char status[96]{};
+  std::snprintf(status, sizeof(status), "%s  over %llu  max %.2fms",
+                bypassed ? "BYPASS" : "LIVE",
+                static_cast<unsigned long long>(telemetry.overBudget), telemetry.maxMs);
+  label(root, status, LV_ALIGN_BOTTOM_LEFT, 18, -14, &ardor_font_open_sans_regular_18, color);
+}
+
+void statusLine(lv_obj_t* root, const UiState& state)
+{
+  if (state.statusMessage.empty()) {
+    return;
+  }
+  lv_obj_t* message = label(root, state.statusMessage, LV_ALIGN_BOTTOM_RIGHT, -18, -14,
+                            &ardor_font_open_sans_regular_18, state.statusIsError ? 0xf97373 : accent);
+  lv_obj_set_width(message, 620);
+  lv_label_set_long_mode(message, LV_LABEL_LONG_CLIP);
+  lv_obj_set_style_text_align(message, LV_TEXT_ALIGN_RIGHT, 0);
 }
 
 void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
@@ -1259,9 +1564,27 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
         &ardor_font_open_sans_regular_18, muted);
 
   lv_obj_t* edit = button(root, "Edit");
-  lv_obj_set_size(edit, 112, 46);
+  lv_obj_set_size(edit, kHeaderBlocksButtonWidth, kHeaderButtonHeight);
   lv_obj_align(edit, LV_ALIGN_TOP_RIGHT, -28, 20);
-  lv_obj_add_event_cb(edit, onEditModeClicked, LV_EVENT_CLICKED, remember(state));
+  // Opening an editor is safe on press and does not depend on the release
+  // landing on a small target after a finger has shifted on the touchscreen.
+  lv_obj_add_event_cb(edit, onEditModeClicked, LV_EVENT_PRESSED, remember(state));
+
+  lv_obj_t* bankDown = button(root, "Bank -");
+  lv_obj_set_size(bankDown, 144, 52);
+  lv_obj_align(bankDown, LV_ALIGN_TOP_MID, -300, 20);
+  if (state.activeBank == kMinBank) {
+    lv_obj_add_state(bankDown, LV_STATE_DISABLED);
+  }
+  lv_obj_add_event_cb(bankDown, onBankDownClicked, LV_EVENT_CLICKED, remember(state));
+
+  lv_obj_t* bankUp = button(root, "Bank +");
+  lv_obj_set_size(bankUp, 144, 52);
+  lv_obj_align(bankUp, LV_ALIGN_TOP_MID, 300, 20);
+  if (state.activeBank == kMaxBank) {
+    lv_obj_add_state(bankUp, LV_STATE_DISABLED);
+  }
+  lv_obj_add_event_cb(bankUp, onBankUpClicked, LV_EVENT_CLICKED, remember(state));
 
   lv_obj_t* grid = lv_obj_create(root);
   lv_obj_set_size(grid, 1200, 580);
@@ -1299,6 +1622,7 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     lv_obj_add_event_cb(preset, onPresetClicked, LV_EVENT_CLICKED, remember(state, i));
   }
   telemetryLine(root, state.telemetry, state.effectsBypassed);
+  statusLine(root, state);
 }
 
 void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
@@ -1306,25 +1630,25 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   label(root, state.bank.presets[state.activePreset].name, LV_ALIGN_TOP_MID, 0, 24, &ardor_font_open_sans_semibold_28);
 
   lv_obj_t* presets = button(root, "Presets");
-  lv_obj_set_size(presets, 112, 42);
+  lv_obj_set_size(presets, 164, kHeaderButtonHeight);
   lv_obj_align(presets, LV_ALIGN_TOP_LEFT, 28, 20);
-  lv_obj_add_event_cb(presets, onPresetModeClicked, LV_EVENT_CLICKED, remember(state));
+  lv_obj_add_event_cb(presets, onPresetModeClicked, LV_EVENT_PRESSED, remember(state));
 
   lv_obj_t* globalButton = button(root, "Global");
-  lv_obj_set_size(globalButton, 112, 42);
-  lv_obj_align(globalButton, LV_ALIGN_TOP_RIGHT, -292, 20);
+  lv_obj_set_size(globalButton, 144, kHeaderButtonHeight);
+  lv_obj_align(globalButton, LV_ALIGN_TOP_RIGHT, -372, 20);
   lv_obj_add_event_cb(globalButton, onGlobalParamsClicked, LV_EVENT_CLICKED, remember(state));
 
   lv_obj_t* save = button(root, state.dirty ? "Save*" : "Save");
-  lv_obj_set_size(save, 96, 42);
-  lv_obj_align(save, LV_ALIGN_TOP_RIGHT, -170, 20);
+  lv_obj_set_size(save, 128, kHeaderButtonHeight);
+  lv_obj_align(save, LV_ALIGN_TOP_RIGHT, -220, 20);
   lv_obj_set_style_text_color(lv_obj_get_child(save, 0), lv_color_hex(state.dirty ? accent : text), 0);
   lv_obj_add_event_cb(save, onSaveClicked, LV_EVENT_CLICKED, remember(state));
 
   lv_obj_t* blocksButton = button(root, "Blocks");
-  lv_obj_set_size(blocksButton, 112, 42);
+  lv_obj_set_size(blocksButton, kHeaderBlocksButtonWidth, kHeaderButtonHeight);
   lv_obj_align(blocksButton, LV_ALIGN_TOP_RIGHT, -28, 20);
-  lv_obj_add_event_cb(blocksButton, onOpenBlockDrawer, LV_EVENT_CLICKED, remember(state));
+  lv_obj_add_event_cb(blocksButton, onOpenBlockDrawer, LV_EVENT_PRESSED, remember(state));
 
   const auto& blocks = state.bank.presets[state.activePreset].blocks;
   const bool editingEq = state.paramDrawerOpen && state.paramTarget == UiParamTarget::Block
@@ -1377,9 +1701,11 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
     lv_obj_add_event_cb(object, onBlockPressing, LV_EVENT_PRESSING, context);
     lv_obj_add_event_cb(object, onBlockClicked, LV_EVENT_CLICKED, context);
     lv_obj_add_event_cb(object, onBlockReleased, LV_EVENT_RELEASED, context);
+    lv_obj_add_event_cb(object, onBlockPressLost, LV_EVENT_PRESS_LOST, context);
   }
 
   telemetryLine(root, state.telemetry, state.effectsBypassed);
+  statusLine(root, state);
   if (state.blockDrawerOpen) {
     renderBlockDrawer(root, state);
   }
@@ -1391,7 +1717,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
 void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
 {
   lv_obj_t* drawer = lv_obj_create(root);
-  lv_obj_set_size(drawer, 360, 720);
+  lv_obj_set_size(drawer, kBlockDrawerWidth, 720);
   lv_obj_align(drawer, LV_ALIGN_RIGHT_MID, 0, 0);
   lv_obj_set_style_bg_color(drawer, lv_color_hex(0x000000), 0);
   lv_obj_set_style_border_color(drawer, lv_color_hex(panel), 0);
@@ -1405,9 +1731,9 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
 
   label(drawer, "Blocks", LV_ALIGN_TOP_LEFT, 0, 0, &ardor_font_open_sans_semibold_22);
   lv_obj_t* close = button(drawer, "X");
-  lv_obj_set_size(close, 40, 36);
+  lv_obj_set_size(close, 56, 48);
   lv_obj_align(close, LV_ALIGN_TOP_RIGHT, 0, -4);
-  lv_obj_add_event_cb(close, onCloseBlockDrawer, LV_EVENT_CLICKED, remember(state));
+  lv_obj_add_event_cb(close, onCloseBlockDrawer, LV_EVENT_PRESSED, remember(state));
 
   static constexpr std::array filters = {
     std::pair{"All", "all"}, std::pair{"Amps", "amps"}, std::pair{"Cabs", "cabs"},
@@ -1416,27 +1742,52 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   };
 
   lv_obj_t* filterRow = lv_obj_create(drawer);
-  lv_obj_set_size(filterRow, 324, 34);
-  lv_obj_align(filterRow, LV_ALIGN_TOP_LEFT, 0, 42);
+  lv_obj_set_size(filterRow, kBlockDrawerContentWidth, kCategoryButtonHeight);
+  lv_obj_align(filterRow, LV_ALIGN_TOP_LEFT, 0, 52);
   lv_obj_set_style_bg_opa(filterRow, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(filterRow, 0, 0);
   lv_obj_set_style_pad_all(filterRow, 0, 0);
-  lv_obj_set_style_pad_column(filterRow, 6, 0);
+  lv_obj_set_style_pad_column(filterRow, kCategoryButtonGap, 0);
   lv_obj_set_scroll_dir(filterRow, LV_DIR_HOR);
+  lv_obj_set_scrollbar_mode(filterRow, LV_SCROLLBAR_MODE_OFF);
   lv_obj_set_flex_flow(filterRow, LV_FLEX_FLOW_ROW);
 
   for (const auto& [name, filter] : filters) {
     lv_obj_t* filterButton = button(filterRow, name);
-    lv_obj_set_size(filterButton, 74, 34);
+    lv_obj_set_size(filterButton, kCategoryButtonWidth, kCategoryButtonHeight);
     styleSurface(filterButton, state.categoryFilter == filter ? 0x333333 : 0x1b1b1b);
     lv_obj_set_style_text_color(lv_obj_get_child(filterButton, 0),
                                 lv_color_hex(state.categoryFilter == filter ? accent : text), 0);
     lv_obj_add_event_cb(filterButton, onFilterClicked, LV_EVENT_CLICKED, remember(state, 0, filter));
   }
 
+  // The stock scrollbar is drawn inside a scrollable object's content area,
+  // which used to cover the bottom edge of the category buttons. Give the
+  // category strip an explicit, touchable slider in its own row instead.
+  lv_obj_t* categorySlider = lv_slider_create(drawer);
+  lv_obj_set_size(categorySlider, kBlockDrawerContentWidth, 12);
+  lv_obj_align(categorySlider, LV_ALIGN_TOP_LEFT, 0, 112);
+  const int categoryContentWidth = static_cast<int>(filters.size()) * kCategoryButtonWidth
+    + static_cast<int>(filters.size() - 1) * kCategoryButtonGap;
+  const int maxCategoryScroll = std::max(0, categoryContentWidth - kBlockDrawerContentWidth);
+  state.categoryScrollOffset = std::clamp(state.categoryScrollOffset, 0, maxCategoryScroll);
+  lv_slider_set_range(categorySlider, 0, maxCategoryScroll);
+  lv_slider_set_value(categorySlider, state.categoryScrollOffset, LV_ANIM_OFF);
+  lv_obj_set_style_bg_color(categorySlider, lv_color_hex(0x252525), LV_PART_MAIN);
+  lv_obj_set_style_bg_color(categorySlider, lv_color_hex(0x3a3a3a), LV_PART_INDICATOR);
+  lv_obj_set_style_bg_color(categorySlider, lv_color_hex(accent), LV_PART_KNOB);
+  lv_obj_set_style_radius(categorySlider, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+  lv_obj_set_style_radius(categorySlider, LV_RADIUS_CIRCLE, LV_PART_INDICATOR);
+  lv_obj_set_style_radius(categorySlider, LV_RADIUS_CIRCLE, LV_PART_KNOB);
+  auto* sliderContext = remember(state);
+  sliderContext->controlledObject = filterRow;
+  lv_obj_add_event_cb(categorySlider, onCategoryScrollChanged, LV_EVENT_VALUE_CHANGED, sliderContext);
+  lv_obj_update_layout(filterRow);
+  lv_obj_scroll_to_x(filterRow, state.categoryScrollOffset, LV_ANIM_OFF);
+
   lv_obj_t* list = lv_obj_create(drawer);
-  lv_obj_set_size(list, 324, 556);
-  lv_obj_align(list, LV_ALIGN_TOP_LEFT, 0, 146);
+  lv_obj_set_size(list, kBlockDrawerContentWidth, 540);
+  lv_obj_align(list, LV_ALIGN_TOP_LEFT, 0, 142);
   lv_obj_set_style_bg_opa(list, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(list, 0, 0);
   lv_obj_set_style_pad_all(list, 0, 0);
@@ -1449,13 +1800,14 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
       continue;
     }
     lv_obj_t* item = button(list, asset.name);
-    lv_obj_set_width(item, 310);
-    lv_obj_set_height(item, 38);
+    lv_obj_set_width(item, kBlockDrawerContentWidth - 14);
+    lv_obj_set_height(item, 56);
     styleSurface(item, panel);
     auto* context = remember(state, i);
     lv_obj_add_event_cb(item, onAssetPressed, LV_EVENT_PRESSED, context);
     lv_obj_add_event_cb(item, onAssetPressing, LV_EVENT_PRESSING, context);
     lv_obj_add_event_cb(item, onAssetReleased, LV_EVENT_RELEASED, context);
+    lv_obj_add_event_cb(item, onAssetPressLost, LV_EVENT_PRESS_LOST, context);
     lv_obj_add_event_cb(item, onAssetClicked, LV_EVENT_CLICKED, context);
   }
 }

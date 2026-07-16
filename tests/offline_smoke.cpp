@@ -12,6 +12,9 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#if defined(__linux__)
+#include <sched.h>
+#endif
 
 namespace {
 
@@ -84,6 +87,24 @@ int main()
 
   if (require(ardor::captureChannelCountForInput(0) == 2)) return 1;
   if (require(ardor::captureChannelCountForInput(1) == 2)) return 1;
+
+  ardor::RealtimeStats schedulerStats;
+  if (require(!ardor::hasRequiredRealtimeScheduler(schedulerStats))) return 1;
+#if defined(__linux__)
+  schedulerStats.schedulerCaptured = true;
+  schedulerStats.schedulerPolicy = SCHED_FIFO;
+  schedulerStats.schedulerPriority = 70;
+  if (require(ardor::hasRequiredRealtimeScheduler(schedulerStats))) return 1;
+  schedulerStats.schedulerPriority = 71;
+  if (require(!ardor::hasRequiredRealtimeScheduler(schedulerStats))) return 1;
+#endif
+
+  // A failed/unstarted backend must never leave a replacement engine borrowed
+  // by a callback. This is the safe no-device result used by the control loop.
+  ardor::MiniaudioBackend unstartedBackend;
+  ardor::PedalEngine replacementEngine;
+  if (require(unstartedBackend.replaceEngine(replacementEngine) == ardor::EngineReplaceResult::DeviceStopped)) return 1;
+  if (require(unstartedBackend.deviceStopped())) return 1;
 
   ardor::ChainPlan cabOnly;
   cabOnly.inputGain = 1.0f;
@@ -195,6 +216,13 @@ int main()
     if (require(std::fabs(expected[i] - actual[i]) < 0.0001f)) return 1;
   }
 
+  std::vector<float> mismatchedOutput(32, 1.0f);
+  fast.processBlock(input.data(), mismatchedOutput.data(), mismatchedOutput.size());
+  if (require(fast.blockSizeMismatchCount() == 1)) return 1;
+  for (const float sample : mismatchedOutput) {
+    if (require(sample == 0.0f)) return 1;
+  }
+
   ardor::PedalEngine engine;
   engine.loadIr({1.0f});
   engine.setInputGain(0.5f);
@@ -220,6 +248,15 @@ int main()
     const float limited = std::fmax(-0.5f, std::fmin(0.5f, expected[i]));
     if (require(std::fabs(limited - blockLeft[i]) < 0.0005f)) return 1;
     if (require(std::fabs(limited - blockRight[i]) < 0.0005f)) return 1;
+  }
+
+  std::vector<float> partialInput(63, 0.25f);
+  std::vector<float> partialLeft(partialInput.size(), 1.0f);
+  std::vector<float> partialRight(partialInput.size(), 1.0f);
+  blockEngine.processBlock(partialInput.data(), partialLeft.data(), partialRight.data(), partialInput.size());
+  if (require(blockEngine.blockSizeMismatchCount() == 1)) return 1;
+  for (size_t i = 0; i < partialInput.size(); ++i) {
+    if (require(partialLeft[i] == 0.0f && partialRight[i] == 0.0f)) return 1;
   }
 
   if (require(!engine.loadNam(std::filesystem::path{"missing.nam"}, 48000.0, 128))) return 1;
