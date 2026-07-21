@@ -2,7 +2,7 @@
 
 All notable changes are generated from Conventional Commit messages.
 
-## 0.1.3 (2026-07-21)
+## 0.1.4 (2026-07-21)
 
 ### Bug Fixes
 
