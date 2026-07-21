@@ -39,6 +39,7 @@ command -v docker >/dev/null 2>&1 || die "Docker is required"
 volume=${ARDOR_BUILDROOT_VOLUME:-$BUILDROOT_DOCKER_VOLUME}
 image=${ARDOR_DOCKER_IMAGE:-ubuntu:24.04}
 output=${ARDOR_OUTPUT_IMAGE:-$repo_dir/sdcard.img}
+download_dir=${ARDOR_BUILDROOT_DL_DIR:-}
 
 if [ -z "${ARDOR_BUILD_JOBS:-}" ]; then
   if command -v sysctl >/dev/null 2>&1 &&
@@ -72,6 +73,14 @@ case "$output" in
   /*) ;;
   *) output="$repo_dir/$output" ;;
 esac
+
+if [ -n "$download_dir" ]; then
+  case "$download_dir" in
+    /*) ;;
+    *) download_dir="$repo_dir/$download_dir" ;;
+  esac
+  mkdir -p "$download_dir"
+fi
 
 docker_host_raw=$(docker info --format '{{.Architecture}}') ||
   die "Docker daemon is unavailable"
@@ -108,6 +117,12 @@ set -- docker run --rm \
   -e ARDOR_HOST_UID="$(id -u)" \
   -e ARDOR_HOST_GID="$(id -g)" \
   -e ARDOR_STAGING_IMAGE="/ardor/$(basename -- "$staging")"
+
+if [ -n "$download_dir" ]; then
+  set -- "$@" \
+    -v "$download_dir:/buildroot-dl" \
+    -e ARDOR_BUILDROOT_DL_DIR=/buildroot-dl
+fi
 
 if [ -n "$wifi_config" ]; then
   set -- "$@" \

@@ -83,6 +83,10 @@ ARDOR_BUILDROOT_VOLUME=buildroot_2025_02_15_test ./scripts/build-image.sh
 ARDOR_DOCKER_IMAGE=ubuntu:24.04 ./scripts/build-image.sh
 ```
 
+`ARDOR_BUILDROOT_DL_DIR` may point at a persistent host directory for downloaded
+Buildroot sources. CI uses this override with the GitHub Actions cache so each
+release does not have to download the toolchain and kernel sources again.
+
 The first build downloads and compiles the toolchain and kernel. Later builds
 reuse the versioned volume but still rebuild both Ardor packages from the current
 working tree.
@@ -112,6 +116,34 @@ docker volume rm "$BUILDROOT_DOCKER_VOLUME"
 Removing this volume discards the incremental cache. Do not remove it while a
 release candidate is being compared with a prior image. A non-empty volume from
 another Buildroot release is rejected rather than modified in place.
+
+## Automated Releases
+
+Every push to `main` runs `.github/workflows/release.yml`. The workflow creates
+its own `v0.1.<run-number>` tag, builds the compressed Raspberry Pi image, builds
+Ardor Manager installers for Apple Silicon macOS, Intel macOS, and Windows x64,
+then publishes one GitHub Release after all builds and manager tests pass. Tags
+do not need to be created or pushed manually.
+
+The compressed Raspberry Pi image is cached by a content hash of its Buildroot
+configuration, build scripts, pedal sources, third-party headers, embedded app
+sources, and manager-daemon sources. Commits that only affect the desktop app,
+documentation, or tests reuse the cached image and skip the complete Buildroot
+build. The cached image is copied to a versioned filename and uploaded to every
+release, so each release remains self-contained.
+
+Write commit subjects using the Conventional Commits format, for example:
+
+```text
+feat(manager): add preset import
+fix(firmware): restore codec initialization
+docs: document first boot
+```
+
+The release workflow regenerates `CHANGELOG.md` from those messages and commits
+the result back to `main` with a CI-skipping release commit. Repository settings
+must allow GitHub Actions read/write access to contents; protected-branch rules
+must also allow the Actions bot to update `CHANGELOG.md`.
 
 ## Preserve A Rollback Image
 

@@ -1,0 +1,318 @@
+name: Build and release
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - CHANGELOG.md
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: '24'
+
+jobs:
+  prepare:
+    name: Prepare release
+    runs-on: ubuntu-24.04
+    outputs:
+      release_id: ${{ steps.release.outputs.id }}
+      tag: ${{ steps.metadata.outputs.tag }}
+      version: ${{ steps.metadata.outputs.version }}
+    steps:
+      - name: Check out the complete history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Calculate release metadata
+        id: metadata
+        shell: bash
+        run: |
+          version="0.1.${GITHUB_RUN_NUMBER}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate the conventional changelog
+        env:
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+        shell: bash
+        run: |
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const pkg = JSON.parse(fs.readFileSync("apps/manager/package.json", "utf8"));
+            pkg.version = process.env.RELEASE_VERSION;
+            fs.writeFileSync(".release-package.json", JSON.stringify(pkg));
+          '
+
+          npx --yes \
+            --package conventional-changelog@8.1.0 \
+            --package conventional-changelog-conventionalcommits@10.2.1 \
+            conventional-changelog \
+            --preset conventionalcommits \
+            --pkg .release-package.json \
+            --release-count 0 \
+            --stdout > .generated-changelog.md
+
+          {
+            echo '# Changelog'
+            echo
+            echo 'All notable changes are generated from Conventional Commit messages.'
+            echo
+            cat .generated-changelog.md
+          } > CHANGELOG.md
+
+          npx --yes \
+            --package conventional-changelog@8.1.0 \
+            --package conventional-changelog-conventionalcommits@10.2.1 \
+            conventional-changelog \
+            --preset conventionalcommits \
+            --pkg .release-package.json \
+            --release-count 1 \
+            --stdout > .release-changes.md
+
+          {
+            echo "Automated build of main at \`${GITHUB_SHA}\`."
+            echo
+            cat .release-changes.md
+          } > .release-notes.md
+
+      - name: Create the draft release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.metadata.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+        shell: bash
+        run: |
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --target "$GITHUB_SHA" \
+              --title "Ardor $RELEASE_VERSION" \
+              --notes-file .release-notes.md \
+              --draft
+          fi
+
+          release_id=$(gh release view "$RELEASE_TAG" --json databaseId --jq .databaseId)
+          echo "id=$release_id" >> "$GITHUB_OUTPUT"
+          gh release upload "$RELEASE_TAG" CHANGELOG.md --clobber
+
+      - name: Commit the updated changelog
+        shell: bash
+        run: |
+          if git diff --quiet -- CHANGELOG.md; then
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add CHANGELOG.md
+          git commit -m "chore(release): update changelog for ${{ steps.metadata.outputs.tag }} [skip ci]"
+
+          if ! git push origin HEAD:main; then
+            echo '::warning::main advanced while the changelog was being written; a newer run will update it.'
+          fi
+
+  manager-checks:
+    name: Check manager app
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: apps/manager
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/manager/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Run unit tests
+        run: npm test
+
+  firmware:
+    name: Build Raspberry Pi image
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      ARDOR_BUILDROOT_DL_DIR: ${{ github.workspace }}/.cache/buildroot-dl
+      ARDOR_OUTPUT_IMAGE: ${{ github.workspace }}/.cache/firmware/ardor-pedal.img
+      ARDOR_CACHED_IMAGE: ${{ github.workspace }}/.cache/firmware/ardor-pedal.img.gz
+      ARDOR_RELEASE_IMAGE: ${{ github.workspace }}/artifacts/ardor-pedal-${{ needs.prepare.outputs.version }}.img.gz
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Calculate firmware input hash
+        id: firmware-inputs
+        shell: bash
+        run: |
+          firmware_hash=$(
+            git ls-files -z -- \
+              CMakeLists.txt \
+              lv_conf.h \
+              src \
+              third_party \
+              apps/audio-probe \
+              apps/pedal-poc \
+              services/managerd \
+              ':(glob,exclude)services/managerd/**/*_test.go' \
+              buildroot \
+              scripts/build-image.sh \
+              scripts/build-image-in-container.sh \
+              | sort -z \
+              | xargs -0 sha256sum \
+              | sha256sum \
+              | cut -d ' ' -f 1
+          )
+          echo "hash=$firmware_hash" >> "$GITHUB_OUTPUT"
+
+      - name: Restore completed firmware image
+        id: firmware-image-cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/firmware/ardor-pedal.img.gz
+          key: firmware-image-v1-${{ steps.firmware-inputs.outputs.hash }}
+
+      - name: Cache Buildroot downloads
+        if: steps.firmware-image-cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: .cache/buildroot-dl
+          key: buildroot-dl-${{ hashFiles('buildroot/buildroot-version.env', 'buildroot/external/configs/raspberrypi4_ardor_pedal_defconfig') }}
+          restore-keys: |
+            buildroot-dl-
+
+      - name: Build the SD-card image
+        if: steps.firmware-image-cache.outputs.cache-hit != 'true'
+        run: ./scripts/build-image.sh
+
+      - name: Compress the image
+        if: steps.firmware-image-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: gzip -9 "$ARDOR_OUTPUT_IMAGE"
+
+      - name: Stage the release firmware
+        shell: bash
+        run: |
+          mkdir -p "$(dirname "$ARDOR_RELEASE_IMAGE")"
+          cp "$ARDOR_CACHED_IMAGE" "$ARDOR_RELEASE_IMAGE"
+          sha256sum "$ARDOR_RELEASE_IMAGE" > "$ARDOR_RELEASE_IMAGE.sha256"
+
+      - name: Upload firmware to the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        shell: bash
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            "$ARDOR_RELEASE_IMAGE" \
+            "$ARDOR_RELEASE_IMAGE.sha256" \
+            --clobber
+
+  desktop:
+    name: Build manager (${{ matrix.label }})
+    needs:
+      - prepare
+      - manager-checks
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: macOS Apple Silicon
+            os: macos-latest
+            target: aarch64-apple-darwin
+          - label: macOS Intel
+            os: macos-latest
+            target: x86_64-apple-darwin
+          - label: Windows x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/manager/package-lock.json
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            apps/manager/src-tauri/target
+          key: tauri-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('apps/manager/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            tauri-${{ runner.os }}-${{ matrix.target }}-
+            tauri-${{ runner.os }}-
+
+      - name: Install manager dependencies
+        working-directory: apps/manager
+        run: npm ci
+
+      - name: Set the release version
+        env:
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        shell: bash
+        run: |
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const path = "apps/manager/src-tauri/tauri.conf.json";
+            const config = JSON.parse(fs.readFileSync(path, "utf8"));
+            config.version = process.env.RELEASE_VERSION;
+            fs.writeFileSync(path, JSON.stringify(config, null, 2) + "\n");
+          '
+
+      - name: Build and upload manager bundles
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          projectPath: apps/manager
+          releaseId: ${{ needs.prepare.outputs.release_id }}
+          tagName: ${{ needs.prepare.outputs.tag }}
+          args: --target ${{ matrix.target }}
+          releaseAssetNamePattern: Ardor-Manager-[version]-[platform]-[arch][setup][ext]
+          uploadUpdaterJson: false
+
+  publish:
+    name: Publish release
+    needs:
+      - prepare
+      - manager-checks
+      - firmware
+      - desktop
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Publish the completed release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        shell: bash
+        run: gh release edit "$RELEASE_TAG" --draft=false --latest

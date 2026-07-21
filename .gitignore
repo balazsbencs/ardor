@@ -1,7 +1,7 @@
 /build/
 /build-*/
 /output/
-/.secrets/
+/.AAAAsecrets/
 /models/*
 !/models/.gitkeep
 /irs/*

@@ -30,6 +30,11 @@ version_file=/ardor/buildroot/buildroot-version.env
 : "${ARDOR_HOST_GID:?ARDOR_HOST_GID is required}"
 : "${ARDOR_STAGING_IMAGE:?ARDOR_STAGING_IMAGE is required}"
 
+if [ -n "${ARDOR_BUILDROOT_DL_DIR:-}" ]; then
+  mkdir -p "$ARDOR_BUILDROOT_DL_DIR"
+  export BR2_DL_DIR="$ARDOR_BUILDROOT_DL_DIR"
+fi
+
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq \
