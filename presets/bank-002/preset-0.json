@@ -1,0 +1,53 @@
+{
+  "blocks": [
+    {
+      "asset": "",
+      "enabled": true,
+      "id": "block-1",
+      "params": {
+        "bands": [
+          {
+            "enabled": true,
+            "frequency_hz": 80.0,
+            "gain_db": 0.5,
+            "q": 1.0
+          },
+          {
+            "enabled": true,
+            "frequency_hz": 250.0,
+            "gain_db": 0.0,
+            "q": 1.0
+          },
+          {
+            "enabled": true,
+            "frequency_hz": 800.0,
+            "gain_db": 0.0,
+            "q": 1.0
+          },
+          {
+            "enabled": true,
+            "frequency_hz": 2500.0,
+            "gain_db": 0.0,
+            "q": 1.0
+          },
+          {
+            "enabled": true,
+            "frequency_hz": 8000.0,
+            "gain_db": 0.0,
+            "q": 1.0
+          }
+        ],
+        "mode": "parametric_eq_5"
+      },
+      "type": "eq"
+    }
+  ],
+  "global": {
+    "inputGainDb": 0.0,
+    "outputGainDb": 0.0,
+    "safetyLimitDb": -1.0
+  },
+  "name": "Empty 1",
+  "routing": "serial",
+  "version": 1
+}

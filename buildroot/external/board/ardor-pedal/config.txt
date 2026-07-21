@@ -1,0 +1,16 @@
+kernel=Image
+arm_64bit=1
+enable_uart=1
+# Full KMS: kernel drives all displays including the DSI panel
+dtoverlay=vc4-kms-v3d
+# Firmware must not pre-configure the display pipeline (matches RPi OS)
+disable_fw_kms_setup=1
+# Raspberry Pi 5-inch Touch Display 2 (ILI9881 panel, Goodix touch)
+dtoverlay=vc4-kms-dsi-ili9881-5inch
+# Codec Zero (I2S DAC/ADC, DA7212)
+dtparam=audio=off
+dtparam=i2c_arm=on
+dtparam=i2s=on
+dtoverlay=rpi-codeczero
+# Footswitches + encoder (compiled from ardor-controls.dts)
+dtoverlay=ardor-controls

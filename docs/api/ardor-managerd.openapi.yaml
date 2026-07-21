@@ -1,0 +1,787 @@
+openapi: 3.1.0
+info:
+  title: Ardor Manager Daemon API
+  version: 0.1.0
+  description: >
+    Local REST API for managing Ardor pedal assets and presets from desktop
+    and future mobile clients. The daemon owns file validation, atomic preset
+    writes, and optional preset apply requests. Realtime audio remains in the
+    separate pedal process.
+servers:
+  - url: http://ardor.local
+    description: mDNS name on the local network or pedal hotspot
+  - url: http://{host}
+    description: Direct IP or hostname
+    variables:
+      host:
+        default: 192.168.4.1
+security:
+  - bearerAuth: []
+tags:
+  - name: Device
+  - name: Assets
+  - name: Presets
+paths:
+  /api/device:
+    get:
+      tags:
+        - Device
+      summary: Get device status and API capabilities
+      operationId: getDevice
+      security:
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: Device status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceStatus"
+
+  /api/assets/models:
+    get:
+      tags:
+        - Assets
+      summary: List NAM model assets
+      operationId: listModelAssets
+      responses:
+        "200":
+          description: NAM model assets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags:
+        - Assets
+      summary: Upload a NAM model asset
+      operationId: uploadModelAsset
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/AssetUploadRequest"
+      responses:
+        "201":
+          description: NAM model uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /api/assets/models/{assetId}:
+    patch:
+      tags:
+        - Assets
+      summary: Rename a NAM model asset and update saved preset references
+      operationId: renameModelAsset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetRenameRequest"
+      responses:
+        "200":
+          description: NAM model renamed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetRenameResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags:
+        - Assets
+      summary: Delete a NAM model asset
+      operationId: deleteModelAsset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "204":
+          description: NAM model deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /api/assets/irs:
+    get:
+      tags:
+        - Assets
+      summary: List cabinet IR WAV assets
+      operationId: listIrAssets
+      responses:
+        "200":
+          description: Cabinet IR assets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags:
+        - Assets
+      summary: Upload a cabinet IR WAV asset
+      operationId: uploadIrAsset
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/AssetUploadRequest"
+      responses:
+        "201":
+          description: Cabinet IR uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /api/assets/irs/{assetId}:
+    patch:
+      tags:
+        - Assets
+      summary: Rename a cabinet IR asset and update saved preset references
+      operationId: renameIrAsset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetRenameRequest"
+      responses:
+        "200":
+          description: Cabinet IR renamed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetRenameResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags:
+        - Assets
+      summary: Delete a cabinet IR WAV asset
+      operationId: deleteIrAsset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "204":
+          description: Cabinet IR deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /api/presets:
+    get:
+      tags:
+        - Presets
+      summary: List all preset slots
+      operationId: listPresets
+      responses:
+        "200":
+          description: Preset slot summaries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PresetSlotList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/presets/banks/{bank}/slots/{slot}:
+    get:
+      tags:
+        - Presets
+      summary: Get a preset slot
+      operationId: getPresetSlot
+      parameters:
+        - $ref: "#/components/parameters/Bank"
+        - $ref: "#/components/parameters/Slot"
+      responses:
+        "200":
+          description: Preset slot and preset JSON
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PresetSlot"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags:
+        - Presets
+      summary: Save a preset slot atomically
+      description: >
+        Saves the supplied preset JSON to the selected bank and slot. The
+        daemon validates relative asset paths and writes through a temporary
+        file before replacing the existing preset.
+      operationId: putPresetSlot
+      parameters:
+        - $ref: "#/components/parameters/Bank"
+        - $ref: "#/components/parameters/Slot"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Preset"
+      responses:
+        "200":
+          description: Preset saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PresetSlot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /api/presets/banks/{bank}/slots/{slot}/apply:
+    post:
+      tags:
+        - Presets
+      summary: Request that the pedal apply a saved preset slot
+      description: >
+        Requests that the active pedal runtime switch to the saved preset slot.
+        The switch must not parse JSON, load files, allocate buffers, or do any
+        other blocking management work inside the realtime audio callback. The
+        daemon persists an atomic runtime command; the pedal consumes it from
+        its management loop without restarting audio.
+      operationId: applyPresetSlot
+      parameters:
+        - $ref: "#/components/parameters/Bank"
+        - $ref: "#/components/parameters/Slot"
+      responses:
+        "202":
+          description: Apply request accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplyPresetResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-token
+
+  parameters:
+    AssetId:
+      name: assetId
+      in: path
+      required: true
+      description: URL-safe asset identifier returned by the list or upload endpoint.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+        pattern: "^[A-Za-z0-9._-]+$"
+    Bank:
+      name: bank
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 99
+    Slot:
+      name: slot
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 3
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: Request conflicts with existing data or current runtime state
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    PayloadTooLarge:
+      description: Uploaded file is too large
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    UnsupportedMediaType:
+      description: Unsupported uploaded file type
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ServiceUnavailable:
+      description: Pedal runtime is not available
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    DeviceStatus:
+      type: object
+      required:
+        - deviceName
+        - apiVersion
+        - authEnabled
+        - dataRootWritable
+        - maxBanks
+        - slotsPerBank
+        - supportedPresetVersion
+        - capabilities
+      properties:
+        deviceName:
+          type: string
+          examples:
+            - Ardor Pedal
+        apiVersion:
+          type: string
+          examples:
+            - 0.1.0
+        authEnabled:
+          type: boolean
+          description: False when auth is disabled for local development/testing.
+        dataRootWritable:
+          type: boolean
+        maxBanks:
+          type: integer
+          const: 100
+        slotsPerBank:
+          type: integer
+          const: 4
+        supportedPresetVersion:
+          type: integer
+          const: 1
+        active:
+          $ref: "#/components/schemas/ActivePreset"
+        capabilities:
+          type: object
+          required:
+            - modelUpload
+            - irUpload
+            - presetRead
+            - presetWrite
+            - presetApply
+            - assetRename
+          properties:
+            modelUpload:
+              type: boolean
+            irUpload:
+              type: boolean
+            presetRead:
+              type: boolean
+            presetWrite:
+              type: boolean
+            presetApply:
+              type: boolean
+            assetRename:
+              type: boolean
+
+    ActivePreset:
+      type: object
+      required:
+        - bank
+        - slot
+      properties:
+        bank:
+          type: integer
+          minimum: 0
+          maximum: 99
+        slot:
+          type: integer
+          minimum: 0
+          maximum: 3
+        name:
+          type: string
+
+    AssetUploadRequest:
+      type: object
+      required:
+        - file
+      properties:
+        file:
+          type: string
+          format: binary
+        overwrite:
+          type: boolean
+          default: false
+          description: Replace an existing asset with the same sanitized filename.
+        displayName:
+          type: string
+          maxLength: 120
+          description: Optional human-readable label shown by clients.
+
+    AssetRenameRequest:
+      type: object
+      required:
+        - filename
+      properties:
+        filename:
+          type: string
+          description: New filename. It must retain the endpoint's .nam or .wav extension.
+
+    AssetRenameResponse:
+      type: object
+      required:
+        - asset
+        - updatedPresetCount
+      properties:
+        asset:
+          $ref: "#/components/schemas/Asset"
+        updatedPresetCount:
+          type: integer
+          minimum: 0
+          description: Number of saved preset documents whose asset path was updated.
+
+    AssetList:
+      type: object
+      required:
+        - assets
+      properties:
+        assets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Asset"
+
+    Asset:
+      type: object
+      required:
+        - id
+        - kind
+        - filename
+        - path
+        - sizeBytes
+      properties:
+        id:
+          type: string
+          pattern: "^[A-Za-z0-9._-]+$"
+          examples:
+            - clean.nam
+        kind:
+          type: string
+          enum:
+            - model
+            - ir
+        filename:
+          type: string
+          examples:
+            - clean.nam
+        displayName:
+          type: string
+          examples:
+            - Clean
+        path:
+          type: string
+          description: Relative path stored in preset block assets.
+          examples:
+            - models/clean.nam
+            - irs/open-back.wav
+        sizeBytes:
+          type: integer
+          minimum: 0
+        modifiedAt:
+          type: string
+          format: date-time
+        sha256:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+
+    PresetSlotList:
+      type: object
+      required:
+        - presets
+      properties:
+        presets:
+          type: array
+          items:
+            $ref: "#/components/schemas/PresetSlotSummary"
+
+    PresetSlotSummary:
+      type: object
+      required:
+        - bank
+        - slot
+        - exists
+      properties:
+        bank:
+          type: integer
+          minimum: 0
+          maximum: 99
+        slot:
+          type: integer
+          minimum: 0
+          maximum: 3
+        exists:
+          type: boolean
+        name:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        unsupportedBlockCount:
+          type: integer
+          minimum: 0
+          default: 0
+        missingAssetCount:
+          type: integer
+          minimum: 0
+          default: 0
+
+    PresetSlot:
+      type: object
+      required:
+        - bank
+        - slot
+        - preset
+      properties:
+        bank:
+          type: integer
+          minimum: 0
+          maximum: 99
+        slot:
+          type: integer
+          minimum: 0
+          maximum: 3
+        updatedAt:
+          type: string
+          format: date-time
+        validation:
+          $ref: "#/components/schemas/PresetValidation"
+        preset:
+          $ref: "#/components/schemas/Preset"
+
+    PresetValidation:
+      type: object
+      required:
+        - valid
+        - warnings
+      properties:
+        valid:
+          type: boolean
+        warnings:
+          type: array
+          items:
+            $ref: "#/components/schemas/PresetWarning"
+
+    PresetWarning:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - missing_asset
+            - unsupported_block
+            - unsupported_parameter
+        message:
+          type: string
+        blockId:
+          type: string
+
+    Preset:
+      type: object
+      additionalProperties: true
+      required:
+        - version
+        - name
+        - routing
+        - global
+        - blocks
+      properties:
+        version:
+          type: integer
+          const: 1
+        name:
+          type: string
+          maxLength: 120
+        routing:
+          type: string
+          const: serial
+        global:
+          $ref: "#/components/schemas/PresetGlobal"
+        blocks:
+          type: array
+          items:
+            $ref: "#/components/schemas/PresetBlock"
+
+    PresetGlobal:
+      type: object
+      additionalProperties: true
+      required:
+        - inputGainDb
+        - outputGainDb
+        - safetyLimitDb
+      properties:
+        inputGainDb:
+          type: number
+          format: float
+          minimum: -60
+          maximum: 24
+          default: 0
+        outputGainDb:
+          type: number
+          format: float
+          minimum: -60
+          maximum: 24
+          default: 0
+        safetyLimitDb:
+          type: number
+          format: float
+          minimum: -24
+          maximum: 0
+          default: -1
+
+    PresetBlock:
+      type: object
+      additionalProperties: true
+      required:
+        - id
+        - type
+        - enabled
+        - asset
+        - params
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 80
+        type:
+          type: string
+          minLength: 1
+          examples:
+            - nam
+            - cab
+            - mod
+            - delay
+            - reverb
+        enabled:
+          type: boolean
+          default: true
+        asset:
+          type: string
+          description: Relative asset path under the pedal data root. Absolute paths and '..' segments are invalid.
+          examples:
+            - models/clean.nam
+            - irs/open-back.wav
+        params:
+          type: object
+          additionalProperties: true
+          default: {}
+
+    ApplyPresetResponse:
+      type: object
+      required:
+        - accepted
+        - bank
+        - slot
+      properties:
+        accepted:
+          type: boolean
+        bank:
+          type: integer
+          minimum: 0
+          maximum: 99
+        slot:
+          type: integer
+          minimum: 0
+          maximum: 3
+        message:
+          type: string
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          examples:
+            - invalid_asset_path
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true

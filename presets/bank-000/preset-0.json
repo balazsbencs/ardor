@@ -1,0 +1,103 @@
+{
+  "blocks": [
+    {
+      "asset": "",
+      "enabled": true,
+      "id": "block-1",
+      "params": {
+        "attack_ms": 10.0,
+        "auto_makeup": false,
+        "detector": "peak",
+        "input_gain_db": 0.0,
+        "knee_db": 6.0,
+        "makeup_db": 0.0,
+        "mix": 1.0,
+        "mode": "compressor",
+        "ratio": 4.0,
+        "release_ms": 150.0,
+        "sidechain_hpf_hz": 80.0,
+        "threshold_db": -24.0
+      },
+      "type": "dynamics"
+    },
+    {
+      "asset": "",
+      "enabled": true,
+      "id": "block-4",
+      "params": {
+        "depth": 0.699999988079071,
+        "level": 0.5,
+        "mix": 0.5,
+        "mode": "chorus",
+        "p1": 0.0,
+        "p2": 0.0,
+        "speed": 0.3499999940395355,
+        "tone": 0.5
+      },
+      "type": "mod"
+    },
+    {
+      "asset": "models/test.nam",
+      "enabled": true,
+      "id": "block-9",
+      "params": {},
+      "type": "nam"
+    },
+    {
+      "asset": "irs/test.wav",
+      "enabled": true,
+      "id": "block-10",
+      "params": {},
+      "type": "cab"
+    },
+    {
+      "asset": "",
+      "enabled": true,
+      "id": "block-8",
+      "params": {
+        "bands": [
+          {
+            "enabled": true,
+            "frequency_hz": 80.0,
+            "gain_db": 0.0,
+            "q": 1.0
+          },
+          {
+            "enabled": true,
+            "frequency_hz": 250.0,
+            "gain_db": 0.0,
+            "q": 1.0
+          },
+          {
+            "enabled": true,
+            "frequency_hz": 839.503173828125,
+            "gain_db": 8.765799522399902,
+            "q": 1.0
+          },
+          {
+            "enabled": true,
+            "frequency_hz": 2075.347900390625,
+            "gain_db": -4.8847575187683105,
+            "q": 4.756831169128418
+          },
+          {
+            "enabled": true,
+            "frequency_hz": 8000.0,
+            "gain_db": 0.0,
+            "q": 1.0
+          }
+        ],
+        "mode": "parametric_eq_5"
+      },
+      "type": "eq"
+    }
+  ],
+  "global": {
+    "inputGainDb": 0.0,
+    "outputGainDb": 0.0,
+    "safetyLimitDb": -1.0
+  },
+  "name": "Empty 1",
+  "routing": "serial",
+  "version": 1
+}

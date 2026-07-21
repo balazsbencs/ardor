@@ -1,0 +1,52 @@
+/dts-v1/;
+/plugin/;
+
+/* KEY_F1=59 KEY_F2=60 KEY_F3=61 KEY_F4=62  GPIO_ACTIVE_LOW=1  REL_X=0 */
+
+/ {
+	compatible = "brcm,bcm2711";
+
+	fragment@0 {
+		target-path = "/";
+		__overlay__ {
+			gpio-keys {
+				compatible = "gpio-keys";
+
+				footswitch_1 {
+					label = "preset-1";
+					linux,code = <59>;
+					gpios = <&gpio 5 1>;
+					debounce-interval = <20>;
+				};
+
+				footswitch_2 {
+					label = "preset-2";
+					linux,code = <60>;
+					gpios = <&gpio 6 1>;
+					debounce-interval = <20>;
+				};
+
+				footswitch_3 {
+					label = "preset-3";
+					linux,code = <61>;
+					gpios = <&gpio 13 1>;
+					debounce-interval = <20>;
+				};
+
+				footswitch_4 {
+					label = "preset-4";
+					linux,code = <62>;
+					gpios = <&gpio 16 1>;
+					debounce-interval = <20>;
+				};
+			};
+
+			rotary: rotary@0 {
+				compatible = "rotary-encoder";
+				gpios = <&gpio 17 1>, <&gpio 22 1>;
+				linux,axis = <0>;
+				rotary-encoder,relative-axis;
+			};
+		};
+	};
+};

@@ -1,0 +1,5 @@
+config BR2_PACKAGE_ARDOR_PEDAL
+	bool "ardor-pedal"
+	depends on BR2_INSTALL_LIBSTDCPP
+	help
+	  Standalone NAM and IR guitar pedal proof-of-concept app.

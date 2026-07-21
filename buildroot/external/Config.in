@@ -1,0 +1,2 @@
+source "$BR2_EXTERNAL_ARDOR_PEDAL_PATH/package/ardor-pedal/Config.in"
+source "$BR2_EXTERNAL_ARDOR_PEDAL_PATH/package/ardor-managerd/Config.in"

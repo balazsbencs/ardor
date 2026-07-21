@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# Wi-Fi credentials are provisioned on the writable data partition so a user
+# can change networks without reflashing the read-only root filesystem.
+CONF=/opt/ardor-pedal/wifi/wpa_supplicant.conf
+WPA_PID=/run/wpa_supplicant-wlan0.pid
+DHCP_PID=/run/udhcpc-wlan0.pid
+
+case "$1" in
+    start)
+        # A fresh image has no credentials. Keep Ethernet-only boot working
+        # until the device has been provisioned.
+        [ -r "${CONF}" ] || exit 0
+
+        modprobe brcmfmac 2>/dev/null || true
+        mkdir -p /run/wpa_supplicant
+        /usr/sbin/wpa_supplicant -B -i wlan0 -c "${CONF}" -P "${WPA_PID}"
+        /sbin/udhcpc -b -i wlan0 -p "${DHCP_PID}"
+        ;;
+    stop)
+        [ -r "${DHCP_PID}" ] && kill "$(cat "${DHCP_PID}")" 2>/dev/null || true
+        [ -r "${WPA_PID}" ] && kill "$(cat "${WPA_PID}")" 2>/dev/null || true
+        ;;
+esac

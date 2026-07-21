@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poolside Funk Lyric Generator</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #ff007f, #7f00ff, #00f0ff);
+            color: #fff;
+            font-family: 'Impact', 'Arial Black', sans-serif;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: rgba(0, 0, 0, 0.75);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.5);
+            max-width: 600px;
+            width: 90%;
+            border: 4px solid #00f0ff;
+        }
+        h1 {
+            color: #fff300;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px #ff007f;
+            font-size: 2.5rem;
+        }
+        .lyric-box {
+            background: #111;
+            border-left: 5px solid #ff007f;
+            padding: 20px;
+            margin: 20px 0;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.2rem;
+            line-height: 1.6;
+            color: #00ffcc;
+            text-align: left;
+        }
+        .instruction {
+            color: #ff007f;
+            font-style: italic;
+            font-weight: bold;
+            margin-top: 10px;
+            font-family: sans-serif;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+        button {
+            background: #fff300;
+            color: #000;
+            border: none;
+            padding: 15px 35px;
+            font-size: 1.5rem;
+            font-family: 'Impact', sans-serif;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px #caa000;
+            transition: all 0.1s ease;
+            text-transform: uppercase;
+        }
+        button:active {
+            box-shadow: 0 2px #caa000;
+            transform: translateY(3px);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>💦 Funk Matrix 3000 🎸</h1>
+    <p>Hit the button to drop some greasy knowledge over the groove.</p>
+
+    <div class="lyric-box" id="lyricDisplay">
+        Hit the button below to start the mothership connection...
+    </div>
+
+    <button onclick="generateFunk()">HIT ME!</button>
+</div>
+
+<script>
+    const exclamations = ["Ow!", "Get down!", "Good God!", "Hit me!", "Mercy!", "Listen here!", "Chilly-bump!"];
+
+    const grooves = [
+        "on the one", "in the deep end", "with the rubber ducky",
+        "until the sunscreen melts", "like a heavy-bottom bass", "in the splash zone",
+        "under the neon sky", "with the floaty supreme"
+    ];
+
+    const verses = [
+        "The bassline is sweating, the water is cool / We got the whole congregation jumping in the pool.",
+        "Papa's got a brand new inflatable couch / If you ain't got the rhythm, get your feet off the porch.",
+        "Shake your sunscreen bottle, let the rhythm collide / We're doing the backstroke on the funky side.",
+        "The guitar is scratching like a cat on a screen / Cleanest funk party that you ever damn seen.",
+        "Slide down the deep end, let your backbone slip / Don't spill the margarita, just take a little sip."
+    ];
+
+    const choruses = [
+        "Gotta free your mind and your splash will follow!",
+        "Lay it on the thick side, dip it in the pool!",
+        "We got that chlorinated groove, making everybody move!",
+        "Pass the shades, crank the bass, stank face in the place!"
+    ];
+
+    const instructions = [
+        "Now point at the bass player and yell 'Make it stinky!'",
+        "Do a dramatic spin and hit a high note.",
+        "Stop singing and just make percussion noises for 4 bars.",
+        "Stare directly at someone floating and say 'Yeah.'",
+        "Tell the drummer to take it to the bridge."
+    ];
+
+    function getRandom(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function generateFunk() {
+        const lyric = `
+            <strong>${getRandom(exclamations)}</strong><br><br>
+            ${getRandom(verses)}<br><br>
+            <strong>CHORUS:</strong><br>
+            🔥 ${getRandom(choruses)} 🔥<br><br>
+            <span class="instruction">[Stage Direction: ${getRandom(instructions)}]</span>
+        `;
+        document.getElementById('lyricDisplay').innerHTML = lyric;
+    }
+</script>
+
+</body>
+</html>

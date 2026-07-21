@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ardor Pedal Preset UI Mockup</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --bg: #101214;
+      --panel: #171a1f;
+      --panel-2: #1e232b;
+      --line: #303744;
+      --text: #edf2f7;
+      --muted: #a8b3c2;
+      --accent: #6ee7b7;
+      --accent-2: #60a5fa;
+      --danger: #f87171;
+      --warn: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, #0d0f12 0%, #11151a 100%);
+      color: var(--text);
+    }
+    button, input {
+      font: inherit;
+    }
+    button {
+      border: 1px solid var(--line);
+      background: #252b35;
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover { border-color: #4a5568; }
+    button.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    button.ghost {
+      background: transparent;
+    }
+    .screen {
+      width: min(100vw, 1180px);
+      margin: 0 auto;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+    }
+    header, footer, .subbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      background: rgba(23, 26, 31, 0.94);
+      border-bottom: 1px solid var(--line);
+    }
+    footer {
+      border-top: 1px solid var(--line);
+      border-bottom: 0;
+    }
+    .subbar {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      background: rgba(17, 20, 25, 0.94);
+    }
+    .status {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 14px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .status strong { color: var(--text); }
+    .pill {
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #1b2027;
+    }
+    .pill.dirty {
+      color: var(--warn);
+      border-color: rgba(251, 191, 36, 0.4);
+    }
+    .pill.clean {
+      color: var(--accent);
+      border-color: rgba(110, 231, 183, 0.4);
+    }
+    .pill.overload {
+      color: var(--danger);
+      border-color: rgba(248, 113, 113, 0.4);
+    }
+    main {
+      position: relative;
+      display: grid;
+      min-height: 0;
+      overflow: hidden;
+    }
+    aside {
+      background: var(--panel);
+      border-right: 1px solid var(--line);
+      padding: 14px;
+      min-height: 0;
+    }
+    aside.drawer {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      bottom: 14px;
+      z-index: 6;
+      width: 300px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: 18px 0 50px rgba(0, 0, 0, 0.34);
+      overflow: auto;
+    }
+    aside.params {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 5;
+      border-right: 0;
+      border-left: 0;
+      border-top: 1px solid var(--line);
+      background: var(--panel-2);
+      box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.34);
+    }
+    h2, h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+    .drawer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .drawer-head h3 {
+      margin: 0;
+    }
+    .category {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .category-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .category-tabs button {
+      padding: 6px 9px;
+      font-size: 13px;
+    }
+    .category-title {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+    .drawer-item {
+      width: 100%;
+      text-align: left;
+      margin-bottom: 8px;
+    }
+    .drawer-item small {
+      display: block;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .chain {
+      padding: 18px;
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: 16px;
+      min-width: 0;
+      min-height: 0;
+      background:
+        radial-gradient(circle at top, rgba(96, 165, 250, 0.08), transparent 42%),
+        linear-gradient(180deg, rgba(18, 22, 28, 0.2), rgba(18, 22, 28, 0));
+    }
+    .lane {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--line);
+      background: rgba(19, 23, 29, 0.92);
+      border-radius: 10px;
+      padding: 12px;
+      min-height: 110px;
+      overflow: hidden;
+    }
+    .lane-label {
+      min-width: 62px;
+      font-size: 12px;
+      letter-spacing: 0;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .io, .block {
+      min-width: 88px;
+      min-height: 56px;
+      display: grid;
+      place-items: center;
+      padding: 10px 12px;
+      border: 1px solid #4b5563;
+      border-radius: 8px;
+      background: #232933;
+      text-align: center;
+      flex: 0 0 auto;
+    }
+    .io {
+      color: var(--muted);
+      background: #1b2028;
+    }
+    .block {
+      position: relative;
+      gap: 4px;
+      font-weight: 650;
+    }
+    .block small {
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .block.selected {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.25) inset;
+    }
+    .block.missing {
+      border-style: dashed;
+      color: var(--warn);
+    }
+    .block.unsupported {
+      color: var(--muted);
+    }
+    .block .badge {
+      position: absolute;
+      top: -9px;
+      right: -9px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: #11151a;
+      border: 1px solid var(--line);
+      color: var(--warn);
+    }
+    .param-row {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .param-value {
+      color: var(--text);
+      font-weight: 650;
+    }
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-2);
+    }
+    .meta {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(19, 23, 29, 0.75);
+      margin-bottom: 12px;
+    }
+    .asset-path {
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    .meta .value {
+      color: var(--text);
+      font-weight: 650;
+    }
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .actions button:last-child {
+      grid-column: 1 / -1;
+    }
+    .presets {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      width: 100%;
+    }
+    .preset-card {
+      display: grid;
+      gap: 4px;
+      justify-items: start;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #212733;
+    }
+    .preset-card span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .preset-card.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: #143a32;
+      box-shadow: 0 0 0 2px rgba(110, 231, 183, 0.18) inset;
+    }
+    .bank-title {
+      margin: 0;
+      font-size: 28px;
+    }
+    .preset-mode-grid {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 18px;
+      padding: 22px;
+      min-height: 0;
+      background: #11151a;
+    }
+    .preset-mode-grid .presets {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(2, minmax(150px, 1fr));
+      gap: 18px;
+      height: 100%;
+    }
+    .preset-mode-grid .preset-card {
+      align-content: center;
+      justify-items: center;
+      text-align: center;
+      font-size: 28px;
+      border-radius: 10px;
+    }
+    .preset-mode-grid .preset-card span {
+      font-size: 15px;
+    }
+    .view {
+      display: none;
+    }
+    .view.active {
+      display: block;
+    }
+    .chain.view.active,
+    .preset-mode-grid.view.active {
+      display: grid;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .muted {
+      color: var(--muted);
+    }
+    @media (max-width: 960px) {
+      main { grid-template-columns: 1fr; }
+      aside, aside.params { border: 0; border-top: 1px solid var(--line); }
+      aside.params { left: 0; }
+      .chain { grid-column: 1; }
+      .chain { min-height: 360px; }
+      .presets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="screen">
+    <header>
+      <strong>Ardor Pedal Preset UI Mockup</strong>
+      <div class="status">
+        <span>Bank <strong id="bank-number">000</strong></span>
+        <span>Master <strong id="master-volume">82</strong>%</span>
+        <span>CPU <strong>38%</strong></span>
+        <span>Preset <strong id="active-preset-name">Clean Lead</strong></span>
+        <span id="dirty-pill" class="pill dirty">DIRTY</span>
+        <span id="overload-pill" class="pill overload">OVERLOAD - EFFECTS BYPASSED</span>
+      </div>
+    </header>
+    <div class="subbar">
+      <button id="preset-mode-btn" class="active">Preset Mode</button>
+      <button id="edit-mode-btn">Edit Mode</button>
+      <button id="block-drawer-btn" class="ghost">Add Block</button>
+      <button id="bypass-toggle" class="ghost">Clear Bypass</button>
+      <button id="save-btn" class="ghost">Save</button>
+      <button id="discard-btn" class="ghost">Discard</button>
+      <label class="muted" style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+        Master
+        <input id="master-slider" type="range" min="0" max="100" value="82" style="width:180px;">
+      </label>
+    </div>
+    <main>
+      <aside id="block-drawer" class="drawer">
+        <div class="drawer-head">
+          <h3>Block Drawer</h3>
+          <button id="close-block-drawer" class="ghost">Close</button>
+        </div>
+        <div id="category-tabs" class="category-tabs"></div>
+        <div class="category" data-category="amps">
+          <div class="category-title">Amps</div>
+          <div id="amp-assets"></div>
+        </div>
+        <div class="category" data-category="cabs">
+          <div class="category-title">Cabs</div>
+          <div id="cab-assets"></div>
+        </div>
+        <div class="category" data-category="dynamics">
+          <div class="category-title">Dynamics</div>
+          <button class="drawer-item" disabled>Compressor <small>coming later</small></button>
+          <button class="drawer-item" disabled>Noise Gate <small>coming later</small></button>
+        </div>
+        <div class="category" data-category="modulation">
+          <div class="category-title">Modulation</div>
+          <button class="drawer-item" disabled>Chorus <small>coming later</small></button>
+          <button class="drawer-item" disabled>Phaser <small>coming later</small></button>
+        </div>
+        <div class="category" data-category="time">
+          <div class="category-title">Delay / Reverb</div>
+          <button class="drawer-item" disabled>Delay <small>coming later</small></button>
+          <button class="drawer-item" disabled>Reverb <small>coming later</small></button>
+        </div>
+        <p class="muted">Drag-and-drop is not modeled here; this mockup focuses on layout and state.</p>
+      </aside>
+
+      <section id="preset-view" class="preset-mode-grid view active">
+        <h2 class="bank-title">Bank 000 - Core Sounds</h2>
+        <div id="preset-mode-row" class="presets"></div>
+      </section>
+
+      <section id="edit-view" class="chain view">
+        <div class="lane" id="lane-top">
+          <div class="lane-label">Top row</div>
+        </div>
+        <div class="lane" id="lane-bottom">
+          <div class="lane-label">Bottom row</div>
+        </div>
+      </section>
+
+      <aside class="params">
+        <div class="drawer-head">
+          <h3>Parameter Drawer</h3>
+          <button id="close-param-drawer" class="ghost">Close</button>
+        </div>
+        <div class="meta">
+          <div class="muted">Selected Block</div>
+          <div id="param-title" class="value">NEURAL AMP</div>
+          <div class="muted">Asset</div>
+          <div id="param-asset" class="value">models/clean.nam</div>
+          <div id="param-asset-path" class="asset-path"></div>
+        </div>
+        <div class="param-row">
+          <label>
+            Level <span id="level-value" class="param-value">0.0 dB</span>
+            <input id="level-control" type="range" min="-24" max="12" step="0.5" value="0">
+          </label>
+          <label>
+            Mix <span id="mix-value" class="param-value">100%</span>
+            <input id="mix-control" type="range" min="0" max="100" step="1" value="100">
+          </label>
+        </div>
+        <div class="actions">
+          <button id="param-save">Save</button>
+          <button id="param-discard">Discard</button>
+          <button id="param-bypass">Clear Bypass</button>
+        </div>
+      </aside>
+    </main>
+  </div>
+  <script>
+    const assetCatalog = {
+      amps: [
+        { name: "Clean Twin", path: "models/clean.nam" },
+        { name: "British Crunch", path: "models/crunch.nam" },
+        { name: "Ambient Glass", path: "models/ambient.nam" },
+        { name: "Focused Lead", path: "models/solo.nam" }
+      ],
+      cabs: [
+        { name: "Open Back 2x12", path: "irs/open-back.wav" },
+        { name: "Vintage 4x12", path: "irs/vintage.wav" },
+        { name: "Focused 1x12", path: "irs/focus.wav" }
+      ]
+    };
+
+    const presets = [
+      {
+        saved: {
+          version: 1,
+          name: "Clean Lead",
+          routing: "serial",
+          global: { inputGainDb: -12, outputGainDb: -6, safetyLimitDb: -1 },
+          blocks: [
+            { id: "block-1", type: "nam", enabled: true, asset: "models/clean.nam", assetName: "Clean Twin", params: { levelDb: 0 } },
+            { id: "block-2", type: "cab", enabled: true, asset: "irs/open-back.wav", assetName: "Open Back 2x12", params: { mix: 100, levelDb: 0 } }
+          ]
+        }
+      },
+      {
+        saved: {
+          version: 1,
+          name: "Crunch",
+          routing: "serial",
+          global: { inputGainDb: -12, outputGainDb: -6, safetyLimitDb: -1 },
+          blocks: [
+            { id: "block-3", type: "nam", enabled: true, asset: "models/crunch.nam", assetName: "British Crunch", params: { levelDb: -1 } },
+            { id: "block-4", type: "cab", enabled: true, asset: "irs/vintage.wav", assetName: "Vintage 4x12", params: { mix: 85, levelDb: -1 } }
+          ]
+        }
+      },
+      {
+        saved: {
+          version: 1,
+          name: "Ambient",
+          routing: "serial",
+          global: { inputGainDb: -12, outputGainDb: -6, safetyLimitDb: -1 },
+          blocks: [
+            { id: "block-5", type: "cab", enabled: true, asset: "irs/open-back.wav", assetName: "Open Back 2x12", params: { mix: 100, levelDb: 0 } },
+            { id: "block-6", type: "nam", enabled: true, asset: "models/ambient.nam", assetName: "Ambient Glass", params: { levelDb: -2 } }
+          ]
+        }
+      },
+      {
+        saved: {
+          version: 1,
+          name: "Solo",
+          routing: "serial",
+          global: { inputGainDb: -12, outputGainDb: -6, safetyLimitDb: -1 },
+          blocks: [
+            { id: "block-7", type: "nam", enabled: true, asset: "models/solo.nam", assetName: "Focused Lead", params: { levelDb: 1 } },
+            { id: "block-8", type: "cab", enabled: true, asset: "irs/focus.wav", assetName: "Focused 1x12", params: { mix: 100, levelDb: 1 } }
+          ]
+        }
+      }
+    ].map(preset => ({ saved: preset.saved, working: clonePreset(preset.saved) }));
+
+    let activeIndex = 0;
+    let selected = presets[activeIndex].working.blocks[0];
+    let mode = "preset";
+    let drawerOpen = false;
+    let drawerCategory = "all";
+    let paramOpen = false;
+    let dirty = false;
+    let bypassed = true;
+    let masterVolume = 82;
+
+    function clonePreset(source) {
+      return JSON.parse(JSON.stringify(source));
+    }
+
+    function blockLabel(block) {
+      return block.type === "nam" ? "Neural Amp" : block.type === "cab" ? "Cab" : block.type.toUpperCase();
+    }
+
+    function blockAssetName(block) {
+      return block.assetName || block.asset || "missing asset";
+    }
+
+    function activePreset() {
+      return presets[activeIndex];
+    }
+
+    function syncSelection() {
+      selected = activePreset().working.blocks.find(block => block.id === selected?.id) || activePreset().working.blocks[0];
+    }
+
+    function markDirty() {
+      dirty = JSON.stringify(activePreset().working) !== JSON.stringify(activePreset().saved);
+    }
+
+    function setActivePreset(index) {
+      activeIndex = index;
+      presets[activeIndex].working = clonePreset(presets[activeIndex].saved);
+      bypassed = false;
+      selected = presets[activeIndex].working.blocks[0];
+      drawerOpen = false;
+      paramOpen = false;
+      dirty = false;
+      mode = "preset";
+      render();
+    }
+
+    function renderPresetTiles(containerId, activeLabel) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      presets.forEach((preset, index) => {
+        const button = document.createElement("button");
+        button.className = "preset-card" + (index === activeIndex ? " active" : "");
+        button.dataset.slot = index;
+        button.innerHTML = `<strong>${preset.working.name}</strong><span>${activeLabel(index)}</span>`;
+        button.onclick = () => setActivePreset(index);
+        container.appendChild(button);
+      });
+    }
+
+    function renderAssetCategory(containerId, type, assets) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      assets.forEach(asset => {
+        const button = document.createElement("button");
+        button.className = "drawer-item";
+        button.innerHTML = `${asset.name}<small>${asset.path}</small>`;
+        button.onclick = () => addBlock(type, asset);
+        container.appendChild(button);
+      });
+    }
+
+    function renderCategoryTabs() {
+      const tabs = [
+        ["all", "All"],
+        ["amps", "Amps"],
+        ["cabs", "Cabs"],
+        ["dynamics", "Dynamics"],
+        ["modulation", "Mod"],
+        ["time", "Time"]
+      ];
+      const container = document.getElementById("category-tabs");
+      container.innerHTML = "";
+      tabs.forEach(([id, label]) => {
+        const button = document.createElement("button");
+        button.className = drawerCategory === id ? "active" : "";
+        button.textContent = label;
+        button.onclick = () => {
+          drawerCategory = id;
+          render();
+        };
+        container.appendChild(button);
+      });
+      document.querySelectorAll("#block-drawer .category").forEach(category => {
+        category.classList.toggle("hidden", drawerCategory !== "all" && category.dataset.category !== drawerCategory);
+      });
+    }
+
+    function renderBlocks() {
+      const lanes = [document.getElementById("lane-top"), document.getElementById("lane-bottom")];
+      lanes.forEach(lane => {
+        lane.querySelectorAll(".block, .io:not(.lane-label)").forEach(node => {
+          if (!node.classList.contains("lane-label")) node.remove();
+        });
+      });
+
+      lanes[0].insertAdjacentHTML("beforeend", '<div class="io">Input</div>');
+      activePreset().working.blocks.forEach((block, index) => {
+        const el = document.createElement("button");
+        el.className = "block" + (block === selected ? " selected" : "") + (block.asset ? "" : " missing");
+        el.innerHTML = `<span>${blockLabel(block)}</span><small>${blockAssetName(block)}</small>`;
+        el.onclick = () => {
+          selected = block;
+          paramOpen = true;
+          render();
+        };
+        if (block.type !== "nam" && block.type !== "cab") {
+          el.classList.add("unsupported");
+          el.insertAdjacentHTML("beforeend", '<span class="badge">unsupported</span>');
+        }
+        (index < 3 ? lanes[0] : lanes[1]).appendChild(el);
+      });
+      lanes[1].insertAdjacentHTML("beforeend", '<div class="io">Output</div>');
+    }
+
+    function render() {
+      document.querySelector(".screen").classList.toggle("mode-preset", mode === "preset");
+      document.querySelector(".screen").classList.toggle("mode-edit", mode === "edit");
+      document.getElementById("preset-mode-btn").classList.toggle("active", mode === "preset");
+      document.getElementById("edit-mode-btn").classList.toggle("active", mode === "edit");
+      document.getElementById("preset-view").classList.toggle("active", mode === "preset");
+      document.getElementById("edit-view").classList.toggle("active", mode === "edit");
+      document.getElementById("block-drawer").classList.toggle("hidden", mode !== "edit" || !drawerOpen);
+      document.querySelector("aside.params").classList.toggle("hidden", mode !== "edit" || !paramOpen);
+      syncSelection();
+      document.getElementById("param-title").textContent = blockLabel(selected).toUpperCase();
+      document.getElementById("param-asset").textContent = blockAssetName(selected);
+      document.getElementById("param-asset-path").textContent = selected.asset || "";
+      document.getElementById("level-value").textContent = `${Number(selected.params.levelDb ?? 0).toFixed(1)} dB`;
+      document.getElementById("mix-value").textContent = `${Math.round(Number(selected.params.mix ?? 100))}%`;
+      document.getElementById("level-control").value = selected.params.levelDb ?? 0;
+      document.getElementById("mix-control").value = selected.params.mix ?? 100;
+      document.getElementById("dirty-pill").textContent = dirty ? "DIRTY" : "SAVED";
+      document.getElementById("dirty-pill").className = "pill " + (dirty ? "dirty" : "clean");
+      document.getElementById("overload-pill").classList.toggle("hidden", !bypassed);
+      document.getElementById("master-volume").textContent = masterVolume;
+      document.getElementById("master-slider").value = masterVolume;
+      document.getElementById("active-preset-name").textContent = activePreset().working.name;
+      document.getElementById("block-drawer-btn").classList.toggle("hidden", mode !== "edit");
+      renderCategoryTabs();
+      renderPresetTiles("preset-mode-row", index => index === activeIndex ? "Active" : `Slot ${index + 1}`);
+      renderAssetCategory("amp-assets", "nam", assetCatalog.amps);
+      renderAssetCategory("cab-assets", "cab", assetCatalog.cabs);
+      renderBlocks();
+    }
+    document.getElementById("preset-mode-btn").onclick = () => {
+      mode = "preset";
+      drawerOpen = false;
+      paramOpen = false;
+      render();
+    };
+    document.getElementById("edit-mode-btn").onclick = () => {
+      mode = "edit";
+      drawerOpen = true;
+      paramOpen = false;
+      render();
+    };
+    document.getElementById("master-slider").oninput = event => {
+      masterVolume = Number(event.target.value);
+      render();
+    };
+    function addBlock(type, asset) {
+      const active = activePreset();
+      const block = {
+        id: `block-${crypto.randomUUID()}`,
+        type,
+        enabled: true,
+        asset: asset.path,
+        assetName: asset.name,
+        params: { levelDb: 0, mix: type === "cab" ? 100 : 100 }
+      };
+      active.working.blocks.push(block);
+      selected = block;
+      drawerOpen = false;
+      paramOpen = true;
+      markDirty();
+      mode = "edit";
+      render();
+    }
+    document.getElementById("block-drawer-btn").onclick = () => {
+      mode = "edit";
+      drawerOpen = true;
+      render();
+    };
+    document.getElementById("close-block-drawer").onclick = () => {
+      drawerOpen = false;
+      render();
+    };
+    document.getElementById("close-param-drawer").onclick = () => {
+      paramOpen = false;
+      render();
+    };
+    document.getElementById("save-btn").onclick = () => {
+      const active = activePreset();
+      active.saved = clonePreset(active.working);
+      dirty = false;
+      render();
+    };
+    document.getElementById("discard-btn").onclick = () => {
+      const active = activePreset();
+      active.working = clonePreset(active.saved);
+      dirty = false;
+      selected = active.working.blocks[0];
+      paramOpen = false;
+      render();
+    };
+    document.getElementById("param-save").onclick = () => {
+      const active = activePreset();
+      active.saved = clonePreset(active.working);
+      dirty = false;
+      render();
+    };
+    document.getElementById("param-discard").onclick = () => {
+      const active = activePreset();
+      active.working = clonePreset(active.saved);
+      selected = active.working.blocks[0];
+      paramOpen = false;
+      dirty = false;
+      render();
+    };
+    document.getElementById("bypass-toggle").onclick = () => {
+      bypassed = false;
+      render();
+    };
+    document.getElementById("param-bypass").onclick = () => {
+      bypassed = false;
+      render();
+    };
+    document.getElementById("level-control").oninput = event => {
+      selected.params.levelDb = Number(event.target.value);
+      markDirty();
+      render();
+    };
+    document.getElementById("mix-control").oninput = event => {
+      selected.params.mix = Number(event.target.value);
+      markDirty();
+      render();
+    };
+
+    render();
+  </script>
+</body>
+</html>

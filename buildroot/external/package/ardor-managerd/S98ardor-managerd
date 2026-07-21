@@ -1,0 +1,32 @@
+#!/bin/sh
+
+PID=/var/run/ardor-managerd.pid
+ENV=/etc/ardor-managerd.env
+
+[ -r "$ENV" ] && . "$ENV"
+
+: "${ARDOR_DATA_ROOT:=/opt/ardor-pedal}"
+: "${ARDOR_API_BIND:=0.0.0.0}"
+: "${ARDOR_API_PORT:=8080}"
+: "${ARDOR_API_AUTH:=on}"
+
+export ARDOR_DATA_ROOT ARDOR_API_BIND ARDOR_API_PORT ARDOR_API_AUTH ARDOR_API_TOKEN
+
+case "$1" in
+  start)
+    echo "Starting ardor-managerd"
+    start-stop-daemon -S -b -m -p "$PID" --exec /usr/bin/ardor-managerd
+    ;;
+  stop)
+    echo "Stopping ardor-managerd"
+    start-stop-daemon -K -p "$PID"
+    ;;
+  restart)
+    "$0" stop
+    "$0" start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+    ;;
+esac

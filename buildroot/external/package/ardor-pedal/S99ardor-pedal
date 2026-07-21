@@ -1,0 +1,89 @@
+#!/bin/sh
+
+PID=/var/run/ardor-pedal.pid
+ENV=/etc/ardor-pedal.env
+
+[ -r "$ENV" ] && . "$ENV"
+
+: "${DATA_ROOT:=/opt/ardor-pedal}"
+: "${BANK:=0}"
+: "${SLOT:=0}"
+: "${SAMPLE_RATE:=48000}"
+: "${BLOCK_SIZE:=64}"
+: "${IR_SAMPLES:=8192}"
+: "${CAPTURE_DEVICE:=-1}"
+: "${PLAYBACK_DEVICE:=-1}"
+: "${INPUT_CHANNEL:=0}"
+: "${OUTPUT_CHANNEL:=both}"
+: "${CONTROL_DEVICES:=}"
+: "${UI:=1}"
+
+control_args=""
+for dev in $CONTROL_DEVICES; do
+  control_args="$control_args --control-device $dev"
+done
+ui_arg=""
+[ "$UI" = "1" ] && ui_arg="--ui"
+
+run_supervised() {
+  # Silence the framebuffer console so it stops drawing over the LVGL UI.
+  # Do NOT unbind vtcon: dropping fbcon releases the DRM pipe and freezes
+  # the DSI panel on a decaying last frame. Muting printk and the cursor
+  # keeps the pipe alive while nothing overdraws the UI after boot.
+  if [ "$UI" = "1" ]; then
+    dmesg -n 1
+    echo 0 > /sys/class/graphics/fbcon/cursor_blink 2>/dev/null
+  fi
+
+  # Mute -> route -> start -> unmute: no boot pop, and a crash-looping
+  # app never plays half-initialized audio at full volume.
+  amixer -q set 'Headphone' mute 2>/dev/null
+  alsactl restore -f /etc/ardor-codec-zero.state 2>/dev/null
+  for policy in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do
+    [ -w "$policy" ] && echo performance > "$policy"
+  done
+  while :; do
+    /usr/bin/ardor-pedal \
+      --realtime $ui_arg \
+      --data-root "$DATA_ROOT" \
+      --bank "$BANK" \
+      --slot "$SLOT" \
+      --sample-rate "$SAMPLE_RATE" \
+      --block-size "$BLOCK_SIZE" \
+      --ir-samples "$IR_SAMPLES" \
+      --capture-device "$CAPTURE_DEVICE" \
+      --playback-device "$PLAYBACK_DEVICE" \
+      --input-channel "$INPUT_CHANNEL" \
+      --output-channel "$OUTPUT_CHANNEL" \
+      $control_args &
+    APP=$!
+    sleep 1
+    amixer -q set 'Headphone' unmute 2>/dev/null
+    wait $APP
+    echo "ardor-pedal exited ($?), respawning" >&2
+    amixer -q set 'Headphone' mute 2>/dev/null
+    sleep 1
+  done
+}
+
+case "$1" in
+  start)
+    echo "Starting ardor-pedal"
+    start-stop-daemon -S -b -m -p "$PID" --exec /bin/sh -- "$0" run
+    ;;
+  run)
+    run_supervised
+    ;;
+  stop)
+    echo "Stopping ardor-pedal"
+    start-stop-daemon -K -p "$PID"
+    killall ardor-pedal 2>/dev/null
+    ;;
+  restart)
+    "$0" stop
+    "$0" start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+esac
