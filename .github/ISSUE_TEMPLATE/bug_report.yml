@@ -1,0 +1,70 @@
+name: Bug report
+description: Report a reproducible problem with Ardor.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report security vulnerabilities here. Use the private reporting link in `SECURITY.md`.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the expected and observed behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Include the smallest reliable sequence that reproduces the problem.
+      placeholder: |
+        1. Start Ardor with ...
+        2. Load ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - Audio engine / DSP
+        - Firmware / Buildroot
+        - Manager desktop app
+        - Manager daemon / API
+        - Touchscreen / controls
+        - Documentation / build tooling
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include the commit or release, OS, hardware, audio interface, and relevant configuration. Remove all credentials and private asset names.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or diagnostics
+      description: Paste only sanitized output. Do not attach credentials, Wi-Fi configuration, tokens, licensed models, IRs, or private audio.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety checks
+      options:
+        - label: I searched existing issues for duplicates.
+          required: true
+        - label: I removed credentials, personal data, and restricted assets from this report.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

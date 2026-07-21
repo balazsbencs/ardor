@@ -8,7 +8,7 @@ on:
       - CHANGELOG.md
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   NODE_VERSION: '24'
@@ -17,18 +17,20 @@ jobs:
   prepare:
     name: Prepare release
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     outputs:
       release_id: ${{ steps.release.outputs.id }}
       tag: ${{ steps.metadata.outputs.tag }}
       version: ${{ steps.metadata.outputs.version }}
     steps:
       - name: Check out the complete history
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -128,10 +130,10 @@ jobs:
       run:
         working-directory: apps/manager
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -139,6 +141,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
 
       - name: Type-check
         run: npm run typecheck
@@ -151,13 +156,15 @@ jobs:
     needs: prepare
     runs-on: ubuntu-24.04
     timeout-minutes: 240
+    permissions:
+      contents: write
     env:
       ARDOR_BUILDROOT_DL_DIR: ${{ github.workspace }}/.cache/buildroot-dl
       ARDOR_OUTPUT_IMAGE: ${{ github.workspace }}/.cache/firmware/ardor-pedal.img
       ARDOR_CACHED_IMAGE: ${{ github.workspace }}/.cache/firmware/ardor-pedal.img.gz
       ARDOR_RELEASE_IMAGE: ${{ github.workspace }}/artifacts/ardor-pedal-${{ needs.prepare.outputs.version }}.img.gz
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Calculate firmware input hash
         id: firmware-inputs
@@ -185,14 +192,14 @@ jobs:
 
       - name: Restore completed firmware image
         id: firmware-image-cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .cache/firmware/ardor-pedal.img.gz
           key: firmware-image-v1-${{ steps.firmware-inputs.outputs.hash }}
 
       - name: Cache Buildroot downloads
         if: steps.firmware-image-cache.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .cache/buildroot-dl
           key: buildroot-dl-${{ hashFiles('buildroot/buildroot-version.env', 'buildroot/external/configs/raspberrypi4_ardor_pedal_defconfig') }}
@@ -245,23 +252,25 @@ jobs:
             os: windows-latest
             target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: apps/manager/package-lock.json
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
           targets: ${{ matrix.target }}
 
       - name: Cache Rust dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry
@@ -290,7 +299,7 @@ jobs:
           '
 
       - name: Build and upload manager bundles
-        uses: tauri-apps/tauri-action@v1
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
@@ -309,6 +318,8 @@ jobs:
       - firmware
       - desktop
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
       - name: Publish the completed release
         env:

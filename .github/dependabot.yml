@@ -1,0 +1,64 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Budapest
+    labels:
+      - dependencies
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: npm
+    directory: /apps/manager
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Budapest
+    labels:
+      - dependencies
+    groups:
+      manager-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: cargo
+    directory: /apps/manager/src-tauri
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Budapest
+    labels:
+      - dependencies
+    groups:
+      rust-dependencies:
+        patterns:
+          - "*"
+    # GHSA-wrw7-89jp-8q8g affects glib <0.20, but Tauri's Linux-only
+    # GTK/WebKit stack currently constrains this transitive crate to 0.18.x.
+    # Ardor does not support or publish a Linux Tauri manager. Remove this
+    # exception before adding Linux manager support, or when Tauri makes
+    # glib >=0.20 resolvable.
+    ignore:
+      - dependency-name: glib
+
+  - package-ecosystem: gomod
+    directory: /services/managerd
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Budapest
+    labels:
+      - dependencies
+    groups:
+      go-dependencies:
+        patterns:
+          - "*"

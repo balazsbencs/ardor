@@ -2,6 +2,8 @@
 /build-*/
 /output/
 /.AAAAsecrets/
+/.secrets/
+/secrets/
 /models/*
 !/models/.gitkeep
 /irs/*
@@ -10,8 +12,17 @@
 *.wav
 *.aiff
 *.flac
+*.key
+*.pem
+*.p12
+*.pfx
 .idea
 /sdcard.img
+
+# Local environment and credential files. Commit sanitized examples only.
+.env
+.env.*
+!.env.example
 
 /apps/manager/node_modules/
 /apps/manager/dist/

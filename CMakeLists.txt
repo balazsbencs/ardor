@@ -21,7 +21,8 @@ include(FetchContent)
 FetchContent_Declare(
   miniaudio
   GIT_REPOSITORY https://github.com/mackron/miniaudio.git
-  GIT_TAG 0.11.25
+  # Immutable commit for upstream release 0.11.25.
+  GIT_TAG 9634bedb5b5a2ca38c1ee7108a9358a4e233f14d
   SOURCE_SUBDIR cmake-do-not-add
 )
 FetchContent_MakeAvailable(miniaudio)
@@ -45,7 +46,8 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   FetchContent_Declare(
     lvgl
     GIT_REPOSITORY https://github.com/lvgl/lvgl.git
-    GIT_TAG v9.5.0
+    # Immutable commit for upstream release v9.5.0.
+    GIT_TAG 85aa60d18b3d5e5588d7b247abf90198f07c8a63
   )
   FetchContent_MakeAvailable(lvgl)
   target_include_directories(lvgl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

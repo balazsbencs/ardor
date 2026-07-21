@@ -12,6 +12,13 @@ in the SDL desktop simulator and on the Raspberry Pi Touch Display 2.
 The pedal is an appliance rather than a plugin host. Plugin formats and an OTA
 update workflow are outside the current scope.
 
+## Community
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) before proposing changes. Contributors
+are recognized in [CONTRIBUTORS.md](CONTRIBUTORS.md), and suspected
+vulnerabilities should be reported privately according to
+[SECURITY.md](SECURITY.md).
+
 ## Requirements
 
 - CMake 3.20+
@@ -308,6 +315,11 @@ The Tauri desktop manager in `apps/manager` connects to `ardor-managerd` and
 provides bank/slot browsing, drag-and-drop chain editing, block validation and
 inspection, undo/redo, Save/Apply, asset upload/rename/delete, and light/dark
 themes.
+
+Supported desktop-manager targets are Apple Silicon and Intel macOS, and
+Windows x64. Linux builds of the Tauri manager are not supported or released;
+Linux support applies to the headless engine, manager daemon, and firmware
+tooling.
 
 ```sh
 cd apps/manager

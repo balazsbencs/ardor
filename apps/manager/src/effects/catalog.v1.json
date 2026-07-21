@@ -1389,7 +1389,7 @@
         {
           "kind": "number",
           "key": "mod_spd",
-          "label": "Mod Spd",
+          "label": "Mod Rate",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1399,7 +1399,7 @@
         {
           "kind": "number",
           "key": "mod_dep",
-          "label": "Mod Dep",
+          "label": "Mod Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1475,7 +1475,7 @@
         {
           "kind": "number",
           "key": "mod_spd",
-          "label": "Mod Spd",
+          "label": "Flutter Rate",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1485,7 +1485,7 @@
         {
           "kind": "number",
           "key": "mod_dep",
-          "label": "Mod Dep",
+          "label": "Flutter",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1560,7 +1560,7 @@
         {
           "kind": "number",
           "key": "mod_spd",
-          "label": "Mod Spd",
+          "label": "Mod Rate",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1570,7 +1570,7 @@
         {
           "kind": "number",
           "key": "mod_dep",
-          "label": "Mod Dep",
+          "label": "Mod Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1625,7 +1625,7 @@
         {
           "kind": "number",
           "key": "filter",
-          "label": "Filter",
+          "label": "Resonance",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1645,7 +1645,7 @@
         {
           "kind": "number",
           "key": "mod_spd",
-          "label": "Mod Spd",
+          "label": "Sweep Rate",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1655,7 +1655,7 @@
         {
           "kind": "number",
           "key": "mod_dep",
-          "label": "Mod Dep",
+          "label": "Sweep Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1711,7 +1711,7 @@
         {
           "kind": "number",
           "key": "filter",
-          "label": "Filter",
+          "label": "Anti-alias",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1731,7 +1731,7 @@
         {
           "kind": "number",
           "key": "mod_spd",
-          "label": "Mod Spd",
+          "label": "Mod Rate",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1741,7 +1741,7 @@
         {
           "kind": "number",
           "key": "mod_dep",
-          "label": "Mod Dep",
+          "label": "Mod Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1818,7 +1818,7 @@
         {
           "kind": "number",
           "key": "mod_spd",
-          "label": "Mod Spd",
+          "label": "Mod Rate",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1828,7 +1828,7 @@
         {
           "kind": "number",
           "key": "mod_dep",
-          "label": "Mod Dep",
+          "label": "Mod Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1904,7 +1904,7 @@
         {
           "kind": "number",
           "key": "mod_spd",
-          "label": "Mod Spd",
+          "label": "Mod Rate",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1914,7 +1914,7 @@
         {
           "kind": "number",
           "key": "mod_dep",
-          "label": "Mod Dep",
+          "label": "Mod Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1990,7 +1990,7 @@
         {
           "kind": "number",
           "key": "mod_spd",
-          "label": "Mod Spd",
+          "label": "Mod Rate",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2000,7 +2000,7 @@
         {
           "kind": "number",
           "key": "mod_dep",
-          "label": "Mod Dep",
+          "label": "Mod Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2075,7 +2075,7 @@
         {
           "kind": "number",
           "key": "mod_spd",
-          "label": "Mod Spd",
+          "label": "Attack",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2085,7 +2085,7 @@
         {
           "kind": "number",
           "key": "mod_dep",
-          "label": "Mod Dep",
+          "label": "Release",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2161,7 +2161,7 @@
         {
           "kind": "number",
           "key": "mod_spd",
-          "label": "Mod Spd",
+          "label": "Trem Rate",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2171,7 +2171,7 @@
         {
           "kind": "number",
           "key": "mod_dep",
-          "label": "Mod Dep",
+          "label": "Trem Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2206,7 +2206,7 @@
         {
           "kind": "number",
           "key": "pre_delay",
-          "label": "Pre",
+          "label": "Pre-delay",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2236,7 +2236,7 @@
         {
           "kind": "number",
           "key": "mod",
-          "label": "Mod",
+          "label": "Mod Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2291,7 +2291,7 @@
         {
           "kind": "number",
           "key": "pre_delay",
-          "label": "Pre",
+          "label": "Pre-delay",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2321,7 +2321,7 @@
         {
           "kind": "number",
           "key": "mod",
-          "label": "Mod",
+          "label": "Mod Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2331,7 +2331,7 @@
         {
           "kind": "number",
           "key": "param1",
-          "label": "Size",
+          "label": "Diffusion",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2376,7 +2376,7 @@
         {
           "kind": "number",
           "key": "pre_delay",
-          "label": "Pre",
+          "label": "Pre-delay",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2406,7 +2406,7 @@
         {
           "kind": "number",
           "key": "mod",
-          "label": "Mod",
+          "label": "Mod Rate",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2461,7 +2461,7 @@
         {
           "kind": "number",
           "key": "pre_delay",
-          "label": "Pre",
+          "label": "Pre-delay",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2491,7 +2491,7 @@
         {
           "kind": "number",
           "key": "mod",
-          "label": "Mod",
+          "label": "Wobble",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2546,7 +2546,7 @@
         {
           "kind": "number",
           "key": "pre_delay",
-          "label": "Pre",
+          "label": "Pre-delay",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2576,7 +2576,7 @@
         {
           "kind": "number",
           "key": "mod",
-          "label": "Mod",
+          "label": "Mod Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2631,7 +2631,7 @@
         {
           "kind": "number",
           "key": "pre_delay",
-          "label": "Pre",
+          "label": "Pre-delay",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2661,7 +2661,7 @@
         {
           "kind": "number",
           "key": "mod",
-          "label": "Mod",
+          "label": "Mod Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2717,7 +2717,7 @@
         {
           "kind": "number",
           "key": "pre_delay",
-          "label": "Pre",
+          "label": "Pre-delay",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2747,7 +2747,7 @@
         {
           "kind": "number",
           "key": "mod",
-          "label": "Mod",
+          "label": "Shimmer",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2803,7 +2803,7 @@
         {
           "kind": "number",
           "key": "pre_delay",
-          "label": "Pre",
+          "label": "Pre-delay",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2833,7 +2833,7 @@
         {
           "kind": "number",
           "key": "mod",
-          "label": "Mod",
+          "label": "Mod Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2889,7 +2889,7 @@
         {
           "kind": "number",
           "key": "pre_delay",
-          "label": "Pre",
+          "label": "Pre-delay",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2919,7 +2919,7 @@
         {
           "kind": "number",
           "key": "mod",
-          "label": "Mod",
+          "label": "Mod Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -2974,7 +2974,7 @@
         {
           "kind": "number",
           "key": "pre_delay",
-          "label": "Pre",
+          "label": "Pre-delay",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -3004,7 +3004,7 @@
         {
           "kind": "number",
           "key": "mod",
-          "label": "Mod",
+          "label": "Mod Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -3059,7 +3059,7 @@
         {
           "kind": "number",
           "key": "pre_delay",
-          "label": "Pre",
+          "label": "Feedback",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -3089,7 +3089,7 @@
         {
           "kind": "number",
           "key": "mod",
-          "label": "Mod",
+          "label": "Diffusion",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -3145,7 +3145,7 @@
         {
           "kind": "number",
           "key": "pre_delay",
-          "label": "Pre",
+          "label": "Pre-delay",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
