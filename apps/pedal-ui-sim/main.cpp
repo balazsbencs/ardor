@@ -54,39 +54,66 @@ int main(int argc, char** argv)
   ardor::loadAssetsFromDataRoot(state, args.dataRoot);
   ardor::loadBankFromStore(state, store, args.bank);
 
-  ardor::LvglUi ui({
-    [&](std::size_t index) {
-      ardor::selectPreset(state, index);
-      std::string error;
-      if (!ardor::loadPresetSlotFromStore(state, store, {args.bank, static_cast<int>(index)}, error)) {
-        std::cerr << error << "\n";
-      }
-    },
-    [&]() {
+  const auto applyTarget = [&](ardor::UiNavigationTarget target) {
+    if (target.bank != args.bank) {
+      args.bank = target.bank;
+      ardor::loadBankFromStore(state, store, args.bank);
+    }
+    std::string error;
+    if (!ardor::loadPresetSlotFromStore(state, store, {args.bank, static_cast<int>(target.preset)}, error)) {
+      std::cerr << error << "\n";
+    }
+  };
+  ardor::UiActions actions;
+  actions.selectPreset = [&](std::size_t index) {
+    if (ardor::requestPresetNavigation(state, {args.bank, index})) applyTarget({args.bank, index});
+  };
+  actions.savePreset = [&]() {
       std::string error;
       if (!ardor::saveActivePresetToStore(state, store, args.bank, error)) {
         std::cerr << error << "\n";
       }
-    },
-    {},
-    {},
-    {},
-    {},
-    {},
-    [&](int delta) {
-      const int nextBank = std::clamp(args.bank + delta, 0, 99);
-      if (nextBank == args.bank) {
+  };
+  actions.changeBank = [&](int delta) {
+    const int nextBank = std::clamp(args.bank + delta, 0, 99);
+    if (nextBank != args.bank && ardor::requestPresetNavigation(
+          state, {nextBank, state.activePreset})) {
+      applyTarget({nextBank, state.activePreset});
+    }
+  };
+  actions.resolveNavigation = [&](ardor::UiNavigationDecision decision) {
+    if (decision == ardor::UiNavigationDecision::Cancel) {
+      ardor::confirmNavigation(state, decision);
+      return;
+    }
+    if (decision == ardor::UiNavigationDecision::Save) {
+      std::string error;
+      if (!ardor::saveActivePresetToStore(state, store, args.bank, error)) {
+        std::cerr << error << "\n";
         return;
       }
-      args.bank = nextBank;
-      ardor::loadBankFromStore(state, store, args.bank);
-    },
-  });
+    }
+    if (const auto target = ardor::confirmNavigation(state, decision)) applyTarget(*target);
+  };
+  ardor::LvglUi ui(std::move(actions));
   ui.build(lv_screen_active(), state);
+  bool previewOverlayPresented = false;
 
   while (true) {
     lv_timer_handler();
     ui.refresh(lv_screen_active(), state);
+    if (state.previewState == ardor::UiPreviewState::Queued && !previewOverlayPresented) {
+      // The simulator has no audio engine. Still exercise the same visible
+      // queued/applying lifecycle so structural edits do not leave its modal
+      // overlay stuck forever.
+      lv_refr_now(nullptr);
+      previewOverlayPresented = true;
+    } else if (ardor::beginApplyingPreview(state)) {
+      ardor::completeStructuralPreview(state);
+      previewOverlayPresented = false;
+    } else if (ardor::previewIsSynchronized(state)) {
+      previewOverlayPresented = false;
+    }
     lv_delay_ms(5);
   }
 }

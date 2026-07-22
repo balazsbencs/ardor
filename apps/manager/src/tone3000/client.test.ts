@@ -28,6 +28,7 @@ describe("Tone3000 client", () => {
     expect(url.searchParams).toEqual(expect.objectContaining({}));
     expect(url.searchParams.get("prompt")).toBe("select_tone");
     expect(url.searchParams.get("format")).toBe("nam");
+    expect(url.searchParams.get("client_id")).toBe("t3k_test_client");
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
     expect(url.searchParams.get("redirect_uri")).toBe(TONE3000_REDIRECT_URI);
     expect(url.searchParams.get("state")).toBeTruthy();

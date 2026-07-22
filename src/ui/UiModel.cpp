@@ -179,10 +179,15 @@ void rememberBlockEdit(UiState& state)
     state.selectedBlock,
     state.paramTarget,
     state.dirty,
-    state.requiresEngineReload,
     state.blockDrawerOpen,
     state.paramDrawerOpen,
   };
+}
+
+UiPreviewSnapshot previewSnapshot(const UiState& state)
+{
+  return {state.bank.presets[state.activePreset], state.selectedBlock, state.paramTarget,
+          state.dirty, state.blockDrawerOpen, state.paramDrawerOpen, state.blockEditUndo};
 }
 
 void appendAssetsFrom(UiState& state, const std::filesystem::path& dir, const std::string& ext, const std::string& type)
@@ -264,6 +269,9 @@ void setActivePreset(UiState& state, std::size_t index, bool requestAudioSwap)
   state.dirty = false;
   state.effectsBypassed = false;
   state.blockEditUndo.reset();
+  state.previewState = UiPreviewState::Synchronized;
+  state.previewTransaction.reset();
+  state.navigationPrompt.reset();
   markUiChanged(state, UiChange::All);
 }
 
@@ -346,6 +354,7 @@ void appendAssetBlock(UiState& state, std::size_t assetIndex)
 
 void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockIndex)
 {
+  if (!previewIsSynchronized(state)) return;
   if (assetIndex >= state.assets.size()) {
     return;
   }
@@ -355,6 +364,7 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
     return;
   }
 
+  const auto previewRollback = previewSnapshot(state);
   rememberBlockEdit(state);
 
   const auto& asset = state.assets[assetIndex];
@@ -389,18 +399,20 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
   state.blockDrawerOpen = false;
   state.paramDrawerOpen = true;
   state.dirty = true;
-  state.requiresEngineReload = true;
+  queuePreview(state, previewRollback, "add " + asset.name);
   setUiStatus(state, asset.name + " added - Undo");
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
 }
 
 void moveBlock(UiState& state, std::size_t from, std::size_t to)
 {
+  if (!previewIsSynchronized(state)) return;
   auto& blocks = state.bank.presets[state.activePreset].blocks;
   if (from >= blocks.size() || to >= blocks.size() || from == to) {
     return;
   }
 
+  const auto previewRollback = previewSnapshot(state);
   rememberBlockEdit(state);
   const std::string movedName = blocks[from].assetName;
   auto block = std::move(blocks[from]);
@@ -408,18 +420,20 @@ void moveBlock(UiState& state, std::size_t from, std::size_t to)
   blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(to), std::move(block));
   state.selectedBlock = to;
   state.dirty = true;
-  state.requiresEngineReload = true;
+  queuePreview(state, previewRollback, "move " + movedName);
   setUiStatus(state, movedName + " moved - Undo");
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters);
 }
 
 bool deleteSelectedBlock(UiState& state)
 {
+  if (!previewIsSynchronized(state)) return false;
   auto& blocks = state.bank.presets[state.activePreset].blocks;
   if (state.selectedBlock >= blocks.size()) {
     return false;
   }
 
+  const auto previewRollback = previewSnapshot(state);
   rememberBlockEdit(state);
   const std::string deletedName = blocks[state.selectedBlock].assetName;
   blocks.erase(blocks.begin() + static_cast<std::ptrdiff_t>(state.selectedBlock));
@@ -431,28 +445,29 @@ bool deleteSelectedBlock(UiState& state)
     state.paramTarget = UiParamTarget::Block;
   }
   state.dirty = true;
-  state.requiresEngineReload = true;
   state.paramDrawerOpen = false;
   setUiStatus(state, deletedName + " deleted - Undo");
+  queuePreview(state, previewRollback, "delete " + deletedName);
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
   return true;
 }
 
 bool undoLastBlockEdit(UiState& state)
 {
-  if (!state.blockEditUndo.has_value()) {
+  if (!previewIsSynchronized(state) || !state.blockEditUndo.has_value()) {
     return false;
   }
+  const auto rollback = previewSnapshot(state);
   auto snapshot = std::move(*state.blockEditUndo);
   state.blockEditUndo.reset();
   state.bank.presets[state.activePreset].blocks = std::move(snapshot.blocks);
   state.selectedBlock = snapshot.selectedBlock;
   state.paramTarget = snapshot.paramTarget;
   state.dirty = snapshot.dirty;
-  state.requiresEngineReload = snapshot.requiresEngineReload;
   state.blockDrawerOpen = snapshot.blockDrawerOpen;
   state.paramDrawerOpen = snapshot.paramDrawerOpen;
   setUiStatus(state, "Change undone");
+  queuePreview(state, rollback, "undo change");
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
   return true;
 }
@@ -507,10 +522,12 @@ void replaceActivePreset(UiState& state, const Preset& preset)
   }
   state.selectedBlock = 0;
   state.dirty = false;
-  state.requiresEngineReload = false;
+  state.previewState = UiPreviewState::Synchronized;
+  state.previewTransaction.reset();
   state.paramDrawerOpen = false;
   state.blockDrawerOpen = false;
   state.blockEditUndo.reset();
+  state.navigationPrompt.reset();
   markUiChanged(state, UiChange::All);
 }
 
@@ -524,13 +541,18 @@ void selectGlobalParams(UiState& state)
 
 void setSelectedBlockEnabled(UiState& state, bool enabled)
 {
+  if (!previewIsSynchronized(state)) return;
   auto& blocks = state.bank.presets[state.activePreset].blocks;
   if (state.selectedBlock >= blocks.size()) {
     return;
   }
+  if (blocks[state.selectedBlock].enabled == enabled) return;
+  const auto previewRollback = previewSnapshot(state);
+  rememberBlockEdit(state);
   blocks[state.selectedBlock].enabled = enabled;
   state.dirty = true;
-  state.requiresEngineReload = true;
+  queuePreview(state, previewRollback, std::string(enabled ? "enable " : "bypass ")
+                                      + blocks[state.selectedBlock].assetName);
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters);
 }
 
@@ -595,6 +617,7 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
 
 void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann::json value)
 {
+  if (!previewIsSynchronized(state)) return;
   auto& blocks = state.bank.presets[state.activePreset].blocks;
   if (state.selectedBlock >= blocks.size()) {
     return;
@@ -607,9 +630,12 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
   if (!compressorValue && !namValue) {
     return;
   }
+  if (block.params.value(key, nlohmann::json{}) == value) return;
+  const auto previewRollback = previewSnapshot(state);
+  rememberBlockEdit(state);
   block.params[key] = std::move(value);
   state.dirty = true;
-  state.requiresEngineReload = true;
+  queuePreview(state, previewRollback, "update " + block.assetName);
   markUiChanged(state, UiChange::Header | UiChange::Parameters);
 }
 
@@ -657,6 +683,91 @@ bool resetSelectedEqBand(UiState& state, std::size_t bandIndex)
     return false;
   }
   return setSelectedEqBand(state, bandIndex, defaultParametricEqBand(bandIndex));
+}
+
+bool previewIsSynchronized(const UiState& state)
+{
+  return state.previewState == UiPreviewState::Synchronized;
+}
+
+UiPreviewSnapshot captureUiPreviewSnapshot(const UiState& state)
+{
+  return previewSnapshot(state);
+}
+
+bool queuePreview(UiState& state, UiPreviewSnapshot rollback, std::string operation)
+{
+  if (!previewIsSynchronized(state)) return false;
+  state.previewTransaction = UiPreviewTransaction{std::move(rollback), std::move(operation)};
+  state.previewState = UiPreviewState::Queued;
+  markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
+  return true;
+}
+
+bool beginApplyingPreview(UiState& state)
+{
+  if (state.previewState != UiPreviewState::Queued || !state.previewTransaction.has_value()) return false;
+  state.previewState = UiPreviewState::Applying;
+  markUiChanged(state, UiChange::Header | UiChange::Status);
+  return true;
+}
+
+void completeStructuralPreview(UiState& state)
+{
+  state.previewTransaction.reset();
+  state.previewState = UiPreviewState::Synchronized;
+  setUiStatus(state, "Chain updated");
+  markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
+}
+
+void failStructuralPreview(UiState& state, std::string error)
+{
+  if (state.previewTransaction.has_value()) {
+    const auto& rollback = state.previewTransaction->rollback;
+    state.bank.presets[state.activePreset] = rollback.preset;
+    state.selectedBlock = rollback.selectedBlock;
+    state.paramTarget = rollback.paramTarget;
+    state.dirty = rollback.dirty;
+    state.blockDrawerOpen = rollback.blockDrawerOpen;
+    state.paramDrawerOpen = rollback.paramDrawerOpen;
+    state.blockEditUndo = rollback.blockEditUndo;
+  }
+  state.previewState = UiPreviewState::Failed;
+  state.previewTransaction.reset();
+  setUiStatus(state, "Could not apply chain: " + std::move(error), true);
+  // Failed is intentionally observable only during this state update. Once
+  // the rollback is complete, the restored UI again describes the live engine.
+  state.previewState = UiPreviewState::Synchronized;
+  markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
+}
+
+bool requestPresetNavigation(UiState& state, UiNavigationTarget target)
+{
+  if (!previewIsSynchronized(state) || target.bank < 0 || target.bank > 99
+      || target.preset >= state.bank.presets.size()) {
+    return false;
+  }
+  if (target.bank == state.activeBank && target.preset == state.activePreset) return false;
+  if (state.dirty) {
+    state.navigationPrompt = target;
+    markUiChanged(state, UiChange::Drawers | UiChange::Status);
+    return false;
+  }
+  return true;
+}
+
+std::optional<UiNavigationTarget> confirmNavigation(UiState& state, UiNavigationDecision decision)
+{
+  if (!state.navigationPrompt.has_value()) return std::nullopt;
+  if (decision == UiNavigationDecision::Cancel) {
+    state.navigationPrompt.reset();
+    markUiChanged(state, UiChange::Drawers | UiChange::Status);
+    return std::nullopt;
+  }
+  auto target = std::move(state.navigationPrompt);
+  state.navigationPrompt.reset();
+  markUiChanged(state, UiChange::Drawers | UiChange::Status);
+  return target;
 }
 
 void updateRealtimeTelemetry(UiState& state, const RuntimeTelemetry& telemetry)
@@ -733,10 +844,12 @@ void loadBankFromStore(UiState& state, const PresetStore& store, int bank)
   state.activePreset = std::min(previous, state.bank.presets.size() - 1);
   state.selectedBlock = 0;
   state.dirty = false;
-  state.requiresEngineReload = false;
   state.paramDrawerOpen = false;
   state.blockDrawerOpen = false;
   state.blockEditUndo.reset();
+  state.previewState = UiPreviewState::Synchronized;
+  state.previewTransaction.reset();
+  state.navigationPrompt.reset();
   markUiChanged(state, UiChange::All);
 }
 

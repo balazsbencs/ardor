@@ -6,11 +6,9 @@
 
 namespace ardor {
 
-PresetActivationOutcome prepareAndActivatePreset(
+PresetActivationOutcome prepareAndActivateDraft(
   std::unique_ptr<PedalEngine>& liveEngine,
-  ActivePresetSelection& activeSelection,
-  const Preset& targetPreset,
-  ActivePresetSelection targetSelection,
+  const Preset& draft,
   const std::filesystem::path& dataRoot,
   const EngineLoadOptions& options,
   float masterVolume,
@@ -18,7 +16,7 @@ PresetActivationOutcome prepareAndActivatePreset(
 {
   PresetActivationOutcome outcome;
   auto nextEngine = std::make_unique<PedalEngine>();
-  if (!applyPreset(*nextEngine, targetPreset, dataRoot, options, outcome.error)) {
+  if (!applyPreset(*nextEngine, draft, dataRoot, options, outcome.error)) {
     outcome.status = PresetActivationStatus::PreparationFailed;
     return outcome;
   }
@@ -31,8 +29,22 @@ PresetActivationOutcome prepareAndActivatePreset(
   }
 
   liveEngine = std::move(nextEngine);
-  activeSelection = targetSelection;
   outcome.status = PresetActivationStatus::Activated;
+  return outcome;
+}
+
+PresetActivationOutcome prepareAndActivatePreset(
+  std::unique_ptr<PedalEngine>& liveEngine,
+  ActivePresetSelection& activeSelection,
+  const Preset& targetPreset,
+  ActivePresetSelection targetSelection,
+  const std::filesystem::path& dataRoot,
+  const EngineLoadOptions& options,
+  float masterVolume,
+  const EngineReplaceCallback& replaceEngine)
+{
+  auto outcome = prepareAndActivateDraft(liveEngine, targetPreset, dataRoot, options, masterVolume, replaceEngine);
+  if (outcome.activated()) activeSelection = targetSelection;
   return outcome;
 }
 
