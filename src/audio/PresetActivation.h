@@ -33,6 +33,16 @@ struct PresetActivationOutcome {
 
 using EngineReplaceCallback = std::function<EngineReplaceResult(PedalEngine&)>;
 
+// Prepares and activates an in-memory draft without changing the committed
+// bank/slot selection. This is the on-device live-preview path.
+PresetActivationOutcome prepareAndActivateDraft(
+  std::unique_ptr<PedalEngine>& liveEngine,
+  const Preset& draft,
+  const std::filesystem::path& dataRoot,
+  const EngineLoadOptions& options,
+  float masterVolume,
+  const EngineReplaceCallback& replaceEngine);
+
 // Builds a complete replacement while liveEngine remains audible, then asks the
 // backend to activate it. Preparation or backend failure leaves both liveEngine
 // and activeSelection unchanged. DeviceStopped is returned to the caller so it

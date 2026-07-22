@@ -7,6 +7,7 @@
 #include <cctype>
 #include <cstring>
 #include <iostream>
+#include <optional>
 
 namespace {
 
@@ -17,6 +18,11 @@ int require(bool condition, const char* message)
     return 1;
   }
   return 0;
+}
+
+void completePreview(ardor::UiState& state)
+{
+  if (ardor::beginApplyingPreview(state)) ardor::completeStructuralPreview(state);
 }
 
 struct SimulatedPointer {
@@ -48,6 +54,19 @@ lv_obj_t* findLabel(lv_obj_t* parent, const char* text)
     if (auto* result = findLabel(lv_obj_get_child(parent, static_cast<int32_t>(i)), text)) {
       return result;
     }
+  }
+  return nullptr;
+}
+
+lv_obj_t* findLabelContaining(lv_obj_t* parent, const char* text)
+{
+  if (lv_obj_check_type(parent, &lv_label_class)
+      && std::strstr(lv_label_get_text(parent), text) != nullptr) {
+    return parent;
+  }
+  const auto count = lv_obj_get_child_count(parent);
+  for (int32_t index = 0; index < count; ++index) {
+    if (auto* found = findLabelContaining(lv_obj_get_child(parent, index), text)) return found;
   }
   return nullptr;
 }
@@ -174,7 +193,8 @@ int main()
               "NAM nano switch should apply")) return 1;
   if (require(namState.bank.presets[namState.activePreset].blocks[0].params.value("useNano", false),
               "NAM nano switch should persist its boolean value")) return 1;
-  if (require(namState.requiresEngineReload, "changing NAM model tier should require an engine reload")) return 1;
+  if (require(namState.previewState == ardor::UiPreviewState::Queued,
+              "changing NAM model tier should queue an engine preview")) return 1;
 
   ardor::selectBlock(state, 1);
   const auto cabControls = ardor::parameterPage(state, 0);
@@ -239,6 +259,7 @@ int main()
   ardor::setSelectedBlockEnabled(state, false);
   if (require(!state.bank.presets[state.activePreset].blocks[state.selectedBlock].enabled, "block should disable")) return 1;
   if (require(state.dirty, "block enable change should dirty preset")) return 1;
+  completePreview(state);
 
   ardor::selectGlobalParams(state);
   const auto globals = ardor::parameterPage(state, 0);
@@ -278,6 +299,7 @@ int main()
   });
   if (require(eqAsset != eqState.assets.end(), "EQ asset should be available")) return 1;
   ardor::appendAssetBlock(eqState, static_cast<std::size_t>(std::distance(eqState.assets.begin(), eqAsset)));
+  completePreview(eqState);
   bool eqActionCalled = false;
   std::string updatedEqId;
   std::size_t updatedEqBand = ardor::kParametricEqBandCount;
@@ -312,16 +334,18 @@ int main()
   rejectedEqState.dirty = false;
   const auto rejectedEqBefore = ardor::selectedParametricEqParams(rejectedEqState).bands[0];
   rejectedEqUi.focusEqBandField(ardor::EqBandField::Gain);
-  if (require(!rejectedEqUi.applyFocusedParameterDelta(rejectedEqState, 2)
-                && ardor::selectedParametricEqParams(rejectedEqState).bands[0] == rejectedEqBefore
-                && !rejectedEqState.dirty,
-              "rejected live EQ updates should roll back UI state")) return 1;
+  if (require(rejectedEqUi.applyFocusedParameterDelta(rejectedEqState, 2)
+                && ardor::selectedParametricEqParams(rejectedEqState).bands[0] != rejectedEqBefore
+                && rejectedEqState.previewState == ardor::UiPreviewState::Queued,
+              "rejected live EQ updates should promote to a full preview")) return 1;
+  completePreview(rejectedEqState);
 
   const auto tremAsset = std::find_if(state.assets.begin(), state.assets.end(), [](const ardor::UiAsset& asset) {
     return asset.name == "Vintage Trem";
   });
   if (require(tremAsset != state.assets.end(), "Vintage Trem should be available")) return 1;
   ardor::appendAssetBlock(state, static_cast<std::size_t>(std::distance(state.assets.begin(), tremAsset)));
+  completePreview(state);
   ui.selectBlock(state, state.bank.presets[state.activePreset].blocks.size() - 1);
 
   const auto tremControls = ardor::parameterPage(state, 0);
@@ -354,6 +378,7 @@ int main()
   });
   if (require(compressorAsset != state.assets.end(), "compressor asset should be available")) return 1;
   ardor::appendAssetBlock(state, static_cast<std::size_t>(std::distance(state.assets.begin(), compressorAsset)));
+  completePreview(state);
   ardor::setSelectedBlockParam(state, "ratio", 4.5f);
   ardor::setSelectedBlockParam(state, "attack_ms", 0.1f);
   const auto compressorControls = ardor::parameterPage(state, 0);
@@ -585,6 +610,7 @@ int main()
   const auto retainedFirstAsset = state.bank.presets[state.activePreset].blocks.front().assetName;
   const auto selectedBeforeReorder = state.selectedBlock;
   ardor::moveBlock(state, 0, 1);
+  completePreview(state);
   ui.refresh(lv_screen_active(), state);
   if (require(findLabel(firstChainBlock, retainedFirstAsset.c_str()),
               "keyed chain reordering should move the existing card instead of recreating it")) return 1;
@@ -594,6 +620,7 @@ int main()
     [&](const auto& block) { return block.id == retainedFirstId; });
   ardor::moveBlock(state,
     static_cast<std::size_t>(std::distance(state.bank.presets[state.activePreset].blocks.begin(), retainedPosition)), 0);
+  completePreview(state);
   ui.selectBlock(state, selectedBeforeReorder);
   ui.refresh(lv_screen_active(), state);
   title = findLabel(lv_screen_active(), titleText.c_str());
@@ -658,6 +685,9 @@ int main()
                 && findLabel(bypassControl, "On")
                 && lv_obj_get_width(bypassFill) == 160,
               "tapping Bypass should disable the block and fill the control green")) return 1;
+  completePreview(state);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
   lv_obj_send_event(bypassControl, LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
@@ -666,6 +696,7 @@ int main()
                 && findLabel(bypassControl, "Off")
                 && lv_obj_get_width(bypassFill) == 0,
               "tapping Bypass again should restore the inactive Off state")) return 1;
+  completePreview(state);
 
   lv_area_t pageArea{};
   lv_obj_get_coords(page, &pageArea);
@@ -1067,6 +1098,7 @@ int main()
                 && lv_color_eq(lv_obj_get_style_border_color(addedDelayCard, LV_PART_MAIN),
                                lv_color_hex(0x43f05a)),
               "newly added block should receive a clear green highlight")) return 1;
+  completePreview(state);
 
   ardor::closeBlockDrawer(state);
   auto eqRenderAsset = std::find_if(state.assets.begin(), state.assets.end(), [](const ardor::UiAsset& asset) {
@@ -1074,6 +1106,7 @@ int main()
   });
   if (require(eqRenderAsset != state.assets.end(), "EQ asset should be available to the LVGL editor")) return 1;
   ardor::appendAssetBlock(state, static_cast<std::size_t>(std::distance(state.assets.begin(), eqRenderAsset)));
+  completePreview(state);
   ui.selectBlock(state, state.bank.presets[state.activePreset].blocks.size() - 1);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
@@ -1225,6 +1258,55 @@ int main()
   ui.refresh(lv_screen_active(), state);
   if (require(findLabel(lv_screen_active(), "Edit"),
               "exiting tuner should restore the preset screen")) return 1;
+
+  auto overlayState = ardor::makeDemoUiState();
+  auto overlayAsset = std::find_if(overlayState.assets.begin(), overlayState.assets.end(), [](const ardor::UiAsset& asset) {
+    return asset.name == "Vintage Trem";
+  });
+  ardor::LvglUi overlayUi;
+  overlayUi.build(lv_screen_active(), overlayState);
+  if (require(overlayAsset != overlayState.assets.end(), "overlay test needs a structural asset")) return 1;
+  ardor::appendAssetBlock(overlayState,
+                          static_cast<std::size_t>(std::distance(overlayState.assets.begin(), overlayAsset)));
+  overlayUi.refresh(lv_screen_active(), overlayState);
+  lv_obj_t* applyingLabel = findLabelContaining(lv_screen_active(), "Applying effect chain...");
+  if (require(overlayState.previewState == ardor::UiPreviewState::Queued && applyingLabel,
+              "queued preview should present a visible loading overlay")) return 1;
+  completePreview(overlayState);
+  overlayUi.refresh(lv_screen_active(), overlayState);
+  if (require(overlayState.previewState == ardor::UiPreviewState::Synchronized,
+              "completed preview should hide the loading overlay")) return 1;
+
+  auto navigationState = ardor::makeDemoUiState();
+  navigationState.dirty = true;
+  std::optional<ardor::UiNavigationDecision> navigationDecision;
+  ardor::UiActions navigationActions;
+  navigationActions.selectPreset = [&](std::size_t index) {
+    ardor::requestPresetNavigation(navigationState, {0, index});
+  };
+  navigationActions.resolveNavigation = [&](ardor::UiNavigationDecision decision) {
+    navigationDecision = decision;
+    ardor::confirmNavigation(navigationState, decision);
+  };
+  ardor::LvglUi navigationUi(std::move(navigationActions));
+  navigationUi.build(lv_screen_active(), navigationState);
+  navigationUi.selectPreset(navigationState, 1);
+  navigationUi.refresh(lv_screen_active(), navigationState);
+  if (require(navigationState.activePreset == 0 && navigationState.navigationPrompt.has_value()
+                && findLabel(lv_screen_active(), "Unsaved changes")
+                && findLabel(lv_screen_active(), "Save") && findLabel(lv_screen_active(), "Discard")
+                && findLabel(lv_screen_active(), "Cancel"),
+              "dirty navigation should retain the draft and present Save/Discard/Cancel")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "Cancel")), LV_EVENT_CLICKED, nullptr);
+  if (require(navigationDecision == ardor::UiNavigationDecision::Cancel
+                && !navigationState.navigationPrompt.has_value() && navigationState.activePreset == 0,
+              "Cancel should retain the current draft and selection")) return 1;
+  navigationUi.selectPreset(navigationState, 1);
+  navigationUi.refresh(lv_screen_active(), navigationState);
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "Discard")), LV_EVENT_CLICKED, nullptr);
+  if (require(navigationDecision == ardor::UiNavigationDecision::Discard
+                && !navigationState.navigationPrompt.has_value(),
+              "Discard should release the selected destination for activation")) return 1;
 
   lv_display_delete(display);
   lv_deinit();
