@@ -325,7 +325,7 @@ add_dependencies(pedal-preset-cli-smoke pedal-poc)
 
 add_executable(pedal-preset-reload-stress tests/preset_reload_stress.cpp)
 target_include_directories(pedal-preset-reload-stress PRIVATE ${miniaudio_SOURCE_DIR})
-target_link_libraries(pedal-preset-reload-stress PRIVATE ardor_audio ardor_dsp ardor_preset)
+target_link_libraries(pedal-preset-reload-stress PRIVATE ardor_audio ardor_dsp ardor_preset ardor_ui)
 
 add_executable(pedal-control-smoke tests/control_smoke.cpp)
 target_link_libraries(pedal-control-smoke PRIVATE ardor_control)

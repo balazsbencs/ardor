@@ -302,17 +302,35 @@ void onSaveClicked(lv_event_t* event)
   redraw(context);
 }
 
+void onNavigationDecision(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  if (!context->ui->actions().resolveNavigation) return;
+  const auto decision = context->index == 0 ? UiNavigationDecision::Save
+    : context->index == 1 ? UiNavigationDecision::Discard : UiNavigationDecision::Cancel;
+  context->ui->actions().resolveNavigation(decision);
+  redraw(context);
+}
+
 void onPresetModeClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  enterPresetMode(*context->state);
+  if (context->state->mode == UiMode::Tuner && context->ui->actions().setTunerMode) {
+    context->ui->actions().setTunerMode(false);
+  } else {
+    enterPresetMode(*context->state);
+  }
   redraw(context);
 }
 
 void onTunerModeClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  enterTunerMode(*context->state);
+  if (context->ui->actions().setTunerMode) {
+    context->ui->actions().setTunerMode(true);
+  } else {
+    enterTunerMode(*context->state);
+  }
   redraw(context);
 }
 
@@ -1701,7 +1719,7 @@ bool LvglUi::updateSelectedEqBand(UiState& state, EqBandParams params, bool requ
   const auto& block = blocks[state.selectedBlock];
   const auto before = selectedParametricEqParams(state).bands[selectedEqBand_];
   const bool dirtyBefore = state.dirty;
-  const bool reloadBefore = state.requiresEngineReload;
+  const auto previewRollback = captureUiPreviewSnapshot(state);
   if (!setSelectedEqBand(state, selectedEqBand_, params)) {
     return false;
   }
@@ -1711,9 +1729,15 @@ bool LvglUi::updateSelectedEqBand(UiState& state, EqBandParams params, bool requ
   }
   if (actions_.updateEqBand) {
     if (!actions_.updateEqBand(block.id, selectedEqBand_, after)) {
+      // A missing runtime ID is an unexpected draft/runtime divergence. Keep
+      // the candidate and heal it through the same complete-preview path used
+      // for topology edits rather than showing a generic live-update error.
+      if (queuePreview(state, previewRollback, "update " + block.assetName + " EQ")) {
+        invalidate(UiChange::Parameters | UiChange::Header);
+        return true;
+      }
       setSelectedEqBand(state, selectedEqBand_, before);
       state.dirty = dirtyBefore;
-      state.requiresEngineReload = reloadBefore;
       invalidate(UiChange::Parameters | UiChange::Header);
       return false;
     }
@@ -1756,7 +1780,7 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
       continue;
     }
     const bool dirtyBefore = state.dirty;
-    const bool reloadBefore = state.requiresEngineReload;
+    const auto previewRollback = captureUiPreviewSnapshot(state);
     nlohmann::json paramsBefore;
     bool hasBlockSnapshot = false;
     if (state.paramTarget == UiParamTarget::Block) {
@@ -1805,12 +1829,16 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
         }
       }
       if (!liveUpdateSucceeded && hasBlockSnapshot) {
-        auto& blocks = state.bank.presets[state.activePreset].blocks;
-        if (state.selectedBlock < blocks.size()) {
-          blocks[state.selectedBlock].params = std::move(paramsBefore);
+        const auto& blocks = state.bank.presets[state.activePreset].blocks;
+        const std::string operation = state.selectedBlock < blocks.size()
+          ? "update " + blocks[state.selectedBlock].assetName : "update effect";
+        if (queuePreview(state, previewRollback, operation)) {
+          invalidate(UiChange::Parameters | UiChange::Header);
+          return true;
         }
+        auto& restoredBlocks = state.bank.presets[state.activePreset].blocks;
+        if (state.selectedBlock < restoredBlocks.size()) restoredBlocks[state.selectedBlock].params = std::move(paramsBefore);
         state.dirty = dirtyBefore;
-        state.requiresEngineReload = reloadBefore;
         invalidate(UiChange::Parameters | UiChange::Header);
         return true;
       }
@@ -1903,6 +1931,44 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   parameterLayer_ = createLayer();
   drawerLayer_ = createLayer();
   statusLayer_ = createLayer();
+  previewOverlay_ = lv_obj_create(canvas);
+  lv_obj_set_size(previewOverlay_, kDesignWidth, kDesignHeight);
+  lv_obj_set_pos(previewOverlay_, 0, 0);
+  lv_obj_set_style_bg_color(previewOverlay_, lv_color_hex(0x000000), 0);
+  lv_obj_set_style_bg_opa(previewOverlay_, LV_OPA_70, 0);
+  lv_obj_set_style_border_width(previewOverlay_, 0, 0);
+  lv_obj_remove_flag(previewOverlay_, LV_OBJ_FLAG_SCROLLABLE);
+  previewOverlayLabel_ = lv_label_create(previewOverlay_);
+  lv_label_set_text(previewOverlayLabel_, "Applying effect chain...\n\n◌");
+  lv_obj_set_style_text_color(previewOverlayLabel_, lv_color_hex(text), 0);
+  lv_obj_set_style_text_align(previewOverlayLabel_, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_center(previewOverlayLabel_);
+  lv_obj_add_flag(previewOverlay_, LV_OBJ_FLAG_HIDDEN);
+  navigationOverlay_ = lv_obj_create(canvas);
+  lv_obj_set_size(navigationOverlay_, kDesignWidth, kDesignHeight);
+  lv_obj_set_pos(navigationOverlay_, 0, 0);
+  lv_obj_set_style_bg_color(navigationOverlay_, lv_color_hex(0x000000), 0);
+  lv_obj_set_style_bg_opa(navigationOverlay_, LV_OPA_70, 0);
+  lv_obj_set_style_border_width(navigationOverlay_, 0, 0);
+  lv_obj_remove_flag(navigationOverlay_, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_t* prompt = lv_label_create(navigationOverlay_);
+  lv_label_set_text(prompt, "Unsaved changes");
+  lv_obj_set_style_text_color(prompt, lv_color_hex(text), 0);
+  lv_obj_set_style_text_font(prompt, &ardor_font_open_sans_semibold_22, 0);
+  lv_obj_align(prompt, LV_ALIGN_CENTER, 0, -92);
+  lv_obj_t* guidance = lv_label_create(navigationOverlay_);
+  lv_label_set_text(guidance, "Save changes before switching presets?");
+  lv_obj_set_style_text_color(guidance, lv_color_hex(muted), 0);
+  lv_obj_align(guidance, LV_ALIGN_CENTER, 0, -52);
+  const std::array<std::string, 3> choices = {"Save", "Discard", "Cancel"};
+  for (std::size_t i = 0; i < choices.size(); ++i) {
+    lv_obj_t* choice = button(navigationOverlay_, choices[i]);
+    lv_obj_set_size(choice, 150, 56);
+    lv_obj_align(choice, LV_ALIGN_CENTER, static_cast<int>(i) * 166 - 166, 18);
+    if (i == 0) styleSurface(choice, 0x25442a);
+    lv_obj_add_event_cb(choice, onNavigationDecision, LV_EVENT_CLICKED, remember(state, i));
+  }
+  lv_obj_add_flag(navigationOverlay_, LV_OBJ_FLAG_HIDDEN);
 
   rebuildPresetView(state);
   rebuildEditView(state);
@@ -2433,6 +2499,19 @@ void LvglUi::syncPersistentViews(UiState& state)
     if (state.blockEditUndo.has_value()) lv_obj_remove_flag(undoButton_, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(undoButton_, LV_OBJ_FLAG_HIDDEN);
   }
+  syncBlockingOverlays(state);
+}
+
+void LvglUi::syncBlockingOverlays(const UiState& state)
+{
+  if (previewOverlay_) {
+    if (previewIsSynchronized(state)) lv_obj_add_flag(previewOverlay_, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_remove_flag(previewOverlay_, LV_OBJ_FLAG_HIDDEN);
+  }
+  if (navigationOverlay_) {
+    if (state.navigationPrompt.has_value()) lv_obj_remove_flag(navigationOverlay_, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(navigationOverlay_, LV_OBJ_FLAG_HIDDEN);
+  }
 }
 
 lv_point_t LvglUi::toCanvas(lv_point_t displayPoint) const
@@ -2471,6 +2550,10 @@ void LvglUi::refresh(lv_obj_t* root, UiState& state)
     renderedRevisions_.status = state.revisions.status;
     renderedRevisions_.telemetry = state.revisions.telemetry;
   }
+  // Blocking overlays must become visible even while a slider or drag owns an
+  // input device. The control loop forces this retained state to the display
+  // before it starts synchronous engine preparation.
+  syncBlockingOverlays(state);
   if (activeInteractions_ > 0) {
     pendingChanges_ = changes;
     return;

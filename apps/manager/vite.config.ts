@@ -10,5 +10,8 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     css: true,
+    // OAuth uses a publishable application identifier, but unit tests must not
+    // depend on a developer machine or CI environment having one configured.
+    env: { TONE3000_CLIENT_ID: "t3k_test_client" },
   },
 });

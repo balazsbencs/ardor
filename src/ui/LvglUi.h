@@ -47,6 +47,10 @@ struct UiActions {
   std::function<void(float, float)> updateGlobalGains;
   std::function<void(float, float)> updateCabParameters;
   std::function<void(int)> changeBank;
+  std::function<void(UiNavigationDecision)> resolveNavigation;
+  // Requests the host-level tuner transition so audio muting and analyzer
+  // routing change together with the visible screen.
+  std::function<void(bool)> setTunerMode;
 };
 
 class LvglUi {
@@ -137,6 +141,7 @@ private:
   void syncDrawerView(UiState& state);
   void syncParameterView(UiState& state);
   void syncPersistentViews(UiState& state);
+  void syncBlockingOverlays(const UiState& state);
   void syncTunerView(UiState& state);
 
   UiActions actions_;
@@ -157,6 +162,9 @@ private:
   lv_obj_t* parameterLayer_ = nullptr;
   lv_obj_t* drawerLayer_ = nullptr;
   lv_obj_t* statusLayer_ = nullptr;
+  lv_obj_t* previewOverlay_ = nullptr;
+  lv_obj_t* previewOverlayLabel_ = nullptr;
+  lv_obj_t* navigationOverlay_ = nullptr;
   lv_obj_t* presetBankLabel_ = nullptr;
   lv_obj_t* masterVolumeLabel_ = nullptr;
   lv_obj_t* bankDownButton_ = nullptr;

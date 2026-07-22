@@ -410,10 +410,11 @@ Pass `--ui` to `pedal-poc` in slot mode to run the LVGL UI alongside the audio e
   --block-size 64 --ir-samples 8192
 ```
 
-The UI starts on the preset screen. Tapping a preset slot requests an audio
-engine swap. Save writes the preset to disk and applies structural changes;
-supported continuous parameters are published live without rebuilding the
-active chain. Telemetry (callback count, overruns, bypass state) updates once
+The UI starts on the preset screen. On-device effect-chain edits preview
+immediately: structural and discrete changes prepare and swap a replacement
+engine, while supported continuous parameters are published live. Save only
+persists the already-audible draft. Switching preset or bank with unsaved edits
+asks whether to Save, Discard, or Cancel. Telemetry (callback count, overruns, bypass state) updates once
 per second. Encoder master volume is reflected in the UI. Tuner mode shows the
 detected note, frequency, cents offset, and flat/sharp guidance while keeping
 the pedal output muted.

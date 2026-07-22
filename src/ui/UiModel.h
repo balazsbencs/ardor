@@ -57,6 +57,22 @@ enum class UiParamTarget {
   Globals
 };
 
+// A preview is the in-memory, audible counterpart to a structural edit.  It
+// deliberately has no bearing on whether the preset has been saved.
+enum class UiPreviewState {
+  Synchronized,
+  Queued,
+  Applying,
+  Failed,
+};
+
+enum class UiNavigationDecision { Save, Discard, Cancel };
+
+struct UiNavigationTarget {
+  int bank = 0;
+  std::size_t preset = 0;
+};
+
 enum class UiChange : uint32_t {
   None = 0,
   Navigation = 1u << 0,
@@ -98,9 +114,23 @@ struct UiBlockEditSnapshot {
   std::size_t selectedBlock = 0;
   UiParamTarget paramTarget = UiParamTarget::Block;
   bool dirty = false;
-  bool requiresEngineReload = false;
   bool blockDrawerOpen = false;
   bool paramDrawerOpen = false;
+};
+
+struct UiPreviewSnapshot {
+  UiPreset preset;
+  std::size_t selectedBlock = 0;
+  UiParamTarget paramTarget = UiParamTarget::Block;
+  bool dirty = false;
+  bool blockDrawerOpen = false;
+  bool paramDrawerOpen = false;
+  std::optional<UiBlockEditSnapshot> blockEditUndo;
+};
+
+struct UiPreviewTransaction {
+  UiPreviewSnapshot rollback;
+  std::string operation;
 };
 
 struct UiClipDebugTelemetry {
@@ -130,9 +160,8 @@ struct UiState {
   UiMode mode = UiMode::Preset;
   UiParamTarget paramTarget = UiParamTarget::Block;
   bool dirty = false;
-  // Topology, asset, and discrete-mode changes cannot be applied to the
-  // running program incrementally. Continuous targets leave this false.
-  bool requiresEngineReload = false;
+  UiPreviewState previewState = UiPreviewState::Synchronized;
+  std::optional<UiPreviewTransaction> previewTransaction;
   bool blockDrawerOpen = false;
   bool paramDrawerOpen = false;
   bool effectsBypassed = false;
@@ -146,6 +175,7 @@ struct UiState {
   bool statusIsError = false;
   std::optional<UiBlockEditSnapshot> blockEditUndo;
   int pendingSlotRequest = -1;
+  std::optional<UiNavigationTarget> navigationPrompt;
   UiRevisions revisions;
 };
 
@@ -183,6 +213,18 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
 ParametricEqParams selectedParametricEqParams(const UiState& state);
 bool setSelectedEqBand(UiState& state, std::size_t bandIndex, EqBandParams params);
 bool resetSelectedEqBand(UiState& state, std::size_t bandIndex);
+
+bool previewIsSynchronized(const UiState& state);
+UiPreviewSnapshot captureUiPreviewSnapshot(const UiState& state);
+bool queuePreview(UiState& state, UiPreviewSnapshot rollback, std::string operation);
+bool beginApplyingPreview(UiState& state);
+void completeStructuralPreview(UiState& state);
+void failStructuralPreview(UiState& state, std::string error);
+
+// Navigation never mutates the active draft until its destination has been
+// activated. Dirty drafts require a Save/Discard/Cancel decision first.
+bool requestPresetNavigation(UiState& state, UiNavigationTarget target);
+std::optional<UiNavigationTarget> confirmNavigation(UiState& state, UiNavigationDecision decision);
 
 void updateRealtimeTelemetry(UiState& state, const RuntimeTelemetry& telemetry);
 void updateClipDebugTelemetry(UiState& state, UiClipDebugTelemetry telemetry);

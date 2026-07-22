@@ -40,6 +40,7 @@
 #include <iostream>
 #include <iomanip>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -585,6 +586,7 @@ int main(int argc, char** argv)
       ardor::FootswitchGesture footswitchGesture;
       ardor::TunerAnalyzer tuner(static_cast<float>(args.sampleRate));
       bool tunerMode = false;
+      int requestedTunerMode = -1;
       uint64_t lastTunerRevision = 0;
       std::array<float, 2048> tunerInput{};
       int deferredTunerBank = -1;
@@ -595,6 +597,8 @@ int main(int argc, char** argv)
 #if defined(ARDOR_HAS_UI)
       std::unique_ptr<ardor::LvglUi> ui;
       ardor::UiState uiState;
+      bool previewOverlayPresented = false;
+      std::optional<std::chrono::steady_clock::time_point> previewQueuedAt;
       if (args.enableUi) {
         lv_init();
 #if defined(ARDOR_UI_BACKEND_FBDEV)
@@ -645,26 +649,26 @@ int main(int argc, char** argv)
         ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
         ui = std::make_unique<ardor::LvglUi>(ardor::UiActions{
           [&](std::size_t index) {
-            requestedSlot.store(static_cast<int>(index), std::memory_order_relaxed);
-            ardor::selectPreset(uiState, index);
+            if (ardor::requestPresetNavigation(uiState, {args.bank, index})) {
+              requestedSlot.store(static_cast<int>(index), std::memory_order_relaxed);
+            }
           },
           [&]() {
             std::string saveError;
-            const bool requiresEngineReload = uiState.requiresEngineReload;
+            if (!ardor::previewIsSynchronized(uiState)) {
+              ardor::setUiStatus(uiState, "Effect chain is still applying", true);
+              return;
+            }
             if (!ardor::saveActivePresetToStore(uiState, store, args.bank, saveError)) {
               std::cerr << saveError << "\n";
               ardor::setUiStatus(uiState, "Save failed: " + saveError, true);
             } else {
               ardor::setUiStatus(uiState, "Preset saved");
-              if (requiresEngineReload) {
-                requestedSlot.store(static_cast<int>(uiState.activePreset), std::memory_order_relaxed);
-              }
             }
           },
           [&](const std::string& blockId, std::size_t bandIndex, const ardor::EqBandParams& params) {
             if (!liveEngine->setParametricEqBand(blockId, bandIndex, params)) {
               std::cerr << "Unable to update EQ band for block " << blockId << "\n";
-              ardor::setUiStatus(uiState, "EQ update failed", true);
               return false;
             }
             return true;
@@ -672,7 +676,6 @@ int main(int argc, char** argv)
           [&](const std::string& blockId, const std::string& key, float normalized) {
             if (!liveEngine->setDaisyParameter(blockId, key, normalized)) {
               std::cerr << "Unable to update Daisy parameter " << blockId << ":" << key << "\n";
-              ardor::setUiStatus(uiState, "Effect update failed", true);
               return false;
             }
             return true;
@@ -680,7 +683,6 @@ int main(int argc, char** argv)
           [&](const std::string& blockId, const std::string& key, float value) {
             if (!liveEngine->setCompressorParameter(blockId, key, value)) {
               std::cerr << "Unable to update compressor parameter " << blockId << ":" << key << "\n";
-              ardor::setUiStatus(uiState, "Compressor update failed", true);
               return false;
             }
             return true;
@@ -697,10 +699,32 @@ int main(int argc, char** argv)
             const int pending = requestedBank.load(std::memory_order_relaxed);
             const int current = pending >= 0 ? pending : args.bank;
             const int target = std::clamp(current + delta, 0, 99);
-            if (target != current) {
+            if (target != current
+                && ardor::requestPresetNavigation(uiState,
+                                                   {target, static_cast<std::size_t>(args.slot)})) {
               requestedBank.store(target, std::memory_order_relaxed);
               requestedSlot.store(args.slot, std::memory_order_relaxed);
             }
+          },
+          [&](ardor::UiNavigationDecision decision) {
+            if (decision == ardor::UiNavigationDecision::Cancel) {
+              ardor::confirmNavigation(uiState, decision);
+              return;
+            }
+            if (decision == ardor::UiNavigationDecision::Save) {
+              std::string saveError;
+              if (!ardor::saveActivePresetToStore(uiState, store, args.bank, saveError)) {
+                ardor::setUiStatus(uiState, "Save failed: " + saveError, true);
+                return;
+              }
+            }
+            const auto target = ardor::confirmNavigation(uiState, decision);
+            if (!target.has_value()) return;
+            requestedBank.store(target->bank, std::memory_order_relaxed);
+            requestedSlot.store(static_cast<int>(target->preset), std::memory_order_relaxed);
+          },
+          [&](bool enabled) {
+            requestedTunerMode = enabled ? 1 : 0;
           },
         });
         ui->build(lv_screen_active(), uiState);
@@ -730,6 +754,14 @@ int main(int argc, char** argv)
       auto nextRuntimeCommandPoll = std::chrono::steady_clock::now();
       auto nextTelemetry = nextRuntimeCommandPoll;
       const auto applyFootswitchAction = [&](const ardor::FootswitchAction& action) {
+#if defined(ARDOR_HAS_UI)
+        if (args.enableUi && ui && !ardor::previewIsSynchronized(uiState)) {
+          // The physical master-volume path remains independent below, but a
+          // local chain transaction must not be superseded by a footswitch
+          // preset change or tuner entry.
+          return;
+        }
+#endif
         if (action.type == ardor::FootswitchActionType::ToggleTuner) {
           tunerMode = !tunerMode;
           backend.setOutputMuted(tunerMode);
@@ -758,7 +790,23 @@ int main(int argc, char** argv)
         if (ardor::applyControlEvent(
               controls, {ardor::ControlEventType::FootswitchPressed, action.index, 0})
             && controls.activeSlot != previousSlot) {
+#if defined(ARDOR_HAS_UI)
+          if (args.enableUi && ui) {
+            if (ardor::requestPresetNavigation(
+                  uiState, {args.bank, static_cast<std::size_t>(controls.activeSlot)})) {
+              requestedSlot.store(controls.activeSlot, std::memory_order_relaxed);
+            } else {
+              // A dirty draft opened the confirmation prompt (or navigation
+              // was otherwise unavailable). Keep the hardware selection in
+              // sync with the still-audible preset until a decision commits.
+              controls.activeSlot = previousSlot;
+            }
+          } else {
+            requestedSlot.store(controls.activeSlot, std::memory_order_relaxed);
+          }
+#else
           requestedSlot.store(controls.activeSlot, std::memory_order_relaxed);
+#endif
         }
       };
       while (running) {
@@ -827,6 +875,7 @@ int main(int argc, char** argv)
             }
 #if defined(ARDOR_HAS_UI)
             if (args.enableUi && ui && controlEvent.type == ardor::ControlEventType::EncoderTurned
+                && ardor::previewIsSynchronized(uiState)
                 && ui->applyFocusedParameterDelta(uiState, controlEvent.delta)) {
               const auto& global = uiState.bank.presets[uiState.activePreset].global;
               liveEngine->setInputGain(ardor::dbToGain(global.inputGainDb));
@@ -852,6 +901,13 @@ int main(int argc, char** argv)
           applyFootswitchAction(*action);
         }
 #endif
+        if (requestedTunerMode >= 0) {
+          const bool requested = requestedTunerMode != 0;
+          requestedTunerMode = -1;
+          if (requested != tunerMode) {
+            applyFootswitchAction({ardor::FootswitchActionType::ToggleTuner, 0});
+          }
+        }
         if (tunerMode) {
           for (;;) {
             const std::size_t captured = backend.readCapturedInput(tunerInput.data(), tunerInput.size());
@@ -882,6 +938,65 @@ int main(int argc, char** argv)
           }
           if (uiState.masterVolume != controls.masterVolume) {
             ardor::setMasterVolume(uiState, controls.masterVolume);
+          }
+          // Queuing happens in the LVGL handler. This separate control-loop
+          // phase guarantees the loading overlay gets a refresh before the
+          // synchronous engine preparation starts.
+          if (uiState.previewState == ardor::UiPreviewState::Queued && !previewOverlayPresented) {
+            // ui->refresh() above has made the overlay part of the retained
+            // scene. Force that state through the display driver before the
+            // synchronous preparation can freeze LVGL's timer loop.
+            lv_refr_now(nullptr);
+            previewOverlayPresented = true;
+            previewQueuedAt = std::chrono::steady_clock::now();
+          } else if (ardor::beginApplyingPreview(uiState)) {
+            previewOverlayPresented = false;
+            const auto operation = uiState.previewTransaction->operation;
+            const auto blockCount = uiState.bank.presets[uiState.activePreset].blocks.size();
+            const auto preparationStarted = std::chrono::steady_clock::now();
+            std::optional<std::chrono::steady_clock::time_point> activationStarted;
+            const auto previewPreset = ardor::activePresetToPreset(uiState);
+            const auto activation = ardor::prepareAndActivateDraft(
+              liveEngine, previewPreset, args.dataRoot,
+              loadOptions, static_cast<float>(controls.masterVolume) / 100.0f,
+              [&](ardor::PedalEngine& prepared) {
+                activationStarted = std::chrono::steady_clock::now();
+                return backend.replaceEngine(prepared);
+              });
+            const auto completedAt = std::chrono::steady_clock::now();
+            const auto preparationMs = std::chrono::duration<double, std::milli>(
+              (activationStarted.has_value() ? *activationStarted : completedAt) - preparationStarted).count();
+            const auto activationMs = activationStarted.has_value()
+              ? std::chrono::duration<double, std::milli>(completedAt - *activationStarted).count() : 0.0;
+            const auto totalMs = previewQueuedAt.has_value()
+              ? std::chrono::duration<double, std::milli>(completedAt - *previewQueuedAt).count()
+              : preparationMs + activationMs;
+            std::cerr << std::fixed << std::setprecision(1)
+                      << "Live chain preview operation='" << operation << "' bank=" << activeSelection.bank
+                      << " slot=" << activeSelection.slot << " blocks=" << blockCount
+                      << " prepare_ms=" << preparationMs << " activate_ms=" << activationMs
+                      << " total_ms=" << totalMs << " result="
+                      << (activation.activated() ? "activated" : "rejected") << "\n" << std::defaultfloat;
+            if (totalMs > 500.0) {
+              std::cerr << "Slow live chain preview: " << totalMs << "ms operation='" << operation << "'\n";
+            }
+            previewQueuedAt.reset();
+            if (activation.activated()) {
+              runtime.changePreset();
+              liveEngine->setEffectsBypassed(runtime.effectsBypassed());
+              auto telemetry = uiState.telemetry;
+              telemetry.bypassed = runtime.effectsBypassed();
+              ardor::updateRealtimeTelemetry(uiState, telemetry);
+              ardor::completeStructuralPreview(uiState);
+            } else {
+              const std::string reason = activation.error.empty()
+                ? replaceResultName(activation.replacementResult) : activation.error;
+              std::cerr << "Live chain preview failed: " << reason << "\n";
+              ardor::failStructuralPreview(uiState, reason);
+            }
+          } else if (uiState.previewState == ardor::UiPreviewState::Synchronized) {
+            previewOverlayPresented = false;
+            previewQueuedAt.reset();
           }
         }
 #endif
@@ -920,9 +1035,13 @@ int main(int argc, char** argv)
             std::cerr << "Preset switch rejected before activation: " << e.what() << "\n";
 #if defined(ARDOR_HAS_UI)
             if (args.enableUi && ui) {
-              ardor::loadBankFromStore(uiState, store, args.bank);
-              ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
-              ardor::setUiStatus(uiState, "Preset load failed: " + std::string{e.what()}, true);
+              if (uiState.dirty) {
+                ardor::setUiStatus(uiState, "Could not switch preset; current edits retained.", true);
+              } else {
+                ardor::loadBankFromStore(uiState, store, args.bank);
+                ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
+                ardor::setUiStatus(uiState, "Preset load failed: " + std::string{e.what()}, true);
+              }
             }
 #endif
             continue;
@@ -932,9 +1051,13 @@ int main(int argc, char** argv)
             std::cerr << "Preset switch rejected before activation: " << preflightError << "\n";
 #if defined(ARDOR_HAS_UI)
             if (args.enableUi && ui) {
-              ardor::loadBankFromStore(uiState, store, args.bank);
-              ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
-              ardor::setUiStatus(uiState, "Preset load failed: " + preflightError, true);
+              if (uiState.dirty) {
+                ardor::setUiStatus(uiState, "Could not switch preset; current edits retained.", true);
+              } else {
+                ardor::loadBankFromStore(uiState, store, args.bank);
+                ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
+                ardor::setUiStatus(uiState, "Preset load failed: " + preflightError, true);
+              }
             }
 #endif
             continue;
@@ -948,9 +1071,13 @@ int main(int argc, char** argv)
               std::cerr << "Preset switch failed: " << activation.error << "\n";
 #if defined(ARDOR_HAS_UI)
               if (args.enableUi && ui) {
-                ardor::loadBankFromStore(uiState, store, args.bank);
-                ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
-                ardor::setUiStatus(uiState, "Preset load failed: " + activation.error, true);
+                if (uiState.dirty) {
+                  ardor::setUiStatus(uiState, "Could not switch preset; current edits retained.", true);
+                } else {
+                  ardor::loadBankFromStore(uiState, store, args.bank);
+                  ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
+                  ardor::setUiStatus(uiState, "Preset load failed: " + activation.error, true);
+                }
               }
 #endif
               continue;
@@ -965,15 +1092,18 @@ int main(int argc, char** argv)
             return 1;
           }
           runtime.changePreset();
+          liveEngine->setEffectsBypassed(runtime.effectsBypassed());
           args.bank = activeSelection.bank;
           args.slot = activeSelection.slot;
           controls.activeSlot = activeSelection.slot;
           std::cerr << "Switched to preset " << args.bank << ":" << args.slot << "\n";
 #if defined(ARDOR_HAS_UI)
-          uiState.requiresEngineReload = false;
           if (args.enableUi && ui) {
             ardor::loadBankFromStore(uiState, store, args.bank);
             ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
+            auto telemetry = uiState.telemetry;
+            telemetry.bypassed = runtime.effectsBypassed();
+            ardor::updateRealtimeTelemetry(uiState, telemetry);
             ardor::setUiStatus(uiState, "Preset " + std::to_string(args.bank) + ":"
                                       + std::to_string(args.slot) + " active");
           }

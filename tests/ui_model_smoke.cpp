@@ -24,6 +24,11 @@ int require(bool ok, const char* message)
   return 0;
 }
 
+void completePreview(ardor::UiState& state)
+{
+  if (ardor::beginApplyingPreview(state)) ardor::completeStructuralPreview(state);
+}
+
 } // namespace
 
 int main()
@@ -92,10 +97,66 @@ int main()
   if (require(revisionState.revisions.header == initialRevisions.header + 1,
               "master volume should invalidate the header region")) return 1;
 
+  auto previewState = ardor::makeDemoUiState();
+  const auto previewBlocks = previewState.bank.presets[previewState.activePreset].blocks;
+  ardor::appendAssetBlock(previewState, 0);
+  if (require(previewState.previewState == ardor::UiPreviewState::Queued,
+              "structural edit should enter queued preview state")) return 1;
+  const auto queuedCount = previewState.bank.presets[previewState.activePreset].blocks.size();
+  ardor::appendAssetBlock(previewState, 1);
+  if (require(previewState.bank.presets[previewState.activePreset].blocks.size() == queuedCount,
+              "queued preview should reject conflicting structural edits")) return 1;
+  if (require(ardor::beginApplyingPreview(previewState)
+                && previewState.previewState == ardor::UiPreviewState::Applying,
+              "queued preview should become applying")) return 1;
+  ardor::failStructuralPreview(previewState, "test failure");
+  if (require(previewState.previewState == ardor::UiPreviewState::Synchronized
+                && previewState.bank.presets[previewState.activePreset].blocks.size() == previewBlocks.size()
+                && previewState.bank.presets[previewState.activePreset].blocks[0].id == previewBlocks[0].id
+                && !previewState.dirty,
+              "failed preview should restore the previous draft and dirty state")) return 1;
+
+  auto failedSecondEditState = ardor::makeDemoUiState();
+  const auto originalBlockCount =
+    failedSecondEditState.bank.presets[failedSecondEditState.activePreset].blocks.size();
+  ardor::appendAssetBlock(failedSecondEditState, 0);
+  completePreview(failedSecondEditState);
+  if (require(failedSecondEditState.blockEditUndo.has_value()
+                && failedSecondEditState.blockEditUndo->blocks.size() == originalBlockCount,
+              "successful structural edit should retain its prior Undo snapshot")) return 1;
+  const auto blocksBeforeFailedEdit =
+    failedSecondEditState.bank.presets[failedSecondEditState.activePreset].blocks.size();
+  ardor::appendAssetBlock(failedSecondEditState, 1);
+  if (require(ardor::beginApplyingPreview(failedSecondEditState),
+              "second structural edit should begin applying")) return 1;
+  ardor::failStructuralPreview(failedSecondEditState, "second edit failed");
+  if (require(failedSecondEditState.bank.presets[failedSecondEditState.activePreset].blocks.size()
+                  == blocksBeforeFailedEdit
+                && failedSecondEditState.blockEditUndo.has_value()
+                && failedSecondEditState.blockEditUndo->blocks.size() == originalBlockCount,
+              "failed structural edit should restore the previous Undo history")) return 1;
+  if (require(ardor::undoLastBlockEdit(failedSecondEditState)
+                && failedSecondEditState.bank.presets[failedSecondEditState.activePreset].blocks.size()
+                     == originalBlockCount,
+              "Undo after a failed edit should still undo the preceding successful edit")) return 1;
+  completePreview(failedSecondEditState);
+
+  previewState.dirty = true;
+  if (require(!ardor::requestPresetNavigation(previewState, {0, 1})
+                && previewState.navigationPrompt.has_value(),
+              "dirty preset navigation should require a decision")) return 1;
+  if (require(!ardor::confirmNavigation(previewState, ardor::UiNavigationDecision::Cancel).has_value()
+                && !previewState.navigationPrompt.has_value(),
+              "cancel should retain the current draft")) return 1;
+  (void)ardor::requestPresetNavigation(previewState, {0, 1});
+  const auto discardedTarget = ardor::confirmNavigation(previewState, ardor::UiNavigationDecision::Discard);
+  if (require(discardedTarget.has_value() && discardedTarget->preset == 1,
+              "discard should release the selected destination for activation")) return 1;
+
   const int masterVolume = state.masterVolume;
   ardor::setActiveInputGainDb(state, 1.0f);
   if (require(state.masterVolume == masterVolume, "preset parameter edits should not change master volume")) return 1;
-  if (require(!state.requiresEngineReload, "global gain is a live edit")) return 1;
+  if (require(ardor::previewIsSynchronized(state), "global gain is a live edit")) return 1;
   state.dirty = false;
 
   if (require(ardor::consumePendingSlotRequest(state) == -1, "initial pending slot should be empty")) return 1;
@@ -161,20 +222,25 @@ int main()
   if (require(trem.params.contains("depth"), "daisy block should include default params")) return 1;
   if (require(state.paramDrawerOpen && !state.blockDrawerOpen,
               "daisy add should transition directly into its parameter editor")) return 1;
-  if (require(state.requiresEngineReload, "adding a block requires a prepared engine")) return 1;
+  if (require(state.previewState == ardor::UiPreviewState::Queued,
+              "adding a block should queue a prepared preview")) return 1;
 
+  completePreview(state);
   ardor::appendAssetBlock(state, tremIndex);
   if (require(state.bank.presets[state.activePreset].blocks.size() == beforeTremAdd + 2,
               "UI should allow multiple Daisy blocks in the same category")) return 1;
 
   ardor::selectBlock(state, state.bank.presets[state.activePreset].blocks.size() - 1);
   ardor::setSelectedBlockParam(state, "depth", 0.25f);
-  if (require(state.requiresEngineReload, "a prior structural edit remains pending")) return 1;
+  if (require(state.previewState == ardor::UiPreviewState::Queued,
+              "second structural edit should queue a preview")) return 1;
   const auto tremPreset = ardor::activePresetToPreset(state);
   if (require(tremPreset.blocks.back().type == "mod", "daisy block should save as mod")) return 1;
   if (require(tremPreset.blocks.back().asset.empty(), "daisy block should save empty asset")) return 1;
   if (require(tremPreset.blocks.back().params.value("depth", 0.0f) == 0.25f, "daisy params should save")) return 1;
   ardor::closeParamDrawer(state);
+
+  completePreview(state);
 
   auto delayAsset = std::find_if(state.assets.begin(), state.assets.end(), [](const ardor::UiAsset& asset) {
     return asset.name == "Digital Delay";
@@ -202,6 +268,8 @@ int main()
               && compressorControls[1].label == "Ratio", "compressor controls should have meaningful labels")) return 1;
   ardor::closeParamDrawer(state);
 
+  completePreview(state);
+
   const auto beforeAdd = state.bank.presets[state.activePreset].blocks.size();
   ardor::appendAssetBlock(state, 1);
   const auto& added = state.bank.presets[state.activePreset].blocks.back();
@@ -212,6 +280,8 @@ int main()
   if (require(state.selectedBlock == beforeAdd, "added block should be selected")) return 1;
   if (require(state.paramDrawerOpen && !state.blockDrawerOpen,
               "added block should open its parameter drawer exclusively")) return 1;
+
+  completePreview(state);
 
   const auto beforeInsert = state.bank.presets[state.activePreset].blocks.size();
   ardor::insertAssetBlock(state, 0, 1);
@@ -224,6 +294,8 @@ int main()
   if (require(state.paramDrawerOpen && !state.blockDrawerOpen,
               "inserted block should open its parameter drawer exclusively")) return 1;
 
+  completePreview(state);
+
   const auto firstBeforeMove = state.bank.presets[state.activePreset].blocks[0].id;
   const auto secondBeforeMove = state.bank.presets[state.activePreset].blocks[1].id;
   const bool dirtyBeforeMove = state.dirty;
@@ -232,13 +304,17 @@ int main()
   if (require(state.bank.presets[state.activePreset].blocks[1].id == firstBeforeMove, "source block should land at target")) return 1;
   if (require(state.selectedBlock == 1, "moved block should stay selected")) return 1;
   if (require(state.dirty, "moving block should dirty preset")) return 1;
+  completePreview(state);
   if (require(state.blockEditUndo.has_value() && ardor::undoLastBlockEdit(state),
               "moving a block should expose a one-step undo")) return 1;
   if (require(state.bank.presets[state.activePreset].blocks[0].id == firstBeforeMove
                 && state.bank.presets[state.activePreset].blocks[1].id == secondBeforeMove
                 && state.dirty == dirtyBeforeMove,
               "undo should restore block order and edit state")) return 1;
+  completePreview(state);
   ardor::moveBlock(state, 0, 1);
+
+  completePreview(state);
 
   const ardor::Preset savedPreset = ardor::activePresetToPreset(state);
   if (require(savedPreset.name == state.bank.presets[state.activePreset].name, "ui preset name maps to preset")) return 1;
@@ -254,7 +330,7 @@ int main()
   if (require(state.bank.presets[state.activePreset].blocks.size() == 1, "preset load updates ui block count")) return 1;
   if (require(state.bank.presets[state.activePreset].blocks[0].assetPath == "irs/loaded.wav", "preset load updates asset path")) return 1;
   if (require(!state.dirty, "loading preset clears dirty flag")) return 1;
-  if (require(!state.requiresEngineReload, "loading a prepared preset clears structural reload")) return 1;
+  if (require(ardor::previewIsSynchronized(state), "loading a prepared preset synchronizes preview state")) return 1;
 
   replacement.global.inputGainDb = -6.0f;
   replacement.global.outputGainDb = -3.0f;
@@ -279,7 +355,7 @@ int main()
 
   state.dirty = false;
   ardor::setSelectedBlockParam(state, "mix", 0.25f);
-  if (require(!state.requiresEngineReload, "cab mix is a live edit")) return 1;
+  if (require(ardor::previewIsSynchronized(state), "cab mix is a live edit")) return 1;
   const auto editedPreset = ardor::activePresetToPreset(state);
   if (require(editedPreset.global.inputGainDb == 12.0f, "saved input global should round-trip")) return 1;
   if (require(editedPreset.blocks[0].params.value("mix", 0.0f) == 0.25f, "saved block params should round-trip")) return 1;
@@ -292,7 +368,9 @@ int main()
   if (require(cabParamPreset.blocks[0].params.value("mix", 0.0f) == 0.5f, "cab mix should save")) return 1;
 
   ardor::insertAssetBlock(state, 0, 0);
+  completePreview(state);
   ardor::insertAssetBlock(state, 0, 0);
+  completePreview(state);
   if (require(state.bank.presets[state.activePreset].blocks[0].id != state.bank.presets[state.activePreset].blocks[1].id,
               "inserted block ids should be unique")) return 1;
   if (require(state.bank.presets[state.activePreset].blocks[0].id != state.bank.presets[state.activePreset].blocks[2].id,
@@ -300,6 +378,7 @@ int main()
 
   while (state.bank.presets[state.activePreset].blocks.size() < ardor::kMaxEffectBlocks) {
     ardor::appendAssetBlock(state, 0);
+    completePreview(state);
   }
   const auto fullChainSize = state.bank.presets[state.activePreset].blocks.size();
   ardor::appendAssetBlock(state, 0);
@@ -336,12 +415,22 @@ int main()
   if (require(diskState.bank.presets[1].name == "Empty 2", "missing slot should become empty")) return 1;
 
   ardor::appendAssetBlock(diskState, 1);
+  completePreview(diskState);
   std::string ioError;
   if (require(ardor::saveActivePresetToStore(diskState, store, 0, ioError), "active preset save should succeed")) return 1;
   if (require(!diskState.dirty, "saving should clear dirty flag")) return 1;
-  if (require(diskState.requiresEngineReload, "saving does not erase a pending structural reload")) return 1;
+  if (require(ardor::previewIsSynchronized(diskState), "save should not require an engine reload")) return 1;
   const auto saved = store.load({0, 0});
   if (require(saved.blocks.size() == 2, "saved preset should include edited chain")) return 1;
+  const auto blockedRoot = root / "not-a-directory";
+  std::ofstream(blockedRoot).put('\n');
+  ardor::PresetStore blockedStore(blockedRoot);
+  auto failedSaveState = ardor::makeDemoUiState();
+  failedSaveState.dirty = true;
+  std::string failedSaveError;
+  if (require(!ardor::saveActivePresetToStore(failedSaveState, blockedStore, 0, failedSaveError)
+                && failedSaveState.dirty && !failedSaveError.empty(),
+              "failed Save should preserve a dirty, retryable draft")) return 1;
   std::filesystem::remove_all(root);
 
   ardor::RuntimeTelemetry telemetry = ardor::makeRuntimeTelemetry(1000, 2, 1, 0.9, 0.3, 1.33, true);
@@ -387,6 +476,8 @@ int main()
   if (require(eqBlock.params.at("bands").size() == ardor::kParametricEqBandCount,
               "EQ block should include five bands")) return 1;
   if (require(migrationState.dirty, "adding an EQ block should dirty the preset")) return 1;
+
+  completePreview(migrationState);
 
   const auto originalEq = ardor::selectedParametricEqParams(migrationState);
   auto editedBand = originalEq.bands[2];

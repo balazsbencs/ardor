@@ -1,8 +1,11 @@
 #include "audio/PresetActivation.h"
+#include "preset/PresetStore.h"
 #include "ui/UiModel.h"
 
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -37,6 +40,12 @@ void requireFiniteOutput(ardor::PedalEngine& engine, const std::string& context)
   for (const float sample : right) {
     require(std::isfinite(sample), context + ": right output must remain finite");
   }
+}
+
+std::string readFile(const std::filesystem::path& path)
+{
+  std::ifstream in(path, std::ios::binary);
+  return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
 }
 
 } // namespace
@@ -113,6 +122,120 @@ int main()
     require(ardor::consumePendingSlotRequest(uiState) == -1,
             "post-activation UI synchronization must not request a redundant swap");
     requireFiniteOutput(*liveEngine, "successful activation");
+
+    // Exercise the same draft -> prepared-engine lifecycle used by the live
+    // editor. The added block must immediately accept atomic updates after its
+    // preview completes; delete and Undo must update the runtime too.
+    auto previewUi = ardor::makeDemoUiState();
+    previewUi.activeBank = 8;
+    ardor::synchronizePresetSelection(previewUi, 2);
+    ardor::replaceActivePreset(previewUi, tremPreset("Preview base"));
+    auto tremAsset = std::find_if(previewUi.assets.begin(), previewUi.assets.end(), [](const ardor::UiAsset& asset) {
+      return asset.name == "Vintage Trem";
+    });
+    require(tremAsset != previewUi.assets.end(), "preview test needs the Vintage Trem asset");
+    auto previewEngine = std::make_unique<ardor::PedalEngine>();
+    require(ardor::applyPreset(*previewEngine, ardor::activePresetToPreset(previewUi), root, options, error), error);
+    ardor::ActivePresetSelection previewSelection{8, 2};
+    ardor::PresetStore previewStore(root);
+    previewStore.save({previewSelection.bank, previewSelection.slot}, ardor::activePresetToPreset(previewUi));
+    const auto previewPath = previewStore.pathFor({previewSelection.bank, previewSelection.slot});
+    const auto persistedBeforePreview = readFile(previewPath);
+    int previewReplacements = 0;
+    const auto activatePreview = [&]() {
+      require(ardor::beginApplyingPreview(previewUi), "queued live edit should begin applying");
+      const auto outcome = ardor::prepareAndActivateDraft(
+        previewEngine, ardor::activePresetToPreset(previewUi), root, options, 0.7f,
+        [&](ardor::PedalEngine&) {
+          ++previewReplacements;
+          return ardor::EngineReplaceResult::Activated;
+        });
+      require(outcome.activated(), "live edit preview should activate");
+      require(previewSelection.bank == 8 && previewSelection.slot == 2,
+              "draft activation must not alter the committed preset selection");
+      ardor::completeStructuralPreview(previewUi);
+    };
+    ardor::appendAssetBlock(previewUi, static_cast<std::size_t>(std::distance(previewUi.assets.begin(), tremAsset)));
+    require(previewUi.previewState == ardor::UiPreviewState::Queued,
+            "adding an effect should queue a live preview");
+    const std::string addedId = previewUi.bank.presets[previewUi.activePreset].blocks.back().id;
+    activatePreview();
+    require(previewEngine->setDaisyParameter(addedId, "depth", 0.25f),
+            "added effect must accept live parameters after activation");
+    require(readFile(previewPath) == persistedBeforePreview,
+            "successful preview must not write preset storage");
+    const auto engineBeforeSave = previewEngine.get();
+    require(ardor::saveActivePresetToStore(previewUi, previewStore, previewSelection.bank, error),
+            "saving a synchronized preview should succeed");
+    require(previewEngine.get() == engineBeforeSave && previewReplacements == 1,
+            "Save must persist without another engine activation");
+    require(readFile(previewPath) != persistedBeforePreview,
+            "Save must persist the already-audible preview draft");
+
+    require(ardor::deleteSelectedBlock(previewUi), "delete should queue a live preview");
+    activatePreview();
+    require(!previewEngine->setDaisyParameter(addedId, "depth", 0.5f),
+            "deleted effect must no longer exist in the runtime chain");
+
+    require(ardor::undoLastBlockEdit(previewUi), "Undo should queue restoration preview");
+    activatePreview();
+    require(previewEngine->setDaisyParameter(addedId, "depth", 0.5f),
+            "Undo must restore the effect to the runtime chain");
+    require(previewReplacements == 3, "each structural preview should activate exactly once");
+
+    const auto engineBeforeRejectedPreview = previewEngine.get();
+    const auto rejectedRollback = ardor::captureUiPreviewSnapshot(previewUi);
+    previewUi.bank.presets[previewUi.activePreset].blocks.front().params["mode"] = "bogus";
+    previewUi.dirty = true;
+    require(ardor::queuePreview(previewUi, rejectedRollback, "invalid effect"),
+            "invalid candidate should still enter preview flow");
+    require(ardor::beginApplyingPreview(previewUi), "invalid candidate should begin applying");
+    const auto rejected = ardor::prepareAndActivateDraft(
+      previewEngine, ardor::activePresetToPreset(previewUi), root, options, 0.7f,
+      [&](ardor::PedalEngine&) {
+        ++previewReplacements;
+        return ardor::EngineReplaceResult::Activated;
+      });
+    require(rejected.status == ardor::PresetActivationStatus::PreparationFailed,
+            "invalid candidate must fail before backend activation");
+    ardor::failStructuralPreview(previewUi, rejected.error);
+    require(previewEngine.get() == engineBeforeRejectedPreview
+              && previewUi.bank.presets[previewUi.activePreset].blocks.front().params.value("mode", "")
+                   == "vintage_trem",
+            "failed preview must retain the audible engine and restore the complete draft");
+    require(previewReplacements == 3, "failed preparation must not invoke the backend");
+
+    const int replacementsBeforeStress = previewReplacements;
+    for (int edit = 0; edit < 100; ++edit) {
+      switch (edit % 4) {
+      case 0: {
+        const auto& blocks = previewUi.bank.presets[previewUi.activePreset].blocks;
+        const auto added = std::find_if(blocks.begin(), blocks.end(), [&](const ardor::UiBlock& block) {
+          return block.id == addedId;
+        });
+        require(added != blocks.end(), "stress chain must retain the added block");
+        ardor::selectBlock(previewUi, static_cast<std::size_t>(std::distance(blocks.begin(), added)));
+        ardor::setSelectedBlockEnabled(previewUi, !added->enabled);
+        break;
+      }
+      case 1:
+        ardor::moveBlock(previewUi, 0, 1);
+        break;
+      case 2:
+        require(ardor::undoLastBlockEdit(previewUi), "stress Undo should be available after reorder");
+        break;
+      case 3:
+        ardor::moveBlock(previewUi, 1, 0);
+        break;
+      }
+      require(previewUi.previewState == ardor::UiPreviewState::Queued,
+              "each stress edit should queue one preview");
+      activatePreview();
+      requireFiniteOutput(*previewEngine, "structural preview stress");
+    }
+    require(previewReplacements == replacementsBeforeStress + 100,
+            "stress edits should produce exactly one activation each");
+    requireFiniteOutput(*previewEngine, "live edit preview lifecycle");
     return 0;
   } catch (const std::exception& e) {
     std::cerr << "preset_activation_smoke failed: " << e.what() << '\n';
