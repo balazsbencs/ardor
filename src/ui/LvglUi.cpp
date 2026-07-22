@@ -1998,6 +1998,7 @@ void LvglUi::rebuildPresetView(UiState& state)
   presetCardLabels_.fill(nullptr);
   presetCardButtons_.fill(nullptr);
   presetIndicators_.fill(nullptr);
+  presetWarningLabels_.fill(nullptr);
   presetBankLabel_ = nullptr;
   masterVolumeLabel_ = nullptr;
   bankDownButton_ = nullptr;
@@ -2470,6 +2471,10 @@ void LvglUi::syncPersistentViews(UiState& state)
     lv_obj_set_style_text_color(presetCardLabels_[i], lv_color_hex(i == state.activePreset ? accent : text), 0);
     if (i == state.activePreset) lv_obj_remove_flag(presetIndicators_[i], LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(presetIndicators_[i], LV_OBJ_FLAG_HIDDEN);
+    if (presetWarningLabels_[i]) {
+      if (presetHasUnavailableAssets(state, i)) lv_obj_remove_flag(presetWarningLabels_[i], LV_OBJ_FLAG_HIDDEN);
+      else lv_obj_add_flag(presetWarningLabels_[i], LV_OBJ_FLAG_HIDDEN);
+    }
     lv_obj_remove_flag(presetCardButtons_[i], LV_OBJ_FLAG_HIDDEN);
   }
   if (editPresetLabel_) {
@@ -2714,6 +2719,12 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     lv_obj_remove_flag(indicator, LV_OBJ_FLAG_CLICKABLE);
     presetIndicators_[i] = indicator;
     if (!populated || i != state.activePreset) lv_obj_add_flag(indicator, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_t* unavailable = label(preset, "!  MISSING ASSET", LV_ALIGN_TOP_RIGHT, -18, 18,
+                                  &ardor_font_open_sans_regular_18, warning);
+    presetWarningLabels_[i] = unavailable;
+    if (!populated || !presetHasUnavailableAssets(state, i)) {
+      lv_obj_add_flag(unavailable, LV_OBJ_FLAG_HIDDEN);
+    }
     if (!populated) lv_obj_add_flag(preset, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_event_cb(preset, onPresetClicked, LV_EVENT_CLICKED, remember(state, i));
   }

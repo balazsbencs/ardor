@@ -795,6 +795,26 @@ int main()
   if (require(findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x43f05a), 4),
               "active preset should have a thin acid-green indicator")) return 1;
   lv_obj_t* retainedPresetCard = lv_obj_get_parent(presetName);
+  const auto installedAssetPath = state.bank.presets[state.activePreset].blocks[0].assetPath;
+  const auto installedBlockType = state.bank.presets[state.activePreset].blocks[0].type;
+  const bool installedBlockEnabled = state.bank.presets[state.activePreset].blocks[0].enabled;
+  state.bank.presets[state.activePreset].blocks[0].type = "nam";
+  state.bank.presets[state.activePreset].blocks[0].enabled = true;
+  state.bank.presets[state.activePreset].blocks[0].assetPath = "models/not-installed.nam";
+  if (require(ardor::presetHasUnavailableAssets(state, state.activePreset),
+              "test preset should be unavailable after removing its model")) return 1;
+  ardor::markUiChanged(state, ardor::UiChange::Presets);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_t* unavailableLabel = findLabel(retainedPresetCard, "!  MISSING ASSET");
+  if (require(unavailableLabel && !lv_obj_has_flag(unavailableLabel, LV_OBJ_FLAG_HIDDEN),
+              "preset cards should identify presets with unavailable assets")) return 1;
+  state.bank.presets[state.activePreset].blocks[0].assetPath = installedAssetPath;
+  state.bank.presets[state.activePreset].blocks[0].type = installedBlockType;
+  state.bank.presets[state.activePreset].blocks[0].enabled = installedBlockEnabled;
+  ardor::markUiChanged(state, ardor::UiChange::Presets);
+  ui.refresh(lv_screen_active(), state);
+  if (require(lv_obj_has_flag(unavailableLabel, LV_OBJ_FLAG_HIDDEN),
+              "the unavailable indicator should clear after the asset is repaired")) return 1;
   const auto originalPresetName = state.bank.presets[state.activePreset].name;
   state.bank.presets[state.activePreset].name = "Retained preset";
   ardor::markUiChanged(state, ardor::UiChange::Presets);

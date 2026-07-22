@@ -502,6 +502,20 @@ Preset activePresetToPreset(const UiState& state)
   return preset;
 }
 
+bool presetHasUnavailableAssets(const UiState& state, std::size_t presetIndex)
+{
+  if (presetIndex >= state.bank.presets.size()) return false;
+  for (const auto& block : state.bank.presets[presetIndex].blocks) {
+    if (!block.enabled || (block.type != "nam" && block.type != "cab")) continue;
+    if (block.assetPath.empty()) return true;
+    const bool installed = std::any_of(state.assets.begin(), state.assets.end(), [&](const UiAsset& asset) {
+      return asset.path == block.assetPath;
+    });
+    if (!installed) return true;
+  }
+  return false;
+}
+
 void replaceActivePreset(UiState& state, const Preset& preset)
 {
   auto& uiPreset = state.bank.presets[state.activePreset];

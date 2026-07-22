@@ -403,6 +403,10 @@ int main()
   diskPreset.name = "Disk Clean";
   diskPreset.blocks.push_back({"amp-1", "nam", true, "models/clean.nam", nlohmann::json::object()});
   store.save({0, 0}, diskPreset);
+  auto missingModelPreset = diskPreset;
+  missingModelPreset.name = "Needs Model";
+  missingModelPreset.blocks[0].asset = "models/not-installed.nam";
+  store.save({0, 2}, missingModelPreset);
 
   auto diskState = ardor::makeDemoUiState();
   ardor::loadAssetsFromDataRoot(diskState, root);
@@ -413,6 +417,12 @@ int main()
   if (require(diskState.bank.name == "Bank 000", "disk bank name")) return 1;
   if (require(diskState.bank.presets[0].name == "Disk Clean", "bank slot should load preset")) return 1;
   if (require(diskState.bank.presets[1].name == "Empty 2", "missing slot should become empty")) return 1;
+  if (require(!ardor::presetHasUnavailableAssets(diskState, 0)
+                && ardor::presetHasUnavailableAssets(diskState, 2),
+              "missing NAM assets should mark only the affected preset unavailable")) return 1;
+  diskState.bank.presets[2].blocks[0].enabled = false;
+  if (require(!ardor::presetHasUnavailableAssets(diskState, 2),
+              "a bypassed missing asset should not prevent preset activation")) return 1;
 
   ardor::appendAssetBlock(diskState, 1);
   completePreview(diskState);

@@ -8,13 +8,25 @@ export function ConnectionDialog({ open, onOpenChange }: { open: boolean; onOpen
   const [baseUrl, setBaseUrl] = useState(session.baseUrl);
   const [token, setToken] = useState("");
   const tokenRef = useRef<HTMLInputElement>(null);
+  const connectionAttempted = useRef(false);
 
   useEffect(() => {
     if (session.needsTokenFocus) tokenRef.current?.focus();
   }, [session.needsTokenFocus]);
 
+  useEffect(() => {
+    if (!open || !connectionAttempted.current || session.status !== "connected") return;
+    connectionAttempted.current = false;
+    onOpenChange(false);
+  }, [open, onOpenChange, session.status]);
+
+  const updateOpen = (nextOpen: boolean) => {
+    if (!nextOpen) connectionAttempted.current = false;
+    onOpenChange(nextOpen);
+  };
+
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+    <Dialog.Root open={open} onOpenChange={updateOpen}>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content aria-describedby={undefined} className="connection-dialog">
@@ -22,6 +34,7 @@ export function ConnectionDialog({ open, onOpenChange }: { open: boolean; onOpen
           <Dialog.Title>Connect to Ardor</Dialog.Title>
           <form className="connection-dialog__form" onSubmit={(event) => {
             event.preventDefault();
+            connectionAttempted.current = true;
             void session.connect(baseUrl, token);
           }}>
             <label>

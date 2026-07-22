@@ -649,7 +649,8 @@ int main(int argc, char** argv)
         ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
         ui = std::make_unique<ardor::LvglUi>(ardor::UiActions{
           [&](std::size_t index) {
-            if (ardor::requestPresetNavigation(uiState, {args.bank, index})) {
+            if (ardor::requestPresetNavigation(uiState, {uiState.activeBank, index})) {
+              requestedBank.store(uiState.activeBank, std::memory_order_relaxed);
               requestedSlot.store(static_cast<int>(index), std::memory_order_relaxed);
             }
           },
@@ -659,7 +660,7 @@ int main(int argc, char** argv)
               ardor::setUiStatus(uiState, "Effect chain is still applying", true);
               return;
             }
-            if (!ardor::saveActivePresetToStore(uiState, store, args.bank, saveError)) {
+            if (!ardor::saveActivePresetToStore(uiState, store, uiState.activeBank, saveError)) {
               std::cerr << saveError << "\n";
               ardor::setUiStatus(uiState, "Save failed: " + saveError, true);
             } else {
@@ -697,13 +698,13 @@ int main(int argc, char** argv)
           },
           [&](int delta) {
             const int pending = requestedBank.load(std::memory_order_relaxed);
-            const int current = pending >= 0 ? pending : args.bank;
+            const int current = pending >= 0 ? pending : uiState.activeBank;
             const int target = std::clamp(current + delta, 0, 99);
             if (target != current
                 && ardor::requestPresetNavigation(uiState,
-                                                   {target, static_cast<std::size_t>(args.slot)})) {
+                                                   {target, uiState.activePreset})) {
               requestedBank.store(target, std::memory_order_relaxed);
-              requestedSlot.store(args.slot, std::memory_order_relaxed);
+              requestedSlot.store(static_cast<int>(uiState.activePreset), std::memory_order_relaxed);
             }
           },
           [&](ardor::UiNavigationDecision decision) {
@@ -713,7 +714,7 @@ int main(int argc, char** argv)
             }
             if (decision == ardor::UiNavigationDecision::Save) {
               std::string saveError;
-              if (!ardor::saveActivePresetToStore(uiState, store, args.bank, saveError)) {
+              if (!ardor::saveActivePresetToStore(uiState, store, uiState.activeBank, saveError)) {
                 ardor::setUiStatus(uiState, "Save failed: " + saveError, true);
                 return;
               }
@@ -984,6 +985,13 @@ int main(int argc, char** argv)
             if (activation.activated()) {
               runtime.changePreset();
               liveEngine->setEffectsBypassed(runtime.effectsBypassed());
+              // Repairing an unavailable preset through a structural edit
+              // makes that draft the audible selection for subsequent saves
+              // and navigation.
+              activeSelection = {uiState.activeBank, static_cast<int>(uiState.activePreset)};
+              args.bank = activeSelection.bank;
+              args.slot = activeSelection.slot;
+              controls.activeSlot = activeSelection.slot;
               auto telemetry = uiState.telemetry;
               telemetry.bypassed = runtime.effectsBypassed();
               ardor::updateRealtimeTelemetry(uiState, telemetry);
@@ -1054,9 +1062,12 @@ int main(int argc, char** argv)
               if (uiState.dirty) {
                 ardor::setUiStatus(uiState, "Could not switch preset; current edits retained.", true);
               } else {
-                ardor::loadBankFromStore(uiState, store, args.bank);
-                ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
-                ardor::setUiStatus(uiState, "Preset load failed: " + preflightError, true);
+                // Keep the last valid engine audible, but open the rejected
+                // preset so its missing asset can be repaired in Edit mode.
+                ardor::loadBankFromStore(uiState, store, targetBank);
+                ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(nextSlot));
+                ardor::setUiStatus(uiState, "Preset unavailable: " + preflightError
+                                            + ". Open Edit to repair it.", true);
               }
             }
 #endif
@@ -1074,9 +1085,10 @@ int main(int argc, char** argv)
                 if (uiState.dirty) {
                   ardor::setUiStatus(uiState, "Could not switch preset; current edits retained.", true);
                 } else {
-                  ardor::loadBankFromStore(uiState, store, args.bank);
-                  ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
-                  ardor::setUiStatus(uiState, "Preset load failed: " + activation.error, true);
+                  ardor::loadBankFromStore(uiState, store, targetBank);
+                  ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(nextSlot));
+                  ardor::setUiStatus(uiState, "Preset unavailable: " + activation.error
+                                              + ". Open Edit to repair it.", true);
                 }
               }
 #endif

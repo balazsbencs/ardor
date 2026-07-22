@@ -202,6 +202,9 @@ void closeParamDrawer(UiState& state);
 void setCategoryFilter(UiState& state, std::string filter);
 Preset activePresetToPreset(const UiState& state);
 void replaceActivePreset(UiState& state, const Preset& preset);
+// A preset with an enabled NAM or cab block whose asset is not installed can
+// still be opened and edited, but cannot be made audible.
+bool presetHasUnavailableAssets(const UiState& state, std::size_t presetIndex);
 
 void selectGlobalParams(UiState& state);
 void setSelectedBlockEnabled(UiState& state, bool enabled);
