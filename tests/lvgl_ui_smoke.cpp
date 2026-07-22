@@ -228,9 +228,12 @@ int main()
   if (require(state.dirty, "clamped delta should preserve setter dirty behavior")) return 1;
 
   int requestedBankDelta = 0;
+  int requestedTunerMode = -1;
   ardor::LvglUi ui({
     {}, {}, {}, {}, {}, {}, {},
     [&](int delta) { requestedBankDelta += delta; },
+    {},
+    [&](bool enabled) { requestedTunerMode = enabled ? 1 : 0; },
   });
   const int masterVolume = state.masterVolume;
   ui.focusParameter("levelDb");
@@ -900,8 +903,10 @@ int main()
   lv_obj_send_event(bankUpButton, LV_EVENT_CLICKED, nullptr);
   if (require(requestedBankDelta == 1, "bank up should request the next bank")) return 1;
   lv_obj_send_event(tunerButton, LV_EVENT_PRESSED, nullptr);
-  if (require(state.mode == ardor::UiMode::Tuner,
-              "pressing the preset-screen Tuner button should enter tuner mode")) return 1;
+  if (require(requestedTunerMode == 1 && state.mode == ardor::UiMode::Preset,
+              "the Tuner button should request a host-level tuner transition")) return 1;
+  requestedTunerMode = -1;
+  ardor::enterTunerMode(state);
   ui.refresh(lv_screen_active(), state);
   lv_obj_t* tunerTitle = findLabel(lv_screen_active(), "TUNER");
   if (require(tunerTitle && !lv_obj_has_flag(lv_obj_get_parent(tunerTitle), LV_OBJ_FLAG_HIDDEN),
@@ -1253,8 +1258,10 @@ int main()
                 && lv_obj_get_height(tunerExitButton) == 60,
               "tuner mode should render live note, mute state, and guidance")) return 1;
   lv_obj_send_event(tunerExitButton, LV_EVENT_PRESSED, nullptr);
-  if (require(state.mode == ardor::UiMode::Preset,
-              "pressing the tuner Exit button should return to preset mode")) return 1;
+  if (require(requestedTunerMode == 0 && state.mode == ardor::UiMode::Tuner,
+              "the tuner Exit button should request a host-level audio restore")) return 1;
+  requestedTunerMode = -1;
+  ardor::enterPresetMode(state);
   ui.refresh(lv_screen_active(), state);
   if (require(findLabel(lv_screen_active(), "Edit"),
               "exiting tuner should restore the preset screen")) return 1;

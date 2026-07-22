@@ -48,6 +48,9 @@ struct UiActions {
   std::function<void(float, float)> updateCabParameters;
   std::function<void(int)> changeBank;
   std::function<void(UiNavigationDecision)> resolveNavigation;
+  // Requests the host-level tuner transition so audio muting and analyzer
+  // routing change together with the visible screen.
+  std::function<void(bool)> setTunerMode;
 };
 
 class LvglUi {

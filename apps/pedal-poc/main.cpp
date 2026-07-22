@@ -586,6 +586,7 @@ int main(int argc, char** argv)
       ardor::FootswitchGesture footswitchGesture;
       ardor::TunerAnalyzer tuner(static_cast<float>(args.sampleRate));
       bool tunerMode = false;
+      int requestedTunerMode = -1;
       uint64_t lastTunerRevision = 0;
       std::array<float, 2048> tunerInput{};
       int deferredTunerBank = -1;
@@ -721,6 +722,9 @@ int main(int argc, char** argv)
             if (!target.has_value()) return;
             requestedBank.store(target->bank, std::memory_order_relaxed);
             requestedSlot.store(static_cast<int>(target->preset), std::memory_order_relaxed);
+          },
+          [&](bool enabled) {
+            requestedTunerMode = enabled ? 1 : 0;
           },
         });
         ui->build(lv_screen_active(), uiState);
@@ -897,6 +901,13 @@ int main(int argc, char** argv)
           applyFootswitchAction(*action);
         }
 #endif
+        if (requestedTunerMode >= 0) {
+          const bool requested = requestedTunerMode != 0;
+          requestedTunerMode = -1;
+          if (requested != tunerMode) {
+            applyFootswitchAction({ardor::FootswitchActionType::ToggleTuner, 0});
+          }
+        }
         if (tunerMode) {
           for (;;) {
             const std::size_t captured = backend.readCapturedInput(tunerInput.data(), tunerInput.size());

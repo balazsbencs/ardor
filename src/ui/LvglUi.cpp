@@ -315,14 +315,22 @@ void onNavigationDecision(lv_event_t* event)
 void onPresetModeClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  enterPresetMode(*context->state);
+  if (context->state->mode == UiMode::Tuner && context->ui->actions().setTunerMode) {
+    context->ui->actions().setTunerMode(false);
+  } else {
+    enterPresetMode(*context->state);
+  }
   redraw(context);
 }
 
 void onTunerModeClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  enterTunerMode(*context->state);
+  if (context->ui->actions().setTunerMode) {
+    context->ui->actions().setTunerMode(true);
+  } else {
+    enterTunerMode(*context->state);
+  }
   redraw(context);
 }
 
