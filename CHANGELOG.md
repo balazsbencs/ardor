@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.12](https://github.com/balazsbencs/ardor/compare/v0.1.10...v0.1.12) (2026-07-30)
+
+### Features
+
+* 3d printed enclosure in openscad ([46b02a9](https://github.com/balazsbencs/ardor/commit/46b02a9bbe15b0957a70933a365c1571ff03878b))
+
 ## [0.1.10](https://github.com/balazsbencs/ardor/compare/v0.1.9...v0.1.10) (2026-07-22)
 
 ## [0.1.9](https://github.com/balazsbencs/ardor/compare/v0.1.8...v0.1.9) (2026-07-22)
