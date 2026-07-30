@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.13](https://github.com/balazsbencs/ardor/compare/v0.1.12...v0.1.13) (2026-07-30)
+
+### Bug Fixes
+
+* 3d print screen cutout should not be centered ([aabf4ee](https://github.com/balazsbencs/ardor/commit/aabf4eeb67a42003022352b4371288070fd63109))
+
 ## [0.1.12](https://github.com/balazsbencs/ardor/compare/v0.1.10...v0.1.12) (2026-07-30)
 
 ### Features
