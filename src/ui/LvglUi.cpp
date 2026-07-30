@@ -1048,6 +1048,7 @@ void onLaneBlockPressed(lv_event_t* event)
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   context->dragging = false;
   context->suppressClick = false;
+  context->ui->setChainDragActive(true);
   const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
   if (context->parentIndex < blocks.size()
       && context->laneIndex < blocks[context->parentIndex].lanes.size()
@@ -1099,6 +1100,7 @@ void onLaneBlockReleased(lv_event_t* event)
   if (context->controlledObject) {
     lv_obj_set_style_opa(context->controlledObject, enabled ? LV_OPA_COVER : LV_OPA_70, 0);
   }
+  context->ui->setChainDragActive(false);
   if (!context->dragging) return;
   lv_indev_t* input = lv_event_get_indev(event);
   std::optional<UiLaneDropTarget> target;
@@ -1128,6 +1130,7 @@ void onLaneBlockPressLost(lv_event_t* event)
   if (context->controlledObject) {
     lv_obj_set_style_opa(context->controlledObject, enabled ? LV_OPA_COVER : LV_OPA_70, 0);
   }
+  context->ui->setChainDragActive(false);
   const bool wasDragging = context->dragging;
   clearDragVisuals(context);
   if (wasDragging) context->ui->endInteraction();
