@@ -1,22 +1,6 @@
 {
   "blocks": [
     {
-      "asset": "models/test.nam",
-      "enabled": true,
-      "id": "block-9",
-      "params": {
-        "useNano": false
-      },
-      "type": "nam"
-    },
-    {
-      "asset": "irs/test.wav",
-      "enabled": true,
-      "id": "block-10",
-      "params": {},
-      "type": "cab"
-    },
-    {
       "asset": "",
       "enabled": true,
       "id": "block-1",
@@ -35,22 +19,6 @@
         "threshold_db": -27.0
       },
       "type": "dynamics"
-    },
-    {
-      "asset": "",
-      "enabled": true,
-      "id": "block-4",
-      "params": {
-        "depth": 0.699999988079071,
-        "level": 0.5,
-        "mix": 0.5,
-        "mode": "chorus",
-        "p1": 0.6899999976158142,
-        "p2": 0.25,
-        "speed": 0.5419997572898865,
-        "tone": 0.44000011682510376
-      },
-      "type": "mod"
     },
     {
       "asset": "",

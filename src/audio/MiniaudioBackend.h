@@ -29,6 +29,9 @@ struct RealtimeOptions {
   // The Pi product must not hide converter latency behind a requested client
   // rate. Development callers may explicitly permit a converted device.
   bool requireNativeSampleRate = false;
+  // Optional Linux CPU affinity. The Buildroot image assigns the audio
+  // callback and parallel-rig worker to separate Pi cores.
+  int audioCpu = -1;
 };
 
 struct RealtimeStats {
@@ -38,6 +41,9 @@ struct RealtimeStats {
   // than 1.5x the expected quantum period means the device failed to wake
   // this thread on schedule, not that this callback's own work ran long.
   uint64_t callbackGaps = 0;
+  // Monotonic processing time lets the control thread derive a recent
+  // one-second average without reading or resetting audio-thread counters.
+  double totalProcessingMs = 0.0;
   double averageMs = 0.0;
   double maxMs = 0.0;
   double budgetMs = 0.0;
@@ -45,6 +51,7 @@ struct RealtimeStats {
   int schedulerPolicy = -1;
   int schedulerPriority = -1;
   int schedulerSetupError = 0;
+  int affinitySetupError = 0;
 };
 
 enum class EngineReplaceResult {

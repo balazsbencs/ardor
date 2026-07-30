@@ -51,21 +51,39 @@ export function BlockInspector({
   const definition = findEffectDefinition(block);
   if (!definition) return <UnknownInspector block={block} issues={issues} onToggle={onToggle} onDelete={onDelete} />;
   const modes = definition.mode ? allModesFor(definition) : [];
+  const renderControl = (control: EffectDefinition["controls"][number]) => {
+    if (control.kind === "asset") {
+      const value = control.key ? String(valueFor(block, control.key, "")) : block.asset;
+      return <AssetPicker key={control.key ?? control.label} value={value} label={control.label} assets={control.assetKind === "models" ? models : irs} onChange={(asset) => control.key ? onParam(block.id, control.key, asset) : onAsset(block.id, asset)} onAssets={onAssets} />;
+    }
+    if (control.kind === "number") return <ParameterSlider key={control.key} control={control} value={Number(valueFor(block, control.key, control.defaultValue))} onChange={(value) => onParam(block.id, control.key, value)} />;
+    if (control.kind === "choice") return <ChoiceField key={control.key} control={control} value={String(valueFor(block, control.key, control.defaultValue))} onChange={(value) => onParam(block.id, control.key, value)} />;
+    if (control.kind === "toggle") return <ToggleField key={control.key} control={control} value={Boolean(valueFor(block, control.key, control.defaultValue))} onChange={(value) => onParam(block.id, control.key, value)} />;
+    return <EqControls key="eq" block={block} onEqBand={onEqBand} />;
+  };
+  const controlKey = (control: EffectDefinition["controls"][number]) =>
+    "key" in control && typeof control.key === "string" ? control.key : "";
+  const generalControls = definition.controls.filter((control) => {
+    const key = controlKey(control);
+    return !key.startsWith("left") && !key.startsWith("right");
+  });
+  const leftControls = definition.controls.filter((control) => controlKey(control).startsWith("left"));
+  const rightControls = definition.controls.filter((control) => controlKey(control).startsWith("right"));
   return (
     <aside className="inspector" aria-label={`${definition.name} inspector`}>
       <div className="inspector__heading"><div><p className="eyebrow">{definition.category}</p><h2>{definition.name}</h2><span className="inspector__id">{block.id}</span></div><Toggle label={`${definition.name} enabled`} checked={block.enabled} onChange={(enabled) => onToggle(block.id, enabled)} /></div>
       {issues.length > 0 && <div className="inspector-issues">{issues.map((issue, index) => <p key={`${issue.code}-${index}`}><AlertTriangle size={15} /><span>{issue.message}</span></p>)}</div>}
       {modes.length > 1 && <label className="form-field"><span>Mode</span><select aria-label="Effect mode" value={definition.id} onChange={(event) => onMode(block.id, event.target.value)}>{modes.map((mode) => <option value={mode.id} key={mode.id}>{mode.name}</option>)}</select></label>}
       <div className="inspector__controls">
-        {definition.controls.map((control) => {
-          if (control.kind === "asset") return <AssetPicker key={control.label} block={block} label={control.label} assets={control.assetKind === "models" ? models : irs} onAsset={onAsset} onAssets={onAssets} />;
-          if (control.kind === "number") return <ParameterSlider key={control.key} control={control} value={Number(valueFor(block, control.key, control.defaultValue))} onChange={(value) => onParam(block.id, control.key, value)} />;
-          if (control.kind === "choice") return <ChoiceField key={control.key} control={control} value={String(valueFor(block, control.key, control.defaultValue))} onChange={(value) => onParam(block.id, control.key, value)} />;
-          if (control.kind === "toggle") return <ToggleField key={control.key} control={control} value={Boolean(valueFor(block, control.key, control.defaultValue))} onChange={(value) => onParam(block.id, control.key, value)} />;
-          return <EqControls key="eq" block={block} onEqBand={onEqBand} />;
-        })}
+        {(block.type === "dualAmp" || block.type === "dualRig") ? <>
+          {generalControls.map(renderControl)}
+          <div className="dual-amp-controls">
+            <fieldset><legend><span>L</span> Left lane</legend>{leftControls.map(renderControl)}</fieldset>
+            <fieldset><legend><span>R</span> Right lane</legend>{rightControls.map(renderControl)}</fieldset>
+          </div>
+        </> : definition.controls.map(renderControl)}
       </div>
-      <div className="inspector__footer"><Button variant="quiet" onClick={() => onReset(block.id)}><RotateCcw size={15} /> Reset</Button><Button variant="quiet" onClick={() => onDuplicate(block.id)}><Copy size={15} /> Duplicate</Button><Button variant="danger" onClick={() => onDelete(block.id)}><Trash2 size={15} /> Delete</Button></div>
+      <div className="inspector__footer"><Button variant="quiet" onClick={() => onReset(block.id)}><RotateCcw size={15} /> Reset</Button><Button variant="quiet" disabled={block.type === "dualAmp" || block.type === "dualRig"} onClick={() => onDuplicate(block.id)}><Copy size={15} /> Duplicate</Button><Button variant="danger" onClick={() => onDelete(block.id)}><Trash2 size={15} /> Delete</Button></div>
     </aside>
   );
 }
@@ -83,20 +101,20 @@ function ToggleField({ control, value, onChange }: { control: ToggleControl; val
 }
 
 function AssetPicker({
-  block,
+  value,
   label,
   assets,
-  onAsset,
+  onChange,
   onAssets,
 }: {
-  block: PresetBlock;
+  value: string;
   label: string;
   assets: Asset[];
-  onAsset(blockId: string, asset: string): void;
+  onChange(asset: string): void;
   onAssets(): void;
 }) {
-  const missing = block.asset.length > 0 && !assets.some((asset) => asset.path === block.asset);
-  return <div className="asset-picker"><label className="form-field"><span>{label}</span><select value={block.asset} onChange={(event) => onAsset(block.id, event.target.value)}><option value="">Choose an asset…</option>{missing && <option value={block.asset}>{block.asset} (missing)</option>}{assets.map((asset) => <option value={asset.path} key={asset.id}>{asset.filename}</option>)}</select></label>{missing && <p className="asset-picker__missing"><StatusBadge tone="warning">Missing</StatusBadge> This file is not installed.</p>}<Button variant="quiet" onClick={onAssets}>Manage assets</Button></div>;
+  const missing = value.length > 0 && !assets.some((asset) => asset.path === value);
+  return <div className="asset-picker"><label className="form-field"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}><option value="">Choose an asset…</option>{missing && <option value={value}>{value} (missing)</option>}{assets.map((asset) => <option value={asset.path} key={asset.id}>{asset.filename}</option>)}</select></label>{missing && <p className="asset-picker__missing"><StatusBadge tone="warning">Missing</StatusBadge> This file is not installed.</p>}<Button variant="quiet" onClick={onAssets}>Manage assets</Button></div>;
 }
 
 function EqControls({ block, onEqBand }: { block: PresetBlock; onEqBand(blockId: string, index: number, patch: Partial<EqBand>): void }) {

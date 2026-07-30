@@ -34,8 +34,9 @@ func NewStore(root string) Store {
 }
 
 func Validate(preset Preset) error {
-	if version, ok := preset["version"].(float64); !ok || version != 1 {
-		return errors.New("preset version must be 1")
+	version, ok := preset["version"].(float64)
+	if !ok || (version != 1 && version != 2) {
+		return errors.New("preset version must be 1 or 2")
 	}
 	if routing, ok := preset["routing"].(string); !ok || routing != "serial" {
 		return errors.New("preset routing must be serial")
@@ -47,6 +48,10 @@ func Validate(preset Preset) error {
 	if !ok {
 		return errors.New("preset blocks must be an array")
 	}
+	return validateBlocks(blocks, version, false)
+}
+
+func validateBlocks(blocks []any, version float64, insideLane bool) error {
 	for _, item := range blocks {
 		block, ok := item.(map[string]any)
 		if !ok {
@@ -55,6 +60,49 @@ func Validate(preset Preset) error {
 		asset, _ := block["asset"].(string)
 		if asset != "" && !validRelativeAsset(asset) {
 			return errors.New("preset asset must stay under data root")
+		}
+		if block["type"] == "dualAmp" {
+			if insideLane {
+				return errors.New("dual rig lanes cannot contain split blocks")
+			}
+			params, ok := block["params"].(map[string]any)
+			if !ok {
+				return errors.New("dual amp params must be an object")
+			}
+			for _, key := range []string{"leftNamAsset", "leftIrAsset", "rightNamAsset", "rightIrAsset"} {
+				asset, ok := params[key].(string)
+				if !ok {
+					return fmt.Errorf("dual amp %s must be an asset path", key)
+				}
+				if asset != "" && !validRelativeAsset(asset) {
+					return fmt.Errorf("dual amp %s must stay under data root", key)
+				}
+			}
+		}
+		if block["type"] == "dualRig" {
+			if version != 2 {
+				return errors.New("dual rig requires preset version 2")
+			}
+			if insideLane {
+				return errors.New("nested dual rig blocks are not supported")
+			}
+			lanes, ok := block["lanes"].(map[string]any)
+			if !ok {
+				return errors.New("dual rig lanes must be an object")
+			}
+			for _, laneName := range []string{"left", "right"} {
+				lane, ok := lanes[laneName].(map[string]any)
+				if !ok {
+					return fmt.Errorf("dual rig %s lane must be an object", laneName)
+				}
+				children, ok := lane["blocks"].([]any)
+				if !ok || len(children) == 0 {
+					return fmt.Errorf("dual rig %s lane must contain blocks", laneName)
+				}
+				if err := validateBlocks(children, version, true); err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return nil
@@ -68,6 +116,10 @@ func normalizeLegacyEffectBlocks(preset Preset) {
 	if !ok {
 		return
 	}
+	normalizeLegacyBlocks(blocks)
+}
+
+func normalizeLegacyBlocks(blocks []any) {
 	for _, item := range blocks {
 		block, ok := item.(map[string]any)
 		if !ok {
@@ -92,6 +144,13 @@ func normalizeLegacyEffectBlocks(preset Preset) {
 		case "dynamics":
 			if !hasMode || mode == "" {
 				params["mode"] = "compressor"
+			}
+		}
+		if lanes, ok := block["lanes"].(map[string]any); ok {
+			for _, laneName := range []string{"left", "right"} {
+				lane, _ := lanes[laneName].(map[string]any)
+				children, _ := lane["blocks"].([]any)
+				normalizeLegacyBlocks(children)
 			}
 		}
 	}
@@ -193,14 +252,7 @@ func (s Store) ReplaceAssetReferences(oldPath, newPath string) (int, error) {
 			if err != nil {
 				return changed, fmt.Errorf("load bank %d slot %d: %w", bank, slot, err)
 			}
-			dirty := false
-			for _, item := range loaded.Preset["blocks"].([]any) {
-				block := item.(map[string]any)
-				if asset, _ := block["asset"].(string); asset == oldPath {
-					block["asset"] = newPath
-					dirty = true
-				}
-			}
+			dirty := replaceAssetInBlocks(loaded.Preset["blocks"].([]any), oldPath, newPath)
 			if !dirty {
 				continue
 			}
@@ -211,6 +263,34 @@ func (s Store) ReplaceAssetReferences(oldPath, newPath string) (int, error) {
 		}
 	}
 	return changed, nil
+}
+
+func replaceAssetInBlocks(blocks []any, oldPath, newPath string) bool {
+	dirty := false
+	for _, item := range blocks {
+		block := item.(map[string]any)
+		if asset, _ := block["asset"].(string); asset == oldPath {
+			block["asset"] = newPath
+			dirty = true
+		}
+		if block["type"] == "dualAmp" {
+			params, _ := block["params"].(map[string]any)
+			for _, key := range []string{"leftNamAsset", "leftIrAsset", "rightNamAsset", "rightIrAsset"} {
+				if asset, _ := params[key].(string); asset == oldPath {
+					params[key] = newPath
+					dirty = true
+				}
+			}
+		}
+		if lanes, ok := block["lanes"].(map[string]any); ok {
+			for _, laneName := range []string{"left", "right"} {
+				lane, _ := lanes[laneName].(map[string]any)
+				children, _ := lane["blocks"].([]any)
+				dirty = replaceAssetInBlocks(children, oldPath, newPath) || dirty
+			}
+		}
+	}
+	return dirty
 }
 
 func (s Store) pathFor(bank int, slot int) string {

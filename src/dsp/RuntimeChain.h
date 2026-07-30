@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dsp/ClipDiagnostics.h"
+#include "dsp/SignalRouting.h"
 #include "daisyfx/DaisyFxProcessor.h"
 #include "dynamics/CompressorProcessor.h"
 #include "equalizer/EqParameters.h"
@@ -16,6 +17,8 @@ namespace ardor {
 
 class IrConvolver;
 class NamProcessor;
+struct DualRigLaneConfig;
+struct DualAmpLaneConfig;
 
 class RuntimeChain {
 public:
@@ -29,7 +32,14 @@ public:
   void prepareBlockSize(size_t frames);
   void clear();
   bool addNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
-              std::string id = "nam", float slimmableSize = 1.0f);
+              std::string id = "nam", float slimmableSize = 1.0f,
+              NamInputMode inputMode = NamInputMode::Sum);
+  bool addDualAmp(std::string id, DualAmpLaneConfig left, DualAmpLaneConfig right,
+                  NamInputMode inputMode, double sampleRate, int maxBlockSize,
+                  bool requestParallel, int workerCpu, std::string& error);
+  bool addDualRig(std::string id, DualRigLaneConfig left, DualRigLaneConfig right,
+                  NamInputMode inputMode, double sampleRate, std::size_t blockSize,
+                  bool requestParallel, int workerCpu, std::string& error);
   void addCab(std::vector<float> impulse, float level, float mix, std::string id = "cab");
   void addDaisy(std::string id, DaisyFxProcessor processor);
   void addCompressor(std::string id, CompressorProcessor processor);
@@ -37,14 +47,22 @@ public:
   bool setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params);
   bool setDaisyParameter(const std::string& id, const std::string& key, float normalized);
   bool setCompressorParameter(const std::string& id, const std::string& key, float value);
-  StereoSample process(StereoSample input, float cabLevel = 1.0f, float cabMix = 1.0f);
+  // Negative cab arguments use each cabinet block's prepared level/mix. The
+  // PedalEngine supplies non-negative smoothed values for its legacy
+  // top-level cabinet control; nested Dual Rig lanes use prepared values.
+  StereoSample process(StereoSample input, float cabLevel = -1.0f, float cabMix = -1.0f);
   // The live path processes complete, preallocated blocks. `input` is mono;
   // `left` and `right` receive the final stereo block.
   void processBlock(const float* input, float* left, float* right, size_t frames,
                     const float* cabLevels, const float* cabMixes);
+  void processBlock(const float* input, float* left, float* right, size_t frames)
+  {
+    processBlock(input, left, right, frames, nullptr, nullptr);
+  }
   void reset();
   size_t tailFrames() const noexcept;
   uint64_t nonFiniteBlockCount() const noexcept;
+  uint64_t parallelWaitOverBudgetCount() const noexcept;
   std::string firstNonFiniteBlockId() const;
   // Atomically consumes peaks and overload-frame counts accumulated since the
   // previous call. Snapshot allocation happens only on the calling/control

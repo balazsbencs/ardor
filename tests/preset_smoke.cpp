@@ -144,6 +144,86 @@ int main()
     }
     require(rejectedTraversalAsset, "reject traversal asset path");
 
+    auto dualJson = json;
+    dualJson["blocks"] = nlohmann::json::array({{
+      {"id", "dual"}, {"type", "dualAmp"}, {"enabled", true}, {"asset", ""},
+      {"params", {
+        {"leftNamAsset", "models/left.nam"}, {"leftIrAsset", "irs/left.wav"},
+        {"rightNamAsset", "models/right.nam"}, {"rightIrAsset", "irs/right.wav"},
+      }},
+    }});
+    const auto dualPreset = ardor::presetFromJson(dualJson);
+    require(dualPreset.blocks[0].params.value("rightIrAsset", "") == "irs/right.wav",
+            "dual amp nested assets parse");
+    bool rejectedDualTraversal = false;
+    try {
+      dualJson["blocks"][0]["params"]["rightIrAsset"] = "../escape.wav";
+      (void)ardor::presetFromJson(dualJson);
+    } catch (const std::invalid_argument&) {
+      rejectedDualTraversal = true;
+    }
+    require(rejectedDualTraversal, "reject dual amp traversal asset");
+
+    const auto dualRigJson = nlohmann::json::parse(R"({
+      "version": 2,
+      "name": "Two independent rigs",
+      "routing": "serial",
+      "global": {},
+      "blocks": [{
+        "id": "rig",
+        "type": "dualRig",
+        "enabled": true,
+        "asset": "",
+        "params": {
+          "inputMode": "sum",
+          "leftLevelDb": 0.0,
+          "rightLevelDb": -3.0,
+          "leftPolarityInvert": false,
+          "rightPolarityInvert": true
+        },
+        "lanes": {
+          "left": {
+            "blocks": [
+              {"id":"left-nam","type":"nam","enabled":true,"asset":"models/left.nam","params":{}},
+              {"id":"left-cab","type":"cab","enabled":true,"asset":"irs/left.wav","params":{}},
+              {"id":"left-chorus","type":"mod","enabled":true,"asset":"","params":{"mode":"chorus"}}
+            ]
+          },
+          "right": {
+            "blocks": [
+              {"id":"right-nam","type":"nam","enabled":true,"asset":"models/right.nam","params":{}},
+              {"id":"right-cab","type":"cab","enabled":true,"asset":"irs/right.wav","params":{}},
+              {"id":"right-delay","type":"delay","enabled":true,"asset":"","params":{"mode":"digital"}}
+            ]
+          }
+        }
+      }]
+    })");
+    const auto dualRigPreset = ardor::presetFromJson(dualRigJson);
+    require(dualRigPreset.version == 2, "dual rig requires preset version 2");
+    require(dualRigPreset.blocks.size() == 1 && dualRigPreset.blocks[0].type == "dualRig",
+            "dual rig top-level block parses");
+    require(dualRigPreset.blocks[0].lanes[0].size() == 3
+              && dualRigPreset.blocks[0].lanes[1].size() == 3,
+            "dual rig preserves two child chains");
+    require(dualRigPreset.blocks[0].lanes[0][0].asset == "models/left.nam"
+              && dualRigPreset.blocks[0].lanes[1][2].params.value("mode", "") == "digital",
+            "dual rig child assets and parameters parse");
+    const auto dualRigRoundTrip = ardor::presetFromJson(ardor::toJson(dualRigPreset));
+    require(dualRigRoundTrip.blocks[0].lanes[0][2].id == "left-chorus"
+              && dualRigRoundTrip.blocks[0].lanes[1][1].asset == "irs/right.wav",
+            "dual rig child chains round trip");
+
+    bool rejectedNestedDualRig = false;
+    try {
+      auto nested = dualRigJson;
+      nested["blocks"][0]["lanes"]["left"]["blocks"][0] = nested["blocks"][0];
+      (void)ardor::presetFromJson(nested);
+    } catch (const std::invalid_argument&) {
+      rejectedNestedDualRig = true;
+    }
+    require(rejectedNestedDualRig, "reject nested dual rig split regions");
+
     bool rejectedAbsoluteWrite = false;
     try {
       auto invalid = preset;
@@ -262,6 +342,23 @@ int main()
     require(plan.blocks.back().assetPath == dataRoot / "irs/ok.wav", "resolved cab asset");
     require(plan.runnableBlockCount == 4, "runnable block count");
 
+    auto rigPlanPreset = dualRigPreset;
+    for (auto& lane : rigPlanPreset.blocks[0].lanes) {
+      lane[0].asset = "models/ok.nam";
+      lane[1].asset = "irs/ok.wav";
+    }
+    const auto rigPlan = ardor::buildChainPlan(rigPlanPreset, dataRoot);
+    require(rigPlan.blocks[0].status == ardor::ChainBlockStatus::Ready,
+            "dual rig parent plan is runnable");
+    require(rigPlan.blocks[0].lanes[0].size() == 3
+              && rigPlan.blocks[0].lanes[1][0].assetPath == dataRoot / "models/ok.nam",
+            "dual rig child plans resolve assets recursively");
+    require(rigPlan.runnableBlockCount == 7,
+            "dual rig runnable count includes the split and both child chains");
+    rigPlanPreset.blocks[0].enabled = false;
+    require(ardor::buildChainPlan(rigPlanPreset, dataRoot).runnableBlockCount == 0,
+            "disabled dual rig excludes its child chains from runnable count");
+
     ardor::PresetStore preflightStore(dataRoot);
     ardor::Preset preflightReady;
     preflightReady.name = "Preflight ready";
@@ -323,17 +420,46 @@ int main()
     runtime.changePreset();
     require(!runtime.effectsBypassed(), "preset change clears bypass");
 
-    const auto telemetry = ardor::makeRuntimeTelemetry(100, 5, 1, 0.8, 0.2, 1.33, true);
+    const auto telemetry = ardor::makeRuntimeTelemetry(100, 5, 1, 0.8, 0.2, 1.33, true,
+                                                       3, 2, 1, 0.4);
     require(telemetry.callbacks == 100, "telemetry callbacks");
     require(telemetry.overBudget == 5, "telemetry over budget");
     require(std::fabs(telemetry.overBudgetPercent - 5.0) < 0.0001, "telemetry over percent");
     require(telemetry.callbackGaps == 1, "telemetry callback gaps");
     require(telemetry.bypassed, "telemetry bypassed");
+    require(std::fabs(telemetry.recentAverageMs - 0.4) < 0.0001,
+            "telemetry stores recent callback average");
+    require(std::fabs(telemetry.bufferFreePercent - 69.9248) < 0.001,
+            "telemetry calculates recent callback headroom");
+    require(std::fabs(ardor::recentCallbackAverageMs(100, 40.0, 200, 90.0, 0.2) - 0.5)
+              < 0.0001,
+            "recent callback average uses only the current sample window");
     const auto line = ardor::formatRuntimeTelemetry(telemetry);
     require(line.find("callbacks=100") != std::string::npos, "formatted callbacks");
     require(line.find("over%=5.00") != std::string::npos, "formatted over percent");
     require(line.find("gaps=1") != std::string::npos, "formatted callback gaps");
+    require(line.find("recent_avg=0.40ms") != std::string::npos, "formatted recent average");
+    require(line.find("buffer_free=69.92%") != std::string::npos, "formatted buffer headroom");
     require(line.find("bypassed=1") != std::string::npos, "formatted bypass");
+    require(line.find("worker_over=3") != std::string::npos, "formatted worker overruns");
+    require(line.find("nonfinite=2") != std::string::npos, "formatted non-finite blocks");
+    require(line.find("block_mismatch=1") != std::string::npos, "formatted block mismatch");
+
+    const auto telemetryRoot = std::filesystem::temp_directory_path()
+      / ("ardor-telemetry-smoke-"
+         + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+    std::filesystem::create_directories(telemetryRoot);
+    const auto telemetryPath = telemetryRoot / "runtime.telemetry";
+    std::string telemetryError;
+    require(ardor::writeRuntimeTelemetrySnapshot(telemetryPath, telemetry, telemetryError),
+            telemetryError);
+    std::ifstream telemetryInput(telemetryPath);
+    std::string telemetrySnapshot;
+    std::getline(telemetryInput, telemetrySnapshot);
+    require(telemetrySnapshot == line, "telemetry snapshot matches formatted runtime state");
+    require(!std::filesystem::exists(telemetryPath.string() + ".tmp"),
+            "telemetry snapshot publish leaves no temporary file");
+    std::filesystem::remove_all(telemetryRoot);
 
     return 0;
   } catch (const std::exception& error) {

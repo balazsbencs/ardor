@@ -220,8 +220,15 @@ Expected development defaults:
 
 The image includes the Raspberry Pi 4 Wi-Fi firmware and `wpa_supplicant`, but
 does not contain a network name or password. This keeps credentials out of the
-image and allows them to be changed without reflashing. Connect by Ethernet or
-serial console, then create the following file on the writable data partition:
+image and allows them to be changed without reflashing. On the pedal's preset
+screen, tap the gear between **Bank+** and **Edit**, choose **Wi-Fi**, and enter
+the network name, password, and two-letter country code. The same menu is
+available in Ardor Manager after connecting over Ethernet. Saving writes the
+credentials to the writable data partition and restarts Wi-Fi after returning
+the response, so the current connection may briefly drop.
+
+For headless recovery, connect by Ethernet or serial console, then create the
+same configuration manually:
 
 ```sh
 mkdir -p /opt/ardor-pedal/wifi

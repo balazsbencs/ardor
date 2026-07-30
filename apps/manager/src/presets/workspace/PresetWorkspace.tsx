@@ -7,7 +7,7 @@ import { allEffectDefinitions, findEffectDefinition } from "../../effects/catalo
 import { PresetSidebar } from "../browser/PresetSidebar";
 import { BlockBrowser } from "../block-browser/BlockBrowser";
 import { ChainCanvas } from "../chain/ChainCanvas";
-import { createEditorState, editorReducer, isEditorDirty } from "../editor/editorReducer";
+import { createEditorState, editorReducer, findPresetBlock, isEditorDirty } from "../editor/editorReducer";
 import type { PresetLocation } from "../editor/editorTypes";
 import { validatePreset, issuesForBlock } from "../editor/presetValidation";
 import { BlockInspector } from "../inspector/BlockInspector";
@@ -18,7 +18,10 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
   const [editor, dispatch] = useReducer(editorReducer, undefined, () => createEditorState({ bank: 0, slot: 0 }, {
     version: 1, name: "New Preset", routing: "serial", global: { inputGainDb: 0, outputGainDb: 0, safetyLimitDb: -1 }, blocks: [],
   }));
-  const [addIndex, setAddIndex] = useState<number>();
+  const [addTarget, setAddTarget] = useState<
+    | { kind: "top"; index: number }
+    | { kind: "lane"; rigId: string; lane: "left" | "right"; index: number }
+  >();
   const [pendingLocation, setPendingLocation] = useState<PresetLocation>();
   const [actionError, setActionError] = useState<string>();
   const [applied, setApplied] = useState<PresetLocation>();
@@ -32,16 +35,44 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
   const present = editor.history.present;
   const validation = useMemo(() => validatePreset(present, { models: session.models, irs: session.irs }), [present, session.models, session.irs]);
   const dirty = isEditorDirty(editor);
-  const selected = present.blocks.find((block) => block.id === editor.selectedBlockId);
+  const selected = findPresetBlock(present.blocks, editor.selectedBlockId);
   const disabledDefinitions = useMemo(() => {
     const result = new Map<string, string>();
+    if (addTarget?.kind === "lane") {
+      result.set("dualAmp", "Split blocks cannot be nested");
+      result.set("dualRig", "Split blocks cannot be nested");
+      const rig = findPresetBlock(present.blocks, addTarget.rigId);
+      const blocks = rig?.lanes?.[addTarget.lane].blocks ?? [];
+      for (const definition of allEffectDefinitions()) {
+        if (!definition.constraintGroup || definition.maxEnabledInGroup !== 1) continue;
+        const conflict = blocks.find((block) => block.enabled
+          && findEffectDefinition(block)?.constraintGroup === definition.constraintGroup);
+        if (conflict) result.set(definition.id, `Disable ${findEffectDefinition(conflict)?.name ?? conflict.type} first`);
+      }
+      return result;
+    }
+    const enabledParallelRig = present.blocks.find((block) => block.enabled
+      && (block.type === "dualAmp" || block.type === "dualRig"));
+    const enabledStandaloneAmp = present.blocks.find((block) => block.enabled && (block.type === "nam" || block.type === "cab"));
     for (const definition of allEffectDefinitions()) {
+      if ((definition.id === "dualAmp" || definition.id === "dualRig") && enabledParallelRig) {
+        result.set(definition.id, `Disable the existing ${findEffectDefinition(enabledParallelRig)?.name ?? "parallel rig"} first`);
+        continue;
+      }
+      if ((definition.id === "dualAmp" || definition.id === "dualRig") && enabledStandaloneAmp) {
+        result.set(definition.id, `Disable ${findEffectDefinition(enabledStandaloneAmp)?.name ?? enabledStandaloneAmp.type} first`);
+        continue;
+      }
+      if ((definition.blockType === "nam" || definition.blockType === "cab") && enabledParallelRig) {
+        result.set(definition.id, `Disable ${findEffectDefinition(enabledParallelRig)?.name ?? "the parallel rig"} first`);
+        continue;
+      }
       if (!definition.constraintGroup || definition.maxEnabledInGroup !== 1) continue;
       const conflict = present.blocks.find((block) => block.enabled && findEffectDefinition(block)?.constraintGroup === definition.constraintGroup);
       if (conflict) result.set(definition.id, `Disable ${findEffectDefinition(conflict)?.name ?? conflict.type} first`);
     }
     return result;
-  }, [present.blocks]);
+  }, [addTarget, present.blocks]);
 
   const selectLocation = (location: PresetLocation) => {
     if (location.bank === editor.location.bank && location.slot === editor.location.slot) return;
@@ -108,10 +139,17 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
         </header>
         <div className="global-strip"><SlidersHorizontal size={17} /><label>Input<input type="number" min={-60} max={24} value={present.global.inputGainDb} onChange={(event) => dispatch({ type: "set-global", key: "inputGainDb", value: Number(event.target.value) })} /><small>dB</small></label><label>Output<input type="number" min={-60} max={24} value={present.global.outputGainDb} onChange={(event) => dispatch({ type: "set-global", key: "outputGainDb", value: Number(event.target.value) })} /><small>dB</small></label><span>Serial routing</span></div>
         {(!validation.canSave || validation.issues.length > 0 || actionError) && <div className="workspace-alert" role="alert"><AlertCircle size={17} /><div>{actionError ? <p>{actionError}</p> : <p>{validation.issues[0]?.message}</p>}<small>{!validation.canSave ? "Fix this before saving." : !validation.canApply ? "You can save this draft, but cannot apply it yet." : "Review the highlighted block."}</small></div></div>}
-        <ChainCanvas blocks={present.blocks} selectedBlockId={editor.selectedBlockId} issuesFor={(id) => issuesForBlock(validation, id)} maxed={present.blocks.length >= 10} onSelect={(blockId) => dispatch({ type: "select-block", blockId })} onAdd={setAddIndex} onMove={(blockId, index) => dispatch({ type: "move-block", blockId, index })} onToggle={(blockId, enabled) => dispatch({ type: "toggle-block", blockId, enabled })} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} />
+        <ChainCanvas blocks={present.blocks} selectedBlockId={editor.selectedBlockId} issuesFor={(id) => issuesForBlock(validation, id)} maxed={present.blocks.length >= 10} onSelect={(blockId) => dispatch({ type: "select-block", blockId })} onAdd={(index) => setAddTarget({ kind: "top", index })} onMove={(blockId, index) => dispatch({ type: "move-block", blockId, index })} onLaneAdd={(rigId, lane, index) => setAddTarget({ kind: "lane", rigId, lane, index })} onLaneMove={(rigId, blockId, lane, index) => dispatch({ type: "move-lane-block", rigId, blockId, lane, index })} onToggle={(blockId, enabled) => dispatch({ type: "toggle-block", blockId, enabled })} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} />
       </section>
       <BlockInspector block={selected} issues={selected ? issuesForBlock(validation, selected.id) : []} models={session.models} irs={session.irs} onToggle={(blockId, enabled) => dispatch({ type: "toggle-block", blockId, enabled })} onParam={(blockId, key, value) => dispatch({ type: "set-block-param", blockId, key, value })} onAsset={(blockId, asset) => dispatch({ type: "set-block-asset", blockId, asset })} onMode={(blockId, definitionId) => dispatch({ type: "change-definition", blockId, definitionId })} onEqBand={(blockId, band, patch) => dispatch({ type: "set-eq-band", blockId, band, patch })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} onAssets={onAssets} />
-      <BlockBrowser open={addIndex !== undefined} onOpenChange={(open) => { if (!open) setAddIndex(undefined); }} disabledIds={disabledDefinitions} onChoose={(definition) => { dispatch({ type: "add-block", definitionId: definition.id, index: addIndex ?? present.blocks.length }); setAddIndex(undefined); }} />
+      <BlockBrowser open={addTarget !== undefined} onOpenChange={(open) => { if (!open) setAddTarget(undefined); }} disabledIds={disabledDefinitions} onChoose={(definition) => {
+        if (addTarget?.kind === "lane") {
+          dispatch({ type: "add-lane-block", definitionId: definition.id, rigId: addTarget.rigId, lane: addTarget.lane, index: addTarget.index });
+        } else {
+          dispatch({ type: "add-block", definitionId: definition.id, index: addTarget?.index ?? present.blocks.length });
+        }
+        setAddTarget(undefined);
+      }} />
       <UnsavedChangesDialog open={pendingLocation !== undefined} busy={saving} onChoice={(choice) => void resolveNavigation(choice)} />
     </main>
   );

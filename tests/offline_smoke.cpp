@@ -238,6 +238,12 @@ int main()
   if (require(!ardor::applyChainPlan(badNamEngine, badNamPreference, {48000, 64, 8192}, badNamError))) return 1;
   if (require(badNamError.find("must be a boolean") != std::string::npos)) return 1;
 
+  ardor::ChainPlan badNamInputMode;
+  badNamInputMode.blocks.push_back({"nam-1", "nam", ardor::ChainBlockStatus::Ready,
+                                    "missing.nam", nlohmann::json{{"inputMode", "center"}}});
+  if (require(!ardor::applyChainPlan(badNamEngine, badNamInputMode, {48000, 64, 8192}, badNamError))) return 1;
+  if (require(badNamError.find("sum, left, or right") != std::string::npos)) return 1;
+
   ardor::PedalEngine loadedEngine;
   std::string loadError;
   if (require(ardor::applyChainPlan(loadedEngine, cabOnly, {48000, 64, 8192}, loadError))) return 1;
@@ -252,6 +258,89 @@ int main()
   if (require(!ardor::applyChainPlan(loadedEngine, duplicateCab, {48000, 64, 8192}, loadError))) return 1;
   if (require(loadError.find("multiple cabinet") != std::string::npos)) return 1;
 
+  ardor::ChainPlan dualAmp;
+  ardor::ChainBlockPlan dualBlock;
+  dualBlock.id = "dual";
+  dualBlock.type = "dualAmp";
+  dualBlock.status = ardor::ChainBlockStatus::Ready;
+  dualBlock.params = {
+    {"inputMode", "sum"},
+    {"leftUseNano", false}, {"leftCabLevelDb", 0.0f}, {"leftCabMix", 1.0f},
+    {"leftPolarityInvert", false},
+    {"rightUseNano", false}, {"rightCabLevelDb", 0.0f}, {"rightCabMix", 1.0f},
+    {"rightPolarityInvert", true},
+  };
+  dualBlock.dualAmpLanes[0] = {ARDOR_NAM_EXAMPLE_MODEL, wavPath};
+  dualBlock.dualAmpLanes[1] = {ARDOR_NAM_EXAMPLE_MODEL, wavPath};
+  dualAmp.blocks.push_back(std::move(dualBlock));
+  ardor::PedalEngine dualEngine;
+  if (require(ardor::applyChainPlan(dualEngine, dualAmp, {48000, 64, 8192}, loadError))) return 1;
+  std::vector<float> dualInput(64, 0.1f);
+  std::vector<float> dualLeft(64, 0.0f);
+  std::vector<float> dualRight(64, 0.0f);
+  dualEngine.processBlock(dualInput.data(), dualLeft.data(), dualRight.data(), dualInput.size());
+  for (std::size_t i = 0; i < dualInput.size(); ++i) {
+    if (require(std::isfinite(dualLeft[i]) && std::isfinite(dualRight[i]))) return 1;
+    if (require(std::fabs(dualLeft[i] + dualRight[i]) < 0.0001f)) return 1;
+  }
+
+  auto conflictingDualAmp = dualAmp;
+  conflictingDualAmp.blocks.push_back({"nam-after", "nam", ardor::ChainBlockStatus::Ready,
+                                       ARDOR_NAM_EXAMPLE_MODEL, nlohmann::json::object()});
+  if (require(!ardor::applyChainPlan(loadedEngine, conflictingDualAmp,
+                                     {48000, 64, 8192}, loadError))) return 1;
+
+  ardor::ChainPlan dualRig;
+  ardor::ChainBlockPlan rigBlock;
+  rigBlock.id = "dual-rig";
+  rigBlock.type = "dualRig";
+  rigBlock.status = ardor::ChainBlockStatus::Ready;
+  rigBlock.params = {
+    {"inputMode", "sum"},
+    {"leftLevelDb", 0.0f}, {"leftPolarityInvert", false},
+    {"rightLevelDb", 0.0f}, {"rightPolarityInvert", true},
+  };
+  for (std::size_t lane = 0; lane < 2; ++lane) {
+    ardor::ChainBlockPlan nam;
+    nam.id = lane == 0 ? "left-nam" : "right-nam";
+    nam.type = "nam";
+    nam.status = ardor::ChainBlockStatus::Ready;
+    nam.assetPath = ARDOR_NAM_EXAMPLE_MODEL;
+    nam.params = nlohmann::json{{"inputMode", "sum"}, {"useNano", false}};
+    rigBlock.lanes[lane].push_back(std::move(nam));
+
+    ardor::ChainBlockPlan cab;
+    cab.id = lane == 0 ? "left-cab" : "right-cab";
+    cab.type = "cab";
+    cab.status = ardor::ChainBlockStatus::Ready;
+    cab.assetPath = wavPath;
+    cab.level = 1.0f;
+    cab.mix = 1.0f;
+    rigBlock.lanes[lane].push_back(std::move(cab));
+  }
+  ardor::ChainBlockPlan rightTrem;
+  rightTrem.id = "right-trem";
+  rightTrem.type = "mod";
+  rightTrem.status = ardor::ChainBlockStatus::Ready;
+  rightTrem.params = {
+    {"mode", "vintage_trem"}, {"speed", 0.8f}, {"depth", 1.0f}, {"mix", 1.0f},
+    {"tone", 0.5f}, {"p1", 0.0f}, {"p2", 0.0f}, {"level", 1.0f},
+  };
+  rigBlock.lanes[1].push_back(std::move(rightTrem));
+  dualRig.blocks.push_back(std::move(rigBlock));
+
+  ardor::PedalEngine dualRigEngine;
+  if (require(ardor::applyChainPlan(dualRigEngine, dualRig, {48000, 64, 8192}, loadError))) return 1;
+  std::fill(dualLeft.begin(), dualLeft.end(), 0.0f);
+  std::fill(dualRight.begin(), dualRight.end(), 0.0f);
+  dualRigEngine.processBlock(dualInput.data(), dualLeft.data(), dualRight.data(), dualInput.size());
+  bool laneOutputsDiffer = false;
+  for (std::size_t i = 0; i < dualInput.size(); ++i) {
+    if (require(std::isfinite(dualLeft[i]) && std::isfinite(dualRight[i]))) return 1;
+    laneOutputsDiffer = laneOutputsDiffer || std::fabs(dualLeft[i] - dualRight[i]) > 0.0001f;
+  }
+  if (require(laneOutputsDiffer)) return 1;
+
   ardor::ChainPlan stereoBeforeCab;
   stereoBeforeCab.blocks.push_back({"trem", "mod", ardor::ChainBlockStatus::Ready, {},
                                     nlohmann::json{{"mode", "vintage_trem"}}});
@@ -259,6 +348,15 @@ int main()
                                     nlohmann::json::object()});
   if (require(!ardor::applyChainPlan(loadedEngine, stereoBeforeCab, {48000, 64, 8192}, loadError))) return 1;
   if (require(loadError.find("must precede stereo") != std::string::npos)) return 1;
+
+  ardor::Preset stereoBeforeNam;
+  stereoBeforeNam.blocks.push_back({"trem", "mod", true, "", nlohmann::json{{"mode", "vintage_trem"}}});
+  stereoBeforeNam.blocks.push_back({"nam-after", "nam", true, wavPath.filename().string(),
+                                    nlohmann::json{{"inputMode", "sum"}}});
+  stereoBeforeNam.blocks.push_back({"cab-after", "cab", true, wavPath.filename().string(),
+                                    nlohmann::json::object()});
+  if (require(ardor::preflightPreset(stereoBeforeNam, wavPath.parent_path(),
+                                     {48000, 64, 8192}, loadError))) return 1;
 
   if (require(!ardor::applyChainPlan(loadedEngine, cabOnly, {44100, 64, 8192}, loadError))) return 1;
   if (require(loadError.find("48000") != std::string::npos)) return 1;

@@ -31,6 +31,8 @@ export type EditorAction =
   | { type: "set-global"; key: "inputGainDb" | "outputGainDb"; value: number }
   | { type: "add-block"; definitionId: string; index: number; initialAsset?: string }
   | { type: "move-block"; blockId: string; index: number }
+  | { type: "add-lane-block"; rigId: string; lane: "left" | "right"; definitionId: string; index: number; initialAsset?: string }
+  | { type: "move-lane-block"; rigId: string; blockId: string; lane: "left" | "right"; index: number }
   | { type: "toggle-block"; blockId: string; enabled: boolean }
   | { type: "duplicate-block"; blockId: string }
   | { type: "remove-block"; blockId: string }

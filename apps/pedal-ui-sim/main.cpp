@@ -5,9 +5,11 @@
 #include "ui/UiModel.h"
 
 #include <algorithm>
+#include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <string>
+#include <thread>
 
 #include <lvgl.h>
 
@@ -50,7 +52,9 @@ int main(int argc, char** argv)
   lv_sdl_keyboard_create();
 
   ardor::PresetStore store(args.dataRoot);
+  ardor::GlobalSettingsStore globalSettings(args.dataRoot);
   ardor::UiState state = ardor::makeDemoUiState();
+  state.settings = globalSettings.load();
   ardor::loadAssetsFromDataRoot(state, args.dataRoot);
   ardor::loadBankFromStore(state, store, args.bank);
 
@@ -95,6 +99,13 @@ int main(int argc, char** argv)
     }
     if (const auto target = ardor::confirmNavigation(state, decision)) applyTarget(*target);
   };
+  actions.saveAccentColor = [&](std::uint32_t color, std::string& error) {
+    return globalSettings.saveAccentColor(color, error);
+  };
+  actions.saveWifiSettings = [&](const std::string& ssid, const std::string& password,
+                                 const std::string& country, std::string& error) {
+    return globalSettings.saveWifi(ssid, password, country, error);
+  };
   ardor::LvglUi ui(std::move(actions));
   ui.build(lv_screen_active(), state);
   bool previewOverlayPresented = false;
@@ -114,6 +125,8 @@ int main(int argc, char** argv)
     } else if (ardor::previewIsSynchronized(state)) {
       previewOverlayPresented = false;
     }
-    lv_delay_ms(5);
+    // LVGL busy-waits in LV_OS_NONE builds; use a real host sleep so the
+    // simulator does not consume an otherwise idle CPU core.
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
   }
 }

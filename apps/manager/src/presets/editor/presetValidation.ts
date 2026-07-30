@@ -64,9 +64,10 @@ function validateNumber(
 }
 
 function validateControl(block: PresetBlock, control: EffectControl): ValidationIssue | undefined {
-  if (!("key" in control) || !(control.key in block.params)) return undefined;
-  const value = block.params[control.key];
-  const field = `params.${control.key}`;
+  const key = "key" in control && typeof control.key === "string" ? control.key : undefined;
+  if (!key || !(key in block.params)) return undefined;
+  const value = block.params[key];
+  const field = `params.${key}`;
   if (control.kind === "number") {
     return validateNumber(block, field, value, control.minimum, control.maximum);
   }
@@ -114,15 +115,33 @@ function definitionForValidation(block: PresetBlock): EffectDefinition | undefin
 }
 
 function assetIssues(block: PresetBlock, definition: EffectDefinition, assets: AssetInventory): ValidationIssue[] {
-  const assetControl = definition.controls.find((control) => control.kind === "asset");
-  if (!assetControl) return [];
-  if (block.asset.length === 0) {
-    return [blockWarning(block, "asset-required", `${definition.name} needs an asset before it can be applied.`, "asset")];
+  const issues: ValidationIssue[] = [];
+  for (const control of definition.controls) {
+    if (control.kind !== "asset") continue;
+    const field = control.key ? `params.${control.key}` : "asset";
+    const value = control.key ? block.params[control.key] : block.asset;
+    if (typeof value !== "string") {
+      issues.push(blockError(block, "parameter-type", `${control.label} must be an asset path.`, field));
+      continue;
+    }
+    if (!validAssetPath(value)) {
+      // The generic block-level check owns the legacy unkeyed `asset` field.
+      // Keyed assets (such as the four files inside Dual Amp) need their own
+      // field-specific validation here.
+      if (control.key) {
+        issues.push(blockError(block, "asset-path", "Asset paths must be relative and cannot contain backslashes, . or .. segments.", field));
+      }
+      continue;
+    }
+    if (value.length === 0) {
+      issues.push(blockWarning(block, "asset-required", `${control.label} is required before this block can be applied.`, field));
+      continue;
+    }
+    if (!assets[control.assetKind].some(({ path }) => path === value)) {
+      issues.push(blockWarning(block, "asset-missing", `${control.label} “${value}” is not installed.`, field));
+    }
   }
-  const available = assets[assetControl.assetKind].some(({ path }) => path === block.asset);
-  return available
-    ? []
-    : [blockWarning(block, "asset-missing", `${definition.name} asset “${block.asset}” is not installed.`, "asset")];
+  return issues;
 }
 
 function structurallyValidBlock(value: unknown, index: number): value is PresetBlock {
@@ -140,7 +159,9 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
   const issuesByBlock: ValidationIssue[][] = [];
   const source = preset as unknown as Record<string, unknown>;
 
-  if (source.version !== 1) presetIssues.push(error("version", "Preset version must be 1.", "version"));
+  if (source.version !== 1 && source.version !== 2) {
+    presetIssues.push(error("version", "Preset version must be 1 or 2.", "version"));
+  }
   if (source.routing !== "serial") presetIssues.push(error("routing", "Preset routing must be serial.", "routing"));
   if (typeof source.name !== "string") {
     presetIssues.push(error("name-type", "Preset name must be text.", "name"));
@@ -170,7 +191,85 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
     if (source.blocks.length > 10) presetIssues.push(error("block-limit", "A preset can contain at most ten blocks.", "blocks"));
     const ids = new Set<string>();
     const enabledGroups = new Map<string, string>();
+    let enabledParallelRig: string | undefined;
+    const enabledStandaloneAmpBlocks: string[] = [];
     let stereoEstablished = false;
+
+    const validateLane = (
+      rig: PresetBlock,
+      laneName: "left" | "right",
+      laneValue: unknown,
+    ): ValidationIssue[] => {
+      const laneIssues: ValidationIssue[] = [];
+      if (!isRecord(laneValue) || !Array.isArray(laneValue.blocks)) {
+        return [blockError(rig, "dual-rig-lane-shape",
+          `Dual Rig ${laneName} lane must contain a blocks array.`, `lanes.${laneName}.blocks`)];
+      }
+      if (laneValue.blocks.length === 0) {
+        laneIssues.push(blockError(rig, "dual-rig-lane-empty",
+          `Dual Rig ${laneName} lane must contain at least one block.`, `lanes.${laneName}.blocks`));
+      }
+      if (laneValue.blocks.length > 10) {
+        laneIssues.push(blockError(rig, "dual-rig-lane-limit",
+          `Dual Rig ${laneName} lane can contain at most ten blocks.`, `lanes.${laneName}.blocks`));
+      }
+      const enabledGroups = new Map<string, string>();
+      let laneStereo = false;
+      laneValue.blocks.forEach((value, laneIndex) => {
+        if (!structurallyValidBlock(value, laneIndex)) {
+          laneIssues.push(blockError(rig, "block-shape",
+            `${laneName} lane block ${laneIndex + 1} has an invalid shape.`,
+            `lanes.${laneName}.blocks.${laneIndex}`));
+          return;
+        }
+        const block = value;
+        if (ids.has(block.id)) {
+          laneIssues.push(blockError(block, "block-id-duplicate", `Block ID “${block.id}” is duplicated.`, "id"));
+        }
+        ids.add(block.id);
+        if (block.type === "dualRig" || block.type === "dualAmp") {
+          laneIssues.push(blockError(block, "nested-split",
+            "Dual Rig lanes cannot contain another split block.", "type"));
+          return;
+        }
+        if (!validAssetPath(block.asset)) {
+          laneIssues.push(blockError(block, "asset-path",
+            "Asset paths must be relative and cannot contain backslashes, . or .. segments.", "asset"));
+        }
+        const definition = definitionForValidation(block);
+        if (!definition) {
+          laneIssues.push(blockWarning(block,
+            knownTypes.has(block.type) ? "mode-unsupported" : "block-unsupported",
+            `Block type “${block.type}” is not supported in a Dual Rig lane.`, "type"));
+          return;
+        }
+        for (const control of definition.controls) {
+          const issue = validateControl(block, control);
+          if (issue) laneIssues.push(issue);
+        }
+        if (definition.id === "eq:parametric_eq_5") laneIssues.push(...validateEq(block));
+        laneIssues.push(...assetIssues(block, definition, assets));
+        if (block.enabled && definition.constraintGroup && definition.maxEnabledInGroup === 1) {
+          const prior = enabledGroups.get(definition.constraintGroup);
+          if (prior) {
+            laneIssues.push(blockWarning(block, "constraint-duplicate",
+              `Only one enabled ${definition.constraintGroup} block is supported in the ${laneName} lane; disable this block or ${prior}.`,
+              "enabled"));
+          } else {
+            enabledGroups.set(definition.constraintGroup, block.id);
+          }
+        }
+        if (block.enabled && block.type === "cab" && laneStereo) {
+          laneIssues.push(blockWarning(block, "mono-after-stereo",
+            `Cabinet must precede stereo effects in the ${laneName} lane.`, "type"));
+        }
+        if (block.enabled && block.type === "nam") laneStereo = false;
+        else if (block.enabled && (block.type === "mod" || block.type === "delay" || block.type === "reverb")) {
+          laneStereo = true;
+        }
+      });
+      return laneIssues;
+    };
 
     source.blocks.forEach((value, index) => {
       const blockIssues: ValidationIssue[] = [];
@@ -212,6 +311,19 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
         }
         if (definition.id === "eq:parametric_eq_5") blockIssues.push(...validateEq(block));
         blockIssues.push(...assetIssues(block, definition, assets));
+        if (block.type === "dualRig") {
+          if (source.version !== 2) {
+            blockIssues.push(blockError(block, "dual-rig-version",
+              "Dual Rig requires preset version 2.", "type"));
+          }
+          if (!isRecord(block.lanes)) {
+            blockIssues.push(blockError(block, "dual-rig-lanes",
+              "Dual Rig must contain left and right lanes.", "lanes"));
+          } else {
+            blockIssues.push(...validateLane(block, "left", block.lanes.left));
+            blockIssues.push(...validateLane(block, "right", block.lanes.right));
+          }
+        }
         if (block.enabled && definition.constraintGroup && definition.maxEnabledInGroup === 1) {
           const prior = enabledGroups.get(definition.constraintGroup);
           if (prior) {
@@ -225,17 +337,50 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
             enabledGroups.set(definition.constraintGroup, block.id);
           }
         }
+        if (block.enabled && (block.type === "dualAmp" || block.type === "dualRig")) {
+          if (enabledParallelRig) {
+            blockIssues.push(blockWarning(
+              block,
+              "dual-amp-conflict",
+              `Only one parallel rig can be enabled; disable ${enabledParallelRig}.`,
+              "enabled",
+            ));
+          } else if (enabledStandaloneAmpBlocks[0]) {
+            blockIssues.push(blockWarning(
+              block,
+              "dual-amp-conflict",
+              `Dual Amp cannot be combined with enabled standalone NAM or cabinet blocks; disable ${enabledStandaloneAmpBlocks[0]}.`,
+              "enabled",
+            ));
+          } else {
+            enabledParallelRig = block.id;
+          }
+        } else if (block.enabled && (block.type === "nam" || block.type === "cab")) {
+          if (enabledParallelRig) {
+            blockIssues.push(blockWarning(
+              block,
+              "dual-amp-conflict",
+              `Standalone NAM and cabinet blocks cannot be combined with a parallel rig; disable ${enabledParallelRig}.`,
+              "enabled",
+            ));
+          }
+          enabledStandaloneAmpBlocks.push(block.id);
+        }
       }
 
-      if (block.enabled && (block.type === "nam" || block.type === "cab") && stereoEstablished) {
+      if (block.enabled && block.type === "cab" && stereoEstablished) {
         blockIssues.push(blockWarning(
           block,
           "mono-after-stereo",
-          `${block.type === "nam" ? "NAM" : "Cabinet"} must appear before enabled modulation, delay, or reverb blocks.`,
+          "Cabinet must appear before enabled modulation, delay, or reverb blocks.",
           "type",
         ));
       }
-      if (block.enabled && (block.type === "mod" || block.type === "delay" || block.type === "reverb")) {
+      if (block.enabled && block.type === "nam") {
+        stereoEstablished = false;
+      } else if (block.enabled && (block.type === "dualAmp" || block.type === "dualRig")) {
+        stereoEstablished = true;
+      } else if (block.enabled && (block.type === "mod" || block.type === "delay" || block.type === "reverb")) {
         stereoEstablished = true;
       }
     });

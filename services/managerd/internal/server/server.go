@@ -9,11 +9,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"ardor.local/managerd/internal/assets"
 	"ardor.local/managerd/internal/config"
 	"ardor.local/managerd/internal/presets"
 	"ardor.local/managerd/internal/runtimecontrol"
+	"ardor.local/managerd/internal/wifi"
 )
 
 type errorResponse struct {
@@ -26,6 +28,7 @@ func New(cfg config.Config) http.Handler {
 	mux := http.NewServeMux()
 	assetStore := assets.NewStore(cfg.DataRoot)
 	presetStore := presets.NewStore(cfg.DataRoot)
+	wifiStore := wifi.NewStore(cfg.DataRoot, cfg.WiFiInterface, cfg.WiFiControlScript)
 
 	mux.HandleFunc("GET /api/device", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{
@@ -35,12 +38,50 @@ func New(cfg config.Config) http.Handler {
 			"dataRootWritable":       true,
 			"maxBanks":               100,
 			"slotsPerBank":           4,
-			"supportedPresetVersion": 1,
+			"supportedPresetVersion": 2,
 			"capabilities": map[string]bool{
 				"modelUpload": true, "irUpload": true, "presetRead": true,
 				"presetWrite": true, "presetApply": true, "assetRename": true,
+				"wifiSettings": true,
 			},
 		})
+	})
+
+	mux.HandleFunc("GET /api/settings/wifi", func(w http.ResponseWriter, r *http.Request) {
+		if !authorized(w, r, cfg) {
+			return
+		}
+		settings, err := wifiStore.Get()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "wifi_settings_failed", err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, settings)
+	})
+
+	mux.HandleFunc("PUT /api/settings/wifi", func(w http.ResponseWriter, r *http.Request) {
+		if !authorized(w, r, cfg) {
+			return
+		}
+		var update wifi.Update
+		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<10))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&update); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_wifi_settings", err.Error())
+			return
+		}
+		settings, err := wifiStore.Save(update)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_wifi_settings", err.Error())
+			return
+		}
+		writeJSON(w, http.StatusAccepted, settings)
+		go func() {
+			time.Sleep(750 * time.Millisecond)
+			if err := wifiStore.Restart(); err != nil {
+				log.Printf("restart Wi-Fi after settings update: %v", err)
+			}
+		}()
 	})
 
 	mux.HandleFunc("GET /api/assets/{kind}", func(w http.ResponseWriter, r *http.Request) {

@@ -43,6 +43,38 @@ func TestAuthCanBeDisabledForTesting(t *testing.T) {
 	}
 }
 
+func TestWiFiSettingsCanBeProvisionedAtRuntime(t *testing.T) {
+	dataRoot := t.TempDir()
+	handler := New(config.Config{DataRoot: dataRoot, AuthEnabled: false})
+
+	update := httptest.NewRecorder()
+	handler.ServeHTTP(update, httptest.NewRequest(
+		http.MethodPut,
+		"/api/settings/wifi",
+		bytes.NewBufferString(`{"ssid":"Stage Network","password":"pedal-secret","country":"HU"}`),
+	))
+	if update.Code != http.StatusAccepted {
+		t.Fatalf("update status=%d body=%s", update.Code, update.Body.String())
+	}
+
+	body, err := os.ReadFile(filepath.Join(dataRoot, "wifi", "wpa_supplicant.conf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(body, []byte(`ssid="Stage Network"`)) || !bytes.Contains(body, []byte(`psk="pedal-secret"`)) {
+		t.Fatalf("config=%s", body)
+	}
+
+	get := httptest.NewRecorder()
+	handler.ServeHTTP(get, httptest.NewRequest(http.MethodGet, "/api/settings/wifi", nil))
+	if get.Code != http.StatusOK || !bytes.Contains(get.Body.Bytes(), []byte(`"ssid":"Stage Network"`)) {
+		t.Fatalf("get status=%d body=%s", get.Code, get.Body.String())
+	}
+	if bytes.Contains(get.Body.Bytes(), []byte("pedal-secret")) {
+		t.Fatalf("GET exposed password: %s", get.Body.String())
+	}
+}
+
 func TestTauriCORS(t *testing.T) {
 	handler := New(config.Config{DataRoot: t.TempDir(), AuthEnabled: false})
 

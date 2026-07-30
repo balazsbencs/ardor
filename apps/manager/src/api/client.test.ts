@@ -123,4 +123,24 @@ describe("ArdorApiClient", () => {
       accepted: true, bank: 4, slot: 2, message: "queued",
     });
   });
+
+  it("updates runtime Wi-Fi settings without requiring an image rebuild", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      configured: true,
+      ssid: "Stage Network",
+      country: "HU",
+      status: "restarting",
+    }), { status: 202 }));
+    const client = new ArdorApiClient({ baseUrl: "http://pedal", fetchImpl: fetchMock });
+
+    await expect(client.updateWiFiSettings({
+      ssid: "Stage Network",
+      password: "pedal-secret",
+      country: "HU",
+    })).resolves.toMatchObject({ configured: true, status: "restarting" });
+    expect(fetchMock).toHaveBeenCalledWith("http://pedal/api/settings/wifi", expect.objectContaining({
+      method: "PUT",
+      body: '{"ssid":"Stage Network","password":"pedal-secret","country":"HU"}',
+    }));
+  });
 });

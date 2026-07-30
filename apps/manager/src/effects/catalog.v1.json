@@ -21,6 +21,26 @@
           "assetKind": "models"
         },
         {
+          "kind": "choice",
+          "key": "inputMode",
+          "label": "Input source",
+          "choices": [
+            {
+              "value": "sum",
+              "label": "L+R Average"
+            },
+            {
+              "value": "left",
+              "label": "Left / Mono"
+            },
+            {
+              "value": "right",
+              "label": "Right"
+            }
+          ],
+          "defaultValue": "sum"
+        },
+        {
           "kind": "toggle",
           "key": "useNano",
           "label": "Use nano model",
@@ -70,12 +90,183 @@
       ]
     },
     {
+      "id": "dualAmp",
+      "blockType": "dualAmp",
+      "name": "Dual Amp",
+      "description": "Two parallel NAM and cabinet lanes routed hard left and right.",
+      "category": "amp",
+      "aliases": [
+        "dual",
+        "stereo amp",
+        "parallel NAM"
+      ],
+      "controls": [
+        {
+          "kind": "choice",
+          "key": "inputMode",
+          "label": "Input source",
+          "choices": [
+            { "value": "sum", "label": "L+R Average" },
+            { "value": "left", "label": "Left / Mono" },
+            { "value": "right", "label": "Right" }
+          ],
+          "defaultValue": "sum"
+        },
+        {
+          "kind": "asset",
+          "key": "leftNamAsset",
+          "label": "Left NAM model",
+          "assetKind": "models"
+        },
+        {
+          "kind": "toggle",
+          "key": "leftUseNano",
+          "label": "Left nano model",
+          "defaultValue": false
+        },
+        {
+          "kind": "asset",
+          "key": "leftIrAsset",
+          "label": "Left cabinet IR",
+          "assetKind": "irs"
+        },
+        {
+          "kind": "number",
+          "key": "leftCabLevelDb",
+          "label": "Left cab level",
+          "minimum": -60,
+          "maximum": 12,
+          "step": 1,
+          "unit": "db",
+          "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "leftCabMix",
+          "label": "Left cab mix",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 1
+        },
+        {
+          "kind": "toggle",
+          "key": "leftPolarityInvert",
+          "label": "Invert left polarity",
+          "defaultValue": false
+        },
+        {
+          "kind": "asset",
+          "key": "rightNamAsset",
+          "label": "Right NAM model",
+          "assetKind": "models"
+        },
+        {
+          "kind": "toggle",
+          "key": "rightUseNano",
+          "label": "Right nano model",
+          "defaultValue": false
+        },
+        {
+          "kind": "asset",
+          "key": "rightIrAsset",
+          "label": "Right cabinet IR",
+          "assetKind": "irs"
+        },
+        {
+          "kind": "number",
+          "key": "rightCabLevelDb",
+          "label": "Right cab level",
+          "minimum": -60,
+          "maximum": 12,
+          "step": 1,
+          "unit": "db",
+          "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "rightCabMix",
+          "label": "Right cab mix",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 1
+        },
+        {
+          "kind": "toggle",
+          "key": "rightPolarityInvert",
+          "label": "Invert right polarity",
+          "defaultValue": false
+        }
+      ]
+    },
+    {
+      "id": "dualRig",
+      "blockType": "dualRig",
+      "name": "Dual Rig",
+      "description": "An expandable split/merge region with independent left and right effect chains.",
+      "category": "amp",
+      "aliases": [
+        "parallel rig",
+        "dual chain",
+        "split",
+        "stereo rig"
+      ],
+      "controls": [
+        {
+          "kind": "choice",
+          "key": "inputMode",
+          "label": "Input source",
+          "choices": [
+            { "value": "sum", "label": "L+R Average" },
+            { "value": "left", "label": "Left / Mono" },
+            { "value": "right", "label": "Right" }
+          ],
+          "defaultValue": "sum"
+        },
+        {
+          "kind": "number",
+          "key": "leftLevelDb",
+          "label": "Left output level",
+          "minimum": -60,
+          "maximum": 12,
+          "step": 1,
+          "unit": "db",
+          "defaultValue": 0
+        },
+        {
+          "kind": "toggle",
+          "key": "leftPolarityInvert",
+          "label": "Invert left polarity",
+          "defaultValue": false
+        },
+        {
+          "kind": "number",
+          "key": "rightLevelDb",
+          "label": "Right output level",
+          "minimum": -60,
+          "maximum": 12,
+          "step": 1,
+          "unit": "db",
+          "defaultValue": 0
+        },
+        {
+          "kind": "toggle",
+          "key": "rightPolarityInvert",
+          "label": "Invert right polarity",
+          "defaultValue": false
+        }
+      ]
+    },
+    {
       "id": "dynamics:compressor",
       "blockType": "dynamics",
       "mode": "compressor",
       "name": "Compressor",
       "description": "Dynamics control with detector and sidechain options.",
-      "category": "dynamics",
+      "category": "utility",
       "aliases": [
         "compressor",
         "comp"
@@ -201,7 +392,7 @@
       "mode": "parametric_eq_5",
       "name": "Five Band Parametric EQ",
       "description": "Five fully parametric equalizer bands.",
-      "category": "eq",
+      "category": "utility",
       "aliases": [
         "EQ",
         "equalizer",

@@ -53,12 +53,69 @@ Preset globals:
 
 NAM block params:
 
+- `params.inputMode`: stereo-to-mono routing at the NAM input: `"sum"` averages left and right (default), `"left"` uses the left/mono channel, and `"right"` uses the right channel.
 - `params.useNano`: when `true`, selects the embedded nano submodel to reduce CPU usage; missing or `false` selects the full model.
 
 Cab block params:
 
 - `params.levelDb`: cab level before output gain.
 - `params.mix`: `0.0` dry after-NAM signal, `1.0` full cab signal.
+
+Dual Amp is one draggable `type: "dualAmp"` block with two fixed parallel
+lanes. Both lanes receive the selected mono input; the left NAM → IR lane feeds
+only the left output and the right NAM → IR lane feeds only the right output.
+It uses:
+
+- `params.inputMode`: `"sum"` (default), `"left"`, or `"right"`.
+- `params.leftNamAsset` / `params.rightNamAsset`: relative `.nam` asset paths.
+- `params.leftIrAsset` / `params.rightIrAsset`: relative IR asset paths.
+- `params.leftUseNano` / `params.rightUseNano`: per-model nano selection.
+- `params.leftCabLevelDb` / `params.rightCabLevelDb`: `-60..12` dB.
+- `params.leftCabMix` / `params.rightCabMix`: `0.0..1.0`.
+- `params.leftPolarityInvert` / `params.rightPolarityInvert`: whole-lane polarity.
+
+An enabled Dual Amp block cannot be combined with standalone NAM or cabinet
+blocks in the same preset. Existing version-1 serial presets remain compatible.
+
+Dual Rig generalizes that fixed block to two independent child chains. It is a
+version-2 preset block and remains one draggable item in the outer chain:
+
+```json
+{
+  "version": 2,
+  "blocks": [{
+    "id": "rig-1",
+    "type": "dualRig",
+    "enabled": true,
+    "asset": "",
+    "params": {
+      "inputMode": "sum",
+      "leftLevelDb": 0,
+      "leftPolarityInvert": false,
+      "rightLevelDb": 0,
+      "rightPolarityInvert": false
+    },
+    "lanes": {
+      "left": { "blocks": [
+        {"id":"left-nam","type":"nam","enabled":true,"asset":"models/clean.nam","params":{}},
+        {"id":"left-cab","type":"cab","enabled":true,"asset":"irs/open.wav","params":{}},
+        {"id":"left-chorus","type":"mod","enabled":true,"asset":"","params":{"mode":"chorus"}}
+      ]},
+      "right": { "blocks": [
+        {"id":"right-nam","type":"nam","enabled":true,"asset":"models/crunch.nam","params":{}},
+        {"id":"right-cab","type":"cab","enabled":true,"asset":"irs/closed.wav","params":{}},
+        {"id":"right-delay","type":"delay","enabled":true,"asset":"","params":{"mode":"digital"}}
+      ]}
+    }
+  }]
+}
+```
+
+Both lanes receive the same selected mono input. Each lane is processed in its
+declared order; the left lane's left output and the right lane's right output
+are retained at the fixed merge. Child block IDs are globally unique, both
+lanes must be non-empty, and split blocks cannot be nested. Version-1 presets
+and the fixed `dualAmp` block remain supported.
 
 Daisy effect blocks use no asset path and store catalog-defined normalized
 `0.0..1.0` parameters. The built-in catalog currently contains 35 modes:
@@ -251,6 +308,53 @@ callbacks=28125 over=0 over%=0.00 max=0.41ms avg=0.23ms budget=1.33ms
 
 `over` counts callbacks that took longer than the audio budget. For `--block-size 64` at 48 kHz, the callback budget is about `1.33 ms`.
 
+Dual Amp and Dual Rig always have a sequential fallback: the callback processes
+the complete left lane and then the complete right lane. On a four-core Pi,
+enable the optimized path with
+`--parallel-rigs --audio-cpu 2 --rig-worker-cpu 3`. This keeps the callback at
+`SCHED_FIFO/70` on CPU 2 and runs a persistent right-lane worker at
+`SCHED_FIFO/69` on CPU 3; the callback processes the complete left lane
+concurrently and joins the worker once at the fixed merge. Effects before and
+after the parallel block still run serially on the callback thread. The two CPU
+arguments are required and must differ. If the worker cannot obtain its
+requested realtime policy or affinity, the rig reports the failure and uses
+sequential processing. The older `--parallel-dual-amp` and
+`--dual-amp-worker-cpu` spellings remain accepted.
+
+The Buildroot image enables that layout by default through
+`PARALLEL_RIGS=1`, `AUDIO_CPU=2`, and `RIG_WORKER_CPU=3` in
+`/etc/ardor-pedal.env`. The UI and non-audio work remain normal-priority Linux
+tasks; the realtime DSP threads preempt them on their assigned cores.
+
+Measure that layout on a running pedal over SSH:
+
+```sh
+./scripts/measure-device-performance.sh --duration 30 192.168.88.17
+```
+
+The probe reports whole-core utilization and headroom, per-thread CPU usage,
+last CPU, affinity, realtime policy and priority, migrations, temperature, and
+CPU clock range. Production builds also publish an atomic snapshot at
+`/run/ardor-pedal.telemetry`; the probe uses its before/after counters to check
+callback overruns, scheduling gaps, parallel-worker deadline misses,
+non-finite DSP blocks, block-size mismatches, and overload bypass. It checks
+that the callback is `SCHED_FIFO/70` on CPU 2. With a Dual Amp or Dual Rig
+preset active, require and validate the `SCHED_FIFO/69` worker on CPU 3:
+
+```sh
+./scripts/measure-device-performance.sh \
+  --duration 60 --require-worker 192.168.88.17
+```
+
+The local wrapper streams
+`scripts/device-performance-remote.sh` to BusyBox `sh`; it does not install
+anything or modify the pedal. Use `ARDOR_PI_HOST`, `ARDOR_SSH_USER`, and
+`ARDOR_SSH_OPTS` for repeatable lab configuration. Passwords are handled by
+OpenSSH and are never stored by the scripts. The final pass/fail verdict covers
+thread placement, realtime scheduling, and audio/DSP fault counters;
+utilization, headroom, clock, and thermal values remain measurements to compare
+between presets and builds.
+
 Realtime telemetry is shared between CLI and UI. The known-good baseline remains `--block-size 64 --ir-samples 8192`. If the overload bypass latches, the CLI prints `bypassed=1` and the UI shows `BYPASS`.
 
 First target settings:
@@ -262,7 +366,11 @@ First target settings:
 - output: stereo
 - round-trip latency goal: under `10 ms`
 
-Chain layout contract: NAM and cabinet blocks are mono stages. Modulation preserves
+Chain layout contract: NAM and cabinet blocks are mono stages. A NAM block may follow
+stereo effects and folds its input according to `params.inputMode`; its mono output is
+copied to both channels. Cabinet blocks must still precede stereo effects. Dual Amp
+and Dual Rig establish stereo with their hard-left/hard-right lanes. Inside a Dual
+Rig, the same ordering rules apply independently to each lane. Modulation preserves
 stereo input. The hosted delay and reverb effects preserve the stereo dry field but
 sum their wet input to mono before producing their vendor-defined stereo wet output.
 
@@ -355,11 +463,27 @@ The LVGL implementation described below is the authoritative interface.
 
 The touch UI includes:
 
-- A four-slot preset screen with bank controls, master-volume status, Edit, and
-  direct Tuner entry.
-- A fixed two-row signal-chain editor with drag-and-drop block ordering.
-- An asset drawer with separate All, Amps, Cabs, EQ, Dynamics, Modulation,
-  Delays, and Reverbs filters.
+- A four-slot preset screen with bank controls, master-volume status, Edit,
+  direct Tuner entry, and a global Settings gear between **Bank+** and **Edit**.
+- A touch-first Settings screen for changing Wi-Fi credentials without
+  reflashing and choosing the global accent color (green by default).
+- A persistent footer with centered master volume and one-second audio-buffer
+  headroom feedback calculated from recent callback time versus its deadline.
+- A single left-to-right signal canvas with horizontal touch scrolling,
+  per-preset scroll memory, dedicated block drag handles, and Input/Output
+  jump controls.
+- An asset drawer with separate All, Amps, Cabs, Utility, Modulation, Delays,
+  and Reverbs filters. Utility contains compressor and EQ blocks.
+- `+` insertion points between every top-level effect and between effects in
+  each split lane. Top-level insertion offers `Split Left / Right`; lane
+  insertion prevents nested split regions.
+- Compact lane handles reorder effects within a rail or move them across the
+  Left and Right rails; moving the final block out of a lane is rejected.
+- Dual Rig presets render as an explicit `SPLIT`, separate color-coded `LEFT`
+  and `RIGHT` rails, and a stereo `JOIN` instead of disguising routing as an
+  ordinary effect card.
+- Long chains remain on the same horizontal signal line and auto-scroll when a
+  dragged block reaches either screen edge.
 - Two-row, three-column parameter pages using large horizontal sliders with
   inline labels/values, plus a matching rectangular bypass control.
 - A dedicated five-band parametric EQ editor with a live response graph.
@@ -371,6 +495,13 @@ Build and launch the desktop simulator with:
 ```sh
 ./scripts/build-sim.sh
 ```
+
+In Edit mode, tap any `+` on the mono rail and choose **Split Left / Right** to
+create a version-2 split region. The Split starts with NAM and IR in both
+lanes, using the first installed model and IR when available. Tap a lane's `+`
+to add another effect directly to that rail. Only one active Split is
+supported, split regions cannot be nested, and existing standalone NAM/IR
+blocks must be removed before inserting the Split.
 
 `pedal-ui-sim` is a desktop-only tool. It does not wire footswitch GPIO, the encoder, Codec Zero, or realtime audio. For the integrated UI+audio experience use `pedal-poc --ui` (see below).
 

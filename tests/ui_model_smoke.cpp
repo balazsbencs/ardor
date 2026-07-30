@@ -64,6 +64,10 @@ int main()
       if (require(asset.type == "reverb" && asset.blockType == "reverb",
                   "Room Reverb should resolve to the dedicated reverb category")) return 1;
     }
+    if (asset.name == "Compressor" || asset.name == "Five Band EQ") {
+      if (require(asset.type == "utility",
+                  "compressor and EQ should resolve to the Utility category")) return 1;
+    }
     if (asset.path.empty()) {
       if (require(!asset.blockType.empty() && !asset.mode.empty(),
                   "built-in assets should have concrete implementation metadata")) return 1;
@@ -188,10 +192,79 @@ int main()
   if (require(state.categoryFilter == "delay", "delay category filter failed")) return 1;
   ardor::setCategoryFilter(state, "reverb");
   if (require(state.categoryFilter == "reverb", "reverb category filter failed")) return 1;
+  ardor::setCategoryFilter(state, "utility");
+  if (require(state.categoryFilter == "utility", "utility category filter failed")) return 1;
   ardor::closeBlockDrawer(state);
   if (require(!state.blockDrawerOpen, "block drawer close failed")) return 1;
   ardor::setCategoryFilter(state, "bogus");
   if (require(state.categoryFilter == "all", "bad filter should fall back to all")) return 1;
+
+  auto splitState = ardor::makeDemoUiState();
+  ardor::Preset emptySplitPreset;
+  emptySplitPreset.name = "Split Test";
+  ardor::replaceActivePreset(splitState, emptySplitPreset);
+  ardor::enterEditMode(splitState);
+  const auto splitAsset = std::find_if(splitState.assets.begin(), splitState.assets.end(),
+                                       [](const ardor::UiAsset& asset) {
+                                         return asset.blockType == "dualRig";
+                                       });
+  const auto chorusAsset = std::find_if(splitState.assets.begin(), splitState.assets.end(),
+                                        [](const ardor::UiAsset& asset) {
+                                          return asset.blockType == "mod" && asset.mode == "chorus";
+                                        });
+  if (require(splitAsset != splitState.assets.end() && chorusAsset != splitState.assets.end(),
+              "effect browser should expose Split and lane effects")) return 1;
+  const auto splitAssetIndex = static_cast<std::size_t>(
+    std::distance(splitState.assets.begin(), splitAsset));
+  const auto chorusAssetIndex = static_cast<std::size_t>(
+    std::distance(splitState.assets.begin(), chorusAsset));
+  ardor::openBlockDrawerAt(splitState, 0);
+  ardor::insertAssetBlock(splitState, splitAssetIndex, splitState.blockInsertIndex);
+  if (require(splitState.bank.presets[splitState.activePreset].version == 2
+                && splitState.bank.presets[splitState.activePreset].blocks.size() == 1
+                && splitState.bank.presets[splitState.activePreset].blocks[0].type == "dualRig"
+                && splitState.bank.presets[splitState.activePreset].blocks[0].lanes[0].empty()
+                && splitState.bank.presets[splitState.activePreset].blocks[0].lanes[1].empty(),
+              "Split insertion should create a version-2 region with two empty lanes")) return 1;
+  completePreview(splitState);
+  ardor::openLaneBlockDrawer(splitState, 0, 1, 0);
+  if (require(splitState.blockInsertRig == 0 && splitState.blockInsertLane == 1
+                && splitState.blockInsertIndex == 0,
+              "right-lane plus should retain its exact insertion target")) return 1;
+  ardor::insertLaneAssetBlock(splitState, chorusAssetIndex, 0, 1, 0);
+  if (require(splitState.bank.presets[splitState.activePreset].blocks[0].lanes[1].size() == 1
+                && splitState.bank.presets[splitState.activePreset].blocks[0].lanes[1][0].type == "mod"
+                && splitState.bank.presets[splitState.activePreset].blocks[0].lanes[1][0].params.value("mode", "") == "chorus",
+              "lane insertion should append the selected effect to only the targeted rail")) return 1;
+  completePreview(splitState);
+  if (require(ardor::moveLaneBlock(splitState, 0, 1, 0, 0, 0),
+              "lane effects should move between Left and Right")) return 1;
+  if (require(splitState.bank.presets[splitState.activePreset].blocks[0].lanes[0].size() == 1
+                && splitState.bank.presets[splitState.activePreset].blocks[0].lanes[1].empty()
+                && splitState.bank.presets[splitState.activePreset].blocks[0].lanes[0][0].params.value("mode", "") == "chorus",
+              "cross-lane moves should preserve effect data and lane order")) return 1;
+  completePreview(splitState);
+  ardor::selectLaneBlock(splitState, 0, 0, 0);
+  const auto* selectedLaneEffect = ardor::selectedUiBlock(splitState);
+  if (require(selectedLaneEffect && selectedLaneEffect->type == "mod"
+                && splitState.paramDrawerOpen
+                && ardor::parameterPageCount(splitState) > 0,
+              "lane selection should target the nested effect parameter model")) return 1;
+  ardor::setSelectedBlockEnabled(splitState, false);
+  if (require(!splitState.bank.presets[splitState.activePreset].blocks[0].lanes[0][0].enabled
+                && splitState.bank.presets[splitState.activePreset].blocks[0].enabled,
+              "lane bypass should affect the selected child without bypassing the Split")) return 1;
+  completePreview(splitState);
+  if (require(ardor::deleteSelectedBlock(splitState)
+                && splitState.bank.presets[splitState.activePreset].blocks[0].lanes[0].empty()
+                && splitState.bank.presets[splitState.activePreset].blocks.size() == 1,
+              "deleting a selected lane effect should preserve its Dual Rig container")) return 1;
+  completePreview(splitState);
+  const auto splitBlockCount = splitState.bank.presets[splitState.activePreset].blocks.size();
+  ardor::insertAssetBlock(splitState, splitAssetIndex, splitBlockCount);
+  if (require(splitState.bank.presets[splitState.activePreset].blocks.size() == splitBlockCount
+                && splitState.statusIsError,
+              "a preset should reject a second active Split region")) return 1;
 
   ardor::selectBlock(state, 0);
   if (require(state.paramDrawerOpen, "block selection should open parameter drawer")) return 1;

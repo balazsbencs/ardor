@@ -40,7 +40,7 @@ int main()
           "manager effect catalog has definitions");
 
   const auto& definitions = catalog.at("definitions");
-  require(definitions.size() == 39, "manager effect catalog has 39 definitions");
+  require(definitions.size() == 41, "manager effect catalog has 41 definitions");
 
   std::unordered_set<std::string> managerDaisyPairs;
   bool foundCompressor = false;
@@ -49,10 +49,12 @@ int main()
     const auto blockType = definition.value("blockType", std::string{});
     const auto mode = definition.value("mode", std::string{});
     if (blockType == "dynamics" && mode == "compressor") {
-      foundCompressor = definition.value("id", std::string{}) == "dynamics:compressor";
+      foundCompressor = definition.value("id", std::string{}) == "dynamics:compressor"
+        && definition.value("category", std::string{}) == "utility";
     }
     if (blockType == "eq" && mode == "parametric_eq_5") {
-      foundEq = definition.value("id", std::string{}) == "eq:parametric_eq_5";
+      foundEq = definition.value("id", std::string{}) == "eq:parametric_eq_5"
+        && definition.value("category", std::string{}) == "utility";
     }
     if (blockType != "mod" && blockType != "delay" && blockType != "reverb") {
       continue;

@@ -15,6 +15,8 @@ struct EngineLoadOptions {
   uint32_t sampleRate = 48000;
   uint32_t blockSize = 64;
   size_t irSamples = 8192;
+  bool parallelRigs = false;
+  int rigWorkerCpu = -1;
 };
 
 bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoadOptions& options, std::string& error);

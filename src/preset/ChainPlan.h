@@ -4,6 +4,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <array>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -18,6 +19,11 @@ enum class ChainBlockStatus {
 };
 
 struct ChainBlockPlan {
+  struct DualAmpLane {
+    std::filesystem::path modelPath;
+    std::filesystem::path cabPath;
+  };
+
   std::string id;
   std::string type;
   ChainBlockStatus status = ChainBlockStatus::Ready;
@@ -25,6 +31,8 @@ struct ChainBlockPlan {
   nlohmann::json params = nlohmann::json::object();
   float level = 1.0f;
   float mix = 1.0f;
+  std::array<DualAmpLane, 2> dualAmpLanes;
+  std::array<std::vector<ChainBlockPlan>, 2> lanes;
 };
 
 struct ChainPlan {

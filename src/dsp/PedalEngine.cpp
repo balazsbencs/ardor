@@ -3,6 +3,8 @@
 #include "DenormalGuard.h"
 
 #include "daisyfx/DaisyFxProcessor.h"
+#include "dsp/DualAmpProcessor.h"
+#include "dsp/DualRigProcessor.h"
 #include "dynamics/CompressorProcessor.h"
 #include "equalizer/EqParameters.h"
 
@@ -69,6 +71,8 @@ const char* signalStageKindName(SignalStageKind kind) noexcept
   case SignalStageKind::Daisy: return "daisy";
   case SignalStageKind::Compressor: return "compressor";
   case SignalStageKind::Equalizer: return "eq";
+  case SignalStageKind::DualAmp: return "dual-amp";
+  case SignalStageKind::DualRig: return "dual-rig";
   case SignalStageKind::Output: return "output";
   }
   return "unknown";
@@ -110,11 +114,32 @@ void PedalEngine::setSampleRate(double sampleRate)
 }
 
 bool PedalEngine::loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
-                          std::string id, float slimmableSize)
+                          std::string id, float slimmableSize, NamInputMode inputMode)
 {
   setSampleRate(sampleRate);
   prepareBlockSize(static_cast<size_t>(std::max(1, maxBlockSize)));
-  return chain_.addNam(modelPath, sampleRate, maxBlockSize, std::move(id), slimmableSize);
+  return chain_.addNam(modelPath, sampleRate, maxBlockSize, std::move(id), slimmableSize, inputMode);
+}
+
+bool PedalEngine::addDualAmp(std::string id, DualAmpLaneConfig left, DualAmpLaneConfig right,
+                             NamInputMode inputMode, double sampleRate, int maxBlockSize,
+                             bool requestParallel, int workerCpu, std::string& error)
+{
+  setSampleRate(sampleRate);
+  prepareBlockSize(static_cast<size_t>(std::max(1, maxBlockSize)));
+  return chain_.addDualAmp(std::move(id), std::move(left), std::move(right), inputMode,
+                           sampleRate, maxBlockSize, requestParallel, workerCpu, error);
+}
+
+bool PedalEngine::addDualRig(std::string id, DualRigLaneConfig left, DualRigLaneConfig right,
+                             NamInputMode inputMode, double sampleRate, int maxBlockSize,
+                             bool requestParallel, int workerCpu, std::string& error)
+{
+  setSampleRate(sampleRate);
+  prepareBlockSize(static_cast<size_t>(std::max(1, maxBlockSize)));
+  return chain_.addDualRig(std::move(id), std::move(left), std::move(right), inputMode,
+                           sampleRate, static_cast<std::size_t>(maxBlockSize),
+                           requestParallel, workerCpu, error);
 }
 
 void PedalEngine::loadIr(std::vector<float> impulse)
@@ -249,6 +274,11 @@ uint64_t PedalEngine::blockSizeMismatchCount() const noexcept
 uint64_t PedalEngine::nonFiniteBlockCount() const noexcept
 {
   return chain_.nonFiniteBlockCount();
+}
+
+uint64_t PedalEngine::parallelWaitOverBudgetCount() const noexcept
+{
+  return chain_.parallelWaitOverBudgetCount();
 }
 
 std::string PedalEngine::firstNonFiniteBlockId() const

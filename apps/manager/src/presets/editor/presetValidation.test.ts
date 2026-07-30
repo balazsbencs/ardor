@@ -25,7 +25,7 @@ function codes(preset: Preset): string[] {
 
 describe("preset validation", () => {
   it.each([
-    ["version", (preset: Preset) => Object.assign(preset, { version: 2 })],
+    ["version", (preset: Preset) => Object.assign(preset, { version: 3 })],
     ["routing", (preset: Preset) => Object.assign(preset, { routing: "parallel" })],
     ["name-length", (preset: Preset) => Object.assign(preset, { name: "x".repeat(121) })],
   ])("rejects invalid preset-level %s", (code, mutate) => {
@@ -115,13 +115,61 @@ describe("preset validation", () => {
     },
   );
 
-  it("rejects enabled mono asset blocks after the first enabled stereo Daisy block", () => {
+  it("allows NAM to fold stereo to mono while still rejecting cabinet directly after stereo", () => {
     const delay = createBlockFromDefinition("delay:digital", []);
     const nam = createBlockFromDefinition("nam", [delay], "models/amp.nam");
-    const result = validatePreset(validPreset([delay, nam]), assets);
-    expect(result.issues).toContainEqual(expect.objectContaining({ code: "mono-after-stereo", blockId: nam.id }));
-    nam.enabled = false;
     expect(validatePreset(validPreset([delay, nam]), assets).issues.map(({ code }) => code)).not.toContain("mono-after-stereo");
+
+    const cab = createBlockFromDefinition("cab", [delay, nam], "irs/cab.wav");
+    expect(validatePreset(validPreset([delay, nam, cab]), assets).issues.map(({ code }) => code)).not.toContain("mono-after-stereo");
+    expect(validatePreset(validPreset([delay, cab]), assets).issues).toContainEqual(
+      expect.objectContaining({ code: "mono-after-stereo", blockId: cab.id }),
+    );
+  });
+
+  it("validates all Dual Amp lane assets and conflicts with standalone amp blocks", () => {
+    const dual = createBlockFromDefinition("dualAmp", []);
+    dual.params.leftNamAsset = "models/amp.nam";
+    dual.params.leftIrAsset = "irs/cab.wav";
+    dual.params.rightNamAsset = "models/amp.nam";
+    dual.params.rightIrAsset = "irs/cab.wav";
+    expect(validatePreset(validPreset([dual]), assets)).toMatchObject({ canSave: true, canApply: true });
+
+    dual.params.rightIrAsset = "../escape.wav";
+    expect(validatePreset(validPreset([dual]), assets).issues).toContainEqual(
+      expect.objectContaining({ code: "asset-path", field: "params.rightIrAsset" }),
+    );
+    dual.params.rightIrAsset = "irs/cab.wav";
+
+    const nam = createBlockFromDefinition("nam", [dual], "models/amp.nam");
+    expect(validatePreset(validPreset([dual, nam]), assets).issues).toContainEqual(
+      expect.objectContaining({ code: "dual-amp-conflict", blockId: nam.id }),
+    );
+  });
+
+  it("validates version-2 Dual Rig child chains and forbids nested split regions", () => {
+    const rig = createBlockFromDefinition("dualRig", []);
+    const left = rig.lanes!.left.blocks;
+    const right = rig.lanes!.right.blocks;
+    left[0].asset = "models/amp.nam";
+    left[1].asset = "irs/cab.wav";
+    right[0].asset = "models/amp.nam";
+    right[1].asset = "irs/cab.wav";
+    const preset = validPreset([rig]);
+    preset.version = 2;
+    expect(validatePreset(preset, assets)).toMatchObject({ canSave: true, canApply: true });
+
+    right[0].asset = "models/missing.nam";
+    expect(validatePreset(preset, assets).issues).toContainEqual(
+      expect.objectContaining({ code: "asset-missing", blockId: right[0].id }),
+    );
+    right[0].asset = "models/amp.nam";
+
+    const nested = createBlockFromDefinition("dualRig", [rig]);
+    rig.lanes!.left.blocks.push(nested);
+    expect(validatePreset(preset, assets).issues).toContainEqual(
+      expect.objectContaining({ code: "nested-split", blockId: nested.id }),
+    );
   });
 
   it("requires the canonical complete five-band EQ shape", () => {

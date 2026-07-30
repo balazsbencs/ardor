@@ -13,7 +13,7 @@ import type {
 } from "./types";
 
 const categories = new Set<EffectCategory>([
-  "amp", "cabinet", "dynamics", "eq", "modulation", "delay", "reverb",
+  "amp", "cabinet", "utility", "modulation", "delay", "reverb",
 ]);
 const units = new Set<NumberControl["unit"]>(["percent", "db", "ms", "hz", "ratio", "plain"]);
 const assetKinds = new Set<AssetControl["assetKind"]>(["models", "irs"]);
@@ -110,11 +110,13 @@ function controlAt(value: unknown, path: string): EffectControl {
     if (!assetKinds.has(assetKind as AssetControl["assetKind"])) {
       fail(`${path}.assetKind`, `unsupported asset kind ${assetKind}`);
     }
-    return {
+    const control: AssetControl = {
       kind,
       label: stringAt(source.label, `${path}.label`),
       assetKind: assetKind as AssetControl["assetKind"],
     };
+    if (source.key !== undefined) control.key = stringAt(source.key, `${path}.key`);
+    return control;
   }
   if (kind === "parametric-eq-5") return { kind };
   return fail(`${path}.kind`, `unsupported control kind ${kind}`);
@@ -205,6 +207,32 @@ export function definitionsForCategory(category: EffectCategory): EffectDefiniti
 
 export function defaultsForDefinition(id: string): Record<string, unknown> {
   const definition = getEffectDefinition(id);
+  if (definition.id === "dualRig") {
+    return {
+      inputMode: "sum",
+      leftLevelDb: 0,
+      leftPolarityInvert: false,
+      rightLevelDb: 0,
+      rightPolarityInvert: false,
+    };
+  }
+  if (definition.id === "dualAmp") {
+    return {
+      inputMode: "sum",
+      leftNamAsset: "",
+      leftUseNano: false,
+      leftIrAsset: "",
+      leftCabLevelDb: 0,
+      leftCabMix: 1,
+      leftPolarityInvert: false,
+      rightNamAsset: "",
+      rightUseNano: false,
+      rightIrAsset: "",
+      rightCabLevelDb: 0,
+      rightCabMix: 1,
+      rightPolarityInvert: false,
+    };
+  }
   if (definition.id === "eq:parametric_eq_5") {
     return {
       mode: "parametric_eq_5",
@@ -227,7 +255,12 @@ export function defaultsForDefinition(id: string): Record<string, unknown> {
 }
 
 function nextBlockId(existingBlocks: PresetBlock[]): string {
-  const used = new Set(existingBlocks.map(({ id }) => id));
+  const nested = (blocks: PresetBlock[]): PresetBlock[] => blocks.flatMap((block) => [
+    block,
+    ...nested(block.lanes?.left.blocks ?? []),
+    ...nested(block.lanes?.right.blocks ?? []),
+  ]);
+  const used = new Set(nested(existingBlocks).map(({ id }) => id));
   let greatest = 0;
   for (const id of used) {
     const match = /^block-([1-9]\d*)$/.exec(id);
@@ -245,11 +278,22 @@ export function createBlockFromDefinition(
   asset?: string,
 ): PresetBlock {
   const definition = getEffectDefinition(id);
-  return {
+  const block: PresetBlock = {
     id: nextBlockId(existingBlocks),
     type: definition.blockType,
     enabled: true,
-    asset: definition.controls.some((control) => control.kind === "asset") ? asset ?? "" : "",
+    asset: definition.controls.some((control) => control.kind === "asset" && !control.key) ? asset ?? "" : "",
     params: defaultsForDefinition(id),
   };
+  if (definition.id === "dualRig") {
+    const leftNam = createBlockFromDefinition("nam", [...existingBlocks, block]);
+    const leftCab = createBlockFromDefinition("cab", [...existingBlocks, block, leftNam]);
+    const rightNam = createBlockFromDefinition("nam", [...existingBlocks, block, leftNam, leftCab]);
+    const rightCab = createBlockFromDefinition("cab", [...existingBlocks, block, leftNam, leftCab, rightNam]);
+    block.lanes = {
+      left: { blocks: [leftNam, leftCab] },
+      right: { blocks: [rightNam, rightCab] },
+    };
+  }
+  return block;
 }

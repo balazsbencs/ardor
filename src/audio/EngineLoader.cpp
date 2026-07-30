@@ -3,6 +3,11 @@
 #include "audio/WavIo.h"
 
 #include "daisyfx/DaisyFxCatalog.h"
+#include "daisyfx/DaisyFxProcessor.h"
+#include "dsp/DualAmpProcessor.h"
+#include "dsp/DualRigProcessor.h"
+#include "dynamics/CompressorProcessor.h"
+#include "equalizer/EqParameters.h"
 
 #include <cmath>
 #include <exception>
@@ -95,6 +100,237 @@ bool namSlimmableSize(const ChainBlockPlan& block, float& size, std::string& err
   return true;
 }
 
+bool namInputMode(const ChainBlockPlan& block, NamInputMode& mode, std::string& error)
+{
+  mode = NamInputMode::Sum;
+  const auto it = block.params.find("inputMode");
+  if (it == block.params.end()) {
+    return true;
+  }
+  if (!it->is_string()) {
+    error = "NAM Input source must be sum, left, or right";
+    return false;
+  }
+  const auto value = it->get<std::string>();
+  if (value == "sum") {
+    mode = NamInputMode::Sum;
+  } else if (value == "left") {
+    mode = NamInputMode::Left;
+  } else if (value == "right") {
+    mode = NamInputMode::Right;
+  } else {
+    error = "NAM Input source must be sum, left, or right";
+    return false;
+  }
+  return true;
+}
+
+bool boolParameter(const ChainBlockPlan& block, const char* key, bool fallback,
+                   bool& value, std::string& error)
+{
+  value = fallback;
+  const auto it = block.params.find(key);
+  if (it == block.params.end()) return true;
+  if (!it->is_boolean()) {
+    error = std::string{"parallel rig parameter must be boolean: "} + key;
+    return false;
+  }
+  value = it->get<bool>();
+  return true;
+}
+
+bool numberParameter(const ChainBlockPlan& block, const char* key, float fallback,
+                     float minimum, float maximum, float& value, std::string& error)
+{
+  value = fallback;
+  const auto it = block.params.find(key);
+  if (it == block.params.end()) return true;
+  if (!it->is_number()) {
+    error = std::string{"parallel rig parameter must be finite: "} + key;
+    return false;
+  }
+  value = it->get<float>();
+  if (!std::isfinite(value) || value < minimum || value > maximum) {
+    error = std::string{"parallel rig parameter out of range: "} + key;
+    return false;
+  }
+  return true;
+}
+
+bool validateDualAmpParameters(const ChainBlockPlan& block, std::string& error)
+{
+  NamInputMode ignoredMode = NamInputMode::Sum;
+  if (!namInputMode(block, ignoredMode, error)) return false;
+  for (const char* prefix : {"left", "right"}) {
+    const std::string nanoKey = std::string{prefix} + "UseNano";
+    const std::string levelKey = std::string{prefix} + "CabLevelDb";
+    const std::string mixKey = std::string{prefix} + "CabMix";
+    const std::string polarityKey = std::string{prefix} + "PolarityInvert";
+    bool ignoredBool = false;
+    float ignoredNumber = 0.0f;
+    if (!boolParameter(block, nanoKey.c_str(), false, ignoredBool, error)
+        || !numberParameter(block, levelKey.c_str(), 0.0f, -60.0f, 12.0f,
+                            ignoredNumber, error)
+        || !numberParameter(block, mixKey.c_str(), 1.0f, 0.0f, 1.0f,
+                            ignoredNumber, error)
+        || !boolParameter(block, polarityKey.c_str(), false, ignoredBool, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool loadPreparedIr(const std::filesystem::path& path, const EngineLoadOptions& options,
+                    std::vector<float>& samples, std::string& error)
+{
+  MonoWav wav;
+  try {
+    wav = readMonoWav(path);
+  } catch (const std::exception& e) {
+    error = "failed to load IR: " + path.string() + ": " + e.what();
+    return false;
+  }
+  if (wav.sampleRate != options.sampleRate) {
+    error = "IR sample rate mismatch: " + path.string();
+    return false;
+  }
+  std::string irError;
+  if (!prepareMonoIr(wav, options.irSamples, irError)) {
+    error = "invalid IR: " + path.string() + ": " + irError;
+    return false;
+  }
+  samples = std::move(wav.samples);
+  return true;
+}
+
+bool makeDualAmpLane(const ChainBlockPlan& block, std::size_t laneIndex,
+                     const EngineLoadOptions& options, DualAmpLaneConfig& lane,
+                     std::string& error)
+{
+  const char* prefix = laneIndex == 0 ? "left" : "right";
+  const std::string nanoKey = std::string{prefix} + "UseNano";
+  const std::string levelKey = std::string{prefix} + "CabLevelDb";
+  const std::string mixKey = std::string{prefix} + "CabMix";
+  const std::string polarityKey = std::string{prefix} + "PolarityInvert";
+  bool useNano = false;
+  float levelDb = 0.0f;
+  if (!boolParameter(block, nanoKey.c_str(), false, useNano, error)
+      || !numberParameter(block, levelKey.c_str(), 0.0f, -60.0f, 12.0f, levelDb, error)
+      || !numberParameter(block, mixKey.c_str(), 1.0f, 0.0f, 1.0f, lane.cabMix, error)
+      || !boolParameter(block, polarityKey.c_str(), false, lane.polarityInverted, error)) {
+    return false;
+  }
+  lane.modelPath = block.dualAmpLanes[laneIndex].modelPath;
+  lane.slimmableSize = useNano ? 0.0f : 1.0f;
+  lane.cabLevel = std::pow(10.0f, levelDb / 20.0f);
+  return loadPreparedIr(block.dualAmpLanes[laneIndex].cabPath, options, lane.impulse, error);
+}
+
+bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& blocks,
+                      const EngineLoadOptions& options, std::string& error)
+{
+  chain.prepareBlockSize(options.blockSize);
+  bool loadedNam = false;
+  bool loadedCab = false;
+  bool stereoEstablished = false;
+  for (const auto& block : blocks) {
+    if (block.status != ChainBlockStatus::Ready) {
+      if (block.status != ChainBlockStatus::Disabled) {
+        error = "dual rig lane block not ready: " + block.id + " (" + statusName(block.status) + ")";
+        return false;
+      }
+      continue;
+    }
+    if (block.type == "dualRig" || block.type == "dualAmp") {
+      error = "nested split blocks are not supported in a dual rig lane: " + block.id;
+      return false;
+    }
+    if (block.type == "nam") {
+      if (loadedNam) {
+        error = "multiple NAM blocks are not supported in one dual rig lane: " + block.id;
+        return false;
+      }
+      float slimmableSize = 1.0f;
+      NamInputMode inputMode = NamInputMode::Sum;
+      if (!namSlimmableSize(block, slimmableSize, error)
+          || !namInputMode(block, inputMode, error)) {
+        return false;
+      }
+      if (!chain.addNam(block.assetPath, options.sampleRate,
+                        static_cast<int>(options.blockSize), block.id,
+                        slimmableSize, inputMode)) {
+        error = "failed to load dual rig NAM: " + block.assetPath.string();
+        return false;
+      }
+      loadedNam = true;
+      stereoEstablished = false;
+      continue;
+    }
+    if (block.type == "cab") {
+      if (loadedCab) {
+        error = "multiple cabinet blocks are not supported in one dual rig lane: " + block.id;
+        return false;
+      }
+      if (stereoEstablished) {
+        error = "cabinet must precede stereo effects in a dual rig lane: " + block.id;
+        return false;
+      }
+      std::vector<float> impulse;
+      if (!loadPreparedIr(block.assetPath, options, impulse, error)) return false;
+      chain.addCab(std::move(impulse), block.level, block.mix, block.id);
+      loadedCab = true;
+      continue;
+    }
+    if (block.type == "mod" || block.type == "delay" || block.type == "reverb") {
+      if (!validateDaisyParameters(block, error)) return false;
+      DaisyFxProcessor processor;
+      if (!processor.configure(block.type, block.params,
+                               static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
+      chain.addDaisy(block.id, std::move(processor));
+      stereoEstablished = true;
+      continue;
+    }
+    if (block.type == "dynamics") {
+      CompressorProcessor processor;
+      if (!processor.configure(block.params, static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
+      chain.addCompressor(block.id, std::move(processor));
+      continue;
+    }
+    if (block.type == "eq") {
+      if (!chain.addParametricEq(block.id, parametricEqParamsFromJson(block.params),
+                                 static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
+      continue;
+    }
+    error = "unsupported block in dual rig lane: " + block.id;
+    return false;
+  }
+  return true;
+}
+
+bool makeDualRigLane(const ChainBlockPlan& block, std::size_t laneIndex,
+                     const EngineLoadOptions& options, DualRigLaneConfig& lane,
+                     std::string& error)
+{
+  const char* prefix = laneIndex == 0 ? "left" : "right";
+  const std::string levelKey = std::string{prefix} + "LevelDb";
+  const std::string polarityKey = std::string{prefix} + "PolarityInvert";
+  float levelDb = 0.0f;
+  if (!numberParameter(block, levelKey.c_str(), 0.0f, -60.0f, 12.0f, levelDb, error)
+      || !boolParameter(block, polarityKey.c_str(), false,
+                        lane.polarityInverted, error)) {
+    return false;
+  }
+  lane.level = std::pow(10.0f, levelDb / 20.0f);
+  lane.chain = std::make_unique<RuntimeChain>();
+  return prepareLaneChain(*lane.chain, block.lanes[laneIndex], options, error);
+}
+
 bool preflightChainPlan(const ChainPlan& plan, const EngineLoadOptions& options, std::string& error)
 {
   error.clear();
@@ -118,15 +354,51 @@ bool preflightChainPlan(const ChainPlan& plan, const EngineLoadOptions& options,
         error = "multiple NAM blocks are not supported: " + block.id;
         return false;
       }
-      if (stereoEstablished) {
-        error = "NAM must precede stereo effects: " + block.id;
-        return false;
-      }
       float ignoredSize = 1.0f;
       if (!namSlimmableSize(block, ignoredSize, error)) {
         return false;
       }
+      NamInputMode ignoredInputMode = NamInputMode::Sum;
+      if (!namInputMode(block, ignoredInputMode, error)) {
+        return false;
+      }
       loadedNam = true;
+      stereoEstablished = false;
+      continue;
+    }
+    if (block.type == "dualAmp") {
+      if (loadedNam || loadedCab) {
+        error = "dual amp cannot be combined with standalone NAM or cabinet blocks: " + block.id;
+        return false;
+      }
+      if (!validateDualAmpParameters(block, error)) {
+        return false;
+      }
+      for (const auto& lane : block.dualAmpLanes) {
+        std::vector<float> ignored;
+        if (!loadPreparedIr(lane.cabPath, options, ignored, error)) return false;
+      }
+      loadedNam = true;
+      loadedCab = true;
+      stereoEstablished = true;
+      continue;
+    }
+    if (block.type == "dualRig") {
+      if (loadedNam || loadedCab) {
+        error = "dual rig cannot be combined with standalone NAM or cabinet blocks: " + block.id;
+        return false;
+      }
+      NamInputMode ignoredMode = NamInputMode::Sum;
+      DualRigLaneConfig left;
+      DualRigLaneConfig right;
+      if (!namInputMode(block, ignoredMode, error)
+          || !makeDualRigLane(block, 0, options, left, error)
+          || !makeDualRigLane(block, 1, options, right, error)) {
+        return false;
+      }
+      loadedNam = true;
+      loadedCab = true;
+      stereoEstablished = true;
       continue;
     }
     if (block.type == "cab") {
@@ -197,20 +469,67 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
         error = "multiple NAM blocks are not supported: " + block.id;
         return false;
       }
-      if (stereoEstablished) {
-        error = "NAM must precede stereo effects: " + block.id;
-        return false;
-      }
       float slimmableSize = 1.0f;
       if (!namSlimmableSize(block, slimmableSize, error)) {
         return false;
       }
+      NamInputMode inputMode = NamInputMode::Sum;
+      if (!namInputMode(block, inputMode, error)) {
+        return false;
+      }
       if (!engine.loadNam(block.assetPath, options.sampleRate, static_cast<int>(options.blockSize),
-                          block.id, slimmableSize)) {
+                          block.id, slimmableSize, inputMode)) {
         error = "failed to load NAM: " + block.assetPath.string();
         return false;
       }
       loadedNam = true;
+      stereoEstablished = false;
+      continue;
+    }
+    if (block.type == "dualAmp") {
+      if (loadedNam || loadedCab) {
+        error = "dual amp cannot be combined with standalone NAM or cabinet blocks: " + block.id;
+        return false;
+      }
+      DualAmpLaneConfig left;
+      DualAmpLaneConfig right;
+      NamInputMode inputMode = NamInputMode::Sum;
+      if (!namInputMode(block, inputMode, error)
+          || !makeDualAmpLane(block, 0, options, left, error)
+          || !makeDualAmpLane(block, 1, options, right, error)) {
+        return false;
+      }
+      if (!engine.addDualAmp(block.id, std::move(left), std::move(right), inputMode,
+                             options.sampleRate, static_cast<int>(options.blockSize),
+                             options.parallelRigs, options.rigWorkerCpu, error)) {
+        return false;
+      }
+      loadedNam = true;
+      loadedCab = true;
+      stereoEstablished = true;
+      continue;
+    }
+    if (block.type == "dualRig") {
+      if (loadedNam || loadedCab) {
+        error = "dual rig cannot be combined with standalone NAM or cabinet blocks: " + block.id;
+        return false;
+      }
+      DualRigLaneConfig left;
+      DualRigLaneConfig right;
+      NamInputMode inputMode = NamInputMode::Sum;
+      if (!namInputMode(block, inputMode, error)
+          || !makeDualRigLane(block, 0, options, left, error)
+          || !makeDualRigLane(block, 1, options, right, error)) {
+        return false;
+      }
+      if (!engine.addDualRig(block.id, std::move(left), std::move(right), inputMode,
+                             options.sampleRate, static_cast<int>(options.blockSize),
+                             options.parallelRigs, options.rigWorkerCpu, error)) {
+        return false;
+      }
+      loadedNam = true;
+      loadedCab = true;
+      stereoEstablished = true;
       continue;
     }
     if (block.type == "cab") {

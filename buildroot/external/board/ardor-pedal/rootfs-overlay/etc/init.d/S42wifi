@@ -20,5 +20,14 @@ case "$1" in
     stop)
         [ -r "${DHCP_PID}" ] && kill "$(cat "${DHCP_PID}")" 2>/dev/null || true
         [ -r "${WPA_PID}" ] && kill "$(cat "${WPA_PID}")" 2>/dev/null || true
+        rm -f "${DHCP_PID}" "${WPA_PID}"
+        ;;
+    restart)
+        "$0" stop
+        "$0" start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
         ;;
 esac

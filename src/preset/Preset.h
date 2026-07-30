@@ -2,6 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <array>
 #include <string_view>
 #include <string>
 #include <vector>
@@ -20,6 +21,10 @@ struct PresetBlock {
   bool enabled = true;
   std::string asset;
   nlohmann::json params = nlohmann::json::object();
+  // Version-2 Dual Rig blocks own two ordinary serial child chains. Other
+  // block types leave both vectors empty. Nested Dual Rig blocks are rejected
+  // during validation so the runtime remains a single split/merge region.
+  std::array<std::vector<PresetBlock>, 2> lanes;
 };
 
 struct Preset {

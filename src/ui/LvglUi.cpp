@@ -11,13 +11,15 @@
 #include <cstdint>
 #include <cstdio>
 #include <cmath>
+#include <limits>
 #include <string>
 #include <utility>
 
 namespace ardor {
 
 void renderStatusBar(LvglUi* ui, lv_obj_t* root, UiState& state,
-                     lv_obj_t** telemetryOut, lv_obj_t** messageOut, lv_obj_t** undoOut);
+                     lv_obj_t** telemetryOut, lv_obj_t** masterOut,
+                     lv_obj_t** messageOut, lv_obj_t** undoOut);
 
 namespace {
 
@@ -26,9 +28,21 @@ namespace {
 constexpr int32_t kDesignWidth = 1280;
 constexpr int32_t kDesignHeight = 720;
 constexpr int kStatusBarHeight = 48;
+constexpr int kHeaderButtonTop = 20;
 constexpr int kHeaderButtonHeight = 60;
+constexpr int kHeaderEdgeInset = 28;
+constexpr int kHeaderButtonGap = 12;
 constexpr int kHeaderBlocksButtonWidth = 164;
 constexpr int kHeaderTunerButtonWidth = 120;
+constexpr int kHeaderBankButtonWidth = 144;
+constexpr int kHeaderSettingsButtonWidth = 64;
+constexpr int kHeaderEditX = kDesignWidth - kHeaderEdgeInset - kHeaderBlocksButtonWidth;
+constexpr int kHeaderSettingsX =
+  kHeaderEditX - kHeaderButtonGap - kHeaderSettingsButtonWidth;
+constexpr int kHeaderBankUpX =
+  kHeaderSettingsX - kHeaderButtonGap - kHeaderBankButtonWidth;
+constexpr int kHeaderBankDownX =
+  kDesignWidth - kHeaderBankUpX - kHeaderBankButtonWidth;
 constexpr int kBlockDrawerWidth = 480;
 constexpr int kBlockDrawerPadding = 18;
 constexpr int kBlockDrawerContentWidth = kBlockDrawerWidth - 2 * kBlockDrawerPadding;
@@ -44,10 +58,9 @@ constexpr int kDrawerInstructionY = kDrawerSeparatorY + 16;
 constexpr int kDrawerListTop = kDrawerInstructionY + 36;
 constexpr int kDrawerListHeight = kBlockDrawerContentHeight - kDrawerListTop;
 constexpr int kDrawerAssetButtonHeight = 72;
-constexpr std::array<std::pair<const char*, const char*>, 8> kDrawerFilters = {{
-  {"All", "all"}, {"Amps", "amps"}, {"Cabs", "cabs"}, {"EQ", "eq"},
-  {"Dyn", "dynamics"}, {"Mod", "modulation"},
-  {"Delays", "delay"}, {"Reverbs", "reverb"},
+constexpr std::array<std::pair<const char*, const char*>, 7> kDrawerFilters = {{
+  {"All", "all"}, {"Amps", "amps"}, {"Cabs", "cabs"}, {"Utility", "utility"},
+  {"Mod", "modulation"}, {"Delays", "delay"}, {"Reverbs", "reverb"},
 }};
 
 std::string assetRenderKey(const UiAsset& asset)
@@ -85,20 +98,32 @@ constexpr auto panel = 0x242424;
 constexpr auto panelAlt = 0x242424;
 constexpr auto text = 0xf5f5f5;
 constexpr auto muted = 0xa6a6a6;
-constexpr auto accent = 0x43f05a;
+std::uint32_t accent = kDefaultAccentColor;
+constexpr auto rigRight = 0x67a6ff;
 constexpr auto warning = 0xffb347;
 constexpr auto danger = 0xf97373;
 constexpr auto eqCombined = 0xff9f43;
 constexpr std::array<int, kParametricEqBandCount> eqBandColors = {
   0x56c7ff, 0x8be28b, 0xf5d76e, 0xff8c69, 0xc792ea,
 };
+constexpr std::array<std::pair<const char*, std::uint32_t>, 6> settingsAccentColors = {{
+  {"Ardor", kDefaultAccentColor},
+  {"Blue", 0x67a6ff},
+  {"Amber", 0xffb347},
+  {"Violet", 0xb88cff},
+  {"Coral", 0xff7b6b},
+  {"Ice", 0x55d9d1},
+}};
 
 void formatTelemetryLabel(const UiState& state, char* textOut, std::size_t capacity)
 {
   if (!state.clipDebug.enabled) {
-    std::snprintf(textOut, capacity, "%s  over %llu  max %.2fms",
-                  state.effectsBypassed ? "BYPASS" : "LIVE",
-                  static_cast<unsigned long long>(state.telemetry.overBudget), state.telemetry.maxMs);
+    if (state.telemetry.budgetMs <= 0.0) {
+      std::snprintf(textOut, capacity, "Buffer --%% free");
+    } else {
+      std::snprintf(textOut, capacity, "Buffer %.0f%% free",
+                    state.telemetry.bufferFreePercent);
+    }
     return;
   }
 
@@ -120,7 +145,10 @@ int telemetryColor(const UiState& state)
   if (state.effectsBypassed || (state.clipDebug.enabled && state.clipDebug.overloaded)) return danger;
   if (state.clipDebug.enabled && state.clipDebug.limiterFrames > 0) return warning;
   if (state.clipDebug.enabled) return accent;
-  return muted;
+  if (state.telemetry.budgetMs <= 0.0) return muted;
+  if (state.telemetry.bufferFreePercent < 15.0) return danger;
+  if (state.telemetry.bufferFreePercent < 30.0) return warning;
+  return accent;
 }
 constexpr int kEqPanelTop = 94;
 constexpr int kEqPanelHeight = 578;
@@ -133,28 +161,29 @@ constexpr int kEqSlidersY = 398;
 constexpr int kEqNodeSize = 48;
 constexpr int kEqNodeRadius = kEqNodeSize / 2;
 constexpr uint32_t kEqCurveRefreshIntervalMs = 33;
-constexpr int kChainLeft = 34;
-constexpr int kChainWidth = 1212;
-constexpr int kChainTop = 110;
-constexpr int kChainHeight = 276;
-constexpr int kChainColumns = 5;
-constexpr int kChainRows = 2;
-constexpr int kChainSlotWidth = kChainWidth / kChainColumns;
+constexpr int kChainLeft = 20;
+constexpr int kChainWidth = 1240;
+constexpr int kChainTop = 96;
+constexpr int kChainHeight = 492;
+constexpr int kChainWorldHeight = 456;
+constexpr int kChainRailY = 228;
+constexpr int kChainLeftRailY = 126;
+constexpr int kChainRightRailY = 330;
+constexpr int kChainStartX = 24;
+constexpr int kChainTerminalWidth = 92;
+constexpr int kChainJunctionWidth = 132;
 constexpr int kChainTileHeight = 92;
-constexpr int kChainRowHeight = 140;
-constexpr int kChainTileTop = 17;
-constexpr int kChainTileWidth = kChainSlotWidth - 10;
-constexpr int kChainHandleWidth = 60;
+constexpr int kChainTileWidth = 190;
+constexpr int kChainHandleWidth = 48;
+constexpr int kChainInsertWidth = 52;
+constexpr int kChainGap = 14;
+constexpr int kLaneTileWidth = 200;
+constexpr int kLaneTileHeight = 92;
+constexpr int kLaneInsertWidth = 48;
+constexpr int kChainSlotWidth = kChainTileWidth + kChainInsertWidth + 2 * kChainGap;
+constexpr int kChainTileTop = kChainRailY - kChainTileHeight / 2;
 constexpr int kChainTextX = 12;
 constexpr int kChainTextWidth = kChainTileWidth - kChainHandleWidth - 28;
-constexpr int kChainFirstRowCentreY = kChainTop + kChainTileTop + kChainTileHeight / 2;
-constexpr int kChainSecondRowCentreY = kChainFirstRowCentreY + kChainRowHeight;
-constexpr int kChainConnectorY = (kChainTop + kChainTileTop + kChainTileHeight
-                                  + kChainTop + kChainTileTop + kChainRowHeight) / 2 + 10;
-constexpr int kChainFirstRowEndX = kChainLeft + (kChainColumns - 1) * kChainSlotWidth + kChainTileWidth - 1;
-constexpr int kChainConnectorRightX = kChainLeft + kChainColumns * kChainSlotWidth - 1;
-constexpr int kChainConnectorLeftX = kChainLeft - 10;
-constexpr int kChainConnectorRadius = 10;
 struct ParameterSliderVisual {
   std::size_t controlIndex = 0;
   lv_obj_t* fill = nullptr;
@@ -175,6 +204,29 @@ struct EqGraphVisual {
   std::array<lv_obj_t*, kParametricEqBandCount> nodes{};
   uint32_t lastCurveRefresh = 0;
 };
+
+std::string rigLaneToken(const UiBlock& block)
+{
+  if (block.type == "nam") return "NAM";
+  if (block.type == "cab") return "IR";
+  if (block.type == "dynamics") return "CMP";
+  if (block.type == "eq") return "EQ";
+  if (block.type == "delay") return "DLY";
+  if (block.type == "reverb") return "REV";
+  if (block.type == "mod") {
+    const auto mode = block.params.value("mode", std::string{});
+    if (mode == "chorus") return "CHO";
+    if (mode == "vintage_trem") return "TREM";
+    if (mode == "phaser") return "PHA";
+    if (mode == "flanger") return "FLG";
+    return "MOD";
+  }
+  std::string token = block.type.empty() ? std::string{"?"} : block.type.substr(0, 3);
+  std::transform(token.begin(), token.end(), token.begin(), [](unsigned char character) {
+    return static_cast<char>(std::toupper(character));
+  });
+  return token;
+}
 
 void freeLinePoints(lv_event_t* event)
 {
@@ -228,44 +280,6 @@ void redraw(UiEventContext* context)
 }
 
 lv_obj_t* button(lv_obj_t* parent, const std::string& value);
-
-lv_obj_t* renderChainWrapConnector(lv_obj_t* root)
-{
-  // These short samples approximate the four quarter-circles in the wrap,
-  // keeping the signal path visibly continuous without sharp corners.
-  static constexpr std::array<lv_point_precise_t, 20> route = {{
-    {kChainFirstRowEndX, kChainFirstRowCentreY},
-    {kChainConnectorRightX - 6, kChainFirstRowCentreY + 1},
-    {kChainConnectorRightX - 3, kChainFirstRowCentreY + 3},
-    {kChainConnectorRightX - 1, kChainFirstRowCentreY + 6},
-    {kChainConnectorRightX, kChainFirstRowCentreY + kChainConnectorRadius},
-    {kChainConnectorRightX, kChainConnectorY - kChainConnectorRadius},
-    {kChainConnectorRightX - 1, kChainConnectorY - 6},
-    {kChainConnectorRightX - 3, kChainConnectorY - 3},
-    {kChainConnectorRightX - 6, kChainConnectorY - 1},
-    {kChainConnectorRightX - kChainConnectorRadius, kChainConnectorY},
-    {kChainConnectorLeftX + kChainConnectorRadius, kChainConnectorY},
-    {kChainConnectorLeftX + 6, kChainConnectorY + 1},
-    {kChainConnectorLeftX + 3, kChainConnectorY + 3},
-    {kChainConnectorLeftX + 1, kChainConnectorY + 6},
-    {kChainConnectorLeftX, kChainConnectorY + kChainConnectorRadius},
-    {kChainConnectorLeftX, kChainSecondRowCentreY - kChainConnectorRadius},
-    {kChainConnectorLeftX + 1, kChainSecondRowCentreY - 6},
-    {kChainConnectorLeftX + 3, kChainSecondRowCentreY - 3},
-    {kChainConnectorLeftX + 6, kChainSecondRowCentreY - 1},
-    {kChainConnectorLeftX + kChainConnectorRadius, kChainSecondRowCentreY},
-  }};
-  lv_obj_t* connector = lv_line_create(root);
-  lv_obj_set_size(connector, kDesignWidth, kDesignHeight);
-  lv_line_set_points(connector, route.data(), route.size());
-  lv_obj_set_style_line_color(connector, lv_color_hex(muted), LV_PART_MAIN);
-  lv_obj_set_style_line_width(connector, 2, LV_PART_MAIN);
-  lv_obj_set_style_line_opa(connector, LV_OPA_70, LV_PART_MAIN);
-  lv_obj_set_style_line_rounded(connector, true, LV_PART_MAIN);
-  lv_obj_remove_flag(connector, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(connector, LV_OBJ_FLAG_CLICKABLE);
-  return connector;
-}
 
 void onPresetClicked(lv_event_t* event)
 {
@@ -341,11 +355,95 @@ void onEditModeClicked(lv_event_t* event)
   redraw(context);
 }
 
+void onSettingsClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->openSettings(*context->state);
+}
+
+void onSettingsClosed(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->closeSettings(*context->state);
+}
+
+void onSettingsSectionClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->showSettingsSection(*context->state, context->index);
+}
+
+void onAccentColorClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->selectAccentColor(*context->state, context->index);
+}
+
+void onWifiFieldFocused(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  if (context->controlledObject) {
+    lv_keyboard_set_textarea(context->controlledObject, lv_event_get_target_obj(event));
+  }
+}
+
+void onWifiSaveClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->saveWifiSettings(*context->state);
+}
+
+void onWifiPasswordVisibilityClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->toggleWifiPassword();
+}
+
 void onOpenBlockDrawer(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   openBlockDrawer(*context->state);
   redraw(context);
+}
+
+void onOpenBlockDrawerAt(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  openBlockDrawerAt(*context->state, context->index);
+  redraw(context);
+}
+
+void onOpenLaneBlockDrawer(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  openLaneBlockDrawer(*context->state, context->parentIndex, context->laneIndex, context->index);
+  redraw(context);
+}
+
+void onChainScroll(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  if (context->state->activePreset < context->state->chainScrollOffsets.size()) {
+    context->state->chainScrollOffsets[context->state->activePreset]
+      = lv_obj_get_scroll_x(lv_event_get_target_obj(event));
+  }
+}
+
+void onChainScrollEnd(lv_event_t* event)
+{
+  onChainScroll(event);
+}
+
+void onChainStartClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->scrollChainToStart(*context->state);
+}
+
+void onChainEndClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->scrollChainToEnd(*context->state);
 }
 
 void onCloseBlockDrawer(lv_event_t* event)
@@ -706,18 +804,22 @@ void onBlockClicked(lv_event_t* event)
     context->suppressClick = false;
     return;
   }
+  context->ui->scrollChainBlockIntoView(context->index);
   context->ui->selectBlock(*context->state, context->index);
   redraw(context);
 }
 
-std::size_t chainSlotFromPoint(const UiState& state, const lv_point_t& point)
+void onLaneBlockClicked(lv_event_t* event)
 {
-  return LvglUi::chainSlotForPoint(state.bank.presets[state.activePreset].blocks.size(), point);
-}
-
-std::size_t insertSlotFromPoint(const UiState& state, const lv_point_t& point)
-{
-  return LvglUi::chainInsertionSlotForPoint(state.bank.presets[state.activePreset].blocks.size(), point);
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  if (context->suppressClick) {
+    context->suppressClick = false;
+    return;
+  }
+  context->ui->scrollChainBlockIntoView(context->parentIndex);
+  context->ui->selectLaneBlock(*context->state, context->parentIndex,
+                               context->laneIndex, context->index);
+  redraw(context);
 }
 
 bool pointInVisibleChain(const UiState& state, const lv_point_t& point)
@@ -745,7 +847,7 @@ void placeDragIndicatorAtSlot(UiEventContext* context, std::size_t slot)
     lv_obj_set_style_radius(context->indicator, 2, 0);
   }
 
-  const auto position = LvglUi::chainIndicatorPosition(blockCount, slot);
+  const auto position = context->ui->chainIndicatorForSlot(slot);
   lv_obj_set_pos(context->indicator, position.x, position.y);
   moveToFront(context->indicator);
 }
@@ -753,8 +855,9 @@ void placeDragIndicatorAtSlot(UiEventContext* context, std::size_t slot)
 void placeDragIndicator(UiEventContext* context, const lv_point_t& point)
 {
   const auto blockCount = context->state->bank.presets[context->state->activePreset].blocks.size();
-  const auto target = chainSlotFromPoint(*context->state, point);
-  const auto position = LvglUi::chainReorderIndicatorPosition(blockCount, context->index, target);
+  const auto target = context->ui->chainSlotAtPoint(point);
+  const auto position = context->ui->chainIndicatorForSlot(
+    target > context->index ? std::min(target + 1, blockCount) : target);
 
   if (!context->indicator) {
     context->indicator = lv_obj_create(context->ui->canvas());
@@ -789,42 +892,13 @@ void placeDragGhost(UiEventContext* context, const lv_point_t& point)
 
 void restoreChainPreview(UiEventContext* context)
 {
-  if (!context->controlledObject || !context->dragText.empty()) {
-    return;
-  }
-  lv_obj_t* chain = lv_obj_get_parent(context->controlledObject);
-  const auto blockCount = context->state->bank.presets[context->state->activePreset].blocks.size();
-  const auto cardCount = std::min<std::size_t>(blockCount, lv_obj_get_child_count(chain));
-  for (std::size_t i = 0; i < cardCount; ++i) {
-    lv_obj_t* card = lv_obj_get_child(chain, static_cast<int32_t>(i));
-    lv_obj_set_pos(card, 14 + static_cast<int>(i % kChainColumns) * kChainSlotWidth,
-                   kChainTileTop + static_cast<int>(i / kChainColumns) * kChainRowHeight);
-  }
+  (void) context;
 }
 
 void previewBlockMove(UiEventContext* context, std::size_t target)
 {
-  if (!context->controlledObject || !context->dragText.empty()) {
-    return;
-  }
-  lv_obj_t* chain = lv_obj_get_parent(context->controlledObject);
-  const auto blockCount = context->state->bank.presets[context->state->activePreset].blocks.size();
-  if (blockCount == 0) {
-    return;
-  }
-  target = std::min(target, blockCount - 1);
-  const auto cardCount = std::min<std::size_t>(blockCount, lv_obj_get_child_count(chain));
-  for (std::size_t i = 0; i < cardCount; ++i) {
-    std::size_t previewIndex = i;
-    if (target > context->index && i > context->index && i <= target) {
-      previewIndex = i - 1;
-    } else if (target < context->index && i >= target && i < context->index) {
-      previewIndex = i + 1;
-    }
-    lv_obj_t* card = lv_obj_get_child(chain, static_cast<int32_t>(i));
-    lv_obj_set_pos(card, 14 + static_cast<int>(previewIndex % kChainColumns) * kChainSlotWidth,
-                   kChainTileTop + static_cast<int>(previewIndex / kChainColumns) * kChainRowHeight);
-  }
+  (void) context;
+  (void) target;
 }
 
 void updateDragVisuals(UiEventContext* context, lv_event_t* event)
@@ -837,10 +911,11 @@ void updateDragVisuals(UiEventContext* context, lv_event_t* event)
   lv_point_t point{};
   lv_indev_get_point(input, &point);
   point = context->ui->toCanvas(point);
+  context->ui->autoScrollChainForDrag(*context->state, point);
   placeDragGhost(context, point);
   if (pointInVisibleChain(*context->state, point)) {
     placeDragIndicator(context, point);
-    previewBlockMove(context, chainSlotFromPoint(*context->state, point));
+    previewBlockMove(context, context->ui->chainSlotAtPoint(point));
   } else if (context->indicator) {
     lv_obj_delete(context->indicator);
     context->indicator = nullptr;
@@ -868,6 +943,7 @@ void onBlockPressed(lv_event_t* event)
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   context->dragging = false;
   context->suppressClick = false;
+  context->ui->setChainDragActive(true);
   lv_indev_t* input = lv_event_get_indev(event);
   if (input) {
     lv_indev_get_point(input, &context->pressPoint);
@@ -907,6 +983,7 @@ void onBlockReleased(lv_event_t* event)
     ? LV_OPA_70 : LV_OPA_COVER;
   lv_obj_set_style_opa(context->controlledObject ? context->controlledObject
                                                  : lv_event_get_target_obj(event), restingOpacity, 0);
+  context->ui->setChainDragActive(false);
   if (!context->dragging) {
     return;
   }
@@ -922,7 +999,7 @@ void onBlockReleased(lv_event_t* event)
   lv_indev_get_point(input, &point);
   point = context->ui->toCanvas(point);
   const bool droppedOnChain = pointInVisibleChain(*context->state, point);
-  const auto target = chainSlotFromPoint(*context->state, point);
+  const auto target = context->ui->chainSlotAtPoint(point);
   clearDragVisuals(context);
   if (!droppedOnChain || target == context->index) {
     context->ui->endInteraction();
@@ -942,12 +1019,121 @@ void onBlockPressLost(lv_event_t* event)
     ? LV_OPA_70 : LV_OPA_COVER;
   lv_obj_set_style_opa(context->controlledObject ? context->controlledObject
                                                  : lv_event_get_target_obj(event), restingOpacity, 0);
+  context->ui->setChainDragActive(false);
   context->suppressClick = context->dragging;
   const bool wasDragging = context->dragging;
   clearDragVisuals(context);
   if (wasDragging) {
     context->ui->endInteraction();
   }
+}
+
+void placeLaneDragIndicator(UiEventContext* context, const UiLaneDropTarget& target)
+{
+  if (!context->indicator) {
+    context->indicator = lv_obj_create(context->ui->canvas());
+    lv_obj_set_size(context->indicator, 5, kLaneTileHeight);
+    lv_obj_set_style_border_width(context->indicator, 0, 0);
+    lv_obj_set_style_radius(context->indicator, 2, 0);
+  }
+  const auto position = context->ui->laneIndicatorForTarget(target);
+  lv_obj_set_pos(context->indicator, position.x, position.y);
+  lv_obj_set_style_bg_color(context->indicator,
+                            lv_color_hex(target.laneIndex == 0 ? accent : rigRight), 0);
+  moveToFront(context->indicator);
+}
+
+void onLaneBlockPressed(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->dragging = false;
+  context->suppressClick = false;
+  context->ui->setChainDragActive(true);
+  const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
+  if (context->parentIndex < blocks.size()
+      && context->laneIndex < blocks[context->parentIndex].lanes.size()
+      && context->index < blocks[context->parentIndex].lanes[context->laneIndex].size()) {
+    const auto& child = blocks[context->parentIndex].lanes[context->laneIndex][context->index];
+    context->dragText = rigLaneToken(child) + "\n" + child.assetName;
+  }
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (input) {
+    lv_indev_get_point(input, &context->pressPoint);
+    context->pressPoint = context->ui->toCanvas(context->pressPoint);
+  }
+}
+
+void onLaneBlockPressing(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (!input) return;
+  lv_point_t point{};
+  lv_indev_get_point(input, &point);
+  point = context->ui->toCanvas(point);
+  const int dx = point.x - context->pressPoint.x;
+  const int dy = point.y - context->pressPoint.y;
+  if (!context->dragging && dx * dx + dy * dy < 64) return;
+  if (!context->dragging) {
+    context->dragging = true;
+    context->ui->beginInteraction();
+    if (context->controlledObject) lv_obj_set_style_opa(context->controlledObject, LV_OPA_TRANSP, 0);
+  }
+  context->ui->autoScrollChainForDrag(*context->state, point);
+  placeDragGhost(context, point);
+  if (const auto target = context->ui->laneDropTargetAtPoint(point)) {
+    placeLaneDragIndicator(context, *target);
+  } else if (context->indicator) {
+    lv_obj_delete(context->indicator);
+    context->indicator = nullptr;
+  }
+}
+
+void onLaneBlockReleased(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
+  const bool enabled = context->parentIndex < blocks.size()
+    && context->laneIndex < blocks[context->parentIndex].lanes.size()
+    && context->index < blocks[context->parentIndex].lanes[context->laneIndex].size()
+    && blocks[context->parentIndex].lanes[context->laneIndex][context->index].enabled;
+  if (context->controlledObject) {
+    lv_obj_set_style_opa(context->controlledObject, enabled ? LV_OPA_COVER : LV_OPA_70, 0);
+  }
+  context->ui->setChainDragActive(false);
+  if (!context->dragging) return;
+  lv_indev_t* input = lv_event_get_indev(event);
+  std::optional<UiLaneDropTarget> target;
+  if (input) {
+    lv_point_t point{};
+    lv_indev_get_point(input, &point);
+    point = context->ui->toCanvas(point);
+    target = context->ui->laneDropTargetAtPoint(point);
+  }
+  clearDragVisuals(context);
+  if (target) {
+    moveLaneBlock(*context->state, context->parentIndex, context->laneIndex,
+                  context->index, target->laneIndex, target->blockIndex);
+    redraw(context);
+  }
+  context->ui->endInteraction();
+}
+
+void onLaneBlockPressLost(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
+  const bool enabled = context->parentIndex < blocks.size()
+    && context->laneIndex < blocks[context->parentIndex].lanes.size()
+    && context->index < blocks[context->parentIndex].lanes[context->laneIndex].size()
+    && blocks[context->parentIndex].lanes[context->laneIndex][context->index].enabled;
+  if (context->controlledObject) {
+    lv_obj_set_style_opa(context->controlledObject, enabled ? LV_OPA_COVER : LV_OPA_70, 0);
+  }
+  context->ui->setChainDragActive(false);
+  const bool wasDragging = context->dragging;
+  clearDragVisuals(context);
+  if (wasDragging) context->ui->endInteraction();
 }
 
 void onFilterClicked(lv_event_t* event)
@@ -985,9 +1171,15 @@ void onAssetClicked(lv_event_t* event)
     return;
   }
   const auto before = context->state->bank.presets[context->state->activePreset].blocks.size();
-  appendAssetBlock(*context->state, context->index);
+  if (context->state->blockInsertRig.has_value() && context->state->blockInsertLane.has_value()) {
+    insertLaneAssetBlock(*context->state, context->index,
+                         *context->state->blockInsertRig, *context->state->blockInsertLane,
+                         context->state->blockInsertIndex);
+  } else {
+    insertAssetBlock(*context->state, context->index, context->state->blockInsertIndex);
+  }
   const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
-  if (blocks.size() > before) {
+  if (blocks.size() > before && context->state->selectedBlock < blocks.size()) {
     context->ui->highlightBlock(blocks[context->state->selectedBlock].id);
     context->ui->resetParameterPage();
   }
@@ -996,6 +1188,9 @@ void onAssetClicked(lv_event_t* event)
 
 std::string assetDragText(const UiAsset& asset)
 {
+  if (asset.blockType == "dualRig") {
+    return "Split\nLeft / Right";
+  }
   if (asset.type == "amps") {
     return "Neural Amp\n" + asset.name;
   }
@@ -1050,9 +1245,10 @@ void onAssetPressing(lv_event_t* event)
   lv_point_t point{};
   lv_indev_get_point(input, &point);
   point = context->ui->toCanvas(point);
+  context->ui->autoScrollChainForDrag(*context->state, point);
   placeDragGhost(context, point);
   if (pointInVisibleChain(*context->state, point)) {
-    placeDragIndicatorAtSlot(context, insertSlotFromPoint(*context->state, point));
+    placeDragIndicatorAtSlot(context, context->ui->chainInsertionSlotAtPoint(point));
   } else if (context->indicator) {
     lv_obj_delete(context->indicator);
     context->indicator = nullptr;
@@ -1083,7 +1279,7 @@ void onAssetReleased(lv_event_t* event)
   lv_indev_get_point(input, &point);
   point = context->ui->toCanvas(point);
   const bool droppedOnChain = pointInVisibleChain(*context->state, point);
-  const auto target = insertSlotFromPoint(*context->state, point);
+  const auto target = context->ui->chainInsertionSlotAtPoint(point);
   clearDragVisuals(context);
   if (!droppedOnChain) {
     context->ui->endInteraction();
@@ -1091,7 +1287,13 @@ void onAssetReleased(lv_event_t* event)
   }
 
   const auto before = context->state->bank.presets[context->state->activePreset].blocks.size();
-  insertAssetBlock(*context->state, context->index, target);
+  if (context->state->blockInsertRig.has_value() && context->state->blockInsertLane.has_value()) {
+    insertLaneAssetBlock(*context->state, context->index,
+                         *context->state->blockInsertRig, *context->state->blockInsertLane,
+                         context->state->blockInsertIndex);
+  } else {
+    insertAssetBlock(*context->state, context->index, target);
+  }
   const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
   if (blocks.size() > before) {
     context->ui->highlightBlock(blocks[context->state->selectedBlock].id);
@@ -1212,7 +1414,9 @@ lv_obj_t* renderPanelCloseButton(lv_obj_t* parent, UiEventContext* context)
 void renderBypassControl(lv_obj_t* parent, UiState& state, UiEventContext* context,
                          lv_obj_t** controlOut = nullptr)
 {
-  const auto& block = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
+  const auto* selected = selectedUiBlock(state);
+  if (!selected) return;
+  const auto& block = *selected;
   lv_obj_t* control = lv_obj_create(parent);
   lv_obj_set_size(control, kBypassControlWidth, kPanelActionHeight);
   lv_obj_set_pos(control, kBypassControlX, kPanelActionTop);
@@ -1439,10 +1643,7 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
                              std::array<UiEventContext*, 3>* sliderContextsOut,
                              lv_obj_t** bypassOut)
 {
-  const auto& blocks = state.bank.presets[state.activePreset].blocks;
-  if (state.selectedBlock >= blocks.size()) {
-    return;
-  }
+  if (!selectedUiBlock(state)) return;
 
   lv_obj_t* panelObject = lv_obj_create(root);
   lv_obj_set_size(panelObject, 1240, kEqPanelHeight);
@@ -1592,11 +1793,9 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
     lv_obj_set_width(title, 660);
     lv_label_set_long_mode(title, LV_LABEL_LONG_CLIP);
   } else {
-    const auto& blocks = state.bank.presets[state.activePreset].blocks;
-    if (state.selectedBlock >= blocks.size()) {
-      return;
-    }
-    const auto& block = blocks[state.selectedBlock];
+    const auto* selected = selectedUiBlock(state);
+    if (!selected) return;
+    const auto& block = *selected;
     lv_obj_t* title = label(panelObject, block.label + "  /  " + block.assetName,
                             LV_ALIGN_TOP_LEFT, kParameterTitleX, 22,
                             &ardor_font_open_sans_semibold_22);
@@ -1628,6 +1827,84 @@ LvglUi::LvglUi(UiActions actions)
 {
 }
 
+void LvglUi::openSettings(UiState&)
+{
+  settingsOpen_ = true;
+  settingsSection_ = 0;
+  settingsMessage_.clear();
+  viewsInitialized_ = false;
+}
+
+void LvglUi::closeSettings(UiState&)
+{
+  settingsOpen_ = false;
+  settingsMessage_.clear();
+  wifiPasswordVisible_ = false;
+  viewsInitialized_ = false;
+}
+
+void LvglUi::showSettingsSection(UiState&, std::size_t section)
+{
+  settingsSection_ = std::min<std::size_t>(section, 1);
+  settingsMessage_.clear();
+  wifiPasswordVisible_ = false;
+  viewsInitialized_ = false;
+}
+
+void LvglUi::selectAccentColor(UiState& state, std::size_t colorIndex)
+{
+  if (colorIndex >= settingsAccentColors.size()) return;
+  const auto selected = settingsAccentColors[colorIndex].second;
+  state.settings.accentColor = selected;
+  accent = selected;
+  std::string error;
+  if (actions_.saveAccentColor && !actions_.saveAccentColor(selected, error)) {
+    settingsMessage_ = "Color changed, but could not be saved: " + error;
+    settingsMessageIsError_ = true;
+  } else {
+    settingsMessage_ = "Accent color saved";
+    settingsMessageIsError_ = false;
+  }
+  viewsInitialized_ = false;
+}
+
+void LvglUi::saveWifiSettings(UiState& state)
+{
+  if (!wifiSSIDField_ || !wifiPasswordField_ || !wifiCountryField_) return;
+  const std::string ssid = lv_textarea_get_text(wifiSSIDField_);
+  const std::string password = lv_textarea_get_text(wifiPasswordField_);
+  const std::string country = lv_textarea_get_text(wifiCountryField_);
+  std::string error;
+  if (!actions_.saveWifiSettings) {
+    error = "Wi-Fi service is unavailable";
+  } else if (actions_.saveWifiSettings(ssid, password, country, error)) {
+    state.settings.wifiConfigured = true;
+    state.settings.wifiSSID = ssid;
+    state.settings.wifiCountry = country;
+    settingsMessage_ = "Wi-Fi saved - reconnecting now";
+    settingsMessageIsError_ = false;
+    wifiPasswordVisible_ = false;
+    viewsInitialized_ = false;
+    return;
+  }
+  settingsMessage_ = error.empty() ? "Could not save Wi-Fi" : error;
+  settingsMessageIsError_ = true;
+  viewsInitialized_ = false;
+}
+
+void LvglUi::toggleWifiPassword()
+{
+  if (!wifiPasswordField_) return;
+  wifiPasswordVisible_ = !wifiPasswordVisible_;
+  lv_textarea_set_password_mode(wifiPasswordField_, !wifiPasswordVisible_);
+  if (wifiPasswordToggleLabel_) {
+    lv_label_set_text(
+      wifiPasswordToggleLabel_, wifiPasswordVisible_ ? LV_SYMBOL_EYE_CLOSE : LV_SYMBOL_EYE_OPEN);
+    lv_obj_set_style_text_color(
+      wifiPasswordToggleLabel_, lv_color_hex(wifiPasswordVisible_ ? accent : muted), 0);
+  }
+}
+
 void LvglUi::selectPreset(UiState& state, std::size_t presetIndex)
 {
   if (actions_.selectPreset) {
@@ -1640,28 +1917,26 @@ void LvglUi::selectPreset(UiState& state, std::size_t presetIndex)
 
 std::size_t LvglUi::chainSlotForPoint(std::size_t blockCount, lv_point_t canvasPoint)
 {
-  if (blockCount == 0) {
-    return 0;
-  }
-  const int column = std::clamp((canvasPoint.x - kChainLeft) / kChainSlotWidth, 0, kChainColumns - 1);
-  const int row = std::clamp((canvasPoint.y - (kChainTop + kChainTileTop)) / kChainRowHeight, 0, kChainRows - 1);
-  return std::min(blockCount - 1, static_cast<std::size_t>(row * kChainColumns + column));
+  if (blockCount == 0) return 0;
+  const int contentX = std::max(0, static_cast<int>(canvasPoint.x) - kChainLeft - kChainStartX
+                                   - kChainTerminalWidth - kChainInsertWidth);
+  return std::min(blockCount - 1, static_cast<std::size_t>(contentX / kChainSlotWidth));
 }
 
 std::size_t LvglUi::chainInsertionSlotForPoint(std::size_t blockCount, lv_point_t canvasPoint)
 {
-  const int boundary = std::clamp((canvasPoint.x - kChainLeft + kChainSlotWidth / 2) / kChainSlotWidth,
-                                  0, kChainColumns);
-  const int row = std::clamp((canvasPoint.y - (kChainTop + kChainTileTop)) / kChainRowHeight, 0, kChainRows - 1);
-  return std::min(blockCount, static_cast<std::size_t>(row * kChainColumns + boundary));
+  const int contentX = std::max(0, static_cast<int>(canvasPoint.x) - kChainLeft - kChainStartX
+                                   - kChainTerminalWidth - kChainInsertWidth
+                                   + kChainSlotWidth / 2);
+  return std::min(blockCount, static_cast<std::size_t>(contentX / kChainSlotWidth));
 }
 
 lv_point_t LvglUi::chainIndicatorPosition(std::size_t blockCount, std::size_t slot)
 {
   slot = std::min(slot, std::min(blockCount, kMaxEffectBlocks));
-  const int row = static_cast<int>(slot / kChainColumns);
-  const int column = static_cast<int>(slot % kChainColumns);
-  return {kChainLeft + column * kChainSlotWidth, kChainTop + kChainTileTop + row * kChainRowHeight};
+  return {kChainLeft + kChainStartX + kChainTerminalWidth + kChainInsertWidth
+            + static_cast<int>(slot) * kChainSlotWidth,
+          kChainTop + kChainTileTop};
 }
 
 lv_point_t LvglUi::chainReorderIndicatorPosition(std::size_t blockCount, std::size_t source,
@@ -1674,11 +1949,143 @@ lv_point_t LvglUi::chainReorderIndicatorPosition(std::size_t blockCount, std::si
   target = std::min(target, blockCount - 1);
   auto position = chainIndicatorPosition(blockCount, target);
   if (target > source) {
-    // Moving forward inserts after the hovered block. Keep the marker on that
-    // block's row instead of wrapping it to the next row at column five.
     position.x += kChainSlotWidth;
   }
   return position;
+}
+
+std::size_t LvglUi::chainSlotAtPoint(lv_point_t canvasPoint) const
+{
+  if (chainItemStarts_.empty()) return 0;
+  const int32_t scroll = chainViewport_ ? lv_obj_get_scroll_x(chainViewport_) : 0;
+  const int32_t contentX = canvasPoint.x - kChainLeft + scroll;
+  std::size_t nearest = 0;
+  int32_t nearestDistance = std::numeric_limits<int32_t>::max();
+  for (std::size_t i = 0; i < chainItemStarts_.size(); ++i) {
+    const int32_t center = (chainItemStarts_[i] + chainItemEnds_[i]) / 2;
+    const int32_t distance = std::abs(contentX - center);
+    if (distance < nearestDistance) {
+      nearest = i;
+      nearestDistance = distance;
+    }
+  }
+  return nearest;
+}
+
+std::size_t LvglUi::chainInsertionSlotAtPoint(lv_point_t canvasPoint) const
+{
+  if (chainInsertionXs_.empty()) return 0;
+  const int32_t scroll = chainViewport_ ? lv_obj_get_scroll_x(chainViewport_) : 0;
+  const int32_t contentX = canvasPoint.x - kChainLeft + scroll;
+  std::size_t nearest = 0;
+  int32_t nearestDistance = std::numeric_limits<int32_t>::max();
+  for (std::size_t i = 0; i < chainInsertionXs_.size(); ++i) {
+    const int32_t distance = std::abs(contentX - chainInsertionXs_[i]);
+    if (distance < nearestDistance) {
+      nearest = i;
+      nearestDistance = distance;
+    }
+  }
+  return nearest;
+}
+
+lv_point_t LvglUi::chainIndicatorForSlot(std::size_t slot) const
+{
+  if (chainInsertionXs_.empty()) {
+    return {kChainLeft + kChainStartX, kChainTop + kChainTileTop};
+  }
+  slot = std::min(slot, chainInsertionXs_.size() - 1);
+  const int32_t scroll = chainViewport_ ? lv_obj_get_scroll_x(chainViewport_) : 0;
+  return {kChainLeft + chainInsertionXs_[slot] - scroll,
+          kChainTop + kChainTileTop};
+}
+
+void LvglUi::scrollChainToStart(UiState& state)
+{
+  if (!chainViewport_) return;
+  lv_obj_scroll_to_x(chainViewport_, 0, LV_ANIM_ON);
+  state.chainScrollOffsets[state.activePreset] = 0;
+}
+
+void LvglUi::scrollChainToEnd(UiState& state)
+{
+  if (!chainViewport_) return;
+  lv_obj_update_layout(chainViewport_);
+  const int32_t end = lv_obj_get_scroll_left(chainViewport_) + lv_obj_get_scroll_right(chainViewport_);
+  lv_obj_scroll_to_x(chainViewport_, end, LV_ANIM_ON);
+  state.chainScrollOffsets[state.activePreset] = end;
+}
+
+void LvglUi::scrollChainBlockIntoView(std::size_t blockIndex)
+{
+  if (!chainViewport_ || blockIndex >= chainCards_.size() || !chainCards_[blockIndex]) return;
+  lv_obj_scroll_to_view(chainCards_[blockIndex], LV_ANIM_ON);
+}
+
+void LvglUi::setChainDragActive(bool active)
+{
+  chainDragActive_ = active;
+  if (!chainViewport_) return;
+  if (active) {
+    lv_obj_remove_flag(chainViewport_, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollbar_mode(chainViewport_, LV_SCROLLBAR_MODE_OFF);
+  } else {
+    lv_obj_add_flag(chainViewport_, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollbar_mode(chainViewport_, LV_SCROLLBAR_MODE_AUTO);
+  }
+}
+
+void LvglUi::autoScrollChainForDrag(UiState& state, lv_point_t canvasPoint)
+{
+  if (!chainViewport_ || canvasPoint.y < kChainTop || canvasPoint.y > kChainTop + kChainHeight) return;
+  constexpr int edgeZone = 88;
+  constexpr int step = 28;
+  if (chainDragActive_) lv_obj_add_flag(chainViewport_, LV_OBJ_FLAG_SCROLLABLE);
+  if (canvasPoint.x < kChainLeft + edgeZone && lv_obj_get_scroll_left(chainViewport_) > 0) {
+    lv_obj_scroll_by_bounded(chainViewport_, step, 0, LV_ANIM_OFF);
+  } else if (canvasPoint.x > kChainLeft + kChainWidth - edgeZone
+             && lv_obj_get_scroll_right(chainViewport_) > 0) {
+    lv_obj_scroll_by_bounded(chainViewport_, -step, 0, LV_ANIM_OFF);
+  }
+  if (chainDragActive_) lv_obj_remove_flag(chainViewport_, LV_OBJ_FLAG_SCROLLABLE);
+  state.chainScrollOffsets[state.activePreset] = lv_obj_get_scroll_x(chainViewport_);
+}
+
+std::optional<UiLaneDropTarget> LvglUi::laneDropTargetAtPoint(lv_point_t canvasPoint) const
+{
+  if (!renderedRigIndex_ || !chainViewport_) return std::nullopt;
+  const int32_t relativeY = canvasPoint.y - kChainTop;
+  const int32_t leftDistance = std::abs(relativeY - kChainLeftRailY);
+  const int32_t rightDistance = std::abs(relativeY - kChainRightRailY);
+  const std::size_t laneIndex = leftDistance <= rightDistance ? 0 : 1;
+  if (std::min(leftDistance, rightDistance) > 72 || laneInsertionXs_[laneIndex].empty()) {
+    return std::nullopt;
+  }
+  const int32_t contentX = canvasPoint.x - kChainLeft + lv_obj_get_scroll_x(chainViewport_);
+  std::size_t insertion = 0;
+  int32_t nearestDistance = std::numeric_limits<int32_t>::max();
+  for (std::size_t i = 0; i < laneInsertionXs_[laneIndex].size(); ++i) {
+    const int32_t distance = std::abs(contentX - laneInsertionXs_[laneIndex][i]);
+    if (distance < nearestDistance) {
+      insertion = i;
+      nearestDistance = distance;
+    }
+  }
+  return UiLaneDropTarget{*renderedRigIndex_, laneIndex, insertion};
+}
+
+lv_point_t LvglUi::laneIndicatorForTarget(const UiLaneDropTarget& target) const
+{
+  if (!chainViewport_ || target.laneIndex >= laneInsertionXs_.size()
+      || laneInsertionXs_[target.laneIndex].empty()) {
+    return {kChainLeft, kChainTop};
+  }
+  const auto& insertions = laneInsertionXs_[target.laneIndex];
+  const std::size_t index = std::min(target.blockIndex, insertions.size() - 1);
+  const int32_t scroll = lv_obj_get_scroll_x(chainViewport_);
+  const int32_t y = target.laneIndex == 0 ? kChainLeftRailY : kChainRightRailY;
+  return {kChainLeft + insertions[index] - scroll,
+          kChainTop + y - kLaneTileHeight / 2};
 }
 
 void LvglUi::selectBlock(UiState& state, std::size_t blockIndex)
@@ -1688,6 +2095,15 @@ void LvglUi::selectBlock(UiState& state, std::size_t blockIndex)
     return;
   }
   ardor::selectBlock(state, blockIndex);
+  highlightedBlockId_.clear();
+  selectedEqBand_ = 0;
+  resetParameterPage();
+}
+
+void LvglUi::selectLaneBlock(UiState& state, std::size_t rigIndex,
+                             std::size_t laneIndex, std::size_t blockIndex)
+{
+  ardor::selectLaneBlock(state, rigIndex, laneIndex, blockIndex);
   highlightedBlockId_.clear();
   selectedEqBand_ = 0;
   resetParameterPage();
@@ -1712,11 +2128,10 @@ bool LvglUi::isBlockHighlighted(const std::string& blockId) const
 
 bool LvglUi::updateSelectedEqBand(UiState& state, EqBandParams params, bool requestUiRebuild)
 {
-  const auto& blocks = state.bank.presets[state.activePreset].blocks;
-  if (state.selectedBlock >= blocks.size()) {
-    return false;
-  }
-  const auto& block = blocks[state.selectedBlock];
+  const auto* selected = selectedUiBlock(state);
+  if (!selected) return false;
+  const auto blockId = selected->id;
+  const auto blockName = selected->assetName;
   const auto before = selectedParametricEqParams(state).bands[selectedEqBand_];
   const bool dirtyBefore = state.dirty;
   const auto previewRollback = captureUiPreviewSnapshot(state);
@@ -1728,11 +2143,11 @@ bool LvglUi::updateSelectedEqBand(UiState& state, EqBandParams params, bool requ
     return false;
   }
   if (actions_.updateEqBand) {
-    if (!actions_.updateEqBand(block.id, selectedEqBand_, after)) {
+    if (!actions_.updateEqBand(blockId, selectedEqBand_, after)) {
       // A missing runtime ID is an unexpected draft/runtime divergence. Keep
       // the candidate and heal it through the same complete-preview path used
       // for topology edits rather than showing a generic live-update error.
-      if (queuePreview(state, previewRollback, "update " + block.assetName + " EQ")) {
+      if (queuePreview(state, previewRollback, "update " + blockName + " EQ")) {
         invalidate(UiChange::Parameters | UiChange::Header);
         return true;
       }
@@ -1751,9 +2166,9 @@ bool LvglUi::updateSelectedEqBand(UiState& state, EqBandParams params, bool requ
 bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuousTouch)
 {
   if (focusedEqField_.has_value()) {
-    const auto& blocks = state.bank.presets[state.activePreset].blocks;
-    if (state.paramTarget != UiParamTarget::Block || state.selectedBlock >= blocks.size()
-        || blocks[state.selectedBlock].type != "eq" || !isParametricEqMode(blocks[state.selectedBlock].params)) {
+    const auto* selected = selectedUiBlock(state);
+    if (state.paramTarget != UiParamTarget::Block || !selected
+        || selected->type != "eq" || !isParametricEqMode(selected->params)) {
       return false;
     }
     auto params = selectedParametricEqParams(state);
@@ -1783,10 +2198,11 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
     const auto previewRollback = captureUiPreviewSnapshot(state);
     nlohmann::json paramsBefore;
     bool hasBlockSnapshot = false;
+    std::string selectedName = "effect";
     if (state.paramTarget == UiParamTarget::Block) {
-      const auto& blocks = state.bank.presets[state.activePreset].blocks;
-      if (state.selectedBlock < blocks.size()) {
-        paramsBefore = blocks[state.selectedBlock].params;
+      if (const auto* selected = selectedUiBlock(state)) {
+        paramsBefore = selected->params;
+        selectedName = selected->assetName;
         hasBlockSnapshot = true;
       }
     }
@@ -1797,9 +2213,8 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
         actions_.updateGlobalGains(global.inputGainDb, global.outputGainDb);
       }
       if (actions_.updateDaisyParameter && state.paramTarget == UiParamTarget::Block) {
-        const auto& blocks = state.bank.presets[state.activePreset].blocks;
-        if (state.selectedBlock < blocks.size()) {
-          const auto& block = blocks[state.selectedBlock];
+        if (const auto* selected = selectedUiBlock(state)) {
+          const auto& block = *selected;
           if ((block.type == "mod" || block.type == "delay" || block.type == "reverb")
               && block.params.contains(control.key) && block.params[control.key].is_number()) {
             liveUpdateSucceeded = actions_.updateDaisyParameter(
@@ -1808,9 +2223,8 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
         }
       }
       if (actions_.updateCompressorParameter && state.paramTarget == UiParamTarget::Block) {
-        const auto& blocks = state.bank.presets[state.activePreset].blocks;
-        if (state.selectedBlock < blocks.size()) {
-          const auto& block = blocks[state.selectedBlock];
+        if (const auto* selected = selectedUiBlock(state)) {
+          const auto& block = *selected;
           if (block.type == "dynamics" && block.params.value("mode", "") == "compressor"
               && block.params.contains(control.key) && block.params[control.key].is_number()) {
             liveUpdateSucceeded = actions_.updateCompressorParameter(
@@ -1818,26 +2232,27 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
           }
         }
       }
-      if (actions_.updateCabParameters && state.paramTarget == UiParamTarget::Block) {
-        const auto& blocks = state.bank.presets[state.activePreset].blocks;
-        if (state.selectedBlock < blocks.size()) {
-          const auto& block = blocks[state.selectedBlock];
+      if (state.paramTarget == UiParamTarget::Block) {
+        if (const auto* selected = selectedUiBlock(state)) {
+          const auto& block = *selected;
           if (block.type == "cab") {
-            actions_.updateCabParameters(block.params.value("levelDb", 0.0f),
-                                         block.params.value("mix", 1.0f));
+            if (selectedBlockIsLaneChild(state)) {
+              // The legacy cab action addresses the serial chain's cab. A
+              // lane cab must be replaced through the safe preview path.
+              liveUpdateSucceeded = false;
+            } else if (actions_.updateCabParameters) {
+              actions_.updateCabParameters(block.params.value("levelDb", 0.0f),
+                                           block.params.value("mix", 1.0f));
+            }
           }
         }
       }
       if (!liveUpdateSucceeded && hasBlockSnapshot) {
-        const auto& blocks = state.bank.presets[state.activePreset].blocks;
-        const std::string operation = state.selectedBlock < blocks.size()
-          ? "update " + blocks[state.selectedBlock].assetName : "update effect";
-        if (queuePreview(state, previewRollback, operation)) {
+        if (queuePreview(state, previewRollback, "update " + selectedName)) {
           invalidate(UiChange::Parameters | UiChange::Header);
           return true;
         }
-        auto& restoredBlocks = state.bank.presets[state.activePreset].blocks;
-        if (state.selectedBlock < restoredBlocks.size()) restoredBlocks[state.selectedBlock].params = std::move(paramsBefore);
+        if (auto* selected = selectedUiBlock(state)) selected->params = std::move(paramsBefore);
         state.dirty = dirtyBefore;
         invalidate(UiChange::Parameters | UiChange::Header);
         return true;
@@ -1874,6 +2289,8 @@ UiEventContext* LvglUi::remember(UiState& state, std::size_t index, std::string 
 
 void LvglUi::build(lv_obj_t* root, UiState& state)
 {
+  accent = state.settings.accentColor <= 0xffffffu
+    ? state.settings.accentColor : kDefaultAccentColor;
   viewsInitialized_ = false;
   pendingChanges_ = UiChange::None;
   focusedControl_ = nullptr;
@@ -1931,6 +2348,7 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   parameterLayer_ = createLayer();
   drawerLayer_ = createLayer();
   statusLayer_ = createLayer();
+  settingsLayer_ = createLayer();
   previewOverlay_ = lv_obj_create(canvas);
   lv_obj_set_size(previewOverlay_, kDesignWidth, kDesignHeight);
   lv_obj_set_pos(previewOverlay_, 0, 0);
@@ -1978,7 +2396,11 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   rebuildParameterView(state);
   rebuildDrawerView(state);
   contextRegion_ = UiContextRegion::Status;
-  renderStatusBar(this, statusLayer_, state, &telemetryLabel_, &statusMessageLabel_, &undoButton_);
+  renderStatusBar(this, statusLayer_, state, &telemetryLabel_, &masterVolumeLabel_,
+                  &statusMessageLabel_, &undoButton_);
+  contextRegion_ = UiContextRegion::None;
+  contextRegion_ = UiContextRegion::Settings;
+  renderSettingsView(settingsLayer_, state);
   contextRegion_ = UiContextRegion::None;
 
   renderedRevisions_ = state.revisions;
@@ -2000,7 +2422,6 @@ void LvglUi::rebuildPresetView(UiState& state)
   presetIndicators_.fill(nullptr);
   presetWarningLabels_.fill(nullptr);
   presetBankLabel_ = nullptr;
-  masterVolumeLabel_ = nullptr;
   bankDownButton_ = nullptr;
   bankUpButton_ = nullptr;
   contextRegion_ = UiContextRegion::Preset;
@@ -2025,7 +2446,14 @@ void LvglUi::rebuildEditView(UiState& state)
   chainClickContexts_.fill(nullptr);
   chainDragContexts_.fill(nullptr);
   renderedBlockIds_.clear();
-  chainWrapConnector_ = nullptr;
+  chainViewport_ = nullptr;
+  chainWorld_ = nullptr;
+  chainDragActive_ = false;
+  chainItemStarts_.clear();
+  chainItemEnds_.clear();
+  chainInsertionXs_.clear();
+  renderedRigIndex_.reset();
+  for (auto& insertions : laneInsertionXs_) insertions.clear();
   contextRegion_ = UiContextRegion::Edit;
   renderEditMode(editLayer_, state);
   contextRegion_ = UiContextRegion::None;
@@ -2033,88 +2461,7 @@ void LvglUi::rebuildEditView(UiState& state)
 
 void LvglUi::syncChainCards(UiState& state)
 {
-  const auto& blocks = state.bank.presets[state.activePreset].blocks;
-  const std::size_t count = std::min(blocks.size(), kMaxEffectBlocks);
-  std::array<std::size_t, kMaxEffectBlocks> source{};
-  source.fill(kMaxEffectBlocks);
-  std::array<bool, kMaxEffectBlocks> used{};
-
-  for (std::size_t i = 0; i < count; ++i) {
-    for (std::size_t j = 0; j < renderedBlockIds_.size(); ++j) {
-      if (!used[j] && renderedBlockIds_[j] == blocks[i].id) {
-        source[i] = j;
-        used[j] = true;
-        break;
-      }
-    }
-  }
-  for (std::size_t i = 0; i < count; ++i) {
-    if (source[i] == kMaxEffectBlocks) {
-      for (std::size_t j = 0; j < kMaxEffectBlocks; ++j) {
-        if (!used[j]) {
-          source[i] = j;
-          used[j] = true;
-          break;
-        }
-      }
-    }
-  }
-  std::size_t next = count;
-  for (std::size_t j = 0; j < kMaxEffectBlocks; ++j) {
-    if (!used[j]) source[next++] = j;
-  }
-
-  const auto remap = [&source](auto& values) {
-    const auto old = values;
-    for (std::size_t i = 0; i < kMaxEffectBlocks; ++i) values[i] = old[source[i]];
-  };
-  remap(chainCards_);
-  remap(chainCategoryLabels_);
-  remap(chainAssetLabels_);
-  remap(chainBypassLabels_);
-  remap(chainSelectionIndicators_);
-  remap(chainClickContexts_);
-  remap(chainDragContexts_);
-
-  renderedBlockIds_.clear();
-  for (std::size_t i = 0; i < kMaxEffectBlocks; ++i) {
-    lv_obj_t* card = chainCards_[i];
-    if (!card) continue;
-    if (i >= count) {
-      lv_obj_add_flag(card, LV_OBJ_FLAG_HIDDEN);
-      continue;
-    }
-
-    const auto& block = blocks[i];
-    renderedBlockIds_.push_back(block.id);
-    std::string category = block.label;
-    std::transform(category.begin(), category.end(), category.begin(), [](unsigned char character) {
-      return static_cast<char>(std::toupper(character));
-    });
-    lv_label_set_text(chainCategoryLabels_[i], category.c_str());
-    lv_label_set_text(chainAssetLabels_[i], block.assetName.c_str());
-    lv_obj_set_pos(card, 14 + static_cast<int>(i % kChainColumns) * kChainSlotWidth,
-                   kChainTileTop + static_cast<int>(i / kChainColumns) * kChainRowHeight);
-    styleSurface(card, block.enabled ? panel : 0x171717);
-    lv_obj_set_style_opa(card, block.enabled ? LV_OPA_COVER : LV_OPA_70, 0);
-    lv_obj_set_style_border_width(card, isBlockHighlighted(block.id) ? 3 : 0, 0);
-    if (isBlockHighlighted(block.id)) {
-      lv_obj_set_style_border_color(card, lv_color_hex(accent), 0);
-    }
-    if (block.enabled) lv_obj_add_flag(chainBypassLabels_[i], LV_OBJ_FLAG_HIDDEN);
-    else lv_obj_remove_flag(chainBypassLabels_[i], LV_OBJ_FLAG_HIDDEN);
-    const bool selected = state.paramTarget == UiParamTarget::Block && state.selectedBlock == i;
-    if (selected) lv_obj_remove_flag(chainSelectionIndicators_[i], LV_OBJ_FLAG_HIDDEN);
-    else lv_obj_add_flag(chainSelectionIndicators_[i], LV_OBJ_FLAG_HIDDEN);
-    chainClickContexts_[i]->index = i;
-    chainDragContexts_[i]->index = i;
-    chainDragContexts_[i]->controlledObject = card;
-    lv_obj_remove_flag(card, LV_OBJ_FLAG_HIDDEN);
-  }
-  if (chainWrapConnector_) {
-    if (count > kChainColumns) lv_obj_remove_flag(chainWrapConnector_, LV_OBJ_FLAG_HIDDEN);
-    else lv_obj_add_flag(chainWrapConnector_, LV_OBJ_FLAG_HIDDEN);
-  }
+  rebuildEditView(state);
 }
 
 void LvglUi::rebuildParameterView(UiState& state)
@@ -2127,17 +2474,16 @@ void LvglUi::rebuildParameterView(UiState& state)
     return;
   }
 
-  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  const auto* selected = selectedUiBlock(state);
   const bool editingEq = state.paramTarget == UiParamTarget::Block
-    && state.selectedBlock < blocks.size() && blocks[state.selectedBlock].type == "eq"
-    && isParametricEqMode(blocks[state.selectedBlock].params);
+    && selected && selected->type == "eq" && isParametricEqMode(selected->params);
   const std::string signature = editingEq
     ? "eq:parametric"
     : (state.paramTarget == UiParamTarget::Globals
         ? "globals:" + std::to_string(parameterPage_)
-        : (state.selectedBlock < blocks.size()
-            ? "block:" + blocks[state.selectedBlock].type + ":"
-                + blocks[state.selectedBlock].params.value("mode", std::string{}) + ":"
+        : (selected
+            ? "block:" + selected->type + ":"
+                + selected->params.value("mode", std::string{}) + ":"
                 + std::to_string(parameterPage_)
             : "none"));
 
@@ -2307,10 +2653,24 @@ void LvglUi::syncDrawerView(UiState& state)
                                 lv_color_hex(selected ? accent : text), 0);
   }
 
-  const bool chainFull = state.bank.presets[state.activePreset].blocks.size() >= kMaxEffectBlocks;
+  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  const bool insertingLane = state.blockInsertRig.has_value() && state.blockInsertLane.has_value();
+  bool chainFull = blocks.size() >= kMaxEffectBlocks;
+  if (insertingLane && *state.blockInsertRig < blocks.size()
+      && *state.blockInsertLane < blocks[*state.blockInsertRig].lanes.size()) {
+    chainFull = blocks[*state.blockInsertRig].lanes[*state.blockInsertLane].size() >= kMaxEffectBlocks;
+  }
+  const bool alreadySplit = std::any_of(blocks.begin(), blocks.end(), [](const UiBlock& block) {
+    return block.enabled && (block.type == "dualRig" || block.type == "dualAmp");
+  });
+  const bool standaloneAmp = std::any_of(blocks.begin(), blocks.end(), [](const UiBlock& block) {
+    return block.enabled && (block.type == "nam" || block.type == "cab");
+  });
   if (drawerInstructionLabel_) {
     lv_label_set_text(drawerInstructionLabel_, chainFull
-      ? "Chain full - delete a block to add" : "Tap to add - hold to drag");
+      ? "Chain full - delete a block to add"
+      : (insertingLane ? "Choose an effect for this lane"
+                       : "Choose an effect or Split Left / Right"));
     lv_obj_set_style_text_color(drawerInstructionLabel_,
                                 lv_color_hex(chainFull ? 0xf97373 : muted), 0);
   }
@@ -2319,7 +2679,9 @@ void LvglUi::syncDrawerView(UiState& state)
     const bool visible = state.categoryFilter == "all" || state.assets[i].type == state.categoryFilter;
     if (visible) lv_obj_remove_flag(item, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(item, LV_OBJ_FLAG_HIDDEN);
-    if (chainFull) lv_obj_add_state(item, LV_STATE_DISABLED);
+    const bool splitUnavailable = state.assets[i].blockType == "dualRig"
+      && (insertingLane || alreadySplit || standaloneAmp);
+    if (chainFull || splitUnavailable) lv_obj_add_state(item, LV_STATE_DISABLED);
     else lv_obj_remove_state(item, LV_STATE_DISABLED);
   }
   if (drawerAssetList_) {
@@ -2336,17 +2698,16 @@ void LvglUi::syncParameterView(UiState& state)
     return;
   }
 
-  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  const auto* selected = selectedUiBlock(state);
   const bool editingEq = state.paramTarget == UiParamTarget::Block
-    && state.selectedBlock < blocks.size() && blocks[state.selectedBlock].type == "eq"
-    && isParametricEqMode(blocks[state.selectedBlock].params);
+    && selected && selected->type == "eq" && isParametricEqMode(selected->params);
   const std::string signature = editingEq
     ? "eq:parametric"
     : (state.paramTarget == UiParamTarget::Globals
         ? "globals:" + std::to_string(parameterPage_)
-        : (state.selectedBlock < blocks.size()
-            ? "block:" + blocks[state.selectedBlock].type + ":"
-                + blocks[state.selectedBlock].params.value("mode", std::string{}) + ":"
+        : (selected
+            ? "block:" + selected->type + ":"
+                + selected->params.value("mode", std::string{}) + ":"
                 + std::to_string(parameterPage_)
             : "none"));
   if (signature != renderedParameterSignature_) {
@@ -2354,17 +2715,16 @@ void LvglUi::syncParameterView(UiState& state)
     return;
   }
 
-  if (parameterBypassControl_ && state.paramTarget == UiParamTarget::Block
-      && state.selectedBlock < blocks.size()) {
-    refreshBypassControlVisual(parameterBypassControl_, !blocks[state.selectedBlock].enabled);
+  if (parameterBypassControl_ && state.paramTarget == UiParamTarget::Block && selected) {
+    refreshBypassControlVisual(parameterBypassControl_, !selected->enabled);
   }
 
   if (!editingEq) {
     if (parameterTitleLabel_) {
       if (state.paramTarget == UiParamTarget::Globals) {
         lv_label_set_text(parameterTitleLabel_, "Global");
-      } else if (state.selectedBlock < blocks.size()) {
-        const auto title = blocks[state.selectedBlock].label + "  /  " + blocks[state.selectedBlock].assetName;
+      } else if (selected) {
+        const auto title = selected->label + "  /  " + selected->assetName;
         lv_label_set_text(parameterTitleLabel_, title.c_str());
       }
     }
@@ -2497,6 +2857,7 @@ void LvglUi::syncPersistentViews(UiState& state)
                                 lv_color_hex(state.statusIsError ? 0xf97373 : accent), 0);
     lv_obj_align(statusMessageLabel_, LV_ALIGN_RIGHT_MID,
                  state.blockEditUndo.has_value() ? -132 : -18, 0);
+    lv_obj_set_width(statusMessageLabel_, state.blockEditUndo.has_value() ? 340 : 480);
     if (state.statusMessage.empty()) lv_obj_add_flag(statusMessageLabel_, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_remove_flag(statusMessageLabel_, LV_OBJ_FLAG_HIDDEN);
   }
@@ -2548,6 +2909,14 @@ void LvglUi::refresh(lv_obj_t* root, UiState& state)
   if (state.revisions.drawers != renderedRevisions_.drawers) add(UiChange::Drawers);
   if (state.revisions.status != renderedRevisions_.status) add(UiChange::Status);
   if (state.revisions.telemetry != renderedRevisions_.telemetry) add(UiChange::Telemetry);
+
+  // The control loop intentionally services LVGL every 5 ms for responsive
+  // touch input. Most ticks carry no model revision, so leave the retained
+  // scene untouched instead of reapplying every label, style, and visibility
+  // flag at 200 Hz.
+  if (changes == UiChange::None) {
+    return;
+  }
 
   // Text-only regions are always safe while an input device owns a widget.
   if (hasUiChange(changes, UiChange::Status) || hasUiChange(changes, UiChange::Telemetry)) {
@@ -2602,8 +2971,224 @@ void LvglUi::endInteraction(bool requestUiRebuild)
   }
 }
 
+void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
+{
+  wifiSSIDField_ = nullptr;
+  wifiPasswordField_ = nullptr;
+  wifiCountryField_ = nullptr;
+  wifiKeyboard_ = nullptr;
+  wifiPasswordToggleLabel_ = nullptr;
+  if (!settingsOpen_) {
+    lv_obj_add_flag(root, LV_OBJ_FLAG_HIDDEN);
+    return;
+  }
+  lv_obj_remove_flag(root, LV_OBJ_FLAG_HIDDEN);
+
+  lv_obj_t* backdrop = lv_obj_create(root);
+  lv_obj_set_size(backdrop, kDesignWidth, kDesignHeight);
+  lv_obj_set_pos(backdrop, 0, 0);
+  styleSurface(backdrop, bg);
+  lv_obj_set_style_radius(backdrop, 0, 0);
+  lv_obj_remove_flag(backdrop, LV_OBJ_FLAG_SCROLLABLE);
+
+  lv_obj_t* header = lv_obj_create(root);
+  lv_obj_set_size(header, kDesignWidth, 82);
+  lv_obj_set_pos(header, 0, 0);
+  styleSurface(header, 0x111111);
+  lv_obj_set_style_radius(header, 0, 0);
+  lv_obj_set_style_border_width(header, 1, 0);
+  lv_obj_set_style_border_side(header, LV_BORDER_SIDE_BOTTOM, 0);
+  lv_obj_set_style_border_color(header, lv_color_hex(0x343434), 0);
+  lv_obj_remove_flag(header, LV_OBJ_FLAG_SCROLLABLE);
+
+  lv_obj_t* mark = lv_obj_create(header);
+  lv_obj_set_size(mark, 52, 52);
+  lv_obj_align(mark, LV_ALIGN_LEFT_MID, 24, 0);
+  styleSurface(mark, accent);
+  lv_obj_t* markIcon = lv_label_create(mark);
+  lv_label_set_text(markIcon, LV_SYMBOL_SETTINGS);
+  lv_obj_set_style_text_color(markIcon, lv_color_hex(bg), 0);
+  lv_obj_set_style_text_font(markIcon, LV_FONT_DEFAULT, 0);
+  lv_obj_center(markIcon);
+
+  label(header, "Settings", LV_ALIGN_LEFT_MID, 92, -10,
+        &ardor_font_open_sans_semibold_28);
+  label(header, "Pedal preferences and connectivity", LV_ALIGN_LEFT_MID, 92, 20,
+        &ardor_font_open_sans_regular_18, muted);
+
+  lv_obj_t* close = button(header, "Close");
+  lv_obj_set_size(close, 116, 54);
+  lv_obj_align(close, LV_ALIGN_RIGHT_MID, -22, 0);
+  lv_obj_add_event_cb(close, onSettingsClosed, LV_EVENT_PRESSED, remember(state));
+
+  lv_obj_t* sidebar = lv_obj_create(root);
+  lv_obj_set_size(sidebar, 222, 614);
+  lv_obj_set_pos(sidebar, 20, 92);
+  styleSurface(sidebar, 0x111111);
+  lv_obj_set_style_pad_all(sidebar, 14, 0);
+  lv_obj_remove_flag(sidebar, LV_OBJ_FLAG_SCROLLABLE);
+
+  const std::array<std::string, 2> sections = {"Appearance", "Wi-Fi"};
+  for (std::size_t i = 0; i < sections.size(); ++i) {
+    lv_obj_t* section = button(sidebar, sections[i]);
+    lv_obj_set_size(section, 190, 68);
+    lv_obj_set_pos(section, 0, static_cast<int>(i) * 78);
+    styleSurface(section, i == settingsSection_ ? accent : 0x242424);
+    lv_obj_set_style_text_color(lv_obj_get_child(section, 0),
+                                lv_color_hex(i == settingsSection_ ? bg : text), 0);
+    lv_obj_add_event_cb(section, onSettingsSectionClicked, LV_EVENT_PRESSED,
+                        remember(state, i));
+  }
+
+  lv_obj_t* content = lv_obj_create(root);
+  lv_obj_set_size(content, 1000, 614);
+  lv_obj_set_pos(content, 256, 92);
+  styleSurface(content, 0x181818);
+  lv_obj_set_style_pad_all(content, 0, 0);
+  lv_obj_remove_flag(content, LV_OBJ_FLAG_SCROLLABLE);
+
+  if (settingsSection_ == 0) {
+    label(content, "Accent color", LV_ALIGN_TOP_LEFT, 28, 24,
+          &ardor_font_open_sans_semibold_28);
+    label(content, "Choose the color used for selections, live state and focus.",
+          LV_ALIGN_TOP_LEFT, 28, 62, &ardor_font_open_sans_regular_18, muted);
+
+    for (std::size_t i = 0; i < settingsAccentColors.size(); ++i) {
+      const int x = 28 + static_cast<int>(i) * 158;
+      const bool selected = state.settings.accentColor == settingsAccentColors[i].second;
+      lv_obj_t* choice = lv_button_create(content);
+      lv_obj_set_size(choice, 142, 146);
+      lv_obj_set_pos(choice, x, 118);
+      styleSurface(choice, 0x242424);
+      lv_obj_set_style_border_width(choice, selected ? 3 : 1, 0);
+      lv_obj_set_style_border_color(choice,
+                                    lv_color_hex(selected ? settingsAccentColors[i].second : 0x404040), 0);
+      lv_obj_t* swatch = lv_obj_create(choice);
+      lv_obj_set_size(swatch, 92, 72);
+      lv_obj_align(swatch, LV_ALIGN_TOP_MID, 0, 8);
+      styleSurface(swatch, settingsAccentColors[i].second);
+      lv_obj_remove_flag(swatch, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_t* name = label(choice, settingsAccentColors[i].first, LV_ALIGN_BOTTOM_MID, 0, -12,
+                             &ardor_font_open_sans_regular_18,
+                             selected ? settingsAccentColors[i].second : text);
+      lv_obj_remove_flag(name, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_add_event_cb(choice, onAccentColorClicked, LV_EVENT_PRESSED, remember(state, i));
+    }
+
+    lv_obj_t* preview = lv_obj_create(content);
+    lv_obj_set_size(preview, 944, 146);
+    lv_obj_set_pos(preview, 28, 304);
+    styleSurface(preview, accent);
+    lv_obj_remove_flag(preview, LV_OBJ_FLAG_SCROLLABLE);
+    const auto red = (accent >> 16) & 0xff;
+    const auto green = (accent >> 8) & 0xff;
+    const auto blue = accent & 0xff;
+    const auto luminance = red * 299 + green * 587 + blue * 114;
+    const int previewInk = luminance > 150000 ? bg : text;
+    label(preview, "LIVE PREVIEW", LV_ALIGN_LEFT_MID, 28, -18,
+          &ardor_font_open_sans_semibold_22, previewInk);
+    label(preview, "The selected accent is applied across the touchscreen.",
+          LV_ALIGN_LEFT_MID, 28, 20, &ardor_font_open_sans_regular_18, previewInk);
+  } else {
+    label(content, "Wi-Fi", LV_ALIGN_TOP_LEFT, 28, 20,
+          &ardor_font_open_sans_semibold_28);
+    label(content, state.settings.wifiConfigured
+            ? "Update the network or leave the password blank to keep it."
+            : "Connect the pedal without rebuilding the system image.",
+          LV_ALIGN_TOP_LEFT, 28, 58, &ardor_font_open_sans_regular_18, muted);
+
+    const auto makeField = [&](const char* title, const char* placeholder, int x, int y,
+                               int width, std::size_t maxLength) {
+      label(content, title, LV_ALIGN_TOP_LEFT, x, y,
+            &ardor_font_open_sans_regular_18, muted);
+      lv_obj_t* field = lv_textarea_create(content);
+      lv_obj_set_pos(field, x, y + 28);
+      lv_textarea_set_one_line(field, true);
+      // One-line mode applies LVGL's compact default height, so restore the
+      // intended touch target after enabling it.
+      lv_obj_set_size(field, width, 62);
+      lv_textarea_set_max_length(field, maxLength);
+      lv_textarea_set_placeholder_text(field, placeholder);
+      lv_obj_set_style_bg_color(field, lv_color_hex(0x0f0f0f), 0);
+      lv_obj_set_style_text_color(field, lv_color_hex(text), 0);
+      lv_obj_set_style_text_font(field, &ardor_font_open_sans_regular_18, 0);
+      lv_obj_set_style_pad_top(field, 20, 0);
+      lv_obj_set_style_pad_bottom(field, 20, 0);
+      lv_obj_set_style_border_width(field, 1, 0);
+      lv_obj_set_style_border_color(field, lv_color_hex(0x4b4b4b), 0);
+      lv_obj_set_style_border_color(field, lv_color_hex(accent), LV_STATE_FOCUSED);
+      lv_obj_set_style_radius(field, 5, 0);
+      return field;
+    };
+
+    constexpr int wifiFieldLabelY = 102;
+    constexpr int wifiFieldY = wifiFieldLabelY + 28;
+    wifiSSIDField_ = makeField(
+      "Network name", "Wi-Fi network (SSID)", 28, wifiFieldLabelY, 300, 32);
+    lv_textarea_set_text(wifiSSIDField_, state.settings.wifiSSID.c_str());
+    wifiPasswordField_ = makeField("Password", state.settings.wifiConfigured
+      ? "Leave blank to keep current" : "8 characters minimum",
+      344, wifiFieldLabelY, 300, 64);
+    lv_textarea_set_password_mode(wifiPasswordField_, !wifiPasswordVisible_);
+    lv_obj_set_style_pad_right(wifiPasswordField_, 64, 0);
+    lv_obj_t* showPassword = button(
+      content, wifiPasswordVisible_ ? LV_SYMBOL_EYE_CLOSE : LV_SYMBOL_EYE_OPEN);
+    wifiPasswordToggleLabel_ = lv_obj_get_child(showPassword, 0);
+    lv_obj_set_size(showPassword, 54, 58);
+    lv_obj_set_pos(showPassword, 588, wifiFieldY + 2);
+    styleSurface(showPassword, 0x242424);
+    lv_obj_set_style_text_font(wifiPasswordToggleLabel_, LV_FONT_DEFAULT, 0);
+    lv_obj_set_style_text_color(
+      wifiPasswordToggleLabel_, lv_color_hex(wifiPasswordVisible_ ? accent : muted), 0);
+    lv_obj_add_event_cb(showPassword, onWifiPasswordVisibilityClicked, LV_EVENT_CLICKED,
+                        remember(state));
+
+    wifiCountryField_ = makeField(
+      "Country code", "HU", 660, wifiFieldLabelY, 90, 2);
+    lv_textarea_set_text(wifiCountryField_, state.settings.wifiCountry.c_str());
+
+    lv_obj_t* save = button(content, state.settings.wifiConfigured
+      ? "Save & reconnect" : "Connect pedal");
+    lv_obj_set_size(save, 206, 62);
+    lv_obj_set_pos(save, 766, wifiFieldY);
+    styleSurface(save, accent);
+    lv_obj_set_style_text_color(lv_obj_get_child(save, 0), lv_color_hex(bg), 0);
+    lv_obj_set_style_text_font(
+      lv_obj_get_child(save, 0), &ardor_font_open_sans_regular_18, 0);
+    lv_obj_add_event_cb(save, onWifiSaveClicked, LV_EVENT_PRESSED, remember(state));
+
+    wifiKeyboard_ = lv_keyboard_create(content);
+    lv_obj_set_size(wifiKeyboard_, 944, 360);
+    lv_obj_align(wifiKeyboard_, LV_ALIGN_TOP_LEFT, 28, 224);
+    lv_obj_set_style_bg_color(wifiKeyboard_, lv_color_hex(0x111111), 0);
+    lv_obj_set_style_text_color(wifiKeyboard_, lv_color_hex(text), LV_PART_ITEMS);
+    lv_obj_set_style_bg_color(wifiKeyboard_, lv_color_hex(0x2b2b2b), LV_PART_ITEMS);
+    lv_obj_set_style_bg_color(
+      wifiKeyboard_, lv_color_hex(accent),
+      static_cast<lv_style_selector_t>(LV_PART_ITEMS) | LV_STATE_PRESSED);
+
+    for (lv_obj_t* field : {wifiSSIDField_, wifiPasswordField_, wifiCountryField_}) {
+      auto* context = remember(state);
+      context->controlledObject = wifiKeyboard_;
+      lv_obj_add_event_cb(field, onWifiFieldFocused, LV_EVENT_FOCUSED, context);
+      lv_obj_add_event_cb(field, onWifiFieldFocused, LV_EVENT_CLICKED, context);
+    }
+    lv_keyboard_set_textarea(wifiKeyboard_, wifiSSIDField_);
+  }
+
+  if (!settingsMessage_.empty()) {
+    lv_obj_t* message = label(content, settingsMessage_, LV_ALIGN_BOTTOM_RIGHT, -28, -28,
+                              &ardor_font_open_sans_regular_18,
+                              settingsMessageIsError_ ? danger : accent);
+    lv_obj_set_width(message, settingsSection_ == 0 ? 944 : 590);
+    lv_obj_set_style_text_align(message, LV_TEXT_ALIGN_RIGHT, 0);
+    lv_label_set_long_mode(message, LV_LABEL_LONG_CLIP);
+  }
+}
+
 void renderStatusBar(LvglUi* ui, lv_obj_t* root, UiState& state,
-                     lv_obj_t** telemetryOut, lv_obj_t** messageOut, lv_obj_t** undoOut)
+                     lv_obj_t** telemetryOut, lv_obj_t** masterOut,
+                     lv_obj_t** messageOut, lv_obj_t** undoOut)
 {
   lv_obj_t* bar = lv_obj_create(root);
   lv_obj_set_size(bar, kDesignWidth, kStatusBarHeight);
@@ -2619,16 +3204,24 @@ void renderStatusBar(LvglUi* ui, lv_obj_t* root, UiState& state,
   formatTelemetryLabel(state, status, sizeof(status));
   lv_obj_t* telemetryLabel = label(bar, status, LV_ALIGN_LEFT_MID, 18, 0,
                                    &ardor_font_open_sans_regular_18, telemetryColor(state));
-  lv_obj_set_width(telemetryLabel, 560);
+  lv_obj_set_width(telemetryLabel, 460);
   lv_label_set_long_mode(telemetryLabel, LV_LABEL_LONG_CLIP);
   if (telemetryOut) *telemetryOut = telemetryLabel;
+
+  lv_obj_t* master = label(bar, "Master " + std::to_string(state.masterVolume) + "%",
+                           LV_ALIGN_CENTER, 0, 0,
+                           &ardor_font_open_sans_semibold_22, text);
+  lv_obj_set_width(master, 200);
+  lv_obj_set_style_text_align(master, LV_TEXT_ALIGN_CENTER, 0);
+  lv_label_set_long_mode(master, LV_LABEL_LONG_CLIP);
+  if (masterOut) *masterOut = master;
 
   const bool canUndo = state.blockEditUndo.has_value();
   lv_obj_t* message = label(bar, state.statusMessage, LV_ALIGN_RIGHT_MID,
                             canUndo ? -132 : -18, 0,
                             &ardor_font_open_sans_regular_18,
                             state.statusIsError ? 0xf97373 : accent);
-  lv_obj_set_width(message, 620);
+  lv_obj_set_width(message, canUndo ? 340 : 480);
   lv_label_set_long_mode(message, LV_LABEL_LONG_CLIP);
   lv_obj_set_style_text_align(message, LV_TEXT_ALIGN_RIGHT, 0);
   if (state.statusMessage.empty()) lv_obj_add_flag(message, LV_OBJ_FLAG_HIDDEN);
@@ -2648,27 +3241,36 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
 {
   presetBankLabel_ = label(root, state.bank.name, LV_ALIGN_TOP_MID, 0, 28,
                            &ardor_font_open_sans_semibold_28);
-  masterVolumeLabel_ = label(root, "Master " + std::to_string(state.masterVolume) + "%",
-                             LV_ALIGN_TOP_LEFT, 28, 28, &ardor_font_open_sans_regular_18, muted);
 
   lv_obj_t* tuner = button(root, "Tuner");
   lv_obj_set_size(tuner, kHeaderTunerButtonWidth, kHeaderButtonHeight);
-  lv_obj_align(tuner, LV_ALIGN_TOP_LEFT, 132, 20);
+  lv_obj_set_pos(tuner, kHeaderEdgeInset, kHeaderButtonTop);
   styleSurface(tuner, 0x25442a);
   lv_obj_set_style_text_color(lv_obj_get_child(tuner, 0), lv_color_hex(accent), 0);
   lv_obj_add_event_cb(tuner, onTunerModeClicked, LV_EVENT_PRESSED, remember(state));
 
   lv_obj_t* edit = button(root, "Edit");
   lv_obj_set_size(edit, kHeaderBlocksButtonWidth, kHeaderButtonHeight);
-  lv_obj_align(edit, LV_ALIGN_TOP_RIGHT, -28, 20);
+  lv_obj_set_pos(edit, kHeaderEditX, kHeaderButtonTop);
   // Opening an editor is safe on press and does not depend on the release
   // landing on a small target after a finger has shifted on the touchscreen.
   lv_obj_add_event_cb(edit, onEditModeClicked, LV_EVENT_PRESSED, remember(state));
 
+  lv_obj_t* settings = lv_button_create(root);
+  lv_obj_set_size(settings, kHeaderSettingsButtonWidth, kHeaderButtonHeight);
+  lv_obj_set_pos(settings, kHeaderSettingsX, kHeaderButtonTop);
+  styleSurface(settings, 0x343434);
+  lv_obj_t* settingsIcon = lv_label_create(settings);
+  lv_label_set_text(settingsIcon, LV_SYMBOL_SETTINGS);
+  lv_obj_set_style_text_color(settingsIcon, lv_color_hex(accent), 0);
+  lv_obj_set_style_text_font(settingsIcon, LV_FONT_DEFAULT, 0);
+  lv_obj_center(settingsIcon);
+  lv_obj_add_event_cb(settings, onSettingsClicked, LV_EVENT_PRESSED, remember(state));
+
   lv_obj_t* bankDown = button(root, "Bank -");
   bankDownButton_ = bankDown;
-  lv_obj_set_size(bankDown, 144, 52);
-  lv_obj_align(bankDown, LV_ALIGN_TOP_MID, -300, 20);
+  lv_obj_set_size(bankDown, kHeaderBankButtonWidth, kHeaderButtonHeight);
+  lv_obj_set_pos(bankDown, kHeaderBankDownX, kHeaderButtonTop);
   if (state.activeBank == kMinBank) {
     lv_obj_add_state(bankDown, LV_STATE_DISABLED);
   }
@@ -2676,8 +3278,8 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
 
   lv_obj_t* bankUp = button(root, "Bank +");
   bankUpButton_ = bankUp;
-  lv_obj_set_size(bankUp, 144, 52);
-  lv_obj_align(bankUp, LV_ALIGN_TOP_MID, 300, 20);
+  lv_obj_set_size(bankUp, kHeaderBankButtonWidth, kHeaderButtonHeight);
+  lv_obj_set_pos(bankUp, kHeaderBankUpX, kHeaderButtonTop);
   if (state.activeBank == kMaxBank) {
     lv_obj_add_state(bankUp, LV_STATE_DISABLED);
   }
@@ -2856,102 +3458,306 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   lv_obj_add_event_cb(blocksButton, onOpenBlockDrawer, LV_EVENT_PRESSED, remember(state));
 
   const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  const auto* selectedEffect = selectedUiBlock(state);
   const bool editingEq = state.paramDrawerOpen && state.paramTarget == UiParamTarget::Block
-    && state.selectedBlock < blocks.size() && blocks[state.selectedBlock].type == "eq"
-    && isParametricEqMode(blocks[state.selectedBlock].params);
+    && selectedEffect && selectedEffect->type == "eq"
+    && isParametricEqMode(selectedEffect->params);
   if (editingEq) {
     // The retained parameter layer owns the EQ editor.
   }
 
-  lv_obj_t* chain = lv_obj_create(root);
-  lv_obj_set_size(chain, 1240, kChainHeight);
-  lv_obj_align(chain, LV_ALIGN_TOP_MID, 0, kChainTop);
-  lv_obj_remove_flag(chain, LV_OBJ_FLAG_SCROLLABLE);
-  styleSurface(chain, bg);
-  // Card and connector coordinates share the fixed design grid. Explicitly
-  // remove theme padding so the cards cannot drift away from the wrap line.
-  lv_obj_set_style_pad_all(chain, 0, 0);
-  chainWrapConnector_ = renderChainWrapConnector(root);
-  if (blocks.size() <= kChainColumns) {
-    lv_obj_add_flag(chainWrapConnector_, LV_OBJ_FLAG_HIDDEN);
-  }
-  label(root, "Input", LV_ALIGN_TOP_LEFT, 28, 88, &ardor_font_open_sans_regular_18, muted);
-  label(root, "Output", LV_ALIGN_TOP_RIGHT, -28, 408, &ardor_font_open_sans_regular_18, muted);
+  chainViewport_ = lv_obj_create(root);
+  lv_obj_set_size(chainViewport_, kChainWidth, kChainHeight);
+  lv_obj_set_pos(chainViewport_, kChainLeft, kChainTop);
+  styleSurface(chainViewport_, bg);
+  lv_obj_set_style_pad_all(chainViewport_, 0, 0);
+  lv_obj_set_style_radius(chainViewport_, 0, 0);
+  lv_obj_set_scroll_dir(chainViewport_, LV_DIR_HOR);
+  lv_obj_set_scrollbar_mode(chainViewport_, LV_SCROLLBAR_MODE_AUTO);
+  lv_obj_remove_flag(chainViewport_, LV_OBJ_FLAG_SCROLL_ELASTIC);
 
-  renderedBlockIds_.clear();
-  for (std::size_t i = 0; i < kMaxEffectBlocks; ++i) {
-    const bool populated = i < blocks.size();
-    const UiBlock* block = populated ? &blocks[i] : nullptr;
-    std::string category = populated ? block->label : std::string{};
-    std::transform(category.begin(), category.end(), category.begin(), [](unsigned char character) {
-      return static_cast<char>(std::toupper(character));
-    });
+  chainWorld_ = lv_obj_create(chainViewport_);
+  lv_obj_set_size(chainWorld_, kChainWidth, kChainWorldHeight);
+  lv_obj_set_pos(chainWorld_, 0, 0);
+  lv_obj_set_style_bg_opa(chainWorld_, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_width(chainWorld_, 0, 0);
+  lv_obj_set_style_pad_all(chainWorld_, 0, 0);
+  lv_obj_set_style_radius(chainWorld_, 0, 0);
+  lv_obj_remove_flag(chainWorld_, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(chainWorld_, LV_OBJ_FLAG_CLICKABLE);
 
-    lv_obj_t* object = button(chain, "");
-    lv_obj_set_size(object, kChainTileWidth, kChainTileHeight);
-    lv_obj_set_pos(object, 14 + static_cast<int>(i % kChainColumns) * kChainSlotWidth,
-                   kChainTileTop + static_cast<int>(i / kChainColumns) * kChainRowHeight);
-    styleSurface(object, !populated || block->enabled ? panel : 0x171717);
-    // Card content uses three fixed text rows and a separate handle column.
-    // Explicit bounds keep LVGL's independent label alignment from allowing
-    // long names or the bypass state to paint over neighboring content.
+  auto* scrollContext = remember(state);
+  scrollContext->controlledObject = chainViewport_;
+  lv_obj_add_event_cb(chainViewport_, onChainScroll, LV_EVENT_SCROLL, scrollContext);
+  lv_obj_add_event_cb(chainViewport_, onChainScrollEnd, LV_EVENT_SCROLL_END, scrollContext);
+
+  const auto rail = [&](int x, int y, int width, int color = muted) {
+    if (width <= 0) return static_cast<lv_obj_t*>(nullptr);
+    lv_obj_t* line = lv_obj_create(chainWorld_);
+    lv_obj_set_size(line, width, 3);
+    lv_obj_set_pos(line, x, y - 1);
+    styleSurface(line, color);
+    lv_obj_set_style_radius(line, 0, 0);
+    lv_obj_set_style_opa(line, LV_OPA_70, 0);
+    lv_obj_remove_flag(line, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(line, LV_OBJ_FLAG_CLICKABLE);
+    return line;
+  };
+  const auto terminal = [&](int x, const char* title, const char* detail) {
+    lv_obj_t* object = lv_obj_create(chainWorld_);
+    lv_obj_set_size(object, kChainTerminalWidth, 64);
+    lv_obj_set_pos(object, x, kChainRailY - 32);
+    styleSurface(object, 0x171717);
     lv_obj_set_style_pad_all(object, 0, 0);
-    if (populated && !block->enabled) {
-      lv_obj_set_style_opa(object, LV_OPA_70, 0);
-    }
-    if (populated && isBlockHighlighted(block->id)) {
-      lv_obj_set_style_border_color(object, lv_color_hex(accent), 0);
-      lv_obj_set_style_border_width(object, 3, 0);
-    }
-    const bool selected = populated && state.paramTarget == UiParamTarget::Block && state.selectedBlock == i;
-    lv_obj_t* categoryLabel = label(object, category, LV_ALIGN_TOP_LEFT, kChainTextX, 7,
-                                    &ardor_font_open_sans_regular_18, muted);
-    lv_obj_set_width(categoryLabel, kChainTextWidth);
-    lv_label_set_long_mode(categoryLabel, LV_LABEL_LONG_CLIP);
-    lv_obj_t* assetName = label(object, populated ? block->assetName : "", LV_ALIGN_TOP_LEFT, kChainTextX, 32,
-                                &ardor_font_open_sans_semibold_22);
-    lv_obj_set_width(assetName, kChainTextWidth);
-    lv_label_set_long_mode(assetName, LV_LABEL_LONG_CLIP);
-    lv_obj_t* bypassed = label(object, "BYPASSED", LV_ALIGN_TOP_LEFT, kChainTextX, 67,
-                               &ardor_font_open_sans_regular_18, 0xf97373);
-    lv_obj_set_width(bypassed, kChainTextWidth);
-    lv_label_set_long_mode(bypassed, LV_LABEL_LONG_CLIP);
-    if (!populated || block->enabled) lv_obj_add_flag(bypassed, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_t* indicator = lv_obj_create(object);
-    lv_obj_set_size(indicator, 5, 5);
-    lv_obj_align(indicator, LV_ALIGN_BOTTOM_MID, 0, -7);
-    styleSurface(indicator, accent);
-    lv_obj_set_style_radius(indicator, LV_RADIUS_CIRCLE, 0);
-    lv_obj_remove_flag(indicator, LV_OBJ_FLAG_CLICKABLE);
-    if (!selected) lv_obj_add_flag(indicator, LV_OBJ_FLAG_HIDDEN);
-    auto* clickContext = remember(state, i);
-    lv_obj_add_event_cb(object, onBlockClicked, LV_EVENT_CLICKED, clickContext);
+    lv_obj_remove_flag(object, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(object, LV_OBJ_FLAG_CLICKABLE);
+    label(object, title, LV_ALIGN_TOP_MID, 0, 8, &ardor_font_open_sans_semibold_22, text);
+    label(object, detail, LV_ALIGN_BOTTOM_MID, 0, -8, &ardor_font_open_sans_regular_18, muted);
+    return object;
+  };
+  const auto topInsert = [&](int x, std::size_t index) {
+    rail(x - kChainGap, kChainRailY, kChainInsertWidth + 2 * kChainGap, muted);
+    lv_obj_t* add = button(chainWorld_, "+");
+    lv_obj_set_size(add, 46, 46);
+    lv_obj_set_pos(add, x + (kChainInsertWidth - 46) / 2, kChainRailY - 23);
+    styleSurface(add, 0x1b1b1b);
+    lv_obj_set_style_border_color(add, lv_color_hex(0x4b4b4b), 0);
+    lv_obj_set_style_border_width(add, 1, 0);
+    lv_obj_set_style_text_color(lv_obj_get_child(add, 0), lv_color_hex(accent), 0);
+    auto* context = remember(state, index);
+    lv_obj_add_event_cb(add, onOpenBlockDrawerAt, LV_EVENT_CLICKED, context);
+    chainInsertionXs_.push_back(x + kChainInsertWidth / 2);
+  };
+  const auto laneInsert = [&](int x, int y, std::size_t rigIndex,
+                              std::size_t laneIndex, std::size_t index, int color, bool disabled) {
+    lv_obj_t* add = button(chainWorld_, "+");
+    lv_obj_set_size(add, 42, 42);
+    lv_obj_set_pos(add, x, y - 21);
+    styleSurface(add, 0x1b1b1b);
+    lv_obj_set_style_border_color(add, lv_color_hex(color), 0);
+    lv_obj_set_style_border_width(add, 1, 0);
+    lv_obj_set_style_text_color(lv_obj_get_child(add, 0), lv_color_hex(color), 0);
+    if (disabled) lv_obj_add_state(add, LV_STATE_DISABLED);
+    auto* context = remember(state, index);
+    context->parentIndex = rigIndex;
+    context->laneIndex = laneIndex;
+    lv_obj_add_event_cb(add, onOpenLaneBlockDrawer, LV_EVENT_CLICKED, context);
+    laneInsertionXs_[laneIndex].push_back(x + 21);
+  };
+  const auto dragHandle = [&](lv_obj_t* parent, lv_obj_t* controlled, std::size_t index) {
+    lv_obj_t* handle = button(parent, "|||");
+    lv_obj_set_size(handle, kChainHandleWidth, 52);
+    lv_obj_align(handle, LV_ALIGN_RIGHT_MID, -6, 0);
+    styleSurface(handle, 0x333333);
+    lv_obj_set_style_text_color(lv_obj_get_child(handle, 0), lv_color_hex(muted), 0);
+    auto* context = remember(state, index);
+    context->controlledObject = controlled;
+    lv_obj_add_event_cb(handle, onBlockPressed, LV_EVENT_PRESSED, context);
+    lv_obj_add_event_cb(handle, onBlockPressing, LV_EVENT_PRESSING, context);
+    lv_obj_add_event_cb(handle, onBlockReleased, LV_EVENT_RELEASED, context);
+    lv_obj_add_event_cb(handle, onBlockPressLost, LV_EVENT_PRESS_LOST, context);
+    chainDragContexts_[index] = context;
+  };
+  const auto laneEnd = [](std::size_t count) {
+    return static_cast<int>(count + 1) * (kLaneInsertWidth + 8)
+      + static_cast<int>(count) * (kLaneTileWidth + 8);
+  };
 
-    lv_obj_t* dragHandle = button(object, "|||");
-    lv_obj_set_size(dragHandle, kChainHandleWidth, 56);
-    lv_obj_align(dragHandle, LV_ALIGN_RIGHT_MID, -8, 0);
-    styleSurface(dragHandle, 0x333333);
-    lv_obj_set_style_text_color(lv_obj_get_child(dragHandle, 0), lv_color_hex(muted), 0);
-    auto* dragContext = remember(state, i);
-    dragContext->controlledObject = object;
-    lv_obj_add_event_cb(dragHandle, onBlockPressed, LV_EVENT_PRESSED, dragContext);
-    lv_obj_add_event_cb(dragHandle, onBlockPressing, LV_EVENT_PRESSING, dragContext);
-    lv_obj_add_event_cb(dragHandle, onBlockReleased, LV_EVENT_RELEASED, dragContext);
-    lv_obj_add_event_cb(dragHandle, onBlockPressLost, LV_EVENT_PRESS_LOST, dragContext);
+  chainItemStarts_.clear();
+  chainItemEnds_.clear();
+  chainInsertionXs_.clear();
+  renderedBlockIds_.clear();
+  int x = kChainStartX;
+  terminal(x, "INPUT", "Mono");
+  x += kChainTerminalWidth + kChainGap;
+  topInsert(x, 0);
+  x += kChainInsertWidth + kChainGap;
 
-    chainCards_[i] = object;
-    chainCategoryLabels_[i] = categoryLabel;
-    chainAssetLabels_[i] = assetName;
-    chainBypassLabels_[i] = bypassed;
-    chainSelectionIndicators_[i] = indicator;
-    chainClickContexts_[i] = clickContext;
-    chainDragContexts_[i] = dragContext;
-    if (populated) renderedBlockIds_.push_back(block->id);
-    else lv_obj_add_flag(object, LV_OBJ_FLAG_HIDDEN);
+  for (std::size_t i = 0; i < blocks.size() && i < kMaxEffectBlocks; ++i) {
+    const auto& block = blocks[i];
+    const bool selected = state.paramTarget == UiParamTarget::Block
+      && state.selectedBlock == i && !selectedBlockIsLaneChild(state);
+    const int itemStart = x;
+    chainItemStarts_.push_back(itemStart);
+    renderedBlockIds_.push_back(block.id);
+
+    if (block.type != "dualRig") {
+      rail(x - kChainGap, kChainRailY, kChainTileWidth + 2 * kChainGap, muted);
+      lv_obj_t* object = button(chainWorld_, "");
+      lv_obj_set_size(object, kChainTileWidth, kChainTileHeight);
+      lv_obj_set_pos(object, x, kChainTileTop);
+      styleSurface(object, block.enabled ? panel : 0x171717);
+      lv_obj_set_style_pad_all(object, 0, 0);
+      if (!block.enabled) lv_obj_set_style_opa(object, LV_OPA_70, 0);
+      if (isBlockHighlighted(block.id)) {
+        lv_obj_set_style_border_color(object, lv_color_hex(accent), 0);
+        lv_obj_set_style_border_width(object, 3, 0);
+      }
+      std::string category = block.label;
+      std::transform(category.begin(), category.end(), category.begin(), [](unsigned char character) {
+        return static_cast<char>(std::toupper(character));
+      });
+      lv_obj_t* categoryLabel = label(object, category, LV_ALIGN_TOP_LEFT, kChainTextX, 9,
+                                      &ardor_font_open_sans_regular_18, muted);
+      lv_obj_set_width(categoryLabel, kChainTextWidth);
+      lv_label_set_long_mode(categoryLabel, LV_LABEL_LONG_CLIP);
+      lv_obj_t* assetName = label(object, block.assetName, LV_ALIGN_TOP_LEFT, kChainTextX, 38,
+                                  &ardor_font_open_sans_semibold_22);
+      lv_obj_set_width(assetName, kChainTextWidth);
+      lv_label_set_long_mode(assetName, LV_LABEL_LONG_CLIP);
+      lv_obj_t* bypassed = label(object, "BYPASSED", LV_ALIGN_BOTTOM_LEFT, kChainTextX, -7,
+                                 &ardor_font_open_sans_regular_18, danger);
+      if (block.enabled) lv_obj_add_flag(bypassed, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_t* indicator = lv_obj_create(object);
+      lv_obj_set_size(indicator, 42, 4);
+      lv_obj_align(indicator, LV_ALIGN_BOTTOM_MID, -kChainHandleWidth / 2, -3);
+      styleSurface(indicator, accent);
+      lv_obj_remove_flag(indicator, LV_OBJ_FLAG_CLICKABLE);
+      if (!selected) lv_obj_add_flag(indicator, LV_OBJ_FLAG_HIDDEN);
+      auto* clickContext = remember(state, i);
+      lv_obj_add_event_cb(object, onBlockClicked, LV_EVENT_CLICKED, clickContext);
+      dragHandle(object, object, i);
+
+      chainCards_[i] = object;
+      chainCategoryLabels_[i] = categoryLabel;
+      chainAssetLabels_[i] = assetName;
+      chainBypassLabels_[i] = bypassed;
+      chainSelectionIndicators_[i] = indicator;
+      chainClickContexts_[i] = clickContext;
+      x += kChainTileWidth;
+    } else {
+      renderedRigIndex_ = i;
+      const std::size_t longest = std::max(block.lanes[0].size(), block.lanes[1].size());
+      const int laneWidth = std::max(laneEnd(longest), laneEnd(1));
+      const int splitX = x;
+      const int laneStart = splitX + kChainJunctionWidth + 26;
+      const int joinX = laneStart + laneWidth + 22;
+      rail(splitX + kChainJunctionWidth / 2, kChainLeftRailY,
+           joinX - splitX, accent);
+      rail(splitX + kChainJunctionWidth / 2, kChainRightRailY,
+           joinX - splitX, rigRight);
+      lv_obj_t* splitStem = lv_obj_create(chainWorld_);
+      lv_obj_set_size(splitStem, 3, kChainRightRailY - kChainLeftRailY);
+      lv_obj_set_pos(splitStem, splitX + kChainJunctionWidth / 2 - 1, kChainLeftRailY);
+      styleSurface(splitStem, muted);
+      lv_obj_remove_flag(splitStem, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_t* joinStem = lv_obj_create(chainWorld_);
+      lv_obj_set_size(joinStem, 3, kChainRightRailY - kChainLeftRailY);
+      lv_obj_set_pos(joinStem, joinX + kChainJunctionWidth / 2 - 1, kChainLeftRailY);
+      styleSurface(joinStem, muted);
+      lv_obj_remove_flag(joinStem, LV_OBJ_FLAG_CLICKABLE);
+
+      lv_obj_t* split = button(chainWorld_, "SPLIT");
+      lv_obj_set_size(split, kChainJunctionWidth, 82);
+      lv_obj_set_pos(split, splitX, kChainRailY - 41);
+      styleSurface(split, 0x1b1b1b);
+      lv_obj_set_style_pad_all(split, 0, 0);
+      lv_obj_set_style_border_color(split, lv_color_hex(selected ? accent : 0x4b4b4b), 0);
+      lv_obj_set_style_border_width(split, selected ? 3 : 1, 0);
+      lv_obj_t* splitLabel = lv_obj_get_child(split, 0);
+      lv_obj_set_width(splitLabel, kChainJunctionWidth - kChainHandleWidth - 24);
+      lv_obj_align(splitLabel, LV_ALIGN_LEFT_MID, 12, 0);
+      lv_obj_set_style_text_align(splitLabel, LV_TEXT_ALIGN_LEFT, 0);
+      auto* clickContext = remember(state, i);
+      lv_obj_add_event_cb(split, onBlockClicked, LV_EVENT_CLICKED, clickContext);
+      dragHandle(split, split, i);
+      chainCards_[i] = split;
+      chainClickContexts_[i] = clickContext;
+
+      lv_obj_t* join = lv_obj_create(chainWorld_);
+      lv_obj_set_size(join, kChainJunctionWidth, 64);
+      lv_obj_set_pos(join, joinX, kChainRailY - 32);
+      styleSurface(join, 0x171717);
+      lv_obj_set_style_border_color(join, lv_color_hex(0x4b4b4b), 0);
+      lv_obj_set_style_border_width(join, 1, 0);
+      lv_obj_set_style_pad_all(join, 0, 0);
+      lv_obj_remove_flag(join, LV_OBJ_FLAG_SCROLLABLE);
+      lv_obj_remove_flag(join, LV_OBJ_FLAG_CLICKABLE);
+      label(join, "JOIN", LV_ALIGN_CENTER, 0, 0, &ardor_font_open_sans_semibold_22, text);
+
+      for (std::size_t laneIndex = 0; laneIndex < block.lanes.size(); ++laneIndex) {
+        const int laneY = laneIndex == 0 ? kChainLeftRailY : kChainRightRailY;
+        const int laneColor = laneIndex == 0 ? accent : rigRight;
+        label(chainWorld_, laneIndex == 0 ? "LEFT" : "RIGHT", LV_ALIGN_TOP_LEFT,
+              splitX + kChainJunctionWidth / 2 + 12, laneY - 54,
+              &ardor_font_open_sans_semibold_22, laneColor);
+        int laneX = laneStart;
+        laneInsert(laneX, laneY, i, laneIndex, 0, laneColor,
+                   block.lanes[laneIndex].size() >= kMaxEffectBlocks);
+        laneX += kLaneInsertWidth + 8;
+        for (std::size_t childIndex = 0; childIndex < block.lanes[laneIndex].size(); ++childIndex) {
+          const auto& child = block.lanes[laneIndex][childIndex];
+          lv_obj_t* childObject = button(chainWorld_, "");
+          lv_obj_set_size(childObject, kLaneTileWidth, kLaneTileHeight);
+          lv_obj_set_pos(childObject, laneX, laneY - kLaneTileHeight / 2);
+          styleSurface(childObject, child.enabled ? panel : 0x171717);
+          lv_obj_set_style_pad_all(childObject, 0, 0);
+          lv_obj_set_style_border_color(childObject, lv_color_hex(laneColor), 0);
+          const bool childSelected = state.paramTarget == UiParamTarget::Block
+            && state.selectedBlockId == child.id;
+          lv_obj_set_style_border_width(childObject, childSelected ? 3 : 1, 0);
+          if (!child.enabled) lv_obj_set_style_opa(childObject, LV_OPA_70, 0);
+          label(childObject, rigLaneToken(child), LV_ALIGN_TOP_LEFT, 10, 8,
+                &ardor_font_open_sans_semibold_22, laneColor);
+          lv_obj_t* childAsset = label(childObject, child.assetName, LV_ALIGN_BOTTOM_LEFT, 10, -9,
+                                       &ardor_font_open_sans_regular_18,
+                                       child.enabled ? text : muted);
+          lv_obj_set_width(childAsset, kLaneTileWidth - 62);
+          lv_label_set_long_mode(childAsset, LV_LABEL_LONG_CLIP);
+          auto* childClickContext = remember(state, childIndex);
+          childClickContext->parentIndex = i;
+          childClickContext->laneIndex = laneIndex;
+          lv_obj_add_event_cb(childObject, onLaneBlockClicked, LV_EVENT_CLICKED, childClickContext);
+          lv_obj_t* childHandle = button(childObject, "||");
+          lv_obj_set_size(childHandle, 36, 44);
+          lv_obj_align(childHandle, LV_ALIGN_RIGHT_MID, -6, 0);
+          styleSurface(childHandle, 0x333333);
+          lv_obj_set_style_text_color(lv_obj_get_child(childHandle, 0), lv_color_hex(muted), 0);
+          auto* childDragContext = remember(state, childIndex);
+          childDragContext->parentIndex = i;
+          childDragContext->laneIndex = laneIndex;
+          childDragContext->controlledObject = childObject;
+          childDragContext->dragText = rigLaneToken(child) + "\n" + child.assetName;
+          lv_obj_add_event_cb(childHandle, onLaneBlockPressed, LV_EVENT_PRESSED, childDragContext);
+          lv_obj_add_event_cb(childHandle, onLaneBlockPressing, LV_EVENT_PRESSING, childDragContext);
+          lv_obj_add_event_cb(childHandle, onLaneBlockReleased, LV_EVENT_RELEASED, childDragContext);
+          lv_obj_add_event_cb(childHandle, onLaneBlockPressLost, LV_EVENT_PRESS_LOST, childDragContext);
+          laneX += kLaneTileWidth + 8;
+          laneInsert(laneX, laneY, i, laneIndex, childIndex + 1, laneColor,
+                     block.lanes[laneIndex].size() >= kMaxEffectBlocks);
+          laneX += kLaneInsertWidth + 8;
+        }
+      }
+      x = joinX + kChainJunctionWidth;
+    }
+
+    chainItemEnds_.push_back(x);
+    x += kChainGap;
+    topInsert(x, i + 1);
+    x += kChainInsertWidth + kChainGap;
   }
 
-  label(root, "Tap a block to edit  |  Drag the handle to reorder",
-        LV_ALIGN_TOP_LEFT, 28, 390, &ardor_font_open_sans_regular_18, muted);
+  rail(x - kChainGap, kChainRailY, kChainGap, muted);
+  terminal(x, "OUTPUT", "Stereo");
+  x += kChainTerminalWidth + kChainStartX;
+  lv_obj_set_width(chainWorld_, std::max(x, kChainWidth));
+  lv_obj_update_layout(chainViewport_);
+  const int32_t savedScroll = state.activePreset < state.chainScrollOffsets.size()
+    ? state.chainScrollOffsets[state.activePreset] : 0;
+  lv_obj_scroll_to_x(chainViewport_, savedScroll, LV_ANIM_OFF);
+
+  lv_obj_t* inputJump = button(root, "<  Input");
+  lv_obj_set_size(inputJump, 144, 52);
+  lv_obj_set_pos(inputJump, 28, 604);
+  styleSurface(inputJump, 0x171717);
+  lv_obj_add_event_cb(inputJump, onChainStartClicked, LV_EVENT_CLICKED, remember(state));
+  label(root, "Swipe the canvas to move  |  + inserts an effect or Split  |  drag ||| to reorder",
+        LV_ALIGN_TOP_MID, 0, 620, &ardor_font_open_sans_regular_18, muted);
+  lv_obj_t* outputJump = button(root, "Output  >");
+  lv_obj_set_size(outputJump, 144, 52);
+  lv_obj_set_pos(outputJump, 1108, 604);
+  styleSurface(outputJump, 0x171717);
+  lv_obj_add_event_cb(outputJump, onChainEndClicked, LV_EVENT_CLICKED, remember(state));
 
 }
 
@@ -2980,7 +3786,11 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   // steal taps on the close button on a jittery finger touch.
   lv_obj_remove_flag(drawer, LV_OBJ_FLAG_SCROLLABLE);
 
-  label(drawer, "Blocks", LV_ALIGN_TOP_LEFT, 0, 0, &ardor_font_open_sans_semibold_22);
+  const bool insertingLane = state.blockInsertRig.has_value() && state.blockInsertLane.has_value();
+  const std::string drawerTitle = insertingLane
+    ? std::string{"Add to "} + (*state.blockInsertLane == 0 ? "Left" : "Right")
+    : "Insert block";
+  label(drawer, drawerTitle, LV_ALIGN_TOP_LEFT, 0, 0, &ardor_font_open_sans_semibold_22);
   lv_obj_t* close = button(drawer, "Close");
   lv_obj_set_size(close, 100, 56);
   lv_obj_align(close, LV_ALIGN_TOP_RIGHT, 0, -4);
@@ -3021,7 +3831,17 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   }
 
   const auto& blocks = state.bank.presets[state.activePreset].blocks;
-  const bool chainFull = blocks.size() >= kMaxEffectBlocks;
+  bool chainFull = blocks.size() >= kMaxEffectBlocks;
+  if (insertingLane && *state.blockInsertRig < blocks.size()
+      && *state.blockInsertLane < blocks[*state.blockInsertRig].lanes.size()) {
+    chainFull = blocks[*state.blockInsertRig].lanes[*state.blockInsertLane].size() >= kMaxEffectBlocks;
+  }
+  const bool alreadySplit = std::any_of(blocks.begin(), blocks.end(), [](const UiBlock& block) {
+    return block.enabled && (block.type == "dualRig" || block.type == "dualAmp");
+  });
+  const bool standaloneAmp = std::any_of(blocks.begin(), blocks.end(), [](const UiBlock& block) {
+    return block.enabled && (block.type == "nam" || block.type == "cab");
+  });
 
   lv_obj_t* separator = lv_obj_create(drawer);
   lv_obj_set_size(separator, kBlockDrawerContentWidth, 1);
@@ -3032,7 +3852,9 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   lv_obj_remove_flag(separator, LV_OBJ_FLAG_CLICKABLE);
 
   drawerInstructionLabel_ = label(drawer,
-    chainFull ? "Chain full - delete a block to add" : "Tap to add - hold to drag",
+    chainFull ? "Chain full - delete a block to add"
+              : (insertingLane ? "Choose an effect for this lane"
+                               : "Choose an effect or Split Left / Right"),
     LV_ALIGN_TOP_LEFT, 0, kDrawerInstructionY, &ardor_font_open_sans_regular_18,
     chainFull ? 0xf97373 : muted);
   lv_obj_set_width(drawerInstructionLabel_, kBlockDrawerContentWidth);
@@ -3058,7 +3880,20 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
     lv_obj_set_height(item, kDrawerAssetButtonHeight);
     lv_obj_set_style_min_height(item, kDrawerAssetButtonHeight, 0);
     styleSurface(item, panel);
-    if (chainFull) lv_obj_add_state(item, LV_STATE_DISABLED);
+    const bool splitUnavailable = asset.blockType == "dualRig"
+      && (insertingLane || alreadySplit || standaloneAmp);
+    if (asset.blockType == "dualRig") {
+      lv_obj_set_style_border_color(item, lv_color_hex(accent), 0);
+      lv_obj_set_style_border_width(item, 1, 0);
+      lv_obj_set_style_text_color(lv_obj_get_child(item, 0), lv_color_hex(accent), 0);
+      if (splitUnavailable) {
+        const char* reason = insertingLane ? "No nested Split"
+          : alreadySplit ? "A Split already exists" : "Remove standalone NAM / IR first";
+        label(item, reason, LV_ALIGN_BOTTOM_RIGHT, -14, -8,
+              &ardor_font_open_sans_regular_18, warning);
+      }
+    }
+    if (chainFull || splitUnavailable) lv_obj_add_state(item, LV_STATE_DISABLED);
     if (state.categoryFilter != "all" && asset.type != state.categoryFilter) {
       lv_obj_add_flag(item, LV_OBJ_FLAG_HIDDEN);
     }

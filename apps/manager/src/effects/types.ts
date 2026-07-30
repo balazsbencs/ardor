@@ -1,8 +1,7 @@
 export type EffectCategory =
   | "amp"
   | "cabinet"
-  | "dynamics"
-  | "eq"
+  | "utility"
   | "modulation"
   | "delay"
   | "reverb";
@@ -46,6 +45,7 @@ export type ToggleControl = {
 
 export type AssetControl = {
   kind: "asset";
+  key?: string;
   label: string;
   assetKind: "models" | "irs";
 };

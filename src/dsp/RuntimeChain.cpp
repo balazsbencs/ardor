@@ -1,5 +1,7 @@
 #include "dsp/RuntimeChain.h"
 
+#include "dsp/DualAmpProcessor.h"
+#include "dsp/DualRigProcessor.h"
 #include "dsp/IrConvolver.h"
 #include "dsp/NamProcessor.h"
 #include "equalizer/ParametricEqProcessor.h"
@@ -50,7 +52,9 @@ struct RuntimeChain::Block {
     Cab,
     Daisy,
     Compressor,
-    Equalizer
+    Equalizer,
+    DualAmp,
+    DualRig
   };
 
   Kind kind = Kind::Cab;
@@ -60,9 +64,12 @@ struct RuntimeChain::Block {
   std::unique_ptr<DaisyFxProcessor> daisy;
   std::unique_ptr<CompressorProcessor> compressor;
   std::unique_ptr<ParametricEqProcessor> equalizer;
+  std::unique_ptr<DualAmpProcessor> dualAmp;
+  std::unique_ptr<DualRigProcessor> dualRig;
   std::unique_ptr<LevelState> meter = std::make_unique<LevelState>();
   float level = 1.0f;
   float mix = 1.0f;
+  NamInputMode namInputMode = NamInputMode::Sum;
 };
 
 struct RuntimeChain::FaultState {
@@ -95,6 +102,12 @@ void RuntimeChain::prepareBlockSize(size_t frames)
     if (block.cab) {
       block.cab->prepareBlockSize(frames);
     }
+    if (block.dualAmp) {
+      block.dualAmp->prepareBlockSize(frames);
+    }
+    if (block.dualRig) {
+      block.dualRig->prepareBlockSize(frames);
+    }
   }
 }
 
@@ -105,7 +118,7 @@ void RuntimeChain::clear()
 }
 
 bool RuntimeChain::addNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
-                          std::string id, float slimmableSize)
+                          std::string id, float slimmableSize, NamInputMode inputMode)
 {
   auto nam = std::make_unique<NamProcessor>();
   if (!nam->load(modelPath, sampleRate, maxBlockSize, slimmableSize)) {
@@ -115,6 +128,41 @@ bool RuntimeChain::addNam(const std::filesystem::path& modelPath, double sampleR
   block.kind = Block::Kind::Nam;
   block.id = std::move(id);
   block.nam = std::move(nam);
+  block.namInputMode = inputMode;
+  blocks_.push_back(std::move(block));
+  return true;
+}
+
+bool RuntimeChain::addDualAmp(std::string id, DualAmpLaneConfig left, DualAmpLaneConfig right,
+                              NamInputMode inputMode, double sampleRate, int maxBlockSize,
+                              bool requestParallel, int workerCpu, std::string& error)
+{
+  auto dualAmp = std::make_unique<DualAmpProcessor>();
+  if (!dualAmp->configure(std::move(left), std::move(right), inputMode, sampleRate,
+                          maxBlockSize, requestParallel, workerCpu, error)) {
+    return false;
+  }
+  Block block;
+  block.kind = Block::Kind::DualAmp;
+  block.id = std::move(id);
+  block.dualAmp = std::move(dualAmp);
+  blocks_.push_back(std::move(block));
+  return true;
+}
+
+bool RuntimeChain::addDualRig(std::string id, DualRigLaneConfig left, DualRigLaneConfig right,
+                              NamInputMode inputMode, double sampleRate, std::size_t blockSize,
+                              bool requestParallel, int workerCpu, std::string& error)
+{
+  auto dualRig = std::make_unique<DualRigProcessor>();
+  if (!dualRig->configure(std::move(left), std::move(right), inputMode, sampleRate,
+                          blockSize, requestParallel, workerCpu, error)) {
+    return false;
+  }
+  Block block;
+  block.kind = Block::Kind::DualRig;
+  block.id = std::move(id);
+  block.dualRig = std::move(dualRig);
   blocks_.push_back(std::move(block));
   return true;
 }
@@ -205,14 +253,17 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
     auto& block = blocks_[index];
     switch (block.kind) {
     case Block::Kind::Nam: {
-      const float mono = block.nam->process(current.left);
+      const float mono = block.nam->process(
+        routeNamInput(block.namInputMode, current.left, current.right));
       current = {mono, mono};
       break;
     }
     case Block::Kind::Cab: {
       const float dry = current.left;
-      const float wet = block.cab->processSample(dry) * cabLevel;
-      const float mixed = (wet * cabMix) + (dry * (1.0f - cabMix));
+      const float level = cabLevel >= 0.0f ? cabLevel : block.level;
+      const float mix = cabMix >= 0.0f ? cabMix : block.mix;
+      const float wet = block.cab->processSample(dry) * level;
+      const float mixed = (wet * mix) + (dry * (1.0f - mix));
       current = {mixed, mixed};
       break;
     }
@@ -224,6 +275,12 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
       break;
     case Block::Kind::Equalizer:
       block.equalizer->process(current.left, current.right);
+      break;
+    case Block::Kind::DualAmp:
+      block.dualAmp->process(current.left, current.right, current.left, current.right);
+      break;
+    case Block::Kind::DualRig:
+      block.dualRig->process(current.left, current.right, current.left, current.right);
       break;
     }
     if (!std::isfinite(current.left) || !std::isfinite(current.right)) {
@@ -264,14 +321,10 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
   for (auto& block : blocks_) {
     switch (block.kind) {
     case Block::Kind::Nam: {
-      const float* namInput = currentLeft;
-      if (currentIsStereo) {
-        for (size_t i = 0; i < frames; ++i) {
-          monoScratch_[i] = (currentLeft[i] + currentRight[i]) * 0.5f;
-        }
-        namInput = monoScratch_.data();
+      for (size_t i = 0; i < frames; ++i) {
+        monoScratch_[i] = routeNamInput(block.namInputMode, currentLeft[i], currentRight[i]);
       }
-      block.nam->processBlock(namInput, nextLeft, frames);
+      block.nam->processBlock(monoScratch_.data(), nextLeft, frames);
       std::copy(nextLeft, nextLeft + frames, nextRight);
       currentIsStereo = false;
       break;
@@ -286,8 +339,10 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       }
       block.cab->processBlock(cabInput, nextLeft, frames);
       for (size_t i = 0; i < frames; ++i) {
-        const float wet = nextLeft[i] * cabLevels[i];
-        nextLeft[i] = wet * cabMixes[i] + cabInput[i] * (1.0f - cabMixes[i]);
+        const float level = cabLevels ? cabLevels[i] : block.level;
+        const float mix = cabMixes ? cabMixes[i] : block.mix;
+        const float wet = nextLeft[i] * level;
+        nextLeft[i] = wet * mix + cabInput[i] * (1.0f - mix);
       }
       std::copy(nextLeft, nextLeft + frames, nextRight);
       currentIsStereo = false;
@@ -310,6 +365,14 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       break;
     case Block::Kind::Equalizer:
       block.equalizer->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);
+      currentIsStereo = true;
+      break;
+    case Block::Kind::DualAmp:
+      block.dualAmp->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);
+      currentIsStereo = true;
+      break;
+    case Block::Kind::DualRig:
+      block.dualRig->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);
       currentIsStereo = true;
       break;
     }
@@ -359,6 +422,20 @@ uint64_t RuntimeChain::nonFiniteBlockCount() const noexcept
   return faults_->count.load(std::memory_order_relaxed);
 }
 
+uint64_t RuntimeChain::parallelWaitOverBudgetCount() const noexcept
+{
+  uint64_t count = 0;
+  for (const auto& block : blocks_) {
+    if (block.dualAmp) {
+      count += block.dualAmp->parallelWaitOverBudgetCount();
+    }
+    if (block.dualRig) {
+      count += block.dualRig->parallelWaitOverBudgetCount();
+    }
+  }
+  return count;
+}
+
 std::string RuntimeChain::firstNonFiniteBlockId() const
 {
   const int index = faults_->firstIndex.load(std::memory_order_relaxed);
@@ -388,6 +465,12 @@ std::vector<ClipStageSnapshot> RuntimeChain::takeClipDiagnostics()
     case Block::Kind::Equalizer:
       kind = SignalStageKind::Equalizer;
       break;
+    case Block::Kind::DualAmp:
+      kind = SignalStageKind::DualAmp;
+      break;
+    case Block::Kind::DualRig:
+      kind = SignalStageKind::DualRig;
+      break;
     }
     diagnostics.push_back(takeLevel(*block.meter, kind, block.id));
   }
@@ -412,6 +495,12 @@ void RuntimeChain::reset()
     if (block.equalizer) {
       block.equalizer->reset();
     }
+    if (block.dualAmp) {
+      block.dualAmp->reset();
+    }
+    if (block.dualRig) {
+      block.dualRig->reset();
+    }
   }
 }
 
@@ -424,6 +513,12 @@ size_t RuntimeChain::tailFrames() const noexcept
     }
     if (block.daisy) {
       tail += block.daisy->tailFrames();
+    }
+    if (block.dualAmp) {
+      tail += block.dualAmp->tailFrames();
+    }
+    if (block.dualRig) {
+      tail += block.dualRig->tailFrames();
     }
   }
   return tail;

@@ -40,7 +40,7 @@ export function addAssetBlock(preset: Preset, type: "nam" | "cab", asset: string
     type,
     enabled: true,
     asset,
-    params: type === "cab" ? { levelDb: 0, mix: 1 } : { useNano: false },
+    params: type === "cab" ? { levelDb: 0, mix: 1 } : { inputMode: "sum", useNano: false },
   });
   return draft;
 }

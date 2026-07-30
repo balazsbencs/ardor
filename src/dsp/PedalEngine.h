@@ -16,7 +16,14 @@ class PedalEngine {
 public:
   void setSampleRate(double sampleRate);
   bool loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
-               std::string id = "nam", float slimmableSize = 1.0f);
+               std::string id = "nam", float slimmableSize = 1.0f,
+               NamInputMode inputMode = NamInputMode::Sum);
+  bool addDualAmp(std::string id, DualAmpLaneConfig left, DualAmpLaneConfig right,
+                  NamInputMode inputMode, double sampleRate, int maxBlockSize,
+                  bool requestParallel, int workerCpu, std::string& error);
+  bool addDualRig(std::string id, DualRigLaneConfig left, DualRigLaneConfig right,
+                  NamInputMode inputMode, double sampleRate, int maxBlockSize,
+                  bool requestParallel, int workerCpu, std::string& error);
   void loadIr(std::vector<float> impulse);
   void addCab(std::vector<float> impulse, float level, float mix, std::string id = "cab");
   bool addDaisyFx(std::string id, const std::string& blockType, const nlohmann::json& params,
@@ -41,6 +48,7 @@ public:
   uint64_t nonFiniteInputSamples() const noexcept;
   uint64_t blockSizeMismatchCount() const noexcept;
   uint64_t nonFiniteBlockCount() const noexcept;
+  uint64_t parallelWaitOverBudgetCount() const noexcept;
   std::string firstNonFiniteBlockId() const;
   // Consumes interval peaks/overloads for the post-input-gain boundary, every
   // chain block, and the final pre-limiter output boundary.

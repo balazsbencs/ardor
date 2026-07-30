@@ -4,6 +4,7 @@
 #include "preset/Preset.h"
 #include "preset/PresetStore.h"
 #include "preset/RuntimeState.h"
+#include "ui/GlobalSettings.h"
 
 #include <array>
 #include <cstddef>
@@ -33,12 +34,14 @@ struct UiBlock {
   std::string assetPath;
   bool enabled = true;
   nlohmann::json params = nlohmann::json::object();
+  std::array<std::vector<UiBlock>, 2> lanes;
 };
 
 struct UiPreset {
   std::string name;
   std::vector<UiBlock> blocks;
   PresetGlobal global;
+  int version = 1;
 };
 
 struct UiBank {
@@ -112,6 +115,7 @@ struct UiRevisions {
 struct UiBlockEditSnapshot {
   std::vector<UiBlock> blocks;
   std::size_t selectedBlock = 0;
+  std::string selectedBlockId;
   UiParamTarget paramTarget = UiParamTarget::Block;
   bool dirty = false;
   bool blockDrawerOpen = false;
@@ -121,6 +125,7 @@ struct UiBlockEditSnapshot {
 struct UiPreviewSnapshot {
   UiPreset preset;
   std::size_t selectedBlock = 0;
+  std::string selectedBlockId;
   UiParamTarget paramTarget = UiParamTarget::Block;
   bool dirty = false;
   bool blockDrawerOpen = false;
@@ -153,10 +158,14 @@ struct UiTunerTelemetry {
 
 struct UiState {
   UiBank bank;
+  DeviceSettings settings;
   std::vector<UiAsset> assets;
   std::size_t activePreset = 0;
   int activeBank = 0;
   std::size_t selectedBlock = 0;
+  // The top-level index keeps chain scrolling/reordering stable. The ID can
+  // point either at that block or at one of its Dual Rig lane children.
+  std::string selectedBlockId;
   UiMode mode = UiMode::Preset;
   UiParamTarget paramTarget = UiParamTarget::Block;
   bool dirty = false;
@@ -168,6 +177,10 @@ struct UiState {
   int masterVolume = 82;
   std::string categoryFilter = "all";
   int32_t assetScrollOffset = 0;
+  std::array<int32_t, 4> chainScrollOffsets{};
+  std::size_t blockInsertIndex = 0;
+  std::optional<std::size_t> blockInsertRig;
+  std::optional<std::size_t> blockInsertLane;
   RuntimeTelemetry telemetry;
   UiClipDebugTelemetry clipDebug;
   UiTunerTelemetry tuner;
@@ -191,10 +204,22 @@ void enterEditMode(UiState& state);
 void enterTunerMode(UiState& state);
 void updateTunerTelemetry(UiState& state, UiTunerTelemetry telemetry);
 void openBlockDrawer(UiState& state);
+void openBlockDrawerAt(UiState& state, std::size_t blockIndex);
+void openLaneBlockDrawer(UiState& state, std::size_t rigIndex, std::size_t laneIndex,
+                         std::size_t blockIndex);
 void closeBlockDrawer(UiState& state);
 void selectBlock(UiState& state, std::size_t blockIndex);
+void selectLaneBlock(UiState& state, std::size_t rigIndex, std::size_t laneIndex,
+                     std::size_t blockIndex);
+UiBlock* selectedUiBlock(UiState& state);
+const UiBlock* selectedUiBlock(const UiState& state);
+bool selectedBlockIsLaneChild(const UiState& state);
 void appendAssetBlock(UiState& state, std::size_t assetIndex);
 void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockIndex);
+void insertLaneAssetBlock(UiState& state, std::size_t assetIndex, std::size_t rigIndex,
+                          std::size_t laneIndex, std::size_t blockIndex);
+bool moveLaneBlock(UiState& state, std::size_t rigIndex, std::size_t sourceLane,
+                   std::size_t sourceIndex, std::size_t targetLane, std::size_t targetIndex);
 void moveBlock(UiState& state, std::size_t from, std::size_t to);
 bool deleteSelectedBlock(UiState& state);
 bool undoLastBlockEdit(UiState& state);

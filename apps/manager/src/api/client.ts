@@ -7,6 +7,8 @@ import type {
   PresetSlot,
   PresetSlotSummary,
   RenameAssetResponse,
+  WiFiSettings,
+  WiFiSettingsUpdate,
 } from "./types";
 import { ArdorApiError } from "./errors";
 
@@ -34,6 +36,18 @@ export class ArdorApiClient {
 
   getDevice(): Promise<DeviceStatus> {
     return this.request<DeviceStatus>("/api/device");
+  }
+
+  getWiFiSettings(): Promise<WiFiSettings> {
+    return this.request<WiFiSettings>("/api/settings/wifi");
+  }
+
+  updateWiFiSettings(settings: WiFiSettingsUpdate): Promise<WiFiSettings> {
+    return this.request<WiFiSettings>("/api/settings/wifi", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settings),
+    });
   }
 
   async listAssets(kind: AssetKind): Promise<Asset[]> {

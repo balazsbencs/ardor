@@ -37,6 +37,12 @@ std::string labelForBlockType(const std::string& type)
   if (type == "cab") {
     return "Cab";
   }
+  if (type == "dualAmp") {
+    return "Dual Amp";
+  }
+  if (type == "dualRig") {
+    return "Dual Rig";
+  }
   if (type == "mod") {
     return "Modulation";
   }
@@ -89,6 +95,18 @@ std::string assetNameForPath(const UiState& state, const std::string& path, cons
 
 std::string assetNameForBlock(const UiState& state, const PresetBlock& block)
 {
+  if (block.type == "dualRig") {
+    return "Left " + std::to_string(block.lanes[0].size())
+      + " blocks  /  Right " + std::to_string(block.lanes[1].size()) + " blocks";
+  }
+  if (block.type == "dualAmp") {
+    const auto left = block.params.value("leftNamAsset", std::string{});
+    const auto right = block.params.value("rightNamAsset", std::string{});
+    const auto shortName = [](const std::string& path) {
+      return path.empty() ? std::string{"Choose model"} : std::filesystem::path{path}.filename().string();
+    };
+    return "L " + shortName(left) + " / R " + shortName(right);
+  }
   if (const auto* descriptor = findDaisyFxDescriptor(block.type, block.params.value("mode", ""))) {
     return descriptor->name;
   }
@@ -131,7 +149,23 @@ nlohmann::json paramsWithKnownDefaults(const std::string& type, const nlohmann::
   if (const auto* descriptor = findDaisyFxDescriptor(type, params.value("mode", ""))) {
     defaults = defaultDaisyFxParams(*descriptor);
   } else if (type == "nam" && !params.contains("quality")) {
-    defaults = {{"useNano", false}};
+    defaults = {{"inputMode", "sum"}, {"useNano", false}};
+  } else if (type == "dualAmp") {
+    defaults = {
+      {"inputMode", "sum"},
+      {"leftNamAsset", ""}, {"leftUseNano", false},
+      {"leftIrAsset", ""}, {"leftCabLevelDb", 0.0f}, {"leftCabMix", 1.0f},
+      {"leftPolarityInvert", false},
+      {"rightNamAsset", ""}, {"rightUseNano", false},
+      {"rightIrAsset", ""}, {"rightCabLevelDb", 0.0f}, {"rightCabMix", 1.0f},
+      {"rightPolarityInvert", false},
+    };
+  } else if (type == "dualRig") {
+    defaults = {
+      {"inputMode", "sum"},
+      {"leftLevelDb", 0.0f}, {"leftPolarityInvert", false},
+      {"rightLevelDb", 0.0f}, {"rightPolarityInvert", false},
+    };
   } else if (type == "dynamics" && params.value("mode", "") == "compressor") {
     defaults = defaultCompressorParams();
   } else if (type == "eq" && isParametricEqMode(params)) {
@@ -148,16 +182,60 @@ nlohmann::json paramsWithKnownDefaults(const std::string& type, const nlohmann::
 std::string nextBlockId(const std::vector<UiBlock>& blocks)
 {
   int maxId = 0;
-  for (const auto& block : blocks) {
+  const auto inspect = [&](const auto& self, const UiBlock& block) -> void {
     if (block.id.rfind("block-", 0) != 0) {
-      continue;
+      for (const auto& lane : block.lanes) {
+        for (const auto& child : lane) self(self, child);
+      }
+      return;
     }
     try {
       maxId = std::max(maxId, std::stoi(block.id.substr(6)));
     } catch (const std::exception&) {
     }
+    for (const auto& lane : block.lanes) {
+      for (const auto& child : lane) self(self, child);
+    }
+  };
+  for (const auto& block : blocks) {
+    inspect(inspect, block);
   }
   return "block-" + std::to_string(maxId + 1);
+}
+
+UiBlock blockFromAsset(const UiState& state, const UiAsset& asset,
+                       const std::vector<UiBlock>& allBlocks)
+{
+  std::string type = asset.type;
+  std::string label = asset.name;
+  nlohmann::json params = nlohmann::json::object();
+  if (asset.type == "amps") {
+    type = "nam";
+    label = "Neural Amp";
+  } else if (asset.type == "cabs") {
+    type = "cab";
+    label = "Cab";
+  } else if (!asset.blockType.empty()) {
+    type = asset.blockType;
+    label = labelForBlockType(asset.blockType);
+    if (const auto* descriptor = findDaisyFxDescriptor(asset.blockType, asset.mode)) {
+      params = defaultDaisyFxParams(*descriptor);
+    } else if (asset.blockType == "dynamics" && asset.mode == "compressor") {
+      params = defaultCompressorParams();
+    } else if (asset.blockType == "eq" && asset.mode == "parametric_eq_5") {
+      params = parametricEqParamsToJson(defaultParametricEqParams());
+    }
+  }
+  params = paramsWithKnownDefaults(type, params);
+  return {nextBlockId(allBlocks), type, label, asset.name, asset.path, true, params};
+}
+
+UiBlock makeEmptyDualRig(const std::vector<UiBlock>& allBlocks)
+{
+  const auto rigId = nextBlockId(allBlocks);
+  UiBlock rig{rigId, "dualRig", "Dual Rig", "Left 0 blocks  /  Right 0 blocks", "", true,
+              paramsWithKnownDefaults("dualRig", {})};
+  return rig;
 }
 
 std::string bankName(int bank)
@@ -177,6 +255,7 @@ void rememberBlockEdit(UiState& state)
   state.blockEditUndo = UiBlockEditSnapshot{
     state.bank.presets[state.activePreset].blocks,
     state.selectedBlock,
+    state.selectedBlockId,
     state.paramTarget,
     state.dirty,
     state.blockDrawerOpen,
@@ -186,7 +265,8 @@ void rememberBlockEdit(UiState& state)
 
 UiPreviewSnapshot previewSnapshot(const UiState& state)
 {
-  return {state.bank.presets[state.activePreset], state.selectedBlock, state.paramTarget,
+  return {state.bank.presets[state.activePreset], state.selectedBlock, state.selectedBlockId,
+          state.paramTarget,
           state.dirty, state.blockDrawerOpen, state.paramDrawerOpen, state.blockEditUndo};
 }
 
@@ -248,10 +328,11 @@ UiState makeDemoUiState()
     {"Open Back 2x12", "irs/open-back.wav", "cabs"},
     {"Vintage 4x12", "irs/vintage.wav", "cabs"},
     {"Focused 1x12", "irs/focus.wav", "cabs"},
-    {"Compressor", "", "dynamics", "dynamics", "compressor"},
-    {"Five Band EQ", "", "eq", "eq", "parametric_eq_5"},
+    {"Compressor", "", "utility", "dynamics", "compressor"},
+    {"Five Band EQ", "", "utility", "eq", "parametric_eq_5"},
   };
   appendDaisyAssets(state);
+  state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split"});
   return state;
 }
 
@@ -262,6 +343,7 @@ void setActivePreset(UiState& state, std::size_t index, bool requestAudioSwap)
   }
   state.activePreset = index;
   state.selectedBlock = 0;
+  state.selectedBlockId.clear();
   if (requestAudioSwap) {
     state.pendingSlotRequest = static_cast<int>(index);
   }
@@ -323,6 +405,35 @@ void updateTunerTelemetry(UiState& state, UiTunerTelemetry telemetry)
 
 void openBlockDrawer(UiState& state)
 {
+  state.blockInsertIndex = state.bank.presets[state.activePreset].blocks.size();
+  state.blockInsertRig.reset();
+  state.blockInsertLane.reset();
+  state.blockDrawerOpen = true;
+  state.paramDrawerOpen = false;
+  markUiChanged(state, UiChange::Drawers | UiChange::Parameters);
+}
+
+void openBlockDrawerAt(UiState& state, std::size_t blockIndex)
+{
+  state.blockInsertIndex = std::min(blockIndex, state.bank.presets[state.activePreset].blocks.size());
+  state.blockInsertRig.reset();
+  state.blockInsertLane.reset();
+  state.blockDrawerOpen = true;
+  state.paramDrawerOpen = false;
+  markUiChanged(state, UiChange::Drawers | UiChange::Parameters);
+}
+
+void openLaneBlockDrawer(UiState& state, std::size_t rigIndex, std::size_t laneIndex,
+                         std::size_t blockIndex)
+{
+  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (rigIndex >= blocks.size() || blocks[rigIndex].type != "dualRig"
+      || laneIndex >= blocks[rigIndex].lanes.size()) {
+    return;
+  }
+  state.blockInsertRig = rigIndex;
+  state.blockInsertLane = laneIndex;
+  state.blockInsertIndex = std::min(blockIndex, blocks[rigIndex].lanes[laneIndex].size());
   state.blockDrawerOpen = true;
   state.paramDrawerOpen = false;
   markUiChanged(state, UiChange::Drawers | UiChange::Parameters);
@@ -334,6 +445,44 @@ void closeBlockDrawer(UiState& state)
   markUiChanged(state, UiChange::Drawers);
 }
 
+UiBlock* selectedUiBlock(UiState& state)
+{
+  auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (state.selectedBlock >= blocks.size()) return nullptr;
+  auto& topLevel = blocks[state.selectedBlock];
+  if (state.selectedBlockId.empty() || state.selectedBlockId == topLevel.id) return &topLevel;
+  for (auto& lane : topLevel.lanes) {
+    const auto found = std::find_if(lane.begin(), lane.end(), [&](const UiBlock& block) {
+      return block.id == state.selectedBlockId;
+    });
+    if (found != lane.end()) return &*found;
+  }
+  return &topLevel;
+}
+
+const UiBlock* selectedUiBlock(const UiState& state)
+{
+  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (state.selectedBlock >= blocks.size()) return nullptr;
+  const auto& topLevel = blocks[state.selectedBlock];
+  if (state.selectedBlockId.empty() || state.selectedBlockId == topLevel.id) return &topLevel;
+  for (const auto& lane : topLevel.lanes) {
+    const auto found = std::find_if(lane.begin(), lane.end(), [&](const UiBlock& block) {
+      return block.id == state.selectedBlockId;
+    });
+    if (found != lane.end()) return &*found;
+  }
+  return &topLevel;
+}
+
+bool selectedBlockIsLaneChild(const UiState& state)
+{
+  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (state.selectedBlock >= blocks.size()) return false;
+  const auto* selected = selectedUiBlock(state);
+  return selected != nullptr && selected != &blocks[state.selectedBlock];
+}
+
 void selectBlock(UiState& state, std::size_t blockIndex)
 {
   const auto& blocks = state.bank.presets[state.activePreset].blocks;
@@ -341,6 +490,24 @@ void selectBlock(UiState& state, std::size_t blockIndex)
     return;
   }
   state.selectedBlock = blockIndex;
+  state.selectedBlockId = blocks[blockIndex].id;
+  state.paramTarget = UiParamTarget::Block;
+  state.blockDrawerOpen = false;
+  state.paramDrawerOpen = true;
+  markUiChanged(state, UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
+}
+
+void selectLaneBlock(UiState& state, std::size_t rigIndex, std::size_t laneIndex,
+                     std::size_t blockIndex)
+{
+  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (rigIndex >= blocks.size() || blocks[rigIndex].type != "dualRig"
+      || laneIndex >= blocks[rigIndex].lanes.size()
+      || blockIndex >= blocks[rigIndex].lanes[laneIndex].size()) {
+    return;
+  }
+  state.selectedBlock = rigIndex;
+  state.selectedBlockId = blocks[rigIndex].lanes[laneIndex][blockIndex].id;
   state.paramTarget = UiParamTarget::Block;
   state.blockDrawerOpen = false;
   state.paramDrawerOpen = true;
@@ -364,37 +531,37 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
     return;
   }
 
-  const auto previewRollback = previewSnapshot(state);
-  rememberBlockEdit(state);
-
   const auto& asset = state.assets[assetIndex];
-  std::string type = asset.type;
-  std::string label = asset.name;
-  nlohmann::json params = nlohmann::json::object();
-  if (asset.type == "amps") {
-    type = "nam";
-    label = "Neural Amp";
-  } else if (asset.type == "cabs") {
-    type = "cab";
-    label = "Cab";
-  } else if (!asset.blockType.empty()) {
-    type = asset.blockType;
-    label = labelForBlockType(asset.blockType);
-    if (const auto* descriptor = findDaisyFxDescriptor(asset.blockType, asset.mode)) {
-      params = defaultDaisyFxParams(*descriptor);
-    } else if (asset.blockType == "dynamics" && asset.mode == "compressor") {
-      params = defaultCompressorParams();
-    } else if (asset.blockType == "eq" && asset.mode == "parametric_eq_5") {
-      params = parametricEqParamsToJson(defaultParametricEqParams());
+  const auto insertAt = std::min(blockIndex, blocks.size());
+  if (asset.blockType == "dualRig") {
+    const bool alreadySplit = std::any_of(blocks.begin(), blocks.end(), [](const UiBlock& block) {
+      return block.enabled && (block.type == "dualRig" || block.type == "dualAmp");
+    });
+    if (alreadySplit) {
+      setUiStatus(state, "Only one Split region is supported", true);
+      return;
+    }
+    const bool standaloneAmp = std::any_of(blocks.begin(), blocks.end(), [](const UiBlock& block) {
+      return block.enabled && (block.type == "nam" || block.type == "cab");
+    });
+    if (standaloneAmp) {
+      setUiStatus(state, "Remove standalone NAM and IR blocks before adding Split", true);
+      return;
     }
   }
 
-  params = paramsWithKnownDefaults(type, params);
-
-  const auto insertAt = std::min(blockIndex, blocks.size());
-  blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(insertAt),
-                {nextBlockId(blocks), type, label, asset.name, asset.path, true, params});
+  const auto previewRollback = previewSnapshot(state);
+  rememberBlockEdit(state);
+  if (asset.blockType == "dualRig") {
+    blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(insertAt),
+                  makeEmptyDualRig(blocks));
+    state.bank.presets[state.activePreset].version = 2;
+  } else {
+    blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(insertAt),
+                  blockFromAsset(state, asset, blocks));
+  }
   state.selectedBlock = insertAt;
+  state.selectedBlockId = blocks[insertAt].id;
   state.paramTarget = UiParamTarget::Block;
   state.blockDrawerOpen = false;
   state.paramDrawerOpen = true;
@@ -402,6 +569,89 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
   queuePreview(state, previewRollback, "add " + asset.name);
   setUiStatus(state, asset.name + " added - Undo");
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
+}
+
+void insertLaneAssetBlock(UiState& state, std::size_t assetIndex, std::size_t rigIndex,
+                          std::size_t laneIndex, std::size_t blockIndex)
+{
+  if (!previewIsSynchronized(state) || assetIndex >= state.assets.size()) return;
+  auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (rigIndex >= blocks.size() || blocks[rigIndex].type != "dualRig"
+      || laneIndex >= blocks[rigIndex].lanes.size()) {
+    return;
+  }
+  const auto& asset = state.assets[assetIndex];
+  if (asset.blockType == "dualRig" || asset.blockType == "dualAmp") {
+    setUiStatus(state, "A Split cannot be placed inside another Split", true);
+    return;
+  }
+  auto& lane = blocks[rigIndex].lanes[laneIndex];
+  if (lane.size() >= kMaxEffectBlocks) {
+    setUiStatus(state, "This lane is full", true);
+    return;
+  }
+
+  const auto previewRollback = previewSnapshot(state);
+  rememberBlockEdit(state);
+  const auto insertAt = std::min(blockIndex, lane.size());
+  lane.insert(lane.begin() + static_cast<std::ptrdiff_t>(insertAt),
+              blockFromAsset(state, asset, blocks));
+  blocks[rigIndex].assetName = "Left " + std::to_string(blocks[rigIndex].lanes[0].size())
+    + " blocks  /  Right " + std::to_string(blocks[rigIndex].lanes[1].size()) + " blocks";
+  state.selectedBlock = rigIndex;
+  state.selectedBlockId = blocks[rigIndex].id;
+  state.paramTarget = UiParamTarget::Block;
+  state.blockDrawerOpen = false;
+  state.paramDrawerOpen = false;
+  state.dirty = true;
+  queuePreview(state, previewRollback, "add " + asset.name + " to lane");
+  setUiStatus(state, asset.name + " added to "
+              + std::string(laneIndex == 0 ? "Left" : "Right") + " - Undo");
+  markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
+}
+
+bool moveLaneBlock(UiState& state, std::size_t rigIndex, std::size_t sourceLane,
+                   std::size_t sourceIndex, std::size_t targetLane, std::size_t targetIndex)
+{
+  if (!previewIsSynchronized(state)) return false;
+  auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (rigIndex >= blocks.size() || blocks[rigIndex].type != "dualRig"
+      || sourceLane >= blocks[rigIndex].lanes.size()
+      || targetLane >= blocks[rigIndex].lanes.size()) {
+    return false;
+  }
+  auto& source = blocks[rigIndex].lanes[sourceLane];
+  auto& target = blocks[rigIndex].lanes[targetLane];
+  if (sourceIndex >= source.size()
+      || (sourceLane != targetLane && target.size() >= kMaxEffectBlocks)) {
+    return false;
+  }
+
+  targetIndex = std::min(targetIndex, target.size());
+  if (sourceLane == targetLane && (targetIndex == sourceIndex || targetIndex == sourceIndex + 1)) {
+    return false;
+  }
+  const auto previewRollback = previewSnapshot(state);
+  rememberBlockEdit(state);
+  const auto movedName = source[sourceIndex].assetName;
+  UiBlock moved = std::move(source[sourceIndex]);
+  source.erase(source.begin() + static_cast<std::ptrdiff_t>(sourceIndex));
+  if (sourceLane == targetLane && targetIndex > sourceIndex) --targetIndex;
+  target.insert(target.begin() + static_cast<std::ptrdiff_t>(std::min(targetIndex, target.size())),
+                std::move(moved));
+  blocks[rigIndex].assetName = "Left " + std::to_string(blocks[rigIndex].lanes[0].size())
+    + " blocks  /  Right " + std::to_string(blocks[rigIndex].lanes[1].size()) + " blocks";
+  state.selectedBlock = rigIndex;
+  state.selectedBlockId = blocks[rigIndex].id;
+  state.paramTarget = UiParamTarget::Block;
+  state.paramDrawerOpen = false;
+  state.blockDrawerOpen = false;
+  state.dirty = true;
+  queuePreview(state, previewRollback, "move " + movedName + " between lanes");
+  setUiStatus(state, movedName + " moved to "
+              + std::string(targetLane == 0 ? "Left" : "Right") + " - Undo");
+  markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
+  return true;
 }
 
 void moveBlock(UiState& state, std::size_t from, std::size_t to)
@@ -419,6 +669,7 @@ void moveBlock(UiState& state, std::size_t from, std::size_t to)
   blocks.erase(blocks.begin() + static_cast<std::ptrdiff_t>(from));
   blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(to), std::move(block));
   state.selectedBlock = to;
+  state.selectedBlockId = blocks[to].id;
   state.dirty = true;
   queuePreview(state, previewRollback, "move " + movedName);
   setUiStatus(state, movedName + " moved - Undo");
@@ -433,15 +684,44 @@ bool deleteSelectedBlock(UiState& state)
     return false;
   }
 
+  if (selectedBlockIsLaneChild(state)) {
+    auto& rig = blocks[state.selectedBlock];
+    for (std::size_t laneIndex = 0; laneIndex < rig.lanes.size(); ++laneIndex) {
+      auto& lane = rig.lanes[laneIndex];
+      const auto found = std::find_if(lane.begin(), lane.end(), [&](const UiBlock& block) {
+        return block.id == state.selectedBlockId;
+      });
+      if (found == lane.end()) continue;
+      const auto previewRollback = previewSnapshot(state);
+      rememberBlockEdit(state);
+      const std::string deletedName = found->assetName;
+      lane.erase(found);
+      rig.assetName = "Left " + std::to_string(rig.lanes[0].size())
+        + " blocks  /  Right " + std::to_string(rig.lanes[1].size()) + " blocks";
+      state.selectedBlockId = rig.id;
+      state.dirty = true;
+      state.paramDrawerOpen = false;
+      setUiStatus(state, deletedName + " deleted from "
+                  + std::string(laneIndex == 0 ? "Left" : "Right") + " - Undo");
+      queuePreview(state, previewRollback, "delete " + deletedName + " from lane");
+      markUiChanged(state, UiChange::Header | UiChange::Chain
+                           | UiChange::Parameters | UiChange::Drawers);
+      return true;
+    }
+    return false;
+  }
+
   const auto previewRollback = previewSnapshot(state);
   rememberBlockEdit(state);
   const std::string deletedName = blocks[state.selectedBlock].assetName;
   blocks.erase(blocks.begin() + static_cast<std::ptrdiff_t>(state.selectedBlock));
   if (blocks.empty()) {
     state.selectedBlock = 0;
+    state.selectedBlockId.clear();
     state.paramDrawerOpen = false;
   } else {
     state.selectedBlock = std::min(state.selectedBlock, blocks.size() - 1);
+    state.selectedBlockId = blocks[state.selectedBlock].id;
     state.paramTarget = UiParamTarget::Block;
   }
   state.dirty = true;
@@ -462,6 +742,7 @@ bool undoLastBlockEdit(UiState& state)
   state.blockEditUndo.reset();
   state.bank.presets[state.activePreset].blocks = std::move(snapshot.blocks);
   state.selectedBlock = snapshot.selectedBlock;
+  state.selectedBlockId = std::move(snapshot.selectedBlockId);
   state.paramTarget = snapshot.paramTarget;
   state.dirty = snapshot.dirty;
   state.blockDrawerOpen = snapshot.blockDrawerOpen;
@@ -481,7 +762,7 @@ void closeParamDrawer(UiState& state)
 void setCategoryFilter(UiState& state, std::string filter)
 {
   static constexpr std::array valid = {
-    "all", "amps", "cabs", "dynamics", "eq", "modulation", "delay", "reverb",
+    "all", "amps", "cabs", "utility", "modulation", "delay", "reverb",
   };
   const auto found = std::find(valid.begin(), valid.end(), filter);
   state.categoryFilter = found == valid.end() ? "all" : std::move(filter);
@@ -492,26 +773,54 @@ Preset activePresetToPreset(const UiState& state)
 {
   Preset preset;
   const auto& uiPreset = state.bank.presets[state.activePreset];
+  preset.version = uiPreset.version;
   preset.name = uiPreset.name;
   preset.routing = "serial";
   preset.global = uiPreset.global;
-  for (const auto& block : uiPreset.blocks) {
-    preset.blocks.push_back({block.id, block.type, block.enabled, block.assetPath,
-                             block.params.is_null() ? nlohmann::json::object() : block.params});
-  }
+  const auto convertBlock = [&](const auto& self, const UiBlock& block) -> PresetBlock {
+    PresetBlock converted{block.id, block.type, block.enabled, block.assetPath,
+                          block.params.is_null() ? nlohmann::json::object() : block.params};
+    for (std::size_t lane = 0; lane < converted.lanes.size(); ++lane) {
+      for (const auto& child : block.lanes[lane]) converted.lanes[lane].push_back(self(self, child));
+    }
+    return converted;
+  };
+  for (const auto& block : uiPreset.blocks) preset.blocks.push_back(convertBlock(convertBlock, block));
   return preset;
 }
 
 bool presetHasUnavailableAssets(const UiState& state, std::size_t presetIndex)
 {
   if (presetIndex >= state.bank.presets.size()) return false;
-  for (const auto& block : state.bank.presets[presetIndex].blocks) {
-    if (!block.enabled || (block.type != "nam" && block.type != "cab")) continue;
+  const auto unavailable = [&](const auto& self, const UiBlock& block) -> bool {
+    if (!block.enabled) return false;
+    if (block.type == "dualRig") {
+      for (const auto& lane : block.lanes) {
+        for (const auto& child : lane) {
+          if (self(self, child)) return true;
+        }
+      }
+      return false;
+    }
+    if (block.enabled && block.type == "dualAmp") {
+      for (const char* key : {"leftNamAsset", "leftIrAsset", "rightNamAsset", "rightIrAsset"}) {
+        const auto path = block.params.value(key, std::string{});
+        if (path.empty()) return true;
+        const bool installed = std::any_of(state.assets.begin(), state.assets.end(),
+          [&](const UiAsset& asset) { return asset.path == path; });
+        if (!installed) return true;
+      }
+      return false;
+    }
+    if (block.type != "nam" && block.type != "cab") return false;
     if (block.assetPath.empty()) return true;
     const bool installed = std::any_of(state.assets.begin(), state.assets.end(), [&](const UiAsset& asset) {
       return asset.path == block.assetPath;
     });
-    if (!installed) return true;
+    return !installed;
+  };
+  for (const auto& block : state.bank.presets[presetIndex].blocks) {
+    if (unavailable(unavailable, block)) return true;
   }
   return false;
 }
@@ -519,6 +828,7 @@ bool presetHasUnavailableAssets(const UiState& state, std::size_t presetIndex)
 void replaceActivePreset(UiState& state, const Preset& preset)
 {
   auto& uiPreset = state.bank.presets[state.activePreset];
+  uiPreset.version = preset.version;
   uiPreset.name = preset.name;
   uiPreset.global = preset.global;
   uiPreset.blocks.clear();
@@ -526,15 +836,23 @@ void replaceActivePreset(UiState& state, const Preset& preset)
     if (uiPreset.blocks.size() == kMaxEffectBlocks) {
       break;
     }
-    uiPreset.blocks.push_back({block.id,
-                               block.type,
-                               labelForBlockType(block.type),
-                               assetNameForBlock(state, block),
-                               block.asset,
-                               block.enabled,
-                               paramsWithKnownDefaults(block.type, block.params)});
+    const auto convertBlock = [&](const auto& self, const PresetBlock& source) -> UiBlock {
+      UiBlock converted{source.id,
+                        source.type,
+                        labelForBlockType(source.type),
+                        assetNameForBlock(state, source),
+                        source.asset,
+                        source.enabled,
+                        paramsWithKnownDefaults(source.type, source.params)};
+      for (std::size_t lane = 0; lane < converted.lanes.size(); ++lane) {
+        for (const auto& child : source.lanes[lane]) converted.lanes[lane].push_back(self(self, child));
+      }
+      return converted;
+    };
+    uiPreset.blocks.push_back(convertBlock(convertBlock, block));
   }
   state.selectedBlock = 0;
+  state.selectedBlockId.clear();
   state.dirty = false;
   state.previewState = UiPreviewState::Synchronized;
   state.previewTransaction.reset();
@@ -556,17 +874,14 @@ void selectGlobalParams(UiState& state)
 void setSelectedBlockEnabled(UiState& state, bool enabled)
 {
   if (!previewIsSynchronized(state)) return;
-  auto& blocks = state.bank.presets[state.activePreset].blocks;
-  if (state.selectedBlock >= blocks.size()) {
-    return;
-  }
-  if (blocks[state.selectedBlock].enabled == enabled) return;
+  auto* block = selectedUiBlock(state);
+  if (!block || block->enabled == enabled) return;
   const auto previewRollback = previewSnapshot(state);
   rememberBlockEdit(state);
-  blocks[state.selectedBlock].enabled = enabled;
+  block->enabled = enabled;
   state.dirty = true;
   queuePreview(state, previewRollback, std::string(enabled ? "enable " : "bypass ")
-                                      + blocks[state.selectedBlock].assetName);
+                                      + block->assetName);
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters);
 }
 
@@ -596,16 +911,24 @@ void setMasterVolume(UiState& state, int volume)
 
 void setSelectedBlockParam(UiState& state, const std::string& key, float value)
 {
-  auto& blocks = state.bank.presets[state.activePreset].blocks;
-  if (state.selectedBlock >= blocks.size()) {
-    return;
-  }
-  auto& block = blocks[state.selectedBlock];
+  auto* selected = selectedUiBlock(state);
+  if (!selected) return;
+  auto& block = *selected;
   if (block.type == "cab") {
     if (key == "levelDb") {
       value = clampFloat(value, -60.0f, 12.0f);
     } else if (key == "mix") {
       value = clampFloat(value, 0.0f, 1.0f);
+    }
+  } else if (block.type == "dualAmp" || block.type == "dualRig") {
+    if (!previewIsSynchronized(state)) return;
+    if (key == "leftCabLevelDb" || key == "rightCabLevelDb"
+        || key == "leftLevelDb" || key == "rightLevelDb") {
+      value = clampFloat(value, -60.0f, 12.0f);
+    } else if (key == "leftCabMix" || key == "rightCabMix") {
+      value = clampFloat(value, 0.0f, 1.0f);
+    } else {
+      return;
     }
   } else if (const auto* descriptor = findDaisyFxDescriptor(block.type, block.params.value("mode", ""))) {
     for (const auto& param : descriptor->params) {
@@ -624,24 +947,45 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
     else if (key == "mix") value = clampFloat(value, 0.0f, 1.0f);
     else if (key == "sidechain_hpf_hz") value = clampFloat(value, 20.0f, 500.0f);
   }
+  const auto existing = block.params.find(key);
+  if ((block.type == "dualAmp" || block.type == "dualRig")
+      && existing != block.params.end() && existing->is_number()
+      && existing->get<float>() == value) return;
+  const auto previewRollback = (block.type == "dualAmp" || block.type == "dualRig")
+    ? std::optional<UiPreviewSnapshot>{previewSnapshot(state)} : std::nullopt;
+  if (block.type == "dualAmp" || block.type == "dualRig") rememberBlockEdit(state);
   block.params[key] = value;
   state.dirty = true;
+  if (previewRollback) {
+    queuePreview(state, *previewRollback, "update " + block.assetName);
+  }
   markUiChanged(state, UiChange::Header | UiChange::Parameters);
 }
 
 void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann::json value)
 {
   if (!previewIsSynchronized(state)) return;
-  auto& blocks = state.bank.presets[state.activePreset].blocks;
-  if (state.selectedBlock >= blocks.size()) {
-    return;
-  }
-  auto& block = blocks[state.selectedBlock];
+  auto* selected = selectedUiBlock(state);
+  if (!selected) return;
+  auto& block = *selected;
   const bool compressorValue = block.type == "dynamics"
     && block.params.value("mode", "") == "compressor"
     && (key == "detector" || key == "auto_makeup");
-  const bool namValue = block.type == "nam" && key == "useNano" && value.is_boolean();
-  if (!compressorValue && !namValue) {
+  const bool namNanoValue = block.type == "nam" && key == "useNano" && value.is_boolean();
+  const bool namInputValue = block.type == "nam" && key == "inputMode" && value.is_string()
+    && (value == "sum" || value == "left" || value == "right");
+  const bool dualAmpInputValue = block.type == "dualAmp" && key == "inputMode" && value.is_string()
+    && (value == "sum" || value == "left" || value == "right");
+  const bool dualAmpToggleValue = block.type == "dualAmp" && value.is_boolean()
+    && (key == "leftUseNano" || key == "rightUseNano"
+        || key == "leftPolarityInvert" || key == "rightPolarityInvert");
+  const bool dualRigInputValue = block.type == "dualRig" && key == "inputMode" && value.is_string()
+    && (value == "sum" || value == "left" || value == "right");
+  const bool dualRigToggleValue = block.type == "dualRig" && value.is_boolean()
+    && (key == "leftPolarityInvert" || key == "rightPolarityInvert");
+  if (!compressorValue && !namNanoValue && !namInputValue
+      && !dualAmpInputValue && !dualAmpToggleValue
+      && !dualRigInputValue && !dualRigToggleValue) {
     return;
   }
   if (block.params.value(key, nlohmann::json{}) == value) return;
@@ -655,11 +999,9 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
 
 ParametricEqParams selectedParametricEqParams(const UiState& state)
 {
-  const auto& blocks = state.bank.presets[state.activePreset].blocks;
-  if (state.selectedBlock >= blocks.size()) {
-    return defaultParametricEqParams();
-  }
-  const auto& block = blocks[state.selectedBlock];
+  const auto* selected = selectedUiBlock(state);
+  if (!selected) return defaultParametricEqParams();
+  const auto& block = *selected;
   if (block.type != "eq" || !isParametricEqMode(block.params)) {
     return defaultParametricEqParams();
   }
@@ -668,11 +1010,9 @@ ParametricEqParams selectedParametricEqParams(const UiState& state)
 
 bool setSelectedEqBand(UiState& state, std::size_t bandIndex, EqBandParams params)
 {
-  auto& blocks = state.bank.presets[state.activePreset].blocks;
-  if (state.selectedBlock >= blocks.size() || bandIndex >= kParametricEqBandCount) {
-    return false;
-  }
-  auto& block = blocks[state.selectedBlock];
+  auto* selected = selectedUiBlock(state);
+  if (!selected || bandIndex >= kParametricEqBandCount) return false;
+  auto& block = *selected;
   if (block.type != "eq" || !isParametricEqMode(block.params)) {
     return false;
   }
@@ -740,6 +1080,7 @@ void failStructuralPreview(UiState& state, std::string error)
     const auto& rollback = state.previewTransaction->rollback;
     state.bank.presets[state.activePreset] = rollback.preset;
     state.selectedBlock = rollback.selectedBlock;
+    state.selectedBlockId = rollback.selectedBlockId;
     state.paramTarget = rollback.paramTarget;
     state.dirty = rollback.dirty;
     state.blockDrawerOpen = rollback.blockDrawerOpen;
@@ -788,6 +1129,7 @@ void updateRealtimeTelemetry(UiState& state, const RuntimeTelemetry& telemetry)
 {
   const bool visibleChanged = state.telemetry.overBudget != telemetry.overBudget
     || state.telemetry.maxMs != telemetry.maxMs
+    || state.telemetry.bufferFreePercent != telemetry.bufferFreePercent
     || state.effectsBypassed != telemetry.bypassed;
   state.telemetry = telemetry;
   state.effectsBypassed = telemetry.bypassed;
@@ -825,9 +1167,10 @@ void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoo
   state.assets.clear();
   appendAssetsFrom(state, dataRoot / "models", ".nam", "amps");
   appendAssetsFrom(state, dataRoot / "irs", ".wav", "cabs");
-  state.assets.push_back({"Compressor", "", "dynamics", "dynamics", "compressor"});
-  state.assets.push_back({"Five Band EQ", "", "eq", "eq", "parametric_eq_5"});
+  state.assets.push_back({"Compressor", "", "utility", "dynamics", "compressor"});
+  state.assets.push_back({"Five Band EQ", "", "utility", "eq", "parametric_eq_5"});
   appendDaisyAssets(state);
+  state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split"});
   markUiChanged(state, UiChange::Assets | UiChange::Drawers);
 }
 
@@ -857,6 +1200,7 @@ void loadBankFromStore(UiState& state, const PresetStore& store, int bank)
   }
   state.activePreset = std::min(previous, state.bank.presets.size() - 1);
   state.selectedBlock = 0;
+  state.selectedBlockId.clear();
   state.dirty = false;
   state.paramDrawerOpen = false;
   state.blockDrawerOpen = false;

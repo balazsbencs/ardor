@@ -158,6 +158,8 @@ target_sources(ardor_equalizer PRIVATE
 )
 
 add_library(ardor_dsp OBJECT
+  src/dsp/DualAmpProcessor.cpp
+  src/dsp/DualRigProcessor.cpp
   src/dsp/IrConvolver.cpp
   src/dsp/NamProcessor.cpp
   src/dsp/PedalEngine.cpp
@@ -195,6 +197,7 @@ target_compile_features(ardor_preset PUBLIC cxx_std_20)
 target_link_libraries(ardor_preset PUBLIC ardor_daisyfx ardor_equalizer)
 
 add_library(ardor_ui
+  src/ui/GlobalSettings.cpp
   src/ui/UiModel.cpp
   src/ui/ParameterControls.cpp
   src/ui/EqEditorModel.cpp
@@ -252,6 +255,9 @@ target_include_directories(audio-probe PRIVATE ${miniaudio_SOURCE_DIR})
 
 add_executable(pedal-offline-smoke tests/offline_smoke.cpp)
 target_link_libraries(pedal-offline-smoke PRIVATE ardor_dsp ardor_audio)
+target_compile_definitions(pedal-offline-smoke PRIVATE
+  ARDOR_NAM_EXAMPLE_MODEL="${neuralampmodelercore_SOURCE_DIR}/example_models/lstm.nam"
+)
 
 add_executable(pedal-preset-smoke tests/preset_smoke.cpp)
 target_link_libraries(pedal-preset-smoke PRIVATE ardor_preset ardor_audio)
@@ -315,6 +321,9 @@ target_compile_definitions(pedal-dsp-bench PRIVATE
 add_executable(pedal-ui-model-smoke tests/ui_model_smoke.cpp)
 target_link_libraries(pedal-ui-model-smoke PRIVATE ardor_ui)
 
+add_executable(pedal-global-settings-smoke tests/global_settings_smoke.cpp)
+target_link_libraries(pedal-global-settings-smoke PRIVATE ardor_ui)
+
 add_executable(pedal-eq-editor-model-smoke tests/eq_editor_model_smoke.cpp)
 target_link_libraries(pedal-eq-editor-model-smoke PRIVATE ardor_ui)
 
@@ -348,6 +357,7 @@ add_test(NAME pedal-engine-contract-smoke COMMAND pedal-engine-contract-smoke)
 add_test(NAME pedal-tuner-smoke COMMAND pedal-tuner-smoke)
 add_test(NAME pedal-nam-processor-smoke COMMAND pedal-nam-processor-smoke)
 add_test(NAME pedal-ui-model-smoke COMMAND pedal-ui-model-smoke)
+add_test(NAME pedal-global-settings-smoke COMMAND pedal-global-settings-smoke)
 add_test(NAME pedal-eq-editor-model-smoke COMMAND pedal-eq-editor-model-smoke)
 if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   add_test(NAME pedal-lvgl-ui-smoke COMMAND pedal-lvgl-ui-smoke)
