@@ -8,7 +8,7 @@ import { Button, IconButton, StatusBadge } from "../../components/ui";
 
 const categories: Array<{ value: "all" | EffectCategory; label: string }> = [
   { value: "all", label: "All" }, { value: "amp", label: "Amp" }, { value: "cabinet", label: "Cab" },
-  { value: "dynamics", label: "Dynamics" }, { value: "eq", label: "EQ" }, { value: "modulation", label: "Mod" },
+  { value: "utility", label: "Utility" }, { value: "modulation", label: "Mod" },
   { value: "delay", label: "Delay" }, { value: "reverb", label: "Reverb" },
 ];
 

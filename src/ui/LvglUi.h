@@ -131,6 +131,7 @@ public:
   void scrollChainToStart(UiState& state);
   void scrollChainToEnd(UiState& state);
   void scrollChainBlockIntoView(std::size_t blockIndex);
+  void setChainDragActive(bool active);
   void autoScrollChainForDrag(UiState& state, lv_point_t canvasPoint);
   std::optional<UiLaneDropTarget> laneDropTargetAtPoint(lv_point_t canvasPoint) const;
   lv_point_t laneIndicatorForTarget(const UiLaneDropTarget& target) const;
@@ -233,12 +234,13 @@ private:
   std::vector<std::string> renderedBlockIds_;
   lv_obj_t* chainViewport_ = nullptr;
   lv_obj_t* chainWorld_ = nullptr;
+  bool chainDragActive_ = false;
   std::vector<int32_t> chainItemStarts_;
   std::vector<int32_t> chainItemEnds_;
   std::vector<int32_t> chainInsertionXs_;
   std::optional<std::size_t> renderedRigIndex_;
   std::array<std::vector<int32_t>, 2> laneInsertionXs_;
-  static constexpr std::size_t kDrawerCategoryCount = 8;
+  static constexpr std::size_t kDrawerCategoryCount = 7;
   std::array<lv_obj_t*, kDrawerCategoryCount> drawerCategoryButtons_{};
   std::vector<lv_obj_t*> drawerAssetButtons_;
   std::vector<UiEventContext*> drawerAssetContexts_;

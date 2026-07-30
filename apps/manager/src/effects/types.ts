@@ -1,8 +1,7 @@
 export type EffectCategory =
   | "amp"
   | "cabinet"
-  | "dynamics"
-  | "eq"
+  | "utility"
   | "modulation"
   | "delay"
   | "reverb";

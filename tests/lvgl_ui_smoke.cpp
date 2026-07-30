@@ -114,6 +114,23 @@ lv_obj_t* findObjectWithSizeAndBgColor(lv_obj_t* parent, lv_color_t color, int w
   return nullptr;
 }
 
+lv_obj_t* findHorizontalRailEndingAt(lv_obj_t* parent, lv_color_t color, int x)
+{
+  lv_area_t area{};
+  lv_obj_get_coords(parent, &area);
+  if (lv_obj_get_height(parent) == 3 && area.x2 == x
+      && lv_color_eq(lv_obj_get_style_bg_color(parent, LV_PART_MAIN), color)) {
+    return parent;
+  }
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    if (auto* result = findHorizontalRailEndingAt(
+          lv_obj_get_child(parent, static_cast<int32_t>(i)), color, x)) {
+      return result;
+    }
+  }
+  return nullptr;
+}
+
 lv_obj_t* findObjectOfClass(lv_obj_t* parent, const lv_obj_class_t* objectClass)
 {
   if (lv_obj_check_type(parent, objectClass)) {
@@ -481,14 +498,49 @@ int main()
   lv_obj_t* leftOnlyEffect = findLabel(lv_screen_active(), "CHO");
   lv_obj_t* rightOnlyEffect = findLabel(lv_screen_active(), "DLY");
   lv_obj_t* laneDragHandle = findLabel(lv_screen_active(), "||");
+  lv_obj_t* splitDragHandle = splitJunction
+    ? findLabel(lv_obj_get_parent(splitJunction), "|||") : nullptr;
+  lv_area_t splitLabelArea{};
+  lv_area_t splitHandleArea{};
+  lv_area_t joinArea{};
+  lv_area_t leftHeadingArea{};
+  lv_area_t rightHeadingArea{};
+  lv_area_t leftEffectTitleArea{};
+  lv_area_t rightEffectTitleArea{};
+  if (splitJunction) lv_obj_get_coords(splitJunction, &splitLabelArea);
+  if (splitDragHandle) lv_obj_get_coords(lv_obj_get_parent(splitDragHandle), &splitHandleArea);
+  if (joinJunction) lv_obj_get_coords(lv_obj_get_parent(joinJunction), &joinArea);
+  if (leftRigLane) lv_obj_get_coords(leftRigLane, &leftHeadingArea);
+  if (rightRigLane) lv_obj_get_coords(rightRigLane, &rightHeadingArea);
+  if (leftOnlyEffect) lv_obj_get_coords(leftOnlyEffect, &leftEffectTitleArea);
+  if (rightOnlyEffect) lv_obj_get_coords(rightOnlyEffect, &rightEffectTitleArea);
+  const int joinCenterX = (joinArea.x1 + joinArea.x2) / 2;
+  lv_obj_t* leftJoinRail = leftRigLane
+    ? findHorizontalRailEndingAt(lv_screen_active(),
+        lv_obj_get_style_text_color(leftRigLane, LV_PART_MAIN), joinCenterX) : nullptr;
+  lv_obj_t* rightJoinRail = rightRigLane
+    ? findHorizontalRailEndingAt(lv_screen_active(),
+        lv_obj_get_style_text_color(rightRigLane, LV_PART_MAIN), joinCenterX) : nullptr;
   if (require(splitJunction && joinJunction && leftRigLane && rightRigLane
-                && leftOnlyEffect && rightOnlyEffect && laneDragHandle
-                && !lv_color_eq(lv_obj_get_style_text_color(leftRigLane, LV_PART_MAIN),
-                                lv_obj_get_style_text_color(rightRigLane, LV_PART_MAIN))
+                && leftOnlyEffect && rightOnlyEffect && laneDragHandle && splitDragHandle,
+              "Dual Rig should render Split/Join, both lanes, effects, and drag handles")) return 1;
+  if (require(leftJoinRail && rightJoinRail,
+              "both Dual Rig lane rails should reach the centered Join stem")) return 1;
+  if (require(!lv_color_eq(lv_obj_get_style_text_color(leftRigLane, LV_PART_MAIN),
+                           lv_obj_get_style_text_color(rightRigLane, LV_PART_MAIN))
                 && lv_obj_get_y(leftRigLane) < lv_obj_get_y(rightRigLane)
-                && lv_obj_get_x(splitJunction) < lv_obj_get_x(joinJunction)
-                && lv_obj_get_width(lv_obj_get_parent(laneDragHandle)) == 36,
-              "Dual Rig should render Split/Join, separate lanes, and lane drag handles")) return 1;
+                && lv_obj_get_x(splitJunction) < lv_obj_get_x(joinJunction),
+              "Dual Rig should distinguish and order its two lanes")) return 1;
+  if (require(splitLabelArea.x2 < splitHandleArea.x1,
+              "Split title should not sit underneath its drag handle")) return 1;
+  if (require(leftHeadingArea.x1 < leftEffectTitleArea.x1
+                && rightHeadingArea.x1 < rightEffectTitleArea.x1,
+              "Dual Rig lane headings should sit back at the split bend")) return 1;
+  if (require(lv_obj_get_width(lv_obj_get_parent(leftOnlyEffect)) == 200
+                && lv_obj_get_height(lv_obj_get_parent(leftOnlyEffect)) == 92,
+              "Dual Rig effects should leave room for readable titles")) return 1;
+  if (require(lv_obj_get_width(lv_obj_get_parent(laneDragHandle)) == 36,
+              "Dual Rig effects should retain compact lane drag handles")) return 1;
 
   lv_obj_send_event(lv_obj_get_parent(rightOnlyEffect), LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), dualRigState);
@@ -657,6 +709,15 @@ int main()
                 && lv_obj_get_width(lv_obj_get_parent(dragHandleLabel)) == 48
                 && lv_obj_get_height(lv_obj_get_parent(dragHandleLabel)) == 52,
               "chain blocks should expose a dedicated drag handle")) return 1;
+  lv_obj_t* dragHandle = lv_obj_get_parent(dragHandleLabel);
+  lv_obj_send_event(dragHandle, LV_EVENT_PRESSED, nullptr);
+  if (require(!lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE)
+                && lv_obj_get_scrollbar_mode(chain) == LV_SCROLLBAR_MODE_OFF,
+              "pressing an effect drag handle should lock the competing chain scrollbar")) return 1;
+  lv_obj_send_event(dragHandle, LV_EVENT_RELEASED, nullptr);
+  if (require(lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE)
+                && lv_obj_get_scrollbar_mode(chain) == LV_SCROLLBAR_MODE_AUTO,
+              "releasing an effect drag handle should restore ordinary chain scrolling")) return 1;
   if (require(findLabel(lv_screen_active(), "BYPASSED"),
               "disabled blocks should show an explicit bypass state")) return 1;
   lv_obj_t* firstCardAssetLabel = findLabel(firstChainBlock,
@@ -933,6 +994,14 @@ int main()
   ui.scrollChainToStart(state);
   if (require(state.chainScrollOffsets[state.activePreset] == 0,
               "jumping to Input should reset the current preset scroll offset")) return 1;
+  lv_obj_scroll_to_x(chain, 0, LV_ANIM_OFF);
+  ui.setChainDragActive(true);
+  ui.autoScrollChainForDrag(state, {1259, 324});
+  if (require(!lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE)
+                && state.chainScrollOffsets[state.activePreset] > 0,
+              "drag locking should preserve deliberate edge auto-scroll")) return 1;
+  ui.setChainDragActive(false);
+  ui.scrollChainToStart(state);
 
   constexpr std::size_t blockCount = 10;
   if (require(ardor::LvglUi::chainSlotForPoint(blockCount, {283, 324}) == 0,
@@ -1032,10 +1101,61 @@ int main()
   lv_obj_send_event(lv_obj_get_parent(wifiSectionLabel), LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* wifiKeyboard = findObjectOfClass(lv_screen_active(), &lv_keyboard_class);
   if (require(findLabel(lv_screen_active(), "Network name")
                 && findLabel(lv_screen_active(), "Password")
-                && findObjectOfClass(lv_screen_active(), &lv_keyboard_class),
+                && wifiKeyboard,
               "touchscreen Wi-Fi settings should render fields and an on-screen keyboard")) return 1;
+  lv_area_t keyboardArea{};
+  lv_area_t wifiContentArea{};
+  lv_obj_get_coords(wifiKeyboard, &keyboardArea);
+  lv_obj_get_coords(lv_obj_get_parent(wifiKeyboard), &wifiContentArea);
+  if (require(lv_obj_get_width(wifiKeyboard) == 944
+                && lv_obj_get_height(wifiKeyboard) == 360
+                && keyboardArea.x1 == wifiContentArea.x1 + 28
+                && keyboardArea.x2 == wifiContentArea.x2 - 28
+                && keyboardArea.y1 == wifiContentArea.y1 + 224
+                && keyboardArea.y2 < wifiContentArea.y2,
+              "Wi-Fi keyboard should be a fully contained, proportionate bottom panel")) return 1;
+  lv_obj_t* passwordEye = findLabel(lv_screen_active(), LV_SYMBOL_EYE_OPEN);
+  lv_obj_t* passwordEyeButton = passwordEye ? lv_obj_get_parent(passwordEye) : nullptr;
+  lv_obj_t* passwordLabel = findLabel(lv_screen_active(), "Password");
+  lv_obj_t* passwordField = passwordLabel
+    ? lv_obj_get_child(lv_obj_get_parent(passwordLabel), lv_obj_get_index(passwordLabel) + 1)
+    : nullptr;
+  lv_area_t passwordEyeArea{};
+  lv_area_t passwordFieldArea{};
+  if (passwordEyeButton) lv_obj_get_coords(passwordEyeButton, &passwordEyeArea);
+  if (passwordField) lv_obj_get_coords(passwordField, &passwordFieldArea);
+  if (require(passwordEyeButton && passwordField
+                && lv_obj_check_type(passwordField, &lv_textarea_class)
+                && lv_obj_get_height(passwordField) == 62
+                && lv_obj_get_width(passwordEyeButton) == 54
+                && lv_obj_get_height(passwordEyeButton) == 58
+                && passwordEyeArea.x1 >= passwordFieldArea.x1
+                && passwordEyeArea.x2 <= passwordFieldArea.x2
+                && passwordEyeArea.y1 >= passwordFieldArea.y1
+                && passwordEyeArea.y2 <= passwordFieldArea.y2,
+              "password visibility should use a compact eye control inside the input")) return 1;
+  lv_obj_t* countryLabel = findLabel(lv_screen_active(), "Country code");
+  lv_obj_t* countryField = countryLabel
+    ? lv_obj_get_child(lv_obj_get_parent(countryLabel), lv_obj_get_index(countryLabel) + 1)
+    : nullptr;
+  lv_obj_t* countryText = countryField && lv_obj_check_type(countryField, &lv_textarea_class)
+    ? lv_textarea_get_label(countryField) : nullptr;
+  lv_area_t countryFieldArea{};
+  lv_area_t countryTextArea{};
+  if (countryField) lv_obj_get_coords(countryField, &countryFieldArea);
+  if (countryText) lv_obj_get_coords(countryText, &countryTextArea);
+  if (require(countryText
+                && std::abs((countryFieldArea.y1 + countryFieldArea.y2)
+                            - (countryTextArea.y1 + countryTextArea.y2)) <= 2,
+              "single-line Wi-Fi input text should be vertically centered")) return 1;
+  lv_obj_send_event(passwordEyeButton, LV_EVENT_CLICKED, nullptr);
+  if (require(std::strcmp(lv_label_get_text(passwordEye), LV_SYMBOL_EYE_CLOSE) == 0
+                && !lv_textarea_get_password_mode(passwordField),
+              "password eye should clearly reflect and toggle the visible state")) return 1;
+  lv_obj_send_event(passwordEyeButton, LV_EVENT_CLICKED, nullptr);
   ui.closeSettings(state);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
@@ -1075,15 +1195,22 @@ int main()
   lv_obj_update_layout(lv_screen_active());
   lv_obj_t* drawer = findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x000000), 480);
   lv_obj_t* allFilter = drawer ? findLabel(drawer, "All") : nullptr;
+  lv_obj_t* utilityFilter = drawer ? findLabel(drawer, "Utility") : nullptr;
   lv_obj_t* delayFilter = drawer ? findLabel(drawer, "Delays") : nullptr;
   lv_obj_t* reverbFilter = drawer ? findLabel(drawer, "Reverbs") : nullptr;
   lv_obj_t* tremAssetLabel = drawer ? findLabel(drawer, "Vintage Trem") : nullptr;
-  if (require(drawer && allFilter && delayFilter && reverbFilter && tremAssetLabel,
-              "block drawer should render separate delay and reverb categories")) return 1;
+  lv_obj_t* compressorAssetLabel = drawer ? findLabel(drawer, "Compressor") : nullptr;
+  lv_obj_t* eqAssetLabel = drawer ? findLabel(drawer, "Five Band EQ") : nullptr;
+  if (require(drawer && allFilter && utilityFilter && delayFilter && reverbFilter
+                && tremAssetLabel && compressorAssetLabel && eqAssetLabel,
+              "block drawer should group compressor and EQ under Utility")) return 1;
   lv_obj_t* allFilterButton = lv_obj_get_parent(allFilter);
+  lv_obj_t* utilityFilterButton = lv_obj_get_parent(utilityFilter);
   lv_obj_t* delayFilterButton = lv_obj_get_parent(delayFilter);
   lv_obj_t* reverbFilterButton = lv_obj_get_parent(reverbFilter);
   lv_obj_t* tremAssetButton = lv_obj_get_parent(tremAssetLabel);
+  lv_obj_t* compressorAssetButton = lv_obj_get_parent(compressorAssetLabel);
+  lv_obj_t* eqAssetButton = lv_obj_get_parent(eqAssetLabel);
   lv_obj_t* retainedDrawer = drawer;
   lv_obj_t* retainedAssetList = lv_obj_get_parent(tremAssetButton);
   lv_area_t drawerArea{};
@@ -1093,9 +1220,9 @@ int main()
   if (require(lv_color_eq(lv_obj_get_style_bg_color(drawer, LV_PART_MAIN), lv_color_hex(0x000000)),
               "block drawer should be black")) return 1;
   if (require(lv_obj_get_y(delayFilterButton) > lv_obj_get_y(allFilterButton)
-                && lv_obj_get_y(reverbFilterButton) == lv_obj_get_y(delayFilterButton)
+              && lv_obj_get_y(reverbFilterButton) == lv_obj_get_y(delayFilterButton)
                 && lv_obj_get_width(allFilterButton) == 105 && lv_obj_get_height(allFilterButton) == 58,
-              "all eight drawer filters should fill a fixed two-row touch grid")) return 1;
+              "all seven drawer filters should fill a fixed two-row touch grid")) return 1;
   lv_obj_t* categorySlider = findObjectOfClass(drawer, &lv_slider_class);
   lv_obj_t* filterRow = lv_obj_get_parent(allFilterButton);
   if (require(!categorySlider && !lv_obj_has_flag(filterRow, LV_OBJ_FLAG_SCROLLABLE),
@@ -1120,6 +1247,13 @@ int main()
                 && separatorArea.x1 == instructionArea.x1
                 && instructionArea.x1 == retainedListArea.x1,
               "drawer section labels and content should share one left edge")) return 1;
+  lv_obj_send_event(utilityFilterButton, LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  if (require(state.categoryFilter == "utility"
+                && !lv_obj_has_flag(compressorAssetButton, LV_OBJ_FLAG_HIDDEN)
+                && !lv_obj_has_flag(eqAssetButton, LV_OBJ_FLAG_HIDDEN)
+                && lv_obj_has_flag(tremAssetButton, LV_OBJ_FLAG_HIDDEN),
+              "Utility should show compressor and EQ while hiding modulation effects")) return 1;
   lv_obj_send_event(delayFilterButton, LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());

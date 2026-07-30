@@ -203,14 +203,6 @@ std::string nextBlockId(const std::vector<UiBlock>& blocks)
   return "block-" + std::to_string(maxId + 1);
 }
 
-const UiAsset* firstInstalledAsset(const UiState& state, const std::string& type)
-{
-  const auto found = std::find_if(state.assets.begin(), state.assets.end(), [&](const UiAsset& asset) {
-    return asset.type == type && !asset.path.empty();
-  });
-  return found == state.assets.end() ? nullptr : &*found;
-}
-
 UiBlock blockFromAsset(const UiState& state, const UiAsset& asset,
                        const std::vector<UiBlock>& allBlocks)
 {
@@ -238,29 +230,11 @@ UiBlock blockFromAsset(const UiState& state, const UiAsset& asset,
   return {nextBlockId(allBlocks), type, label, asset.name, asset.path, true, params};
 }
 
-UiBlock makeDefaultDualRig(const UiState& state, const std::vector<UiBlock>& allBlocks)
+UiBlock makeEmptyDualRig(const std::vector<UiBlock>& allBlocks)
 {
   const auto rigId = nextBlockId(allBlocks);
-  UiBlock rig{rigId, "dualRig", "Dual Rig", "Left 2 blocks  /  Right 2 blocks", "", true,
+  UiBlock rig{rigId, "dualRig", "Dual Rig", "Left 0 blocks  /  Right 0 blocks", "", true,
               paramsWithKnownDefaults("dualRig", {})};
-  const UiAsset* amp = firstInstalledAsset(state, "amps");
-  const UiAsset* cab = firstInstalledAsset(state, "cabs");
-  const auto ampName = amp ? amp->name : "Choose NAM";
-  const auto ampPath = amp ? amp->path : "";
-  const auto cabName = cab ? cab->name : "Choose IR";
-  const auto cabPath = cab ? cab->path : "";
-  rig.lanes[0] = {
-    {rigId + "-left-nam", "nam", "Neural Amp", ampName, ampPath, true,
-     paramsWithKnownDefaults("nam", {})},
-    {rigId + "-left-cab", "cab", "Cab", cabName, cabPath, true,
-     paramsWithKnownDefaults("cab", {})},
-  };
-  rig.lanes[1] = {
-    {rigId + "-right-nam", "nam", "Neural Amp", ampName, ampPath, true,
-     paramsWithKnownDefaults("nam", {})},
-    {rigId + "-right-cab", "cab", "Cab", cabName, cabPath, true,
-     paramsWithKnownDefaults("cab", {})},
-  };
   return rig;
 }
 
@@ -354,8 +328,8 @@ UiState makeDemoUiState()
     {"Open Back 2x12", "irs/open-back.wav", "cabs"},
     {"Vintage 4x12", "irs/vintage.wav", "cabs"},
     {"Focused 1x12", "irs/focus.wav", "cabs"},
-    {"Compressor", "", "dynamics", "dynamics", "compressor"},
-    {"Five Band EQ", "", "eq", "eq", "parametric_eq_5"},
+    {"Compressor", "", "utility", "dynamics", "compressor"},
+    {"Five Band EQ", "", "utility", "eq", "parametric_eq_5"},
   };
   appendDaisyAssets(state);
   state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split"});
@@ -580,7 +554,7 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
   rememberBlockEdit(state);
   if (asset.blockType == "dualRig") {
     blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(insertAt),
-                  makeDefaultDualRig(state, blocks));
+                  makeEmptyDualRig(blocks));
     state.bank.presets[state.activePreset].version = 2;
   } else {
     blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(insertAt),
@@ -648,7 +622,7 @@ bool moveLaneBlock(UiState& state, std::size_t rigIndex, std::size_t sourceLane,
   }
   auto& source = blocks[rigIndex].lanes[sourceLane];
   auto& target = blocks[rigIndex].lanes[targetLane];
-  if (sourceIndex >= source.size() || (sourceLane != targetLane && source.size() <= 1)
+  if (sourceIndex >= source.size()
       || (sourceLane != targetLane && target.size() >= kMaxEffectBlocks)) {
     return false;
   }
@@ -718,10 +692,6 @@ bool deleteSelectedBlock(UiState& state)
         return block.id == state.selectedBlockId;
       });
       if (found == lane.end()) continue;
-      if (lane.size() <= 1) {
-        setUiStatus(state, "Each Split lane needs at least one effect", true);
-        return false;
-      }
       const auto previewRollback = previewSnapshot(state);
       rememberBlockEdit(state);
       const std::string deletedName = found->assetName;
@@ -792,7 +762,7 @@ void closeParamDrawer(UiState& state)
 void setCategoryFilter(UiState& state, std::string filter)
 {
   static constexpr std::array valid = {
-    "all", "amps", "cabs", "dynamics", "eq", "modulation", "delay", "reverb",
+    "all", "amps", "cabs", "utility", "modulation", "delay", "reverb",
   };
   const auto found = std::find(valid.begin(), valid.end(), filter);
   state.categoryFilter = found == valid.end() ? "all" : std::move(filter);
@@ -1197,8 +1167,8 @@ void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoo
   state.assets.clear();
   appendAssetsFrom(state, dataRoot / "models", ".nam", "amps");
   appendAssetsFrom(state, dataRoot / "irs", ".wav", "cabs");
-  state.assets.push_back({"Compressor", "", "dynamics", "dynamics", "compressor"});
-  state.assets.push_back({"Five Band EQ", "", "eq", "eq", "parametric_eq_5"});
+  state.assets.push_back({"Compressor", "", "utility", "dynamics", "compressor"});
+  state.assets.push_back({"Five Band EQ", "", "utility", "eq", "parametric_eq_5"});
   appendDaisyAssets(state);
   state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split"});
   markUiChanged(state, UiChange::Assets | UiChange::Drawers);

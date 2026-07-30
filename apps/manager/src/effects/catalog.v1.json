@@ -266,7 +266,7 @@
       "mode": "compressor",
       "name": "Compressor",
       "description": "Dynamics control with detector and sidechain options.",
-      "category": "dynamics",
+      "category": "utility",
       "aliases": [
         "compressor",
         "comp"
@@ -392,7 +392,7 @@
       "mode": "parametric_eq_5",
       "name": "Five Band Parametric EQ",
       "description": "Five fully parametric equalizer bands.",
-      "category": "eq",
+      "category": "utility",
       "aliases": [
         "EQ",
         "equalizer",

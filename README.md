@@ -472,8 +472,8 @@ The touch UI includes:
 - A single left-to-right signal canvas with horizontal touch scrolling,
   per-preset scroll memory, dedicated block drag handles, and Input/Output
   jump controls.
-- An asset drawer with separate All, Amps, Cabs, EQ, Dynamics, Modulation,
-  Delays, and Reverbs filters.
+- An asset drawer with separate All, Amps, Cabs, Utility, Modulation, Delays,
+  and Reverbs filters. Utility contains compressor and EQ blocks.
 - `+` insertion points between every top-level effect and between effects in
   each split lane. Top-level insertion offers `Split Left / Right`; lane
   insertion prevents nested split regions.

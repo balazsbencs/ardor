@@ -23,6 +23,12 @@ describe("effect catalog", () => {
     expect(definitions.filter(({ blockType }) => blockType === "reverb")).toHaveLength(12);
   });
 
+  it("groups compressor and EQ under Utility", () => {
+    expect(getEffectDefinition("dynamics:compressor").category).toBe("utility");
+    expect(getEffectDefinition("eq:parametric_eq_5").category).toBe("utility");
+    expect(definitions.filter(({ category }) => category === "utility")).toHaveLength(2);
+  });
+
   it("keeps Daisy presets normalized while attaching physical UI displays", () => {
     for (const definition of definitions.filter(({ blockType }) => ["mod", "delay", "reverb"].includes(blockType))) {
       expect(definition.controls).toHaveLength(7);
