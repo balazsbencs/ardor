@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.15](https://github.com/balazsbencs/ardor/compare/v0.1.14...v0.1.15) (2026-07-30)
+
+### Features
+
+* stereo effect chain ([#8](https://github.com/balazsbencs/ardor/issues/8)) ([3bb84e7](https://github.com/balazsbencs/ardor/commit/3bb84e7007c77047326225ab50b06ac047414ae3))
+
 ## [0.1.14](https://github.com/balazsbencs/ardor/compare/v0.1.13...v0.1.14) (2026-07-30)
 
 ### Features
