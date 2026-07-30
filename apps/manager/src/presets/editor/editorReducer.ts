@@ -67,12 +67,41 @@ function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
+export function allPresetBlocks(blocks: PresetBlock[]): PresetBlock[] {
+  return blocks.flatMap((block) => [
+    block,
+    ...allPresetBlocks(block.lanes?.left.blocks ?? []),
+    ...allPresetBlocks(block.lanes?.right.blocks ?? []),
+  ]);
+}
+
+export function findPresetBlock(blocks: PresetBlock[], blockId: string | undefined): PresetBlock | undefined {
+  if (!blockId) return undefined;
+  return allPresetBlocks(blocks).find(({ id }) => id === blockId);
+}
+
+function updateBlockTree(
+  blocks: PresetBlock[],
+  blockId: string,
+  update: (block: PresetBlock) => PresetBlock,
+): boolean {
+  for (let index = 0; index < blocks.length; index += 1) {
+    if (blocks[index].id === blockId) {
+      blocks[index] = update(blocks[index]);
+      return true;
+    }
+    const lanes = blocks[index].lanes;
+    if (lanes && (updateBlockTree(lanes.left.blocks, blockId, update)
+      || updateBlockTree(lanes.right.blocks, blockId, update))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function updatedBlock(preset: Preset, blockId: string, update: (block: PresetBlock) => PresetBlock): Preset | undefined {
-  const index = preset.blocks.findIndex(({ id }) => id === blockId);
-  if (index < 0) return undefined;
   const next = clonePreset(preset);
-  next.blocks[index] = update(next.blocks[index]);
-  return next;
+  return updateBlockTree(next.blocks, blockId, update) ? next : undefined;
 }
 
 function normalizedControlValue(block: PresetBlock, key: string, value: unknown): unknown | undefined {
@@ -130,7 +159,7 @@ function setEqBand(state: EditorState, blockId: string, band: number, patch: Par
 }
 
 function setBlockParam(state: EditorState, blockId: string, key: string, value: unknown): EditorState {
-  const block = state.history.present.blocks.find(({ id }) => id === blockId);
+  const block = findPresetBlock(state.history.present.blocks, blockId);
   if (!block) return state;
   const normalized = normalizedControlValue(block, key, value);
   if (normalized === undefined) return state;
@@ -177,6 +206,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         const next = clonePreset(present);
         const index = clamp(Math.trunc(action.index), 0, next.blocks.length);
         next.blocks.splice(index, 0, block);
+        if (block.type === "dualRig") next.version = 2;
         return next;
       }, block.id);
     }
@@ -191,31 +221,87 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         return next;
       }, action.blockId);
     }
+    case "add-lane-block": {
+      if (action.definitionId === "dualRig" || action.definitionId === "dualAmp") return state;
+      const rig = findPresetBlock(state.history.present.blocks, action.rigId);
+      const lane = rig?.lanes?.[action.lane];
+      if (!rig || rig.type !== "dualRig" || !lane || lane.blocks.length >= 10) return state;
+      let block: PresetBlock;
+      try {
+        block = createBlockFromDefinition(
+          action.definitionId,
+          allPresetBlocks(state.history.present.blocks),
+          action.initialAsset,
+        );
+      } catch {
+        return state;
+      }
+      return withMutation(state, (present) => updatedBlock(present, action.rigId, (candidate) => {
+        const next = structuredClone(candidate);
+        const blocks = next.lanes?.[action.lane].blocks;
+        if (!blocks) return candidate;
+        blocks.splice(clamp(Math.trunc(action.index), 0, blocks.length), 0, block);
+        return next;
+      }), block.id);
+    }
+    case "move-lane-block": {
+      const rig = findPresetBlock(state.history.present.blocks, action.rigId);
+      if (!rig?.lanes) return state;
+      const sourceLane = rig.lanes.left.blocks.some(({ id }) => id === action.blockId)
+        ? "left"
+        : rig.lanes.right.blocks.some(({ id }) => id === action.blockId) ? "right" : undefined;
+      if (!sourceLane) return state;
+      return withMutation(state, (present) => updatedBlock(present, action.rigId, (candidate) => {
+        const next = structuredClone(candidate);
+        if (!next.lanes) return candidate;
+        const source = next.lanes[sourceLane].blocks;
+        const sourceIndex = source.findIndex(({ id }) => id === action.blockId);
+        if (sourceIndex < 0) return candidate;
+        const [block] = source.splice(sourceIndex, 1);
+        const target = next.lanes[action.lane].blocks;
+        const destination = clamp(Math.trunc(action.index), 0, target.length);
+        target.splice(destination, 0, block);
+        return next;
+      }), action.blockId);
+    }
     case "toggle-block":
       return withMutation(state, (present) => updatedBlock(present, action.blockId, (block) => ({
         ...block, enabled: action.enabled,
       })));
     case "duplicate-block": {
-      if (state.history.present.blocks.length >= 10) return state;
-      const sourceIndex = state.history.present.blocks.findIndex(({ id }) => id === action.blockId);
-      if (sourceIndex < 0) return state;
-      const id = nextPresetBlockId(state.history.present.blocks);
+      const source = findPresetBlock(state.history.present.blocks, action.blockId);
+      if (!source || source.type === "dualRig") return state;
+      const id = nextPresetBlockId(allPresetBlocks(state.history.present.blocks));
       return withMutation(state, (present) => {
         const next = clonePreset(present);
-        next.blocks.splice(sourceIndex + 1, 0, { ...structuredClone(next.blocks[sourceIndex]), id });
-        return next;
+        const duplicateIn = (blocks: PresetBlock[]): boolean => {
+          const sourceIndex = blocks.findIndex(({ id: candidate }) => candidate === action.blockId);
+          if (sourceIndex >= 0) {
+            if (blocks.length >= 10) return false;
+            blocks.splice(sourceIndex + 1, 0, { ...structuredClone(blocks[sourceIndex]), id });
+            return true;
+          }
+          return blocks.some((block) => block.lanes
+            && (duplicateIn(block.lanes.left.blocks) || duplicateIn(block.lanes.right.blocks)));
+        };
+        return duplicateIn(next.blocks) ? next : undefined;
       }, id);
     }
     case "remove-block": {
-      const index = state.history.present.blocks.findIndex(({ id }) => id === action.blockId);
-      if (index < 0) return state;
-      const remaining = state.history.present.blocks.filter(({ id }) => id !== action.blockId);
-      const selected = remaining.length > 0 ? remaining[Math.min(index, remaining.length - 1)].id : undefined;
-      return withMutation(state, (present) => {
-        const next = clonePreset(present);
-        next.blocks.splice(index, 1);
-        return next;
-      }, selected);
+      let selected: string | undefined;
+      const next = clonePreset(state.history.present);
+      const removeFrom = (blocks: PresetBlock[], parentId?: string): boolean => {
+        const index = blocks.findIndex(({ id }) => id === action.blockId);
+        if (index >= 0) {
+          blocks.splice(index, 1);
+          selected = parentId ?? blocks[Math.min(index, blocks.length - 1)]?.id;
+          return true;
+        }
+        return blocks.some((block) => block.lanes
+          && (removeFrom(block.lanes.left.blocks, block.id)
+            || removeFrom(block.lanes.right.blocks, block.id)));
+      };
+      return removeFrom(next.blocks) ? withMutation(state, () => next, selected) : state;
     }
     case "set-block-asset":
       return withMutation(state, (present) => updatedBlock(present, action.blockId, (block) => ({
@@ -232,7 +318,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       } catch {
         return state;
       }
-      const source = state.history.present.blocks.find(({ id }) => id === action.blockId);
+      const source = findPresetBlock(state.history.present.blocks, action.blockId);
       if (!source || source.type !== target.blockType || target.mode === undefined) return state;
       return withMutation(state, (present) => updatedBlock(present, action.blockId, (block) => {
         const defaults = defaultsForDefinition(target.id);
@@ -247,7 +333,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case "mark-saved": {
       const saved = clonePreset(action.preset);
       const selectedBlockId = state.selectedBlockId
-        && saved.blocks.some(({ id }) => id === state.selectedBlockId) ? state.selectedBlockId : undefined;
+        && findPresetBlock(saved.blocks, state.selectedBlockId) ? state.selectedBlockId : undefined;
       return {
         ...state,
         saved,

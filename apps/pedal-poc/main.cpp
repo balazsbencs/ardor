@@ -90,6 +90,19 @@ void handleSignal(int)
   running = 0;
 }
 
+void publishRuntimeTelemetry(const std::filesystem::path& path,
+                             const ardor::RuntimeTelemetry& telemetry)
+{
+  if (path.empty()) return;
+  std::string error;
+  if (ardor::writeRuntimeTelemetrySnapshot(path, telemetry, error)) return;
+  static bool warningPrinted = false;
+  if (!warningPrinted) {
+    std::cerr << "Runtime telemetry export disabled: " << error << "\n";
+    warningPrinted = true;
+  }
+}
+
 const char* replaceResultName(ardor::EngineReplaceResult result)
 {
   switch (result) {
@@ -238,6 +251,7 @@ struct Args {
   bool realtime = false;
   bool allowNonRealtime = false;
   bool allowDeviceResampling = false;
+  bool parallelRigs = false;
   bool bypassNam = false;
   bool devices = false;
   uint32_t sampleRate = 48000;
@@ -252,10 +266,13 @@ struct Args {
   bool clipDebug = false;
   int captureDeviceIndex = -1;
   int playbackDeviceIndex = -1;
+  int audioCpu = -1;
+  int rigWorkerCpu = -1;
   uint32_t inputChannel = 0;
   ardor::OutputChannel outputChannel = ardor::OutputChannel::Both;
   std::filesystem::path preset;
   std::filesystem::path dataRoot = ".";
+  std::filesystem::path telemetryFile;
   bool presetSlotMode = false;
   int bank = 0;
   int slot = 0;
@@ -300,6 +317,8 @@ bool parse(int argc, char** argv, Args& args)
         args.allowNonRealtime = true;
       } else if (a == "--allow-device-resampling") {
         args.allowDeviceResampling = true;
+      } else if (a == "--parallel-rigs" || a == "--parallel-dual-amp") {
+        args.parallelRigs = true;
       } else if (a == "--devices") {
         args.devices = true;
       } else if (a == "--bypass-nam") {
@@ -312,6 +331,10 @@ bool parse(int argc, char** argv, Args& args)
         const char* v = value();
         if (!v) return false;
         args.dataRoot = v;
+      } else if (a == "--telemetry-file") {
+        const char* v = value();
+        if (!v) return false;
+        args.telemetryFile = v;
       } else if (a == "--bank") {
         const char* v = value();
         if (!v) return false;
@@ -365,6 +388,14 @@ bool parse(int argc, char** argv, Args& args)
         const char* v = value();
         if (!v) return false;
         args.playbackDeviceIndex = std::stoi(v);
+      } else if (a == "--audio-cpu") {
+        const char* v = value();
+        if (!v) return false;
+        args.audioCpu = std::stoi(v);
+      } else if (a == "--rig-worker-cpu" || a == "--dual-amp-worker-cpu") {
+        const char* v = value();
+        if (!v) return false;
+        args.rigWorkerCpu = std::stoi(v);
       } else if (a == "--input-channel") {
         const char* v = value();
         if (!v || !parseChannel(v, args.inputChannel)) return false;
@@ -420,6 +451,13 @@ bool parse(int argc, char** argv, Args& args)
     return false;
   }
   if (args.blockSize == 0) {
+    return false;
+  }
+  if (args.audioCpu < -1 || args.rigWorkerCpu < -1
+      || (args.parallelRigs
+          && (args.audioCpu < 0 || args.rigWorkerCpu < 0
+              || args.audioCpu == args.rigWorkerCpu))
+      || (!args.parallelRigs && args.rigWorkerCpu >= 0)) {
     return false;
   }
 
@@ -509,8 +547,10 @@ int main(int argc, char** argv)
                 << "  pedal-poc --realtime --model amp.nam --ir cab.wav [--sample-rate 48000] [--block-size 64]\n"
                 << "            [--allow-non-realtime] (development only)\n"
                 << "            [--allow-device-resampling] (development only)\n"
+                << "            [--parallel-rigs] [--audio-cpu N] [--rig-worker-cpu N]\n"
                 << "            [--capture-device N] [--playback-device N] [--input-channel left|right]\n"
                 << "            [--output-channel both|left|right] [--ir-samples N]\n"
+                << "            [--telemetry-file /run/ardor-pedal.telemetry]\n"
                 << "            [--input-gain-db DB] [--output-gain-db DB]\n"
                 << "            [--safety-limit-db DB] [--no-safety-limit]\n"
                 << "            [--clip-debug] (per-stage peak/overload diagnostics)\n"
@@ -532,6 +572,8 @@ int main(int argc, char** argv)
       args.sampleRate,
       args.blockSize,
       args.irSamples == 0 ? size_t{8192} : args.irSamples,
+      args.realtime && args.parallelRigs,
+      args.rigWorkerCpu,
     };
 
     // Realtime slot mode: unique_ptr engine enables stop/swap/restart switching
@@ -565,6 +607,7 @@ int main(int argc, char** argv)
       options.playbackDeviceIndex = args.playbackDeviceIndex;
       options.inputChannel = args.inputChannel;
       options.outputChannel = args.outputChannel;
+      options.audioCpu = args.audioCpu;
 #if defined(__linux__)
       options.requireRealtimeScheduler = !args.allowNonRealtime;
       options.requireNativeSampleRate = !args.allowDeviceResampling;
@@ -597,6 +640,7 @@ int main(int argc, char** argv)
 #if defined(ARDOR_HAS_UI)
       std::unique_ptr<ardor::LvglUi> ui;
       ardor::UiState uiState;
+      ardor::GlobalSettingsStore globalSettings(args.dataRoot);
       bool previewOverlayPresented = false;
       std::optional<std::chrono::steady_clock::time_point> previewQueuedAt;
       if (args.enableUi) {
@@ -642,6 +686,7 @@ int main(int argc, char** argv)
         lv_sdl_keyboard_create();
 #endif
         uiState = ardor::makeDemoUiState();
+        uiState.settings = globalSettings.load();
         ardor::loadAssetsFromDataRoot(uiState, args.dataRoot);
         ardor::loadBankFromStore(uiState, store, args.bank);
         // The engine was loaded immediately above. Reflect that state in the
@@ -727,6 +772,22 @@ int main(int argc, char** argv)
           [&](bool enabled) {
             requestedTunerMode = enabled ? 1 : 0;
           },
+          [&](std::uint32_t color, std::string& error) {
+            return globalSettings.saveAccentColor(color, error);
+          },
+          [&](const std::string& ssid, const std::string& password,
+              const std::string& country, std::string& error) {
+            if (!globalSettings.saveWifi(ssid, password, country, error)) return false;
+#if defined(__linux__)
+            if (std::filesystem::exists("/etc/init.d/S42wifi")) {
+              std::thread([] {
+                std::this_thread::sleep_for(std::chrono::milliseconds(750));
+                std::system("/etc/init.d/S42wifi restart >/dev/null 2>&1");
+              }).detach();
+            }
+#endif
+            return true;
+          },
         });
         ui->build(lv_screen_active(), uiState);
       }
@@ -735,6 +796,7 @@ int main(int argc, char** argv)
       ardor::RuntimeState runtime;
       uint64_t previousCallbacks = 0;
       uint64_t previousOverBudget = 0;
+      double previousTotalProcessingMs = 0.0;
       uint64_t previousNonFiniteBlocks = 0;
 #if defined(__linux__)
       std::vector<ardor::LinuxInputDevice> inputDevices;
@@ -815,7 +877,10 @@ int main(int argc, char** argv)
         if (args.enableUi && ui) {
           lv_timer_handler();
           ui->refresh(lv_screen_active(), uiState);
-          lv_delay_ms(5);
+          // LVGL's default delay is a busy-wait when LV_USE_OS is
+          // LV_OS_NONE. Yield the core while preserving the 5 ms input
+          // service cadence.
+          std::this_thread::sleep_for(std::chrono::milliseconds(5));
         } else {
           std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
@@ -842,6 +907,7 @@ int main(int argc, char** argv)
           if (recoveryResult == DeviceRecoveryResult::Restarted) {
             previousCallbacks = 0;
             previousOverBudget = 0;
+            previousTotalProcessingMs = 0.0;
             backend.setOutputMuted(tunerMode);
             backend.discardCapturedInput();
             tuner.reset();
@@ -1141,14 +1207,23 @@ int main(int argc, char** argv)
             }
 #endif
           }
+          const auto recentAverageMs = ardor::recentCallbackAverageMs(
+            previousCallbacks, previousTotalProcessingMs,
+            stats.callbacks, stats.totalProcessingMs, stats.averageMs);
           runtime.observeRealtimeStats(previousCallbacks, stats.callbacks, previousOverBudget, stats.overBudget);
           previousCallbacks = stats.callbacks;
           previousOverBudget = stats.overBudget;
+          previousTotalProcessingMs = stats.totalProcessingMs;
           liveEngine->setEffectsBypassed(runtime.effectsBypassed());
           const auto telemetry = ardor::makeRuntimeTelemetry(stats.callbacks, stats.overBudget, stats.callbackGaps,
                                                              stats.maxMs, stats.averageMs, stats.budgetMs,
-                                                             runtime.effectsBypassed());
+                                                             runtime.effectsBypassed(),
+                                                             liveEngine->parallelWaitOverBudgetCount(),
+                                                             nonFiniteBlocks,
+                                                             liveEngine->blockSizeMismatchCount(),
+                                                             recentAverageMs);
           std::cerr << ardor::formatRuntimeTelemetry(telemetry) << "\n";
+          publishRuntimeTelemetry(args.telemetryFile, telemetry);
           if (args.clipDebug) {
             const auto diagnostics = liveEngine->takeClipDiagnostics();
             std::cerr << ardor::formatClipDiagnostics(diagnostics) << "\n";
@@ -1238,6 +1313,7 @@ int main(int argc, char** argv)
       options.playbackDeviceIndex = args.playbackDeviceIndex;
       options.inputChannel = args.inputChannel;
       options.outputChannel = args.outputChannel;
+      options.audioCpu = args.audioCpu;
 #if defined(__linux__)
       options.requireRealtimeScheduler = !args.allowNonRealtime;
       options.requireNativeSampleRate = !args.allowDeviceResampling;
@@ -1258,6 +1334,7 @@ int main(int argc, char** argv)
       ardor::RuntimeState runtime;
       uint64_t previousCallbacks = 0;
       uint64_t previousOverBudget = 0;
+      double previousTotalProcessingMs = 0.0;
       uint64_t previousNonFiniteBlocks = 0;
       auto nextTelemetry = std::chrono::steady_clock::now();
       while (running) {
@@ -1271,6 +1348,7 @@ int main(int argc, char** argv)
           if (recoveryResult == DeviceRecoveryResult::Restarted) {
             previousCallbacks = 0;
             previousOverBudget = 0;
+            previousTotalProcessingMs = 0.0;
           } else {
             continue;
           }
@@ -1285,14 +1363,23 @@ int main(int argc, char** argv)
           const auto blockId = engine.firstNonFiniteBlockId();
           std::cerr << "DSP fault: " << (blockId.empty() ? "unnamed block" : blockId) << "\n";
         }
+        const auto recentAverageMs = ardor::recentCallbackAverageMs(
+          previousCallbacks, previousTotalProcessingMs,
+          stats.callbacks, stats.totalProcessingMs, stats.averageMs);
         runtime.observeRealtimeStats(previousCallbacks, stats.callbacks, previousOverBudget, stats.overBudget);
         previousCallbacks = stats.callbacks;
         previousOverBudget = stats.overBudget;
+        previousTotalProcessingMs = stats.totalProcessingMs;
         engine.setEffectsBypassed(runtime.effectsBypassed());
         const auto telemetry = ardor::makeRuntimeTelemetry(stats.callbacks, stats.overBudget, stats.callbackGaps,
                                                            stats.maxMs, stats.averageMs, stats.budgetMs,
-                                                           runtime.effectsBypassed());
+                                                           runtime.effectsBypassed(),
+                                                           engine.parallelWaitOverBudgetCount(),
+                                                           nonFiniteBlocks,
+                                                           engine.blockSizeMismatchCount(),
+                                                           recentAverageMs);
         std::cerr << ardor::formatRuntimeTelemetry(telemetry) << "\n";
+        publishRuntimeTelemetry(args.telemetryFile, telemetry);
         if (args.clipDebug) {
           std::cerr << ardor::formatClipDiagnostics(engine.takeClipDiagnostics()) << "\n";
         }

@@ -12,11 +12,11 @@ import {
 describe("effect catalog", () => {
   const definitions = allEffectDefinitions();
 
-  it("contains the complete unique set of 39 definitions", () => {
-    expect(definitions).toHaveLength(39);
-    expect(new Set(definitions.map(({ id }) => id)).size).toBe(39);
-    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(39);
-    expect(new Set(definitions.map(({ name }) => name)).size).toBe(39);
+  it("contains the complete unique set of 41 definitions", () => {
+    expect(definitions).toHaveLength(41);
+    expect(new Set(definitions.map(({ id }) => id)).size).toBe(41);
+    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(41);
+    expect(new Set(definitions.map(({ name }) => name)).size).toBe(41);
     expect(definitions.every(({ controls }) => controls.length > 0)).toBe(true);
     expect(definitions.filter(({ blockType }) => blockType === "mod")).toHaveLength(13);
     expect(definitions.filter(({ blockType }) => blockType === "delay")).toHaveLength(10);
@@ -99,14 +99,72 @@ describe("effect catalog", () => {
   it("defines the NAM and cabinet asset contracts", () => {
     expect(getEffectDefinition("nam").controls).toEqual([
       { kind: "asset", label: "NAM model", assetKind: "models" },
+      {
+        kind: "choice",
+        key: "inputMode",
+        label: "Input source",
+        choices: [
+          { value: "sum", label: "L+R Average" },
+          { value: "left", label: "Left / Mono" },
+          { value: "right", label: "Right" },
+        ],
+        defaultValue: "sum",
+      },
       { kind: "toggle", key: "useNano", label: "Use nano model", defaultValue: false },
     ]);
-    expect(defaultsForDefinition("nam")).toEqual({ useNano: false });
+    expect(defaultsForDefinition("nam")).toEqual({ inputMode: "sum", useNano: false });
     expect(getEffectDefinition("cab").controls).toEqual([
       { kind: "asset", label: "Cabinet IR", assetKind: "irs" },
       expect.objectContaining({ kind: "number", key: "levelDb", defaultValue: 0 }),
       expect.objectContaining({ kind: "number", key: "mix", defaultValue: 1 }),
     ]);
+  });
+
+  it("defines the fixed two-lane Dual Amp contract", () => {
+    expect(defaultsForDefinition("dualAmp")).toEqual({
+      inputMode: "sum",
+      leftNamAsset: "",
+      leftUseNano: false,
+      leftIrAsset: "",
+      leftCabLevelDb: 0,
+      leftCabMix: 1,
+      leftPolarityInvert: false,
+      rightNamAsset: "",
+      rightUseNano: false,
+      rightIrAsset: "",
+      rightCabLevelDb: 0,
+      rightCabMix: 1,
+      rightPolarityInvert: false,
+    });
+    expect(getEffectDefinition("dualAmp").controls.filter(({ kind }) => kind === "asset"))
+      .toEqual([
+        expect.objectContaining({ key: "leftNamAsset", assetKind: "models" }),
+        expect.objectContaining({ key: "leftIrAsset", assetKind: "irs" }),
+        expect.objectContaining({ key: "rightNamAsset", assetKind: "models" }),
+        expect.objectContaining({ key: "rightIrAsset", assetKind: "irs" }),
+      ]);
+  });
+
+  it("creates Dual Rig with two independent NAM-to-cab lanes and unique ids", () => {
+    const rig = createBlockFromDefinition("dualRig", []);
+    expect(rig).toMatchObject({
+      type: "dualRig",
+      params: {
+        inputMode: "sum",
+        leftLevelDb: 0,
+        leftPolarityInvert: false,
+        rightLevelDb: 0,
+        rightPolarityInvert: false,
+      },
+    });
+    expect(rig.lanes?.left.blocks.map(({ type }) => type)).toEqual(["nam", "cab"]);
+    expect(rig.lanes?.right.blocks.map(({ type }) => type)).toEqual(["nam", "cab"]);
+    const ids = [
+      rig.id,
+      ...(rig.lanes?.left.blocks.map(({ id }) => id) ?? []),
+      ...(rig.lanes?.right.blocks.map(({ id }) => id) ?? []),
+    ];
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it("creates a complete block for every definition", () => {
@@ -118,7 +176,7 @@ describe("effect catalog", () => {
       expect(findEffectDefinition(block)?.id).toBe(id);
       return { ...block, id: `block-${index + 1}` };
     });
-    expect(blocks).toHaveLength(39);
+    expect(blocks).toHaveLength(41);
   });
 
   it("chooses the next numeric block id and handles nonstandard collisions", () => {

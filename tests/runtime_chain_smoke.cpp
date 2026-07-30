@@ -1,9 +1,12 @@
 #include "daisyfx/DaisyFxProcessor.h"
+#include "dsp/DualRigProcessor.h"
 #include "dsp/PedalEngine.h"
 #include "dsp/RuntimeChain.h"
 #include "equalizer/EqParameters.h"
 
+#include <array>
 #include <cmath>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -53,6 +56,13 @@ std::vector<float> render(ardor::RuntimeChain& chain)
 
 int main()
 {
+  require(near(ardor::routeNamInput(ardor::NamInputMode::Sum, 0.75f, -0.25f), 0.25f),
+          "NAM sum input averages left and right without a gain increase");
+  require(near(ardor::routeNamInput(ardor::NamInputMode::Left, 0.75f, -0.25f), 0.75f),
+          "NAM left input preserves the left channel");
+  require(near(ardor::routeNamInput(ardor::NamInputMode::Right, 0.75f, -0.25f), -0.25f),
+          "NAM right input preserves the right channel");
+
   ardor::RuntimeChain modThenCab;
   modThenCab.prepareBlockSize(64);
   modThenCab.addDaisy("mod-a", makeTrem());
@@ -98,6 +108,30 @@ int main()
   cabThenDelay.addDaisy("delay-a", std::move(delay));
   require(cabThenDelay.tailFrames() == 2 + delayTail,
           "serial cabinet and delay tails must accumulate");
+
+  auto leftLane = std::make_unique<ardor::RuntimeChain>();
+  leftLane->prepareBlockSize(64);
+  leftLane->addCab({1.0f}, 1.0f, 1.0f, "left-cab");
+  auto rightLane = std::make_unique<ardor::RuntimeChain>();
+  rightLane->prepareBlockSize(64);
+  rightLane->addCab({0.5f}, 1.0f, 1.0f, "right-cab");
+  ardor::DualRigLaneConfig leftRigLane{std::move(leftLane), 1.0f, false};
+  ardor::DualRigLaneConfig rightRigLane{std::move(rightLane), 1.0f, true};
+  ardor::RuntimeChain dualRigChain;
+  dualRigChain.prepareBlockSize(64);
+  std::string dualRigError;
+  require(dualRigChain.addDualRig("dual-rig", std::move(leftRigLane), std::move(rightRigLane),
+                                  ardor::NamInputMode::Sum, 48000.0, 64, false, -1,
+                                  dualRigError),
+          dualRigError);
+  std::array<float, 64> rigInput{};
+  std::array<float, 64> rigLeft{};
+  std::array<float, 64> rigRight{};
+  rigInput.fill(0.5f);
+  dualRigChain.processBlock(rigInput.data(), rigLeft.data(), rigRight.data(), rigInput.size());
+  require(near(rigLeft[0], 0.5f), "dual rig keeps the left lane's left output");
+  require(near(rigRight[0], -0.25f), "dual rig keeps the right lane's right output and polarity");
+  require(dualRigChain.tailFrames() == 0, "dual rig tail is the maximum of its lane tails");
 
   ardor::RuntimeChain eqChain;
   eqChain.prepareBlockSize(64);

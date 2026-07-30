@@ -11,7 +11,7 @@ describe("BlockBrowser", () => {
     const onChoose = vi.fn();
     renderWithProviders(<BlockBrowser open onOpenChange={() => undefined} onChoose={onChoose} />);
 
-    expect(screen.getAllByRole("button", { name: "Add" })).toHaveLength(39);
+    expect(screen.getAllByRole("button", { name: "Add" })).toHaveLength(41);
 
     await user.type(screen.getByPlaceholderText("Search effects"), "bucket");
     expect(screen.getByText("Bucket Brigade Delay")).toBeInTheDocument();

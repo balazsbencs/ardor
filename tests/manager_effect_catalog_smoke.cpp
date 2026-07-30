@@ -40,7 +40,7 @@ int main()
           "manager effect catalog has definitions");
 
   const auto& definitions = catalog.at("definitions");
-  require(definitions.size() == 39, "manager effect catalog has 39 definitions");
+  require(definitions.size() == 41, "manager effect catalog has 41 definitions");
 
   std::unordered_set<std::string> managerDaisyPairs;
   bool foundCompressor = false;

@@ -7,6 +7,7 @@
 #include <array>
 #include <atomic>
 #include <bit>
+#include <cerrno>
 #include <chrono>
 #include <iostream>
 #include <pthread.h>
@@ -32,6 +33,7 @@ struct MiniaudioBackendState {
   std::atomic<int> schedulerPolicy{-1};
   std::atomic<int> schedulerPriority{-1};
   std::atomic<int> schedulerSetupError{0};
+  std::atomic<int> affinitySetupError{0};
   ma_uint32 captureChannels = 1;
   ma_uint32 inputChannel = 0;
   OutputChannel outputChannel = OutputChannel::Both;
@@ -46,6 +48,7 @@ struct MiniaudioBackendState {
   double budgetMs = 0.0;
   double sampleRate = 48000.0;
   ma_uint32 blockSize = 64;
+  int audioCpu = -1;
   ma_uint32 inputFill = 0;
   ma_uint32 outputRead = 0;
   ma_uint32 outputAvailable = 0;
@@ -111,6 +114,18 @@ void captureCallbackScheduler(MiniaudioBackendState& state)
   requested.sched_priority = kArdorRealtimePriority;
   state.schedulerSetupError.store(pthread_setschedparam(pthread_self(), SCHED_FIFO, &requested),
                                   std::memory_order_relaxed);
+  if (state.audioCpu >= 0) {
+    if (state.audioCpu >= CPU_SETSIZE) {
+      state.affinitySetupError.store(EINVAL, std::memory_order_relaxed);
+    } else {
+      cpu_set_t cpus;
+      CPU_ZERO(&cpus);
+      CPU_SET(state.audioCpu, &cpus);
+      state.affinitySetupError.store(
+        pthread_setaffinity_np(pthread_self(), sizeof(cpus), &cpus),
+        std::memory_order_relaxed);
+    }
+  }
 #endif
 
 #if defined(__aarch64__)
@@ -362,6 +377,7 @@ bool MiniaudioBackend::start(PedalEngine& engine, const RealtimeOptions& options
   state_->sampleRate = static_cast<double>(options.sampleRate);
   state_->budgetMs = static_cast<double>(options.blockSize) / static_cast<double>(options.sampleRate) * 1000.0;
   state_->blockSize = options.blockSize;
+  state_->audioCpu = options.audioCpu;
   state_->inputBlock.assign(options.blockSize, 0.0f);
   state_->leftBlock.assign(options.blockSize, 0.0f);
   state_->rightBlock.assign(options.blockSize, 0.0f);
@@ -443,12 +459,23 @@ bool MiniaudioBackend::start(PedalEngine& engine, const RealtimeOptions& options
   if (realtimeStats.schedulerSetupError != 0) {
     std::cerr << ", FIFO setup error " << realtimeStats.schedulerSetupError;
   }
+  if (options.audioCpu >= 0) {
+    std::cerr << ", CPU " << options.audioCpu;
+    if (realtimeStats.affinitySetupError != 0) {
+      std::cerr << " affinity error " << realtimeStats.affinitySetupError;
+    }
+  }
   std::cerr << "\n";
 
 #if defined(__linux__)
   if (options.requireRealtimeScheduler && !hasRequiredRealtimeScheduler(realtimeStats)) {
     std::cerr << "Realtime audio requires SCHED_FIFO/" << kArdorRealtimePriority
               << "; grant CAP_SYS_NICE or use --allow-non-realtime for development only.\n";
+    stop();
+    return false;
+  }
+  if (options.audioCpu >= 0 && realtimeStats.affinitySetupError != 0) {
+    std::cerr << "Failed to pin realtime audio callback to CPU " << options.audioCpu << ".\n";
     stop();
     return false;
   }
@@ -536,15 +563,17 @@ RealtimeStats MiniaudioBackend::stats() const
   out.callbacks = state_->callbacks.load(std::memory_order_relaxed);
   out.overBudget = state_->overBudgetCallbacks.load(std::memory_order_relaxed);
   out.callbackGaps = state_->callbackGapCount.load(std::memory_order_relaxed);
+  out.totalProcessingMs =
+    static_cast<double>(state_->totalCallbackNs.load(std::memory_order_relaxed)) / 1000000.0;
   out.maxMs = static_cast<double>(state_->maxCallbackNs.load(std::memory_order_relaxed)) / 1000000.0;
   out.budgetMs = state_->budgetMs;
   out.schedulerCaptured = state_->schedulerCaptured.load(std::memory_order_acquire);
   out.schedulerPolicy = state_->schedulerPolicy.load(std::memory_order_relaxed);
   out.schedulerPriority = state_->schedulerPriority.load(std::memory_order_relaxed);
   out.schedulerSetupError = state_->schedulerSetupError.load(std::memory_order_relaxed);
+  out.affinitySetupError = state_->affinitySetupError.load(std::memory_order_relaxed);
   if (out.callbacks > 0) {
-    out.averageMs = static_cast<double>(state_->totalCallbackNs.load(std::memory_order_relaxed)) / 1000000.0
-                    / static_cast<double>(out.callbacks);
+    out.averageMs = out.totalProcessingMs / static_cast<double>(out.callbacks);
   }
   return out;
 }

@@ -185,14 +185,61 @@ int main()
   auto namState = ardor::makeDemoUiState();
   ardor::selectBlock(namState, 0);
   const auto namControls = ardor::parameterPage(namState, 0);
-  if (require(namControls.size() == 1 && namControls.front().key == "useNano"
-                && namControls.front().kind == ardor::ParameterControlKind::Toggle
-                && namControls.front().formatted == "Off",
+  const auto namInput = std::find_if(namControls.begin(), namControls.end(), [](const auto& control) {
+    return control.key == "inputMode";
+  });
+  const auto namNano = std::find_if(namControls.begin(), namControls.end(), [](const auto& control) {
+    return control.key == "useNano";
+  });
+  if (require(namControls.size() == 2 && namInput != namControls.end()
+                && namInput->kind == ardor::ParameterControlKind::Choice
+                && namInput->formatted == "L+R Average",
+              "NAM page should expose sum-default input routing")) return 1;
+  auto namInputState = namState;
+  if (require(ardor::applyParameterDelta(namInputState, *namInput, 1),
+              "NAM input routing should apply")) return 1;
+  if (require(namInputState.bank.presets[namInputState.activePreset].blocks[0].params.value("inputMode", "") == "left",
+              "NAM input routing should persist its string value")) return 1;
+  if (require(namNano != namControls.end()
+                && namNano->kind == ardor::ParameterControlKind::Toggle
+                && namNano->formatted == "Off",
               "NAM page should expose a full-default nano switch")) return 1;
-  if (require(ardor::applyParameterDelta(namState, namControls.front(), 1),
+  if (require(ardor::applyParameterDelta(namState, *namNano, 1),
               "NAM nano switch should apply")) return 1;
   if (require(namState.bank.presets[namState.activePreset].blocks[0].params.value("useNano", false),
               "NAM nano switch should persist its boolean value")) return 1;
+
+  ardor::Preset dualRigPreset;
+  dualRigPreset.version = 2;
+  dualRigPreset.name = "Touch Dual Rig";
+  ardor::PresetBlock dualRig{"rig", "dualRig", true, "", {
+    {"inputMode", "sum"},
+    {"leftLevelDb", 0.0f}, {"leftPolarityInvert", false},
+    {"rightLevelDb", -3.0f}, {"rightPolarityInvert", true},
+  }};
+  dualRig.lanes[0].push_back({"left-nam", "nam", true, "models/clean.nam", nlohmann::json::object()});
+  dualRig.lanes[0].push_back({"left-cab", "cab", true, "irs/open-back.wav", nlohmann::json::object()});
+  dualRig.lanes[0].push_back({"left-chorus", "mod", true, "", {{"mode", "chorus"}}});
+  dualRig.lanes[0].push_back({"left-room", "reverb", true, "", {{"mode", "room"}}});
+  dualRig.lanes[1].push_back({"right-nam", "nam", true, "models/crunch.nam", nlohmann::json::object()});
+  dualRig.lanes[1].push_back({"right-cab", "cab", true, "irs/vintage.wav", nlohmann::json::object()});
+  dualRig.lanes[1].push_back({"right-delay", "delay", true, "", {{"mode", "digital"}}});
+  dualRigPreset.blocks.push_back(std::move(dualRig));
+  auto dualRigState = ardor::makeDemoUiState();
+  ardor::replaceActivePreset(dualRigState, dualRigPreset);
+  if (require(dualRigState.bank.presets[dualRigState.activePreset].blocks[0].assetName
+                == "Left 4 blocks  /  Right 3 blocks",
+              "touchscreen inspector should summarize both Dual Rig lane sizes")) return 1;
+  const auto dualRigControls = ardor::parameterPage(dualRigState, 0);
+  if (require(dualRigControls.size() == 5
+                && dualRigControls[1].key == "leftLevelDb"
+                && dualRigControls[3].key == "rightLevelDb",
+              "touchscreen should expose Dual Rig routing and lane output controls")) return 1;
+  const auto preservedDualRig = ardor::activePresetToPreset(dualRigState);
+  if (require(preservedDualRig.version == 2
+                && preservedDualRig.blocks[0].lanes[0].size() == 4
+                && preservedDualRig.blocks[0].lanes[1][1].asset == "irs/vintage.wav",
+              "touchscreen load/save must preserve version-2 child chains")) return 1;
   if (require(namState.previewState == ardor::UiPreviewState::Queued,
               "changing NAM model tier should queue an engine preview")) return 1;
 
@@ -424,6 +471,38 @@ int main()
   if (require(glyphBitmap, "Open Sans glyphs should render in LVGL")) return 1;
 
   lv_display_t* display = lv_display_create(1280, 720);
+  ardor::enterEditMode(dualRigState);
+  ui.build(lv_screen_active(), dualRigState);
+  lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* splitJunction = findLabel(lv_screen_active(), "SPLIT");
+  lv_obj_t* joinJunction = findLabel(lv_screen_active(), "JOIN");
+  lv_obj_t* leftRigLane = findLabel(lv_screen_active(), "LEFT");
+  lv_obj_t* rightRigLane = findLabel(lv_screen_active(), "RIGHT");
+  lv_obj_t* leftOnlyEffect = findLabel(lv_screen_active(), "CHO");
+  lv_obj_t* rightOnlyEffect = findLabel(lv_screen_active(), "DLY");
+  lv_obj_t* laneDragHandle = findLabel(lv_screen_active(), "||");
+  if (require(splitJunction && joinJunction && leftRigLane && rightRigLane
+                && leftOnlyEffect && rightOnlyEffect && laneDragHandle
+                && !lv_color_eq(lv_obj_get_style_text_color(leftRigLane, LV_PART_MAIN),
+                                lv_obj_get_style_text_color(rightRigLane, LV_PART_MAIN))
+                && lv_obj_get_y(leftRigLane) < lv_obj_get_y(rightRigLane)
+                && lv_obj_get_x(splitJunction) < lv_obj_get_x(joinJunction)
+                && lv_obj_get_width(lv_obj_get_parent(laneDragHandle)) == 36,
+              "Dual Rig should render Split/Join, separate lanes, and lane drag handles")) return 1;
+
+  lv_obj_send_event(lv_obj_get_parent(rightOnlyEffect), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), dualRigState);
+  lv_obj_update_layout(lv_screen_active());
+  const auto* selectedLaneEffect = ardor::selectedUiBlock(dualRigState);
+  const auto selectedLaneControls = ardor::parameterPage(dualRigState, 0);
+  if (require(selectedLaneEffect && selectedLaneEffect->id == "right-delay"
+                && selectedLaneEffect->type == "delay"
+                && dualRigState.paramDrawerOpen
+                && !selectedLaneControls.empty()
+                && !containsKey(selectedLaneControls, "leftLevelDb")
+                && findLabel(lv_screen_active(), "Delay  /  Digital Delay"),
+              "clicking a Dual Rig lane effect should open that effect's parameter drawer")) return 1;
+
   ui.selectBlock(state, state.selectedBlock);
   ardor::enterEditMode(state);
   const auto renderControls = ardor::parameterPage(state, 0);
@@ -470,6 +549,8 @@ int main()
   if (require(clipLabel
                 && lv_color_eq(lv_obj_get_style_text_color(clipLabel, LV_PART_MAIN), lv_color_hex(0xf97373)),
               "touchscreen clip diagnostic should render in red")) return 1;
+  ardor::updateClipDebugTelemetry(state, {});
+  ui.refresh(lv_screen_active(), state);
   if (require(undoLabel && lv_obj_get_width(lv_obj_get_parent(undoLabel)) == 108
                 && lv_obj_get_height(lv_obj_get_parent(undoLabel)) == 40,
               "reversible block edits should expose a large Undo action")) return 1;
@@ -559,25 +640,25 @@ int main()
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
   depthFill = depthSlider ? findObjectWithBgColor(depthSlider, lv_color_hex(0x43f05a)) : nullptr;
 
-  lv_obj_t* chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x000000), 1240, 276);
+  lv_obj_t* chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x000000), 1240, 492);
   if (require(chain, "signal chain should be black behind charcoal blocks")) return 1;
-  lv_obj_t* firstChainBlock = lv_obj_get_child(chain, 0);
-  if (require(firstChainBlock && lv_obj_get_width(firstChainBlock) == 232,
-              "single-block chain should use the fixed five-slot tile width")) return 1;
-  if (require(!lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE),
-              "chain should not scroll while blocks are draggable")) return 1;
-  lv_obj_t* dragHandleLabel = findLabel(chain, "|||");
-  if (require(dragHandleLabel
-                && lv_obj_get_width(lv_obj_get_parent(dragHandleLabel)) == 60
-                && lv_obj_get_height(lv_obj_get_parent(dragHandleLabel)) == 56,
-              "chain blocks should expose a dedicated drag handle")) return 1;
-  if (require(findLabel(lv_screen_active(), "BYPASSED"),
-              "disabled blocks should show an explicit bypass state")) return 1;
   std::string firstCategory = state.bank.presets[state.activePreset].blocks.front().label;
   std::transform(firstCategory.begin(), firstCategory.end(), firstCategory.begin(), [](unsigned char character) {
     return static_cast<char>(std::toupper(character));
   });
-  lv_obj_t* firstCategoryLabel = findLabel(firstChainBlock, firstCategory.c_str());
+  lv_obj_t* firstCategoryLabel = findLabel(chain, firstCategory.c_str());
+  lv_obj_t* firstChainBlock = firstCategoryLabel ? lv_obj_get_parent(firstCategoryLabel) : nullptr;
+  if (require(firstChainBlock && lv_obj_get_width(firstChainBlock) == 190,
+              "horizontal chain should use compact single-rail effect tiles")) return 1;
+  if (require(lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE),
+              "the signal canvas should scroll independently of dedicated drag handles")) return 1;
+  lv_obj_t* dragHandleLabel = findLabel(chain, "|||");
+  if (require(dragHandleLabel
+                && lv_obj_get_width(lv_obj_get_parent(dragHandleLabel)) == 48
+                && lv_obj_get_height(lv_obj_get_parent(dragHandleLabel)) == 52,
+              "chain blocks should expose a dedicated drag handle")) return 1;
+  if (require(findLabel(lv_screen_active(), "BYPASSED"),
+              "disabled blocks should show an explicit bypass state")) return 1;
   lv_obj_t* firstCardAssetLabel = findLabel(firstChainBlock,
                                              state.bank.presets[state.activePreset].blocks.front().assetName.c_str());
   lv_obj_t* firstBypassedLabel = findLabel(firstChainBlock, "BYPASSED");
@@ -599,8 +680,9 @@ int main()
                 && firstAssetArea.x2 < firstDragHandleArea.x1
                 && firstBypassedArea.x2 < firstDragHandleArea.x1,
               "chain-card labels should stay inside the text column beside the drag handle")) return 1;
-  if (require(findLabel(lv_screen_active(), "Tap a block to edit  |  Drag the handle to reorder"),
-              "chain should explain its tap and drag interactions")) return 1;
+  if (require(findLabel(lv_screen_active(),
+                        "Swipe the canvas to move  |  + inserts an effect or Split  |  drag ||| to reorder"),
+              "chain should explain scrolling, insertion, and drag interactions")) return 1;
   if (require(findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x111111), 1280, 48),
               "runtime and action feedback should use a dedicated status bar")) return 1;
   if (require(findLabel(lv_screen_active(), "MODULATION"),
@@ -615,8 +697,9 @@ int main()
   ardor::moveBlock(state, 0, 1);
   completePreview(state);
   ui.refresh(lv_screen_active(), state);
-  if (require(findLabel(firstChainBlock, retainedFirstAsset.c_str()),
-              "keyed chain reordering should move the existing card instead of recreating it")) return 1;
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), retainedFirstAsset.c_str()),
+              "horizontal chain reordering should preserve the moved block content")) return 1;
   const auto retainedPosition = std::find_if(
     state.bank.presets[state.activePreset].blocks.begin(),
     state.bank.presets[state.activePreset].blocks.end(),
@@ -783,6 +866,9 @@ int main()
               "single-page cab controls should show page status")) return 1;
 
   ardor::enterPresetMode(state);
+  ardor::updateRealtimeTelemetry(
+    state, ardor::makeRuntimeTelemetry(100, 0, 0, 3.0, 2.0, 10.0, false,
+                                      0, 0, 0, 2.5));
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   lv_obj_t* presetTitle = findLabel(lv_screen_active(), state.bank.name.c_str());
@@ -833,50 +919,36 @@ int main()
   }
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x000000), 1240, 276);
-  lv_obj_t* fifthChainBlock = chain ? lv_obj_get_child(chain, 4) : nullptr;
-  lv_obj_t* sixthChainBlock = chain ? lv_obj_get_child(chain, 5) : nullptr;
-  lv_area_t chainArea{};
-  lv_area_t fifthChainBlockArea{};
-  lv_area_t sixthChainBlockArea{};
-  if (chain) lv_obj_get_coords(chain, &chainArea);
-  if (fifthChainBlock) lv_obj_get_coords(fifthChainBlock, &fifthChainBlockArea);
-  if (sixthChainBlock) lv_obj_get_coords(sixthChainBlock, &sixthChainBlockArea);
-  if (require(sixthChainBlock && sixthChainBlockArea.y1 > chainArea.y1,
-              "sixth chain tile should begin on the second row")) return 1;
-  lv_obj_t* chainWrapConnector = findLineWithPointCount(lv_screen_active(), 20);
-  const lv_point_precise_t* chainWrapPoints = chainWrapConnector ? lv_line_get_points(chainWrapConnector) : nullptr;
-  if (require(chainWrapPoints && chainWrapPoints[0].x == 1233 && chainWrapPoints[0].y == 173
-                && chainWrapPoints[1].x > chainWrapPoints[0].x && chainWrapPoints[1].y > chainWrapPoints[0].y
-                && chainWrapPoints[19].x == 34 && chainWrapPoints[19].y == 313,
-              "chain should smoothly wrap from the first row into the second")) return 1;
-  if (require(fifthChainBlock
-                && chainWrapPoints[0].x == fifthChainBlockArea.x2
-                && chainWrapPoints[0].y == (fifthChainBlockArea.y1 + fifthChainBlockArea.y2 + 1) / 2
-                && chainWrapPoints[19].x == sixthChainBlockArea.x1
-                && chainWrapPoints[19].y == (sixthChainBlockArea.y1 + sixthChainBlockArea.y2 + 1) / 2,
-              "chain wrap endpoints should align with both effect rows")) return 1;
+  chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x000000), 1240, 492);
+  if (require(chain && lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE)
+                && lv_obj_get_scroll_right(chain) > 0,
+              "long chains should remain on one horizontally scrollable rail")) return 1;
+  if (require(findLabel(lv_screen_active(), "<  Input")
+                && findLabel(lv_screen_active(), "Output  >"),
+              "the fixed chain footer should expose Input and Output jump controls")) return 1;
+  ui.scrollChainToEnd(state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(state.chainScrollOffsets[state.activePreset] > 0,
+              "jumping to Output should remember a positive per-preset scroll offset")) return 1;
+  ui.scrollChainToStart(state);
+  if (require(state.chainScrollOffsets[state.activePreset] == 0,
+              "jumping to Input should reset the current preset scroll offset")) return 1;
 
   constexpr std::size_t blockCount = 10;
-  if (require(ardor::LvglUi::chainSlotForPoint(blockCount, {34, 127}) == 0,
-              "chain's top-left slot should map to the first block")) return 1;
-  if (require(ardor::LvglUi::chainSlotForPoint(blockCount, {34, 277}) == 5,
-              "chain's second row should map to the sixth block")) return 1;
-  if (require(ardor::LvglUi::chainInsertionSlotForPoint(blockCount, {34 + 242 * 4, 277}) == 9,
-              "chain insertion should use the second row's column")) return 1;
-  if (require(ardor::LvglUi::chainInsertionSlotForPoint(blockCount, {34 + 122, 127}) == 1,
-              "chain insertion should switch at the nearest slot boundary")) return 1;
-  const auto secondRowIndicator = ardor::LvglUi::chainIndicatorPosition(blockCount, 5);
-  if (require(secondRowIndicator.x == 34 && secondRowIndicator.y == 267,
-              "sixth-slot insertion indicator should be placed on the second row")) return 1;
+  if (require(ardor::LvglUi::chainSlotForPoint(blockCount, {283, 324}) == 0,
+              "the first horizontal tile should map to the first block")) return 1;
+  if (require(ardor::LvglUi::chainSlotForPoint(blockCount, {1633, 324}) == 5,
+              "the sixth horizontal tile should map to the sixth block")) return 1;
+  if (require(ardor::LvglUi::chainInsertionSlotForPoint(blockCount, {1538, 324}) == 5,
+              "horizontal insertion should use the nearest signal boundary")) return 1;
+  const auto sixthIndicator = ardor::LvglUi::chainIndicatorPosition(blockCount, 5);
+  if (require(sixthIndicator.x == 1538 && sixthIndicator.y == 278,
+              "sixth-slot insertion indicator should stay on the single horizontal rail")) return 1;
   const auto forwardIndicator = ardor::LvglUi::chainReorderIndicatorPosition(blockCount, 0, 1);
-  if (require(forwardIndicator.x == 518 && forwardIndicator.y == 127,
+  if (require(forwardIndicator.x == 728 && forwardIndicator.y == 278,
               "forward reorder indicator should appear after the hovered block")) return 1;
-  const auto rowEndIndicator = ardor::LvglUi::chainReorderIndicatorPosition(blockCount, 0, 4);
-  if (require(rowEndIndicator.x == 1244 && rowEndIndicator.y == 127,
-              "forward reorder indicator should stay beside the hovered row")) return 1;
   const auto backwardIndicator = ardor::LvglUi::chainReorderIndicatorPosition(blockCount, 4, 1);
-  if (require(backwardIndicator.x == 276 && backwardIndicator.y == 127,
+  if (require(backwardIndicator.x == 458 && backwardIndicator.y == 278,
               "backward reorder indicator should appear before the hovered block")) return 1;
 
   ardor::enterPresetMode(state);
@@ -884,6 +956,8 @@ int main()
   lv_obj_update_layout(lv_screen_active());
   lv_obj_t* editButtonLabel = findLabel(lv_screen_active(), "Edit");
   lv_obj_t* editButton = editButtonLabel ? lv_obj_get_parent(editButtonLabel) : nullptr;
+  lv_obj_t* settingsIcon = findLabel(lv_screen_active(), LV_SYMBOL_SETTINGS);
+  lv_obj_t* settingsButton = settingsIcon ? lv_obj_get_parent(settingsIcon) : nullptr;
   lv_obj_t* tunerButtonLabel = findLabel(lv_screen_active(), "Tuner");
   lv_obj_t* tunerButton = tunerButtonLabel ? lv_obj_get_parent(tunerButtonLabel) : nullptr;
   lv_obj_t* bankDownLabel = findLabel(lv_screen_active(), "Bank -");
@@ -891,35 +965,87 @@ int main()
   lv_obj_t* bankNameLabel = findLabel(lv_screen_active(), state.bank.name.c_str());
   lv_obj_t* masterLabel = findLabel(
     lv_screen_active(), ("Master " + std::to_string(state.masterVolume) + "%").c_str());
+  lv_obj_t* bufferLabel = findLabel(lv_screen_active(), "Buffer 75% free");
   lv_obj_t* bankDownButton = bankDownLabel ? lv_obj_get_parent(bankDownLabel) : nullptr;
   lv_obj_t* bankUpButton = bankUpLabel ? lv_obj_get_parent(bankUpLabel) : nullptr;
   if (require(editButton && lv_obj_get_width(editButton) == 164 && lv_obj_get_height(editButton) == 60,
               "Edit should have a large, finger-friendly hit target")) return 1;
+  if (require(settingsButton && lv_obj_get_width(settingsButton) == 64
+                && lv_obj_get_height(settingsButton) == 60,
+              "preset screen should expose a finger-sized settings gear")) return 1;
   if (require(bankDownButton && bankUpButton && lv_obj_get_width(bankUpButton) == 144
-                && lv_obj_get_height(bankUpButton) == 52,
+                && lv_obj_get_height(bankUpButton) == 60
+                && lv_obj_get_height(bankDownButton) == 60,
               "preset screen should render dedicated bank up and down buttons")) return 1;
-  if (require(masterLabel && tunerButton && lv_obj_get_width(tunerButton) == 120
+  if (require(masterLabel && bufferLabel && tunerButton && lv_obj_get_width(tunerButton) == 120
                 && lv_obj_get_height(tunerButton) == 60,
-              "preset screen should provide a finger-sized Tuner button")) return 1;
+              "preset screen should provide a Tuner button and live footer feedback")) return 1;
   lv_area_t bankDownArea{};
   lv_area_t bankUpArea{};
   lv_area_t bankNameArea{};
   lv_area_t masterArea{};
   lv_area_t tunerButtonArea{};
+  lv_area_t settingsButtonArea{};
+  lv_area_t editButtonArea{};
   lv_obj_get_coords(bankDownButton, &bankDownArea);
   lv_obj_get_coords(bankUpButton, &bankUpArea);
   lv_obj_get_coords(bankNameLabel, &bankNameArea);
   lv_obj_get_coords(masterLabel, &masterArea);
   lv_obj_get_coords(tunerButton, &tunerButtonArea);
+  lv_obj_get_coords(settingsButton, &settingsButtonArea);
+  lv_obj_get_coords(editButton, &editButtonArea);
   if (require(bankDownArea.x2 < bankNameArea.x1 && bankUpArea.x1 > bankNameArea.x2
                 && bankDownArea.y1 <= bankNameArea.y1 && bankDownArea.y2 >= bankNameArea.y2,
               "bank controls should flank the bank name in the header")) return 1;
-  if (require(masterArea.x2 < tunerButtonArea.x1 && tunerButtonArea.x2 < bankDownArea.x1,
-              "Master, Tuner, and Bank controls should not overlap")) return 1;
+  if (require(masterArea.y1 >= 672
+                && std::abs((masterArea.x1 + masterArea.x2) / 2 - 640) <= 2,
+              "Master should be centered in the bottom status bar")) return 1;
+  if (require(tunerButtonArea.x1 == 28 && tunerButtonArea.x2 < bankDownArea.x1,
+              "Tuner and Bank controls should not overlap after moving Master to the footer")) return 1;
+  if (require(tunerButtonArea.y1 == bankDownArea.y1
+                && bankDownArea.y1 == bankUpArea.y1
+                && bankUpArea.y1 == settingsButtonArea.y1
+                && settingsButtonArea.y1 == editButtonArea.y1
+                && tunerButtonArea.y2 == bankDownArea.y2
+                && bankDownArea.y2 == bankUpArea.y2
+                && bankUpArea.y2 == settingsButtonArea.y2
+                && settingsButtonArea.y2 == editButtonArea.y2,
+              "all preset-header buttons should share one 60 px row")) return 1;
+  const int bankToSettingsGap = settingsButtonArea.x1 - bankUpArea.x2 - 1;
+  const int settingsToEditGap = editButtonArea.x1 - settingsButtonArea.x2 - 1;
+  if (require(bankToSettingsGap == 12 && settingsToEditGap == bankToSettingsGap,
+              "Bank+, Settings, and Edit should use the same horizontal gap")) return 1;
   if (require(lv_obj_has_state(bankDownButton, LV_STATE_DISABLED),
               "bank down should be disabled at the first bank")) return 1;
   if (require(lv_obj_get_style_text_font(bankUpLabel, LV_PART_MAIN) == &ardor_font_open_sans_semibold_22,
               "buttons should use the larger, more legible font")) return 1;
+
+  lv_obj_send_event(settingsButton, LV_EVENT_PRESSED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "Settings")
+                && findLabel(lv_screen_active(), "Appearance")
+                && findLabel(lv_screen_active(), "Accent color"),
+              "settings gear should open the touchscreen appearance screen")) return 1;
+  lv_obj_t* wifiSectionLabel = findLabel(lv_screen_active(), "Wi-Fi");
+  if (require(wifiSectionLabel, "settings should expose a Wi-Fi section")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(wifiSectionLabel), LV_EVENT_PRESSED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "Network name")
+                && findLabel(lv_screen_active(), "Password")
+                && findObjectOfClass(lv_screen_active(), &lv_keyboard_class),
+              "touchscreen Wi-Fi settings should render fields and an on-screen keyboard")) return 1;
+  ui.closeSettings(state);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  bankUpLabel = findLabel(lv_screen_active(), "Bank +");
+  bankUpButton = bankUpLabel ? lv_obj_get_parent(bankUpLabel) : nullptr;
+  tunerButtonLabel = findLabel(lv_screen_active(), "Tuner");
+  tunerButton = tunerButtonLabel ? lv_obj_get_parent(tunerButtonLabel) : nullptr;
+  editButtonLabel = findLabel(lv_screen_active(), "Edit");
+  editButton = editButtonLabel ? lv_obj_get_parent(editButtonLabel) : nullptr;
+
   lv_obj_send_event(bankUpButton, LV_EVENT_CLICKED, nullptr);
   if (require(requestedBankDelta == 1, "bank up should request the next bank")) return 1;
   lv_obj_send_event(tunerButton, LV_EVENT_PRESSED, nullptr);
@@ -974,7 +1100,7 @@ int main()
   lv_obj_t* filterRow = lv_obj_get_parent(allFilterButton);
   if (require(!categorySlider && !lv_obj_has_flag(filterRow, LV_OBJ_FLAG_SCROLLABLE),
               "category grid should have no competing slider or native scrolling")) return 1;
-  lv_obj_t* drawerInstruction = findLabel(drawer, "Tap to add - hold to drag");
+  lv_obj_t* drawerInstruction = findLabel(drawer, "Choose an effect or Split Left / Right");
   lv_obj_t* drawerSeparator = findObjectWithSizeAndBgColor(drawer, lv_color_hex(0x3a3a3a), 444, 1);
   lv_area_t filterArea{};
   lv_area_t separatorArea{};
@@ -1008,10 +1134,11 @@ int main()
   if (require(drawer == retainedDrawer && tremAssetButton && roomReverbButton
                 && lv_obj_get_parent(tremAssetButton) == retainedAssetList,
               "category changes should retain the drawer and its asset list")) return 1;
-  if (require(state.categoryFilter == "delay"
-                && !lv_obj_has_flag(tremAssetButton, LV_OBJ_FLAG_HIDDEN)
-                && lv_obj_has_flag(roomReverbButton, LV_OBJ_FLAG_HIDDEN),
-              "Delays should show delay assets and hide reverb assets")) return 1;
+  if (require(state.categoryFilter == "delay", "Delays should select the delay filter")) return 1;
+  if (require(!lv_obj_has_flag(tremAssetButton, LV_OBJ_FLAG_HIDDEN),
+              "Delays should show delay assets")) return 1;
+  if (require(lv_obj_has_flag(roomReverbButton, LV_OBJ_FLAG_HIDDEN),
+              "Delays should hide reverb assets")) return 1;
   if (require(!categorySlider && !lv_obj_has_flag(filterRow, LV_OBJ_FLAG_SCROLLABLE),
               "choosing a category should keep the fixed category grid stable")) return 1;
   if (require(tremAssetButton && lv_color_eq(lv_obj_get_style_bg_color(tremAssetButton, LV_PART_MAIN), lv_color_hex(0x242424)),

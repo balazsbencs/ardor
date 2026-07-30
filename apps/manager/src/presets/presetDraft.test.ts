@@ -49,7 +49,7 @@ describe("preset drafts", () => {
       id: "nam-2",
       type: "nam",
       asset: "models/new.nam",
-      params: { useNano: false },
+      params: { inputMode: "sum", useNano: false },
     });
 
     const withCab = addAssetBlock(withNam, "cab", "irs/new.wav");

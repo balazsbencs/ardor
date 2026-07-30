@@ -15,6 +15,10 @@ ENV=/etc/ardor-pedal.env
 : "${PLAYBACK_DEVICE:=-1}"
 : "${INPUT_CHANNEL:=0}"
 : "${OUTPUT_CHANNEL:=both}"
+: "${PARALLEL_RIGS:=${DUAL_AMP_PARALLEL:-1}}"
+: "${AUDIO_CPU:=2}"
+: "${RIG_WORKER_CPU:=${DUAL_AMP_WORKER_CPU:-3}}"
+: "${TELEMETRY_FILE:=/run/ardor-pedal.telemetry}"
 : "${CONTROL_DEVICES:=}"
 : "${UI:=1}"
 
@@ -24,6 +28,11 @@ for dev in $CONTROL_DEVICES; do
 done
 ui_arg=""
 [ "$UI" = "1" ] && ui_arg="--ui"
+parallel_rig_args=""
+[ "$PARALLEL_RIGS" = "1" ] && \
+  parallel_rig_args="--parallel-rigs --audio-cpu $AUDIO_CPU --rig-worker-cpu $RIG_WORKER_CPU"
+telemetry_args=""
+[ -n "$TELEMETRY_FILE" ] && telemetry_args="--telemetry-file $TELEMETRY_FILE"
 
 run_supervised() {
   # Silence the framebuffer console so it stops drawing over the LVGL UI.
@@ -55,6 +64,8 @@ run_supervised() {
       --playback-device "$PLAYBACK_DEVICE" \
       --input-channel "$INPUT_CHANNEL" \
       --output-channel "$OUTPUT_CHANNEL" \
+      $parallel_rig_args \
+      $telemetry_args \
       $control_args &
     APP=$!
     sleep 1

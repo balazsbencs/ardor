@@ -7,7 +7,7 @@ export type DeviceStatus = {
   dataRootWritable: boolean;
   maxBanks: 100;
   slotsPerBank: 4;
-  supportedPresetVersion: 1;
+  supportedPresetVersion: 1 | 2;
   active?: {
     bank: number;
     slot: number;
@@ -20,7 +20,22 @@ export type DeviceStatus = {
     presetRead: boolean;
     presetWrite: boolean;
     presetApply: boolean;
+    wifiSettings?: boolean;
   };
+};
+
+export type WiFiSettings = {
+  configured: boolean;
+  ssid?: string;
+  country: string;
+  status: "connected" | "connecting" | "disconnected" | "restarting" | string;
+  ipAddress?: string;
+};
+
+export type WiFiSettingsUpdate = {
+  ssid: string;
+  password?: string;
+  country: string;
 };
 
 export type Asset = {
@@ -42,11 +57,15 @@ export type PresetBlock = {
   enabled: boolean;
   asset: string;
   params: Record<string, unknown>;
+  lanes?: {
+    left: { blocks: PresetBlock[] };
+    right: { blocks: PresetBlock[] };
+  };
   [key: string]: unknown;
 };
 
 export type Preset = {
-  version: 1;
+  version: 1 | 2;
   name: string;
   routing: "serial";
   global: {

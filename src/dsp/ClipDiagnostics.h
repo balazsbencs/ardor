@@ -16,6 +16,8 @@ enum class SignalStageKind {
   Daisy,
   Compressor,
   Equalizer,
+  DualAmp,
+  DualRig,
   Output,
 };
 

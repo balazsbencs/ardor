@@ -46,6 +46,7 @@ export type ToggleControl = {
 
 export type AssetControl = {
   kind: "asset";
+  key?: string;
   label: string;
   assetKind: "models" | "irs";
 };

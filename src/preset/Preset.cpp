@@ -14,13 +14,90 @@ void requireSerialRouting(const std::string& routing)
   }
 }
 
-void validateBlockAssets(const std::vector<PresetBlock>& blocks)
+void normalizeLegacyEffectBlock(PresetBlock& block);
+
+void validateBlockAssets(const std::vector<PresetBlock>& blocks, int version, bool insideLane = false)
 {
   for (const auto& block : blocks) {
     if (!block.asset.empty() && !isValidBlockAssetPath(block.asset)) {
       throw std::invalid_argument("preset asset must stay under data root");
     }
+    if (block.type == "dualRig") {
+      if (version != 2) {
+        throw std::invalid_argument("dual rig requires preset version 2");
+      }
+      if (insideLane) {
+        throw std::invalid_argument("nested dual rig blocks are not supported");
+      }
+      if (block.lanes[0].empty() || block.lanes[1].empty()) {
+        throw std::invalid_argument("dual rig requires non-empty left and right lanes");
+      }
+      validateBlockAssets(block.lanes[0], version, true);
+      validateBlockAssets(block.lanes[1], version, true);
+      continue;
+    }
+    if (block.type != "dualAmp") {
+      continue;
+    }
+    if (insideLane) {
+      throw std::invalid_argument("dual rig lanes cannot contain split blocks");
+    }
+    if (!block.params.is_object()) continue;
+    for (const char* key : {"leftNamAsset", "leftIrAsset", "rightNamAsset", "rightIrAsset"}) {
+      const auto it = block.params.find(key);
+      if (it == block.params.end() || !it->is_string()
+          || (!it->get_ref<const std::string&>().empty()
+              && !isValidBlockAssetPath(it->get_ref<const std::string&>()))) {
+        throw std::invalid_argument(std::string{"dual amp asset must stay under data root: "} + key);
+      }
+    }
   }
+}
+
+nlohmann::json blockToJson(const PresetBlock& block)
+{
+  nlohmann::json json = {
+    {"id", block.id},
+    {"type", block.type},
+    {"enabled", block.enabled},
+    {"asset", block.asset},
+    {"params", block.params.is_null() ? nlohmann::json::object() : block.params},
+  };
+  if (block.type == "dualRig") {
+    nlohmann::json left = nlohmann::json::array();
+    nlohmann::json right = nlohmann::json::array();
+    for (const auto& child : block.lanes[0]) left.push_back(blockToJson(child));
+    for (const auto& child : block.lanes[1]) right.push_back(blockToJson(child));
+    json["lanes"] = {
+      {"left", {{"blocks", std::move(left)}}},
+      {"right", {{"blocks", std::move(right)}}},
+    };
+  }
+  return json;
+}
+
+PresetBlock blockFromJson(const nlohmann::json& json, bool insideLane)
+{
+  PresetBlock block;
+  block.id = json.at("id").get<std::string>();
+  block.type = json.at("type").get<std::string>();
+  block.enabled = json.value("enabled", true);
+  block.asset = json.value("asset", "");
+  block.params = json.value("params", nlohmann::json::object());
+  normalizeLegacyEffectBlock(block);
+  if (block.type == "dualRig") {
+    if (insideLane) {
+      throw std::invalid_argument("nested dual rig blocks are not supported");
+    }
+    const auto& lanes = json.at("lanes");
+    for (const auto& child : lanes.at("left").at("blocks")) {
+      block.lanes[0].push_back(blockFromJson(child, true));
+    }
+    for (const auto& child : lanes.at("right").at("blocks")) {
+      block.lanes[1].push_back(blockFromJson(child, true));
+    }
+  }
+  return block;
 }
 
 void normalizeLegacyEffectBlock(PresetBlock& block)
@@ -70,18 +147,15 @@ bool isValidBlockAssetPath(std::string_view asset)
 
 nlohmann::json toJson(const Preset& preset)
 {
+  if (preset.version != 1 && preset.version != 2) {
+    throw std::invalid_argument("preset version must be 1 or 2");
+  }
   requireSerialRouting(preset.routing);
-  validateBlockAssets(preset.blocks);
+  validateBlockAssets(preset.blocks, preset.version);
 
   nlohmann::json blocks = nlohmann::json::array();
   for (const auto& block : preset.blocks) {
-    blocks.push_back({
-      {"id", block.id},
-      {"type", block.type},
-      {"enabled", block.enabled},
-      {"asset", block.asset},
-      {"params", block.params.is_null() ? nlohmann::json::object() : block.params},
-    });
+    blocks.push_back(blockToJson(block));
   }
 
   return {
@@ -101,6 +175,9 @@ Preset presetFromJson(const nlohmann::json& json)
 {
   Preset preset;
   preset.version = json.at("version").get<int>();
+  if (preset.version != 1 && preset.version != 2) {
+    throw std::invalid_argument("preset version must be 1 or 2");
+  }
   preset.name = json.value("name", "");
   preset.routing = json.at("routing").get<std::string>();
   requireSerialRouting(preset.routing);
@@ -111,17 +188,10 @@ Preset presetFromJson(const nlohmann::json& json)
   preset.global.safetyLimitDb = global.value("safetyLimitDb", -1.0f);
 
   for (const auto& blockJson : json.at("blocks")) {
-    PresetBlock block;
-    block.id = blockJson.at("id").get<std::string>();
-    block.type = blockJson.at("type").get<std::string>();
-    block.enabled = blockJson.value("enabled", true);
-    block.asset = blockJson.value("asset", "");
-    block.params = blockJson.value("params", nlohmann::json::object());
-    normalizeLegacyEffectBlock(block);
-    preset.blocks.push_back(block);
+    preset.blocks.push_back(blockFromJson(blockJson, false));
   }
 
-  validateBlockAssets(preset.blocks);
+  validateBlockAssets(preset.blocks, preset.version);
 
   return preset;
 }

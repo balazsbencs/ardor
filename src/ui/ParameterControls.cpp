@@ -73,12 +73,9 @@ std::vector<ParameterControl> controlsFor(const UiState& state)
     };
   }
 
-  const auto& blocks = state.bank.presets[state.activePreset].blocks;
-  if (state.selectedBlock >= blocks.size()) {
-    return {};
-  }
-
-  const auto& block = blocks[state.selectedBlock];
+  const auto* selected = selectedUiBlock(state);
+  if (!selected) return {};
+  const auto& block = *selected;
   if (block.type == "nam") {
     bool useNano = false;
     const auto explicitPreference = block.params.find("useNano");
@@ -88,7 +85,11 @@ std::vector<ParameterControl> controlsFor(const UiState& state)
     } else if (legacyQuality != block.params.end() && legacyQuality->is_number()) {
       useNano = legacyQuality->get<float>() == 0.0f;
     }
+    const auto inputMode = block.params.value("inputMode", std::string{"sum"});
+    const std::size_t inputModeIndex = inputMode == "left" ? 1 : inputMode == "right" ? 2 : 0;
     return {
+      choiceControl("inputMode", "Input source", {"L+R Average", "Left / Mono", "Right"},
+                    inputModeIndex, ParameterControlKind::Choice),
       choiceControl("useNano", "Use nano model", {"Off", "On"}, useNano ? 1 : 0,
                     ParameterControlKind::Toggle),
     };
@@ -98,6 +99,52 @@ std::vector<ParameterControl> controlsFor(const UiState& state)
     return {
       control("levelDb", "Level", -60.0f, 12.0f, 1.0f, block.params.value("levelDb", 0.0f), formatDb),
       control("mix", "Mix", 0.0f, 1.0f, 0.05f, block.params.value("mix", 1.0f), formatPercent),
+    };
+  }
+
+  if (block.type == "dualAmp") {
+    const auto inputMode = block.params.value("inputMode", std::string{"sum"});
+    const std::size_t inputModeIndex = inputMode == "left" ? 1 : inputMode == "right" ? 2 : 0;
+    return {
+      choiceControl("inputMode", "Input source", {"L+R Average", "Left / Mono", "Right"},
+                    inputModeIndex, ParameterControlKind::Choice),
+      choiceControl("leftUseNano", "Left nano", {"Off", "On"},
+                    block.params.value("leftUseNano", false) ? 1 : 0, ParameterControlKind::Toggle),
+      control("leftCabLevelDb", "Left cab level", -60.0f, 12.0f, 1.0f,
+              block.params.value("leftCabLevelDb", 0.0f), formatDb),
+      control("leftCabMix", "Left cab mix", 0.0f, 1.0f, 0.05f,
+              block.params.value("leftCabMix", 1.0f), formatPercent),
+      choiceControl("leftPolarityInvert", "Invert left", {"Off", "On"},
+                    block.params.value("leftPolarityInvert", false) ? 1 : 0,
+                    ParameterControlKind::Toggle),
+      choiceControl("rightUseNano", "Right nano", {"Off", "On"},
+                    block.params.value("rightUseNano", false) ? 1 : 0, ParameterControlKind::Toggle),
+      control("rightCabLevelDb", "Right cab level", -60.0f, 12.0f, 1.0f,
+              block.params.value("rightCabLevelDb", 0.0f), formatDb),
+      control("rightCabMix", "Right cab mix", 0.0f, 1.0f, 0.05f,
+              block.params.value("rightCabMix", 1.0f), formatPercent),
+      choiceControl("rightPolarityInvert", "Invert right", {"Off", "On"},
+                    block.params.value("rightPolarityInvert", false) ? 1 : 0,
+                    ParameterControlKind::Toggle),
+    };
+  }
+
+  if (block.type == "dualRig") {
+    const auto inputMode = block.params.value("inputMode", std::string{"sum"});
+    const std::size_t inputModeIndex = inputMode == "left" ? 1 : inputMode == "right" ? 2 : 0;
+    return {
+      choiceControl("inputMode", "Input source", {"L+R Average", "Left / Mono", "Right"},
+                    inputModeIndex, ParameterControlKind::Choice),
+      control("leftLevelDb", "Left lane level", -60.0f, 12.0f, 1.0f,
+              block.params.value("leftLevelDb", 0.0f), formatDb),
+      choiceControl("leftPolarityInvert", "Invert left", {"Off", "On"},
+                    block.params.value("leftPolarityInvert", false) ? 1 : 0,
+                    ParameterControlKind::Toggle),
+      control("rightLevelDb", "Right lane level", -60.0f, 12.0f, 1.0f,
+              block.params.value("rightLevelDb", 0.0f), formatDb),
+      choiceControl("rightPolarityInvert", "Invert right", {"Off", "On"},
+                    block.params.value("rightPolarityInvert", false) ? 1 : 0,
+                    ParameterControlKind::Toggle),
     };
   }
 
@@ -196,32 +243,35 @@ bool applyParameterDelta(UiState& state, const ParameterControl& control, int de
     return false;
   }
 
-  const auto& blocks = state.bank.presets[state.activePreset].blocks;
-  if (state.selectedBlock >= blocks.size()) {
-    return false;
-  }
+  const auto* selectedBlock = selectedUiBlock(state);
+  if (!selectedBlock) return false;
   if (control.kind != ParameterControlKind::Continuous) {
     const auto selected = static_cast<std::size_t>(std::clamp(
       static_cast<int>(std::lround(control.value)) + delta, 0,
       static_cast<int>(control.choices.size() - 1)));
     if (control.kind == ParameterControlKind::NormalizedChoice) {
-      const float before = blocks[state.selectedBlock].params.value(control.key, 0.0f);
+      const float before = selectedBlock->params.value(control.key, 0.0f);
       setSelectedBlockParam(state, control.key, control.choiceValues[selected]);
-      return blocks[state.selectedBlock].params.value(control.key, 0.0f) != before;
+      return selectedUiBlock(state)->params.value(control.key, 0.0f) != before;
     }
     if (control.kind == ParameterControlKind::Toggle) {
-      const bool before = blocks[state.selectedBlock].params.value(control.key, false);
+      const bool before = selectedBlock->params.value(control.key, false);
       setSelectedBlockParamValue(state, control.key, selected != 0);
-      return blocks[state.selectedBlock].params.value(control.key, false) != before;
+      return selectedUiBlock(state)->params.value(control.key, false) != before;
     }
-    const std::string before = blocks[state.selectedBlock].params.value(control.key, std::string{});
-    setSelectedBlockParamValue(state, control.key, selected == 0 ? "peak" : "rms");
-    return blocks[state.selectedBlock].params.value(control.key, std::string{}) != before;
+    const std::string before = selectedBlock->params.value(control.key, std::string{});
+    if (control.key == "inputMode") {
+      constexpr const char* kInputModes[] = {"sum", "left", "right"};
+      setSelectedBlockParamValue(state, control.key, kInputModes[std::min<std::size_t>(selected, 2)]);
+    } else {
+      setSelectedBlockParamValue(state, control.key, selected == 0 ? "peak" : "rms");
+    }
+    return selectedUiBlock(state)->params.value(control.key, std::string{}) != before;
   }
   const float value = control.value + control.step * static_cast<float>(delta);
-  const float before = blocks[state.selectedBlock].params.value(control.key, control.value);
+  const float before = selectedBlock->params.value(control.key, control.value);
   setSelectedBlockParam(state, control.key, value);
-  return blocks[state.selectedBlock].params.value(control.key, control.value) != before;
+  return selectedUiBlock(state)->params.value(control.key, control.value) != before;
 }
 
 } // namespace ardor

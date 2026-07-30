@@ -21,12 +21,14 @@ namespace ardor {
 
 class LvglUi;
 
-enum class UiContextRegion { None, Preset, Edit, Tuner, Parameters, Drawer, Status };
+enum class UiContextRegion { None, Preset, Edit, Tuner, Parameters, Drawer, Status, Settings };
 
 struct UiEventContext {
   LvglUi* ui = nullptr;
   UiState* state = nullptr;
   std::size_t index = 0;
+  std::size_t parentIndex = 0;
+  std::size_t laneIndex = 0;
   std::string filter = "all";
   lv_obj_t* ghost = nullptr;
   lv_obj_t* indicator = nullptr;
@@ -51,6 +53,15 @@ struct UiActions {
   // Requests the host-level tuner transition so audio muting and analyzer
   // routing change together with the visible screen.
   std::function<void(bool)> setTunerMode;
+  std::function<bool(std::uint32_t, std::string&)> saveAccentColor;
+  std::function<bool(const std::string&, const std::string&, const std::string&, std::string&)>
+    saveWifiSettings;
+};
+
+struct UiLaneDropTarget {
+  std::size_t rigIndex = 0;
+  std::size_t laneIndex = 0;
+  std::size_t blockIndex = 0;
 };
 
 class LvglUi {
@@ -66,6 +77,8 @@ public:
   void endParameterInteraction() { endInteraction(); }
   void selectPreset(UiState& state, std::size_t presetIndex);
   void selectBlock(UiState& state, std::size_t blockIndex);
+  void selectLaneBlock(UiState& state, std::size_t rigIndex, std::size_t laneIndex,
+                       std::size_t blockIndex);
   void selectGlobalParams(UiState& state);
   void highlightBlock(std::string blockId);
   bool isBlockHighlighted(const std::string& blockId) const;
@@ -112,6 +125,15 @@ public:
   static lv_point_t chainIndicatorPosition(std::size_t blockCount, std::size_t slot);
   static lv_point_t chainReorderIndicatorPosition(std::size_t blockCount, std::size_t source,
                                                    std::size_t target);
+  std::size_t chainSlotAtPoint(lv_point_t canvasPoint) const;
+  std::size_t chainInsertionSlotAtPoint(lv_point_t canvasPoint) const;
+  lv_point_t chainIndicatorForSlot(std::size_t slot) const;
+  void scrollChainToStart(UiState& state);
+  void scrollChainToEnd(UiState& state);
+  void scrollChainBlockIntoView(std::size_t blockIndex);
+  void autoScrollChainForDrag(UiState& state, lv_point_t canvasPoint);
+  std::optional<UiLaneDropTarget> laneDropTargetAtPoint(lv_point_t canvasPoint) const;
+  lv_point_t laneIndicatorForTarget(const UiLaneDropTarget& target) const;
   bool applyFocusedParameterDelta(UiState& state, int delta, bool continuousTouch = false);
   void setFocusedWidgets(lv_obj_t* control, lv_obj_t* eqGraph = nullptr)
   {
@@ -126,12 +148,19 @@ public:
   // hit-testing and overlay placement stay correct at any resolution.
   lv_obj_t* canvas() const { return canvas_; }
   lv_point_t toCanvas(lv_point_t displayPoint) const;
+  void openSettings(UiState& state);
+  void closeSettings(UiState& state);
+  void showSettingsSection(UiState& state, std::size_t section);
+  void selectAccentColor(UiState& state, std::size_t colorIndex);
+  void saveWifiSettings(UiState& state);
+  void toggleWifiPassword();
 
 private:
   void renderPresetMode(lv_obj_t* root, UiState& state);
   void renderEditMode(lv_obj_t* root, UiState& state);
   void renderTunerMode(lv_obj_t* root, UiState& state);
   void renderBlockDrawer(lv_obj_t* root, UiState& state);
+  void renderSettingsView(lv_obj_t* root, UiState& state);
   void rebuildPresetView(UiState& state);
   void rebuildEditView(UiState& state);
   void rebuildParameterView(UiState& state);
@@ -162,9 +191,20 @@ private:
   lv_obj_t* parameterLayer_ = nullptr;
   lv_obj_t* drawerLayer_ = nullptr;
   lv_obj_t* statusLayer_ = nullptr;
+  lv_obj_t* settingsLayer_ = nullptr;
   lv_obj_t* previewOverlay_ = nullptr;
   lv_obj_t* previewOverlayLabel_ = nullptr;
   lv_obj_t* navigationOverlay_ = nullptr;
+  lv_obj_t* wifiSSIDField_ = nullptr;
+  lv_obj_t* wifiPasswordField_ = nullptr;
+  lv_obj_t* wifiCountryField_ = nullptr;
+  lv_obj_t* wifiKeyboard_ = nullptr;
+  lv_obj_t* wifiPasswordToggleLabel_ = nullptr;
+  bool settingsOpen_ = false;
+  std::size_t settingsSection_ = 0;
+  bool wifiPasswordVisible_ = false;
+  std::string settingsMessage_;
+  bool settingsMessageIsError_ = false;
   lv_obj_t* presetBankLabel_ = nullptr;
   lv_obj_t* masterVolumeLabel_ = nullptr;
   lv_obj_t* bankDownButton_ = nullptr;
@@ -191,7 +231,13 @@ private:
   std::array<UiEventContext*, kMaxEffectBlocks> chainClickContexts_{};
   std::array<UiEventContext*, kMaxEffectBlocks> chainDragContexts_{};
   std::vector<std::string> renderedBlockIds_;
-  lv_obj_t* chainWrapConnector_ = nullptr;
+  lv_obj_t* chainViewport_ = nullptr;
+  lv_obj_t* chainWorld_ = nullptr;
+  std::vector<int32_t> chainItemStarts_;
+  std::vector<int32_t> chainItemEnds_;
+  std::vector<int32_t> chainInsertionXs_;
+  std::optional<std::size_t> renderedRigIndex_;
+  std::array<std::vector<int32_t>, 2> laneInsertionXs_;
   static constexpr std::size_t kDrawerCategoryCount = 8;
   std::array<lv_obj_t*, kDrawerCategoryCount> drawerCategoryButtons_{};
   std::vector<lv_obj_t*> drawerAssetButtons_;

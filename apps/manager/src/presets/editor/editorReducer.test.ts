@@ -87,6 +87,46 @@ describe("editorReducer", () => {
     expect(edited.selectedBlockId).toBe("block-1");
   });
 
+  it("adds a version-2 Dual Rig and edits both child chains recursively", () => {
+    const added = editorReducer(state(), { type: "add-block", definitionId: "dualRig", index: 1 });
+    const rig = added.history.present.blocks.find(({ type }) => type === "dualRig");
+    expect(added.history.present.version).toBe(2);
+    expect(rig?.lanes?.left.blocks.map(({ type }) => type)).toEqual(["nam", "cab"]);
+    expect(rig?.lanes?.right.blocks.map(({ type }) => type)).toEqual(["nam", "cab"]);
+
+    const leftNam = rig?.lanes?.left.blocks[0];
+    expect(leftNam).toBeDefined();
+    const edited = reduce(
+      added,
+      { type: "set-block-asset", blockId: leftNam!.id, asset: "models/left.nam" },
+      { type: "set-block-param", blockId: leftNam!.id, key: "useNano", value: true },
+      { type: "add-lane-block", rigId: rig!.id, lane: "right", definitionId: "delay:digital", index: 2 },
+    );
+    const editedRig = edited.history.present.blocks.find(({ id }) => id === rig!.id);
+    expect(editedRig?.lanes?.left.blocks[0]).toMatchObject({
+      asset: "models/left.nam",
+      params: expect.objectContaining({ useNano: true }),
+    });
+    expect(editedRig?.lanes?.right.blocks.map(({ type }) => type)).toEqual(["nam", "cab", "delay"]);
+
+    const delay = editedRig!.lanes!.right.blocks[2];
+    const reordered = editorReducer(edited, {
+      type: "move-lane-block", rigId: rig!.id, blockId: delay.id, lane: "right", index: 0,
+    });
+    const reorderedRig = reordered.history.present.blocks.find(({ id }) => id === rig!.id);
+    expect(reorderedRig?.lanes?.right.blocks.map(({ type }) => type)).toEqual(["delay", "nam", "cab"]);
+
+    const moved = editorReducer(reordered, {
+      type: "move-lane-block", rigId: rig!.id, blockId: delay.id, lane: "left", index: 2,
+    });
+    const movedRig = moved.history.present.blocks.find(({ id }) => id === rig!.id);
+    expect(movedRig?.lanes?.left.blocks.map(({ type }) => type)).toEqual(["nam", "cab", "delay"]);
+    expect(movedRig?.lanes?.right.blocks.map(({ type }) => type)).toEqual(["nam", "cab"]);
+
+    const removed = editorReducer(moved, { type: "remove-block", blockId: delay.id });
+    expect(removed.selectedBlockId).toBe(rig!.id);
+  });
+
   it("toggles, updates assets, and clamps known parameters", () => {
     const edited = reduce(
       state(),
