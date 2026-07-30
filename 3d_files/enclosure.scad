@@ -1,7 +1,7 @@
 /* [Global Dimensions] */
 $fn = 60;                  // Hole smoothness
 box_width = 180;           // X-axis outer width
-box_length = 140;          // Y-axis outer length
+box_length = 150;          // Y-axis outer length
 box_height = 55;           // Z-axis overall height
 wall_thickness = 3.0;      // Rugged 3mm wall thickness
 corner_radius = 8;         // Smooth outer corner aesthetic
@@ -31,8 +31,8 @@ usb_c_w = 13.0;
 usb_c_h = 6.5;
 
 
-//main_chassis();
-bottom_lid();
+main_chassis();
+//bottom_lid();
 
 module rounded_box(w, l, h, r) {
     linear_extrude(height = h) {
@@ -67,7 +67,7 @@ module main_chassis() {
             rounded_box(box_width - 2*wall_thickness, box_length - 2*wall_thickness, box_height - wall_thickness + 1, max(1, corner_radius - wall_thickness));
 
         // TOP PANEL: Display Window
-        translate([box_width/2 - screen_w/2, box_length/2 - screen_l/2, box_height - wall_thickness - 1])
+        translate([(box_width/2 - screen_w/2) + 7.5, box_length/2 - screen_l/2, box_height - wall_thickness - 1])
             cube([screen_w, screen_l, wall_thickness + 2]);
 
         // TOP PANEL: Corner Footswitches
