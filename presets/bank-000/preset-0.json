@@ -21,6 +21,33 @@
       "type": "dynamics"
     },
     {
+      "asset": "models/test.nam",
+      "enabled": true,
+      "id": "block-9",
+      "params": {
+        "inputMode": "right",
+        "useNano": true
+      },
+      "type": "nam"
+    },
+    {
+      "asset": "models/test.nam",
+      "enabled": true,
+      "id": "block-12",
+      "params": {
+        "inputMode": "left",
+        "useNano": true
+      },
+      "type": "nam"
+    },
+    {
+      "asset": "irs/test.wav",
+      "enabled": true,
+      "id": "block-10",
+      "params": {},
+      "type": "cab"
+    },
+    {
       "asset": "",
       "enabled": true,
       "id": "block-8",

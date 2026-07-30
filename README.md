@@ -26,7 +26,7 @@ vulnerabilities should be reported privately according to
 - Git access during CMake configure, for `miniaudio` and `NeuralAmpModelerCore`
 - SDL2 for the LVGL desktop simulator (`ARDOR_UI_BACKEND=sdl`)
 - macOS for desktop testing, or Linux for target-style builds
-- Optional: Go for the manager daemon, Node.js/Rust for the Tauri manager, and
+- Optional: Go for the manager daemon, Node.js 24 via `nvm use`/Rust for the Tauri manager, and
   Docker for the Buildroot firmware image
 - Local test assets:
   - `models/test.nam`
@@ -388,6 +388,11 @@ movement to master output volume. Hold the two left switches (`KEY_F1` +
 `KEY_F2`) together for one second to mute the output and open the tuner; press
 any footswitch to exit without changing presets. The touchscreen provides the
 same flow through the preset-screen Tuner button and tuner-screen Exit button.
+
+The planned TRS-A MIDI and expression-pedal interface, message mapping, GPIO
+allocation, and preset expression schema are documented in
+[`docs/midi-expression-control.md`](docs/midi-expression-control.md). Its
+native KiCad schematic is under [`hardware/control-io`](hardware/control-io/README.md).
 
 ## Manager Daemon
 

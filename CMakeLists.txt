@@ -234,6 +234,7 @@ target_link_libraries(ardor_audio PUBLIC ardor_dsp ardor_preset)
 
 add_library(ardor_control
   src/control/ControlEvents.cpp
+  src/control/Midi.cpp
 )
 target_include_directories(ardor_control PUBLIC src)
 target_compile_features(ardor_control PUBLIC cxx_std_20)

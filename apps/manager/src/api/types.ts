@@ -74,6 +74,13 @@ export type Preset = {
     safetyLimitDb: number;
     [key: string]: unknown;
   };
+  expression?: {
+    blockId: string;
+    parameter: string;
+    minimum: number;
+    maximum: number;
+    inverted: boolean;
+  };
   blocks: PresetBlock[];
   [key: string]: unknown;
 };

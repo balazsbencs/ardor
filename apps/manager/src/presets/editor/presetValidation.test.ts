@@ -46,6 +46,27 @@ describe("preset validation", () => {
     expect(codes(preset)).toContain(code);
   });
 
+  it("validates expression assignments against stable block IDs", () => {
+    const compressor = createBlockFromDefinition("dynamics:compressor", []);
+    const preset = validPreset([compressor]);
+    preset.expression = {
+      blockId: compressor.id,
+      parameter: "threshold_db",
+      minimum: -60,
+      maximum: -10,
+      inverted: false,
+    };
+    expect(codes(preset)).not.toContain("expression-block");
+
+    preset.expression.blockId = "missing";
+    expect(codes(preset)).toContain("expression-block");
+
+    preset.expression.blockId = compressor.id;
+    preset.expression.minimum = 1;
+    preset.expression.maximum = 0;
+    expect(codes(preset)).toContain("expression-range");
+  });
+
   it.each([
     ["", "block-id-empty"],
     ["x".repeat(81), "block-id-length"],

@@ -1048,6 +1048,111 @@ void onLaneBlockPressed(lv_event_t* event)
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   context->dragging = false;
   context->suppressClick = false;
+  const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
+  if (context->parentIndex < blocks.size()
+      && context->laneIndex < blocks[context->parentIndex].lanes.size()
+      && context->index < blocks[context->parentIndex].lanes[context->laneIndex].size()) {
+    const auto& child = blocks[context->parentIndex].lanes[context->laneIndex][context->index];
+    context->dragText = rigLaneToken(child) + "\n" + child.assetName;
+  }
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (input) {
+    lv_indev_get_point(input, &context->pressPoint);
+    context->pressPoint = context->ui->toCanvas(context->pressPoint);
+  }
+}
+
+void onLaneBlockPressing(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (!input) return;
+  lv_point_t point{};
+  lv_indev_get_point(input, &point);
+  point = context->ui->toCanvas(point);
+  const int dx = point.x - context->pressPoint.x;
+  const int dy = point.y - context->pressPoint.y;
+  if (!context->dragging && dx * dx + dy * dy < 64) return;
+  if (!context->dragging) {
+    context->dragging = true;
+    context->ui->beginInteraction();
+    if (context->controlledObject) lv_obj_set_style_opa(context->controlledObject, LV_OPA_TRANSP, 0);
+  }
+  context->ui->autoScrollChainForDrag(*context->state, point);
+  placeDragGhost(context, point);
+  if (const auto target = context->ui->laneDropTargetAtPoint(point)) {
+    placeLaneDragIndicator(context, *target);
+  } else if (context->indicator) {
+    lv_obj_delete(context->indicator);
+    context->indicator = nullptr;
+  }
+}
+
+void onLaneBlockReleased(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
+  const bool enabled = context->parentIndex < blocks.size()
+    && context->laneIndex < blocks[context->parentIndex].lanes.size()
+    && context->index < blocks[context->parentIndex].lanes[context->laneIndex].size()
+    && blocks[context->parentIndex].lanes[context->laneIndex][context->index].enabled;
+  if (context->controlledObject) {
+    lv_obj_set_style_opa(context->controlledObject, enabled ? LV_OPA_COVER : LV_OPA_70, 0);
+  }
+  if (!context->dragging) return;
+  lv_indev_t* input = lv_event_get_indev(event);
+  std::optional<UiLaneDropTarget> target;
+  if (input) {
+    lv_point_t point{};
+    lv_indev_get_point(input, &point);
+    point = context->ui->toCanvas(point);
+    target = context->ui->laneDropTargetAtPoint(point);
+  }
+  clearDragVisuals(context);
+  if (target) {
+    moveLaneBlock(*context->state, context->parentIndex, context->laneIndex,
+                  context->index, target->laneIndex, target->blockIndex);
+    redraw(context);
+  }
+  context->ui->endInteraction();
+}
+
+void onLaneBlockPressLost(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
+  const bool enabled = context->parentIndex < blocks.size()
+    && context->laneIndex < blocks[context->parentIndex].lanes.size()
+    && context->index < blocks[context->parentIndex].lanes[context->laneIndex].size()
+    && blocks[context->parentIndex].lanes[context->laneIndex][context->index].enabled;
+  if (context->controlledObject) {
+    lv_obj_set_style_opa(context->controlledObject, enabled ? LV_OPA_COVER : LV_OPA_70, 0);
+  }
+  const bool wasDragging = context->dragging;
+  clearDragVisuals(context);
+  if (wasDragging) context->ui->endInteraction();
+}
+
+void placeLaneDragIndicator(UiEventContext* context, const UiLaneDropTarget& target)
+{
+  if (!context->indicator) {
+    context->indicator = lv_obj_create(context->ui->canvas());
+    lv_obj_set_size(context->indicator, 5, kLaneTileHeight);
+    lv_obj_set_style_border_width(context->indicator, 0, 0);
+    lv_obj_set_style_radius(context->indicator, 2, 0);
+  }
+  const auto position = context->ui->laneIndicatorForTarget(target);
+  lv_obj_set_pos(context->indicator, position.x, position.y);
+  lv_obj_set_style_bg_color(context->indicator,
+                            lv_color_hex(target.laneIndex == 0 ? accent : rigRight), 0);
+  moveToFront(context->indicator);
+}
+
+void onLaneBlockPressed(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->dragging = false;
+  context->suppressClick = false;
   context->ui->setChainDragActive(true);
   const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
   if (context->parentIndex < blocks.size()

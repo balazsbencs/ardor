@@ -158,6 +158,7 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
   const presetIssues: ValidationIssue[] = [];
   const issuesByBlock: ValidationIssue[][] = [];
   const source = preset as unknown as Record<string, unknown>;
+  const ids = new Set<string>();
 
   if (source.version !== 1 && source.version !== 2) {
     presetIssues.push(error("version", "Preset version must be 1 or 2.", "version"));
@@ -189,7 +190,6 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
     presetIssues.push(error("blocks-shape", "Preset blocks must be an array.", "blocks"));
   } else {
     if (source.blocks.length > 10) presetIssues.push(error("block-limit", "A preset can contain at most ten blocks.", "blocks"));
-    const ids = new Set<string>();
     const enabledGroups = new Map<string, string>();
     let enabledParallelRig: string | undefined;
     const enabledStandaloneAmpBlocks: string[] = [];
@@ -384,6 +384,42 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
         stereoEstablished = true;
       }
     });
+  }
+
+  if (source.expression !== undefined && source.expression !== null) {
+    const expression = source.expression;
+    if (!isRecord(expression)
+        || typeof expression.blockId !== "string"
+        || typeof expression.parameter !== "string"
+        || typeof expression.minimum !== "number"
+        || typeof expression.maximum !== "number"
+        || typeof expression.inverted !== "boolean") {
+      presetIssues.push(error(
+        "expression-shape",
+        "Expression assignment must contain blockId, parameter, minimum, maximum, and inverted.",
+        "expression",
+      ));
+    } else if (!expression.blockId || !expression.parameter) {
+      presetIssues.push(error(
+        "expression-target",
+        "Expression assignment requires a block and parameter.",
+        "expression",
+      ));
+    } else if (!ids.has(expression.blockId)) {
+      presetIssues.push(error(
+        "expression-block",
+        `Expression target block “${expression.blockId}” does not exist.`,
+        "expression.blockId",
+      ));
+    } else if (!Number.isFinite(expression.minimum)
+        || !Number.isFinite(expression.maximum)
+        || expression.minimum > expression.maximum) {
+      presetIssues.push(error(
+        "expression-range",
+        "Expression minimum and maximum must be finite, with minimum no greater than maximum.",
+        "expression",
+      ));
+    }
   }
 
   const issues = [...presetIssues, ...issuesByBlock.flat()];

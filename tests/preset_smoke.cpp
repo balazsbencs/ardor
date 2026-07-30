@@ -70,6 +70,24 @@ int main()
     require(preset.blocks[1].type == "cab", "second block type");
     require(!preset.blocks[1].enabled, "disabled block");
     require(preset.blocks[1].params.at("mix").get<float>() == 1.0f, "block param");
+    auto expressionJson = json;
+    expressionJson["expression"] = {
+      {"blockId", "block-2"},
+      {"parameter", "mix"},
+      {"minimum", 0.2},
+      {"maximum", 1.0},
+      {"inverted", false},
+    };
+    const auto expressionPreset = ardor::presetFromJson(expressionJson);
+    require(expressionPreset.expression && expressionPreset.expression->blockId == "block-2"
+              && expressionPreset.expression->parameter == "mix",
+            "expression assignment target");
+    require(std::fabs(ardor::expressionValueAt(*expressionPreset.expression, 0.5f) - 0.6f) < 1.0e-6f,
+            "expression assignment range mapping");
+    auto invertedExpression = *expressionPreset.expression;
+    invertedExpression.inverted = true;
+    require(std::fabs(ardor::expressionValueAt(invertedExpression, 0.25f) - 0.8f) < 1.0e-6f,
+            "inverted expression mapping");
 
     const auto legacyEffectsJson = nlohmann::json::parse(R"({
       "version": 1,
@@ -123,6 +141,30 @@ int main()
     require(roundTrip.blocks.size() == 2, "round trip block count");
     require(roundTrip.blocks[1].id == "block-2", "round trip block id");
     require(roundTrip.blocks[1].params.at("levelDb").get<float>() == -3.0f, "round trip block param");
+    const auto expressionRoundTrip = ardor::presetFromJson(ardor::toJson(expressionPreset));
+    require(expressionRoundTrip.expression && expressionRoundTrip.expression->blockId == "block-2",
+            "expression assignment round trip");
+
+    bool rejectedMissingExpressionBlock = false;
+    try {
+      auto invalid = expressionJson;
+      invalid["expression"]["blockId"] = "missing-block";
+      (void)ardor::presetFromJson(invalid);
+    } catch (const std::invalid_argument&) {
+      rejectedMissingExpressionBlock = true;
+    }
+    require(rejectedMissingExpressionBlock, "reject expression assignment to missing block");
+
+    bool rejectedExpressionRange = false;
+    try {
+      auto invalid = expressionJson;
+      invalid["expression"]["minimum"] = 1.0;
+      invalid["expression"]["maximum"] = 0.0;
+      (void)ardor::presetFromJson(invalid);
+    } catch (const std::invalid_argument&) {
+      rejectedExpressionRange = true;
+    }
+    require(rejectedExpressionRange, "reject inverted expression range");
 
     bool rejectedAbsoluteAsset = false;
     try {

@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 
 #include <array>
+#include <optional>
 #include <string_view>
 #include <string>
 #include <vector>
@@ -27,16 +28,28 @@ struct PresetBlock {
   std::array<std::vector<PresetBlock>, 2> lanes;
 };
 
+struct PresetExpression {
+  // Stable block ID plus the block parameter key avoids binding a preset to
+  // the block's current position in the signal chain.
+  std::string blockId;
+  std::string parameter;
+  float minimum = 0.0f;
+  float maximum = 1.0f;
+  bool inverted = false;
+};
+
 struct Preset {
   int version = 1;
   std::string name;
   std::string routing = "serial";
   PresetGlobal global;
   std::vector<PresetBlock> blocks;
+  std::optional<PresetExpression> expression;
 };
 
 nlohmann::json toJson(const Preset& preset);
 Preset presetFromJson(const nlohmann::json& json);
 bool isValidBlockAssetPath(std::string_view asset);
+float expressionValueAt(const PresetExpression& assignment, float normalizedPosition);
 
 } // namespace ardor
