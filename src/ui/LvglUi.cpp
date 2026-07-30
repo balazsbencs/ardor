@@ -209,7 +209,9 @@ std::string rigLaneToken(const UiBlock& block)
 {
   if (block.type == "nam") return "NAM";
   if (block.type == "cab") return "IR";
-  if (block.type == "dynamics") return "CMP";
+  if (block.type == "dynamics") {
+    return block.params.value("mode", std::string{}) == "noise_gate" ? "GATE" : "CMP";
+  }
   if (block.type == "eq") return "EQ";
   if (block.type == "delay") return "DLY";
   if (block.type == "reverb") return "REV";
@@ -2336,6 +2338,16 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
           if (block.type == "dynamics" && block.params.value("mode", "") == "compressor"
               && block.params.contains(control.key) && block.params[control.key].is_number()) {
             liveUpdateSucceeded = actions_.updateCompressorParameter(
+              block.id, control.key, block.params[control.key].get<float>());
+          }
+        }
+      }
+      if (actions_.updateNoiseGateParameter && state.paramTarget == UiParamTarget::Block) {
+        if (const auto* selected = selectedUiBlock(state)) {
+          const auto& block = *selected;
+          if (block.type == "dynamics" && block.params.value("mode", "") == "noise_gate"
+              && block.params.contains(control.key) && block.params[control.key].is_number()) {
+            liveUpdateSucceeded = actions_.updateNoiseGateParameter(
               block.id, control.key, block.params[control.key].get<float>());
           }
         }

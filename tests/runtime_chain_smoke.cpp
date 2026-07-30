@@ -95,6 +95,19 @@ int main()
   require(near(clipStages[0].peak, 0.0f) && clipStages[0].overloadFrames == 0,
           "taking clip diagnostics starts a fresh interval");
 
+  ardor::NoiseGateProcessor diagnosticGate;
+  std::string diagnosticGateError;
+  require(diagnosticGate.configure({{"mode", "noise_gate"}}, 48000.0f, diagnosticGateError),
+          diagnosticGateError);
+  ardor::RuntimeChain gateDiagnosticChain;
+  gateDiagnosticChain.addNoiseGate("diagnostic-gate", std::move(diagnosticGate));
+  gateDiagnosticChain.process({0.5f, 0.5f});
+  const auto gateStages = gateDiagnosticChain.takeClipDiagnostics();
+  require(gateStages.size() == 1
+            && gateStages[0].kind == ardor::SignalStageKind::NoiseGate
+            && gateStages[0].id == "diagnostic-gate",
+          "clip diagnostics identify the noise gate stage and stable ID");
+
   ardor::DaisyFxProcessor delay;
   std::string delayError;
   require(delay.configure("delay", {
@@ -187,6 +200,26 @@ int main()
     compressorDry = {output.first, output.second};
   }
   require(near(compressorDry.left, 0.5f), "compressor bypass should return dry audio");
+
+  ardor::PedalEngine noiseGateEngine;
+  require(noiseGateEngine.addNoiseGate("noise-gate", {
+    {"threshold_db", -20.0f}, {"reduction_db", 80.0f}, {"attack_ms", 1.0f},
+    {"hold_ms", 0.0f}, {"release_ms", 50.0f}, {"hysteresis_db", 6.0f},
+    {"sidechain_hpf_hz", 80.0f},
+  }, 48000.0f, error), error);
+  require(noiseGateEngine.setNoiseGateParameter("noise-gate", "reduction_db", 60.0f),
+          "target noise gate by stable ID");
+  require(!noiseGateEngine.setNoiseGateParameter("missing", "threshold_db", -40.0f),
+          "missing noise gate ID rejected");
+  float gatedOutput = 0.0f;
+  for (int i = 0; i < 48000; ++i) {
+    gatedOutput = std::fabs(noiseGateEngine.process(i % 2 == 0 ? 0.01f : -0.01f).first);
+  }
+  require(gatedOutput < 0.00002f, "noise gate should attenuate below-threshold input");
+  for (int i = 0; i < 4800; ++i) {
+    gatedOutput = std::fabs(noiseGateEngine.process(i % 2 == 0 ? 0.5f : -0.5f).first);
+  }
+  require(gatedOutput > 0.49f, "noise gate should pass above-threshold input");
 
   engine.setEffectsBypassed(true);
   ardor::StereoSample dry{};

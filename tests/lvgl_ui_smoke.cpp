@@ -294,7 +294,7 @@ int main()
   int requestedBankDelta = 0;
   int requestedTunerMode = -1;
   ardor::LvglUi ui({
-    {}, {}, {}, {}, {}, {}, {},
+    {}, {}, {}, {}, {}, {}, {}, {},
     [&](int delta) { requestedBankDelta += delta; },
     {},
     [&](bool enabled) { requestedTunerMode = enabled ? 1 : 0; },
@@ -458,6 +458,32 @@ int main()
   if (require(ratioControl != compressorControls.end() && ratioControl->formatted == "4.5:1"
                 && attackControl != compressorControls.end() && attackControl->formatted == "0.1 ms",
               "compressor values should preserve meaningful fractional precision")) return 1;
+
+  const auto noiseGateAsset = std::find_if(state.assets.begin(), state.assets.end(), [](const ardor::UiAsset& asset) {
+    return asset.name == "Noise Gate";
+  });
+  if (require(noiseGateAsset != state.assets.end(), "noise gate asset should be available")) return 1;
+  ardor::appendAssetBlock(state, static_cast<std::size_t>(std::distance(state.assets.begin(), noiseGateAsset)));
+  completePreview(state);
+  bool noiseGateActionCalled = false;
+  std::string updatedNoiseGateKey;
+  ardor::LvglUi noiseGateUi({
+    {}, {}, {}, {}, {},
+    [&](const std::string&, const std::string& key, float) {
+      noiseGateActionCalled = true;
+      updatedNoiseGateKey = key;
+      return true;
+    },
+  });
+  noiseGateUi.focusParameter("threshold_db");
+  if (require(noiseGateUi.applyFocusedParameterDelta(state, 1)
+                && noiseGateActionCalled && updatedNoiseGateKey == "threshold_db",
+              "noise gate numeric edits should use the live runtime action")) return 1;
+  const auto noiseGateControls = ardor::parameterPage(state, 0);
+  if (require(noiseGateControls.size() == 6
+                && noiseGateControls[0].label == "Threshold"
+                && noiseGateControls[1].label == "Reduction",
+              "noise gate should expose meaningful first-page controls")) return 1;
   ui.selectBlock(state, tremIndex);
 
   if (require(ardor::parameterPage(state, 0).size() <= 6, "page must contain <= six sliders")) return 1;
@@ -1200,16 +1226,18 @@ int main()
   lv_obj_t* reverbFilter = drawer ? findLabel(drawer, "Reverbs") : nullptr;
   lv_obj_t* tremAssetLabel = drawer ? findLabel(drawer, "Vintage Trem") : nullptr;
   lv_obj_t* compressorAssetLabel = drawer ? findLabel(drawer, "Compressor") : nullptr;
+  lv_obj_t* noiseGateAssetLabel = drawer ? findLabel(drawer, "Noise Gate") : nullptr;
   lv_obj_t* eqAssetLabel = drawer ? findLabel(drawer, "Five Band EQ") : nullptr;
   if (require(drawer && allFilter && utilityFilter && delayFilter && reverbFilter
-                && tremAssetLabel && compressorAssetLabel && eqAssetLabel,
-              "block drawer should group compressor and EQ under Utility")) return 1;
+                && tremAssetLabel && compressorAssetLabel && noiseGateAssetLabel && eqAssetLabel,
+              "block drawer should group compressor, noise gate, and EQ under Utility")) return 1;
   lv_obj_t* allFilterButton = lv_obj_get_parent(allFilter);
   lv_obj_t* utilityFilterButton = lv_obj_get_parent(utilityFilter);
   lv_obj_t* delayFilterButton = lv_obj_get_parent(delayFilter);
   lv_obj_t* reverbFilterButton = lv_obj_get_parent(reverbFilter);
   lv_obj_t* tremAssetButton = lv_obj_get_parent(tremAssetLabel);
   lv_obj_t* compressorAssetButton = lv_obj_get_parent(compressorAssetLabel);
+  lv_obj_t* noiseGateAssetButton = lv_obj_get_parent(noiseGateAssetLabel);
   lv_obj_t* eqAssetButton = lv_obj_get_parent(eqAssetLabel);
   lv_obj_t* retainedDrawer = drawer;
   lv_obj_t* retainedAssetList = lv_obj_get_parent(tremAssetButton);
@@ -1251,9 +1279,10 @@ int main()
   ui.refresh(lv_screen_active(), state);
   if (require(state.categoryFilter == "utility"
                 && !lv_obj_has_flag(compressorAssetButton, LV_OBJ_FLAG_HIDDEN)
+                && !lv_obj_has_flag(noiseGateAssetButton, LV_OBJ_FLAG_HIDDEN)
                 && !lv_obj_has_flag(eqAssetButton, LV_OBJ_FLAG_HIDDEN)
                 && lv_obj_has_flag(tremAssetButton, LV_OBJ_FLAG_HIDDEN),
-              "Utility should show compressor and EQ while hiding modulation effects")) return 1;
+              "Utility should show compressor, noise gate, and EQ while hiding modulation effects")) return 1;
   lv_obj_send_event(delayFilterButton, LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());

@@ -12,21 +12,22 @@ import {
 describe("effect catalog", () => {
   const definitions = allEffectDefinitions();
 
-  it("contains the complete unique set of 41 definitions", () => {
-    expect(definitions).toHaveLength(41);
-    expect(new Set(definitions.map(({ id }) => id)).size).toBe(41);
-    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(41);
-    expect(new Set(definitions.map(({ name }) => name)).size).toBe(41);
+  it("contains the complete unique set of 42 definitions", () => {
+    expect(definitions).toHaveLength(42);
+    expect(new Set(definitions.map(({ id }) => id)).size).toBe(42);
+    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(42);
+    expect(new Set(definitions.map(({ name }) => name)).size).toBe(42);
     expect(definitions.every(({ controls }) => controls.length > 0)).toBe(true);
     expect(definitions.filter(({ blockType }) => blockType === "mod")).toHaveLength(13);
     expect(definitions.filter(({ blockType }) => blockType === "delay")).toHaveLength(10);
     expect(definitions.filter(({ blockType }) => blockType === "reverb")).toHaveLength(12);
   });
 
-  it("groups compressor and EQ under Utility", () => {
+  it("groups compressor, noise gate, and EQ under Utility", () => {
     expect(getEffectDefinition("dynamics:compressor").category).toBe("utility");
+    expect(getEffectDefinition("dynamics:noise_gate").category).toBe("utility");
     expect(getEffectDefinition("eq:parametric_eq_5").category).toBe("utility");
-    expect(definitions.filter(({ category }) => category === "utility")).toHaveLength(2);
+    expect(definitions.filter(({ category }) => category === "utility")).toHaveLength(3);
   });
 
   it("keeps Daisy presets normalized while attaching physical UI displays", () => {
@@ -87,6 +88,21 @@ describe("effect catalog", () => {
       sidechain_hpf_hz: 80,
       detector: "peak",
       auto_makeup: false,
+    });
+  });
+
+  it("matches the noise gate controls and runtime defaults", () => {
+    const noiseGate = getEffectDefinition("dynamics:noise_gate");
+    expect(noiseGate.controls).toHaveLength(7);
+    expect(defaultsForDefinition(noiseGate.id)).toEqual({
+      mode: "noise_gate",
+      threshold_db: -55,
+      reduction_db: 80,
+      attack_ms: 2,
+      hold_ms: 50,
+      release_ms: 150,
+      hysteresis_db: 6,
+      sidechain_hpf_hz: 80,
     });
   });
 
@@ -182,7 +198,7 @@ describe("effect catalog", () => {
       expect(findEffectDefinition(block)?.id).toBe(id);
       return { ...block, id: `block-${index + 1}` };
     });
-    expect(blocks).toHaveLength(41);
+    expect(blocks).toHaveLength(42);
   });
 
   it("chooses the next numeric block id and handles nonstandard collisions", () => {

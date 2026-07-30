@@ -733,6 +733,13 @@ int main(int argc, char** argv)
             }
             return true;
           },
+          [&](const std::string& blockId, const std::string& key, float value) {
+            if (!liveEngine->setNoiseGateParameter(blockId, key, value)) {
+              std::cerr << "Unable to update noise gate parameter " << blockId << ":" << key << "\n";
+              return false;
+            }
+            return true;
+          },
           [&](float inputGainDb, float outputGainDb) {
             liveEngine->setInputGain(ardor::dbToGain(inputGainDb));
             liveEngine->setOutputGain(ardor::dbToGain(outputGainDb));

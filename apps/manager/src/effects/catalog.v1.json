@@ -387,6 +387,91 @@
       ]
     },
     {
+      "id": "dynamics:noise_gate",
+      "blockType": "dynamics",
+      "mode": "noise_gate",
+      "name": "Noise Gate",
+      "description": "Stereo-linked noise suppression with hold, hysteresis, and sidechain filtering.",
+      "category": "utility",
+      "aliases": [
+        "gate",
+        "noise suppressor",
+        "expander"
+      ],
+      "controls": [
+        {
+          "kind": "number",
+          "key": "threshold_db",
+          "label": "Threshold",
+          "minimum": -80,
+          "maximum": 0,
+          "step": 1,
+          "unit": "db",
+          "defaultValue": -55
+        },
+        {
+          "kind": "number",
+          "key": "reduction_db",
+          "label": "Reduction",
+          "minimum": 0,
+          "maximum": 96,
+          "step": 1,
+          "unit": "db",
+          "defaultValue": 80
+        },
+        {
+          "kind": "number",
+          "key": "attack_ms",
+          "label": "Attack",
+          "minimum": 0.1,
+          "maximum": 50,
+          "step": 0.5,
+          "unit": "ms",
+          "defaultValue": 2
+        },
+        {
+          "kind": "number",
+          "key": "hold_ms",
+          "label": "Hold",
+          "minimum": 0,
+          "maximum": 500,
+          "step": 5,
+          "unit": "ms",
+          "defaultValue": 50
+        },
+        {
+          "kind": "number",
+          "key": "release_ms",
+          "label": "Release",
+          "minimum": 10,
+          "maximum": 2000,
+          "step": 10,
+          "unit": "ms",
+          "defaultValue": 150
+        },
+        {
+          "kind": "number",
+          "key": "hysteresis_db",
+          "label": "Hysteresis",
+          "minimum": 0,
+          "maximum": 18,
+          "step": 1,
+          "unit": "db",
+          "defaultValue": 6
+        },
+        {
+          "kind": "number",
+          "key": "sidechain_hpf_hz",
+          "label": "Sidechain HPF",
+          "minimum": 20,
+          "maximum": 500,
+          "step": 10,
+          "unit": "hz",
+          "defaultValue": 80
+        }
+      ]
+    },
+    {
       "id": "eq:parametric_eq_5",
       "blockType": "eq",
       "mode": "parametric_eq_5",

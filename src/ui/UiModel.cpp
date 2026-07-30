@@ -113,6 +113,9 @@ std::string assetNameForBlock(const UiState& state, const PresetBlock& block)
   if (block.type == "dynamics" && block.params.value("mode", "") == "compressor") {
     return "Compressor";
   }
+  if (block.type == "dynamics" && block.params.value("mode", "") == "noise_gate") {
+    return "Noise Gate";
+  }
   if (block.type == "eq" && isParametricEqMode(block.params)) {
     return "Five Band EQ";
   }
@@ -142,6 +145,20 @@ nlohmann::json defaultCompressorParams()
   };
 }
 
+nlohmann::json defaultNoiseGateParams()
+{
+  return {
+    {"mode", "noise_gate"},
+    {"threshold_db", -55.0f},
+    {"reduction_db", 80.0f},
+    {"attack_ms", 2.0f},
+    {"hold_ms", 50.0f},
+    {"release_ms", 150.0f},
+    {"hysteresis_db", 6.0f},
+    {"sidechain_hpf_hz", 80.0f},
+  };
+}
+
 nlohmann::json paramsWithKnownDefaults(const std::string& type, const nlohmann::json& supplied)
 {
   nlohmann::json params = supplied.is_object() ? supplied : nlohmann::json::object();
@@ -168,6 +185,8 @@ nlohmann::json paramsWithKnownDefaults(const std::string& type, const nlohmann::
     };
   } else if (type == "dynamics" && params.value("mode", "") == "compressor") {
     defaults = defaultCompressorParams();
+  } else if (type == "dynamics" && params.value("mode", "") == "noise_gate") {
+    defaults = defaultNoiseGateParams();
   } else if (type == "eq" && isParametricEqMode(params)) {
     return parametricEqParamsToJson(parametricEqParamsFromJson(params));
   }
@@ -222,6 +241,8 @@ UiBlock blockFromAsset(const UiState& state, const UiAsset& asset,
       params = defaultDaisyFxParams(*descriptor);
     } else if (asset.blockType == "dynamics" && asset.mode == "compressor") {
       params = defaultCompressorParams();
+    } else if (asset.blockType == "dynamics" && asset.mode == "noise_gate") {
+      params = defaultNoiseGateParams();
     } else if (asset.blockType == "eq" && asset.mode == "parametric_eq_5") {
       params = parametricEqParamsToJson(defaultParametricEqParams());
     }
@@ -329,6 +350,7 @@ UiState makeDemoUiState()
     {"Vintage 4x12", "irs/vintage.wav", "cabs"},
     {"Focused 1x12", "irs/focus.wav", "cabs"},
     {"Compressor", "", "utility", "dynamics", "compressor"},
+    {"Noise Gate", "", "utility", "dynamics", "noise_gate"},
     {"Five Band EQ", "", "utility", "eq", "parametric_eq_5"},
   };
   appendDaisyAssets(state);
@@ -965,6 +987,14 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
     else if (key == "input_gain_db") value = clampFloat(value, -24.0f, 24.0f);
     else if (key == "mix") value = clampFloat(value, 0.0f, 1.0f);
     else if (key == "sidechain_hpf_hz") value = clampFloat(value, 20.0f, 500.0f);
+  } else if (block.type == "dynamics" && block.params.value("mode", "") == "noise_gate") {
+    if (key == "threshold_db") value = clampFloat(value, -80.0f, 0.0f);
+    else if (key == "reduction_db") value = clampFloat(value, 0.0f, 96.0f);
+    else if (key == "attack_ms") value = clampFloat(value, 0.1f, 50.0f);
+    else if (key == "hold_ms") value = clampFloat(value, 0.0f, 500.0f);
+    else if (key == "release_ms") value = clampFloat(value, 10.0f, 2000.0f);
+    else if (key == "hysteresis_db") value = clampFloat(value, 0.0f, 18.0f);
+    else if (key == "sidechain_hpf_hz") value = clampFloat(value, 20.0f, 500.0f);
   }
   const auto existing = block.params.find(key);
   if ((block.type == "dualAmp" || block.type == "dualRig")
@@ -1187,6 +1217,7 @@ void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoo
   appendAssetsFrom(state, dataRoot / "models", ".nam", "amps");
   appendAssetsFrom(state, dataRoot / "irs", ".wav", "cabs");
   state.assets.push_back({"Compressor", "", "utility", "dynamics", "compressor"});
+  state.assets.push_back({"Noise Gate", "", "utility", "dynamics", "noise_gate"});
   state.assets.push_back({"Five Band EQ", "", "utility", "eq", "parametric_eq_5"});
   appendDaisyAssets(state);
   state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split"});

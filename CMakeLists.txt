@@ -136,6 +136,7 @@ target_link_libraries(ardor_daisyfx PUBLIC ardor_daisyfx_runtime)
 
 add_library(ardor_dynamics
   src/dynamics/CompressorProcessor.cpp
+  src/dynamics/NoiseGateProcessor.cpp
 )
 target_include_directories(ardor_dynamics PUBLIC
   src
@@ -293,6 +294,9 @@ target_link_libraries(pedal-daisy-fx-automation PRIVATE ardor_daisyfx)
 add_executable(pedal-compressor-smoke tests/compressor_smoke.cpp)
 target_link_libraries(pedal-compressor-smoke PRIVATE ardor_dynamics)
 
+add_executable(pedal-noise-gate-smoke tests/noise_gate_smoke.cpp)
+target_link_libraries(pedal-noise-gate-smoke PRIVATE ardor_dynamics)
+
 add_executable(pedal-parametric-eq-smoke tests/parametric_eq_smoke.cpp)
 target_link_libraries(pedal-parametric-eq-smoke PRIVATE ardor_equalizer)
 
@@ -352,6 +356,7 @@ add_test(NAME pedal-hosted-dsp-unit COMMAND pedal-hosted-dsp-unit)
 add_test(NAME pedal-daisy-fx-response COMMAND pedal-daisy-fx-response)
 add_test(NAME pedal-daisy-fx-automation COMMAND pedal-daisy-fx-automation)
 add_test(NAME pedal-compressor-smoke COMMAND pedal-compressor-smoke)
+add_test(NAME pedal-noise-gate-smoke COMMAND pedal-noise-gate-smoke)
 add_test(NAME pedal-parametric-eq-smoke COMMAND pedal-parametric-eq-smoke)
 add_test(NAME pedal-runtime-chain-smoke COMMAND pedal-runtime-chain-smoke)
 add_test(NAME pedal-engine-contract-smoke COMMAND pedal-engine-contract-smoke)

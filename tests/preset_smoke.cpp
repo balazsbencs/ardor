@@ -363,10 +363,11 @@ int main()
     chainPreset.blocks.push_back({"bad-mod", "mod", true, "", nlohmann::json{{"mode", "bogus"}}});
     chainPreset.blocks.push_back({"future", "delay", true, "", nlohmann::json::object()});
     chainPreset.blocks.push_back({"compressor", "dynamics", true, "", nlohmann::json{{"mode", "compressor"}}});
+    chainPreset.blocks.push_back({"noise-gate", "dynamics", true, "", nlohmann::json{{"mode", "noise_gate"}}});
     chainPreset.blocks.push_back({"cab-ready", "cab", true, "irs/ok.wav", nlohmann::json{{"mix", 1.0f}}});
 
     const ardor::ChainPlan plan = ardor::buildChainPlan(chainPreset, dataRoot);
-    require(plan.blocks.size() == 10, "chain plan block count");
+    require(plan.blocks.size() == 11, "chain plan block count");
     require(std::fabs(plan.inputGain - ardor::dbToGain(-6.0f)) < 0.0001f, "chain input gain");
     require(std::fabs(plan.outputGain - ardor::dbToGain(-3.0f)) < 0.0001f, "chain output gain");
     require(std::fabs(plan.safetyLimit - ardor::dbToGain(-2.0f)) < 0.0001f, "chain safety limit");
@@ -381,8 +382,9 @@ int main()
     require(plan.blocks[6].status == ardor::ChainBlockStatus::Unsupported, "unsupported daisy mode");
     require(plan.blocks[7].status == ardor::ChainBlockStatus::Unsupported, "unsupported block");
     require(plan.blocks[8].status == ardor::ChainBlockStatus::Ready, "compressor block");
+    require(plan.blocks[9].status == ardor::ChainBlockStatus::Ready, "noise gate block");
     require(plan.blocks.back().assetPath == dataRoot / "irs/ok.wav", "resolved cab asset");
-    require(plan.runnableBlockCount == 4, "runnable block count");
+    require(plan.runnableBlockCount == 5, "runnable block count");
 
     auto rigPlanPreset = dualRigPreset;
     for (auto& lane : rigPlanPreset.blocks[0].lanes) {
@@ -438,6 +440,29 @@ int main()
     for (const float sample : duplicateRight) {
       require(std::isfinite(sample), "duplicate Daisy chain right output must be finite");
     }
+
+    ardor::Preset noiseGatePreset;
+    noiseGatePreset.name = "Noise Gate";
+    noiseGatePreset.blocks.push_back({"gate", "dynamics", true, "", {
+      {"mode", "noise_gate"}, {"threshold_db", -20.0f}, {"reduction_db", 80.0f},
+      {"attack_ms", 1.0f}, {"hold_ms", 0.0f}, {"release_ms", 50.0f},
+      {"hysteresis_db", 6.0f}, {"sidechain_hpf_hz", 80.0f},
+    }});
+    ardor::PedalEngine noiseGateEngine;
+    std::string noiseGateError;
+    require(ardor::applyPreset(
+              noiseGateEngine, noiseGatePreset, dataRoot, {48000, 64, 8192}, noiseGateError),
+            "noise gate preset should load through the prepared runtime path");
+    std::array<float, 64> gateInput{};
+    std::array<float, 64> gateLeft{};
+    std::array<float, 64> gateRight{};
+    gateInput.fill(0.001f);
+    for (int block = 0; block < 1000; ++block) {
+      noiseGateEngine.processBlock(
+        gateInput.data(), gateLeft.data(), gateRight.data(), gateInput.size());
+    }
+    require(std::fabs(gateLeft.back()) < 1.0e-6f,
+            "prepared noise gate runtime should attenuate quiet input");
 
     std::filesystem::remove_all(dataRoot);
     std::filesystem::remove_all(root);

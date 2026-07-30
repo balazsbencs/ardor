@@ -7,6 +7,7 @@
 #include "dsp/DualAmpProcessor.h"
 #include "dsp/DualRigProcessor.h"
 #include "dynamics/CompressorProcessor.h"
+#include "dynamics/NoiseGateProcessor.h"
 #include "equalizer/EqParameters.h"
 
 #include <cmath>
@@ -293,11 +294,23 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       continue;
     }
     if (block.type == "dynamics") {
-      CompressorProcessor processor;
-      if (!processor.configure(block.params, static_cast<float>(options.sampleRate), error)) {
+      const auto mode = block.params.value("mode", std::string{});
+      if (mode == "compressor") {
+        CompressorProcessor processor;
+        if (!processor.configure(block.params, static_cast<float>(options.sampleRate), error)) {
+          return false;
+        }
+        chain.addCompressor(block.id, std::move(processor));
+      } else if (mode == "noise_gate") {
+        NoiseGateProcessor processor;
+        if (!processor.configure(block.params, static_cast<float>(options.sampleRate), error)) {
+          return false;
+        }
+        chain.addNoiseGate(block.id, std::move(processor));
+      } else {
+        error = "unsupported dynamics mode in dual rig lane: " + block.id;
         return false;
       }
-      chain.addCompressor(block.id, std::move(processor));
       continue;
     }
     if (block.type == "eq") {
@@ -569,7 +582,19 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       continue;
     }
     if (block.type == "dynamics") {
-      if (!engine.addCompressor(block.id, block.params, static_cast<float>(options.sampleRate), error)) {
+      const auto mode = block.params.value("mode", std::string{});
+      if (mode == "compressor") {
+        if (!engine.addCompressor(
+              block.id, block.params, static_cast<float>(options.sampleRate), error)) {
+          return false;
+        }
+      } else if (mode == "noise_gate") {
+        if (!engine.addNoiseGate(
+              block.id, block.params, static_cast<float>(options.sampleRate), error)) {
+          return false;
+        }
+      } else {
+        error = "unsupported dynamics mode: " + block.id;
         return false;
       }
       continue;

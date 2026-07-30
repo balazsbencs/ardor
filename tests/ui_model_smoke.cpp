@@ -64,7 +64,8 @@ int main()
       if (require(asset.type == "reverb" && asset.blockType == "reverb",
                   "Room Reverb should resolve to the dedicated reverb category")) return 1;
     }
-    if (asset.name == "Compressor" || asset.name == "Five Band EQ") {
+    if (asset.name == "Compressor" || asset.name == "Noise Gate"
+        || asset.name == "Five Band EQ") {
       if (require(asset.type == "utility",
                   "compressor and EQ should resolve to the Utility category")) return 1;
     }
@@ -343,6 +344,31 @@ int main()
 
   completePreview(state);
 
+  auto noiseGateAsset = std::find_if(state.assets.begin(), state.assets.end(), [](const ardor::UiAsset& asset) {
+    return asset.name == "Noise Gate";
+  });
+  if (require(noiseGateAsset != state.assets.end(), "noise gate should be in asset list")) return 1;
+  ardor::appendAssetBlock(state, static_cast<std::size_t>(std::distance(state.assets.begin(), noiseGateAsset)));
+  const auto& noiseGate = state.bank.presets[state.activePreset].blocks.back();
+  if (require(noiseGate.type == "dynamics"
+                && noiseGate.params.value("mode", "") == "noise_gate",
+              "noise gate should use the supported dynamics mode")) return 1;
+  if (require(noiseGate.params.contains("threshold_db")
+                && noiseGate.params.contains("reduction_db")
+                && noiseGate.params.contains("hysteresis_db"),
+              "noise gate should include complete defaults")) return 1;
+  if (require(ardor::parameterPageCount(state) == 2
+                && ardor::parameterPage(state, 0).size() == 6
+                && ardor::parameterPage(state, 1).size() == 1,
+              "seven noise gate controls should paginate across two pages")) return 1;
+  ardor::setSelectedBlockParam(state, "threshold_db", -100.0f);
+  ardor::setSelectedBlockParam(state, "reduction_db", 120.0f);
+  if (require(noiseGate.params.value("threshold_db", 0.0f) == -80.0f
+                && noiseGate.params.value("reduction_db", 0.0f) == 96.0f,
+              "noise gate setters should clamp to their supported ranges")) return 1;
+  ardor::closeParamDrawer(state);
+  completePreview(state);
+
   const auto beforeAdd = state.bank.presets[state.activePreset].blocks.size();
   ardor::appendAssetBlock(state, 1);
   const auto& added = state.bank.presets[state.activePreset].blocks.back();
@@ -539,13 +565,17 @@ int main()
   legacyEffects.name = "Legacy Effects";
   legacyEffects.blocks.push_back({"legacy-shimmer", "reverb", true, "", {{"mode", "shimmer"}}});
   legacyEffects.blocks.push_back({"legacy-compressor", "dynamics", true, "", {{"mode", "compressor"}}});
+  legacyEffects.blocks.push_back({"legacy-gate", "dynamics", true, "", {{"mode", "noise_gate"}}});
   ardor::replaceActivePreset(migrationState, legacyEffects);
   const auto& migratedShimmer = migrationState.bank.presets[migrationState.activePreset].blocks[0].params;
   const auto& migratedCompressor = migrationState.bank.presets[migrationState.activePreset].blocks[1].params;
+  const auto& migratedGate = migrationState.bank.presets[migrationState.activePreset].blocks[2].params;
   if (require(migratedShimmer.contains("decay") && migratedShimmer.contains("param2"),
               "legacy Daisy block should receive missing defaults")) return 1;
   if (require(migratedCompressor.contains("threshold_db") && migratedCompressor.contains("auto_makeup"),
               "legacy compressor should receive missing defaults")) return 1;
+  if (require(migratedGate.contains("threshold_db") && migratedGate.contains("hysteresis_db"),
+              "noise gate blocks should receive missing defaults")) return 1;
 
   auto eqAsset = std::find_if(migrationState.assets.begin(), migrationState.assets.end(), [](const ardor::UiAsset& asset) {
     return asset.name == "Five Band EQ";

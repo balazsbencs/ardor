@@ -113,6 +113,22 @@ describe("preset validation", () => {
     expect(result.canSave).toBe(false);
   });
 
+  it("validates noise gate parameter ranges from the catalog", () => {
+    const noiseGate = createBlockFromDefinition("dynamics:noise_gate", []);
+    noiseGate.params.threshold_db = -81;
+    noiseGate.params.hold_ms = "long";
+    const result = validatePreset(validPreset([noiseGate]), assets);
+    expect(result.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: "parameter-range", blockId: "block-1", field: "params.threshold_db",
+      }),
+      expect.objectContaining({
+        code: "parameter-type", blockId: "block-1", field: "params.hold_ms",
+      }),
+    ]));
+    expect(result.canSave).toBe(false);
+  });
+
   it("warns for unknown block types and unsupported known-family modes", () => {
     const future = { id: "future", type: "future", enabled: false, asset: "", params: {} };
     const unsupported = { id: "mod-x", type: "mod", enabled: false, asset: "", params: { mode: "future" } };

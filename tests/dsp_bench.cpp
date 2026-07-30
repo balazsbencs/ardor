@@ -11,6 +11,7 @@
 #include "daisyfx/DaisyFxCatalog.h"
 #include "daisyfx/DaisyFxProcessor.h"
 #include "dynamics/CompressorProcessor.h"
+#include "dynamics/NoiseGateProcessor.h"
 #include "equalizer/EqParameters.h"
 #include "equalizer/ParametricEqProcessor.h"
 
@@ -325,6 +326,22 @@ int main(int argc, char** argv)
   report("dynamics/compressor", bench([&](const float* in, float* out, size_t frames) {
     for (size_t i = 0; i < frames; ++i) {
       const auto sample = compressor.process({in[i], in[i]});
+      out[i] = 0.5f * (sample.left + sample.right);
+    }
+  }));
+
+  ardor::NoiseGateProcessor noiseGate;
+  std::string noiseGateError;
+  if (!noiseGate.configure({{"threshold_db", -55.0f}, {"reduction_db", 80.0f},
+                            {"attack_ms", 2.0f}, {"hold_ms", 50.0f},
+                            {"release_ms", 150.0f}, {"hysteresis_db", 6.0f},
+                            {"sidechain_hpf_hz", 80.0f}},
+                           static_cast<float>(kSampleRate), noiseGateError)) {
+    throw std::runtime_error(noiseGateError);
+  }
+  report("dynamics/noise-gate", bench([&](const float* in, float* out, size_t frames) {
+    for (size_t i = 0; i < frames; ++i) {
+      const auto sample = noiseGate.process({in[i], in[i]});
       out[i] = 0.5f * (sample.left + sample.right);
     }
   }));

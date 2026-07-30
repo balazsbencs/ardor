@@ -52,6 +52,7 @@ struct RuntimeChain::Block {
     Cab,
     Daisy,
     Compressor,
+    NoiseGate,
     Equalizer,
     DualAmp,
     DualRig
@@ -63,6 +64,7 @@ struct RuntimeChain::Block {
   std::unique_ptr<IrConvolver> cab;
   std::unique_ptr<DaisyFxProcessor> daisy;
   std::unique_ptr<CompressorProcessor> compressor;
+  std::unique_ptr<NoiseGateProcessor> noiseGate;
   std::unique_ptr<ParametricEqProcessor> equalizer;
   std::unique_ptr<DualAmpProcessor> dualAmp;
   std::unique_ptr<DualRigProcessor> dualRig;
@@ -220,6 +222,25 @@ bool RuntimeChain::setCompressorParameter(const std::string& id, const std::stri
   return false;
 }
 
+void RuntimeChain::addNoiseGate(std::string id, NoiseGateProcessor processor)
+{
+  Block block;
+  block.kind = Block::Kind::NoiseGate;
+  block.id = std::move(id);
+  block.noiseGate = std::make_unique<NoiseGateProcessor>(std::move(processor));
+  blocks_.push_back(std::move(block));
+}
+
+bool RuntimeChain::setNoiseGateParameter(const std::string& id, const std::string& key, float value)
+{
+  for (auto& block : blocks_) {
+    if (block.kind == Block::Kind::NoiseGate && block.id == id) {
+      return block.noiseGate->setParameterTarget(key, value);
+    }
+  }
+  return false;
+}
+
 bool RuntimeChain::addParametricEq(std::string id, const ParametricEqParams& params,
                                    float sampleRate, std::string& error)
 {
@@ -272,6 +293,9 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
       break;
     case Block::Kind::Compressor:
       current = block.compressor->process(current);
+      break;
+    case Block::Kind::NoiseGate:
+      current = block.noiseGate->process(current);
       break;
     case Block::Kind::Equalizer:
       block.equalizer->process(current.left, current.right);
@@ -359,6 +383,13 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
     case Block::Kind::Compressor:
       for (size_t i = 0; i < frames; ++i) {
         const auto processed = block.compressor->process({currentLeft[i], currentRight[i]});
+        nextLeft[i] = processed.left;
+        nextRight[i] = processed.right;
+      }
+      break;
+    case Block::Kind::NoiseGate:
+      for (size_t i = 0; i < frames; ++i) {
+        const auto processed = block.noiseGate->process({currentLeft[i], currentRight[i]});
         nextLeft[i] = processed.left;
         nextRight[i] = processed.right;
       }
@@ -462,6 +493,9 @@ std::vector<ClipStageSnapshot> RuntimeChain::takeClipDiagnostics()
     case Block::Kind::Compressor:
       kind = SignalStageKind::Compressor;
       break;
+    case Block::Kind::NoiseGate:
+      kind = SignalStageKind::NoiseGate;
+      break;
     case Block::Kind::Equalizer:
       kind = SignalStageKind::Equalizer;
       break;
@@ -491,6 +525,9 @@ void RuntimeChain::reset()
     }
     if (block.compressor) {
       block.compressor->reset();
+    }
+    if (block.noiseGate) {
+      block.noiseGate->reset();
     }
     if (block.equalizer) {
       block.equalizer->reset();

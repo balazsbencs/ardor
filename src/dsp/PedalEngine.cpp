@@ -6,6 +6,7 @@
 #include "dsp/DualAmpProcessor.h"
 #include "dsp/DualRigProcessor.h"
 #include "dynamics/CompressorProcessor.h"
+#include "dynamics/NoiseGateProcessor.h"
 #include "equalizer/EqParameters.h"
 
 #include <algorithm>
@@ -70,6 +71,7 @@ const char* signalStageKindName(SignalStageKind kind) noexcept
   case SignalStageKind::Cab: return "ir";
   case SignalStageKind::Daisy: return "daisy";
   case SignalStageKind::Compressor: return "compressor";
+  case SignalStageKind::NoiseGate: return "noise-gate";
   case SignalStageKind::Equalizer: return "eq";
   case SignalStageKind::DualAmp: return "dual-amp";
   case SignalStageKind::DualRig: return "dual-rig";
@@ -185,6 +187,22 @@ bool PedalEngine::addCompressor(std::string id, const nlohmann::json& params, fl
 bool PedalEngine::setCompressorParameter(const std::string& id, const std::string& key, float value)
 {
   return chain_.setCompressorParameter(id, key, value);
+}
+
+bool PedalEngine::addNoiseGate(std::string id, const nlohmann::json& params,
+                               float sampleRate, std::string& error)
+{
+  NoiseGateProcessor processor;
+  if (!processor.configure(params, sampleRate, error)) {
+    return false;
+  }
+  chain_.addNoiseGate(std::move(id), std::move(processor));
+  return true;
+}
+
+bool PedalEngine::setNoiseGateParameter(const std::string& id, const std::string& key, float value)
+{
+  return chain_.setNoiseGateParameter(id, key, value);
 }
 
 bool PedalEngine::addParametricEq(const std::string& id, const nlohmann::json& params,
