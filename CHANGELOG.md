@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.14](https://github.com/balazsbencs/ardor/compare/v0.1.13...v0.1.14) (2026-07-30)
+
+### Features
+
+* adding mini pcb buffer board kicad project with jlcpcb order files ([38d2043](https://github.com/balazsbencs/ardor/commit/38d204322e9830076bcf6727fb4f190628c14a65))
+
 ## [0.1.13](https://github.com/balazsbencs/ardor/compare/v0.1.12...v0.1.13) (2026-07-30)
 
 ### Bug Fixes
