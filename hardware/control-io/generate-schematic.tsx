@@ -1,3 +1,4 @@
+import React from "react"
 import { Circuit } from "tscircuit"
 import { CircuitJsonToKicadSchConverter } from "circuit-json-to-kicad"
 import { writeFileSync } from "node:fs"
@@ -31,13 +32,13 @@ async function main() {
       <schematictext
         text="EXPRESSION: passive 6.35 mm TRS pedal, hardware polarity selector, ADS1115"
         schX={-7.4}
-        schY={0.65}
+        schY={0.95}
         fontSize={0.23}
       />
       <schematictext
-        text="HOST: Raspberry Pi header — UART4 RX GPIO9; I2C1 GPIO2/GPIO3"
+        text="HOST: Raspberry Pi GPIO header"
         schX={-7.4}
-        schY={-3.3}
+        schY={-3.65}
         fontSize={0.23}
       />
 
@@ -46,15 +47,15 @@ async function main() {
         manufacturerPartNumber="3.5mm TRS MIDI IN"
         pinLabels={{ pin1: "TIP", pin2: "RING", pin3: "SLEEVE" }}
         schPinArrangement={left([1, 2, 3])}
-        schX={-6.6}
+        schX={-6.4}
         schY={2.8}
       />
-      <resistor name="R1" resistance="220" schX={-4.7} schY={3.1} />
+      <resistor name="R1" resistance="220" schX={-4.25} schY={3.2} />
       <diode
         name="D1"
         manufacturerPartNumber="1N4148"
-        schX={-3.15}
-        schY={2.25}
+        schX={-3.5}
+        schY={1.85}
       />
       <chip
         name="U1"
@@ -69,12 +70,12 @@ async function main() {
         }}
         schPinArrangement={split([2, 3], [8, 7, 6, 5])}
         noConnect={["pin1", "pin4"]}
-        schX={-1.55}
+        schX={-1.15}
         schY={2.8}
       />
-      <resistor name="R2" resistance="10k" schX={0.4} schY={2.25} />
-      <resistor name="R3" resistance="4.7k" schX={2.2} schY={3.0} />
-      <capacitor name="C1" capacitance="100nF" schX={0.4} schY={3.65} />
+      <resistor name="R2" resistance="10k" schX={0.7} schY={1.75} />
+      <resistor name="R3" resistance="4.7k" schX={3.15} schY={3.0} />
+      <capacitor name="C1" capacitance="100nF" schX={0.55} schY={4.05} />
 
       <trace from="J1.TIP" to="net.MIDI_SINK_TIP" />
       <trace from="J1.RING" to="net.MIDI_SOURCE_RING" />
@@ -101,45 +102,45 @@ async function main() {
         manufacturerPartNumber="6.35mm TRS EXPRESSION"
         pinLabels={{ pin1: "TIP", pin2: "RING", pin3: "SLEEVE" }}
         schPinArrangement={left([1, 2, 3])}
-        schX={-6.6}
+        schX={-6.4}
         schY={-0.9}
       />
       <chip
         name="SW1A"
-        manufacturerPartNumber="DPDT POLARITY — POLE A"
+        manufacturerPartNumber="DPDT POLE A"
         pinLabels={{ pin1: "COM", pin2: "POS_A", pin3: "POS_B" }}
         schPinArrangement={split([1], [2, 3])}
-        schX={-4.4}
-        schY={-0.45}
+        schX={-4.25}
+        schY={-0.25}
       />
       <chip
         name="SW1B"
-        manufacturerPartNumber="DPDT POLARITY — POLE B"
+        manufacturerPartNumber="DPDT POLE B"
         pinLabels={{ pin1: "COM", pin2: "POS_A", pin3: "POS_B" }}
         schPinArrangement={split([1], [2, 3])}
-        schX={-4.4}
-        schY={-1.35}
+        schX={-4.25}
+        schY={-1.55}
       />
-      <resistor name="R4" resistance="1k" schX={-2.3} schY={-0.05} />
-      <resistor name="R5" resistance="4.7k" schX={-2.3} schY={-1.5} />
-      <capacitor name="C2" capacitance="100nF" schX={-0.5} schY={-2.1} />
+      <resistor name="R4" resistance="1k" schX={-1.95} schY={0.1} />
+      <resistor name="R5" resistance="4.7k" schX={-1.95} schY={-1.85} />
+      <capacitor name="C2" capacitance="100nF" schX={0.0} schY={-2.6} />
       <diode
         name="D2"
         manufacturerPartNumber="BAT54"
         schottky
-        schX={0.65}
-        schY={-2.1}
+        schX={1.25}
+        schY={-2.6}
       />
       <diode
         name="D3"
         manufacturerPartNumber="BAT54"
         schottky
-        schX={0.65}
-        schY={-1.25}
+        schX={1.25}
+        schY={-1.55}
       />
       <chip
         name="U2"
-        manufacturerPartNumber="ADS1115IDGS (ADDR=GND / 0x48)"
+        manufacturerPartNumber="ADS1115 (0x48)"
         pinLabels={{
           pin1: "ADDR",
           pin2: "ALERT",
@@ -153,11 +154,11 @@ async function main() {
           pin10: "SCL",
         }}
         schPinArrangement={split([4, 5, 6, 7, 1], [8, 9, 10, 2, 3])}
-        schX={2.4}
-        schY={-0.9}
+        schX={3.35}
+        schY={-0.5}
       />
-      <resistor name="R6" resistance="10k" schX={4.45} schY={-0.4} />
-      <capacitor name="C3" capacitance="100nF" schX={4.45} schY={-1.55} />
+      <resistor name="R6" resistance="10k" schX={5.5} schY={0.15} />
+      <capacitor name="C3" capacitance="100nF" schX={5.5} schY={-1.45} />
 
       <trace from="J2.TIP" to="net.EXP_TIP" />
       <trace from="J2.RING" to="net.EXP_RING" />
@@ -207,8 +208,8 @@ async function main() {
           pin8: "MIDI_TX_GPIO8_RSVD",
         }}
         schPinArrangement={left([1, 2, 3, 4, 5, 6, 7, 8])}
-        schX={-3.7}
-        schY={-4.35}
+        schX={-3.25}
+        schY={-4.65}
       />
       <trace from="J3.5V" to="net.V5" />
       <trace from="J3.3V3" to="net.V3V3" />
@@ -221,19 +222,19 @@ async function main() {
 
       <schematictext
         text="SW1A/SW1B are the two mechanically linked poles of one DPDT switch."
-        schX={0.2}
+        schX={1.0}
         schY={-3.75}
         fontSize={0.2}
       />
       <schematictext
         text="R4 limits a shorted pedal cable to 3.3 mA. D2/D3: BAT54 Schottky clamps."
-        schX={0.2}
+        schX={1.0}
         schY={-4.2}
         fontSize={0.2}
       />
       <schematictext
-        text="I2C pull-ups are already present on the host bus; do not fit duplicates unless measured."
-        schX={0.2}
+        text="I2C pull-ups are already present on the host bus."
+        schX={1.0}
         schY={-4.65}
         fontSize={0.2}
       />

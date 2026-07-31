@@ -435,6 +435,25 @@ int main()
   if (require(state.dirty, "focused Daisy control should dirty preset")) return 1;
   if (require(state.masterVolume == masterVolume, "focused Daisy control should leave master volume unchanged")) return 1;
 
+  auto rejectedDaisyState = state;
+  rejectedDaisyState.dirty = false;
+  const auto rejectedDaisyParams = rejectedDaisyState.bank.presets[rejectedDaisyState.activePreset]
+    .blocks[rejectedDaisyState.selectedBlock].params;
+  ardor::LvglUi rejectedDaisyUi({
+    {}, {}, {}, [](const std::string&, const std::string&, float) { return false; },
+  });
+  rejectedDaisyUi.focusParameter("depth");
+  if (require(rejectedDaisyUi.applyFocusedParameterDelta(rejectedDaisyState, 1)
+                && rejectedDaisyState.previewState == ardor::UiPreviewState::Queued
+                && rejectedDaisyState.previewTransaction.has_value()
+                && rejectedDaisyState.previewTransaction->rollback.preset
+                     .blocks[rejectedDaisyState.selectedBlock].params == rejectedDaisyParams,
+              "rejected live controls should snapshot the pre-edit state for preview rollback")) return 1;
+  ardor::failStructuralPreview(rejectedDaisyState, "test rollback");
+  if (require(rejectedDaisyState.bank.presets[rejectedDaisyState.activePreset]
+                .blocks[rejectedDaisyState.selectedBlock].params == rejectedDaisyParams,
+              "a failed promoted preview should restore the original parameters")) return 1;
+
   ardor::setSelectedBlockParam(state, "depth", 2.0f);
   if (require(state.bank.presets[state.activePreset].blocks[state.selectedBlock].params.value("depth", 0.0f) == 1.0f,
               "Daisy setter should enforce descriptor range")) return 1;
@@ -728,6 +747,15 @@ int main()
   lv_obj_t* firstChainBlock = firstCategoryLabel ? lv_obj_get_parent(firstCategoryLabel) : nullptr;
   if (require(firstChainBlock && lv_obj_get_width(firstChainBlock) == 190,
               "horizontal chain should use compact single-rail effect tiles")) return 1;
+  int retainedChainCardMarker = 0;
+  lv_obj_set_user_data(firstChainBlock, &retainedChainCardMarker);
+  ui.selectBlock(state, state.selectedBlock);
+  ui.refresh(lv_screen_active(), state);
+  firstCategoryLabel = findLabel(chain, firstCategory.c_str());
+  firstChainBlock = firstCategoryLabel ? lv_obj_get_parent(firstCategoryLabel) : nullptr;
+  if (require(firstChainBlock
+                && lv_obj_get_user_data(firstChainBlock) == &retainedChainCardMarker,
+              "selection-only chain updates should retain existing card objects")) return 1;
   if (require(lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE),
               "the signal canvas should scroll independently of dedicated drag handles")) return 1;
   lv_obj_t* dragHandleLabel = findLabel(chain, "|||");

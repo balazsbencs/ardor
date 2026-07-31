@@ -374,16 +374,14 @@ void PedalEngine::beginAudioProcessing()
   audioStarted_ = true;
 }
 
-float PedalEngine::smoothGain(float& current, const std::atomic<float>& target)
+float PedalEngine::smoothGain(float& current, float target) const
 {
-  const float requested = target.load(std::memory_order_relaxed);
-  current += (requested - current) * gainSmoothingCoefficient_;
+  current += (target - current) * gainSmoothingCoefficient_;
   return current;
 }
 
-float PedalEngine::smoothEffectsMix()
+float PedalEngine::smoothEffectsMix(float target)
 {
-  const float target = effectsBypassed_.load(std::memory_order_relaxed) ? 0.0f : 1.0f;
   currentEffectsMix_ += (target - currentEffectsMix_) * gainSmoothingCoefficient_;
   if (std::fabs(target - currentEffectsMix_) < 1.0e-4f) {
     currentEffectsMix_ = target;
@@ -394,6 +392,12 @@ float PedalEngine::smoothEffectsMix()
 StereoSample PedalEngine::equalPowerMix(StereoSample dry, StereoSample wet, float wetMix)
 {
   const float clampedMix = std::clamp(wetMix, 0.0f, 1.0f);
+  if (clampedMix <= 0.0f) {
+    return dry;
+  }
+  if (clampedMix >= 1.0f) {
+    return wet;
+  }
   const float dryGain = std::sqrt(1.0f - clampedMix);
   const float wetGain = std::sqrt(clampedMix);
   return {dry.left * dryGain + wet.left * wetGain, dry.right * dryGain + wet.right * wetGain};
@@ -407,17 +411,29 @@ std::pair<float, float> PedalEngine::process(float input)
     nonFiniteInputSamples_.fetch_add(1, std::memory_order_relaxed);
     input = 0.0f;
   }
-  const float masterVolume = smoothGain(currentMasterVolume_, masterVolume_);
-  const float afterGain = input * smoothGain(currentInputGain_, inputGain_);
+  const float inputGain = inputGain_.load(std::memory_order_relaxed);
+  const float outputGain = outputGain_.load(std::memory_order_relaxed);
+  const float masterVolumeTarget = masterVolume_.load(std::memory_order_relaxed);
+  const float cabLevel = cabLevel_.load(std::memory_order_relaxed);
+  const float cabMix = cabMix_.load(std::memory_order_relaxed);
+  const float effectsMix = effectsBypassed_.load(std::memory_order_relaxed) ? 0.0f : 1.0f;
+  const bool limiterEnabled = safetyLimiterEnabled_.load(std::memory_order_relaxed);
+  const float safetyLimit = safetyLimit_.load(std::memory_order_relaxed);
+  const float masterVolume = smoothGain(currentMasterVolume_, masterVolumeTarget);
+  const float afterGain = input * smoothGain(currentInputGain_, inputGain);
   observeLevel(inputPeakBits_, inputOverloadFrames_, afterGain, afterGain);
-  const auto wet = chain_.process({afterGain, afterGain}, smoothGain(currentCabLevel_, cabLevel_),
-                                  smoothGain(currentCabMix_, cabMix_));
-  const float output = smoothGain(currentOutputGain_, outputGain_) * masterVolume;
+  const auto wet = chain_.process({afterGain, afterGain}, smoothGain(currentCabLevel_, cabLevel),
+                                  smoothGain(currentCabMix_, cabMix));
+  const float output = smoothGain(currentOutputGain_, outputGain) * masterVolume;
   const StereoSample mixed = equalPowerMix({input * masterVolume, input * masterVolume},
-                                           {wet.left * output, wet.right * output}, smoothEffectsMix());
+                                           {wet.left * output, wet.right * output},
+                                           smoothEffectsMix(effectsMix));
   observeLevel(outputPeakBits_, outputOverloadFrames_, mixed.left, mixed.right);
-  observeLimiter(mixed.left, mixed.right);
-  return {applySafety(mixed.left), applySafety(mixed.right)};
+  if (limiterEngaged(mixed.left, mixed.right, limiterEnabled, safetyLimit)) {
+    limiterFrames_.fetch_add(1, std::memory_order_relaxed);
+  }
+  return {applySafety(mixed.left, limiterEnabled, safetyLimit),
+          applySafety(mixed.right, limiterEnabled, safetyLimit)};
 }
 
 void PedalEngine::processBlock(const float* input, float* left, float* right, size_t frames)
@@ -437,15 +453,28 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
     return;
   }
 
+  const float inputGain = inputGain_.load(std::memory_order_relaxed);
+  const float outputGain = outputGain_.load(std::memory_order_relaxed);
+  const float masterVolume = masterVolume_.load(std::memory_order_relaxed);
+  const float cabLevel = cabLevel_.load(std::memory_order_relaxed);
+  const float cabMix = cabMix_.load(std::memory_order_relaxed);
+  const float effectsMix = effectsBypassed_.load(std::memory_order_relaxed) ? 0.0f : 1.0f;
+  const bool limiterEnabled = safetyLimiterEnabled_.load(std::memory_order_relaxed);
+  const float safetyLimit = safetyLimit_.load(std::memory_order_relaxed);
+  uint64_t nonFiniteSamples = 0;
   for (size_t i = 0; i < frames; ++i) {
-    const float safeInput = std::isfinite(input[i]) ? input[i] : 0.0f;
-    if (!std::isfinite(input[i])) {
-      nonFiniteInputSamples_.fetch_add(1, std::memory_order_relaxed);
+    const bool finite = std::isfinite(input[i]);
+    const float safeInput = finite ? input[i] : 0.0f;
+    if (!finite) {
+      ++nonFiniteSamples;
     }
     sanitizedInput_[i] = safeInput;
-    gainedInput_[i] = safeInput * smoothGain(currentInputGain_, inputGain_);
-    cabLevelBlock_[i] = smoothGain(currentCabLevel_, cabLevel_);
-    cabMixBlock_[i] = smoothGain(currentCabMix_, cabMix_);
+    gainedInput_[i] = safeInput * smoothGain(currentInputGain_, inputGain);
+    cabLevelBlock_[i] = smoothGain(currentCabLevel_, cabLevel);
+    cabMixBlock_[i] = smoothGain(currentCabMix_, cabMix);
+  }
+  if (nonFiniteSamples > 0) {
+    nonFiniteInputSamples_.fetch_add(nonFiniteSamples, std::memory_order_relaxed);
   }
   float inputPeak = 0.0f;
   uint64_t inputOverloads = 0;
@@ -458,44 +487,43 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
   chain_.processBlock(gainedInput_.data(), left, right, frames, cabLevelBlock_.data(), cabMixBlock_.data());
   float outputPeak = 0.0f;
   uint64_t outputOverloads = 0;
+  uint64_t limitedFrames = 0;
   for (size_t i = 0; i < frames; ++i) {
-    const float output = smoothGain(currentOutputGain_, outputGain_)
-                         * smoothGain(currentMasterVolume_, masterVolume_);
+    const float output = smoothGain(currentOutputGain_, outputGain)
+                         * smoothGain(currentMasterVolume_, masterVolume);
     const float master = currentMasterVolume_;
     const StereoSample mixed = equalPowerMix({sanitizedInput_[i] * master, sanitizedInput_[i] * master},
-                                             {left[i] * output, right[i] * output}, smoothEffectsMix());
+                                             {left[i] * output, right[i] * output},
+                                             smoothEffectsMix(effectsMix));
     const float framePeak = std::max(std::fabs(mixed.left), std::fabs(mixed.right));
     outputPeak = std::max(outputPeak, framePeak);
     outputOverloads += framePeak > 1.0f ? 1U : 0U;
-    observeLimiter(mixed.left, mixed.right);
-    left[i] = applySafety(mixed.left);
-    right[i] = applySafety(mixed.right);
+    limitedFrames += limiterEngaged(mixed.left, mixed.right, limiterEnabled, safetyLimit) ? 1U : 0U;
+    left[i] = applySafety(mixed.left, limiterEnabled, safetyLimit);
+    right[i] = applySafety(mixed.right, limiterEnabled, safetyLimit);
   }
   commitLevel(outputPeakBits_, outputOverloadFrames_, outputPeak, outputOverloads);
+  if (limitedFrames > 0) {
+    limiterFrames_.fetch_add(limitedFrames, std::memory_order_relaxed);
+  }
 }
 
-void PedalEngine::observeLimiter(float left, float right)
+bool PedalEngine::limiterEngaged(float left, float right, bool enabled, float limit)
 {
-  if (!safetyLimiterEnabled_.load(std::memory_order_relaxed)) {
-    return;
-  }
-  const float limit = safetyLimit_.load(std::memory_order_relaxed);
   constexpr float kKneeFraction = 0.95f;
-  if (limit > 0.0f && std::max(std::fabs(left), std::fabs(right)) > limit * kKneeFraction) {
-    limiterFrames_.fetch_add(1, std::memory_order_relaxed);
-  }
+  return enabled && limit > 0.0f
+    && std::max(std::fabs(left), std::fabs(right)) > limit * kKneeFraction;
 }
 
-float PedalEngine::applySafety(float sample) const
+float PedalEngine::applySafety(float sample, bool limiterEnabled, float safetyLimit)
 {
   if (!std::isfinite(sample)) {
     return 0.0f;
   }
-  if (!safetyLimiterEnabled_.load(std::memory_order_relaxed)) {
+  if (!limiterEnabled) {
     return sample;
   }
 
-  const float safetyLimit = safetyLimit_.load(std::memory_order_relaxed);
   if (safetyLimit <= 0.0f) {
     return sample;
   }

@@ -572,25 +572,6 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
     }
   }
 
-  const auto& asset = state.assets[assetIndex];
-  const auto insertAt = std::min(blockIndex, blocks.size());
-  if (asset.blockType == "dualRig") {
-    const bool alreadySplit = std::any_of(blocks.begin(), blocks.end(), [](const UiBlock& block) {
-      return block.enabled && (block.type == "dualRig" || block.type == "dualAmp");
-    });
-    if (alreadySplit) {
-      setUiStatus(state, "Only one Split region is supported", true);
-      return;
-    }
-    const bool standaloneAmp = std::any_of(blocks.begin(), blocks.end(), [](const UiBlock& block) {
-      return block.enabled && (block.type == "nam" || block.type == "cab");
-    });
-    if (standaloneAmp) {
-      setUiStatus(state, "Remove standalone NAM and IR blocks before adding Split", true);
-      return;
-    }
-  }
-
   const auto previewRollback = previewSnapshot(state);
   rememberBlockEdit(state);
   if (asset.blockType == "dualRig") {

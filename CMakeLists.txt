@@ -202,6 +202,7 @@ add_library(ardor_ui
   src/ui/UiModel.cpp
   src/ui/ParameterControls.cpp
   src/ui/EqEditorModel.cpp
+  src/ui/UiStatusPresentation.cpp
 )
 target_include_directories(ardor_ui PUBLIC src)
 target_compile_features(ardor_ui PUBLIC cxx_std_20)
@@ -209,7 +210,21 @@ target_link_libraries(ardor_ui PUBLIC ardor_preset)
 
 if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   target_sources(ardor_ui PRIVATE
+    src/ui/LvglChainLayout.cpp
     src/ui/LvglUi.cpp
+    src/ui/LvglUiChainInteraction.cpp
+    src/ui/LvglUiDrag.cpp
+    src/ui/LvglUiDrawer.cpp
+    src/ui/LvglUiEdit.cpp
+    src/ui/LvglUiNavigation.cpp
+    src/ui/LvglUiEqRenderer.cpp
+    src/ui/LvglUiParameterRenderer.cpp
+    src/ui/LvglUiParameters.cpp
+    src/ui/LvglUiPreset.cpp
+    src/ui/LvglUiSettings.cpp
+    src/ui/LvglUiStatus.cpp
+    src/ui/LvglUiStyle.cpp
+    src/ui/LvglUiTuner.cpp
     src/ui/fonts/OpenSansRegular.c
     src/ui/fonts/OpenSansSemibold.c
   )
@@ -235,12 +250,16 @@ target_link_libraries(ardor_audio PUBLIC ardor_dsp ardor_preset)
 
 add_library(ardor_control
   src/control/ControlEvents.cpp
+  src/control/Expression.cpp
   src/control/Midi.cpp
 )
 target_include_directories(ardor_control PUBLIC src)
 target_compile_features(ardor_control PUBLIC cxx_std_20)
 if(UNIX AND NOT APPLE)
-  target_sources(ardor_control PRIVATE src/control/LinuxInput.cpp)
+  target_sources(ardor_control PRIVATE
+    src/control/LinuxControlIo.cpp
+    src/control/LinuxInput.cpp
+  )
 endif()
 
 add_executable(pedal-poc apps/pedal-poc/main.cpp)

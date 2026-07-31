@@ -60,19 +60,43 @@ is clamped to `0..1`, optionally inverted, then scaled into
 `minimum..maximum`. Loading rejects assignments to missing blocks and invalid
 ranges.
 
-## Remaining runtime work
+## Runtime configuration
 
-The current code establishes and tests the MIDI parser/action mapping and
-preset schema. The next integration slice is:
+The Buildroot service enables both inputs by default:
 
-1. Open `/dev/ttyAMA4`, feed bytes into `MidiStreamParser`, and queue mapped
-   actions onto the existing management loop.
-2. Read and calibrate the ADS1115 IIO channel, with endpoint capture,
-   disconnect detection, smoothing, and a small dead band.
-3. Resolve the active preset's assignment against the live parameter catalog
-   and use the existing non-realtime parameter setters.
-4. Add manager and on-device controls for MIDI channel/CC selection,
-   expression target, range, inversion, and calibration.
+```sh
+MIDI_DEVICE=/dev/ttyAMA4
+MIDI_CHANNEL=omni
+MIDI_TUNER_CC=20
+EXPRESSION_DEVICE=auto
+EXPRESSION_MIN_RAW=0
+EXPRESSION_MAX_RAW=26400
+EXPRESSION_SMOOTHING=0.25
+EXPRESSION_DEADBAND=0.002
+```
+
+`MIDI_CHANNEL` accepts `omni` or MIDI channels `1`..`16`.
+`EXPRESSION_DEVICE=auto` finds the Linux IIO device named `ads1115`; an IIO
+device directory or its `in_voltage0_raw` file may be supplied explicitly.
+The ADC is sampled in the management loop at 125 Hz, normalized between the
+calibration endpoints, smoothed, and dead-band filtered. MIDI and ADC I/O stay
+outside the realtime audio callback.
+
+The first live expression path supports Daisy mod/delay/reverb parameters,
+compressor and noise-gate parameters, and cab `mix` or `levelDb`. A missing,
+disabled, unsupported, or nested Dual Rig target is left unchanged and logged
+once. Preset changes reset the expression filter and load the new assignment.
+
+## Editing and remaining UI work
+
+Ardor Manager exposes the assignment as preset data: enable Expression Pedal,
+choose a compatible effect and numeric parameter, set the minimum/maximum
+values, and optionally invert the sweep. The assignment participates in the
+editor's normal undo, validation, save, and apply flow.
+
+The on-device editor still needs equivalent assignment controls and endpoint
+calibration capture. MIDI channel, tuner CC, and ADC calibration are currently
+service configuration rather than on-device preferences.
 
 MIDI and ADC I/O must remain outside the realtime audio callback.
 

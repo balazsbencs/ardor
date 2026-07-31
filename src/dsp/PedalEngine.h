@@ -96,11 +96,11 @@ private:
   bool audioStarted_ = false;
 
   void beginAudioProcessing();
-  float smoothGain(float& current, const std::atomic<float>& target);
-  float smoothEffectsMix();
+  float smoothGain(float& current, float target) const;
+  float smoothEffectsMix(float target);
   static StereoSample equalPowerMix(StereoSample dry, StereoSample wet, float wetMix);
-  void observeLimiter(float left, float right);
-  float applySafety(float sample) const;
+  static bool limiterEngaged(float left, float right, bool enabled, float limit);
+  static float applySafety(float sample, bool limiterEnabled, float safetyLimit);
 };
 
 } // namespace ardor

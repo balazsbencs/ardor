@@ -171,6 +171,10 @@ private:
   void syncDrawerAssets(UiState& state);
   void syncDrawerView(UiState& state);
   void syncParameterView(UiState& state);
+  void syncModeVisibility(const UiState& state);
+  void syncHeaderView(const UiState& state);
+  void syncPresetCards(const UiState& state);
+  void syncStatusView(const UiState& state);
   void syncPersistentViews(UiState& state);
   void syncBlockingOverlays(const UiState& state);
   void syncTunerView(UiState& state);

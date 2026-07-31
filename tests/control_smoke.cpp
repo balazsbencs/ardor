@@ -1,7 +1,9 @@
 #include "control/ControlEvents.h"
+#include "control/Expression.h"
 #include "control/Midi.h"
 
 #include <chrono>
+#include <cmath>
 #include <iostream>
 
 namespace {
@@ -113,6 +115,24 @@ int main()
 
   ardor::MidiControlMapper channelOne{{0, 20}};
   if (require(!channelOne.map(*program), "channel filter should reject another channel")) return 1;
+
+  ardor::ExpressionFilter expression{{100, 1100, 1.0f, 0.01f}};
+  if (require(expression.valid(), "expression calibration should be valid")) return 1;
+  const auto expressionMinimum = expression.update(100);
+  if (require(expressionMinimum && *expressionMinimum == 0.0f,
+              "expression minimum should map to zero")) return 1;
+  const auto expressionMid = expression.update(600);
+  if (require(expressionMid && std::fabs(*expressionMid - 0.5f) < 1.0e-6f,
+              "expression midpoint should map to one half")) return 1;
+  if (require(!expression.update(600),
+              "expression deadband should suppress insignificant repeats")) return 1;
+  expression.reset();
+  const auto expressionMaximum = expression.update(1200);
+  if (require(expressionMaximum && *expressionMaximum == 1.0f,
+              "expression input should clamp above calibrated maximum")) return 1;
+  ardor::ExpressionFilter invalidExpression{{100, 100, 0.5f, 0.01f}};
+  if (require(!invalidExpression.valid() && !invalidExpression.update(100),
+              "invalid expression calibration should reject samples")) return 1;
 
   return 0;
 }

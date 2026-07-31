@@ -78,3 +78,23 @@ jobs:
 
       - name: Run tests
         run: ctest --test-dir build-ci --output-on-failure
+
+  cpp-ui:
+    name: C++ LVGL UI
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install SDL development files
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libsdl2-dev
+
+      - name: Configure SDL build
+        run: cmake -S . -B build-ui-ci -DARDOR_UI_BACKEND=sdl -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build LVGL UI smoke test
+        run: cmake --build build-ui-ci --target pedal-lvgl-ui-smoke --parallel 2
+
+      - name: Run LVGL UI smoke test
+        run: ctest --test-dir build-ui-ci --output-on-failure -R '^pedal-lvgl-ui-smoke$'
