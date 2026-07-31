@@ -136,6 +136,7 @@ target_link_libraries(ardor_daisyfx PUBLIC ardor_daisyfx_runtime)
 
 add_library(ardor_dynamics
   src/dynamics/CompressorProcessor.cpp
+  src/dynamics/NoiseGateProcessor.cpp
 )
 target_include_directories(ardor_dynamics PUBLIC
   src
@@ -201,6 +202,7 @@ add_library(ardor_ui
   src/ui/UiModel.cpp
   src/ui/ParameterControls.cpp
   src/ui/EqEditorModel.cpp
+  src/ui/UiStatusPresentation.cpp
 )
 target_include_directories(ardor_ui PUBLIC src)
 target_compile_features(ardor_ui PUBLIC cxx_std_20)
@@ -208,7 +210,21 @@ target_link_libraries(ardor_ui PUBLIC ardor_preset)
 
 if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   target_sources(ardor_ui PRIVATE
+    src/ui/LvglChainLayout.cpp
     src/ui/LvglUi.cpp
+    src/ui/LvglUiChainInteraction.cpp
+    src/ui/LvglUiDrag.cpp
+    src/ui/LvglUiDrawer.cpp
+    src/ui/LvglUiEdit.cpp
+    src/ui/LvglUiNavigation.cpp
+    src/ui/LvglUiEqRenderer.cpp
+    src/ui/LvglUiParameterRenderer.cpp
+    src/ui/LvglUiParameters.cpp
+    src/ui/LvglUiPreset.cpp
+    src/ui/LvglUiSettings.cpp
+    src/ui/LvglUiStatus.cpp
+    src/ui/LvglUiStyle.cpp
+    src/ui/LvglUiTuner.cpp
     src/ui/fonts/OpenSansRegular.c
     src/ui/fonts/OpenSansSemibold.c
   )
@@ -234,11 +250,16 @@ target_link_libraries(ardor_audio PUBLIC ardor_dsp ardor_preset)
 
 add_library(ardor_control
   src/control/ControlEvents.cpp
+  src/control/Expression.cpp
+  src/control/Midi.cpp
 )
 target_include_directories(ardor_control PUBLIC src)
 target_compile_features(ardor_control PUBLIC cxx_std_20)
 if(UNIX AND NOT APPLE)
-  target_sources(ardor_control PRIVATE src/control/LinuxInput.cpp)
+  target_sources(ardor_control PRIVATE
+    src/control/LinuxControlIo.cpp
+    src/control/LinuxInput.cpp
+  )
 endif()
 
 add_executable(pedal-poc apps/pedal-poc/main.cpp)
@@ -291,6 +312,9 @@ target_link_libraries(pedal-daisy-fx-automation PRIVATE ardor_daisyfx)
 
 add_executable(pedal-compressor-smoke tests/compressor_smoke.cpp)
 target_link_libraries(pedal-compressor-smoke PRIVATE ardor_dynamics)
+
+add_executable(pedal-noise-gate-smoke tests/noise_gate_smoke.cpp)
+target_link_libraries(pedal-noise-gate-smoke PRIVATE ardor_dynamics)
 
 add_executable(pedal-parametric-eq-smoke tests/parametric_eq_smoke.cpp)
 target_link_libraries(pedal-parametric-eq-smoke PRIVATE ardor_equalizer)
@@ -351,6 +375,7 @@ add_test(NAME pedal-hosted-dsp-unit COMMAND pedal-hosted-dsp-unit)
 add_test(NAME pedal-daisy-fx-response COMMAND pedal-daisy-fx-response)
 add_test(NAME pedal-daisy-fx-automation COMMAND pedal-daisy-fx-automation)
 add_test(NAME pedal-compressor-smoke COMMAND pedal-compressor-smoke)
+add_test(NAME pedal-noise-gate-smoke COMMAND pedal-noise-gate-smoke)
 add_test(NAME pedal-parametric-eq-smoke COMMAND pedal-parametric-eq-smoke)
 add_test(NAME pedal-runtime-chain-smoke COMMAND pedal-runtime-chain-smoke)
 add_test(NAME pedal-engine-contract-smoke COMMAND pedal-engine-contract-smoke)

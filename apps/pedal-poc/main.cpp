@@ -8,7 +8,10 @@
 #include "audio/MiniaudioBackend.h"
 #include "audio/PresetActivation.h"
 #include "control/ControlEvents.h"
+#include "control/Expression.h"
+#include "control/Midi.h"
 #if defined(__linux__)
+#include "control/LinuxControlIo.h"
 #include "control/LinuxInput.h"
 #endif
 #include "audio/WavIo.h"
@@ -277,6 +280,14 @@ struct Args {
   int bank = 0;
   int slot = 0;
   std::vector<std::filesystem::path> controlDevices;
+  std::filesystem::path midiDevice;
+  int midiChannel = -1;
+  int midiTunerCc = 20;
+  std::filesystem::path expressionDevice;
+  int expressionMinimumRaw = 0;
+  int expressionMaximumRaw = 26400;
+  float expressionSmoothing = 0.25f;
+  float expressionDeadband = 0.002f;
   bool enableUi = false;
   std::filesystem::path model;
   std::filesystem::path ir;
@@ -411,6 +422,45 @@ bool parse(int argc, char** argv, Args& args)
         const char* v = value();
         if (!v) return false;
         args.controlDevices.emplace_back(v);
+      } else if (a == "--midi-device") {
+        const char* v = value();
+        if (!v) return false;
+        args.midiDevice = v;
+      } else if (a == "--midi-channel") {
+        const char* v = value();
+        if (!v) return false;
+        const std::string channel = v;
+        if (channel == "omni") {
+          args.midiChannel = -1;
+        } else {
+          const int oneBased = std::stoi(channel);
+          if (oneBased < 1 || oneBased > 16) return false;
+          args.midiChannel = oneBased - 1;
+        }
+      } else if (a == "--midi-tuner-cc") {
+        const char* v = value();
+        if (!v) return false;
+        args.midiTunerCc = std::stoi(v);
+      } else if (a == "--expression-device") {
+        const char* v = value();
+        if (!v) return false;
+        args.expressionDevice = v;
+      } else if (a == "--expression-min-raw") {
+        const char* v = value();
+        if (!v) return false;
+        args.expressionMinimumRaw = std::stoi(v);
+      } else if (a == "--expression-max-raw") {
+        const char* v = value();
+        if (!v) return false;
+        args.expressionMaximumRaw = std::stoi(v);
+      } else if (a == "--expression-smoothing") {
+        const char* v = value();
+        if (!v) return false;
+        args.expressionSmoothing = std::stof(v);
+      } else if (a == "--expression-deadband") {
+        const char* v = value();
+        if (!v) return false;
+        args.expressionDeadband = std::stof(v);
 #if defined(ARDOR_HAS_UI)
       } else if (a == "--ui") {
         args.enableUi = true;
@@ -453,6 +503,16 @@ bool parse(int argc, char** argv, Args& args)
   if (args.blockSize == 0) {
     return false;
   }
+  if (args.midiTunerCc < 0 || args.midiTunerCc > 127
+      || args.expressionMaximumRaw <= args.expressionMinimumRaw
+      || !std::isfinite(args.expressionSmoothing)
+      || args.expressionSmoothing <= 0.0f
+      || args.expressionSmoothing > 1.0f
+      || !std::isfinite(args.expressionDeadband)
+      || args.expressionDeadband < 0.0f
+      || args.expressionDeadband > 1.0f) {
+    return false;
+  }
   if (args.audioCpu < -1 || args.rigWorkerCpu < -1
       || (args.parallelRigs
           && (args.audioCpu < 0 || args.rigWorkerCpu < 0
@@ -480,6 +540,53 @@ bool parse(int argc, char** argv, Args& args)
 float dbToGain(float db)
 {
   return std::pow(10.0f, db / 20.0f);
+}
+
+const ardor::PresetBlock* findPresetBlock(
+  const std::vector<ardor::PresetBlock>& blocks, std::string_view id)
+{
+  for (const auto& block : blocks) {
+    if (block.id == id) return &block;
+    for (const auto& lane : block.lanes) {
+      if (const auto* nested = findPresetBlock(lane, id)) return nested;
+    }
+  }
+  return nullptr;
+}
+
+bool applyExpressionPosition(
+  ardor::PedalEngine& engine, const ardor::Preset& preset, float position)
+{
+  if (!preset.expression.has_value()) return true;
+  const auto& assignment = *preset.expression;
+  const auto* block = findPresetBlock(preset.blocks, assignment.blockId);
+  if (block == nullptr || !block->enabled) return false;
+
+  const float value = ardor::expressionValueAt(assignment, position);
+  if (block->type == "mod" || block->type == "delay" || block->type == "reverb") {
+    return engine.setDaisyParameter(block->id, assignment.parameter, value);
+  }
+  if (block->type == "dynamics") {
+    const auto mode = block->params.value("mode", std::string{});
+    if (mode == "compressor") {
+      return engine.setCompressorParameter(block->id, assignment.parameter, value);
+    }
+    if (mode == "noise_gate") {
+      return engine.setNoiseGateParameter(block->id, assignment.parameter, value);
+    }
+    return false;
+  }
+  if (block->type == "cab") {
+    if (assignment.parameter == "mix") {
+      engine.setCabMix(value);
+      return true;
+    }
+    if (assignment.parameter == "levelDb") {
+      engine.setCabLevel(dbToGain(value));
+      return true;
+    }
+  }
+  return false;
 }
 
 void writeStereo(const std::filesystem::path& path, const std::vector<float>& interleaved, ma_uint32 sampleRate)
@@ -555,6 +662,11 @@ int main(int argc, char** argv)
                 << "            [--safety-limit-db DB] [--no-safety-limit]\n"
                 << "            [--clip-debug] (per-stage peak/overload diagnostics)\n"
                 << "            [--control-device /dev/input/eventX]...\n"
+                << "            [--midi-device /dev/ttyAMA4] [--midi-channel omni|1..16]\n"
+                << "            [--midi-tuner-cc 0..127]\n"
+                << "            [--expression-device auto|PATH]\n"
+                << "            [--expression-min-raw N] [--expression-max-raw N]\n"
+                << "            [--expression-smoothing 0..1] [--expression-deadband 0..1]\n"
                 << "            [--ui]\n";
       return 2;
     }
@@ -580,12 +692,17 @@ int main(int argc, char** argv)
     if (args.realtime && args.presetSlotMode) {
       auto liveEngine = std::make_unique<ardor::PedalEngine>();
       ardor::PresetStore store(args.dataRoot);
+      ardor::Preset activePreset;
       std::string loadError;
-      if (!ardor::applyPresetSlot(*liveEngine, store, {args.bank, args.slot}, args.dataRoot, loadOptions, loadError)) {
+      const bool initialPresetLoaded = ardor::applyPresetSlot(
+        *liveEngine, store, {args.bank, args.slot}, args.dataRoot, loadOptions, loadError);
+      if (!initialPresetLoaded) {
         std::cerr << "Warning: preset " << args.bank << ":" << args.slot << " failed (" << loadError
                   << "), using pass-through\n";
         liveEngine->clearEffects();
         liveEngine->prepareBlockSize(loadOptions.blockSize);
+      } else {
+        activePreset = store.loadOrEmpty({args.bank, args.slot});
       }
 
       requestedSlot.store(-1, std::memory_order_relaxed);
@@ -733,6 +850,13 @@ int main(int argc, char** argv)
             }
             return true;
           },
+          [&](const std::string& blockId, const std::string& key, float value) {
+            if (!liveEngine->setNoiseGateParameter(blockId, key, value)) {
+              std::cerr << "Unable to update noise gate parameter " << blockId << ":" << key << "\n";
+              return false;
+            }
+            return true;
+          },
           [&](float inputGainDb, float outputGainDb) {
             liveEngine->setInputGain(ardor::dbToGain(inputGainDb));
             liveEngine->setOutputGain(ardor::dbToGain(outputGainDb));
@@ -808,9 +932,55 @@ int main(int argc, char** argv)
           return 1;
         }
       }
+
+      ardor::LinuxMidiInput midiInput;
+      ardor::MidiControlMapper midiMapper{{
+        args.midiChannel, static_cast<std::uint8_t>(args.midiTunerCc),
+      }};
+      bool midiEnabled = false;
+      if (!args.midiDevice.empty()) {
+        std::string error;
+        midiEnabled = midiInput.open(args.midiDevice, error);
+        if (!midiEnabled) {
+          std::cerr << "Warning: MIDI input " << args.midiDevice
+                    << " unavailable: " << error << "\n";
+        } else {
+          std::cerr << "MIDI input active on " << args.midiDevice << "\n";
+        }
+      }
+
+      ardor::LinuxExpressionInput expressionInput;
+      ardor::ExpressionFilter expressionFilter{{
+        args.expressionMinimumRaw,
+        args.expressionMaximumRaw,
+        args.expressionSmoothing,
+        args.expressionDeadband,
+      }};
+      bool expressionEnabled = false;
+      if (!args.expressionDevice.empty()) {
+        auto device = args.expressionDevice;
+        if (device == "auto") {
+          device = ardor::LinuxExpressionInput::findIioDevice();
+        }
+        if (device.empty()) {
+          std::cerr << "Warning: ADS1115 expression input was not found\n";
+        } else {
+          std::string error;
+          expressionEnabled = expressionInput.open(device, error);
+          if (!expressionEnabled) {
+            std::cerr << "Warning: expression input " << device
+                      << " unavailable: " << error << "\n";
+          } else {
+            std::cerr << "Expression input active on " << device << "\n";
+          }
+        }
+      }
+      auto nextExpressionPoll = std::chrono::steady_clock::now();
+      bool expressionTargetWarningPrinted = false;
 #else
-      if (!args.controlDevices.empty()) {
-        std::cerr << "--control-device is only supported on Linux\n";
+      if (!args.controlDevices.empty() || !args.midiDevice.empty()
+          || !args.expressionDevice.empty()) {
+        std::cerr << "Physical control, MIDI, and expression devices are only supported on Linux\n";
         return 1;
       }
 #endif
@@ -871,6 +1041,20 @@ int main(int argc, char** argv)
           requestedSlot.store(controls.activeSlot, std::memory_order_relaxed);
 #endif
         }
+      };
+      const auto requestPresetSelection = [&](int bank, int slot) {
+        bank = std::clamp(bank, 0, 99);
+        slot = std::clamp(slot, 0, 3);
+#if defined(ARDOR_HAS_UI)
+        if (args.enableUi && ui) {
+          if (!ardor::requestPresetNavigation(
+                uiState, {bank, static_cast<std::size_t>(slot)})) {
+            return;
+          }
+        }
+#endif
+        requestedBank.store(bank, std::memory_order_relaxed);
+        requestedSlot.store(slot, std::memory_order_relaxed);
       };
       while (running) {
 #if defined(ARDOR_HAS_UI)
@@ -967,6 +1151,44 @@ int main(int argc, char** argv)
         if (const auto action = footswitchGesture.poll(ardor::FootswitchGesture::Clock::now())) {
           applyFootswitchAction(*action);
         }
+
+        if (midiEnabled) {
+          ardor::MidiMessage message;
+          while (midiInput.poll(message)) {
+            const auto action = midiMapper.map(message);
+            if (!action.has_value()) continue;
+            if (action->type == ardor::MidiActionType::SelectPreset) {
+              const int pendingBank = requestedBank.load(std::memory_order_relaxed);
+              requestPresetSelection(
+                pendingBank >= 0 ? pendingBank : args.bank, action->value);
+            } else if (action->type == ardor::MidiActionType::SelectBank) {
+              const int pendingSlot = requestedSlot.load(std::memory_order_relaxed);
+              requestPresetSelection(
+                action->value, pendingSlot >= 0 ? pendingSlot : controls.activeSlot);
+            } else if (action->type == ardor::MidiActionType::SetTuner) {
+              requestedTunerMode = action->value;
+            }
+          }
+        }
+
+        const auto expressionNow = std::chrono::steady_clock::now();
+        if (expressionEnabled && expressionNow >= nextExpressionPoll) {
+          nextExpressionPoll = expressionNow + std::chrono::milliseconds(8);
+          int raw = 0;
+          if (expressionInput.readRaw(raw)) {
+            if (const auto position = expressionFilter.update(raw);
+                position.has_value() && activePreset.expression.has_value()) {
+              if (applyExpressionPosition(*liveEngine, activePreset, *position)) {
+                expressionTargetWarningPrinted = false;
+              } else if (!expressionTargetWarningPrinted) {
+                const auto& assignment = *activePreset.expression;
+                std::cerr << "Expression assignment is not live-controllable: "
+                          << assignment.blockId << ":" << assignment.parameter << "\n";
+                expressionTargetWarningPrinted = true;
+              }
+            }
+          }
+        }
 #endif
         if (requestedTunerMode >= 0) {
           const bool requested = requestedTunerMode != 0;
@@ -1051,6 +1273,10 @@ int main(int argc, char** argv)
             if (activation.activated()) {
               runtime.changePreset();
               liveEngine->setEffectsBypassed(runtime.effectsBypassed());
+              activePreset = previewPreset;
+#if defined(__linux__)
+              expressionTargetWarningPrinted = false;
+#endif
               // Repairing an unavailable preset through a structural edit
               // makes that draft the audible selection for subsequent saves
               // and navigation.
@@ -1171,6 +1397,11 @@ int main(int argc, char** argv)
           }
           runtime.changePreset();
           liveEngine->setEffectsBypassed(runtime.effectsBypassed());
+          activePreset = std::move(targetPreset);
+#if defined(__linux__)
+          expressionFilter.reset();
+          expressionTargetWarningPrinted = false;
+#endif
           args.bank = activeSelection.bank;
           args.slot = activeSelection.slot;
           controls.activeSlot = activeSelection.slot;

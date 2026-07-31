@@ -1,6 +1,9 @@
 #include "control/ControlEvents.h"
+#include "control/Expression.h"
+#include "control/Midi.h"
 
 #include <chrono>
+#include <cmath>
 #include <iostream>
 
 namespace {
@@ -70,6 +73,66 @@ int main()
   if (require(immediate && immediate->type == ardor::FootswitchActionType::SelectPreset
                 && immediate->index == 3,
               "right switches should remain immediate")) return 1;
+
+  ardor::MidiStreamParser midi;
+  ardor::MidiControlMapper midiControls;
+  if (require(!midi.push(0xc2), "program status should wait for data")) return 1;
+  const auto program = midi.push(3);
+  if (require(program && program->type == ardor::MidiMessageType::ProgramChange
+                && program->channel == 2 && program->data1 == 3,
+              "program change should parse")) return 1;
+  const auto presetAction = midiControls.map(*program);
+  if (require(presetAction && presetAction->type == ardor::MidiActionType::SelectPreset
+                && presetAction->value == 3,
+              "program change should select one of four preset slots")) return 1;
+
+  // Running status remains active and realtime clock bytes may be interleaved.
+  if (require(!midi.push(0xf8), "realtime byte should be ignored")) return 1;
+  const auto runningProgram = midi.push(1);
+  if (require(runningProgram && runningProgram->data1 == 1,
+              "program running status should parse")) return 1;
+
+  midi.push(0xb2);
+  midi.push(32);
+  const auto bank = midi.push(42);
+  const auto bankAction = bank ? midiControls.map(*bank) : std::nullopt;
+  if (require(bankAction && bankAction->type == ardor::MidiActionType::SelectBank
+                && bankAction->value == 42,
+              "bank select should map to bank 42")) return 1;
+
+  midi.push(20); // CC running status
+  const auto tunerOn = midi.push(127);
+  const auto tunerOnAction = tunerOn ? midiControls.map(*tunerOn) : std::nullopt;
+  if (require(tunerOnAction && tunerOnAction->type == ardor::MidiActionType::SetTuner
+                && tunerOnAction->value == 1,
+              "tuner CC high value should enable tuner")) return 1;
+  midi.push(20);
+  const auto tunerOff = midi.push(0);
+  const auto tunerOffAction = tunerOff ? midiControls.map(*tunerOff) : std::nullopt;
+  if (require(tunerOffAction && tunerOffAction->type == ardor::MidiActionType::SetTuner
+                && tunerOffAction->value == 0,
+              "tuner CC low value should disable tuner")) return 1;
+
+  ardor::MidiControlMapper channelOne{{0, 20}};
+  if (require(!channelOne.map(*program), "channel filter should reject another channel")) return 1;
+
+  ardor::ExpressionFilter expression{{100, 1100, 1.0f, 0.01f}};
+  if (require(expression.valid(), "expression calibration should be valid")) return 1;
+  const auto expressionMinimum = expression.update(100);
+  if (require(expressionMinimum && *expressionMinimum == 0.0f,
+              "expression minimum should map to zero")) return 1;
+  const auto expressionMid = expression.update(600);
+  if (require(expressionMid && std::fabs(*expressionMid - 0.5f) < 1.0e-6f,
+              "expression midpoint should map to one half")) return 1;
+  if (require(!expression.update(600),
+              "expression deadband should suppress insignificant repeats")) return 1;
+  expression.reset();
+  const auto expressionMaximum = expression.update(1200);
+  if (require(expressionMaximum && *expressionMaximum == 1.0f,
+              "expression input should clamp above calibrated maximum")) return 1;
+  ardor::ExpressionFilter invalidExpression{{100, 100, 0.5f, 0.01f}};
+  if (require(!invalidExpression.valid() && !invalidExpression.update(100),
+              "invalid expression calibration should reject samples")) return 1;
 
   return 0;
 }

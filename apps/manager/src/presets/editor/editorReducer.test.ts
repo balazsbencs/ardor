@@ -69,6 +69,28 @@ describe("editorReducer", () => {
     expect(editorReducer(edited, { type: "set-global", key: "outputGainDb", value: Number.NaN })).toBe(edited);
   });
 
+  it("stores and clears an expression assignment as undoable preset data", () => {
+    const assigned = editorReducer(state(), {
+      type: "set-expression",
+      expression: {
+        blockId: "block-2",
+        parameter: "speed",
+        minimum: 0.1,
+        maximum: 0.9,
+        inverted: true,
+      },
+    });
+    expect(assigned.history.present.expression).toEqual({
+      blockId: "block-2",
+      parameter: "speed",
+      minimum: 0.1,
+      maximum: 0.9,
+      inverted: true,
+    });
+    expect(assigned.history.past).toHaveLength(1);
+    expect(editorReducer(assigned, { type: "set-expression" }).history.present.expression).toBeUndefined();
+  });
+
   it.each([
     [0, ["nam", "dynamics", "mod", "future"]],
     [1, ["dynamics", "nam", "mod", "future"]],

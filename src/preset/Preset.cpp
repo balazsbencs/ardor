@@ -1,5 +1,7 @@
 #include "preset/Preset.h"
 
+#include <algorithm>
+#include <cmath>
 #include <filesystem>
 #include <stdexcept>
 
@@ -15,6 +17,33 @@ void requireSerialRouting(const std::string& routing)
 }
 
 void normalizeLegacyEffectBlock(PresetBlock& block);
+
+bool containsBlockId(const std::vector<PresetBlock>& blocks, std::string_view id)
+{
+  for (const auto& block : blocks) {
+    if (block.id == id) return true;
+    if (containsBlockId(block.lanes[0], id) || containsBlockId(block.lanes[1], id)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void validateExpression(const Preset& preset)
+{
+  if (!preset.expression) return;
+  const auto& expression = *preset.expression;
+  if (expression.blockId.empty() || expression.parameter.empty()) {
+    throw std::invalid_argument("expression assignment requires blockId and parameter");
+  }
+  if (!containsBlockId(preset.blocks, expression.blockId)) {
+    throw std::invalid_argument("expression assignment block does not exist");
+  }
+  if (!std::isfinite(expression.minimum) || !std::isfinite(expression.maximum)
+      || expression.minimum > expression.maximum) {
+    throw std::invalid_argument("expression assignment range is invalid");
+  }
+}
 
 void validateBlockAssets(const std::vector<PresetBlock>& blocks, int version, bool insideLane = false)
 {
@@ -152,13 +181,14 @@ nlohmann::json toJson(const Preset& preset)
   }
   requireSerialRouting(preset.routing);
   validateBlockAssets(preset.blocks, preset.version);
+  validateExpression(preset);
 
   nlohmann::json blocks = nlohmann::json::array();
   for (const auto& block : preset.blocks) {
     blocks.push_back(blockToJson(block));
   }
 
-  return {
+  nlohmann::json json = {
     {"version", preset.version},
     {"name", preset.name},
     {"routing", preset.routing},
@@ -169,6 +199,16 @@ nlohmann::json toJson(const Preset& preset)
     }},
     {"blocks", blocks},
   };
+  if (preset.expression) {
+    json["expression"] = {
+      {"blockId", preset.expression->blockId},
+      {"parameter", preset.expression->parameter},
+      {"minimum", preset.expression->minimum},
+      {"maximum", preset.expression->maximum},
+      {"inverted", preset.expression->inverted},
+    };
+  }
+  return json;
 }
 
 Preset presetFromJson(const nlohmann::json& json)
@@ -192,8 +232,26 @@ Preset presetFromJson(const nlohmann::json& json)
   }
 
   validateBlockAssets(preset.blocks, preset.version);
+  if (const auto expression = json.find("expression");
+      expression != json.end() && !expression->is_null()) {
+    preset.expression = PresetExpression{
+      expression->at("blockId").get<std::string>(),
+      expression->at("parameter").get<std::string>(),
+      expression->value("minimum", 0.0f),
+      expression->value("maximum", 1.0f),
+      expression->value("inverted", false),
+    };
+  }
+  validateExpression(preset);
 
   return preset;
+}
+
+float expressionValueAt(const PresetExpression& assignment, float normalizedPosition)
+{
+  float position = std::clamp(normalizedPosition, 0.0f, 1.0f);
+  if (assignment.inverted) position = 1.0f - position;
+  return assignment.minimum + position * (assignment.maximum - assignment.minimum);
 }
 
 } // namespace ardor

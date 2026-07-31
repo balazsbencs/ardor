@@ -169,6 +169,26 @@ std::vector<ParameterControl> controlsFor(const UiState& state)
     };
   }
 
+  if (block.type == "dynamics" && block.params.value("mode", "") == "noise_gate") {
+    const auto number = [&](const char* key, float fallback) { return block.params.value(key, fallback); };
+    return {
+      control("threshold_db", "Threshold", -80.0f, 0.0f, 1.0f,
+              number("threshold_db", -55.0f), formatDb),
+      control("reduction_db", "Reduction", 0.0f, 96.0f, 1.0f,
+              number("reduction_db", 80.0f), formatDb),
+      control("attack_ms", "Attack", 0.1f, 50.0f, 0.5f,
+              number("attack_ms", 2.0f), formatMilliseconds),
+      control("hold_ms", "Hold", 0.0f, 500.0f, 5.0f,
+              number("hold_ms", 50.0f), formatMilliseconds),
+      control("release_ms", "Release", 10.0f, 2000.0f, 10.0f,
+              number("release_ms", 150.0f), formatMilliseconds),
+      control("hysteresis_db", "Hysteresis", 0.0f, 18.0f, 1.0f,
+              number("hysteresis_db", 6.0f), formatDb),
+      control("sidechain_hpf_hz", "Sidechain HPF", 20.0f, 500.0f, 10.0f,
+              number("sidechain_hpf_hz", 80.0f), formatHertz),
+    };
+  }
+
   const auto* descriptor = findDaisyFxDescriptor(block.type, block.params.value("mode", ""));
   if (descriptor == nullptr) {
     return {};

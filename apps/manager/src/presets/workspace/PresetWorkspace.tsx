@@ -36,6 +36,45 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
   const validation = useMemo(() => validatePreset(present, { models: session.models, irs: session.irs }), [present, session.models, session.irs]);
   const dirty = isEditorDirty(editor);
   const selected = findPresetBlock(present.blocks, editor.selectedBlockId);
+  const expressionTargets = useMemo(() => present.blocks.flatMap((block) => {
+    if (!["mod", "delay", "reverb", "dynamics", "cab"].includes(block.type)) return [];
+    const definition = findEffectDefinition(block);
+    const parameters = definition?.controls.flatMap((control) =>
+      control.kind === "number" ? [control] : [],
+    ) ?? [];
+    return parameters.length > 0 ? [{
+      block,
+      name: definition?.name ?? block.type,
+      parameters,
+    }] : [];
+  }), [present.blocks]);
+  const expressionTarget = expressionTargets.find(({ block }) =>
+    block.id === present.expression?.blockId,
+  );
+  const expressionParameter = expressionTarget?.parameters.find(({ key }) =>
+    key === present.expression?.parameter,
+  );
+  const patchExpression = (
+    patch: Partial<NonNullable<typeof present.expression>>,
+  ) => {
+    if (!present.expression) return;
+    dispatch({ type: "set-expression", expression: { ...present.expression, ...patch } });
+  };
+  const enableExpression = () => {
+    const target = expressionTargets[0];
+    const parameter = target?.parameters[0];
+    if (!target || !parameter) return;
+    dispatch({
+      type: "set-expression",
+      expression: {
+        blockId: target.block.id,
+        parameter: parameter.key,
+        minimum: parameter.minimum,
+        maximum: parameter.maximum,
+        inverted: false,
+      },
+    });
+  };
   const disabledDefinitions = useMemo(() => {
     const result = new Map<string, string>();
     if (addTarget?.kind === "lane") {
@@ -138,6 +177,94 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
           <div className="preset-actions"><IconButton label="Undo" disabled={editor.history.past.length === 0} onClick={() => dispatch({ type: "undo" })}><Undo2 size={17} /></IconButton><IconButton label="Redo" disabled={editor.history.future.length === 0} onClick={() => dispatch({ type: "redo" })}><Redo2 size={17} /></IconButton><Button variant="secondary" disabled={!dirty || !validation.canSave || saving} onClick={() => void save()}><Save size={16} /> {saving ? "Saving…" : "Save"}</Button><Button variant="primary" disabled={!validation.canApply || saving || session.busy.apply} onClick={() => void saveAndApply()}><Send size={16} /> Save & Apply</Button><Button variant="quiet" disabled={applyBlocked} onClick={() => void apply()}>Apply</Button></div>
         </header>
         <div className="global-strip"><SlidersHorizontal size={17} /><label>Input<input type="number" min={-60} max={24} value={present.global.inputGainDb} onChange={(event) => dispatch({ type: "set-global", key: "inputGainDb", value: Number(event.target.value) })} /><small>dB</small></label><label>Output<input type="number" min={-60} max={24} value={present.global.outputGainDb} onChange={(event) => dispatch({ type: "set-global", key: "outputGainDb", value: Number(event.target.value) })} /><small>dB</small></label><span>Serial routing</span></div>
+        <div className="expression-strip">
+          <label className="expression-strip__enable">
+            <input
+              type="checkbox"
+              checked={present.expression !== undefined}
+              disabled={expressionTargets.length === 0}
+              onChange={(event) => {
+                if (event.target.checked) enableExpression();
+                else dispatch({ type: "set-expression" });
+              }}
+            />
+            Expression pedal
+          </label>
+          {present.expression ? <>
+            <label>Effect
+              <select
+                aria-label="Expression effect"
+                value={present.expression.blockId}
+                onChange={(event) => {
+                  const target = expressionTargets.find(({ block }) => block.id === event.target.value);
+                  const parameter = target?.parameters[0];
+                  if (!target || !parameter) return;
+                  dispatch({
+                    type: "set-expression",
+                    expression: {
+                      blockId: target.block.id,
+                      parameter: parameter.key,
+                      minimum: parameter.minimum,
+                      maximum: parameter.maximum,
+                      inverted: present.expression?.inverted ?? false,
+                    },
+                  });
+                }}
+              >
+                {expressionTargets.map(({ block, name }) =>
+                  <option key={block.id} value={block.id}>{name} · {block.id}</option>)}
+              </select>
+            </label>
+            <label>Parameter
+              <select
+                aria-label="Expression parameter"
+                value={present.expression.parameter}
+                onChange={(event) => {
+                  const parameter = expressionTarget?.parameters.find(({ key }) => key === event.target.value);
+                  if (!parameter) return;
+                  patchExpression({
+                    parameter: parameter.key,
+                    minimum: parameter.minimum,
+                    maximum: parameter.maximum,
+                  });
+                }}
+              >
+                {expressionTarget?.parameters.map((parameter) =>
+                  <option key={parameter.key} value={parameter.key}>{parameter.label}</option>)}
+              </select>
+            </label>
+            <label>Minimum
+              <input
+                aria-label="Expression minimum"
+                type="number"
+                step={expressionParameter?.step ?? "any"}
+                value={present.expression.minimum}
+                onChange={(event) => patchExpression({ minimum: Number(event.target.value) })}
+              />
+            </label>
+            <label>Maximum
+              <input
+                aria-label="Expression maximum"
+                type="number"
+                step={expressionParameter?.step ?? "any"}
+                value={present.expression.maximum}
+                onChange={(event) => patchExpression({ maximum: Number(event.target.value) })}
+              />
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={present.expression.inverted}
+                onChange={(event) => patchExpression({ inverted: event.target.checked })}
+              />
+              Invert
+            </label>
+          </> : <small>
+            {expressionTargets.length > 0
+              ? "Enable to assign one effect parameter in this preset."
+              : "Add a supported effect before assigning the pedal."}
+          </small>}
+        </div>
         {(!validation.canSave || validation.issues.length > 0 || actionError) && <div className="workspace-alert" role="alert"><AlertCircle size={17} /><div>{actionError ? <p>{actionError}</p> : <p>{validation.issues[0]?.message}</p>}<small>{!validation.canSave ? "Fix this before saving." : !validation.canApply ? "You can save this draft, but cannot apply it yet." : "Review the highlighted block."}</small></div></div>}
         <ChainCanvas blocks={present.blocks} selectedBlockId={editor.selectedBlockId} issuesFor={(id) => issuesForBlock(validation, id)} maxed={present.blocks.length >= 10} onSelect={(blockId) => dispatch({ type: "select-block", blockId })} onAdd={(index) => setAddTarget({ kind: "top", index })} onMove={(blockId, index) => dispatch({ type: "move-block", blockId, index })} onLaneAdd={(rigId, lane, index) => setAddTarget({ kind: "lane", rigId, lane, index })} onLaneMove={(rigId, blockId, lane, index) => dispatch({ type: "move-lane-block", rigId, blockId, lane, index })} onToggle={(blockId, enabled) => dispatch({ type: "toggle-block", blockId, enabled })} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} />
       </section>

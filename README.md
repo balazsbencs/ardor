@@ -5,9 +5,10 @@ audio engine, touchscreen/footswitch UI, preset storage, desktop manager, and a
 reproducible Buildroot firmware image.
 
 The signal chain supports Neural Amp Modeler `.nam` files, cabinet impulse
-responses, 35 hosted modulation/delay/reverb effects, compression, five-band
-parametric EQ, global gain, and a safety limiter. The same LVGL interface runs
-in the SDL desktop simulator and on the Raspberry Pi Touch Display 2.
+responses, 35 hosted modulation/delay/reverb effects, compression, noise
+gating, five-band parametric EQ, global gain, and a safety limiter. The same
+LVGL interface runs in the SDL desktop simulator and on the Raspberry Pi Touch
+Display 2.
 
 The pedal is an appliance rather than a plugin host. Plugin formats and an OTA
 update workflow are outside the current scope.
@@ -26,7 +27,7 @@ vulnerabilities should be reported privately according to
 - Git access during CMake configure, for `miniaudio` and `NeuralAmpModelerCore`
 - SDL2 for the LVGL desktop simulator (`ARDOR_UI_BACKEND=sdl`)
 - macOS for desktop testing, or Linux for target-style builds
-- Optional: Go for the manager daemon, Node.js/Rust for the Tauri manager, and
+- Optional: Go for the manager daemon, Node.js 24 via `nvm use`/Rust for the Tauri manager, and
   Docker for the Buildroot firmware image
 - Local test assets:
   - `models/test.nam`
@@ -132,6 +133,11 @@ Each mode uses semantic labels, physical-value formatting, defaults, and
 discrete choices from `src/daisyfx/DaisyFxCatalog.cpp`. Compressor blocks use
 `type: "dynamics"` with mode `compressor`.
 
+Noise Gate blocks use `type: "dynamics"` with mode `noise_gate`. Their numeric
+parameters are `threshold_db`, `reduction_db`, `attack_ms`, `hold_ms`,
+`release_ms`, `hysteresis_db`, and `sidechain_hpf_hz`. Detection is
+stereo-linked and the gate adds no lookahead latency.
+
 The Ardor-maintained Daisy effect engine lives under `src/daisyfx/hosted/`.
 Its upstream origin and license are preserved there; host adaptation and effect
 implementation now live together under `src/daisyfx/`.
@@ -166,10 +172,10 @@ ctest --test-dir build-sdl --output-on-failure
 ```
 
 The CTest suite covers preset parsing and activation, realtime-chain behavior,
-Daisy effects and automation, compressor and parametric EQ processing, tuner and
-control gestures, UI models/LVGL interaction, audio-device enumeration, and
-reload stress. Hardware latency, Codec Zero routing, and subjective audio
-validation remain device-level checks.
+Daisy effects and automation, compressor, noise gate, and parametric EQ
+processing, tuner and control gestures, UI models/LVGL interaction,
+audio-device enumeration, and reload stress. Hardware latency, Codec Zero
+routing, and subjective audio validation remain device-level checks.
 
 ## List Audio Devices
 
@@ -389,6 +395,11 @@ movement to master output volume. Hold the two left switches (`KEY_F1` +
 any footswitch to exit without changing presets. The touchscreen provides the
 same flow through the preset-screen Tuner button and tuner-screen Exit button.
 
+The planned TRS-A MIDI and expression-pedal interface, message mapping, GPIO
+allocation, and preset expression schema are documented in
+[`docs/midi-expression-control.md`](docs/midi-expression-control.md). Its
+native KiCad schematic is under [`hardware/control-io`](hardware/control-io/README.md).
+
 ## Manager Daemon
 
 The REST manager daemon lives in `services/managerd`. It manages `.nam`, `.wav`,
@@ -473,7 +484,7 @@ The touch UI includes:
   per-preset scroll memory, dedicated block drag handles, and Input/Output
   jump controls.
 - An asset drawer with separate All, Amps, Cabs, Utility, Modulation, Delays,
-  and Reverbs filters. Utility contains compressor and EQ blocks.
+  and Reverbs filters. Utility contains compressor, Noise Gate, and EQ blocks.
 - `+` insertion points between every top-level effect and between effects in
   each split lane. Top-level insertion offers `Split Left / Right`; lane
   insertion prevents nested split regions.
@@ -520,9 +531,9 @@ It reads:
 - `presets/bank-000/preset-2.json`
 - `presets/bank-000/preset-3.json`
 
-Assets are discovered from `models/*.nam` and `irs/*.wav`; compressor, EQ, and
-Daisy effects come from built-in catalogs. The simulator saves chain edits only
-when Save is pressed.
+Assets are discovered from `models/*.nam` and `irs/*.wav`; compressor, Noise
+Gate, EQ, and Daisy effects come from built-in catalogs. The simulator saves
+chain edits only when Save is pressed.
 
 ## Integrated UI and Audio
 

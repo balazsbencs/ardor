@@ -15,6 +15,7 @@ enum class SignalStageKind {
   Cab,
   Daisy,
   Compressor,
+  NoiseGate,
   Equalizer,
   DualAmp,
   DualRig,

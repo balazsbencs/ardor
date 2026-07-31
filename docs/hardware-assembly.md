@@ -46,12 +46,15 @@ Do not use these GPIOs for pedal controls:
 | GPIO1 | 28 | HAT ID EEPROM bus |
 | GPIO2 | 3 | I2C SDA |
 | GPIO3 | 5 | I2C SCL |
+| GPIO8 | 24 | UART4 TX reserved for future MIDI output |
+| GPIO9 | 21 | UART4 RX for TRS MIDI input |
 | GPIO18 | 12 | I2S bit clock / `PCM_CLK` |
 | GPIO19 | 35 | I2S word select / `PCM_FS` |
 | GPIO20 | 38 | I2S input / `PCM_DIN` |
 | GPIO21 | 40 | I2S output / `PCM_DOUT` |
 | GPIO23 | 16 | Codec Zero green LED |
 | GPIO24 | 18 | Codec Zero red LED |
+| GPIO25 | 22 | ADS1115 ALERT/RDY |
 | GPIO27 | 13 | Codec Zero tactile button |
 
 The Codec Zero is an I2S HAT. Raspberry Pi 4 and earlier expose I2S on GPIO18, GPIO19, GPIO20, and GPIO21.
@@ -66,6 +69,13 @@ The Codec Zero is an I2S HAT. Raspberry Pi 4 and earlier expose I2S on GPIO18, G
 | Footswitch 4 / preset slot 4 | GPIO16 | 36 | Switch to GND |
 | Encoder A | GPIO17 | 11 | Encoder A to GPIO, common to GND |
 | Encoder B | GPIO22 | 15 | Encoder B to GPIO, common to GND |
+| MIDI input | GPIO9 | 21 | 3.3 V output of isolated UART4 RX circuit |
+| MIDI output reserve | GPIO8 | 24 | UART4 TX; do not connect directly to a MIDI jack |
+| Expression ADC alert | GPIO25 | 22 | ADS1115 ALERT/RDY, open-drain with 10 kΩ pull-up |
+
+The ADS1115 shares I2C1 on GPIO2/GPIO3 with the Codec Zero at address `0x48`.
+The companion board does not add I2C pull-ups because the assembled bus already
+has them.
 
 Use any convenient ground pins for the switch common rail. Good choices are physical pins `9`, `14`, `20`, `25`, `30`, `34`, or `39`.
 
@@ -86,8 +96,8 @@ View looking down at the Raspberry Pi GPIO header, USB/Ethernet ports to the rig
  GPIO22(15)(16) GPIO23        encoder B / Codec Zero LED
  3V3  (17)(18) GPIO24         Codec Zero LED
  GPIO10(19)(20) GND
- GPIO9 (21)(22) GPIO25
- GPIO11(23)(24) GPIO8
+ GPIO9 (21)(22) GPIO25        MIDI RX / expression ADC alert
+ GPIO11(23)(24) GPIO8         free / MIDI TX reserve
  GND  (25)(26) GPIO7
  GPIO0(27)(28) GPIO1          HAT ID EEPROM reserved
  GPIO5(29)(30) GND            footswitch 1
@@ -118,6 +128,24 @@ Notes:
 - Use normally-open momentary footswitches.
 - Add hardware debounce only if software debounce is not enough.
 - Use shielded cable or twisted pair for long footswitch runs inside the enclosure.
+
+## MIDI and expression companion board
+
+The editable schematic and review PDF are in
+[`hardware/control-io`](../hardware/control-io/README.md). MIDI uses a 3.5 mm
+TRS Type-A input: tip is current sink, ring is current source, and sleeve is
+shield. A 6N138 isolates the jack from the Raspberry Pi. Do not connect a TRS
+MIDI jack directly to a GPIO.
+
+The expression input accepts a passive 6.35 mm TRS pedal. Its DPDT polarity
+switch swaps tip and ring so both common pedal wirings are supported. ADS1115
+AIN0 reads the filtered wiper voltage; R4 limits current if the pedal cable is
+shorted.
+
+The firmware enables `uart4`, the MIDI baud-rate clock overlay, and the ADS1115
+IIO device. UART4 appears as `/dev/ttyAMA4`; request `38400` baud in userspace,
+which the MIDI overlay converts to the physical `31250` baud rate. The ADC
+appears under `/sys/bus/iio/devices/` after the `ads1115` driver binds.
 
 ## Audio Wiring
 

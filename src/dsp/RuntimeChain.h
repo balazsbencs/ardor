@@ -4,6 +4,7 @@
 #include "dsp/SignalRouting.h"
 #include "daisyfx/DaisyFxProcessor.h"
 #include "dynamics/CompressorProcessor.h"
+#include "dynamics/NoiseGateProcessor.h"
 #include "equalizer/EqParameters.h"
 
 #include <cstddef>
@@ -43,10 +44,12 @@ public:
   void addCab(std::vector<float> impulse, float level, float mix, std::string id = "cab");
   void addDaisy(std::string id, DaisyFxProcessor processor);
   void addCompressor(std::string id, CompressorProcessor processor);
+  void addNoiseGate(std::string id, NoiseGateProcessor processor);
   bool addParametricEq(std::string id, const ParametricEqParams& params, float sampleRate, std::string& error);
   bool setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params);
   bool setDaisyParameter(const std::string& id, const std::string& key, float normalized);
   bool setCompressorParameter(const std::string& id, const std::string& key, float value);
+  bool setNoiseGateParameter(const std::string& id, const std::string& key, float value);
   // Negative cab arguments use each cabinet block's prepared level/mix. The
   // PedalEngine supplies non-negative smoothed values for its legacy
   // top-level cabinet control; nested Dual Rig lanes use prepared values.

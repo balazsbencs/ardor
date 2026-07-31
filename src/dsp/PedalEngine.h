@@ -29,10 +29,12 @@ public:
   bool addDaisyFx(std::string id, const std::string& blockType, const nlohmann::json& params,
                   float sampleRate, std::string& error);
   bool addCompressor(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
+  bool addNoiseGate(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool addParametricEq(const std::string& id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params);
   bool setDaisyParameter(const std::string& id, const std::string& key, float normalized);
   bool setCompressorParameter(const std::string& id, const std::string& key, float value);
+  bool setNoiseGateParameter(const std::string& id, const std::string& key, float value);
   void prepareBlockSize(size_t frames);
   void clearEffects();
   void setInputGain(float gain);
@@ -94,11 +96,11 @@ private:
   bool audioStarted_ = false;
 
   void beginAudioProcessing();
-  float smoothGain(float& current, const std::atomic<float>& target);
-  float smoothEffectsMix();
+  float smoothGain(float& current, float target) const;
+  float smoothEffectsMix(float target);
   static StereoSample equalPowerMix(StereoSample dry, StereoSample wet, float wetMix);
-  void observeLimiter(float left, float right);
-  float applySafety(float sample) const;
+  static bool limiterEngaged(float left, float right, bool enabled, float limit);
+  static float applySafety(float sample, bool limiterEnabled, float safetyLimit);
 };
 
 } // namespace ardor

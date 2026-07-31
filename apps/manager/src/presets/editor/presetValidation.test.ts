@@ -46,6 +46,27 @@ describe("preset validation", () => {
     expect(codes(preset)).toContain(code);
   });
 
+  it("validates expression assignments against stable block IDs", () => {
+    const compressor = createBlockFromDefinition("dynamics:compressor", []);
+    const preset = validPreset([compressor]);
+    preset.expression = {
+      blockId: compressor.id,
+      parameter: "threshold_db",
+      minimum: -60,
+      maximum: -10,
+      inverted: false,
+    };
+    expect(codes(preset)).not.toContain("expression-block");
+
+    preset.expression.blockId = "missing";
+    expect(codes(preset)).toContain("expression-block");
+
+    preset.expression.blockId = compressor.id;
+    preset.expression.minimum = 1;
+    preset.expression.maximum = 0;
+    expect(codes(preset)).toContain("expression-range");
+  });
+
   it.each([
     ["", "block-id-empty"],
     ["x".repeat(81), "block-id-length"],
@@ -88,6 +109,22 @@ describe("preset validation", () => {
     expect(result.issues).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "parameter-range", blockId: "block-1", field: "params.ratio" }),
       expect.objectContaining({ code: "parameter-type", blockId: "block-1", field: "params.auto_makeup" }),
+    ]));
+    expect(result.canSave).toBe(false);
+  });
+
+  it("validates noise gate parameter ranges from the catalog", () => {
+    const noiseGate = createBlockFromDefinition("dynamics:noise_gate", []);
+    noiseGate.params.threshold_db = -81;
+    noiseGate.params.hold_ms = "long";
+    const result = validatePreset(validPreset([noiseGate]), assets);
+    expect(result.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: "parameter-range", blockId: "block-1", field: "params.threshold_db",
+      }),
+      expect.objectContaining({
+        code: "parameter-type", blockId: "block-1", field: "params.hold_ms",
+      }),
     ]));
     expect(result.canSave).toBe(false);
   });

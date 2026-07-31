@@ -46,6 +46,7 @@ struct UiActions {
   std::function<bool(const std::string&, std::size_t, const EqBandParams&)> updateEqBand;
   std::function<bool(const std::string&, const std::string&, float)> updateDaisyParameter;
   std::function<bool(const std::string&, const std::string&, float)> updateCompressorParameter;
+  std::function<bool(const std::string&, const std::string&, float)> updateNoiseGateParameter;
   std::function<void(float, float)> updateGlobalGains;
   std::function<void(float, float)> updateCabParameters;
   std::function<void(int)> changeBank;
@@ -170,6 +171,10 @@ private:
   void syncDrawerAssets(UiState& state);
   void syncDrawerView(UiState& state);
   void syncParameterView(UiState& state);
+  void syncModeVisibility(const UiState& state);
+  void syncHeaderView(const UiState& state);
+  void syncPresetCards(const UiState& state);
+  void syncStatusView(const UiState& state);
   void syncPersistentViews(UiState& state);
   void syncBlockingOverlays(const UiState& state);
   void syncTunerView(UiState& state);

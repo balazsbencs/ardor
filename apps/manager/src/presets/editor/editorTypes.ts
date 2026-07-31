@@ -29,6 +29,7 @@ export type EditorAction =
   | { type: "select-block"; blockId?: string }
   | { type: "set-name"; name: string }
   | { type: "set-global"; key: "inputGainDb" | "outputGainDb"; value: number }
+  | { type: "set-expression"; expression?: Preset["expression"] }
   | { type: "add-block"; definitionId: string; index: number; initialAsset?: string }
   | { type: "move-block"; blockId: string; index: number }
   | { type: "add-lane-block"; rigId: string; lane: "left" | "right"; definitionId: string; index: number; initialAsset?: string }

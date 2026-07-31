@@ -194,6 +194,16 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         return next;
       });
     }
+    case "set-expression":
+      if (action.expression
+          && (!Number.isFinite(action.expression.minimum)
+            || !Number.isFinite(action.expression.maximum))) return state;
+      return withMutation(state, (present) => {
+        const next = clonePreset(present);
+        if (action.expression) next.expression = structuredClone(action.expression);
+        else delete next.expression;
+        return next;
+      });
     case "add-block": {
       if (state.history.present.blocks.length >= 10) return state;
       let block: PresetBlock;
