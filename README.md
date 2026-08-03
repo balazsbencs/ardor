@@ -408,6 +408,10 @@ uploads queue a catalog refresh for the pedal UI. Applying a saved slot queues
 a live engine swap, handled by the pedal management loop without restarting the
 audio process; a short muted transition protects the active audio callback.
 
+The proposed hosted HTTPS manager, outbound device connection, claiming,
+authentication, reset, and TONE3000 architecture is specified in
+[`docs/hosted-manager-architecture.md`](docs/hosted-manager-architecture.md).
+
 Run locally without auth:
 
 ```sh
