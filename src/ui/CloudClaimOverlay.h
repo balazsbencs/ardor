@@ -1,0 +1,46 @@
+#pragma once
+
+#include <chrono>
+#include <filesystem>
+#include <string>
+
+#include <lvgl.h>
+
+namespace ardor {
+
+class CloudClaimOverlay {
+public:
+  explicit CloudClaimOverlay(std::filesystem::path dataRoot);
+  ~CloudClaimOverlay();
+
+  void poll();
+  bool active() const { return mode_ != Mode::Hidden; }
+  bool handleFootswitch(int index);
+  bool recordPhysicalDecision(bool approved, std::string& error);
+
+private:
+  enum class Mode { Hidden, Code, Pending, Decided };
+
+  void showCode(const std::string& flowId, const std::string& code);
+  void showPending(const std::string& flowId, const std::string& accountName);
+  void showDecided(bool approved);
+  void hide();
+  void decide(bool approved);
+  static void approveClicked(lv_event_t* event);
+  static void rejectClicked(lv_event_t* event);
+
+  std::filesystem::path directory_;
+  std::filesystem::path codePath_;
+  std::filesystem::path pendingPath_;
+  std::filesystem::path decisionPath_;
+  std::chrono::steady_clock::time_point nextPoll_{};
+  Mode mode_ = Mode::Hidden;
+  std::string flowId_;
+  lv_obj_t* modal_ = nullptr;
+  lv_obj_t* title_ = nullptr;
+  lv_obj_t* detail_ = nullptr;
+  lv_obj_t* approve_ = nullptr;
+  lv_obj_t* reject_ = nullptr;
+};
+
+} // namespace ardor

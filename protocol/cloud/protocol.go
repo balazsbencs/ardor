@@ -25,9 +25,13 @@ const (
 	KindResponse = "response"
 	KindEvent    = "event"
 
-	OperationHello = "system.hello"
-	OperationPing  = "system.ping"
-	OperationError = "system.error"
+	OperationHello         = "system.hello"
+	OperationPing          = "system.ping"
+	OperationError         = "system.error"
+	OperationClaimCode     = "claim.code"
+	OperationClaimPending  = "claim.pending"
+	OperationClaimDecision = "claim.decision"
+	OperationClaimEpoch    = "claim.epoch"
 )
 
 var ErrReplay = errors.New("cloud message was already processed")
@@ -78,7 +82,7 @@ func (envelope Envelope) Validate(now time.Time) error {
 		return fmt.Errorf("cloud envelope has unsupported kind %q", envelope.Kind)
 	}
 	switch envelope.Operation {
-	case OperationHello, OperationPing, OperationError:
+	case OperationHello, OperationPing, OperationError, OperationClaimCode, OperationClaimPending, OperationClaimDecision, OperationClaimEpoch:
 	default:
 		return fmt.Errorf("cloud operation %q is not enabled", envelope.Operation)
 	}
@@ -168,6 +172,18 @@ func AuthenticationTranscript(deviceID, challengeID, nonce string, timestamp tim
 		timestamp.UTC().Format(time.RFC3339Nano),
 		protocolVersion,
 		claimEpoch,
+	))
+}
+
+func ClaimDecisionTranscript(flowID, deviceID, accountID, nonce string, nextClaimEpoch uint64, approved bool) []byte {
+	return []byte(fmt.Sprintf(
+		"ardor-cloud-claim-v1\n%s\n%s\n%s\n%s\n%d\n%t\n",
+		flowID,
+		deviceID,
+		accountID,
+		nonce,
+		nextClaimEpoch,
+		approved,
 	))
 }
 

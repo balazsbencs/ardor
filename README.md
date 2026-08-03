@@ -410,10 +410,11 @@ audio process; a short muted transition protects the active audio callback.
 
 The hosted HTTPS manager architecture and delivery plan are specified in
 [`docs/hosted-manager-architecture.md`](docs/hosted-manager-architecture.md).
-Its Phase 1 foundation now includes the shared UI transport contract, durable
+Its Phase 1 foundation includes the shared UI transport contract, durable
 device identity, versioned wire schemas, and a reconnecting outbound cloud
-agent. Hosted accounts, claiming, reset, and server-side TONE3000 integration
-remain later phases.
+agent. Phase 2 adds a SQLite-backed hosted control plane, account recovery,
+device presence, and physically confirmed claiming. Remote preset management,
+reset, and server-side TONE3000 integration remain later phases.
 
 Run locally without auth:
 
@@ -454,12 +455,42 @@ a dedicated OAuth callback flow.
 Auth is enabled by default when no environment override is supplied. Set
 `ARDOR_API_AUTH=on` and provide `ARDOR_API_TOKEN` for a protected device.
 
-The outbound cloud agent is disabled by default. A future control-plane
-deployment can enable it with `ARDOR_CLOUD_ENABLED=on` and an HTTPS origin in
+The outbound cloud agent is disabled by default. A control-plane deployment can
+enable it with `ARDOR_CLOUD_ENABLED=on` and an HTTPS origin in
 `ARDOR_CLOUD_URL`. Protocol v1 deliberately rejects
-`ARDOR_CLOUD_REMOTE_MUTATIONS=on`; its connection currently supports only
-authentication, presence, and ping handling. The generated Ed25519 identity is
-stored under `<ARDOR_DATA_ROOT>/identity/device.json` with mode `0600`.
+`ARDOR_CLOUD_REMOTE_MUTATIONS=on`; its connection currently supports
+authentication, presence, ping, and physical claiming. The generated Ed25519
+identity is stored under `<ARDOR_DATA_ROOT>/identity/device.json` with mode
+`0600`.
+
+## Hosted Control Plane
+
+The initial control plane in `services/controlplane` is a single Go service
+with an embedded migration set and a pure-Go SQLite driver. SQLite is the
+intentional first-deployment choice: the server has one active instance and a
+single writer, so PostgreSQL would add operations without adding useful
+capacity yet. The repository boundary leaves a future database migration open.
+
+Run the API locally over explicitly enabled development HTTP:
+
+```sh
+cd services/controlplane
+ARDOR_INSECURE_HTTP=on \
+ARDOR_PUBLIC_ORIGIN=http://127.0.0.1:8090 \
+go run ./cmd/ardor-controlplane
+```
+
+Build the hosted browser application with the repository Node version:
+
+```sh
+cd apps/manager
+nvm use
+npm run build:hosted
+```
+
+Production deployment must expose that static bundle and `/v1` from the same
+public HTTPS origin. Account sessions are `HttpOnly`, `SameSite=Strict`, secure
+cookies; state-changing browser requests also require the exact public Origin.
 
 ## Desktop Manager
 

@@ -37,6 +37,27 @@ func TestLoadOrCreatePersistsStableIdentity(t *testing.T) {
 	}
 }
 
+func TestClaimEpochUpdateIsDurableAndMonotonic(t *testing.T) {
+	root := t.TempDir()
+	identity, err := LoadOrCreate(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := identity.SetClaimEpoch(3); err != nil {
+		t.Fatal(err)
+	}
+	reloaded, err := LoadOrCreate(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.ClaimEpoch != 3 {
+		t.Fatalf("claim epoch = %d, want 3", reloaded.ClaimEpoch)
+	}
+	if err := reloaded.SetClaimEpoch(2); err == nil {
+		t.Fatal("expected claim epoch rollback rejection")
+	}
+}
+
 func TestLoadOrCreateDoesNotReplaceCorruptIdentity(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, identityDir, identityFile)

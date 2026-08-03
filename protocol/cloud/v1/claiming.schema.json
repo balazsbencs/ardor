@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ardor.local/protocol/cloud/v1/claiming.schema.json",
+  "title": "Ardor Device Claiming v1",
+  "oneOf": [
+    { "$ref": "#/$defs/code" },
+    { "$ref": "#/$defs/pending" },
+    { "$ref": "#/$defs/decision" },
+    { "$ref": "#/$defs/acknowledgement" },
+    { "$ref": "#/$defs/epoch" }
+  ],
+  "$defs": {
+    "code": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claimFlowId", "manualCode", "expiresAt"],
+      "properties": {
+        "claimFlowId": { "type": "string", "format": "uuid" },
+        "manualCode": { "type": "string", "pattern": "^[A-Z2-9]{4}-[A-Z2-9]{4}$" },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "pending": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claimFlowId", "accountId", "accountDisplayName", "nonce", "nextClaimEpoch", "expiresAt"],
+      "properties": {
+        "claimFlowId": { "type": "string", "format": "uuid" },
+        "accountId": { "type": "string", "format": "uuid" },
+        "accountDisplayName": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "nonce": { "type": "string", "contentEncoding": "base64" },
+        "nextClaimEpoch": { "type": "integer", "minimum": 1 },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claimFlowId", "accountId", "approved", "nextClaimEpoch", "signature"],
+      "properties": {
+        "claimFlowId": { "type": "string", "format": "uuid" },
+        "accountId": { "type": "string", "format": "uuid" },
+        "approved": { "type": "boolean" },
+        "nextClaimEpoch": { "type": "integer", "minimum": 1 },
+        "signature": { "type": "string", "contentEncoding": "base64" }
+      }
+    },
+    "acknowledgement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claimFlowId", "status", "claimEpoch"],
+      "properties": {
+        "claimFlowId": { "type": "string", "format": "uuid" },
+        "status": { "enum": ["claimed", "rejected"] },
+        "claimEpoch": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "epoch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claimEpoch"],
+      "properties": {
+        "claimEpoch": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

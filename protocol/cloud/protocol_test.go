@@ -64,7 +64,7 @@ func readFixture(t *testing.T, name string) []byte {
 	if !ok {
 		t.Fatal("locate test source")
 	}
-	path := filepath.Join(filepath.Dir(currentFile), "..", "..", "..", "..", "protocol", "cloud", "v1", "fixtures", name)
+	path := filepath.Join(filepath.Dir(currentFile), "v1", "fixtures", name)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

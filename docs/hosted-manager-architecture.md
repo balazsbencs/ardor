@@ -113,14 +113,18 @@ to share conventions with `managerd`. Its first deployment consists of:
 
 - An HTTPS JSON API for accounts, claiming, devices, and jobs.
 - A WebSocket gateway for authenticated pedal connections.
-- PostgreSQL for durable identity, authorization, session, job, and audit data.
+- SQLite in WAL mode for durable identity, authorization, session, job, and
+  audit data in the first single-instance deployment.
 - Optional S3-compatible storage for short-lived asset transfers.
 - A fixed TONE3000 OAuth callback.
 
-A single service instance is acceptable for the first release. Horizontal
-WebSocket routing, Redis, or a message broker are deferred until needed. The
-wire protocol and database must not assume that a connection always terminates
-on the same process in the future.
+A single service instance is the first-release topology. SQLite keeps that
+deployment operationally simple: one durable file, transactional claiming, and
+straightforward backups. PostgreSQL, horizontal WebSocket routing, Redis, or a
+message broker are deferred until multiple service instances or sustained
+write concurrency make them necessary. The wire protocol and repository
+boundary do not assume that a connection always terminates on the same process
+in the future.
 
 ### Device agent
 
@@ -441,7 +445,7 @@ state.
 ### Trust boundaries
 
 - Browser to hosted control plane over public HTTPS.
-- Control plane to PostgreSQL and object storage.
+- Control plane to SQLite and object storage.
 - Control plane to TONE3000.
 - Control plane to pedal over outbound WSS.
 - Local browser or Tauri client to the pedal's HTTP API.
@@ -562,6 +566,14 @@ mutations refused.
 
 Acceptance: a code cannot claim without physical confirmation; users cannot
 read or operate devices outside their memberships.
+
+Implemented on `feat/device-hosted-manager`: the Go control plane uses a
+migrated SQLite database and hardened cookie sessions; recovery codes are
+one-time and hash-only; device root-key authentication, presence, claiming,
+physical touchscreen/footswitch approval, claim-epoch reconciliation, unclaim,
+and account-isolated device lists are covered by integration tests. The React
+manager has a separate hosted build for account, recovery, claiming, and device
+presence screens. Remote preset mutations remain disabled until Phase 3.
 
 ### Phase 3: preset management
 

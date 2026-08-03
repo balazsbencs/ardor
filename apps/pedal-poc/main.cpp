@@ -51,6 +51,7 @@
 #include <vector>
 
 #if defined(ARDOR_HAS_UI)
+#include "ui/CloudClaimOverlay.h"
 #include "ui/LvglUi.h"
 #include "ui/UiModel.h"
 #include <lvgl.h>
@@ -781,6 +782,7 @@ int main(int argc, char** argv)
 
 #if defined(ARDOR_HAS_UI)
       std::unique_ptr<ardor::LvglUi> ui;
+      std::unique_ptr<ardor::CloudClaimOverlay> claimOverlay;
       ardor::UiState uiState;
       ardor::GlobalSettingsStore globalSettings(args.dataRoot);
       if (args.enableUi) {
@@ -953,6 +955,7 @@ int main(int argc, char** argv)
           },
         });
         ui->build(lv_screen_active(), uiState);
+        claimOverlay = std::make_unique<ardor::CloudClaimOverlay>(args.dataRoot);
       }
 #endif
 
@@ -1116,6 +1119,7 @@ int main(int argc, char** argv)
       while (running) {
 #if defined(ARDOR_HAS_UI)
         if (args.enableUi && ui) {
+          claimOverlay->poll();
           lv_timer_handler();
           ui->refresh(lv_screen_active(), uiState);
           // LVGL's default delay is a busy-wait when LV_USE_OS is
@@ -1191,6 +1195,15 @@ int main(int argc, char** argv)
           while (inputDevice.poll(controlEvent)) {
             if (controlEvent.type == ardor::ControlEventType::FootswitchPressed
                 || controlEvent.type == ardor::ControlEventType::FootswitchReleased) {
+#if defined(ARDOR_HAS_UI)
+              if (args.enableUi && claimOverlay && claimOverlay->active()) {
+                if (controlEvent.type == ardor::ControlEventType::FootswitchPressed) {
+                  claimOverlay->handleFootswitch(controlEvent.index);
+                }
+                footswitchGesture.reset();
+                continue;
+              }
+#endif
               if (tunerMode && controlEvent.type == ardor::ControlEventType::FootswitchPressed) {
                 applyFootswitchAction({ardor::FootswitchActionType::ToggleTuner, 0});
                 // The release belonging to this exit press must not turn into

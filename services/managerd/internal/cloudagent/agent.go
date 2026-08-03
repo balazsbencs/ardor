@@ -16,7 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"ardor.local/managerd/internal/cloudprotocol"
+	"ardor.local/cloudprotocol"
+	"ardor.local/managerd/internal/deviceclaim"
 	"ardor.local/managerd/internal/deviceidentity"
 	"github.com/coder/websocket"
 )
@@ -34,6 +35,7 @@ type Config struct {
 	Logger           *log.Logger
 	ReconnectInitial time.Duration
 	ReconnectMax     time.Duration
+	ClaimGate        deviceclaim.Gate
 
 	// AllowInsecure is only intended for local integration tests. Production
 	// configuration never sets it and therefore requires HTTPS and WSS.
@@ -74,7 +76,14 @@ type tokenResponse struct {
 	Version      int       `json:"version"`
 	Token        string    `json:"token"`
 	WebSocketURL string    `json:"websocketUrl"`
+	ClaimEpoch   uint64    `json:"claimEpoch"`
 	ExpiresAt    time.Time `json:"expiresAt"`
+}
+
+type readResult struct {
+	messageType websocket.MessageType
+	data        []byte
+	err         error
 }
 
 func New(config Config, identity *deviceidentity.Identity) (*Agent, error) {
@@ -161,26 +170,38 @@ func (agent *Agent) runOnce(ctx context.Context) error {
 	if err := agent.writeHello(ctx, connection); err != nil {
 		return err
 	}
+	reads := make(chan readResult, 1)
+	go func() {
+		for {
+			messageType, data, err := connection.Read(ctx)
+			reads <- readResult{messageType: messageType, data: data, err: err}
+			if err != nil {
+				return
+			}
+		}
+	}()
+	var decisions <-chan deviceclaim.Decision
+	if agent.config.ClaimGate != nil {
+		decisions = agent.config.ClaimGate.Decisions()
+	}
 	for {
-		messageType, data, err := connection.Read(ctx)
-		if err != nil {
-			return fmt.Errorf("read websocket: %w", err)
-		}
-		if messageType != websocket.MessageText {
-			return agent.protocolViolation(connection, errors.New("binary cloud messages are not supported"))
-		}
-		envelope, err := cloudprotocol.Decode(data, time.Now().UTC())
-		if err != nil {
-			return agent.protocolViolation(connection, err)
-		}
-		if err := agent.replays.Accept(envelope, time.Now().UTC()); err != nil {
-			return agent.protocolViolation(connection, err)
-		}
-		if envelope.Kind != cloudprotocol.KindRequest || envelope.Operation != cloudprotocol.OperationPing {
-			return agent.protocolViolation(connection, fmt.Errorf("inbound cloud operation %s/%s is not enabled", envelope.Kind, envelope.Operation))
-		}
-		if err := agent.writePingResponse(ctx, connection, envelope.MessageID); err != nil {
-			return err
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case result := <-reads:
+			if result.err != nil {
+				return fmt.Errorf("read websocket: %w", result.err)
+			}
+			if result.messageType != websocket.MessageText {
+				return agent.protocolViolation(connection, errors.New("binary cloud messages are not supported"))
+			}
+			if err := agent.handleCloudEnvelope(ctx, connection, result.data); err != nil {
+				return agent.protocolViolation(connection, err)
+			}
+		case decision := <-decisions:
+			if err := agent.writeClaimDecision(ctx, connection, decision); err != nil {
+				return err
+			}
 		}
 	}
 }
@@ -221,6 +242,11 @@ func (agent *Agent) authenticate(ctx context.Context) (tokenResponse, error) {
 	}
 	if err := agent.validateToken(token, time.Now().UTC()); err != nil {
 		return tokenResponse{}, err
+	}
+	if token.ClaimEpoch > agent.identity.ClaimEpoch {
+		if err := agent.identity.SetClaimEpoch(token.ClaimEpoch); err != nil {
+			return tokenResponse{}, fmt.Errorf("persist reconciled claim epoch: %w", err)
+		}
 	}
 	return token, nil
 }
@@ -286,6 +312,104 @@ func (agent *Agent) writePingResponse(ctx context.Context, connection *websocket
 		return err
 	}
 	return writeEnvelope(ctx, connection, envelope)
+}
+
+func (agent *Agent) handleCloudEnvelope(ctx context.Context, connection *websocket.Conn, data []byte) error {
+	envelope, err := cloudprotocol.Decode(data, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+	if err := agent.replays.Accept(envelope, time.Now().UTC()); err != nil {
+		return err
+	}
+	switch envelope.Operation {
+	case cloudprotocol.OperationPing:
+		if envelope.Kind != cloudprotocol.KindRequest {
+			return errors.New("system.ping must be a request")
+		}
+		return agent.writePingResponse(ctx, connection, envelope.MessageID)
+	case cloudprotocol.OperationClaimCode:
+		if envelope.Kind != cloudprotocol.KindEvent || agent.config.ClaimGate == nil {
+			return errors.New("claim code cannot be handled")
+		}
+		var payload deviceclaim.Code
+		if err := decodePayload(envelope.Payload, &payload); err != nil {
+			return err
+		}
+		return agent.config.ClaimGate.DisplayCode(payload)
+	case cloudprotocol.OperationClaimPending:
+		if envelope.Kind != cloudprotocol.KindRequest || agent.config.ClaimGate == nil {
+			return errors.New("pending claim cannot be handled")
+		}
+		var payload deviceclaim.Pending
+		if err := decodePayload(envelope.Payload, &payload); err != nil {
+			return err
+		}
+		payload.CorrelationID = envelope.MessageID
+		return agent.config.ClaimGate.Begin(payload)
+	case cloudprotocol.OperationClaimDecision:
+		if envelope.Kind != cloudprotocol.KindEvent || agent.config.ClaimGate == nil {
+			return errors.New("claim acknowledgement cannot be handled")
+		}
+		var payload struct {
+			ClaimFlowID string `json:"claimFlowId"`
+			Status      string `json:"status"`
+			ClaimEpoch  uint64 `json:"claimEpoch"`
+		}
+		if err := decodePayload(envelope.Payload, &payload); err != nil {
+			return err
+		}
+		if payload.Status != "claimed" && payload.Status != "rejected" {
+			return errors.New("claim acknowledgement has invalid status")
+		}
+		if payload.ClaimEpoch > agent.identity.ClaimEpoch {
+			if err := agent.identity.SetClaimEpoch(payload.ClaimEpoch); err != nil {
+				return err
+			}
+		}
+		return agent.config.ClaimGate.Complete(payload.ClaimFlowID)
+	case cloudprotocol.OperationClaimEpoch:
+		if envelope.Kind != cloudprotocol.KindEvent {
+			return errors.New("claim epoch reconciliation must be an event")
+		}
+		var payload struct {
+			ClaimEpoch uint64 `json:"claimEpoch"`
+		}
+		if err := decodePayload(envelope.Payload, &payload); err != nil {
+			return err
+		}
+		return agent.identity.SetClaimEpoch(payload.ClaimEpoch)
+	default:
+		return fmt.Errorf("inbound cloud operation %s/%s is not enabled", envelope.Kind, envelope.Operation)
+	}
+}
+
+func (agent *Agent) writeClaimDecision(ctx context.Context, connection *websocket.Conn, decision deviceclaim.Decision) error {
+	pending := decision.Pending
+	transcript := cloudprotocol.ClaimDecisionTranscript(
+		pending.ClaimFlowID, agent.identity.DeviceID, pending.AccountID, pending.Nonce, pending.NextClaimEpoch, decision.Approved,
+	)
+	envelope, err := cloudprotocol.NewEnvelope(cloudprotocol.KindResponse, cloudprotocol.OperationClaimDecision, pending.CorrelationID, map[string]any{
+		"claimFlowId": pending.ClaimFlowID, "accountId": pending.AccountID, "approved": decision.Approved,
+		"nextClaimEpoch": pending.NextClaimEpoch, "signature": base64.StdEncoding.EncodeToString(agent.identity.Sign(transcript)),
+	}, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+	return writeEnvelope(ctx, connection, envelope)
+}
+
+func decodePayload(payload json.RawMessage, value any) error {
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(value); err != nil {
+		return err
+	}
+	var extra any
+	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
+		return errors.New("cloud payload contains multiple JSON values")
+	}
+	return nil
 }
 
 func writeEnvelope(ctx context.Context, connection *websocket.Conn, envelope cloudprotocol.Envelope) error {
@@ -371,6 +495,9 @@ func (agent *Agent) validateToken(token tokenResponse, now time.Time) error {
 	}
 	if !token.ExpiresAt.After(now) || token.ExpiresAt.After(now.Add(15*time.Minute)) {
 		return errors.New("connection token expiry is invalid")
+	}
+	if token.ClaimEpoch < agent.identity.ClaimEpoch {
+		return errors.New("connection token claim epoch is stale")
 	}
 	websocketURL, err := url.Parse(token.WebSocketURL)
 	if err != nil || websocketURL.Host == "" || websocketURL.User != nil || websocketURL.RawQuery != "" || websocketURL.Fragment != "" {

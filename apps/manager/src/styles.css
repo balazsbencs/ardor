@@ -241,3 +241,66 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   .tone3000-intro { padding: 1.4rem; }
   .tone3000-detail__title { display: grid; }
 }
+
+.cloud-loading { display: grid; place-content: center; justify-items: center; gap: .8rem; color: var(--muted); }
+.cloud-auth { display: grid; min-height: 100vh; place-items: center; padding: 1.25rem; }
+.cloud-auth__card { display: grid; width: min(28rem, 100%); gap: .85rem; border: 1px solid var(--line); border-radius: 1rem; padding: clamp(1.35rem, 5vw, 2.4rem); background: color-mix(in srgb, var(--surface) 94%, transparent); box-shadow: 0 1.6rem 5rem #0006; }
+.cloud-auth__brand { min-width: 0; margin-bottom: 1rem; }
+.cloud-auth__card h1 { margin: -.35rem 0 0; font-size: 1.65rem; }
+.cloud-auth__intro { margin: 0 0 .35rem; color: var(--muted); font-size: .82rem; line-height: 1.55; }
+.cloud-form { display: grid; gap: .75rem; }
+.cloud-form label { display: grid; gap: .35rem; color: var(--muted); font-size: .72rem; font-weight: 750; }
+.cloud-form input, .cloud-claim-card input { width: 100%; border: 1px solid var(--line-strong); border-radius: .55rem; padding: .65rem .7rem; color: var(--text); background: var(--surface-raised); outline: 0; }
+.cloud-auth__switch { display: flex; flex-wrap: wrap; gap: .8rem; padding-top: .35rem; }
+.cloud-auth__switch button { border: 0; padding: 0; color: var(--muted); background: transparent; font-size: .72rem; }
+.cloud-auth__switch button:hover { color: var(--accent); }
+.cloud-message { margin: 0; border-radius: .5rem; padding: .65rem .7rem; font-size: .75rem; line-height: 1.4; }
+.cloud-message--error { color: #ff9d9d; background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.cloud-message--success { color: #c9f686; background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.cloud-message--info { color: var(--info); background: color-mix(in srgb, var(--info) 10%, transparent); }
+.cloud-recovery > svg { color: var(--accent); }
+.cloud-recovery pre { overflow: auto; margin: 0; border: 1px solid var(--line); border-radius: .65rem; padding: 1rem; color: var(--text); background: var(--bg); font-size: .78rem; line-height: 1.75; }
+.cloud-check { display: flex; align-items: start; gap: .5rem; color: var(--muted); font-size: .75rem; line-height: 1.45; }
+.cloud-check input { margin-top: .1rem; accent-color: var(--accent); }
+.cloud-dashboard { min-height: 100vh; }
+.cloud-account { display: flex; align-items: center; gap: .45rem; margin-left: auto; color: var(--muted); font-size: .76rem; }
+.cloud-account strong { color: var(--text); }
+.cloud-main { display: grid; width: min(70rem, calc(100% - 2rem)); gap: 1.2rem; margin: auto; padding: 2rem 0 4rem; }
+.cloud-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+.cloud-heading h1 { margin: .1rem 0; font-size: 1.75rem; }
+.cloud-heading p:not(.eyebrow) { margin: 0; color: var(--muted); font-size: .82rem; }
+.cloud-claim-card { display: grid; gap: 1rem; border: 1px solid var(--line); border-radius: .8rem; padding: 1.1rem; background: var(--surface); }
+.cloud-claim-card > div { display: flex; align-items: start; gap: .75rem; }
+.cloud-claim-card > div > svg { flex: none; margin-top: .1rem; color: var(--accent); }
+.cloud-claim-card h2 { margin: 0 0 .25rem; font-size: .95rem; }
+.cloud-claim-card p:not(.cloud-message) { margin: 0; color: var(--muted); font-size: .75rem; line-height: 1.5; }
+.cloud-claim-card form { display: flex; gap: .5rem; max-width: 29rem; }
+.cloud-claim-card input { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.cloud-device-list { display: grid; gap: .45rem; }
+.cloud-empty { display: grid; justify-items: center; gap: .35rem; border: 1px dashed var(--line-strong); border-radius: .8rem; padding: 3rem 1rem; color: var(--muted); text-align: center; }
+.cloud-empty svg { color: var(--accent); }
+.cloud-empty h2 { margin: .2rem 0 0; color: var(--text); font-size: 1rem; }
+.cloud-empty p { margin: 0; font-size: .75rem; }
+.cloud-device { display: grid; grid-template-columns: 2.5rem minmax(0,1fr) auto minmax(10rem,auto) auto; align-items: center; gap: .8rem; border: 1px solid var(--line); border-radius: .7rem; padding: .75rem; background: var(--surface); }
+.cloud-device__icon { display: grid; width: 2.35rem; height: 2.35rem; place-items: center; border-radius: .6rem; color: var(--faint); background: var(--surface-muted); }
+.cloud-device__icon.is-online { color: var(--accent-ink); background: var(--accent); }
+.cloud-device strong, .cloud-device code { display: block; }
+.cloud-device strong { font-size: .82rem; }
+.cloud-device code { margin-top: .2rem; color: var(--faint); font-size: .62rem; }
+.cloud-device > small { color: var(--faint); font-size: .66rem; text-align: right; }
+.cloud-security { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: .6rem; border-top: 1px solid var(--line); padding-top: 1.2rem; }
+.cloud-security > div { display: flex; align-items: center; gap: .7rem; }
+.cloud-security svg { color: var(--muted); }
+.cloud-security strong, .cloud-security small { display: block; }
+.cloud-security strong { font-size: .8rem; }
+.cloud-security small { margin-top: .2rem; color: var(--faint); font-size: .67rem; }
+
+@media (max-width: 760px) {
+  .cloud-account > svg, .cloud-account > strong { display: none; }
+  .cloud-main { width: min(100% - 1.2rem, 70rem); padding-top: 1.2rem; }
+  .cloud-heading { align-items: start; }
+  .cloud-device { grid-template-columns: 2.5rem minmax(0,1fr) auto; }
+  .cloud-device > small { grid-column: 2 / -1; text-align: left; }
+  .cloud-device > .button { grid-column: 2 / -1; justify-self: start; }
+  .cloud-security { align-items: start; flex-direction: column; }
+}

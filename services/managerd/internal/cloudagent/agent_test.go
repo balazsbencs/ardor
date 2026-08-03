@@ -11,12 +11,14 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"ardor.local/managerd/internal/cloudprotocol"
+	"ardor.local/cloudprotocol"
+	"ardor.local/managerd/internal/deviceclaim"
 	"ardor.local/managerd/internal/deviceidentity"
 	"github.com/coder/websocket"
 )
@@ -152,6 +154,134 @@ func TestAgentRejectsMutationEnvelope(t *testing.T) {
 	}
 }
 
+func TestAgentCompletesPhysicallyApprovedClaim(t *testing.T) {
+	dataRoot := t.TempDir()
+	identity, err := deviceidentity.LoadOrCreate(dataRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gate, err := deviceclaim.NewFileGate(dataRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go gate.Run(ctx)
+
+	const (
+		flowID    = "018f7f1a-8b25-7e31-a951-5c43272e1904"
+		accountID = "018f7f1a-8b25-7e31-a951-5c43272e1905"
+	)
+	nonce := base64.StdEncoding.EncodeToString([]byte("claim-nonce-0123456789abcdef01234"))
+	ackSent := make(chan struct{}, 1)
+	errorsFromServer := make(chan error, 4)
+	server := newTestControlPlane(t, identity, func(socketContext context.Context, connection *websocket.Conn) error {
+		if err := readHello(socketContext, connection, identity.DeviceID); err != nil {
+			return err
+		}
+		code, err := cloudprotocol.NewEnvelope(cloudprotocol.KindEvent, cloudprotocol.OperationClaimCode, "", map[string]any{
+			"claimFlowId": flowID, "manualCode": "ABCD-EFGH", "expiresAt": time.Now().UTC().Add(5 * time.Minute),
+		}, time.Now().UTC())
+		if err != nil {
+			return err
+		}
+		if err := writeTestEnvelope(socketContext, connection, code); err != nil {
+			return err
+		}
+		pending, err := cloudprotocol.NewEnvelope(cloudprotocol.KindRequest, cloudprotocol.OperationClaimPending, "", map[string]any{
+			"claimFlowId": flowID, "accountId": accountID, "accountDisplayName": "Riff Master",
+			"nonce": nonce, "nextClaimEpoch": 1, "expiresAt": time.Now().UTC().Add(5 * time.Minute),
+		}, time.Now().UTC())
+		if err != nil {
+			return err
+		}
+		if err := writeTestEnvelope(socketContext, connection, pending); err != nil {
+			return err
+		}
+		decision, err := readEnvelope(socketContext, connection)
+		if err != nil {
+			return err
+		}
+		if decision.Kind != cloudprotocol.KindResponse || decision.Operation != cloudprotocol.OperationClaimDecision || decision.CorrelationID != pending.MessageID {
+			return fmt.Errorf("unexpected claim decision: %+v", decision)
+		}
+		var payload struct {
+			ClaimFlowID    string `json:"claimFlowId"`
+			AccountID      string `json:"accountId"`
+			Approved       bool   `json:"approved"`
+			NextClaimEpoch uint64 `json:"nextClaimEpoch"`
+			Signature      string `json:"signature"`
+		}
+		if err := json.Unmarshal(decision.Payload, &payload); err != nil {
+			return err
+		}
+		signature, err := base64.StdEncoding.DecodeString(payload.Signature)
+		transcript := cloudprotocol.ClaimDecisionTranscript(flowID, identity.DeviceID, accountID, nonce, 1, true)
+		if err != nil || payload.ClaimFlowID != flowID || payload.AccountID != accountID || !payload.Approved || payload.NextClaimEpoch != 1 || !ed25519.Verify(identity.PublicKey, transcript, signature) {
+			return errors.New("claim decision was not signed by the device identity")
+		}
+		ack, err := cloudprotocol.NewEnvelope(cloudprotocol.KindEvent, cloudprotocol.OperationClaimDecision, decision.MessageID, map[string]any{
+			"claimFlowId": flowID, "status": "claimed", "claimEpoch": 1,
+		}, time.Now().UTC())
+		if err != nil {
+			return err
+		}
+		if err := writeTestEnvelope(socketContext, connection, ack); err != nil {
+			return err
+		}
+		ackSent <- struct{}{}
+		<-socketContext.Done()
+		return nil
+	}, errorsFromServer)
+	defer server.Close()
+
+	agent, err := New(Config{
+		BaseURL: server.URL, AllowInsecure: true, ClaimGate: gate,
+		Logger: log.New(io.Discard, "", 0), ReconnectInitial: 10 * time.Millisecond, ReconnectMax: 20 * time.Millisecond,
+	}, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go agent.Run(ctx)
+
+	deadline := time.Now().Add(4 * time.Second)
+	for {
+		if _, err := gate.Pending(); err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("agent did not expose the pending physical confirmation")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if err := gate.RecordDecision(true); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-ackSent:
+	case err := <-errorsFromServer:
+		t.Fatal(err)
+	case <-time.After(4 * time.Second):
+		t.Fatal("agent did not submit the physical decision")
+	}
+	for {
+		reloaded, err := deviceidentity.LoadOrCreate(dataRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if reloaded.ClaimEpoch == 1 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("agent did not persist the claim epoch")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if _, err := gate.Pending(); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("pending physical claim still exists: %v", err)
+	}
+}
+
 func TestProductionAgentRequiresSecureSameOriginEndpoints(t *testing.T) {
 	identity := testIdentity(t)
 	if _, err := New(Config{BaseURL: "http://control.example.test"}, identity); err == nil {
@@ -215,6 +345,7 @@ func newTestControlPlane(
 			Version:      cloudprotocol.Version,
 			Token:        "local-test-token",
 			WebSocketURL: strings.Replace(serverURL, "http://", "ws://", 1) + "/v1/device/connect",
+			ClaimEpoch:   identity.ClaimEpoch,
 			ExpiresAt:    time.Now().UTC().Add(5 * time.Minute),
 		})
 	})

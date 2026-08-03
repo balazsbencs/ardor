@@ -47,11 +47,12 @@
     "tokenResponse": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "token", "websocketUrl", "expiresAt"],
+      "required": ["version", "token", "websocketUrl", "claimEpoch", "expiresAt"],
       "properties": {
         "version": { "const": 1 },
         "token": { "type": "string", "minLength": 1 },
         "websocketUrl": { "type": "string", "format": "uri" },
+        "claimEpoch": { "type": "integer", "minimum": 0 },
         "expiresAt": { "type": "string", "format": "date-time" }
       }
     }

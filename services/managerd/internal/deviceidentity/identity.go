@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -25,6 +26,8 @@ const (
 // Identity is the device's durable cloud identity. PrivateKey is intentionally
 // excluded from JSON so logging or serializing this value cannot disclose it.
 type Identity struct {
+	mu         sync.Mutex
+	path       string
 	DeviceID   string
 	PublicKey  ed25519.PublicKey
 	PrivateKey ed25519.PrivateKey `json:"-"`
@@ -77,6 +80,7 @@ func loadOrCreateAt(path string) (*Identity, error) {
 		}
 		return nil, err
 	}
+	identity.path = path
 	return identity, nil
 }
 
@@ -117,7 +121,12 @@ func load(path string, info os.FileInfo) (*Identity, error) {
 	if err := ensureJSONEOF(decoder); err != nil {
 		return nil, fmt.Errorf("decode device identity: %w", err)
 	}
-	return validateStored(stored)
+	identity, err := validateStored(stored)
+	if err != nil {
+		return nil, err
+	}
+	identity.path = path
+	return identity, nil
 }
 
 func validateStored(stored storedIdentity) (*Identity, error) {
@@ -153,19 +162,10 @@ func validateStored(stored storedIdentity) (*Identity, error) {
 }
 
 func persist(path string, identity *Identity) error {
-	stored := storedIdentity{
-		Version:    identityVersion,
-		DeviceID:   identity.DeviceID,
-		PublicKey:  base64.StdEncoding.EncodeToString(identity.PublicKey),
-		PrivateKey: base64.StdEncoding.EncodeToString(identity.PrivateKey),
-		ClaimEpoch: identity.ClaimEpoch,
-		CreatedAt:  identity.CreatedAt.Format(time.RFC3339),
-	}
-	data, err := json.MarshalIndent(stored, "", "  ")
+	data, err := marshalIdentity(identity)
 	if err != nil {
-		return fmt.Errorf("encode device identity: %w", err)
+		return err
 	}
-	data = append(data, '\n')
 
 	temp, err := os.CreateTemp(filepath.Dir(path), ".device-*.json")
 	if err != nil {
@@ -212,6 +212,82 @@ func persist(path string, identity *Identity) error {
 		return fmt.Errorf("sync identity directory: %w", err)
 	}
 	return nil
+}
+
+func (identity *Identity) SetClaimEpoch(epoch uint64) error {
+	identity.mu.Lock()
+	defer identity.mu.Unlock()
+	if epoch < identity.ClaimEpoch {
+		return errors.New("claim epoch cannot move backwards")
+	}
+	if epoch == identity.ClaimEpoch {
+		return nil
+	}
+	if identity.path == "" {
+		return errors.New("device identity has no persistence path")
+	}
+	info, err := os.Lstat(identity.path)
+	if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return errors.New("device identity destination is not a regular file")
+	}
+	updated := &Identity{
+		DeviceID: identity.DeviceID, PublicKey: identity.PublicKey, PrivateKey: identity.PrivateKey,
+		ClaimEpoch: epoch, CreatedAt: identity.CreatedAt,
+	}
+	data, err := marshalIdentity(updated)
+	if err != nil {
+		return err
+	}
+	temp, err := os.CreateTemp(filepath.Dir(identity.path), ".device-update-*.json")
+	if err != nil {
+		return fmt.Errorf("create identity update: %w", err)
+	}
+	tempPath := temp.Name()
+	defer func() {
+		_ = temp.Close()
+		_ = os.Remove(tempPath)
+	}()
+	if err := temp.Chmod(0o600); err != nil {
+		return err
+	}
+	if _, err := temp.Write(data); err != nil {
+		return err
+	}
+	if err := temp.Sync(); err != nil {
+		return err
+	}
+	if err := temp.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(tempPath, identity.path); err != nil {
+		return fmt.Errorf("replace device identity: %w", err)
+	}
+	directory, err := os.Open(filepath.Dir(identity.path))
+	if err != nil {
+		return err
+	}
+	defer directory.Close()
+	if err := directory.Sync(); err != nil {
+		return err
+	}
+	identity.ClaimEpoch = epoch
+	return nil
+}
+
+func marshalIdentity(identity *Identity) ([]byte, error) {
+	stored := storedIdentity{
+		Version:    identityVersion,
+		DeviceID:   identity.DeviceID,
+		PublicKey:  base64.StdEncoding.EncodeToString(identity.PublicKey),
+		PrivateKey: base64.StdEncoding.EncodeToString(identity.PrivateKey),
+		ClaimEpoch: identity.ClaimEpoch,
+		CreatedAt:  identity.CreatedAt.Format(time.RFC3339),
+	}
+	data, err := json.MarshalIndent(stored, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("encode device identity: %w", err)
+	}
+	return append(data, '\n'), nil
 }
 
 func (identity *Identity) PublicKeyBase64() string {

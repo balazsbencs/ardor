@@ -11,6 +11,7 @@ import (
 
 	"ardor.local/managerd/internal/cloudagent"
 	"ardor.local/managerd/internal/config"
+	"ardor.local/managerd/internal/deviceclaim"
 	"ardor.local/managerd/internal/deviceidentity"
 	"ardor.local/managerd/internal/server"
 )
@@ -27,7 +28,12 @@ func main() {
 		if err != nil {
 			log.Fatalf("load device cloud identity: %v", err)
 		}
-		agent, err := cloudagent.New(cloudagent.Config{BaseURL: cfg.CloudURL}, identity)
+		claimGate, err := deviceclaim.NewFileGate(cfg.DataRoot)
+		if err != nil {
+			log.Fatalf("configure physical claim gate: %v", err)
+		}
+		go claimGate.Run(ctx)
+		agent, err := cloudagent.New(cloudagent.Config{BaseURL: cfg.CloudURL, ClaimGate: claimGate}, identity)
 		if err != nil {
 			log.Fatalf("configure cloud agent: %v", err)
 		}
