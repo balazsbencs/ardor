@@ -281,7 +281,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .cloud-empty svg { color: var(--accent); }
 .cloud-empty h2 { margin: .2rem 0 0; color: var(--text); font-size: 1rem; }
 .cloud-empty p { margin: 0; font-size: .75rem; }
-.cloud-device { display: grid; grid-template-columns: 2.5rem minmax(0,1fr) auto minmax(10rem,auto) auto; align-items: center; gap: .8rem; border: 1px solid var(--line); border-radius: .7rem; padding: .75rem; background: var(--surface); }
+.cloud-device { display: grid; grid-template-columns: 2.5rem minmax(0,1fr) auto minmax(10rem,auto) auto auto; align-items: center; gap: .8rem; border: 1px solid var(--line); border-radius: .7rem; padding: .75rem; background: var(--surface); }
 .cloud-device__icon { display: grid; width: 2.35rem; height: 2.35rem; place-items: center; border-radius: .6rem; color: var(--faint); background: var(--surface-muted); }
 .cloud-device__icon.is-online { color: var(--accent-ink); background: var(--accent); }
 .cloud-device strong, .cloud-device code { display: block; }

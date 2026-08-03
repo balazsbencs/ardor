@@ -100,6 +100,20 @@ type AuditEvent struct {
 	CreatedAt   time.Time
 }
 
+type DeviceOperation struct {
+	ID             string
+	AccountID      string
+	DeviceID       string
+	IdempotencyKey string
+	Operation      string
+	RequestHash    [32]byte
+	State          string
+	HTTPStatus     int
+	Response       []byte
+	CreatedAt      time.Time
+	CompletedAt    *time.Time
+}
+
 type Repository interface {
 	CreateAccount(context.Context, Account, [][32]byte) error
 	AccountByUsername(context.Context, string) (Account, error)
@@ -125,6 +139,8 @@ type Repository interface {
 	CompleteClaim(context.Context, string, bool, time.Time) (ClaimFlow, error)
 	ListAccountDevices(context.Context, string) ([]AccountDevice, error)
 	UnclaimDevice(context.Context, string, string, time.Time) (uint64, error)
+	BeginDeviceOperation(context.Context, DeviceOperation) (DeviceOperation, bool, error)
+	CompleteDeviceOperation(context.Context, string, int, []byte, AuditEvent, time.Time) error
 
 	AppendAudit(context.Context, AuditEvent) error
 }

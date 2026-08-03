@@ -584,6 +584,15 @@ presence screens. Remote preset mutations remain disabled until Phase 3.
 Acceptance: hosted and local managers produce the same persisted preset and
 runtime activation behavior.
 
+Implemented on `feat/device-hosted-manager`: `preset.list`, `preset.read`,
+`preset.save`, and `preset.apply` are the only remote manager operations added
+to protocol v1. The control plane correlates each request with the active
+authenticated device socket, verifies account membership first, and stores
+save/apply idempotency receipts and audit events transactionally in SQLite.
+The pedal uses the same preset store and runtime command queue as the local HTTP
+API. Remote mutations are opt-in on the pedal; local HTTP and realtime audio
+remain independent when the cloud connection is unavailable.
+
 ### Phase 4: assets and TONE3000
 
 - Add temporary object storage and bounded asset jobs.

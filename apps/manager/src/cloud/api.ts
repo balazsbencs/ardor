@@ -5,6 +5,7 @@ export type Device = {
   role: string;
   claimEpoch: number;
   online: boolean;
+  remoteMutationsEnabled: boolean;
   lastSeenAt: string | null;
 };
 

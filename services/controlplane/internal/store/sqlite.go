@@ -454,6 +454,67 @@ func (sqlite *SQLite) AppendAudit(ctx context.Context, event AuditEvent) error {
 	return appendAuditSQL(ctx, sqlite.database, event)
 }
 
+func (sqlite *SQLite) BeginDeviceOperation(ctx context.Context, operation DeviceOperation) (DeviceOperation, bool, error) {
+	result, err := sqlite.database.ExecContext(ctx, `INSERT OR IGNORE INTO device_operations
+        (id, account_id, device_id, idempotency_key, operation, request_hash, state, created_at)
+        VALUES (?,?,?,?,?,?,?,?)`, operation.ID, operation.AccountID, operation.DeviceID, operation.IdempotencyKey,
+		operation.Operation, operation.RequestHash[:], operation.State, operation.CreatedAt)
+	if err != nil {
+		return DeviceOperation{}, false, err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return DeviceOperation{}, false, err
+	}
+	if affected == 1 {
+		return operation, true, nil
+	}
+	var existing DeviceOperation
+	var requestHash []byte
+	var status sql.NullInt64
+	var response []byte
+	var completed sql.NullTime
+	err = sqlite.database.QueryRowContext(ctx, `SELECT id, account_id, device_id, idempotency_key, operation, request_hash, state, http_status, response, created_at, completed_at
+        FROM device_operations WHERE account_id=? AND device_id=? AND idempotency_key=?`, operation.AccountID, operation.DeviceID, operation.IdempotencyKey).Scan(
+		&existing.ID, &existing.AccountID, &existing.DeviceID, &existing.IdempotencyKey, &existing.Operation,
+		&requestHash, &existing.State, &status, &response, &existing.CreatedAt, &completed)
+	if err != nil {
+		return DeviceOperation{}, false, err
+	}
+	copy(existing.RequestHash[:], requestHash)
+	if status.Valid {
+		existing.HTTPStatus = int(status.Int64)
+	}
+	existing.Response = bytes.Clone(response)
+	if completed.Valid {
+		existing.CompletedAt = &completed.Time
+	}
+	return existing, false, nil
+}
+
+func (sqlite *SQLite) CompleteDeviceOperation(ctx context.Context, operationID string, httpStatus int, response []byte, audit AuditEvent, now time.Time) error {
+	transaction, err := sqlite.database.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer transaction.Rollback()
+	result, err := transaction.ExecContext(ctx, `UPDATE device_operations SET state='completed', http_status=?, response=?, completed_at=? WHERE id=? AND state='pending'`, httpStatus, response, now, operationID)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil || affected != 1 {
+		if err != nil {
+			return err
+		}
+		return ErrConflict
+	}
+	if err := appendAuditSQL(ctx, transaction, audit); err != nil {
+		return err
+	}
+	return transaction.Commit()
+}
+
 type sqlExecutor interface {
 	ExecContext(context.Context, string, ...any) (sql.Result, error)
 }

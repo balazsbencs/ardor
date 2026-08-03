@@ -25,6 +25,7 @@ type Memory struct {
 	claimCodes    map[[32]byte]string
 	memberships   map[string]DeviceMembership
 	audit         []AuditEvent
+	operations    map[string]DeviceOperation
 }
 
 func NewMemory() *Memory {
@@ -41,7 +42,42 @@ func NewMemory() *Memory {
 		claims:        map[string]ClaimFlow{},
 		claimCodes:    map[[32]byte]string{},
 		memberships:   map[string]DeviceMembership{},
+		operations:    map[string]DeviceOperation{},
 	}
+}
+
+func operationKey(accountID, deviceID, idempotencyKey string) string {
+	return accountID + "\x00" + deviceID + "\x00" + idempotencyKey
+}
+
+func (memory *Memory) BeginDeviceOperation(_ context.Context, operation DeviceOperation) (DeviceOperation, bool, error) {
+	memory.mu.Lock()
+	defer memory.mu.Unlock()
+	key := operationKey(operation.AccountID, operation.DeviceID, operation.IdempotencyKey)
+	if existing, ok := memory.operations[key]; ok {
+		existing.Response = bytes.Clone(existing.Response)
+		return existing, false, nil
+	}
+	memory.operations[key] = operation
+	return operation, true, nil
+}
+
+func (memory *Memory) CompleteDeviceOperation(_ context.Context, operationID string, httpStatus int, response []byte, audit AuditEvent, now time.Time) error {
+	memory.mu.Lock()
+	defer memory.mu.Unlock()
+	for key, operation := range memory.operations {
+		if operation.ID != operationID {
+			continue
+		}
+		operation.State = "completed"
+		operation.HTTPStatus = httpStatus
+		operation.Response = bytes.Clone(response)
+		operation.CompletedAt = &now
+		memory.operations[key] = operation
+		memory.audit = append(memory.audit, audit)
+		return nil
+	}
+	return ErrNotFound
 }
 
 func (memory *Memory) CreateAccount(_ context.Context, account Account, recovery [][32]byte) error {

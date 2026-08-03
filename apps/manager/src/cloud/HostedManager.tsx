@@ -2,6 +2,9 @@ import { Cable, KeyRound, LogOut, RefreshCw, ShieldCheck, SlidersHorizontal, Unp
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 
 import { Button, StatusBadge } from "../components/ui";
+import { AppShell } from "../app/AppShell";
+import { DeviceSessionProvider } from "../connection/deviceSession";
+import { CloudTransport } from "./CloudTransport";
 import { type Account, type Claim, CloudAPIError, type Device, cloudAPI } from "./api";
 
 type AuthView = "login" | "register" | "recover";
@@ -85,7 +88,7 @@ function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone(): void }) {
   );
 }
 
-function DeviceDashboard({ account, onSignedOut }: { account: Account; onSignedOut(): void }) {
+function DeviceDashboard({ account, onSignedOut, onManage }: { account: Account; onSignedOut(): void; onManage(device: Device): void }) {
   const [devices, setDevices] = useState<Device[]>([]);
   const [claimCode, setClaimCode] = useState("");
   const [claim, setClaim] = useState<Claim | null>(null);
@@ -181,6 +184,7 @@ function DeviceDashboard({ account, onSignedOut }: { account: Account; onSignedO
               <div><strong>Ardor Pedal</strong><code>{device.id}</code></div>
               <StatusBadge tone={device.online ? "success" : "neutral"}>{device.online ? "Online" : "Offline"}</StatusBadge>
               <small>{device.lastSeenAt ? `Last seen ${new Date(device.lastSeenAt).toLocaleString()}` : "Not connected yet"}</small>
+              <Button variant="primary" disabled={!device.online} onClick={() => onManage(device)}>Manage presets</Button>
               <Button variant="quiet" disabled={busy} onClick={() => void unclaim(device)}><Unplug size={14} /> Unclaim</Button>
             </article>
           ))}
@@ -195,16 +199,20 @@ export function HostedManager() {
   const [account, setAccount] = useState<Account | null>(null);
   const [checking, setChecking] = useState(true);
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
 
   useEffect(() => {
     cloudAPI.me().then(setAccount).catch(() => undefined).finally(() => setChecking(false));
   }, []);
 
   if (checking) return <div className="app-shell cloud-loading"><span className="settings-spinner" /><span>Loading Ardor Manager…</span></div>;
+  if (account && selectedDevice) {
+    return <DeviceSessionProvider autoConnect connectionId={`cloud:${selectedDevice.id}`} clientFactory={() => new CloudTransport(selectedDevice.id, selectedDevice.remoteMutationsEnabled)}><AppShell onCloudDevices={() => setSelectedDevice(null)} /></DeviceSessionProvider>;
+  }
   return (
     <div className="app-shell" data-theme="dark">
       {account && recoveryCodes ? <RecoveryCodes codes={recoveryCodes} onDone={() => setRecoveryCodes(null)} />
-        : account ? <DeviceDashboard account={account} onSignedOut={() => setAccount(null)} />
+        : account ? <DeviceDashboard account={account} onSignedOut={() => setAccount(null)} onManage={setSelectedDevice} />
           : <AuthPanel onAuthenticated={setAccount} onRegistered={(created, codes) => { setAccount(created); setRecoveryCodes(codes); }} />}
     </div>
   );

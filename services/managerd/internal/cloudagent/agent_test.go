@@ -20,6 +20,7 @@ import (
 	"ardor.local/cloudprotocol"
 	"ardor.local/managerd/internal/deviceclaim"
 	"ardor.local/managerd/internal/deviceidentity"
+	"ardor.local/managerd/internal/presets"
 	"github.com/coder/websocket"
 )
 
@@ -118,7 +119,7 @@ func TestAgentRejectsReplayedEnvelope(t *testing.T) {
 	}
 }
 
-func TestAgentRejectsMutationEnvelope(t *testing.T) {
+func TestAgentRefusesMutationWhenFeatureIsDisabled(t *testing.T) {
 	identity := testIdentity(t)
 	rejected := make(chan struct{}, 1)
 	errorsFromServer := make(chan error, 4)
@@ -131,9 +132,18 @@ func TestAgentRejectsMutationEnvelope(t *testing.T) {
 		if err := connection.Write(ctx, websocket.MessageText, mutation); err != nil {
 			return err
 		}
-		_, _, err := connection.Read(ctx)
-		if websocket.CloseStatus(err) != websocket.StatusPolicyViolation {
-			return fmt.Errorf("mutation close status = %v, error = %v", websocket.CloseStatus(err), err)
+		response, err := readEnvelope(ctx, connection)
+		if err != nil {
+			return err
+		}
+		var payload struct {
+			OK    bool `json:"ok"`
+			Error struct {
+				Code string `json:"code"`
+			} `json:"error"`
+		}
+		if err := json.Unmarshal(response.Payload, &payload); err != nil || payload.OK || payload.Error.Code != "remote_mutations_disabled" {
+			return fmt.Errorf("unexpected disabled mutation response: envelope=%+v payload=%+v error=%v", response, payload, err)
 		}
 		rejected <- struct{}{}
 		return nil
@@ -236,7 +246,7 @@ func TestAgentCompletesPhysicallyApprovedClaim(t *testing.T) {
 	defer server.Close()
 
 	agent, err := New(Config{
-		BaseURL: server.URL, AllowInsecure: true, ClaimGate: gate,
+		BaseURL: server.URL, AllowInsecure: true, ClaimGate: gate, DataRoot: dataRoot,
 		Logger: log.New(io.Discard, "", 0), ReconnectInitial: 10 * time.Millisecond, ReconnectMax: 20 * time.Millisecond,
 	}, identity)
 	if err != nil {
@@ -287,7 +297,7 @@ func TestProductionAgentRequiresSecureSameOriginEndpoints(t *testing.T) {
 	if _, err := New(Config{BaseURL: "http://control.example.test"}, identity); err == nil {
 		t.Fatal("expected insecure cloud URL rejection")
 	}
-	agent, err := New(Config{BaseURL: "https://control.example.test"}, identity)
+	agent, err := New(Config{BaseURL: "https://control.example.test", DataRoot: t.TempDir()}, identity)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,6 +310,95 @@ func TestProductionAgentRequiresSecureSameOriginEndpoints(t *testing.T) {
 	if err := agent.validateToken(token, time.Now().UTC()); err == nil {
 		t.Fatal("expected cross-origin websocket rejection")
 	}
+}
+
+func TestAgentSavesAndAppliesPresetThroughAllowlistedCloudOperations(t *testing.T) {
+	dataRoot := t.TempDir()
+	identity, err := deviceidentity.LoadOrCreate(dataRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	completed := make(chan struct{}, 1)
+	errorsFromServer := make(chan error, 4)
+	server := newTestControlPlane(t, identity, func(ctx context.Context, connection *websocket.Conn) error {
+		if err := readHelloWithMutations(ctx, connection, identity.DeviceID, true); err != nil {
+			return err
+		}
+		preset := presets.Preset{
+			"version": float64(1), "name": "Cloud Clean", "routing": "serial",
+			"global": map[string]any{"inputGainDb": float64(0), "outputGainDb": float64(0), "safetyLimitDb": float64(-1)},
+			"blocks": []any{},
+		}
+		save, err := cloudprotocol.NewEnvelope(cloudprotocol.KindRequest, cloudprotocol.OperationPresetSave, "", map[string]any{
+			"bank": 3, "slot": 2, "preset": preset,
+		}, time.Now().UTC())
+		if err != nil {
+			return err
+		}
+		if err := writeTestEnvelope(ctx, connection, save); err != nil {
+			return err
+		}
+		if err := expectSuccessfulOperation(ctx, connection, save); err != nil {
+			return err
+		}
+		loaded, err := presets.NewStore(dataRoot).Load(3, 2)
+		if err != nil || loaded.Preset["name"] != "Cloud Clean" {
+			return fmt.Errorf("cloud-saved preset = %+v, error = %v", loaded, err)
+		}
+		apply, err := cloudprotocol.NewEnvelope(cloudprotocol.KindRequest, cloudprotocol.OperationPresetApply, "", map[string]any{"bank": 3, "slot": 2}, time.Now().UTC())
+		if err != nil {
+			return err
+		}
+		if err := writeTestEnvelope(ctx, connection, apply); err != nil {
+			return err
+		}
+		if err := expectSuccessfulOperation(ctx, connection, apply); err != nil {
+			return err
+		}
+		entries, err := os.ReadDir(dataRoot + "/runtime/commands")
+		if err != nil || len(entries) != 1 {
+			return fmt.Errorf("apply command entries = %d, error = %v", len(entries), err)
+		}
+		completed <- struct{}{}
+		<-ctx.Done()
+		return nil
+	}, errorsFromServer)
+	defer server.Close()
+	agent, err := New(Config{
+		BaseURL: server.URL, AllowInsecure: true, DataRoot: dataRoot, RemoteMutationsEnabled: true,
+		Logger: log.New(io.Discard, "", 0), ReconnectInitial: 10 * time.Millisecond, ReconnectMax: 20 * time.Millisecond,
+	}, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go agent.Run(ctx)
+	select {
+	case <-completed:
+		cancel()
+	case err := <-errorsFromServer:
+		t.Fatal(err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("cloud preset operations did not complete")
+	}
+}
+
+func expectSuccessfulOperation(ctx context.Context, connection *websocket.Conn, request cloudprotocol.Envelope) error {
+	response, err := readEnvelope(ctx, connection)
+	if err != nil {
+		return err
+	}
+	var payload struct {
+		OK bool `json:"ok"`
+	}
+	if err := json.Unmarshal(response.Payload, &payload); err != nil {
+		return err
+	}
+	if response.Kind != cloudprotocol.KindResponse || response.Operation != request.Operation || response.CorrelationID != request.MessageID || !payload.OK {
+		return fmt.Errorf("unexpected operation response: %+v payload=%s", response, response.Payload)
+	}
+	return nil
 }
 
 func newTestControlPlane(
@@ -384,6 +483,7 @@ func testAgent(t *testing.T, baseURL string, identity *deviceidentity.Identity) 
 	t.Helper()
 	agent, err := New(Config{
 		BaseURL:          baseURL,
+		DataRoot:         t.TempDir(),
 		AllowInsecure:    true,
 		Logger:           log.New(io.Discard, "", 0),
 		ReconnectInitial: 10 * time.Millisecond,
@@ -407,6 +507,10 @@ func readEnvelope(ctx context.Context, connection *websocket.Conn) (cloudprotoco
 }
 
 func readHello(ctx context.Context, connection *websocket.Conn, deviceID string) error {
+	return readHelloWithMutations(ctx, connection, deviceID, false)
+}
+
+func readHelloWithMutations(ctx context.Context, connection *websocket.Conn, deviceID string, wantMutations bool) error {
 	envelope, err := readEnvelope(ctx, connection)
 	if err != nil {
 		return err
@@ -424,7 +528,7 @@ func readHello(ctx context.Context, connection *websocket.Conn, deviceID string)
 	if err := decoder.Decode(&payload); err != nil {
 		return err
 	}
-	if payload.DeviceID != deviceID || payload.ProtocolVersion != cloudprotocol.Version || payload.RemoteMutationsEnabled == nil || *payload.RemoteMutationsEnabled {
+	if payload.DeviceID != deviceID || payload.ProtocolVersion != cloudprotocol.Version || payload.RemoteMutationsEnabled == nil || *payload.RemoteMutationsEnabled != wantMutations {
 		return fmt.Errorf("unexpected hello payload: %+v", payload)
 	}
 	return nil

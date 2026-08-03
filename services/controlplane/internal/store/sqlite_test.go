@@ -94,3 +94,43 @@ func openTestSQLite(t *testing.T, path string) *SQLite {
 	}
 	return repository
 }
+
+func TestSQLitePersistsCompletedDeviceOperationReceipt(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "operations.sqlite")
+	repository := openTestSQLite(t, path)
+	now := time.Now().UTC().Truncate(time.Millisecond)
+	account := Account{ID: "018f7f1a-8b25-7e31-a951-5c43272e1980", UsernameNormalized: "operator", UsernameDisplay: "Operator", PasswordHash: "hash", State: "active", CreatedAt: now, UpdatedAt: now}
+	if err := repository.CreateAccount(ctx, account, [][32]byte{{1}}); err != nil {
+		t.Fatal(err)
+	}
+	publicKey, _, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	device := Device{ID: "018f7f1a-8b25-7e31-a951-5c43272e1981", PublicKey: publicKey, CreatedAt: now, UpdatedAt: now}
+	if _, err := repository.EnsureDevice(ctx, device); err != nil {
+		t.Fatal(err)
+	}
+	operation := DeviceOperation{
+		ID: "018f7f1a-8b25-7e31-a951-5c43272e1982", AccountID: account.ID, DeviceID: device.ID,
+		IdempotencyKey: "018f7f1a-8b25-7e31-a951-5c43272e1983", Operation: "preset.save", RequestHash: [32]byte{9}, State: "pending", CreatedAt: now,
+	}
+	if _, created, err := repository.BeginDeviceOperation(ctx, operation); err != nil || !created {
+		t.Fatalf("begin operation created=%t err=%v", created, err)
+	}
+	response := []byte(`{"bank":2,"slot":1}`)
+	audit := AuditEvent{ActorType: "account", ActorID: account.ID, EventType: "device.operation.completed", SubjectType: "device", SubjectID: device.ID, CreatedAt: now}
+	if err := repository.CompleteDeviceOperation(ctx, operation.ID, 200, response, audit, now.Add(time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.Close(); err != nil {
+		t.Fatal(err)
+	}
+	repository = openTestSQLite(t, path)
+	defer repository.Close()
+	existing, created, err := repository.BeginDeviceOperation(ctx, operation)
+	if err != nil || created || existing.State != "completed" || existing.HTTPStatus != 200 || string(existing.Response) != string(response) {
+		t.Fatalf("persisted operation = %+v created=%t err=%v", existing, created, err)
+	}
+}

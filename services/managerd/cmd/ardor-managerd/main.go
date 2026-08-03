@@ -33,7 +33,10 @@ func main() {
 			log.Fatalf("configure physical claim gate: %v", err)
 		}
 		go claimGate.Run(ctx)
-		agent, err := cloudagent.New(cloudagent.Config{BaseURL: cfg.CloudURL, ClaimGate: claimGate}, identity)
+		agent, err := cloudagent.New(cloudagent.Config{
+			BaseURL: cfg.CloudURL, ClaimGate: claimGate, DataRoot: cfg.DataRoot,
+			RemoteMutationsEnabled: cfg.CloudRemoteMutationsEnabled,
+		}, identity)
 		if err != nil {
 			log.Fatalf("configure cloud agent: %v", err)
 		}

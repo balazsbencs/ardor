@@ -13,12 +13,15 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
 	"ardor.local/cloudprotocol"
 	"ardor.local/managerd/internal/deviceclaim"
 	"ardor.local/managerd/internal/deviceidentity"
+	"ardor.local/managerd/internal/presets"
+	"ardor.local/managerd/internal/runtimecontrol"
 	"github.com/coder/websocket"
 )
 
@@ -30,12 +33,14 @@ const (
 )
 
 type Config struct {
-	BaseURL          string
-	HTTPClient       *http.Client
-	Logger           *log.Logger
-	ReconnectInitial time.Duration
-	ReconnectMax     time.Duration
-	ClaimGate        deviceclaim.Gate
+	BaseURL                string
+	HTTPClient             *http.Client
+	Logger                 *log.Logger
+	ReconnectInitial       time.Duration
+	ReconnectMax           time.Duration
+	ClaimGate              deviceclaim.Gate
+	DataRoot               string
+	RemoteMutationsEnabled bool
 
 	// AllowInsecure is only intended for local integration tests. Production
 	// configuration never sets it and therefore requires HTTPS and WSS.
@@ -108,6 +113,9 @@ func New(config Config, identity *deviceidentity.Identity) (*Agent, error) {
 	}
 	if config.ReconnectMax < config.ReconnectInitial {
 		return nil, errors.New("cloud reconnect maximum must not be less than initial delay")
+	}
+	if config.DataRoot == "" {
+		return nil, errors.New("cloud agent requires a data root")
 	}
 	return &Agent{
 		config:   config,
@@ -296,7 +304,7 @@ func (agent *Agent) writeHello(ctx context.Context, connection *websocket.Conn) 
 	envelope, err := cloudprotocol.NewEnvelope(cloudprotocol.KindEvent, cloudprotocol.OperationHello, "", map[string]any{
 		"deviceId":               agent.identity.DeviceID,
 		"protocolVersion":        cloudprotocol.Version,
-		"remoteMutationsEnabled": false,
+		"remoteMutationsEnabled": agent.config.RemoteMutationsEnabled,
 	}, time.Now().UTC())
 	if err != nil {
 		return err
@@ -379,9 +387,112 @@ func (agent *Agent) handleCloudEnvelope(ctx context.Context, connection *websock
 			return err
 		}
 		return agent.identity.SetClaimEpoch(payload.ClaimEpoch)
+	case cloudprotocol.OperationPresetList, cloudprotocol.OperationPresetRead,
+		cloudprotocol.OperationPresetSave, cloudprotocol.OperationPresetApply:
+		if envelope.Kind != cloudprotocol.KindRequest {
+			return errors.New("preset operation must be a request")
+		}
+		return agent.handlePresetOperation(ctx, connection, envelope)
 	default:
 		return fmt.Errorf("inbound cloud operation %s/%s is not enabled", envelope.Kind, envelope.Operation)
 	}
+}
+
+type operationError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+func (agent *Agent) handlePresetOperation(ctx context.Context, connection *websocket.Conn, request cloudprotocol.Envelope) error {
+	store := presets.NewStore(agent.config.DataRoot)
+	var result any
+	var operationFailure *operationError
+	switch request.Operation {
+	case cloudprotocol.OperationPresetList:
+		var payload struct{}
+		if err := decodePayload(request.Payload, &payload); err != nil {
+			return err
+		}
+		items, err := store.List()
+		if err != nil {
+			operationFailure = &operationError{Code: "preset_list_failed", Message: err.Error()}
+		} else {
+			result = map[string]any{"presets": items}
+		}
+	case cloudprotocol.OperationPresetRead:
+		bank, slot, err := decodePresetSlot(request.Payload)
+		if err != nil {
+			return err
+		}
+		loaded, err := store.Load(bank, slot)
+		if errors.Is(err, os.ErrNotExist) {
+			operationFailure = &operationError{Code: "preset_not_found", Message: "preset was not found"}
+		} else if err != nil {
+			operationFailure = &operationError{Code: "preset_read_failed", Message: err.Error()}
+		} else {
+			result = loaded
+		}
+	case cloudprotocol.OperationPresetSave:
+		if !agent.config.RemoteMutationsEnabled {
+			operationFailure = &operationError{Code: "remote_mutations_disabled", Message: "remote preset mutations are disabled on this pedal"}
+			break
+		}
+		var payload struct {
+			Bank   int            `json:"bank"`
+			Slot   int            `json:"slot"`
+			Preset presets.Preset `json:"preset"`
+		}
+		if err := decodePayload(request.Payload, &payload); err != nil {
+			return err
+		}
+		saved, err := store.Save(payload.Bank, payload.Slot, payload.Preset)
+		if err != nil {
+			operationFailure = &operationError{Code: "preset_save_failed", Message: err.Error()}
+		} else {
+			result = saved
+		}
+	case cloudprotocol.OperationPresetApply:
+		if !agent.config.RemoteMutationsEnabled {
+			operationFailure = &operationError{Code: "remote_mutations_disabled", Message: "remote preset mutations are disabled on this pedal"}
+			break
+		}
+		bank, slot, err := decodePresetSlot(request.Payload)
+		if err != nil {
+			return err
+		}
+		if _, err := store.Load(bank, slot); errors.Is(err, os.ErrNotExist) {
+			operationFailure = &operationError{Code: "preset_not_found", Message: "preset was not found"}
+		} else if err != nil {
+			operationFailure = &operationError{Code: "preset_read_failed", Message: err.Error()}
+		} else if err := runtimecontrol.QueueApplyPreset(agent.config.DataRoot, bank, slot); err != nil {
+			operationFailure = &operationError{Code: "runtime_command_failed", Message: err.Error()}
+		} else {
+			result = map[string]any{"accepted": true, "bank": bank, "slot": slot, "message": "apply request queued"}
+		}
+	}
+	payload := map[string]any{"ok": true, "result": result}
+	if operationFailure != nil {
+		payload = map[string]any{"ok": false, "error": operationFailure}
+	}
+	response, err := cloudprotocol.NewEnvelope(cloudprotocol.KindResponse, request.Operation, request.MessageID, payload, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+	return writeEnvelope(ctx, connection, response)
+}
+
+func decodePresetSlot(payload json.RawMessage) (int, int, error) {
+	var slot struct {
+		Bank int `json:"bank"`
+		Slot int `json:"slot"`
+	}
+	if err := decodePayload(payload, &slot); err != nil {
+		return 0, 0, err
+	}
+	if slot.Bank < 0 || slot.Bank > 99 || slot.Slot < 0 || slot.Slot > 3 {
+		return 0, 0, errors.New("preset slot is out of range")
+	}
+	return slot.Bank, slot.Slot, nil
 }
 
 func (agent *Agent) writeClaimDecision(ctx context.Context, connection *websocket.Conn, decision deviceclaim.Decision) error {

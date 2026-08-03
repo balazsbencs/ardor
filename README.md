@@ -413,8 +413,9 @@ The hosted HTTPS manager architecture and delivery plan are specified in
 Its Phase 1 foundation includes the shared UI transport contract, durable
 device identity, versioned wire schemas, and a reconnecting outbound cloud
 agent. Phase 2 adds a SQLite-backed hosted control plane, account recovery,
-device presence, and physically confirmed claiming. Remote preset management,
-reset, and server-side TONE3000 integration remain later phases.
+device presence, and physically confirmed claiming. Phase 3 adds hosted preset
+list/read/save/apply operations with durable idempotency. Reset and server-side
+TONE3000 integration remain later phases.
 
 Run locally without auth:
 
@@ -457,11 +458,11 @@ Auth is enabled by default when no environment override is supplied. Set
 
 The outbound cloud agent is disabled by default. A control-plane deployment can
 enable it with `ARDOR_CLOUD_ENABLED=on` and an HTTPS origin in
-`ARDOR_CLOUD_URL`. Protocol v1 deliberately rejects
-`ARDOR_CLOUD_REMOTE_MUTATIONS=on`; its connection currently supports
-authentication, presence, ping, and physical claiming. The generated Ed25519
-identity is stored under `<ARDOR_DATA_ROOT>/identity/device.json` with mode
-`0600`.
+`ARDOR_CLOUD_URL`. Preset reads are available over an authenticated claimed
+device connection. Preset save/apply remains opt-in per pedal with
+`ARDOR_CLOUD_REMOTE_MUTATIONS=on`; only the four allowlisted preset operations
+are accepted. The generated Ed25519 identity is stored under
+`<ARDOR_DATA_ROOT>/identity/device.json` with mode `0600`.
 
 ## Hosted Control Plane
 
@@ -491,6 +492,8 @@ npm run build:hosted
 Production deployment must expose that static bundle and `/v1` from the same
 public HTTPS origin. Account sessions are `HttpOnly`, `SameSite=Strict`, secure
 cookies; state-changing browser requests also require the exact public Origin.
+Hosted preset save/apply requests carry UUID idempotency keys; completed
+responses and audit events are persisted in the same SQLite transaction.
 
 ## Desktop Manager
 

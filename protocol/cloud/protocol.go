@@ -15,7 +15,7 @@ import (
 
 const (
 	Version             = 1
-	MaxMessageBytes     = 64 * 1024
+	MaxMessageBytes     = 1024 * 1024
 	MaxEnvelopeLifetime = time.Minute
 	MaxClockSkew        = 30 * time.Second
 )
@@ -32,6 +32,10 @@ const (
 	OperationClaimPending  = "claim.pending"
 	OperationClaimDecision = "claim.decision"
 	OperationClaimEpoch    = "claim.epoch"
+	OperationPresetList    = "preset.list"
+	OperationPresetRead    = "preset.read"
+	OperationPresetSave    = "preset.save"
+	OperationPresetApply   = "preset.apply"
 )
 
 var ErrReplay = errors.New("cloud message was already processed")
@@ -82,7 +86,8 @@ func (envelope Envelope) Validate(now time.Time) error {
 		return fmt.Errorf("cloud envelope has unsupported kind %q", envelope.Kind)
 	}
 	switch envelope.Operation {
-	case OperationHello, OperationPing, OperationError, OperationClaimCode, OperationClaimPending, OperationClaimDecision, OperationClaimEpoch:
+	case OperationHello, OperationPing, OperationError, OperationClaimCode, OperationClaimPending, OperationClaimDecision, OperationClaimEpoch,
+		OperationPresetList, OperationPresetRead, OperationPresetSave, OperationPresetApply:
 	default:
 		return fmt.Errorf("cloud operation %q is not enabled", envelope.Operation)
 	}

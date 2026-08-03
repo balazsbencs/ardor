@@ -33,11 +33,17 @@ func TestCloudRequiresHTTPSOrigin(t *testing.T) {
 	}
 }
 
-func TestRemoteMutationsCannotBeEnabledInV1(t *testing.T) {
+func TestRemoteMutationsRequireCloudConnection(t *testing.T) {
 	setBaseEnvironment(t)
 	t.Setenv("ARDOR_CLOUD_REMOTE_MUTATIONS", "on")
-	if _, err := LoadFromEnv(); err == nil || !strings.Contains(err.Error(), "cannot be enabled") {
-		t.Fatalf("error = %v, want disabled mutation error", err)
+	if _, err := LoadFromEnv(); err == nil || !strings.Contains(err.Error(), "requires") {
+		t.Fatalf("error = %v, want cloud dependency error", err)
+	}
+	t.Setenv("ARDOR_CLOUD_ENABLED", "on")
+	t.Setenv("ARDOR_CLOUD_URL", "https://control.example.test")
+	cfg, err := LoadFromEnv()
+	if err != nil || !cfg.CloudRemoteMutationsEnabled {
+		t.Fatalf("remote mutations were not enabled: cfg=%+v err=%v", cfg, err)
 	}
 }
 

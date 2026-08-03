@@ -10,7 +10,7 @@
     "messageId": { "type": "string", "format": "uuid" },
     "correlationId": { "type": "string", "format": "uuid" },
     "kind": { "enum": ["request", "response", "event"] },
-    "operation": { "enum": ["system.hello", "system.ping", "system.error", "claim.code", "claim.pending", "claim.decision", "claim.epoch"] },
+    "operation": { "enum": ["system.hello", "system.ping", "system.error", "claim.code", "claim.pending", "claim.decision", "claim.epoch", "preset.list", "preset.read", "preset.save", "preset.apply"] },
     "issuedAt": { "type": "string", "format": "date-time" },
     "expiresAt": { "type": "string", "format": "date-time" },
     "payload": { "type": "object" }

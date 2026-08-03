@@ -101,6 +101,56 @@ func TestAccountIsolationAndPhysicallyConfirmedClaim(t *testing.T) {
 	assertDeviceCount(t, origin, aliceCookie, 1)
 	assertDeviceCount(t, origin, bobCookie, 0)
 
+	response = jsonRequest(t, http.MethodGet, origin+"/v1/devices/"+deviceID+"/presets", "", bobCookie, nil)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("other account preset list status = %d", response.StatusCode)
+	}
+	response.Body.Close()
+
+	listResponse := startJSONRequest(t, http.MethodGet, origin+"/v1/devices/"+deviceID+"/presets", "", aliceCookie, nil, "")
+	listRequest := readTestEnvelope(t, connection)
+	if listRequest.Operation != cloudprotocol.OperationPresetList {
+		t.Fatalf("relayed list operation = %s", listRequest.Operation)
+	}
+	writeOperationResult(t, connection, listRequest, map[string]any{"presets": []any{}})
+	response = awaitHTTPResponse(t, listResponse)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("preset list status = %d, body=%s", response.StatusCode, readBody(response))
+	}
+	response.Body.Close()
+
+	preset := map[string]any{
+		"version": 1, "name": "Cloud Clean", "routing": "serial",
+		"global": map[string]any{"inputGainDb": 0, "outputGainDb": 0, "safetyLimitDb": -1}, "blocks": []any{},
+	}
+	const idempotencyKey = "018f7f1a-8b25-7e31-a951-5c43272e1999"
+	saveResponse := startJSONRequest(t, http.MethodPut, origin+"/v1/devices/"+deviceID+"/presets/banks/2/slots/1", origin, aliceCookie, preset, idempotencyKey)
+	saveRequest := readTestEnvelope(t, connection)
+	if saveRequest.Operation != cloudprotocol.OperationPresetSave {
+		t.Fatalf("relayed save operation = %s", saveRequest.Operation)
+	}
+	savedSlot := map[string]any{"bank": 2, "slot": 1, "preset": preset}
+	writeOperationResult(t, connection, saveRequest, savedSlot)
+	response = awaitHTTPResponse(t, saveResponse)
+	firstSaveBody := readBody(response)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("preset save status = %d, body=%s", response.StatusCode, firstSaveBody)
+	}
+
+	response = jsonRequestWithIdempotency(t, http.MethodPut, origin+"/v1/devices/"+deviceID+"/presets/banks/2/slots/1", origin, aliceCookie, preset, idempotencyKey)
+	if duplicateBody := readBody(response); response.StatusCode != http.StatusOK || duplicateBody != firstSaveBody {
+		t.Fatalf("idempotent save status=%d body=%q want=%q", response.StatusCode, duplicateBody, firstSaveBody)
+	}
+	changedPreset := map[string]any{
+		"version": 1, "name": "Different", "routing": "serial",
+		"global": map[string]any{"inputGainDb": 0, "outputGainDb": 0, "safetyLimitDb": -1}, "blocks": []any{},
+	}
+	response = jsonRequestWithIdempotency(t, http.MethodPut, origin+"/v1/devices/"+deviceID+"/presets/banks/2/slots/1", origin, aliceCookie, changedPreset, idempotencyKey)
+	if response.StatusCode != http.StatusConflict {
+		t.Fatalf("idempotency conflict status = %d, body=%s", response.StatusCode, readBody(response))
+	}
+	response.Body.Close()
+
 	response = jsonRequest(t, http.MethodDelete, origin+"/v1/devices/"+deviceID+"/membership", origin, bobCookie, nil)
 	if response.StatusCode != http.StatusNotFound {
 		t.Fatalf("other account unclaim status = %d", response.StatusCode)
@@ -252,7 +302,7 @@ func connectTestDevice(t *testing.T, origin, deviceID string, publicKey ed25519.
 		t.Fatal(err)
 	}
 	hello, err := cloudprotocol.NewEnvelope(cloudprotocol.KindEvent, cloudprotocol.OperationHello, "", map[string]any{
-		"deviceId": deviceID, "protocolVersion": cloudprotocol.Version, "remoteMutationsEnabled": false,
+		"deviceId": deviceID, "protocolVersion": cloudprotocol.Version, "remoteMutationsEnabled": true,
 	}, time.Now().UTC())
 	if err != nil {
 		t.Fatal(err)
@@ -262,6 +312,20 @@ func connectTestDevice(t *testing.T, origin, deviceID string, publicKey ed25519.
 }
 
 func jsonRequest(t *testing.T, method, target, origin string, cookie *http.Cookie, value any) *http.Response {
+	return jsonRequestWithIdempotency(t, method, target, origin, cookie, value, "")
+}
+
+func jsonRequestWithIdempotency(t *testing.T, method, target, origin string, cookie *http.Cookie, value any, idempotencyKey string) *http.Response {
+	t.Helper()
+	return awaitHTTPResponse(t, startJSONRequest(t, method, target, origin, cookie, value, idempotencyKey))
+}
+
+type pendingHTTPResponse struct {
+	response *http.Response
+	err      error
+}
+
+func startJSONRequest(t *testing.T, method, target, origin string, cookie *http.Cookie, value any, idempotencyKey string) <-chan pendingHTTPResponse {
 	t.Helper()
 	var body io.Reader
 	if value != nil {
@@ -284,11 +348,38 @@ func jsonRequest(t *testing.T, method, target, origin string, cookie *http.Cooki
 	if cookie != nil {
 		request.AddCookie(cookie)
 	}
-	response, err := http.DefaultClient.Do(request)
+	if idempotencyKey != "" {
+		request.Header.Set("Idempotency-Key", idempotencyKey)
+	}
+	result := make(chan pendingHTTPResponse, 1)
+	go func() {
+		response, err := http.DefaultClient.Do(request)
+		result <- pendingHTTPResponse{response: response, err: err}
+	}()
+	return result
+}
+
+func awaitHTTPResponse(t *testing.T, pending <-chan pendingHTTPResponse) *http.Response {
+	t.Helper()
+	select {
+	case result := <-pending:
+		if result.err != nil {
+			t.Fatal(result.err)
+		}
+		return result.response
+	case <-time.After(5 * time.Second):
+		t.Fatal("HTTP request timed out")
+		return nil
+	}
+}
+
+func writeOperationResult(t *testing.T, connection *websocket.Conn, request cloudprotocol.Envelope, result any) {
+	t.Helper()
+	response, err := cloudprotocol.NewEnvelope(cloudprotocol.KindResponse, request.Operation, request.MessageID, map[string]any{"ok": true, "result": result}, time.Now().UTC())
 	if err != nil {
 		t.Fatal(err)
 	}
-	return response
+	writeTestEnvelope(t, connection, response)
 }
 
 func assertDeviceCount(t *testing.T, origin string, cookie *http.Cookie, want int) {

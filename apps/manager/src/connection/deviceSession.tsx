@@ -118,10 +118,11 @@ export function DeviceSessionProvider({
   children,
   clientFactory = (config) => new ArdorApiClient(config),
   autoConnect = isDeviceHostedRuntime(),
-}: PropsWithChildren<{ clientFactory?: DeviceClientFactory; autoConnect?: boolean }>) {
-  const initialBaseUrl = isDeviceHostedRuntime()
+  connectionId,
+}: PropsWithChildren<{ clientFactory?: DeviceClientFactory; autoConnect?: boolean; connectionId?: string }>) {
+  const initialBaseUrl = connectionId ?? (isDeviceHostedRuntime()
     ? defaultDeviceBaseUrl()
-    : localStorage.getItem(baseUrlKey) ?? defaultDeviceBaseUrl();
+    : localStorage.getItem(baseUrlKey) ?? defaultDeviceBaseUrl());
   const [status, setStatus] = useState<SessionStatus>("disconnected");
   const [baseUrl, setBaseUrl] = useState(initialBaseUrl);
   const [device, setDevice] = useState<DeviceStatus>();
@@ -158,7 +159,7 @@ export function DeviceSessionProvider({
         nextClient.listPresets(),
       ]);
       const nextCurrent = await loadInitialPreset(nextClient, normalizedBaseUrl, nextDevice, nextPresets);
-      localStorage.setItem(baseUrlKey, normalizedBaseUrl);
+      if (!connectionId) localStorage.setItem(baseUrlKey, normalizedBaseUrl);
       localStorage.setItem(locationKey(normalizedBaseUrl), JSON.stringify(nextCurrent.location));
       setBaseUrl(normalizedBaseUrl);
       setClient(nextClient);

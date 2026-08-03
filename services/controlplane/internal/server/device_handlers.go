@@ -156,11 +156,12 @@ func (server *Server) deviceConnect(writer http.ResponseWriter, request *http.Re
 	defer connection.CloseNow()
 	connection.SetReadLimit(cloudprotocol.MaxMessageBytes)
 	ctx := context.Background()
-	if err := server.readDeviceHello(ctx, connection, token.DeviceID); err != nil {
+	remoteMutationsEnabled, err := server.readDeviceHello(ctx, connection, token.DeviceID)
+	if err != nil {
 		_ = connection.Close(websocket.StatusPolicyViolation, "invalid device hello")
 		return
 	}
-	socket := server.hub.attach(token.DeviceID, connection)
+	socket := server.hub.attach(token.DeviceID, connection, remoteMutationsEnabled)
 	defer server.hub.detach(token.DeviceID, socket)
 	_ = server.repository.SetDevicePresence(ctx, token.DeviceID, time.Now().UTC())
 	if err := server.resumeOrCreateClaim(ctx, token.DeviceID, socket); err != nil && !errors.Is(err, store.ErrConflict) {
@@ -182,38 +183,54 @@ func (server *Server) deviceConnect(writer http.ResponseWriter, request *http.Re
 			_ = connection.Close(websocket.StatusPolicyViolation, "invalid cloud envelope")
 			return
 		}
-		if envelope.Operation != cloudprotocol.OperationClaimDecision || envelope.Kind != cloudprotocol.KindResponse {
+		if envelope.Operation == cloudprotocol.OperationClaimDecision && envelope.Kind == cloudprotocol.KindResponse {
+			if err := server.handleClaimDecision(ctx, token.DeviceID, socket, envelope); err != nil {
+				_ = connection.Close(websocket.StatusPolicyViolation, "invalid claim decision")
+				return
+			}
+			_ = server.repository.SetDevicePresence(ctx, token.DeviceID, time.Now().UTC())
+			continue
+		}
+		if envelope.Kind == cloudprotocol.KindResponse && isPresetOperation(envelope.Operation) && socket.deliver(envelope) {
+			_ = server.repository.SetDevicePresence(ctx, token.DeviceID, time.Now().UTC())
+			continue
+		}
+		{
 			_ = connection.Close(websocket.StatusPolicyViolation, "operation is not accepted from device")
 			return
 		}
-		if err := server.handleClaimDecision(ctx, token.DeviceID, socket, envelope); err != nil {
-			_ = connection.Close(websocket.StatusPolicyViolation, "invalid claim decision")
-			return
-		}
-		_ = server.repository.SetDevicePresence(ctx, token.DeviceID, time.Now().UTC())
 	}
 }
 
-func (server *Server) readDeviceHello(ctx context.Context, connection *websocket.Conn, deviceID string) error {
+func (server *Server) readDeviceHello(ctx context.Context, connection *websocket.Conn, deviceID string) (bool, error) {
 	readContext, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	messageType, data, err := connection.Read(readContext)
 	if err != nil || messageType != websocket.MessageText {
-		return errors.New("missing device hello")
+		return false, errors.New("missing device hello")
 	}
 	envelope, err := cloudprotocol.Decode(data, time.Now().UTC())
 	if err != nil || envelope.Kind != cloudprotocol.KindEvent || envelope.Operation != cloudprotocol.OperationHello {
-		return errors.New("invalid device hello")
+		return false, errors.New("invalid device hello")
 	}
 	var payload struct {
 		DeviceID               string `json:"deviceId"`
 		ProtocolVersion        int    `json:"protocolVersion"`
 		RemoteMutationsEnabled bool   `json:"remoteMutationsEnabled"`
 	}
-	if err := decodeStrictPayload(envelope.Payload, &payload); err != nil || payload.DeviceID != deviceID || payload.ProtocolVersion != cloudprotocol.Version || payload.RemoteMutationsEnabled {
-		return errors.New("invalid device hello payload")
+	if err := decodeStrictPayload(envelope.Payload, &payload); err != nil || payload.DeviceID != deviceID || payload.ProtocolVersion != cloudprotocol.Version {
+		return false, errors.New("invalid device hello payload")
 	}
-	return nil
+	return payload.RemoteMutationsEnabled, nil
+}
+
+func isPresetOperation(operation string) bool {
+	switch operation {
+	case cloudprotocol.OperationPresetList, cloudprotocol.OperationPresetRead, cloudprotocol.OperationPresetSave, cloudprotocol.OperationPresetApply:
+		return true
+	default:
+		return false
+	}
 }
 
 func (server *Server) resumeOrCreateClaim(ctx context.Context, deviceID string, socket *deviceSocket) error {
@@ -314,9 +331,10 @@ func (server *Server) listDevices(writer http.ResponseWriter, request *http.Requ
 	}
 	result := make([]map[string]any, 0, len(devices))
 	for _, device := range devices {
+		online, remoteMutationsEnabled := server.hub.status(device.DeviceID)
 		result = append(result, map[string]any{
 			"id": device.DeviceID, "role": device.Role, "claimEpoch": device.ClaimEpoch,
-			"online": server.hub.online(device.DeviceID), "lastSeenAt": device.LastSeenAt,
+			"online": online, "remoteMutationsEnabled": remoteMutationsEnabled, "lastSeenAt": device.LastSeenAt,
 		})
 	}
 	writeJSON(writer, http.StatusOK, map[string]any{"devices": result})

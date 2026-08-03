@@ -93,4 +93,20 @@ CREATE TABLE IF NOT EXISTS audit_events (
 );
 CREATE INDEX IF NOT EXISTS audit_events_actor_idx ON audit_events(actor_type, actor_id, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS device_operations (
+    id text PRIMARY KEY,
+    account_id text NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    device_id text NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+    idempotency_key text NOT NULL,
+    operation text NOT NULL CHECK (operation IN ('preset.save', 'preset.apply')),
+    request_hash blob NOT NULL,
+    state text NOT NULL CHECK (state IN ('pending', 'completed')),
+    http_status integer,
+    response blob,
+    created_at datetime NOT NULL,
+    completed_at datetime,
+    UNIQUE(account_id, device_id, idempotency_key)
+);
+CREATE INDEX IF NOT EXISTS device_operations_created_idx ON device_operations(created_at);
+
 COMMIT;

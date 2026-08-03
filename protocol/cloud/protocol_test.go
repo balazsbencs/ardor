@@ -27,10 +27,10 @@ func TestValidSharedFixtureAndReplayRejection(t *testing.T) {
 	}
 }
 
-func TestMutationFixtureIsDisabled(t *testing.T) {
-	_, err := Decode(readFixture(t, "invalid-mutation.json"), fixtureNow)
-	if err == nil || !strings.Contains(err.Error(), "not enabled") {
-		t.Fatalf("error = %v, want disabled operation", err)
+func TestPresetMutationFixtureIsProtocolValid(t *testing.T) {
+	envelope, err := Decode(readFixture(t, "valid-preset-apply.json"), fixtureNow)
+	if err != nil || envelope.Operation != OperationPresetApply {
+		t.Fatalf("preset operation = %+v, error = %v", envelope, err)
 	}
 }
 

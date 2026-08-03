@@ -86,6 +86,10 @@ func (server *Server) routes() {
 
 	server.mux.Handle("GET /v1/devices", server.requireAccount(http.HandlerFunc(server.listDevices)))
 	server.mux.Handle("DELETE /v1/devices/{deviceId}/membership", server.requireAccount(http.HandlerFunc(server.unclaimDevice)))
+	server.mux.Handle("GET /v1/devices/{deviceId}/presets", server.requireAccount(http.HandlerFunc(server.listDevicePresets)))
+	server.mux.Handle("GET /v1/devices/{deviceId}/presets/banks/{bank}/slots/{slot}", server.requireAccount(http.HandlerFunc(server.getDevicePreset)))
+	server.mux.Handle("PUT /v1/devices/{deviceId}/presets/banks/{bank}/slots/{slot}", server.requireAccount(http.HandlerFunc(server.saveDevicePreset)))
+	server.mux.Handle("POST /v1/devices/{deviceId}/presets/banks/{bank}/slots/{slot}/apply", server.requireAccount(http.HandlerFunc(server.applyDevicePreset)))
 	server.mux.Handle("POST /v1/device-claims", server.requireAccount(http.HandlerFunc(server.beginClaim)))
 	server.mux.Handle("GET /v1/device-claims/{claimId}", server.requireAccount(http.HandlerFunc(server.getClaim)))
 
@@ -148,12 +152,16 @@ func (server *Server) clearSessionCookie(writer http.ResponseWriter) {
 }
 
 func decodeJSON(writer http.ResponseWriter, request *http.Request, value any) bool {
+	return decodeJSONLimit(writer, request, value, maxJSONBody)
+}
+
+func decodeJSONLimit(writer http.ResponseWriter, request *http.Request, value any, limit int64) bool {
 	mediaType, _, err := mime.ParseMediaType(request.Header.Get("Content-Type"))
 	if err != nil || mediaType != "application/json" {
 		writeError(writer, http.StatusUnsupportedMediaType, "json_required", "Content-Type must be application/json")
 		return false
 	}
-	request.Body = http.MaxBytesReader(writer, request.Body, maxJSONBody)
+	request.Body = http.MaxBytesReader(writer, request.Body, limit)
 	decoder := json.NewDecoder(request.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(value); err != nil {

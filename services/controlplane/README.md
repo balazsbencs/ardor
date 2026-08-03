@@ -22,4 +22,7 @@ device WebSocket to this service on the same origin. Back up the SQLite database
 with a SQLite-aware online backup or a brief service stop; do not copy only the
 main file while WAL writes are active.
 
-Remote preset mutations are not enabled in this phase.
+The hosted manager can relay preset list/read operations to a claimed online
+pedal. Save/apply requests additionally require a UUID `Idempotency-Key`, are
+recorded durably with their response, and only run when the pedal explicitly
+enables remote mutations.

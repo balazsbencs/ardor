@@ -41,8 +41,8 @@ func LoadFromEnv() (Config, error) {
 		return Config{}, err
 	}
 	cfg.CloudRemoteMutationsEnabled = remoteMutations
-	if cfg.CloudRemoteMutationsEnabled {
-		return Config{}, errors.New("ARDOR_CLOUD_REMOTE_MUTATIONS cannot be enabled in cloud protocol v1")
+	if cfg.CloudRemoteMutationsEnabled && !cfg.CloudEnabled {
+		return Config{}, errors.New("ARDOR_CLOUD_REMOTE_MUTATIONS requires ARDOR_CLOUD_ENABLED=on")
 	}
 	if cfg.CloudEnabled {
 		if err := validateCloudURL(cfg.CloudURL); err != nil {
