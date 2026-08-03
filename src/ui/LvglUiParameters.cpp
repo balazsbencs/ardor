@@ -10,6 +10,15 @@
 
 namespace ardor {
 
+void LvglUi::toggleExpressionAssignment(UiState& state, const ParameterControl& control)
+{
+  if (!ardor::toggleExpressionAssignment(state, control)) return;
+  if (actions_.updateExpressionAssignment) {
+    actions_.updateExpressionAssignment(state.bank.presets[state.activePreset].expression);
+  }
+  invalidate(UiChange::Parameters | UiChange::Status | UiChange::Telemetry);
+}
+
 using namespace lvgl_ui;
 
 bool LvglUi::updateSelectedEqBand(UiState& state, EqBandParams params, bool requestUiRebuild)
@@ -322,7 +331,10 @@ void LvglUi::syncParameterView(UiState& state)
     }
     for (std::size_t i = 0; i < controls.size(); ++i) {
       parameter_view::syncSlider(
-        parameterControls_[i], controls[i], isParameterFocused(controls[i].key));
+        parameterControls_[i], controls[i], isParameterFocused(controls[i].key),
+        state.bank.presets[state.activePreset].expression.has_value()
+          && state.bank.presets[state.activePreset].expression->blockId == selected->id
+          && state.bank.presets[state.activePreset].expression->parameter == controls[i].key);
     }
     return;
   }

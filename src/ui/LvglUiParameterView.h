@@ -19,7 +19,8 @@ struct UiState;
 // unit.
 namespace parameter_view {
 
-void syncSlider(lv_obj_t* slider, const ParameterControl& control, bool focused = true);
+void syncSlider(lv_obj_t* slider, const ParameterControl& control, bool focused = true,
+                bool expressionAssigned = false);
 void syncBypass(lv_obj_t* control, bool bypassed);
 ParameterControl eqControl(EqBandField field, const EqBandParams& band);
 void syncEqGraph(lv_obj_t* graph, const ParametricEqParams& params, bool throttle = false);

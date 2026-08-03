@@ -61,6 +61,24 @@ void onWifiPasswordVisibilityClicked(lv_event_t* event)
   context->ui->toggleWifiPassword();
 }
 
+void onMidiChannelAdjusted(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->adjustMidiChannel(*context->state, context->index == 0 ? -1 : 1);
+}
+
+void onMidiTunerCcAdjusted(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->adjustMidiTunerCc(*context->state, context->index == 0 ? -1 : 1);
+}
+
+void onExpressionEndpointCaptured(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->captureExpressionEndpoint(*context->state, context->index == 0);
+}
+
 } // namespace
 
 void LvglUi::openSettings(UiState&)
@@ -81,9 +99,71 @@ void LvglUi::closeSettings(UiState&)
 
 void LvglUi::showSettingsSection(UiState&, std::size_t section)
 {
-  settingsSection_ = std::min<std::size_t>(section, 1);
+  settingsSection_ = std::min<std::size_t>(section, 2);
   settingsMessage_.clear();
   wifiPasswordVisible_ = false;
+  viewsInitialized_ = false;
+}
+
+void LvglUi::adjustMidiChannel(UiState& state, int delta)
+{
+  state.settings.midiChannel = std::clamp(state.settings.midiChannel + delta, -1, 15);
+  std::string error;
+  if (actions_.saveControlInputSettings
+      && actions_.saveControlInputSettings(state.settings, error)) {
+    settingsMessage_ = "MIDI channel saved and applied";
+    settingsMessageIsError_ = false;
+  } else {
+    settingsMessage_ = error.empty() ? "Could not save MIDI channel" : error;
+    settingsMessageIsError_ = true;
+  }
+  viewsInitialized_ = false;
+}
+
+void LvglUi::adjustMidiTunerCc(UiState& state, int delta)
+{
+  state.settings.midiTunerCc = std::clamp(state.settings.midiTunerCc + delta, 0, 127);
+  std::string error;
+  if (actions_.saveControlInputSettings
+      && actions_.saveControlInputSettings(state.settings, error)) {
+    settingsMessage_ = "Tuner CC saved and applied";
+    settingsMessageIsError_ = false;
+  } else {
+    settingsMessage_ = error.empty() ? "Could not save tuner CC" : error;
+    settingsMessageIsError_ = true;
+  }
+  viewsInitialized_ = false;
+}
+
+void LvglUi::captureExpressionEndpoint(UiState& state, bool heel)
+{
+  if (!state.controlInputs.expressionRawKnown) {
+    settingsMessage_ = "No expression pedal reading is available";
+    settingsMessageIsError_ = true;
+    viewsInitialized_ = false;
+    return;
+  }
+  const int previous = heel ? state.settings.expressionMinimumRaw
+                            : state.settings.expressionMaximumRaw;
+  if (heel) state.settings.expressionMinimumRaw = state.controlInputs.expressionRaw;
+  else state.settings.expressionMaximumRaw = state.controlInputs.expressionRaw;
+  if (state.settings.expressionMaximumRaw <= state.settings.expressionMinimumRaw) {
+    if (heel) state.settings.expressionMinimumRaw = previous;
+    else state.settings.expressionMaximumRaw = previous;
+    settingsMessage_ = "Toe must read higher than heel";
+    settingsMessageIsError_ = true;
+    viewsInitialized_ = false;
+    return;
+  }
+  std::string error;
+  if (actions_.saveControlInputSettings
+      && actions_.saveControlInputSettings(state.settings, error)) {
+    settingsMessage_ = std::string(heel ? "Heel" : "Toe") + " position captured";
+    settingsMessageIsError_ = false;
+  } else {
+    settingsMessage_ = error.empty() ? "Could not save expression calibration" : error;
+    settingsMessageIsError_ = true;
+  }
   viewsInitialized_ = false;
 }
 
@@ -198,7 +278,7 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
   lv_obj_set_style_pad_all(sidebar, 14, 0);
   lv_obj_remove_flag(sidebar, LV_OBJ_FLAG_SCROLLABLE);
 
-  const std::array<std::string, 2> sections = {"Appearance", "Wi-Fi"};
+  const std::array<std::string, 3> sections = {"Appearance", "Wi-Fi", "Control I/O"};
   for (std::size_t i = 0; i < sections.size(); ++i) {
     lv_obj_t* section = button(sidebar, sections[i]);
     lv_obj_set_size(section, 190, 68);
@@ -259,7 +339,7 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
           &ardor_font_open_sans_semibold_22, previewInk);
     label(preview, "The selected accent is applied across the touchscreen.",
           LV_ALIGN_LEFT_MID, 28, 20, &ardor_font_open_sans_regular_18, previewInk);
-  } else {
+  } else if (settingsSection_ == 1) {
     label(content, "Wi-Fi", LV_ALIGN_TOP_LEFT, 28, 20,
           &ardor_font_open_sans_semibold_28);
     label(content, state.settings.wifiConfigured
@@ -342,6 +422,80 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
       lv_obj_add_event_cb(field, onWifiFieldFocused, LV_EVENT_CLICKED, context);
     }
     lv_keyboard_set_textarea(wifiKeyboard_, wifiSSIDField_);
+  } else {
+    label(content, "Control I/O", LV_ALIGN_TOP_LEFT, 28, 22,
+          &ardor_font_open_sans_semibold_28);
+    label(content, "MIDI over 3.5 mm TRS Type A and expression-pedal calibration.",
+          LV_ALIGN_TOP_LEFT, 28, 60, &ardor_font_open_sans_regular_18, muted);
+
+    const auto makeStepper = [&](const std::string& title, const std::string& value,
+                                 int x, int y, lv_event_cb_t callback) {
+      lv_obj_t* card = lv_obj_create(content);
+      lv_obj_set_size(card, 450, 112);
+      lv_obj_set_pos(card, x, y);
+      styleSurface(card, 0x242424);
+      lv_obj_set_style_pad_all(card, 0, 0);
+      lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+      lv_obj_t* titleLabel = lv_label_create(card);
+      lv_label_set_text(titleLabel, title.c_str());
+      setText(titleLabel, muted, &ardor_font_open_sans_regular_18);
+      lv_obj_set_pos(titleLabel, 18, 10);
+      lv_obj_set_size(titleLabel, 414, 28);
+      lv_label_set_long_mode(titleLabel, LV_LABEL_LONG_CLIP);
+      lv_obj_t* minus = button(card, "-");
+      lv_obj_set_size(minus, 58, 46);
+      lv_obj_set_pos(minus, 10, 54);
+      lv_obj_set_style_pad_all(minus, 0, 0);
+      lv_obj_add_event_cb(minus, callback, LV_EVENT_CLICKED, remember(state, 0));
+      lv_obj_t* valueLabel = lv_label_create(card);
+      lv_label_set_text(valueLabel, value.c_str());
+      setText(valueLabel, text, &ardor_font_open_sans_semibold_22);
+      lv_obj_set_pos(valueLabel, 82, 62);
+      lv_obj_set_size(valueLabel, 286, 30);
+      lv_obj_set_style_text_align(valueLabel, LV_TEXT_ALIGN_CENTER, 0);
+      lv_obj_t* plus = button(card, "+");
+      lv_obj_set_size(plus, 58, 46);
+      lv_obj_set_pos(plus, 382, 54);
+      lv_obj_set_style_pad_all(plus, 0, 0);
+      lv_obj_add_event_cb(plus, callback, LV_EVENT_CLICKED, remember(state, 1));
+    };
+
+    const std::string channel = state.settings.midiChannel < 0
+      ? "Omni" : "Channel " + std::to_string(state.settings.midiChannel + 1);
+    makeStepper("MIDI receive channel", channel, 28, 104, onMidiChannelAdjusted);
+    makeStepper("Tuner on/off CC", "CC " + std::to_string(state.settings.midiTunerCc),
+                494, 104, onMidiTunerCcAdjusted);
+
+    lv_obj_t* expression = lv_obj_create(content);
+    lv_obj_set_size(expression, 916, 254);
+    lv_obj_set_pos(expression, 28, 234);
+    styleSurface(expression, 0x242424);
+    lv_obj_set_style_pad_all(expression, 0, 0);
+    lv_obj_remove_flag(expression, LV_OBJ_FLAG_SCROLLABLE);
+    label(expression, "Expression pedal", LV_ALIGN_TOP_LEFT, 20, 16,
+          &ardor_font_open_sans_semibold_22);
+    const std::string liveRaw = state.controlInputs.expressionRawKnown
+      ? "LIVE ADC  " + std::to_string(state.controlInputs.expressionRaw)
+      : "LIVE ADC  --";
+    label(expression, liveRaw, LV_ALIGN_TOP_RIGHT, -20, 18,
+          &ardor_font_open_sans_regular_18,
+          state.controlInputs.expressionConnected ? accent : muted);
+    label(expression, "Move to heel, capture; then move to toe and capture.",
+          LV_ALIGN_TOP_LEFT, 20, 54, &ardor_font_open_sans_regular_18, muted);
+
+    const auto endpoint = [&](const char* name, int raw, bool heel, int x) {
+      lv_obj_t* capture = button(expression,
+        std::string("Capture ") + name + ":  " + std::to_string(raw));
+      lv_obj_set_size(capture, 420, 72);
+      lv_obj_set_pos(capture, x, 104);
+      styleSurface(capture, 0x343434);
+      lv_obj_add_event_cb(capture, onExpressionEndpointCaptured, LV_EVENT_CLICKED,
+                          remember(state, heel ? 0 : 1));
+    };
+    endpoint("heel", state.settings.expressionMinimumRaw, true, 20);
+    endpoint("toe", state.settings.expressionMaximumRaw, false, 456);
+    label(expression, "Calibration is stored globally; parameter assignment is stored per preset.",
+          LV_ALIGN_BOTTOM_LEFT, 20, -18, &ardor_font_open_sans_regular_18, muted);
   }
 
   if (!settingsMessage_.empty()) {

@@ -1,6 +1,7 @@
 #include "ui/UiModel.h"
 
 #include "daisyfx/DaisyFxCatalog.h"
+#include "ui/ParameterControls.h"
 
 #include <algorithm>
 #include <array>
@@ -275,6 +276,7 @@ void rememberBlockEdit(UiState& state)
 {
   state.blockEditUndo = UiBlockEditSnapshot{
     state.bank.presets[state.activePreset].blocks,
+    state.bank.presets[state.activePreset].expression,
     state.selectedBlock,
     state.selectedBlockId,
     state.paramTarget,
@@ -717,7 +719,10 @@ bool deleteSelectedBlock(UiState& state)
       const auto previewRollback = previewSnapshot(state);
       rememberBlockEdit(state);
       const std::string deletedName = found->assetName;
+      const std::string deletedId = found->id;
       lane.erase(found);
+      auto& assignment = state.bank.presets[state.activePreset].expression;
+      if (assignment && assignment->blockId == deletedId) assignment.reset();
       rig.assetName = "Left " + std::to_string(rig.lanes[0].size())
         + " blocks  /  Right " + std::to_string(rig.lanes[1].size()) + " blocks";
       state.selectedBlockId = rig.id;
@@ -736,6 +741,19 @@ bool deleteSelectedBlock(UiState& state)
   const auto previewRollback = previewSnapshot(state);
   rememberBlockEdit(state);
   const std::string deletedName = blocks[state.selectedBlock].assetName;
+  const auto containsAssignedBlock = [&](const auto& self, const UiBlock& block,
+                                         const std::string& id) -> bool {
+    if (block.id == id) return true;
+    for (const auto& lane : block.lanes) {
+      for (const auto& child : lane) if (self(self, child, id)) return true;
+    }
+    return false;
+  };
+  auto& assignment = state.bank.presets[state.activePreset].expression;
+  if (assignment && containsAssignedBlock(containsAssignedBlock,
+                                           blocks[state.selectedBlock], assignment->blockId)) {
+    assignment.reset();
+  }
   blocks.erase(blocks.begin() + static_cast<std::ptrdiff_t>(state.selectedBlock));
   if (blocks.empty()) {
     state.selectedBlock = 0;
@@ -763,6 +781,7 @@ bool undoLastBlockEdit(UiState& state)
   auto snapshot = std::move(*state.blockEditUndo);
   state.blockEditUndo.reset();
   state.bank.presets[state.activePreset].blocks = std::move(snapshot.blocks);
+  state.bank.presets[state.activePreset].expression = std::move(snapshot.expression);
   state.selectedBlock = snapshot.selectedBlock;
   state.selectedBlockId = std::move(snapshot.selectedBlockId);
   state.paramTarget = snapshot.paramTarget;
@@ -799,6 +818,7 @@ Preset activePresetToPreset(const UiState& state)
   preset.name = uiPreset.name;
   preset.routing = "serial";
   preset.global = uiPreset.global;
+  preset.expression = uiPreset.expression;
   const auto convertBlock = [&](const auto& self, const UiBlock& block) -> PresetBlock {
     PresetBlock converted{block.id, block.type, block.enabled, block.assetPath,
                           block.params.is_null() ? nlohmann::json::object() : block.params};
@@ -853,6 +873,7 @@ void replaceActivePreset(UiState& state, const Preset& preset)
   uiPreset.version = preset.version;
   uiPreset.name = preset.name;
   uiPreset.global = preset.global;
+  uiPreset.expression = preset.expression;
   uiPreset.blocks.clear();
   for (const auto& block : preset.blocks) {
     if (uiPreset.blocks.size() == kMaxEffectBlocks) {
@@ -1176,6 +1197,52 @@ void updateClipDebugTelemetry(UiState& state, UiClipDebugTelemetry telemetry)
     || state.clipDebug.limiterFrames != telemetry.limiterFrames;
   state.clipDebug = std::move(telemetry);
   if (visibleChanged) markUiChanged(state, UiChange::Telemetry);
+}
+
+void updateControlInputTelemetry(UiState& state, UiControlInputTelemetry telemetry)
+{
+  telemetry.expressionPosition = std::clamp(telemetry.expressionPosition, 0.0f, 1.0f);
+  const bool visibleChanged = state.controlInputs.midiConfigured != telemetry.midiConfigured
+    || state.controlInputs.midiConnected != telemetry.midiConnected
+    || state.controlInputs.expressionConnected != telemetry.expressionConnected
+    || state.controlInputs.expressionPositionKnown != telemetry.expressionPositionKnown
+    || std::fabs(state.controlInputs.expressionPosition - telemetry.expressionPosition) >= 0.005f
+    || state.controlInputs.expressionRawKnown != telemetry.expressionRawKnown
+    || state.controlInputs.expressionRaw != telemetry.expressionRaw;
+  state.controlInputs = telemetry;
+  if (visibleChanged) markUiChanged(state, UiChange::Telemetry);
+}
+
+bool parameterSupportsExpression(const UiState& state, const ParameterControl& control)
+{
+  if (state.paramTarget != UiParamTarget::Block
+      || control.kind != ParameterControlKind::Continuous
+      || !(control.maximum > control.minimum)) return false;
+  const auto* block = selectedUiBlock(state);
+  if (!block) return false;
+  if (block->type == "mod" || block->type == "delay" || block->type == "reverb"
+      || block->type == "dynamics") return true;
+  return block->type == "cab" && (control.key == "mix" || control.key == "levelDb");
+}
+
+bool toggleExpressionAssignment(UiState& state, const ParameterControl& control)
+{
+  if (!parameterSupportsExpression(state, control)) return false;
+  const auto* block = selectedUiBlock(state);
+  if (!block) return false;
+  auto& assignment = state.bank.presets[state.activePreset].expression;
+  if (assignment && assignment->blockId == block->id
+      && assignment->parameter == control.key) {
+    assignment.reset();
+    setUiStatus(state, "Expression assignment cleared");
+  } else {
+    assignment = PresetExpression{block->id, control.key,
+                                  control.minimum, control.maximum, false};
+    setUiStatus(state, "Expression assigned to " + block->label + " / " + control.label);
+  }
+  state.dirty = true;
+  markUiChanged(state, UiChange::Header | UiChange::Parameters | UiChange::Telemetry);
+  return true;
 }
 
 void setUiStatus(UiState& state, std::string message, bool isError)

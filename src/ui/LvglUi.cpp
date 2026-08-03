@@ -142,6 +142,7 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   rebuildDrawerView(state);
   contextRegion_ = UiContextRegion::Status;
   renderStatusBar(this, statusLayer_, state, &telemetryLabel_, &masterVolumeLabel_,
+                  &expressionStatusLabel_, &midiStatusLabel_, &settingsButton_,
                   &statusMessageLabel_, &undoButton_);
   contextRegion_ = UiContextRegion::None;
   contextRegion_ = UiContextRegion::Settings;
@@ -221,7 +222,8 @@ lv_point_t LvglUi::toCanvas(lv_point_t displayPoint) const
 
 void LvglUi::refresh(lv_obj_t* root, UiState& state)
 {
-  if (!highlightedBlockId_.empty() && std::chrono::steady_clock::now() >= highlightUntil_) {
+  const auto now = std::chrono::steady_clock::now();
+  if (!highlightedBlockId_.empty() && now >= highlightUntil_) {
     highlightedBlockId_.clear();
     invalidate(UiChange::Chain);
   }

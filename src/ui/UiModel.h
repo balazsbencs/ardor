@@ -16,6 +16,8 @@
 
 namespace ardor {
 
+struct ParameterControl;
+
 inline constexpr std::size_t kMaxEffectBlocks = 10;
 
 struct UiAsset {
@@ -42,6 +44,7 @@ struct UiPreset {
   std::vector<UiBlock> blocks;
   PresetGlobal global;
   int version = 1;
+  std::optional<PresetExpression> expression;
 };
 
 struct UiBank {
@@ -114,6 +117,7 @@ struct UiRevisions {
 
 struct UiBlockEditSnapshot {
   std::vector<UiBlock> blocks;
+  std::optional<PresetExpression> expression;
   std::size_t selectedBlock = 0;
   std::string selectedBlockId;
   UiParamTarget paramTarget = UiParamTarget::Block;
@@ -156,6 +160,16 @@ struct UiTunerTelemetry {
   int octave = 0;
 };
 
+struct UiControlInputTelemetry {
+  bool midiConfigured = false;
+  bool midiConnected = false;
+  bool expressionConnected = false;
+  bool expressionPositionKnown = false;
+  float expressionPosition = 0.0f;
+  bool expressionRawKnown = false;
+  int expressionRaw = 0;
+};
+
 struct UiState {
   UiBank bank;
   DeviceSettings settings;
@@ -184,6 +198,7 @@ struct UiState {
   RuntimeTelemetry telemetry;
   UiClipDebugTelemetry clipDebug;
   UiTunerTelemetry tuner;
+  UiControlInputTelemetry controlInputs;
   std::string statusMessage;
   bool statusIsError = false;
   std::optional<UiBlockEditSnapshot> blockEditUndo;
@@ -256,6 +271,9 @@ std::optional<UiNavigationTarget> confirmNavigation(UiState& state, UiNavigation
 
 void updateRealtimeTelemetry(UiState& state, const RuntimeTelemetry& telemetry);
 void updateClipDebugTelemetry(UiState& state, UiClipDebugTelemetry telemetry);
+void updateControlInputTelemetry(UiState& state, UiControlInputTelemetry telemetry);
+bool parameterSupportsExpression(const UiState& state, const ParameterControl& control);
+bool toggleExpressionAssignment(UiState& state, const ParameterControl& control);
 void setUiStatus(UiState& state, std::string message, bool isError = false);
 int consumePendingSlotRequest(UiState& state);
 void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoot);

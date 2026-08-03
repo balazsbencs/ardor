@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <sstream>
 #include <system_error>
+#include <cmath>
 
 #include <nlohmann/json.hpp>
 
@@ -127,6 +128,29 @@ bool writeAtomically(const std::filesystem::path& path, const std::string& body,
   return true;
 }
 
+nlohmann::json loadSettingsDocument(const std::filesystem::path& root)
+{
+  std::ifstream input(settingsPath(root));
+  if (!input) return nlohmann::json::object();
+  try {
+    auto json = nlohmann::json::parse(input);
+    return json.is_object() ? std::move(json) : nlohmann::json::object();
+  } catch (...) {
+    return nlohmann::json::object();
+  }
+}
+
+bool saveSettingsDocument(const std::filesystem::path& root, const nlohmann::json& json,
+                          std::string& error)
+{
+  return writeAtomically(settingsPath(root), json.dump(2) + "\n",
+                         std::filesystem::perms::owner_read
+                           | std::filesystem::perms::owner_write
+                           | std::filesystem::perms::group_read
+                           | std::filesystem::perms::others_read,
+                         error);
+}
+
 } // namespace
 
 GlobalSettingsStore::GlobalSettingsStore(std::filesystem::path dataRoot)
@@ -144,6 +168,24 @@ DeviceSettings GlobalSettingsStore::load() const
         const auto json = nlohmann::json::parse(input);
         const auto color = json.value("accentColor", kDefaultAccentColor);
         if (color <= 0xffffffu) settings.accentColor = color;
+        settings.midiChannel = std::clamp(json.value("midiChannel", -1), -1, 15);
+        settings.midiTunerCc = std::clamp(json.value("midiTunerCc", 20), 0, 127);
+        settings.expressionMinimumRaw = json.value("expressionMinimumRaw", 0);
+        settings.expressionMaximumRaw = json.value("expressionMaximumRaw", 26400);
+        settings.expressionSmoothing = json.value("expressionSmoothing", 0.25f);
+        settings.expressionDeadband = json.value("expressionDeadband", 0.002f);
+        if (settings.expressionMaximumRaw <= settings.expressionMinimumRaw) {
+          settings.expressionMinimumRaw = 0;
+          settings.expressionMaximumRaw = 26400;
+        }
+        if (!std::isfinite(settings.expressionSmoothing)
+            || settings.expressionSmoothing <= 0.0f || settings.expressionSmoothing > 1.0f) {
+          settings.expressionSmoothing = 0.25f;
+        }
+        if (!std::isfinite(settings.expressionDeadband)
+            || settings.expressionDeadband < 0.0f || settings.expressionDeadband > 1.0f) {
+          settings.expressionDeadband = 0.002f;
+        }
       } catch (...) {
         // Keep safe defaults when a partial write or manual edit is invalid.
       }
@@ -171,13 +213,31 @@ bool GlobalSettingsStore::saveAccentColor(std::uint32_t color, std::string& erro
     error = "accent color is out of range";
     return false;
   }
-  nlohmann::json json{{"accentColor", color}};
-  return writeAtomically(settingsPath(dataRoot_), json.dump(2) + "\n",
-                         std::filesystem::perms::owner_read
-                           | std::filesystem::perms::owner_write
-                           | std::filesystem::perms::group_read
-                           | std::filesystem::perms::others_read,
-                         error);
+  auto json = loadSettingsDocument(dataRoot_);
+  json["accentColor"] = color;
+  return saveSettingsDocument(dataRoot_, json, error);
+}
+
+bool GlobalSettingsStore::saveControlInputs(const DeviceSettings& settings, std::string& error) const
+{
+  if (settings.midiChannel < -1 || settings.midiChannel > 15
+      || settings.midiTunerCc < 0 || settings.midiTunerCc > 127
+      || settings.expressionMaximumRaw <= settings.expressionMinimumRaw
+      || !std::isfinite(settings.expressionSmoothing)
+      || settings.expressionSmoothing <= 0.0f || settings.expressionSmoothing > 1.0f
+      || !std::isfinite(settings.expressionDeadband)
+      || settings.expressionDeadband < 0.0f || settings.expressionDeadband > 1.0f) {
+    error = "control input settings are out of range";
+    return false;
+  }
+  auto json = loadSettingsDocument(dataRoot_);
+  json["midiChannel"] = settings.midiChannel;
+  json["midiTunerCc"] = settings.midiTunerCc;
+  json["expressionMinimumRaw"] = settings.expressionMinimumRaw;
+  json["expressionMaximumRaw"] = settings.expressionMaximumRaw;
+  json["expressionSmoothing"] = settings.expressionSmoothing;
+  json["expressionDeadband"] = settings.expressionDeadband;
+  return saveSettingsDocument(dataRoot_, json, error);
 }
 
 bool GlobalSettingsStore::saveWifi(const std::string& ssid, const std::string& password,

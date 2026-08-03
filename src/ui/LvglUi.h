@@ -57,6 +57,8 @@ struct UiActions {
   std::function<bool(std::uint32_t, std::string&)> saveAccentColor;
   std::function<bool(const std::string&, const std::string&, const std::string&, std::string&)>
     saveWifiSettings;
+  std::function<void(const std::optional<PresetExpression>&)> updateExpressionAssignment;
+  std::function<bool(const DeviceSettings&, std::string&)> saveControlInputSettings;
 };
 
 struct UiLaneDropTarget {
@@ -156,6 +158,10 @@ public:
   void selectAccentColor(UiState& state, std::size_t colorIndex);
   void saveWifiSettings(UiState& state);
   void toggleWifiPassword();
+  void toggleExpressionAssignment(UiState& state, const ParameterControl& control);
+  void adjustMidiChannel(UiState& state, int delta);
+  void adjustMidiTunerCc(UiState& state, int delta);
+  void captureExpressionEndpoint(UiState& state, bool heel);
 
 private:
   void renderPresetMode(lv_obj_t* root, UiState& state);
@@ -218,8 +224,13 @@ private:
   lv_obj_t* editPresetLabel_ = nullptr;
   lv_obj_t* saveButtonLabel_ = nullptr;
   lv_obj_t* telemetryLabel_ = nullptr;
+  lv_obj_t* expressionStatusLabel_ = nullptr;
+  lv_obj_t* midiStatusLabel_ = nullptr;
+  lv_obj_t* settingsButton_ = nullptr;
   lv_obj_t* statusMessageLabel_ = nullptr;
   lv_obj_t* undoButton_ = nullptr;
+  std::uint64_t statusToastRevision_ = 0;
+  const UiState* statusToastState_ = nullptr;
   lv_obj_t* tunerNoteLabel_ = nullptr;
   lv_obj_t* tunerFrequencyLabel_ = nullptr;
   lv_obj_t* tunerCentsLabel_ = nullptr;

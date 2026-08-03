@@ -3,6 +3,7 @@
 #include "ui/ParameterControls.h"
 #include "ui/UiModel.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -441,6 +442,23 @@ int main()
   if (require(state.bank.presets[state.activePreset].global.safetyLimitDb == -1.5f, "safety global should load")) return 1;
   if (require(state.bank.presets[state.activePreset].blocks[0].params.value("levelDb", 0.0f) == -4.0f,
               "block params should load")) return 1;
+  ardor::selectBlock(state, 0);
+  const auto cabControls = ardor::parameterPage(state, 0);
+  const auto mixControl = std::find_if(cabControls.begin(), cabControls.end(),
+    [](const ardor::ParameterControl& control) { return control.key == "mix"; });
+  if (require(mixControl != cabControls.end()
+                && ardor::toggleExpressionAssignment(state, *mixControl),
+              "numeric block parameters should accept expression assignment")) return 1;
+  const auto expressionPreset = ardor::activePresetToPreset(state);
+  if (require(expressionPreset.expression
+                && expressionPreset.expression->blockId == "loaded-1"
+                && expressionPreset.expression->parameter == "mix"
+                && expressionPreset.expression->minimum == 0.0f
+                && expressionPreset.expression->maximum == 1.0f,
+              "expression assignment should round-trip with the preset")) return 1;
+  if (require(ardor::toggleExpressionAssignment(state, *mixControl)
+                && !state.bank.presets[state.activePreset].expression,
+              "tapping the assigned expression parameter should clear it")) return 1;
   ardor::selectGlobalParams(state);
   if (require(state.paramTarget == ardor::UiParamTarget::Globals, "global param drawer target")) return 1;
   if (require(state.paramDrawerOpen, "global params should open drawer")) return 1;

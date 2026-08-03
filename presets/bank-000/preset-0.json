@@ -105,6 +105,13 @@
       "type": "delay"
     }
   ],
+  "expression": {
+    "blockId": "block-1",
+    "inverted": false,
+    "maximum": 0.0,
+    "minimum": -60.0,
+    "parameter": "threshold_db"
+  },
   "global": {
     "inputGainDb": 0.0,
     "outputGainDb": 0.0,

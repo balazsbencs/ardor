@@ -804,6 +804,12 @@ int main(int argc, char** argv)
 #endif
         uiState = ardor::makeDemoUiState();
         uiState.settings = globalSettings.load();
+        args.midiChannel = uiState.settings.midiChannel;
+        args.midiTunerCc = uiState.settings.midiTunerCc;
+        args.expressionMinimumRaw = uiState.settings.expressionMinimumRaw;
+        args.expressionMaximumRaw = uiState.settings.expressionMaximumRaw;
+        args.expressionSmoothing = uiState.settings.expressionSmoothing;
+        args.expressionDeadband = uiState.settings.expressionDeadband;
         ardor::loadAssetsFromDataRoot(uiState, args.dataRoot);
         ardor::loadBankFromStore(uiState, store, args.bank);
         // The engine was loaded immediately above. Reflect that state in the
@@ -912,6 +918,12 @@ int main(int argc, char** argv)
 #endif
             return true;
           },
+          [&](const std::optional<ardor::PresetExpression>& assignment) {
+            activePreset.expression = assignment;
+          },
+          [&](const ardor::DeviceSettings& settings, std::string& error) {
+            return globalSettings.saveControlInputs(settings, error);
+          },
         });
         ui->build(lv_screen_active(), uiState);
       }
@@ -977,6 +989,13 @@ int main(int argc, char** argv)
       }
       auto nextExpressionPoll = std::chrono::steady_clock::now();
       bool expressionTargetWarningPrinted = false;
+#if defined(ARDOR_HAS_UI)
+      if (args.enableUi && ui) {
+        ardor::updateControlInputTelemetry(uiState, {
+          !args.midiDevice.empty(), midiEnabled, expressionEnabled, false, 0.0f, false, 0,
+        });
+      }
+#endif
 #else
       if (!args.controlDevices.empty() || !args.midiDevice.empty()
           || !args.expressionDevice.empty()) {
@@ -1106,6 +1125,29 @@ int main(int argc, char** argv)
           }
         }
 #if defined(__linux__)
+#if defined(ARDOR_HAS_UI)
+        if (args.enableUi && ui
+            && (args.midiChannel != uiState.settings.midiChannel
+                || args.midiTunerCc != uiState.settings.midiTunerCc
+                || args.expressionMinimumRaw != uiState.settings.expressionMinimumRaw
+                || args.expressionMaximumRaw != uiState.settings.expressionMaximumRaw
+                || args.expressionSmoothing != uiState.settings.expressionSmoothing
+                || args.expressionDeadband != uiState.settings.expressionDeadband)) {
+          args.midiChannel = uiState.settings.midiChannel;
+          args.midiTunerCc = uiState.settings.midiTunerCc;
+          args.expressionMinimumRaw = uiState.settings.expressionMinimumRaw;
+          args.expressionMaximumRaw = uiState.settings.expressionMaximumRaw;
+          args.expressionSmoothing = uiState.settings.expressionSmoothing;
+          args.expressionDeadband = uiState.settings.expressionDeadband;
+          midiMapper = ardor::MidiControlMapper{{
+            args.midiChannel, static_cast<std::uint8_t>(args.midiTunerCc),
+          }};
+          expressionFilter = ardor::ExpressionFilter{{
+            args.expressionMinimumRaw, args.expressionMaximumRaw,
+            args.expressionSmoothing, args.expressionDeadband,
+          }};
+        }
+#endif
         for (auto& inputDevice : inputDevices) {
           ardor::ControlEvent controlEvent;
           while (inputDevice.poll(controlEvent)) {
@@ -1176,11 +1218,28 @@ int main(int argc, char** argv)
           nextExpressionPoll = expressionNow + std::chrono::milliseconds(8);
           int raw = 0;
           if (expressionInput.readRaw(raw)) {
-            if (const auto position = expressionFilter.update(raw);
-                position.has_value() && activePreset.expression.has_value()) {
-              if (applyExpressionPosition(*liveEngine, activePreset, *position)) {
+#if defined(ARDOR_HAS_UI)
+            if (args.enableUi && ui) {
+              auto inputs = uiState.controlInputs;
+              inputs.expressionRawKnown = true;
+              inputs.expressionRaw = raw;
+              ardor::updateControlInputTelemetry(uiState, inputs);
+            }
+#endif
+            if (const auto position = expressionFilter.update(raw); position.has_value()) {
+#if defined(ARDOR_HAS_UI)
+              if (args.enableUi && ui) {
+                ardor::updateControlInputTelemetry(uiState, {
+                  !args.midiDevice.empty(), midiEnabled, expressionEnabled, true, *position,
+                  true, raw,
+                });
+              }
+#endif
+              if (activePreset.expression.has_value()
+                  && applyExpressionPosition(*liveEngine, activePreset, *position)) {
                 expressionTargetWarningPrinted = false;
-              } else if (!expressionTargetWarningPrinted) {
+              } else if (activePreset.expression.has_value()
+                         && !expressionTargetWarningPrinted) {
                 const auto& assignment = *activePreset.expression;
                 std::cerr << "Expression assignment is not live-controllable: "
                           << assignment.blockId << ":" << assignment.parameter << "\n";

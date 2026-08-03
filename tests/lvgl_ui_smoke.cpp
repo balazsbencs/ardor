@@ -626,6 +626,12 @@ int main()
   if (require(title && depthSlider && depthFill, "parameter header and slider should render")) return 1;
   if (require(status && lv_color_eq(lv_obj_get_style_text_color(status, LV_PART_MAIN), lv_color_hex(0x43f05a)),
               "success status should render in accent green")) return 1;
+  lv_area_t statusToastArea{};
+  lv_obj_get_coords(status, &statusToastArea);
+  if (require(statusToastArea.y1 >= 80 && statusToastArea.y2 < 180,
+              "transient status should render as a top toast instead of footer text")) return 1;
+  if (require(lv_anim_get(status, nullptr) != nullptr,
+              "status toast should run a fade-in/hold/fade-out animation")) return 1;
   lv_obj_t* retainedCanvas = ui.canvas();
   lv_obj_t* retainedStatus = status;
   for (int i = 0; i < 256; ++i) {
@@ -1088,21 +1094,51 @@ int main()
   lv_obj_t* bankNameLabel = findLabel(lv_screen_active(), state.bank.name.c_str());
   lv_obj_t* masterLabel = findLabel(
     lv_screen_active(), ("Master " + std::to_string(state.masterVolume) + "%").c_str());
-  lv_obj_t* bufferLabel = findLabel(lv_screen_active(), "Buffer 75% free");
+  lv_obj_t* bufferLabel = findLabel(lv_screen_active(), "BUFFER 25% USED");
+  lv_obj_t* midiLabel = findLabel(lv_screen_active(), "MIDI");
   lv_obj_t* bankDownButton = bankDownLabel ? lv_obj_get_parent(bankDownLabel) : nullptr;
   lv_obj_t* bankUpButton = bankUpLabel ? lv_obj_get_parent(bankUpLabel) : nullptr;
   if (require(editButton && lv_obj_get_width(editButton) == 164 && lv_obj_get_height(editButton) == 60,
               "Edit should have a large, finger-friendly hit target")) return 1;
-  if (require(settingsButton && lv_obj_get_width(settingsButton) == 64
-                && lv_obj_get_height(settingsButton) == 60,
-              "preset screen should expose a finger-sized settings gear")) return 1;
+  if (require(settingsButton && lv_obj_get_width(settingsButton) == 58
+                && lv_obj_get_height(settingsButton) == 40,
+              "live footer should expose a compact settings gear")) return 1;
   if (require(bankDownButton && bankUpButton && lv_obj_get_width(bankUpButton) == 144
                 && lv_obj_get_height(bankUpButton) == 60
                 && lv_obj_get_height(bankDownButton) == 60,
               "preset screen should render dedicated bank up and down buttons")) return 1;
-  if (require(masterLabel && bufferLabel && tunerButton && lv_obj_get_width(tunerButton) == 120
+  if (require(masterLabel && bufferLabel && midiLabel && tunerButton
+                && lv_obj_get_width(tunerButton) == 120
                 && lv_obj_get_height(tunerButton) == 60,
               "preset screen should provide a Tuner button and live footer feedback")) return 1;
+  std::string expectedExpressionFooter;
+  if (!state.bank.presets[state.activePreset].blocks.empty()) {
+    std::string blockLabel = state.bank.presets[state.activePreset].blocks.front().label;
+    std::transform(blockLabel.begin(), blockLabel.end(), blockLabel.begin(), [](unsigned char c) {
+      return static_cast<char>(std::toupper(c));
+    });
+    expectedExpressionFooter = "EXP: " + blockLabel + " MIX 50%";
+    state.bank.presets[state.activePreset].expression = ardor::PresetExpression{
+      state.bank.presets[state.activePreset].blocks.front().id, "mix", 0.0f, 1.0f, false,
+    };
+  }
+  ardor::updateControlInputTelemetry(state, {true, true, true, true, 0.5f, true, 12000});
+  ardor::setUiStatus(state, "Expression assignment updated");
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* expressionFooter = findLabel(lv_screen_active(), expectedExpressionFooter.c_str());
+  lv_obj_t* connectedMidi = findLabel(lv_screen_active(), "MIDI ON");
+  lv_obj_t* assignmentToast = findLabel(lv_screen_active(), "Expression assignment updated");
+  lv_area_t expressionFooterArea{};
+  lv_area_t connectedMidiArea{};
+  lv_area_t assignmentToastArea{};
+  if (expressionFooter) lv_obj_get_coords(expressionFooter, &expressionFooterArea);
+  if (connectedMidi) lv_obj_get_coords(connectedMidi, &connectedMidiArea);
+  if (assignmentToast) lv_obj_get_coords(assignmentToast, &assignmentToastArea);
+  if (require(expressionFooter && connectedMidi && assignmentToast
+                && expressionFooterArea.x2 < connectedMidiArea.x1
+                && assignmentToastArea.y2 < expressionFooterArea.y1,
+              "toast messages must not overlap live expression and MIDI status")) return 1;
   lv_area_t bankDownArea{};
   lv_area_t bankUpArea{};
   lv_area_t bankNameArea{};
@@ -1125,19 +1161,21 @@ int main()
               "Master should be centered in the bottom status bar")) return 1;
   if (require(tunerButtonArea.x1 == 28 && tunerButtonArea.x2 < bankDownArea.x1,
               "Tuner and Bank controls should not overlap after moving Master to the footer")) return 1;
+  if (require(bankDownArea.x1 - tunerButtonArea.x2 - 1 == 12,
+              "Tuner and Bank- should form one compact control group")) return 1;
   if (require(tunerButtonArea.y1 == bankDownArea.y1
                 && bankDownArea.y1 == bankUpArea.y1
-                && bankUpArea.y1 == settingsButtonArea.y1
-                && settingsButtonArea.y1 == editButtonArea.y1
+                && bankUpArea.y1 == editButtonArea.y1
                 && tunerButtonArea.y2 == bankDownArea.y2
                 && bankDownArea.y2 == bankUpArea.y2
-                && bankUpArea.y2 == settingsButtonArea.y2
-                && settingsButtonArea.y2 == editButtonArea.y2,
-              "all preset-header buttons should share one 60 px row")) return 1;
-  const int bankToSettingsGap = settingsButtonArea.x1 - bankUpArea.x2 - 1;
-  const int settingsToEditGap = editButtonArea.x1 - settingsButtonArea.x2 - 1;
-  if (require(bankToSettingsGap == 12 && settingsToEditGap == bankToSettingsGap,
-              "Bank+, Settings, and Edit should use the same horizontal gap")) return 1;
+                && bankUpArea.y2 == editButtonArea.y2,
+              "preset-header controls should share one 60 px row")) return 1;
+  if (require(editButtonArea.x1 - bankUpArea.x2 - 1 == 12,
+              "Bank+ and Edit should use the standard horizontal gap")) return 1;
+  if (require(settingsButtonArea.x1 > masterArea.x2
+                && std::abs((settingsButtonArea.y1 + settingsButtonArea.y2)
+                            - (masterArea.y1 + masterArea.y2)) <= 2,
+              "Settings should occupy the lower-right end of the live footer")) return 1;
   if (require(lv_obj_has_state(bankDownButton, LV_STATE_DISABLED),
               "bank down should be disabled at the first bank")) return 1;
   if (require(lv_obj_get_style_text_font(bankUpLabel, LV_PART_MAIN) == &ardor_font_open_sans_semibold_22,
@@ -1210,6 +1248,60 @@ int main()
                 && !lv_textarea_get_password_mode(passwordField),
               "password eye should clearly reflect and toggle the visible state")) return 1;
   lv_obj_send_event(passwordEyeButton, LV_EVENT_CLICKED, nullptr);
+  lv_obj_t* controlSectionLabel = findLabel(lv_screen_active(), "Control I/O");
+  if (require(controlSectionLabel, "settings should expose a Control I/O section")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(controlSectionLabel), LV_EVENT_PRESSED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "MIDI receive channel")
+                && findLabel(lv_screen_active(), "Tuner on/off CC")
+                && findLabel(lv_screen_active(), "Expression pedal")
+                && findLabel(lv_screen_active(), "Capture heel:  0")
+                && findLabel(lv_screen_active(), "Capture toe:  26400"),
+              "Control I/O should integrate MIDI and expression calibration")) return 1;
+  lv_obj_t* midiChannelTitle = findLabel(lv_screen_active(), "MIDI receive channel");
+  lv_obj_t* midiChannelCard = midiChannelTitle ? lv_obj_get_parent(midiChannelTitle) : nullptr;
+  lv_obj_t* midiChannelMinus = midiChannelCard ? lv_obj_get_child(midiChannelCard, 1) : nullptr;
+  lv_area_t midiChannelTitleArea{};
+  lv_area_t midiChannelMinusArea{};
+  if (midiChannelTitle) lv_obj_get_coords(midiChannelTitle, &midiChannelTitleArea);
+  if (midiChannelMinus) lv_obj_get_coords(midiChannelMinus, &midiChannelMinusArea);
+  if (require(midiChannelTitle && midiChannelMinus
+                && midiChannelTitleArea.y2 < midiChannelMinusArea.y1,
+              "MIDI receive channel title should not be obscured by its controls")) return 1;
+  const auto stepperIsAligned = [](lv_obj_t* title) {
+    if (!title) return false;
+    lv_obj_t* card = lv_obj_get_parent(title);
+    if (!card || lv_obj_get_child_count(card) < 4) return false;
+    lv_obj_t* minus = lv_obj_get_child(card, 1);
+    lv_obj_t* value = lv_obj_get_child(card, 2);
+    lv_obj_t* plus = lv_obj_get_child(card, 3);
+    lv_obj_t* minusLabel = lv_obj_get_child(minus, 0);
+    lv_obj_t* plusLabel = lv_obj_get_child(plus, 0);
+    lv_area_t cardArea{}, titleArea{}, minusArea{}, valueArea{}, plusArea{};
+    lv_area_t minusLabelArea{}, plusLabelArea{};
+    lv_obj_get_coords(card, &cardArea);
+    lv_obj_get_coords(title, &titleArea);
+    lv_obj_get_coords(minus, &minusArea);
+    lv_obj_get_coords(value, &valueArea);
+    lv_obj_get_coords(plus, &plusArea);
+    lv_obj_get_coords(minusLabel, &minusLabelArea);
+    lv_obj_get_coords(plusLabel, &plusLabelArea);
+    const auto centerX = [](const lv_area_t& area) { return area.x1 + area.x2; };
+    const auto centerY = [](const lv_area_t& area) { return area.y1 + area.y2; };
+    return titleArea.x1 - cardArea.x1 == cardArea.x2 - titleArea.x2
+      && minusArea.x1 - cardArea.x1 == cardArea.x2 - plusArea.x2
+      && centerX(valueArea) == centerX(cardArea)
+      && centerY(minusArea) == centerY(valueArea)
+      && centerY(valueArea) == centerY(plusArea)
+      && std::abs(centerX(minusLabelArea) - centerX(minusArea)) <= 1
+      && std::abs(centerY(minusLabelArea) - centerY(minusArea)) <= 1
+      && std::abs(centerX(plusLabelArea) - centerX(plusArea)) <= 1
+      && std::abs(centerY(plusLabelArea) - centerY(plusArea)) <= 1;
+  };
+  if (require(stepperIsAligned(midiChannelTitle)
+                && stepperIsAligned(findLabel(lv_screen_active(), "Tuner on/off CC")),
+              "MIDI and tuner steppers should share symmetric padding and centered controls")) return 1;
   ui.closeSettings(state);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());

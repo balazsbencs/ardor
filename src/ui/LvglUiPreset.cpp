@@ -18,14 +18,11 @@ constexpr int kHeaderEdgeInset = 28;
 constexpr int kHeaderButtonGap = 12;
 constexpr int kHeaderTunerButtonWidth = 120;
 constexpr int kHeaderBankButtonWidth = 144;
-constexpr int kHeaderSettingsButtonWidth = 64;
 constexpr int kHeaderEditX = kDesignWidth - kHeaderEdgeInset - kHeaderBlocksButtonWidth;
-constexpr int kHeaderSettingsX =
-  kHeaderEditX - kHeaderButtonGap - kHeaderSettingsButtonWidth;
 constexpr int kHeaderBankUpX =
-  kHeaderSettingsX - kHeaderButtonGap - kHeaderBankButtonWidth;
+  kHeaderEditX - kHeaderButtonGap - kHeaderBankButtonWidth;
 constexpr int kHeaderBankDownX =
-  kDesignWidth - kHeaderBankUpX - kHeaderBankButtonWidth;
+  kHeaderEdgeInset + kHeaderTunerButtonWidth + kHeaderButtonGap;
 constexpr int kMinBank = 0;
 constexpr int kMaxBank = 99;
 
@@ -157,17 +154,6 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
   // Opening an editor is safe on press and does not depend on the release
   // landing on a small target after a finger has shifted on the touchscreen.
   lv_obj_add_event_cb(edit, onEditModeClicked, LV_EVENT_PRESSED, remember(state));
-
-  lv_obj_t* settings = lv_button_create(root);
-  lv_obj_set_size(settings, kHeaderSettingsButtonWidth, kHeaderButtonHeight);
-  lv_obj_set_pos(settings, kHeaderSettingsX, kHeaderButtonTop);
-  styleSurface(settings, 0x343434);
-  lv_obj_t* settingsIcon = lv_label_create(settings);
-  lv_label_set_text(settingsIcon, LV_SYMBOL_SETTINGS);
-  lv_obj_set_style_text_color(settingsIcon, lv_color_hex(accent), 0);
-  lv_obj_set_style_text_font(settingsIcon, LV_FONT_DEFAULT, 0);
-  lv_obj_center(settingsIcon);
-  lv_obj_add_event_cb(settings, onSettingsClicked, LV_EVENT_PRESSED, remember(state));
 
   lv_obj_t* bankDown = button(root, "Bank -");
   bankDownButton_ = bankDown;

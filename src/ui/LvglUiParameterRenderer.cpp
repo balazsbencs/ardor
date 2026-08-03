@@ -46,6 +46,7 @@ struct ParameterSliderVisual {
   lv_obj_t* inactiveValue = nullptr;
   lv_obj_t* activeLabel = nullptr;
   lv_obj_t* activeValue = nullptr;
+  lv_obj_t* expressionBadge = nullptr;
 };
 
 struct BypassControlVisual {
@@ -137,7 +138,8 @@ void onParameterGesture(lv_event_t* event)
   }
 }
 
-void refreshParameterSliderVisual(lv_obj_t* slider, const ParameterControl& control, bool focused = true)
+void refreshParameterSliderVisual(lv_obj_t* slider, const ParameterControl& control,
+                                  bool focused = true, bool expressionAssigned = false)
 {
   const auto* visual = static_cast<const ParameterSliderVisual*>(lv_obj_get_user_data(slider));
   if (!visual) {
@@ -159,6 +161,32 @@ void refreshParameterSliderVisual(lv_obj_t* slider, const ParameterControl& cont
   lv_obj_set_style_outline_width(slider, focused ? 2 : 0, 0);
   lv_obj_set_style_outline_color(slider, lv_color_hex(accent), 0);
   lv_obj_set_style_outline_pad(slider, 2, 0);
+  if (visual->expressionBadge) {
+    styleSurface(visual->expressionBadge, expressionAssigned ? 0x25442a : 0x242424);
+    lv_obj_set_style_border_width(visual->expressionBadge, expressionAssigned ? 2 : 1, 0);
+    lv_obj_set_style_border_color(visual->expressionBadge,
+                                  lv_color_hex(expressionAssigned ? accent : 0x555555), 0);
+    lv_obj_set_style_text_color(lv_obj_get_child(visual->expressionBadge, 0),
+                                lv_color_hex(expressionAssigned ? accent : muted), 0);
+  }
+}
+
+bool expressionAssignedTo(const UiState& state, const ParameterControl& control)
+{
+  if (state.paramTarget != UiParamTarget::Block) return false;
+  const auto* block = selectedUiBlock(state);
+  const auto& assignment = state.bank.presets[state.activePreset].expression;
+  return block && assignment && assignment->blockId == block->id
+    && assignment->parameter == control.key;
+}
+
+void onExpressionAssignmentClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  const auto controls = parameterPage(*context->state, context->ui->parameterPage());
+  if (context->index >= controls.size()) return;
+  context->ui->toggleExpressionAssignment(*context->state, controls[context->index]);
+  redraw(context);
 }
 
 void refreshBypassControlVisual(lv_obj_t* control, bool bypassed)
@@ -227,7 +255,9 @@ void onParameterSliderPressed(lv_event_t* event)
   context->ui->setFocusedWidgets(slider);
   context->ui->beginParameterInteraction();
   context->ui->focusParameter(context->filter);
-  refreshParameterSliderVisual(slider, controls[visual->controlIndex], true);
+  refreshParameterSliderVisual(slider, controls[visual->controlIndex], true,
+                               expressionAssignedTo(*context->state,
+                                                    controls[visual->controlIndex]));
   applyParameterSliderPosition(slider, context, input);
 }
 
@@ -322,7 +352,19 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
   lv_obj_set_style_pad_all(activeTextLayer, 0, 0);
   addTextPair(activeTextLayer, 0x102014, &visual->activeLabel, &visual->activeValue);
 
-  refreshParameterSliderVisual(slider, control, focused);
+  if (parameterSupportsExpression(*context->state, control)) {
+    lv_obj_t* exp = button(slider, "EXP");
+    lv_obj_set_size(exp, 54, 30);
+    lv_obj_set_pos(exp, 204, 23);
+    lv_obj_remove_flag(exp, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    lv_obj_set_style_text_font(lv_obj_get_child(exp, 0), &ardor_font_open_sans_regular_18, 0);
+    auto* expContext = context->ui->remember(*context->state, controlIndex);
+    lv_obj_add_event_cb(exp, onExpressionAssignmentClicked, LV_EVENT_CLICKED, expContext);
+    visual->expressionBadge = exp;
+  }
+
+  refreshParameterSliderVisual(slider, control, focused,
+                               expressionAssignedTo(*context->state, control));
   return slider;
 }
 
@@ -516,9 +558,10 @@ void renderBlockActions(lv_obj_t* parent, UiState& state,
 
 namespace parameter_view {
 
-void syncSlider(lv_obj_t* slider, const ParameterControl& control, bool focused)
+void syncSlider(lv_obj_t* slider, const ParameterControl& control, bool focused,
+                bool expressionAssigned)
 {
-  refreshParameterSliderVisual(slider, control, focused);
+  refreshParameterSliderVisual(slider, control, focused, expressionAssigned);
 }
 
 void syncBypass(lv_obj_t* control, bool bypassed)

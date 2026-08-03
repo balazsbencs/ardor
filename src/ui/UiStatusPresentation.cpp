@@ -1,6 +1,7 @@
 #include "ui/UiStatusPresentation.h"
 
 #include <cstdio>
+#include <algorithm>
 
 namespace ardor {
 namespace {
@@ -17,10 +18,10 @@ UiTelemetryPresentation makeTelemetryPresentation(const UiState& state,
   char text[96]{};
   if (!state.clipDebug.enabled) {
     if (state.telemetry.budgetMs <= 0.0) {
-      std::snprintf(text, sizeof(text), "Buffer --%% free");
+      std::snprintf(text, sizeof(text), "BUFFER --%% USED");
     } else {
-      std::snprintf(text, sizeof(text), "Buffer %.0f%% free",
-                    state.telemetry.bufferFreePercent);
+      const auto used = std::clamp(100.0 - state.telemetry.bufferFreePercent, 0.0, 100.0);
+      std::snprintf(text, sizeof(text), "BUFFER %.0f%% USED", used);
     }
   } else if (state.clipDebug.overloaded) {
     std::snprintf(text, sizeof(text), "CLIP  %s  %+.1fdB  %lluf",
