@@ -414,8 +414,9 @@ Its Phase 1 foundation includes the shared UI transport contract, durable
 device identity, versioned wire schemas, and a reconnecting outbound cloud
 agent. Phase 2 adds a SQLite-backed hosted control plane, account recovery,
 device presence, and physically confirmed claiming. Phase 3 adds hosted preset
-list/read/save/apply operations with durable idempotency. Reset and server-side
-TONE3000 integration remain later phases.
+list/read/save/apply operations with durable idempotency. Phase 4 adds bounded
+asset streaming and server-side TONE3000 integration. Phase 5 adds device-local
+accounts, recoverable reset flows, and mDNS discovery.
 
 Run locally without auth:
 
@@ -448,13 +449,30 @@ ARDOR_API_AUTH=off ARDOR_DATA_ROOT=../.. go run ./cmd/ardor-managerd
 ```
 
 Open `http://127.0.0.1:8080` for local development, or the corresponding
-device address on the local network. The generated bundle is embedded in the
+device address on the local network. On supported networks, the daemon also
+advertises `_ardor-manager._tcp` and a stable hostname derived from the device
+identity. With the default port, use
+`http://ardor-<first-8-device-id-characters>.local:8080`; a production image
+that binds the daemon to port 80 can omit the port. Set `ARDOR_MDNS=off` only
+when discovery must be disabled. The generated bundle is embedded in the
 `ardor-managerd` binary so it remains available without internet access.
-TONE3000 browsing remains a desktop-only feature until the hosted manager has
-a dedicated OAuth callback flow.
 
-Auth is enabled by default when no environment override is supplied. Set
-`ARDOR_API_AUTH=on` and provide `ARDOR_API_TOKEN` for a protected device.
+Auth is enabled by default when no environment override is supplied. On first
+start, the pedal displays a short-lived setup code. Open the device-hosted
+manager on a trusted LAN and enter that code to choose one local username and
+password. Passwords are stored as Argon2id hashes; browser sessions use an
+`HttpOnly`, `SameSite=Strict` cookie and mutation requests require a matching
+local Origin and Host. Direct LAN access uses HTTP, so the UI clearly warns
+that it is intended for trusted networks. `ARDOR_API_AUTH=off` is for explicit
+development/testing use and no static API token is required.
+
+The Security & reset settings can sign out, reset only local access, or request
+a factory reset. Resetting local access removes the username, password hash,
+and all sessions while preserving presets, assets, Wi-Fi, and cloud state. A
+factory reset must be approved on the pedal with footswitch 1 (footswitch 4
+cancels); it clears device-local user data while preserving the stable device
+identity and its reset audit record. A durable reset marker makes an interrupted
+factory reset resume deterministically after restart.
 
 The outbound cloud agent is disabled by default. A control-plane deployment can
 enable it with `ARDOR_CLOUD_ENABLED=on` and an HTTPS origin in

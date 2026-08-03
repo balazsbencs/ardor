@@ -1,13 +1,23 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ArdorApiClient } from "../api/client";
 import type { DeviceStatus } from "../api/types";
 import { renderWithProviders } from "../test/render";
 import { ConnectionDialog } from "./ConnectionDialog";
 import { DeviceSessionProvider } from "./deviceSession";
+
+const localAuthMocks = vi.hoisted(() => ({
+  login: vi.fn(),
+  status: vi.fn(),
+}));
+const clientFactoryMock = vi.fn();
+
+vi.mock("../localAuth/api", () => ({
+  localAuthAPI: localAuthMocks,
+}));
 
 const device: DeviceStatus = {
   deviceName: "Ardor Pedal",
@@ -32,7 +42,7 @@ function client(overrides: Partial<ArdorApiClient> = {}): ArdorApiClient {
 function DialogHarness({ apiClient }: { apiClient: ArdorApiClient }) {
   const [open, setOpen] = useState(true);
   return (
-    <DeviceSessionProvider clientFactory={() => apiClient}>
+    <DeviceSessionProvider clientFactory={(config) => { clientFactoryMock(config); return apiClient; }}>
       <ConnectionDialog open={open} onOpenChange={setOpen} />
       <output>{open ? "open" : "closed"}</output>
     </DeviceSessionProvider>
@@ -40,6 +50,12 @@ function DialogHarness({ apiClient }: { apiClient: ArdorApiClient }) {
 }
 
 describe("ConnectionDialog", () => {
+  beforeEach(() => {
+    clientFactoryMock.mockReset();
+    localAuthMocks.login.mockReset();
+    localAuthMocks.status.mockReset().mockResolvedValue({ state: "disabled", insecureTransport: true });
+  });
+
   it("closes after a successful connection", async () => {
     renderWithProviders(<DialogHarness apiClient={client()} />);
 
@@ -57,5 +73,20 @@ describe("ConnectionDialog", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Device unavailable");
     expect(screen.getByText("open")).toBeInTheDocument();
+  });
+
+  it("uses the local session token when authentication is enabled", async () => {
+    const authenticatedClient = client();
+    localAuthMocks.status.mockResolvedValue({ state: "login_required", insecureTransport: true });
+    localAuthMocks.login.mockResolvedValue({ account: { username: "owner" }, sessionToken: "local-session" });
+    renderWithProviders(<DialogHarness apiClient={authenticatedClient} />);
+
+    await userEvent.type(screen.getByLabelText("Local username"), "owner");
+    await userEvent.type(screen.getByLabelText("Local password"), "long-local-password");
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(await screen.findByText("closed")).toBeInTheDocument();
+    expect(localAuthMocks.login).toHaveBeenCalledWith("owner", "long-local-password", "http://127.0.0.1:8080");
+    expect(clientFactoryMock).toHaveBeenCalledWith({ baseUrl: "http://127.0.0.1:8080", token: "local-session" });
   });
 });

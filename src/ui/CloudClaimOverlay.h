@@ -19,11 +19,14 @@ public:
   bool recordPhysicalDecision(bool approved, std::string& error);
 
 private:
-  enum class Mode { Hidden, Code, Pending, Decided };
+  enum class Mode { Hidden, Code, Pending, Decided, LocalSetup, FactoryPending, FactoryDecided };
 
   void showCode(const std::string& flowId, const std::string& code);
   void showPending(const std::string& flowId, const std::string& accountName);
   void showDecided(bool approved);
+  void showLocalSetup(const std::string& setupId, const std::string& code);
+  void showFactoryPending(const std::string& resetId);
+  void showFactoryDecided(bool approved);
   void hide();
   void decide(bool approved);
   static void approveClicked(lv_event_t* event);
@@ -33,6 +36,10 @@ private:
   std::filesystem::path codePath_;
   std::filesystem::path pendingPath_;
   std::filesystem::path decisionPath_;
+  std::filesystem::path localDirectory_;
+  std::filesystem::path localSetupPath_;
+  std::filesystem::path factoryPendingPath_;
+  std::filesystem::path factoryDecisionPath_;
   std::chrono::steady_clock::time_point nextPoll_{};
   Mode mode_ = Mode::Hidden;
   std::string flowId_;

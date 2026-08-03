@@ -261,6 +261,17 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .cloud-auth__switch { display: flex; flex-wrap: wrap; gap: .8rem; padding-top: .35rem; }
 .cloud-auth__switch button { border: 0; padding: 0; color: var(--muted); background: transparent; font-size: .72rem; }
 .cloud-auth__switch button:hover { color: var(--accent); }
+.local-auth__warning { display: flex; align-items: start; gap: .65rem; padding: .75rem; border: 1px solid color-mix(in srgb, #ffb347 42%, var(--line)); border-radius: .6rem; color: #ffb347; background: color-mix(in srgb, #ffb347 8%, var(--surface)); }
+.local-auth__warning span { display: grid; gap: .15rem; }
+.local-auth__warning small { color: var(--muted); font-size: .7rem; line-height: 1.45; }
+.local-code-field { display: flex; align-items: center; gap: .45rem; }
+.local-code-field input { flex: 1; font-family: ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; }
+.security-actions { display: grid; gap: .65rem; }
+.security-actions article { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem; border: 1px solid var(--line); border-radius: .65rem; background: var(--surface); }
+.security-actions article > div { display: flex; align-items: start; gap: .65rem; }
+.security-actions article span { display: grid; gap: .18rem; }
+.security-actions article small { color: var(--muted); font-size: .69rem; line-height: 1.4; }
+.security-actions__factory { border-color: color-mix(in srgb, #ff6b6b 32%, var(--line)) !important; }
 .cloud-message { margin: 0; border-radius: .5rem; padding: .65rem .7rem; font-size: .75rem; line-height: 1.4; }
 .cloud-message--error { color: #ff9d9d; background: color-mix(in srgb, var(--danger) 12%, transparent); }
 .cloud-message--success { color: #c9f686; background: color-mix(in srgb, var(--accent) 10%, transparent); }

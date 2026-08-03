@@ -116,6 +116,7 @@ export class ArdorApiClient implements ManagerTransport {
     try {
       const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
         ...init,
+        credentials: "include",
         headers,
         signal: controller.signal,
       });

@@ -13,12 +13,12 @@ type Config struct {
 	Bind                        string
 	Port                        int
 	AuthEnabled                 bool
-	Token                       string
 	WiFiInterface               string
 	WiFiControlScript           string
 	CloudEnabled                bool
 	CloudURL                    string
 	CloudRemoteMutationsEnabled bool
+	DiscoveryEnabled            bool
 }
 
 func LoadFromEnv() (Config, error) {
@@ -26,7 +26,6 @@ func LoadFromEnv() (Config, error) {
 		DataRoot:          env("ARDOR_DATA_ROOT", "/opt/ardor-pedal"),
 		Bind:              env("ARDOR_API_BIND", "0.0.0.0"),
 		AuthEnabled:       env("ARDOR_API_AUTH", "on") != "off",
-		Token:             os.Getenv("ARDOR_API_TOKEN"),
 		WiFiInterface:     env("ARDOR_WIFI_INTERFACE", "wlan0"),
 		WiFiControlScript: env("ARDOR_WIFI_CONTROL_SCRIPT", "/etc/init.d/S42wifi"),
 		CloudURL:          os.Getenv("ARDOR_CLOUD_URL"),
@@ -41,6 +40,11 @@ func LoadFromEnv() (Config, error) {
 		return Config{}, err
 	}
 	cfg.CloudRemoteMutationsEnabled = remoteMutations
+	discoveryEnabled, err := onOff("ARDOR_MDNS", "on")
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.DiscoveryEnabled = discoveryEnabled
 	if cfg.CloudRemoteMutationsEnabled && !cfg.CloudEnabled {
 		return Config{}, errors.New("ARDOR_CLOUD_REMOTE_MUTATIONS requires ARDOR_CLOUD_ENABLED=on")
 	}
@@ -57,9 +61,6 @@ func LoadFromEnv() (Config, error) {
 		return Config{}, err
 	}
 	cfg.Port = port
-	if cfg.AuthEnabled && cfg.Token == "" {
-		return Config{}, errors.New("ARDOR_API_TOKEN is required when auth is enabled")
-	}
 	return cfg, nil
 }
 

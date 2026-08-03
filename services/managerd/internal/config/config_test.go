@@ -58,9 +58,9 @@ func TestCloudFlagsAreStrict(t *testing.T) {
 func setBaseEnvironment(t *testing.T) {
 	t.Helper()
 	t.Setenv("ARDOR_API_AUTH", "off")
-	t.Setenv("ARDOR_API_TOKEN", "")
 	t.Setenv("ARDOR_API_PORT", "8080")
 	t.Setenv("ARDOR_CLOUD_ENABLED", "")
 	t.Setenv("ARDOR_CLOUD_URL", "")
 	t.Setenv("ARDOR_CLOUD_REMOTE_MUTATIONS", "")
+	t.Setenv("ARDOR_MDNS", "off")
 }

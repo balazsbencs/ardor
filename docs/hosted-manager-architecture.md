@@ -621,6 +621,18 @@ desktop-to-hosted transition.
 Acceptance: a new device cannot be claimed locally by LAN access alone;
 power loss during reset has a deterministic recovery outcome.
 
+Implemented on `feat/device-hosted-manager`: the static local bearer token is
+replaced by a single-device account with Argon2id password hashing, short-lived
+physical setup codes, in-memory opaque sessions, hardened local cookies,
+mutation Origin/Host checks, and bounded authentication failures. The embedded
+manager provides first-time setup, login, sign-out, local-access reset, and a
+factory-reset request that must be approved with a physical footswitch. Reset
+work uses a durable identity-partition marker and resumes after interruption;
+the stable device key and an append-only reset audit survive. The daemon also
+advertises `ardor-<short-device-id>.local` and `_ardor-manager._tcp` over mDNS.
+Cloud membership removal after an offline factory reset still uses the
+root-authenticated reconciliation path described above.
+
 ## Deferred decisions
 
 - Production hosting provider and geographic region.

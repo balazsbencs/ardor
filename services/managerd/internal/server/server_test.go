@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"ardor.local/managerd/internal/config"
 )
@@ -59,7 +61,7 @@ func TestDeviceHostedManagerUI(t *testing.T) {
 }
 
 func TestDeviceAndAuth(t *testing.T) {
-	handler := New(config.Config{DataRoot: t.TempDir(), AuthEnabled: true, Token: "secret"})
+	handler := New(config.Config{DataRoot: t.TempDir(), AuthEnabled: true})
 
 	device := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/device", nil)
@@ -85,6 +87,118 @@ func TestAuthCanBeDisabledForTesting(t *testing.T) {
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/assets/models", nil))
 	if response.Code != http.StatusOK {
 		t.Fatalf("auth-off status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestAuthFailureLimiterExpiresAndClears(t *testing.T) {
+	limiter := newAuthFailureLimiter(2, time.Minute)
+	now := time.Unix(100, 0)
+	limiter.recordFailure("192.0.2.1", now)
+	if limiter.blocked("192.0.2.1", now) {
+		t.Fatal("client was blocked before reaching the failure limit")
+	}
+	limiter.recordFailure("192.0.2.1", now)
+	if !limiter.blocked("192.0.2.1", now) {
+		t.Fatal("client was not blocked after reaching the failure limit")
+	}
+	if limiter.blocked("192.0.2.1", now.Add(time.Minute)) {
+		t.Fatal("expired failure window remained blocked")
+	}
+	limiter.recordFailure("192.0.2.1", now)
+	limiter.clear("192.0.2.1")
+	if limiter.blocked("192.0.2.1", now) {
+		t.Fatal("successful authentication did not clear failure window")
+	}
+}
+
+func TestLocalJSONRejectsTrailingValues(t *testing.T) {
+	request := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{"username":"owner"} {"username":"other"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	var body struct {
+		Username string `json:"username"`
+	}
+	if decodeLocalJSON(response, request, &body, 1024) {
+		t.Fatal("multiple JSON values were accepted")
+	}
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("trailing JSON status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestLocalSetupLoginAndSessionOriginChecks(t *testing.T) {
+	dataRoot := t.TempDir()
+	handler := New(config.Config{DataRoot: dataRoot, AuthEnabled: true})
+
+	status := httptest.NewRecorder()
+	handler.ServeHTTP(status, httptest.NewRequest(http.MethodGet, "/api/auth/status", nil))
+	if status.Code != http.StatusOK || !bytes.Contains(status.Body.Bytes(), []byte(`"state":"setup_required"`)) {
+		t.Fatalf("initial auth status=%d body=%s", status.Code, status.Body.String())
+	}
+	var setup struct {
+		ManualCode string `json:"manualCode"`
+	}
+	setupBytes, err := os.ReadFile(filepath.Join(dataRoot, "runtime", "local-access", "setup.json"))
+	if err != nil || json.Unmarshal(setupBytes, &setup) != nil || setup.ManualCode == "" {
+		t.Fatalf("physical setup code=%q err=%v", setupBytes, err)
+	}
+
+	setupBody := bytes.NewBufferString(fmt.Sprintf(`{"setupCode":%q,"username":"owner","password":"a separate local password"}`, setup.ManualCode))
+	setupRequest := httptest.NewRequest(http.MethodPost, "/api/auth/setup", setupBody)
+	setupRequest.Host = "pedal.local"
+	setupRequest.Header.Set("Content-Type", "application/json")
+	setupRequest.Header.Set("Origin", "http://pedal.local")
+	setupResponse := httptest.NewRecorder()
+	handler.ServeHTTP(setupResponse, setupRequest)
+	if setupResponse.Code != http.StatusCreated || len(setupResponse.Result().Cookies()) != 1 {
+		t.Fatalf("setup status=%d body=%s", setupResponse.Code, setupResponse.Body.String())
+	}
+	cookie := setupResponse.Result().Cookies()[0]
+	if !cookie.HttpOnly || cookie.SameSite != http.SameSiteStrictMode || cookie.Secure {
+		t.Fatalf("local session cookie flags=%+v", cookie)
+	}
+	if bytes.Contains(setupResponse.Body.Bytes(), []byte("sessionToken")) {
+		t.Fatal("browser setup response exposed the local session token")
+	}
+
+	loginRequest := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(`{"username":"owner","password":"a separate local password"}`))
+	loginRequest.Header.Set("Content-Type", "application/json")
+	loginRequest.Header.Set("Origin", "tauri://localhost")
+	loginResponse := httptest.NewRecorder()
+	handler.ServeHTTP(loginResponse, loginRequest)
+	if loginResponse.Code != http.StatusOK || !bytes.Contains(loginResponse.Body.Bytes(), []byte(`"sessionToken"`)) {
+		t.Fatalf("Tauri login status=%d body=%s", loginResponse.Code, loginResponse.Body.String())
+	}
+
+	assetsRequest := httptest.NewRequest(http.MethodGet, "/api/assets/models", nil)
+	assetsRequest.AddCookie(cookie)
+	assetsResponse := httptest.NewRecorder()
+	handler.ServeHTTP(assetsResponse, assetsRequest)
+	if assetsResponse.Code != http.StatusOK {
+		t.Fatalf("session read status=%d body=%s", assetsResponse.Code, assetsResponse.Body.String())
+	}
+
+	mutationRequest := httptest.NewRequest(http.MethodPost, "/api/presets/banks/0/slots/0/apply", nil)
+	mutationRequest.AddCookie(cookie)
+	mutationResponse := httptest.NewRecorder()
+	handler.ServeHTTP(mutationResponse, mutationRequest)
+	if mutationResponse.Code != http.StatusForbidden {
+		t.Fatalf("originless mutation status=%d body=%s", mutationResponse.Code, mutationResponse.Body.String())
+	}
+
+	resetRequest := httptest.NewRequest(http.MethodPost, "/api/auth/reset-local-access", nil)
+	resetRequest.Host = "pedal.local"
+	resetRequest.Header.Set("Origin", "http://pedal.local")
+	resetRequest.AddCookie(cookie)
+	resetResponse := httptest.NewRecorder()
+	handler.ServeHTTP(resetResponse, resetRequest)
+	if resetResponse.Code != http.StatusNoContent {
+		t.Fatalf("local reset status=%d body=%s", resetResponse.Code, resetResponse.Body.String())
+	}
+	afterReset := httptest.NewRecorder()
+	handler.ServeHTTP(afterReset, httptest.NewRequest(http.MethodGet, "/api/auth/status", nil))
+	if !bytes.Contains(afterReset.Body.Bytes(), []byte(`"state":"setup_required"`)) {
+		t.Fatalf("auth state after reset=%s", afterReset.Body.String())
 	}
 }
 
@@ -150,7 +264,7 @@ func TestTauriCORS(t *testing.T) {
 
 func TestAssetUploadPresetSaveAndApply(t *testing.T) {
 	dataRoot := t.TempDir()
-	handler := New(config.Config{DataRoot: dataRoot, AuthEnabled: true, Token: "secret"})
+	handler := New(config.Config{DataRoot: dataRoot, AuthEnabled: false})
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)

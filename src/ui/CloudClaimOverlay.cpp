@@ -37,7 +37,11 @@ CloudClaimOverlay::CloudClaimOverlay(std::filesystem::path dataRoot)
   : directory_(std::move(dataRoot) / "runtime" / "cloud-claim"),
     codePath_(directory_ / "code.json"),
     pendingPath_(directory_ / "pending.json"),
-    decisionPath_(directory_ / "decision.json")
+    decisionPath_(directory_ / "decision.json"),
+    localDirectory_(directory_.parent_path() / "local-access"),
+    localSetupPath_(localDirectory_ / "setup.json"),
+    factoryPendingPath_(localDirectory_ / "factory-reset.json"),
+    factoryDecisionPath_(localDirectory_ / "factory-reset-decision.json")
 {
 }
 
@@ -51,6 +55,24 @@ void CloudClaimOverlay::poll()
   const auto now = std::chrono::steady_clock::now();
   if (now < nextPoll_) return;
   nextPoll_ = now + std::chrono::milliseconds(250);
+
+  const auto factory = readObject(factoryPendingPath_);
+  if (factory.value("version", 0) == 1) {
+    const auto resetId = factory.value("resetId", std::string{});
+    if (!resetId.empty()) {
+      const auto decision = readObject(factoryDecisionPath_);
+      if (decision.value("version", 0) == 1
+          && decision.value("resetId", std::string{}) == resetId) {
+        if (mode_ != Mode::FactoryDecided || flowId_ != resetId) {
+          flowId_ = resetId;
+          showFactoryDecided(decision.value("approved", false));
+        }
+      } else if (mode_ != Mode::FactoryPending || flowId_ != resetId) {
+        showFactoryPending(resetId);
+      }
+      return;
+    }
+  }
 
   const auto pending = readObject(pendingPath_);
   if (pending.value("version", 0) == 1) {
@@ -81,13 +103,23 @@ void CloudClaimOverlay::poll()
     }
   }
 
+  const auto setup = readObject(localSetupPath_);
+  if (setup.value("version", 0) == 1) {
+    const auto setupId = setup.value("setupId", std::string{});
+    const auto manualCode = setup.value("manualCode", std::string{});
+    if (!setupId.empty() && !manualCode.empty()) {
+      if (mode_ != Mode::LocalSetup || flowId_ != setupId) showLocalSetup(setupId, manualCode);
+      return;
+    }
+  }
+
   hide();
 }
 
 bool CloudClaimOverlay::handleFootswitch(int index)
 {
   if (!active()) return false;
-  if (mode_ == Mode::Pending) {
+  if (mode_ == Mode::Pending || mode_ == Mode::FactoryPending) {
     if (index == 0) decide(true);
     else if (index == 3) decide(false);
   }
@@ -96,19 +128,29 @@ bool CloudClaimOverlay::handleFootswitch(int index)
 
 bool CloudClaimOverlay::recordPhysicalDecision(bool approved, std::string& error)
 {
-  const auto pending = readObject(pendingPath_);
-  const auto flowId = pending.value("claimFlowId", std::string{});
+  auto pending = readObject(factoryPendingPath_);
+  auto flowId = pending.value("resetId", std::string{});
+  auto targetDirectory = localDirectory_;
+  auto targetPath = factoryDecisionPath_;
+  auto idField = "resetId";
   if (pending.value("version", 0) != 1 || flowId.empty()) {
-    error = "no valid cloud claim is pending";
+    pending = readObject(pendingPath_);
+    flowId = pending.value("claimFlowId", std::string{});
+    targetDirectory = directory_;
+    targetPath = decisionPath_;
+    idField = "claimFlowId";
+  }
+  if (pending.value("version", 0) != 1 || flowId.empty()) {
+    error = "no valid physical confirmation is pending";
     return false;
   }
   std::error_code ec;
-  std::filesystem::create_directories(directory_, ec);
+  std::filesystem::create_directories(targetDirectory, ec);
   if (ec) {
     error = "could not create cloud claim state directory";
     return false;
   }
-  auto temporary = decisionPath_;
+  auto temporary = targetPath;
   temporary += ".tmp";
   {
     std::ofstream output(temporary, std::ios::trunc);
@@ -117,7 +159,7 @@ bool CloudClaimOverlay::recordPhysicalDecision(bool approved, std::string& error
       return false;
     }
     output << nlohmann::json{
-      {"version", 1}, {"claimFlowId", flowId}, {"approved", approved},
+      {"version", 1}, {idField, flowId}, {"approved", approved},
       {"decidedAt", std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count()},
     }.dump(2) << '\n';
@@ -135,11 +177,11 @@ bool CloudClaimOverlay::recordPhysicalDecision(bool approved, std::string& error
     error = "could not secure cloud claim decision";
     return false;
   }
-  std::filesystem::rename(temporary, decisionPath_, ec);
+  std::filesystem::rename(temporary, targetPath, ec);
   if (ec) {
-    std::filesystem::remove(decisionPath_, ec);
+    std::filesystem::remove(targetPath, ec);
     ec.clear();
-    std::filesystem::rename(temporary, decisionPath_, ec);
+    std::filesystem::rename(temporary, targetPath, ec);
   }
   if (ec) {
     std::filesystem::remove(temporary, ec);
@@ -189,6 +231,53 @@ void CloudClaimOverlay::showPending(const std::string& flowId, const std::string
   lv_obj_add_event_cb(reject_, rejectClicked, LV_EVENT_CLICKED, this);
 }
 
+void CloudClaimOverlay::showLocalSetup(const std::string& setupId, const std::string& code)
+{
+  hide();
+  flowId_ = setupId;
+  mode_ = Mode::LocalSetup;
+  modal_ = lv_obj_create(lv_layer_top());
+  lv_obj_set_size(modal_, 650, 320);
+  lv_obj_center(modal_);
+  title_ = lv_label_create(modal_);
+  lv_label_set_text(title_, "Set up local manager access");
+  lv_obj_align(title_, LV_ALIGN_TOP_MID, 0, 28);
+  detail_ = lv_label_create(modal_);
+  const auto text = std::string("Open this pedal in a trusted local browser.\nEnter this one-time setup code:\n\n") + code;
+  lv_label_set_text(detail_, text.c_str());
+  lv_obj_set_style_text_align(detail_, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_align(detail_, LV_ALIGN_CENTER, 0, 12);
+}
+
+void CloudClaimOverlay::showFactoryPending(const std::string& resetId)
+{
+  hide();
+  flowId_ = resetId;
+  mode_ = Mode::FactoryPending;
+  modal_ = lv_obj_create(lv_layer_top());
+  lv_obj_set_size(modal_, 720, 390);
+  lv_obj_center(modal_);
+  title_ = lv_label_create(modal_);
+  lv_label_set_text(title_, "Confirm factory reset");
+  lv_obj_align(title_, LV_ALIGN_TOP_MID, 0, 28);
+  detail_ = lv_label_create(modal_);
+  lv_label_set_text(detail_, "This removes local access, presets, models, IRs, Wi-Fi, and settings.\nThe stable device identity is preserved.\n\nFootswitch 1: Erase everything    Footswitch 4: Cancel");
+  lv_obj_set_style_text_align(detail_, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_align(detail_, LV_ALIGN_CENTER, 0, -25);
+  approve_ = labeledButton(modal_, "Erase everything", -110);
+  reject_ = labeledButton(modal_, "Cancel", 110);
+  lv_obj_add_event_cb(approve_, approveClicked, LV_EVENT_CLICKED, this);
+  lv_obj_add_event_cb(reject_, rejectClicked, LV_EVENT_CLICKED, this);
+}
+
+void CloudClaimOverlay::showFactoryDecided(bool approved)
+{
+  showDecided(approved);
+  mode_ = Mode::FactoryDecided;
+  lv_label_set_text(title_, approved ? "Factory reset approved" : "Factory reset canceled");
+  lv_label_set_text(detail_, approved ? "Erasing user data. Keep the pedal powered on..." : "Waiting for the reset request to close...");
+}
+
 void CloudClaimOverlay::showDecided(bool approved)
 {
   if (!modal_) {
@@ -221,8 +310,12 @@ void CloudClaimOverlay::hide()
 
 void CloudClaimOverlay::decide(bool approved)
 {
+  const auto factory = mode_ == Mode::FactoryPending;
   std::string error;
-  if (recordPhysicalDecision(approved, error)) showDecided(approved);
+  if (recordPhysicalDecision(approved, error)) {
+    if (factory) showFactoryDecided(approved);
+    else showDecided(approved);
+  }
   else if (detail_) lv_label_set_text(detail_, error.c_str());
 }
 
