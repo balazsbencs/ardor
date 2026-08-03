@@ -1,6 +1,6 @@
 # Hosted manager architecture
 
-Status: proposed implementation contract
+Status: active implementation contract; Phase 1 foundation implemented
 
 This document defines the target architecture for managing an Ardor pedal from
 a verified HTTPS website while preserving local and offline operation. It is a
@@ -258,8 +258,9 @@ Every WebSocket message uses a versioned envelope:
 }
 ```
 
-Responses repeat `messageId` and contain either a typed result or a stable
-error code. Durable operations also carry an idempotency key. The device
+Responses have their own `messageId`, carry the request ID in `correlationId`,
+and contain either a typed result or a stable error code. Durable operations
+also carry an idempotency key. The device
 rejects unknown versions, operations, fields where strict schemas apply,
 expired messages, oversized payloads, and replayed durable commands.
 
@@ -523,6 +524,7 @@ Device API:
 
 ```text
 POST /v1/device/enrollment-challenge
+POST /v1/device/connection-challenge
 POST /v1/device/connection-token
 GET  /v1/device/connect                 (WebSocket upgrade)
 GET  /v1/device/assets/{objectId}       (single-use download)
@@ -544,6 +546,11 @@ themselves.
 
 Acceptance: local/Tauri tests remain green; a simulated device authenticates,
 reconnects, and rejects invalid or replayed envelopes.
+
+Implemented on `feat/device-hosted-manager`: the local HTTP transport remains
+the default; device identity is durable; protocol v1 schemas and fixtures are
+shared under `protocol/cloud/v1`; and the cloud agent is opt-in with all remote
+mutations refused.
 
 ### Phase 2: hosted accounts and claiming
 

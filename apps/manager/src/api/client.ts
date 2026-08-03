@@ -11,6 +11,7 @@ import type {
   WiFiSettingsUpdate,
 } from "./types";
 import { ArdorApiError } from "./errors";
+import type { ManagerTransport } from "./transport";
 
 type FetchImpl = typeof fetch;
 
@@ -21,7 +22,7 @@ export type ApiClientConfig = {
   timeoutMs?: number;
 };
 
-export class ArdorApiClient {
+export class ArdorApiClient implements ManagerTransport {
   private readonly baseUrl: string;
   private readonly token?: string;
   private readonly fetchImpl: FetchImpl;

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ardor.local/protocol/cloud/v1/envelope.schema.json",
+  "title": "Ardor Cloud Envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "messageId", "kind", "operation", "issuedAt", "expiresAt", "payload"],
+  "properties": {
+    "version": { "const": 1 },
+    "messageId": { "type": "string", "format": "uuid" },
+    "correlationId": { "type": "string", "format": "uuid" },
+    "kind": { "enum": ["request", "response", "event"] },
+    "operation": { "enum": ["system.hello", "system.ping", "system.error"] },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "payload": { "type": "object" }
+  }
+}

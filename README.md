@@ -408,9 +408,12 @@ uploads queue a catalog refresh for the pedal UI. Applying a saved slot queues
 a live engine swap, handled by the pedal management loop without restarting the
 audio process; a short muted transition protects the active audio callback.
 
-The proposed hosted HTTPS manager, outbound device connection, claiming,
-authentication, reset, and TONE3000 architecture is specified in
+The hosted HTTPS manager architecture and delivery plan are specified in
 [`docs/hosted-manager-architecture.md`](docs/hosted-manager-architecture.md).
+Its Phase 1 foundation now includes the shared UI transport contract, durable
+device identity, versioned wire schemas, and a reconnecting outbound cloud
+agent. Hosted accounts, claiming, reset, and server-side TONE3000 integration
+remain later phases.
 
 Run locally without auth:
 
@@ -450,6 +453,13 @@ a dedicated OAuth callback flow.
 
 Auth is enabled by default when no environment override is supplied. Set
 `ARDOR_API_AUTH=on` and provide `ARDOR_API_TOKEN` for a protected device.
+
+The outbound cloud agent is disabled by default. A future control-plane
+deployment can enable it with `ARDOR_CLOUD_ENABLED=on` and an HTTPS origin in
+`ARDOR_CLOUD_URL`. Protocol v1 deliberately rejects
+`ARDOR_CLOUD_REMOTE_MUTATIONS=on`; its connection currently supports only
+authentication, presence, and ping handling. The generated Ed25519 identity is
+stored under `<ARDOR_DATA_ROOT>/identity/device.json` with mode `0600`.
 
 ## Desktop Manager
 

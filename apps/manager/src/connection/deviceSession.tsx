@@ -10,6 +10,7 @@ import {
 
 import { ArdorApiClient, type ApiClientConfig } from "../api/client";
 import { ArdorApiError } from "../api/errors";
+import type { ManagerTransport } from "../api/transport";
 import type {
   ApplyPresetResponse,
   Asset,
@@ -31,7 +32,7 @@ export type SessionPreset = {
   exists: boolean;
 };
 
-export type DeviceClientFactory = (config: ApiClientConfig) => ArdorApiClient;
+export type DeviceClientFactory = (config: ApiClientConfig) => ManagerTransport;
 
 type BusyState = { save: boolean; apply: boolean; upload: boolean };
 
@@ -39,7 +40,7 @@ export type DeviceSessionValue = {
   status: SessionStatus;
   baseUrl: string;
   device?: DeviceStatus;
-  client?: ArdorApiClient;
+  client?: ManagerTransport;
   models: Asset[];
   irs: Asset[];
   presets: PresetSlotSummary[];
@@ -83,7 +84,7 @@ function hasPreset(summaries: PresetSlotSummary[], location: PresetLocation): bo
 }
 
 async function loadInitialPreset(
-  client: ArdorApiClient,
+  client: ManagerTransport,
   baseUrl: string,
   device: DeviceStatus,
   summaries: PresetSlotSummary[],
@@ -124,7 +125,7 @@ export function DeviceSessionProvider({
   const [status, setStatus] = useState<SessionStatus>("disconnected");
   const [baseUrl, setBaseUrl] = useState(initialBaseUrl);
   const [device, setDevice] = useState<DeviceStatus>();
-  const [client, setClient] = useState<ArdorApiClient>();
+  const [client, setClient] = useState<ManagerTransport>();
   const [models, setModels] = useState<Asset[]>([]);
   const [irs, setIrs] = useState<Asset[]>([]);
   const [presets, setPresets] = useState<PresetSlotSummary[]>([]);

@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "messageId": "018f7f1a-8b25-7e31-a951-5c43272e1901",
+  "kind": "request",
+  "operation": "system.ping",
+  "issuedAt": "2030-01-01T12:00:00Z",
+  "expiresAt": "2030-01-01T12:00:30Z",
+  "payload": {}
+}

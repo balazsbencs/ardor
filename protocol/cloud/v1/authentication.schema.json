@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ardor.local/protocol/cloud/v1/authentication.schema.json",
+  "title": "Ardor Device Authentication v1",
+  "oneOf": [
+    { "$ref": "#/$defs/challengeRequest" },
+    { "$ref": "#/$defs/challengeResponse" },
+    { "$ref": "#/$defs/tokenRequest" },
+    { "$ref": "#/$defs/tokenResponse" }
+  ],
+  "$defs": {
+    "challengeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "deviceId", "publicKey"],
+      "properties": {
+        "version": { "const": 1 },
+        "deviceId": { "type": "string", "format": "uuid" },
+        "publicKey": { "type": "string", "contentEncoding": "base64" }
+      }
+    },
+    "challengeResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "challengeId", "nonce", "expiresAt"],
+      "properties": {
+        "version": { "const": 1 },
+        "challengeId": { "type": "string", "format": "uuid" },
+        "nonce": { "type": "string", "contentEncoding": "base64" },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "tokenRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "deviceId", "challengeId", "timestamp", "protocolVersion", "signature", "claimEpoch"],
+      "properties": {
+        "version": { "const": 1 },
+        "deviceId": { "type": "string", "format": "uuid" },
+        "challengeId": { "type": "string", "format": "uuid" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "protocolVersion": { "const": 1 },
+        "signature": { "type": "string", "contentEncoding": "base64" },
+        "claimEpoch": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "tokenResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "token", "websocketUrl", "expiresAt"],
+      "properties": {
+        "version": { "const": 1 },
+        "token": { "type": "string", "minLength": 1 },
+        "websocketUrl": { "type": "string", "format": "uri" },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

@@ -2,18 +2,23 @@ package config
 
 import (
 	"errors"
+	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 )
 
 type Config struct {
-	DataRoot          string
-	Bind              string
-	Port              int
-	AuthEnabled       bool
-	Token             string
-	WiFiInterface     string
-	WiFiControlScript string
+	DataRoot                    string
+	Bind                        string
+	Port                        int
+	AuthEnabled                 bool
+	Token                       string
+	WiFiInterface               string
+	WiFiControlScript           string
+	CloudEnabled                bool
+	CloudURL                    string
+	CloudRemoteMutationsEnabled bool
 }
 
 func LoadFromEnv() (Config, error) {
@@ -24,6 +29,25 @@ func LoadFromEnv() (Config, error) {
 		Token:             os.Getenv("ARDOR_API_TOKEN"),
 		WiFiInterface:     env("ARDOR_WIFI_INTERFACE", "wlan0"),
 		WiFiControlScript: env("ARDOR_WIFI_CONTROL_SCRIPT", "/etc/init.d/S42wifi"),
+		CloudURL:          os.Getenv("ARDOR_CLOUD_URL"),
+	}
+	cloudEnabled, err := onOff("ARDOR_CLOUD_ENABLED", "off")
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.CloudEnabled = cloudEnabled
+	remoteMutations, err := onOff("ARDOR_CLOUD_REMOTE_MUTATIONS", "off")
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.CloudRemoteMutationsEnabled = remoteMutations
+	if cfg.CloudRemoteMutationsEnabled {
+		return Config{}, errors.New("ARDOR_CLOUD_REMOTE_MUTATIONS cannot be enabled in cloud protocol v1")
+	}
+	if cfg.CloudEnabled {
+		if err := validateCloudURL(cfg.CloudURL); err != nil {
+			return Config{}, err
+		}
 	}
 	port, err := strconv.Atoi(env("ARDOR_API_PORT", "8080"))
 	if err != nil || port < 1 || port > 65535 {
@@ -37,6 +61,28 @@ func LoadFromEnv() (Config, error) {
 		return Config{}, errors.New("ARDOR_API_TOKEN is required when auth is enabled")
 	}
 	return cfg, nil
+}
+
+func onOff(key, fallback string) (bool, error) {
+	switch env(key, fallback) {
+	case "on":
+		return true, nil
+	case "off":
+		return false, nil
+	default:
+		return false, fmt.Errorf("%s must be on or off", key)
+	}
+}
+
+func validateCloudURL(raw string) error {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("ARDOR_CLOUD_URL is invalid: %w", err)
+	}
+	if parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Path != "" && parsed.Path != "/") {
+		return errors.New("ARDOR_CLOUD_URL must be an HTTPS origin without credentials, path, query, or fragment")
+	}
+	return nil
 }
 
 func env(key string, fallback string) string {
