@@ -1,5 +1,6 @@
 const PKCE_VERIFIER_KEY = "ardor-manager.tone3000.pkce-verifier";
 const OAUTH_STATE_KEY = "ardor-manager.tone3000.oauth-state";
+const ARCHITECTURE_KEY = "ardor-manager.tone3000.architecture";
 
 export const TONE3000_REDIRECT_URI = "http://localhost:43821/tone3000/callback";
 
@@ -40,7 +41,7 @@ export type Tone3000Model = {
   architecture_version: "1" | "2" | "custom" | null;
 };
 
-type Tone3000Tokens = {
+export type Tone3000Tokens = {
   accessToken: string;
   refreshToken: string;
   expiresAt: number;
@@ -49,7 +50,7 @@ type Tone3000Tokens = {
 export type Tone3000Selection = {
   tone: Tone3000Tone;
   models: Tone3000Model[];
-  tokens: Tone3000Tokens;
+  tokens?: Tone3000Tokens;
 };
 
 type TokenResponse = {
@@ -93,7 +94,7 @@ export function tone3000Configured(): boolean {
   return TONE3000_CLIENT_ID.length > 0;
 }
 
-export async function createTone3000SelectUrl(): Promise<string> {
+export async function createTone3000SelectUrl(architecture: "legacy" | "2" = "legacy"): Promise<string> {
   if (!tone3000Configured()) throw new Error("Tone3000 is not configured for this build.");
 
   const verifier = randomBase64Url(32);
@@ -103,6 +104,7 @@ export async function createTone3000SelectUrl(): Promise<string> {
   ]);
   sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier);
   sessionStorage.setItem(OAUTH_STATE_KEY, state);
+  sessionStorage.setItem(ARCHITECTURE_KEY, architecture);
 
   const url = new URL(`${TONE3000_API_URL}/oauth/authorize`);
   url.search = new URLSearchParams({
@@ -116,6 +118,7 @@ export async function createTone3000SelectUrl(): Promise<string> {
     format: "nam",
     menubar: "true",
   }).toString();
+  if (architecture === "2") url.searchParams.set("architecture_version", "2");
   return url.toString();
 }
 
@@ -128,8 +131,10 @@ export async function completeTone3000Selection(callbackUrl: string): Promise<To
 
   const verifier = sessionStorage.getItem(PKCE_VERIFIER_KEY);
   const expectedState = sessionStorage.getItem(OAUTH_STATE_KEY);
+  const architecture = sessionStorage.getItem(ARCHITECTURE_KEY) === "2" ? "2" : "legacy";
   sessionStorage.removeItem(PKCE_VERIFIER_KEY);
   sessionStorage.removeItem(OAUTH_STATE_KEY);
+  sessionStorage.removeItem(ARCHITECTURE_KEY);
 
   if (!expectedState || callback.searchParams.get("state") !== expectedState) {
     throw new Error("Tone3000 sign-in could not be verified. Please try again.");
@@ -166,13 +171,16 @@ export async function completeTone3000Selection(callbackUrl: string): Promise<To
   const [tone, modelResponse] = await Promise.all([
     authenticatedJson<Tone3000Tone>(`/tones/${encodeURIComponent(toneId)}`, tokens.accessToken),
     authenticatedJson<PaginatedResponse<Tone3000Model>>(
-      `/models?tone_id=${encodeURIComponent(toneId)}&page_size=300`,
+      `/models?tone_id=${encodeURIComponent(toneId)}&page_size=300${architecture === "2" ? "&architecture_version=2" : ""}`,
       tokens.accessToken,
     ),
   ]);
   if (tone.format !== "nam") throw new Error("The selected Tone3000 tone is not a NAM tone.");
-  if (modelResponse.data.length === 0) throw new Error("This Tone3000 tone has no downloadable NAM models.");
-  return { tone, models: modelResponse.data, tokens };
+  const models = modelResponse.data.filter((model) => architecture === "2"
+    ? model.architecture_version === "2"
+    : model.architecture_version !== "2");
+  if (models.length === 0) throw new Error("This Tone3000 tone has no compatible NAM models.");
+  return { tone, models, tokens };
 }
 
 function deviceFilename(selection: Tone3000Selection, model: Tone3000Model): string {
@@ -189,6 +197,7 @@ export async function downloadTone3000Model(
   selection: Tone3000Selection,
   model: Tone3000Model,
 ): Promise<File> {
+  if (!selection.tokens) throw new Error("TONE3000 download credentials are not available.");
   const modelUrl = new URL(model.model_url);
   const apiUrl = new URL(TONE3000_API_URL);
   if (modelUrl.origin !== apiUrl.origin) {

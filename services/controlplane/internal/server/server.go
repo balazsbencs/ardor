@@ -24,9 +24,12 @@ const (
 )
 
 type Config struct {
-	PublicOrigin  string
-	SecureCookies bool
-	Logger        *log.Logger
+	PublicOrigin     string
+	SecureCookies    bool
+	Logger           *log.Logger
+	Tone3000ClientID string
+	Tone3000BaseURL  string
+	Tone3000Client   *http.Client
 }
 
 type Server struct {
@@ -36,6 +39,7 @@ type Server struct {
 	mux        *http.ServeMux
 	dummyHash  string
 	limiter    *attemptLimiter
+	tone3000   *tone3000Integration
 }
 
 type contextKey string
@@ -57,7 +61,11 @@ func New(config Config, repository store.Repository) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	server := &Server{config: config, repository: repository, hub: newDeviceHub(), mux: http.NewServeMux(), dummyHash: dummyHash, limiter: newAttemptLimiter()}
+	tone3000, err := newTone3000Integration(config)
+	if err != nil {
+		return nil, err
+	}
+	server := &Server{config: config, repository: repository, hub: newDeviceHub(), mux: http.NewServeMux(), dummyHash: dummyHash, limiter: newAttemptLimiter(), tone3000: tone3000}
 	server.routes()
 	return server, nil
 }
@@ -90,6 +98,14 @@ func (server *Server) routes() {
 	server.mux.Handle("GET /v1/devices/{deviceId}/presets/banks/{bank}/slots/{slot}", server.requireAccount(http.HandlerFunc(server.getDevicePreset)))
 	server.mux.Handle("PUT /v1/devices/{deviceId}/presets/banks/{bank}/slots/{slot}", server.requireAccount(http.HandlerFunc(server.saveDevicePreset)))
 	server.mux.Handle("POST /v1/devices/{deviceId}/presets/banks/{bank}/slots/{slot}/apply", server.requireAccount(http.HandlerFunc(server.applyDevicePreset)))
+	server.mux.Handle("GET /v1/devices/{deviceId}/assets/{kind}", server.requireAccount(http.HandlerFunc(server.listDeviceAssets)))
+	server.mux.Handle("POST /v1/devices/{deviceId}/assets/{kind}", server.requireAccount(http.HandlerFunc(server.uploadDeviceAsset)))
+	server.mux.Handle("DELETE /v1/devices/{deviceId}/assets/{kind}/{assetId}", server.requireAccount(http.HandlerFunc(server.deleteDeviceAsset)))
+	server.mux.Handle("PATCH /v1/devices/{deviceId}/assets/{kind}/{assetId}", server.requireAccount(http.HandlerFunc(server.renameDeviceAsset)))
+	server.mux.Handle("POST /v1/integrations/tone3000/selections", server.requireAccount(http.HandlerFunc(server.startTone3000Selection)))
+	server.mux.Handle("GET /v1/integrations/tone3000/selections/{flowId}", server.requireAccount(http.HandlerFunc(server.getTone3000Selection)))
+	server.mux.Handle("POST /v1/integrations/tone3000/selections/{flowId}/install", server.requireAccount(http.HandlerFunc(server.installTone3000Selection)))
+	server.mux.HandleFunc("GET /v1/integrations/tone3000/callback", server.completeTone3000Selection)
 	server.mux.Handle("POST /v1/device-claims", server.requireAccount(http.HandlerFunc(server.beginClaim)))
 	server.mux.Handle("GET /v1/device-claims/{claimId}", server.requireAccount(http.HandlerFunc(server.getClaim)))
 

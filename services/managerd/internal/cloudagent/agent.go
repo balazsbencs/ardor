@@ -52,6 +52,7 @@ type Agent struct {
 	baseURL  *url.URL
 	identity *deviceidentity.Identity
 	replays  *cloudprotocol.ReplayGuard
+	assets   *assetTransferRegistry
 }
 
 type challengeRequest struct {
@@ -122,6 +123,7 @@ func New(config Config, identity *deviceidentity.Identity) (*Agent, error) {
 		baseURL:  baseURL,
 		identity: identity,
 		replays:  cloudprotocol.NewReplayGuard(1024),
+		assets:   newAssetTransferRegistry(config.DataRoot),
 	}, nil
 }
 
@@ -393,6 +395,14 @@ func (agent *Agent) handleCloudEnvelope(ctx context.Context, connection *websock
 			return errors.New("preset operation must be a request")
 		}
 		return agent.handlePresetOperation(ctx, connection, envelope)
+	case cloudprotocol.OperationAssetList, cloudprotocol.OperationAssetDelete,
+		cloudprotocol.OperationAssetRename, cloudprotocol.OperationAssetBegin,
+		cloudprotocol.OperationAssetChunk, cloudprotocol.OperationAssetCommit,
+		cloudprotocol.OperationAssetAbort:
+		if envelope.Kind != cloudprotocol.KindRequest {
+			return errors.New("asset operation must be a request")
+		}
+		return agent.handleAssetOperation(ctx, connection, envelope)
 	default:
 		return fmt.Errorf("inbound cloud operation %s/%s is not enabled", envelope.Kind, envelope.Operation)
 	}

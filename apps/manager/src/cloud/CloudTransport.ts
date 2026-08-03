@@ -19,7 +19,7 @@ export class CloudTransport implements ManagerTransport {
       deviceName: "Ardor Pedal", apiVersion: "0.1.0", authEnabled: true, dataRootWritable: true,
       maxBanks: 100, slotsPerBank: 4, supportedPresetVersion: 2,
       capabilities: {
-        modelUpload: false, irUpload: false, assetRename: false,
+        modelUpload: this.remoteMutationsEnabled, irUpload: this.remoteMutationsEnabled, assetRename: this.remoteMutationsEnabled,
         presetRead: true, presetWrite: this.remoteMutationsEnabled, presetApply: this.remoteMutationsEnabled, wifiSettings: false,
       },
     });
@@ -27,10 +27,27 @@ export class CloudTransport implements ManagerTransport {
 
   getWiFiSettings(): Promise<WiFiSettings> { return this.unsupported("Wi-Fi settings"); }
   updateWiFiSettings(_settings: WiFiSettingsUpdate): Promise<WiFiSettings> { return this.unsupported("Wi-Fi settings"); }
-  listAssets(_kind: AssetKind): Promise<Asset[]> { return Promise.resolve([]); }
-  uploadAsset(_kind: AssetKind, _file: File, _overwrite: boolean): Promise<Asset> { return this.unsupported("Asset upload"); }
-  deleteAsset(_kind: AssetKind, _assetId: string): Promise<void> { return this.unsupported("Asset deletion"); }
-  renameAsset(_kind: AssetKind, _assetId: string, _filename: string): Promise<RenameAssetResponse> { return this.unsupported("Asset rename"); }
+  async listAssets(kind: AssetKind): Promise<Asset[]> {
+    const response = await this.request<{ assets: Asset[] }>(this.assetPath(kind));
+    return response.assets;
+  }
+
+  uploadAsset(kind: AssetKind, file: File, overwrite: boolean): Promise<Asset> {
+    const body = new FormData();
+    body.set("file", file);
+    body.set("overwrite", overwrite ? "true" : "false");
+    return this.request<Asset>(this.assetPath(kind), { method: "POST", body });
+  }
+
+  async deleteAsset(kind: AssetKind, assetId: string): Promise<void> {
+    await this.request<unknown>(`${this.assetPath(kind)}/${encodeURIComponent(assetId)}`, { method: "DELETE" });
+  }
+
+  renameAsset(kind: AssetKind, assetId: string, filename: string): Promise<RenameAssetResponse> {
+    return this.request<RenameAssetResponse>(`${this.assetPath(kind)}/${encodeURIComponent(assetId)}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ filename }),
+    });
+  }
 
   async listPresets(): Promise<PresetSlotSummary[]> {
     const response = await this.request<{ presets: PresetSlotSummary[] }>(this.presetPath());
@@ -55,10 +72,11 @@ export class CloudTransport implements ManagerTransport {
   }
 
   private presetPath(): string { return `/v1/devices/${encodeURIComponent(this.deviceId)}/presets`; }
+  private assetPath(kind: AssetKind): string { return `/v1/devices/${encodeURIComponent(this.deviceId)}/assets/${kind}`; }
   private slotPath(bank: number, slot: number): string { return `${this.presetPath()}/banks/${bank}/slots/${slot}`; }
 
   private unsupported<T>(feature: string): Promise<T> {
-    return Promise.reject(new ArdorApiError(501, "cloud_feature_unavailable", `${feature} is not available in the hosted preset phase`));
+    return Promise.reject(new ArdorApiError(501, "cloud_feature_unavailable", `${feature} is not available through the hosted manager`));
   }
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {

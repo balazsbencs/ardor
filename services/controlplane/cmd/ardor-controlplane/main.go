@@ -35,7 +35,10 @@ func main() {
 	if err := repository.Migrate(context.Background()); err != nil {
 		log.Fatal(err)
 	}
-	controlPlane, err := controlserver.New(controlserver.Config{PublicOrigin: publicOrigin, SecureCookies: !insecureDevelopment}, repository)
+	controlPlane, err := controlserver.New(controlserver.Config{
+		PublicOrigin: publicOrigin, SecureCookies: !insecureDevelopment,
+		Tone3000ClientID: os.Getenv("TONE3000_CLIENT_ID"), Tone3000BaseURL: os.Getenv("TONE3000_BASE_URL"),
+	}, repository)
 	if err != nil {
 		log.Fatal(err)
 	}

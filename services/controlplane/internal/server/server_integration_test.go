@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -116,6 +117,43 @@ func TestAccountIsolationAndPhysicallyConfirmedClaim(t *testing.T) {
 	response = awaitHTTPResponse(t, listResponse)
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("preset list status = %d, body=%s", response.StatusCode, readBody(response))
+	}
+	response.Body.Close()
+
+	assetListResponse := startJSONRequest(t, http.MethodGet, origin+"/v1/devices/"+deviceID+"/assets/models", "", aliceCookie, nil, "")
+	assetListRequest := readTestEnvelope(t, connection)
+	if assetListRequest.Operation != cloudprotocol.OperationAssetList {
+		t.Fatalf("relayed asset list operation = %s", assetListRequest.Operation)
+	}
+	writeOperationResult(t, connection, assetListRequest, map[string]any{"assets": []any{}})
+	response = awaitHTTPResponse(t, assetListResponse)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("asset list status = %d, body=%s", response.StatusCode, readBody(response))
+	}
+	response.Body.Close()
+
+	modelBytes := []byte(`{"version":"0.5.0","weights":[1]}`)
+	uploadResponse := startMultipartRequest(t, origin+"/v1/devices/"+deviceID+"/assets/models", origin, aliceCookie, "Cloud Amp.nam", modelBytes)
+	begin := readTestEnvelope(t, connection)
+	if begin.Operation != cloudprotocol.OperationAssetBegin {
+		t.Fatalf("first upload operation = %s", begin.Operation)
+	}
+	writeOperationResult(t, connection, begin, map[string]any{"nextOffset": 0})
+	chunk := readTestEnvelope(t, connection)
+	if chunk.Operation != cloudprotocol.OperationAssetChunk {
+		t.Fatalf("second upload operation = %s", chunk.Operation)
+	}
+	writeOperationResult(t, connection, chunk, map[string]any{"nextOffset": len(modelBytes)})
+	commit := readTestEnvelope(t, connection)
+	if commit.Operation != cloudprotocol.OperationAssetCommit {
+		t.Fatalf("final upload operation = %s", commit.Operation)
+	}
+	writeOperationResult(t, connection, commit, map[string]any{
+		"id": "Cloud_Amp.nam", "kind": "model", "filename": "Cloud_Amp.nam", "path": "models/Cloud_Amp.nam", "sizeBytes": len(modelBytes),
+	})
+	response = awaitHTTPResponse(t, uploadResponse)
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("asset upload status = %d, body=%s", response.StatusCode, readBody(response))
 	}
 	response.Body.Close()
 
@@ -351,6 +389,35 @@ func startJSONRequest(t *testing.T, method, target, origin string, cookie *http.
 	if idempotencyKey != "" {
 		request.Header.Set("Idempotency-Key", idempotencyKey)
 	}
+	result := make(chan pendingHTTPResponse, 1)
+	go func() {
+		response, err := http.DefaultClient.Do(request)
+		result <- pendingHTTPResponse{response: response, err: err}
+	}()
+	return result
+}
+
+func startMultipartRequest(t *testing.T, target, origin string, cookie *http.Cookie, filename string, data []byte) <-chan pendingHTTPResponse {
+	t.Helper()
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	part, err := writer.CreateFormFile("file", filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := part.Write(data); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	request, err := http.NewRequest(http.MethodPost, target, &body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	request.Header.Set("Origin", origin)
+	request.AddCookie(cookie)
 	result := make(chan pendingHTTPResponse, 1)
 	go func() {
 		response, err := http.DefaultClient.Do(request)

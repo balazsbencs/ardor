@@ -191,7 +191,7 @@ func (server *Server) deviceConnect(writer http.ResponseWriter, request *http.Re
 			_ = server.repository.SetDevicePresence(ctx, token.DeviceID, time.Now().UTC())
 			continue
 		}
-		if envelope.Kind == cloudprotocol.KindResponse && isPresetOperation(envelope.Operation) && socket.deliver(envelope) {
+		if envelope.Kind == cloudprotocol.KindResponse && isRelayedOperation(envelope.Operation) && socket.deliver(envelope) {
 			_ = server.repository.SetDevicePresence(ctx, token.DeviceID, time.Now().UTC())
 			continue
 		}
@@ -224,9 +224,11 @@ func (server *Server) readDeviceHello(ctx context.Context, connection *websocket
 	return payload.RemoteMutationsEnabled, nil
 }
 
-func isPresetOperation(operation string) bool {
+func isRelayedOperation(operation string) bool {
 	switch operation {
-	case cloudprotocol.OperationPresetList, cloudprotocol.OperationPresetRead, cloudprotocol.OperationPresetSave, cloudprotocol.OperationPresetApply:
+	case cloudprotocol.OperationPresetList, cloudprotocol.OperationPresetRead, cloudprotocol.OperationPresetSave, cloudprotocol.OperationPresetApply,
+		cloudprotocol.OperationAssetList, cloudprotocol.OperationAssetDelete, cloudprotocol.OperationAssetRename,
+		cloudprotocol.OperationAssetBegin, cloudprotocol.OperationAssetChunk, cloudprotocol.OperationAssetCommit, cloudprotocol.OperationAssetAbort:
 		return true
 	default:
 		return false

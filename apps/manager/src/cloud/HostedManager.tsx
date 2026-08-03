@@ -207,7 +207,7 @@ export function HostedManager() {
 
   if (checking) return <div className="app-shell cloud-loading"><span className="settings-spinner" /><span>Loading Ardor Manager…</span></div>;
   if (account && selectedDevice) {
-    return <DeviceSessionProvider autoConnect connectionId={`cloud:${selectedDevice.id}`} clientFactory={() => new CloudTransport(selectedDevice.id, selectedDevice.remoteMutationsEnabled)}><AppShell onCloudDevices={() => setSelectedDevice(null)} /></DeviceSessionProvider>;
+    return <DeviceSessionProvider autoConnect connectionId={`cloud:${selectedDevice.id}`} clientFactory={() => new CloudTransport(selectedDevice.id, selectedDevice.remoteMutationsEnabled)}><AppShell onCloudDevices={() => setSelectedDevice(null)} tone3000DeviceId={selectedDevice.id} /></DeviceSessionProvider>;
   }
   return (
     <div className="app-shell" data-theme="dark">

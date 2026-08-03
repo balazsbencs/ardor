@@ -16,6 +16,9 @@ import (
 const (
 	Version             = 1
 	MaxMessageBytes     = 1024 * 1024
+	AssetChunkBytes     = 64 * 1024
+	MaxModelAssetBytes  = 32 * 1024 * 1024
+	MaxIRAssetBytes     = 16 * 1024 * 1024
 	MaxEnvelopeLifetime = time.Minute
 	MaxClockSkew        = 30 * time.Second
 )
@@ -36,6 +39,13 @@ const (
 	OperationPresetRead    = "preset.read"
 	OperationPresetSave    = "preset.save"
 	OperationPresetApply   = "preset.apply"
+	OperationAssetList     = "asset.list"
+	OperationAssetDelete   = "asset.delete"
+	OperationAssetRename   = "asset.rename"
+	OperationAssetBegin    = "asset.install.begin"
+	OperationAssetChunk    = "asset.install.chunk"
+	OperationAssetCommit   = "asset.install.commit"
+	OperationAssetAbort    = "asset.install.abort"
 )
 
 var ErrReplay = errors.New("cloud message was already processed")
@@ -87,7 +97,9 @@ func (envelope Envelope) Validate(now time.Time) error {
 	}
 	switch envelope.Operation {
 	case OperationHello, OperationPing, OperationError, OperationClaimCode, OperationClaimPending, OperationClaimDecision, OperationClaimEpoch,
-		OperationPresetList, OperationPresetRead, OperationPresetSave, OperationPresetApply:
+		OperationPresetList, OperationPresetRead, OperationPresetSave, OperationPresetApply,
+		OperationAssetList, OperationAssetDelete, OperationAssetRename,
+		OperationAssetBegin, OperationAssetChunk, OperationAssetCommit, OperationAssetAbort:
 	default:
 		return fmt.Errorf("cloud operation %q is not enabled", envelope.Operation)
 	}

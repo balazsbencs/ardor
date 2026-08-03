@@ -19,4 +19,19 @@ describe("CloudTransport", () => {
     expect(init.method).toBe("POST");
     expect(new Headers(init.headers).get("Idempotency-Key")).toMatch(/^[0-9a-f-]{36}$/);
   });
+
+  it("routes hosted asset reads and multipart uploads through the device", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ assets: [] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "amp.nam", kind: "model", filename: "amp.nam", path: "models/amp.nam", sizeBytes: 2 }), { status: 201 }));
+    const transport = new CloudTransport("device-1", true, fetchMock as typeof fetch);
+
+    await expect(transport.listAssets("models")).resolves.toEqual([]);
+    await transport.uploadAsset("models", new File(["{}"], "amp.nam"), false);
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/v1/devices/device-1/assets/models");
+    const upload = fetchMock.mock.calls[1][1] as RequestInit;
+    expect(upload.method).toBe("POST");
+    expect(upload.body).toBeInstanceOf(FormData);
+  });
 });

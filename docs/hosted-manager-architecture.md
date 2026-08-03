@@ -309,8 +309,7 @@ Minimum durable control-plane tables:
 | `devices` | Device ID, public key, claim epoch, status metadata |
 | `device_memberships` | Account/device ownership and future roles |
 | `claim_flows` | Expiring one-time claim challenges |
-| `jobs` | Durable operation state and idempotency |
-| `oauth_connections` | Encrypted TONE3000 tokens and metadata |
+| `device_operations` | Durable mutation idempotency receipts |
 | `audit_events` | Security and device-management events |
 
 The cloud does not initially store presets, NAM models, IRs, Wi-Fi passwords,
@@ -319,21 +318,19 @@ short-lived cache, not the source of truth.
 
 ## Asset transfer
 
-Large uploads use a durable job rather than the command socket:
+The initial single-device deployment streams bounded chunks over the existing
+authenticated device socket. The control plane accepts a size-limited upload,
+starts an opaque transfer, and relays 64 KiB chunks followed by the expected
+SHA-256. The device writes only to a private staging directory. It verifies the
+declared size, digest, extension, and basic NAM JSON or RIFF/WAVE structure,
+then syncs and publishes through the existing atomic asset store. Failed or
+interrupted transfers never enter the live asset directories and can be safely
+retried; stale parts are removed automatically.
 
-1. Browser requests an upload job for a device and asset kind.
-2. Control plane returns a short-lived object-storage upload URL.
-3. Browser uploads with a fixed maximum size and content length.
-4. Control plane marks the object ready and dispatches `asset.install`.
-5. Device downloads only from the configured Ardor asset origin.
-6. Device streams to a bounded temporary file, validates type and filename,
-   syncs, and atomically renames it into place.
-7. Device queues the existing asset reload and reports completion.
-8. Temporary cloud storage expires automatically.
-
-The device does not accept a client-provided URL. It receives an opaque object
-identifier and constructs or obtains a single-use Ardor download URL. Redirects
-to other origins are rejected to prevent server-side request forgery.
+This direct path avoids object storage and a general job system while Ardor is
+a single-user, single-device service. The device never accepts a URL, so the
+transfer cannot become an SSRF path. A storage-backed transport remains an
+option if deployment scale later requires it.
 
 Initial size limits must be defined separately for NAM and IR assets and
 enforced by browser, control plane, object storage, and device.
@@ -353,12 +350,13 @@ https://<host>/v1/integrations/tone3000/callback
 3. Browser is redirected to TONE3000 with `prompt=select_tone` and
    `format=nam`.
 4. Callback validates and consumes state before exchanging the code.
-5. Access and refresh tokens are encrypted at rest and never returned to the
-   browser or pedal.
+5. The access token remains only in control-plane memory for the 15-minute
+   selection flow. Refresh tokens are ignored, so OAuth credentials are never
+   persisted or returned to the browser or pedal.
 6. Control plane fetches tone and model metadata and displays it in the hosted
    manager.
-7. User chooses a model. The control plane obtains the model using the user's
-   OAuth access and stages it as a normal Ardor asset job.
+7. User chooses a model. The control plane obtains it using the in-memory OAuth
+   access and streams it through the normal bounded asset transfer.
 8. Attribution, tone ID, model ID, architecture, license, and creator are saved
    as source metadata with the installed asset.
 
@@ -368,8 +366,9 @@ browse A1/Custom or A2 before starting Select. The model is still validated by
 the device before installation.
 
 No TONE3000 secret key is embedded in the open-source UI, desktop binary, or
-firmware. Account unlink and access reset delete stored OAuth tokens. The
-integration must remain within TONE3000's applicable API and attribution terms.
+firmware. Completed, expired, and failed hosted selection flows discard their
+OAuth material. The integration must remain within TONE3000's applicable API
+and attribution terms.
 
 ## Local and offline authentication
 
@@ -604,6 +603,15 @@ remain independent when the cloud connection is unavailable.
 Acceptance: tokens remain server-side; interrupted downloads are recoverable;
 the device rejects invalid content without disturbing active audio.
 
+Implemented on `feat/device-hosted-manager`: hosted model and IR list/upload,
+rename, and delete operations use the authenticated socket with 64 KiB chunks,
+32 MiB NAM and 16 MiB IR bounds, staged validation, SHA-256 verification, and
+atomic publication. The fixed hosted TONE3000 PKCE callback keeps its short-lived
+access token only in control-plane memory, offers A1/Custom versus A2 selection,
+streams the chosen model directly, and records source attribution beside the
+device asset. The Tauri loopback integration remains available during the
+desktop-to-hosted transition.
+
 ### Phase 5: local authentication and reset
 
 - Replace static bearer configuration with local account setup and sessions.
@@ -619,8 +627,8 @@ power loss during reset has a deterministic recovery outcome.
 - Email recovery and passkeys.
 - Multi-owner or guest roles.
 - Cloud preset backup and conflict resolution.
-- Whether temporary TONE3000 model bytes use object storage or a streaming
-  proxy at initial scale.
+- When scale warrants replacing direct bounded asset streaming with object
+  storage and durable transfer jobs.
 - Hardware-backed device keys for a future production PCB.
 - Firmware-update signing and OTA delivery.
 

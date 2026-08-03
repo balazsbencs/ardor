@@ -193,16 +193,20 @@ func relayHTTPResponse(result json.RawMessage, failure *deviceOperationError, su
 	}
 	status := http.StatusBadGateway
 	switch failure.Code {
-	case "preset_not_found", "device_not_found":
+	case "preset_not_found", "device_not_found", "asset_not_found":
 		status = http.StatusNotFound
-	case "preset_save_failed", "invalid_operation", "invalid_preset_slot":
+	case "preset_save_failed", "invalid_operation", "invalid_preset_slot", "invalid_asset_request",
+		"invalid_asset_kind", "invalid_asset", "invalid_asset_chunk", "invalid_asset_offset",
+		"asset_integrity_failed", "asset_size_changed", "asset_rename_failed", "asset_delete_failed":
 		status = http.StatusBadRequest
-	case "remote_mutations_disabled":
+	case "remote_mutations_disabled", "asset_exists", "transfer_exists":
 		status = http.StatusConflict
 	case "device_offline", "device_unavailable", "runtime_command_failed":
 		status = http.StatusServiceUnavailable
 	case "device_timeout":
 		status = http.StatusGatewayTimeout
+	case "asset_too_large":
+		status = http.StatusRequestEntityTooLarge
 	}
 	response, _ := json.Marshal(map[string]any{"error": failure.Code, "message": failure.Message})
 	return status, response
