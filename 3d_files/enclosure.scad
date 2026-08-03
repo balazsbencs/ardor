@@ -30,6 +30,10 @@ encoder_d = 7.5;           // Rotary Encoder shaft
 usb_c_w = 13.0;
 usb_c_h = 6.5;
 
+jack_35_d = 6.5;               // Measure your jack's threaded barrel
+jack_35_y = box_length / 2;    // Position along the left wall
+jack_35_z = box_height / 2;    // Height above the bottom
+
 
 main_chassis();
 //bottom_lid();
@@ -67,7 +71,7 @@ module main_chassis() {
             rounded_box(box_width - 2*wall_thickness, box_length - 2*wall_thickness, box_height - wall_thickness + 1, max(1, corner_radius - wall_thickness));
 
         // TOP PANEL: Display Window
-        translate([(box_width/2 - screen_w/2) + 7.5, box_length/2 - screen_l/2, box_height - wall_thickness - 1])
+        translate([(box_width/2 - screen_w/2) + 4, box_length/2 - screen_l/2, box_height - wall_thickness - 1])
             cube([screen_w, screen_l, wall_thickness + 2]);
 
         // TOP PANEL: Corner Footswitches
@@ -84,15 +88,35 @@ module main_chassis() {
         translate([0, box_length + 1, 0]) {
             rotate([90, 0, 0]) {
                 // audio jacks
-                translate([box_width - 22, box_height/2, 0]) cylinder(d=jack_d, h=wall_thickness + 4);
-                translate([22, box_height/2, 0]) cylinder(d=jack_d, h=wall_thickness + 4);
-                translate([45, box_height/2, 0]) cylinder(d=jack_d, h=wall_thickness + 4);
+                translate([22, box_height/4, 0]) cylinder(d=jack_d, h=wall_thickness + 4);
+                translate([22, (box_height/4)*2.5, 0]) cylinder(d=jack_d, h=wall_thickness + 4);
+
+                translate([box_width - 22, box_height/4, 0]) cylinder(d=jack_d, h=wall_thickness + 4);
+                translate([box_width - 22, (box_height/4)*2.5, 0]) cylinder(d=jack_d, h=wall_thickness + 4);
+
+
+                translate([box_width - 44, (box_height/4)*2.5, 0]) cylinder(d=6, h=wall_thickness + 4);
 
                 // DC Power
                 translate([box_width/2, box_height/2, 0]) cylinder(d=dc_jack_d, h=wall_thickness + 4);
             }
         }
+
+        // RIGHT WALL: 3.5mm audio jack
+        translate([box_width + 1, jack_35_y, jack_35_z])
+            rotate([0, -90, 0])
+                cylinder(
+                    d = jack_35_d,
+                    h = wall_thickness + 2
+                );
+
     }
+
+
+
+
+    }
+
 
 
 // MOUNTING CORNER BOSSES (For M3 Heated Inserts)
@@ -102,7 +126,7 @@ lid_screw_offsets() {
         translate([0, 0, -1]) cylinder(d=insert_hole_d, h=10);
     }
 }
-}
+
 
 module bottom_lid() {
     difference() {
