@@ -108,22 +108,12 @@ int main(int argc, char** argv)
   };
   ardor::LvglUi ui(std::move(actions));
   ui.build(lv_screen_active(), state);
-  bool previewOverlayPresented = false;
 
   while (true) {
     lv_timer_handler();
     ui.refresh(lv_screen_active(), state);
-    if (state.previewState == ardor::UiPreviewState::Queued && !previewOverlayPresented) {
-      // The simulator has no audio engine. Still exercise the same visible
-      // queued/applying lifecycle so structural edits do not leave its modal
-      // overlay stuck forever.
-      lv_refr_now(nullptr);
-      previewOverlayPresented = true;
-    } else if (ardor::beginApplyingPreview(state)) {
+    if (ardor::beginApplyingPreview(state)) {
       ardor::completeStructuralPreview(state);
-      previewOverlayPresented = false;
-    } else if (ardor::previewIsSynchronized(state)) {
-      previewOverlayPresented = false;
     }
     // LVGL busy-waits in LV_OS_NONE builds; use a real host sleep so the
     // simulator does not consume an otherwise idle CPU core.

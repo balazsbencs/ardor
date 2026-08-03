@@ -459,6 +459,39 @@ int main()
   if (require(ardor::toggleExpressionAssignment(state, *mixControl)
                 && !state.bank.presets[state.activePreset].expression,
               "tapping the assigned expression parameter should clear it")) return 1;
+  if (require(ardor::beginMidiLearn(state, *mixControl),
+              "numeric block parameter should start MIDI Learn")) return 1;
+  ardor::observeMidiLearnControlChange(state, 0, 11, 0);
+  ardor::observeMidiLearnControlChange(state, 0, 11, 64);
+  ardor::observeMidiLearnControlChange(state, 0, 11, 127);
+  if (require(ardor::commitMidiLearn(state)
+                && state.bank.presets[state.activePreset].midiBindings.size() == 1
+                && state.bank.presets[state.activePreset].midiBindings[0].mode
+                     == ardor::PresetMidiBindingMode::Continuous,
+              "wiggling a learned CC should create a continuous mapping")) return 1;
+  if (require(ardor::beginMidiLearn(state, *mixControl),
+              "existing MIDI mapping should be editable by relearning")) return 1;
+  ardor::observeMidiLearnControlChange(state, 0, 64, 127);
+  ardor::showAdvancedMidiLearn(state);
+  ardor::setMidiLearnMode(state, ardor::PresetMidiBindingMode::Toggle);
+  ardor::setMidiLearnEndpoint(state, 0, 0.25f);
+  ardor::setMidiLearnEndpoint(state, 1, 0.75f);
+  if (require(ardor::commitMidiLearn(state)
+                && state.bank.presets[state.activePreset].midiBindings[0].controlChange == 64
+                && state.bank.presets[state.activePreset].midiBindings[0].actions[0].value1 == 0.25f
+                && state.bank.presets[state.activePreset].midiBindings[0].actions[0].value2 == 0.75f,
+              "advanced MIDI Learn should store two explicit scene values")) return 1;
+  if (require(ardor::beginMidiLearnForBlockEnabled(state),
+              "block bypass should support MIDI Learn")) return 1;
+  ardor::observeMidiLearnControlChange(state, 0, 64, 127);
+  if (require(ardor::commitMidiLearn(state)
+                && state.bank.presets[state.activePreset].midiBindings[0].actions.size() == 2,
+              "relearning one footswitch should assemble a multi-action scene")) return 1;
+  const auto midiPreset = ardor::activePresetToPreset(state);
+  if (require(midiPreset.midiBindings.size() == 1
+                && midiPreset.midiBindings[0].actions.size() == 2,
+              "MIDI mappings should round-trip through the on-device UI model")) return 1;
+  completePreview(state);
   ardor::selectGlobalParams(state);
   if (require(state.paramTarget == ardor::UiParamTarget::Globals, "global param drawer target")) return 1;
   if (require(state.paramDrawerOpen, "global params should open drawer")) return 1;

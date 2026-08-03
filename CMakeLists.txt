@@ -255,6 +255,7 @@ add_library(ardor_control
 )
 target_include_directories(ardor_control PUBLIC src)
 target_compile_features(ardor_control PUBLIC cxx_std_20)
+target_link_libraries(ardor_control PUBLIC ardor_preset)
 if(UNIX AND NOT APPLE)
   target_sources(ardor_control PRIVATE
     src/control/LinuxControlIo.cpp

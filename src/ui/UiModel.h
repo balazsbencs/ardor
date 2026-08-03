@@ -45,6 +45,7 @@ struct UiPreset {
   PresetGlobal global;
   int version = 1;
   std::optional<PresetExpression> expression;
+  std::vector<PresetMidiBinding> midiBindings;
 };
 
 struct UiBank {
@@ -118,12 +119,30 @@ struct UiRevisions {
 struct UiBlockEditSnapshot {
   std::vector<UiBlock> blocks;
   std::optional<PresetExpression> expression;
+  std::vector<PresetMidiBinding> midiBindings;
   std::size_t selectedBlock = 0;
   std::string selectedBlockId;
   UiParamTarget paramTarget = UiParamTarget::Block;
   bool dirty = false;
   bool blockDrawerOpen = false;
   bool paramDrawerOpen = false;
+};
+
+enum class UiMidiLearnStage { None, Waiting, Captured, Advanced };
+
+struct UiMidiLearnState {
+  UiMidiLearnStage stage = UiMidiLearnStage::None;
+  PresetMidiAction action;
+  PresetMidiBindingMode mode = PresetMidiBindingMode::Continuous;
+  int channel = -1;
+  int controlChange = -1;
+  int observedMinimum = 127;
+  int observedMaximum = 0;
+  int observedCount = 0;
+  float targetMinimum = 0.0f;
+  float targetMaximum = 1.0f;
+  float targetCurrent = 0.0f;
+  bool modeExplicit = false;
 };
 
 struct UiPreviewSnapshot {
@@ -204,6 +223,7 @@ struct UiState {
   std::optional<UiBlockEditSnapshot> blockEditUndo;
   int pendingSlotRequest = -1;
   std::optional<UiNavigationTarget> navigationPrompt;
+  UiMidiLearnState midiLearn;
   UiRevisions revisions;
 };
 
@@ -273,7 +293,16 @@ void updateRealtimeTelemetry(UiState& state, const RuntimeTelemetry& telemetry);
 void updateClipDebugTelemetry(UiState& state, UiClipDebugTelemetry telemetry);
 void updateControlInputTelemetry(UiState& state, UiControlInputTelemetry telemetry);
 bool parameterSupportsExpression(const UiState& state, const ParameterControl& control);
+bool parameterHasMidiBinding(const UiState& state, const ParameterControl& control);
 bool toggleExpressionAssignment(UiState& state, const ParameterControl& control);
+bool beginMidiLearn(UiState& state, const ParameterControl& control);
+bool beginMidiLearnForBlockEnabled(UiState& state);
+bool observeMidiLearnControlChange(UiState& state, int channel, int controlChange, int value);
+void showAdvancedMidiLearn(UiState& state);
+void setMidiLearnMode(UiState& state, PresetMidiBindingMode mode);
+void setMidiLearnEndpoint(UiState& state, std::size_t endpoint, float value);
+bool commitMidiLearn(UiState& state);
+void cancelMidiLearn(UiState& state);
 void setUiStatus(UiState& state, std::string message, bool isError = false);
 int consumePendingSlotRequest(UiState& state);
 void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoot);

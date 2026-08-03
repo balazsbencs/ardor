@@ -35,6 +35,7 @@ public:
   bool setDaisyParameter(const std::string& id, const std::string& key, float normalized);
   bool setCompressorParameter(const std::string& id, const std::string& key, float value);
   bool setNoiseGateParameter(const std::string& id, const std::string& key, float value);
+  bool setBlockEnabled(const std::string& id, bool enabled);
   void prepareBlockSize(size_t frames);
   void clearEffects();
   void setInputGain(float gain);

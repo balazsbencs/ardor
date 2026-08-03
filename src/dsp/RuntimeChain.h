@@ -50,6 +50,7 @@ public:
   bool setDaisyParameter(const std::string& id, const std::string& key, float normalized);
   bool setCompressorParameter(const std::string& id, const std::string& key, float value);
   bool setNoiseGateParameter(const std::string& id, const std::string& key, float value);
+  bool setBlockEnabled(const std::string& id, bool enabled);
   // Negative cab arguments use each cabinet block's prepared level/mix. The
   // PedalEngine supplies non-negative smoothed values for its legacy
   // top-level cabinet control; nested Dual Rig lanes use prepared values.

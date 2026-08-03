@@ -496,6 +496,7 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   for (std::size_t i = 0; i < state.assets.size(); ++i) {
     const auto& asset = state.assets[i];
     lv_obj_t* item = button(list, asset.name);
+    lv_obj_t* itemTitle = lv_obj_get_child(item, 0);
     lv_obj_set_width(item, kBlockDrawerContentWidth - 14);
     lv_obj_set_height(item, kDrawerAssetButtonHeight);
     lv_obj_set_style_min_height(item, kDrawerAssetButtonHeight, 0);
@@ -505,12 +506,20 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
     if (asset.blockType == "dualRig") {
       lv_obj_set_style_border_color(item, lv_color_hex(accent), 0);
       lv_obj_set_style_border_width(item, 1, 0);
-      lv_obj_set_style_text_color(lv_obj_get_child(item, 0), lv_color_hex(accent), 0);
+      lv_obj_set_style_text_color(itemTitle, lv_color_hex(accent), 0);
       if (splitUnavailable) {
         const char* reason = insertingLane ? "No nested Split"
           : alreadySplit ? "A Split already exists" : "Remove standalone NAM / IR first";
-        label(item, reason, LV_ALIGN_BOTTOM_RIGHT, -14, -8,
-              &ardor_font_open_sans_regular_18, warning);
+        lv_obj_set_width(itemTitle, kBlockDrawerContentWidth - 56);
+        lv_label_set_long_mode(itemTitle, LV_LABEL_LONG_CLIP);
+        lv_obj_set_style_text_align(itemTitle, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_align(itemTitle, LV_ALIGN_CENTER, 0, -14);
+        lv_obj_t* reasonLabel = label(item, reason, LV_ALIGN_CENTER, 0, 15,
+                                      &ardor_font_open_sans_regular_18, warning);
+        lv_obj_set_width(reasonLabel, kBlockDrawerContentWidth - 56);
+        lv_label_set_long_mode(reasonLabel, LV_LABEL_LONG_CLIP);
+        lv_obj_set_style_text_align(reasonLabel, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_align(reasonLabel, LV_ALIGN_CENTER, 0, 15);
       }
     }
     if (chainFull || splitUnavailable) lv_obj_add_state(item, LV_STATE_DISABLED);

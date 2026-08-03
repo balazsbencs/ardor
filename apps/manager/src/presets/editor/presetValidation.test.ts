@@ -67,6 +67,34 @@ describe("preset validation", () => {
     expect(codes(preset)).toContain("expression-range");
   });
 
+  it("validates learned MIDI ranges and multi-action scenes", () => {
+    const delay = createBlockFromDefinition("delay:digital", []);
+    const chorus = createBlockFromDefinition("mod:chorus", [delay]);
+    const preset = validPreset([delay, chorus]);
+    preset.midiMappings = [{
+      channel: 0,
+      controlChange: 64,
+      mode: "toggle",
+      actions: [
+        { target: "blockEnabled", blockId: chorus.id, value1: 1, value2: 0 },
+        { target: "parameter", blockId: delay.id, parameter: "feedback", value1: 0.2, value2: 0.7 },
+      ],
+    }];
+    expect(codes(preset)).not.toEqual(expect.arrayContaining([
+      "midi-binding-shape", "midi-action-shape",
+    ]));
+
+    preset.midiMappings.push({
+      channel: -1,
+      controlChange: 64,
+      mode: "continuous",
+      actions: [{ target: "parameter", blockId: "missing", parameter: "mix", value1: 0, value2: 1 }],
+    });
+    expect(codes(preset)).toEqual(expect.arrayContaining([
+      "midi-binding-overlap", "midi-action-shape",
+    ]));
+  });
+
   it.each([
     ["", "block-id-empty"],
     ["x".repeat(81), "block-id-length"],

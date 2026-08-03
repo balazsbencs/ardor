@@ -1,8 +1,11 @@
 #pragma once
 
+#include "preset/Preset.h"
+
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 namespace ardor {
 
@@ -60,6 +63,29 @@ public:
 
 private:
   MidiControlMapping mapping_;
+};
+
+struct PresetMidiValue {
+  PresetMidiAction action;
+  float value = 0.0f;
+};
+
+// Stateful per-preset mapper. Toggle bindings latch on the CC high edge so a
+// momentary footswitch release does not immediately undo the selected scene.
+class PresetMidiMapper {
+public:
+  void load(const std::vector<PresetMidiBinding>& bindings);
+  std::vector<PresetMidiValue> reset();
+  bool handles(const MidiMessage& message) const;
+  std::vector<PresetMidiValue> map(const MidiMessage& message);
+
+private:
+  struct BindingState {
+    PresetMidiBinding binding;
+    bool inputHigh = false;
+    bool scene2 = false;
+  };
+  std::vector<BindingState> bindings_;
 };
 
 } // namespace ardor

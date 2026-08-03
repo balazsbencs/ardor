@@ -607,6 +607,7 @@ int main()
                                   [](const auto& control) { return control.key == "depth"; });
   if (require(depth != renderControls.end(), "Vintage Trem depth control should be available")) return 1;
   ardor::setSelectedBlockParam(state, "depth", depth->minimum);
+  ardor::setSelectedBlockParam(state, "p2", 1.0f);
   state.bank.presets[state.activePreset].blocks.front().enabled = false;
   ardor::setUiStatus(state, "Preset saved");
   ui.build(lv_screen_active(), state);
@@ -682,6 +683,57 @@ int main()
                 && lv_color_eq(lv_obj_get_style_text_color(depthLabel, LV_PART_MAIN), lv_color_hex(0xf5f5f5))
                 && lv_color_eq(lv_obj_get_style_text_color(activeDepthLabel, LV_PART_MAIN), lv_color_hex(0x102014)),
               "slider text should switch contrast across the fill boundary")) return 1;
+  lv_obj_t* typeLabel = findLabel(lv_screen_active(), "Type");
+  lv_obj_t* typeSlider = typeLabel ? lv_obj_get_parent(typeLabel) : nullptr;
+  lv_obj_t* photoresistorValue = typeSlider ? findLabel(typeSlider, "Photoresistor") : nullptr;
+  lv_point_t photoresistorTextSize{};
+  lv_text_get_size(&photoresistorTextSize, "Photoresistor", &ardor_font_open_sans_semibold_22,
+                   0, 0, LV_COORD_MAX, LV_TEXT_FLAG_EXPAND);
+  lv_area_t typeLabelArea{};
+  lv_area_t photoresistorArea{};
+  if (typeLabel) lv_obj_get_coords(typeLabel, &typeLabelArea);
+  if (photoresistorValue) lv_obj_get_coords(photoresistorValue, &photoresistorArea);
+  if (require(photoresistorValue
+                && lv_obj_get_width(photoresistorValue) >= photoresistorTextSize.x
+                && typeLabelArea.x2 < photoresistorArea.x1,
+              "long modulation choices should fit without clipping or touching the label")) return 1;
+
+  const auto& defaultMappingControl = renderControls.front();
+  lv_obj_t* mappingSelection = findLabel(lv_screen_active(),
+    ("Selected  /  " + defaultMappingControl.label).c_str());
+  lv_obj_t* mappingToolbar = mappingSelection ? lv_obj_get_parent(mappingSelection) : nullptr;
+  lv_obj_t* assignExpression = mappingToolbar ? findLabel(mappingToolbar, "Assign EXP") : nullptr;
+  lv_obj_t* learnMidi = mappingToolbar ? findLabel(mappingToolbar, "MIDI Learn") : nullptr;
+  if (require(mappingToolbar && assignExpression && learnMidi
+                && !findLabel(depthSlider, "EXP") && !findLabel(depthSlider, "MIDI"),
+              "parameter mapping actions should live in one contextual toolbar")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(learnMidi), LV_EVENT_CLICKED, nullptr);
+  if (require(state.midiLearn.stage == ardor::UiMidiLearnStage::Waiting,
+              "contextual MIDI Learn should target the selected parameter")) return 1;
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_t* listeningLabel = findLabel(lv_screen_active(), "Listening...");
+  lv_obj_t* midiLearnCard = listeningLabel ? lv_obj_get_parent(listeningLabel) : nullptr;
+  lv_obj_t* midiLearnTitle = midiLearnCard ? findLabel(midiLearnCard, "MIDI Learn") : nullptr;
+  if (require(midiLearnTitle
+                && listeningLabel,
+              "MIDI Learn should show a blocking listening sheet")) return 1;
+  ardor::observeMidiLearnControlChange(state, 0, 11, 64);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_t* advancedLearn = midiLearnCard ? findLabel(midiLearnCard, "Advanced") : nullptr;
+  if (require(findLabel(lv_screen_active(), "CC 11  ·  Channel 1")
+                && advancedLearn && findLabel(lv_screen_active(), "Save"),
+              "captured CC should expose Save and Advanced actions")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(advancedLearn), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  if (require(findLabel(lv_screen_active(), "Continuous")
+                && findLabel(lv_screen_active(), "1")
+                && findLabel(lv_screen_active(), "2"),
+              "advanced MIDI Learn should show mode and two endpoint sliders")) return 1;
+  lv_obj_t* cancelLearn = midiLearnCard ? findLabel(midiLearnCard, "Cancel") : nullptr;
+  lv_obj_send_event(lv_obj_get_parent(cancelLearn), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  if (require(state.midiLearn.stage == ardor::UiMidiLearnStage::None,
+              "cancelling MIDI Learn should close it without a mapping")) return 1;
 
   SimulatedPointer simulatedPointer{{sliderArea.x1 + 1,
                                      (sliderArea.y1 + sliderArea.y2) / 2},
@@ -707,6 +759,10 @@ int main()
   if (require(updatedDepth != updatedControls.end()
                 && findLabel(depthSlider, updatedDepth->formatted.c_str()),
               "slider drag should update the value label before release")) return 1;
+  if (require(updatedDepth != updatedControls.end()
+                && findLabel(mappingToolbar, ("Selected  /  " + updatedDepth->label).c_str())
+                && findLabel(mappingToolbar, updatedDepth->formatted.c_str()),
+              "contextual mapping toolbar should follow the touched parameter and live value")) return 1;
   simulatedPointer.state = LV_INDEV_STATE_RELEASED;
   lv_indev_read(simulatedInput);
   ui.refresh(lv_screen_active(), state);
@@ -836,7 +892,7 @@ int main()
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
   depthFill = depthSlider ? findObjectWithBgColor(depthSlider, lv_color_hex(0x43f05a)) : nullptr;
 
-  lv_obj_t* parameterPanel = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x242424), 1240, 286);
+  lv_obj_t* parameterPanel = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x242424), 1240, 348);
   lv_obj_t* parameterClose = findLabel(lv_screen_active(), "Close");
   lv_obj_t* deleteBlock = findLabel(lv_screen_active(), "Delete Block");
   lv_obj_t* bypassLabel = parameterPanel ? findLabel(parameterPanel, "Bypass") : nullptr;
@@ -1348,9 +1404,28 @@ int main()
   lv_obj_t* compressorAssetLabel = drawer ? findLabel(drawer, "Compressor") : nullptr;
   lv_obj_t* noiseGateAssetLabel = drawer ? findLabel(drawer, "Noise Gate") : nullptr;
   lv_obj_t* eqAssetLabel = drawer ? findLabel(drawer, "Five Band EQ") : nullptr;
+  lv_obj_t* splitAssetLabel = drawer ? findLabel(drawer, "Split Left / Right") : nullptr;
+  lv_obj_t* splitAssetButton = splitAssetLabel ? lv_obj_get_parent(splitAssetLabel) : nullptr;
+  lv_obj_t* splitUnavailableReason = splitAssetButton
+    ? findLabel(splitAssetButton, "Remove standalone NAM / IR first") : nullptr;
   if (require(drawer && allFilter && utilityFilter && delayFilter && reverbFilter
-                && tremAssetLabel && compressorAssetLabel && noiseGateAssetLabel && eqAssetLabel,
+                && tremAssetLabel && compressorAssetLabel && noiseGateAssetLabel && eqAssetLabel
+                && splitAssetLabel && splitUnavailableReason,
               "block drawer should group compressor, noise gate, and EQ under Utility")) return 1;
+  lv_area_t splitTitleArea{};
+  lv_area_t splitReasonArea{};
+  lv_area_t splitButtonArea{};
+  lv_obj_get_coords(splitAssetLabel, &splitTitleArea);
+  lv_obj_get_coords(splitUnavailableReason, &splitReasonArea);
+  lv_obj_get_coords(splitAssetButton, &splitButtonArea);
+  if (require(splitTitleArea.y2 < splitReasonArea.y1
+                && std::abs((splitTitleArea.x1 + splitTitleArea.x2)
+                              - (splitButtonArea.x1 + splitButtonArea.x2)) <= 1
+                && std::abs((splitReasonArea.x1 + splitReasonArea.x2)
+                              - (splitButtonArea.x1 + splitButtonArea.x2)) <= 1
+                && std::abs((splitTitleArea.y1 + splitReasonArea.y2)
+                              - (splitButtonArea.y1 + splitButtonArea.y2)) <= 1,
+              "disabled Split text should form a centered, non-overlapping two-line group")) return 1;
   lv_obj_t* allFilterButton = lv_obj_get_parent(allFilter);
   lv_obj_t* utilityFilterButton = lv_obj_get_parent(utilityFilter);
   lv_obj_t* delayFilterButton = lv_obj_get_parent(delayFilter);
@@ -1707,12 +1782,12 @@ int main()
                           static_cast<std::size_t>(std::distance(overlayState.assets.begin(), overlayAsset)));
   overlayUi.refresh(lv_screen_active(), overlayState);
   lv_obj_t* applyingLabel = findLabelContaining(lv_screen_active(), "Applying effect chain...");
-  if (require(overlayState.previewState == ardor::UiPreviewState::Queued && applyingLabel,
-              "queued preview should present a visible loading overlay")) return 1;
+  if (require(overlayState.previewState == ardor::UiPreviewState::Queued && !applyingLabel,
+              "queued preview should not cover the editor with a loading overlay")) return 1;
   completePreview(overlayState);
   overlayUi.refresh(lv_screen_active(), overlayState);
   if (require(overlayState.previewState == ardor::UiPreviewState::Synchronized,
-              "completed preview should hide the loading overlay")) return 1;
+              "completed preview should synchronize without a loading overlay")) return 1;
 
   auto navigationState = ardor::makeDemoUiState();
   navigationState.dirty = true;

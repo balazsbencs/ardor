@@ -497,6 +497,7 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       }
       loadedNam = true;
       stereoEstablished = false;
+      engine.setBlockEnabled(block.id, block.enabled);
       continue;
     }
     if (block.type == "dualAmp") {
@@ -520,6 +521,7 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       loadedNam = true;
       loadedCab = true;
       stereoEstablished = true;
+      engine.setBlockEnabled(block.id, block.enabled);
       continue;
     }
     if (block.type == "dualRig") {
@@ -543,6 +545,7 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       loadedNam = true;
       loadedCab = true;
       stereoEstablished = true;
+      engine.setBlockEnabled(block.id, block.enabled);
       continue;
     }
     if (block.type == "cab") {
@@ -572,6 +575,7 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       }
       engine.addCab(std::move(wav.samples), block.level, block.mix, block.id);
       loadedCab = true;
+      engine.setBlockEnabled(block.id, block.enabled);
       continue;
     }
     if (block.type == "mod" || block.type == "delay" || block.type == "reverb") {
@@ -579,6 +583,7 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
         return false;
       }
       stereoEstablished = true;
+      engine.setBlockEnabled(block.id, block.enabled);
       continue;
     }
     if (block.type == "dynamics") {
@@ -597,12 +602,14 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
         error = "unsupported dynamics mode: " + block.id;
         return false;
       }
+      engine.setBlockEnabled(block.id, block.enabled);
       continue;
     }
     if (block.type == "eq") {
       if (!engine.addParametricEq(block.id, block.params, static_cast<float>(options.sampleRate), error)) {
         return false;
       }
+      engine.setBlockEnabled(block.id, block.enabled);
       continue;
     }
   }

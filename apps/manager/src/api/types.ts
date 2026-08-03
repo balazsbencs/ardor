@@ -81,6 +81,18 @@ export type Preset = {
     maximum: number;
     inverted: boolean;
   };
+  midiMappings?: Array<{
+    channel: number;
+    controlChange: number;
+    mode: "continuous" | "toggle";
+    actions: Array<{
+      target: "parameter" | "blockEnabled";
+      blockId: string;
+      parameter?: string;
+      value1: number;
+      value2: number;
+    }>;
+  }>;
   blocks: PresetBlock[];
   [key: string]: unknown;
 };

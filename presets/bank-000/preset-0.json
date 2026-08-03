@@ -5,15 +5,15 @@
       "enabled": true,
       "id": "block-1",
       "params": {
-        "attack_ms": 10.0,
+        "attack_ms": 46.0,
         "auto_makeup": false,
         "detector": "peak",
         "input_gain_db": 0.0,
-        "knee_db": 6.0,
+        "knee_db": 10.0,
         "makeup_db": 0.0,
         "mix": 1.0,
         "mode": "compressor",
-        "ratio": 8.0,
+        "ratio": 12.5,
         "release_ms": 640.0,
         "sidechain_hpf_hz": 80.0,
         "threshold_db": -27.0
@@ -21,31 +21,59 @@
       "type": "dynamics"
     },
     {
-      "asset": "models/test.nam",
+      "asset": "",
       "enabled": true,
-      "id": "block-9",
-      "params": {
-        "inputMode": "right",
-        "useNano": true
+      "id": "block-14",
+      "lanes": {
+        "left": {
+          "blocks": [
+            {
+              "asset": "",
+              "enabled": true,
+              "id": "block-15",
+              "params": {
+                "filter": 0.5,
+                "grit": 0.0,
+                "mix": 0.35999998450279236,
+                "mod_dep": 0.0,
+                "mod_spd": 0.0,
+                "mode": "digital",
+                "repeats": 0.3499999940395355,
+                "time": 0.25
+              },
+              "type": "delay"
+            }
+          ]
+        },
+        "right": {
+          "blocks": [
+            {
+              "asset": "",
+              "enabled": true,
+              "id": "block-16",
+              "params": {
+                "filter": 0.5,
+                "grit": 0.0,
+                "mix": 0.4899999797344208,
+                "mod_dep": 0.0,
+                "mod_spd": 0.3880000412464142,
+                "mode": "tape",
+                "repeats": 0.3499999940395355,
+                "time": 0.25
+              },
+              "type": "delay"
+            }
+          ]
+        }
       },
-      "type": "nam"
-    },
-    {
-      "asset": "models/test.nam",
-      "enabled": true,
-      "id": "block-12",
       "params": {
-        "inputMode": "left",
-        "useNano": true
+        "inputMode": "sum",
+        "leftLevelDb": 0.0,
+        "leftPolarityInvert": false,
+        "rightLevelDb": 0.0,
+        "rightPolarityInvert": false
       },
-      "type": "nam"
-    },
-    {
-      "asset": "irs/test.wav",
-      "enabled": true,
-      "id": "block-10",
-      "params": {},
-      "type": "cab"
+      "type": "dualRig"
     },
     {
       "asset": "",
@@ -103,14 +131,30 @@
         "time": 0.5130000114440918
       },
       "type": "delay"
+    },
+    {
+      "asset": "",
+      "enabled": true,
+      "id": "block-13",
+      "params": {
+        "decay": 0.44999998807907104,
+        "mix": 0.8999999761581421,
+        "mod": 0.0,
+        "mode": "magneto",
+        "param1": 0.5,
+        "param2": 0.5,
+        "pre_delay": 0.15000000596046448,
+        "tone": 0.5
+      },
+      "type": "reverb"
     }
   ],
   "expression": {
-    "blockId": "block-1",
+    "blockId": "block-15",
     "inverted": false,
-    "maximum": 0.0,
-    "minimum": -60.0,
-    "parameter": "threshold_db"
+    "maximum": 1.0,
+    "minimum": 0.0,
+    "parameter": "mix"
   },
   "global": {
     "inputGainDb": 0.0,
@@ -119,5 +163,5 @@
   },
   "name": "Empty 1",
   "routing": "serial",
-  "version": 1
+  "version": 2
 }

@@ -554,39 +554,63 @@ const ardor::PresetBlock* findPresetBlock(
   return nullptr;
 }
 
-bool applyExpressionPosition(
-  ardor::PedalEngine& engine, const ardor::Preset& preset, float position)
+bool applyPresetParameterValue(
+  ardor::PedalEngine& engine, const ardor::Preset& preset,
+  const std::string& blockId, const std::string& parameter, float value,
+  bool requireEnabled)
 {
-  if (!preset.expression.has_value()) return true;
-  const auto& assignment = *preset.expression;
-  const auto* block = findPresetBlock(preset.blocks, assignment.blockId);
-  if (block == nullptr || !block->enabled) return false;
-
-  const float value = ardor::expressionValueAt(assignment, position);
+  const auto* block = findPresetBlock(preset.blocks, blockId);
+  if (block == nullptr || (requireEnabled && !block->enabled)) return false;
   if (block->type == "mod" || block->type == "delay" || block->type == "reverb") {
-    return engine.setDaisyParameter(block->id, assignment.parameter, value);
+    return engine.setDaisyParameter(block->id, parameter, value);
   }
   if (block->type == "dynamics") {
     const auto mode = block->params.value("mode", std::string{});
     if (mode == "compressor") {
-      return engine.setCompressorParameter(block->id, assignment.parameter, value);
+      return engine.setCompressorParameter(block->id, parameter, value);
     }
     if (mode == "noise_gate") {
-      return engine.setNoiseGateParameter(block->id, assignment.parameter, value);
+      return engine.setNoiseGateParameter(block->id, parameter, value);
     }
     return false;
   }
   if (block->type == "cab") {
-    if (assignment.parameter == "mix") {
+    if (parameter == "mix") {
       engine.setCabMix(value);
       return true;
     }
-    if (assignment.parameter == "levelDb") {
+    if (parameter == "levelDb") {
       engine.setCabLevel(dbToGain(value));
       return true;
     }
   }
   return false;
+}
+
+bool applyExpressionPosition(
+  ardor::PedalEngine& engine, const ardor::Preset& preset, float position)
+{
+  if (!preset.expression.has_value()) return true;
+  const auto& assignment = *preset.expression;
+  return applyPresetParameterValue(
+    engine, preset, assignment.blockId, assignment.parameter,
+    ardor::expressionValueAt(assignment, position), true);
+}
+
+bool applyPresetMidiValue(
+  ardor::PedalEngine& engine, const ardor::Preset& preset,
+  const ardor::PresetMidiValue& mapped)
+{
+  const auto& action = mapped.action;
+  const auto* block = findPresetBlock(preset.blocks, action.blockId);
+  if (block == nullptr) return false;
+  if (action.target == ardor::PresetMidiTargetType::BlockEnabled) {
+    return engine.setBlockEnabled(block->id, mapped.value >= 0.5f);
+  }
+  // Parameter mappings intentionally remain live even when a scene has just
+  // bypassed the block; the new target is ready when that block is enabled.
+  return applyPresetParameterValue(
+    engine, preset, action.blockId, action.parameter, mapped.value, false);
 }
 
 void writeStereo(const std::filesystem::path& path, const std::vector<float>& interleaved, ma_uint32 sampleRate)
@@ -753,13 +777,12 @@ int main(int argc, char** argv)
       int deferredTunerSlot = -1;
       ardor::ActivePresetSelection activeSelection{args.bank, args.slot};
       liveEngine->setMasterVolume(static_cast<float>(controls.masterVolume) / 100.0f);
+      bool presetMidiMappingsChanged = false;
 
 #if defined(ARDOR_HAS_UI)
       std::unique_ptr<ardor::LvglUi> ui;
       ardor::UiState uiState;
       ardor::GlobalSettingsStore globalSettings(args.dataRoot);
-      bool previewOverlayPresented = false;
-      std::optional<std::chrono::steady_clock::time_point> previewQueuedAt;
       if (args.enableUi) {
         lv_init();
 #if defined(ARDOR_UI_BACKEND_FBDEV)
@@ -921,6 +944,10 @@ int main(int argc, char** argv)
           [&](const std::optional<ardor::PresetExpression>& assignment) {
             activePreset.expression = assignment;
           },
+          [&](const std::vector<ardor::PresetMidiBinding>& bindings) {
+            activePreset.midiBindings = bindings;
+            presetMidiMappingsChanged = true;
+          },
           [&](const ardor::DeviceSettings& settings, std::string& error) {
             return globalSettings.saveControlInputs(settings, error);
           },
@@ -949,6 +976,17 @@ int main(int argc, char** argv)
       ardor::MidiControlMapper midiMapper{{
         args.midiChannel, static_cast<std::uint8_t>(args.midiTunerCc),
       }};
+      ardor::PresetMidiMapper presetMidiMapper;
+      const auto loadPresetMidiMappings = [&] {
+        presetMidiMapper.load(activePreset.midiBindings);
+        for (const auto& value : presetMidiMapper.reset()) {
+          if (!applyPresetMidiValue(*liveEngine, activePreset, value)) {
+            std::cerr << "MIDI scene target is not live-controllable: "
+                      << value.action.blockId << ":" << value.action.parameter << "\n";
+          }
+        }
+      };
+      loadPresetMidiMappings();
       bool midiEnabled = false;
       if (!args.midiDevice.empty()) {
         std::string error;
@@ -1194,9 +1232,30 @@ int main(int argc, char** argv)
           applyFootswitchAction(*action);
         }
 
+        if (presetMidiMappingsChanged) {
+          loadPresetMidiMappings();
+          presetMidiMappingsChanged = false;
+        }
         if (midiEnabled) {
           ardor::MidiMessage message;
           while (midiInput.poll(message)) {
+#if defined(ARDOR_HAS_UI)
+            if (args.enableUi && ui
+                && message.type == ardor::MidiMessageType::ControlChange
+                && ardor::observeMidiLearnControlChange(
+                  uiState, message.channel, message.data1, message.data2)) {
+              continue;
+            }
+#endif
+            if (presetMidiMapper.handles(message)) {
+              for (const auto& value : presetMidiMapper.map(message)) {
+                if (!applyPresetMidiValue(*liveEngine, activePreset, value)) {
+                  std::cerr << "MIDI mapping target is not live-controllable: "
+                            << value.action.blockId << ":" << value.action.parameter << "\n";
+                }
+              }
+              continue;
+            }
             const auto action = midiMapper.map(message);
             if (!action.has_value()) continue;
             if (action->type == ardor::MidiActionType::SelectPreset) {
@@ -1287,18 +1346,7 @@ int main(int argc, char** argv)
           if (uiState.masterVolume != controls.masterVolume) {
             ardor::setMasterVolume(uiState, controls.masterVolume);
           }
-          // Queuing happens in the LVGL handler. This separate control-loop
-          // phase guarantees the loading overlay gets a refresh before the
-          // synchronous engine preparation starts.
-          if (uiState.previewState == ardor::UiPreviewState::Queued && !previewOverlayPresented) {
-            // ui->refresh() above has made the overlay part of the retained
-            // scene. Force that state through the display driver before the
-            // synchronous preparation can freeze LVGL's timer loop.
-            lv_refr_now(nullptr);
-            previewOverlayPresented = true;
-            previewQueuedAt = std::chrono::steady_clock::now();
-          } else if (ardor::beginApplyingPreview(uiState)) {
-            previewOverlayPresented = false;
+          if (ardor::beginApplyingPreview(uiState)) {
             const auto operation = uiState.previewTransaction->operation;
             const auto blockCount = uiState.bank.presets[uiState.activePreset].blocks.size();
             const auto preparationStarted = std::chrono::steady_clock::now();
@@ -1316,9 +1364,8 @@ int main(int argc, char** argv)
               (activationStarted.has_value() ? *activationStarted : completedAt) - preparationStarted).count();
             const auto activationMs = activationStarted.has_value()
               ? std::chrono::duration<double, std::milli>(completedAt - *activationStarted).count() : 0.0;
-            const auto totalMs = previewQueuedAt.has_value()
-              ? std::chrono::duration<double, std::milli>(completedAt - *previewQueuedAt).count()
-              : preparationMs + activationMs;
+            const auto totalMs = std::chrono::duration<double, std::milli>(
+              completedAt - preparationStarted).count();
             std::cerr << std::fixed << std::setprecision(1)
                       << "Live chain preview operation='" << operation << "' bank=" << activeSelection.bank
                       << " slot=" << activeSelection.slot << " blocks=" << blockCount
@@ -1328,13 +1375,13 @@ int main(int argc, char** argv)
             if (totalMs > 500.0) {
               std::cerr << "Slow live chain preview: " << totalMs << "ms operation='" << operation << "'\n";
             }
-            previewQueuedAt.reset();
             if (activation.activated()) {
               runtime.changePreset();
               liveEngine->setEffectsBypassed(runtime.effectsBypassed());
               activePreset = previewPreset;
 #if defined(__linux__)
               expressionTargetWarningPrinted = false;
+              loadPresetMidiMappings();
 #endif
               // Repairing an unavailable preset through a structural edit
               // makes that draft the audible selection for subsequent saves
@@ -1353,9 +1400,6 @@ int main(int argc, char** argv)
               std::cerr << "Live chain preview failed: " << reason << "\n";
               ardor::failStructuralPreview(uiState, reason);
             }
-          } else if (uiState.previewState == ardor::UiPreviewState::Synchronized) {
-            previewOverlayPresented = false;
-            previewQueuedAt.reset();
           }
         }
 #endif
@@ -1460,6 +1504,7 @@ int main(int argc, char** argv)
 #if defined(__linux__)
           expressionFilter.reset();
           expressionTargetWarningPrinted = false;
+          loadPresetMidiMappings();
 #endif
           args.bank = activeSelection.bank;
           args.slot = activeSelection.slot;

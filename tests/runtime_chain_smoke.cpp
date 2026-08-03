@@ -179,6 +179,12 @@ int main()
     engineChanged = engineChanged || !near(wet.first, 0.5f);
   }
   require(engineChanged, "trem should affect engine output");
+  require(engine.setBlockEnabled("trem", false), "scene should bypass a block by stable ID");
+  const auto sceneDry = engine.process(0.5f);
+  require(near(sceneDry.first, 0.5f) && near(sceneDry.second, 0.5f),
+          "scene-bypassed block should pass dry audio");
+  require(!engine.setBlockEnabled("missing", true), "missing scene block ID rejected");
+  require(engine.setBlockEnabled("trem", true), "scene should re-enable a prepared block");
 
   ardor::PedalEngine compressorEngine;
   require(compressorEngine.addCompressor("compressor", {

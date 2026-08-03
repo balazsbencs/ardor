@@ -422,6 +422,57 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
     }
   }
 
+  if (source.midiMappings !== undefined && source.midiMappings !== null) {
+    if (!Array.isArray(source.midiMappings)) {
+      presetIssues.push(error("midi-shape", "MIDI mappings must be an array.", "midiMappings"));
+    } else {
+      const topLevelIds = new Set(preset.blocks.map(({ id }) => id));
+      const occupied: Array<{ channel: number; controlChange: number }> = [];
+      source.midiMappings.forEach((mapping, mappingIndex) => {
+        const field = `midiMappings.${mappingIndex}`;
+        if (!isRecord(mapping)
+            || typeof mapping.channel !== "number"
+            || !Number.isInteger(mapping.channel) || mapping.channel < -1 || mapping.channel > 15
+            || typeof mapping.controlChange !== "number"
+            || !Number.isInteger(mapping.controlChange) || mapping.controlChange < 0 || mapping.controlChange > 127
+            || (mapping.mode !== "continuous" && mapping.mode !== "toggle")
+            || !Array.isArray(mapping.actions) || mapping.actions.length === 0) {
+          presetIssues.push(error(
+            "midi-binding-shape",
+            "Each MIDI mapping needs a channel, CC number, mode, and at least one action.",
+            field,
+          ));
+          return;
+        }
+        if (occupied.some((item) => item.controlChange === mapping.controlChange
+          && (item.channel === -1 || mapping.channel === -1 || item.channel === mapping.channel))) {
+          presetIssues.push(error(
+            "midi-binding-overlap",
+            `MIDI CC ${mapping.controlChange} overlaps another mapping on this channel.`,
+            field,
+          ));
+        }
+        occupied.push({ channel: mapping.channel, controlChange: mapping.controlChange });
+        mapping.actions.forEach((action, actionIndex) => {
+          const actionField = `${field}.actions.${actionIndex}`;
+          if (!isRecord(action)
+              || (action.target !== "parameter" && action.target !== "blockEnabled")
+              || typeof action.blockId !== "string"
+              || !topLevelIds.has(action.blockId)
+              || (action.target === "parameter" && typeof action.parameter !== "string")
+              || typeof action.value1 !== "number" || !Number.isFinite(action.value1)
+              || typeof action.value2 !== "number" || !Number.isFinite(action.value2)) {
+            presetIssues.push(error(
+              "midi-action-shape",
+              "MIDI actions require a top-level block target and two finite values.",
+              actionField,
+            ));
+          }
+        });
+      });
+    }
+  }
+
   const issues = [...presetIssues, ...issuesByBlock.flat()];
   const canSave = !issues.some(({ severity }) => severity === "error");
   return { issues, canSave, canApply: canSave && issues.length === 0 };

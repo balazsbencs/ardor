@@ -45,6 +45,44 @@ void validateExpression(const Preset& preset)
   }
 }
 
+bool isTopLevelBlockId(const Preset& preset, std::string_view id)
+{
+  return std::any_of(preset.blocks.begin(), preset.blocks.end(),
+                     [id](const PresetBlock& block) { return block.id == id; });
+}
+
+void validateMidiBindings(const Preset& preset)
+{
+  for (std::size_t index = 0; index < preset.midiBindings.size(); ++index) {
+    const auto& binding = preset.midiBindings[index];
+    if (binding.channel < -1 || binding.channel > 15 || binding.controlChange > 127) {
+      throw std::invalid_argument("MIDI binding channel or controller is invalid");
+    }
+    if (binding.actions.empty()) {
+      throw std::invalid_argument("MIDI binding requires at least one action");
+    }
+    for (std::size_t previous = 0; previous < index; ++previous) {
+      const auto& other = preset.midiBindings[previous];
+      if (binding.controlChange == other.controlChange
+          && (binding.channel == -1 || other.channel == -1
+              || binding.channel == other.channel)) {
+        throw std::invalid_argument("MIDI bindings must not overlap on a controller");
+      }
+    }
+    for (const auto& action : binding.actions) {
+      if (action.blockId.empty() || !isTopLevelBlockId(preset, action.blockId)) {
+        throw std::invalid_argument("MIDI action target block does not exist at top level");
+      }
+      if (action.target == PresetMidiTargetType::Parameter && action.parameter.empty()) {
+        throw std::invalid_argument("MIDI parameter action requires a parameter");
+      }
+      if (!std::isfinite(action.value1) || !std::isfinite(action.value2)) {
+        throw std::invalid_argument("MIDI action values must be finite");
+      }
+    }
+  }
+}
+
 void validateBlockAssets(const std::vector<PresetBlock>& blocks, int version, bool insideLane = false)
 {
   for (const auto& block : blocks) {
@@ -182,6 +220,7 @@ nlohmann::json toJson(const Preset& preset)
   requireSerialRouting(preset.routing);
   validateBlockAssets(preset.blocks, preset.version);
   validateExpression(preset);
+  validateMidiBindings(preset);
 
   nlohmann::json blocks = nlohmann::json::array();
   for (const auto& block : preset.blocks) {
@@ -207,6 +246,31 @@ nlohmann::json toJson(const Preset& preset)
       {"maximum", preset.expression->maximum},
       {"inverted", preset.expression->inverted},
     };
+  }
+  if (!preset.midiBindings.empty()) {
+    json["midiMappings"] = nlohmann::json::array();
+    for (const auto& binding : preset.midiBindings) {
+      nlohmann::json actions = nlohmann::json::array();
+      for (const auto& action : binding.actions) {
+        nlohmann::json actionJson = {
+          {"target", action.target == PresetMidiTargetType::BlockEnabled
+            ? "blockEnabled" : "parameter"},
+          {"blockId", action.blockId},
+          {"value1", action.value1},
+          {"value2", action.value2},
+        };
+        if (action.target == PresetMidiTargetType::Parameter) {
+          actionJson["parameter"] = action.parameter;
+        }
+        actions.push_back(std::move(actionJson));
+      }
+      json["midiMappings"].push_back({
+        {"channel", binding.channel},
+        {"controlChange", binding.controlChange},
+        {"mode", binding.mode == PresetMidiBindingMode::Toggle ? "toggle" : "continuous"},
+        {"actions", std::move(actions)},
+      });
+    }
   }
   return json;
 }
@@ -244,6 +308,38 @@ Preset presetFromJson(const nlohmann::json& json)
   }
   validateExpression(preset);
 
+  if (const auto mappings = json.find("midiMappings");
+      mappings != json.end() && !mappings->is_null()) {
+    if (!mappings->is_array()) {
+      throw std::invalid_argument("MIDI mappings must be an array");
+    }
+    for (const auto& bindingJson : *mappings) {
+      PresetMidiBinding binding;
+      binding.channel = bindingJson.value("channel", -1);
+      const int controlChange = bindingJson.at("controlChange").get<int>();
+      if (controlChange < 0 || controlChange > 127) {
+        throw std::invalid_argument("MIDI controller must be between 0 and 127");
+      }
+      binding.controlChange = static_cast<std::uint8_t>(controlChange);
+      const std::string mode = bindingJson.value("mode", "continuous");
+      if (mode == "toggle") binding.mode = PresetMidiBindingMode::Toggle;
+      else if (mode != "continuous") throw std::invalid_argument("unknown MIDI binding mode");
+      for (const auto& actionJson : bindingJson.at("actions")) {
+        const std::string target = actionJson.value("target", "parameter");
+        PresetMidiAction action;
+        if (target == "blockEnabled") action.target = PresetMidiTargetType::BlockEnabled;
+        else if (target != "parameter") throw std::invalid_argument("unknown MIDI action target");
+        action.blockId = actionJson.at("blockId").get<std::string>();
+        action.parameter = actionJson.value("parameter", "");
+        action.value1 = actionJson.at("value1").get<float>();
+        action.value2 = actionJson.at("value2").get<float>();
+        binding.actions.push_back(std::move(action));
+      }
+      preset.midiBindings.push_back(std::move(binding));
+    }
+  }
+  validateMidiBindings(preset);
+
   return preset;
 }
 
@@ -252,6 +348,12 @@ float expressionValueAt(const PresetExpression& assignment, float normalizedPosi
   float position = std::clamp(normalizedPosition, 0.0f, 1.0f);
   if (assignment.inverted) position = 1.0f - position;
   return assignment.minimum + position * (assignment.maximum - assignment.minimum);
+}
+
+float midiActionValueAt(const PresetMidiAction& action, std::uint8_t controlValue)
+{
+  const float position = static_cast<float>(std::min<int>(controlValue, 127)) / 127.0f;
+  return action.value1 + position * (action.value2 - action.value1);
 }
 
 } // namespace ardor

@@ -69,6 +69,7 @@ struct RuntimeChain::Block {
   std::unique_ptr<DualAmpProcessor> dualAmp;
   std::unique_ptr<DualRigProcessor> dualRig;
   std::unique_ptr<LevelState> meter = std::make_unique<LevelState>();
+  std::unique_ptr<std::atomic<bool>> enabled = std::make_unique<std::atomic<bool>>(true);
   float level = 1.0f;
   float mix = 1.0f;
   NamInputMode namInputMode = NamInputMode::Sum;
@@ -241,6 +242,17 @@ bool RuntimeChain::setNoiseGateParameter(const std::string& id, const std::strin
   return false;
 }
 
+bool RuntimeChain::setBlockEnabled(const std::string& id, bool enabled)
+{
+  for (auto& block : blocks_) {
+    if (block.id == id) {
+      block.enabled->store(enabled, std::memory_order_relaxed);
+      return true;
+    }
+  }
+  return false;
+}
+
 bool RuntimeChain::addParametricEq(std::string id, const ParametricEqParams& params,
                                    float sampleRate, std::string& error)
 {
@@ -272,6 +284,10 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
   StereoSample current = input;
   for (size_t index = 0; index < blocks_.size(); ++index) {
     auto& block = blocks_[index];
+    if (!block.enabled->load(std::memory_order_relaxed)) {
+      observeLevel(*block.meter, current.left, current.right);
+      continue;
+    }
     switch (block.kind) {
     case Block::Kind::Nam: {
       const float mono = block.nam->process(
@@ -343,7 +359,10 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
   bool currentIsStereo = false;
 
   for (auto& block : blocks_) {
-    switch (block.kind) {
+    if (!block.enabled->load(std::memory_order_relaxed)) {
+      std::copy(currentLeft, currentLeft + frames, nextLeft);
+      std::copy(currentRight, currentRight + frames, nextRight);
+    } else switch (block.kind) {
     case Block::Kind::Nam: {
       for (size_t i = 0; i < frames; ++i) {
         monoScratch_[i] = routeNamInput(block.namInputMode, currentLeft[i], currentRight[i]);

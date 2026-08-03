@@ -58,6 +58,7 @@ struct UiActions {
   std::function<bool(const std::string&, const std::string&, const std::string&, std::string&)>
     saveWifiSettings;
   std::function<void(const std::optional<PresetExpression>&)> updateExpressionAssignment;
+  std::function<void(const std::vector<PresetMidiBinding>&)> updateMidiBindings;
   std::function<bool(const DeviceSettings&, std::string&)> saveControlInputSettings;
 };
 
@@ -204,9 +205,16 @@ private:
   lv_obj_t* drawerLayer_ = nullptr;
   lv_obj_t* statusLayer_ = nullptr;
   lv_obj_t* settingsLayer_ = nullptr;
-  lv_obj_t* previewOverlay_ = nullptr;
-  lv_obj_t* previewOverlayLabel_ = nullptr;
   lv_obj_t* navigationOverlay_ = nullptr;
+  lv_obj_t* midiLearnOverlay_ = nullptr;
+  lv_obj_t* midiLearnGuidanceLabel_ = nullptr;
+  lv_obj_t* midiLearnCaptureLabel_ = nullptr;
+  lv_obj_t* midiLearnAdvancedGroup_ = nullptr;
+  lv_obj_t* midiLearnAdvancedButton_ = nullptr;
+  lv_obj_t* midiLearnSaveButton_ = nullptr;
+  lv_obj_t* midiLearnModeButton_ = nullptr;
+  std::array<lv_obj_t*, 2> midiLearnSliders_{};
+  std::array<lv_obj_t*, 2> midiLearnValueLabels_{};
   lv_obj_t* wifiSSIDField_ = nullptr;
   lv_obj_t* wifiPasswordField_ = nullptr;
   lv_obj_t* wifiCountryField_ = nullptr;
@@ -266,6 +274,7 @@ private:
   std::vector<lv_obj_t*> parameterControls_;
   lv_obj_t* parameterTitleLabel_ = nullptr;
   lv_obj_t* parameterBypassControl_ = nullptr;
+  lv_obj_t* parameterMappingToolbar_ = nullptr;
   lv_obj_t* eqGraph_ = nullptr;
   std::array<lv_obj_t*, kParametricEqBandCount> eqBandButtons_{};
   std::array<lv_obj_t*, 3> eqSliders_{};
@@ -278,6 +287,7 @@ private:
     std::vector<lv_obj_t*> controls;
     lv_obj_t* titleLabel = nullptr;
     lv_obj_t* bypassControl = nullptr;
+    lv_obj_t* mappingToolbar = nullptr;
     lv_obj_t* eqGraph = nullptr;
     std::array<lv_obj_t*, kParametricEqBandCount> eqBandButtons{};
     std::array<lv_obj_t*, 3> eqSliders{};

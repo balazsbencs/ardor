@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <unordered_set>
 
 namespace ardor {
 
@@ -78,11 +79,13 @@ bool prepareDualAmpPlan(ChainBlockPlan& blockPlan, const std::filesystem::path& 
 }
 
 ChainBlockPlan buildBlockPlan(const PresetBlock& block, const std::filesystem::path& dataRoot,
-                              std::size_t& runnableBlockCount)
+                              std::size_t& runnableBlockCount,
+                              const std::unordered_set<std::string>& midiEnabledBlocks)
 {
   ChainBlockPlan blockPlan;
   blockPlan.id = block.id;
   blockPlan.type = block.type;
+  blockPlan.enabled = block.enabled;
   blockPlan.params = block.params.is_null() ? nlohmann::json::object() : block.params;
   if (block.type == "cab") {
     blockPlan.level = dbToGain(std::clamp(
@@ -97,12 +100,13 @@ ChainBlockPlan buildBlockPlan(const PresetBlock& block, const std::filesystem::p
   if (block.type == "dualRig") {
     for (std::size_t lane = 0; lane < block.lanes.size(); ++lane) {
       for (const auto& child : block.lanes[lane]) {
-        blockPlan.lanes[lane].push_back(buildBlockPlan(child, dataRoot, childRunnableBlockCount));
+        blockPlan.lanes[lane].push_back(buildBlockPlan(
+          child, dataRoot, childRunnableBlockCount, midiEnabledBlocks));
       }
     }
   }
 
-  if (!block.enabled) {
+  if (!block.enabled && !midiEnabledBlocks.contains(block.id)) {
     blockPlan.status = ChainBlockStatus::Disabled;
   } else if (block.type == "dualAmp") {
     if (prepareDualAmpPlan(blockPlan, dataRoot)) {
@@ -162,12 +166,21 @@ float dbToGain(float db)
 ChainPlan buildChainPlan(const Preset& preset, const std::filesystem::path& dataRoot)
 {
   ChainPlan plan;
+  std::unordered_set<std::string> midiEnabledBlocks;
+  for (const auto& binding : preset.midiBindings) {
+    for (const auto& action : binding.actions) {
+      if (action.target == PresetMidiTargetType::BlockEnabled) {
+        midiEnabledBlocks.insert(action.blockId);
+      }
+    }
+  }
   plan.inputGain = dbToGain(std::clamp(preset.global.inputGainDb, -60.0f, 24.0f));
   plan.outputGain = dbToGain(std::clamp(preset.global.outputGainDb, -60.0f, 24.0f));
   plan.safetyLimit = dbToGain(std::clamp(preset.global.safetyLimitDb, -60.0f, 0.0f));
 
   for (const auto& block : preset.blocks) {
-    plan.blocks.push_back(buildBlockPlan(block, dataRoot, plan.runnableBlockCount));
+    plan.blocks.push_back(buildBlockPlan(
+      block, dataRoot, plan.runnableBlockCount, midiEnabledBlocks));
   }
   return plan;
 }

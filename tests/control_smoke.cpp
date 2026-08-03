@@ -116,6 +116,37 @@ int main()
   ardor::MidiControlMapper channelOne{{0, 20}};
   if (require(!channelOne.map(*program), "channel filter should reject another channel")) return 1;
 
+  ardor::PresetMidiMapper presetMidi;
+  presetMidi.load({
+    {2, 11, ardor::PresetMidiBindingMode::Continuous,
+      {{ardor::PresetMidiTargetType::Parameter, "wah", "position", 0.2f, 0.8f}}},
+    {2, 64, ardor::PresetMidiBindingMode::Toggle, {
+      {ardor::PresetMidiTargetType::BlockEnabled, "boost", "", 0.0f, 1.0f},
+      {ardor::PresetMidiTargetType::BlockEnabled, "chorus", "", 1.0f, 0.0f},
+      {ardor::PresetMidiTargetType::Parameter, "amp", "gain", 0.5f, 0.7f},
+    }},
+  });
+  const auto sceneOne = presetMidi.reset();
+  if (require(sceneOne.size() == 3 && sceneOne[0].value == 0.0f
+                && sceneOne[1].value == 1.0f && sceneOne[2].value == 0.5f,
+              "preset load should apply toggle scene 1")) return 1;
+  const auto wahMid = presetMidi.map({ardor::MidiMessageType::ControlChange, 2, 11, 64});
+  if (require(wahMid.size() == 1 && std::fabs(wahMid[0].value - 0.5023622f) < 0.0001f,
+              "continuous learned CC should scale across its range")) return 1;
+  const auto sceneTwo = presetMidi.map({ardor::MidiMessageType::ControlChange, 2, 64, 127});
+  if (require(sceneTwo.size() == 3 && sceneTwo[0].value == 1.0f
+                && sceneTwo[1].value == 0.0f && sceneTwo[2].value == 0.7f,
+              "footswitch high edge should apply all scene 2 actions")) return 1;
+  if (require(presetMidi.map({ardor::MidiMessageType::ControlChange, 2, 64, 127}).empty(),
+              "held footswitch should not retrigger a scene")) return 1;
+  if (require(presetMidi.map({ardor::MidiMessageType::ControlChange, 2, 64, 0}).empty(),
+              "footswitch release should leave the scene latched")) return 1;
+  const auto backToOne = presetMidi.map({ardor::MidiMessageType::ControlChange, 2, 64, 127});
+  if (require(backToOne.size() == 3 && backToOne[2].value == 0.5f,
+              "next footswitch press should return to scene 1")) return 1;
+  if (require(!presetMidi.handles({ardor::MidiMessageType::ControlChange, 1, 11, 64}),
+              "learned mapping should respect its channel")) return 1;
+
   ardor::ExpressionFilter expression{{100, 1100, 1.0f, 0.01f}};
   if (require(expression.valid(), "expression calibration should be valid")) return 1;
   const auto expressionMinimum = expression.update(100);

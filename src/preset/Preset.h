@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 
 #include <array>
+#include <cstdint>
 #include <optional>
 #include <string_view>
 #include <string>
@@ -38,6 +39,35 @@ struct PresetExpression {
   bool inverted = false;
 };
 
+enum class PresetMidiBindingMode {
+  Continuous,
+  Toggle,
+};
+
+enum class PresetMidiTargetType {
+  Parameter,
+  BlockEnabled,
+};
+
+// A MIDI action always has two endpoints. Continuous bindings interpolate
+// between them from CC 0..127. Toggle bindings apply the complete set of
+// value1 endpoints for scene 1 and value2 endpoints for scene 2.
+struct PresetMidiAction {
+  PresetMidiTargetType target = PresetMidiTargetType::Parameter;
+  std::string blockId;
+  std::string parameter;
+  float value1 = 0.0f;
+  float value2 = 1.0f;
+};
+
+struct PresetMidiBinding {
+  // -1 is channel-omni; 0..15 selects a MIDI channel.
+  int channel = -1;
+  std::uint8_t controlChange = 0;
+  PresetMidiBindingMode mode = PresetMidiBindingMode::Continuous;
+  std::vector<PresetMidiAction> actions;
+};
+
 struct Preset {
   int version = 1;
   std::string name;
@@ -45,11 +75,13 @@ struct Preset {
   PresetGlobal global;
   std::vector<PresetBlock> blocks;
   std::optional<PresetExpression> expression;
+  std::vector<PresetMidiBinding> midiBindings;
 };
 
 nlohmann::json toJson(const Preset& preset);
 Preset presetFromJson(const nlohmann::json& json);
 bool isValidBlockAssetPath(std::string_view asset);
 float expressionValueAt(const PresetExpression& assignment, float normalizedPosition);
+float midiActionValueAt(const PresetMidiAction& action, std::uint8_t controlValue);
 
 } // namespace ardor

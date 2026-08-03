@@ -205,6 +205,11 @@ bool PedalEngine::setNoiseGateParameter(const std::string& id, const std::string
   return chain_.setNoiseGateParameter(id, key, value);
 }
 
+bool PedalEngine::setBlockEnabled(const std::string& id, bool enabled)
+{
+  return chain_.setBlockEnabled(id, enabled);
+}
+
 bool PedalEngine::addParametricEq(const std::string& id, const nlohmann::json& params,
                                   float sampleRate, std::string& error)
 {

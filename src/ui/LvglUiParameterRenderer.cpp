@@ -25,8 +25,10 @@ constexpr int kPanelCloseButtonHeight = kPanelActionHeight;
 constexpr int kPanelCloseButtonX = kParameterPanelWidth - kPanelEdgeInset - kPanelCloseButtonWidth;
 constexpr int kBypassControlWidth = 160;
 constexpr int kBypassControlX = kPanelCloseButtonX - 36 - kBypassControlWidth;
+constexpr int kBypassMidiWidth = 72;
+constexpr int kBypassMidiX = kBypassControlX - 84;
 constexpr int kDeleteBlockWidth = 156;
-constexpr int kDeleteBlockX = kBypassControlX - 24 - kDeleteBlockWidth;
+constexpr int kDeleteBlockX = kBypassMidiX - 24 - kDeleteBlockWidth;
 constexpr int kParameterTitleX = 270;
 constexpr int kParameterTitleWidth = kDeleteBlockX - kParameterTitleX - 24;
 constexpr int kParameterSliderColumns = 3;
@@ -38,6 +40,17 @@ constexpr int kParameterSliderGridX = 28;
 constexpr int kParameterSliderGridY = 82;
 constexpr int kParameterSliderRadius = 5;
 constexpr int kParameterSliderTextInset = 20;
+constexpr int kParameterSliderLabelWidth = 170;
+constexpr int kParameterSliderValueWidth = 165;
+constexpr int kParameterPanelHeight = 348;
+constexpr int kMappingToolbarX = kParameterSliderGridX;
+constexpr int kMappingToolbarY = 264;
+constexpr int kMappingToolbarWidth = 1183;
+constexpr int kMappingToolbarHeight = 60;
+constexpr int kMappingButtonWidth = 148;
+constexpr int kMappingButtonHeight = 40;
+constexpr int kMappingMidiButtonX = kMappingToolbarWidth - 18 - kMappingButtonWidth;
+constexpr int kMappingExpButtonX = kMappingMidiButtonX - 14 - kMappingButtonWidth;
 
 struct ParameterSliderVisual {
   std::size_t controlIndex = 0;
@@ -46,7 +59,15 @@ struct ParameterSliderVisual {
   lv_obj_t* inactiveValue = nullptr;
   lv_obj_t* activeLabel = nullptr;
   lv_obj_t* activeValue = nullptr;
-  lv_obj_t* expressionBadge = nullptr;
+};
+
+struct ParameterMappingVisual {
+  lv_obj_t* parameterLabel = nullptr;
+  lv_obj_t* valueLabel = nullptr;
+  lv_obj_t* expressionButton = nullptr;
+  lv_obj_t* midiButton = nullptr;
+  UiEventContext* expressionContext = nullptr;
+  UiEventContext* midiContext = nullptr;
 };
 
 struct BypassControlVisual {
@@ -60,6 +81,11 @@ struct BypassControlVisual {
 void freeParameterSliderVisual(lv_event_t* event)
 {
   delete static_cast<ParameterSliderVisual*>(lv_event_get_user_data(event));
+}
+
+void freeParameterMappingVisual(lv_event_t* event)
+{
+  delete static_cast<ParameterMappingVisual*>(lv_event_get_user_data(event));
 }
 
 void freeBypassControlVisual(lv_event_t* event)
@@ -139,7 +165,7 @@ void onParameterGesture(lv_event_t* event)
 }
 
 void refreshParameterSliderVisual(lv_obj_t* slider, const ParameterControl& control,
-                                  bool focused = true, bool expressionAssigned = false)
+                                  bool focused = true)
 {
   const auto* visual = static_cast<const ParameterSliderVisual*>(lv_obj_get_user_data(slider));
   if (!visual) {
@@ -161,14 +187,42 @@ void refreshParameterSliderVisual(lv_obj_t* slider, const ParameterControl& cont
   lv_obj_set_style_outline_width(slider, focused ? 2 : 0, 0);
   lv_obj_set_style_outline_color(slider, lv_color_hex(accent), 0);
   lv_obj_set_style_outline_pad(slider, 2, 0);
-  if (visual->expressionBadge) {
-    styleSurface(visual->expressionBadge, expressionAssigned ? 0x25442a : 0x242424);
-    lv_obj_set_style_border_width(visual->expressionBadge, expressionAssigned ? 2 : 1, 0);
-    lv_obj_set_style_border_color(visual->expressionBadge,
-                                  lv_color_hex(expressionAssigned ? accent : 0x555555), 0);
-    lv_obj_set_style_text_color(lv_obj_get_child(visual->expressionBadge, 0),
-                                lv_color_hex(expressionAssigned ? accent : muted), 0);
+}
+
+void styleMappingButton(lv_obj_t* control, bool supported, bool assigned)
+{
+  if (supported) {
+    lv_obj_remove_state(control, LV_STATE_DISABLED);
+  } else {
+    lv_obj_add_state(control, LV_STATE_DISABLED);
   }
+  styleSurface(control, assigned ? 0x25442a : 0x242424);
+  lv_obj_set_style_border_width(control, assigned ? 2 : 1, 0);
+  lv_obj_set_style_border_color(control,
+                                lv_color_hex(assigned ? accent : 0x555555), 0);
+  lv_obj_set_style_text_color(lv_obj_get_child(control, 0),
+                              lv_color_hex(assigned ? accent : (supported ? text : muted)), 0);
+}
+
+void refreshParameterMappingVisual(lv_obj_t* toolbar, const ParameterControl& control,
+                                   std::size_t controlIndex, bool expressionSupported,
+                                   bool midiSupported, bool expressionAssigned,
+                                   bool midiAssigned)
+{
+  auto* visual = static_cast<ParameterMappingVisual*>(lv_obj_get_user_data(toolbar));
+  if (!visual) return;
+
+  const auto selected = "Selected  /  " + control.label;
+  lv_label_set_text(visual->parameterLabel, selected.c_str());
+  lv_label_set_text(visual->valueLabel, control.formatted.c_str());
+  lv_label_set_text(lv_obj_get_child(visual->expressionButton, 0),
+                    expressionAssigned ? "EXP Assigned" : "Assign EXP");
+  lv_label_set_text(lv_obj_get_child(visual->midiButton, 0),
+                    midiAssigned ? "MIDI Mapped" : "MIDI Learn");
+  visual->expressionContext->index = controlIndex;
+  visual->midiContext->index = controlIndex;
+  styleMappingButton(visual->expressionButton, expressionSupported, expressionAssigned);
+  styleMappingButton(visual->midiButton, midiSupported, midiAssigned);
 }
 
 bool expressionAssignedTo(const UiState& state, const ParameterControl& control)
@@ -186,6 +240,16 @@ void onExpressionAssignmentClicked(lv_event_t* event)
   const auto controls = parameterPage(*context->state, context->ui->parameterPage());
   if (context->index >= controls.size()) return;
   context->ui->toggleExpressionAssignment(*context->state, controls[context->index]);
+  redraw(context);
+}
+
+void onMidiLearnClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  const auto controls = parameterPage(*context->state, context->ui->parameterPage());
+  if (context->index >= controls.size()) return;
+  beginMidiLearn(*context->state, controls[context->index]);
+  context->ui->invalidate(UiChange::Parameters | UiChange::Status);
   redraw(context);
 }
 
@@ -255,9 +319,7 @@ void onParameterSliderPressed(lv_event_t* event)
   context->ui->setFocusedWidgets(slider);
   context->ui->beginParameterInteraction();
   context->ui->focusParameter(context->filter);
-  refreshParameterSliderVisual(slider, controls[visual->controlIndex], true,
-                               expressionAssignedTo(*context->state,
-                                                    controls[visual->controlIndex]));
+  refreshParameterSliderVisual(slider, controls[visual->controlIndex], true);
   applyParameterSliderPosition(slider, context, input);
 }
 
@@ -283,6 +345,14 @@ void onBypassClicked(lv_event_t* event)
   const bool bypassed = !lv_obj_has_state(control, LV_STATE_CHECKED);
   refreshBypassControlVisual(control, bypassed);
   setSelectedBlockEnabled(*context->state, !bypassed);
+  redraw(context);
+}
+
+void onBypassMidiLearnClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  beginMidiLearnForBlockEnabled(*context->state);
+  context->ui->invalidate(UiChange::Parameters | UiChange::Status);
   redraw(context);
 }
 
@@ -317,12 +387,12 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
     lv_obj_t* controlLabel = label(layer, control.label, LV_ALIGN_LEFT_MID,
                                    kParameterSliderTextInset, 0,
                                    &ardor_font_open_sans_semibold_22, color);
-    lv_obj_set_width(controlLabel, 230);
+    lv_obj_set_width(controlLabel, kParameterSliderLabelWidth);
     lv_label_set_long_mode(controlLabel, LV_LABEL_LONG_CLIP);
     lv_obj_t* valueLabel = label(layer, control.formatted, LV_ALIGN_RIGHT_MID,
                                  -kParameterSliderTextInset, 0,
                                  &ardor_font_open_sans_semibold_22, color);
-    lv_obj_set_width(valueLabel, 120);
+    lv_obj_set_width(valueLabel, kParameterSliderValueWidth);
     lv_label_set_long_mode(valueLabel, LV_LABEL_LONG_CLIP);
     lv_obj_set_style_text_align(valueLabel, LV_TEXT_ALIGN_RIGHT, 0);
     *labelOut = controlLabel;
@@ -352,20 +422,60 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
   lv_obj_set_style_pad_all(activeTextLayer, 0, 0);
   addTextPair(activeTextLayer, 0x102014, &visual->activeLabel, &visual->activeValue);
 
-  if (parameterSupportsExpression(*context->state, control)) {
-    lv_obj_t* exp = button(slider, "EXP");
-    lv_obj_set_size(exp, 54, 30);
-    lv_obj_set_pos(exp, 204, 23);
-    lv_obj_remove_flag(exp, LV_OBJ_FLAG_GESTURE_BUBBLE);
-    lv_obj_set_style_text_font(lv_obj_get_child(exp, 0), &ardor_font_open_sans_regular_18, 0);
-    auto* expContext = context->ui->remember(*context->state, controlIndex);
-    lv_obj_add_event_cb(exp, onExpressionAssignmentClicked, LV_EVENT_CLICKED, expContext);
-    visual->expressionBadge = exp;
-  }
-
-  refreshParameterSliderVisual(slider, control, focused,
-                               expressionAssignedTo(*context->state, control));
+  refreshParameterSliderVisual(slider, control, focused);
   return slider;
+}
+
+lv_obj_t* renderParameterMappingToolbar(lv_obj_t* parent, UiState& state,
+                                        UiEventContext* context,
+                                        const ParameterControl& control,
+                                        std::size_t controlIndex)
+{
+  lv_obj_t* toolbar = lv_obj_create(parent);
+  lv_obj_set_size(toolbar, kMappingToolbarWidth, kMappingToolbarHeight);
+  lv_obj_set_pos(toolbar, kMappingToolbarX, kMappingToolbarY);
+  lv_obj_remove_flag(toolbar, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(toolbar, LV_OBJ_FLAG_GESTURE_BUBBLE);
+  styleSurface(toolbar, 0x2d2d2d);
+  lv_obj_set_style_radius(toolbar, kParameterSliderRadius, 0);
+  lv_obj_set_style_border_width(toolbar, 1, 0);
+  lv_obj_set_style_border_color(toolbar, lv_color_hex(0x4a4a4a), 0);
+  lv_obj_set_style_pad_all(toolbar, 0, 0);
+
+  auto* visual = new ParameterMappingVisual{};
+  lv_obj_set_user_data(toolbar, visual);
+  lv_obj_add_event_cb(toolbar, freeParameterMappingVisual, LV_EVENT_DELETE, visual);
+
+  visual->parameterLabel = label(toolbar, "", LV_ALIGN_LEFT_MID, 18, 0,
+                                 &ardor_font_open_sans_semibold_22, text);
+  lv_obj_set_width(visual->parameterLabel, 600);
+  lv_label_set_long_mode(visual->parameterLabel, LV_LABEL_LONG_CLIP);
+
+  visual->valueLabel = label(toolbar, "", LV_ALIGN_LEFT_MID, 650, 0,
+                             &ardor_font_open_sans_semibold_22, text);
+  lv_obj_set_width(visual->valueLabel, 180);
+  lv_label_set_long_mode(visual->valueLabel, LV_LABEL_LONG_CLIP);
+  lv_obj_set_style_text_align(visual->valueLabel, LV_TEXT_ALIGN_RIGHT, 0);
+
+  visual->expressionButton = button(toolbar, "Assign EXP");
+  lv_obj_set_size(visual->expressionButton, kMappingButtonWidth, kMappingButtonHeight);
+  lv_obj_set_pos(visual->expressionButton, kMappingExpButtonX, 10);
+  visual->expressionContext = context->ui->remember(state, controlIndex);
+  lv_obj_add_event_cb(visual->expressionButton, onExpressionAssignmentClicked,
+                      LV_EVENT_CLICKED, visual->expressionContext);
+
+  visual->midiButton = button(toolbar, "MIDI Learn");
+  lv_obj_set_size(visual->midiButton, kMappingButtonWidth, kMappingButtonHeight);
+  lv_obj_set_pos(visual->midiButton, kMappingMidiButtonX, 10);
+  visual->midiContext = context->ui->remember(state, controlIndex);
+  lv_obj_add_event_cb(visual->midiButton, onMidiLearnClicked,
+                      LV_EVENT_CLICKED, visual->midiContext);
+
+  refreshParameterMappingVisual(
+    toolbar, control, controlIndex, parameterSupportsExpression(state, control),
+    parameterSupportsExpression(state, control) && !selectedBlockIsLaneChild(state),
+    expressionAssignedTo(state, control), parameterHasMidiBinding(state, control));
+  return toolbar;
 }
 
 lv_obj_t* renderPanelCloseButton(lv_obj_t* parent, UiEventContext* context)
@@ -446,6 +556,10 @@ void renderBlockPanelActions(lv_obj_t* parent, UiState& state, UiEventContext* c
                              lv_obj_t** bypassOut = nullptr)
 {
   renderBypassControl(parent, state, context, bypassOut);
+  lv_obj_t* bypassMidi = button(parent, "MIDI");
+  lv_obj_set_size(bypassMidi, kBypassMidiWidth, kPanelActionHeight);
+  lv_obj_set_pos(bypassMidi, kBypassMidiX, kPanelActionTop);
+  lv_obj_add_event_cb(bypassMidi, onBypassMidiLearnClicked, LV_EVENT_CLICKED, context);
   lv_obj_t* remove = button(parent, "Delete Block");
   lv_obj_set_size(remove, kDeleteBlockWidth, kPanelActionHeight);
   lv_obj_set_pos(remove, kDeleteBlockX, kPanelActionTop);
@@ -479,10 +593,10 @@ void renderPageNavigation(lv_obj_t* parent, UiState& state, UiEventContext* cont
 
 void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* context,
                           std::vector<lv_obj_t*>* controlsOut, lv_obj_t** bypassOut,
-                          lv_obj_t** titleOut)
+                          lv_obj_t** titleOut, lv_obj_t** mappingToolbarOut)
 {
   lv_obj_t* panelObject = lv_obj_create(root);
-  lv_obj_set_size(panelObject, 1240, 286);
+  lv_obj_set_size(panelObject, kParameterPanelWidth, kParameterPanelHeight);
   lv_obj_align(panelObject, LV_ALIGN_BOTTOM_MID, 0, -52);
   lv_obj_remove_flag(panelObject, LV_OBJ_FLAG_SCROLLABLE);
   styleSurface(panelObject, panelAlt);
@@ -511,6 +625,12 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
 
   renderPageNavigation(panelObject, state, context);
   const auto controls = parameterPage(state, context->ui->parameterPage());
+  if (!controls.empty()
+      && std::none_of(controls.begin(), controls.end(), [&](const auto& control) {
+           return context->ui->isParameterFocused(control.key);
+         })) {
+    context->ui->focusParameter(controls.front().key);
+  }
   for (std::size_t i = 0; i < controls.size(); ++i) {
     const int column = static_cast<int>(i % kParameterSliderColumns);
     const int row = static_cast<int>(i / kParameterSliderColumns);
@@ -521,6 +641,17 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
       context->ui->isParameterFocused(controls[i].key), context,
       onParameterSliderPressed, onParameterSliderPressing, i);
     if (controlsOut) controlsOut->push_back(slider);
+  }
+  if (!controls.empty()) {
+    const auto selected = std::find_if(controls.begin(), controls.end(), [&](const auto& control) {
+      return context->ui->isParameterFocused(control.key);
+    });
+    const auto selectedIndex = selected == controls.end()
+      ? std::size_t{0}
+      : static_cast<std::size_t>(std::distance(controls.begin(), selected));
+    lv_obj_t* toolbar = renderParameterMappingToolbar(
+      panelObject, state, context, controls[selectedIndex], selectedIndex);
+    if (mappingToolbarOut) *mappingToolbarOut = toolbar;
   }
 }
 
@@ -558,10 +689,17 @@ void renderBlockActions(lv_obj_t* parent, UiState& state,
 
 namespace parameter_view {
 
-void syncSlider(lv_obj_t* slider, const ParameterControl& control, bool focused,
-                bool expressionAssigned)
+void syncSlider(lv_obj_t* slider, const ParameterControl& control, bool focused)
 {
-  refreshParameterSliderVisual(slider, control, focused, expressionAssigned);
+  refreshParameterSliderVisual(slider, control, focused);
+}
+
+void syncMappingToolbar(lv_obj_t* toolbar, const ParameterControl& control,
+                        std::size_t controlIndex, bool expressionSupported,
+                        bool midiSupported, bool expressionAssigned, bool midiAssigned)
+{
+  refreshParameterMappingVisual(toolbar, control, controlIndex, expressionSupported,
+                                midiSupported, expressionAssigned, midiAssigned);
 }
 
 void syncBypass(lv_obj_t* control, bool bypassed)
@@ -572,9 +710,11 @@ void syncBypass(lv_obj_t* control, bool bypassed)
 
 void buildPanel(lv_obj_t* root, UiState& state, UiEventContext* context,
                 std::vector<lv_obj_t*>* controlsOut,
-                lv_obj_t** bypassOut, lv_obj_t** titleOut)
+                lv_obj_t** bypassOut, lv_obj_t** titleOut,
+                lv_obj_t** mappingToolbarOut)
 {
-  renderParameterPanel(root, state, context, controlsOut, bypassOut, titleOut);
+  renderParameterPanel(root, state, context, controlsOut, bypassOut, titleOut,
+                       mappingToolbarOut);
 }
 
 } // namespace parameter_view

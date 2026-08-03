@@ -277,6 +277,7 @@ void rememberBlockEdit(UiState& state)
   state.blockEditUndo = UiBlockEditSnapshot{
     state.bank.presets[state.activePreset].blocks,
     state.bank.presets[state.activePreset].expression,
+    state.bank.presets[state.activePreset].midiBindings,
     state.selectedBlock,
     state.selectedBlockId,
     state.paramTarget,
@@ -723,6 +724,15 @@ bool deleteSelectedBlock(UiState& state)
       lane.erase(found);
       auto& assignment = state.bank.presets[state.activePreset].expression;
       if (assignment && assignment->blockId == deletedId) assignment.reset();
+      auto& bindings = state.bank.presets[state.activePreset].midiBindings;
+      for (auto& binding : bindings) {
+        std::erase_if(binding.actions, [&](const PresetMidiAction& action) {
+          return action.blockId == deletedId;
+        });
+      }
+      std::erase_if(bindings, [](const PresetMidiBinding& binding) {
+        return binding.actions.empty();
+      });
       rig.assetName = "Left " + std::to_string(rig.lanes[0].size())
         + " blocks  /  Right " + std::to_string(rig.lanes[1].size()) + " blocks";
       state.selectedBlockId = rig.id;
@@ -754,6 +764,16 @@ bool deleteSelectedBlock(UiState& state)
                                            blocks[state.selectedBlock], assignment->blockId)) {
     assignment.reset();
   }
+  auto& midiBindings = state.bank.presets[state.activePreset].midiBindings;
+  for (auto& binding : midiBindings) {
+    std::erase_if(binding.actions, [&](const PresetMidiAction& action) {
+      return containsAssignedBlock(containsAssignedBlock,
+                                   blocks[state.selectedBlock], action.blockId);
+    });
+  }
+  std::erase_if(midiBindings, [](const PresetMidiBinding& binding) {
+    return binding.actions.empty();
+  });
   blocks.erase(blocks.begin() + static_cast<std::ptrdiff_t>(state.selectedBlock));
   if (blocks.empty()) {
     state.selectedBlock = 0;
@@ -782,6 +802,7 @@ bool undoLastBlockEdit(UiState& state)
   state.blockEditUndo.reset();
   state.bank.presets[state.activePreset].blocks = std::move(snapshot.blocks);
   state.bank.presets[state.activePreset].expression = std::move(snapshot.expression);
+  state.bank.presets[state.activePreset].midiBindings = std::move(snapshot.midiBindings);
   state.selectedBlock = snapshot.selectedBlock;
   state.selectedBlockId = std::move(snapshot.selectedBlockId);
   state.paramTarget = snapshot.paramTarget;
@@ -819,6 +840,7 @@ Preset activePresetToPreset(const UiState& state)
   preset.routing = "serial";
   preset.global = uiPreset.global;
   preset.expression = uiPreset.expression;
+  preset.midiBindings = uiPreset.midiBindings;
   const auto convertBlock = [&](const auto& self, const UiBlock& block) -> PresetBlock {
     PresetBlock converted{block.id, block.type, block.enabled, block.assetPath,
                           block.params.is_null() ? nlohmann::json::object() : block.params};
@@ -874,6 +896,7 @@ void replaceActivePreset(UiState& state, const Preset& preset)
   uiPreset.name = preset.name;
   uiPreset.global = preset.global;
   uiPreset.expression = preset.expression;
+  uiPreset.midiBindings = preset.midiBindings;
   uiPreset.blocks.clear();
   for (const auto& block : preset.blocks) {
     if (uiPreset.blocks.size() == kMaxEffectBlocks) {
@@ -1225,6 +1248,21 @@ bool parameterSupportsExpression(const UiState& state, const ParameterControl& c
   return block->type == "cab" && (control.key == "mix" || control.key == "levelDb");
 }
 
+bool parameterHasMidiBinding(const UiState& state, const ParameterControl& control)
+{
+  if (state.paramTarget != UiParamTarget::Block) return false;
+  const auto* block = selectedUiBlock(state);
+  if (!block) return false;
+  const auto& bindings = state.bank.presets[state.activePreset].midiBindings;
+  return std::any_of(bindings.begin(), bindings.end(), [&](const PresetMidiBinding& binding) {
+    return std::any_of(binding.actions.begin(), binding.actions.end(),
+      [&](const PresetMidiAction& action) {
+        return action.target == PresetMidiTargetType::Parameter
+          && action.blockId == block->id && action.parameter == control.key;
+      });
+  });
+}
+
 bool toggleExpressionAssignment(UiState& state, const ParameterControl& control)
 {
   if (!parameterSupportsExpression(state, control)) return false;
@@ -1243,6 +1281,169 @@ bool toggleExpressionAssignment(UiState& state, const ParameterControl& control)
   state.dirty = true;
   markUiChanged(state, UiChange::Header | UiChange::Parameters | UiChange::Telemetry);
   return true;
+}
+
+bool beginMidiLearn(UiState& state, const ParameterControl& control)
+{
+  if (!parameterSupportsExpression(state, control) || selectedBlockIsLaneChild(state)) return false;
+  const auto* block = selectedUiBlock(state);
+  if (!block) return false;
+  state.midiLearn = {};
+  state.midiLearn.stage = UiMidiLearnStage::Waiting;
+  state.midiLearn.action = {
+    PresetMidiTargetType::Parameter, block->id, control.key,
+    control.minimum, control.maximum,
+  };
+  state.midiLearn.targetMinimum = control.minimum;
+  state.midiLearn.targetMaximum = control.maximum;
+  state.midiLearn.targetCurrent = control.value;
+  setUiStatus(state, "MIDI Learn: move a pedal or press a footswitch");
+  markUiChanged(state, UiChange::Parameters | UiChange::Status);
+  return true;
+}
+
+bool beginMidiLearnForBlockEnabled(UiState& state)
+{
+  if (state.paramTarget != UiParamTarget::Block || selectedBlockIsLaneChild(state)) return false;
+  const auto* block = selectedUiBlock(state);
+  if (!block) return false;
+  state.midiLearn = {};
+  state.midiLearn.stage = UiMidiLearnStage::Waiting;
+  state.midiLearn.mode = PresetMidiBindingMode::Toggle;
+  state.midiLearn.modeExplicit = true;
+  state.midiLearn.action = {
+    PresetMidiTargetType::BlockEnabled, block->id, "",
+    block->enabled ? 1.0f : 0.0f, block->enabled ? 0.0f : 1.0f,
+  };
+  state.midiLearn.targetMinimum = 0.0f;
+  state.midiLearn.targetMaximum = 1.0f;
+  state.midiLearn.targetCurrent = block->enabled ? 1.0f : 0.0f;
+  setUiStatus(state, "MIDI Learn: press a footswitch for bypass");
+  markUiChanged(state, UiChange::Parameters | UiChange::Status);
+  return true;
+}
+
+bool observeMidiLearnControlChange(
+  UiState& state, int channel, int controlChange, int value)
+{
+  if (state.midiLearn.stage == UiMidiLearnStage::None) return false;
+  channel = std::clamp(channel, 0, 15);
+  controlChange = std::clamp(controlChange, 0, 127);
+  value = std::clamp(value, 0, 127);
+  auto& learn = state.midiLearn;
+  if (learn.stage == UiMidiLearnStage::Waiting) {
+    learn.channel = channel;
+    learn.controlChange = controlChange;
+    learn.stage = UiMidiLearnStage::Captured;
+  }
+  if (controlChange == learn.controlChange && channel == learn.channel
+      && learn.stage != UiMidiLearnStage::Advanced) {
+    learn.observedMinimum = std::min(learn.observedMinimum, value);
+    learn.observedMaximum = std::max(learn.observedMaximum, value);
+    ++learn.observedCount;
+    markUiChanged(state, UiChange::Status | UiChange::Parameters);
+  }
+  // While the learn sheet is open, MIDI belongs to it and must not also
+  // change a bank, tuner state, or an older mapping.
+  return true;
+}
+
+void showAdvancedMidiLearn(UiState& state)
+{
+  if (state.midiLearn.stage != UiMidiLearnStage::Captured) return;
+  state.midiLearn.stage = UiMidiLearnStage::Advanced;
+  markUiChanged(state, UiChange::Parameters | UiChange::Status);
+}
+
+void setMidiLearnMode(UiState& state, PresetMidiBindingMode mode)
+{
+  auto& learn = state.midiLearn;
+  if (learn.stage == UiMidiLearnStage::None || learn.controlChange < 0) return;
+  learn.mode = mode;
+  learn.modeExplicit = true;
+  if (mode == PresetMidiBindingMode::Continuous) {
+    learn.action.value1 = learn.targetMinimum;
+    learn.action.value2 = learn.targetMaximum;
+  } else {
+    learn.action.value1 = learn.targetCurrent;
+    const float distanceToMinimum = std::fabs(learn.targetCurrent - learn.targetMinimum);
+    const float distanceToMaximum = std::fabs(learn.targetMaximum - learn.targetCurrent);
+    learn.action.value2 = distanceToMaximum >= distanceToMinimum
+      ? learn.targetMaximum : learn.targetMinimum;
+  }
+  markUiChanged(state, UiChange::Parameters);
+}
+
+void setMidiLearnEndpoint(UiState& state, std::size_t endpoint, float value)
+{
+  auto& learn = state.midiLearn;
+  if (learn.stage != UiMidiLearnStage::Advanced || !std::isfinite(value)) return;
+  value = std::clamp(value, learn.targetMinimum, learn.targetMaximum);
+  if (endpoint == 0) learn.action.value1 = value;
+  else if (endpoint == 1) learn.action.value2 = value;
+  else return;
+  markUiChanged(state, UiChange::Parameters);
+}
+
+bool commitMidiLearn(UiState& state)
+{
+  auto& learn = state.midiLearn;
+  if ((learn.stage != UiMidiLearnStage::Captured
+       && learn.stage != UiMidiLearnStage::Advanced)
+      || learn.controlChange < 0) return false;
+  const auto previewRollback = previewSnapshot(state);
+  const auto* targetBlock = selectedUiBlock(state);
+  const bool mustPrepareBypassedBlock = previewIsSynchronized(state)
+    && learn.action.target == PresetMidiTargetType::BlockEnabled
+    && targetBlock && targetBlock->id == learn.action.blockId && !targetBlock->enabled;
+  if (!learn.modeExplicit) {
+    const bool swept = learn.observedCount >= 3
+      && learn.observedMaximum - learn.observedMinimum >= 8;
+    learn.mode = swept ? PresetMidiBindingMode::Continuous : PresetMidiBindingMode::Toggle;
+    if (!swept) setMidiLearnMode(state, PresetMidiBindingMode::Toggle);
+  }
+
+  auto& bindings = state.bank.presets[state.activePreset].midiBindings;
+  const auto sameTarget = [&](const PresetMidiAction& action) {
+    return action.target == learn.action.target
+      && action.blockId == learn.action.blockId
+      && action.parameter == learn.action.parameter;
+  };
+  for (auto& binding : bindings) {
+    std::erase_if(binding.actions, sameTarget);
+  }
+  std::erase_if(bindings, [](const PresetMidiBinding& binding) {
+    return binding.actions.empty();
+  });
+
+  auto binding = std::find_if(bindings.begin(), bindings.end(), [&](const PresetMidiBinding& item) {
+    return item.channel == learn.channel
+      && item.controlChange == learn.controlChange;
+  });
+  if (binding == bindings.end()) {
+    bindings.push_back({learn.channel, static_cast<std::uint8_t>(learn.controlChange),
+                        learn.mode, {learn.action}});
+  } else {
+    binding->mode = learn.mode;
+    binding->actions.push_back(learn.action);
+  }
+  const auto controller = learn.controlChange;
+  state.midiLearn = {};
+  state.dirty = true;
+  if (mustPrepareBypassedBlock) {
+    queuePreview(state, previewRollback, "prepare MIDI scene");
+  }
+  setUiStatus(state, "MIDI CC " + std::to_string(controller) + " learned");
+  markUiChanged(state, UiChange::Header | UiChange::Parameters | UiChange::Status);
+  return true;
+}
+
+void cancelMidiLearn(UiState& state)
+{
+  if (state.midiLearn.stage == UiMidiLearnStage::None) return;
+  state.midiLearn = {};
+  setUiStatus(state, "MIDI Learn cancelled");
+  markUiChanged(state, UiChange::Parameters | UiChange::Status);
 }
 
 void setUiStatus(UiState& state, std::string message, bool isError)

@@ -29,6 +29,7 @@ struct ChainBlockPlan {
   ChainBlockStatus status = ChainBlockStatus::Ready;
   std::filesystem::path assetPath;
   nlohmann::json params = nlohmann::json::object();
+  bool enabled = true;
   float level = 1.0f;
   float mix = 1.0f;
   std::array<DualAmpLane, 2> dualAmpLanes;

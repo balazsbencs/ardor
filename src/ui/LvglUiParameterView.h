@@ -19,8 +19,10 @@ struct UiState;
 // unit.
 namespace parameter_view {
 
-void syncSlider(lv_obj_t* slider, const ParameterControl& control, bool focused = true,
-                bool expressionAssigned = false);
+void syncSlider(lv_obj_t* slider, const ParameterControl& control, bool focused = true);
+void syncMappingToolbar(lv_obj_t* toolbar, const ParameterControl& control,
+                        std::size_t controlIndex, bool expressionSupported,
+                        bool midiSupported, bool expressionAssigned, bool midiAssigned);
 void syncBypass(lv_obj_t* control, bool bypassed);
 ParameterControl eqControl(EqBandField field, const EqBandParams& band);
 void syncEqGraph(lv_obj_t* graph, const ParametricEqParams& params, bool throttle = false);
@@ -41,7 +43,8 @@ void buildEqPanel(
 
 void buildPanel(lv_obj_t* root, UiState& state, UiEventContext* context,
                 std::vector<lv_obj_t*>* controlsOut,
-                lv_obj_t** bypassOut, lv_obj_t** titleOut);
+                lv_obj_t** bypassOut, lv_obj_t** titleOut,
+                lv_obj_t** mappingToolbarOut);
 
 } // namespace parameter_view
 } // namespace ardor

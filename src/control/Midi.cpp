@@ -82,4 +82,64 @@ std::optional<MidiAction> MidiControlMapper::map(const MidiMessage& message) con
   return std::nullopt;
 }
 
+void PresetMidiMapper::load(const std::vector<PresetMidiBinding>& bindings)
+{
+  bindings_.clear();
+  bindings_.reserve(bindings.size());
+  for (const auto& binding : bindings) {
+    bindings_.push_back({binding, false, false});
+  }
+}
+
+std::vector<PresetMidiValue> PresetMidiMapper::reset()
+{
+  std::vector<PresetMidiValue> values;
+  for (auto& state : bindings_) {
+    state.inputHigh = false;
+    state.scene2 = false;
+    if (state.binding.mode != PresetMidiBindingMode::Toggle) continue;
+    for (const auto& action : state.binding.actions) {
+      values.push_back({action, action.value1});
+    }
+  }
+  return values;
+}
+
+bool PresetMidiMapper::handles(const MidiMessage& message) const
+{
+  if (message.type != MidiMessageType::ControlChange) return false;
+  for (const auto& state : bindings_) {
+    if (state.binding.controlChange == message.data1
+        && (state.binding.channel < 0 || state.binding.channel == message.channel)) return true;
+  }
+  return false;
+}
+
+std::vector<PresetMidiValue> PresetMidiMapper::map(const MidiMessage& message)
+{
+  std::vector<PresetMidiValue> values;
+  if (message.type != MidiMessageType::ControlChange) return values;
+  for (auto& state : bindings_) {
+    const auto& binding = state.binding;
+    if (binding.controlChange != message.data1
+        || (binding.channel >= 0 && binding.channel != message.channel)) continue;
+    if (binding.mode == PresetMidiBindingMode::Continuous) {
+      for (const auto& action : binding.actions) {
+        values.push_back({action, midiActionValueAt(action, message.data2)});
+      }
+      continue;
+    }
+
+    const bool high = message.data2 >= 64;
+    if (high && !state.inputHigh) {
+      state.scene2 = !state.scene2;
+      for (const auto& action : binding.actions) {
+        values.push_back({action, state.scene2 ? action.value2 : action.value1});
+      }
+    }
+    state.inputHigh = high;
+  }
+  return values;
+}
+
 } // namespace ardor

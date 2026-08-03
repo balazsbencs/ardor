@@ -37,6 +37,65 @@ CC 20 is an Ardor default, not a universal tuner convention. The mapping is
 represented by `MidiControlMapping` so it can become user-configurable without
 changing the byte parser.
 
+Per-preset learned CC mappings take priority over these fixed actions when the
+same message is used. Program Change remains available for preset selection.
+
+## MIDI Learn and scenes
+
+In the on-device parameter drawer, tap **MIDI** beside a parameter, then move a
+pedal or press a footswitch. Ardor captures the CC number and channel. Press
+**Save** for automatic behavior, **Advanced** to choose Continuous or
+Toggle/Scene and edit endpoints **1** and **2**, or **Cancel** to leave the
+preset unchanged. The Bypass header has its own MIDI learn target.
+
+Automatic learn treats a CC with several values across a useful span as a
+continuous controller. A single press is treated as a latched toggle. Toggle
+bindings react only to the high edge (`>=64`), so the low message sent when a
+momentary footswitch is released does not undo the scene.
+
+Mappings are additive preset data:
+
+```json
+{
+  "midiMappings": [
+    {
+      "channel": 0,
+      "controlChange": 11,
+      "mode": "continuous",
+      "actions": [
+        {
+          "target": "parameter",
+          "blockId": "wah-1",
+          "parameter": "position",
+          "value1": 0.05,
+          "value2": 0.95
+        }
+      ]
+    },
+    {
+      "channel": 0,
+      "controlChange": 64,
+      "mode": "toggle",
+      "actions": [
+        { "target": "blockEnabled", "blockId": "boost-1", "value1": 0, "value2": 1 },
+        { "target": "blockEnabled", "blockId": "chorus-1", "value1": 1, "value2": 0 },
+        { "target": "parameter", "blockId": "drive-1", "parameter": "gain", "value1": 0.5, "value2": 0.7 }
+      ]
+    }
+  ]
+}
+```
+
+`channel` uses zero-based MIDI channels (`0`..`15`); `-1` is omni. Continuous
+bindings interpolate every action from `value1` to `value2` over CC `0`..`127`.
+Toggle bindings apply every action together, making the mapping a small scene
+inside the preset. Relearning the same footswitch on another control adds that
+control to the scene. Every preset activation resets toggle bindings to setting
+1 before MIDI input is processed. Blocks controlled by `blockEnabled` are
+prepared even when setting 1 bypasses them, so enabling them does not rebuild
+the audio engine. Live MIDI targets are currently limited to top-level blocks;
+Dual Rig lane children remain preset-load-only targets.
+
 ## Expression assignment in a preset
 
 Expression assignment is optional and additive, so existing version-1 and
@@ -87,16 +146,16 @@ compressor and noise-gate parameters, and cab `mix` or `levelDb`. A missing,
 disabled, unsupported, or nested Dual Rig target is left unchanged and logged
 once. Preset changes reset the expression filter and load the new assignment.
 
-## Editing and remaining UI work
+## Editing
 
-Ardor Manager exposes the assignment as preset data: enable Expression Pedal,
+Ardor Manager exposes the expression assignment as preset data: enable Expression Pedal,
 choose a compatible effect and numeric parameter, set the minimum/maximum
 values, and optionally invert the sweep. The assignment participates in the
 editor's normal undo, validation, save, and apply flow.
 
-The on-device editor still needs equivalent assignment controls and endpoint
-calibration capture. MIDI channel, tuner CC, and ADC calibration are currently
-service configuration rather than on-device preferences.
+Ardor Manager preserves and validates `midiMappings`; MIDI Learn itself runs on
+the pedal so it can listen to the attached controller. MIDI channel, tuner CC,
+and ADC calibration are also available in the on-device Control I/O settings.
 
 MIDI and ADC I/O must remain outside the realtime audio callback.
 

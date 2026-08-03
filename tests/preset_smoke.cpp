@@ -89,6 +89,53 @@ int main()
     require(std::fabs(ardor::expressionValueAt(invertedExpression, 0.25f) - 0.8f) < 1.0e-6f,
             "inverted expression mapping");
 
+    auto midiJson = json;
+    midiJson["blocks"][1]["type"] = "delay";
+    midiJson["blocks"][1]["asset"] = "";
+    midiJson["blocks"][1]["params"] = {{"mode", "tape"}, {"mix", 0.5}};
+    midiJson["midiMappings"] = nlohmann::json::array({
+      {
+        {"channel", 0}, {"controlChange", 11}, {"mode", "continuous"},
+        {"actions", nlohmann::json::array({nlohmann::json{
+          {"target", "parameter"}, {"blockId", "block-2"}, {"parameter", "mix"},
+          {"value1", 0.2}, {"value2", 0.8},
+        }})},
+      },
+      {
+        {"channel", 0}, {"controlChange", 64}, {"mode", "toggle"},
+        {"actions", nlohmann::json::array({
+          {{"target", "blockEnabled"}, {"blockId", "block-1"}, {"value1", 0}, {"value2", 1}},
+          {{"target", "blockEnabled"}, {"blockId", "block-2"}, {"value1", 1}, {"value2", 0}},
+        })},
+      },
+    });
+    const auto midiPreset = ardor::presetFromJson(midiJson);
+    require(midiPreset.midiBindings.size() == 2
+              && midiPreset.midiBindings[1].actions.size() == 2
+              && midiPreset.midiBindings[1].mode == ardor::PresetMidiBindingMode::Toggle,
+            "MIDI mappings and multi-action scenes parse");
+    require(std::fabs(ardor::midiActionValueAt(
+              midiPreset.midiBindings[0].actions[0], 64) - 0.5023622f) < 0.0001f,
+            "MIDI action range mapping");
+    const auto midiRoundTrip = ardor::presetFromJson(ardor::toJson(midiPreset));
+    require(midiRoundTrip.midiBindings.size() == 2
+              && midiRoundTrip.midiBindings[0].actions[0].parameter == "mix",
+            "MIDI mappings round trip");
+    const auto midiPlan = ardor::buildChainPlan(midiPreset, {});
+    require(midiPlan.blocks[1].status == ardor::ChainBlockStatus::Ready
+              && !midiPlan.blocks[1].enabled,
+            "scene-targeted disabled blocks should be prepared for live enable");
+
+    bool rejectedOverlappingMidi = false;
+    try {
+      auto invalid = midiJson;
+      invalid["midiMappings"][1]["controlChange"] = 11;
+      (void)ardor::presetFromJson(invalid);
+    } catch (const std::invalid_argument&) {
+      rejectedOverlappingMidi = true;
+    }
+    require(rejectedOverlappingMidi, "reject overlapping MIDI bindings");
+
     const auto legacyEffectsJson = nlohmann::json::parse(R"({
       "version": 1,
       "name": "Legacy placeholders",

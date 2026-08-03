@@ -179,6 +179,20 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
         [this](const auto& item) { return item.key == focusedKey_; });
       if (focusedControl_ && updated != updatedControls.end()) {
         parameter_view::syncSlider(focusedControl_, *updated);
+        if (parameterMappingToolbar_) {
+          const auto updatedIndex = static_cast<std::size_t>(
+            std::distance(updatedControls.begin(), updated));
+          const auto* selected = selectedUiBlock(state);
+          const bool expressionAssigned = state.paramTarget == UiParamTarget::Block && selected
+            && state.bank.presets[state.activePreset].expression.has_value()
+            && state.bank.presets[state.activePreset].expression->blockId == selected->id
+            && state.bank.presets[state.activePreset].expression->parameter == updated->key;
+          const bool expressionSupported = parameterSupportsExpression(state, *updated);
+          parameter_view::syncMappingToolbar(
+            parameterMappingToolbar_, *updated, updatedIndex, expressionSupported,
+            expressionSupported && !selectedBlockIsLaneChild(state), expressionAssigned,
+            parameterHasMidiBinding(state, *updated));
+        }
         renderedRevisions_.parameters = state.revisions.parameters;
         renderedRevisions_.header = state.revisions.header;
         syncHeaderView(state);
@@ -224,6 +238,7 @@ void LvglUi::rebuildParameterView(UiState& state)
     parameterControls_ = view.controls;
     parameterTitleLabel_ = view.titleLabel;
     parameterBypassControl_ = view.bypassControl;
+    parameterMappingToolbar_ = view.mappingToolbar;
     eqGraph_ = view.eqGraph;
     eqBandButtons_ = view.eqBandButtons;
     eqSliders_ = view.eqSliders;
@@ -249,6 +264,7 @@ void LvglUi::rebuildParameterView(UiState& state)
   parameterControls_.clear();
   parameterTitleLabel_ = nullptr;
   parameterBypassControl_ = nullptr;
+  parameterMappingToolbar_ = nullptr;
   eqGraph_ = nullptr;
   eqBandButtons_.fill(nullptr);
   eqSliders_.fill(nullptr);
@@ -265,7 +281,7 @@ void LvglUi::rebuildParameterView(UiState& state)
   } else {
     parameter_view::buildPanel(viewLayer, state, remember(state),
                                &parameterControls_, &parameterBypassControl_,
-                               &parameterTitleLabel_);
+                               &parameterTitleLabel_, &parameterMappingToolbar_);
   }
   contextRegion_ = UiContextRegion::None;
 
@@ -274,6 +290,7 @@ void LvglUi::rebuildParameterView(UiState& state)
   refs.controls = parameterControls_;
   refs.titleLabel = parameterTitleLabel_;
   refs.bypassControl = parameterBypassControl_;
+  refs.mappingToolbar = parameterMappingToolbar_;
   refs.eqGraph = eqGraph_;
   refs.eqBandButtons = eqBandButtons_;
   refs.eqSliders = eqSliders_;
@@ -329,12 +346,33 @@ void LvglUi::syncParameterView(UiState& state)
       rebuildParameterView(state);
       return;
     }
+    if (!controls.empty()
+        && std::none_of(controls.begin(), controls.end(), [this](const auto& control) {
+             return isParameterFocused(control.key);
+           })) {
+      focusedKey_ = controls.front().key;
+    }
     for (std::size_t i = 0; i < controls.size(); ++i) {
-      parameter_view::syncSlider(
-        parameterControls_[i], controls[i], isParameterFocused(controls[i].key),
-        state.bank.presets[state.activePreset].expression.has_value()
-          && state.bank.presets[state.activePreset].expression->blockId == selected->id
-          && state.bank.presets[state.activePreset].expression->parameter == controls[i].key);
+      parameter_view::syncSlider(parameterControls_[i], controls[i],
+                                 isParameterFocused(controls[i].key));
+    }
+    if (parameterMappingToolbar_ && !controls.empty()) {
+      const auto focused = std::find_if(controls.begin(), controls.end(), [this](const auto& control) {
+        return isParameterFocused(control.key);
+      });
+      const auto selectedIndex = focused == controls.end()
+        ? std::size_t{0}
+        : static_cast<std::size_t>(std::distance(controls.begin(), focused));
+      const auto& control = controls[selectedIndex];
+      const bool expressionAssigned = state.paramTarget == UiParamTarget::Block && selected
+        && state.bank.presets[state.activePreset].expression.has_value()
+        && state.bank.presets[state.activePreset].expression->blockId == selected->id
+        && state.bank.presets[state.activePreset].expression->parameter == control.key;
+      const bool expressionSupported = parameterSupportsExpression(state, control);
+      parameter_view::syncMappingToolbar(
+        parameterMappingToolbar_, control, selectedIndex, expressionSupported,
+        expressionSupported && !selectedBlockIsLaneChild(state), expressionAssigned,
+        parameterHasMidiBinding(state, control));
     }
     return;
   }
