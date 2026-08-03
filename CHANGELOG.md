@@ -2,7 +2,7 @@
 
 All notable changes are generated from Conventional Commit messages.
 
-## [0.1.17](https://github.com/balazsbencs/ardor/compare/v0.1.16...v0.1.17) (2026-08-03)
+## [0.1.18](https://github.com/balazsbencs/ardor/compare/v0.1.17...v0.1.18) (2026-08-03)
 
 ## [0.1.16](https://github.com/balazsbencs/ardor/compare/v0.1.15...v0.1.16) (2026-07-31)
 
