@@ -22,7 +22,7 @@ int require(bool condition, const char* message)
 
 void completePreview(ardor::UiState& state)
 {
-  if (ardor::beginApplyingPreview(state)) ardor::completeStructuralPreview(state);
+  if (ardor::pendingStructuralPreview(state)) ardor::completeStructuralPreview(state);
 }
 
 struct SimulatedPointer {
@@ -257,7 +257,7 @@ int main()
                 && preservedDualRig.blocks[0].lanes[0].size() == 4
                 && preservedDualRig.blocks[0].lanes[1][1].asset == "irs/vintage.wav",
               "touchscreen load/save must preserve version-2 child chains")) return 1;
-  if (require(namState.previewState == ardor::UiPreviewState::Queued,
+  if (require(ardor::pendingStructuralPreview(namState),
               "changing NAM model tier should queue an engine preview")) return 1;
 
   ardor::selectBlock(state, 1);
@@ -293,12 +293,15 @@ int main()
 
   int requestedBankDelta = 0;
   int requestedTunerMode = -1;
-  ardor::LvglUi ui({
-    {}, {}, {}, {}, {}, {}, {}, {},
-    [&](int delta) { requestedBankDelta += delta; },
-    {},
-    [&](bool enabled) { requestedTunerMode = enabled ? 1 : 0; },
-  });
+  int liveBypassUpdates = 0;
+  ardor::UiActions uiActions;
+  uiActions.changeBank = [&](int delta) { requestedBankDelta += delta; };
+  uiActions.setTunerMode = [&](bool enabled) { requestedTunerMode = enabled ? 1 : 0; };
+  uiActions.updateBlockEnabled = [&](const std::string&, bool) {
+    ++liveBypassUpdates;
+    return true;
+  };
+  ardor::LvglUi ui(std::move(uiActions));
   const int masterVolume = state.masterVolume;
   ui.focusParameter("levelDb");
   state.dirty = false;
@@ -403,7 +406,7 @@ int main()
   rejectedEqUi.focusEqBandField(ardor::EqBandField::Gain);
   if (require(rejectedEqUi.applyFocusedParameterDelta(rejectedEqState, 2)
                 && ardor::selectedParametricEqParams(rejectedEqState).bands[0] != rejectedEqBefore
-                && rejectedEqState.previewState == ardor::UiPreviewState::Queued,
+                && ardor::pendingStructuralPreview(rejectedEqState),
               "rejected live EQ updates should promote to a full preview")) return 1;
   completePreview(rejectedEqState);
 
@@ -444,9 +447,8 @@ int main()
   });
   rejectedDaisyUi.focusParameter("depth");
   if (require(rejectedDaisyUi.applyFocusedParameterDelta(rejectedDaisyState, 1)
-                && rejectedDaisyState.previewState == ardor::UiPreviewState::Queued
-                && rejectedDaisyState.previewTransaction.has_value()
-                && rejectedDaisyState.previewTransaction->rollback.preset
+                && rejectedDaisyState.pendingPreview.has_value()
+                && rejectedDaisyState.pendingPreview->rollback.preset
                      .blocks[rejectedDaisyState.selectedBlock].params == rejectedDaisyParams,
               "rejected live controls should snapshot the pre-edit state for preview rollback")) return 1;
   ardor::failStructuralPreview(rejectedDaisyState, "test rollback");
@@ -944,23 +946,24 @@ int main()
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   if (require(!state.bank.presets[state.activePreset].blocks[bypassedBlock].enabled
+                && liveBypassUpdates == 1
+                && ardor::previewIsSynchronized(state)
                 && lv_obj_has_state(bypassControl, LV_STATE_CHECKED)
                 && findLabel(bypassControl, "On")
                 && lv_obj_get_width(bypassFill) == 160,
               "tapping Bypass should disable the block and fill the control green")) return 1;
-  completePreview(state);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   lv_obj_send_event(bypassControl, LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   if (require(state.bank.presets[state.activePreset].blocks[bypassedBlock].enabled
+                && liveBypassUpdates == 2
+                && ardor::previewIsSynchronized(state)
                 && !lv_obj_has_state(bypassControl, LV_STATE_CHECKED)
                 && findLabel(bypassControl, "Off")
                 && lv_obj_get_width(bypassFill) == 0,
               "tapping Bypass again should restore the inactive Off state")) return 1;
-  completePreview(state);
-
   lv_area_t pageArea{};
   lv_obj_get_coords(page, &pageArea);
   if (require(pageArea.x2 < titleArea.x1,
@@ -1782,11 +1785,11 @@ int main()
                           static_cast<std::size_t>(std::distance(overlayState.assets.begin(), overlayAsset)));
   overlayUi.refresh(lv_screen_active(), overlayState);
   lv_obj_t* applyingLabel = findLabelContaining(lv_screen_active(), "Applying effect chain...");
-  if (require(overlayState.previewState == ardor::UiPreviewState::Queued && !applyingLabel,
+  if (require(ardor::pendingStructuralPreview(overlayState) && !applyingLabel,
               "queued preview should not cover the editor with a loading overlay")) return 1;
   completePreview(overlayState);
   overlayUi.refresh(lv_screen_active(), overlayState);
-  if (require(overlayState.previewState == ardor::UiPreviewState::Synchronized,
+  if (require(ardor::previewIsSynchronized(overlayState),
               "completed preview should synchronize without a loading overlay")) return 1;
 
   auto navigationState = ardor::makeDemoUiState();

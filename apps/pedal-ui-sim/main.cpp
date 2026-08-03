@@ -112,7 +112,7 @@ int main(int argc, char** argv)
   while (true) {
     lv_timer_handler();
     ui.refresh(lv_screen_active(), state);
-    if (ardor::beginApplyingPreview(state)) {
+    if (ardor::pendingStructuralPreview(state)) {
       ardor::completeStructuralPreview(state);
     }
     // LVGL busy-waits in LV_OS_NONE builds; use a real host sleep so the

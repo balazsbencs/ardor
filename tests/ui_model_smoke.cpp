@@ -27,7 +27,7 @@ int require(bool ok, const char* message)
 
 void completePreview(ardor::UiState& state)
 {
-  if (ardor::beginApplyingPreview(state)) ardor::completeStructuralPreview(state);
+  if (ardor::pendingStructuralPreview(state)) ardor::completeStructuralPreview(state);
 }
 
 } // namespace
@@ -106,17 +106,14 @@ int main()
   auto previewState = ardor::makeDemoUiState();
   const auto previewBlocks = previewState.bank.presets[previewState.activePreset].blocks;
   ardor::appendAssetBlock(previewState, 0);
-  if (require(previewState.previewState == ardor::UiPreviewState::Queued,
-              "structural edit should enter queued preview state")) return 1;
-  const auto queuedCount = previewState.bank.presets[previewState.activePreset].blocks.size();
+  if (require(ardor::pendingStructuralPreview(previewState),
+              "structural edit should create a pending preview")) return 1;
+  const auto pendingCount = previewState.bank.presets[previewState.activePreset].blocks.size();
   ardor::appendAssetBlock(previewState, 1);
-  if (require(previewState.bank.presets[previewState.activePreset].blocks.size() == queuedCount,
-              "queued preview should reject conflicting structural edits")) return 1;
-  if (require(ardor::beginApplyingPreview(previewState)
-                && previewState.previewState == ardor::UiPreviewState::Applying,
-              "queued preview should become applying")) return 1;
+  if (require(previewState.bank.presets[previewState.activePreset].blocks.size() == pendingCount,
+              "pending preview should reject conflicting structural edits")) return 1;
   ardor::failStructuralPreview(previewState, "test failure");
-  if (require(previewState.previewState == ardor::UiPreviewState::Synchronized
+  if (require(ardor::previewIsSynchronized(previewState)
                 && previewState.bank.presets[previewState.activePreset].blocks.size() == previewBlocks.size()
                 && previewState.bank.presets[previewState.activePreset].blocks[0].id == previewBlocks[0].id
                 && !previewState.dirty,
@@ -133,8 +130,8 @@ int main()
   const auto blocksBeforeFailedEdit =
     failedSecondEditState.bank.presets[failedSecondEditState.activePreset].blocks.size();
   ardor::appendAssetBlock(failedSecondEditState, 1);
-  if (require(ardor::beginApplyingPreview(failedSecondEditState),
-              "second structural edit should begin applying")) return 1;
+  if (require(ardor::pendingStructuralPreview(failedSecondEditState),
+              "second structural edit should remain pending until completion")) return 1;
   ardor::failStructuralPreview(failedSecondEditState, "second edit failed");
   if (require(failedSecondEditState.bank.presets[failedSecondEditState.activePreset].blocks.size()
                   == blocksBeforeFailedEdit
@@ -297,7 +294,7 @@ int main()
   if (require(trem.params.contains("depth"), "daisy block should include default params")) return 1;
   if (require(state.paramDrawerOpen && !state.blockDrawerOpen,
               "daisy add should transition directly into its parameter editor")) return 1;
-  if (require(state.previewState == ardor::UiPreviewState::Queued,
+  if (require(ardor::pendingStructuralPreview(state),
               "adding a block should queue a prepared preview")) return 1;
 
   completePreview(state);
@@ -307,7 +304,7 @@ int main()
 
   ardor::selectBlock(state, state.bank.presets[state.activePreset].blocks.size() - 1);
   ardor::setSelectedBlockParam(state, "depth", 0.25f);
-  if (require(state.previewState == ardor::UiPreviewState::Queued,
+  if (require(ardor::pendingStructuralPreview(state),
               "second structural edit should queue a preview")) return 1;
   const auto tremPreset = ardor::activePresetToPreset(state);
   if (require(tremPreset.blocks.back().type == "mod", "daisy block should save as mod")) return 1;

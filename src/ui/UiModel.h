@@ -64,15 +64,6 @@ enum class UiParamTarget {
   Globals
 };
 
-// A preview is the in-memory, audible counterpart to a structural edit.  It
-// deliberately has no bearing on whether the preset has been saved.
-enum class UiPreviewState {
-  Synchronized,
-  Queued,
-  Applying,
-  Failed,
-};
-
 enum class UiNavigationDecision { Save, Discard, Cancel };
 
 struct UiNavigationTarget {
@@ -202,8 +193,9 @@ struct UiState {
   UiMode mode = UiMode::Preset;
   UiParamTarget paramTarget = UiParamTarget::Block;
   bool dirty = false;
-  UiPreviewState previewState = UiPreviewState::Synchronized;
-  std::optional<UiPreviewTransaction> previewTransaction;
+  // A pending preview is the draft/audible boundary for a structural edit. It
+  // deliberately has no bearing on whether the preset has been saved.
+  std::optional<UiPreviewTransaction> pendingPreview;
   bool blockDrawerOpen = false;
   bool paramDrawerOpen = false;
   bool effectsBypassed = false;
@@ -268,6 +260,7 @@ bool presetHasUnavailableAssets(const UiState& state, std::size_t presetIndex);
 
 void selectGlobalParams(UiState& state);
 void setSelectedBlockEnabled(UiState& state, bool enabled);
+bool setSelectedBlockEnabledLive(UiState& state, bool enabled);
 void setActiveInputGainDb(UiState& state, float db);
 void setActiveOutputGainDb(UiState& state, float db);
 void setMasterVolume(UiState& state, int volume);
@@ -280,7 +273,7 @@ bool resetSelectedEqBand(UiState& state, std::size_t bandIndex);
 bool previewIsSynchronized(const UiState& state);
 UiPreviewSnapshot captureUiPreviewSnapshot(const UiState& state);
 bool queuePreview(UiState& state, UiPreviewSnapshot rollback, std::string operation);
-bool beginApplyingPreview(UiState& state);
+const UiPreviewTransaction* pendingStructuralPreview(const UiState& state);
 void completeStructuralPreview(UiState& state);
 void failStructuralPreview(UiState& state, std::string error);
 

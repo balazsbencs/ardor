@@ -555,6 +555,18 @@ const ardor::PresetBlock* findPresetBlock(
   return nullptr;
 }
 
+ardor::PresetBlock* findPresetBlock(
+  std::vector<ardor::PresetBlock>& blocks, std::string_view id)
+{
+  for (auto& block : blocks) {
+    if (block.id == id) return &block;
+    for (auto& lane : block.lanes) {
+      if (auto* nested = findPresetBlock(lane, id)) return nested;
+    }
+  }
+  return nullptr;
+}
+
 bool applyPresetParameterValue(
   ardor::PedalEngine& engine, const ardor::Preset& preset,
   const std::string& blockId, const std::string& parameter, float value,
@@ -952,6 +964,13 @@ int main(int argc, char** argv)
           },
           [&](const ardor::DeviceSettings& settings, std::string& error) {
             return globalSettings.saveControlInputs(settings, error);
+          },
+          [&](const std::string& blockId, bool enabled) {
+            if (!liveEngine->setBlockEnabled(blockId, enabled)) return false;
+            if (auto* block = findPresetBlock(activePreset.blocks, blockId)) {
+              block->enabled = enabled;
+            }
+            return true;
           },
         });
         ui->build(lv_screen_active(), uiState);
@@ -1359,8 +1378,8 @@ int main(int argc, char** argv)
           if (uiState.masterVolume != controls.masterVolume) {
             ardor::setMasterVolume(uiState, controls.masterVolume);
           }
-          if (ardor::beginApplyingPreview(uiState)) {
-            const auto operation = uiState.previewTransaction->operation;
+          if (const auto* pendingPreview = ardor::pendingStructuralPreview(uiState)) {
+            const auto operation = pendingPreview->operation;
             const auto blockCount = uiState.bank.presets[uiState.activePreset].blocks.size();
             const auto preparationStarted = std::chrono::steady_clock::now();
             std::optional<std::chrono::steady_clock::time_point> activationStarted;

@@ -200,6 +200,8 @@ bool RuntimeChain::setDaisyParameter(const std::string& id, const std::string& k
     if (block.kind == Block::Kind::Daisy && block.id == id) {
       return block.daisy->setParameterTarget(key, normalized);
     }
+    if (block.kind == Block::Kind::DualRig
+        && block.dualRig->setDaisyParameter(id, key, normalized)) return true;
   }
   return false;
 }
@@ -219,6 +221,8 @@ bool RuntimeChain::setCompressorParameter(const std::string& id, const std::stri
     if (block.kind == Block::Kind::Compressor && block.id == id) {
       return block.compressor->setParameterTarget(key, value);
     }
+    if (block.kind == Block::Kind::DualRig
+        && block.dualRig->setCompressorParameter(id, key, value)) return true;
   }
   return false;
 }
@@ -238,6 +242,8 @@ bool RuntimeChain::setNoiseGateParameter(const std::string& id, const std::strin
     if (block.kind == Block::Kind::NoiseGate && block.id == id) {
       return block.noiseGate->setParameterTarget(key, value);
     }
+    if (block.kind == Block::Kind::DualRig
+        && block.dualRig->setNoiseGateParameter(id, key, value)) return true;
   }
   return false;
 }
@@ -249,6 +255,8 @@ bool RuntimeChain::setBlockEnabled(const std::string& id, bool enabled)
       block.enabled->store(enabled, std::memory_order_relaxed);
       return true;
     }
+    if (block.kind == Block::Kind::DualRig
+        && block.dualRig->setBlockEnabled(id, enabled)) return true;
   }
   return false;
 }
@@ -275,6 +283,8 @@ bool RuntimeChain::setParametricEqBand(const std::string& id, std::size_t band, 
     if (block.kind == Block::Kind::Equalizer && block.id == id) {
       return block.equalizer->setBandTarget(band, params);
     }
+    if (block.kind == Block::Kind::DualRig
+        && block.dualRig->setParametricEqBand(id, band, params)) return true;
   }
   return false;
 }

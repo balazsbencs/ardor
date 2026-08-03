@@ -300,6 +300,16 @@ void LvglUi::syncDrawerAssets(UiState& state)
     lv_obj_set_height(item, kDrawerAssetButtonHeight);
     lv_obj_set_style_min_height(item, kDrawerAssetButtonHeight, 0);
     styleSurface(item, panel);
+    // Category accent bar (child index 1); colour is kept in sync below when
+    // rows are recycled across filter changes.
+    lv_obj_t* assetBar = lv_obj_create(item);
+    lv_obj_set_size(assetBar, 5, kDrawerAssetButtonHeight - 22);
+    lv_obj_align(assetBar, LV_ALIGN_LEFT_MID, 6, 0);
+    styleSurface(assetBar, categoryColor(state.assets[i].type));
+    lv_obj_set_style_border_width(assetBar, 0, 0);
+    lv_obj_set_style_shadow_width(assetBar, 0, 0);
+    lv_obj_set_style_radius(assetBar, 2, 0);
+    lv_obj_remove_flag(assetBar, LV_OBJ_FLAG_CLICKABLE);
     contextRegion_ = UiContextRegion::Drawer;
     auto* context = remember(state, i);
     contextRegion_ = UiContextRegion::None;
@@ -324,6 +334,8 @@ void LvglUi::syncDrawerAssets(UiState& state)
   for (std::size_t i = 0; i < buttons.size(); ++i) {
     lv_obj_move_to_index(buttons[i], static_cast<int32_t>(i));
     lv_label_set_text(lv_obj_get_child(buttons[i], 0), state.assets[i].name.c_str());
+    lv_obj_set_style_bg_color(lv_obj_get_child(buttons[i], 1),
+                              lv_color_hex(categoryColor(state.assets[i].type)), 0);
     contexts[i]->index = i;
     contexts[i]->controlledObject = drawerAssetList_;
   }
@@ -340,7 +352,7 @@ void LvglUi::syncDrawerView(UiState& state)
     const bool selected = state.categoryFilter == kDrawerFilters[i].second;
     styleSurface(category, selected ? 0x333333 : 0x1b1b1b);
     lv_obj_set_style_text_color(lv_obj_get_child(category, 0),
-                                lv_color_hex(selected ? accent : text), 0);
+                                lv_color_hex(selected ? categoryColor(kDrawerFilters[i].second) : text), 0);
   }
 
   const auto& blocks = state.bank.presets[state.activePreset].blocks;
@@ -445,7 +457,7 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
                          static_cast<int32_t>(i / kCategoryColumns), 1);
     styleSurface(filterButton, state.categoryFilter == filter ? 0x333333 : 0x1b1b1b);
     lv_obj_set_style_text_color(lv_obj_get_child(filterButton, 0),
-                                lv_color_hex(state.categoryFilter == filter ? accent : text), 0);
+                                lv_color_hex(state.categoryFilter == filter ? categoryColor(filter) : text), 0);
     lv_obj_add_event_cb(filterButton, onFilterClicked, LV_EVENT_CLICKED, remember(state, 0, filter));
     drawerCategoryButtons_[i] = filterButton;
   }
@@ -501,6 +513,15 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
     lv_obj_set_height(item, kDrawerAssetButtonHeight);
     lv_obj_set_style_min_height(item, kDrawerAssetButtonHeight, 0);
     styleSurface(item, panel);
+    // Category accent bar (kept at child index 1 in both build and sync paths).
+    lv_obj_t* assetBar = lv_obj_create(item);
+    lv_obj_set_size(assetBar, 5, kDrawerAssetButtonHeight - 22);
+    lv_obj_align(assetBar, LV_ALIGN_LEFT_MID, 6, 0);
+    styleSurface(assetBar, categoryColor(asset.type));
+    lv_obj_set_style_border_width(assetBar, 0, 0);
+    lv_obj_set_style_shadow_width(assetBar, 0, 0);
+    lv_obj_set_style_radius(assetBar, 2, 0);
+    lv_obj_remove_flag(assetBar, LV_OBJ_FLAG_CLICKABLE);
     const bool splitUnavailable = asset.blockType == "dualRig"
       && (insertingLane || alreadySplit || standaloneAmp);
     if (asset.blockType == "dualRig") {

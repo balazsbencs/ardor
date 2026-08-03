@@ -125,7 +125,10 @@ void LvglUi::syncPresetCards(const UiState& state)
       continue;
     }
     lv_label_set_text(presetCardLabels_[i], state.bank.presets[i].name.c_str());
-    lv_obj_set_style_text_color(presetCardLabels_[i], lv_color_hex(i == state.activePreset ? accent : text), 0);
+    const bool isActive = i == state.activePreset;
+    lv_obj_set_style_text_color(presetCardLabels_[i], lv_color_hex(isActive ? accent : text), 0);
+    lv_obj_set_style_border_color(presetCardButtons_[i], lv_color_hex(isActive ? accent : 0xffffff), 0);
+    lv_obj_set_style_border_opa(presetCardButtons_[i], isActive ? LV_OPA_40 : LV_OPA_10, 0);
     if (i == state.activePreset) lv_obj_remove_flag(presetIndicators_[i], LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(presetIndicators_[i], LV_OBJ_FLAG_HIDDEN);
     if (presetWarningLabels_[i]) {
@@ -193,6 +196,10 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     lv_obj_set_grid_cell(preset, LV_GRID_ALIGN_STRETCH, static_cast<int32_t>(i % 2), 1,
                          LV_GRID_ALIGN_STRETCH, static_cast<int32_t>(i / 2), 1);
     styleSurface(preset, panel);
+    if (populated && i == state.activePreset) {
+      lv_obj_set_style_border_color(preset, lv_color_hex(accent), 0);
+      lv_obj_set_style_border_opa(preset, LV_OPA_40, 0);
+    }
     lv_obj_t* presetName = lv_obj_get_child(preset, 0);
     presetCardLabels_[i] = presetName;
     lv_obj_set_style_text_color(presetName, lv_color_hex(i == state.activePreset ? accent : text), 0);
@@ -206,6 +213,13 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     lv_obj_set_size(indicator, 4, LV_PCT(100));
     lv_obj_align(indicator, LV_ALIGN_LEFT_MID, 0, 0);
     styleSurface(indicator, accent);
+    // A clean, softly glowing accent bar — no rim or drop shadow.
+    lv_obj_set_style_border_width(indicator, 0, 0);
+    lv_obj_set_style_radius(indicator, 2, 0);
+    lv_obj_set_style_shadow_color(indicator, lv_color_hex(accent), 0);
+    lv_obj_set_style_shadow_width(indicator, 16, 0);
+    lv_obj_set_style_shadow_opa(indicator, LV_OPA_40, 0);
+    lv_obj_set_style_shadow_offset_y(indicator, 0, 0);
     lv_obj_remove_flag(indicator, LV_OBJ_FLAG_CLICKABLE);
     presetIndicators_[i] = indicator;
     if (!populated || i != state.activePreset) lv_obj_add_flag(indicator, LV_OBJ_FLAG_HIDDEN);

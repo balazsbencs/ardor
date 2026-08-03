@@ -376,8 +376,7 @@ void setActivePreset(UiState& state, std::size_t index, bool requestAudioSwap)
   state.dirty = false;
   state.effectsBypassed = false;
   state.blockEditUndo.reset();
-  state.previewState = UiPreviewState::Synchronized;
-  state.previewTransaction.reset();
+  state.pendingPreview.reset();
   state.navigationPrompt.reset();
   markUiChanged(state, UiChange::All);
 }
@@ -920,8 +919,7 @@ void replaceActivePreset(UiState& state, const Preset& preset)
   state.selectedBlock = 0;
   state.selectedBlockId.clear();
   state.dirty = false;
-  state.previewState = UiPreviewState::Synchronized;
-  state.previewTransaction.reset();
+  state.pendingPreview.reset();
   state.paramDrawerOpen = false;
   state.blockDrawerOpen = false;
   state.blockEditUndo.reset();
@@ -949,6 +947,18 @@ void setSelectedBlockEnabled(UiState& state, bool enabled)
   queuePreview(state, previewRollback, std::string(enabled ? "enable " : "bypass ")
                                       + block->assetName);
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters);
+}
+
+bool setSelectedBlockEnabledLive(UiState& state, bool enabled)
+{
+  if (!previewIsSynchronized(state)) return false;
+  auto* block = selectedUiBlock(state);
+  if (!block || block->enabled == enabled) return false;
+  rememberBlockEdit(state);
+  block->enabled = enabled;
+  state.dirty = true;
+  markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters);
+  return true;
 }
 
 void setActiveInputGainDb(UiState& state, float db)
@@ -1115,7 +1125,7 @@ bool resetSelectedEqBand(UiState& state, std::size_t bandIndex)
 
 bool previewIsSynchronized(const UiState& state)
 {
-  return state.previewState == UiPreviewState::Synchronized;
+  return !state.pendingPreview.has_value();
 }
 
 UiPreviewSnapshot captureUiPreviewSnapshot(const UiState& state)
@@ -1126,32 +1136,27 @@ UiPreviewSnapshot captureUiPreviewSnapshot(const UiState& state)
 bool queuePreview(UiState& state, UiPreviewSnapshot rollback, std::string operation)
 {
   if (!previewIsSynchronized(state)) return false;
-  state.previewTransaction = UiPreviewTransaction{std::move(rollback), std::move(operation)};
-  state.previewState = UiPreviewState::Queued;
+  state.pendingPreview = UiPreviewTransaction{std::move(rollback), std::move(operation)};
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
   return true;
 }
 
-bool beginApplyingPreview(UiState& state)
+const UiPreviewTransaction* pendingStructuralPreview(const UiState& state)
 {
-  if (state.previewState != UiPreviewState::Queued || !state.previewTransaction.has_value()) return false;
-  state.previewState = UiPreviewState::Applying;
-  markUiChanged(state, UiChange::Header | UiChange::Status);
-  return true;
+  return state.pendingPreview ? &*state.pendingPreview : nullptr;
 }
 
 void completeStructuralPreview(UiState& state)
 {
-  state.previewTransaction.reset();
-  state.previewState = UiPreviewState::Synchronized;
+  state.pendingPreview.reset();
   setUiStatus(state, "Chain updated");
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
 }
 
 void failStructuralPreview(UiState& state, std::string error)
 {
-  if (state.previewTransaction.has_value()) {
-    const auto& rollback = state.previewTransaction->rollback;
+  if (state.pendingPreview.has_value()) {
+    const auto& rollback = state.pendingPreview->rollback;
     state.bank.presets[state.activePreset] = rollback.preset;
     state.selectedBlock = rollback.selectedBlock;
     state.selectedBlockId = rollback.selectedBlockId;
@@ -1161,12 +1166,8 @@ void failStructuralPreview(UiState& state, std::string error)
     state.paramDrawerOpen = rollback.paramDrawerOpen;
     state.blockEditUndo = rollback.blockEditUndo;
   }
-  state.previewState = UiPreviewState::Failed;
-  state.previewTransaction.reset();
+  state.pendingPreview.reset();
   setUiStatus(state, "Could not apply chain: " + std::move(error), true);
-  // Failed is intentionally observable only during this state update. Once
-  // the rollback is complete, the restored UI again describes the live engine.
-  state.previewState = UiPreviewState::Synchronized;
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
 }
 
@@ -1504,8 +1505,7 @@ void loadBankFromStore(UiState& state, const PresetStore& store, int bank)
   state.paramDrawerOpen = false;
   state.blockDrawerOpen = false;
   state.blockEditUndo.reset();
-  state.previewState = UiPreviewState::Synchronized;
-  state.previewTransaction.reset();
+  state.pendingPreview.reset();
   state.navigationPrompt.reset();
   markUiChanged(state, UiChange::All);
 }
