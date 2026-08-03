@@ -1,0 +1,81 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import { url } from '../../lib/url';
+
+const presetExample = `{
+  "version": 2,
+  "blocks": [{
+    "id": "rig-1",
+    "type": "dualRig",
+    "enabled": true,
+    "params": { "inputMode": "sum", "leftLevelDb": 0, "rightLevelDb": 0 },
+    "lanes": {
+      "left":  { "blocks": [
+        { "id": "l-nam", "type": "nam", "enabled": true, "asset": "models/clean.nam" },
+        { "id": "l-cab", "type": "cab", "enabled": true, "asset": "irs/open.wav" }
+      ]},
+      "right": { "blocks": [
+        { "id": "r-nam", "type": "nam", "enabled": true, "asset": "models/crunch.nam" },
+        { "id": "r-dly", "type": "delay", "enabled": true, "params": { "mode": "digital" } }
+      ]}
+    }
+  }]
+}`;
+---
+
+<DocsLayout
+  title="Presets & Storage"
+  description="How Ardor stores presets in banks and slots, the JSON format, and asset path rules."
+  lede="Presets are plain JSON files organized into banks and slots under a single data root. Assets are referenced by relative path."
+>
+  <h2>Banks and slots</h2>
+  <p>Preset files live under the data root in bank/slot folders:</p>
+  <pre><code>presets/bank-000/preset-0.json
+presets/bank-000/preset-1.json
+presets/bank-000/preset-2.json
+presets/bank-000/preset-3.json</code></pre>
+  <p>
+    Each bank holds four slots, mapped to the four footswitches. Block assets inside a
+    preset stay relative to the same data root, such as <code>models/clean.nam</code> or
+    <code>irs/open-back.wav</code>.
+  </p>
+  <div class="callout warn">
+    <p>
+      Absolute paths and <code>..</code> traversal are rejected. Real <code>.nam</code>
+      models and IRs stay local and are not committed unless redistribution is allowed.
+    </p>
+  </div>
+
+  <h2>Global parameters</h2>
+  <table>
+    <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">global.inputGainDb</td><td>Input gain before NAM.</td></tr>
+      <tr><td class="mono">global.outputGainDb</td><td>Output gain after the cabinet.</td></tr>
+      <tr><td class="mono">global.safetyLimitDb</td><td>Limiter ceiling (default −1.0). Stored and applied, but not a tone control.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Versions</h2>
+  <ul>
+    <li><strong>Version 1</strong> — serial chains and the fixed <code>dualAmp</code> block.</li>
+    <li><strong>Version 2</strong> — adds the <code>dualRig</code> block with two independent lanes.</li>
+  </ul>
+  <p>Version-1 presets and the fixed <code>dualAmp</code> block remain fully supported.</p>
+
+  <h2>A version-2 Dual Rig preset</h2>
+  <pre><code>{presetExample}</code></pre>
+  <p>
+    Both lanes receive the same mono input, each lane is processed in its declared order,
+    and the left/right outputs are retained at the merge. See
+    <a href={url('/docs/dual-rig')}>Dual Rig &amp; Dual Amp</a> for the routing rules.
+  </p>
+
+  <h2>Editing &amp; applying</h2>
+  <p>
+    Edit presets on the pedal's <a href={url('/docs/ui-guide')}>touchscreen</a>, or from a
+    computer with the <a href={url('/docs/manager')}>manager app</a>. Applying a saved slot
+    queues a live engine swap handled outside the audio process — a short muted transition
+    protects the active audio callback, so presets change without restarting audio.
+  </p>
+</DocsLayout>

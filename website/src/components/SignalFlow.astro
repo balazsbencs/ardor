@@ -1,0 +1,202 @@
+---
+// Site-themed signal-chain diagram. A "split bus" metaphor: the pre-chain feeds
+// a full-width SPLIT bar, everything between the SPLIT and JOIN bars is the two
+// parallel lanes, and the JOIN bar merges them to the stereo output. Compact
+// enough to fit the docs content column without horizontal scrolling.
+const pre = [
+  { name: 'Input', kind: 'guitar in', cat: 'io' },
+  { name: 'Noise Gate', kind: 'utility', cat: 'utility' },
+  { name: 'Compressor', kind: 'utility', cat: 'utility' },
+];
+const left = [
+  { name: 'NAM Amp', kind: 'amp', cat: 'amp' },
+  { name: 'Cabinet IR', kind: 'cab', cat: 'cabinet' },
+  { name: 'Tape Delay', kind: 'delay', cat: 'delay' },
+];
+const right = [
+  { name: 'NAM Amp', kind: 'amp', cat: 'amp' },
+  { name: 'Cabinet IR', kind: 'cab', cat: 'cabinet' },
+  { name: 'Shimmer', kind: 'reverb', cat: 'reverb' },
+];
+const lanes = [
+  { tag: 'LEFT → L', blocks: left },
+  { tag: 'RIGHT → R', blocks: right },
+];
+---
+
+<div class="flow" role="img" aria-label="Signal chain: input, noise gate and compressor feed a SPLIT; between SPLIT and JOIN two parallel lanes run — left (amp, cabinet, delay) and right (amp, cabinet, reverb); JOIN merges them to the stereo output and limiter.">
+  <div class="chain pre">
+    {pre.map((b, i) => (
+      <>
+        {i > 0 && <span class="wire" aria-hidden="true"></span>}
+        <div class:list={['node', `c-${b.cat}`]}>
+          <span class="k">{b.kind}</span>
+          <span class="n">{b.name}</span>
+        </div>
+      </>
+    ))}
+  </div>
+
+  <span class="vconn" aria-hidden="true"></span>
+
+  <div class="rig">
+    <div class="bus"><span>SPLIT</span></div>
+    <div class="lanes">
+      {lanes.map((lane) => (
+        <div class="lane">
+          <span class="lane-tag mono">{lane.tag}</span>
+          <div class="chain">
+            {lane.blocks.map((b, i) => (
+              <>
+                {i > 0 && <span class="wire" aria-hidden="true"></span>}
+                <div class:list={['node', `c-${b.cat}`]}>
+                  <span class="k">{b.kind}</span>
+                  <span class="n">{b.name}</span>
+                </div>
+              </>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+    <div class="bus"><span>JOIN</span></div>
+  </div>
+
+  <span class="vconn" aria-hidden="true"></span>
+
+  <div class="chain out-row">
+    <div class="node c-io out">
+      <span class="k">stereo out</span>
+      <span class="n">Output + Limiter</span>
+    </div>
+  </div>
+</div>
+
+<style>
+  .flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: var(--sp-4);
+    background:
+      radial-gradient(120% 120% at 50% 0, rgba(60, 224, 166, 0.05), transparent 55%),
+      var(--ground-2);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    overflow-x: auto;
+  }
+  .chain {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .node {
+    --c: var(--accent);
+    flex: none;
+    width: 8.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--c);
+    border-radius: var(--radius);
+  }
+  .node .k {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--c);
+  }
+  .node .n {
+    font-weight: 600;
+    font-size: var(--step-0);
+    color: var(--text-strong);
+    white-space: nowrap;
+  }
+  .out {
+    box-shadow: 0 0 30px -12px var(--accent-glow);
+  }
+  .wire {
+    flex: none;
+    width: 1rem;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+  }
+  .vconn {
+    width: 2px;
+    height: 1.4rem;
+    background: linear-gradient(180deg, var(--accent-dim), var(--accent));
+  }
+
+  /* the split/join bus and the lanes bracketed between them */
+  .rig {
+    width: fit-content;
+  }
+  .bus {
+    display: grid;
+    place-items: center;
+    height: 2rem;
+    border: 1px solid var(--accent-dim);
+    border-radius: var(--radius);
+    background: rgba(60, 224, 166, 0.08);
+  }
+  .bus span {
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    letter-spacing: 0.24em;
+    color: var(--accent);
+  }
+  .lanes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    padding: var(--sp-2) 0;
+    padding-left: 1.5rem;
+    margin-left: 0.75rem;
+    border-left: 2px solid var(--hairline-strong);
+  }
+  .lane {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+  }
+  .lane-tag {
+    flex: none;
+    width: 5rem;
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .c-amp {
+    --c: #ff8a5c;
+  }
+  .c-cabinet {
+    --c: #f5b451;
+  }
+  .c-utility {
+    --c: #9aa7ff;
+  }
+  .c-delay {
+    --c: #3ce0a6;
+  }
+  .c-reverb {
+    --c: #c58cff;
+  }
+  .c-io {
+    --c: var(--accent);
+  }
+
+  @media (max-width: 620px) {
+    .lane {
+      flex-wrap: wrap;
+    }
+    .node {
+      width: 7.5rem;
+    }
+  }
+</style>

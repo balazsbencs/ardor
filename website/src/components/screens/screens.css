@@ -1,0 +1,106 @@
+/*
+ * Self-contained styling for the pedal's on-device UI, recreated faithfully
+ * from the LVGL interface. These screens keep their own fixed dark palette
+ * regardless of the site theme — they represent the physical display.
+ * Sizing is in container-query width units (cqw) so a screen scales crisply
+ * to any frame size while preserving the 1280 x 720 proportions.
+ */
+.screen {
+  container-type: inline-size;
+  position: relative;
+  aspect-ratio: 1280 / 720;
+  width: 100%;
+  background: #0a0f11;
+  color: #e6f0ee;
+  font-family: 'Open Sans', system-ui, sans-serif;
+  overflow: hidden;
+  border-radius: 2px;
+  --scr-accent: #3ce0a6;
+  --scr-panel: #12191d;
+  --scr-panel-2: #141c21;
+  --scr-line: rgba(120, 200, 170, 0.16);
+  --scr-line-2: rgba(120, 200, 170, 0.28);
+  --scr-muted: #8aa39d;
+}
+.screen * {
+  box-sizing: border-box;
+}
+
+/* header bar shared by preset/edit/eq */
+.scr-head {
+  display: flex;
+  align-items: center;
+  gap: 1.6cqw;
+  padding: 2.4cqw 2.6cqw;
+  height: 15%;
+}
+.scr-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6cqw;
+  padding: 1.4cqw 2.2cqw;
+  border-radius: 1.2cqw;
+  background: var(--scr-panel-2);
+  border: 0.16cqw solid var(--scr-line-2);
+  color: #e6f0ee;
+  font-size: 2.5cqw;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.scr-btn--accent {
+  color: var(--scr-accent);
+  border-color: var(--scr-accent);
+  background: rgba(60, 224, 166, 0.14);
+}
+.scr-btn--muted {
+  background: #47504f;
+  color: #cdd8d5;
+  border-color: transparent;
+}
+.scr-title {
+  flex: 1;
+  text-align: center;
+  font-family: 'Chakra Petch', 'Open Sans', sans-serif;
+  font-weight: 700;
+  font-size: 3.4cqw;
+  letter-spacing: 0.02em;
+}
+.scr-spacer {
+  flex: 1;
+}
+
+/* footer bar */
+.scr-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 9.5%;
+  display: flex;
+  align-items: center;
+  gap: 2cqw;
+  padding: 0 2.6cqw;
+  border-top: 0.14cqw solid var(--scr-line);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 2cqw;
+  color: var(--scr-muted);
+}
+.scr-foot .master {
+  flex: 1;
+  text-align: center;
+  color: #e6f0ee;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 2.4cqw;
+}
+.scr-gear {
+  width: 4.4cqw;
+  height: 4.4cqw;
+  display: grid;
+  place-items: center;
+  border-radius: 1cqw;
+  background: var(--scr-panel-2);
+  border: 0.14cqw solid var(--scr-line-2);
+  color: var(--scr-accent);
+}

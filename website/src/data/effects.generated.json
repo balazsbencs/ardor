@@ -1,0 +1,3397 @@
+{
+  "version": 1,
+  "generatedFrom": "apps/manager/src/effects/catalog.v1.json",
+  "categoryMeta": {
+    "amp": {
+      "label": "Amp",
+      "order": 0
+    },
+    "cabinet": {
+      "label": "Cabinet",
+      "order": 1
+    },
+    "utility": {
+      "label": "Utility",
+      "order": 2
+    },
+    "modulation": {
+      "label": "Modulation",
+      "order": 3
+    },
+    "delay": {
+      "label": "Delay",
+      "order": 4
+    },
+    "reverb": {
+      "label": "Reverb",
+      "order": 5
+    }
+  },
+  "categories": {
+    "amp": [
+      "nam",
+      "dualAmp",
+      "dualRig"
+    ],
+    "cabinet": [
+      "cab"
+    ],
+    "utility": [
+      "dynamics:compressor",
+      "dynamics:noise_gate",
+      "eq:parametric_eq_5"
+    ],
+    "modulation": [
+      "mod:chorus",
+      "mod:flanger",
+      "mod:rotary",
+      "mod:vibe",
+      "mod:phaser",
+      "mod:vintage_trem",
+      "mod:poly_octave",
+      "mod:pattern_trem",
+      "mod:auto_swell",
+      "mod:filter",
+      "mod:formant",
+      "mod:quadrature",
+      "mod:destroyer"
+    ],
+    "delay": [
+      "delay:digital",
+      "delay:tape",
+      "delay:dual",
+      "delay:filter",
+      "delay:lofi",
+      "delay:dbucket",
+      "delay:duck",
+      "delay:pattern",
+      "delay:swell",
+      "delay:trem"
+    ],
+    "reverb": [
+      "reverb:room",
+      "reverb:hall",
+      "reverb:plate",
+      "reverb:spring",
+      "reverb:bloom",
+      "reverb:cloud",
+      "reverb:shimmer",
+      "reverb:chorale",
+      "reverb:nonlinear",
+      "reverb:swell",
+      "reverb:magneto",
+      "reverb:reflections"
+    ]
+  },
+  "definitions": [
+    {
+      "id": "nam",
+      "name": "NAM Model",
+      "description": "Neural Amp Modeler amplifier model.",
+      "category": "amp",
+      "blockType": "nam",
+      "mode": null,
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "asset",
+          "label": "NAM model",
+          "kind": "asset",
+          "unit": "",
+          "assetKind": "models"
+        },
+        {
+          "key": "inputMode",
+          "label": "Input source",
+          "kind": "choice",
+          "unit": "",
+          "choices": [
+            "L+R Average",
+            "Left / Mono",
+            "Right"
+          ],
+          "default": "sum"
+        },
+        {
+          "key": "useNano",
+          "label": "Use nano model",
+          "kind": "toggle",
+          "unit": "",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "cab",
+      "name": "Cabinet IR",
+      "description": "Convolution cabinet impulse response.",
+      "category": "cabinet",
+      "blockType": "cab",
+      "mode": null,
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "asset",
+          "label": "Cabinet IR",
+          "kind": "asset",
+          "unit": "",
+          "assetKind": "irs"
+        },
+        {
+          "key": "levelDb",
+          "label": "Level",
+          "kind": "number",
+          "unit": "dB",
+          "min": -60,
+          "max": 12,
+          "step": 1,
+          "default": 0
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        }
+      ]
+    },
+    {
+      "id": "dualAmp",
+      "name": "Dual Amp",
+      "description": "Two parallel NAM and cabinet lanes routed hard left and right.",
+      "category": "amp",
+      "blockType": "dualAmp",
+      "mode": null,
+      "maxEnabledInGroup": null,
+      "controls": [
+        {
+          "key": "inputMode",
+          "label": "Input source",
+          "kind": "choice",
+          "unit": "",
+          "choices": [
+            "L+R Average",
+            "Left / Mono",
+            "Right"
+          ],
+          "default": "sum"
+        },
+        {
+          "key": "leftNamAsset",
+          "label": "Left NAM model",
+          "kind": "asset",
+          "unit": "",
+          "assetKind": "models"
+        },
+        {
+          "key": "leftUseNano",
+          "label": "Left nano model",
+          "kind": "toggle",
+          "unit": "",
+          "default": false
+        },
+        {
+          "key": "leftIrAsset",
+          "label": "Left cabinet IR",
+          "kind": "asset",
+          "unit": "",
+          "assetKind": "irs"
+        },
+        {
+          "key": "leftCabLevelDb",
+          "label": "Left cab level",
+          "kind": "number",
+          "unit": "dB",
+          "min": -60,
+          "max": 12,
+          "step": 1,
+          "default": 0
+        },
+        {
+          "key": "leftCabMix",
+          "label": "Left cab mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "leftPolarityInvert",
+          "label": "Invert left polarity",
+          "kind": "toggle",
+          "unit": "",
+          "default": false
+        },
+        {
+          "key": "rightNamAsset",
+          "label": "Right NAM model",
+          "kind": "asset",
+          "unit": "",
+          "assetKind": "models"
+        },
+        {
+          "key": "rightUseNano",
+          "label": "Right nano model",
+          "kind": "toggle",
+          "unit": "",
+          "default": false
+        },
+        {
+          "key": "rightIrAsset",
+          "label": "Right cabinet IR",
+          "kind": "asset",
+          "unit": "",
+          "assetKind": "irs"
+        },
+        {
+          "key": "rightCabLevelDb",
+          "label": "Right cab level",
+          "kind": "number",
+          "unit": "dB",
+          "min": -60,
+          "max": 12,
+          "step": 1,
+          "default": 0
+        },
+        {
+          "key": "rightCabMix",
+          "label": "Right cab mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "rightPolarityInvert",
+          "label": "Invert right polarity",
+          "kind": "toggle",
+          "unit": "",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "dualRig",
+      "name": "Dual Rig",
+      "description": "An expandable split/merge region with independent left and right effect chains.",
+      "category": "amp",
+      "blockType": "dualRig",
+      "mode": null,
+      "maxEnabledInGroup": null,
+      "controls": [
+        {
+          "key": "inputMode",
+          "label": "Input source",
+          "kind": "choice",
+          "unit": "",
+          "choices": [
+            "L+R Average",
+            "Left / Mono",
+            "Right"
+          ],
+          "default": "sum"
+        },
+        {
+          "key": "leftLevelDb",
+          "label": "Left output level",
+          "kind": "number",
+          "unit": "dB",
+          "min": -60,
+          "max": 12,
+          "step": 1,
+          "default": 0
+        },
+        {
+          "key": "leftPolarityInvert",
+          "label": "Invert left polarity",
+          "kind": "toggle",
+          "unit": "",
+          "default": false
+        },
+        {
+          "key": "rightLevelDb",
+          "label": "Right output level",
+          "kind": "number",
+          "unit": "dB",
+          "min": -60,
+          "max": 12,
+          "step": 1,
+          "default": 0
+        },
+        {
+          "key": "rightPolarityInvert",
+          "label": "Invert right polarity",
+          "kind": "toggle",
+          "unit": "",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "dynamics:compressor",
+      "name": "Compressor",
+      "description": "Dynamics control with detector and sidechain options.",
+      "category": "utility",
+      "blockType": "dynamics",
+      "mode": "compressor",
+      "maxEnabledInGroup": null,
+      "controls": [
+        {
+          "key": "threshold_db",
+          "label": "Threshold",
+          "kind": "number",
+          "unit": "dB",
+          "min": -60,
+          "max": 0,
+          "step": 1,
+          "default": -24
+        },
+        {
+          "key": "ratio",
+          "label": "Ratio",
+          "kind": "number",
+          "unit": ":1",
+          "min": 1,
+          "max": 20,
+          "step": 0.5,
+          "default": 4
+        },
+        {
+          "key": "attack_ms",
+          "label": "Attack",
+          "kind": "number",
+          "unit": "ms",
+          "min": 0.1,
+          "max": 200,
+          "step": 1,
+          "default": 10
+        },
+        {
+          "key": "release_ms",
+          "label": "Release",
+          "kind": "number",
+          "unit": "ms",
+          "min": 10,
+          "max": 2000,
+          "step": 10,
+          "default": 150
+        },
+        {
+          "key": "knee_db",
+          "label": "Knee",
+          "kind": "number",
+          "unit": "dB",
+          "min": 0,
+          "max": 24,
+          "step": 1,
+          "default": 6
+        },
+        {
+          "key": "makeup_db",
+          "label": "Makeup",
+          "kind": "number",
+          "unit": "dB",
+          "min": 0,
+          "max": 24,
+          "step": 1,
+          "default": 0
+        },
+        {
+          "key": "input_gain_db",
+          "label": "Input",
+          "kind": "number",
+          "unit": "dB",
+          "min": -24,
+          "max": 24,
+          "step": 1,
+          "default": 0
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "sidechain_hpf_hz",
+          "label": "Sidechain HPF",
+          "kind": "number",
+          "unit": "Hz",
+          "min": 20,
+          "max": 500,
+          "step": 10,
+          "default": 80
+        },
+        {
+          "key": "detector",
+          "label": "Detector",
+          "kind": "choice",
+          "unit": "",
+          "choices": [
+            "Peak",
+            "RMS"
+          ],
+          "default": "peak"
+        },
+        {
+          "key": "auto_makeup",
+          "label": "Auto Makeup",
+          "kind": "toggle",
+          "unit": "",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "dynamics:noise_gate",
+      "name": "Noise Gate",
+      "description": "Stereo-linked noise suppression with hold, hysteresis, and sidechain filtering.",
+      "category": "utility",
+      "blockType": "dynamics",
+      "mode": "noise_gate",
+      "maxEnabledInGroup": null,
+      "controls": [
+        {
+          "key": "threshold_db",
+          "label": "Threshold",
+          "kind": "number",
+          "unit": "dB",
+          "min": -80,
+          "max": 0,
+          "step": 1,
+          "default": -55
+        },
+        {
+          "key": "reduction_db",
+          "label": "Reduction",
+          "kind": "number",
+          "unit": "dB",
+          "min": 0,
+          "max": 96,
+          "step": 1,
+          "default": 80
+        },
+        {
+          "key": "attack_ms",
+          "label": "Attack",
+          "kind": "number",
+          "unit": "ms",
+          "min": 0.1,
+          "max": 50,
+          "step": 0.5,
+          "default": 2
+        },
+        {
+          "key": "hold_ms",
+          "label": "Hold",
+          "kind": "number",
+          "unit": "ms",
+          "min": 0,
+          "max": 500,
+          "step": 5,
+          "default": 50
+        },
+        {
+          "key": "release_ms",
+          "label": "Release",
+          "kind": "number",
+          "unit": "ms",
+          "min": 10,
+          "max": 2000,
+          "step": 10,
+          "default": 150
+        },
+        {
+          "key": "hysteresis_db",
+          "label": "Hysteresis",
+          "kind": "number",
+          "unit": "dB",
+          "min": 0,
+          "max": 18,
+          "step": 1,
+          "default": 6
+        },
+        {
+          "key": "sidechain_hpf_hz",
+          "label": "Sidechain HPF",
+          "kind": "number",
+          "unit": "Hz",
+          "min": 20,
+          "max": 500,
+          "step": 10,
+          "default": 80
+        }
+      ]
+    },
+    {
+      "id": "eq:parametric_eq_5",
+      "name": "Five Band Parametric EQ",
+      "description": "Five fully parametric equalizer bands.",
+      "category": "utility",
+      "blockType": "eq",
+      "mode": "parametric_eq_5",
+      "maxEnabledInGroup": null,
+      "controls": [
+        {
+          "key": "parametric-eq-5",
+          "label": "parametric-eq-5",
+          "kind": "parametric-eq-5",
+          "unit": ""
+        }
+      ]
+    },
+    {
+      "id": "mod:chorus",
+      "name": "Chorus",
+      "description": "Chorus modulation algorithm.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "chorus",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Delay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Type",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:flanger",
+      "name": "Flanger",
+      "description": "Flanger modulation algorithm.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "flanger",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Regen",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Type",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:rotary",
+      "name": "Rotary",
+      "description": "Rotary modulation algorithm.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "rotary",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Drive",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Speed",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:vibe",
+      "name": "Vibe",
+      "description": "Vibe modulation algorithm.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "vibe",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Regen",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Shape",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:phaser",
+      "name": "Phaser",
+      "description": "Phaser modulation algorithm.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "phaser",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Regen",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Stages",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:vintage_trem",
+      "name": "Vintage Trem",
+      "description": "Vintage Trem modulation algorithm.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "vintage_trem",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Shape",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Type",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:poly_octave",
+      "name": "Poly Octave",
+      "description": "Poly Octave modulation algorithm.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "poly_octave",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Tracking",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "Oct Down 2",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Oct Up",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Oct Down",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:pattern_trem",
+      "name": "Pattern Trem",
+      "description": "Pattern Trem modulation algorithm.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "pattern_trem",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Tempo",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Pattern",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Division",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:auto_swell",
+      "name": "Auto Swell",
+      "description": "Auto Swell modulation algorithm.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "auto_swell",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Attack",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "Boost",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Release",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Doubling",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:filter",
+      "name": "Filter",
+      "description": "Filter modulation algorithm.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "filter",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Resonance",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Shape / Source",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:formant",
+      "name": "Formant",
+      "description": "Formant modulation algorithm.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "formant",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Resonance",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Vowel",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:quadrature",
+      "name": "Quadrature",
+      "description": "Quadrature modulation algorithm.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "quadrature",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Frequency",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "FM Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Blend / Spread",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Mode",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:destroyer",
+      "name": "Destroyer",
+      "description": "Destroyer modulation algorithm.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "destroyer",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Decimation",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "Bits",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Filter Resonance",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Noise",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "delay:digital",
+      "name": "Digital Delay",
+      "description": "Digital Delay algorithm.",
+      "category": "delay",
+      "blockType": "delay",
+      "mode": "digital",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "time",
+          "label": "Time",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "repeats",
+          "label": "Repeats",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "filter",
+          "label": "Filter",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "grit",
+          "label": "Saturation",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_spd",
+          "label": "Mod Rate",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_dep",
+          "label": "Mod Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "delay:tape",
+      "name": "Tape Delay",
+      "description": "Tape Delay algorithm.",
+      "category": "delay",
+      "blockType": "delay",
+      "mode": "tape",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "time",
+          "label": "Time",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "repeats",
+          "label": "Repeats",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "filter",
+          "label": "Filter",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "grit",
+          "label": "Saturation",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_spd",
+          "label": "Flutter Rate",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_dep",
+          "label": "Flutter",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "delay:dual",
+      "name": "Dual Delay",
+      "description": "Dual Delay algorithm.",
+      "category": "delay",
+      "blockType": "delay",
+      "mode": "dual",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "time",
+          "label": "Time",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "repeats",
+          "label": "Repeats",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "filter",
+          "label": "Filter",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "grit",
+          "label": "Ping-Pong",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_spd",
+          "label": "Mod Rate",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_dep",
+          "label": "Mod Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "delay:filter",
+      "name": "Filter Delay",
+      "description": "Filter Delay algorithm.",
+      "category": "delay",
+      "blockType": "delay",
+      "mode": "filter",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "time",
+          "label": "Time",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "repeats",
+          "label": "Repeats",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "filter",
+          "label": "Resonance",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "grit",
+          "label": "Filter Type",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_spd",
+          "label": "Sweep Rate",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_dep",
+          "label": "Sweep Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "delay:lofi",
+      "name": "Lo-fi Delay",
+      "description": "Lo-fi Delay algorithm.",
+      "category": "delay",
+      "blockType": "delay",
+      "mode": "lofi",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "time",
+          "label": "Time",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "repeats",
+          "label": "Repeats",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "filter",
+          "label": "Anti-alias",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "grit",
+          "label": "Crush",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_spd",
+          "label": "Mod Rate",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_dep",
+          "label": "Mod Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "delay:dbucket",
+      "name": "Bucket Brigade Delay",
+      "description": "Bucket Brigade Delay algorithm.",
+      "category": "delay",
+      "blockType": "delay",
+      "mode": "dbucket",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "time",
+          "label": "Time",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "repeats",
+          "label": "Repeats",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "filter",
+          "label": "Filter",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "grit",
+          "label": "Drive",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_spd",
+          "label": "Mod Rate",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_dep",
+          "label": "Mod Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "delay:duck",
+      "name": "Duck Delay",
+      "description": "Duck Delay algorithm.",
+      "category": "delay",
+      "blockType": "delay",
+      "mode": "duck",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "time",
+          "label": "Time",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "repeats",
+          "label": "Repeats",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "filter",
+          "label": "Filter",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "grit",
+          "label": "Ducking",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_spd",
+          "label": "Mod Rate",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_dep",
+          "label": "Mod Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "delay:pattern",
+      "name": "Pattern Delay",
+      "description": "Pattern Delay algorithm.",
+      "category": "delay",
+      "blockType": "delay",
+      "mode": "pattern",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "time",
+          "label": "Time",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "repeats",
+          "label": "Repeats",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "filter",
+          "label": "Filter",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "grit",
+          "label": "Pattern",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_spd",
+          "label": "Mod Rate",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_dep",
+          "label": "Mod Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "delay:swell",
+      "name": "Swell Delay",
+      "description": "Swell Delay algorithm.",
+      "category": "delay",
+      "blockType": "delay",
+      "mode": "swell",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "time",
+          "label": "Time",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "repeats",
+          "label": "Repeats",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "filter",
+          "label": "Filter",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "grit",
+          "label": "Threshold",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_spd",
+          "label": "Attack",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_dep",
+          "label": "Release",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "delay:trem",
+      "name": "Tremolo Delay",
+      "description": "Tremolo Delay algorithm.",
+      "category": "delay",
+      "blockType": "delay",
+      "mode": "trem",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "time",
+          "label": "Time",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "repeats",
+          "label": "Repeats",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "filter",
+          "label": "Filter",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "grit",
+          "label": "Shape",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_spd",
+          "label": "Trem Rate",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "mod_dep",
+          "label": "Trem Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "reverb:room",
+      "name": "Room Reverb",
+      "description": "Room Reverb algorithm.",
+      "category": "reverb",
+      "blockType": "reverb",
+      "mode": "room",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "decay",
+          "label": "Decay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.45
+        },
+        {
+          "key": "pre_delay",
+          "label": "Pre-delay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.15
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "mod",
+          "label": "Mod Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "param1",
+          "label": "Size",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "param2",
+          "label": "Diffusion",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "reverb:hall",
+      "name": "Hall Reverb",
+      "description": "Hall Reverb algorithm.",
+      "category": "reverb",
+      "blockType": "reverb",
+      "mode": "hall",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "decay",
+          "label": "Decay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.45
+        },
+        {
+          "key": "pre_delay",
+          "label": "Pre-delay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.15
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "mod",
+          "label": "Mod Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "param1",
+          "label": "Diffusion",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "param2",
+          "label": "Mid EQ",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "reverb:plate",
+      "name": "Plate Reverb",
+      "description": "Plate Reverb algorithm.",
+      "category": "reverb",
+      "blockType": "reverb",
+      "mode": "plate",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "decay",
+          "label": "Decay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.45
+        },
+        {
+          "key": "pre_delay",
+          "label": "Pre-delay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.15
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "mod",
+          "label": "Mod Rate",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "param1",
+          "label": "Size",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "param2",
+          "label": "Character",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "reverb:spring",
+      "name": "Spring Reverb",
+      "description": "Spring Reverb algorithm.",
+      "category": "reverb",
+      "blockType": "reverb",
+      "mode": "spring",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "decay",
+          "label": "Decay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.45
+        },
+        {
+          "key": "pre_delay",
+          "label": "Pre-delay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.15
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "mod",
+          "label": "Wobble",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "param1",
+          "label": "Dwell",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "param2",
+          "label": "Springs",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "reverb:bloom",
+      "name": "Bloom Reverb",
+      "description": "Bloom Reverb algorithm.",
+      "category": "reverb",
+      "blockType": "reverb",
+      "mode": "bloom",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "decay",
+          "label": "Decay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.45
+        },
+        {
+          "key": "pre_delay",
+          "label": "Pre-delay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.15
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "mod",
+          "label": "Mod Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "param1",
+          "label": "Bloom Time",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "param2",
+          "label": "Feedback",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "reverb:cloud",
+      "name": "Cloud Reverb",
+      "description": "Cloud Reverb algorithm.",
+      "category": "reverb",
+      "blockType": "reverb",
+      "mode": "cloud",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "decay",
+          "label": "Decay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.45
+        },
+        {
+          "key": "pre_delay",
+          "label": "Pre-delay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.15
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "mod",
+          "label": "Mod Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "param1",
+          "label": "Diffusion",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "param2",
+          "label": "Darkness",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "reverb:shimmer",
+      "name": "Shimmer Reverb",
+      "description": "Shimmer Reverb algorithm.",
+      "category": "reverb",
+      "blockType": "reverb",
+      "mode": "shimmer",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "decay",
+          "label": "Decay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.45
+        },
+        {
+          "key": "pre_delay",
+          "label": "Pre-delay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.15
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "mod",
+          "label": "Shimmer",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "param1",
+          "label": "Pitch 1",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.6666667
+        },
+        {
+          "key": "param2",
+          "label": "Pitch 2",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5277778
+        }
+      ]
+    },
+    {
+      "id": "reverb:chorale",
+      "name": "Chorale Reverb",
+      "description": "Chorale Reverb algorithm.",
+      "category": "reverb",
+      "blockType": "reverb",
+      "mode": "chorale",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "decay",
+          "label": "Decay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.45
+        },
+        {
+          "key": "pre_delay",
+          "label": "Pre-delay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.15
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "mod",
+          "label": "Mod Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "param1",
+          "label": "Vowel",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "param2",
+          "label": "Resonance",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "reverb:nonlinear",
+      "name": "Nonlinear Reverb",
+      "description": "Nonlinear Reverb algorithm.",
+      "category": "reverb",
+      "blockType": "reverb",
+      "mode": "nonlinear",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "decay",
+          "label": "Decay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.45
+        },
+        {
+          "key": "pre_delay",
+          "label": "Pre-delay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.15
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "mod",
+          "label": "Mod Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "param1",
+          "label": "Shape",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "param2",
+          "label": "Diffusion",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "reverb:swell",
+      "name": "Swell Reverb",
+      "description": "Swell Reverb algorithm.",
+      "category": "reverb",
+      "blockType": "reverb",
+      "mode": "swell",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "decay",
+          "label": "Decay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.45
+        },
+        {
+          "key": "pre_delay",
+          "label": "Pre-delay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.15
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "mod",
+          "label": "Mod Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "param1",
+          "label": "Rise Time",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "param2",
+          "label": "Direction",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "reverb:magneto",
+      "name": "Magneto Reverb",
+      "description": "Magneto Reverb algorithm.",
+      "category": "reverb",
+      "blockType": "reverb",
+      "mode": "magneto",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "decay",
+          "label": "Decay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.45
+        },
+        {
+          "key": "pre_delay",
+          "label": "Feedback",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.15
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "mod",
+          "label": "Diffusion",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "param1",
+          "label": "Heads",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "param2",
+          "label": "Spacing",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "reverb:reflections",
+      "name": "Reflections Reverb",
+      "description": "Reflections Reverb algorithm.",
+      "category": "reverb",
+      "blockType": "reverb",
+      "mode": "reflections",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "decay",
+          "label": "Decay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.45
+        },
+        {
+          "key": "pre_delay",
+          "label": "Pre-delay",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.15
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.25
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "mod",
+          "label": "Motion",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "param1",
+          "label": "Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "param2",
+          "label": "Width",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "total": 42,
+    "modulation": 13,
+    "delay": 10,
+    "reverb": 12
+  }
+}

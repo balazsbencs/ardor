@@ -1,0 +1,259 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { docsNav } from '../data/site';
+import { url, isActive } from '../lib/url';
+
+interface Props {
+  title: string;
+  description?: string;
+  lede?: string;
+}
+const { title, description, lede } = Astro.props;
+const current = Astro.url.pathname;
+
+const idx = docsNav.findIndex((d) => isActive(current, d.href));
+const prev = idx > 0 ? docsNav[idx - 1] : null;
+const next = idx >= 0 && idx < docsNav.length - 1 ? docsNav[idx + 1] : null;
+---
+
+<BaseLayout title={title} description={description}>
+  <div class="docs container">
+    <aside class="docs-side">
+      <p class="docs-side-title mono">Documentation</p>
+      <nav aria-label="Documentation">
+        <ul>
+          <li>
+            <a href={url('/docs')} class:list={{ active: isActive(current, '/docs') }}>Overview</a>
+          </li>
+          {docsNav.map((d) => (
+            <li>
+              <a href={url(d.href)} class:list={{ active: isActive(current, d.href) }}>{d.label}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
+
+    <article class="docs-main prose">
+      <header class="docs-header">
+        <p class="eyebrow">Docs</p>
+        <h1>{title}</h1>
+        {lede && <p class="docs-lede">{lede}</p>}
+      </header>
+
+      <slot />
+
+      <nav class="docs-pager" aria-label="Pagination">
+        {prev ? (
+          <a class="pager prev" href={url(prev.href)}>
+            <span class="mono">← Previous</span>
+            <span class="pager-label">{prev.label}</span>
+          </a>
+        ) : <span></span>}
+        {next && (
+          <a class="pager next" href={url(next.href)}>
+            <span class="mono">Next →</span>
+            <span class="pager-label">{next.label}</span>
+          </a>
+        )}
+      </nav>
+    </article>
+  </div>
+</BaseLayout>
+
+<style>
+  .docs {
+    display: grid;
+    grid-template-columns: 15rem 1fr;
+    gap: var(--sp-5);
+    padding-block: var(--sp-5) var(--sp-6);
+    align-items: start;
+  }
+  .docs-side {
+    position: sticky;
+    top: 5rem;
+  }
+  .docs-side-title {
+    font-size: var(--step--1);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    margin-bottom: var(--sp-2);
+  }
+  .docs-side ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    border-left: 1px solid var(--hairline);
+  }
+  .docs-side a {
+    display: block;
+    padding: 0.4rem 0.9rem;
+    margin-left: -1px;
+    border-left: 2px solid transparent;
+    color: var(--muted);
+    font-size: var(--step-0);
+  }
+  .docs-side a:hover {
+    color: var(--text-strong);
+  }
+  .docs-side a.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    font-weight: 600;
+  }
+  .docs-main {
+    min-width: 0;
+    max-width: 52rem;
+  }
+  .docs-header {
+    margin-bottom: var(--sp-5);
+    padding-bottom: var(--sp-4);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .docs-header h1 {
+    font-size: var(--step-4);
+    margin: 0;
+  }
+  .docs-lede {
+    font-size: var(--step-1);
+    color: var(--muted);
+    margin: var(--sp-3) 0 0;
+    max-width: none;
+  }
+  .docs-pager {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    margin-top: var(--sp-6);
+    padding-top: var(--sp-4);
+    border-top: 1px solid var(--hairline);
+  }
+  .pager {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: var(--sp-3);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    min-width: 42%;
+  }
+  .pager:hover {
+    border-color: var(--accent-dim);
+  }
+  .pager.next {
+    text-align: right;
+    margin-left: auto;
+  }
+  .pager .mono {
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+  .pager-label {
+    color: var(--text-strong);
+    font-weight: 600;
+  }
+
+  @media (max-width: 860px) {
+    .docs {
+      grid-template-columns: 1fr;
+    }
+    .docs-side {
+      position: static;
+    }
+    .docs-side ul {
+      flex-direction: row;
+      flex-wrap: wrap;
+      border-left: 0;
+      gap: 0.3rem;
+    }
+    .docs-side a {
+      border: 1px solid var(--hairline);
+      border-radius: 999px;
+      margin-left: 0;
+    }
+    .docs-side a.active {
+      border-color: var(--accent);
+    }
+  }
+</style>
+
+<style is:global>
+  /* Prose styling scoped to docs articles. */
+  .prose h2 {
+    font-size: var(--step-2);
+    margin-top: var(--sp-5);
+    padding-top: var(--sp-2);
+  }
+  .prose h3 {
+    font-size: var(--step-1);
+    margin-top: var(--sp-4);
+  }
+  .prose p,
+  .prose li {
+    color: var(--text);
+  }
+  .prose ul,
+  .prose ol {
+    max-width: var(--maxw-prose);
+    padding-left: 1.2rem;
+    margin: 0 0 var(--sp-3);
+  }
+  .prose li {
+    margin-bottom: 0.4rem;
+  }
+  .prose ul li::marker {
+    color: var(--accent);
+  }
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: var(--sp-3) 0 var(--sp-4);
+    font-size: var(--step-0);
+    display: block;
+    overflow-x: auto;
+  }
+  .prose th,
+  .prose td {
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    border-bottom: 1px solid var(--hairline);
+    vertical-align: top;
+  }
+  .prose thead th {
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom-color: var(--hairline-strong);
+  }
+  .prose td .mono,
+  .prose td code {
+    font-variant-numeric: tabular-nums;
+  }
+  .prose .callout {
+    display: flex;
+    gap: 0.8rem;
+    padding: var(--sp-3);
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    background: var(--ground-2);
+    margin: var(--sp-4) 0;
+  }
+  .prose .callout p:last-child {
+    margin-bottom: 0;
+  }
+  .prose .callout.warn {
+    border-left-color: var(--warn);
+  }
+  .prose .lead-in {
+    font-size: var(--step-1);
+    color: var(--muted);
+  }
+</style>
