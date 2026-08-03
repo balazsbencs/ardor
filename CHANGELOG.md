@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.20](https://github.com/balazsbencs/ardor/compare/v0.1.19...v0.1.20) (2026-08-03)
+
+### Features
+
+* midi learn and UI improvements ([676046b](https://github.com/balazsbencs/ardor/commit/676046b999638bcb564611c498082dd5a51f9229))
+
 ## [0.1.19](https://github.com/balazsbencs/ardor/compare/v0.1.18...v0.1.19) (2026-08-03)
 
 ### Features
