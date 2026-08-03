@@ -425,6 +425,25 @@ The device status endpoint is:
 curl http://127.0.0.1:8080/api/device
 ```
 
+The daemon also serves a device-hosted build of the React manager from `/`.
+When loaded from the daemon, the manager connects to the same origin
+automatically, so a browser can manage the pedal without the Tauri application:
+
+```sh
+cd apps/manager
+nvm use
+npm run build:device
+
+cd ../../services/managerd
+ARDOR_API_AUTH=off ARDOR_DATA_ROOT=../.. go run ./cmd/ardor-managerd
+```
+
+Open `http://127.0.0.1:8080` for local development, or the corresponding
+device address on the local network. The generated bundle is embedded in the
+`ardor-managerd` binary so it remains available without internet access.
+TONE3000 browsing remains a desktop-only feature until the hosted manager has
+a dedicated OAuth callback flow.
+
 Auth is enabled by default when no environment override is supplied. Set
 `ARDOR_API_AUTH=on` and provide `ARDOR_API_TOKEN` for a protected device.
 

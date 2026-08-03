@@ -1,12 +1,16 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
+	"mime"
 	"net/http"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +19,7 @@ import (
 	"ardor.local/managerd/internal/config"
 	"ardor.local/managerd/internal/presets"
 	"ardor.local/managerd/internal/runtimecontrol"
+	"ardor.local/managerd/internal/webui"
 	"ardor.local/managerd/internal/wifi"
 )
 
@@ -25,6 +30,10 @@ type errorResponse struct {
 }
 
 func New(cfg config.Config) http.Handler {
+	return NewWithWebUI(cfg, webui.Files())
+}
+
+func NewWithWebUI(cfg config.Config, webFiles fs.FS) http.Handler {
 	mux := http.NewServeMux()
 	assetStore := assets.NewStore(cfg.DataRoot)
 	presetStore := presets.NewStore(cfg.DataRoot)
@@ -268,7 +277,59 @@ func New(cfg config.Config) http.Handler {
 		})
 	})
 
+	mux.Handle("GET /", webUIHandler(webFiles))
+
 	return withCORS(mux)
+}
+
+func webUIHandler(webFiles fs.FS) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api" || strings.HasPrefix(r.URL.Path, "/api/") {
+			http.NotFound(w, r)
+			return
+		}
+
+		setWebSecurityHeaders(w)
+		assetPath := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+		if assetPath == "." || assetPath == "" {
+			serveWebFile(w, r, webFiles, "index.html", false)
+			return
+		}
+		if _, err := fs.Stat(webFiles, assetPath); err == nil {
+			serveWebFile(w, r, webFiles, assetPath, strings.HasPrefix(assetPath, "assets/"))
+			return
+		}
+		if path.Ext(assetPath) != "" {
+			http.NotFound(w, r)
+			return
+		}
+		serveWebFile(w, r, webFiles, "index.html", false)
+	})
+}
+
+func serveWebFile(w http.ResponseWriter, r *http.Request, webFiles fs.FS, name string, immutable bool) {
+	contents, err := fs.ReadFile(webFiles, name)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	contentType := mime.TypeByExtension(path.Ext(name))
+	if contentType != "" {
+		w.Header().Set("Content-Type", contentType)
+	}
+	if immutable {
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	} else {
+		w.Header().Set("Cache-Control", "no-cache")
+	}
+	http.ServeContent(w, r, name, time.Time{}, bytes.NewReader(contents))
+}
+
+func setWebSecurityHeaders(w http.ResponseWriter) {
+	w.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("X-Frame-Options", "DENY")
 }
 
 var allowedOrigins = map[string]struct{}{

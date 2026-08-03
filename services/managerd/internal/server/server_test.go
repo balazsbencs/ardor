@@ -9,9 +9,54 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"testing/fstest"
 
 	"ardor.local/managerd/internal/config"
 )
+
+func TestDeviceHostedManagerUI(t *testing.T) {
+	webFiles := fstest.MapFS{
+		"index.html":     {Data: []byte(`<!doctype html><title>Ardor Manager</title><div id="root"></div>`)},
+		"assets/app.js":  {Data: []byte(`console.log("ardor")`)},
+		"assets/app.css": {Data: []byte(`body { color: green; }`)},
+	}
+	handler := NewWithWebUI(config.Config{DataRoot: t.TempDir(), AuthEnabled: false}, webFiles)
+
+	for _, requestPath := range []string{"/", "/presets/banks/2"} {
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, requestPath, nil))
+		if response.Code != http.StatusOK || !bytes.Contains(response.Body.Bytes(), []byte("Ardor Manager")) {
+			t.Fatalf("ui path=%s status=%d body=%s", requestPath, response.Code, response.Body.String())
+		}
+		if cache := response.Header().Get("Cache-Control"); cache != "no-cache" {
+			t.Fatalf("ui cache=%q", cache)
+		}
+		if csp := response.Header().Get("Content-Security-Policy"); csp == "" {
+			t.Fatal("device-hosted UI is missing a content security policy")
+		}
+	}
+
+	asset := httptest.NewRecorder()
+	handler.ServeHTTP(asset, httptest.NewRequest(http.MethodGet, "/assets/app.js", nil))
+	if asset.Code != http.StatusOK || !bytes.Contains(asset.Body.Bytes(), []byte("ardor")) {
+		t.Fatalf("asset status=%d body=%s", asset.Code, asset.Body.String())
+	}
+	if cache := asset.Header().Get("Cache-Control"); cache != "public, max-age=31536000, immutable" {
+		t.Fatalf("asset cache=%q", cache)
+	}
+
+	missingAPI := httptest.NewRecorder()
+	handler.ServeHTTP(missingAPI, httptest.NewRequest(http.MethodGet, "/api/missing", nil))
+	if missingAPI.Code != http.StatusNotFound || bytes.Contains(missingAPI.Body.Bytes(), []byte("Ardor Manager")) {
+		t.Fatalf("missing API status=%d body=%s", missingAPI.Code, missingAPI.Body.String())
+	}
+
+	missingAsset := httptest.NewRecorder()
+	handler.ServeHTTP(missingAsset, httptest.NewRequest(http.MethodGet, "/assets/missing.js", nil))
+	if missingAsset.Code != http.StatusNotFound {
+		t.Fatalf("missing asset status=%d body=%s", missingAsset.Code, missingAsset.Body.String())
+	}
+}
 
 func TestDeviceAndAuth(t *testing.T) {
 	handler := New(config.Config{DataRoot: t.TempDir(), AuthEnabled: true, Token: "secret"})

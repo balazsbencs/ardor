@@ -38,6 +38,7 @@ export function AssetLibrary() {
   const processedDeepLinks = useRef(new Set<string>());
   const assets = kind === "models" ? session.models : session.irs;
   const visible = assets.filter((asset) => asset.filename.toLowerCase().includes(query.toLowerCase()));
+  const tone3000Available = tone3000NativeAvailable() && tone3000Configured();
 
   const clearFileInput = () => { if (fileRef.current) fileRef.current.value = ""; };
   const uploadSequentially = async (uploadKind: AssetKind, files: File[]): Promise<boolean> => {
@@ -223,7 +224,7 @@ export function AssetLibrary() {
 
   return (
     <main className="assets-view">
-      <header className="assets-view__header"><div><p className="eyebrow">Device assets</p><h1>Models & cabinet IRs</h1><p>Upload files once, then choose them from the relevant block inspector.</p></div><div className="assets-view__actions">{kind === "models" && <Button className="tone3000-entry" onClick={browseTone3000} disabled={session.busy.upload || conflict !== undefined || tone3000Phase !== "idle"}><Tone3000Brand compact /> Browse TONE3000</Button>}<Button onClick={() => fileRef.current?.click()} disabled={session.busy.upload || conflict !== undefined}><Upload size={16} /> {session.busy.upload ? "Uploading…" : "Upload files"}</Button></div><input ref={fileRef} hidden type="file" multiple accept={kind === "models" ? ".nam" : ".wav"} onChange={(event) => upload(event.target.files)} /></header>
+      <header className="assets-view__header"><div><p className="eyebrow">Device assets</p><h1>Models & cabinet IRs</h1><p>Upload files once, then choose them from the relevant block inspector.</p></div><div className="assets-view__actions">{kind === "models" && tone3000Available && <Button className="tone3000-entry" onClick={browseTone3000} disabled={session.busy.upload || conflict !== undefined || tone3000Phase !== "idle"}><Tone3000Brand compact /> Browse TONE3000</Button>}<Button onClick={() => fileRef.current?.click()} disabled={session.busy.upload || conflict !== undefined}><Upload size={16} /> {session.busy.upload ? "Uploading…" : "Upload files"}</Button></div><input ref={fileRef} hidden type="file" multiple accept={kind === "models" ? ".nam" : ".wav"} onChange={(event) => upload(event.target.files)} /></header>
       <div className="assets-toolbar"><div className="category-tabs" role="tablist" aria-label="Asset type"><button role="tab" aria-selected={kind === "models"} className={kind === "models" ? "is-active" : ""} onClick={() => setKind("models")}>NAM models</button><button role="tab" aria-selected={kind === "irs"} className={kind === "irs" ? "is-active" : ""} onClick={() => setKind("irs")}>Cabinet IRs</button></div><input className="asset-search" placeholder="Search files" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
       <div className="asset-dropzone" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); upload(event.dataTransfer.files); }}><Upload size={16} /><span>Drop {kind === "models" ? ".nam" : ".wav"} files here to upload</span></div>
       {error && <p className="assets-error" role="alert">{error}</p>}

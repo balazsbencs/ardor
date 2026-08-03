@@ -2,9 +2,11 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useRef, useState } from "react";
 
 import { useDeviceSession } from "./deviceSession";
+import { isDeviceHostedRuntime } from "../runtime/platform";
 
 export function ConnectionDialog({ open, onOpenChange }: { open: boolean; onOpenChange(open: boolean): void }) {
   const session = useDeviceSession();
+  const deviceHosted = isDeviceHostedRuntime();
   const [baseUrl, setBaseUrl] = useState(session.baseUrl);
   const [token, setToken] = useState("");
   const tokenRef = useRef<HTMLInputElement>(null);
@@ -35,12 +37,14 @@ export function ConnectionDialog({ open, onOpenChange }: { open: boolean; onOpen
           <form className="connection-dialog__form" onSubmit={(event) => {
             event.preventDefault();
             connectionAttempted.current = true;
-            void session.connect(baseUrl, token);
+            void session.connect(deviceHosted ? session.baseUrl : baseUrl, token);
           }}>
-            <label>
-              <span>Device URL</span>
-              <input aria-label="Device URL" value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} />
-            </label>
+            {deviceHosted
+              ? <p>This manager is hosted by <strong>{session.device?.deviceName ?? "this Ardor device"}</strong>.</p>
+              : <label>
+                  <span>Device URL</span>
+                  <input aria-label="Device URL" value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} />
+                </label>}
             <label>
               <span>Bearer token</span>
               <input ref={tokenRef} aria-label="Bearer token" type="password" value={token} onChange={(event) => setToken(event.target.value)} />
@@ -49,7 +53,7 @@ export function ConnectionDialog({ open, onOpenChange }: { open: boolean; onOpen
             <div className="connection-dialog__actions">
               <Dialog.Close type="button">Cancel</Dialog.Close>
               <button type="submit" disabled={session.status === "connecting"}>
-                {session.status === "connecting" ? "Connecting…" : "Connect"}
+                {session.status === "connecting" ? "Connecting…" : deviceHosted ? "Retry connection" : "Connect"}
               </button>
             </div>
           </form>
