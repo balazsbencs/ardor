@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ardor — Direction B: PLATE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/*
+  DIRECTION CONTRACT — seed key 5ea320b0 · challenger: medium-native-one-bit-desktop · mode: operate
+
+  THESIS: One bit. The pedal renders in black and white pixels only, with ordered dither
+  standing in for every tone — the canonical answer to a 5-bit-per-channel panel, taken as
+  a whole design language instead of a workaround. It refuses colour as the carrier of
+  meaning and makes pattern carry it instead.
+  OWN-WORLD: Pure #000 / #fff. Bayer-ordered stipple for every gray. 1px chrome, title bars,
+  close boxes, marching-ants selection, 1px offset drop shadows. Chicago-role bitmap face for
+  chrome, Geneva-role bitmap face for content.
+  STORY: The player reads state from pattern and inversion, not hue — legible at any angle,
+  in any light, and physically incapable of banding.
+  FIRST VIEWPORT: A menu bar, four windowed plates tiled two-by-two on a 50% dither desktop.
+  The live preset is fully inverted and ringed by marching ants.
+  FORM: One-bit desktop, dealt challenger; won on the hardware axis; seed key 5ea320b0.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish
+  review, the verdict, and DESIGN.md
+*/
+
+:root{
+  /* Bayer-ordered dithers. Every "gray" in this design is one of these — no ramps exist. */
+  --d12:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Crect width='4' height='4' fill='%23fff'/%3E%3Crect x='0' y='0' width='1' height='1' fill='%23000'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23000'/%3E%3C/svg%3E");
+  --d25:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Crect width='4' height='4' fill='%23fff'/%3E%3Crect x='0' y='0' width='1' height='1' fill='%23000'/%3E%3Crect x='2' y='0' width='1' height='1' fill='%23000'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23000'/%3E%3Crect x='0' y='2' width='1' height='1' fill='%23000'/%3E%3C/svg%3E");
+  --d50:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Crect width='2' height='2' fill='%23fff'/%3E%3Crect x='0' y='0' width='1' height='1' fill='%23000'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23000'/%3E%3C/svg%3E");
+  --d75:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Crect width='4' height='4' fill='%23000'/%3E%3Crect x='0' y='0' width='1' height='1' fill='%23fff'/%3E%3Crect x='2' y='0' width='1' height='1' fill='%23fff'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23fff'/%3E%3Crect x='0' y='2' width='1' height='1' fill='%23fff'/%3E%3C/svg%3E");
+  /* family patterns — these replace category colour entirely */
+  --p-amp:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Crect width='2' height='2' fill='%23fff'/%3E%3Crect x='0' y='0' width='1' height='1' fill='%23000'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23000'/%3E%3C/svg%3E");
+  --p-cab:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Crect width='4' height='4' fill='%23fff'/%3E%3Crect x='0' y='0' width='4' height='1' fill='%23000'/%3E%3C/svg%3E");
+  --p-util:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Crect width='4' height='4' fill='%23fff'/%3E%3Crect x='0' y='0' width='1' height='4' fill='%23000'/%3E%3C/svg%3E");
+  --p-mod:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Crect width='4' height='4' fill='%23fff'/%3E%3Crect x='0' y='0' width='1' height='1' fill='%23000'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23000'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23000'/%3E%3Crect x='3' y='3' width='1' height='1' fill='%23000'/%3E%3C/svg%3E");
+  --p-dly:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Crect width='4' height='4' fill='%23fff'/%3E%3Crect x='0' y='0' width='1' height='1' fill='%23000'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23000'/%3E%3C/svg%3E");
+  --p-verb:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Crect width='4' height='4' fill='%23fff'/%3E%3Crect x='0' y='0' width='4' height='1' fill='%23000'/%3E%3Crect x='0' y='0' width='1' height='4' fill='%23000'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2b2b2b;font-family:'Pixelify Sans',monospace;color:#bbb;padding:40px 24px 80px}
+.doc{max-width:1280px;margin:0 auto}
+.doc h1{font-family:Silkscreen,monospace;font-size:30px;color:#fff;text-transform:uppercase;letter-spacing:.02em}
+.doc .sub{font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;max-width:70ch;margin-top:12px;color:#9a9a9a}
+.cap{display:flex;align-items:baseline;gap:14px;margin:44px 0 12px}
+.cap b{font-family:Silkscreen,monospace;font-size:16px;color:#e6e6e6;text-transform:uppercase}
+.cap span{font-family:system-ui,sans-serif;font-size:13px;color:#8a8a8a}
+.stage{width:1280px;height:720px;transform-origin:top left;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.6)}
+.shell{position:relative;height:1px}
+.note{font-family:system-ui,sans-serif;margin-top:14px;font-size:13.5px;line-height:1.65;color:#8f8f8f;max-width:78ch}
+.note b{color:#d8d8d8;font-weight:600}
+.cost{margin-top:56px;border-top:1px solid #3d3d3d;padding-top:22px;font-family:system-ui,sans-serif}
+.cost h2{font-family:Silkscreen,monospace;font-size:15px;color:#e6e6e6;text-transform:uppercase;margin-bottom:12px}
+.cost li{font-size:13.5px;line-height:1.7;color:#9a9a9a;margin-left:18px;max-width:80ch}
+.cost li b{color:#d8d8d8;font-weight:600}
+
+/* ================= THE DESIGN ================= */
+.scr{width:1280px;height:720px;background:#fff;position:relative;overflow:hidden;
+  image-rendering:pixelated;color:#000}
+.desk{position:absolute;inset:0;background-image:var(--d50);background-repeat:repeat}
+
+/* menu bar */
+.menu{position:absolute;top:0;left:0;right:0;height:34px;background:#fff;border-bottom:2px solid #000;
+  display:flex;align-items:center;gap:26px;padding:0 12px;font-family:Silkscreen,monospace;font-size:13px;z-index:5}
+.menu .mk{font-weight:700}
+.menu .sp{flex:1}
+.menu .st{display:flex;align-items:center;gap:7px}
+/* segmented 1-bit meter */
+.meter{display:flex;gap:2px;align-items:center}
+.meter i{width:6px;height:12px;background:#fff;border:1px solid #000;display:block}
+.meter i.on{background:#000}
+.meter i.dz{background-image:var(--d50);background-repeat:repeat}
+
+/* window plate */
+.win{background:#fff;border:2px solid #000;box-shadow:3px 3px 0 #000;position:relative}
+.tbar{height:26px;border-bottom:2px solid #000;display:flex;align-items:center;padding:0 6px;gap:6px;
+  background:repeating-linear-gradient(180deg,#000 0 1px,#fff 1px 3px)}
+.tbar .box{width:14px;height:14px;border:2px solid #000;background:#fff;flex:none}
+.tbar .tt{font-family:Silkscreen,monospace;font-size:12px;background:#fff;padding:0 7px;white-space:nowrap}
+.tbar .grow{flex:1}
+
+/* marching ants */
+@keyframes ants{to{background-position:16px 0,-16px 0,0 -16px,0 16px}}
+.ants{position:absolute;inset:-5px;pointer-events:none;
+  background:
+    linear-gradient(90deg,#000 50%,#fff 0) repeat-x 0 0/8px 2px,
+    linear-gradient(90deg,#000 50%,#fff 0) repeat-x 0 100%/8px 2px,
+    linear-gradient(180deg,#000 50%,#fff 0) repeat-y 0 0/2px 8px,
+    linear-gradient(180deg,#000 50%,#fff 0) repeat-y 100% 0/2px 8px;
+  animation:ants .7s linear infinite}
+
+/* ---------- SCREEN 1: preset ---------- */
+.grid2{position:absolute;top:34px;left:0;right:0;bottom:74px;padding:18px;
+  display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:18px}
+.slot{position:relative}
+.slot .win{height:100%;display:flex;flex-direction:column}
+.slot .body{flex:1;padding:14px 16px 12px;display:flex;flex-direction:column;justify-content:space-between}
+.slot .idx{font-family:Silkscreen,monospace;font-size:12px}
+.slot .nm{font-family:'Pixelify Sans',monospace;font-weight:700;font-size:44px;line-height:.98;letter-spacing:-.01em}
+.slot .ch{display:flex;gap:6px;margin-top:8px}
+.pat{height:22px;padding:0 9px;border:2px solid #000;display:flex;align-items:center;
+  font-family:Silkscreen,monospace;font-size:10px;background-repeat:repeat}
+.pat u{background:#fff;padding:0 3px;text-decoration:none}
+/* live slot: full inversion */
+.slot.live .win{background:#000;color:#fff}
+.slot.live .tbar{background:repeating-linear-gradient(180deg,#fff 0 1px,#000 1px 3px);border-color:#fff}
+.slot.live .tbar .box{border-color:#fff;background:#000}
+.slot.live .tbar .tt{background:#000;color:#fff}
+.slot.live .pat{border-color:#fff}
+.slot.live .pat u{background:#000;color:#fff}
+.slot.live .win{border-color:#000;box-shadow:3px 3px 0 #000}
+/* fault slot */
+.slot.fault .body{background-image:var(--d25);background-repeat:repeat}
+.alertbar{border:2px solid #000;background:#000;color:#fff;font-family:Silkscreen,monospace;font-size:11px;
+  padding:5px 8px;display:flex;align-items:center;gap:7px}
+
+.dock{position:absolute;bottom:0;left:0;right:0;height:74px;background:#fff;border-top:2px solid #000;
+  display:flex;align-items:center;gap:10px;padding:0 16px;z-index:5}
+.btn{border:2px solid #000;background:#fff;box-shadow:2px 2px 0 #000;padding:9px 18px;
+  font-family:Silkscreen,monospace;font-size:15px;cursor:default}
+.btn.pri{background:#000;color:#fff}
+.btn.sm{font-size:12px;padding:7px 12px}
+.dock .sp{flex:1}
+.vol{display:flex;align-items:center;gap:9px;font-family:Silkscreen,monospace;font-size:12px}
+.volbar{width:150px;height:20px;border:2px solid #000;background:#fff;display:flex;padding:1px;gap:1px}
+.volbar i{flex:1;background:#fff}
+.volbar i.on{background:#000}
+.volbar i.hz{background-image:var(--d50);background-repeat:repeat}
+
+/* ---------- SCREEN 2: chain ---------- */
+.chain{position:absolute;top:34px;left:0;right:0;bottom:74px;padding:22px 18px;display:flex;align-items:center}
+.node{width:142px;flex:none;position:relative;z-index:2}
+.node .win{padding:0}
+.node .nb{padding:11px 11px 9px;display:flex;flex-direction:column;gap:7px;background:#fff}
+.node .kd{font-family:Silkscreen,monospace;font-size:10px}
+.node .nn{font-family:'Pixelify Sans',monospace;font-weight:700;font-size:23px;line-height:1}
+.node .swatch{height:26px;border:2px solid #000;background-repeat:repeat}
+.node .vv{font-family:Silkscreen,monospace;font-size:10px}
+.node.sel .win{background:#000;color:#fff}
+.node.sel .nb{background:#000}
+.node.byp .nb{background-image:var(--d25);background-repeat:repeat;color:#000}
+.node.byp .nn{text-decoration:line-through;text-decoration-thickness:3px}
+.wire{flex:1;height:2px;background:#000;min-width:14px;position:relative;z-index:1}
+.wire b{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:20px;height:20px;
+  border:2px solid #000;background:#fff;font-family:Silkscreen,monospace;font-size:12px;
+  display:flex;align-items:center;justify-content:center;line-height:1}
+.term{font-family:Silkscreen,monospace;font-size:11px;flex:none;width:38px;text-align:center}
+/* split */
+.splitgrp{flex:none;display:flex;flex-direction:column;gap:14px;position:relative;padding:16px 0 0}
+.splitgrp .cap2{position:absolute;top:-6px;left:0;font-family:Silkscreen,monospace;font-size:10px;
+  background:#000;color:#fff;padding:2px 7px}
+.lane{display:flex;align-items:center}
+.lane .lk{font-family:Silkscreen,monospace;font-size:12px;width:26px;flex:none;text-align:center}
+.lane .node{width:118px}
+.lane .node .nn{font-size:18px}
+.lane .node .swatch{height:18px}
+
+/* ---------- SCREEN 3: tuner ---------- */
+.tuner{position:absolute;top:34px;left:0;right:0;bottom:74px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;background:#000;color:#fff}
+.tuner.flat{background:#fff;color:#000}
+.mutebar{position:absolute;top:14px;left:50%;transform:translateX(-50%);border:2px solid currentColor;
+  font-family:Silkscreen,monospace;font-size:12px;padding:5px 14px}
+.tnote{font-family:'Pixelify Sans',monospace;font-weight:700;font-size:250px;line-height:.8;letter-spacing:-.03em}
+.tnote sup{font-size:80px;vertical-align:super;opacity:.7}
+.thz{font-family:Silkscreen,monospace;font-size:18px;margin-top:10px}
+.ruler{display:flex;align-items:flex-end;gap:5px;height:70px;margin-top:26px}
+.ruler i{width:12px;background:currentColor;opacity:.35;display:block}
+.ruler i.lit{opacity:1}
+.ruler i.c{width:18px;opacity:1}
+.tverdict{margin-top:22px;font-family:Silkscreen,monospace;font-size:34px;letter-spacing:.04em;
+  border:3px solid currentColor;padding:10px 26px}
+
+/* ---------- SCREEN 4: params ---------- */
+.pgrid{position:absolute;top:34px;left:0;right:0;bottom:74px;padding:18px;
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:16px}
+.pcard{background:#fff;border:2px solid #000;box-shadow:3px 3px 0 #000;padding:13px 15px;
+  display:flex;flex-direction:column;justify-content:center;gap:11px}
+.pcard .pk{font-family:Silkscreen,monospace;font-size:12px}
+.pcard .pv{font-family:'Pixelify Sans',monospace;font-weight:700;font-size:40px;line-height:.9}
+.pcard .pv em{font-style:normal;font-size:16px;font-family:Silkscreen,monospace}
+/* 1-bit slider: dithered track, solid fill, square thumb */
+.track{height:26px;border:2px solid #000;background-image:var(--d12);background-repeat:repeat;position:relative}
+.track .fl{position:absolute;left:0;top:0;bottom:0;background:#000}
+.track .th{position:absolute;top:-4px;bottom:-4px;width:14px;background:#fff;border:2px solid #000;
+  transform:translateX(-50%)}
+.pcard .segs{display:flex;gap:6px}
+.pcard .sg{flex:1;border:2px solid #000;text-align:center;padding:6px 0;font-family:Silkscreen,monospace;font-size:13px}
+.pcard .sg.on{background:#000;color:#fff}
+.chk{width:22px;height:22px;border:2px solid #000;display:inline-flex;align-items:center;justify-content:center;
+  font-family:Silkscreen,monospace;font-size:14px;vertical-align:middle;margin-right:9px}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Direction B — Plate</h1>
+  <p class="sub">One bit. Black and white pixels only, with Bayer-ordered stipple standing in for every gray.
+  Dithering is not a workaround here, it is the design language — and it is the textbook answer to a panel that
+  cannot hold a smooth ramp. Effect families are carried by <em>pattern</em> instead of hue, so the system stays
+  legible with the colour channel removed entirely.</p>
+
+  <div class="cap"><b>1 · Desktop</b><span>preset screen — live slot fully inverted</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="desk"></div>
+      <div class="menu">
+        <span class="mk">◆ ARDOR</span><span>BANK 000</span><span>SET A</span>
+        <span class="sp"></span>
+        <span class="st">MIDI</span>
+        <span class="st">HEADROOM
+          <span class="meter"><i class="on"></i><i class="on"></i><i class="on"></i><i class="dz"></i><i></i></span>
+        </span>
+        <span>48K/64</span>
+      </div>
+
+      <div class="grid2">
+        <div class="slot">
+          <div class="win">
+            <div class="tbar"><div class="box"></div><div class="tt">SLOT 1</div><div class="grow"></div></div>
+            <div class="body">
+              <div><div class="idx">FS 1</div><div class="nm">Midnight<br>Clean</div></div>
+              <div class="ch">
+                <span class="pat" style="background-image:var(--p-amp)"><u>AMP</u></span>
+                <span class="pat" style="background-image:var(--p-cab)"><u>CAB</u></span>
+                <span class="pat" style="background-image:var(--p-verb)"><u>HALL</u></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slot live">
+          <div class="ants"></div>
+          <div class="win">
+            <div class="tbar"><div class="box"></div><div class="tt">SLOT 2 — LIVE</div><div class="grow"></div></div>
+            <div class="body">
+              <div><div class="idx">FS 2</div><div class="nm">Drive<br>Stack</div></div>
+              <div class="ch">
+                <span class="pat" style="background-image:var(--p-amp)"><u>AMP</u></span>
+                <span class="pat" style="background-image:var(--p-cab)"><u>CAB</u></span>
+                <span class="pat" style="background-image:var(--p-dly)"><u>TAPE</u></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slot">
+          <div class="win">
+            <div class="tbar"><div class="box"></div><div class="tt">SLOT 3</div><div class="grow"></div></div>
+            <div class="body">
+              <div><div class="idx">FS 3</div><div class="nm">Split Rig<br>Wide</div></div>
+              <div class="ch">
+                <span class="pat" style="background-image:var(--p-util)"><u>SPLIT</u></span>
+                <span class="pat" style="background-image:var(--p-mod)"><u>CHOR</u></span>
+                <span class="pat" style="background-image:var(--p-dly)"><u>DLY</u></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slot fault">
+          <div class="win">
+            <div class="tbar"><div class="box"></div><div class="tt">SLOT 4</div><div class="grow"></div></div>
+            <div class="body">
+              <div><div class="idx">FS 4</div><div class="nm">Ambient<br>Bloom</div></div>
+              <div class="alertbar">✕ &nbsp;MISSING ASSET — models/bloom.nam</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dock">
+        <div class="btn pri">EDIT</div>
+        <div class="btn">TUNER</div>
+        <div class="btn sm">BANK −</div>
+        <div class="btn sm">BANK +</div>
+        <div class="btn sm">SETUP</div>
+        <div class="sp"></div>
+        <div class="vol">MASTER 72%
+          <div class="volbar">
+            <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+            <i class="on"></i><i class="on"></i><i class="hz"></i><i></i><i></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+  <p class="note"><b>Inversion is the strongest signal a screen can make.</b> The live preset is not tinted, it is
+  flipped — solid black plate, white type, marching ants walking around it. At foot level in a dark room that
+  reads before any colour would, and it costs one boolean in the render.</p>
+
+  <div class="cap"><b>2 · Chain</b><span>edit screen — family by pattern, bypass by dither</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="desk"></div>
+      <div class="menu">
+        <span class="mk">◆ EDIT</span><span>2 — DRIVE STACK</span>
+        <span style="background:#000;color:#fff;padding:2px 7px">UNSAVED</span>
+        <span class="sp"></span><span>DRAG GRIP TO MOVE</span>
+      </div>
+      <div class="chain">
+        <div class="term">IN</div>
+        <div class="wire"><b>+</b></div>
+        <div class="node">
+          <div class="win"><div class="nb">
+            <div class="kd">AMP · U1</div><div class="nn">Tweed<br>Deluxe</div>
+            <div class="swatch" style="background-image:var(--p-amp)"></div>
+            <div class="vv">NANO · SUM</div></div></div>
+        </div>
+        <div class="wire"><b>+</b></div>
+        <div class="node sel">
+          <div class="ants"></div>
+          <div class="win"><div class="nb">
+            <div class="kd">CAB · IR1</div><div class="nn">Open<br>Back</div>
+            <div class="swatch" style="background-image:var(--p-cab)"></div>
+            <div class="vv">−2.0 dB · 100%</div></div></div>
+        </div>
+        <div class="wire"><b>+</b></div>
+        <div class="node byp">
+          <div class="win"><div class="nb">
+            <div class="kd">MOD · M1</div><div class="nn">Chorus</div>
+            <div class="swatch" style="background-image:var(--p-mod)"></div>
+            <div class="vv">BYPASSED</div></div></div>
+        </div>
+        <div class="wire"><b>+</b></div>
+        <div class="node">
+          <div class="win"><div class="nb">
+            <div class="kd">DELAY · D1</div><div class="nn">Tape</div>
+            <div class="swatch" style="background-image:var(--p-dly)"></div>
+            <div class="vv">380 ms · 34%</div></div></div>
+        </div>
+        <div class="wire"><b>+</b></div>
+        <div class="term">OUT</div>
+      </div>
+      <div class="dock">
+        <div class="btn pri">SAVE*</div><div class="btn">UNDO</div><div class="btn">REDO</div>
+        <div class="btn">BLOCKS</div>
+        <div class="sp"></div><div class="btn">DONE</div>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="cap"><b>2b · Split</b><span>Dual Rig as two lanes, no colour needed</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="desk"></div>
+      <div class="menu"><span class="mk">◆ EDIT</span><span>3 — SPLIT RIG WIDE</span>
+        <span class="sp"></span><span>SPLIT · 2 LANES · STEREO JOIN</span></div>
+      <div class="chain">
+        <div class="term">IN</div>
+        <div class="wire"></div>
+        <div class="splitgrp">
+          <div class="cap2">SPLIT</div>
+          <div class="lane">
+            <div class="lk">L</div>
+            <div class="node"><div class="win"><div class="nb"><div class="kd">AMP</div><div class="nn">Clean</div>
+              <div class="swatch" style="background-image:var(--p-amp)"></div></div></div></div>
+            <div class="wire"><b>+</b></div>
+            <div class="node"><div class="win"><div class="nb"><div class="kd">CAB</div><div class="nn">Open</div>
+              <div class="swatch" style="background-image:var(--p-cab)"></div></div></div></div>
+            <div class="wire"><b>+</b></div>
+            <div class="node"><div class="win"><div class="nb"><div class="kd">MOD</div><div class="nn">Chorus</div>
+              <div class="swatch" style="background-image:var(--p-mod)"></div></div></div></div>
+          </div>
+          <div class="lane">
+            <div class="lk">R</div>
+            <div class="node"><div class="win"><div class="nb"><div class="kd">AMP</div><div class="nn">Crunch</div>
+              <div class="swatch" style="background-image:var(--p-amp)"></div></div></div></div>
+            <div class="wire"><b>+</b></div>
+            <div class="node"><div class="win"><div class="nb"><div class="kd">CAB</div><div class="nn">Closed</div>
+              <div class="swatch" style="background-image:var(--p-cab)"></div></div></div></div>
+            <div class="wire"><b>+</b></div>
+            <div class="node"><div class="win"><div class="nb"><div class="kd">DELAY</div><div class="nn">Digital</div>
+              <div class="swatch" style="background-image:var(--p-dly)"></div></div></div></div>
+          </div>
+        </div>
+        <div class="wire"></div>
+        <div class="term">JOIN<br>L/R</div>
+        <div class="wire"></div>
+        <div class="term">OUT</div>
+      </div>
+      <div class="dock">
+        <div class="btn">SAVE</div><div class="btn">UNDO</div><div class="btn">BLOCKS</div>
+        <div class="sp"></div><div class="btn">DONE</div>
+      </div>
+    </div>
+  </div></div>
+  <p class="note"><b>Pattern replaces the palette.</b> Amp is a 50% checker, cab is horizontal rule, utility
+  vertical, modulation diagonal, delay a sparse dot field, reverb crosshatch. A player learns six textures the
+  way they learned six colours — and it survives sunlight, viewing angle, and colour-blindness that hue coding
+  does not.</p>
+
+  <div class="cap"><b>3 · Tuner</b><span>in tune = the whole plate inverts</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="menu"><span class="mk">◆ TUNER</span><span>OUTPUT MUTED</span>
+        <span class="sp"></span><span>ANY FOOTSWITCH EXITS</span></div>
+      <div class="tuner">
+        <div class="mutebar">OUTPUT MUTED</div>
+        <div class="tnote">A<sup>2</sup></div>
+        <div class="thz">110.00 HZ · 0 CENTS</div>
+        <div class="ruler">
+          <i style="height:30%"></i><i style="height:36%"></i><i style="height:42%"></i><i style="height:50%"></i>
+          <i style="height:60%"></i><i style="height:72%"></i>
+          <i class="c lit" style="height:100%"></i>
+          <i style="height:72%"></i><i style="height:60%"></i><i style="height:50%"></i>
+          <i style="height:42%"></i><i style="height:36%"></i><i style="height:30%"></i>
+        </div>
+        <div class="tverdict">IN TUNE</div>
+      </div>
+      <div class="dock"><div class="sp"></div><div class="btn pri">EXIT</div></div>
+    </div>
+  </div></div>
+  <p class="note"><b>Shown in the in-tune state.</b> Out of tune, the plate is white with black type; the instant
+  you land inside ±3 cents the entire field flips to solid black. It is a full-screen, unmissable yes — visible
+  from across a rehearsal room without reading a single character.</p>
+
+  <div class="cap"><b>4 · Parameters</b><span>dithered tracks, square thumbs, real checkboxes</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="desk"></div>
+      <div class="menu"><span class="mk">◆ DELAY</span><span>TAPE — D1</span>
+        <span class="sp"></span>
+        <span><span class="chk">✓</span>ENABLED</span>
+        <span>DONE</span></div>
+      <div class="pgrid">
+        <div class="pcard"><div class="pk">TIME</div><div class="pv">380<em>MS</em></div>
+          <div class="track"><div class="fl" style="width:47%"></div><div class="th" style="left:47%"></div></div></div>
+        <div class="pcard"><div class="pk">FEEDBACK</div><div class="pv">34<em>%</em></div>
+          <div class="track"><div class="fl" style="width:34%"></div><div class="th" style="left:34%"></div></div></div>
+        <div class="pcard"><div class="pk">MIX</div><div class="pv">28<em>%</em></div>
+          <div class="track"><div class="fl" style="width:28%"></div><div class="th" style="left:28%"></div></div></div>
+        <div class="pcard"><div class="pk">WOW</div><div class="pv">18<em>%</em></div>
+          <div class="track"><div class="fl" style="width:18%"></div><div class="th" style="left:18%"></div></div></div>
+        <div class="pcard"><div class="pk">AGE</div><div class="pv">61<em>%</em></div>
+          <div class="track"><div class="fl" style="width:61%"></div><div class="th" style="left:61%"></div></div></div>
+        <div class="pcard"><div class="pk">HEADS</div><div class="pv" style="font-size:26px">DUAL</div>
+          <div class="segs"><div class="sg">1</div><div class="sg on">2</div><div class="sg">3</div></div></div>
+      </div>
+      <div class="dock">
+        <div class="btn">◀ PREV</div><div class="btn">NEXT ▶</div>
+        <div class="sp"></div>
+        <div class="btn">RESET</div><div class="btn pri">DONE</div>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="cost">
+    <h2>What this costs in LVGL</h2>
+    <ul>
+      <li><b>Cheapest of the three, by a distance.</b> Two colours means the framebuffer compresses trivially and
+        every fill is a solid rect. Banding is not mitigated here, it is <em>impossible</em>.</li>
+      <li><b>Dither patterns</b> ship as 4×4 and 2×2 tiled images — under 100 bytes each, drawn with
+        <code>lv_image</code> tiling or a custom <code>lv_draw</code> pattern fill. Six family patterns plus four
+        gray levels is well under 1 KB total.</li>
+      <li><b>Marching ants</b> need a repeating 8px dash image scrolled by a timer, or four <code>lv_line</code>
+        objects with a dashed style and an animated offset. Budget one 20 Hz timer; it only runs while something
+        is selected. <b>This is the one genuine stretch</b> — LVGL has no native marching-ants primitive.</li>
+      <li><b>Bitmap fonts are free wins here.</b> Silkscreen and Pixelify are already pixel grids, so compiling
+        them at integer sizes gives exact, hint-free rendering — no antialiasing artefacts on a 16-bit panel, and
+        1bpp glyph storage instead of 4bpp cuts font flash by 4×.</li>
+      <li><b>The real cost is not technical.</b> You lose hue as an information channel. The design answers that
+        with pattern, but it is a genuine trade and worth deciding deliberately.</li>
+    </ul>
+  </div>
+</div>
+<script>
+const fit = () => {
+  const s = Math.min(1, document.querySelector('.doc').clientWidth / 1280);
+  document.querySelectorAll('.stage').forEach(el => {
+    el.style.transform = `scale(${s})`;
+    el.parentElement.style.height = (720 * s) + 'px';
+  });
+};
+addEventListener('resize', fit); fit(); document.fonts?.ready.then(fit);
+</script>
+</body>
+</html>

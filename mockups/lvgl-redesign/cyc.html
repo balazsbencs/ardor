@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ardor — Direction E: CYC</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600&family=Martian+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/*
+  DIRECTION CONTRACT — seed key 03cab608 · challenger: stagecraft-theater-lighting-cyclorama-dawn · mode: operate
+
+  THESIS: A preset is a lighting cue. The screen is the cyc wall behind the player, and only
+  the running cue is lit — everything else sits in blackout with one thin line of its colour.
+  It refuses the four-equal-cards preset screen: on a stage, exactly one look is up at a time
+  and the room tells you which.
+  OWN-WORLD: Depthless black ground; one large flat colour field for the live cue; unlit cues
+  as near-black with a single hairline of their own colour. Lighting-plot condensed caps, wide
+  tracked, over tabular mono numerals. Discrete bands only — the wash is rendered as its
+  individual fixtures, never as a blend.
+  STORY: The player sees the room's state before reading anything, then the cue number, then
+  the name.
+  FIRST VIEWPORT: Four full-bleed cue bands. The live one holds a rose field across two thirds
+  of the height; the other three are blackout strips with a hairline and small type.
+  FORM: Cyclorama cue sheet, dealt challenger; won on audience identification; seed key 03cab608.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish
+  review, the verdict, and DESIGN.md
+*/
+:root{
+  --void:#05070b;      /* depthless cyc black */
+  --void2:#0b0e14;
+  --bone:#e6e2d8;
+  --bone-lo:#7c8087;
+  --hair:#1d222b;
+  --c1:#1b3a8c;        /* cobalt */
+  --c2:#a8425f;        /* rose */
+  --c3:#3c2f7a;        /* violet */
+  --c4:#c07a2a;        /* amber */
+  --day:#e8e4dc;       /* white day — reserved for full-active */
+  --warn:#c4443f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2b2b2b;font-family:Oswald,sans-serif;color:#bbb;padding:40px 24px 80px}
+.doc{max-width:1280px;margin:0 auto}
+.doc h1{font-weight:500;font-size:38px;color:var(--c2);text-transform:uppercase;letter-spacing:.14em}
+.doc .sub{font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;max-width:70ch;margin-top:12px;color:#9a9a9a}
+.cap{display:flex;align-items:baseline;gap:14px;margin:44px 0 12px}
+.cap b{font-weight:500;font-size:20px;color:#e6e6e6;text-transform:uppercase;letter-spacing:.12em}
+.cap span{font-family:system-ui,sans-serif;font-size:13px;color:#8a8a8a}
+.stage{width:1280px;height:720px;transform-origin:top left;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.6)}
+.shell{position:relative;height:1px}
+.note{font-family:system-ui,sans-serif;margin-top:14px;font-size:13.5px;line-height:1.65;color:#8f8f8f;max-width:78ch}
+.note b{color:#d8d8d8;font-weight:600}
+.cost{margin-top:56px;border-top:1px solid #3d3d3d;padding-top:22px;font-family:system-ui,sans-serif}
+.cost h2{font-family:Oswald,sans-serif;font-weight:500;font-size:19px;color:#e6e6e6;text-transform:uppercase;
+  letter-spacing:.12em;margin-bottom:12px}
+.cost li{font-size:13.5px;line-height:1.7;color:#9a9a9a;margin-left:18px;max-width:80ch}
+.cost li b{color:#d8d8d8;font-weight:600}
+
+/* ================= THE DESIGN ================= */
+.scr{width:1280px;height:720px;background:var(--void);position:relative;overflow:hidden;
+  color:var(--bone);font-family:Oswald,sans-serif}
+.num{font-family:'Martian Mono',monospace;font-weight:300;font-variant-numeric:tabular-nums}
+.plot{font-size:12px;font-weight:400;letter-spacing:.34em;text-transform:uppercase;color:var(--bone-lo)}
+.plot.b{color:var(--bone)}
+
+/* cue sheet header */
+.chead{position:absolute;top:0;left:0;right:0;height:50px;display:flex;align-items:center;gap:22px;
+  padding:0 32px;border-bottom:1px solid var(--hair);z-index:4}
+.chead .sp{flex:1}
+
+/* ---------- SCREEN 1: cue stack ---------- */
+.cues{position:absolute;top:50px;left:0;right:0;bottom:78px;display:flex;flex-direction:column}
+.cue{flex:none;height:74px;position:relative;display:flex;align-items:center;gap:26px;padding:0 32px;
+  background:var(--void);border-bottom:1px solid var(--hair)}
+.cue .edge{position:absolute;left:0;bottom:0;width:100%;height:2px}
+.cue .cn{font-family:'Martian Mono',monospace;font-weight:300;font-size:15px;color:var(--bone-lo);
+  width:74px;flex:none}
+.cue .nm{font-size:26px;font-weight:300;letter-spacing:.16em;text-transform:uppercase;color:var(--bone-lo)}
+.cue .sp{flex:1}
+.cue .rd{font-family:'Martian Mono',monospace;font-weight:300;font-size:12px;color:#4d525a;letter-spacing:.02em}
+/* the live cue: a real field of colour, given the height */
+.cue.up{flex:1;height:auto;flex-direction:column;align-items:flex-start;justify-content:flex-end;
+  padding:0 32px 30px;border-bottom:none}
+.cue.up .cn{width:auto;color:rgba(255,255,255,.62);font-size:16px;margin-bottom:auto;padding-top:26px}
+.cue.up .nm{font-size:74px;font-weight:400;letter-spacing:.05em;color:var(--bone);line-height:1}
+.cue.up .rd{color:rgba(255,255,255,.62);font-size:13px;margin-top:12px}
+.uptag{position:absolute;top:26px;right:32px;font-size:12px;font-weight:500;letter-spacing:.34em;
+  text-transform:uppercase;color:var(--bone)}
+.cue.bad .nm{color:#8e6260}
+.cue.bad .rd{color:var(--warn)}
+
+.cfoot{position:absolute;bottom:0;left:0;right:0;height:78px;border-top:1px solid var(--hair);
+  display:flex;align-items:center;gap:10px;padding:0 32px;z-index:4}
+.cb{border:1px solid var(--hair);color:var(--bone);font-size:14px;font-weight:400;letter-spacing:.2em;
+  text-transform:uppercase;padding:11px 20px;background:var(--void2)}
+.cb.pri{background:var(--bone);color:var(--void);border-color:var(--bone)}
+.cfoot .sp{flex:1}
+/* fader — a lighting desk's own control, discrete steps */
+.fader{display:flex;align-items:center;gap:14px}
+.fader .lbl{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--bone-lo)}
+.fader .steps{display:flex;gap:3px;align-items:flex-end;height:26px}
+.fader .steps i{width:7px;background:var(--hair);display:block;height:100%}
+.fader .steps i.on{background:var(--bone)}
+.fader .v{font-family:'Martian Mono',monospace;font-weight:300;font-size:19px}
+
+/* ---------- SCREEN 2: the plot ---------- */
+.plotwrap{position:absolute;top:50px;left:0;right:0;bottom:78px;display:flex;flex-direction:column;
+  justify-content:center;gap:0;padding:0 32px}
+.strip{display:flex;height:132px;border:1px solid var(--hair)}
+.seg{flex:1;position:relative;border-right:1px solid var(--hair);padding:14px 16px;display:flex;
+  flex-direction:column;justify-content:space-between}
+.seg:last-child{border-right:none}
+.seg .ch{font-family:'Martian Mono',monospace;font-weight:300;font-size:11px;color:rgba(255,255,255,.55)}
+.seg .nm{font-size:24px;font-weight:400;letter-spacing:.09em;text-transform:uppercase;line-height:1.05}
+.seg .rd{font-family:'Martian Mono',monospace;font-weight:300;font-size:11px;color:rgba(255,255,255,.55)}
+.seg.out{background:var(--void2)}
+.seg.out .nm{color:#4d525a}
+.seg.out .ch,.seg.out .rd{color:#3d424a}
+.seg.out:after{content:"OUT";position:absolute;top:14px;right:16px;font-size:10px;letter-spacing:.3em;
+  color:var(--warn)}
+/* channel numbers under the strip, like a plot legend */
+.legend{display:flex;margin-top:10px}
+.legend div{flex:1;font-family:'Martian Mono',monospace;font-weight:300;font-size:10px;color:#4d525a;
+  text-align:center;letter-spacing:.02em}
+.ioline{display:flex;justify-content:space-between;margin-bottom:10px}
+/* split: two stacked strips sharing a bracket */
+.bracket{border-left:1px solid var(--hair);padding-left:18px;position:relative;display:flex;
+  flex-direction:column;gap:12px}
+.bracket .bl{position:absolute;left:-1px;top:0;bottom:0;width:1px;background:var(--bone-lo)}
+.bracket .bt{position:absolute;left:-1px;font-size:11px;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--bone-lo);background:var(--void);padding:0 8px 0 0}
+.bracket .strip{height:104px}
+.bracket .seg .nm{font-size:20px}
+
+/* ---------- SCREEN 3: tuner as a lighting state ---------- */
+.tstate{position:absolute;top:50px;left:0;right:0;bottom:78px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;background:var(--void)}
+.tstate .note{font-size:172px;font-weight:300;letter-spacing:.06em;line-height:1;color:var(--bone);margin:0}
+.tstate .note em{font-style:normal;font-family:'Martian Mono',monospace;font-size:40px;color:var(--bone-lo);
+  margin-left:14px}
+.tstate .hz{font-family:'Martian Mono',monospace;font-weight:300;font-size:16px;color:var(--bone-lo);
+  letter-spacing:.06em;margin-top:12px}
+/* the horizon: discrete fixtures, one lit column marking deviation */
+.horizon{display:flex;gap:4px;margin-top:44px;height:96px;align-items:stretch}
+.horizon i{width:22px;background:var(--void2);display:block;border:1px solid var(--hair)}
+.horizon i.near{background:#2a2233;border-color:#3a3040}
+.horizon i.on{background:var(--c2);border-color:var(--c2)}
+.horizon i.zone{background:var(--void2);border-color:var(--bone-lo)}
+.tverd{margin-top:30px;font-size:30px;font-weight:400;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--bone)}
+.tsub{font-family:'Martian Mono',monospace;font-weight:300;font-size:11px;color:var(--bone-lo);
+  letter-spacing:.1em;margin-top:10px}
+
+/* ---------- SCREEN 4: cue levels ---------- */
+.levels{position:absolute;top:50px;left:0;right:0;bottom:78px;padding:26px 32px;
+  display:flex;flex-direction:column;justify-content:center;gap:0}
+.lv{display:flex;align-items:center;gap:22px;padding:15px 0;border-bottom:1px solid var(--hair)}
+.lv:last-child{border-bottom:none}
+.lv .k{width:150px;flex:none;font-size:15px;font-weight:400;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--bone-lo)}
+.lv .bar{flex:1;height:16px;display:flex;gap:2px}
+.lv .bar i{flex:1;background:var(--hair);display:block}
+.lv .bar i.on{background:var(--bone)}
+.lv .v{width:118px;flex:none;text-align:right;font-family:'Martian Mono',monospace;font-weight:300;
+  font-size:22px;color:var(--bone)}
+.lv .v em{font-style:normal;font-size:12px;color:var(--bone-lo);margin-left:5px}
+.lv.sel .k{color:var(--bone)}
+.lv.sel .bar i.on{background:var(--c2)}
+.lv.sel .v{color:var(--c2)}
+.lv.disc .bar{gap:6px}
+.lv.disc .bar i{background:transparent;border:1px solid var(--hair);display:flex;align-items:center;
+  justify-content:center;height:26px;font-family:'Martian Mono',monospace;font-size:12px;color:var(--bone-lo)}
+.lv.disc .bar i.on{background:var(--bone);color:var(--void);border-color:var(--bone)}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Direction E — Cyc</h1>
+  <p class="sub">A preset is a lighting cue, and the screen is the cyclorama behind the player. Only the running
+  cue is lit — it holds a large flat field of its own colour; the other three sit in blackout with a single
+  hairline. A real cyc is a smooth wash, which is exactly what the panel cannot render, so this one is built the
+  way a cyc looks broken into its individual fixtures: discrete bands, hard edges, no blend.</p>
+
+  <div class="cap"><b>1 · Cue stack</b><span>preset screen — one look is up at a time</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="chead">
+        <span class="plot b">Ardor</span><span class="plot">Bank 000 — Set A</span>
+        <span class="sp"></span>
+        <span class="plot">Midi</span><span class="plot">48 kHz · 64</span>
+      </div>
+
+      <div class="cues">
+        <div class="cue">
+          <div class="edge" style="background:var(--c1)"></div>
+          <div class="cn">CUE 1.0</div>
+          <div class="nm">Midnight Clean</div>
+          <div class="sp"></div>
+          <div class="rd">AMP · CAB · HALL</div>
+        </div>
+
+        <div class="cue up" style="background:var(--c2)">
+          <div class="cn">CUE 2.0 · FS 2</div>
+          <div class="uptag">Up</div>
+          <div class="nm">Drive Stack</div>
+          <div class="rd">AMP TWEED DELUXE · CAB OPEN BACK · TAPE 380 ms · 4 BLOCKS · 8.2 ms</div>
+        </div>
+
+        <div class="cue">
+          <div class="edge" style="background:var(--c3)"></div>
+          <div class="cn">CUE 3.0</div>
+          <div class="nm">Split Rig — Wide</div>
+          <div class="sp"></div>
+          <div class="rd">SPLIT · CHORUS · DELAY</div>
+        </div>
+
+        <div class="cue bad">
+          <div class="edge" style="background:var(--warn)"></div>
+          <div class="cn">CUE 4.0</div>
+          <div class="nm">Ambient Bloom</div>
+          <div class="sp"></div>
+          <div class="rd">ASSET NOT FOUND</div>
+        </div>
+      </div>
+
+      <div class="cfoot">
+        <div class="cb pri">Edit</div><div class="cb">Tuner</div>
+        <div class="cb">Bank −</div><div class="cb">Bank +</div><div class="cb">Setup</div>
+        <div class="sp"></div>
+        <div class="fader">
+          <span class="lbl">Master</span>
+          <span class="steps">
+            <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+            <i class="on"></i><i class="on"></i><i></i><i></i><i></i>
+          </span>
+          <span class="v">72</span>
+        </div>
+      </div>
+    </div>
+  </div></div>
+  <p class="note"><b>Only one thing on screen is lit.</b> That is the whole idea, and it is why this reads calm
+  where Floor reads loud — a single colour field, three quiet strips, and type small enough to trust. From
+  standing height you register <em>which band is up</em> before you read a character, and the cue number tells
+  you the rest.</p>
+
+  <div class="cap"><b>2 · The plot</b><span>edit screen — the chain as a channel strip</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="chead"><span class="plot b">Cue 2.0</span><span class="plot">Drive Stack</span>
+        <span class="plot" style="color:var(--c2)">· Modified</span>
+        <span class="sp"></span><span class="plot">4 channels</span></div>
+      <div class="plotwrap">
+        <div class="ioline"><span class="plot">In · mono</span><span class="plot">Out · L / R</span></div>
+        <div class="strip">
+          <div class="seg" style="background:var(--c1)">
+            <div class="ch">CH 1 · AMP</div>
+            <div class="nm">Tweed<br>Deluxe</div>
+            <div class="rd">NANO · SUM</div>
+          </div>
+          <div class="seg" style="background:var(--c3)">
+            <div class="ch">CH 2 · CAB</div>
+            <div class="nm">Open<br>Back</div>
+            <div class="rd">−2.0 dB · MIX 100</div>
+          </div>
+          <div class="seg out">
+            <div class="ch">CH 3 · MOD</div>
+            <div class="nm">Chorus</div>
+            <div class="rd">—</div>
+          </div>
+          <div class="seg" style="background:var(--c4)">
+            <div class="ch">CH 4 · DELAY</div>
+            <div class="nm">Tape</div>
+            <div class="rd">380 ms · FB 34</div>
+          </div>
+        </div>
+        <div class="legend"><div>+ &nbsp; 1 &nbsp; +</div><div>+ &nbsp; 2 &nbsp; +</div>
+          <div>+ &nbsp; 3 &nbsp; +</div><div>+ &nbsp; 4 &nbsp; +</div></div>
+      </div>
+      <div class="cfoot">
+        <div class="cb pri">Save</div><div class="cb">Undo</div><div class="cb">Redo</div>
+        <div class="cb">Channels</div><div class="sp"></div><div class="cb">Done</div>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="cap"><b>2b · Split</b><span>Dual Rig as two bracketed plots</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="chead"><span class="plot b">Cue 3.0</span><span class="plot">Split Rig — Wide</span>
+        <span class="sp"></span><span class="plot">2 lanes · stereo join</span></div>
+      <div class="plotwrap">
+        <div class="ioline"><span class="plot">In · mono</span><span class="plot">Join → out L / R</span></div>
+        <div class="bracket">
+          <div class="bl"></div>
+          <div class="bt" style="top:44%">Split</div>
+          <div class="strip">
+            <div class="seg" style="background:var(--c1)"><div class="ch">L · CH 1 · AMP</div>
+              <div class="nm">Clean</div><div class="rd">NANO</div></div>
+            <div class="seg" style="background:var(--c3)"><div class="ch">L · CH 2 · CAB</div>
+              <div class="nm">Open</div><div class="rd">−2.0 dB</div></div>
+            <div class="seg" style="background:#2f6a5e"><div class="ch">L · CH 3 · MOD</div>
+              <div class="nm">Chorus</div><div class="rd">RATE 0.4</div></div>
+          </div>
+          <div class="strip">
+            <div class="seg" style="background:var(--c1)"><div class="ch">R · CH 1 · AMP</div>
+              <div class="nm">Crunch</div><div class="rd">FULL</div></div>
+            <div class="seg" style="background:var(--c3)"><div class="ch">R · CH 2 · CAB</div>
+              <div class="nm">Closed</div><div class="rd">−1.0 dB</div></div>
+            <div class="seg" style="background:var(--c4)"><div class="ch">R · CH 3 · DELAY</div>
+              <div class="nm">Digital</div><div class="rd">240 ms</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="cfoot">
+        <div class="cb">Save</div><div class="cb">Undo</div><div class="cb">Channels</div>
+        <div class="sp"></div><div class="cb">Done</div>
+      </div>
+    </div>
+  </div></div>
+  <p class="note"><b>Bypass is a dark fixture.</b> A channel that is out does not get greyed or struck — it goes
+  to blackout with its number still legible, which is precisely what an unpatched channel looks like on a
+  lighting plot, and reads instantly as "nothing is coming out of this."</p>
+
+  <div class="cap"><b>3 · Tuner</b><span>deviation as a horizon of fixtures</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="chead"><span class="plot b">Tuner</span><span class="plot">Chromatic · A4 = 440.0</span>
+        <span class="sp"></span><span class="plot" style="color:var(--warn)">Output muted</span></div>
+      <div class="tstate">
+        <div class="note">A<em>2</em></div>
+        <div class="hz">110.42 Hz · −6.0 CENTS</div>
+        <div class="horizon">
+          <i></i><i></i><i></i><i class="near"></i><i class="near"></i><i class="on"></i>
+          <i class="zone"></i>
+          <i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <div class="tverd">Flat</div>
+        <div class="tsub">TUNE UP · IN-TUNE ZONE ±3 CENTS</div>
+      </div>
+      <div class="cfoot">
+        <span class="plot">Any footswitch exits</span>
+        <div class="sp"></div><div class="cb pri">Exit</div>
+      </div>
+    </div>
+  </div></div>
+  <p class="note"><b>The room comes up as you get closer.</b> Far out of tune, one fixture is lit on a black
+  horizon. As you approach pitch the neighbouring fixtures warm, and on landing inside the outlined zone the
+  whole horizon goes to white day. It is the cyclorama's dawn sequence used as a tuning readout, and every state
+  is a flat colour step rather than a fade.</p>
+
+  <div class="cap"><b>4 · Cue levels</b><span>parameters as desk channels</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="chead"><span class="plot b">Ch 4 · Tape</span><span class="plot">Delay · 6 levels</span>
+        <span class="sp"></span><span class="plot">Enabled</span><span class="plot b">Done</span></div>
+      <div class="levels">
+        <div class="lv sel"><div class="k">Time</div>
+          <div class="bar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+            <i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="v">380<em>ms</em></div></div>
+        <div class="lv"><div class="k">Feedback</div>
+          <div class="bar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+            <i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="v">34<em>%</em></div></div>
+        <div class="lv"><div class="k">Mix</div>
+          <div class="bar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+            <i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i></div>
+          <div class="v">28<em>%</em></div></div>
+        <div class="lv"><div class="k">Wow</div>
+          <div class="bar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i></div>
+          <div class="v">18<em>%</em></div></div>
+        <div class="lv"><div class="k">Age</div>
+          <div class="bar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+            <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+            <i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i></div>
+          <div class="v">61<em>%</em></div></div>
+        <div class="lv disc"><div class="k">Heads</div>
+          <div class="bar"><i>1</i><i class="on">2</i><i>3</i></div>
+          <div class="v" style="font-size:16px">DUAL</div></div>
+      </div>
+      <div class="cfoot">
+        <div class="cb">◀ Prev</div><div class="cb">Next ▶</div><div class="cb">Reset</div>
+        <div class="sp"></div><div class="cb pri">Done</div>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="cost">
+    <h2>What this costs in LVGL</h2>
+    <ul>
+      <li><b>Cheap, with one caveat.</b> Large flat colour fields are a single rect fill — trivial. But a
+        full-width field redrawn every frame is the biggest blit in any of these directions; keep it on the
+        background layer and never invalidate it for a value-only update. The existing revision-counter
+        architecture already makes that easy.</li>
+      <li><b>Discrete step bars</b> (master fader, tuner horizon, parameter levels) are 10–22 small rects each.
+        Cheap, but build them as a reusable widget rather than rebuilding children on every change — flip a
+        style on existing objects instead.</li>
+      <li><b>Fonts:</b> Oswald at four sizes plus Martian Mono at three. Martian Mono is wide, so budget more
+        glyph bitmap area than a normal mono; subset it to digits, units and a few caps.</li>
+      <li><b>The tuner's dawn sequence</b> is the one real piece of new logic: mapping cents deviation to a
+        discrete fixture ramp with a named state per step. That is a small pure function and easy to unit-test —
+        it belongs next to the existing tuner presentation code, not in the view.</li>
+      <li><b>Honest risk:</b> the live cue's colour has to come from somewhere. Either the player picks it per
+        preset (a real feature, and the settings screen already offers a global accent), or it is derived from
+        slot index. Deriving it is free but makes two banks look alike; letting the player choose is better and
+        costs one field in the preset schema.</li>
+    </ul>
+  </div>
+</div>
+<script>
+const fit=()=>{const s=Math.min(1,document.querySelector('.doc').clientWidth/1280);
+document.querySelectorAll('.stage').forEach(el=>{el.style.transform=`scale(${s})`;
+el.parentElement.style.height=(720*s)+'px';});};
+addEventListener('resize',fit);fit();document.fonts?.ready.then(fit);
+</script>
+</body>
+</html>
