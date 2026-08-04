@@ -217,6 +217,40 @@ void DualRigProcessor::process(float inputLeft, float inputRight,
   outputRight = processLaneSample(right_, true, mono);
 }
 
+bool DualRigProcessor::setDaisyParameter(
+  const std::string& id, const std::string& key, float normalized)
+{
+  return (left_.chain && left_.chain->setDaisyParameter(id, key, normalized))
+    || (right_.chain && right_.chain->setDaisyParameter(id, key, normalized));
+}
+
+bool DualRigProcessor::setCompressorParameter(
+  const std::string& id, const std::string& key, float value)
+{
+  return (left_.chain && left_.chain->setCompressorParameter(id, key, value))
+    || (right_.chain && right_.chain->setCompressorParameter(id, key, value));
+}
+
+bool DualRigProcessor::setNoiseGateParameter(
+  const std::string& id, const std::string& key, float value)
+{
+  return (left_.chain && left_.chain->setNoiseGateParameter(id, key, value))
+    || (right_.chain && right_.chain->setNoiseGateParameter(id, key, value));
+}
+
+bool DualRigProcessor::setParametricEqBand(
+  const std::string& id, std::size_t band, const EqBandParams& params)
+{
+  return (left_.chain && left_.chain->setParametricEqBand(id, band, params))
+    || (right_.chain && right_.chain->setParametricEqBand(id, band, params));
+}
+
+bool DualRigProcessor::setBlockEnabled(const std::string& id, bool enabled)
+{
+  return (left_.chain && left_.chain->setBlockEnabled(id, enabled))
+    || (right_.chain && right_.chain->setBlockEnabled(id, enabled));
+}
+
 void DualRigProcessor::reset()
 {
   left_.chain->reset();

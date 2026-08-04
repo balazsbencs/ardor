@@ -1,0 +1,71 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import SignalFlow from '../../components/SignalFlow.astro';
+import { url } from '../../lib/url';
+---
+
+<DocsLayout
+  title="Signal Chain & Routing"
+  description="How Ardor blocks connect from guitar input to stereo output, including mono/stereo rules and the Dual Rig split."
+  lede="Ardor processes one left-to-right signal path. Blocks run in the order you place them, with a few rules that keep the chain physically sensible."
+>
+  <h2>The default path</h2>
+  <p>
+    Your guitar enters as a mono signal. Blocks process it in order, and a safety limiter
+    always sits at the very end. A Dual Rig block can split the path into two independent
+    lanes that merge into a true stereo output.
+  </p>
+  <SignalFlow />
+
+  <h2>Mono and stereo stages</h2>
+  <p>The chain-layout contract keeps amp and cabinet modeling physically meaningful:</p>
+  <ul>
+    <li><strong>NAM and cabinet blocks are mono stages.</strong> A NAM block folds its input to mono according to its input mode, and copies its mono output to both channels.</li>
+    <li><strong>Cabinet blocks must precede stereo effects.</strong> A NAM block may follow stereo effects and re-folds to mono.</li>
+    <li><strong>Modulation preserves the stereo field</strong> it receives.</li>
+    <li><strong>Delays and reverbs</strong> keep the stereo dry signal, but sum their wet input to mono before producing their vendor-defined stereo wet output.</li>
+    <li><strong>Dual Amp and Dual Rig</strong> establish stereo with hard-left and hard-right lanes.</li>
+  </ul>
+
+  <h2>Input folding</h2>
+  <p>The NAM block chooses how a stereo input becomes the mono signal it models:</p>
+  <table>
+    <thead><tr><th>Mode</th><th>Behavior</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">sum</td><td>Average of left and right (default).</td></tr>
+      <tr><td class="mono">left</td><td>Use the left / mono channel.</td></tr>
+      <tr><td class="mono">right</td><td>Use the right channel.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Gain staging</h2>
+  <p>Three global controls frame the chain:</p>
+  <table>
+    <thead><tr><th>Control</th><th>Where</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">inputGainDb</td><td>Before NAM</td><td>Set the drive into the amp model.</td></tr>
+      <tr><td class="mono">outputGainDb</td><td>After cabinet</td><td>Set the final level.</td></tr>
+      <tr><td class="mono">safetyLimitDb</td><td>End of chain</td><td>Protective ceiling, default −1 dBFS. Not a tone control.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout">
+    <p>
+      If the sound overloads, reduce <strong>input gain</strong> first — that lowers the
+      signal before NAM. If the amp character is right but the final output clips, reduce
+      <strong>output gain</strong> instead. The on-device clip meter tells you which stage
+      crossed full scale first.
+    </p>
+  </div>
+
+  <h2>Splitting into two rigs</h2>
+  <p>
+    A Dual Rig block turns the single path into two independent child chains. Both lanes
+    receive the same mono input; the left lane feeds the left output and the right lane
+    feeds the right. Inside each lane the same ordering rules apply. Splits cannot be
+    nested, and both lanes must be non-empty.
+  </p>
+  <p>
+    Read more in <a href={url('/docs/dual-rig')}>Dual Rig &amp; Dual Amp</a>, or see every
+    block's parameters in the <a href={url('/docs/effects')}>Effects Reference</a>.
+  </p>
+</DocsLayout>

@@ -342,9 +342,15 @@ void onBypassClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   lv_obj_t* control = lv_event_get_target_obj(event);
-  const bool bypassed = !lv_obj_has_state(control, LV_STATE_CHECKED);
-  refreshBypassControlVisual(control, bypassed);
-  setSelectedBlockEnabled(*context->state, !bypassed);
+  const auto* selected = selectedUiBlock(*context->state);
+  if (!selected || !previewIsSynchronized(*context->state)) return;
+  const bool enabled = !selected->enabled;
+  const bool updatedLive = context->ui->actions().updateBlockEnabled
+    && context->ui->actions().updateBlockEnabled(selected->id, enabled);
+  if (updatedLive) setSelectedBlockEnabledLive(*context->state, enabled);
+  else setSelectedBlockEnabled(*context->state, enabled);
+  selected = selectedUiBlock(*context->state);
+  if (selected) refreshBypassControlVisual(control, !selected->enabled);
   redraw(context);
 }
 

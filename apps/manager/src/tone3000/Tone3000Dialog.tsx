@@ -2,6 +2,7 @@ import { Download, ExternalLink, LoaderCircle, X } from "lucide-react";
 
 import { Button, StatusBadge } from "../components/ui";
 import type { Tone3000Selection } from "./client";
+import type { Tone3000Architecture } from "./hosted";
 import tone3000Logo from "./tone3000-logo.svg";
 
 export type Tone3000Phase = "idle" | "intro" | "waiting" | "loading" | "detail" | "installing";
@@ -10,7 +11,7 @@ function label(value: string): string {
   return value.split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" + ");
 }
 
-function architecture(value: "1" | "2" | "custom" | null): string {
+function architectureLabel(value: "1" | "2" | "custom" | null): string {
   if (value === "1") return "A1";
   if (value === "2") return "A2";
   if (value === "custom") return "Custom";
@@ -34,6 +35,8 @@ export function Tone3000Dialog({
   onContinue,
   onCancel,
   onInstall,
+  architecture,
+  onArchitecture,
 }: {
   phase: Tone3000Phase;
   selection?: Tone3000Selection;
@@ -42,6 +45,8 @@ export function Tone3000Dialog({
   onContinue(): void;
   onCancel(): void;
   onInstall(): void;
+  architecture: Tone3000Architecture;
+  onArchitecture(value: Tone3000Architecture): void;
 }) {
   if (phase === "idle") return null;
   const isWorking = phase === "loading" || phase === "installing";
@@ -59,6 +64,11 @@ export function Tone3000Dialog({
             <p className="eyebrow">Models from a global community</p>
             <h2>Find a new sound without leaving Ardor</h2>
             <p>Browse TONE3000’s free library of Neural Amp Modeler captures, choose a model, and install it directly on your connected device.</p>
+            <fieldset className="tone3000-architecture">
+              <legend>Model architecture</legend>
+              <label><input type="radio" name="tone3000-architecture" checked={architecture === "legacy"} onChange={() => onArchitecture("legacy")} /><span><strong>A1 + Custom</strong><small>Original and custom NAM captures</small></span></label>
+              <label><input type="radio" name="tone3000-architecture" checked={architecture === "2"} onChange={() => onArchitecture("2")} /><span><strong>A2</strong><small>Newer high-accuracy captures</small></span></label>
+            </fieldset>
             <p className="tone3000-dialog__fineprint">You’ll sign in securely in your browser. Ardor only receives access to the tone you choose.</p>
             <Button variant="primary" onClick={onContinue}>Continue to TONE3000 <ExternalLink size={15} /></Button>
           </div>
@@ -94,7 +104,7 @@ export function Tone3000Dialog({
               <label className="tone3000-model-field">
                 Model
                 <select value={selectedModelId ?? ""} onChange={(event) => onSelectedModelId(Number(event.target.value))} disabled={phase === "installing"}>
-                  {selection.models.map((model) => <option key={model.id} value={model.id}>{model.name} · {architecture(model.architecture_version)} · {label(model.size)}</option>)}
+                  {selection.models.map((model) => <option key={model.id} value={model.id}>{model.name} · {architectureLabel(model.architecture_version)} · {label(model.size)}</option>)}
                 </select>
               </label>
               <p className="tone3000-dialog__fineprint">License: {selection.tone.license.toUpperCase()} · The installed filename keeps TONE3000 and creator attribution.</p>

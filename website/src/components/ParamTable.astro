@@ -1,0 +1,50 @@
+---
+import { allDefinitions, type Control } from '../lib/effects';
+
+interface Props {
+  id: string;
+}
+const { id } = Astro.props;
+const def = allDefinitions.find((d) => d.id === id);
+
+// The device formats normalized 0..1 percent controls as 0–100%, so match it.
+function isNormPercent(c: Control): boolean {
+  return c.unit === '%' && c.min === 0 && c.max === 1;
+}
+function range(c: Control): string {
+  if (c.kind === 'number' && c.min !== undefined && c.max !== undefined) {
+    if (isNormPercent(c)) return '0 – 100%';
+    return c.unit ? `${c.min} – ${c.max} ${c.unit}` : `${c.min} – ${c.max}`;
+  }
+  if (c.kind === 'choice' && c.choices) return c.choices.join(' · ');
+  if (c.kind === 'toggle') return 'on / off';
+  if (c.kind === 'asset') return `${c.assetKind ?? 'asset'} file`;
+  if (c.kind === 'parametric-eq-5') return '5 bands';
+  return '—';
+}
+function def_(c: Control): string {
+  if (c.default === undefined || c.default === null) return '—';
+  if (typeof c.default === 'boolean') return c.default ? 'on' : 'off';
+  if (isNormPercent(c) && typeof c.default === 'number') {
+    return `${Math.round(c.default * 100)}%`;
+  }
+  return String(c.default);
+}
+---
+
+{def && def.controls.length > 0 && (
+  <table>
+    <thead>
+      <tr><th>Parameter</th><th>Range</th><th>Default</th></tr>
+    </thead>
+    <tbody>
+      {def.controls.map((c) => (
+        <tr>
+          <td>{c.label}</td>
+          <td class="mono">{range(c)}</td>
+          <td class="mono">{def_(c)}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+)}

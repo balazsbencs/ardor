@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:device": "tsc && vite build --outDir ../../services/managerd/internal/webui/dist --emptyOutDir",
+    "build:hosted": "tsc && vite build --mode hosted --outDir dist-hosted --emptyOutDir",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

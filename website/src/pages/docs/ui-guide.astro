@@ -1,0 +1,81 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import ScreenFrame from '../../components/screens/ScreenFrame.astro';
+import PresetScreen from '../../components/screens/PresetScreen.astro';
+import EditScreen from '../../components/screens/EditScreen.astro';
+import EqScreen from '../../components/screens/EqScreen.astro';
+import TunerScreen from '../../components/screens/TunerScreen.astro';
+import { url } from '../../lib/url';
+---
+
+<DocsLayout
+  title="UI & Controls"
+  description="The Ardor touchscreen interface, four footswitches, and encoder — how to navigate, edit, and tune."
+  lede="The same LVGL interface runs on the Raspberry Pi Touch Display 2 and in the desktop simulator. Four footswitches and one encoder handle everything you need while playing."
+>
+  <h2>Preset screen</h2>
+  <ScreenFrame label="Preset" caption="The home screen: four slots in the active bank.">
+    <PresetScreen />
+  </ScreenFrame>
+  <p>The home screen shows four preset slots per bank with:</p>
+  <ul>
+    <li><strong>Bank −/+</strong> to move between banks, with the bank number centered.</li>
+    <li><strong>Tuner</strong> for direct entry to the chromatic tuner.</li>
+    <li><strong>Edit</strong> to open the chain editor, and a <strong>Settings</strong> gear for Wi-Fi and accent color.</li>
+    <li>A footer with centered master volume and one-second audio-buffer headroom feedback.</li>
+  </ul>
+
+  <h2>Chain editor</h2>
+  <ScreenFrame label="Edit" caption="A single left-to-right signal canvas with drag handles and insertion points.">
+    <EditScreen />
+  </ScreenFrame>
+  <ul>
+    <li>A single horizontal signal canvas with touch scrolling and per-preset scroll memory.</li>
+    <li><strong>+</strong> insertion points between every block; the top-level menu offers <strong>Split Left / Right</strong>.</li>
+    <li>Dedicated drag handles reorder blocks or move them across the Left and Right rails.</li>
+    <li>An asset drawer with All, Amps, Cabs, Utility, Modulation, Delays, and Reverbs filters.</li>
+    <li>Edits preview live: structural changes swap a replacement engine; continuous parameters publish immediately. <strong>Save</strong> persists the audible draft.</li>
+  </ul>
+
+  <h2>Parameter &amp; EQ editing</h2>
+  <ScreenFrame label="EQ" caption="The dedicated five-band parametric editor with a live response graph.">
+    <EqScreen />
+  </ScreenFrame>
+  <p>
+    Most blocks open a two-row, three-column parameter page with large horizontal sliders
+    showing inline labels and physical values, plus a rectangular bypass control. The
+    five-band EQ gets its own editor with a live response graph.
+  </p>
+
+  <h2>Tuner</h2>
+  <ScreenFrame label="Tuner" caption="Muted chromatic tuner with note, frequency, and cents guidance.">
+    <TunerScreen />
+  </ScreenFrame>
+  <p>
+    The tuner mutes the output and shows the detected note, frequency, cents offset, and
+    flat/sharp guidance. Exit with the on-screen button or any footswitch.
+  </p>
+
+  <h2>Footswitches &amp; encoder</h2>
+  <table>
+    <thead><tr><th>Control</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">Footswitch 1–4</td><td>Select preset slots 1–4 in the active bank.</td></tr>
+      <tr><td class="mono">Encoder</td><td>Adjust master output volume; reflected live in the UI.</td></tr>
+      <tr><td class="mono">Hold FS1 + FS2</td><td>Hold for one second to mute and open the tuner.</td></tr>
+      <tr><td>Any footswitch</td><td>Exit the tuner without changing presets.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <p>
+      Switching preset or bank with unsaved edits asks whether to <strong>Save</strong>,
+      <strong>Discard</strong>, or <strong>Cancel</strong>, so a draft is never lost by accident.
+    </p>
+  </div>
+
+  <p>
+    MIDI and an expression pedal can drive the same actions — see the
+    <a href={url('/docs/hardware')}>hardware guide</a> for the control-I/O contract.
+  </p>
+</DocsLayout>

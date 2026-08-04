@@ -3,9 +3,12 @@ import {
   Check,
   Eye,
   EyeOff,
+  LogOut,
   Palette,
   RotateCcw,
   Settings,
+  ShieldAlert,
+  Trash2,
   Wifi,
   X,
 } from "lucide-react";
@@ -14,8 +17,10 @@ import { type CSSProperties, useEffect, useState } from "react";
 import type { WiFiSettings } from "../api/types";
 import { Button, IconButton, StatusBadge, cx } from "../components/ui";
 import { useDeviceSession } from "../connection/deviceSession";
+import { localAuthAPI } from "../localAuth/api";
+import { isDeviceHostedRuntime } from "../runtime/platform";
 
-type SettingsSection = "appearance" | "wifi";
+type SettingsSection = "appearance" | "wifi" | "security";
 
 const accentChoices = [
   { name: "Ardor green", value: "#c9ff3d" },
@@ -57,6 +62,9 @@ export function SettingsDialog({
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string>();
   const [error, setError] = useState<string>();
+  const [securityBusy, setSecurityBusy] = useState(false);
+  const [factoryNotice, setFactoryNotice] = useState<string>();
+  const localDevice = isDeviceHostedRuntime();
 
   const wifiAvailable = session.status === "connected"
     && Boolean(session.client)
@@ -113,6 +121,43 @@ export function SettingsDialog({
     }
   };
 
+  const logoutLocal = async () => {
+    setSecurityBusy(true);
+    try {
+      await localAuthAPI.logout();
+      window.location.reload();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not sign out.");
+      setSecurityBusy(false);
+    }
+  };
+
+  const resetLocal = async () => {
+    if (!window.confirm("Reset local access? This removes the local username, password, and every local session. Presets, assets, Wi-Fi, and cloud ownership are preserved.")) return;
+    setSecurityBusy(true);
+    try {
+      await localAuthAPI.resetLocalAccess();
+      window.location.reload();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not reset local access.");
+      setSecurityBusy(false);
+    }
+  };
+
+  const beginFactoryReset = async () => {
+    if (!window.confirm("Request a factory reset? You must approve it physically on the pedal. It will remove all presets, models, IRs, Wi-Fi, settings, and local access.")) return;
+    setSecurityBusy(true);
+    setError(undefined);
+    try {
+      const reset = await localAuthAPI.beginFactoryReset();
+      setFactoryNotice(`Waiting for physical confirmation on the pedal. Request ${reset.resetId.slice(0, 8)} expires in two minutes.`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not request a factory reset.");
+    } finally {
+      setSecurityBusy(false);
+    }
+  };
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -138,6 +183,9 @@ export function SettingsDialog({
               <button className={cx(section === "wifi" && "is-active")} onClick={() => setSection("wifi")}>
                 <Wifi size={17} /><span>Wi-Fi</span>
               </button>
+              {localDevice && <button className={cx(section === "security" && "is-active")} onClick={() => setSection("security")}>
+                <ShieldAlert size={17} /><span>Security</span>
+              </button>}
             </nav>
 
             {section === "appearance" ? (
@@ -186,7 +234,7 @@ export function SettingsDialog({
                   </Button>
                 </div>
               </section>
-            ) : (
+            ) : section === "wifi" ? (
               <section className="settings-panel" aria-labelledby="wifi-heading">
                 <div className="settings-panel__heading settings-panel__heading--with-status">
                   <div>
@@ -263,6 +311,21 @@ export function SettingsDialog({
                     </div>
                   </form>
                 )}
+              </section>
+            ) : (
+              <section className="settings-panel" aria-labelledby="security-heading">
+                <div className="settings-panel__heading">
+                  <p className="eyebrow">Local device access</p>
+                  <h2 id="security-heading">Security & reset</h2>
+                  <p>Local credentials are separate from the hosted Ardor account. This direct connection is intended only for a trusted LAN.</p>
+                </div>
+                {error && <div className="settings-message settings-message--error" role="alert">{error}</div>}
+                {factoryNotice && <div className="settings-message settings-message--success" role="status">{factoryNotice}</div>}
+                <div className="security-actions">
+                  <article><div><LogOut size={18} /><span><strong>Sign out this browser</strong><small>Ends only the current local session.</small></span></div><Button variant="quiet" disabled={securityBusy} onClick={() => void logoutLocal()}>Sign out</Button></article>
+                  <article><div><RotateCcw size={18} /><span><strong>Reset local access</strong><small>Removes the local account and all sessions, while preserving sounds and network settings.</small></span></div><Button variant="danger" disabled={securityBusy} onClick={() => void resetLocal()}>Reset access</Button></article>
+                  <article className="security-actions__factory"><div><Trash2 size={18} /><span><strong>Factory reset</strong><small>Erases all user content and Wi-Fi after physical confirmation on the pedal.</small></span></div><Button variant="danger" disabled={securityBusy || Boolean(factoryNotice)} onClick={() => void beginFactoryReset()}>Factory reset…</Button></article>
+                </div>
               </section>
             )}
           </div>

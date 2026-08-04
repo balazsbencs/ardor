@@ -32,6 +32,9 @@ describe("Tone3000 client", () => {
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
     expect(url.searchParams.get("redirect_uri")).toBe(TONE3000_REDIRECT_URI);
     expect(url.searchParams.get("state")).toBeTruthy();
+    expect(url.searchParams.has("architecture_version")).toBe(false);
+    const a2Url = new URL(await createTone3000SelectUrl("2"));
+    expect(a2Url.searchParams.get("architecture_version")).toBe("2");
   });
 
   it("verifies the callback, exchanges its code, and loads the selected models", async () => {

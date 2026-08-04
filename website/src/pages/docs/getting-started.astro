@@ -1,0 +1,84 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import { url } from '../../lib/url';
+---
+
+<DocsLayout
+  title="Getting Started"
+  description="Flash the Ardor firmware image, boot the pedal, and make your first sound."
+  lede="Two ways in: try the desktop simulator on your computer, or flash the firmware image onto a Raspberry Pi and build the real pedal."
+>
+  <h2>Two ways to run Ardor</h2>
+  <p>
+    Ardor is an <strong>appliance</strong>, not a plugin. The same interface and audio
+    engine run in a desktop simulator and on the physical pedal, so you can explore the
+    whole experience before touching hardware.
+  </p>
+
+  <div class="callout">
+    <p>
+      <strong>Just want to look around?</strong> The desktop simulator renders the exact
+      touchscreen UI and loads real preset files — no Raspberry Pi required.
+    </p>
+  </div>
+
+  <h2>Option A — Desktop simulator</h2>
+  <p>Build the SDL simulator and launch it against the bundled presets:</p>
+  <pre><code>cmake -S . -B build-sdl -DARDOR_UI_BACKEND=sdl -DCMAKE_BUILD_TYPE=Release
+cmake --build build-sdl --target pedal-ui-sim -j
+./build-sdl/pedal-ui-sim --data-root . --bank 0</code></pre>
+  <p>
+    The simulator starts on the preset screen. Tap <strong>Edit</strong> to open the chain
+    editor, or <strong>Tuner</strong> for the chromatic tuner. See the
+    <a href={url('/docs/ui-guide')}>UI &amp; Controls guide</a> for the full tour.
+  </p>
+
+  <h2>Option B — Flash the pedal firmware</h2>
+  <p>
+    The repository ships a reproducible Buildroot image for a Raspberry Pi 4. Build it from
+    the repository root inside the provided Docker container:
+  </p>
+  <pre><code>./scripts/build-image.sh</code></pre>
+  <p>The resulting <code>sdcard.img</code> contains:</p>
+  <ul>
+    <li>The realtime engine <code>ardor-pedal</code> and its init service.</li>
+    <li>The REST <a href={url('/docs/manager')}>manager daemon</a> <code>ardor-managerd</code>.</li>
+    <li>A read-only root filesystem and a writable data partition seeded with four presets.</li>
+    <li>Codec Zero mixer state and environment configuration.</li>
+  </ul>
+  <p>Flash it to an SD card with your imaging tool of choice, then insert it and power the Pi.</p>
+
+  <div class="callout warn">
+    <p>
+      Real <code>.nam</code> models and cabinet <code>.wav</code> impulse responses are
+      not redistributed with the project. Add your own licensed captures through the
+      <a href={url('/docs/manager')}>manager app</a>, or browse TONE3000 from the desktop manager.
+    </p>
+  </div>
+
+  <h2>First boot</h2>
+  <ol>
+    <li>The pedal boots straight to the preset screen on the touch display.</li>
+    <li>Connect your guitar to the mono input and an amp or interface to the stereo output.</li>
+    <li>Tap a preset slot — or press its footswitch — to make it active.</li>
+    <li>Set master volume with the encoder; the footer shows live buffer headroom.</li>
+  </ol>
+
+  <h2>Targets &amp; goals</h2>
+  <table>
+    <thead><tr><th>Setting</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Sample rate</td><td class="mono">48 kHz</td></tr>
+      <tr><td>Preferred block size</td><td class="mono">64 samples</td></tr>
+      <tr><td>Fallback block size</td><td class="mono">128 samples</td></tr>
+      <tr><td>Input</td><td>Mono (buffered high-Z)</td></tr>
+      <tr><td>Output</td><td>Stereo</td></tr>
+      <tr><td>Round-trip latency goal</td><td class="mono">under 10 ms</td></tr>
+    </tbody>
+  </table>
+
+  <p>
+    Next: learn how blocks connect in
+    <a href={url('/docs/signal-chain')}>Signal Chain &amp; Routing</a>.
+  </p>
+</DocsLayout>

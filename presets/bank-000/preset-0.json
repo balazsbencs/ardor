@@ -95,8 +95,8 @@
           },
           {
             "enabled": true,
-            "frequency_hz": 612.4666748046875,
-            "gain_db": 14.93617057800293,
+            "frequency_hz": 608.9006958007813,
+            "gain_db": 15.548935890197754,
             "q": 5.339359283447266
           },
           {
@@ -125,10 +125,10 @@
         "grit": 0.5699999332427979,
         "mix": 0.25,
         "mod_dep": 0.5999999642372131,
-        "mod_spd": 0.5470000505447388,
+        "mod_spd": 0.5099999308586121,
         "mode": "digital",
         "repeats": 0.5899999737739563,
-        "time": 0.5130000114440918
+        "time": 0.5940000414848328
       },
       "type": "delay"
     },
@@ -150,11 +150,11 @@
     }
   ],
   "expression": {
-    "blockId": "block-15",
+    "blockId": "block-11",
     "inverted": false,
     "maximum": 1.0,
     "minimum": 0.0,
-    "parameter": "mix"
+    "parameter": "time"
   },
   "global": {
     "inputGainDb": 0.0,

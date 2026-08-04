@@ -1,0 +1,71 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import { docsNav } from '../../data/site';
+import { url } from '../../lib/url';
+---
+
+<DocsLayout
+  title="Documentation"
+  description="Guides to every feature of the Ardor pedal: signal chain, effects, the touch UI, presets, and hardware."
+  lede="Everything you need to build, flash, and play an Ardor pedal — from the first sound to the full effect and parameter reference."
+>
+  <div class="doc-cards">
+    {docsNav.map((d, i) => (
+      <a class="doc-card panel panel--tick" href={url(d.href)}>
+        <span class="doc-card-num mono tnum">{String(i + 1).padStart(2, '0')}</span>
+        <h3>{d.label}</h3>
+        <p>{d.blurb}</p>
+        <span class="doc-card-go mono">Open →</span>
+      </a>
+    ))}
+  </div>
+
+  <h2>New here?</h2>
+  <p>
+    Start with <a href={url('/docs/getting-started')}>Getting Started</a> to flash the
+    firmware image and make your first sound, then read
+    <a href={url('/docs/signal-chain')}>Signal Chain &amp; Routing</a> to understand how
+    blocks connect. If you just want the tone, the
+    <a href={url('/docs/effects')}>Effects Reference</a> lists every block and parameter.
+  </p>
+
+  <style>
+    .doc-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+      gap: var(--sp-3);
+      margin-bottom: var(--sp-5);
+    }
+    .doc-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      padding: var(--sp-4);
+      color: var(--text);
+    }
+    .doc-card:hover {
+      border-color: var(--accent-dim);
+      color: var(--text);
+    }
+    .doc-card h3 {
+      margin: 0;
+      color: var(--text-strong);
+      font-size: var(--step-1);
+    }
+    .doc-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: var(--step-0);
+    }
+    .doc-card-num {
+      color: var(--accent);
+      font-size: var(--step--1);
+    }
+    .doc-card-go {
+      margin-top: auto;
+      padding-top: var(--sp-2);
+      color: var(--accent);
+      font-size: var(--step--1);
+    }
+  </style>
+</DocsLayout>

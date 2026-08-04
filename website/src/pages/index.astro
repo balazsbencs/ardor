@@ -1,0 +1,321 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero3D from '../components/Hero3D.astro';
+import EffectCatalog from '../components/EffectCatalog.astro';
+import SignalFlow from '../components/SignalFlow.astro';
+import ScreenFrame from '../components/screens/ScreenFrame.astro';
+import PresetScreen from '../components/screens/PresetScreen.astro';
+import EditScreen from '../components/screens/EditScreen.astro';
+import EqScreen from '../components/screens/EqScreen.astro';
+import TunerScreen from '../components/screens/TunerScreen.astro';
+import { features, heroStats } from '../data/features';
+import { site } from '../data/site';
+import { url } from '../lib/url';
+---
+
+<BaseLayout>
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-copy">
+        <p class="eyebrow">Open-source Raspberry Pi guitar processor</p>
+        <h1>Your whole rig,<br />on one pedal.</h1>
+        <p class="lead">
+          Ardor runs neural amp models, cabinet impulse responses, and 35 studio
+          effects in realtime — all on a Raspberry Pi, driven by four footswitches
+          and a touchscreen. No computer, no plugin host, no subscription.
+        </p>
+        <div class="hero-cta">
+          <a class="btn" href={url('/docs/getting-started')}>Get started</a>
+          <a class="btn btn--ghost" href="#effects">Explore the effects</a>
+        </div>
+        <ul class="stat-strip">
+          {heroStats.map((s) => (
+            <li>
+              <span class="stat-val tnum">{s.value}</span>
+              <span class="stat-lbl">{s.label}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div class="hero-stage">
+        <Hero3D />
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FEATURES ============ -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow">What's inside</p>
+        <h2>A full pedalboard and amp room, rebuilt in software.</h2>
+        <p>Every stage of a professional rig — captured, modeled, and running under a realtime audio budget on a four-core Pi.</p>
+      </div>
+      <div class="feature-grid">
+        {features.map((f) => (
+          <article class="panel panel--tick feature">
+            <span class="feature-kicker mono">{f.kicker}</span>
+            <h3>{f.title}</h3>
+            <p>{f.body}</p>
+            {f.spec && (
+              <dl class="feature-spec">
+                {f.spec.map((s) => (
+                  <div>
+                    <dt>{s.label}</dt>
+                    <dd class="mono">{s.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SIGNAL CHAIN ============ -->
+  <section class="section" id="chain">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow">How it works</p>
+        <h2>Build the signal chain, block by block.</h2>
+        <p>Drag blocks onto a single left-to-right signal path. Split into two independent rigs for true stereo, then merge back to the output — with a safety limiter always on the end.</p>
+      </div>
+      <SignalFlow />
+      <p class="chain-note muted">
+        NAM and cabinet blocks are mono stages; modulation preserves stereo; delays and reverbs keep the stereo dry field while summing their wet input to mono. <a href={url('/docs/signal-chain')}>Read the routing rules →</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ EFFECTS ============ -->
+  <section class="section" id="effects">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow">Effect catalog</p>
+        <h2>Thirty-five effects, ready to drop in.</h2>
+        <p>Thirteen modulations, ten delays, and twelve reverbs — each with semantic controls and physical-value readouts. Every parameter is documented.</p>
+      </div>
+      <EffectCatalog />
+      <div class="effects-cta">
+        <a class="btn btn--ghost" href={url('/docs/effects')}>Full effects reference</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INTERFACE ============ -->
+  <section class="section" id="interface">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow">The interface</p>
+        <h2>Made to be played, not configured.</h2>
+        <p>The same LVGL interface runs on the Raspberry Pi Touch Display 2 and in the desktop simulator. Four preset slots up front, deep editing one tap away.</p>
+      </div>
+      <div class="screens-grid">
+        <ScreenFrame label="Preset screen" caption="Four slots per bank, master volume, and one-tap tuner.">
+          <PresetScreen />
+        </ScreenFrame>
+        <ScreenFrame label="Chain editor" caption="Drag, drop, and reorder blocks with live preview.">
+          <EditScreen />
+        </ScreenFrame>
+        <ScreenFrame label="5-band EQ" caption="Parametric bands with a live response graph.">
+          <EqScreen />
+        </ScreenFrame>
+        <ScreenFrame label="Tuner" caption="Muted chromatic tuner with note and cents guidance.">
+          <TunerScreen />
+        </ScreenFrame>
+      </div>
+      <p class="chain-note muted">
+        <a href={url('/docs/ui-guide')}>See the full UI &amp; controls guide →</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ OPEN SOURCE CTA ============ -->
+  <section class="section cta-band">
+    <div class="container cta-inner">
+      <div>
+        <p class="eyebrow">Fully open</p>
+        <h2>Build it, flash it, make it yours.</h2>
+        <p>Ardor is {site.license}-licensed end to end — the realtime engine, the touch UI, the manager apps, and a reproducible Buildroot firmware image. 3D-printable enclosure files included.</p>
+      </div>
+      <div class="cta-actions">
+        <a class="btn" href={site.repo} target="_blank" rel="noopener">View on GitHub</a>
+        <a class="btn btn--ghost" href={url('/docs/hardware')}>Hardware &amp; build</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* hero */
+  .hero {
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-inner {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: var(--sp-5);
+    align-items: center;
+    padding-block: var(--sp-6);
+    min-height: min(80vh, 720px);
+  }
+  .hero-copy {
+    min-width: 0;
+  }
+  .hero h1 {
+    font-size: var(--step-5);
+    margin-bottom: var(--sp-3);
+  }
+  .lead {
+    font-size: var(--step-1);
+    color: var(--muted);
+    max-width: 34rem;
+  }
+  .hero-cta {
+    display: flex;
+    gap: var(--sp-2);
+    flex-wrap: wrap;
+    margin-top: var(--sp-4);
+  }
+  .stat-strip {
+    list-style: none;
+    margin: var(--sp-5) 0 0;
+    padding: var(--sp-4) 0 0;
+    border-top: 1px solid var(--hairline);
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    gap: var(--sp-4);
+  }
+  .stat-strip li {
+    display: flex;
+    flex-direction: column;
+  }
+  .stat-val {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--step-2);
+    color: var(--accent);
+    line-height: 1;
+  }
+  .stat-lbl {
+    font-size: var(--step--1);
+    color: var(--muted);
+    margin-top: 0.3rem;
+    max-width: 9rem;
+  }
+  .hero-stage {
+    position: relative;
+    min-width: 0;
+  }
+
+  /* features */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap: var(--sp-3);
+  }
+  .feature {
+    padding: var(--sp-4);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .feature-kicker {
+    font-size: var(--step--1);
+    letter-spacing: 0.2em;
+    color: var(--accent);
+  }
+  .feature h3 {
+    margin: 0;
+  }
+  .feature p {
+    color: var(--muted);
+    margin: 0;
+  }
+  .feature-spec {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.2rem;
+    margin: auto 0 0;
+    padding-top: var(--sp-3);
+    border-top: 1px solid var(--hairline);
+  }
+  .feature-spec div {
+    display: flex;
+    flex-direction: column;
+  }
+  .feature-spec dt {
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted-2);
+  }
+  .feature-spec dd {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: var(--step--1);
+  }
+
+  .chain-note {
+    margin-top: var(--sp-4);
+    font-size: var(--step-0);
+  }
+  .effects-cta {
+    margin-top: var(--sp-5);
+    display: flex;
+    justify-content: center;
+  }
+
+  /* interface */
+  .screens-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-4);
+  }
+
+  /* cta band */
+  .cta-band {
+    background:
+      radial-gradient(80% 140% at 100% 0, rgba(60, 224, 166, 0.08), transparent 60%),
+      var(--ground-2);
+    border-radius: var(--radius-lg);
+  }
+  .cta-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-5);
+    flex-wrap: wrap;
+  }
+  .cta-inner h2 {
+    margin-bottom: var(--sp-2);
+  }
+  .cta-inner p {
+    color: var(--muted);
+    max-width: 40rem;
+  }
+  .cta-actions {
+    display: flex;
+    gap: var(--sp-2);
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 900px) {
+    .hero-inner {
+      grid-template-columns: 1fr;
+      padding-block: var(--sp-5);
+    }
+    .hero-stage {
+      order: -1;
+    }
+    .stat-strip {
+      grid-template-columns: 1fr 1fr;
+    }
+    .screens-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

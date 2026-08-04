@@ -466,12 +466,23 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
         lv_obj_set_style_border_color(object, lv_color_hex(accent), 0);
         lv_obj_set_style_border_width(object, 3, 0);
       }
+      const int catColor = categoryColor(block.type);
+      // Permanent left accent bar marks the block's family.
+      lv_obj_t* categoryBar = lv_obj_create(object);
+      lv_obj_set_size(categoryBar, 4, kChainTileHeight - 26);
+      lv_obj_align(categoryBar, LV_ALIGN_LEFT_MID, 3, 0);
+      styleSurface(categoryBar, catColor);
+      lv_obj_set_style_border_width(categoryBar, 0, 0);
+      lv_obj_set_style_shadow_width(categoryBar, 0, 0);
+      lv_obj_set_style_radius(categoryBar, 2, 0);
+      lv_obj_remove_flag(categoryBar, LV_OBJ_FLAG_CLICKABLE);
+
       std::string category = block.label;
       std::transform(category.begin(), category.end(), category.begin(), [](unsigned char character) {
         return static_cast<char>(std::toupper(character));
       });
       lv_obj_t* categoryLabel = label(object, category, LV_ALIGN_TOP_LEFT, kChainTextX, 9,
-                                      &ardor_font_open_sans_regular_18, muted);
+                                      &ardor_font_open_sans_regular_18, catColor);
       lv_obj_set_width(categoryLabel, kChainTextWidth);
       lv_label_set_long_mode(categoryLabel, LV_LABEL_LONG_CLIP);
       lv_obj_t* assetName = label(object, block.assetName, LV_ALIGN_TOP_LEFT, kChainTextX, 38,

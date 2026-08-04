@@ -1,0 +1,70 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import { url } from '../../lib/url';
+---
+
+<DocsLayout
+  title="Manager App"
+  description="Manage Ardor presets and assets from a desktop app or any browser, backed by the REST manager daemon on the pedal."
+  lede="Editing on the touchscreen is quick, but a bigger screen helps for deep work. The manager app gives you drag-and-drop chain editing, asset management, and TONE3000 browsing."
+>
+  <h2>How it fits together</h2>
+  <p>
+    A REST daemon, <code>ardor-managerd</code>, runs on the pedal and manages
+    <code>.nam</code>, <code>.wav</code>, and preset files — without doing management work
+    inside the realtime audio process. Asset uploads queue a catalog refresh, and applying
+    a saved slot queues a live engine swap that the pedal handles without restarting audio.
+  </p>
+
+  <h2>Three ways to connect</h2>
+  <h3>Device-hosted browser UI</h3>
+  <p>
+    The daemon serves a built-in browser build of the manager from <code>/</code>. Open the
+    pedal's address on your network and manage it from any browser — no install, and it
+    keeps working without internet access because the bundle is embedded in the daemon.
+  </p>
+
+  <h3>Desktop manager</h3>
+  <p>
+    A desktop app connects to <code>ardor-managerd</code> and provides bank/slot browsing,
+    drag-and-drop chain editing, block validation and inspection, undo/redo, Save/Apply,
+    asset upload/rename/delete, and light/dark themes. Supported targets are Apple Silicon
+    and Intel macOS, and Windows x64.
+  </p>
+  <div class="callout">
+    <p>
+      Optional <strong>TONE3000</strong> integration browses and installs NAM captures
+      directly onto the connected pedal, from the desktop manager.
+    </p>
+  </div>
+
+  <h3>Hosted control plane</h3>
+  <p>
+    An optional hosted control plane lets a claimed pedal be managed over HTTPS with account
+    sessions, device presence, and physically confirmed claiming. Preset reads work over an
+    authenticated connection; preset save/apply is opt-in per pedal and limited to a small
+    set of allowlisted operations. The pedal's identity is an Ed25519 key stored locally.
+  </p>
+
+  <h2>Run the daemon locally</h2>
+  <p>For local development you can run the daemon with authentication disabled:</p>
+  <pre><code>cd services/managerd
+ARDOR_API_AUTH=off \
+ARDOR_DATA_ROOT=../.. \
+ARDOR_API_BIND=127.0.0.1 \
+ARDOR_API_PORT=8080 \
+go run ./cmd/ardor-managerd</code></pre>
+  <p>Then check the device status endpoint:</p>
+  <pre><code>curl http://127.0.0.1:8080/api/device</code></pre>
+  <div class="callout warn">
+    <p>
+      Authentication is enabled by default when no override is supplied. For a protected
+      device, set <code>ARDOR_API_AUTH=on</code> and provide <code>ARDOR_API_TOKEN</code>.
+    </p>
+  </div>
+
+  <p>
+    Assets you add here become available to the chain editor described in the
+    <a href={url('/docs/ui-guide')}>UI &amp; Controls guide</a>.
+  </p>
+</DocsLayout>

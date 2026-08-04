@@ -60,6 +60,7 @@ struct UiActions {
   std::function<void(const std::optional<PresetExpression>&)> updateExpressionAssignment;
   std::function<void(const std::vector<PresetMidiBinding>&)> updateMidiBindings;
   std::function<bool(const DeviceSettings&, std::string&)> saveControlInputSettings;
+  std::function<bool(const std::string&, bool)> updateBlockEnabled;
 };
 
 struct UiLaneDropTarget {

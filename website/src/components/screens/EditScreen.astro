@@ -1,0 +1,162 @@
+---
+import './screens.css';
+// A representative mono chain in the drag-and-drop editor.
+const blocks = [
+  { name: 'Compressor', kind: 'Utility', cat: 'utility' },
+  { name: 'Morgan AC20', kind: 'NAM Amp', cat: 'amp' },
+  { name: 'Open Back 2×12', kind: 'Cabinet', cat: 'cabinet' },
+  { name: 'Chorus', kind: 'Modulation', cat: 'modulation' },
+  { name: 'Tape Delay', kind: 'Delay', cat: 'delay' },
+  { name: 'Hall', kind: 'Reverb', cat: 'reverb' },
+];
+---
+
+<div class="screen edit">
+  <div class="scr-head">
+    <span class="scr-btn scr-btn--muted">Done</span>
+    <span class="scr-title">EDIT CHAIN</span>
+    <span class="scr-btn">Undo</span>
+    <span class="scr-btn scr-btn--accent">Save</span>
+  </div>
+
+  <div class="rail-wrap">
+    <div class="rail">
+      <div class="cap">IN</div>
+      <span class="wire"></span>
+      {blocks.map((b) => (
+        <>
+          <div class="ins" aria-hidden="true">+</div>
+          <span class="wire"></span>
+          <div class:list={['block', `cat-${b.cat}`]}>
+            <span class="grip" aria-hidden="true"><span></span><span></span><span></span></span>
+            <span class="block-kind">{b.kind}</span>
+            <span class="block-name">{b.name}</span>
+          </div>
+          <span class="wire"></span>
+        </>
+      ))}
+      <div class="ins" aria-hidden="true">+</div>
+      <span class="wire"></span>
+      <div class="cap">OUT</div>
+    </div>
+  </div>
+
+  <div class="scr-foot">
+    <span>6 BLOCKS</span>
+    <span class="master">Master 82%</span>
+    <span>DRAFT · UNSAVED</span>
+  </div>
+</div>
+
+<style>
+  .rail-wrap {
+    position: absolute;
+    inset: 15% 0 9.5% 0;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 3%, #000 88%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 3%, #000 88%, transparent);
+  }
+  .rail {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 2.6cqw;
+  }
+  .wire {
+    width: 2.4cqw;
+    height: 0.3cqw;
+    background: linear-gradient(90deg, rgba(60, 224, 166, 0.35), rgba(60, 224, 166, 0.6));
+    flex: none;
+  }
+  .cap {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 9cqw;
+    height: 9cqw;
+    border-radius: 50%;
+    border: 0.3cqw solid var(--scr-accent);
+    color: var(--scr-accent);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 2.2cqw;
+    font-weight: 600;
+    box-shadow: 0 0 3cqw rgba(60, 224, 166, 0.25);
+  }
+  .ins {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 4cqw;
+    height: 4cqw;
+    border-radius: 50%;
+    border: 0.16cqw dashed var(--scr-line-2);
+    color: var(--scr-muted);
+    font-size: 3cqw;
+    line-height: 1;
+  }
+  .block {
+    flex: none;
+    position: relative;
+    width: 26cqw;
+    height: 40cqw;
+    max-height: 62%;
+    border-radius: 2cqw;
+    background: linear-gradient(180deg, #161e22, #0f1518);
+    border: 0.16cqw solid var(--scr-line);
+    border-top: 0.7cqw solid var(--cat, var(--scr-accent));
+    padding: 3cqw 2.4cqw;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.8cqw;
+  }
+  .block-kind {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.9cqw;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--cat, var(--scr-accent));
+  }
+  .block-name {
+    font-size: 3cqw;
+    font-weight: 600;
+    line-height: 1.15;
+  }
+  .grip {
+    position: absolute;
+    top: 2cqw;
+    right: 2cqw;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6cqw;
+  }
+  .grip span {
+    display: block;
+    width: 3.2cqw;
+    height: 0.4cqw;
+    border-radius: 1cqw;
+    background: var(--scr-muted);
+    opacity: 0.5;
+  }
+  /* category accents */
+  .cat-amp {
+    --cat: #ff8a5c;
+  }
+  .cat-cabinet {
+    --cat: #f5b451;
+  }
+  .cat-utility {
+    --cat: #9aa7ff;
+  }
+  .cat-modulation {
+    --cat: #59c2e6;
+  }
+  .cat-delay {
+    --cat: #3ce0a6;
+  }
+  .cat-reverb {
+    --cat: #c58cff;
+  }
+</style>

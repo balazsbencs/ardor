@@ -143,7 +143,7 @@ int main()
     const auto persistedBeforePreview = readFile(previewPath);
     int previewReplacements = 0;
     const auto activatePreview = [&]() {
-      require(ardor::beginApplyingPreview(previewUi), "queued live edit should begin applying");
+      require(ardor::pendingStructuralPreview(previewUi), "live edit should have a pending preview");
       const auto outcome = ardor::prepareAndActivateDraft(
         previewEngine, ardor::activePresetToPreset(previewUi), root, options, 0.7f,
         [&](ardor::PedalEngine&) {
@@ -156,8 +156,8 @@ int main()
       ardor::completeStructuralPreview(previewUi);
     };
     ardor::appendAssetBlock(previewUi, static_cast<std::size_t>(std::distance(previewUi.assets.begin(), tremAsset)));
-    require(previewUi.previewState == ardor::UiPreviewState::Queued,
-            "adding an effect should queue a live preview");
+    require(ardor::pendingStructuralPreview(previewUi),
+            "adding an effect should create a pending live preview");
     const std::string addedId = previewUi.bank.presets[previewUi.activePreset].blocks.back().id;
     activatePreview();
     require(previewEngine->setDaisyParameter(addedId, "depth", 0.25f),
@@ -189,7 +189,7 @@ int main()
     previewUi.dirty = true;
     require(ardor::queuePreview(previewUi, rejectedRollback, "invalid effect"),
             "invalid candidate should still enter preview flow");
-    require(ardor::beginApplyingPreview(previewUi), "invalid candidate should begin applying");
+    require(ardor::pendingStructuralPreview(previewUi), "invalid candidate should remain pending until attempted");
     const auto rejected = ardor::prepareAndActivateDraft(
       previewEngine, ardor::activePresetToPreset(previewUi), root, options, 0.7f,
       [&](ardor::PedalEngine&) {
@@ -228,8 +228,8 @@ int main()
         ardor::moveBlock(previewUi, 1, 0);
         break;
       }
-      require(previewUi.previewState == ardor::UiPreviewState::Queued,
-              "each stress edit should queue one preview");
+      require(ardor::pendingStructuralPreview(previewUi),
+              "each stress edit should create one pending preview");
       activatePreview();
       requireFiniteOutput(*previewEngine, "structural preview stress");
     }

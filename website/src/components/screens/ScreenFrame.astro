@@ -1,0 +1,56 @@
+---
+// Wraps a pedal screen in a subtle device bezel with an optional caption.
+interface Props {
+  label?: string;
+  caption?: string;
+}
+const { label, caption } = Astro.props;
+---
+
+<figure class="frame">
+  <div class="bezel">
+    <slot />
+  </div>
+  {(label || caption) && (
+    <figcaption>
+      {label && <span class="mono">{label}</span>}
+      {caption && <span class="cap">{caption}</span>}
+    </figcaption>
+  )}
+</figure>
+
+<style>
+  .frame {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+  .bezel {
+    padding: 1.1%;
+    background: linear-gradient(180deg, #05080a, #0a0e10);
+    border: 1px solid var(--hairline-strong);
+    border-radius: 12px;
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.6),
+      0 30px 60px -34px rgba(0, 0, 0, 0.9),
+      0 0 60px -30px var(--accent-glow);
+  }
+  figcaption {
+    display: flex;
+    align-items: baseline;
+    gap: 0.8em;
+    flex-wrap: wrap;
+  }
+  figcaption .mono {
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  figcaption .cap {
+    color: var(--muted);
+    font-size: var(--step--1);
+  }
+</style>

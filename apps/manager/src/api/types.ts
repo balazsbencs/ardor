@@ -4,6 +4,7 @@ export type DeviceStatus = {
   deviceName: string;
   apiVersion: string;
   authEnabled: boolean;
+  localAuthState?: "disabled" | "setup_required" | "login_required" | "authenticated";
   dataRootWritable: boolean;
   maxBanks: 100;
   slotsPerBank: 4;

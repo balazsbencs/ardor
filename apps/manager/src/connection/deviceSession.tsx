@@ -2,6 +2,7 @@ import {
   createContext,
   type PropsWithChildren,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -9,6 +10,7 @@ import {
 
 import { ArdorApiClient, type ApiClientConfig } from "../api/client";
 import { ArdorApiError } from "../api/errors";
+import type { ManagerTransport } from "../api/transport";
 import type {
   ApplyPresetResponse,
   Asset,
@@ -20,6 +22,7 @@ import type {
 } from "../api/types";
 import type { PresetLocation } from "../presets/editor/editorTypes";
 import { createEmptyPreset } from "../presets/editor/presetFactory";
+import { defaultDeviceBaseUrl, isDeviceHostedRuntime } from "../runtime/platform";
 
 export type SessionStatus = "disconnected" | "connecting" | "connected" | "error";
 
@@ -29,7 +32,7 @@ export type SessionPreset = {
   exists: boolean;
 };
 
-export type DeviceClientFactory = (config: ApiClientConfig) => ArdorApiClient;
+export type DeviceClientFactory = (config: ApiClientConfig) => ManagerTransport;
 
 type BusyState = { save: boolean; apply: boolean; upload: boolean };
 
@@ -37,7 +40,7 @@ export type DeviceSessionValue = {
   status: SessionStatus;
   baseUrl: string;
   device?: DeviceStatus;
-  client?: ArdorApiClient;
+  client?: ManagerTransport;
   models: Asset[];
   irs: Asset[];
   presets: PresetSlotSummary[];
@@ -57,7 +60,6 @@ export type DeviceSessionValue = {
 
 const baseUrlKey = "ardor-manager.base-url";
 const locationKey = (baseUrl: string) => `ardor-manager.location:${baseUrl}`;
-const defaultBaseUrl = "http://127.0.0.1:8080";
 const defaultBusy: BusyState = { save: false, apply: false, upload: false };
 
 export const DeviceSessionContext = createContext<DeviceSessionValue | undefined>(undefined);
@@ -82,7 +84,7 @@ function hasPreset(summaries: PresetSlotSummary[], location: PresetLocation): bo
 }
 
 async function loadInitialPreset(
-  client: ArdorApiClient,
+  client: ManagerTransport,
   baseUrl: string,
   device: DeviceStatus,
   summaries: PresetSlotSummary[],
@@ -115,11 +117,16 @@ async function loadInitialPreset(
 export function DeviceSessionProvider({
   children,
   clientFactory = (config) => new ArdorApiClient(config),
-}: PropsWithChildren<{ clientFactory?: DeviceClientFactory }>) {
+  autoConnect = isDeviceHostedRuntime(),
+  connectionId,
+}: PropsWithChildren<{ clientFactory?: DeviceClientFactory; autoConnect?: boolean; connectionId?: string }>) {
+  const initialBaseUrl = connectionId ?? (isDeviceHostedRuntime()
+    ? defaultDeviceBaseUrl()
+    : localStorage.getItem(baseUrlKey) ?? defaultDeviceBaseUrl());
   const [status, setStatus] = useState<SessionStatus>("disconnected");
-  const [baseUrl, setBaseUrl] = useState(() => localStorage.getItem(baseUrlKey) ?? defaultBaseUrl);
+  const [baseUrl, setBaseUrl] = useState(initialBaseUrl);
   const [device, setDevice] = useState<DeviceStatus>();
-  const [client, setClient] = useState<ArdorApiClient>();
+  const [client, setClient] = useState<ManagerTransport>();
   const [models, setModels] = useState<Asset[]>([]);
   const [irs, setIrs] = useState<Asset[]>([]);
   const [presets, setPresets] = useState<PresetSlotSummary[]>([]);
@@ -128,6 +135,7 @@ export function DeviceSessionProvider({
   const [needsTokenFocus, setNeedsTokenFocus] = useState(false);
   const [busy, setBusy] = useState(defaultBusy);
   const connecting = useRef(false);
+  const autoConnectAttempted = useRef(false);
   const operationBusy = useRef(defaultBusy);
 
   const setOperationBusy = (kind: keyof BusyState, value: boolean) => {
@@ -151,7 +159,7 @@ export function DeviceSessionProvider({
         nextClient.listPresets(),
       ]);
       const nextCurrent = await loadInitialPreset(nextClient, normalizedBaseUrl, nextDevice, nextPresets);
-      localStorage.setItem(baseUrlKey, normalizedBaseUrl);
+      if (!connectionId) localStorage.setItem(baseUrlKey, normalizedBaseUrl);
       localStorage.setItem(locationKey(normalizedBaseUrl), JSON.stringify(nextCurrent.location));
       setBaseUrl(normalizedBaseUrl);
       setClient(nextClient);
@@ -240,6 +248,12 @@ export function DeviceSessionProvider({
       setOperationBusy("upload", false);
     }
   };
+
+  useEffect(() => {
+    if (!autoConnect || autoConnectAttempted.current) return;
+    autoConnectAttempted.current = true;
+    void connect(initialBaseUrl);
+  }, [autoConnect, initialBaseUrl]);
 
   const value = useMemo<DeviceSessionValue>(() => ({
     status, baseUrl, device, client, models, irs, presets, current, error, needsTokenFocus, busy,

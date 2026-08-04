@@ -210,6 +210,7 @@ target_link_libraries(ardor_ui PUBLIC ardor_preset)
 
 if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   target_sources(ardor_ui PRIVATE
+    src/ui/CloudClaimOverlay.cpp
     src/ui/LvglChainLayout.cpp
     src/ui/LvglUi.cpp
     src/ui/LvglUiChainInteraction.cpp
@@ -232,6 +233,9 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
 
   add_executable(pedal-lvgl-ui-smoke tests/lvgl_ui_smoke.cpp)
   target_link_libraries(pedal-lvgl-ui-smoke PRIVATE ardor_ui)
+
+  add_executable(pedal-cloud-claim-overlay-smoke tests/cloud_claim_overlay_smoke.cpp)
+  target_link_libraries(pedal-cloud-claim-overlay-smoke PRIVATE ardor_ui)
 
   if(ARDOR_UI_BACKEND STREQUAL "sdl")
     add_executable(pedal-ui-sim apps/pedal-ui-sim/main.cpp)
@@ -387,6 +391,7 @@ add_test(NAME pedal-global-settings-smoke COMMAND pedal-global-settings-smoke)
 add_test(NAME pedal-eq-editor-model-smoke COMMAND pedal-eq-editor-model-smoke)
 if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   add_test(NAME pedal-lvgl-ui-smoke COMMAND pedal-lvgl-ui-smoke)
+  add_test(NAME pedal-cloud-claim-overlay-smoke COMMAND pedal-cloud-claim-overlay-smoke)
 endif()
 add_test(NAME pedal-preset-cli-smoke COMMAND pedal-preset-cli-smoke)
 add_test(NAME pedal-preset-reload-stress COMMAND pedal-preset-reload-stress)

@@ -53,15 +53,23 @@ function Probe() {
   );
 }
 
-function renderSession(factory: DeviceClientFactory) {
+function renderSession(factory: DeviceClientFactory, autoConnect = false) {
   return renderWithProviders(
-    <DeviceSessionProvider clientFactory={factory}><Probe /></DeviceSessionProvider>,
+    <DeviceSessionProvider clientFactory={factory} autoConnect={autoConnect}><Probe /></DeviceSessionProvider>,
   );
 }
 
 afterEach(() => localStorage.clear());
 
 describe("DeviceSessionProvider", () => {
+  it("connects automatically when running as the device-hosted manager", async () => {
+    const factory = vi.fn(() => mockClient());
+    renderSession(factory, true);
+
+    expect(await screen.findByText("connected")).toBeInTheDocument();
+    expect(factory).toHaveBeenCalledWith(expect.objectContaining({ baseUrl: "http://127.0.0.1:8080" }));
+  });
+
   it("loads authenticated resources and the authoritative active preset", async () => {
     const client = mockClient({
       getDevice: vi.fn(async () => ({ ...device, active: { bank: 3, slot: 2, name: "Saved" } })),
