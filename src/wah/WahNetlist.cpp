@@ -75,8 +75,15 @@ bool wahNetlistValid(const WahNetlist& netlist)
 
 double wahPotWiperOhms(const WahNetlist& netlist, double position)
 {
+  // Returns the GROUNDED leg (R12), which DECREASES as the treadle goes down
+  // toward the toe. Grounding more of the divider sends less of the output to
+  // the feedback follower, and the resonance climbs.
+  //
+  // The direction is not a matter of taste: measured against the derived
+  // model, R12 = 100k puts the peak at ~400 Hz and R12 = 0 puts it at
+  // ~2.2 kHz. Heel-down must be the low end, so heel is the full-track end.
   const double clamped = std::clamp(position, 0.0, 1.0);
-  return netlist.potOhms * std::pow(clamped, netlist.taperExponent);
+  return netlist.potOhms * std::pow(1.0 - clamped, netlist.taperExponent);
 }
 
 } // namespace ardor
