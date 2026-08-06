@@ -184,6 +184,7 @@ endif()
 add_library(ardor_wah
   src/wah/WahNetlist.cpp
   src/wah/WahDk.cpp
+  src/wah/WahTable.cpp
 )
 target_include_directories(ardor_wah PUBLIC
   src
@@ -296,6 +297,9 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   target_compile_definitions(pedal-poc PRIVATE ARDOR_HAS_UI)
 endif()
 
+add_executable(wah-table-gen apps/wah-table-gen/main.cpp)
+target_link_libraries(wah-table-gen PRIVATE ardor_wah)
+
 add_executable(audio-probe apps/audio-probe/main.c)
 target_include_directories(audio-probe PRIVATE ${miniaudio_SOURCE_DIR})
 
@@ -340,6 +344,9 @@ target_link_libraries(pedal-wah-netlist-smoke PRIVATE ardor_wah)
 
 add_executable(pedal-wah-dk-smoke tests/wah_dk_smoke.cpp)
 target_link_libraries(pedal-wah-dk-smoke PRIVATE ardor_wah)
+
+add_executable(pedal-wah-table-smoke tests/wah_table_smoke.cpp)
+target_link_libraries(pedal-wah-table-smoke PRIVATE ardor_wah)
 
 add_executable(pedal-compressor-smoke tests/compressor_smoke.cpp)
 target_link_libraries(pedal-compressor-smoke PRIVATE ardor_dynamics)
@@ -412,6 +419,7 @@ add_test(NAME pedal-daisy-fx-response COMMAND pedal-daisy-fx-response)
 add_test(NAME pedal-daisy-fx-automation COMMAND pedal-daisy-fx-automation)
 add_test(NAME pedal-wah-netlist-smoke COMMAND pedal-wah-netlist-smoke)
 add_test(NAME pedal-wah-dk-smoke COMMAND pedal-wah-dk-smoke)
+add_test(NAME pedal-wah-table-smoke COMMAND pedal-wah-table-smoke)
 add_test(NAME pedal-compressor-smoke COMMAND pedal-compressor-smoke)
 add_test(NAME pedal-noise-gate-smoke COMMAND pedal-noise-gate-smoke)
 add_test(NAME pedal-parametric-eq-smoke COMMAND pedal-parametric-eq-smoke)
