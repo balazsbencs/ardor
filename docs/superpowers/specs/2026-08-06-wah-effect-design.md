@@ -48,12 +48,26 @@ signal-independent**. That constraint is what selects the table-based solver.
 
 ### Circuit
 
-Dunlop GCB-95 Cry Baby:
+Dunlop GCB-95 Cry Baby, per the [ElectroSmash circuit
+analysis](https://electrosmash.mas-effects.com/crybaby-gcb-95.html) (retrieved
+2026-08-06):
 
-- Q1 emitter-follower input buffer.
-- 100 kΩ audio-taper pot in the feedback path.
-- Q2 common-emitter gain stage.
-- 500 mH inductor plus resonance cap forming the tank.
+- Q0: MPSA13 Darlington emitter-follower input buffer.
+- Q1: MPSA18 common-emitter gain stage driving the tank.
+- Q2: MPSA18 output stage; the 100 kΩ audio-taper pot (VR1) sits in the
+  feedback path from here.
+- L1 500 mH plus C1/C2 (0.01 µF each) forming the resonant tank.
+
+**Correction against the original design.** This spec first assumed two
+transistors. The circuit has three. Modelling all three nonlinearly would make
+the solved system 3-D and the runtime table 4-D — roughly 800 MB at the shipped
+grid, which is not viable.
+
+**Q0 is therefore modelled as linear.** A Darlington emitter follower running at
+near-unity gain, whose job is impedance isolation, contributes essentially
+nothing to the wah voicing — that comes from the Q1 feedback stage. This is the
+same tradeoff already made in omitting the base-collector junctions, and it
+keeps the 2-D nonlinear system and 3-D table that the hardware probe validated.
 
 The pot wiper sets how much of Q2's output is fed back into the tank, and that
 feedback is what sweeps the resonant peak. It is also why Q and peak gain rise
@@ -66,10 +80,10 @@ DK-method (discretized nodal state space):
 
 - Roughly 7 reactive states (6 capacitors plus the inductor), trapezoidal
   discretization.
-- 2 nonlinear ports: the base-emitter junction of each BJT, Ebers-Moll,
-  forward-active. The base-collector junctions are omitted deliberately — that
-  is what keeps the nonlinear system 2-D instead of 4-D, and it holds
-  everywhere these stages actually operate.
+- 2 nonlinear ports: the base-emitter junctions of **Q1 and Q2**, Ebers-Moll,
+  forward-active. Q0 is linear (see above). The base-collector junctions are
+  omitted deliberately — that is what keeps the nonlinear system 2-D instead of
+  4-D, and it holds everywhere these stages actually operate.
 - Per sample the system is `v = p + K·i(v)`, where the 2-D vector `p` comes
   from the current state and input, and the coupling matrix `K` depends on pot
   position.

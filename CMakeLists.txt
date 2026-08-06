@@ -181,6 +181,15 @@ if(UNIX AND NOT APPLE)
   target_link_libraries(ardor_dsp PUBLIC stdc++fs)
 endif()
 
+add_library(ardor_wah
+  src/wah/WahNetlist.cpp
+)
+target_include_directories(ardor_wah PUBLIC
+  src
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies
+)
+target_compile_features(ardor_wah PUBLIC cxx_std_20)
+
 add_library(ardor_preset
   src/preset/Preset.cpp
   src/preset/PresetStore.cpp
@@ -325,6 +334,9 @@ target_link_libraries(pedal-daisy-fx-response PRIVATE ardor_daisyfx)
 add_executable(pedal-daisy-fx-automation tests/daisy_fx_automation.cpp)
 target_link_libraries(pedal-daisy-fx-automation PRIVATE ardor_daisyfx)
 
+add_executable(pedal-wah-netlist-smoke tests/wah_netlist_smoke.cpp)
+target_link_libraries(pedal-wah-netlist-smoke PRIVATE ardor_wah)
+
 add_executable(pedal-compressor-smoke tests/compressor_smoke.cpp)
 target_link_libraries(pedal-compressor-smoke PRIVATE ardor_dynamics)
 
@@ -394,6 +406,7 @@ add_test(NAME pedal-daisy-fx-smoke COMMAND pedal-daisy-fx-smoke)
 add_test(NAME pedal-hosted-dsp-unit COMMAND pedal-hosted-dsp-unit)
 add_test(NAME pedal-daisy-fx-response COMMAND pedal-daisy-fx-response)
 add_test(NAME pedal-daisy-fx-automation COMMAND pedal-daisy-fx-automation)
+add_test(NAME pedal-wah-netlist-smoke COMMAND pedal-wah-netlist-smoke)
 add_test(NAME pedal-compressor-smoke COMMAND pedal-compressor-smoke)
 add_test(NAME pedal-noise-gate-smoke COMMAND pedal-noise-gate-smoke)
 add_test(NAME pedal-parametric-eq-smoke COMMAND pedal-parametric-eq-smoke)
