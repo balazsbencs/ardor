@@ -227,6 +227,19 @@ bool RuntimeChain::setCompressorParameter(const std::string& id, const std::stri
   return false;
 }
 
+bool RuntimeChain::compressorGainReductionDb(const std::string& id, float& outDb) const
+{
+  for (const auto& block : blocks_) {
+    if (block.kind == Block::Kind::Compressor && block.id == id) {
+      outDb = block.compressor->currentGainReductionDb();
+      return true;
+    }
+    if (block.kind == Block::Kind::DualRig
+        && block.dualRig->compressorGainReductionDb(id, outDb)) return true;
+  }
+  return false;
+}
+
 void RuntimeChain::addNoiseGate(std::string id, NoiseGateProcessor processor)
 {
   Block block;

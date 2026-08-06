@@ -20,8 +20,12 @@ inline constexpr int kChainRightRailY = 330;
 inline constexpr int kChainStartX = 24;
 inline constexpr int kChainTerminalWidth = 92;
 inline constexpr int kChainJunctionWidth = 132;
-inline constexpr int kChainTileHeight = 92;
-inline constexpr int kChainTileWidth = 190;
+// 168x326 (24 px category header + 302 px body) matches the mockup's tall
+// engraved module card (mockups/lvgl-redesign/panel.html .blkm/.hd/.bd) 1:1 --
+// panel.html's .scr is a 1280x720 canvas, the same px scale as kDesignWidth.
+inline constexpr int kChainTileHeight = 326;
+inline constexpr int kChainTileWidth = 168;
+inline constexpr int kChainHeaderHeight = 24;
 inline constexpr int kChainHandleWidth = 48;
 inline constexpr int kChainInsertWidth = 52;
 inline constexpr int kChainGap = 14;
@@ -30,8 +34,8 @@ inline constexpr int kLaneTileHeight = 92;
 inline constexpr int kLaneInsertWidth = 48;
 inline constexpr int kChainSlotWidth = kChainTileWidth + kChainInsertWidth + 2 * kChainGap;
 inline constexpr int kChainTileTop = kChainRailY - kChainTileHeight / 2;
-inline constexpr int kChainTextX = 12;
-inline constexpr int kChainTextWidth = kChainTileWidth - kChainHandleWidth - 28;
+inline constexpr int kChainTextX = 13;
+inline constexpr int kChainTextWidth = kChainTileWidth - 2 * kChainTextX;
 
 std::size_t slotForPoint(std::size_t blockCount, lv_point_t canvasPoint);
 std::size_t insertionSlotForPoint(std::size_t blockCount, lv_point_t canvasPoint);

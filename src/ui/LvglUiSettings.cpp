@@ -1,8 +1,6 @@
 #include "ui/LvglUi.h"
 
 #include "ui/LvglUiStyle.h"
-#include "ui/fonts/OpenSansRegular.h"
-#include "ui/fonts/OpenSansSemibold.h"
 
 #include <algorithm>
 #include <array>
@@ -14,14 +12,17 @@ namespace {
 
 using namespace lvgl_ui;
 
-constexpr std::array<std::pair<const char*, std::uint32_t>, 6> kAccentColors = {{
-  {"Ardor", kDefaultAccentColor},
-  {"Blue", 0x67a6ff},
-  {"Amber", 0xffb347},
-  {"Violet", 0xb88cff},
-  {"Coral", 0xff7b6b},
-  {"Ice", 0x55d9d1},
+constexpr std::array<std::pair<const char*, PaletteId>, 4> kPalettes = {{
+  {"Slate", PaletteId::Slate},
+  {"Ink", PaletteId::Ink},
+  {"Sodium", PaletteId::Sodium},
+  {"Nord", PaletteId::Nord},
 }};
+// Four tiles across the same 944 px band three used to share unevenly (290
+// wide with room to spare) -- shrunk just enough to fit the new palette
+// without spilling past the content column's right edge.
+constexpr int kPaletteTileWidth = 224;
+constexpr int kPaletteTileStep = 240;
 
 void onSettingsClosed(lv_event_t* event)
 {
@@ -35,10 +36,10 @@ void onSettingsSectionClicked(lv_event_t* event)
   context->ui->showSettingsSection(*context->state, context->index);
 }
 
-void onAccentColorClicked(lv_event_t* event)
+void onPaletteClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  context->ui->selectAccentColor(*context->state, context->index);
+  context->ui->selectPalette(*context->state, context->index);
 }
 
 void onWifiFieldFocused(lv_event_t* event)
@@ -167,18 +168,18 @@ void LvglUi::captureExpressionEndpoint(UiState& state, bool heel)
   viewsInitialized_ = false;
 }
 
-void LvglUi::selectAccentColor(UiState& state, std::size_t colorIndex)
+void LvglUi::selectPalette(UiState& state, std::size_t paletteIndex)
 {
-  if (colorIndex >= kAccentColors.size()) return;
-  const auto selected = kAccentColors[colorIndex].second;
-  state.settings.accentColor = selected;
-  accent = selected;
+  if (paletteIndex >= kPalettes.size()) return;
+  const auto selected = kPalettes[paletteIndex].second;
+  state.settings.paletteId = selected;
+  setPalette(selected);
   std::string error;
-  if (actions_.saveAccentColor && !actions_.saveAccentColor(selected, error)) {
-    settingsMessage_ = "Color changed, but could not be saved: " + error;
+  if (actions_.savePalette && !actions_.savePalette(selected, error)) {
+    settingsMessage_ = "Palette changed, but could not be saved: " + error;
     settingsMessageIsError_ = true;
   } else {
-    settingsMessage_ = "Accent color saved";
+    settingsMessage_ = "Palette saved";
     settingsMessageIsError_ = false;
   }
   viewsInitialized_ = false;
@@ -217,7 +218,7 @@ void LvglUi::toggleWifiPassword()
     lv_label_set_text(
       wifiPasswordToggleLabel_, wifiPasswordVisible_ ? LV_SYMBOL_EYE_CLOSE : LV_SYMBOL_EYE_OPEN);
     lv_obj_set_style_text_color(
-      wifiPasswordToggleLabel_, lv_color_hex(wifiPasswordVisible_ ? accent : muted), 0);
+      wifiPasswordToggleLabel_, lv_color_hex(wifiPasswordVisible_ ? text : muted), 0);
   }
 }
 
@@ -244,17 +245,17 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
   lv_obj_t* header = lv_obj_create(root);
   lv_obj_set_size(header, kDesignWidth, 82);
   lv_obj_set_pos(header, 0, 0);
-  styleSurface(header, 0x111111);
+  styleSurface(header, panelAlt);
   lv_obj_set_style_radius(header, 0, 0);
   lv_obj_set_style_border_width(header, 1, 0);
   lv_obj_set_style_border_side(header, LV_BORDER_SIDE_BOTTOM, 0);
-  lv_obj_set_style_border_color(header, lv_color_hex(0x343434), 0);
+  lv_obj_set_style_border_color(header, lv_color_hex(rule), 0);
   lv_obj_remove_flag(header, LV_OBJ_FLAG_SCROLLABLE);
 
   lv_obj_t* mark = lv_obj_create(header);
   lv_obj_set_size(mark, 52, 52);
   lv_obj_align(mark, LV_ALIGN_LEFT_MID, 24, 0);
-  styleSurface(mark, accent);
+  styleSurface(mark, panel);
   lv_obj_t* markIcon = lv_label_create(mark);
   lv_label_set_text(markIcon, LV_SYMBOL_SETTINGS);
   lv_obj_set_style_text_color(markIcon, lv_color_hex(bg), 0);
@@ -262,9 +263,9 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
   lv_obj_center(markIcon);
 
   label(header, "Settings", LV_ALIGN_LEFT_MID, 92, -10,
-        &ardor_font_open_sans_semibold_28);
+        &ardor_font_saira_cond_semibold_28);
   label(header, "Pedal preferences and connectivity", LV_ALIGN_LEFT_MID, 92, 20,
-        &ardor_font_open_sans_regular_18, muted);
+        &ardor_font_saira_cond_medium_18, muted);
 
   lv_obj_t* close = button(header, "Close");
   lv_obj_set_size(close, 116, 54);
@@ -274,7 +275,7 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
   lv_obj_t* sidebar = lv_obj_create(root);
   lv_obj_set_size(sidebar, 222, 614);
   lv_obj_set_pos(sidebar, 20, 92);
-  styleSurface(sidebar, 0x111111);
+  styleSurface(sidebar, panelAlt);
   lv_obj_set_style_pad_all(sidebar, 14, 0);
   lv_obj_remove_flag(sidebar, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -283,7 +284,7 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
     lv_obj_t* section = button(sidebar, sections[i]);
     lv_obj_set_size(section, 190, 68);
     lv_obj_set_pos(section, 0, static_cast<int>(i) * 78);
-    styleSurface(section, i == settingsSection_ ? accent : 0x242424);
+    styleSurface(section, i == settingsSection_ ? panel : panelAlt);
     lv_obj_set_style_text_color(lv_obj_get_child(section, 0),
                                 lv_color_hex(i == settingsSection_ ? bg : text), 0);
     lv_obj_add_event_cb(section, onSettingsSectionClicked, LV_EVENT_PRESSED,
@@ -293,79 +294,76 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
   lv_obj_t* content = lv_obj_create(root);
   lv_obj_set_size(content, 1000, 614);
   lv_obj_set_pos(content, 256, 92);
-  styleSurface(content, 0x181818);
+  styleSurface(content, panel);
   lv_obj_set_style_pad_all(content, 0, 0);
   lv_obj_remove_flag(content, LV_OBJ_FLAG_SCROLLABLE);
 
   if (settingsSection_ == 0) {
-    label(content, "Accent color", LV_ALIGN_TOP_LEFT, 28, 24,
-          &ardor_font_open_sans_semibold_28);
-    label(content, "Choose the color used for selections, live state and focus.",
-          LV_ALIGN_TOP_LEFT, 28, 62, &ardor_font_open_sans_regular_18, muted);
+    label(content, "Panel palette", LV_ALIGN_TOP_LEFT, 28, 24,
+          &ardor_font_saira_cond_semibold_28);
+    label(content, "Each named palette keeps the plate, lettering, LIVE lamp and family colours in balance.",
+          LV_ALIGN_TOP_LEFT, 28, 62, &ardor_font_saira_cond_medium_18, muted);
 
-    for (std::size_t i = 0; i < kAccentColors.size(); ++i) {
-      const int x = 28 + static_cast<int>(i) * 158;
-      const bool selected = state.settings.accentColor == kAccentColors[i].second;
+    for (std::size_t i = 0; i < kPalettes.size(); ++i) {
+      const int x = 28 + static_cast<int>(i) * kPaletteTileStep;
+      const bool selected = state.settings.paletteId == kPalettes[i].second;
+      const auto& candidate = palette(kPalettes[i].second);
       lv_obj_t* choice = lv_button_create(content);
-      lv_obj_set_size(choice, 142, 146);
+      lv_obj_set_size(choice, kPaletteTileWidth, 146);
       lv_obj_set_pos(choice, x, 118);
-      styleSurface(choice, 0x242424);
-      lv_obj_set_style_border_width(choice, selected ? 3 : 1, 0);
+      styleSurface(choice, candidate.plate2);
+      lv_obj_set_style_border_width(choice, selected ? 2 : 1, 0);
       lv_obj_set_style_border_color(
-        choice, lv_color_hex(selected ? kAccentColors[i].second : 0x404040), 0);
+        choice, lv_color_hex(selected ? candidate.engrave : candidate.rule), 0);
       lv_obj_t* swatch = lv_obj_create(choice);
-      lv_obj_set_size(swatch, 92, 72);
+      lv_obj_set_size(swatch, kPaletteTileWidth - 52, 52);
       lv_obj_align(swatch, LV_ALIGN_TOP_MID, 0, 8);
-      styleSurface(swatch, kAccentColors[i].second);
+      styleSurface(swatch, candidate.plate);
+      lv_obj_set_style_border_color(swatch, lv_color_hex(candidate.lamp), 0);
       lv_obj_remove_flag(swatch, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_t* name = label(choice, kAccentColors[i].first, LV_ALIGN_BOTTOM_MID, 0, -12,
-                             &ardor_font_open_sans_regular_18,
-                             selected ? kAccentColors[i].second : text);
+      lv_obj_t* name = label(choice, kPalettes[i].first, LV_ALIGN_BOTTOM_MID, 0, -12,
+                             &ardor_font_saira_cond_medium_18,
+                             candidate.engrave);
       lv_obj_remove_flag(name, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_add_event_cb(choice, onAccentColorClicked, LV_EVENT_PRESSED, remember(state, i));
+      lv_obj_add_event_cb(choice, onPaletteClicked, LV_EVENT_PRESSED, remember(state, i));
     }
 
     lv_obj_t* preview = lv_obj_create(content);
     lv_obj_set_size(preview, 944, 146);
     lv_obj_set_pos(preview, 28, 304);
-    styleSurface(preview, accent);
+    styleSurface(preview, panelAlt);
     lv_obj_remove_flag(preview, LV_OBJ_FLAG_SCROLLABLE);
-    const auto red = (accent >> 16) & 0xff;
-    const auto green = (accent >> 8) & 0xff;
-    const auto blue = accent & 0xff;
-    const auto luminance = red * 299 + green * 587 + blue * 114;
-    const int previewInk = luminance > 150000 ? bg : text;
-    label(preview, "LIVE PREVIEW", LV_ALIGN_LEFT_MID, 28, -18,
-          &ardor_font_open_sans_semibold_22, previewInk);
-    label(preview, "The selected accent is applied across the touchscreen.",
-          LV_ALIGN_LEFT_MID, 28, 20, &ardor_font_open_sans_regular_18, previewInk);
+    label(preview, "LIVE", LV_ALIGN_LEFT_MID, 28, -18,
+          &ardor_font_saira_cond_semibold_22, lamp);
+    label(preview, "Reserved for the running preset and selected parameter.",
+          LV_ALIGN_LEFT_MID, 28, 20, &ardor_font_saira_cond_medium_18, muted);
   } else if (settingsSection_ == 1) {
     label(content, "Wi-Fi", LV_ALIGN_TOP_LEFT, 28, 20,
-          &ardor_font_open_sans_semibold_28);
+          &ardor_font_saira_cond_semibold_28);
     label(content, state.settings.wifiConfigured
             ? "Update the network or leave the password blank to keep it."
             : "Connect the pedal without rebuilding the system image.",
-          LV_ALIGN_TOP_LEFT, 28, 58, &ardor_font_open_sans_regular_18, muted);
+          LV_ALIGN_TOP_LEFT, 28, 58, &ardor_font_saira_cond_medium_18, muted);
 
     const auto makeField = [&](const char* title, const char* placeholder, int x, int y,
                                int width, std::size_t maxLength) {
       label(content, title, LV_ALIGN_TOP_LEFT, x, y,
-            &ardor_font_open_sans_regular_18, muted);
+            &ardor_font_saira_cond_medium_18, muted);
       lv_obj_t* field = lv_textarea_create(content);
       lv_obj_set_pos(field, x, y + 28);
       lv_textarea_set_one_line(field, true);
       lv_obj_set_size(field, width, 62);
       lv_textarea_set_max_length(field, maxLength);
       lv_textarea_set_placeholder_text(field, placeholder);
-      lv_obj_set_style_bg_color(field, lv_color_hex(0x0f0f0f), 0);
+      lv_obj_set_style_bg_color(field, lv_color_hex(panelAlt), 0);
       lv_obj_set_style_text_color(field, lv_color_hex(text), 0);
-      lv_obj_set_style_text_font(field, &ardor_font_open_sans_regular_18, 0);
+      lv_obj_set_style_text_font(field, &ardor_font_saira_cond_medium_18, 0);
       lv_obj_set_style_pad_top(field, 20, 0);
       lv_obj_set_style_pad_bottom(field, 20, 0);
       lv_obj_set_style_border_width(field, 1, 0);
-      lv_obj_set_style_border_color(field, lv_color_hex(0x4b4b4b), 0);
-      lv_obj_set_style_border_color(field, lv_color_hex(accent), LV_STATE_FOCUSED);
-      lv_obj_set_style_radius(field, 5, 0);
+      lv_obj_set_style_border_color(field, lv_color_hex(rule), 0);
+      lv_obj_set_style_border_color(field, lv_color_hex(text), LV_STATE_FOCUSED);
+      lv_obj_set_style_radius(field, 0, 0);
       return field;
     };
 
@@ -384,10 +382,10 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
     wifiPasswordToggleLabel_ = lv_obj_get_child(showPassword, 0);
     lv_obj_set_size(showPassword, 54, 58);
     lv_obj_set_pos(showPassword, 588, wifiFieldY + 2);
-    styleSurface(showPassword, 0x242424);
+    styleSurface(showPassword, panel);
     lv_obj_set_style_text_font(wifiPasswordToggleLabel_, LV_FONT_DEFAULT, 0);
     lv_obj_set_style_text_color(
-      wifiPasswordToggleLabel_, lv_color_hex(wifiPasswordVisible_ ? accent : muted), 0);
+      wifiPasswordToggleLabel_, lv_color_hex(wifiPasswordVisible_ ? text : muted), 0);
     lv_obj_add_event_cb(showPassword, onWifiPasswordVisibilityClicked, LV_EVENT_CLICKED,
                         remember(state));
 
@@ -399,20 +397,20 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
       ? "Save & reconnect" : "Connect pedal");
     lv_obj_set_size(save, 206, 62);
     lv_obj_set_pos(save, 766, wifiFieldY);
-    styleSurface(save, accent);
+    styleSurface(save, text);
     lv_obj_set_style_text_color(lv_obj_get_child(save, 0), lv_color_hex(bg), 0);
     lv_obj_set_style_text_font(
-      lv_obj_get_child(save, 0), &ardor_font_open_sans_regular_18, 0);
+      lv_obj_get_child(save, 0), &ardor_font_saira_cond_medium_18, 0);
     lv_obj_add_event_cb(save, onWifiSaveClicked, LV_EVENT_PRESSED, remember(state));
 
     wifiKeyboard_ = lv_keyboard_create(content);
     lv_obj_set_size(wifiKeyboard_, 944, 360);
     lv_obj_align(wifiKeyboard_, LV_ALIGN_TOP_LEFT, 28, 224);
-    lv_obj_set_style_bg_color(wifiKeyboard_, lv_color_hex(0x111111), 0);
+    lv_obj_set_style_bg_color(wifiKeyboard_, lv_color_hex(panelAlt), 0);
     lv_obj_set_style_text_color(wifiKeyboard_, lv_color_hex(text), LV_PART_ITEMS);
-    lv_obj_set_style_bg_color(wifiKeyboard_, lv_color_hex(0x2b2b2b), LV_PART_ITEMS);
+    lv_obj_set_style_bg_color(wifiKeyboard_, lv_color_hex(panel), LV_PART_ITEMS);
     lv_obj_set_style_bg_color(
-      wifiKeyboard_, lv_color_hex(accent),
+      wifiKeyboard_, lv_color_hex(text),
       static_cast<lv_style_selector_t>(LV_PART_ITEMS) | LV_STATE_PRESSED);
 
     for (lv_obj_t* field : {wifiSSIDField_, wifiPasswordField_, wifiCountryField_}) {
@@ -424,21 +422,21 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
     lv_keyboard_set_textarea(wifiKeyboard_, wifiSSIDField_);
   } else {
     label(content, "Control I/O", LV_ALIGN_TOP_LEFT, 28, 22,
-          &ardor_font_open_sans_semibold_28);
+          &ardor_font_saira_cond_semibold_28);
     label(content, "MIDI over 3.5 mm TRS Type A and expression-pedal calibration.",
-          LV_ALIGN_TOP_LEFT, 28, 60, &ardor_font_open_sans_regular_18, muted);
+          LV_ALIGN_TOP_LEFT, 28, 60, &ardor_font_saira_cond_medium_18, muted);
 
     const auto makeStepper = [&](const std::string& title, const std::string& value,
                                  int x, int y, lv_event_cb_t callback) {
       lv_obj_t* card = lv_obj_create(content);
       lv_obj_set_size(card, 450, 112);
       lv_obj_set_pos(card, x, y);
-      styleSurface(card, 0x242424);
+      styleSurface(card, panel);
       lv_obj_set_style_pad_all(card, 0, 0);
       lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLLABLE);
       lv_obj_t* titleLabel = lv_label_create(card);
       lv_label_set_text(titleLabel, title.c_str());
-      setText(titleLabel, muted, &ardor_font_open_sans_regular_18);
+      setText(titleLabel, muted, &ardor_font_saira_cond_medium_18);
       lv_obj_set_pos(titleLabel, 18, 10);
       lv_obj_set_size(titleLabel, 414, 28);
       lv_label_set_long_mode(titleLabel, LV_LABEL_LONG_CLIP);
@@ -449,7 +447,7 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
       lv_obj_add_event_cb(minus, callback, LV_EVENT_CLICKED, remember(state, 0));
       lv_obj_t* valueLabel = lv_label_create(card);
       lv_label_set_text(valueLabel, value.c_str());
-      setText(valueLabel, text, &ardor_font_open_sans_semibold_22);
+      setText(valueLabel, text, &ardor_font_saira_cond_semibold_22);
       lv_obj_set_pos(valueLabel, 82, 62);
       lv_obj_set_size(valueLabel, 286, 30);
       lv_obj_set_style_text_align(valueLabel, LV_TEXT_ALIGN_CENTER, 0);
@@ -469,39 +467,39 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
     lv_obj_t* expression = lv_obj_create(content);
     lv_obj_set_size(expression, 916, 254);
     lv_obj_set_pos(expression, 28, 234);
-    styleSurface(expression, 0x242424);
+    styleSurface(expression, panel);
     lv_obj_set_style_pad_all(expression, 0, 0);
     lv_obj_remove_flag(expression, LV_OBJ_FLAG_SCROLLABLE);
     label(expression, "Expression pedal", LV_ALIGN_TOP_LEFT, 20, 16,
-          &ardor_font_open_sans_semibold_22);
+          &ardor_font_saira_cond_semibold_22);
     const std::string liveRaw = state.controlInputs.expressionRawKnown
       ? "LIVE ADC  " + std::to_string(state.controlInputs.expressionRaw)
       : "LIVE ADC  --";
     label(expression, liveRaw, LV_ALIGN_TOP_RIGHT, -20, 18,
-          &ardor_font_open_sans_regular_18,
-          state.controlInputs.expressionConnected ? accent : muted);
+          &ardor_font_saira_cond_medium_18,
+          state.controlInputs.expressionConnected ? palette().family[3] : muted);
     label(expression, "Move to heel, capture; then move to toe and capture.",
-          LV_ALIGN_TOP_LEFT, 20, 54, &ardor_font_open_sans_regular_18, muted);
+          LV_ALIGN_TOP_LEFT, 20, 54, &ardor_font_saira_cond_medium_18, muted);
 
     const auto endpoint = [&](const char* name, int raw, bool heel, int x) {
       lv_obj_t* capture = button(expression,
         std::string("Capture ") + name + ":  " + std::to_string(raw));
       lv_obj_set_size(capture, 420, 72);
       lv_obj_set_pos(capture, x, 104);
-      styleSurface(capture, 0x343434);
+      styleSurface(capture, panel);
       lv_obj_add_event_cb(capture, onExpressionEndpointCaptured, LV_EVENT_CLICKED,
                           remember(state, heel ? 0 : 1));
     };
     endpoint("heel", state.settings.expressionMinimumRaw, true, 20);
     endpoint("toe", state.settings.expressionMaximumRaw, false, 456);
     label(expression, "Calibration is stored globally; parameter assignment is stored per preset.",
-          LV_ALIGN_BOTTOM_LEFT, 20, -18, &ardor_font_open_sans_regular_18, muted);
+          LV_ALIGN_BOTTOM_LEFT, 20, -18, &ardor_font_saira_cond_medium_18, muted);
   }
 
   if (!settingsMessage_.empty()) {
     lv_obj_t* message = label(content, settingsMessage_, LV_ALIGN_BOTTOM_RIGHT, -28, -28,
-                              &ardor_font_open_sans_regular_18,
-                              settingsMessageIsError_ ? danger : accent);
+                              &ardor_font_saira_cond_medium_18,
+                              settingsMessageIsError_ ? danger : text);
     lv_obj_set_width(message, settingsSection_ == 0 ? 944 : 590);
     lv_obj_set_style_text_align(message, LV_TEXT_ALIGN_RIGHT, 0);
     lv_label_set_long_mode(message, LV_LABEL_LONG_CLIP);

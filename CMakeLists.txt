@@ -228,6 +228,14 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
     src/ui/LvglUiTuner.cpp
     src/ui/fonts/OpenSansRegular.c
     src/ui/fonts/OpenSansSemibold.c
+    src/ui/fonts/SairaCondSemibold11.c
+    src/ui/fonts/SairaCondMedium18.c
+    src/ui/fonts/SairaCondSemibold22.c
+    src/ui/fonts/SairaCondSemibold28.c
+    src/ui/fonts/SairaCondSemibold38.c
+    src/ui/fonts/SairaLight12.c
+    src/ui/fonts/SairaLight44.c
+    src/ui/fonts/SairaCondSemiboldTuner110.c
   )
   target_link_libraries(ardor_ui PUBLIC lvgl)
 
@@ -239,7 +247,9 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
 
   if(ARDOR_UI_BACKEND STREQUAL "sdl")
     add_executable(pedal-ui-sim apps/pedal-ui-sim/main.cpp)
-    target_link_libraries(pedal-ui-sim PRIVATE ardor_ui)
+    # ardor_dynamics is otherwise DSP-only; the sim links it solely to preview
+    # the compressor's static gain law with no real engine/audio behind it.
+    target_link_libraries(pedal-ui-sim PRIVATE ardor_ui ardor_dynamics)
   endif()
 endif()
 

@@ -12,7 +12,6 @@ struct UiTelemetryPresentation {
   std::uint32_t color = 0;
 };
 
-UiTelemetryPresentation makeTelemetryPresentation(const UiState& state,
-                                                  std::uint32_t accentColor);
+UiTelemetryPresentation makeTelemetryPresentation(const UiState& state);
 
 } // namespace ardor

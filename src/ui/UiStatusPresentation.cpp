@@ -6,14 +6,16 @@
 namespace ardor {
 namespace {
 
+// Fixed, palette-independent: the clip/overload diagnostic is a safety
+// signal documented in README.md as "red CLIP / amber LIMIT / green LEVEL
+// OK" and must read the same regardless of the active Panel palette.
 constexpr std::uint32_t kMuted = 0xa6a6a6;
 constexpr std::uint32_t kWarning = 0xffb347;
 constexpr std::uint32_t kDanger = 0xf97373;
 
 } // namespace
 
-UiTelemetryPresentation makeTelemetryPresentation(const UiState& state,
-                                                  std::uint32_t accentColor)
+UiTelemetryPresentation makeTelemetryPresentation(const UiState& state)
 {
   char text[96]{};
   if (!state.clipDebug.enabled) {
@@ -35,7 +37,7 @@ UiTelemetryPresentation makeTelemetryPresentation(const UiState& state,
     std::snprintf(text, sizeof(text), "LEVEL OK  %+.1fdB", state.clipDebug.peakDb);
   }
 
-  std::uint32_t color = accentColor;
+  std::uint32_t color = kMuted;
   if (state.effectsBypassed || (state.clipDebug.enabled && state.clipDebug.overloaded)) {
     color = kDanger;
   } else if (state.clipDebug.enabled && state.clipDebug.limiterFrames > 0) {

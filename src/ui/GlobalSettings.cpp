@@ -166,8 +166,11 @@ DeviceSettings GlobalSettingsStore::load() const
     if (input) {
       try {
         const auto json = nlohmann::json::parse(input);
-        const auto color = json.value("accentColor", kDefaultAccentColor);
-        if (color <= 0xffffffu) settings.accentColor = color;
+        const auto palette = json.value("paletteId", static_cast<int>(PaletteId::Slate));
+        if (palette >= static_cast<int>(PaletteId::Slate)
+            && palette <= static_cast<int>(PaletteId::Nord)) {
+          settings.paletteId = static_cast<PaletteId>(palette);
+        }
         settings.midiChannel = std::clamp(json.value("midiChannel", -1), -1, 15);
         settings.midiTunerCc = std::clamp(json.value("midiTunerCc", 20), 0, 127);
         settings.expressionMinimumRaw = json.value("expressionMinimumRaw", 0);
@@ -207,14 +210,14 @@ DeviceSettings GlobalSettingsStore::load() const
   return settings;
 }
 
-bool GlobalSettingsStore::saveAccentColor(std::uint32_t color, std::string& error) const
+bool GlobalSettingsStore::savePalette(PaletteId palette, std::string& error) const
 {
-  if (color > 0xffffffu) {
-    error = "accent color is out of range";
+  if (palette < PaletteId::Slate || palette > PaletteId::Nord) {
+    error = "palette is out of range";
     return false;
   }
   auto json = loadSettingsDocument(dataRoot_);
-  json["accentColor"] = color;
+  json["paletteId"] = static_cast<int>(palette);
   return saveSettingsDocument(dataRoot_, json, error);
 }
 

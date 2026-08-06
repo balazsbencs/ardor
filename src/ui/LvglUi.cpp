@@ -3,7 +3,6 @@
 #include "ui/LvglUiNavigation.h"
 #include "ui/LvglUiStatus.h"
 #include "ui/LvglUiStyle.h"
-#include "ui/fonts/OpenSansSemibold.h"
 
 #include <array>
 #include <chrono>
@@ -92,8 +91,7 @@ UiEventContext* LvglUi::remember(UiState& state, std::size_t index, std::string 
 
 void LvglUi::build(lv_obj_t* root, UiState& state)
 {
-  accent = state.settings.accentColor <= 0xffffffu
-    ? state.settings.accentColor : kDefaultAccentColor;
+  lvgl_ui::setPalette(state.settings.paletteId);
   viewsInitialized_ = false;
   pendingChanges_ = UiChange::None;
   focusedControl_ = nullptr;
@@ -162,7 +160,7 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   lv_obj_t* prompt = lv_label_create(navigationOverlay_);
   lv_label_set_text(prompt, "Unsaved changes");
   lv_obj_set_style_text_color(prompt, lv_color_hex(text), 0);
-  lv_obj_set_style_text_font(prompt, &ardor_font_open_sans_semibold_22, 0);
+  lv_obj_set_style_text_font(prompt, &ardor_font_saira_cond_semibold_22, 0);
   lv_obj_align(prompt, LV_ALIGN_CENTER, 0, -92);
   lv_obj_t* guidance = lv_label_create(navigationOverlay_);
   lv_label_set_text(guidance, "Save changes before switching presets?");
@@ -173,7 +171,7 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
     lv_obj_t* choice = button(navigationOverlay_, choices[i]);
     lv_obj_set_size(choice, 150, 56);
     lv_obj_align(choice, LV_ALIGN_CENTER, static_cast<int>(i) * 166 - 166, 18);
-    if (i == 0) styleSurface(choice, 0x25442a);
+    if (i == 0) styleSurface(choice, panel);
     lv_obj_add_event_cb(choice, onNavigationDecision, LV_EVENT_CLICKED, remember(state, i));
   }
   lv_obj_add_flag(navigationOverlay_, LV_OBJ_FLAG_HIDDEN);
@@ -194,7 +192,7 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   lv_obj_t* learnTitle = lv_label_create(learnCard);
   lv_label_set_text(learnTitle, "MIDI Learn");
   lv_obj_set_style_text_color(learnTitle, lv_color_hex(text), 0);
-  lv_obj_set_style_text_font(learnTitle, &ardor_font_open_sans_semibold_22, 0);
+  lv_obj_set_style_text_font(learnTitle, &ardor_font_saira_cond_semibold_22, 0);
   lv_obj_align(learnTitle, LV_ALIGN_TOP_LEFT, 28, 22);
   midiLearnGuidanceLabel_ = lv_label_create(learnCard);
   lv_obj_set_width(midiLearnGuidanceLabel_, 690);
@@ -202,8 +200,8 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   lv_obj_set_style_text_align(midiLearnGuidanceLabel_, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(midiLearnGuidanceLabel_, LV_ALIGN_TOP_MID, 0, 72);
   midiLearnCaptureLabel_ = lv_label_create(learnCard);
-  lv_obj_set_style_text_color(midiLearnCaptureLabel_, lv_color_hex(accent), 0);
-  lv_obj_set_style_text_font(midiLearnCaptureLabel_, &ardor_font_open_sans_semibold_22, 0);
+  lv_obj_set_style_text_color(midiLearnCaptureLabel_, lv_color_hex(lamp), 0);
+  lv_obj_set_style_text_font(midiLearnCaptureLabel_, &ardor_font_saira_cond_semibold_22, 0);
   lv_obj_align(midiLearnCaptureLabel_, LV_ALIGN_TOP_MID, 0, 116);
 
   midiLearnAdvancedGroup_ = lv_obj_create(learnCard);
@@ -223,8 +221,8 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
     lv_obj_set_size(slider, 360, 28);
     lv_obj_align(slider, LV_ALIGN_TOP_LEFT, 240, 10 + static_cast<int>(endpoint) * 72);
     lv_slider_set_range(slider, 0, 1000);
-    lv_obj_set_style_bg_color(slider, lv_color_hex(0x3a3a3a), LV_PART_MAIN);
-    lv_obj_set_style_bg_color(slider, lv_color_hex(accent), LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(slider, lv_color_hex(panelAlt), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(slider, lv_color_hex(lamp), LV_PART_INDICATOR);
     lv_obj_set_style_bg_color(slider, lv_color_hex(text), LV_PART_KNOB);
     lv_obj_add_event_cb(slider, onMidiLearnSlider, LV_EVENT_VALUE_CHANGED,
                         remember(state, endpoint));
@@ -245,7 +243,7 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   midiLearnSaveButton_ = button(learnCard, "Save");
   lv_obj_set_size(midiLearnSaveButton_, 150, 56);
   lv_obj_align(midiLearnSaveButton_, LV_ALIGN_BOTTOM_MID, 0, -22);
-  styleSurface(midiLearnSaveButton_, 0x25442a);
+  styleSurface(midiLearnSaveButton_, panel);
   lv_obj_add_event_cb(midiLearnSaveButton_, onMidiLearnSave,
                       LV_EVENT_CLICKED, remember(state));
   lv_obj_t* learnCancel = button(learnCard, "Cancel");
@@ -263,6 +261,7 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   rebuildDrawerView(state);
   contextRegion_ = UiContextRegion::Status;
   renderStatusBar(this, statusLayer_, state, &telemetryLabel_, &masterVolumeLabel_,
+                  &masterVolumeScaleFill_,
                   &expressionStatusLabel_, &midiStatusLabel_, &settingsButton_,
                   &statusMessageLabel_, &undoButton_);
   contextRegion_ = UiContextRegion::None;
@@ -304,8 +303,15 @@ void LvglUi::syncModeVisibility(const UiState& state)
   const bool showDrawer = state.mode == UiMode::Edit && state.blockDrawerOpen;
   if (showDrawer) lv_obj_remove_flag(drawerLayer_, LV_OBJ_FLAG_HIDDEN);
   else lv_obj_add_flag(drawerLayer_, LV_OBJ_FLAG_HIDDEN);
-  if (state.mode == UiMode::Tuner) lv_obj_add_flag(statusLayer_, LV_OBJ_FLAG_HIDDEN);
-  else lv_obj_remove_flag(statusLayer_, LV_OBJ_FLAG_HIDDEN);
+  // Preset and Edit now carry their own top+bottom rails (per
+  // docs/lvgl-ui-redesign-spec.md §4f); the shared status bar stays for the
+  // screens not yet migrated to their own rails.
+  if (state.mode == UiMode::Tuner || state.mode == UiMode::Preset
+      || state.mode == UiMode::Edit) {
+    lv_obj_add_flag(statusLayer_, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_obj_remove_flag(statusLayer_, LV_OBJ_FLAG_HIDDEN);
+  }
 }
 
 
@@ -395,6 +401,12 @@ void LvglUi::refresh(lv_obj_t* root, UiState& state)
     build(root, state);
     return;
   }
+
+  // Sampled telemetry, not a discrete UI event -- it carries no revision of
+  // its own, so it must be synced unconditionally rather than behind the
+  // `changes == UiChange::None` short-circuit below (which exists precisely
+  // to skip ticks that changed nothing).
+  syncCompressorGainMeter(state);
 
   UiChange changes = pendingChanges_;
   const auto add = [&changes](UiChange change) { changes = changes | change; };

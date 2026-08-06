@@ -1,5 +1,6 @@
 #define SDL_MAIN_HANDLED
 
+#include "dynamics/CompressorProcessor.h"
 #include "preset/PresetStore.h"
 #include "ui/LvglUi.h"
 #include "ui/UiModel.h"
@@ -99,8 +100,8 @@ int main(int argc, char** argv)
     }
     if (const auto target = ardor::confirmNavigation(state, decision)) applyTarget(*target);
   };
-  actions.saveAccentColor = [&](std::uint32_t color, std::string& error) {
-    return globalSettings.saveAccentColor(color, error);
+  actions.savePalette = [&](ardor::PaletteId palette, std::string& error) {
+    return globalSettings.savePalette(palette, error);
   };
   actions.saveWifiSettings = [&](const std::string& ssid, const std::string& password,
                                  const std::string& country, std::string& error) {
@@ -111,6 +112,24 @@ int main(int argc, char** argv)
 
   while (true) {
     lv_timer_handler();
+    // This simulator has no real engine and no live audio behind it. To
+    // still let the gain-reduction meter demo something while turning the
+    // Threshold slider, approximate it against a fixed, plausible input
+    // level using the same static gain law the real compressor runs --
+    // real hardware instead reports the actual live reduction (see
+    // apps/pedal-poc/main.cpp's nextGainReductionPoll).
+    if (state.paramDrawerOpen && state.paramTarget == ardor::UiParamTarget::Block) {
+      if (const auto* selected = ardor::selectedUiBlock(state)) {
+        if (selected->type == "dynamics" && selected->params.value("mode", std::string{}) == "compressor") {
+          constexpr float kDemoInputLevelDb = -14.0f;
+          const float thresholdDb = selected->params.value("threshold_db", -24.0f);
+          const float ratio = selected->params.value("ratio", 4.0f);
+          const float kneeDb = selected->params.value("knee_db", 6.0f);
+          ardor::updateCompressorGainReduction(
+            state, ardor::compressorStaticGainDb(kDemoInputLevelDb, thresholdDb, ratio, kneeDb));
+        }
+      }
+    }
     ui.refresh(lv_screen_active(), state);
     if (ardor::pendingStructuralPreview(state)) {
       ardor::completeStructuralPreview(state);

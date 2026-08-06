@@ -22,7 +22,7 @@ int main()
   ardor::GlobalSettingsStore store(root);
   std::string error;
 
-  if (!require(store.saveAccentColor(0x67a6ff, error), error.c_str())) return 1;
+  if (!require(store.savePalette(ardor::PaletteId::Ink, error), error.c_str())) return 1;
   ardor::DeviceSettings controls;
   controls.midiChannel = 4;
   controls.midiTunerCc = 64;
@@ -34,7 +34,7 @@ int main()
   if (!require(store.saveWifi("Stage Network", "pedal-secret", "hu", error), error.c_str())) return 1;
 
   const auto settings = store.load();
-  if (!require(settings.accentColor == 0x67a6ff, "accent color should persist")) return 1;
+  if (!require(settings.paletteId == ardor::PaletteId::Ink, "palette should persist")) return 1;
   if (!require(settings.wifiConfigured && settings.wifiSSID == "Stage Network",
                "Wi-Fi SSID should persist")) return 1;
   if (!require(settings.wifiCountry == "HU", "country should be normalized")) return 1;
@@ -43,7 +43,7 @@ int main()
   if (!require(settings.expressionMinimumRaw == 123
                 && settings.expressionMaximumRaw == 24567,
                "expression calibration should persist")) return 1;
-  if (!require(settings.accentColor == 0x67a6ff,
+  if (!require(settings.paletteId == ardor::PaletteId::Ink,
                "saving control inputs must preserve appearance settings")) return 1;
 
   std::ifstream wifi(root / "wifi" / "wpa_supplicant.conf");

@@ -3,13 +3,16 @@
 #include "ui/LvglUiParameterView.h"
 #include "ui/LvglUiParameterWidgets.h"
 #include "ui/LvglUiStyle.h"
-#include "ui/fonts/OpenSansRegular.h"
-#include "ui/fonts/OpenSansSemibold.h"
+#include "ui/fonts/SairaCondSemibold28.h"
+#include "ui/fonts/SairaLight44.h"
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cmath>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace ardor {
 namespace {
@@ -30,21 +33,44 @@ constexpr int kBypassMidiX = kBypassControlX - 84;
 constexpr int kDeleteBlockWidth = 156;
 constexpr int kDeleteBlockX = kBypassMidiX - 24 - kDeleteBlockWidth;
 constexpr int kParameterTitleX = 270;
-constexpr int kParameterTitleWidth = kDeleteBlockX - kParameterTitleX - 24;
+constexpr int kParameterTitleWidthFull = kDeleteBlockX - kParameterTitleX - 24;
+// Gain-reduction meter: a compressor-only pill sitting between the title and
+// Delete Block. Every other block type keeps the full-width title above.
+constexpr int kGainMeterWidth = 120;
+constexpr int kGainMeterHeight = kPanelActionHeight;
+constexpr int kGainMeterX = kDeleteBlockX - 24 - kGainMeterWidth;
+constexpr int kGainMeterBarWidth = 8;
+constexpr int kGainMeterBarHeight = 30;
+constexpr int kGainMeterBarX = 14;
+constexpr int kGainMeterBarY = (kGainMeterHeight - kGainMeterBarHeight) / 2;
+constexpr int kGainMeterLabelX = kGainMeterBarX + kGainMeterBarWidth + 10;
+constexpr float kGainMeterFullScaleDb = 24.0f;
+constexpr int kParameterTitleWidthWithGainMeter = kGainMeterX - kParameterTitleX - 24;
 constexpr int kParameterSliderColumns = 3;
 constexpr int kParameterSliderWidth = 385;
-constexpr int kParameterSliderHeight = 76;
+constexpr int kParameterSliderHeight = 132;
 constexpr int kParameterSliderColumnGap = 14;
-constexpr int kParameterSliderRowGap = 14;
+constexpr int kParameterSliderRowGap = 16;
 constexpr int kParameterSliderGridX = 28;
-constexpr int kParameterSliderGridY = 82;
-constexpr int kParameterSliderRadius = 5;
+constexpr int kParameterSliderGridY = 78;
+constexpr int kParameterSliderRadius = 0;
 constexpr int kParameterSliderTextInset = 20;
-constexpr int kParameterSliderLabelWidth = 170;
-constexpr int kParameterSliderValueWidth = 165;
-constexpr int kParameterPanelHeight = 348;
+// Engraved travel scale: fixed geometry that never moves once built. Only
+// the fill width and handle position change with the value.
+constexpr int kTravelHeight = 34;
+constexpr int kTravelMajorTickHeight = 15;
+constexpr int kTravelMinorTickHeight = 8;
+constexpr int kTravelFillHeight = 3;
+constexpr int kTravelHandleWidth = 4;
+constexpr int kTravelHandleHeight = 22;
+constexpr int kTravelWidth = kParameterSliderWidth - 2 * kParameterSliderTextInset;
+constexpr int kTravelTop = kParameterSliderHeight - 8 - kTravelHeight;
+constexpr int kTravelBaselineY = kTravelTop + kTravelHeight;
+constexpr int kDiscreteOptionsHeight = 34;
+constexpr int kParameterPanelHeight = 452;
 constexpr int kMappingToolbarX = kParameterSliderGridX;
-constexpr int kMappingToolbarY = 264;
+constexpr int kMappingToolbarY = kParameterSliderGridY
+  + 2 * kParameterSliderHeight + kParameterSliderRowGap + 14;
 constexpr int kMappingToolbarWidth = 1183;
 constexpr int kMappingToolbarHeight = 60;
 constexpr int kMappingButtonWidth = 148;
@@ -54,12 +80,44 @@ constexpr int kMappingExpButtonX = kMappingMidiButtonX - 14 - kMappingButtonWidt
 
 struct ParameterSliderVisual {
   std::size_t controlIndex = 0;
+  ParameterControlKind kind = ParameterControlKind::Continuous;
+  lv_obj_t* keyLabel = nullptr;
+  lv_obj_t* valueLabel = nullptr;
+  lv_obj_t* unitLabel = nullptr;
+  // Continuous: engraved travel scale.
   lv_obj_t* fill = nullptr;
-  lv_obj_t* inactiveLabel = nullptr;
-  lv_obj_t* inactiveValue = nullptr;
-  lv_obj_t* activeLabel = nullptr;
-  lv_obj_t* activeValue = nullptr;
+  lv_obj_t* handle = nullptr;
+  // Discrete: segmented option row.
+  std::vector<lv_obj_t*> options;
 };
+
+// Splits a formatted value like "380 ms" or "34%" into a big numeral and a
+// small unit suffix so the two can carry different type sizes, matching the
+// mockup's Saira-Light-numeral-plus-muted-unit treatment. Non-numeric text
+// (choice labels such as "Dual") comes back with an empty unit.
+std::pair<std::string, std::string> splitFormattedValue(const std::string& formatted)
+{
+  std::size_t i = 0;
+  const std::size_t n = formatted.size();
+  while (i < n && (std::isdigit(static_cast<unsigned char>(formatted[i]))
+                    || formatted[i] == '-' || formatted[i] == '+' || formatted[i] == '.')) {
+    ++i;
+  }
+  if (i == 0 || i == n) {
+    return {formatted, ""};
+  }
+  std::size_t unitStart = i;
+  while (unitStart < n && formatted[unitStart] == ' ') ++unitStart;
+  return {formatted.substr(0, i), formatted.substr(unitStart)};
+}
+
+std::string uppercase(const std::string& value)
+{
+  std::string result = value;
+  std::transform(result.begin(), result.end(), result.begin(),
+                 [](unsigned char c) { return std::toupper(c); });
+  return result;
+}
 
 struct ParameterMappingVisual {
   lv_obj_t* parameterLabel = nullptr;
@@ -171,21 +229,48 @@ void refreshParameterSliderVisual(lv_obj_t* slider, const ParameterControl& cont
   if (!visual) {
     return;
   }
-  const float range = control.maximum - control.minimum;
-  const float ratio = range == 0.0f ? 0.0f
-    : std::clamp((control.value - control.minimum) / range, 0.0f, 1.0f);
-  if (visual->fill) {
+  if (visual->keyLabel) {
+    lv_label_set_text(visual->keyLabel, uppercase(control.label).c_str());
+  }
+  const auto [valueText, unitText] = splitFormattedValue(control.formatted);
+  if (visual->valueLabel) {
+    lv_label_set_text(visual->valueLabel, valueText.c_str());
+  }
+  if (visual->unitLabel) {
+    lv_label_set_text(visual->unitLabel, unitText.c_str());
+    lv_obj_align_to(visual->unitLabel, visual->valueLabel, LV_ALIGN_OUT_RIGHT_BOTTOM, 6, -2);
+  }
+
+  if (visual->fill && visual->handle) {
+    const float range = control.maximum - control.minimum;
+    const float ratio = range == 0.0f ? 0.0f
+      : std::clamp((control.value - control.minimum) / range, 0.0f, 1.0f);
     lv_obj_set_width(visual->fill,
-                     static_cast<int32_t>(std::lround(ratio * kParameterSliderWidth)));
+                     static_cast<int32_t>(std::lround(ratio * kTravelWidth)));
+    lv_obj_set_x(visual->handle, kParameterSliderTextInset + static_cast<int32_t>(std::lround(
+      ratio * static_cast<float>(kTravelWidth))) - kTravelHandleWidth / 2);
+    // Design law 3: the lamp colour is reserved for the running preset and
+    // the selected parameter. An idle travel scale reads in the same ink as
+    // the surrounding nomenclature.
+    const int accent = focused ? lamp : text;
+    lv_obj_set_style_bg_color(visual->fill, lv_color_hex(accent), 0);
+    lv_obj_set_style_bg_color(visual->handle, lv_color_hex(focused ? lamp : text), 0);
   }
-  for (lv_obj_t* item : {visual->inactiveLabel, visual->activeLabel}) {
-    if (item) lv_label_set_text(item, control.label.c_str());
+
+  const auto selectedIndex = static_cast<int>(std::lround(control.value));
+  for (std::size_t i = 0; i < visual->options.size(); ++i) {
+    lv_obj_t* option = visual->options[i];
+    if (!option) continue;
+    const bool on = static_cast<int>(i) == selectedIndex;
+    styleSurface(option, on ? text : bg);
+    lv_obj_set_style_bg_opa(option, on ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(option, i == 0 ? 0 : 1, 0);
+    lv_obj_set_style_border_color(option, lv_color_hex(rule), 0);
+    lv_obj_set_style_text_color(lv_obj_get_child(option, 0), lv_color_hex(on ? bg : muted), 0);
   }
-  for (lv_obj_t* item : {visual->inactiveValue, visual->activeValue}) {
-    if (item) lv_label_set_text(item, control.formatted.c_str());
-  }
-  lv_obj_set_style_outline_width(slider, focused ? 2 : 0, 0);
-  lv_obj_set_style_outline_color(slider, lv_color_hex(accent), 0);
+
+  lv_obj_set_style_outline_width(slider, focused ? 1 : 0, 0);
+  lv_obj_set_style_outline_color(slider, lv_color_hex(lamp), 0);
   lv_obj_set_style_outline_pad(slider, 2, 0);
 }
 
@@ -196,12 +281,12 @@ void styleMappingButton(lv_obj_t* control, bool supported, bool assigned)
   } else {
     lv_obj_add_state(control, LV_STATE_DISABLED);
   }
-  styleSurface(control, assigned ? 0x25442a : 0x242424);
+  styleSurface(control, assigned ? panel : panelAlt);
   lv_obj_set_style_border_width(control, assigned ? 2 : 1, 0);
   lv_obj_set_style_border_color(control,
-                                lv_color_hex(assigned ? accent : 0x555555), 0);
+                                lv_color_hex(assigned ? lamp : disabled), 0);
   lv_obj_set_style_text_color(lv_obj_get_child(control, 0),
-                              lv_color_hex(assigned ? accent : (supported ? text : muted)), 0);
+                              lv_color_hex(assigned ? lamp : (supported ? text : muted)), 0);
 }
 
 void refreshParameterMappingVisual(lv_obj_t* toolbar, const ParameterControl& control,
@@ -251,6 +336,64 @@ void onMidiLearnClicked(lv_event_t* event)
   beginMidiLearn(*context->state, controls[context->index]);
   context->ui->invalidate(UiChange::Parameters | UiChange::Status);
   redraw(context);
+}
+
+void refreshGainMeterVisual(lv_obj_t* fill, lv_obj_t* valueLabel, float reductionDb)
+{
+  // Reduction is <= 0 (0 = no reduction); the bar fills downward from the
+  // 0 dB line at top as the cut deepens, like a hardware GR meter.
+  const float magnitude = std::clamp(-reductionDb, 0.0f, kGainMeterFullScaleDb);
+  const int fillHeight = static_cast<int>(
+    std::lround(magnitude / kGainMeterFullScaleDb * kGainMeterBarHeight));
+  if (fill) {
+    lv_obj_set_height(fill, fillHeight);
+  }
+  if (valueLabel) {
+    char buffer[24]{};
+    std::snprintf(buffer, sizeof(buffer), "%.1f dB", reductionDb);
+    lv_label_set_text(valueLabel, buffer);
+  }
+}
+
+void renderGainMeter(lv_obj_t* parent, float reductionDb, lv_obj_t** fillOut, lv_obj_t** labelOut)
+{
+  lv_obj_t* pill = lv_obj_create(parent);
+  lv_obj_set_size(pill, kGainMeterWidth, kGainMeterHeight);
+  lv_obj_set_pos(pill, kGainMeterX, kPanelActionTop);
+  lv_obj_remove_flag(pill, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(pill, LV_OBJ_FLAG_CLICKABLE);
+  styleSurface(pill, panel);
+  lv_obj_set_style_radius(pill, 0, 0);
+  lv_obj_set_style_pad_all(pill, 0, 0);
+
+  lv_obj_t* track = lv_obj_create(pill);
+  lv_obj_remove_style_all(track);
+  lv_obj_set_size(track, kGainMeterBarWidth, kGainMeterBarHeight);
+  lv_obj_set_pos(track, kGainMeterBarX, kGainMeterBarY);
+  lv_obj_set_style_bg_opa(track, LV_OPA_COVER, 0);
+  lv_obj_set_style_bg_color(track, lv_color_hex(rule), 0);
+  lv_obj_remove_flag(track, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(track, LV_OBJ_FLAG_CLICKABLE);
+
+  // Anchored to the track's top so growing height reads as "filling down
+  // from 0 dB", matching refreshGainMeterVisual's fill-height math.
+  lv_obj_t* fill = lv_obj_create(pill);
+  lv_obj_remove_style_all(fill);
+  lv_obj_set_size(fill, kGainMeterBarWidth, 0);
+  lv_obj_set_pos(fill, kGainMeterBarX, kGainMeterBarY);
+  lv_obj_set_style_bg_opa(fill, LV_OPA_COVER, 0);
+  lv_obj_set_style_bg_color(fill, lv_color_hex(lamp), 0);
+  lv_obj_remove_flag(fill, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(fill, LV_OBJ_FLAG_CLICKABLE);
+
+  lv_obj_t* valueLabel = label(pill, "0.0 dB", LV_ALIGN_LEFT_MID, kGainMeterLabelX, 0,
+                               &ardor_font_saira_cond_semibold_22, text);
+  lv_obj_set_width(valueLabel, kGainMeterWidth - kGainMeterLabelX - 10);
+  lv_label_set_long_mode(valueLabel, LV_LABEL_LONG_CLIP);
+
+  refreshGainMeterVisual(fill, valueLabel, reductionDb);
+  if (fillOut) *fillOut = fill;
+  if (labelOut) *labelOut = valueLabel;
 }
 
 void refreshBypassControlVisual(lv_obj_t* control, bool bypassed)
@@ -338,6 +481,24 @@ void onParameterControlReleased(lv_event_t* event)
   context->ui->endParameterInteraction();
 }
 
+void onDiscreteOptionSelected(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  const auto controls = parameterPage(*context->state, context->ui->parameterPage());
+  if (context->index >= controls.size()) {
+    return;
+  }
+  const auto& control = controls[context->index];
+  context->filter = control.key;
+  lv_obj_t* optsRow = lv_obj_get_parent(lv_event_get_target_obj(event));
+  context->ui->setFocusedWidgets(lv_obj_get_parent(optsRow));
+  context->ui->focusParameter(context->filter);
+  const int delta = static_cast<int>(context->parentIndex)
+    - static_cast<int>(std::lround(control.value));
+  context->ui->applyFocusedParameterDelta(*context->state, delta, false);
+  redraw(context);
+}
+
 void onBypassClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
@@ -363,6 +524,20 @@ void onBypassMidiLearnClicked(lv_event_t* event)
 }
 
 
+struct TravelTick {
+  int percent;
+  bool major;
+  const char* numeral;
+};
+// A generic 0-10 reference scale, identical for every control regardless of
+// its real unit or range. The live value is already spelled out precisely in
+// the big numeral above; this scale exists to show travel-at-a-glance, the
+// way a synth panel prints marks under a fader independent of what it does.
+constexpr std::array<TravelTick, 6> kTravelTicks = {{
+  {0, true, "0"}, {20, false, ""}, {40, true, "4"},
+  {60, false, ""}, {80, true, "8"}, {100, true, "10"},
+}};
+
 lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& control, int x, int y,
                                 bool focused, UiEventContext* context,
                                 lv_event_cb_t onPressed, lv_event_cb_t onPressing,
@@ -373,60 +548,128 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
   lv_obj_set_pos(slider, x, y);
   lv_obj_remove_flag(slider, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(slider, LV_OBJ_FLAG_GESTURE_BUBBLE);
-  lv_obj_add_flag(slider, LV_OBJ_FLAG_CLICKABLE);
-  styleSurface(slider, 0x343434);
+  lv_obj_set_style_bg_opa(slider, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_width(slider, 0, 0);
   lv_obj_set_style_radius(slider, kParameterSliderRadius, 0);
-  lv_obj_set_style_clip_corner(slider, true, 0);
   lv_obj_set_style_pad_all(slider, 0, 0);
+  lv_obj_set_style_shadow_width(slider, 0, 0);
 
   auto* visual = new ParameterSliderVisual{};
   visual->controlIndex = controlIndex;
+  visual->kind = control.kind;
   lv_obj_set_user_data(slider, visual);
   lv_obj_add_event_cb(slider, freeParameterSliderVisual, LV_EVENT_DELETE, visual);
-  lv_obj_add_event_cb(slider, onPressed, LV_EVENT_PRESSED, context);
-  lv_obj_add_event_cb(slider, onPressing, LV_EVENT_PRESSING, context);
-  lv_obj_add_event_cb(slider, onParameterControlReleased, LV_EVENT_RELEASED, context);
-  lv_obj_add_event_cb(slider, onParameterControlReleased, LV_EVENT_PRESS_LOST, context);
 
-  const auto addTextPair = [&](lv_obj_t* layer, int color,
-                               lv_obj_t** labelOut, lv_obj_t** valueOut) {
-    lv_obj_t* controlLabel = label(layer, control.label, LV_ALIGN_LEFT_MID,
-                                   kParameterSliderTextInset, 0,
-                                   &ardor_font_open_sans_semibold_22, color);
-    lv_obj_set_width(controlLabel, kParameterSliderLabelWidth);
-    lv_label_set_long_mode(controlLabel, LV_LABEL_LONG_CLIP);
-    lv_obj_t* valueLabel = label(layer, control.formatted, LV_ALIGN_RIGHT_MID,
-                                 -kParameterSliderTextInset, 0,
-                                 &ardor_font_open_sans_semibold_22, color);
-    lv_obj_set_width(valueLabel, kParameterSliderValueWidth);
-    lv_label_set_long_mode(valueLabel, LV_LABEL_LONG_CLIP);
-    lv_obj_set_style_text_align(valueLabel, LV_TEXT_ALIGN_RIGHT, 0);
-    *labelOut = controlLabel;
-    *valueOut = valueLabel;
-  };
+  visual->keyLabel = label(slider, uppercase(control.label), LV_ALIGN_TOP_LEFT,
+                           kParameterSliderTextInset, 10,
+                           &ardor_font_saira_cond_medium_18, muted);
+  lv_obj_set_style_text_letter_space(visual->keyLabel, 2, 0);
+  lv_obj_set_width(visual->keyLabel, kTravelWidth);
+  lv_label_set_long_mode(visual->keyLabel, LV_LABEL_LONG_CLIP);
 
-  addTextPair(slider, text, &visual->inactiveLabel, &visual->inactiveValue);
+  const bool continuous = control.kind == ParameterControlKind::Continuous;
+  visual->valueLabel = label(slider, "", LV_ALIGN_TOP_LEFT, kParameterSliderTextInset, 30,
+                             continuous ? &ardor_font_saira_light_44
+                                        : &ardor_font_saira_cond_semibold_28,
+                             text);
+  lv_obj_set_width(visual->valueLabel, LV_SIZE_CONTENT);
+  lv_obj_set_style_max_width(visual->valueLabel, kTravelWidth, 0);
+  lv_label_set_long_mode(visual->valueLabel, LV_LABEL_LONG_CLIP);
 
-  lv_obj_t* fill = lv_obj_create(slider);
-  lv_obj_set_size(fill, 0, kParameterSliderHeight);
-  lv_obj_set_pos(fill, 0, 0);
-  lv_obj_remove_flag(fill, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(fill, LV_OBJ_FLAG_CLICKABLE);
-  styleSurface(fill, accent);
-  lv_obj_set_style_radius(fill, kParameterSliderRadius, 0);
-  lv_obj_set_style_clip_corner(fill, true, 0);
-  lv_obj_set_style_pad_all(fill, 0, 0);
-  visual->fill = fill;
+  if (continuous) {
+    lv_obj_add_flag(slider, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(slider, onPressed, LV_EVENT_PRESSED, context);
+    lv_obj_add_event_cb(slider, onPressing, LV_EVENT_PRESSING, context);
+    lv_obj_add_event_cb(slider, onParameterControlReleased, LV_EVENT_RELEASED, context);
+    lv_obj_add_event_cb(slider, onParameterControlReleased, LV_EVENT_PRESS_LOST, context);
 
-  lv_obj_t* activeTextLayer = lv_obj_create(fill);
-  lv_obj_set_size(activeTextLayer, kParameterSliderWidth, kParameterSliderHeight);
-  lv_obj_set_pos(activeTextLayer, 0, 0);
-  lv_obj_remove_flag(activeTextLayer, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(activeTextLayer, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_set_style_bg_opa(activeTextLayer, LV_OPA_TRANSP, 0);
-  lv_obj_set_style_border_width(activeTextLayer, 0, 0);
-  lv_obj_set_style_pad_all(activeTextLayer, 0, 0);
-  addTextPair(activeTextLayer, 0x102014, &visual->activeLabel, &visual->activeValue);
+    visual->unitLabel = label(slider, "", LV_ALIGN_TOP_LEFT, 0, 0,
+                              &ardor_font_saira_cond_medium_18, muted);
+
+    lv_obj_t* baseline = lv_obj_create(slider);
+    lv_obj_remove_style_all(baseline);
+    lv_obj_set_size(baseline, kTravelWidth, 1);
+    lv_obj_set_pos(baseline, kParameterSliderTextInset, kTravelBaselineY);
+    lv_obj_set_style_bg_opa(baseline, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(baseline, lv_color_hex(rule), 0);
+    lv_obj_remove_flag(baseline, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(baseline, LV_OBJ_FLAG_CLICKABLE);
+
+    // A Panel travel scale is fixed geometry: its engraved ticks and numerals
+    // never move once built. Only the retained fill and handle below track
+    // the value, so a live drag never has to redraw the marks.
+    for (const auto& tick : kTravelTicks) {
+      const int tickX = kParameterSliderTextInset + tick.percent * kTravelWidth / 100;
+      const int height = tick.major ? kTravelMajorTickHeight : kTravelMinorTickHeight;
+      lv_obj_t* mark = lv_obj_create(slider);
+      lv_obj_remove_style_all(mark);
+      lv_obj_set_size(mark, 1, height);
+      lv_obj_set_pos(mark, tickX, kTravelBaselineY - height);
+      lv_obj_set_style_bg_opa(mark, LV_OPA_COVER, 0);
+      lv_obj_set_style_bg_color(mark, lv_color_hex(tick.major ? muted : rule), 0);
+      lv_obj_remove_flag(mark, LV_OBJ_FLAG_SCROLLABLE);
+      lv_obj_remove_flag(mark, LV_OBJ_FLAG_CLICKABLE);
+      if (tick.major && tick.numeral[0] != '\0') {
+        lv_obj_t* numeral = label(slider, tick.numeral, LV_ALIGN_TOP_LEFT,
+                                  tickX - 11, kTravelBaselineY - kTravelMajorTickHeight - 18,
+                                  &ardor_font_saira_cond_medium_18, muted);
+        lv_obj_set_width(numeral, 22);
+        lv_obj_set_style_text_align(numeral, LV_TEXT_ALIGN_CENTER, 0);
+      }
+    }
+
+    lv_obj_t* fill = lv_obj_create(slider);
+    lv_obj_remove_style_all(fill);
+    lv_obj_set_size(fill, 0, kTravelFillHeight);
+    lv_obj_set_pos(fill, kParameterSliderTextInset, kTravelBaselineY - kTravelFillHeight);
+    lv_obj_set_style_bg_opa(fill, LV_OPA_COVER, 0);
+    lv_obj_remove_flag(fill, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(fill, LV_OBJ_FLAG_CLICKABLE);
+    visual->fill = fill;
+
+    lv_obj_t* handle = lv_obj_create(slider);
+    lv_obj_remove_style_all(handle);
+    lv_obj_set_size(handle, kTravelHandleWidth, kTravelHandleHeight);
+    lv_obj_set_pos(handle, kParameterSliderTextInset, kTravelBaselineY - kTravelHandleHeight + 5);
+    lv_obj_set_style_bg_opa(handle, LV_OPA_COVER, 0);
+    lv_obj_remove_flag(handle, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(handle, LV_OBJ_FLAG_CLICKABLE);
+    visual->handle = handle;
+  } else {
+    const auto count = std::max<std::size_t>(1, control.choices.size());
+    const int optionWidth = kTravelWidth / static_cast<int>(count);
+    lv_obj_t* optsRow = lv_obj_create(slider);
+    lv_obj_remove_flag(optsRow, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(optsRow, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_size(optsRow, kTravelWidth, kDiscreteOptionsHeight);
+    lv_obj_set_pos(optsRow, kParameterSliderTextInset, kTravelTop);
+    lv_obj_set_style_bg_opa(optsRow, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(optsRow, 1, 0);
+    lv_obj_set_style_border_color(optsRow, lv_color_hex(rule), 0);
+    lv_obj_set_style_radius(optsRow, 0, 0);
+    lv_obj_set_style_pad_all(optsRow, 0, 0);
+    for (std::size_t i = 0; i < count; ++i) {
+      lv_obj_t* option = lv_obj_create(optsRow);
+      lv_obj_remove_flag(option, LV_OBJ_FLAG_SCROLLABLE);
+      lv_obj_add_flag(option, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_set_size(option, optionWidth, kDiscreteOptionsHeight);
+      lv_obj_set_pos(option, static_cast<int>(i) * optionWidth, 0);
+      lv_obj_set_style_radius(option, 0, 0);
+      lv_obj_set_style_pad_all(option, 0, 0);
+      lv_obj_set_style_border_side(option, i == 0 ? LV_BORDER_SIDE_NONE : LV_BORDER_SIDE_LEFT, 0);
+      lv_obj_t* optionLabel = lv_label_create(option);
+      lv_label_set_text(optionLabel,
+                        i < control.choices.size() ? control.choices[i].c_str() : "");
+      setText(optionLabel, muted, &ardor_font_saira_cond_medium_18);
+      lv_label_set_long_mode(optionLabel, LV_LABEL_LONG_CLIP);
+      lv_obj_set_width(optionLabel, optionWidth - 6);
+      lv_obj_center(optionLabel);
+      auto* optionContext = context->ui->remember(*context->state, controlIndex);
+      optionContext->parentIndex = i;
+      lv_obj_add_event_cb(option, onDiscreteOptionSelected, LV_EVENT_CLICKED, optionContext);
+      visual->options.push_back(option);
+    }
+  }
 
   refreshParameterSliderVisual(slider, control, focused);
   return slider;
@@ -442,10 +685,10 @@ lv_obj_t* renderParameterMappingToolbar(lv_obj_t* parent, UiState& state,
   lv_obj_set_pos(toolbar, kMappingToolbarX, kMappingToolbarY);
   lv_obj_remove_flag(toolbar, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(toolbar, LV_OBJ_FLAG_GESTURE_BUBBLE);
-  styleSurface(toolbar, 0x2d2d2d);
+  styleSurface(toolbar, panelAlt);
   lv_obj_set_style_radius(toolbar, kParameterSliderRadius, 0);
   lv_obj_set_style_border_width(toolbar, 1, 0);
-  lv_obj_set_style_border_color(toolbar, lv_color_hex(0x4a4a4a), 0);
+  lv_obj_set_style_border_color(toolbar, lv_color_hex(rule), 0);
   lv_obj_set_style_pad_all(toolbar, 0, 0);
 
   auto* visual = new ParameterMappingVisual{};
@@ -453,12 +696,12 @@ lv_obj_t* renderParameterMappingToolbar(lv_obj_t* parent, UiState& state,
   lv_obj_add_event_cb(toolbar, freeParameterMappingVisual, LV_EVENT_DELETE, visual);
 
   visual->parameterLabel = label(toolbar, "", LV_ALIGN_LEFT_MID, 18, 0,
-                                 &ardor_font_open_sans_semibold_22, text);
+                                 &ardor_font_saira_cond_semibold_22, text);
   lv_obj_set_width(visual->parameterLabel, 600);
   lv_label_set_long_mode(visual->parameterLabel, LV_LABEL_LONG_CLIP);
 
   visual->valueLabel = label(toolbar, "", LV_ALIGN_LEFT_MID, 650, 0,
-                             &ardor_font_open_sans_semibold_22, text);
+                             &ardor_font_saira_cond_semibold_22, text);
   lv_obj_set_width(visual->valueLabel, 180);
   lv_label_set_long_mode(visual->valueLabel, LV_LABEL_LONG_CLIP);
   lv_obj_set_style_text_align(visual->valueLabel, LV_TEXT_ALIGN_RIGHT, 0);
@@ -489,7 +732,7 @@ lv_obj_t* renderPanelCloseButton(lv_obj_t* parent, UiEventContext* context)
   lv_obj_t* close = button(parent, "Close");
   lv_obj_set_size(close, kPanelCloseButtonWidth, kPanelCloseButtonHeight);
   lv_obj_set_pos(close, kPanelCloseButtonX, kPanelActionTop);
-  styleSurface(close, bg);
+  styleSurface(close, panel);
   // Close on touch-down: a finger can move slightly before release, which
   // would otherwise cancel LV_EVENT_CLICKED on these overlay panels.
   lv_obj_add_event_cb(close, onCloseParamDrawer, LV_EVENT_PRESSED, context);
@@ -508,8 +751,8 @@ void renderBypassControl(lv_obj_t* parent, UiState& state, UiEventContext* conte
   lv_obj_remove_flag(control, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(control, LV_OBJ_FLAG_GESTURE_BUBBLE);
   lv_obj_add_flag(control, LV_OBJ_FLAG_CLICKABLE);
-  styleSurface(control, 0x343434);
-  lv_obj_set_style_radius(control, kParameterSliderRadius, 0);
+  styleSurface(control, panel);
+  lv_obj_set_style_radius(control, 0, 0);
   lv_obj_set_style_clip_corner(control, true, 0);
   lv_obj_set_style_pad_all(control, 0, 0);
 
@@ -520,11 +763,11 @@ void renderBypassControl(lv_obj_t* parent, UiState& state, UiEventContext* conte
 
   const auto addTextPair = [&](lv_obj_t* layer, int color, lv_obj_t** valueOut) {
     lv_obj_t* title = label(layer, "Bypass", LV_ALIGN_LEFT_MID, 16, 0,
-                            &ardor_font_open_sans_semibold_22, color);
+                            &ardor_font_saira_cond_semibold_22, color);
     lv_obj_set_width(title, 90);
     lv_label_set_long_mode(title, LV_LABEL_LONG_CLIP);
     lv_obj_t* value = label(layer, block.enabled ? "Off" : "On", LV_ALIGN_RIGHT_MID, -16, 0,
-                            &ardor_font_open_sans_semibold_22, color);
+                            &ardor_font_saira_cond_semibold_22, color);
     lv_obj_set_width(value, 44);
     lv_label_set_long_mode(value, LV_LABEL_LONG_CLIP);
     lv_obj_set_style_text_align(value, LV_TEXT_ALIGN_RIGHT, 0);
@@ -538,8 +781,8 @@ void renderBypassControl(lv_obj_t* parent, UiState& state, UiEventContext* conte
   lv_obj_set_pos(fill, 0, 0);
   lv_obj_remove_flag(fill, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(fill, LV_OBJ_FLAG_CLICKABLE);
-  styleSurface(fill, accent);
-  lv_obj_set_style_radius(fill, kParameterSliderRadius, 0);
+  styleSurface(fill, lamp);
+  lv_obj_set_style_radius(fill, 0, 0);
   lv_obj_set_style_clip_corner(fill, true, 0);
   lv_obj_set_style_pad_all(fill, 0, 0);
   visual->fill = fill;
@@ -569,8 +812,8 @@ void renderBlockPanelActions(lv_obj_t* parent, UiState& state, UiEventContext* c
   lv_obj_t* remove = button(parent, "Delete Block");
   lv_obj_set_size(remove, kDeleteBlockWidth, kPanelActionHeight);
   lv_obj_set_pos(remove, kDeleteBlockX, kPanelActionTop);
-  styleSurface(remove, 0x4a2024);
-  lv_obj_set_style_text_color(lv_obj_get_child(remove, 0), lv_color_hex(0xf97373), 0);
+  styleSurface(remove, panelAlt);
+  lv_obj_set_style_text_color(lv_obj_get_child(remove, 0), lv_color_hex(danger), 0);
   lv_obj_add_event_cb(remove, onDeleteSelectedBlock, LV_EVENT_CLICKED, context);
 }
 
@@ -585,7 +828,7 @@ void renderPageNavigation(lv_obj_t* parent, UiState& state, UiEventContext* cont
     lv_obj_add_event_cb(previous, onPreviousParameterPage, LV_EVENT_CLICKED, context);
   }
   lv_obj_t* pageLabel = label(parent, "PAGE " + std::to_string(page + 1) + " / " + std::to_string(count),
-                              LV_ALIGN_TOP_LEFT, 88, 25, &ardor_font_open_sans_regular_18, muted);
+                              LV_ALIGN_TOP_LEFT, 88, 25, &ardor_font_saira_cond_medium_18, muted);
   lv_obj_set_width(pageLabel, 118);
   lv_label_set_long_mode(pageLabel, LV_LABEL_LONG_CLIP);
   if (count > 1) {
@@ -599,7 +842,8 @@ void renderPageNavigation(lv_obj_t* parent, UiState& state, UiEventContext* cont
 
 void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* context,
                           std::vector<lv_obj_t*>* controlsOut, lv_obj_t** bypassOut,
-                          lv_obj_t** titleOut, lv_obj_t** mappingToolbarOut)
+                          lv_obj_t** titleOut, lv_obj_t** mappingToolbarOut,
+                          lv_obj_t** gainMeterFillOut, lv_obj_t** gainMeterLabelOut)
 {
   lv_obj_t* panelObject = lv_obj_create(root);
   lv_obj_set_size(panelObject, kParameterPanelWidth, kParameterPanelHeight);
@@ -612,7 +856,7 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
   renderPanelCloseButton(panelObject, context);
 
   if (state.paramTarget == UiParamTarget::Globals) {
-    lv_obj_t* title = label(panelObject, "Global", LV_ALIGN_TOP_LEFT, 270, 22, &ardor_font_open_sans_semibold_22);
+    lv_obj_t* title = label(panelObject, "Global", LV_ALIGN_TOP_LEFT, 270, 22, &ardor_font_saira_cond_semibold_22);
     if (titleOut) *titleOut = title;
     lv_obj_set_width(title, 660);
     lv_label_set_long_mode(title, LV_LABEL_LONG_CLIP);
@@ -620,13 +864,18 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
     const auto* selected = selectedUiBlock(state);
     if (!selected) return;
     const auto& block = *selected;
+    const bool isCompressor = block.type == "dynamics"
+      && block.params.value("mode", std::string{}) == "compressor";
     lv_obj_t* title = label(panelObject, block.label + "  /  " + block.assetName,
                             LV_ALIGN_TOP_LEFT, kParameterTitleX, 22,
-                            &ardor_font_open_sans_semibold_22);
-    lv_obj_set_width(title, kParameterTitleWidth);
+                            &ardor_font_saira_cond_semibold_22);
+    lv_obj_set_width(title, isCompressor ? kParameterTitleWidthWithGainMeter : kParameterTitleWidthFull);
     lv_label_set_long_mode(title, LV_LABEL_LONG_CLIP);
     if (titleOut) *titleOut = title;
     renderBlockPanelActions(panelObject, state, context, bypassOut);
+    if (isCompressor) {
+      renderGainMeter(panelObject, state.compressorGainReductionDb, gainMeterFillOut, gainMeterLabelOut);
+    }
   }
 
   renderPageNavigation(panelObject, state, context);
@@ -713,14 +962,19 @@ void syncBypass(lv_obj_t* control, bool bypassed)
   refreshBypassControlVisual(control, bypassed);
 }
 
+void syncCompressorGainMeter(lv_obj_t* fill, lv_obj_t* valueLabel, float reductionDb)
+{
+  refreshGainMeterVisual(fill, valueLabel, reductionDb);
+}
 
 void buildPanel(lv_obj_t* root, UiState& state, UiEventContext* context,
                 std::vector<lv_obj_t*>* controlsOut,
                 lv_obj_t** bypassOut, lv_obj_t** titleOut,
-                lv_obj_t** mappingToolbarOut)
+                lv_obj_t** mappingToolbarOut,
+                lv_obj_t** gainMeterFillOut, lv_obj_t** gainMeterLabelOut)
 {
   renderParameterPanel(root, state, context, controlsOut, bypassOut, titleOut,
-                       mappingToolbarOut);
+                       mappingToolbarOut, gainMeterFillOut, gainMeterLabelOut);
 }
 
 } // namespace parameter_view

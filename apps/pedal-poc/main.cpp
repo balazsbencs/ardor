@@ -939,8 +939,8 @@ int main(int argc, char** argv)
           [&](bool enabled) {
             requestedTunerMode = enabled ? 1 : 0;
           },
-          [&](std::uint32_t color, std::string& error) {
-            return globalSettings.saveAccentColor(color, error);
+          [&](ardor::PaletteId palette, std::string& error) {
+            return globalSettings.savePalette(palette, error);
           },
           [&](const std::string& ssid, const std::string& password,
               const std::string& country, std::string& error) {
@@ -1065,6 +1065,10 @@ int main(int argc, char** argv)
 #endif
       auto nextRuntimeCommandPoll = std::chrono::steady_clock::now();
       auto nextTelemetry = nextRuntimeCommandPoll;
+      // Faster than nextTelemetry's 1 s tier: a gain-reduction meter that only
+      // refreshed once a second would look frozen while someone is actually
+      // watching it and dragging the threshold slider.
+      auto nextGainReductionPoll = nextRuntimeCommandPoll;
       const auto applyFootswitchAction = [&](const ardor::FootswitchAction& action) {
 #if defined(ARDOR_HAS_UI)
         if (args.enableUi && ui && !ardor::previewIsSynchronized(uiState)) {
@@ -1436,6 +1440,20 @@ int main(int argc, char** argv)
         }
 #endif
         const auto now = std::chrono::steady_clock::now();
+#if defined(ARDOR_HAS_UI)
+        if (args.enableUi && ui && now >= nextGainReductionPoll) {
+          nextGainReductionPoll = now + std::chrono::milliseconds(40);
+          if (uiState.paramDrawerOpen && uiState.paramTarget == ardor::UiParamTarget::Block) {
+            if (const auto* selected = ardor::selectedUiBlock(uiState)) {
+              if (selected->type == "dynamics"
+                  && selected->params.value("mode", std::string{}) == "compressor") {
+                ardor::updateCompressorGainReduction(
+                  uiState, liveEngine->compressorGainReductionDb(selected->id));
+              }
+            }
+          }
+        }
+#endif
         if (now >= nextRuntimeCommandPoll) {
           nextRuntimeCommandPoll = now + std::chrono::milliseconds(100);
           bool reloadAssets = false;
