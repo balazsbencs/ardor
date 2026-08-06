@@ -259,10 +259,31 @@ sounds like a Cry Baby.
 
 ### Hardware gate
 
-The 4.3 MB table is the CPU risk. Arithmetic cost is estimated at 2–4% of a
-core, but cache behaviour on a Pi 4 sharing CPU 2 with NAM cannot be predicted
-from a desktop bench. The feature is not complete until `audio-probe-pi` shows
-acceptable headroom at block size 64 with a NAM + wah preset active.
+The 4.3 MB table was identified as the main CPU risk, on the theory that cache
+behaviour on a Pi 4 sharing CPU 2 with NAM could not be predicted from a
+desktop bench.
+
+**Measured 2026-08-06 on the target** (Pi 4B Rev 1.5, governor `performance` at
+1.5 GHz, 52 °C, `chrt -f 70`, via `tests/wah_table_probe.cpp`):
+
+| Grid | Table size | Core fraction |
+| --- | --- | --- |
+| 128 × 128 × 33 (planned) | 4.3 MB | 6.68% |
+| 64 × 64 × 17 | 557 KB | 6.43% |
+| 32 × 32 × 17 | 139 KB | 6.40% |
+
+Repeat runs at the planned grid: 6.77%, 6.67%, 6.69%.
+
+**The cache concern was unfounded.** A 31× larger table costs 0.3 percentage
+points, so the access pattern stays in cache as hoped and the arithmetic
+dominates. The full-resolution grid is kept.
+
+Note that the deployed unit runs `--block-size 512`, not the block size 64 that
+`PRODUCT.md` lists as preferred — larger blocks give more headroom, so this
+measurement is if anything conservative.
+
+The final check remains: `audio-probe-pi` headroom with a real NAM + wah preset
+active, once the block exists.
 
 ## Build order
 

@@ -347,6 +347,11 @@ add_executable(pedal-nam-processor-smoke tests/nam_processor_smoke.cpp)
 target_link_libraries(pedal-nam-processor-smoke PRIVATE ardor_dsp)
 target_compile_definitions(pedal-nam-processor-smoke PRIVATE ARDOR_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
+# Benchmark, not a ctest: measures the wah table's cache behaviour on target
+# hardware. Kept because it is the cheapest way to re-check the grid-size
+# tradeoff if the table format ever changes.
+add_executable(pedal-wah-table-probe tests/wah_table_probe.cpp)
+
 # Benchmark, not a ctest: timings are not pass/fail on shared hardware.
 add_executable(pedal-dsp-bench tests/dsp_bench.cpp)
 target_link_libraries(pedal-dsp-bench PRIVATE ardor_dsp)
