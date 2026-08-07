@@ -1158,8 +1158,25 @@ int main()
   while (chainBlocks.size() < 6) {
     chainBlocks.push_back(chainBlocks.front());
   }
+  auto headerTelemetry = state.telemetry;
+  headerTelemetry.budgetMs = 1.33;
+  headerTelemetry.bufferFreePercent = 71.0;
+  ardor::updateRealtimeTelemetry(state, headerTelemetry);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* editBufferUsage = findLabel(lv_screen_active(), "Buffer: 29% used.");
+  lv_obj_t* editModuleCount = findLabel(lv_screen_active(), "6 MODULES");
+  lv_area_t editBufferArea{}, editModuleCountArea{};
+  if (editBufferUsage) lv_obj_get_coords(editBufferUsage, &editBufferArea);
+  if (editModuleCount) lv_obj_get_coords(editModuleCount, &editModuleCountArea);
+  if (require(editBufferUsage && editModuleCount
+                && editBufferArea.x2 < editModuleCountArea.x1,
+              "Edit top rail should show the one-second audio-buffer usage")) return 1;
+  headerTelemetry.bufferFreePercent = 58.0;
+  ardor::updateRealtimeTelemetry(state, headerTelemetry);
+  ui.refresh(lv_screen_active(), state);
+  if (require(findLabel(lv_screen_active(), "Buffer: 42% used."),
+              "Edit top rail buffer usage should update with realtime telemetry")) return 1;
   chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x212528), 1240, 492);
   if (require(chain && lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE)
                 && lv_obj_get_scroll_right(chain) > 0,
@@ -1204,11 +1221,14 @@ int main()
   // docs/lvgl-ui-redesign-spec.md §4f — replacing the old free-floating
   // header buttons and the shared status-bar footer for this screen.
   ardor::enterPresetMode(state);
+  headerTelemetry.bufferFreePercent = 71.0;
+  ardor::updateRealtimeTelemetry(state, headerTelemetry);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   lv_obj_t* wordmark = findLabel(lv_screen_active(), "ARDOR");
   lv_obj_t* bankNameLabel = findLabel(lv_screen_active(), state.bank.name.c_str());
   lv_obj_t* telemetryLegend = findLabel(lv_screen_active(), "48 KHZ \xC2\xB7 BLK 64");
+  lv_obj_t* bufferUsageLegend = findLabel(lv_screen_active(), "Buffer: 29% used.");
   lv_obj_t* midiLabel = findLabel(lv_screen_active(), "MIDI");
   lv_obj_t* editButtonLabel = findLabel(lv_screen_active(), "Edit");
   lv_obj_t* editButton = editButtonLabel ? lv_obj_get_parent(editButtonLabel) : nullptr;
@@ -1222,7 +1242,13 @@ int main()
   lv_obj_t* masterValue = findLabel(lv_screen_active(), std::to_string(state.masterVolume).c_str());
   lv_obj_t* bankDownButton = bankDownLabel ? lv_obj_get_parent(bankDownLabel) : nullptr;
   lv_obj_t* bankUpButton = bankUpLabel ? lv_obj_get_parent(bankUpLabel) : nullptr;
-  if (require(wordmark && bankNameLabel && telemetryLegend && midiLabel,
+  lv_area_t presetBufferArea{}, engineTelemetryArea{}, midiLabelArea{};
+  if (bufferUsageLegend) lv_obj_get_coords(bufferUsageLegend, &presetBufferArea);
+  if (telemetryLegend) lv_obj_get_coords(telemetryLegend, &engineTelemetryArea);
+  if (midiLabel) lv_obj_get_coords(midiLabel, &midiLabelArea);
+  if (require(wordmark && bankNameLabel && telemetryLegend && bufferUsageLegend && midiLabel
+                && presetBufferArea.x2 < engineTelemetryArea.x1
+                && engineTelemetryArea.x2 < midiLabelArea.x1,
               "preset top rail should name the panel, bank, and engine telemetry")) return 1;
   if (require(editButton && lv_obj_get_width(editButton) == 112 && lv_obj_get_height(editButton) == 52,
               "Edit should have a large, finger-friendly hit target")) return 1;
@@ -1245,6 +1271,11 @@ int main()
   lv_obj_update_layout(lv_screen_active());
   lv_obj_t* connectedMidi = findLabel(lv_screen_active(), "MIDI ON");
   if (require(connectedMidi, "preset top rail MIDI legend should reflect a live connection")) return 1;
+  headerTelemetry.bufferFreePercent = 65.0;
+  ardor::updateRealtimeTelemetry(state, headerTelemetry);
+  ui.refresh(lv_screen_active(), state);
+  if (require(findLabel(lv_screen_active(), "Buffer: 35% used."),
+              "preset top rail buffer usage should update with realtime telemetry")) return 1;
   lv_area_t bankDownArea{};
   lv_area_t bankUpArea{};
   lv_area_t tunerButtonArea{};
@@ -1309,6 +1340,10 @@ int main()
   lv_obj_update_layout(lv_screen_active());
   if (require(state.settings.paletteId == ardor::PaletteId::Slate,
               "returning to Slate after Nord should restore the default palette")) return 1;
+  lv_obj_t* retainedSettingsWordmark = findLabel(lv_screen_active(), "ARDOR");
+  if (retainedSettingsWordmark) {
+    lv_obj_set_style_translate_y(retainedSettingsWordmark, 7, 0);
+  }
   lv_obj_t* wifiSectionLabel = findLabel(lv_screen_active(), "Wi-Fi");
   if (require(wifiSectionLabel, "settings should expose a Wi-Fi section")) return 1;
   lv_obj_send_event(lv_obj_get_parent(wifiSectionLabel), LV_EVENT_PRESSED, nullptr);
@@ -1317,8 +1352,10 @@ int main()
   lv_obj_t* wifiKeyboard = findObjectOfClass(lv_screen_active(), &lv_keyboard_class);
   if (require(findLabel(lv_screen_active(), "Network name")
                 && findLabel(lv_screen_active(), "Password")
-                && wifiKeyboard,
-              "touchscreen Wi-Fi settings should render fields and an on-screen keyboard")) return 1;
+                && wifiKeyboard && retainedSettingsWordmark
+                && findLabel(lv_screen_active(), "ARDOR") == retainedSettingsWordmark
+                && lv_obj_get_style_translate_y(retainedSettingsWordmark, LV_PART_MAIN) == 7,
+              "switching Settings sections should retain the underlying UI instead of rebuilding it")) return 1;
   lv_area_t keyboardArea{};
   lv_area_t wifiContentArea{};
   lv_obj_get_coords(wifiKeyboard, &keyboardArea);
@@ -1466,8 +1503,15 @@ int main()
   if (require(stepperIsAligned(midiChannelTitle)
                 && stepperIsAligned(findLabel(lv_screen_active(), "Tuner on/off CC")),
               "MIDI and tuner steppers should share symmetric padding and centered controls")) return 1;
+  if (require(findLabel(lv_screen_active(), "ARDOR") == retainedSettingsWordmark
+                && lv_obj_get_style_translate_y(retainedSettingsWordmark, LV_PART_MAIN) == 7,
+              "repeated Settings navigation should rebuild only the Settings layer")) return 1;
   ui.closeSettings(state);
   ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  // The appliance supervisor now restarts the process after applying a new
+  // audio block size; rebuild here to model that new process in the simulator.
+  ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   if (require(findLabel(lv_screen_active(), "48 KHZ \xC2\xB7 BLK 32"),
               "the top rail should reflect the active audio block size")) return 1;

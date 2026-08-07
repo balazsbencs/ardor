@@ -180,8 +180,8 @@ export function SettingsDialog({
                   <p>Used for primary actions, selection states, and focus indicators throughout the app.</p>
                 </div>
                 <div className="accent-setting">
-                  <div className="accent-preview" style={{ backgroundColor: accent }}>
-                    <span style={{ color: accent }}><Check size={16} /></span>
+                  <div className="accent-preview">
+                    <span><Check size={16} /></span>
                     <div>
                       <strong>Live preview</strong>
                       <small>Changes apply everywhere immediately.</small>

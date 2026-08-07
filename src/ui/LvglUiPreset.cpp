@@ -2,6 +2,7 @@
 
 #include "ui/LvglUiNavigation.h"
 #include "ui/LvglUiStyle.h"
+#include "ui/UiStatusPresentation.h"
 #include "ui/fonts/SairaCondSemibold38.h"
 
 #include <algorithm>
@@ -88,6 +89,7 @@ void LvglUi::rebuildPresetView(UiState& state)
   bankUpButton_ = nullptr;
   presetMidiLamp_ = nullptr;
   presetMidiLabel_ = nullptr;
+  presetBufferUsageLabel_ = nullptr;
   presetMasterValueLabel_ = nullptr;
   presetMasterScaleFill_ = nullptr;
   presetMasterPointer_ = nullptr;
@@ -116,6 +118,17 @@ void LvglUi::syncHeaderView(const UiState& state)
     lv_label_set_text(presetMidiLabel_, state.controlInputs.midiConnected ? "MIDI ON" : "MIDI");
     lv_obj_set_style_text_color(presetMidiLabel_,
       lv_color_hex(state.controlInputs.midiConnected ? palette().family[3] : muted), 0);
+  }
+  const auto bufferUsage = makeBufferUsagePresentation(state);
+  if (presetBufferUsageLabel_) {
+    lv_label_set_text(presetBufferUsageLabel_, bufferUsage.text.c_str());
+    lv_obj_set_style_text_color(
+      presetBufferUsageLabel_, lv_color_hex(bufferUsage.color), 0);
+  }
+  if (editBufferUsageLabel_) {
+    lv_label_set_text(editBufferUsageLabel_, bufferUsage.text.c_str());
+    lv_obj_set_style_text_color(
+      editBufferUsageLabel_, lv_color_hex(bufferUsage.color), 0);
   }
   const int masterPct = std::clamp(state.masterVolume, 0, 100);
   if (presetMasterValueLabel_) {
@@ -207,6 +220,10 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
   label(topRail, "48 KHZ \xC2\xB7 BLK " + std::to_string(state.settings.audioBlockSize),
         LV_ALIGN_RIGHT_MID, -76, 0,
         &ardor_font_saira_cond_medium_18, muted);
+  const auto bufferUsage = makeBufferUsagePresentation(state);
+  presetBufferUsageLabel_ = label(
+    topRail, bufferUsage.text, LV_ALIGN_RIGHT_MID, -250, 0,
+    &ardor_font_saira_cond_medium_18, bufferUsage.color);
   presetMidiLamp_ = lv_obj_create(topRail);
   lv_obj_set_size(presetMidiLamp_, 11, 11);
   lv_obj_align(presetMidiLamp_, LV_ALIGN_RIGHT_MID, -60, 0);

@@ -96,13 +96,25 @@ void onExpressionEndpointCaptured(lv_event_t* event)
 
 } // namespace
 
+void LvglUi::rebuildSettingsView(UiState& state)
+{
+  if (!settingsLayer_) return;
+  lv_obj_clean(settingsLayer_);
+  contexts_.remove_if([](const UiEventContext& context) {
+    return context.region == UiContextRegion::Settings;
+  });
+  contextRegion_ = UiContextRegion::Settings;
+  renderSettingsView(settingsLayer_, state);
+  contextRegion_ = UiContextRegion::None;
+}
+
 void LvglUi::openSettings(UiState& state)
 {
   settingsOpen_ = true;
   settingsSection_ = 0;
   audioBlockSizeDraft_ = state.settings.audioBlockSize;
   settingsMessage_.clear();
-  viewsInitialized_ = false;
+  settingsViewDirty_ = true;
 }
 
 void LvglUi::closeSettings(UiState&)
@@ -110,7 +122,7 @@ void LvglUi::closeSettings(UiState&)
   settingsOpen_ = false;
   settingsMessage_.clear();
   wifiPasswordVisible_ = false;
-  viewsInitialized_ = false;
+  settingsViewDirty_ = true;
 }
 
 void LvglUi::showSettingsSection(UiState&, std::size_t section)
@@ -118,7 +130,7 @@ void LvglUi::showSettingsSection(UiState&, std::size_t section)
   settingsSection_ = std::min<std::size_t>(section, 3);
   settingsMessage_.clear();
   wifiPasswordVisible_ = false;
-  viewsInitialized_ = false;
+  settingsViewDirty_ = true;
 }
 
 void LvglUi::selectAudioBlockSize(UiState&, std::size_t optionIndex)
@@ -126,7 +138,7 @@ void LvglUi::selectAudioBlockSize(UiState&, std::size_t optionIndex)
   if (optionIndex >= kAudioBlockSizes.size()) return;
   audioBlockSizeDraft_ = kAudioBlockSizes[optionIndex];
   settingsMessage_.clear();
-  viewsInitialized_ = false;
+  settingsViewDirty_ = true;
 }
 
 void LvglUi::applyAudioBlockSize(UiState& state)
@@ -134,7 +146,7 @@ void LvglUi::applyAudioBlockSize(UiState& state)
   if (audioBlockSizeDraft_ == state.settings.audioBlockSize) {
     settingsMessage_ = "This buffer size is already active";
     settingsMessageIsError_ = false;
-    viewsInitialized_ = false;
+    settingsViewDirty_ = true;
     return;
   }
   std::string error;
@@ -147,7 +159,7 @@ void LvglUi::applyAudioBlockSize(UiState& state)
     settingsMessage_ = error.empty() ? "Could not save audio buffer" : error;
     settingsMessageIsError_ = true;
   }
-  viewsInitialized_ = false;
+  settingsViewDirty_ = true;
 }
 
 void LvglUi::adjustMidiChannel(UiState& state, int delta)
@@ -162,7 +174,7 @@ void LvglUi::adjustMidiChannel(UiState& state, int delta)
     settingsMessage_ = error.empty() ? "Could not save MIDI channel" : error;
     settingsMessageIsError_ = true;
   }
-  viewsInitialized_ = false;
+  settingsViewDirty_ = true;
 }
 
 void LvglUi::adjustMidiTunerCc(UiState& state, int delta)
@@ -177,7 +189,7 @@ void LvglUi::adjustMidiTunerCc(UiState& state, int delta)
     settingsMessage_ = error.empty() ? "Could not save tuner CC" : error;
     settingsMessageIsError_ = true;
   }
-  viewsInitialized_ = false;
+  settingsViewDirty_ = true;
 }
 
 void LvglUi::captureExpressionEndpoint(UiState& state, bool heel)
@@ -185,7 +197,7 @@ void LvglUi::captureExpressionEndpoint(UiState& state, bool heel)
   if (!state.controlInputs.expressionRawKnown) {
     settingsMessage_ = "No expression pedal reading is available";
     settingsMessageIsError_ = true;
-    viewsInitialized_ = false;
+    settingsViewDirty_ = true;
     return;
   }
   const int previous = heel ? state.settings.expressionMinimumRaw
@@ -197,7 +209,7 @@ void LvglUi::captureExpressionEndpoint(UiState& state, bool heel)
     else state.settings.expressionMaximumRaw = previous;
     settingsMessage_ = "Toe must read higher than heel";
     settingsMessageIsError_ = true;
-    viewsInitialized_ = false;
+    settingsViewDirty_ = true;
     return;
   }
   std::string error;
@@ -209,7 +221,7 @@ void LvglUi::captureExpressionEndpoint(UiState& state, bool heel)
     settingsMessage_ = error.empty() ? "Could not save expression calibration" : error;
     settingsMessageIsError_ = true;
   }
-  viewsInitialized_ = false;
+  settingsViewDirty_ = true;
 }
 
 void LvglUi::selectPalette(UiState& state, std::size_t paletteIndex)
@@ -245,12 +257,12 @@ void LvglUi::saveWifiSettings(UiState& state)
     settingsMessage_ = "Wi-Fi saved - reconnecting now";
     settingsMessageIsError_ = false;
     wifiPasswordVisible_ = false;
-    viewsInitialized_ = false;
+    settingsViewDirty_ = true;
     return;
   }
   settingsMessage_ = error.empty() ? "Could not save Wi-Fi" : error;
   settingsMessageIsError_ = true;
-  viewsInitialized_ = false;
+  settingsViewDirty_ = true;
 }
 
 void LvglUi::toggleWifiPassword()

@@ -4,6 +4,7 @@
 #include "ui/LvglUiDrag.h"
 #include "ui/LvglUiNavigation.h"
 #include "ui/LvglUiStyle.h"
+#include "ui/UiStatusPresentation.h"
 
 #include <algorithm>
 #include <string>
@@ -345,6 +346,10 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   editModuleCountLabel_ = label(topRail,
     std::to_string(moduleCount) + (moduleCount == 1 ? " MODULE" : " MODULES"),
     LV_ALIGN_RIGHT_MID, -kEditRailEdgeInset, 0, &ardor_font_saira_cond_medium_18, muted);
+  const auto bufferUsage = makeBufferUsagePresentation(state);
+  editBufferUsageLabel_ = label(
+    topRail, bufferUsage.text, LV_ALIGN_RIGHT_MID, -160, 0,
+    &ardor_font_saira_cond_medium_18, bufferUsage.color);
 
   const auto& blocks = state.bank.presets[state.activePreset].blocks;
   const auto* selectedEffect = selectedUiBlock(state);

@@ -93,6 +93,7 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
 {
   lvgl_ui::setPalette(state.settings.paletteId);
   viewsInitialized_ = false;
+  settingsViewDirty_ = false;
   pendingChanges_ = UiChange::None;
   focusedControl_ = nullptr;
   focusedEqGraph_ = nullptr;
@@ -267,6 +268,7 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   contextRegion_ = UiContextRegion::None;
   contextRegion_ = UiContextRegion::Settings;
   renderSettingsView(settingsLayer_, state);
+  settingsViewDirty_ = false;
   contextRegion_ = UiContextRegion::None;
 
   renderedRevisions_ = state.revisions;
@@ -400,6 +402,11 @@ void LvglUi::refresh(lv_obj_t* root, UiState& state)
   if (!viewsInitialized_ || root != lv_obj_get_parent(canvas_)) {
     build(root, state);
     return;
+  }
+
+  if (settingsViewDirty_) {
+    rebuildSettingsView(state);
+    settingsViewDirty_ = false;
   }
 
   // Sampled telemetry, not a discrete UI event -- it carries no revision of

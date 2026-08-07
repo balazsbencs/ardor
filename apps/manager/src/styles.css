@@ -92,7 +92,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .accent-setting { display: grid; justify-items: start; gap: 1.1rem; }
 .accent-preview { position: relative; display: flex; align-items: center; gap: .8rem; width: 100%; min-height: 6.2rem; overflow: hidden; border-radius: .8rem; padding: 1rem; background: var(--accent); }
 .accent-preview::after { content: ""; position: absolute; width: 8rem; height: 8rem; right: -2rem; bottom: -5rem; border: 1.4rem solid #0002; border-radius: 50%; }
-.accent-preview > span { position: relative; z-index: 1; display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border-radius: .6rem; background: var(--surface-raised); }
+.accent-preview > span { position: relative; z-index: 1; display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border-radius: .6rem; color: var(--accent); background: var(--surface-raised); }
 .accent-preview > div { position: relative; z-index: 1; color: var(--accent-ink); }
 .accent-preview strong, .accent-preview small { display: block; }
 .accent-preview strong { font-size: .88rem; }

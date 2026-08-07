@@ -565,8 +565,8 @@ The touch UI includes:
   reflashing, choosing the panel palette, configuring MIDI/expression input,
   and selecting a 32, 64, or 128-sample audio buffer. Audio-buffer changes
   restart the supervised engine process before they take effect.
-- A persistent footer with centered master volume and one-second audio-buffer
-  headroom feedback calculated from recent callback time versus its deadline.
+- Preset and Edit top rails with one-second audio-buffer usage feedback,
+  calculated from recent callback time versus its deadline.
 - A single left-to-right signal canvas with horizontal touch scrolling,
   per-preset scroll memory, dedicated block drag handles, and Input/Output
   jump controls.

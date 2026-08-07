@@ -187,6 +187,7 @@ private:
   void renderSettingsView(lv_obj_t* root, UiState& state);
   void rebuildPresetView(UiState& state);
   void rebuildEditView(UiState& state);
+  void rebuildSettingsView(UiState& state);
   void rebuildParameterView(UiState& state);
   void rebuildDrawerView(UiState& state);
   void syncChainCards(UiState& state);
@@ -244,6 +245,7 @@ private:
   bool settingsOpen_ = false;
   std::size_t settingsSection_ = 0;
   std::uint32_t audioBlockSizeDraft_ = 64;
+  bool settingsViewDirty_ = false;
   bool wifiPasswordVisible_ = false;
   std::string settingsMessage_;
   bool settingsMessageIsError_ = false;
@@ -257,6 +259,7 @@ private:
   // members above, which remain in use by the screens not yet migrated.
   lv_obj_t* presetMidiLamp_ = nullptr;
   lv_obj_t* presetMidiLabel_ = nullptr;
+  lv_obj_t* presetBufferUsageLabel_ = nullptr;
   lv_obj_t* presetMasterValueLabel_ = nullptr;
   lv_obj_t* presetMasterScaleFill_ = nullptr;
   lv_obj_t* presetMasterPointer_ = nullptr;
@@ -264,6 +267,7 @@ private:
   // Edit screen's own rails, mirroring the preset-screen members above.
   lv_obj_t* editModifiedLabel_ = nullptr;
   lv_obj_t* editModuleCountLabel_ = nullptr;
+  lv_obj_t* editBufferUsageLabel_ = nullptr;
   lv_obj_t* saveButtonLabel_ = nullptr;
   lv_obj_t* telemetryLabel_ = nullptr;
   lv_obj_t* expressionStatusLabel_ = nullptr;

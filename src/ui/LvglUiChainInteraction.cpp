@@ -226,6 +226,7 @@ void LvglUi::rebuildEditView(UiState& state)
   saveButtonLabel_ = nullptr;
   editModifiedLabel_ = nullptr;
   editModuleCountLabel_ = nullptr;
+  editBufferUsageLabel_ = nullptr;
   chainCards_.fill(nullptr);
   chainCategoryLabels_.fill(nullptr);
   chainAssetLabels_.fill(nullptr);
