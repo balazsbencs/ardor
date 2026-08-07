@@ -103,6 +103,9 @@ int main(int argc, char** argv)
   actions.savePalette = [&](ardor::PaletteId palette, std::string& error) {
     return globalSettings.savePalette(palette, error);
   };
+  actions.saveAudioBlockSize = [&](std::uint32_t blockSize, std::string& error) {
+    return globalSettings.saveAudioBlockSize(blockSize, error);
+  };
   actions.saveWifiSettings = [&](const std::string& ssid, const std::string& password,
                                  const std::string& country, std::string& error) {
     return globalSettings.saveWifi(ssid, password, country, error);

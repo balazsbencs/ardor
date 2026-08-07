@@ -23,6 +23,8 @@ constexpr std::array<std::pair<const char*, PaletteId>, 4> kPalettes = {{
 // without spilling past the content column's right edge.
 constexpr int kPaletteTileWidth = 224;
 constexpr int kPaletteTileStep = 240;
+constexpr std::array<std::uint32_t, 3> kAudioBlockSizes = {32, 64, 128};
+constexpr std::array<const char*, 3> kAudioBlockTimes = {"0.67 ms", "1.33 ms", "2.67 ms"};
 
 void onSettingsClosed(lv_event_t* event)
 {
@@ -40,6 +42,18 @@ void onPaletteClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   context->ui->selectPalette(*context->state, context->index);
+}
+
+void onAudioBlockSizeSelected(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->selectAudioBlockSize(*context->state, context->index);
+}
+
+void onAudioBlockSizeApplied(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->applyAudioBlockSize(*context->state);
 }
 
 void onWifiFieldFocused(lv_event_t* event)
@@ -82,10 +96,11 @@ void onExpressionEndpointCaptured(lv_event_t* event)
 
 } // namespace
 
-void LvglUi::openSettings(UiState&)
+void LvglUi::openSettings(UiState& state)
 {
   settingsOpen_ = true;
   settingsSection_ = 0;
+  audioBlockSizeDraft_ = state.settings.audioBlockSize;
   settingsMessage_.clear();
   viewsInitialized_ = false;
 }
@@ -100,9 +115,38 @@ void LvglUi::closeSettings(UiState&)
 
 void LvglUi::showSettingsSection(UiState&, std::size_t section)
 {
-  settingsSection_ = std::min<std::size_t>(section, 2);
+  settingsSection_ = std::min<std::size_t>(section, 3);
   settingsMessage_.clear();
   wifiPasswordVisible_ = false;
+  viewsInitialized_ = false;
+}
+
+void LvglUi::selectAudioBlockSize(UiState&, std::size_t optionIndex)
+{
+  if (optionIndex >= kAudioBlockSizes.size()) return;
+  audioBlockSizeDraft_ = kAudioBlockSizes[optionIndex];
+  settingsMessage_.clear();
+  viewsInitialized_ = false;
+}
+
+void LvglUi::applyAudioBlockSize(UiState& state)
+{
+  if (audioBlockSizeDraft_ == state.settings.audioBlockSize) {
+    settingsMessage_ = "This buffer size is already active";
+    settingsMessageIsError_ = false;
+    viewsInitialized_ = false;
+    return;
+  }
+  std::string error;
+  if (actions_.saveAudioBlockSize
+      && actions_.saveAudioBlockSize(audioBlockSizeDraft_, error)) {
+    state.settings.audioBlockSize = audioBlockSizeDraft_;
+    settingsMessage_ = "Buffer saved - restarting audio";
+    settingsMessageIsError_ = false;
+  } else {
+    settingsMessage_ = error.empty() ? "Could not save audio buffer" : error;
+    settingsMessageIsError_ = true;
+  }
   viewsInitialized_ = false;
 }
 
@@ -279,7 +323,7 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
   lv_obj_set_style_pad_all(sidebar, 14, 0);
   lv_obj_remove_flag(sidebar, LV_OBJ_FLAG_SCROLLABLE);
 
-  const std::array<std::string, 3> sections = {"Appearance", "Wi-Fi", "Control I/O"};
+  const std::array<std::string, 4> sections = {"Appearance", "Wi-Fi", "Audio", "Control I/O"};
   for (std::size_t i = 0; i < sections.size(); ++i) {
     lv_obj_t* section = button(sidebar, sections[i]);
     lv_obj_set_size(section, 190, 68);
@@ -420,6 +464,62 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
       lv_obj_add_event_cb(field, onWifiFieldFocused, LV_EVENT_CLICKED, context);
     }
     lv_keyboard_set_textarea(wifiKeyboard_, wifiSSIDField_);
+  } else if (settingsSection_ == 2) {
+    label(content, "Audio", LV_ALIGN_TOP_LEFT, 28, 22,
+          &ardor_font_saira_cond_semibold_28);
+    label(content, "Choose how much audio the engine processes at once.",
+          LV_ALIGN_TOP_LEFT, 28, 60, &ardor_font_saira_cond_medium_18, muted);
+
+    for (std::size_t i = 0; i < kAudioBlockSizes.size(); ++i) {
+      const bool selected = audioBlockSizeDraft_ == kAudioBlockSizes[i];
+      lv_obj_t* choice = lv_button_create(content);
+      lv_obj_set_size(choice, 288, 132);
+      lv_obj_set_pos(choice, 28 + static_cast<int>(i) * 306, 112);
+      styleSurface(choice, selected ? text : panelAlt);
+      lv_obj_set_style_border_width(choice, 1, 0);
+      lv_obj_set_style_border_color(choice, lv_color_hex(selected ? text : rule), 0);
+      lv_obj_set_style_pad_all(choice, 0, 0);
+      lv_obj_t* sizeLabel = label(
+        choice, std::to_string(kAudioBlockSizes[i]) + " samples",
+        LV_ALIGN_TOP_LEFT, 18, 16, &ardor_font_saira_cond_semibold_22,
+        selected ? bg : text);
+      lv_obj_remove_flag(sizeLabel, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_t* timeLabel = label(
+        choice, std::string(kAudioBlockTimes[i]) + " block time",
+        LV_ALIGN_BOTTOM_LEFT, 18, -18, &ardor_font_saira_cond_medium_18,
+        selected ? bg : muted);
+      lv_obj_remove_flag(timeLabel, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_add_event_cb(choice, onAudioBlockSizeSelected, LV_EVENT_PRESSED,
+                          remember(state, i));
+    }
+
+    lv_obj_t* explanation = lv_obj_create(content);
+    lv_obj_set_size(explanation, 900, 112);
+    lv_obj_set_pos(explanation, 28, 274);
+    styleSurface(explanation, panelAlt);
+    lv_obj_set_style_pad_all(explanation, 0, 0);
+    lv_obj_remove_flag(explanation, LV_OBJ_FLAG_SCROLLABLE);
+    label(explanation, "Latency and stability", LV_ALIGN_TOP_LEFT, 20, 16,
+          &ardor_font_saira_cond_semibold_22);
+    label(explanation,
+          "Smaller blocks respond sooner but leave less DSP time. If audio crackles, choose 64 or 128 samples.",
+          LV_ALIGN_TOP_LEFT, 20, 54, &ardor_font_saira_cond_medium_18, muted);
+
+    label(content,
+          "Block time excludes audio-interface and driver delay; it is not total round-trip latency.",
+          LV_ALIGN_TOP_LEFT, 28, 410, &ardor_font_saira_cond_medium_18, muted);
+
+    lv_obj_t* apply = button(content, "Apply & restart audio");
+    lv_obj_set_size(apply, 252, 62);
+    lv_obj_set_pos(apply, 676, 470);
+    styleSurface(apply, text);
+    lv_obj_set_style_text_color(lv_obj_get_child(apply, 0), lv_color_hex(bg), 0);
+    lv_obj_set_style_text_font(
+      lv_obj_get_child(apply, 0), &ardor_font_saira_cond_medium_18, 0);
+    if (audioBlockSizeDraft_ == state.settings.audioBlockSize) {
+      lv_obj_add_state(apply, LV_STATE_DISABLED);
+    }
+    lv_obj_add_event_cb(apply, onAudioBlockSizeApplied, LV_EVENT_PRESSED, remember(state));
   } else {
     label(content, "Control I/O", LV_ALIGN_TOP_LEFT, 28, 22,
           &ardor_font_saira_cond_semibold_28);

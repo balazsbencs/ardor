@@ -334,9 +334,14 @@ int main()
   int requestedBankDelta = 0;
   int requestedTunerMode = -1;
   int liveBypassUpdates = 0;
+  std::uint32_t savedAudioBlockSize = 0;
   ardor::UiActions uiActions;
   uiActions.changeBank = [&](int delta) { requestedBankDelta += delta; };
   uiActions.setTunerMode = [&](bool enabled) { requestedTunerMode = enabled ? 1 : 0; };
+  uiActions.saveAudioBlockSize = [&](std::uint32_t blockSize, std::string&) {
+    savedAudioBlockSize = blockSize;
+    return true;
+  };
   uiActions.updateBlockEnabled = [&](const std::string&, bool) {
     ++liveBypassUpdates;
     return true;
@@ -1366,6 +1371,47 @@ int main()
                 && !lv_textarea_get_password_mode(passwordField),
               "password eye should clearly reflect and toggle the visible state")) return 1;
   lv_obj_send_event(passwordEyeButton, LV_EVENT_CLICKED, nullptr);
+  lv_obj_t* audioSectionLabel = findLabel(lv_screen_active(), "Audio");
+  if (require(audioSectionLabel, "settings should expose a dedicated Audio section")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(audioSectionLabel), LV_EVENT_PRESSED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "32 samples")
+                && findLabel(lv_screen_active(), "64 samples")
+                && findLabel(lv_screen_active(), "128 samples")
+                && findLabel(lv_screen_active(), "Apply & restart audio"),
+              "Audio settings should offer the supported buffers and an explicit restart action")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "32 samples")),
+                    LV_EVENT_PRESSED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* audioChoice = lv_obj_get_parent(findLabel(lv_screen_active(), "32 samples"));
+  lv_obj_t* audioExplanation = lv_obj_get_parent(findLabel(lv_screen_active(), "Latency and stability"));
+  lv_obj_t* audioApply = lv_obj_get_parent(findLabel(lv_screen_active(), "Apply & restart audio"));
+  lv_area_t audioChoiceArea{}, audioExplanationArea{}, audioApplyArea{}, audioContentArea{};
+  lv_obj_get_coords(audioChoice, &audioChoiceArea);
+  lv_obj_get_coords(audioExplanation, &audioExplanationArea);
+  lv_obj_get_coords(audioApply, &audioApplyArea);
+  lv_obj_get_coords(lv_obj_get_parent(audioChoice), &audioContentArea);
+  if (require(audioChoiceArea.x1 >= audioContentArea.x1
+                && audioChoiceArea.x2 <= audioContentArea.x2
+                && audioChoiceArea.y2 < audioExplanationArea.y1
+                && audioExplanationArea.y2 < audioApplyArea.y1
+                && audioApplyArea.y2 <= audioContentArea.y2,
+              "Audio settings should keep choices, guidance, and Apply action in a clear vertical flow")) return 1;
+  lv_obj_send_event(audioApply, LV_EVENT_PRESSED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* audioMessage = findLabel(lv_screen_active(), "Buffer saved - restarting audio");
+  lv_obj_t* disabledAudioApply = lv_obj_get_parent(findLabel(lv_screen_active(), "Apply & restart audio"));
+  lv_area_t audioMessageArea{}, disabledAudioApplyArea{};
+  if (audioMessage) lv_obj_get_coords(audioMessage, &audioMessageArea);
+  if (disabledAudioApply) lv_obj_get_coords(disabledAudioApply, &disabledAudioApplyArea);
+  if (require(savedAudioBlockSize == 32 && state.settings.audioBlockSize == 32
+                && audioMessage && disabledAudioApply
+                && lv_obj_has_state(disabledAudioApply, LV_STATE_DISABLED)
+                && disabledAudioApplyArea.y2 < audioMessageArea.y1,
+              "applying an audio buffer should persist it and announce the restart")) return 1;
   lv_obj_t* controlSectionLabel = findLabel(lv_screen_active(), "Control I/O");
   if (require(controlSectionLabel, "settings should expose a Control I/O section")) return 1;
   lv_obj_send_event(lv_obj_get_parent(controlSectionLabel), LV_EVENT_PRESSED, nullptr);
@@ -1423,6 +1469,8 @@ int main()
   ui.closeSettings(state);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "48 KHZ \xC2\xB7 BLK 32"),
+              "the top rail should reflect the active audio block size")) return 1;
   bankUpLabel = findLabel(lv_screen_active(), "Bank +");
   bankUpButton = bankUpLabel ? lv_obj_get_parent(bankUpLabel) : nullptr;
   tunerButtonLabel = findLabel(lv_screen_active(), "Tuner");

@@ -23,6 +23,7 @@ int main()
   std::string error;
 
   if (!require(store.savePalette(ardor::PaletteId::Ink, error), error.c_str())) return 1;
+  if (!require(store.saveAudioBlockSize(32, error), error.c_str())) return 1;
   ardor::DeviceSettings controls;
   controls.midiChannel = 4;
   controls.midiTunerCc = 64;
@@ -35,6 +36,7 @@ int main()
 
   const auto settings = store.load();
   if (!require(settings.paletteId == ardor::PaletteId::Ink, "palette should persist")) return 1;
+  if (!require(settings.audioBlockSize == 32, "audio block size should persist")) return 1;
   if (!require(settings.wifiConfigured && settings.wifiSSID == "Stage Network",
                "Wi-Fi SSID should persist")) return 1;
   if (!require(settings.wifiCountry == "HU", "country should be normalized")) return 1;
@@ -45,6 +47,9 @@ int main()
                "expression calibration should persist")) return 1;
   if (!require(settings.paletteId == ardor::PaletteId::Ink,
                "saving control inputs must preserve appearance settings")) return 1;
+  error.clear();
+  if (!require(!store.saveAudioBlockSize(16, error) && !error.empty(),
+               "unsupported audio block sizes should be rejected")) return 1;
 
   std::ifstream wifi(root / "wifi" / "wpa_supplicant.conf");
   const std::string body((std::istreambuf_iterator<char>(wifi)), std::istreambuf_iterator<char>());

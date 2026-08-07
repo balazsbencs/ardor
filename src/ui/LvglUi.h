@@ -55,6 +55,7 @@ struct UiActions {
   // routing change together with the visible screen.
   std::function<void(bool)> setTunerMode;
   std::function<bool(PaletteId, std::string&)> savePalette;
+  std::function<bool(std::uint32_t, std::string&)> saveAudioBlockSize;
   std::function<bool(const std::string&, const std::string&, const std::string&, std::string&)>
     saveWifiSettings;
   std::function<void(const std::optional<PresetExpression>&)> updateExpressionAssignment;
@@ -169,6 +170,8 @@ public:
   void closeSettings(UiState& state);
   void showSettingsSection(UiState& state, std::size_t section);
   void selectPalette(UiState& state, std::size_t paletteIndex);
+  void selectAudioBlockSize(UiState& state, std::size_t optionIndex);
+  void applyAudioBlockSize(UiState& state);
   void saveWifiSettings(UiState& state);
   void toggleWifiPassword();
   void toggleExpressionAssignment(UiState& state, const ParameterControl& control);
@@ -240,6 +243,7 @@ private:
   lv_obj_t* wifiPasswordToggleLabel_ = nullptr;
   bool settingsOpen_ = false;
   std::size_t settingsSection_ = 0;
+  std::uint32_t audioBlockSizeDraft_ = 64;
   bool wifiPasswordVisible_ = false;
   std::string settingsMessage_;
   bool settingsMessageIsError_ = false;

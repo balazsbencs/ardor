@@ -66,13 +66,24 @@ run_supervised() {
     [ -w "$policy" ] && echo performance > "$policy"
   done
   while :; do
+    # The touchscreen stores its audio choice in the global settings document.
+    # Re-read it for every supervised launch so a clean child exit can apply a
+    # new period without restarting the supervisor shell itself.
+    current_block_size="$BLOCK_SIZE"
+    if [ -r "$DATA_ROOT/settings/global.json" ]; then
+      saved_block_size=$(sed -n 's/^[[:space:]]*"audioBlockSize"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' \
+        "$DATA_ROOT/settings/global.json" | head -n 1)
+      case "$saved_block_size" in
+        32|64|128) current_block_size="$saved_block_size" ;;
+      esac
+    fi
     /usr/bin/ardor-pedal \
       --realtime $ui_arg \
       --data-root "$DATA_ROOT" \
       --bank "$BANK" \
       --slot "$SLOT" \
       --sample-rate "$SAMPLE_RATE" \
-      --block-size "$BLOCK_SIZE" \
+      --block-size "$current_block_size" \
       --ir-samples "$IR_SAMPLES" \
       --capture-device "$CAPTURE_DEVICE" \
       --playback-device "$PLAYBACK_DEVICE" \

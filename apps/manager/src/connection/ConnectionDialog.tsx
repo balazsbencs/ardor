@@ -1,4 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
+
+import { PortalSurface } from "../theme/surface";
 import { useEffect, useRef, useState } from "react";
 
 import { useDeviceSession } from "./deviceSession";
@@ -30,6 +32,7 @@ export function ConnectionDialog({ open, onOpenChange }: { open: boolean; onOpen
   return (
     <Dialog.Root open={open} onOpenChange={updateOpen}>
       <Dialog.Portal>
+        <PortalSurface>
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content aria-describedby={undefined} className="connection-dialog">
           <p className="eyebrow">Device connection</p>
@@ -81,6 +84,7 @@ export function ConnectionDialog({ open, onOpenChange }: { open: boolean; onOpen
             </div>
           </form>
         </Dialog.Content>
+        </PortalSurface>
       </Dialog.Portal>
     </Dialog.Root>
   );

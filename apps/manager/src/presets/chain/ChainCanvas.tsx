@@ -93,7 +93,9 @@ function SortableChainBlock({ block, index, count, selected, selectedBlockId, is
   const warning = allIssues.find(({ severity }) => severity === "warning");
   const definition = findEffectDefinition(block);
   return <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 3 : undefined }} className={`chain-item ${isDragging ? "is-dragging" : ""}`}>
-    <article tabIndex={0} className={`chain-block chain-block--${definition?.category ?? "unknown"} ${selected ? "is-selected" : ""} ${!block.enabled ? "is-bypassed" : ""}`} onClick={() => onSelect(block.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(block.id); } }}>
+    {/* ponytail: role="button" on a card that also holds controls. A dedicated select
+        button inside the card is the upgrade path if a screen-reader audit asks for it. */}
+    <article role="button" tabIndex={0} aria-pressed={selected} aria-label={`Select ${titleFor(block)}`} className={`chain-block chain-block--${definition?.category ?? "unknown"} ${selected ? "is-selected" : ""} ${!block.enabled ? "is-bypassed" : ""}`} onClick={() => onSelect(block.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(block.id); } }}>
       <div className="chain-block__top"><button className="drag-handle" aria-label={`Drag ${titleFor(block)}`} title="Drag to reorder" onClick={(event) => event.stopPropagation()} {...attributes} {...listeners}><GripVertical size={16} aria-hidden="true" /></button><span className="chain-block__ordinal">{index + 1}</span><Toggle label={`${titleFor(block)} enabled`} checked={block.enabled} onChange={(enabled) => onToggle(block.id, enabled)} /></div>
       <div className="chain-block__text"><strong>{titleFor(block)}</strong>{block.type === "dualAmp"
         ? <div className="dual-amp-lanes">

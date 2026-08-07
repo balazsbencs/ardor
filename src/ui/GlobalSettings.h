@@ -10,6 +10,7 @@ enum class PaletteId : std::uint8_t { Slate, Ink, Sodium, Nord };
 
 struct DeviceSettings {
   PaletteId paletteId = PaletteId::Slate;
+  std::uint32_t audioBlockSize = 64;
   bool wifiConfigured = false;
   std::string wifiSSID;
   std::string wifiCountry = "HU";
@@ -27,6 +28,7 @@ public:
 
   DeviceSettings load() const;
   bool savePalette(PaletteId palette, std::string& error) const;
+  bool saveAudioBlockSize(std::uint32_t blockSize, std::string& error) const;
   bool saveWifi(const std::string& ssid, const std::string& password,
                 const std::string& country, std::string& error) const;
   bool saveControlInputs(const DeviceSettings& settings, std::string& error) const;

@@ -12,25 +12,16 @@ import {
   Wifi,
   X,
 } from "lucide-react";
-import { type CSSProperties, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { WiFiSettings } from "../api/types";
 import { Button, IconButton, StatusBadge, cx } from "../components/ui";
 import { useDeviceSession } from "../connection/deviceSession";
 import { localAuthAPI } from "../localAuth/api";
 import { isDeviceHostedRuntime } from "../runtime/platform";
+import { accentChoices, accentVariables, defaultAccent, type Theme } from "../theme/accent";
 
 type SettingsSection = "appearance" | "wifi" | "security";
-
-const accentChoices = [
-  { name: "Ardor green", value: "#c9ff3d" },
-  { name: "Signal blue", value: "#67a6ff" },
-  { name: "Stage amber", value: "#ffb347" },
-  { name: "Violet", value: "#b88cff" },
-  { name: "Coral", value: "#ff7b6b" },
-];
-
-export const defaultAccent = accentChoices[0].value;
 
 function wifiTone(status?: string): "neutral" | "success" | "warning" {
   if (status === "connected") return "success";
@@ -48,7 +39,7 @@ export function SettingsDialog({
   open: boolean;
   onOpenChange(open: boolean): void;
   accent: string;
-  theme: "dark" | "light";
+  theme: Theme;
   onAccentChange(accent: string): void;
 }) {
   const session = useDeviceSession();
@@ -69,14 +60,7 @@ export function SettingsDialog({
   const wifiAvailable = session.status === "connected"
     && Boolean(session.client)
     && session.device?.capabilities.wifiSettings === true;
-  const accentInk = parseInt(accent.slice(1, 3), 16) * .299
-    + parseInt(accent.slice(3, 5), 16) * .587
-    + parseInt(accent.slice(5, 7), 16) * .114 > 150 ? "#0a0d0b" : "#ffffff";
-  const portalStyle = {
-    "--accent": accent,
-    "--focus": accent,
-    "--accent-ink": accentInk,
-  } as CSSProperties;
+  const portalStyle = accentVariables(accent, theme);
 
   useEffect(() => {
     if (!open || section !== "wifi" || !wifiAvailable || !session.client) return;
@@ -161,7 +145,7 @@ export function SettingsDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <div className="app-shell settings-portal" data-theme={theme} style={portalStyle}>
+        <div className="app-shell portal-surface" data-theme={theme} style={portalStyle}>
           <Dialog.Overlay className="dialog-overlay" />
           <Dialog.Content className="settings-dialog" aria-describedby="settings-description">
           <header className="settings-dialog__header">

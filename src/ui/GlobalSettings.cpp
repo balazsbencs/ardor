@@ -75,6 +75,11 @@ bool validHexKey(const std::string& password)
     });
 }
 
+bool validAudioBlockSize(std::uint32_t blockSize)
+{
+  return blockSize == 32 || blockSize == 64 || blockSize == 128;
+}
+
 std::filesystem::path settingsPath(const std::filesystem::path& root)
 {
   return root / "settings" / "global.json";
@@ -171,6 +176,10 @@ DeviceSettings GlobalSettingsStore::load() const
             && palette <= static_cast<int>(PaletteId::Nord)) {
           settings.paletteId = static_cast<PaletteId>(palette);
         }
+        const auto audioBlockSize = json.value("audioBlockSize", std::uint32_t{64});
+        if (validAudioBlockSize(audioBlockSize)) {
+          settings.audioBlockSize = audioBlockSize;
+        }
         settings.midiChannel = std::clamp(json.value("midiChannel", -1), -1, 15);
         settings.midiTunerCc = std::clamp(json.value("midiTunerCc", 20), 0, 127);
         settings.expressionMinimumRaw = json.value("expressionMinimumRaw", 0);
@@ -218,6 +227,17 @@ bool GlobalSettingsStore::savePalette(PaletteId palette, std::string& error) con
   }
   auto json = loadSettingsDocument(dataRoot_);
   json["paletteId"] = static_cast<int>(palette);
+  return saveSettingsDocument(dataRoot_, json, error);
+}
+
+bool GlobalSettingsStore::saveAudioBlockSize(std::uint32_t blockSize, std::string& error) const
+{
+  if (!validAudioBlockSize(blockSize)) {
+    error = "audio block size must be 32, 64, or 128 samples";
+    return false;
+  }
+  auto json = loadSettingsDocument(dataRoot_);
+  json["audioBlockSize"] = blockSize;
   return saveSettingsDocument(dataRoot_, json, error);
 }
 

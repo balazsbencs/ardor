@@ -60,6 +60,7 @@
 namespace {
 
 volatile std::sig_atomic_t running = 1;
+std::atomic<bool> audioRestartRequested{false};
 // The stdin helper is detached because formatted stdin reads are not
 // cancellation-friendly. These requests therefore need process lifetime rather
 // than stack lifetime.
@@ -841,6 +842,10 @@ int main(int argc, char** argv)
 #endif
         uiState = ardor::makeDemoUiState();
         uiState.settings = globalSettings.load();
+        // The command line is the source of truth for the running engine. The
+        // persisted value will match it under the appliance supervisor, while
+        // this assignment keeps manually launched builds honest as well.
+        uiState.settings.audioBlockSize = args.blockSize;
         args.midiChannel = uiState.settings.midiChannel;
         args.midiTunerCc = uiState.settings.midiTunerCc;
         args.expressionMinimumRaw = uiState.settings.expressionMinimumRaw;
@@ -941,6 +946,14 @@ int main(int argc, char** argv)
           },
           [&](ardor::PaletteId palette, std::string& error) {
             return globalSettings.savePalette(palette, error);
+          },
+          [&](std::uint32_t blockSize, std::string& error) {
+            if (!globalSettings.saveAudioBlockSize(blockSize, error)) return false;
+            std::thread([] {
+              std::this_thread::sleep_for(std::chrono::milliseconds(750));
+              audioRestartRequested.store(true, std::memory_order_relaxed);
+            }).detach();
+            return true;
           },
           [&](const std::string& ssid, const std::string& password,
               const std::string& country, std::string& error) {
@@ -1139,7 +1152,7 @@ int main(int argc, char** argv)
         requestedBank.store(bank, std::memory_order_relaxed);
         requestedSlot.store(slot, std::memory_order_relaxed);
       };
-      while (running) {
+      while (running && !audioRestartRequested.load(std::memory_order_relaxed)) {
 #if defined(ARDOR_HAS_UI)
         if (args.enableUi && ui) {
           claimOverlay->poll();

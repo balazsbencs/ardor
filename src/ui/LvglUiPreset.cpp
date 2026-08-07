@@ -202,9 +202,10 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
         &ardor_font_saira_cond_semibold_22, text);
   presetBankLabel_ = label(topRail, state.bank.name, LV_ALIGN_LEFT_MID, 128, 0,
                            &ardor_font_saira_cond_medium_18, muted);
-  // Documented default target (README "First target settings"); not wired to
-  // a live audio-engine readout, which the UI model does not carry today.
-  label(topRail, "48 KHZ \xC2\xB7 BLK 64", LV_ALIGN_RIGHT_MID, -76, 0,
+  // The fixed sample rate and active persisted audio quantum remain visible at
+  // a glance so the player can confirm a latency-tuning change after restart.
+  label(topRail, "48 KHZ \xC2\xB7 BLK " + std::to_string(state.settings.audioBlockSize),
+        LV_ALIGN_RIGHT_MID, -76, 0,
         &ardor_font_saira_cond_medium_18, muted);
   presetMidiLamp_ = lv_obj_create(topRail);
   lv_obj_set_size(presetMidiLamp_, 11, 11);
