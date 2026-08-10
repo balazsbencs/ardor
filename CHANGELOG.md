@@ -2,18 +2,35 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.21](https://github.com/balazsbencs/ardor/compare/v0.1.20...v0.1.21) (2026-08-10)
+
+### Features
+
+* adding website first version ([1cea0b3](https://github.com/balazsbencs/ardor/commit/1cea0b3441fb3f227d6ae2123624f34fcd22c00c))
+* **cloud:** add hosted accounts and device claiming ([38cbe1c](https://github.com/balazsbencs/ardor/commit/38cbe1c95714125e9460aa2b00314256eee76fea))
+* **cloud:** relay hosted preset operations ([b1aee04](https://github.com/balazsbencs/ardor/commit/b1aee042655639ba043623982c31de1218b78ce8))
+* **cloud:** stream hosted assets and tone3000 ([37d54fd](https://github.com/balazsbencs/ardor/commit/37d54fdf9f7d2b5f16c6da20d300967173961cac))
+* **deploy:** update pedal and manager over LAN ([f5e6ac3](https://github.com/balazsbencs/ardor/commit/f5e6ac36c63635dee83f3b2ac88a0313f8426990))
+* manager updates + audio latency setting ([d46a6d7](https://github.com/balazsbencs/ardor/commit/d46a6d7d477f66ba79899d39cbe2cc7f53563ce0))
+* **managerd:** add cloud protocol foundation ([636737d](https://github.com/balazsbencs/ardor/commit/636737dd8985a3032e31cf2f1de00cab652f51dc))
+* **managerd:** add local access and factory reset ([723bdeb](https://github.com/balazsbencs/ardor/commit/723bdeb31ecb7ff1db1155875d598027f9a17ba6))
+* **manager:** serve device-hosted web UI ([4f3790d](https://github.com/balazsbencs/ardor/commit/4f3790da5d7ea8e9bdb7dc3f927ca533f486e54e))
+* more redesign changes ([a9f51ae](https://github.com/balazsbencs/ardor/commit/a9f51ae6ba75dfd40f738847e56ff74e392df667))
+* ui changes ([943e090](https://github.com/balazsbencs/ardor/commit/943e09023b461a2f513c299bd86538838a739344))
+* **wah:** add GCB-95 netlist and audio-taper pot law ([4391975](https://github.com/balazsbencs/ardor/commit/4391975f4a7f4c9312b5d0a08fed07e0283ff65f))
+* **wah:** derive DK state-space matrices from the netlist ([39336b8](https://github.com/balazsbencs/ardor/commit/39336b87756e60ff19617a79fad9132b5ea254cc))
+* **wah:** evaluate the DK model from the precomputed table ([3e9aa3c](https://github.com/balazsbencs/ardor/commit/3e9aa3c97d7ff43d446a556ec6de2be90e17e983))
+* **wah:** generate the nonlinear solution table offline ([085a058](https://github.com/balazsbencs/ardor/commit/085a05837759539140fd738d59a18203d7777e07))
+
+### Bug Fixes
+
+* **wah:** correct the netlist from the LTspice schematic ([77296b2](https://github.com/balazsbencs/ardor/commit/77296b2b42678d9fb3d6e9accdec3cdeae1ed1db))
+
 ## [0.1.20](https://github.com/balazsbencs/ardor/compare/v0.1.19...v0.1.20) (2026-08-03)
 
 ### Features
 
 * midi learn and UI improvements ([676046b](https://github.com/balazsbencs/ardor/commit/676046b999638bcb564611c498082dd5a51f9229))
-
-## Unreleased
-
-### Changed
-
- * The device UI now uses named Panel palettes (Slate, Ink, and Sodium); the
- previous custom accent colour is ignored and no longer configurable.
 
 ## [0.1.19](https://github.com/balazsbencs/ardor/compare/v0.1.18...v0.1.19) (2026-08-03)
 
