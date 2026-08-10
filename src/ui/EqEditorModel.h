@@ -4,6 +4,7 @@
 
 #include <array>
 #include <cstddef>
+#include <utility>
 
 namespace ardor {
 
@@ -27,5 +28,14 @@ int eqYFromGain(float gainDb, int height);
 float eqGainFromY(int y, int height);
 void adjustEqBandField(EqBandParams& band, EqBandField field, int ticks);
 EqCurveData makeEqCurveData(const ParametricEqParams& params, float sampleRate);
+
+// The band's -3 dB bandwidth in octaves, from the standard Q-to-bandwidth
+// relationship. Used to place the shoulder grips; it is independent of gain,
+// so it approximates rather than measures the biquad's actual half-power
+// points.
+float eqBandwidthOctaves(float q);
+// The -3 dB shoulder frequencies either side of the centre, symmetric in log
+// frequency about it.
+std::pair<float, float> eqShoulderFrequencies(float centerHz, float q);
 
 } // namespace ardor

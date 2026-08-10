@@ -294,7 +294,8 @@ UiPreviewSnapshot previewSnapshot(const UiState& state)
           state.dirty, state.blockDrawerOpen, state.paramDrawerOpen, state.blockEditUndo};
 }
 
-void appendAssetsFrom(UiState& state, const std::filesystem::path& dir, const std::string& ext, const std::string& type)
+void appendAssetsFrom(UiState& state, const std::filesystem::path& dir, const std::string& ext,
+                      const std::string& type, const std::string& subtitle)
 {
   namespace fs = std::filesystem;
 
@@ -314,15 +315,31 @@ void appendAssetsFrom(UiState& state, const std::filesystem::path& dir, const st
       continue;
     }
     const auto relative = relativePath.generic_string();
-    state.assets.push_back({entry.path().stem().string(), relative, type});
+    state.assets.push_back({entry.path().stem().string(), relative, type, "", "", subtitle});
   }
+}
+
+std::string daisyFamilyLabel(DaisyFxKind kind)
+{
+  switch (kind) {
+  case DaisyFxKind::Mod: return "Modulation";
+  case DaisyFxKind::Delay: return "Delay";
+  case DaisyFxKind::Reverb: return "Reverb";
+  }
+  return "";
+}
+
+std::string daisySubtitle(const DaisyFxDescriptor& descriptor)
+{
+  return daisyFamilyLabel(descriptor.kind) + " · " + std::to_string(descriptor.params.size())
+    + " controls";
 }
 
 void appendDaisyAssets(UiState& state)
 {
   for (const auto& descriptor : daisyFxCatalog()) {
     state.assets.push_back({descriptor.name, "", categoryForDaisyKind(descriptor.kind),
-                            descriptor.blockType, descriptor.mode});
+                            descriptor.blockType, descriptor.mode, daisySubtitle(descriptor)});
   }
 }
 
@@ -346,18 +363,19 @@ UiState makeDemoUiState()
                       {"block-9", "cab", "Cab", "Focused 1x12", "irs/focus.wav", true}}},
   };
   state.assets = {
-    {"Clean Twin", "models/clean.nam", "amps"},
-    {"British Crunch", "models/crunch.nam", "amps"},
-    {"Focused Lead", "models/solo.nam", "amps"},
-    {"Open Back 2x12", "irs/open-back.wav", "cabs"},
-    {"Vintage 4x12", "irs/vintage.wav", "cabs"},
-    {"Focused 1x12", "irs/focus.wav", "cabs"},
-    {"Compressor", "", "utility", "dynamics", "compressor"},
-    {"Noise Gate", "", "utility", "dynamics", "noise_gate"},
-    {"Five Band EQ", "", "utility", "eq", "parametric_eq_5"},
+    {"Clean Twin", "models/clean.nam", "amps", "", "", "Amp · neural capture"},
+    {"British Crunch", "models/crunch.nam", "amps", "", "", "Amp · neural capture"},
+    {"Focused Lead", "models/solo.nam", "amps", "", "", "Amp · neural capture"},
+    {"Open Back 2x12", "irs/open-back.wav", "cabs", "", "", "Cab · impulse response"},
+    {"Vintage 4x12", "irs/vintage.wav", "cabs", "", "", "Cab · impulse response"},
+    {"Focused 1x12", "irs/focus.wav", "cabs", "", "", "Cab · impulse response"},
+    {"Compressor", "", "utility", "dynamics", "compressor", "Utility · dynamics"},
+    {"Noise Gate", "", "utility", "dynamics", "noise_gate", "Utility · dynamics"},
+    {"Five Band EQ", "", "utility", "eq", "parametric_eq_5", "Utility · 5 bands · ±18 dB"},
   };
   appendDaisyAssets(state);
-  state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split"});
+  state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split",
+                          "Runs two independent chains in parallel"});
   return state;
 }
 
@@ -1223,6 +1241,11 @@ void updateClipDebugTelemetry(UiState& state, UiClipDebugTelemetry telemetry)
   if (visibleChanged) markUiChanged(state, UiChange::Telemetry);
 }
 
+void updateCompressorGainReduction(UiState& state, float reductionDb)
+{
+  state.compressorGainReductionDb = reductionDb;
+}
+
 void updateControlInputTelemetry(UiState& state, UiControlInputTelemetry telemetry)
 {
   telemetry.expressionPosition = std::clamp(telemetry.expressionPosition, 0.0f, 1.0f);
@@ -1464,13 +1487,14 @@ int consumePendingSlotRequest(UiState& state)
 void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoot)
 {
   state.assets.clear();
-  appendAssetsFrom(state, dataRoot / "models", ".nam", "amps");
-  appendAssetsFrom(state, dataRoot / "irs", ".wav", "cabs");
-  state.assets.push_back({"Compressor", "", "utility", "dynamics", "compressor"});
-  state.assets.push_back({"Noise Gate", "", "utility", "dynamics", "noise_gate"});
-  state.assets.push_back({"Five Band EQ", "", "utility", "eq", "parametric_eq_5"});
+  appendAssetsFrom(state, dataRoot / "models", ".nam", "amps", "Amp · neural capture");
+  appendAssetsFrom(state, dataRoot / "irs", ".wav", "cabs", "Cab · impulse response");
+  state.assets.push_back({"Compressor", "", "utility", "dynamics", "compressor", "Utility · dynamics"});
+  state.assets.push_back({"Noise Gate", "", "utility", "dynamics", "noise_gate", "Utility · dynamics"});
+  state.assets.push_back({"Five Band EQ", "", "utility", "eq", "parametric_eq_5", "Utility · 5 bands · ±18 dB"});
   appendDaisyAssets(state);
-  state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split"});
+  state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split",
+                          "Runs two independent chains in parallel"});
   markUiChanged(state, UiChange::Assets | UiChange::Drawers);
 }
 

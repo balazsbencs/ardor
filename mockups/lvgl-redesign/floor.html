@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ardor — Direction A: FLOOR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/*
+  DIRECTION CONTRACT — seed key 5ea320b0 · grounded candidate 3 of 7 · mode: operate
+
+  THESIS: The pedal screen is the setlist taped to the stage floor. It refuses the
+  dark-glass modeler card grid; the running order IS the interface, read from
+  standing height in one glance.
+  OWN-WORLD: Matte gaffer black, white paint-pen lettering at poster scale, saturated
+  console-tape strips carrying every family and state. Torn edges, painted floor lines,
+  hazard tape for faults. Zero ramps — flat planes only.
+  STORY: The player sees which song is live before they finish looking down, knows the
+  rig is healthy, and can re-tape the chain without a manual.
+  FIRST VIEWPORT: Four numbered rows filling the full height; the live row is a bright
+  yellow tape strip with black lettering. Bank on a torn label top-left, transport row
+  of tape buttons across the bottom.
+  FORM: Stage-floor setlist; candidate 3 of my ordered list; seed key 5ea320b0.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish
+  review, the verdict, and DESIGN.md
+*/
+
+:root{
+  --ground:#16130f;        /* matte gaffer black — flat, never ramped */
+  --floor:#1e1a15;         /* stage floor plank, one value step up */
+  --paint:#ece7d9;         /* white paint pen */
+  --paint-dim:#8d8578;     /* aged marker */
+  --tape-live:#f2c200;     /* live / bank — reserved semantic */
+  --tape-amp:#e8631a;
+  --tape-cab:#e4e0d4;
+  --tape-util:#3282c8;
+  --tape-mod:#35a15a;
+  --tape-delay:#8a63b8;
+  --tape-verb:#2fb0ad;
+  --hazard:#cf2b26;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2b2b2b;font-family:Archivo,sans-serif;color:#bbb;padding:40px 24px 80px}
+
+/* ——— review page chrome (not part of the design) ——— */
+.doc{max-width:1280px;margin:0 auto}
+.doc h1{font-family:Anton,sans-serif;font-size:34px;color:#f2c200;letter-spacing:.01em;text-transform:uppercase}
+.doc .sub{font-size:15px;line-height:1.6;max-width:70ch;margin-top:10px;color:#9a9a9a}
+.cap{display:flex;align-items:baseline;gap:14px;margin:44px 0 12px}
+.cap b{font-family:Anton,sans-serif;font-size:19px;color:#e6e6e6;text-transform:uppercase;letter-spacing:.02em}
+.cap span{font-size:13px;color:#8a8a8a}
+.stage{width:1280px;height:720px;transform-origin:top left;overflow:hidden;
+  box-shadow:0 18px 50px rgba(0,0,0,.6);border:1px solid #000}
+.shell{position:relative;height:1px}
+.note{margin-top:14px;font-size:13.5px;line-height:1.65;color:#8f8f8f;max-width:78ch}
+.note b{color:#d8d8d8;font-weight:600}
+.cost{margin-top:56px;border-top:1px solid #3d3d3d;padding-top:22px}
+.cost h2{font-family:Anton,sans-serif;font-size:17px;color:#e6e6e6;text-transform:uppercase;letter-spacing:.03em;margin-bottom:12px}
+.cost li{font-size:13.5px;line-height:1.7;color:#9a9a9a;margin-left:18px;max-width:80ch}
+.cost li b{color:#d8d8d8;font-weight:600}
+
+/* ——— THE DESIGN ——— */
+.scr{width:1280px;height:720px;background:var(--ground);position:relative;
+  font-family:Archivo,sans-serif;overflow:hidden}
+
+/* torn tape edge: irregular left/right ends like a hand-torn strip */
+.tape{position:relative;display:flex;align-items:center;
+  clip-path:polygon(0 0,100% 2%,100% 100%,0 98%)}
+.tape.r{clip-path:polygon(.6% 3%,100% 0,99.4% 97%,0 100%)}
+
+/* ============ SCREEN 1 — RUNNING ORDER (preset) ============ */
+.ro-head{position:absolute;top:0;left:0;right:0;height:74px;display:flex;align-items:center;
+  padding:0 26px;gap:18px}
+.bank-tape{background:var(--tape-live);color:#16130f;padding:9px 22px 10px;
+  font-family:Anton,sans-serif;font-size:26px;letter-spacing:.04em;text-transform:uppercase;
+  clip-path:polygon(0 4%,100% 0,99% 96%,1% 100%)}
+.bank-sub{font-size:13px;font-weight:700;letter-spacing:.22em;color:var(--paint-dim);text-transform:uppercase}
+.ro-head .spacer{flex:1}
+.hdr-stat{font-size:13px;font-weight:700;letter-spacing:.18em;color:var(--paint-dim);text-transform:uppercase}
+.hdr-stat.on{color:var(--tape-mod)}
+
+/* the running order */
+.ro-list{position:absolute;top:74px;left:0;right:0;bottom:96px;padding:0 26px;
+  display:flex;flex-direction:column;gap:10px;justify-content:center}
+.row{height:104px;display:flex;align-items:center;gap:26px;padding:0 22px 0 18px;
+  background:var(--floor);position:relative;
+  clip-path:polygon(0 2%,100% 0,100% 98%,0 100%)}
+.row .num{font-family:Anton,sans-serif;font-size:70px;line-height:.8;color:var(--paint-dim);
+  width:62px;text-align:center;flex:none}
+.row .name{font-family:Anton,sans-serif;font-size:52px;line-height:1;color:var(--paint);
+  text-transform:uppercase;letter-spacing:.005em;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;flex:1}
+.row .chain{display:flex;gap:5px;flex:none;align-items:center}
+.chip{height:26px;padding:0 11px;display:flex;align-items:center;font-size:12px;font-weight:800;
+  letter-spacing:.13em;text-transform:uppercase;color:#16130f}
+/* live row: the whole strip becomes bright tape */
+.row.live{background:var(--tape-live);clip-path:polygon(0 0,100% 3%,100% 100%,0 97%)}
+.row.live .num,.row.live .name{color:#16130f}
+.row.live .num{font-size:78px}
+.row.live .name{font-size:60px}
+.live-flag{position:absolute;right:22px;top:-1px;background:#16130f;color:var(--tape-live);
+  font-size:12px;font-weight:800;letter-spacing:.2em;padding:5px 12px 6px;text-transform:uppercase}
+.row.fault{background:#241512}
+.row.fault .name{color:#c9857f}
+.hazard{position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(45deg,transparent 0 16px,rgba(207,43,38,.32) 16px 32px)}
+.fault-tape{background:var(--hazard);color:#fff;font-size:13px;font-weight:800;letter-spacing:.14em;
+  padding:6px 13px;text-transform:uppercase;flex:none;position:relative}
+
+/* footer transport */
+.ro-foot{position:absolute;bottom:0;left:0;right:0;height:96px;display:flex;align-items:center;
+  gap:12px;padding:0 26px;border-top:2px solid #2a251e}
+.btape{font-family:Anton,sans-serif;font-size:27px;letter-spacing:.04em;text-transform:uppercase;
+  padding:13px 26px 14px;color:#16130f;
+  clip-path:polygon(0 3%,100% 0,99% 97%,1% 100%)}
+.btape.ghost{background:none;color:var(--paint);border:2px solid #35302a;clip-path:none;padding:11px 24px 12px}
+.master{margin-left:auto;display:flex;align-items:center;gap:16px}
+.master .lbl{font-size:12px;font-weight:800;letter-spacing:.2em;color:var(--paint-dim);text-transform:uppercase}
+.master .val{font-family:Anton,sans-serif;font-size:44px;color:var(--paint);line-height:.85}
+.seg{display:flex;gap:3px;align-items:flex-end;height:34px}
+.seg i{width:9px;background:#3a342c;display:block}
+.seg i.on{background:var(--paint)}
+.seg i.hot{background:var(--tape-live)}
+
+/* ============ SCREEN 2 — CHAIN (edit) ============ */
+.ed-head{position:absolute;top:0;left:0;right:0;height:66px;display:flex;align-items:center;
+  gap:14px;padding:0 24px}
+.ed-title{font-family:Anton,sans-serif;font-size:25px;color:var(--paint);text-transform:uppercase;letter-spacing:.03em}
+.dirty{background:var(--hazard);color:#fff;font-size:12px;font-weight:800;letter-spacing:.16em;
+  padding:5px 11px;text-transform:uppercase}
+.ed-canvas{position:absolute;top:66px;left:0;right:0;bottom:92px;padding:0 24px}
+/* the painted floor line the chain sits on */
+.runline{position:absolute;left:24px;right:24px;top:50%;margin-top:-3px;height:6px;background:var(--paint);opacity:.85}
+.blocks{position:relative;display:flex;align-items:center;gap:0;height:100%}
+.blk{width:172px;flex:none;position:relative;z-index:2}
+.blk .body{height:190px;padding:14px 14px 12px;display:flex;flex-direction:column;justify-content:space-between;
+  clip-path:polygon(0 2%,100% 0,100% 98%,0 100%)}
+.blk .kind{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;opacity:.72}
+.blk .nm{font-family:Anton,sans-serif;font-size:30px;line-height:.94;text-transform:uppercase}
+.blk .val{font-size:12px;font-weight:700;letter-spacing:.06em;opacity:.78}
+.blk .grip{height:15px;margin-top:5px;background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 9px);
+  opacity:.5}
+.ink{color:#16130f}
+.blk.byp .body{background:none!important;border:2px dashed #4a443c;color:var(--paint-dim);clip-path:none}
+.strike{position:absolute;inset:0;pointer-events:none}
+.strike:before,.strike:after{content:"";position:absolute;left:6%;right:6%;top:50%;height:4px;
+  background:var(--hazard);transform-origin:center}
+.strike:before{transform:rotate(14deg)}
+.strike:after{transform:rotate(-14deg)}
+.plus{width:44px;flex:none;display:flex;align-items:center;justify-content:center;z-index:3}
+.plus b{width:34px;height:34px;background:var(--floor);border:2px solid #443d34;color:var(--paint-dim);
+  font-family:Anton,sans-serif;font-size:24px;display:flex;align-items:center;justify-content:center;line-height:1}
+.io{width:74px;flex:none;font-family:Anton,sans-serif;font-size:15px;color:var(--paint-dim);
+  text-transform:uppercase;letter-spacing:.1em;text-align:center;z-index:2}
+/* split region */
+.split{flex:none;position:relative;padding:0 6px}
+.split .tag{position:absolute;top:-2px;left:50%;transform:translateX(-50%);background:var(--paint);
+  color:#16130f;font-size:11px;font-weight:800;letter-spacing:.2em;padding:3px 12px;text-transform:uppercase}
+.lanes{display:flex;flex-direction:column;gap:26px;padding-top:22px}
+.lane{display:flex;align-items:center;gap:0;position:relative}
+.lane .lbl{font-family:Anton,sans-serif;font-size:15px;width:34px;flex:none;text-align:center;letter-spacing:.06em}
+.lane .blk .body{height:76px}
+.lane .blk .nm{font-size:19px}
+.ed-foot{position:absolute;bottom:0;left:0;right:0;height:92px;display:flex;align-items:center;gap:11px;
+  padding:0 24px;border-top:2px solid #2a251e}
+
+/* ============ SCREEN 3 — TUNER ============ */
+.tn{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center}
+.muted-tape{margin-top:22px;background:var(--hazard);color:#fff;font-family:Anton,sans-serif;font-size:21px;
+  letter-spacing:.16em;padding:8px 30px 9px;text-transform:uppercase;
+  clip-path:polygon(0 5%,100% 0,99% 95%,1% 100%)}
+.note-big{font-family:Anton,sans-serif;font-size:260px;line-height:1;color:var(--paint);margin-top:2px;
+  letter-spacing:-.02em;position:relative}
+.note-big sup{font-size:82px;vertical-align:super;color:var(--paint-dim);margin-left:6px}
+.hz{font-size:23px;font-weight:700;letter-spacing:.14em;color:var(--paint-dim);margin-top:10px}
+/* discrete cents ladder — every mark a flat block, no ramp anywhere */
+.ladder{display:flex;align-items:flex-end;gap:6px;height:82px;margin-top:26px}
+.ladder i{width:16px;background:#332e27;display:block}
+.ladder i.lit{background:var(--paint)}
+.ladder i.ctr{background:var(--tape-live);width:22px}
+.ladder i.ok{background:var(--tape-mod)}
+.verdict{margin-top:20px;font-family:Anton,sans-serif;font-size:46px;letter-spacing:.06em;text-transform:uppercase;
+  padding:8px 34px 10px;color:#16130f;background:var(--tape-live);
+  clip-path:polygon(0 4%,100% 0,99% 96%,1% 100%)}
+.tn-foot{position:absolute;bottom:0;left:0;right:0;height:86px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 26px;border-top:2px solid #2a251e}
+.hint{font-size:14px;font-weight:700;letter-spacing:.16em;color:var(--paint-dim);text-transform:uppercase}
+
+/* ============ SCREEN 4 — PARAMETERS ============ */
+.pm-head{position:absolute;top:0;left:0;right:0;height:78px;display:flex;align-items:center;gap:16px;padding:0 24px}
+.pm-badge{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#16130f;padding:6px 13px}
+.pm-name{font-family:Anton,sans-serif;font-size:40px;color:var(--paint);text-transform:uppercase;letter-spacing:.01em}
+.pm-grid{position:absolute;top:78px;left:24px;right:24px;bottom:92px;
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:20px 22px}
+.pm{display:flex;flex-direction:column;justify-content:center;gap:12px}
+.pm .top{display:flex;align-items:baseline;justify-content:space-between}
+.pm .k{font-size:15px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--paint-dim)}
+.pm .v{font-family:Anton,sans-serif;font-size:40px;color:var(--paint);line-height:.85}
+.pm .v em{font-style:normal;font-size:18px;color:var(--paint-dim);margin-left:5px}
+/* tape slider: filled portion is real tape, the rest is bare floor with tick marks */
+.slot{height:44px;background:var(--floor);position:relative;overflow:hidden}
+.slot .ticks{position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,transparent 0 30px,#3b352d 30px 32px)}
+.slot .fill{position:absolute;left:0;top:0;bottom:0;
+  clip-path:polygon(0 0,100% 3%,100% 97%,0 100%)}
+.pm.disc .opts{display:flex;gap:7px}
+.pm.disc .opt{flex:1;height:44px;display:flex;align-items:center;justify-content:center;
+  font-family:Anton,sans-serif;font-size:19px;letter-spacing:.05em;text-transform:uppercase;
+  background:var(--floor);color:var(--paint-dim)}
+.pm.disc .opt.sel{background:var(--paint);color:#16130f}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Direction A — Floor</h1>
+  <p class="sub">The setlist taped to the stage floor. Matte gaffer black, white paint-pen lettering at poster
+  scale, saturated console tape carrying every family and every state. Built entirely from flat planes and hard
+  edges — there is not one gradient in this world, so RGB565 has nothing to band.</p>
+
+  <div class="cap"><b>1 · Running order</b><span>preset screen — the 95% view</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="ro-head">
+        <div class="bank-tape">Bank 000</div>
+        <div class="bank-sub">Set A · 4 slots</div>
+        <div class="spacer"></div>
+        <div class="hdr-stat on">MIDI ON</div>
+        <div class="hdr-stat">48 kHz · 64</div>
+      </div>
+
+      <div class="ro-list">
+        <div class="row">
+          <div class="num">1</div>
+          <div class="name">Midnight Clean</div>
+          <div class="chain">
+            <span class="chip" style="background:var(--tape-amp)">AMP</span>
+            <span class="chip" style="background:var(--tape-cab)">CAB</span>
+            <span class="chip" style="background:var(--tape-verb)">HALL</span>
+          </div>
+        </div>
+
+        <div class="row live">
+          <div class="num">2</div>
+          <div class="name">Drive Stack</div>
+          <div class="chain">
+            <span class="chip" style="background:#16130f;color:var(--tape-live)">AMP</span>
+            <span class="chip" style="background:#16130f;color:var(--tape-live)">CAB</span>
+            <span class="chip" style="background:#16130f;color:var(--tape-live)">TAPE</span>
+          </div>
+          <div class="live-flag">Live</div>
+        </div>
+
+        <div class="row">
+          <div class="num">3</div>
+          <div class="name">Split Rig — Wide</div>
+          <div class="chain">
+            <span class="chip" style="background:var(--paint)">SPLIT</span>
+            <span class="chip" style="background:var(--tape-mod)">CHOR</span>
+            <span class="chip" style="background:var(--tape-delay)">DLY</span>
+          </div>
+        </div>
+
+        <div class="row fault">
+          <div class="hazard"></div>
+          <div class="num">4</div>
+          <div class="name">Ambient Bloom</div>
+          <div class="fault-tape">! Missing asset</div>
+        </div>
+      </div>
+
+      <div class="ro-foot">
+        <div class="btape" style="background:var(--paint)">Edit</div>
+        <div class="btape" style="background:var(--tape-verb)">Tuner</div>
+        <div class="btape ghost">Bank −</div>
+        <div class="btape ghost">Bank +</div>
+        <div class="btape ghost">Setup</div>
+        <div class="master">
+          <div class="lbl">Headroom</div>
+          <div class="seg">
+            <i class="on" style="height:44%"></i><i class="on" style="height:58%"></i>
+            <i class="on" style="height:70%"></i><i class="on" style="height:82%"></i>
+            <i class="hot" style="height:94%"></i><i style="height:100%"></i>
+          </div>
+          <div class="lbl">Master</div>
+          <div class="val">72</div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+  <p class="note"><b>What changed.</b> The four slots stop being equal cards. The live preset is a bright tape
+  strip with black lettering — the single highest-contrast object on a dark stage, identifiable in peripheral
+  vision from standing height. Yellow means <em>live</em> and nothing else in this entire system. A missing asset
+  gets hazard tape across the row, which is exactly what a technician does to a broken thing.</p>
+
+  <div class="cap"><b>2 · Chain</b><span>edit screen — split region, bypass, insertion points</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="ed-head">
+        <div class="ed-title">2 · Drive Stack</div>
+        <div class="dirty">Unsaved</div>
+        <div style="flex:1"></div>
+        <div class="hdr-stat">Drag a grip to move · tap + to insert</div>
+      </div>
+
+      <div class="ed-canvas">
+        <div class="runline"></div>
+        <div class="blocks">
+          <div class="io">IN</div>
+          <div class="plus"><b>+</b></div>
+
+          <div class="blk">
+            <div class="body ink" style="background:var(--tape-amp)">
+              <div class="kind">Amp</div>
+              <div><div class="nm">Tweed<br>Deluxe</div></div>
+              <div class="val">NANO · SUM</div>
+              <div class="grip"></div>
+            </div>
+          </div>
+          <div class="plus"><b>+</b></div>
+
+          <div class="blk">
+            <div class="body ink" style="background:var(--tape-cab)">
+              <div class="kind">Cab</div>
+              <div><div class="nm">Open<br>Back</div></div>
+              <div class="val">−2.0 dB · 100%</div>
+              <div class="grip"></div>
+            </div>
+          </div>
+          <div class="plus"><b>+</b></div>
+
+          <div class="blk byp">
+            <div class="body">
+              <div class="kind">Mod</div>
+              <div><div class="nm">Chorus</div></div>
+              <div class="val">BYPASSED</div>
+              <div class="grip"></div>
+            </div>
+            <div class="strike"></div>
+          </div>
+          <div class="plus"><b>+</b></div>
+
+          <div class="blk">
+            <div class="body ink" style="background:var(--tape-delay)">
+              <div class="kind">Delay</div>
+              <div><div class="nm">Tape</div></div>
+              <div class="val">380 ms · 34%</div>
+              <div class="grip"></div>
+            </div>
+          </div>
+          <div class="plus"><b>+</b></div>
+          <div class="io">OUT</div>
+        </div>
+      </div>
+
+      <div class="ed-foot">
+        <div class="btape" style="background:var(--tape-live)">Save*</div>
+        <div class="btape ghost">Undo</div>
+        <div class="btape ghost">Redo</div>
+        <div class="btape ghost">Blocks</div>
+        <div style="flex:1"></div>
+        <div class="btape ghost">Done</div>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="cap"><b>2b · Split region</b><span>Dual Rig drawn as two taped lanes on the floor</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="ed-head">
+        <div class="ed-title">3 · Split Rig — Wide</div>
+        <div style="flex:1"></div>
+        <div class="hdr-stat">Split · 2 lanes · stereo join</div>
+      </div>
+      <div class="ed-canvas">
+        <div class="blocks" style="align-items:center">
+          <div class="io">IN</div>
+          <div class="split">
+            <div class="tag">Split</div>
+            <div class="lanes">
+              <div class="lane">
+                <div class="lbl" style="color:var(--tape-live)">L</div>
+                <div class="blk" style="width:132px"><div class="body ink" style="background:var(--tape-amp)">
+                  <div class="kind">Amp</div><div class="nm">Clean</div><div class="grip"></div></div></div>
+                <div class="plus"><b>+</b></div>
+                <div class="blk" style="width:132px"><div class="body ink" style="background:var(--tape-cab)">
+                  <div class="kind">Cab</div><div class="nm">Open</div><div class="grip"></div></div></div>
+                <div class="plus"><b>+</b></div>
+                <div class="blk" style="width:132px"><div class="body ink" style="background:var(--tape-mod)">
+                  <div class="kind">Mod</div><div class="nm">Chorus</div><div class="grip"></div></div></div>
+              </div>
+              <div class="lane">
+                <div class="lbl" style="color:var(--tape-util)">R</div>
+                <div class="blk" style="width:132px"><div class="body ink" style="background:var(--tape-amp)">
+                  <div class="kind">Amp</div><div class="nm">Crunch</div><div class="grip"></div></div></div>
+                <div class="plus"><b>+</b></div>
+                <div class="blk" style="width:132px"><div class="body ink" style="background:var(--tape-cab)">
+                  <div class="kind">Cab</div><div class="nm">Closed</div><div class="grip"></div></div></div>
+                <div class="plus"><b>+</b></div>
+                <div class="blk" style="width:132px"><div class="body ink" style="background:var(--tape-delay)">
+                  <div class="kind">Delay</div><div class="nm">Digital</div><div class="grip"></div></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="split" style="padding-left:18px">
+            <div class="tag" style="background:var(--tape-live);color:#16130f">Join</div>
+            <div style="padding-top:22px;font-family:Anton,sans-serif;font-size:15px;color:var(--paint-dim);
+              letter-spacing:.1em;text-transform:uppercase;text-align:center;line-height:1.5">
+              Stereo<br>L / R</div>
+          </div>
+          <div class="io">OUT</div>
+        </div>
+      </div>
+      <div class="ed-foot">
+        <div class="btape ghost">Save</div>
+        <div class="btape ghost">Undo</div>
+        <div class="btape ghost">Blocks</div>
+        <div style="flex:1"></div>
+        <div class="btape ghost">Done</div>
+      </div>
+    </div>
+  </div></div>
+  <p class="note"><b>Routing is taped, not disguised.</b> The split is two physically separate lanes of tape on
+  the floor with stencilled L and R, the way a stage is actually marked out. Bypass is a marker X — the universal
+  gesture for "this one's out." Nothing here is a rounded card with a subtle border.</p>
+
+  <div class="cap"><b>3 · Tuner</b><span>muted, single purpose, read at distance</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="tn">
+        <div class="muted-tape">Output muted</div>
+        <div class="note-big">A<sup>2</sup></div>
+        <div class="hz">110.4 Hz · −6 cents</div>
+        <div class="ladder">
+          <i style="height:30%"></i><i style="height:36%"></i><i style="height:42%"></i>
+          <i class="lit" style="height:50%"></i><i class="lit" style="height:60%"></i>
+          <i class="lit" style="height:72%"></i>
+          <i class="ctr" style="height:100%"></i>
+          <i style="height:72%"></i><i style="height:60%"></i><i style="height:50%"></i>
+          <i style="height:42%"></i><i style="height:36%"></i><i style="height:30%"></i>
+        </div>
+        <div class="verdict">Flat — tune up</div>
+      </div>
+      <div class="tn-foot">
+        <div class="hint">Any footswitch exits</div>
+        <div class="btape ghost">Exit</div>
+      </div>
+    </div>
+  </div></div>
+  <p class="note"><b>Discrete by construction.</b> The cents ladder is thirteen flat blocks, not a smooth meter —
+  which means it cannot band, and it reads faster peripherally than a needle. In tune, the centre block and the
+  verdict strip both flip to green tape; you never have to read a number.</p>
+
+  <div class="cap"><b>4 · Parameters</b><span>tape sliders, two rows of three</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="pm-head">
+        <div class="pm-badge" style="background:var(--tape-delay)">Delay</div>
+        <div class="pm-name">Tape</div>
+        <div style="flex:1"></div>
+        <div class="btape ghost" style="font-size:19px;padding:8px 18px 9px">Bypass</div>
+        <div class="btape" style="background:var(--paint);font-size:19px;padding:10px 20px 11px">Done</div>
+      </div>
+      <div class="pm-grid">
+        <div class="pm">
+          <div class="top"><div class="k">Time</div><div class="v">380<em>ms</em></div></div>
+          <div class="slot"><div class="ticks"></div><div class="fill" style="width:47%;background:var(--tape-delay)"></div></div>
+        </div>
+        <div class="pm">
+          <div class="top"><div class="k">Feedback</div><div class="v">34<em>%</em></div></div>
+          <div class="slot"><div class="ticks"></div><div class="fill" style="width:34%;background:var(--tape-delay)"></div></div>
+        </div>
+        <div class="pm">
+          <div class="top"><div class="k">Mix</div><div class="v">28<em>%</em></div></div>
+          <div class="slot"><div class="ticks"></div><div class="fill" style="width:28%;background:var(--tape-delay)"></div></div>
+        </div>
+        <div class="pm">
+          <div class="top"><div class="k">Wow</div><div class="v">18<em>%</em></div></div>
+          <div class="slot"><div class="ticks"></div><div class="fill" style="width:18%;background:var(--tape-delay)"></div></div>
+        </div>
+        <div class="pm">
+          <div class="top"><div class="k">Age</div><div class="v">61<em>%</em></div></div>
+          <div class="slot"><div class="ticks"></div><div class="fill" style="width:61%;background:var(--tape-delay)"></div></div>
+        </div>
+        <div class="pm disc">
+          <div class="top"><div class="k">Head</div><div class="v" style="font-size:22px">Dual</div></div>
+          <div class="opts">
+            <div class="opt">1</div><div class="opt sel">2</div><div class="opt">3</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="cost">
+    <h2>What this costs in LVGL</h2>
+    <ul>
+      <li><b>Free.</b> Every surface is a flat <code>lv_obj</code> with a solid background — cheaper to render
+        than the current gradient panels, and immune to RGB565 banding by construction.</li>
+      <li><b>Fonts: the real cost.</b> Anton at 26/40/52/70/280 px must each be compiled as a separate LVGL
+        bitmap font. The 280 px tuner face is glyph-limited (12 note letters, sharp sign) so subset it
+        aggressively — a full ASCII set at that size would be several hundred KB of flash.</li>
+      <li><b>Torn tape edges</b> are <code>clip-path</code> here. LVGL has no clip-path: ship them as small
+        9-patch or tiled PNGs, or accept clean rectangles (the design survives it — the hierarchy is doing the
+        work, not the torn edge).</li>
+      <li><b>Hazard diagonals</b> on the fault row need a small tiled image; a repeating 32×32 RGB565 tile costs
+        2 KB and draws fast.</li>
+      <li><b>Marker strike-through</b> on bypassed blocks: two rotated rects. Use <code>lv_line</code> with
+        thick line width instead of rotating an object — cheaper and exact.</li>
+    </ul>
+  </div>
+</div>
+<script>
+// Fit the 1280px stages to the viewport without touching the design's own units.
+const fit = () => {
+  const s = Math.min(1, (document.querySelector('.doc').clientWidth) / 1280);
+  document.querySelectorAll('.stage').forEach(el => {
+    el.style.transform = `scale(${s})`;
+    el.parentElement.style.height = (720 * s) + 'px';
+  });
+};
+addEventListener('resize', fit); fit(); document.fonts?.ready.then(fit);
+</script>
+</body>
+</html>

@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ardor — Direction D: PANEL</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@300;400;500;600;700&family=Saira:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+  DIRECTION CONTRACT — seed key 03cab608 · grounded candidate 5 of 7 · mode: operate
+
+  THESIS: The screen is an instrument's nomenclature plate. Not a rendered panel with fake
+  knobs — the engraved graphic system itself: bracketed function groups, printed scales,
+  patch-point circles, section legends. It refuses both the glass card grid and the shouting
+  poster.
+  OWN-WORLD: Deep olive-graphite plate, bone engraved lettering set condensed and tracked,
+  hairline group brackets, muted module-header colours (ochre, dusty teal, oxblood, slate).
+  One warm amber lamp means live and nothing else. Flat plates, engraved rules, no ramps.
+  STORY: The player reads the instrument the way they read any good panel — groups first,
+  legend second, value third — and the lit lamp says which preset is running.
+  FIRST VIEWPORT: Four preset tiles stacked full width, each with a header legend and a
+  large engraved number. The live one carries a lit amber lamp and a full-chroma header.
+  FORM: Instrument nomenclature plate; candidate 5 of my ordered list; seed key 03cab608.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish
+  review, the verdict, and DESIGN.md
+*/
+:root{
+  --plate:#1e211c;      /* olive-graphite panel */
+  --plate2:#262a24;     /* module body, one value step up */
+  --plate3:#161915;     /* recess */
+  --engrave:#ddd9cc;    /* bone nomenclature */
+  --engrave-lo:#8d9184; /* secondary legend */
+  --rule:#3a3f36;
+  --lamp:#e0a33a;       /* LIVE — reserved */
+  --amp:#b8893f;
+  --cab:#8d9184;
+  --util:#5b7392;
+  --mod:#4e8880;
+  --dly:#7a6b96;
+  --verb:#9a4a45;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2b2b2b;font-family:Saira,sans-serif;color:#bbb;padding:40px 24px 80px}
+.doc{max-width:1280px;margin:0 auto}
+.doc h1{font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:38px;color:var(--lamp);
+  text-transform:uppercase;letter-spacing:.08em}
+.doc .sub{font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;max-width:70ch;margin-top:10px;color:#9a9a9a}
+.cap{display:flex;align-items:baseline;gap:14px;margin:44px 0 12px}
+.cap b{font-family:'Saira Condensed',sans-serif;font-weight:600;font-size:21px;color:#e6e6e6;
+  text-transform:uppercase;letter-spacing:.08em}
+.cap span{font-family:system-ui,sans-serif;font-size:13px;color:#8a8a8a}
+.stage{width:1280px;height:720px;transform-origin:top left;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.6)}
+.shell{position:relative;height:1px}
+.note{font-family:system-ui,sans-serif;margin-top:14px;font-size:13.5px;line-height:1.65;color:#8f8f8f;max-width:78ch}
+.note b{color:#d8d8d8;font-weight:600}
+.cost{margin-top:56px;border-top:1px solid #3d3d3d;padding-top:22px;font-family:system-ui,sans-serif}
+.cost h2{font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:19px;color:#e6e6e6;
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.cost li{font-size:13.5px;line-height:1.7;color:#9a9a9a;margin-left:18px;max-width:80ch}
+.cost li b{color:#d8d8d8;font-weight:600}
+
+/* ================= THE DESIGN ================= */
+.scr{width:1280px;height:720px;background:var(--plate);position:relative;overflow:hidden;
+  color:var(--engrave);font-family:'Saira Condensed',sans-serif}
+/* engraved legend type */
+.leg{font-size:13px;font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--engrave-lo)}
+.leg.b{color:var(--engrave)}
+
+/* top legend rail — a panel always names itself */
+.rail{position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;gap:20px;
+  padding:0 28px;border-bottom:1px solid var(--rule)}
+.rail .ttl{font-size:19px;font-weight:600;letter-spacing:.22em;text-transform:uppercase}
+.rail .sp{flex:1}
+.lamp{width:11px;height:11px;background:var(--rule);display:inline-block;flex:none}
+.lamp.on{background:var(--lamp)}
+.lamp.warn{background:var(--verb)}
+
+/* ---------- SCREEN 1: preset tiles, 2x2 mapped to the corner footswitches ---------- */
+.mods{position:absolute;top:52px;left:0;right:0;bottom:88px;padding:18px 28px;
+  display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:16px 18px}
+.mod{background:var(--plate2);display:flex;flex-direction:column;border:1px solid var(--rule);position:relative}
+.mod .hd{height:26px;display:flex;align-items:center;gap:14px;padding:0 13px;background:var(--plate3)}
+.mod .hd .n{font-size:12px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--engrave-lo)}
+.mod .hd .sp{flex:1}
+.mod .bd{flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:0 22px}
+.mod .idx{font-family:Saira,sans-serif;font-weight:300;font-size:44px;line-height:1;color:var(--engrave-lo)}
+.mod .nm{font-size:38px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;line-height:1.02}
+/* the outer corner of each tile carries its physical switch — screen geometry
+   mirrors the enclosure, so the foot goes where the eye already is */
+.mod .fs{position:absolute;font-size:11px;font-weight:600;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--engrave-lo)}
+.mod .fs:before{content:"";position:absolute;width:16px;height:16px;border:1px solid var(--rule)}
+.mod.tl .fs{top:38px;left:22px}      .mod.tl .fs:before{top:-11px;left:-9px;border-right:none;border-bottom:none}
+.mod.tr .fs{top:38px;right:22px}     .mod.tr .fs:before{top:-11px;right:-9px;border-left:none;border-bottom:none}
+.mod.bl .fs{bottom:16px;left:22px}   .mod.bl .fs:before{bottom:-9px;left:-9px;border-right:none;border-top:none}
+.mod.br .fs{bottom:16px;right:22px}  .mod.br .fs:before{bottom:-9px;right:-9px;border-left:none;border-top:none}
+.mod.tl .bd,.mod.tr .bd{padding-top:30px}
+.mod.bl .bd,.mod.br .bd{padding-bottom:34px}
+.mod.live .fs{color:var(--lamp)}
+.mod.live .fs:before{border-color:var(--lamp)}
+/* engraved chain nomenclature — printed on the plate, not a chip */
+.nomen{display:flex;align-items:center;gap:0;flex:none}
+.nomen s{text-decoration:none;font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--engrave-lo);padding:0 11px;border-left:1px solid var(--rule)}
+.nomen s:first-child{border-left:none}
+.nomen s i{font-style:normal;display:block;width:100%;height:2px;margin-bottom:5px}
+/* live module */
+.mod.live{border-color:var(--lamp)}
+.mod.live .hd{background:var(--lamp)}
+.mod.live .hd .n{color:#1e211c}
+.mod.live .idx{color:var(--lamp)}
+.mod.live .nm{color:var(--engrave)}
+.mod.fault{border-color:#5e3230}
+.mod.fault .nm{color:#a97e7b}
+.fault-leg{font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--verb);
+  border:1px solid #5e3230;padding:4px 10px}
+
+/* bottom control rail */
+.crail{position:absolute;bottom:0;left:0;right:0;height:88px;border-top:1px solid var(--rule);
+  display:flex;align-items:center;gap:11px;padding:0 28px}
+.pb{border:1px solid var(--rule);background:var(--plate2);color:var(--engrave);font-size:17px;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;padding:12px 22px}
+.pb.pri{background:var(--engrave);color:var(--plate);border-color:var(--engrave)}
+.pb.sm{font-size:14px;padding:10px 15px;letter-spacing:.14em}
+.crail .sp{flex:1}
+/* engraved scale — the panel's own way of showing a level */
+.escale{display:flex;flex-direction:column;gap:6px;width:250px}
+.escale .top{display:flex;justify-content:space-between;align-items:baseline}
+.escale .v{font-family:Saira,sans-serif;font-weight:400;font-size:23px;color:var(--engrave)}
+.escale .trk{height:14px;position:relative;border-bottom:1px solid var(--rule)}
+.escale .trk i{position:absolute;bottom:0;width:1px;height:6px;background:var(--rule)}
+.escale .trk i.b{height:11px;background:var(--engrave-lo)}
+.escale .trk .f{position:absolute;bottom:0;left:0;height:3px;background:var(--engrave)}
+.escale .trk .p{position:absolute;bottom:-3px;width:3px;height:20px;background:var(--lamp);transform:translateX(-50%)}
+
+/* ---------- SCREEN 2: signal path ---------- */
+.path{position:absolute;top:52px;left:0;right:0;bottom:88px;display:flex;align-items:center;
+  gap:0;padding:0 28px}
+.blkm{width:168px;flex:none;border:1px solid var(--rule);background:var(--plate2)}
+.blkm .hd{height:24px;display:flex;align-items:center;padding:0 10px;font-size:11px;font-weight:600;
+  letter-spacing:.2em;text-transform:uppercase;color:#1e211c}
+.blkm .bd{padding:18px 13px 16px;display:flex;flex-direction:column;gap:12px;min-height:302px}
+.blkm .nm{font-size:26px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;line-height:.98}
+.blkm .rd{font-family:Saira,sans-serif;font-weight:300;font-size:13px;color:var(--engrave-lo);letter-spacing:.05em}
+.blkm .grp{margin-top:auto;display:flex;gap:3px}
+.blkm .grp i{flex:1;height:3px;background:var(--rule)}
+.blkm.sel{border-color:var(--engrave)}
+.blkm.byp{background:var(--plate3)}
+.blkm.byp .hd{background:var(--rule)!important;color:var(--engrave-lo)}
+.blkm.byp .nm,.blkm.byp .rd{color:#5d6157}
+/* patch point + cord */
+.pp{width:46px;flex:none;display:flex;align-items:center;justify-content:center;position:relative}
+.pp:before{content:"";position:absolute;left:0;right:0;height:1px;background:var(--rule)}
+.pp b{width:15px;height:15px;border:2px solid var(--engrave-lo);border-radius:50%;background:var(--plate);
+  position:relative;z-index:2}
+.pp.add b{border-style:solid;border-color:var(--rule);display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:600;color:var(--engrave-lo);width:19px;height:19px;line-height:1}
+.term{width:52px;flex:none;text-align:center;font-size:12px;font-weight:600;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--engrave-lo)}
+/* bypass cord routed over the module */
+.byproute{position:absolute;left:0;right:0;top:-30px;height:30px;pointer-events:none}
+.byproute:before{content:"";position:absolute;left:-23px;right:-23px;top:0;height:2px;background:var(--lamp)}
+.byproute:after{content:"BYP";position:absolute;left:50%;transform:translateX(-50%);top:6px;font-size:10px;
+  font-weight:600;letter-spacing:.2em;color:var(--lamp)}
+.blkm{position:relative}
+/* split group */
+.splitm{flex:none;border:1px solid var(--rule);padding:26px 14px 14px;position:relative;
+  display:flex;flex-direction:column;gap:14px}
+.splitm .cap2{position:absolute;top:-1px;left:-1px;background:var(--util);color:#1e211c;font-size:11px;
+  font-weight:600;letter-spacing:.2em;text-transform:uppercase;padding:3px 11px}
+.lnrow{display:flex;align-items:center}
+.lnrow .lk{width:26px;flex:none;text-align:center;font-size:14px;font-weight:600;letter-spacing:.1em;
+  color:var(--engrave-lo)}
+.lnrow .blkm{width:142px}
+.lnrow .blkm .bd{min-height:86px;padding:10px}
+.lnrow .blkm .nm{font-size:20px}
+
+/* ---------- SCREEN 3: tuner ---------- */
+.tnp{position:absolute;top:52px;left:0;right:0;bottom:88px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:0}
+.tnp .desig{display:flex;align-items:baseline;gap:14px}
+.tnp .big{font-size:184px;font-weight:600;line-height:.9;letter-spacing:.02em}
+.tnp .oct{font-family:Saira,sans-serif;font-weight:300;font-size:44px;color:var(--engrave-lo)}
+.tnp .meas{font-family:Saira,sans-serif;font-weight:300;font-size:19px;color:var(--engrave-lo);
+  letter-spacing:.14em;margin-top:6px}
+/* engraved centre-zero meter */
+.meter{width:900px;margin-top:34px;position:relative}
+.meter .scale{height:56px;position:relative;border-bottom:1px solid var(--rule)}
+.meter .tk{position:absolute;bottom:0;width:1px;height:10px;background:var(--rule)}
+.meter .tk.b{height:22px;background:var(--engrave-lo)}
+.meter .tk.z{height:34px;width:2px;background:var(--engrave)}
+.meter .lb{position:absolute;bottom:28px;transform:translateX(-50%);font-family:Saira,sans-serif;
+  font-weight:300;font-size:12px;color:var(--engrave-lo)}
+.meter .nd{position:absolute;bottom:0;width:3px;height:56px;background:var(--lamp)}
+.meter .nd:before{content:"";position:absolute;top:-10px;left:-5px;border-left:6px solid transparent;
+  border-right:6px solid transparent;border-top:11px solid var(--lamp)}
+/* lamp row — the panel's own state readout */
+.lamps{display:flex;gap:9px;margin-top:30px;align-items:center}
+.lamps .u{display:flex;flex-direction:column;align-items:center;gap:7px;width:96px}
+.lamps .u .l{width:100%;height:6px;background:var(--rule)}
+.lamps .u.on .l{background:var(--lamp)}
+.lamps .u .t{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--engrave-lo)}
+.lamps .u.on .t{color:var(--engrave)}
+
+/* ---------- SCREEN 4: control group ---------- */
+.grp4{position:absolute;top:52px;left:0;right:0;bottom:88px;padding:20px 28px;
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:22px 32px}
+.ctl{display:flex;flex-direction:column;justify-content:center;gap:10px;position:relative}
+.ctl .k{font-size:14px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--engrave-lo)}
+.ctl .v{font-family:Saira,sans-serif;font-weight:300;font-size:46px;line-height:.9;color:var(--engrave)}
+.ctl .v em{font-style:normal;font-size:17px;color:var(--engrave-lo);margin-left:6px;letter-spacing:.08em}
+/* engraved travel scale: printed ticks with numerals, like every synth panel */
+.trav{height:34px;position:relative;border-bottom:1px solid var(--rule)}
+.trav .t{position:absolute;bottom:0;width:1px;height:8px;background:var(--rule)}
+.trav .t.b{height:15px;background:var(--engrave-lo)}
+.trav .n{position:absolute;bottom:19px;transform:translateX(-50%);font-family:Saira,sans-serif;
+  font-weight:300;font-size:11px;color:var(--engrave-lo)}
+.trav .f{position:absolute;bottom:0;left:0;height:3px;background:var(--engrave)}
+.trav .h{position:absolute;bottom:-5px;width:4px;height:22px;background:var(--lamp);transform:translateX(-50%)}
+.ctl.disc .opts{display:flex;gap:0;border:1px solid var(--rule)}
+.ctl.disc .o{flex:1;text-align:center;padding:9px 0;font-size:16px;font-weight:600;letter-spacing:.12em;
+  color:var(--engrave-lo);border-left:1px solid var(--rule)}
+.ctl.disc .o:first-child{border-left:none}
+.ctl.disc .o.on{background:var(--engrave);color:var(--plate)}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Direction D — Panel</h1>
+  <p class="sub">The nomenclature plate of an instrument — not a rendered panel with fake knobs, but the
+  engraved graphic system itself: bracketed function groups, printed travel scales with numerals, patch-point
+  circles, section legends. Quiet by construction. Colour appears only where it groups something, and one warm
+  amber lamp means <em>live</em> across the whole system.</p>
+
+  <div class="cap"><b>1 · Preset tiles</b><span>preset screen</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="rail">
+        <div class="ttl">Ardor</div>
+        <div class="leg">Bank 000 · Set A</div>
+        <div class="sp"></div>
+        <div class="leg">48 kHz · blk 64</div>
+        <div class="leg b" style="display:flex;align-items:center;gap:7px"><span class="lamp on"></span>MIDI</div>
+      </div>
+
+      <div class="mods">
+        <div class="mod tl">
+          <div class="hd"><span class="n">Preset 1</span><span class="sp"></span><span class="lamp"></span></div>
+          <div class="bd">
+            <div class="idx">1</div>
+            <div class="nm">Midnight Clean</div>
+            <div class="nomen">
+              <s><i style="background:var(--amp)"></i>Amp</s>
+              <s><i style="background:var(--cab)"></i>Cab</s>
+              <s><i style="background:var(--verb)"></i>Hall</s>
+            </div>
+          </div>
+          <span class="fs">FS 1</span>
+        </div>
+
+        <div class="mod tr">
+          <div class="hd"><span class="n">Preset 3</span><span class="sp"></span><span class="lamp"></span></div>
+          <div class="bd">
+            <div class="idx">3</div>
+            <div class="nm">Split Rig<br>Wide</div>
+            <div class="nomen">
+              <s><i style="background:var(--util)"></i>Split</s>
+              <s><i style="background:var(--mod)"></i>Chorus</s>
+              <s><i style="background:var(--dly)"></i>Delay</s>
+            </div>
+          </div>
+          <span class="fs">FS 3</span>
+        </div>
+
+        <div class="mod bl live">
+          <div class="hd"><span class="n">Preset 2 · Running</span><span class="sp"></span>
+            <span class="lamp on"></span></div>
+          <div class="bd">
+            <div class="idx">2</div>
+            <div class="nm">Drive Stack</div>
+            <div class="nomen">
+              <s><i style="background:var(--amp)"></i>Amp</s>
+              <s><i style="background:var(--cab)"></i>Cab</s>
+              <s><i style="background:var(--dly)"></i>Tape</s>
+            </div>
+          </div>
+          <span class="fs">FS 2</span>
+        </div>
+
+        <div class="mod br fault">
+          <div class="hd"><span class="n">Preset 4</span><span class="sp"></span>
+            <span class="lamp warn"></span></div>
+          <div class="bd">
+            <div class="idx">4</div>
+            <div class="nm">Ambient Bloom</div>
+            <div class="fault-leg">Asset not found</div>
+          </div>
+          <span class="fs">FS 4</span>
+        </div>
+      </div>
+
+      <div class="crail">
+        <div class="pb pri">Edit</div><div class="pb">Tuner</div>
+        <div class="pb sm">Bank −</div><div class="pb sm">Bank +</div><div class="pb sm">Setup</div>
+        <div class="sp"></div>
+        <div class="escale">
+          <div class="top"><span class="leg">Master</span><span class="v">72</span></div>
+          <div class="trk">
+            <i class="b" style="left:0"></i><i style="left:12.5%"></i><i style="left:25%"></i>
+            <i style="left:37.5%"></i><i class="b" style="left:50%"></i><i style="left:62.5%"></i>
+            <i style="left:75%"></i><i style="left:87.5%"></i><i class="b" style="left:100%"></i>
+            <div class="f" style="width:72%"></div><div class="p" style="left:72%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+  <p class="note"><b>The screen is a map of the enclosure.</b> <code>enclosure.openscad</code> puts the four
+  footswitches at the four corners of the top panel with the display between them, so the patches occupy the
+  same quadrants and each tile carries its switch in its own outer corner. You stop translating "patch 3" into
+  "which pedal is that" — the tile is where the foot goes. Beyond that, restraint does the work: three modules
+  are near-identical bone-on-graphite and the running one differs by a lit lamp, a full-chroma header and a
+  coloured numeral.</p>
+  <p class="note" style="margin-top:10px"><b>Confirmed layout, and cheaper than it looks.</b> FS1 top-left, FS2
+  bottom-left, FS3 top-right, FS4 bottom-right — now recorded in <code>docs/hardware-assembly.md</code>. The
+  build already draws this screen as a 2 × 2 grid; it just assigns cells in reading order
+  (<code>LvglUiPreset.cpp:196</code>), so slots land 1, 2 / 3, 4. Column-major gives <b>1, 3 / 2, 4</b> and the
+  two expressions simply swap. Everything above the transpose is restyling. It also puts factory-reset approve
+  and cancel (FS1 and FS4) on opposite corners, which is worth keeping.</p>
+
+  <div class="cap"><b>2 · Signal path</b><span>edit screen — patch points, family headers, bypass cord</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="rail">
+        <div class="ttl">Preset 2</div><div class="leg">Drive Stack</div>
+        <div class="leg b" style="color:var(--lamp)">· Modified</div>
+        <div class="sp"></div><div class="leg">4 modules · 8.2 ms</div>
+      </div>
+      <div class="path">
+        <div class="term">In</div>
+        <div class="pp add"><b>+</b></div>
+        <div class="blkm">
+          <div class="hd" style="background:var(--amp)">Amp · U1</div>
+          <div class="bd"><div class="nm">Tweed<br>Deluxe</div><div class="rd">Nano · sum</div>
+            <div class="grp"><i style="background:var(--amp)"></i><i></i><i></i></div></div>
+        </div>
+        <div class="pp"><b></b></div>
+        <div class="blkm sel">
+          <div class="hd" style="background:var(--cab)">Cab · IR1</div>
+          <div class="bd"><div class="nm">Open<br>Back</div><div class="rd">−2.0 dB · mix 100</div>
+            <div class="grp"><i style="background:var(--cab)"></i><i></i><i></i></div></div>
+        </div>
+        <div class="pp add"><b>+</b></div>
+        <div class="blkm byp">
+          <div class="byproute"></div>
+          <div class="hd">Mod · M1</div>
+          <div class="bd"><div class="nm">Chorus</div><div class="rd">Bypassed</div>
+            <div class="grp"><i></i><i></i><i></i></div></div>
+        </div>
+        <div class="pp"><b></b></div>
+        <div class="blkm">
+          <div class="hd" style="background:var(--dly)">Delay · D1</div>
+          <div class="bd"><div class="nm">Tape</div><div class="rd">380 ms · fb 34</div>
+            <div class="grp"><i style="background:var(--dly)"></i><i></i><i></i></div></div>
+        </div>
+        <div class="pp add"><b>+</b></div>
+        <div class="term">Out</div>
+      </div>
+      <div class="crail">
+        <div class="pb pri">Save</div><div class="pb sm">Undo</div><div class="pb sm">Redo</div>
+        <div class="pb sm">Modules</div>
+        <div class="sp"></div><div class="pb">Done</div>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="cap"><b>2b · Split</b><span>Dual Rig as a bracketed module group</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="rail"><div class="ttl">Preset 3</div><div class="leg">Split Rig — Wide</div>
+        <div class="sp"></div><div class="leg">2 lanes · stereo join</div></div>
+      <div class="path">
+        <div class="term">In</div>
+        <div class="pp"><b></b></div>
+        <div class="splitm">
+          <div class="cap2">Split L / R</div>
+          <div class="lnrow"><div class="lk">L</div>
+            <div class="blkm"><div class="hd" style="background:var(--amp)">Amp</div>
+              <div class="bd"><div class="nm">Clean</div><div class="rd">Nano</div></div></div>
+            <div class="pp"><b></b></div>
+            <div class="blkm"><div class="hd" style="background:var(--cab)">Cab</div>
+              <div class="bd"><div class="nm">Open</div><div class="rd">−2.0 dB</div></div></div>
+            <div class="pp add"><b>+</b></div>
+            <div class="blkm"><div class="hd" style="background:var(--mod)">Mod</div>
+              <div class="bd"><div class="nm">Chorus</div><div class="rd">Rate 0.4</div></div></div>
+          </div>
+          <div class="lnrow"><div class="lk">R</div>
+            <div class="blkm"><div class="hd" style="background:var(--amp)">Amp</div>
+              <div class="bd"><div class="nm">Crunch</div><div class="rd">Full</div></div></div>
+            <div class="pp"><b></b></div>
+            <div class="blkm"><div class="hd" style="background:var(--cab)">Cab</div>
+              <div class="bd"><div class="nm">Closed</div><div class="rd">−1.0 dB</div></div></div>
+            <div class="pp add"><b>+</b></div>
+            <div class="blkm"><div class="hd" style="background:var(--dly)">Delay</div>
+              <div class="bd"><div class="nm">Digital</div><div class="rd">240 ms</div></div></div>
+          </div>
+        </div>
+        <div class="pp"><b></b></div>
+        <div class="term">Join<br>L / R</div>
+        <div class="pp"><b></b></div>
+        <div class="term">Out</div>
+      </div>
+      <div class="crail">
+        <div class="pb sm">Save</div><div class="pb sm">Undo</div><div class="pb sm">Modules</div>
+        <div class="sp"></div><div class="pb">Done</div>
+      </div>
+    </div>
+  </div></div>
+  <p class="note"><b>Bypass is a patch cord, not a dimmed card.</b> The module stays in place with its header
+  gone to bare metal, and an amber cord runs over the top carrying the signal past it. Exactly how you would
+  patch around a module you did not want in the chain.</p>
+
+  <div class="cap"><b>3 · Tuner</b><span>engraved centre-zero meter and a lamp row</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="rail"><div class="ttl">Tuner</div><div class="leg">Chromatic · A4 = 440.0</div>
+        <div class="sp"></div>
+        <div class="leg b" style="display:flex;align-items:center;gap:7px;color:var(--verb)">
+          <span class="lamp warn"></span>Output muted</div></div>
+      <div class="tnp">
+        <div class="desig"><span class="big">A</span><span class="oct">2</span></div>
+        <div class="meas">110.42 Hz · −6.0 cents</div>
+        <div class="meter">
+          <div class="scale">
+            <span class="tk b" style="left:0"></span><span class="lb" style="left:0">−50</span>
+            <span class="tk" style="left:12.5%"></span>
+            <span class="tk b" style="left:25%"></span><span class="lb" style="left:25%">−25</span>
+            <span class="tk" style="left:37.5%"></span>
+            <span class="tk z" style="left:50%"></span><span class="lb" style="left:50%">0</span>
+            <span class="tk" style="left:62.5%"></span>
+            <span class="tk b" style="left:75%"></span><span class="lb" style="left:75%">+25</span>
+            <span class="tk" style="left:87.5%"></span>
+            <span class="tk b" style="left:100%"></span><span class="lb" style="left:100%">+50</span>
+            <span class="nd" style="left:44%"></span>
+          </div>
+        </div>
+        <div class="lamps">
+          <div class="u on"><span class="l"></span><span class="t">Flat</span></div>
+          <div class="u"><span class="l"></span><span class="t">In tune</span></div>
+          <div class="u"><span class="l"></span><span class="t">Sharp</span></div>
+        </div>
+      </div>
+      <div class="crail">
+        <div class="leg">Any footswitch exits</div>
+        <div class="sp"></div><div class="pb pri">Exit</div>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="cap"><b>4 · Control group</b><span>parameters as engraved travel scales</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="rail">
+        <div class="ttl">Tape</div><div class="leg">Delay · D1 · 6 controls</div>
+        <div class="sp"></div>
+        <div class="leg b" style="display:flex;align-items:center;gap:7px"><span class="lamp on"></span>Enabled</div>
+        <div class="pb sm">Bypass</div><div class="pb sm">Done</div>
+      </div>
+      <div class="grp4">
+        <div class="ctl">
+          <div class="k">Time</div><div class="v">380<em>ms</em></div>
+          <div class="trav">
+            <span class="t b" style="left:0"></span><span class="n" style="left:0">0</span>
+            <span class="t" style="left:20%"></span><span class="t b" style="left:40%"></span>
+            <span class="n" style="left:40%">4</span><span class="t" style="left:60%"></span>
+            <span class="t b" style="left:80%"></span><span class="n" style="left:80%">8</span>
+            <span class="t b" style="left:100%"></span><span class="n" style="left:100%">10</span>
+            <span class="f" style="width:31%"></span><span class="h" style="left:31%"></span>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="k">Feedback</div><div class="v">34<em>%</em></div>
+          <div class="trav">
+            <span class="t b" style="left:0"></span><span class="n" style="left:0">0</span>
+            <span class="t" style="left:20%"></span><span class="t b" style="left:40%"></span>
+            <span class="n" style="left:40%">4</span><span class="t" style="left:60%"></span>
+            <span class="t b" style="left:80%"></span><span class="n" style="left:80%">8</span>
+            <span class="t b" style="left:100%"></span><span class="n" style="left:100%">10</span>
+            <span class="f" style="width:34%"></span><span class="h" style="left:34%"></span>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="k">Mix</div><div class="v">28<em>%</em></div>
+          <div class="trav">
+            <span class="t b" style="left:0"></span><span class="n" style="left:0">0</span>
+            <span class="t" style="left:20%"></span><span class="t b" style="left:40%"></span>
+            <span class="n" style="left:40%">4</span><span class="t" style="left:60%"></span>
+            <span class="t b" style="left:80%"></span><span class="n" style="left:80%">8</span>
+            <span class="t b" style="left:100%"></span><span class="n" style="left:100%">10</span>
+            <span class="f" style="width:28%"></span><span class="h" style="left:28%"></span>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="k">Wow</div><div class="v">18<em>%</em></div>
+          <div class="trav">
+            <span class="t b" style="left:0"></span><span class="n" style="left:0">0</span>
+            <span class="t" style="left:20%"></span><span class="t b" style="left:40%"></span>
+            <span class="n" style="left:40%">4</span><span class="t" style="left:60%"></span>
+            <span class="t b" style="left:80%"></span><span class="n" style="left:80%">8</span>
+            <span class="t b" style="left:100%"></span><span class="n" style="left:100%">10</span>
+            <span class="f" style="width:18%"></span><span class="h" style="left:18%"></span>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="k">Age</div><div class="v">61<em>%</em></div>
+          <div class="trav">
+            <span class="t b" style="left:0"></span><span class="n" style="left:0">0</span>
+            <span class="t" style="left:20%"></span><span class="t b" style="left:40%"></span>
+            <span class="n" style="left:40%">4</span><span class="t" style="left:60%"></span>
+            <span class="t b" style="left:80%"></span><span class="n" style="left:80%">8</span>
+            <span class="t b" style="left:100%"></span><span class="n" style="left:100%">10</span>
+            <span class="f" style="width:61%"></span><span class="h" style="left:61%"></span>
+          </div>
+        </div>
+        <div class="ctl disc">
+          <div class="k">Heads</div><div class="v" style="font-size:30px">Dual</div>
+          <div class="opts"><div class="o">1</div><div class="o on">2</div><div class="o">3</div></div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="cost">
+    <h2>What this costs in LVGL</h2>
+    <ul>
+      <li><b>Almost free.</b> Flat plates, 1px rules, small solid rects. No gradients, no images required for the
+        core system — this is close to the cheapest thing LVGL can draw.</li>
+      <li><b>Engraved tick scales</b> are the one repetitive cost: 9–15 thin rects per control, six controls per
+        page. Build them once as a reusable widget and cache it; the existing parameter-view caching by control
+        signature already handles exactly this case.</li>
+      <li><b>Fonts:</b> Saira Condensed at four sizes plus Saira Light at three. The 184 px tuner glyph is a
+        12-character subset. Modest — roughly half of Direction C's font bill.</li>
+      <li><b>Lamps</b> are 11 px solid squares. If you want a round lamp, LVGL's radius on a small object is
+        cheap; if you want a glow, don't — that is a ramp and it will band.</li>
+      <li><b>Genuine stretch:</b> the bypass patch cord routed over a module needs an <code>lv_line</code> drawn
+        above the module layer with correct z-order during drag. Small, but it touches the drag code.</li>
+    </ul>
+  </div>
+</div>
+<script>
+const fit=()=>{const s=Math.min(1,document.querySelector('.doc').clientWidth/1280);
+document.querySelectorAll('.stage').forEach(el=>{el.style.transform=`scale(${s})`;
+el.parentElement.style.height=(720*s)+'px';});};
+addEventListener('resize',fit);fit();document.fonts?.ready.then(fit);
+</script>
+</body>
+</html>

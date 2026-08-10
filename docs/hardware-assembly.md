@@ -73,6 +73,35 @@ The Codec Zero is an I2S HAT. Raspberry Pi 4 and earlier expose I2S on GPIO18, G
 | MIDI output reserve | GPIO8 | 24 | UART4 TX; do not connect directly to a MIDI jack |
 | Expression ADC alert | GPIO25 | 22 | ADS1115 ALERT/RDY, open-drain with 10 kΩ pull-up |
 
+### Footswitch physical positions
+
+`enclosure.openscad` places the four footswitches at the corners of the top panel,
+inset `footswitch_margin` (22 mm), with the display centred between them. Viewed
+from the player's position, with the rear of the enclosure at the top:
+
+```
+   FS 1  ┌───────────────────┐  FS 3
+         │                   │
+         │   Touch display   │
+         │                   │
+   FS 2  └───────────────────┘  FS 4
+```
+
+| Switch | Position | Keycode | Preset slot |
+| --- | --- | --- | ---: |
+| Footswitch 1 | Top-left (rear-left) | `KEY_F1` | 1 |
+| Footswitch 2 | Bottom-left (front-left) | `KEY_F2` | 2 |
+| Footswitch 3 | Top-right (rear-right) | `KEY_F3` | 3 |
+| Footswitch 4 | Bottom-right (front-right) | `KEY_F4` | 4 |
+
+The left column is therefore FS1 and FS2, which is the pair held together for one
+second to mute the output and open the tuner. FS1 approves a factory reset and FS4
+cancels it.
+
+This layout is load-bearing for the UI: the preset screen is laid out as a 2 × 2
+grid whose quadrants match these corners. See
+[`docs/lvgl-ui-redesign-spec.md`](lvgl-ui-redesign-spec.md).
+
 The ADS1115 shares I2C1 on GPIO2/GPIO3 with the Codec Zero at address `0x48`.
 The companion board does not add I2C pull-ups because the assembled bus already
 has them.

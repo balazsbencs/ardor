@@ -224,11 +224,12 @@ void LvglUi::rebuildEditView(UiState& state)
   });
   editPresetLabel_ = nullptr;
   saveButtonLabel_ = nullptr;
+  editModifiedLabel_ = nullptr;
+  editModuleCountLabel_ = nullptr;
   chainCards_.fill(nullptr);
   chainCategoryLabels_.fill(nullptr);
   chainAssetLabels_.fill(nullptr);
   chainBypassLabels_.fill(nullptr);
-  chainSelectionIndicators_.fill(nullptr);
   chainClickContexts_.fill(nullptr);
   chainDragContexts_.fill(nullptr);
   renderedBlockIds_.clear();
@@ -263,40 +264,36 @@ void LvglUi::syncChainCards(UiState& state)
   for (std::size_t i = 0; i < blocks.size(); ++i) {
     const auto& block = blocks[i];
     if (!chainCards_[i] || !chainCategoryLabels_[i] || !chainAssetLabels_[i]
-        || !chainBypassLabels_[i] || !chainSelectionIndicators_[i]
+        || !chainBypassLabels_[i]
         || !chainClickContexts_[i] || !chainDragContexts_[i]) {
       rebuildEditView(state);
       return;
     }
 
     auto* card = chainCards_[i];
-    styleSurface(card, block.enabled ? panel : 0x171717);
+    styleSurface(card, block.enabled ? panel : panelAlt);
     lv_obj_set_style_opa(card, block.enabled ? LV_OPA_COVER : LV_OPA_70, 0);
+    const bool selected = state.paramTarget == UiParamTarget::Block
+      && state.selectedBlock == i && !selectedBlockIsLaneChild(state);
+    lv_obj_set_style_border_color(card, lv_color_hex(selected ? text : rule), 0);
     if (isBlockHighlighted(block.id)) {
-      lv_obj_set_style_border_color(card, lv_color_hex(accent), 0);
+      lv_obj_set_style_border_color(card, lv_color_hex(text), 0);
       lv_obj_set_style_border_width(card, 3, 0);
     }
 
-    std::string category = block.label;
-    std::transform(category.begin(), category.end(), category.begin(),
-                   [](unsigned char character) {
-                     return static_cast<char>(std::toupper(character));
-                   });
-    lv_label_set_text(chainCategoryLabels_[i], category.c_str());
-    lv_label_set_text(chainAssetLabels_[i], block.assetName.c_str());
+    lv_label_set_text(chainCategoryLabels_[i], uppercase(block.label).c_str());
+    setText(chainCategoryLabels_[i], block.enabled ? bg : muted, &ardor_font_saira_cond_medium_18);
+    auto* categoryHeader = lv_obj_get_parent(chainCategoryLabels_[i]);
+    styleSurface(categoryHeader, block.enabled ? categoryColor(block.type) : rule);
+    lv_obj_set_style_border_width(categoryHeader, 0, 0);
+    lv_label_set_text(chainAssetLabels_[i], uppercase(block.assetName).c_str());
+    setText(chainAssetLabels_[i], block.enabled ? text : disabled, &ardor_font_saira_cond_semibold_28);
     if (block.enabled) {
       lv_obj_add_flag(chainBypassLabels_[i], LV_OBJ_FLAG_HIDDEN);
     } else {
       lv_obj_remove_flag(chainBypassLabels_[i], LV_OBJ_FLAG_HIDDEN);
     }
 
-    const bool selected = state.paramTarget == UiParamTarget::Block
-      && state.selectedBlock == i && !selectedBlockIsLaneChild(state);
-    if (selected) {
-      lv_obj_remove_flag(chainSelectionIndicators_[i], LV_OBJ_FLAG_HIDDEN);
-    } else {
-      lv_obj_add_flag(chainSelectionIndicators_[i], LV_OBJ_FLAG_HIDDEN);
-    }
     chainClickContexts_[i]->index = i;
     chainDragContexts_[i]->index = i;
     chainDragContexts_[i]->controlledObject = card;

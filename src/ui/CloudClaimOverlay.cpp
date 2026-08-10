@@ -1,4 +1,5 @@
 #include "ui/CloudClaimOverlay.h"
+#include "ui/LvglUiStyle.h"
 
 #include <fstream>
 #include <system_error>
@@ -7,6 +8,8 @@
 
 namespace ardor {
 namespace {
+
+using namespace lvgl_ui;
 
 nlohmann::json readObject(const std::filesystem::path& path)
 {
@@ -22,13 +25,23 @@ nlohmann::json readObject(const std::filesystem::path& path)
 
 lv_obj_t* labeledButton(lv_obj_t* parent, const char* text, int32_t x)
 {
-  auto* button = lv_button_create(parent);
-  lv_obj_set_size(button, 180, 58);
-  lv_obj_align(button, LV_ALIGN_BOTTOM_MID, x, -28);
-  auto* label = lv_label_create(button);
-  lv_label_set_text(label, text);
-  lv_obj_center(label);
-  return button;
+  auto* action = lvgl_ui::button(parent, text);
+  lv_obj_set_size(action, 180, 58);
+  lv_obj_align(action, LV_ALIGN_BOTTOM_MID, x, -28);
+  return action;
+}
+
+void styleDialog(lv_obj_t* modal)
+{
+  styleSurface(modal, panelAlt);
+  lv_obj_set_style_pad_all(modal, 0, 0);
+  lv_obj_remove_flag(modal, LV_OBJ_FLAG_SCROLLABLE);
+}
+
+void styleDialogText(lv_obj_t* title, lv_obj_t* detail)
+{
+  setText(title, text, &ardor_font_saira_cond_semibold_22);
+  setText(detail, muted, &ardor_font_saira_cond_medium_18);
 }
 
 } // namespace
@@ -199,6 +212,7 @@ void CloudClaimOverlay::showCode(const std::string& flowId, const std::string& c
   modal_ = lv_obj_create(lv_layer_top());
   lv_obj_set_size(modal_, 620, 300);
   lv_obj_center(modal_);
+  styleDialog(modal_);
   title_ = lv_label_create(modal_);
   lv_label_set_text(title_, "Claim this Ardor pedal");
   lv_obj_align(title_, LV_ALIGN_TOP_MID, 0, 28);
@@ -207,6 +221,7 @@ void CloudClaimOverlay::showCode(const std::string& flowId, const std::string& c
   lv_label_set_text(detail_, text.c_str());
   lv_obj_set_style_text_align(detail_, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(detail_, LV_ALIGN_CENTER, 0, 12);
+  styleDialogText(title_, detail_);
 }
 
 void CloudClaimOverlay::showPending(const std::string& flowId, const std::string& accountName)
@@ -217,6 +232,7 @@ void CloudClaimOverlay::showPending(const std::string& flowId, const std::string
   modal_ = lv_obj_create(lv_layer_top());
   lv_obj_set_size(modal_, 700, 360);
   lv_obj_center(modal_);
+  styleDialog(modal_);
   title_ = lv_label_create(modal_);
   lv_label_set_text(title_, "Confirm device claim");
   lv_obj_align(title_, LV_ALIGN_TOP_MID, 0, 28);
@@ -225,6 +241,7 @@ void CloudClaimOverlay::showPending(const std::string& flowId, const std::string
   lv_label_set_text(detail_, text.c_str());
   lv_obj_set_style_text_align(detail_, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(detail_, LV_ALIGN_CENTER, 0, -20);
+  styleDialogText(title_, detail_);
   approve_ = labeledButton(modal_, "Approve", -110);
   reject_ = labeledButton(modal_, "Reject", 110);
   lv_obj_add_event_cb(approve_, approveClicked, LV_EVENT_CLICKED, this);
@@ -239,6 +256,7 @@ void CloudClaimOverlay::showLocalSetup(const std::string& setupId, const std::st
   modal_ = lv_obj_create(lv_layer_top());
   lv_obj_set_size(modal_, 650, 320);
   lv_obj_center(modal_);
+  styleDialog(modal_);
   title_ = lv_label_create(modal_);
   lv_label_set_text(title_, "Set up local manager access");
   lv_obj_align(title_, LV_ALIGN_TOP_MID, 0, 28);
@@ -247,6 +265,7 @@ void CloudClaimOverlay::showLocalSetup(const std::string& setupId, const std::st
   lv_label_set_text(detail_, text.c_str());
   lv_obj_set_style_text_align(detail_, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(detail_, LV_ALIGN_CENTER, 0, 12);
+  styleDialogText(title_, detail_);
 }
 
 void CloudClaimOverlay::showFactoryPending(const std::string& resetId)
@@ -257,6 +276,7 @@ void CloudClaimOverlay::showFactoryPending(const std::string& resetId)
   modal_ = lv_obj_create(lv_layer_top());
   lv_obj_set_size(modal_, 720, 390);
   lv_obj_center(modal_);
+  styleDialog(modal_);
   title_ = lv_label_create(modal_);
   lv_label_set_text(title_, "Confirm factory reset");
   lv_obj_align(title_, LV_ALIGN_TOP_MID, 0, 28);
@@ -264,6 +284,7 @@ void CloudClaimOverlay::showFactoryPending(const std::string& resetId)
   lv_label_set_text(detail_, "This removes local access, presets, models, IRs, Wi-Fi, and settings.\nThe stable device identity is preserved.\n\nFootswitch 1: Erase everything    Footswitch 4: Cancel");
   lv_obj_set_style_text_align(detail_, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(detail_, LV_ALIGN_CENTER, 0, -25);
+  styleDialogText(title_, detail_);
   approve_ = labeledButton(modal_, "Erase everything", -110);
   reject_ = labeledButton(modal_, "Cancel", 110);
   lv_obj_add_event_cb(approve_, approveClicked, LV_EVENT_CLICKED, this);
@@ -284,10 +305,12 @@ void CloudClaimOverlay::showDecided(bool approved)
     modal_ = lv_obj_create(lv_layer_top());
     lv_obj_set_size(modal_, 620, 260);
     lv_obj_center(modal_);
+    styleDialog(modal_);
     title_ = lv_label_create(modal_);
     lv_obj_align(title_, LV_ALIGN_TOP_MID, 0, 28);
     detail_ = lv_label_create(modal_);
     lv_obj_align(detail_, LV_ALIGN_CENTER, 0, 16);
+    styleDialogText(title_, detail_);
   }
   mode_ = Mode::Decided;
   lv_label_set_text(title_, approved ? "Claim approved" : "Claim rejected");

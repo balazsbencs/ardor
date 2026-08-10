@@ -60,6 +60,7 @@
 namespace {
 
 volatile std::sig_atomic_t running = 1;
+std::atomic<bool> audioRestartRequested{false};
 // The stdin helper is detached because formatted stdin reads are not
 // cancellation-friendly. These requests therefore need process lifetime rather
 // than stack lifetime.
@@ -841,6 +842,10 @@ int main(int argc, char** argv)
 #endif
         uiState = ardor::makeDemoUiState();
         uiState.settings = globalSettings.load();
+        // The command line is the source of truth for the running engine. The
+        // persisted value will match it under the appliance supervisor, while
+        // this assignment keeps manually launched builds honest as well.
+        uiState.settings.audioBlockSize = args.blockSize;
         args.midiChannel = uiState.settings.midiChannel;
         args.midiTunerCc = uiState.settings.midiTunerCc;
         args.expressionMinimumRaw = uiState.settings.expressionMinimumRaw;
@@ -939,8 +944,16 @@ int main(int argc, char** argv)
           [&](bool enabled) {
             requestedTunerMode = enabled ? 1 : 0;
           },
-          [&](std::uint32_t color, std::string& error) {
-            return globalSettings.saveAccentColor(color, error);
+          [&](ardor::PaletteId palette, std::string& error) {
+            return globalSettings.savePalette(palette, error);
+          },
+          [&](std::uint32_t blockSize, std::string& error) {
+            if (!globalSettings.saveAudioBlockSize(blockSize, error)) return false;
+            std::thread([] {
+              std::this_thread::sleep_for(std::chrono::milliseconds(750));
+              audioRestartRequested.store(true, std::memory_order_relaxed);
+            }).detach();
+            return true;
           },
           [&](const std::string& ssid, const std::string& password,
               const std::string& country, std::string& error) {
@@ -1065,6 +1078,10 @@ int main(int argc, char** argv)
 #endif
       auto nextRuntimeCommandPoll = std::chrono::steady_clock::now();
       auto nextTelemetry = nextRuntimeCommandPoll;
+      // Faster than nextTelemetry's 1 s tier: a gain-reduction meter that only
+      // refreshed once a second would look frozen while someone is actually
+      // watching it and dragging the threshold slider.
+      auto nextGainReductionPoll = nextRuntimeCommandPoll;
       const auto applyFootswitchAction = [&](const ardor::FootswitchAction& action) {
 #if defined(ARDOR_HAS_UI)
         if (args.enableUi && ui && !ardor::previewIsSynchronized(uiState)) {
@@ -1135,7 +1152,7 @@ int main(int argc, char** argv)
         requestedBank.store(bank, std::memory_order_relaxed);
         requestedSlot.store(slot, std::memory_order_relaxed);
       };
-      while (running) {
+      while (running && !audioRestartRequested.load(std::memory_order_relaxed)) {
 #if defined(ARDOR_HAS_UI)
         if (args.enableUi && ui) {
           claimOverlay->poll();
@@ -1436,6 +1453,20 @@ int main(int argc, char** argv)
         }
 #endif
         const auto now = std::chrono::steady_clock::now();
+#if defined(ARDOR_HAS_UI)
+        if (args.enableUi && ui && now >= nextGainReductionPoll) {
+          nextGainReductionPoll = now + std::chrono::milliseconds(40);
+          if (uiState.paramDrawerOpen && uiState.paramTarget == ardor::UiParamTarget::Block) {
+            if (const auto* selected = ardor::selectedUiBlock(uiState)) {
+              if (selected->type == "dynamics"
+                  && selected->params.value("mode", std::string{}) == "compressor") {
+                ardor::updateCompressorGainReduction(
+                  uiState, liveEngine->compressorGainReductionDb(selected->id));
+              }
+            }
+          }
+        }
+#endif
         if (now >= nextRuntimeCommandPoll) {
           nextRuntimeCommandPoll = now + std::chrono::milliseconds(100);
           bool reloadAssets = false;

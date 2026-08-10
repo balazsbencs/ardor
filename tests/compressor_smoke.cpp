@@ -36,10 +36,21 @@ int main()
     {"detector", "peak"}, {"auto_makeup", false},
   };
   require(compressor.configure(settings, 48000.0f, error), error);
+  require(compressor.currentGainReductionDb() == 0.0f,
+          "no reduction should be reported before any audio is processed");
 
   const float compressed = renderSteady(compressor, 1.0f, 48000);
   require(std::isfinite(compressed), "compressed output finite");
   require(compressed < 0.7f, "compressor reduces above-threshold steady signal");
+  require(compressor.currentGainReductionDb() < -1.0f,
+          "currentGainReductionDb should report the reduction that shrank the steady signal");
+
+  const float staticGainDb = ardor::compressorStaticGainDb(-10.0f, -20.0f, 4.0f, 0.0f);
+  require(std::fabs(staticGainDb - (-7.5f)) < 0.01f,
+          "compressorStaticGainDb should match the hard-knee ratio law "
+          "(10 dB over threshold at 4:1 reduces by 7.5 dB)");
+  require(ardor::compressorStaticGainDb(-30.0f, -20.0f, 4.0f, 0.0f) == 0.0f,
+          "compressorStaticGainDb should report no reduction below threshold");
 
   ardor::CompressorProcessor stepResponse;
   require(stepResponse.configure(settings, 48000.0f, error), error);

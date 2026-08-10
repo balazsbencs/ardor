@@ -34,6 +34,8 @@ public:
   bool setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params);
   bool setDaisyParameter(const std::string& id, const std::string& key, float normalized);
   bool setCompressorParameter(const std::string& id, const std::string& key, float value);
+  // 0.0 if `id` does not name a live compressor block.
+  float compressorGainReductionDb(const std::string& id) const;
   bool setNoiseGateParameter(const std::string& id, const std::string& key, float value);
   bool setBlockEnabled(const std::string& id, bool enabled);
   void prepareBlockSize(size_t frames);

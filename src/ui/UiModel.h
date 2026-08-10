@@ -26,6 +26,9 @@ struct UiAsset {
   std::string type;
   std::string blockType;
   std::string mode;
+  // Drawer list secondary line, e.g. "Modulation · 6 controls". Empty is fine
+  // -- the row just shows the name.
+  std::string subtitle;
 };
 
 struct UiBlock {
@@ -210,6 +213,13 @@ struct UiState {
   UiClipDebugTelemetry clipDebug;
   UiTunerTelemetry tuner;
   UiControlInputTelemetry controlInputs;
+  // The selected compressor block's current gain reduction in dB (<= 0),
+  // sampled continuously while its parameter drawer is open. Unlike the
+  // other telemetry above, this has no revision of its own -- the meter
+  // widget reads it directly on every refresh() tick (see
+  // LvglUi::syncCompressorGainMeter) so it keeps moving even while a slider
+  // drag is holding off the revision-gated sync path.
+  float compressorGainReductionDb = 0.0f;
   std::string statusMessage;
   bool statusIsError = false;
   std::optional<UiBlockEditSnapshot> blockEditUndo;
@@ -284,6 +294,7 @@ std::optional<UiNavigationTarget> confirmNavigation(UiState& state, UiNavigation
 
 void updateRealtimeTelemetry(UiState& state, const RuntimeTelemetry& telemetry);
 void updateClipDebugTelemetry(UiState& state, UiClipDebugTelemetry telemetry);
+void updateCompressorGainReduction(UiState& state, float reductionDb);
 void updateControlInputTelemetry(UiState& state, UiControlInputTelemetry telemetry);
 bool parameterSupportsExpression(const UiState& state, const ParameterControl& control);
 bool parameterHasMidiBinding(const UiState& state, const ParameterControl& control);

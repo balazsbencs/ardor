@@ -49,6 +49,9 @@ public:
   bool setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params);
   bool setDaisyParameter(const std::string& id, const std::string& key, float normalized);
   bool setCompressorParameter(const std::string& id, const std::string& key, float value);
+  // Returns false (leaving outDb untouched) if `id` does not name a live
+  // compressor block anywhere in the chain, including nested Dual Rig lanes.
+  bool compressorGainReductionDb(const std::string& id, float& outDb) const;
   bool setNoiseGateParameter(const std::string& id, const std::string& key, float value);
   bool setBlockEnabled(const std::string& id, bool enabled);
   // Negative cab arguments use each cabinet block's prepared level/mix. The

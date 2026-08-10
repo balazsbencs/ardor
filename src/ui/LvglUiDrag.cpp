@@ -30,9 +30,9 @@ void placeDragIndicatorAtSlot(UiEventContext* context, std::size_t slot)
   if (!context->indicator) {
     context->indicator = lv_obj_create(context->ui->canvas());
     lv_obj_set_size(context->indicator, 5, 92);
-    lv_obj_set_style_bg_color(context->indicator, lv_color_hex(accent), 0);
+    lv_obj_set_style_bg_color(context->indicator, lv_color_hex(text), 0);
     lv_obj_set_style_border_width(context->indicator, 0, 0);
-    lv_obj_set_style_radius(context->indicator, 2, 0);
+    lv_obj_set_style_radius(context->indicator, 0, 0);
   }
 
   const auto position = context->ui->chainIndicatorForSlot(slot);
@@ -50,9 +50,9 @@ void placeDragIndicator(UiEventContext* context, const lv_point_t& point)
   if (!context->indicator) {
     context->indicator = lv_obj_create(context->ui->canvas());
     lv_obj_set_size(context->indicator, 5, kChainTileHeight);
-    lv_obj_set_style_bg_color(context->indicator, lv_color_hex(accent), 0);
+    lv_obj_set_style_bg_color(context->indicator, lv_color_hex(text), 0);
     lv_obj_set_style_border_width(context->indicator, 0, 0);
-    lv_obj_set_style_radius(context->indicator, 2, 0);
+    lv_obj_set_style_radius(context->indicator, 0, 0);
   }
 
   lv_obj_set_pos(context->indicator, position.x, position.y);
@@ -69,7 +69,7 @@ void placeDragGhost(UiEventContext* context, const lv_point_t& point)
     }
     context->ghost = button(context->ui->canvas(), textValue);
     lv_obj_set_size(context->ghost, 160, 84);
-    lv_obj_set_style_bg_color(context->ghost, lv_color_hex(0x243044), 0);
+    lv_obj_set_style_bg_color(context->ghost, lv_color_hex(panel), 0);
     lv_obj_set_style_opa(context->ghost, LV_OPA_50, 0);
     lv_obj_add_flag(context->ghost, LV_OBJ_FLAG_FLOATING);
   }

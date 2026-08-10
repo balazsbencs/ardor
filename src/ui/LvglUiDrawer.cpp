@@ -2,8 +2,6 @@
 
 #include "ui/LvglUiDrag.h"
 #include "ui/LvglUiStyle.h"
-#include "ui/fonts/OpenSansRegular.h"
-#include "ui/fonts/OpenSansSemibold.h"
 
 #include <algorithm>
 #include <array>
@@ -21,6 +19,8 @@ using namespace lvgl_ui;
 constexpr int kBlockDrawerPadding = 18;
 constexpr int kBlockDrawerContentWidth = kBlockDrawerWidth - 2 * kBlockDrawerPadding;
 constexpr int kBlockDrawerContentHeight = kDesignHeight - kStatusBarHeight - 2 * kBlockDrawerPadding;
+constexpr int kDrawerHeaderHeight = 46;
+constexpr int kDrawerCloseSize = 40;
 constexpr int kCategoryColumns = 4;
 constexpr int kCategoryButtonWidth = 105;
 constexpr int kCategoryButtonHeight = 58;
@@ -28,14 +28,50 @@ constexpr int kCategoryButtonGap = 8;
 constexpr int kDrawerCategoryTop = 60;
 constexpr int kDrawerCategoryHeight = 2 * kCategoryButtonHeight + kCategoryButtonGap;
 constexpr int kDrawerSeparatorY = kDrawerCategoryTop + kDrawerCategoryHeight + 14;
-constexpr int kDrawerInstructionY = kDrawerSeparatorY + 16;
-constexpr int kDrawerListTop = kDrawerInstructionY + 36;
-constexpr int kDrawerListHeight = kBlockDrawerContentHeight - kDrawerListTop;
+// The count row replaces the old plain instruction line: it keeps the same
+// chain-state guidance on the left (chain full / lane target) but now pairs
+// it with a "N available" readout on the right, per the drawer mockup.
+constexpr int kDrawerCountY = kDrawerSeparatorY + 14;
+constexpr int kDrawerCountHeight = 22;
+constexpr int kDrawerListTop = kDrawerCountY + kDrawerCountHeight + 10;
+constexpr int kDrawerFooterHeight = 40;
+constexpr int kDrawerListHeight =
+  kBlockDrawerContentHeight - kDrawerListTop - kDrawerFooterHeight - 10;
 constexpr int kDrawerAssetButtonHeight = 72;
+// Family tick (13 left inset + 26 wide) then a 14 px gutter to the text column.
+constexpr int kDrawerItemTextX = 53;
+constexpr int kDrawerGripBarWidth = 16;
 constexpr std::array<std::pair<const char*, const char*>, 7> kDrawerFilters = {{
   {"All", "all"}, {"Amps", "amps"}, {"Cabs", "cabs"}, {"Utility", "utility"},
   {"Mod", "modulation"}, {"Delays", "delay"}, {"Reverbs", "reverb"},
 }};
+
+std::size_t visibleAssetCount(const UiState& state)
+{
+  return static_cast<std::size_t>(std::count_if(state.assets.begin(), state.assets.end(),
+    [&state](const UiAsset& asset) {
+      return state.categoryFilter == "all" || asset.type == state.categoryFilter;
+    }));
+}
+
+std::string drawerFilterDisplayName(const std::string& filter)
+{
+  if (filter == "all") return "All modules";
+  for (const auto& [name, key] : kDrawerFilters) {
+    if (key == filter) return std::string{name} + " modules";
+  }
+  return "Modules";
+}
+
+// The count row's left side: chain-state guidance takes priority when there
+// is any (chain full / lane target); otherwise it names the active filter.
+// Uppercased to match the drawer's other engraved legend text.
+std::string drawerInstructionText(const UiState& state, bool chainFull, bool insertingLane)
+{
+  return uppercase(chainFull ? "Chain full - delete a block to add"
+    : (insertingLane ? "Choose an effect for this lane"
+                     : drawerFilterDisplayName(state.categoryFilter)));
+}
 
 std::string assetRenderKey(const UiAsset& asset)
 {
@@ -103,6 +139,62 @@ void onAssetClicked(lv_event_t* event)
     context->ui->resetParameterPage();
   }
   redraw(context);
+}
+
+// Builds the family tick, subtitle line and trailing drag-grip glyph shared
+// by both the initial drawer build and the recycle path below. Child order on
+// `item` is fixed: 0 title (from button()), 1 tick, 2 subtitle, 3 grip -- the
+// recycle path indexes into this by position, so it must stay in lockstep.
+lv_obj_t* decorateDrawerItem(lv_obj_t* item, const UiAsset& asset)
+{
+  const int columnWidth = kBlockDrawerContentWidth - 14 - kDrawerItemTextX - kDrawerGripBarWidth - 27;
+
+  // Name and subtitle sit inline on one line, per the mockup ("CHORUS
+  // Modulation · 6 controls..."), not stacked -- the title auto-sizes to its
+  // text and the subtitle picks up right where it ends.
+  lv_obj_t* itemTitle = lv_obj_get_child(item, 0);
+  lv_label_set_text(itemTitle, uppercase(asset.name).c_str());
+  lv_obj_set_width(itemTitle, LV_SIZE_CONTENT);
+  lv_obj_align(itemTitle, LV_ALIGN_LEFT_MID, kDrawerItemTextX, 0);
+
+  lv_obj_t* tick = lv_obj_create(item);
+  lv_obj_set_size(tick, 26, 3);
+  lv_obj_align(tick, LV_ALIGN_LEFT_MID, 13, 0);
+  styleSurface(tick, categoryColor(asset.type));
+  lv_obj_set_style_border_width(tick, 0, 0);
+  lv_obj_set_style_shadow_width(tick, 0, 0);
+  lv_obj_set_style_radius(tick, 0, 0);
+  lv_obj_remove_flag(tick, LV_OBJ_FLAG_CLICKABLE);
+
+  lv_obj_update_layout(item);
+  const int titleWidth = lv_obj_get_width(itemTitle);
+  const int subtitleX = kDrawerItemTextX + titleWidth + 8;
+  const int subtitleWidth = std::max(0, columnWidth - titleWidth - 8);
+
+  lv_obj_t* subtitle = label(item, asset.subtitle, LV_ALIGN_LEFT_MID, subtitleX, 1,
+                             &ardor_font_saira_light_12, muted);
+  lv_obj_set_width(subtitle, subtitleWidth);
+  lv_label_set_long_mode(subtitle, LV_LABEL_LONG_CLIP);
+  lv_obj_remove_flag(subtitle, LV_OBJ_FLAG_CLICKABLE);
+
+  lv_obj_t* grip = lv_obj_create(item);
+  lv_obj_set_size(grip, kDrawerGripBarWidth, 12);
+  lv_obj_align(grip, LV_ALIGN_RIGHT_MID, -13, 0);
+  lv_obj_set_style_bg_opa(grip, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_width(grip, 0, 0);
+  lv_obj_set_style_pad_all(grip, 0, 0);
+  lv_obj_remove_flag(grip, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_remove_flag(grip, LV_OBJ_FLAG_SCROLLABLE);
+  for (int bar = 0; bar < 3; ++bar) {
+    lv_obj_t* gripBar = lv_obj_create(grip);
+    lv_obj_set_size(gripBar, kDrawerGripBarWidth, 2);
+    lv_obj_set_pos(gripBar, 0, bar * 5);
+    styleSurface(gripBar, rule);
+    lv_obj_set_style_border_width(gripBar, 0, 0);
+    lv_obj_set_style_radius(gripBar, 0, 0);
+    lv_obj_remove_flag(gripBar, LV_OBJ_FLAG_CLICKABLE);
+  }
+  return subtitle;
 }
 
 std::string assetDragText(const UiAsset& asset)
@@ -249,9 +341,12 @@ void LvglUi::rebuildDrawerView(UiState& state)
   drawerCategoryButtons_.fill(nullptr);
   drawerAssetButtons_.clear();
   drawerAssetContexts_.clear();
+  drawerAssetSubtitleLabels_.clear();
   renderedAssetKeys_.clear();
   drawerAssetList_ = nullptr;
   drawerInstructionLabel_ = nullptr;
+  drawerCountLabel_ = nullptr;
+  drawerFooterCountLabel_ = nullptr;
   contextRegion_ = UiContextRegion::Drawer;
   renderBlockDrawer(drawerLayer_, state);
   contextRegion_ = UiContextRegion::None;
@@ -266,6 +361,7 @@ void LvglUi::syncDrawerAssets(UiState& state)
 
   const auto oldButtons = drawerAssetButtons_;
   const auto oldContexts = drawerAssetContexts_;
+  const auto oldSubtitles = drawerAssetSubtitleLabels_;
   const auto oldKeys = renderedAssetKeys_;
   std::unordered_map<std::string, std::vector<std::size_t>> oldIndicesByKey;
   oldIndicesByKey.reserve(oldKeys.size());
@@ -277,6 +373,7 @@ void LvglUi::syncDrawerAssets(UiState& state)
   std::vector<bool> used(oldKeys.size(), false);
   std::vector<lv_obj_t*> buttons(state.assets.size(), nullptr);
   std::vector<UiEventContext*> contexts(state.assets.size(), nullptr);
+  std::vector<lv_obj_t*> subtitles(state.assets.size(), nullptr);
   std::vector<std::string> keys;
   keys.reserve(state.assets.size());
 
@@ -291,6 +388,7 @@ void LvglUi::syncDrawerAssets(UiState& state)
         used[oldIndex] = true;
         buttons[i] = oldButtons[oldIndex];
         contexts[i] = oldContexts[oldIndex];
+        subtitles[i] = oldSubtitles[oldIndex];
       }
     }
     if (buttons[i]) continue;
@@ -300,16 +398,7 @@ void LvglUi::syncDrawerAssets(UiState& state)
     lv_obj_set_height(item, kDrawerAssetButtonHeight);
     lv_obj_set_style_min_height(item, kDrawerAssetButtonHeight, 0);
     styleSurface(item, panel);
-    // Category accent bar (child index 1); colour is kept in sync below when
-    // rows are recycled across filter changes.
-    lv_obj_t* assetBar = lv_obj_create(item);
-    lv_obj_set_size(assetBar, 5, kDrawerAssetButtonHeight - 22);
-    lv_obj_align(assetBar, LV_ALIGN_LEFT_MID, 6, 0);
-    styleSurface(assetBar, categoryColor(state.assets[i].type));
-    lv_obj_set_style_border_width(assetBar, 0, 0);
-    lv_obj_set_style_shadow_width(assetBar, 0, 0);
-    lv_obj_set_style_radius(assetBar, 2, 0);
-    lv_obj_remove_flag(assetBar, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_t* subtitle = decorateDrawerItem(item, state.assets[i]);
     contextRegion_ = UiContextRegion::Drawer;
     auto* context = remember(state, i);
     contextRegion_ = UiContextRegion::None;
@@ -322,6 +411,7 @@ void LvglUi::syncDrawerAssets(UiState& state)
     lv_obj_add_event_cb(item, onAssetClicked, LV_EVENT_CLICKED, context);
     buttons[i] = item;
     contexts[i] = context;
+    subtitles[i] = subtitle;
   }
 
   for (std::size_t j = 0; j < oldButtons.size(); ++j) {
@@ -333,14 +423,16 @@ void LvglUi::syncDrawerAssets(UiState& state)
 
   for (std::size_t i = 0; i < buttons.size(); ++i) {
     lv_obj_move_to_index(buttons[i], static_cast<int32_t>(i));
-    lv_label_set_text(lv_obj_get_child(buttons[i], 0), state.assets[i].name.c_str());
+    lv_label_set_text(lv_obj_get_child(buttons[i], 0), uppercase(state.assets[i].name).c_str());
     lv_obj_set_style_bg_color(lv_obj_get_child(buttons[i], 1),
                               lv_color_hex(categoryColor(state.assets[i].type)), 0);
+    lv_label_set_text(subtitles[i], state.assets[i].subtitle.c_str());
     contexts[i]->index = i;
     contexts[i]->controlledObject = drawerAssetList_;
   }
   drawerAssetButtons_ = std::move(buttons);
   drawerAssetContexts_ = std::move(contexts);
+  drawerAssetSubtitleLabels_ = std::move(subtitles);
   renderedAssetKeys_ = std::move(keys);
 }
 
@@ -369,12 +461,18 @@ void LvglUi::syncDrawerView(UiState& state)
     return block.enabled && (block.type == "nam" || block.type == "cab");
   });
   if (drawerInstructionLabel_) {
-    lv_label_set_text(drawerInstructionLabel_, chainFull
-      ? "Chain full - delete a block to add"
-      : (insertingLane ? "Choose an effect for this lane"
-                       : "Choose an effect or Split Left / Right"));
+    lv_label_set_text(drawerInstructionLabel_,
+      drawerInstructionText(state, chainFull, insertingLane).c_str());
     lv_obj_set_style_text_color(drawerInstructionLabel_,
-                                lv_color_hex(chainFull ? 0xf97373 : muted), 0);
+                                lv_color_hex(chainFull ? danger : muted), 0);
+  }
+  const std::size_t visibleCount = visibleAssetCount(state);
+  if (drawerCountLabel_) {
+    lv_label_set_text(drawerCountLabel_, uppercase(std::to_string(visibleCount) + " available").c_str());
+  }
+  if (drawerFooterCountLabel_) {
+    lv_label_set_text(drawerFooterCountLabel_,
+      (std::to_string(visibleCount) + " / " + std::to_string(state.assets.size())).c_str());
   }
   for (std::size_t i = 0; i < drawerAssetButtons_.size() && i < state.assets.size(); ++i) {
     lv_obj_t* item = drawerAssetButtons_[i];
@@ -398,8 +496,10 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   lv_obj_t* scrim = lv_obj_create(root);
   lv_obj_set_size(scrim, kDesignWidth - kBlockDrawerWidth, kDesignHeight - kStatusBarHeight);
   lv_obj_set_pos(scrim, 0, 0);
-  lv_obj_set_style_bg_color(scrim, lv_color_hex(0x000000), 0);
-  lv_obj_set_style_bg_opa(scrim, LV_OPA_40, 0);
+  lv_obj_set_style_bg_color(scrim, lv_color_hex(panelAlt), 0);
+  // ~55% -- the chain stays legible behind the drawer so the chosen insertion
+  // point is never hidden while a module is being picked.
+  lv_obj_set_style_bg_opa(scrim, 140, 0);
   lv_obj_set_style_border_width(scrim, 0, 0);
   lv_obj_set_style_radius(scrim, 0, 0);
   lv_obj_remove_flag(scrim, LV_OBJ_FLAG_SCROLLABLE);
@@ -408,8 +508,8 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   lv_obj_t* drawer = lv_obj_create(root);
   lv_obj_set_size(drawer, kBlockDrawerWidth, kDesignHeight - kStatusBarHeight);
   lv_obj_align(drawer, LV_ALIGN_TOP_RIGHT, 0, 0);
-  lv_obj_set_style_bg_color(drawer, lv_color_hex(0x000000), 0);
-  lv_obj_set_style_border_color(drawer, lv_color_hex(panel), 0);
+  lv_obj_set_style_bg_color(drawer, lv_color_hex(panelAlt), 0);
+  lv_obj_set_style_border_color(drawer, lv_color_hex(rule), 0);
   lv_obj_set_style_border_width(drawer, 1, 0);
   lv_obj_set_style_border_side(drawer, LV_BORDER_SIDE_LEFT, 0);
   lv_obj_set_style_radius(drawer, 0, 0);
@@ -421,12 +521,26 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   const bool insertingLane = state.blockInsertRig.has_value() && state.blockInsertLane.has_value();
   const std::string drawerTitle = insertingLane
     ? std::string{"Add to "} + (*state.blockInsertLane == 0 ? "Left" : "Right")
-    : "Insert block";
-  label(drawer, drawerTitle, LV_ALIGN_TOP_LEFT, 0, 0, &ardor_font_open_sans_semibold_22);
-  lv_obj_t* close = button(drawer, "Close");
-  lv_obj_set_size(close, 100, 56);
-  lv_obj_align(close, LV_ALIGN_TOP_RIGHT, 0, -4);
+    : "Modules";
+  label(drawer, uppercase(drawerTitle), LV_ALIGN_TOP_LEFT, 0, 6, &ardor_font_saira_cond_semibold_22);
+
+  // Close is a bare glyph, not a chrome button -- lettering-first per
+  // docs/lvgl-ui-redesign-spec.md §8.11, the only other one being the rail's
+  // "+" insertion point. `button()` still gives it a real hit box and press
+  // feedback; only the visible chrome is stripped. Saira Condensed SemiBold
+  // has no U+2715 (✕) glyph, so the compiled font's × (U+00D7) stands in --
+  // same close-mark reading, already in the subset every other label uses.
+  lv_obj_t* close = button(drawer, "\xC3\x97" /* × */);
+  lv_obj_set_size(close, kDrawerCloseSize, kDrawerCloseSize);
+  lv_obj_align(close, LV_ALIGN_TOP_RIGHT, 0, 8);
+  lv_obj_set_style_bg_opa(close, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_width(close, 0, 0);
+  lv_obj_set_style_border_width(close, 2, LV_STATE_PRESSED);
+  lv_obj_set_style_text_color(lv_obj_get_child(close, 0), lv_color_hex(muted), 0);
   lv_obj_add_event_cb(close, onCloseBlockDrawer, LV_EVENT_PRESSED, remember(state));
+
+  label(drawer, "Tap to insert", LV_ALIGN_TOP_RIGHT, -(kDrawerCloseSize + 10), 12,
+       &ardor_font_saira_cond_medium_18, muted);
 
   lv_obj_t* filterRow = lv_obj_create(drawer);
   lv_obj_set_size(filterRow, kBlockDrawerContentWidth, kDrawerCategoryHeight);
@@ -455,7 +569,7 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
                          static_cast<int32_t>(i % kCategoryColumns), 1,
                          LV_GRID_ALIGN_STRETCH,
                          static_cast<int32_t>(i / kCategoryColumns), 1);
-    styleSurface(filterButton, state.categoryFilter == filter ? 0x333333 : 0x1b1b1b);
+    styleSurface(filterButton, state.categoryFilter == filter ? panel : panelAlt);
     lv_obj_set_style_text_color(lv_obj_get_child(filterButton, 0),
                                 lv_color_hex(state.categoryFilter == filter ? categoryColor(filter) : text), 0);
     lv_obj_add_event_cb(filterButton, onFilterClicked, LV_EVENT_CLICKED, remember(state, 0, filter));
@@ -478,19 +592,19 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   lv_obj_t* separator = lv_obj_create(drawer);
   lv_obj_set_size(separator, kBlockDrawerContentWidth, 1);
   lv_obj_align(separator, LV_ALIGN_TOP_LEFT, 0, kDrawerSeparatorY);
-  styleSurface(separator, 0x3a3a3a);
+  styleSurface(separator, rule);
   lv_obj_set_style_radius(separator, 0, 0);
   lv_obj_remove_flag(separator, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(separator, LV_OBJ_FLAG_CLICKABLE);
 
-  drawerInstructionLabel_ = label(drawer,
-    chainFull ? "Chain full - delete a block to add"
-              : (insertingLane ? "Choose an effect for this lane"
-                               : "Choose an effect or Split Left / Right"),
-    LV_ALIGN_TOP_LEFT, 0, kDrawerInstructionY, &ardor_font_open_sans_regular_18,
-    chainFull ? 0xf97373 : muted);
-  lv_obj_set_width(drawerInstructionLabel_, kBlockDrawerContentWidth);
+  const std::size_t visibleCount = visibleAssetCount(state);
+  drawerInstructionLabel_ = label(drawer, drawerInstructionText(state, chainFull, insertingLane),
+    LV_ALIGN_TOP_LEFT, 0, kDrawerCountY, &ardor_font_saira_cond_medium_18,
+    chainFull ? danger : muted);
+  lv_obj_set_width(drawerInstructionLabel_, kBlockDrawerContentWidth - 120);
   lv_label_set_long_mode(drawerInstructionLabel_, LV_LABEL_LONG_CLIP);
+  drawerCountLabel_ = label(drawer, uppercase(std::to_string(visibleCount) + " available"),
+    LV_ALIGN_TOP_RIGHT, 0, kDrawerCountY, &ardor_font_saira_cond_semibold_11, disabled);
 
   lv_obj_t* list = lv_obj_create(drawer);
   lv_obj_set_size(list, kBlockDrawerContentWidth, kDrawerListHeight);
@@ -508,35 +622,28 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   for (std::size_t i = 0; i < state.assets.size(); ++i) {
     const auto& asset = state.assets[i];
     lv_obj_t* item = button(list, asset.name);
-    lv_obj_t* itemTitle = lv_obj_get_child(item, 0);
     lv_obj_set_width(item, kBlockDrawerContentWidth - 14);
     lv_obj_set_height(item, kDrawerAssetButtonHeight);
     lv_obj_set_style_min_height(item, kDrawerAssetButtonHeight, 0);
     styleSurface(item, panel);
-    // Category accent bar (kept at child index 1 in both build and sync paths).
-    lv_obj_t* assetBar = lv_obj_create(item);
-    lv_obj_set_size(assetBar, 5, kDrawerAssetButtonHeight - 22);
-    lv_obj_align(assetBar, LV_ALIGN_LEFT_MID, 6, 0);
-    styleSurface(assetBar, categoryColor(asset.type));
-    lv_obj_set_style_border_width(assetBar, 0, 0);
-    lv_obj_set_style_shadow_width(assetBar, 0, 0);
-    lv_obj_set_style_radius(assetBar, 2, 0);
-    lv_obj_remove_flag(assetBar, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_t* subtitle = decorateDrawerItem(item, asset);
+    lv_obj_t* itemTitle = lv_obj_get_child(item, 0);
     const bool splitUnavailable = asset.blockType == "dualRig"
       && (insertingLane || alreadySplit || standaloneAmp);
     if (asset.blockType == "dualRig") {
-      lv_obj_set_style_border_color(item, lv_color_hex(accent), 0);
+      lv_obj_set_style_border_color(item, lv_color_hex(text), 0);
       lv_obj_set_style_border_width(item, 1, 0);
-      lv_obj_set_style_text_color(itemTitle, lv_color_hex(accent), 0);
+      lv_obj_set_style_text_color(itemTitle, lv_color_hex(text), 0);
       if (splitUnavailable) {
         const char* reason = insertingLane ? "No nested Split"
           : alreadySplit ? "A Split already exists" : "Remove standalone NAM / IR first";
+        lv_obj_add_flag(subtitle, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_width(itemTitle, kBlockDrawerContentWidth - 56);
         lv_label_set_long_mode(itemTitle, LV_LABEL_LONG_CLIP);
         lv_obj_set_style_text_align(itemTitle, LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_align(itemTitle, LV_ALIGN_CENTER, 0, -14);
         lv_obj_t* reasonLabel = label(item, reason, LV_ALIGN_CENTER, 0, 15,
-                                      &ardor_font_open_sans_regular_18, warning);
+                                      &ardor_font_saira_cond_medium_18, warning);
         lv_obj_set_width(reasonLabel, kBlockDrawerContentWidth - 56);
         lv_label_set_long_mode(reasonLabel, LV_LABEL_LONG_CLIP);
         lv_obj_set_style_text_align(reasonLabel, LV_TEXT_ALIGN_CENTER, 0);
@@ -557,6 +664,7 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
     lv_obj_add_event_cb(item, onAssetClicked, LV_EVENT_CLICKED, context);
     drawerAssetButtons_.push_back(item);
     drawerAssetContexts_.push_back(context);
+    drawerAssetSubtitleLabels_.push_back(subtitle);
     renderedAssetKeys_.push_back(assetRenderKey(asset));
   }
 
@@ -567,6 +675,23 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   lv_obj_add_event_cb(list, onAssetListScrollBegin, LV_EVENT_SCROLL_BEGIN, scrollContext);
   lv_obj_add_event_cb(list, onAssetListScroll, LV_EVENT_SCROLL, scrollContext);
   lv_obj_add_event_cb(list, onAssetListScrollEnd, LV_EVENT_SCROLL_END, scrollContext);
+
+  lv_obj_t* footer = lv_obj_create(drawer);
+  lv_obj_set_size(footer, kBlockDrawerContentWidth, kDrawerFooterHeight);
+  lv_obj_align(footer, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+  lv_obj_set_style_bg_opa(footer, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_width(footer, 1, 0);
+  lv_obj_set_style_border_side(footer, LV_BORDER_SIDE_TOP, 0);
+  lv_obj_set_style_border_color(footer, lv_color_hex(rule), 0);
+  lv_obj_set_style_radius(footer, 0, 0);
+  lv_obj_set_style_pad_all(footer, 0, 0);
+  lv_obj_remove_flag(footer, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(footer, LV_OBJ_FLAG_CLICKABLE);
+  label(footer, "DRAG ONTO THE RAIL TO PLACE EXACTLY", LV_ALIGN_LEFT_MID, 0, 0,
+       &ardor_font_saira_cond_semibold_11, disabled);
+  drawerFooterCountLabel_ = label(footer,
+    std::to_string(visibleCount) + " / " + std::to_string(state.assets.size()),
+    LV_ALIGN_RIGHT_MID, 0, 0, &ardor_font_saira_cond_semibold_11, disabled);
 }
 
 } // namespace ardor

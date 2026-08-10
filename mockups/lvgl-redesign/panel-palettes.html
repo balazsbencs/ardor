@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ardor — Panel: three palettes</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@300;400;500;600;700&family=Saira:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+  Direction D (Panel) — palette study. Identical geometry, type and hierarchy in all three;
+  only the eleven colour tokens change. Every palette keeps the same rules:
+    · flat planes only, no ramps anywhere (RGB565 has 32/64/32 levels per channel)
+    · one reserved LIVE colour that appears nowhere else in the system
+    · six muted family colours, all held well below the LIVE colour in chroma and value
+    · secondary lettering tinted from the plate hue, never neutral grey
+*/
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2b2b2b;font-family:Saira,sans-serif;color:#bbb;padding:40px 24px 90px}
+.doc{max-width:1280px;margin:0 auto}
+h1{font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:38px;color:#e8e8e8;
+  text-transform:uppercase;letter-spacing:.08em}
+.sub{font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;max-width:72ch;margin-top:12px;color:#9a9a9a}
+.sub b{color:#dcdcdc;font-weight:600}
+.pal{margin-top:60px;border-top:1px solid #3d3d3d;padding-top:26px}
+.palhd{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.palhd h2{font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:30px;text-transform:uppercase;
+  letter-spacing:.09em}
+.palhd .chips{display:flex;gap:4px;margin-left:auto}
+.palhd .chips i{width:30px;height:30px;display:block;border:1px solid rgba(255,255,255,.14)}
+.palhd .tag{font-family:system-ui,sans-serif;font-size:13px;color:#8a8a8a}
+.why{font-family:system-ui,sans-serif;font-size:14px;line-height:1.65;color:#9a9a9a;max-width:74ch;margin-top:12px}
+.why b{color:#dcdcdc;font-weight:600}
+.cap{display:flex;align-items:baseline;gap:12px;margin:26px 0 10px}
+.cap b{font-family:'Saira Condensed',sans-serif;font-weight:600;font-size:17px;color:#cfcfcf;
+  text-transform:uppercase;letter-spacing:.1em}
+.cap span{font-family:system-ui,sans-serif;font-size:12.5px;color:#818181}
+.stage{width:1280px;height:720px;transform-origin:top left;overflow:hidden;box-shadow:0 16px 44px rgba(0,0,0,.6)}
+.shell{position:relative;height:1px}
+.tokens{font-family:ui-monospace,monospace;font-size:11.5px;color:#7d7d7d;margin-top:12px;line-height:1.8}
+.tokens em{font-style:normal;color:#b0b0b0}
+
+/* ============ shared component system (colour comes from vars) ============ */
+.scr{width:1280px;height:720px;background:var(--plate);position:relative;overflow:hidden;
+  color:var(--engrave);font-family:'Saira Condensed',sans-serif}
+.leg{font-size:13px;font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--engrave-lo)}
+.leg.b{color:var(--engrave)}
+.rail{position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;gap:20px;
+  padding:0 28px;border-bottom:1px solid var(--rule)}
+.rail .ttl{font-size:19px;font-weight:600;letter-spacing:.22em;text-transform:uppercase}
+.rail .sp{flex:1}
+.lamp{width:11px;height:11px;background:var(--rule);display:inline-block;flex:none}
+.lamp.on{background:var(--lamp)}
+.lamp.warn{background:var(--verb)}
+
+.mods{position:absolute;top:52px;left:0;right:0;bottom:88px;padding:18px 28px;
+  display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:16px 18px}
+.mod{background:var(--plate2);display:flex;flex-direction:column;border:1px solid var(--rule);position:relative}
+.mod .hd{height:26px;display:flex;align-items:center;gap:14px;padding:0 13px;background:var(--plate3)}
+.mod .hd .n{font-size:12px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--engrave-lo)}
+.mod .hd .sp{flex:1}
+.mod .bd{flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:0 22px}
+.mod .idx{font-family:Saira,sans-serif;font-weight:300;font-size:44px;line-height:1;color:var(--engrave-lo)}
+.mod .nm{font-size:38px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;line-height:1.02}
+.mod .fs{position:absolute;font-size:11px;font-weight:600;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--engrave-lo)}
+.mod .fs:before{content:"";position:absolute;width:16px;height:16px;border:1px solid var(--rule)}
+.mod.tl .fs{top:38px;left:22px}      .mod.tl .fs:before{top:-11px;left:-9px;border-right:none;border-bottom:none}
+.mod.tr .fs{top:38px;right:22px}     .mod.tr .fs:before{top:-11px;right:-9px;border-left:none;border-bottom:none}
+.mod.bl .fs{bottom:16px;left:22px}   .mod.bl .fs:before{bottom:-9px;left:-9px;border-right:none;border-top:none}
+.mod.br .fs{bottom:16px;right:22px}  .mod.br .fs:before{bottom:-9px;right:-9px;border-left:none;border-top:none}
+.mod.tl .bd,.mod.tr .bd{padding-top:30px}
+.mod.bl .bd,.mod.br .bd{padding-bottom:34px}
+.mod.live{border-color:var(--lamp)}
+.mod.live .hd{background:var(--lamp)}
+.mod.live .hd .n{color:var(--plate)}
+.mod.live .idx{color:var(--lamp)}
+.mod.live .nm{color:var(--engrave)}
+.mod.live .fs{color:var(--lamp)} .mod.live .fs:before{border-color:var(--lamp)}
+.mod.fault{border-color:var(--faultline)}
+.mod.fault .nm{color:var(--faulttext)}
+.fault-leg{font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--verb);
+  border:1px solid var(--faultline);padding:4px 10px;align-self:flex-start}
+.nomen{display:flex;align-items:center;gap:0}
+.nomen s{text-decoration:none;font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--engrave-lo);padding:0 11px;border-left:1px solid var(--rule)}
+.nomen s:first-child{border-left:none;padding-left:0}
+.nomen s i{font-style:normal;display:block;width:100%;height:2px;margin-bottom:5px}
+
+.crail{position:absolute;bottom:0;left:0;right:0;height:88px;border-top:1px solid var(--rule);
+  display:flex;align-items:center;gap:11px;padding:0 28px}
+.pb{border:1px solid var(--rule);background:var(--plate2);color:var(--engrave);font-size:17px;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;padding:12px 22px}
+.pb.pri{background:var(--engrave);color:var(--plate);border-color:var(--engrave)}
+.pb.sm{font-size:14px;padding:10px 15px;letter-spacing:.14em}
+.crail .sp{flex:1}
+.escale{display:flex;flex-direction:column;gap:6px;width:250px}
+.escale .top{display:flex;justify-content:space-between;align-items:baseline}
+.escale .v{font-family:Saira,sans-serif;font-weight:400;font-size:23px;color:var(--engrave)}
+.escale .trk{height:14px;position:relative;border-bottom:1px solid var(--rule)}
+.escale .trk i{position:absolute;bottom:0;width:1px;height:6px;background:var(--rule)}
+.escale .trk i.b{height:11px;background:var(--engrave-lo)}
+.escale .trk .f{position:absolute;bottom:0;left:0;height:3px;background:var(--engrave)}
+.escale .trk .p{position:absolute;bottom:-3px;width:3px;height:20px;background:var(--lamp);transform:translateX(-50%)}
+
+/* edit screen */
+.path{position:absolute;top:52px;left:0;right:0;bottom:88px;display:flex;align-items:center;padding:0 28px}
+.blkm{width:168px;flex:none;border:1px solid var(--rule);background:var(--plate2);position:relative}
+.blkm .hd{height:24px;display:flex;align-items:center;padding:0 10px;font-size:11px;font-weight:600;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--plate)}
+.blkm .bd{padding:18px 13px 16px;display:flex;flex-direction:column;gap:12px;min-height:302px}
+.blkm .nm{font-size:26px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;line-height:.98}
+.blkm .rd{font-family:Saira,sans-serif;font-weight:300;font-size:13px;color:var(--engrave-lo);letter-spacing:.05em}
+.blkm .grp{margin-top:auto;display:flex;gap:3px}
+.blkm .grp i{flex:1;height:3px;background:var(--rule)}
+.blkm.sel{border-color:var(--engrave)}
+.blkm.byp{background:var(--plate3)}
+.blkm.byp .hd{background:var(--rule)!important;color:var(--engrave-lo)}
+.blkm.byp .nm,.blkm.byp .rd{color:var(--engrave-off)}
+.pp{width:46px;flex:none;display:flex;align-items:center;justify-content:center;position:relative}
+.pp:before{content:"";position:absolute;left:0;right:0;height:1px;background:var(--rule)}
+.pp b{width:15px;height:15px;border:2px solid var(--engrave-lo);border-radius:50%;background:var(--plate);
+  position:relative;z-index:2}
+.pp.add b{border-color:var(--rule);display:flex;align-items:center;justify-content:center;font-size:12px;
+  font-weight:600;color:var(--engrave-lo);width:19px;height:19px;line-height:1}
+.term{width:52px;flex:none;text-align:center;font-size:12px;font-weight:600;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--engrave-lo)}
+.byproute{position:absolute;left:0;right:0;top:-30px;height:30px;pointer-events:none}
+.byproute:before{content:"";position:absolute;left:-23px;right:-23px;top:0;height:2px;background:var(--lamp)}
+.byproute:after{content:"BYP";position:absolute;left:50%;transform:translateX(-50%);top:6px;font-size:10px;
+  font-weight:600;letter-spacing:.2em;color:var(--lamp)}
+
+/* ============ PALETTE 1 — SLATE ============ */
+.p-slate{
+  --plate:#212528; --plate2:#2a2f33; --plate3:#191c1f;
+  --engrave:#e2e4e3; --engrave-lo:#8d9499; --engrave-off:#5b6266; --rule:#3b4247;
+  --lamp:#d8422f;
+  --amp:#a8814e; --cab:#939a9e; --util:#5f7f9c; --mod:#5d8f80; --dly:#8175a0; --verb:#a8785c;
+  --faultline:#6b463c; --faulttext:#bb9186;
+}
+/* ============ PALETTE 2 — INK ============ */
+.p-ink{
+  --plate:#10161f; --plate2:#182130; --plate3:#0b1017;
+  --engrave:#dde6ee; --engrave-lo:#7e8fa3; --engrave-off:#4d5b6b; --rule:#2a3646;
+  --lamp:#5fd0e8;
+  --amp:#c99050; --cab:#8296ab; --util:#6d8fd0; --mod:#4fa89a; --dly:#8d7fc4; --verb:#cf7a86;
+  --faultline:#5c3946; --faulttext:#c08e97;
+}
+/* ============ PALETTE 3 — SODIUM ============ */
+.p-sodium{
+  --plate:#0c0b09; --plate2:#16140f; --plate3:#070605;
+  --engrave:#f0e4cd; --engrave-lo:#9a8f7a; --engrave-off:#5e574a; --rule:#302b22;
+  --lamp:#ffb01f;
+  --amp:#b06a3a; --cab:#9a8f7a; --util:#6f8296; --mod:#5f9280; --dly:#8b7aa5; --verb:#b3705f;
+  --faultline:#5d3a2e; --faulttext:#c19183;
+}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Panel — three palettes</h1>
+  <p class="sub">Same geometry, same type, same hierarchy. Only the colour tokens change, so you are comparing
+  palettes and nothing else. Each keeps the rules that made Panel work: <b>flat planes only</b>, one reserved
+  LIVE colour used nowhere else, six family colours held well below it in chroma, and secondary lettering tinted
+  from the plate hue rather than going neutral grey. The preset screen is the new 2×2 mapped to the corner
+  footswitches in all three.</p>
+
+  <!-- ================= SLATE ================= -->
+  <div class="pal">
+    <div class="palhd">
+      <h2 style="color:#d8422f">1 · Slate</h2>
+      <span class="tag">cool neutral graphite · signal red</span>
+      <span class="chips">
+        <i style="background:#212528"></i><i style="background:#2a2f33"></i><i style="background:#e2e4e3"></i>
+        <i style="background:#8d9499"></i><i style="background:#d8422f"></i>
+      </span>
+    </div>
+    <p class="why">Neutral to the point of having no opinion about hue, so the family colours and the red do all
+    the talking. <b>Red is the most culturally loaded "this is on" an instrument has</b> — a red lamp reads as
+    live to anyone who has stood in front of hardware, and it is the strongest signal available against a cool
+    grey plate. The risk is that red also means <em>error</em>; here the fault state is deliberately kept as a
+    dull brick outline so the two never compete.</p>
+
+    <div class="cap"><b>Preset · 2×2</b><span>corner tiles mirror the corner switches</span></div>
+    <div class="shell"><div class="stage"><div class="scr p-slate">
+      <div class="rail">
+        <div class="ttl">Ardor</div><div class="leg">Bank 000 · Set A</div>
+        <div class="sp"></div><div class="leg">48 kHz · blk 64</div>
+        <div class="leg b" style="display:flex;align-items:center;gap:7px"><span class="lamp on"></span>MIDI</div>
+      </div>
+      <div class="mods">
+        <div class="mod tl"><div class="hd"><span class="n">Preset 1</span><span class="sp"></span><span class="lamp"></span></div>
+          <div class="bd"><div class="idx">1</div><div class="nm">Midnight Clean</div>
+            <div class="nomen"><s><i style="background:var(--amp)"></i>Amp</s><s><i style="background:var(--cab)"></i>Cab</s><s><i style="background:var(--verb)"></i>Hall</s></div></div>
+          <span class="fs">FS 1</span></div>
+        <div class="mod tr"><div class="hd"><span class="n">Preset 3</span><span class="sp"></span><span class="lamp"></span></div>
+          <div class="bd"><div class="idx">3</div><div class="nm">Split Rig<br>Wide</div>
+            <div class="nomen"><s><i style="background:var(--util)"></i>Split</s><s><i style="background:var(--mod)"></i>Chorus</s><s><i style="background:var(--dly)"></i>Delay</s></div></div>
+          <span class="fs">FS 3</span></div>
+        <div class="mod bl live"><div class="hd"><span class="n">Preset 2 · Running</span><span class="sp"></span><span class="lamp on"></span></div>
+          <div class="bd"><div class="idx">2</div><div class="nm">Drive Stack</div>
+            <div class="nomen"><s><i style="background:var(--amp)"></i>Amp</s><s><i style="background:var(--cab)"></i>Cab</s><s><i style="background:var(--dly)"></i>Tape</s></div></div>
+          <span class="fs">FS 2</span></div>
+        <div class="mod br fault"><div class="hd"><span class="n">Preset 4</span><span class="sp"></span><span class="lamp warn"></span></div>
+          <div class="bd"><div class="idx">4</div><div class="nm">Ambient Bloom</div>
+            <div class="fault-leg">Asset not found</div></div>
+          <span class="fs">FS 4</span></div>
+      </div>
+      <div class="crail">
+        <div class="pb pri">Edit</div><div class="pb">Tuner</div>
+        <div class="pb sm">Bank −</div><div class="pb sm">Bank +</div><div class="pb sm">Setup</div>
+        <div class="sp"></div>
+        <div class="escale"><div class="top"><span class="leg">Master</span><span class="v">72</span></div>
+          <div class="trk"><i class="b" style="left:0"></i><i style="left:25%"></i><i class="b" style="left:50%"></i>
+            <i style="left:75%"></i><i class="b" style="left:100%"></i>
+            <div class="f" style="width:72%"></div><div class="p" style="left:72%"></div></div></div>
+      </div>
+    </div></div></div>
+
+    <div class="cap"><b>Edit</b><span>where the six family colours have to survive together</span></div>
+    <div class="shell"><div class="stage"><div class="scr p-slate">
+      <div class="rail"><div class="ttl">Preset 2</div><div class="leg">Drive Stack</div>
+        <div class="leg b" style="color:var(--lamp)">· Modified</div>
+        <div class="sp"></div><div class="leg">4 modules · 8.2 ms</div></div>
+      <div class="path">
+        <div class="term">In</div><div class="pp add"><b>+</b></div>
+        <div class="blkm"><div class="hd" style="background:var(--amp)">Amp · U1</div>
+          <div class="bd"><div class="nm">Tweed<br>Deluxe</div><div class="rd">Nano · sum</div>
+            <div class="grp"><i style="background:var(--amp)"></i><i></i><i></i></div></div></div>
+        <div class="pp"><b></b></div>
+        <div class="blkm sel"><div class="hd" style="background:var(--cab)">Cab · IR1</div>
+          <div class="bd"><div class="nm">Open<br>Back</div><div class="rd">−2.0 dB · mix 100</div>
+            <div class="grp"><i style="background:var(--cab)"></i><i></i><i></i></div></div></div>
+        <div class="pp add"><b>+</b></div>
+        <div class="blkm byp"><div class="byproute"></div><div class="hd">Mod · M1</div>
+          <div class="bd"><div class="nm">Chorus</div><div class="rd">Bypassed</div>
+            <div class="grp"><i></i><i></i><i></i></div></div></div>
+        <div class="pp"><b></b></div>
+        <div class="blkm"><div class="hd" style="background:var(--dly)">Delay · D1</div>
+          <div class="bd"><div class="nm">Tape</div><div class="rd">380 ms · fb 34</div>
+            <div class="grp"><i style="background:var(--dly)"></i><i></i><i></i></div></div></div>
+        <div class="pp add"><b>+</b></div><div class="term">Out</div>
+      </div>
+      <div class="crail"><div class="pb pri">Save</div><div class="pb sm">Undo</div><div class="pb sm">Redo</div>
+        <div class="pb sm">Modules</div><div class="sp"></div><div class="pb">Done</div></div>
+    </div></div></div>
+    <p class="tokens"><em>plate</em> #212528 · <em>plate2</em> #2a2f33 · <em>engrave</em> #e2e4e3 ·
+      <em>engrave-lo</em> #8d9499 · <em>rule</em> #3b4247 · <em>LIVE</em> #d8422f ·
+      families #a8814e #939a9e #5f7f9c #5d8f80 #8175a0 #a8785c</p>
+  </div>
+
+  <!-- ================= INK ================= -->
+  <div class="pal">
+    <div class="palhd">
+      <h2 style="color:#5fd0e8">2 · Ink</h2>
+      <span class="tag">deep navy · ice cyan</span>
+      <span class="chips">
+        <i style="background:#10161f"></i><i style="background:#182130"></i><i style="background:#dde6ee"></i>
+        <i style="background:#7e8fa3"></i><i style="background:#5fd0e8"></i>
+      </span>
+    </div>
+    <p class="why">The marine and aviation instrument convention: a blue-black plate is <b>darker in perceived
+    value than neutral black</b> under warm stage light, which makes the lettering pop harder without raising its
+    luminance. Cyan is the coldest thing on the panel and sits at the opposite end of the spectrum from every
+    family colour, so LIVE can never be mistaken for a block type. This is the most legible of the three at a
+    steep angle, and the one that will look least like a guitar pedal — which may be the point or may be the
+    objection.</p>
+
+    <div class="cap"><b>Preset · 2×2</b><span></span></div>
+    <div class="shell"><div class="stage"><div class="scr p-ink">
+      <div class="rail">
+        <div class="ttl">Ardor</div><div class="leg">Bank 000 · Set A</div>
+        <div class="sp"></div><div class="leg">48 kHz · blk 64</div>
+        <div class="leg b" style="display:flex;align-items:center;gap:7px"><span class="lamp on"></span>MIDI</div>
+      </div>
+      <div class="mods">
+        <div class="mod tl"><div class="hd"><span class="n">Preset 1</span><span class="sp"></span><span class="lamp"></span></div>
+          <div class="bd"><div class="idx">1</div><div class="nm">Midnight Clean</div>
+            <div class="nomen"><s><i style="background:var(--amp)"></i>Amp</s><s><i style="background:var(--cab)"></i>Cab</s><s><i style="background:var(--verb)"></i>Hall</s></div></div>
+          <span class="fs">FS 1</span></div>
+        <div class="mod tr"><div class="hd"><span class="n">Preset 3</span><span class="sp"></span><span class="lamp"></span></div>
+          <div class="bd"><div class="idx">3</div><div class="nm">Split Rig<br>Wide</div>
+            <div class="nomen"><s><i style="background:var(--util)"></i>Split</s><s><i style="background:var(--mod)"></i>Chorus</s><s><i style="background:var(--dly)"></i>Delay</s></div></div>
+          <span class="fs">FS 3</span></div>
+        <div class="mod bl live"><div class="hd"><span class="n">Preset 2 · Running</span><span class="sp"></span><span class="lamp on"></span></div>
+          <div class="bd"><div class="idx">2</div><div class="nm">Drive Stack</div>
+            <div class="nomen"><s><i style="background:var(--amp)"></i>Amp</s><s><i style="background:var(--cab)"></i>Cab</s><s><i style="background:var(--dly)"></i>Tape</s></div></div>
+          <span class="fs">FS 2</span></div>
+        <div class="mod br fault"><div class="hd"><span class="n">Preset 4</span><span class="sp"></span><span class="lamp warn"></span></div>
+          <div class="bd"><div class="idx">4</div><div class="nm">Ambient Bloom</div>
+            <div class="fault-leg">Asset not found</div></div>
+          <span class="fs">FS 4</span></div>
+      </div>
+      <div class="crail">
+        <div class="pb pri">Edit</div><div class="pb">Tuner</div>
+        <div class="pb sm">Bank −</div><div class="pb sm">Bank +</div><div class="pb sm">Setup</div>
+        <div class="sp"></div>
+        <div class="escale"><div class="top"><span class="leg">Master</span><span class="v">72</span></div>
+          <div class="trk"><i class="b" style="left:0"></i><i style="left:25%"></i><i class="b" style="left:50%"></i>
+            <i style="left:75%"></i><i class="b" style="left:100%"></i>
+            <div class="f" style="width:72%"></div><div class="p" style="left:72%"></div></div></div>
+      </div>
+    </div></div></div>
+
+    <div class="cap"><b>Edit</b><span></span></div>
+    <div class="shell"><div class="stage"><div class="scr p-ink">
+      <div class="rail"><div class="ttl">Preset 2</div><div class="leg">Drive Stack</div>
+        <div class="leg b" style="color:var(--lamp)">· Modified</div>
+        <div class="sp"></div><div class="leg">4 modules · 8.2 ms</div></div>
+      <div class="path">
+        <div class="term">In</div><div class="pp add"><b>+</b></div>
+        <div class="blkm"><div class="hd" style="background:var(--amp)">Amp · U1</div>
+          <div class="bd"><div class="nm">Tweed<br>Deluxe</div><div class="rd">Nano · sum</div>
+            <div class="grp"><i style="background:var(--amp)"></i><i></i><i></i></div></div></div>
+        <div class="pp"><b></b></div>
+        <div class="blkm sel"><div class="hd" style="background:var(--cab)">Cab · IR1</div>
+          <div class="bd"><div class="nm">Open<br>Back</div><div class="rd">−2.0 dB · mix 100</div>
+            <div class="grp"><i style="background:var(--cab)"></i><i></i><i></i></div></div></div>
+        <div class="pp add"><b>+</b></div>
+        <div class="blkm byp"><div class="byproute"></div><div class="hd">Mod · M1</div>
+          <div class="bd"><div class="nm">Chorus</div><div class="rd">Bypassed</div>
+            <div class="grp"><i></i><i></i><i></i></div></div></div>
+        <div class="pp"><b></b></div>
+        <div class="blkm"><div class="hd" style="background:var(--dly)">Delay · D1</div>
+          <div class="bd"><div class="nm">Tape</div><div class="rd">380 ms · fb 34</div>
+            <div class="grp"><i style="background:var(--dly)"></i><i></i><i></i></div></div></div>
+        <div class="pp add"><b>+</b></div><div class="term">Out</div>
+      </div>
+      <div class="crail"><div class="pb pri">Save</div><div class="pb sm">Undo</div><div class="pb sm">Redo</div>
+        <div class="pb sm">Modules</div><div class="sp"></div><div class="pb">Done</div></div>
+    </div></div></div>
+    <p class="tokens"><em>plate</em> #10161f · <em>plate2</em> #182130 · <em>engrave</em> #dde6ee ·
+      <em>engrave-lo</em> #7e8fa3 · <em>rule</em> #2a3646 · <em>LIVE</em> #5fd0e8 ·
+      families #c99050 #8296ab #6d8fd0 #4fa89a #8d7fc4 #cf7a86</p>
+  </div>
+
+  <!-- ================= SODIUM ================= -->
+  <div class="pal">
+    <div class="palhd">
+      <h2 style="color:#ffb01f">3 · Sodium</h2>
+      <span class="tag">true black · warm bone · sodium amber</span>
+      <span class="chips">
+        <i style="background:#0c0b09"></i><i style="background:#16140f"></i><i style="background:#f0e4cd"></i>
+        <i style="background:#9a8f7a"></i><i style="background:#ffb01f"></i>
+      </span>
+    </div>
+    <p class="why">The night-instrument convention, and the one with an actual physiological argument behind it:
+    <b>warm amber illumination preserves dark adaptation</b>, which is why gauge lighting, chart lamps and
+    observatory desks all use it. On a black stage this is the palette that will be easiest on the eyes across a
+    three-hour set, and true black also costs the least backlight bleed on the panel. The warm bone lettering
+    gives it more soul than either cool option — the trade is that amber and the brass amp colour sit closer
+    together than I would normally allow, so the amp family is pushed to burnt orange to keep them apart.</p>
+
+    <div class="cap"><b>Preset · 2×2</b><span></span></div>
+    <div class="shell"><div class="stage"><div class="scr p-sodium">
+      <div class="rail">
+        <div class="ttl">Ardor</div><div class="leg">Bank 000 · Set A</div>
+        <div class="sp"></div><div class="leg">48 kHz · blk 64</div>
+        <div class="leg b" style="display:flex;align-items:center;gap:7px"><span class="lamp on"></span>MIDI</div>
+      </div>
+      <div class="mods">
+        <div class="mod tl"><div class="hd"><span class="n">Preset 1</span><span class="sp"></span><span class="lamp"></span></div>
+          <div class="bd"><div class="idx">1</div><div class="nm">Midnight Clean</div>
+            <div class="nomen"><s><i style="background:var(--amp)"></i>Amp</s><s><i style="background:var(--cab)"></i>Cab</s><s><i style="background:var(--verb)"></i>Hall</s></div></div>
+          <span class="fs">FS 1</span></div>
+        <div class="mod tr"><div class="hd"><span class="n">Preset 3</span><span class="sp"></span><span class="lamp"></span></div>
+          <div class="bd"><div class="idx">3</div><div class="nm">Split Rig<br>Wide</div>
+            <div class="nomen"><s><i style="background:var(--util)"></i>Split</s><s><i style="background:var(--mod)"></i>Chorus</s><s><i style="background:var(--dly)"></i>Delay</s></div></div>
+          <span class="fs">FS 3</span></div>
+        <div class="mod bl live"><div class="hd"><span class="n">Preset 2 · Running</span><span class="sp"></span><span class="lamp on"></span></div>
+          <div class="bd"><div class="idx">2</div><div class="nm">Drive Stack</div>
+            <div class="nomen"><s><i style="background:var(--amp)"></i>Amp</s><s><i style="background:var(--cab)"></i>Cab</s><s><i style="background:var(--dly)"></i>Tape</s></div></div>
+          <span class="fs">FS 2</span></div>
+        <div class="mod br fault"><div class="hd"><span class="n">Preset 4</span><span class="sp"></span><span class="lamp warn"></span></div>
+          <div class="bd"><div class="idx">4</div><div class="nm">Ambient Bloom</div>
+            <div class="fault-leg">Asset not found</div></div>
+          <span class="fs">FS 4</span></div>
+      </div>
+      <div class="crail">
+        <div class="pb pri">Edit</div><div class="pb">Tuner</div>
+        <div class="pb sm">Bank −</div><div class="pb sm">Bank +</div><div class="pb sm">Setup</div>
+        <div class="sp"></div>
+        <div class="escale"><div class="top"><span class="leg">Master</span><span class="v">72</span></div>
+          <div class="trk"><i class="b" style="left:0"></i><i style="left:25%"></i><i class="b" style="left:50%"></i>
+            <i style="left:75%"></i><i class="b" style="left:100%"></i>
+            <div class="f" style="width:72%"></div><div class="p" style="left:72%"></div></div></div>
+      </div>
+    </div></div></div>
+
+    <div class="cap"><b>Edit</b><span></span></div>
+    <div class="shell"><div class="stage"><div class="scr p-sodium">
+      <div class="rail"><div class="ttl">Preset 2</div><div class="leg">Drive Stack</div>
+        <div class="leg b" style="color:var(--lamp)">· Modified</div>
+        <div class="sp"></div><div class="leg">4 modules · 8.2 ms</div></div>
+      <div class="path">
+        <div class="term">In</div><div class="pp add"><b>+</b></div>
+        <div class="blkm"><div class="hd" style="background:var(--amp)">Amp · U1</div>
+          <div class="bd"><div class="nm">Tweed<br>Deluxe</div><div class="rd">Nano · sum</div>
+            <div class="grp"><i style="background:var(--amp)"></i><i></i><i></i></div></div></div>
+        <div class="pp"><b></b></div>
+        <div class="blkm sel"><div class="hd" style="background:var(--cab)">Cab · IR1</div>
+          <div class="bd"><div class="nm">Open<br>Back</div><div class="rd">−2.0 dB · mix 100</div>
+            <div class="grp"><i style="background:var(--cab)"></i><i></i><i></i></div></div></div>
+        <div class="pp add"><b>+</b></div>
+        <div class="blkm byp"><div class="byproute"></div><div class="hd">Mod · M1</div>
+          <div class="bd"><div class="nm">Chorus</div><div class="rd">Bypassed</div>
+            <div class="grp"><i></i><i></i><i></i></div></div></div>
+        <div class="pp"><b></b></div>
+        <div class="blkm"><div class="hd" style="background:var(--dly)">Delay · D1</div>
+          <div class="bd"><div class="nm">Tape</div><div class="rd">380 ms · fb 34</div>
+            <div class="grp"><i style="background:var(--dly)"></i><i></i><i></i></div></div></div>
+        <div class="pp add"><b>+</b></div><div class="term">Out</div>
+      </div>
+      <div class="crail"><div class="pb pri">Save</div><div class="pb sm">Undo</div><div class="pb sm">Redo</div>
+        <div class="pb sm">Modules</div><div class="sp"></div><div class="pb">Done</div></div>
+    </div></div></div>
+    <p class="tokens"><em>plate</em> #0c0b09 · <em>plate2</em> #16140f · <em>engrave</em> #f0e4cd ·
+      <em>engrave-lo</em> #9a8f7a · <em>rule</em> #302b22 · <em>LIVE</em> #ffb01f ·
+      families #b06a3a #9a8f7a #6f8296 #5f9280 #8b7aa5 #b3705f</p>
+  </div>
+</div>
+<script>
+const fit=()=>{const s=Math.min(1,document.querySelector('.doc').clientWidth/1280);
+document.querySelectorAll('.stage').forEach(el=>{el.style.transform=`scale(${s})`;
+el.parentElement.style.height=(720*s)+'px';});};
+addEventListener('resize',fit);fit();document.fonts?.ready.then(fit);
+</script>
+</body>
+</html>

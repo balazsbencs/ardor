@@ -235,6 +235,10 @@ int main()
     compressorOutput = std::fabs(compressorEngine.process(i % 2 == 0 ? 1.0f : -1.0f).first);
   }
   require(compressorOutput < 0.7f, "compressor should affect engine output");
+  require(compressorEngine.compressorGainReductionDb("compressor") < -1.0f,
+          "gain-reduction telemetry should be reachable by stable ID through PedalEngine");
+  require(compressorEngine.compressorGainReductionDb("missing") == 0.0f,
+          "missing compressor ID should report no reduction rather than stale data");
 
   compressorEngine.setEffectsBypassed(true);
   ardor::StereoSample compressorDry{};

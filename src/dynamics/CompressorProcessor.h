@@ -9,6 +9,12 @@
 
 namespace ardor {
 
+// The knee-soft threshold/ratio law shared by the live detector path
+// (CompressorProcessor::gainForLevel) and anything previewing the static
+// curve without a live envelope (e.g. a UI demo mode with no real audio).
+// Returns a gain change in dB (<= 0; 0 means no reduction).
+float compressorStaticGainDb(float levelDb, float thresholdDb, float ratio, float kneeDb);
+
 class CompressorProcessor {
 public:
   CompressorProcessor() = default;
@@ -18,6 +24,11 @@ public:
   bool setParameterTarget(const std::string& key, float value);
   void reset();
   StereoSample process(StereoSample input);
+  // Current gain reduction in dB (<= 0), published from the audio thread on
+  // every process() call. Safe to read from another thread: it is stored in
+  // the same LiveParameters block already used for cross-thread parameter
+  // push, just carrying data the other direction.
+  float currentGainReductionDb() const;
 
 private:
   CompressorProcessor(const CompressorProcessor&) = delete;
