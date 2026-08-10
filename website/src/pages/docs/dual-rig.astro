@@ -1,0 +1,75 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import SignalFlow from '../../components/SignalFlow.astro';
+import { url } from '../../lib/url';
+---
+
+<DocsLayout
+  title="Dual Rig & Dual Amp"
+  description="Split Ardor into two independent chains for true stereo rigs, with dedicated realtime cores on a four-core Pi."
+  lede="Two ways to run parallel rigs: a fixed Dual Amp block, or the fully flexible Dual Rig with two independent child chains."
+>
+  <SignalFlow />
+
+  <h2>Dual Amp</h2>
+  <p>
+    Dual Amp is a single draggable block with two fixed parallel lanes. Both lanes receive
+    the selected mono input; the left NAM → IR lane feeds the left output and the right
+    NAM → IR lane feeds the right output. It exposes per-lane model, IR, nano selection,
+    cabinet level, cabinet mix, and polarity.
+  </p>
+  <div class="callout">
+    <p>
+      An enabled Dual Amp block cannot be combined with standalone NAM or cabinet blocks in
+      the same preset. Existing version-1 serial presets remain compatible.
+    </p>
+  </div>
+
+  <h2>Dual Rig</h2>
+  <p>
+    Dual Rig generalizes that fixed block to two <strong>independent child chains</strong>.
+    It is a version-2 preset block and remains one draggable item in the outer chain. Each
+    lane can hold any sequence of blocks — a different amp, cabinet, and effects per side.
+  </p>
+  <ul>
+    <li>Both lanes receive the same selected mono input.</li>
+    <li>Each lane is processed in its declared order.</li>
+    <li>The left lane's left output and the right lane's right output are retained at the fixed merge.</li>
+    <li>Child block IDs are globally unique, both lanes must be non-empty, and split regions cannot be nested.</li>
+  </ul>
+
+  <p>In the editor a Dual Rig renders as an explicit <strong>SPLIT</strong>, separate color-coded <strong>LEFT</strong> and <strong>RIGHT</strong> rails, and a stereo <strong>JOIN</strong> — routing is never disguised as an ordinary effect card.</p>
+
+  <h2>Parallel processing on hardware</h2>
+  <p>
+    Dual Amp and Dual Rig always have a sequential fallback: the audio callback processes
+    the complete left lane, then the complete right lane. On a four-core Pi, Ardor enables
+    an optimized parallel path:
+  </p>
+  <table>
+    <thead><tr><th>Thread</th><th>Placement</th></tr></thead>
+    <tbody>
+      <tr><td>Audio callback</td><td class="mono">SCHED_FIFO/70 on CPU 2</td></tr>
+      <tr><td>Right-lane worker</td><td class="mono">SCHED_FIFO/69 on CPU 3</td></tr>
+    </tbody>
+  </table>
+  <p>
+    The callback processes the left lane concurrently and joins the worker once at the fixed
+    merge. Effects before and after the parallel block still run serially on the callback
+    thread. If the worker cannot obtain its realtime policy or affinity, the rig reports the
+    failure and falls back to sequential processing — so audio never breaks.
+  </p>
+  <div class="callout">
+    <p>
+      The firmware image enables this layout by default via
+      <code>PARALLEL_RIGS=1</code>, <code>AUDIO_CPU=2</code>, and
+      <code>RIG_WORKER_CPU=3</code>. The UI and non-audio work stay as normal-priority
+      Linux tasks that the realtime DSP threads preempt.
+    </p>
+  </div>
+
+  <p>
+    See <a href={url('/docs/presets')}>Presets &amp; Storage</a> for the version-2 preset
+    format that stores lanes.
+  </p>
+</DocsLayout>

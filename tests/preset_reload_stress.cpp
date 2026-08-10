@@ -108,7 +108,7 @@ int main()
     std::vector<double> activationTimes;
     std::vector<double> totalTimes;
     const auto activatePreview = [&] {
-      require(ardor::beginApplyingPreview(state), "queued edit should enter applying state");
+      require(ardor::pendingStructuralPreview(state), "edit should have a pending preview");
       const auto totalStart = std::chrono::steady_clock::now();
       std::chrono::steady_clock::time_point activationStart{};
       bool reachedBackend = false;

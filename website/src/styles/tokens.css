@@ -1,0 +1,123 @@
+/*
+ * Ardor design tokens — "precision instrument / signal chain".
+ * Dark sci-fi ground with the pedal's own teal-green accent (#3ce0a6).
+ * Neutrals carry a deliberate cool-green bias so the greys read as chosen,
+ * not defaulted. Two themes; dark is the primary world.
+ */
+:root {
+  /* --- palette: dark (primary) --- */
+  --ground: #06080a;
+  --ground-2: #090c0f;
+  --surface: #0d1417;
+  --elevated: #131d21;
+  --hairline: rgba(120, 200, 170, 0.14);
+  --hairline-strong: rgba(120, 200, 170, 0.28);
+
+  --accent: #3ce0a6;
+  --accent-light: #7ef7c9;
+  --accent-dim: #1f8f6c;
+  --accent-glow: rgba(60, 224, 166, 0.35);
+
+  --text: #dfeae7;
+  --text-strong: #f3faf8;
+  --muted: #8aa39d;
+  --muted-2: #5f7671;
+
+  /* semantic — docs callouts only, never used as the brand accent */
+  --warn: #f5b451;
+  --danger: #ff6f6f;
+  --info: #59b6e6;
+
+  /* --- type --- */
+  --font-display: 'Chakra Petch', 'Open Sans', system-ui, sans-serif;
+  --font-body: 'Open Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* modular type scale (1.24) */
+  --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.83rem);
+  --step-0: clamp(0.95rem, 0.92rem + 0.15vw, 1.02rem);
+  --step-1: clamp(1.18rem, 1.1rem + 0.4vw, 1.4rem);
+  --step-2: clamp(1.46rem, 1.3rem + 0.8vw, 1.95rem);
+  --step-3: clamp(1.8rem, 1.5rem + 1.5vw, 2.7rem);
+  --step-4: clamp(2.2rem, 1.7rem + 2.6vw, 3.75rem);
+  --step-5: clamp(2.6rem, 1.8rem + 4.2vw, 5.25rem);
+
+  /* --- space & shape --- */
+  --sp-1: 0.375rem;
+  --sp-2: 0.625rem;
+  --sp-3: 1rem;
+  --sp-4: 1.5rem;
+  --sp-5: 2.5rem;
+  --sp-6: 4rem;
+  --sp-7: 6.5rem;
+
+  --radius: 4px;
+  --radius-lg: 8px;
+  --maxw: 1200px;
+  --maxw-prose: 46rem;
+
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.02) inset,
+    0 20px 50px -30px rgba(0, 0, 0, 0.9);
+
+  color-scheme: dark;
+}
+
+/* Light theme: keep the accent working on a bright ground, biased warm-paper
+   cool so it still feels like lab equipment rather than plain white. */
+:root[data-theme='light'] {
+  --ground: #eef2f0;
+  --ground-2: #e6ece9;
+  --surface: #ffffff;
+  --elevated: #f5f8f6;
+  --hairline: rgba(20, 60, 48, 0.12);
+  --hairline-strong: rgba(20, 60, 48, 0.24);
+
+  --accent: #0f9d6f;
+  --accent-light: #12b681;
+  --accent-dim: #0b7a56;
+  --accent-glow: rgba(15, 157, 111, 0.22);
+
+  --text: #14201c;
+  --text-strong: #04110c;
+  --muted: #4a5f59;
+  --muted-2: #6b807a;
+
+  --warn: #b7791f;
+  --danger: #c0392b;
+  --info: #2b74b0;
+
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 18px 40px -32px rgba(9, 40, 30, 0.5);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --ground: #eef2f0;
+    --ground-2: #e6ece9;
+    --surface: #ffffff;
+    --elevated: #f5f8f6;
+    --hairline: rgba(20, 60, 48, 0.12);
+    --hairline-strong: rgba(20, 60, 48, 0.24);
+
+    --accent: #0f9d6f;
+    --accent-light: #12b681;
+    --accent-dim: #0b7a56;
+    --accent-glow: rgba(15, 157, 111, 0.22);
+
+    --text: #14201c;
+    --text-strong: #04110c;
+    --muted: #4a5f59;
+    --muted-2: #6b807a;
+
+    --warn: #b7791f;
+    --danger: #c0392b;
+    --info: #2b74b0;
+
+    --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 18px 40px -32px rgba(9, 40, 30, 0.5);
+
+    color-scheme: light;
+  }
+}

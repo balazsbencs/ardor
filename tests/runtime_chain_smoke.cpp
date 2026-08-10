@@ -42,6 +42,23 @@ ardor::DaisyFxProcessor makeTrem()
   return processor;
 }
 
+ardor::DaisyFxProcessor makeSwellReverb()
+{
+  ardor::DaisyFxProcessor processor;
+  std::string error;
+  require(processor.configure("reverb", {
+    {"mode", "swell"},
+    {"decay", 0.45f},
+    {"pre_delay", 0.15f},
+    {"mix", 0.25f},
+    {"tone", 0.5f},
+    {"mod", 0.0f},
+    {"param1", 0.5f},
+    {"param2", 0.5f},
+  }, 48000.0f, error), error);
+  return processor;
+}
+
 std::vector<float> render(ardor::RuntimeChain& chain)
 {
   std::vector<float> out;
@@ -145,6 +162,26 @@ int main()
   require(near(rigLeft[0], 0.5f), "dual rig keeps the left lane's left output");
   require(near(rigRight[0], -0.25f), "dual rig keeps the right lane's right output and polarity");
   require(dualRigChain.tailFrames() == 0, "dual rig tail is the maximum of its lane tails");
+
+  auto nestedEffectLane = std::make_unique<ardor::RuntimeChain>();
+  nestedEffectLane->prepareBlockSize(64);
+  nestedEffectLane->addDaisy("nested-swell", makeSwellReverb());
+  auto emptyLane = std::make_unique<ardor::RuntimeChain>();
+  emptyLane->prepareBlockSize(64);
+  ardor::RuntimeChain nestedControlChain;
+  nestedControlChain.prepareBlockSize(64);
+  require(nestedControlChain.addDualRig(
+            "nested-control-rig",
+            {std::move(nestedEffectLane), 1.0f, false},
+            {std::move(emptyLane), 1.0f, false},
+            ardor::NamInputMode::Sum, 48000.0, 64, false, -1, dualRigError),
+          dualRigError);
+  require(nestedControlChain.setDaisyParameter("nested-swell", "pre_delay", 0.8f),
+          "Dual Rig should forward live Daisy parameters into its lanes");
+  require(nestedControlChain.setBlockEnabled("nested-swell", false),
+          "Dual Rig should forward live bypass into its lanes");
+  require(!nestedControlChain.setDaisyParameter("missing", "pre_delay", 0.8f),
+          "Dual Rig should still reject a missing nested effect ID");
 
   ardor::RuntimeChain eqChain;
   eqChain.prepareBlockSize(64);

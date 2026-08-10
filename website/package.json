@@ -1,0 +1,30 @@
+{
+  "name": "ardor-website",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "gen": "node scripts/gen-effects.mjs",
+    "predev": "npm run gen",
+    "dev": "astro dev",
+    "start": "astro dev",
+    "prebuild": "npm run gen",
+    "build": "astro build",
+    "preview": "astro preview",
+    "precheck": "npm run gen",
+    "check": "astro check",
+    "test:links": "node scripts/check-links.mjs"
+  },
+  "dependencies": {
+    "astro": "^5.6.1",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@fontsource/chakra-petch": "^5.1.0",
+    "@fontsource/ibm-plex-mono": "^5.1.1",
+    "@fontsource/open-sans": "^5.3.0",
+    "@types/three": "^0.169.0",
+    "typescript": "^5.6.3"
+  }
+}

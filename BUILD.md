@@ -213,7 +213,8 @@ Expected development defaults:
 - Port 8080 is listening.
 - `/` is mounted read-only and `/opt/ardor-pedal` is mounted read-write.
 - Four seeded presets, `preset-0.json` through `preset-3.json`, exist.
-- `ARDOR_API_AUTH=off` appears in `/etc/ardor-managerd.env`.
+- `ARDOR_API_AUTH=on` and `ARDOR_MDNS=on` appear in
+  `/etc/ardor-managerd.env`. The pedal displays a first-time local setup code.
 - Codec Zero capture and playback devices appear in `arecord -l` and `aplay -l`.
 
 ### Wi-Fi Provisioning
@@ -268,35 +269,41 @@ Run these from the Mac. They do not modify assets or presets:
 
 ```sh
 curl -fsS http://192.168.88.18:8080/api/device | jq .
-curl -fsS http://192.168.88.18:8080/api/assets/models | jq .
-curl -fsS http://192.168.88.18:8080/api/assets/irs | jq .
-curl -fsS http://192.168.88.18:8080/api/presets | jq '.presets | length'
-curl -fsS http://192.168.88.18:8080/api/presets/banks/0/slots/0 | jq .
-curl -sS -o /tmp/ardor-invalid-slot.json -w '%{http_code}\n' \
-  http://192.168.88.18:8080/api/presets/banks/100/slots/0
-jq -e '.error == "slot_out_of_range"' /tmp/ardor-invalid-slot.json
+curl -fsS http://192.168.88.18:8080/api/auth/status | jq .
+curl -sS -o /tmp/ardor-protected.json -w '%{http_code}\n' \
+  http://192.168.88.18:8080/api/presets
+jq -e '.error == "unauthorized"' /tmp/ardor-protected.json
 ```
 
-Expected results: the device reports auth disabled, the preset list contains
-400 slot summaries, bank 0 slot 0 is present, the invalid bank request returns
-HTTP 400, and its JSON error code is `slot_out_of_range`.
+Before setup, `/api/device` remains readable and reports
+`localAuthState: "setup_required"`; protected asset and preset requests return
+HTTP 401. Complete setup through the device-hosted manager, then verify preset
+and asset operations from its authenticated browser session.
 
-## Fast App-Only Iteration
+## Fast Application Iteration
 
-For changes limited to the realtime pedal application source, rebuild and deploy
-only `/usr/bin/ardor-pedal`:
+Rebuild and deploy both `/usr/bin/ardor-pedal` and
+`/usr/bin/ardor-managerd`, including the embedded browser manager:
 
 ```sh
 ./scripts/deploy-lan.sh 192.168.88.18
 ```
 
-This command requires a Buildroot volume initialized by `scripts/build-image.sh`.
-It runs `ardor-pedal-dirclean`, uploads the rebuilt binary over legacy SCP,
-temporarily remounts root read-write, and restarts `S99ardor-pedal`.
+This command requires a Buildroot volume initialized by `scripts/build-image.sh`,
+the manager's Node dependencies, and Go 1.22 or newer. It uses the repository
+Node version to rebuild the embedded UI, cross-compiles the pure-Go manager
+daemon for Linux ARM64, runs `ardor-pedal-dirclean`, uploads both rebuilt
+binaries over legacy SCP, temporarily remounts root read-write, enables local
+authentication, and restarts `S98ardor-managerd` followed by
+`S99ardor-pedal`.
 
-Changes to the manager daemon, Buildroot packages, init scripts, rootfs overlay,
-kernel, firmware, overlays, or partitions require a complete image build and
-flash.
+Use `ARDOR_SKIP_BUILD=1` only when both repository-root binaries already exist.
+Use `ARDOR_SKIP_WEB_BUILD=1` to reuse the currently embedded UI, or
+`ARDOR_LOCAL_AUTH=preserve` when the remote image's existing authentication
+setting must not be changed.
+
+Changes to Buildroot packages, init scripts, rootfs overlay, kernel, firmware,
+overlays, or partitions still require a complete image build and flash.
 
 ## Troubleshooting
 
@@ -331,9 +338,5 @@ flash.
   eventually complete image builds.
 - Replace per-run Ubuntu dependency installation with a pinned build container
   when build frequency justifies maintaining one.
-- Enable and provision manager-daemon authentication before distributing images
-  outside trusted development networks.
 - Remove compatibility overrides only after upstream defaults pass the full
   hardware validation matrix.
-- Add a manager-daemon fast-deployment workflow if daemon iteration needs to
-  avoid full reflashing.

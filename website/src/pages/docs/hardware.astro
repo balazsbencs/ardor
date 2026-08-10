@@ -1,0 +1,139 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import { url } from '../../lib/url';
+
+const enclosure = [
+  { label: 'Outer size', value: '180 × 150 × 55 mm' },
+  { label: 'Wall thickness', value: '3 mm' },
+  { label: 'Corner radius', value: '8 mm' },
+  { label: 'Display', value: 'RPi Touch Display 2' },
+  { label: 'Viewable screen', value: '125 × 74 mm' },
+  { label: 'Footswitches', value: '4 × 12 mm, corner-inset' },
+  { label: 'Encoder', value: 'rear-centre rotary' },
+  { label: 'Fixings', value: 'M3 heat-set inserts' },
+];
+
+const controlPins = [
+  { fn: 'Footswitch 1 / slot 1', gpio: 'GPIO5', pin: '29' },
+  { fn: 'Footswitch 2 / slot 2', gpio: 'GPIO6', pin: '31' },
+  { fn: 'Footswitch 3 / slot 3', gpio: 'GPIO13', pin: '33' },
+  { fn: 'Footswitch 4 / slot 4', gpio: 'GPIO16', pin: '36' },
+  { fn: 'Encoder A', gpio: 'GPIO17', pin: '11' },
+  { fn: 'Encoder B', gpio: 'GPIO22', pin: '15' },
+  { fn: 'MIDI input (UART4 RX)', gpio: 'GPIO9', pin: '21' },
+  { fn: 'Expression ADC alert', gpio: 'GPIO25', pin: '22' },
+];
+---
+
+<DocsLayout
+  title="Hardware"
+  description="The Ardor pedal hardware target: Raspberry Pi 4, Codec Zero, touch display, footswitches, encoder, and the 3D-printable enclosure."
+  lede="Ardor's first physical target is a Raspberry Pi 4 with a Codec Zero audio HAT, a DSI touch display, four footswitches, and one encoder — in a 3D-printable enclosure."
+>
+  <h2>Bill of materials</h2>
+  <ul>
+    <li>Raspberry Pi 4B (1 GB RAM is sufficient)</li>
+    <li>Raspberry Pi Codec Zero audio HAT</li>
+    <li>Raspberry Pi Touch Display 2 (DSI)</li>
+    <li>Four momentary footswitches</li>
+    <li>One rotary encoder for master output volume</li>
+    <li>Mono guitar input (buffered, high-Z), stereo output</li>
+  </ul>
+
+  <div class="callout warn">
+    <p>
+      Buffer the guitar input before the Codec Zero. Passive pickups should not connect
+      directly to a low-impedance line input if tone and level matter. All GPIO wiring is
+      3.3 V logic only.
+    </p>
+  </div>
+
+  <h2>Enclosure</h2>
+  <p>
+    The repository ships an OpenSCAD enclosure and 3MF meshes sized for the display and
+    control layout. The interactive model on the <a href={url('/')}>home page</a> is built
+    to these same dimensions.
+  </p>
+  <dl class="spec-grid">
+    {enclosure.map((s) => (
+      <div>
+        <dt>{s.label}</dt>
+        <dd class="mono">{s.value}</dd>
+      </div>
+    ))}
+  </dl>
+
+  <h2>Control wiring</h2>
+  <p>
+    Footswitches and the encoder connect GPIO pins to ground; the Pi uses internal pull-ups.
+    Controls are read through Linux input drivers — <code>gpio-keys</code> for footswitches
+    and <code>rotary-encoder</code> for the encoder.
+  </p>
+  <table>
+    <thead><tr><th>Function</th><th>GPIO</th><th>Physical pin</th></tr></thead>
+    <tbody>
+      {controlPins.map((p) => (
+        <tr><td>{p.fn}</td><td class="mono">{p.gpio}</td><td class="mono tnum">{p.pin}</td></tr>
+      ))}
+    </tbody>
+  </table>
+  <p>
+    The Codec Zero is an I2S HAT, so I2S, I2C, and the HAT EEPROM pins are reserved. Check
+    the in-repository assembly guide before wiring, and redo the pin table if your display
+    is not a DSI unit.
+  </p>
+
+  <h2>MIDI &amp; expression</h2>
+  <p>A control-I/O companion circuit adds TRS MIDI input and an expression-pedal ADC:</p>
+  <table>
+    <thead><tr><th>Message</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">Program Change 0–3</td><td>Select preset slot 1–4 in the active bank.</td></tr>
+      <tr><td class="mono">CC 0 / CC 32</td><td>Select bank 0–99.</td></tr>
+      <tr><td class="mono">CC 20 ≥ 64</td><td>Tuner on; below 64, tuner off.</td></tr>
+    </tbody>
+  </table>
+  <p>
+    MIDI input is channel-omni by default, and per-preset learned CC mappings take priority
+    over the fixed actions. Use <strong>MIDI Learn</strong> in the parameter drawer to bind
+    a CC to any parameter, as a continuous controller or a latched toggle/scene.
+  </p>
+
+  <h2>Firmware image</h2>
+  <p>
+    A reproducible Buildroot image for the Raspberry Pi 4 packages the engine, manager
+    daemon, Codec Zero mixer state, a read-only root filesystem, and a writable data
+    partition seeded with four presets. Build it with <code>./scripts/build-image.sh</code>
+    — see <a href={url('/docs/getting-started')}>Getting Started</a>.
+  </p>
+
+  <style>
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+      gap: 0;
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: var(--sp-3) 0 var(--sp-4);
+    }
+    .spec-grid div {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      padding: var(--sp-3);
+      border-bottom: 1px solid var(--hairline);
+      border-right: 1px solid var(--hairline);
+    }
+    .spec-grid dt {
+      font-size: 0.66rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted-2);
+    }
+    .spec-grid dd {
+      margin: 0;
+      color: var(--text-strong);
+    }
+  </style>
+</DocsLayout>

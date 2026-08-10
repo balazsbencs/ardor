@@ -1,0 +1,44 @@
+{
+  "blocks": [
+    {
+      "asset": "",
+      "enabled": true,
+      "id": "block-6",
+      "params": {
+        "depth": 0.3400000333786011,
+        "level": 0.479999840259552,
+        "mix": 0.5,
+        "mode": "chorus",
+        "p1": 0.6600000262260437,
+        "p2": 1.0,
+        "speed": 0.3499999940395355,
+        "tone": 0.580000102519989
+      },
+      "type": "mod"
+    },
+    {
+      "asset": "",
+      "enabled": true,
+      "id": "block-7",
+      "params": {
+        "filter": 0.5,
+        "grit": 0.0,
+        "mix": 0.25,
+        "mod_dep": 0.0,
+        "mod_spd": 0.0,
+        "mode": "tape",
+        "repeats": 0.3499999940395355,
+        "time": 0.25
+      },
+      "type": "delay"
+    }
+  ],
+  "global": {
+    "inputGainDb": 0.0,
+    "outputGainDb": 0.0,
+    "safetyLimitDb": -1.0
+  },
+  "name": "Ambient",
+  "routing": "serial",
+  "version": 1
+}

@@ -1,0 +1,127 @@
+---
+import { site, docsNav } from '../data/site';
+import { url } from '../lib/url';
+---
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">{site.name}</span>
+      </div>
+      <p class="muted">{site.tagline}</p>
+      <p class="footer-meta">
+        Open source under the {site.license} license.
+      </p>
+    </div>
+
+    <nav class="footer-col" aria-label="Documentation">
+      <h4>Documentation</h4>
+      <ul>
+        {docsNav.slice(0, 5).map((d) => (
+          <li><a href={url(d.href)}>{d.label}</a></li>
+        ))}
+      </ul>
+    </nav>
+
+    <nav class="footer-col" aria-label="More">
+      <h4>More</h4>
+      <ul>
+        {docsNav.slice(5).map((d) => (
+          <li><a href={url(d.href)}>{d.label}</a></li>
+        ))}
+        <li><a href={site.repo} target="_blank" rel="noopener">Source on GitHub ↗</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="container footer-base">
+    <span class="mono">ARDOR // RASPBERRY PI GUITAR PROCESSOR</span>
+    <span class="mono muted">Not affiliated with Raspberry Pi or Neural DSP.</span>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--hairline);
+    background: var(--ground-2);
+    padding-block: var(--sp-6) var(--sp-4);
+    margin-top: var(--sp-6);
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: var(--sp-5);
+  }
+  .footer-brand .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--text-strong);
+    margin-bottom: var(--sp-2);
+  }
+  .brand-mark {
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+  .brand-name {
+    font-size: 1.15rem;
+  }
+  .footer-brand p {
+    max-width: 34ch;
+  }
+  .footer-meta {
+    font-size: var(--step--1);
+    color: var(--muted-2);
+  }
+  .footer-col h4 {
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: var(--sp-2);
+  }
+  .footer-col ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .footer-col a {
+    color: var(--text);
+    font-size: var(--step-0);
+  }
+  .footer-col a:hover {
+    color: var(--accent);
+  }
+  .footer-base {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    flex-wrap: wrap;
+    margin-top: var(--sp-5);
+    padding-top: var(--sp-3);
+    border-top: 1px solid var(--hairline);
+  }
+  .mono {
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    letter-spacing: 0.08em;
+  }
+  @media (max-width: 720px) {
+    .footer-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .footer-brand {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

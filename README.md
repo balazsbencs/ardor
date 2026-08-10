@@ -408,6 +408,16 @@ uploads queue a catalog refresh for the pedal UI. Applying a saved slot queues
 a live engine swap, handled by the pedal management loop without restarting the
 audio process; a short muted transition protects the active audio callback.
 
+The hosted HTTPS manager architecture and delivery plan are specified in
+[`docs/hosted-manager-architecture.md`](docs/hosted-manager-architecture.md).
+Its Phase 1 foundation includes the shared UI transport contract, durable
+device identity, versioned wire schemas, and a reconnecting outbound cloud
+agent. Phase 2 adds a SQLite-backed hosted control plane, account recovery,
+device presence, and physically confirmed claiming. Phase 3 adds hosted preset
+list/read/save/apply operations with durable idempotency. Phase 4 adds bounded
+asset streaming and server-side TONE3000 integration. Phase 5 adds device-local
+accounts, recoverable reset flows, and mDNS discovery.
+
 Run locally without auth:
 
 ```sh
@@ -425,8 +435,83 @@ The device status endpoint is:
 curl http://127.0.0.1:8080/api/device
 ```
 
-Auth is enabled by default when no environment override is supplied. Set
-`ARDOR_API_AUTH=on` and provide `ARDOR_API_TOKEN` for a protected device.
+The daemon also serves a device-hosted build of the React manager from `/`.
+When loaded from the daemon, the manager connects to the same origin
+automatically, so a browser can manage the pedal without the Tauri application:
+
+```sh
+cd apps/manager
+nvm use
+npm run build:device
+
+cd ../../services/managerd
+ARDOR_API_AUTH=off ARDOR_DATA_ROOT=../.. go run ./cmd/ardor-managerd
+```
+
+Open `http://127.0.0.1:8080` for local development, or the corresponding
+device address on the local network. On supported networks, the daemon also
+advertises `_ardor-manager._tcp` and a stable hostname derived from the device
+identity. With the default port, use
+`http://ardor-<first-8-device-id-characters>.local:8080`; a production image
+that binds the daemon to port 80 can omit the port. Set `ARDOR_MDNS=off` only
+when discovery must be disabled. The generated bundle is embedded in the
+`ardor-managerd` binary so it remains available without internet access.
+
+Auth is enabled by default when no environment override is supplied. On first
+start, the pedal displays a short-lived setup code. Open the device-hosted
+manager on a trusted LAN and enter that code to choose one local username and
+password. Passwords are stored as Argon2id hashes; browser sessions use an
+`HttpOnly`, `SameSite=Strict` cookie and mutation requests require a matching
+local Origin and Host. Direct LAN access uses HTTP, so the UI clearly warns
+that it is intended for trusted networks. `ARDOR_API_AUTH=off` is for explicit
+development/testing use and no static API token is required.
+
+The Security & reset settings can sign out, reset only local access, or request
+a factory reset. Resetting local access removes the username, password hash,
+and all sessions while preserving presets, assets, Wi-Fi, and cloud state. A
+factory reset must be approved on the pedal with footswitch 1 (footswitch 4
+cancels); it clears device-local user data while preserving the stable device
+identity and its reset audit record. A durable reset marker makes an interrupted
+factory reset resume deterministically after restart.
+
+The outbound cloud agent is disabled by default. A control-plane deployment can
+enable it with `ARDOR_CLOUD_ENABLED=on` and an HTTPS origin in
+`ARDOR_CLOUD_URL`. Preset reads are available over an authenticated claimed
+device connection. Preset save/apply remains opt-in per pedal with
+`ARDOR_CLOUD_REMOTE_MUTATIONS=on`; only the four allowlisted preset operations
+are accepted. The generated Ed25519 identity is stored under
+`<ARDOR_DATA_ROOT>/identity/device.json` with mode `0600`.
+
+## Hosted Control Plane
+
+The initial control plane in `services/controlplane` is a single Go service
+with an embedded migration set and a pure-Go SQLite driver. SQLite is the
+intentional first-deployment choice: the server has one active instance and a
+single writer, so PostgreSQL would add operations without adding useful
+capacity yet. The repository boundary leaves a future database migration open.
+
+Run the API locally over explicitly enabled development HTTP:
+
+```sh
+cd services/controlplane
+ARDOR_INSECURE_HTTP=on \
+ARDOR_PUBLIC_ORIGIN=http://127.0.0.1:8090 \
+go run ./cmd/ardor-controlplane
+```
+
+Build the hosted browser application with the repository Node version:
+
+```sh
+cd apps/manager
+nvm use
+npm run build:hosted
+```
+
+Production deployment must expose that static bundle and `/v1` from the same
+public HTTPS origin. Account sessions are `HttpOnly`, `SameSite=Strict`, secure
+cookies; state-changing browser requests also require the exact public Origin.
+Hosted preset save/apply requests carry UUID idempotency keys; completed
+responses and audit events are persisted in the same SQLite transaction.
 
 ## Desktop Manager
 

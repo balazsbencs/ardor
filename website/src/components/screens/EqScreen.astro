@@ -1,0 +1,177 @@
+---
+import './screens.css';
+
+// Five parametric bands. The response curve is computed at build time by
+// summing per-band bell responses across a log-frequency axis — the same shape
+// the on-device editor draws live.
+type Band = { f: number; gain: number; q: number };
+const bands: Band[] = [
+  { f: 80, gain: 3.5, q: 0.7 },
+  { f: 240, gain: -2.5, q: 1.1 },
+  { f: 900, gain: 1.5, q: 1.4 },
+  { f: 3200, gain: 4.5, q: 1.8 },
+  { f: 8000, gain: -3, q: 1.2 },
+];
+
+const FMIN = 20;
+const FMAX = 20000;
+const DBMAX = 12;
+const Wd = 100; // viewBox width
+const Hd = 40; // viewBox height
+
+const logMin = Math.log10(FMIN);
+const logMax = Math.log10(FMAX);
+const xFor = (f: number) => ((Math.log10(f) - logMin) / (logMax - logMin)) * Wd;
+const yFor = (db: number) => Hd / 2 - (db / DBMAX) * (Hd / 2);
+
+function response(f: number): number {
+  let db = 0;
+  for (const b of bands) {
+    const octaves = Math.log2(f / b.f);
+    const width = 1 / b.q;
+    db += b.gain * Math.exp(-(octaves * octaves) / (2 * width * width));
+  }
+  return db;
+}
+
+const pts: string[] = [];
+for (let i = 0; i <= 160; i++) {
+  const f = Math.pow(10, logMin + (i / 160) * (logMax - logMin));
+  pts.push(`${xFor(f).toFixed(2)},${yFor(response(f)).toFixed(2)}`);
+}
+const curve = pts.join(' ');
+const area = `0,${Hd} ${curve} ${Wd},${Hd}`;
+const gridFreqs = [100, 1000, 10000];
+---
+
+<div class="screen eq">
+  <div class="scr-head">
+    <span class="scr-btn scr-btn--muted">Done</span>
+    <span class="scr-title">PARAMETRIC EQ · 5 BAND</span>
+    <span class="scr-btn scr-btn--accent">Save</span>
+  </div>
+
+  <div class="eq-graph">
+    <svg viewBox={`0 0 ${Wd} ${Hd}`} preserveAspectRatio="none" aria-hidden="true">
+      <line x1="0" y1={Hd / 2} x2={Wd} y2={Hd / 2} class="grid mid"></line>
+      {gridFreqs.map((f) => (
+        <line x1={xFor(f)} y1="0" x2={xFor(f)} y2={Hd} class="grid"></line>
+      ))}
+      <polygon points={area} class="fill"></polygon>
+      <polyline points={curve} class="line"></polyline>
+      {bands.map((b) => (
+        <circle cx={xFor(b.f)} cy={yFor(b.gain)} r="0.9" class="node"></circle>
+      ))}
+    </svg>
+    <div class="axis">
+      <span>100 Hz</span><span>1 kHz</span><span>10 kHz</span>
+    </div>
+  </div>
+
+  <div class="eq-bands">
+    {bands.map((b, i) => (
+      <div class="band">
+        <span class="band-i">B{i + 1}</span>
+        <span class="band-f">{b.f >= 1000 ? `${b.f / 1000}k` : b.f} Hz</span>
+        <span class:list={['band-g', { pos: b.gain >= 0 }]}>
+          {b.gain >= 0 ? '+' : ''}{b.gain.toFixed(1)} dB
+        </span>
+        <span class="band-q">Q {b.q.toFixed(1)}</span>
+      </div>
+    ))}
+  </div>
+
+  <div class="scr-foot">
+    <span>5 BANDS ACTIVE</span>
+    <span class="master">Master 82%</span>
+    <span>±12 dB</span>
+  </div>
+</div>
+
+<style>
+  .eq-graph {
+    position: absolute;
+    inset: 15% 2.6cqw auto 2.6cqw;
+    height: 42%;
+  }
+  .eq-graph svg {
+    width: 100%;
+    height: 100%;
+    background: #0c1315;
+    border: 0.14cqw solid var(--scr-line);
+    border-radius: 1.2cqw;
+  }
+  .grid {
+    stroke: rgba(120, 200, 170, 0.14);
+    stroke-width: 0.12;
+  }
+  .grid.mid {
+    stroke: rgba(120, 200, 170, 0.24);
+    stroke-dasharray: 0.6 0.6;
+  }
+  .fill {
+    fill: rgba(60, 224, 166, 0.14);
+  }
+  .line {
+    fill: none;
+    stroke: var(--scr-accent);
+    stroke-width: 0.5;
+    vector-effect: non-scaling-stroke;
+  }
+  .node {
+    fill: #0a0f11;
+    stroke: var(--scr-accent);
+    stroke-width: 0.4;
+  }
+  .axis {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.6cqw 1cqw 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.7cqw;
+    color: var(--scr-muted);
+  }
+  .eq-bands {
+    position: absolute;
+    left: 2.6cqw;
+    right: 2.6cqw;
+    top: 60%;
+    bottom: 11%;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.4cqw;
+  }
+  .band {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6cqw;
+    background: var(--scr-panel);
+    border: 0.14cqw solid var(--scr-line);
+    border-radius: 1.2cqw;
+  }
+  .band-i {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.8cqw;
+    color: var(--scr-muted);
+    letter-spacing: 0.1em;
+  }
+  .band-f {
+    font-size: 2.4cqw;
+    font-weight: 600;
+  }
+  .band-g {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 2.2cqw;
+    color: #ff9a76;
+  }
+  .band-g.pos {
+    color: var(--scr-accent);
+  }
+  .band-q {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.8cqw;
+    color: var(--scr-muted);
+  }
+</style>

@@ -52,6 +52,34 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+  website:
+    name: Documentation website
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check content and components
+        run: npm run check
+
+      - name: Build documentation
+        run: npm run build
+
+      - name: Check internal links
+        run: npm run test:links
+
   managerd:
     name: Manager daemon
     runs-on: ubuntu-24.04

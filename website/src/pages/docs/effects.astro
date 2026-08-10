@@ -1,0 +1,133 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import ParamTable from '../../components/ParamTable.astro';
+import { byCategory, describe, counts } from '../../lib/effects';
+import { url } from '../../lib/url';
+
+const catGroups = [
+  { key: 'modulation', label: 'Modulation', accent: '#59c2e6' },
+  { key: 'delay', label: 'Delay', accent: '#3ce0a6' },
+  { key: 'reverb', label: 'Reverb', accent: '#c58cff' },
+];
+---
+
+<DocsLayout
+  title="Effects Reference"
+  description="Every Ardor block and its parameters: amp, cabinet, dynamics, EQ, and the 35 hosted modulation, delay, and reverb effects."
+  lede="This reference is generated directly from the pedal's block catalog, so the parameters, ranges, and defaults match the firmware exactly."
+>
+  <h2>Building blocks</h2>
+
+  <h3>NAM Amp</h3>
+  <p>{describe(byCategory('amp')[0])}</p>
+  <ParamTable id="nam" />
+
+  <h3>Cabinet IR</h3>
+  <p>Convolution cabinet impulse response with level and dry/wet mix.</p>
+  <ParamTable id="cab" />
+
+  <h2>Dynamics &amp; EQ</h2>
+
+  <h3>Compressor</h3>
+  <p>A studio compressor with selectable detector, sidechain high-pass, and parallel mix.</p>
+  <ParamTable id="dynamics:compressor" />
+
+  <h3>Noise Gate</h3>
+  <p>
+    Stereo-linked noise suppression with hold, hysteresis, and sidechain filtering.
+    Detection is stereo-linked and the gate adds no lookahead latency.
+  </p>
+  <ParamTable id="dynamics:noise_gate" />
+
+  <h3>Five-Band Parametric EQ</h3>
+  <p>
+    Five fully parametric bands, each with frequency (20–20,000 Hz), Q (0.1–18), and gain
+    (−18 to +18 dB), drawn on a live response graph. Saved presets always contain exactly
+    five complete bands.
+  </p>
+
+  <h2>Hosted effects</h2>
+  <p class="lead-in">
+    {counts.modulation} modulation, {counts.delay} delay, and {counts.reverb} reverb
+    algorithms — <strong>35 effects</strong> in total. Each stores catalog-defined
+    normalized controls with semantic labels and physical-value formatting. Expand any
+    effect to see its parameters.
+  </p>
+
+  {catGroups.map((g) => (
+    <section class="fx-group" style={`--cat:${g.accent}`}>
+      <h3>{g.label} <span class="mono tnum">· {byCategory(g.key).length}</span></h3>
+      <div class="fx-details">
+        {byCategory(g.key).map((def) => (
+          <details>
+            <summary>
+              <span class="sum-name">{def.name}</span>
+              <span class="sum-desc">{describe(def)}</span>
+            </summary>
+            <ParamTable id={def.id} />
+          </details>
+        ))}
+      </div>
+    </section>
+  ))}
+
+  <p>
+    See how these blocks connect in <a href={url('/docs/signal-chain')}>Signal Chain &amp; Routing</a>.
+  </p>
+
+  <style>
+    .fx-group {
+      margin-bottom: var(--sp-4);
+    }
+    .fx-group h3 .mono {
+      color: var(--cat);
+    }
+    .fx-details {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    details {
+      border: 1px solid var(--hairline);
+      border-left: 2px solid var(--cat);
+      border-radius: var(--radius);
+      background: var(--ground-2);
+      padding: 0 var(--sp-3);
+    }
+    details[open] {
+      padding-bottom: var(--sp-2);
+    }
+    summary {
+      cursor: pointer;
+      padding: 0.7rem 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.2rem 0.8rem;
+      list-style: none;
+    }
+    summary::-webkit-details-marker {
+      display: none;
+    }
+    summary::before {
+      content: '+';
+      font-family: var(--font-mono);
+      color: var(--cat);
+      margin-right: 0.4rem;
+    }
+    details[open] summary::before {
+      content: '−';
+    }
+    .sum-name {
+      font-weight: 600;
+      color: var(--text-strong);
+    }
+    .sum-desc {
+      color: var(--muted);
+      font-size: var(--step--1);
+    }
+    details table {
+      margin-top: 0;
+    }
+  </style>
+</DocsLayout>

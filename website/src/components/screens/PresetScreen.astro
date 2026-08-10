@@ -1,0 +1,78 @@
+---
+import './screens.css';
+const slots = [
+  { name: 'Clean Verb', active: true },
+  { name: 'Crunch Rig', active: false },
+  { name: 'Lead Bloom', active: false },
+  { name: 'Ambient Wash', active: false },
+];
+---
+
+<div class="screen preset">
+  <div class="scr-head">
+    <span class="scr-btn scr-btn--accent">Tuner</span>
+    <span class="scr-btn scr-btn--muted">Bank −</span>
+    <span class="scr-title">BANK 000</span>
+    <span class="scr-btn">Bank +</span>
+    <span class="scr-btn">Edit</span>
+  </div>
+
+  <div class="preset-grid">
+    {slots.map((s) => (
+      <div class:list={['slot', { 'slot--active': s.active }]}>
+        {s.active && <span class="slot-bar"></span>}
+        <span class="slot-name">{s.name}</span>
+      </div>
+    ))}
+  </div>
+
+  <div class="scr-foot">
+    <span>BUFFER 41% USED</span>
+    <span class="master">Master 82%</span>
+    <span>EXP: DELAY MIX</span>
+    <span>MIDI</span>
+    <span class="scr-gear" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="60%" height="60%" fill="currentColor"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 4-2.1-.6a7 7 0 0 0-.5-1.2l1-1.9-1.7-1.7-1.9 1a7 7 0 0 0-1.2-.5L13.9 3h-3.8l-.6 2.1a7 7 0 0 0-1.2.5l-1.9-1L4.7 6.3l1 1.9a7 7 0 0 0-.5 1.2L3 12l2.1.6c.1.4.3.8.5 1.2l-1 1.9 1.7 1.7 1.9-1c.4.2.8.4 1.2.5L11 21h3.8l.6-2.1c.4-.1.8-.3 1.2-.5l1.9 1 1.7-1.7-1-1.9c.2-.4.4-.8.5-1.2L21 12Z"/></svg>
+    </span>
+  </div>
+</div>
+
+<style>
+  .preset-grid {
+    position: absolute;
+    inset: 15% 2.6cqw 9.5% 2.6cqw;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 1.6cqw;
+    padding-block: 1.2cqw;
+  }
+  .slot {
+    position: relative;
+    display: grid;
+    place-items: center;
+    background: #12191d;
+    border: 0.16cqw solid rgba(120, 200, 170, 0.16);
+    border-radius: 1.4cqw;
+  }
+  .slot--active {
+    border-color: rgba(60, 224, 166, 0.4);
+  }
+  .slot-bar {
+    position: absolute;
+    left: 1.6cqw;
+    top: 12%;
+    bottom: 12%;
+    width: 0.7cqw;
+    border-radius: 1cqw;
+    background: var(--scr-accent);
+    box-shadow: 0 0 2cqw rgba(60, 224, 166, 0.6);
+  }
+  .slot-name {
+    font-size: 5cqw;
+    font-weight: 600;
+  }
+  .slot--active .slot-name {
+    color: var(--scr-accent);
+  }
+</style>

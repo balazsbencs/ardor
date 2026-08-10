@@ -15,14 +15,22 @@ import {
 } from "../tone3000/client";
 import { cancelTone3000, onTone3000Callback, openTone3000, tone3000NativeAvailable } from "../tone3000/native";
 import { Tone3000Brand, Tone3000Dialog, type Tone3000Phase } from "../tone3000/Tone3000Dialog";
+import {
+  getHostedTone3000Selection,
+  installHostedTone3000Model,
+  startHostedTone3000Selection,
+  type Tone3000Architecture,
+} from "../tone3000/hosted";
+import { isHostedCloudRuntime } from "../runtime/platform";
 
 function size(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function AssetLibrary() {
+export function AssetLibrary({ tone3000DeviceId }: { tone3000DeviceId?: string } = {}) {
   const session = useDeviceSession();
+  const hostedCloud = isHostedCloudRuntime();
   const [kind, setKind] = useState<AssetKind>("models");
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string>();
@@ -34,10 +42,15 @@ export function AssetLibrary() {
   const [tone3000Phase, setTone3000Phase] = useState<Tone3000Phase>("idle");
   const [tone3000Selection, setTone3000Selection] = useState<Tone3000Selection>();
   const [selectedTone3000ModelId, setSelectedTone3000ModelId] = useState<number>();
+  const [tone3000Architecture, setTone3000Architecture] = useState<Tone3000Architecture>("legacy");
+  const [tone3000FlowId, setTone3000FlowId] = useState<string>();
   const fileRef = useRef<HTMLInputElement>(null);
   const processedDeepLinks = useRef(new Set<string>());
+  const hostedFlowGeneration = useRef(0);
+  const hostedPopup = useRef<Window | null>(null);
   const assets = kind === "models" ? session.models : session.irs;
   const visible = assets.filter((asset) => asset.filename.toLowerCase().includes(query.toLowerCase()));
+  const tone3000Available = hostedCloud ? tone3000DeviceId !== undefined : tone3000NativeAvailable() && tone3000Configured();
 
   const clearFileInput = () => { if (fileRef.current) fileRef.current.value = ""; };
   const uploadSequentially = async (uploadKind: AssetKind, files: File[]): Promise<boolean> => {
@@ -165,6 +178,46 @@ export function AssetLibrary() {
 
   const launchTone3000 = async () => {
     setError(undefined);
+    if (hostedCloud) {
+      if (!tone3000DeviceId) {
+        setError("No hosted device is selected.");
+        return;
+      }
+      const generation = ++hostedFlowGeneration.current;
+      const popup = window.open("", "ardor-tone3000", "popup,width=1100,height=760");
+      if (!popup) {
+        setError("Allow pop-ups for Ardor to browse TONE3000.");
+        return;
+      }
+      hostedPopup.current = popup;
+      try {
+        setTone3000Phase("waiting");
+        const started = await startHostedTone3000Selection(tone3000DeviceId, tone3000Architecture);
+        if (generation !== hostedFlowGeneration.current) return;
+        setTone3000FlowId(started.flowId);
+        popup.location.replace(started.authorizeUrl);
+        for (;;) {
+          await new Promise((resolve) => window.setTimeout(resolve, 900));
+          if (generation !== hostedFlowGeneration.current) return;
+          const current = await getHostedTone3000Selection(started.flowId);
+          if (current.status === "failed") throw new Error(current.message || "TONE3000 selection failed.");
+          if (current.status === "ready" && current.selection) {
+            setTone3000Selection(current.selection);
+            setSelectedTone3000ModelId(current.selection.models[0]?.id);
+            setTone3000Phase("detail");
+            popup.close();
+            hostedPopup.current = null;
+            return;
+          }
+        }
+      } catch (reason) {
+        popup.close();
+        hostedPopup.current = null;
+        setTone3000Phase("idle");
+        setError(reason instanceof Error ? reason.message : "Could not open TONE3000.");
+      }
+      return;
+    }
     if (!tone3000Configured()) {
       setError("Tone3000 is not configured for this build.");
       return;
@@ -175,7 +228,7 @@ export function AssetLibrary() {
     }
     try {
       setTone3000Phase("waiting");
-      const url = await createTone3000SelectUrl();
+      const url = await createTone3000SelectUrl(tone3000Architecture);
       await openTone3000(url);
     } catch (reason) {
       setTone3000Phase("idle");
@@ -197,6 +250,9 @@ export function AssetLibrary() {
   };
 
   const cancelTone3000Flow = () => {
+    hostedFlowGeneration.current += 1;
+    hostedPopup.current?.close();
+    hostedPopup.current = null;
     setTone3000Phase("idle");
     void cancelTone3000();
   };
@@ -208,6 +264,16 @@ export function AssetLibrary() {
     setError(undefined);
     setTone3000Phase("installing");
     try {
+      if (hostedCloud) {
+        if (!tone3000FlowId) throw new Error("TONE3000 selection is no longer available.");
+        await installHostedTone3000Model(tone3000FlowId, model.id);
+        await session.refreshAssets("models");
+        setKind("models");
+        setTone3000Phase("idle");
+        setTone3000FlowId(undefined);
+        setNotice(`${model.name} by @${selection.tone.user.username} installed from TONE3000.`);
+        return;
+      }
       const file = await downloadTone3000Model(selection, model);
       setKind("models");
       const uploaded = await uploadSequentially("models", [file]);
@@ -223,7 +289,7 @@ export function AssetLibrary() {
 
   return (
     <main className="assets-view">
-      <header className="assets-view__header"><div><p className="eyebrow">Device assets</p><h1>Models & cabinet IRs</h1><p>Upload files once, then choose them from the relevant block inspector.</p></div><div className="assets-view__actions">{kind === "models" && <Button className="tone3000-entry" onClick={browseTone3000} disabled={session.busy.upload || conflict !== undefined || tone3000Phase !== "idle"}><Tone3000Brand compact /> Browse TONE3000</Button>}<Button onClick={() => fileRef.current?.click()} disabled={session.busy.upload || conflict !== undefined}><Upload size={16} /> {session.busy.upload ? "Uploading…" : "Upload files"}</Button></div><input ref={fileRef} hidden type="file" multiple accept={kind === "models" ? ".nam" : ".wav"} onChange={(event) => upload(event.target.files)} /></header>
+      <header className="assets-view__header"><div><p className="eyebrow">Device assets</p><h1>Models & cabinet IRs</h1><p>Upload files once, then choose them from the relevant block inspector.</p></div><div className="assets-view__actions">{kind === "models" && tone3000Available && <Button className="tone3000-entry" onClick={browseTone3000} disabled={session.busy.upload || conflict !== undefined || tone3000Phase !== "idle"}><Tone3000Brand compact /> Browse TONE3000</Button>}<Button onClick={() => fileRef.current?.click()} disabled={session.busy.upload || conflict !== undefined}><Upload size={16} /> {session.busy.upload ? "Uploading…" : "Upload files"}</Button></div><input ref={fileRef} hidden type="file" multiple accept={kind === "models" ? ".nam" : ".wav"} onChange={(event) => upload(event.target.files)} /></header>
       <div className="assets-toolbar"><div className="category-tabs" role="tablist" aria-label="Asset type"><button role="tab" aria-selected={kind === "models"} className={kind === "models" ? "is-active" : ""} onClick={() => setKind("models")}>NAM models</button><button role="tab" aria-selected={kind === "irs"} className={kind === "irs" ? "is-active" : ""} onClick={() => setKind("irs")}>Cabinet IRs</button></div><input className="asset-search" placeholder="Search files" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
       <div className="asset-dropzone" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); upload(event.dataTransfer.files); }}><Upload size={16} /><span>Drop {kind === "models" ? ".nam" : ".wav"} files here to upload</span></div>
       {error && <p className="assets-error" role="alert">{error}</p>}
@@ -232,7 +298,7 @@ export function AssetLibrary() {
       {pendingDelete && <div className="confirm-popover" role="alertdialog" aria-modal="true"><div><StatusBadge tone="warning">Delete asset</StatusBadge><h2>Delete {pendingDelete.filename}?</h2><p>Existing presets may reference this file. They will remain saved, but cannot be applied until repaired.</p></div><div><Button variant="quiet" onClick={() => setPendingDelete(undefined)}>Cancel</Button><Button variant="danger" onClick={() => void remove()}>Delete asset</Button></div></div>}
       {conflict && <div className="confirm-popover" role="alertdialog" aria-modal="true" aria-label="Asset already exists"><div><StatusBadge tone="warning">File already exists</StatusBadge><h2>Replace {conflict.file.name}?</h2><p>The installed {conflict.kind === "models" ? "NAM model" : "cabinet IR"} with this filename will be replaced. Presets that reference it will use the replacement.</p></div><div><Button variant="quiet" onClick={() => void resolveConflict("skip")}>Skip file</Button><Button variant="danger" onClick={() => void resolveConflict("replace")}>Replace asset</Button></div></div>}
       {renaming && <div className="confirm-popover" role="dialog" aria-modal="true" aria-label="Rename asset"><div><StatusBadge tone="info">Rename asset</StatusBadge><h2>Rename {renaming.filename}</h2><p>Use a filename ending in {kind === "models" ? ".nam" : ".wav"}. Saved presets that use this asset will be updated automatically.</p><label className="rename-field">Filename<input autoFocus aria-label="New filename" value={renameValue} onChange={(event) => setRenameValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void rename(); }} /></label></div><div><Button variant="quiet" onClick={() => setRenaming(undefined)}>Cancel</Button><Button variant="primary" onClick={() => void rename()}>Rename asset</Button></div></div>}
-      <Tone3000Dialog phase={tone3000Phase} selection={tone3000Selection} selectedModelId={selectedTone3000ModelId} onSelectedModelId={setSelectedTone3000ModelId} onContinue={continueToTone3000} onCancel={cancelTone3000Flow} onInstall={() => void installTone3000Model()} />
+      <Tone3000Dialog phase={tone3000Phase} selection={tone3000Selection} selectedModelId={selectedTone3000ModelId} onSelectedModelId={setSelectedTone3000ModelId} onContinue={continueToTone3000} onCancel={cancelTone3000Flow} onInstall={() => void installTone3000Model()} architecture={tone3000Architecture} onArchitecture={setTone3000Architecture} />
     </main>
   );
 }

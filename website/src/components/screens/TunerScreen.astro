@@ -1,0 +1,137 @@
+---
+import './screens.css';
+// Muted chromatic tuner: detected note, frequency, and a cents meter.
+const note = 'A';
+const freq = '110.6 Hz';
+const cents = 6; // slightly sharp
+const ticks = Array.from({ length: 21 }, (_, i) => i - 10);
+---
+
+<div class="screen tuner">
+  <div class="scr-head">
+    <span class="scr-btn scr-btn--muted">Exit</span>
+    <span class="scr-title">TUNER · MUTED</span>
+    <span class="scr-spacer"></span>
+    <span class="scr-btn">A = 440</span>
+  </div>
+
+  <div class="tuner-body">
+    <div class="note">
+      <span class="note-letter">{note}</span>
+      <span class="note-oct">2</span>
+    </div>
+    <div class="freq">{freq}</div>
+
+    <div class="meter">
+      <div class="ticks">
+        {ticks.map((t) => (
+          <span class:list={['tick', { major: t % 5 === 0, center: t === 0 }]}></span>
+        ))}
+      </div>
+      <div class="needle" style={`left: ${50 + cents * 3.5}%`}></div>
+      <div class="meter-labels">
+        <span>♭ flat</span><span>in tune</span><span>sharp ♯</span>
+      </div>
+    </div>
+
+    <div class:list={['verdict', { sharp: cents > 2, flat: cents < -2 }]}>
+      {cents > 2 ? `+${cents}¢ · a touch sharp` : cents < -2 ? `${cents}¢ · a touch flat` : 'in tune'}
+    </div>
+  </div>
+
+  <div class="scr-foot">
+    <span>OUTPUT MUTED</span>
+    <span class="master">Master 82%</span>
+    <span>CHROMATIC</span>
+  </div>
+</div>
+
+<style>
+  .tuner-body {
+    position: absolute;
+    inset: 15% 0 9.5% 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6cqw;
+  }
+  .note {
+    display: flex;
+    align-items: flex-start;
+    color: #fff;
+    line-height: 0.9;
+  }
+  .note-letter {
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 700;
+    font-size: 20cqw;
+    line-height: 1;
+    color: var(--scr-accent);
+    text-shadow: 0 0 6cqw rgba(60, 224, 166, 0.4);
+  }
+  .note-oct {
+    font-family: 'Chakra Petch', sans-serif;
+    font-size: 5.5cqw;
+    color: var(--scr-muted);
+    margin-top: 2cqw;
+  }
+  .freq {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 3cqw;
+    color: var(--scr-muted);
+    letter-spacing: 0.08em;
+  }
+  .meter {
+    position: relative;
+    width: 70%;
+    margin-top: 1cqw;
+  }
+  .ticks {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 6cqw;
+  }
+  .tick {
+    width: 0.3cqw;
+    height: 40%;
+    background: var(--scr-line-2);
+  }
+  .tick.major {
+    height: 70%;
+    background: var(--scr-muted);
+  }
+  .tick.center {
+    height: 100%;
+    background: var(--scr-accent);
+  }
+  .needle {
+    position: absolute;
+    top: -1cqw;
+    width: 0.7cqw;
+    height: 9cqw;
+    background: #fff;
+    border-radius: 1cqw;
+    transform: translateX(-50%);
+    box-shadow: 0 0 2.4cqw rgba(255, 255, 255, 0.6);
+  }
+  .meter-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.4cqw;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.9cqw;
+    color: var(--scr-muted);
+  }
+  .verdict {
+    margin-top: 1.6cqw;
+    font-size: 2.8cqw;
+    font-weight: 600;
+    color: var(--scr-accent);
+  }
+  .verdict.sharp,
+  .verdict.flat {
+    color: #ffcf76;
+  }
+</style>
