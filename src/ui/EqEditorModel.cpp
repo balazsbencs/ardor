@@ -63,6 +63,19 @@ float eqGainFromY(int y, int height)
   return kEqMaximumGainDb - fraction * (kEqMaximumGainDb - kEqMinimumGainDb);
 }
 
+float eqBandwidthOctaves(float q)
+{
+  const float safeQ = std::max(q, kEqMinimumQ);
+  return (2.0f / std::log(2.0f)) * std::asinh(1.0f / (2.0f * safeQ));
+}
+
+std::pair<float, float> eqShoulderFrequencies(float centerHz, float q)
+{
+  const float halfOctaves = eqBandwidthOctaves(q) / 2.0f;
+  return {clampFrequency(centerHz * std::pow(2.0f, -halfOctaves)),
+          clampFrequency(centerHz * std::pow(2.0f, halfOctaves))};
+}
+
 void adjustEqBandField(EqBandParams& band, EqBandField field, int ticks)
 {
   switch (field) {

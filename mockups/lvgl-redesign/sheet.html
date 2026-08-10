@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ardor — Direction C: SHEET</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Chivo+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+  DIRECTION CONTRACT — seed key 5ea320b0 · grounded candidate 6 of 7 · mode: operate
+
+  THESIS: The pedal shows you the schematic. Ardor's whole position is that it is open and
+  inspectable, so the interface is the drawing — reference designators, net labels, a title
+  block, revision triangles. It refuses the card grid that hides routing behind identical
+  rounded rectangles.
+  OWN-WORLD: Deep petrol ink ground, cyan-gray hairlines on a fine drafting grid, condensed
+  engineering lettering, tabular mono for every measured value. Signal yellow marks the live
+  path and nothing else. All linework — no fills that ramp.
+  STORY: The player sees the actual shape of each rig before choosing it, and understands
+  routing because routing is literally drawn.
+  FIRST VIEWPORT: A drawing sheet with zone coordinates and a title block. Four miniature
+  signal-flow drawings, one per slot; the live one drawn in yellow at full weight.
+  FORM: Engineering drafting sheet; candidate 6 of my ordered list; seed key 5ea320b0.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish
+  review, the verdict, and DESIGN.md
+*/
+
+:root{
+  --ink:#071a1e;          /* deep petrol drafting ground — flat */
+  --ink2:#0b2329;         /* one value step up, for sheet panels */
+  --rule:#2f5b63;         /* hairline */
+  --rule-lo:#193f47;      /* grid */
+  --let:#dfeef0;          /* lettering */
+  --let-lo:#7fa3a8;       /* dimension / secondary lettering */
+  --live:#f5d020;         /* signal yellow — live path, reserved */
+  --amber:#f0a030;        /* annotation / unsaved */
+  --fault:#e5484d;
+  --netR:#35c4d4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2b2b2b;font-family:'Barlow Condensed',sans-serif;color:#bbb;padding:40px 24px 80px}
+.doc{max-width:1280px;margin:0 auto}
+.doc h1{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:36px;color:var(--live);
+  text-transform:uppercase;letter-spacing:.06em}
+.doc .sub{font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;max-width:70ch;margin-top:10px;color:#9a9a9a}
+.cap{display:flex;align-items:baseline;gap:14px;margin:44px 0 12px}
+.cap b{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:21px;color:#e6e6e6;
+  text-transform:uppercase;letter-spacing:.05em}
+.cap span{font-family:system-ui,sans-serif;font-size:13px;color:#8a8a8a}
+.stage{width:1280px;height:720px;transform-origin:top left;overflow:hidden;
+  box-shadow:0 18px 50px rgba(0,0,0,.6);border:1px solid #000}
+.shell{position:relative;height:1px}
+.note{font-family:system-ui,sans-serif;margin-top:14px;font-size:13.5px;line-height:1.65;color:#8f8f8f;max-width:78ch}
+.note b{color:#d8d8d8;font-weight:600}
+.cost{margin-top:56px;border-top:1px solid #3d3d3d;padding-top:22px;font-family:system-ui,sans-serif}
+.cost h2{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;color:#e6e6e6;
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.cost li{font-size:13.5px;line-height:1.7;color:#9a9a9a;margin-left:18px;max-width:80ch}
+.cost li b{color:#d8d8d8;font-weight:600}
+
+/* ================= THE DESIGN ================= */
+.scr{width:1280px;height:720px;background:var(--ink);position:relative;overflow:hidden;color:var(--let);
+  font-family:'Barlow Condensed',sans-serif}
+/* fine drafting grid — hard 1px rules, no interpolation anywhere */
+.grid{position:absolute;inset:0;
+  background-image:
+    repeating-linear-gradient(90deg,var(--rule-lo) 0 1px,transparent 1px 40px),
+    repeating-linear-gradient(180deg,var(--rule-lo) 0 1px,transparent 1px 40px);
+  opacity:.55}
+/* sheet border with zone coordinates */
+.border{position:absolute;inset:14px;border:1px solid var(--rule)}
+.zones{position:absolute;inset:14px;pointer-events:none;
+  font-family:'Chivo Mono',monospace;font-size:9px;color:var(--let-lo)}
+.zones i{position:absolute;font-style:normal}
+.inner{position:absolute;top:36px;left:36px;right:36px;bottom:36px}
+
+/* title block — bottom right, the world's signature */
+.tblock{position:absolute;right:15px;bottom:15px;width:396px;border:1px solid var(--rule);
+  background:var(--ink2);display:grid;grid-template-columns:1fr 1fr 1fr;z-index:4}
+.tblock div{border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:6px 9px 7px}
+.tblock div:nth-child(3n){border-right:none}
+.tblock .k{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--let-lo);line-height:1.1}
+.tblock .v{font-family:'Chivo Mono',monospace;font-size:15px;color:var(--let);margin-top:3px;line-height:1.1}
+.tblock .wide{grid-column:1/4;border-right:none}
+.tblock .wide .v{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:26px;
+  text-transform:uppercase;letter-spacing:.03em}
+.tblock .last div{border-bottom:none}
+
+/* revision triangle */
+.rev{display:inline-flex;align-items:center;justify-content:center;width:0;height:0;
+  border-left:11px solid transparent;border-right:11px solid transparent;border-bottom:19px solid var(--amber);
+  position:relative;vertical-align:middle}
+.rev b{position:absolute;top:5px;left:-4px;width:8px;text-align:center;font-family:'Chivo Mono',monospace;
+  font-size:10px;color:var(--ink);font-weight:600}
+
+.hdr{position:absolute;top:26px;left:36px;right:36px;height:44px;display:flex;align-items:center;gap:16px;z-index:3}
+.hdr .t{font-weight:700;font-size:30px;text-transform:uppercase;letter-spacing:.07em}
+.hdr .m{font-family:'Chivo Mono',monospace;font-size:13px;color:var(--let-lo);letter-spacing:.04em}
+.hdr .sp{flex:1}
+.flag{border:1px solid var(--amber);color:var(--amber);font-family:'Chivo Mono',monospace;font-size:11px;
+  padding:3px 9px;letter-spacing:.1em;text-transform:uppercase}
+.flag.f{border-color:var(--fault);color:var(--fault)}
+
+/* ---------- SCREEN 1: drawing index ---------- */
+.index{position:absolute;top:82px;left:36px;right:36px;bottom:112px;
+  display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:14px}
+.dsheet{border:1px solid var(--rule);background:var(--ink2);position:relative;padding:11px 14px 8px;
+  display:flex;flex-direction:column}
+.dsheet .row1{display:flex;align-items:baseline;gap:11px}
+.dsheet .no{font-family:'Chivo Mono',monospace;font-size:12px;color:var(--let-lo);letter-spacing:.1em}
+.dsheet .nm{font-weight:700;font-size:29px;text-transform:uppercase;letter-spacing:.03em;line-height:1}
+.dsheet .sp{flex:1}
+.dsheet svg{margin-top:auto;display:block}
+.dsheet.live{border-color:var(--live);border-width:2px;padding:10px 13px 7px}
+.dsheet.live .nm{color:var(--live)}
+.dsheet.live .no{color:var(--live)}
+.activeflag{background:var(--live);color:var(--ink);font-family:'Chivo Mono',monospace;font-size:11px;
+  padding:2px 8px;letter-spacing:.14em;font-weight:600}
+.dsheet.fault{border-color:var(--fault)}
+.dsheet.fault .nm{color:#f0a3a5}
+.hatch{position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(45deg,transparent 0 9px,rgba(229,72,77,.16) 9px 18px)}
+
+.footrail{position:absolute;left:36px;bottom:26px;display:flex;gap:9px;z-index:4}
+.bt{border:1px solid var(--rule);color:var(--let);font-weight:600;font-size:19px;text-transform:uppercase;
+  letter-spacing:.09em;padding:9px 20px;background:var(--ink2)}
+.bt.pri{background:var(--live);color:var(--ink);border-color:var(--live)}
+.bt.sm{font-size:15px;padding:8px 14px}
+
+/* dimension line for master volume */
+.dim{position:absolute;left:36px;bottom:96px;width:430px;z-index:3}
+.dim .lbl{font-family:'Chivo Mono',monospace;font-size:11px;color:var(--let-lo);letter-spacing:.1em;
+  text-transform:uppercase;margin-bottom:4px;display:flex;justify-content:space-between}
+.dim .lbl b{color:var(--let);font-weight:400;font-size:14px}
+.scale{height:22px;position:relative;border-left:1px solid var(--rule);border-right:1px solid var(--rule)}
+.scale .ticks{position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,var(--rule) 0 1px,transparent 1px 21.5px)}
+.scale .bar{position:absolute;left:0;top:8px;height:5px;background:var(--let)}
+.scale .ptr{position:absolute;top:0;bottom:0;width:0;border-left:5px solid transparent;
+  border-right:5px solid transparent;border-top:9px solid var(--live);transform:translateX(-50%)}
+
+/* ---------- SCREEN 2: schematic ---------- */
+.sch{position:absolute;top:82px;left:36px;right:36px;bottom:112px}
+
+/* ---------- SCREEN 3: tuner ---------- */
+.tn{position:absolute;top:70px;left:36px;right:36px;bottom:112px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center}
+.desig{display:flex;align-items:baseline;gap:18px}
+.desig .big{font-weight:700;font-size:196px;line-height:.82;letter-spacing:-.01em;color:var(--let)}
+.desig .oct{font-family:'Chivo Mono',monospace;font-size:44px;color:var(--let-lo)}
+.meas{font-family:'Chivo Mono',monospace;font-size:20px;color:var(--let-lo);letter-spacing:.08em;margin-top:8px}
+.tolwrap{width:920px;margin-top:34px;position:relative}
+.tolscale{height:62px;position:relative;border-bottom:1px solid var(--rule)}
+.tolscale .maj{position:absolute;bottom:0;width:1px;background:var(--rule);height:18px}
+.tolscale .maj.big{height:30px;background:var(--let-lo)}
+.tolscale .num{position:absolute;bottom:34px;transform:translateX(-50%);font-family:'Chivo Mono',monospace;
+  font-size:12px;color:var(--let-lo)}
+.tolband{position:absolute;bottom:0;height:44px;
+  background:repeating-linear-gradient(45deg,transparent 0 6px,rgba(245,208,32,.22) 6px 12px);
+  border-left:1px solid var(--live);border-right:1px solid var(--live)}
+.needle{position:absolute;bottom:0;width:2px;height:62px;background:var(--live)}
+.needle:before{content:"";position:absolute;top:-11px;left:-6px;width:0;height:0;
+  border-left:7px solid transparent;border-right:7px solid transparent;border-top:12px solid var(--live)}
+.tverd{margin-top:26px;font-weight:700;font-size:44px;text-transform:uppercase;letter-spacing:.09em;color:var(--live)}
+.callout{position:absolute;top:78px;right:36px;display:flex;align-items:center;gap:0;z-index:4}
+.callout .line{width:56px;height:1px;background:var(--fault)}
+.callout .txt{border:1px solid var(--fault);color:var(--fault);font-family:'Chivo Mono',monospace;
+  font-size:12px;letter-spacing:.12em;padding:5px 11px}
+
+/* ---------- SCREEN 4: parameters ---------- */
+.pwrap{position:absolute;top:82px;left:36px;right:36px;bottom:112px;display:flex;gap:22px}
+.spec{width:396px;flex:none;border:1px solid var(--rule);background:var(--ink2);align-self:flex-start}
+.spec .hd{display:grid;grid-template-columns:1fr 78px 58px;border-bottom:1px solid var(--rule);
+  font-family:'Chivo Mono',monospace;font-size:10px;letter-spacing:.14em;color:var(--let-lo);text-transform:uppercase}
+.spec .hd span{padding:6px 10px}
+.spec .rw{display:grid;grid-template-columns:1fr 78px 58px;border-bottom:1px solid var(--rule-lo);
+  font-family:'Chivo Mono',monospace;font-size:14px}
+.spec .rw:last-child{border-bottom:none}
+.spec .rw span{padding:7px 10px}
+.spec .rw .p{color:var(--let-lo);text-transform:uppercase;letter-spacing:.06em}
+.spec .rw .v{color:var(--let);text-align:right}
+.spec .rw .u{color:var(--let-lo)}
+.spec .rw.sel{background:rgba(245,208,32,.1)}
+.spec .rw.sel .v{color:var(--live)}
+.pdims{flex:1;display:grid;grid-template-rows:repeat(3,1fr);gap:16px}
+.pdim{display:flex;flex-direction:column;justify-content:center;gap:7px}
+.pdim .t{display:flex;align-items:baseline;justify-content:space-between}
+.pdim .t .k{font-size:19px;text-transform:uppercase;letter-spacing:.14em;color:var(--let-lo)}
+.pdim .t .v{font-family:'Chivo Mono',monospace;font-size:25px;color:var(--let)}
+.pdim.sel .t .k{color:var(--live)}
+.pdim.sel .t .v{color:var(--live)}
+.dline{height:30px;position:relative;border-bottom:1px solid var(--rule)}
+.dline .tk{position:absolute;bottom:0;width:1px;height:9px;background:var(--rule)}
+.dline .tk.b{height:16px;background:var(--let-lo)}
+.dline .fill{position:absolute;bottom:0;left:0;height:3px;background:var(--let)}
+.pdim.sel .dline .fill{background:var(--live)}
+.dline .hd{position:absolute;bottom:-4px;width:11px;height:11px;background:var(--let);transform:translateX(-50%) rotate(45deg)}
+.pdim.sel .dline .hd{background:var(--live)}
+.swsym{display:flex;align-items:center;gap:11px;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Direction C — Sheet</h1>
+  <p class="sub">The pedal shows you the schematic. Ardor's position is that it is open and inspectable, so the
+  interface becomes the drawing: reference designators, net labels, dimension lines, a title block, revision
+  triangles. Everything is linework on a flat ink field — hairlines and hard edges only, so there is nothing for
+  RGB565 to quantise.</p>
+
+  <div class="cap"><b>1 · Drawing index</b><span>preset screen — four rigs shown as four drawings</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="grid"></div><div class="border"></div>
+      <div class="zones">
+        <i style="top:3px;left:24%">A</i><i style="top:3px;left:49%">B</i><i style="top:3px;left:74%">C</i>
+        <i style="bottom:3px;left:24%">A</i><i style="bottom:3px;left:49%">B</i><i style="bottom:3px;left:74%">C</i>
+        <i style="left:5px;top:32%">1</i><i style="left:5px;top:64%">2</i>
+        <i style="right:5px;top:32%">1</i><i style="right:5px;top:64%">2</i>
+      </div>
+
+      <div class="hdr">
+        <div class="t">Bank 000 — Set A</div>
+        <div class="m">4 SHEETS · 48 kHz · BLK 64</div>
+        <div class="sp"></div>
+        <div class="m">MIDI ON</div>
+      </div>
+
+      <div class="index">
+        <div class="dsheet">
+          <div class="row1"><span class="no">SHT 1 / FS 1</span></div>
+          <div class="nm">Midnight Clean</div>
+          <svg width="100%" height="66" viewBox="0 0 560 66" fill="none">
+            <path d="M8 33 H552" stroke="#2f5b63" stroke-width="1"/>
+            <g stroke="#7fa3a8" stroke-width="1" fill="#0b2329">
+              <rect x="86" y="18" width="84" height="30"/><rect x="216" y="18" width="84" height="30"/>
+              <rect x="346" y="18" width="84" height="30"/>
+            </g>
+            <g fill="#7fa3a8" font-family="'Chivo Mono',monospace" font-size="11">
+              <text x="128" y="37" text-anchor="middle">U1</text>
+              <text x="258" y="37" text-anchor="middle">IR1</text>
+              <text x="388" y="37" text-anchor="middle">RV1</text>
+              <text x="8" y="26" font-size="9">IN</text><text x="520" y="26" font-size="9">OUT</text>
+            </g>
+            <circle cx="86" cy="33" r="2.5" fill="#2f5b63"/><circle cx="430" cy="33" r="2.5" fill="#2f5b63"/>
+          </svg>
+        </div>
+
+        <div class="dsheet live">
+          <div class="row1"><span class="no">SHT 2 / FS 2</span><span class="sp"></span>
+            <span class="activeflag">ACTIVE</span></div>
+          <div class="nm">Drive Stack</div>
+          <svg width="100%" height="66" viewBox="0 0 560 66" fill="none">
+            <path d="M8 33 H552" stroke="#f5d020" stroke-width="2"/>
+            <g stroke="#f5d020" stroke-width="2" fill="#0b2329">
+              <rect x="86" y="16" width="84" height="34"/><rect x="216" y="16" width="84" height="34"/>
+              <rect x="346" y="16" width="84" height="34"/>
+            </g>
+            <g fill="#f5d020" font-family="'Chivo Mono',monospace" font-size="12">
+              <text x="128" y="38" text-anchor="middle">U1</text>
+              <text x="258" y="38" text-anchor="middle">IR1</text>
+              <text x="388" y="38" text-anchor="middle">D1</text>
+              <text x="8" y="26" font-size="9">IN</text><text x="520" y="26" font-size="9">OUT</text>
+            </g>
+            <circle cx="86" cy="33" r="3" fill="#f5d020"/><circle cx="430" cy="33" r="3" fill="#f5d020"/>
+          </svg>
+        </div>
+
+        <div class="dsheet">
+          <div class="row1"><span class="no">SHT 3 / FS 3</span></div>
+          <div class="nm">Split Rig — Wide</div>
+          <svg width="100%" height="66" viewBox="0 0 560 66" fill="none">
+            <path d="M8 33 H74" stroke="#2f5b63"/><circle cx="74" cy="33" r="3" fill="#7fa3a8"/>
+            <path d="M74 33 V13 H92" stroke="#2f5b63"/><path d="M74 33 V53 H92" stroke="#2f5b63"/>
+            <g stroke="#7fa3a8" fill="#0b2329">
+              <rect x="92" y="3" width="72" height="20"/><rect x="184" y="3" width="72" height="20"/>
+              <rect x="92" y="43" width="72" height="20"/><rect x="184" y="43" width="72" height="20"/>
+            </g>
+            <path d="M164 13 H184" stroke="#2f5b63"/><path d="M164 53 H184" stroke="#2f5b63"/>
+            <path d="M256 13 H300 V33" stroke="#2f5b63"/><path d="M256 53 H300 V33" stroke="#2f5b63"/>
+            <circle cx="300" cy="33" r="3" fill="#7fa3a8"/><path d="M300 33 H552" stroke="#2f5b63"/>
+            <g fill="#7fa3a8" font-family="'Chivo Mono',monospace" font-size="9">
+              <text x="80" y="10">L</text><text x="80" y="62">R</text>
+              <text x="312" y="30">JOIN L/R</text><text x="520" y="26">OUT</text><text x="8" y="26">IN</text>
+            </g>
+          </svg>
+        </div>
+
+        <div class="dsheet fault">
+          <div class="hatch"></div>
+          <div class="row1"><span class="no">SHT 4 / FS 4</span><span class="sp"></span>
+            <span class="rev"><b>!</b></span></div>
+          <div class="nm">Ambient Bloom</div>
+          <div style="margin-top:auto;font-family:'Chivo Mono',monospace;font-size:12px;color:var(--fault);
+            letter-spacing:.06em;border-top:1px solid rgba(229,72,77,.4);padding-top:7px">
+            ASSET NOT FOUND — models/bloom.nam</div>
+        </div>
+      </div>
+
+      <div class="dim">
+        <div class="lbl"><span>Master output</span><b>72 %</b></div>
+        <div class="scale"><div class="ticks"></div>
+          <div class="bar" style="width:72%"></div><div class="ptr" style="left:72%"></div></div>
+      </div>
+
+      <div class="footrail">
+        <div class="bt pri">Edit</div><div class="bt">Tuner</div>
+        <div class="bt sm">Bank −</div><div class="bt sm">Bank +</div><div class="bt sm">Setup</div>
+      </div>
+
+      <div class="tblock">
+        <div class="wide"><div class="k">Project</div><div class="v">Ardor · Bank 000</div></div>
+        <div><div class="k">Sheet</div><div class="v">2 of 4</div></div>
+        <div><div class="k">Rev</div><div class="v">—</div></div>
+        <div><div class="k">Headroom</div><div class="v" style="color:var(--live)">38 %</div></div>
+      </div>
+    </div>
+  </div></div>
+  <p class="note"><b>You see the shape of the rig before you choose it.</b> No competitor's preset list does
+  this — every one of them shows four identical name-and-number cards. Here slot 3 is visibly a split rig at a
+  glance, and the live sheet is drawn in signal yellow at double line weight while the others sit back in
+  hairline. The title block carries bank, sheet, revision and headroom in the place a drawing always carries them.</p>
+
+  <div class="cap"><b>2 · Schematic</b><span>edit screen — bypass drawn as a jumper, not a dimmed card</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="grid"></div><div class="border"></div>
+      <div class="hdr">
+        <div class="t">Sheet 2 — Drive Stack</div>
+        <div class="sp"></div>
+        <div class="flag">Rev A · unsaved</div>
+      </div>
+      <div class="sch">
+        <svg width="100%" height="100%" viewBox="0 0 1208 466" fill="none">
+          <!-- main net -->
+          <path d="M20 150 H1188" stroke="#f5d020" stroke-width="2"/>
+          <text x="20" y="138" fill="#7fa3a8" font-family="'Chivo Mono',monospace" font-size="12">IN · MONO</text>
+          <text x="1120" y="138" fill="#7fa3a8" font-family="'Chivo Mono',monospace" font-size="12">OUT · L/R</text>
+
+          <!-- U1 amp -->
+          <rect x="118" y="106" width="176" height="88" fill="#0b2329" stroke="#f5d020" stroke-width="2"/>
+          <text x="206" y="140" fill="#dfeef0" font-family="'Barlow Condensed',sans-serif" font-weight="700"
+                font-size="27" text-anchor="middle">TWEED DELUXE</text>
+          <text x="206" y="164" fill="#7fa3a8" font-family="'Chivo Mono',monospace" font-size="12"
+                text-anchor="middle">U1 · NAM · NANO · SUM</text>
+          <text x="118" y="98" fill="#f5d020" font-family="'Chivo Mono',monospace" font-size="11">U1</text>
+
+          <!-- IR1 cab -->
+          <rect x="358" y="106" width="176" height="88" fill="#0b2329" stroke="#f5d020" stroke-width="2"/>
+          <text x="446" y="140" fill="#dfeef0" font-family="'Barlow Condensed',sans-serif" font-weight="700"
+                font-size="27" text-anchor="middle">OPEN BACK</text>
+          <text x="446" y="164" fill="#7fa3a8" font-family="'Chivo Mono',monospace" font-size="12"
+                text-anchor="middle">IR1 · −2.0 dB · MIX 100</text>
+          <text x="358" y="98" fill="#f5d020" font-family="'Chivo Mono',monospace" font-size="11">IR1</text>
+
+          <!-- M1 chorus, BYPASSED: hatched body + jumper routed around it -->
+          <rect x="598" y="106" width="176" height="88" fill="#0b2329" stroke="#2f5b63" stroke-width="1"/>
+          <path d="M598 106 L774 194 M598 150 L730 194 M642 106 L774 150" stroke="#193f47" stroke-width="1"/>
+          <text x="686" y="140" fill="#4d7880" font-family="'Barlow Condensed',sans-serif" font-weight="700"
+                font-size="27" text-anchor="middle">CHORUS</text>
+          <text x="686" y="164" fill="#4d7880" font-family="'Chivo Mono',monospace" font-size="12"
+                text-anchor="middle">M1 · BYPASSED</text>
+          <!-- the jumper -->
+          <path d="M572 150 V78 H800 V150" stroke="#f5d020" stroke-width="2"/>
+          <circle cx="572" cy="150" r="4" fill="#f5d020"/><circle cx="800" cy="150" r="4" fill="#f5d020"/>
+          <text x="686" y="68" fill="#f5d020" font-family="'Chivo Mono',monospace" font-size="12"
+                text-anchor="middle">BYP JUMPER</text>
+
+          <!-- D1 delay -->
+          <rect x="838" y="106" width="176" height="88" fill="#0b2329" stroke="#f5d020" stroke-width="2"/>
+          <text x="926" y="140" fill="#dfeef0" font-family="'Barlow Condensed',sans-serif" font-weight="700"
+                font-size="27" text-anchor="middle">TAPE</text>
+          <text x="926" y="164" fill="#7fa3a8" font-family="'Chivo Mono',monospace" font-size="12"
+                text-anchor="middle">D1 · 380 ms · FB 34</text>
+          <text x="838" y="98" fill="#f5d020" font-family="'Chivo Mono',monospace" font-size="11">D1</text>
+
+          <!-- insertion targets on the net -->
+          <g stroke="#7fa3a8" fill="#071a1e">
+            <rect x="62" y="140" width="20" height="20"/><rect x="316" y="140" width="20" height="20"/>
+            <rect x="1052" y="140" width="20" height="20"/>
+          </g>
+          <g fill="#7fa3a8" font-family="'Chivo Mono',monospace" font-size="14" text-anchor="middle">
+            <text x="72" y="155">+</text><text x="326" y="155">+</text><text x="1062" y="155">+</text>
+          </g>
+
+          <!-- dimension line showing chain latency, an engineering habit that earns its place -->
+          <path d="M20 300 H1188" stroke="#2f5b63" stroke-width="1" stroke-dasharray="4 4"/>
+          <path d="M20 294 V306 M1188 294 V306" stroke="#2f5b63"/>
+          <rect x="520" y="286" width="168" height="28" fill="#071a1e"/>
+          <text x="604" y="305" fill="#7fa3a8" font-family="'Chivo Mono',monospace" font-size="13"
+                text-anchor="middle">CHAIN 4 BLK · 8.2 ms</text>
+        </svg>
+      </div>
+      <div class="footrail">
+        <div class="bt pri">Save*</div><div class="bt">Undo</div><div class="bt">Redo</div>
+        <div class="bt">Blocks</div><div class="bt sm">Done</div>
+      </div>
+      <div class="tblock">
+        <div class="wide"><div class="k">Sheet title</div><div class="v">Drive Stack</div></div>
+        <div><div class="k">Blocks</div><div class="v">4</div></div>
+        <div><div class="k">Rev</div><div class="v" style="color:var(--amber)">A ▲</div></div>
+        <div><div class="k">Headroom</div><div class="v" style="color:var(--live)">38 %</div></div>
+      </div>
+    </div>
+  </div></div>
+  <p class="note"><b>Bypass is drawn the way an engineer draws it.</b> The block stays on the sheet, hatched out,
+  and a jumper carries the signal around it in live yellow. You can see at a glance both that the chorus exists
+  and that nothing is going through it — which a greyed-out card cannot tell you apart from a disabled control.</p>
+
+  <div class="cap"><b>3 · Tuner</b><span>a measurement instrument with a real tolerance band</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="grid"></div><div class="border"></div>
+      <div class="hdr"><div class="t">Tuner</div>
+        <div class="m">CHROMATIC · A4 = 440.0 Hz</div><div class="sp"></div></div>
+      <div class="callout"><div class="txt">OUTPUT MUTED</div><div class="line"></div></div>
+
+      <div class="tn">
+        <div class="desig"><span class="big">A</span><span class="oct">2</span></div>
+        <div class="meas">110.42 Hz · MEAS −6.0 ¢ · TOL ±3.0 ¢</div>
+
+        <div class="tolwrap">
+          <div class="tolscale">
+            <div class="tolband" style="left:47%;width:6%"></div>
+            <div class="maj big" style="left:0"></div><div class="num" style="left:0">−50</div>
+            <div class="maj" style="left:12.5%"></div>
+            <div class="maj" style="left:25%"></div><div class="num" style="left:25%">−25</div>
+            <div class="maj" style="left:37.5%"></div>
+            <div class="maj big" style="left:50%"></div><div class="num" style="left:50%">0</div>
+            <div class="maj" style="left:62.5%"></div>
+            <div class="maj" style="left:75%"></div><div class="num" style="left:75%">+25</div>
+            <div class="maj" style="left:87.5%"></div>
+            <div class="maj big" style="left:100%"></div><div class="num" style="left:100%">+50</div>
+            <div class="needle" style="left:44%"></div>
+          </div>
+        </div>
+        <div class="tverd">Flat — tune up</div>
+      </div>
+
+      <div class="footrail"><div class="bt">Exit</div>
+        <div style="align-self:center;margin-left:14px;font-family:'Chivo Mono',monospace;font-size:12px;
+          color:var(--let-lo);letter-spacing:.1em">ANY FOOTSWITCH EXITS</div></div>
+      <div class="tblock">
+        <div class="wide"><div class="k">Measurement</div><div class="v">Pitch · chromatic</div></div>
+        <div><div class="k">Target</div><div class="v">110.00</div></div>
+        <div><div class="k">Dev</div><div class="v" style="color:var(--amber)">−6.0 ¢</div></div>
+        <div><div class="k">Tol</div><div class="v">±3.0</div></div>
+      </div>
+    </div>
+  </div></div>
+  <p class="note"><b>±3 cents is a tolerance zone, so draw it as one.</b> The hatched band is the in-tune window
+  made physically visible; you are not reading a number, you are watching an arrow enter a zone. When it lands
+  inside, the band fills solid yellow and the verdict reads IN TOLERANCE.</p>
+
+  <div class="cap"><b>4 · Parameters</b><span>spec table plus drafted dimension scales</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="grid"></div><div class="border"></div>
+      <div class="hdr">
+        <div class="t">D1 — Tape</div>
+        <div class="m">DELAY · 6 PARAMS</div>
+        <div class="sp"></div>
+        <div class="swsym">
+          <svg width="54" height="20" fill="none">
+            <path d="M2 14 H16" stroke="#f5d020" stroke-width="2"/><circle cx="17" cy="14" r="3" fill="#f5d020"/>
+            <path d="M18 13 L38 5" stroke="#f5d020" stroke-width="2"/>
+            <circle cx="39" cy="14" r="3" fill="#f5d020"/><path d="M40 14 H52" stroke="#f5d020" stroke-width="2"/>
+          </svg>
+          <span style="font-family:'Chivo Mono',monospace;font-size:12px;color:var(--let-lo);letter-spacing:.1em">
+            SW1 · ENABLED</span>
+        </div>
+      </div>
+
+      <div class="pwrap">
+        <div class="spec">
+          <div class="hd"><span>Parameter</span><span style="text-align:right">Value</span><span>Unit</span></div>
+          <div class="rw sel"><span class="p">Time</span><span class="v">380</span><span class="u">ms</span></div>
+          <div class="rw"><span class="p">Feedback</span><span class="v">34</span><span class="u">%</span></div>
+          <div class="rw"><span class="p">Mix</span><span class="v">28</span><span class="u">%</span></div>
+          <div class="rw"><span class="p">Wow</span><span class="v">18</span><span class="u">%</span></div>
+          <div class="rw"><span class="p">Age</span><span class="v">61</span><span class="u">%</span></div>
+          <div class="rw"><span class="p">Heads</span><span class="v">2</span><span class="u">—</span></div>
+        </div>
+
+        <div class="pdims">
+          <div class="pdim sel">
+            <div class="t"><span class="k">Time</span><span class="v">380 ms &nbsp;<span style="color:var(--let-lo)">/ 20–1200</span></span></div>
+            <div class="dline">
+              <div class="tk b" style="left:0"></div><div class="tk" style="left:12.5%"></div>
+              <div class="tk" style="left:25%"></div><div class="tk" style="left:37.5%"></div>
+              <div class="tk b" style="left:50%"></div><div class="tk" style="left:62.5%"></div>
+              <div class="tk" style="left:75%"></div><div class="tk" style="left:87.5%"></div>
+              <div class="tk b" style="left:100%"></div>
+              <div class="fill" style="width:31%"></div><div class="hd" style="left:31%"></div>
+            </div>
+          </div>
+          <div class="pdim">
+            <div class="t"><span class="k">Feedback</span><span class="v">34 % &nbsp;<span style="color:var(--let-lo)">/ 0–100</span></span></div>
+            <div class="dline">
+              <div class="tk b" style="left:0"></div><div class="tk" style="left:25%"></div>
+              <div class="tk b" style="left:50%"></div><div class="tk" style="left:75%"></div>
+              <div class="tk b" style="left:100%"></div>
+              <div class="fill" style="width:34%"></div><div class="hd" style="left:34%"></div>
+            </div>
+          </div>
+          <div class="pdim">
+            <div class="t"><span class="k">Mix</span><span class="v">28 % &nbsp;<span style="color:var(--let-lo)">/ 0–100</span></span></div>
+            <div class="dline">
+              <div class="tk b" style="left:0"></div><div class="tk" style="left:25%"></div>
+              <div class="tk b" style="left:50%"></div><div class="tk" style="left:75%"></div>
+              <div class="tk b" style="left:100%"></div>
+              <div class="fill" style="width:28%"></div><div class="hd" style="left:28%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footrail">
+        <div class="bt sm">◀ Prev</div><div class="bt sm">Next ▶</div>
+        <div class="bt sm">Reset</div><div class="bt pri">Done</div>
+      </div>
+      <div class="tblock">
+        <div class="wide"><div class="k">Block</div><div class="v">D1 · Tape delay</div></div>
+        <div><div class="k">Sheet</div><div class="v">2 of 4</div></div>
+        <div><div class="k">Rev</div><div class="v" style="color:var(--amber)">A ▲</div></div>
+        <div><div class="k">Live edit</div><div class="v" style="color:var(--live)">ON</div></div>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="cost">
+    <h2>What this costs in LVGL</h2>
+    <ul>
+      <li><b>Linework is the expense.</b> The schematic screens are drawn here in SVG; LVGL has no SVG renderer
+        you want in an audio-realtime process. Rebuild them as <code>lv_line</code> point arrays — accurate and
+        cheap, since every path in this design is orthogonal or a single diagonal. Budget one point array per
+        net, rebuilt only on topology change (the existing revision-counter architecture already does this).</li>
+      <li><b>The drafting grid</b> must be a tiled 40×40 image, not 60-odd line objects. One RGB565 tile, ~3 KB,
+        drawn by the background layer.</li>
+      <li><b>Hatching</b> (bypassed blocks, tolerance band, fault sheets) is the same trick: a 12×12 diagonal
+        tile. Never generate hatch lines as objects.</li>
+      <li><b>Two font families at many sizes</b> is the heaviest font bill of the three directions — Barlow
+        Condensed at 5 sizes plus Chivo Mono at 4. Subset Chivo Mono to digits, unit letters and punctuation and
+        it stays modest; the 196 px tuner glyph set is 12 characters.</li>
+      <li><b>Genuine stretch:</b> the miniature per-preset schematics on screen 1 must be generated from real
+        preset data at load, not hand-drawn. That is a new layout routine — roughly what
+        <code>LvglChainLayout</code> already does, at one-quarter scale and without interaction.</li>
+    </ul>
+  </div>
+</div>
+<script>
+const fit = () => {
+  const s = Math.min(1, document.querySelector('.doc').clientWidth / 1280);
+  document.querySelectorAll('.stage').forEach(el => {
+    el.style.transform = `scale(${s})`;
+    el.parentElement.style.height = (720 * s) + 'px';
+  });
+};
+addEventListener('resize', fit); fit(); document.fonts?.ready.then(fit);
+</script>
+</body>
+</html>

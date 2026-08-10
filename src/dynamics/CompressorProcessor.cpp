@@ -17,6 +17,11 @@ struct CompressorProcessor::LiveParameters {
   std::atomic<float> mix{1.0f};
   std::atomic<float> sidechainHpfHz{80.0f};
   std::atomic<uint64_t> revision{0};
+  // Telemetry travelling the other way (audio thread -> control/UI thread):
+  // the current static gain reduction in dB, republished every process()
+  // call. A plain relaxed store/load is enough -- the UI wants "the current
+  // value", not a peak-hold, so there is no exchange/CAS involved.
+  std::atomic<float> gainReductionDb{0.0f};
 };
 
 namespace {
@@ -39,6 +44,26 @@ float configuredNumber(const nlohmann::json& params, const char* key, float fall
 }
 
 } // namespace
+
+float compressorStaticGainDb(float levelDb, float thresholdDb, float ratio, float kneeDb)
+{
+  float gainDb = 0.0f;
+  if (kneeDb <= 0.0f) {
+    if (levelDb > thresholdDb) {
+      gainDb = (thresholdDb + (levelDb - thresholdDb) / ratio) - levelDb;
+    }
+  } else {
+    const float kneeStart = thresholdDb - kneeDb * 0.5f;
+    const float kneeEnd = thresholdDb + kneeDb * 0.5f;
+    if (levelDb >= kneeEnd) {
+      gainDb = (thresholdDb + (levelDb - thresholdDb) / ratio) - levelDb;
+    } else if (levelDb > kneeStart) {
+      const float distance = levelDb - kneeStart;
+      gainDb = (1.0f / ratio - 1.0f) * distance * distance / (2.0f * kneeDb);
+    }
+  }
+  return gainDb;
+}
 
 bool CompressorProcessor::configure(const nlohmann::json& params, float sampleRate, std::string& error)
 {
@@ -155,22 +180,12 @@ float CompressorProcessor::detectorLevel(float input, float& previousInput, floa
 float CompressorProcessor::gainForLevel(float level) const
 {
   const float levelDb = 20.0f * std::log10(std::max(level, 1.0e-9f));
-  float gainDb = 0.0f;
-  if (kneeDb_ <= 0.0f) {
-    if (levelDb > thresholdDb_) {
-      gainDb = (thresholdDb_ + (levelDb - thresholdDb_) / ratio_) - levelDb;
-    }
-  } else {
-    const float kneeStart = thresholdDb_ - kneeDb_ * 0.5f;
-    const float kneeEnd = thresholdDb_ + kneeDb_ * 0.5f;
-    if (levelDb >= kneeEnd) {
-      gainDb = (thresholdDb_ + (levelDb - thresholdDb_) / ratio_) - levelDb;
-    } else if (levelDb > kneeStart) {
-      const float distance = levelDb - kneeStart;
-      gainDb = (1.0f / ratio_ - 1.0f) * distance * distance / (2.0f * kneeDb_);
-    }
-  }
-  return dbToGain(gainDb);
+  return dbToGain(compressorStaticGainDb(levelDb, thresholdDb_, ratio_, kneeDb_));
+}
+
+float CompressorProcessor::currentGainReductionDb() const
+{
+  return liveParameters_ ? liveParameters_->gainReductionDb.load(std::memory_order_relaxed) : 0.0f;
 }
 
 StereoSample CompressorProcessor::process(StereoSample input)
@@ -190,6 +205,10 @@ StereoSample CompressorProcessor::process(StereoSample input)
   // contract inaccurate. The detector remains stereo-linked below; this
   // stage is only the static gain computer and application.
   gain_ = targetGain;
+  if (liveParameters_) {
+    liveParameters_->gainReductionDb.store(20.0f * std::log10(std::max(gain_, 1.0e-6f)),
+                                           std::memory_order_relaxed);
+  }
 
   const StereoSample wet{driven.left * gain_ * makeupGain_, driven.right * gain_ * makeupGain_};
   return {

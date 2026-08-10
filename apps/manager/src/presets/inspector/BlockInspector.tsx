@@ -1,11 +1,11 @@
-import { AlertTriangle, Copy, RotateCcw, Trash2 } from "lucide-react";
+import { AlertTriangle, Copy, RotateCcw, Trash2, X } from "lucide-react";
 import { useState } from "react";
 
 import type { Asset, PresetBlock } from "../../api/types";
 import { allEffectDefinitions, findEffectDefinition } from "../../effects/catalog";
 import type { ChoiceControl, EffectDefinition, ToggleControl } from "../../effects/types";
 import { ParameterSlider } from "../../components/ParameterSlider";
-import { Button, StatusBadge, Toggle } from "../../components/ui";
+import { Button, IconButton, StatusBadge, Toggle } from "../../components/ui";
 import type { EqBand } from "../editor/editorTypes";
 import type { ValidationIssue } from "../editor/presetValidation";
 import { EqResponseGraph } from "./EqResponseGraph";
@@ -32,6 +32,7 @@ export function BlockInspector({
   onDuplicate,
   onDelete,
   onAssets,
+  onClose,
 }: {
   block?: PresetBlock;
   issues: ValidationIssue[];
@@ -45,11 +46,12 @@ export function BlockInspector({
   onReset(blockId: string): void;
   onDuplicate(blockId: string): void;
   onDelete(blockId: string): void;
+  onClose?(): void;
   onAssets(): void;
 }) {
   if (!block) return <aside className="inspector inspector--empty"><div><p className="eyebrow">Inspector</p><h2>Select a block</h2><p>Choose a block in the chain to edit its sound, routing state and asset.</p></div></aside>;
   const definition = findEffectDefinition(block);
-  if (!definition) return <UnknownInspector block={block} issues={issues} onToggle={onToggle} onDelete={onDelete} />;
+  if (!definition) return <UnknownInspector block={block} issues={issues} onToggle={onToggle} onDelete={onDelete} onClose={onClose} />;
   const modes = definition.mode ? allModesFor(definition) : [];
   const renderControl = (control: EffectDefinition["controls"][number]) => {
     if (control.kind === "asset") {
@@ -71,7 +73,7 @@ export function BlockInspector({
   const rightControls = definition.controls.filter((control) => controlKey(control).startsWith("right"));
   return (
     <aside className="inspector" aria-label={`${definition.name} inspector`}>
-      <div className="inspector__heading"><div><p className="eyebrow">{definition.category}</p><h2>{definition.name}</h2><span className="inspector__id">{block.id}</span></div><Toggle label={`${definition.name} enabled`} checked={block.enabled} onChange={(enabled) => onToggle(block.id, enabled)} /></div>
+      <div className="inspector__heading"><div><p className="eyebrow">{definition.category}</p><h2>{definition.name}</h2><span className="inspector__id">{block.id}</span></div><div className="inspector__heading-actions"><Toggle label={`${definition.name} enabled`} checked={block.enabled} onChange={(enabled) => onToggle(block.id, enabled)} />{onClose && <IconButton className="inspector__close" label="Close inspector" onClick={onClose}><X size={16} /></IconButton>}</div></div>
       {issues.length > 0 && <div className="inspector-issues">{issues.map((issue, index) => <p key={`${issue.code}-${index}`}><AlertTriangle size={15} /><span>{issue.message}</span></p>)}</div>}
       {modes.length > 1 && <label className="form-field"><span>Mode</span><select aria-label="Effect mode" value={definition.id} onChange={(event) => onMode(block.id, event.target.value)}>{modes.map((mode) => <option value={mode.id} key={mode.id}>{mode.name}</option>)}</select></label>}
       <div className="inspector__controls">
@@ -128,6 +130,6 @@ function EqControls({ block, onEqBand }: { block: PresetBlock; onEqBand(blockId:
   </div>;
 }
 
-function UnknownInspector({ block, issues, onToggle, onDelete }: { block: PresetBlock; issues: ValidationIssue[]; onToggle(blockId: string, enabled: boolean): void; onDelete(blockId: string): void }) {
-  return <aside className="inspector"><div className="inspector__heading"><div><p className="eyebrow">Unsupported block</p><h2>{block.type}</h2><span className="inspector__id">{block.id}</span></div><Toggle label={`${block.type} enabled`} checked={block.enabled} onChange={(enabled) => onToggle(block.id, enabled)} /></div><div className="inspector-issues">{issues.map((issue, index) => <p key={`${issue.code}-${index}`}><AlertTriangle size={15} /><span>{issue.message}</span></p>)}</div><p className="unknown-copy">This manager preserves the block and its parameters. It cannot safely expose controls for this type.</p><pre>{JSON.stringify(block.params, null, 2)}</pre><div className="inspector__footer"><Button variant="danger" onClick={() => onDelete(block.id)}><Trash2 size={15} /> Delete</Button></div></aside>;
+function UnknownInspector({ block, issues, onToggle, onDelete, onClose }: { block: PresetBlock; issues: ValidationIssue[]; onToggle(blockId: string, enabled: boolean): void; onDelete(blockId: string): void; onClose?(): void }) {
+  return <aside className="inspector"><div className="inspector__heading"><div><p className="eyebrow">Unsupported block</p><h2>{block.type}</h2><span className="inspector__id">{block.id}</span></div><div className="inspector__heading-actions"><Toggle label={`${block.type} enabled`} checked={block.enabled} onChange={(enabled) => onToggle(block.id, enabled)} />{onClose && <IconButton className="inspector__close" label="Close inspector" onClick={onClose}><X size={16} /></IconButton>}</div></div><div className="inspector-issues">{issues.map((issue, index) => <p key={`${issue.code}-${index}`}><AlertTriangle size={15} /><span>{issue.message}</span></p>)}</div><p className="unknown-copy">This manager preserves the block and its parameters. It cannot safely expose controls for this type.</p><pre>{JSON.stringify(block.params, null, 2)}</pre><div className="inspector__footer"><Button variant="danger" onClick={() => onDelete(block.id)}><Trash2 size={15} /> Delete</Button></div></aside>;
 }

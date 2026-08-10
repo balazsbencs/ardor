@@ -1,9 +1,13 @@
+import * as Dialog from "@radix-ui/react-dialog";
 import { Download, ExternalLink, LoaderCircle, X } from "lucide-react";
 
 import { Button, StatusBadge } from "../components/ui";
+import { PortalSurface } from "../theme/surface";
 import type { Tone3000Selection } from "./client";
 import type { Tone3000Architecture } from "./hosted";
-import tone3000Logo from "./tone3000-logo.svg";
+import { Tone3000Brand } from "./Tone3000Brand";
+
+export { Tone3000Brand };
 
 export type Tone3000Phase = "idle" | "intro" | "waiting" | "loading" | "detail" | "installing";
 
@@ -16,15 +20,6 @@ function architectureLabel(value: "1" | "2" | "custom" | null): string {
   if (value === "2") return "A2";
   if (value === "custom") return "Custom";
   return "NAM";
-}
-
-export function Tone3000Brand({ compact = false }: { compact?: boolean }) {
-  return (
-    <span className={compact ? "tone3000-brand tone3000-brand--compact" : "tone3000-brand"}>
-      <img src={tone3000Logo} alt="TONE3000" />
-      {!compact && <small>NAM Captures and IRs</small>}
-    </span>
-  );
 }
 
 export function Tone3000Dialog({
@@ -48,15 +43,27 @@ export function Tone3000Dialog({
   architecture: Tone3000Architecture;
   onArchitecture(value: Tone3000Architecture): void;
 }) {
-  if (phase === "idle") return null;
   const isWorking = phase === "loading" || phase === "installing";
+  const refuseDismiss = (event: Event) => { if (isWorking) event.preventDefault(); };
 
   return (
-    <div className="tone3000-overlay" role="presentation">
-      <section className="tone3000-dialog" role="dialog" aria-modal="true" aria-label="TONE3000 model browser">
+    <Dialog.Root open={phase !== "idle"} onOpenChange={(open) => { if (!open && !isWorking) onCancel(); }}>
+      <Dialog.Portal>
+        <PortalSurface>
+          <Dialog.Overlay className="tone3000-overlay" />
+          <Dialog.Content
+            className="tone3000-dialog"
+            aria-describedby={undefined}
+            onEscapeKeyDown={refuseDismiss}
+            onPointerDownOutside={refuseDismiss}
+            onInteractOutside={refuseDismiss}
+          >
+        <Dialog.Title className="sr-only">TONE3000 model browser</Dialog.Title>
         <header className="tone3000-dialog__header">
           <Tone3000Brand />
-          <button className="tone3000-dialog__close" aria-label="Close TONE3000" onClick={onCancel} disabled={isWorking}><X size={18} /></button>
+          <Dialog.Close asChild>
+            <button className="tone3000-dialog__close" aria-label="Close TONE3000" disabled={isWorking}><X size={18} /></button>
+          </Dialog.Close>
         </header>
 
         {phase === "intro" && (
@@ -86,7 +93,7 @@ export function Tone3000Dialog({
         {(phase === "detail" || phase === "installing") && selection && (
           <div className="tone3000-detail">
             {selection.tone.images?.[0]
-              ? <img className="tone3000-detail__image" src={selection.tone.images[0]} alt="" />
+              ? <img className="tone3000-detail__image" src={selection.tone.images[0]} alt="" loading="lazy" decoding="async" width={640} height={640} />
               : <div className="tone3000-detail__image tone3000-detail__image--empty"><Tone3000Brand compact /></div>}
             <div className="tone3000-detail__body">
               <div className="tone3000-detail__title">
@@ -97,7 +104,7 @@ export function Tone3000Dialog({
                 <StatusBadge tone="info">{label(selection.tone.gear)} · NAM</StatusBadge>
               </div>
               <div className="tone3000-creator">
-                {selection.tone.user.avatar_url && <img src={selection.tone.user.avatar_url} alt="" />}
+                {selection.tone.user.avatar_url && <img src={selection.tone.user.avatar_url} alt="" loading="lazy" decoding="async" width={28} height={28} />}
                 <span>Created by <strong>@{selection.tone.user.username}</strong></span>
               </div>
               {selection.tone.description && <p className="tone3000-detail__description">{selection.tone.description}</p>}
@@ -117,7 +124,9 @@ export function Tone3000Dialog({
             </div>
           </div>
         )}
-      </section>
-    </div>
+          </Dialog.Content>
+        </PortalSurface>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

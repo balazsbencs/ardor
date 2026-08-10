@@ -54,7 +54,8 @@ struct UiActions {
   // Requests the host-level tuner transition so audio muting and analyzer
   // routing change together with the visible screen.
   std::function<void(bool)> setTunerMode;
-  std::function<bool(std::uint32_t, std::string&)> saveAccentColor;
+  std::function<bool(PaletteId, std::string&)> savePalette;
+  std::function<bool(std::uint32_t, std::string&)> saveAudioBlockSize;
   std::function<bool(const std::string&, const std::string&, const std::string&, std::string&)>
     saveWifiSettings;
   std::function<void(const std::optional<PresetExpression>&)> updateExpressionAssignment;
@@ -106,6 +107,12 @@ public:
   void selectEqBand(std::size_t bandIndex)
   {
     selectedEqBand_ = std::min(bandIndex, kParametricEqBandCount - 1);
+    // The band editor highlights Q by default (spec 9.1) so the encoder
+    // always has a live target as soon as a band is selected, without
+    // clobbering an in-progress drag/encoder focus on another field.
+    if (!focusedEqField_) {
+      focusedEqField_ = EqBandField::Q;
+    }
     if (!focusedEqGraph_) {
       invalidate(UiChange::Parameters);
     }
@@ -113,6 +120,11 @@ public:
   std::size_t selectedEqBand() const { return selectedEqBand_; }
   bool isEqBandFieldFocused(EqBandField field) const { return focusedEqField_ == field; }
   bool updateSelectedEqBand(UiState& state, EqBandParams params, bool requestUiRefresh = true);
+  // Graph-side drags (node/grip) mutate the model and repaint the curve
+  // directly, bypassing the interaction-gated refresh() path below -- so
+  // they must resync the Frequency/Q/Gain sliders themselves or those
+  // widgets go stale until the drag ends.
+  void syncEqSliders(const UiState& state);
   UiEventContext* remember(UiState& state, std::size_t index = 0, std::string filter = "all");
   bool isParameterFocused(const std::string& key) const { return focusedKey_ == key; }
   void resetParameterPage()
@@ -157,7 +169,9 @@ public:
   void openSettings(UiState& state);
   void closeSettings(UiState& state);
   void showSettingsSection(UiState& state, std::size_t section);
-  void selectAccentColor(UiState& state, std::size_t colorIndex);
+  void selectPalette(UiState& state, std::size_t paletteIndex);
+  void selectAudioBlockSize(UiState& state, std::size_t optionIndex);
+  void applyAudioBlockSize(UiState& state);
   void saveWifiSettings(UiState& state);
   void toggleWifiPassword();
   void toggleExpressionAssignment(UiState& state, const ParameterControl& control);
@@ -179,6 +193,12 @@ private:
   void syncDrawerAssets(UiState& state);
   void syncDrawerView(UiState& state);
   void syncParameterView(UiState& state);
+  // Reads state.compressorGainReductionDb into the meter widget directly.
+  // Called from refresh() BEFORE the activeInteractions_ gate (same carve-out
+  // as syncBlockingOverlays) so the meter keeps moving while a slider drag
+  // owns the input device -- that gate exists to protect widgets a drag is
+  // actively touching, and this widget never is one of them.
+  void syncCompressorGainMeter(UiState& state);
   void syncModeVisibility(const UiState& state);
   void syncHeaderView(const UiState& state);
   void syncPresetCards(const UiState& state);
@@ -223,14 +243,27 @@ private:
   lv_obj_t* wifiPasswordToggleLabel_ = nullptr;
   bool settingsOpen_ = false;
   std::size_t settingsSection_ = 0;
+  std::uint32_t audioBlockSizeDraft_ = 64;
   bool wifiPasswordVisible_ = false;
   std::string settingsMessage_;
   bool settingsMessageIsError_ = false;
   lv_obj_t* presetBankLabel_ = nullptr;
   lv_obj_t* masterVolumeLabel_ = nullptr;
+  lv_obj_t* masterVolumeScaleFill_ = nullptr;
   lv_obj_t* bankDownButton_ = nullptr;
   lv_obj_t* bankUpButton_ = nullptr;
+  // Preset screen's own top legend rail + bottom control rail (per
+  // docs/lvgl-ui-redesign-spec.md §4f). Distinct from the shared status-bar
+  // members above, which remain in use by the screens not yet migrated.
+  lv_obj_t* presetMidiLamp_ = nullptr;
+  lv_obj_t* presetMidiLabel_ = nullptr;
+  lv_obj_t* presetMasterValueLabel_ = nullptr;
+  lv_obj_t* presetMasterScaleFill_ = nullptr;
+  lv_obj_t* presetMasterPointer_ = nullptr;
   lv_obj_t* editPresetLabel_ = nullptr;
+  // Edit screen's own rails, mirroring the preset-screen members above.
+  lv_obj_t* editModifiedLabel_ = nullptr;
+  lv_obj_t* editModuleCountLabel_ = nullptr;
   lv_obj_t* saveButtonLabel_ = nullptr;
   lv_obj_t* telemetryLabel_ = nullptr;
   lv_obj_t* expressionStatusLabel_ = nullptr;
@@ -245,15 +278,17 @@ private:
   lv_obj_t* tunerCentsLabel_ = nullptr;
   lv_obj_t* tunerGuidanceLabel_ = nullptr;
   lv_obj_t* tunerNeedle_ = nullptr;
+  std::array<lv_obj_t*, 3> tunerVerdictLamps_{};
   std::array<lv_obj_t*, 4> presetCardLabels_{};
   std::array<lv_obj_t*, 4> presetCardButtons_{};
-  std::array<lv_obj_t*, 4> presetIndicators_{};
+  std::array<lv_obj_t*, 4> presetHeaderStrips_{};
+  std::array<lv_obj_t*, 4> presetLamps_{};
+  std::array<lv_obj_t*, 4> presetNumerals_{};
   std::array<lv_obj_t*, 4> presetWarningLabels_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainCards_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainCategoryLabels_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainAssetLabels_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainBypassLabels_{};
-  std::array<lv_obj_t*, kMaxEffectBlocks> chainSelectionIndicators_{};
   std::array<UiEventContext*, kMaxEffectBlocks> chainClickContexts_{};
   std::array<UiEventContext*, kMaxEffectBlocks> chainDragContexts_{};
   std::vector<std::string> renderedBlockIds_;
@@ -269,9 +304,12 @@ private:
   std::array<lv_obj_t*, kDrawerCategoryCount> drawerCategoryButtons_{};
   std::vector<lv_obj_t*> drawerAssetButtons_;
   std::vector<UiEventContext*> drawerAssetContexts_;
+  std::vector<lv_obj_t*> drawerAssetSubtitleLabels_;
   std::vector<std::string> renderedAssetKeys_;
   lv_obj_t* drawerAssetList_ = nullptr;
   lv_obj_t* drawerInstructionLabel_ = nullptr;
+  lv_obj_t* drawerCountLabel_ = nullptr;
+  lv_obj_t* drawerFooterCountLabel_ = nullptr;
   std::vector<lv_obj_t*> parameterControls_;
   lv_obj_t* parameterTitleLabel_ = nullptr;
   lv_obj_t* parameterBypassControl_ = nullptr;
@@ -283,6 +321,8 @@ private:
   UiEventContext* eqEnabledContext_ = nullptr;
   UiEventContext* eqResetContext_ = nullptr;
   std::array<UiEventContext*, 3> eqSliderContexts_{};
+  lv_obj_t* compressorGainMeterFill_ = nullptr;
+  lv_obj_t* compressorGainMeterLabel_ = nullptr;
   struct ParameterViewRefs {
     lv_obj_t* layer = nullptr;
     std::vector<lv_obj_t*> controls;
@@ -296,6 +336,8 @@ private:
     UiEventContext* eqEnabledContext = nullptr;
     UiEventContext* eqResetContext = nullptr;
     std::array<UiEventContext*, 3> eqSliderContexts{};
+    lv_obj_t* gainMeterFill = nullptr;
+    lv_obj_t* gainMeterLabel = nullptr;
   };
   std::unordered_map<std::string, ParameterViewRefs> parameterViews_;
   lv_obj_t* activeParameterLayer_ = nullptr;

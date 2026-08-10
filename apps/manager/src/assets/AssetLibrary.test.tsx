@@ -32,13 +32,59 @@ describe("AssetLibrary", () => {
 
     const input = view.container.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(input, [first, second]);
-    expect(await screen.findByRole("alertdialog", { name: "Asset already exists" })).toHaveTextContent("Replace amp.nam?");
+    expect(await screen.findByRole("alertdialog", { name: "Replace amp.nam?" })).toHaveTextContent("File already exists");
 
     await user.click(screen.getByRole("button", { name: "Replace asset" }));
     expect(uploadAsset).toHaveBeenNthCalledWith(1, "models", first, false);
     expect(uploadAsset).toHaveBeenNthCalledWith(2, "models", first, true);
     expect(uploadAsset).toHaveBeenNthCalledWith(3, "models", second, false);
     expect(refreshAssets).toHaveBeenCalledTimes(2);
+  });
+
+  it("deletes every selected asset and reports the ones that failed", async () => {
+    const user = userEvent.setup();
+    const deleteAsset = vi.fn(async (_kind: string, id: string) => {
+      if (id === "b.nam") throw new Error("device busy");
+    });
+    const refreshAssets = vi.fn(async () => undefined);
+    const session = sessionWith({
+      client: { deleteAsset } as unknown as ArdorApiClient,
+      models: [
+        { id: "a.nam", kind: "model", filename: "a.nam", path: "models/a.nam", sizeBytes: 3 },
+        { id: "b.nam", kind: "model", filename: "b.nam", path: "models/b.nam", sizeBytes: 3 },
+        { id: "c.nam", kind: "model", filename: "c.nam", path: "models/c.nam", sizeBytes: 3 },
+      ],
+      refreshAssets,
+    });
+    renderWithProviders(<DeviceSessionContext.Provider value={session}><AssetLibrary /></DeviceSessionContext.Provider>);
+
+    await user.click(screen.getByRole("checkbox", { name: "Select a.nam" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select b.nam" }));
+    await user.click(screen.getByRole("button", { name: "Delete selected" }));
+    expect(await screen.findByRole("alertdialog")).toHaveTextContent("Delete 2 files?");
+
+    await user.click(screen.getByRole("button", { name: "Delete 2 assets" }));
+    expect(deleteAsset.mock.calls).toEqual([["models", "a.nam"], ["models", "b.nam"]]);
+    expect(refreshAssets).toHaveBeenCalledWith("models");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not delete b.nam (device busy).");
+  });
+
+  it("selects and clears every visible asset with the select-all checkbox", async () => {
+    const user = userEvent.setup();
+    const session = sessionWith({
+      models: [
+        { id: "a.nam", kind: "model", filename: "a.nam", path: "models/a.nam", sizeBytes: 3 },
+        { id: "b.nam", kind: "model", filename: "b.nam", path: "models/b.nam", sizeBytes: 3 },
+      ],
+    });
+    renderWithProviders(<DeviceSessionContext.Provider value={session}><AssetLibrary /></DeviceSessionContext.Provider>);
+
+    await user.click(screen.getByRole("checkbox", { name: "Select all files" }));
+    expect(screen.getByRole("checkbox", { name: "Select a.nam" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select b.nam" })).toBeChecked();
+
+    await user.click(screen.getByRole("checkbox", { name: "Select all files" }));
+    expect(screen.queryByRole("button", { name: "Delete selected" })).toBeNull();
   });
 
   it("renames a device asset and reports the saved presets updated by the daemon", async () => {

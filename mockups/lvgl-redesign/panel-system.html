@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ardor — Panel: the remaining pieces</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@300;400;500;600;700&family=Saira:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+  Direction D (Panel) — the pieces the four core screens did not cover:
+  module drawer, annunciator toasts, unsaved-changes dialog, settings with the
+  palette switcher, and the five-band EQ editor.
+
+  Palette is a runtime theme. Slate is the default; Ink and Sodium are selectable.
+  Use the switcher at the top of this page — it swaps one class on every screen,
+  which is exactly how the device would do it.
+*/
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2b2b2b;font-family:Saira,sans-serif;color:#bbb;padding:40px 24px 90px}
+.doc{max-width:1280px;margin:0 auto}
+h1{font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:38px;color:#e8e8e8;
+  text-transform:uppercase;letter-spacing:.08em}
+.sub{font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;max-width:72ch;margin-top:12px;color:#9a9a9a}
+.sub b{color:#dcdcdc;font-weight:600}
+.switcher{margin-top:24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.switcher span{font-family:system-ui,sans-serif;font-size:13px;color:#8a8a8a;margin-right:6px}
+.switcher button{font-family:'Saira Condensed',sans-serif;font-weight:600;font-size:15px;
+  text-transform:uppercase;letter-spacing:.14em;padding:9px 18px;background:#1c1c1c;color:#c9c9c9;
+  border:1px solid #444;cursor:pointer;display:flex;align-items:center;gap:9px}
+.switcher button i{width:13px;height:13px;display:block}
+.switcher button[aria-pressed="true"]{background:#e2e4e3;color:#111;border-color:#e2e4e3}
+.cap{display:flex;align-items:baseline;gap:14px;margin:46px 0 11px}
+.cap b{font-family:'Saira Condensed',sans-serif;font-weight:600;font-size:20px;color:#dcdcdc;
+  text-transform:uppercase;letter-spacing:.09em}
+.cap span{font-family:system-ui,sans-serif;font-size:13px;color:#858585}
+.stage{width:1280px;height:720px;transform-origin:top left;overflow:hidden;box-shadow:0 16px 44px rgba(0,0,0,.6)}
+.shell{position:relative;height:1px}
+.note{font-family:system-ui,sans-serif;margin-top:14px;font-size:13.5px;line-height:1.65;color:#8f8f8f;max-width:78ch}
+.note b{color:#d8d8d8;font-weight:600}
+
+/* ===================== palette themes ===================== */
+.scr{
+  --plate:#212528; --plate2:#2a2f33; --plate3:#191c1f;
+  --engrave:#e2e4e3; --engrave-lo:#8d9499; --engrave-off:#5b6266; --rule:#3b4247;
+  --lamp:#d8422f;
+  --amp:#a8814e; --cab:#939a9e; --util:#5f7f9c; --mod:#5d8f80; --dly:#8175a0; --verb:#a8785c;
+  --faultline:#6b463c; --faulttext:#bb9186;
+}
+.scr.t-ink{
+  --plate:#10161f; --plate2:#182130; --plate3:#0b1017;
+  --engrave:#dde6ee; --engrave-lo:#7e8fa3; --engrave-off:#4d5b6b; --rule:#2a3646;
+  --lamp:#5fd0e8;
+  --amp:#c99050; --cab:#8296ab; --util:#6d8fd0; --mod:#4fa89a; --dly:#8d7fc4; --verb:#cf7a86;
+  --faultline:#5c3946; --faulttext:#c08e97;
+}
+.scr.t-sodium{
+  --plate:#0c0b09; --plate2:#16140f; --plate3:#070605;
+  --engrave:#f0e4cd; --engrave-lo:#9a8f7a; --engrave-off:#5e574a; --rule:#302b22;
+  --lamp:#ffb01f;
+  --amp:#b06a3a; --cab:#9a8f7a; --util:#6f8296; --mod:#5f9280; --dly:#8b7aa5; --verb:#b3705f;
+  --faultline:#5d3a2e; --faulttext:#c19183;
+}
+
+/* ===================== shared panel system ===================== */
+.scr{width:1280px;height:720px;background:var(--plate);position:relative;overflow:hidden;
+  color:var(--engrave);font-family:'Saira Condensed',sans-serif}
+.leg{font-size:13px;font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--engrave-lo)}
+.leg.b{color:var(--engrave)}
+.rail{position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;gap:20px;
+  padding:0 28px;border-bottom:1px solid var(--rule);z-index:6}
+.rail .ttl{font-size:19px;font-weight:600;letter-spacing:.22em;text-transform:uppercase}
+.rail .sp{flex:1}
+.lamp{width:11px;height:11px;background:var(--rule);display:inline-block;flex:none}
+.lamp.on{background:var(--lamp)}
+.lamp.warn{background:var(--verb)}
+.lamp.ok{background:var(--mod)}
+.crail{position:absolute;bottom:0;left:0;right:0;height:88px;border-top:1px solid var(--rule);
+  display:flex;align-items:center;gap:11px;padding:0 28px;z-index:6;background:var(--plate)}
+.pb{border:1px solid var(--rule);background:var(--plate2);color:var(--engrave);font-size:17px;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;padding:12px 22px}
+.pb.pri{background:var(--engrave);color:var(--plate);border-color:var(--engrave)}
+.pb.sm{font-size:14px;padding:10px 15px;letter-spacing:.14em}
+.crail .sp{flex:1}
+
+/* chain blocks (reused from the edit screen) */
+.path{position:absolute;top:52px;left:0;bottom:88px;display:flex;align-items:center;padding:0 28px}
+.blkm{width:150px;flex:none;border:1px solid var(--rule);background:var(--plate2);position:relative}
+.blkm .hd{height:24px;display:flex;align-items:center;padding:0 10px;font-size:11px;font-weight:600;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--plate)}
+.blkm .bd{padding:16px 12px 14px;display:flex;flex-direction:column;gap:10px;min-height:250px}
+.blkm .nm{font-size:23px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;line-height:.98}
+.blkm .rd{font-family:Saira,sans-serif;font-weight:300;font-size:12px;color:var(--engrave-lo)}
+.blkm .grp{margin-top:auto;display:flex;gap:3px}
+.blkm .grp i{flex:1;height:3px;background:var(--rule)}
+.pp{width:36px;flex:none;display:flex;align-items:center;justify-content:center;position:relative}
+.pp:before{content:"";position:absolute;left:0;right:0;height:1px;background:var(--rule)}
+.pp b{width:15px;height:15px;border:2px solid var(--engrave-lo);border-radius:50%;background:var(--plate);
+  position:relative;z-index:2}
+.pp.add b{border-color:var(--rule);display:flex;align-items:center;justify-content:center;font-size:12px;
+  font-weight:600;color:var(--engrave-lo);width:19px;height:19px;line-height:1}
+.term{width:44px;flex:none;text-align:center;font-size:12px;font-weight:600;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--engrave-lo)}
+
+/* ===================== A · MODULE DRAWER ===================== */
+.scrim{position:absolute;top:52px;left:0;right:480px;bottom:88px;background:var(--plate3);opacity:.55;z-index:7}
+.drawer{position:absolute;top:52px;right:0;bottom:88px;width:480px;background:var(--plate2);
+  border-left:1px solid var(--rule);z-index:8;display:flex;flex-direction:column}
+.drawer .dh{height:46px;display:flex;align-items:center;gap:14px;padding:0 18px;background:var(--plate3);
+  border-bottom:1px solid var(--rule)}
+.drawer .dh .t{font-size:17px;font-weight:600;letter-spacing:.24em;text-transform:uppercase}
+.drawer .dh .sp{flex:1}
+.drawer .dh .x{font-size:19px;font-weight:600;color:var(--engrave-lo);line-height:1}
+/* engraved segmented filter, two rows */
+.filters{padding:12px 18px 0;display:grid;grid-template-columns:repeat(4,1fr);gap:0;
+  border-bottom:1px solid var(--rule)}
+.filters b{grid-column:span 1;text-align:center;padding:9px 0;font-size:12px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--engrave-lo);border:1px solid var(--rule);
+  margin:-1px 0 0 -1px}
+.filters b.on{background:var(--engrave);color:var(--plate);border-color:var(--engrave);position:relative;z-index:2}
+.filters .row2{grid-column:1/5;display:grid;grid-template-columns:repeat(3,1fr);margin-bottom:12px}
+.dcount{padding:11px 18px 9px;font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--engrave-off);display:flex;justify-content:space-between}
+.dlist{flex:1;overflow:hidden;padding:0 18px 14px;display:flex;flex-direction:column;gap:8px}
+.mitem{border:1px solid var(--rule);background:var(--plate);padding:11px 13px 10px;display:flex;
+  align-items:center;gap:14px;position:relative}
+.mitem .tick{width:26px;height:3px;flex:none}
+.mitem .col{flex:1;min-width:0}
+.mitem .mn{font-size:20px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;line-height:1.05}
+.mitem .ms{font-family:Saira,sans-serif;font-weight:300;font-size:12px;color:var(--engrave-lo);margin-top:3px}
+.mitem .grip{width:16px;flex:none;display:flex;flex-direction:column;gap:3px}
+.mitem .grip i{height:2px;background:var(--rule);display:block}
+.mitem.drag{border-color:var(--engrave);background:var(--plate2)}
+.mitem.drag .grip i{background:var(--engrave-lo)}
+.dhint{padding:12px 18px 14px;font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--engrave-off);border-top:1px solid var(--rule);display:flex;justify-content:space-between;flex:none}
+
+/* ===================== B · ANNUNCIATOR TOASTS ===================== */
+.toastwrap{position:absolute;left:0;right:0;bottom:104px;display:flex;flex-direction:column;
+  align-items:center;gap:9px;z-index:9;pointer-events:none}
+.toast{display:flex;align-items:stretch;gap:0;background:var(--plate2);border:1px solid var(--rule);
+  width:660px}
+.toast .lampcell{width:44px;flex:none;align-self:stretch;display:flex;align-items:center;justify-content:center;
+  border-right:1px solid var(--rule);background:var(--plate3)}
+.toast .body{padding:12px 18px;flex:1}
+.toast .tl{font-size:15px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;line-height:1.1}
+.toast .ts{font-family:Saira,sans-serif;font-weight:300;font-size:12.5px;color:var(--engrave-lo);margin-top:3px}
+.toast .act{align-self:stretch;display:flex;align-items:center;padding:0 20px;border-left:1px solid var(--rule);
+  font-size:13px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--engrave)}
+.toast.ok .lampcell{background:var(--mod)}
+.toast.info .lampcell{background:var(--plate3)}
+.toast.warnt{border-color:var(--amp)}
+.toast.warnt .lampcell{background:var(--amp)}
+.toast.fault{border-color:var(--faultline)}
+.toast.fault .lampcell{background:var(--verb)}
+.toast.fault .tl{color:var(--faulttext)}
+/* fault gets a hatch so it is never carried by hue alone */
+.toast.fault .body{background-image:repeating-linear-gradient(45deg,transparent 0 10px,
+  rgba(255,255,255,.028) 10px 20px)}
+.tglyph{width:15px;height:15px;background:var(--plate);display:block}
+.toast .lampcell .tglyph{background:var(--engrave-off)}
+.toast.info .lampcell .tglyph{background:var(--engrave-lo)}
+.toast.ok .lampcell .tglyph,.toast.warnt .lampcell .tglyph,
+.toast.fault .lampcell .tglyph{background:var(--plate)}
+
+/* ===================== C · DIALOG ===================== */
+.modalscrim{position:absolute;inset:0;background:var(--plate3);opacity:.72;z-index:9}
+.dialog{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:660px;background:var(--plate2);
+  border:1px solid var(--engrave-lo);z-index:10}
+.dialog .dhd{height:40px;display:flex;align-items:center;padding:0 20px;background:var(--plate3);
+  border-bottom:1px solid var(--rule);font-size:13px;font-weight:600;letter-spacing:.28em;
+  text-transform:uppercase;color:var(--engrave-lo)}
+.dialog .dbd{padding:28px 28px 24px}
+.dialog .q{font-size:32px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;line-height:1.1}
+.dialog .d{font-family:Saira,sans-serif;font-weight:300;font-size:15px;color:var(--engrave-lo);margin-top:12px;
+  line-height:1.5;max-width:56ch}
+.dialog .dact{display:flex;gap:11px;padding:0 28px 26px}
+.dialog .dact .sp{flex:1}
+
+/* ===================== D · SETTINGS ===================== */
+.setwrap{position:absolute;top:52px;left:0;right:0;bottom:88px;display:flex}
+.setnav{width:270px;flex:none;border-right:1px solid var(--rule);padding:18px 0}
+.setnav a{display:flex;align-items:center;gap:12px;padding:13px 26px;font-size:16px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--engrave-lo);text-decoration:none}
+.setnav a.on{color:var(--engrave);background:var(--plate2)}
+.setbody{flex:1;padding:22px 28px;overflow:hidden}
+.sechd{font-size:13px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--engrave-lo);
+  padding-bottom:10px;border-bottom:1px solid var(--rule)}
+.palgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:18px}
+.palcard{border:1px solid var(--rule);background:var(--plate2);padding:0;position:relative}
+.palcard.on{border-color:var(--lamp)}
+.palcard .pv{height:96px;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;gap:7px}
+.palcard .pv .row{display:flex;gap:4px}
+.palcard .pv .row i{height:16px;flex:1;display:block}
+.palcard .pv .bigrow{display:flex;gap:4px;align-items:flex-end}
+.palcard .pv .bigrow i{height:26px;display:block}
+.palcard .pl{border-top:1px solid var(--rule);padding:10px 12px;display:flex;align-items:center;gap:9px}
+.palcard .pl .nm{font-size:16px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
+.palcard .pl .sp{flex:1}
+.palcard .pl .df{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--plate);background:var(--engrave-lo);padding:2px 7px}
+.setrow{display:flex;align-items:center;gap:20px;padding:16px 0;border-bottom:1px solid var(--rule)}
+.setrow .k{width:220px;flex:none;font-size:14px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--engrave-lo)}
+.setrow .val{font-family:Saira,sans-serif;font-weight:300;font-size:19px;color:var(--engrave)}
+.setrow .sp{flex:1}
+.seg2{display:flex;border:1px solid var(--rule)}
+.seg2 b{padding:8px 16px;font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--engrave-lo);border-left:1px solid var(--rule)}
+.seg2 b:first-child{border-left:none}
+.seg2 b.on{background:var(--engrave);color:var(--plate)}
+
+/* ===================== E · EQ EDITOR ===================== */
+.eqwrap{position:absolute;top:52px;left:0;right:0;bottom:88px;display:flex;flex-direction:column;padding:16px 28px 0}
+.graph{flex:1;border:1px solid var(--rule);background:var(--plate3);position:relative;min-height:0}
+.graph .gy{position:absolute;left:0;right:0;height:1px;background:var(--rule)}
+.graph .gy.zero{background:var(--engrave-off)}
+.graph .gx{position:absolute;top:0;bottom:0;width:1px;background:var(--rule)}
+.graph .yl{position:absolute;left:8px;font-family:Saira,sans-serif;font-weight:300;font-size:11px;
+  color:var(--engrave-off);transform:translateY(-50%)}
+.graph .xl{position:absolute;bottom:7px;font-family:Saira,sans-serif;font-weight:300;font-size:11px;
+  color:var(--engrave-off);transform:translateX(-50%)}
+.graph .hnd{position:absolute;width:15px;height:15px;background:var(--plate);border:2px solid var(--engrave-lo);
+  transform:translate(-50%,-50%)}
+.graph .hnd.on{background:var(--lamp);border-color:var(--lamp);width:19px;height:19px}
+.graph .hnd b{position:absolute;top:-21px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:600;
+  letter-spacing:.1em;color:var(--engrave-lo)}
+.graph .hnd.on b{color:var(--lamp);top:-24px}
+/* Q grips: two shoulder markers sitting on the curve's −3 dB points, joined by a
+   bandwidth dimension line. Dragging either one in or out is the Q gesture. */
+.qspan{position:absolute;height:0;border-top:1px dashed var(--lamp);opacity:.85}
+.qgrip{position:absolute;width:13px;height:26px;background:var(--plate);border:2px solid var(--lamp);
+  transform:translate(-50%,-50%)}
+.qgrip:after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:1px;height:12px;background:var(--lamp)}
+.qlab{position:absolute;transform:translate(-50%,-50%);background:var(--plate);padding:2px 8px;
+  font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--lamp)}
+
+/* selected-band editor: the reliable path, three engraved travel scales */
+.bandedit{flex:none;border:1px solid var(--lamp);background:var(--plate2);margin-top:14px;display:flex}
+.bandedit .beh{width:186px;flex:none;border-right:1px solid var(--rule);background:var(--plate3);
+  padding:12px 16px;display:flex;flex-direction:column;justify-content:center;gap:5px}
+.bandedit .beh .t{font-size:17px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--lamp)}
+.bandedit .beh .s{font-family:Saira,sans-serif;font-weight:300;font-size:12px;color:var(--engrave-lo)}
+.bandedit .bes{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.bandedit .be{padding:11px 18px 12px;border-left:1px solid var(--rule)}
+.bandedit .be:first-child{border-left:none}
+.bandedit .be .top{display:flex;align-items:baseline;justify-content:space-between}
+.bandedit .be .kk{font-size:12px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--engrave-lo)}
+.bandedit .be .vv{font-family:Saira,sans-serif;font-weight:300;font-size:27px;color:var(--engrave)}
+.bandedit .be .vv em{font-style:normal;font-size:13px;color:var(--engrave-lo);margin-left:5px}
+.bandedit .be.enc .kk{color:var(--lamp)}
+.trav2{height:26px;position:relative;border-bottom:1px solid var(--rule);margin-top:7px}
+.trav2 .t{position:absolute;bottom:0;width:1px;height:7px;background:var(--rule)}
+.trav2 .t.b{height:13px;background:var(--engrave-lo)}
+.trav2 .f{position:absolute;bottom:0;left:0;height:3px;background:var(--engrave)}
+.trav2 .h{position:absolute;bottom:-5px;width:4px;height:20px;background:var(--lamp);transform:translateX(-50%)}
+
+/* compact band selector row */
+.bands{flex:none;display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:12px 0 0}
+.band{border:1px solid var(--rule);background:var(--plate2);padding:9px 12px 10px;display:flex;
+  align-items:center;gap:11px}
+.band.on{border-color:var(--lamp);background:var(--plate3)}
+.band .bn{font-size:13px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--engrave-lo)}
+.band.on .bn{color:var(--lamp)}
+.band .sp{flex:1}
+.band .vv{font-family:Saira,sans-serif;font-weight:300;font-size:15px;color:var(--engrave)}
+.band.off .vv{color:var(--engrave-off)}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Panel — the remaining pieces</h1>
+  <p class="sub">Module drawer, annunciator toasts, the unsaved-changes dialog, settings with the palette
+  switcher, and the five-band EQ editor. <b>Slate is the default palette.</b> Ink and Sodium are runtime
+  themes — the switcher below swaps one class on every screen, which is precisely the mechanism the device
+  would use.</p>
+
+  <div class="switcher">
+    <span>Palette</span>
+    <button data-t="" aria-pressed="true"><i style="background:#d8422f"></i>Slate</button>
+    <button data-t="t-ink" aria-pressed="false"><i style="background:#5fd0e8"></i>Ink</button>
+    <button data-t="t-sodium" aria-pressed="false"><i style="background:#ffb01f"></i>Sodium</button>
+  </div>
+
+  <!-- ============ A · DRAWER ============ -->
+  <div class="cap"><b>A · Module drawer</b><span>480 px, over the chain — matches kBlockDrawerWidth</span></div>
+  <div class="shell"><div class="stage"><div class="scr">
+    <div class="rail"><div class="ttl">Preset 2</div><div class="leg">Drive Stack</div>
+      <div class="leg b" style="color:var(--lamp)">· Modified</div>
+      <div class="sp"></div><div class="leg">Insert after Cab · IR1</div></div>
+
+    <div class="path" style="right:480px">
+      <div class="term">In</div><div class="pp add"><b>+</b></div>
+      <div class="blkm"><div class="hd" style="background:var(--amp)">Amp · U1</div>
+        <div class="bd"><div class="nm">Tweed<br>Deluxe</div><div class="rd">Nano · sum</div>
+          <div class="grp"><i style="background:var(--amp)"></i><i></i><i></i></div></div></div>
+      <div class="pp"><b></b></div>
+      <div class="blkm"><div class="hd" style="background:var(--cab)">Cab · IR1</div>
+        <div class="bd"><div class="nm">Open<br>Back</div><div class="rd">−2.0 dB</div>
+          <div class="grp"><i style="background:var(--cab)"></i><i></i><i></i></div></div></div>
+      <div class="pp add"><b>+</b></div>
+      <div class="blkm" style="border-style:dashed;border-color:var(--engrave-lo);background:var(--plate3)">
+        <div class="hd" style="background:var(--rule);color:var(--engrave-lo)">Insert here</div>
+        <div class="bd"><div class="nm" style="color:var(--engrave-off)">Drop<br>module</div>
+          <div class="grp"><i></i><i></i><i></i></div></div></div>
+    </div>
+    <div class="scrim"></div>
+
+    <div class="drawer">
+      <div class="dh"><span class="t">Modules</span><span class="sp"></span>
+        <span class="leg">Tap to insert</span><span class="x">✕</span></div>
+      <div class="filters">
+        <b class="on">All</b><b>Amps</b><b>Cabs</b><b>Utility</b>
+        <div class="row2"><b>Modulation</b><b>Delays</b><b>Reverbs</b></div>
+      </div>
+      <div class="dcount"><span>All modules</span><span>38 available</span></div>
+      <div class="dlist">
+        <div class="mitem drag">
+          <span class="tick" style="background:var(--mod)"></span>
+          <span class="col"><span class="mn">Chorus</span>
+            <span class="ms">Modulation · 6 controls · stereo preserving</span></span>
+          <span class="grip"><i></i><i></i><i></i></span>
+        </div>
+        <div class="mitem">
+          <span class="tick" style="background:var(--mod)"></span>
+          <span class="col"><span class="mn">Flanger</span>
+            <span class="ms">Modulation · 6 controls</span></span>
+          <span class="grip"><i></i><i></i><i></i></span>
+        </div>
+        <div class="mitem">
+          <span class="tick" style="background:var(--dly)"></span>
+          <span class="col"><span class="mn">Tape</span>
+            <span class="ms">Delay · 6 controls · wet sums to mono</span></span>
+          <span class="grip"><i></i><i></i><i></i></span>
+        </div>
+        <div class="mitem">
+          <span class="tick" style="background:var(--verb)"></span>
+          <span class="col"><span class="mn">Plate</span>
+            <span class="ms">Reverb · 5 controls</span></span>
+          <span class="grip"><i></i><i></i><i></i></span>
+        </div>
+        <div class="mitem">
+          <span class="tick" style="background:var(--util)"></span>
+          <span class="col"><span class="mn">Parametric EQ</span>
+            <span class="ms">Utility · 5 bands · ±18 dB</span></span>
+          <span class="grip"><i></i><i></i><i></i></span>
+        </div>
+        <div class="mitem">
+          <span class="tick" style="background:var(--util)"></span>
+          <span class="col"><span class="mn">Noise Gate</span>
+            <span class="ms">Utility · 7 controls · 0 ms lookahead</span></span>
+          <span class="grip"><i></i><i></i><i></i></span>
+        </div>
+      </div>
+      <div class="dhint"><span>Drag onto the rail to place exactly</span><span>6 / 38</span></div>
+    </div>
+
+    <div class="crail">
+      <div class="pb pri">Save</div><div class="pb sm">Undo</div><div class="pb sm">Redo</div>
+      <div class="pb sm" style="background:var(--engrave);color:var(--plate);border-color:var(--engrave)">Modules</div>
+      <div class="sp"></div><div class="pb">Done</div>
+    </div>
+  </div></div></div>
+  <p class="note"><b>The drawer is a rack, not a modal.</b> It takes the right 480 px and dims the chain behind it
+  rather than covering it, so the insertion point you chose stays visible the whole time — the dashed slot on the
+  rail shows exactly where the module lands. Family colour is carried by the same 26×3 engraved tick the preset
+  tiles use, so nothing new enters the vocabulary. Filters wrap to two rows because seven of them will not fit
+  across 480 px at a touch-legible size, and the count line is there because "38 available" is genuinely useful
+  when a filter is on.</p>
+
+  <!-- ============ B · TOASTS ============ -->
+  <div class="cap"><b>B · Annunciator toasts</b><span>five real events, stacked</span></div>
+  <div class="shell"><div class="stage"><div class="scr">
+    <div class="rail"><div class="ttl">Preset 2</div><div class="leg">Drive Stack</div>
+      <div class="sp"></div><div class="leg">4 modules · 8.2 ms</div></div>
+    <div class="path">
+      <div class="term">In</div><div class="pp add"><b>+</b></div>
+      <div class="blkm"><div class="hd" style="background:var(--amp)">Amp · U1</div>
+        <div class="bd"><div class="nm">Tweed<br>Deluxe</div><div class="rd">Nano · sum</div>
+          <div class="grp"><i style="background:var(--amp)"></i><i></i><i></i></div></div></div>
+      <div class="pp"><b></b></div>
+      <div class="blkm"><div class="hd" style="background:var(--cab)">Cab · IR1</div>
+        <div class="bd"><div class="nm">Open<br>Back</div><div class="rd">−2.0 dB · mix 100</div>
+          <div class="grp"><i style="background:var(--cab)"></i><i></i><i></i></div></div></div>
+      <div class="pp add"><b>+</b></div>
+      <div class="blkm"><div class="hd" style="background:var(--dly)">Delay · D1</div>
+        <div class="bd"><div class="nm">Tape</div><div class="rd">380 ms · fb 34</div>
+          <div class="grp"><i style="background:var(--dly)"></i><i></i><i></i></div></div></div>
+      <div class="pp add"><b>+</b></div><div class="term">Out</div>
+    </div>
+
+    <div class="toastwrap">
+      <div class="toast info"><span class="lampcell"><span class="tglyph"></span></span>
+        <span class="body"><span class="tl">Live edit applied</span>
+          <span class="ts">Tape · time 380 ms — heard immediately, not yet saved</span></span></div>
+
+      <div class="toast warnt"><span class="lampcell"><span class="tglyph"></span></span>
+        <span class="body"><span class="tl">Sequential fallback</span>
+          <span class="ts">Rig worker could not obtain SCHED_FIFO on CPU 3 — lanes are running in series</span></span>
+        <span class="act">Details</span></div>
+
+      <div class="toast fault"><span class="lampcell"><span class="tglyph"></span></span>
+        <span class="body"><span class="tl">Fault · module not loaded</span>
+          <span class="ts">models/bloom.nam is missing from the data root. The chain is running without it.</span></span>
+        <span class="act">Choose</span></div>
+
+      <div class="toast ok"><span class="lampcell"><span class="tglyph"></span></span>
+        <span class="body"><span class="tl">Preset 2 saved</span>
+          <span class="ts">Bank 000 · slot 2</span></span></div>
+
+      <div class="toast"><span class="lampcell"><span class="tglyph"></span></span>
+        <span class="body"><span class="tl">Module removed</span>
+          <span class="ts">Chorus · M1</span></span>
+        <span class="act">Undo</span></div>
+    </div>
+
+    <div class="crail"><div class="pb pri">Save</div><div class="pb sm">Undo</div><div class="pb sm">Redo</div>
+      <div class="pb sm">Modules</div><div class="sp"></div><div class="pb">Done</div></div>
+  </div></div></div>
+  <p class="note"><b>Built as annunciator strips, not floating pills.</b> Each is a plate with a lamp cell on the
+  left, exactly like the caution annunciators on the instruments this world comes from — so a toast is
+  recognisably part of the panel rather than a web notification dropped on top of it. Five are stacked here to
+  show the range; in use you would see one, occasionally two.</p>
+  <p class="note" style="margin-top:10px"><b>Fault is never carried by hue alone.</b> In Slate the LIVE colour
+  <em>is</em> red, so an error cannot also be red without collapsing the system's one reserved meaning. Faults
+  therefore get a dusty lamp, a distinct border and a diagonal hatch across the body — three signals, none of
+  them requiring you to distinguish two reds at foot level. That rule holds in all three palettes.</p>
+
+  <!-- ============ C · DIALOG ============ -->
+  <div class="cap"><b>C · Unsaved changes</b><span>the one place a modal is earned</span></div>
+  <div class="shell"><div class="stage"><div class="scr">
+    <div class="rail"><div class="ttl">Ardor</div><div class="leg">Bank 000 · Set A</div>
+      <div class="sp"></div><div class="leg">Switching to patch 3</div></div>
+    <div class="path" style="opacity:.5">
+      <div class="term">In</div><div class="pp"><b></b></div>
+      <div class="blkm"><div class="hd" style="background:var(--amp)">Amp · U1</div>
+        <div class="bd"><div class="nm">Tweed<br>Deluxe</div><div class="rd">Nano · sum</div>
+          <div class="grp"><i style="background:var(--amp)"></i><i></i><i></i></div></div></div>
+      <div class="pp"><b></b></div>
+      <div class="blkm"><div class="hd" style="background:var(--cab)">Cab · IR1</div>
+        <div class="bd"><div class="nm">Open<br>Back</div><div class="rd">−2.0 dB</div>
+          <div class="grp"><i style="background:var(--cab)"></i><i></i><i></i></div></div></div>
+      <div class="pp"><b></b></div><div class="term">Out</div>
+    </div>
+    <div class="modalscrim"></div>
+    <div class="dialog">
+      <div class="dhd">Preset 2 · unsaved</div>
+      <div class="dbd">
+        <div class="q">Keep your changes<br>to Drive Stack?</div>
+        <div class="d">You changed the tape delay time and removed the chorus. Switching to patch 3 will discard
+          them unless you save first. Saving overwrites bank 000 · slot 2.</div>
+      </div>
+      <div class="dact">
+        <div class="pb pri">Save &amp; switch</div>
+        <div class="pb">Discard</div>
+        <div class="sp"></div>
+        <div class="pb">Cancel</div>
+      </div>
+    </div>
+    <div class="crail"></div>
+  </div></div></div>
+  <p class="note"><b>The dialog names what will be lost.</b> "You changed the tape delay time and removed the
+  chorus" is worth the two lines it costs — a player who has been editing for ten minutes should not have to
+  remember what they did in order to answer. Cancel is separated from the two committing actions by empty space
+  rather than sitting adjacent to Discard.</p>
+
+  <!-- ============ D · SETTINGS ============ -->
+  <div class="cap"><b>D · Settings — appearance</b><span>palette as a runtime theme, Slate default</span></div>
+  <div class="shell"><div class="stage"><div class="scr">
+    <div class="rail"><div class="ttl">Settings</div><div class="leg">Appearance</div>
+      <div class="sp"></div><div class="leg">Ardor · bank 000</div></div>
+    <div class="setwrap">
+      <div class="setnav">
+        <a><span class="lamp"></span>Wi-Fi</a>
+        <a class="on"><span class="lamp on"></span>Appearance</a>
+        <a><span class="lamp"></span>Audio</a>
+        <a><span class="lamp"></span>Controls</a>
+        <a><span class="lamp"></span>Manager &amp; cloud</a>
+        <a><span class="lamp"></span>Security &amp; reset</a>
+        <a><span class="lamp"></span>About</a>
+      </div>
+      <div class="setbody">
+        <div class="sechd">Panel palette</div>
+        <div class="palgrid">
+          <div class="palcard on">
+            <div class="pv" style="background:#212528">
+              <div class="bigrow"><i style="background:#2a2f33;width:44%"></i>
+                <i style="background:#e2e4e3;width:26%"></i><i style="background:#d8422f;width:18%"></i></div>
+              <div class="row"><i style="background:#a8814e"></i><i style="background:#939a9e"></i>
+                <i style="background:#5f7f9c"></i><i style="background:#5d8f80"></i>
+                <i style="background:#8175a0"></i><i style="background:#a8785c"></i></div>
+            </div>
+            <div class="pl"><span class="nm">Slate</span><span class="sp"></span><span class="df">Default</span></div>
+          </div>
+          <div class="palcard">
+            <div class="pv" style="background:#10161f">
+              <div class="bigrow"><i style="background:#182130;width:44%"></i>
+                <i style="background:#dde6ee;width:26%"></i><i style="background:#5fd0e8;width:18%"></i></div>
+              <div class="row"><i style="background:#c99050"></i><i style="background:#8296ab"></i>
+                <i style="background:#6d8fd0"></i><i style="background:#4fa89a"></i>
+                <i style="background:#8d7fc4"></i><i style="background:#cf7a86"></i></div>
+            </div>
+            <div class="pl"><span class="nm">Ink</span></div>
+          </div>
+          <div class="palcard">
+            <div class="pv" style="background:#0c0b09">
+              <div class="bigrow"><i style="background:#16140f;width:44%"></i>
+                <i style="background:#f0e4cd;width:26%"></i><i style="background:#ffb01f;width:18%"></i></div>
+              <div class="row"><i style="background:#b06a3a"></i><i style="background:#9a8f7a"></i>
+                <i style="background:#6f8296"></i><i style="background:#5f9280"></i>
+                <i style="background:#8b7aa5"></i><i style="background:#b3705f"></i></div>
+            </div>
+            <div class="pl"><span class="nm">Sodium</span></div>
+          </div>
+        </div>
+
+        <div style="margin-top:26px">
+          <div class="setrow"><span class="k">Brightness</span>
+            <span class="sp"></span><span class="val">80 %</span></div>
+          <div class="setrow"><span class="k">Screen blank</span>
+            <span class="sp"></span>
+            <span class="seg2"><b>Never</b><b class="on">10 min</b><b>30 min</b></span></div>
+          <div class="setrow" style="border-bottom:none"><span class="k">Show block colours</span>
+            <span class="sp"></span>
+            <span class="seg2"><b class="on">On</b><b>Off</b></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="crail"><div class="pb">Back</div><div class="sp"></div><div class="pb pri">Done</div></div>
+  </div></div></div>
+  <p class="note"><b>Palette is a theme, not a colour picker.</b> Each option is previewed as the actual plate,
+  lettering, LIVE lamp and the six family colours together — because those relationships are the thing being
+  chosen, and a swatch grid of individual colours would let a player build a combination that breaks the
+  system. This replaces the existing global accent picker rather than sitting beside it.</p>
+
+  <!-- ============ E · EQ ============ -->
+  <div class="cap"><b>E · Parametric EQ</b><span>five bands, live response curve</span></div>
+  <div class="shell"><div class="stage"><div class="scr">
+    <div class="rail"><div class="ttl">Parametric EQ</div><div class="leg">Utility · EQ1 · 5 bands</div>
+      <div class="sp"></div>
+      <div class="leg b" style="display:flex;align-items:center;gap:7px"><span class="lamp on"></span>Enabled</div>
+      <div class="pb sm">Bypass</div></div>
+    <div class="eqwrap">
+      <div class="graph">
+        <div class="gy" style="top:14%"></div><span class="yl" style="top:14%">+12</span>
+        <div class="gy" style="top:32%"></div><span class="yl" style="top:32%">+6</span>
+        <div class="gy zero" style="top:50%"></div><span class="yl" style="top:50%">0 dB</span>
+        <div class="gy" style="top:68%"></div><span class="yl" style="top:68%">−6</span>
+        <div class="gy" style="top:86%"></div><span class="yl" style="top:86%">−12</span>
+        <div class="gx" style="left:12%"></div><span class="xl" style="left:12%">50</span>
+        <div class="gx" style="left:30%"></div><span class="xl" style="left:30%">200</span>
+        <div class="gx" style="left:48%"></div><span class="xl" style="left:48%">1 k</span>
+        <div class="gx" style="left:66%"></div><span class="xl" style="left:66%">4 k</span>
+        <div class="gx" style="left:84%"></div><span class="xl" style="left:84%">12 k</span>
+
+        <svg width="100%" height="100%" viewBox="0 0 1200 330" preserveAspectRatio="none"
+             style="position:absolute;inset:0">
+          <path d="M0 190 C 60 190, 100 120, 160 118 C 210 116, 250 168, 300 172
+                   C 350 176, 380 196, 420 214 C 470 236, 520 240, 580 222
+                   C 640 204, 680 150, 740 142 C 800 134, 850 166, 900 176
+                   C 960 188, 1020 150, 1080 122 C 1130 100, 1170 96, 1200 96"
+                fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--engrave)"/>
+        </svg>
+
+        <div class="hnd" style="left:12%;top:34%"><b>B1</b></div>
+        <div class="hnd" style="left:30%;top:60%"><b>B2</b></div>
+
+        <!-- selected band: handle sets freq + gain, shoulder grips set Q -->
+        <div class="qspan" style="left:41%;width:14%;top:70%"></div>
+        <div class="qgrip" style="left:41%;top:70%"></div>
+        <div class="qgrip" style="left:55%;top:70%"></div>
+        <div class="qlab" style="left:48%;top:81%">Q 2.4 · 0.6 oct</div>
+        <div class="hnd on" style="left:48%;top:70%"><b>B3</b></div>
+
+        <div class="hnd" style="left:66%;top:42%"><b>B4</b></div>
+        <div class="hnd" style="left:88%;top:28%"><b>B5</b></div>
+      </div>
+
+      <div class="bandedit">
+        <div class="beh"><span class="t">Band 3</span>
+          <span class="s">Peaking · enabled</span>
+          <span class="s">Encoder → Q</span></div>
+        <div class="bes">
+          <div class="be">
+            <div class="top"><span class="kk">Freq</span><span class="vv">1.00<em>kHz</em></span></div>
+            <div class="trav2">
+              <span class="t b" style="left:0"></span><span class="t" style="left:25%"></span>
+              <span class="t b" style="left:50%"></span><span class="t" style="left:75%"></span>
+              <span class="t b" style="left:100%"></span>
+              <span class="f" style="width:48%"></span><span class="h" style="left:48%"></span></div>
+          </div>
+          <div class="be">
+            <div class="top"><span class="kk">Gain</span><span class="vv">−4.5<em>dB</em></span></div>
+            <div class="trav2">
+              <span class="t b" style="left:0"></span><span class="t" style="left:25%"></span>
+              <span class="t b" style="left:50%"></span><span class="t" style="left:75%"></span>
+              <span class="t b" style="left:100%"></span>
+              <span class="f" style="left:37%;width:13%"></span><span class="h" style="left:37%"></span></div>
+          </div>
+          <div class="be enc">
+            <div class="top"><span class="kk">Q</span><span class="vv">2.40<em>0.6 oct</em></span></div>
+            <div class="trav2">
+              <span class="t b" style="left:0"></span><span class="t" style="left:25%"></span>
+              <span class="t b" style="left:50%"></span><span class="t" style="left:75%"></span>
+              <span class="t b" style="left:100%"></span>
+              <span class="f" style="width:33%"></span><span class="h" style="left:33%"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bands">
+        <div class="band"><span class="lamp on" style="background:var(--engrave-lo)"></span>
+          <span class="bn">B1</span><span class="sp"></span><span class="vv">80 Hz</span></div>
+        <div class="band"><span class="lamp on" style="background:var(--engrave-lo)"></span>
+          <span class="bn">B2</span><span class="sp"></span><span class="vv">240 Hz</span></div>
+        <div class="band on"><span class="lamp on"></span>
+          <span class="bn">B3</span><span class="sp"></span><span class="vv">1.0 kHz</span></div>
+        <div class="band"><span class="lamp on" style="background:var(--engrave-lo)"></span>
+          <span class="bn">B4</span><span class="sp"></span><span class="vv">4.0 kHz</span></div>
+        <div class="band off"><span class="lamp"></span>
+          <span class="bn">B5</span><span class="sp"></span><span class="vv">Off</span></div>
+      </div>
+    </div>
+    <div class="crail"><div class="pb sm">Reset band</div><div class="pb sm">Reset all</div>
+      <div class="pb sm">Band type</div>
+      <div class="sp"></div>
+      <div class="leg">Encoder adjusts the highlighted control</div>
+      <div class="pb pri">Done</div></div>
+  </div></div></div>
+  <p class="note"><b>Three parameters, two axes — so Q gets its own affordance.</b> Dragging a handle sets
+  frequency and gain, as you would expect. The selected band additionally grows two <em>shoulder grips</em> sitting
+  on the curve at its −3 dB points, joined by a dashed bandwidth span. Dragging either grip inward narrows the
+  band and outward widens it. That is not a convention borrowed from a plugin — the grips are literally on the
+  bandwidth edges they control, so the gesture and the physics are the same thing.</p>
+  <p class="note" style="margin-top:10px"><b>And a path that never depends on a gesture.</b> The selected band
+  opens an editor strip with all three values as engraved travel scales, so Freq, Gain and Q are each directly
+  settable with a fingertip — no discovery required, and it works with a boot on. <b>The encoder drives the
+  highlighted control</b>, which is the real answer for Q: the pedal already has a rotary encoder doing nothing
+  but master volume, and Q is exactly the parameter that wants a fine continuous control rather than a
+  drag across 200 px.</p>
+  <p class="note" style="margin-top:10px"><b>A curve is safe on this panel; a fill is not.</b> The response is a
+  2.5 px stroke on a flat recessed plate — no shaded area beneath it, because a soft fill is a ramp and would
+  band exactly like the old gradients.</p>
+</div>
+
+<script>
+// Palette switching, demonstrated the same way the device would do it:
+// one class swap on the root of every screen.
+const btns = document.querySelectorAll('.switcher button');
+btns.forEach(b => b.addEventListener('click', () => {
+  btns.forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+  document.querySelectorAll('.scr').forEach(s => {
+    s.classList.remove('t-ink', 't-sodium');
+    if (b.dataset.t) s.classList.add(b.dataset.t);
+  });
+}));
+const fit = () => {
+  const s = Math.min(1, document.querySelector('.doc').clientWidth / 1280);
+  document.querySelectorAll('.stage').forEach(el => {
+    el.style.transform = `scale(${s})`;
+    el.parentElement.style.height = (720 * s) + 'px';
+  });
+};
+addEventListener('resize', fit); fit(); document.fonts?.ready.then(fit);
+</script>
+</body>
+</html>

@@ -562,7 +562,9 @@ The touch UI includes:
 - A four-slot preset screen with bank controls, master-volume status, Edit,
   direct Tuner entry, and a global Settings gear between **Bank+** and **Edit**.
 - A touch-first Settings screen for changing Wi-Fi credentials without
-  reflashing and choosing the global accent color (green by default).
+  reflashing, choosing the panel palette, configuring MIDI/expression input,
+  and selecting a 32, 64, or 128-sample audio buffer. Audio-buffer changes
+  restart the supervised engine process before they take effect.
 - A persistent footer with centered master volume and one-second audio-buffer
   headroom feedback calculated from recent callback time versus its deadline.
 - A single left-to-right signal canvas with horizontal touch scrolling,

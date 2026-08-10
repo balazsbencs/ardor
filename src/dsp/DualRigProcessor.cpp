@@ -231,6 +231,12 @@ bool DualRigProcessor::setCompressorParameter(
     || (right_.chain && right_.chain->setCompressorParameter(id, key, value));
 }
 
+bool DualRigProcessor::compressorGainReductionDb(const std::string& id, float& outDb) const
+{
+  return (left_.chain && left_.chain->compressorGainReductionDb(id, outDb))
+    || (right_.chain && right_.chain->compressorGainReductionDb(id, outDb));
+}
+
 bool DualRigProcessor::setNoiseGateParameter(
   const std::string& id, const std::string& key, float value)
 {

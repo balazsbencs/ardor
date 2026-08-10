@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ardor — Direction F: SLEEVE</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+/*
+  DIRECTION CONTRACT — seed key 03cab608 · grounded candidate 1 of 7 · mode: operate
+
+  THESIS: The quietest possible instrument screen. Hierarchy is carried by scale and empty
+  space alone — no colour coding, no containers, no chrome. It refuses every box: there is not
+  one card, button outline or filled panel in the system, and the running preset is simply set
+  four times larger than the others.
+  OWN-WORLD: Cold near-black ground, bone lettering set lowercase in a geometric sans, a single
+  off-centre vertical rule the whole layout hangs from, hairlines at 1px, and one muted cold
+  blue used exactly once per screen. Vast, deliberate, asymmetric margins.
+  STORY: The player glances down and the largest thing on the screen is the preset that is
+  running. Everything else waits quietly until it is needed.
+  FIRST VIEWPORT: A thin vertical rule a third of the way in. Small tracked metadata to its
+  left; four preset entries to its right, the live one at 84px lowercase with a single blue
+  square, the rest at a third of that size in grey.
+  FORM: ECM-style sleeve system; candidate 1 of my ordered list; seed key 03cab608.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish
+  review, the verdict, and DESIGN.md
+*/
+:root{
+  --gnd:#0a0c0d;
+  --bone:#e8e5dd;
+  --grey:#8f9498;
+  --dim:#4e5559;
+  --hair:#22282b;
+  --cold:#7d9fb3;   /* the one accent — used once per screen */
+  --warn:#b56b62;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2b2b2b;font-family:Jost,sans-serif;color:#bbb;padding:40px 24px 80px}
+.doc{max-width:1280px;margin:0 auto}
+.doc h1{font-weight:300;font-size:40px;color:var(--bone);letter-spacing:.02em}
+.doc .sub{font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;max-width:70ch;margin-top:12px;color:#9a9a9a}
+.cap{display:flex;align-items:baseline;gap:14px;margin:44px 0 12px}
+.cap b{font-weight:400;font-size:21px;color:#e6e6e6;letter-spacing:.02em}
+.cap span{font-family:system-ui,sans-serif;font-size:13px;color:#8a8a8a}
+.stage{width:1280px;height:720px;transform-origin:top left;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.6)}
+.shell{position:relative;height:1px}
+.note{font-family:system-ui,sans-serif;margin-top:14px;font-size:13.5px;line-height:1.65;color:#8f8f8f;max-width:78ch}
+.note b{color:#d8d8d8;font-weight:600}
+.cost{margin-top:56px;border-top:1px solid #3d3d3d;padding-top:22px;font-family:system-ui,sans-serif}
+.cost h2{font-family:Jost,sans-serif;font-weight:400;font-size:20px;color:#e6e6e6;margin-bottom:12px}
+.cost li{font-size:13.5px;line-height:1.7;color:#9a9a9a;margin-left:18px;max-width:80ch}
+.cost li b{color:#d8d8d8;font-weight:600}
+
+/* ================= THE DESIGN ================= */
+.scr{width:1280px;height:720px;background:var(--gnd);position:relative;overflow:hidden;
+  color:var(--bone);font-family:Jost,sans-serif;font-variant-numeric:tabular-nums}
+/* the rule everything hangs from */
+.spine{position:absolute;top:0;bottom:0;left:300px;width:1px;background:var(--hair)}
+/* the small tracked information block, upper left */
+.info{position:absolute;top:64px;left:64px;width:190px;display:flex;flex-direction:column;gap:15px}
+.info dl{display:flex;flex-direction:column;gap:3px}
+.info dt{font-size:10px;font-weight:400;letter-spacing:.34em;text-transform:uppercase;color:var(--dim)}
+.info dd{font-size:14px;font-weight:300;color:var(--grey);letter-spacing:.03em}
+.wordmark{font-size:19px;font-weight:400;letter-spacing:.42em;color:var(--bone);text-transform:lowercase}
+
+/* ---------- SCREEN 1 ---------- */
+.entries{position:absolute;left:364px;right:64px;top:64px;bottom:120px;
+  display:flex;flex-direction:column;justify-content:center}
+.en{padding:20px 0;border-top:1px solid var(--hair);display:flex;align-items:baseline;gap:20px}
+.en:first-child{border-top:none}
+.en .no{font-size:12px;font-weight:300;letter-spacing:.3em;color:var(--dim);width:34px;flex:none}
+.en .nm{font-size:31px;font-weight:300;color:var(--grey);letter-spacing:.01em;text-transform:lowercase}
+.en .sp{flex:1}
+.en .rd{font-size:11px;font-weight:300;letter-spacing:.24em;color:var(--dim);text-transform:uppercase}
+/* the running one — nothing but scale and one square */
+.en.now{padding:32px 0}
+.en.now .no{color:var(--cold)}
+.en.now .nm{font-size:84px;font-weight:200;color:var(--bone);line-height:.98}
+.en.now .rd{color:var(--grey)}
+.sq{width:11px;height:11px;background:var(--cold);flex:none;align-self:center}
+.en.bad .nm{color:#6b5250}
+.en.bad .rd{color:var(--warn)}
+
+/* controls — text only, no boxes anywhere in this system */
+.acts{position:absolute;left:364px;right:64px;bottom:56px;display:flex;align-items:baseline;gap:38px}
+.acts a{font-size:14px;font-weight:400;letter-spacing:.26em;text-transform:uppercase;color:var(--grey);
+  text-decoration:none}
+.acts a.on{color:var(--bone)}
+.acts .sp{flex:1}
+.acts .mv{display:flex;align-items:baseline;gap:14px}
+.acts .mv em{font-style:normal;font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:var(--dim)}
+.acts .mv b{font-weight:300;font-size:22px;color:var(--bone)}
+.rulebar{position:absolute;left:364px;right:64px;bottom:44px;height:1px;background:var(--hair)}
+.rulebar i{position:absolute;left:0;top:0;height:1px;background:var(--grey)}
+
+/* ---------- SCREEN 2: the chain ---------- */
+.chain{position:absolute;left:364px;right:64px;top:64px;bottom:120px;display:flex;flex-direction:column;
+  justify-content:center;gap:0}
+.node{padding:19px 0;border-top:1px solid var(--hair);display:flex;align-items:baseline;gap:22px}
+.node:first-child{border-top:none}
+.node .ix{font-size:10px;font-weight:400;letter-spacing:.3em;color:var(--dim);width:74px;flex:none;
+  text-transform:uppercase}
+.node .nm{font-size:30px;font-weight:300;letter-spacing:.01em;text-transform:lowercase;color:var(--bone)}
+.node .sp{flex:1}
+.node .rd{font-size:12px;font-weight:300;letter-spacing:.16em;color:var(--grey);text-transform:uppercase}
+.node.sel .nm{font-size:44px;font-weight:200}
+.node.sel .ix{color:var(--cold)}
+.node.off .nm{color:var(--dim);position:relative}
+.node.off .nm:after{content:"";position:absolute;left:0;right:0;top:52%;height:1px;background:var(--dim)}
+.node.off .rd{color:var(--dim)}
+.node .add{font-size:11px;letter-spacing:.3em;color:var(--dim)}
+/* split bracket */
+.lanewrap{padding-left:26px;position:relative;border-left:1px solid var(--hair)}
+.lanewrap .bt{position:absolute;left:0;top:-8px;font-size:10px;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--cold);background:var(--gnd);padding-right:9px}
+.lanewrap .lane{margin-bottom:14px}
+.lanewrap .lane:last-child{margin-bottom:0}
+.lanewrap .lh{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+.lanewrap .node{padding:11px 0}
+.lanewrap .node .nm{font-size:22px}
+.lanewrap .node .ix{width:56px}
+
+/* ---------- SCREEN 3: tuner ---------- */
+.tn{position:absolute;left:364px;right:64px;top:64px;bottom:120px;display:flex;flex-direction:column;
+  justify-content:center}
+.tn .n{font-size:200px;font-weight:200;line-height:.9;letter-spacing:-.01em;text-transform:lowercase;
+  color:var(--bone)}
+.tn .n em{font-style:normal;font-size:54px;font-weight:300;color:var(--dim);margin-left:16px}
+.tn .hz{font-size:14px;font-weight:300;letter-spacing:.26em;text-transform:uppercase;color:var(--grey);
+  margin-top:20px}
+/* deviation: one rule, one square. nothing else. */
+.devwrap{margin-top:52px;position:relative;height:40px}
+.devrule{position:absolute;top:20px;left:0;right:0;height:1px;background:var(--hair)}
+.devzone{position:absolute;top:12px;height:17px;border-left:1px solid var(--dim);border-right:1px solid var(--dim)}
+.devmark{position:absolute;top:13px;width:13px;height:13px;background:var(--cold);transform:translateX(-50%)}
+.devend{position:absolute;top:14px;font-size:10px;letter-spacing:.26em;color:var(--dim)}
+.tn .verd{font-size:26px;font-weight:300;letter-spacing:.3em;text-transform:uppercase;color:var(--bone);
+  margin-top:42px}
+
+/* ---------- SCREEN 4: parameters ---------- */
+.pl{position:absolute;left:364px;right:64px;top:64px;bottom:120px;display:flex;flex-direction:column;
+  justify-content:center}
+.pr{padding:16px 0;border-top:1px solid var(--hair);display:flex;align-items:baseline;gap:24px;position:relative}
+.pr:first-child{border-top:none}
+.pr .k{font-size:12px;font-weight:400;letter-spacing:.3em;text-transform:uppercase;color:var(--dim);
+  width:132px;flex:none}
+.pr .track{flex:1;height:1px;background:var(--hair);position:relative;align-self:center}
+.pr .track i{position:absolute;left:0;top:0;height:1px;background:var(--grey)}
+.pr .track b{position:absolute;top:-4px;width:9px;height:9px;background:var(--grey);transform:translateX(-50%)}
+.pr .v{width:150px;flex:none;text-align:right;font-size:26px;font-weight:300;color:var(--bone)}
+.pr .v em{font-style:normal;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--dim);
+  margin-left:8px}
+.pr.sel .k{color:var(--cold)}
+.pr.sel .track i,.pr.sel .track b{background:var(--cold)}
+.pr .opts{flex:1;display:flex;gap:26px;align-self:center}
+.pr .opts s{text-decoration:none;font-size:16px;font-weight:300;color:var(--dim);letter-spacing:.1em}
+.pr .opts s.on{color:var(--bone)}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Direction F — Sleeve</h1>
+  <p class="sub">The quietest one. Hierarchy carried entirely by scale and empty space — the running preset is
+  simply set four times larger than the others, and that is the whole mechanism. There is not one card, button
+  outline or filled panel in the system. Lowercase throughout, which no modeler on the market does, one
+  off-centre rule the layout hangs from, and a single muted blue used exactly once per screen.</p>
+
+  <div class="cap"><b>1 · Bank</b><span>preset screen</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="spine"></div>
+      <div class="info">
+        <div class="wordmark">ardor</div>
+        <dl><dt>Bank</dt><dd>000 — set a</dd></dl>
+        <dl><dt>Engine</dt><dd>48 kHz · block 64</dd></dl>
+        <dl><dt>Headroom</dt><dd>38 %</dd></dl>
+        <dl><dt>Control</dt><dd>midi · 4 switches</dd></dl>
+      </div>
+
+      <div class="entries">
+        <div class="en"><span class="no">01</span><span class="nm">midnight clean</span>
+          <span class="sp"></span><span class="rd">amp · cab · hall</span></div>
+
+        <div class="en now"><span class="no">02</span><span class="sq"></span>
+          <span class="nm">drive stack</span>
+          <span class="sp"></span><span class="rd">4 blocks · 8.2 ms</span></div>
+
+        <div class="en"><span class="no">03</span><span class="nm">split rig — wide</span>
+          <span class="sp"></span><span class="rd">split · chorus · delay</span></div>
+
+        <div class="en bad"><span class="no">04</span><span class="nm">ambient bloom</span>
+          <span class="sp"></span><span class="rd">asset not found</span></div>
+      </div>
+
+      <div class="acts">
+        <a class="on">Edit</a><a>Tuner</a><a>Bank −</a><a>Bank +</a><a>Setup</a>
+        <span class="sp"></span>
+        <span class="mv"><em>Master</em><b>72</b></span>
+      </div>
+      <div class="rulebar"><i style="width:72%"></i></div>
+    </div>
+  </div></div>
+  <p class="note"><b>One mechanism, no decoration.</b> Nothing is highlighted, tinted, boxed or bordered — the
+  live preset is just bigger, and the eye finds the biggest thing on a dark screen instantly, from any angle, in
+  any light. The blue square is the only saturated pixel on the screen and it appears once. This is the direct
+  answer to "Floor, but less."</p>
+
+  <div class="cap"><b>2 · Chain</b><span>edit screen — selection by scale, bypass by a hairline</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="spine"></div>
+      <div class="info">
+        <div class="wordmark">02</div>
+        <dl><dt>Preset</dt><dd>drive stack</dd></dl>
+        <dl><dt>State</dt><dd style="color:var(--cold)">modified</dd></dl>
+        <dl><dt>Chain</dt><dd>4 blocks · 8.2 ms</dd></dl>
+        <dl><dt>Input</dt><dd>mono · sum</dd></dl>
+      </div>
+      <div class="chain">
+        <div class="node"><span class="ix">amp · u1</span><span class="nm">tweed deluxe</span>
+          <span class="sp"></span><span class="rd">nano · sum</span></div>
+        <div class="node sel"><span class="ix">cab · ir1</span><span class="nm">open back</span>
+          <span class="sp"></span><span class="rd">−2.0 db · mix 100</span></div>
+        <div class="node off"><span class="ix">mod · m1</span><span class="nm">chorus</span>
+          <span class="sp"></span><span class="rd">bypassed</span></div>
+        <div class="node"><span class="ix">delay · d1</span><span class="nm">tape</span>
+          <span class="sp"></span><span class="rd">380 ms · fb 34</span></div>
+        <div class="node"><span class="ix"></span><span class="add">+ &nbsp; add block</span></div>
+      </div>
+      <div class="acts">
+        <a class="on">Save</a><a>Undo</a><a>Redo</a><a>Blocks</a>
+        <span class="sp"></span><a>Done</a>
+      </div>
+      <div class="rulebar"></div>
+    </div>
+  </div></div>
+
+  <div class="cap"><b>2b · Split</b><span>Dual Rig as an indented bracket</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="spine"></div>
+      <div class="info">
+        <div class="wordmark">03</div>
+        <dl><dt>Preset</dt><dd>split rig — wide</dd></dl>
+        <dl><dt>Routing</dt><dd>2 lanes · stereo join</dd></dl>
+        <dl><dt>Merge</dt><dd>hard l / r</dd></dl>
+      </div>
+      <div class="chain">
+        <div class="lanewrap">
+          <span class="bt">split</span>
+          <div class="lane">
+            <div class="lh">lane l</div>
+            <div class="node"><span class="ix">amp</span><span class="nm">clean</span>
+              <span class="sp"></span><span class="rd">nano</span></div>
+            <div class="node"><span class="ix">cab</span><span class="nm">open</span>
+              <span class="sp"></span><span class="rd">−2.0 db</span></div>
+            <div class="node"><span class="ix">mod</span><span class="nm">chorus</span>
+              <span class="sp"></span><span class="rd">rate 0.4</span></div>
+          </div>
+          <div class="lane">
+            <div class="lh">lane r</div>
+            <div class="node"><span class="ix">amp</span><span class="nm">crunch</span>
+              <span class="sp"></span><span class="rd">full</span></div>
+            <div class="node"><span class="ix">cab</span><span class="nm">closed</span>
+              <span class="sp"></span><span class="rd">−1.0 db</span></div>
+            <div class="node"><span class="ix">delay</span><span class="nm">digital</span>
+              <span class="sp"></span><span class="rd">240 ms</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="acts">
+        <a>Save</a><a>Undo</a><a>Blocks</a><span class="sp"></span><a>Done</a>
+      </div>
+      <div class="rulebar"></div>
+    </div>
+  </div></div>
+  <p class="note"><b>Vertical, not horizontal.</b> This is the only direction that abandons the left-to-right
+  signal canvas, and it earns something for it: a long chain never scrolls off the side, and a split is just an
+  indent — the single clearest way to show nesting that typography has. Reading order is top to bottom, which is
+  also how the preset file is written.</p>
+
+  <div class="cap"><b>3 · Tuner</b><span>one rule, one square</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="spine"></div>
+      <div class="info">
+        <div class="wordmark">tuner</div>
+        <dl><dt>Reference</dt><dd>a4 = 440.0 hz</dd></dl>
+        <dl><dt>Output</dt><dd style="color:var(--warn)">muted</dd></dl>
+        <dl><dt>Tolerance</dt><dd>± 3 cents</dd></dl>
+      </div>
+      <div class="tn">
+        <div class="n">a<em>2</em></div>
+        <div class="hz">110.42 hz &nbsp;·&nbsp; −6.0 cents</div>
+        <div class="devwrap">
+          <div class="devrule"></div>
+          <div class="devzone" style="left:47%;width:6%"></div>
+          <div class="devmark" style="left:44%"></div>
+          <span class="devend" style="left:0">−50</span>
+          <span class="devend" style="right:0">+50</span>
+        </div>
+        <div class="verd">flat — tune up</div>
+      </div>
+      <div class="acts"><a class="on">Exit</a>
+        <span style="font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--dim)">
+          any footswitch exits</span>
+        <span class="sp"></span></div>
+      <div class="rulebar"></div>
+    </div>
+  </div></div>
+
+  <div class="cap"><b>4 · Parameters</b><span>hairline tracks, no containers</span></div>
+  <div class="shell"><div class="stage">
+    <div class="scr">
+      <div class="spine"></div>
+      <div class="info">
+        <div class="wordmark">tape</div>
+        <dl><dt>Block</dt><dd>delay · d1</dd></dl>
+        <dl><dt>State</dt><dd>enabled</dd></dl>
+        <dl><dt>Controls</dt><dd>6</dd></dl>
+        <dl><dt>Live edit</dt><dd style="color:var(--cold)">on</dd></dl>
+      </div>
+      <div class="pl">
+        <div class="pr sel"><span class="k">Time</span>
+          <span class="track"><i style="width:31%"></i><b style="left:31%"></b></span>
+          <span class="v">380<em>ms</em></span></div>
+        <div class="pr"><span class="k">Feedback</span>
+          <span class="track"><i style="width:34%"></i><b style="left:34%"></b></span>
+          <span class="v">34<em>%</em></span></div>
+        <div class="pr"><span class="k">Mix</span>
+          <span class="track"><i style="width:28%"></i><b style="left:28%"></b></span>
+          <span class="v">28<em>%</em></span></div>
+        <div class="pr"><span class="k">Wow</span>
+          <span class="track"><i style="width:18%"></i><b style="left:18%"></b></span>
+          <span class="v">18<em>%</em></span></div>
+        <div class="pr"><span class="k">Age</span>
+          <span class="track"><i style="width:61%"></i><b style="left:61%"></b></span>
+          <span class="v">61<em>%</em></span></div>
+        <div class="pr"><span class="k">Heads</span>
+          <span class="opts"><s>one</s><s class="on">dual</s><s>three</s></span>
+          <span class="v" style="font-size:18px">dual</span></div>
+      </div>
+      <div class="acts">
+        <a>◀ Prev</a><a>Next ▶</a><a>Bypass</a><a>Reset</a>
+        <span class="sp"></span><a class="on">Done</a>
+      </div>
+      <div class="rulebar"></div>
+    </div>
+  </div></div>
+
+  <div class="cost">
+    <h2>What this costs in LVGL</h2>
+    <ul>
+      <li><b>The cheapest to render and the cheapest to maintain.</b> Labels, 1px rules, a handful of small
+        rects. No panels, no borders, no images, no patterns. This would measurably reduce UI draw time against
+        the current build.</li>
+      <li><b>Fonts are the entire budget, and it is a real one.</b> Jost at 200/300/400 across roughly six sizes,
+        including a 200 px lowercase face for the tuner. Light weights at large sizes have thin stems, and thin
+        stems on a 16-bit panel with LVGL's 4bpp antialiasing can look ragged — this is the one direction where
+        you should compile a test font and look at it on the actual display before committing.</li>
+      <li><b>Contrast needs checking on hardware, not in the simulator.</b> The grey secondary text sits around
+        7:1 on paper, but a dark stage plus a steep viewing angle plus panel gamma is a different story. Budget
+        one session with the real panel to tune the three grey values.</li>
+      <li><b>Touch targets are invisible.</b> Text-only controls with no boxes still need 44 px hit areas — LVGL
+        makes that easy with <code>lv_obj_set_ext_click_area</code>, but it must be deliberate or the design
+        becomes unusable with a boot on.</li>
+      <li><b>Honest risk:</b> this is the direction most likely to read as "unfinished" to someone expecting a
+        modeler UI, and the one most dependent on typography being exactly right. It has the highest ceiling and
+        the least margin for sloppy execution.</li>
+    </ul>
+  </div>
+</div>
+<script>
+const fit=()=>{const s=Math.min(1,document.querySelector('.doc').clientWidth/1280);
+document.querySelectorAll('.stage').forEach(el=>{el.style.transform=`scale(${s})`;
+el.parentElement.style.height=(720*s)+'px';});};
+addEventListener('resize',fit);fit();document.fonts?.ready.then(fit);
+</script>
+</body>
+</html>

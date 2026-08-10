@@ -189,6 +189,13 @@ bool PedalEngine::setCompressorParameter(const std::string& id, const std::strin
   return chain_.setCompressorParameter(id, key, value);
 }
 
+float PedalEngine::compressorGainReductionDb(const std::string& id) const
+{
+  float value = 0.0f;
+  chain_.compressorGainReductionDb(id, value);
+  return value;
+}
+
 bool PedalEngine::addNoiseGate(std::string id, const nlohmann::json& params,
                                float sampleRate, std::string& error)
 {

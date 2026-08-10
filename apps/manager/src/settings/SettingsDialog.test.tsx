@@ -16,7 +16,7 @@ describe("global settings", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Open settings" }));
-    expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Custom accent color"), { target: { value: "#67a6ff" } });
     expect(container.querySelector(".app-shell")).toHaveStyle("--accent: #67a6ff");
@@ -28,7 +28,7 @@ describe("global settings", () => {
     renderWithProviders(<DeviceSessionProvider><AppShell /></DeviceSessionProvider>);
 
     await user.click(screen.getByRole("button", { name: "Open settings" }));
-    await user.click(screen.getByRole("button", { name: "Wi-Fi" }));
+    await user.click(await screen.findByRole("button", { name: "Wi-Fi" }));
 
     expect(screen.getByText("Connect to a pedal first")).toBeInTheDocument();
   });

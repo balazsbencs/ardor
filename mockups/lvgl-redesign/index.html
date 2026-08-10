@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ardor — LVGL touch UI, three directions</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#161616;color:#c9c9c9;font-family:system-ui,-apple-system,sans-serif;
+  padding:64px 24px 96px;line-height:1.6}
+.w{max-width:960px;margin:0 auto}
+h1{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:52px;color:#fff;
+  text-transform:uppercase;letter-spacing:.04em;line-height:1}
+.lede{font-size:17px;max-width:68ch;margin-top:18px;color:#9d9d9d}
+.lede b{color:#e8e8e8;font-weight:600}
+.constraint{margin-top:32px;border-left:2px solid #f5d020;padding:14px 0 14px 20px;max-width:70ch}
+.constraint h2{font-family:'Barlow Condensed',sans-serif;font-size:20px;color:#f5d020;
+  text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.constraint p{font-size:15px;color:#9d9d9d;margin-top:6px}
+.constraint code{font-family:ui-monospace,monospace;font-size:13.5px;color:#c9c9c9;background:#242424;padding:1px 5px}
+.cards{margin-top:52px;display:grid;gap:20px}
+a.card{display:block;border:1px solid #333;padding:26px 28px 24px;text-decoration:none;color:inherit;
+  transition:border-color .18s ease,background .18s ease}
+a.card:hover{border-color:#666;background:#1c1c1c}
+a.card .t{display:flex;align-items:baseline;gap:14px}
+a.card h3{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:34px;text-transform:uppercase;
+  letter-spacing:.04em;line-height:1}
+a.card .swatch{display:flex;gap:5px;margin-left:auto}
+a.card .swatch i{width:26px;height:26px;display:block}
+a.card p{font-size:15px;color:#9d9d9d;margin-top:12px;max-width:64ch}
+a.card .meta{font-family:ui-monospace,monospace;font-size:12px;color:#6e6e6e;margin-top:14px;letter-spacing:.04em}
+.floor h3{color:#f2c200}.plate h3{color:#fff}.sheet h3{color:#f5d020}
+.foot{margin-top:56px;border-top:1px solid #333;padding-top:24px;font-size:14px;color:#7d7d7d;max-width:70ch}
+</style>
+</head>
+<body>
+<div class="w">
+  <h1>Ardor touch UI<br>three directions</h1>
+  <p class="lede">Complete visual worlds for the 1280×720 device screen, each carried across four screens —
+  preset, edit chain, tuner, parameters. Every function of the current build is preserved; the layout, hierarchy
+  and metaphor are not.</p>
+  <p class="lede" style="margin-top:14px"><b>Panel (D) is the working direction.</b> Start with the palette study
+  — three colour systems on identical geometry. Cyc and Sleeve are its two live alternates. Floor, Plate and
+  Sheet are the first round, kept for reference; Plate was ruled out and the other two superseded, so their
+  known layout defects are unfixed.</p>
+
+  <div class="constraint">
+    <h2>The banding is a hardware fact, not a tuning problem</h2>
+    <p><code>lv_conf.h:13</code> sets <code>LV_COLOR_DEPTH 16</code> on the device because the Pi DSI
+    framebuffer is RGB565; the simulator runs at 32. RGB565 gives 32 levels of red, 64 of green, 32 of blue,
+    with no dithering in LVGL's render path. The current palette ramps <code>#07090b → #18232a</code> — a dark,
+    low-contrast, full-panel gradient, which is the worst case for a 5-bit channel. It cannot be made smooth.</p>
+    <p style="margin-top:10px">All three directions therefore build depth from <b>flat planes at different
+    values, hairlines and hard edges</b>. None of them contains a gradient.</p>
+  </div>
+
+  <div class="cards">
+    <a class="card sheet" href="panel-palettes.html" style="border-color:#7a6a3a">
+      <div class="t"><h3 style="color:#e0a33a">D · Panel — palettes</h3>
+        <span class="swatch"><i style="background:#212528"></i><i style="background:#d8422f"></i>
+        <i style="background:#10161f"></i><i style="background:#5fd0e8"></i>
+        <i style="background:#0c0b09"></i><i style="background:#ffb01f"></i></span></div>
+      <p><b style="color:#e0a33a">Current working direction.</b> Three alternative palettes on the chosen design
+      — Slate (graphite / signal red), Ink (deep navy / ice cyan), Sodium (true black / warm bone / amber).
+      Identical geometry and type throughout, so only colour varies. Preset screen is the 2×2 mapped to the
+      corner footswitches.</p>
+      <div class="meta">6 screens · palette study · start here</div>
+    </a>
+
+    <a class="card sheet" href="panel-system.html" style="border-color:#7a6a3a">
+      <div class="t"><h3 style="color:#e0a33a">D · Panel — system</h3>
+        <span class="swatch"><i style="background:#212528"></i><i style="background:#5d8f80"></i>
+        <i style="background:#a8814e"></i><i style="background:#a8785c"></i><i style="background:#d8422f"></i></span></div>
+      <p>The remaining pieces: module drawer, annunciator toasts, unsaved-changes dialog, settings with the live
+      palette switcher, and the five-band EQ editor with its Q interaction model. Palette switcher at the top of
+      the page swaps all three themes.</p>
+      <div class="meta">5 screens · drawer · toasts · dialog · settings · EQ</div>
+    </a>
+
+    <a class="card sheet" href="panel-states.html" style="border-color:#7a6a3a">
+      <div class="t"><h3 style="color:#e0a33a">D · Panel — screens &amp; states</h3>
+        <span class="swatch"><i style="background:#212528"></i><i style="background:#c9973f"></i>
+        <i style="background:#6b463c"></i><i style="background:#5d8f80"></i><i style="background:#d8422f"></i></span></div>
+      <p>Text entry with the on-screen keyboard, the full-screen asset library, factory-reset confirmation,
+      first-boot pairing code, empty bank, no-captures-installed, overload bypass with the clip annunciator,
+      and boot.</p>
+      <div class="meta">8 screens · every remaining surface the device draws</div>
+    </a>
+
+    <a class="card sheet" href="panel.html">
+      <div class="t"><h3 style="color:#e0a33a">D · Panel</h3>
+        <span class="swatch"><i style="background:#1e211c"></i><i style="background:#262a24"></i>
+        <i style="background:#ddd9cc"></i><i style="background:#e0a33a"></i><i style="background:#4e8880"></i></span></div>
+      <p>The nomenclature plate of an instrument: bracketed function groups, printed travel scales with numerals,
+      patch-point circles, section legends. Bypass is a patch cord routed over the module. Original olive-graphite
+      palette, all four screens.</p>
+      <div class="meta">4 screens · assigned direction · olive-graphite + amber lamp</div>
+    </a>
+
+    <a class="card floor" href="cyc.html">
+      <div class="t"><h3 style="color:#a8425f">E · Cyc</h3>
+        <span class="swatch"><i style="background:#05070b"></i><i style="background:#1b3a8c"></i>
+        <i style="background:#a8425f"></i><i style="background:#c07a2a"></i></span></div>
+      <p>A preset is a lighting cue and the screen is the cyclorama behind the player. Only the running cue is
+      lit; the others sit in blackout with one hairline. A cyc broken into its individual fixtures — discrete
+      bands, no blend.</p>
+      <div class="meta">4 screens · stagecraft · one colour field at a time</div>
+    </a>
+
+    <a class="card plate" href="sleeve.html">
+      <div class="t"><h3 style="color:#e8e5dd">F · Sleeve</h3>
+        <span class="swatch"><i style="background:#0a0c0d"></i><i style="background:#e8e5dd"></i>
+        <i style="background:#7d9fb3"></i></span></div>
+      <p>The quietest one. Hierarchy carried entirely by scale and empty space — the running preset is simply set
+      four times larger. No cards, no buttons, no filled panels anywhere. Lowercase throughout, and the chain runs
+      vertically instead of horizontally.</p>
+      <div class="meta">4 screens · record-sleeve restraint · near-black + one blue</div>
+    </a>
+
+    <a class="card floor" href="floor.html">
+      <div class="t"><h3>A · Floor</h3>
+        <span class="swatch"><i style="background:#16130f"></i><i style="background:#ece7d9"></i>
+        <i style="background:#f2c200"></i><i style="background:#e8631a"></i><i style="background:#3282c8"></i></span></div>
+      <p>The setlist taped to the stage floor. Matte gaffer black, white paint-pen lettering at poster scale,
+      saturated console tape carrying every family and state. The live preset is a bright tape strip with black
+      lettering — the highest-contrast object on a dark stage.</p>
+      <div class="meta">4 screens · assigned direction · warm black + paint + tape colour</div>
+    </a>
+
+    <a class="card plate" href="plate.html">
+      <div class="t"><h3>B · Plate</h3>
+        <span class="swatch"><i style="background:#000"></i><i style="background:#fff"></i>
+        <i style="background:#000;border:2px solid #fff"></i></span></div>
+      <p>One bit. Black and white pixels only, Bayer-ordered stipple standing in for every gray, effect families
+      carried by pattern instead of hue. Dithering is the canonical answer to a 16-bit panel, taken as a whole
+      design language. The live preset does not tint — it inverts.</p>
+      <div class="meta">4 screens · dealt challenger · pure monochrome</div>
+    </a>
+
+    <a class="card sheet" href="sheet.html">
+      <div class="t"><h3>C · Sheet</h3>
+        <span class="swatch"><i style="background:#071a1e"></i><i style="background:#2f5b63"></i>
+        <i style="background:#dfeef0"></i><i style="background:#f5d020"></i><i style="background:#35c4d4"></i></span></div>
+      <p>The pedal shows you the schematic. Reference designators, net labels, a title block, revision triangles,
+      tolerance bands. The preset screen draws four miniature signal-flow diagrams, so you see the shape of each
+      rig before choosing it — and bypass is drawn as a jumper routed around the block.</p>
+      <div class="meta">4 screens · engineering drafting sheet · petrol ink + signal yellow</div>
+    </a>
+  </div>
+
+  <p class="foot">Open each file directly in a browser. Screens render at the real 1280×720 design grid and scale
+  to fit the window. Each direction ends with an honest account of what it would cost to build in LVGL.</p>
+</div>
+</body>
+</html>

@@ -3,8 +3,6 @@
 #include "ui/LvglUiParameterView.h"
 #include "ui/LvglUiParameterWidgets.h"
 #include "ui/LvglUiStyle.h"
-#include "ui/fonts/OpenSansRegular.h"
-#include "ui/fonts/OpenSansSemibold.h"
 
 #include <algorithm>
 #include <array>
@@ -29,15 +27,30 @@ constexpr int kEqGraphX = parameter_widgets::panelEdgeInset;
 constexpr int kEqGraphY = 80;
 constexpr int kEqGraphWidth = parameter_widgets::panelWidth - 2 * parameter_widgets::panelEdgeInset;
 constexpr int kEqGraphHeight = 236;
-constexpr int kEqBandControlsY = 330;
-constexpr int kEqSlidersY = 398;
-constexpr int kEqNodeSize = 48;
-constexpr int kEqNodeRadius = kEqNodeSize / 2;
+// Handles carry a small, quiet visual mark but keep a 44 px touch target
+// underneath it, per the redesign's minimum-touch-target rule.
+constexpr int kEqNodeHitSize = 44;
+constexpr int kEqNodeVisualSize = 15;
+constexpr int kEqNodeVisualSizeSelected = 19;
+constexpr int kEqGripWidth = 13;
+constexpr int kEqGripHeight = 26;
+constexpr int kEqGripHitSize = 44;
+constexpr int kEqBandStripY = 330;
+constexpr int kEqSlidersY = kEqBandStripY + 6;
+constexpr int kEqBandSummaryY = kEqBandStripY + 132 + 16;
+constexpr int kEqBandChipWidth = 138;
+constexpr int kEqBandChipGap = 12;
 constexpr uint32_t kEqCurveRefreshIntervalMs = 33;
 
 struct EqGraphVisual {
   std::array<lv_obj_t*, kParametricEqBandCount + 1> responseLines{};
   std::array<lv_obj_t*, kParametricEqBandCount> nodes{};
+  std::array<lv_obj_t*, kParametricEqBandCount> nodeMarks{};
+  std::array<lv_obj_t*, kParametricEqBandCount> nodeLabels{};
+  lv_obj_t* qSpan = nullptr;
+  std::array<lv_obj_t*, 2> qGrips{};
+  lv_obj_t* qLabel = nullptr;
+  std::size_t selectedBand = 0;
   uint32_t lastCurveRefresh = 0;
 };
 
@@ -131,6 +144,10 @@ void onEqBandSelected(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   context->ui->selectEqBand(context->index);
+  // Landing on a (possibly different) band always re-highlights Q, matching
+  // the band editor's default rather than carrying over the previous band's
+  // last-touched field.
+  context->ui->focusEqBandField(EqBandField::Q);
   redraw(context);
 }
 
@@ -193,6 +210,53 @@ void onEqNodePressing(lv_event_t* event)
   band.gainDb = eqGainFromY(y, kEqGraphHeight);
   context->ui->updateSelectedEqBand(*context->state, band, false);
   refreshEqGraphCurve(context->controlledObject, selectedParametricEqParams(*context->state), true);
+  context->ui->syncEqSliders(*context->state);
+}
+
+void applyEqGripPosition(UiEventContext* context, lv_indev_t* input)
+{
+  lv_point_t point{};
+  lv_indev_get_point(input, &point);
+  point = context->ui->toCanvas(point);
+  lv_area_t graphArea{};
+  lv_area_t canvasArea{};
+  lv_obj_get_content_coords(context->controlledObject, &graphArea);
+  lv_obj_get_coords(context->ui->canvas(), &canvasArea);
+  const int x = std::clamp(static_cast<int>(point.x) - (graphArea.x1 - canvasArea.x1),
+                           0, kEqGraphWidth - 1);
+  const float gripHz = eqFrequencyFromX(x, kEqGraphWidth);
+  auto params = selectedParametricEqParams(*context->state);
+  auto& band = params.bands[context->ui->selectedEqBand()];
+  // The pair is symmetric about the centre frequency (spec 9.1): whichever
+  // grip moved, its distance from centre in octaves sets the whole band's
+  // width, so both grips end up equidistant again once Q is applied.
+  const float halfOctaves = std::fabs(std::log2(std::max(gripHz, 1.0f) / band.frequencyHz));
+  const float totalOctaves = std::max(0.02f, 2.0f * halfOctaves);
+  const float newQ = std::clamp(
+    1.0f / (2.0f * std::sinh(totalOctaves * std::log(2.0f) / 2.0f)),
+    kEqMinimumQ, kEqMaximumQ);
+  band.q = newQ;
+  context->ui->updateSelectedEqBand(*context->state, band, false);
+  refreshEqGraphCurve(context->controlledObject, selectedParametricEqParams(*context->state), true);
+  context->ui->syncEqSliders(*context->state);
+}
+
+void onEqGripPressed(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (!input) return;
+  context->ui->setFocusedWidgets(nullptr, context->controlledObject);
+  context->ui->beginParameterInteraction();
+  context->ui->focusEqBandField(EqBandField::Q);
+  applyEqGripPosition(context, input);
+}
+
+void onEqGripPressing(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  lv_indev_t* input = lv_event_get_indev(event);
+  if (input) applyEqGripPosition(context, input);
 }
 
 void onEqNodeReleased(lv_event_t* event)
@@ -259,17 +323,68 @@ void refreshEqGraphCurve(lv_obj_t* graph, const ParametricEqParams& params, bool
     }
   }
 
+  const int hitRadius = kEqNodeHitSize / 2;
   for (std::size_t bandIndex = 0; bandIndex < visual->nodes.size(); ++bandIndex) {
     lv_obj_t* node = visual->nodes[bandIndex];
     if (!node) {
       continue;
     }
     const auto& band = params.bands[bandIndex];
+    const bool selected = bandIndex == visual->selectedBand;
     const int x = std::clamp(eqXFromFrequency(band.frequencyHz, kEqGraphWidth),
-                             kEqNodeRadius, kEqGraphWidth - kEqNodeRadius);
+                             hitRadius, kEqGraphWidth - hitRadius);
     const int y = std::clamp(eqYFromGain(band.gainDb, kEqGraphHeight),
-                             kEqNodeRadius, kEqGraphHeight - kEqNodeRadius);
-    lv_obj_set_pos(node, x - kEqNodeRadius, y - kEqNodeRadius);
+                             hitRadius, kEqGraphHeight - hitRadius);
+    lv_obj_set_pos(node, x - hitRadius, y - hitRadius);
+
+    if (lv_obj_t* mark = visual->nodeMarks[bandIndex]) {
+      const int markSize = selected ? kEqNodeVisualSizeSelected : kEqNodeVisualSize;
+      lv_obj_set_size(mark, markSize, markSize);
+      lv_obj_center(mark);
+      styleSurface(mark, selected ? lamp : bg);
+      lv_obj_set_style_border_width(mark, 2, 0);
+      lv_obj_set_style_border_color(mark, lv_color_hex(selected ? lamp : muted), 0);
+      lv_obj_set_style_opa(mark, band.enabled ? LV_OPA_COVER : LV_OPA_50, 0);
+    }
+    if (lv_obj_t* mark = visual->nodeLabels[bandIndex]) {
+      lv_obj_align(mark, LV_ALIGN_TOP_MID, 0, selected ? -24 : -21);
+      lv_obj_set_style_text_color(mark, lv_color_hex(selected ? lamp : muted), 0);
+    }
+  }
+
+  const auto& selectedBand = params.bands[visual->selectedBand];
+  const bool showGrips = selectedBand.enabled;
+  const auto [lowHz, highHz] = eqShoulderFrequencies(selectedBand.frequencyHz, selectedBand.q);
+  const int centerX = std::clamp(eqXFromFrequency(selectedBand.frequencyHz, kEqGraphWidth),
+                                 hitRadius, kEqGraphWidth - hitRadius);
+  const int centerY = std::clamp(eqYFromGain(selectedBand.gainDb, kEqGraphHeight),
+                                 hitRadius, kEqGraphHeight - hitRadius);
+  const int lowX = eqXFromFrequency(lowHz, kEqGraphWidth);
+  const int highX = eqXFromFrequency(highHz, kEqGraphWidth);
+  if (visual->qSpan) {
+    lv_obj_set_pos(visual->qSpan, lowX, centerY);
+    lv_obj_set_width(visual->qSpan, std::max(1, highX - lowX));
+    lv_obj_add_flag(visual->qSpan, LV_OBJ_FLAG_HIDDEN);
+    if (showGrips) lv_obj_remove_flag(visual->qSpan, LV_OBJ_FLAG_HIDDEN);
+  }
+  const std::array<int, 2> gripX = {lowX, highX};
+  for (std::size_t i = 0; i < visual->qGrips.size(); ++i) {
+    lv_obj_t* grip = visual->qGrips[i];
+    if (!grip) continue;
+    lv_obj_set_pos(grip, gripX[i] - kEqGripHitSize / 2, centerY - kEqGripHitSize / 2);
+    lv_obj_add_flag(grip, LV_OBJ_FLAG_HIDDEN);
+    if (showGrips) lv_obj_remove_flag(grip, LV_OBJ_FLAG_HIDDEN);
+  }
+  if (visual->qLabel) {
+    char buffer[32]{};
+    std::snprintf(buffer, sizeof(buffer), "Q %.1f \xC2\xB7 %.1f oct",
+                 selectedBand.q, eqBandwidthOctaves(selectedBand.q));
+    lv_label_set_text(visual->qLabel, buffer);
+    lv_obj_update_layout(visual->qLabel);
+    const int labelWidth = lv_obj_get_width(visual->qLabel);
+    lv_obj_set_pos(visual->qLabel, centerX - labelWidth / 2, std::max(0, centerY - 46));
+    lv_obj_add_flag(visual->qLabel, LV_OBJ_FLAG_HIDDEN);
+    if (showGrips) lv_obj_remove_flag(visual->qLabel, LV_OBJ_FLAG_HIDDEN);
   }
 }
 
@@ -281,6 +396,16 @@ std::string eqFrequencyLabel(float frequencyHz)
     return buffer;
   }
   return std::to_string(static_cast<int>(std::lround(frequencyHz))) + " Hz";
+}
+
+std::string eqFrequencyCompact(float frequencyHz)
+{
+  if (frequencyHz >= 1000.0f) {
+    char buffer[16]{};
+    std::snprintf(buffer, sizeof(buffer), "%.1fk", frequencyHz / 1000.0f);
+    return buffer;
+  }
+  return std::to_string(static_cast<int>(std::lround(frequencyHz)));
 }
 
 std::string eqQLabel(float q)
@@ -348,8 +473,8 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
   // Every EQ child uses panel-local coordinates. Theme padding used to add an
   // invisible left inset and consume the intended right margin.
   lv_obj_set_style_pad_all(panelObject, 0, 0);
-  label(panelObject, "Parametric EQ", LV_ALIGN_TOP_LEFT, 28, 15, &ardor_font_open_sans_semibold_22);
-  label(panelObject, "Five bands", LV_ALIGN_TOP_LEFT, 205, 18, &ardor_font_open_sans_regular_18, muted);
+  label(panelObject, "Parametric EQ", LV_ALIGN_TOP_LEFT, 28, 15, &ardor_font_saira_cond_semibold_22);
+  label(panelObject, "Five bands", LV_ALIGN_TOP_LEFT, 205, 18, &ardor_font_saira_cond_medium_18, muted);
 
   const auto params = selectedParametricEqParams(state);
   const auto curve = makeEqCurveData(params, 48000.0f);
@@ -357,8 +482,8 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
   lv_obj_set_size(graph, kEqGraphWidth, kEqGraphHeight);
   lv_obj_set_pos(graph, kEqGraphX, kEqGraphY);
   lv_obj_remove_flag(graph, LV_OBJ_FLAG_SCROLLABLE);
-  styleSurface(graph, 0x111111);
-  lv_obj_set_style_border_color(graph, lv_color_hex(0x3a3a3a), 0);
+  styleSurface(graph, panelAlt);
+  lv_obj_set_style_border_color(graph, lv_color_hex(rule), 0);
   lv_obj_set_style_border_width(graph, 1, 0);
   auto* graphVisual = new EqGraphVisual{};
   lv_obj_set_user_data(graph, graphVisual);
@@ -369,15 +494,32 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
     lv_obj_t* gridLine = lv_obj_create(graph);
     lv_obj_set_size(gridLine, kEqGraphWidth - 2, 1);
     lv_obj_set_pos(gridLine, 1, i * (kEqGraphHeight - 1) / 4);
-    styleSurface(gridLine, 0x2f2f2f);
+    styleSurface(gridLine, i == 2 ? disabled : rule);
     lv_obj_remove_flag(gridLine, LV_OBJ_FLAG_CLICKABLE);
+  }
+  // The bottom-most gridline sits too close to the frequency axis labels for
+  // its own numeral to fit without colliding; +18/+9/0/-9 already carries the
+  // scale.
+  for (const float gainDb : {18.0f, 9.0f, 0.0f, -9.0f}) {
+    char buffer[8]{};
+    std::snprintf(buffer, sizeof(buffer), "%+d", static_cast<int>(gainDb));
+    lv_obj_t* gainLabel = label(graph, gainDb == 0.0f ? "0" : buffer, LV_ALIGN_TOP_LEFT,
+                                8, std::clamp(eqYFromGain(gainDb, kEqGraphHeight) + 2, 0, kEqGraphHeight - 14),
+                                &ardor_font_saira_cond_medium_18, muted);
+    lv_obj_remove_flag(gainLabel, LV_OBJ_FLAG_CLICKABLE);
   }
   for (const float frequency : {100.0f, 1000.0f, 10000.0f}) {
     lv_obj_t* gridLine = lv_obj_create(graph);
     lv_obj_set_size(gridLine, 1, kEqGraphHeight - 2);
     lv_obj_set_pos(gridLine, eqXFromFrequency(frequency, kEqGraphWidth), 1);
-    styleSurface(gridLine, 0x2f2f2f);
+    styleSurface(gridLine, rule);
     lv_obj_remove_flag(gridLine, LV_OBJ_FLAG_CLICKABLE);
+    const std::string freqLabel = frequency >= 1000.0f
+      ? std::to_string(static_cast<int>(frequency / 1000.0f)) + "k" : "100";
+    lv_obj_t* xLabel = label(graph, freqLabel, LV_ALIGN_BOTTOM_LEFT,
+                             eqXFromFrequency(frequency, kEqGraphWidth) + 4, -6,
+                             &ardor_font_saira_cond_medium_18, muted);
+    lv_obj_remove_flag(xLabel, LV_OBJ_FLAG_CLICKABLE);
   }
 
   for (std::size_t i = 0; i < kParametricEqBandCount; ++i) {
@@ -387,24 +529,29 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
   graphVisual->responseLines[kParametricEqBandCount] = createEqResponseLine(graph, curve.combinedDb,
                                                                                eqCombined, LV_OPA_COVER);
 
+  graphVisual->selectedBand = context->ui->selectedEqBand();
   for (std::size_t i = 0; i < kParametricEqBandCount; ++i) {
     const auto& band = params.bands[i];
-    lv_obj_t* node = button(graph, std::to_string(i + 1));
+    const bool selected = i == graphVisual->selectedBand;
+    lv_obj_t* node = lv_obj_create(graph);
     graphVisual->nodes[i] = node;
-    lv_obj_set_size(node, kEqNodeSize, kEqNodeSize);
-    const int x = std::clamp(eqXFromFrequency(band.frequencyHz, kEqGraphWidth),
-                             kEqNodeRadius, kEqGraphWidth - kEqNodeRadius);
-    const int y = std::clamp(eqYFromGain(band.gainDb, kEqGraphHeight),
-                             kEqNodeRadius, kEqGraphHeight - kEqNodeRadius);
-    lv_obj_set_pos(node, x - kEqNodeRadius, y - kEqNodeRadius);
-    styleSurface(node, eqBandColors[i]);
-    lv_obj_set_style_radius(node, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_opa(node, band.enabled ? LV_OPA_COVER : LV_OPA_50, 0);
-    lv_obj_set_style_text_color(lv_obj_get_child(node, 0), lv_color_hex(bg), 0);
-    if (context->ui->selectedEqBand() == i) {
-      lv_obj_set_style_border_color(node, lv_color_hex(text), 0);
-      lv_obj_set_style_border_width(node, 2, 0);
-    }
+    lv_obj_remove_flag(node, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_opa(node, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(node, 0, 0);
+    lv_obj_set_size(node, kEqNodeHitSize, kEqNodeHitSize);
+
+    lv_obj_t* mark = lv_obj_create(node);
+    lv_obj_remove_flag(mark, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(mark, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_radius(mark, 0, 0);
+    graphVisual->nodeMarks[i] = mark;
+
+    lv_obj_t* markLabel = label(node, "B" + std::to_string(i + 1), LV_ALIGN_TOP_MID, 0, -21,
+                                &ardor_font_saira_cond_medium_18, muted);
+    lv_obj_remove_flag(markLabel, LV_OBJ_FLAG_CLICKABLE);
+    graphVisual->nodeLabels[i] = markLabel;
+    (void) selected;
+
     auto* nodeContext = context->ui->remember(state, i);
     nodeContext->controlledObject = graph;
     lv_obj_add_event_cb(node, onEqNodePressed, LV_EVENT_PRESSED, nodeContext);
@@ -413,29 +560,116 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
     lv_obj_add_event_cb(node, onEqNodeReleased, LV_EVENT_PRESS_LOST, nodeContext);
   }
 
+  // The shoulder grips and Q span belong only to the selected band. They are
+  // built once, hidden by default, and repositioned/shown by
+  // refreshEqGraphCurve so dragging Freq/Q keeps them glued to the curve.
+  lv_obj_t* qSpan = lv_obj_create(graph);
+  lv_obj_remove_style_all(qSpan);
+  lv_obj_set_size(qSpan, 1, 1);
+  lv_obj_set_style_border_width(qSpan, 1, 0);
+  lv_obj_set_style_border_color(qSpan, lv_color_hex(lamp), 0);
+  lv_obj_set_style_border_opa(qSpan, LV_OPA_80, 0);
+  lv_obj_remove_flag(qSpan, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_flag(qSpan, LV_OBJ_FLAG_HIDDEN);
+  graphVisual->qSpan = qSpan;
+
+  for (std::size_t i = 0; i < graphVisual->qGrips.size(); ++i) {
+    lv_obj_t* grip = lv_obj_create(graph);
+    lv_obj_remove_flag(grip, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_opa(grip, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(grip, 0, 0);
+    lv_obj_set_size(grip, kEqGripHitSize, kEqGripHitSize);
+    lv_obj_add_flag(grip, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_t* gripMark = lv_obj_create(grip);
+    lv_obj_remove_flag(gripMark, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(gripMark, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_size(gripMark, kEqGripWidth, kEqGripHeight);
+    lv_obj_center(gripMark);
+    styleSurface(gripMark, bg);
+    lv_obj_set_style_border_width(gripMark, 2, 0);
+    lv_obj_set_style_border_color(gripMark, lv_color_hex(lamp), 0);
+
+    auto* gripContext = context->ui->remember(state, i);
+    gripContext->controlledObject = graph;
+    lv_obj_add_event_cb(grip, onEqGripPressed, LV_EVENT_PRESSED, gripContext);
+    lv_obj_add_event_cb(grip, onEqGripPressing, LV_EVENT_PRESSING, gripContext);
+    lv_obj_add_event_cb(grip, onEqNodeReleased, LV_EVENT_RELEASED, gripContext);
+    lv_obj_add_event_cb(grip, onEqNodeReleased, LV_EVENT_PRESS_LOST, gripContext);
+    graphVisual->qGrips[i] = grip;
+  }
+
+  lv_obj_t* qLabel = lv_label_create(graph);
+  setText(qLabel, muted, &ardor_font_saira_cond_medium_18);
+  lv_obj_set_style_bg_opa(qLabel, LV_OPA_COVER, 0);
+  lv_obj_set_style_bg_color(qLabel, lv_color_hex(panelAlt), 0);
+  lv_obj_set_style_pad_hor(qLabel, 8, 0);
+  lv_obj_set_style_pad_ver(qLabel, 2, 0);
+  lv_obj_remove_flag(qLabel, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_flag(qLabel, LV_OBJ_FLAG_HIDDEN);
+  graphVisual->qLabel = qLabel;
+
+  // Nodes/marks/grips are created above with no position or style beyond
+  // their defaults -- refreshEqGraphCurve() is what actually places and
+  // colours them from `params`. Without this call the first render shows
+  // untouched default-themed objects (e.g. an unstyled white mark square)
+  // until the next drag or slider tweak happens to repaint the graph.
+  refreshEqGraphCurve(graph, params, false);
+
   // Create the header actions after the graph so they remain topmost even if
   // a future layout adjustment accidentally brings the two regions close.
   parameter_widgets::renderCloseButton(panelObject, context);
   parameter_widgets::renderBlockActions(panelObject, state, context, bypassOut);
 
+  const auto selectedBand = context->ui->selectedEqBand();
+  label(panelObject, "Band " + std::to_string(selectedBand + 1) + "  \xC2\xB7  Encoder -> Q",
+       LV_ALIGN_TOP_LEFT, 28, kEqBandStripY - 20, &ardor_font_saira_cond_medium_18, lamp);
+
+  lv_obj_t* bandeditBox = lv_obj_create(panelObject);
+  lv_obj_remove_flag(bandeditBox, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(bandeditBox, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_size(bandeditBox, parameter_widgets::panelWidth - 2 * parameter_widgets::panelEdgeInset + 12,
+                 132 + 12);
+  lv_obj_set_pos(bandeditBox, parameter_widgets::panelEdgeInset - 6, kEqSlidersY - 6);
+  lv_obj_set_style_bg_opa(bandeditBox, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_width(bandeditBox, 1, 0);
+  lv_obj_set_style_border_color(bandeditBox, lv_color_hex(lamp), 0);
+  lv_obj_set_style_radius(bandeditBox, 0, 0);
+  lv_obj_move_background(bandeditBox);
+
   for (std::size_t i = 0; i < kParametricEqBandCount; ++i) {
-    lv_obj_t* bandButton = button(panelObject, "Band " + std::to_string(i + 1));
-    lv_obj_set_size(bandButton, 106, 50);
-    lv_obj_set_pos(bandButton, 28 + static_cast<int>(i) * 112, kEqBandControlsY);
-    styleSurface(bandButton, context->ui->selectedEqBand() == i ? eqBandColors[i] : 0x171717);
-    lv_obj_set_style_text_color(lv_obj_get_child(bandButton, 0),
-                                lv_color_hex(context->ui->selectedEqBand() == i ? bg : text), 0);
-    lv_obj_add_event_cb(bandButton, onEqBandSelected, LV_EVENT_CLICKED, context->ui->remember(state, i));
-    if (bandButtonsOut) (*bandButtonsOut)[i] = bandButton;
+    const auto& band = params.bands[i];
+    const bool selected = i == selectedBand;
+    lv_obj_t* bandChip = button(panelObject, "");
+    lv_obj_set_size(bandChip, kEqBandChipWidth, 50);
+    lv_obj_set_pos(bandChip, 28 + static_cast<int>(i) * (kEqBandChipWidth + kEqBandChipGap),
+                  kEqBandSummaryY);
+    styleSurface(bandChip, selected ? panel : panelAlt);
+    lv_obj_set_style_border_color(bandChip, lv_color_hex(selected ? lamp : rule), 0);
+    lv_label_set_text(lv_obj_get_child(bandChip, 0), "");
+    lv_obj_t* dot = lv_obj_create(bandChip);
+    lv_obj_remove_flag(dot, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(dot, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_size(dot, 8, 8);
+    lv_obj_align(dot, LV_ALIGN_LEFT_MID, 12, 0);
+    styleSurface(dot, band.enabled && selected ? lamp : disabled);
+    lv_obj_set_style_border_width(dot, 0, 0);
+    lv_obj_t* chipLabel = label(bandChip, "B" + std::to_string(i + 1) + "  " + eqFrequencyCompact(band.frequencyHz),
+                                LV_ALIGN_LEFT_MID, 28, 0, &ardor_font_saira_cond_medium_18,
+                                selected ? text : muted);
+    lv_obj_set_width(chipLabel, kEqBandChipWidth - 34);
+    lv_label_set_long_mode(chipLabel, LV_LABEL_LONG_CLIP);
+    lv_obj_add_event_cb(bandChip, onEqBandSelected, LV_EVENT_CLICKED, context->ui->remember(state, i));
+    if (bandButtonsOut) (*bandButtonsOut)[i] = bandChip;
   }
 
-  const auto selectedBand = context->ui->selectedEqBand();
   const auto& band = params.bands[selectedBand];
   lv_obj_t* enabled = button(panelObject, band.enabled ? "Band On" : "Band Off");
   lv_obj_set_size(enabled, 130, 50);
-  lv_obj_set_pos(enabled, 600, kEqBandControlsY);
-  styleSurface(enabled, band.enabled ? 0x25442a : 0x3a2020);
-  lv_obj_set_style_text_color(lv_obj_get_child(enabled, 0), lv_color_hex(band.enabled ? accent : 0xf97373), 0);
+  lv_obj_set_pos(enabled, 28 + kParametricEqBandCount * (kEqBandChipWidth + kEqBandChipGap) + 12,
+                kEqBandSummaryY);
+  styleSurface(enabled, band.enabled ? panel : panelAlt);
+  lv_obj_set_style_text_color(lv_obj_get_child(enabled, 0), lv_color_hex(band.enabled ? lamp : danger), 0);
   auto* enabledContext = context->ui->remember(state, selectedBand);
   lv_obj_add_event_cb(enabled, onEqBandEnabled, LV_EVENT_CLICKED, enabledContext);
   if (enabledOut) *enabledOut = enabled;
@@ -443,8 +677,9 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
 
   lv_obj_t* reset = button(panelObject, "Reset Band");
   lv_obj_set_size(reset, 148, 50);
-  lv_obj_set_pos(reset, 744, kEqBandControlsY);
-  styleSurface(reset, 0x171717);
+  lv_obj_set_pos(reset, 28 + kParametricEqBandCount * (kEqBandChipWidth + kEqBandChipGap) + 12 + 130 + 14,
+                kEqBandSummaryY);
+  styleSurface(reset, panelAlt);
   auto* resetContext = context->ui->remember(state, selectedBand);
   lv_obj_add_event_cb(reset, onEqBandReset, LV_EVENT_CLICKED, resetContext);
   if (resetContextOut) *resetContextOut = resetContext;
@@ -488,20 +723,24 @@ void syncEqBandSelection(
   const ParametricEqParams& params, std::size_t selectedBand)
 {
   auto* graphVisual = graph ? static_cast<EqGraphVisual*>(lv_obj_get_user_data(graph)) : nullptr;
+  if (graphVisual) {
+    graphVisual->selectedBand = selectedBand;
+  }
+  refreshEqGraphCurve(graph, params, false);
   for (std::size_t i = 0; i < kParametricEqBandCount; ++i) {
     const bool selected = selectedBand == i;
-    if (graphVisual && graphVisual->nodes[i]) {
-      lv_obj_set_style_opa(graphVisual->nodes[i],
-                           params.bands[i].enabled ? LV_OPA_COVER : LV_OPA_50, 0);
-      lv_obj_set_style_border_width(graphVisual->nodes[i], selected ? 2 : 0, 0);
-      if (selected) {
-        lv_obj_set_style_border_color(graphVisual->nodes[i], lv_color_hex(text), 0);
-      }
-    }
     if (bandButtons[i]) {
-      styleSurface(bandButtons[i], selected ? eqBandColors[i] : 0x171717);
-      lv_obj_set_style_text_color(lv_obj_get_child(bandButtons[i], 0),
-                                  lv_color_hex(selected ? bg : text), 0);
+      styleSurface(bandButtons[i], selected ? panel : panelAlt);
+      lv_obj_set_style_border_color(bandButtons[i], lv_color_hex(selected ? lamp : rule), 0);
+      if (lv_obj_t* dot = lv_obj_get_child(bandButtons[i], 1)) {
+        styleSurface(dot, params.bands[i].enabled && selected ? lamp : disabled);
+        lv_obj_set_style_border_width(dot, 0, 0);
+      }
+      if (lv_obj_t* chipLabel = lv_obj_get_child(bandButtons[i], 2)) {
+        lv_obj_set_style_text_color(chipLabel, lv_color_hex(selected ? text : muted), 0);
+        const auto chipText = "B" + std::to_string(i + 1) + "  " + eqFrequencyCompact(params.bands[i].frequencyHz);
+        lv_label_set_text(chipLabel, chipText.c_str());
+      }
     }
   }
 }

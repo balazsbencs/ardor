@@ -6,10 +6,11 @@
 
 namespace ardor {
 
-inline constexpr std::uint32_t kDefaultAccentColor = 0x43f05a;
+enum class PaletteId : std::uint8_t { Slate, Ink, Sodium, Nord };
 
 struct DeviceSettings {
-  std::uint32_t accentColor = kDefaultAccentColor;
+  PaletteId paletteId = PaletteId::Slate;
+  std::uint32_t audioBlockSize = 64;
   bool wifiConfigured = false;
   std::string wifiSSID;
   std::string wifiCountry = "HU";
@@ -26,7 +27,8 @@ public:
   explicit GlobalSettingsStore(std::filesystem::path dataRoot);
 
   DeviceSettings load() const;
-  bool saveAccentColor(std::uint32_t color, std::string& error) const;
+  bool savePalette(PaletteId palette, std::string& error) const;
+  bool saveAudioBlockSize(std::uint32_t blockSize, std::string& error) const;
   bool saveWifi(const std::string& ssid, const std::string& password,
                 const std::string& country, std::string& error) const;
   bool saveControlInputs(const DeviceSettings& settings, std::string& error) const;

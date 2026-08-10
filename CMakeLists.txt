@@ -181,6 +181,18 @@ if(UNIX AND NOT APPLE)
   target_link_libraries(ardor_dsp PUBLIC stdc++fs)
 endif()
 
+add_library(ardor_wah
+  src/wah/WahNetlist.cpp
+  src/wah/WahDk.cpp
+  src/wah/WahTable.cpp
+  src/wah/WahCircuit.cpp
+)
+target_include_directories(ardor_wah PUBLIC
+  src
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies
+)
+target_compile_features(ardor_wah PUBLIC cxx_std_20)
+
 add_library(ardor_preset
   src/preset/Preset.cpp
   src/preset/PresetStore.cpp
@@ -228,6 +240,14 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
     src/ui/LvglUiTuner.cpp
     src/ui/fonts/OpenSansRegular.c
     src/ui/fonts/OpenSansSemibold.c
+    src/ui/fonts/SairaCondSemibold11.c
+    src/ui/fonts/SairaCondMedium18.c
+    src/ui/fonts/SairaCondSemibold22.c
+    src/ui/fonts/SairaCondSemibold28.c
+    src/ui/fonts/SairaCondSemibold38.c
+    src/ui/fonts/SairaLight12.c
+    src/ui/fonts/SairaLight44.c
+    src/ui/fonts/SairaCondSemiboldTuner110.c
   )
   target_link_libraries(ardor_ui PUBLIC lvgl)
 
@@ -239,7 +259,9 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
 
   if(ARDOR_UI_BACKEND STREQUAL "sdl")
     add_executable(pedal-ui-sim apps/pedal-ui-sim/main.cpp)
-    target_link_libraries(pedal-ui-sim PRIVATE ardor_ui)
+    # ardor_dynamics is otherwise DSP-only; the sim links it solely to preview
+    # the compressor's static gain law with no real engine/audio behind it.
+    target_link_libraries(pedal-ui-sim PRIVATE ardor_ui ardor_dynamics)
   endif()
 endif()
 
@@ -275,6 +297,9 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   target_link_libraries(pedal-poc PRIVATE ardor_ui)
   target_compile_definitions(pedal-poc PRIVATE ARDOR_HAS_UI)
 endif()
+
+add_executable(wah-table-gen apps/wah-table-gen/main.cpp)
+target_link_libraries(wah-table-gen PRIVATE ardor_wah)
 
 add_executable(audio-probe apps/audio-probe/main.c)
 target_include_directories(audio-probe PRIVATE ${miniaudio_SOURCE_DIR})
@@ -315,6 +340,18 @@ target_link_libraries(pedal-daisy-fx-response PRIVATE ardor_daisyfx)
 add_executable(pedal-daisy-fx-automation tests/daisy_fx_automation.cpp)
 target_link_libraries(pedal-daisy-fx-automation PRIVATE ardor_daisyfx)
 
+add_executable(pedal-wah-netlist-smoke tests/wah_netlist_smoke.cpp)
+target_link_libraries(pedal-wah-netlist-smoke PRIVATE ardor_wah)
+
+add_executable(pedal-wah-dk-smoke tests/wah_dk_smoke.cpp)
+target_link_libraries(pedal-wah-dk-smoke PRIVATE ardor_wah)
+
+add_executable(pedal-wah-table-smoke tests/wah_table_smoke.cpp)
+target_link_libraries(pedal-wah-table-smoke PRIVATE ardor_wah)
+
+add_executable(pedal-wah-circuit-smoke tests/wah_circuit_smoke.cpp)
+target_link_libraries(pedal-wah-circuit-smoke PRIVATE ardor_wah)
+
 add_executable(pedal-compressor-smoke tests/compressor_smoke.cpp)
 target_link_libraries(pedal-compressor-smoke PRIVATE ardor_dynamics)
 
@@ -336,6 +373,11 @@ target_link_libraries(pedal-tuner-smoke PRIVATE ardor_dsp)
 add_executable(pedal-nam-processor-smoke tests/nam_processor_smoke.cpp)
 target_link_libraries(pedal-nam-processor-smoke PRIVATE ardor_dsp)
 target_compile_definitions(pedal-nam-processor-smoke PRIVATE ARDOR_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
+# Benchmark, not a ctest: measures the wah table's cache behaviour on target
+# hardware. Kept because it is the cheapest way to re-check the grid-size
+# tradeoff if the table format ever changes.
+add_executable(pedal-wah-table-probe tests/wah_table_probe.cpp)
 
 # Benchmark, not a ctest: timings are not pass/fail on shared hardware.
 add_executable(pedal-dsp-bench tests/dsp_bench.cpp)
@@ -379,6 +421,11 @@ add_test(NAME pedal-daisy-fx-smoke COMMAND pedal-daisy-fx-smoke)
 add_test(NAME pedal-hosted-dsp-unit COMMAND pedal-hosted-dsp-unit)
 add_test(NAME pedal-daisy-fx-response COMMAND pedal-daisy-fx-response)
 add_test(NAME pedal-daisy-fx-automation COMMAND pedal-daisy-fx-automation)
+add_test(NAME pedal-wah-netlist-smoke COMMAND pedal-wah-netlist-smoke)
+add_test(NAME pedal-wah-dk-smoke COMMAND pedal-wah-dk-smoke)
+add_test(NAME pedal-wah-table-smoke COMMAND pedal-wah-table-smoke)
+add_test(NAME pedal-wah-circuit-smoke COMMAND pedal-wah-circuit-smoke)
+set_tests_properties(pedal-wah-circuit-smoke PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_test(NAME pedal-compressor-smoke COMMAND pedal-compressor-smoke)
 add_test(NAME pedal-noise-gate-smoke COMMAND pedal-noise-gate-smoke)
 add_test(NAME pedal-parametric-eq-smoke COMMAND pedal-parametric-eq-smoke)

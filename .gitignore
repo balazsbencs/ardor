@@ -34,3 +34,6 @@
 /services/controlplane/data/
 /services/controlplane/ardor-controlplane
 .superpowers
+.claude
+.github/skills/
+

@@ -8,6 +8,13 @@ All notable changes are generated from Conventional Commit messages.
 
 * midi learn and UI improvements ([676046b](https://github.com/balazsbencs/ardor/commit/676046b999638bcb564611c498082dd5a51f9229))
 
+## Unreleased
+
+### Changed
+
+ * The device UI now uses named Panel palettes (Slate, Ink, and Sodium); the
+ previous custom accent colour is ignored and no longer configurable.
+
 ## [0.1.19](https://github.com/balazsbencs/ardor/compare/v0.1.18...v0.1.19) (2026-08-03)
 
 ### Features

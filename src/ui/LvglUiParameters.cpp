@@ -210,6 +210,8 @@ void LvglUi::rebuildParameterView(UiState& state)
   if (!parameterLayer_) return;
   focusedControl_ = nullptr;
   focusedEqGraph_ = nullptr;
+  compressorGainMeterFill_ = nullptr;
+  compressorGainMeterLabel_ = nullptr;
   if (state.mode != UiMode::Edit || !state.paramDrawerOpen) {
     resetParameterPage();
     return;
@@ -218,6 +220,9 @@ void LvglUi::rebuildParameterView(UiState& state)
   const auto* selected = selectedUiBlock(state);
   const bool editingEq = state.paramTarget == UiParamTarget::Block
     && selected && selected->type == "eq" && isParametricEqMode(selected->params);
+  if (editingEq) {
+    selectEqBand(selectedEqBand_);
+  }
   const std::string signature = editingEq
     ? "eq:parametric"
     : (state.paramTarget == UiParamTarget::Globals
@@ -246,6 +251,8 @@ void LvglUi::rebuildParameterView(UiState& state)
     eqEnabledContext_ = view.eqEnabledContext;
     eqResetContext_ = view.eqResetContext;
     eqSliderContexts_ = view.eqSliderContexts;
+    compressorGainMeterFill_ = view.gainMeterFill;
+    compressorGainMeterLabel_ = view.gainMeterLabel;
     lv_obj_remove_flag(view.layer, LV_OBJ_FLAG_HIDDEN);
   };
   if (auto existing = parameterViews_.find(signature); existing != parameterViews_.end()) {
@@ -281,7 +288,8 @@ void LvglUi::rebuildParameterView(UiState& state)
   } else {
     parameter_view::buildPanel(viewLayer, state, remember(state),
                                &parameterControls_, &parameterBypassControl_,
-                               &parameterTitleLabel_, &parameterMappingToolbar_);
+                               &parameterTitleLabel_, &parameterMappingToolbar_,
+                               &compressorGainMeterFill_, &compressorGainMeterLabel_);
   }
   contextRegion_ = UiContextRegion::None;
 
@@ -298,6 +306,8 @@ void LvglUi::rebuildParameterView(UiState& state)
   refs.eqEnabledContext = eqEnabledContext_;
   refs.eqResetContext = eqResetContext_;
   refs.eqSliderContexts = eqSliderContexts_;
+  refs.gainMeterFill = compressorGainMeterFill_;
+  refs.gainMeterLabel = compressorGainMeterLabel_;
   auto [inserted, unused] = parameterViews_.emplace(signature, std::move(refs));
   (void) unused;
   activate(inserted->second);
@@ -385,26 +395,46 @@ void LvglUi::syncParameterView(UiState& state)
   if (eqEnabledButton_) {
     lv_label_set_text(lv_obj_get_child(eqEnabledButton_, 0),
                       band.enabled ? "Band On" : "Band Off");
-    styleSurface(eqEnabledButton_, band.enabled ? 0x25442a : 0x3a2020);
+    styleSurface(eqEnabledButton_, band.enabled ? panel : panelAlt);
     lv_obj_set_style_text_color(lv_obj_get_child(eqEnabledButton_, 0),
-                                lv_color_hex(band.enabled ? accent : danger), 0);
+                                lv_color_hex(band.enabled ? lamp : danger), 0);
   }
   if (eqEnabledContext_) eqEnabledContext_->index = selectedEqBand_;
   if (eqResetContext_) eqResetContext_->index = selectedEqBand_;
+  for (auto* sliderContext : eqSliderContexts_) {
+    if (sliderContext) {
+      sliderContext->index = selectedEqBand_;
+      sliderContext->controlledObject = eqGraph_;
+    }
+  }
+  syncEqSliders(state);
+}
+
+void LvglUi::syncEqSliders(const UiState& state)
+{
+  const auto params = selectedParametricEqParams(state);
+  const auto& band = params.bands[selectedEqBand_];
   constexpr std::array<EqBandField, 3> fields = {
     EqBandField::Frequency, EqBandField::Q, EqBandField::Gain,
   };
   for (std::size_t i = 0; i < fields.size(); ++i) {
-    if (eqSliderContexts_[i]) {
-      eqSliderContexts_[i]->index = selectedEqBand_;
-      eqSliderContexts_[i]->controlledObject = eqGraph_;
-    }
     if (eqSliders_[i]) {
       parameter_view::syncSlider(
         eqSliders_[i], parameter_view::eqControl(fields[i], band),
         isEqBandFieldFocused(fields[i]));
     }
   }
+}
+
+void LvglUi::syncCompressorGainMeter(UiState& state)
+{
+  if (!compressorGainMeterFill_ || !compressorGainMeterLabel_) return;
+  if (state.mode != UiMode::Edit || !state.paramDrawerOpen
+      || state.paramTarget != UiParamTarget::Block) {
+    return;
+  }
+  parameter_view::syncCompressorGainMeter(
+    compressorGainMeterFill_, compressorGainMeterLabel_, state.compressorGainReductionDb);
 }
 
 } // namespace ardor

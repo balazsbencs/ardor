@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { allEffectDefinitions } from "../../effects/catalog";
 import type { EffectCategory, EffectDefinition } from "../../effects/types";
 import { Button, IconButton, StatusBadge } from "../../components/ui";
+import { PortalSurface } from "../../theme/surface";
 
 const categories: Array<{ value: "all" | EffectCategory; label: string }> = [
   { value: "all", label: "All" }, { value: "amp", label: "Amp" }, { value: "cabinet", label: "Cab" },
@@ -41,12 +42,13 @@ export function BlockBrowser({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
+        <PortalSurface>
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content className="block-browser-dialog" aria-describedby={undefined}>
           <div className="dialog-header"><div><p className="eyebrow">Add to chain</p><Dialog.Title>Choose an effect</Dialog.Title></div><Dialog.Close asChild><IconButton label="Close effect browser"><X size={20} /></IconButton></Dialog.Close></div>
-          <label className="search-field"><Search size={17} /><input autoFocus placeholder="Search effects" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
-          <div className="category-tabs" role="tablist" aria-label="Effect categories">
-            {categories.map((item) => <button key={item.value} role="tab" aria-selected={category === item.value} className={category === item.value ? "is-active" : ""} onClick={() => setCategory(item.value)}>{item.label}</button>)}
+          <label className="search-field"><Search size={17} /><input autoFocus aria-label="Search effects" placeholder="Search effects" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+          <div className="category-tabs" role="group" aria-label="Effect categories">
+            {categories.map((item) => <button key={item.value} type="button" aria-pressed={category === item.value} className={category === item.value ? "is-active" : ""} onClick={() => setCategory(item.value)}>{item.label}</button>)}
           </div>
           <div className="effect-grid">
             {definitions.map((definition) => {
@@ -60,6 +62,7 @@ export function BlockBrowser({
           </div>
           {definitions.length === 0 && <p className="empty-inline">No matching effects.</p>}
         </Dialog.Content>
+        </PortalSurface>
       </Dialog.Portal>
     </Dialog.Root>
   );
