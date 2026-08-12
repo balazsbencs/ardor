@@ -2,7 +2,7 @@
 
 All notable changes are generated from Conventional Commit messages.
 
-## [0.1.22](https://github.com/balazsbencs/ardor/compare/v0.1.20...v0.1.22) (2026-08-12)
+## [0.1.23](https://github.com/balazsbencs/ardor/compare/v0.1.20...v0.1.23) (2026-08-12)
 
 ### Features
 
@@ -24,6 +24,7 @@ All notable changes are generated from Conventional Commit messages.
 
 ### Bug Fixes
 
+* wah algorithms ([8c691b2](https://github.com/balazsbencs/ardor/commit/8c691b2e3c38ed2cc97c793253a0ef0fbe288b92))
 * **wah:** correct the netlist from the LTspice schematic ([77296b2](https://github.com/balazsbencs/ardor/commit/77296b2b42678d9fb3d6e9accdec3cdeae1ed1db))
 
 ## [0.1.20](https://github.com/balazsbencs/ardor/compare/v0.1.19...v0.1.20) (2026-08-03)
