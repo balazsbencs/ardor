@@ -313,7 +313,10 @@ static int run_probe(ma_context* context, const Args* args)
     return 1;
   }
 
-  printf("running %u second probe at %u Hz, buffer %u\n", args->seconds, args->sample_rate, args->buffer_frames);
+  printf("running %u second probe at %u Hz, requested buffer %u, native capture %u Hz/%u frames, playback %u Hz/%u frames\n",
+         args->seconds, args->sample_rate, args->buffer_frames,
+         device.capture.internalSampleRate, device.capture.internalPeriodSizeInFrames,
+         device.playback.internalSampleRate, device.playback.internalPeriodSizeInFrames);
   ma_sleep(args->seconds * 1000);
   ma_device_uninit(&device);
 

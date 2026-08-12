@@ -26,6 +26,8 @@ Environment:
   ARDOR_SKIP_BUILD=1     Upload existing ./ardor-pedal and ./ardor-managerd.
   ARDOR_SKIP_WEB_BUILD=1 Reuse the embedded manager bundle already in managerd.
   ARDOR_LOCAL_AUTH       on, off, or preserve. Default: on
+  ARDOR_SERVICE_LOCAL    Local pedal supervisor script. Defaults to the
+                         Buildroot package's S99ardor-pedal.
 
 Docker build defaults:
   ARDOR_BUILD_MODE       docker or native. Default: docker
@@ -71,6 +73,8 @@ managerd_remote_tmp="${ARDOR_MANAGERD_REMOTE_TMP:-/tmp/ardor-managerd.new}"
 pedal_target="${ARDOR_TARGET_BIN:-/usr/bin/ardor-pedal}"
 managerd_target="${ARDOR_MANAGERD_TARGET_BIN:-/usr/bin/ardor-managerd}"
 pedal_service="${ARDOR_SERVICE:-/etc/init.d/S99ardor-pedal}"
+pedal_service_local="${ARDOR_SERVICE_LOCAL:-$repo_dir/buildroot/external/package/ardor-pedal/S99ardor-pedal}"
+pedal_service_remote_tmp="${ARDOR_SERVICE_REMOTE_TMP:-/tmp/S99ardor-pedal.new}"
 managerd_service="${ARDOR_MANAGERD_SERVICE:-/etc/init.d/S98ardor-managerd}"
 managerd_env="${ARDOR_MANAGERD_ENV:-/etc/ardor-managerd.env}"
 local_auth="${ARDOR_LOCAL_AUTH:-on}"
@@ -178,20 +182,22 @@ fi
 
 [ -x "$pedal_bin" ] || die "built binary is missing or not executable: $pedal_bin"
 [ -x "$managerd_bin" ] || die "built binary is missing or not executable: $managerd_bin"
+[ -f "$pedal_service_local" ] || die "pedal supervisor is missing: $pedal_service_local"
 
-echo "Uploading pedal and manager daemon to $ssh_target"
+echo "Uploading pedal, supervisor, and manager daemon to $ssh_target"
 # OpenSSH 9+ clients use SFTP for scp by default. The pedal image does not
 # expose the SFTP subsystem, so force the compatible legacy SCP protocol.
 # ARDOR_SSH_OPTS is intentionally split into separate ssh/scp arguments.
 scp -O $ssh_opts "$pedal_bin" "$ssh_target:$pedal_remote_tmp"
 scp -O $ssh_opts "$managerd_bin" "$ssh_target:$managerd_remote_tmp"
+scp -O $ssh_opts "$pedal_service_local" "$ssh_target:$pedal_service_remote_tmp"
 
 echo "Installing and restarting Ardor services on $ssh_target"
 # ARDOR_SSH_OPTS is intentionally split into separate ssh/scp arguments.
 ssh $ssh_opts "$ssh_target" 'sh -s' \
   "$pedal_remote_tmp" "$pedal_target" "$pedal_service" \
   "$managerd_remote_tmp" "$managerd_target" "$managerd_service" \
-  "$managerd_env" "$local_auth" <<'REMOTE'
+  "$managerd_env" "$local_auth" "$pedal_service_remote_tmp" <<'REMOTE'
 set -eu
 
 pedal_remote_tmp=$1
@@ -202,6 +208,7 @@ managerd_target=$5
 managerd_service=$6
 managerd_env=$7
 local_auth=$8
+pedal_service_remote_tmp=$9
 remounted=0
 
 cleanup() {
@@ -221,9 +228,11 @@ fi
 
 cp "$pedal_remote_tmp" "$pedal_target.new"
 cp "$managerd_remote_tmp" "$managerd_target.new"
-chmod 755 "$pedal_target.new" "$managerd_target.new"
+cp "$pedal_service_remote_tmp" "$pedal_service.new"
+chmod 755 "$pedal_target.new" "$managerd_target.new" "$pedal_service.new"
 mv "$pedal_target.new" "$pedal_target"
 mv "$managerd_target.new" "$managerd_target"
+mv "$pedal_service.new" "$pedal_service"
 
 if [ "$local_auth" != "preserve" ]; then
   env_tmp="$managerd_env.new"
@@ -245,7 +254,7 @@ fi
 
 "$managerd_service" restart
 "$pedal_service" restart
-rm -f "$pedal_remote_tmp" "$managerd_remote_tmp"
+rm -f "$pedal_remote_tmp" "$managerd_remote_tmp" "$pedal_service_remote_tmp"
 REMOTE
 
 echo "Done. Pedal and manager daemon restarted on $ssh_target."

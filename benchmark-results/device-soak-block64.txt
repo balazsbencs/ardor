@@ -1,0 +1,9 @@
+Measuring ardor-pedal on root@192.168.88.17
+Ardor pedal performance probe
+  pid:        1039
+  command:    /usr/bin/ardor-pedal --realtime --ui --data-root /opt/ardor-pedal --bank 0 --slot 0 --sample-rate 48000 --block-size 32 --ir-samples 4096 --capture-device -1 --playback-device -1 --input-channel 0 --output-channel both --parallel-rigs --audio-cpu 2 --rig-worker-cpu 3 --telemetry-file /run/ardor-pedal.telemetry --control-device /dev/input/event0 --control-device /dev/input/event1 
+  sample:     60s (1s interval)
+  temperature at start: 56.5 C
+  CPU clock at start:   1500 MHz
+
+Sampling....................................

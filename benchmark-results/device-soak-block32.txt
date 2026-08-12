@@ -1,0 +1,37 @@
+Measuring ardor-pedal on root@192.168.88.17
+Ardor pedal performance probe
+  pid:        1039
+  command:    /usr/bin/ardor-pedal --realtime --ui --data-root /opt/ardor-pedal --bank 0 --slot 0 --sample-rate 48000 --block-size 32 --ir-samples 4096 --capture-device -1 --playback-device -1 --input-channel 0 --output-channel both --parallel-rigs --audio-cpu 2 --rig-worker-cpu 3 --telemetry-file /run/ardor-pedal.telemetry --control-device /dev/input/event0 --control-device /dev/input/event1 
+  sample:     60s (1s interval)
+  temperature at start: 56.5 C
+  CPU clock at start:   1500 MHz
+
+Sampling............................................................
+
+Per-core utilization
+  core   busy     headroom
+  CPU0     1.3%     98.7%
+  CPU1     1.0%     99.0%
+  CPU2    53.7%     46.3%
+  CPU3     0.8%     99.2%
+
+Ardor threads
+  role       tid     CPU%   last  affinity  policy/prio  migrations
+  UI/main    1039      1.8%   0     0-3       OTHER/0         40
+  audio      1044     54.3%   2     2         FIFO/70        0
+  TOTAL      -        56.1%
+
+Audio callback telemetry
+  callbacks:       91747 during sample
+  callback time:   avg 0.33 ms ( 49.3% budget), max 0.75 ms, budget 0.67 ms
+  deadline faults: callback_over=8 gaps=0 worker_over=0
+  DSP faults:      nonfinite=0 block_mismatch=0 bypassed=0
+  AUDIO HEALTH: FAIL
+
+Scheduling checks
+  PASS audio: TID 1044, CPU 2, FIFO/70
+  IDLE worker: parallel mode is configured; activate a Dual Amp/Rig preset to create the CPU 3 thread
+
+Thermal: start 56.5 C, end 57.5 C, sampled max 57.9 C
+CPU clock range: 1500-1500 MHz
+RESULT: FAIL (1 check(s))

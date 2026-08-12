@@ -1,0 +1,24 @@
+=== requested_frames=8 ===
+running 4 second probe at 48000 Hz, requested buffer 8, native capture 48000 Hz/32 frames, playback 48000 Hz/8 frames
+capture samples=191872 rms=0.00279602 peak=0.50000000
+latency pulses=6/6 frames min=201 median=201 max=201 ms min=4.1875 median=4.1875 max=4.1875
+=== requested_frames=16 ===
+running 4 second probe at 48000 Hz, requested buffer 16, native capture 48000 Hz/32 frames, playback 48000 Hz/16 frames
+capture samples=191904 rms=0.00279578 peak=0.50000000
+latency pulses=6/6 frames min=210 median=210 max=210 ms min=4.3750 median=4.3750 max=4.3750
+=== requested_frames=32 ===
+running 4 second probe at 48000 Hz, requested buffer 32, native capture 48000 Hz/32 frames, playback 48000 Hz/32 frames
+capture samples=192032 rms=0.00279485 peak=0.50000000
+latency pulses=6/7 frames min=130 median=130 max=130 ms min=2.7083 median=2.7083 max=2.7083
+=== requested_frames=64 ===
+running 4 second probe at 48000 Hz, requested buffer 64, native capture 48000 Hz/64 frames, playback 48000 Hz/64 frames
+capture samples=192064 rms=0.00279462 peak=0.50000000
+latency pulses=6/7 frames min=257 median=257 max=257 ms min=5.3542 median=5.3542 max=5.3542
+=== requested_frames=128 ===
+running 4 second probe at 48000 Hz, requested buffer 128, native capture 48000 Hz/128 frames, playback 48000 Hz/128 frames
+capture samples=192128 rms=0.00279415 peak=0.50000000
+latency pulses=6/7 frames min=514 median=514 max=514 ms min=10.7083 median=10.7083 max=10.7083
+=== requested_frames=512 ===
+running 4 second probe at 48000 Hz, requested buffer 512, native capture 48000 Hz/512 frames, playback 48000 Hz/512 frames
+capture samples=192512 rms=0.00279137 peak=0.50000000
+latency pulses=6/7 frames min=2050 median=2050 max=2050 ms min=42.7083 median=42.7083 max=42.7083

@@ -1,0 +1,30 @@
+NAM benchmark summary
+
+tier      frames  quantum   cases  mean CPU (median/worst)  worst p99.9  misses  slowest model
+--------- ------ --------- ------ ------------------------- ------------ ------- -------------
+full           8   0.167ms    123    59.26%/ 60.13%       96.61%      14 SLAMMIN_DUMBLE_FORD_OD_FORD_2_S.nam
+full          16   0.333ms    123    44.73%/ 45.59%       59.83%       5 SLAMMIN_DUMBLE_FORD_OD_HIGH_MV_MIDS_S.nam
+full          32   0.667ms    123    37.29%/ 37.54%       46.50%       0 PT20v2_s1_plexi-eq.nam
+full          64   1.333ms    123    33.79%/ 34.97%       40.73%       0 SLAMMIN_DUMBLE_FORD_OD_SMOOTH_S.nam
+full         128   2.667ms    123    32.19%/ 35.28%       48.43%       0 SLAMMIN_DUMBLE_FORD_OD_CRUNCHY_MIDS_S.nam
+nano           8   0.167ms    123     9.51%/  9.76%       28.52%       2 SLAMMIN_DUMBLE_FORD_CLN_BALANCED_S.nam
+nano          16   0.333ms    123     8.65%/  8.76%       22.37%       0 JOHN MAYER CLEAN-001.nam
+nano          32   0.667ms    123     8.10%/  8.36%       14.76%       0 SLAMMIN_DUMBLE_FORD_OD_PAB_SPARKLY_S.nam
+nano          64   1.333ms    123     8.03%/  8.27%       10.95%       0 SLAMMIN_DUMBLE_FORD_OD_VHIGH_MV_HIGAIN_ALL_XS.nam
+nano         128   2.667ms    123     8.12%/  8.65%       11.51%       0 JOHN MAYER CLEAN-001.nam
+
+Viability rule: zero measured misses and worst model p99.9 <= 70.0% of quantum.
+  full: smallest passing compute quantum is 32 frames (0.667 ms).
+  nano: smallest passing compute quantum is 16 frames (0.333 ms).
+
+Ten hottest cases by p99.9 budget
+  full    8f mean= 60.13% p99.9= 96.61% max=  161.37us  SLAMMIN_DUMBLE_FORD_OD_FORD_2_S.nam
+  full    8f mean= 59.43% p99.9= 93.99% max=  171.44us  Match Brave Lo.nam
+  full    8f mean= 59.40% p99.9= 89.89% max=  305.78us  SLAMMIN_DUMBLE_FORD_CLN_MAIN_S.nam
+  full    8f mean= 59.23% p99.9= 85.79% max=  251.15us  SLAMMIN_DUMBLE_FORD_OD_FORD_4_S.nam
+  full    8f mean= 59.35% p99.9= 84.76% max=  148.67us  SLAMMIN_DUMBLE_FORD_OD_PAB_CRUNCH_XS.nam
+  full    8f mean= 59.40% p99.9= 82.20% max=  137.76us  SLAMMIN_DUMBLE_FORD_OD_BRIGHT_LOGAIN_S.nam
+  full    8f mean= 59.44% p99.9= 82.04% max=  136.85us  Fender Deluxe Reverb - V5, T6, B4, Klon Gain 10, SM57 - Nano-ReLU.nam
+  full    8f mean= 59.35% p99.9= 79.06% max=  163.15us  SLAMMIN_DUMBLE_FORD_OD_SMOOTH_2_S.nam
+  full    8f mean= 59.30% p99.9= 77.78% max=  146.52us  SLAMMIN_DUMBLE_FORD_OD_MICK_2_S.nam
+  full    8f mean= 59.26% p99.9= 77.47% max=  278.52us  PT20v2_s3_fat_sd1.nam
