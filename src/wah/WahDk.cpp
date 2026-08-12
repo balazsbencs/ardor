@@ -6,6 +6,7 @@
 // be a new build input bought for nothing.
 #include "wah/WahDk.h"
 
+#include <algorithm>
 #include <cmath>
 #include <complex>
 #include <cstddef>
