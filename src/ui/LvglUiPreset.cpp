@@ -2,7 +2,7 @@
 
 #include "ui/LvglUiNavigation.h"
 #include "ui/LvglUiStyle.h"
-#include "ui/fonts/SairaCondSemibold38.h"
+#include "ui/fonts/SairaCondSemibold52.h"
 
 #include <algorithm>
 #include <cctype>
@@ -250,17 +250,19 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     lv_obj_t* presetName = lv_obj_get_child(preset, 0);
     presetCardLabels_[i] = presetName;
     lv_obj_set_style_text_color(presetName, lv_color_hex(text), 0);
-    // Real 38 px Saira Condensed face, per docs/lvgl-ui-redesign-spec.md §4c
-    // ("If Phase 2 has landed, use the real 38 px face and delete the three
-    // transform calls") — Phase 2 has landed, so no bitmap-scaling hack.
-    lv_obj_set_style_text_font(presetName, &ardor_font_saira_cond_semibold_38, 0);
+    // Preset names are the primary performance information on this screen:
+    // they need to remain readable with the pedal on the floor. Use a native
+    // 52 px face (rather than scaling a smaller bitmap font), reserve two
+    // lines, and ellipsize only truly exceptional names.
+    lv_obj_set_style_text_font(presetName, &ardor_font_saira_cond_semibold_52, 0);
     lv_obj_set_style_text_letter_space(presetName, 1, 0);
-    // The numeral, name, and family row read as one engraved group centred
-    // on the card, not spread across its full height (mockup §1 · Preset
-    // tiles, .mod .bd{justify-content:center;gap:10px}).
-    lv_obj_align(presetName, LV_ALIGN_LEFT_MID, 22, 6);
+    lv_obj_set_style_text_line_space(presetName, -5, 0);
+    lv_obj_set_style_text_align(presetName, LV_TEXT_ALIGN_LEFT, 0);
+    lv_obj_set_size(presetName, LV_PCT(82), 104);
+    lv_label_set_long_mode(presetName, LV_LABEL_LONG_MODE_DOTS);
+    lv_obj_set_pos(presetName, 22, 54);
     lv_obj_t* header = lv_obj_create(preset);
-    lv_obj_set_size(header, LV_PCT(100), 26);
+    lv_obj_set_size(header, LV_PCT(100), 30);
     lv_obj_set_pos(header, 0, 0);
     styleSurface(header, i == state.activePreset ? lamp : panelAlt);
     lv_obj_set_style_border_width(header, 0, 0);
@@ -284,7 +286,7 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     presetLamps_[i] = liveLamp;
     // Numerals read in Saira Light, not the condensed nomenclature cut — see
     // docs/lvgl-ui-redesign-spec.md §5.
-    lv_obj_t* numeral = label(preset, std::to_string(i + 1), LV_ALIGN_LEFT_MID, 22, -46,
+    lv_obj_t* numeral = label(preset, std::to_string(i + 1), LV_ALIGN_TOP_RIGHT, -22, 44,
                                &ardor_font_saira_light_44,
                                i == state.activePreset ? lamp : muted);
     presetNumerals_[i] = numeral;

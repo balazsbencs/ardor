@@ -245,6 +245,7 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
     src/ui/fonts/SairaCondSemibold22.c
     src/ui/fonts/SairaCondSemibold28.c
     src/ui/fonts/SairaCondSemibold38.c
+    src/ui/fonts/SairaCondSemibold52.c
     src/ui/fonts/SairaLight12.c
     src/ui/fonts/SairaLight44.c
     src/ui/fonts/SairaCondSemiboldTuner110.c
@@ -384,6 +385,16 @@ add_executable(pedal-dsp-bench tests/dsp_bench.cpp)
 target_link_libraries(pedal-dsp-bench PRIVATE ardor_dsp)
 target_compile_definitions(pedal-dsp-bench PRIVATE
   ARDOR_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+  ARDOR_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
+  ARDOR_COMPILER="${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}"
+  ARDOR_CXX_FLAGS="${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}"
+)
+
+# Model-collection benchmark, not a ctest: recursively benchmarks every NAM
+# model and slimmable tier at several target audio quanta, emitting CSV.
+add_executable(pedal-nam-bench tests/nam_bench.cpp)
+target_link_libraries(pedal-nam-bench PRIVATE ardor_dsp)
+target_compile_definitions(pedal-nam-bench PRIVATE
   ARDOR_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
   ARDOR_COMPILER="${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}"
   ARDOR_CXX_FLAGS="${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}"

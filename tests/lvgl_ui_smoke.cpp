@@ -1,7 +1,7 @@
 #include "ui/LvglUi.h"
 #include "ui/LvglUiStyle.h"
 #include "ui/EqEditorModel.h"
-#include "ui/fonts/SairaCondSemibold38.h"
+#include "ui/fonts/SairaCondSemibold52.h"
 
 #include <algorithm>
 #include <cctype>
@@ -1115,8 +1115,11 @@ int main()
   if (require(presetTitle && lv_obj_get_style_transform_scale_x(presetTitle, LV_PART_MAIN) == LV_SCALE_NONE,
               "bank title should keep its standard size")) return 1;
   lv_obj_t* presetName = findLabel(lv_screen_active(), upper(state.bank.presets[state.activePreset].name).c_str());
-  if (require(presetName && lv_obj_get_style_text_font(presetName, LV_PART_MAIN) == &ardor_font_saira_cond_semibold_38,
-              "preset-card names should render in the real 38 px Panel face")) return 1;
+  if (require(presetName && lv_obj_get_style_text_font(presetName, LV_PART_MAIN) == &ardor_font_saira_cond_semibold_52,
+              "preset-card names should render in the standing-readable 52 px Panel face")) return 1;
+  if (require(lv_obj_get_height(presetName) == 104 &&
+              lv_label_get_long_mode(presetName) == LV_LABEL_LONG_MODE_DOTS,
+              "preset-card names should reserve a bounded two-line title area")) return 1;
   if (require(findLabel(lv_screen_active(), "PRESET 1"),
               "preset tiles should include Panel headers")) return 1;
   if (require(findObjectWithBgColor(lv_screen_active(), lv_color_hex(0xd8422f), 11),
