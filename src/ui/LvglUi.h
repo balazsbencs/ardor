@@ -122,7 +122,7 @@ public:
                                   bool requestUiRefresh = true);
   // Graph-side drags (node/grip) mutate the model and repaint the curve
   // directly, bypassing the interaction-gated refresh() path below -- so
-  // they must resync the Frequency/Q/Gain sliders themselves or those
+  // they must resync the active stage's three sliders themselves or those
   // widgets go stale until the drag ends.
   void syncEqSliders(const UiState& state);
   UiEventContext* remember(UiState& state, std::size_t index = 0, std::string filter = "all");

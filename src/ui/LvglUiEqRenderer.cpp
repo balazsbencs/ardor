@@ -100,7 +100,7 @@ std::string stageEditorTitle(std::size_t stage)
 {
   if (stage == kEqHighPassStage || stage == kEqLowPassStage) {
     return (stage == kEqHighPassStage ? "High-pass filter" : "Low-pass filter")
-      + std::string("  \xC2\xB7  12 dB/oct  \xC2\xB7  Encoder -> Cutoff");
+      + std::string("  \xC2\xB7  Encoder -> Cutoff");
   }
   return "Band " + std::to_string(stage) + "  \xC2\xB7  Encoder -> Q";
 }
@@ -127,6 +127,9 @@ EqBandField eqBandFieldForKey(const std::string& key)
   }
   if (key == "q") {
     return EqBandField::Q;
+  }
+  if (key == "slope") {
+    return EqBandField::Slope;
   }
   return EqBandField::Gain;
 }
@@ -160,6 +163,20 @@ void applyEqSliderPosition(lv_obj_t* slider, UiEventContext* context, lv_indev_t
     if (isPassStage(context->index)) return;
     const auto& band = params.bands[context->index - kEqFirstBandStage];
     delta = static_cast<int>(std::lround((target - band.gainDb) / 0.5f));
+    break;
+  }
+  case EqBandField::Slope: {
+    if (!isPassStage(context->index)) return;
+    const auto& filter = passFilterForStage(params, context->index);
+    const auto current = std::find(kEqPassFilterSlopesDbPerOctave.begin(),
+                                   kEqPassFilterSlopesDbPerOctave.end(),
+                                   normalizedEqPassFilterSlope(filter.slopeDbPerOctave));
+    const int currentIndex = static_cast<int>(std::distance(
+      kEqPassFilterSlopesDbPerOctave.begin(), current));
+    const int targetIndex = std::clamp(static_cast<int>(std::lround(
+      ratio * static_cast<float>(kEqPassFilterSlopesDbPerOctave.size() - 1))), 0,
+      static_cast<int>(kEqPassFilterSlopesDbPerOctave.size()) - 1);
+    delta = targetIndex - currentIndex;
     break;
   }
   }
@@ -525,6 +542,8 @@ ParameterControl eqSliderControl(EqBandField field, const EqBandParams& band)
     control.value = band.gainDb;
     control.formatted = eqGainLabel(band.gainDb);
     break;
+  case EqBandField::Slope:
+    break;
   }
   control.value = std::clamp(control.value, control.minimum, control.maximum);
   return control;
@@ -545,16 +564,25 @@ ParameterControl eqSliderControl(EqBandField field, const EqPassFilterParams& fi
     break;
   case EqBandField::Q:
     control.key = "q";
-    control.label = "Resonance";
+    control.label = "Resonance (12+)";
     control.value = std::log(filter.q / kEqMinimumQ) / std::log(kEqMaximumQ / kEqMinimumQ);
     control.formatted = eqQLabel(filter.q);
     break;
   case EqBandField::Gain:
-    control.key = "gain";
-    control.label = "12 dB/oct";
-    control.value = 0.0f;
-    control.formatted = "Fixed slope";
     break;
+  case EqBandField::Slope: {
+    control.key = "slope";
+    control.label = "Slope";
+    control.minimum = 0.0f;
+    control.maximum = static_cast<float>(kEqPassFilterSlopesDbPerOctave.size() - 1);
+    const auto slope = normalizedEqPassFilterSlope(filter.slopeDbPerOctave);
+    const auto found = std::find(kEqPassFilterSlopesDbPerOctave.begin(),
+                                 kEqPassFilterSlopesDbPerOctave.end(), slope);
+    control.value = static_cast<float>(std::distance(
+      kEqPassFilterSlopesDbPerOctave.begin(), found));
+    control.formatted = std::to_string(slope) + " dB/oct";
+    break;
+  }
   }
   control.value = std::clamp(control.value, control.minimum, control.maximum);
   return control;
@@ -796,14 +824,19 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
   lv_obj_add_event_cb(reset, onEqStageReset, LV_EVENT_CLICKED, resetContext);
   if (resetContextOut) *resetContextOut = resetContext;
 
-  constexpr std::array<EqBandField, 3> eqSliderFields = {
+  constexpr std::array<EqBandField, 3> bandSliderFields = {
     EqBandField::Frequency, EqBandField::Q, EqBandField::Gain,
   };
+  constexpr std::array<EqBandField, 3> passSliderFields = {
+    EqBandField::Frequency, EqBandField::Q, EqBandField::Slope,
+  };
+  const auto& eqSliderFields = selectedIsPass ? passSliderFields : bandSliderFields;
   for (std::size_t i = 0; i < eqSliderFields.size(); ++i) {
     const auto field = eqSliderFields[i];
     auto* sliderContext = context->ui->remember(state, selectedStage,
                                                  field == EqBandField::Frequency ? "frequency"
-                                                 : field == EqBandField::Q ? "q" : "gain");
+                                                 : field == EqBandField::Q ? "q"
+                                                 : field == EqBandField::Slope ? "slope" : "gain");
     sliderContext->controlledObject = graph;
     lv_obj_t* slider = parameter_widgets::createSlider(
       panelObject, selectedIsPass
@@ -814,9 +847,6 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
       onEqSliderPressed, onEqSliderPressing, i);
     if (slidersOut) (*slidersOut)[i] = slider;
     if (sliderContextsOut) (*sliderContextsOut)[i] = sliderContext;
-    if (selectedIsPass && field == EqBandField::Gain) {
-      lv_obj_add_flag(slider, LV_OBJ_FLAG_HIDDEN);
-    }
   }
 }
 

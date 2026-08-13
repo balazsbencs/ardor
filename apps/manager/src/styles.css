@@ -179,13 +179,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .eq-graph__bands button.is-active { border-color: var(--eq); color: var(--text); background: color-mix(in srgb, var(--eq) 16%, transparent); }
 .eq-graph__bands button.is-pass { border-style: dashed; }
 .eq-graph__bands button.is-active span { color: var(--text); }
-.eq-filter__slope { display: grid; gap: .15rem; margin: 0; color: var(--faint); font-size: .68rem; }
-.eq-filter__slope strong { color: var(--text); font-size: .75rem; }
+.eq-filter__slope { display: grid; grid-column: 1 / -1; gap: .3rem; color: var(--muted); font-size: .68rem; font-weight: 700; }
+.eq-slope-options { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); border: 1px solid var(--line); border-radius: .45rem; overflow: hidden; }
+.eq-slope-options button { display: grid; justify-items: center; gap: .05rem; min-height: 2.45rem; border: 0; border-right: 1px solid var(--line); padding: .3rem .15rem; color: var(--muted); background: var(--surface-raised); font: inherit; font-size: .76rem; font-variant-numeric: tabular-nums; cursor: pointer; }
+.eq-slope-options button:last-child { border-right: 0; }
+.eq-slope-options button:hover { color: var(--text); background: var(--surface-muted); }
+.eq-slope-options button:focus-visible { position: relative; z-index: 1; outline: 2px solid var(--focus); outline-offset: -2px; }
+.eq-slope-options button[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); }
+.eq-slope-options small { color: inherit; font-size: .58rem; font-weight: 650; }
 .eq-band { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; margin: 0; border: 0; padding: 0; }
 .eq-band legend { grid-column: 1 / -1; margin-bottom: .1rem; color: var(--muted); font-size: .72rem; font-weight: 750; }
 .eq-band .toggle-control { justify-self: end; }
 .eq-band > label { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .35rem; color: var(--muted); font-size: .68rem; font-weight: 700; }
 .eq-band > label input { min-width: 0; border: 1px solid var(--line); border-radius: .4rem; padding: .36rem; color: var(--text); background: var(--surface-raised); text-align: right; }
+.eq-band > label input:disabled { color: var(--faint); background: var(--surface-muted); cursor: not-allowed; }
 .eq-band > label small { color: var(--faint); font-size: .68rem; }
 .asset-dropzone { display: flex; align-items: center; justify-content: center; gap: .5rem; max-width: 72rem; margin: .8rem auto; border: 1px dashed var(--line-strong); border-radius: .6rem; padding: .7rem; color: var(--muted); background: color-mix(in srgb, var(--surface) 70%, transparent); font-size: .74rem; }
 .asset-dropzone:hover { border-color: var(--accent); color: var(--text); }

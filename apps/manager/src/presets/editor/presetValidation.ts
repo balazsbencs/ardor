@@ -102,6 +102,12 @@ function validateEq(block: PresetBlock): ValidationIssue[] {
       const issue = validateNumber(block, `params.${key}.${field}`, filter[field], minimum, maximum);
       if (issue) issues.push(issue);
     }
+    if (filter.slope_db_per_octave !== undefined
+        && ![6, 12, 18, 24].includes(filter.slope_db_per_octave as number)) {
+      issues.push(blockError(block, "parameter-range",
+        `${label} slope must be 6, 12, 18, or 24 dB/oct.`,
+        `params.${key}.slope_db_per_octave`));
+    }
   }
   const bands = block.params.bands;
   if (!Array.isArray(bands) || bands.length !== 5) {

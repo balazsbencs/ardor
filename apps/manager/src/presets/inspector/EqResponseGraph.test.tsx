@@ -20,7 +20,7 @@ describe("EqResponseGraph", () => {
       { enabled: true, frequency_hz: 800, q: 1, gain_db: 0 },
       { enabled: true, frequency_hz: 2500, q: 1, gain_db: 0 },
       { enabled: true, frequency_hz: 8000, q: 1, gain_db: 0 },
-    ]} highPass={{ enabled: false, frequency_hz: 40, q: 0.70710678 }} lowPass={{ enabled: false, frequency_hz: 16000, q: 0.70710678 }} activeStage={1} onActiveStage={onActiveStage} onBandChange={onChange} onPassFilterChange={onPassFilterChange} />);
+    ]} highPass={{ enabled: false, frequency_hz: 40, q: 0.70710678, slope_db_per_octave: 12 }} lowPass={{ enabled: false, frequency_hz: 16000, q: 0.70710678, slope_db_per_octave: 12 }} activeStage={1} onActiveStage={onActiveStage} onBandChange={onChange} onPassFilterChange={onPassFilterChange} />);
 
     const node = screen.getByRole("button", { name: "Adjust Band 3" });
     fireEvent.pointerDown(node, { pointerId: 1, clientX: 330, clientY: 100 });
@@ -33,7 +33,7 @@ describe("EqResponseGraph", () => {
 
   it("drags pass-filter nodes horizontally without changing gain", () => {
     const onPassFilterChange = vi.fn();
-    renderWithProviders(<EqResponseGraph bands={[]} highPass={{ enabled: true, frequency_hz: 80, q: 0.70710678 }} lowPass={{ enabled: false, frequency_hz: 16000, q: 0.70710678 }} activeStage={0} onActiveStage={() => undefined} onBandChange={() => undefined} onPassFilterChange={onPassFilterChange} />);
+    renderWithProviders(<EqResponseGraph bands={[]} highPass={{ enabled: true, frequency_hz: 80, q: 0.70710678, slope_db_per_octave: 24 }} lowPass={{ enabled: false, frequency_hz: 16000, q: 0.70710678, slope_db_per_octave: 12 }} activeStage={0} onActiveStage={() => undefined} onBandChange={() => undefined} onPassFilterChange={onPassFilterChange} />);
     fireEvent.pointerDown(screen.getByRole("button", { name: "Adjust High-pass" }), { pointerId: 1, clientX: 100, clientY: 100 });
     fireEvent.pointerMove(screen.getByRole("img", { name: "EQ response graph" }), { pointerId: 1, clientX: 180, clientY: 20 });
     expect(onPassFilterChange).toHaveBeenCalledWith("high_pass", { frequency_hz: expect.any(Number) });

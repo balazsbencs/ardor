@@ -43,7 +43,18 @@ function passResponseAt(frequency: number, filter: EqPassFilter, highPass: boole
   const denominator = Math.sqrt(
     Math.pow(1 - ratio * ratio, 2) + Math.pow(ratio / Math.max(0.0001, filter.q), 2),
   );
-  const magnitude = (highPass ? ratio * ratio : 1) / Math.max(denominator, 1e-12);
+  const secondOrder = (highPass ? ratio * ratio : 1) / Math.max(denominator, 1e-12);
+  const firstOrder = highPass
+    ? ratio / Math.sqrt(1 + ratio * ratio)
+    : 1 / Math.sqrt(1 + ratio * ratio);
+  const slope = filter.slope_db_per_octave;
+  const magnitude = slope === 6
+    ? firstOrder
+    : slope === 18
+      ? firstOrder * secondOrder
+      : slope === 24
+        ? secondOrder * secondOrder
+        : secondOrder;
   return 20 * Math.log10(Math.max(magnitude, 1e-12));
 }
 

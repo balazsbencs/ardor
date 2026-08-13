@@ -29,6 +29,7 @@ EqPassFilterParams clampPassFilter(EqPassFilterParams filter)
 {
   filter.frequencyHz = std::clamp(filter.frequencyHz, kEqMinimumFrequencyHz, kEqMaximumFrequencyHz);
   filter.q = std::clamp(filter.q, kEqMinimumQ, kEqMaximumQ);
+  filter.slopeDbPerOctave = normalizedEqPassFilterSlope(filter.slopeDbPerOctave);
   return filter;
 }
 
@@ -58,13 +59,17 @@ bool ParametricEqProcessor::configure(const ParametricEqParams& params, float sa
   highPassTarget_.enabled.store(highPass.enabled, std::memory_order_relaxed);
   highPassTarget_.frequencyHz.store(highPass.frequencyHz, std::memory_order_relaxed);
   highPassTarget_.q.store(highPass.q, std::memory_order_relaxed);
+  highPassTarget_.slopeDbPerOctave.store(highPass.slopeDbPerOctave, std::memory_order_relaxed);
   lowPassTarget_.enabled.store(lowPass.enabled, std::memory_order_relaxed);
   lowPassTarget_.frequencyHz.store(lowPass.frequencyHz, std::memory_order_relaxed);
   lowPassTarget_.q.store(lowPass.q, std::memory_order_relaxed);
+  lowPassTarget_.slopeDbPerOctave.store(lowPass.slopeDbPerOctave, std::memory_order_relaxed);
   currentHighPass_ = highPass;
   currentLowPass_ = lowPass;
-  highPassCoefficients_ = makeHighPass(sampleRate_, highPass.frequencyHz, highPass.q);
-  lowPassCoefficients_ = makeLowPass(sampleRate_, lowPass.frequencyHz, lowPass.q);
+  highPassCascade_ = makeHighPassCascade(
+    sampleRate_, highPass.frequencyHz, highPass.q, highPass.slopeDbPerOctave);
+  lowPassCascade_ = makeLowPassCascade(
+    sampleRate_, lowPass.frequencyHz, lowPass.q, lowPass.slopeDbPerOctave);
   for (std::size_t i = 0; i < kParametricEqBandCount; ++i) {
     const EqBandParams band = isFinite(params.bands[i])
       ? clampBand(params.bands[i]) : defaultParametricEqBand(i);
@@ -92,6 +97,7 @@ bool ParametricEqProcessor::setPassFilterTarget(EqPassFilterKind kind,
   target.enabled.store(filter.enabled, std::memory_order_relaxed);
   target.frequencyHz.store(filter.frequencyHz, std::memory_order_relaxed);
   target.q.store(filter.q, std::memory_order_relaxed);
+  target.slopeDbPerOctave.store(filter.slopeDbPerOctave, std::memory_order_relaxed);
   return true;
 }
 
@@ -119,7 +125,8 @@ void ParametricEqProcessor::updateCoefficients(std::size_t frames)
   const float alpha = 1.0f - std::exp(-elapsed / 0.015f);
   const auto updatePassFilter = [this, alpha](AtomicPassFilter& target,
                                                EqPassFilterParams& current,
-                                               BiquadCoefficients& coefficients,
+                                               PassFilterCascade& cascade,
+                                               std::array<std::array<FilterState, 2>, 2>& states,
                                                float& mix, EqPassFilterKind kind) {
     const float targetFrequency = target.frequencyHz.load(std::memory_order_relaxed);
     const float targetQ = target.q.load(std::memory_order_relaxed);
@@ -127,12 +134,17 @@ void ParametricEqProcessor::updateCoefficients(std::size_t frames)
     current.frequencyHz = std::exp(std::log(current.frequencyHz)
       + (std::log(targetFrequency) - std::log(current.frequencyHz)) * alpha);
     current.q += (targetQ - current.q) * alpha;
+    const int targetSlope = target.slopeDbPerOctave.load(std::memory_order_relaxed);
+    if (current.slopeDbPerOctave != targetSlope) {
+      states = {};
+      current.slopeDbPerOctave = targetSlope;
+    }
     mix += ((current.enabled ? 1.0f : 0.0f) - mix) * alpha;
-    coefficients = kind == EqPassFilterKind::HighPass
-      ? makeHighPass(sampleRate_, current.frequencyHz, current.q)
-      : makeLowPass(sampleRate_, current.frequencyHz, current.q);
+    cascade = kind == EqPassFilterKind::HighPass
+      ? makeHighPassCascade(sampleRate_, current.frequencyHz, current.q, current.slopeDbPerOctave)
+      : makeLowPassCascade(sampleRate_, current.frequencyHz, current.q, current.slopeDbPerOctave);
   };
-  updatePassFilter(highPassTarget_, currentHighPass_, highPassCoefficients_, highPassMix_,
+  updatePassFilter(highPassTarget_, currentHighPass_, highPassCascade_, highPassStates_, highPassMix_,
                    EqPassFilterKind::HighPass);
   for (std::size_t i = 0; i < kParametricEqBandCount; ++i) {
     const float targetFrequency = targets_[i].frequencyHz.load(std::memory_order_relaxed);
@@ -147,7 +159,7 @@ void ParametricEqProcessor::updateCoefficients(std::size_t frames)
     coefficients_[i] = makePeakingEq(sampleRate_, current_[i].frequencyHz,
                                      current_[i].q, current_[i].gainDb);
   }
-  updatePassFilter(lowPassTarget_, currentLowPass_, lowPassCoefficients_, lowPassMix_,
+  updatePassFilter(lowPassTarget_, currentLowPass_, lowPassCascade_, lowPassStates_, lowPassMix_,
                    EqPassFilterKind::LowPass);
 }
 
@@ -159,8 +171,12 @@ void ParametricEqProcessor::processPrepared(float& left, float& right)
 
   const float dryLeft = left;
   const float dryRight = right;
-  const float highLeft = highPassStates_[0].process(left, highPassCoefficients_);
-  const float highRight = highPassStates_[1].process(right, highPassCoefficients_);
+  float highLeft = left;
+  float highRight = right;
+  for (std::size_t section = 0; section < highPassCascade_.sectionCount; ++section) {
+    highLeft = highPassStates_[section][0].process(highLeft, highPassCascade_.sections[section]);
+    highRight = highPassStates_[section][1].process(highRight, highPassCascade_.sections[section]);
+  }
   left = dryLeft + (highLeft - dryLeft) * highPassMix_;
   right = dryRight + (highRight - dryRight) * highPassMix_;
 
@@ -170,8 +186,12 @@ void ParametricEqProcessor::processPrepared(float& left, float& right)
   }
   const float preLowLeft = left;
   const float preLowRight = right;
-  const float lowLeft = lowPassStates_[0].process(left, lowPassCoefficients_);
-  const float lowRight = lowPassStates_[1].process(right, lowPassCoefficients_);
+  float lowLeft = left;
+  float lowRight = right;
+  for (std::size_t section = 0; section < lowPassCascade_.sectionCount; ++section) {
+    lowLeft = lowPassStates_[section][0].process(lowLeft, lowPassCascade_.sections[section]);
+    lowRight = lowPassStates_[section][1].process(lowRight, lowPassCascade_.sections[section]);
+  }
   left = preLowLeft + (lowLeft - preLowLeft) * lowPassMix_;
   right = preLowRight + (lowRight - preLowRight) * lowPassMix_;
 }
@@ -209,11 +229,17 @@ void ParametricEqProcessor::reset()
     currentHighPass_.enabled = highPassTarget_.enabled.load(std::memory_order_relaxed);
     currentHighPass_.frequencyHz = highPassTarget_.frequencyHz.load(std::memory_order_relaxed);
     currentHighPass_.q = highPassTarget_.q.load(std::memory_order_relaxed);
+    currentHighPass_.slopeDbPerOctave = highPassTarget_.slopeDbPerOctave.load(std::memory_order_relaxed);
     currentLowPass_.enabled = lowPassTarget_.enabled.load(std::memory_order_relaxed);
     currentLowPass_.frequencyHz = lowPassTarget_.frequencyHz.load(std::memory_order_relaxed);
     currentLowPass_.q = lowPassTarget_.q.load(std::memory_order_relaxed);
-    highPassCoefficients_ = makeHighPass(sampleRate_, currentHighPass_.frequencyHz, currentHighPass_.q);
-    lowPassCoefficients_ = makeLowPass(sampleRate_, currentLowPass_.frequencyHz, currentLowPass_.q);
+    currentLowPass_.slopeDbPerOctave = lowPassTarget_.slopeDbPerOctave.load(std::memory_order_relaxed);
+    highPassCascade_ = makeHighPassCascade(
+      sampleRate_, currentHighPass_.frequencyHz, currentHighPass_.q,
+      currentHighPass_.slopeDbPerOctave);
+    lowPassCascade_ = makeLowPassCascade(
+      sampleRate_, currentLowPass_.frequencyHz, currentLowPass_.q,
+      currentLowPass_.slopeDbPerOctave);
     highPassMix_ = currentHighPass_.enabled ? 1.0f : 0.0f;
     lowPassMix_ = currentLowPass_.enabled ? 1.0f : 0.0f;
     for (std::size_t i = 0; i < kParametricEqBandCount; ++i) {
