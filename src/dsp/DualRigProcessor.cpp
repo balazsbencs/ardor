@@ -251,6 +251,13 @@ bool DualRigProcessor::setParametricEqBand(
     || (right_.chain && right_.chain->setParametricEqBand(id, band, params));
 }
 
+bool DualRigProcessor::setParametricEqPassFilter(
+  const std::string& id, EqPassFilterKind kind, const EqPassFilterParams& params)
+{
+  return (left_.chain && left_.chain->setParametricEqPassFilter(id, kind, params))
+    || (right_.chain && right_.chain->setParametricEqPassFilter(id, kind, params));
+}
+
 bool DualRigProcessor::setBlockEnabled(const std::string& id, bool enabled)
 {
   return (left_.chain && left_.chain->setBlockEnabled(id, enabled))

@@ -15,6 +15,19 @@ inline constexpr float kEqMaximumQ = 18.0f;
 inline constexpr float kEqMinimumGainDb = -18.0f;
 inline constexpr float kEqMaximumGainDb = 18.0f;
 
+enum class EqPassFilterKind {
+  HighPass,
+  LowPass,
+};
+
+struct EqPassFilterParams {
+  bool enabled = false;
+  float frequencyHz = 1000.0f;
+  float q = 0.70710678f;
+
+  bool operator==(const EqPassFilterParams&) const = default;
+};
+
 struct EqBandParams {
   bool enabled = true;
   float frequencyHz = 1000.0f;
@@ -25,12 +38,15 @@ struct EqBandParams {
 };
 
 struct ParametricEqParams {
+  EqPassFilterParams highPass{};
   std::array<EqBandParams, kParametricEqBandCount> bands{};
+  EqPassFilterParams lowPass{};
 
   bool operator==(const ParametricEqParams&) const = default;
 };
 
 EqBandParams defaultParametricEqBand(std::size_t index);
+EqPassFilterParams defaultEqPassFilter(EqPassFilterKind kind);
 ParametricEqParams defaultParametricEqParams();
 ParametricEqParams parametricEqParamsFromJson(const nlohmann::json& params);
 nlohmann::json parametricEqParamsToJson(const ParametricEqParams& params);

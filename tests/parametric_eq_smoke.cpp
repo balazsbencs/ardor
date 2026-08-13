@@ -33,9 +33,15 @@ int main()
   require(defaults.bands.size() == 5, "five EQ bands");
   require(defaults.bands[0].frequencyHz == 80.0f, "band 1 default");
   require(defaults.bands[4].frequencyHz == 8000.0f, "band 5 default");
+  require(!defaults.highPass.enabled && defaults.highPass.frequencyHz == 40.0f,
+          "high-pass defaults off at 40 Hz");
+  require(!defaults.lowPass.enabled && defaults.lowPass.frequencyHz == 16000.0f,
+          "low-pass defaults off at 16 kHz");
 
   const nlohmann::json supplied{
     {"mode", "parametric_eq_5"},
+    {"high_pass", {{"enabled", true}, {"frequency_hz", 1.0f}, {"q", 99.0f}}},
+    {"low_pass", {{"enabled", true}, {"frequency_hz", 99999.0f}, {"q", 0.01f}}},
     {"bands", nlohmann::json::array({
       {{"enabled", false}, {"frequency_hz", 1.0f}, {"q", 99.0f}, {"gain_db", -99.0f}},
       {{"enabled", "bad"}, {"frequency_hz", std::numeric_limits<float>::infinity()}},
@@ -50,10 +56,16 @@ int main()
   require(parsed.bands[0].gainDb == -18.0f, "gain clamps low");
   require(parsed.bands[1].enabled, "wrong enabled type uses default");
   require(parsed.bands[1].frequencyHz == 250.0f, "non-finite frequency uses default");
+  require(parsed.highPass.enabled && parsed.highPass.frequencyHz == 20.0f
+            && parsed.highPass.q == 18.0f, "high-pass values normalize");
+  require(parsed.lowPass.enabled && parsed.lowPass.frequencyHz == 20000.0f
+            && parsed.lowPass.q == 0.1f, "low-pass values normalize");
 
   const auto canonical = ardor::parametricEqParamsToJson(parsed);
   require(canonical.at("bands").size() == 5, "canonical output has five bands");
   require(canonical.at("mode") == "parametric_eq_5", "canonical mode");
+  require(canonical.at("high_pass").at("enabled") == true, "canonical high-pass");
+  require(canonical.at("low_pass").at("enabled") == true, "canonical low-pass");
 
   const auto coefficients = ardor::makePeakingEq(48000.0f, 1000.0f, 1.0f, 6.0f);
   require(std::fabs(ardor::biquadMagnitudeDb(coefficients, 1000.0f, 48000.0f) - 6.0f) < 0.01f,
@@ -61,6 +73,14 @@ int main()
   const auto neutral = ardor::makePeakingEq(48000.0f, 1000.0f, 1.0f, 0.0f);
   require(std::fabs(ardor::biquadMagnitudeDb(neutral, 20.0f, 48000.0f)) < 0.0001f,
           "zero-gain biquad is neutral");
+  const auto highPass = ardor::makeHighPass(48000.0f, 1000.0f, 0.70710678f);
+  require(ardor::biquadMagnitudeDb(highPass, 100.0f, 48000.0f) < -35.0f,
+          "high-pass attenuates below cutoff");
+  require(std::fabs(ardor::biquadMagnitudeDb(highPass, 1000.0f, 48000.0f) + 3.0103f) < 0.05f,
+          "high-pass is Butterworth at cutoff");
+  const auto lowPass = ardor::makeLowPass(48000.0f, 1000.0f, 0.70710678f);
+  require(ardor::biquadMagnitudeDb(lowPass, 10000.0f, 48000.0f) < -40.0f,
+          "low-pass attenuates above cutoff");
 
   ardor::ParametricEqProcessor processor;
   std::string error;
@@ -79,6 +99,13 @@ int main()
   }
 
   require(processor.setBandTarget(2, {false, 1000.0f, 1.0f, 6.0f}), "valid target accepted");
+  require(processor.setPassFilterTarget(
+            ardor::EqPassFilterKind::HighPass, {true, 100.0f, 0.70710678f}),
+          "valid high-pass target accepted");
+  require(!processor.setPassFilterTarget(
+            ardor::EqPassFilterKind::LowPass,
+            {true, std::numeric_limits<float>::quiet_NaN(), 0.70710678f}),
+          "non-finite pass-filter target rejected");
   require(!processor.setBandTarget(5, settings.bands[0]), "invalid band rejected");
   processor.reset();
   float firstLeft = 1.0f;

@@ -40,6 +40,48 @@ EqBandParams normalized(EqBandParams band)
   return band;
 }
 
+EqPassFilterParams normalized(EqPassFilterParams filter, EqPassFilterKind kind)
+{
+  const auto fallback = defaultEqPassFilter(kind);
+  if (!std::isfinite(filter.frequencyHz)) {
+    filter.frequencyHz = fallback.frequencyHz;
+  }
+  if (!std::isfinite(filter.q)) {
+    filter.q = fallback.q;
+  }
+  filter.frequencyHz = std::clamp(filter.frequencyHz, kEqMinimumFrequencyHz, kEqMaximumFrequencyHz);
+  filter.q = std::clamp(filter.q, kEqMinimumQ, kEqMaximumQ);
+  return filter;
+}
+
+EqPassFilterParams passFilterFromJson(const nlohmann::json& params, const char* key,
+                                      EqPassFilterKind kind)
+{
+  auto result = defaultEqPassFilter(kind);
+  const auto supplied = params.find(key);
+  if (supplied == params.end() || !supplied->is_object()) {
+    return result;
+  }
+  const auto enabled = supplied->find("enabled");
+  if (enabled != supplied->end() && enabled->is_boolean()) {
+    result.enabled = enabled->get<bool>();
+  }
+  result.frequencyHz = finiteClamped(*supplied, "frequency_hz", result.frequencyHz,
+                                     kEqMinimumFrequencyHz, kEqMaximumFrequencyHz);
+  result.q = finiteClamped(*supplied, "q", result.q, kEqMinimumQ, kEqMaximumQ);
+  return result;
+}
+
+nlohmann::json passFilterToJson(EqPassFilterParams supplied, EqPassFilterKind kind)
+{
+  const auto filter = normalized(supplied, kind);
+  return {
+    {"enabled", filter.enabled},
+    {"frequency_hz", filter.frequencyHz},
+    {"q", filter.q},
+  };
+}
+
 } // namespace
 
 EqBandParams defaultParametricEqBand(std::size_t index)
@@ -47,18 +89,27 @@ EqBandParams defaultParametricEqBand(std::size_t index)
   return {true, kDefaultFrequencies[std::min(index, kDefaultFrequencies.size() - 1)], 1.0f, 0.0f};
 }
 
+EqPassFilterParams defaultEqPassFilter(EqPassFilterKind kind)
+{
+  return {false, kind == EqPassFilterKind::HighPass ? 40.0f : 16000.0f, 0.70710678f};
+}
+
 ParametricEqParams defaultParametricEqParams()
 {
   ParametricEqParams result;
+  result.highPass = defaultEqPassFilter(EqPassFilterKind::HighPass);
   for (std::size_t i = 0; i < result.bands.size(); ++i) {
     result.bands[i] = defaultParametricEqBand(i);
   }
+  result.lowPass = defaultEqPassFilter(EqPassFilterKind::LowPass);
   return result;
 }
 
 ParametricEqParams parametricEqParamsFromJson(const nlohmann::json& params)
 {
   auto result = defaultParametricEqParams();
+  result.highPass = passFilterFromJson(params, "high_pass", EqPassFilterKind::HighPass);
+  result.lowPass = passFilterFromJson(params, "low_pass", EqPassFilterKind::LowPass);
   const auto suppliedBands = params.find("bands");
   if (suppliedBands == params.end() || !suppliedBands->is_array()) {
     return result;
@@ -98,7 +149,12 @@ nlohmann::json parametricEqParamsToJson(const ParametricEqParams& params)
       {"gain_db", band.gainDb},
     });
   }
-  return {{"mode", "parametric_eq_5"}, {"bands", std::move(bands)}};
+  return {
+    {"mode", "parametric_eq_5"},
+    {"high_pass", passFilterToJson(params.highPass, EqPassFilterKind::HighPass)},
+    {"bands", std::move(bands)},
+    {"low_pass", passFilterToJson(params.lowPass, EqPassFilterKind::LowPass)},
+  };
 }
 
 bool isParametricEqMode(const nlohmann::json& params)

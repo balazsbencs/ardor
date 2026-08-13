@@ -32,6 +32,8 @@ public:
   bool addNoiseGate(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool addParametricEq(const std::string& id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params);
+  bool setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,
+                                 const EqPassFilterParams& params);
   bool setDaisyParameter(const std::string& id, const std::string& key, float normalized);
   bool setCompressorParameter(const std::string& id, const std::string& key, float value);
   // 0.0 if `id` does not name a live compressor block.

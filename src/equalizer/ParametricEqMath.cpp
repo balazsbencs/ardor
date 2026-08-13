@@ -6,6 +6,35 @@
 
 namespace ardor {
 
+namespace {
+
+template <bool HighPass>
+BiquadCoefficients makePassFilter(float sampleRate, float frequencyHz, float q)
+{
+  if (!std::isfinite(sampleRate) || sampleRate <= 0.0f) {
+    return {};
+  }
+
+  const float safeFrequency = std::clamp(
+    std::isfinite(frequencyHz) ? frequencyHz : 1000.0f, 0.01f, sampleRate * 0.499f);
+  const float safeQ = std::max(std::isfinite(q) ? q : 0.70710678f, 0.0001f);
+  const double omega = 2.0 * std::numbers::pi * safeFrequency / sampleRate;
+  const double alpha = std::sin(omega) / (2.0 * safeQ);
+  const double cosine = std::cos(omega);
+  const double a0 = 1.0 + alpha;
+  const double numerator = HighPass ? 1.0 + cosine : 1.0 - cosine;
+
+  return {
+    static_cast<float>((numerator * 0.5) / a0),
+    static_cast<float>((HighPass ? -numerator : numerator) / a0),
+    static_cast<float>((numerator * 0.5) / a0),
+    static_cast<float>((-2.0 * cosine) / a0),
+    static_cast<float>((1.0 - alpha) / a0),
+  };
+}
+
+} // namespace
+
 BiquadCoefficients makePeakingEq(float sampleRate, float frequencyHz, float q, float gainDb)
 {
   if (!std::isfinite(sampleRate) || sampleRate <= 0.0f) {
@@ -29,6 +58,16 @@ BiquadCoefficients makePeakingEq(float sampleRate, float frequencyHz, float q, f
     static_cast<float>((-2.0 * cosine) / a0),
     static_cast<float>((1.0 - alpha / amplitude) / a0),
   };
+}
+
+BiquadCoefficients makeHighPass(float sampleRate, float frequencyHz, float q)
+{
+  return makePassFilter<true>(sampleRate, frequencyHz, q);
+}
+
+BiquadCoefficients makeLowPass(float sampleRate, float frequencyHz, float q)
+{
+  return makePassFilter<false>(sampleRate, frequencyHz, q);
 }
 
 float biquadMagnitudeDb(const BiquadCoefficients& coefficients, float frequencyHz, float sampleRate)

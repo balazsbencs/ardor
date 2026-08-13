@@ -164,18 +164,23 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .eq-graph-panel__heading p { margin: 0; color: var(--muted); font-size: .68rem; line-height: 1.35; }
 .eq-graph-panel__heading .section-label { color: var(--text); font-weight: 800; }
 .eq-graph-panel__heading output { padding: .25rem .4rem; border-radius: .35rem; color: var(--accent-ink); background: var(--accent); font-size: .68rem; font-weight: 850; white-space: nowrap; }
-.eq-graph { width: 100%; overflow: visible; touch-action: none; }
+.eq-graph { justify-self: center; width: 100%; max-width: 40rem; overflow: visible; touch-action: none; }
 .eq-graph line { stroke: var(--line); stroke-width: 1; }
 .eq-graph text { fill: var(--faint); font-size: 24px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .eq-graph__zero { fill: none; stroke: var(--muted); stroke-dasharray: 3 3; stroke-width: 1.2; }
 .eq-graph__curve { fill: none; stroke: var(--eq); stroke-linejoin: round; stroke-linecap: round; stroke-width: 2.5; }
 .eq-graph__node { fill: var(--surface-raised); stroke: var(--eq); stroke-width: 2.5; cursor: grab; outline: none; }
 .eq-graph__node:focus, .eq-graph__node.is-active { fill: var(--eq); stroke: var(--text); stroke-width: 2; }
+.eq-graph__node.is-pass { stroke: var(--info); }
 .eq-graph__node.is-disabled { opacity: .34; }
-.eq-graph__bands { display: grid; grid-template-columns: repeat(5, 1fr); gap: .25rem; }
+.eq-graph__bands { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: .25rem; }
 .eq-graph__bands button { display: grid; gap: .08rem; border: 1px solid var(--line); border-radius: .35rem; padding: .35rem .15rem; color: var(--muted); background: transparent; font-size: .68rem; font-weight: 800; }
 .eq-graph__bands button span { color: var(--faint); font-size: .68rem; font-weight: 600; }
 .eq-graph__bands button.is-active { border-color: var(--eq); color: var(--text); background: color-mix(in srgb, var(--eq) 16%, transparent); }
+.eq-graph__bands button.is-pass { border-style: dashed; }
+.eq-graph__bands button.is-active span { color: var(--text); }
+.eq-filter__slope { display: grid; gap: .15rem; margin: 0; color: var(--faint); font-size: .68rem; }
+.eq-filter__slope strong { color: var(--text); font-size: .75rem; }
 .eq-band { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; margin: 0; border: 0; padding: 0; }
 .eq-band legend { grid-column: 1 / -1; margin-bottom: .1rem; color: var(--muted); font-size: .72rem; font-weight: 750; }
 .eq-band .toggle-control { justify-self: end; }

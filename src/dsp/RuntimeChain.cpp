@@ -302,6 +302,19 @@ bool RuntimeChain::setParametricEqBand(const std::string& id, std::size_t band, 
   return false;
 }
 
+bool RuntimeChain::setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,
+                                             const EqPassFilterParams& params)
+{
+  for (auto& block : blocks_) {
+    if (block.kind == Block::Kind::Equalizer && block.id == id) {
+      return block.equalizer->setPassFilterTarget(kind, params);
+    }
+    if (block.kind == Block::Kind::DualRig
+        && block.dualRig->setParametricEqPassFilter(id, kind, params)) return true;
+  }
+  return false;
+}
+
 StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cabMix)
 {
   StereoSample current = input;

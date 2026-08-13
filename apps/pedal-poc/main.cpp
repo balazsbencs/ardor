@@ -992,6 +992,14 @@ int main(int argc, char** argv)
             }
             return true;
           },
+          [&](const std::string& blockId, ardor::EqPassFilterKind kind,
+              const ardor::EqPassFilterParams& params) {
+            if (!liveEngine->setParametricEqPassFilter(blockId, kind, params)) {
+              std::cerr << "Unable to update EQ pass filter for block " << blockId << "\n";
+              return false;
+            }
+            return true;
+          },
         });
         ui->build(lv_screen_active(), uiState);
         claimOverlay = std::make_unique<ardor::CloudClaimOverlay>(args.dataRoot);

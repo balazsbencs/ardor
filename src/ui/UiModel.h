@@ -279,6 +279,8 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
 ParametricEqParams selectedParametricEqParams(const UiState& state);
 bool setSelectedEqBand(UiState& state, std::size_t bandIndex, EqBandParams params);
 bool resetSelectedEqBand(UiState& state, std::size_t bandIndex);
+bool setSelectedEqPassFilter(UiState& state, EqPassFilterKind kind, EqPassFilterParams params);
+bool resetSelectedEqPassFilter(UiState& state, EqPassFilterKind kind);
 
 bool previewIsSynchronized(const UiState& state);
 UiPreviewSnapshot captureUiPreviewSnapshot(const UiState& state);

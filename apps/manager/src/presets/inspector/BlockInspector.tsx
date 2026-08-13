@@ -6,7 +6,7 @@ import { allEffectDefinitions, findEffectDefinition } from "../../effects/catalo
 import type { ChoiceControl, EffectDefinition, ToggleControl } from "../../effects/types";
 import { ParameterSlider } from "../../components/ParameterSlider";
 import { Button, IconButton, StatusBadge, Toggle } from "../../components/ui";
-import type { EqBand } from "../editor/editorTypes";
+import type { EqBand, EqPassFilter } from "../editor/editorTypes";
 import type { ValidationIssue } from "../editor/presetValidation";
 import { EqResponseGraph } from "./EqResponseGraph";
 
@@ -61,7 +61,7 @@ export function BlockInspector({
     if (control.kind === "number") return <ParameterSlider key={control.key} control={control} value={Number(valueFor(block, control.key, control.defaultValue))} onChange={(value) => onParam(block.id, control.key, value)} />;
     if (control.kind === "choice") return <ChoiceField key={control.key} control={control} value={String(valueFor(block, control.key, control.defaultValue))} onChange={(value) => onParam(block.id, control.key, value)} />;
     if (control.kind === "toggle") return <ToggleField key={control.key} control={control} value={Boolean(valueFor(block, control.key, control.defaultValue))} onChange={(value) => onParam(block.id, control.key, value)} />;
-    return <EqControls key="eq" block={block} onEqBand={onEqBand} />;
+    return <EqControls key="eq" block={block} onEqBand={onEqBand} onParam={onParam} />;
   };
   const controlKey = (control: EffectDefinition["controls"][number]) =>
     "key" in control && typeof control.key === "string" ? control.key : "";
@@ -119,14 +119,59 @@ function AssetPicker({
   return <div className="asset-picker"><label className="form-field"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}><option value="">Choose an asset…</option>{missing && <option value={value}>{value} (missing)</option>}{assets.map((asset) => <option value={asset.path} key={asset.id}>{asset.filename}</option>)}</select></label>{missing && <p className="asset-picker__missing"><StatusBadge tone="warning">Missing</StatusBadge> This file is not installed.</p>}<Button variant="quiet" onClick={onAssets}>Manage assets</Button></div>;
 }
 
-function EqControls({ block, onEqBand }: { block: PresetBlock; onEqBand(blockId: string, index: number, patch: Partial<EqBand>): void }) {
-  const [activeBand, setActiveBand] = useState(0);
+function EqControls({
+  block,
+  onEqBand,
+  onParam,
+}: {
+  block: PresetBlock;
+  onEqBand(blockId: string, index: number, patch: Partial<EqBand>): void;
+  onParam(blockId: string, key: string, value: unknown): void;
+}) {
+  const [activeStage, setActiveStage] = useState(1);
   const sourceBands = Array.isArray(block.params.bands) ? block.params.bands as EqBand[] : [];
   const bands = [0, 1, 2, 3, 4].map((index) => sourceBands[index] ?? { enabled: true, frequency_hz: [80, 250, 800, 2500, 8000][index], q: 1, gain_db: 0 });
+  const filterFrom = (key: "high_pass" | "low_pass", fallbackFrequency: number): EqPassFilter => {
+    const source = block.params[key];
+    return typeof source === "object" && source !== null && !Array.isArray(source)
+      ? { enabled: false, frequency_hz: fallbackFrequency, q: 0.70710678, ...source } as EqPassFilter
+      : { enabled: false, frequency_hz: fallbackFrequency, q: 0.70710678 };
+  };
+  const highPass = filterFrom("high_pass", 40);
+  const lowPass = filterFrom("low_pass", 16000);
+  const isPass = activeStage === 0 || activeStage === 6;
+  const activeFilter = activeStage === 0 ? highPass : lowPass;
+  const activeBand = Math.max(0, Math.min(4, activeStage - 1));
   const band = bands[activeBand];
+  const filterKey = activeStage === 0 ? "high_pass" : "low_pass";
+  const updateFilter = (patch: Partial<EqPassFilter>) => onParam(
+    block.id, filterKey, { ...activeFilter, ...patch },
+  );
   return <div className="eq-controls">
-    <EqResponseGraph bands={bands} activeBand={activeBand} onActiveBand={setActiveBand} onChange={(index, patch) => onEqBand(block.id, index, patch)} />
-    <fieldset className="eq-band"><legend>Band {activeBand + 1}</legend><Toggle label={`Band ${activeBand + 1} enabled`} checked={band.enabled} onChange={(enabled) => onEqBand(block.id, activeBand, { enabled })} /><label>Frequency<input aria-label="Frequency" type="number" min={20} max={20000} value={band.frequency_hz} onChange={(event) => onEqBand(block.id, activeBand, { frequency_hz: Number(event.target.value) })} /><small>Hz</small></label><label>Gain<input aria-label="Gain" type="number" min={-18} max={18} step={0.5} value={band.gain_db} onChange={(event) => onEqBand(block.id, activeBand, { gain_db: Number(event.target.value) })} /><small>dB</small></label><label>Q<input aria-label="Q" type="number" min={0.1} max={18} step={0.1} value={band.q} onChange={(event) => onEqBand(block.id, activeBand, { q: Number(event.target.value) })} /></label></fieldset>
+    <EqResponseGraph
+      bands={bands}
+      highPass={highPass}
+      lowPass={lowPass}
+      activeStage={activeStage}
+      onActiveStage={setActiveStage}
+      onBandChange={(index, patch) => onEqBand(block.id, index, patch)}
+      onPassFilterChange={(key, patch) => onParam(block.id, key, {
+        ...(key === "high_pass" ? highPass : lowPass), ...patch,
+      })}
+    />
+    {isPass ? <fieldset className="eq-band eq-filter">
+      <legend>{activeStage === 0 ? "High-pass filter" : "Low-pass filter"}</legend>
+      <Toggle label={`${activeStage === 0 ? "High-pass" : "Low-pass"} enabled`} checked={activeFilter.enabled} onChange={(enabled) => updateFilter({ enabled })} />
+      <label>Cutoff<input aria-label={`${activeStage === 0 ? "High-pass" : "Low-pass"} cutoff`} type="number" min={20} max={20000} value={activeFilter.frequency_hz} onChange={(event) => updateFilter({ frequency_hz: Number(event.target.value) })} /><small>Hz</small></label>
+      <label>Resonance<input aria-label={`${activeStage === 0 ? "High-pass" : "Low-pass"} resonance`} type="number" min={0.1} max={18} step={0.1} value={activeFilter.q} onChange={(event) => updateFilter({ q: Number(event.target.value) })} /></label>
+      <p className="eq-filter__slope"><span>Slope</span><strong>12 dB/oct</strong></p>
+    </fieldset> : <fieldset className="eq-band">
+      <legend>Band {activeBand + 1}</legend>
+      <Toggle label={`Band ${activeBand + 1} enabled`} checked={band.enabled} onChange={(enabled) => onEqBand(block.id, activeBand, { enabled })} />
+      <label>Frequency<input aria-label="Frequency" type="number" min={20} max={20000} value={band.frequency_hz} onChange={(event) => onEqBand(block.id, activeBand, { frequency_hz: Number(event.target.value) })} /><small>Hz</small></label>
+      <label>Gain<input aria-label="Gain" type="number" min={-18} max={18} step={0.5} value={band.gain_db} onChange={(event) => onEqBand(block.id, activeBand, { gain_db: Number(event.target.value) })} /><small>dB</small></label>
+      <label>Q<input aria-label="Q" type="number" min={0.1} max={18} step={0.1} value={band.q} onChange={(event) => onEqBand(block.id, activeBand, { q: Number(event.target.value) })} /></label>
+    </fieldset>}
   </div>;
 }
 

@@ -90,7 +90,7 @@ Engine and product facts future work must not contradict:
 - Cabinet IRs via partitioned convolution.
 - 35 built-in effects: 13 modulation/special, 10 delay, 12 reverb.
 - Compressor, stereo-linked noise gate with zero added latency, five-band
-  parametric EQ (±18 dB) with a live response graph.
+  parametric EQ (±18 dB) with high-pass and low-pass filters and a live response graph.
 - Dual Amp (fixed two-lane block) and Dual Rig (two independent child chains,
   preset version 2). Both merge hard-left/hard-right into stereo.
 - Presets in bank/slot folders, four slots per bank, JSON format, relative asset
