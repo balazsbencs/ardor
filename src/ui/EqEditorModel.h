@@ -18,6 +18,7 @@ enum class EqBandField {
   Frequency,
   Q,
   Gain,
+  Slope,
 };
 
 struct EqCurveData {

@@ -476,7 +476,7 @@
       "blockType": "eq",
       "mode": "parametric_eq_5",
       "name": "Five Band Parametric EQ",
-      "description": "High-pass and low-pass filters around five fully parametric bands.",
+      "description": "High-pass and low-pass filters with selectable slopes around five fully parametric bands.",
       "category": "utility",
       "aliases": [
         "EQ",

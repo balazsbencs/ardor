@@ -73,8 +73,23 @@ describe("BlockInspector", () => {
     expect(screen.getByText("High-pass filter")).toBeInTheDocument();
     await user.click(screen.getByRole("checkbox", { name: "High-pass enabled" }));
     expect(onParam).toHaveBeenCalledWith(block.id, "high_pass", expect.objectContaining({ enabled: true, frequency_hz: 40 }));
+    await user.click(screen.getByRole("button", { name: "24dB/oct" }));
+    expect(onParam).toHaveBeenCalledWith(block.id, "high_pass", expect.objectContaining({ slope_db_per_octave: 24 }));
+    await user.click(screen.getByRole("button", { name: "6dB/oct" }));
+    expect(onParam).toHaveBeenCalledWith(block.id, "high_pass", expect.objectContaining({ slope_db_per_octave: 6 }));
     await user.click(screen.getByRole("tab", { name: /LP/ }));
     expect(screen.getByLabelText("Low-pass cutoff")).toHaveValue(16000);
+  });
+
+  it("disables resonance for a first-order pass filter", async () => {
+    const user = userEvent.setup();
+    const block = createBlockFromDefinition("eq:parametric_eq_5", []);
+    (block.params.high_pass as Record<string, unknown>).slope_db_per_octave = 6;
+    renderWithProviders(<BlockInspector block={block} issues={[]} models={[]} irs={[]} onToggle={() => undefined} onParam={() => undefined} onAsset={() => undefined} onMode={() => undefined} onEqBand={() => undefined} onReset={() => undefined} onDuplicate={() => undefined} onDelete={() => undefined} onAssets={() => undefined} />);
+
+    await user.click(screen.getByRole("tab", { name: /HP/ }));
+    expect(screen.getByLabelText("High-pass resonance")).toBeDisabled();
+    expect(screen.getByText("12+ only")).toBeInTheDocument();
   });
 
   it("moves categorical Daisy sliders only between valid options", () => {

@@ -51,6 +51,7 @@ EqPassFilterParams normalized(EqPassFilterParams filter, EqPassFilterKind kind)
   }
   filter.frequencyHz = std::clamp(filter.frequencyHz, kEqMinimumFrequencyHz, kEqMaximumFrequencyHz);
   filter.q = std::clamp(filter.q, kEqMinimumQ, kEqMaximumQ);
+  filter.slopeDbPerOctave = normalizedEqPassFilterSlope(filter.slopeDbPerOctave);
   return filter;
 }
 
@@ -69,6 +70,10 @@ EqPassFilterParams passFilterFromJson(const nlohmann::json& params, const char* 
   result.frequencyHz = finiteClamped(*supplied, "frequency_hz", result.frequencyHz,
                                      kEqMinimumFrequencyHz, kEqMaximumFrequencyHz);
   result.q = finiteClamped(*supplied, "q", result.q, kEqMinimumQ, kEqMaximumQ);
+  const auto slope = supplied->find("slope_db_per_octave");
+  if (slope != supplied->end() && slope->is_number_integer()) {
+    result.slopeDbPerOctave = normalizedEqPassFilterSlope(slope->get<int>());
+  }
   return result;
 }
 
@@ -79,6 +84,7 @@ nlohmann::json passFilterToJson(EqPassFilterParams supplied, EqPassFilterKind ki
     {"enabled", filter.enabled},
     {"frequency_hz", filter.frequencyHz},
     {"q", filter.q},
+    {"slope_db_per_octave", filter.slopeDbPerOctave},
   };
 }
 
@@ -91,7 +97,17 @@ EqBandParams defaultParametricEqBand(std::size_t index)
 
 EqPassFilterParams defaultEqPassFilter(EqPassFilterKind kind)
 {
-  return {false, kind == EqPassFilterKind::HighPass ? 40.0f : 16000.0f, 0.70710678f};
+  return {false, kind == EqPassFilterKind::HighPass ? 40.0f : 16000.0f, 0.70710678f, 12};
+}
+
+int normalizedEqPassFilterSlope(int slopeDbPerOctave)
+{
+  const auto closest = std::min_element(
+    kEqPassFilterSlopesDbPerOctave.begin(), kEqPassFilterSlopesDbPerOctave.end(),
+    [slopeDbPerOctave](int left, int right) {
+      return std::abs(left - slopeDbPerOctave) < std::abs(right - slopeDbPerOctave);
+    });
+  return *closest;
 }
 
 ParametricEqParams defaultParametricEqParams()

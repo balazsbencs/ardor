@@ -32,6 +32,7 @@ private:
     std::atomic<bool> enabled{false};
     std::atomic<float> frequencyHz{1000.0f};
     std::atomic<float> q{0.70710678f};
+    std::atomic<int> slopeDbPerOctave{12};
   };
 
   struct FilterState {
@@ -52,10 +53,10 @@ private:
   AtomicPassFilter lowPassTarget_{};
   EqPassFilterParams currentHighPass_{};
   EqPassFilterParams currentLowPass_{};
-  BiquadCoefficients highPassCoefficients_{};
-  BiquadCoefficients lowPassCoefficients_{};
-  std::array<FilterState, 2> highPassStates_{};
-  std::array<FilterState, 2> lowPassStates_{};
+  PassFilterCascade highPassCascade_{};
+  PassFilterCascade lowPassCascade_{};
+  std::array<std::array<FilterState, 2>, 2> highPassStates_{};
+  std::array<std::array<FilterState, 2>, 2> lowPassStates_{};
   float highPassMix_ = 0.0f;
   float lowPassMix_ = 0.0f;
   float sampleRate_ = 48000.0f;

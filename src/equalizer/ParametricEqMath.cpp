@@ -33,6 +33,42 @@ BiquadCoefficients makePassFilter(float sampleRate, float frequencyHz, float q)
   };
 }
 
+template <bool HighPass>
+BiquadCoefficients makeFirstOrderPassFilter(float sampleRate, float frequencyHz)
+{
+  if (!std::isfinite(sampleRate) || sampleRate <= 0.0f) return {};
+  const float safeFrequency = std::clamp(
+    std::isfinite(frequencyHz) ? frequencyHz : 1000.0f, 0.01f, sampleRate * 0.499f);
+  const double k = std::tan(std::numbers::pi * safeFrequency / sampleRate);
+  const double norm = 1.0 / (1.0 + k);
+  return HighPass
+    ? BiquadCoefficients{static_cast<float>(norm), static_cast<float>(-norm), 0.0f,
+                         static_cast<float>((k - 1.0) * norm), 0.0f}
+    : BiquadCoefficients{static_cast<float>(k * norm), static_cast<float>(k * norm), 0.0f,
+                         static_cast<float>((k - 1.0) * norm), 0.0f};
+}
+
+template <bool HighPass>
+PassFilterCascade makePassFilterCascade(float sampleRate, float frequencyHz, float q,
+                                        int slopeDbPerOctave)
+{
+  PassFilterCascade cascade;
+  const int slope = std::clamp(((slopeDbPerOctave + 3) / 6) * 6, 6, 24);
+  if (slope == 6 || slope == 18) {
+    cascade.sections[cascade.sectionCount++] = makeFirstOrderPassFilter<HighPass>(
+      sampleRate, frequencyHz);
+  }
+  if (slope >= 12) {
+    cascade.sections[cascade.sectionCount++] = makePassFilter<HighPass>(
+      sampleRate, frequencyHz, q);
+  }
+  if (slope == 24) {
+    cascade.sections[cascade.sectionCount++] = makePassFilter<HighPass>(
+      sampleRate, frequencyHz, q);
+  }
+  return cascade;
+}
+
 } // namespace
 
 BiquadCoefficients makePeakingEq(float sampleRate, float frequencyHz, float q, float gainDb)
@@ -68,6 +104,27 @@ BiquadCoefficients makeHighPass(float sampleRate, float frequencyHz, float q)
 BiquadCoefficients makeLowPass(float sampleRate, float frequencyHz, float q)
 {
   return makePassFilter<false>(sampleRate, frequencyHz, q);
+}
+
+PassFilterCascade makeHighPassCascade(float sampleRate, float frequencyHz, float q,
+                                      int slopeDbPerOctave)
+{
+  return makePassFilterCascade<true>(sampleRate, frequencyHz, q, slopeDbPerOctave);
+}
+
+PassFilterCascade makeLowPassCascade(float sampleRate, float frequencyHz, float q,
+                                     int slopeDbPerOctave)
+{
+  return makePassFilterCascade<false>(sampleRate, frequencyHz, q, slopeDbPerOctave);
+}
+
+float cascadeMagnitudeDb(const PassFilterCascade& cascade, float frequencyHz, float sampleRate)
+{
+  float total = 0.0f;
+  for (std::size_t i = 0; i < cascade.sectionCount; ++i) {
+    total += biquadMagnitudeDb(cascade.sections[i], frequencyHz, sampleRate);
+  }
+  return total;
 }
 
 float biquadMagnitudeDb(const BiquadCoefficients& coefficients, float frequencyHz, float sampleRate)

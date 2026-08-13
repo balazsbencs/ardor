@@ -47,6 +47,13 @@ int main()
   if (require(nearlyEqual(band.frequencyHz, 1600.0f, 0.1f), "frequency adjustments should double over 24 ticks")) return 1;
   ardor::adjustEqBandField(band, ardor::EqBandField::Q, -24);
   if (require(nearlyEqual(band.q, 0.5f, 0.01f), "Q adjustments should halve over 24 ticks")) return 1;
+  auto passFilter = ardor::defaultEqPassFilter(ardor::EqPassFilterKind::HighPass);
+  ardor::adjustEqPassFilterField(passFilter, ardor::EqBandField::Slope, 2);
+  if (require(passFilter.slopeDbPerOctave == 24,
+              "pass-filter slope should move between supported choices")) return 1;
+  ardor::adjustEqPassFilterField(passFilter, ardor::EqBandField::Slope, -20);
+  if (require(passFilter.slopeDbPerOctave == 6,
+              "pass-filter slope should clamp at 6 dB/oct")) return 1;
 
   auto params = ardor::defaultParametricEqParams();
   params.bands[0].frequencyHz = 1000.0f;
@@ -62,13 +69,19 @@ int main()
               "combined curve should be present for enabled bands")) return 1;
   if (require(nearlyEqual(curve.stageDb[ardor::kEqFirstBandStage + 1][center], 0.0f), "disabled bands should have a neutral individual response")) return 1;
 
-  params.highPass = {true, 500.0f, 0.70710678f};
+  params.highPass = {true, 500.0f, 0.70710678f, 6};
   params.lowPass = {true, 5000.0f, 0.70710678f};
   const auto filteredCurve = ardor::makeEqCurveData(params, 48000.0f);
   if (require(filteredCurve.stageDb[ardor::kEqHighPassStage].front() <= ardor::kEqMinimumGainDb,
               "high-pass curve should fall below its cutoff")) return 1;
   if (require(filteredCurve.stageDb[ardor::kEqLowPassStage].back() <= ardor::kEqMinimumGainDb,
               "low-pass curve should fall above its cutoff")) return 1;
+  params.highPass.slopeDbPerOctave = 24;
+  const auto steepCurve = ardor::makeEqCurveData(params, 48000.0f);
+  constexpr std::size_t belowCutoffPoint = 60;
+  if (require(steepCurve.stageDb[ardor::kEqHighPassStage][belowCutoffPoint]
+                < filteredCurve.stageDb[ardor::kEqHighPassStage][belowCutoffPoint],
+              "response graph should reflect steeper pass-filter slopes")) return 1;
 
   return 0;
 }

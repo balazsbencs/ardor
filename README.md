@@ -146,7 +146,9 @@ implementation now live together under `src/daisyfx/`.
 Five-band EQ blocks use `type: "eq"`, mode `parametric_eq_5`, and five entries
 in `params.bands`. Each band stores `enabled`, `frequency_hz` (20–20,000 Hz),
 `q` (0.1–18), and `gain_db` (-18 to +18 dB). Missing fields receive indexed
-band defaults; saved presets always contain exactly five complete bands.
+band defaults; saved presets always contain exactly five complete bands. The
+surrounding `high_pass` and `low_pass` filters store `enabled`, `frequency_hz`,
+`q`, and `slope_db_per_octave` (6, 12, 18, or 24; default 12).
 
 ## Build
 
@@ -585,8 +587,8 @@ The touch UI includes:
   dragged block reaches either screen edge.
 - Two-row, three-column parameter pages using large horizontal sliders with
   inline labels/values, plus a matching rectangular bypass control.
-- A dedicated five-band parametric EQ editor with high-pass and low-pass stages
-  and a live response graph.
+- A dedicated five-band parametric EQ editor with high-pass and low-pass stages,
+  selectable 6–24 dB/oct slopes, and a live response graph.
 - A muted tuner with note/frequency/cents guidance and both touchscreen Exit
   and footswitch exit.
 

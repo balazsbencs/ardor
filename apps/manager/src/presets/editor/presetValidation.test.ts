@@ -245,6 +245,13 @@ describe("preset validation", () => {
       enabled: true, frequency_hz: index === 0 ? 10 : 1000, q: 1, gain_db: 0,
     }));
     expect(codes(validPreset([eq]))).toContain("parameter-range");
+    (eq.params.high_pass as Record<string, unknown>).slope_db_per_octave = 16;
+    expect(validatePreset(validPreset([eq]), assets).issues).toContainEqual(
+      expect.objectContaining({
+        code: "parameter-range",
+        field: "params.high_pass.slope_db_per_octave",
+      }),
+    );
   });
 
   it("sorts preset issues first and block issues in chain order without mutating input", () => {

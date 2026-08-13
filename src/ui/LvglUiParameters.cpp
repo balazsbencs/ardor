@@ -464,10 +464,14 @@ void LvglUi::syncParameterView(UiState& state)
   }
   if (eqEnabledContext_) eqEnabledContext_->index = selectedEqStage_;
   if (eqResetContext_) eqResetContext_->index = selectedEqStage_;
-  for (auto* sliderContext : eqSliderContexts_) {
-    if (sliderContext) {
-      sliderContext->index = selectedEqStage_;
-      sliderContext->controlledObject = eqGraph_;
+  const std::array<const char*, 3> sliderKeys = passStage
+    ? std::array<const char*, 3>{"frequency", "q", "slope"}
+    : std::array<const char*, 3>{"frequency", "q", "gain"};
+  for (std::size_t i = 0; i < eqSliderContexts_.size(); ++i) {
+    if (eqSliderContexts_[i]) {
+      eqSliderContexts_[i]->index = selectedEqStage_;
+      eqSliderContexts_[i]->filter = sliderKeys[i];
+      eqSliderContexts_[i]->controlledObject = eqGraph_;
     }
   }
   syncEqSliders(state);
@@ -477,15 +481,16 @@ void LvglUi::syncEqSliders(const UiState& state)
 {
   const auto params = selectedParametricEqParams(state);
   const bool passStage = isPassEqStage(selectedEqStage_);
-  constexpr std::array<EqBandField, 3> fields = {
+  constexpr std::array<EqBandField, 3> bandFields = {
     EqBandField::Frequency, EqBandField::Q, EqBandField::Gain,
   };
+  constexpr std::array<EqBandField, 3> passFields = {
+    EqBandField::Frequency, EqBandField::Q, EqBandField::Slope,
+  };
+  const auto& fields = passStage ? passFields : bandFields;
   for (std::size_t i = 0; i < fields.size(); ++i) {
     if (eqSliders_[i]) {
-      const bool visible = !passStage || fields[i] != EqBandField::Gain;
-      if (visible) lv_obj_remove_flag(eqSliders_[i], LV_OBJ_FLAG_HIDDEN);
-      else lv_obj_add_flag(eqSliders_[i], LV_OBJ_FLAG_HIDDEN);
-      if (!visible) continue;
+      lv_obj_remove_flag(eqSliders_[i], LV_OBJ_FLAG_HIDDEN);
       const auto control = passStage
         ? parameter_view::eqControl(fields[i], passFilterForStage(params, selectedEqStage_))
         : parameter_view::eqControl(fields[i],
