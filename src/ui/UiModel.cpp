@@ -371,7 +371,7 @@ UiState makeDemoUiState()
     {"Focused 1x12", "irs/focus.wav", "cabs", "", "", "Cab · impulse response"},
     {"Compressor", "", "utility", "dynamics", "compressor", "Utility · dynamics"},
     {"Noise Gate", "", "utility", "dynamics", "noise_gate", "Utility · dynamics"},
-    {"Five Band EQ", "", "utility", "eq", "parametric_eq_5", "Utility · 5 bands · ±18 dB"},
+    {"Five Band EQ", "", "utility", "eq", "parametric_eq_5", "Utility · HPF + 5 bands + LPF"},
   };
   appendDaisyAssets(state);
   state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split",
@@ -1141,6 +1141,39 @@ bool resetSelectedEqBand(UiState& state, std::size_t bandIndex)
   return setSelectedEqBand(state, bandIndex, defaultParametricEqBand(bandIndex));
 }
 
+bool setSelectedEqPassFilter(UiState& state, EqPassFilterKind kind, EqPassFilterParams params)
+{
+  auto* selected = selectedUiBlock(state);
+  if (!selected) return false;
+  auto& block = *selected;
+  if (block.type != "eq" || !isParametricEqMode(block.params)) {
+    return false;
+  }
+
+  auto eqParams = parametricEqParamsFromJson(block.params);
+  auto normalization = defaultParametricEqParams();
+  if (kind == EqPassFilterKind::HighPass) {
+    normalization.highPass = params;
+    params = parametricEqParamsFromJson(parametricEqParamsToJson(normalization)).highPass;
+    if (eqParams.highPass == params) return true;
+    eqParams.highPass = params;
+  } else {
+    normalization.lowPass = params;
+    params = parametricEqParamsFromJson(parametricEqParamsToJson(normalization)).lowPass;
+    if (eqParams.lowPass == params) return true;
+    eqParams.lowPass = params;
+  }
+  block.params = parametricEqParamsToJson(eqParams);
+  state.dirty = true;
+  markUiChanged(state, UiChange::Header | UiChange::Parameters);
+  return true;
+}
+
+bool resetSelectedEqPassFilter(UiState& state, EqPassFilterKind kind)
+{
+  return setSelectedEqPassFilter(state, kind, defaultEqPassFilter(kind));
+}
+
 bool previewIsSynchronized(const UiState& state)
 {
   return !state.pendingPreview.has_value();
@@ -1491,7 +1524,7 @@ void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoo
   appendAssetsFrom(state, dataRoot / "irs", ".wav", "cabs", "Cab · impulse response");
   state.assets.push_back({"Compressor", "", "utility", "dynamics", "compressor", "Utility · dynamics"});
   state.assets.push_back({"Noise Gate", "", "utility", "dynamics", "noise_gate", "Utility · dynamics"});
-  state.assets.push_back({"Five Band EQ", "", "utility", "eq", "parametric_eq_5", "Utility · 5 bands · ±18 dB"});
+  state.assets.push_back({"Five Band EQ", "", "utility", "eq", "parametric_eq_5", "Utility · HPF + 5 bands + LPF"});
   appendDaisyAssets(state);
   state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split",
                           "Runs two independent chains in parallel"});

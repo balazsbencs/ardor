@@ -109,12 +109,14 @@ describe("effect catalog", () => {
   it("defines five canonical EQ bands", () => {
     expect(defaultsForDefinition("eq:parametric_eq_5")).toEqual({
       mode: "parametric_eq_5",
+      high_pass: { enabled: false, frequency_hz: 40, q: 0.70710678 },
       bands: [80, 250, 800, 2500, 8000].map((frequency_hz) => ({
         enabled: true,
         frequency_hz,
         q: 1,
         gain_db: 0,
       })),
+      low_pass: { enabled: false, frequency_hz: 16000, q: 0.70710678 },
     });
   });
 

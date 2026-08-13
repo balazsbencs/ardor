@@ -6,7 +6,8 @@ reproducible Buildroot firmware image.
 
 The signal chain supports Neural Amp Modeler `.nam` files, cabinet impulse
 responses, 35 hosted modulation/delay/reverb effects, compression, noise
-gating, five-band parametric EQ, global gain, and a safety limiter. The same
+gating, five-band parametric EQ with high-pass and low-pass filters, global gain,
+and a safety limiter. The same
 LVGL interface runs in the SDL desktop simulator and on the Raspberry Pi Touch
 Display 2.
 
@@ -584,7 +585,8 @@ The touch UI includes:
   dragged block reaches either screen edge.
 - Two-row, three-column parameter pages using large horizontal sliders with
   inline labels/values, plus a matching rectangular bypass control.
-- A dedicated five-band parametric EQ editor with a live response graph.
+- A dedicated five-band parametric EQ editor with high-pass and low-pass stages
+  and a live response graph.
 - A muted tuner with note/frequency/cents guidance and both touchscreen Exit
   and footswitch exit.
 

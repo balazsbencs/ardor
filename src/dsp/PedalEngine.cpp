@@ -228,6 +228,12 @@ bool PedalEngine::setParametricEqBand(const std::string& id, std::size_t band, c
   return chain_.setParametricEqBand(id, band, params);
 }
 
+bool PedalEngine::setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,
+                                            const EqPassFilterParams& params)
+{
+  return chain_.setParametricEqPassFilter(id, kind, params);
+}
+
 void PedalEngine::prepareBlockSize(size_t frames)
 {
   if (frames == 0 || blockSize_ == frames) {

@@ -11,6 +11,8 @@ struct BiquadCoefficients {
 };
 
 BiquadCoefficients makePeakingEq(float sampleRate, float frequencyHz, float q, float gainDb);
+BiquadCoefficients makeHighPass(float sampleRate, float frequencyHz, float q);
+BiquadCoefficients makeLowPass(float sampleRate, float frequencyHz, float q);
 float biquadMagnitudeDb(const BiquadCoefficients& coefficients, float frequencyHz, float sampleRate);
 
 } // namespace ardor

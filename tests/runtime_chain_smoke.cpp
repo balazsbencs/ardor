@@ -195,6 +195,12 @@ int main()
           "missing EQ ID rejected");
   require(!eqChain.setParametricEqBand("eq-a", 5, {true, 1000.0f, 1.0f, 12.0f}),
           "invalid EQ band rejected");
+  require(eqChain.setParametricEqPassFilter(
+            "eq-a", ardor::EqPassFilterKind::HighPass, {true, 80.0f, 0.70710678f}),
+          "target existing EQ high-pass by stable ID");
+  require(!eqChain.setParametricEqPassFilter(
+            "missing", ardor::EqPassFilterKind::LowPass, {true, 12000.0f, 0.70710678f}),
+          "missing EQ pass-filter ID rejected");
 
   ardor::PedalEngine engine;
   std::string error;

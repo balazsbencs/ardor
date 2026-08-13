@@ -38,6 +38,8 @@ public:
   bool compressorGainReductionDb(const std::string& id, float& outDb) const;
   bool setNoiseGateParameter(const std::string& id, const std::string& key, float value);
   bool setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params);
+  bool setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,
+                                 const EqPassFilterParams& params);
   bool setBlockEnabled(const std::string& id, bool enabled);
   void reset();
   std::size_t tailFrames() const noexcept;

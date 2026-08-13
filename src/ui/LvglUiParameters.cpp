@@ -10,6 +10,25 @@
 
 namespace ardor {
 
+namespace {
+
+bool isPassEqStage(std::size_t stage)
+{
+  return stage == kEqHighPassStage || stage == kEqLowPassStage;
+}
+
+EqPassFilterKind passKindForStage(std::size_t stage)
+{
+  return stage == kEqHighPassStage ? EqPassFilterKind::HighPass : EqPassFilterKind::LowPass;
+}
+
+const EqPassFilterParams& passFilterForStage(const ParametricEqParams& params, std::size_t stage)
+{
+  return stage == kEqHighPassStage ? params.highPass : params.lowPass;
+}
+
+} // namespace
+
 void LvglUi::toggleExpressionAssignment(UiState& state, const ParameterControl& control)
 {
   if (!ardor::toggleExpressionAssignment(state, control)) return;
@@ -23,31 +42,33 @@ using namespace lvgl_ui;
 
 bool LvglUi::updateSelectedEqBand(UiState& state, EqBandParams params, bool requestUiRebuild)
 {
+  if (isPassEqStage(selectedEqStage_)) return false;
   const auto* selected = selectedUiBlock(state);
   if (!selected) return false;
   const auto blockId = selected->id;
   const auto blockName = selected->assetName;
-  const auto before = selectedParametricEqParams(state).bands[selectedEqBand_];
+  const std::size_t bandIndex = selectedEqStage_ - kEqFirstBandStage;
+  const auto before = selectedParametricEqParams(state).bands[bandIndex];
   const bool dirtyBefore = state.dirty;
-  if (!setSelectedEqBand(state, selectedEqBand_, params)) {
+  if (!setSelectedEqBand(state, bandIndex, params)) {
     return false;
   }
-  const auto after = selectedParametricEqParams(state).bands[selectedEqBand_];
+  const auto after = selectedParametricEqParams(state).bands[bandIndex];
   if (after == before) {
     return false;
   }
-  if (actions_.updateEqBand && !actions_.updateEqBand(blockId, selectedEqBand_, after)) {
+  if (actions_.updateEqBand && !actions_.updateEqBand(blockId, bandIndex, after)) {
     // A missing runtime ID is an unexpected draft/runtime divergence. Keep
     // the candidate and heal it through the complete-preview path.
-    setSelectedEqBand(state, selectedEqBand_, before);
+    setSelectedEqBand(state, bandIndex, before);
     state.dirty = dirtyBefore;
     auto previewRollback = captureUiPreviewSnapshot(state);
-    setSelectedEqBand(state, selectedEqBand_, after);
+    setSelectedEqBand(state, bandIndex, after);
     if (queuePreview(state, previewRollback, "update " + blockName + " EQ")) {
       invalidate(UiChange::Parameters | UiChange::Header);
       return true;
     }
-    setSelectedEqBand(state, selectedEqBand_, before);
+    setSelectedEqBand(state, bandIndex, before);
     state.dirty = dirtyBefore;
     invalidate(UiChange::Parameters | UiChange::Header);
     return false;
@@ -55,6 +76,38 @@ bool LvglUi::updateSelectedEqBand(UiState& state, EqBandParams params, bool requ
   if (requestUiRebuild) {
     invalidate(UiChange::Parameters);
   }
+  return true;
+}
+
+bool LvglUi::updateSelectedEqPassFilter(UiState& state, EqPassFilterParams params,
+                                        bool requestUiRebuild)
+{
+  if (!isPassEqStage(selectedEqStage_)) return false;
+  const auto* selected = selectedUiBlock(state);
+  if (!selected) return false;
+  const auto blockId = selected->id;
+  const auto blockName = selected->assetName;
+  const auto kind = passKindForStage(selectedEqStage_);
+  const auto before = passFilterForStage(selectedParametricEqParams(state), selectedEqStage_);
+  const bool dirtyBefore = state.dirty;
+  if (!setSelectedEqPassFilter(state, kind, params)) return false;
+  const auto after = passFilterForStage(selectedParametricEqParams(state), selectedEqStage_);
+  if (after == before) return false;
+  if (actions_.updateEqPassFilter && !actions_.updateEqPassFilter(blockId, kind, after)) {
+    setSelectedEqPassFilter(state, kind, before);
+    state.dirty = dirtyBefore;
+    auto previewRollback = captureUiPreviewSnapshot(state);
+    setSelectedEqPassFilter(state, kind, after);
+    if (queuePreview(state, previewRollback, "update " + blockName + " filter")) {
+      invalidate(UiChange::Parameters | UiChange::Header);
+      return true;
+    }
+    setSelectedEqPassFilter(state, kind, before);
+    state.dirty = dirtyBefore;
+    invalidate(UiChange::Parameters | UiChange::Header);
+    return false;
+  }
+  if (requestUiRebuild) invalidate(UiChange::Parameters);
   return true;
 }
 
@@ -67,16 +120,22 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
       return false;
     }
     auto params = selectedParametricEqParams(state);
-    adjustEqBandField(params.bands[selectedEqBand_], *focusedEqField_, delta);
-    if (!updateSelectedEqBand(state, params.bands[selectedEqBand_],
-                              focusedEqGraph_ == nullptr)) {
-      return false;
+    if (isPassEqStage(selectedEqStage_)) {
+      auto filter = passFilterForStage(params, selectedEqStage_);
+      adjustEqPassFilterField(filter, *focusedEqField_, delta);
+      if (!updateSelectedEqPassFilter(state, filter, focusedEqGraph_ == nullptr)) return false;
+    } else {
+      const auto bandIndex = selectedEqStage_ - kEqFirstBandStage;
+      adjustEqBandField(params.bands[bandIndex], *focusedEqField_, delta);
+      if (!updateSelectedEqBand(state, params.bands[bandIndex], focusedEqGraph_ == nullptr)) return false;
     }
     const auto updated = selectedParametricEqParams(state);
     if (focusedControl_) {
-      parameter_view::syncSlider(
-        focusedControl_,
-        parameter_view::eqControl(*focusedEqField_, updated.bands[selectedEqBand_]));
+      const auto control = isPassEqStage(selectedEqStage_)
+        ? parameter_view::eqControl(*focusedEqField_, passFilterForStage(updated, selectedEqStage_))
+        : parameter_view::eqControl(*focusedEqField_,
+            updated.bands[selectedEqStage_ - kEqFirstBandStage]);
+      parameter_view::syncSlider(focusedControl_, control);
     }
     parameter_view::syncEqGraph(focusedEqGraph_, updated, continuousTouch);
     renderedRevisions_.parameters = state.revisions.parameters;
@@ -221,7 +280,7 @@ void LvglUi::rebuildParameterView(UiState& state)
   const bool editingEq = state.paramTarget == UiParamTarget::Block
     && selected && selected->type == "eq" && isParametricEqMode(selected->params);
   if (editingEq) {
-    selectEqBand(selectedEqBand_);
+    selectEqStage(selectedEqStage_);
   }
   const std::string signature = editingEq
     ? "eq:parametric"
@@ -389,21 +448,25 @@ void LvglUi::syncParameterView(UiState& state)
 
   const auto params = selectedParametricEqParams(state);
   parameter_view::syncEqGraph(eqGraph_, params);
-  parameter_view::syncEqBandSelection(eqGraph_, eqBandButtons_, params, selectedEqBand_);
+  parameter_view::syncEqBandSelection(eqGraph_, eqBandButtons_, params, selectedEqStage_);
 
-  const auto& band = params.bands[selectedEqBand_];
+  const bool passStage = isPassEqStage(selectedEqStage_);
+  const bool enabled = passStage
+    ? passFilterForStage(params, selectedEqStage_).enabled
+    : params.bands[selectedEqStage_ - kEqFirstBandStage].enabled;
   if (eqEnabledButton_) {
     lv_label_set_text(lv_obj_get_child(eqEnabledButton_, 0),
-                      band.enabled ? "Band On" : "Band Off");
-    styleSurface(eqEnabledButton_, band.enabled ? panel : panelAlt);
+                      enabled ? (passStage ? "Filter On" : "Band On")
+                              : (passStage ? "Filter Off" : "Band Off"));
+    styleSurface(eqEnabledButton_, enabled ? panel : panelAlt);
     lv_obj_set_style_text_color(lv_obj_get_child(eqEnabledButton_, 0),
-                                lv_color_hex(band.enabled ? lamp : danger), 0);
+                                lv_color_hex(enabled ? lamp : danger), 0);
   }
-  if (eqEnabledContext_) eqEnabledContext_->index = selectedEqBand_;
-  if (eqResetContext_) eqResetContext_->index = selectedEqBand_;
+  if (eqEnabledContext_) eqEnabledContext_->index = selectedEqStage_;
+  if (eqResetContext_) eqResetContext_->index = selectedEqStage_;
   for (auto* sliderContext : eqSliderContexts_) {
     if (sliderContext) {
-      sliderContext->index = selectedEqBand_;
+      sliderContext->index = selectedEqStage_;
       sliderContext->controlledObject = eqGraph_;
     }
   }
@@ -413,14 +476,22 @@ void LvglUi::syncParameterView(UiState& state)
 void LvglUi::syncEqSliders(const UiState& state)
 {
   const auto params = selectedParametricEqParams(state);
-  const auto& band = params.bands[selectedEqBand_];
+  const bool passStage = isPassEqStage(selectedEqStage_);
   constexpr std::array<EqBandField, 3> fields = {
     EqBandField::Frequency, EqBandField::Q, EqBandField::Gain,
   };
   for (std::size_t i = 0; i < fields.size(); ++i) {
     if (eqSliders_[i]) {
+      const bool visible = !passStage || fields[i] != EqBandField::Gain;
+      if (visible) lv_obj_remove_flag(eqSliders_[i], LV_OBJ_FLAG_HIDDEN);
+      else lv_obj_add_flag(eqSliders_[i], LV_OBJ_FLAG_HIDDEN);
+      if (!visible) continue;
+      const auto control = passStage
+        ? parameter_view::eqControl(fields[i], passFilterForStage(params, selectedEqStage_))
+        : parameter_view::eqControl(fields[i],
+            params.bands[selectedEqStage_ - kEqFirstBandStage]);
       parameter_view::syncSlider(
-        eqSliders_[i], parameter_view::eqControl(fields[i], band),
+        eqSliders_[i], control,
         isEqBandFieldFocused(fields[i]));
     }
   }

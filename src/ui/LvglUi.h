@@ -62,6 +62,8 @@ struct UiActions {
   std::function<void(const std::vector<PresetMidiBinding>&)> updateMidiBindings;
   std::function<bool(const DeviceSettings&, std::string&)> saveControlInputSettings;
   std::function<bool(const std::string&, bool)> updateBlockEnabled;
+  std::function<bool(const std::string&, EqPassFilterKind, const EqPassFilterParams&)>
+    updateEqPassFilter;
 };
 
 struct UiLaneDropTarget {
@@ -104,22 +106,20 @@ public:
       invalidate(UiChange::Parameters);
     }
   }
-  void selectEqBand(std::size_t bandIndex)
+  void selectEqStage(std::size_t stageIndex)
   {
-    selectedEqBand_ = std::min(bandIndex, kParametricEqBandCount - 1);
-    // The band editor highlights Q by default (spec 9.1) so the encoder
-    // always has a live target as soon as a band is selected, without
-    // clobbering an in-progress drag/encoder focus on another field.
-    if (!focusedEqField_) {
-      focusedEqField_ = EqBandField::Q;
-    }
+    selectedEqStage_ = std::min(stageIndex, kEqStageCount - 1);
+    focusedEqField_ = selectedEqStage_ == kEqHighPassStage || selectedEqStage_ == kEqLowPassStage
+      ? EqBandField::Frequency : EqBandField::Q;
     if (!focusedEqGraph_) {
       invalidate(UiChange::Parameters);
     }
   }
-  std::size_t selectedEqBand() const { return selectedEqBand_; }
+  std::size_t selectedEqStage() const { return selectedEqStage_; }
   bool isEqBandFieldFocused(EqBandField field) const { return focusedEqField_ == field; }
   bool updateSelectedEqBand(UiState& state, EqBandParams params, bool requestUiRefresh = true);
+  bool updateSelectedEqPassFilter(UiState& state, EqPassFilterParams params,
+                                  bool requestUiRefresh = true);
   // Graph-side drags (node/grip) mutate the model and repaint the curve
   // directly, bypassing the interaction-gated refresh() path below -- so
   // they must resync the Frequency/Q/Gain sliders themselves or those
@@ -214,7 +214,7 @@ private:
   unsigned activeInteractions_ = 0;
   std::string focusedKey_;
   std::optional<EqBandField> focusedEqField_;
-  std::size_t selectedEqBand_ = 0;
+  std::size_t selectedEqStage_ = kEqFirstBandStage;
   std::size_t parameterPage_ = 0;
   lv_obj_t* focusedControl_ = nullptr;
   lv_obj_t* focusedEqGraph_ = nullptr;
@@ -315,7 +315,7 @@ private:
   lv_obj_t* parameterBypassControl_ = nullptr;
   lv_obj_t* parameterMappingToolbar_ = nullptr;
   lv_obj_t* eqGraph_ = nullptr;
-  std::array<lv_obj_t*, kParametricEqBandCount> eqBandButtons_{};
+  std::array<lv_obj_t*, kEqStageCount> eqBandButtons_{};
   std::array<lv_obj_t*, 3> eqSliders_{};
   lv_obj_t* eqEnabledButton_ = nullptr;
   UiEventContext* eqEnabledContext_ = nullptr;
@@ -330,7 +330,7 @@ private:
     lv_obj_t* bypassControl = nullptr;
     lv_obj_t* mappingToolbar = nullptr;
     lv_obj_t* eqGraph = nullptr;
-    std::array<lv_obj_t*, kParametricEqBandCount> eqBandButtons{};
+    std::array<lv_obj_t*, kEqStageCount> eqBandButtons{};
     std::array<lv_obj_t*, 3> eqSliders{};
     lv_obj_t* eqEnabledButton = nullptr;
     UiEventContext* eqEnabledContext = nullptr;

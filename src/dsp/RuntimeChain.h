@@ -47,6 +47,8 @@ public:
   void addNoiseGate(std::string id, NoiseGateProcessor processor);
   bool addParametricEq(std::string id, const ParametricEqParams& params, float sampleRate, std::string& error);
   bool setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params);
+  bool setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,
+                                 const EqPassFilterParams& params);
   bool setDaisyParameter(const std::string& id, const std::string& key, float normalized);
   bool setCompressorParameter(const std::string& id, const std::string& key, float value);
   // Returns false (leaving outDb untouched) if `id` does not name a live
