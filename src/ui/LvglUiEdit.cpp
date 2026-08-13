@@ -283,6 +283,7 @@ void onLaneBlockReleased(lv_event_t* event)
   }
   context->ui->setChainDragActive(false);
   if (!context->dragging) return;
+  context->suppressClick = true;
   lv_indev_t* input = lv_event_get_indev(event);
   std::optional<UiLaneDropTarget> target;
   if (input) {
@@ -312,6 +313,7 @@ void onLaneBlockPressLost(lv_event_t* event)
     lv_obj_set_style_opa(context->controlledObject, enabled ? LV_OPA_COVER : LV_OPA_70, 0);
   }
   context->ui->setChainDragActive(false);
+  context->suppressClick = context->dragging;
   const bool wasDragging = context->dragging;
   clearDragVisuals(context);
   if (wasDragging) context->ui->endInteraction();
@@ -435,6 +437,17 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
     lv_obj_add_event_cb(add, onOpenLaneBlockDrawer, LV_EVENT_CLICKED, context);
     laneInsertionXs_[laneIndex].push_back(x + 21);
   };
+  const auto bindBlockDragSurface = [&](lv_obj_t* surface, lv_obj_t* controlled,
+                                        std::size_t index) {
+    auto* context = remember(state, index);
+    context->controlledObject = controlled;
+    lv_obj_add_event_cb(surface, onBlockClicked, LV_EVENT_CLICKED, context);
+    lv_obj_add_event_cb(surface, onBlockPressed, LV_EVENT_PRESSED, context);
+    lv_obj_add_event_cb(surface, onBlockPressing, LV_EVENT_PRESSING, context);
+    lv_obj_add_event_cb(surface, onBlockReleased, LV_EVENT_RELEASED, context);
+    lv_obj_add_event_cb(surface, onBlockPressLost, LV_EVENT_PRESS_LOST, context);
+    chainDragContexts_[index] = context;
+  };
   const auto dragHandle = [&](lv_obj_t* parent, lv_obj_t* controlled, std::size_t index,
                               int width = kChainHandleWidth, int height = 52,
                               const lv_font_t* font = &ardor_font_saira_cond_semibold_22) {
@@ -444,13 +457,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
     styleSurface(handle, panelAlt);
     lv_obj_set_style_pad_all(handle, 2, 0);
     setText(lv_obj_get_child(handle, 0), muted, font);
-    auto* context = remember(state, index);
-    context->controlledObject = controlled;
-    lv_obj_add_event_cb(handle, onBlockPressed, LV_EVENT_PRESSED, context);
-    lv_obj_add_event_cb(handle, onBlockPressing, LV_EVENT_PRESSING, context);
-    lv_obj_add_event_cb(handle, onBlockReleased, LV_EVENT_RELEASED, context);
-    lv_obj_add_event_cb(handle, onBlockPressLost, LV_EVENT_PRESS_LOST, context);
-    chainDragContexts_[index] = context;
+    bindBlockDragSurface(handle, controlled, index);
   };
   const auto laneEnd = [](std::size_t count) {
     return static_cast<int>(count + 1) * (kLaneInsertWidth + 8)
@@ -497,19 +504,28 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       // Bypassed blocks go to bare metal (mockup panel.html line 150): the
       // header loses its family colour rather than just dimming it.
       lv_obj_t* categoryHeader = lv_obj_create(object);
-      lv_obj_set_size(categoryHeader, LV_PCT(100), kChainHeaderHeight);
+      lv_obj_set_size(categoryHeader, kChainTileWidth, kChainHeaderHeight);
       lv_obj_set_pos(categoryHeader, 0, 0);
       styleSurface(categoryHeader, block.enabled ? catColor : rule);
       lv_obj_set_style_border_width(categoryHeader, 0, 0);
       lv_obj_set_style_pad_all(categoryHeader, 0, 0);
       lv_obj_remove_flag(categoryHeader, LV_OBJ_FLAG_SCROLLABLE);
-      lv_obj_remove_flag(categoryHeader, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_add_flag(categoryHeader, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_set_style_opa(categoryHeader, LV_OPA_70, LV_STATE_PRESSED);
 
-      lv_obj_t* categoryLabel = label(categoryHeader, uppercase(block.label), LV_ALIGN_LEFT_MID, 8, 0,
-                                      &ardor_font_saira_cond_medium_18, block.enabled ? bg : muted);
-      lv_obj_set_width(categoryLabel, kChainTileWidth - 8 - 34);
+      lv_obj_t* categoryLabel = label(categoryHeader, uppercase(block.label),
+                                      LV_ALIGN_LEFT_MID, 12, -10,
+                                      &ardor_font_saira_cond_semibold_22,
+                                      block.enabled ? bg : muted);
+      lv_obj_set_width(categoryLabel, kChainTileWidth - 24);
       lv_label_set_long_mode(categoryLabel, LV_LABEL_LONG_CLIP);
-      dragHandle(categoryHeader, object, i, 26, 18, &ardor_font_saira_cond_medium_18);
+      lv_obj_t* dragLabel = label(categoryHeader, "DRAG", LV_ALIGN_LEFT_MID, 12, 15,
+                                  &ardor_font_saira_cond_semibold_22,
+                                  block.enabled ? bg : muted);
+      lv_obj_set_style_text_letter_space(dragLabel, 3, 0);
+      lv_obj_remove_flag(categoryLabel, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_remove_flag(dragLabel, LV_OBJ_FLAG_CLICKABLE);
+      bindBlockDragSurface(categoryHeader, object, i);
 
       lv_obj_t* assetName = label(object, uppercase(block.assetName), LV_ALIGN_TOP_LEFT,
                                   kChainTextX, kChainHeaderHeight + 18,
@@ -632,42 +648,46 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
             && state.selectedBlockId == child.id;
           lv_obj_set_style_border_width(childObject, childSelected ? 3 : 1, 0);
           if (!child.enabled) lv_obj_set_style_opa(childObject, LV_OPA_70, 0);
-          // Same header-strip language as the main chain's tall cards, just
-          // scaled to the lane tile's compact footprint (kept short since the
-          // two lanes stack within a fixed vertical band).
+          // Compact lane cards keep the same interaction grammar: the entire
+          // title strip is a deliberate, finger-sized drag surface, while the
+          // body remains a tap target for editing.
           lv_obj_t* childHeader = lv_obj_create(childObject);
-          lv_obj_set_size(childHeader, LV_PCT(100), 20);
+          lv_obj_set_size(childHeader, kLaneTileWidth, kLaneHeaderHeight);
           lv_obj_set_pos(childHeader, 0, 0);
           styleSurface(childHeader, child.enabled ? categoryColor(child.type) : rule);
           lv_obj_set_style_border_width(childHeader, 0, 0);
           lv_obj_set_style_pad_all(childHeader, 0, 0);
           lv_obj_remove_flag(childHeader, LV_OBJ_FLAG_SCROLLABLE);
-          lv_obj_remove_flag(childHeader, LV_OBJ_FLAG_CLICKABLE);
-          label(childHeader, laneToken(child), LV_ALIGN_LEFT_MID, 8, 0,
-                &ardor_font_saira_cond_medium_18, child.enabled ? bg : muted);
+          lv_obj_add_flag(childHeader, LV_OBJ_FLAG_CLICKABLE);
+          lv_obj_set_style_opa(childHeader, LV_OPA_70, LV_STATE_PRESSED);
+          lv_obj_t* childTitle = label(childHeader, laneToken(child), LV_ALIGN_LEFT_MID, 12, 0,
+                                       &ardor_font_saira_cond_semibold_22,
+                                       child.enabled ? bg : muted);
+          lv_obj_t* childDragLabel = label(childHeader, "DRAG", LV_ALIGN_RIGHT_MID, -12, 0,
+                                           &ardor_font_saira_cond_semibold_22,
+                                           child.enabled ? bg : muted);
+          lv_obj_set_style_text_letter_space(childDragLabel, 2, 0);
+          lv_obj_remove_flag(childTitle, LV_OBJ_FLAG_CLICKABLE);
+          lv_obj_remove_flag(childDragLabel, LV_OBJ_FLAG_CLICKABLE);
           lv_obj_t* childAsset = label(childObject, uppercase(child.assetName), LV_ALIGN_BOTTOM_LEFT, 10, -9,
-                                       &ardor_font_saira_cond_medium_18,
+                                       &ardor_font_saira_cond_semibold_22,
                                        child.enabled ? text : disabled);
-          lv_obj_set_width(childAsset, kLaneTileWidth - 62);
+          lv_obj_set_width(childAsset, kLaneTileWidth - 20);
           lv_label_set_long_mode(childAsset, LV_LABEL_LONG_CLIP);
           auto* childClickContext = remember(state, childIndex);
           childClickContext->parentIndex = i;
           childClickContext->laneIndex = laneIndex;
           lv_obj_add_event_cb(childObject, onLaneBlockClicked, LV_EVENT_CLICKED, childClickContext);
-          lv_obj_t* childHandle = button(childObject, "||");
-          lv_obj_set_size(childHandle, 36, 44);
-          lv_obj_align(childHandle, LV_ALIGN_RIGHT_MID, -6, 0);
-          styleSurface(childHandle, panelAlt);
-          lv_obj_set_style_text_color(lv_obj_get_child(childHandle, 0), lv_color_hex(muted), 0);
           auto* childDragContext = remember(state, childIndex);
           childDragContext->parentIndex = i;
           childDragContext->laneIndex = laneIndex;
           childDragContext->controlledObject = childObject;
           childDragContext->dragText = laneToken(child) + "\n" + child.assetName;
-          lv_obj_add_event_cb(childHandle, onLaneBlockPressed, LV_EVENT_PRESSED, childDragContext);
-          lv_obj_add_event_cb(childHandle, onLaneBlockPressing, LV_EVENT_PRESSING, childDragContext);
-          lv_obj_add_event_cb(childHandle, onLaneBlockReleased, LV_EVENT_RELEASED, childDragContext);
-          lv_obj_add_event_cb(childHandle, onLaneBlockPressLost, LV_EVENT_PRESS_LOST, childDragContext);
+          lv_obj_add_event_cb(childHeader, onLaneBlockClicked, LV_EVENT_CLICKED, childDragContext);
+          lv_obj_add_event_cb(childHeader, onLaneBlockPressed, LV_EVENT_PRESSED, childDragContext);
+          lv_obj_add_event_cb(childHeader, onLaneBlockPressing, LV_EVENT_PRESSING, childDragContext);
+          lv_obj_add_event_cb(childHeader, onLaneBlockReleased, LV_EVENT_RELEASED, childDragContext);
+          lv_obj_add_event_cb(childHeader, onLaneBlockPressLost, LV_EVENT_PRESS_LOST, childDragContext);
           laneX += kLaneTileWidth + 8;
           laneInsert(laneX, laneY, i, laneIndex, childIndex + 1, laneColor,
                      block.lanes[laneIndex].size() >= kMaxEffectBlocks);
