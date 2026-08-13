@@ -1,0 +1,22 @@
+#!/bin/sh
+
+SYSTEM_ROOT=/opt/ardor-pedal/system
+ENV=/etc/ardor-managerd.env
+
+[ -r "$ENV" ] && . "$ENV"
+: "${ARDOR_SYSTEM_ROOT:=$SYSTEM_ROOT}"
+: "${ARDOR_UPDATER_EXECUTABLE:=/usr/bin/ardor-updater}"
+
+case "$1" in
+  start)
+    [ -d "$ARDOR_SYSTEM_ROOT/update" ] || exit 0
+    echo "Checking interrupted Ardor updates"
+    "$ARDOR_UPDATER_EXECUTABLE" recover "$ARDOR_SYSTEM_ROOT"
+    ;;
+  stop)
+    ;;
+  *)
+    echo "Usage: $0 {start|stop}"
+    exit 1
+    ;;
+esac

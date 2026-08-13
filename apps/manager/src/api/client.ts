@@ -9,6 +9,7 @@ import type {
   RenameAssetResponse,
   WiFiSettings,
   WiFiSettingsUpdate,
+  UpdateStatus,
 } from "./types";
 import { ArdorApiError } from "./errors";
 import type { ManagerTransport } from "./transport";
@@ -48,6 +49,22 @@ export class ArdorApiClient implements ManagerTransport {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(settings),
+    });
+  }
+
+  getUpdateStatus(): Promise<UpdateStatus> {
+    return this.request<UpdateStatus>("/api/system/update/status");
+  }
+
+  checkForUpdate(): Promise<UpdateStatus> {
+    return this.request<UpdateStatus>("/api/system/update/check", { method: "POST" });
+  }
+
+  installUpdate(version: string): Promise<UpdateStatus> {
+    return this.request<UpdateStatus>("/api/system/update/install", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ version }),
     });
   }
 

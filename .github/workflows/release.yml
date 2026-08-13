@@ -10,8 +10,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
 env:
   NODE_VERSION: '24'
+  OTA_MINIMUM_BASE_VERSION: '0.1.24'
 
 jobs:
   prepare:
@@ -151,9 +156,36 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+  device-checks:
+    name: Check device software
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: services/managerd/go.mod
+          cache-dependency-path: services/managerd/go.sum
+
+      - name: Test manager daemon and updater
+        working-directory: services/managerd
+        run: go test ./...
+
+      - name: Configure headless engine
+        run: cmake -S . -B build-release-check -DARDOR_UI_BACKEND=none -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build and test headless engine
+        run: |
+          cmake --build build-release-check --parallel 2
+          ctest --test-dir build-release-check --output-on-failure
+
   firmware:
     name: Build Raspberry Pi image
-    needs: prepare
+    needs:
+      - prepare
+      - manager-checks
+      - device-checks
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     permissions:
@@ -163,8 +195,39 @@ jobs:
       ARDOR_OUTPUT_IMAGE: ${{ github.workspace }}/.cache/firmware/ardor-pedal.img
       ARDOR_CACHED_IMAGE: ${{ github.workspace }}/.cache/firmware/ardor-pedal.img.gz
       ARDOR_RELEASE_IMAGE: ${{ github.workspace }}/artifacts/ardor-pedal-${{ needs.prepare.outputs.version }}.img.gz
+      ARDOR_OUTPUT_PAYLOAD_DIR: ${{ github.workspace }}/.cache/firmware/payload
+      ARDOR_RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      ARDOR_RELEASE_COMMIT: ${{ github.sha }}
+      ARDOR_UPDATE_PUBLIC_KEY_BASE64: ${{ vars.ARDOR_OTA_PUBLIC_KEY_BASE64 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/manager/package-lock.json
+
+      - name: Build the device-hosted Manager
+        working-directory: apps/manager
+        run: |
+          npm ci
+          npm run build:device
+
+      - name: Require OTA signing configuration
+        env:
+          OTA_PRIVATE_KEY: ${{ secrets.ARDOR_OTA_PRIVATE_KEY_BASE64 }}
+        shell: bash
+        run: |
+          test -n "$ARDOR_UPDATE_PUBLIC_KEY_BASE64" || {
+            echo '::error::Repository variable ARDOR_OTA_PUBLIC_KEY_BASE64 is required.'
+            exit 1
+          }
+          test -n "$OTA_PRIVATE_KEY" || {
+            echo '::error::Repository secret ARDOR_OTA_PRIVATE_KEY_BASE64 is required.'
+            exit 1
+          }
 
       - name: Calculate firmware input hash
         id: firmware-inputs
@@ -178,8 +241,10 @@ jobs:
               third_party \
               apps/audio-probe \
               apps/pedal-poc \
+              apps/manager \
               services/managerd \
               ':(glob,exclude)services/managerd/**/*_test.go' \
+              ':(glob,exclude)services/managerd/internal/webui/dist/**' \
               buildroot \
               scripts/build-image.sh \
               scripts/build-image-in-container.sh \
@@ -188,14 +253,19 @@ jobs:
               | sha256sum \
               | cut -d ' ' -f 1
           )
+          generated_ui_hash=$(find services/managerd/internal/webui/dist -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d ' ' -f 1)
+          firmware_hash=$(printf '%s%s' "$firmware_hash" "$generated_ui_hash" | sha256sum | cut -d ' ' -f 1)
+          firmware_hash=$(printf '%s%s' "$firmware_hash" "$ARDOR_UPDATE_PUBLIC_KEY_BASE64" | sha256sum | cut -d ' ' -f 1)
           echo "hash=$firmware_hash" >> "$GITHUB_OUTPUT"
 
       - name: Restore completed firmware image
         id: firmware-image-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .cache/firmware/ardor-pedal.img.gz
-          key: firmware-image-v1-${{ steps.firmware-inputs.outputs.hash }}
+          path: |
+            .cache/firmware/ardor-pedal.img.gz
+            .cache/firmware/payload
+          key: firmware-image-v2-${{ needs.prepare.outputs.version }}-${{ steps.firmware-inputs.outputs.hash }}
 
       - name: Cache Buildroot downloads
         if: steps.firmware-image-cache.outputs.cache-hit != 'true'
@@ -222,6 +292,43 @@ jobs:
           cp "$ARDOR_CACHED_IMAGE" "$ARDOR_RELEASE_IMAGE"
           sha256sum "$ARDOR_RELEASE_IMAGE" > "$ARDOR_RELEASE_IMAGE.sha256"
 
+      - name: Set up Go for OTA packaging
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: services/managerd/go.mod
+          cache: false
+
+      - name: Build and sign the device OTA bundle
+        working-directory: services/managerd
+        env:
+          ARDOR_OTA_PRIVATE_KEY_BASE64: ${{ secrets.ARDOR_OTA_PRIVATE_KEY_BASE64 }}
+        run: |
+          go run ./cmd/ardor-ota-tool bundle \
+            -version '${{ needs.prepare.outputs.version }}' \
+            -commit '${{ github.sha }}' \
+            -minimum-base '${{ env.OTA_MINIMUM_BASE_VERSION }}' \
+            -pedal '${{ env.ARDOR_OUTPUT_PAYLOAD_DIR }}/ardor-pedal' \
+            -managerd '${{ env.ARDOR_OUTPUT_PAYLOAD_DIR }}/ardor-managerd' \
+            -output '${{ github.workspace }}/artifacts'
+
+      - name: Validate OTA release artifacts
+        shell: bash
+        run: |
+          prefix="artifacts/ardor-device-${{ needs.prepare.outputs.version }}-linux-aarch64"
+          test -s "$prefix.tar.gz"
+          test -s "$prefix.manifest.json"
+          test -s "$prefix.manifest.sig"
+          (
+            cd services/managerd
+            go run ./cmd/ardor-ota-tool verify \
+              -bundle "../../$prefix.tar.gz" \
+              -manifest "../../$prefix.manifest.json" \
+              -signature "../../$prefix.manifest.sig"
+          )
+          file "$ARDOR_OUTPUT_PAYLOAD_DIR/ardor-pedal" | grep -q 'ELF 64-bit.*ARM aarch64'
+          file "$ARDOR_OUTPUT_PAYLOAD_DIR/ardor-managerd" | grep -q 'ELF 64-bit.*ARM aarch64'
+          file "$ARDOR_OUTPUT_PAYLOAD_DIR/ardor-updater" | grep -q 'ELF 64-bit.*ARM aarch64'
+
       - name: Upload firmware to the draft release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -231,6 +338,9 @@ jobs:
           gh release upload "$RELEASE_TAG" \
             "$ARDOR_RELEASE_IMAGE" \
             "$ARDOR_RELEASE_IMAGE.sha256" \
+            artifacts/ardor-device-${{ needs.prepare.outputs.version }}-linux-aarch64.tar.gz \
+            artifacts/ardor-device-${{ needs.prepare.outputs.version }}-linux-aarch64.manifest.json \
+            artifacts/ardor-device-${{ needs.prepare.outputs.version }}-linux-aarch64.manifest.sig \
             --clobber
 
   desktop:
@@ -316,6 +426,7 @@ jobs:
       - prepare
       - manager-checks
       - firmware
+      - device-checks
       - desktop
     runs-on: ubuntu-24.04
     permissions:

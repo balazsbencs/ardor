@@ -289,6 +289,20 @@ if [ "$telemetry_ready" = 1 ]; then
   worker_over_delta=$((worker_over_end - worker_over_start))
   nonfinite_delta=$((nonfinite_end - nonfinite_start))
   mismatch_delta=$((mismatch_end - mismatch_start))
+  counters_reset=0
+  if [ "$callback_delta" -lt 0 ] || [ "$over_delta" -lt 0 ] \
+      || [ "$gap_delta" -lt 0 ] || [ "$worker_over_delta" -lt 0 ] \
+      || [ "$nonfinite_delta" -lt 0 ] || [ "$mismatch_delta" -lt 0 ]; then
+    echo "  INVALID: telemetry counters reset during the sample"
+    telemetry_failures=1
+    callback_delta=0
+    over_delta=0
+    gap_delta=0
+    worker_over_delta=0
+    nonfinite_delta=0
+    mismatch_delta=0
+    counters_reset=1
+  fi
   average_budget_percent=$(awk -v average="$average_ms" -v budget="$budget_ms" \
     'BEGIN {
       if (budget > 0) printf "%.6f\n", average * 100.0 / budget
@@ -303,7 +317,7 @@ if [ "$telemetry_ready" = 1 ]; then
   printf "  DSP faults:      nonfinite=%s block_mismatch=%s bypassed=%s\n" \
     "$nonfinite_delta" "$mismatch_delta" "$bypassed"
 
-  if [ "$over_delta" -gt 0 ] || [ "$gap_delta" -gt 0 ] \
+  if [ "$counters_reset" -ne 0 ] || [ "$over_delta" -gt 0 ] || [ "$gap_delta" -gt 0 ] \
       || [ "$worker_over_delta" -gt 0 ] || [ "$nonfinite_delta" -gt 0 ] \
       || [ "$mismatch_delta" -gt 0 ] || [ "$bypassed" -ne 0 ]; then
     echo "  AUDIO HEALTH: FAIL"

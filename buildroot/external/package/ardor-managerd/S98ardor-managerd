@@ -15,16 +15,31 @@ ENV=/etc/ardor-managerd.env
 : "${ARDOR_MDNS:=on}"
 : "${ARDOR_WIFI_INTERFACE:=wlan0}"
 : "${ARDOR_WIFI_CONTROL_SCRIPT:=/etc/init.d/S42wifi}"
+: "${ARDOR_SYSTEM_ROOT:=/opt/ardor-pedal/system}"
+: "${ARDOR_BASE_RELEASE_METADATA:=/etc/ardor-release.json}"
+: "${ARDOR_UPDATE_PUBLIC_KEY:=/etc/ardor-update.pub}"
+: "${ARDOR_UPDATER_EXECUTABLE:=/usr/bin/ardor-updater}"
+
+MANAGERD_BIN=/usr/bin/ardor-managerd
+if [ -x "$ARDOR_SYSTEM_ROOT/current/bin/ardor-managerd" ]; then
+  MANAGERD_BIN="$ARDOR_SYSTEM_ROOT/current/bin/ardor-managerd"
+  ARDOR_RELEASE_MANIFEST="$ARDOR_SYSTEM_ROOT/current/manifest.json"
+else
+  ARDOR_RELEASE_MANIFEST=
+fi
 
 export ARDOR_DATA_ROOT ARDOR_API_BIND ARDOR_API_PORT ARDOR_API_AUTH
 export ARDOR_CLOUD_ENABLED ARDOR_CLOUD_URL ARDOR_CLOUD_REMOTE_MUTATIONS
 export ARDOR_MDNS
 export ARDOR_WIFI_INTERFACE ARDOR_WIFI_CONTROL_SCRIPT
+export ARDOR_SYSTEM_ROOT ARDOR_BASE_RELEASE_METADATA ARDOR_UPDATE_PUBLIC_KEY
+export ARDOR_UPDATER_EXECUTABLE
+export ARDOR_RELEASE_MANIFEST
 
 case "$1" in
   start)
     echo "Starting ardor-managerd"
-    start-stop-daemon -S -b -m -p "$PID" --exec /usr/bin/ardor-managerd
+    start-stop-daemon -S -b -m -p "$PID" --exec "$MANAGERD_BIN"
     ;;
   stop)
     echo "Stopping ardor-managerd"

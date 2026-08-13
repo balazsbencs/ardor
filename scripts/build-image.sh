@@ -39,7 +39,21 @@ command -v docker >/dev/null 2>&1 || die "Docker is required"
 volume=${ARDOR_BUILDROOT_VOLUME:-$BUILDROOT_DOCKER_VOLUME}
 image=${ARDOR_DOCKER_IMAGE:-ubuntu:24.04}
 output=${ARDOR_OUTPUT_IMAGE:-$repo_dir/sdcard.img}
+payload_output=${ARDOR_OUTPUT_PAYLOAD_DIR:-}
 download_dir=${ARDOR_BUILDROOT_DL_DIR:-}
+release_version=${ARDOR_RELEASE_VERSION:-0.0.0}
+release_commit=${ARDOR_RELEASE_COMMIT:-$(git -C "$repo_dir" rev-parse HEAD 2>/dev/null || echo unknown)}
+update_public_key=${ARDOR_UPDATE_PUBLIC_KEY_BASE64:-}
+
+case "$release_version" in
+  *[!0-9.]*|.*|*.|*..*|*.*.*.*) die "ARDOR_RELEASE_VERSION must be a numeric x.y.z version" ;;
+  *.*.*) ;;
+  *) die "ARDOR_RELEASE_VERSION must be a numeric x.y.z version" ;;
+esac
+case "$release_commit" in
+  unknown|[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]*) ;;
+  *) die "ARDOR_RELEASE_COMMIT must be a hexadecimal Git commit or unknown" ;;
+esac
 
 if [ -z "${ARDOR_BUILD_JOBS:-}" ]; then
   if command -v sysctl >/dev/null 2>&1 &&
@@ -103,10 +117,12 @@ fi
 docker volume create "$volume" >/dev/null
 
 staging="$repo_dir/.ardor-sdcard.img.$$.tmp"
+payload_staging="$repo_dir/.ardor-ota-payload.$$.tmp"
 output_dir=$(dirname -- "$output")
 output_tmp="$output.tmp.$$"
 rm -f "$staging" "$output_tmp"
-trap 'rm -f "$staging" "$output_tmp"' EXIT HUP INT TERM
+rm -rf "$payload_staging"
+trap 'rm -f "$staging" "$output_tmp"; rm -rf "$payload_staging"' EXIT HUP INT TERM
 
 set -- docker run --rm \
   -v "$volume:/buildroot" \
@@ -116,7 +132,24 @@ set -- docker run --rm \
   -e ARDOR_BUILD_JOBS="$jobs" \
   -e ARDOR_HOST_UID="$(id -u)" \
   -e ARDOR_HOST_GID="$(id -g)" \
+  -e ARDOR_RELEASE_VERSION="$release_version" \
+  -e ARDOR_RELEASE_COMMIT="$release_commit" \
   -e ARDOR_STAGING_IMAGE="/ardor/$(basename -- "$staging")"
+
+if [ -n "$payload_output" ]; then
+  case "$payload_output" in
+    /*) ;;
+    *) payload_output="$repo_dir/$payload_output" ;;
+  esac
+  [ "$payload_output" != "/" ] || die "ARDOR_OUTPUT_PAYLOAD_DIR cannot be /"
+  [ "$payload_output" != "$repo_dir" ] || die "ARDOR_OUTPUT_PAYLOAD_DIR cannot be the repository root"
+  [ ! -e "$payload_output" ] || die "ARDOR_OUTPUT_PAYLOAD_DIR already exists: $payload_output"
+  set -- "$@" -e ARDOR_STAGING_PAYLOAD_DIR="/ardor/$(basename -- "$payload_staging")"
+fi
+
+if [ -n "$update_public_key" ]; then
+  set -- "$@" -e ARDOR_UPDATE_PUBLIC_KEY_BASE64="$update_public_key"
+fi
 
 if [ -n "$download_dir" ]; then
   set -- "$@" \
@@ -136,6 +169,14 @@ fi
 mkdir -p "$output_dir"
 mv "$staging" "$output_tmp"
 mv "$output_tmp" "$output"
+
+if [ -n "$payload_output" ]; then
+  [ -x "$payload_staging/ardor-pedal" ] || die "container did not export ardor-pedal"
+  [ -x "$payload_staging/ardor-managerd" ] || die "container did not export ardor-managerd"
+  [ -x "$payload_staging/ardor-updater" ] || die "container did not export ardor-updater"
+  mkdir -p "$(dirname -- "$payload_output")"
+  mv "$payload_staging" "$payload_output"
+fi
 
 echo "Built Ardor image with Buildroot $BUILDROOT_VERSION"
 echo "Image: $output"

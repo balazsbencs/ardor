@@ -143,4 +143,20 @@ describe("ArdorApiClient", () => {
       body: '{"ssid":"Stage Network","password":"pedal-secret","country":"HU"}',
     }));
   });
+
+  it("checks and installs an exact signed device release", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      state: "available", enabled: true, installedVersion: "0.1.23",
+      baseVersion: "0.1.24", updaterVersion: "1.0.0",
+      available: { version: "0.1.24", tag: "v0.1.24", releaseUrl: "https://github.test/release", bundleSize: 4096, reflashRequired: false },
+    })));
+    const client = new ArdorApiClient({ baseUrl: "http://pedal", fetchImpl: fetchMock });
+
+    await expect(client.checkForUpdate()).resolves.toMatchObject({ state: "available" });
+    await expect(client.installUpdate("0.1.24")).resolves.toMatchObject({ enabled: true });
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "http://pedal/api/system/update/check", expect.objectContaining({ method: "POST" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "http://pedal/api/system/update/install", expect.objectContaining({
+      method: "POST", body: '{"version":"0.1.24"}',
+    }));
+  });
 });

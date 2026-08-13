@@ -29,6 +29,12 @@ ENV=/etc/ardor-pedal.env
 : "${EXPRESSION_SMOOTHING:=0.25}"
 : "${EXPRESSION_DEADBAND:=0.002}"
 : "${UI:=1}"
+: "${ARDOR_SYSTEM_ROOT:=/opt/ardor-pedal/system}"
+
+PEDAL_BIN=/usr/bin/ardor-pedal
+if [ -x "$ARDOR_SYSTEM_ROOT/current/bin/ardor-pedal" ]; then
+  PEDAL_BIN="$ARDOR_SYSTEM_ROOT/current/bin/ardor-pedal"
+fi
 
 control_args=""
 for dev in $CONTROL_DEVICES; do
@@ -77,7 +83,7 @@ run_supervised() {
         32|64|128) current_block_size="$saved_block_size" ;;
       esac
     fi
-    /usr/bin/ardor-pedal \
+    "$PEDAL_BIN" \
       --realtime $ui_arg \
       --data-root "$DATA_ROOT" \
       --bank "$BANK" \

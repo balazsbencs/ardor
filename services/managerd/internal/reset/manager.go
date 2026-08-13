@@ -222,7 +222,10 @@ func (manager *Manager) applyFactoryLocked(now time.Time) error {
 		return err
 	}
 	for _, entry := range entries {
-		if entry.Name() == "identity" {
+		// Identity is retained for audit/device ownership and system contains the
+		// active and rollback OTA releases. A factory reset removes user content
+		// and credentials; it must not silently downgrade installed software.
+		if entry.Name() == "identity" || entry.Name() == "system" {
 			continue
 		}
 		if err := os.RemoveAll(filepath.Join(manager.dataRoot, entry.Name())); err != nil {
