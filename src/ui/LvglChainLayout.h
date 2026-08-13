@@ -20,17 +20,18 @@ inline constexpr int kChainRightRailY = 330;
 inline constexpr int kChainStartX = 24;
 inline constexpr int kChainTerminalWidth = 92;
 inline constexpr int kChainJunctionWidth = 132;
-// 168x326 (24 px category header + 302 px body) matches the mockup's tall
-// engraved module card (mockups/lvgl-redesign/panel.html .blkm/.hd/.bd) 1:1 --
-// panel.html's .scr is a 1280x720 canvas, the same px scale as kDesignWidth.
+// Tall module cards keep a compact footprint on the horizontal signal chain,
+// but their full-width 64 px headers are dedicated drag surfaces. That clears
+// the 44 px touchscreen floor with room for both the category and the action.
 inline constexpr int kChainTileHeight = 326;
 inline constexpr int kChainTileWidth = 168;
-inline constexpr int kChainHeaderHeight = 24;
+inline constexpr int kChainHeaderHeight = 64;
 inline constexpr int kChainHandleWidth = 48;
 inline constexpr int kChainInsertWidth = 52;
 inline constexpr int kChainGap = 14;
 inline constexpr int kLaneTileWidth = 200;
 inline constexpr int kLaneTileHeight = 92;
+inline constexpr int kLaneHeaderHeight = 52;
 inline constexpr int kLaneInsertWidth = 48;
 inline constexpr int kChainSlotWidth = kChainTileWidth + kChainInsertWidth + 2 * kChainGap;
 inline constexpr int kChainTileTop = kChainRailY - kChainTileHeight / 2;

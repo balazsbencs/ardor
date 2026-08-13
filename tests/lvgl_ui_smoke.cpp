@@ -606,7 +606,7 @@ int main()
   lv_obj_t* rightRigLane = findLabel(lv_screen_active(), "RIGHT");
   lv_obj_t* leftOnlyEffect = findLabel(lv_screen_active(), "CHO");
   lv_obj_t* rightOnlyEffect = findLabel(lv_screen_active(), "DLY");
-  lv_obj_t* laneDragHandle = findLabel(lv_screen_active(), "||");
+  lv_obj_t* laneDragHandle = findLabel(lv_screen_active(), "DRAG");
   lv_obj_t* splitDragHandle = splitJunction
     ? findLabel(lv_obj_get_parent(splitJunction), "|||") : nullptr;
   lv_area_t splitLabelArea{};
@@ -649,8 +649,18 @@ int main()
   if (require(lv_obj_get_width(leftOnlyEffectTile) == 200
                 && lv_obj_get_height(leftOnlyEffectTile) == 92,
               "Dual Rig effects should leave room for readable titles")) return 1;
-  if (require(lv_obj_get_width(lv_obj_get_parent(laneDragHandle)) == 36,
-              "Dual Rig effects should retain compact lane drag handles")) return 1;
+  if (require(lv_obj_get_width(lv_obj_get_parent(laneDragHandle)) == 200
+                && lv_obj_get_height(lv_obj_get_parent(laneDragHandle)) == 52,
+              "Dual Rig effects should use their full title bar as a touch drag target")) return 1;
+  lv_obj_t* dualRigChain = findObjectWithSizeAndBgColor(
+    lv_screen_active(), lv_color_hex(0x212528), 1240, 492);
+  lv_obj_t* laneDragSurface = lv_obj_get_parent(laneDragHandle);
+  lv_obj_send_event(laneDragSurface, LV_EVENT_PRESSED, nullptr);
+  if (require(dualRigChain && !lv_obj_has_flag(dualRigChain, LV_OBJ_FLAG_SCROLLABLE),
+              "pressing a lane title bar should give drag ownership over chain scrolling")) return 1;
+  lv_obj_send_event(laneDragSurface, LV_EVENT_RELEASED, nullptr);
+  if (require(lv_obj_has_flag(dualRigChain, LV_OBJ_FLAG_SCROLLABLE),
+              "releasing a lane title bar should restore chain scrolling")) return 1;
 
   lv_obj_send_event(lv_obj_get_parent(lv_obj_get_parent(rightOnlyEffect)), LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), dualRigState);
@@ -881,11 +891,11 @@ int main()
               "selection-only chain updates should retain existing card objects")) return 1;
   if (require(lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE),
               "the signal canvas should scroll independently of dedicated drag handles")) return 1;
-  lv_obj_t* dragHandleLabel = findLabel(chain, "|||");
+  lv_obj_t* dragHandleLabel = findLabel(chain, "DRAG");
   if (require(dragHandleLabel
-                && lv_obj_get_width(lv_obj_get_parent(dragHandleLabel)) == 26
-                && lv_obj_get_height(lv_obj_get_parent(dragHandleLabel)) == 18,
-              "chain blocks should expose a dedicated drag handle")) return 1;
+                && lv_obj_get_width(lv_obj_get_parent(dragHandleLabel)) == 168
+                && lv_obj_get_height(lv_obj_get_parent(dragHandleLabel)) == 64,
+              "chain blocks should use the full title bar as a touch drag target")) return 1;
   lv_obj_t* dragHandle = lv_obj_get_parent(dragHandleLabel);
   lv_obj_send_event(dragHandle, LV_EVENT_PRESSED, nullptr);
   if (require(!lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE)
@@ -900,7 +910,7 @@ int main()
   lv_obj_t* firstCardAssetLabel = findLabel(firstChainBlock,
       upper(state.bank.presets[state.activePreset].blocks.front().assetName).c_str());
   lv_obj_t* firstBypassedLabel = findLabel(firstChainBlock, "BYPASSED");
-  lv_obj_t* firstDragHandle = findLabel(firstChainBlock, "|||");
+  lv_obj_t* firstDragHandle = findLabel(firstChainBlock, "DRAG");
   if (require(firstCategoryLabel && firstCardAssetLabel && firstBypassedLabel && firstDragHandle,
               "disabled chain card should render all text rows and its drag handle")) return 1;
   lv_area_t firstCategoryArea{};
@@ -910,15 +920,14 @@ int main()
   lv_obj_get_coords(firstCategoryLabel, &firstCategoryArea);
   lv_obj_get_coords(firstCardAssetLabel, &firstAssetArea);
   lv_obj_get_coords(firstBypassedLabel, &firstBypassedArea);
-  lv_obj_get_coords(lv_obj_get_parent(firstDragHandle), &firstDragHandleArea);
+  lv_obj_get_coords(firstDragHandle, &firstDragHandleArea);
   if (require(firstCategoryArea.y2 < firstAssetArea.y1
                 && firstAssetArea.y2 < firstBypassedArea.y1,
               "chain-card category, asset, and bypass labels should occupy separate rows")) return 1;
-  // Only the header row shares space with the drag handle now; the asset
-  // name and bypass status sit in the body below it and may use the card's
-  // full width, per the mockup's tall-card layout.
-  if (require(firstCategoryArea.x2 < firstDragHandleArea.x1,
-              "the chain-card header label should stay clear of the drag handle")) return 1;
+  // The large drag surface stacks its category and action into separate rows;
+  // the asset name and bypass status continue in the card body below it.
+  if (require(firstCategoryArea.y2 < firstDragHandleArea.y1,
+              "the chain-card header should separate its category and drag instruction")) return 1;
   // The instructional hint text was retired: the bottom rail's Input/Output
   // jump controls now sit in a tighter band, and the circular patch points
   // plus drag handles are self-evident per the redesign's lettering-first,

@@ -365,8 +365,11 @@ family ticks (26 × 3 px rule above each label). Live tile: border and header ta
 numeral takes `lamp`.
 
 ### 8.5 Block card (edit screen)
-150–168 px wide, 24 px family-coloured header, body ≥ 250 px with name, readout, and a
-3-segment group rule. States: normal, selected (`engrave` border), bypassed (`plate3` body,
+150–168 px wide, 64 px family-coloured header, body ≥ 250 px with name, readout, and a
+3-segment group rule. The full header is a labeled `DRAG` surface rather than containing a
+small grip; its 64 px height is deliberate for reliable touchscreen acquisition. A tap on
+either header or body still opens the block. Compact Dual Rig lane cards use the same pattern
+with a 52 px header. States: normal, selected (`engrave` border), bypassed (`plate3` body,
 `rule` header, `engrave_off` text).
 
 ### 8.6 Patch point
@@ -881,9 +884,11 @@ Touches `LvglUiEdit.cpp`, `LvglChainLayout.cpp`, `LvglUiDrawer.cpp`, `LvglUiDrag
 `LvglUiChainInteraction.cpp`.
 
 **5a. Block cards.** Replace the current card build in `LvglUiEdit.cpp:460-500` with
-`blockCard()`. Family colour moves from the left accent bar (`:470, 498`) to the 24 px header
-strip — **delete the left bar**; a coloured left border above 1 px is banned by the design
-system.
+`blockCard()`. Family colour moves from the left accent bar (`:470, 498`) to the 64 px,
+full-width drag header — **delete the left bar**; a coloured left border above 1 px is banned
+by the design system. Dual Rig lane cards use a 52 px version. The entire header owns drag,
+with a movement threshold suppressing the subsequent click; a stationary tap still opens the
+block.
 
 **5b. Lane colours.** `LvglUiEdit.cpp:207` and `:564` use `laneIndex == 0 ? accent : rigRight`.
 Becomes `laneL` / `laneR`. This is the only place lane identity is expressed, so it is a
