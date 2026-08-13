@@ -118,13 +118,14 @@ float reverbOutputGain(pedal::ReverbModeId mode) noexcept
   switch (mode) {
     case pedal::ReverbModeId::Room:      return 2.5f;  // +8.0 dB
     case pedal::ReverbModeId::Hall:      return 3.125f; // +9.9 dB
-    case pedal::ReverbModeId::Spring:    return 0.85f; // -1.4 dB headroom
-    case pedal::ReverbModeId::Bloom:     return 4.0f;  // +12 dB
+    case pedal::ReverbModeId::Spring:    return 1.5f;  // +3.5 dB
+    case pedal::ReverbModeId::Bloom:     return 12.0f; // +21.6 dB
     case pedal::ReverbModeId::Cloud:     return 1.25f; // +1.9 dB
     case pedal::ReverbModeId::Shimmer:   return 2.5f;  // +8.0 dB
-    case pedal::ReverbModeId::Chorale:   return 4.0f;  // +12 dB
-    case pedal::ReverbModeId::Nonlinear: return 2.0f;  // +6.0 dB
-    case pedal::ReverbModeId::Swell:     return 4.0f;  // +12 dB
+    case pedal::ReverbModeId::Chorale:   return 16.0f; // +24 dB
+    case pedal::ReverbModeId::Nonlinear: return 3.0f;  // +9.5 dB
+    case pedal::ReverbModeId::Swell:     return 6.3f;  // +16 dB
+    case pedal::ReverbModeId::Magneto:   return 1.4f;  // +2.9 dB
     default:                             return 1.0f;
   }
 }
@@ -249,20 +250,25 @@ struct DaisyFxProcessor::Impl {
       delayParams.mod_spd = mappedDelayParam(target(P2), delayId, pedal::delay_fx::ParamId::ModSpd);
       delayParams.mod_dep = mappedDelayParam(target(Level), delayId, pedal::delay_fx::ParamId::ModDep);
     } else if (kind == Kind::Reverb) {
+      const float interval = static_cast<float>(controlInterval()) / kHostedDaisySampleRate;
+      const float coefficient = 1.0f - std::exp(-interval / kFeedbackSmoothingSeconds);
+      const auto smooth = [this, coefficient](float& current, float target) {
+        if (!controlSmoothingSeeded) current = target;
+        else current += coefficient * (target - current);
+      };
       const float targetDecay = mappedReverbParam(target(Speed), reverbId, pedal::reverb_fx::ParamId::Decay);
-      if (!controlSmoothingSeeded) {
-        reverbParams.decay = targetDecay;
-      } else {
-        const float interval = static_cast<float>(controlInterval()) / kHostedDaisySampleRate;
-        const float coefficient = 1.0f - std::exp(-interval / kFeedbackSmoothingSeconds);
-        reverbParams.decay += coefficient * (targetDecay - reverbParams.decay);
-      }
-      reverbParams.pre_delay = mappedReverbParam(target(Depth), reverbId, pedal::reverb_fx::ParamId::PreDelay);
+      smooth(reverbParams.decay, targetDecay);
+      smooth(reverbParams.pre_delay,
+             mappedReverbParam(target(Depth), reverbId, pedal::reverb_fx::ParamId::PreDelay));
       reverbParams.mix = mappedReverbParam(target(Mix), reverbId, pedal::reverb_fx::ParamId::Mix);
-      reverbParams.tone = mappedReverbParam(target(Tone), reverbId, pedal::reverb_fx::ParamId::Tone);
-      reverbParams.mod = mappedReverbParam(target(P1), reverbId, pedal::reverb_fx::ParamId::Mod);
-      reverbParams.param1 = mappedReverbParam(target(P2), reverbId, pedal::reverb_fx::ParamId::Param1);
-      reverbParams.param2 = mappedReverbParam(target(Level), reverbId, pedal::reverb_fx::ParamId::Param2);
+      smooth(reverbParams.tone,
+             mappedReverbParam(target(Tone), reverbId, pedal::reverb_fx::ParamId::Tone));
+      smooth(reverbParams.mod,
+             mappedReverbParam(target(P1), reverbId, pedal::reverb_fx::ParamId::Mod));
+      smooth(reverbParams.param1,
+             mappedReverbParam(target(P2), reverbId, pedal::reverb_fx::ParamId::Param1));
+      smooth(reverbParams.param2,
+             mappedReverbParam(target(Level), reverbId, pedal::reverb_fx::ParamId::Param2));
     }
     controlSmoothingSeeded = true;
   }

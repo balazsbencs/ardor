@@ -58,6 +58,8 @@ void SpringReverb::Init() {
     active_springs_ = 1;
     spring_gain_[0] = 1.0f;
     spring_gain_[1] = spring_gain_[2] = 0.0f;
+    for (auto& state : pickup_state_) state = 0.0f;
+    for (auto& previous : input_previous_) previous = 0.0f;
     for (auto& fb : comb_fb_) fb = 0.8f;
     for (auto& makeup : comb_makeup_) makeup = 0.6f;
 
@@ -91,6 +93,8 @@ void SpringReverb::Reset() {
     active_springs_ = 1;
     spring_gain_[0] = 1.0f;
     spring_gain_[1] = spring_gain_[2] = 0.0f;
+    for (auto& state : pickup_state_) state = 0.0f;
+    for (auto& previous : input_previous_) previous = 0.0f;
     spring_lfo_[0].Reset();
     spring_lfo_[1].Reset();
     spring_lfo_[2].Reset();
@@ -109,7 +113,9 @@ void SpringReverb::Prepare(const ParamSet& params) {
         2140.0f / REVERB_SAMPLE_RATE,
         2260.0f / REVERB_SAMPLE_RATE,
     };
-    const float decay = params.decay < 0.01f ? 0.01f : params.decay;
+    // The dispersive allpass/pickup path loses energy in addition to the comb
+    // loop. Compensate so broadband decay follows the displayed spring time.
+    const float decay = params.decay < 0.01f ? 0.01f : params.decay * 2.0f;
     for (int sp = 0; sp < 3; ++sp) {
         const float nominal_fb = std::exp(-6.9078f * kCombDelayS[sp] / decay);
         comb_fb_[sp] = hold_ ? 1.0f : nominal_fb;
@@ -129,6 +135,10 @@ void SpringReverb::Prepare(const ParamSet& params) {
     // SetDrive(x) sets drive_ = 1 + x*x*15 (quadratic), so x = sqrt((desired_drive - 1) / 15)
     const float desired_drive = std::exp(params.param1 * 3.0f * 0.693147f); // 2^(3*p1)
     sat_.SetDrive(sqrtf((desired_drive - 1.0f) * (1.0f / 15.0f)));
+    // Dwell also controls the short high-frequency launch transient that
+    // produces a spring tank's characteristic splash/drip.
+    drip_amount_ = 0.12f + params.param1 * 0.38f;
+    pickup_coefficient_ = 0.18f + params.tone * 0.52f;
 
     tone_[0].SetKnob(params.tone);
     tone_[1].SetKnob(params.tone);
@@ -173,9 +183,12 @@ StereoFrame SpringReverb::Process(StereoFrame input, const ParamSet& params) {
 
         // A complementary input matrix gives the one-spring setting access to
         // both channels and retains stereo side energy as paths are added.
-        const float source = sp == 0 ? 0.75f * delayed.left + 0.25f * delayed.right
-                           : sp == 1 ? 0.25f * delayed.left + 0.75f * delayed.right
+        float source = sp == 0 ? 0.85f * delayed.left + 0.15f * delayed.right
+                     : sp == 1 ? 0.15f * delayed.left + 0.85f * delayed.right
                                      : 0.5f * (delayed.left + delayed.right);
+        const float launch_transient = source - input_previous_[sp];
+        input_previous_[sp] = source;
+        source += launch_transient * drip_amount_;
         float s = sat_.Process(source);
         for (int st = 0; st < 5; ++st) {
             s = ap_[sp][st].Process(s, kApG[st]);
@@ -184,12 +197,16 @@ StereoFrame SpringReverb::Process(StereoFrame input, const ParamSet& params) {
         const float lfo_val   = spring_lfo_[sp].Process();
         const float mod_delay = static_cast<float>(ap_delays[5]) + lfo_val * mod_depth_;
         s = ap_[sp][5].ProcessMod(s, kApG[5], mod_delay);
-        const float c = comb_[sp].Process(s) * comb_makeup_[sp];
+        const float resonator = comb_[sp].Process(s) * comb_makeup_[sp];
+        pickup_state_[sp] += pickup_coefficient_ * (resonator - pickup_state_[sp]);
+        // Blend direct wire vibration with a lossier pickup response. The
+        // slightly different paths reduce static comb coloration.
+        const float c = 0.65f * resonator + 0.35f * pickup_state_[sp];
         // Alternate L/R per spring
         const float gain = spring_gain_[sp];
-        if (sp == 0)      { out_l += c * gain; out_r += c * gain * 0.7f; }
-        else if (sp == 1) { out_l += c * gain * 0.6f; out_r += c * gain; }
-        else              { out_l += c * gain * 0.8f; out_r += c * gain * 0.8f; }
+        if (sp == 0)      { out_l += c * gain; out_r += c * gain * 0.15f; }
+        else if (sp == 1) { out_l += c * gain * 0.12f; out_r += c * gain; }
+        else              { out_l += c * gain * 0.65f; out_r -= c * gain * 0.65f; }
     }
 
     const float scale = gain_sum > 0.0001f ? 1.0f / gain_sum : 1.0f;

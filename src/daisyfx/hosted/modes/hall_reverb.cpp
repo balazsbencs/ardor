@@ -58,6 +58,8 @@ void HallReverb::Init() {
     fdn_cfg.bufs[5]     = buf_fdn6_;  fdn_cfg.delays[5] = 3221;
     fdn_cfg.bufs[6]     = buf_fdn3_;  fdn_cfg.delays[6] = 3499;
     fdn_cfg.bufs[7]     = buf_fdn7_;  fdn_cfg.delays[7] = 3907;
+    const size_t fdn_sizes[8] = {3307, 3663, 4159, 4787, 5903, 6443, 6997, 7815};
+    for (int i = 0; i < 8; ++i) fdn_cfg.buffer_sizes[i] = fdn_sizes[i];
     fdn_.Init(fdn_cfg);
     fdn_.SetDecay(3.0f);
     fdn_.SetDamping(0.25f);
@@ -83,9 +85,10 @@ void HallReverb::Prepare(const ParamSet& params) {
     const float rounded = (delay_samples < 1.0f ? 1.0f : delay_samples) + 0.5f;
     pre_delay_l_.SetDelay(static_cast<float>(static_cast<size_t>(rounded)));
     pre_delay_r_.SetDelay(static_cast<float>(static_cast<size_t>(rounded)));
-    fdn_.SetDecay(params.decay);
+    const float calibrated_decay = params.decay * 1.14f;
+    fdn_.SetDecay(calibrated_decay);
     // tone: 0=dark (HF RT60 = 30% of LF), 1=bright (HF RT60 = LF, uniform decay)
-    fdn_.SetDampFromRt60Ratio(params.decay, 0.30f + params.tone * 0.70f);
+    fdn_.SetDampFromRt60Ratio(calibrated_decay, 0.30f + params.tone * 0.70f);
     fdn_.SetModulation(params.mod * 8.0f);
     // Param1 controls pre-diffusion density (0 = minimal, 1 = maximum)
     diffuser_l_.SetDiffusion(0.35f + params.param1 * 0.45f);

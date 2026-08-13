@@ -13,7 +13,7 @@ void SwellReverb::Init() {
     pre_delay_l_.SetDelay(1.0f);
     pre_delay_r_.SetDelay(1.0f);
 
-    Fdn::Config fdn_cfg;
+    Fdn::Config fdn_cfg{};
     fdn_cfg.n_lines     = 4;
     fdn_cfg.sample_rate = REVERB_SAMPLE_RATE;
     fdn_cfg.bufs[0]     = buf_fdn0_;

@@ -357,7 +357,7 @@ std::string formatReverb(std::string_view mode, std::string_view key, float norm
     return mode == "magneto" ? percent(physical) : milliseconds(physical * 1000.0f);
   }
   if (key == "mix") return percent(normalized);
-  if (key == "tone") return tone(normalized, 24000.0f);
+  if (key == "tone") return tone(normalized, mode == "plate" ? 48000.0f : 24000.0f);
   if (key == "mod") {
     if (mode == "plate") return frequency(0.3f + normalized * 1.7f);
     if (mode == "magneto") return percent(0.4f + normalized * 0.4f);

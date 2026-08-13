@@ -30,7 +30,8 @@ void MagnetoReverb::Init() {
 
     n_heads_ = 4;
     golden_spacing_ = false;
-    for (auto& h : head_delays_) h = 0.0f;
+    for (auto& h : head_delays_l_) h = 0.0f;
+    for (auto& h : head_delays_r_) h = 0.0f;
     fb_lp_l_ = 0.0f;
     fb_lp_r_ = 0.0f;
     golden_spacing_ = false;
@@ -74,16 +75,22 @@ void MagnetoReverb::Prepare(const ParamSet& params) {
     if (!golden_spacing_) {
         // Even spacing
         for (int i = 0; i < n_heads_; ++i) {
-            head_delays_[i] = period * (float)(i + 1) / (float)n_heads_;
+            head_delays_l_[i] = period * (float)(i + 1) / (float)n_heads_;
         }
     } else {
         // Golden-ratio uneven spacing
         static constexpr float kPhi = 0.618033988f;
         float d = period * kPhi;
         for (int i = 0; i < n_heads_; ++i) {
-            head_delays_[i] = d < 1.0f ? 1.0f : d;
+            head_delays_l_[i] = d < 1.0f ? 1.0f : d;
             d *= kPhi;
         }
+    }
+
+    static constexpr float kRightRatios[6] = {1.017f, 0.983f, 1.029f, 0.971f, 1.041f, 0.959f};
+    for (int i = 0; i < n_heads_; ++i) {
+        head_delays_r_[i] = std::clamp(head_delays_l_[i] * kRightRatios[i], 2.0f,
+                                      static_cast<float>(kMainDelaySize - 3));
     }
 
     diffuser_l_.SetDiffusion(0.4f + params.mod * 0.4f);
@@ -103,8 +110,8 @@ StereoFrame MagnetoReverb::Process(StereoFrame input, const ParamSet& params) {
     float fb_sum_l = 0.0f, fb_sum_r = 0.0f;
 
     for (int i = 0; i < n_heads_; ++i) {
-        const float tap_l = delay_l_.ReadLinear(head_delays_[i]);
-        const float tap_r = delay_r_.ReadLinear(head_delays_[i]);
+        const float tap_l = delay_l_.ReadLinear(head_delays_l_[i]);
+        const float tap_r = delay_r_.ReadLinear(head_delays_r_[i]);
         fb_sum_l += tap_l;
         fb_sum_r += tap_r;
         if ((i & 1) == 0) { l_even += tap_l; r_even += tap_r; }
@@ -114,8 +121,10 @@ StereoFrame MagnetoReverb::Process(StereoFrame input, const ParamSet& params) {
     // Mirror the right-input head field to retain the source stereo image.
     float left  = l_even + r_odd;
     float right = l_odd + r_even;
-    left  = left  * 0.5f + diffuser_l_.Process(0.5f * (l_even + l_odd)) * 0.5f;
-    right = right * 0.5f + diffuser_r_.Process(0.5f * (r_even + r_odd)) * 0.5f;
+    const float diffuse_l = diffuser_l_.Process(0.5f * (l_even + l_odd));
+    const float diffuse_r = diffuser_r_.Process(0.5f * (r_even + r_odd));
+    left  = left  * 0.50f + diffuse_l * 0.40f + diffuse_r * 0.10f;
+    right = right * 0.50f + diffuse_r * 0.40f - diffuse_l * 0.10f;
 
     // Scale L/R symmetrically if heads are unbalanced
     const float l_heads = (float)((n_heads_ + 1) / 2);
@@ -131,8 +140,8 @@ StereoFrame MagnetoReverb::Process(StereoFrame input, const ParamSet& params) {
     const float fb_in_r = fb_sum_r / static_cast<float>(n_heads_);
     fb_lp_l_ += 0.4f * (fb_in_l - fb_lp_l_);
     fb_lp_r_ += 0.4f * (fb_in_r - fb_lp_r_);
-    delay_l_.Write(input.left + fb * fb_lp_l_);
-    delay_r_.Write(input.right + fb * fb_lp_r_);
+    delay_l_.Write(input.left  + fb * (0.78f * fb_lp_l_ + 0.22f * fb_lp_r_));
+    delay_r_.Write(input.right + fb * (0.78f * fb_lp_r_ + 0.22f * fb_lp_l_));
 
     return StereoFrame{tone_[0].Process(left), tone_[1].Process(right)};
 }

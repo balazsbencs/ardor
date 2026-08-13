@@ -35,7 +35,7 @@ void CloudReverb::Init() {
     diffuser1_l_.SetDiffusion(0.7f);
     diffuser1_r_.SetDiffusion(0.7f);
 
-    Fdn::Config fdn_cfg;
+    Fdn::Config fdn_cfg{};
     fdn_cfg.n_lines     = 4;
     fdn_cfg.sample_rate = REVERB_SAMPLE_RATE;
     fdn_cfg.bufs[0]     = buf_fdn0_;   fdn_cfg.delays[0] = 2401;

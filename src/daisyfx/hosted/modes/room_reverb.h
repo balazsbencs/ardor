@@ -32,13 +32,13 @@ private:
     float buf_diff_r2_[Diffuser::kDelays[2] + 1];
     float buf_diff_r3_[Diffuser::kDelays[3] + 1];
     float buf_fdn0_[1907];
-    float buf_fdn4_[1109];
+    float buf_fdn4_[2219];
     float buf_fdn1_[2593];
-    float buf_fdn5_[1489];
+    float buf_fdn5_[2979];
     float buf_fdn2_[3697];
-    float buf_fdn6_[2063];
+    float buf_fdn6_[4127];
     float buf_fdn3_[4799];
-    float buf_fdn7_[2731];
+    float buf_fdn7_[5463];
     DelayLineSdram pre_delay_l_;
     DelayLineSdram pre_delay_r_;
     EarlyReflections er_l_;

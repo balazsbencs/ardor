@@ -24,10 +24,18 @@ void Fdn::Init(const Config& cfg) {
     sample_rate_ = cfg.sample_rate > 0.0f ? cfg.sample_rate : 48000.0f;
 
     for (int i = 0; i < n_lines_; ++i) {
-        lines_[i].Init(cfg.bufs[i], cfg.delays[i]);
-        const float max_delay = static_cast<float>(cfg.delays[i]) - 2.0f - MAX_MOD_DEPTH_SAMPLES;
-        const float delay_samples = max_delay > 2.0f ? max_delay : 2.0f;
+        const bool explicit_capacity = cfg.buffer_sizes[i] > cfg.delays[i] + 3U;
+        const size_t buffer_size = explicit_capacity ? cfg.buffer_sizes[i] : cfg.delays[i];
+        lines_[i].Init(cfg.bufs[i], buffer_size);
+        const float max_delay = static_cast<float>(buffer_size) - 3.0f - MAX_MOD_DEPTH_SAMPLES;
+        const float requested_delay = explicit_capacity
+            ? static_cast<float>(cfg.delays[i])
+            : static_cast<float>(cfg.delays[i]) - 2.0f - MAX_MOD_DEPTH_SAMPLES;
+        const float delay_samples = requested_delay > 2.0f ? std::min(requested_delay, max_delay) : 2.0f;
         lines_[i].SetDelay(delay_samples);
+        nominal_delay_samples_[i] = delay_samples;
+        configured_delay_samples_[i] = delay_samples;
+        max_delay_samples_[i] = max_delay;
         delay_samples_[i]    = delay_samples;
         modulated_delay_[i]  = delay_samples_[i];
         modulated_delay_step_[i] = 0.0f;
@@ -37,6 +45,21 @@ void Fdn::Init(const Config& cfg) {
         feedback_[i]  = 0.7f;  // reasonable default
         dc_[i].Init(sample_rate_);
     }
+}
+
+void Fdn::SetSize(float scale) {
+    if (!std::isfinite(scale)) scale = 1.0f;
+    scale = scale < 0.5f ? 0.5f : (scale > 1.75f ? 1.75f : scale);
+    if (scale == last_size_) return;
+    last_size_ = scale;
+    for (int i = 0; i < n_lines_; ++i) {
+        delay_samples_[i] = std::min(nominal_delay_samples_[i] * scale, max_delay_samples_[i]);
+        delay_s_[i] = delay_samples_[i] / sample_rate_;
+    }
+    // Geometry changes alter the per-loop distance, so recompute both decay
+    // gain and damping on the next control update.
+    last_decay_s_ = -1.0f;
+    last_rt60_lf_s_ = -1.0f;
 }
 
 void Fdn::Reset() {
@@ -128,7 +151,9 @@ void Fdn::readModulatedDelays(float v[MAX_LINES]) {
         // whenever modulation is fully settled at that base tap; retain it
         // for active modulation and the one-block transition back to zero.
         const float delta = modulated_delay_[i] - delay_samples_[i];
-        if (mod_depth_ == 0.0f && delta > -0.001f && delta < 0.001f) {
+        const float configured_delta = delay_samples_[i] - configured_delay_samples_[i];
+        if (mod_depth_ == 0.0f && delta > -0.001f && delta < 0.001f
+            && configured_delta > -0.001f && configured_delta < 0.001f) {
             v[i] = lines_[i].Read();
         } else {
             v[i] = lines_[i].ReadLinear(modulated_delay_[i]);

@@ -26,7 +26,8 @@ private:
     ToneFilter     tone_[2];
     int            n_heads_        = 4;
     bool           golden_spacing_ = false;
-    float          head_delays_[6]{};
+    float          head_delays_l_[6]{};
+    float          head_delays_r_[6]{};
     float          fb_lp_l_ = 0.0f;
     float          fb_lp_r_ = 0.0f;
 

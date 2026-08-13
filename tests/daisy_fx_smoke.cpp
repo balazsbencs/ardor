@@ -68,6 +68,7 @@ double controlResponseDifference(const std::string& blockType, const std::string
 struct ReverbSpatialMetrics {
   double correlation = 1.0;
   double density100To200 = 0.0;
+  double density200To500 = 0.0;
 };
 
 ReverbSpatialMetrics reverbSpatialMetrics(const std::string& mode)
@@ -97,16 +98,42 @@ ReverbSpatialMetrics reverbSpatialMetrics(const std::string& mode)
   }
 
   std::size_t active = 0;
+  std::size_t lateActive = 0;
   const double threshold = peak * 0.0001;
   for (std::size_t frame = 4800; frame < 9600; ++frame) {
     if (std::max(std::fabs(response[frame].left), std::fabs(response[frame].right)) > threshold) {
       ++active;
     }
   }
+  for (std::size_t frame = 9600; frame < 24000; ++frame) {
+    if (std::max(std::fabs(response[frame].left), std::fabs(response[frame].right)) > threshold) {
+      ++lateActive;
+    }
+  }
   return {
     sumCross / std::sqrt(std::max(sumLeft * sumRight, 1e-24)),
     static_cast<double>(active) / 4800.0,
+    static_cast<double>(lateActive) / 14400.0,
   };
+}
+
+std::size_t firstReverbArrival(const std::string& mode, float param1)
+{
+  const auto* descriptor = ardor::findDaisyFxDescriptor("reverb", mode);
+  require(descriptor != nullptr, mode + " arrival descriptor exists");
+  auto params = ardor::defaultDaisyFxParams(*descriptor);
+  params["mix"] = 1.0f;
+  params["pre_delay"] = 0.0f;
+  params["param1"] = param1;
+  ardor::DaisyFxProcessor processor;
+  std::string error;
+  require(processor.configure("reverb", params, 48000.0f, error), error);
+  for (std::size_t frame = 0; frame < 4096; ++frame) {
+    const float impulse = frame == 0 ? 1.0f : 0.0f;
+    const auto output = processor.process({impulse, impulse});
+    if (std::max(std::fabs(output.left), std::fabs(output.right)) > 1e-5f) return frame;
+  }
+  return 4096;
 }
 
 } // namespace
@@ -589,6 +616,8 @@ int main()
           "room reverb must retain a dense, decorrelated stereo field");
   require(std::fabs(hallSpatial.correlation) < 0.70 && hallSpatial.density100To200 > 0.90,
           "hall reverb must retain a dense, decorrelated stereo field");
+  require(firstReverbArrival("room", 1.0f) > firstReverbArrival("room", 0.0f) + 100U,
+          "room Size must scale physical reflection geometry");
 
   nlohmann::json cloudParams = reverbParams;
   cloudParams["mode"] = "cloud";
@@ -677,6 +706,10 @@ int main()
                                     std::max(std::fabs(sample.left), std::fabs(sample.right)));
   }
   require(antiPhaseMagnetoPeak > 0.0001f, "magneto reverb must preserve anti-phase stereo content");
+  const auto magnetoSpatial = reverbSpatialMetrics("magneto");
+  require(std::fabs(magnetoSpatial.correlation) < 0.65
+              && magnetoSpatial.density200To500 > 0.75,
+          "magneto reverb must produce a decorrelated multi-head field");
 
   nlohmann::json springParams = reverbParams;
   springParams["mode"] = "spring";
@@ -702,6 +735,9 @@ int main()
   }
   require(rightOnlySpringPeak > 0.0001f,
           "one-spring reverb must respond to a right-only source");
+  const auto springSpatial = reverbSpatialMetrics("spring");
+  require(std::fabs(springSpatial.correlation) < 0.65 && springSpatial.density100To200 > 0.95,
+          "spring reverb must produce a dense, decorrelated pickup field");
 
   nlohmann::json plateParams = reverbParams;
   plateParams["mode"] = "plate";

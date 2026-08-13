@@ -58,6 +58,10 @@ private:
     float              comb_fb_[3]{};
     float              comb_makeup_[3]{};
     float              spring_gain_[3]{1.0f, 0.0f, 0.0f};
+    float              pickup_state_[3]{};
+    float              input_previous_[3]{};
+    float              drip_amount_ = 0.25f;
+    float              pickup_coefficient_ = 0.35f;
     int                active_springs_ = 1;
 };
 

@@ -43,6 +43,35 @@ void renderAutomation(ardor::DaisyFxProcessor& processor, const std::string& lab
   }
 }
 
+void verifyReverbAutomationContinuity(const ardor::DaisyFxDescriptor& descriptor,
+                                      const std::string& key)
+{
+  auto params = ardor::defaultDaisyFxParams(descriptor);
+  params["mix"] = 1.0f;
+  params[key] = 0.0f;
+  ardor::DaisyFxProcessor processor;
+  std::string error;
+  require(processor.configure("reverb", params, 48000.0f, error), descriptor.mode + ": " + error);
+
+  ardor::StereoSample previous{};
+  for (int frame = 0; frame < 12000; ++frame) {
+    previous = processor.process(inputAt(frame));
+  }
+  require(processor.setParameterTarget(key, 1.0f), descriptor.mode + " must automate " + key);
+
+  float maximumStep = 0.0f;
+  for (int frame = 12000; frame < 18000; ++frame) {
+    const auto output = processor.process(inputAt(frame));
+    require(std::isfinite(output.left) && std::isfinite(output.right),
+            descriptor.mode + "/" + key + " smoothed automation must remain finite");
+    maximumStep = std::max(maximumStep, std::fabs(output.left - previous.left));
+    maximumStep = std::max(maximumStep, std::fabs(output.right - previous.right));
+    previous = output;
+  }
+  require(maximumStep < 0.75f,
+          descriptor.mode + "/" + key + " automation must not create an audible-scale tap step");
+}
+
 } // namespace
 
 int main()
@@ -58,6 +87,9 @@ int main()
       renderAutomation(processor, descriptor.mode + "/" + param.key + " low", frame);
       require(processor.setParameterTarget(param.key, 1.0f), descriptor.mode + " must accept " + param.key);
       renderAutomation(processor, descriptor.mode + "/" + param.key + " high", frame);
+      if (descriptor.blockType == "reverb" && param.key != "mix") {
+        verifyReverbAutomationContinuity(descriptor, param.key);
+      }
     }
   }
 }

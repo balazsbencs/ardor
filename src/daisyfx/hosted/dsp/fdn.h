@@ -19,6 +19,9 @@ public:
         // bufs[i]: caller-owned float array with at least delays[i] elements.
         // Indices >= n_lines must be nullptr (unused lines are not touched).
         float* bufs[MAX_LINES];
+        // Optional actual buffer capacities. Zero preserves the legacy
+        // fixed-delay behavior where delays[i] is also the accessible size.
+        size_t buffer_sizes[MAX_LINES];
         // delays[i]: delay length in samples; must be >= 1 for active lines.
         // Minimum buffer size for line i: delays[i] * sizeof(float) bytes.
         // Indices >= n_lines must be 0.
@@ -31,6 +34,10 @@ public:
 
     // Sets per-line feedback gains for the target RT60 decay time.
     void SetDecay(float decay_s);
+
+    // Scale the physical delay geometry around each configured nominal line.
+    // Tap movement is ramped by PrepareBlock(), avoiding discontinuities.
+    void SetSize(float scale);
 
     // One-pole LP coefficient in feedback path (1=bright/bypass, lower=more damping).
     void SetDamping(float damp);
@@ -60,6 +67,9 @@ private:
     DelayLineSdram lines_[MAX_LINES];
     DcBlocker      dc_[MAX_LINES];               // per-line DC blocker in feedback path
     float          delay_s_[MAX_LINES]{};        // per-line delay in seconds
+    float          nominal_delay_samples_[MAX_LINES]{};
+    float          configured_delay_samples_[MAX_LINES]{};
+    float          max_delay_samples_[MAX_LINES]{};
     float          delay_samples_[MAX_LINES]{};  // per-line delay in samples (for modulated ReadAt)
     float          feedback_[MAX_LINES]{};       // nominal feedback gains
     float          lp_state_[MAX_LINES]{};       // one-pole LP state
@@ -69,6 +79,7 @@ private:
     float          damp_        = 0.3f;
     float          mod_depth_   = 0.0f;
     float          last_decay_s_ = -1.0f;
+    float          last_size_ = 1.0f;
     float          last_rt60_lf_s_ = -1.0f;
     float          last_hf_ratio_ = -1.0f;
     float          last_mod_depth_ = -1.0f;

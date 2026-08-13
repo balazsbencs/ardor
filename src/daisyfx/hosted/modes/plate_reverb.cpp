@@ -112,8 +112,9 @@ void PlateReverb::Prepare(const ParamSet& params) {
     if (pre_delay_samp_ >= 24000) pre_delay_samp_ = 23999;
 
     // RT60 → feedback coefficient
+    const float calibrated_decay = params.decay * 0.90f;
     decay_ = hold_ ? 1.0f
-                   : std::min(0.97f, std::exp(-6.9078f * kAvgTankSec / params.decay));
+                   : std::min(0.97f, std::exp(-6.9078f * kAvgTankSec / calibrated_decay));
 
     // One-pole LP coefficient: tone=0 → dark (0.90), tone=1 → bright (0.05)
     lp_coef_ = std::sqrt(0.90f - params.tone * 0.85f);

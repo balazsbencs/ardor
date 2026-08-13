@@ -1,5 +1,6 @@
 #include "room_reverb.h"
 #include "../config/constants.h"
+#include <cmath>
 
 using namespace pedal::reverb_fx;
 
@@ -68,6 +69,8 @@ void RoomReverb::Init() {
     fdn_cfg.bufs[5]     = buf_fdn6_;  fdn_cfg.delays[5] = 2063;
     fdn_cfg.bufs[6]     = buf_fdn3_;  fdn_cfg.delays[6] = 2400;
     fdn_cfg.bufs[7]     = buf_fdn7_;  fdn_cfg.delays[7] = 2731;
+    const size_t fdn_sizes[8] = {1907, 2219, 2593, 2979, 3697, 4127, 4799, 5463};
+    for (int i = 0; i < 8; ++i) fdn_cfg.buffer_sizes[i] = fdn_sizes[i];
     fdn_.Init(fdn_cfg);
     fdn_.SetDecay(2.0f);
     fdn_.SetDamping(0.3f);
@@ -89,8 +92,11 @@ void RoomReverb::Prepare(const ParamSet& params) {
     const float rounded = (delay_samples < 1.0f ? 1.0f : delay_samples) + 0.5f;
     pre_delay_l_.SetDelay(static_cast<float>(static_cast<size_t>(rounded)));
     pre_delay_r_.SetDelay(static_cast<float>(static_cast<size_t>(rounded)));
-    fdn_.SetDecay(params.decay);
-    fdn_.SetDampFromRt60Ratio(params.decay, 0.30f + params.tone * 0.70f);
+    const float size_scale = 0.65f + params.param1 * 0.70f;
+    fdn_.SetSize(size_scale);
+    const float calibrated_decay = params.decay * 1.34f;
+    fdn_.SetDecay(calibrated_decay);
+    fdn_.SetDampFromRt60Ratio(calibrated_decay, 0.30f + params.tone * 0.70f);
     fdn_.SetModulation(params.mod * 8.0f);
     diffuser_l_.SetDiffusion(params.param2);
     diffuser_r_.SetDiffusion(params.param2);
@@ -98,6 +104,17 @@ void RoomReverb::Prepare(const ParamSet& params) {
     // keeps the current delay topology stable while making Size musically
     // useful and preserving the former 40/60 balance at the centre setting.
     early_mix_ = 0.60f - params.param1 * 0.40f;
+
+    ErTap taps_l[8];
+    ErTap taps_r[8];
+    for (int i = 0; i < 8; ++i) {
+        taps_l[i] = kErTaps[i];
+        taps_r[i] = kErTapsMirrored[i];
+        taps_l[i].delay_samples = static_cast<uint16_t>(std::lround(kErTaps[i].delay_samples * size_scale));
+        taps_r[i].delay_samples = static_cast<uint16_t>(std::lround(kErTapsMirrored[i].delay_samples * size_scale));
+    }
+    er_l_.SetTaps(taps_l, 8);
+    er_r_.SetTaps(taps_r, 8);
     fdn_.PrepareBlock();
 }
 

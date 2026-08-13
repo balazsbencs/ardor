@@ -25,7 +25,7 @@ void BloomReverb::Init() {
     diffuser_l_.SetDiffusion(0.65f);
     diffuser_r_.SetDiffusion(0.65f);
 
-    Fdn::Config fdn_cfg;
+    Fdn::Config fdn_cfg{};
     fdn_cfg.n_lines     = 4;
     fdn_cfg.sample_rate = REVERB_SAMPLE_RATE;
     fdn_cfg.bufs[0]     = buf_fdn0_;
