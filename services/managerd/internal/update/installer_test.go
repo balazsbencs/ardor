@@ -40,10 +40,38 @@ func TestExtractBundleRequiresExactSignedFiles(t *testing.T) {
 
 func TestExtractBundleRejectsUnexpectedEntry(t *testing.T) {
 	manifest := validManifest()
-	bundle := filepath.Join(t.TempDir(), "bundle.tar.gz")
-	writeTestBundle(t, bundle, map[string][]byte{"../escape": []byte("bad")})
-	if err := extractBundle(bundle, filepath.Join(t.TempDir(), "release"), manifest); err == nil {
-		t.Fatal("unexpected traversal entry was accepted")
+	for _, name := range []string{"../escape", "bin/../../escape", "/tmp/escape", `bin\..\escape`} {
+		t.Run(name, func(t *testing.T) {
+			root := t.TempDir()
+			bundle := filepath.Join(root, "bundle.tar.gz")
+			writeTestBundle(t, bundle, map[string][]byte{name: []byte("bad")})
+			destination := filepath.Join(root, "release")
+			if err := extractBundle(bundle, destination, manifest); err == nil {
+				t.Fatal("unexpected traversal entry was accepted")
+			}
+			if _, err := os.Stat(filepath.Join(root, "escape")); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("archive entry wrote outside destination: %v", err)
+			}
+		})
+	}
+}
+
+func TestExtractBundleContainsPathsEvenWithUnsafeManifestInput(t *testing.T) {
+	root := t.TempDir()
+	contents := []byte("bad")
+	digest := sha256.Sum256(contents)
+	manifest := validManifest()
+	manifest.Files[0] = ManifestFile{
+		Path: "../escape", Size: int64(len(contents)), Mode: 0o755,
+		SHA256: hex.EncodeToString(digest[:]),
+	}
+	bundle := filepath.Join(root, "bundle.tar.gz")
+	writeTestBundle(t, bundle, map[string][]byte{"../escape": contents})
+	if err := extractBundle(bundle, filepath.Join(root, "release"), manifest); err == nil {
+		t.Fatal("unsafe signed path was accepted")
+	}
+	if _, err := os.Stat(filepath.Join(root, "escape")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("archive entry wrote outside destination: %v", err)
 	}
 }
 
