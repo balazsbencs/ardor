@@ -2,12 +2,21 @@
 
 All notable changes are generated from Conventional Commit messages.
 
-## [0.1.24](https://github.com/balazsbencs/ardor/compare/v0.1.23...v0.1.24) (2026-08-13)
+## [0.1.25](https://github.com/balazsbencs/ardor/compare/v0.1.23...v0.1.25) (2026-08-13)
 
 ### Features
 
 * add NAM benchmarking and latency tools ([939be18](https://github.com/balazsbencs/ardor/commit/939be18954327ae313c0bcd70a7298c7d16666c3))
 * add NAM benchmarking and latency tools ([3337fae](https://github.com/balazsbencs/ardor/commit/3337fae86e056f2f9e0cf511c56cdd21c9b33306))
+* **eq:** add high-pass and low-pass filters ([462a93d](https://github.com/balazsbencs/ardor/commit/462a93db0670aacc184ca84bf7de5b8188fb7b0a))
+* **eq:** add selectable pass-filter slopes ([dbfed93](https://github.com/balazsbencs/ardor/commit/dbfed935fd6c56c402eb3fc41efe8470c4a3cab4))
+* ota upgrades with github releases ([4c30392](https://github.com/balazsbencs/ardor/commit/4c3039288453e3371470fab66192d24e282ebe1d))
+* **ui:** make block headers full-width drag surfaces ([6cb0463](https://github.com/balazsbencs/ardor/commit/6cb04635bbae5740945ba527a7939e475044e230))
+* **ui:** redesign preset cards for at-a-glance readability ([4872e71](https://github.com/balazsbencs/ardor/commit/4872e7146ff8210a6f9470d31bb4154c97198926))
+
+### Bug Fixes
+
+* codeql issue fix ([be19676](https://github.com/balazsbencs/ardor/commit/be1967678c1208856cfbcd374c7f12a91f107892))
 
 ## [0.1.23](https://github.com/balazsbencs/ardor/compare/v0.1.20...v0.1.23) (2026-08-12)
 
