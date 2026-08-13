@@ -37,7 +37,7 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
   const dirty = isEditorDirty(editor);
   const selected = findPresetBlock(present.blocks, editor.selectedBlockId);
   const expressionTargets = useMemo(() => present.blocks.flatMap((block) => {
-    if (!["mod", "delay", "reverb", "dynamics", "cab"].includes(block.type)) return [];
+    if (!["mod", "delay", "reverb", "dynamics", "cab", "wah"].includes(block.type)) return [];
     const definition = findEffectDefinition(block);
     const parameters = definition?.controls.flatMap((control) =>
       control.kind === "number" ? [control] : [],

@@ -12,6 +12,7 @@ rm -rf "${DATA_SEED}"
 mkdir -p "${DATA_SEED}/presets/bank-000"
 mkdir -p "${DATA_SEED}/models"
 mkdir -p "${DATA_SEED}/irs"
+mkdir -p "${DATA_SEED}/assets/wah"
 mkdir -p "${DATA_SEED}/wifi"
 
 for slot in 0 1 2 3; do
@@ -21,6 +22,8 @@ done
 cp "${BOARD_DIR}/../../package/ardor-pedal/README-assets.txt" \
    "${DATA_SEED}/README-assets.txt"
 cp "${BOARD_DIR}/wifi/README.txt" "${DATA_SEED}/wifi/README.txt"
+cp "${BOARD_DIR}/../../../../assets/wah/gcb95.wahtable" \
+   "${DATA_SEED}/assets/wah/gcb95.wahtable"
 
 # A build may supply a WPA configuration as a read-only Docker secret. Put it
 # only on the writable data partition, never in the Git tree or root filesystem.

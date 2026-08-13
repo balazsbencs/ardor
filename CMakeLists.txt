@@ -161,6 +161,19 @@ target_sources(ardor_equalizer PRIVATE
   src/equalizer/ParametricEqProcessor.cpp
 )
 
+add_library(ardor_wah
+  src/wah/WahNetlist.cpp
+  src/wah/WahDk.cpp
+  src/wah/WahTable.cpp
+  src/wah/WahCircuit.cpp
+  src/wah/WahProcessor.cpp
+)
+target_include_directories(ardor_wah PUBLIC
+  src
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies
+)
+target_compile_features(ardor_wah PUBLIC cxx_std_20)
+
 add_library(ardor_dsp OBJECT
   src/dsp/DualAmpProcessor.cpp
   src/dsp/DualRigProcessor.cpp
@@ -179,22 +192,10 @@ target_include_directories(ardor_dsp PUBLIC
 )
 target_compile_features(ardor_dsp PUBLIC cxx_std_20)
 target_compile_definitions(ardor_dsp PRIVATE NAM_ENABLE_A2_FAST NAM_SAMPLE_FLOAT)
-target_link_libraries(ardor_dsp PUBLIC ardor_daisyfx ardor_dynamics ardor_equalizer)
+target_link_libraries(ardor_dsp PUBLIC ardor_daisyfx ardor_dynamics ardor_equalizer ardor_wah)
 if(UNIX AND NOT APPLE)
   target_link_libraries(ardor_dsp PUBLIC stdc++fs)
 endif()
-
-add_library(ardor_wah
-  src/wah/WahNetlist.cpp
-  src/wah/WahDk.cpp
-  src/wah/WahTable.cpp
-  src/wah/WahCircuit.cpp
-)
-target_include_directories(ardor_wah PUBLIC
-  src
-  ${neuralampmodelercore_SOURCE_DIR}/Dependencies
-)
-target_compile_features(ardor_wah PUBLIC cxx_std_20)
 
 add_library(ardor_preset
   src/preset/Preset.cpp
@@ -377,6 +378,10 @@ target_link_libraries(pedal-wah-table-smoke PRIVATE ardor_wah)
 add_executable(pedal-wah-circuit-smoke tests/wah_circuit_smoke.cpp)
 target_link_libraries(pedal-wah-circuit-smoke PRIVATE ardor_wah)
 
+add_executable(pedal-wah-processor-smoke tests/wah_processor_smoke.cpp)
+target_link_libraries(pedal-wah-processor-smoke PRIVATE ardor_dsp)
+target_compile_definitions(pedal-wah-processor-smoke PRIVATE ARDOR_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
 add_executable(pedal-compressor-smoke tests/compressor_smoke.cpp)
 target_link_libraries(pedal-compressor-smoke PRIVATE ardor_dynamics)
 
@@ -461,6 +466,7 @@ add_test(NAME pedal-wah-dk-smoke COMMAND pedal-wah-dk-smoke)
 add_test(NAME pedal-wah-table-smoke COMMAND pedal-wah-table-smoke)
 add_test(NAME pedal-wah-circuit-smoke COMMAND pedal-wah-circuit-smoke)
 set_tests_properties(pedal-wah-circuit-smoke PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+add_test(NAME pedal-wah-processor-smoke COMMAND pedal-wah-processor-smoke)
 add_test(NAME pedal-compressor-smoke COMMAND pedal-compressor-smoke)
 add_test(NAME pedal-noise-gate-smoke COMMAND pedal-noise-gate-smoke)
 add_test(NAME pedal-parametric-eq-smoke COMMAND pedal-parametric-eq-smoke)

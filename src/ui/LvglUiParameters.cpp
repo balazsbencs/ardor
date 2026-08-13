@@ -197,6 +197,16 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
           }
         }
       }
+      if (actions_.updateWahParameter && state.paramTarget == UiParamTarget::Block) {
+        if (const auto* selected = selectedUiBlock(state)) {
+          const auto& block = *selected;
+          if (block.type == "wah" && block.params.contains(control.key)
+              && block.params[control.key].is_number()) {
+            liveUpdateSucceeded = actions_.updateWahParameter(
+              block.id, control.key, block.params[control.key].get<float>());
+          }
+        }
+      }
       if (state.paramTarget == UiParamTarget::Block) {
         if (const auto* selected = selectedUiBlock(state)) {
           const auto& block = *selected;

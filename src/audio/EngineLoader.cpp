@@ -9,6 +9,7 @@
 #include "dynamics/CompressorProcessor.h"
 #include "dynamics/NoiseGateProcessor.h"
 #include "equalizer/EqParameters.h"
+#include "wah/WahProcessor.h"
 
 #include <cmath>
 #include <exception>
@@ -320,6 +321,15 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       }
       continue;
     }
+    if (block.type == "wah") {
+      WahProcessor processor;
+      if (!processor.configure(block.params, static_cast<float>(options.sampleRate),
+                               block.assetPath, error)) {
+        return false;
+      }
+      chain.addWah(block.id, std::move(processor));
+      continue;
+    }
     error = "unsupported block in dual rig lane: " + block.id;
     return false;
   }
@@ -607,6 +617,14 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
     }
     if (block.type == "eq") {
       if (!engine.addParametricEq(block.id, block.params, static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
+      engine.setBlockEnabled(block.id, block.enabled);
+      continue;
+    }
+    if (block.type == "wah") {
+      if (!engine.addWah(block.id, block.params, static_cast<float>(options.sampleRate),
+                         block.assetPath, error)) {
         return false;
       }
       engine.setBlockEnabled(block.id, block.enabled);

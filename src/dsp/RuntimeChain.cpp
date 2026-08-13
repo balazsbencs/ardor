@@ -54,6 +54,7 @@ struct RuntimeChain::Block {
     Compressor,
     NoiseGate,
     Equalizer,
+    Wah,
     DualAmp,
     DualRig
   };
@@ -66,6 +67,7 @@ struct RuntimeChain::Block {
   std::unique_ptr<CompressorProcessor> compressor;
   std::unique_ptr<NoiseGateProcessor> noiseGate;
   std::unique_ptr<ParametricEqProcessor> equalizer;
+  std::unique_ptr<WahProcessor> wah;
   std::unique_ptr<DualAmpProcessor> dualAmp;
   std::unique_ptr<DualRigProcessor> dualRig;
   std::unique_ptr<LevelState> meter = std::make_unique<LevelState>();
@@ -261,6 +263,27 @@ bool RuntimeChain::setNoiseGateParameter(const std::string& id, const std::strin
   return false;
 }
 
+void RuntimeChain::addWah(std::string id, WahProcessor processor)
+{
+  Block block;
+  block.kind = Block::Kind::Wah;
+  block.id = std::move(id);
+  block.wah = std::make_unique<WahProcessor>(std::move(processor));
+  blocks_.push_back(std::move(block));
+}
+
+bool RuntimeChain::setWahParameter(const std::string& id, const std::string& key, float value)
+{
+  for (auto& block : blocks_) {
+    if (block.kind == Block::Kind::Wah && block.id == id) {
+      return block.wah->setParameterTarget(key, value);
+    }
+    if (block.kind == Block::Kind::DualRig
+        && block.dualRig->setWahParameter(id, key, value)) return true;
+  }
+  return false;
+}
+
 bool RuntimeChain::setBlockEnabled(const std::string& id, bool enabled)
 {
   for (auto& block : blocks_) {
@@ -351,6 +374,9 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
       break;
     case Block::Kind::Equalizer:
       block.equalizer->process(current.left, current.right);
+      break;
+    case Block::Kind::Wah:
+      current = block.wah->process(current);
       break;
     case Block::Kind::DualAmp:
       block.dualAmp->process(current.left, current.right, current.left, current.right);
@@ -453,6 +479,14 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       block.equalizer->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);
       currentIsStereo = true;
       break;
+    case Block::Kind::Wah:
+      for (size_t i = 0; i < frames; ++i) {
+        const auto processed = block.wah->process({currentLeft[i], currentRight[i]});
+        nextLeft[i] = processed.left;
+        nextRight[i] = processed.right;
+      }
+      currentIsStereo = false;
+      break;
     case Block::Kind::DualAmp:
       block.dualAmp->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);
       currentIsStereo = true;
@@ -554,6 +588,9 @@ std::vector<ClipStageSnapshot> RuntimeChain::takeClipDiagnostics()
     case Block::Kind::Equalizer:
       kind = SignalStageKind::Equalizer;
       break;
+    case Block::Kind::Wah:
+      kind = SignalStageKind::Wah;
+      break;
     case Block::Kind::DualAmp:
       kind = SignalStageKind::DualAmp;
       break;
@@ -586,6 +623,9 @@ void RuntimeChain::reset()
     }
     if (block.equalizer) {
       block.equalizer->reset();
+    }
+    if (block.wah) {
+      block.wah->reset();
     }
     if (block.dualAmp) {
       block.dualAmp->reset();

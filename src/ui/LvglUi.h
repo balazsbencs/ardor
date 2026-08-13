@@ -47,6 +47,7 @@ struct UiActions {
   std::function<bool(const std::string&, const std::string&, float)> updateDaisyParameter;
   std::function<bool(const std::string&, const std::string&, float)> updateCompressorParameter;
   std::function<bool(const std::string&, const std::string&, float)> updateNoiseGateParameter;
+  std::function<bool(const std::string&, const std::string&, float)> updateWahParameter;
   std::function<void(float, float)> updateGlobalGains;
   std::function<void(float, float)> updateCabParameters;
   std::function<void(int)> changeBank;

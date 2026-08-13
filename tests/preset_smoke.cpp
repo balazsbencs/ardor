@@ -393,8 +393,25 @@ int main()
     std::filesystem::remove_all(dataRoot);
     std::filesystem::create_directories(dataRoot / "models");
     std::filesystem::create_directories(dataRoot / "irs");
+    std::filesystem::create_directories(dataRoot / "assets/wah");
     std::ofstream(dataRoot / "models/ok.nam").put('\n');
     std::ofstream(dataRoot / "irs/ok.wav").put('\n');
+    std::ofstream(dataRoot / "assets/wah/gcb95.wahtable").put('\n');
+
+    ardor::Preset wahPlanPreset;
+    wahPlanPreset.name = "Wah";
+    wahPlanPreset.blocks.push_back({"wah-1", "wah", true, "",
+                                    {{"mode", "gcb95"}, {"position", 0.0f}, {"level", 0.0f}}, {}});
+    const auto wahPlan = ardor::buildChainPlan(wahPlanPreset, dataRoot);
+    require(wahPlan.blocks.size() == 1
+              && wahPlan.blocks[0].status == ardor::ChainBlockStatus::Ready,
+            "GCB-95 wah should plan as a runnable built-in block");
+    require(wahPlan.blocks[0].assetPath == dataRoot / "assets/wah/gcb95.wahtable",
+            "wah should resolve its packaged circuit table");
+    wahPlanPreset.blocks[0].params["mode"] = "unknown";
+    require(ardor::buildChainPlan(wahPlanPreset, dataRoot).blocks[0].status
+              == ardor::ChainBlockStatus::Unsupported,
+            "unknown wah modes should remain unsupported");
 
     ardor::Preset chainPreset;
     chainPreset.global.inputGainDb = -6.0f;

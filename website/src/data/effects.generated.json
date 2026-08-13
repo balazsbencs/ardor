@@ -39,7 +39,8 @@
     "utility": [
       "dynamics:compressor",
       "dynamics:noise_gate",
-      "eq:parametric_eq_5"
+      "eq:parametric_eq_5",
+      "wah:gcb95"
     ],
     "modulation": [
       "mod:chorus",
@@ -538,7 +539,7 @@
     {
       "id": "eq:parametric_eq_5",
       "name": "Five Band Parametric EQ",
-      "description": "Five fully parametric equalizer bands.",
+      "description": "High-pass and low-pass filters with selectable slopes around five fully parametric bands.",
       "category": "utility",
       "blockType": "eq",
       "mode": "parametric_eq_5",
@@ -549,6 +550,37 @@
           "label": "parametric-eq-5",
           "kind": "parametric-eq-5",
           "unit": ""
+        }
+      ]
+    },
+    {
+      "id": "wah:gcb95",
+      "name": "GCB-95 Wah",
+      "description": "Circuit-modelled expression wah based on the classic GCB-95.",
+      "category": "utility",
+      "blockType": "wah",
+      "mode": "gcb95",
+      "maxEnabledInGroup": null,
+      "controls": [
+        {
+          "key": "position",
+          "label": "Position",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "dB",
+          "min": -24,
+          "max": 24,
+          "step": 1,
+          "default": 0
         }
       ]
     },
@@ -3389,7 +3421,7 @@
     }
   ],
   "counts": {
-    "total": 42,
+    "total": 43,
     "modulation": 13,
     "delay": 10,
     "reverb": 12

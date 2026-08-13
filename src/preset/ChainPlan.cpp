@@ -38,6 +38,11 @@ bool isSupportedEqBlock(const std::string& type, const nlohmann::json& params)
   return type == "eq" && isParametricEqMode(params);
 }
 
+bool isSupportedWahBlock(const std::string& type, const nlohmann::json& params)
+{
+  return type == "wah" && params.value("mode", std::string{"gcb95"}) == "gcb95";
+}
+
 float finiteNumberOr(const nlohmann::json& object, const char* key, float fallback)
 {
   const auto it = object.find(key);
@@ -96,6 +101,9 @@ ChainBlockPlan buildBlockPlan(const PresetBlock& block, const std::filesystem::p
   if (isValidBlockAssetPath(block.asset)) {
     blockPlan.assetPath = dataRoot / block.asset;
   }
+  if (block.type == "wah") {
+    blockPlan.assetPath = dataRoot / "assets" / "wah" / "gcb95.wahtable";
+  }
   std::size_t childRunnableBlockCount = 0;
   if (block.type == "dualRig") {
     for (std::size_t lane = 0; lane < block.lanes.size(); ++lane) {
@@ -139,6 +147,18 @@ ChainBlockPlan buildBlockPlan(const PresetBlock& block, const std::filesystem::p
       ++runnableBlockCount;
     } else {
       blockPlan.status = ChainBlockStatus::Unsupported;
+    }
+  } else if (block.type == "wah") {
+    if (!isSupportedWahBlock(block.type, blockPlan.params)) {
+      blockPlan.status = ChainBlockStatus::Unsupported;
+    } else {
+      std::error_code ec;
+      if (!std::filesystem::exists(blockPlan.assetPath, ec) || ec) {
+        blockPlan.status = ChainBlockStatus::MissingAsset;
+      } else {
+        blockPlan.status = ChainBlockStatus::Ready;
+        ++runnableBlockCount;
+      }
     }
   } else if (!isSupportedBlockType(block.type)) {
     blockPlan.status = ChainBlockStatus::Unsupported;

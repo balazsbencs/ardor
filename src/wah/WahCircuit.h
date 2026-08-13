@@ -21,6 +21,7 @@ class WahCircuit {
 public:
   bool load(const std::filesystem::path& path, std::string& error);
   bool loaded() const noexcept { return loaded_; }
+  float sampleRate() const noexcept { return table_.header.sampleRate; }
 
   // Blends the two bracketing precomputed pot positions. Control-rate; cheap
   // enough to call per host-rate sample.

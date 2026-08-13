@@ -12,22 +12,23 @@ import {
 describe("effect catalog", () => {
   const definitions = allEffectDefinitions();
 
-  it("contains the complete unique set of 42 definitions", () => {
-    expect(definitions).toHaveLength(42);
-    expect(new Set(definitions.map(({ id }) => id)).size).toBe(42);
-    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(42);
-    expect(new Set(definitions.map(({ name }) => name)).size).toBe(42);
+  it("contains the complete unique set of 43 definitions", () => {
+    expect(definitions).toHaveLength(43);
+    expect(new Set(definitions.map(({ id }) => id)).size).toBe(43);
+    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(43);
+    expect(new Set(definitions.map(({ name }) => name)).size).toBe(43);
     expect(definitions.every(({ controls }) => controls.length > 0)).toBe(true);
     expect(definitions.filter(({ blockType }) => blockType === "mod")).toHaveLength(13);
     expect(definitions.filter(({ blockType }) => blockType === "delay")).toHaveLength(10);
     expect(definitions.filter(({ blockType }) => blockType === "reverb")).toHaveLength(12);
   });
 
-  it("groups compressor, noise gate, and EQ under Utility", () => {
+  it("groups compressor, noise gate, EQ, and wah under Utility", () => {
     expect(getEffectDefinition("dynamics:compressor").category).toBe("utility");
     expect(getEffectDefinition("dynamics:noise_gate").category).toBe("utility");
     expect(getEffectDefinition("eq:parametric_eq_5").category).toBe("utility");
-    expect(definitions.filter(({ category }) => category === "utility")).toHaveLength(3);
+    expect(getEffectDefinition("wah:gcb95").category).toBe("utility");
+    expect(definitions.filter(({ category }) => category === "utility")).toHaveLength(4);
   });
 
   it("keeps Daisy presets normalized while attaching physical UI displays", () => {
@@ -120,6 +121,18 @@ describe("effect catalog", () => {
     });
   });
 
+  it("defines the GCB-95 wah block and its runtime defaults", () => {
+    expect(defaultsForDefinition("wah:gcb95")).toEqual({
+      mode: "gcb95",
+      position: 0,
+      level: 0,
+    });
+    expect(getEffectDefinition("wah:gcb95").controls).toEqual([
+      expect.objectContaining({ kind: "number", key: "position", minimum: 0, maximum: 1 }),
+      expect.objectContaining({ kind: "number", key: "level", minimum: -24, maximum: 24 }),
+    ]);
+  });
+
   it("defines the NAM and cabinet asset contracts", () => {
     expect(getEffectDefinition("nam").controls).toEqual([
       { kind: "asset", label: "NAM model", assetKind: "models" },
@@ -200,7 +213,7 @@ describe("effect catalog", () => {
       expect(findEffectDefinition(block)?.id).toBe(id);
       return { ...block, id: `block-${index + 1}` };
     });
-    expect(blocks).toHaveLength(42);
+    expect(blocks).toHaveLength(43);
   });
 
   it("chooses the next numeric block id and handles nonstandard collisions", () => {

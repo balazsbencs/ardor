@@ -18,6 +18,8 @@ define ARDOR_PEDAL_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 0644 $(BR2_EXTERNAL_ARDOR_PEDAL_PATH)/board/ardor-pedal/codec-zero.state \
 		$(TARGET_DIR)/etc/ardor-codec-zero.state
 	$(INSTALL) -d -m 0755 $(TARGET_DIR)/opt/ardor-pedal
+	$(INSTALL) -D -m 0644 $(@D)/assets/wah/gcb95.wahtable \
+		$(TARGET_DIR)/opt/ardor-pedal/assets/wah/gcb95.wahtable
 endef
 
 $(eval $(cmake-package))

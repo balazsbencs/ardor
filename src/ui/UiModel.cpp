@@ -65,6 +65,9 @@ std::string labelForBlockType(const std::string& type)
   if (type == "eq") {
     return "EQ";
   }
+  if (type == "wah") {
+    return "Wah";
+  }
   return type;
 }
 
@@ -119,6 +122,9 @@ std::string assetNameForBlock(const UiState& state, const PresetBlock& block)
   }
   if (block.type == "eq" && isParametricEqMode(block.params)) {
     return "Five Band EQ";
+  }
+  if (block.type == "wah" && block.params.value("mode", "") == "gcb95") {
+    return "GCB-95 Wah";
   }
   return assetNameForPath(state, block.asset, block.type);
 }
@@ -190,6 +196,8 @@ nlohmann::json paramsWithKnownDefaults(const std::string& type, const nlohmann::
     defaults = defaultNoiseGateParams();
   } else if (type == "eq" && isParametricEqMode(params)) {
     return parametricEqParamsToJson(parametricEqParamsFromJson(params));
+  } else if (type == "wah" && params.value("mode", std::string{"gcb95"}) == "gcb95") {
+    defaults = {{"mode", "gcb95"}, {"position", 0.0f}, {"level", 0.0f}};
   }
   for (auto it = defaults.begin(); it != defaults.end(); ++it) {
     if (!params.contains(it.key())) {
@@ -246,6 +254,8 @@ UiBlock blockFromAsset(const UiState& state, const UiAsset& asset,
       params = defaultNoiseGateParams();
     } else if (asset.blockType == "eq" && asset.mode == "parametric_eq_5") {
       params = parametricEqParamsToJson(defaultParametricEqParams());
+    } else if (asset.blockType == "wah" && asset.mode == "gcb95") {
+      params = {{"mode", "gcb95"}, {"position", 0.0f}, {"level", 0.0f}};
     }
   }
   params = paramsWithKnownDefaults(type, params);
@@ -372,6 +382,7 @@ UiState makeDemoUiState()
     {"Compressor", "", "utility", "dynamics", "compressor", "Utility · dynamics"},
     {"Noise Gate", "", "utility", "dynamics", "noise_gate", "Utility · dynamics"},
     {"Five Band EQ", "", "utility", "eq", "parametric_eq_5", "Utility · HPF + 5 bands + LPF"},
+    {"GCB-95 Wah", "", "utility", "wah", "gcb95", "Utility · expression-controlled wah"},
   };
   appendDaisyAssets(state);
   state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split",
@@ -1048,6 +1059,9 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
     else if (key == "release_ms") value = clampFloat(value, 10.0f, 2000.0f);
     else if (key == "hysteresis_db") value = clampFloat(value, 0.0f, 18.0f);
     else if (key == "sidechain_hpf_hz") value = clampFloat(value, 20.0f, 500.0f);
+  } else if (block.type == "wah") {
+    if (key == "position") value = clampFloat(value, 0.0f, 1.0f);
+    else if (key == "level") value = clampFloat(value, -24.0f, 24.0f);
   }
   const auto existing = block.params.find(key);
   if ((block.type == "dualAmp" || block.type == "dualRig")
@@ -1301,7 +1315,7 @@ bool parameterSupportsExpression(const UiState& state, const ParameterControl& c
   const auto* block = selectedUiBlock(state);
   if (!block) return false;
   if (block->type == "mod" || block->type == "delay" || block->type == "reverb"
-      || block->type == "dynamics") return true;
+      || block->type == "dynamics" || block->type == "wah") return true;
   return block->type == "cab" && (control.key == "mix" || control.key == "levelDb");
 }
 
@@ -1525,6 +1539,7 @@ void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoo
   state.assets.push_back({"Compressor", "", "utility", "dynamics", "compressor", "Utility · dynamics"});
   state.assets.push_back({"Noise Gate", "", "utility", "dynamics", "noise_gate", "Utility · dynamics"});
   state.assets.push_back({"Five Band EQ", "", "utility", "eq", "parametric_eq_5", "Utility · HPF + 5 bands + LPF"});
+  state.assets.push_back({"GCB-95 Wah", "", "utility", "wah", "gcb95", "Utility · expression-controlled wah"});
   appendDaisyAssets(state);
   state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split",
                           "Runs two independent chains in parallel"});

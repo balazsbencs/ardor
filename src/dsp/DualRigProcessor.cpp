@@ -244,6 +244,13 @@ bool DualRigProcessor::setNoiseGateParameter(
     || (right_.chain && right_.chain->setNoiseGateParameter(id, key, value));
 }
 
+bool DualRigProcessor::setWahParameter(
+  const std::string& id, const std::string& key, float value)
+{
+  return (left_.chain && left_.chain->setWahParameter(id, key, value))
+    || (right_.chain && right_.chain->setWahParameter(id, key, value));
+}
+
 bool DualRigProcessor::setParametricEqBand(
   const std::string& id, std::size_t band, const EqBandParams& params)
 {

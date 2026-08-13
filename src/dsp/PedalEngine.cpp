@@ -8,6 +8,7 @@
 #include "dynamics/CompressorProcessor.h"
 #include "dynamics/NoiseGateProcessor.h"
 #include "equalizer/EqParameters.h"
+#include "wah/WahProcessor.h"
 
 #include <algorithm>
 #include <bit>
@@ -73,6 +74,7 @@ const char* signalStageKindName(SignalStageKind kind) noexcept
   case SignalStageKind::Compressor: return "compressor";
   case SignalStageKind::NoiseGate: return "noise-gate";
   case SignalStageKind::Equalizer: return "eq";
+  case SignalStageKind::Wah: return "wah";
   case SignalStageKind::DualAmp: return "dual-amp";
   case SignalStageKind::DualRig: return "dual-rig";
   case SignalStageKind::Output: return "output";
@@ -210,6 +212,20 @@ bool PedalEngine::addNoiseGate(std::string id, const nlohmann::json& params,
 bool PedalEngine::setNoiseGateParameter(const std::string& id, const std::string& key, float value)
 {
   return chain_.setNoiseGateParameter(id, key, value);
+}
+
+bool PedalEngine::addWah(std::string id, const nlohmann::json& params, float sampleRate,
+                         const std::filesystem::path& tablePath, std::string& error)
+{
+  WahProcessor processor;
+  if (!processor.configure(params, sampleRate, tablePath, error)) return false;
+  chain_.addWah(std::move(id), std::move(processor));
+  return true;
+}
+
+bool PedalEngine::setWahParameter(const std::string& id, const std::string& key, float value)
+{
+  return chain_.setWahParameter(id, key, value);
 }
 
 bool PedalEngine::setBlockEnabled(const std::string& id, bool enabled)

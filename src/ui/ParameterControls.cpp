@@ -102,6 +102,15 @@ std::vector<ParameterControl> controlsFor(const UiState& state)
     };
   }
 
+  if (block.type == "wah") {
+    return {
+      control("position", "Position", 0.0f, 1.0f, 0.01f,
+              block.params.value("position", 0.0f), formatPercent),
+      control("level", "Level", -24.0f, 24.0f, 1.0f,
+              block.params.value("level", 0.0f), formatDb),
+    };
+  }
+
   if (block.type == "dualAmp") {
     const auto inputMode = block.params.value("inputMode", std::string{"sum"});
     const std::size_t inputModeIndex = inputMode == "left" ? 1 : inputMode == "right" ? 2 : 0;

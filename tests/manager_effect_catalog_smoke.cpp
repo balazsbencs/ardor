@@ -40,12 +40,13 @@ int main()
           "manager effect catalog has definitions");
 
   const auto& definitions = catalog.at("definitions");
-  require(definitions.size() == 42, "manager effect catalog has 42 definitions");
+  require(definitions.size() == 43, "manager effect catalog has 43 definitions");
 
   std::unordered_set<std::string> managerDaisyPairs;
   bool foundCompressor = false;
   bool foundNoiseGate = false;
   bool foundEq = false;
+  bool foundWah = false;
   for (const auto& definition : definitions) {
     const auto blockType = definition.value("blockType", std::string{});
     const auto mode = definition.value("mode", std::string{});
@@ -59,6 +60,10 @@ int main()
     }
     if (blockType == "dynamics" && mode == "noise_gate") {
       foundNoiseGate = definition.value("id", std::string{}) == "dynamics:noise_gate"
+        && definition.value("category", std::string{}) == "utility";
+    }
+    if (blockType == "wah" && mode == "gcb95") {
+      foundWah = definition.value("id", std::string{}) == "wah:gcb95"
         && definition.value("category", std::string{}) == "utility";
     }
     if (blockType != "mod" && blockType != "delay" && blockType != "reverb") {
@@ -90,6 +95,7 @@ int main()
   require(foundCompressor, "manager compressor identifier matches runtime");
   require(foundNoiseGate, "manager noise gate identifier matches runtime");
   require(foundEq, "manager EQ identifier matches runtime");
+  require(foundWah, "manager wah identifier matches runtime");
   require(managerDaisyPairs.size() == ardor::daisyFxCatalog().size(), "manager has every runtime Daisy definition");
   for (const auto& runtime : ardor::daisyFxCatalog()) {
     require(managerDaisyPairs.contains(pairKey(runtime.blockType, runtime.mode)),

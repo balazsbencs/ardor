@@ -6,6 +6,7 @@
 #include "dynamics/CompressorProcessor.h"
 #include "dynamics/NoiseGateProcessor.h"
 #include "equalizer/EqParameters.h"
+#include "wah/WahProcessor.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -45,6 +46,7 @@ public:
   void addDaisy(std::string id, DaisyFxProcessor processor);
   void addCompressor(std::string id, CompressorProcessor processor);
   void addNoiseGate(std::string id, NoiseGateProcessor processor);
+  void addWah(std::string id, WahProcessor processor);
   bool addParametricEq(std::string id, const ParametricEqParams& params, float sampleRate, std::string& error);
   bool setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params);
   bool setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,
@@ -55,6 +57,7 @@ public:
   // compressor block anywhere in the chain, including nested Dual Rig lanes.
   bool compressorGainReductionDb(const std::string& id, float& outDb) const;
   bool setNoiseGateParameter(const std::string& id, const std::string& key, float value);
+  bool setWahParameter(const std::string& id, const std::string& key, float value);
   bool setBlockEnabled(const std::string& id, bool enabled);
   // Negative cab arguments use each cabinet block's prepared level/mix. The
   // PedalEngine supplies non-negative smoothed values for its legacy

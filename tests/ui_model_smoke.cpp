@@ -66,7 +66,7 @@ int main()
                   "Room Reverb should resolve to the dedicated reverb category")) return 1;
     }
     if (asset.name == "Compressor" || asset.name == "Noise Gate"
-        || asset.name == "Five Band EQ") {
+        || asset.name == "Five Band EQ" || asset.name == "GCB-95 Wah") {
       if (require(asset.type == "utility",
                   "compressor and EQ should resolve to the Utility category")) return 1;
     }
@@ -76,6 +76,9 @@ int main()
     }
   }
   if (require(tapeDelayCount == 1, "Tape Delay should appear exactly once")) return 1;
+  const auto wahAsset = std::find_if(catalogState.assets.begin(), catalogState.assets.end(),
+    [](const auto& asset) { return asset.blockType == "wah" && asset.mode == "gcb95"; });
+  if (require(wahAsset != catalogState.assets.end(), "GCB-95 Wah should appear in the effect browser")) return 1;
   ardor::selectPreset(catalogState, 2);
   ardor::selectBlock(catalogState, 1);
   if (require(ardor::parameterPageCount(catalogState) > 0,

@@ -490,6 +490,41 @@
       ]
     },
     {
+      "id": "wah:gcb95",
+      "blockType": "wah",
+      "mode": "gcb95",
+      "name": "GCB-95 Wah",
+      "description": "Circuit-modelled expression wah based on the classic GCB-95.",
+      "category": "utility",
+      "aliases": [
+        "wah",
+        "cry baby",
+        "expression pedal"
+      ],
+      "controls": [
+        {
+          "kind": "number",
+          "key": "position",
+          "label": "Position",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "level",
+          "label": "Level",
+          "minimum": -24,
+          "maximum": 24,
+          "step": 1,
+          "unit": "db",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
       "id": "mod:chorus",
       "blockType": "mod",
       "mode": "chorus",

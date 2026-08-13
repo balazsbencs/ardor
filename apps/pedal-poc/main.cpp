@@ -595,6 +595,12 @@ bool applyPresetParameterValue(
     }
     return false;
   }
+  if (block->type == "wah") {
+    if (parameter == "position" || parameter == "level") {
+      return engine.setWahParameter(block->id, parameter, value);
+    }
+    return false;
+  }
   if (block->type == "cab") {
     if (parameter == "mix") {
       engine.setCabMix(value);
@@ -908,6 +914,13 @@ int main(int argc, char** argv)
           [&](const std::string& blockId, const std::string& key, float value) {
             if (!liveEngine->setNoiseGateParameter(blockId, key, value)) {
               std::cerr << "Unable to update noise gate parameter " << blockId << ":" << key << "\n";
+              return false;
+            }
+            return true;
+          },
+          [&](const std::string& blockId, const std::string& key, float value) {
+            if (!liveEngine->setWahParameter(blockId, key, value)) {
+              std::cerr << "Unable to update wah parameter " << blockId << ":" << key << "\n";
               return false;
             }
             return true;
