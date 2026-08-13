@@ -14,6 +14,7 @@ class ParametricEqProcessor {
 public:
   bool configure(const ParametricEqParams& params, float sampleRate, std::string& error);
   bool setBandTarget(std::size_t index, const EqBandParams& params);
+  bool setPassFilterTarget(EqPassFilterKind kind, const EqPassFilterParams& params);
   void process(float& left, float& right);
   void processBlock(const float* inputLeft, const float* inputRight,
                     float* outputLeft, float* outputRight, std::size_t frames);
@@ -25,6 +26,12 @@ private:
     std::atomic<float> frequencyHz{1000.0f};
     std::atomic<float> q{1.0f};
     std::atomic<float> gainDb{0.0f};
+  };
+
+  struct AtomicPassFilter {
+    std::atomic<bool> enabled{false};
+    std::atomic<float> frequencyHz{1000.0f};
+    std::atomic<float> q{0.70710678f};
   };
 
   struct FilterState {
@@ -41,6 +48,16 @@ private:
   std::array<EqBandParams, kParametricEqBandCount> current_{};
   std::array<BiquadCoefficients, kParametricEqBandCount> coefficients_{};
   std::array<std::array<FilterState, 2>, kParametricEqBandCount> states_{};
+  AtomicPassFilter highPassTarget_{};
+  AtomicPassFilter lowPassTarget_{};
+  EqPassFilterParams currentHighPass_{};
+  EqPassFilterParams currentLowPass_{};
+  BiquadCoefficients highPassCoefficients_{};
+  BiquadCoefficients lowPassCoefficients_{};
+  std::array<FilterState, 2> highPassStates_{};
+  std::array<FilterState, 2> lowPassStates_{};
+  float highPassMix_ = 0.0f;
+  float lowPassMix_ = 0.0f;
   float sampleRate_ = 48000.0f;
   std::size_t scalarSamplesUntilUpdate_ = 0;
   bool configured_ = false;

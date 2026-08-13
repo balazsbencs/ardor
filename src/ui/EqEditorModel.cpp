@@ -92,11 +92,31 @@ void adjustEqBandField(EqBandParams& band, EqBandField field, int ticks)
   }
 }
 
+void adjustEqPassFilterField(EqPassFilterParams& filter, EqBandField field, int ticks)
+{
+  switch (field) {
+  case EqBandField::Frequency:
+    filter.frequencyHz = clampFrequency(
+      filter.frequencyHz * std::pow(2.0f, static_cast<float>(ticks) / 24.0f));
+    break;
+  case EqBandField::Q:
+    filter.q = std::clamp(filter.q * std::pow(2.0f, static_cast<float>(ticks) / 24.0f),
+                          kEqMinimumQ, kEqMaximumQ);
+    break;
+  case EqBandField::Gain:
+    break;
+  }
+}
+
 EqCurveData makeEqCurveData(const ParametricEqParams& params, float sampleRate)
 {
   EqCurveData data;
   const float safeSampleRate = std::max(sampleRate, 1000.0f);
   std::array<BiquadCoefficients, kParametricEqBandCount> coefficients{};
+  const auto highPassCoefficients = makeHighPass(
+    safeSampleRate, params.highPass.frequencyHz, params.highPass.q);
+  const auto lowPassCoefficients = makeLowPass(
+    safeSampleRate, params.lowPass.frequencyHz, params.lowPass.q);
   for (std::size_t bandIndex = 0; bandIndex < params.bands.size(); ++bandIndex) {
     const auto& band = params.bands[bandIndex];
     if (band.enabled) {
@@ -114,14 +134,24 @@ EqCurveData makeEqCurveData(const ParametricEqParams& params, float sampleRate)
     }
     data.frequencyHz[point] = frequency;
     float combinedDb = 0.0f;
+    if (params.highPass.enabled) {
+      const float responseDb = biquadMagnitudeDb(highPassCoefficients, frequency, safeSampleRate);
+      data.stageDb[kEqHighPassStage][point] = clampGain(responseDb);
+      combinedDb += responseDb;
+    }
     for (std::size_t bandIndex = 0; bandIndex < params.bands.size(); ++bandIndex) {
       const auto& band = params.bands[bandIndex];
       if (!band.enabled) {
-        data.bandDb[bandIndex][point] = 0.0f;
+        data.stageDb[kEqFirstBandStage + bandIndex][point] = 0.0f;
         continue;
       }
       const float responseDb = biquadMagnitudeDb(coefficients[bandIndex], frequency, safeSampleRate);
-      data.bandDb[bandIndex][point] = clampGain(responseDb);
+      data.stageDb[kEqFirstBandStage + bandIndex][point] = clampGain(responseDb);
+      combinedDb += responseDb;
+    }
+    if (params.lowPass.enabled) {
+      const float responseDb = biquadMagnitudeDb(lowPassCoefficients, frequency, safeSampleRate);
+      data.stageDb[kEqLowPassStage][point] = clampGain(responseDb);
       combinedDb += responseDb;
     }
     data.combinedDb[point] = clampGain(combinedDb);

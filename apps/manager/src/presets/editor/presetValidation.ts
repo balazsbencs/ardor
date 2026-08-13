@@ -86,6 +86,23 @@ function validateControl(block: PresetBlock, control: EffectControl): Validation
 
 function validateEq(block: PresetBlock): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
+  for (const [key, label] of [["high_pass", "High-pass"], ["low_pass", "Low-pass"]] as const) {
+    const filter = block.params[key];
+    if (filter === undefined) continue;
+    if (!isRecord(filter)) {
+      issues.push(blockError(block, "parameter-type", `${label} filter must be an object.`, `params.${key}`));
+      continue;
+    }
+    if (typeof filter.enabled !== "boolean") {
+      issues.push(blockError(block, "parameter-type", `${label} enabled must be boolean.`, `params.${key}.enabled`));
+    }
+    for (const [field, minimum, maximum] of [
+      ["frequency_hz", 20, 20000], ["q", 0.1, 18],
+    ] as const) {
+      const issue = validateNumber(block, `params.${key}.${field}`, filter[field], minimum, maximum);
+      if (issue) issues.push(issue);
+    }
+  }
   const bands = block.params.bands;
   if (!Array.isArray(bands) || bands.length !== 5) {
     return [blockError(block, "eq-band-count", "Five Band EQ must contain exactly five bands.", "params.bands")];

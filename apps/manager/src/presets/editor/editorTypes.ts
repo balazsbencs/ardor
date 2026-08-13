@@ -10,6 +10,13 @@ export type EqBand = {
   [key: string]: unknown;
 };
 
+export type EqPassFilter = {
+  enabled: boolean;
+  frequency_hz: number;
+  q: number;
+  [key: string]: unknown;
+};
+
 export type PresetHistory = {
   past: Preset[];
   present: Preset;

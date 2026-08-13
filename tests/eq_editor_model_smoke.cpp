@@ -58,9 +58,17 @@ int main()
   if (require(curve.frequencyHz.back() == ardor::kEqMaximumFrequencyHz,
               "curve should end at the EQ maximum frequency")) return 1;
   const auto center = ardor::kEqCurvePointCount / 2;
-  if (require(curve.combinedDb[center] > curve.bandDb[1][center] - 18.0f,
+  if (require(curve.combinedDb[center] > curve.stageDb[ardor::kEqFirstBandStage + 1][center] - 18.0f,
               "combined curve should be present for enabled bands")) return 1;
-  if (require(nearlyEqual(curve.bandDb[1][center], 0.0f), "disabled bands should have a neutral individual response")) return 1;
+  if (require(nearlyEqual(curve.stageDb[ardor::kEqFirstBandStage + 1][center], 0.0f), "disabled bands should have a neutral individual response")) return 1;
+
+  params.highPass = {true, 500.0f, 0.70710678f};
+  params.lowPass = {true, 5000.0f, 0.70710678f};
+  const auto filteredCurve = ardor::makeEqCurveData(params, 48000.0f);
+  if (require(filteredCurve.stageDb[ardor::kEqHighPassStage].front() <= ardor::kEqMinimumGainDb,
+              "high-pass curve should fall below its cutoff")) return 1;
+  if (require(filteredCurve.stageDb[ardor::kEqLowPassStage].back() <= ardor::kEqMinimumGainDb,
+              "low-pass curve should fall above its cutoff")) return 1;
 
   return 0;
 }

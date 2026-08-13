@@ -28,16 +28,17 @@ void syncBypass(lv_obj_t* control, bool bypassed);
 // unconditionally on every refresh() tick -- see LvglUi::syncCompressorGainMeter.
 void syncCompressorGainMeter(lv_obj_t* fill, lv_obj_t* label, float reductionDb);
 ParameterControl eqControl(EqBandField field, const EqBandParams& band);
+ParameterControl eqControl(EqBandField field, const EqPassFilterParams& filter);
 void syncEqGraph(lv_obj_t* graph, const ParametricEqParams& params, bool throttle = false);
 void syncEqBandSelection(
   lv_obj_t* graph,
-  const std::array<lv_obj_t*, kParametricEqBandCount>& bandButtons,
-  const ParametricEqParams& params, std::size_t selectedBand);
+  const std::array<lv_obj_t*, kEqStageCount>& bandButtons,
+  const ParametricEqParams& params, std::size_t selectedStage);
 
 void buildEqPanel(
   lv_obj_t* root, UiState& state, UiEventContext* context,
   lv_obj_t** graphOut,
-  std::array<lv_obj_t*, kParametricEqBandCount>* bandButtonsOut,
+  std::array<lv_obj_t*, kEqStageCount>* bandButtonsOut,
   lv_obj_t** enabledOut, UiEventContext** enabledContextOut,
   UiEventContext** resetContextOut,
   std::array<lv_obj_t*, 3>* slidersOut,

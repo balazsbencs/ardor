@@ -62,6 +62,21 @@ describe("BlockInspector", () => {
     expect(screen.getByRole("slider", { name: "Flutter Rate" })).toHaveAttribute("step", "0.001");
   });
 
+  it("edits high-pass and low-pass stages around the five EQ bands", async () => {
+    const user = userEvent.setup();
+    const block = createBlockFromDefinition("eq:parametric_eq_5", []);
+    const onParam = vi.fn();
+    renderWithProviders(<BlockInspector block={block} issues={[]} models={[]} irs={[]} onToggle={() => undefined} onParam={onParam} onAsset={() => undefined} onMode={() => undefined} onEqBand={() => undefined} onReset={() => undefined} onDuplicate={() => undefined} onDelete={() => undefined} onAssets={() => undefined} />);
+
+    expect(screen.getAllByRole("tab")).toHaveLength(7);
+    await user.click(screen.getByRole("tab", { name: /HP/ }));
+    expect(screen.getByText("High-pass filter")).toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: "High-pass enabled" }));
+    expect(onParam).toHaveBeenCalledWith(block.id, "high_pass", expect.objectContaining({ enabled: true, frequency_hz: 40 }));
+    await user.click(screen.getByRole("tab", { name: /LP/ }));
+    expect(screen.getByLabelText("Low-pass cutoff")).toHaveValue(16000);
+  });
+
   it("moves categorical Daisy sliders only between valid options", () => {
     const block = createBlockFromDefinition("mod:chorus", []);
     const onParam = vi.fn();

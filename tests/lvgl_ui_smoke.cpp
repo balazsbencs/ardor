@@ -1911,6 +1911,20 @@ int main()
                 == retainedEqGraph
                 && lv_obj_get_parent(findLabel(lv_screen_active(), "Q")) == retainedQSlider,
               "EQ band selection should retain the response graph and slider objects")) return 1;
+  lv_obj_t* highPassLabel = findLabelContaining(lv_screen_active(), "HP  ");
+  lv_obj_send_event(lv_obj_get_parent(highPassLabel), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  if (require(findLabelContaining(lv_screen_active(), "High-pass filter") != nullptr,
+              "EQ should expose a selectable high-pass stage")) return 1;
+  lv_obj_t* filterOffLabel = findLabel(lv_screen_active(), "Filter Off");
+  lv_obj_send_event(lv_obj_get_parent(filterOffLabel), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  if (require(ardor::selectedParametricEqParams(state).highPass.enabled,
+              "EQ high-pass control should update preset parameters")) return 1;
+  lv_obj_t* passGainLabel = findLabel(lv_screen_active(), "GAIN");
+  if (require(passGainLabel
+                && lv_obj_has_flag(lv_obj_get_parent(passGainLabel), LV_OBJ_FLAG_HIDDEN),
+              "pass-filter editor should hide the irrelevant gain control")) return 1;
   lv_obj_t* deleteBlockLabel = findLabel(lv_screen_active(), "Delete Block");
   if (require(deleteBlockLabel && lv_obj_get_width(lv_obj_get_parent(deleteBlockLabel)) >= 156
                 && lv_obj_get_height(lv_obj_get_parent(deleteBlockLabel)) >= 48,

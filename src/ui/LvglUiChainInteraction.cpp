@@ -184,7 +184,7 @@ void LvglUi::selectBlock(UiState& state, std::size_t blockIndex)
   }
   ardor::selectBlock(state, blockIndex);
   highlightedBlockId_.clear();
-  selectedEqBand_ = 0;
+  selectedEqStage_ = kEqFirstBandStage;
   resetParameterPage();
 }
 
@@ -193,7 +193,7 @@ void LvglUi::selectLaneBlock(UiState& state, std::size_t rigIndex,
 {
   ardor::selectLaneBlock(state, rigIndex, laneIndex, blockIndex);
   highlightedBlockId_.clear();
-  selectedEqBand_ = 0;
+  selectedEqStage_ = kEqFirstBandStage;
   resetParameterPage();
 }
 
