@@ -249,6 +249,7 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
     src/ui/fonts/SairaCondSemibold28.c
     src/ui/fonts/SairaCondSemibold38.c
     src/ui/fonts/SairaCondSemibold52.c
+    src/ui/fonts/SairaCondSemibold72.c
     src/ui/fonts/SairaLight12.c
     src/ui/fonts/SairaLight44.c
     src/ui/fonts/SairaCondSemiboldTuner110.c

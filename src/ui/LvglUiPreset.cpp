@@ -3,6 +3,7 @@
 #include "ui/LvglUiNavigation.h"
 #include "ui/LvglUiStyle.h"
 #include "ui/fonts/SairaCondSemibold52.h"
+#include "ui/fonts/SairaCondSemibold72.h"
 
 #include <algorithm>
 #include <cctype>
@@ -22,6 +23,8 @@ constexpr int kTopRailHeight = 52;
 constexpr int kBottomRailHeight = 88;
 constexpr int kBottomRailY = kDesignHeight - kBottomRailHeight;
 constexpr int kMasterScaleWidth = 250;
+constexpr int kPresetHeaderHeight = 44;
+constexpr int kPresetNameHeight = 160;
 constexpr int kMinBank = 0;
 constexpr int kMaxBank = 99;
 
@@ -80,7 +83,7 @@ void LvglUi::rebuildPresetView(UiState& state)
   presetCardLabels_.fill(nullptr);
   presetCardButtons_.fill(nullptr);
   presetHeaderStrips_.fill(nullptr);
-  presetLamps_.fill(nullptr);
+  presetHeaderLabels_.fill(nullptr);
   presetNumerals_.fill(nullptr);
   presetWarningLabels_.fill(nullptr);
   presetBankLabel_ = nullptr;
@@ -171,9 +174,12 @@ void LvglUi::syncPresetCards(const UiState& state)
     const bool unavailable = presetHasUnavailableAssets(state, i);
     lv_obj_set_style_text_color(presetCardLabels_[i], lv_color_hex(unavailable ? danger : text), 0);
     lv_obj_set_style_border_color(presetCardButtons_[i], lv_color_hex(unavailable ? palette().faultLine : (isActive ? lamp : rule)), 0);
+    lv_obj_set_style_border_width(presetCardButtons_[i], isActive ? 3 : 1, 0);
     lv_obj_set_style_border_opa(presetCardButtons_[i], LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(presetHeaderStrips_[i], lv_color_hex(isActive ? lamp : panelAlt), 0);
-    lv_obj_set_style_bg_color(presetLamps_[i], lv_color_hex(unavailable ? palette().family[5] : (isActive ? lamp : rule)), 0);
+    lv_label_set_text(presetHeaderLabels_[i],
+      ("FS " + std::to_string(i + 1) + (isActive ? "  \xC2\xB7  LIVE" : "")).c_str());
+    lv_obj_set_style_text_color(presetHeaderLabels_[i], lv_color_hex(isActive ? bg : text), 0);
     lv_obj_set_style_text_color(presetNumerals_[i], lv_color_hex(isActive ? lamp : muted), 0);
     if (presetWarningLabels_[i]) {
       if (unavailable) lv_obj_remove_flag(presetWarningLabels_[i], LV_OBJ_FLAG_HIDDEN);
@@ -224,6 +230,8 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
   lv_obj_set_style_bg_opa(grid, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(grid, 0, 0);
   lv_obj_set_style_pad_all(grid, 0, 0);
+  lv_obj_set_style_pad_column(grid, 14, 0);
+  lv_obj_set_style_pad_row(grid, 14, 0);
   lv_obj_set_layout(grid, LV_LAYOUT_GRID);
 
   static int32_t cols[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
@@ -243,28 +251,30 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     // strip from the card's true edges, throwing off every child alignment
     // anchored to LV_ALIGN_*_RIGHT/LEFT below.
     lv_obj_set_style_pad_all(preset, 0, 0);
-    if (populated && i == state.activePreset) {
+    const bool isActive = populated && i == state.activePreset;
+    if (isActive) {
       lv_obj_set_style_border_color(preset, lv_color_hex(lamp), 0);
+      lv_obj_set_style_border_width(preset, 3, 0);
       lv_obj_set_style_border_opa(preset, LV_OPA_COVER, 0);
     }
     lv_obj_t* presetName = lv_obj_get_child(preset, 0);
     presetCardLabels_[i] = presetName;
     lv_obj_set_style_text_color(presetName, lv_color_hex(text), 0);
-    // Preset names are the primary performance information on this screen:
-    // they need to remain readable with the pedal on the floor. Use a native
-    // 52 px face (rather than scaling a smaller bitmap font), reserve two
-    // lines, and ellipsize only truly exceptional names.
-    lv_obj_set_style_text_font(presetName, &ardor_font_saira_cond_semibold_52, 0);
-    lv_obj_set_style_text_letter_space(presetName, 1, 0);
-    lv_obj_set_style_text_line_space(presetName, -5, 0);
+    // Preset identity is the only card content that must survive a one-second
+    // glance from standing height. A native 72 px bitmap face keeps the stems
+    // crisp on the panel; compact chain metadata is intentionally omitted
+    // because it becomes visual noise at that distance.
+    lv_obj_set_style_text_font(presetName, &ardor_font_saira_cond_semibold_72, 0);
+    lv_obj_set_style_text_letter_space(presetName, 0, 0);
+    lv_obj_set_style_text_line_space(presetName, -7, 0);
     lv_obj_set_style_text_align(presetName, LV_TEXT_ALIGN_LEFT, 0);
-    lv_obj_set_size(presetName, LV_PCT(82), 104);
+    lv_obj_set_size(presetName, LV_PCT(84), kPresetNameHeight);
     lv_label_set_long_mode(presetName, LV_LABEL_LONG_MODE_DOTS);
-    lv_obj_set_pos(presetName, 22, 54);
+    lv_obj_set_pos(presetName, 24, 61);
     lv_obj_t* header = lv_obj_create(preset);
-    lv_obj_set_size(header, LV_PCT(100), 30);
+    lv_obj_set_size(header, LV_PCT(100), kPresetHeaderHeight);
     lv_obj_set_pos(header, 0, 0);
-    styleSurface(header, i == state.activePreset ? lamp : panelAlt);
+    styleSurface(header, isActive ? lamp : panelAlt);
     lv_obj_set_style_border_width(header, 0, 0);
     // The default theme's own padding would otherwise inset the title and
     // lamp from the header's true edges (this bit the lamp specifically:
@@ -273,60 +283,19 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     lv_obj_set_style_pad_all(header, 0, 0);
     lv_obj_remove_flag(header, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_remove_flag(header, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_t* titleLabel = label(header, "PRESET " + std::to_string(i + 1), LV_ALIGN_LEFT_MID, 13, 0,
-                                 &ardor_font_saira_cond_medium_18, i == state.activePreset ? bg : muted);
-    lv_obj_set_style_text_letter_space(titleLabel, 5, 0);
-    lv_obj_t* liveLamp = lv_obj_create(header);
-    lv_obj_set_size(liveLamp, 11, 11);
-    lv_obj_align(liveLamp, LV_ALIGN_RIGHT_MID, -12, 0);
-    styleSurface(liveLamp, i == state.activePreset ? lamp : rule);
-    lv_obj_set_style_border_width(liveLamp, 0, 0);
-    lv_obj_remove_flag(liveLamp, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_t* titleLabel = label(header,
+      "FS " + std::to_string(i + 1) + (isActive ? "  \xC2\xB7  LIVE" : ""),
+      LV_ALIGN_LEFT_MID, 16, 0, &ardor_font_saira_cond_semibold_28,
+      isActive ? bg : text);
+    lv_obj_set_style_text_letter_space(titleLabel, 3, 0);
     presetHeaderStrips_[i] = header;
-    presetLamps_[i] = liveLamp;
-    // Numerals read in Saira Light, not the condensed nomenclature cut — see
-    // docs/lvgl-ui-redesign-spec.md §5.
-    lv_obj_t* numeral = label(preset, std::to_string(i + 1), LV_ALIGN_TOP_RIGHT, -22, 44,
-                               &ardor_font_saira_light_44,
-                               i == state.activePreset ? lamp : muted);
+    presetHeaderLabels_[i] = titleLabel;
+    // The footswitch numeral stays clearly subordinate to the preset name,
+    // while using the same crisp condensed family at a smaller size.
+    lv_obj_t* numeral = label(preset, std::to_string(i + 1), LV_ALIGN_BOTTOM_RIGHT, -22, -16,
+                               &ardor_font_saira_cond_semibold_52,
+                               isActive ? lamp : muted);
     presetNumerals_[i] = numeral;
-
-    if (populated) {
-      // Engraved chain nomenclature: bar-and-label pairs sized to their own
-      // text, separated by a printed divider rather than fixed columns, so a
-      // long category name (Modulation, Dual Rig) never clips mid-word.
-      constexpr std::size_t kFamilyTicks = 3;
-      constexpr int kFamilyLetterSpace = 2;
-      const auto& blocks = state.bank.presets[i].blocks;
-      const std::size_t tickCount = std::min(kFamilyTicks, blocks.size());
-      int x = 22;
-      for (std::size_t tick = 0; tick < tickCount; ++tick) {
-        if (tick > 0) {
-          lv_obj_t* divider = lv_obj_create(preset);
-          lv_obj_remove_style_all(divider);
-          lv_obj_set_size(divider, 1, 16);
-          lv_obj_align(divider, LV_ALIGN_LEFT_MID, x, 58);
-          lv_obj_set_style_bg_opa(divider, LV_OPA_COVER, 0);
-          lv_obj_set_style_bg_color(divider, lv_color_hex(rule), 0);
-          lv_obj_remove_flag(divider, LV_OBJ_FLAG_CLICKABLE);
-          x += 12;
-        }
-        const std::string family = uppercase(blocks[tick].label);
-        lv_point_t textSize{};
-        lv_text_get_size(&textSize, family.c_str(), &ardor_font_saira_cond_medium_18,
-                         kFamilyLetterSpace, 0, LV_COORD_MAX, LV_TEXT_FLAG_EXPAND);
-        lv_obj_t* familyTick = lv_obj_create(preset);
-        lv_obj_set_size(familyTick, textSize.x, 3);
-        lv_obj_align(familyTick, LV_ALIGN_LEFT_MID, x, 46);
-        styleSurface(familyTick, categoryColor(blocks[tick].type));
-        lv_obj_set_style_border_width(familyTick, 0, 0);
-        lv_obj_remove_flag(familyTick, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_t* familyLabel = label(preset, family, LV_ALIGN_LEFT_MID, x, 58,
-                                      &ardor_font_saira_cond_medium_18, muted);
-        lv_obj_set_style_text_letter_space(familyLabel, kFamilyLetterSpace, 0);
-        x += textSize.x + 22;
-      }
-    }
     // Fault legend: a bordered chip inside the body, not a corner overlay —
     // it reads as part of the plate's own nomenclature, not a tooltip.
     lv_obj_t* unavailable = label(preset, "ASSET NOT FOUND", LV_ALIGN_BOTTOM_LEFT, 22, -16,
