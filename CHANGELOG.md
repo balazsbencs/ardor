@@ -2,6 +2,13 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.24](https://github.com/balazsbencs/ardor/compare/v0.1.23...v0.1.24) (2026-08-13)
+
+### Features
+
+* add NAM benchmarking and latency tools ([939be18](https://github.com/balazsbencs/ardor/commit/939be18954327ae313c0bcd70a7298c7d16666c3))
+* add NAM benchmarking and latency tools ([3337fae](https://github.com/balazsbencs/ardor/commit/3337fae86e056f2f9e0cf511c56cdd21c9b33306))
+
 ## [0.1.23](https://github.com/balazsbencs/ardor/compare/v0.1.20...v0.1.23) (2026-08-12)
 
 ### Features
