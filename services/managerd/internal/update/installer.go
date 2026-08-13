@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -487,8 +488,19 @@ func extractBundle(bundlePath, destination string, manifest Manifest) error {
 		if !ok || seen[header.Name] || header.Typeflag != tar.TypeReg || header.Size != entry.Size {
 			return fmt.Errorf("unexpected or invalid archive entry %q", header.Name)
 		}
+		// The signed manifest currently limits names to two fixed bin/ paths,
+		// but enforce archive containment again at the filesystem boundary. The
+		// direct traversal check is intentionally kept adjacent to the sink so
+		// future manifest schemas cannot turn a relaxed path rule into Zip Slip.
+		if strings.Contains(header.Name, "..") || path.IsAbs(header.Name) || strings.Contains(header.Name, `\`) {
+			return fmt.Errorf("unsafe archive entry path %q", header.Name)
+		}
 		seen[header.Name] = true
 		destinationPath := filepath.Join(destination, filepath.FromSlash(header.Name))
+		destinationRoot := filepath.Clean(destination) + string(os.PathSeparator)
+		if !strings.HasPrefix(destinationPath, destinationRoot) {
+			return fmt.Errorf("archive entry escapes destination %q", header.Name)
+		}
 		if err := os.MkdirAll(filepath.Dir(destinationPath), 0o755); err != nil {
 			return err
 		}
