@@ -14,6 +14,7 @@ export type EqPassFilter = {
   enabled: boolean;
   frequency_hz: number;
   q: number;
+  slope_db_per_octave: number;
   [key: string]: unknown;
 };
 

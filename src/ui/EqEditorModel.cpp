@@ -89,6 +89,8 @@ void adjustEqBandField(EqBandParams& band, EqBandField field, int ticks)
   case EqBandField::Gain:
     band.gainDb = clampGain(band.gainDb + static_cast<float>(ticks) * 0.5f);
     break;
+  case EqBandField::Slope:
+    break;
   }
 }
 
@@ -105,6 +107,17 @@ void adjustEqPassFilterField(EqPassFilterParams& filter, EqBandField field, int 
     break;
   case EqBandField::Gain:
     break;
+  case EqBandField::Slope: {
+    const auto current = std::find(kEqPassFilterSlopesDbPerOctave.begin(),
+                                   kEqPassFilterSlopesDbPerOctave.end(),
+                                   normalizedEqPassFilterSlope(filter.slopeDbPerOctave));
+    const auto index = static_cast<int>(std::distance(
+      kEqPassFilterSlopesDbPerOctave.begin(), current));
+    const auto next = std::clamp(index + ticks, 0,
+      static_cast<int>(kEqPassFilterSlopesDbPerOctave.size()) - 1);
+    filter.slopeDbPerOctave = kEqPassFilterSlopesDbPerOctave[static_cast<std::size_t>(next)];
+    break;
+  }
   }
 }
 
@@ -113,10 +126,12 @@ EqCurveData makeEqCurveData(const ParametricEqParams& params, float sampleRate)
   EqCurveData data;
   const float safeSampleRate = std::max(sampleRate, 1000.0f);
   std::array<BiquadCoefficients, kParametricEqBandCount> coefficients{};
-  const auto highPassCoefficients = makeHighPass(
-    safeSampleRate, params.highPass.frequencyHz, params.highPass.q);
-  const auto lowPassCoefficients = makeLowPass(
-    safeSampleRate, params.lowPass.frequencyHz, params.lowPass.q);
+  const auto highPassCoefficients = makeHighPassCascade(
+    safeSampleRate, params.highPass.frequencyHz, params.highPass.q,
+    params.highPass.slopeDbPerOctave);
+  const auto lowPassCoefficients = makeLowPassCascade(
+    safeSampleRate, params.lowPass.frequencyHz, params.lowPass.q,
+    params.lowPass.slopeDbPerOctave);
   for (std::size_t bandIndex = 0; bandIndex < params.bands.size(); ++bandIndex) {
     const auto& band = params.bands[bandIndex];
     if (band.enabled) {
@@ -135,7 +150,7 @@ EqCurveData makeEqCurveData(const ParametricEqParams& params, float sampleRate)
     data.frequencyHz[point] = frequency;
     float combinedDb = 0.0f;
     if (params.highPass.enabled) {
-      const float responseDb = biquadMagnitudeDb(highPassCoefficients, frequency, safeSampleRate);
+      const float responseDb = cascadeMagnitudeDb(highPassCoefficients, frequency, safeSampleRate);
       data.stageDb[kEqHighPassStage][point] = clampGain(responseDb);
       combinedDb += responseDb;
     }
@@ -150,7 +165,7 @@ EqCurveData makeEqCurveData(const ParametricEqParams& params, float sampleRate)
       combinedDb += responseDb;
     }
     if (params.lowPass.enabled) {
-      const float responseDb = biquadMagnitudeDb(lowPassCoefficients, frequency, safeSampleRate);
+      const float responseDb = cascadeMagnitudeDb(lowPassCoefficients, frequency, safeSampleRate);
       data.stageDb[kEqLowPassStage][point] = clampGain(responseDb);
       combinedDb += responseDb;
     }

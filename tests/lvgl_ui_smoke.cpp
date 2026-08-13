@@ -1921,10 +1921,16 @@ int main()
   ui.refresh(lv_screen_active(), state);
   if (require(ardor::selectedParametricEqParams(state).highPass.enabled,
               "EQ high-pass control should update preset parameters")) return 1;
-  lv_obj_t* passGainLabel = findLabel(lv_screen_active(), "GAIN");
-  if (require(passGainLabel
-                && lv_obj_has_flag(lv_obj_get_parent(passGainLabel), LV_OBJ_FLAG_HIDDEN),
-              "pass-filter editor should hide the irrelevant gain control")) return 1;
+  lv_obj_t* slopeLabel = findLabel(lv_screen_active(), "SLOPE");
+  if (require(slopeLabel
+                && !lv_obj_has_flag(lv_obj_get_parent(slopeLabel), LV_OBJ_FLAG_HIDDEN),
+              "pass-filter editor should expose slope beside cutoff and resonance")) return 1;
+  const int slopeBefore = ardor::selectedParametricEqParams(state).highPass.slopeDbPerOctave;
+  ui.focusEqBandField(ardor::EqBandField::Slope);
+  if (require(ui.applyFocusedParameterDelta(state, 1)
+                && ardor::selectedParametricEqParams(state).highPass.slopeDbPerOctave
+                  > slopeBefore,
+              "hardware encoder should move pass-filter slope between supported choices")) return 1;
   lv_obj_t* deleteBlockLabel = findLabel(lv_screen_active(), "Delete Block");
   if (require(deleteBlockLabel && lv_obj_get_width(lv_obj_get_parent(deleteBlockLabel)) >= 156
                 && lv_obj_get_height(lv_obj_get_parent(deleteBlockLabel)) >= 48,

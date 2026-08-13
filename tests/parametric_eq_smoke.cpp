@@ -37,11 +37,15 @@ int main()
           "high-pass defaults off at 40 Hz");
   require(!defaults.lowPass.enabled && defaults.lowPass.frequencyHz == 16000.0f,
           "low-pass defaults off at 16 kHz");
+  require(defaults.highPass.slopeDbPerOctave == 12 && defaults.lowPass.slopeDbPerOctave == 12,
+          "pass filters default to 12 dB/oct");
 
   const nlohmann::json supplied{
     {"mode", "parametric_eq_5"},
-    {"high_pass", {{"enabled", true}, {"frequency_hz", 1.0f}, {"q", 99.0f}}},
-    {"low_pass", {{"enabled", true}, {"frequency_hz", 99999.0f}, {"q", 0.01f}}},
+    {"high_pass", {{"enabled", true}, {"frequency_hz", 1.0f}, {"q", 99.0f},
+                   {"slope_db_per_octave", 23}}},
+    {"low_pass", {{"enabled", true}, {"frequency_hz", 99999.0f}, {"q", 0.01f},
+                  {"slope_db_per_octave", 6}}},
     {"bands", nlohmann::json::array({
       {{"enabled", false}, {"frequency_hz", 1.0f}, {"q", 99.0f}, {"gain_db", -99.0f}},
       {{"enabled", "bad"}, {"frequency_hz", std::numeric_limits<float>::infinity()}},
@@ -57,15 +61,19 @@ int main()
   require(parsed.bands[1].enabled, "wrong enabled type uses default");
   require(parsed.bands[1].frequencyHz == 250.0f, "non-finite frequency uses default");
   require(parsed.highPass.enabled && parsed.highPass.frequencyHz == 20.0f
-            && parsed.highPass.q == 18.0f, "high-pass values normalize");
+            && parsed.highPass.q == 18.0f && parsed.highPass.slopeDbPerOctave == 24,
+          "high-pass values normalize");
   require(parsed.lowPass.enabled && parsed.lowPass.frequencyHz == 20000.0f
-            && parsed.lowPass.q == 0.1f, "low-pass values normalize");
+            && parsed.lowPass.q == 0.1f && parsed.lowPass.slopeDbPerOctave == 6,
+          "low-pass values normalize");
 
   const auto canonical = ardor::parametricEqParamsToJson(parsed);
   require(canonical.at("bands").size() == 5, "canonical output has five bands");
   require(canonical.at("mode") == "parametric_eq_5", "canonical mode");
   require(canonical.at("high_pass").at("enabled") == true, "canonical high-pass");
   require(canonical.at("low_pass").at("enabled") == true, "canonical low-pass");
+  require(canonical.at("high_pass").at("slope_db_per_octave") == 24,
+          "canonical output includes pass-filter slope");
 
   const auto coefficients = ardor::makePeakingEq(48000.0f, 1000.0f, 1.0f, 6.0f);
   require(std::fabs(ardor::biquadMagnitudeDb(coefficients, 1000.0f, 48000.0f) - 6.0f) < 0.01f,
@@ -81,6 +89,19 @@ int main()
   const auto lowPass = ardor::makeLowPass(48000.0f, 1000.0f, 0.70710678f);
   require(ardor::biquadMagnitudeDb(lowPass, 10000.0f, 48000.0f) < -40.0f,
           "low-pass attenuates above cutoff");
+  const auto highPass6 = ardor::makeHighPassCascade(48000.0f, 1000.0f, 0.70710678f, 6);
+  const auto highPass12 = ardor::makeHighPassCascade(48000.0f, 1000.0f, 0.70710678f, 12);
+  const auto highPass18 = ardor::makeHighPassCascade(48000.0f, 1000.0f, 0.70710678f, 18);
+  const auto highPass24 = ardor::makeHighPassCascade(48000.0f, 1000.0f, 0.70710678f, 24);
+  const float response6 = ardor::cascadeMagnitudeDb(highPass6, 100.0f, 48000.0f);
+  const float response12 = ardor::cascadeMagnitudeDb(highPass12, 100.0f, 48000.0f);
+  const float response18 = ardor::cascadeMagnitudeDb(highPass18, 100.0f, 48000.0f);
+  const float response24 = ardor::cascadeMagnitudeDb(highPass24, 100.0f, 48000.0f);
+  require(highPass6.sectionCount == 1 && highPass12.sectionCount == 1
+            && highPass18.sectionCount == 2 && highPass24.sectionCount == 2,
+          "pass-filter slopes use the expected cascade orders");
+  require(response6 > response12 && response12 > response18 && response18 > response24,
+          "steeper pass-filter slopes add attenuation below cutoff");
 
   ardor::ParametricEqProcessor processor;
   std::string error;
@@ -100,7 +121,7 @@ int main()
 
   require(processor.setBandTarget(2, {false, 1000.0f, 1.0f, 6.0f}), "valid target accepted");
   require(processor.setPassFilterTarget(
-            ardor::EqPassFilterKind::HighPass, {true, 100.0f, 0.70710678f}),
+            ardor::EqPassFilterKind::HighPass, {true, 100.0f, 0.70710678f, 24}),
           "valid high-pass target accepted");
   require(!processor.setPassFilterTarget(
             ardor::EqPassFilterKind::LowPass,

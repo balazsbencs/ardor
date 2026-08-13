@@ -134,8 +134,8 @@ function EqControls({
   const filterFrom = (key: "high_pass" | "low_pass", fallbackFrequency: number): EqPassFilter => {
     const source = block.params[key];
     return typeof source === "object" && source !== null && !Array.isArray(source)
-      ? { enabled: false, frequency_hz: fallbackFrequency, q: 0.70710678, ...source } as EqPassFilter
-      : { enabled: false, frequency_hz: fallbackFrequency, q: 0.70710678 };
+      ? { enabled: false, frequency_hz: fallbackFrequency, q: 0.70710678, slope_db_per_octave: 12, ...source } as EqPassFilter
+      : { enabled: false, frequency_hz: fallbackFrequency, q: 0.70710678, slope_db_per_octave: 12 };
   };
   const highPass = filterFrom("high_pass", 40);
   const lowPass = filterFrom("low_pass", 16000);
@@ -163,8 +163,8 @@ function EqControls({
       <legend>{activeStage === 0 ? "High-pass filter" : "Low-pass filter"}</legend>
       <Toggle label={`${activeStage === 0 ? "High-pass" : "Low-pass"} enabled`} checked={activeFilter.enabled} onChange={(enabled) => updateFilter({ enabled })} />
       <label>Cutoff<input aria-label={`${activeStage === 0 ? "High-pass" : "Low-pass"} cutoff`} type="number" min={20} max={20000} value={activeFilter.frequency_hz} onChange={(event) => updateFilter({ frequency_hz: Number(event.target.value) })} /><small>Hz</small></label>
-      <label>Resonance<input aria-label={`${activeStage === 0 ? "High-pass" : "Low-pass"} resonance`} type="number" min={0.1} max={18} step={0.1} value={activeFilter.q} onChange={(event) => updateFilter({ q: Number(event.target.value) })} /></label>
-      <p className="eq-filter__slope"><span>Slope</span><strong>12 dB/oct</strong></p>
+      <label>Resonance<input aria-label={`${activeStage === 0 ? "High-pass" : "Low-pass"} resonance`} type="number" min={0.1} max={18} step={0.1} value={activeFilter.q} disabled={activeFilter.slope_db_per_octave === 6} title={activeFilter.slope_db_per_octave === 6 ? "Resonance applies from 12 dB/oct" : undefined} onChange={(event) => updateFilter({ q: Number(event.target.value) })} /><small>12+ only</small></label>
+      <div className="eq-filter__slope"><span>Slope</span><div className="eq-slope-options" role="group" aria-label={`${activeStage === 0 ? "High-pass" : "Low-pass"} slope`}>{[6, 12, 18, 24].map((slope) => <button type="button" key={slope} aria-pressed={activeFilter.slope_db_per_octave === slope} onClick={() => updateFilter({ slope_db_per_octave: slope })}>{slope}<small>dB/oct</small></button>)}</div></div>
     </fieldset> : <fieldset className="eq-band">
       <legend>Band {activeBand + 1}</legend>
       <Toggle label={`Band ${activeBand + 1} enabled`} checked={band.enabled} onChange={(enabled) => onEqBand(block.id, activeBand, { enabled })} />

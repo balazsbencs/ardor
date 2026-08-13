@@ -236,14 +236,14 @@ export function defaultsForDefinition(id: string): Record<string, unknown> {
   if (definition.id === "eq:parametric_eq_5") {
     return {
       mode: "parametric_eq_5",
-      high_pass: { enabled: false, frequency_hz: 40, q: 0.70710678 },
+      high_pass: { enabled: false, frequency_hz: 40, q: 0.70710678, slope_db_per_octave: 12 },
       bands: [80, 250, 800, 2500, 8000].map((frequency_hz) => ({
         enabled: true,
         frequency_hz,
         q: 1,
         gain_db: 0,
       })),
-      low_pass: { enabled: false, frequency_hz: 16000, q: 0.70710678 },
+      low_pass: { enabled: false, frequency_hz: 16000, q: 0.70710678, slope_db_per_octave: 12 },
     };
   }
   const defaults: Record<string, unknown> = {};
