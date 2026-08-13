@@ -1,0 +1,65 @@
+Ardor final reverb engineering benchmark (subjective listening excluded)
+Date: 2026-08-13
+Device: Raspberry Pi 4, aarch64, Linux 6.18.37-v8 PREEMPT
+Governor: performance
+Build: Release, GCC 13.4.0, Buildroot ARM64 toolchain
+Benchmark: 48 kHz, 64-frame blocks, 10,000 timed blocks after 100 warmups
+Isolation: S99ardor-pedal stopped for the run and restored afterward
+Callback budget: 1333 us
+
+Default mode timing
+Mode          avg us   p99 us   avg budget
+room           53.24    58.65      4.0%
+hall           51.96    57.15      3.9%
+plate          45.11    50.02      3.4%
+spring         45.38    50.13      3.4%
+bloom          42.56    46.85      3.2%
+cloud          45.38    49.74      3.4%
+shimmer        47.33    52.04      3.5%
+chorale        40.88    45.02      3.1%
+nonlinear      42.78    46.98      3.2%
+swell          40.27    44.45      3.0%
+magneto        38.69    42.69      2.9%
+reflections    44.87    49.78      3.4%
+
+Final objective impulse metrics
+Mode          energy dB   L/R corr   density 100-200   density 200-500   RT60
+room             -2.19      0.459        0.999             1.000         2.017 s
+hall             -3.43      0.344        0.957             1.000         1.996 s
+plate            -0.25     -0.078        1.000             1.000         2.018 s
+spring           -3.07      0.269        0.998             1.000         1.815 s
+bloom           -11.11      0.289        0.945             1.000         5.239 s
+cloud           -12.17      0.088        0.664             0.997         3.679 s
+shimmer          -6.23      0.083        0.963             1.000         1.548 s
+chorale          -7.30      0.069        0.919             0.993         1.009 s
+nonlinear        -5.33      0.035        1.000             0.101         0.295 s
+swell             1.87      0.091        0.953             0.999         1.583 s
+magneto          -7.34      0.033        0.552             0.815         0.472 s
+reflections     -12.89      0.520        0.011             0.000         0.192 s
+
+Default full-wet 440 Hz calibration (sustained RMS/peak, burst RMS/peak dBFS)
+room          -22.60/-19.32   -28.80/-12.54
+hall          -18.79/-15.64   -30.67/-18.35
+plate         -18.69/-11.06   -29.92/-18.35
+spring        -26.33/-21.13   -22.00/ -9.53
+bloom         -35.08/-28.57   -32.77/-21.36
+cloud         -19.82/-16.24   -36.21/-26.62
+shimmer       -28.14/-24.64   -31.14/-19.79
+chorale       -26.51/-23.22   -38.40/-27.81
+nonlinear    -240.00/-240.00  -27.43/-14.16
+swell         -42.13/-25.75   -36.25/-22.51
+magneto       -18.38/-15.36   -33.05/-23.22
+reflections   -23.47/-20.45   -35.04/-20.92
+
+Implemented after the native-Plate / 8-line-FDN pass
+- All physical reverb controls are smoothed over 20 ms; FDN geometry taps also
+  ramp across control blocks. Automation regression tests reject large tap steps.
+- Room Size scales early-reflection and all eight late-tank delay lengths from
+  65% to 135% while recomputing feedback gain for stable displayed decay.
+- Room, Hall, and Plate default measured broadband RT60 now track 2.0 s.
+- Spring adds a dwell-dependent launch transient, frequency-dependent pickup
+  loss, and a decorrelated pickup matrix. Correlation fell from 0.913 to 0.269.
+- Magneto uses independent right-head timing, cross-feedback, and cross-diffusion.
+  Correlation fell from 1.000 to 0.033 and 200-500 ms density rose 0.652 to 0.815.
+- Bloom, Chorale, Nonlinear, and Swell trims were calibrated using burst response
+  while retaining their intended slow/gated envelopes and at least 9.5 dB peak headroom.

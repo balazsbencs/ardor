@@ -16,14 +16,16 @@ public:
     struct Config {
         // Must be 4 or 8; other values fall back to 4-line Hadamard mixing.
         int    n_lines;
-        // bufs[i]: caller-owned float array with at least delays[i] elements.
+        // bufs[i]: caller-owned float array with at least delays[i] elements,
+        // or buffer_sizes[i] elements when geometry scaling is enabled.
         // Indices >= n_lines must be nullptr (unused lines are not touched).
         float* bufs[MAX_LINES];
         // Optional actual buffer capacities. Zero preserves the legacy
         // fixed-delay behavior where delays[i] is also the accessible size.
         size_t buffer_sizes[MAX_LINES];
         // delays[i]: delay length in samples; must be >= 1 for active lines.
-        // Minimum buffer size for line i: delays[i] * sizeof(float) bytes.
+        // delays[i] is the nominal acoustic delay when buffer_sizes[i] is set.
+        // Otherwise it retains the legacy buffer-size interpretation.
         // Indices >= n_lines must be 0.
         size_t delays[MAX_LINES];
         float  sample_rate;

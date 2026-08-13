@@ -881,4 +881,26 @@ int main()
           "magneto Tone must affect its response");
   require(controlResponseDifference("reverb", "reflections", "tone", 0.0f, 1.0f) > 1e-3,
           "reflections Tone must affect its response");
+
+  // Default wet trims must keep every topology audible without consuming the
+  // remaining chain headroom. Periodic bursts exercise the specialty envelope
+  // modes more meaningfully than a continuous tone.
+  for (const auto& descriptor : ardor::daisyFxCatalog()) {
+    if (descriptor.blockType != "reverb") continue;
+    auto calibratedParams = ardor::defaultDaisyFxParams(descriptor);
+    calibratedParams["mix"] = 1.0f;
+    ardor::DaisyFxProcessor calibrated;
+    require(calibrated.configure("reverb", calibratedParams, 48000.0f, error), error);
+    float peak = 0.0f;
+    for (int frame = 0; frame < 96000; ++frame) {
+      const bool noteOn = (frame % 24000) < 2400;
+      const float input = noteOn
+        ? 0.25f * std::sin(6.28318530718f * 440.0f * static_cast<float>(frame) / 48000.0f)
+        : 0.0f;
+      const auto output = calibrated.process({input, input});
+      peak = std::max(peak, std::max(std::fabs(output.left), std::fabs(output.right)));
+    }
+    require(peak > 0.005f, descriptor.mode + " default wet burst must remain audible");
+    require(peak < 0.7f, descriptor.mode + " default wet burst must retain chain headroom");
+  }
 }
