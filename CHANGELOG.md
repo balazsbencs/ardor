@@ -2,7 +2,7 @@
 
 All notable changes are generated from Conventional Commit messages.
 
-## [0.1.29](https://github.com/balazsbencs/ardor/compare/v0.1.24...v0.1.29) (2026-08-13)
+## [0.1.30](https://github.com/balazsbencs/ardor/compare/v0.1.24...v0.1.30) (2026-08-13)
 
 ### Features
 
@@ -18,6 +18,7 @@ All notable changes are generated from Conventional Commit messages.
 * **ui:** make block headers full-width drag surfaces ([286284f](https://github.com/balazsbencs/ardor/commit/286284fe8d28ee3bad9f59ed0f7fe2130353daf6))
 * **ui:** redesign preset cards for at-a-glance readability ([4872e71](https://github.com/balazsbencs/ardor/commit/4872e7146ff8210a6f9470d31bb4154c97198926))
 * **ui:** redesign preset cards for at-a-glance readability ([a8de1af](https://github.com/balazsbencs/ardor/commit/a8de1af17328a09d353e9430e53a55d2f80f0ac3))
+* **wah:** add GCB-95 wah effect ([3ed7bc3](https://github.com/balazsbencs/ardor/commit/3ed7bc32d036511c7bbf88010faee9591395c7ec))
 
 ### Bug Fixes
 
