@@ -3,26 +3,42 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"ardor.local/managerd/internal/buildinfo"
 	"ardor.local/managerd/internal/cloudagent"
 	"ardor.local/managerd/internal/config"
 	"ardor.local/managerd/internal/deviceclaim"
 	"ardor.local/managerd/internal/deviceidentity"
 	"ardor.local/managerd/internal/discovery"
 	"ardor.local/managerd/internal/server"
+	"ardor.local/managerd/internal/update"
 	"ardor.local/managerd/internal/webui"
 )
 
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "--version" {
+		fmt.Printf("ardor-managerd %s (%s) updater %s\n", buildinfo.Version, buildinfo.Commit, update.UpdaterVersion)
+		return
+	}
 	cfg, err := config.LoadFromEnv()
 	if err != nil {
 		log.Fatal(err)
 	}
+	info, err := buildinfo.Load(cfg.ActiveReleaseManifest, cfg.BaseReleaseMetadata)
+	if err != nil {
+		log.Fatalf("load release metadata: %v", err)
+	}
+	cfg.SoftwareVersion = info.SoftwareVersion
+	cfg.BuildCommit = info.BuildCommit
+	cfg.BaseSystemVersion = info.BaseVersion
+	cfg.UpdaterVersion = info.UpdaterVersion
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	identity, err := deviceidentity.LoadOrCreate(cfg.DataRoot)

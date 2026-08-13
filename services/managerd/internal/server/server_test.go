@@ -2,6 +2,9 @@ package server
 
 import (
 	"bytes"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"mime/multipart"
@@ -78,6 +81,32 @@ func TestDeviceAndAuth(t *testing.T) {
 	handler.ServeHTTP(unauthorized, req)
 	if unauthorized.Code != http.StatusUnauthorized {
 		t.Fatalf("unauthorized status=%d", unauthorized.Code)
+	}
+}
+
+func TestDeviceReportsSignedUpdateCapability(t *testing.T) {
+	root := t.TempDir()
+	publicKey, _, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keyPath := filepath.Join(root, "update.pub")
+	if err := os.WriteFile(keyPath, []byte(base64.StdEncoding.EncodeToString(publicKey)+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	handler := New(config.Config{
+		DataRoot: root, AuthEnabled: false, UpdatePublicKey: keyPath,
+		SoftwareVersion: "0.1.24", BaseSystemVersion: "0.1.24", UpdaterVersion: "1.0.0",
+	})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/device", nil))
+	if response.Code != http.StatusOK || !bytes.Contains(response.Body.Bytes(), []byte(`"softwareUpdate":true`)) || !bytes.Contains(response.Body.Bytes(), []byte(`"softwareVersion":"0.1.24"`)) {
+		t.Fatalf("device status=%d body=%s", response.Code, response.Body.String())
+	}
+	status := httptest.NewRecorder()
+	handler.ServeHTTP(status, httptest.NewRequest(http.MethodGet, "/api/system/update/status", nil))
+	if status.Code != http.StatusOK || !bytes.Contains(status.Body.Bytes(), []byte(`"installedVersion":"0.1.24"`)) {
+		t.Fatalf("update status=%d body=%s", status.Code, status.Body.String())
 	}
 }
 

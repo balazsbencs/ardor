@@ -15,6 +15,7 @@ BR2_PACKAGE_XZ=y
 BR2_PACKAGE_KMOD=y
 BR2_PACKAGE_KMOD_TOOLS=y
 BR2_PACKAGE_HOST_KMOD_XZ=y
+BR2_PACKAGE_CA_CERTIFICATES=y
 
 # Raspberry Pi 4 onboard Wi-Fi.  The connection itself is started by the
 # board overlay only when a provisioned WPA configuration exists on the

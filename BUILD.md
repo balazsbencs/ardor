@@ -132,6 +132,18 @@ documentation, or tests reuse the cached image and skip the complete Buildroot
 build. The cached image is copied to a versioned filename and uploaded to every
 release, so each release remains self-contained.
 
+Each release also contains a signed `ardor-device-<version>-linux-aarch64`
+application bundle for OTA-capable images. The bundle replaces `ardor-pedal` and
+`ardor-managerd` on the writable data partition; it never writes the boot, root,
+or user-data partitions. Existing devices must first flash an OTA-capable
+bootstrap image containing the immutable updater and recovery-aware init scripts.
+
+Release signing requires the protected `ARDOR_OTA_PRIVATE_KEY_BASE64` Actions
+secret and matching `ARDOR_OTA_PUBLIC_KEY_BASE64` repository variable. Both are
+raw Ed25519 keys encoded with standard base64; only the public key is embedded in
+the firmware image. The release workflow fails closed when either is missing or
+the keys do not match.
+
 Write commit subjects using the Conventional Commits format, for example:
 
 ```text

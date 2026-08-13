@@ -50,6 +50,13 @@
 #include <utility>
 #include <vector>
 
+#ifndef ARDOR_VERSION
+#define ARDOR_VERSION "0.0.0"
+#endif
+#ifndef ARDOR_COMMIT
+#define ARDOR_COMMIT "unknown"
+#endif
+
 #if defined(ARDOR_HAS_UI)
 #include "ui/CloudClaimOverlay.h"
 #include "ui/LvglUi.h"
@@ -320,7 +327,7 @@ bool parse(int argc, char** argv, Args& args)
       };
 
       if (a == "--version") {
-        std::cout << "ardor pedal poc\n";
+        std::cout << "ardor-pedal " << ARDOR_VERSION << " (" << ARDOR_COMMIT << ")\n";
         std::exit(0);
       } else if (a == "--offline") {
         args.offline = true;

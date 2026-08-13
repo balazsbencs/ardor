@@ -24,6 +24,12 @@ func TestFactoryResetRequiresPhysicalDecisionAndPreservesIdentity(t *testing.T) 
 	if err := os.WriteFile(filepath.Join(root, "presets", "user.json"), []byte("preset"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.MkdirAll(filepath.Join(root, "system", "releases", "0.1.24"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "system", "releases", "0.1.24", "manifest.json"), []byte("release"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	auth, err := localauth.New(root)
 	if err != nil {
 		t.Fatal(err)
@@ -49,6 +55,9 @@ func TestFactoryResetRequiresPhysicalDecisionAndPreservesIdentity(t *testing.T) 
 	}
 	if data, err := os.ReadFile(filepath.Join(root, "identity", "device.json")); err != nil || string(data) != "identity" {
 		t.Fatalf("identity was not preserved: %q err=%v", data, err)
+	}
+	if data, err := os.ReadFile(filepath.Join(root, "system", "releases", "0.1.24", "manifest.json")); err != nil || string(data) != "release" {
+		t.Fatalf("installed software was not preserved: %q err=%v", data, err)
 	}
 	if !auth.SetupRequired() {
 		t.Fatal("factory reset did not restore setup mode")

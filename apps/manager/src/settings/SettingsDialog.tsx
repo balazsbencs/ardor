@@ -1,11 +1,13 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   Check,
+  Download,
   Eye,
   EyeOff,
   LogOut,
   Palette,
   RotateCcw,
+  RefreshCw,
   Settings,
   ShieldAlert,
   Trash2,
@@ -14,19 +16,31 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import type { WiFiSettings } from "../api/types";
+import type { UpdateStatus, WiFiSettings } from "../api/types";
 import { Button, IconButton, StatusBadge, cx } from "../components/ui";
 import { useDeviceSession } from "../connection/deviceSession";
 import { localAuthAPI } from "../localAuth/api";
 import { isDeviceHostedRuntime } from "../runtime/platform";
 import { accentChoices, accentVariables, defaultAccent, type Theme } from "../theme/accent";
 
-type SettingsSection = "appearance" | "wifi" | "security";
+type SettingsSection = "appearance" | "wifi" | "updates" | "security";
 
 function wifiTone(status?: string): "neutral" | "success" | "warning" {
   if (status === "connected") return "success";
   if (status === "connecting" || status === "restarting") return "warning";
   return "neutral";
+}
+
+function updateTone(status?: string): "neutral" | "success" | "warning" | "danger" {
+  if (status === "succeeded") return "success";
+  if (status === "failed" || status === "rolled_back") return "danger";
+  if (status && !["idle", "available"].includes(status)) return "warning";
+  return "neutral";
+}
+
+function formatBytes(bytes: number): string {
+  return new Intl.NumberFormat(undefined, { style: "unit", unit: "megabyte", maximumFractionDigits: 1 })
+    .format(bytes / (1024 * 1024));
 }
 
 export function SettingsDialog({
@@ -55,11 +69,17 @@ export function SettingsDialog({
   const [error, setError] = useState<string>();
   const [securityBusy, setSecurityBusy] = useState(false);
   const [factoryNotice, setFactoryNotice] = useState<string>();
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>();
+  const [updateBusy, setUpdateBusy] = useState(false);
+  const [updateError, setUpdateError] = useState<string>();
   const localDevice = isDeviceHostedRuntime();
 
   const wifiAvailable = session.status === "connected"
     && Boolean(session.client)
     && session.device?.capabilities.wifiSettings === true;
+  const updateAvailable = session.status === "connected"
+    && Boolean(session.client)
+    && session.device?.capabilities.softwareUpdate === true;
   const portalStyle = accentVariables(accent, theme);
 
   useEffect(() => {
@@ -83,6 +103,20 @@ export function SettingsDialog({
       });
     return () => { cancelled = true; };
   }, [open, section, session.client, wifiAvailable]);
+
+  useEffect(() => {
+    if (!open || section !== "updates" || !updateAvailable || !session.client) return;
+    let cancelled = false;
+    setUpdateBusy(true);
+    setUpdateError(undefined);
+    void session.client.getUpdateStatus()
+      .then((status) => { if (!cancelled) setUpdateStatus(status); })
+      .catch((reason: unknown) => {
+        if (!cancelled) setUpdateError(reason instanceof Error ? reason.message : "Could not read update status.");
+      })
+      .finally(() => { if (!cancelled) setUpdateBusy(false); });
+    return () => { cancelled = true; };
+  }, [open, section, session.client, updateAvailable]);
 
   const saveWiFi = async () => {
     if (!session.client || saving) return;
@@ -142,6 +176,50 @@ export function SettingsDialog({
     }
   };
 
+  const checkForUpdate = async () => {
+    if (!session.client || updateBusy) return;
+    setUpdateBusy(true);
+    setUpdateError(undefined);
+    try {
+      setUpdateStatus(await session.client.checkForUpdate());
+    } catch (reason) {
+      setUpdateError(reason instanceof Error ? reason.message : "Could not check GitHub Releases.");
+    } finally {
+      setUpdateBusy(false);
+    }
+  };
+
+  const installUpdate = async () => {
+    const available = updateStatus?.available;
+    if (!session.client || !available || updateBusy || available.reflashRequired) return;
+    if (!window.confirm(`Install Ardor ${available.version}? Audio will mute and Manager will disconnect briefly while the pedal applications restart.`)) return;
+    setUpdateBusy(true);
+    setUpdateError(undefined);
+    try {
+      setUpdateStatus(await session.client.installUpdate(available.version));
+      const deadline = Date.now() + 2 * 60_000;
+      while (Date.now() < deadline) {
+        await new Promise((resolve) => window.setTimeout(resolve, 2_000));
+        try {
+          const status = await session.client.getUpdateStatus();
+          setUpdateStatus(status);
+          if (status.state === "succeeded") {
+            window.location.reload();
+            return;
+          }
+          if (status.state === "failed" || status.state === "rolled_back") return;
+        } catch {
+          // A short connection loss is expected while managerd is replaced.
+        }
+      }
+      setUpdateError("The pedal did not reconnect within two minutes. It may still be completing recovery; reconnect and open Updates again.");
+    } catch (reason) {
+      setUpdateError(reason instanceof Error ? reason.message : "Could not start the update.");
+    } finally {
+      setUpdateBusy(false);
+    }
+  };
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -167,6 +245,9 @@ export function SettingsDialog({
               <button className={cx(section === "wifi" && "is-active")} onClick={() => setSection("wifi")}>
                 <Wifi size={17} /><span>Wi-Fi</span>
               </button>
+              {session.device && <button className={cx(section === "updates" && "is-active")} onClick={() => setSection("updates")}>
+                <Download size={17} /><span>Updates</span>
+              </button>}
               {localDevice && <button className={cx(section === "security" && "is-active")} onClick={() => setSection("security")}>
                 <ShieldAlert size={17} /><span>Security</span>
               </button>}
@@ -294,6 +375,58 @@ export function SettingsDialog({
                       </Button>
                     </div>
                   </form>
+                )}
+              </section>
+            ) : section === "updates" ? (
+              <section className="settings-panel" aria-labelledby="updates-heading">
+                <div className="settings-panel__heading settings-panel__heading--with-status">
+                  <div>
+                    <h2 id="updates-heading">Device software</h2>
+                    <p>Install signed Ardor application releases from GitHub. Presets, models, IRs, Wi-Fi, and local access stay on the pedal.</p>
+                  </div>
+                  {updateStatus && <StatusBadge tone={updateTone(updateStatus.state)}>{updateStatus.state.replace(/_/g, " ")}</StatusBadge>}
+                </div>
+                {!updateAvailable ? (
+                  <div className="settings-empty">
+                    <Download size={24} />
+                    <strong>Updates require a bootstrap image</strong>
+                    <p>This pedal does not advertise signed OTA support. Flash an OTA-capable Ardor image before installing releases here.</p>
+                  </div>
+                ) : updateBusy && !updateStatus ? (
+                  <div className="settings-empty"><span className="settings-spinner" /><strong>Reading device software…</strong></div>
+                ) : (
+                  <div className="update-overview">
+                    <dl className="update-versions">
+                      <div><dt>Installed</dt><dd>{updateStatus?.installedVersion ?? session.device?.softwareVersion ?? "Unknown"}</dd></div>
+                      <div><dt>Base image</dt><dd>{updateStatus?.baseVersion ?? session.device?.baseSystemVersion ?? "Unknown"}</dd></div>
+                    </dl>
+                    {updateStatus?.available ? (
+                      <div className="update-release">
+                        <div>
+                          <strong>Ardor {updateStatus.available.version}</strong>
+                          <span>{formatBytes(updateStatus.available.bundleSize)}</span>
+                        </div>
+                        {updateStatus.available.reflashRequired ? (
+                          <p>{updateStatus.available.incompatibility ?? "This release changes the base system and must be flashed to the SD card."}</p>
+                        ) : (
+                          <p>The signed application bundle is compatible with this pedal and ready to install.</p>
+                        )}
+                        <a href={updateStatus.available.releaseUrl} target="_blank" rel="noreferrer">Read release notes</a>
+                      </div>
+                    ) : updateStatus?.checkedAt ? (
+                      <p className="update-current"><Check size={16} />This pedal already has the newest compatible application release.</p>
+                    ) : (
+                      <p className="update-current">Check GitHub Releases when you are ready to update. Nothing installs automatically.</p>
+                    )}
+                    {updateStatus && ["downloading", "verifying", "staged", "restarting", "validating"].includes(updateStatus.state) && (
+                      <div className="update-progress" role="status"><span className="settings-spinner" /><div><strong>Update in progress</strong><small>Keep the pedal powered. Manager may disconnect during restart.</small></div></div>
+                    )}
+                    {(updateError || updateStatus?.errorMessage) && <div className="settings-message settings-message--error" role="alert">{updateError ?? updateStatus?.errorMessage}</div>}
+                    <div className="settings-panel__actions update-actions">
+                      <Button variant="quiet" disabled={updateBusy} onClick={() => void checkForUpdate()}><RefreshCw size={15} />{updateBusy ? "Checking…" : "Check again"}</Button>
+                      {updateStatus?.available && !updateStatus.available.reflashRequired && <Button variant="primary" disabled={updateBusy || updateStatus.state !== "available"} onClick={() => void installUpdate()}><Download size={15} />Install & restart</Button>}
+                    </div>
+                  </div>
                 )}
               </section>
             ) : (

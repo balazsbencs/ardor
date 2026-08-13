@@ -9,6 +9,7 @@ import type {
   RenameAssetResponse,
   WiFiSettings,
   WiFiSettingsUpdate,
+  UpdateStatus,
 } from "./types";
 
 /**
@@ -22,6 +23,9 @@ export interface ManagerTransport {
   getDevice(): Promise<DeviceStatus>;
   getWiFiSettings(): Promise<WiFiSettings>;
   updateWiFiSettings(settings: WiFiSettingsUpdate): Promise<WiFiSettings>;
+  getUpdateStatus(): Promise<UpdateStatus>;
+  checkForUpdate(): Promise<UpdateStatus>;
+  installUpdate(version: string): Promise<UpdateStatus>;
   listAssets(kind: AssetKind): Promise<Asset[]>;
   uploadAsset(kind: AssetKind, file: File, overwrite: boolean): Promise<Asset>;
   deleteAsset(kind: AssetKind, assetId: string): Promise<void>;

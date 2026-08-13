@@ -1,0 +1,13 @@
+# benchmark=ardor-nam-bench-v1
+# build_type=Release
+# compiler=GNU 13.4.0
+# architecture=aarch64
+# compile_flags=-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -O2 -g0 -D_FORTIFY_SOURCE=1  -DNDEBUG
+# sample_rate=48000
+# models=1
+# warmup_blocks=1000
+# timed_blocks=100000
+# cpu=2
+# mlockall=ok
+model,tier,tier_value,block_frames,budget_us,load_us,iterations,min_us,p50_us,p90_us,p99_us,p999_us,p9999_us,max_us,mean_us,stddev_us,deadline_misses,mean_budget_pct,p999_budget_pct,realtime_factor,checksum
+"/tmp/ardor-nam-bench/models/Dumble ODS #102 Ford Hyper Accuracy+/SLAMMIN_DUMBLE_FORD_CLN_CARLTONISH_S.nam","full",1.0000,32,666.6667,74410.7970,100000,244.1850,249.0920,251.8330,261.3700,272.7410,379.4630,457.1110,248.5962,3.8307,0,37.2894,40.9111,2.6817,174.4657
