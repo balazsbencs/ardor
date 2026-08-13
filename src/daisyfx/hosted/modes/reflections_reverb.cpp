@@ -1,6 +1,7 @@
 #include "reflections_reverb.h"
 #include "../config/constants.h"
 #include "../dsp/fast_math.h"
+#include <cmath>
 
 using namespace pedal::reverb_fx;
 
@@ -24,6 +25,17 @@ static constexpr float kTapGains[16] = {
     0.30f, 0.25f, 0.20f, 0.15f,
 };
 
+// A second, non-coincident reflection field prevents mono sources from
+// collapsing back to mono after the mirrored pan matrices are summed.
+static constexpr int16_t kRightTapOffsets[16] = {
+     7, -11,  17, -23,
+    29, -31,  37, -41,
+    43, -47,  53, -59,
+    61, -67,  71, -73,
+};
+
+static constexpr float kTwoPi = 6.28318530717958647692f;
+
 } // namespace
 
 void ReflectionsReverb::Init() {
@@ -34,7 +46,9 @@ void ReflectionsReverb::Init() {
 
     er_l_.Init(buf_er_l_, 6144);
     er_r_.Init(buf_er_r_, 6144);
-    motion_lfo_.Init(0.1f, LfoWave::Sine);
+    motion_lfo_.Init(0.1f, LfoWave::Sine, REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE);
+    tone_[1].Init(REVERB_SAMPLE_RATE);
 
     // Build default tap table
     ErTap taps_l[16];
@@ -45,6 +59,8 @@ void ReflectionsReverb::Init() {
         // Alternating pan: -1 for even, +1 for odd
         taps_l[i].pan = (i & 1) ? 0.6f : -0.6f;
         taps_r[i] = taps_l[i];
+        taps_r[i].delay_samples = static_cast<uint16_t>(static_cast<int>(kTapDelays[i])
+                                                        + kRightTapOffsets[i]);
         taps_r[i].pan = -taps_l[i].pan;
     }
     er_l_.SetTaps(taps_l, 16);
@@ -57,6 +73,8 @@ void ReflectionsReverb::Reset() {
     er_l_.Reset();
     er_r_.Reset();
     motion_lfo_.Reset();
+    tone_[0].Reset();
+    tone_[1].Reset();
 }
 
 void ReflectionsReverb::Prepare(const ParamSet& params) {
@@ -69,6 +87,8 @@ void ReflectionsReverb::Prepare(const ParamSet& params) {
     // trig in this otherwise very cheap early-reflections algorithm.
     motion_lfo_.SetRate(0.05f + params.mod * 0.45f);
     const float motion = motion_lfo_.PrepareBlock() * params.mod * 0.16f;
+    tone_[0].SetKnob(params.tone);
+    tone_[1].SetKnob(params.tone);
 
     // param2 (Loc X): shift stereo pan spread
     // param1 (Loc Y): front-back — scale gains slightly
@@ -80,12 +100,18 @@ void ReflectionsReverb::Prepare(const ParamSet& params) {
         // Pan: alternating + shifted by param2
         const float base_pan  = (i & 1) ? 1.0f : -1.0f;
         const float pan_shift = (params.param2 - 0.5f) * 1.6f;
-        const float tap_motion = motion * fast_sin(static_cast<float>(i) * 1.618034f);
+        const float phase = std::fmod(static_cast<float>(i) * 1.618034f, kTwoPi);
+        const float tap_motion = motion * fast_sin(phase);
         float pan = base_pan * (0.3f + params.param2 * 0.7f) + pan_shift * 0.2f + tap_motion;
         if (pan >  1.0f) pan =  1.0f;
         if (pan < -1.0f) pan = -1.0f;
         taps_l[i].pan = pan;
         taps_r[i] = taps_l[i];
+        const float delay_offset = static_cast<float>(kRightTapOffsets[i])
+                                 * (0.25f + 0.75f * params.param2);
+        const int right_delay = static_cast<int>(kTapDelays[i])
+                              + static_cast<int>(std::lround(delay_offset));
+        taps_r[i].delay_samples = static_cast<uint16_t>(right_delay);
         taps_r[i].pan = -pan;
     }
     er_l_.SetTaps(taps_l, 16);
@@ -102,8 +128,8 @@ StereoFrame ReflectionsReverb::Process(StereoFrame input, const ParamSet& /*para
     const StereoFrame reflections_l = er_l_.Process(pre_delay_l_.Read());
     const StereoFrame reflections_r = er_r_.Process(pre_delay_r_.Read());
     return {
-        0.5f * (reflections_l.left + reflections_r.left),
-        0.5f * (reflections_l.right + reflections_r.right)
+        tone_[0].Process(0.5f * (reflections_l.left + reflections_r.left)),
+        tone_[1].Process(0.5f * (reflections_l.right + reflections_r.right))
     };
 }
 

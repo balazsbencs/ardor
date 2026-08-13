@@ -1,0 +1,43 @@
+Ardor native-Plate / 8-line natural-reverb benchmark
+Date: 2026-08-13
+Device: Raspberry Pi 4, aarch64, Linux 6.18.37-v8 PREEMPT
+Governor: performance
+Build: Release, GCC 13.4.0, Buildroot ARM64 toolchain
+Benchmark: 48 kHz, 64-frame blocks, 10,000 timed blocks after 100 warmups
+Isolation: S99ardor-pedal stopped for each timing run and restored afterward
+Callback budget: 1333 us
+
+Final topology timing
+Mode       avg us   p99 us   stress avg us   avg budget
+room        50.57    56.11       51.48           3.8%
+hall        49.16    54.19       49.34           3.7%
+plate       45.00    50.35       45.17           3.4%
+
+Comparison with the preceding quality-fix build
+Mode       previous avg   final avg   change
+room          45.61 us     50.57 us   +10.9% (4-line -> 8-line FDN)
+hall          44.64 us     49.16 us   +10.1% (4-line -> 8-line FDN)
+plate         50.45 us     45.00 us   -10.8% (native 48 kHz; FIR boundary removed)
+
+Impulse-response quality metrics
+Mode       peak dB   energy dB   L/R corr   density 100-200 ms   RT60 from 20 dB
+room        -14.20       -2.31      0.471          0.999                1.492 s
+hall        -13.64       -3.48      0.347          0.958                1.749 s
+plate       -24.54       -0.19     -0.072          1.000                2.231 s
+
+Default full-wet level calibration (RMS/peak dBFS)
+Mode       sustained          50 ms burst
+room       -18.16 / -15.05    -28.72 / -12.33
+hall       -21.42 / -18.32    -31.87 / -19.38
+plate      -18.67 / -11.03    -29.76 / -18.18
+
+Quality and routing changes covered by this run
+- Plate processes every host sample at 48 kHz and reports zero resampler latency.
+- Plate delay/tap lengths and modulation depth retain their physical timing at 48 kHz.
+- The bright Plate response retains useful 14 kHz energy instead of crossing the
+  old 24 kHz adapter's low-pass boundary.
+- Room and Hall use 8 delay lines with signed orthogonal input/output projections.
+- Asymmetric early-reflection timing prevents mono sources from collapsing into
+  identical left/right fields.
+- Regression gates require Room correlation < 0.70 and density > 0.95, Hall
+  correlation < 0.70 and density > 0.90, and bounded responses at all endpoints.

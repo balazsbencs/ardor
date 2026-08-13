@@ -1,0 +1,44 @@
+Ardor hosted reverb quality-fix benchmark
+Date: 2026-08-13
+Device: Raspberry Pi 4, aarch64, Linux 6.18.37-v8 PREEMPT
+Governor: performance
+Build: Release, GCC 13.4.0, Buildroot ARM64 toolchain
+Benchmark: 48 kHz, 64-frame blocks, 10,000 timed blocks after 100 warmups
+Isolation: S99ardor-pedal stopped for the run and restored afterward
+Callback budget: 1333 us
+
+Default mode              avg us    p99 us    avg budget
+room                       45.61      50.52       3.4%
+hall                       44.64      49.52       3.3%
+plate                      50.45      56.24       3.8%
+spring                     44.98      49.93       3.4%
+bloom                      41.73      46.35       3.1%
+cloud                      43.64      48.44       3.3%
+shimmer                    46.16      51.04       3.5%
+chorale                    39.78      44.48       3.0%
+nonlinear                  41.34      46.05       3.1%
+swell                      38.99      43.55       2.9%
+magneto                    36.70      40.91       2.8%
+reflections                43.88      48.76       3.3%
+
+Default full-wet level calibration (RMS/peak dBFS)
+Mode              sustained              50 ms burst
+room              -28.11 / -24.66        -31.19 / -16.80
+hall              -20.27 / -17.17        -32.93 / -19.57
+plate             -18.89 / -11.33        -29.73 / -18.10
+spring            -23.49 / -19.52        -22.89 /  -9.24
+bloom             -47.22 / -36.71        -42.74 / -31.65
+cloud             -20.73 / -17.04        -36.61 / -26.43
+shimmer           -24.39 / -21.20        -31.18 / -19.79
+chorale           -36.65 / -33.34        -49.97 / -39.74
+nonlinear        -240.00 /-240.00        -31.10 / -17.76
+swell             -46.92 / -30.59        -39.40 / -26.18
+magneto           -16.83 / -13.80        -32.94 / -24.58
+reflections       -23.47 / -20.45        -35.04 / -20.92
+
+Notes:
+- The highest default average cost is Plate at 3.8% of one 64-frame callback.
+- The highest default p99 is Plate at 56.24 us (4.2% of the callback budget).
+- Spring's three resonator paths now run continuously; its default cost remains 3.4%.
+- Specialized envelope modes (Bloom, Chorale, Nonlinear, Swell) are intentionally
+  not normalized to steady-state tones; burst levels are the useful comparison.

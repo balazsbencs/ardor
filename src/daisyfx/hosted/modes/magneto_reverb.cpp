@@ -25,6 +25,8 @@ void MagnetoReverb::Init() {
     diffuser_r_.Init(diff_bufs_r, diff_sizes);
     diffuser_l_.SetDiffusion(0.6f);
     diffuser_r_.SetDiffusion(0.6f);
+    tone_[0].Init(REVERB_SAMPLE_RATE);
+    tone_[1].Init(REVERB_SAMPLE_RATE);
 
     n_heads_ = 4;
     golden_spacing_ = false;
@@ -39,6 +41,8 @@ void MagnetoReverb::Reset() {
     delay_r_.Reset();
     diffuser_l_.Reset();
     diffuser_r_.Reset();
+    tone_[0].Reset();
+    tone_[1].Reset();
     fb_lp_l_ = 0.0f;
     fb_lp_r_ = 0.0f;
 }
@@ -84,6 +88,8 @@ void MagnetoReverb::Prepare(const ParamSet& params) {
 
     diffuser_l_.SetDiffusion(0.4f + params.mod * 0.4f);
     diffuser_r_.SetDiffusion(0.4f + params.mod * 0.4f);
+    tone_[0].SetKnob(params.tone);
+    tone_[1].SetKnob(params.tone);
 }
 
 StereoFrame MagnetoReverb::Process(float input, const ParamSet& params) {
@@ -128,7 +134,7 @@ StereoFrame MagnetoReverb::Process(StereoFrame input, const ParamSet& params) {
     delay_l_.Write(input.left + fb * fb_lp_l_);
     delay_r_.Write(input.right + fb * fb_lp_r_);
 
-    return StereoFrame{left, right};
+    return StereoFrame{tone_[0].Process(left), tone_[1].Process(right)};
 }
 
 } // namespace pedal

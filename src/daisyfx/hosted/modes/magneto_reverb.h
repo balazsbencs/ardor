@@ -3,6 +3,7 @@
 #include "../config/constants.h"
 #include "../dsp/delay_line_sdram.h"
 #include "../dsp/diffuser.h"
+#include "../dsp/tone_filter.h"
 
 namespace pedal {
 
@@ -22,6 +23,7 @@ private:
     DelayLineSdram delay_r_;
     Diffuser       diffuser_l_;
     Diffuser       diffuser_r_;
+    ToneFilter     tone_[2];
     int            n_heads_        = 4;
     bool           golden_spacing_ = false;
     float          head_delays_[6]{};

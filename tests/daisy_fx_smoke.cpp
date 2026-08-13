@@ -65,6 +65,50 @@ double controlResponseDifference(const std::string& blockType, const std::string
   return difference;
 }
 
+struct ReverbSpatialMetrics {
+  double correlation = 1.0;
+  double density100To200 = 0.0;
+};
+
+ReverbSpatialMetrics reverbSpatialMetrics(const std::string& mode)
+{
+  const auto* descriptor = ardor::findDaisyFxDescriptor("reverb", mode);
+  require(descriptor != nullptr, mode + " spatial descriptor exists");
+  auto params = ardor::defaultDaisyFxParams(*descriptor);
+  params["mix"] = 1.0f;
+  params["pre_delay"] = 0.0f;
+
+  ardor::DaisyFxProcessor processor;
+  std::string error;
+  require(processor.configure("reverb", params, 48000.0f, error), error);
+  std::vector<ardor::StereoSample> response(24000);
+  double peak = 0.0;
+  double sumLeft = 0.0;
+  double sumRight = 0.0;
+  double sumCross = 0.0;
+  for (std::size_t frame = 0; frame < response.size(); ++frame) {
+    const float impulse = frame == 0 ? 1.0f : 0.0f;
+    response[frame] = processor.process({impulse, impulse});
+    peak = std::max(peak, static_cast<double>(std::max(std::fabs(response[frame].left),
+                                                       std::fabs(response[frame].right))));
+    sumLeft += static_cast<double>(response[frame].left) * response[frame].left;
+    sumRight += static_cast<double>(response[frame].right) * response[frame].right;
+    sumCross += static_cast<double>(response[frame].left) * response[frame].right;
+  }
+
+  std::size_t active = 0;
+  const double threshold = peak * 0.0001;
+  for (std::size_t frame = 4800; frame < 9600; ++frame) {
+    if (std::max(std::fabs(response[frame].left), std::fabs(response[frame].right)) > threshold) {
+      ++active;
+    }
+  }
+  return {
+    sumCross / std::sqrt(std::max(sumLeft * sumRight, 1e-24)),
+    static_cast<double>(active) / 4800.0,
+  };
+}
+
 } // namespace
 
 int main()
@@ -539,6 +583,13 @@ int main()
   }
   require(antiPhaseHallPeak > 0.0001f, "hall reverb must preserve anti-phase stereo content");
 
+  const auto roomSpatial = reverbSpatialMetrics("room");
+  const auto hallSpatial = reverbSpatialMetrics("hall");
+  require(std::fabs(roomSpatial.correlation) < 0.70 && roomSpatial.density100To200 > 0.95,
+          "room reverb must retain a dense, decorrelated stereo field");
+  require(std::fabs(hallSpatial.correlation) < 0.70 && hallSpatial.density100To200 > 0.90,
+          "hall reverb must retain a dense, decorrelated stereo field");
+
   nlohmann::json cloudParams = reverbParams;
   cloudParams["mode"] = "cloud";
   require(processor.configure("reverb", cloudParams, 48000.0f, error), error);
@@ -638,6 +689,20 @@ int main()
   }
   require(antiPhaseSpringPeak > 0.0001f, "spring reverb must preserve anti-phase stereo content");
 
+  // The one-spring setting must not discard a right-only source. This also
+  // guards the complementary input matrix used while spring-count gains slew.
+  springParams["param2"] = 0.0f;
+  springParams["pre_delay"] = 0.0f;
+  require(processor.configure("reverb", springParams, 48000.0f, error), error);
+  float rightOnlySpringPeak = 0.0f;
+  for (int i = 0; i < 12000; ++i) {
+    const auto sample = processor.process({0.0f, i == 0 ? 1.0f : 0.0f});
+    rightOnlySpringPeak = std::max(rightOnlySpringPeak,
+                                   std::max(std::fabs(sample.left), std::fabs(sample.right)));
+  }
+  require(rightOnlySpringPeak > 0.0001f,
+          "one-spring reverb must respond to a right-only source");
+
   nlohmann::json plateParams = reverbParams;
   plateParams["mode"] = "plate";
   require(processor.configure("reverb", plateParams, 48000.0f, error), error);
@@ -648,6 +713,65 @@ int main()
                                   std::max(std::fabs(sample.left), std::fabs(sample.right)));
   }
   require(antiPhasePlatePeak > 0.0001f, "plate reverb must preserve anti-phase stereo content");
+
+  // Plate's quadrature LFO phase must be identical immediately after Init and
+  // Reset. A phase offset that is only applied by Reset changes the sound when
+  // the same preset is bypassed and re-enabled.
+  ardor::DaisyFxProcessor freshPlate;
+  ardor::DaisyFxProcessor resetPlate;
+  plateParams["mod"] = 1.0f;
+  require(freshPlate.configure("reverb", plateParams, 48000.0f, error), error);
+  require(resetPlate.configure("reverb", plateParams, 48000.0f, error), error);
+  resetPlate.reset();
+  double plateLifecycleDifference = 0.0;
+  for (int i = 0; i < 16000; ++i) {
+    const float impulse = i == 0 ? 1.0f : 0.0f;
+    const auto fresh = freshPlate.process({impulse, impulse});
+    const auto reset = resetPlate.process({impulse, impulse});
+    plateLifecycleDifference += std::fabs(static_cast<double>(fresh.left) - reset.left)
+                              + std::fabs(static_cast<double>(fresh.right) - reset.right);
+  }
+  require(plateLifecycleDifference < 1e-7,
+          "plate modulation phase must be consistent across Init and Reset");
+
+  // Native-rate Plate must retain useful energy above the old 24 kHz
+  // adapter's transition band. Compare a bright 14 kHz excitation against a
+  // 4 kHz reference rather than depending on an absolute topology gain.
+  auto plateBandEnergy = [&](float frequency) {
+    auto brightPlateParams = plateParams;
+    brightPlateParams["tone"] = 1.0f;
+    brightPlateParams["mix"] = 1.0f;
+    brightPlateParams["pre_delay"] = 0.0f;
+    ardor::DaisyFxProcessor brightPlate;
+    require(brightPlate.configure("reverb", brightPlateParams, 48000.0f, error), error);
+    double energy = 0.0;
+    for (int i = 0; i < 24000; ++i) {
+      const float input = i < 4096
+        ? 0.25f * std::sin(6.28318530718f * frequency * static_cast<float>(i) / 48000.0f)
+        : 0.0f;
+      const auto output = brightPlate.process({input, input});
+      energy += static_cast<double>(output.left) * output.left
+              + static_cast<double>(output.right) * output.right;
+    }
+    return energy;
+  };
+  const double plate4kEnergy = plateBandEnergy(4000.0f);
+  const double plate14kEnergy = plateBandEnergy(14000.0f);
+  require(plate14kEnergy > plate4kEnergy * 0.01,
+          "native-rate plate must preserve high-frequency air");
+
+  // Reflections is a spatial algorithm: a mono impulse should produce a true
+  // stereo field, not two numerically identical output channels.
+  reflectionsParams["pre_delay"] = 0.0f;
+  require(processor.configure("reverb", reflectionsParams, 48000.0f, error), error);
+  double reflectionsStereoDifference = 0.0;
+  for (int i = 0; i < 8000; ++i) {
+    const float impulse = i == 0 ? 1.0f : 0.0f;
+    const auto sample = processor.process({impulse, impulse});
+    reflectionsStereoDifference += std::fabs(static_cast<double>(sample.left) - sample.right);
+  }
+  require(reflectionsStereoDifference > 0.001,
+          "reflections must decorrelate a mono source");
 
   ardor::DaisyFxProcessor roomA;
   ardor::DaisyFxProcessor roomB;
@@ -709,4 +833,16 @@ int main()
           "quadrature Tone must affect its response");
   require(controlResponseDifference("reverb", "reflections", "mod", 0.0f, 1.0f) > 1e-3,
           "reflections Motion must affect its spatial response");
+  require(controlResponseDifference("reverb", "room", "param1", 0.0f, 1.0f) > 1e-3,
+          "room Size must affect its early/late balance");
+  require(controlResponseDifference("reverb", "hall", "param2", 0.0f, 1.0f) > 1e-3,
+          "hall Mid EQ must affect its response");
+  require(controlResponseDifference("reverb", "spring", "pre_delay", 0.0f, 1.0f) > 1e-3,
+          "spring Pre-delay must affect its response");
+  require(controlResponseDifference("reverb", "spring", "param2", 0.0f, 1.0f) > 1e-3,
+          "spring Springs must change the resonator bank");
+  require(controlResponseDifference("reverb", "magneto", "tone", 0.0f, 1.0f) > 1e-3,
+          "magneto Tone must affect its response");
+  require(controlResponseDifference("reverb", "reflections", "tone", 0.0f, 1.0f) > 1e-3,
+          "reflections Tone must affect its response");
 }

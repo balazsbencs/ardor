@@ -109,6 +109,26 @@ float mappedReverbParam(float normalized, pedal::ReverbModeId mode, pedal::rever
   return pedal::map_param(normalized, pedal::reverb_fx::get_param_range(mode, param));
 }
 
+// Per-algorithm trims compensate for topology-dependent tap counts and
+// envelope make-up. Values are deliberately conservative: they narrow the
+// large loudness spread without pushing the measured worst-case bursts near
+// full scale.
+float reverbOutputGain(pedal::ReverbModeId mode) noexcept
+{
+  switch (mode) {
+    case pedal::ReverbModeId::Room:      return 2.5f;  // +8.0 dB
+    case pedal::ReverbModeId::Hall:      return 3.125f; // +9.9 dB
+    case pedal::ReverbModeId::Spring:    return 0.85f; // -1.4 dB headroom
+    case pedal::ReverbModeId::Bloom:     return 4.0f;  // +12 dB
+    case pedal::ReverbModeId::Cloud:     return 1.25f; // +1.9 dB
+    case pedal::ReverbModeId::Shimmer:   return 2.5f;  // +8.0 dB
+    case pedal::ReverbModeId::Chorale:   return 4.0f;  // +12 dB
+    case pedal::ReverbModeId::Nonlinear: return 2.0f;  // +6.0 dB
+    case pedal::ReverbModeId::Swell:     return 4.0f;  // +12 dB
+    default:                             return 1.0f;
+  }
+}
+
 std::unique_ptr<pedal::ModMode> makeModMode(const std::string& mode, pedal::ModModeId& id)
 {
   if (mode == "chorus") { id = pedal::ModModeId::Chorus; return std::make_unique<pedal::ChorusMode>(); }
@@ -192,7 +212,14 @@ struct DaisyFxProcessor::Impl {
 
   size_t controlInterval() const
   {
-    return kind == Kind::Reverb ? 96U : 48U;
+    // Most reverbs execute at 24 kHz and therefore see one 48-sample control
+    // block every 96 host frames. Plate runs natively at 48 kHz.
+    return kind == Kind::Reverb && reverbId != pedal::ReverbModeId::Plate ? 96U : 48U;
+  }
+
+  bool nativeRateReverb() const noexcept
+  {
+    return kind == Kind::Reverb && reverbId == pedal::ReverbModeId::Plate;
   }
 
   void refreshParameters()
@@ -312,6 +339,12 @@ struct DaisyFxProcessor::Impl {
 
   pedal::StereoFrame processReverbWet(StereoSample input)
   {
+    if (nativeRateReverb()) {
+      const auto internal = reverb->Process({input.left, input.right}, reverbParams);
+      const float outputGain = reverbOutputGain(reverbId);
+      return {finiteWet(internal.left) * outputGain, finiteWet(internal.right) * outputGain};
+    }
+
     pedal::StereoFrame output{};
     if (reverbWetFrameCount != 0U) {
       output = reverbWetFrames[reverbWetFrameIndex++];
@@ -324,8 +357,9 @@ struct DaisyFxProcessor::Impl {
     const bool hasRight = reverbDecimatorR.Push(input.right, decimatedRight);
     if (hasLeft && hasRight) {
       const auto internal = reverb->Process({decimatedLeft, decimatedRight}, reverbParams);
-      const auto left = reverbInterpolatorL.Process(finiteWet(internal.left));
-      const auto right = reverbInterpolatorR.Process(finiteWet(internal.right));
+      const float outputGain = reverbOutputGain(reverbId);
+      const auto left = reverbInterpolatorL.Process(finiteWet(internal.left) * outputGain);
+      const auto right = reverbInterpolatorR.Process(finiteWet(internal.right) * outputGain);
       reverbWetFrames[0] = {left[0], right[0]};
       reverbWetFrames[1] = {left[1], right[1]};
       reverbWetFrameIndex = 0;
@@ -488,9 +522,9 @@ StereoSample DaisyFxProcessor::process(StereoSample input)
     };
   }
   if (impl_->reverb) {
-    // Reverb algorithms are designed around a 24 kHz internal clock. The FIR
-    // boundary restores that clock while retaining a 48 kHz host interface.
-    const auto dry = impl_->delayReverbDry(input);
+    // Plate runs natively at the host rate. The remaining reverbs use the
+    // latency-matched 48 <-> 24 kHz FIR boundary.
+    const auto dry = impl_->nativeRateReverb() ? input : impl_->delayReverbDry(input);
     const auto wet = impl_->processReverbWet(input);
     return {
       (dry.left * (1.0f - impl_->smoothedMix)) + (finiteWet(wet.left) * impl_->smoothedMix),
@@ -502,7 +536,8 @@ StereoSample DaisyFxProcessor::process(StereoSample input)
 
 size_t DaisyFxProcessor::latencyFrames() const noexcept
 {
-  return impl_ && impl_->kind == Impl::Kind::Reverb ? Impl::kReverbLatencyFrames : 0;
+  return impl_ && impl_->kind == Impl::Kind::Reverb && !impl_->nativeRateReverb()
+    ? Impl::kReverbLatencyFrames : 0;
 }
 
 size_t DaisyFxProcessor::tailFrames() const noexcept

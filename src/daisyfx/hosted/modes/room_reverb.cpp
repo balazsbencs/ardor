@@ -22,14 +22,14 @@ static constexpr ErTap kErTaps[] = {
 // Mirror the right-input reflection field so left-only and right-only sources
 // retain a coherent, complementary spatial image.
 static constexpr ErTap kErTapsMirrored[] = {
-    {168,  0.80f,  0.70f},
-    {312,  0.70f, -0.70f},
-    {456,  0.60f,  0.50f},
-    {696,  0.50f, -0.50f},
-    {888,  0.40f,  0.85f},
-    {1128, 0.35f, -0.85f},
-    {1416, 0.28f,  0.30f},
-    {1752, 0.22f, -0.30f},
+    {175,  0.80f,  0.70f},
+    {307,  0.70f, -0.70f},
+    {467,  0.60f,  0.50f},
+    {683,  0.50f, -0.50f},
+    {905,  0.40f,  0.85f},
+    {1109, 0.35f, -0.85f},
+    {1439, 0.28f,  0.30f},
+    {1723, 0.22f, -0.30f},
 };
 
 } // namespace
@@ -57,17 +57,17 @@ void RoomReverb::Init() {
     diffuser_l_.SetDiffusion(0.65f);
     diffuser_r_.SetDiffusion(0.65f);
 
-    Fdn::Config fdn_cfg;
-    fdn_cfg.n_lines     = 4;
+    Fdn::Config fdn_cfg{};
+    fdn_cfg.n_lines     = 8;
     fdn_cfg.sample_rate = REVERB_SAMPLE_RATE;
     fdn_cfg.bufs[0]     = buf_fdn0_;  fdn_cfg.delays[0] = 954;
-    fdn_cfg.bufs[1]     = buf_fdn1_;  fdn_cfg.delays[1] = 1297;
-    fdn_cfg.bufs[2]     = buf_fdn2_;  fdn_cfg.delays[2] = 1849;
-    fdn_cfg.bufs[3]     = buf_fdn3_;  fdn_cfg.delays[3] = 2400;
-    for (int i = 4; i < Fdn::MAX_LINES; ++i) {
-        fdn_cfg.bufs[i]   = nullptr;
-        fdn_cfg.delays[i] = 0;
-    }
+    fdn_cfg.bufs[1]     = buf_fdn4_;  fdn_cfg.delays[1] = 1109;
+    fdn_cfg.bufs[2]     = buf_fdn1_;  fdn_cfg.delays[2] = 1297;
+    fdn_cfg.bufs[3]     = buf_fdn5_;  fdn_cfg.delays[3] = 1489;
+    fdn_cfg.bufs[4]     = buf_fdn2_;  fdn_cfg.delays[4] = 1849;
+    fdn_cfg.bufs[5]     = buf_fdn6_;  fdn_cfg.delays[5] = 2063;
+    fdn_cfg.bufs[6]     = buf_fdn3_;  fdn_cfg.delays[6] = 2400;
+    fdn_cfg.bufs[7]     = buf_fdn7_;  fdn_cfg.delays[7] = 2731;
     fdn_.Init(fdn_cfg);
     fdn_.SetDecay(2.0f);
     fdn_.SetDamping(0.3f);
@@ -81,6 +81,7 @@ void RoomReverb::Reset() {
     diffuser_l_.Reset();
     diffuser_r_.Reset();
     fdn_.Reset();
+    early_mix_ = 0.4f;
 }
 
 void RoomReverb::Prepare(const ParamSet& params) {
@@ -93,6 +94,10 @@ void RoomReverb::Prepare(const ParamSet& params) {
     fdn_.SetModulation(params.mod * 8.0f);
     diffuser_l_.SetDiffusion(params.param2);
     diffuser_r_.SetDiffusion(params.param2);
+    // Larger rooms are perceived as having a more dominant late field. This
+    // keeps the current delay topology stable while making Size musically
+    // useful and preserving the former 40/60 balance at the centre setting.
+    early_mix_ = 0.60f - params.param1 * 0.40f;
     fdn_.PrepareBlock();
 }
 
@@ -119,8 +124,8 @@ StereoFrame RoomReverb::Process(StereoFrame input, const ParamSet& /*params*/) {
     const StereoFrame late = fdn_.Process(diffused);
 
     const StereoFrame out{
-        er.left  * 0.4f + late.left  * 0.6f,
-        er.right * 0.4f + late.right * 0.6f
+        er.left  * early_mix_ + late.left  * (1.0f - early_mix_),
+        er.right * early_mix_ + late.right * (1.0f - early_mix_)
     };
     return out;
 }

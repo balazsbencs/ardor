@@ -2,6 +2,7 @@
 #include "reverb_mode.h"
 #include "../dsp/allpass.h"
 #include "../dsp/comb_filter.h"
+#include "../dsp/delay_line_sdram.h"
 #include "../dsp/lfo.h"
 #include "../dsp/saturation.h"
 #include "../dsp/tone_filter.h"
@@ -20,6 +21,9 @@ public:
     bool SupportsHold() const override { return true; }
 
 private:
+    static constexpr size_t kPreDelaySize = 12002;
+    float              pre_l_[kPreDelaySize];
+    float              pre_r_[kPreDelaySize];
     float              s0_ap0_[171];
     float              s0_ap1_[231];
     float              s0_ap2_[311];
@@ -45,6 +49,7 @@ private:
     // 3 springs, 6 allpass stages each
     DelayAllpassFilter ap_[3][6];
     CombFilter         comb_[3];
+    DelayLineSdram     pre_delay_[2];
     Saturation         sat_;
     ToneFilter         tone_[2];
     Lfo                spring_lfo_[3];
@@ -52,6 +57,7 @@ private:
     bool               hold_ = false;
     float              comb_fb_[3]{};
     float              comb_makeup_[3]{};
+    float              spring_gain_[3]{1.0f, 0.0f, 0.0f};
     int                active_springs_ = 1;
 };
 

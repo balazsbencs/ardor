@@ -27,8 +27,8 @@ public:
   bool setParameterTarget(const std::string& key, float normalized);
   void reset();
   StereoSample process(StereoSample input);
-  // Fixed algorithmic latency introduced by the 48 kHz <-> 24 kHz reverb
-  // boundary. Hosts can use this for chain/offline alignment.
+  // Algorithmic latency introduced by the 48 kHz <-> 24 kHz reverb boundary.
+  // Native-rate reverbs report zero. Hosts can use this for chain alignment.
   size_t latencyFrames() const noexcept;
   // Offline rendering estimate. Delay/reverb estimates are capped at 60 s;
   // callers may request a longer explicit tail when preserving extreme

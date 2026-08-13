@@ -2,6 +2,7 @@
 #include "daisyfx/DaisyFxProcessor.h"
 #include "daisyfx/hosted/dsp/delay_line_sdram.h"
 #include "daisyfx/hosted/dsp/fast_math.h"
+#include "daisyfx/hosted/dsp/fdn.h"
 #include "daisyfx/hosted/dsp/halfband_resampler.h"
 #include "daisyfx/hosted/dsp/tone_filter.h"
 #include "daisyfx/hosted/params/reverb_param_map.h"
@@ -197,12 +198,46 @@ void verifyPhysicalReverbMappings()
   const auto swellRise = map_param(1.0f, get_param_range(ReverbModeId::Swell, ParamId::Param1));
   const auto choraleVowel = map_param(1.0f, get_param_range(ReverbModeId::Chorale, ParamId::Param1));
   const auto magnetoHeads = map_param(0.0f, get_param_range(ReverbModeId::Magneto, ParamId::Param1));
+  const auto springCount = map_param(0.5f, get_param_range(ReverbModeId::Spring, ParamId::Param2));
 
   require(std::fabs(bloomTime - 1.625f) < 0.000001f, "Bloom time map is physical seconds");
   require(std::fabs(bloomFeedback - 0.7f) < 0.000001f, "Bloom feedback map is physical gain");
   require(std::fabs(swellRise - 4.0f) < 0.000001f, "Swell rise map is physical seconds");
   require(std::fabs(choraleVowel - 6.0f) < 0.000001f, "Chorale vowel map is a physical index");
   require(std::fabs(magnetoHeads - 1.0f) < 0.000001f, "Magneto head map is a physical selector");
+  require(std::fabs(springCount - 2.0f) < 0.000001f, "Spring count map is a physical selector");
+}
+
+void verifyEightLineFdn()
+{
+  std::array<std::array<float, 521>, pedal::Fdn::MAX_LINES> buffers{};
+  pedal::Fdn::Config config{};
+  config.n_lines = 8;
+  config.sample_rate = 24000.0f;
+  constexpr std::array<std::size_t, 8> sizes{257, 283, 313, 347, 379, 419, 461, 509};
+  for (int line = 0; line < pedal::Fdn::MAX_LINES; ++line) {
+    config.bufs[line] = buffers[line].data();
+    config.delays[line] = sizes[static_cast<std::size_t>(line)];
+  }
+
+  pedal::Fdn fdn;
+  fdn.Init(config);
+  fdn.SetDecay(1.5f);
+  fdn.SetDampFromRt60Ratio(1.5f, 0.7f);
+  fdn.SetModulation(4.0f);
+
+  float peak = 0.0f;
+  double stereoDifference = 0.0;
+  for (int sample = 0; sample < 12000; ++sample) {
+    if ((sample % 48) == 0) fdn.PrepareBlock();
+    const auto output = fdn.Process({sample == 0 ? 1.0f : 0.0f, 0.0f});
+    requireFinite(output.left, "8-line FDN left output must remain finite");
+    requireFinite(output.right, "8-line FDN right output must remain finite");
+    peak = std::max(peak, std::max(std::fabs(output.left), std::fabs(output.right)));
+    stereoDifference += std::fabs(static_cast<double>(output.left) - output.right);
+  }
+  require(peak > 0.0001f && peak < 2.0f, "8-line FDN must produce a bounded tail");
+  require(stereoDifference > 0.01, "8-line FDN must produce a stereo field");
 }
 
 void verifyReverbReset()
@@ -255,6 +290,17 @@ void verifyReverbLatency()
     require(output.left == expected && output.right == 0.0f,
             "dry reverb path must match the resampler latency exactly");
   }
+
+
+  const auto* plateDescriptor = ardor::findDaisyFxDescriptor("reverb", "plate");
+  require(plateDescriptor != nullptr, "plate reverb descriptor exists");
+  auto plateParams = ardor::defaultDaisyFxParams(*plateDescriptor);
+  plateParams["mix"] = 0.0f;
+  require(processor.configure("reverb", plateParams, 48000.0f, error), error);
+  require(processor.latencyFrames() == 0U, "native-rate plate must report zero adapter latency");
+  const auto immediate = processor.process({1.0f, -0.5f});
+  require(immediate.left == 1.0f && immediate.right == -0.5f,
+          "native-rate plate dry path must not be delayed");
 }
 
 void verifyOutputMixSmoothing()
@@ -300,6 +346,7 @@ int main()
   verifyDelayLineReset();
   verifyDelayStartup();
   verifyPhysicalReverbMappings();
+  verifyEightLineFdn();
   verifyReverbReset();
   verifyReverbLatency();
   verifyOutputMixSmoothing();

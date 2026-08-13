@@ -346,6 +346,9 @@ target_link_libraries(pedal-hosted-dsp-unit PRIVATE ardor_daisyfx)
 add_executable(pedal-daisy-fx-response tests/daisy_fx_response.cpp)
 target_link_libraries(pedal-daisy-fx-response PRIVATE ardor_daisyfx)
 
+add_executable(pedal-reverb-quality tests/reverb_quality.cpp)
+target_link_libraries(pedal-reverb-quality PRIVATE ardor_daisyfx)
+
 add_executable(pedal-daisy-fx-automation tests/daisy_fx_automation.cpp)
 target_link_libraries(pedal-daisy-fx-automation PRIVATE ardor_daisyfx)
 

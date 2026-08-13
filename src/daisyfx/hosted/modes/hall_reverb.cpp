@@ -1,5 +1,6 @@
 #include "hall_reverb.h"
 #include "../config/constants.h"
+#include <cmath>
 
 using namespace pedal::reverb_fx;
 
@@ -15,10 +16,10 @@ static constexpr ErTap kErTaps[4] = {
 };
 
 static constexpr ErTap kErTapsMirrored[4] = {
-    { 240,  0.78f,  0.70f},
-    { 456,  0.68f, -0.70f},
-    {1344,  0.38f,  0.90f},
-    {1752,  0.32f, -0.90f},
+    { 251,  0.78f,  0.70f},
+    { 439,  0.68f, -0.70f},
+    {1373,  0.38f,  0.90f},
+    {1721,  0.32f, -0.90f},
 };
 
 } // namespace
@@ -46,17 +47,17 @@ void HallReverb::Init() {
     diffuser_l_.SetDiffusion(0.65f);
     diffuser_r_.SetDiffusion(0.65f);
 
-    Fdn::Config fdn_cfg;
-    fdn_cfg.n_lines     = 4;
+    Fdn::Config fdn_cfg{};
+    fdn_cfg.n_lines     = 8;
     fdn_cfg.sample_rate = REVERB_SAMPLE_RATE;
     fdn_cfg.bufs[0]     = buf_fdn0_;  fdn_cfg.delays[0] = 1654;
-    fdn_cfg.bufs[1]     = buf_fdn1_;  fdn_cfg.delays[1] = 2080;
-    fdn_cfg.bufs[2]     = buf_fdn2_;  fdn_cfg.delays[2] = 2952;
-    fdn_cfg.bufs[3]     = buf_fdn3_;  fdn_cfg.delays[3] = 3499;
-    for (int i = 4; i < Fdn::MAX_LINES; ++i) {
-        fdn_cfg.bufs[i]   = nullptr;
-        fdn_cfg.delays[i] = 0;
-    }
+    fdn_cfg.bufs[1]     = buf_fdn4_;  fdn_cfg.delays[1] = 1831;
+    fdn_cfg.bufs[2]     = buf_fdn1_;  fdn_cfg.delays[2] = 2080;
+    fdn_cfg.bufs[3]     = buf_fdn5_;  fdn_cfg.delays[3] = 2393;
+    fdn_cfg.bufs[4]     = buf_fdn2_;  fdn_cfg.delays[4] = 2952;
+    fdn_cfg.bufs[5]     = buf_fdn6_;  fdn_cfg.delays[5] = 3221;
+    fdn_cfg.bufs[6]     = buf_fdn3_;  fdn_cfg.delays[6] = 3499;
+    fdn_cfg.bufs[7]     = buf_fdn7_;  fdn_cfg.delays[7] = 3907;
     fdn_.Init(fdn_cfg);
     fdn_.SetDecay(3.0f);
     fdn_.SetDamping(0.25f);
@@ -70,6 +71,9 @@ void HallReverb::Reset() {
     diffuser_l_.Reset();
     diffuser_r_.Reset();
     fdn_.Reset();
+    mid_fast_[0] = mid_fast_[1] = 0.0f;
+    mid_slow_[0] = mid_slow_[1] = 0.0f;
+    mid_scale_ = 0.0f;
 }
 
 void HallReverb::Prepare(const ParamSet& params) {
@@ -86,6 +90,11 @@ void HallReverb::Prepare(const ParamSet& params) {
     // Param1 controls pre-diffusion density (0 = minimal, 1 = maximum)
     diffuser_l_.SetDiffusion(0.35f + params.param1 * 0.45f);
     diffuser_r_.SetDiffusion(0.35f + params.param1 * 0.45f);
+    // Broad post-tank mid control, approximately +/-6 dB. Two inexpensive
+    // one-poles form a 250 Hz--2.5 kHz band without putting another resonant
+    // filter inside the feedback loop.
+    const float mid_db = (params.param2 - 0.5f) * 12.0f;
+    mid_scale_ = std::pow(10.0f, mid_db / 20.0f) - 1.0f;
     fdn_.PrepareBlock();
 }
 
@@ -108,10 +117,17 @@ StereoFrame HallReverb::Process(StereoFrame input, const ParamSet& /*params*/) {
     };
     const StereoFrame late = fdn_.Process(diffused);
 
-    const StereoFrame out{
+    const float tank[2] = {
         er.left  * 0.35f + late.left  * 0.65f,
         er.right * 0.35f + late.right * 0.65f
     };
+    StereoFrame out{};
+    float* channels[2] = {&out.left, &out.right};
+    for (int ch = 0; ch < 2; ++ch) {
+        mid_fast_[ch] += 0.48f * (tank[ch] - mid_fast_[ch]);
+        mid_slow_[ch] += 0.063f * (tank[ch] - mid_slow_[ch]);
+        *channels[ch] = tank[ch] + mid_scale_ * (mid_fast_[ch] - mid_slow_[ch]);
+    }
     return out;
 }
 

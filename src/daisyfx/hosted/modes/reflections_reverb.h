@@ -3,6 +3,7 @@
 #include "../dsp/delay_line_sdram.h"
 #include "../dsp/early_reflections.h"
 #include "../dsp/lfo.h"
+#include "../dsp/tone_filter.h"
 
 namespace pedal {
 
@@ -25,6 +26,7 @@ private:
     EarlyReflections er_l_;
     EarlyReflections er_r_;
     Lfo              motion_lfo_;
+    ToneFilter       tone_[2];
 };
 
 } // namespace pedal

@@ -16,6 +16,11 @@ static constexpr size_t kApDelays1[6] = { 91, 124, 166, 231, 316, 423 };
 static constexpr size_t kApDelays2[6] = { 96, 130, 175, 243, 334, 447 };
 
 void SpringReverb::Init() {
+    pre_delay_[0].Init(pre_l_, kPreDelaySize);
+    pre_delay_[1].Init(pre_r_, kPreDelaySize);
+    pre_delay_[0].SetDelay(2.0f);
+    pre_delay_[1].SetDelay(2.0f);
+
     // Spring 0
     float* sp0_bufs[6] = { s0_ap0_, s0_ap1_, s0_ap2_, s0_ap3_, s0_ap4_, s0_ap5_ };
     const size_t sp0_sizes[6] = { 171, 231, 311, 431, 591, 795 };
@@ -51,6 +56,8 @@ void SpringReverb::Init() {
     tone_[1].Init(REVERB_SAMPLE_RATE);
     hold_ = false;
     active_springs_ = 1;
+    spring_gain_[0] = 1.0f;
+    spring_gain_[1] = spring_gain_[2] = 0.0f;
     for (auto& fb : comb_fb_) fb = 0.8f;
     for (auto& makeup : comb_makeup_) makeup = 0.6f;
 
@@ -63,6 +70,8 @@ void SpringReverb::Init() {
 }
 
 void SpringReverb::Reset() {
+    pre_delay_[0].Reset();
+    pre_delay_[1].Reset();
     for (int sp = 0; sp < 3; ++sp) {
         for (int s = 0; s < 6; ++s) ap_[sp][s].Reset();
         comb_[sp].Reset();
@@ -80,12 +89,19 @@ void SpringReverb::Reset() {
     tone_[1].Init(REVERB_SAMPLE_RATE);
     hold_ = false;
     active_springs_ = 1;
+    spring_gain_[0] = 1.0f;
+    spring_gain_[1] = spring_gain_[2] = 0.0f;
     spring_lfo_[0].Reset();
     spring_lfo_[1].Reset();
     spring_lfo_[2].Reset();
 }
 
 void SpringReverb::Prepare(const ParamSet& params) {
+    const float delay_samples = params.pre_delay * REVERB_SAMPLE_RATE;
+    const float rounded = (delay_samples < 2.0f ? 2.0f : delay_samples) + 0.5f;
+    pre_delay_[0].SetDelay(static_cast<float>(static_cast<size_t>(rounded)));
+    pre_delay_[1].SetDelay(static_cast<float>(static_cast<size_t>(rounded)));
+
     // Comb feedback from decay: g = exp(-6.9078 * comb_delay_s / decay_s)
     // Comb delays execute in the 24 kHz reverb stage.
     static constexpr float kCombDelayS[3] = {
@@ -122,12 +138,12 @@ void SpringReverb::Prepare(const ParamSet& params) {
     // Keep a small dead band around the spring-count boundaries so automated
     // controls cannot repeatedly add/remove an entire resonator path.
     if (active_springs_ == 1) {
-        if (params.param2 > 0.36f) active_springs_ = 2;
+        if (params.param2 > 1.60f) active_springs_ = 2;
     } else if (active_springs_ == 2) {
-        if (params.param2 < 0.30f) active_springs_ = 1;
-        else if (params.param2 > 0.69f) active_springs_ = 3;
+        if (params.param2 < 1.40f) active_springs_ = 1;
+        else if (params.param2 > 2.60f) active_springs_ = 3;
     } else {
-        if (params.param2 < 0.63f) active_springs_ = 2;
+        if (params.param2 < 2.40f) active_springs_ = 2;
     }
 }
 
@@ -136,24 +152,30 @@ StereoFrame SpringReverb::Process(float input, const ParamSet& params) {
 }
 
 StereoFrame SpringReverb::Process(StereoFrame input, const ParamSet& params) {
-
-    // Determine active springs from param2
-    const int n_springs = active_springs_;
+    pre_delay_[0].Write(input.left);
+    pre_delay_[1].Write(input.right);
+    const StereoFrame delayed{pre_delay_[0].Read(), pre_delay_[1].Read()};
 
     float out_l = 0.0f;
     float out_r = 0.0f;
+    float gain_sum = 0.0f;
 
-    for (int sp = 0; sp < n_springs; ++sp) {
+    // Every resonator keeps running even while inaudible, so adding a spring
+    // never reveals a frozen or stale tail. Gains slew over roughly 20 ms.
+    for (int sp = 0; sp < 3; ++sp) {
+        const float target_gain = sp < active_springs_ ? 1.0f : 0.0f;
+        spring_gain_[sp] += 0.002f * (target_gain - spring_gain_[sp]);
+        gain_sum += spring_gain_[sp];
+
         // Allpass dispersion chain
         // Per-spring delay table pointer for modulated last stage
         const size_t* ap_delays = (sp == 0) ? kApDelays0 : (sp == 1) ? kApDelays1 : kApDelays2;
 
-        // The three physical-model paths double as a lightweight input matrix:
-        // L, R, then mid. For mono input this exactly reduces to the previous
-        // excitation, while anti-phase content no longer cancels at the input.
-        const float source = sp == 0 ? input.left
-                           : sp == 1 ? input.right
-                                     : 0.5f * (input.left + input.right);
+        // A complementary input matrix gives the one-spring setting access to
+        // both channels and retains stereo side energy as paths are added.
+        const float source = sp == 0 ? 0.75f * delayed.left + 0.25f * delayed.right
+                           : sp == 1 ? 0.25f * delayed.left + 0.75f * delayed.right
+                                     : 0.5f * (delayed.left + delayed.right);
         float s = sat_.Process(source);
         for (int st = 0; st < 5; ++st) {
             s = ap_[sp][st].Process(s, kApG[st]);
@@ -164,12 +186,13 @@ StereoFrame SpringReverb::Process(StereoFrame input, const ParamSet& params) {
         s = ap_[sp][5].ProcessMod(s, kApG[5], mod_delay);
         const float c = comb_[sp].Process(s) * comb_makeup_[sp];
         // Alternate L/R per spring
-        if (sp == 0)      { out_l += c; out_r += c * 0.7f; }
-        else if (sp == 1) { out_l += c * 0.6f; out_r += c; }
-        else              { out_l += c * 0.8f; out_r += c * 0.8f; }
+        const float gain = spring_gain_[sp];
+        if (sp == 0)      { out_l += c * gain; out_r += c * gain * 0.7f; }
+        else if (sp == 1) { out_l += c * gain * 0.6f; out_r += c * gain; }
+        else              { out_l += c * gain * 0.8f; out_r += c * gain * 0.8f; }
     }
 
-    const float scale = 1.0f / static_cast<float>(n_springs);
+    const float scale = gain_sum > 0.0001f ? 1.0f / gain_sum : 1.0f;
     return StereoFrame{
         tone_[0].Process(out_l * scale),
         tone_[1].Process(out_r * scale)

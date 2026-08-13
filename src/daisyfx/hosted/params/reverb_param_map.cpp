@@ -36,6 +36,7 @@ const ParamRange& get_param_range(ReverbModeId mode, ParamId param) {
     // Mode-specific Param2 overrides
     if (param == ParamId::Param2) {
         switch (mode) {
+            case ReverbModeId::Spring:      return default_ranges::PARAM2_SPRING;
             case ReverbModeId::Shimmer:     return default_ranges::PARAM2_SHIMMER;
             case ReverbModeId::Chorale:     return default_ranges::PARAM2_CHORALE;
             case ReverbModeId::Nonlinear:   return default_ranges::PARAM2_NONLIN;

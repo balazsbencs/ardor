@@ -32,9 +32,13 @@ private:
     float buf_diff_r2_[Diffuser::kDelays[2] + 1];
     float buf_diff_r3_[Diffuser::kDelays[3] + 1];
     float buf_fdn0_[1907];
+    float buf_fdn4_[1109];
     float buf_fdn1_[2593];
+    float buf_fdn5_[1489];
     float buf_fdn2_[3697];
+    float buf_fdn6_[2063];
     float buf_fdn3_[4799];
+    float buf_fdn7_[2731];
     DelayLineSdram pre_delay_l_;
     DelayLineSdram pre_delay_r_;
     EarlyReflections er_l_;
@@ -42,6 +46,7 @@ private:
     Diffuser diffuser_l_;
     Diffuser diffuser_r_;
     Fdn fdn_;
+    float early_mix_ = 0.4f;
 };
 
 } // namespace pedal

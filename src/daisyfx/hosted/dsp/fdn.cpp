@@ -11,6 +11,14 @@ static constexpr float kLfoRates[Fdn::MAX_LINES] = {
     0.500f, 0.631f, 0.794f, 1.000f, 1.260f, 1.587f, 2.000f, 2.520f
 };
 
+// Orthogonal Hadamard rows used by the 8-line stereo network. Signed input
+// projection excites multiple modes for mono sources; independent output
+// projections prevent the extra lines from collapsing into a correlated sum.
+static constexpr float kMidInputSigns[8]  = { 1, -1, -1,  1,  1, -1, -1,  1 };
+static constexpr float kSideInputSigns[8] = { 1, -1,  1, -1, -1,  1, -1,  1 };
+static constexpr float kLeftOutputSigns[8]  = { 1,  1, -1, -1,  1,  1, -1, -1 };
+static constexpr float kRightOutputSigns[8] = { 1,  1, -1, -1, -1, -1,  1,  1 };
+
 void Fdn::Init(const Config& cfg) {
     n_lines_     = cfg.n_lines < 1 ? 1 : (cfg.n_lines > MAX_LINES ? MAX_LINES : cfg.n_lines);
     sample_rate_ = cfg.sample_rate > 0.0f ? cfg.sample_rate : 48000.0f;
@@ -181,14 +189,28 @@ StereoFrame Fdn::Process(float input) {
     }
 
     // Distribute input and write back with feedback.
-    const float input_gain = 1.0f / static_cast<float>(n_lines_);
+    // Preserve the four-line network's aggregate injection/output level as
+    // the network grows. A plain 1/N injection makes an 8-line tank 3 dB
+    // quieter after the stereo output averaging.
+    const float input_gain = 0.5f / std::sqrt(static_cast<float>(n_lines_));
     const float in_scaled = hold_ ? 0.0f : input * input_gain;  // mute input during hold
     for (int i = 0; i < n_lines_; ++i) {
         const float fb = hold_ ? 1.0f : feedback_[i];
-        lines_[i].Write(in_scaled + fb * mixed[i]);
+        const float injection = n_lines_ == 8 ? in_scaled * kMidInputSigns[i] : in_scaled;
+        lines_[i].Write(injection + fb * mixed[i]);
     }
 
-    // Stereo output: even lines → L, odd lines → R.
+    if (n_lines_ == 8) {
+        float left = 0.0f, right = 0.0f;
+        for (int i = 0; i < 8; ++i) {
+            left  += v[i] * kLeftOutputSigns[i];
+            right += v[i] * kRightOutputSigns[i];
+        }
+        constexpr float kInvSqrt8 = 0.35355339059f;
+        return StereoFrame{left * kInvSqrt8, right * kInvSqrt8};
+    }
+
+    // Four-line stereo output: even lines → L, odd lines → R.
     float left = 0.0f, right = 0.0f;
     const float out_scale = 2.0f / static_cast<float>(n_lines_);
     for (int i = 0; i < n_lines_; i += 2) left  += v[i];
@@ -228,14 +250,29 @@ StereoFrame Fdn::Process(StereoFrame input) {
     }
 
     // Distribute input and write back with feedback.
-    const float input_gain = 1.0f / static_cast<float>(n_lines_);
+    const float input_gain = 0.5f / std::sqrt(static_cast<float>(n_lines_));
+    const float mid = 0.5f * (input.left + input.right);
+    const float side = 0.5f * (input.left - input.right);
     for (int i = 0; i < n_lines_; ++i) {
         const float fb = hold_ ? 1.0f : feedback_[i];
-        const float in_val = hold_ ? 0.0f : ((i % 2 == 0) ? input.left : input.right) * input_gain;
+        const float in_val = hold_ ? 0.0f
+            : n_lines_ == 8
+                ? (mid * kMidInputSigns[i] + side * kSideInputSigns[i]) * input_gain
+                : ((i % 2 == 0) ? input.left : input.right) * input_gain;
         lines_[i].Write(in_val + fb * mixed[i]);
     }
 
-    // Stereo output: even lines → L, odd lines → R.
+    if (n_lines_ == 8) {
+        float left = 0.0f, right = 0.0f;
+        for (int i = 0; i < 8; ++i) {
+            left  += v[i] * kLeftOutputSigns[i];
+            right += v[i] * kRightOutputSigns[i];
+        }
+        constexpr float kInvSqrt8 = 0.35355339059f;
+        return StereoFrame{left * kInvSqrt8, right * kInvSqrt8};
+    }
+
+    // Four-line stereo output: even lines → L, odd lines → R.
     float left = 0.0f, right = 0.0f;
     const float out_scale = 2.0f / static_cast<float>(n_lines_);
     for (int i = 0; i < n_lines_; i += 2) left  += v[i];

@@ -20,20 +20,20 @@ public:
     bool SupportsHold() const override { return true; }
 
 private:
-    float buf_pre_l_[24001];
-    float buf_pre_r_[24001];
-    float buf_idif0_[230];
-    float buf_idif1_[174];
-    float buf_idif2_[612];
-    float buf_idif3_[448];
-    float buf_ap5_[1098];
-    float buf_d5_[7182];
-    float buf_ap7_[2904];
-    float buf_d6_[6001];
-    float buf_ap6_[1480];
-    float buf_d7_[6801];
+    float buf_pre_l_[24003];
+    float buf_pre_r_[24003];
+    float buf_idif0_[231];
+    float buf_idif1_[175];
+    float buf_idif2_[613];
+    float buf_idif3_[449];
+    float buf_ap5_[1130];
+    float buf_d5_[7184];
+    float buf_ap7_[2905];
+    float buf_d6_[6003];
+    float buf_ap6_[1510];
+    float buf_d7_[6803];
     float buf_ap8_[4285];
-    float buf_d8_[5100];
+    float buf_d8_[5102];
 
     // Pre-delay (0..500 ms)
     DelayLineSdram pre_delay_l_;

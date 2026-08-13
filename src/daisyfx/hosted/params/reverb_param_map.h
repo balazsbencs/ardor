@@ -33,6 +33,7 @@ namespace default_ranges {
     constexpr ParamRange PARAM1_SWELL   = {0.08f,  4.0f,  1.0f};
     constexpr ParamRange PARAM1_SHIMMER = {-12.0f, 24.0f, 0.0f};
     constexpr ParamRange PARAM2_SHIMMER = {-12.0f, 24.0f, 0.0f};
+    constexpr ParamRange PARAM2_SPRING  = {1.0f,   3.0f,  0.0f};
     constexpr ParamRange PARAM1_CHORALE  = {0.0f,  6.0f,  0.0f};
     constexpr ParamRange PARAM2_CHORALE  = {0.0f,  1.0f,  0.0f};
     constexpr ParamRange PARAM1_NONLIN   = {0.0f,  1.0f,  0.0f};
