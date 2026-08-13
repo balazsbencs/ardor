@@ -6,7 +6,7 @@ using namespace pedal::delay_fx;
 
 namespace pedal {
 
-static constexpr int kTimeCrossfadeSamples = 2400; // 50 ms at 48 kHz
+static constexpr float kStereoOffsetSamples = 31.0f;
 
 void DuckDelay::Init() {
     duck_line_l_.Init(duck_buf_l_, MAX_DELAY_SAMPLES);
@@ -31,9 +31,7 @@ void DuckDelay::Reset() {
     filter_r_.Reset();
     dc_l_.Init();
     dc_r_.Init();
-    delay_current_ = -1.0f;
-    delay_previous_ = -1.0f;
-    time_crossfade_remaining_ = 0;
+    time_transition_.Reset();
     fb_lim_l_.Reset();
     fb_lim_r_.Reset();
 }
@@ -42,15 +40,7 @@ void DuckDelay::Prepare(const ParamSet& params) {
     lfo_.SetRate(params.mod_spd);
     filter_l_.SetKnob(params.filter);
     filter_r_.SetKnob(params.filter);
-    const float targetDelay = params.time * SAMPLE_RATE;
-    if (delay_current_ < 0.0f) {
-        delay_current_ = targetDelay;
-        delay_previous_ = targetDelay;
-    } else if (fabsf(targetDelay - delay_current_) > 0.01f) {
-        delay_previous_ = delay_current_;
-        delay_current_ = targetDelay;
-        time_crossfade_remaining_ = kTimeCrossfadeSamples;
-    }
+    time_transition_.SetTarget(params.time * SAMPLE_RATE);
 }
 
 StereoFrame DuckDelay::Process(float input, const ParamSet& params) {
@@ -61,11 +51,7 @@ StereoFrame DuckDelay::Process(StereoFrame input, const ParamSet& params) {
     static constexpr float kThresh    = 0.10f;
 
     const float lfo_val   = lfo_.Process();
-    float delay_samps     = delay_current_ + lfo_val * (params.mod_dep * 15.0f);
-    if (delay_samps < 1.0f)
-        delay_samps = 1.0f;
-    if (delay_samps > static_cast<float>(MAX_DELAY_SAMPLES - 1))
-        delay_samps = static_cast<float>(MAX_DELAY_SAMPLES - 1);
+    const float modulation = params.mod_dep * 15.0f;
 
     // Soft-knee duck: below 0.5*thresh transparent, above 1.5*thresh fully ducked
     const float detector = fmaxf(fabsf(input.left), fabsf(input.right));
@@ -76,22 +62,25 @@ StereoFrame DuckDelay::Process(StereoFrame input, const ParamSet& params) {
     t = t * t * (3.0f - 2.0f * t);          // smoothstep
     const float duck_amount = 1.0f - t * params.grit;
 
-    float wet_l = duck_line_l_.ReadAt(delay_samps);
-    float wet_r = duck_line_r_.ReadAt(delay_samps);
-    if (time_crossfade_remaining_ > 0) {
-        float previousDelay = delay_previous_ + lfo_val * (params.mod_dep * 15.0f);
-        if (previousDelay < 1.0f) previousDelay = 1.0f;
-        if (previousDelay > static_cast<float>(MAX_DELAY_SAMPLES - 1)) {
-            previousDelay = static_cast<float>(MAX_DELAY_SAMPLES - 1);
+    const auto readHeads = [&](float base) {
+        const float left = base + lfo_val * modulation;
+        const float right = base + kStereoOffsetSamples - lfo_val * modulation;
+        if (modulation <= 0.00001f) {
+            return StereoFrame{duck_line_l_.ReadNearest(left), duck_line_r_.ReadNearest(right)};
         }
-        const float fade = 1.0f - static_cast<float>(time_crossfade_remaining_) /
-                                      static_cast<float>(kTimeCrossfadeSamples);
-        const float previousWetL = duck_line_l_.ReadAt(previousDelay);
-        const float previousWetR = duck_line_r_.ReadAt(previousDelay);
-        wet_l = previousWetL + fade * (wet_l - previousWetL);
-        wet_r = previousWetR + fade * (wet_r - previousWetR);
-        --time_crossfade_remaining_;
+        return StereoFrame{duck_line_l_.ReadAtHighQuality(left),
+                           duck_line_r_.ReadAtHighQuality(right)};
+    };
+    StereoFrame wet = readHeads(time_transition_.to());
+    if (time_transition_.active()) {
+        const StereoFrame old = readHeads(time_transition_.from());
+        const float fade = time_transition_.mix();
+        wet.left = old.left + fade * (wet.left - old.left);
+        wet.right = old.right + fade * (wet.right - old.right);
+        time_transition_.Advance();
     }
+    float wet_l = wet.left;
+    float wet_r = wet.right;
     wet_l = filter_l_.Process(wet_l);
     wet_r = filter_r_.Process(wet_r);
 

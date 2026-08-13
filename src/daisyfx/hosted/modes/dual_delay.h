@@ -5,6 +5,7 @@
 #include "../dsp/dc_blocker.h"
 #include "../dsp/feedback_limiter.h"
 #include "../dsp/delay_line_sdram.h"
+#include "../dsp/delay_tap_transition.h"
 #include "../config/constants.h"
 
 namespace pedal {
@@ -24,15 +25,14 @@ private:
     ToneFilter filter_r_;
     DcBlocker  dc_l_;
     DcBlocker  dc_r_;
-    float      delay_current_ = -1.0f;
-    float      delay_previous_ = -1.0f;
-    int        time_crossfade_remaining_ = 0;
+    DelayTapTransition time_transition_;
     FeedbackLimiter fb_lim_l_;
     FeedbackLimiter fb_lim_r_;
     DcBlocker  dc_fb_l_;
     DcBlocker  dc_fb_r_;
-    float          buf_l_[MAX_DELAY_SAMPLES];
-    float          buf_r_[MAX_DELAY_SAMPLES];
+    static constexpr size_t kDualDelaySamples = static_cast<size_t>(SAMPLE_RATE * 3.8f);
+    float          buf_l_[kDualDelaySamples];
+    float          buf_r_[kDualDelaySamples];
     DelayLineSdram line_l_;
     DelayLineSdram line_r_;
 };

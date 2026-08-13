@@ -6,7 +6,7 @@ using namespace pedal::delay_fx;
 
 namespace pedal {
 
-static constexpr int kTimeCrossfadeSamples = 2400; // 50 ms at 48 kHz
+static constexpr float kStereoOffsetSamples = 47.0f;
 
 void SwellDelay::Init() {
     swell_line_l_.Init(swell_buf_l_, MAX_DELAY_SAMPLES);
@@ -35,9 +35,7 @@ void SwellDelay::Reset() {
     env_gain_             = 0.0f;
     attack_rate_          = 0.0f;
     decay_rate_           = 0.0f;
-    delay_current_        = -1.0f;
-    delay_previous_       = -1.0f;
-    time_crossfade_remaining_ = 0;
+    time_transition_.Reset();
     prev_above_threshold_ = false;
     fb_lim_l_.Reset();
     fb_lim_r_.Reset();
@@ -59,15 +57,7 @@ void SwellDelay::Prepare(const ParamSet& params) {
     attack_rate_ = 1.0f / (attack_time_s * SAMPLE_RATE);
     decay_rate_  = 1.0f / (decay_time_s * SAMPLE_RATE);
 
-    const float targetDelay = params.time * SAMPLE_RATE;
-    if (delay_current_ < 0.0f) {
-        delay_current_ = targetDelay;
-        delay_previous_ = targetDelay;
-    } else if (fabsf(targetDelay - delay_current_) > 0.01f) {
-        delay_previous_ = delay_current_;
-        delay_current_ = targetDelay;
-        time_crossfade_remaining_ = kTimeCrossfadeSamples;
-    }
+    time_transition_.SetTarget(params.time * SAMPLE_RATE);
 }
 
 StereoFrame SwellDelay::Process(float input, const ParamSet& params) {
@@ -112,17 +102,20 @@ StereoFrame SwellDelay::Process(StereoFrame input, const ParamSet& params) {
             break;
     }
 
-    float wet_l = swell_line_l_.ReadAt(delay_current_);
-    float wet_r = swell_line_r_.ReadAt(delay_current_);
-    if (time_crossfade_remaining_ > 0) {
-        const float fade = 1.0f - static_cast<float>(time_crossfade_remaining_) /
-                                      static_cast<float>(kTimeCrossfadeSamples);
-        const float previousWetL = swell_line_l_.ReadAt(delay_previous_);
-        const float previousWetR = swell_line_r_.ReadAt(delay_previous_);
-        wet_l = previousWetL + fade * (wet_l - previousWetL);
-        wet_r = previousWetR + fade * (wet_r - previousWetR);
-        --time_crossfade_remaining_;
+    const auto readHeads = [&](float base) {
+        return StereoFrame{swell_line_l_.ReadNearest(base),
+                           swell_line_r_.ReadNearest(base + kStereoOffsetSamples)};
+    };
+    StereoFrame wet = readHeads(time_transition_.to());
+    if (time_transition_.active()) {
+        const StereoFrame old = readHeads(time_transition_.from());
+        const float fade = time_transition_.mix();
+        wet.left = old.left + fade * (wet.left - old.left);
+        wet.right = old.right + fade * (wet.right - old.right);
+        time_transition_.Advance();
     }
+    float wet_l = wet.left;
+    float wet_r = wet.right;
     wet_l = filter_l_.Process(wet_l) * env_gain_;
     wet_r = filter_r_.Process(wet_r) * env_gain_;
 

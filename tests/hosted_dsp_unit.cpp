@@ -1,6 +1,7 @@
 #include "daisyfx/DaisyFxCatalog.h"
 #include "daisyfx/DaisyFxProcessor.h"
 #include "daisyfx/hosted/dsp/delay_line_sdram.h"
+#include "daisyfx/hosted/dsp/delay_tap_transition.h"
 #include "daisyfx/hosted/dsp/fast_math.h"
 #include "daisyfx/hosted/dsp/fdn.h"
 #include "daisyfx/hosted/dsp/halfband_resampler.h"
@@ -159,6 +160,103 @@ void verifyDelayLineReset()
     }
     line.Write(sample == 0 ? 1.0f : 0.0f);
   }
+}
+
+void verifyHighQualityDelayTap()
+{
+  constexpr float kTwoPi = 6.28318530718f;
+  constexpr float kFrequency = 20000.0f;
+  std::array<float, 65536> buffer{};
+  pedal::DelayLineSdram line;
+  line.Init(buffer.data(), buffer.size());
+  double inputEnergy = 0.0;
+  double outputEnergy = 0.0;
+  for (int sample = 0; sample < 40000; ++sample) {
+    const float input = std::sin(kTwoPi * kFrequency * static_cast<float>(sample) / 48000.0f);
+    const float output = line.ReadAtHighQuality(100.5f);
+    line.Write(input);
+    if (sample >= 8000) {
+      inputEnergy += static_cast<double>(input) * input;
+      outputEnergy += static_cast<double>(output) * output;
+    }
+  }
+  const double gain = std::sqrt(outputEnergy / inputEnergy);
+  require(gain > 0.78, "band-limited delay tap must retain 20 kHz within about 2 dB");
+}
+
+void verifyQueuedDelayTransition()
+{
+  pedal::DelayTapTransition transition;
+  transition.SetTarget(100.0f);
+  transition.SetTarget(200.0f);
+  for (int sample = 0; sample < 2400; ++sample) {
+    if ((sample % 48) == 0) transition.SetTarget(300.0f + static_cast<float>(sample));
+    require(transition.from() == 100.0f && transition.to() == 200.0f,
+            "continuous automation must not restart active tap anchors");
+    transition.Advance();
+  }
+  require(transition.active() && transition.from() == 200.0f && transition.to() > 200.0f,
+          "the newest automated target must follow the completed transition");
+}
+
+void verifyDelayCorrections()
+{
+  const auto* dualDescriptor = ardor::findDaisyFxDescriptor("delay", "dual");
+  require(dualDescriptor != nullptr, "dual delay descriptor exists");
+  auto dualParams = ardor::defaultDaisyFxParams(*dualDescriptor);
+  dualParams["time"] = 0.0f;
+  dualParams["repeats"] = 0.0f;
+  dualParams["mix"] = 1.0f;
+  dualParams["grit"] = 1.0f;
+  dualParams["mod_dep"] = 0.0f;
+  ardor::DaisyFxProcessor dual;
+  std::string error;
+  require(dual.configure("delay", dualParams, 48000.0f, error), error);
+  float leftPeak = 0.0f;
+  for (int frame = 0; frame < 5000; ++frame) {
+    const auto output = dual.process({0.0f, frame == 0 ? 1.0f : 0.0f});
+    leftPeak = std::max(leftPeak, std::fabs(output.left));
+  }
+  require(leftPeak > 0.45f, "full ping-pong must preserve right-only source material");
+
+  const auto* lofiDescriptor = ardor::findDaisyFxDescriptor("delay", "lofi");
+  require(lofiDescriptor != nullptr, "lo-fi delay descriptor exists");
+  auto lofiParams = ardor::defaultDaisyFxParams(*lofiDescriptor);
+  lofiParams["time"] = 0.0f;
+  lofiParams["repeats"] = 0.0f;
+  lofiParams["mix"] = 1.0f;
+  lofiParams["filter"] = 0.5f;
+  lofiParams["grit"] = 0.0f;
+  lofiParams["mod_dep"] = 0.0f;
+  ardor::DaisyFxProcessor lofi;
+  require(lofi.configure("delay", lofiParams, 48000.0f, error), error);
+  float lofiPeak = 0.0f;
+  for (int frame = 0; frame < 4000; ++frame) {
+    const auto output = lofi.process({frame == 0 ? 1.0f : 0.0f,
+                                     frame == 0 ? 1.0f : 0.0f});
+    lofiPeak = std::max({lofiPeak, std::fabs(output.left), std::fabs(output.right)});
+  }
+  require(lofiPeak > 0.999f, "zero Crush must be a unity-gain degradation bypass");
+
+  const auto* patternDescriptor = ardor::findDaisyFxDescriptor("delay", "pattern");
+  require(patternDescriptor != nullptr, "pattern delay descriptor exists");
+  auto patternParams = ardor::defaultDaisyFxParams(*patternDescriptor);
+  patternParams["time"] = 1.0f;
+  patternParams["repeats"] = 0.0f;
+  patternParams["mix"] = 1.0f;
+  patternParams["grit"] = 0.0f;
+  patternParams["mod_dep"] = 0.0f;
+  ardor::DaisyFxProcessor pattern;
+  require(pattern.configure("delay", patternParams, 48000.0f, error), error);
+  float finalTapPeak = 0.0f;
+  for (int frame = 0; frame < 362000; ++frame) {
+    const auto output = pattern.process({frame == 0 ? 1.0f : 0.0f,
+                                        frame == 0 ? 1.0f : 0.0f});
+    if (frame > 359900) {
+      finalTapPeak = std::max({finalTapPeak, std::fabs(output.left), std::fabs(output.right)});
+    }
+  }
+  require(finalTapPeak > 0.29f, "Pattern's full 2.5-second base range must retain its third tap");
 }
 
 void verifyDelayStartup()
@@ -344,6 +442,9 @@ int main()
   verifyFastSineAccuracy();
   verifyBrightReverbs();
   verifyDelayLineReset();
+  verifyHighQualityDelayTap();
+  verifyQueuedDelayTransition();
+  verifyDelayCorrections();
   verifyDelayStartup();
   verifyPhysicalReverbMappings();
   verifyEightLineFdn();

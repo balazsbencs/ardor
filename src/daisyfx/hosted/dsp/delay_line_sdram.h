@@ -17,6 +17,11 @@ public:
     void  Write(float sample);
     float Read() const;
     float ReadAt(float delay_samples) const;      // read arbitrary tap (Hermite, 4 reads)
+    // 16-tap, 256-phase Blackman-windowed sinc interpolation. Intended for
+    // audible moving/modulated delay taps; static taps should prefer nearest
+    // sample reads for a perfectly flat magnitude response.
+    float ReadHighQuality() const;
+    float ReadAtHighQuality(float delay_samples) const;
     float ReadLinear(float delay_samples) const;  // read arbitrary tap (linear, 2 reads)
     float ReadNearest(float delay_samples) const; // read arbitrary tap (nearest, 1 read)
 

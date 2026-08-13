@@ -7,8 +7,6 @@ using namespace pedal::delay_fx;
 namespace pedal {
 
 static constexpr float kStereoOffsetSamples = 150.0f;
-static constexpr int kTimeCrossfadeSamples = 2400; // 50 ms at 48 kHz
-
 void DigitalDelay::Init() {
     digital_line_l_.Init(digital_buf_l_, MAX_DELAY_SAMPLES);
     digital_line_r_.Init(digital_buf_r_, MAX_DELAY_SAMPLES);
@@ -30,9 +28,7 @@ void DigitalDelay::Reset() {
     filter_r_.Reset();
     dc_l_.Init();
     dc_r_.Init();
-    delay_current_ = -1.0f;
-    delay_previous_ = -1.0f;
-    time_crossfade_remaining_ = 0;
+    time_transition_.Reset();
     aa_state_l_ = 0.0f;
     aa_state_r_ = 0.0f;
     aa_coef_    = 1.0f;
@@ -43,27 +39,21 @@ void DigitalDelay::Reset() {
 }
 
 void DigitalDelay::Prepare(const ParamSet& params) {
-    const float target_delay = params.time * SAMPLE_RATE;
-    if (delay_current_ < 0.0f) {
-        delay_current_ = target_delay;
-        delay_previous_ = target_delay;
-    } else if (fabsf(target_delay - delay_current_) > 0.01f) {
-        // Clean delays switch taps rather than varispeeding through a large
-        // time change. Crossfading retains both tails without pitch smear.
-        delay_previous_ = delay_current_;
-        delay_current_ = target_delay;
-        time_crossfade_remaining_ = kTimeCrossfadeSamples;
-    }
+    time_transition_.SetTarget(params.time * SAMPLE_RATE);
     lfo_.SetRate(params.mod_spd);
     filter_l_.SetKnob(params.filter);
     filter_r_.SetKnob(params.filter);
     sat_.SetDrive(params.grit);
     // Anti-alias LP: cutoff tracks mod depth × rate.
     // At zero mod this is transparent (coef=1). At max mod it rolls off ~8 kHz.
-    const float mod_rate_hz = params.mod_spd * params.mod_dep * 30.0f;
-    const float norm = mod_rate_hz / (10.0f * 30.0f);  // max speed × max depth_samples
-    const float aa_fc = fmaxf(20000.0f - norm * 12000.0f, 100.0f);  // 20kHz → 8kHz, floor 100Hz
-    aa_coef_ = 1.0f - expf(-2.0f * 3.14159265f * aa_fc * INV_SAMPLE_RATE);
+    if (params.mod_dep <= 0.00001f || params.mod_spd <= 0.00001f) {
+        aa_coef_ = 1.0f;
+    } else {
+        const float mod_rate_hz = params.mod_spd * params.mod_dep * 30.0f;
+        const float norm = mod_rate_hz / (10.0f * 30.0f);
+        const float aa_fc = fmaxf(20000.0f - norm * 12000.0f, 8000.0f);
+        aa_coef_ = 1.0f - expf(-2.0f * 3.14159265f * aa_fc * INV_SAMPLE_RATE);
+    }
 }
 
 StereoFrame DigitalDelay::Process(float input, const ParamSet& params) {
@@ -74,36 +64,25 @@ StereoFrame DigitalDelay::Process(StereoFrame input, const ParamSet& params) {
     const float lfo_val   = lfo_.Process();
     const float mod_samps = params.mod_dep * 30.0f;
 
-    float delay_l = delay_current_ + lfo_val * mod_samps;
-    float delay_r = delay_current_ + kStereoOffsetSamples - lfo_val * mod_samps;
+    const auto read = [mod_samps](const DelayLineSdram& line, float delay) {
+        return mod_samps <= 0.00001f ? line.ReadNearest(delay)
+                                     : line.ReadAtHighQuality(delay);
+    };
+    const auto readHead = [&](float base, bool right) {
+        const float offset = right ? kStereoOffsetSamples - lfo_val * mod_samps
+                                   : lfo_val * mod_samps;
+        return read(right ? digital_line_r_ : digital_line_l_, base + offset);
+    };
 
-    if (delay_l < 1.0f) delay_l = 1.0f;
-    if (delay_l > static_cast<float>(MAX_DELAY_SAMPLES - 1))
-        delay_l = static_cast<float>(MAX_DELAY_SAMPLES - 1);
-    if (delay_r < 1.0f) delay_r = 1.0f;
-    if (delay_r > static_cast<float>(MAX_DELAY_SAMPLES - 1))
-        delay_r = static_cast<float>(MAX_DELAY_SAMPLES - 1);
-
-    digital_line_l_.SetDelay(delay_l);
-    digital_line_r_.SetDelay(delay_r);
-
-    float wet_l = digital_line_l_.Read();
-    float wet_r = digital_line_r_.Read();
-
-    if (time_crossfade_remaining_ > 0) {
-        float old_delay_l = delay_previous_ + lfo_val * mod_samps;
-        float old_delay_r = delay_previous_ + kStereoOffsetSamples - lfo_val * mod_samps;
-        if (old_delay_l < 2.0f) old_delay_l = 2.0f;
-        if (old_delay_l > static_cast<float>(MAX_DELAY_SAMPLES - 3)) old_delay_l = static_cast<float>(MAX_DELAY_SAMPLES - 3);
-        if (old_delay_r < 2.0f) old_delay_r = 2.0f;
-        if (old_delay_r > static_cast<float>(MAX_DELAY_SAMPLES - 3)) old_delay_r = static_cast<float>(MAX_DELAY_SAMPLES - 3);
-        const float fade = 1.0f - static_cast<float>(time_crossfade_remaining_) /
-                                      static_cast<float>(kTimeCrossfadeSamples);
-        const float old_wet_l = digital_line_l_.ReadAt(old_delay_l);
-        const float old_wet_r = digital_line_r_.ReadAt(old_delay_r);
-        wet_l = old_wet_l + fade * (wet_l - old_wet_l);
-        wet_r = old_wet_r + fade * (wet_r - old_wet_r);
-        --time_crossfade_remaining_;
+    float wet_l = readHead(time_transition_.to(), false);
+    float wet_r = readHead(time_transition_.to(), true);
+    if (time_transition_.active()) {
+        const float fade = time_transition_.mix();
+        const float old_l = readHead(time_transition_.from(), false);
+        const float old_r = readHead(time_transition_.from(), true);
+        wet_l = old_l + fade * (wet_l - old_l);
+        wet_r = old_r + fade * (wet_r - old_r);
+        time_transition_.Advance();
     }
 
     wet_l = filter_l_.Process(wet_l);

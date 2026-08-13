@@ -236,19 +236,23 @@ struct DaisyFxProcessor::Impl {
       modParams.level = mappedModParam(target(Level), modId, pedal::mod_fx::ParamId::Level);
     } else if (kind == Kind::Delay) {
       delayParams.time = mappedDelayParam(target(Speed), delayId, pedal::delay_fx::ParamId::Time);
-      const float targetRepeats = mappedDelayParam(target(Depth), delayId, pedal::delay_fx::ParamId::Repeats);
-      if (!controlSmoothingSeeded) {
-        delayParams.repeats = targetRepeats;
-      } else {
-        const float interval = static_cast<float>(controlInterval()) / kHostedDaisySampleRate;
-        const float coefficient = 1.0f - std::exp(-interval / kFeedbackSmoothingSeconds);
-        delayParams.repeats += coefficient * (targetRepeats - delayParams.repeats);
-      }
+      const float interval = static_cast<float>(controlInterval()) / kHostedDaisySampleRate;
+      const float coefficient = 1.0f - std::exp(-interval / kFeedbackSmoothingSeconds);
+      const auto smooth = [this, coefficient](float& current, float value) {
+        if (!controlSmoothingSeeded) current = value;
+        else current += coefficient * (value - current);
+      };
+      smooth(delayParams.repeats,
+             mappedDelayParam(target(Depth), delayId, pedal::delay_fx::ParamId::Repeats));
       delayParams.mix = mappedDelayParam(target(Mix), delayId, pedal::delay_fx::ParamId::Mix);
-      delayParams.filter = mappedDelayParam(target(Tone), delayId, pedal::delay_fx::ParamId::Filter);
-      delayParams.grit = mappedDelayParam(target(P1), delayId, pedal::delay_fx::ParamId::Grit);
-      delayParams.mod_spd = mappedDelayParam(target(P2), delayId, pedal::delay_fx::ParamId::ModSpd);
-      delayParams.mod_dep = mappedDelayParam(target(Level), delayId, pedal::delay_fx::ParamId::ModDep);
+      smooth(delayParams.filter,
+             mappedDelayParam(target(Tone), delayId, pedal::delay_fx::ParamId::Filter));
+      smooth(delayParams.grit,
+             mappedDelayParam(target(P1), delayId, pedal::delay_fx::ParamId::Grit));
+      smooth(delayParams.mod_spd,
+             mappedDelayParam(target(P2), delayId, pedal::delay_fx::ParamId::ModSpd));
+      smooth(delayParams.mod_dep,
+             mappedDelayParam(target(Level), delayId, pedal::delay_fx::ParamId::ModDep));
     } else if (kind == Kind::Reverb) {
       const float interval = static_cast<float>(controlInterval()) / kHostedDaisySampleRate;
       const float coefficient = 1.0f - std::exp(-interval / kFeedbackSmoothingSeconds);

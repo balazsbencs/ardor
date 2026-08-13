@@ -349,6 +349,19 @@ target_link_libraries(pedal-daisy-fx-response PRIVATE ardor_daisyfx)
 add_executable(pedal-reverb-quality tests/reverb_quality.cpp)
 target_link_libraries(pedal-reverb-quality PRIVATE ardor_daisyfx)
 
+# Analysis tools, not ctests: the quality probe emits measurements/listening
+# renders, while the benchmark records target-dependent timing distributions.
+add_executable(pedal-delay-quality tests/delay_quality.cpp)
+target_link_libraries(pedal-delay-quality PRIVATE ardor_daisyfx)
+
+add_executable(pedal-delay-bench tests/delay_bench.cpp)
+target_link_libraries(pedal-delay-bench PRIVATE ardor_daisyfx)
+target_compile_definitions(pedal-delay-bench PRIVATE
+  ARDOR_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
+  ARDOR_COMPILER="${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}"
+  ARDOR_CXX_FLAGS="${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}"
+)
+
 add_executable(pedal-daisy-fx-automation tests/daisy_fx_automation.cpp)
 target_link_libraries(pedal-daisy-fx-automation PRIVATE ardor_daisyfx)
 

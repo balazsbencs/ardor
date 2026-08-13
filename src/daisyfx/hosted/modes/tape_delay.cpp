@@ -53,10 +53,14 @@ void TapeDelay::Prepare(const ParamSet& params) {
     filter_r_.SetKnob(params.filter);
     sat_.SetDrive(params.grit);
     const float flutter = params.mod_dep * 50.0f;
-    const float mod_rate_hz = params.mod_spd * flutter;
-    const float norm = mod_rate_hz / (10.0f * 50.0f);
-    const float aa_fc = fmaxf(20000.0f - norm * 12000.0f, 100.0f);
-    aa_coef_ = 1.0f - expf(-2.0f * 3.14159265f * aa_fc * INV_SAMPLE_RATE);
+    if (flutter <= 0.00001f || params.mod_spd <= 0.00001f) {
+        aa_coef_ = 1.0f;
+    } else {
+        const float mod_rate_hz = params.mod_spd * flutter;
+        const float norm = mod_rate_hz / (10.0f * 50.0f);
+        const float aa_fc = fmaxf(20000.0f - norm * 12000.0f, 8000.0f);
+        aa_coef_ = 1.0f - expf(-2.0f * 3.14159265f * aa_fc * INV_SAMPLE_RATE);
+    }
 
     // HF shelf at ~3 kHz for tape record/reproduce EQ simulation.
     static constexpr float kShelfFc = 3000.0f;
@@ -81,24 +85,18 @@ StereoFrame TapeDelay::Process(StereoFrame input, const ParamSet& params) {
         if (step < -0.5f) step = -0.5f;
         delay_smooth_ += step;
     }
-    float delay_samps = delay_smooth_ + lfo_val * flutter;
-    if (delay_samps < 1.0f) delay_samps = 1.0f;
-    if (delay_samps > static_cast<float>(MAX_DELAY_SAMPLES - 1))
-        delay_samps = static_cast<float>(MAX_DELAY_SAMPLES - 1);
+    const float delay_samps = delay_smooth_ + lfo_val * flutter;
+    const bool moving = flutter > 0.00001f || fabsf(target_samps - delay_smooth_) > 0.01f;
 
-    tape_line_l_.SetDelay(delay_samps);
-
-    // Read Left tap (primary play head)
-    float wet_l = tape_line_l_.Read();
+    // Integer taps keep static tape repeats spectrally flat before intentional
+    // tape coloration; moving heads use band-limited interpolation.
+    float wet_l = moving ? tape_line_l_.ReadAtHighQuality(delay_samps)
+                         : tape_line_l_.ReadNearest(delay_samps);
 
     // Read Right tap (secondary play head, offset by 150 samples / ~3.1ms).
-    // Linear interpolation is sufficient for a fixed decorrelation offset.
-    float delay_r = delay_samps + kStereoOffsetSamples;
-    if (delay_r > static_cast<float>(MAX_DELAY_SAMPLES - 1)) {
-        delay_r = static_cast<float>(MAX_DELAY_SAMPLES - 1);
-    }
-    tape_line_r_.SetDelay(delay_r);
-    float wet_r = tape_line_r_.Read();
+    const float delay_r = delay_samps + kStereoOffsetSamples;
+    float wet_r = moving ? tape_line_r_.ReadAtHighQuality(delay_r)
+                         : tape_line_r_.ReadNearest(delay_r);
 
     // Keep each input and feedback history independent. The right head remains
     // offset for the original tape-style width, but anti-phase stereo no longer

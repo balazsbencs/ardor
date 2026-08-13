@@ -82,6 +82,7 @@ void ChorusMode::Prepare(const ParamSet& params) {
         shifter_l_.SetShift(-shift_semitones);
         shifter_r_.SetShift(shift_semitones);
     }
+    if (sub_mode_ == 0) bbd_.SetClockDelaySamples(base_samps_);
     // Multi and single-voice: LFO advanced per-sample in Process() to avoid
     // block-boundary delay jumps that cause zipper noise at high LFO rates.
 }

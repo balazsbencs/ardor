@@ -5,6 +5,7 @@
 #include "../dsp/dc_blocker.h"
 #include "../dsp/feedback_limiter.h"
 #include "../dsp/delay_line_sdram.h"
+#include "../dsp/delay_tap_transition.h"
 #include "../config/constants.h"
 
 namespace pedal {
@@ -29,14 +30,9 @@ private:
     FeedbackLimiter fb_lim_r_;
     DcBlocker  dc_fb_l_;
     DcBlocker  dc_fb_r_;
-    float     delay_current_ = -1.0f;
-    float     delay_previous_ = -1.0f;
-    int       time_crossfade_remaining_ = 0;
+    DelayTapTransition time_transition_;
     FilterType filter_type_ = FilterType::Lowpass;
-    float     filter_fb_gain_  = 1.0f;
-    // Precomputed g = tan(π·f/fs) bounds for LFO sweep — avoids per-sample tanf().
-    float     g_lo_ = 0.05f;
-    float     g_hi_ = 0.05f;
+    float     sweep_depth_indices_ = 0.0f;
 
     float          filter_buf_l_[MAX_DELAY_SAMPLES];
     float          filter_buf_r_[MAX_DELAY_SAMPLES];

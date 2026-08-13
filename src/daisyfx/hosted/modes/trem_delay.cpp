@@ -6,8 +6,6 @@ using namespace pedal::delay_fx;
 
 namespace pedal {
 
-static constexpr int kTimeCrossfadeSamples = 2400; // 50 ms at 48 kHz
-
 void TremDelay::Init() {
     trem_line_l_.Init(trem_buf_l_, MAX_DELAY_SAMPLES);
     trem_line_r_.Init(trem_buf_r_, MAX_DELAY_SAMPLES);
@@ -28,9 +26,7 @@ void TremDelay::Reset() {
     filter_r_.Reset();
     dc_l_.Init();
     dc_r_.Init();
-    delay_current_ = -1.0f;
-    delay_previous_ = -1.0f;
-    time_crossfade_remaining_ = 0;
+    time_transition_.Reset();
     fb_lim_l_.Reset();
     fb_lim_r_.Reset();
 }
@@ -39,15 +35,7 @@ void TremDelay::Prepare(const ParamSet& params) {
     lfo_.SetRate(params.mod_spd);
     filter_l_.SetKnob(params.filter);
     filter_r_.SetKnob(params.filter);
-    const float targetDelay = params.time * SAMPLE_RATE;
-    if (delay_current_ < 0.0f) {
-        delay_current_ = targetDelay;
-        delay_previous_ = targetDelay;
-    } else if (fabsf(targetDelay - delay_current_) > 0.01f) {
-        delay_previous_ = delay_current_;
-        delay_current_ = targetDelay;
-        time_crossfade_remaining_ = kTimeCrossfadeSamples;
-    }
+    time_transition_.SetTarget(params.time * SAMPLE_RATE);
 }
 
 StereoFrame TremDelay::Process(float input, const ParamSet& params) {
@@ -60,18 +48,21 @@ StereoFrame TremDelay::Process(StereoFrame input, const ParamSet& params) {
     // Grit is exposed here as Shape: preserve the sine taper at zero, then
     // bias toward a more pulsed tremolo without introducing a hard edge.
     const float shapedTrem = sineTrem + params.grit * (sineTrem * sineTrem - sineTrem);
-    const float gain = 1.0f - params.mod_dep * shapedTrem;
+    const float inverseSineTrem = (1.0f + lfo_val) * 0.5f;
+    const float inverseShapedTrem = inverseSineTrem +
+        params.grit * (inverseSineTrem * inverseSineTrem - inverseSineTrem);
+    const float gain_l = 1.0f - params.mod_dep * shapedTrem;
+    const float gain_r = 1.0f - params.mod_dep * inverseShapedTrem;
 
-    float wet_l = trem_line_l_.ReadAt(delay_current_);
-    float wet_r = trem_line_r_.ReadAt(delay_current_);
-    if (time_crossfade_remaining_ > 0) {
-        const float fade = 1.0f - static_cast<float>(time_crossfade_remaining_) /
-                                      static_cast<float>(kTimeCrossfadeSamples);
-        const float previousWetL = trem_line_l_.ReadAt(delay_previous_);
-        const float previousWetR = trem_line_r_.ReadAt(delay_previous_);
-        wet_l = previousWetL + fade * (wet_l - previousWetL);
-        wet_r = previousWetR + fade * (wet_r - previousWetR);
-        --time_crossfade_remaining_;
+    float wet_l = trem_line_l_.ReadNearest(time_transition_.to());
+    float wet_r = trem_line_r_.ReadNearest(time_transition_.to());
+    if (time_transition_.active()) {
+        const float fade = time_transition_.mix();
+        const float old_l = trem_line_l_.ReadNearest(time_transition_.from());
+        const float old_r = trem_line_r_.ReadNearest(time_transition_.from());
+        wet_l = old_l + fade * (wet_l - old_l);
+        wet_r = old_r + fade * (wet_r - old_r);
+        time_transition_.Advance();
     }
     wet_l = filter_l_.Process(wet_l);
     wet_r = filter_r_.Process(wet_r);
@@ -81,7 +72,7 @@ StereoFrame TremDelay::Process(StereoFrame input, const ParamSet& params) {
     trem_line_l_.Write(input.left + feedback_l);
     trem_line_r_.Write(input.right + feedback_r);
 
-    return StereoFrame{dc_l_.Process(wet_l * gain), dc_r_.Process(wet_r * gain)};
+    return StereoFrame{dc_l_.Process(wet_l * gain_l), dc_r_.Process(wet_r * gain_r)};
 }
 
 } // namespace pedal

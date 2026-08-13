@@ -1,0 +1,74 @@
+Hosted delay benchmark summary
+
+mode       scenario    frames   mean us   p99.9 us   mean budget   p99.9 budget   misses
+---------- ----------- ------ --------- ---------- ------------- --------------- --------
+digital    default         32      5.59       9.69         0.84%           1.45%        0
+digital    default         64     11.21      18.06         0.84%           1.35%        0
+digital    stress          32     10.92      14.93         1.64%           2.24%        0
+digital    stress          64     22.13      27.54         1.66%           2.07%        0
+digital    automation      32     14.51      18.85         2.18%           2.83%        0
+digital    automation      64     29.03      41.70         2.18%           3.13%        0
+tape       default         32      8.82      19.74         1.32%           2.96%        0
+tape       default         64     17.54      29.57         1.32%           2.22%        0
+tape       stress          32     13.36      25.00         2.00%           3.75%        0
+tape       stress          64     26.80      62.24         2.01%           4.67%        0
+tape       automation      32     12.78      24.83         1.92%           3.72%        0
+tape       automation      64     25.44      36.54         1.91%           2.74%        0
+dual       default         32      5.10       8.57         0.76%           1.29%        0
+dual       default         64     10.18      14.76         0.76%           1.11%        0
+dual       stress          32      9.90      13.67         1.49%           2.05%        0
+dual       stress          64     19.85      24.59         1.49%           1.84%        0
+dual       automation      32     14.12      19.09         2.12%           2.86%        0
+dual       automation      64     28.35      45.48         2.13%           3.41%        0
+filter     default         32      6.29      18.20         0.94%           2.73%        0
+filter     default         64     12.56      27.78         0.94%           2.08%        0
+filter     stress          32      6.36      19.22         0.95%           2.88%        0
+filter     stress          64     12.82      28.63         0.96%           2.15%        0
+filter     automation      32      7.33      21.00         1.10%           3.15%        0
+filter     automation      64     14.59      29.54         1.09%           2.22%        0
+lofi       default         32      4.12       9.50         0.62%           1.43%        0
+lofi       default         64      8.16      22.70         0.61%           1.70%        0
+lofi       stress          32      8.61      20.02         1.29%           3.00%        0
+lofi       stress          64     17.05      21.54         1.28%           1.62%        0
+lofi       automation      32     12.77      17.35         1.92%           2.60%        0
+lofi       automation      64     25.51      32.91         1.91%           2.47%        0
+dbucket    default         32      7.56      11.61         1.13%           1.74%        0
+dbucket    default         64     15.02      20.02         1.13%           1.50%        0
+dbucket    stress          32     12.49      19.00         1.87%           2.85%        0
+dbucket    stress          64     25.02      60.44         1.88%           4.53%        0
+dbucket    automation      32     13.09      24.96         1.96%           3.74%        0
+dbucket    automation      64     26.13      56.54         1.96%           4.24%        0
+duck       default         32      4.90       9.00         0.73%           1.35%        0
+duck       default         64      9.74      25.32         0.73%           1.90%        0
+duck       stress          32      9.66      22.22         1.45%           3.33%        0
+duck       stress          64     19.25      27.41         1.44%           2.06%        0
+duck       automation      32     13.60      17.82         2.04%           2.67%        0
+duck       automation      64     27.11      33.28         2.03%           2.50%        0
+pattern    default         32      6.03       9.63         0.91%           1.44%        0
+pattern    default         64     12.07      18.46         0.90%           1.38%        0
+pattern    stress          32     21.76      34.87         3.26%           5.23%        0
+pattern    stress          64     43.49      96.80         3.26%           7.26%        0
+pattern    automation      32     35.76      69.52         5.36%          10.43%        0
+pattern    automation      64     71.05      83.41         5.33%           6.26%        0
+swell      default         32      4.37       7.70         0.66%           1.16%        0
+swell      default         64      8.57      12.30         0.64%           0.92%        0
+swell      stress          32      5.06       8.54         0.76%           1.28%        0
+swell      stress          64     10.07      18.48         0.76%           1.39%        0
+swell      automation      32      5.06      15.76         0.76%           2.36%        0
+swell      automation      64     10.02      24.96         0.75%           1.87%        0
+trem       default         32      4.46       8.50         0.67%           1.27%        0
+trem       default         64      8.95      24.63         0.67%           1.85%        0
+trem       stress          32      5.27      12.30         0.79%           1.84%        0
+trem       stress          64     10.71      26.04         0.80%           1.95%        0
+trem       automation      32      5.33      10.74         0.80%           1.61%        0
+trem       automation      64     10.62      25.15         0.80%           1.89%        0
+
+Hottest cases by p99.9 callback budget
+  pattern/automation 32f: mean 5.36%, p99.9 10.43%, max 106.56 us
+  pattern/stress 64f: mean 3.26%, p99.9 7.26%, max 117.98 us
+  pattern/automation 64f: mean 5.33%, p99.9 6.26%, max 106.44 us
+  pattern/stress 32f: mean 3.26%, p99.9 5.23%, max 199.00 us
+  tape/stress 64f: mean 2.01%, p99.9 4.67%, max 69.98 us
+  dbucket/stress 64f: mean 1.88%, p99.9 4.53%, max 68.72 us
+  dbucket/automation 64f: mean 1.96%, p99.9 4.24%, max 84.09 us
+  tape/stress 32f: mean 2.00%, p99.9 3.75%, max 71.91 us

@@ -1,0 +1,116 @@
+dsp-bench: build=Release assertions=disabled compiler=GNU 13.4.0 arch=aarch64 flags=-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -O2 -g0 -D_FORTIFY_SOURCE=1  -DNDEBUG
+dsp-bench: block=64 ir=8192 rate=48000 budget=1333us blocks=10000
+IrConvolver          min= 110.37us p50= 110.80us p99= 114.78us p999= 125.87us max= 203.74us avg= 110.95us budget%=  8.3
+NAM[tier-0]          min= 117.56us p50= 121.72us p99= 128.13us p999= 142.41us max= 297.22us avg= 121.86us budget%=  9.1
+NAM[tier-1]          min= 443.50us p50= 448.22us p99= 470.85us p999= 484.57us max= 703.33us avg= 448.66us budget%= 33.6
+mod/chorus           min=  15.31us p50=  15.57us p99=  15.83us p999=  19.22us max=  30.30us avg=  15.62us budget%=  1.2
+mod/chorus (stress)  min=  11.74us p50=  11.98us p99=  12.35us p999=  15.59us max=  19.96us avg=  12.01us budget%=  0.9
+mod/flanger          min=  13.59us p50=  13.81us p99=  14.13us p999=  17.02us max=  17.67us avg=  13.84us budget%=  1.0
+mod/flanger (stress) min=  16.56us p50=  16.94us p99=  17.22us p999=  20.17us max=  23.05us avg=  16.94us budget%=  1.3
+mod/rotary           min=  18.85us p50=  19.30us p99=  19.82us p999=  30.68us max= 188.26us avg=  19.37us budget%=  1.5
+mod/rotary (stress)  min=  20.04us p50=  20.32us p99=  20.83us p999=  29.67us max=  62.30us avg=  20.41us budget%=  1.5
+mod/vibe             min=  16.70us p50=  17.02us p99=  17.61us p999=  26.33us max=  38.91us avg=  17.12us budget%=  1.3
+mod/vibe (stress)    min=  17.31us p50=  17.74us p99=  18.39us p999=  26.70us max=  34.54us avg=  17.78us budget%=  1.3
+mod/phaser           min=  15.04us p50=  15.22us p99=  15.48us p999=  24.22us max=  34.15us avg=  15.26us budget%=  1.1
+mod/phaser (stress)  min=  15.30us p50=  15.63us p99=  15.91us p999=  24.63us max=  31.78us avg=  15.65us budget%=  1.2
+mod/vintage_trem     min=   7.96us p50=   8.33us p99=   8.52us p999=  11.59us max=  24.20us avg=   8.28us budget%=  0.6
+mod/vintage_trem (stress) min=   9.87us p50=  10.19us p99=  10.41us p999=  13.41us max=  17.59us avg=  10.14us budget%=  0.8
+mod/poly_octave      min=  77.06us p50=  85.33us p99=  88.54us p999=  91.33us max= 213.52us avg=  83.25us budget%=  6.2
+mod/poly_octave (stress) min=  77.76us p50=  86.00us p99=  90.65us p999= 101.81us max= 125.61us avg=  84.03us budget%=  6.3
+mod/pattern_trem     min=   6.00us p50=   6.02us p99=   6.17us p999=  11.13us max=  23.76us avg=   6.07us budget%=  0.5
+mod/pattern_trem (stress) min=   7.54us p50=   7.55us p99=   7.70us p999=  10.83us max=  24.15us avg=   7.60us budget%=  0.6
+mod/auto_swell       min=   7.76us p50=   8.26us p99=   8.57us p999=  11.39us max=  14.39us avg=   8.27us budget%=  0.6
+mod/auto_swell (stress) min=  10.93us p50=  11.28us p99=  11.57us p999=  14.61us max=  16.74us avg=  11.30us budget%=  0.8
+mod/filter           min=  13.28us p50=  13.61us p99=  13.80us p999=  17.11us max=  29.67us avg=  13.54us budget%=  1.0
+mod/filter (stress)  min=   8.09us p50=   8.59us p99=   8.96us p999=  12.65us max=  15.39us avg=   8.60us budget%=  0.6
+mod/formant          min=   8.44us p50=   8.46us p99=   8.96us p999=  11.81us max=  17.63us avg=   8.63us budget%=  0.6
+mod/formant (stress) min=   9.11us p50=   9.13us p99=   9.67us p999=  12.63us max=  15.13us avg=   9.30us budget%=  0.7
+mod/quadrature       min=   7.81us p50=   8.17us p99=   8.43us p999=  11.31us max=  15.50us avg=   8.16us budget%=  0.6
+mod/quadrature (stress) min=  11.91us p50=  11.98us p99=  12.06us p999=  15.20us max=  16.28us avg=  12.00us budget%=  0.9
+mod/destroyer        min=   5.91us p50=   5.96us p99=   6.18us p999=   9.07us max=  10.93us avg=   6.03us budget%=  0.5
+mod/destroyer (stress) min=   5.91us p50=   5.94us p99=   6.08us p999=  12.59us max= 139.59us avg=   6.00us budget%=  0.5
+delay/digital        min=  11.57us p50=  11.91us p99=  12.28us p999=  25.63us max=  73.11us avg=  11.95us budget%=  0.9
+delay/digital (stress) min=  20.35us p50=  21.94us p99=  23.87us p999=  56.04us max= 118.54us avg=  21.93us budget%=  1.6
+delay/tape           min=  18.13us p50=  18.22us p99=  18.63us p999=  33.54us max=  80.06us avg=  18.35us budget%=  1.4
+delay/tape (stress)  min=  22.81us p50=  27.06us p99=  29.96us p999=  57.59us max=  74.19us avg=  27.16us budget%=  2.0
+delay/dual           min=  10.57us p50=  10.81us p99=  11.15us p999=  26.06us max=  90.56us avg=  10.87us budget%=  0.8
+delay/dual (stress)  min=  18.61us p50=  19.39us p99=  20.30us p999=  23.93us max=  40.93us avg=  19.43us budget%=  1.5
+delay/filter         min=  13.00us p50=  13.17us p99=  13.59us p999=  17.63us max=  36.67us avg=  13.24us budget%=  1.0
+delay/filter (stress) min=  13.05us p50=  14.15us p99=  14.76us p999=  18.20us max=  24.32us avg=  13.94us budget%=  1.0
+delay/lofi           min=   8.76us p50=   8.87us p99=   9.13us p999=  13.91us max=  29.74us avg=   8.94us budget%=  0.7
+delay/lofi (stress)  min=  16.05us p50=  16.32us p99=  17.07us p999=  20.80us max=  38.15us avg=  16.39us budget%=  1.2
+delay/dbucket        min=  14.96us p50=  15.43us p99=  15.96us p999=  20.82us max=  37.98us avg=  15.50us budget%=  1.2
+delay/dbucket (stress) min=  23.74us p50=  24.45us p99=  27.00us p999=  63.67us max= 220.67us avg=  24.59us budget%=  1.8
+delay/duck           min=   9.96us p50=  10.28us p99=  10.69us p999=  24.28us max=  90.59us avg=  10.35us budget%=  0.8
+delay/duck (stress)  min=  17.55us p50=  19.18us p99=  20.55us p999=  33.30us max=  70.80us avg=  19.24us budget%=  1.4
+delay/pattern        min=  12.44us p50=  12.70us p99=  13.07us p999=  28.45us max=  82.56us avg=  12.80us budget%=  1.0
+delay/pattern (stress) min=  40.35us p50=  41.69us p99=  45.96us p999=  94.19us max=  99.76us avg=  41.93us budget%=  3.1
+delay/swell          min=   8.48us p50=   8.83us p99=   9.26us p999=  13.48us max=  40.67us avg=   8.87us budget%=  0.7
+delay/swell (stress) min=  10.37us p50=  10.57us p99=  10.98us p999=  14.65us max=  26.17us avg=  10.65us budget%=  0.8
+delay/trem           min=   9.26us p50=   9.63us p99=   9.96us p999=  13.67us max=  30.98us avg=   9.60us budget%=  0.7
+delay/trem (stress)  min=  10.70us p50=  11.44us p99=  12.00us p999=  16.19us max=  29.82us avg=  11.41us budget%=  0.9
+reverb/room          min=  50.83us p50=  52.19us p99=  55.74us p999=  64.09us max= 193.78us avg=  52.23us budget%=  3.9
+reverb/room (stress) min=  50.76us p50=  52.70us p99=  57.19us p999=  69.69us max=  97.74us avg=  52.82us budget%=  4.0
+reverb/hall          min=  48.74us p50=  49.91us p99=  53.78us p999=  68.24us max=  99.61us avg=  50.03us budget%=  3.8
+reverb/hall (stress) min=  48.63us p50=  49.98us p99=  53.22us p999=  56.09us max=  67.89us avg=  50.03us budget%=  3.8
+reverb/plate         min=  43.44us p50=  44.78us p99=  48.37us p999=  56.11us max= 205.85us avg=  44.92us budget%=  3.4
+reverb/plate (stress) min=  43.67us p50=  45.20us p99=  49.41us p999=  62.20us max=  94.30us avg=  45.35us budget%=  3.4
+reverb/spring        min=  44.39us p50=  45.20us p99=  48.94us p999=  61.00us max=  65.07us avg=  45.33us budget%=  3.4
+reverb/spring (stress) min=  44.85us p50=  45.74us p99=  49.11us p999=  50.30us max=  55.11us avg=  45.80us budget%=  3.4
+reverb/bloom         min=  41.81us p50=  42.33us p99=  45.56us p999=  51.61us max= 208.30us avg=  42.37us budget%=  3.2
+reverb/bloom (stress) min=  41.39us p50=  42.28us p99=  46.04us p999=  58.74us max=  81.15us avg=  42.40us budget%=  3.2
+reverb/cloud         min=  44.04us p50=  44.50us p99=  48.50us p999=  61.52us max=  68.41us avg=  44.63us budget%=  3.3
+reverb/cloud (stress) min=  43.35us p50=  44.46us p99=  47.76us p999=  53.72us max=  78.65us avg=  44.51us budget%=  3.3
+reverb/shimmer       min=  46.31us p50=  47.33us p99=  50.67us p999=  52.54us max=  60.31us avg=  47.40us budget%=  3.6
+reverb/shimmer (stress) min=  45.35us p50=  46.63us p99=  50.63us p999=  63.30us max= 243.22us avg=  46.77us budget%=  3.5
+reverb/chorale       min=  40.04us p50=  40.85us p99=  44.54us p999=  57.44us max=  90.15us avg=  40.76us budget%=  3.1
+reverb/chorale (stress) min=  39.46us p50=  40.24us p99=  43.70us p999=  51.81us max=  71.17us avg=  40.14us budget%=  3.0
+reverb/nonlinear     min=  41.95us p50=  42.50us p99=  45.76us p999=  47.50us max=  53.07us avg=  42.57us budget%=  3.2
+reverb/nonlinear (stress) min=  41.96us p50=  42.57us p99=  46.19us p999=  53.09us max= 218.74us avg=  42.78us budget%=  3.2
+reverb/swell         min=  39.67us p50=  40.17us p99=  43.72us p999=  56.11us max=  73.87us avg=  40.21us budget%=  3.0
+reverb/swell (stress) min=  38.85us p50=  39.69us p99=  43.28us p999=  56.39us max=  91.54us avg=  39.74us budget%=  3.0
+reverb/magneto       min=  37.44us p50=  37.83us p99=  39.96us p999=  42.65us max=  70.94us avg=  37.82us budget%=  2.8
+reverb/magneto (stress) min=  39.74us p50=  40.15us p99=  43.24us p999=  44.39us max=  50.76us avg=  40.20us budget%=  3.0
+reverb/reflections   min=  42.81us p50=  44.55us p99=  48.19us p999=  59.24us max= 218.20us avg=  44.32us budget%=  3.3
+reverb/reflections (stress) min=  42.35us p50=  44.24us p99=  48.15us p999=  60.80us max=  89.65us avg=  44.06us budget%=  3.3
+dsp-bench: Daisy full-wet 440 Hz level calibration (RMS/peak; after 1 s settle)
+mod/chorus           sustain=-18.11/-11.75dBFS burst=-29.52/-13.02dBFS
+mod/flanger          sustain=-16.67/-12.04dBFS burst=-25.26/-12.00dBFS
+mod/rotary           sustain=-25.88/-18.91dBFS burst=-35.74/-19.41dBFS
+mod/vibe             sustain=-15.38/-12.06dBFS burst=-25.56/-12.23dBFS
+mod/phaser           sustain=-15.27/-12.04dBFS burst=-25.15/-11.99dBFS
+mod/vintage_trem     sustain=-18.35/-12.04dBFS burst=-27.57/-12.04dBFS
+mod/poly_octave      sustain=-21.94/-18.93dBFS burst=-240.00/-240.00dBFS
+mod/pattern_trem     sustain=-15.05/-12.04dBFS burst=-25.05/-12.04dBFS
+mod/auto_swell       sustain=-10.44/ -7.43dBFS burst=-22.54/ -7.33dBFS
+mod/filter           sustain=-40.31/-35.29dBFS burst=-50.66/-36.23dBFS
+mod/formant          sustain=-30.87/-26.87dBFS burst=-40.69/-26.54dBFS
+mod/quadrature       sustain=-18.06/-12.04dBFS burst=-27.84/-12.00dBFS
+mod/destroyer        sustain=-15.05/-11.99dBFS burst=-25.04/-11.91dBFS
+delay/digital        sustain=-20.20/-17.19dBFS burst=-31.22/-17.94dBFS
+delay/tape           sustain=-20.70/-17.71dBFS burst=-31.66/-17.94dBFS
+delay/dual           sustain=-20.20/-17.19dBFS burst=-31.22/-17.94dBFS
+delay/filter         sustain=-17.38/-14.30dBFS burst=-28.26/-12.97dBFS
+delay/lofi           sustain=-21.71/-18.69dBFS burst=-33.12/-18.16dBFS
+delay/dbucket        sustain=-30.78/-27.75dBFS burst=-33.46/-18.31dBFS
+delay/duck           sustain=-18.25/-15.24dBFS burst=-28.87/-15.96dBFS
+delay/pattern        sustain=-13.67/-10.65dBFS burst=-23.04/-13.91dBFS
+delay/swell          sustain=-23.58/-19.04dBFS burst=-35.16/-18.51dBFS
+delay/trem           sustain=-14.11/-11.10dBFS burst=-24.48/-11.91dBFS
+reverb/room          sustain=-22.60/-19.32dBFS burst=-28.80/-12.54dBFS
+reverb/hall          sustain=-18.79/-15.64dBFS burst=-30.67/-18.35dBFS
+reverb/plate         sustain=-18.69/-11.06dBFS burst=-29.92/-18.35dBFS
+reverb/spring        sustain=-26.33/-21.13dBFS burst=-22.00/ -9.53dBFS
+reverb/bloom         sustain=-35.08/-28.57dBFS burst=-32.77/-21.36dBFS
+reverb/cloud         sustain=-19.82/-16.24dBFS burst=-36.21/-26.62dBFS
+reverb/shimmer       sustain=-28.14/-24.64dBFS burst=-31.14/-19.79dBFS
+reverb/chorale       sustain=-26.51/-23.22dBFS burst=-38.40/-27.81dBFS
+reverb/nonlinear     sustain=-240.00/-240.00dBFS burst=-27.43/-14.16dBFS
+reverb/swell         sustain=-42.13/-25.75dBFS burst=-36.25/-22.51dBFS
+reverb/magneto       sustain=-18.38/-15.36dBFS burst=-33.05/-23.22dBFS
+reverb/reflections   sustain=-23.47/-20.45dBFS burst=-35.04/-20.92dBFS
+Daisy ambient chain  min=  80.30us p50=  82.30us p99=  88.04us p999= 108.78us max= 313.54us avg=  82.52us budget%=  6.2
+Daisy heavy chain    min= 137.72us p50= 145.48us p99= 152.02us p999= 167.30us max= 207.37us avg= 143.96us budget%= 10.8
+dynamics/compressor  min=  10.96us p50=  11.28us p99=  11.57us p999=  15.45us max= 194.31us avg=  11.32us budget%=  0.8
+dynamics/noise-gate  min=   3.59us p50=   3.61us p99=   3.63us p999=   6.54us max=  22.00us avg=   3.62us budget%=  0.3
+eq/parametric5       min=   7.59us p50=   7.61us p99=   7.65us p999=  13.39us max=  24.61us avg=   7.64us budget%=  0.6

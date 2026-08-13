@@ -8,6 +8,8 @@ using namespace pedal::delay_fx;
 
 namespace pedal {
 
+static constexpr float kStereoOffsetSamples = 61.0f;
+
 void DbucketDelay::Init() {
     line_l_.Init(buf_l_, MAX_DELAY_SAMPLES);
     line_r_.Init(buf_r_, MAX_DELAY_SAMPLES);
@@ -46,10 +48,9 @@ void DbucketDelay::Reset() {
 
 void DbucketDelay::Prepare(const ParamSet& params) {
     lfo_.SetRate(params.mod_spd);
-    // Preserve the original slightly dark BBD default at filter=0.5, while
-    // exposing a useful dark-to-bright range. Drive still progressively
-    // darkens repeats as an analog BBD would.
-    float filter_knob = 0.4f + (params.filter - 0.5f) * 0.6f - params.grit * 0.3f;
+    // Tone remains independent of Drive. Drive now controls nonlinear input
+    // gain, while adding only a restrained amount of BBD noise.
+    float filter_knob = 0.5f + (params.filter - 0.5f) * 0.8f - params.grit * 0.08f;
     if (filter_knob < 0.0f) filter_knob = 0.0f;
     if (filter_knob > 1.0f) filter_knob = 1.0f;
     filter_l_.SetKnob(filter_knob);
@@ -62,9 +63,14 @@ void DbucketDelay::Prepare(const ParamSet& params) {
     const float t = (ds <= kBbdSampMin) ? 0.0f
                   : (ds >= kBbdSampMax) ? 1.0f
                   : logf(ds / kBbdSampMin) / logf(kBbdSampMax / kBbdSampMin);
-    const float input_lp = 0.45f - t * 0.35f;
+    // Calibrated two-pole bandwidth: about 9 kHz at the shortest delay and
+    // 2.5 kHz at the longest, logarithmically interpolated with clock time.
+    const float cutoff = expf(logf(9000.0f) + t * (logf(2500.0f) - logf(9000.0f)));
+    const float input_lp = 1.0f - expf(-6.2831853f * cutoff * INV_SAMPLE_RATE);
     bbd_l_.SetInputLpK(input_lp);
     bbd_r_.SetInputLpK(input_lp);
+    bbd_l_.SetClockDelaySamples(ds);
+    bbd_r_.SetClockDelaySamples(ds + kStereoOffsetSamples);
 }
 
 StereoFrame DbucketDelay::Process(float input, const ParamSet& params) {
@@ -84,22 +90,19 @@ StereoFrame DbucketDelay::Process(StereoFrame input, const ParamSet& params) {
     }
 
     const float lfo_val   = lfo_.Process();
-    float delay_samps     = delay_smooth_ + lfo_val * (params.mod_dep * 20.0f);
-    if (delay_samps < 1.0f)
-        delay_samps = 1.0f;
-    if (delay_samps > static_cast<float>(MAX_DELAY_SAMPLES - 1))
-        delay_samps = static_cast<float>(MAX_DELAY_SAMPLES - 1);
-
-    line_l_.SetDelay(delay_samps);
-    line_r_.SetDelay(delay_samps);
-
-    float wet_l = filter_l_.Process(bbd_l_.Deemphasis(line_l_.Read()));
-    float wet_r = filter_r_.Process(bbd_r_.Deemphasis(line_r_.Read()));
+    const float modulation = params.mod_dep * 20.0f;
+    const float delay_l = delay_smooth_ + lfo_val * modulation;
+    const float delay_r = delay_smooth_ + kStereoOffsetSamples - lfo_val * modulation;
+    const bool moving = modulation > 0.00001f || fabsf(base_samps - delay_smooth_) > 0.01f;
+    const float tap_l = moving ? line_l_.ReadAtHighQuality(delay_l) : line_l_.ReadNearest(delay_l);
+    const float tap_r = moving ? line_r_.ReadAtHighQuality(delay_r) : line_r_.ReadNearest(delay_r);
+    float wet_l = filter_l_.Process(bbd_l_.Deemphasis(tap_l));
+    float wet_r = filter_r_.Process(bbd_r_.Deemphasis(tap_r));
 
     const float feedback_l = dc_fb_l_.Process(wet_l * params.repeats);
     const float feedback_r = dc_fb_r_.Process(wet_r * params.repeats);
-    line_l_.Write(bbd_l_.Process(input.left + feedback_l, params.grit, noise_seed_l_, delay_samps));
-    line_r_.Write(bbd_r_.Process(input.right + feedback_r, params.grit, noise_seed_r_, delay_samps));
+    line_l_.Write(bbd_l_.Process(input.left + feedback_l, params.grit, noise_seed_l_, delay_l));
+    line_r_.Write(bbd_r_.Process(input.right + feedback_r, params.grit, noise_seed_r_, delay_r));
 
     return StereoFrame{dc_l_.Process(wet_l), dc_r_.Process(wet_r)};
 }

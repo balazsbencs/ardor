@@ -4,6 +4,7 @@
 #include "../dsp/tone_filter.h"
 #include "../dsp/dc_blocker.h"
 #include "../dsp/delay_line_sdram.h"
+#include "../dsp/delay_tap_transition.h"
 #include "../config/constants.h"
 
 namespace pedal {
@@ -25,11 +26,12 @@ private:
     DcBlocker  dc_r_;
     DcBlocker  dc_fb_l_;
     DcBlocker  dc_fb_r_;
-    float      delay_current_ = -1.0f;
-    float      delay_previous_ = -1.0f;
-    int        time_crossfade_remaining_ = 0;
-    float           buf_l_[MAX_DELAY_SAMPLES];
-    float           buf_r_[MAX_DELAY_SAMPLES];
+    DelayTapTransition time_transition_;
+    DelayTapTransition pattern_transition_;
+    int             selected_pattern_ = -1;
+    static constexpr size_t kPatternDelaySamples = static_cast<size_t>(SAMPLE_RATE * 7.51f);
+    float           buf_l_[kPatternDelaySamples];
+    float           buf_r_[kPatternDelaySamples];
     DelayLineSdram  line_l_;
     DelayLineSdram  line_r_;
 
@@ -37,7 +39,7 @@ private:
     static constexpr float PATTERNS[3][3] = {
         {1.0f, 2.0f,    3.0f  },   // straight
         {1.0f, 1.5f,    3.0f  },   // dotted 8th
-        {0.667f, 1.333f, 2.0f },   // triplet
+        {2.0f / 3.0f, 4.0f / 3.0f, 2.0f }, // triplet
     };
 };
 

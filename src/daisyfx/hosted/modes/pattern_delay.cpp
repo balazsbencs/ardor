@@ -6,14 +6,12 @@ using namespace pedal::delay_fx;
 
 namespace pedal {
 
-static constexpr int kTimeCrossfadeSamples = 2400; // 50 ms at 48 kHz
-
 // Must define the constexpr static data member in exactly one TU
 constexpr float PatternDelay::PATTERNS[3][3];
 
 void PatternDelay::Init() {
-    line_l_.Init(buf_l_, MAX_DELAY_SAMPLES);
-    line_r_.Init(buf_r_, MAX_DELAY_SAMPLES);
+    line_l_.Init(buf_l_, kPatternDelaySamples);
+    line_r_.Init(buf_r_, kPatternDelaySamples);
     lfo_.Init(1.0f, LfoWave::Sine);
     filter_l_.Init();
     filter_r_.Init();
@@ -33,24 +31,33 @@ void PatternDelay::Reset() {
     dc_r_.Init();
     dc_fb_l_.Init();
     dc_fb_r_.Init();
-    delay_current_ = -1.0f;
-    delay_previous_ = -1.0f;
-    time_crossfade_remaining_ = 0;
+    time_transition_.Reset();
+    pattern_transition_.Reset();
+    selected_pattern_ = -1;
 }
 
 void PatternDelay::Prepare(const ParamSet& params) {
     lfo_.SetRate(params.mod_spd);
     filter_l_.SetKnob(params.filter);
     filter_r_.SetKnob(params.filter);
-    const float targetDelay = params.time * SAMPLE_RATE;
-    if (delay_current_ < 0.0f) {
-        delay_current_ = targetDelay;
-        delay_previous_ = targetDelay;
-    } else if (fabsf(targetDelay - delay_current_) > 0.01f) {
-        delay_previous_ = delay_current_;
-        delay_current_ = targetDelay;
-        time_crossfade_remaining_ = kTimeCrossfadeSamples;
+    time_transition_.SetTarget(params.time * SAMPLE_RATE);
+
+    // Hysteresis prevents a noisy control from repeatedly changing all taps
+    // at a pattern boundary. Actual changes use the same click-free queued
+    // transition as delay-time changes.
+    if (selected_pattern_ < 0) {
+        selected_pattern_ = params.grit < 1.0f / 3.0f ? 0
+                          : params.grit < 2.0f / 3.0f ? 1 : 2;
+    } else if (selected_pattern_ == 0 && params.grit > 0.36f) {
+        selected_pattern_ = 1;
+    } else if (selected_pattern_ == 1 && params.grit < 0.30f) {
+        selected_pattern_ = 0;
+    } else if (selected_pattern_ == 1 && params.grit > 0.70f) {
+        selected_pattern_ = 2;
+    } else if (selected_pattern_ == 2 && params.grit < 0.63f) {
+        selected_pattern_ = 1;
     }
+    pattern_transition_.SetTarget(static_cast<float>(selected_pattern_));
 }
 
 StereoFrame PatternDelay::Process(float input, const ParamSet& params) {
@@ -59,69 +66,60 @@ StereoFrame PatternDelay::Process(float input, const ParamSet& params) {
 
 StereoFrame PatternDelay::Process(StereoFrame input, const ParamSet& params) {
     const float lfo_val = lfo_.Process();
-    float base_samps = delay_current_ + lfo_val * (params.mod_dep * 25.0f);
-    if (base_samps < 1.0f) base_samps = 1.0f;
-
-    // Select pattern: grit 0..0.333 -> 0, 0.333..0.667 -> 1, 0.667..1 -> 2
-    int pat_idx = static_cast<int>(params.grit * 3.0f);
-    if (pat_idx < 0) pat_idx = 0;
-    if (pat_idx > 2) pat_idx = 2;
-
-    // Cap base_samps so the largest tap stays within the delay buffer
-    const float max_mult = PATTERNS[pat_idx][2];
-    const float max_base = static_cast<float>(MAX_DELAY_SAMPLES - 3) / max_mult;
-    if (base_samps > max_base) base_samps = max_base;
-
-    float previousBase = delay_previous_ + lfo_val * (params.mod_dep * 25.0f);
-    if (previousBase < 1.0f) previousBase = 1.0f;
-    if (previousBase > max_base) previousBase = max_base;
-    const bool crossfading = time_crossfade_remaining_ > 0;
-    const float fade = crossfading
-        ? 1.0f - static_cast<float>(time_crossfade_remaining_) / static_cast<float>(kTimeCrossfadeSamples)
-        : 1.0f;
-
-    // Sum three rhythmic taps; cache first taps for the independent loops.
-    float wet_l = 0.0f;
-    float wet_r = 0.0f;
-    float first_tap_l = 0.0f;
-    float first_tap_r = 0.0f;
-    for (int i = 0; i < 3; ++i) {
-        float tap_samps = base_samps * PATTERNS[pat_idx][i];
-        if (tap_samps < 1.0f)
-            tap_samps = 1.0f;
-        if (tap_samps > static_cast<float>(MAX_DELAY_SAMPLES - 1))
-            tap_samps = static_cast<float>(MAX_DELAY_SAMPLES - 1);
-        const float tap_l = line_l_.ReadAt(tap_samps);
-        const float tap_r = line_r_.ReadAt(tap_samps);
-        float blended_l = tap_l;
-        float blended_r = tap_r;
-        if (crossfading) {
-            float previousTap = previousBase * PATTERNS[pat_idx][i];
-            if (previousTap < 1.0f) previousTap = 1.0f;
-            if (previousTap > static_cast<float>(MAX_DELAY_SAMPLES - 1)) {
-                previousTap = static_cast<float>(MAX_DELAY_SAMPLES - 1);
-            }
-            const float old_l = line_l_.ReadAt(previousTap);
-            const float old_r = line_r_.ReadAt(previousTap);
-            blended_l = old_l + fade * (tap_l - old_l);
-            blended_r = old_r + fade * (tap_r - old_r);
+    const float modulation = params.mod_dep * 25.0f;
+    struct BankOutput { StereoFrame wet; StereoFrame first; };
+    const auto renderBank = [&](float base, int pattern) {
+        static constexpr float weights_l[3] = {0.775f, 0.560f, 0.300f};
+        static constexpr float weights_r[3] = {0.300f, 0.560f, 0.775f};
+        BankOutput output{};
+        base += lfo_val * modulation;
+        for (int i = 0; i < 3; ++i) {
+            const float delay = base * PATTERNS[pattern][i];
+            const float tap_l = modulation <= 0.00001f ? line_l_.ReadNearest(delay)
+                                                       : line_l_.ReadAtHighQuality(delay);
+            const float tap_r = modulation <= 0.00001f ? line_r_.ReadNearest(delay)
+                                                       : line_r_.ReadAtHighQuality(delay);
+            if (i == 0) output.first = StereoFrame{tap_l, tap_r};
+            output.wet.left += tap_l * weights_l[i];
+            output.wet.right += tap_r * weights_r[i];
         }
-        if (i == 0) {
-            first_tap_l = blended_l;
-            first_tap_r = blended_r;
+        return output;
+    };
+    const auto blendBanks = [](const BankOutput& from, const BankOutput& to, float mix) {
+        BankOutput output;
+        output.wet.left = from.wet.left + mix * (to.wet.left - from.wet.left);
+        output.wet.right = from.wet.right + mix * (to.wet.right - from.wet.right);
+        output.first.left = from.first.left + mix * (to.first.left - from.first.left);
+        output.first.right = from.first.right + mix * (to.first.right - from.first.right);
+        return output;
+    };
+    const auto renderAtTime = [&](float base, int pattern) {
+        BankOutput output = renderBank(base, pattern);
+        if (time_transition_.active()) {
+            output = blendBanks(renderBank(time_transition_.from(), pattern), output,
+                                time_transition_.mix());
         }
-        wet_l += blended_l;
-        wet_r += blended_r;
+        return output;
+    };
+
+    const int current_pattern = static_cast<int>(pattern_transition_.to() + 0.5f);
+    BankOutput output = renderAtTime(time_transition_.to(), current_pattern);
+    if (pattern_transition_.active()) {
+        const int old_pattern = static_cast<int>(pattern_transition_.from() + 0.5f);
+        output = blendBanks(renderAtTime(time_transition_.to(), old_pattern), output,
+                            pattern_transition_.mix());
     }
-    if (crossfading) --time_crossfade_remaining_;
-    wet_l *= 0.57735027f; // normalise 3-tap sum (1/√3 for equal-power)
-    wet_r *= 0.57735027f;
+    if (time_transition_.active()) time_transition_.Advance();
+    if (pattern_transition_.active()) pattern_transition_.Advance();
+
+    float wet_l = output.wet.left;
+    float wet_r = output.wet.right;
 
     wet_l = filter_l_.Process(wet_l);
     wet_r = filter_r_.Process(wet_r);
 
-    const float feedback_l = dc_fb_l_.Process(first_tap_l * params.repeats);
-    const float feedback_r = dc_fb_r_.Process(first_tap_r * params.repeats);
+    const float feedback_l = dc_fb_l_.Process(output.first.left * params.repeats);
+    const float feedback_r = dc_fb_r_.Process(output.first.right * params.repeats);
     line_l_.Write(input.left + feedback_l);
     line_r_.Write(input.right + feedback_r);
 
