@@ -282,7 +282,7 @@ private:
   std::array<lv_obj_t*, 4> presetCardLabels_{};
   std::array<lv_obj_t*, 4> presetCardButtons_{};
   std::array<lv_obj_t*, 4> presetHeaderStrips_{};
-  std::array<lv_obj_t*, 4> presetLamps_{};
+  std::array<lv_obj_t*, 4> presetHeaderLabels_{};
   std::array<lv_obj_t*, 4> presetNumerals_{};
   std::array<lv_obj_t*, 4> presetWarningLabels_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainCards_{};
