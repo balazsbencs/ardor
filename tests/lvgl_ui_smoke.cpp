@@ -2,6 +2,7 @@
 #include "ui/LvglUiStyle.h"
 #include "ui/EqEditorModel.h"
 #include "ui/fonts/SairaCondSemibold52.h"
+#include "ui/fonts/SairaCondSemibold72.h"
 
 #include <algorithm>
 #include <cctype>
@@ -1115,16 +1116,43 @@ int main()
   if (require(presetTitle && lv_obj_get_style_transform_scale_x(presetTitle, LV_PART_MAIN) == LV_SCALE_NONE,
               "bank title should keep its standard size")) return 1;
   lv_obj_t* presetName = findLabel(lv_screen_active(), upper(state.bank.presets[state.activePreset].name).c_str());
-  if (require(presetName && lv_obj_get_style_text_font(presetName, LV_PART_MAIN) == &ardor_font_saira_cond_semibold_52,
-              "preset-card names should render in the standing-readable 52 px Panel face")) return 1;
-  if (require(lv_obj_get_height(presetName) == 104 &&
+  if (require(presetName && lv_obj_get_style_text_font(presetName, LV_PART_MAIN) == &ardor_font_saira_cond_semibold_72,
+              "preset-card names should render in the distance-readable 72 px Panel face")) return 1;
+  if (require(lv_obj_get_height(presetName) == 160 &&
               lv_label_get_long_mode(presetName) == LV_LABEL_LONG_MODE_DOTS,
               "preset-card names should reserve a bounded two-line title area")) return 1;
-  if (require(findLabel(lv_screen_active(), "PRESET 1"),
-              "preset tiles should include Panel headers")) return 1;
-  if (require(findObjectWithBgColor(lv_screen_active(), lv_color_hex(0xd8422f), 11),
-              "active preset should have a Panel LIVE lamp")) return 1;
+  const std::size_t activeSlot = state.activePreset;
+  const std::size_t inactiveSlot = (activeSlot + 1) % state.bank.presets.size();
+  const std::string activeFsText = "FS " + std::to_string(activeSlot + 1) + "  \xC2\xB7  LIVE";
+  const std::string inactiveFsText = "FS " + std::to_string(inactiveSlot + 1);
+  lv_obj_t* activeFsLabel = findLabel(lv_screen_active(), activeFsText.c_str());
+  lv_obj_t* inactiveFsLabel = findLabel(lv_screen_active(), inactiveFsText.c_str());
+  if (require(activeFsLabel && inactiveFsLabel,
+              "preset tiles should identify the physical footswitch and explicit live state")) return 1;
+  lv_obj_t* activeHeader = activeFsLabel ? lv_obj_get_parent(activeFsLabel) : nullptr;
+  if (require(activeHeader && lv_obj_get_height(activeHeader) == 44
+                && lv_color_eq(lv_obj_get_style_bg_color(activeHeader, LV_PART_MAIN),
+                               lv_color_hex(0xd8422f)),
+              "active preset should use a distance-visible full-width LIVE header")) return 1;
   lv_obj_t* retainedPresetCard = lv_obj_get_parent(presetName);
+  lv_obj_t* inactivePresetName = findLabel(
+    lv_screen_active(), upper(state.bank.presets[inactiveSlot].name).c_str());
+  lv_obj_t* inactivePresetCard = inactivePresetName ? lv_obj_get_parent(inactivePresetName) : nullptr;
+  if (require(lv_obj_get_style_border_width(retainedPresetCard, LV_PART_MAIN) == 3
+                && inactivePresetCard
+                && lv_obj_get_style_border_width(inactivePresetCard, LV_PART_MAIN) == 1,
+              "live preset should have a stronger perimeter than inactive presets")) return 1;
+  ardor::synchronizePresetSelection(state, inactiveSlot);
+  ui.refresh(lv_screen_active(), state);
+  const std::string movedLiveText = "FS " + std::to_string(inactiveSlot + 1) + "  \xC2\xB7  LIVE";
+  const std::string previousFsText = "FS " + std::to_string(activeSlot + 1);
+  if (require(findLabel(lv_screen_active(), movedLiveText.c_str())
+                && findLabel(lv_screen_active(), previousFsText.c_str())
+                && lv_obj_get_style_border_width(inactivePresetCard, LV_PART_MAIN) == 3
+                && lv_obj_get_style_border_width(retainedPresetCard, LV_PART_MAIN) == 1,
+              "retained preset cards should move the complete LIVE treatment together")) return 1;
+  ardor::synchronizePresetSelection(state, activeSlot);
+  ui.refresh(lv_screen_active(), state);
   const auto installedAssetPath = state.bank.presets[state.activePreset].blocks[0].assetPath;
   const auto installedBlockType = state.bank.presets[state.activePreset].blocks[0].type;
   const bool installedBlockEnabled = state.bank.presets[state.activePreset].blocks[0].enabled;
