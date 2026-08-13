@@ -26,8 +26,9 @@ application, and a reproducible Buildroot firmware image. It replaces a rack or
 pedalboard with one appliance running neural amp captures, cabinet impulse
 responses, and a full effects chain.
 
-It is an **appliance, not a plugin host**. Plugin formats and an OTA update
-workflow are explicitly out of scope.
+It is an **appliance, not a plugin host**. Plugin formats remain out of scope.
+Signed OTA updates may replace the Ardor device applications and restart them;
+kernel, boot, Buildroot, and partition changes still require a full image flash.
 
 Success is people building it, playing through it, and contributing back.
 

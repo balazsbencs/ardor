@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 project(ardor_pedal LANGUAGES C CXX)
 
+set(ARDOR_VERSION "0.0.0" CACHE STRING "Ardor release version")
+set(ARDOR_COMMIT "unknown" CACHE STRING "Ardor source commit")
+
 # A single-config generator otherwise leaves CMAKE_BUILD_TYPE empty, which
 # produces an unoptimized benchmark/build unless every caller remembers -D.
 # Multi-config generators choose their configuration at build time instead.
@@ -294,6 +297,10 @@ add_executable(pedal-poc apps/pedal-poc/main.cpp)
 target_compile_features(pedal-poc PRIVATE cxx_std_20)
 target_include_directories(pedal-poc PRIVATE ${miniaudio_SOURCE_DIR})
 target_link_libraries(pedal-poc PRIVATE ardor_audio ardor_dsp ardor_control)
+target_compile_definitions(pedal-poc PRIVATE
+  ARDOR_VERSION="${ARDOR_VERSION}"
+  ARDOR_COMMIT="${ARDOR_COMMIT}"
+)
 if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   target_link_libraries(pedal-poc PRIVATE ardor_ui)
   target_compile_definitions(pedal-poc PRIVATE ARDOR_HAS_UI)

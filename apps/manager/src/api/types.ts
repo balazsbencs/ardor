@@ -3,6 +3,10 @@ export type AssetKind = "models" | "irs";
 export type DeviceStatus = {
   deviceName: string;
   apiVersion: string;
+  softwareVersion?: string;
+  buildCommit?: string;
+  baseSystemVersion?: string;
+  updaterVersion?: string;
   authEnabled: boolean;
   localAuthState?: "disabled" | "setup_required" | "login_required" | "authenticated";
   dataRootWritable: boolean;
@@ -22,7 +26,30 @@ export type DeviceStatus = {
     presetWrite: boolean;
     presetApply: boolean;
     wifiSettings?: boolean;
+    softwareUpdate?: boolean;
   };
+};
+
+export type UpdateSelection = {
+  version: string;
+  tag: string;
+  releaseUrl: string;
+  releaseNotes?: string;
+  bundleSize: number;
+  reflashRequired: boolean;
+  incompatibility?: string;
+};
+
+export type UpdateStatus = {
+  state: "idle" | "checking" | "available" | "downloading" | "verifying" | "staged" | "restarting" | "validating" | "succeeded" | "rolled_back" | "failed" | string;
+  enabled: boolean;
+  installedVersion: string;
+  baseVersion: string;
+  updaterVersion: string;
+  checkedAt?: string;
+  available?: UpdateSelection;
+  errorCode?: string;
+  errorMessage?: string;
 };
 
 export type WiFiSettings = {

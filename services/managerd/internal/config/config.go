@@ -19,16 +19,30 @@ type Config struct {
 	CloudURL                    string
 	CloudRemoteMutationsEnabled bool
 	DiscoveryEnabled            bool
+	ActiveReleaseManifest       string
+	BaseReleaseMetadata         string
+	UpdatePublicKey             string
+	SystemRoot                  string
+	UpdaterExecutable           string
+	SoftwareVersion             string
+	BuildCommit                 string
+	BaseSystemVersion           string
+	UpdaterVersion              string
 }
 
 func LoadFromEnv() (Config, error) {
 	cfg := Config{
-		DataRoot:          env("ARDOR_DATA_ROOT", "/opt/ardor-pedal"),
-		Bind:              env("ARDOR_API_BIND", "0.0.0.0"),
-		AuthEnabled:       env("ARDOR_API_AUTH", "on") != "off",
-		WiFiInterface:     env("ARDOR_WIFI_INTERFACE", "wlan0"),
-		WiFiControlScript: env("ARDOR_WIFI_CONTROL_SCRIPT", "/etc/init.d/S42wifi"),
-		CloudURL:          os.Getenv("ARDOR_CLOUD_URL"),
+		DataRoot:              env("ARDOR_DATA_ROOT", "/opt/ardor-pedal"),
+		Bind:                  env("ARDOR_API_BIND", "0.0.0.0"),
+		AuthEnabled:           env("ARDOR_API_AUTH", "on") != "off",
+		WiFiInterface:         env("ARDOR_WIFI_INTERFACE", "wlan0"),
+		WiFiControlScript:     env("ARDOR_WIFI_CONTROL_SCRIPT", "/etc/init.d/S42wifi"),
+		CloudURL:              os.Getenv("ARDOR_CLOUD_URL"),
+		ActiveReleaseManifest: os.Getenv("ARDOR_RELEASE_MANIFEST"),
+		BaseReleaseMetadata:   env("ARDOR_BASE_RELEASE_METADATA", "/etc/ardor-release.json"),
+		UpdatePublicKey:       env("ARDOR_UPDATE_PUBLIC_KEY", "/etc/ardor-update.pub"),
+		SystemRoot:            env("ARDOR_SYSTEM_ROOT", "/opt/ardor-pedal/system"),
+		UpdaterExecutable:     env("ARDOR_UPDATER_EXECUTABLE", "/usr/bin/ardor-updater"),
 	}
 	cloudEnabled, err := onOff("ARDOR_CLOUD_ENABLED", "off")
 	if err != nil {

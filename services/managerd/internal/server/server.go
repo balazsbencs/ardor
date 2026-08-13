@@ -26,6 +26,7 @@ import (
 	"ardor.local/managerd/internal/presets"
 	resetmanager "ardor.local/managerd/internal/reset"
 	"ardor.local/managerd/internal/runtimecontrol"
+	"ardor.local/managerd/internal/update"
 	"ardor.local/managerd/internal/webui"
 	"ardor.local/managerd/internal/wifi"
 )
@@ -57,6 +58,12 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 	assetStore := assets.NewStore(cfg.DataRoot)
 	presetStore := presets.NewStore(cfg.DataRoot)
 	wifiStore := wifi.NewStore(cfg.DataRoot, cfg.WiFiInterface, cfg.WiFiControlScript)
+	updateManager := update.NewManager(update.ManagerConfig{
+		DataRoot: cfg.DataRoot, PublicKeyPath: cfg.UpdatePublicKey,
+		InstalledVersion: versionOrDefault(cfg.SoftwareVersion),
+		BaseVersion:      versionOrDefault(cfg.BaseSystemVersion), SystemRoot: cfg.SystemRoot,
+		UpdaterExecutable: cfg.UpdaterExecutable,
+	})
 	var authStore *localauth.Store
 	var resets *resetmanager.Manager
 	authFailures := newAuthFailureLimiter(5, time.Minute)
@@ -211,6 +218,10 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 		writeJSON(w, http.StatusOK, map[string]any{
 			"deviceName":             "Ardor Pedal",
 			"apiVersion":             "0.1.0",
+			"softwareVersion":        versionOrDefault(cfg.SoftwareVersion),
+			"buildCommit":            stringOrDefault(cfg.BuildCommit, "unknown"),
+			"baseSystemVersion":      versionOrDefault(cfg.BaseSystemVersion),
+			"updaterVersion":         versionOrDefault(cfg.UpdaterVersion),
 			"authEnabled":            cfg.AuthEnabled,
 			"localAuthState":         authState,
 			"dataRootWritable":       true,
@@ -220,9 +231,52 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 			"capabilities": map[string]bool{
 				"modelUpload": true, "irUpload": true, "presetRead": true,
 				"presetWrite": true, "presetApply": true, "assetRename": true,
-				"wifiSettings": true,
+				"wifiSettings": true, "softwareUpdate": updateManager.Status().Enabled,
 			},
 		})
+	})
+
+	mux.HandleFunc("GET /api/system/update/status", func(w http.ResponseWriter, r *http.Request) {
+		if !authorized(w, r, cfg, authStore) {
+			return
+		}
+		writeJSON(w, http.StatusOK, update.PublicStatus(updateManager.Status()))
+	})
+
+	mux.HandleFunc("POST /api/system/update/check", func(w http.ResponseWriter, r *http.Request) {
+		if !authorized(w, r, cfg, authStore) {
+			return
+		}
+		status, err := updateManager.Check(r.Context())
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, update.PublicStatus(status))
+			return
+		}
+		writeJSON(w, http.StatusOK, update.PublicStatus(status))
+	})
+
+	mux.HandleFunc("POST /api/system/update/install", func(w http.ResponseWriter, r *http.Request) {
+		if !authorized(w, r, cfg, authStore) {
+			return
+		}
+		var body struct {
+			Version string `json:"version"`
+		}
+		if !decodeLocalJSON(w, r, &body, 4<<10) {
+			return
+		}
+		status, launch, err := updateManager.PrepareInstall(body.Version)
+		if err != nil {
+			writeError(w, http.StatusConflict, "update_install_rejected", err.Error())
+			return
+		}
+		writeJSON(w, http.StatusAccepted, update.PublicStatus(status))
+		go func() {
+			time.Sleep(250 * time.Millisecond)
+			if err := launch(); err != nil {
+				log.Printf("start OTA updater: %v", err)
+			}
+		}()
 	})
 
 	mux.HandleFunc("GET /api/settings/wifi", func(w http.ResponseWriter, r *http.Request) {
@@ -449,6 +503,17 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 	mux.Handle("GET /", webUIHandler(webFiles))
 
 	return withCORS(mux), nil
+}
+
+func versionOrDefault(value string) string {
+	return stringOrDefault(value, "0.0.0")
+}
+
+func stringOrDefault(value, fallback string) string {
+	if strings.TrimSpace(value) == "" {
+		return fallback
+	}
+	return value
 }
 
 func webUIHandler(webFiles fs.FS) http.Handler {

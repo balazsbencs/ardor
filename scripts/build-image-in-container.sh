@@ -82,6 +82,7 @@ require_config 'BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS=y'
 require_config 'BR2_PACKAGE_ARDOR_PEDAL=y'
 require_config 'BR2_PACKAGE_ARDOR_MANAGERD=y'
 require_config 'BR2_PACKAGE_OPENSSH=y'
+require_config 'BR2_PACKAGE_CA_CERTIFICATES=y'
 require_config 'BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_EUDEV=y'
 require_config '# BR2_TARGET_GENERIC_REMOUNT_ROOTFS_RW is not set'
 require_config 'BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION="$(call github,raspberrypi,linux,256d6b4bc33527fae9967773b2a0d3b92e1bd000)/linux-256d6b4bc33527fae9967773b2a0d3b92e1bd000.tar.gz"'
@@ -93,9 +94,12 @@ make -j"$ARDOR_BUILD_JOBS" BR2_EXTERNAL="$external"
 
 require_executable output/target/usr/bin/ardor-pedal
 require_executable output/target/usr/bin/ardor-managerd
+require_executable output/target/usr/bin/ardor-updater
+require_executable output/target/etc/init.d/S97ardor-update-recovery
 require_executable output/target/etc/init.d/S98ardor-managerd
 require_executable output/target/etc/init.d/S99ardor-pedal
 require_file output/target/etc/ardor-managerd.env
+require_file output/target/etc/ardor-release.json
 require_file output/images/Image
 require_file output/images/bcm2711-rpi-4-b.dtb
 require_file output/images/boot.vfat
@@ -107,6 +111,17 @@ file output/target/usr/bin/ardor-pedal | grep -q 'ELF 64-bit.*ARM aarch64' ||
   die "ardor-pedal is not an AArch64 ELF executable"
 file output/target/usr/bin/ardor-managerd | grep -q 'ELF 64-bit.*ARM aarch64' ||
   die "ardor-managerd is not an AArch64 ELF executable"
+file output/target/usr/bin/ardor-updater | grep -q 'ELF 64-bit.*ARM aarch64' ||
+  die "ardor-updater is not an AArch64 ELF executable"
+
+if [ -n "${ARDOR_STAGING_PAYLOAD_DIR:-}" ]; then
+  rm -rf "$ARDOR_STAGING_PAYLOAD_DIR"
+  mkdir -p "$ARDOR_STAGING_PAYLOAD_DIR"
+  cp output/target/usr/bin/ardor-pedal "$ARDOR_STAGING_PAYLOAD_DIR/ardor-pedal"
+  cp output/target/usr/bin/ardor-managerd "$ARDOR_STAGING_PAYLOAD_DIR/ardor-managerd"
+  cp output/target/usr/bin/ardor-updater "$ARDOR_STAGING_PAYLOAD_DIR/ardor-updater"
+  chown -R "$ARDOR_HOST_UID:$ARDOR_HOST_GID" "$ARDOR_STAGING_PAYLOAD_DIR" 2>/dev/null || true
+fi
 
 cp output/images/sdcard.img "$ARDOR_STAGING_IMAGE"
 chown "$ARDOR_HOST_UID:$ARDOR_HOST_GID" "$ARDOR_STAGING_IMAGE" 2>/dev/null || true
