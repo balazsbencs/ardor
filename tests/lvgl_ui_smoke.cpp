@@ -349,8 +349,14 @@ int main()
   int requestedBankDelta = 0;
   int requestedTunerMode = -1;
   int liveBypassUpdates = 0;
+  int savedPresetNames = 0;
   std::uint32_t savedAudioBlockSize = 0;
   ardor::UiActions uiActions;
+  uiActions.savePreset = [&]() {
+    ++savedPresetNames;
+    state.dirty = false;
+    ardor::setUiStatus(state, "Preset saved");
+  };
   uiActions.changeBank = [&](int delta) { requestedBankDelta += delta; };
   uiActions.setTunerMode = [&](bool enabled) { requestedTunerMode = enabled ? 1 : 0; };
   uiActions.saveAudioBlockSize = [&](std::uint32_t blockSize, std::string&) {
@@ -1141,9 +1147,8 @@ int main()
                                       0, 0, 0, 2.5));
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  lv_obj_t* presetTitle = findLabel(lv_screen_active(), state.bank.name.c_str());
-  if (require(presetTitle && lv_obj_get_style_transform_scale_x(presetTitle, LV_PART_MAIN) == LV_SCALE_NONE,
-              "bank title should keep its standard size")) return 1;
+  if (require(!findLabel(lv_screen_active(), state.bank.name.c_str()),
+              "the minimal top rail should omit the bank title")) return 1;
   lv_obj_t* presetName = findLabel(lv_screen_active(), upper(state.bank.presets[state.activePreset].name).c_str());
   if (require(presetName && lv_obj_get_style_text_font(presetName, LV_PART_MAIN) == &ardor_font_saira_cond_semibold_72,
               "preset-card names should render in the distance-readable 72 px Panel face")) return 1;
@@ -1220,6 +1225,41 @@ int main()
   }
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* renameLabel = findLabel(lv_screen_active(), "RENAME");
+  if (require(renameLabel && lv_obj_get_width(lv_obj_get_parent(renameLabel)) == 96,
+              "the edit rail should expose a clear preset rename target")) return 1;
+  const std::string nameBeforeRename = state.bank.presets[state.activePreset].name;
+  lv_obj_send_event(lv_obj_get_parent(renameLabel), LV_EVENT_CLICKED, nullptr);
+  lv_obj_t* renameTitle = findLabel(lv_screen_active(), "Rename preset");
+  lv_obj_t* renameSheet = renameTitle ? lv_obj_get_parent(renameTitle) : nullptr;
+  lv_obj_t* renameOverlay = renameSheet ? lv_obj_get_parent(renameSheet) : nullptr;
+  lv_obj_t* renameField = renameSheet
+    ? findObjectOfClass(renameSheet, &lv_textarea_class) : nullptr;
+  lv_obj_t* renameKeyboard = renameSheet
+    ? findObjectOfClass(renameSheet, &lv_keyboard_class) : nullptr;
+  if (require(renameOverlay && renameField && renameKeyboard
+                && !lv_obj_has_flag(renameOverlay, LV_OBJ_FLAG_HIDDEN),
+              "preset rename should open a blocking sheet with a text field and keyboard")) return 1;
+  lv_textarea_set_text(renameField, "   ");
+  lv_obj_send_event(lv_obj_get_parent(findLabel(renameSheet, "SAVE")), LV_EVENT_CLICKED, nullptr);
+  if (require(findLabel(renameSheet, "Enter a preset name")
+                && state.bank.presets[state.activePreset].name == nameBeforeRename
+                && !lv_obj_has_flag(renameOverlay, LV_OBJ_FLAG_HIDDEN),
+              "preset rename should reject an empty name without closing")) return 1;
+  lv_textarea_set_text(renameField, "Discarded name");
+  lv_obj_send_event(lv_obj_get_parent(findLabel(renameSheet, "CANCEL")), LV_EVENT_CLICKED, nullptr);
+  if (require(state.bank.presets[state.activePreset].name == nameBeforeRename
+                && lv_obj_has_flag(renameOverlay, LV_OBJ_FLAG_HIDDEN),
+              "cancelling preset rename should preserve the original name")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(renameLabel), LV_EVENT_CLICKED, nullptr);
+  lv_textarea_set_text(renameField, "  Stage Lead  ");
+  lv_obj_send_event(lv_obj_get_parent(findLabel(renameSheet, "SAVE")), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  if (require(savedPresetNames == 1
+                && state.bank.presets[state.activePreset].name == "Stage Lead"
+                && findLabel(lv_screen_active(), "Stage Lead")
+                && lv_obj_has_flag(renameOverlay, LV_OBJ_FLAG_HIDDEN),
+              "saving preset rename should trim, persist, and refresh the active preset name")) return 1;
   chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x212528), 1240, 492);
   if (require(chain && lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE)
                 && lv_obj_get_scroll_right(chain) > 0,
@@ -1266,10 +1306,9 @@ int main()
   ardor::enterPresetMode(state);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  lv_obj_t* wordmark = findLabel(lv_screen_active(), "ARDOR");
-  lv_obj_t* bankNameLabel = findLabel(lv_screen_active(), state.bank.name.c_str());
-  lv_obj_t* telemetryLegend = findLabel(lv_screen_active(), "48 KHZ \xC2\xB7 BLK 64");
-  lv_obj_t* midiLabel = findLabel(lv_screen_active(), "MIDI");
+  lv_obj_t* telemetryLegend = findLabel(
+    lv_screen_active(), "LATENCY 1.33 MS  \xC2\xB7  BUFFER 25% USED");
+  lv_obj_t* presetTopRail = telemetryLegend ? lv_obj_get_parent(telemetryLegend) : nullptr;
   lv_obj_t* editButtonLabel = findLabel(lv_screen_active(), "Edit");
   lv_obj_t* editButton = editButtonLabel ? lv_obj_get_parent(editButtonLabel) : nullptr;
   lv_obj_t* setupButtonLabel = findLabel(lv_screen_active(), "Setup");
@@ -1282,8 +1321,18 @@ int main()
   lv_obj_t* masterValue = findLabel(lv_screen_active(), std::to_string(state.masterVolume).c_str());
   lv_obj_t* bankDownButton = bankDownLabel ? lv_obj_get_parent(bankDownLabel) : nullptr;
   lv_obj_t* bankUpButton = bankUpLabel ? lv_obj_get_parent(bankUpLabel) : nullptr;
-  if (require(wordmark && bankNameLabel && telemetryLegend && midiLabel,
-              "preset top rail should name the panel, bank, and engine telemetry")) return 1;
+  if (require(presetTopRail
+                && !findLabel(presetTopRail, "ARDOR")
+                && !findLabel(presetTopRail, "MIDI")
+                && !findLabel(presetTopRail, "48 KHZ"),
+              "preset top rail should contain only latency and live buffer use")) return 1;
+  ardor::updateRealtimeTelemetry(
+    state, ardor::makeRuntimeTelemetry(120, 0, 0, 7.0, 3.0, 10.0, false,
+                                      0, 0, 0, 6.0));
+  ui.refresh(lv_screen_active(), state);
+  if (require(findLabel(lv_screen_active(),
+                        "LATENCY 1.33 MS  \xC2\xB7  BUFFER 60% USED") == telemetryLegend,
+              "the retained top-rail buffer percentage should follow one-second telemetry updates")) return 1;
   if (require(editButton && lv_obj_get_width(editButton) == 112 && lv_obj_get_height(editButton) == 52,
               "Edit should have a large, finger-friendly hit target")) return 1;
   if (require(setupButton && lv_obj_get_width(setupButton) == 96 && lv_obj_get_height(setupButton) == 52,
@@ -1296,15 +1345,13 @@ int main()
                 && lv_obj_get_width(tunerButton) == 112
                 && lv_obj_get_height(tunerButton) == 52,
               "preset screen should provide a Tuner button and a master travel scale")) return 1;
-  // Expression/MIDI live status and toasts remain a shared-status-bar
-  // concern; the preset rails do not reproduce that footer (per the mockup,
-  // which omits it from this direction) so that coverage stays on Edit mode
-  // below, where the shared status bar is still in place.
+  // Live control telemetry must not add extra content to this intentionally
+  // minimal top rail.
   ardor::updateControlInputTelemetry(state, {true, true, true, true, 0.5f, true, 12000});
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  lv_obj_t* connectedMidi = findLabel(lv_screen_active(), "MIDI ON");
-  if (require(connectedMidi, "preset top rail MIDI legend should reflect a live connection")) return 1;
+  if (require(!findLabel(presetTopRail, "MIDI ON"),
+              "live control status should not add extra top-rail content")) return 1;
   lv_area_t bankDownArea{};
   lv_area_t bankUpArea{};
   lv_area_t tunerButtonArea{};
@@ -1529,8 +1576,9 @@ int main()
   ui.closeSettings(state);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  if (require(findLabel(lv_screen_active(), "48 KHZ \xC2\xB7 BLK 32"),
-              "the top rail should reflect the active audio block size")) return 1;
+  if (require(findLabel(lv_screen_active(),
+                        "LATENCY 0.67 MS  \xC2\xB7  BUFFER 60% USED"),
+              "the top rail should reflect the active latency setting and buffer use")) return 1;
   bankUpLabel = findLabel(lv_screen_active(), "Bank +");
   bankUpButton = bankUpLabel ? lv_obj_get_parent(bankUpLabel) : nullptr;
   tunerButtonLabel = findLabel(lv_screen_active(), "Tuner");

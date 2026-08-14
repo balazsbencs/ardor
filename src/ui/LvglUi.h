@@ -21,7 +21,9 @@ namespace ardor {
 
 class LvglUi;
 
-enum class UiContextRegion { None, Preset, Edit, Tuner, Parameters, Drawer, Status, Settings };
+enum class UiContextRegion {
+  None, Preset, Edit, Tuner, Parameters, Drawer, Status, Settings, PresetName,
+};
 
 struct UiEventContext {
   LvglUi* ui = nullptr;
@@ -179,6 +181,9 @@ public:
   void adjustMidiChannel(UiState& state, int delta);
   void adjustMidiTunerCc(UiState& state, int delta);
   void captureExpressionEndpoint(UiState& state, bool heel);
+  void openPresetNameEditor(UiState& state);
+  void savePresetName(UiState& state);
+  void cancelPresetNameEditor();
 
 private:
   void renderPresetMode(lv_obj_t* root, UiState& state);
@@ -186,6 +191,7 @@ private:
   void renderTunerMode(lv_obj_t* root, UiState& state);
   void renderBlockDrawer(lv_obj_t* root, UiState& state);
   void renderSettingsView(lv_obj_t* root, UiState& state);
+  void renderPresetNameEditor(lv_obj_t* root, UiState& state);
   void rebuildPresetView(UiState& state);
   void rebuildEditView(UiState& state);
   void rebuildParameterView(UiState& state);
@@ -242,13 +248,17 @@ private:
   lv_obj_t* wifiCountryField_ = nullptr;
   lv_obj_t* wifiKeyboard_ = nullptr;
   lv_obj_t* wifiPasswordToggleLabel_ = nullptr;
+  lv_obj_t* presetNameOverlay_ = nullptr;
+  lv_obj_t* presetNameField_ = nullptr;
+  lv_obj_t* presetNameKeyboard_ = nullptr;
+  lv_obj_t* presetNameMessageLabel_ = nullptr;
   bool settingsOpen_ = false;
+  bool presetNameEditorOpen_ = false;
   std::size_t settingsSection_ = 0;
   std::uint32_t audioBlockSizeDraft_ = 64;
   bool wifiPasswordVisible_ = false;
   std::string settingsMessage_;
   bool settingsMessageIsError_ = false;
-  lv_obj_t* presetBankLabel_ = nullptr;
   lv_obj_t* masterVolumeLabel_ = nullptr;
   lv_obj_t* masterVolumeScaleFill_ = nullptr;
   lv_obj_t* bankDownButton_ = nullptr;
@@ -256,8 +266,7 @@ private:
   // Preset screen's own top legend rail + bottom control rail (per
   // docs/lvgl-ui-redesign-spec.md §4f). Distinct from the shared status-bar
   // members above, which remain in use by the screens not yet migrated.
-  lv_obj_t* presetMidiLamp_ = nullptr;
-  lv_obj_t* presetMidiLabel_ = nullptr;
+  lv_obj_t* presetTelemetryLabel_ = nullptr;
   lv_obj_t* presetMasterValueLabel_ = nullptr;
   lv_obj_t* presetMasterScaleFill_ = nullptr;
   lv_obj_t* presetMasterPointer_ = nullptr;

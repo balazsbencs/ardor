@@ -268,6 +268,9 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   contextRegion_ = UiContextRegion::Settings;
   renderSettingsView(settingsLayer_, state);
   contextRegion_ = UiContextRegion::None;
+  contextRegion_ = UiContextRegion::PresetName;
+  renderPresetNameEditor(canvas, state);
+  contextRegion_ = UiContextRegion::None;
 
   renderedRevisions_ = state.revisions;
   renderedBank_ = state.activeBank;
