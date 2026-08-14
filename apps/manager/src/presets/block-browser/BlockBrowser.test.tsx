@@ -2,6 +2,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { allEffectDefinitions } from "../../effects/catalog";
 import { renderWithProviders } from "../../test/render";
 import { BlockBrowser } from "./BlockBrowser";
 
@@ -11,7 +12,7 @@ describe("BlockBrowser", () => {
     const onChoose = vi.fn();
     renderWithProviders(<BlockBrowser open onOpenChange={() => undefined} onChoose={onChoose} />);
 
-    expect(screen.getAllByRole("button", { name: "Add" })).toHaveLength(43);
+    expect(screen.getAllByRole("button", { name: "Add" })).toHaveLength(allEffectDefinitions().length);
 
     await user.type(screen.getByPlaceholderText("Search effects"), "bucket");
     expect(screen.getByText("Bucket Brigade Delay")).toBeInTheDocument();

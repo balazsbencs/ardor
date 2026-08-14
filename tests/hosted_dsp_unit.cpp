@@ -9,8 +9,10 @@
 #include "daisyfx/hosted/dsp/tone_filter.h"
 #include "daisyfx/hosted/modes/poly_octave_mode.h"
 #include "daisyfx/hosted/modes/rotary_mode.h"
+#include "daisyfx/hosted/modes/whammy_mode.h"
 #include "daisyfx/hosted/params/reverb_param_map.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
@@ -534,6 +536,35 @@ void verifyPitchShifterTuning()
   }
 }
 
+// The Whammy preset selector must be discrete, and every step must name a
+// different preset. A count that drifts out of step with the interval table in
+// whammy_mode.cpp would silently mislabel presets rather than fail to build.
+void verifyWhammyPresetSelector()
+{
+  const auto* descriptor = ardor::findDaisyFxDescriptor("mod", "whammy");
+  require(descriptor != nullptr, "whammy descriptor exists");
+
+  for (const auto& parameter : descriptor->params) {
+    if (parameter.key != "p2") continue;
+    const auto spec = ardor::daisyFxParamControlSpec(*descriptor, parameter);
+    require(spec.choiceValues.size() == static_cast<std::size_t>(pedal::WhammyMode::PRESET_COUNT),
+            "whammy preset selector must offer one step per preset");
+
+    std::vector<std::string> labels;
+    for (const float value : spec.choiceValues) {
+      auto label = ardor::formatDaisyFxParamValue(*descriptor, parameter, value);
+      require(label.find('%') == std::string::npos,
+              "whammy preset must render as a name, not a percentage");
+      labels.push_back(std::move(label));
+    }
+    std::sort(labels.begin(), labels.end());
+    require(std::adjacent_find(labels.begin(), labels.end()) == labels.end(),
+            "every whammy preset step must name a distinct preset");
+    return;
+  }
+  require(false, "whammy exposes a p2 preset parameter");
+}
+
 void verifyQueuedDelayTransition()
 {
   pedal::DelayTapTransition transition;
@@ -799,6 +830,7 @@ int main()
   verifyPolyOctaveStartsClean();
   verifyPolyOctaveToneHasNoCliff();
   verifyPitchShifterTuning();
+  verifyWhammyPresetSelector();
   verifyQueuedDelayTransition();
   verifyDelayCorrections();
   verifyDelayStartup();

@@ -10,37 +10,40 @@ namespace pedal {
 
 namespace {
 
-struct IntervalPair {
-    float heel;   // pedal at 0
-    float toe;    // pedal at 1
+struct Preset {
+    float heel;      // pedal at 0
+    float toe;       // pedal at 1
+    bool  harmony;   // true = keep the dry note under the shifted voice
 };
 
-// Whammy family: heel is always unison, toe is the named interval.
-constexpr IntervalPair kWhammy[WhammyMode::WHAMMY_PRESETS] = {
-    {0.0f,  24.0f},   // 2 OCT UP
-    {0.0f,  12.0f},   // 1 OCT UP
-    {0.0f,   7.0f},   // 5TH UP
-    {0.0f,   5.0f},   // 4TH UP
-    {0.0f,  -2.0f},   // 2ND DN
-    {0.0f,  -5.0f},   // 4TH DN
-    {0.0f,  -7.0f},   // 5TH DN
-    {0.0f, -12.0f},   // 1 OCT DN
-    {0.0f, -24.0f},   // 2 OCT DN
-    {0.0f, -36.0f},   // DIVE BOMB
-};
+// One selector covering both families, as the original unit has. Entries 0-9
+// are the Whammy modes: heel is unison, toe is the named interval, and no dry
+// signal is carried. Entries 10-18 are the Harmony modes: the pedal morphs
+// between two fixed chromatic intervals over the top of the dry note. Heel is
+// the "toe up" reading on the original, toe the "toe down" one.
+//
+// Keep this in step with kPresetNames in DaisyFxCatalog.cpp.
+constexpr Preset kPresets[WhammyMode::PRESET_COUNT] = {
+    {0.0f,  24.0f, false},   // 2 OCT UP
+    {0.0f,  12.0f, false},   // 1 OCT UP
+    {0.0f,   7.0f, false},   // 5TH UP
+    {0.0f,   5.0f, false},   // 4TH UP
+    {0.0f,  -2.0f, false},   // 2ND DN
+    {0.0f,  -5.0f, false},   // 4TH DN
+    {0.0f,  -7.0f, false},   // 5TH DN
+    {0.0f, -12.0f, false},   // 1 OCT DN
+    {0.0f, -24.0f, false},   // 2 OCT DN
+    {0.0f, -36.0f, false},   // DIVE BOMB
 
-// Harmony family: the pedal morphs between two fixed chromatic intervals.
-// Heel is the "toe up" reading on the original unit, toe the "toe down" one.
-constexpr IntervalPair kHarmony[WhammyMode::HARMONY_PRESETS] = {
-    {-12.0f,  12.0f},   // OCT DN / OCT UP
-    { -7.0f,  -5.0f},   // 5TH DN / 4TH DN
-    { -5.0f,  -3.0f},   // 4TH DN / 3RD DN
-    {  7.0f,  10.0f},   // 5TH UP / 7TH UP
-    {  7.0f,   9.0f},   // 5TH UP / 6TH UP
-    {  5.0f,   7.0f},   // 4TH UP / 5TH UP
-    {  4.0f,   5.0f},   // 3RD UP / 4TH UP
-    {  3.0f,   4.0f},   // MIN 3RD UP / 3RD UP
-    {  2.0f,   4.0f},   // 2ND UP / 3RD UP
+    {-12.0f,  12.0f, true},  // OCT DN / OCT UP
+    { -7.0f,  -5.0f, true},  // 5TH DN / 4TH DN
+    { -5.0f,  -3.0f, true},  // 4TH DN / 3RD DN
+    {  7.0f,  10.0f, true},  // 5TH UP / 7TH UP
+    {  7.0f,   9.0f, true},  // 5TH UP / 6TH UP
+    {  5.0f,   7.0f, true},  // 4TH UP / 5TH UP
+    {  4.0f,   5.0f, true},  // 3RD UP / 4TH UP
+    {  3.0f,   4.0f, true},  // MIN 3RD UP / 3RD UP
+    {  2.0f,   4.0f, true},  // 2ND UP / 3RD UP
 };
 
 } // namespace
@@ -60,24 +63,25 @@ void WhammyMode::Reset() {
     ratio_           = 1.0f;
     ratio_step_      = 0.0f;
     harmony_         = false;
+    harmony_level_   = 1.0f;
     preset_          = 0;
     seeded_          = false;
 }
 
 void WhammyMode::Prepare(const ParamSet& params) {
-    // Mode knob: upper half is the Whammy family, lower half Harmony. The
-    // shared mod default for depth is 0.70, so an untouched preset lands on
-    // Whammy.
-    harmony_ = params.depth < 0.5f;
+    // One selector across both families; the family follows the chosen preset.
+    preset_ = std::clamp(
+        static_cast<int>(params.p2 * static_cast<float>(PRESET_COUNT)), 0, PRESET_COUNT - 1);
 
-    const int count = harmony_ ? HARMONY_PRESETS : WHAMMY_PRESETS;
-    const int candidate = std::clamp(
-        static_cast<int>(params.p2 * static_cast<float>(count) * 0.999f), 0, count - 1);
-    preset_ = candidate;
+    const Preset preset = kPresets[preset_];
+    harmony_ = preset.harmony;
 
-    const IntervalPair pair = harmony_ ? kHarmony[preset_] : kWhammy[preset_];
     const float pedal = std::clamp(params.p1, 0.0f, 1.0f);
-    semitone_target_ = pair.heel + (pair.toe - pair.heel) * pedal;
+    semitone_target_ = preset.heel + (preset.toe - preset.heel) * pedal;
+
+    // Level of the shifted voice against the dry note. Only the Harmony presets
+    // carry dry, so this does nothing in the Whammy family.
+    harmony_level_ = std::clamp(params.depth, 0.0f, 1.0f);
 
     // Speed is presented as Glide. Fast enough at the top to track a stomp,
     // slow enough at the bottom for a lazy sweep.
@@ -115,7 +119,7 @@ StereoFrame WhammyMode::Process(StereoFrame input, const ParamSet& params) {
 
     // Harmony family sits the shifted voice against the dry note. The engine
     // applies its own dry/wet mix on top; this is the internal balance.
-    const float out = mono + wet;
+    const float out = mono + wet * harmony_level_;
     return {out, out};
 }
 
