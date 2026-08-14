@@ -27,6 +27,8 @@ private:
     ToneFilter       filter_r_;
     DcBlocker        dc_l_;
     DcBlocker        dc_r_;
+    DcBlocker        dc_fb_l_;
+    DcBlocker        dc_fb_r_;
     FeedbackLimiter  fb_lim_l_;
     FeedbackLimiter  fb_lim_r_;
 

@@ -1,5 +1,6 @@
 #include "auto_swell_mode.h"
 #include "../config/constants.h"
+#include "../dsp/fast_math.h"
 #include <cmath>
 
 using namespace pedal::mod_fx;
@@ -63,12 +64,11 @@ StereoFrame AutoSwellMode::Process(StereoFrame input, const ParamSet& params) {
     // S-curve (smoothstep) on swell_gain_ for perceptually correct swell shape.
     const float curved = swell_gain_ * swell_gain_ * (3.0f - 2.0f * swell_gain_);
     const float scale = curved * (1.0f + params.depth);
-    float wet_l = input.left  * scale;
-    float wet_r = input.right * scale;
-    if (wet_l >  1.0f) wet_l =  1.0f;
-    if (wet_l < -1.0f) wet_l = -1.0f;
-    if (wet_r >  1.0f) wet_r =  1.0f;
-    if (wet_r < -1.0f) wet_r = -1.0f;
+    // Smooth limiting, not a hard clip. Depth can push the gain to 2x, so this
+    // engages at ordinary playing levels, and a hard clip there is an
+    // infinite-order nonlinearity that aliases across the whole band.
+    float wet_l = soft_clip_tanh(input.left  * scale);
+    float wet_r = soft_clip_tanh(input.right * scale);
 
     // Shimmer/doubling delay line stays mono (fed from mono mix of swelled signal).
     const float shimmer_in = (wet_l + wet_r) * 0.5f;

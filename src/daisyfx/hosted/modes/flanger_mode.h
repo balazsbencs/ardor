@@ -77,6 +77,12 @@ private:
     float     depth_     = 0.5f;    // cached params.depth
     float     fb_sign_   = 1.0f;    // +1 or -1 from sub-mode
 
+    // Wow and flutter. kDriftCoeff sets the rate (~1.5 Hz at 48 kHz) and
+    // kDriftGain scales the settled deviation to roughly +/-2 samples, which is
+    // audible as tape drift without becoming a chorus.
+    static constexpr float kDriftCoeff = 0.0002f;
+    static constexpr float kDriftGain  = 340.0f;
+
     // Random walk / noise state for wow & flutter drift emulation
     uint32_t  rand_state_ = 12345;
     float     drift_l_    = 0.0f;

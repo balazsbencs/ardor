@@ -80,13 +80,13 @@ add_library(ardor_daisyfx_runtime
   ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/lfo.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/delay_line_sdram.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/tone_filter.cpp
-  ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/diffuser.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/fdn.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/envelope_follower.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/pitch_shifter.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/auto_swell_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/chorus_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/destroyer_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/whammy_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/filter_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/flanger_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/formant_mode.cpp

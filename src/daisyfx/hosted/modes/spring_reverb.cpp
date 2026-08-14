@@ -52,6 +52,7 @@ void SpringReverb::Init() {
     comb_[2].SetDelay(2260);
 
     sat_.Init();
+    for (int sp = 0; sp < 3; ++sp) { sat_up_[sp].Reset(); sat_down_[sp].Reset(); }
     tone_[0].Init(REVERB_SAMPLE_RATE);
     tone_[1].Init(REVERB_SAMPLE_RATE);
     hold_ = false;
@@ -98,6 +99,7 @@ void SpringReverb::Reset() {
     spring_lfo_[0].Reset();
     spring_lfo_[1].Reset();
     spring_lfo_[2].Reset();
+    for (int sp = 0; sp < 3; ++sp) { sat_up_[sp].Reset(); sat_down_[sp].Reset(); }
 }
 
 void SpringReverb::Prepare(const ParamSet& params) {
@@ -189,7 +191,16 @@ StereoFrame SpringReverb::Process(StereoFrame input, const ParamSet& params) {
         const float launch_transient = source - input_previous_[sp];
         input_previous_[sp] = source;
         source += launch_transient * drip_amount_;
-        float s = sat_.Process(source);
+        // 2x oversampled saturation: upsample, shape both half-rate samples,
+        // then decimate. Only the shaped signal round-trips, so the half-band
+        // pair adds no delay to the dry path.
+        float s = source;
+        {
+            const auto up = sat_up_[sp].Process(source);
+            float folded = 0.0f;
+            sat_down_[sp].Push(sat_.Process(up[0]), folded);
+            if (sat_down_[sp].Push(sat_.Process(up[1]), folded)) s = folded;
+        }
         for (int st = 0; st < 5; ++st) {
             s = ap_[sp][st].Process(s, kApG[st]);
         }

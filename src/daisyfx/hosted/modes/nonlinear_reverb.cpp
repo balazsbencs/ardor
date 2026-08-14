@@ -1,13 +1,20 @@
 #include "nonlinear_reverb.h"
 #include "../config/constants.h"
+#include <array>
 #include <cmath>
+#include <cstddef>
 
 using namespace pedal::reverb_fx;
 
 namespace pedal {
 
-// Compute shape gain from shape_phase (0..1) and shape index
-static float shape_gain(float phase, int shape) {
+namespace {
+
+constexpr int kShapeCount = 6;
+constexpr int kShapeTableSize = 257;
+
+// Closed form for each envelope shape. Only used to fill the table.
+float shape_gain_exact(float phase, int shape) {
     switch (shape) {
     case 0: // Swoosh: fast attack, slow decay
         return phase < 0.1f ? (phase * 10.0f)
@@ -31,6 +38,41 @@ static float shape_gain(float phase, int shape) {
     }
 }
 
+// The shapes are one-dimensional functions of a bounded phase, so evaluate them
+// once into a table rather than calling exp() and cos() on every tank sample.
+using ShapeTable = std::array<std::array<float, kShapeTableSize>, kShapeCount>;
+
+const ShapeTable& shapeTable() {
+    static const ShapeTable table = [] {
+        ShapeTable built{};
+        for (int shape = 0; shape < kShapeCount; ++shape) {
+            for (int i = 0; i < kShapeTableSize; ++i) {
+                const float phase = static_cast<float>(i) /
+                                    static_cast<float>(kShapeTableSize - 1);
+                built[static_cast<std::size_t>(shape)][static_cast<std::size_t>(i)] =
+                    shape_gain_exact(phase, shape);
+            }
+        }
+        return built;
+    }();
+    return table;
+}
+
+float shape_gain(float phase, int shape) {
+    if (shape < 0) shape = 0;
+    if (shape >= kShapeCount) shape = kShapeCount - 1;
+    if (!(phase > 0.0f)) phase = 0.0f;
+    if (phase > 1.0f) phase = 1.0f;
+    const float scaled = phase * static_cast<float>(kShapeTableSize - 1);
+    const std::size_t lower = static_cast<std::size_t>(scaled);
+    const auto& row = shapeTable()[static_cast<std::size_t>(shape)];
+    if (lower >= kShapeTableSize - 1) return row[kShapeTableSize - 1];
+    const float fraction = scaled - static_cast<float>(lower);
+    return row[lower] + fraction * (row[lower + 1] - row[lower]);
+}
+
+} // namespace
+
 void NonlinearReverb::Init() {
     pre_delay_l_.Init(buf_pre_delay_l_, 24000);
     pre_delay_r_.Init(buf_pre_delay_r_, 24000);
@@ -43,11 +85,24 @@ void NonlinearReverb::Init() {
     float* diff_bufs_r[Diffuser::STAGES] = {
         buf_diff_r0_, buf_diff_r1_, buf_diff_r2_, buf_diff_r3_
     };
-    const size_t diff_sizes[Diffuser::STAGES] = { Diffuser::kDelays[0] + 1, Diffuser::kDelays[1] + 1, Diffuser::kDelays[2] + 1, Diffuser::kDelays[3] + 1 };
-    diffuser_l_.Init(diff_bufs_l, diff_sizes);
-    diffuser_r_.Init(diff_bufs_r, diff_sizes);
+    const size_t diff_sizes_l[Diffuser::STAGES] = {
+        sizeof(buf_diff_l0_) / sizeof(float), sizeof(buf_diff_l1_) / sizeof(float),
+        sizeof(buf_diff_l2_) / sizeof(float), sizeof(buf_diff_l3_) / sizeof(float) };
+    const size_t diff_sizes_r[Diffuser::STAGES] = {
+        sizeof(buf_diff_r0_) / sizeof(float), sizeof(buf_diff_r1_) / sizeof(float),
+        sizeof(buf_diff_r2_) / sizeof(float), sizeof(buf_diff_r3_) / sizeof(float) };
+    diffuser_l_.Init(diff_bufs_l, diff_sizes_l, diffuser_delays::NONLINEAR_L);
+    diffuser_r_.Init(diff_bufs_r, diff_sizes_r, diffuser_delays::NONLINEAR_R);
     diffuser_l_.SetDiffusion(0.6f);
     diffuser_r_.SetDiffusion(0.6f);
+
+
+    // Slow drift on the long allpass stages breaks up the fixed
+    // ringing a static cascade produces. Well below chorus depth.
+    diffuser_l_.SetModulationRate(0.1700f, REVERB_SAMPLE_RATE);
+    diffuser_l_.SetModulation(2.5f);
+    diffuser_r_.SetModulationRate(0.1989f, REVERB_SAMPLE_RATE);
+    diffuser_r_.SetModulation(2.5f);
 
     Fdn::Config fdn_cfg{};
     fdn_cfg.n_lines     = 4;
@@ -76,6 +131,7 @@ void NonlinearReverb::Init() {
     shape_gain_smooth_ = 0.0f;
     decay_rate_  = 1.0f / REVERB_SAMPLE_RATE;
     shape_ = 3;
+    (void)shapeTable();  // build off the audio thread
 }
 
 void NonlinearReverb::Reset() {

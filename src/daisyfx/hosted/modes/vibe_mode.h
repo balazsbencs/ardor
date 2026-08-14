@@ -27,6 +27,7 @@ private:
     AllpassFilter stages_[kStages];
     DcBlocker     dc_;
     ToneFilter    tone_;
+    float         stage_centre_[kStages]{};
     float         feedback_ = 0.0f;
     float         sweep_shape_ = 0.0f;
 };

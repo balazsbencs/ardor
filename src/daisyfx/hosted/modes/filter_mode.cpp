@@ -1,6 +1,7 @@
 #include "filter_mode.h"
 #include "../config/constants.h"
 #include "../dsp/fast_math.h"
+#include "../dsp/freq_table.h"
 #include <cmath>
 
 using namespace pedal::mod_fx;
@@ -12,20 +13,28 @@ void FilterMode::Init() {
 }
 
 void FilterMode::Reset() {
+    static constexpr float kHalfPi = 1.57079633f;
     lfo_.Init(1.0f, LfoWave::Sine);
+    lfo_r_.Init(1.0f, LfoWave::Sine);
+    lfo_r_.SetPhaseOffset(kHalfPi);
+    lfo_r_.Reset();
     svf_.Reset();
+    svf_r_.Reset();
     env_.Init(5.0f, 80.0f);
     dc_.Init();
-    base_hz_            = 1000.0f;
-    depth_              = 0.5f;
-    envelope_cutoff_hz_ = 1000.0f;
-    use_env_            = false;
-    env_inv_            = false;
+    dc_r_.Init();
+    base_pos_ = freq_table::position_for_hz(1000.0f);
+    depth_    = 0.5f;
+    use_env_  = false;
+    env_inv_  = false;
+    ftype_    = 0;
 }
 
 void FilterMode::Prepare(const ParamSet& params) {
     // Waveshape from P2: 0=Sine, 1=Tri, 2=Sq, 3=RampUp, 4=RampDown, 5=S&H, 6=Env+, 7=Env-
-    const int shape = static_cast<int>(params.p2 * 7.999f);
+    int shape = static_cast<int>(params.p2 * 7.999f);
+    if (shape < 0) shape = 0;
+    if (shape > 7) shape = 7;
 
     use_env_ = (shape >= 6);
     env_inv_ = (shape == 7);
@@ -36,65 +45,81 @@ void FilterMode::Prepare(const ParamSet& params) {
             LfoWave::RampUp, LfoWave::RampDown, LfoWave::SampleAndHold
         };
         lfo_.SetWave(kWaves[shape]);
+        lfo_r_.SetWave(kWaves[shape]);
         lfo_.SetRate(params.speed);
-        // Cutoff computed per-sample in Process() to avoid block-boundary zipper noise.
-        base_hz_ = 80.0f + params.tone * 11920.0f;
-        depth_   = params.depth;
+        lfo_r_.SetRate(params.speed);
     }
-    // Env modes: cutoff computed per-sample in Process()
 
-    // Filter type from tone: <0.4=LP, 0.4-0.6=Wah(BP), >0.6=HP
-    if      (params.tone < 0.4f) ftype_ = 0;
-    else if (params.tone > 0.6f) ftype_ = 2;
-    else                          ftype_ = 1;
+    // Filter type from tone, with dead bands. Crossing a bare threshold swapped
+    // the output tap instantaneously, which clicks; FilterDelay already guards
+    // its equivalent choice this way.
+    switch (ftype_) {
+        case 0:  // LP
+            if (params.tone > 0.43f) ftype_ = 1;
+            break;
+        case 1:  // BP / wah
+            if (params.tone < 0.37f)      ftype_ = 0;
+            else if (params.tone > 0.63f) ftype_ = 2;
+            break;
+        default: // HP
+            if (params.tone < 0.57f) ftype_ = 1;
+            break;
+    }
+
+    // Sweep centre. Env modes sit lower so an auto-wah has room to open.
+    const float centre_hz = use_env_ ? 80.0f + params.tone * 2000.0f
+                                     : 80.0f + params.tone * 11920.0f;
+    base_pos_ = freq_table::position_for_hz(centre_hz);
+    depth_    = params.depth;
 
     // Resonance Q from P1 (0..1 → 0.5..20)
     const float q = 0.5f + params.p1 * 19.5f;
     svf_.SetQ(q);
+    svf_r_.SetQ(q);
+}
 
-    if (use_env_) {
-        // Apply envelope cutoff computed during the previous block's Process() calls.
-        // This moves tanf() out of the per-sample ISR hot path.
-        svf_.SetFreq(envelope_cutoff_hz_);
+float FilterMode::bandOutput(const Svf& svf) const {
+    switch (ftype_) {
+        case 1:  return svf.bp();
+        case 2:  return svf.hp();
+        default: return svf.lp();
     }
-    // LFO modes: svf_.SetFreq() called per-sample in Process()
 }
 
 StereoFrame FilterMode::Process(StereoFrame input, const ParamSet& params) {
+    const float mono = input.mono();
+
+    // Cutoff is set per sample in every mode. The envelope path used to compute
+    // its target here but only apply it once per control block, which stepped a
+    // Q-20 filter every millisecond — zipper noise on the mode most exposed to
+    // it. The shared table makes a per-sample update cheap.
+    float pos_l = base_pos_;
+    float pos_r = base_pos_;
     if (use_env_) {
-        // Envelope follower modulates cutoff.
-        // Store the desired cutoff for Prepare() to apply via SetFreq() next block,
-        // keeping tanf() out of the per-sample ISR hot path.
-        float env_val = env_.Process(input.mono());  // 0..1
+        float env_val = env_.Process(mono);   // 0..1
         if (env_inv_) env_val = 1.0f - env_val;
-        const float base_hz = 80.0f + params.tone * 2000.0f; // lower base for auto-wah
-        const float cutoff  = base_hz + env_val * params.depth * 3000.0f;
-        envelope_cutoff_hz_ = cutoff > 8000.0f ? 8000.0f : cutoff;
+        // Up to ~3.2 octaves of sweep above the centre.
+        const float octaves = env_val * depth_ * 3.2f;
+        pos_l += octaves * (1.0f / freq_table::kOctaves);
+        pos_r = pos_l;   // envelope is a mono control; both channels track it
     } else {
-        // LFO mode: compute cutoff per-sample for smooth filter sweep.
-        const float lfo_val = lfo_.Process(); // -1..+1
-        const float mod_val = 0.5f + 0.5f * lfo_val;  // 0..1
-        const float sweep   = depth_ * 4000.0f * mod_val;  // absolute ±4000 Hz at full depth
-        float cutoff = base_hz_ + sweep;
-        if (cutoff < 80.0f)     cutoff = 80.0f;
-        if (cutoff > 12000.0f)  cutoff = 12000.0f;
-        svf_.SetFreq(cutoff);
+        const float lfo_l = 0.5f + 0.5f * lfo_.Process();
+        const float lfo_r = 0.5f + 0.5f * lfo_r_.Process();
+        const float span  = depth_ * 2.6f * (1.0f / freq_table::kOctaves);
+        pos_l += span * lfo_l;
+        pos_r += span * lfo_r;
     }
 
-    svf_.Process(input.mono());
+    svf_.SetG(freq_table::g_at(pos_l));
+    svf_r_.SetG(freq_table::g_at(pos_r));
 
-    float wet;
-    switch (ftype_) {
-        case 0:  wet = svf_.lp();    break;
-        case 1:  wet = svf_.bp();    break;
-        case 2:  wet = svf_.hp();    break;
-        default: wet = svf_.lp();    break;
-    }
+    svf_.Process(mono);
+    svf_r_.Process(mono);
 
-    wet = soft_clip_tanh(wet);
-
-    wet = dc_.Process(wet);
-    return {wet, wet};
+    // A resonant SVF can exceed unity even with bounded input.
+    const float wet_l = dc_.Process(soft_clip_tanh(bandOutput(svf_)));
+    const float wet_r = dc_r_.Process(soft_clip_tanh(bandOutput(svf_r_)));
+    return {wet_l, wet_r};
 }
 
 } // namespace pedal

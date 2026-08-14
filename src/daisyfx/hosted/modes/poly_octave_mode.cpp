@@ -76,27 +76,47 @@ void PolyOctaveMode::Reset()
 {
     for (auto& s : in_buf_)  s = 0.0f;
     for (auto& s : out_buf_) s = 0.0f;
+    decimator_.Reset();
+    interpolator_.Reset();
     buf_idx_ = 0;
     out_idx_ = 0;
     eq_high_.reset();
     eq_low_.reset();
     tone_.Reset();
-    up1_level_   = 0.0f;
-    down1_level_ = 0.0f;
-    down2_level_ = 0.0f;
-    tracking_ = 0.0f;
+    up1_target_   = 0.0f;
+    down1_target_ = 0.0f;
+    down2_target_ = 0.0f;
+    up1_level_    = 0.0f;
+    down1_level_  = 0.0f;
+    down2_level_  = 0.0f;
     tracking_coefficient_ = 1.0f;
 }
 
 void PolyOctaveMode::Prepare(const ParamSet& params)
 {
     // p1 → octave up 1, p2 → octave down 1, depth → octave down 2.
-    up1_level_   = params.p1;
-    down1_level_ = params.p2;
-    down2_level_ = params.depth;
-    tone_.SetKnob(params.tone);
+    up1_target_   = params.p1;
+    down1_target_ = params.p2;
+    down2_target_ = params.depth;
+
+    // Tone's bright half is a high-pass that reaches 3 kHz at full travel. This
+    // mode generates sub-harmonic content — a 196 Hz note produces 49, 98 and
+    // 392 Hz — so at the top of the knob almost nothing survives. Measured
+    // output against the dry input: +8.1 dB at tone 0.5, -0.2 dB at 0.8,
+    // -6.1 dB at 0.9, then -39.7 dB at 1.0. That last tenth of travel is a
+    // 33 dB cliff and makes the effect sound broken rather than bright.
+    //
+    // Keep the dark half exactly as it was and compress only the bright half,
+    // so the top of the knob thins the voices instead of deleting them.
+    const float tone = params.tone <= 0.5f
+        ? params.tone
+        : 0.5f + (params.tone - 0.5f) * 0.76f;   // 1.0 maps to 0.88
+    tone_.SetKnob(tone);
     // Speed is presented as Tracking: low settings deliberately soften note
-    // attacks, while the existing default stays effectively immediate.
+    // attacks, while the top of the range stays effectively immediate.
+    // This coefficient smooths the VOICE LEVELS, not the audio. Applying it to
+    // the output sample (as this once did) is a one-pole low-pass on the signal
+    // and rolled the mode off from 2.2 kHz even at the fastest setting.
     const float tracking = (params.speed - 0.05f) / 9.95f;
     tracking_coefficient_ = 0.0005f + std::clamp(tracking, 0.0f, 1.0f) * 0.25f;
 }
@@ -104,6 +124,12 @@ void PolyOctaveMode::Prepare(const ParamSet& params)
 StereoFrame PolyOctaveMode::Process(StereoFrame input, const ParamSet& /*params*/)
 {
     in_buf_[buf_idx_++] = input.mono();
+
+    // Slew the voice levels toward their targets. Tracking shapes how quickly a
+    // voice swells in behind a note; it must never touch the audio itself.
+    up1_level_   += tracking_coefficient_ * (up1_target_   - up1_level_);
+    down1_level_ += tracking_coefficient_ * (down1_target_ - down1_level_);
+    down2_level_ += tracking_coefficient_ * (down2_target_ - down2_level_);
 
     if (buf_idx_ == static_cast<int>(resample_factor))
     {
@@ -123,9 +149,7 @@ StereoFrame PolyOctaveMode::Process(StereoFrame input, const ParamSet& /*params*
         out_idx_ = 0;
     }
 
-    const float out = out_buf_[out_idx_++];
-    tracking_ += tracking_coefficient_ * (out - tracking_);
-    const float shaped = tone_.Process(tracking_);
+    const float shaped = tone_.Process(out_buf_[out_idx_++]);
     return {shaped, shaped};
 }
 

@@ -53,6 +53,9 @@ StereoFrame PatternTremMode::Process(StereoFrame input, const ParamSet& params) 
     smoothed_ += coef * (gate_ - smoothed_);
 
     // Apply tremolo: mix between 0 and input based on depth
+    // No make-up gain here. Unlike a continuous tremolo, a gated pattern
+    // already sits at unity while the gate is open, so there is no level drop
+    // to correct and boosting would only flatten the pattern's dynamics.
     const float trem_gain = 1.0f - params.depth * (1.0f - smoothed_);
     return {tone_l_.Process(input.left * trem_gain), tone_r_.Process(input.right * trem_gain)};
 }

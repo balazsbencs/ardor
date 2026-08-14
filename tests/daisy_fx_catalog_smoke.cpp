@@ -26,7 +26,7 @@ const ardor::DaisyFxParamDescriptor& param(const ardor::DaisyFxDescriptor& effec
 
 int main()
 {
-  require(ardor::daisyFxCatalog().size() == 35, "all Daisy modes are cataloged");
+  require(ardor::daisyFxCatalog().size() == 36, "all Daisy modes are cataloged");
   for (const auto& effect : ardor::daisyFxCatalog()) {
     require(!effect.blockType.empty() && !effect.mode.empty(), "effect has identifier");
     require(!effect.name.empty() && !effect.params.empty(), "effect has editable schema");

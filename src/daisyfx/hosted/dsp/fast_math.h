@@ -34,6 +34,14 @@ inline float fast_cos(float x) noexcept {
     return fast_sin(1.57079633f - x);
 }
 
+/// Fast cosine over a full cycle, x ∈ [0, 2π).
+/// cos(x) = sin(x + π/2), wrapped back into fast_sin's valid range.
+inline float fast_cos_full(float x) noexcept {
+    x += 1.57079633f;
+    if (x >= 6.28318531f) x -= 6.28318531f;
+    return fast_sin(x);
+}
+
 /// Numerical Recipes LCG — advances a 32-bit PRNG state in-place.
 inline uint32_t lcg_next(uint32_t state) noexcept {
     return state * 1664525u + 1013904223u;

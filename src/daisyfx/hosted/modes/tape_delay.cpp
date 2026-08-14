@@ -1,6 +1,7 @@
 #include "tape_delay.h"
 #include "../dsp/delay_line_sdram.h"
 #include "../config/constants.h"
+#include "../dsp/fast_math.h"
 
 using namespace pedal::delay_fx;
 
@@ -113,7 +114,11 @@ StereoFrame TapeDelay::Process(StereoFrame input, const ParamSet& params) {
         float lp = 0.45f - 0.35f * envelope * params.grit;
         if (lp < 0.05f) lp = 0.05f;
         tapeLp += lp * (colored - tapeLp);
-        return tapeLp / (1.0f + params.grit * params.grit * 14.0f);
+        // Normalise the saturator for unity gain through the loop instead of
+        // dividing by a constant. Dividing made Grit a repeats-killer: at full
+        // Grit the feedback was scaled by 1/15, so Grit and Repeats fought each
+        // other. BbdEmulator already normalises this way.
+        return tapeLp;
     };
 
     const float feedback_l = dc_fb_l_.Process(fb_lim_l_.Process(
@@ -121,9 +126,9 @@ StereoFrame TapeDelay::Process(StereoFrame input, const ParamSet& params) {
     const float feedback_r = dc_fb_r_.Process(fb_lim_r_.Process(
         colorFeedback(wet_r, filter_r_, pre_shelf_state_r_, post_shelf_state_r_, env_state_r_, tape_lp_r_) * params.repeats));
     auto write = [&](float dry, float feedback, float& state, DelayLineSdram& line) {
-        float value = dry + feedback;
-        if (value > 2.0f) value = 2.0f;
-        if (value < -2.0f) value = -2.0f;
+        // Smooth limit rather than a hard clamp: this sits on the write into
+        // the loop, so a hard corner here aliases into every later repeat.
+        float value = 2.0f * soft_clip_tanh(0.5f * (dry + feedback));
         state += aa_coef_ * (value - state);
         line.Write(state);
     };

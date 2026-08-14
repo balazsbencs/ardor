@@ -17,9 +17,11 @@ public:
         return out;
     }
 
-    // Modulated allpass: delay length varies per call (linear interp)
+    // Modulated allpass: delay length varies per call. Band-limited read —
+    // Plate's tank allpasses use this inside the feedback loop, where cubic
+    // interpolation droop (-2.5 dB at 15 kHz) compounds on every circulation.
     float ProcessMod(float input, float g, float delay_samples) {
-        const float v   = line_.ReadAt(delay_samples);
+        const float v   = line_.ReadAtHighQuality(delay_samples);
         const float out = -g * input + v;
         line_.Write(input + g * out);
         return out;

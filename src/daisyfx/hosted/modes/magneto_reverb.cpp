@@ -20,15 +20,29 @@ void MagnetoReverb::Init() {
     float* diff_bufs_r[Diffuser::STAGES] = {
         buf_diff_r0_, buf_diff_r1_, buf_diff_r2_, buf_diff_r3_
     };
-    const size_t diff_sizes[Diffuser::STAGES] = { Diffuser::kDelays[0] + 1, Diffuser::kDelays[1] + 1, Diffuser::kDelays[2] + 1, Diffuser::kDelays[3] + 1 };
-    diffuser_l_.Init(diff_bufs_l, diff_sizes);
-    diffuser_r_.Init(diff_bufs_r, diff_sizes);
+    const size_t diff_sizes_l[Diffuser::STAGES] = {
+        sizeof(buf_diff_l0_) / sizeof(float), sizeof(buf_diff_l1_) / sizeof(float),
+        sizeof(buf_diff_l2_) / sizeof(float), sizeof(buf_diff_l3_) / sizeof(float) };
+    const size_t diff_sizes_r[Diffuser::STAGES] = {
+        sizeof(buf_diff_r0_) / sizeof(float), sizeof(buf_diff_r1_) / sizeof(float),
+        sizeof(buf_diff_r2_) / sizeof(float), sizeof(buf_diff_r3_) / sizeof(float) };
+    diffuser_l_.Init(diff_bufs_l, diff_sizes_l, diffuser_delays::MAGNETO_L);
+    diffuser_r_.Init(diff_bufs_r, diff_sizes_r, diffuser_delays::MAGNETO_R);
     diffuser_l_.SetDiffusion(0.6f);
     diffuser_r_.SetDiffusion(0.6f);
+
+    // Slow drift on the long allpass stages breaks up the fixed
+    // ringing a static cascade produces. Well below chorus depth.
+    diffuser_l_.SetModulationRate(0.1900f, REVERB_SAMPLE_RATE);
+    diffuser_l_.SetModulation(2.5f);
+    diffuser_r_.SetModulationRate(0.2223f, REVERB_SAMPLE_RATE);
+    diffuser_r_.SetModulation(2.5f);
+
     tone_[0].Init(REVERB_SAMPLE_RATE);
     tone_[1].Init(REVERB_SAMPLE_RATE);
 
     n_heads_ = 4;
+    heads_seeded_ = false;
     golden_spacing_ = false;
     for (auto& h : head_delays_l_) h = 0.0f;
     for (auto& h : head_delays_r_) h = 0.0f;
@@ -46,6 +60,9 @@ void MagnetoReverb::Reset() {
     tone_[1].Reset();
     fb_lp_l_ = 0.0f;
     fb_lp_r_ = 0.0f;
+    // The line is empty again, so land on the targets rather than gliding
+    // heads across a cleared buffer.
+    heads_seeded_ = false;
 }
 
 void MagnetoReverb::Prepare(const ParamSet& params) {
@@ -75,22 +92,34 @@ void MagnetoReverb::Prepare(const ParamSet& params) {
     if (!golden_spacing_) {
         // Even spacing
         for (int i = 0; i < n_heads_; ++i) {
-            head_delays_l_[i] = period * (float)(i + 1) / (float)n_heads_;
+            head_target_l_[i] = period * (float)(i + 1) / (float)n_heads_;
         }
     } else {
         // Golden-ratio uneven spacing
         static constexpr float kPhi = 0.618033988f;
         float d = period * kPhi;
         for (int i = 0; i < n_heads_; ++i) {
-            head_delays_l_[i] = d < 1.0f ? 1.0f : d;
+            head_target_l_[i] = d < 1.0f ? 1.0f : d;
             d *= kPhi;
         }
     }
 
     static constexpr float kRightRatios[6] = {1.017f, 0.983f, 1.029f, 0.971f, 1.041f, 0.959f};
     for (int i = 0; i < n_heads_; ++i) {
-        head_delays_r_[i] = std::clamp(head_delays_l_[i] * kRightRatios[i], 2.0f,
-                                      static_cast<float>(kMainDelaySize - 3));
+        head_target_l_[i] = std::clamp(head_target_l_[i], 2.0f,
+                                       static_cast<float>(kMainDelaySize - 3));
+        head_target_r_[i] = std::clamp(head_target_l_[i] * kRightRatios[i], 2.0f,
+                                       static_cast<float>(kMainDelaySize - 3));
+    }
+
+    // First control block lands on the targets directly; there is no previous
+    // position to glide from and no audio in the line yet.
+    if (!heads_seeded_) {
+        heads_seeded_ = true;
+        for (int i = 0; i < 6; ++i) {
+            head_delays_l_[i] = head_target_l_[i];
+            head_delays_r_[i] = head_target_r_[i];
+        }
     }
 
     diffuser_l_.SetDiffusion(0.4f + params.mod * 0.4f);
@@ -109,9 +138,21 @@ StereoFrame MagnetoReverb::Process(StereoFrame input, const ParamSet& params) {
     float r_even = 0.0f, r_odd = 0.0f;
     float fb_sum_l = 0.0f, fb_sum_r = 0.0f;
 
+    // Glide each head toward its target instead of stepping to it per control
+    // block, then read band-limited. These taps feed the recirculation path, so
+    // linear interpolation compounded its passband droop on every repeat.
+    const auto glide = [](float& position, float target) {
+        float step = kHeadSlew * (target - position);
+        if (step >  kHeadSlewMaxStep) step =  kHeadSlewMaxStep;
+        if (step < -kHeadSlewMaxStep) step = -kHeadSlewMaxStep;
+        position += step;
+    };
+
     for (int i = 0; i < n_heads_; ++i) {
-        const float tap_l = delay_l_.ReadLinear(head_delays_l_[i]);
-        const float tap_r = delay_r_.ReadLinear(head_delays_r_[i]);
+        glide(head_delays_l_[i], head_target_l_[i]);
+        glide(head_delays_r_[i], head_target_r_[i]);
+        const float tap_l = delay_l_.ReadAtHighQuality(head_delays_l_[i]);
+        const float tap_r = delay_r_.ReadAtHighQuality(head_delays_r_[i]);
         fb_sum_l += tap_l;
         fb_sum_r += tap_r;
         if ((i & 1) == 0) { l_even += tap_l; r_even += tap_r; }

@@ -19,11 +19,24 @@ void BloomReverb::Init() {
     float* diff_bufs_r[Diffuser::STAGES] = {
         buf_diff_r0_, buf_diff_r1_, buf_diff_r2_, buf_diff_r3_
     };
-    const size_t diff_sizes[Diffuser::STAGES] = { Diffuser::kDelays[0] + 1, Diffuser::kDelays[1] + 1, Diffuser::kDelays[2] + 1, Diffuser::kDelays[3] + 1 };
-    diffuser_l_.Init(diff_bufs_l, diff_sizes);
-    diffuser_r_.Init(diff_bufs_r, diff_sizes);
+    const size_t diff_sizes_l[Diffuser::STAGES] = {
+        sizeof(buf_diff_l0_) / sizeof(float), sizeof(buf_diff_l1_) / sizeof(float),
+        sizeof(buf_diff_l2_) / sizeof(float), sizeof(buf_diff_l3_) / sizeof(float) };
+    const size_t diff_sizes_r[Diffuser::STAGES] = {
+        sizeof(buf_diff_r0_) / sizeof(float), sizeof(buf_diff_r1_) / sizeof(float),
+        sizeof(buf_diff_r2_) / sizeof(float), sizeof(buf_diff_r3_) / sizeof(float) };
+    diffuser_l_.Init(diff_bufs_l, diff_sizes_l, diffuser_delays::BLOOM_L);
+    diffuser_r_.Init(diff_bufs_r, diff_sizes_r, diffuser_delays::BLOOM_R);
     diffuser_l_.SetDiffusion(0.65f);
     diffuser_r_.SetDiffusion(0.65f);
+
+
+    // Slow drift on the long allpass stages breaks up the fixed
+    // ringing a static cascade produces. Well below chorus depth.
+    diffuser_l_.SetModulationRate(0.0700f, REVERB_SAMPLE_RATE);
+    diffuser_l_.SetModulation(2.5f);
+    diffuser_r_.SetModulationRate(0.0819f, REVERB_SAMPLE_RATE);
+    diffuser_r_.SetModulation(2.5f);
 
     Fdn::Config fdn_cfg{};
     fdn_cfg.n_lines     = 4;

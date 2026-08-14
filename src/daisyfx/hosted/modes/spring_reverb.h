@@ -5,6 +5,7 @@
 #include "../dsp/delay_line_sdram.h"
 #include "../dsp/lfo.h"
 #include "../dsp/saturation.h"
+#include "../dsp/halfband_resampler.h"
 #include "../dsp/tone_filter.h"
 
 namespace pedal {
@@ -51,6 +52,11 @@ private:
     CombFilter         comb_[3];
     DelayLineSdram     pre_delay_[2];
     Saturation         sat_;
+    // The saturator runs in the 24 kHz reverb stage, so without oversampling
+    // its harmonics fold from 12 kHz — the worst case of any drive stage in the
+    // project. One 2x half-band pair per spring keeps that above Nyquist.
+    HalfbandInterpolator2x sat_up_[3];
+    HalfbandDecimator2x    sat_down_[3];
     ToneFilter         tone_[2];
     Lfo                spring_lfo_[3];
     float              mod_depth_ = 0.0f;

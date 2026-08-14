@@ -1,5 +1,6 @@
 #include "vibe_mode.h"
 #include "../dsp/fast_math.h"
+#include "../dsp/freq_table.h"
 
 using namespace pedal::mod_fx;
 
@@ -12,13 +13,16 @@ static constexpr float TWO_PI = 6.28318530717958647692f;
 // rolling cascade — notches chase each other through the spectrum.
 static constexpr float kStagePhase[4]  = {0.0f, 0.5236f, 1.2217f, 1.9199f}; // 0°, 30°, 70°, 110°
 
-// Allpass coefficient at the dark-lamp extreme (high LDR resistance = low notch).
-// Staggered to produce four distinct notch regions across the audio band.
-static constexpr float kStageCenter[4] = {-0.88f, -0.72f, -0.55f, -0.35f};
+// Per-stage sweep, expressed in log frequency rather than in allpass
+// coefficient. The original coefficient-domain constants gave a badly uneven
+// sweep, because coefficient is a compressed function of frequency: the notch
+// raced through the top of its range and crawled through the bottom.
+// Centre frequency of each LDR stage at mid lamp brightness (Hz).
+static constexpr float kStageCentreHz[4] = {260.0f, 620.0f, 1500.0f, 3600.0f};
 
-// Maximum coefficient swing from center at full depth (bright lamp = high freq).
-// Higher stages sweep a wider range, matching the original's non-uniform LDR spacing.
-static constexpr float kStageSweep[4]  = {0.10f, 0.20f, 0.30f, 0.42f};
+// Sweep width per stage in octaves at full depth. Higher stages sweep wider,
+// matching the original's non-uniform LDR spacing.
+static constexpr float kStageOctaves[4] = {1.2f, 1.6f, 2.0f, 2.6f};
 
 // AM optical coupler sits ~90° ahead of stage 0 in the original circuit.
 static constexpr float kAmPhaseOffset = 1.5707963f; // π/2
@@ -28,6 +32,10 @@ void VibeMode::Init() {
 }
 
 void VibeMode::Reset() {
+    // Cache the normalised log-frequency position of each stage centre once.
+    for (int i = 0; i < kStages; ++i) {
+        stage_centre_[i] = freq_table::position_for_hz(kStageCentreHz[i]);
+    }
     lfo_.Init(1.0f, LfoWave::Sine);
     lfo_.SetJitter(0.15f);
     for (auto& s : stages_) s.Reset();
@@ -76,11 +84,11 @@ StereoFrame VibeMode::Process(StereoFrame input, const ParamSet& params) {
         const float shaped_ldr = lamp * lamp;
         const float ldr = smooth_ldr + sweep_shape_ * (shaped_ldr - smooth_ldr);
 
-        // Map ldr [0..1] → coefficient [center - sweep, center + sweep].
-        float c = kStageCenter[i] + params.depth * kStageSweep[i] * (ldr * 2.0f - 1.0f);
-        if (c > -0.01f) c = -0.01f;
-        if (c < -0.99f) c = -0.99f;
-        stages_[i].SetCoeff(c);
+        // Map ldr [0..1] → a symmetric swing in octaves around the stage centre,
+        // then convert to a coefficient through the shared log-frequency table.
+        const float octaves = params.depth * kStageOctaves[i] * (ldr - 0.5f);
+        const float position = stage_centre_[i] + octaves * (1.0f / freq_table::kOctaves);
+        stages_[i].SetCoeff(freq_table::allpass_coeff_at(position));
         x = stages_[i].Process(x);
     }
 

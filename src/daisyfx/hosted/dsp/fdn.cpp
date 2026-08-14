@@ -1,6 +1,7 @@
 #include "fdn.h"
 #include "fast_math.h"
 #include "../config/constants.h"
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 
@@ -43,7 +44,7 @@ void Fdn::Init(const Config& cfg) {
         lp_state_[i]  = 0.0f;
         lfo_phase_[i] = static_cast<float>(i) / static_cast<float>(n_lines_);
         feedback_[i]  = 0.7f;  // reasonable default
-        dc_[i].Init(sample_rate_);
+        dc_[i].Init(sample_rate_, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
     }
 }
 
@@ -69,7 +70,7 @@ void Fdn::Reset() {
         lfo_phase_[i] = static_cast<float>(i) / static_cast<float>(n_lines_);
         modulated_delay_[i] = delay_samples_[i];
         modulated_delay_step_[i] = 0.0f;
-        dc_[i].Init(sample_rate_);
+        dc_[i].Init(sample_rate_, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
     }
 }
 
@@ -147,7 +148,7 @@ void Fdn::PrepareBlock() {
 
 void Fdn::readModulatedDelays(float v[MAX_LINES]) {
     for (int i = 0; i < n_lines_; ++i) {
-        // FDN base lengths are integral. Avoid the two-read fractional path
+        // FDN base lengths are integral. Avoid the fractional path entirely
         // whenever modulation is fully settled at that base tap; retain it
         // for active modulation and the one-block transition back to zero.
         const float delta = modulated_delay_[i] - delay_samples_[i];
@@ -156,7 +157,12 @@ void Fdn::readModulatedDelays(float v[MAX_LINES]) {
             && configured_delta > -0.001f && configured_delta < 0.001f) {
             v[i] = lines_[i].Read();
         } else {
-            v[i] = lines_[i].ReadLinear(modulated_delay_[i]);
+            // Band-limited read, not linear. This tap is inside the feedback
+            // loop, so any passband droop compounds on every circulation. At
+            // the 24 kHz tank rate linear interpolation loses about 2 dB at
+            // 5 kHz per pass, which is 60 dB across a 2 s tail; the 16-tap
+            // band-limited reader is flat to within 0.01 dB over the same span.
+            v[i] = lines_[i].ReadAtHighQuality(modulated_delay_[i]);
         }
         modulated_delay_[i] += modulated_delay_step_[i];
     }
@@ -182,65 +188,11 @@ void Fdn::hadamard8(float v[8]) const {
     }
 }
 
+// A mono source is exactly the stereo path with zero side energy: the 8-line
+// injection reduces to mid * kMidInputSigns[i], and the 4-line injection sends
+// the same value to every line. Forwarding keeps one body to maintain.
 StereoFrame Fdn::Process(float input) {
-    float v[MAX_LINES]{};
-
-    readModulatedDelays(v);
-
-    // One-pole LP damping & DC blocking in feedback path.
-    for (int i = 0; i < n_lines_; ++i) {
-        float raw_blocked = dc_[i].Process(v[i]);
-        if (hold_) {
-            lp_state_[i] = raw_blocked;  // bypass LP during hold; frozen pad stays bright
-        } else {
-            lp_state_[i] += damp_ * (raw_blocked - lp_state_[i]);
-        }
-        if (!std::isfinite(lp_state_[i])) {
-            lp_state_[i] = 0.0f;
-            dc_[i].Init(sample_rate_);
-        }
-    }
-
-    // Hadamard mixing.
-    float mixed[MAX_LINES]{};
-    std::memcpy(mixed, lp_state_, n_lines_ * sizeof(float));
-    if (n_lines_ != 4 && n_lines_ != 8) {
-        return StereoFrame{ mixed[0], mixed[0] };
-    }
-    if (n_lines_ == 8) {
-        hadamard8(mixed);
-    } else {
-        hadamard4(mixed);
-    }
-
-    // Distribute input and write back with feedback.
-    // Preserve the four-line network's aggregate injection/output level as
-    // the network grows. A plain 1/N injection makes an 8-line tank 3 dB
-    // quieter after the stereo output averaging.
-    const float input_gain = 0.5f / std::sqrt(static_cast<float>(n_lines_));
-    const float in_scaled = hold_ ? 0.0f : input * input_gain;  // mute input during hold
-    for (int i = 0; i < n_lines_; ++i) {
-        const float fb = hold_ ? 1.0f : feedback_[i];
-        const float injection = n_lines_ == 8 ? in_scaled * kMidInputSigns[i] : in_scaled;
-        lines_[i].Write(injection + fb * mixed[i]);
-    }
-
-    if (n_lines_ == 8) {
-        float left = 0.0f, right = 0.0f;
-        for (int i = 0; i < 8; ++i) {
-            left  += v[i] * kLeftOutputSigns[i];
-            right += v[i] * kRightOutputSigns[i];
-        }
-        constexpr float kInvSqrt8 = 0.35355339059f;
-        return StereoFrame{left * kInvSqrt8, right * kInvSqrt8};
-    }
-
-    // Four-line stereo output: even lines → L, odd lines → R.
-    float left = 0.0f, right = 0.0f;
-    const float out_scale = 2.0f / static_cast<float>(n_lines_);
-    for (int i = 0; i < n_lines_; i += 2) left  += v[i];
-    for (int i = 1; i < n_lines_; i += 2) right += v[i];
-    return StereoFrame{ left * out_scale, right * out_scale };
+    return Process(StereoFrame{input, input});
 }
 
 StereoFrame Fdn::Process(StereoFrame input) {
@@ -258,7 +210,7 @@ StereoFrame Fdn::Process(StereoFrame input) {
         }
         if (!std::isfinite(lp_state_[i])) {
             lp_state_[i] = 0.0f;
-            dc_[i].Init(sample_rate_);
+            dc_[i].Init(sample_rate_, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
         }
     }
 

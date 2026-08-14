@@ -17,9 +17,14 @@ void CloudReverb::Init() {
     float* d0_bufs_r[Diffuser::STAGES] = {
         buf_d0_r0_, buf_d0_r1_, buf_d0_r2_, buf_d0_r3_
     };
-    const size_t d0_sizes[Diffuser::STAGES] = { Diffuser::kDelays[0] + 1, Diffuser::kDelays[1] + 1, Diffuser::kDelays[2] + 1, Diffuser::kDelays[3] + 1 };
-    diffuser0_l_.Init(d0_bufs_l, d0_sizes);
-    diffuser0_r_.Init(d0_bufs_r, d0_sizes);
+    const size_t d0_sizes_l[Diffuser::STAGES] = {
+        sizeof(buf_d0_l0_) / sizeof(float), sizeof(buf_d0_l1_) / sizeof(float),
+        sizeof(buf_d0_l2_) / sizeof(float), sizeof(buf_d0_l3_) / sizeof(float) };
+    const size_t d0_sizes_r[Diffuser::STAGES] = {
+        sizeof(buf_d0_r0_) / sizeof(float), sizeof(buf_d0_r1_) / sizeof(float),
+        sizeof(buf_d0_r2_) / sizeof(float), sizeof(buf_d0_r3_) / sizeof(float) };
+    diffuser0_l_.Init(d0_bufs_l, d0_sizes_l, diffuser_delays::CLOUD_A_L);
+    diffuser0_r_.Init(d0_bufs_r, d0_sizes_r, diffuser_delays::CLOUD_A_R);
     diffuser0_l_.SetDiffusion(0.7f);
     diffuser0_r_.SetDiffusion(0.7f);
 
@@ -29,11 +34,28 @@ void CloudReverb::Init() {
     float* d1_bufs_r[Diffuser::STAGES] = {
         buf_d1_r0_, buf_d1_r1_, buf_d1_r2_, buf_d1_r3_
     };
-    const size_t d1_sizes[Diffuser::STAGES] = { Diffuser::kDelays[0] + 1, Diffuser::kDelays[1] + 1, Diffuser::kDelays[2] + 1, Diffuser::kDelays[3] + 1 };
-    diffuser1_l_.Init(d1_bufs_l, d1_sizes);
-    diffuser1_r_.Init(d1_bufs_r, d1_sizes);
+    const size_t d1_sizes_l[Diffuser::STAGES] = {
+        sizeof(buf_d1_l0_) / sizeof(float), sizeof(buf_d1_l1_) / sizeof(float),
+        sizeof(buf_d1_l2_) / sizeof(float), sizeof(buf_d1_l3_) / sizeof(float) };
+    const size_t d1_sizes_r[Diffuser::STAGES] = {
+        sizeof(buf_d1_r0_) / sizeof(float), sizeof(buf_d1_r1_) / sizeof(float),
+        sizeof(buf_d1_r2_) / sizeof(float), sizeof(buf_d1_r3_) / sizeof(float) };
+    diffuser1_l_.Init(d1_bufs_l, d1_sizes_l, diffuser_delays::CLOUD_B_L);
+    diffuser1_r_.Init(d1_bufs_r, d1_sizes_r, diffuser_delays::CLOUD_B_R);
     diffuser1_l_.SetDiffusion(0.7f);
     diffuser1_r_.SetDiffusion(0.7f);
+
+
+    // Slow drift on the long allpass stages breaks up the fixed
+    // ringing a static cascade produces. Well below chorus depth.
+    diffuser0_l_.SetModulationRate(0.0500f, REVERB_SAMPLE_RATE);
+    diffuser0_l_.SetModulation(2.5f);
+    diffuser0_r_.SetModulationRate(0.0585f, REVERB_SAMPLE_RATE);
+    diffuser0_r_.SetModulation(2.5f);
+    diffuser1_l_.SetModulationRate(0.0670f, REVERB_SAMPLE_RATE);
+    diffuser1_l_.SetModulation(2.5f);
+    diffuser1_r_.SetModulationRate(0.0755f, REVERB_SAMPLE_RATE);
+    diffuser1_r_.SetModulation(2.5f);
 
     Fdn::Config fdn_cfg{};
     fdn_cfg.n_lines     = 4;

@@ -52,10 +52,15 @@ private:
     float out_buf_[resample_factor] = {};
     int   out_idx_                  = 0;
 
+    // Target voice levels set by Prepare(), and the smoothed values actually
+    // used per sample. Smoothing the levels softens note attacks; smoothing the
+    // audio (which this used to do) just low-passes the whole mode.
+    float up1_target_   = 0.0f;
+    float down1_target_ = 0.0f;
+    float down2_target_ = 0.0f;
     float up1_level_   = 0.0f;
     float down1_level_ = 0.0f;
     float down2_level_ = 0.0f;
-    float tracking_ = 0.0f;
     float tracking_coefficient_ = 1.0f;
 };
 

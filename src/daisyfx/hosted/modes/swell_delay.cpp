@@ -39,6 +39,8 @@ void SwellDelay::Reset() {
     prev_above_threshold_ = false;
     fb_lim_l_.Reset();
     fb_lim_r_.Reset();
+    dc_fb_l_.Init();
+    dc_fb_r_.Init();
 }
 
 void SwellDelay::Prepare(const ParamSet& params) {
@@ -119,8 +121,11 @@ StereoFrame SwellDelay::Process(StereoFrame input, const ParamSet& params) {
     wet_l = filter_l_.Process(wet_l) * env_gain_;
     wet_r = filter_r_.Process(wet_r) * env_gain_;
 
-    const float feedback_l = fb_lim_l_.Process(wet_l * params.repeats);
-    const float feedback_r = fb_lim_r_.Process(wet_r * params.repeats);
+    // DC blocker in the feedback path, matching the other seven delay modes.
+    // The ToneFilter in this loop has non-zero DC gain, so offset otherwise
+    // accumulates across repeats and eats headroom.
+    const float feedback_l = dc_fb_l_.Process(fb_lim_l_.Process(wet_l * params.repeats));
+    const float feedback_r = dc_fb_r_.Process(fb_lim_r_.Process(wet_r * params.repeats));
     swell_line_l_.Write(input.left + feedback_l);
     swell_line_r_.Write(input.right + feedback_r);
 

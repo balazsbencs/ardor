@@ -19,6 +19,7 @@ private:
     ToneFilter tone_l_;
     ToneFilter tone_r_;
     float depth_ = 0.5f;
+    float makeup_ = 1.0f;
     float shape_ = 0.0f;
     float crossover_l_ = 0.0f;
     float crossover_r_ = 0.0f;
