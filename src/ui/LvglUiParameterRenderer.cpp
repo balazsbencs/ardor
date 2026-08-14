@@ -54,19 +54,21 @@ constexpr int kParameterSliderRowGap = 16;
 constexpr int kParameterSliderGridX = 28;
 constexpr int kParameterSliderGridY = 78;
 constexpr int kParameterSliderRadius = 0;
-constexpr int kParameterSliderTextInset = 20;
-// Engraved travel scale: fixed geometry that never moves once built. Only
-// the fill width and handle position change with the value.
-constexpr int kTravelHeight = 34;
-constexpr int kTravelMajorTickHeight = 15;
-constexpr int kTravelMinorTickHeight = 8;
-constexpr int kTravelFillHeight = 3;
-constexpr int kTravelHandleWidth = 4;
-constexpr int kTravelHandleHeight = 22;
+constexpr int kParameterSliderTextInset = 24;
+// Rail + Thumb: a conventional recessed track and a visibly grabbable handle.
+// The 44 px thumb is deliberately wider than the selected mockup's first pass;
+// the retained slider object remains the full 385 x 132 touch target.
+constexpr int kTravelRailHeight = 18;
+constexpr int kTravelFillHeight = kTravelRailHeight - 2;
+constexpr int kTravelHandleWidth = 44;
+constexpr int kTravelHandleHeight = 54;
 constexpr int kTravelWidth = kParameterSliderWidth - 2 * kParameterSliderTextInset;
-constexpr int kTravelTop = kParameterSliderHeight - 8 - kTravelHeight;
-constexpr int kTravelBaselineY = kTravelTop + kTravelHeight;
-constexpr int kDiscreteOptionsHeight = 34;
+constexpr int kTravelTop = 88;
+constexpr int kTravelInteriorX = kParameterSliderTextInset + 1;
+constexpr int kTravelInteriorWidth = kTravelWidth - 2;
+constexpr int kTravelHandleTop = kTravelTop - (kTravelHandleHeight - kTravelRailHeight) / 2;
+constexpr int kDiscreteOptionsHeight = 60;
+constexpr int kDiscreteOptionsTop = kParameterSliderHeight - kDiscreteOptionsHeight - 4;
 constexpr int kParameterPanelHeight = 452;
 constexpr int kMappingToolbarX = kParameterSliderGridX;
 constexpr int kMappingToolbarY = kParameterSliderGridY
@@ -84,9 +86,12 @@ struct ParameterSliderVisual {
   lv_obj_t* keyLabel = nullptr;
   lv_obj_t* valueLabel = nullptr;
   lv_obj_t* unitLabel = nullptr;
-  // Continuous: engraved travel scale.
+  // Continuous: recessed rail and wide thumb.
   lv_obj_t* fill = nullptr;
   lv_obj_t* handle = nullptr;
+  int travelX = kTravelInteriorX;
+  int travelWidth = kTravelInteriorWidth;
+  int handleWidth = kTravelHandleWidth;
   // Discrete: segmented option row.
   std::vector<lv_obj_t*> options;
 };
@@ -246,12 +251,12 @@ void refreshParameterSliderVisual(lv_obj_t* slider, const ParameterControl& cont
     const float ratio = range == 0.0f ? 0.0f
       : std::clamp((control.value - control.minimum) / range, 0.0f, 1.0f);
     lv_obj_set_width(visual->fill,
-                     static_cast<int32_t>(std::lround(ratio * kTravelWidth)));
-    lv_obj_set_x(visual->handle, kParameterSliderTextInset + static_cast<int32_t>(std::lround(
-      ratio * static_cast<float>(kTravelWidth))) - kTravelHandleWidth / 2);
+                     static_cast<int32_t>(std::lround(ratio * visual->travelWidth)));
+    lv_obj_set_x(visual->handle, visual->travelX + static_cast<int32_t>(std::lround(
+      ratio * static_cast<float>(visual->travelWidth))) - visual->handleWidth / 2);
     // Design law 3: the lamp colour is reserved for the running preset and
-    // the selected parameter. An idle travel scale reads in the same ink as
-    // the surrounding nomenclature.
+    // the selected parameter. An idle rail reads in the same ink as the
+    // surrounding nomenclature.
     const int accent = focused ? lamp : text;
     lv_obj_set_style_bg_color(visual->fill, lv_color_hex(accent), 0);
     lv_obj_set_style_bg_color(visual->handle, lv_color_hex(focused ? lamp : text), 0);
@@ -524,20 +529,6 @@ void onBypassMidiLearnClicked(lv_event_t* event)
 }
 
 
-struct TravelTick {
-  int percent;
-  bool major;
-  const char* numeral;
-};
-// A generic 0-10 reference scale, identical for every control regardless of
-// its real unit or range. The live value is already spelled out precisely in
-// the big numeral above; this scale exists to show travel-at-a-glance, the
-// way a synth panel prints marks under a fader independent of what it does.
-constexpr std::array<TravelTick, 6> kTravelTicks = {{
-  {0, true, "0"}, {20, false, ""}, {40, true, "4"},
-  {60, false, ""}, {80, true, "8"}, {100, true, "10"},
-}};
-
 lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& control, int x, int y,
                                 bool focused, UiEventContext* context,
                                 lv_event_cb_t onPressed, lv_event_cb_t onPressing,
@@ -548,8 +539,9 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
   lv_obj_set_pos(slider, x, y);
   lv_obj_remove_flag(slider, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(slider, LV_OBJ_FLAG_GESTURE_BUBBLE);
-  lv_obj_set_style_bg_opa(slider, LV_OPA_TRANSP, 0);
-  lv_obj_set_style_border_width(slider, 0, 0);
+  styleSurface(slider, panel);
+  lv_obj_set_style_border_width(slider, 1, 0);
+  lv_obj_set_style_border_color(slider, lv_color_hex(rule), 0);
   lv_obj_set_style_radius(slider, kParameterSliderRadius, 0);
   lv_obj_set_style_pad_all(slider, 0, 0);
   lv_obj_set_style_shadow_width(slider, 0, 0);
@@ -561,14 +553,14 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
   lv_obj_add_event_cb(slider, freeParameterSliderVisual, LV_EVENT_DELETE, visual);
 
   visual->keyLabel = label(slider, uppercase(control.label), LV_ALIGN_TOP_LEFT,
-                           kParameterSliderTextInset, 10,
+                           kParameterSliderTextInset, 8,
                            &ardor_font_saira_cond_medium_18, muted);
   lv_obj_set_style_text_letter_space(visual->keyLabel, 2, 0);
   lv_obj_set_width(visual->keyLabel, kTravelWidth);
   lv_label_set_long_mode(visual->keyLabel, LV_LABEL_LONG_CLIP);
 
   const bool continuous = control.kind == ParameterControlKind::Continuous;
-  visual->valueLabel = label(slider, "", LV_ALIGN_TOP_LEFT, kParameterSliderTextInset, 30,
+  visual->valueLabel = label(slider, "", LV_ALIGN_TOP_LEFT, kParameterSliderTextInset, 27,
                              continuous ? &ardor_font_saira_light_44
                                         : &ardor_font_saira_cond_semibold_28,
                              text);
@@ -586,42 +578,21 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
     visual->unitLabel = label(slider, "", LV_ALIGN_TOP_LEFT, 0, 0,
                               &ardor_font_saira_cond_medium_18, muted);
 
-    lv_obj_t* baseline = lv_obj_create(slider);
-    lv_obj_remove_style_all(baseline);
-    lv_obj_set_size(baseline, kTravelWidth, 1);
-    lv_obj_set_pos(baseline, kParameterSliderTextInset, kTravelBaselineY);
-    lv_obj_set_style_bg_opa(baseline, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(baseline, lv_color_hex(rule), 0);
-    lv_obj_remove_flag(baseline, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_remove_flag(baseline, LV_OBJ_FLAG_CLICKABLE);
-
-    // A Panel travel scale is fixed geometry: its engraved ticks and numerals
-    // never move once built. Only the retained fill and handle below track
-    // the value, so a live drag never has to redraw the marks.
-    for (const auto& tick : kTravelTicks) {
-      const int tickX = kParameterSliderTextInset + tick.percent * kTravelWidth / 100;
-      const int height = tick.major ? kTravelMajorTickHeight : kTravelMinorTickHeight;
-      lv_obj_t* mark = lv_obj_create(slider);
-      lv_obj_remove_style_all(mark);
-      lv_obj_set_size(mark, 1, height);
-      lv_obj_set_pos(mark, tickX, kTravelBaselineY - height);
-      lv_obj_set_style_bg_opa(mark, LV_OPA_COVER, 0);
-      lv_obj_set_style_bg_color(mark, lv_color_hex(tick.major ? muted : rule), 0);
-      lv_obj_remove_flag(mark, LV_OBJ_FLAG_SCROLLABLE);
-      lv_obj_remove_flag(mark, LV_OBJ_FLAG_CLICKABLE);
-      if (tick.major && tick.numeral[0] != '\0') {
-        lv_obj_t* numeral = label(slider, tick.numeral, LV_ALIGN_TOP_LEFT,
-                                  tickX - 11, kTravelBaselineY - kTravelMajorTickHeight - 18,
-                                  &ardor_font_saira_cond_medium_18, muted);
-        lv_obj_set_width(numeral, 22);
-        lv_obj_set_style_text_align(numeral, LV_TEXT_ALIGN_CENTER, 0);
-      }
-    }
+    lv_obj_t* rail = lv_obj_create(slider);
+    lv_obj_remove_style_all(rail);
+    lv_obj_set_size(rail, kTravelWidth, kTravelRailHeight);
+    lv_obj_set_pos(rail, kParameterSliderTextInset, kTravelTop);
+    lv_obj_set_style_bg_opa(rail, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(rail, lv_color_hex(panelAlt), 0);
+    lv_obj_set_style_border_width(rail, 1, 0);
+    lv_obj_set_style_border_color(rail, lv_color_hex(rule), 0);
+    lv_obj_remove_flag(rail, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(rail, LV_OBJ_FLAG_CLICKABLE);
 
     lv_obj_t* fill = lv_obj_create(slider);
     lv_obj_remove_style_all(fill);
     lv_obj_set_size(fill, 0, kTravelFillHeight);
-    lv_obj_set_pos(fill, kParameterSliderTextInset, kTravelBaselineY - kTravelFillHeight);
+    lv_obj_set_pos(fill, kTravelInteriorX, kTravelTop + 1);
     lv_obj_set_style_bg_opa(fill, LV_OPA_COVER, 0);
     lv_obj_remove_flag(fill, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_remove_flag(fill, LV_OBJ_FLAG_CLICKABLE);
@@ -630,11 +601,33 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
     lv_obj_t* handle = lv_obj_create(slider);
     lv_obj_remove_style_all(handle);
     lv_obj_set_size(handle, kTravelHandleWidth, kTravelHandleHeight);
-    lv_obj_set_pos(handle, kParameterSliderTextInset, kTravelBaselineY - kTravelHandleHeight + 5);
+    lv_obj_set_pos(handle, kTravelInteriorX - kTravelHandleWidth / 2, kTravelHandleTop);
     lv_obj_set_style_bg_opa(handle, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(handle, 4, 0);
+    lv_obj_set_style_border_color(handle, lv_color_hex(panel), 0);
     lv_obj_remove_flag(handle, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_remove_flag(handle, LV_OBJ_FLAG_CLICKABLE);
     visual->handle = handle;
+
+    lv_obj_t* grip = lv_obj_create(handle);
+    lv_obj_remove_style_all(grip);
+    lv_obj_set_size(grip, 2, 26);
+    lv_obj_center(grip);
+    lv_obj_set_style_bg_opa(grip, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(grip, lv_color_hex(panelAlt), 0);
+    lv_obj_remove_flag(grip, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(grip, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_t* minimum = label(slider, "MIN", LV_ALIGN_TOP_LEFT,
+                              kParameterSliderTextInset, kTravelTop + kTravelRailHeight + 2,
+                              &ardor_font_saira_cond_semibold_11, muted);
+    lv_obj_set_width(minimum, 32);
+    lv_obj_t* maximum = label(slider, "MAX", LV_ALIGN_TOP_LEFT,
+                              kParameterSliderWidth - kParameterSliderTextInset - 32,
+                              kTravelTop + kTravelRailHeight + 2,
+                              &ardor_font_saira_cond_semibold_11, muted);
+    lv_obj_set_width(maximum, 32);
+    lv_obj_set_style_text_align(maximum, LV_TEXT_ALIGN_RIGHT, 0);
   } else {
     const auto count = std::max<std::size_t>(1, control.choices.size());
     const int optionWidth = kTravelWidth / static_cast<int>(count);
@@ -642,7 +635,7 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
     lv_obj_remove_flag(optsRow, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_remove_flag(optsRow, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_size(optsRow, kTravelWidth, kDiscreteOptionsHeight);
-    lv_obj_set_pos(optsRow, kParameterSliderTextInset, kTravelTop);
+    lv_obj_set_pos(optsRow, kParameterSliderTextInset, kDiscreteOptionsTop);
     lv_obj_set_style_bg_opa(optsRow, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(optsRow, 1, 0);
     lv_obj_set_style_border_color(optsRow, lv_color_hex(rule), 0);
@@ -652,7 +645,10 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
       lv_obj_t* option = lv_obj_create(optsRow);
       lv_obj_remove_flag(option, LV_OBJ_FLAG_SCROLLABLE);
       lv_obj_add_flag(option, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_set_size(option, optionWidth, kDiscreteOptionsHeight);
+      const int width = i + 1 == count
+        ? kTravelWidth - static_cast<int>(i) * optionWidth
+        : optionWidth;
+      lv_obj_set_size(option, width, kDiscreteOptionsHeight);
       lv_obj_set_pos(option, static_cast<int>(i) * optionWidth, 0);
       lv_obj_set_style_radius(option, 0, 0);
       lv_obj_set_style_pad_all(option, 0, 0);
@@ -660,9 +656,11 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
       lv_obj_t* optionLabel = lv_label_create(option);
       lv_label_set_text(optionLabel,
                         i < control.choices.size() ? control.choices[i].c_str() : "");
-      setText(optionLabel, muted, &ardor_font_saira_cond_medium_18);
+      setText(optionLabel, muted, count > 3
+        ? &ardor_font_saira_cond_semibold_11
+        : &ardor_font_saira_cond_medium_18);
       lv_label_set_long_mode(optionLabel, LV_LABEL_LONG_CLIP);
-      lv_obj_set_width(optionLabel, optionWidth - 6);
+      lv_obj_set_width(optionLabel, width - 10);
       lv_obj_center(optionLabel);
       auto* optionContext = context->ui->remember(*context->state, controlIndex);
       optionContext->parentIndex = i;

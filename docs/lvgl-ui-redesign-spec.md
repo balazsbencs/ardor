@@ -354,10 +354,12 @@ No radius, no glow — a glow is a ramp.
 Uppercase, letter-spaced 0.26 em, `engrave_lo`. LVGL has no letter-spacing property on a
 label style beyond `text_letter_space`; set it explicitly per style.
 
-### 8.3 Engraved travel scale
-A horizontal rule with 9–15 tick rects, numerals at major ticks, a fill bar and a 4 px
-handle. The heaviest repeating component. Build as one reusable widget and cache by control
-signature — `LvglUiParameterRenderer.cpp` already caches parameter views this way.
+### 8.3 Rail + Thumb
+A recessed 18 px horizontal rail with a solid fill and a 44 × 54 px grab handle. `MIN` and
+`MAX` legends anchor the direction without competing with the live value above. The visible
+thumb and full control card both accept the drag, so the affordance is recognizable while
+the touch target stays forgiving. Discrete choices use the same card anatomy with 60 px
+segmented targets. The existing 3 × 2 parameter-page layout remains unchanged.
 
 ### 8.4 Module tile (preset screen)
 Header strip 26 px with legend and lamp; body with numeral, name, and a nomenclature row of
@@ -852,19 +854,18 @@ do not add these to `LvglUiStyle.cpp`.
 lv_obj_t* lamp(lv_obj_t* parent, LampState state);        // Off, Live, Ok, Warn, Fault
 lv_obj_t* legend(lv_obj_t* parent, const std::string& text, LegendWeight weight);
 lv_obj_t* plateButton(lv_obj_t* parent, const std::string& label, ButtonRank rank);
-lv_obj_t* travelScale(lv_obj_t* parent, const TravelScaleSpec& spec);
+lv_obj_t* railControl(lv_obj_t* parent, const RailControlSpec& spec);
 lv_obj_t* blockCard(lv_obj_t* parent, const BlockCardSpec& spec);
 lv_obj_t* patchPoint(lv_obj_t* parent, bool insertion);
 lv_obj_t* annunciator(lv_obj_t* parent, const ToastSpec& spec);
 lv_obj_t* panelDialog(lv_obj_t* parent, const DialogSpec& spec);
 ```
 
-**`travelScale` is the one to get right.** It is 9–15 tick rects plus numerals, fill and
-handle, and it appears six times per parameter page, five times on the EQ, plus the master
-volume. Building it per-frame is the obvious performance mistake.
+**`railControl` is the one to get right.** Its recessed track, fill, and wide thumb appear
+six times per parameter page and three times in the active EQ band editor. Building it
+per-frame is the obvious performance mistake.
 
-- Build the ticks and numerals **once** and never touch them again — they depend only on the
-  range, not the value.
+- Build the rail, handle, grip, and endpoint legends **once** and never touch them again.
 - A value change moves the handle and resizes the fill. Two property writes, no rebuild.
 - Cache by control-layout signature. `LvglUiParameterRenderer.cpp` already caches parameter
   views this way; extend that mechanism rather than inventing a second one.
@@ -919,13 +920,13 @@ reads as a jumper; no left accent bars remain; drag still passes `lvgl_ui_smoke`
 
 ### 13.6 Phase 6 in detail — parameters, EQ, tuner
 
-**6a. Parameters.** `LvglUiParameterRenderer.cpp` sliders (`:188, 415, 541`) become
-`travelScale`. The two-row three-column layout is unchanged; only the control is replaced.
+**6a. Parameters.** `LvglUiParameterRenderer.cpp` sliders use the Rail + Thumb control from
+§ 8.3. The two-row three-column layout is unchanged; only the control is replaced.
 
 **6b. EQ.** `LvglUiEqRenderer.cpp`. Curve stays a stroke — **no filled area beneath it**; a
 soft fill is a ramp and will band. Then § 9.1 in this order:
 
-1. Band editor strip (Freq / Gain / Q as travel scales). Ship this first; it is the path that
+1. Band editor strip (Freq / Gain / Q as rail controls). Ship this first; it is the path that
    must always work.
 2. Shoulder grips at the −3 dB points with the dashed bandwidth span.
 3. Encoder retargeting.
