@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 #include <string>
 
 namespace ardor {
@@ -27,6 +28,29 @@ constexpr int kPresetHeaderHeight = 44;
 constexpr int kPresetNameHeight = 160;
 constexpr int kMinBank = 0;
 constexpr int kMaxBank = 99;
+constexpr std::size_t kPresetNameMaxLength = 32;
+
+std::string presetTelemetryText(const UiState& state)
+{
+  char value[96]{};
+  const double latencyMs = static_cast<double>(state.settings.audioBlockSize) / 48.0;
+  if (state.telemetry.budgetMs <= 0.0) {
+    std::snprintf(value, sizeof(value), "LATENCY %.2f MS  \xC2\xB7  BUFFER --%% USED", latencyMs);
+  } else {
+    const double used = std::clamp(100.0 - state.telemetry.bufferFreePercent, 0.0, 100.0);
+    std::snprintf(value, sizeof(value), "LATENCY %.2f MS  \xC2\xB7  BUFFER %.0f%% USED",
+                  latencyMs, used);
+  }
+  return value;
+}
+
+std::string trimmed(std::string value)
+{
+  const auto first = value.find_first_not_of(" \t\r\n");
+  if (first == std::string::npos) return {};
+  const auto last = value.find_last_not_of(" \t\r\n");
+  return value.substr(first, last - first + 1);
+}
 
 void redraw(UiEventContext* context)
 {
@@ -61,6 +85,18 @@ void onBankUpClicked(lv_event_t* event)
   requestBankChange(static_cast<UiEventContext*>(lv_event_get_user_data(event)), 1);
 }
 
+void onPresetNameSaveClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->savePresetName(*context->state);
+}
+
+void onPresetNameCancelClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->cancelPresetNameEditor();
+}
+
 } // namespace
 
 void LvglUi::selectPreset(UiState& state, std::size_t presetIndex)
@@ -86,11 +122,9 @@ void LvglUi::rebuildPresetView(UiState& state)
   presetHeaderLabels_.fill(nullptr);
   presetNumerals_.fill(nullptr);
   presetWarningLabels_.fill(nullptr);
-  presetBankLabel_ = nullptr;
   bankDownButton_ = nullptr;
   bankUpButton_ = nullptr;
-  presetMidiLamp_ = nullptr;
-  presetMidiLabel_ = nullptr;
+  presetTelemetryLabel_ = nullptr;
   presetMasterValueLabel_ = nullptr;
   presetMasterScaleFill_ = nullptr;
   presetMasterPointer_ = nullptr;
@@ -102,7 +136,6 @@ void LvglUi::rebuildPresetView(UiState& state)
 void LvglUi::syncHeaderView(const UiState& state)
 {
   if (!viewsInitialized_) return;
-  if (presetBankLabel_) lv_label_set_text(presetBankLabel_, state.bank.name.c_str());
   if (masterVolumeLabel_) {
     const auto value = "Master " + std::to_string(state.masterVolume) + "%";
     lv_label_set_text(masterVolumeLabel_, value.c_str());
@@ -110,15 +143,9 @@ void LvglUi::syncHeaderView(const UiState& state)
   if (masterVolumeScaleFill_) {
     lv_obj_set_width(masterVolumeScaleFill_, std::clamp(state.masterVolume, 0, 100) * 120 / 100);
   }
-  if (presetMidiLamp_) {
-    styleSurface(presetMidiLamp_,
-                 state.controlInputs.midiConnected ? palette().family[3] : rule);
-    lv_obj_set_style_border_width(presetMidiLamp_, 0, 0);
-  }
-  if (presetMidiLabel_) {
-    lv_label_set_text(presetMidiLabel_, state.controlInputs.midiConnected ? "MIDI ON" : "MIDI");
-    lv_obj_set_style_text_color(presetMidiLabel_,
-      lv_color_hex(state.controlInputs.midiConnected ? palette().family[3] : muted), 0);
+  if (presetTelemetryLabel_) {
+    const auto value = presetTelemetryText(state);
+    lv_label_set_text(presetTelemetryLabel_, value.c_str());
   }
   const int masterPct = std::clamp(state.masterVolume, 0, 100);
   if (presetMasterValueLabel_) {
@@ -204,22 +231,12 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
   lv_obj_set_style_pad_all(topRail, 0, 0);
   lv_obj_remove_flag(topRail, LV_OBJ_FLAG_SCROLLABLE);
 
-  label(topRail, "ARDOR", LV_ALIGN_LEFT_MID, kRailEdgeInset, 0,
-        &ardor_font_saira_cond_semibold_22, text);
-  presetBankLabel_ = label(topRail, state.bank.name, LV_ALIGN_LEFT_MID, 128, 0,
-                           &ardor_font_saira_cond_medium_18, muted);
-  // The fixed sample rate and active persisted audio quantum remain visible at
-  // a glance so the player can confirm a latency-tuning change after restart.
-  label(topRail, "48 KHZ \xC2\xB7 BLK " + std::to_string(state.settings.audioBlockSize),
-        LV_ALIGN_RIGHT_MID, -76, 0,
-        &ardor_font_saira_cond_medium_18, muted);
-  presetMidiLamp_ = lv_obj_create(topRail);
-  lv_obj_set_size(presetMidiLamp_, 11, 11);
-  lv_obj_align(presetMidiLamp_, LV_ALIGN_RIGHT_MID, -60, 0);
-  lv_obj_set_style_border_width(presetMidiLamp_, 0, 0);
-  lv_obj_remove_flag(presetMidiLamp_, LV_OBJ_FLAG_CLICKABLE);
-  presetMidiLabel_ = label(topRail, "MIDI", LV_ALIGN_RIGHT_MID, -kRailEdgeInset, 0,
-                           &ardor_font_saira_cond_medium_18, muted);
+  // The engine publishes buffer telemetry once per second. Pair that live load
+  // with the configured block latency; the fixed sample rate does not need
+  // permanent rail space.
+  presetTelemetryLabel_ = label(topRail, presetTelemetryText(state),
+                                LV_ALIGN_CENTER, 0, 0,
+                                &ardor_font_saira_cond_medium_18, text);
 
   // ---- preset grid: fills the 580 px band between the two rails ----
   lv_obj_t* grid = lv_obj_create(root);
@@ -395,6 +412,138 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
   lv_obj_set_style_bg_color(pointer, lv_color_hex(lamp), 0);
   lv_obj_set_style_translate_x(pointer, -1, 0);
   presetMasterPointer_ = pointer;
+}
+
+void LvglUi::openPresetNameEditor(UiState& state)
+{
+  if (!presetNameOverlay_ || !presetNameField_
+      || state.activePreset >= state.bank.presets.size()) {
+    return;
+  }
+  presetNameEditorOpen_ = true;
+  lv_textarea_set_text(presetNameField_, state.bank.presets[state.activePreset].name.c_str());
+  lv_label_set_text(presetNameMessageLabel_, "");
+  lv_keyboard_set_textarea(presetNameKeyboard_, presetNameField_);
+  lv_obj_remove_flag(presetNameOverlay_, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_move_foreground(presetNameOverlay_);
+}
+
+void LvglUi::cancelPresetNameEditor()
+{
+  presetNameEditorOpen_ = false;
+  if (presetNameOverlay_) lv_obj_add_flag(presetNameOverlay_, LV_OBJ_FLAG_HIDDEN);
+}
+
+void LvglUi::savePresetName(UiState& state)
+{
+  if (!presetNameField_ || state.activePreset >= state.bank.presets.size()) return;
+  const std::string name = trimmed(lv_textarea_get_text(presetNameField_));
+  if (name.empty()) {
+    lv_label_set_text(presetNameMessageLabel_, "Enter a preset name");
+    return;
+  }
+
+  auto& preset = state.bank.presets[state.activePreset];
+  if (preset.name == name) {
+    cancelPresetNameEditor();
+    return;
+  }
+
+  preset.name = name;
+  state.dirty = true;
+  markUiChanged(state, UiChange::Header | UiChange::Presets);
+  cancelPresetNameEditor();
+  if (actions_.savePreset) {
+    actions_.savePreset();
+  } else {
+    setUiStatus(state, "Preset renamed - press Save to keep it");
+  }
+  invalidate(UiChange::Header | UiChange::Presets | UiChange::Status);
+}
+
+void LvglUi::renderPresetNameEditor(lv_obj_t* root, UiState& state)
+{
+  presetNameOverlay_ = lv_obj_create(root);
+  lv_obj_set_size(presetNameOverlay_, kDesignWidth, kDesignHeight);
+  lv_obj_set_pos(presetNameOverlay_, 0, 0);
+  lv_obj_set_style_bg_color(presetNameOverlay_, lv_color_hex(0x000000), 0);
+  lv_obj_set_style_bg_opa(presetNameOverlay_, LV_OPA_80, 0);
+  lv_obj_set_style_border_width(presetNameOverlay_, 0, 0);
+  lv_obj_set_style_pad_all(presetNameOverlay_, 0, 0);
+  lv_obj_remove_flag(presetNameOverlay_, LV_OBJ_FLAG_SCROLLABLE);
+
+  lv_obj_t* sheet = lv_obj_create(presetNameOverlay_);
+  lv_obj_set_size(sheet, 1120, 650);
+  lv_obj_align(sheet, LV_ALIGN_CENTER, 0, 0);
+  styleSurface(sheet, panelAlt);
+  lv_obj_set_style_pad_all(sheet, 0, 0);
+  lv_obj_remove_flag(sheet, LV_OBJ_FLAG_SCROLLABLE);
+
+  label(sheet, "Rename preset", LV_ALIGN_TOP_LEFT, 28, 22,
+        &ardor_font_saira_cond_semibold_28, text);
+  label(sheet, "The new name is saved to the active slot.", LV_ALIGN_TOP_LEFT, 28, 60,
+        &ardor_font_saira_cond_medium_18, muted);
+
+  presetNameField_ = lv_textarea_create(sheet);
+  lv_obj_set_pos(presetNameField_, 28, 94);
+  lv_obj_set_size(presetNameField_, 760, 64);
+  lv_textarea_set_one_line(presetNameField_, true);
+  lv_textarea_set_max_length(presetNameField_, kPresetNameMaxLength);
+  lv_textarea_set_placeholder_text(presetNameField_, "Preset name");
+  lv_textarea_set_text(presetNameField_,
+    state.activePreset < state.bank.presets.size()
+      ? state.bank.presets[state.activePreset].name.c_str() : "");
+  lv_obj_set_style_bg_color(presetNameField_, lv_color_hex(panel), 0);
+  lv_obj_set_style_text_color(presetNameField_, lv_color_hex(text), 0);
+  lv_obj_set_style_text_font(presetNameField_, &ardor_font_saira_cond_semibold_22, 0);
+  lv_obj_set_style_pad_top(presetNameField_, 18, 0);
+  lv_obj_set_style_pad_bottom(presetNameField_, 18, 0);
+  lv_obj_set_style_border_width(presetNameField_, 1, 0);
+  lv_obj_set_style_border_color(presetNameField_, lv_color_hex(rule), 0);
+  lv_obj_set_style_border_color(presetNameField_, lv_color_hex(text), LV_STATE_FOCUSED);
+  lv_obj_set_style_radius(presetNameField_, 0, 0);
+
+  lv_obj_t* cancel = button(sheet, "CANCEL");
+  lv_obj_set_size(cancel, 124, 64);
+  lv_obj_set_pos(cancel, 808, 94);
+  styleSurface(cancel, panel);
+  lv_obj_add_event_cb(cancel, onPresetNameCancelClicked, LV_EVENT_CLICKED, remember(state));
+
+  lv_obj_t* save = button(sheet, "SAVE");
+  lv_obj_set_size(save, 124, 64);
+  lv_obj_set_pos(save, 952, 94);
+  styleSurface(save, text);
+  lv_obj_set_style_text_color(lv_obj_get_child(save, 0), lv_color_hex(bg), 0);
+  lv_obj_add_event_cb(save, onPresetNameSaveClicked, LV_EVENT_CLICKED, remember(state));
+
+  presetNameMessageLabel_ = label(sheet, "", LV_ALIGN_TOP_LEFT, 28, 164,
+                                  &ardor_font_saira_cond_medium_18, danger);
+
+  presetNameKeyboard_ = lv_keyboard_create(sheet);
+  lv_obj_set_size(presetNameKeyboard_, 1064, 430);
+  // Keyboard widgets default to a bottom alignment. Pin this one explicitly so
+  // all rows stay inside the sheet instead of inheriting the default offset.
+  lv_obj_align(presetNameKeyboard_, LV_ALIGN_TOP_LEFT, 28, 196);
+  lv_obj_set_style_bg_color(presetNameKeyboard_, lv_color_hex(panelAlt), 0);
+  lv_obj_set_style_border_width(presetNameKeyboard_, 0, 0);
+  lv_obj_set_style_text_color(presetNameKeyboard_, lv_color_hex(text), LV_PART_ITEMS);
+  lv_obj_set_style_bg_color(presetNameKeyboard_, lv_color_hex(panel), LV_PART_ITEMS);
+  lv_obj_set_style_border_color(presetNameKeyboard_, lv_color_hex(rule), LV_PART_ITEMS);
+  lv_obj_set_style_border_width(presetNameKeyboard_, 1, LV_PART_ITEMS);
+  lv_obj_set_style_radius(presetNameKeyboard_, 0, LV_PART_ITEMS);
+  lv_obj_set_style_bg_color(
+    presetNameKeyboard_, lv_color_hex(text),
+    static_cast<lv_style_selector_t>(LV_PART_ITEMS) | LV_STATE_PRESSED);
+  lv_obj_set_style_text_color(
+    presetNameKeyboard_, lv_color_hex(bg),
+    static_cast<lv_style_selector_t>(LV_PART_ITEMS) | LV_STATE_PRESSED);
+  lv_keyboard_set_textarea(presetNameKeyboard_, presetNameField_);
+  lv_obj_add_event_cb(presetNameKeyboard_, onPresetNameSaveClicked,
+                      LV_EVENT_READY, remember(state));
+  lv_obj_add_event_cb(presetNameKeyboard_, onPresetNameCancelClicked,
+                      LV_EVENT_CANCEL, remember(state));
+
+  if (!presetNameEditorOpen_) lv_obj_add_flag(presetNameOverlay_, LV_OBJ_FLAG_HIDDEN);
 }
 
 } // namespace ardor

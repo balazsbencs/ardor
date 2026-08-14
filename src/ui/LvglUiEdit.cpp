@@ -39,6 +39,12 @@ void onEditRailUndoClicked(lv_event_t* event)
   }
 }
 
+void onPresetNameEditClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->openPresetNameEditor(*context->state);
+}
+
 void onOpenBlockDrawer(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
@@ -339,8 +345,15 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   label(topRail, "PRESET " + std::to_string(state.activePreset + 1), LV_ALIGN_LEFT_MID,
         kEditRailEdgeInset, 0, &ardor_font_saira_cond_semibold_22, text);
   editPresetLabel_ = label(topRail, state.bank.presets[state.activePreset].name,
-                           LV_ALIGN_LEFT_MID, 190, 0, &ardor_font_saira_cond_medium_18, muted);
-  editModifiedLabel_ = label(topRail, "\xC2\xB7 MODIFIED", LV_ALIGN_LEFT_MID, 380, 0,
+                           LV_ALIGN_LEFT_MID, 154, 0, &ardor_font_saira_cond_medium_18, muted);
+  lv_obj_set_width(editPresetLabel_, 236);
+  lv_label_set_long_mode(editPresetLabel_, LV_LABEL_LONG_CLIP);
+  lv_obj_t* rename = button(topRail, "RENAME");
+  lv_obj_set_size(rename, 96, 40);
+  lv_obj_align(rename, LV_ALIGN_LEFT_MID, 404, 0);
+  styleSurface(rename, panelAlt);
+  lv_obj_add_event_cb(rename, onPresetNameEditClicked, LV_EVENT_CLICKED, remember(state));
+  editModifiedLabel_ = label(topRail, "\xC2\xB7 MODIFIED", LV_ALIGN_LEFT_MID, 520, 0,
                              &ardor_font_saira_cond_medium_18, lamp);
   if (!state.dirty) lv_obj_add_flag(editModifiedLabel_, LV_OBJ_FLAG_HIDDEN);
   const auto moduleCount = state.bank.presets[state.activePreset].blocks.size();
