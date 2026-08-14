@@ -71,6 +71,9 @@ void PlateReverb::Init() {
     idif_[2].Init(buf_idif2_, 613);  idif_[2].SetDelay(kIdif2);
     idif_[3].Init(buf_idif3_, 449);  idif_[3].SetDelay(kIdif3);
 
+    sdif_[0].Init(buf_sdif0_, 149);  sdif_[0].SetDelay(131);
+    sdif_[1].Init(buf_sdif1_, 269);  sdif_[1].SetDelay(251);
+
     ap5_.Init(buf_ap5_, 1130);
     d5_ .Init(buf_d5_,  7184);
     ap7_.Init(buf_ap7_, 2905);  ap7_.SetDelay(kAp7);
@@ -89,6 +92,7 @@ void PlateReverb::Init() {
 
     lp_a_ = lp_b_ = 0.0f;
     last_ap7_ = last_ap8_ = 0.0f;
+    bw_mid_ = bw_side_ = 0.0f;
     pre_delay_samp_ = 0;
     decay_ = 0.5f;
     hold_  = false;
@@ -98,6 +102,8 @@ void PlateReverb::Reset() {
     pre_delay_l_.Reset();
     pre_delay_r_.Reset();
     for (auto& a : idif_) a.Reset();
+    for (auto& a : sdif_) a.Reset();
+    bw_mid_ = bw_side_ = 0.0f;
     ap5_.Reset();  d5_.Reset();  ap7_.Reset();  d6_.Reset();
     ap6_.Reset();  d7_.Reset();  ap8_.Reset();  d8_.Reset();
     lfo_a_.Reset();
@@ -118,6 +124,16 @@ void PlateReverb::Prepare(const ParamSet& params) {
 
     // One-pole LP coefficient: tone=0 → dark (0.90), tone=1 → bright (0.05)
     lp_coef_ = std::sqrt(0.90f - params.tone * 0.85f);
+
+    // Input bandwidth tracks Tone: 6 kHz dark, about 20 kHz bright. Kept
+    // deliberately open — the reference design's default bandwidth is near
+    // transparent, and closing this down costs broadband level rather than just
+    // softening the attack. Its job is to keep full-band content off the input
+    // diffusers, not to be a tone control; lp_coef_ shapes the tail.
+    const float bw_hz = 6000.0f * std::exp2(params.tone * 1.74f);
+    bandwidth_ = 1.0f - std::exp(-6.2831853f * bw_hz / SAMPLE_RATE);
+    if (bandwidth_ > 1.0f) bandwidth_ = 1.0f;
+    if (bandwidth_ < 0.02f) bandwidth_ = 0.02f;
 
     // LFO rate from mod param: 0.3..2.0 Hz
     const float mod_rate = 0.3f + params.mod * 1.7f;
@@ -142,8 +158,18 @@ StereoFrame PlateReverb::Process(StereoFrame input, const ParamSet& params) {
     pre_delay_l_.Write(input.left);
     pre_delay_r_.Write(input.right);
 
-    const float mid = 0.5f * (pre_l + pre_r);
-    const float side = 0.5f * (pre_l - pre_r);
+    float mid = 0.5f * (pre_l + pre_r);
+    float side = 0.5f * (pre_l - pre_r);
+
+    // --- Input bandwidth (Dattorro figure 13) ---
+    // The reference design low-passes the input before the diffusers, setting
+    // how much high frequency enters the tank at all. Without it the tank runs
+    // full-band and the early diffusion reads harder than a plate should; the
+    // in-tank damping filters only shape the tail, not this.
+    bw_mid_  += bandwidth_ * (mid  - bw_mid_);
+    bw_side_ += bandwidth_ * (side - bw_side_);
+    mid  = bw_mid_;
+    side = bw_side_;
 
     // --- Input diffusion (4 series Schroeder allpasses) ---
     float s = mid;
@@ -151,6 +177,12 @@ StereoFrame PlateReverb::Process(StereoFrame input, const ParamSet& params) {
     s = idif_[1].Process(s, in_g_hi_);
     s = idif_[2].Process(s, in_g_lo_);
     s = idif_[3].Process(s, in_g_lo_);
+
+    // Side energy gets its own short diffusion rather than entering the tanks
+    // raw. Injecting it undiffused let any stereo content arrive as a bare
+    // transient while the mid had been through four allpasses.
+    side = sdif_[0].Process(side, in_g_lo_);
+    side = sdif_[1].Process(side, in_g_lo_);
 
     // --- Read all output & feedback taps BEFORE any tank writes this sample ---
     // Feedback cross-coupling

@@ -65,10 +65,13 @@ public:
         rand_state = lcg_next(rand_state);
         const float noise = lcg_to_float(rand_state) * noise_amount * 0.002f;
 
-        // Soft saturation (tanh approximation)
+        // Soft saturation. Use the shared curve: the local copy this replaced
+        // omitted the |x| >= 3 clamp, and beyond that point the bare Padé
+        // approximant grows without bound (asymptotically x/9) instead of
+        // limiting, so loud transients passed through with the wrong harmonics.
         const float drive = 1.0f + drive_amount * drive_amount * 7.0f;
         const float x = lp2_ * drive + noise + whine;
-        const float sat = x * (27.0f + x * x) / (27.0f + 9.0f * x * x);
+        const float sat = soft_clip_tanh(x);
         // Compensate the input gain so Drive changes harmonic density and
         // compression rather than redefining loop gain or output loudness.
         return sat / drive;

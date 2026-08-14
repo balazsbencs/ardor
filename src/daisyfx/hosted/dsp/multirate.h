@@ -13,6 +13,17 @@ constexpr size_t resample_factor = 6;
 class Decimator
 {
 public:
+    // cycfi's init_store() sets the ring buffer mask but does not zero the
+    // storage when it is a std::array, so a default-constructed buffer holds
+    // whatever was in memory. Without this the first ~25 samples out of the
+    // resampler are uninitialised garbage run through the FIR taps, which can
+    // be arbitrarily large and then rings on in the downstream IIR shelves.
+    void Reset()
+    {
+        buffer1.clear();
+        buffer2.clear();
+    }
+
     float operator()(std::span<const float, resample_factor> s)
     {
         buffer1.push(s[0]);
@@ -77,6 +88,12 @@ private:
 class Interpolator
 {
 public:
+    void Reset()
+    {
+        buffer1.clear();
+        buffer2.clear();
+    }
+
     std::array<float, resample_factor> operator()(float s)
     {
         std::array<float, resample_factor> output;

@@ -22,14 +22,14 @@ public:
 private:
     float          buf_pre_delay_l_[24000];
     float          buf_pre_delay_r_[24000];
-    float          buf_diff_l0_[Diffuser::kDelays[0] + 1];
-    float          buf_diff_l1_[Diffuser::kDelays[1] + 1];
-    float          buf_diff_l2_[Diffuser::kDelays[2] + 1];
-    float          buf_diff_l3_[Diffuser::kDelays[3] + 1];
-    float          buf_diff_r0_[Diffuser::kDelays[0] + 1];
-    float          buf_diff_r1_[Diffuser::kDelays[1] + 1];
-    float          buf_diff_r2_[Diffuser::kDelays[2] + 1];
-    float          buf_diff_r3_[Diffuser::kDelays[3] + 1];
+    float          buf_diff_l0_[pedal::diffuser_delays::SHIMMER_L[0] + Diffuser::MOD_HEADROOM];
+    float          buf_diff_l1_[pedal::diffuser_delays::SHIMMER_L[1] + Diffuser::MOD_HEADROOM];
+    float          buf_diff_l2_[pedal::diffuser_delays::SHIMMER_L[2] + Diffuser::MOD_HEADROOM];
+    float          buf_diff_l3_[pedal::diffuser_delays::SHIMMER_L[3] + Diffuser::MOD_HEADROOM];
+    float          buf_diff_r0_[pedal::diffuser_delays::SHIMMER_R[0] + Diffuser::MOD_HEADROOM];
+    float          buf_diff_r1_[pedal::diffuser_delays::SHIMMER_R[1] + Diffuser::MOD_HEADROOM];
+    float          buf_diff_r2_[pedal::diffuser_delays::SHIMMER_R[2] + Diffuser::MOD_HEADROOM];
+    float          buf_diff_r3_[pedal::diffuser_delays::SHIMMER_R[3] + Diffuser::MOD_HEADROOM];
     float          buf_fdn0_[2730];
     float          buf_fdn1_[3252];
     float          buf_fdn2_[3864];

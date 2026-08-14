@@ -99,9 +99,13 @@ StereoFrame QuadratureMode::Process(StereoFrame input, const ParamSet& params) {
         }
 
         case 1: {
-            // FM — Hilbert-based pitch vibrato.
-            // The LFO sweeps the instantaneous carrier frequency, creating
-            // a pitch wobble via single-sideband rotation of the analytic signal.
+            // Warble — an LFO-swept single-sideband frequency shift.
+            //
+            // This is NOT pitch vibrato, and cannot be: vibrato is a
+            // multiplicative ratio on every partial, while single-sideband
+            // rotation adds a constant number of hertz to all of them. On a
+            // single note the difference is subtle; on a chord the additive
+            // shift breaks the harmonic relationships. Named for what it does.
             const float wet = dc_.Process(re * cos_c - im * sin_c);
             return {tone_l_.Process(wet), tone_r_.Process(wet)};
         }

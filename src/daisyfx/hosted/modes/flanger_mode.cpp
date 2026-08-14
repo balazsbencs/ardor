@@ -85,11 +85,9 @@ void FlangerMode::Prepare(const ParamSet& params) {
 
     // Through-Zero modes: add small LFO jitter for organic tape speed instability
     if (sub >= 4) {
-        lfo_.SetJitter(0.15f);
-        lfo_r_.SetJitter(0.15f);
+        lfo_.SetJitter(0.15f);   // leader only; lfo_r_ follows it in Process()
     } else {
         lfo_.SetJitter(0.0f);
-        lfo_r_.SetJitter(0.0f);
     }
 
     // Map TONE param (0..1) to feedback LPF cutoff coefficient (0.05..1.0)
@@ -110,17 +108,21 @@ StereoFrame FlangerMode::Process(StereoFrame input, const ParamSet& params) {
 
     // 1. Advance both LFOs per-sample; right channel leads by π/2 for stereo spread
     const float lfo_l = lfo_.Process();
+    lfo_r_.FollowPhaseOf(lfo_);   // hold the 90 deg stereo spread exactly
     const float lfo_r = lfo_r_.Process();
 
-    // 2. Update slow-moving organic drift (wow and flutter emulation)
-    // Low filter cutoff (0.0002) makes the drift slow, smooth, and organic.
-    drift_l_ += 0.0002f * (lcg_to_float(rand_state_) - drift_l_);
+    // 2. Update slow-moving organic drift (wow and flutter emulation).
+    // A one-pole on uniform noise settles at sigma*sqrt(a/2); at a = 0.0002
+    // that is 0.006 samples, or 0.12 us — two orders of magnitude below
+    // audibility, so the original constants cost cycles and delivered nothing.
+    // kDriftGain scales it to a few samples of genuine wow.
+    drift_l_ += kDriftCoeff * (lcg_to_float(rand_state_) - drift_l_);
     rand_state_ = lcg_next(rand_state_);
-    drift_r_ += 0.0002f * (lcg_to_float(rand_state_) - drift_r_);
+    drift_r_ += kDriftCoeff * (lcg_to_float(rand_state_) - drift_r_);
     rand_state_ = lcg_next(rand_state_);
 
     const int sub = static_cast<int>(params.p2 * 5.999f);
-    const float drift_amt = (sub >= 4) ? 1.5f : 0.8f; // slightly more drift in TZF modes
+    const float drift_amt = kDriftGain * ((sub >= 4) ? 1.5f : 0.8f);
 
     // 3. Calculate delays and clamp to buffer bounds
     const float center = max_depth_ * 0.5f;
@@ -132,8 +134,8 @@ StereoFrame FlangerMode::Process(StereoFrame input, const ParamSet& params) {
     if (delay_r >= static_cast<float>(kFlangerBufSize - 1)) delay_r = static_cast<float>(kFlangerBufSize - 1);
 
     // 4. Read modulated taps with cubic interpolation
-    float wet_l_tap = flanger_line_l_.ReadAt(delay_l);
-    float wet_r_tap = flanger_line_r_.ReadAt(delay_r);
+    float wet_l_tap = flanger_line_l_.ReadAtHighQuality(delay_l);
+    float wet_r_tap = flanger_line_r_.ReadAtHighQuality(delay_r);
 
     // 5. Calculate Feedback with Saturation and Low-Pass Damping using the pure modulated taps
     float regen = params.p1 * 0.95f;

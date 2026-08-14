@@ -106,9 +106,18 @@
           "key": "inputMode",
           "label": "Input source",
           "choices": [
-            { "value": "sum", "label": "L+R Average" },
-            { "value": "left", "label": "Left / Mono" },
-            { "value": "right", "label": "Right" }
+            {
+              "value": "sum",
+              "label": "L+R Average"
+            },
+            {
+              "value": "left",
+              "label": "Left / Mono"
+            },
+            {
+              "value": "right",
+              "label": "Right"
+            }
           ],
           "defaultValue": "sum"
         },
@@ -220,9 +229,18 @@
           "key": "inputMode",
           "label": "Input source",
           "choices": [
-            { "value": "sum", "label": "L+R Average" },
-            { "value": "left", "label": "Left / Mono" },
-            { "value": "right", "label": "Right" }
+            {
+              "value": "sum",
+              "label": "L+R Average"
+            },
+            {
+              "value": "left",
+              "label": "Left / Mono"
+            },
+            {
+              "value": "right",
+              "label": "Right"
+            }
           ],
           "defaultValue": "sum"
         },
@@ -1621,6 +1639,93 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "level",
+          "label": "Level",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:whammy",
+      "blockType": "mod",
+      "mode": "whammy",
+      "name": "Whammy",
+      "description": "Pedal-swept pitch shifter with Whammy and Harmony interval sets.",
+      "category": "modulation",
+      "aliases": [
+        "pitch shifter",
+        "harmonizer",
+        "octaver"
+      ],
+      "constraintGroup": "mod",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "kind": "number",
+          "key": "speed",
+          "label": "Glide",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.35
+        },
+        {
+          "kind": "number",
+          "key": "depth",
+          "label": "Mode",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.7
+        },
+        {
+          "kind": "number",
+          "key": "mix",
+          "label": "Mix",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 1.0
+        },
+        {
+          "kind": "number",
+          "key": "tone",
+          "label": "Tone",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "p1",
+          "label": "Pedal",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "p2",
+          "label": "Preset",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.0
         },
         {
           "kind": "number",

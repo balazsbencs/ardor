@@ -35,14 +35,12 @@ void RotaryMode::Init() {
     horn_lfo_.Init(kHornChorale, LfoWave::Sine);
     horn_lfo_.SetJitter(0.1f);
     horn_lfo_q_.Init(kHornChorale, LfoWave::Sine);
-    horn_lfo_q_.SetJitter(0.1f);
     horn_lfo_q_.SetPhaseOffset(kTwoPi * 0.25f);
     horn_lfo_q_.Reset();
 
     drum_lfo_.Init(kDrumChorale, LfoWave::Sine);
     drum_lfo_.SetJitter(0.1f);
     drum_lfo_q_.Init(kDrumChorale, LfoWave::Sine);
-    drum_lfo_q_.SetJitter(0.1f);
     drum_lfo_q_.SetPhaseOffset(kTwoPi * 0.25f);
     drum_lfo_q_.Reset();
 
@@ -114,27 +112,34 @@ StereoFrame RotaryMode::Process(StereoFrame input, const ParamSet& params) {
     float mono = input.mono();
     if (params.p1 > 0.02f) mono = drive_.Process(mono);
 
-    // 2-pole SVF crossover: LP → drum band, HP → horn band
+    // Complementary crossover: LP → drum band, remainder → horn band.
+    // Do NOT use lp() + hp() from the SVF. That pair satisfies
+    // LP + HP = input - k*BP, and with k = 1/Q = 2 the two bands cancel
+    // completely at the crossover frequency — a measured -72 dB null, roughly
+    // an octave wide, swept across 500-2000 Hz by the Tone knob. Deriving the
+    // horn band by subtraction reconstructs the input exactly.
     xover_.Process(mono);
     const float drum_in = xover_.lp();
-    const float horn_in = xover_.hp();
+    const float horn_in = mono - drum_in;
 
     // Per-sample LFO advance (avoids block-boundary zipper noise on Doppler)
     const float hl  = horn_lfo_.Process();
+    horn_lfo_q_.FollowPhaseOf(horn_lfo_);   // keep the mics exactly 90 deg apart
     const float hlq = horn_lfo_q_.Process();
     const float dl  = drum_lfo_.Process();
+    drum_lfo_q_.FollowPhaseOf(drum_lfo_);
     const float dlq = drum_lfo_q_.Process();
 
     // True stereo Doppler: single write per band, two quadrature reads.
     // L mic = in-phase LFO, R mic = 90° quadrature — physically correct for
     // two microphones placed 90° apart around a rotating speaker.
     horn_line_.Write(horn_in);
-    const float horn_l = horn_line_.ReadAt(kHornCenter + hl  * horn_mod_);
-    const float horn_r = horn_line_.ReadAt(kHornCenter + hlq * horn_mod_);
+    const float horn_l = horn_line_.ReadAtHighQuality(kHornCenter + hl  * horn_mod_);
+    const float horn_r = horn_line_.ReadAtHighQuality(kHornCenter + hlq * horn_mod_);
 
     drum_line_.Write(drum_in);
-    const float drum_l = drum_line_.ReadAt(kDrumCenter + dl  * drum_mod_);
-    const float drum_r = drum_line_.ReadAt(kDrumCenter + dlq * drum_mod_);
+    const float drum_l = drum_line_.ReadAtHighQuality(kDrumCenter + dl  * drum_mod_);
+    const float drum_r = drum_line_.ReadAtHighQuality(kDrumCenter + dlq * drum_mod_);
 
     // Horn cabinet coloring: add resonant BP peak (~2.5 kHz "honk").
     // L and R use independent SVF state so they don't cross-contaminate.

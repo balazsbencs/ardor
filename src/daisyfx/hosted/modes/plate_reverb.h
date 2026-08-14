@@ -42,6 +42,16 @@ private:
 
     // Input diffusion: 4 series allpass (k1=0.75, k1=0.75, k2=0.625, k2=0.625)
     DelayAllpassFilter idif_[4];
+    // Short side-channel diffusion so stereo content is smeared before it
+    // reaches the tanks, instead of arriving as a raw transient.
+    DelayAllpassFilter sdif_[2];
+    float buf_sdif0_[149];
+    float buf_sdif1_[269];
+
+    // Dattorro input bandwidth one-pole, per channel.
+    float bw_mid_    = 0.0f;
+    float bw_side_   = 0.0f;
+    float bandwidth_ = 0.72f;
 
     // Tank A: AP5(mod) → D5 → LP_A → AP7 → D6
     DelayAllpassFilter ap5_;

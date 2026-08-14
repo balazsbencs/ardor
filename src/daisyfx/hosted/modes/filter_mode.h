@@ -20,17 +20,25 @@ public:
     const char* Name() const override { return "Filter"; }
 
 private:
+    float bandOutput(const Svf& svf) const;
+
     Lfo              lfo_;
+    Lfo              lfo_r_;   // 90° quadrature partner, for stereo width
     Svf              svf_;
+    Svf              svf_r_;
     EnvelopeFollower env_;
     DcBlocker        dc_;
+    DcBlocker        dc_r_;
 
-    float base_hz_           = 1000.0f;  // cutoff center (cached from tone in Prepare)
-    float depth_             = 0.5f;     // cached params.depth for per-sample use
-    float envelope_cutoff_hz_ = 1000.0f; // cutoff for env modes: computed in Process(), applied in Prepare()
-    int   ftype_    = 0;      // 0=LP, 1=BP(Wah), 2=HP
-    bool  use_env_  = false;
-    bool  env_inv_  = false;
+    // Sweep is expressed as a normalised position in the shared log-frequency
+    // table, not as an absolute cutoff. Filters swept linearly in frequency
+    // move unevenly to the ear, and calling tanf() per sample to convert was an
+    // expensive libm call in the audio path.
+    float base_pos_  = 0.0f;   // centre of the sweep
+    float depth_     = 0.5f;   // cached params.depth for per-sample use
+    int   ftype_     = 0;      // 0=LP, 1=BP(Wah), 2=HP
+    bool  use_env_   = false;
+    bool  env_inv_   = false;
 };
 
 } // namespace pedal

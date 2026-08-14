@@ -30,7 +30,15 @@ private:
     DcBlocker   dc_r_;
     uint32_t    rand_ = 12345;
     float       delays_[3] = {};
-    int         sub_mode_   = 4;
+    // Prepare() writes the targets; Process() glides the live values toward
+    // them. ~20 ms at 48 kHz, fast enough to track a knob, slow enough that a
+    // 128-step MIDI CC does not tick.
+    static constexpr float kDelaySlew = 0.001f;
+
+    int         sub_mode_     = 4;
+    bool        delay_seeded_ = false;
+    float       base_target_  = 48.0f;
+    float       depth_target_ = 0.0f;
     float       base_samps_ = 48.0f;
     float       mod_depth_  = 0.0f;
     float       fb_samp_    = 0.0f;  // feedback register for dBucket

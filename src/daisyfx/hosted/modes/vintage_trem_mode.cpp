@@ -1,5 +1,7 @@
 #include "vintage_trem_mode.h"
 #include "../config/constants.h"
+#include "../dsp/fast_math.h"
+#include <cmath>
 
 using namespace pedal::mod_fx;
 
@@ -16,6 +18,7 @@ void VintageTremMode::Reset() {
     tone_l_.Reset();
     tone_r_.Reset();
     depth_ = 0.5f;
+    makeup_ = 1.0f;
     shape_ = 0.0f;
     crossover_l_ = 0.0f;
     crossover_r_ = 0.0f;
@@ -31,6 +34,13 @@ void VintageTremMode::Prepare(const ParamSet& params) {
 
     lfo_.SetRate(params.speed);
     depth_ = params.depth;
+    // Preserve RMS, not mean. The modulator (1 - depth*contour) has mean
+    // 1 - depth/2 and mean square (1 - depth/2)^2 + depth^2/8. Compensating the
+    // mean would put peaks 6 dB over unity at full depth; matching RMS restores
+    // the perceived level with far less headroom cost.
+    const float mean = 1.0f - depth_ * 0.5f;
+    const float mean_square = mean * mean + depth_ * depth_ * 0.125f;
+    makeup_ = mean_square > 0.0001f ? 1.0f / std::sqrt(mean_square) : 1.0f;
     // Shape morphs the sine tremolo toward a more pulsed optical contour.
     shape_ = params.p1;
     tone_l_.SetKnob(params.tone);
@@ -58,6 +68,8 @@ StereoFrame VintageTremMode::Process(StereoFrame input, const ParamSet& /*params
         const float sine_hp = 1.0f - sine_lp;
         const float contour_lp = sine_lp + shape_ * (sine_lp * sine_lp - sine_lp);
         const float contour_hp = sine_hp + shape_ * (sine_hp * sine_hp - sine_hp);
+        // Harmonic mode keeps constant total energy across the two bands, so
+        // it needs no make-up.
         const float gain_lp = 1.0f - depth_ * contour_lp;
         const float gain_hp = 1.0f - depth_ * contour_hp;
 
@@ -70,7 +82,13 @@ StereoFrame VintageTremMode::Process(StereoFrame input, const ParamSet& /*params
     const float contour = sine + shape_ * (sine * sine - sine);
     float gain = 1.0f - depth_ * contour;
     if (gain < 0.0f) gain = 0.0f;
-    return {tone_l_.Process(input.left * gain), tone_r_.Process(input.right * gain)};
+    // Make-up gain. The mean of the modulator is 0.5, so without this the mode
+    // is 6 dB quieter than bypass at full depth and engaging it drops the level.
+    gain *= makeup_;
+    // Make-up lifts peaks above unity, so limit smoothly rather than let a
+    // downstream stage hard clip them.
+    return {soft_clip_tanh(tone_l_.Process(input.left * gain)),
+            soft_clip_tanh(tone_r_.Process(input.right * gain))};
 }
 
 } // namespace pedal

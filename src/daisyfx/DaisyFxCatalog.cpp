@@ -419,6 +419,7 @@ const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
     mod("formant", "Formant", "Resonance", "Vowel"),
     mod("quadrature", "Quadrature", "Blend / Spread", "Mode", 1.0f, "Frequency", "FM Depth"),
     mod("destroyer", "Destroyer", "Filter Resonance", "Noise", 1.0f, "Decimation", "Bits"),
+    mod("whammy", "Whammy", "Pedal", "Preset", 1.0f, "Glide", "Mode"),
     delay("digital", "Digital Delay", "Saturation", "Mod Rate", "Mod Depth"),
     delay("tape", "Tape Delay", "Saturation", "Flutter Rate", "Flutter"),
     delay("dual", "Dual Delay", "Ping-Pong"),
