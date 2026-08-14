@@ -115,7 +115,21 @@ lv_obj_t* findObjectWithSizeAndBgColor(lv_obj_t* parent, lv_color_t color, int w
   return nullptr;
 }
 
-// The engraved travel scale's fill/handle are identified by their fixed
+lv_obj_t* findObjectWithSize(lv_obj_t* parent, int width, int height)
+{
+  if (lv_obj_get_width(parent) == width && lv_obj_get_height(parent) == height) {
+    return parent;
+  }
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    if (auto* result = findObjectWithSize(
+          lv_obj_get_child(parent, static_cast<int32_t>(i)), width, height)) {
+      return result;
+    }
+  }
+  return nullptr;
+}
+
+// The rail control's fill/handle are identified by their fixed
 // geometry rather than colour, since colour now depends on focus state
 // (design law 3: lamp only on the selected control).
 lv_obj_t* findObjectWithHeight(lv_obj_t* parent, int height)
@@ -698,7 +712,7 @@ int main()
   lv_obj_t* undoLabel = findLabel(lv_screen_active(), "UNDO");
   lv_obj_t* depthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
   lv_obj_t* depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
-  lv_obj_t* depthFill = depthSlider ? findObjectWithHeight(depthSlider, 3) : nullptr;
+  lv_obj_t* depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
   if (require(title && depthSlider && depthFill, "parameter header and slider should render")) return 1;
   if (require(status && lv_color_eq(lv_obj_get_style_text_color(status, LV_PART_MAIN), lv_color_hex(0xe2e4e3)),
               "success status should render in engraved text")) return 1;
@@ -748,6 +762,8 @@ int main()
               "parameter sliders should use a three-column, two-row grid")) return 1;
   if (require(lv_obj_get_width(depthSlider) == 385 && lv_obj_get_height(depthSlider) == 132,
               "parameter slider should provide a large vertical touch target")) return 1;
+  if (require(findObjectWithSize(depthSlider, 44, 54),
+              "parameter slider should expose a wide, finger-readable thumb")) return 1;
   if (require(lv_obj_get_style_radius(depthSlider, LV_PART_MAIN) == 0
                 && lv_obj_get_style_radius(depthFill, LV_PART_MAIN) == 0,
               "parameter slider should use flat, unrounded plate geometry")) return 1;
@@ -765,6 +781,10 @@ int main()
   if (require(photoresistorValue
                 && photoresistorArea.x1 >= typeSliderArea.x1 && photoresistorArea.x2 <= typeSliderArea.x2,
               "discrete modulation choices should render as segmented options inside the slider")) return 1;
+  if (require(photoresistorValue
+                && lv_obj_get_height(lv_obj_get_parent(photoresistorValue)) == 60
+                && lv_obj_get_width(lv_obj_get_parent(photoresistorValue)) >= 44,
+              "every discrete option should provide a finger-sized touch target")) return 1;
 
   const auto& defaultMappingControl = renderControls.front();
   lv_obj_t* mappingSelection = findLabel(lv_screen_active(),
@@ -865,7 +885,7 @@ int main()
   title = findLabel(lv_screen_active(), titleText.c_str());
   depthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
-  depthFill = depthSlider ? findObjectWithHeight(depthSlider, 3) : nullptr;
+  depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
 
   lv_obj_t* chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x212528), 1240, 492);
   if (require(chain, "signal chain should use the Panel plate ground")) return 1;
@@ -962,7 +982,7 @@ int main()
   page = findLabel(lv_screen_active(), "PAGE 1 / 2");
   depthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
-  depthFill = depthSlider ? findObjectWithHeight(depthSlider, 3) : nullptr;
+  depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
 
   lv_obj_t* parameterPanel = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 1240, 452);
   lv_obj_t* parameterClose = findLabel(lv_screen_active(), "Close");
@@ -1099,7 +1119,7 @@ int main()
   lv_obj_update_layout(lv_screen_active());
   depthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
-  depthFill = depthSlider ? findObjectWithHeight(depthSlider, 3) : nullptr;
+  depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
   if (require(depthFill && lv_obj_get_width(depthFill) == 345,
               "maximum slider value should fill the complete control")) return 1;
 
@@ -1825,7 +1845,7 @@ int main()
               "EQ should render frequency, Q, and gain as dedicated sliders")) return 1;
   lv_obj_t* frequencySlider = lv_obj_get_parent(frequencyLabel);
   const int freqFillWidthBeforeNodeDrag = [&] {
-    lv_obj_t* fill = findObjectWithHeight(frequencySlider, 3);
+    lv_obj_t* fill = findObjectWithHeight(frequencySlider, 16);
     return fill ? lv_obj_get_width(fill) : -1;
   }();
   lv_area_t eqNodeArea{};
@@ -1840,7 +1860,7 @@ int main()
   nodePointer.point.x += 200;
   lv_indev_read(nodeInput);
   lv_obj_update_layout(frequencySlider);
-  lv_obj_t* freqFillDuringNodeDrag = findObjectWithHeight(frequencySlider, 3);
+  lv_obj_t* freqFillDuringNodeDrag = findObjectWithHeight(frequencySlider, 16);
   if (require(freqFillDuringNodeDrag
                 && lv_obj_get_width(freqFillDuringNodeDrag) != freqFillWidthBeforeNodeDrag,
               "dragging an EQ graph node should live-update the Frequency slider before release, "
@@ -1852,7 +1872,7 @@ int main()
   lv_obj_t* qSlider = lv_obj_get_parent(qLabel);
   // Q is the band editor's default encoder target (spec 9.1), so its slider
   // starts focused/lamp-coloured as soon as the EQ editor opens.
-  lv_obj_t* qFill = findObjectWithHeight(qSlider, 3);
+  lv_obj_t* qFill = findObjectWithHeight(qSlider, 16);
   if (require(qFill && !findObjectOfClass(qSlider, &lv_arc_class)
                 && lv_obj_get_width(qSlider) == 385 && lv_obj_get_height(qSlider) == 132
                 && lv_obj_get_style_radius(qSlider, LV_PART_MAIN) == 0,

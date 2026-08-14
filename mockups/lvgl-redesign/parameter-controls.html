@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ardor — Touch parameter control studies</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@400;500;600;700&family=Saira:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --plate:#212528;--plate2:#2a2f33;--plate3:#191c1f;
+  --engrave:#e2e4e3;--engrave-lo:#8d9499;--engrave-off:#5b6266;--rule:#3b4247;
+  --lamp:#d8422f;--delay:#8175a0;--mod:#5d8f80;--warm:#a8814e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#151719;color:#aeb3b6;font-family:Saira,system-ui,sans-serif;padding:48px 22px 96px}
+.doc{max-width:1280px;margin:0 auto}
+.intro{max-width:900px;margin-bottom:54px}
+h1{color:var(--engrave);font-family:'Saira Condensed',sans-serif;font-size:52px;font-weight:700;
+  letter-spacing:.035em;line-height:.95;text-transform:uppercase}
+.lede{font-family:system-ui,sans-serif;font-size:16px;line-height:1.65;margin-top:18px;max-width:72ch;color:#969da1}
+.principles{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.principles span{border:1px solid #34393d;color:#bdc2c4;font-family:'Saira Condensed',sans-serif;
+  font-size:14px;font-weight:600;letter-spacing:.09em;padding:8px 12px;text-transform:uppercase}
+.study{margin-top:58px}
+.study-head{align-items:end;display:flex;gap:24px;margin:0 0 13px}
+.study-head h2{color:var(--engrave);font-family:'Saira Condensed',sans-serif;font-size:29px;
+  font-weight:600;letter-spacing:.05em;line-height:1;text-transform:uppercase}
+.study-head p{color:#81888c;font-family:system-ui,sans-serif;font-size:13px;line-height:1.4;max-width:70ch}
+.study-head .verdict{color:#bdc2c4;margin-left:auto;text-align:right;white-space:nowrap}
+.shell{height:720px;position:relative;width:100%}
+.stage{height:720px;overflow:hidden;transform-origin:top left;width:1280px}
+.screen{background:var(--plate);color:var(--engrave);font-family:'Saira Condensed',sans-serif;
+  height:720px;overflow:hidden;position:relative;width:1280px}
+.topbar{align-items:center;border-bottom:1px solid var(--rule);display:flex;height:72px;padding:0 28px;gap:18px}
+.effect{font-size:28px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.meta{color:var(--engrave-lo);font-size:14px;font-weight:500;letter-spacing:.18em;text-transform:uppercase}
+.spacer{flex:1}
+.state{align-items:center;color:var(--engrave-lo);display:flex;font-size:14px;font-weight:600;gap:8px;
+  letter-spacing:.15em;text-transform:uppercase}
+.state i{background:var(--lamp);display:block;height:12px;width:12px}
+.action{align-items:center;background:var(--plate2);border:1px solid var(--rule);color:var(--engrave);
+  display:flex;font-size:17px;font-weight:600;height:52px;justify-content:center;letter-spacing:.12em;
+  min-width:100px;padding:0 18px;text-transform:uppercase}
+.action.primary{background:var(--engrave);border-color:var(--engrave);color:var(--plate)}
+.hintbar{align-items:center;border-top:1px solid var(--rule);bottom:0;color:var(--engrave-lo);
+  display:flex;font-size:14px;font-weight:500;height:68px;left:0;letter-spacing:.1em;padding:0 28px;
+  position:absolute;right:0;text-transform:uppercase}
+.hintbar b{color:var(--engrave);font-weight:600}.hintbar .spacer{flex:1}
+.touch-note{border:1px solid var(--rule);padding:7px 12px}
+.label{color:var(--engrave-lo);font-size:15px;font-weight:600;letter-spacing:.17em;text-transform:uppercase}
+.value{font-family:Saira,sans-serif;font-size:42px;font-weight:300;line-height:.95}
+.value small{color:var(--engrave-lo);font-family:'Saira Condensed',sans-serif;font-size:18px;font-weight:500;margin-left:6px}
+button,input{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--lamp);outline-offset:3px}
+.range-hit{cursor:ew-resize;position:absolute;inset:0;opacity:0;width:100%;height:100%;z-index:5}
+.select button{border:0}
+
+/* A — unmistakable rail */
+.a-grid{display:grid;gap:18px;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;
+  left:28px;position:absolute;right:28px;top:92px;bottom:88px}
+.a-card{background:var(--plate2);border:1px solid var(--rule);padding:22px 24px;position:relative}
+.a-card .head{align-items:baseline;display:flex;justify-content:space-between}
+.a-card .value{font-size:48px}
+.rail-control{height:82px;margin-top:15px;position:relative}
+.rail-control .track{background:var(--plate3);border:1px solid var(--rule);height:18px;left:0;position:absolute;right:0;top:29px}
+.rail-control .fill{background:var(--engrave);height:16px;left:0;position:absolute;top:0}
+.rail-control .thumb{background:var(--lamp);border:4px solid var(--plate2);height:54px;position:absolute;
+  top:-19px;transform:translateX(-50%);width:44px}
+.rail-control .thumb:after{background:var(--plate3);content:"";height:25px;left:18px;position:absolute;top:10px;width:2px}
+.rail-control .end{bottom:0;color:var(--engrave-lo);font-size:13px;letter-spacing:.08em;position:absolute}
+.rail-control .end.max{right:0}
+.a-card.choice{display:flex;flex-direction:column}
+.a-card.choice .value{font-family:'Saira Condensed',sans-serif;font-size:34px;font-weight:600}
+.a-options{display:flex;gap:8px;margin-top:auto}
+.a-options button{background:var(--plate3);border:1px solid var(--rule);color:var(--engrave-lo);flex:1;
+  font-size:20px;font-weight:600;height:64px;letter-spacing:.03em;padding:0 10px}
+.a-options button[aria-pressed="true"]{background:var(--engrave);border-color:var(--engrave);color:var(--plate)}
+
+/* B — console strips */
+.b-list{bottom:88px;left:28px;position:absolute;right:28px;top:90px}
+.b-row{align-items:center;border-bottom:1px solid var(--rule);display:grid;gap:24px;
+  grid-template-columns:185px 1fr 128px;min-height:125px;padding:10px 10px 10px 14px}
+.b-row:first-child{border-top:1px solid var(--rule)}
+.b-row .value{text-align:right}
+.strip-control{height:64px;position:relative}
+.strip-control .track{background:var(--plate3);height:26px;left:0;position:absolute;right:0;top:19px}
+.strip-control .fill{background:var(--delay);bottom:0;left:0;position:absolute;top:0}
+.strip-control .thumb{background:var(--engrave);border:3px solid var(--plate);height:56px;position:absolute;top:-15px;
+  transform:translateX(-50%);width:24px}
+.strip-select{display:flex;gap:10px}
+.strip-select button{background:var(--plate3);border:1px solid var(--rule);color:var(--engrave-lo);
+  flex:1;font-size:19px;font-weight:600;height:60px;letter-spacing:.04em;padding:0 14px}
+.strip-select button[aria-pressed="true"]{background:var(--delay);border-color:var(--delay);color:#f3f0f8}
+.b-row.choice-row{grid-template-columns:185px 1fr 128px}
+.choice-readout{color:var(--engrave);font-size:24px;font-weight:600;text-align:right}
+
+/* C — fader bay */
+.c-bay{bottom:88px;display:grid;gap:16px;grid-template-columns:repeat(4,1fr) 1.35fr;
+  left:28px;position:absolute;right:28px;top:94px}
+.c-fader{background:var(--plate2);border:1px solid var(--rule);display:flex;flex-direction:column;
+  align-items:center;padding:18px 14px 16px}
+.c-fader .label{align-self:flex-start}
+.c-fader .value{font-size:38px;margin-top:8px}
+.v-control{flex:1;margin:15px 0 12px;position:relative;width:88px}
+.v-control .track{background:var(--plate3);bottom:14px;left:35px;position:absolute;top:14px;width:18px}
+.v-control .fill{background:var(--mod);bottom:0;left:0;position:absolute;right:0}
+.v-control .thumb{background:var(--engrave);border:4px solid var(--plate2);height:30px;left:-17px;
+  position:absolute;transform:translateY(50%);width:52px}
+.v-control .range-hit{cursor:ns-resize}
+.c-scale{color:var(--engrave-lo);display:flex;font-size:12px;justify-content:space-between;width:100%}
+.c-choice{background:var(--plate3);border:1px solid var(--rule);display:flex;flex-direction:column;padding:18px}
+.c-choice .value{font-family:'Saira Condensed',sans-serif;font-size:32px;font-weight:600;margin-top:8px}
+.c-options{display:grid;gap:9px;margin-top:18px}
+.c-options button{align-items:center;background:var(--plate2);border:1px solid var(--rule);color:var(--engrave-lo);
+  display:flex;font-size:18px;font-weight:600;height:64px;justify-content:space-between;padding:0 18px;text-align:left}
+.c-options button i{border:2px solid var(--engrave-off);display:block;height:22px;width:22px}
+.c-options button[aria-pressed="true"]{border-color:var(--lamp);color:var(--engrave)}
+.c-options button[aria-pressed="true"] i{background:var(--lamp);border-color:var(--lamp)}
+
+/* D — stepped travel */
+.d-grid{display:grid;gap:22px;grid-template-columns:1fr 1fr;left:28px;position:absolute;right:28px;
+  top:96px;bottom:94px}
+.d-unit{border-top:1px solid var(--rule);padding:17px 0 0;position:relative}
+.d-unit .head{align-items:baseline;display:flex;justify-content:space-between}
+.d-unit .value{font-size:45px}
+.step-control{height:88px;margin-top:20px;position:relative}
+.step-track{display:flex;gap:6px;height:38px;left:0;position:absolute;right:0;top:17px}
+.step-track i{background:var(--plate3);border:1px solid var(--rule);flex:1}
+.step-track i.on{background:var(--engrave);border-color:var(--engrave)}
+.step-control .thumb{border:3px solid var(--lamp);height:62px;position:absolute;top:5px;transform:translateX(-50%);width:36px}
+.step-control .thumb:after{background:var(--lamp);bottom:6px;content:"";left:50%;position:absolute;top:6px;transform:translateX(-50%);width:3px}
+.d-options{display:grid;gap:8px;grid-template-columns:repeat(5,1fr);margin-top:21px}
+.d-options button{background:var(--plate3);border:1px solid var(--rule);color:var(--engrave-lo);
+  font-size:17px;font-weight:600;height:62px;letter-spacing:.03em;padding:0 6px}
+.d-options button[aria-pressed="true"]{background:var(--lamp);border-color:var(--lamp);color:#fff}
+.d-toggle{display:flex;gap:10px;margin-top:21px}
+.d-toggle button{background:var(--plate3);border:1px solid var(--rule);color:var(--engrave-lo);flex:1;
+  font-size:21px;font-weight:600;height:62px}
+.d-toggle button[aria-pressed="true"]{background:var(--engrave);border-color:var(--engrave);color:var(--plate)}
+
+/* E — fewer, larger controls */
+.e-stack{bottom:92px;display:grid;gap:14px;grid-template-rows:repeat(3,1fr);left:28px;position:absolute;right:28px;top:94px}
+.e-row{align-items:center;background:var(--plate2);border:1px solid var(--rule);display:grid;
+  gap:22px;grid-template-columns:190px 1fr 170px;padding:18px 22px}
+.e-row .value{font-size:48px;text-align:right}
+.e-slider{height:72px;position:relative}
+.e-slider .track{background:var(--plate3);border:1px solid var(--rule);height:34px;left:0;position:absolute;right:0;top:19px}
+.e-slider .fill{background:var(--warm);bottom:0;left:0;position:absolute;top:0}
+.e-slider .thumb{align-items:center;background:var(--engrave);border:5px solid var(--plate2);color:var(--plate);
+  display:flex;font-size:12px;font-weight:700;height:68px;justify-content:center;letter-spacing:.08em;position:absolute;
+  top:-18px;transform:translateX(-50%);width:58px}
+.e-select{display:flex;gap:12px}
+.e-select button{background:var(--plate3);border:1px solid var(--rule);color:var(--engrave-lo);flex:1;
+  font-size:20px;font-weight:600;height:72px;padding:0 12px}
+.e-select button[aria-pressed="true"]{background:var(--warm);border-color:var(--warm);color:#161819}
+.e-row.choice{grid-template-columns:190px 1fr}
+.e-row.choice .label strong{color:var(--engrave);display:block;font-size:27px;letter-spacing:.02em;margin-top:7px;text-transform:none}
+
+.summary{border-top:1px solid #34393d;margin-top:62px;padding-top:26px}
+.summary h2{color:var(--engrave);font-family:'Saira Condensed',sans-serif;font-size:30px;letter-spacing:.05em;text-transform:uppercase}
+.summary table{border-collapse:collapse;font-family:system-ui,sans-serif;font-size:14px;margin-top:18px;width:100%}
+.summary th,.summary td{border-bottom:1px solid #303539;padding:13px 12px;text-align:left}
+.summary th{color:#d7dbdd;font-weight:600}.summary td{color:#90979b}
+.summary td:first-child{color:#d7dbdd;font-weight:600;white-space:nowrap}
+@media(max-width:720px){body{padding:28px 12px 64px}h1{font-size:40px}.study-head{align-items:flex-start;flex-direction:column;gap:8px}.study-head .verdict{margin-left:0;text-align:left}.summary{overflow:auto}.summary table{min-width:760px}}
+</style>
+</head>
+<body>
+<!--
+  PARAMETER CONTROL STUDY — extension of the established Panel direction.
+  THESIS: Every continuous control visibly invites a drag; every choice visibly invites a tap.
+  OWN-WORLD: Slate palette, Saira nomenclature, flat RGB565-safe planes, engraved hierarchy.
+  TASK: Compare five LVGL-feasible control systems at the real 1280×720 device resolution.
+  CONSTRAINT: Visible thumb >=24 px; touch lane and every choice >=52 px; no gradients or glow.
+-->
+<main class="doc">
+  <header class="intro">
+    <h1>Touch parameter<br>control studies</h1>
+    <p class="lede">Five ways to keep Ardor’s instrument-panel language while making continuous parameters unmistakably draggable and discrete choices easy to change with a fingertip. The controls below work: drag a rail or tap an option.</p>
+    <div class="principles"><span>1280 × 720 device grid</span><span>52 px minimum choices</span><span>Visible slider thumbs</span><span>Flat RGB565-safe planes</span></div>
+  </header>
+
+  <section class="study">
+    <header class="study-head"><div><h2>Rail + thumb</h2><p>The smallest structural change: keep the panel grid, but replace the hairline travel scale with a conventional recessed rail and a 44 × 54 px grab handle.</p></div><p class="verdict">Selected direction<br>3 × 2 in production</p></header>
+    <div class="shell"><div class="stage"><div class="screen">
+      <div class="topbar"><div class="effect">Tape delay</div><div class="meta">D1 · controls 1–4 of 6</div><div class="spacer"></div><div class="state"><i></i>Enabled</div><div class="action">Bypass</div><div class="action primary">Done</div></div>
+      <div class="a-grid">
+        <div class="a-card"><div class="head"><span class="label">Time</span><span class="value"><span data-output>380</span><small>ms</small></span></div><div class="rail-control slider" data-value="38"><div class="track"><i class="fill"></i><i class="thumb"></i></div><span class="end">80 ms</span><span class="end max">880 ms</span><input class="range-hit" aria-label="Time" type="range" min="0" max="100" value="38" data-multiplier="10"></div></div>
+        <div class="a-card"><div class="head"><span class="label">Feedback</span><span class="value"><span data-output>34</span><small>%</small></span></div><div class="rail-control slider" data-value="34"><div class="track"><i class="fill"></i><i class="thumb"></i></div><span class="end">0%</span><span class="end max">100%</span><input class="range-hit" aria-label="Feedback" type="range" min="0" max="100" value="34"></div></div>
+        <div class="a-card choice"><div class="head"><span class="label">Modulation style</span><span class="value choice-value">Tape</span></div><div class="a-options select" data-choice><button type="button">Clean</button><button type="button" aria-pressed="true">Tape</button><button type="button">Lo-fi</button></div></div>
+        <div class="a-card choice"><div class="head"><span class="label">Heads</span><span class="value choice-value">Dual</span></div><div class="a-options select" data-choice><button type="button">Single</button><button type="button" aria-pressed="true">Dual</button><button type="button">Triple</button></div></div>
+      </div>
+      <div class="hintbar"><b>Drag the amber handle</b>&nbsp; or tap anywhere on its rail<div class="spacer"></div><span class="touch-note">64 px option targets</span></div>
+    </div></div></div>
+  </section>
+
+  <section class="study">
+    <header class="study-head"><div><h2>Console strips</h2><p>One parameter per horizontal channel strip. Labels, travel, and values align into fixed columns; choice controls use the same central interaction lane as sliders.</p></div><p class="verdict">Fastest scan<br>at arm’s length</p></header>
+    <div class="shell"><div class="stage"><div class="screen">
+      <div class="topbar"><div class="effect">Chorus</div><div class="meta">M1 · page 1 of 2</div><div class="spacer"></div><div class="state"><i></i>Enabled</div><div class="action">Bypass</div><div class="action primary">Done</div></div>
+      <div class="b-list">
+        <div class="b-row"><span class="label">Rate</span><div class="strip-control slider" data-value="46"><div class="track"><i class="fill"></i><i class="thumb"></i></div><input class="range-hit" aria-label="Rate" type="range" min="0" max="100" value="46"></div><span class="value"><span data-output>46</span><small>%</small></span></div>
+        <div class="b-row"><span class="label">Depth</span><div class="strip-control slider" data-value="72"><div class="track"><i class="fill"></i><i class="thumb"></i></div><input class="range-hit" aria-label="Depth" type="range" min="0" max="100" value="72"></div><span class="value"><span data-output>72</span><small>%</small></span></div>
+        <div class="b-row choice-row"><span class="label">Waveform</span><div class="strip-select select" data-choice><button type="button" aria-pressed="true">Sine</button><button type="button">Triangle</button><button type="button">Square</button></div><span class="choice-readout choice-value">Sine</span></div>
+        <div class="b-row choice-row"><span class="label">Voices</span><div class="strip-select select" data-choice><button type="button">2</button><button type="button" aria-pressed="true">4</button><button type="button">6</button><button type="button">8</button></div><span class="choice-readout choice-value">4</span></div>
+      </div>
+      <div class="hintbar"><b>One row, one task.</b>&nbsp; The whole 64 px center lane is interactive.<div class="spacer"></div><span class="touch-note">60 px option targets</span></div>
+    </div></div></div>
+  </section>
+
+  <section class="study">
+    <header class="study-head"><div><h2>Fader bay</h2><p>Turn the parameters into four unmistakable console faders. A dedicated choice bay gets full-width, finger-sized rows instead of compressing five labels into one strip.</p></div><p class="verdict">Strongest slider<br>recognition</p></header>
+    <div class="shell"><div class="stage"><div class="screen">
+      <div class="topbar"><div class="effect">Compressor</div><div class="meta">Dynamics · page 1 of 3</div><div class="spacer"></div><div class="state"><i></i>Enabled</div><div class="action">Bypass</div><div class="action primary">Done</div></div>
+      <div class="c-bay">
+        <div class="c-fader"><span class="label">Threshold</span><span class="value">−<span data-output>24</span><small>dB</small></span><div class="v-control slider vertical" data-value="60"><div class="track"><i class="fill"></i><i class="thumb"></i></div><input class="range-hit" aria-label="Threshold" type="range" min="0" max="100" value="60" data-display="inverse-db"></div><div class="c-scale"><span>−60</span><span>0</span></div></div>
+        <div class="c-fader"><span class="label">Ratio</span><span class="value"><span data-output>4</span><small>: 1</small></span><div class="v-control slider vertical" data-value="48"><div class="track"><i class="fill"></i><i class="thumb"></i></div><input class="range-hit" aria-label="Ratio" type="range" min="0" max="100" value="48" data-display="ratio"></div><div class="c-scale"><span>1</span><span>20</span></div></div>
+        <div class="c-fader"><span class="label">Attack</span><span class="value"><span data-output>10</span><small>ms</small></span><div class="v-control slider vertical" data-value="35"><div class="track"><i class="fill"></i><i class="thumb"></i></div><input class="range-hit" aria-label="Attack" type="range" min="0" max="100" value="35" data-display="attack"></div><div class="c-scale"><span>0.1</span><span>200</span></div></div>
+        <div class="c-fader"><span class="label">Mix</span><span class="value"><span data-output>82</span><small>%</small></span><div class="v-control slider vertical" data-value="82"><div class="track"><i class="fill"></i><i class="thumb"></i></div><input class="range-hit" aria-label="Mix" type="range" min="0" max="100" value="82"></div><div class="c-scale"><span>0</span><span>100</span></div></div>
+        <div class="c-choice"><span class="label">Detector</span><span class="value choice-value">RMS</span><div class="c-options select" data-choice><button type="button"><span>Peak</span><i></i></button><button type="button" aria-pressed="true"><span>RMS</span><i></i></button><button type="button"><span>Adaptive</span><i></i></button></div></div>
+      </div>
+      <div class="hintbar"><b>Drag vertically</b>&nbsp; like a mixer; tap a detector row to select.<div class="spacer"></div><span class="touch-note">64 px choice rows</span></div>
+    </div></div></div>
+  </section>
+
+  <section class="study">
+    <header class="study-head"><div><h2>Stepped travel</h2><p>A continuous control with discrete visual footholds: the blocks communicate direction and amount, while the outlined thumb still says “drag me.” Best for rough changes under stage pressure.</p></div><p class="verdict">Best peripheral<br>value reading</p></header>
+    <div class="shell"><div class="stage"><div class="screen">
+      <div class="topbar"><div class="effect">Flanger</div><div class="meta">M2 · four controls</div><div class="spacer"></div><div class="state"><i></i>Enabled</div><div class="action">Bypass</div><div class="action primary">Done</div></div>
+      <div class="d-grid">
+        <div class="d-unit"><div class="head"><span class="label">Feedback</span><span class="value"><span data-output>34</span><small>%</small></span></div><div class="step-control slider" data-value="34"><div class="step-track"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><i class="thumb"></i><input class="range-hit" aria-label="Feedback" type="range" min="0" max="100" value="34"></div></div>
+        <div class="d-unit"><div class="head"><span class="label">Delay</span><span class="value"><span data-output>62</span><small>%</small></span></div><div class="step-control slider" data-value="62"><div class="step-track"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><i class="thumb"></i><input class="range-hit" aria-label="Delay" type="range" min="0" max="100" value="62"></div></div>
+        <div class="d-unit"><div class="head"><span class="label">Waveform</span><span class="value choice-value">Triangle</span></div><div class="d-options select" data-choice><button type="button">Sine</button><button type="button" aria-pressed="true">Triangle</button><button type="button">Saw</button><button type="button">Square</button><button type="button">Random</button></div></div>
+        <div class="d-unit"><div class="head"><span class="label">Through zero</span><span class="value choice-value">On</span></div><div class="d-toggle select" data-choice><button type="button">Off</button><button type="button" aria-pressed="true">On</button></div></div>
+      </div>
+      <div class="hintbar"><b>Blocks show amount; the amber gate shows the exact value.</b><div class="spacer"></div><span class="touch-note">62 px option targets</span></div>
+    </div></div></div>
+  </section>
+
+  <section class="study">
+    <header class="study-head"><div><h2>Focus lanes</h2><p>Show only three controls at once and spend the reclaimed space on huge interaction lanes. This is the calmest, most forgiving concept for the device screen.</p></div><p class="verdict">Best overall<br>touch accuracy</p></header>
+    <div class="shell"><div class="stage"><div class="screen">
+      <div class="topbar"><div class="effect">Tape delay</div><div class="meta">D1 · page 1 of 2</div><div class="spacer"></div><div class="state"><i></i>Enabled</div><div class="action">Next 3</div><div class="action primary">Done</div></div>
+      <div class="e-stack">
+        <div class="e-row"><span class="label">Time</span><div class="e-slider slider" data-value="38"><div class="track"><i class="fill"></i><i class="thumb">Drag</i></div><input class="range-hit" aria-label="Time" type="range" min="0" max="100" value="38" data-multiplier="10"></div><span class="value"><span data-output>380</span><small>ms</small></span></div>
+        <div class="e-row"><span class="label">Feedback</span><div class="e-slider slider" data-value="34"><div class="track"><i class="fill"></i><i class="thumb">Drag</i></div><input class="range-hit" aria-label="Feedback" type="range" min="0" max="100" value="34"></div><span class="value"><span data-output>34</span><small>%</small></span></div>
+        <div class="e-row choice"><span class="label">Modulation style<strong class="choice-value">Tape</strong></span><div class="e-select select" data-choice><button type="button">Clean</button><button type="button" aria-pressed="true">Tape</button><button type="button">Lo-fi</button><button type="button">Worn</button></div></div>
+      </div>
+      <div class="hintbar"><b>Three controls per page.</b>&nbsp; Swipe the panel or tap “Next 3” for the rest.<div class="spacer"></div><span class="touch-note">72 px option targets</span></div>
+    </div></div></div>
+  </section>
+
+  <section class="summary">
+    <h2>Trade-off map</h2>
+    <table><thead><tr><th>Concept</th><th>Recognition</th><th>Touch</th><th>Density</th><th>LVGL cost</th><th>Best reason to choose it</th></tr></thead><tbody>
+      <tr><td>Rail + thumb</td><td>High</td><td>High</td><td>4 / page</td><td>Low</td><td>Fixes the issue without changing the parameter-page mental model.</td></tr>
+      <tr><td>Console strips</td><td>High</td><td>High</td><td>4 / page</td><td>Low</td><td>Fast left-to-right scanning and consistent interaction lanes.</td></tr>
+      <tr><td>Fader bay</td><td>Very high</td><td>High</td><td>4 + choice</td><td>Medium</td><td>No player can mistake a mixer fader for static decoration.</td></tr>
+      <tr><td>Stepped travel</td><td>High</td><td>High</td><td>4 / page</td><td>Medium</td><td>Amount remains legible from peripheral vision and a steep angle.</td></tr>
+      <tr><td>Focus lanes</td><td>Very high</td><td>Very high</td><td>3 / page</td><td>Low</td><td>Largest targets and clearest hierarchy; pagination is the trade-off.</td></tr>
+    </tbody></table>
+  </section>
+</main>
+<script>
+function positionSlider(root){
+  const input=root.querySelector('input');
+  const value=Number(input.value);
+  const min=Number(input.min||0),max=Number(input.max||100);
+  const pct=(value-min)/(max-min)*100;
+  root.dataset.value=String(pct);
+  const fill=root.querySelector('.fill');
+  const thumb=root.querySelector('.thumb');
+  if(root.classList.contains('vertical')){
+    if(fill) fill.style.height=pct+'%';
+    if(thumb) thumb.style.bottom=pct+'%';
+  }else{
+    if(fill) fill.style.width=pct+'%';
+    if(thumb) thumb.style.left=pct+'%';
+  }
+  root.querySelectorAll('.step-track i').forEach((step,index)=>step.classList.toggle('on',index < Math.ceil(pct/10)));
+  const card=root.closest('.a-card,.b-row,.c-fader,.d-unit,.e-row');
+  const output=card?.querySelector('[data-output]');
+  if(output){
+    let shown=value;
+    if(input.dataset.multiplier) shown=Math.round(value*Number(input.dataset.multiplier));
+    if(input.dataset.display==='inverse-db') shown=Math.round(60-(value*.6));
+    if(input.dataset.display==='ratio') shown=Math.max(1,Math.round(1+value*.063));
+    if(input.dataset.display==='attack') shown=Math.max(1,Math.round(value*.29));
+    output.textContent=String(shown);
+  }
+}
+document.querySelectorAll('.slider').forEach(slider=>{
+  positionSlider(slider);
+  slider.querySelector('input').addEventListener('input',()=>positionSlider(slider));
+});
+document.querySelectorAll('[data-choice]').forEach(group=>{
+  group.addEventListener('click',event=>{
+    const button=event.target.closest('button');
+    if(!button)return;
+    group.querySelectorAll('button').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
+    const owner=group.closest('.a-card,.b-row,.c-choice,.d-unit,.e-row');
+    const output=owner?.querySelector('.choice-value');
+    if(output)output.textContent=button.textContent.trim();
+  });
+});
+function fit(){
+  document.querySelectorAll('.stage').forEach(stage=>{
+    const shell=stage.parentElement;
+    const scale=Math.min(1,shell.clientWidth/1280);
+    stage.style.transform=`scale(${scale})`;
+    shell.style.height=`${720*scale}px`;
+  });
+}
+addEventListener('resize',fit);fit();document.fonts?.ready.then(fit);
+</script>
+</body>
+</html>
