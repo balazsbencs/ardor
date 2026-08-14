@@ -59,6 +59,17 @@ lv_obj_t* findLabel(lv_obj_t* parent, const char* text)
   return nullptr;
 }
 
+lv_obj_t* findNestedLabel(lv_obj_t* parent, const char* text)
+{
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    lv_obj_t* child = lv_obj_get_child(parent, static_cast<int32_t>(i));
+    if (!lv_obj_check_type(child, &lv_label_class)) {
+      if (auto* result = findLabel(child, text)) return result;
+    }
+  }
+  return nullptr;
+}
+
 lv_obj_t* findLabelContaining(lv_obj_t* parent, const char* text)
 {
   if (lv_obj_check_type(parent, &lv_label_class)
@@ -779,7 +790,10 @@ int main()
               "an unfocused slider's key label should read as muted engraving")) return 1;
   lv_obj_t* typeLabel = findLabel(lv_screen_active(), "TYPE");
   lv_obj_t* typeSlider = typeLabel ? lv_obj_get_parent(typeLabel) : nullptr;
-  lv_obj_t* photoresistorValue = typeSlider ? findLabel(typeSlider, "Photoresistor") : nullptr;
+  // A discrete card renders the selected value once as its readout and again
+  // inside the segmented option row. Target the nested copy so these checks
+  // exercise the option button rather than the card itself.
+  lv_obj_t* photoresistorValue = typeSlider ? findNestedLabel(typeSlider, "Photoresistor") : nullptr;
   lv_area_t typeSliderArea{};
   lv_area_t photoresistorArea{};
   if (typeSlider) lv_obj_get_coords(typeSlider, &typeSliderArea);
@@ -1126,8 +1140,10 @@ int main()
   depthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
   depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
-  if (require(depthFill && lv_obj_get_width(depthFill) == 345,
-              "maximum slider value should fill the complete control")) return 1;
+  lv_obj_t* depthRail = depthSlider ? findObjectWithHeight(depthSlider, 18) : nullptr;
+  if (require(depthFill && depthRail
+                && lv_obj_get_width(depthFill) == lv_obj_get_width(depthRail) - 2,
+              "maximum slider value should fill the rail interior")) return 1;
 
   ui.selectGlobalParams(state);
   ui.build(lv_screen_active(), state);

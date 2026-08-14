@@ -22,8 +22,8 @@ namespace pedal {
 /// fifth, let alone sweep continuously through one.
 class WhammyMode : public ModMode {
 public:
-    static constexpr int WHAMMY_PRESETS  = 10;
-    static constexpr int HARMONY_PRESETS = 9;
+    // 10 Whammy presets followed by 9 Harmony presets, on one selector.
+    static constexpr int PRESET_COUNT = 19;
 
     void Init() override;
     void Reset() override;
@@ -56,6 +56,7 @@ private:
     float ratio_step_      = 0.0f;
 
     bool  harmony_        = false;
+    float harmony_level_  = 1.0f;
     int   preset_         = 0;
     bool  seeded_         = false;
 };

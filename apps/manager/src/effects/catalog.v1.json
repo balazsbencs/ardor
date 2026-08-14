@@ -1657,7 +1657,7 @@
       "blockType": "mod",
       "mode": "whammy",
       "name": "Whammy",
-      "description": "Pedal-swept pitch shifter with Whammy and Harmony interval sets.",
+      "description": "Pedal-swept pitch shifter. Ten Whammy presets and nine Harmony presets on one selector.",
       "category": "modulation",
       "aliases": [
         "pitch shifter",
@@ -1680,7 +1680,7 @@
         {
           "kind": "number",
           "key": "depth",
-          "label": "Mode",
+          "label": "Harmony Level",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1723,7 +1723,7 @@
           "label": "Preset",
           "minimum": 0,
           "maximum": 1,
-          "step": 0.05,
+          "step": 0.052632,
           "unit": "percent",
           "defaultValue": 0.0
         },

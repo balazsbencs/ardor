@@ -245,6 +245,16 @@ float mappedReverb(float normalized, std::string_view mode, pedal::reverb_fx::Pa
   return pedal::map_param(normalized, pedal::reverb_fx::get_param_range(reverbMode(mode), id));
 }
 
+// Whammy selector, matching kPresets in whammy_mode.cpp: ten Whammy modes then
+// nine Harmony modes.
+constexpr std::array<std::string_view, 19> kWhammyPresets{
+    "2 Oct up", "1 Oct up", "5th up", "4th up", "2nd dn",
+    "4th dn", "5th dn", "1 Oct dn", "2 Oct dn", "Dive bomb",
+    "Oct dn / Oct up", "5th dn / 4th dn", "4th dn / 3rd dn",
+    "5th up / 7th up", "5th up / 6th up", "4th up / 5th up",
+    "3rd up / 4th up", "Min 3rd up / 3rd up", "2nd up / 3rd up",
+};
+
 std::string formatMod(std::string_view mode, std::string_view key, float normalized)
 {
   using Id = pedal::mod_fx::ParamId;
@@ -254,12 +264,16 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "auto_swell") return milliseconds(physical * 1000.0f);
     if (mode == "destroyer") return number(physical, physical < 10.0f ? 1 : 0, "x");
     if (mode == "poly_octave") return percent((physical - 0.05f) / 9.95f);
+    // Whammy Speed is a glide time: the pedal follows over ~50 ms at the
+    // slow end and ~1 ms at the fast end.
+    if (mode == "whammy") return milliseconds(1.0f / (0.02f + normalized * 0.95f));
     return frequency(physical);
   }
   if (key == "depth") {
     if (mode == "destroyer") return number(16.0f - static_cast<int>(normalized * 15.0f), 0, " bit");
     if (mode == "auto_swell") return number(20.0f * std::log10(1.0f + normalized), 1, " dB");
     if (mode == "quadrature") return std::string{"+/-"} + frequency(normalized * 80.0f);
+    if (mode == "whammy") return percent(normalized);
     return percent(normalized);
   }
   if (key == "mix") return percent(normalized);
@@ -280,6 +294,11 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "pattern_trem") return "Pattern " + std::to_string(std::min(16, static_cast<int>(normalized * 16.0f) + 1));
     if (mode == "auto_swell") return milliseconds(50.0f + normalized * 1950.0f);
     if (mode == "rotary") return number(1.0f + normalized * normalized * 0.6f, 1, "x");
+    if (mode == "whammy") {
+      if (normalized <= 0.001f) return "Heel";
+      if (normalized >= 0.999f) return "Toe";
+      return percent(normalized);
+    }
     return percent(normalized);
   }
   if (key == "p2") {
@@ -291,7 +310,8 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "pattern_trem") return choice(normalized, std::array<std::string_view, 3>{"16th", "8th", "Triplet"});
     if (mode == "filter") return choice(normalized, std::array<std::string_view, 8>{"Sine", "Triangle", "Square", "Ramp up", "Ramp down", "Sample & hold", "Envelope+", "Envelope-"});
     if (mode == "formant") return choice(normalized, std::array<std::string_view, 7>{"Ah", "Oh", "Oo", "Ee", "Ay", "Ah-Oh", "Oo-Oh"});
-    if (mode == "quadrature") return choice(normalized, std::array<std::string_view, 4>{"AM", "FM", "Shift +", "Shift -"});
+    if (mode == "quadrature") return choice(normalized, std::array<std::string_view, 4>{"AM", "Warble", "Shift +", "Shift -"});
+    if (mode == "whammy") return choice(normalized, kWhammyPresets);
     if (mode == "auto_swell") return percent(normalized * 0.30f);
     return percent(normalized);
   }
@@ -419,7 +439,7 @@ const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
     mod("formant", "Formant", "Resonance", "Vowel"),
     mod("quadrature", "Quadrature", "Blend / Spread", "Mode", 1.0f, "Frequency", "FM Depth"),
     mod("destroyer", "Destroyer", "Filter Resonance", "Noise", 1.0f, "Decimation", "Bits"),
-    mod("whammy", "Whammy", "Pedal", "Preset", 1.0f, "Glide", "Mode"),
+    mod("whammy", "Whammy", "Pedal", "Preset", 1.0f, "Glide", "Harmony Level"),
     delay("digital", "Digital Delay", "Saturation", "Mod Rate", "Mod Depth"),
     delay("tape", "Tape Delay", "Saturation", "Flutter Rate", "Flutter"),
     delay("dual", "Dual Delay", "Ping-Pong"),
@@ -499,6 +519,7 @@ DaisyFxParamControlSpec daisyFxParamControlSpec(const DaisyFxDescriptor& effect,
       else if (mode == "vintage_trem" || mode == "pattern_trem") choiceCount = 3;
       else if (mode == "filter") choiceCount = 8;
       else if (mode == "quadrature") choiceCount = 4;
+      else if (mode == "whammy") choiceCount = 19;
     }
   } else if (effect.kind == DaisyFxKind::Delay) {
     if (key == "grit" && (mode == "filter" || mode == "pattern")) choiceCount = 3;
