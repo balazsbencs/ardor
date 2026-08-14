@@ -2,7 +2,7 @@
 
 All notable changes are generated from Conventional Commit messages.
 
-## [0.1.30](https://github.com/balazsbencs/ardor/compare/v0.1.24...v0.1.30) (2026-08-13)
+## [0.1.31](https://github.com/balazsbencs/ardor/compare/v0.1.24...v0.1.31) (2026-08-14)
 
 ### Features
 
@@ -14,16 +14,20 @@ All notable changes are generated from Conventional Commit messages.
 * **eq:** add selectable pass-filter slopes ([cfc7bf2](https://github.com/balazsbencs/ardor/commit/cfc7bf2e2338498009ba19f7958c6ac17866b7ce))
 * ota upgrades with github releases ([4c30392](https://github.com/balazsbencs/ardor/commit/4c3039288453e3371470fab66192d24e282ebe1d))
 * ota upgrades with github releases ([0dba758](https://github.com/balazsbencs/ardor/commit/0dba7580f4ed87932ae5cc2fa070ca0ed18cd955))
+* preset title renaming ([9925eb3](https://github.com/balazsbencs/ardor/commit/9925eb3914913392553463482780b186e00a7aef))
 * **ui:** make block headers full-width drag surfaces ([6cb0463](https://github.com/balazsbencs/ardor/commit/6cb04635bbae5740945ba527a7939e475044e230))
 * **ui:** make block headers full-width drag surfaces ([286284f](https://github.com/balazsbencs/ardor/commit/286284fe8d28ee3bad9f59ed0f7fe2130353daf6))
 * **ui:** redesign preset cards for at-a-glance readability ([4872e71](https://github.com/balazsbencs/ardor/commit/4872e7146ff8210a6f9470d31bb4154c97198926))
 * **ui:** redesign preset cards for at-a-glance readability ([a8de1af](https://github.com/balazsbencs/ardor/commit/a8de1af17328a09d353e9430e53a55d2f80f0ac3))
+* **ui:** replace parameter sliders with rail controls ([e094b6b](https://github.com/balazsbencs/ardor/commit/e094b6be3bd29c2c09c1cc616c68ebecf83a5c1f))
 * **wah:** add GCB-95 wah effect ([3ed7bc3](https://github.com/balazsbencs/ardor/commit/3ed7bc32d036511c7bbf88010faee9591395c7ec))
+* whammy mode + dsp quality fixes ([fc7cefc](https://github.com/balazsbencs/ardor/commit/fc7cefc1314a1ba6505437dd0bee655166a5d0fe))
 
 ### Bug Fixes
 
 * codeql issue fix ([be19676](https://github.com/balazsbencs/ardor/commit/be1967678c1208856cfbcd374c7f12a91f107892))
 * codeql issue fix ([a60b04e](https://github.com/balazsbencs/ardor/commit/a60b04eb13d676dca2e3fdc7c3e691c1b822f3b3))
+* parameter window and test issues ([b2887ee](https://github.com/balazsbencs/ardor/commit/b2887eebde8b13e14bb7e1726ff2d102cd1a4e26))
 
 ## [0.1.24](https://github.com/balazsbencs/ardor/compare/v0.1.23...v0.1.24) (2026-08-13)
 
