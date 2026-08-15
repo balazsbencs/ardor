@@ -495,3 +495,10 @@ elseif(UNIX)
   target_link_libraries(ardor_audio PRIVATE pthread m dl)
   target_link_libraries(audio-probe PRIVATE pthread m dl)
 endif()
+
+# Optional: VST3/CLAP wrapper around the Whammy mode for DAW testing.
+# Not part of the pedal image; pulls DPF only when explicitly enabled.
+option(ARDOR_BUILD_WHAMMY_PLUGIN "Build the Whammy VST3/CLAP plugin" OFF)
+if(ARDOR_BUILD_WHAMMY_PLUGIN)
+  add_subdirectory(plugins/whammy-vst)
+endif()
