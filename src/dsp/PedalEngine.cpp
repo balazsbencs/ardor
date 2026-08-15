@@ -7,6 +7,7 @@
 #include "dsp/DualRigProcessor.h"
 #include "dynamics/CompressorProcessor.h"
 #include "dynamics/NoiseGateProcessor.h"
+#include "cheese/CheeseProcessor.h"
 #include "dynamics/TransientShaperProcessor.h"
 #include "equalizer/EqParameters.h"
 #include "wah/WahProcessor.h"
@@ -259,6 +260,13 @@ bool PedalEngine::setTransientShaperParameter(const std::string& id, const std::
 bool PedalEngine::addDistortion(std::string id, const nlohmann::json& params,
                                 float sampleRate, std::string& error)
 {
+  const auto mode = params.value("mode", std::string{"rat"});
+  if (mode == "big_cheese") {
+    CheeseProcessor processor;
+    if (!processor.configure(params, sampleRate, error)) return false;
+    chain_.addDistortion(std::move(id), std::move(processor));
+    return true;
+  }
   RatProcessor processor;
   if (!processor.configure(params, sampleRate, error)) return false;
   chain_.addDistortion(std::move(id), std::move(processor));

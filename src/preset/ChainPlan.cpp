@@ -41,7 +41,9 @@ bool isSupportedEqBlock(const std::string& type, const nlohmann::json& params)
 
 bool isSupportedDistortionBlock(const std::string& type, const nlohmann::json& params)
 {
-  return type == "distortion" && params.value("mode", std::string{"rat"}) == "rat";
+  if (type != "distortion") return false;
+  const auto mode = params.value("mode", std::string{"rat"});
+  return mode == "rat" || mode == "big_cheese";
 }
 
 bool isSupportedWahBlock(const std::string& type, const nlohmann::json& params)

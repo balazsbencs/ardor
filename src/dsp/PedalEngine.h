@@ -36,6 +36,8 @@ public:
   bool addCompressor(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool addNoiseGate(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool addTransientShaper(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
+  // Dispatches on the mode: the RAT and the Big Cheese are both distortion
+  // blocks and share the parameter path below.
   bool addDistortion(std::string id, const nlohmann::json& params, float sampleRate,
                      std::string& error);
   bool setDistortionParameter(const std::string& id, const std::string& key, float value);

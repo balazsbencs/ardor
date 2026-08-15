@@ -12,18 +12,18 @@ import {
 describe("effect catalog", () => {
   const definitions = allEffectDefinitions();
 
-  it("contains the complete unique set of 49 definitions", () => {
-    expect(definitions).toHaveLength(49);
-    expect(new Set(definitions.map(({ id }) => id)).size).toBe(49);
-    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(49);
-    expect(new Set(definitions.map(({ name }) => name)).size).toBe(49);
+  it("contains the complete unique set of 50 definitions", () => {
+    expect(definitions).toHaveLength(50);
+    expect(new Set(definitions.map(({ id }) => id)).size).toBe(50);
+    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(50);
+    expect(new Set(definitions.map(({ name }) => name)).size).toBe(50);
     expect(definitions.every(({ controls }) => controls.length > 0)).toBe(true);
     expect(definitions.filter(({ blockType }) => blockType === "mod")).toHaveLength(15);
     expect(definitions.filter(({ blockType }) => blockType === "delay")).toHaveLength(10);
     expect(definitions.filter(({ blockType }) => blockType === "reverb")).toHaveLength(12);
   });
 
-  it("gives the RAT its own Drive category rather than filing a distortion box under Utility", () => {
+  it("gives the drive pedals their own category rather than filing them under Utility", () => {
     const rat = getEffectDefinition("distortion:rat");
     expect(rat.category).toBe("drive");
     expect(rat.controls).toEqual([
@@ -37,7 +37,15 @@ describe("effect catalog", () => {
       filter: 0.5,
       volume: 0.7,
     });
-    expect(definitions.filter(({ category }) => category === "drive")).toHaveLength(1);
+    const cheese = getEffectDefinition("distortion:big_cheese");
+    expect(cheese.category).toBe("drive");
+    expect(defaultsForDefinition(cheese.id)).toEqual({
+      mode: "big_cheese",
+      fuzz: 0.7,
+      tone: 0.5,
+      volume: 0.7,
+    });
+    expect(definitions.filter(({ category }) => category === "drive")).toHaveLength(2);
   });
 
   it("groups compressor, noise gate, transient shaper, EQ, wah, and the stereo widener under Utility", () => {
@@ -251,7 +259,7 @@ describe("effect catalog", () => {
       expect(findEffectDefinition(block)?.id).toBe(id);
       return { ...block, id: `block-${index + 1}` };
     });
-    expect(blocks).toHaveLength(49);
+    expect(blocks).toHaveLength(50);
   });
 
   it("chooses the next numeric block id and handles nonstandard collisions", () => {

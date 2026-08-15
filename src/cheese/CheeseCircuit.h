@@ -8,15 +8,6 @@
 
 namespace ardor {
 
-// NOT YET WIRED INTO THE CHAIN. The model is derived and behaves correctly —
-// the operating point is physical, the fuzz compresses with playing level, the
-// clipper holds at a silicon drop and the tone stack sweeps — but the runtime
-// solve needs sixteen Newton steps per sample to stay bounded, which is about
-// 1.2 us per oversampled sample. That is several times the whole RAT block and
-// well outside what fits alongside an amp model. The cause is written up at the
-// iteration count in the implementation. Until that is fixed there is no block
-// definition and nothing in either browser.
-//
 // Runtime model of the Big Cheese, evaluated one sample at a time at the
 // OVERSAMPLED rate. It knows nothing about oversampling; CheeseProcessor owns
 // that. Signals are volts, one volt in being about as hot as a humbucker gets,
@@ -54,6 +45,13 @@ public:
   // hold it rather than only seeing what comes out of the tone stack.
   float clipperVolts() const noexcept { return clipperVolts_; }
 
+  // How many samples have left the Newton at its iteration cap without
+  // converging. On musical material this stays at zero, and a test holds it
+  // there. It is worth having at runtime too: if a change to the circuit or the
+  // limiting makes the solve struggle, this is what says so, rather than a
+  // listener eventually noticing crackle.
+  unsigned long long unconvergedSamples() const noexcept { return unconverged_; }
+
 private:
   void rebuild();
 
@@ -66,8 +64,6 @@ private:
   float volume_ = 0.7f;
   float volumeGain_ = 1.0f;
   bool dirty_ = true;
-  // Raised only while reset() charges the bias network, which is not real time.
-  bool settling_ = false;
 
   // --- Input network -----------------------------------------------------
   float inputHighPassCoeff_ = 0.0f;
@@ -77,16 +73,19 @@ private:
 
   // --- Nodal section -----------------------------------------------------
   //
-  // The state is kept in double where everything else here is float. It is an
-  // accumulator: the state matrix sits at a spectral radius of 0.9998, so one
-  // of its modes barely decays, and the input coupling has entries in the
-  // hundreds. A residual of a few microamps, which is all the float noise floor
-  // allows the solve to reach, then integrates into volts over a second of
-  // audio. In double it stays far below anything audible.
-  std::vector<double> state_;
-  std::vector<double> scratch_;
+  // Float is enough. The state was carried in double for a while, on the theory
+  // that a near-unity mode would integrate the solve's residual into an audible
+  // drift. It does not: with the limiting below fixed, twenty seconds of hard
+  // playing leaves the output where it started, and the harmonics agree with a
+  // double-precision run to four decimal places.
+  std::vector<float> state_;
+  std::vector<float> scratch_;
   std::array<float, 3> portVolts_{};
+  // Where each port starts being limited, derived from how hard it drives
+  // the network rather than from the device on its own.
+  std::array<float, 3> critical_{};
   float clipperVolts_ = 0.0f;
+  unsigned long long unconverged_ = 0;
 
   // --- Output stage ------------------------------------------------------
   float feedbackSlope_ = 1.0f;

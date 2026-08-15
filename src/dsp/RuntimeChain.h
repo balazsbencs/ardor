@@ -9,6 +9,7 @@
 #include "dynamics/NoiseGateProcessor.h"
 #include "dynamics/TransientShaperProcessor.h"
 #include "equalizer/EqParameters.h"
+#include "cheese/CheeseProcessor.h"
 #include "rat/RatProcessor.h"
 #include "wah/WahProcessor.h"
 
@@ -59,6 +60,7 @@ public:
   void addTransientShaper(std::string id, TransientShaperProcessor processor);
   void addWah(std::string id, WahProcessor processor);
   void addDistortion(std::string id, RatProcessor processor);
+  void addDistortion(std::string id, CheeseProcessor processor);
   bool addParametricEq(std::string id, const ParametricEqParams& params, float sampleRate, std::string& error);
   bool setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params);
   bool setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,

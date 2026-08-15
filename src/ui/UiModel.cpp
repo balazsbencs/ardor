@@ -144,6 +144,9 @@ std::string assetNameForBlock(const UiState& state, const PresetBlock& block)
   if (block.type == "distortion" && block.params.value("mode", "") == "rat") {
     return "RAT Distortion";
   }
+  if (block.type == "distortion" && block.params.value("mode", "") == "big_cheese") {
+    return "Big Cheese Fuzz";
+  }
   return assetNameForPath(state, block.asset, block.type);
 }
 
@@ -205,6 +208,16 @@ nlohmann::json defaultRatParams()
   };
 }
 
+nlohmann::json defaultCheeseParams()
+{
+  return {
+    {"mode", "big_cheese"},
+    {"fuzz", 0.7f},
+    {"tone", 0.5f},
+    {"volume", 0.7f},
+  };
+}
+
 nlohmann::json defaultStereoWidenerParams()
 {
   return {
@@ -258,6 +271,8 @@ nlohmann::json paramsWithKnownDefaults(const std::string& type, const nlohmann::
     defaults = defaultTransientShaperParams();
   } else if (type == "distortion" && params.value("mode", std::string{"rat"}) == "rat") {
     defaults = defaultRatParams();
+  } else if (type == "distortion" && params.value("mode", "") == "big_cheese") {
+    defaults = defaultCheeseParams();
   } else if (type == "stereo") {
     defaults = defaultStereoWidenerParams();
   } else if (type == "irreverb") {
@@ -324,6 +339,8 @@ UiBlock blockFromAsset(const UiState& state, const UiAsset& asset,
       params = defaultTransientShaperParams();
     } else if (asset.blockType == "distortion" && asset.mode == "rat") {
       params = defaultRatParams();
+    } else if (asset.blockType == "distortion" && asset.mode == "big_cheese") {
+      params = defaultCheeseParams();
     } else if (asset.blockType == "stereo") {
       params = defaultStereoWidenerParams();
     } else if (asset.blockType == "irreverb") {
@@ -426,6 +443,8 @@ void appendDriveAssets(UiState& state)
 {
   state.assets.push_back({"RAT Distortion", "", "drive", "distortion", "rat",
                           "Drive · ProCo RAT circuit"});
+  state.assets.push_back({"Big Cheese Fuzz", "", "drive", "distortion", "big_cheese",
+                          "Drive · Lovetone Big Cheese circuit"});
 }
 
 void appendUtilityAssets(UiState& state)

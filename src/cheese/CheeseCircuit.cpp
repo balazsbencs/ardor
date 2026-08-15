@@ -11,31 +11,30 @@ namespace {
 
 constexpr double kTwoPi = 6.28318530718;
 
-// This count is correct but not yet affordable, and it is why the block is not
-// wired into the chain. See the note at the top of the header.
+// The solve stops when it has converged, with a hard cap. A fixed count was
+// tried at three, four and six: the spectrum of a held tone matches a converged
+// reference at all of them, but a decaying note still leaves isolated samples,
+// scattered through the decay rather than bunched at the onset, where the solve
+// had not finished and the output is out by a third of the peak. Those are
+// sparse enough to miss on a spectrum and audible as crackle.
 //
-// Through most of a waveform the ports move by millivolts a sample and the
-// solve reaches the float noise floor in two steps: traced on a hard-driven
-// two-tone, the residual goes 1.6e-2, 2.7e-5, 3e-6 and then stops improving.
-// But at the steepest part of the waveform two steps are not enough, and an
-// under-solved sample feeds its error into the state through C, whose entries
-// run to several hundred. With the state matrix at a spectral radius of 0.9998
-// that error accumulates rather than decaying, and the model runs away within a
-// second. Sixteen is the lowest count measured to stay bounded.
-//
-// What this needs is a starting point good enough that two steps always suffice,
-// the way the RAT's clipper starts from its open-circuit voltage. Raising the
-// count is the honest placeholder, not the answer.
-constexpr int kNewtonIterations = 16;
+// So it converges instead, and almost always in two or three steps. The cap is
+// what makes this safe in a realtime callback: the cost per sample is bounded
+// whatever the signal does, and the loop cannot spin.
+constexpr int kMaxNewtonIterations = 16;
 
-// Settling is a different problem. From a cold state the coupling caps charge
-// over their own time constants, and while that happens the ports move far
-// enough per sample that three steps do not reach the solution. The error then
-// feeds the state through C, whose entries run to several hundred, and with the
-// state matrix sitting at a spectral radius of 0.9998 it accumulates instead of
-// decaying — the model runs away before it ever sees audio. Settling is not
-// real time, so it simply takes as many steps as it needs.
-constexpr int kSettlingIterations = 24;
+// The target, in volts, and it sits deliberately at the float noise floor: ask
+// for 1e-6 and nothing ever reaches it, ask for 1e-4 and the output is 24 dB
+// worse against a converged reference. At 1e-5 a note lands within 0.003 V of
+// that reference everywhere.
+constexpr float kNewtonTolerance = 1.0e-5f;
+
+// Ending a sample at the cap with a step still larger than this means the solve
+// genuinely gave up, rather than merely running out of float precision short of
+// the target above. That distinction is the whole point of counting: at the
+// target, roughly one sample in eight hundred stops improving before it gets
+// there, and none of them are wrong. This is the threshold the counter uses.
+constexpr float kUnconvergedStepVolts = 1.0e-3f;
 
 // A flat clamp on the step does not work here. It bounds the damage from a bad
 // step but it also bounds the good ones, so convergence goes linear and the
@@ -44,15 +43,36 @@ constexpr int kSettlingIterations = 24;
 // far the exponential has actually moved, which is what SPICE does and what
 // keeps convergence quadratic.
 //
-// A junction is only limited above vcrit, the voltage where its incremental
-// resistance falls below the point at which a Newton step starts overshooting.
-float criticalVolts(float saturationCurrent, float thermalVolts)
+// Where limiting starts. The textbook critical voltage is a property of the
+// device alone, and using it here was the whole problem: these transistors run
+// at 0.47 V, but the network multiplies their current by about a million on the
+// way to the port voltage, so by 0.70 V a step already moves the residual by
+// thousands of volts — while the device-only threshold of 0.74 V has still not
+// engaged. One unlimited step then throws the solve somewhere it takes a dozen
+// iterations to walk back from.
+//
+// So the threshold is derived from the network instead: the voltage at which
+// this port's current would swing the system by more than the supply could. Past
+// that the step is not an answer, it is an overshoot.
+constexpr float kHeadroomVolts = 10.0f;
+
+float criticalVolts(float saturationCurrent, float thermalVolts, float portGainOhms)
 {
-  return thermalVolts * std::log(thermalVolts / (1.41421356f * saturationCurrent));
+  const float current = kHeadroomVolts / std::max(portGainOhms, 1.0f);
+  return thermalVolts * std::log1p(current / saturationCurrent);
 }
+
+// How far a junction may be driven off in one step. Below a few thermal volts
+// it conducts nothing and there is no information in going further, so a step
+// that proposes volts of reverse bias is an overshoot rather than an answer.
+// Leaving it unbounded is what used to cost this solve most of its iterations:
+// one step would throw a port to several volts negative, and the limiting above
+// then walked it back a fraction at a time.
+constexpr float kMaxReverseStepVolts = 0.5f;
 
 float limitJunction(float proposed, float previous, float thermalVolts, float critical)
 {
+  if (proposed < previous - kMaxReverseStepVolts) return previous - kMaxReverseStepVolts;
   if (proposed <= critical || std::fabs(proposed - previous) <= 2.0f * thermalVolts) {
     return proposed;
   }
@@ -141,6 +161,20 @@ void CheeseCircuit::rebuild()
   if (!dirty_) return;
   dirty_ = false;
   matrices_ = deriveCheeseDk(netlist_, {fuzz_, tone_}, static_cast<double>(sampleRate_));
+
+  // The limiting threshold depends on how hard each port drives the network, so
+  // it is recomputed whenever the matrices are.
+  const float bjtVt =
+    static_cast<float>(netlist_.bjtEmissionCoefficient * netlist_.thermalVolts);
+  const float diodeVt =
+    static_cast<float>(netlist_.diodeEmissionCoefficient * netlist_.thermalVolts);
+  for (std::size_t r = 0; r < critical_.size(); ++r) {
+    double gain = 0.0;
+    for (std::size_t c = 0; c < 3; ++c) gain += std::fabs(matrices_.f[r * 3 + c]);
+    critical_[r] = criticalVolts(
+      static_cast<float>(r < 2 ? netlist_.bjtSaturationCurrent : netlist_.diodeSaturationCurrent),
+      r < 2 ? bjtVt : diodeVt, static_cast<float>(gain));
+  }
   state_.assign(matrices_.states, 0.0f);
   scratch_.assign(matrices_.states, 0.0f);
   for (std::size_t i = 0; i < portVolts_.size(); ++i) {
@@ -156,6 +190,7 @@ void CheeseCircuit::reset()
   leg18History_ = 0.0f;
   outputHighPassState_ = 0.0f;
   clipperVolts_ = 0.0f;
+  unconverged_ = 0;
   std::fill(state_.begin(), state_.end(), 0.0f);
   std::fill(scratch_.begin(), scratch_.end(), 0.0f);
   for (std::size_t i = 0; i < portVolts_.size(); ++i) {
@@ -166,10 +201,8 @@ void CheeseCircuit::reset()
   // from a zeroed state the coupling caps charge over a real time constant —
   // the 4.7 uF across the Fuzz pot alone runs to seconds. Running that silently
   // here means the first note after a preset change is not a thump.
-  settling_ = true;
   const auto settle = static_cast<std::size_t>(sampleRate_);
   for (std::size_t i = 0; i < settle; ++i) (void)process(0.0f);
-  settling_ = false;
 }
 
 void CheeseCircuit::setControls(float fuzz, float tone, float volume)
@@ -221,12 +254,11 @@ float CheeseCircuit::process(float input)
   const float bjtIs = static_cast<float>(netlist_.bjtSaturationCurrent);
   const float diodeIs = static_cast<float>(netlist_.diodeSaturationCurrent);
   const float junctions = static_cast<float>(netlist_.clipperJunctionCount);
-  const float bjtCritical = criticalVolts(bjtIs, bjtVt);
-  const float diodeCritical = criticalVolts(diodeIs, diodeVt);
 
   float current[3]{};
-  const int iterations = settling_ ? kSettlingIterations : kNewtonIterations;
-  for (int iteration = 0; iteration < iterations; ++iteration) {
+  bool converged = false;
+  float lastStep = 0.0f;
+  for (int iteration = 0; iteration < kMaxNewtonIterations; ++iteration) {
     float slope[3];
     // Q1 and Q2 carry a base current; the clipper carries a node current with a
     // junction facing each way, one of them doubled by Q3's paired junctions.
@@ -258,12 +290,14 @@ float CheeseCircuit::process(float input)
     }
 
     solve3(jacobian, residual);
+    float largestStep = 0.0f;
     for (int r = 0; r < 3; ++r) {
       auto& port = portVolts_[static_cast<std::size_t>(r)];
+      const float previous = port;
       const float step = std::isfinite(residual[r]) ? residual[r] : 0.0f;
       const float proposed = port - step;
       if (r < 2) {
-        port = limitJunction(proposed, port, bjtVt, bjtCritical);
+        port = limitJunction(proposed, port, bjtVt, critical_[static_cast<std::size_t>(r)]);
       } else {
         // The clipping node conducts either way round, so it is limited on
         // magnitude and the sign put back. Removing this limiting was tried, on
@@ -272,10 +306,17 @@ float CheeseCircuit::process(float input)
         // count. It is load bearing.
         const float sign = proposed < 0.0f ? -1.0f : 1.0f;
         port = sign * limitJunction(std::fabs(proposed), std::fabs(port),
-                                    diodeVt, diodeCritical);
+                                    diodeVt, critical_[2]);
       }
+      largestStep = std::max(largestStep, std::fabs(port - previous));
     }
+    if (largestStep < kNewtonTolerance) {
+      converged = true;
+      break;
+    }
+    lastStep = largestStep;
   }
+  if (!converged && lastStep > kUnconvergedStepVolts) ++unconverged_;
 
   // y = G x + H u + K i
   double out = matrices_.h[0] * buffered + matrices_.h[1] * rail;
@@ -290,7 +331,7 @@ float CheeseCircuit::process(float input)
     const double* row = matrices_.a.data() + r * states;
     for (std::size_t c = 0; c < states; ++c) sum += row[c] * state_[c];
     for (int c = 0; c < 3; ++c) sum += matrices_.c[r * 3 + static_cast<std::size_t>(c)] * current[c];
-    scratch_[r] = sum;
+    scratch_[r] = static_cast<float>(sum);
   }
   state_.swap(scratch_);
 

@@ -1,6 +1,7 @@
 #include "cheese/CheeseCircuit.h"
 #include "cheese/CheeseDk.h"
 #include "cheese/CheeseNetlist.h"
+#include "cheese/CheeseProcessor.h"
 
 #include <algorithm>
 #include <cmath>
@@ -197,6 +198,90 @@ void verifyOutputStaysFinite()
   }
 }
 
+// The circuit clips asymmetrically, so it makes even harmonics as well as odd
+// and puts real energy far above the audio band. Oversampling is the only thing
+// keeping that from folding back in. A 5 kHz tone can only produce energy at
+// multiples of 5 kHz, so whatever lands in a bin that is not a multiple is
+// aliasing and nothing else.
+void verifyOversamplingSuppressesAliasing()
+{
+  constexpr float kHostRate = 48000.0f;
+  constexpr float kTone = 5000.0f;
+
+  ardor::CheeseProcessor processor;
+  std::string error;
+  nlohmann::json params;
+  params["mode"] = "big_cheese";
+  params["fuzz"] = 1.0f;
+  params["tone"] = 0.5f;
+  params["volume"] = 1.0f;
+  require(processor.configure(params, kHostRate, error), error);
+  processor.reset();
+
+  const int frames = static_cast<int>(kHostRate);
+  for (int n = 0; n < frames; ++n) {
+    const float x = 0.3f * std::sin(static_cast<float>(kTwoPi) * kTone * n / kHostRate);
+    processor.process({x, x});
+  }
+  std::vector<float> captured(static_cast<std::size_t>(frames));
+  for (int n = 0; n < frames; ++n) {
+    const float phase = static_cast<float>(kTwoPi) * kTone * (frames + n) / kHostRate;
+    const float x = 0.3f * std::sin(phase);
+    captured[static_cast<std::size_t>(n)] = processor.process({x, x}).left;
+  }
+
+  const auto bin = [&captured](double frequency) {
+    double real = 0.0;
+    double imaginary = 0.0;
+    for (std::size_t n = 0; n < captured.size(); ++n) {
+      const double phase = kTwoPi * frequency * static_cast<double>(n) / kHostRate;
+      real += captured[n] * std::cos(phase);
+      imaginary += captured[n] * std::sin(phase);
+    }
+    return 2.0 * std::hypot(real, imaginary) / static_cast<double>(captured.size());
+  };
+
+  const double fundamental = bin(kTone);
+  require(fundamental > 0.05, "the tone must survive the pedal");
+
+  // Everything an ear can reach. 23 kHz is deliberately left out: that bin is
+  // the fifth harmonic folding through the last decimator's transition band,
+  // which no oversampling ratio reaches, and the RAT measures the same there.
+  for (const double frequency : {1000.0, 2000.0, 3000.0, 8000.0, 13000.0}) {
+    const double relativeDb = 20.0 * std::log10(bin(frequency) / fundamental);
+    require(relativeDb < -45.0,
+            "aliasing must stay far below the signal; at " + std::to_string(frequency)
+              + " Hz it reached " + std::to_string(relativeDb) + " dBc");
+  }
+}
+
+// A decaying note is where an under-converged solve shows up, as isolated
+// samples scattered through the decay rather than anything with a spectrum. A
+// fixed count of four left thirty-six of them across a third of a second, each
+// out by a third of the peak — sparse enough to miss on a spectrum and audible
+// as crackle. Asking the solve to report its own failures is a better test than
+// looking at the waveform, because a hard-clipping edge is a large jump between
+// samples too and the two cannot be told apart from the output alone.
+void verifySolveConvergesOnADecayingNote()
+{
+  ardor::CheeseCircuit circuit;
+  circuit.init(ardor::cheeseNetlist(), kOversampled);
+  circuit.setControls(0.9f, 0.5f, 1.0f);
+  circuit.reset();
+
+  const int frames = static_cast<int>(kOversampled * 0.35f);
+  for (int n = 0; n < frames; ++n) {
+    const float t = static_cast<float>(n) / kOversampled;
+    const float x = 0.6f * std::exp(-t / 0.25f)
+      * (std::sin(static_cast<float>(kTwoPi) * 196.0f * t)
+         + 0.5f * std::sin(static_cast<float>(kTwoPi) * 784.0f * t));
+    require(std::isfinite(circuit.process(x)), "the output must stay finite through a note");
+  }
+  require(circuit.unconvergedSamples() == 0,
+          "every sample of a note must reach the solve's tolerance; "
+            + std::to_string(circuit.unconvergedSamples()) + " did not");
+}
+
 } // namespace
 
 int main()
@@ -209,6 +294,8 @@ int main()
   verifyItCompressesWithPlayingLevel();
   verifyToneSweeps();
   verifyOutputStaysFinite();
+  verifySolveConvergesOnADecayingNote();
+  verifyOversamplingSuppressesAliasing();
   std::printf("cheese smoke passed\n");
   return 0;
 }

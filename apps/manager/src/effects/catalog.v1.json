@@ -769,6 +769,53 @@
       ]
     },
     {
+      "id": "distortion:big_cheese",
+      "blockType": "distortion",
+      "mode": "big_cheese",
+      "name": "Big Cheese Fuzz",
+      "description": "Circuit model of the Lovetone Big Cheese: a two-transistor feedback fuzz into asymmetric clipping and a Big Muff tone stack.",
+      "category": "drive",
+      "aliases": [
+        "big cheese",
+        "lovetone",
+        "fuzz",
+        "muff",
+        "tone bender"
+      ],
+      "controls": [
+        {
+          "kind": "number",
+          "key": "fuzz",
+          "label": "Fuzz",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.7
+        },
+        {
+          "kind": "number",
+          "key": "tone",
+          "label": "Tone",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "volume",
+          "label": "Volume",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.7
+        }
+      ]
+    },
+    {
       "id": "mod:chorus",
       "blockType": "mod",
       "mode": "chorus",

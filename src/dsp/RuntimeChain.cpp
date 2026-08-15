@@ -76,6 +76,7 @@ struct RuntimeChain::Block {
   std::unique_ptr<ParametricEqProcessor> equalizer;
   std::unique_ptr<WahProcessor> wah;
   std::unique_ptr<RatProcessor> distortion;
+  std::unique_ptr<CheeseProcessor> fuzz;
   std::unique_ptr<DualAmpProcessor> dualAmp;
   std::unique_ptr<DualRigProcessor> dualRig;
   std::unique_ptr<LevelState> meter = std::make_unique<LevelState>();
@@ -380,11 +381,21 @@ void RuntimeChain::addDistortion(std::string id, RatProcessor processor)
   blocks_.push_back(std::move(block));
 }
 
+void RuntimeChain::addDistortion(std::string id, CheeseProcessor processor)
+{
+  Block block;
+  block.kind = Block::Kind::Distortion;
+  block.id = std::move(id);
+  block.fuzz = std::make_unique<CheeseProcessor>(std::move(processor));
+  blocks_.push_back(std::move(block));
+}
+
 bool RuntimeChain::setDistortionParameter(const std::string& id, const std::string& key, float value)
 {
   for (auto& block : blocks_) {
     if (block.kind == Block::Kind::Distortion && block.id == id) {
-      return block.distortion->setParameterTarget(key, value);
+      return block.distortion ? block.distortion->setParameterTarget(key, value)
+                              : block.fuzz->setParameterTarget(key, value);
     }
     if (block.kind == Block::Kind::DualRig
         && block.dualRig->setDistortionParameter(id, key, value)) return true;
@@ -496,7 +507,8 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
       current = block.wah->process(current);
       break;
     case Block::Kind::Distortion:
-      current = block.distortion->process(current);
+      current = block.distortion ? block.distortion->process(current)
+                                 : block.fuzz->process(current);
       break;
     case Block::Kind::DualAmp:
       block.dualAmp->process(current.left, current.right, current.left, current.right);
@@ -634,7 +646,9 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       break;
     case Block::Kind::Distortion:
       for (size_t i = 0; i < frames; ++i) {
-        const auto processed = block.distortion->process({currentLeft[i], currentRight[i]});
+        const StereoSample input{currentLeft[i], currentRight[i]};
+        const auto processed =
+          block.distortion ? block.distortion->process(input) : block.fuzz->process(input);
         nextLeft[i] = processed.left;
         nextRight[i] = processed.right;
       }
@@ -798,6 +812,9 @@ void RuntimeChain::reset()
     }
     if (block.distortion) {
       block.distortion->reset();
+    }
+    if (block.fuzz) {
+      block.fuzz->reset();
     }
     if (block.dualAmp) {
       block.dualAmp->reset();
