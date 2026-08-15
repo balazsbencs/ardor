@@ -164,6 +164,12 @@ target_sources(ardor_equalizer PRIVATE
   src/equalizer/ParametricEqProcessor.cpp
 )
 
+add_library(ardor_circuit
+  src/circuit/MnaMatrix.cpp
+)
+target_include_directories(ardor_circuit PUBLIC src)
+target_compile_features(ardor_circuit PUBLIC cxx_std_20)
+
 add_library(ardor_wah
   src/wah/WahNetlist.cpp
   src/wah/WahDk.cpp
@@ -176,6 +182,7 @@ target_include_directories(ardor_wah PUBLIC
   ${neuralampmodelercore_SOURCE_DIR}/Dependencies
 )
 target_compile_features(ardor_wah PUBLIC cxx_std_20)
+target_link_libraries(ardor_wah PUBLIC ardor_circuit)
 
 add_library(ardor_rat
   src/rat/RatNetlist.cpp

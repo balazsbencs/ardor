@@ -1,10 +1,12 @@
 // DK-method derivation for the GCB-95. Topology and component values come from
 // docs/wah-gcb95-netlist.md; read that before changing anything here.
 //
-// The linear algebra is hand-rolled on purpose. The largest system is 19x19,
-// solved once per pot position offline, so a third-party matrix library would
-// be a new build input bought for nothing.
+// The dense linear algebra and the nodal stamping live in circuit/MnaMatrix.h,
+// shared with the other circuit derivations. What stays here is this circuit
+// and nothing else.
 #include "wah/WahDk.h"
+
+#include "circuit/MnaMatrix.h"
 
 #include <algorithm>
 #include <cmath>
@@ -16,72 +18,25 @@
 namespace ardor {
 namespace {
 
-// --- Tiny dense matrix helpers -----------------------------------------
+using circuit::Mat;
+using circuit::multiply;
+using circuit::nodeVoltage;
+using circuit::solve;
+using circuit::stampResistor;
+using circuit::stampVccs;
 
-struct Mat {
-  std::size_t rows = 0;
-  std::size_t cols = 0;
-  std::vector<double> v;
-
-  Mat() = default;
-  Mat(std::size_t r, std::size_t c) : rows(r), cols(c), v(r * c, 0.0) {}
-  double& at(std::size_t r, std::size_t c) { return v[r * cols + c]; }
-  double at(std::size_t r, std::size_t c) const { return v[r * cols + c]; }
-};
-
-Mat multiply(const Mat& a, const Mat& b)
+// The netlist carries the junction parameters, so these keep the call sites
+// below reading as they did before the shared helpers were extracted.
+double diodeCurrent(const WahNetlist& n, double vbe)
 {
-  Mat out(a.rows, b.cols);
-  for (std::size_t i = 0; i < a.rows; ++i) {
-    for (std::size_t k = 0; k < a.cols; ++k) {
-      const double aik = a.at(i, k);
-      if (aik == 0.0) continue;
-      for (std::size_t j = 0; j < b.cols; ++j) {
-        out.at(i, j) += aik * b.at(k, j);
-      }
-    }
-  }
-  return out;
+  return circuit::junctionCurrent(vbe, n.bjtSaturationCurrent,
+                                  n.bjtEmissionCoefficient * n.bjtThermalVolts);
 }
 
-// Solves A X = B by LU with partial pivoting. A is copied and destroyed.
-Mat solve(Mat a, Mat b)
+double diodeConductance(const WahNetlist& n, double vbe)
 {
-  const std::size_t n = a.rows;
-  if (a.cols != n || b.rows != n) throw std::invalid_argument("solve: shape mismatch");
-
-  for (std::size_t col = 0; col < n; ++col) {
-    std::size_t pivot = col;
-    double best = std::fabs(a.at(col, col));
-    for (std::size_t r = col + 1; r < n; ++r) {
-      const double candidate = std::fabs(a.at(r, col));
-      if (candidate > best) {
-        best = candidate;
-        pivot = r;
-      }
-    }
-    if (best < 1e-300) throw std::runtime_error("solve: singular matrix");
-    if (pivot != col) {
-      for (std::size_t j = 0; j < n; ++j) std::swap(a.at(col, j), a.at(pivot, j));
-      for (std::size_t j = 0; j < b.cols; ++j) std::swap(b.at(col, j), b.at(pivot, j));
-    }
-    const double diagonal = a.at(col, col);
-    for (std::size_t r = col + 1; r < n; ++r) {
-      const double factor = a.at(r, col) / diagonal;
-      if (factor == 0.0) continue;
-      for (std::size_t j = col; j < n; ++j) a.at(r, j) -= factor * a.at(col, j);
-      for (std::size_t j = 0; j < b.cols; ++j) b.at(r, j) -= factor * b.at(col, j);
-    }
-  }
-  Mat x(n, b.cols);
-  for (std::size_t j = 0; j < b.cols; ++j) {
-    for (std::size_t i = n; i-- > 0;) {
-      double sum = b.at(i, j);
-      for (std::size_t c = i + 1; c < n; ++c) sum -= a.at(i, c) * x.at(c, j);
-      x.at(i, j) = sum / a.at(i, i);
-    }
-  }
-  return x;
+  return circuit::junctionConductance(vbe, n.bjtSaturationCurrent,
+                                      n.bjtEmissionCoefficient * n.bjtThermalVolts);
 }
 
 // --- Circuit description ------------------------------------------------
@@ -169,48 +124,6 @@ std::vector<Bjt> nonlinearBjts(const WahNetlist& n)
     {kN1, kN8, kN9, n.bjtBeta},
     {kN10, kN11, kVfb, n.bjtBeta},
   };
-}
-
-void stampResistor(Mat& s, int a, int b, double ohms)
-{
-  const double g = 1.0 / ohms;
-  if (a >= 0) s.at(a, a) += g;
-  if (b >= 0) s.at(b, b) += g;
-  if (a >= 0 && b >= 0) {
-    s.at(a, b) -= g;
-    s.at(b, a) -= g;
-  }
-}
-
-// Voltage-controlled current source: gm * (v[cp] - v[cn]) flows out of node
-// `from` and into node `to`.
-void stampVccs(Mat& s, int from, int to, int cp, int cn, double gm)
-{
-  if (from >= 0 && cp >= 0) s.at(from, cp) += gm;
-  if (from >= 0 && cn >= 0) s.at(from, cn) -= gm;
-  if (to >= 0 && cp >= 0) s.at(to, cp) -= gm;
-  if (to >= 0 && cn >= 0) s.at(to, cn) += gm;
-}
-
-double diodeCurrent(const WahNetlist& n, double vbe)
-{
-  // Clamping the exponent argument matters: without it the first Newton step
-  // from a cold start overflows to infinity and never recovers.
-  const double vt = n.bjtEmissionCoefficient * n.bjtThermalVolts;
-  const double arg = std::min(vbe / vt, 40.0);
-  return n.bjtSaturationCurrent * (std::exp(arg) - 1.0);
-}
-
-double diodeConductance(const WahNetlist& n, double vbe)
-{
-  const double vt = n.bjtEmissionCoefficient * n.bjtThermalVolts;
-  const double arg = std::min(vbe / vt, 40.0);
-  return (n.bjtSaturationCurrent / vt) * std::exp(arg);
-}
-
-double nodeVoltage(const std::vector<double>& v, int node)
-{
-  return node < 0 ? 0.0 : v[static_cast<std::size_t>(node)];
 }
 
 // --- DC operating point -------------------------------------------------
