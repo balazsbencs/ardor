@@ -813,6 +813,56 @@ void verifyOutputMixSmoothing()
           "mix automation must ramp rather than step to the wet signal");
 }
 
+// Turning up a flanger's regen must not spend the chain's headroom. A comb
+// resonance sitting on a sustained tone used to add 9.4 dB here, which clipped
+// whatever came next. This holds the block to a bounded peak gain across the
+// whole control, measured where the resonance actually lands.
+void verifyFlangerRegenDoesNotAddHeadroom()
+{
+  const auto* descriptor = ardor::findDaisyFxDescriptor("mod", "flanger");
+  require(descriptor != nullptr, "flanger descriptor exists");
+
+  const auto peakGainDb = [&descriptor](float regen) {
+    double worst = -99.0;
+    // No sweep, so the delay sits still and a tone can settle on the resonance.
+    for (float frequency = 40.0f; frequency < 2000.0f; frequency *= 1.15f) {
+      auto params = ardor::defaultDaisyFxParams(*descriptor);
+      params["mix"] = 1.0f;
+      params["level"] = 0.5f;
+      params["p1"] = regen;
+      params["p2"] = 0.0f;
+      params["speed"] = 0.0f;
+      params["depth"] = 0.0f;
+      params["tone"] = 0.5f;
+
+      ardor::DaisyFxProcessor processor;
+      std::string error;
+      require(processor.configure("mod", params, 48000.0f, error), error);
+
+      constexpr float kAmplitude = 0.3f;
+      double peak = 0.0;
+      for (int n = 0; n < 40000; ++n) {
+        const float x = kAmplitude * std::sin(6.283185f * frequency * n / 48000.0f);
+        const auto y = processor.process({x, x});
+        if (n > 30000) peak = std::max(peak, static_cast<double>(std::fabs(y.left)));
+      }
+      worst = std::max(worst, 20.0 * std::log10(peak / kAmplitude));
+    }
+    return worst;
+  };
+
+  for (const float regen : {0.0f, 0.5f, 0.92f, 1.0f}) {
+    const double gain = peakGainDb(regen);
+    require(gain < 4.0,
+            "regen must not add more than a few dB of peak gain; at " + std::to_string(regen)
+              + " it added " + std::to_string(gain) + " dB");
+  }
+  // And it must still be a flanger: the resonance is the effect, so taking all
+  // of it out would be as wrong as leaving it in.
+  require(peakGainDb(0.92f) > 1.5,
+          "the resonance must survive the compensation");
+}
+
 } // namespace
 
 int main()
@@ -839,4 +889,5 @@ int main()
   verifyReverbReset();
   verifyReverbLatency();
   verifyOutputMixSmoothing();
+  verifyFlangerRegenDoesNotAddHeadroom();
 }
