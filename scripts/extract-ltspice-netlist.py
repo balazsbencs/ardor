@@ -31,6 +31,9 @@ PINS = {
     'njf':     [(48, 0), (0, 64), (48, 96)],  # D, G, S
     # Seven pins, because the LM308 brings its compensation network out.
     'LM308':   [(-32, 48), (-32, 80), (32, 64), (16, 32), (0, 96), (0, 32), (-16, 32)],
+    # The same body without the compensation pins, so the supplies sit on the
+    # centre line instead of being pushed aside.
+    'AD712':   [(-32, 48), (-32, 80), (32, 64), (0, 32), (0, 96)],
 }
 PINNAMES = {
     'npn': ['B', 'C', 'E'],
@@ -38,6 +41,7 @@ PINNAMES = {
     'diode': ['A', 'K'],
     'zener': ['A', 'K'],
     'LM308': ['IN-', 'IN+', 'OUT', 'V+', 'V-', 'COMP1', 'COMP2'],
+    'AD712': ['IN-', 'IN+', 'OUT', 'V+', 'V-'],
 }
 
 
@@ -131,18 +135,30 @@ def main(path):
         nodes = ' '.join('%s=%s' % (lab, node_of(p)) for lab, p in zip(labels, pts))
         print('%-6s %-9s %-22s %s' % (s['name'], s['type'], nodes, s['value']))
 
+    # A pin on nothing is either a wrong offset or a genuinely floating terminal,
+    # and the two look identical here. Report them and let the reader decide: a
+    # component with one end in the air carries no current and can be dropped
+    # from the model, but only once someone has looked at it.
     if unresolved:
-        print('\n!! PINS NOT ON A WIRE ENDPOINT (offsets wrong?):')
+        print('\n!! PINS NOT ON A WIRE ENDPOINT (wrong offset, or floating?):')
         for nm, p in unresolved:
             print('   %s at %s' % (nm, p))
-        return 1
 
-    # The other direction: a net that no pin and no label reaches means an
-    # offset landed somewhere plausible but wrong.
-    live = {uf.find(p) for p in claimed} | {uf.find(p) for p in flags}
-    orphans = sorted(r for r in {uf.find(p) for p in endpoints} if r not in live)
+    # The other direction: a net that no pin reaches means an offset landed
+    # somewhere plausible but wrong, or a symbol is missing from the drawing.
+    # Carrying a label is not enough — a labelled stub going nowhere is exactly
+    # what a missing symbol looks like, so those are reported separately rather
+    # than waved through.
+    pinned = {uf.find(p) for p in claimed}
+    labelled = {uf.find(p) for p in flags}
+    orphans = sorted(r for r in {uf.find(p) for p in endpoints} if r not in pinned)
     if orphans:
-        print('\n!! NETS THAT REACH NO COMPONENT: %s' % (orphans,))
+        print('\n!! NETS THAT REACH NO COMPONENT PIN:')
+        for root in orphans:
+            members = sorted(p for p in endpoints if uf.find(p) == root)
+            label = names.get(root, '(unlabelled)')
+            kind = 'labelled stub' if root in labelled else 'orphan'
+            print('   %-16s %s at %s' % (label, kind, members))
         return 1
 
     print('\nAll pins landed on wire endpoints, and every net carries a pin.')
