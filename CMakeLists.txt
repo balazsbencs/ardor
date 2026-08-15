@@ -142,6 +142,7 @@ target_link_libraries(ardor_daisyfx PUBLIC ardor_daisyfx_runtime)
 add_library(ardor_dynamics
   src/dynamics/CompressorProcessor.cpp
   src/dynamics/NoiseGateProcessor.cpp
+  src/dynamics/TransientShaperProcessor.cpp
 )
 target_include_directories(ardor_dynamics PUBLIC
   src
@@ -414,6 +415,10 @@ target_link_libraries(pedal-tuner-smoke PRIVATE ardor_dsp)
 add_executable(pedal-stereo-widener-smoke tests/stereo_widener_smoke.cpp)
 target_link_libraries(pedal-stereo-widener-smoke PRIVATE ardor_dsp)
 add_test(NAME pedal-stereo-widener-smoke COMMAND pedal-stereo-widener-smoke)
+
+add_executable(pedal-transient-shaper-smoke tests/transient_shaper_smoke.cpp)
+target_link_libraries(pedal-transient-shaper-smoke PRIVATE ardor_dsp)
+add_test(NAME pedal-transient-shaper-smoke COMMAND pedal-transient-shaper-smoke)
 
 add_executable(pedal-harmonizer-smoke tests/harmonizer_smoke.cpp)
 target_link_libraries(pedal-harmonizer-smoke PRIVATE ardor_daisyfx)

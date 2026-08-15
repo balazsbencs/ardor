@@ -17,6 +17,7 @@ enum class SignalStageKind {
   Daisy,
   Compressor,
   NoiseGate,
+  TransientShaper,
   Equalizer,
   Wah,
   StereoWidener,

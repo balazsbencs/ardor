@@ -12,24 +12,25 @@ import {
 describe("effect catalog", () => {
   const definitions = allEffectDefinitions();
 
-  it("contains the complete unique set of 47 definitions", () => {
-    expect(definitions).toHaveLength(47);
-    expect(new Set(definitions.map(({ id }) => id)).size).toBe(47);
-    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(47);
-    expect(new Set(definitions.map(({ name }) => name)).size).toBe(47);
+  it("contains the complete unique set of 48 definitions", () => {
+    expect(definitions).toHaveLength(48);
+    expect(new Set(definitions.map(({ id }) => id)).size).toBe(48);
+    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(48);
+    expect(new Set(definitions.map(({ name }) => name)).size).toBe(48);
     expect(definitions.every(({ controls }) => controls.length > 0)).toBe(true);
     expect(definitions.filter(({ blockType }) => blockType === "mod")).toHaveLength(15);
     expect(definitions.filter(({ blockType }) => blockType === "delay")).toHaveLength(10);
     expect(definitions.filter(({ blockType }) => blockType === "reverb")).toHaveLength(12);
   });
 
-  it("groups compressor, noise gate, EQ, wah, and the stereo widener under Utility", () => {
+  it("groups compressor, noise gate, transient shaper, EQ, wah, and the stereo widener under Utility", () => {
     expect(getEffectDefinition("dynamics:compressor").category).toBe("utility");
     expect(getEffectDefinition("dynamics:noise_gate").category).toBe("utility");
+    expect(getEffectDefinition("dynamics:transient_shaper").category).toBe("utility");
     expect(getEffectDefinition("eq:parametric_eq_5").category).toBe("utility");
     expect(getEffectDefinition("wah:gcb95").category).toBe("utility");
     expect(getEffectDefinition("stereo:widener").category).toBe("utility");
-    expect(definitions.filter(({ category }) => category === "utility")).toHaveLength(5);
+    expect(definitions.filter(({ category }) => category === "utility")).toHaveLength(6);
   });
 
   it("keeps Daisy presets normalized while attaching physical UI displays", () => {
@@ -105,6 +106,25 @@ describe("effect catalog", () => {
       release_ms: 150,
       hysteresis_db: 6,
       sidechain_hpf_hz: 80,
+    });
+  });
+
+  it("matches the transient shaper controls and runtime defaults", () => {
+    const shaper = getEffectDefinition("dynamics:transient_shaper");
+    // Attack and sustain are signed amounts, not the 0-100% the other dynamics
+    // controls use: below zero softens, above zero sharpens.
+    expect(shaper.controls).toEqual([
+      expect.objectContaining({ kind: "number", key: "attack", minimum: -100, maximum: 100, unit: "percent" }),
+      expect.objectContaining({ kind: "number", key: "sustain", minimum: -100, maximum: 100, unit: "percent" }),
+      expect.objectContaining({ kind: "number", key: "mix", minimum: 0, maximum: 1 }),
+      expect.objectContaining({ kind: "number", key: "output_db", minimum: -24, maximum: 24, unit: "db" }),
+    ]);
+    expect(defaultsForDefinition(shaper.id)).toEqual({
+      mode: "transient_shaper",
+      attack: 0,
+      sustain: 0,
+      mix: 1,
+      output_db: 0,
     });
   });
 
@@ -214,7 +234,7 @@ describe("effect catalog", () => {
       expect(findEffectDefinition(block)?.id).toBe(id);
       return { ...block, id: `block-${index + 1}` };
     });
-    expect(blocks).toHaveLength(47);
+    expect(blocks).toHaveLength(48);
   });
 
   it("chooses the next numeric block id and handles nonstandard collisions", () => {

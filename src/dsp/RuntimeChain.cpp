@@ -55,6 +55,7 @@ struct RuntimeChain::Block {
     Daisy,
     Compressor,
     NoiseGate,
+    TransientShaper,
     Equalizer,
     Wah,
     DualAmp,
@@ -70,6 +71,7 @@ struct RuntimeChain::Block {
   std::unique_ptr<DaisyFxProcessor> daisy;
   std::unique_ptr<CompressorProcessor> compressor;
   std::unique_ptr<NoiseGateProcessor> noiseGate;
+  std::unique_ptr<TransientShaperProcessor> transientShaper;
   std::unique_ptr<ParametricEqProcessor> equalizer;
   std::unique_ptr<WahProcessor> wah;
   std::unique_ptr<DualAmpProcessor> dualAmp;
@@ -325,6 +327,27 @@ bool RuntimeChain::setNoiseGateParameter(const std::string& id, const std::strin
   return false;
 }
 
+void RuntimeChain::addTransientShaper(std::string id, TransientShaperProcessor processor)
+{
+  Block block;
+  block.kind = Block::Kind::TransientShaper;
+  block.id = std::move(id);
+  block.transientShaper = std::make_unique<TransientShaperProcessor>(std::move(processor));
+  blocks_.push_back(std::move(block));
+}
+
+bool RuntimeChain::setTransientShaperParameter(const std::string& id, const std::string& key, float value)
+{
+  for (auto& block : blocks_) {
+    if (block.kind == Block::Kind::TransientShaper && block.id == id) {
+      return block.transientShaper->setParameterTarget(key, value);
+    }
+    if (block.kind == Block::Kind::DualRig
+        && block.dualRig->setTransientShaperParameter(id, key, value)) return true;
+  }
+  return false;
+}
+
 void RuntimeChain::addWah(std::string id, WahProcessor processor)
 {
   Block block;
@@ -439,6 +462,9 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
       break;
     case Block::Kind::NoiseGate:
       current = block.noiseGate->process(current);
+      break;
+    case Block::Kind::TransientShaper:
+      current = block.transientShaper->process(current);
       break;
     case Block::Kind::Equalizer:
       block.equalizer->process(current.left, current.right);
@@ -561,6 +587,13 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
         nextRight[i] = processed.right;
       }
       break;
+    case Block::Kind::TransientShaper:
+      for (size_t i = 0; i < frames; ++i) {
+        const auto processed = block.transientShaper->process({currentLeft[i], currentRight[i]});
+        nextLeft[i] = processed.left;
+        nextRight[i] = processed.right;
+      }
+      break;
     case Block::Kind::Equalizer:
       block.equalizer->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);
       currentIsStereo = true;
@@ -677,6 +710,9 @@ std::vector<ClipStageSnapshot> RuntimeChain::takeClipDiagnostics()
     case Block::Kind::NoiseGate:
       kind = SignalStageKind::NoiseGate;
       break;
+    case Block::Kind::TransientShaper:
+      kind = SignalStageKind::TransientShaper;
+      break;
     case Block::Kind::Equalizer:
       kind = SignalStageKind::Equalizer;
       break;
@@ -712,6 +748,9 @@ void RuntimeChain::reset()
     }
     if (block.noiseGate) {
       block.noiseGate->reset();
+    }
+    if (block.transientShaper) {
+      block.transientShaper->reset();
     }
     if (block.equalizer) {
       block.equalizer->reset();

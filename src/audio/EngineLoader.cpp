@@ -368,6 +368,12 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
           return false;
         }
         chain.addNoiseGate(block.id, std::move(processor));
+      } else if (mode == "transient_shaper") {
+        TransientShaperProcessor processor;
+        if (!processor.configure(block.params, static_cast<float>(options.sampleRate), error)) {
+          return false;
+        }
+        chain.addTransientShaper(block.id, std::move(processor));
       } else {
         error = "unsupported dynamics mode in dual rig lane: " + block.id;
         return false;
@@ -711,6 +717,11 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
         }
       } else if (mode == "noise_gate") {
         if (!engine.addNoiseGate(
+              block.id, block.params, static_cast<float>(options.sampleRate), error)) {
+          return false;
+        }
+      } else if (mode == "transient_shaper") {
+        if (!engine.addTransientShaper(
               block.id, block.params, static_cast<float>(options.sampleRate), error)) {
           return false;
         }

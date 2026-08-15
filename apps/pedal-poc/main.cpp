@@ -593,6 +593,9 @@ bool applyPresetParameterValue(
     if (mode == "noise_gate") {
       return engine.setNoiseGateParameter(block->id, parameter, value);
     }
+    if (mode == "transient_shaper") {
+      return engine.setTransientShaperParameter(block->id, parameter, value);
+    }
     return false;
   }
   if (block->type == "wah") {

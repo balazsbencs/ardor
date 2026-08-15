@@ -31,7 +31,7 @@ bool isSupportedDynamicsBlock(const std::string& type, const nlohmann::json& par
 {
   if (type != "dynamics") return false;
   const auto mode = params.value("mode", "");
-  return mode == "compressor" || mode == "noise_gate";
+  return mode == "compressor" || mode == "noise_gate" || mode == "transient_shaper";
 }
 
 bool isSupportedEqBlock(const std::string& type, const nlohmann::json& params)

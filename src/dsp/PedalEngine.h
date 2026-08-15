@@ -35,6 +35,7 @@ public:
                   float sampleRate, std::string& error);
   bool addCompressor(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool addNoiseGate(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
+  bool addTransientShaper(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool addWah(std::string id, const nlohmann::json& params, float sampleRate,
               const std::filesystem::path& tablePath, std::string& error);
   bool addParametricEq(const std::string& id, const nlohmann::json& params, float sampleRate, std::string& error);
@@ -46,6 +47,7 @@ public:
   // 0.0 if `id` does not name a live compressor block.
   float compressorGainReductionDb(const std::string& id) const;
   bool setNoiseGateParameter(const std::string& id, const std::string& key, float value);
+  bool setTransientShaperParameter(const std::string& id, const std::string& key, float value);
   bool setWahParameter(const std::string& id, const std::string& key, float value);
   bool setBlockEnabled(const std::string& id, bool enabled);
   void prepareBlockSize(size_t frames);
