@@ -177,6 +177,11 @@ ChainBlockPlan buildBlockPlan(const PresetBlock& block, const std::filesystem::p
     }
   } else if (!isSupportedBlockType(block.type)) {
     blockPlan.status = ChainBlockStatus::Unsupported;
+  } else if (block.type == "stereo") {
+    // The widener reads no file. Every other supported type below resolves an
+    // asset, so it has to leave the chain before that check.
+    blockPlan.status = ChainBlockStatus::Ready;
+    ++runnableBlockCount;
   } else if (block.asset.empty() || !isValidBlockAssetPath(block.asset)) {
     blockPlan.status = ChainBlockStatus::MissingAsset;
   } else {

@@ -78,6 +78,12 @@ pedal_service_remote_tmp="${ARDOR_SERVICE_REMOTE_TMP:-/tmp/S99ardor-pedal.new}"
 managerd_service="${ARDOR_MANAGERD_SERVICE:-/etc/init.d/S98ardor-managerd}"
 managerd_env="${ARDOR_MANAGERD_ENV:-/etc/ardor-managerd.env}"
 local_auth="${ARDOR_LOCAL_AUTH:-on}"
+# The wah reads a circuit table at run time. It ships on the read-only root and
+# S99ardor-pedal copies it into the data partition, so a deploy has to refresh
+# the root copy — the data partition itself is only seeded when an image is built.
+wah_table_local="$repo_dir/assets/wah/gcb95.wahtable"
+wah_table_remote_tmp="/tmp/gcb95.wahtable.new"
+wah_table_target="/usr/share/ardor-pedal/assets/wah/gcb95.wahtable"
 
 case "$local_auth" in
   on|off|preserve) ;;
@@ -183,6 +189,7 @@ fi
 [ -x "$pedal_bin" ] || die "built binary is missing or not executable: $pedal_bin"
 [ -x "$managerd_bin" ] || die "built binary is missing or not executable: $managerd_bin"
 [ -f "$pedal_service_local" ] || die "pedal supervisor is missing: $pedal_service_local"
+[ -f "$wah_table_local" ] || die "wah circuit table is missing: $wah_table_local"
 
 echo "Uploading pedal, supervisor, and manager daemon to $ssh_target"
 # OpenSSH 9+ clients use SFTP for scp by default. The pedal image does not
@@ -191,13 +198,15 @@ echo "Uploading pedal, supervisor, and manager daemon to $ssh_target"
 scp -O $ssh_opts "$pedal_bin" "$ssh_target:$pedal_remote_tmp"
 scp -O $ssh_opts "$managerd_bin" "$ssh_target:$managerd_remote_tmp"
 scp -O $ssh_opts "$pedal_service_local" "$ssh_target:$pedal_service_remote_tmp"
+scp -O $ssh_opts "$wah_table_local" "$ssh_target:$wah_table_remote_tmp"
 
 echo "Installing and restarting Ardor services on $ssh_target"
 # ARDOR_SSH_OPTS is intentionally split into separate ssh/scp arguments.
 ssh $ssh_opts "$ssh_target" 'sh -s' \
   "$pedal_remote_tmp" "$pedal_target" "$pedal_service" \
   "$managerd_remote_tmp" "$managerd_target" "$managerd_service" \
-  "$managerd_env" "$local_auth" "$pedal_service_remote_tmp" <<'REMOTE'
+  "$managerd_env" "$local_auth" "$pedal_service_remote_tmp" \
+  "$wah_table_remote_tmp" "$wah_table_target" <<'REMOTE'
 set -eu
 
 pedal_remote_tmp=$1
@@ -209,6 +218,9 @@ managerd_service=$6
 managerd_env=$7
 local_auth=$8
 pedal_service_remote_tmp=$9
+shift 9
+wah_table_remote_tmp=$1
+wah_table_target=$2
 remounted=0
 
 cleanup() {
@@ -234,6 +246,11 @@ mv "$pedal_target.new" "$pedal_target"
 mv "$managerd_target.new" "$managerd_target"
 mv "$pedal_service.new" "$pedal_service"
 
+mkdir -p "$(dirname "$wah_table_target")"
+cp "$wah_table_remote_tmp" "$wah_table_target.new"
+chmod 644 "$wah_table_target.new"
+mv "$wah_table_target.new" "$wah_table_target"
+
 if [ "$local_auth" != "preserve" ]; then
   env_tmp="$managerd_env.new"
   if [ -f "$managerd_env" ]; then
@@ -254,7 +271,8 @@ fi
 
 "$managerd_service" restart
 "$pedal_service" restart
-rm -f "$pedal_remote_tmp" "$managerd_remote_tmp" "$pedal_service_remote_tmp"
+rm -f "$pedal_remote_tmp" "$managerd_remote_tmp" "$pedal_service_remote_tmp" \
+  "$wah_table_remote_tmp"
 REMOTE
 
 echo "Done. Pedal and manager daemon restarted on $ssh_target."
