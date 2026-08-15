@@ -54,6 +54,7 @@ std::string laneToken(const UiBlock& block)
     if (mode == "transient_shaper") return "TRAN";
     return "CMP";
   }
+  if (block.type == "distortion") return "RAT";
   if (block.type == "irreverb") return "CONV";
   if (block.type == "stereo") return "WIDE";
   if (block.type == "eq") return "EQ";

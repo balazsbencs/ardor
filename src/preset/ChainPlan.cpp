@@ -39,6 +39,11 @@ bool isSupportedEqBlock(const std::string& type, const nlohmann::json& params)
   return type == "eq" && isParametricEqMode(params);
 }
 
+bool isSupportedDistortionBlock(const std::string& type, const nlohmann::json& params)
+{
+  return type == "distortion" && params.value("mode", std::string{"rat"}) == "rat";
+}
+
 bool isSupportedWahBlock(const std::string& type, const nlohmann::json& params)
 {
   return type == "wah" && params.value("mode", std::string{"gcb95"}) == "gcb95";
@@ -144,6 +149,13 @@ ChainBlockPlan buildBlockPlan(const PresetBlock& block, const std::filesystem::p
   } else if (block.type == "eq") {
     if (isSupportedEqBlock(block.type, blockPlan.params)) {
       blockPlan.params = parametricEqParamsToJson(parametricEqParamsFromJson(blockPlan.params));
+      blockPlan.status = ChainBlockStatus::Ready;
+      ++runnableBlockCount;
+    } else {
+      blockPlan.status = ChainBlockStatus::Unsupported;
+    }
+  } else if (block.type == "distortion") {
+    if (isSupportedDistortionBlock(block.type, blockPlan.params)) {
       blockPlan.status = ChainBlockStatus::Ready;
       ++runnableBlockCount;
     } else {

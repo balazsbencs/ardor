@@ -58,6 +58,7 @@ struct RuntimeChain::Block {
     TransientShaper,
     Equalizer,
     Wah,
+    Distortion,
     DualAmp,
     DualRig
   };
@@ -74,6 +75,7 @@ struct RuntimeChain::Block {
   std::unique_ptr<TransientShaperProcessor> transientShaper;
   std::unique_ptr<ParametricEqProcessor> equalizer;
   std::unique_ptr<WahProcessor> wah;
+  std::unique_ptr<RatProcessor> distortion;
   std::unique_ptr<DualAmpProcessor> dualAmp;
   std::unique_ptr<DualRigProcessor> dualRig;
   std::unique_ptr<LevelState> meter = std::make_unique<LevelState>();
@@ -369,6 +371,27 @@ bool RuntimeChain::setWahParameter(const std::string& id, const std::string& key
   return false;
 }
 
+void RuntimeChain::addDistortion(std::string id, RatProcessor processor)
+{
+  Block block;
+  block.kind = Block::Kind::Distortion;
+  block.id = std::move(id);
+  block.distortion = std::make_unique<RatProcessor>(std::move(processor));
+  blocks_.push_back(std::move(block));
+}
+
+bool RuntimeChain::setDistortionParameter(const std::string& id, const std::string& key, float value)
+{
+  for (auto& block : blocks_) {
+    if (block.kind == Block::Kind::Distortion && block.id == id) {
+      return block.distortion->setParameterTarget(key, value);
+    }
+    if (block.kind == Block::Kind::DualRig
+        && block.dualRig->setDistortionParameter(id, key, value)) return true;
+  }
+  return false;
+}
+
 bool RuntimeChain::setBlockEnabled(const std::string& id, bool enabled)
 {
   for (auto& block : blocks_) {
@@ -471,6 +494,9 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
       break;
     case Block::Kind::Wah:
       current = block.wah->process(current);
+      break;
+    case Block::Kind::Distortion:
+      current = block.distortion->process(current);
       break;
     case Block::Kind::DualAmp:
       block.dualAmp->process(current.left, current.right, current.left, current.right);
@@ -606,6 +632,15 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       }
       currentIsStereo = false;
       break;
+    case Block::Kind::Distortion:
+      for (size_t i = 0; i < frames; ++i) {
+        const auto processed = block.distortion->process({currentLeft[i], currentRight[i]});
+        nextLeft[i] = processed.left;
+        nextRight[i] = processed.right;
+      }
+      // The pedal is mono, so both channels carry the same signal from here.
+      currentIsStereo = false;
+      break;
     case Block::Kind::DualAmp:
       block.dualAmp->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);
       currentIsStereo = true;
@@ -719,6 +754,9 @@ std::vector<ClipStageSnapshot> RuntimeChain::takeClipDiagnostics()
     case Block::Kind::Wah:
       kind = SignalStageKind::Wah;
       break;
+    case Block::Kind::Distortion:
+      kind = SignalStageKind::Distortion;
+      break;
     case Block::Kind::DualAmp:
       kind = SignalStageKind::DualAmp;
       break;
@@ -757,6 +795,9 @@ void RuntimeChain::reset()
     }
     if (block.wah) {
       block.wah->reset();
+    }
+    if (block.distortion) {
+      block.distortion->reset();
     }
     if (block.dualAmp) {
       block.dualAmp->reset();

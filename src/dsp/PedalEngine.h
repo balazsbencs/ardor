@@ -36,6 +36,9 @@ public:
   bool addCompressor(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool addNoiseGate(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool addTransientShaper(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
+  bool addDistortion(std::string id, const nlohmann::json& params, float sampleRate,
+                     std::string& error);
+  bool setDistortionParameter(const std::string& id, const std::string& key, float value);
   bool addWah(std::string id, const nlohmann::json& params, float sampleRate,
               const std::filesystem::path& tablePath, std::string& error);
   bool addParametricEq(const std::string& id, const nlohmann::json& params, float sampleRate, std::string& error);

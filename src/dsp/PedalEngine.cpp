@@ -78,6 +78,7 @@ const char* signalStageKindName(SignalStageKind kind) noexcept
   case SignalStageKind::TransientShaper: return "transient-shaper";
   case SignalStageKind::Equalizer: return "eq";
   case SignalStageKind::Wah: return "wah";
+  case SignalStageKind::Distortion: return "distortion";
   case SignalStageKind::StereoWidener: return "stereo-widener";
   case SignalStageKind::DualAmp: return "dual-amp";
   case SignalStageKind::DualRig: return "dual-rig";
@@ -253,6 +254,20 @@ bool PedalEngine::addTransientShaper(std::string id, const nlohmann::json& param
 bool PedalEngine::setTransientShaperParameter(const std::string& id, const std::string& key, float value)
 {
   return chain_.setTransientShaperParameter(id, key, value);
+}
+
+bool PedalEngine::addDistortion(std::string id, const nlohmann::json& params,
+                                float sampleRate, std::string& error)
+{
+  RatProcessor processor;
+  if (!processor.configure(params, sampleRate, error)) return false;
+  chain_.addDistortion(std::move(id), std::move(processor));
+  return true;
+}
+
+bool PedalEngine::setDistortionParameter(const std::string& id, const std::string& key, float value)
+{
+  return chain_.setDistortionParameter(id, key, value);
 }
 
 bool PedalEngine::addWah(std::string id, const nlohmann::json& params, float sampleRate,

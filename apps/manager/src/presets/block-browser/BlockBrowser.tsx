@@ -9,7 +9,8 @@ import { PortalSurface } from "../../theme/surface";
 
 const categories: Array<{ value: "all" | EffectCategory; label: string }> = [
   { value: "all", label: "All" }, { value: "amp", label: "Amp" }, { value: "cabinet", label: "Cab" },
-  { value: "utility", label: "Utility" }, { value: "modulation", label: "Mod" },
+  { value: "drive", label: "Drive" }, { value: "utility", label: "Utility" },
+  { value: "modulation", label: "Mod" },
   { value: "delay", label: "Delay" }, { value: "reverb", label: "Reverb" },
 ];
 

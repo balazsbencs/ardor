@@ -13,7 +13,7 @@ import type {
 } from "./types";
 
 const categories = new Set<EffectCategory>([
-  "amp", "cabinet", "utility", "modulation", "delay", "reverb",
+  "amp", "cabinet", "drive", "utility", "modulation", "delay", "reverb",
 ]);
 const units = new Set<NumberControl["unit"]>(["percent", "db", "ms", "hz", "ratio", "plain"]);
 const assetKinds = new Set<AssetControl["assetKind"]>(["models", "irs"]);

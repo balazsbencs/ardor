@@ -93,8 +93,9 @@ int main()
   // Every block the engine can run has to be reachable from the pedal itself,
   // not only from the manager. Adding each one must also produce a parameter
   // page, or it would sit in a chain with nothing to adjust.
-  const std::array<std::pair<const char*, const char*>, 4> browsableBlocks{{
+  const std::array<std::pair<const char*, const char*>, 5> browsableBlocks{{
     {"dynamics", "transient_shaper"},
+    {"distortion", "rat"},
     {"stereo", ""},
     {"irreverb", ""},
     {"mod", "harmonizer"},

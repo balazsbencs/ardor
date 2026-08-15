@@ -387,6 +387,14 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       }
       continue;
     }
+    if (block.type == "distortion") {
+      RatProcessor processor;
+      if (!processor.configure(block.params, static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
+      chain.addDistortion(block.id, std::move(processor));
+      continue;
+    }
     if (block.type == "wah") {
       WahProcessor processor;
       if (!processor.configure(block.params, static_cast<float>(options.sampleRate),
@@ -734,6 +742,14 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
     }
     if (block.type == "eq") {
       if (!engine.addParametricEq(block.id, block.params, static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
+      engine.setBlockEnabled(block.id, block.enabled);
+      continue;
+    }
+    if (block.type == "distortion") {
+      if (!engine.addDistortion(block.id, block.params,
+                                static_cast<float>(options.sampleRate), error)) {
         return false;
       }
       engine.setBlockEnabled(block.id, block.enabled);

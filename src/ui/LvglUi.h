@@ -313,7 +313,8 @@ private:
   std::vector<int32_t> chainInsertionXs_;
   std::optional<std::size_t> renderedRigIndex_;
   std::array<std::vector<int32_t>, 2> laneInsertionXs_;
-  static constexpr std::size_t kDrawerCategoryCount = 7;
+  // Must match kDrawerFilters in LvglUiDrawer.cpp, which asserts it.
+  static constexpr std::size_t kDrawerCategoryCount = 8;
   std::array<lv_obj_t*, kDrawerCategoryCount> drawerCategoryButtons_{};
   std::vector<lv_obj_t*> drawerAssetButtons_;
   std::vector<UiEventContext*> drawerAssetContexts_;

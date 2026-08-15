@@ -9,6 +9,7 @@
 #include "dynamics/NoiseGateProcessor.h"
 #include "dynamics/TransientShaperProcessor.h"
 #include "equalizer/EqParameters.h"
+#include "rat/RatProcessor.h"
 #include "wah/WahProcessor.h"
 
 #include <cstddef>
@@ -57,6 +58,7 @@ public:
   void addNoiseGate(std::string id, NoiseGateProcessor processor);
   void addTransientShaper(std::string id, TransientShaperProcessor processor);
   void addWah(std::string id, WahProcessor processor);
+  void addDistortion(std::string id, RatProcessor processor);
   bool addParametricEq(std::string id, const ParametricEqParams& params, float sampleRate, std::string& error);
   bool setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params);
   bool setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,
@@ -69,6 +71,7 @@ public:
   bool setNoiseGateParameter(const std::string& id, const std::string& key, float value);
   bool setTransientShaperParameter(const std::string& id, const std::string& key, float value);
   bool setWahParameter(const std::string& id, const std::string& key, float value);
+  bool setDistortionParameter(const std::string& id, const std::string& key, float value);
   bool setBlockEnabled(const std::string& id, bool enabled);
   // Negative cab arguments use each cabinet block's prepared level/mix. The
   // PedalEngine supplies non-negative smoothed values for its legacy

@@ -258,6 +258,13 @@ bool DualRigProcessor::setWahParameter(
     || (right_.chain && right_.chain->setWahParameter(id, key, value));
 }
 
+bool DualRigProcessor::setDistortionParameter(
+  const std::string& id, const std::string& key, float value)
+{
+  return (left_.chain && left_.chain->setDistortionParameter(id, key, value))
+    || (right_.chain && right_.chain->setDistortionParameter(id, key, value));
+}
+
 bool DualRigProcessor::setParametricEqBand(
   const std::string& id, std::size_t band, const EqBandParams& params)
 {

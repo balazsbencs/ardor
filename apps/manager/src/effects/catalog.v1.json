@@ -722,6 +722,53 @@
       ]
     },
     {
+      "id": "distortion:rat",
+      "blockType": "distortion",
+      "mode": "rat",
+      "name": "RAT Distortion",
+      "description": "Circuit model of the ProCo RAT, slew-limited LM308 and all. Filter runs backwards: turn it up for less treble.",
+      "category": "drive",
+      "aliases": [
+        "rat",
+        "proco",
+        "distortion",
+        "lm308",
+        "dirt"
+      ],
+      "controls": [
+        {
+          "kind": "number",
+          "key": "distortion",
+          "label": "Distortion",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "filter",
+          "label": "Filter",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "volume",
+          "label": "Volume",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.7
+        }
+      ]
+    },
+    {
       "id": "mod:chorus",
       "blockType": "mod",
       "mode": "chorus",

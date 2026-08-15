@@ -216,6 +216,15 @@ std::vector<ParameterControl> controlsFor(const UiState& state)
     };
   }
 
+  if (block.type == "distortion" && block.params.value("mode", "") == "rat") {
+    const auto number = [&](const char* key, float fallback) { return block.params.value(key, fallback); };
+    return {
+      control("distortion", "Distortion", 0.0f, 1.0f, 0.01f, number("distortion", 0.5f), formatPercent),
+      control("filter", "Filter", 0.0f, 1.0f, 0.01f, number("filter", 0.5f), formatPercent),
+      control("volume", "Volume", 0.0f, 1.0f, 0.01f, number("volume", 0.7f), formatPercent),
+    };
+  }
+
   if (block.type == "stereo") {
     const auto number = [&](const char* key, float fallback) { return block.params.value(key, fallback); };
     return {

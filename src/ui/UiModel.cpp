@@ -68,6 +68,9 @@ std::string labelForBlockType(const std::string& type)
   if (type == "wah") {
     return "Wah";
   }
+  if (type == "distortion") {
+    return "Drive";
+  }
   if (type == "irreverb") {
     return "Reverb";
   }
@@ -138,6 +141,9 @@ std::string assetNameForBlock(const UiState& state, const PresetBlock& block)
   if (block.type == "stereo") {
     return "Stereo Widener";
   }
+  if (block.type == "distortion" && block.params.value("mode", "") == "rat") {
+    return "RAT Distortion";
+  }
   return assetNameForPath(state, block.asset, block.type);
 }
 
@@ -186,6 +192,16 @@ nlohmann::json defaultTransientShaperParams()
     {"sustain", 0.0f},
     {"mix", 1.0f},
     {"output_db", 0.0f},
+  };
+}
+
+nlohmann::json defaultRatParams()
+{
+  return {
+    {"mode", "rat"},
+    {"distortion", 0.5f},
+    {"filter", 0.5f},
+    {"volume", 0.7f},
   };
 }
 
@@ -240,6 +256,8 @@ nlohmann::json paramsWithKnownDefaults(const std::string& type, const nlohmann::
     defaults = defaultNoiseGateParams();
   } else if (type == "dynamics" && params.value("mode", "") == "transient_shaper") {
     defaults = defaultTransientShaperParams();
+  } else if (type == "distortion" && params.value("mode", std::string{"rat"}) == "rat") {
+    defaults = defaultRatParams();
   } else if (type == "stereo") {
     defaults = defaultStereoWidenerParams();
   } else if (type == "irreverb") {
@@ -304,6 +322,8 @@ UiBlock blockFromAsset(const UiState& state, const UiAsset& asset,
       params = defaultNoiseGateParams();
     } else if (asset.blockType == "dynamics" && asset.mode == "transient_shaper") {
       params = defaultTransientShaperParams();
+    } else if (asset.blockType == "distortion" && asset.mode == "rat") {
+      params = defaultRatParams();
     } else if (asset.blockType == "stereo") {
       params = defaultStereoWidenerParams();
     } else if (asset.blockType == "irreverb") {
@@ -402,6 +422,12 @@ std::string daisySubtitle(const DaisyFxDescriptor& descriptor)
     + " controls";
 }
 
+void appendDriveAssets(UiState& state)
+{
+  state.assets.push_back({"RAT Distortion", "", "drive", "distortion", "rat",
+                          "Drive · ProCo RAT circuit"});
+}
+
 void appendUtilityAssets(UiState& state)
 {
   state.assets.push_back({"Compressor", "", "utility", "dynamics", "compressor", "Utility · dynamics"});
@@ -452,6 +478,7 @@ UiState makeDemoUiState()
     // later.
     {"Open Back 2x12", "irs/open-back.wav", "reverb", "irreverb", "", "Reverb · impulse response"},
   };
+  appendDriveAssets(state);
   appendUtilityAssets(state);
   appendDaisyAssets(state);
   state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split",
@@ -1608,6 +1635,7 @@ void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoo
   // Every impulse response is offered twice, once as a cabinet and once as a
   // reverb, because the block that consumes it is chosen here rather than later.
   appendAssetsFrom(state, dataRoot / "irs", ".wav", "reverb", "Reverb · impulse response", "irreverb");
+  appendDriveAssets(state);
   appendUtilityAssets(state);
   appendDaisyAssets(state);
   state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split",

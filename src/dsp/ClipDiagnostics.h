@@ -20,6 +20,7 @@ enum class SignalStageKind {
   TransientShaper,
   Equalizer,
   Wah,
+  Distortion,
   StereoWidener,
   DualAmp,
   DualRig,

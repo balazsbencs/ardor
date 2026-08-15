@@ -604,6 +604,9 @@ bool applyPresetParameterValue(
     }
     return false;
   }
+  if (block->type == "distortion") {
+    return engine.setDistortionParameter(block->id, parameter, value);
+  }
   if (block->type == "stereo") {
     return engine.setStereoWidenerParameter(block->id, parameter, value);
   }
