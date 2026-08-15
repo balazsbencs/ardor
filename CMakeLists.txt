@@ -311,6 +311,11 @@ endif()
 add_executable(wah-table-gen apps/wah-table-gen/main.cpp)
 target_link_libraries(wah-table-gen PRIVATE ardor_wah)
 
+# Writes the device's own parameter rendering out as a fixture, so the manager's
+# TypeScript mirror of it can be tested for parity instead of drifting.
+add_executable(daisy-values-dump apps/daisy-values-dump/main.cpp)
+target_link_libraries(daisy-values-dump PRIVATE ardor_daisyfx)
+
 add_executable(audio-probe apps/audio-probe/main.c)
 target_include_directories(audio-probe PRIVATE ${miniaudio_SOURCE_DIR})
 

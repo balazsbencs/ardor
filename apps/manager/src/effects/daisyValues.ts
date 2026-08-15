@@ -74,12 +74,16 @@ function choices(labels: string[]): NumberDisplay {
 function descendingIntegerChoices(maximum: number, minimum: number): NumberDisplay {
   const labels = Array.from({ length: maximum - minimum + 1 }, (_, index) => `${maximum - index} bit`);
   const values = labels.map((_, index) => labels.length === 1 ? 0 : index / (labels.length - 1));
-  return mappedChoices(labels, values, (value) => Math.min(labels.length - 1, Math.trunc(value * (labels.length - 1))));
+  return mappedChoices(labels, values, (value) => Math.min(labels.length - 1, Math.round(value * (labels.length - 1))));
 }
 
 function logPhysical(minimum: number, maximum: number, format: (value: number) => string, inputStep: number): NumberDisplay {
   const toInput = (value: number) => minimum * (maximum / minimum) ** clamp(value);
-  return custom(format, toInput, (value) => clamp(Math.log(value / minimum) / Math.log(maximum / minimum)), minimum, maximum, inputStep);
+  // format() receives the mapped physical value, not the normalized one. Passing
+  // the raw parameter through made the phaser tone read "0.00 Hz" at its lowest
+  // setting where the device reads "300 Hz".
+  return custom((value) => format(toInput(value)), toInput,
+    (value) => clamp(Math.log(value / minimum) / Math.log(maximum / minimum)), minimum, maximum, inputStep);
 }
 
 function tone(sampleRate: number): NumberDisplay {
@@ -98,7 +102,9 @@ function tone(sampleRate: number): NumberDisplay {
 
 const q = (minimum: number, maximum: number) => physical(minimum, maximum, 0, (value) => `Q ${number(value, value < 10 ? 1 : 0)}`, 0.1);
 const normalizedPercent = custom(percent);
-const scaledPercent = (maximum: number, curve = 0) => physical(0, maximum, curve, (value) => `${number(value, value < 10 ? 1 : 0)}%`, 1);
+// The device's percent() always formats with zero decimals; matching it keeps
+// the manager and the pedal screen showing the same string.
+const scaledPercent = (maximum: number, curve = 0) => physical(0, maximum, curve, (value) => `${number(value, 0)}%`, 1);
 
 function modDisplay(mode: string, key: string): NumberDisplay {
   if (key === "speed") {
@@ -108,6 +114,8 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "auto_swell") return physical(10, 500, 1, milliseconds, 1);
     if (mode === "quadrature") return physical(0.1, 1000, 2, frequency, 0.1);
     if (mode === "poly_octave") return scaledPercent(100, 1);
+    // Glide is a time, not a rate: ~50 ms at the slow end, ~1 ms at the fast end.
+    if (mode === "whammy") return custom((value) => milliseconds(1 / (0.02 + clamp(value) * 0.95)));
     return physical(0.05, 10, 1, frequency, 0.01);
   }
   if (key === "depth") {
@@ -134,6 +142,12 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "pattern_trem") return choices(Array.from({ length: 16 }, (_, index) => `Pattern ${index + 1}`));
     if (mode === "auto_swell") return physical(50, 2000, 0, milliseconds, 1);
     if (mode === "rotary") return custom((value) => `${number(1 + clamp(value) ** 2 * 0.6, 1)}x`);
+    if (mode === "whammy") return custom((value) => {
+      const pedal = clamp(value);
+      if (pedal <= 0.001) return "Heel";
+      if (pedal >= 0.999) return "Toe";
+      return percent(pedal);
+    });
     return normalizedPercent;
   }
   if (key === "p2") {
@@ -145,7 +159,15 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "pattern_trem") return choices(["16th", "8th", "Triplet"]);
     if (mode === "filter") return choices(["Sine", "Triangle", "Square", "Ramp up", "Ramp down", "Sample & hold", "Envelope+", "Envelope-"]);
     if (mode === "formant") return choices(["Ah", "Oh", "Oo", "Ee", "Ay", "Ah-Oh", "Oo-Oh"]);
-    if (mode === "quadrature") return choices(["AM", "FM", "Shift +", "Shift -"]);
+    if (mode === "quadrature") return choices(["AM", "Warble", "Shift +", "Shift -"]);
+    // Ten Whammy modes then nine Harmony modes, on one selector.
+    if (mode === "whammy") return choices([
+      "2 Oct up", "1 Oct up", "5th up", "4th up", "2nd dn",
+      "4th dn", "5th dn", "1 Oct dn", "2 Oct dn", "Dive bomb",
+      "Oct dn / Oct up", "5th dn / 4th dn", "4th dn / 3rd dn",
+      "5th up / 7th up", "5th up / 6th up", "4th up / 5th up",
+      "3rd up / 4th up", "Min 3rd up / 3rd up", "2nd up / 3rd up",
+    ]);
     if (mode === "auto_swell") return scaledPercent(30);
     return normalizedPercent;
   }
@@ -156,7 +178,8 @@ function modDisplay(mode: string, key: string): NumberDisplay {
 function delayModDepth(mode: string): NumberDisplay {
   const samples: Record<string, number> = { digital: 30, tape: 50, filter: 1500, lofi: 20, dbucket: 20, duck: 15, pattern: 25 };
   if (samples[mode]) return physical(0, samples[mode] * 1000 / 48000, 0, milliseconds, 0.01);
-  if (mode === "dual") return scaledPercent(0.5);
+  // The device prints the dual delay's ping-pong depth with two decimals.
+  if (mode === "dual") return physical(0, 0.5, 0, (value) => `${number(value, 2)}%`, 0.01);
   return normalizedPercent;
 }
 
@@ -208,7 +231,7 @@ function reverbDisplay(mode: string, key: string): NumberDisplay {
   }
   if (key === "pre_delay") return mode === "magneto" ? scaledPercent(95) : physical(0, 500, 0, milliseconds, 1);
   if (key === "mix") return normalizedPercent;
-  if (key === "tone") return tone(24000);
+  if (key === "tone") return tone(mode === "plate" ? 48000 : 24000);
   if (key === "mod") {
     if (mode === "plate") return physical(0.3, 2, 0, frequency, 0.01);
     if (mode === "magneto") return physical(40, 80, 0, (value) => `${number(value, 0)}%`, 1);
