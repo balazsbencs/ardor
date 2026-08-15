@@ -177,6 +177,17 @@ target_include_directories(ardor_wah PUBLIC
 )
 target_compile_features(ardor_wah PUBLIC cxx_std_20)
 
+add_library(ardor_rat
+  src/rat/RatNetlist.cpp
+  src/rat/RatCircuit.cpp
+  src/rat/RatProcessor.cpp
+)
+target_include_directories(ardor_rat PUBLIC
+  src
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies
+)
+target_compile_features(ardor_rat PUBLIC cxx_std_20)
+
 add_library(ardor_dsp OBJECT
   src/dsp/DualAmpProcessor.cpp
   src/dsp/DualRigProcessor.cpp
@@ -419,6 +430,10 @@ add_test(NAME pedal-stereo-widener-smoke COMMAND pedal-stereo-widener-smoke)
 add_executable(pedal-transient-shaper-smoke tests/transient_shaper_smoke.cpp)
 target_link_libraries(pedal-transient-shaper-smoke PRIVATE ardor_dsp)
 add_test(NAME pedal-transient-shaper-smoke COMMAND pedal-transient-shaper-smoke)
+
+add_executable(pedal-rat-smoke tests/rat_smoke.cpp)
+target_link_libraries(pedal-rat-smoke PRIVATE ardor_rat)
+add_test(NAME pedal-rat-smoke COMMAND pedal-rat-smoke)
 
 add_executable(pedal-harmonizer-smoke tests/harmonizer_smoke.cpp)
 target_link_libraries(pedal-harmonizer-smoke PRIVATE ardor_daisyfx)
