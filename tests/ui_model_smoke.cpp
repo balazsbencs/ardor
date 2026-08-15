@@ -86,6 +86,16 @@ int main()
     }
   }
   if (require(tapeDelayCount == 1, "Tape Delay should appear exactly once")) return 1;
+
+  // Every category the browser offers has to survive the filter. A new family
+  // that the filter does not know falls back to "all", so its button does
+  // nothing and the family looks broken.
+  for (const auto& asset : catalogState.assets) {
+    auto filterState = ardor::makeDemoUiState();
+    ardor::setCategoryFilter(filterState, asset.type);
+    if (require(filterState.categoryFilter == asset.type,
+                "the browser filter should accept the " + asset.type + " category")) return 1;
+  }
   const auto wahAsset = std::find_if(catalogState.assets.begin(), catalogState.assets.end(),
     [](const auto& asset) { return asset.blockType == "wah" && asset.mode == "gcb95"; });
   if (require(wahAsset != catalogState.assets.end(), "GCB-95 Wah should appear in the effect browser")) return 1;

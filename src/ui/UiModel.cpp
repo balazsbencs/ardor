@@ -966,8 +966,10 @@ void closeParamDrawer(UiState& state)
 
 void setCategoryFilter(UiState& state, std::string filter)
 {
+  // Keep this in step with the drawer's filter buttons. A category missing here
+  // falls back to "all", which reads as a dead button.
   static constexpr std::array valid = {
-    "all", "amps", "cabs", "utility", "modulation", "delay", "reverb",
+    "all", "amps", "cabs", "drive", "utility", "modulation", "delay", "reverb",
   };
   const auto found = std::find(valid.begin(), valid.end(), filter);
   state.categoryFilter = found == valid.end() ? "all" : std::move(filter);
