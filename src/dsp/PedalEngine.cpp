@@ -76,6 +76,7 @@ const char* signalStageKindName(SignalStageKind kind) noexcept
   case SignalStageKind::NoiseGate: return "noise-gate";
   case SignalStageKind::Equalizer: return "eq";
   case SignalStageKind::Wah: return "wah";
+  case SignalStageKind::StereoWidener: return "stereo-widener";
   case SignalStageKind::DualAmp: return "dual-amp";
   case SignalStageKind::DualRig: return "dual-rig";
   case SignalStageKind::Output: return "output";
@@ -170,6 +171,16 @@ bool PedalEngine::addIrReverb(std::string id, std::vector<float> left, std::vect
 bool PedalEngine::setIrReverbParameter(const std::string& id, const std::string& key, float value)
 {
   return chain_.setIrReverbParameter(id, key, value);
+}
+
+bool PedalEngine::addStereoWidener(std::string id, float sampleRate, std::string& error)
+{
+  return chain_.addStereoWidener(std::move(id), sampleRate, error);
+}
+
+bool PedalEngine::setStereoWidenerParameter(const std::string& id, const std::string& key, float value)
+{
+  return chain_.setStereoWidenerParameter(id, key, value);
 }
 
 bool PedalEngine::addDaisyFx(std::string id, const std::string& blockType, const nlohmann::json& params,

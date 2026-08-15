@@ -19,6 +19,7 @@ enum class SignalStageKind {
   NoiseGate,
   Equalizer,
   Wah,
+  StereoWidener,
   DualAmp,
   DualRig,
   Output,

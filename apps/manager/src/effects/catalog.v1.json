@@ -577,6 +577,60 @@
       ]
     },
     {
+      "id": "stereo:widener",
+      "blockType": "stereo",
+      "name": "Stereo Widener",
+      "description": "Mid/side width with the low end centred and a mono-safe side delay.",
+      "category": "utility",
+      "aliases": [
+        "width",
+        "stereo image",
+        "mid side"
+      ],
+      "controls": [
+        {
+          "kind": "number",
+          "key": "width",
+          "label": "Width",
+          "minimum": 0,
+          "maximum": 2,
+          "step": 0.05,
+          "unit": "ratio",
+          "defaultValue": 1
+        },
+        {
+          "kind": "number",
+          "key": "delayMs",
+          "label": "Side Delay",
+          "minimum": 0,
+          "maximum": 30,
+          "step": 0.5,
+          "unit": "ms",
+          "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "bassMonoHz",
+          "label": "Bass Mono",
+          "minimum": 0,
+          "maximum": 500,
+          "step": 10,
+          "unit": "hz",
+          "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "levelDb",
+          "label": "Level",
+          "minimum": -24,
+          "maximum": 12,
+          "step": 1,
+          "unit": "db",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
       "id": "wah:gcb95",
       "blockType": "wah",
       "mode": "gcb95",

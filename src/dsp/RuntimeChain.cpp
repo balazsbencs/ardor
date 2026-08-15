@@ -51,6 +51,7 @@ struct RuntimeChain::Block {
     Nam,
     Cab,
     IrReverb,
+    StereoWidener,
     Daisy,
     Compressor,
     NoiseGate,
@@ -65,6 +66,7 @@ struct RuntimeChain::Block {
   std::unique_ptr<NamProcessor> nam;
   std::unique_ptr<IrConvolver> cab;
   std::unique_ptr<IrReverbProcessor> irReverb;
+  std::unique_ptr<StereoWidenerProcessor> stereoWidener;
   std::unique_ptr<DaisyFxProcessor> daisy;
   std::unique_ptr<CompressorProcessor> compressor;
   std::unique_ptr<NoiseGateProcessor> noiseGate;
@@ -214,6 +216,33 @@ bool RuntimeChain::setIrReverbParameter(const std::string& id, const std::string
     else if (key == "preDelayMs") block.irReverb->setPreDelayMs(value);
     else if (key == "lowCutHz") block.irReverb->setLowCutHz(value);
     else if (key == "highCutHz") block.irReverb->setHighCutHz(value);
+    else return false;
+    return true;
+  }
+  return false;
+}
+
+bool RuntimeChain::addStereoWidener(std::string id, float sampleRate, std::string& error)
+{
+  auto widener = std::make_unique<StereoWidenerProcessor>();
+  if (!widener->prepare(sampleRate, error)) return false;
+
+  Block block;
+  block.kind = Block::Kind::StereoWidener;
+  block.id = std::move(id);
+  block.stereoWidener = std::move(widener);
+  blocks_.push_back(std::move(block));
+  return true;
+}
+
+bool RuntimeChain::setStereoWidenerParameter(const std::string& id, const std::string& key, float value)
+{
+  for (auto& block : blocks_) {
+    if (block.kind != Block::Kind::StereoWidener || block.id != id) continue;
+    if (key == "width") block.stereoWidener->setWidth(value);
+    else if (key == "delayMs") block.stereoWidener->setDelayMs(value);
+    else if (key == "bassMonoHz") block.stereoWidener->setBassMonoHz(value);
+    else if (key == "levelDb") block.stereoWidener->setLevelDb(value);
     else return false;
     return true;
   }
@@ -399,6 +428,9 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
     case Block::Kind::IrReverb:
       current = block.irReverb->process(current);
       break;
+    case Block::Kind::StereoWidener:
+      current = block.stereoWidener->process(current);
+      break;
     case Block::Kind::Daisy:
       current = block.daisy->process(current);
       break;
@@ -494,6 +526,14 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       // per-sample loop here costs nothing extra and keeps both paths identical.
       for (size_t i = 0; i < frames; ++i) {
         const auto processed = block.irReverb->process({currentLeft[i], currentRight[i]});
+        nextLeft[i] = processed.left;
+        nextRight[i] = processed.right;
+      }
+      currentIsStereo = true;
+      break;
+    case Block::Kind::StereoWidener:
+      for (size_t i = 0; i < frames; ++i) {
+        const auto processed = block.stereoWidener->process({currentLeft[i], currentRight[i]});
         nextLeft[i] = processed.left;
         nextRight[i] = processed.right;
       }
@@ -624,6 +664,9 @@ std::vector<ClipStageSnapshot> RuntimeChain::takeClipDiagnostics()
       break;
     case Block::Kind::IrReverb:
       kind = SignalStageKind::IrReverb;
+      break;
+    case Block::Kind::StereoWidener:
+      kind = SignalStageKind::StereoWidener;
       break;
     case Block::Kind::Daisy:
       kind = SignalStageKind::Daisy;

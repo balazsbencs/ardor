@@ -12,23 +12,24 @@ import {
 describe("effect catalog", () => {
   const definitions = allEffectDefinitions();
 
-  it("contains the complete unique set of 46 definitions", () => {
-    expect(definitions).toHaveLength(46);
-    expect(new Set(definitions.map(({ id }) => id)).size).toBe(46);
-    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(46);
-    expect(new Set(definitions.map(({ name }) => name)).size).toBe(46);
+  it("contains the complete unique set of 47 definitions", () => {
+    expect(definitions).toHaveLength(47);
+    expect(new Set(definitions.map(({ id }) => id)).size).toBe(47);
+    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(47);
+    expect(new Set(definitions.map(({ name }) => name)).size).toBe(47);
     expect(definitions.every(({ controls }) => controls.length > 0)).toBe(true);
     expect(definitions.filter(({ blockType }) => blockType === "mod")).toHaveLength(15);
     expect(definitions.filter(({ blockType }) => blockType === "delay")).toHaveLength(10);
     expect(definitions.filter(({ blockType }) => blockType === "reverb")).toHaveLength(12);
   });
 
-  it("groups compressor, noise gate, EQ, and wah under Utility", () => {
+  it("groups compressor, noise gate, EQ, wah, and the stereo widener under Utility", () => {
     expect(getEffectDefinition("dynamics:compressor").category).toBe("utility");
     expect(getEffectDefinition("dynamics:noise_gate").category).toBe("utility");
     expect(getEffectDefinition("eq:parametric_eq_5").category).toBe("utility");
     expect(getEffectDefinition("wah:gcb95").category).toBe("utility");
-    expect(definitions.filter(({ category }) => category === "utility")).toHaveLength(4);
+    expect(getEffectDefinition("stereo:widener").category).toBe("utility");
+    expect(definitions.filter(({ category }) => category === "utility")).toHaveLength(5);
   });
 
   it("keeps Daisy presets normalized while attaching physical UI displays", () => {
@@ -213,7 +214,7 @@ describe("effect catalog", () => {
       expect(findEffectDefinition(block)?.id).toBe(id);
       return { ...block, id: `block-${index + 1}` };
     });
-    expect(blocks).toHaveLength(46);
+    expect(blocks).toHaveLength(47);
   });
 
   it("chooses the next numeric block id and handles nonstandard collisions", () => {

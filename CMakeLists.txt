@@ -180,6 +180,7 @@ add_library(ardor_dsp OBJECT
   src/dsp/DualAmpProcessor.cpp
   src/dsp/DualRigProcessor.cpp
   src/dsp/RealtimeFft.cpp
+  src/dsp/StereoWidenerProcessor.cpp
   src/dsp/ScheduledConvolver.cpp
   src/dsp/IrConvolver.cpp
   src/dsp/IrReverbProcessor.cpp
@@ -409,6 +410,10 @@ target_link_libraries(pedal-engine-contract-smoke PRIVATE ardor_dsp)
 
 add_executable(pedal-tuner-smoke tests/tuner_smoke.cpp)
 target_link_libraries(pedal-tuner-smoke PRIVATE ardor_dsp)
+
+add_executable(pedal-stereo-widener-smoke tests/stereo_widener_smoke.cpp)
+target_link_libraries(pedal-stereo-widener-smoke PRIVATE ardor_dsp)
+add_test(NAME pedal-stereo-widener-smoke COMMAND pedal-stereo-widener-smoke)
 
 add_executable(pedal-harmonizer-smoke tests/harmonizer_smoke.cpp)
 target_link_libraries(pedal-harmonizer-smoke PRIVATE ardor_daisyfx)

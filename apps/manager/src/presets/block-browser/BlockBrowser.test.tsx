@@ -22,7 +22,7 @@ describe("BlockBrowser", () => {
     expect(onChoose).toHaveBeenCalledWith(expect.objectContaining({ id: "delay:dbucket" }));
   });
 
-  it("groups compressor, noise gate, EQ, and wah under Utility", async () => {
+  it("groups compressor, noise gate, EQ, wah, and the stereo widener under Utility", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BlockBrowser open onOpenChange={() => undefined} onChoose={() => undefined} />);
 
@@ -32,7 +32,8 @@ describe("BlockBrowser", () => {
     expect(screen.getByText("Noise Gate")).toBeInTheDocument();
     expect(screen.getByText("Five Band Parametric EQ")).toBeInTheDocument();
     expect(screen.getByText("GCB-95 Wah")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Add" })).toHaveLength(4);
+    expect(screen.getByText("Stereo Widener")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Add" })).toHaveLength(5);
     expect(screen.queryByRole("button", { name: "Dynamics" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "EQ" })).not.toBeInTheDocument();
   });

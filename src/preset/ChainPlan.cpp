@@ -13,7 +13,7 @@ namespace {
 
 bool isSupportedBlockType(const std::string& type)
 {
-  return type == "nam" || type == "cab" || type == "irreverb"
+  return type == "nam" || type == "cab" || type == "irreverb" || type == "stereo"
       || type == "dualAmp" || type == "dualRig";
 }
 

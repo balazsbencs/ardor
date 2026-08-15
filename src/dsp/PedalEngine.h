@@ -29,6 +29,8 @@ public:
   bool addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
                    float sampleRate, std::string& error);
   bool setIrReverbParameter(const std::string& id, const std::string& key, float value);
+  bool addStereoWidener(std::string id, float sampleRate, std::string& error);
+  bool setStereoWidenerParameter(const std::string& id, const std::string& key, float value);
   bool addDaisyFx(std::string id, const std::string& blockType, const nlohmann::json& params,
                   float sampleRate, std::string& error);
   bool addCompressor(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);

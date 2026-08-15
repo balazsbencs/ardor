@@ -681,6 +681,19 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       engine.setBlockEnabled(block.id, block.enabled);
       continue;
     }
+    if (block.type == "stereo") {
+      if (!engine.addStereoWidener(block.id, static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
+      const auto& params = block.params;
+      engine.setStereoWidenerParameter(block.id, "width", reverbParam(params, "width", 1.0f));
+      engine.setStereoWidenerParameter(block.id, "delayMs", reverbParam(params, "delayMs", 0.0f));
+      engine.setStereoWidenerParameter(block.id, "bassMonoHz", reverbParam(params, "bassMonoHz", 0.0f));
+      engine.setStereoWidenerParameter(block.id, "levelDb", reverbParam(params, "levelDb", 0.0f));
+      stereoEstablished = true;
+      engine.setBlockEnabled(block.id, block.enabled);
+      continue;
+    }
     if (block.type == "mod" || block.type == "delay" || block.type == "reverb") {
       if (!engine.addDaisyFx(block.id, block.type, block.params, static_cast<float>(options.sampleRate), error)) {
         return false;
