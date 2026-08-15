@@ -13,7 +13,8 @@ namespace {
 
 bool isSupportedBlockType(const std::string& type)
 {
-  return type == "nam" || type == "cab" || type == "dualAmp" || type == "dualRig";
+  return type == "nam" || type == "cab" || type == "irreverb"
+      || type == "dualAmp" || type == "dualRig";
 }
 
 bool isDaisyBlockType(const std::string& type)

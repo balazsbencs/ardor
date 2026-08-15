@@ -50,6 +50,7 @@ struct RuntimeChain::Block {
   enum class Kind {
     Nam,
     Cab,
+    IrReverb,
     Daisy,
     Compressor,
     NoiseGate,
@@ -63,6 +64,7 @@ struct RuntimeChain::Block {
   std::string id;
   std::unique_ptr<NamProcessor> nam;
   std::unique_ptr<IrConvolver> cab;
+  std::unique_ptr<IrReverbProcessor> irReverb;
   std::unique_ptr<DaisyFxProcessor> daisy;
   std::unique_ptr<CompressorProcessor> compressor;
   std::unique_ptr<NoiseGateProcessor> noiseGate;
@@ -185,6 +187,37 @@ void RuntimeChain::addCab(std::vector<float> impulse, float level, float mix, st
   block.level = std::max(0.0f, level);
   block.mix = std::clamp(mix, 0.0f, 1.0f);
   blocks_.push_back(std::move(block));
+}
+
+bool RuntimeChain::addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
+                               float sampleRate, std::string& error)
+{
+  auto reverb = std::make_unique<IrReverbProcessor>();
+  if (!reverb->load(std::move(left), std::move(right), sampleRate, error)) {
+    return false;
+  }
+
+  Block block;
+  block.kind = Block::Kind::IrReverb;
+  block.id = std::move(id);
+  block.irReverb = std::move(reverb);
+  blocks_.push_back(std::move(block));
+  return true;
+}
+
+bool RuntimeChain::setIrReverbParameter(const std::string& id, const std::string& key, float value)
+{
+  for (auto& block : blocks_) {
+    if (block.kind != Block::Kind::IrReverb || block.id != id) continue;
+    if (key == "mix") block.irReverb->setMix(value);
+    else if (key == "levelDb") block.irReverb->setLevelDb(value);
+    else if (key == "preDelayMs") block.irReverb->setPreDelayMs(value);
+    else if (key == "lowCutHz") block.irReverb->setLowCutHz(value);
+    else if (key == "highCutHz") block.irReverb->setHighCutHz(value);
+    else return false;
+    return true;
+  }
+  return false;
 }
 
 void RuntimeChain::addDaisy(std::string id, DaisyFxProcessor processor)
@@ -363,6 +396,9 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
       current = {mixed, mixed};
       break;
     }
+    case Block::Kind::IrReverb:
+      current = block.irReverb->process(current);
+      break;
     case Block::Kind::Daisy:
       current = block.daisy->process(current);
       break;
@@ -453,6 +489,16 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       currentIsStereo = false;
       break;
     }
+    case Block::Kind::IrReverb:
+      // The processor buffers internally to its own partition size, so a
+      // per-sample loop here costs nothing extra and keeps both paths identical.
+      for (size_t i = 0; i < frames; ++i) {
+        const auto processed = block.irReverb->process({currentLeft[i], currentRight[i]});
+        nextLeft[i] = processed.left;
+        nextRight[i] = processed.right;
+      }
+      currentIsStereo = true;
+      break;
     case Block::Kind::Daisy:
       for (size_t i = 0; i < frames; ++i) {
         const auto processed = block.daisy->process({currentLeft[i], currentRight[i]});
@@ -575,6 +621,9 @@ std::vector<ClipStageSnapshot> RuntimeChain::takeClipDiagnostics()
       break;
     case Block::Kind::Cab:
       kind = SignalStageKind::Cab;
+      break;
+    case Block::Kind::IrReverb:
+      kind = SignalStageKind::IrReverb;
       break;
     case Block::Kind::Daisy:
       kind = SignalStageKind::Daisy;

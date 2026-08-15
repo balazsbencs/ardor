@@ -13,6 +13,7 @@ enum class SignalStageKind {
   Input,
   Nam,
   Cab,
+  IrReverb,
   Daisy,
   Compressor,
   NoiseGate,

@@ -70,6 +70,7 @@ const char* signalStageKindName(SignalStageKind kind) noexcept
   case SignalStageKind::Input: return "input";
   case SignalStageKind::Nam: return "nam";
   case SignalStageKind::Cab: return "ir";
+  case SignalStageKind::IrReverb: return "ir-reverb";
   case SignalStageKind::Daisy: return "daisy";
   case SignalStageKind::Compressor: return "compressor";
   case SignalStageKind::NoiseGate: return "noise-gate";
@@ -158,6 +159,17 @@ void PedalEngine::addCab(std::vector<float> impulse, float level, float mix, std
   cabLevel_.store(safeLevel, std::memory_order_relaxed);
   cabMix_.store(safeMix, std::memory_order_relaxed);
   chain_.addCab(std::move(impulse), safeLevel, safeMix, std::move(id));
+}
+
+bool PedalEngine::addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
+                              float sampleRate, std::string& error)
+{
+  return chain_.addIrReverb(std::move(id), std::move(left), std::move(right), sampleRate, error);
+}
+
+bool PedalEngine::setIrReverbParameter(const std::string& id, const std::string& key, float value)
+{
+  return chain_.setIrReverbParameter(id, key, value);
 }
 
 bool PedalEngine::addDaisyFx(std::string id, const std::string& blockType, const nlohmann::json& params,

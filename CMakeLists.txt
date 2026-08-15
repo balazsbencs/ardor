@@ -177,7 +177,10 @@ target_compile_features(ardor_wah PUBLIC cxx_std_20)
 add_library(ardor_dsp OBJECT
   src/dsp/DualAmpProcessor.cpp
   src/dsp/DualRigProcessor.cpp
+  src/dsp/RealtimeFft.cpp
+  src/dsp/ScheduledConvolver.cpp
   src/dsp/IrConvolver.cpp
+  src/dsp/IrReverbProcessor.cpp
   src/dsp/NamProcessor.cpp
   src/dsp/PedalEngine.cpp
   src/dsp/RuntimeChain.cpp
@@ -404,6 +407,14 @@ target_link_libraries(pedal-engine-contract-smoke PRIVATE ardor_dsp)
 
 add_executable(pedal-tuner-smoke tests/tuner_smoke.cpp)
 target_link_libraries(pedal-tuner-smoke PRIVATE ardor_dsp)
+
+add_executable(pedal-scheduled-convolver-smoke tests/scheduled_convolver_smoke.cpp)
+target_link_libraries(pedal-scheduled-convolver-smoke PRIVATE ardor_dsp)
+add_test(NAME pedal-scheduled-convolver-smoke COMMAND pedal-scheduled-convolver-smoke)
+
+add_executable(pedal-ir-reverb-smoke tests/ir_reverb_smoke.cpp)
+target_link_libraries(pedal-ir-reverb-smoke PRIVATE ardor_dsp)
+add_test(NAME pedal-ir-reverb-smoke COMMAND pedal-ir-reverb-smoke)
 
 add_executable(pedal-nam-processor-smoke tests/nam_processor_smoke.cpp)
 target_link_libraries(pedal-nam-processor-smoke PRIVATE ardor_dsp)

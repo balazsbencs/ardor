@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dsp/ClipDiagnostics.h"
+#include "dsp/IrReverbProcessor.h"
 #include "dsp/SignalRouting.h"
 #include "daisyfx/DaisyFxProcessor.h"
 #include "dynamics/CompressorProcessor.h"
@@ -43,6 +44,10 @@ public:
                   NamInputMode inputMode, double sampleRate, std::size_t blockSize,
                   bool requestParallel, int workerCpu, std::string& error);
   void addCab(std::vector<float> impulse, float level, float mix, std::string id = "cab");
+  // Convolution reverb. `right` may be empty for a mono impulse.
+  bool addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
+                   float sampleRate, std::string& error);
+  bool setIrReverbParameter(const std::string& id, const std::string& key, float value);
   void addDaisy(std::string id, DaisyFxProcessor processor);
   void addCompressor(std::string id, CompressorProcessor processor);
   void addNoiseGate(std::string id, NoiseGateProcessor processor);

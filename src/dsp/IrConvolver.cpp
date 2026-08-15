@@ -9,71 +9,7 @@ namespace ardor {
 
 namespace {
 
-constexpr double kPi = 3.14159265358979323846;
-
-size_t nextPowerOfTwo(size_t value)
-{
-  size_t out = 1;
-  while (out < value) out <<= 1;
-  return out;
-}
-
 } // namespace
-
-void IrConvolver::prepareFftTables()
-{
-  bitReverse_.assign(fftSize_, 0);
-  for (size_t i = 1, j = 0; i < fftSize_; ++i) {
-    size_t bit = fftSize_ >> 1;
-    for (; j & bit; bit >>= 1) {
-      j ^= bit;
-    }
-    j ^= bit;
-    bitReverse_[i] = j;
-  }
-
-  // One table for the largest size; stage `len` reads it at stride fftSize_/len.
-  // Computed in double so table entries carry no accumulated rounding.
-  twiddles_.assign(fftSize_ / 2, {});
-  for (size_t j = 0; j < fftSize_ / 2; ++j) {
-    const double angle = -2.0 * kPi * static_cast<double>(j) / static_cast<double>(fftSize_);
-    twiddles_[j] = {static_cast<float>(std::cos(angle)), static_cast<float>(std::sin(angle))};
-  }
-}
-
-void IrConvolver::fftInPlace(std::vector<std::complex<float>>& values, bool inverse) const
-{
-  const size_t n = values.size();
-  for (size_t i = 1; i < n; ++i) {
-    const size_t j = bitReverse_[i];
-    if (i < j) {
-      std::swap(values[i], values[j]);
-    }
-  }
-
-  for (size_t len = 2; len <= n; len <<= 1) {
-    const size_t stride = n / len;
-    for (size_t i = 0; i < n; i += len) {
-      for (size_t j = 0; j < len / 2; ++j) {
-        std::complex<float> w = twiddles_[j * stride];
-        if (inverse) {
-          w = std::conj(w);
-        }
-        const auto u = values[i + j];
-        const auto v = values[i + j + len / 2] * w;
-        values[i + j] = u + v;
-        values[i + j + len / 2] = u - v;
-      }
-    }
-  }
-
-  if (inverse) {
-    const float scale = 1.0f / static_cast<float>(n);
-    for (auto& x : values) {
-      x *= scale;
-    }
-  }
-}
 
 void IrConvolver::loadImpulse(std::vector<float> impulse)
 {
@@ -144,7 +80,7 @@ void IrConvolver::preparePartitions(size_t frames)
   blockSize_ = frames;
   fftSize_ = nextPowerOfTwo(frames * 2);
   writeIndex_ = 0;
-  prepareFftTables();
+  fft_.prepare(fftSize_);
 
   const size_t partitionCount = (impulse_.size() + frames - 1) / frames;
   overlap_.assign(frames, 0.0f);
@@ -161,7 +97,7 @@ void IrConvolver::preparePartitions(size_t frames)
     for (size_t i = 0; i < count; ++i) {
       partition[i] = impulse_[start + i];
     }
-    fftInPlace(partition, false);
+    fft_.transform(partition, false);
   }
 }
 
@@ -190,7 +126,7 @@ void IrConvolver::processBlock(const float* input, float* output, size_t frames)
   for (size_t i = 0; i < frames; ++i) {
     scratch_[i] = input[i];
   }
-  fftInPlace(scratch_, false);
+  fft_.transform(scratch_, false);
 
   // Both vectors are allocated during preparePartitions(). Copy into the
   // existing slot so the realtime path never relies on vector assignment
@@ -208,7 +144,7 @@ void IrConvolver::processBlock(const float* input, float* output, size_t frames)
     }
   }
 
-  fftInPlace(sum_, true);
+  fft_.transform(sum_, true);
 
   for (size_t i = 0; i < frames; ++i) {
     output[i] = sum_[i].real() + overlap_[i];

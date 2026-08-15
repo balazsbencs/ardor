@@ -14,6 +14,17 @@ struct MonoWav {
 
 MonoWav readMonoWav(const std::filesystem::path& path);
 
+// Reads a file at its native channel count, interleaved. readMonoWav() rejects
+// anything but mono because a cabinet capture must not be silently downmixed;
+// a reverb impulse is legitimately stereo, and its two channels are what give
+// the tail its width.
+struct InterleavedWav {
+  std::vector<float> samples;
+  unsigned sampleRate = 0;
+  unsigned channels = 0;
+};
+InterleavedWav readInterleavedWav(const std::filesystem::path& path);
+
 // Validates an IR for the live mono cabinet path and, when capped, applies a
 // short fade to avoid turning a hard truncation into an audible discontinuity.
 // It then uses a guarded -1 dB ceiling for the estimated frequency-response peak
