@@ -1,0 +1,1175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ardor — Many-value choice parameters, ten working studies</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@400;500;600;700&family=Saira:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --plate:#212528;--plate2:#2a2f33;--plate3:#191c1f;
+  --engrave:#e2e4e3;--engrave-lo:#8d9499;--engrave-off:#5b6266;--rule:#3b4247;
+  --lamp:#d8422f;--mod:#5d8f80;--warm:#a8814e;--delay:#8175a0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#151719;color:#aeb3b6;font-family:Saira,system-ui,sans-serif;padding:48px 22px 96px}
+.doc{max-width:1280px;margin:0 auto}
+.intro{max-width:940px;margin-bottom:20px}
+h1{color:var(--engrave);font-family:'Saira Condensed',sans-serif;font-size:52px;font-weight:700;
+  letter-spacing:.035em;line-height:.95;text-transform:uppercase}
+.lede{font-family:system-ui,sans-serif;font-size:16px;line-height:1.65;margin-top:18px;max-width:74ch;color:#969da1}
+.lede b{color:#d7dbdd;font-weight:600}
+.principles{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.principles span{border:1px solid #34393d;color:#bdc2c4;font-family:'Saira Condensed',sans-serif;
+  font-size:14px;font-weight:600;letter-spacing:.09em;padding:8px 12px;text-transform:uppercase}
+.evidence{border:1px solid #34393d;border-left:2px solid var(--lamp);margin-top:34px;padding:18px 22px;max-width:940px}
+.evidence h2{color:var(--engrave);font-family:'Saira Condensed',sans-serif;font-size:20px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase}
+.evidence p{font-family:system-ui,sans-serif;font-size:14.5px;line-height:1.6;margin-top:8px;color:#969da1}
+.evidence code{font-family:ui-monospace,monospace;font-size:13px;background:#22262a;padding:1px 5px;color:#c3c8ca}
+.evidence table{border-collapse:collapse;font-family:system-ui,sans-serif;font-size:13.5px;margin-top:14px;width:100%}
+.evidence td{border-bottom:1px solid #2c3135;padding:7px 10px;color:#90979b}
+.evidence td:first-child{color:#d7dbdd;font-weight:600;white-space:nowrap}
+.evidence td:last-child{color:#c17a72;font-family:ui-monospace,monospace;white-space:nowrap;text-align:right}
+
+.study{margin-top:58px}
+.study-head{align-items:end;display:flex;gap:24px;margin:0 0 13px}
+.study-head h2{color:var(--engrave);font-family:'Saira Condensed',sans-serif;font-size:29px;
+  font-weight:600;letter-spacing:.05em;line-height:1;text-transform:uppercase}
+.study-head h2 em{color:var(--engrave-off);font-style:normal;margin-right:12px}
+.study-head p{color:#81888c;font-family:system-ui,sans-serif;font-size:13px;line-height:1.45;max-width:74ch;margin-top:7px}
+.study-head .verdict{color:#bdc2c4;font-family:'Saira Condensed',sans-serif;font-size:14px;font-weight:600;
+  letter-spacing:.09em;line-height:1.4;margin-left:auto;text-align:right;text-transform:uppercase;white-space:nowrap}
+.study-head .verdict b{color:var(--lamp);display:block;font-weight:700}
+
+.shell{height:720px;position:relative;width:100%}
+.stage{height:720px;overflow:hidden;transform-origin:top left;width:1280px}
+.screen{background:var(--plate);color:var(--engrave);font-family:'Saira Condensed',sans-serif;
+  height:720px;overflow:hidden;position:relative;width:1280px;user-select:none;-webkit-user-select:none}
+.topbar{align-items:center;border-bottom:1px solid var(--rule);display:flex;height:72px;padding:0 28px;gap:18px}
+.effect{font-size:28px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.meta{color:var(--engrave-lo);font-size:14px;font-weight:500;letter-spacing:.18em;text-transform:uppercase}
+.spacer{flex:1}
+.state{align-items:center;color:var(--engrave-lo);display:flex;font-size:14px;font-weight:600;gap:8px;
+  letter-spacing:.15em;text-transform:uppercase}
+.state i{background:var(--lamp);display:block;height:12px;width:12px}
+.action{align-items:center;background:var(--plate2);border:1px solid var(--rule);color:var(--engrave);
+  display:flex;font-size:17px;font-weight:600;height:52px;justify-content:center;letter-spacing:.12em;
+  min-width:100px;padding:0 18px;text-transform:uppercase}
+.action.primary{background:var(--engrave);border-color:var(--engrave);color:var(--plate)}
+.hintbar{align-items:center;border-top:1px solid var(--rule);bottom:0;color:var(--engrave-lo);
+  display:flex;font-size:14px;font-weight:500;height:68px;left:0;letter-spacing:.1em;padding:0 28px;
+  position:absolute;right:0;text-transform:uppercase;z-index:60;background:var(--plate)}
+.hintbar b{color:var(--engrave);font-weight:600}
+.touch-note{border:1px solid var(--rule);padding:7px 12px}
+button{background:none;border:0;color:inherit;cursor:pointer;font:inherit}
+button:focus-visible{outline:3px solid var(--lamp);outline-offset:-3px}
+
+/* ---- shared panel geometry: 1240 x 452 sheet, 385 x 132 cells ---- */
+.panel{background:var(--plate);border:1px solid var(--rule);height:452px;left:20px;position:absolute;
+  top:78px;width:1240px}
+.grid{display:grid;gap:16px 14px;grid-template-columns:repeat(3,385px);grid-auto-rows:132px;
+  left:48px;position:absolute;top:96px}
+.maptool{align-items:center;background:var(--plate3);border:1px solid var(--rule);display:flex;height:60px;
+  left:48px;padding:0 18px;position:absolute;top:392px;width:1183px}
+.maptool .pk{font-size:22px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.maptool .pv{color:var(--engrave-lo);font-size:14px;font-weight:500;letter-spacing:.16em;margin-left:14px;text-transform:uppercase}
+.maptool .mb{border:1px solid var(--rule);color:var(--engrave-lo);font-size:15px;font-weight:600;height:40px;
+  letter-spacing:.1em;margin-left:14px;padding:0 16px;text-transform:uppercase}
+.maptool .mb:first-of-type{margin-left:auto}
+.behind{left:20px;opacity:.42;position:absolute;right:20px;top:552px}
+.behind .cap{color:var(--engrave-off);font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase}
+.behind .row{display:flex;gap:10px;margin-top:9px}
+.behind .row div{align-items:center;background:var(--plate2);border:1px solid var(--rule);color:var(--engrave-lo);
+  display:flex;flex:1;font-size:17px;font-weight:600;height:60px;justify-content:center;letter-spacing:.06em;
+  position:relative;text-transform:uppercase}
+.behind .row div:before{content:"";height:4px;left:0;position:absolute;right:0;top:0;background:var(--engrave-off)}
+.behind .row div.on{border-color:var(--engrave);color:var(--engrave)}
+.cell{background:var(--plate2);border:1px solid var(--rule);padding:8px 24px 0;position:relative}
+.cell .k{color:var(--engrave-lo);display:block;font-size:15px;font-weight:600;letter-spacing:.17em;text-transform:uppercase}
+.cell .v{display:block;font-family:Saira,sans-serif;font-size:44px;font-weight:300;line-height:1.05;margin-top:2px}
+.cell .v small{color:var(--engrave-lo);font-family:'Saira Condensed',sans-serif;font-size:18px;font-weight:500;margin-left:6px}
+.cell.choice .v{font-family:'Saira Condensed',sans-serif;font-size:28px;font-weight:600;letter-spacing:.02em}
+.cell .rail{height:18px;background:var(--plate3);border:1px solid var(--rule);position:absolute;left:24px;right:24px;top:88px}
+.cell .rail i{background:var(--engrave);display:block;height:16px}
+.cell .rail b{background:var(--lamp);border:4px solid var(--plate2);height:54px;position:absolute;top:-19px;
+  transform:translateX(-50%);width:44px}
+.cell.wide{grid-column:span 2}
+.legend{color:var(--engrave-off);font-size:12px;font-weight:600;letter-spacing:.14em;position:absolute;
+  text-transform:uppercase}
+.bad{color:var(--lamp)}
+
+/* the failing incumbent, drawn to scale */
+.segrow{border:1px solid var(--rule);bottom:4px;display:flex;height:60px;left:24px;position:absolute;right:24px}
+.segrow button{border-left:1px solid var(--rule);color:var(--engrave-lo);flex:1;font-size:11px;font-weight:600;
+  overflow:hidden;padding:0 1px;white-space:nowrap}
+.segrow button:first-child{border-left:0}
+.segrow button[aria-pressed="true"]{background:var(--engrave);color:var(--plate)}
+
+/* ---- 01 stepper + grid picker ---- */
+.stepper{align-items:stretch;bottom:4px;display:flex;height:60px;left:24px;position:absolute;right:24px;gap:6px}
+.stepper .nudge{background:var(--plate3);border:1px solid var(--rule);color:var(--engrave);font-size:26px;
+  font-weight:600;width:72px}
+.stepper .nudge:active{background:var(--engrave);color:var(--plate)}
+.stepper .open{background:var(--plate3);border:1px solid var(--rule);color:var(--engrave-lo);flex:1;
+  font-size:15px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+.stepper .open:active{border-color:var(--engrave)}
+
+.overlay{background:rgba(10,12,13,.74);display:none;inset:0;position:absolute;z-index:50}
+.overlay.open{display:block}
+.sheet{background:var(--plate2);border:1px solid var(--rule);left:48px;position:absolute;top:96px;width:1183px}
+.sheet-head{align-items:center;border-bottom:1px solid var(--rule);display:flex;height:56px;padding:0 20px}
+.sheet-head .t{font-size:22px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+.sheet-head .n{color:var(--engrave-lo);font-size:14px;font-weight:500;letter-spacing:.16em;margin-left:14px;text-transform:uppercase}
+.sheet-head .x{border:1px solid var(--rule);color:var(--engrave);font-size:15px;font-weight:600;height:40px;
+  letter-spacing:.12em;margin-left:auto;padding:0 18px;text-transform:uppercase}
+.sheet-body{padding:16px 20px 20px}
+.sec{color:var(--engrave-off);font-size:13px;font-weight:700;letter-spacing:.2em;margin:14px 0 8px;text-transform:uppercase}
+.sec:first-child{margin-top:0}
+.tiles{display:grid;gap:10px}
+.tiles button{align-items:center;background:var(--plate3);border:1px solid var(--rule);color:var(--engrave-lo);
+  display:flex;font-size:19px;font-weight:600;height:76px;justify-content:center;letter-spacing:.03em;
+  padding:0 8px;text-align:center;line-height:1.15}
+.tiles button[aria-pressed="true"]{background:var(--lamp);border-color:var(--lamp);color:#fff}
+.tiles button:active{border-color:var(--engrave)}
+
+/* ---- 02 expand in place: must stay inside the 1240 x 452 panel ---- */
+.inplace{height:422px;left:48px;overflow:hidden;position:absolute;top:96px;width:1183px}
+.inplace .tiles button{height:62px}
+.inplace .sec{margin:10px 0 6px}
+.fade{transition:opacity .16s ease}
+.hidden{opacity:0;pointer-events:none}
+
+/* ---- 03 drum ---- */
+.cell.novalue > .v{display:none}
+.drum{top:32px;height:96px;left:24px;overflow:hidden;position:absolute;right:24px;
+  background:var(--plate3);border:1px solid var(--rule);cursor:grab;touch-action:none}
+.drum.drag{cursor:grabbing}
+.drum ul{list-style:none;position:absolute;left:0;right:0;top:0}
+.drum li{align-items:center;color:var(--engrave-off);display:flex;font-size:19px;font-weight:600;height:32px;
+  justify-content:center;letter-spacing:.03em}
+.drum li.on{color:var(--engrave);font-size:23px}
+.detent{border-bottom:1px solid var(--lamp);border-top:1px solid var(--lamp);height:32px;left:0;pointer-events:none;
+  position:absolute;right:0;top:31px}
+.detent:before,.detent:after{background:var(--lamp);content:"";height:32px;position:absolute;top:0;width:3px}
+.detent:before{left:0}.detent:after{right:0}
+
+/* ---- 04 family tray ---- */
+.tray{background:var(--plate2);border:1px solid var(--engrave);display:none;height:132px;left:48px;
+  position:absolute;top:244px;width:1183px;z-index:40}
+.tray.open{display:flex}
+.tray .fams{border-right:1px solid var(--rule);display:flex;flex-direction:column;width:150px}
+.tray .fams button{border-bottom:1px solid var(--rule);color:var(--engrave-lo);flex:1;font-size:17px;
+  font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.tray .fams button[aria-pressed="true"]{background:var(--engrave);color:var(--plate)}
+.tray .items{display:flex;flex:1}
+.tray .items button{border-right:1px solid var(--rule);color:var(--engrave-lo);flex:1;font-size:16px;
+  font-weight:600;line-height:1.2;padding:0 4px}
+.tray .items button[aria-pressed="true"]{background:var(--lamp);color:#fff}
+
+/* ---- 05 radial ---- */
+.radial{inset:0;position:absolute}
+.radial .hub{background:var(--plate2);border:1px solid var(--rule);height:150px;left:50%;position:absolute;
+  top:360px;transform:translate(-50%,-50%);width:280px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;pointer-events:none}
+.radial .hub span{color:var(--engrave-lo);font-size:13px;font-weight:600;letter-spacing:.2em;text-transform:uppercase}
+.radial .hub strong{font-size:30px;font-weight:600;letter-spacing:.02em;margin-top:6px;text-align:center;padding:0 12px;line-height:1.1}
+.radial .spoke{background:var(--plate2);border:1px solid var(--rule);color:var(--engrave-lo);font-size:15px;
+  font-weight:600;height:56px;line-height:1.1;padding:0 4px;position:absolute;transform:translate(-50%,-50%);width:132px}
+.radial .spoke[aria-pressed="true"]{background:var(--lamp);border-color:var(--lamp);color:#fff}
+.radial .spoke.hot{border-color:var(--engrave);color:var(--engrave)}
+.radial .ring{border:1px solid var(--rule);left:50%;position:absolute;pointer-events:none;
+  transform:translate(-50%,-50%);border-radius:50%}
+
+/* ---- 06 filmstrip ---- */
+.strip{top:32px;height:96px;left:24px;overflow:hidden;position:absolute;right:24px;
+  background:var(--plate3);border:1px solid var(--rule);cursor:grab;touch-action:none}
+.strip.drag{cursor:grabbing}
+.strip ul{display:flex;list-style:none;position:absolute;top:0}
+.strip li{align-items:center;border-right:1px solid var(--rule);color:var(--engrave-off);display:flex;
+  font-size:17px;font-weight:600;height:94px;justify-content:center;text-align:center;line-height:1.15;
+  padding:0 6px;width:165px}
+.strip li.on{background:var(--lamp);color:#fff;font-size:21px}
+.strip .gate{border-left:1px solid var(--engrave);border-right:1px solid var(--engrave);height:94px;left:50%;
+  pointer-events:none;position:absolute;top:0;transform:translateX(-50%);width:167px}
+
+/* ---- 07 instrument map ---- */
+.keys{height:190px;position:relative;margin-top:6px}
+.keys .w{background:#c9cdcc;border:1px solid #0f1113;color:#202426;font-size:22px;font-weight:700;
+  height:190px;position:absolute;top:0;width:158px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px}
+.keys .w[aria-pressed="true"]{background:var(--lamp);color:#fff}
+.keys .b{background:#111416;border:1px solid #0a0c0e;color:#c9cdcc;font-size:18px;font-weight:700;
+  height:120px;position:absolute;top:0;width:92px;z-index:2;display:flex;align-items:flex-end;justify-content:center;padding-bottom:10px}
+.keys .b[aria-pressed="true"]{background:var(--lamp);border-color:var(--lamp);color:#fff}
+.ladder{display:flex;height:96px;margin-top:14px}
+.ladder button{border:1px solid var(--rule);border-left:0;color:var(--engrave-lo);flex:1;font-size:16px;
+  font-weight:600;line-height:1.15;padding:0 4px}
+.ladder button:first-child{border-left:1px solid var(--rule)}
+.ladder button:nth-child(6){border-left:3px solid var(--engrave-off)}
+.ladder button[aria-pressed="true"]{background:var(--lamp);border-color:var(--lamp);color:#fff}
+.ladder button.down{background:var(--plate3)}
+.axis{color:var(--engrave-off);display:flex;font-size:12px;font-weight:700;justify-content:space-between;
+  letter-spacing:.18em;margin-top:8px;text-transform:uppercase}
+
+/* ---- 08 marking menu ---- */
+.pie{display:none;inset:0;position:absolute;z-index:45}
+.pie.open{display:block;background:rgba(10,12,13,.62)}
+.pie .wedge{background:var(--plate2);border:1px solid var(--rule);color:var(--engrave-lo);font-size:13px;
+  font-weight:600;height:52px;line-height:1.1;padding:0 4px;position:absolute;transform:translate(-50%,-50%);width:112px;
+  display:flex;align-items:center;justify-content:center;text-align:center;pointer-events:none}
+.pie .wedge.hot{background:var(--lamp);border-color:var(--lamp);color:#fff}
+.pie .origin{border:2px solid var(--engrave);height:28px;position:absolute;transform:translate(-50%,-50%);width:28px;
+  pointer-events:none}
+
+/* ---- 09 side sheet list ---- */
+.side{background:var(--plate2);border-left:1px solid var(--rule);bottom:68px;position:absolute;right:0;top:72px;width:480px;
+  display:flex;flex-direction:column}
+.side .h{align-items:center;border-bottom:1px solid var(--rule);display:flex;height:64px;padding:0 18px}
+.side .h .t{font-size:21px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+.side .h .x{border:1px solid var(--rule);font-size:14px;font-weight:600;height:40px;letter-spacing:.1em;
+  margin-left:auto;padding:0 14px;text-transform:uppercase}
+.side .list{flex:1;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.side .grp{background:var(--plate3);color:var(--engrave-off);font-size:13px;font-weight:700;letter-spacing:.2em;
+  padding:9px 18px;position:sticky;text-transform:uppercase;top:0}
+.side .row{align-items:center;border-bottom:1px solid var(--rule);color:var(--engrave-lo);display:flex;
+  font-size:21px;font-weight:600;height:72px;padding:0 18px;width:100%;text-align:left}
+.side .row i{border:2px solid var(--engrave-off);height:20px;margin-left:auto;width:20px;flex:none}
+.side .row[aria-pressed="true"]{color:var(--engrave)}
+.side .row[aria-pressed="true"] i{background:var(--lamp);border-color:var(--lamp)}
+.side .row:active{background:var(--plate3)}
+
+/* ---- 10 recents ---- */
+.recents{bottom:4px;display:flex;gap:6px;height:60px;left:24px;position:absolute;right:24px}
+.recents button{background:var(--plate3);border:1px solid var(--rule);color:var(--engrave-lo);flex:1;
+  font-size:15px;font-weight:600;line-height:1.1;padding:0 4px}
+.recents button[aria-pressed="true"]{background:var(--lamp);border-color:var(--lamp);color:#fff}
+.recents button.more{color:var(--engrave);flex:.8;letter-spacing:.12em}
+
+.summary{border-top:1px solid #34393d;margin-top:70px;padding-top:26px}
+.summary h2{color:var(--engrave);font-family:'Saira Condensed',sans-serif;font-size:30px;letter-spacing:.05em;text-transform:uppercase}
+.summary p{font-family:system-ui,sans-serif;font-size:15px;margin-top:10px;max-width:74ch;color:#969da1}
+.summary table{border-collapse:collapse;font-family:system-ui,sans-serif;font-size:14px;margin-top:20px;width:100%}
+.summary th,.summary td{border-bottom:1px solid #303539;padding:12px 11px;text-align:left;vertical-align:top}
+.summary th{color:#d7dbdd;font-weight:600;white-space:nowrap}
+.summary td{color:#90979b}
+.summary td:first-child{color:#d7dbdd;font-weight:600;white-space:nowrap}
+.summary tr.pick td{color:#c8cdcf}
+.summary tr.pick td:first-child{color:var(--lamp)}
+@media(max-width:820px){
+  body{padding:28px 12px 64px}h1{font-size:38px}
+  .study-head{align-items:flex-start;flex-direction:column;gap:6px}
+  .study-head .verdict{margin-left:0;text-align:left}
+  .summary{overflow-x:auto}.summary table{min-width:820px}
+}
+</style>
+</head>
+<body>
+<!--
+  CHOICE-PARAMETER STUDY — extension of the Panel direction and of parameter-controls.html.
+  PROBLEM: discrete parameters render as one segmented row split evenly across a 337 px lane
+           (LvglUiParameterRenderer.cpp:632-652). Whammy Preset has 19 options = 17 px each.
+  THESIS:  the number of options must change the control, not shrink it.
+  RULES:   1280x720 device grid, real 385x132 cells, >=52 px targets, flat RGB565-safe planes,
+           no gradients, LVGL-buildable, rotary encoder keeps working on every concept.
+-->
+<main class="doc">
+  <header class="intro">
+    <h1>Many-value choice<br>parameters</h1>
+    <p class="lede">Ten working ways to pick one of nineteen values with a fingertip, on a dark stage, at a steep angle. Every study below is <b>interactive</b>: tap, drag, spin, or press and hold. All geometry is real — 1280 × 720 screen, 385 × 132 parameter cells, the same Slate palette and Saira nomenclature as the shipping panel.</p>
+    <div class="principles"><span>1280 × 720 device grid</span><span>19 options worst case</span><span>52 px minimum targets</span><span>Encoder parity kept</span><span>LVGL-buildable</span></div>
+  </header>
+
+  <section class="evidence">
+    <h2>What is broken today</h2>
+    <p>A discrete parameter renders as one segmented row inside the cell. The row is <code>kTravelWidth</code> = 337 px and splits evenly across the option count (<code>LvglUiParameterRenderer.cpp:632-652</code>). The font already drops to 11 px above three options — that is the tell. Segment width per parameter as shipped:</p>
+    <table><tbody>
+      <tr><td>Whammy · Preset</td><td>19 options</td><td>17 px</td></tr>
+      <tr><td>Pattern Trem · Pattern</td><td>16 options</td><td>21 px</td></tr>
+      <tr><td>Destroyer · Depth</td><td>16 options</td><td>21 px</td></tr>
+      <tr><td>Harmonizer · Key</td><td>12 options</td><td>28 px</td></tr>
+      <tr><td>Harmonizer · Interval</td><td>10 options</td><td>33 px</td></tr>
+      <tr><td>Filter · Shape</td><td>8 options</td><td>42 px</td></tr>
+      <tr><td>Phaser · Stages / Formant · Vowel</td><td>7 options</td><td>48 px</td></tr>
+      <tr><td>Flanger · Voice</td><td>6 options</td><td>56 px</td></tr>
+    </tbody></table>
+    <p>A fingertip contact patch is 45–57 px wide. Below four options the row is fine; above it, the control is decoration.</p>
+  </section>
+
+  <section class="study" id="study-00">
+    <header class="study-head">
+      <div><h2><em>00</em>The incumbent, to scale</h2>
+      <p>Whammy’s parameter page exactly as it renders now. The Preset row is real: 19 segments of 17 px carrying 11 px type. Try to hit “Dive bomb” on the first attempt.</p></div>
+      <p class="verdict"><b>Baseline</b>Unusable above 4</p>
+    </header>
+    <div class="shell"><div class="stage"><div class="screen" data-demo="incumbent"></div></div></div>
+  </section>
+
+  <section class="study" id="study-01">
+    <header class="study-head">
+      <div><h2><em>01</em>Stepper + grid picker</h2>
+      <p>The cell keeps the value large and gains two 72 px nudge pads for neighbour steps — the common musical move. Tapping the value opens the full panel as a grid of 228 × 76 px tiles, grouped by the families the catalog already records. One tap commits and closes. Nineteen options fit without a single scroll.</p></div>
+      <p class="verdict"><b>Recommended</b>Fewest new parts</p>
+    </header>
+    <div class="shell"><div class="stage"><div class="screen" data-demo="picker"></div></div></div>
+  </section>
+
+  <section class="study" id="study-02">
+    <header class="study-head">
+      <div><h2><em>02</em>Expand in place</h2>
+      <p>No overlay, no new layer. Tapping a choice cell swaps the six-cell grid for the option grid in the same rectangle, with a back affordance where the page pager sits. The parameter page and the picker are the same surface at two zoom levels. Keeping the panel frame costs height: tiles land at 62 px instead of 76 px.</p></div>
+      <p class="verdict"><b>Calmest</b>No modal layer</p>
+    </header>
+    <div class="shell"><div class="stage"><div class="screen" data-demo="expand"></div></div></div>
+  </section>
+
+  <section class="study" id="study-03">
+    <header class="study-head">
+      <div><h2><em>03</em>Detented drum</h2>
+      <p>The cell holds a three-row drum behind a lamp-coloured detent gate. Flick it, and it spins and settles on a value. It is the touch twin of the rotary encoder — the same mental model under both hands — and it costs no screen outside the cell.</p></div>
+      <p class="verdict"><b>Encoder twin</b>Cell-local</p>
+    </header>
+    <div class="shell"><div class="stage"><div class="screen" data-demo="drum"></div></div></div>
+  </section>
+
+  <section class="study" id="study-04">
+    <header class="study-head">
+      <div><h2><em>04</em>Family tray</h2>
+      <p>Nineteen presets are really ten Whammy modes plus nine Harmony modes. Tap the cell and a tray opens across the panel width: family on the left rail, members across the full 1030 px. Every member gets ~100 px because the tray borrows the width the cell never had.</p></div>
+      <p class="verdict"><b>Truest to data</b>Two taps, always</p>
+    </header>
+    <div class="shell"><div class="stage"><div class="screen" data-demo="tray"></div></div></div>
+  </section>
+
+  <section class="study" id="study-05">
+    <header class="study-head">
+      <div><h2><em>05</em>Radial dial</h2>
+      <p>The options wrap into a ring around a hub that reads the current value. It matches the one physical control the pedal already has — the rotary encoder — so the screen and the knob describe the same shape. Tap a spoke, or press and drag around the ring and release.</p></div>
+      <p class="verdict"><b>Most physical</b>Hardware rhyme</p>
+    </header>
+    <div class="shell"><div class="stage"><div class="screen" data-demo="radial"></div></div></div>
+  </section>
+
+  <section class="study" id="study-06">
+    <header class="study-head">
+      <div><h2><em>06</em>Filmstrip gate</h2>
+      <p>A horizontal strip runs behind a fixed gate. Drag it left or right and it snaps, one option per detent; the option under the gate is the value. Neighbours stay visible on both sides, so the player can see what the next stomp-adjacent value is without opening anything.</p></div>
+      <p class="verdict"><b>Best context</b>Neighbours visible</p>
+    </header>
+    <div class="shell"><div class="stage"><div class="screen" data-demo="strip"></div></div></div>
+  </section>
+
+  <section class="study" id="study-07">
+    <header class="study-head">
+      <div><h2><em>07</em>Instrument map</h2>
+      <p>Stop treating musical values as a list. Harmonizer Key is twelve semitones, so it is drawn as a keyboard. Interval is a signed distance, so it is drawn as a ladder running down through unison to up. The layout carries the meaning; no player has to read every label to find the one they want.</p></div>
+      <p class="verdict"><b>Most native</b>Per-parameter work</p>
+    </header>
+    <div class="shell"><div class="stage"><div class="screen" data-demo="map"></div></div></div>
+  </section>
+
+  <section class="study" id="study-08">
+    <header class="study-head">
+      <div><h2><em>08</em>Thumb marking menu</h2>
+      <p>Press and hold the cell. The options bloom around the finger in two rings, follow the drag, and commit on release — one continuous gesture, no round trip, no lifting the hand. Fastest once learnt. It also shows its own limit: nineteen wedges crowd, and the menu must shift to stay on screen. Press and hold the Preset cell to try it.</p></div>
+      <p class="verdict"><b>Fastest expert</b>Crowds past ~12</p>
+    </header>
+    <div class="shell"><div class="stage"><div class="screen" data-demo="pie"></div></div></div>
+  </section>
+
+  <section class="study" id="study-09">
+    <header class="study-head">
+      <div><h2><em>09</em>Side sheet list</h2>
+      <p>The block drawer already solves “pick one of thirty-five” with a 480 px sheet of 72 px rows and sticky group headers. This reuses it verbatim for parameters. Largest targets of any concept, one familiar pattern for both jobs, and the least new code in production — at the cost of covering a third of the screen.</p></div>
+      <p class="verdict"><b>Cheapest build</b>Reuses the drawer</p>
+    </header>
+    <div class="shell"><div class="stage"><div class="screen" data-demo="side"></div></div></div>
+  </section>
+
+  <section class="study" id="study-10">
+    <header class="study-head">
+      <div><h2><em>10</em>Recents, then everything</h2>
+      <p>A player uses three presets in a set, not nineteen. The cell keeps the three most recent values as full-size tiles plus an ALL pad to the complete grid. The common case is one tap and never opens a picker; the rare case is two.</p></div>
+      <p class="verdict"><b>Fewest taps</b>Needs stored state</p>
+    </header>
+    <div class="shell"><div class="stage"><div class="screen" data-demo="recents"></div></div></div>
+  </section>
+
+  <section class="summary">
+    <h2>Trade-off map</h2>
+    <p>Taps counted worst case: reaching Whammy preset 19 from preset 1. “New state” means something must persist beyond the current render — a picker-open flag, a recents list, a scroll offset.</p>
+    <table>
+      <thead><tr><th>Concept</th><th>Worst-case taps</th><th>Screen taken</th><th>Discoverable</th><th>New LVGL state</th><th>Choose it when</th></tr></thead>
+      <tbody>
+        <tr><td>00 Segmented row</td><td>1 (17 px target)</td><td>None</td><td>Yes</td><td>None</td><td>Four options or fewer. Above that it fails.</td></tr>
+        <tr class="pick"><td>01 Stepper + grid</td><td>2</td><td>Panel, transient</td><td>Yes</td><td>Open flag + key</td><td>You want one rule for every parameter above four options.</td></tr>
+        <tr><td>02 Expand in place</td><td>2</td><td>Panel, transient</td><td>Partly</td><td>Open flag + key</td><td>You want to add no overlay layer at all.</td></tr>
+        <tr><td>03 Detented drum</td><td>Flick + settle</td><td>None</td><td>Partly</td><td>Scroll offset</td><td>Touch should mirror the encoder exactly.</td></tr>
+        <tr><td>04 Family tray</td><td>2</td><td>One panel row</td><td>Yes</td><td>Open flag + family</td><td>The option set has real families, like Whammy’s.</td></tr>
+        <tr><td>05 Radial dial</td><td>2</td><td>Full screen</td><td>Yes</td><td>Open flag + key</td><td>You want the screen to rhyme with the hardware knob.</td></tr>
+        <tr><td>06 Filmstrip gate</td><td>Drag, no commit</td><td>None</td><td>Partly</td><td>Scroll offset</td><td>Neighbouring values matter more than random access.</td></tr>
+        <tr><td>07 Instrument map</td><td>2</td><td>Full screen</td><td>Yes</td><td>Open flag + layout</td><td>Only for musically shaped sets: keys, intervals.</td></tr>
+        <tr><td>08 Marking menu</td><td>1 gesture</td><td>Transient</td><td>No</td><td>Gesture tracking</td><td>As an expert accelerator layered on another concept.</td></tr>
+        <tr><td>09 Side sheet list</td><td>2</td><td>480 px, transient</td><td>Yes</td><td>Reuses drawer</td><td>You want it shipping this week with least new code.</td></tr>
+        <tr><td>10 Recents + all</td><td>1 typical, 3 worst</td><td>Panel, transient</td><td>Yes</td><td>Per-parameter history</td><td>Set-list speed matters more than completeness.</td></tr>
+      </tbody>
+    </table>
+    <p><b style="color:#c8cdcf">Combinations that work:</b> 01 as the base rule, 03 or 06 inside the cell for neighbour nudging instead of the arrow pads, 07 substituted only for Key and Interval, 08 added later as a hidden accelerator. 09 is the fallback if panel real estate turns out to be needed for something else.</p>
+  </section>
+</main>
+
+<script>
+/* ------------------------------------------------------------------ data */
+const WHAMMY = {
+  key: 'Preset', effect: 'Whammy', meta: 'M2 · MOD · PAGE 1 OF 2',
+  groups: [
+    { name: 'Whammy', items: ['2 Oct up','1 Oct up','5th up','4th up','2nd dn','4th dn','5th dn','1 Oct dn','2 Oct dn','Dive bomb'] },
+    { name: 'Harmony', items: ['Oct dn / Oct up','5th dn / 4th dn','4th dn / 3rd dn','5th up / 7th up','5th up / 6th up','4th up / 5th up','3rd up / 4th up','Min 3rd up / 3rd up','2nd up / 3rd up'] },
+  ],
+};
+const KEYS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const INTERVALS = ['Oct down','6th down','5th down','4th down','3rd down','3rd up','4th up','5th up','6th up','Oct up'];
+const SCALES = ['Major','Minor','Dorian','Mixolydian','Harmonic minor'];
+
+function flatten(set){
+  const out = [];
+  set.groups.forEach(g => g.items.forEach(label => out.push({ label, group: g.name })));
+  return out;
+}
+const PRESETS = flatten(WHAMMY);            // 19 entries with group tags
+const groupOf = i => PRESETS[i].group;
+
+/* --------------------------------------------------------------- helpers */
+function el(tag, cls, html){
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (html != null) node.innerHTML = html;
+  return node;
+}
+function frag(html){ const t = el('div', null, html); return t; }
+
+/* A parameter: an index into a list, plus subscribers. */
+function param(items, index){
+  const p = { items, index, subs: [] };
+  p.value = () => p.items[p.index];
+  p.set = i => { p.index = Math.max(0, Math.min(p.items.length - 1, i)); p.subs.forEach(f => f(p)); };
+  p.step = d => p.set(p.index + d);
+  p.on = f => { p.subs.push(f); f(p); return f; };
+  return p;
+}
+
+/* Standard screen chrome + the 3x2 parameter grid at real geometry. */
+function buildScreen(root, cfg){
+  root.innerHTML = '';
+  const bar = el('div', 'topbar');
+  bar.append(
+    el('div', 'effect', cfg.effect),
+    el('div', 'meta', cfg.meta),
+    el('div', 'spacer'),
+    frag('<div class="state"><i></i>Enabled</div>').firstChild,
+    el('div', 'action', 'Bypass'),
+    el('div', 'action primary', 'Done'),
+  );
+  root.append(bar);
+
+  /* The parameter panel is a 1240 x 452 sheet over the chain, as on the device. */
+  root.append(el('div', 'panel'));
+  const grid = el('div', 'grid');
+  root.append(grid);
+
+  const tool = el('div', 'maptool');
+  tool.innerHTML = '<span class="pk">' + (cfg.focus || 'Preset') + '</span>' +
+    '<span class="pv">Focused parameter</span>' +
+    '<button class="mb" type="button">Expression</button><button class="mb" type="button">MIDI learn</button>';
+  root.append(tool);
+
+  const behind = el('div', 'behind');
+  behind.innerHTML = '<div class="cap">Chain · behind the panel</div><div class="row">' +
+    (cfg.chain || ['Nam','Cab','Comp','Whammy','Tape delay','Plate'])
+      .map((name, i) => '<div' + (i === (cfg.active == null ? 3 : cfg.active) ? ' class="on"' : '') + '>' + name + '</div>')
+      .join('') + '</div>';
+  root.append(behind);
+
+  const hint = el('div', 'hintbar');
+  hint.innerHTML = cfg.hint + '<div class="spacer"></div><span class="touch-note">' + cfg.note + '</span>';
+  root.append(hint);
+  return { grid, hint };
+}
+
+/* A continuous cell, drawn only — the study is about choices. */
+function contCell(label, value, unit, pct){
+  const cell = el('div', 'cell');
+  cell.innerHTML = '<span class="k">' + label + '</span><span class="v">' + value +
+    (unit ? '<small>' + unit + '</small>' : '') + '</span>' +
+    '<div class="rail"><i style="width:' + pct + '%"></i><b style="left:' + pct + '%"></b></div>';
+  return cell;
+}
+
+/* A choice cell whose interior each study fills in. `novalue` studies read the
+   value out of the control itself (drum, filmstrip), so the value line is dropped. */
+function choiceCell(label, p, render, novalue){
+  const cell = el('div', 'cell choice' + (novalue ? ' novalue' : ''));
+  cell.innerHTML = '<span class="k">' + label + '</span><span class="v"></span>';
+  const out = cell.querySelector('.v');
+  p.on(() => { out.textContent = p.value(); });
+  render(cell, p);
+  return cell;
+}
+
+/* Tile grid used by several studies. */
+function tileGrid(container, p, cols, opts){
+  opts = opts || {};
+  container.innerHTML = '';
+  const draw = [];
+  const paint = () => draw.forEach(fn => fn());
+  const section = (name, items, offset) => {
+    if (name) container.append(el('div', 'sec', name));
+    const wrap = el('div', 'tiles');
+    wrap.style.gridTemplateColumns = 'repeat(' + cols + ',1fr)';
+    items.forEach((label, i) => {
+      const index = offset + i;
+      const b = el('button', null, label);
+      b.type = 'button';
+      b.addEventListener('click', () => { p.set(index); if (opts.onPick) opts.onPick(index); });
+      draw.push(() => b.setAttribute('aria-pressed', String(p.index === index)));
+      wrap.append(b);
+    });
+    container.append(wrap);
+  };
+  if (opts.groups){
+    let offset = 0;
+    opts.groups.forEach(g => { section(g.name, g.items, offset); offset += g.items.length; });
+  } else {
+    section(null, p.items, 0);
+  }
+  p.on(paint);
+  return paint;
+}
+
+/* Modal overlay containing a sheet. Returns {overlay, body, open, close}. */
+function makeSheet(root, title, subtitle){
+  const overlay = el('div', 'overlay');
+  const sheet = el('div', 'sheet');
+  const head = el('div', 'sheet-head');
+  head.innerHTML = '<span class="t">' + title + '</span><span class="n">' + subtitle + '</span>';
+  const close = el('button', 'x', 'Close');
+  close.type = 'button';
+  head.append(close);
+  const body = el('div', 'sheet-body');
+  sheet.append(head, body);
+  overlay.append(sheet);
+  root.append(overlay);
+  const api = {
+    overlay, body,
+    open: () => overlay.classList.add('open'),
+    close: () => overlay.classList.remove('open'),
+  };
+  close.addEventListener('click', api.close);
+  overlay.addEventListener('pointerdown', e => { if (e.target === overlay) api.close(); });
+  return api;
+}
+
+/* Whammy's five other parameters, so every study sits in a real page. */
+function whammyNeighbours(){
+  return [
+    contCell('Pedal', 'Toe', '', 100),
+    contCell('Glide', '38', 'ms', 42),
+    contCell('Harmony level', '78', '%', 78),
+    contCell('Mix', '100', '%', 100),
+    contCell('Level', '0', 'dB', 66),
+  ];
+}
+
+/* =================================================================== 00 */
+function demoIncumbent(root){
+  const p = param(PRESETS.map(x => x.label), 1);
+  const { grid } = buildScreen(root, {
+    effect: 'Whammy', meta: 'M2 · MOD · PAGE 1 OF 2',
+    hint: '<b>19 segments across 337 px.</b>&nbsp; 17 px each, 11 px type.',
+    note: '<span class="bad">17 px targets</span>',
+  });
+  const cell = choiceCell('Preset', p, (cellEl) => {
+    const row = el('div', 'segrow');
+    p.items.forEach((label, i) => {
+      const b = el('button', null, label);
+      b.type = 'button';
+      b.addEventListener('click', () => p.set(i));
+      row.append(b);
+    });
+    cellEl.append(row);
+    p.on(() => row.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(i === p.index))));
+  });
+  const cells = whammyNeighbours();
+  grid.append(cells[0], cell, cells[1], cells[2], cells[3], cells[4]);
+}
+
+/* =================================================================== 01 */
+function demoPicker(root){
+  const p = param(PRESETS.map(x => x.label), 9);
+  const { grid } = buildScreen(root, {
+    effect: 'Whammy', meta: 'M2 · MOD · PAGE 1 OF 2',
+    hint: '<b>Nudge with the pads</b>&nbsp; or tap the value for all 19.',
+    note: '72 px pads · 228 × 76 px tiles',
+  });
+  const sheet = makeSheet(root, 'Preset', '19 options');
+  tileGrid(sheet.body, p, 5, { groups: WHAMMY.groups, onPick: sheet.close });
+
+  const cell = choiceCell('Preset', p, (cellEl) => {
+    const row = el('div', 'stepper');
+    const down = el('button', 'nudge', '‹'); down.type = 'button';
+    const up = el('button', 'nudge', '›'); up.type = 'button';
+    const open = el('button', 'open', 'All presets'); open.type = 'button';
+    down.addEventListener('click', () => p.step(-1));
+    up.addEventListener('click', () => p.step(1));
+    open.addEventListener('click', sheet.open);
+    cellEl.addEventListener('click', e => { if (e.target === cellEl || e.target.classList.contains('v')) sheet.open(); });
+    row.append(down, open, up);
+    cellEl.append(row);
+  });
+  const cells = whammyNeighbours();
+  grid.append(cells[0], cell, cells[1], cells[2], cells[3], cells[4]);
+}
+
+/* =================================================================== 02 */
+function demoExpand(root){
+  const p = param(PRESETS.map(x => x.label), 3);
+  const { grid, hint } = buildScreen(root, {
+    effect: 'Whammy', meta: 'M2 · MOD · PAGE 1 OF 2',
+    hint: '<b>Tap the Preset cell.</b>&nbsp; The page zooms into the parameter, in the same rectangle.',
+    note: 'No overlay layer',
+  });
+  grid.classList.add('fade');
+
+  const picker = el('div', 'inplace fade hidden');
+  const head = el('div', 'sheet-head');
+  head.innerHTML = '<span class="t">Preset</span><span class="n">19 options</span>';
+  const back = el('button', 'x', '‹ Back'); back.type = 'button';
+  head.append(back);
+  const body = el('div', 'sheet-body');
+  picker.append(head, body);
+  picker.style.background = 'var(--plate2)';
+  picker.style.border = '1px solid var(--rule)';
+  root.insertBefore(picker, hint);
+
+  const show = on => {
+    grid.classList.toggle('hidden', on);
+    picker.classList.toggle('hidden', !on);
+  };
+  tileGrid(body, p, 5, { groups: WHAMMY.groups, onPick: () => show(false) });
+  back.addEventListener('click', () => show(false));
+
+  const cell = choiceCell('Preset', p, (cellEl) => {
+    cellEl.style.cursor = 'pointer';
+    cellEl.append(el('div', 'stepper', '<button class="open" type="button" style="flex:1">Tap to choose</button>'));
+    cellEl.addEventListener('click', () => show(true));
+  });
+  const cells = whammyNeighbours();
+  grid.append(cells[0], cell, cells[1], cells[2], cells[3], cells[4]);
+}
+
+/* =================================================================== 03 */
+const ROW_H = 34;
+function demoDrum(root){
+  const p = param(PRESETS.map(x => x.label), 6);
+  const { grid } = buildScreen(root, {
+    effect: 'Whammy', meta: 'M2 · MOD · PAGE 1 OF 2',
+    hint: '<b>Flick the drum.</b>&nbsp; It settles on a detent — the same motion as the encoder.',
+    note: '32 px rows · 337 × 96 px drum',
+  });
+  const cell = choiceCell('Preset', p, (cellEl) => {
+    const drum = el('div', 'drum');
+    const list = el('ul');
+    p.items.forEach(label => list.append(el('li', null, label)));
+    drum.append(list, el('div', 'detent'));
+    cellEl.append(drum);
+
+    const place = () => {
+      list.style.transform = 'translateY(' + (ROW_H - p.index * ROW_H) + 'px)';
+      list.querySelectorAll('li').forEach((li, i) => li.classList.toggle('on', i === p.index));
+    };
+    p.on(place);
+
+    let dragging = false, startY = 0, startIndex = 0, moved = 0, lastY = 0, velocity = 0;
+    drum.addEventListener('pointerdown', e => {
+      dragging = true; startY = lastY = e.clientY; startIndex = p.index; moved = 0; velocity = 0;
+      list.style.transition = 'none';
+      drum.classList.add('drag');
+      drum.setPointerCapture(e.pointerId);
+    });
+    drum.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      velocity = e.clientY - lastY; lastY = e.clientY;
+      moved = e.clientY - startY;
+      const offset = ROW_H - startIndex * ROW_H + moved;
+      list.style.transform = 'translateY(' + offset + 'px)';
+    });
+    const release = () => {
+      if (!dragging) return;
+      dragging = false;
+      drum.classList.remove('drag');
+      list.style.transition = 'transform .18s ease-out';
+      const glide = Math.round(velocity * 1.6 / ROW_H);
+      p.set(Math.round(startIndex - moved / ROW_H) - glide);
+      place();
+    };
+    drum.addEventListener('pointerup', release);
+    drum.addEventListener('pointercancel', release);
+    drum.addEventListener('wheel', e => { e.preventDefault(); p.step(e.deltaY > 0 ? 1 : -1); }, { passive: false });
+    list.style.transition = 'transform .18s ease-out';
+  }, true);
+  const cells = whammyNeighbours();
+  grid.append(cells[0], cell, cells[1], cells[2], cells[3], cells[4]);
+}
+
+/* =================================================================== 04 */
+function demoTray(root){
+  const p = param(PRESETS.map(x => x.label), 12);
+  const { grid, hint } = buildScreen(root, {
+    effect: 'Whammy', meta: 'M2 · MOD · PAGE 1 OF 2',
+    hint: '<b>Tap Preset.</b>&nbsp; The tray borrows the panel width the cell never had.',
+    note: '~100 px members · 150 px families',
+  });
+  const tray = el('div', 'tray');
+  const fams = el('div', 'fams');
+  const items = el('div', 'items');
+  tray.append(fams, items);
+  root.insertBefore(tray, hint);
+
+  let family = 0;
+  const drawItems = () => {
+    items.innerHTML = '';
+    const offset = family === 0 ? 0 : WHAMMY.groups[0].items.length;
+    WHAMMY.groups[family].items.forEach((label, i) => {
+      const b = el('button', null, label);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(p.index === offset + i));
+      b.addEventListener('click', () => { p.set(offset + i); tray.classList.remove('open'); });
+      items.append(b);
+    });
+  };
+  WHAMMY.groups.forEach((g, i) => {
+    const b = el('button', null, g.name + '<br><span style="font-size:13px;opacity:.7">' + g.items.length + '</span>');
+    b.type = 'button';
+    b.addEventListener('click', () => { family = i; paintFams(); drawItems(); });
+    fams.append(b);
+  });
+  const paintFams = () => fams.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(i === family)));
+
+  const cell = choiceCell('Preset', p, (cellEl) => {
+    cellEl.style.cursor = 'pointer';
+    const row = el('div', 'stepper');
+    const tag = el('button', 'open', ''); tag.type = 'button';
+    row.append(tag);
+    cellEl.append(row);
+    p.on(() => { tag.textContent = groupOf(p.index) + ' family · change'; });
+    cellEl.addEventListener('click', () => {
+      family = groupOf(p.index) === 'Whammy' ? 0 : 1;
+      paintFams(); drawItems();
+      tray.classList.toggle('open');
+    });
+  });
+  const cells = whammyNeighbours();
+  grid.append(cells[0], cell, cells[1], cells[2], cells[3], cells[4]);
+}
+
+/* =================================================================== 05 */
+function demoRadial(root){
+  const p = param(PRESETS.map(x => x.label), 2);
+  const { grid } = buildScreen(root, {
+    effect: 'Whammy', meta: 'M2 · MOD · PAGE 1 OF 2',
+    hint: '<b>Tap the value, then a spoke</b>&nbsp; — or drag around the ring and release.',
+    note: '132 × 56 px spokes · two rings',
+  });
+  const overlay = el('div', 'overlay');
+  const radial = el('div', 'radial');
+  const hub = el('div', 'hub', '<span>Preset</span><strong></strong>');
+  radial.append(hub);
+  /* Two concentric ellipses: the 10 Whammy modes inside, the 9 Harmony modes outside. */
+  const CY = 360, RINGS = [
+    { count: WHAMMY.groups[0].items.length, rx: 250, ry: 148 },
+    { count: WHAMMY.groups[1].items.length, rx: 448, ry: 250 },
+  ];
+  RINGS.forEach(r => {
+    const guide = el('div', 'ring');
+    guide.style.width = (r.rx * 2) + 'px';
+    guide.style.height = (r.ry * 2) + 'px';
+    guide.style.top = CY + 'px';
+    radial.append(guide);
+  });
+  const spokes = [];
+  const inner = RINGS[0].count;
+  p.items.forEach((label, i) => {
+    const ring = i < inner ? RINGS[0] : RINGS[1];
+    const ringIndex = i < inner ? i : i - inner;
+    const angle = (-90 + ringIndex * 360 / ring.count) * Math.PI / 180;
+    const b = el('button', 'spoke', label);
+    b.type = 'button';
+    b.style.left = (640 + Math.cos(angle) * ring.rx) + 'px';
+    b.style.top = (CY + Math.sin(angle) * ring.ry) + 'px';
+    b.addEventListener('click', () => { p.set(i); overlay.classList.remove('open'); });
+    radial.append(b);
+    spokes.push(b);
+  });
+  /* The hub already names the parameter, so the overlay needs only a way out.
+     Top-left is the one corner both rings leave empty. */
+  const x = el('button', null, 'Close'); x.type = 'button';
+  x.style.cssText = 'position:absolute;left:40px;top:96px;width:132px;height:52px;' +
+    'border:1px solid var(--rule);background:var(--plate2);color:var(--engrave);' +
+    'font-size:15px;font-weight:600;letter-spacing:.12em;text-transform:uppercase';
+  x.addEventListener('click', () => overlay.classList.remove('open'));
+  radial.append(x);
+  overlay.append(radial);
+  root.append(overlay);
+
+  p.on(() => {
+    hub.querySelector('strong').textContent = p.value();
+    spokes.forEach((b, i) => b.setAttribute('aria-pressed', String(i === p.index)));
+  });
+
+  /* drag-around-the-ring: highlight what is under the finger, commit on release */
+  let dragging = false;
+  radial.addEventListener('pointerdown', e => { dragging = true; radial.setPointerCapture(e.pointerId); });
+  radial.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const hot = document.elementFromPoint(e.clientX, e.clientY);
+    spokes.forEach(b => b.classList.toggle('hot', b === hot));
+  });
+  radial.addEventListener('pointerup', e => {
+    dragging = false;
+    const hot = document.elementFromPoint(e.clientX, e.clientY);
+    spokes.forEach((b, i) => { if (b === hot) { p.set(i); overlay.classList.remove('open'); } b.classList.remove('hot'); });
+  });
+
+  const cell = choiceCell('Preset', p, (cellEl) => {
+    cellEl.style.cursor = 'pointer';
+    cellEl.append(el('div', 'stepper', '<button class="open" type="button" style="flex:1">Open the ring</button>'));
+    cellEl.addEventListener('click', () => overlay.classList.add('open'));
+  });
+  const cells = whammyNeighbours();
+  grid.append(cells[0], cell, cells[1], cells[2], cells[3], cells[4]);
+}
+
+/* =================================================================== 06 */
+const STRIP_W = 166;
+function demoStrip(root){
+  const p = param(PRESETS.map(x => x.label), 4);
+  const { grid } = buildScreen(root, {
+    effect: 'Whammy', meta: 'M2 · MOD · PAGE 1 OF 2',
+    hint: '<b>Drag the strip.</b>&nbsp; It snaps one option per detent; neighbours stay in view.',
+    note: '165 px detents · no commit tap',
+  });
+  const cell = choiceCell('Preset', p, (cellEl) => {
+    const strip = el('div', 'strip');
+    const list = el('ul');
+    p.items.forEach(label => list.append(el('li', null, label)));
+    strip.append(list, el('div', 'gate'));
+    cellEl.append(strip);
+
+    const centre = 337 / 2;
+    const place = () => {
+      list.style.transform = 'translateX(' + (centre - STRIP_W / 2 - p.index * STRIP_W) + 'px)';
+      list.querySelectorAll('li').forEach((li, i) => li.classList.toggle('on', i === p.index));
+    };
+    p.on(place);
+
+    let dragging = false, startX = 0, startIndex = 0, moved = 0;
+    strip.addEventListener('pointerdown', e => {
+      dragging = true; startX = e.clientX; startIndex = p.index; moved = 0;
+      list.style.transition = 'none';
+      strip.classList.add('drag');
+      strip.setPointerCapture(e.pointerId);
+    });
+    strip.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      moved = e.clientX - startX;
+      list.style.transform = 'translateX(' + (centre - STRIP_W / 2 - startIndex * STRIP_W + moved) + 'px)';
+    });
+    const release = () => {
+      if (!dragging) return;
+      dragging = false;
+      strip.classList.remove('drag');
+      list.style.transition = 'transform .16s ease-out';
+      p.set(Math.round(startIndex - moved / STRIP_W));
+      place();
+    };
+    strip.addEventListener('pointerup', release);
+    strip.addEventListener('pointercancel', release);
+    strip.addEventListener('wheel', e => { e.preventDefault(); p.step(e.deltaY > 0 ? 1 : -1); }, { passive: false });
+    list.style.transition = 'transform .16s ease-out';
+  }, true);
+  const cells = whammyNeighbours();
+  grid.append(cells[0], cell, cells[1], cells[2], cells[3], cells[4]);
+}
+
+/* =================================================================== 07 */
+const WHITE = [0,2,4,5,7,9,11], BLACK = [1,3,6,8,10];
+function demoMap(root){
+  const key = param(KEYS, 7);
+  const interval = param(INTERVALS, 7);
+  const { grid } = buildScreen(root, {
+    effect: 'Harmonizer', meta: 'M1 · MOD · PAGE 1 OF 2',
+    hint: '<b>Key is a keyboard. Interval is a ladder.</b>&nbsp; The layout carries the meaning.',
+    note: '158 px white keys · 96 px rungs',
+    focus: 'Interval',
+    chain: ['Nam', 'Cab', 'Comp', 'Harmonizer', 'Tape delay', 'Plate'],
+  });
+
+  const sheet = makeSheet(root, 'Key & interval', 'Harmonizer');
+  sheet.body.innerHTML = '';
+  sheet.body.append(el('div', 'sec', 'Key · 12 semitones'));
+  const keys = el('div', 'keys');
+  WHITE.forEach((note, i) => {
+    const b = el('button', 'w', KEYS[note]);
+    b.type = 'button';
+    b.style.left = (i * 160) + 'px';
+    b.addEventListener('click', () => { key.set(note); sheet.close(); });
+    keys.append(b);
+  });
+  const BLACK_X = [110, 270, 590, 750, 910];
+  BLACK.forEach((note, i) => {
+    const b = el('button', 'b', KEYS[note]);
+    b.type = 'button';
+    b.style.left = BLACK_X[i] + 'px';
+    b.addEventListener('click', () => { key.set(note); sheet.close(); });
+    keys.append(b);
+  });
+  sheet.body.append(keys);
+  sheet.body.append(el('div', 'sec', 'Interval · down through unison to up'));
+  const ladder = el('div', 'ladder');
+  INTERVALS.forEach((label, i) => {
+    const b = el('button', i < 5 ? 'down' : '', label.replace(' ', '<br>'));
+    b.type = 'button';
+    b.addEventListener('click', () => { interval.set(i); sheet.close(); });
+    ladder.append(b);
+  });
+  sheet.body.append(ladder);
+  sheet.body.append(frag('<div class="axis"><span>◀ Octave down</span><span>Unison</span><span>Octave up ▶</span></div>').firstChild);
+  const paint = () => {
+    keys.querySelectorAll('button').forEach(b => {
+      const note = KEYS.indexOf(b.textContent);
+      b.setAttribute('aria-pressed', String(note === key.index));
+    });
+    ladder.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(i === interval.index)));
+  };
+  key.on(paint); interval.on(paint);
+
+  const open = cellEl => {
+    cellEl.style.cursor = 'pointer';
+    cellEl.append(el('div', 'stepper', '<button class="open" type="button" style="flex:1">Open the map</button>'));
+    cellEl.addEventListener('click', sheet.open);
+  };
+  grid.append(
+    choiceCell('Interval', interval, open),
+    choiceCell('Key', key, open),
+    choiceCell('Scale', param(SCALES, 1), cellEl => {
+      const row = el('div', 'segrow');
+      row.style.height = '60px';
+      SCALES.forEach((label, i) => {
+        const b = el('button', null, label);
+        b.type = 'button';
+        b.setAttribute('aria-pressed', String(i === 1));
+        b.addEventListener('click', () => {
+          row.querySelectorAll('button').forEach((x, j) => x.setAttribute('aria-pressed', String(i === j)));
+          cellEl.querySelector('.v').textContent = label;
+        });
+        row.append(b);
+      });
+      cellEl.append(row);
+    }),
+    contCell('Tracking', '62', '%', 62),
+    contCell('Mix', '50', '%', 50),
+    contCell('Level', '0', 'dB', 66),
+  );
+}
+
+/* =================================================================== 08 */
+function demoPie(root){
+  const p = param(PRESETS.map(x => x.label), 0);
+  const { grid, hint } = buildScreen(root, {
+    effect: 'Whammy', meta: 'M2 · MOD · PAGE 1 OF 2',
+    hint: '<b>Press and hold the Preset cell.</b>&nbsp; Slide onto a wedge, release to commit.',
+    note: '112 × 52 px wedges · one gesture',
+  });
+  const pie = el('div', 'pie');
+  const origin = el('div', 'origin');
+  pie.append(origin);
+  const wedges = p.items.map(label => {
+    const w = el('div', 'wedge', label);
+    pie.append(w);
+    return w;
+  });
+  root.insertBefore(pie, hint);
+
+  const inner = 10;
+  const layout = (cx, cy) => {
+    /* Clamp the menu centre, not the individual wedges: clamping wedges piles
+       them onto each other at the screen edge. The origin mark stays on the
+       finger, so the shift stays honest. */
+    const mx = Math.max(400, Math.min(880, cx));
+    const my = Math.max(258, Math.min(466, cy));
+    wedges.forEach((w, i) => {
+      const ringIndex = i < inner ? i : i - inner;
+      const count = i < inner ? inner : wedges.length - inner;
+      const rx = i < inner ? 205 : 345, ry = i < inner ? 100 : 168;
+      const angle = (-90 + ringIndex * 360 / count) * Math.PI / 180;
+      w.style.left = (mx + Math.cos(angle) * rx) + 'px';
+      w.style.top = (my + Math.sin(angle) * ry) + 'px';
+    });
+    origin.style.left = cx + 'px';
+    origin.style.top = cy + 'px';
+  };
+  const nearest = (x, y) => {
+    let best = -1, bestDistance = 90;
+    wedges.forEach((w, i) => {
+      const r = w.getBoundingClientRect();
+      const dx = x - (r.left + r.width / 2), dy = y - (r.top + r.height / 2);
+      const d = Math.hypot(dx, dy);
+      if (d < bestDistance) { bestDistance = d; best = i; }
+    });
+    return best;
+  };
+
+  const cell = choiceCell('Preset', p, (cellEl) => {
+    cellEl.style.cursor = 'pointer';
+    cellEl.append(el('div', 'stepper', '<button class="open" type="button" style="flex:1">Press and hold</button>'));
+    let timer = null, armed = false;
+    cellEl.addEventListener('pointerdown', e => {
+      cellEl.setPointerCapture(e.pointerId);
+      const stage = root.getBoundingClientRect();
+      const scale = stage.width / 1280;
+      timer = setTimeout(() => {
+        armed = true;
+        layout((e.clientX - stage.left) / scale, (e.clientY - stage.top) / scale);
+        pie.classList.add('open');
+      }, 220);
+    });
+    cellEl.addEventListener('pointermove', e => {
+      if (!armed) return;
+      const hot = nearest(e.clientX, e.clientY);
+      wedges.forEach((w, i) => w.classList.toggle('hot', i === hot));
+    });
+    const finish = e => {
+      clearTimeout(timer);
+      if (!armed) return;
+      armed = false;
+      const hot = nearest(e.clientX, e.clientY);
+      if (hot >= 0) p.set(hot);
+      wedges.forEach(w => w.classList.remove('hot'));
+      pie.classList.remove('open');
+    };
+    cellEl.addEventListener('pointerup', finish);
+    cellEl.addEventListener('pointercancel', finish);
+  });
+  const cells = whammyNeighbours();
+  grid.append(cells[0], cell, cells[1], cells[2], cells[3], cells[4]);
+}
+
+/* =================================================================== 09 */
+function demoSide(root){
+  const p = param(PRESETS.map(x => x.label), 16);
+  const { grid, hint } = buildScreen(root, {
+    effect: 'Whammy', meta: 'M2 · MOD · PAGE 1 OF 2',
+    hint: '<b>Tap Preset.</b>&nbsp; The drawer pattern, reused verbatim for parameters.',
+    note: '480 px sheet · 72 px rows',
+  });
+  const side = el('div', 'side');
+  side.style.display = 'none';
+  const head = el('div', 'h', '<span class="t">Preset</span>');
+  const x = el('button', 'x', 'Close'); x.type = 'button';
+  x.addEventListener('click', () => { side.style.display = 'none'; });
+  head.append(x);
+  const list = el('div', 'list');
+  let cursor = 0;
+  WHAMMY.groups.forEach(g => {
+    list.append(el('div', 'grp', g.name + ' · ' + g.items.length));
+    g.items.forEach(label => {
+      const index = cursor++;
+      const row = el('button', 'row', '<span>' + label + '</span>');
+      row.type = 'button';
+      row.append(el('i'));
+      row.addEventListener('click', () => { p.set(index); side.style.display = 'none'; });
+      p.on(() => row.setAttribute('aria-pressed', String(p.index === index)));
+      list.append(row);
+    });
+  });
+  side.append(head, list);
+  root.insertBefore(side, hint);
+
+  const cell = choiceCell('Preset', p, (cellEl) => {
+    cellEl.style.cursor = 'pointer';
+    cellEl.append(el('div', 'stepper', '<button class="open" type="button" style="flex:1">Browse all 19</button>'));
+    cellEl.addEventListener('click', () => {
+      side.style.display = 'flex';
+      /* Open on the current value, not at the top: 19 rows do not fit the sheet. */
+      const current = list.querySelector('[aria-pressed="true"]');
+      if (current) current.scrollIntoView({ block: 'center' });
+    });
+  });
+  const cells = whammyNeighbours();
+  grid.append(cells[0], cell, cells[1], cells[2], cells[3], cells[4]);
+}
+
+/* =================================================================== 10 */
+function demoRecents(root){
+  const p = param(PRESETS.map(x => x.label), 1);
+  const { grid } = buildScreen(root, {
+    effect: 'Whammy', meta: 'M2 · MOD · PAGE 1 OF 2',
+    hint: '<b>Three recents, one tap each.</b>&nbsp; ALL opens the full grid; picking there promotes it.',
+    note: '3 recents · 110 px pads',
+  });
+  const sheet = makeSheet(root, 'Preset', '19 options');
+  const recents = [1, 7, 9];
+
+  const cell = choiceCell('Preset', p, (cellEl) => {
+    const row = el('div', 'recents');
+    cellEl.append(row);
+    const draw = () => {
+      row.innerHTML = '';
+      recents.forEach(index => {
+        const b = el('button', null, p.items[index]);
+        b.type = 'button';
+        b.setAttribute('aria-pressed', String(index === p.index));
+        b.addEventListener('click', () => p.set(index));
+        row.append(b);
+      });
+      const more = el('button', 'more', 'All 19');
+      more.type = 'button';
+      more.addEventListener('click', sheet.open);
+      row.append(more);
+    };
+    tileGrid(sheet.body, p, 5, {
+      groups: WHAMMY.groups,
+      onPick: index => {
+        if (!recents.includes(index)) { recents.unshift(index); recents.length = 3; }
+        draw();
+        sheet.close();
+      },
+    });
+    p.on(draw);
+  });
+  const cells = whammyNeighbours();
+  grid.append(cells[0], cell, cells[1], cells[2], cells[3], cells[4]);
+}
+
+/* ------------------------------------------------------------------ boot */
+const DEMOS = {
+  incumbent: demoIncumbent, picker: demoPicker, expand: demoExpand, drum: demoDrum,
+  tray: demoTray, radial: demoRadial, strip: demoStrip, map: demoMap,
+  pie: demoPie, side: demoSide, recents: demoRecents,
+};
+document.querySelectorAll('[data-demo]').forEach(node => DEMOS[node.dataset.demo](node));
+
+function fit(){
+  document.querySelectorAll('.stage').forEach(stage => {
+    const shell = stage.parentElement;
+    const scale = Math.min(1, shell.clientWidth / 1280);
+    stage.style.transform = 'scale(' + scale + ')';
+    shell.style.height = (720 * scale) + 'px';
+  });
+}
+addEventListener('resize', fit);
+fit();
+document.fonts && document.fonts.ready.then(fit);
+</script>
+</body>
+</html>
