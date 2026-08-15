@@ -62,7 +62,7 @@ Shape render(float attack, float sustain, const std::vector<float>& note)
     const float x = note[n];
     const auto out = shaper.process({x, x});
     const double t = static_cast<double>(n) / kRate;
-    if (t < 0.020) shape.onsetPeak = std::max(shape.onsetPeak, std::fabs<double>(out.left));
+    if (t < 0.020) shape.onsetPeak = std::max(shape.onsetPeak, std::fabs(static_cast<double>(out.left)));
     if (t >= 0.500) shape.tailEnergy += static_cast<double>(out.left) * out.left;
     if (n >= note.size() / 2) {
       lowestGainDb = std::min(lowestGainDb, static_cast<double>(shaper.currentGainDb()));
