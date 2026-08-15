@@ -50,6 +50,9 @@ struct UiActions {
   std::function<bool(const std::string&, const std::string&, float)> updateCompressorParameter;
   std::function<bool(const std::string&, const std::string&, float)> updateNoiseGateParameter;
   std::function<bool(const std::string&, const std::string&, float)> updateWahParameter;
+  // Every block family above has its own callback. This one covers the rest, so
+  // a new block only has to be taught to the host dispatcher and not to the UI.
+  std::function<bool(const std::string&, const std::string&, float)> updateBlockParameter;
   std::function<void(float, float)> updateGlobalGains;
   std::function<void(float, float)> updateCabParameters;
   std::function<void(int)> changeBank;

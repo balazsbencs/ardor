@@ -49,8 +49,13 @@ std::string laneToken(const UiBlock& block)
   if (block.type == "nam") return "NAM";
   if (block.type == "cab") return "IR";
   if (block.type == "dynamics") {
-    return block.params.value("mode", std::string{}) == "noise_gate" ? "GATE" : "CMP";
+    const auto mode = block.params.value("mode", std::string{});
+    if (mode == "noise_gate") return "GATE";
+    if (mode == "transient_shaper") return "TRAN";
+    return "CMP";
   }
+  if (block.type == "irreverb") return "CONV";
+  if (block.type == "stereo") return "WIDE";
   if (block.type == "eq") return "EQ";
   if (block.type == "wah") return "WAH";
   if (block.type == "delay") return "DLY";

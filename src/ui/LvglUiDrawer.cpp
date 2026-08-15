@@ -208,6 +208,9 @@ std::string assetDragText(const UiAsset& asset)
   if (asset.type == "cabs") {
     return "Cab\n" + asset.name;
   }
+  if (asset.blockType == "irreverb") {
+    return "Reverb\n" + asset.name;
+  }
   return asset.name;
 }
 

@@ -604,6 +604,12 @@ bool applyPresetParameterValue(
     }
     return false;
   }
+  if (block->type == "stereo") {
+    return engine.setStereoWidenerParameter(block->id, parameter, value);
+  }
+  if (block->type == "irreverb") {
+    return engine.setIrReverbParameter(block->id, parameter, value);
+  }
   if (block->type == "cab") {
     if (parameter == "mix") {
       engine.setCabMix(value);
@@ -927,6 +933,18 @@ int main(int argc, char** argv)
               return false;
             }
             return true;
+          },
+          [&](const std::string& blockId, const std::string& key, float value) {
+            // Block identifiers are unique, so the first setter that recognises
+            // this one is the right owner. That saves teaching the UI which
+            // block type each identifier belongs to.
+            if (liveEngine->setTransientShaperParameter(blockId, key, value)
+                || liveEngine->setStereoWidenerParameter(blockId, key, value)
+                || liveEngine->setIrReverbParameter(blockId, key, value)) {
+              return true;
+            }
+            std::cerr << "Unable to update parameter " << blockId << ":" << key << "\n";
+            return false;
           },
           [&](float inputGainDb, float outputGainDb) {
             liveEngine->setInputGain(ardor::dbToGain(inputGainDb));

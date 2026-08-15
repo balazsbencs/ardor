@@ -68,6 +68,12 @@ std::string labelForBlockType(const std::string& type)
   if (type == "wah") {
     return "Wah";
   }
+  if (type == "irreverb") {
+    return "Reverb";
+  }
+  if (type == "stereo") {
+    return "Stereo";
+  }
   return type;
 }
 
@@ -123,8 +129,14 @@ std::string assetNameForBlock(const UiState& state, const PresetBlock& block)
   if (block.type == "eq" && isParametricEqMode(block.params)) {
     return "Five Band EQ";
   }
+  if (block.type == "dynamics" && block.params.value("mode", "") == "transient_shaper") {
+    return "Transient Shaper";
+  }
   if (block.type == "wah" && block.params.value("mode", "") == "gcb95") {
     return "GCB-95 Wah";
+  }
+  if (block.type == "stereo") {
+    return "Stereo Widener";
   }
   return assetNameForPath(state, block.asset, block.type);
 }
@@ -166,6 +178,38 @@ nlohmann::json defaultNoiseGateParams()
   };
 }
 
+nlohmann::json defaultTransientShaperParams()
+{
+  return {
+    {"mode", "transient_shaper"},
+    {"attack", 0.0f},
+    {"sustain", 0.0f},
+    {"mix", 1.0f},
+    {"output_db", 0.0f},
+  };
+}
+
+nlohmann::json defaultStereoWidenerParams()
+{
+  return {
+    {"width", 1.0f},
+    {"delayMs", 0.0f},
+    {"bassMonoHz", 0.0f},
+    {"levelDb", 0.0f},
+  };
+}
+
+nlohmann::json defaultIrReverbParams()
+{
+  return {
+    {"mix", 0.35f},
+    {"levelDb", 0.0f},
+    {"preDelayMs", 0.0f},
+    {"lowCutHz", 20.0f},
+    {"highCutHz", 20000.0f},
+  };
+}
+
 nlohmann::json paramsWithKnownDefaults(const std::string& type, const nlohmann::json& supplied)
 {
   nlohmann::json params = supplied.is_object() ? supplied : nlohmann::json::object();
@@ -194,6 +238,12 @@ nlohmann::json paramsWithKnownDefaults(const std::string& type, const nlohmann::
     defaults = defaultCompressorParams();
   } else if (type == "dynamics" && params.value("mode", "") == "noise_gate") {
     defaults = defaultNoiseGateParams();
+  } else if (type == "dynamics" && params.value("mode", "") == "transient_shaper") {
+    defaults = defaultTransientShaperParams();
+  } else if (type == "stereo") {
+    defaults = defaultStereoWidenerParams();
+  } else if (type == "irreverb") {
+    defaults = defaultIrReverbParams();
   } else if (type == "eq" && isParametricEqMode(params)) {
     return parametricEqParamsToJson(parametricEqParamsFromJson(params));
   } else if (type == "wah" && params.value("mode", std::string{"gcb95"}) == "gcb95") {
@@ -252,6 +302,12 @@ UiBlock blockFromAsset(const UiState& state, const UiAsset& asset,
       params = defaultCompressorParams();
     } else if (asset.blockType == "dynamics" && asset.mode == "noise_gate") {
       params = defaultNoiseGateParams();
+    } else if (asset.blockType == "dynamics" && asset.mode == "transient_shaper") {
+      params = defaultTransientShaperParams();
+    } else if (asset.blockType == "stereo") {
+      params = defaultStereoWidenerParams();
+    } else if (asset.blockType == "irreverb") {
+      params = defaultIrReverbParams();
     } else if (asset.blockType == "eq" && asset.mode == "parametric_eq_5") {
       params = parametricEqParamsToJson(defaultParametricEqParams());
     } else if (asset.blockType == "wah" && asset.mode == "gcb95") {
@@ -305,7 +361,8 @@ UiPreviewSnapshot previewSnapshot(const UiState& state)
 }
 
 void appendAssetsFrom(UiState& state, const std::filesystem::path& dir, const std::string& ext,
-                      const std::string& type, const std::string& subtitle)
+                      const std::string& type, const std::string& subtitle,
+                      const std::string& blockType = {})
 {
   namespace fs = std::filesystem;
 
@@ -325,7 +382,7 @@ void appendAssetsFrom(UiState& state, const std::filesystem::path& dir, const st
       continue;
     }
     const auto relative = relativePath.generic_string();
-    state.assets.push_back({entry.path().stem().string(), relative, type, "", "", subtitle});
+    state.assets.push_back({entry.path().stem().string(), relative, type, blockType, "", subtitle});
   }
 }
 
@@ -343,6 +400,17 @@ std::string daisySubtitle(const DaisyFxDescriptor& descriptor)
 {
   return daisyFamilyLabel(descriptor.kind) + " · " + std::to_string(descriptor.params.size())
     + " controls";
+}
+
+void appendUtilityAssets(UiState& state)
+{
+  state.assets.push_back({"Compressor", "", "utility", "dynamics", "compressor", "Utility · dynamics"});
+  state.assets.push_back({"Noise Gate", "", "utility", "dynamics", "noise_gate", "Utility · dynamics"});
+  state.assets.push_back({"Transient Shaper", "", "utility", "dynamics", "transient_shaper",
+                          "Utility · attack and sustain shaping"});
+  state.assets.push_back({"Five Band EQ", "", "utility", "eq", "parametric_eq_5", "Utility · HPF + 5 bands + LPF"});
+  state.assets.push_back({"GCB-95 Wah", "", "utility", "wah", "gcb95", "Utility · expression-controlled wah"});
+  state.assets.push_back({"Stereo Widener", "", "utility", "stereo", "", "Utility · mid/side width"});
 }
 
 void appendDaisyAssets(UiState& state)
@@ -379,11 +447,12 @@ UiState makeDemoUiState()
     {"Open Back 2x12", "irs/open-back.wav", "cabs", "", "", "Cab · impulse response"},
     {"Vintage 4x12", "irs/vintage.wav", "cabs", "", "", "Cab · impulse response"},
     {"Focused 1x12", "irs/focus.wav", "cabs", "", "", "Cab · impulse response"},
-    {"Compressor", "", "utility", "dynamics", "compressor", "Utility · dynamics"},
-    {"Noise Gate", "", "utility", "dynamics", "noise_gate", "Utility · dynamics"},
-    {"Five Band EQ", "", "utility", "eq", "parametric_eq_5", "Utility · HPF + 5 bands + LPF"},
-    {"GCB-95 Wah", "", "utility", "wah", "gcb95", "Utility · expression-controlled wah"},
+    // Every impulse response is offered twice, once as a cabinet and once as a
+    // reverb, because the block that consumes it is chosen here rather than
+    // later.
+    {"Open Back 2x12", "irs/open-back.wav", "reverb", "irreverb", "", "Reverb · impulse response"},
   };
+  appendUtilityAssets(state);
   appendDaisyAssets(state);
   state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split",
                           "Runs two independent chains in parallel"});
@@ -1536,10 +1605,10 @@ void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoo
   state.assets.clear();
   appendAssetsFrom(state, dataRoot / "models", ".nam", "amps", "Amp · neural capture");
   appendAssetsFrom(state, dataRoot / "irs", ".wav", "cabs", "Cab · impulse response");
-  state.assets.push_back({"Compressor", "", "utility", "dynamics", "compressor", "Utility · dynamics"});
-  state.assets.push_back({"Noise Gate", "", "utility", "dynamics", "noise_gate", "Utility · dynamics"});
-  state.assets.push_back({"Five Band EQ", "", "utility", "eq", "parametric_eq_5", "Utility · HPF + 5 bands + LPF"});
-  state.assets.push_back({"GCB-95 Wah", "", "utility", "wah", "gcb95", "Utility · expression-controlled wah"});
+  // Every impulse response is offered twice, once as a cabinet and once as a
+  // reverb, because the block that consumes it is chosen here rather than later.
+  appendAssetsFrom(state, dataRoot / "irs", ".wav", "reverb", "Reverb · impulse response", "irreverb");
+  appendUtilityAssets(state);
   appendDaisyAssets(state);
   state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split",
                           "Runs two independent chains in parallel"});

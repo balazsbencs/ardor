@@ -22,6 +22,14 @@ std::string formatPercent(float value)
   return std::to_string(static_cast<int>(std::lround(value * 100.0f))) + "%";
 }
 
+// Attack and sustain run either side of zero, so the sign carries meaning and
+// has to be shown.
+std::string formatSignedPercent(float value)
+{
+  const int rounded = static_cast<int>(std::lround(value));
+  return (rounded > 0 ? "+" : "") + std::to_string(rounded) + "%";
+}
+
 std::string formatMilliseconds(float value)
 {
   if (std::fabs(value) < 10.0f) {
@@ -195,6 +203,37 @@ std::vector<ParameterControl> controlsFor(const UiState& state)
               number("hysteresis_db", 6.0f), formatDb),
       control("sidechain_hpf_hz", "Sidechain HPF", 20.0f, 500.0f, 10.0f,
               number("sidechain_hpf_hz", 80.0f), formatHertz),
+    };
+  }
+
+  if (block.type == "dynamics" && block.params.value("mode", "") == "transient_shaper") {
+    const auto number = [&](const char* key, float fallback) { return block.params.value(key, fallback); };
+    return {
+      control("attack", "Attack", -100.0f, 100.0f, 1.0f, number("attack", 0.0f), formatSignedPercent),
+      control("sustain", "Sustain", -100.0f, 100.0f, 1.0f, number("sustain", 0.0f), formatSignedPercent),
+      control("mix", "Mix", 0.0f, 1.0f, 0.05f, number("mix", 1.0f), formatPercent),
+      control("output_db", "Output", -24.0f, 24.0f, 0.5f, number("output_db", 0.0f), formatDb),
+    };
+  }
+
+  if (block.type == "stereo") {
+    const auto number = [&](const char* key, float fallback) { return block.params.value(key, fallback); };
+    return {
+      control("width", "Width", 0.0f, 2.0f, 0.05f, number("width", 1.0f), formatPercent),
+      control("delayMs", "Side delay", 0.0f, 30.0f, 0.5f, number("delayMs", 0.0f), formatMilliseconds),
+      control("bassMonoHz", "Bass mono", 0.0f, 500.0f, 10.0f, number("bassMonoHz", 0.0f), formatHertz),
+      control("levelDb", "Level", -24.0f, 12.0f, 1.0f, number("levelDb", 0.0f), formatDb),
+    };
+  }
+
+  if (block.type == "irreverb") {
+    const auto number = [&](const char* key, float fallback) { return block.params.value(key, fallback); };
+    return {
+      control("mix", "Mix", 0.0f, 1.0f, 0.05f, number("mix", 0.35f), formatPercent),
+      control("levelDb", "Level", -60.0f, 12.0f, 1.0f, number("levelDb", 0.0f), formatDb),
+      control("preDelayMs", "Pre-delay", 0.0f, 500.0f, 1.0f, number("preDelayMs", 0.0f), formatMilliseconds),
+      control("lowCutHz", "Low cut", 20.0f, 2000.0f, 10.0f, number("lowCutHz", 20.0f), formatHertz),
+      control("highCutHz", "High cut", 500.0f, 20000.0f, 100.0f, number("highCutHz", 20000.0f), formatHertz),
     };
   }
 
