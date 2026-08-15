@@ -184,6 +184,18 @@ target_include_directories(ardor_wah PUBLIC
 target_compile_features(ardor_wah PUBLIC cxx_std_20)
 target_link_libraries(ardor_wah PUBLIC ardor_circuit)
 
+add_library(ardor_cheese
+  src/cheese/CheeseNetlist.cpp
+  src/cheese/CheeseDk.cpp
+  src/cheese/CheeseCircuit.cpp
+)
+target_include_directories(ardor_cheese PUBLIC
+  src
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies
+)
+target_compile_features(ardor_cheese PUBLIC cxx_std_20)
+target_link_libraries(ardor_cheese PUBLIC ardor_circuit)
+
 add_library(ardor_rat
   src/rat/RatNetlist.cpp
   src/rat/RatCircuit.cpp
@@ -441,6 +453,10 @@ add_test(NAME pedal-transient-shaper-smoke COMMAND pedal-transient-shaper-smoke)
 add_executable(pedal-rat-smoke tests/rat_smoke.cpp)
 target_link_libraries(pedal-rat-smoke PRIVATE ardor_rat)
 add_test(NAME pedal-rat-smoke COMMAND pedal-rat-smoke)
+
+add_executable(pedal-cheese-smoke tests/cheese_smoke.cpp)
+target_link_libraries(pedal-cheese-smoke PRIVATE ardor_cheese)
+add_test(NAME pedal-cheese-smoke COMMAND pedal-cheese-smoke)
 
 add_executable(pedal-harmonizer-smoke tests/harmonizer_smoke.cpp)
 target_link_libraries(pedal-harmonizer-smoke PRIVATE ardor_daisyfx)
