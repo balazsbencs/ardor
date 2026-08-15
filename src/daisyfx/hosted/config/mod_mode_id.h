@@ -18,7 +18,8 @@ enum class ModModeId : uint8_t {
     Quadrature  = 11,
     Destroyer   = 12,
     Whammy      = 13,
-    COUNT       = 14,
+    Harmonizer  = 14,
+    COUNT       = 15,
 };
 
 } // namespace pedal

@@ -83,10 +83,12 @@ add_library(ardor_daisyfx_runtime
   ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/fdn.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/envelope_follower.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/pitch_shifter.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/pitch_tracker.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/auto_swell_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/chorus_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/destroyer_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/whammy_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/harmonizer_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/filter_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/flanger_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/formant_mode.cpp
@@ -407,6 +409,10 @@ target_link_libraries(pedal-engine-contract-smoke PRIVATE ardor_dsp)
 
 add_executable(pedal-tuner-smoke tests/tuner_smoke.cpp)
 target_link_libraries(pedal-tuner-smoke PRIVATE ardor_dsp)
+
+add_executable(pedal-harmonizer-smoke tests/harmonizer_smoke.cpp)
+target_link_libraries(pedal-harmonizer-smoke PRIVATE ardor_daisyfx)
+add_test(NAME pedal-harmonizer-smoke COMMAND pedal-harmonizer-smoke)
 
 add_executable(pedal-scheduled-convolver-smoke tests/scheduled_convolver_smoke.cpp)
 target_link_libraries(pedal-scheduled-convolver-smoke PRIVATE ardor_dsp)

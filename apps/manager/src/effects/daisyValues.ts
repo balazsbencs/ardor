@@ -116,10 +116,12 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "poly_octave") return scaledPercent(100, 1);
     // Glide is a time, not a rate: ~50 ms at the slow end, ~1 ms at the fast end.
     if (mode === "whammy") return custom((value) => milliseconds(1 / (0.02 + clamp(value) * 0.95)));
+    if (mode === "harmonizer") return scaledPercent(100, 1);
     return physical(0.05, 10, 1, frequency, 0.01);
   }
   if (key === "depth") {
     if (mode === "destroyer") return descendingIntegerChoices(16, 1);
+    if (mode === "harmonizer") return choices(["Major", "Minor", "Dorian", "Mixolydian", "Harmonic minor"]);
     if (mode === "auto_swell") return custom((value) => `${number(20 * Math.log10(1 + clamp(value)), 1)} dB`);
     if (mode === "quadrature") return physical(0, 80, 0, (value) => `+/-${frequency(value)}`, 1);
     return normalizedPercent;
@@ -142,6 +144,12 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "pattern_trem") return choices(Array.from({ length: 16 }, (_, index) => `Pattern ${index + 1}`));
     if (mode === "auto_swell") return physical(50, 2000, 0, milliseconds, 1);
     if (mode === "rotary") return custom((value) => `${number(1 + clamp(value) ** 2 * 0.6, 1)}x`);
+    // Scale degrees, not semitones: a third is two degrees, major or minor
+    // according to where the played note sits in the key.
+    if (mode === "harmonizer") return choices([
+      "Oct down", "6th down", "5th down", "4th down", "3rd down",
+      "3rd up", "4th up", "5th up", "6th up", "Oct up",
+    ]);
     if (mode === "whammy") return custom((value) => {
       const pedal = clamp(value);
       if (pedal <= 0.001) return "Heel";
@@ -161,6 +169,9 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "formant") return choices(["Ah", "Oh", "Oo", "Ee", "Ay", "Ah-Oh", "Oo-Oh"]);
     if (mode === "quadrature") return choices(["AM", "Warble", "Shift +", "Shift -"]);
     // Ten Whammy modes then nine Harmony modes, on one selector.
+    if (mode === "harmonizer") return choices([
+      "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
+    ]);
     if (mode === "whammy") return choices([
       "2 Oct up", "1 Oct up", "5th up", "4th up", "2nd dn",
       "4th dn", "5th dn", "1 Oct dn", "2 Oct dn", "Dive bomb",

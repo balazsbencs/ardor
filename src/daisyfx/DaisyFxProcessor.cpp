@@ -14,6 +14,7 @@
 #include "modes/dbucket_delay.h"
 #include "modes/delay_mode.h"
 #include "modes/destroyer_mode.h"
+#include "modes/harmonizer_mode.h"
 #include "modes/whammy_mode.h"
 #include "modes/digital_delay.h"
 #include "modes/dual_delay.h"
@@ -147,6 +148,7 @@ std::unique_ptr<pedal::ModMode> makeModMode(const std::string& mode, pedal::ModM
   if (mode == "quadrature") { id = pedal::ModModeId::Quadrature; return std::make_unique<pedal::QuadratureMode>(); }
   if (mode == "destroyer") { id = pedal::ModModeId::Destroyer; return std::make_unique<pedal::DestroyerMode>(); }
   if (mode == "whammy") { id = pedal::ModModeId::Whammy; return std::make_unique<pedal::WhammyMode>(); }
+  if (mode == "harmonizer") { id = pedal::ModModeId::Harmonizer; return std::make_unique<pedal::HarmonizerMode>(); }
   return {};
 }
 

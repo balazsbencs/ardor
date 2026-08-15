@@ -1809,6 +1809,93 @@
       ]
     },
     {
+      "id": "mod:harmonizer",
+      "blockType": "mod",
+      "mode": "harmonizer",
+      "name": "Harmonizer",
+      "description": "Key-aware harmoniser: shifts by scale degrees so a third follows the key.",
+      "category": "modulation",
+      "aliases": [
+        "diatonic harmony",
+        "pitch harmony",
+        "intelligent harmony"
+      ],
+      "constraintGroup": "mod",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "kind": "number",
+          "key": "speed",
+          "label": "Tracking",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.35
+        },
+        {
+          "kind": "number",
+          "key": "depth",
+          "label": "Scale",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.2,
+          "unit": "percent",
+          "defaultValue": 0.7
+        },
+        {
+          "kind": "number",
+          "key": "mix",
+          "label": "Mix",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "tone",
+          "label": "Tone",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "p1",
+          "label": "Interval",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.1,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "p2",
+          "label": "Key",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.083333,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "level",
+          "label": "Level",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.5
+        }
+      ]
+    },
+    {
       "id": "delay:digital",
       "blockType": "delay",
       "mode": "digital",

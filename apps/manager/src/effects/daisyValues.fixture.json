@@ -786,6 +786,62 @@
       ]
     },
     {
+      "id": "mod:harmonizer",
+      "blockType": "mod",
+      "mode": "harmonizer",
+      "params": [
+        {
+          "key": "speed",
+          "label": "Tracking",
+          "defaultValue": 0.350000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "5%"}, {"value": 0.470000, "text": "22%"}, {"value": 0.710000, "text": "50%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "depth",
+          "label": "Scale",
+          "defaultValue": 0.700000,
+          "choiceCount": 5,
+          "samples": [{"value": 0.000000, "text": "Major"}, {"value": 0.250000, "text": "Minor"}, {"value": 0.500000, "text": "Dorian"}, {"value": 0.750000, "text": "Mixolydian"}, {"value": 1.000000, "text": "Harmonic minor"}]
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "LP 200 Hz"}, {"value": 0.230000, "text": "LP 1.7 kHz"}, {"value": 0.470000, "text": "LP 15 kHz"}, {"value": 0.710000, "text": "HP 164 Hz"}, {"value": 1.000000, "text": "HP 3.0 kHz"}]
+        },
+        {
+          "key": "p1",
+          "label": "Interval",
+          "defaultValue": 0.000000,
+          "choiceCount": 10,
+          "samples": [{"value": 0.000000, "text": "Oct down"}, {"value": 0.111111, "text": "6th down"}, {"value": 0.222222, "text": "5th down"}, {"value": 0.333333, "text": "4th down"}, {"value": 0.444444, "text": "3rd down"}, {"value": 0.555556, "text": "3rd up"}, {"value": 0.666667, "text": "4th up"}, {"value": 0.777778, "text": "5th up"}, {"value": 0.888889, "text": "6th up"}, {"value": 1.000000, "text": "Oct up"}]
+        },
+        {
+          "key": "p2",
+          "label": "Key",
+          "defaultValue": 0.000000,
+          "choiceCount": 12,
+          "samples": [{"value": 0.000000, "text": "C"}, {"value": 0.090909, "text": "C#"}, {"value": 0.181818, "text": "D"}, {"value": 0.272727, "text": "D#"}, {"value": 0.363636, "text": "E"}, {"value": 0.454545, "text": "F"}, {"value": 0.545455, "text": "F#"}, {"value": 0.636364, "text": "G"}, {"value": 0.727273, "text": "G#"}, {"value": 0.818182, "text": "A"}, {"value": 0.909091, "text": "A#"}, {"value": 1.000000, "text": "B"}]
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        }
+      ]
+    },
+    {
       "id": "delay:digital",
       "blockType": "delay",
       "mode": "digital",
