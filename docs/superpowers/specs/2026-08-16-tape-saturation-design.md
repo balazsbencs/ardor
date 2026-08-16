@@ -390,3 +390,58 @@ tests/ui_model_smoke.cpp                         defaults and naming
 - Tape print-through, drop-outs and azimuth error.
 - Delay. The existing `delay:tape` block covers tape echo.
 - A real AC bias oscillator, for the sampling-rate reason given above.
+
+## Measured
+
+Recorded 2026-08-16 after implementation. Full detail in
+`benchmark-results/tape-host-2026-08-16.txt`.
+
+| Quantity | Budget | Measured |
+|---|---|---|
+| Worst in-band alias | under -70 dBc | **-86.6 dBc** |
+| `mix = 0` error | under -80 dB | **-inf dB**, bit-exact |
+| Drive level swing, full range | under 3 dB | **0.10 dB** sine, **0.57 dB** on guitar |
+| Low end vs 1 kHz, head bump off | within 0.3 dB | **-0.13 dB** |
+| Hiss channel cross-correlation | under 0.05 | **0.0005** |
+| Pi 4 whole-core cost | about 10% | **not yet measured** |
+
+**No hysteresis parameters moved.** The starting fit in
+`TapeHysteresis::Parameters` passed every objective check, so the tuning step
+the plan reserved was not needed.
+
+**Two design values did move**, both for reasons found by measurement rather
+than by argument, and both documented at their definitions:
+
+- `kLangevinTaylorLimit` is 0.1, not the 1e-4 first written. In float,
+  `coth(x) - 1/x` returns exactly zero at 1e-4 and is still 10% wrong at 1e-3.
+- The wet path is padded by 1.75 samples, not trimmed by 0.75. A four-point
+  Lagrange cannot realise a delay below one sample causally. Block latency is
+  therefore a whole 76 frames, which is what makes `mix = 0` bit-exact.
+
+**One bug was found that the design did not anticipate.** The emphasis pair was
+first placed beside the solver at the oversampled rate, where it amplified the
+halfband images by up to four times. The solver takes its branch direction from
+the sign of a one-sample difference, and near a low note's turning points that
+boosted ripple decided the sign. Measured, it lifted 45 Hz by 4.7 dB relative to
+1 kHz. Emphasising at the host rate removed the cause and cost less; a deadband
+on the direction detector took the residual from 0.6 dB to 0.13 dB.
+
+### Outstanding
+
+The Raspberry Pi 4 CPU figure. The pedal has no toolchain, so it needs a
+Buildroot cross-build through Docker, which was not run. As a stand-in, the
+block costs **2.28x the RAT** per sample on the host, at the same 8x
+oversampling — the RAT already ships and runs on the Pi, so that ratio
+transfers better than an absolute host number.
+
+Most of that 2.28x is structural rather than algorithmic: the tape block runs
+two independent oversampled lanes where the RAT runs one and copies it. Per
+lane it is about 1.14x the RAT. If the Pi figure comes back over budget, the
+first thing to reach for is collapsing the two lanes when the input is mono,
+ahead of dropping to 4x oversampling and giving up aliasing headroom.
+
+### Not yet done
+
+Nobody has listened to it. Every check above is a measurement. The renders
+under the session scratchpad (`wet-0.wav`, `wet-12.wav`, `wet-24.wav`) exist
+for that pass.

@@ -1,0 +1,57 @@
+Tape block measurements — 2026-08-16
+====================================
+
+Host: Apple Silicon (darwin 25.5.0), Release build, -O2.
+NOTE: this is a HOST measurement. The Raspberry Pi 4 figure the spec asks for
+is still outstanding; it needs a Buildroot cross-build (Docker) and was not run.
+The ratio against the RAT is recorded because the RAT already ships and runs on
+the Pi at the same 8x oversampling, so it transfers better than the absolute
+host number does.
+
+Per-sample cost, 48 kHz, one stereo block instance
+--------------------------------------------------
+  RAT    1010.4 ns   4.85% of one host core   (mono core, result copied to both channels)
+  Tape   2300.7 ns  11.04% of one host core   (two independent oversampled lanes)
+  Tape / RAT ratio: 2.28x
+
+Per oversampled lane the tape block is about 1.14x the RAT, so most of the
+difference is that tape runs two lanes where the RAT runs one. A mono-input
+preset therefore pays twice for identical lanes; collapsing that is the first
+optimisation to reach for if the Pi figure comes back over budget, ahead of
+dropping to 4x oversampling.
+
+Signal measurements (tests/tape_smoke.cpp)
+------------------------------------------
+  worst in-band alias                 -86.6 dBc   (budget: under -70)
+  mix = 0 error against delayed input    -inf dB   (bit-exact)
+  drive level swing, sine, full range    0.10 dB   (budget: under 3)
+  low end vs 1 kHz, head bump off       -0.13 dB   (budget: within 0.3)
+  head bump, 15 ips                     +2.34 dB @ 45 Hz, +0.56 dB @ 90 Hz
+  head bump, 30 ips                     -0.33 dB @ 45 Hz, +1.41 dB @ 90 Hz
+  hiss channel cross-correlation         0.0005    (budget: under 0.05)
+  third/second harmonic ratio            1.8e6     (odd-symmetric, as tape is)
+  Langevin worst relative error          7.4e-6 value, 2.4e-5 slope
+
+Program material (dryguitar.wav resampled to 48 kHz, drive 0 / 12 / 24 dB)
+--------------------------------------------------------------------------
+                RMS dBFS   peak dBFS   crest dB   <200Hz rel   >4kHz rel
+  dry             -21.18       -3.74      17.44       -4.39      -19.75
+  drive  0        -20.00       -1.02      18.98       -3.29      -20.81
+  drive 12        -19.63       -1.05      18.58       -3.20      -21.72
+  drive 24        -20.20       -8.96      11.24       -3.68      -21.53
+
+  level spread across the full 24 dB of drive:  0.57 dB
+  drive 0 vs drive 24, level-matched difference: -5.17 dB
+
+Reading of the four voicing checks the plan lists:
+  1. No level jumps. 0.57 dB across the whole drive range on real playing,
+     which is the calibration holding on program material and not just a sine.
+  2. No brittle top end. Relative HF content FALLS 1-2 dB as drive rises.
+  3. No low-end mud at high drive. Relative LF content does not grow with
+     drive (-3.20 dB at 12, -3.68 dB at 24).
+  4. Drive 0 and drive 24 are plainly different. Crest factor collapses from
+     18.98 dB to 11.24 dB — 7.7 dB of peak eaten — which is tape compression.
+
+These were measured, not listened to. The subjective pass is still owed.
+No TapeHysteresis::Parameters were changed: the default fit passed every
+objective check, so there was nothing to tune away from.
