@@ -40,7 +40,7 @@ int main()
           "manager effect catalog has definitions");
 
   const auto& definitions = catalog.at("definitions");
-  require(definitions.size() == 50, "manager effect catalog has 50 definitions");
+  require(definitions.size() == 51, "manager effect catalog has 51 definitions");
 
   std::unordered_set<std::string> managerDaisyPairs;
   bool foundCompressor = false;
@@ -50,6 +50,7 @@ int main()
   bool foundWah = false;
   bool foundDistortion = false;
   bool foundFuzz = false;
+  bool foundTape = false;
   for (const auto& definition : definitions) {
     const auto blockType = definition.value("blockType", std::string{});
     const auto mode = definition.value("mode", std::string{});
@@ -75,6 +76,10 @@ int main()
     }
     if (blockType == "distortion" && mode == "big_cheese") {
       foundFuzz = definition.value("id", std::string{}) == "distortion:big_cheese"
+        && definition.value("category", std::string{}) == "drive";
+    }
+    if (blockType == "distortion" && mode == "tape") {
+      foundTape = definition.value("id", std::string{}) == "distortion:tape"
         && definition.value("category", std::string{}) == "drive";
     }
     if (blockType == "wah" && mode == "gcb95") {
@@ -114,6 +119,7 @@ int main()
   require(foundWah, "manager wah identifier matches runtime");
   require(foundDistortion, "manager RAT identifier matches runtime");
   require(foundFuzz, "manager Big Cheese identifier matches runtime");
+  require(foundTape, "manager Tape Machine identifier matches runtime");
   require(managerDaisyPairs.size() == ardor::daisyFxCatalog().size(), "manager has every runtime Daisy definition");
   for (const auto& runtime : ardor::daisyFxCatalog()) {
     require(managerDaisyPairs.contains(pairKey(runtime.blockType, runtime.mode)),
