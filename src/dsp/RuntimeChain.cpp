@@ -11,6 +11,7 @@
 #include <bit>
 #include <cmath>
 #include <utility>
+#include <variant>
 
 namespace ardor {
 
@@ -44,6 +45,14 @@ ClipStageSnapshot takeLevel(LevelState& state, SignalStageKind kind, const std::
   };
 }
 
+// One storage slot for every distortion-family processor. Two parallel
+// unique_ptrs and a `a ? a->f() : b->f()` ternary worked while there were two,
+// but the ternary dereferenced `b` without checking it, so a Block holding
+// neither was a crash rather than a compile error, and each processor added
+// multiplied the sites that had to agree. A variant makes "exactly one of these
+// is live" the type's job instead of a convention.
+using DistortionProcessor = std::variant<RatProcessor, CheeseProcessor>;
+
 } // namespace
 
 struct RuntimeChain::Block {
@@ -75,8 +84,7 @@ struct RuntimeChain::Block {
   std::unique_ptr<TransientShaperProcessor> transientShaper;
   std::unique_ptr<ParametricEqProcessor> equalizer;
   std::unique_ptr<WahProcessor> wah;
-  std::unique_ptr<RatProcessor> distortion;
-  std::unique_ptr<CheeseProcessor> fuzz;
+  std::unique_ptr<DistortionProcessor> distortion;
   std::unique_ptr<DualAmpProcessor> dualAmp;
   std::unique_ptr<DualRigProcessor> dualRig;
   std::unique_ptr<LevelState> meter = std::make_unique<LevelState>();
@@ -377,7 +385,7 @@ void RuntimeChain::addDistortion(std::string id, RatProcessor processor)
   Block block;
   block.kind = Block::Kind::Distortion;
   block.id = std::move(id);
-  block.distortion = std::make_unique<RatProcessor>(std::move(processor));
+  block.distortion = std::make_unique<DistortionProcessor>(std::move(processor));
   blocks_.push_back(std::move(block));
 }
 
@@ -386,7 +394,7 @@ void RuntimeChain::addDistortion(std::string id, CheeseProcessor processor)
   Block block;
   block.kind = Block::Kind::Distortion;
   block.id = std::move(id);
-  block.fuzz = std::make_unique<CheeseProcessor>(std::move(processor));
+  block.distortion = std::make_unique<DistortionProcessor>(std::move(processor));
   blocks_.push_back(std::move(block));
 }
 
@@ -394,8 +402,8 @@ bool RuntimeChain::setDistortionParameter(const std::string& id, const std::stri
 {
   for (auto& block : blocks_) {
     if (block.kind == Block::Kind::Distortion && block.id == id) {
-      return block.distortion ? block.distortion->setParameterTarget(key, value)
-                              : block.fuzz->setParameterTarget(key, value);
+      return std::visit([&](auto& processor) { return processor.setParameterTarget(key, value); },
+                        *block.distortion);
     }
     if (block.kind == Block::Kind::DualRig
         && block.dualRig->setDistortionParameter(id, key, value)) return true;
@@ -507,8 +515,8 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
       current = block.wah->process(current);
       break;
     case Block::Kind::Distortion:
-      current = block.distortion ? block.distortion->process(current)
-                                 : block.fuzz->process(current);
+      current = std::visit([&](auto& processor) { return processor.process(current); },
+                           *block.distortion);
       break;
     case Block::Kind::DualAmp:
       block.dualAmp->process(current.left, current.right, current.left, current.right);
@@ -648,7 +656,7 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       for (size_t i = 0; i < frames; ++i) {
         const StereoSample input{currentLeft[i], currentRight[i]};
         const auto processed =
-          block.distortion ? block.distortion->process(input) : block.fuzz->process(input);
+          std::visit([&](auto& processor) { return processor.process(input); }, *block.distortion);
         nextLeft[i] = processed.left;
         nextRight[i] = processed.right;
       }
@@ -811,10 +819,7 @@ void RuntimeChain::reset()
       block.wah->reset();
     }
     if (block.distortion) {
-      block.distortion->reset();
-    }
-    if (block.fuzz) {
-      block.fuzz->reset();
+      std::visit([](auto& processor) { processor.reset(); }, *block.distortion);
     }
     if (block.dualAmp) {
       block.dualAmp->reset();
