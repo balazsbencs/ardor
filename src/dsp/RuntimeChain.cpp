@@ -51,7 +51,7 @@ ClipStageSnapshot takeLevel(LevelState& state, SignalStageKind kind, const std::
 // neither was a crash rather than a compile error, and each processor added
 // multiplied the sites that had to agree. A variant makes "exactly one of these
 // is live" the type's job instead of a convention.
-using DistortionProcessor = std::variant<RatProcessor, CheeseProcessor>;
+using DistortionProcessor = std::variant<RatProcessor, CheeseProcessor, TapeProcessor>;
 
 } // namespace
 
@@ -390,6 +390,15 @@ void RuntimeChain::addDistortion(std::string id, RatProcessor processor)
 }
 
 void RuntimeChain::addDistortion(std::string id, CheeseProcessor processor)
+{
+  Block block;
+  block.kind = Block::Kind::Distortion;
+  block.id = std::move(id);
+  block.distortion = std::make_unique<DistortionProcessor>(std::move(processor));
+  blocks_.push_back(std::move(block));
+}
+
+void RuntimeChain::addDistortion(std::string id, TapeProcessor processor)
 {
   Block block;
   block.kind = Block::Kind::Distortion;
