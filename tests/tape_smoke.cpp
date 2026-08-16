@@ -1,4 +1,5 @@
 #include "tape/TapeHysteresis.h"
+#include "tape/TapeTransport.h"
 
 #include <algorithm>
 #include <cmath>
@@ -192,6 +193,133 @@ void testLangevinTaylorSwitchover()
   require(std::isfinite(ardor::langevinPrime(200.0f)), "Langevin slope must not overflow to NaN");
 }
 
+constexpr float kHostRate = 48000.0f;
+
+// Correlates a signal against a probe frequency and returns its magnitude.
+double binMagnitude(const std::vector<float>& signal, float frequency, float rate)
+{
+  double real = 0.0;
+  double imaginary = 0.0;
+  for (std::size_t n = 0; n < signal.size(); ++n) {
+    const double phase = kTwoPi * frequency * static_cast<double>(n) / rate;
+    real += signal[n] * std::cos(phase);
+    imaginary += signal[n] * std::sin(phase);
+  }
+  return 2.0 * std::sqrt(real * real + imaginary * imaginary) / static_cast<double>(signal.size());
+}
+
+ardor::TapeTransport makeTransport(float flutter, float hissDb)
+{
+  ardor::TapeTransport transport;
+  transport.configure(kHostRate);
+  transport.setFlutter(flutter);
+  transport.setHissDb(hissDb);
+  transport.reset();
+  return transport;
+}
+
+void testHissOffIsExactSilence()
+{
+  auto transport = makeTransport(0.0f, ardor::TapeTransport::kHissOffDb);
+  for (std::size_t n = 0; n < 48000; ++n) {
+    const auto out = transport.process({0.0f, 0.0f});
+    require(out.left == 0.0f && out.right == 0.0f,
+            "hiss off must be a hard off, not a quiet generator");
+  }
+}
+
+void testHissOnIsAudibleAndUncorrelated()
+{
+  auto transport = makeTransport(0.0f, -70.0f);
+
+  double leftEnergy = 0.0;
+  double rightEnergy = 0.0;
+  double crossEnergy = 0.0;
+  for (std::size_t n = 0; n < 192000; ++n) {
+    const auto out = transport.process({0.0f, 0.0f});
+    leftEnergy += static_cast<double>(out.left) * out.left;
+    rightEnergy += static_cast<double>(out.right) * out.right;
+    crossEnergy += static_cast<double>(out.left) * out.right;
+  }
+  require(leftEnergy > 0.0 && rightEnergy > 0.0, "hiss on must produce noise");
+
+  // Tape noise is physically uncorrelated between channels, so the normalised
+  // cross-correlation must sit near zero. A shared generator would give 1.
+  const double correlation = crossEnergy / std::sqrt(leftEnergy * rightEnergy);
+  std::printf("  hiss channel correlation: %.4f\n", correlation);
+  require(std::fabs(correlation) < 0.05, "hiss must be independent per channel");
+}
+
+void testFlutterIsSharedAcrossChannels()
+{
+  auto transport = makeTransport(1.0f, ardor::TapeTransport::kHissOffDb);
+
+  // One reel passes one capstan, so both channels must be modulated by the
+  // same transport. Independent modulation would tear the stereo image apart.
+  for (std::size_t n = 0; n < 192000; ++n) {
+    const float t = static_cast<float>(n) / kHostRate;
+    const float in = 0.5f * std::sin(kTwoPi * 440.0f * t);
+    const auto out = transport.process({in, in});
+    require(out.left == out.right,
+            "identical input must give identical output: one transport, both channels");
+  }
+}
+
+void testFlutterFullScaleMovesPitch()
+{
+  auto transport = makeTransport(1.0f, ardor::TapeTransport::kHissOffDb);
+
+  std::vector<float> out;
+  out.reserve(192000);
+  for (std::size_t n = 0; n < 192000; ++n) {
+    const float t = static_cast<float>(n) / kHostRate;
+    const float in = 0.5f * std::sin(kTwoPi * 1000.0f * t);
+    out.push_back(transport.process({in, in}).left);
+  }
+  const std::vector<float> steady(out.begin() + 4800, out.end());
+
+  const double carrier = binMagnitude(steady, 1000.0f, kHostRate);
+  const double sideband = binMagnitude(steady, 1000.7f, kHostRate);
+  std::printf("  full-scale wow sideband: %.1f dBc\n", 20.0 * std::log10(sideband / carrier));
+  require(sideband > carrier * 0.0005, "full-scale flutter must actually move the pitch");
+}
+
+void testTransportDelayIsExactlyItsNominal()
+{
+  // A delay line cannot read ahead of its write pointer, so the transport
+  // cannot be delay-neutral — it needs headroom for the modulation to swing
+  // both ways. What it can be is *predictable*: at zero flutter the delay must
+  // be exactly kNominalDelay, so the block's dry path can subtract a known
+  // constant. If it were anything else, Mix would comb.
+  //
+  // This also stands in for "flutter at zero adds no sidebands", and proves it
+  // far more strongly. A match against the delayed input to -80 dB cannot
+  // contain a sideband above -80 dB. The spectral version of this test was
+  // dropped because a 1000.7 Hz probe sits 1.33 bins off a rectangular
+  // window's centre, so it measured leakage rather than modulation.
+  auto transport = makeTransport(0.0f, ardor::TapeTransport::kHissOffDb);
+
+  std::vector<float> input;
+  std::vector<float> output;
+  for (std::size_t n = 0; n < 8192; ++n) {
+    const float t = static_cast<float>(n) / kHostRate;
+    const float in = 0.4f * std::sin(kTwoPi * 220.0f * t) + 0.2f * std::sin(kTwoPi * 1310.0f * t);
+    input.push_back(in);
+    output.push_back(transport.process({in, in}).left);
+  }
+  double errorEnergy = 0.0;
+  double signalEnergy = 0.0;
+  for (std::size_t n = 2048; n < input.size(); ++n) {
+    const double reference = input[n - ardor::TapeTransport::kNominalDelay];
+    const double difference = output[n] - reference;
+    errorEnergy += difference * difference;
+    signalEnergy += reference * reference;
+  }
+  const double errorDb = 10.0 * std::log10(errorEnergy / signalEnergy);
+  std::printf("  transport delay error: %.1f dB\n", errorDb);
+  require(errorDb < -80.0, "at zero flutter the transport delay must equal its nominal exactly");
+}
+
 } // namespace
 
 int main()
@@ -202,6 +330,11 @@ int main()
     testOddHarmonicsDominateAndGrow();
     testBoundedUnderAbuse();
     testLangevinTaylorSwitchover();
+    testHissOffIsExactSilence();
+    testHissOnIsAudibleAndUncorrelated();
+    testFlutterIsSharedAcrossChannels();
+    testFlutterFullScaleMovesPitch();
+    testTransportDelayIsExactlyItsNominal();
   } catch (const std::exception& error) {
     std::fprintf(stderr, "tape smoke failed: %s\n", error.what());
     return 1;
