@@ -385,7 +385,7 @@ add_executable(pedal-daisy-fx-smoke tests/daisy_fx_smoke.cpp)
 target_link_libraries(pedal-daisy-fx-smoke PRIVATE ardor_daisyfx)
 
 add_executable(pedal-hosted-dsp-unit tests/hosted_dsp_unit.cpp)
-target_link_libraries(pedal-hosted-dsp-unit PRIVATE ardor_daisyfx)
+target_link_libraries(pedal-hosted-dsp-unit PRIVATE ardor_daisyfx ardor_equalizer)
 
 add_executable(pedal-daisy-fx-response tests/daisy_fx_response.cpp)
 target_link_libraries(pedal-daisy-fx-response PRIVATE ardor_daisyfx)

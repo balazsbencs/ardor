@@ -11,6 +11,7 @@
 #include "daisyfx/hosted/modes/rotary_mode.h"
 #include "daisyfx/hosted/modes/whammy_mode.h"
 #include "daisyfx/hosted/params/reverb_param_map.h"
+#include "equalizer/ParametricEqMath.h"
 
 #include <algorithm>
 #include <array>
@@ -66,6 +67,30 @@ void verifyToneFilter(float sampleRate)
   (void)tone.Process(1.0f);
   tone.Reset();
   require(tone.Process(0.0f) == 0.0f, "ToneFilter reset must clear state");
+}
+
+// A high shelf must reach its full gain well above the corner, sit at half gain
+// on the corner itself, and leave the low end alone. Inverting the gain must
+// invert the response, because that is how the tape block builds a de-emphasis
+// out of the same function as its pre-emphasis.
+void verifyHighShelf()
+{
+  const float rate = 48000.0f;
+  const auto boost = ardor::makeHighShelf(rate, 4547.0f, 0.707f, 12.0f);
+  const auto cut = ardor::makeHighShelf(rate, 4547.0f, 0.707f, -12.0f);
+
+  require(std::fabs(ardor::biquadMagnitudeDb(boost, 100.0f, rate)) < 0.1f,
+          "high shelf must leave 100 Hz alone");
+  require(std::fabs(ardor::biquadMagnitudeDb(boost, 4547.0f, rate) - 6.0f) < 0.5f,
+          "high shelf must sit at half gain on the corner");
+  require(std::fabs(ardor::biquadMagnitudeDb(boost, 20000.0f, rate) - 12.0f) < 0.6f,
+          "high shelf must reach full gain well above the corner");
+
+  for (const float probe : {100.0f, 1000.0f, 4547.0f, 12000.0f}) {
+    const float sum = ardor::biquadMagnitudeDb(boost, probe, rate)
+                    + ardor::biquadMagnitudeDb(cut, probe, rate);
+    require(std::fabs(sum) < 0.01f, "inverted gain must invert the response");
+  }
 }
 
 void verifyHalfbandResamplers()
@@ -933,6 +958,7 @@ int main()
 {
   verifyToneFilter(24000.0f);
   verifyToneFilter(48000.0f);
+  verifyHighShelf();
   verifyHalfbandResamplers();
   verifyFastSineAccuracy();
   verifyBrightReverbs();

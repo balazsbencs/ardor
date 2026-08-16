@@ -96,6 +96,32 @@ BiquadCoefficients makePeakingEq(float sampleRate, float frequencyHz, float q, f
   };
 }
 
+BiquadCoefficients makeHighShelf(float sampleRate, float frequencyHz, float q, float gainDb)
+{
+  if (!std::isfinite(sampleRate) || sampleRate <= 0.0f) {
+    return {};
+  }
+
+  const float safeFrequency = std::clamp(
+    std::isfinite(frequencyHz) ? frequencyHz : 1000.0f, 0.01f, sampleRate * 0.499f);
+  const float safeQ = std::max(std::isfinite(q) ? q : 0.70710678f, 0.0001f);
+  const float safeGainDb = std::isfinite(gainDb) ? gainDb : 0.0f;
+  const double amplitude = std::pow(10.0, static_cast<double>(safeGainDb) / 40.0);
+  const double omega = 2.0 * std::numbers::pi * safeFrequency / sampleRate;
+  const double alpha = std::sin(omega) / (2.0 * safeQ);
+  const double cosine = std::cos(omega);
+  const double twoSqrtAlpha = 2.0 * std::sqrt(amplitude) * alpha;
+  const double a0 = (amplitude + 1.0) - (amplitude - 1.0) * cosine + twoSqrtAlpha;
+
+  return {
+    static_cast<float>(amplitude * ((amplitude + 1.0) + (amplitude - 1.0) * cosine + twoSqrtAlpha) / a0),
+    static_cast<float>(-2.0 * amplitude * ((amplitude - 1.0) + (amplitude + 1.0) * cosine) / a0),
+    static_cast<float>(amplitude * ((amplitude + 1.0) + (amplitude - 1.0) * cosine - twoSqrtAlpha) / a0),
+    static_cast<float>(2.0 * ((amplitude - 1.0) - (amplitude + 1.0) * cosine) / a0),
+    static_cast<float>(((amplitude + 1.0) - (amplitude - 1.0) * cosine - twoSqrtAlpha) / a0),
+  };
+}
+
 BiquadCoefficients makeHighPass(float sampleRate, float frequencyHz, float q)
 {
   return makePassFilter<true>(sampleRate, frequencyHz, q);
