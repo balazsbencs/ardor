@@ -192,11 +192,11 @@ func TestLocalSetupLoginAndSessionOriginChecks(t *testing.T) {
 
 	loginRequest := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(`{"username":"owner","password":"a separate local password"}`))
 	loginRequest.Header.Set("Content-Type", "application/json")
-	loginRequest.Header.Set("Origin", "tauri://localhost")
+	loginRequest.Header.Set("Origin", "http://localhost:1420")
 	loginResponse := httptest.NewRecorder()
 	handler.ServeHTTP(loginResponse, loginRequest)
 	if loginResponse.Code != http.StatusOK || !bytes.Contains(loginResponse.Body.Bytes(), []byte(`"sessionToken"`)) {
-		t.Fatalf("Tauri login status=%d body=%s", loginResponse.Code, loginResponse.Body.String())
+		t.Fatalf("development-origin login status=%d body=%s", loginResponse.Code, loginResponse.Body.String())
 	}
 
 	assetsRequest := httptest.NewRequest(http.MethodGet, "/api/assets/models", nil)
@@ -263,22 +263,22 @@ func TestWiFiSettingsCanBeProvisionedAtRuntime(t *testing.T) {
 	}
 }
 
-func TestTauriCORS(t *testing.T) {
+func TestDevelopmentOriginCORS(t *testing.T) {
 	handler := New(config.Config{DataRoot: t.TempDir(), AuthEnabled: false})
 
 	request := httptest.NewRequest(http.MethodGet, "/api/device", nil)
-	request.Header.Set("Origin", "tauri://localhost")
+	request.Header.Set("Origin", "http://localhost:1420")
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
 		t.Fatalf("device status=%d", response.Code)
 	}
-	if origin := response.Header().Get("Access-Control-Allow-Origin"); origin != "tauri://localhost" {
+	if origin := response.Header().Get("Access-Control-Allow-Origin"); origin != "http://localhost:1420" {
 		t.Fatalf("allow origin=%q", origin)
 	}
 
 	preflight := httptest.NewRequest(http.MethodOptions, "/api/assets/models", nil)
-	preflight.Header.Set("Origin", "tauri://localhost")
+	preflight.Header.Set("Origin", "http://localhost:1420")
 	preflight.Header.Set("Access-Control-Request-Method", http.MethodPost)
 	preflight.Header.Set("Access-Control-Request-Headers", "authorization,content-type")
 	preflightResponse := httptest.NewRecorder()

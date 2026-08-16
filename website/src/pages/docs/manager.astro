@@ -5,7 +5,7 @@ import { url } from '../../lib/url';
 
 <DocsLayout
   title="Manager App"
-  description="Manage Ardor presets and assets from a desktop app or any browser, backed by the REST manager daemon on the pedal."
+  description="Manage Ardor presets and assets from any browser, backed by the REST manager daemon on the pedal."
   lede="Editing on the touchscreen is quick, but a bigger screen helps for deep work. The manager app gives you drag-and-drop chain editing, asset management, and TONE3000 browsing."
 >
   <h2>How it fits together</h2>
@@ -24,19 +24,11 @@ import { url } from '../../lib/url';
     keeps working without internet access because the bundle is embedded in the daemon.
   </p>
 
-  <h3>Desktop manager</h3>
   <p>
-    A desktop app connects to <code>ardor-managerd</code> and provides bank/slot browsing,
-    drag-and-drop chain editing, block validation and inspection, undo/redo, Save/Apply,
-    asset upload/rename/delete, and light/dark themes. Supported targets are Apple Silicon
-    and Intel macOS, and Windows x64.
+    The manager provides bank/slot browsing, drag-and-drop chain editing, block validation
+    and inspection, undo/redo, Save/Apply, asset upload/rename/delete, and light/dark
+    themes. There is no desktop app to install.
   </p>
-  <div class="callout">
-    <p>
-      Optional <strong>TONE3000</strong> integration browses and installs NAM captures
-      directly onto the connected pedal, from the desktop manager.
-    </p>
-  </div>
 
   <h3>Hosted control plane</h3>
   <p>

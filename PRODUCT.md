@@ -75,10 +75,9 @@ Three distinct interface surfaces exist, each with its own technology and rules:
   primitives are available; LVGL widgets, styles, and its own animation system
   are the entire vocabulary. Hardware controls are four footswitches (`KEY_F1`–
   `KEY_F4`) and one rotary encoder.
-- **Manager application** — React, shipped two ways from one codebase: a Tauri
-  desktop app (Apple Silicon and Intel macOS, Windows x64 — no Linux build), and
-  a device-hosted browser build served by `ardor-managerd` over LAN HTTP. A
-  hosted HTTPS control-plane build also exists.
+- **Manager application** — React, shipped two ways from one codebase: a
+  device-hosted browser build served by `ardor-managerd` over LAN HTTP, and a
+  hosted HTTPS control-plane build. There is no desktop application.
 - **Marketing and documentation website** — Astro, deployed to GitHub Pages.
 
 Engine and product facts future work must not contradict:

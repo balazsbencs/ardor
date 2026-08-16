@@ -3,7 +3,7 @@ import { Download, ExternalLink, LoaderCircle, X } from "lucide-react";
 
 import { Button, StatusBadge } from "../components/ui";
 import { PortalSurface } from "../theme/surface";
-import type { Tone3000Selection } from "./client";
+import type { Tone3000Selection } from "./types";
 import type { Tone3000Architecture } from "./hosted";
 import { Tone3000Brand } from "./Tone3000Brand";
 
