@@ -28,6 +28,8 @@ void TapeHysteresis::configure(const Parameters& parameters, float oversampledRa
 {
   parameters_ = parameters;
   period_ = 1.0f / oversampledRate;
+  // The envelope only has to hold across a low note's period, so 50 ms.
+  envelopeRelease_ = std::exp(-1.0f / (0.05f * oversampledRate));
   reset();
 }
 
@@ -35,9 +37,39 @@ void TapeHysteresis::reset()
 {
   magnetisation_ = 0.0f;
   previousField_ = 0.0f;
+  direction_ = 1.0f;
+  extremeField_ = 0.0f;
+  fieldEnvelope_ = 0.0f;
 }
 
-float TapeHysteresis::derivative(float magnetisation, float field, float fieldRate) const
+// Decides which branch of the loop the material is on, ignoring retraces too
+// small to be real. See kDirectionDeadband for why a raw sign(dH/dt) is not
+// good enough here.
+float TapeHysteresis::trackDirection(float field)
+{
+  fieldEnvelope_ = std::max(std::fabs(field), fieldEnvelope_ * envelopeRelease_);
+  const float deadband = kDirectionDeadband * fieldEnvelope_;
+
+  if (direction_ > 0.0f) {
+    if (field > extremeField_) {
+      extremeField_ = field;
+    } else if (extremeField_ - field > deadband) {
+      direction_ = -1.0f;
+      extremeField_ = field;
+    }
+  } else {
+    if (field < extremeField_) {
+      extremeField_ = field;
+    } else if (field - extremeField_ > deadband) {
+      direction_ = 1.0f;
+      extremeField_ = field;
+    }
+  }
+  return direction_;
+}
+
+float TapeHysteresis::derivative(float magnetisation, float field, float fieldRate,
+                                 float direction) const
 {
   const float effectiveField = field + parameters_.interdomainCoupling * magnetisation;
   const float normalised = effectiveField / parameters_.anhystereticShape;
@@ -46,7 +78,6 @@ float TapeHysteresis::derivative(float magnetisation, float field, float fieldRa
     (parameters_.saturationMagnetisation / parameters_.anhystereticShape) * langevinPrime(normalised);
 
   const float difference = anhysteretic - magnetisation;
-  const float direction = fieldRate < 0.0f ? -1.0f : 1.0f;
 
   // delta_M is not decoration. Without it the solver takes unphysical branches
   // whenever the field reverses inside a minor loop, and the state grows
@@ -76,14 +107,15 @@ float TapeHysteresis::derivative(float magnetisation, float field, float fieldRa
 float TapeHysteresis::process(float field)
 {
   const float fieldRate = (field - previousField_) / period_;
+  const float direction = trackDirection(field);
   const float start = previousField_;
   const float middle = 0.5f * (start + field);
   const float halfStep = 0.5f * period_;
 
-  const float k1 = derivative(magnetisation_, start, fieldRate);
-  const float k2 = derivative(magnetisation_ + halfStep * k1, middle, fieldRate);
-  const float k3 = derivative(magnetisation_ + halfStep * k2, middle, fieldRate);
-  const float k4 = derivative(magnetisation_ + period_ * k3, field, fieldRate);
+  const float k1 = derivative(magnetisation_, start, fieldRate, direction);
+  const float k2 = derivative(magnetisation_ + halfStep * k1, middle, fieldRate, direction);
+  const float k3 = derivative(magnetisation_ + halfStep * k2, middle, fieldRate, direction);
+  const float k4 = derivative(magnetisation_ + period_ * k3, field, fieldRate, direction);
 
   magnetisation_ += (period_ / 6.0f) * (k1 + 2.0f * k2 + 2.0f * k3 + k4);
 

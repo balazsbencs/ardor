@@ -211,6 +211,7 @@ target_compile_features(ardor_rat PUBLIC cxx_std_20)
 add_library(ardor_tape
   src/tape/TapeHysteresis.cpp
   src/tape/TapeTransport.cpp
+  src/tape/TapeProcessor.cpp
 )
 target_include_directories(ardor_tape PUBLIC
   src

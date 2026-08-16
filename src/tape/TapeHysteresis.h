@@ -73,12 +73,34 @@ public:
   float process(float field);
 
 private:
-  float derivative(float magnetisation, float field, float fieldRate) const;
+  float derivative(float magnetisation, float field, float fieldRate, float direction) const;
+  float trackDirection(float field);
+
+  // How far the field must retrace, as a fraction of its own recent peak,
+  // before the solver accepts that the material has changed branch.
+  //
+  // Without this the branch direction comes from the sign of a one-sample
+  // difference, which is not robust. The signal reaching the solver has been
+  // upsampled eight times, and the halfband images sit about 60 dB down but
+  // near 96 kHz — so their dH/dt is 1e-3 * 96000 / 45, about twenty times
+  // larger than that of a 45 Hz note at the same amplitude. The images
+  // therefore decide the sign of dH/dt near a low note's turning points, and
+  // each spurious flip switches the hysteresis branch. Measured, that lifted
+  // 45 Hz by 0.6 dB relative to 1 kHz with everything else already fixed.
+  //
+  // A real material does not change branch because the field wobbled by a
+  // thousandth of its swing, so the deadband is physical as well as practical.
+  static constexpr float kDirectionDeadband = 5.0e-3f;
 
   Parameters parameters_{};
   float period_ = 1.0f / 384000.0f;
   float magnetisation_ = 0.0f;
   float previousField_ = 0.0f;
+
+  float direction_ = 1.0f;
+  float extremeField_ = 0.0f;
+  float fieldEnvelope_ = 0.0f;
+  float envelopeRelease_ = 0.0f;
 };
 
 } // namespace ardor

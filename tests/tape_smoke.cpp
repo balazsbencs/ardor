@@ -1,4 +1,5 @@
 #include "tape/TapeHysteresis.h"
+#include "tape/TapeProcessor.h"
 #include "tape/TapeTransport.h"
 
 #include <algorithm>
@@ -196,16 +197,27 @@ void testLangevinTaylorSwitchover()
 constexpr float kHostRate = 48000.0f;
 
 // Correlates a signal against a probe frequency and returns its magnitude.
+//
+// The Hann window is not optional here. A bare rectangular correlation is only
+// exact when the window holds a whole number of cycles, and most probe
+// frequencies do not: 20 Hz over a 1.024 s window is 20.48 cycles. On a
+// distorted signal the DC and harmonic terms then leak into the fundamental
+// bin, which read as an 8 dB low-frequency lift that the block did not have.
+// Hann drops the first sidelobe to -31 dB and rolls off steeply after it.
+// The factor of two undoes the window's coherent gain of 0.5.
 double binMagnitude(const std::vector<float>& signal, float frequency, float rate)
 {
+  const auto count = static_cast<double>(signal.size());
   double real = 0.0;
   double imaginary = 0.0;
   for (std::size_t n = 0; n < signal.size(); ++n) {
-    const double phase = kTwoPi * frequency * static_cast<double>(n) / rate;
-    real += signal[n] * std::cos(phase);
-    imaginary += signal[n] * std::sin(phase);
+    const double position = static_cast<double>(n);
+    const double window = 0.5 - 0.5 * std::cos(kTwoPi * position / count);
+    const double phase = kTwoPi * frequency * position / rate;
+    real += signal[n] * window * std::cos(phase);
+    imaginary += signal[n] * window * std::sin(phase);
   }
-  return 2.0 * std::sqrt(real * real + imaginary * imaginary) / static_cast<double>(signal.size());
+  return 4.0 * std::sqrt(real * real + imaginary * imaginary) / count;
 }
 
 ardor::TapeTransport makeTransport(float flutter, float hissDb)
@@ -320,6 +332,195 @@ void testTransportDelayIsExactlyItsNominal()
   require(errorDb < -80.0, "at zero flutter the transport delay must equal its nominal exactly");
 }
 
+ardor::TapeProcessor makeTape(const nlohmann::json& overrides)
+{
+  nlohmann::json params;
+  params["mode"] = "tape";
+  params["drive"] = 0.0f;
+  params["saturation"] = 0.5f;
+  params["bias"] = 0.5f;
+  params["speed"] = "15";
+  params["head_bump"] = 0.5f;
+  params["flutter"] = 0.0f;
+  params["hiss_db"] = -120.0f;
+  params["mix"] = 1.0f;
+  params["output_db"] = 0.0f;
+  for (const auto& item : overrides.items()) params[item.key()] = item.value();
+
+  ardor::TapeProcessor tape;
+  std::string error;
+  if (!tape.configure(params, kHostRate, error)) throw std::runtime_error(error);
+  tape.reset();
+  return tape;
+}
+
+std::vector<float> renderTone(ardor::TapeProcessor& tape, float frequency, float amplitude,
+                              std::size_t frames)
+{
+  std::vector<float> out;
+  out.reserve(frames);
+  for (std::size_t n = 0; n < frames; ++n) {
+    const float t = static_cast<float>(n) / kHostRate;
+    const float in = amplitude * std::sin(kTwoPi * frequency * t);
+    out.push_back(tape.process({in, in}).left);
+  }
+  return out;
+}
+
+double rms(const std::vector<float>& signal, std::size_t skip)
+{
+  double sum = 0.0;
+  for (std::size_t n = skip; n < signal.size(); ++n) sum += static_cast<double>(signal[n]) * signal[n];
+  return std::sqrt(sum / static_cast<double>(signal.size() - skip));
+}
+
+void testOversamplingSuppressesAliases()
+{
+  // A 12 kHz tone at full drive throws harmonics at 24, 36 and 48 kHz and
+  // beyond. Solved at 48 kHz they would fold straight back into the audio
+  // band. This is the test that proves the 8x oversampling earns its cost.
+  auto tape = makeTape({{"drive", 24.0f}, {"saturation", 1.0f}});
+  const auto out = renderTone(tape, 12000.0f, 0.9f, 131072);
+  const std::vector<float> steady(out.begin() + 8192, out.end());
+
+  const double carrier = binMagnitude(steady, 12000.0f, kHostRate);
+  require(carrier > 0.0, "the carrier must survive");
+
+  // Every harmonic of 12 kHz folds to either 12 kHz or DC, so energy at an
+  // unrelated frequency is an alias. Probe a spread of non-harmonic bins.
+  double worst = 0.0;
+  for (const float probe : {700.0f, 1900.0f, 3300.0f, 5100.0f, 7700.0f, 9300.0f, 15100.0f, 17300.0f}) {
+    worst = std::max(worst, binMagnitude(steady, probe, kHostRate));
+  }
+  const double worstDbc = 20.0 * std::log10(worst / carrier);
+  std::printf("  worst in-band alias: %.1f dBc\n", worstDbc);
+  require(worstDbc < -70.0, "in-band aliases must stay under -70 dBc");
+}
+
+// Magnitude response in dB at one frequency, measured through the block.
+double responseDb(ardor::TapeProcessor& tape, float frequency)
+{
+  const auto out = renderTone(tape, frequency, 0.05f, 65536);
+  const std::vector<float> steady(out.begin() + 16384, out.end());
+  return 20.0 * std::log10(binMagnitude(steady, frequency, kHostRate) / 0.05);
+}
+
+void testHeadBumpFollowsSpeed()
+{
+  // The bump has to be measured against the same machine with head_bump at
+  // zero, at the same frequency. Comparing absolute responses would fold in
+  // whatever gain and roll-off the rest of the block has, which is not what
+  // this test is about.
+  const auto bumpDb = [](const char* speed, float frequency) {
+    auto shaped = makeTape({{"speed", speed}, {"head_bump", 1.0f}});
+    auto reference = makeTape({{"speed", speed}, {"head_bump", 0.0f}});
+    return responseDb(shaped, frequency) - responseDb(reference, frequency);
+  };
+
+  const double slowAt45 = bumpDb("15", 45.0f);
+  const double slowAt90 = bumpDb("15", 90.0f);
+  const double fastAt45 = bumpDb("30", 45.0f);
+  const double fastAt90 = bumpDb("30", 90.0f);
+  std::printf("  head bump: 15ips %.2f dB @45Hz / %.2f dB @90Hz, 30ips %.2f dB @45Hz / %.2f dB @90Hz\n",
+              slowAt45, slowAt90, fastAt45, fastAt90);
+
+  require(slowAt45 > 1.5, "15 ips must show a head bump near 45 Hz");
+  require(fastAt90 > 0.8, "30 ips must show its smaller bump near 90 Hz");
+  require(slowAt45 > fastAt45 + 1.0, "the 15 ips bump must be lower in frequency than the 30 ips one");
+  require(fastAt90 > slowAt90, "the 30 ips bump must be higher in frequency than the 15 ips one");
+  require(slowAt45 > fastAt90, "the slower speed's bump must be the larger one");
+
+  // head_bump at zero must leave the low end flat, judged against the same
+  // machine at 1 kHz where no bump filter reaches.
+  auto flat = makeTape({{"speed", "15"}, {"head_bump", 0.0f}});
+  const double flatTilt = responseDb(flat, 45.0f) - responseDb(flat, 1000.0f);
+  std::printf("  head bump off, 45 Hz vs 1 kHz: %.2f dB\n", flatTilt);
+  require(std::fabs(flatTilt) < 0.3, "head_bump at zero must leave the low end flat");
+}
+
+void testMixZeroIsTransparent()
+{
+  // This simultaneously proves the dry path is delay-matched. If the dry
+  // signal were not delayed by the same amount the wet path costs, mix would
+  // comb rather than blend.
+  auto tape = makeTape({{"mix", 0.0f}, {"drive", 24.0f}});
+
+  std::vector<float> input;
+  std::vector<float> output;
+  for (std::size_t n = 0; n < 32768; ++n) {
+    const float t = static_cast<float>(n) / kHostRate;
+    const float in = 0.4f * std::sin(kTwoPi * 220.0f * t) + 0.2f * std::sin(kTwoPi * 1310.0f * t);
+    input.push_back(in);
+    output.push_back(tape.process({in, in}).left);
+  }
+
+  const std::size_t latency = tape.latencyFrames();
+  double errorEnergy = 0.0;
+  double signalEnergy = 0.0;
+  for (std::size_t n = 8192; n < input.size(); ++n) {
+    const double reference = input[n - latency];
+    const double difference = output[n] - reference;
+    errorEnergy += difference * difference;
+    signalEnergy += reference * reference;
+  }
+  const double errorDb = 10.0 * std::log10(errorEnergy / signalEnergy);
+  std::printf("  mix=0 error: %.1f dB\n", errorDb);
+  require(errorDb < -80.0, "mix at zero must reproduce the input within -80 dB");
+}
+
+void testDriveIsGainCompensated()
+{
+  // Drive must change character, not loudness. The compensation is calibrated
+  // at configure() time by running a probe through a scratch copy of the
+  // magnetics, so this checks that calibration.
+  double quietest = 1.0e9;
+  double loudest = -1.0e9;
+  for (const float drive : {-12.0f, -6.0f, 0.0f, 6.0f, 12.0f, 18.0f, 24.0f}) {
+    auto tape = makeTape({{"drive", drive}});
+    const auto out = renderTone(tape, 440.0f, 0.3f, 32768);
+    const double level = 20.0 * std::log10(rms(out, 8192));
+    quietest = std::min(quietest, level);
+    loudest = std::max(loudest, level);
+  }
+  std::printf("  drive level swing: %.2f dB\n", loudest - quietest);
+  require(loudest - quietest < 3.0, "drive must move the output level less than 3 dB");
+}
+
+void testResetReturnsToConstructedState()
+{
+  auto tape = makeTape({{"drive", 18.0f}});
+  const auto first = renderTone(tape, 440.0f, 0.5f, 8192);
+  tape.reset();
+  const auto second = renderTone(tape, 440.0f, 0.5f, 8192);
+  for (std::size_t n = 0; n < first.size(); ++n) {
+    require(first[n] == second[n], "reset must return the block to its constructed state");
+  }
+}
+
+void testRejectsBadConfiguration()
+{
+  ardor::TapeProcessor tape;
+  std::string error;
+  nlohmann::json params;
+  params["mode"] = "tape";
+  require(!tape.configure(params, 0.0f, error), "a zero sample rate must be rejected");
+  require(!error.empty(), "a rejected configuration must say why");
+
+  params["mode"] = "rat";
+  require(!tape.configure(params, kHostRate, error), "the wrong mode must be rejected");
+
+  params["mode"] = "tape";
+  params["speed"] = "7.5";
+  require(!tape.configure(params, kHostRate, error), "an unsupported tape speed must be rejected");
+
+  params.erase("speed");
+  require(tape.configure(params, kHostRate, error), "defaults must configure cleanly");
+  require(!tape.setParameterTarget("speed", 30.0f), "speed must not be live-settable");
+  require(tape.setParameterTarget("drive", 6.0f), "drive must be live-settable");
+  require(!tape.setParameterTarget("nonsense", 1.0f), "unknown keys must be rejected");
+  require(!tape.setParameterTarget("drive", std::nanf("")), "a non-finite value must be rejected");
+}
+
 } // namespace
 
 int main()
@@ -335,6 +536,12 @@ int main()
     testFlutterIsSharedAcrossChannels();
     testFlutterFullScaleMovesPitch();
     testTransportDelayIsExactlyItsNominal();
+    testOversamplingSuppressesAliases();
+    testHeadBumpFollowsSpeed();
+    testMixZeroIsTransparent();
+    testDriveIsGainCompensated();
+    testResetReturnsToConstructedState();
+    testRejectsBadConfiguration();
   } catch (const std::exception& error) {
     std::fprintf(stderr, "tape smoke failed: %s\n", error.what());
     return 1;
