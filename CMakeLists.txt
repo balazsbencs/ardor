@@ -208,6 +208,16 @@ target_include_directories(ardor_rat PUBLIC
 )
 target_compile_features(ardor_rat PUBLIC cxx_std_20)
 
+add_library(ardor_tape
+  src/tape/TapeHysteresis.cpp
+)
+target_include_directories(ardor_tape PUBLIC
+  src
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies
+)
+target_compile_features(ardor_tape PUBLIC cxx_std_20)
+target_link_libraries(ardor_tape PUBLIC ardor_equalizer)
+
 add_library(ardor_dsp OBJECT
   src/dsp/DualAmpProcessor.cpp
   src/dsp/DualRigProcessor.cpp
@@ -454,6 +464,10 @@ add_test(NAME pedal-transient-shaper-smoke COMMAND pedal-transient-shaper-smoke)
 add_executable(pedal-rat-smoke tests/rat_smoke.cpp)
 target_link_libraries(pedal-rat-smoke PRIVATE ardor_rat)
 add_test(NAME pedal-rat-smoke COMMAND pedal-rat-smoke)
+
+add_executable(pedal-tape-smoke tests/tape_smoke.cpp)
+target_link_libraries(pedal-tape-smoke PRIVATE ardor_tape)
+add_test(NAME pedal-tape-smoke COMMAND pedal-tape-smoke)
 
 add_executable(pedal-cheese-smoke tests/cheese_smoke.cpp)
 target_link_libraries(pedal-cheese-smoke PRIVATE ardor_cheese ardor_daisyfx)
