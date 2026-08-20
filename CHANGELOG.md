@@ -2,7 +2,7 @@
 
 All notable changes are generated from Conventional Commit messages.
 
-## [0.1.35](https://github.com/balazsbencs/ardor/compare/v0.1.24...v0.1.35) (2026-08-20)
+## [0.1.36](https://github.com/balazsbencs/ardor/compare/v0.1.24...v0.1.36) (2026-08-20)
 
 ### Features
 
@@ -25,6 +25,7 @@ All notable changes are generated from Conventional Commit messages.
 
 ### Bug Fixes
 
+* **buildroot:** refresh generated defconfig ([#33](https://github.com/balazsbencs/ardor/issues/33)) ([1fb8fc2](https://github.com/balazsbencs/ardor/commit/1fb8fc2f612d3095b9403e20bd2d966270b0c45e))
 * codeql issue fix ([be19676](https://github.com/balazsbencs/ardor/commit/be1967678c1208856cfbcd374c7f12a91f107892))
 * codeql issue fix ([a60b04e](https://github.com/balazsbencs/ardor/commit/a60b04eb13d676dca2e3fdc7c3e691c1b822f3b3))
 * parameter window and test issues ([b2887ee](https://github.com/balazsbencs/ardor/commit/b2887eebde8b13e14bb7e1726ff2d102cd1a4e26))
