@@ -9,6 +9,7 @@
 #include "dynamics/NoiseGateProcessor.h"
 #include "cheese/CheeseProcessor.h"
 #include "dynamics/TransientShaperProcessor.h"
+#include "tape/TapeProcessor.h"
 #include "equalizer/EqParameters.h"
 #include "wah/WahProcessor.h"
 
@@ -263,6 +264,12 @@ bool PedalEngine::addDistortion(std::string id, const nlohmann::json& params,
   const auto mode = params.value("mode", std::string{"rat"});
   if (mode == "big_cheese") {
     CheeseProcessor processor;
+    if (!processor.configure(params, sampleRate, error)) return false;
+    chain_.addDistortion(std::move(id), std::move(processor));
+    return true;
+  }
+  if (mode == "tape") {
+    TapeProcessor processor;
     if (!processor.configure(params, sampleRate, error)) return false;
     chain_.addDistortion(std::move(id), std::move(processor));
     return true;

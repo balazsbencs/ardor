@@ -103,10 +103,11 @@ int main()
   // Every block the engine can run has to be reachable from the pedal itself,
   // not only from the manager. Adding each one must also produce a parameter
   // page, or it would sit in a chain with nothing to adjust.
-  const std::array<std::pair<const char*, const char*>, 6> browsableBlocks{{
+  const std::array<std::pair<const char*, const char*>, 7> browsableBlocks{{
     {"dynamics", "transient_shaper"},
     {"distortion", "rat"},
     {"distortion", "big_cheese"},
+    {"distortion", "tape"},
     {"stereo", ""},
     {"irreverb", ""},
     {"mod", "harmonizer"},
@@ -129,6 +130,39 @@ int main()
                 std::string{blockType} + "/" + mode + " should add a block of its own type")) return 1;
     if (require(ardor::parameterPageCount(addState) > 0,
                 std::string{blockType} + "/" + mode + " should expose working controls")) return 1;
+  }
+
+  // Tape speed is the only string choice outside the compressor's detector, and
+  // the commit path picks the stored value by key. Left without its own branch
+  // it silently wrote "peak" into the block, which nothing would have crashed
+  // on. Turn the control and check what actually landed in the preset.
+  {
+    auto speedState = ardor::makeDemoUiState();
+    const auto tapeAsset = std::find_if(catalogState.assets.begin(), catalogState.assets.end(),
+      [](const auto& asset) { return asset.blockType == "distortion" && asset.mode == "tape"; });
+    if (require(tapeAsset != catalogState.assets.end(), "Tape Machine should be browsable")) return 1;
+    ardor::selectPreset(speedState, 0);
+    ardor::appendAssetBlock(speedState, static_cast<std::size_t>(
+      std::distance(catalogState.assets.begin(), tapeAsset)));
+    // Adding a block queues a structural preview, and a parameter edit is
+    // refused while one is pending. Settle it first.
+    completePreview(speedState);
+
+    auto& tapeBlock = speedState.bank.presets[speedState.activePreset].blocks.back();
+    if (require(tapeBlock.params.value("speed", std::string{}) == "15",
+                "a new tape block should default to 15 ips")) return 1;
+    if (require(tapeBlock.params.value("flutter", 1.0f) == 0.0f,
+                "a new tape block should ship with the transport inert")) return 1;
+
+    const auto pages = ardor::parameterPage(speedState, 0);
+    const auto speedControl = std::find_if(pages.begin(), pages.end(),
+      [](const auto& control) { return control.key == "speed"; });
+    if (require(speedControl != pages.end(), "tape speed should appear as a control")) return 1;
+    ardor::applyParameterDelta(speedState, *speedControl, 1);
+    completePreview(speedState);
+    const auto& moved = speedState.bank.presets[speedState.activePreset].blocks.back();
+    if (require(moved.params.value("speed", std::string{}) == "30",
+                "turning tape speed up should store 30, not a compressor detector")) return 1;
   }
 
   ardor::selectPreset(catalogState, 2);
