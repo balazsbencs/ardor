@@ -7,6 +7,8 @@
 #include "dsp/DualRigProcessor.h"
 #include "dynamics/CompressorProcessor.h"
 #include "dynamics/NoiseGateProcessor.h"
+#include "cheese/CheeseProcessor.h"
+#include "dynamics/TransientShaperProcessor.h"
 #include "equalizer/EqParameters.h"
 #include "wah/WahProcessor.h"
 
@@ -70,11 +72,15 @@ const char* signalStageKindName(SignalStageKind kind) noexcept
   case SignalStageKind::Input: return "input";
   case SignalStageKind::Nam: return "nam";
   case SignalStageKind::Cab: return "ir";
+  case SignalStageKind::IrReverb: return "ir-reverb";
   case SignalStageKind::Daisy: return "daisy";
   case SignalStageKind::Compressor: return "compressor";
   case SignalStageKind::NoiseGate: return "noise-gate";
+  case SignalStageKind::TransientShaper: return "transient-shaper";
   case SignalStageKind::Equalizer: return "eq";
   case SignalStageKind::Wah: return "wah";
+  case SignalStageKind::Distortion: return "distortion";
+  case SignalStageKind::StereoWidener: return "stereo-widener";
   case SignalStageKind::DualAmp: return "dual-amp";
   case SignalStageKind::DualRig: return "dual-rig";
   case SignalStageKind::Output: return "output";
@@ -160,6 +166,27 @@ void PedalEngine::addCab(std::vector<float> impulse, float level, float mix, std
   chain_.addCab(std::move(impulse), safeLevel, safeMix, std::move(id));
 }
 
+bool PedalEngine::addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
+                              float sampleRate, std::string& error)
+{
+  return chain_.addIrReverb(std::move(id), std::move(left), std::move(right), sampleRate, error);
+}
+
+bool PedalEngine::setIrReverbParameter(const std::string& id, const std::string& key, float value)
+{
+  return chain_.setIrReverbParameter(id, key, value);
+}
+
+bool PedalEngine::addStereoWidener(std::string id, float sampleRate, std::string& error)
+{
+  return chain_.addStereoWidener(std::move(id), sampleRate, error);
+}
+
+bool PedalEngine::setStereoWidenerParameter(const std::string& id, const std::string& key, float value)
+{
+  return chain_.setStereoWidenerParameter(id, key, value);
+}
+
 bool PedalEngine::addDaisyFx(std::string id, const std::string& blockType, const nlohmann::json& params,
                              float sampleRate, std::string& error)
 {
@@ -212,6 +239,43 @@ bool PedalEngine::addNoiseGate(std::string id, const nlohmann::json& params,
 bool PedalEngine::setNoiseGateParameter(const std::string& id, const std::string& key, float value)
 {
   return chain_.setNoiseGateParameter(id, key, value);
+}
+
+bool PedalEngine::addTransientShaper(std::string id, const nlohmann::json& params,
+                                     float sampleRate, std::string& error)
+{
+  TransientShaperProcessor processor;
+  if (!processor.configure(params, sampleRate, error)) {
+    return false;
+  }
+  chain_.addTransientShaper(std::move(id), std::move(processor));
+  return true;
+}
+
+bool PedalEngine::setTransientShaperParameter(const std::string& id, const std::string& key, float value)
+{
+  return chain_.setTransientShaperParameter(id, key, value);
+}
+
+bool PedalEngine::addDistortion(std::string id, const nlohmann::json& params,
+                                float sampleRate, std::string& error)
+{
+  const auto mode = params.value("mode", std::string{"rat"});
+  if (mode == "big_cheese") {
+    CheeseProcessor processor;
+    if (!processor.configure(params, sampleRate, error)) return false;
+    chain_.addDistortion(std::move(id), std::move(processor));
+    return true;
+  }
+  RatProcessor processor;
+  if (!processor.configure(params, sampleRate, error)) return false;
+  chain_.addDistortion(std::move(id), std::move(processor));
+  return true;
+}
+
+bool PedalEngine::setDistortionParameter(const std::string& id, const std::string& key, float value)
+{
+  return chain_.setDistortionParameter(id, key, value);
 }
 
 bool PedalEngine::addWah(std::string id, const nlohmann::json& params, float sampleRate,

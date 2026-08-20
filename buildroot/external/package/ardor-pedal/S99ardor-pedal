@@ -54,6 +54,21 @@ expression_args=""
 [ -n "$EXPRESSION_DEVICE" ] && \
   expression_args="--expression-device $EXPRESSION_DEVICE --expression-min-raw $EXPRESSION_MIN_RAW --expression-max-raw $EXPRESSION_MAX_RAW --expression-smoothing $EXPRESSION_SMOOTHING --expression-deadband $EXPRESSION_DEADBAND"
 
+# The data partition is seeded once, when the image is built. A pedal that
+# keeps its presets across an update therefore never receives circuit tables
+# added after it was flashed, and every block that reads one reports a missing
+# asset. Copy anything the root filesystem carries that the data root lacks.
+seed_missing_assets() {
+  src=/usr/share/ardor-pedal/assets
+  [ -d "$src" ] || return 0
+  find "$src" -type f | while read -r file; do
+    target="$DATA_ROOT/assets/${file#"$src"/}"
+    [ -f "$target" ] && continue
+    mkdir -p "$(dirname "$target")"
+    cp "$file" "$target"
+  done
+}
+
 run_supervised() {
   # Silence the framebuffer console so it stops drawing over the LVGL UI.
   # Do NOT unbind vtcon: dropping fbcon releases the DRM pipe and freezes
@@ -116,6 +131,7 @@ case "$1" in
     start-stop-daemon -S -b -m -p "$PID" --exec /bin/sh -- "$0" run
     ;;
   run)
+    seed_missing_assets
     run_supervised
     ;;
   stop)

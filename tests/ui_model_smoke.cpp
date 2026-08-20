@@ -4,9 +4,11 @@
 #include "ui/UiModel.h"
 
 #include <algorithm>
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <string>
 #include <unordered_set>
 
 namespace {
@@ -16,7 +18,7 @@ int require(bool condition)
   return condition ? 0 : 1;
 }
 
-int require(bool ok, const char* message)
+int require(bool ok, const std::string& message)
 {
   if (!ok) {
     std::cerr << message << "\n";
@@ -52,10 +54,15 @@ int main()
   if (require(tunerState.mode == ardor::UiMode::Preset, "tuner should return to preset mode")) return 1;
 
   auto catalogState = ardor::makeDemoUiState();
-  std::unordered_set<std::string> assetNames;
+  std::unordered_set<std::string> assetRows;
   std::size_t tapeDelayCount = 0;
   for (const auto& asset : catalogState.assets) {
-    if (require(assetNames.insert(asset.name).second, "effect browser names should be unique")) return 1;
+    // The browser prints the name and the subtitle side by side, so those two
+    // together are what has to be unique. One impulse response is offered both
+    // as a cabinet and as a convolution reverb, and shares its name across the
+    // two rows.
+    if (require(assetRows.insert(asset.name + "\x1f" + asset.subtitle).second,
+                "effect browser rows should be unique")) return 1;
     if (asset.name == "Tape Delay") {
       ++tapeDelayCount;
       if (require(asset.type == "delay" && asset.blockType == "delay" && asset.mode == "tape",
@@ -66,19 +73,64 @@ int main()
                   "Room Reverb should resolve to the dedicated reverb category")) return 1;
     }
     if (asset.name == "Compressor" || asset.name == "Noise Gate"
-        || asset.name == "Five Band EQ" || asset.name == "GCB-95 Wah") {
+        || asset.name == "Transient Shaper" || asset.name == "Five Band EQ"
+        || asset.name == "GCB-95 Wah" || asset.name == "Stereo Widener") {
       if (require(asset.type == "utility",
-                  "compressor and EQ should resolve to the Utility category")) return 1;
+                  "dynamics, EQ, wah and the widener should resolve to the Utility category")) return 1;
     }
     if (asset.path.empty()) {
-      if (require(!asset.blockType.empty() && !asset.mode.empty(),
+      // A mode is only required where one block type carries several
+      // implementations; the stereo widener is the whole of its block type.
+      if (require(!asset.blockType.empty(),
                   "built-in assets should have concrete implementation metadata")) return 1;
     }
   }
   if (require(tapeDelayCount == 1, "Tape Delay should appear exactly once")) return 1;
+
+  // Every category the browser offers has to survive the filter. A new family
+  // that the filter does not know falls back to "all", so its button does
+  // nothing and the family looks broken.
+  for (const auto& asset : catalogState.assets) {
+    auto filterState = ardor::makeDemoUiState();
+    ardor::setCategoryFilter(filterState, asset.type);
+    if (require(filterState.categoryFilter == asset.type,
+                "the browser filter should accept the " + asset.type + " category")) return 1;
+  }
   const auto wahAsset = std::find_if(catalogState.assets.begin(), catalogState.assets.end(),
     [](const auto& asset) { return asset.blockType == "wah" && asset.mode == "gcb95"; });
   if (require(wahAsset != catalogState.assets.end(), "GCB-95 Wah should appear in the effect browser")) return 1;
+
+  // Every block the engine can run has to be reachable from the pedal itself,
+  // not only from the manager. Adding each one must also produce a parameter
+  // page, or it would sit in a chain with nothing to adjust.
+  const std::array<std::pair<const char*, const char*>, 6> browsableBlocks{{
+    {"dynamics", "transient_shaper"},
+    {"distortion", "rat"},
+    {"distortion", "big_cheese"},
+    {"stereo", ""},
+    {"irreverb", ""},
+    {"mod", "harmonizer"},
+  }};
+  for (const auto& [blockType, mode] : browsableBlocks) {
+    const auto found = std::find_if(catalogState.assets.begin(), catalogState.assets.end(),
+      [blockType = blockType, mode = mode](const auto& asset) {
+        return asset.blockType == blockType && asset.mode == mode;
+      });
+    if (require(found != catalogState.assets.end(),
+                std::string{blockType} + "/" + mode + " should appear in the effect browser")) return 1;
+
+    auto addState = ardor::makeDemoUiState();
+    const auto assetIndex = static_cast<std::size_t>(
+      std::distance(catalogState.assets.begin(), found));
+    ardor::selectPreset(addState, 0);
+    ardor::appendAssetBlock(addState, assetIndex);
+    const auto& addedBlocks = addState.bank.presets[addState.activePreset].blocks;
+    if (require(!addedBlocks.empty() && addedBlocks.back().type == blockType,
+                std::string{blockType} + "/" + mode + " should add a block of its own type")) return 1;
+    if (require(ardor::parameterPageCount(addState) > 0,
+                std::string{blockType} + "/" + mode + " should expose working controls")) return 1;
+  }
+
   ardor::selectPreset(catalogState, 2);
   ardor::selectBlock(catalogState, 1);
   if (require(ardor::parameterPageCount(catalogState) > 0,

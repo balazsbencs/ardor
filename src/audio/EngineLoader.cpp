@@ -182,6 +182,66 @@ bool validateDualAmpParameters(const ChainBlockPlan& block, std::string& error)
   return true;
 }
 
+float reverbParam(const nlohmann::json& params, const char* key, float fallback)
+{
+  if (!params.is_object()) return fallback;
+  const auto it = params.find(key);
+  if (it == params.end() || !it->is_number()) return fallback;
+  const float value = it->get<float>();
+  return std::isfinite(value) ? value : fallback;
+}
+
+// Splits an interleaved impulse into per-channel buffers and scales it so a
+// dense tail comes back at roughly the level that went in.
+//
+// The cabinet path normalises against its estimated frequency-response peak,
+// which is right for a short colouring filter but wrong here: a reverb impulse
+// is thousands of times longer and it is total energy, not peak response, that
+// sets how loud the tail returns. Normalising by energy keeps two impulses of
+// very different length and loudness at a comparable wet level, so the Mix
+// control means the same thing whichever one is loaded.
+bool prepareReverbIr(const InterleavedWav& wav, std::vector<float>& left,
+                     std::vector<float>& right, std::string& error)
+{
+  if (wav.samples.empty() || wav.channels == 0) {
+    error = "impulse is empty";
+    return false;
+  }
+  const std::size_t frames = wav.samples.size() / wav.channels;
+  if (frames < 2) {
+    error = "impulse is too short";
+    return false;
+  }
+
+  left.assign(frames, 0.0f);
+  right.assign(frames, 0.0f);
+  for (std::size_t i = 0; i < frames; ++i) {
+    left[i] = wav.samples[i * wav.channels];
+    right[i] = wav.channels > 1 ? wav.samples[i * wav.channels + 1] : left[i];
+  }
+
+  double energy = 0.0;
+  for (std::size_t i = 0; i < frames; ++i) {
+    energy += static_cast<double>(left[i]) * left[i];
+    energy += static_cast<double>(right[i]) * right[i];
+  }
+  energy *= 0.5;   // per channel
+  if (!(energy > 0.0)) {
+    error = "impulse carries no energy";
+    return false;
+  }
+  // Attenuate only. A quiet capture stays quiet rather than being blown up into
+  // whatever noise floor it was recorded with.
+  const float scale = static_cast<float>(1.0 / std::sqrt(energy));
+  if (scale < 1.0f) {
+    for (std::size_t i = 0; i < frames; ++i) {
+      left[i] *= scale;
+      right[i] *= scale;
+    }
+  }
+  return true;
+}
+
 bool loadPreparedIr(const std::filesystem::path& path, const EngineLoadOptions& options,
                     std::vector<float>& samples, std::string& error)
 {
@@ -308,6 +368,12 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
           return false;
         }
         chain.addNoiseGate(block.id, std::move(processor));
+      } else if (mode == "transient_shaper") {
+        TransientShaperProcessor processor;
+        if (!processor.configure(block.params, static_cast<float>(options.sampleRate), error)) {
+          return false;
+        }
+        chain.addTransientShaper(block.id, std::move(processor));
       } else {
         error = "unsupported dynamics mode in dual rig lane: " + block.id;
         return false;
@@ -319,6 +385,22 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
                                  static_cast<float>(options.sampleRate), error)) {
         return false;
       }
+      continue;
+    }
+    if (block.type == "distortion") {
+      if (block.params.value("mode", std::string{"rat"}) == "big_cheese") {
+        CheeseProcessor processor;
+        if (!processor.configure(block.params, static_cast<float>(options.sampleRate), error)) {
+          return false;
+        }
+        chain.addDistortion(block.id, std::move(processor));
+        continue;
+      }
+      RatProcessor processor;
+      if (!processor.configure(block.params, static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
+      chain.addDistortion(block.id, std::move(processor));
       continue;
     }
     if (block.type == "wah") {
@@ -588,6 +670,52 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       engine.setBlockEnabled(block.id, block.enabled);
       continue;
     }
+    if (block.type == "irreverb") {
+      InterleavedWav wav;
+      try {
+        wav = readInterleavedWav(block.assetPath);
+      } catch (const std::exception& e) {
+        error = "failed to load reverb impulse: " + block.assetPath.string() + ": " + e.what();
+        return false;
+      }
+      if (wav.sampleRate != options.sampleRate) {
+        error = "reverb impulse sample rate mismatch: " + block.assetPath.string();
+        return false;
+      }
+      std::vector<float> left;
+      std::vector<float> right;
+      std::string irError;
+      if (!prepareReverbIr(wav, left, right, irError)) {
+        error = "invalid reverb impulse: " + block.assetPath.string() + ": " + irError;
+        return false;
+      }
+      if (!engine.addIrReverb(block.id, std::move(left), std::move(right),
+                              static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
+      const auto& params = block.params;
+      engine.setIrReverbParameter(block.id, "mix", reverbParam(params, "mix", 0.35f));
+      engine.setIrReverbParameter(block.id, "levelDb", reverbParam(params, "levelDb", 0.0f));
+      engine.setIrReverbParameter(block.id, "preDelayMs", reverbParam(params, "preDelayMs", 0.0f));
+      engine.setIrReverbParameter(block.id, "lowCutHz", reverbParam(params, "lowCutHz", 20.0f));
+      engine.setIrReverbParameter(block.id, "highCutHz", reverbParam(params, "highCutHz", 20000.0f));
+      stereoEstablished = true;
+      engine.setBlockEnabled(block.id, block.enabled);
+      continue;
+    }
+    if (block.type == "stereo") {
+      if (!engine.addStereoWidener(block.id, static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
+      const auto& params = block.params;
+      engine.setStereoWidenerParameter(block.id, "width", reverbParam(params, "width", 1.0f));
+      engine.setStereoWidenerParameter(block.id, "delayMs", reverbParam(params, "delayMs", 0.0f));
+      engine.setStereoWidenerParameter(block.id, "bassMonoHz", reverbParam(params, "bassMonoHz", 0.0f));
+      engine.setStereoWidenerParameter(block.id, "levelDb", reverbParam(params, "levelDb", 0.0f));
+      stereoEstablished = true;
+      engine.setBlockEnabled(block.id, block.enabled);
+      continue;
+    }
     if (block.type == "mod" || block.type == "delay" || block.type == "reverb") {
       if (!engine.addDaisyFx(block.id, block.type, block.params, static_cast<float>(options.sampleRate), error)) {
         return false;
@@ -608,6 +736,11 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
               block.id, block.params, static_cast<float>(options.sampleRate), error)) {
           return false;
         }
+      } else if (mode == "transient_shaper") {
+        if (!engine.addTransientShaper(
+              block.id, block.params, static_cast<float>(options.sampleRate), error)) {
+          return false;
+        }
       } else {
         error = "unsupported dynamics mode: " + block.id;
         return false;
@@ -617,6 +750,14 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
     }
     if (block.type == "eq") {
       if (!engine.addParametricEq(block.id, block.params, static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
+      engine.setBlockEnabled(block.id, block.enabled);
+      continue;
+    }
+    if (block.type == "distortion") {
+      if (!engine.addDistortion(block.id, block.params,
+                                static_cast<float>(options.sampleRate), error)) {
         return false;
       }
       engine.setBlockEnabled(block.id, block.enabled);

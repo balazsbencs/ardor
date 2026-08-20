@@ -207,6 +207,20 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
           }
         }
       }
+      if (actions_.updateBlockParameter && state.paramTarget == UiParamTarget::Block) {
+        if (const auto* selected = selectedUiBlock(state)) {
+          const auto& block = *selected;
+          const auto mode = block.params.value("mode", std::string{});
+          const bool coveredAbove = block.type == "mod" || block.type == "delay"
+            || block.type == "reverb" || block.type == "wah" || block.type == "cab"
+            || (block.type == "dynamics" && (mode == "compressor" || mode == "noise_gate"));
+          if (!coveredAbove && block.params.contains(control.key)
+              && block.params[control.key].is_number()) {
+            liveUpdateSucceeded = actions_.updateBlockParameter(
+              block.id, control.key, block.params[control.key].get<float>());
+          }
+        }
+      }
       if (state.paramTarget == UiParamTarget::Block) {
         if (const auto* selected = selectedUiBlock(state)) {
           const auto& block = *selected;

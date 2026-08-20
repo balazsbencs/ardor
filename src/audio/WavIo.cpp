@@ -79,6 +79,42 @@ float magnitudeResponsePeak(const std::vector<float>& ir)
 
 } // namespace
 
+InterleavedWav readInterleavedWav(const std::filesystem::path& path)
+{
+  ma_decoder_config cfg = ma_decoder_config_init(ma_format_f32, 0, 0);
+  ma_decoder decoder;
+  if (ma_decoder_init_file(path.string().c_str(), &cfg, &decoder) != MA_SUCCESS) {
+    throw std::runtime_error("failed to open wav: " + path.string());
+  }
+
+  InterleavedWav wav;
+  ma_format format{};
+  ma_uint32 channels = 0;
+  ma_uint32 sampleRate = 0;
+  if (ma_decoder_get_data_format(&decoder, &format, &channels, &sampleRate, nullptr, 0) != MA_SUCCESS) {
+    ma_decoder_uninit(&decoder);
+    throw std::runtime_error("failed to inspect wav: " + path.string());
+  }
+  if (channels < 1 || channels > 2) {
+    ma_decoder_uninit(&decoder);
+    throw std::runtime_error("impulse must be mono or stereo: " + path.string());
+  }
+  wav.sampleRate = sampleRate;
+  wav.channels = channels;
+
+  float chunk[4096];
+  const ma_uint64 framesPerChunk = sizeof(chunk) / sizeof(float) / channels;
+  for (;;) {
+    ma_uint64 read = 0;
+    if (ma_decoder_read_pcm_frames(&decoder, chunk, framesPerChunk, &read) != MA_SUCCESS || read == 0) {
+      break;
+    }
+    wav.samples.insert(wav.samples.end(), chunk, chunk + read * channels);
+  }
+  ma_decoder_uninit(&decoder);
+  return wav;
+}
+
 MonoWav readMonoWav(const std::filesystem::path& path)
 {
   // Leave the output channel count native while opening the file. Asking

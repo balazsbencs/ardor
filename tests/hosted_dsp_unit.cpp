@@ -813,6 +813,120 @@ void verifyOutputMixSmoothing()
           "mix automation must ramp rather than step to the wet signal");
 }
 
+// Turning up a flanger's regen must not spend the chain's headroom. A comb
+// resonance sitting on a sustained tone used to add 9.4 dB here, which clipped
+// whatever came next. This holds the block to a bounded peak gain across the
+// whole control, measured where the resonance actually lands.
+void verifyFlangerRegenDoesNotAddHeadroom()
+{
+  const auto* descriptor = ardor::findDaisyFxDescriptor("mod", "flanger");
+  require(descriptor != nullptr, "flanger descriptor exists");
+
+  const auto peakGainDb = [&descriptor](float regen) {
+    double worst = -99.0;
+    // No sweep, so the delay sits still and a tone can settle on the resonance.
+    for (float frequency = 40.0f; frequency < 2000.0f; frequency *= 1.15f) {
+      auto params = ardor::defaultDaisyFxParams(*descriptor);
+      params["mix"] = 1.0f;
+      params["level"] = 0.5f;
+      params["p1"] = regen;
+      params["p2"] = 0.0f;
+      params["speed"] = 0.0f;
+      params["depth"] = 0.0f;
+      params["tone"] = 0.5f;
+
+      ardor::DaisyFxProcessor processor;
+      std::string error;
+      require(processor.configure("mod", params, 48000.0f, error), error);
+
+      constexpr float kAmplitude = 0.3f;
+      double peak = 0.0;
+      for (int n = 0; n < 40000; ++n) {
+        const float x = kAmplitude * std::sin(6.283185f * frequency * n / 48000.0f);
+        const auto y = processor.process({x, x});
+        if (n > 30000) peak = std::max(peak, static_cast<double>(std::fabs(y.left)));
+      }
+      worst = std::max(worst, 20.0 * std::log10(peak / kAmplitude));
+    }
+    return worst;
+  };
+
+  for (const float regen : {0.0f, 0.5f, 0.92f, 1.0f}) {
+    const double gain = peakGainDb(regen);
+    require(gain < 4.0,
+            "regen must not add more than a few dB of peak gain; at " + std::to_string(regen)
+              + " it added " + std::to_string(gain) + " dB");
+  }
+  // And it must still be a flanger: the resonance is the effect, so taking all
+  // of it out would be as wrong as leaving it in.
+  require(peakGainDb(0.92f) > 1.5,
+          "the resonance must survive the compensation");
+}
+
+// A waveshaper run per sample folds what it makes back across Nyquist. The
+// shared soft clip has sixteen callers and almost all of them leave their input
+// near unity, where it aliases at -70 dBc and none of this matters. The bucket
+// brigade's Grit control multiplies by up to eight, which is far enough past
+// the knee to matter, so that one caller takes the anti-aliased form. Measured
+// through the mode itself rather than on the curve: the plain shaper reached
+// -32.8 dBc at full Grit and this holds it well below that.
+void verifyBucketBrigadeGritDoesNotAlias()
+{
+  const auto* descriptor = ardor::findDaisyFxDescriptor("delay", "dbucket");
+  require(descriptor != nullptr, "dbucket descriptor exists");
+
+  constexpr double kRate = 48000.0;
+  constexpr double kTwoPi = 6.283185307179586;
+  constexpr double kTone = 5000.0;
+
+  auto params = ardor::defaultDaisyFxParams(*descriptor);
+  params["mix"] = 1.0f;
+  params["level"] = 0.5f;
+  params["grit"] = 1.0f;
+  params["repeats"] = 0.6f;
+
+  ardor::DaisyFxProcessor processor;
+  std::string error;
+  require(processor.configure("delay", params, 48000.0f, error), error);
+
+  const int frames = static_cast<int>(kRate);
+  for (int n = 0; n < frames; ++n) {
+    const float x = 0.5f * static_cast<float>(std::sin(kTwoPi * kTone * n / kRate));
+    (void)processor.process({x, x});
+  }
+  std::vector<double> captured(static_cast<std::size_t>(frames));
+  for (int n = 0; n < frames; ++n) {
+    const float x = 0.5f * static_cast<float>(std::sin(kTwoPi * kTone * (frames + n) / kRate));
+    captured[static_cast<std::size_t>(n)] = processor.process({x, x}).left;
+  }
+
+  const auto bin = [&captured, kRate, kTwoPi](double frequency) {
+    double real = 0.0;
+    double imaginary = 0.0;
+    for (std::size_t n = 0; n < captured.size(); ++n) {
+      const double phase = kTwoPi * frequency * static_cast<double>(n) / kRate;
+      real += captured[n] * std::cos(phase);
+      imaginary += captured[n] * std::sin(phase);
+    }
+    return 2.0 * std::hypot(real, imaginary) / static_cast<double>(captured.size());
+  };
+
+  const double fundamental = bin(kTone);
+  require(fundamental > 0.01, "the tone must survive the delay");
+
+  // Only where an ear reaches. Above that the folds are of harmonics sitting
+  // just past Nyquist, which no shaper choice can help with.
+  double worst = -200.0;
+  for (double frequency = 100.0; frequency < 16000.0; frequency += 100.0) {
+    const double offGrid = std::fmod(frequency, kTone);
+    if (offGrid < 1.0 || offGrid > kTone - 1.0) continue;
+    worst = std::max(worst, 20.0 * std::log10(bin(frequency) / fundamental));
+  }
+  require(worst < -40.0,
+          "full Grit must not fold audibly; worst non-harmonic bin was "
+            + std::to_string(worst) + " dBc");
+}
+
 } // namespace
 
 int main()
@@ -839,4 +953,6 @@ int main()
   verifyReverbReset();
   verifyReverbLatency();
   verifyOutputMixSmoothing();
+  verifyFlangerRegenDoesNotAddHeadroom();
+  verifyBucketBrigadeGritDoesNotAlias();
 }

@@ -413,6 +413,19 @@ int main()
               == ardor::ChainBlockStatus::Unsupported,
             "unknown wah modes should remain unsupported");
 
+    // The widener has no asset of any kind. Holding it to the asset rule that
+    // the model and cabinet blocks follow kept it out of every chain.
+    ardor::Preset widenerPlanPreset;
+    widenerPlanPreset.name = "Widener";
+    widenerPlanPreset.blocks.push_back({"stereo-1", "stereo", true, "",
+                                        {{"width", 1.0f}}, {}});
+    const auto widenerPlan = ardor::buildChainPlan(widenerPlanPreset, dataRoot);
+    require(widenerPlan.blocks.size() == 1
+              && widenerPlan.blocks[0].status == ardor::ChainBlockStatus::Ready,
+            "the stereo widener should plan as runnable without an asset");
+    require(widenerPlan.runnableBlockCount == 1,
+            "the stereo widener should count towards the runnable blocks");
+
     ardor::Preset chainPreset;
     chainPreset.global.inputGainDb = -6.0f;
     chainPreset.global.outputGainDb = -3.0f;

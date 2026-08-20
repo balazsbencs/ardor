@@ -197,6 +197,11 @@ pedal::ModModeId modMode(std::string_view mode)
   if (mode == "filter") return pedal::ModModeId::FilterFx;
   if (mode == "formant") return pedal::ModModeId::FormantFx;
   if (mode == "quadrature") return pedal::ModModeId::Quadrature;
+  if (mode == "whammy") return pedal::ModModeId::Whammy;
+  if (mode == "harmonizer") return pedal::ModModeId::Harmonizer;
+  // A mode missing from this list silently borrows Destroyer's parameter
+  // ranges, which is how the Whammy ended up mapping Speed against a 1-48x
+  // decimation range. Add new modes here as well as to the factory.
   return pedal::ModModeId::Destroyer;
 }
 
@@ -247,6 +252,19 @@ float mappedReverb(float normalized, std::string_view mode, pedal::reverb_fx::Pa
 
 // Whammy selector, matching kPresets in whammy_mode.cpp: ten Whammy modes then
 // nine Harmony modes.
+constexpr std::array<std::string_view, 10> kHarmonyIntervals{
+    "Oct down", "6th down", "5th down", "4th down", "3rd down",
+    "3rd up", "4th up", "5th up", "6th up", "Oct up",
+};
+
+constexpr std::array<std::string_view, 12> kHarmonyKeys{
+    "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
+};
+
+constexpr std::array<std::string_view, 5> kHarmonyScales{
+    "Major", "Minor", "Dorian", "Mixolydian", "Harmonic minor",
+};
+
 constexpr std::array<std::string_view, 19> kWhammyPresets{
     "2 Oct up", "1 Oct up", "5th up", "4th up", "2nd dn",
     "4th dn", "5th dn", "1 Oct dn", "2 Oct dn", "Dive bomb",
@@ -263,7 +281,7 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "pattern_trem") return number(physical * 60.0f, 0, " BPM");
     if (mode == "auto_swell") return milliseconds(physical * 1000.0f);
     if (mode == "destroyer") return number(physical, physical < 10.0f ? 1 : 0, "x");
-    if (mode == "poly_octave") return percent((physical - 0.05f) / 9.95f);
+    if (mode == "poly_octave" || mode == "harmonizer") return percent((physical - 0.05f) / 9.95f);
     // Whammy Speed is a glide time: the pedal follows over ~50 ms at the
     // slow end and ~1 ms at the fast end.
     if (mode == "whammy") return milliseconds(1.0f / (0.02f + normalized * 0.95f));
@@ -274,6 +292,7 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "auto_swell") return number(20.0f * std::log10(1.0f + normalized), 1, " dB");
     if (mode == "quadrature") return std::string{"+/-"} + frequency(normalized * 80.0f);
     if (mode == "whammy") return percent(normalized);
+    if (mode == "harmonizer") return choice(normalized, kHarmonyScales);
     return percent(normalized);
   }
   if (key == "mix") return percent(normalized);
@@ -294,6 +313,7 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "pattern_trem") return "Pattern " + std::to_string(std::min(16, static_cast<int>(normalized * 16.0f) + 1));
     if (mode == "auto_swell") return milliseconds(50.0f + normalized * 1950.0f);
     if (mode == "rotary") return number(1.0f + normalized * normalized * 0.6f, 1, "x");
+    if (mode == "harmonizer") return choice(normalized, kHarmonyIntervals);
     if (mode == "whammy") {
       if (normalized <= 0.001f) return "Heel";
       if (normalized >= 0.999f) return "Toe";
@@ -312,6 +332,7 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "formant") return choice(normalized, std::array<std::string_view, 7>{"Ah", "Oh", "Oo", "Ee", "Ay", "Ah-Oh", "Oo-Oh"});
     if (mode == "quadrature") return choice(normalized, std::array<std::string_view, 4>{"AM", "Warble", "Shift +", "Shift -"});
     if (mode == "whammy") return choice(normalized, kWhammyPresets);
+    if (mode == "harmonizer") return choice(normalized, kHarmonyKeys);
     if (mode == "auto_swell") return percent(normalized * 0.30f);
     return percent(normalized);
   }
@@ -440,6 +461,7 @@ const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
     mod("quadrature", "Quadrature", "Blend / Spread", "Mode", 1.0f, "Frequency", "FM Depth"),
     mod("destroyer", "Destroyer", "Filter Resonance", "Noise", 1.0f, "Decimation", "Bits"),
     mod("whammy", "Whammy", "Pedal", "Preset", 1.0f, "Glide", "Harmony Level"),
+    mod("harmonizer", "Harmonizer", "Interval", "Key", 0.5f, "Tracking", "Scale"),
     delay("digital", "Digital Delay", "Saturation", "Mod Rate", "Mod Depth"),
     delay("tape", "Tape Delay", "Saturation", "Flutter Rate", "Flutter"),
     delay("dual", "Dual Delay", "Ping-Pong"),
@@ -510,6 +532,8 @@ DaisyFxParamControlSpec daisyFxParamControlSpec(const DaisyFxDescriptor& effect,
 
   if (effect.kind == DaisyFxKind::Mod) {
     if (mode == "destroyer" && key == "depth") choiceCount = 16;
+    if (mode == "harmonizer" && key == "depth") choiceCount = 5;
+    if (mode == "harmonizer" && key == "p1") choiceCount = 10;
     if (mode == "pattern_trem" && key == "p1") choiceCount = 16;
     if (key == "p2") {
       if (mode == "chorus") choiceCount = 5;
@@ -520,6 +544,7 @@ DaisyFxParamControlSpec daisyFxParamControlSpec(const DaisyFxDescriptor& effect,
       else if (mode == "filter") choiceCount = 8;
       else if (mode == "quadrature") choiceCount = 4;
       else if (mode == "whammy") choiceCount = 19;
+      else if (mode == "harmonizer") choiceCount = 12;
     }
   } else if (effect.kind == DaisyFxKind::Delay) {
     if (key == "grit" && (mode == "filter" || mode == "pattern")) choiceCount = 3;

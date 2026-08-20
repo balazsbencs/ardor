@@ -83,10 +83,12 @@ add_library(ardor_daisyfx_runtime
   ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/fdn.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/envelope_follower.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/pitch_shifter.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/dsp/pitch_tracker.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/auto_swell_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/chorus_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/destroyer_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/whammy_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/harmonizer_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/filter_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/flanger_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/formant_mode.cpp
@@ -140,6 +142,7 @@ target_link_libraries(ardor_daisyfx PUBLIC ardor_daisyfx_runtime)
 add_library(ardor_dynamics
   src/dynamics/CompressorProcessor.cpp
   src/dynamics/NoiseGateProcessor.cpp
+  src/dynamics/TransientShaperProcessor.cpp
 )
 target_include_directories(ardor_dynamics PUBLIC
   src
@@ -161,6 +164,12 @@ target_sources(ardor_equalizer PRIVATE
   src/equalizer/ParametricEqProcessor.cpp
 )
 
+add_library(ardor_circuit
+  src/circuit/MnaMatrix.cpp
+)
+target_include_directories(ardor_circuit PUBLIC src)
+target_compile_features(ardor_circuit PUBLIC cxx_std_20)
+
 add_library(ardor_wah
   src/wah/WahNetlist.cpp
   src/wah/WahDk.cpp
@@ -173,11 +182,40 @@ target_include_directories(ardor_wah PUBLIC
   ${neuralampmodelercore_SOURCE_DIR}/Dependencies
 )
 target_compile_features(ardor_wah PUBLIC cxx_std_20)
+target_link_libraries(ardor_wah PUBLIC ardor_circuit)
+
+add_library(ardor_cheese
+  src/cheese/CheeseNetlist.cpp
+  src/cheese/CheeseDk.cpp
+  src/cheese/CheeseCircuit.cpp
+  src/cheese/CheeseProcessor.cpp
+)
+target_include_directories(ardor_cheese PUBLIC
+  src
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies
+)
+target_compile_features(ardor_cheese PUBLIC cxx_std_20)
+target_link_libraries(ardor_cheese PUBLIC ardor_circuit)
+
+add_library(ardor_rat
+  src/rat/RatNetlist.cpp
+  src/rat/RatCircuit.cpp
+  src/rat/RatProcessor.cpp
+)
+target_include_directories(ardor_rat PUBLIC
+  src
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies
+)
+target_compile_features(ardor_rat PUBLIC cxx_std_20)
 
 add_library(ardor_dsp OBJECT
   src/dsp/DualAmpProcessor.cpp
   src/dsp/DualRigProcessor.cpp
+  src/dsp/RealtimeFft.cpp
+  src/dsp/StereoWidenerProcessor.cpp
+  src/dsp/ScheduledConvolver.cpp
   src/dsp/IrConvolver.cpp
+  src/dsp/IrReverbProcessor.cpp
   src/dsp/NamProcessor.cpp
   src/dsp/PedalEngine.cpp
   src/dsp/RuntimeChain.cpp
@@ -192,7 +230,7 @@ target_include_directories(ardor_dsp PUBLIC
 )
 target_compile_features(ardor_dsp PUBLIC cxx_std_20)
 target_compile_definitions(ardor_dsp PRIVATE NAM_ENABLE_A2_FAST NAM_SAMPLE_FLOAT)
-target_link_libraries(ardor_dsp PUBLIC ardor_daisyfx ardor_dynamics ardor_equalizer ardor_wah)
+target_link_libraries(ardor_dsp PUBLIC ardor_cheese ardor_daisyfx ardor_dynamics ardor_equalizer ardor_rat ardor_wah)
 if(UNIX AND NOT APPLE)
   target_link_libraries(ardor_dsp PUBLIC stdc++fs)
 endif()
@@ -311,6 +349,11 @@ endif()
 add_executable(wah-table-gen apps/wah-table-gen/main.cpp)
 target_link_libraries(wah-table-gen PRIVATE ardor_wah)
 
+# Writes the device's own parameter rendering out as a fixture, so the manager's
+# TypeScript mirror of it can be tested for parity instead of drifting.
+add_executable(daisy-values-dump apps/daisy-values-dump/main.cpp)
+target_link_libraries(daisy-values-dump PRIVATE ardor_daisyfx)
+
 add_executable(audio-probe apps/audio-probe/main.c)
 target_include_directories(audio-probe PRIVATE ${miniaudio_SOURCE_DIR})
 
@@ -399,6 +442,34 @@ target_link_libraries(pedal-engine-contract-smoke PRIVATE ardor_dsp)
 
 add_executable(pedal-tuner-smoke tests/tuner_smoke.cpp)
 target_link_libraries(pedal-tuner-smoke PRIVATE ardor_dsp)
+
+add_executable(pedal-stereo-widener-smoke tests/stereo_widener_smoke.cpp)
+target_link_libraries(pedal-stereo-widener-smoke PRIVATE ardor_dsp)
+add_test(NAME pedal-stereo-widener-smoke COMMAND pedal-stereo-widener-smoke)
+
+add_executable(pedal-transient-shaper-smoke tests/transient_shaper_smoke.cpp)
+target_link_libraries(pedal-transient-shaper-smoke PRIVATE ardor_dsp)
+add_test(NAME pedal-transient-shaper-smoke COMMAND pedal-transient-shaper-smoke)
+
+add_executable(pedal-rat-smoke tests/rat_smoke.cpp)
+target_link_libraries(pedal-rat-smoke PRIVATE ardor_rat)
+add_test(NAME pedal-rat-smoke COMMAND pedal-rat-smoke)
+
+add_executable(pedal-cheese-smoke tests/cheese_smoke.cpp)
+target_link_libraries(pedal-cheese-smoke PRIVATE ardor_cheese ardor_daisyfx)
+add_test(NAME pedal-cheese-smoke COMMAND pedal-cheese-smoke)
+
+add_executable(pedal-harmonizer-smoke tests/harmonizer_smoke.cpp)
+target_link_libraries(pedal-harmonizer-smoke PRIVATE ardor_daisyfx)
+add_test(NAME pedal-harmonizer-smoke COMMAND pedal-harmonizer-smoke)
+
+add_executable(pedal-scheduled-convolver-smoke tests/scheduled_convolver_smoke.cpp)
+target_link_libraries(pedal-scheduled-convolver-smoke PRIVATE ardor_dsp)
+add_test(NAME pedal-scheduled-convolver-smoke COMMAND pedal-scheduled-convolver-smoke)
+
+add_executable(pedal-ir-reverb-smoke tests/ir_reverb_smoke.cpp)
+target_link_libraries(pedal-ir-reverb-smoke PRIVATE ardor_dsp)
+add_test(NAME pedal-ir-reverb-smoke COMMAND pedal-ir-reverb-smoke)
 
 add_executable(pedal-nam-processor-smoke tests/nam_processor_smoke.cpp)
 target_link_libraries(pedal-nam-processor-smoke PRIVATE ardor_dsp)
@@ -494,4 +565,11 @@ elseif(UNIX)
   target_link_libraries(pedal-poc PRIVATE pthread m dl)
   target_link_libraries(ardor_audio PRIVATE pthread m dl)
   target_link_libraries(audio-probe PRIVATE pthread m dl)
+endif()
+
+# Optional: VST3/CLAP wrapper around the Whammy mode for DAW testing.
+# Not part of the pedal image; pulls DPF only when explicitly enabled.
+option(ARDOR_BUILD_WHAMMY_PLUGIN "Build the Whammy VST3/CLAP plugin" OFF)
+if(ARDOR_BUILD_WHAMMY_PLUGIN)
+  add_subdirectory(plugins/whammy-vst)
 endif()

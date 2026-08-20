@@ -41,9 +41,10 @@ constexpr int kDrawerAssetButtonHeight = 72;
 // Family tick (13 left inset + 26 wide) then a 14 px gutter to the text column.
 constexpr int kDrawerItemTextX = 53;
 constexpr int kDrawerGripBarWidth = 16;
-constexpr std::array<std::pair<const char*, const char*>, 7> kDrawerFilters = {{
-  {"All", "all"}, {"Amps", "amps"}, {"Cabs", "cabs"}, {"Utility", "utility"},
-  {"Mod", "modulation"}, {"Delays", "delay"}, {"Reverbs", "reverb"},
+constexpr std::array<std::pair<const char*, const char*>, 8> kDrawerFilters = {{
+  {"All", "all"}, {"Amps", "amps"}, {"Cabs", "cabs"}, {"Drive", "drive"},
+  {"Utility", "utility"}, {"Mod", "modulation"}, {"Delays", "delay"},
+  {"Reverbs", "reverb"},
 }};
 
 std::size_t visibleAssetCount(const UiState& state)
@@ -207,6 +208,9 @@ std::string assetDragText(const UiAsset& asset)
   }
   if (asset.type == "cabs") {
     return "Cab\n" + asset.name;
+  }
+  if (asset.blockType == "irreverb") {
+    return "Reverb\n" + asset.name;
   }
   return asset.name;
 }
@@ -438,6 +442,10 @@ void LvglUi::syncDrawerAssets(UiState& state)
 
 void LvglUi::syncDrawerView(UiState& state)
 {
+  // The button array is sized in the header and the labels live here, so the
+  // two have to be kept in step. They are indexed against each other below.
+  static_assert(kDrawerFilters.size() == kDrawerCategoryCount,
+                "kDrawerCategoryCount must match the filter table");
   for (std::size_t i = 0; i < drawerCategoryButtons_.size(); ++i) {
     lv_obj_t* category = drawerCategoryButtons_[i];
     if (!category) continue;

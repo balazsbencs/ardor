@@ -237,6 +237,13 @@ bool DualRigProcessor::compressorGainReductionDb(const std::string& id, float& o
     || (right_.chain && right_.chain->compressorGainReductionDb(id, outDb));
 }
 
+bool DualRigProcessor::setTransientShaperParameter(
+  const std::string& id, const std::string& key, float value)
+{
+  return (left_.chain && left_.chain->setTransientShaperParameter(id, key, value))
+    || (right_.chain && right_.chain->setTransientShaperParameter(id, key, value));
+}
+
 bool DualRigProcessor::setNoiseGateParameter(
   const std::string& id, const std::string& key, float value)
 {
@@ -249,6 +256,13 @@ bool DualRigProcessor::setWahParameter(
 {
   return (left_.chain && left_.chain->setWahParameter(id, key, value))
     || (right_.chain && right_.chain->setWahParameter(id, key, value));
+}
+
+bool DualRigProcessor::setDistortionParameter(
+  const std::string& id, const std::string& key, float value)
+{
+  return (left_.chain && left_.chain->setDistortionParameter(id, key, value))
+    || (right_.chain && right_.chain->setDistortionParameter(id, key, value));
 }
 
 bool DualRigProcessor::setParametricEqBand(

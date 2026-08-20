@@ -50,6 +50,9 @@ struct UiActions {
   std::function<bool(const std::string&, const std::string&, float)> updateCompressorParameter;
   std::function<bool(const std::string&, const std::string&, float)> updateNoiseGateParameter;
   std::function<bool(const std::string&, const std::string&, float)> updateWahParameter;
+  // Every block family above has its own callback. This one covers the rest, so
+  // a new block only has to be taught to the host dispatcher and not to the UI.
+  std::function<bool(const std::string&, const std::string&, float)> updateBlockParameter;
   std::function<void(float, float)> updateGlobalGains;
   std::function<void(float, float)> updateCabParameters;
   std::function<void(int)> changeBank;
@@ -310,7 +313,8 @@ private:
   std::vector<int32_t> chainInsertionXs_;
   std::optional<std::size_t> renderedRigIndex_;
   std::array<std::vector<int32_t>, 2> laneInsertionXs_;
-  static constexpr std::size_t kDrawerCategoryCount = 7;
+  // Must match kDrawerFilters in LvglUiDrawer.cpp, which asserts it.
+  static constexpr std::size_t kDrawerCategoryCount = 8;
   std::array<lv_obj_t*, kDrawerCategoryCount> drawerCategoryButtons_{};
   std::vector<lv_obj_t*> drawerAssetButtons_;
   std::vector<UiEventContext*> drawerAssetContexts_;

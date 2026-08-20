@@ -152,9 +152,33 @@ StereoFrame FlangerMode::Process(StereoFrame input, const ParamSet& params) {
     flanger_line_l_.Write(input.left + fb_l);
     flanger_line_r_.Write(input.right + fb_r);
 
-    // 7. DC block the modulated taps
-    float wet_l = dc_l_.Process(wet_l_tap);
-    float wet_r = dc_r_.Process(wet_r_tap);
+    // 7. DC block the modulated taps, then take some of the resonance's gain
+    //    back out.
+    //
+    // A feedback comb is loud at its resonance. A sustained tone sitting on one
+    // measured +9.4 dB through this block at the regen the shipped presets use,
+    // and +9.9 dB at the top of the control, which is enough to push whatever
+    // follows into clipping. Turning up a flanger's regen should not spend the
+    // chain's headroom; on a real pedal you would pull the level knob back, but
+    // in a fixed chain the block has to behave.
+    //
+    // The constant is fitted to the measured curve, not derived. The textbook
+    // peak gain of a comb, 1/(1 - regen), reaches +18 dB here — far more than
+    // the circuit actually does, because the low pass in the feedback path and
+    // the saturation there both hold it down.
+    //
+    // It deliberately does not flatten the peak. A single gain cannot fix both
+    // ends of this: the resonance is narrow band, so taking all of it out costs
+    // broadband level, and the flanger would get quieter as regen went up,
+    // which is the wrong way round. Measured across the control, the value
+    // below leaves the worst-case peak at +3.1 dB instead of +9.4 and costs
+    // 4.7 dB of average level at the top. Flattening the peak completely would
+    // have cost 7.8 dB.
+    static constexpr float kRegenMakeup = 1.2f;
+    const float resonance_makeup = 1.0f / (1.0f + kRegenMakeup * regen);
+
+    float wet_l = dc_l_.Process(wet_l_tap) * resonance_makeup;
+    float wet_r = dc_r_.Process(wet_r_tap) * resonance_makeup;
 
     // 8. If Through-Zero Flanger, compensate for external engine dry mix
     if (sub >= 4) {

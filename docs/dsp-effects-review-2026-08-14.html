@@ -1,0 +1,1385 @@
+<meta charset="utf-8">
+<title>Ardor DSP Effects Review — Modulation, Delay, Reverb</title>
+<style>
+  :root {
+    --bg: #fbfaf8; --fg: #1a1a1a; --muted: #5f5f5f; --rule: #e0ddd7;
+    --card: #ffffff; --code-bg: #f2f0ec; --accent: #7a4b1e;
+    --p0: #a32020; --p1: #a86a10; --p2: #4a6b8a; --ok: #2f6b45;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16151a; --fg: #e6e4df; --muted: #a09d97; --rule: #2f2d35;
+      --card: #1d1c22; --code-bg: #24232a; --accent: #d9a06a;
+      --p0: #f07070; --p1: #e0a94a; --p2: #7fa8cc; --ok: #6bbf8e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16151a; --fg: #e6e4df; --muted: #a09d97; --rule: #2f2d35;
+    --card: #1d1c22; --code-bg: #24232a; --accent: #d9a06a;
+    --p0: #f07070; --p1: #e0a94a; --p2: #7fa8cc; --ok: #6bbf8e;
+  }
+  :root[data-theme="light"] {
+    --bg: #fbfaf8; --fg: #1a1a1a; --muted: #5f5f5f; --rule: #e0ddd7;
+    --card: #ffffff; --code-bg: #f2f0ec; --accent: #7a4b1e;
+    --p0: #a32020; --p1: #a86a10; --p2: #4a6b8a; --ok: #2f6b45;
+  }
+
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 16px/1.65 ui-serif, Georgia, "Times New Roman", serif;
+    margin: 0; padding: 0;
+  }
+  .wrap { max-width: 62rem; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
+  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 .4rem; letter-spacing: -.01em; }
+  h2 {
+    font-size: 1.35rem; margin: 3.2rem 0 .9rem; padding-bottom: .35rem;
+    border-bottom: 2px solid var(--rule); letter-spacing: -.01em;
+  }
+  h3 { font-size: 1.05rem; margin: 2rem 0 .5rem; }
+  p, li { max-width: 58rem; }
+  .sub { color: var(--muted); font-size: .95rem; margin: 0 0 2rem; }
+  .meta { font-size: .9rem; color: var(--muted); }
+
+  code, pre, .mono {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: .86em;
+  }
+  code { background: var(--code-bg); padding: .1em .35em; border-radius: 3px; }
+  pre { background: var(--code-bg); padding: .9rem 1rem; border-radius: 6px; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+
+  .scroll { overflow-x: auto; margin: 1rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: .45rem .7rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-weight: 600; white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, Menlo, monospace; }
+  tbody tr:hover { background: var(--code-bg); }
+
+  .finding {
+    background: var(--card); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 1rem 1.2rem; margin: 1.2rem 0;
+  }
+  .finding h3 { margin-top: 0; }
+  .tag {
+    display: inline-block; font: 600 .7rem/1 ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: .06em; text-transform: uppercase;
+    padding: .3em .55em; border-radius: 3px; vertical-align: .15em; margin-right: .5rem;
+  }
+  .tag.p0 { background: var(--p0); color: #fff; }
+  .tag.p1 { background: var(--p1); color: #fff; }
+  .tag.p2 { background: var(--p2); color: #fff; }
+  .where { color: var(--muted); font-size: .85rem; margin: -.2rem 0 .7rem; }
+  .fix { border-top: 1px dashed var(--rule); margin-top: .9rem; padding-top: .7rem; }
+  .fix strong { color: var(--accent); }
+  .cost {
+    display: inline-block; font: 600 .75rem/1 ui-sans-serif, system-ui, sans-serif;
+    padding: .35em .6em; border-radius: 3px; background: var(--code-bg); color: var(--muted);
+  }
+  ul { padding-left: 1.3rem; }
+  li { margin: .3rem 0; }
+  .note { color: var(--muted); font-size: .9rem; font-style: italic; }
+  hr { border: none; border-top: 1px solid var(--rule); margin: 3rem 0; }
+</style>
+
+<div class="wrap">
+
+<h1>Ardor DSP Effects Review</h1>
+<p class="sub">
+  Modulation, delay and reverb blocks &mdash; hosted <code>daisyfx</code> engine.<br>
+  Date: 2026-08-14 &middot; Target: Raspberry Pi 4 Model B (Cortex-A72, 1.5 GHz) &middot;
+  Scope: 29 effect modes plus the shared DSP primitives they use.<br>
+  Constraint applied: every recommendation must fit alongside a full-tier NAM model and a 4096-tap cabinet IR at 32 frames.<br>
+  <strong>Status: all 32 findings implemented, 31/31 tests passing.</strong> See the implementation status section below.
+</p>
+
+<h2>Summary</h2>
+
+<p>
+The delay bank is in good shape. The 2026-08-13 delay review was acted on: <code>DelayLineSdram</code>
+gained a 16-tap, 256-phase band-limited interpolator (<code>ReadAtHighQuality</code>), and every delay mode
+now selects between an integer tap for static delays and the band-limited tap for moving delays.
+</p>
+
+<p>
+That fix never reached the other two families. The reverb tanks and every modulation mode still read
+moving taps with linear or cubic interpolation. In a feedback structure this loss compounds on every
+pass, and it is the single largest quality limiter in the project. The measured numbers are in
+finding P0-1.
+</p>
+
+<p>
+Beyond that, three structural items hold the effects below studio standard: one hardcoded allpass
+delay table shared by every reverb and both channels, a broken crossover in Rotary, and a total
+absence of oversampling around the saturation stages.
+</p>
+
+<p>
+CPU is not the obstacle. The measured reverb cost is 2.9&ndash;4.0 % of the callback budget and the
+delays are under 3.5 %. The highest-value fix in this document (P0-1) is <em>cheaper</em> than the code
+it replaces.
+</p>
+
+<div class="scroll">
+<table>
+  <thead>
+    <tr><th>Priority</th><th>Count</th><th>Meaning</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><span class="tag p0">P0</span></td><td class="num">4</td><td>Audibly wrong or measurably broken. Fix before any tuning work.</td></tr>
+    <tr><td><span class="tag p1">P1</span></td><td class="num">11</td><td>Sets the current quality ceiling. This is the studio-quality gap.</td></tr>
+    <tr><td><span class="tag p2">P2</span></td><td class="num">17</td><td>Cost, consistency and polish. Cheap to fix, individually small.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Method</h2>
+
+<p>
+Every mode file and every shared primitive was read in full. Two claims that drive the top findings
+were verified numerically rather than asserted: the frequency response of each interpolation kernel at
+its worst-case fractional offset, and the summed response of the Rotary crossover. Those results appear
+inline below. All other findings are read from the source and are labelled with the file and line.
+</p>
+
+<p class="note">
+CPU figures marked <em>measured</em> come from <code>benchmark-results/</code> (2026-08-13, Pi 4, performance
+governor, isolated runs). Figures marked <em>estimated</em> are instruction counts scaled to 1.5 GHz and
+should be confirmed on the device before you commit to them.
+</p>
+
+<hr>
+
+<h2>P0 &mdash; Fix first</h2>
+
+<div class="finding p0">
+<h3><span class="tag p0">P0-1</span>The reverb FDN reads modulated taps with linear interpolation</h3>
+<p class="where"><code>src/daisyfx/hosted/dsp/fdn.cpp:159</code> &mdash; affects Room, Hall, Cloud, Shimmer, Bloom, Chorale, Nonlinear and Swell (8 of 12 reverbs)</p>
+
+<p>
+<code>Fdn::readModulatedDelays()</code> calls <code>lines_[i].ReadLinear(modulated_delay_[i])</code>
+whenever modulation is active. Two-point linear interpolation has a severe magnitude droop, the tank
+runs at 24 kHz so every audio frequency sits proportionally closer to Nyquist, and the tap is inside
+the feedback loop, so the loss is applied again on every circulation.
+</p>
+
+<p>Measured magnitude error at the worst-case half-sample offset:</p>
+
+<div class="scroll">
+<table>
+  <thead><tr>
+    <th>Frequency</th>
+    <th class="num">Linear (current)</th>
+    <th class="num">Hermite</th>
+    <th class="num">16-tap sinc</th>
+  </tr></thead>
+  <tbody>
+    <tr><td>1 kHz</td><td class="num">&minus;0.075 dB</td><td class="num">&minus;0.001 dB</td><td class="num">0.000 dB</td></tr>
+    <tr><td>2 kHz</td><td class="num">&minus;0.301 dB</td><td class="num">&minus;0.015 dB</td><td class="num">0.001 dB</td></tr>
+    <tr><td>5 kHz</td><td class="num">&minus;2.011 dB</td><td class="num">&minus;0.534 dB</td><td class="num">0.001 dB</td></tr>
+    <tr><td>8 kHz</td><td class="num">&minus;6.021 dB</td><td class="num">&minus;3.255 dB</td><td class="num">&minus;0.017 dB</td></tr>
+    <tr><td>10 kHz</td><td class="num">&minus;11.740 dB</td><td class="num">&minus;8.414 dB</td><td class="num">&minus;1.674 dB</td></tr>
+  </tbody>
+</table>
+<p class="meta">Per single read, tank rate 24 kHz, fractional offset 0.5 samples.</p>
+</div>
+
+<p>
+A 2 s reverb tail with a 60 ms mean loop circulates roughly 30 times. Compounded over 30 passes:
+</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Frequency</th><th class="num">Linear &times; 30</th><th class="num">Hermite &times; 30</th><th class="num">16-tap sinc &times; 30</th></tr></thead>
+  <tbody>
+    <tr><td>2 kHz</td><td class="num">&minus;9.0 dB</td><td class="num">&minus;0.4 dB</td><td class="num">0.0 dB</td></tr>
+    <tr><td>5 kHz</td><td class="num">&minus;60.3 dB</td><td class="num">&minus;16.0 dB</td><td class="num">0.0 dB</td></tr>
+    <tr><td>8 kHz</td><td class="num">&minus;180.6 dB</td><td class="num">&minus;97.6 dB</td><td class="num">&minus;0.5 dB</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+At 5 kHz the tail loses 60 dB purely to interpolation. This is why the modes read dark and why the
+Mod knob makes them darker: <code>SetModulation()</code> is what forces the fractional read path in the
+first place. With modulation at zero the code takes the integer fast path and the reverb is bright;
+turn Mod up and the tank loses its top end. That coupling is not a design choice, it is an artefact.
+</p>
+
+<div class="fix">
+<p><strong>Recommended fix: a first-order allpass fractional delay, not a longer FIR.</strong></p>
+<p>
+The FDN base delays are integers and modulation is capped at &plusmn;8 samples at &le; 2.52 Hz
+(<code>fdn.cpp:10-12</code>, <code>MAX_MOD_DEPTH_SAMPLES</code>). That is exactly the regime a first-order
+allpass interpolator is built for. Its magnitude response is <em>exactly</em> unity at every frequency
+by construction, so cumulative loss over any number of feedback passes is zero. It costs one multiply
+and two adds &mdash; <em>less</em> than the two reads and one multiply that <code>ReadLinear</code>
+already spends.
+</p>
+<pre><code>// H(z) = (a + z^-1) / (1 + a*z^-1),  a = (1 - d) / (1 + d),  d = fractional part
+// Magnitude is unity for all |a| &lt; 1. Only phase (group delay) is approximated.</code></pre>
+<p>
+Keep <code>d</code> in roughly [0.1, 1.1] by folding the integer part, which is where the first-order
+allpass group delay is most accurate. Reuse the existing <code>AllpassFilter</code> in
+<code>dsp/allpass_filter.h</code> &mdash; it is already this exact transfer function.
+</p>
+<p>
+If you prefer not to introduce state per tap, <code>ReadAtHighQuality</code> is the drop-in alternative:
+8 lines &times; 16 taps = 128 multiply-accumulates per tank sample at 24 kHz.
+</p>
+<p><span class="cost">Cost &mdash; allpass: negative (removes one read per line)</span>
+<span class="cost">Cost &mdash; sinc16: estimated +0.8 to 1.2 % of one core; reverb rises from ~3.4 % to ~4.4 % of budget</span></p>
+</div>
+</div>
+
+<div class="finding p0">
+<h3><span class="tag p0">P0-2</span>The Rotary crossover cancels a full octave around its crossover point</h3>
+<p class="where"><code>src/daisyfx/hosted/modes/rotary_mode.cpp:118-120</code></p>
+
+<p>
+Rotary splits the signal into a drum band and a horn band by taking the low-pass and high-pass outputs
+of one TPT state-variable filter:
+</p>
+<pre><code>xover_.Process(mono);
+const float drum_in = xover_.lp();
+const float horn_in = xover_.hp();</code></pre>
+<p>
+An SVF satisfies the identity <code>HP + k&middot;BP + LP = input</code>. Therefore
+<code>LP + HP = input &minus; k&middot;BP</code>. With <code>SetQ(0.5f)</code> the damping term is
+<code>k = 1/Q = 2</code>, and at the crossover frequency the bandpass magnitude is exactly
+<code>Q = 0.5</code> and in phase with the input. The two bands sum to zero.
+</p>
+
+<p>Measured, by impulse response of <code>lp() + hp()</code>, Q = 0.5, f<sub>c</sub> = 800 Hz:</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Frequency</th><th class="num">Summed response</th></tr></thead>
+  <tbody>
+    <tr><td>200 Hz</td><td class="num">&minus;1.09 dB</td></tr>
+    <tr><td>400 Hz</td><td class="num">&minus;4.43 dB</td></tr>
+    <tr><td>600 Hz</td><td class="num">&minus;11.07 dB</td></tr>
+    <tr><td>800 Hz</td><td class="num">&minus;72.23 dB</td></tr>
+    <tr><td>1000 Hz</td><td class="num">&minus;13.13 dB</td></tr>
+    <tr><td>1600 Hz</td><td class="num">&minus;4.41 dB</td></tr>
+    <tr><td>3200 Hz</td><td class="num">&minus;1.06 dB</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+The Tone knob sweeps this null from 500 Hz to 2000 Hz (<code>rotary_mode.cpp:96</code>) &mdash; directly
+across the fundamental range of a guitar. The two bands receive different delays and different
+amplitude modulation afterwards, so the null is partly masked in motion, but the hole is present in
+the source material before any of that happens.
+</p>
+
+<div class="fix">
+<p><strong>Fix.</strong> Make the split complementary. The cheapest correct form is to derive one band by subtraction:</p>
+<pre><code>xover_.Process(mono);
+const float drum_in = xover_.lp();
+const float horn_in = mono - drum_in;   // sums to unity, magnitude and phase</code></pre>
+<p>
+That is exact reconstruction at zero extra cost. If you want a steeper, textbook Leslie crossover,
+use Linkwitz-Riley 4th order: two cascaded Butterworth (Q = 0.707) SVFs per band with the high band
+inverted, which sums to allpass. That costs one more SVF per band.
+</p>
+<p><span class="cost">Cost: zero (subtraction) or estimated +0.15 % (LR4)</span></p>
+</div>
+</div>
+
+<div class="finding p0">
+<h3><span class="tag p0">P0-3</span>Magneto reads all tape heads with linear interpolation inside its feedback loop</h3>
+<p class="where"><code>src/daisyfx/hosted/modes/magneto_reverb.cpp:113-114</code></p>
+
+<p>
+Head positions are computed as <code>period * (i+1) / n_heads_</code>, so they are almost never
+integers, and every one is read with <code>ReadLinear</code>. Those same taps are averaged into
+<code>fb_sum_l</code>/<code>fb_sum_r</code> and fed back with a gain up to 0.85
+(<code>magneto_reverb.cpp:137-144</code>). The compounding table in P0-1 applies directly. This matches
+the measured impulse metrics for Magneto: density 0.552 at 100&ndash;200 ms and 0.815 at 200&ndash;500 ms,
+the lowest of any non-ER mode.
+</p>
+
+<p>
+There is a second problem in the same mode. Head positions are recomputed every control block with no
+transition:
+</p>
+<pre><code>head_delays_l_[i] = period * (float)(i + 1) / (float)n_heads_;</code></pre>
+<p>
+<code>period</code> is derived from <code>params.decay</code>. Sweeping Decay therefore steps every head
+tap discontinuously every 2 ms. The delay modes solved exactly this with
+<code>DelayTapTransition</code> (a queued, click-free dual-head crossfade). Magneto does not use it.
+</p>
+
+<div class="fix">
+<p><strong>Fix.</strong> Two changes. Use the allpass interpolator from P0-1 (or
+<code>ReadAtHighQuality</code>) for the head taps, and route head positions through
+<code>DelayTapTransition</code> the same way <code>DigitalDelay</code> and <code>LofiDelay</code> do.
+</p>
+<p><span class="cost">Cost: negligible for the interpolator; the transition doubles the tap reads only while a sweep is active</span></p>
+</div>
+</div>
+
+<div class="finding p0">
+<h3><span class="tag p0">P0-4</span>Poly Octave low-passes its own output at 2.2 kHz, at every Tracking setting</h3>
+<p class="where"><code>src/daisyfx/hosted/modes/poly_octave_mode.cpp:100-101, 127</code></p>
+
+<p>
+The Tracking control ends up as a one-pole low-pass applied to the finished audio:
+</p>
+<pre><code>const float tracking = (params.speed - 0.05f) / 9.95f;
+tracking_coefficient_ = 0.0005f + std::clamp(tracking, 0.0f, 1.0f) * 0.25f;
+// ...
+tracking_ += tracking_coefficient_ * (out - tracking_);</code></pre>
+<p>
+With <code>params.speed</code> in [0.05, 10] the coefficient spans 0.0005 to 0.2505. Converting to
+cutoff at 48 kHz:
+</p>
+<div class="scroll">
+<table>
+  <thead><tr><th>Tracking setting</th><th class="num">Coefficient</th><th class="num">Effective cutoff</th></tr></thead>
+  <tbody>
+    <tr><td>Minimum (speed 0.05)</td><td class="num">0.0005</td><td class="num">~3.8 Hz</td></tr>
+    <tr><td>Centre (speed 5)</td><td class="num">0.125</td><td class="num">~1.0 kHz</td></tr>
+    <tr><td>Maximum (speed 10)</td><td class="num">0.2505</td><td class="num">~2.2 kHz</td></tr>
+  </tbody>
+</table>
+</div>
+<p>
+At the minimum setting the mode outputs near-silence. At the maximum setting the octave voices are
+still rolled off from 2.2 kHz upward. There is no position of this control at which Poly Octave passes
+its own output intact. The comment describes the intent as softening note attacks, which needs a
+smoother on the <em>gain</em>, not a filter on the <em>signal</em>.
+</p>
+
+<div class="fix">
+<p><strong>Fix.</strong> Apply the smoother to the voice levels, not the audio. Smooth
+<code>up1_level_</code>, <code>down1_level_</code> and <code>down2_level_</code> toward their targets with
+this coefficient, and leave <code>out</code> untouched.
+</p>
+<p><span class="cost">Cost: zero (three coefficient updates per sample instead of one filter)</span></p>
+</div>
+</div>
+
+<hr>
+
+<h2>P1 &mdash; The studio-quality gap</h2>
+
+<div class="finding p1">
+<h3><span class="tag p1">P1-1</span>One hardcoded allpass delay table is shared by every reverb and both channels</h3>
+<p class="where"><code>src/daisyfx/hosted/dsp/diffuser.h:12</code></p>
+
+<pre><code>static constexpr size_t kDelays[STAGES] = {73, 113, 193, 313};</code></pre>
+
+<p>Two consequences, both audible.</p>
+
+<p>
+<strong>Shared coloration.</strong> Room, Hall, Shimmer, Bloom, Cloud, Nonlinear and Magneto all
+instantiate <code>Diffuser</code> with this identical table. A Schroeder allpass chain is not
+spectrally neutral in practice &mdash; it imposes a characteristic resonant signature at the reciprocals
+of its delays. Seven modes that are supposed to sound like different spaces share one fingerprint.
+</p>
+
+<p>
+<strong>Zero decorrelation from diffusion.</strong> Every mode creates <code>diffuser_l_</code> and
+<code>diffuser_r_</code> and initialises both from the same <code>kDelays</code>. For a mono guitar
+input the two diffusers are bit-identical, so the entire diffusion stage contributes nothing to stereo
+width. All width comes from the FDN output matrix and the ER tap tables downstream.
+</p>
+
+<p>
+Cloud compounds this: it runs <em>two</em> <code>Diffuser</code> instances in series
+(<code>cloud_reverb.cpp:97-100</code>), both with the same delays. Cascading identical allpass delays
+doubles the coloration rather than increasing density &mdash; the resonances land on top of each other.
+</p>
+
+<div class="fix">
+<p><strong>Fix.</strong> Make the delay table a constructor or <code>Init()</code> parameter instead of a
+class constant. Give each mode its own mutually co-prime set, and offset the right channel from the
+left (a common choice is scaling the left set by roughly 1.06&ndash;1.13 and rounding to the nearest
+prime). Cloud's second stage needs a set co-prime with its first. This is a pure retuning exercise:
+identical structure, identical CPU.
+</p>
+<p>
+While you are in there: <code>Diffuser</code> never modulates its stages, even though
+<code>DelayAllpassFilter::ProcessMod()</code> already exists and Plate uses it. A slow, shallow
+modulation (&plusmn;2&ndash;4 samples at under 1 Hz) on stages 2 and 3 is the standard cure for static
+allpass ringing.
+</p>
+<p><span class="cost">Cost: zero for retuning; estimated +0.1 % for modulating two stages per channel</span></p>
+</div>
+</div>
+
+<div class="finding p1">
+<h3><span class="tag p1">P1-2</span>No modulation mode uses the band-limited interpolator</h3>
+<p class="where">chorus, flanger and rotary &mdash; all call <code>ReadAt()</code> (4-point Hermite)</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Mode</th><th>Location</th><th>Tap behaviour</th></tr></thead>
+  <tbody>
+    <tr><td>Chorus</td><td><code>chorus_mode.cpp:114-116, 135-136, 147-148</code></td><td>Continuously modulated, 3 taps</td></tr>
+    <tr><td>Flanger</td><td><code>flanger_mode.cpp:135-136</code></td><td>Continuously modulated, in a feedback loop at regen up to 0.95</td></tr>
+    <tr><td>Rotary</td><td><code>rotary_mode.cpp:132-137</code></td><td>Continuously modulated, 4 Doppler taps</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+These run at 48 kHz, so the loss is milder than in the tank, but from the P0-1 table Hermite still
+costs &minus;0.53 dB at 10 kHz and &minus;2.53 dB at 15 kHz per read. Flanger is the worst case: the
+whole point of a flanger is the high-frequency jet, and that tap is inside a 0.95 feedback loop, so the
+loss compounds.
+</p>
+
+<div class="fix">
+<p><strong>Fix.</strong> Switch these taps to <code>ReadAtHighQuality</code>. The delay modes already
+follow exactly this policy &mdash; <code>ReadNearest</code> when the tap is static,
+<code>ReadAtHighQuality</code> when it moves. Apply the same rule here.
+</p>
+<p><span class="cost">Cost: estimated +0.3 to 0.5 % of one core for flanger (2 taps) and chorus (3 taps) combined</span></p>
+</div>
+</div>
+
+<div class="finding p1">
+<h3><span class="tag p1">P1-3</span>The Shimmer pitch shifter has no anti-alias filter, inside a feedback loop</h3>
+<p class="where"><code>src/daisyfx/hosted/dsp/pitch_shifter.cpp:72-74</code>, driven from <code>shimmer_reverb.cpp:110-111</code></p>
+
+<p>
+<code>PitchShifter::Process()</code> reads its grain buffer at <code>ratio_</code> samples per output
+sample. For an upward shift the read is a decimation, and there is no low-pass before it. At a
++12 semitone shift (<code>ratio_ = 2.0</code>) everything above f<sub>s</sub>/4 folds. The shifter runs
+at the 24 kHz tank rate, so that boundary is 6 kHz.
+</p>
+
+<p>
+Shimmer feeds the shifted signal back into the FDN (<code>pitch_fb_l_</code>, <code>shimmer_reverb.cpp:103-104</code>),
+so the aliased components are shifted again on the next circulation, and again after that. Aliasing
+products are inharmonic, so this accumulates as a metallic, detuned haze rather than as musical shimmer.
+</p>
+
+<div class="fix">
+<p><strong>Fix.</strong> Low-pass the shifter <em>input</em> at f<sub>s</sub>/(2&middot;ratio) whenever
+<code>ratio_ &gt; 1</code>. One <code>Svf</code> in LP mode per shifter is enough; set its cutoff in
+<code>SetShift()</code>, which already runs at control rate.
+</p>
+<p>
+Related, in the same mode: <code>params.mod</code> controls both the shimmer send level and the FDN
+modulation depth (<code>shimmer_reverb.cpp:78, 101</code>). Those are unrelated parameters sharing one
+knob. Consider moving the FDN depth to a fixed sensible value.
+</p>
+<p><span class="cost">Cost: estimated +0.1 % (two one-pole or SVF filters at 24 kHz)</span></p>
+</div>
+</div>
+
+<div class="finding p1">
+<h3><span class="tag p1">P1-4</span>Phaser and Vibe sweep linearly in allpass coefficient, not in frequency</h3>
+<p class="where"><code>phaser_mode.cpp:51, 99</code> and <code>vibe_mode.cpp:17-21, 80</code></p>
+
+<p>
+Both modes modulate the allpass coefficient <code>a</code> directly with the LFO. The mapping from
+<code>a</code> to notch frequency is strongly nonlinear:
+</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th class="num">Coefficient <code>a</code></th><th class="num">Notch frequency</th></tr></thead>
+  <tbody>
+    <tr><td class="num">&minus;0.99</td><td class="num">~76 Hz</td></tr>
+    <tr><td class="num">&minus;0.95</td><td class="num">~391 Hz</td></tr>
+    <tr><td class="num">&minus;0.50</td><td class="num">~5.1 kHz</td></tr>
+    <tr><td class="num">&minus;0.01</td><td class="num">~11.8 kHz</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+A symmetric LFO swing in <code>a</code> therefore produces a wildly asymmetric sweep in pitch: fast
+through the top of its range, crawling through the bottom. Analogue phasers use OTA or JFET elements
+whose control response is close to exponential in frequency, which is why they sweep evenly to the ear.
+This is the most likely reason both modes sound lopsided compared to a reference unit.
+</p>
+
+<div class="fix">
+<p><strong>Fix.</strong> Sweep in log frequency and convert. Compute
+<code>f = f_lo &middot; pow(f_hi/f_lo, lfo01)</code>, then <code>g = tan(&pi;f/fs)</code>, then
+<code>a = (1&minus;g)/(1+g)</code>. Do not call <code>tanf</code> per sample &mdash; use the same
+precomputed, log-spaced lookup table pattern that <code>FilterDelay</code> already implements in
+<code>filter_delay.cpp:14-26</code>. That table is 257 entries with linear interpolation between them
+and costs two loads and a multiply-add.
+</p>
+<p><span class="cost">Cost: roughly neutral; the table lookup replaces the arithmetic already being done</span></p>
+</div>
+</div>
+
+<div class="finding p1">
+<h3><span class="tag p1">P1-5</span>Nothing is oversampled around any saturation stage</h3>
+<p class="where"><code>dsp/waveshaper.h</code>, <code>dsp/bbd_emulator.h:71</code>, and every mode that drives them</p>
+
+<p>
+<code>WaveShaper</code> applies drive up to 16&times; through a tanh-style curve with no oversampling.
+Every harmonic it generates above Nyquist folds back as an inharmonic tone. The affected modes:
+</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Mode</th><th>Stage</th><th>Rate</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>Tape Delay</td><td><code>sat_</code> in the feedback loop</td><td>48 kHz</td><td>Compounds per repeat</td></tr>
+    <tr><td>Bucket Brigade Delay</td><td><code>BbdEmulator::Process</code></td><td>48 kHz</td><td>Drive up to 8&times;, in the loop</td></tr>
+    <tr><td>Lo-fi Delay</td><td>bit crush + decimate</td><td>48 kHz</td><td>Intentional; only 1-pole AA before decimation</td></tr>
+    <tr><td>Spring Reverb</td><td><code>sat_</code>, drive up to 8&times;</td><td>24 kHz</td><td>Folds from 12 kHz &mdash; worst case</td></tr>
+    <tr><td>Rotary</td><td><code>drive_</code>, Tube curve</td><td>48 kHz</td><td>Asymmetric, so even harmonics too</td></tr>
+    <tr><td>Auto Swell</td><td>hard clip at &plusmn;1.0</td><td>48 kHz</td><td>See below</td></tr>
+    <tr><td>Tape Delay</td><td>hard clip at &plusmn;2.0 on write</td><td>48 kHz</td><td><code>tape_delay.cpp:125-126</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Auto Swell is the sharpest case. It multiplies by <code>curved * (1 + params.depth)</code>, up to 2&times;,
+then hard-clips:
+</p>
+<pre><code>if (wet_l &gt;  1.0f) wet_l =  1.0f;
+if (wet_l &lt; -1.0f) wet_l = -1.0f;</code></pre>
+<p>
+A hard clip is an infinite-order nonlinearity. On normal playing levels this <em>will</em> engage, and
+it produces full-bandwidth aliasing. Every other saturation point in the codebase uses a smooth curve;
+this one and the Tape write clamp are the exceptions.
+</p>
+
+<div class="fix">
+<p><strong>Fix, in order of value.</strong></p>
+<ul>
+  <li><strong>Replace both hard clips with <code>soft_clip_tanh</code>.</strong> It already exists in
+      <code>fast_math.h</code>, and its derivative reaches exactly zero at |x| = 3, so it is C&sup1;
+      continuous at the clamp &mdash; no discontinuity to alias from. Free, and removes the worst offender.</li>
+  <li><strong>Oversample Spring's saturator 2&times;.</strong> It runs at 24 kHz where folding starts at
+      12 kHz, and <code>HalfbandDecimator2x</code>/<code>HalfbandInterpolator2x</code> already exist in
+      <code>dsp/halfband_resampler.h</code>. Spring measures 45.4 &micro;s (3.4 % of budget), so there is
+      room.</li>
+  <li><strong>Leave Lo-fi and Destroyer alone.</strong> Their aliasing is the intended effect.</li>
+</ul>
+<p><span class="cost">Cost &mdash; soft clip swap: zero</span>
+<span class="cost">Cost &mdash; Spring 2&times;: estimated +1.5 to 2 %, taking Spring to roughly 5 % of budget</span></p>
+</div>
+</div>
+
+<div class="finding p1">
+<h3><span class="tag p1">P1-6</span>Reverb tap tables are recomputed per control block with no crossfade</h3>
+<p class="where"><code>room_reverb.cpp:108-117</code>, <code>reflections_reverb.cpp:95-118</code>, <code>magneto_reverb.cpp:75-94</code></p>
+
+<p>
+The delay bank learned this lesson. <code>DelayTapTransition</code> gives every delay mode a queued,
+click-free 50 ms dual-head crossfade whenever a tap moves. The reverbs got none of it.
+</p>
+
+<ul>
+  <li><strong>Room</strong> rounds every ER tap to an integer sample scaled by Size:
+      <code>lround(kErTaps[i].delay_samples * size_scale)</code>. Sweeping Size steps eight taps at once,
+      every 2 ms.</li>
+  <li><strong>Reflections</strong> rebuilds all 16 taps every control block, with delays derived from
+      <code>param2</code> and gains multiplied by <code>params.decay</code>. Both Loc X and Decay sweeps
+      produce stepped tap positions and stepped gains.</li>
+  <li><strong>Magneto</strong> &mdash; see P0-3.</li>
+</ul>
+
+<div class="fix">
+<p><strong>Fix.</strong> Gains are the easy half: slew <code>gain_l_</code>/<code>gain_r_</code> inside
+<code>EarlyReflections</code> toward their targets over roughly 20 ms instead of assigning them in
+<code>SetTaps()</code>. Positions are the harder half; the cheapest correct answer is to reuse
+<code>DelayTapTransition</code> per tap group rather than per tap.
+</p>
+<p><span class="cost">Cost: estimated +0.2 % for gain slewing; position crossfade doubles reads only during a sweep</span></p>
+</div>
+</div>
+
+<div class="finding p1">
+<h3><span class="tag p1">P1-7</span>A DC blocker sits inside every FDN feedback loop and shortens low-frequency decay</h3>
+<p class="where"><code>fdn.cpp:192, 253</code> with <code>dsp/dc_blocker.h:13</code></p>
+
+<p>
+<code>Fdn::Process()</code> runs <code>dc_[i].Process(v[i])</code> on every line, inside the loop. The
+blocker is a one-pole high-pass at 5.35 Hz. One pass is nearly transparent, but the signal makes one
+pass per circulation.
+</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Frequency</th><th class="num">Loss per pass</th><th class="num">After ~66 passes (2 s tail, 30 ms loop)</th></tr></thead>
+  <tbody>
+    <tr><td>50 Hz</td><td class="num">&minus;0.049 dB</td><td class="num">&minus;3.2 dB</td></tr>
+    <tr><td>100 Hz</td><td class="num">&minus;0.012 dB</td><td class="num">&minus;0.8 dB</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+The result is that bass decays measurably faster than mids, which is the opposite of what a real hall
+does and works against the <code>SetDampFromRt60Ratio()</code> control that is supposed to own the
+frequency-dependent decay.
+</p>
+
+<div class="fix">
+<p><strong>Fix.</strong> Move DC blocking out of the loop &mdash; one blocker on the FDN <em>output</em>
+per channel instead of one per line inside the feedback path. That is also cheaper: 2 blockers instead
+of 8. If you want belt-and-braces protection inside the loop, drop the in-loop cutoff to ~1 Hz, where
+66 passes costs under 0.2 dB at 50 Hz.
+</p>
+<p><span class="cost">Cost: negative (8 in-loop blockers become 2 output blockers)</span></p>
+</div>
+</div>
+
+<div class="finding p1">
+<h3><span class="tag p1">P1-8</span>Plate omits the Dattorro input bandwidth filter, and side signal bypasses diffusion</h3>
+<p class="where"><code>plate_reverb.cpp:145-153, 178, 194</code></p>
+
+<p>
+Plate is the strongest algorithm in the bank &mdash; native 48 kHz, faithful topology, correct read-before-write
+ordering, and the flattest measured impulse response (energy &minus;0.25 dB, L/R correlation &minus;0.078,
+density 1.000). Two gaps remain against the cited reference.
+</p>
+
+<p>
+<strong>No input bandwidth filter.</strong> Dattorro's design places a one-pole low-pass on the input
+before the diffusers, controlling how much high frequency enters the tank at all. This implementation
+feeds the diffusers full-band. The damping filters <code>lp_a_</code>/<code>lp_b_</code> are inside the
+tank, so they shape the tail but not the initial diffusion, which reads brighter and harder than a
+plate should.
+</p>
+
+<p>
+<strong>Undiffused side injection.</strong> <code>side</code> is computed from the raw pre-delay outputs
+and injected directly into both tanks:
+</p>
+<pre><code>const float side = 0.5f * (pre_l - pre_r);
+// ... later ...
+const float ta_in = (hold_ ? 0.0f : s + side) + decay_ * d8_fb;</code></pre>
+<p>
+<code>s</code> has been through four input allpasses; <code>side</code> has been through none. Any
+stereo content in the source enters the tank as an undiffused transient.
+</p>
+
+<div class="fix">
+<p><strong>Fix.</strong> Add a one-pole low-pass on <code>mid</code> and <code>side</code> before the
+diffusers, mapped from Tone or from a fixed 9&ndash;12 kHz. Route <code>side</code> through its own short
+diffuser (two allpasses is enough) rather than injecting it raw.
+</p>
+<p><span class="cost">Cost: estimated +0.2 % (two one-poles plus two allpasses at 48 kHz)</span></p>
+</div>
+</div>
+
+<div class="finding p1">
+<h3><span class="tag p1">P1-9</span>Chorus clears its delay buffer when the sub-mode changes</h3>
+<p class="where"><code>chorus_mode.cpp:49-52</code></p>
+
+<pre><code>int new_sub_mode = static_cast&lt;int&gt;(params.p2 * 4.999f);
+if (new_sub_mode != sub_mode_) {
+    sub_mode_ = new_sub_mode;
+    chorus_line_.Reset();   // memset of 2400 floats
+}</code></pre>
+
+<p>
+<code>DelayLineSdram::Reset()</code> zeroes the whole buffer. Sweeping the sub-mode knob through its
+five positions therefore produces four audible dropouts, and does a 9.6 kB <code>memset</code> on the
+audio thread each time. Other modes that switch discrete variants (<code>FilterDelay</code>,
+<code>PatternDelay</code>, <code>SpringReverb</code>, <code>ChoraleReverb</code>) all use hysteresis
+dead bands and none of them clear state.
+</p>
+
+<div class="fix">
+<p><strong>Fix.</strong> Add a dead band as those modes do, and drop the <code>Reset()</code>. The buffer
+contents are valid audio history regardless of which sub-mode reads them; the only thing that changes is
+the tap positions and the pre-colouring.
+</p>
+<p><span class="cost">Cost: negative (removes a 9.6 kB memset from the audio thread)</span></p>
+</div>
+</div>
+
+<div class="finding p1">
+<h3><span class="tag p1">P1-10</span>Chorus delay base and depth jump at block boundaries</h3>
+<p class="where"><code>chorus_mode.cpp:62-74</code> used at <code>109, 129-130, 141-142</code></p>
+
+<p>
+The code comment says the LFO is advanced per sample specifically to avoid block-boundary jumps. It is
+&mdash; but <code>base_samps_</code> and <code>mod_depth_</code> are still assigned in
+<code>Prepare()</code> and used directly per sample. A change in <code>params.p1</code> moves the base
+delay by up to 912 samples instantaneously.
+</p>
+
+<p>
+On a knob that is fine because the pot is smoothed upstream (<code>POT_SMOOTH</code>). On MIDI CC or
+expression-pedal automation, which arrives in 128 discrete steps, each step is a 7-sample jump in the
+delay tap &mdash; an audible tick. The delay bank handles precisely this with
+<code>DelayTapTransition</code>.
+</p>
+
+<div class="fix">
+<p><strong>Fix.</strong> Slew <code>base_samps_</code> and <code>mod_depth_</code> per sample toward their
+targets. A one-pole with a 20&ndash;50 ms time constant is enough and costs two multiply-adds.
+</p>
+<p><span class="cost">Cost: estimated under 0.05 %</span></p>
+</div>
+</div>
+
+<div class="finding p1">
+<h3><span class="tag p1">P1-11</span>The Barber Pole phaser does not rise continuously, and is mono</h3>
+<p class="where"><code>phaser_mode.cpp:59-93</code></p>
+
+<p>
+A barber-pole phaser needs notches that rise (or fall) forever, which requires either true frequency
+shifting or a set of N staggered chains crossfaded by a monotonically increasing ramp. This
+implementation uses two chains at 90&deg; and crossfades them with:
+</p>
+<pre><code>const float t = (lfo_val + 1.0f) * 0.5f;
+const float gain_a = fast_sin(t * 1.57079633f);
+const float gain_b = fast_sin((1.0f - t) * 1.57079633f);</code></pre>
+<p>
+<code>t</code> is derived from a sine LFO, so it rises and then falls. The crossfade reverses direction
+every half cycle, which is a normal phaser with a wobble, not a barber pole. The mode also returns
+<code>{out, out}</code>, discarding the stereo the rest of the phaser produces.
+</p>
+
+<div class="fix">
+<p><strong>Fix.</strong> Drive <code>t</code> from a sawtooth phase accumulator (or use
+<code>LfoWave::RampUp</code>, which already exists) rather than from the sine, and use three or four
+chains at evenly staggered phases so the crossfade never has an audible seam. The project already
+contains <code>dsp/hilbert_transform.h</code> and <code>dsp/band_shifter.h</code> for
+<code>QuadratureMode</code>, which is the other route to a true barber pole.
+</p>
+<p><span class="cost">Cost: zero for the ramp fix; estimated +0.3 % for two extra 4-stage chains</span></p>
+</div>
+</div>
+
+<hr>
+
+<h2>P2 &mdash; Cost, consistency and polish</h2>
+
+<h3>Wasted CPU</h3>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-1</span><strong>The halfband resampler multiplies by zero roughly half the time.</strong>
+<span class="where"><code>dsp/halfband_resampler.h:42-49, 78-85</code></span><br>
+<code>kCoeffs</code> is a true half-band kernel: 15 of its 31 taps are exactly <code>0.0f</code>. Both
+<code>convolve()</code> loops run all 31 taps anyway, and each tap computes its index with an integer
+modulo <code>(write_ + kTaps - 1 - i) % kTaps</code>. <code>HalfbandInterpolator2x::Process()</code>
+compounds this by pushing a zero and convolving twice, so it does 62 taps of work per output pair.
+Every half-rate reverb pays this on every sample.<br>
+<strong>Fix.</strong> Skip the zero taps (a polyphase form leaves 8 non-zero taps plus the centre), and
+round the history buffer to 32 entries so the index is a mask instead of a modulo.
+<span class="cost">Cost: negative &mdash; estimated 2&times; to 3&times; faster resampling</span></p>
+</div>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-2</span><strong>FilterMode calls <code>tanf()</code> once per sample.</strong>
+<span class="where"><code>filter_mode.cpp:81</code></span><br>
+<code>svf_.SetFreq(cutoff)</code> in the per-sample LFO path calls <code>tanf()</code> internally
+(<code>svf.h:22</code>). <code>FilterDelay</code> solved exactly this with a 257-entry log-spaced
+<code>g</code> table and an explicit comment saying so (<code>filter_delay.cpp:14-26, 95</code>).
+<strong>Fix.</strong> Reuse that table. <span class="cost">Cost: negative, estimated &minus;0.3 %</span></p>
+</div>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-3</span><strong>Phaser calls libm <code>tanhf()</code> two or three times per sample.</strong>
+<span class="where"><code>phaser_mode.cpp:71-72, 106, 126</code></span><br>
+<code>soft_clip_tanh()</code> in <code>fast_math.h</code> is the intended replacement and is already used
+by Flanger and FilterDelay. <span class="cost">Cost: negative</span></p>
+</div>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-4</span><strong>Nonlinear reverb calls <code>std::exp</code> and <code>std::cos</code> per sample.</strong>
+<span class="where"><code>nonlinear_reverb.cpp:10-32</code>, called at line 142</span><br>
+<code>shape_gain()</code> runs libm transcendentals on every tank sample. <code>shape_phase_</code>
+advances at a fixed rate, so all six shapes are one-dimensional functions of a bounded phase.
+<strong>Fix.</strong> Precompute a 256-entry table per shape at <code>Init()</code> and interpolate.
+<span class="cost">Cost: negative</span></p>
+</div>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-5</span><strong>The Flanger wow-and-flutter drift is roughly 0.006 samples &mdash; inaudible.</strong>
+<span class="where"><code>flanger_mode.cpp:117-120, 127-128</code></span><br>
+<code>drift_l_ += 0.0002f * (lcg_to_float(rand_state_) - drift_l_)</code> is a one-pole on uniform noise.
+Its steady-state standard deviation is &sigma;<sub>in</sub>&middot;&radic;(a/2) = 0.577 &times; 0.01 &asymp;
+0.0058 samples, or about 0.12 &micro;s of delay &mdash; roughly two orders of magnitude below audibility.
+It costs two LCG steps and four multiply-adds per sample and delivers nothing.<br>
+<strong>Fix.</strong> Either scale it up by ~100&times; (to a few samples of wow, which is what tape
+actually does) or delete it. <span class="cost">Cost: negative either way</span></p>
+</div>
+
+<h3>Consistency and correctness</h3>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-6</span><strong>The BBD soft clip is missing the bound its two siblings have.</strong>
+<span class="where"><code>dsp/bbd_emulator.h:71</code></span><br>
+The same Pad&eacute; approximant appears three times in the codebase. <code>fast_math.h:48</code> and
+<code>waveshaper.h:31</code> both guard it with <code>if (x &gt;= 3.0f) return 1.0f</code>.
+<code>BbdEmulator</code> does not:<br>
+<code>const float sat = x * (27.0f + x * x) / (27.0f + 9.0f * x * x);</code><br>
+Beyond |x| = 3 this approximant is not a limiter &mdash; it grows without bound, asymptotically as x/9.
+Loud transients pass through at 1/9 gain with the wrong harmonic structure instead of being limited.<br>
+<strong>Fix.</strong> Call <code>soft_clip_tanh()</code> and delete the third copy.
+<span class="cost">Cost: zero</span></p>
+</div>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-7</span><strong>Independent LFO jitter destroys the fixed phase relationships it is applied to.</strong>
+<span class="where"><code>chorus_mode.cpp:15-16</code>, <code>rotary_mode.cpp:36-47</code>, <code>flanger_mode.cpp:88-89</code></span><br>
+Each of these creates two or three <code>Lfo</code> objects, sets a fixed phase offset between them
+(120&deg; for Chorus, 90&deg; for Rotary's microphone pair and Flanger's stereo spread), then calls
+<code>SetJitter()</code> on each one separately. <code>Lfo::Process()</code> perturbs
+<code>phase_inc_</code> from its own PRNG at every wrap (<code>lfo.cpp:78-84</code>), so the offsets
+random-walk apart and never return. Rotary's comment describes "two microphones placed 90&deg; apart";
+after a few seconds they are not.<br>
+<strong>Fix.</strong> Derive the offset LFOs from one phase accumulator plus a constant offset, and apply
+jitter once to that shared accumulator. <span class="cost">Cost: negative</span></p>
+</div>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-8</span><strong>Three delay modes lack the feedback DC blocker the other seven have.</strong>
+<span class="where">Duck, Swell and Trem delays</span><br>
+Digital, Tape, Bucket Brigade, Lo-fi, Dual, Filter and Pattern all run
+<code>dc_fb_l_</code>/<code>dc_fb_r_</code> on the feedback signal. <code>DuckDelay</code>
+(<code>duck_delay.cpp:87-88</code>), <code>SwellDelay</code> (<code>swell_delay.cpp:122-123</code>) and
+<code>TremDelay</code> (<code>trem_delay.cpp:70-71</code>) do not. The <code>ToneFilter</code> in each of
+those loops has non-zero DC gain, so offset can accumulate across repeats and eat headroom.<br>
+<strong>Fix.</strong> Add the two blockers to match. <span class="cost">Cost: negligible</span></p>
+</div>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-9</span><strong><code>Fdn::Process</code> is duplicated and the two copies have already diverged.</strong>
+<span class="where"><code>fdn.cpp:185-244</code> and <code>246-306</code></span><br>
+The mono and stereo overloads are ~60 near-identical lines each. They have already drifted: the mono
+version folds the hold mute into <code>in_scaled</code>, the stereo version does it inline in the loop.
+Any fix from this document that touches the FDN has to be applied twice, and will eventually be applied
+once.<br>
+<strong>Fix.</strong> Make the mono overload call the stereo one with <code>{input, input}</code>, or
+factor the shared body into a private helper taking the per-line injection.
+<span class="cost">Cost: zero</span></p>
+</div>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-10</span><strong>Filter and Formant modes update resonant coefficients only at block rate.</strong>
+<span class="where"><code>filter_mode.cpp:55-59</code>, <code>formant_mode.cpp:27-53</code></span><br>
+<code>FilterMode</code>'s envelope sub-modes (Env+, Env&minus;) compute the cutoff per sample but only
+<em>apply</em> it once per block via <code>Prepare()</code>. With Q up to 20 that is a stepped auto-wah
+&mdash; the mode most sensitive to zipper noise is the one that has it. <code>FormantMode</code>
+recomputes both formant banks' biquad coefficients every block at Q up to 10, and steps
+<code>blend_a_</code>/<code>blend_b_</code> with them.<br>
+<strong>Fix.</strong> For FilterMode, use the <code>g</code>-table from P2-2 and set it per sample as the
+LFO path already does. For FormantMode, slew the blend per sample.
+<span class="cost">Cost: estimated +0.1 %</span></p>
+</div>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-11</span><strong>FilterMode switches filter topology on a hard threshold with no dead band.</strong>
+<span class="where"><code>filter_mode.cpp:47-49</code></span><br>
+<code>params.tone</code> selects LP below 0.4, BP between 0.4 and 0.6, HP above 0.6 &mdash; and
+<em>also</em> sets <code>base_hz_</code> on line 41. Crossing 0.4 or 0.6 swaps the output tap
+instantaneously, which clicks. <code>FilterDelay</code> handles the same choice with explicit 0.03 dead
+bands and a comment explaining why (<code>filter_delay.cpp:67-81</code>).<br>
+<strong>Fix.</strong> Copy the dead-band pattern. <span class="cost">Cost: zero</span></p>
+</div>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-12</span><strong>Quadrature's FM mode is a frequency shifter labelled as vibrato.</strong>
+<span class="where"><code>quadrature_mode.cpp:76-81, 101-107</code></span><br>
+The code integrates <code>inst_freq = params.depth * 80.0f * lfo_val</code> into the carrier phase and
+performs single-sideband rotation. That is an <em>additive</em> frequency shift oscillating around
+0 Hz. Pitch vibrato is a <em>multiplicative</em> ratio. On a single note the difference is subtle; on a
+chord the additive shift destroys the harmonic relationships between the notes. The comment claims
+"pitch wobble via single-sideband rotation", which is not achievable this way.<br>
+<strong>Fix.</strong> Either rename the sub-mode to something honest ("Warble" or "Shift LFO"), or
+implement vibrato with a modulated delay line as Chorus already does.
+<span class="cost">Cost: zero to rename</span></p>
+</div>
+
+<h3>Musical and mixing behaviour</h3>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-13</span><strong>Both tremolos lose 6 dB at full depth with no make-up gain.</strong>
+<span class="where"><code>vintage_trem_mode.cpp:71</code>, <code>pattern_trem_mode.cpp:56</code></span><br>
+<code>gain = 1.0f - depth_ * contour</code> with <code>contour</code> in [0, 1] gives a mean gain of 0.5
+at full depth. Engaging the tremolo therefore drops the level by 6 dB. Studio and pedal tremolos almost
+always compensate, either with a fixed make-up or a depth-tracked one.<br>
+<strong>Fix.</strong> Multiply the output by <code>1 / (1 - depth * 0.5)</code>, or expose a level control.
+<span class="cost">Cost: one multiply</span></p>
+</div>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-14</span><strong>Several modes cancel or comb when summed to mono.</strong>
+<span class="where">TremDelay, and the fixed stereo offsets across the delay bank</span><br>
+<code>TremDelay</code> modulates L and R in anti-phase (<code>trem_delay.cpp:54-55</code>). At
+<code>mod_dep = 1</code> the tremolo vanishes entirely in a mono sum. Separately, Digital, Tape, Dual,
+Filter and Swell delays all offset the right head by a fixed 150, 61, 47 or 31 samples, which combs at
+160 Hz, 787 Hz, 1.02 kHz and 1.55 kHz respectively when folded to mono.<br>
+<strong>Fix.</strong> Not necessarily a bug &mdash; it is a real design trade-off. Worth a documented
+decision and, ideally, a mono-compatibility check in the test suite.
+<span class="cost">Cost: n/a</span></p>
+</div>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-15</span><strong>Tape Delay's Grit control divides feedback by up to 15.</strong>
+<span class="where"><code>tape_delay.cpp:116</code></span><br>
+<code>return tapeLp / (1.0f + params.grit * params.grit * 14.0f);</code><br>
+Turning Grit up therefore kills the repeats. Grit and Repeats fight each other, which makes both hard to
+dial. This reads as a runaway-prevention hack, but <code>FeedbackLimiter</code> and the &plusmn;2.0 write
+clamp are already downstream doing that job.<br>
+<strong>Fix.</strong> Normalise the saturator for unity RMS through the loop instead of dividing by a
+constant, so Grit changes harmonic content without changing loop gain. <code>BbdEmulator</code> already
+does exactly this (<code>bbd_emulator.h:74</code>: <code>return sat / drive;</code>).
+<span class="cost">Cost: zero</span></p>
+</div>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-16</span><strong>Early reflections have no per-tap high-frequency absorption.</strong>
+<span class="where"><code>dsp/early_reflections.h:35-45</code>, tables in <code>room_reverb.cpp</code>, <code>hall_reverb.cpp</code>, <code>reflections_reverb.cpp</code></span><br>
+Every ER tap applies a flat, frequency-independent gain. Real reflections lose high frequency to both
+air absorption and surface absorption, and the later the reflection the more it loses. Flat taps are the
+main reason a tap-based early field reads as "metallic" rather than as a room.<br>
+<strong>Fix.</strong> Give each tap a one-pole low-pass whose cutoff falls with tap delay. With 8 taps
+(Room) or 16 (Reflections) that is 8 or 16 one-poles per channel.
+<span class="cost">Cost: estimated +0.3 % for Room, +0.6 % for Reflections</span></p>
+</div>
+
+<div class="finding p2">
+<p><span class="tag p2">P2-17</span><strong>Seven modes discard stereo entirely.</strong>
+<span class="where">Vibe, Filter, Formant, Destroyer, Poly Octave, Quadrature (modes 1&ndash;3), Phaser (Barber Pole)</span><br>
+All return <code>{x, x}</code>. For Vibe this is authentic &mdash; a Uni-Vibe is a mono circuit. For
+Filter, Formant, Destroyer and Poly Octave it is a missed opportunity: each already has the structure
+for a second channel, and Filter in particular would benefit from the quadrature-LFO treatment that
+Phaser's normal path already uses.<br>
+<strong>Fix.</strong> Lowest effort with the largest effect: give <code>FilterMode</code> a second SVF
+driven by a 90&deg;-offset LFO, matching what <code>phaser_mode.cpp:120-138</code> already does.
+<span class="cost">Cost: estimated +0.2 % per mode converted</span></p>
+</div>
+
+<hr>
+
+
+<h2>Implementation status &mdash; 2026-08-14</h2>
+
+<p>
+All 32 findings are implemented. 57 files changed, +1171 / &minus;412 lines.
+The full test suite passes: <strong>31 of 31</strong>. Two regression tests were
+added for the headline fixes, plus a bit-equivalence check for the resampler
+rewrite.
+</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Measure</th><th class="num">Before</th><th class="num">After</th><th>Finding</th></tr></thead>
+  <tbody>
+    <tr><td>Modulated FDN, 5 kHz tail energy vs static tank</td><td class="num">&minus;4.62 dB</td><td class="num">+3.78 dB</td><td>P0-1</td></tr>
+    <tr><td>Rotary crossover, worst summed response</td><td class="num">&minus;72.2 dB</td><td class="num">&minus;6.2 dB</td><td>P0-2</td></tr>
+    <tr><td>Magneto density, 100&ndash;200 ms</td><td class="num">0.552</td><td class="num">0.727</td><td>P0-3</td></tr>
+    <tr><td>Magneto density, 200&ndash;500 ms</td><td class="num">0.815</td><td class="num">0.997</td><td>P0-3</td></tr>
+    <tr><td>Cloud L/R correlation</td><td class="num">0.088</td><td class="num">0.005</td><td>P1-1</td></tr>
+    <tr><td>Cloud density, 100&ndash;200 ms</td><td class="num">0.664</td><td class="num">0.922</td><td>P1-1</td></tr>
+    <tr><td>Bloom L/R correlation</td><td class="num">0.289</td><td class="num">0.042</td><td>P1-1</td></tr>
+    <tr><td>Bloom density, 100&ndash;200 ms</td><td class="num">0.945</td><td class="num">1.000</td><td>P1-1</td></tr>
+    <tr><td>Shimmer density, 100&ndash;200 ms</td><td class="num">0.963</td><td class="num">1.000</td><td>P1-1, P1-3</td></tr>
+    <tr><td>Nonlinear L/R correlation</td><td class="num">0.035</td><td class="num">0.008</td><td>P1-1</td></tr>
+    <tr><td>Spring density, 100&ndash;200 ms</td><td class="num">0.998</td><td class="num">1.000</td><td>P1-5</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Decisions that changed during implementation</h3>
+
+<ul>
+  <li><strong>P0-1 uses the band-limited reader, not the allpass interpolator this
+      document originally recommended.</strong> A first-order allpass is magnitude-perfect
+      and cheaper, but its coefficient jumps every time the modulated tap crosses an
+      integer sample boundary &mdash; roughly 80 times a second at the FDN's depth and
+      rate. That is fine for a fixed fractional delay and wrong for a moving one.
+      <code>ReadAtHighQuality</code> has no state, no discontinuity, and was already
+      proven by all ten delay modes.</li>
+  <li><strong>P1-7 keeps a DC blocker inside the FDN loop, at 1 Hz instead of 5.35 Hz,</strong>
+      rather than moving it to the output. During Hold the feedback gain is exactly 1.0,
+      so an in-loop blocker is what stops DC accumulating without bound. At 1 Hz a 2 s
+      tail loses under 0.1 dB at 50 Hz instead of 3.2 dB.</li>
+  <li><strong>P2-13 was over-scoped in the original finding.</strong> Make-up gain was
+      applied to the continuous tremolo only. A gated pattern already sits at unity while
+      its gate is open, so there is no level drop to correct and a boost would only
+      flatten the pattern's dynamics. The continuous tremolo compensates RMS rather than
+      mean &mdash; matching the mean would put peaks 6 dB over unity at full depth &mdash;
+      and its output is soft-limited.</li>
+  <li><strong>P2-17 converted FilterMode to true stereo and left the rest mono.</strong>
+      Vibe is authentically a mono circuit. Formant, Destroyer, Poly Octave and
+      Quadrature remain mono by choice, not oversight.</li>
+</ul>
+
+<h3>Level changes worth knowing about</h3>
+
+<p>
+Three fixes cost broadband level by construction, because they add filtering that was
+not there before. Plate loses 1.5 dB to its new input bandwidth filter (P1-8); Room and
+Hall lose roughly 1 dB each to per-tap early-reflection absorption (P2-16). These are
+the intended cost of the change, not regressions, and the engine's per-mode
+<code>reverbOutputGain</code> table is the right place to recalibrate if you want the
+old levels back.
+</p>
+
+<h3>Bug found while building</h3>
+
+<p>
+<code>fdn.cpp</code> used <code>std::min</code> without including
+<code>&lt;algorithm&gt;</code>. GCC pulls it in transitively so the Pi build never
+noticed; Clang with libc++ fails outright. Fixed.
+</p>
+
+<h3>Not yet verified</h3>
+
+<p>
+<strong>On-device CPU cost is unmeasured.</strong> The constraint set for this work was
+that everything must fit alongside a full-tier NAM model and a 4096-tap IR at 32 frames.
+That can only be confirmed on the Pi, and the cross-compile needs Docker, which was not
+running. Host-relative benchmarks show no mode became disproportionately expensive, but
+they are Apple silicon numbers and do not transfer to a Cortex-A72.
+</p>
+
+<p>To close this out, run:</p>
+<pre><code>scripts/benchmark-delay-device.sh 192.168.88.17
+scripts/measure-device-performance.sh 192.168.88.17</code></pre>
+
+<p>
+The items with real cost are Spring's 2&times; oversampled saturator (P1-5) and the
+band-limited FDN reader (P0-1). Against those, the polyphase half-band rewrite (P2-1)
+and the removal of per-sample <code>tanf</code>, <code>tanhf</code>, <code>exp</code> and
+<code>cos</code> calls (P2-2 to P2-4) all give cycles back.
+</p>
+
+<hr>
+
+<h3>Follow-up: Poly Octave level</h3>
+
+<p>
+Reported after the first pass: Poly Octave sounded considerably quieter. Measured
+through the full engine at catalog defaults, the change in this document made it
+<em>slightly louder</em>, not quieter &mdash; 0.20462 RMS against 0.19946 before,
+about +0.2 dB. Driven harder (Octave&nbsp;Up at full, Tracking above centre) it is up to
+11 dB louder, because the old code was low-passing its own output.
+</p>
+
+<p>
+Chasing it did find a real defect, and it was not in this document. Poly Octave's 6&times;
+resamplers are cycfi <code>ring_buffer</code>s backed by <code>std::array</code>. The
+<code>std::array</code> overload of <code>init_store()</code> sets the index mask but
+never zeroes the storage &mdash; unlike the <code>std::vector</code> overload beside it,
+which does:
+</p>
+
+<pre><code>template &lt;typename T, std::size_t N&gt;
+void init_store(std::array&lt;T, N&gt;&amp; _data, std::size_t&amp; _mask)
+{
+   _mask = _data.size() - 1;     // _data is never cleared
+}</code></pre>
+
+<p>
+Nothing called <code>ring_buffer::clear()</code>, so the mode ran its first samples of
+uninitialised memory through the resampler FIR taps and then into the IIR output
+shelves, which rang on afterwards. Measured peaks reached 4.6&times;10<sup>33</sup>, and the
+magnitude varied with whatever happened to be in memory. At the lowest Tracking setting
+the mode ended up emitting <strong>exactly zero, permanently</strong>.
+</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Tracking (speed)</th><th class="num">Peak, first second &mdash; before</th><th class="num">After</th><th class="num">Steady output &mdash; before</th><th class="num">After</th></tr></thead>
+  <tbody>
+    <tr><td>0.05 (minimum)</td><td class="num">2.8 &times; 10<sup>28</sup></td><td class="num">0.139</td><td class="num">0.000</td><td class="num">0.139</td></tr>
+    <tr><td>0.35 (catalog default)</td><td class="num">2.0 &times; 10<sup>11</sup></td><td class="num">0.163</td><td class="num">0.139</td><td class="num">0.139</td></tr>
+    <tr><td>0.50 and above</td><td class="num">0.160</td><td class="num">0.163</td><td class="num">0.139</td><td class="num">0.139</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Fixed by giving <code>Decimator</code> and <code>Interpolator</code> a <code>Reset()</code>
+that clears both ring buffers, and calling it from <code>PolyOctaveMode::Reset()</code>.
+Output is now identical and deterministic at every Tracking setting. A regression test
+dirties the stack before constructing the mode, so an unreset resampler picks up an
+obviously wrong value rather than zeros.
+</p>
+
+<p class="note">
+This was present at HEAD, before any change in this document. It is the 33rd finding.
+</p>
+
+<hr>
+
+<h3>Follow-up 2: Poly Octave Tone falls off a cliff</h3>
+
+<p>
+Reported next: with every control at maximum the mode was noticeably quiet. Reproduced
+and isolated to a single control. Holding everything else at maximum and moving only
+Tone:
+</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th class="num">Tone</th><th class="num">Output vs dry &mdash; before</th><th class="num">After</th></tr></thead>
+  <tbody>
+    <tr><td class="num">0.00</td><td class="num">+7.82 dB</td><td class="num">+7.82 dB</td></tr>
+    <tr><td class="num">0.50</td><td class="num">+8.05 dB</td><td class="num">+8.05 dB</td></tr>
+    <tr><td class="num">0.70</td><td class="num">+3.11 dB</td><td class="num">+4.95 dB</td></tr>
+    <tr><td class="num">0.80</td><td class="num">&minus;0.17 dB</td><td class="num">+2.27 dB</td></tr>
+    <tr><td class="num">0.90</td><td class="num">&minus;6.13 dB</td><td class="num">&minus;0.35 dB</td></tr>
+    <tr><td class="num">1.00</td><td class="num"><strong>&minus;39.67 dB</strong></td><td class="num"><strong>&minus;4.56 dB</strong></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+<code>ToneFilter</code>'s bright half is a two-pole high-pass whose corner reaches
+<code>kBrightCutoff = 3000 Hz</code> at full travel, fully wet. Poly Octave's entire
+output is sub-harmonic: a 196 Hz note produces voices at 49, 98 and 392 Hz. A 3 kHz
+high-pass removes all of it. The final tenth of knob travel dropped 33 dB, which reads
+as a broken effect rather than a tone control.
+</p>
+
+<p>
+This is not a defect in <code>ToneFilter</code> — on a delay or a tremolo, a hard bright
+setting is a legitimate extreme. It is wrong only for the one mode whose content sits
+entirely below the high-pass corner. Fixed locally: Poly Octave keeps the dark half of
+the knob unchanged and compresses the bright half, so full travel maps to 0.88 rather
+than 1.0. Tone is now monotonic across its range and full travel costs 12.6 dB instead
+of 47.7 dB.
+</p>
+
+<p class="note">
+Also pre-existing, and also not in the original review. This is the 34th finding &mdash;
+and the one that actually matched the report.
+</p>
+
+<hr>
+
+<h2>Addition: Whammy mode, and the pitch shifter rebuild it forced</h2>
+
+<p>
+A new <code>ModModeId::Whammy</code> implements both DigiTech families &mdash; ten
+Whammy presets (unison at heel, the named interval at toe) and nine Harmony presets
+(dry plus one voice, the pedal morphing between two fixed chromatic intervals). P1 is
+the pedal position and is the control to assign to an expression input.
+</p>
+
+<p>
+It does <strong>not</strong> use the Poly Octave engine. <code>BandShifter</code>
+produces its voices with double- and half-angle identities, so it is structurally
+limited to &times;2, &divide;2 and &divide;4; a fifth is ratio 1.4983 and simply is not
+expressible. The granular shifter already in the tree takes arbitrary, continuously
+varying ratios &mdash; but it turned out to need real work first.
+</p>
+
+<h3>The shifter was badly out of tune, and nobody had noticed</h3>
+
+<p>
+Each grain restart jumps the read pointer back by <code>(ratio&minus;1) &times; grain</code>
+samples. When that distance is not a whole number of input periods, the leftover phase
+biases the output pitch by <code>leftover &times; grain rate</code>. The consequence is a
+detune that depends on <em>which note you play</em>. Predicted and measured (the model
+reproduced 4 of 7 spot measurements exactly), at +12 semitones:
+</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Played note</th><th class="num">82 Hz</th><th class="num">110</th><th class="num">147</th><th class="num">196</th><th class="num">247</th><th class="num">330</th></tr></thead>
+  <tbody>
+    <tr><td>Detune, before</td><td class="num">+115</td><td class="num">+56</td><td class="num">&minus;37</td><td class="num">&minus;38</td><td class="num">+38</td><td class="num">&minus;4</td></tr>
+  </tbody>
+</table>
+<p class="meta">cents. Across all intervals the range was &minus;923 to +829 cents.</p>
+</div>
+
+<p>
+This is masked in the two modes that use the shifter today: Shimmer only asks for +12
+and +7 and buries the result in a reverb wash, and Chorus detune moves it by 0.3 of a
+semitone. It is fatal for anything that has to play an interval.
+</p>
+
+<h3>Fixed with waveform-similarity overlap-add</h3>
+
+<p>
+Rather than jumping a fixed distance, the restart position is chosen by searching back
+up to one low-E period for the point whose run-up best matches the grain it is about to
+overlap. That removes the phase discontinuity and with it the detune.
+</p>
+
+<p>
+Two details mattered more than the search itself:
+</p>
+
+<ul>
+  <li><strong>Match against the overlap partner, not the grain's own history.</strong>
+      Self-matching left the two grains free to land in anti-phase, which cancelled the
+      carrier and left the output as a pair of sidebands at &plusmn; the grain rate. At
+      330 Hz the target pitch measured 0.025 while the sidebands measured 0.24. Matching
+      the partner restored the carrier to 0.436 and dropped the sidebands to 0.005
+      &mdash; 34 dB.</li>
+  <li><strong>Coarse pass then refine.</strong> Scanning every candidate put roughly 45k
+      multiply-accumulates into the one sample where a grain restarts, which showed as
+      Shimmer's p99 going from 8.3 to 77.8 &micro;s. A stride-8 first pass with a local
+      refine cannot step over a correlation peak at any pitch this is used at, and
+      brought p99 back to 15.7 &micro;s.</li>
+</ul>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Measure</th><th class="num">Before</th><th class="num">After</th></tr></thead>
+  <tbody>
+    <tr><td>Worst detune across 6 intervals &times; 6 notes</td><td class="num">&minus;923 &hellip; +829 cents</td><td class="num">within 6 cents</td></tr>
+    <tr><td>Magnitude at the shifted pitch (input 0.5)</td><td class="num">0.025 &hellip; 0.49</td><td class="num">0.485 &hellip; 0.50</td></tr>
+    <tr><td>Shimmer cost, average</td><td class="num">4.30 &micro;s</td><td class="num">5.34 &micro;s</td></tr>
+    <tr><td>Shimmer cost, p99</td><td class="num">8.3 &micro;s</td><td class="num">15.7 &micro;s</td></tr>
+    <tr><td>Whammy cost, average / worst</td><td class="num">&mdash;</td><td class="num">3.70 / 44.5 &micro;s</td></tr>
+  </tbody>
+</table>
+<p class="meta">Host measurements, 64-frame blocks against a 1333 &micro;s budget. Shimmer gains the tuning fix for free.</p>
+</div>
+
+<h3>One idea that measured worse and was reverted</h3>
+
+<p>
+Four overlapping grains instead of two, to halve the grain-rate roughness. It cost 9 to
+34 dB through cancellation: naive overlap-add sums mutually incoherent segments, so more
+grains means more cancellation. That technique belongs to phase-locked resynthesis, not
+to this structure. Grain count is fixed at two and the knob was removed; grain size
+stayed configurable, which is the control that actually helps.
+</p>
+
+<hr>
+
+<h3>Parameter surface</h3>
+
+<p>
+The first pass registered the mode with the generic modulation helper, so every control
+rendered as a bare percentage &mdash; including the preset selector, where "37%" names
+nothing. Reworked:
+</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Control</th><th>Key</th><th>Reads as</th><th>Example</th></tr></thead>
+  <tbody>
+    <tr><td>Pedal</td><td><code>p1</code></td><td>Heel / Toe at the ends, percent between</td><td>Heel &hellip; 50% &hellip; Toe</td></tr>
+    <tr><td>Preset</td><td><code>p2</code></td><td>19 discrete named steps</td><td>Dive bomb, 5th up / 7th up</td></tr>
+    <tr><td>Glide</td><td><code>speed</code></td><td>Time, not a frequency</td><td>50.0 ms &hellip; 1.0 ms</td></tr>
+    <tr><td>Harmony Level</td><td><code>depth</code></td><td>Percent (level of the shifted voice against dry)</td><td>70%</td></tr>
+    <tr><td>Tone</td><td><code>tone</code></td><td>Shared tone readout</td><td>LP 2.0 kHz / Flat / HP 3.0 kHz</td></tr>
+    <tr><td>Mix, Level</td><td><code>mix</code>, <code>level</code></td><td>Percent, decibels</td><td>100%, 0.0 dB</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Both families now sit on one selector, as they do on the original unit &mdash; entries
+1&ndash;10 are the Whammy modes, 11&ndash;19 the Harmony modes, and the family follows
+the chosen preset rather than a separate switch. That freed Depth to become the harmony
+voice level, which is a control the mode actually needs; before, it duplicated a family
+switch that the preset already implies.
+</p>
+
+<p>
+All 19 presets were measured playing the interval their label claims, within 10 cents
+worst case. A test asserts the selector offers exactly one step per preset and that every
+step names a distinct one, so the label table and the interval table cannot drift apart.
+</p>
+
+<hr>
+<h2>Suggested order of work</h2>
+
+<p>
+Ordered by audible improvement per unit of effort and risk. Every item fits the stated CPU constraint.
+</p>
+
+<div class="scroll">
+<table>
+  <thead><tr>
+    <th class="num">#</th><th>Change</th><th>Findings</th><th class="num">CPU delta</th><th>Risk</th>
+  </tr></thead>
+  <tbody>
+    <tr><td class="num">1</td><td>Allpass fractional delay in the FDN and Magneto heads</td><td>P0-1, P0-3</td><td class="num">negative</td><td>Low &mdash; contained in one primitive</td></tr>
+    <tr><td class="num">2</td><td>Complementary Rotary crossover by subtraction</td><td>P0-2</td><td class="num">zero</td><td>Very low &mdash; two lines</td></tr>
+    <tr><td class="num">3</td><td>Move the Poly Octave smoother from signal to levels</td><td>P0-4</td><td class="num">zero</td><td>Very low</td></tr>
+    <tr><td class="num">4</td><td>Replace both hard clips with <code>soft_clip_tanh</code></td><td>P1-5</td><td class="num">zero</td><td>Very low</td></tr>
+    <tr><td class="num">5</td><td>DC blockers out of the FDN loop, onto the output</td><td>P1-7</td><td class="num">negative</td><td>Low</td></tr>
+    <tr><td class="num">6</td><td>Per-mode, per-channel diffuser delay tables</td><td>P1-1</td><td class="num">zero</td><td>Medium &mdash; needs retuning and listening</td></tr>
+    <tr><td class="num">7</td><td>Band-limited taps in Chorus, Flanger, Rotary</td><td>P1-2</td><td class="num">+0.3 to 0.5 %</td><td>Low</td></tr>
+    <tr><td class="num">8</td><td>Anti-alias filter before the Shimmer pitch read</td><td>P1-3</td><td class="num">+0.1 %</td><td>Low</td></tr>
+    <tr><td class="num">9</td><td>Log-frequency sweep for Phaser and Vibe</td><td>P1-4</td><td class="num">~zero</td><td>Medium &mdash; changes the character deliberately</td></tr>
+    <tr><td class="num">10</td><td>Polyphase halfband, <code>tanf</code>/<code>tanhf</code>/<code>exp</code> removal</td><td>P2-1 to P2-4</td><td class="num">negative</td><td>Low &mdash; buys headroom for the rest</td></tr>
+    <tr><td class="num">11</td><td>Tap-position crossfades in Room, Reflections, Magneto</td><td>P1-6</td><td class="num">+0.2 %</td><td>Medium</td></tr>
+    <tr><td class="num">12</td><td>2&times; oversampling on the Spring saturator</td><td>P1-5</td><td class="num">+1.5 to 2 %</td><td>Medium &mdash; the one genuinely expensive item</td></tr>
+    <tr><td class="num">13</td><td>Plate input bandwidth filter and side diffusion</td><td>P1-8</td><td class="num">+0.2 %</td><td>Low</td></tr>
+    <tr><td class="num">14</td><td>Remaining P2 consistency items</td><td>P2-5 to P2-17</td><td class="num">mixed, mostly negative</td><td>Low</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Items 1&ndash;5 are net CPU-neutral or better and together address every P0. If you only do one thing,
+do item 1: it is the largest measurable quality gain in this document and it makes the code faster.
+</p>
+
+<h2>Budget check</h2>
+
+<p>
+Worst case, applying every recommendation including the expensive one (item 12), the reverb slot rises
+from a measured 3.4 % to an estimated 6&ndash;7 % of the callback budget, offset by roughly 1&ndash;2 %
+recovered from item 10. Against a full-tier NAM model at 37.5 % mean and 46.5 % p99.9 at 32 frames plus
+the cabinet IR, that leaves the chain inside its deadline.
+</p>
+
+<p class="note">
+Estimates are instruction counts, not measurements. Re-run the existing
+<code>tests/reverb_quality.cpp</code>, <code>tests/delay_quality.cpp</code> and
+<code>tests/dsp_bench.cpp</code> harnesses on the device after items 1, 7 and 12 before treating any of
+these numbers as settled. The 2026-08-13 benchmark methodology (performance governor, service stopped,
+600k timed callbacks) is the right bar to hold new numbers to.
+</p>
+
+<h2>What was checked and found correct</h2>
+
+<p>
+Recording these so they are not re-litigated:
+</p>
+
+<ul>
+  <li><strong>Control-rate timing is correct.</strong> <code>Fdn::PrepareBlock()</code> and
+      <code>Lfo::PrepareBlock()</code> both assume 48 elapsed samples. <code>controlInterval()</code>
+      returns 96 host frames for half-rate reverbs and 48 otherwise
+      (<code>DaisyFxProcessor.cpp:217-218</code>), so both see exactly 48 of their own samples. The
+      assumption holds, and it is independent of the audio callback size.</li>
+  <li><strong>Denormals are handled.</strong> <code>ScopedDenormalGuard</code> sets FPCR.FZ on AArch64
+      and MXCSR FTZ/DAZ on x86, and restores the previous state. No per-filter denormal guards are needed.</li>
+  <li><strong><code>soft_clip_tanh</code> is C&sup1; continuous at its clamp.</strong> The Pad&eacute;
+      approximant <code>x(27+x&sup2;)/(27+9x&sup2;)</code> has derivative exactly zero at x = 3, so the
+      transition into the hard clamp introduces no slope discontinuity. Well chosen.</li>
+  <li><strong>Hadamard scaling is orthonormal.</strong> 4-line uses 0.5, 8-line composes two 4-line
+      stages with 1/&radic;2, giving 1/&radic;8 overall. Energy-preserving.</li>
+  <li><strong>The Plate read/write ordering is correct.</strong> All output and feedback taps are read
+      before any tank write in the same sample, and <code>d5_.ReadAt(kD5Delay)</code> after
+      <code>d5_.Write()</code> reads past the freshly written sample as the comment claims.</li>
+  <li><strong>The pitch shifter never laps its write head.</strong> The <code>restart</code>
+      compensation at <code>pitch_shifter.cpp:79-83</code> keeps the read pointer 4 samples behind the
+      writer at grain end for ratios above 1, and behind by construction for ratios below 1.</li>
+  <li><strong>Spring's <code>param2</code> thresholds are right.</strong> The 1.4/1.6/2.4/2.6 dead bands
+      look wrong against a normalised control, but <code>PARAM2_SPRING</code> is
+      <code>{1.0f, 3.0f, 0.0f}</code>, so the mode does receive a 1&ndash;3 physical range and all three
+      springs are reachable.</li>
+  <li><strong>Hall's mid-EQ band is where the comment says.</strong> The two one-poles at 0.48 and 0.063
+      form a 249 Hz &ndash; 2.5 kHz band at the 24 kHz tank rate.</li>
+  <li><strong>The delay bank's static/moving tap policy is correct and consistently applied</strong>
+      across all ten modes. This is the pattern the other two families should adopt.</li>
+</ul>
+
+<hr>
+
+<p class="meta">
+Generated 2026-08-14. Sources reviewed: <code>src/daisyfx/hosted/modes/</code> (29 modes),
+<code>src/daisyfx/hosted/dsp/</code> (30 primitives), <code>src/daisyfx/hosted/params/</code>,
+<code>src/daisyfx/DaisyFxProcessor.cpp</code>. Prior measurements from
+<code>benchmark-results/</code> dated 2026-08-13.
+</p>
+
+</div>

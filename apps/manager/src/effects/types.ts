@@ -1,6 +1,7 @@
 export type EffectCategory =
   | "amp"
   | "cabinet"
+  | "drive"
   | "utility"
   | "modulation"
   | "delay"

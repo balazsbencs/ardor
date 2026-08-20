@@ -37,7 +37,9 @@ public:
   bool setCompressorParameter(const std::string& id, const std::string& key, float value);
   bool compressorGainReductionDb(const std::string& id, float& outDb) const;
   bool setNoiseGateParameter(const std::string& id, const std::string& key, float value);
+  bool setTransientShaperParameter(const std::string& id, const std::string& key, float value);
   bool setWahParameter(const std::string& id, const std::string& key, float value);
+  bool setDistortionParameter(const std::string& id, const std::string& key, float value);
   bool setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params);
   bool setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,
                                  const EqPassFilterParams& params);

@@ -26,10 +26,21 @@ public:
                   bool requestParallel, int workerCpu, std::string& error);
   void loadIr(std::vector<float> impulse);
   void addCab(std::vector<float> impulse, float level, float mix, std::string id = "cab");
+  bool addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
+                   float sampleRate, std::string& error);
+  bool setIrReverbParameter(const std::string& id, const std::string& key, float value);
+  bool addStereoWidener(std::string id, float sampleRate, std::string& error);
+  bool setStereoWidenerParameter(const std::string& id, const std::string& key, float value);
   bool addDaisyFx(std::string id, const std::string& blockType, const nlohmann::json& params,
                   float sampleRate, std::string& error);
   bool addCompressor(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool addNoiseGate(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
+  bool addTransientShaper(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
+  // Dispatches on the mode: the RAT and the Big Cheese are both distortion
+  // blocks and share the parameter path below.
+  bool addDistortion(std::string id, const nlohmann::json& params, float sampleRate,
+                     std::string& error);
+  bool setDistortionParameter(const std::string& id, const std::string& key, float value);
   bool addWah(std::string id, const nlohmann::json& params, float sampleRate,
               const std::filesystem::path& tablePath, std::string& error);
   bool addParametricEq(const std::string& id, const nlohmann::json& params, float sampleRate, std::string& error);
@@ -41,6 +52,7 @@ public:
   // 0.0 if `id` does not name a live compressor block.
   float compressorGainReductionDb(const std::string& id) const;
   bool setNoiseGateParameter(const std::string& id, const std::string& key, float value);
+  bool setTransientShaperParameter(const std::string& id, const std::string& key, float value);
   bool setWahParameter(const std::string& id, const std::string& key, float value);
   bool setBlockEnabled(const std::string& id, bool enabled);
   void prepareBlockSize(size_t frames);

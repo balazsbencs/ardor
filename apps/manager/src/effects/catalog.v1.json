@@ -90,6 +90,75 @@
       ]
     },
     {
+      "id": "irreverb",
+      "blockType": "irreverb",
+      "name": "Convolution Reverb",
+      "description": "True convolution reverb driven by a room, plate or hall impulse response.",
+      "category": "reverb",
+      "aliases": [
+        "ir reverb",
+        "convolution",
+        "impulse reverb"
+      ],
+      "controls": [
+        {
+          "kind": "asset",
+          "label": "Reverb IR",
+          "assetKind": "irs"
+        },
+        {
+          "kind": "number",
+          "key": "mix",
+          "label": "Mix",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.35
+        },
+        {
+          "kind": "number",
+          "key": "levelDb",
+          "label": "Level",
+          "minimum": -60,
+          "maximum": 12,
+          "step": 1,
+          "unit": "db",
+          "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "preDelayMs",
+          "label": "Pre-delay",
+          "minimum": 0,
+          "maximum": 500,
+          "step": 1,
+          "unit": "ms",
+          "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "lowCutHz",
+          "label": "Low Cut",
+          "minimum": 20,
+          "maximum": 2000,
+          "step": 10,
+          "unit": "hz",
+          "defaultValue": 20
+        },
+        {
+          "kind": "number",
+          "key": "highCutHz",
+          "label": "High Cut",
+          "minimum": 500,
+          "maximum": 20000,
+          "step": 100,
+          "unit": "hz",
+          "defaultValue": 20000
+        }
+      ]
+    },
+    {
       "id": "dualAmp",
       "blockType": "dualAmp",
       "name": "Dual Amp",
@@ -490,6 +559,62 @@
       ]
     },
     {
+      "id": "dynamics:transient_shaper",
+      "blockType": "dynamics",
+      "mode": "transient_shaper",
+      "name": "Transient Shaper",
+      "description": "Threshold-free attack and sustain shaping that reads the envelope, not the level.",
+      "category": "utility",
+      "aliases": [
+        "transient designer",
+        "attack",
+        "sustain",
+        "punch"
+      ],
+      "controls": [
+        {
+          "kind": "number",
+          "key": "attack",
+          "label": "Attack",
+          "minimum": -100,
+          "maximum": 100,
+          "step": 1,
+          "unit": "percent",
+          "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "sustain",
+          "label": "Sustain",
+          "minimum": -100,
+          "maximum": 100,
+          "step": 1,
+          "unit": "percent",
+          "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "mix",
+          "label": "Mix",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "ratio",
+          "defaultValue": 1
+        },
+        {
+          "kind": "number",
+          "key": "output_db",
+          "label": "Output",
+          "minimum": -24,
+          "maximum": 24,
+          "step": 0.5,
+          "unit": "db",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
       "id": "eq:parametric_eq_5",
       "blockType": "eq",
       "mode": "parametric_eq_5",
@@ -504,6 +629,60 @@
       "controls": [
         {
           "kind": "parametric-eq-5"
+        }
+      ]
+    },
+    {
+      "id": "stereo:widener",
+      "blockType": "stereo",
+      "name": "Stereo Widener",
+      "description": "Mid/side width with the low end centred and a mono-safe side delay.",
+      "category": "utility",
+      "aliases": [
+        "width",
+        "stereo image",
+        "mid side"
+      ],
+      "controls": [
+        {
+          "kind": "number",
+          "key": "width",
+          "label": "Width",
+          "minimum": 0,
+          "maximum": 2,
+          "step": 0.05,
+          "unit": "ratio",
+          "defaultValue": 1
+        },
+        {
+          "kind": "number",
+          "key": "delayMs",
+          "label": "Side Delay",
+          "minimum": 0,
+          "maximum": 30,
+          "step": 0.5,
+          "unit": "ms",
+          "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "bassMonoHz",
+          "label": "Bass Mono",
+          "minimum": 0,
+          "maximum": 500,
+          "step": 10,
+          "unit": "hz",
+          "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "levelDb",
+          "label": "Level",
+          "minimum": -24,
+          "maximum": 12,
+          "step": 1,
+          "unit": "db",
+          "defaultValue": 0
         }
       ]
     },
@@ -539,6 +718,100 @@
           "step": 1,
           "unit": "db",
           "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "id": "distortion:rat",
+      "blockType": "distortion",
+      "mode": "rat",
+      "name": "RAT Distortion",
+      "description": "Circuit model of the ProCo RAT, slew-limited LM308 and all. Filter runs backwards: turn it up for less treble.",
+      "category": "drive",
+      "aliases": [
+        "rat",
+        "proco",
+        "distortion",
+        "lm308",
+        "dirt"
+      ],
+      "controls": [
+        {
+          "kind": "number",
+          "key": "distortion",
+          "label": "Distortion",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "filter",
+          "label": "Filter",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "volume",
+          "label": "Volume",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.7
+        }
+      ]
+    },
+    {
+      "id": "distortion:big_cheese",
+      "blockType": "distortion",
+      "mode": "big_cheese",
+      "name": "Big Cheese Fuzz",
+      "description": "Circuit model of the Lovetone Big Cheese: a two-transistor feedback fuzz into asymmetric clipping and a Big Muff tone stack.",
+      "category": "drive",
+      "aliases": [
+        "big cheese",
+        "lovetone",
+        "fuzz",
+        "muff",
+        "tone bender"
+      ],
+      "controls": [
+        {
+          "kind": "number",
+          "key": "fuzz",
+          "label": "Fuzz",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.7
+        },
+        {
+          "kind": "number",
+          "key": "tone",
+          "label": "Tone",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "volume",
+          "label": "Volume",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.7
         }
       ]
     },
@@ -1724,6 +1997,93 @@
           "minimum": 0,
           "maximum": 1,
           "step": 0.052632,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "level",
+          "label": "Level",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:harmonizer",
+      "blockType": "mod",
+      "mode": "harmonizer",
+      "name": "Harmonizer",
+      "description": "Key-aware harmoniser: shifts by scale degrees so a third follows the key.",
+      "category": "modulation",
+      "aliases": [
+        "diatonic harmony",
+        "pitch harmony",
+        "intelligent harmony"
+      ],
+      "constraintGroup": "mod",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "kind": "number",
+          "key": "speed",
+          "label": "Tracking",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.35
+        },
+        {
+          "kind": "number",
+          "key": "depth",
+          "label": "Scale",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.2,
+          "unit": "percent",
+          "defaultValue": 0.7
+        },
+        {
+          "kind": "number",
+          "key": "mix",
+          "label": "Mix",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "tone",
+          "label": "Tone",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "p1",
+          "label": "Interval",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.1,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "p2",
+          "label": "Key",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.083333,
           "unit": "percent",
           "defaultValue": 0.0
         },

@@ -50,11 +50,15 @@ struct RuntimeChain::Block {
   enum class Kind {
     Nam,
     Cab,
+    IrReverb,
+    StereoWidener,
     Daisy,
     Compressor,
     NoiseGate,
+    TransientShaper,
     Equalizer,
     Wah,
+    Distortion,
     DualAmp,
     DualRig
   };
@@ -63,11 +67,16 @@ struct RuntimeChain::Block {
   std::string id;
   std::unique_ptr<NamProcessor> nam;
   std::unique_ptr<IrConvolver> cab;
+  std::unique_ptr<IrReverbProcessor> irReverb;
+  std::unique_ptr<StereoWidenerProcessor> stereoWidener;
   std::unique_ptr<DaisyFxProcessor> daisy;
   std::unique_ptr<CompressorProcessor> compressor;
   std::unique_ptr<NoiseGateProcessor> noiseGate;
+  std::unique_ptr<TransientShaperProcessor> transientShaper;
   std::unique_ptr<ParametricEqProcessor> equalizer;
   std::unique_ptr<WahProcessor> wah;
+  std::unique_ptr<RatProcessor> distortion;
+  std::unique_ptr<CheeseProcessor> fuzz;
   std::unique_ptr<DualAmpProcessor> dualAmp;
   std::unique_ptr<DualRigProcessor> dualRig;
   std::unique_ptr<LevelState> meter = std::make_unique<LevelState>();
@@ -187,6 +196,64 @@ void RuntimeChain::addCab(std::vector<float> impulse, float level, float mix, st
   blocks_.push_back(std::move(block));
 }
 
+bool RuntimeChain::addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
+                               float sampleRate, std::string& error)
+{
+  auto reverb = std::make_unique<IrReverbProcessor>();
+  if (!reverb->load(std::move(left), std::move(right), sampleRate, error)) {
+    return false;
+  }
+
+  Block block;
+  block.kind = Block::Kind::IrReverb;
+  block.id = std::move(id);
+  block.irReverb = std::move(reverb);
+  blocks_.push_back(std::move(block));
+  return true;
+}
+
+bool RuntimeChain::setIrReverbParameter(const std::string& id, const std::string& key, float value)
+{
+  for (auto& block : blocks_) {
+    if (block.kind != Block::Kind::IrReverb || block.id != id) continue;
+    if (key == "mix") block.irReverb->setMix(value);
+    else if (key == "levelDb") block.irReverb->setLevelDb(value);
+    else if (key == "preDelayMs") block.irReverb->setPreDelayMs(value);
+    else if (key == "lowCutHz") block.irReverb->setLowCutHz(value);
+    else if (key == "highCutHz") block.irReverb->setHighCutHz(value);
+    else return false;
+    return true;
+  }
+  return false;
+}
+
+bool RuntimeChain::addStereoWidener(std::string id, float sampleRate, std::string& error)
+{
+  auto widener = std::make_unique<StereoWidenerProcessor>();
+  if (!widener->prepare(sampleRate, error)) return false;
+
+  Block block;
+  block.kind = Block::Kind::StereoWidener;
+  block.id = std::move(id);
+  block.stereoWidener = std::move(widener);
+  blocks_.push_back(std::move(block));
+  return true;
+}
+
+bool RuntimeChain::setStereoWidenerParameter(const std::string& id, const std::string& key, float value)
+{
+  for (auto& block : blocks_) {
+    if (block.kind != Block::Kind::StereoWidener || block.id != id) continue;
+    if (key == "width") block.stereoWidener->setWidth(value);
+    else if (key == "delayMs") block.stereoWidener->setDelayMs(value);
+    else if (key == "bassMonoHz") block.stereoWidener->setBassMonoHz(value);
+    else if (key == "levelDb") block.stereoWidener->setLevelDb(value);
+    else return false;
+    return true;
+  }
+  return false;
+}
+
 void RuntimeChain::addDaisy(std::string id, DaisyFxProcessor processor)
 {
   Block block;
@@ -263,6 +330,27 @@ bool RuntimeChain::setNoiseGateParameter(const std::string& id, const std::strin
   return false;
 }
 
+void RuntimeChain::addTransientShaper(std::string id, TransientShaperProcessor processor)
+{
+  Block block;
+  block.kind = Block::Kind::TransientShaper;
+  block.id = std::move(id);
+  block.transientShaper = std::make_unique<TransientShaperProcessor>(std::move(processor));
+  blocks_.push_back(std::move(block));
+}
+
+bool RuntimeChain::setTransientShaperParameter(const std::string& id, const std::string& key, float value)
+{
+  for (auto& block : blocks_) {
+    if (block.kind == Block::Kind::TransientShaper && block.id == id) {
+      return block.transientShaper->setParameterTarget(key, value);
+    }
+    if (block.kind == Block::Kind::DualRig
+        && block.dualRig->setTransientShaperParameter(id, key, value)) return true;
+  }
+  return false;
+}
+
 void RuntimeChain::addWah(std::string id, WahProcessor processor)
 {
   Block block;
@@ -280,6 +368,37 @@ bool RuntimeChain::setWahParameter(const std::string& id, const std::string& key
     }
     if (block.kind == Block::Kind::DualRig
         && block.dualRig->setWahParameter(id, key, value)) return true;
+  }
+  return false;
+}
+
+void RuntimeChain::addDistortion(std::string id, RatProcessor processor)
+{
+  Block block;
+  block.kind = Block::Kind::Distortion;
+  block.id = std::move(id);
+  block.distortion = std::make_unique<RatProcessor>(std::move(processor));
+  blocks_.push_back(std::move(block));
+}
+
+void RuntimeChain::addDistortion(std::string id, CheeseProcessor processor)
+{
+  Block block;
+  block.kind = Block::Kind::Distortion;
+  block.id = std::move(id);
+  block.fuzz = std::make_unique<CheeseProcessor>(std::move(processor));
+  blocks_.push_back(std::move(block));
+}
+
+bool RuntimeChain::setDistortionParameter(const std::string& id, const std::string& key, float value)
+{
+  for (auto& block : blocks_) {
+    if (block.kind == Block::Kind::Distortion && block.id == id) {
+      return block.distortion ? block.distortion->setParameterTarget(key, value)
+                              : block.fuzz->setParameterTarget(key, value);
+    }
+    if (block.kind == Block::Kind::DualRig
+        && block.dualRig->setDistortionParameter(id, key, value)) return true;
   }
   return false;
 }
@@ -363,6 +482,12 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
       current = {mixed, mixed};
       break;
     }
+    case Block::Kind::IrReverb:
+      current = block.irReverb->process(current);
+      break;
+    case Block::Kind::StereoWidener:
+      current = block.stereoWidener->process(current);
+      break;
     case Block::Kind::Daisy:
       current = block.daisy->process(current);
       break;
@@ -372,11 +497,18 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
     case Block::Kind::NoiseGate:
       current = block.noiseGate->process(current);
       break;
+    case Block::Kind::TransientShaper:
+      current = block.transientShaper->process(current);
+      break;
     case Block::Kind::Equalizer:
       block.equalizer->process(current.left, current.right);
       break;
     case Block::Kind::Wah:
       current = block.wah->process(current);
+      break;
+    case Block::Kind::Distortion:
+      current = block.distortion ? block.distortion->process(current)
+                                 : block.fuzz->process(current);
       break;
     case Block::Kind::DualAmp:
       block.dualAmp->process(current.left, current.right, current.left, current.right);
@@ -453,6 +585,24 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       currentIsStereo = false;
       break;
     }
+    case Block::Kind::IrReverb:
+      // The processor buffers internally to its own partition size, so a
+      // per-sample loop here costs nothing extra and keeps both paths identical.
+      for (size_t i = 0; i < frames; ++i) {
+        const auto processed = block.irReverb->process({currentLeft[i], currentRight[i]});
+        nextLeft[i] = processed.left;
+        nextRight[i] = processed.right;
+      }
+      currentIsStereo = true;
+      break;
+    case Block::Kind::StereoWidener:
+      for (size_t i = 0; i < frames; ++i) {
+        const auto processed = block.stereoWidener->process({currentLeft[i], currentRight[i]});
+        nextLeft[i] = processed.left;
+        nextRight[i] = processed.right;
+      }
+      currentIsStereo = true;
+      break;
     case Block::Kind::Daisy:
       for (size_t i = 0; i < frames; ++i) {
         const auto processed = block.daisy->process({currentLeft[i], currentRight[i]});
@@ -475,6 +625,13 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
         nextRight[i] = processed.right;
       }
       break;
+    case Block::Kind::TransientShaper:
+      for (size_t i = 0; i < frames; ++i) {
+        const auto processed = block.transientShaper->process({currentLeft[i], currentRight[i]});
+        nextLeft[i] = processed.left;
+        nextRight[i] = processed.right;
+      }
+      break;
     case Block::Kind::Equalizer:
       block.equalizer->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);
       currentIsStereo = true;
@@ -485,6 +642,17 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
         nextLeft[i] = processed.left;
         nextRight[i] = processed.right;
       }
+      currentIsStereo = false;
+      break;
+    case Block::Kind::Distortion:
+      for (size_t i = 0; i < frames; ++i) {
+        const StereoSample input{currentLeft[i], currentRight[i]};
+        const auto processed =
+          block.distortion ? block.distortion->process(input) : block.fuzz->process(input);
+        nextLeft[i] = processed.left;
+        nextRight[i] = processed.right;
+      }
+      // The pedal is mono, so both channels carry the same signal from here.
       currentIsStereo = false;
       break;
     case Block::Kind::DualAmp:
@@ -576,6 +744,12 @@ std::vector<ClipStageSnapshot> RuntimeChain::takeClipDiagnostics()
     case Block::Kind::Cab:
       kind = SignalStageKind::Cab;
       break;
+    case Block::Kind::IrReverb:
+      kind = SignalStageKind::IrReverb;
+      break;
+    case Block::Kind::StereoWidener:
+      kind = SignalStageKind::StereoWidener;
+      break;
     case Block::Kind::Daisy:
       kind = SignalStageKind::Daisy;
       break;
@@ -585,11 +759,17 @@ std::vector<ClipStageSnapshot> RuntimeChain::takeClipDiagnostics()
     case Block::Kind::NoiseGate:
       kind = SignalStageKind::NoiseGate;
       break;
+    case Block::Kind::TransientShaper:
+      kind = SignalStageKind::TransientShaper;
+      break;
     case Block::Kind::Equalizer:
       kind = SignalStageKind::Equalizer;
       break;
     case Block::Kind::Wah:
       kind = SignalStageKind::Wah;
+      break;
+    case Block::Kind::Distortion:
+      kind = SignalStageKind::Distortion;
       break;
     case Block::Kind::DualAmp:
       kind = SignalStageKind::DualAmp;
@@ -621,11 +801,20 @@ void RuntimeChain::reset()
     if (block.noiseGate) {
       block.noiseGate->reset();
     }
+    if (block.transientShaper) {
+      block.transientShaper->reset();
+    }
     if (block.equalizer) {
       block.equalizer->reset();
     }
     if (block.wah) {
       block.wah->reset();
+    }
+    if (block.distortion) {
+      block.distortion->reset();
+    }
+    if (block.fuzz) {
+      block.fuzz->reset();
     }
     if (block.dualAmp) {
       block.dualAmp->reset();

@@ -18,6 +18,7 @@ public:
         clock_increment_ = 0.0f;
         input_lp_k_ = -1.0f;
         deemphasis_k_ = 0.45f;
+        saturator_.Reset();
     }
 
     void SetInputLpK(float k) {
@@ -69,9 +70,15 @@ public:
         // omitted the |x| >= 3 clamp, and beyond that point the bare Padé
         // approximant grows without bound (asymptotically x/9) instead of
         // limiting, so loud transients passed through with the wrong harmonics.
+        // Drive multiplies by up to eight, which is far enough past the curve's
+        // knee for the harmonics it makes to fold back audibly: measured on a
+        // 5 kHz tone, the plain shaper aliases at -19 dBc there. Every other
+        // caller of the shared curve leaves its input near unity, where the
+        // same measurement reads -70 dBc and none of this is worth paying for.
+        // This one is, so it takes the anti-aliased form.
         const float drive = 1.0f + drive_amount * drive_amount * 7.0f;
         const float x = lp2_ * drive + noise + whine;
-        const float sat = soft_clip_tanh(x);
+        const float sat = saturator_.Process(x);
         // Compensate the input gain so Drive changes harmonic density and
         // compression rather than redefining loop gain or output loudness.
         return sat / drive;
@@ -93,6 +100,7 @@ private:
     float clock_increment_ = 0.0f;
     float input_lp_k_ = -1.0f;
     float deemphasis_k_ = 0.45f;
+    AntiAliasedSoftClip saturator_;
 };
 
 } // namespace pedal

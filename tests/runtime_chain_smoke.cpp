@@ -254,6 +254,23 @@ int main()
   }
   require(near(compressorDry.left, 0.5f), "compressor bypass should return dry audio");
 
+  ardor::PedalEngine transientShaperEngine;
+  require(transientShaperEngine.addTransientShaper("transient-shaper", {
+    {"attack", 100.0f}, {"sustain", 0.0f}, {"mix", 1.0f}, {"output_db", 0.0f},
+  }, 48000.0f, error), error);
+  require(transientShaperEngine.setTransientShaperParameter("transient-shaper", "sustain", -50.0f),
+          "target transient shaper by stable ID");
+  require(!transientShaperEngine.setTransientShaperParameter("missing", "attack", 10.0f),
+          "missing transient shaper ID rejected");
+  require(!transientShaperEngine.setTransientShaperParameter("transient-shaper", "nonsense", 1.0f),
+          "unknown transient shaper parameter rejected");
+  float shapedOutput = 0.0f;
+  for (int i = 0; i < 48000; ++i) {
+    shapedOutput = transientShaperEngine.process(i % 2 == 0 ? 0.5f : -0.5f).first;
+  }
+  require(std::fabs(std::fabs(shapedOutput) - 0.5f) < 0.01f,
+          "a held tone carries no transient, so the shaper must leave it alone");
+
   ardor::PedalEngine noiseGateEngine;
   require(noiseGateEngine.addNoiseGate("noise-gate", {
     {"threshold_db", -20.0f}, {"reduction_db", 80.0f}, {"attack_ms", 1.0f},

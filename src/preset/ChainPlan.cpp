@@ -13,7 +13,8 @@ namespace {
 
 bool isSupportedBlockType(const std::string& type)
 {
-  return type == "nam" || type == "cab" || type == "dualAmp" || type == "dualRig";
+  return type == "nam" || type == "cab" || type == "irreverb" || type == "stereo"
+      || type == "dualAmp" || type == "dualRig";
 }
 
 bool isDaisyBlockType(const std::string& type)
@@ -30,12 +31,19 @@ bool isSupportedDynamicsBlock(const std::string& type, const nlohmann::json& par
 {
   if (type != "dynamics") return false;
   const auto mode = params.value("mode", "");
-  return mode == "compressor" || mode == "noise_gate";
+  return mode == "compressor" || mode == "noise_gate" || mode == "transient_shaper";
 }
 
 bool isSupportedEqBlock(const std::string& type, const nlohmann::json& params)
 {
   return type == "eq" && isParametricEqMode(params);
+}
+
+bool isSupportedDistortionBlock(const std::string& type, const nlohmann::json& params)
+{
+  if (type != "distortion") return false;
+  const auto mode = params.value("mode", std::string{"rat"});
+  return mode == "rat" || mode == "big_cheese";
 }
 
 bool isSupportedWahBlock(const std::string& type, const nlohmann::json& params)
@@ -148,6 +156,13 @@ ChainBlockPlan buildBlockPlan(const PresetBlock& block, const std::filesystem::p
     } else {
       blockPlan.status = ChainBlockStatus::Unsupported;
     }
+  } else if (block.type == "distortion") {
+    if (isSupportedDistortionBlock(block.type, blockPlan.params)) {
+      blockPlan.status = ChainBlockStatus::Ready;
+      ++runnableBlockCount;
+    } else {
+      blockPlan.status = ChainBlockStatus::Unsupported;
+    }
   } else if (block.type == "wah") {
     if (!isSupportedWahBlock(block.type, blockPlan.params)) {
       blockPlan.status = ChainBlockStatus::Unsupported;
@@ -162,6 +177,11 @@ ChainBlockPlan buildBlockPlan(const PresetBlock& block, const std::filesystem::p
     }
   } else if (!isSupportedBlockType(block.type)) {
     blockPlan.status = ChainBlockStatus::Unsupported;
+  } else if (block.type == "stereo") {
+    // The widener reads no file. Every other supported type below resolves an
+    // asset, so it has to leave the chain before that check.
+    blockPlan.status = ChainBlockStatus::Ready;
+    ++runnableBlockCount;
   } else if (block.asset.empty() || !isValidBlockAssetPath(block.asset)) {
     blockPlan.status = ChainBlockStatus::MissingAsset;
   } else {

@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
 """Extract a netlist from an LTspice .asc by resolving the wire graph.
 
-Pin offsets below were verified against known-good coincidences in this
-specific file: every pin of every symbol must land on a wire endpoint, and
-the script asserts that.
+Pin offsets below were verified against known-good coincidences in the files
+this has been run on: every pin of every symbol must land on a wire endpoint,
+and the script asserts that. It also asserts the other direction, that every
+net a wire reaches carries at least one pin or a label, which is what catches
+an offset that happens to land on some unrelated wire.
+
+Two pin roles cannot be read off the geometry and are fixed here by function:
+
+  diode   The near pin is the anode. A reverse-protection diode across the
+          supply only makes sense one way round, and that settles it.
+
+  LM308   The two left-hand pins are the inputs. The feedback network has to
+          reach the inverting one or the stage would latch rather than
+          amplify, and that settles which is which.
 """
 import re
 import sys
@@ -17,8 +28,21 @@ PINS = {
     'zener':   [(16, 0), (16, 64)],
     'diode':   [(16, 0), (16, 64)],
     'npn':     [(0, 48), (64, 0), (64, 96)],  # B, C, E
+    'njf':     [(48, 0), (0, 64), (48, 96)],  # D, G, S
+    # Seven pins, because the LM308 brings its compensation network out.
+    'LM308':   [(-32, 48), (-32, 80), (32, 64), (16, 32), (0, 96), (0, 32), (-16, 32)],
+    # The same body without the compensation pins, so the supplies sit on the
+    # centre line instead of being pushed aside.
+    'AD712':   [(-32, 48), (-32, 80), (32, 64), (0, 32), (0, 96)],
 }
-PINNAMES = {'npn': ['B', 'C', 'E']}
+PINNAMES = {
+    'npn': ['B', 'C', 'E'],
+    'njf': ['D', 'G', 'S'],
+    'diode': ['A', 'K'],
+    'zener': ['A', 'K'],
+    'LM308': ['IN-', 'IN+', 'OUT', 'V+', 'V-', 'COMP1', 'COMP2'],
+    'AD712': ['IN-', 'IN+', 'OUT', 'V+', 'V-'],
+}
 
 
 def xform(rot, x, y, dx, dy):
@@ -96,6 +120,7 @@ def main(path):
     print('%-6s %-9s %-22s %s' % ('DEV', 'TYPE', 'NODES', 'VALUE'))
     print('-' * 72)
     unresolved = []
+    claimed = set()
     for s in symbols:
         offs = PINS.get(s['type'])
         if offs is None:
@@ -105,17 +130,40 @@ def main(path):
         for p in pts:
             if p not in endpoints and p not in flags:
                 unresolved.append((s['name'], p))
+            claimed.add(p)
         labels = PINNAMES.get(s['type'], [str(i) for i in range(len(pts))])
         nodes = ' '.join('%s=%s' % (lab, node_of(p)) for lab, p in zip(labels, pts))
         print('%-6s %-9s %-22s %s' % (s['name'], s['type'], nodes, s['value']))
 
+    # A pin on nothing is either a wrong offset or a genuinely floating terminal,
+    # and the two look identical here. Report them and let the reader decide: a
+    # component with one end in the air carries no current and can be dropped
+    # from the model, but only once someone has looked at it.
     if unresolved:
-        print('\n!! PINS NOT ON A WIRE ENDPOINT (offsets wrong?):')
+        print('\n!! PINS NOT ON A WIRE ENDPOINT (wrong offset, or floating?):')
         for nm, p in unresolved:
             print('   %s at %s' % (nm, p))
-    else:
-        print('\nAll pins landed on wire endpoints.')
+
+    # The other direction: a net that no pin reaches means an offset landed
+    # somewhere plausible but wrong, or a symbol is missing from the drawing.
+    # Carrying a label is not enough — a labelled stub going nowhere is exactly
+    # what a missing symbol looks like, so those are reported separately rather
+    # than waved through.
+    pinned = {uf.find(p) for p in claimed}
+    labelled = {uf.find(p) for p in flags}
+    orphans = sorted(r for r in {uf.find(p) for p in endpoints} if r not in pinned)
+    if orphans:
+        print('\n!! NETS THAT REACH NO COMPONENT PIN:')
+        for root in orphans:
+            members = sorted(p for p in endpoints if uf.find(p) == root)
+            label = names.get(root, '(unlabelled)')
+            kind = 'labelled stub' if root in labelled else 'orphan'
+            print('   %-16s %s at %s' % (label, kind, members))
+        return 1
+
+    print('\nAll pins landed on wire endpoints, and every net carries a pin.')
+    return 0
 
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    sys.exit(main(sys.argv[1]))

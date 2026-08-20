@@ -18,8 +18,12 @@ define ARDOR_PEDAL_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 0644 $(BR2_EXTERNAL_ARDOR_PEDAL_PATH)/board/ardor-pedal/codec-zero.state \
 		$(TARGET_DIR)/etc/ardor-codec-zero.state
 	$(INSTALL) -d -m 0755 $(TARGET_DIR)/opt/ardor-pedal
+	# /opt/ardor-pedal is the mount point of the writable data partition, so
+	# anything installed under it here is shadowed at run time and never seen.
+	# Circuit tables ship on the read-only root instead; S99ardor-pedal copies
+	# them into the data partition whenever one is missing.
 	$(INSTALL) -D -m 0644 $(@D)/assets/wah/gcb95.wahtable \
-		$(TARGET_DIR)/opt/ardor-pedal/assets/wah/gcb95.wahtable
+		$(TARGET_DIR)/usr/share/ardor-pedal/assets/wah/gcb95.wahtable
 endef
 
 $(eval $(cmake-package))
