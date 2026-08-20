@@ -388,7 +388,16 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       continue;
     }
     if (block.type == "distortion") {
-      if (block.params.value("mode", std::string{"rat"}) == "big_cheese") {
+      const auto distortionMode = block.params.value("mode", std::string{"rat"});
+      if (distortionMode == "tape") {
+        TapeProcessor processor;
+        if (!processor.configure(block.params, static_cast<float>(options.sampleRate), error)) {
+          return false;
+        }
+        chain.addDistortion(block.id, std::move(processor));
+        continue;
+      }
+      if (distortionMode == "big_cheese") {
         CheeseProcessor processor;
         if (!processor.configure(block.params, static_cast<float>(options.sampleRate), error)) {
           return false;

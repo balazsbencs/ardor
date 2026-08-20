@@ -43,7 +43,7 @@ bool isSupportedDistortionBlock(const std::string& type, const nlohmann::json& p
 {
   if (type != "distortion") return false;
   const auto mode = params.value("mode", std::string{"rat"});
-  return mode == "rat" || mode == "big_cheese";
+  return mode == "rat" || mode == "big_cheese" || mode == "tape";
 }
 
 bool isSupportedWahBlock(const std::string& type, const nlohmann::json& params)

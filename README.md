@@ -1,8 +1,8 @@
 # Ardor Pedal
 
 Ardor is a standalone Raspberry Pi guitar-processing platform with a realtime
-audio engine, touchscreen/footswitch UI, preset storage, desktop manager, and a
-reproducible Buildroot firmware image.
+audio engine, touchscreen/footswitch UI, preset storage, a browser-based manager
+served by the device, and a reproducible Buildroot firmware image.
 
 The signal chain supports Neural Amp Modeler `.nam` files, cabinet impulse
 responses, 35 hosted modulation/delay/reverb effects, compression, noise
@@ -28,8 +28,8 @@ vulnerabilities should be reported privately according to
 - Git access during CMake configure, for `miniaudio` and `NeuralAmpModelerCore`
 - SDL2 for the LVGL desktop simulator (`ARDOR_UI_BACKEND=sdl`)
 - macOS for desktop testing, or Linux for target-style builds
-- Optional: Go for the manager daemon, Node.js 24 via `nvm use`/Rust for the Tauri manager, and
-  Docker for the Buildroot firmware image
+- Optional: Go for the manager daemon, Node.js 24 via `nvm use` for the manager
+  web app, and Docker for the Buildroot firmware image
 - Local test assets:
   - `models/test.nam`
   - `irs/test.wav`
@@ -440,7 +440,7 @@ curl http://127.0.0.1:8080/api/device
 
 The daemon also serves a device-hosted build of the React manager from `/`.
 When loaded from the daemon, the manager connects to the same origin
-automatically, so a browser can manage the pedal without the Tauri application:
+automatically, so any browser on the network can manage the pedal:
 
 ```sh
 cd apps/manager
@@ -516,28 +516,25 @@ cookies; state-changing browser requests also require the exact public Origin.
 Hosted preset save/apply requests carry UUID idempotency keys; completed
 responses and audit events are persisted in the same SQLite transaction.
 
-## Desktop Manager
+## Manager Web App
 
-The Tauri desktop manager in `apps/manager` connects to `ardor-managerd` and
-provides bank/slot browsing, drag-and-drop chain editing, block validation and
+The React manager in `apps/manager` connects to `ardor-managerd` and provides
+bank/slot browsing, drag-and-drop chain editing, block validation and
 inspection, undo/redo, Save/Apply, asset upload/rename/delete, and light/dark
-themes.
+themes. The device serves it over LAN HTTP, so no installation is needed. There
+is no desktop application.
 
-Supported desktop-manager targets are Apple Silicon and Intel macOS, and
-Windows x64. Linux builds of the Tauri manager are not supported or released;
-Linux support applies to the headless engine, manager daemon, and firmware
-tooling.
+Run the app against a device during development:
 
 ```sh
 cd apps/manager
 npm install
-npm run tauri dev
+npm run dev
 ```
 
-Optional TONE3000 integration can browse and install NAM captures directly on
-the connected pedal. Copy `apps/manager/.env.example` to `.env`, add a
-publishable TONE3000 client ID, and register the callback URL documented in the
-example file.
+TONE3000 browsing of NAM captures is part of the hosted control-plane build.
+The control plane holds the TONE3000 credentials; see
+`services/controlplane/README.md`.
 
 For local testing, run the Go daemon with auth disabled and use
 `http://127.0.0.1:8080` as the manager base URL:

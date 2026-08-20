@@ -3,6 +3,7 @@
 #include "dsp/PedalEngine.h"
 #include "dsp/RuntimeChain.h"
 #include "equalizer/EqParameters.h"
+#include "tape/TapeProcessor.h"
 
 #include <array>
 #include <cmath>
@@ -290,6 +291,35 @@ int main()
     gatedOutput = std::fabs(noiseGateEngine.process(i % 2 == 0 ? 0.5f : -0.5f).first);
   }
   require(gatedOutput > 0.49f, "noise gate should pass above-threshold input");
+
+  // A tape block must load through the distortion family, process, and take a
+  // live parameter change — the same contract the rat and cheese blocks meet.
+  {
+    ardor::RuntimeChain tapeChain;
+    ardor::TapeProcessor tape;
+    std::string tapeError;
+    nlohmann::json tapeParams;
+    tapeParams["mode"] = "tape";
+    tapeParams["drive"] = 6.0f;
+    require(tape.configure(tapeParams, 48000.0f, tapeError), "tape must configure: " + tapeError);
+    tapeChain.addDistortion("tape-1", std::move(tape));
+
+    require(tapeChain.setDistortionParameter("tape-1", "drive", 12.0f),
+            "a live drive change must reach the tape block");
+    require(!tapeChain.setDistortionParameter("tape-1", "speed", 30.0f),
+            "speed is a load-time choice, not a live control");
+    require(!tapeChain.setDistortionParameter("missing", "drive", 0.0f),
+            "an unknown block id must be rejected");
+
+    for (int i = 0; i < 4096; ++i) {
+      const float t = static_cast<float>(i) / 48000.0f;
+      const float in = 0.4f * std::sin(6.28318530718f * 220.0f * t);
+      const auto out = tapeChain.process({in, in});
+      require(std::isfinite(out.left) && std::isfinite(out.right),
+              "the tape block must stay finite in the chain");
+    }
+    tapeChain.reset();
+  }
 
   engine.setEffectsBypassed(true);
   ardor::StereoSample dry{};

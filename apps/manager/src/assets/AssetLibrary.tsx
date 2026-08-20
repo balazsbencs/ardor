@@ -1,20 +1,12 @@
 import { FileAudio, Music2, Pencil, Trash2, Upload } from "lucide-react";
-import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 
 import type { Asset, AssetKind } from "../api/types";
 import { ArdorApiError } from "../api/errors";
 import { Button, IconButton, StatusBadge } from "../components/ui";
 import { ConfirmPopover } from "../components/ConfirmPopover";
 import { useDeviceSession } from "../connection/deviceSession";
-import {
-  completeTone3000Selection,
-  createTone3000SelectUrl,
-  downloadTone3000Model,
-  TONE3000_REDIRECT_URI,
-  tone3000Configured,
-  type Tone3000Selection,
-} from "../tone3000/client";
-import { cancelTone3000, onTone3000Callback, openTone3000, tone3000NativeAvailable } from "../tone3000/native";
+import type { Tone3000Selection } from "../tone3000/types";
 import { Tone3000Brand } from "../tone3000/Tone3000Brand";
 import type { Tone3000Phase } from "../tone3000/Tone3000Dialog";
 import {
@@ -50,12 +42,11 @@ export function AssetLibrary({ tone3000DeviceId }: { tone3000DeviceId?: string }
   const [tone3000Architecture, setTone3000Architecture] = useState<Tone3000Architecture>("legacy");
   const [tone3000FlowId, setTone3000FlowId] = useState<string>();
   const fileRef = useRef<HTMLInputElement>(null);
-  const processedDeepLinks = useRef(new Set<string>());
   const hostedFlowGeneration = useRef(0);
   const hostedPopup = useRef<Window | null>(null);
   const assets = kind === "models" ? session.models : session.irs;
   const visible = assets.filter((asset) => asset.filename.toLowerCase().includes(query.toLowerCase()));
-  const tone3000Available = hostedCloud ? tone3000DeviceId !== undefined : tone3000NativeAvailable() && tone3000Configured();
+  const tone3000Available = hostedCloud && tone3000DeviceId !== undefined;
   const allVisibleSelected = visible.length > 0 && visible.every((asset) => selected.has(asset.id));
 
   // ponytail: any list change (tab switch, upload, rename) just drops the selection.
@@ -176,87 +167,44 @@ export function AssetLibrary({ tone3000DeviceId }: { tone3000DeviceId?: string }
     }
   };
 
-  const processTone3000Callback = useCallback(async (url: string) => {
-    if (!url.startsWith(TONE3000_REDIRECT_URI) || processedDeepLinks.current.has(url)) return;
-    processedDeepLinks.current.add(url);
-    setTone3000Phase("loading");
-    setError(undefined);
-    try {
-      const selection = await completeTone3000Selection(url);
-      setTone3000Selection(selection);
-      setSelectedTone3000ModelId(selection.models[0]?.id);
-      setTone3000Phase("detail");
-    } catch (reason) {
-      setTone3000Phase("idle");
-      setError(reason instanceof Error ? reason.message : "Could not load the Tone3000 selection.");
-    }
-  }, []);
-
-  useEffect(() => {
-    let disposed = false;
-    let unlisten: () => void = () => undefined;
-    void onTone3000Callback((url) => void processTone3000Callback(url))
-      .then((nextUnlisten) => { if (disposed) nextUnlisten(); else unlisten = nextUnlisten; });
-    return () => { disposed = true; unlisten(); };
-  }, [processTone3000Callback]);
-
   const launchTone3000 = async () => {
     setError(undefined);
-    if (hostedCloud) {
-      if (!tone3000DeviceId) {
-        setError("No hosted device is selected.");
-        return;
-      }
-      const generation = ++hostedFlowGeneration.current;
-      const popup = window.open("", "ardor-tone3000", "popup,width=1100,height=760");
-      if (!popup) {
-        setError("Allow pop-ups for Ardor to browse TONE3000.");
-        return;
-      }
-      hostedPopup.current = popup;
-      try {
-        setTone3000Phase("waiting");
-        const started = await startHostedTone3000Selection(tone3000DeviceId, tone3000Architecture);
-        if (generation !== hostedFlowGeneration.current) return;
-        setTone3000FlowId(started.flowId);
-        popup.location.replace(started.authorizeUrl);
-        for (;;) {
-          await new Promise((resolve) => window.setTimeout(resolve, 900));
-          if (generation !== hostedFlowGeneration.current) return;
-          const current = await getHostedTone3000Selection(started.flowId);
-          if (current.status === "failed") throw new Error(current.message || "TONE3000 selection failed.");
-          if (current.status === "ready" && current.selection) {
-            setTone3000Selection(current.selection);
-            setSelectedTone3000ModelId(current.selection.models[0]?.id);
-            setTone3000Phase("detail");
-            popup.close();
-            hostedPopup.current = null;
-            return;
-          }
-        }
-      } catch (reason) {
-        popup.close();
-        hostedPopup.current = null;
-        setTone3000Phase("idle");
-        setError(reason instanceof Error ? reason.message : "Could not open TONE3000.");
-      }
+    if (!tone3000DeviceId) {
+      setError("No hosted device is selected.");
       return;
     }
-    if (!tone3000Configured()) {
-      setError("Tone3000 is not configured for this build.");
+    const generation = ++hostedFlowGeneration.current;
+    const popup = window.open("", "ardor-tone3000", "popup,width=1100,height=760");
+    if (!popup) {
+      setError("Allow pop-ups for Ardor to browse TONE3000.");
       return;
     }
-    if (!tone3000NativeAvailable()) {
-      setError("Tone3000 browsing is available in the Ardor desktop app.");
-      return;
-    }
+    hostedPopup.current = popup;
     try {
       setTone3000Phase("waiting");
-      const url = await createTone3000SelectUrl(tone3000Architecture);
-      await openTone3000(url);
+      const started = await startHostedTone3000Selection(tone3000DeviceId, tone3000Architecture);
+      if (generation !== hostedFlowGeneration.current) return;
+      setTone3000FlowId(started.flowId);
+      popup.location.replace(started.authorizeUrl);
+      for (;;) {
+        await new Promise((resolve) => window.setTimeout(resolve, 900));
+        if (generation !== hostedFlowGeneration.current) return;
+        const current = await getHostedTone3000Selection(started.flowId);
+        if (current.status === "failed") throw new Error(current.message || "TONE3000 selection failed.");
+        if (current.status === "ready" && current.selection) {
+          setTone3000Selection(current.selection);
+          setSelectedTone3000ModelId(current.selection.models[0]?.id);
+          setTone3000Phase("detail");
+          popup.close();
+          hostedPopup.current = null;
+          return;
+        }
+      }
     } catch (reason) {
+      popup.close();
+      hostedPopup.current = null;
       setTone3000Phase("idle");
-      setError(reason instanceof Error ? reason.message : "Could not open Tone3000.");
+      setError(reason instanceof Error ? reason.message : "Could not open TONE3000.");
     }
   };
 
@@ -278,7 +226,6 @@ export function AssetLibrary({ tone3000DeviceId }: { tone3000DeviceId?: string }
     hostedPopup.current?.close();
     hostedPopup.current = null;
     setTone3000Phase("idle");
-    void cancelTone3000();
   };
 
   const installTone3000Model = async () => {
@@ -288,21 +235,13 @@ export function AssetLibrary({ tone3000DeviceId }: { tone3000DeviceId?: string }
     setError(undefined);
     setTone3000Phase("installing");
     try {
-      if (hostedCloud) {
-        if (!tone3000FlowId) throw new Error("TONE3000 selection is no longer available.");
-        await installHostedTone3000Model(tone3000FlowId, model.id);
-        await session.refreshAssets("models");
-        setKind("models");
-        setTone3000Phase("idle");
-        setTone3000FlowId(undefined);
-        setNotice(`${model.name} by @${selection.tone.user.username} installed from TONE3000.`);
-        return;
-      }
-      const file = await downloadTone3000Model(selection, model);
+      if (!tone3000FlowId) throw new Error("TONE3000 selection is no longer available.");
+      await installHostedTone3000Model(tone3000FlowId, model.id);
+      await session.refreshAssets("models");
       setKind("models");
-      const uploaded = await uploadSequentially("models", [file]);
       setTone3000Phase("idle");
-      if (uploaded) setNotice(`${model.name} by @${selection.tone.user.username} installed from TONE3000.`);
+      setTone3000FlowId(undefined);
+      setNotice(`${model.name} by @${selection.tone.user.username} installed from TONE3000.`);
     } catch (reason) {
       setTone3000Phase("detail");
       setError(reason instanceof Error ? reason.message : "Could not install the Tone3000 model.");

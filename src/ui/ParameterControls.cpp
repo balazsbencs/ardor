@@ -234,6 +234,23 @@ std::vector<ParameterControl> controlsFor(const UiState& state)
     };
   }
 
+  if (block.type == "distortion" && block.params.value("mode", "") == "tape") {
+    const auto number = [&](const char* key, float fallback) { return block.params.value(key, fallback); };
+    const auto speed = block.params.value("speed", std::string{"15"});
+    return {
+      control("drive", "Drive", -12.0f, 24.0f, 0.5f, number("drive", 0.0f), formatDb),
+      control("saturation", "Saturation", 0.0f, 1.0f, 0.01f, number("saturation", 0.5f), formatPercent),
+      control("bias", "Bias", 0.0f, 1.0f, 0.01f, number("bias", 0.5f), formatPercent),
+      choiceControl("speed", "Tape speed", {"15 ips", "30 ips"}, speed == "30" ? 1 : 0,
+                    ParameterControlKind::Choice),
+      control("head_bump", "Head Bump", 0.0f, 1.0f, 0.01f, number("head_bump", 0.5f), formatPercent),
+      control("flutter", "Flutter", 0.0f, 1.0f, 0.01f, number("flutter", 0.0f), formatPercent),
+      control("hiss_db", "Hiss", -120.0f, -60.0f, 1.0f, number("hiss_db", -120.0f), formatDb),
+      control("mix", "Mix", 0.0f, 1.0f, 0.01f, number("mix", 1.0f), formatPercent),
+      control("output_db", "Output", -24.0f, 24.0f, 0.5f, number("output_db", 0.0f), formatDb),
+    };
+  }
+
   if (block.type == "stereo") {
     const auto number = [&](const char* key, float fallback) { return block.params.value(key, fallback); };
     return {
@@ -349,7 +366,11 @@ bool applyParameterDelta(UiState& state, const ParameterControl& control, int de
     if (control.key == "inputMode") {
       constexpr const char* kInputModes[] = {"sum", "left", "right"};
       setSelectedBlockParamValue(state, control.key, kInputModes[std::min<std::size_t>(selected, 2)]);
+    } else if (control.key == "speed") {
+      setSelectedBlockParamValue(state, control.key, selected == 0 ? "15" : "30");
     } else {
+      // Every remaining string choice is the compressor's detector. A new one
+      // added without its own branch would silently store "peak" here.
       setSelectedBlockParamValue(state, control.key, selected == 0 ? "peak" : "rms");
     }
     return selectedUiBlock(state)->params.value(control.key, std::string{}) != before;

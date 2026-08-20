@@ -12,11 +12,11 @@ import {
 describe("effect catalog", () => {
   const definitions = allEffectDefinitions();
 
-  it("contains the complete unique set of 50 definitions", () => {
-    expect(definitions).toHaveLength(50);
-    expect(new Set(definitions.map(({ id }) => id)).size).toBe(50);
-    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(50);
-    expect(new Set(definitions.map(({ name }) => name)).size).toBe(50);
+  it("contains the complete unique set of 51 definitions", () => {
+    expect(definitions).toHaveLength(51);
+    expect(new Set(definitions.map(({ id }) => id)).size).toBe(51);
+    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(51);
+    expect(new Set(definitions.map(({ name }) => name)).size).toBe(51);
     expect(definitions.every(({ controls }) => controls.length > 0)).toBe(true);
     expect(definitions.filter(({ blockType }) => blockType === "mod")).toHaveLength(15);
     expect(definitions.filter(({ blockType }) => blockType === "delay")).toHaveLength(10);
@@ -45,7 +45,29 @@ describe("effect catalog", () => {
       tone: 0.5,
       volume: 0.7,
     });
-    expect(definitions.filter(({ category }) => category === "drive")).toHaveLength(2);
+    const tape = getEffectDefinition("distortion:tape");
+    expect(tape.category).toBe("drive");
+    // Flutter and hiss ship inert. A player who adds tape saturation should get
+    // saturation, and reach for the pitch movement and the noise floor
+    // deliberately.
+    expect(defaultsForDefinition(tape.id)).toEqual({
+      mode: "tape",
+      drive: 0,
+      saturation: 0.5,
+      bias: 0.5,
+      speed: "15",
+      head_bump: 0.5,
+      flutter: 0,
+      hiss_db: -120,
+      mix: 1,
+      output_db: 0,
+    });
+    // Tape speed is a choice, not a number: it moves filter and solver
+    // coefficients, so it is applied when the chain is built.
+    expect(tape.controls).toContainEqual(
+      expect.objectContaining({ kind: "choice", key: "speed", defaultValue: "15" }),
+    );
+    expect(definitions.filter(({ category }) => category === "drive")).toHaveLength(3);
   });
 
   it("groups compressor, noise gate, transient shaper, EQ, wah, and the stereo widener under Utility", () => {
@@ -259,7 +281,7 @@ describe("effect catalog", () => {
       expect(findEffectDefinition(block)?.id).toBe(id);
       return { ...block, id: `block-${index + 1}` };
     });
-    expect(blocks).toHaveLength(50);
+    expect(blocks).toHaveLength(51);
   });
 
   it("chooses the next numeric block id and handles nonstandard collisions", () => {

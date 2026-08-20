@@ -186,7 +186,7 @@ There is no migration and no mapping to a "nearest palette"; a stored `accentCol
 ignored and the device starts on Slate.
 
 **No external coupling.** `accentColor` appears only in device-local code. It is not in the
-preset schema, not in the managerd REST surface, and not in the Tauri or hosted manager. The
+preset schema, not in the managerd REST surface, and not in the manager app. The
 `accent` hits under `services/managerd/internal/webui/dist/` are the built web bundle's own
 CSS custom property and are unrelated. Retiring it cannot break a client.
 
