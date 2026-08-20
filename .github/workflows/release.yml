@@ -25,7 +25,6 @@ jobs:
     permissions:
       contents: write
     outputs:
-      release_id: ${{ steps.release.outputs.id }}
       tag: ${{ steps.metadata.outputs.tag }}
       version: ${{ steps.metadata.outputs.version }}
     steps:
@@ -93,7 +92,6 @@ jobs:
           } > .release-notes.md
 
       - name: Create the draft release
-        id: release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.metadata.outputs.tag }}
@@ -108,8 +106,6 @@ jobs:
               --draft
           fi
 
-          release_id=$(gh release view "$RELEASE_TAG" --json databaseId --jq .databaseId)
-          echo "id=$release_id" >> "$GITHUB_OUTPUT"
           gh release upload "$RELEASE_TAG" CHANGELOG.md --clobber
 
       - name: Commit the updated changelog
@@ -343,83 +339,6 @@ jobs:
             artifacts/ardor-device-${{ needs.prepare.outputs.version }}-linux-aarch64.manifest.sig \
             --clobber
 
-  desktop:
-    name: Build manager (${{ matrix.label }})
-    needs:
-      - prepare
-      - manager-checks
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - label: macOS Apple Silicon
-            os: macos-latest
-            target: aarch64-apple-darwin
-          - label: macOS Intel
-            os: macos-latest
-            target: x86_64-apple-darwin
-          - label: Windows x64
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
-    runs-on: ${{ matrix.os }}
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: apps/manager/package-lock.json
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - name: Cache Rust dependencies
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            apps/manager/src-tauri/target
-          key: tauri-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('apps/manager/src-tauri/Cargo.lock') }}
-          restore-keys: |
-            tauri-${{ runner.os }}-${{ matrix.target }}-
-            tauri-${{ runner.os }}-
-
-      - name: Install manager dependencies
-        working-directory: apps/manager
-        run: npm ci
-
-      - name: Set the release version
-        env:
-          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
-        shell: bash
-        run: |
-          node --input-type=module -e '
-            import fs from "node:fs";
-            const path = "apps/manager/src-tauri/tauri.conf.json";
-            const config = JSON.parse(fs.readFileSync(path, "utf8"));
-            config.version = process.env.RELEASE_VERSION;
-            fs.writeFileSync(path, JSON.stringify(config, null, 2) + "\n");
-          '
-
-      - name: Build and upload manager bundles
-        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          projectPath: apps/manager
-          releaseId: ${{ needs.prepare.outputs.release_id }}
-          tagName: ${{ needs.prepare.outputs.tag }}
-          args: --target ${{ matrix.target }}
-          releaseAssetNamePattern: Ardor-Manager-[version]-[platform]-[arch][setup][ext]
-          uploadUpdaterJson: false
-
   publish:
     name: Publish release
     needs:
@@ -427,7 +346,6 @@ jobs:
       - manager-checks
       - firmware
       - device-checks
-      - desktop
     runs-on: ubuntu-24.04
     permissions:
       contents: write

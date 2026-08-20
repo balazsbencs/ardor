@@ -566,12 +566,11 @@ func setWebSecurityHeaders(w http.ResponseWriter) {
 	w.Header().Set("X-Frame-Options", "DENY")
 }
 
+// Development origins for the Vite dev server; the device serves the manager
+// from its own origin in production.
 var allowedOrigins = map[string]struct{}{
-	"tauri://localhost":       {},
-	"https://tauri.localhost": {},
-	"http://tauri.localhost":  {},
-	"http://localhost:1420":   {},
-	"http://127.0.0.1:1420":   {},
+	"http://localhost:1420": {},
+	"http://127.0.0.1:1420": {},
 }
 
 func withCORS(next http.Handler) http.Handler {
@@ -648,7 +647,7 @@ func clearLocalSessionCookie(w http.ResponseWriter) {
 
 func writeLocalAuthResult(w http.ResponseWriter, r *http.Request, status int, account localauth.Account, token string) {
 	result := map[string]any{"account": account}
-	if _, allowedTauriOrigin := allowedOrigins[r.Header.Get("Origin")]; allowedTauriOrigin {
+	if _, allowedOrigin := allowedOrigins[r.Header.Get("Origin")]; allowedOrigin {
 		result["sessionToken"] = token
 	}
 	writeJSON(w, status, result)

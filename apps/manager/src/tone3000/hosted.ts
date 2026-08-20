@@ -1,6 +1,6 @@
 import { ArdorApiError } from "../api/errors";
 import type { Asset } from "../api/types";
-import type { Tone3000Model, Tone3000Selection } from "./client";
+import type { Tone3000Selection } from "./types";
 
 export type Tone3000Architecture = "legacy" | "2";
 
@@ -9,7 +9,7 @@ type SelectionResponse = {
   flowId: string;
   status: "pending" | "loading" | "ready" | "failed";
   message?: string;
-  selection?: { tone: Tone3000Selection["tone"]; models: Array<Omit<Tone3000Model, "model_url">> };
+  selection?: Tone3000Selection;
 };
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -35,14 +35,7 @@ export async function getHostedTone3000Selection(flowId: string): Promise<{
   selection?: Tone3000Selection;
 }> {
   const response = await request<SelectionResponse>(`/v1/integrations/tone3000/selections/${encodeURIComponent(flowId)}`);
-  return {
-    status: response.status,
-    message: response.message,
-    selection: response.selection ? {
-      tone: response.selection.tone,
-      models: response.selection.models.map((model) => ({ ...model, model_url: "" })),
-    } : undefined,
-  };
+  return { status: response.status, message: response.message, selection: response.selection };
 }
 
 export function installHostedTone3000Model(flowId: string, modelId: number): Promise<Asset> {
