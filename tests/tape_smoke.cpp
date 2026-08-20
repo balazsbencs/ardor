@@ -92,7 +92,7 @@ double harmonicMagnitude(float fieldAmplitude, int harmonic)
   for (std::size_t n = 0; n < measure; ++n) {
     const float t = static_cast<float>(settle + n) / kOversampledRate;
     const float out = core.process(fieldAmplitude * std::sin(kTwoPi * kFundamental * t));
-    const double phase = kTwoPi * kFundamental * harmonic * t;
+    const double phase = static_cast<double>(kTwoPi) * kFundamental * harmonic * t;
     real += out * std::cos(phase);
     imaginary += out * std::sin(phase);
   }
