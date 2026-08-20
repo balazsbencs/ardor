@@ -10,7 +10,7 @@ import { AssetLibrary } from "./AssetLibrary";
 
 function sessionWith(overrides: Partial<DeviceSessionValue>): DeviceSessionValue {
   return {
-    status: "connected", baseUrl: "http://pedal", models: [], irs: [], presets: [], needsTokenFocus: false,
+    status: "connected", baseUrl: "http://pedal", models: [], irs: [], reverbIrs: [], presets: [], needsTokenFocus: false,
     busy: { save: false, apply: false, upload: false }, connect: async () => undefined, disconnect: () => undefined,
     selectLocation: async () => undefined, refreshAssets: async () => undefined, refreshPresets: async () => undefined,
     saveCurrent: async () => undefined, applyCurrent: async () => undefined, uploadAsset: async () => undefined,
@@ -19,6 +19,26 @@ function sessionWith(overrides: Partial<DeviceSessionValue>): DeviceSessionValue
 }
 
 describe("AssetLibrary", () => {
+  it("keeps reverb IRs in their own management section", async () => {
+    const user = userEvent.setup();
+    const uploadAsset = vi.fn().mockResolvedValue({ id: "room.wav", kind: "ir", filename: "room.wav", path: "reverb-irs/room.wav", sizeBytes: 4 });
+    const session = sessionWith({
+      reverbIrs: [{ id: "room.wav", kind: "ir", filename: "room.wav", path: "reverb-irs/room.wav", sizeBytes: 4 }],
+      uploadAsset,
+    });
+    const view = renderWithProviders(<DeviceSessionContext.Provider value={session}><AssetLibrary /></DeviceSessionContext.Provider>);
+
+    await user.click(screen.getByRole("button", { name: "Reverb IRs" }));
+    expect(screen.getByRole("button", { name: "Reverb IRs" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("room.wav")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Upload reverb IR" })).toBeInTheDocument();
+
+    const fileInput = view.container.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(fileInput, new File(["room"], "new-room.wav", { type: "audio/wav" }));
+    await screen.findByRole("status");
+    expect(uploadAsset).toHaveBeenCalledWith("reverb-irs", expect.any(File), false);
+  });
+
   it("offers to replace only the conflicting file, then continues the upload queue", async () => {
     const user = userEvent.setup();
     const first = new File(["old"], "amp.nam", { type: "application/octet-stream" });

@@ -156,7 +156,7 @@ func (server *Server) installDeviceAsset(ctx context.Context, deviceID, kind, fi
 
 func cloudAssetKind(writer http.ResponseWriter, value string) (string, bool) {
 	value = strings.ToLower(value)
-	if value != "models" && value != "irs" {
+	if value != "models" && value != "irs" && value != "reverb-irs" {
 		writeError(writer, http.StatusNotFound, "asset_kind_not_found", "Asset kind was not found")
 		return "", false
 	}

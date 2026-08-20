@@ -6,6 +6,7 @@ This partition is mounted read-write at /opt/ardor-pedal.
 Directory layout:
   models/       — NAM model files (*.nam), 48 kHz
   irs/           — Cabinet impulse responses (*.wav), 48 kHz mono
+  reverb-irs/    — Convolution reverb impulse responses (*.wav), 48 kHz
   presets/bank-000/
     preset-0.json
     preset-1.json
@@ -19,6 +20,7 @@ Asset paths inside preset JSON are relative to this directory.
 Example:
   "asset": "models/my-amp.nam"
   "asset": "irs/my-cab.wav"
+  "asset": "reverb-irs/my-room.wav"
 
 No user-provided NAM models or IR files ship in the firmware image.
 Copy assets over SSH or mount the partition on a host machine.

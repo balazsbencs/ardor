@@ -12,6 +12,7 @@ rm -rf "${DATA_SEED}"
 mkdir -p "${DATA_SEED}/presets/bank-000"
 mkdir -p "${DATA_SEED}/models"
 mkdir -p "${DATA_SEED}/irs"
+mkdir -p "${DATA_SEED}/reverb-irs"
 mkdir -p "${DATA_SEED}/assets/wah"
 mkdir -p "${DATA_SEED}/wifi"
 

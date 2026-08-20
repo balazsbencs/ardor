@@ -8,6 +8,8 @@
 !/models/.gitkeep
 /irs/*
 !/irs/.gitkeep
+/reverb-irs/*
+!/reverb-irs/.gitkeep
 *.nam
 *.wav
 *.aiff
@@ -34,4 +36,3 @@
 .superpowers
 .claude
 .github/skills/
-

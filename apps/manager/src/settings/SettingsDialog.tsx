@@ -163,7 +163,7 @@ export function SettingsDialog({
   };
 
   const beginFactoryReset = async () => {
-    if (!window.confirm("Request a factory reset? You must approve it physically on the pedal. It will remove all presets, models, IRs, Wi-Fi, settings, and local access.")) return;
+    if (!window.confirm("Request a factory reset? You must approve it physically on the pedal. It will remove all presets, models, cabinet IRs, reverb IRs, Wi-Fi, settings, and local access.")) return;
     setSecurityBusy(true);
     setError(undefined);
     try {
@@ -382,7 +382,7 @@ export function SettingsDialog({
                 <div className="settings-panel__heading settings-panel__heading--with-status">
                   <div>
                     <h2 id="updates-heading">Device software</h2>
-                    <p>Install signed Ardor application releases from GitHub. Presets, models, IRs, Wi-Fi, and local access stay on the pedal.</p>
+                    <p>Install signed Ardor application releases from GitHub. Presets, models, cabinet IRs, reverb IRs, Wi-Fi, and local access stay on the pedal.</p>
                   </div>
                   {updateStatus && <StatusBadge tone={updateTone(updateStatus.state)}>{updateStatus.state.replace(/_/g, " ")}</StatusBadge>}
                 </div>

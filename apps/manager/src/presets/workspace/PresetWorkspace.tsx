@@ -33,7 +33,9 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
   }, [session.current?.location.bank, session.current?.location.slot, session.current?.preset]);
 
   const present = editor.history.present;
-  const validation = useMemo(() => validatePreset(present, { models: session.models, irs: session.irs }), [present, session.models, session.irs]);
+  const validation = useMemo(() => validatePreset(present, {
+    models: session.models, irs: session.irs, reverbIrs: session.reverbIrs,
+  }), [present, session.models, session.irs, session.reverbIrs]);
   const dirty = isEditorDirty(editor);
   const selected = findPresetBlock(present.blocks, editor.selectedBlockId);
   const expressionTargets = useMemo(() => present.blocks.flatMap((block) => {
@@ -163,7 +165,7 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
   };
 
   if (session.status !== "connected" || !session.current) {
-    return <main className="workspace workspace--offline"><div className="offline-card"><CloudOff size={38} /><p className="eyebrow">Ardor Manager</p><h1>Connect to your pedal</h1><p>Manage preset chains, models and cabinet IRs from one desktop workspace.</p><Button variant="primary" onClick={onConnection}>Connect to device</Button></div></main>;
+    return <main className="workspace workspace--offline"><div className="offline-card"><CloudOff size={38} /><p className="eyebrow">Ardor Manager</p><h1>Connect to your pedal</h1><p>Manage preset chains, models, cabinet IRs and reverb IRs from one desktop workspace.</p><Button variant="primary" onClick={onConnection}>Connect to device</Button></div></main>;
   }
 
   const locationLabel = `Bank ${String(editor.location.bank).padStart(3, "0")} / Slot ${editor.location.slot + 1}`;
@@ -268,7 +270,7 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
         {(!validation.canSave || validation.issues.length > 0 || actionError) && <div className="workspace-alert" role="alert"><AlertCircle size={17} /><div>{actionError ? <p>{actionError}</p> : <p>{validation.issues[0]?.message}</p>}<small>{!validation.canSave ? "Fix this before saving." : !validation.canApply ? "You can save this draft, but cannot apply it yet." : "Review the highlighted block."}</small></div></div>}
         <ChainCanvas blocks={present.blocks} selectedBlockId={editor.selectedBlockId} issuesFor={(id) => issuesForBlock(validation, id)} maxed={present.blocks.length >= 10} onSelect={(blockId) => dispatch({ type: "select-block", blockId })} onAdd={(index) => setAddTarget({ kind: "top", index })} onMove={(blockId, index) => dispatch({ type: "move-block", blockId, index })} onLaneAdd={(rigId, lane, index) => setAddTarget({ kind: "lane", rigId, lane, index })} onLaneMove={(rigId, blockId, lane, index) => dispatch({ type: "move-lane-block", rigId, blockId, lane, index })} onToggle={(blockId, enabled) => dispatch({ type: "toggle-block", blockId, enabled })} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} />
       </section>
-      <BlockInspector block={selected} issues={selected ? issuesForBlock(validation, selected.id) : []} models={session.models} irs={session.irs} onToggle={(blockId, enabled) => dispatch({ type: "toggle-block", blockId, enabled })} onParam={(blockId, key, value) => dispatch({ type: "set-block-param", blockId, key, value })} onAsset={(blockId, asset) => dispatch({ type: "set-block-asset", blockId, asset })} onMode={(blockId, definitionId) => dispatch({ type: "change-definition", blockId, definitionId })} onEqBand={(blockId, band, patch) => dispatch({ type: "set-eq-band", blockId, band, patch })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} onAssets={onAssets} onClose={() => dispatch({ type: "select-block" })} />
+      <BlockInspector block={selected} issues={selected ? issuesForBlock(validation, selected.id) : []} models={session.models} irs={session.irs} reverbIrs={session.reverbIrs} onToggle={(blockId, enabled) => dispatch({ type: "toggle-block", blockId, enabled })} onParam={(blockId, key, value) => dispatch({ type: "set-block-param", blockId, key, value })} onAsset={(blockId, asset) => dispatch({ type: "set-block-asset", blockId, asset })} onMode={(blockId, definitionId) => dispatch({ type: "change-definition", blockId, definitionId })} onEqBand={(blockId, band, patch) => dispatch({ type: "set-eq-band", blockId, band, patch })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} onAssets={onAssets} onClose={() => dispatch({ type: "select-block" })} />
       <BlockBrowser open={addTarget !== undefined} onOpenChange={(open) => { if (!open) setAddTarget(undefined); }} disabledIds={disabledDefinitions} onChoose={(definition) => {
         if (addTarget?.kind === "lane") {
           dispatch({ type: "add-lane-block", definitionId: definition.id, rigId: addTarget.rigId, lane: addTarget.lane, index: addTarget.index });

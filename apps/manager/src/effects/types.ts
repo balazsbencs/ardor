@@ -48,7 +48,7 @@ export type AssetControl = {
   kind: "asset";
   key?: string;
   label: string;
-  assetKind: "models" | "irs";
+  assetKind: "models" | "irs" | "reverb-irs";
 };
 
 export type EqControl = { kind: "parametric-eq-5" };

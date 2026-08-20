@@ -1,4 +1,4 @@
-export type AssetKind = "models" | "irs";
+export type AssetKind = "models" | "irs" | "reverb-irs";
 
 export type DeviceStatus = {
   deviceName: string;

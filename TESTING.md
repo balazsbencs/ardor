@@ -67,12 +67,14 @@ mkdir -p \
   "$ARDOR_TEST_DATA/presets" \
   "$ARDOR_TEST_DATA/models" \
   "$ARDOR_TEST_DATA/irs" \
+  "$ARDOR_TEST_DATA/reverb-irs" \
   "$ARDOR_TEST_DATA/settings" \
   "$ARDOR_TEST_DATA/wifi"
 
 rsync -a "$ARDOR_REPO/presets/" "$ARDOR_TEST_DATA/presets/"
 rsync -a "$ARDOR_REPO/models/" "$ARDOR_TEST_DATA/models/"
 rsync -a "$ARDOR_REPO/irs/" "$ARDOR_TEST_DATA/irs/"
+rsync -a "$ARDOR_REPO/reverb-irs/" "$ARDOR_TEST_DATA/reverb-irs/" 2>/dev/null || true
 rsync -a "$ARDOR_REPO/settings/" "$ARDOR_TEST_DATA/settings/"
 rsync -a "$ARDOR_REPO/wifi/" "$ARDOR_TEST_DATA/wifi/"
 
@@ -115,9 +117,10 @@ cd "$ARDOR_REPO"
 ```
 
 The simulator reads the four slots in the selected bank and discovers assets
-from `models/` and `irs/`. Chain changes remain drafts until **Save** is
-pressed. It does not run DSP, produce telemetry, or simulate the physical
-footswitches and encoder.
+from `models/`, `irs/`, and `reverb-irs/`. Built-in algorithms appear before
+file-backed entries in the effect drawer. Chain changes remain drafts until
+**Save** is pressed. It does not run DSP, produce telemetry, or simulate the
+physical footswitches and encoder.
 
 The convenience script builds and starts the same simulator against the
 repository root:
@@ -318,8 +321,8 @@ log and LVGL status are the authoritative result.
 ### Verify asset upload and refresh
 
 1. Open **Assets** in the Manager.
-2. Upload a licensed local `.nam` model or IR WAV.
-3. Confirm that it appears under `models/` or `irs/` in `ARDOR_TEST_DATA`.
+2. Upload a licensed local `.nam` model, cabinet IR WAV, or reverb IR WAV.
+3. Confirm that it appears under `models/`, `irs/`, or `reverb-irs/` in `ARDOR_TEST_DATA`.
 4. Confirm that the LVGL window reports **Assets reloaded**.
 5. Add the asset to a preset, Save, and Apply it.
 

@@ -401,10 +401,7 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 			return
 		}
 		oldID := r.PathValue("assetId")
-		oldPath := "models/" + oldID
-		if kind == assets.KindIR {
-			oldPath = "irs/" + oldID
-		}
+		oldPath := assetRelativePath(kind, oldID)
 		info, err := assetStore.Rename(kind, oldID, body.Filename)
 		if err != nil {
 			status := http.StatusBadRequest
@@ -748,8 +745,21 @@ func assetKindFromPath(value string) (assets.Kind, bool) {
 		return assets.KindModel, true
 	case "irs":
 		return assets.KindIR, true
+	case "reverb-irs":
+		return assets.KindReverbIR, true
 	default:
 		return "", false
+	}
+}
+
+func assetRelativePath(kind assets.Kind, id string) string {
+	switch kind {
+	case assets.KindModel:
+		return "models/" + id
+	case assets.KindReverbIR:
+		return "reverb-irs/" + id
+	default:
+		return "irs/" + id
 	}
 }
 

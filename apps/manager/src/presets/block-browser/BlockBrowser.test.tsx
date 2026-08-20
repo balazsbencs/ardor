@@ -7,6 +7,14 @@ import { renderWithProviders } from "../../test/render";
 import { BlockBrowser } from "./BlockBrowser";
 
 describe("BlockBrowser", () => {
+  it("lists algorithms before cabinet and convolution IR effects", () => {
+    renderWithProviders(<BlockBrowser open onOpenChange={() => undefined} onChoose={() => undefined} />);
+
+    const names = screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent);
+    expect(names.indexOf("Room Reverb")).toBeLessThan(names.indexOf("Cabinet IR"));
+    expect(names.indexOf("Cabinet IR")).toBeLessThan(names.indexOf("Convolution Reverb"));
+  });
+
   it("exposes every supported definition and filters by aliases", async () => {
     const user = userEvent.setup();
     const onChoose = vi.fn();

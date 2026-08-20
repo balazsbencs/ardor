@@ -19,9 +19,10 @@ export type PresetValidationResult = {
 export type AssetInventory = {
   models: Asset[];
   irs: Asset[];
+  reverbIrs: Asset[];
 };
 
-const emptyAssets: AssetInventory = { models: [], irs: [] };
+const emptyAssets: AssetInventory = { models: [], irs: [], reverbIrs: [] };
 const knownTypes = new Set(allEffectDefinitions().map(({ blockType }) => blockType));
 
 function error(code: string, message: string, field?: string): ValidationIssue {
@@ -139,6 +140,11 @@ function definitionForValidation(block: PresetBlock): EffectDefinition | undefin
 
 function assetIssues(block: PresetBlock, definition: EffectDefinition, assets: AssetInventory): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
+  const available = {
+    models: assets.models,
+    irs: assets.irs,
+    "reverb-irs": assets.reverbIrs,
+  } as const;
   for (const control of definition.controls) {
     if (control.kind !== "asset") continue;
     const field = control.key ? `params.${control.key}` : "asset";
@@ -160,7 +166,7 @@ function assetIssues(block: PresetBlock, definition: EffectDefinition, assets: A
       issues.push(blockWarning(block, "asset-required", `${control.label} is required before this block can be applied.`, field));
       continue;
     }
-    if (!assets[control.assetKind].some(({ path }) => path === value)) {
+    if (!available[control.assetKind].some(({ path }) => path === value)) {
       issues.push(blockWarning(block, "asset-missing", `${control.label} “${value}” is not installed.`, field));
     }
   }

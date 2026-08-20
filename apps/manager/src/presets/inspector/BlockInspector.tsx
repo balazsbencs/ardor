@@ -23,6 +23,7 @@ export function BlockInspector({
   issues,
   models,
   irs,
+  reverbIrs = [],
   onToggle,
   onParam,
   onAsset,
@@ -38,6 +39,7 @@ export function BlockInspector({
   issues: ValidationIssue[];
   models: Asset[];
   irs: Asset[];
+  reverbIrs?: Asset[];
   onToggle(blockId: string, enabled: boolean): void;
   onParam(blockId: string, key: string, value: unknown): void;
   onAsset(blockId: string, asset: string): void;
@@ -56,7 +58,9 @@ export function BlockInspector({
   const renderControl = (control: EffectDefinition["controls"][number]) => {
     if (control.kind === "asset") {
       const value = control.key ? String(valueFor(block, control.key, "")) : block.asset;
-      return <AssetPicker key={control.key ?? control.label} value={value} label={control.label} assets={control.assetKind === "models" ? models : irs} onChange={(asset) => control.key ? onParam(block.id, control.key, asset) : onAsset(block.id, asset)} onAssets={onAssets} />;
+      const assets = control.assetKind === "models" ? models
+        : control.assetKind === "reverb-irs" ? reverbIrs : irs;
+      return <AssetPicker key={control.key ?? control.label} value={value} label={control.label} assets={assets} onChange={(asset) => control.key ? onParam(block.id, control.key, asset) : onAsset(block.id, asset)} onAssets={onAssets} />;
     }
     if (control.kind === "number") return <ParameterSlider key={control.key} control={control} value={Number(valueFor(block, control.key, control.defaultValue))} onChange={(value) => onParam(block.id, control.key, value)} />;
     if (control.kind === "choice") return <ChoiceField key={control.key} control={control} value={String(valueFor(block, control.key, control.defaultValue))} onChange={(value) => onParam(block.id, control.key, value)} />;

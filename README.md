@@ -33,6 +33,7 @@ vulnerabilities should be reported privately according to
 - Local test assets:
   - `models/test.nam`
   - `irs/test.wav`
+  - optional `reverb-irs/test.wav`
   - optional dry input WAV for offline rendering
 
 Real `.nam` and IR files are ignored by git. Keep licensed/user-provided assets local unless redistribution is allowed.
@@ -43,7 +44,7 @@ Preset files live under the data root in bank/slot folders, for example:
 
 - `presets/bank-000/preset-0.json`
 
-Block assets inside preset JSON stay relative to that same data root, such as `models/clean.nam` or `irs/open-back.wav`. Absolute paths and `..` traversal are rejected. Real `.nam` models and IRs stay local and are not committed unless redistribution is allowed.
+Block assets inside preset JSON stay relative to that same data root, such as `models/clean.nam`, `irs/open-back.wav`, or `reverb-irs/small-room.wav`. Cabinet IRs and convolution reverb IRs use separate directories. Absolute paths and `..` traversal are rejected. Real `.nam` models and IRs stay local and are not committed unless redistribution is allowed.
 
 ### Supported Parameters
 
@@ -619,9 +620,11 @@ It reads:
 - `presets/bank-000/preset-2.json`
 - `presets/bank-000/preset-3.json`
 
-Assets are discovered from `models/*.nam` and `irs/*.wav`; compressor, Noise
-Gate, EQ, and Daisy effects come from built-in catalogs. The simulator saves
-chain edits only when Save is pressed.
+Built-in algorithms are listed first, then assets discovered from
+`models/*.nam`, `irs/*.wav`, and `reverb-irs/*.wav`. Cabinet and
+convolution reverb impulses stay in their own drawer categories. Compressor,
+Noise Gate, EQ, and Daisy effects come from built-in catalogs. The simulator
+saves chain edits only when Save is pressed.
 
 ## Integrated UI and Audio
 

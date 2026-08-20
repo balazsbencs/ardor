@@ -43,6 +43,7 @@ export type DeviceSessionValue = {
   client?: ManagerTransport;
   models: Asset[];
   irs: Asset[];
+  reverbIrs: Asset[];
   presets: PresetSlotSummary[];
   current?: SessionPreset;
   error?: Error;
@@ -129,6 +130,7 @@ export function DeviceSessionProvider({
   const [client, setClient] = useState<ManagerTransport>();
   const [models, setModels] = useState<Asset[]>([]);
   const [irs, setIrs] = useState<Asset[]>([]);
+  const [reverbIrs, setReverbIrs] = useState<Asset[]>([]);
   const [presets, setPresets] = useState<PresetSlotSummary[]>([]);
   const [current, setCurrent] = useState<SessionPreset>();
   const [error, setError] = useState<Error>();
@@ -153,9 +155,10 @@ export function DeviceSessionProvider({
     const nextClient = clientFactory({ baseUrl: normalizedBaseUrl, token: token || undefined });
     try {
       const nextDevice = await nextClient.getDevice();
-      const [nextModels, nextIrs, nextPresets] = await Promise.all([
+      const [nextModels, nextIrs, nextReverbIrs, nextPresets] = await Promise.all([
         nextClient.listAssets("models"),
         nextClient.listAssets("irs"),
+        nextClient.listAssets("reverb-irs"),
         nextClient.listPresets(),
       ]);
       const nextCurrent = await loadInitialPreset(nextClient, normalizedBaseUrl, nextDevice, nextPresets);
@@ -166,6 +169,7 @@ export function DeviceSessionProvider({
       setDevice(nextDevice);
       setModels(nextModels);
       setIrs(nextIrs);
+      setReverbIrs(nextReverbIrs);
       setPresets(nextPresets);
       setCurrent(nextCurrent);
       setStatus("connected");
@@ -188,6 +192,7 @@ export function DeviceSessionProvider({
     setDevice(undefined);
     setModels([]);
     setIrs([]);
+    setReverbIrs([]);
     setPresets([]);
     setCurrent(undefined);
     setError(undefined);
@@ -211,6 +216,7 @@ export function DeviceSessionProvider({
     if (!client) return;
     if (!kind || kind === "models") setModels(await client.listAssets("models"));
     if (!kind || kind === "irs") setIrs(await client.listAssets("irs"));
+    if (!kind || kind === "reverb-irs") setReverbIrs(await client.listAssets("reverb-irs"));
   };
 
   const refreshPresets = async () => {
@@ -256,9 +262,9 @@ export function DeviceSessionProvider({
   }, [autoConnect, initialBaseUrl]);
 
   const value = useMemo<DeviceSessionValue>(() => ({
-    status, baseUrl, device, client, models, irs, presets, current, error, needsTokenFocus, busy,
+    status, baseUrl, device, client, models, irs, reverbIrs, presets, current, error, needsTokenFocus, busy,
     connect, disconnect, selectLocation, refreshAssets, refreshPresets, saveCurrent, applyCurrent, uploadAsset,
-  }), [status, baseUrl, device, client, models, irs, presets, current, error, needsTokenFocus, busy]);
+  }), [status, baseUrl, device, client, models, irs, reverbIrs, presets, current, error, needsTokenFocus, busy]);
 
   return <DeviceSessionContext.Provider value={value}>{children}</DeviceSessionContext.Provider>;
 }

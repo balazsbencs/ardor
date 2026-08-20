@@ -13,6 +13,7 @@ import {
 const assets: AssetInventory = {
   models: [{ id: "amp.nam", kind: "model", filename: "amp.nam", path: "models/amp.nam", sizeBytes: 1 }],
   irs: [{ id: "cab.wav", kind: "ir", filename: "cab.wav", path: "irs/cab.wav", sizeBytes: 1 }],
+  reverbIrs: [{ id: "room.wav", kind: "ir", filename: "room.wav", path: "reverb-irs/room.wav", sizeBytes: 1 }],
 };
 
 function validPreset(blocks: PresetBlock[] = []): Preset {
@@ -24,6 +25,15 @@ function codes(preset: Preset): string[] {
 }
 
 describe("preset validation", () => {
+  it("validates convolution reverb assets against the reverb IR inventory", () => {
+    const reverb = createBlockFromDefinition("irreverb", []);
+    reverb.asset = "reverb-irs/room.wav";
+    expect(codes(validPreset([reverb]))).not.toContain("asset-missing");
+
+    reverb.asset = "irs/cab.wav";
+    expect(codes(validPreset([reverb]))).toContain("asset-missing");
+  });
+
   it.each([
     ["version", (preset: Preset) => Object.assign(preset, { version: 3 })],
     ["routing", (preset: Preset) => Object.assign(preset, { routing: "parallel" })],
