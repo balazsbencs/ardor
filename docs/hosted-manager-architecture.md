@@ -14,8 +14,8 @@ design contract, not a claim that the hosted components already exist.
   and browser access from a public origin to an HTTP LAN service.
 - Keep presets, audio assets, and realtime authority on the pedal initially.
 - Preserve the embedded manager as an offline and recovery interface.
-- Reuse the same React product and device API semantics in hosted, local, and
-  Tauri modes.
+- Reuse the same React product and device API semantics in hosted and local
+  modes.
 - Integrate TONE3000 without placing OAuth tokens or secret keys in firmware or
   browser storage.
 - Make account removal, local access reset, and factory reset distinct and
@@ -100,8 +100,6 @@ interface ManagerTransport {
 
 - `LocalTransport` calls the existing same-origin `/api` endpoints.
 - `CloudTransport` calls the hosted API with a selected `deviceId`.
-- `TauriTransport` may initially retain a direct LAN connection but should use
-  the same cloud API when the user signs in.
 
 The cloud build must not contain device credentials, TONE3000 tokens, or a
 server-side TONE3000 secret.
@@ -365,8 +363,7 @@ filter is singular and omitting it excludes A2, the UI should ask whether to
 browse A1/Custom or A2 before starting Select. The model is still validated by
 the device before installation.
 
-No TONE3000 secret key is embedded in the open-source UI, desktop binary, or
-firmware. Completed, expired, and failed hosted selection flows discard their
+No TONE3000 secret key is embedded in the open-source UI or firmware. Completed, expired, and failed hosted selection flows discard their
 OAuth material. The integration must remain within TONE3000's applicable API
 and attribution terms.
 
@@ -389,8 +386,7 @@ encrypted.
 
 The local manager uses an opaque `HttpOnly; SameSite=Strict` session cookie.
 It cannot use the `Secure` attribute over HTTP. State-changing requests also
-require a matching `Origin` and `Host`; CORS remains allowlisted for supported
-Tauri origins.
+require a matching `Origin` and `Host`.
 
 The hosted and local passwords are independent. The UI must discourage reuse.
 
@@ -447,9 +443,9 @@ state.
 - Control plane to SQLite and object storage.
 - Control plane to TONE3000.
 - Control plane to pedal over outbound WSS.
-- Local browser or Tauri client to the pedal's HTTP API.
+- Local browser to the pedal's HTTP API.
 - `managerd` to the realtime audio process through the data partition.
-- Build and release systems to firmware, desktop, and hosted artifacts.
+- Build and release systems to firmware and hosted artifacts.
 
 ### Primary attacker stories and required controls
 
@@ -547,7 +543,7 @@ themselves.
 - Implement cloud connection and reconnect logic against a local test server.
 - Keep all remote mutation feature flags disabled.
 
-Acceptance: local/Tauri tests remain green; a simulated device authenticates,
+Acceptance: local tests remain green; a simulated device authenticates,
 reconnects, and rejects invalid or replayed envelopes.
 
 Implemented on `feat/device-hosted-manager`: the local HTTP transport remains
@@ -597,8 +593,7 @@ remain independent when the cloud connection is unavailable.
 - Add temporary object storage and bounded asset jobs.
 - Move TONE3000 OAuth to the fixed hosted callback.
 - Add A1/Custom versus A2 selection and source metadata.
-- Remove browser token handling; retire the Tauri loopback callback after all
-  supported clients use the hosted flow.
+- Remove browser token handling.
 
 Acceptance: tokens remain server-side; interrupted downloads are recoverable;
 the device rejects invalid content without disturbing active audio.
@@ -609,8 +604,8 @@ rename, and delete operations use the authenticated socket with 64 KiB chunks,
 atomic publication. The fixed hosted TONE3000 PKCE callback keeps its short-lived
 access token only in control-plane memory, offers A1/Custom versus A2 selection,
 streams the chosen model directly, and records source attribution beside the
-device asset. The Tauri loopback integration remains available during the
-desktop-to-hosted transition.
+device asset. The desktop application and its loopback callback were removed;
+the hosted flow is the only TONE3000 path.
 
 ### Phase 5: local authentication and reset
 

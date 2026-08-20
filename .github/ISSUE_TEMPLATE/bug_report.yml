@@ -34,7 +34,7 @@ body:
       options:
         - Audio engine / DSP
         - Firmware / Buildroot
-        - Manager desktop app
+        - Manager web app
         - Manager daemon / API
         - Touchscreen / controls
         - Documentation / build tooling

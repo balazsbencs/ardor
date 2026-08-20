@@ -31,7 +31,6 @@ data is intentional.
 - SDL2
 - Go, for `ardor-managerd`
 - Node.js 24, selected by the repository `.nvmrc`
-- Rust, only when running the native Tauri Manager rather than the browser UI
 - Local `.nam` models and cabinet IR WAV files for presets that reference them
 
 With Homebrew and `nvm`, the relevant setup is typically:
@@ -240,13 +239,7 @@ cd apps/manager
 npm ci
 ```
 
-For the native macOS Tauri application:
-
-```sh
-npm run tauri dev
-```
-
-For faster browser-only Manager development, which does not require Rust:
+Start the Manager in the browser:
 
 ```sh
 npm run dev
@@ -298,10 +291,11 @@ go run ./cmd/ardor-managerd
 cd "$ARDOR_REPO"
 nvm use
 cd apps/manager
-npm run tauri dev
+npm run dev
 ```
 
-Connect the Manager to `http://127.0.0.1:8080`.
+Open `http://127.0.0.1:1420` and connect the Manager to
+`http://127.0.0.1:8080`.
 
 ### Verify preset Save and Apply
 

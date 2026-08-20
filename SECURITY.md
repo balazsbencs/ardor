@@ -3,13 +3,12 @@
 ## Supported versions
 
 Security fixes are applied to the `main` branch and, when practical, to the
-latest published release. Older firmware and desktop-manager releases may not
-receive security updates.
+latest published release. Older firmware releases may not receive security
+updates.
 
-Published desktop-manager support is limited to Apple Silicon and Intel macOS,
-and Windows x64. Linux builds of the Tauri desktop manager are not supported or
-released. Linux remains supported for the headless engine, manager daemon, and
-firmware build tooling.
+The Manager is a web application. The device serves it over LAN HTTP from
+`ardor-managerd`, and the control plane serves the hosted build over HTTPS.
+Ardor publishes no desktop application.
 
 ## Reporting a vulnerability
 
@@ -43,16 +42,3 @@ the immutable bootstrap image. A checksum without a valid signature is not an
 authorized update. Keep the signing private key in a protected release secret,
 rotate the bootstrap image if that key is suspected to be compromised, and do
 not enable remote/cloud-triggered installation.
-
-## Accepted dependency risks
-
-The universal Cargo lock file includes `glib` 0.18.x through Tauri's Linux-only
-GTK/WebKit dependency graph. This version is affected by
-[GHSA-wrw7-89jp-8q8g](https://github.com/advisories/GHSA-wrw7-89jp-8q8g),
-whose first patched release is `glib` 0.20.0. The current Tauri dependency graph
-cannot resolve that version.
-
-This risk is accepted because Ardor neither supports nor publishes a Linux
-Tauri manager, and the dependency is absent from the supported macOS and Windows
-manager targets. The exception must be removed before adding Linux manager
-support, or when a Tauri update makes `glib` 0.20.0 or newer resolvable.
