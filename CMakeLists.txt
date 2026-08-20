@@ -208,6 +208,18 @@ target_include_directories(ardor_rat PUBLIC
 )
 target_compile_features(ardor_rat PUBLIC cxx_std_20)
 
+add_library(ardor_tape
+  src/tape/TapeHysteresis.cpp
+  src/tape/TapeTransport.cpp
+  src/tape/TapeProcessor.cpp
+)
+target_include_directories(ardor_tape PUBLIC
+  src
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies
+)
+target_compile_features(ardor_tape PUBLIC cxx_std_20)
+target_link_libraries(ardor_tape PUBLIC ardor_equalizer)
+
 add_library(ardor_dsp OBJECT
   src/dsp/DualAmpProcessor.cpp
   src/dsp/DualRigProcessor.cpp
@@ -230,7 +242,7 @@ target_include_directories(ardor_dsp PUBLIC
 )
 target_compile_features(ardor_dsp PUBLIC cxx_std_20)
 target_compile_definitions(ardor_dsp PRIVATE NAM_ENABLE_A2_FAST NAM_SAMPLE_FLOAT)
-target_link_libraries(ardor_dsp PUBLIC ardor_cheese ardor_daisyfx ardor_dynamics ardor_equalizer ardor_rat ardor_wah)
+target_link_libraries(ardor_dsp PUBLIC ardor_cheese ardor_daisyfx ardor_dynamics ardor_equalizer ardor_rat ardor_tape ardor_wah)
 if(UNIX AND NOT APPLE)
   target_link_libraries(ardor_dsp PUBLIC stdc++fs)
 endif()
@@ -385,7 +397,7 @@ add_executable(pedal-daisy-fx-smoke tests/daisy_fx_smoke.cpp)
 target_link_libraries(pedal-daisy-fx-smoke PRIVATE ardor_daisyfx)
 
 add_executable(pedal-hosted-dsp-unit tests/hosted_dsp_unit.cpp)
-target_link_libraries(pedal-hosted-dsp-unit PRIVATE ardor_daisyfx)
+target_link_libraries(pedal-hosted-dsp-unit PRIVATE ardor_daisyfx ardor_equalizer)
 
 add_executable(pedal-daisy-fx-response tests/daisy_fx_response.cpp)
 target_link_libraries(pedal-daisy-fx-response PRIVATE ardor_daisyfx)
@@ -454,6 +466,10 @@ add_test(NAME pedal-transient-shaper-smoke COMMAND pedal-transient-shaper-smoke)
 add_executable(pedal-rat-smoke tests/rat_smoke.cpp)
 target_link_libraries(pedal-rat-smoke PRIVATE ardor_rat)
 add_test(NAME pedal-rat-smoke COMMAND pedal-rat-smoke)
+
+add_executable(pedal-tape-smoke tests/tape_smoke.cpp)
+target_link_libraries(pedal-tape-smoke PRIVATE ardor_tape)
+add_test(NAME pedal-tape-smoke COMMAND pedal-tape-smoke)
 
 add_executable(pedal-cheese-smoke tests/cheese_smoke.cpp)
 target_link_libraries(pedal-cheese-smoke PRIVATE ardor_cheese ardor_daisyfx)

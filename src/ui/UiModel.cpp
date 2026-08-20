@@ -144,6 +144,9 @@ std::string assetNameForBlock(const UiState& state, const PresetBlock& block)
   if (block.type == "distortion" && block.params.value("mode", "") == "rat") {
     return "RAT Distortion";
   }
+  if (block.type == "distortion" && block.params.value("mode", "") == "tape") {
+    return "Tape Machine";
+  }
   if (block.type == "distortion" && block.params.value("mode", "") == "big_cheese") {
     return "Big Cheese Fuzz";
   }
@@ -193,6 +196,25 @@ nlohmann::json defaultTransientShaperParams()
     {"mode", "transient_shaper"},
     {"attack", 0.0f},
     {"sustain", 0.0f},
+    {"mix", 1.0f},
+    {"output_db", 0.0f},
+  };
+}
+
+nlohmann::json defaultTapeParams()
+{
+  return {
+    {"mode", "tape"},
+    {"drive", 0.0f},
+    {"saturation", 0.5f},
+    {"bias", 0.5f},
+    {"speed", "15"},
+    {"head_bump", 0.5f},
+    // Flutter and hiss ship inert. Adding tape saturation should give
+    // saturation; the pitch movement and the noise floor are reached for
+    // deliberately.
+    {"flutter", 0.0f},
+    {"hiss_db", -120.0f},
     {"mix", 1.0f},
     {"output_db", 0.0f},
   };
@@ -271,6 +293,8 @@ nlohmann::json paramsWithKnownDefaults(const std::string& type, const nlohmann::
     defaults = defaultTransientShaperParams();
   } else if (type == "distortion" && params.value("mode", std::string{"rat"}) == "rat") {
     defaults = defaultRatParams();
+  } else if (type == "distortion" && params.value("mode", "") == "tape") {
+    defaults = defaultTapeParams();
   } else if (type == "distortion" && params.value("mode", "") == "big_cheese") {
     defaults = defaultCheeseParams();
   } else if (type == "stereo") {
@@ -339,6 +363,8 @@ UiBlock blockFromAsset(const UiState& state, const UiAsset& asset,
       params = defaultTransientShaperParams();
     } else if (asset.blockType == "distortion" && asset.mode == "rat") {
       params = defaultRatParams();
+    } else if (asset.blockType == "distortion" && asset.mode == "tape") {
+      params = defaultTapeParams();
     } else if (asset.blockType == "distortion" && asset.mode == "big_cheese") {
       params = defaultCheeseParams();
     } else if (asset.blockType == "stereo") {
@@ -445,6 +471,8 @@ void appendDriveAssets(UiState& state)
                           "Drive · ProCo RAT circuit"});
   state.assets.push_back({"Big Cheese Fuzz", "", "drive", "distortion", "big_cheese",
                           "Drive · Lovetone Big Cheese circuit"});
+  state.assets.push_back({"Tape Machine", "", "drive", "distortion", "tape",
+                          "Drive · Studer A800 tape machine"});
 }
 
 void appendUtilityAssets(UiState& state)
@@ -1204,6 +1232,14 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
   const bool compressorValue = block.type == "dynamics"
     && block.params.value("mode", "") == "compressor"
     && (key == "detector" || key == "auto_makeup");
+  // Tape speed is a load-time property: it moves filter and solver
+  // coefficients, so it reaches the engine by rebuilding the chain the way the
+  // compressor's detector does. This allow-list is the only route a choice edit
+  // has to requeue a preview.
+  const bool tapeSpeedValue = block.type == "distortion"
+    && block.params.value("mode", "") == "tape"
+    && key == "speed" && value.is_string()
+    && (value == "15" || value == "30");
   const bool namNanoValue = block.type == "nam" && key == "useNano" && value.is_boolean();
   const bool namInputValue = block.type == "nam" && key == "inputMode" && value.is_string()
     && (value == "sum" || value == "left" || value == "right");
@@ -1216,7 +1252,7 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
     && (value == "sum" || value == "left" || value == "right");
   const bool dualRigToggleValue = block.type == "dualRig" && value.is_boolean()
     && (key == "leftPolarityInvert" || key == "rightPolarityInvert");
-  if (!compressorValue && !namNanoValue && !namInputValue
+  if (!compressorValue && !tapeSpeedValue && !namNanoValue && !namInputValue
       && !dualAmpInputValue && !dualAmpToggleValue
       && !dualRigInputValue && !dualRigToggleValue) {
     return;

@@ -55,7 +55,10 @@ std::string laneToken(const UiBlock& block)
     return "CMP";
   }
   if (block.type == "distortion") {
-    return block.params.value("mode", std::string{}) == "big_cheese" ? "FUZZ" : "RAT";
+    const auto mode = block.params.value("mode", std::string{});
+    if (mode == "big_cheese") return "FUZZ";
+    if (mode == "tape") return "TAPE";
+    return "RAT";
   }
   if (block.type == "irreverb") return "CONV";
   if (block.type == "stereo") return "WIDE";
