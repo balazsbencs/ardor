@@ -31,6 +31,9 @@ describe("preset validation", () => {
     expect(codes(validPreset([reverb]))).not.toContain("asset-missing");
 
     reverb.asset = "irs/cab.wav";
+    expect(codes(validPreset([reverb]))).not.toContain("asset-missing");
+
+    reverb.asset = "irs/missing.wav";
     expect(codes(validPreset([reverb]))).toContain("asset-missing");
   });
 

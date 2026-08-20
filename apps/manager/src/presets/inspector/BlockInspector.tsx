@@ -59,7 +59,9 @@ export function BlockInspector({
     if (control.kind === "asset") {
       const value = control.key ? String(valueFor(block, control.key, "")) : block.asset;
       const assets = control.assetKind === "models" ? models
-        : control.assetKind === "reverb-irs" ? reverbIrs : irs;
+        : control.assetKind === "reverb-irs"
+          ? [...reverbIrs, ...irs.filter((asset) => asset.path === value)]
+          : irs;
       return <AssetPicker key={control.key ?? control.label} value={value} label={control.label} assets={assets} onChange={(asset) => control.key ? onParam(block.id, control.key, asset) : onAsset(block.id, asset)} onAssets={onAssets} />;
     }
     if (control.kind === "number") return <ParameterSlider key={control.key} control={control} value={Number(valueFor(block, control.key, control.defaultValue))} onChange={(value) => onParam(block.id, control.key, value)} />;

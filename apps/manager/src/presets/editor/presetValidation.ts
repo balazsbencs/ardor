@@ -143,7 +143,10 @@ function assetIssues(block: PresetBlock, definition: EffectDefinition, assets: A
   const available = {
     models: assets.models,
     irs: assets.irs,
-    "reverb-irs": assets.reverbIrs,
+    // Convolution reverb used the cabinet inventory before the directories
+    // were split. Keep installed legacy paths valid without offering cabinet
+    // files for new reverb selections.
+    "reverb-irs": [...assets.reverbIrs, ...assets.irs],
   } as const;
   for (const control of definition.controls) {
     if (control.kind !== "asset") continue;

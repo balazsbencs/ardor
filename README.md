@@ -44,7 +44,7 @@ Preset files live under the data root in bank/slot folders, for example:
 
 - `presets/bank-000/preset-0.json`
 
-Block assets inside preset JSON stay relative to that same data root, such as `models/clean.nam`, `irs/open-back.wav`, or `reverb-irs/small-room.wav`. Cabinet IRs and convolution reverb IRs use separate directories. Absolute paths and `..` traversal are rejected. Real `.nam` models and IRs stay local and are not committed unless redistribution is allowed.
+Block assets inside preset JSON stay relative to that same data root, such as `models/clean.nam`, `irs/open-back.wav`, or `reverb-irs/small-room.wav`. Cabinet IRs and convolution reverb IRs use separate directories. Existing convolution presets that reference an installed `irs/` asset remain compatible, while new reverb selections use `reverb-irs/`. Absolute paths and `..` traversal are rejected. Real `.nam` models and IRs stay local and are not committed unless redistribution is allowed.
 
 ### Supported Parameters
 

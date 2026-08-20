@@ -46,6 +46,7 @@ function Probe() {
       <span data-testid="location">{session.current ? `${session.current.location.bank}:${session.current.location.slot}` : "none"}</span>
       <span data-testid="name">{session.current?.preset.name ?? "none"}</span>
       <span data-testid="token-focus">{String(session.needsTokenFocus)}</span>
+      <span data-testid="reverb-ir-support">{String(session.supportsReverbIrs)}</span>
       <span>{session.error?.message}</span>
       <button type="button" onClick={() => void session.connect("http://pedal", "secret")}>Connect</button>
       <button type="button" onClick={session.disconnect}>Disconnect</button>
@@ -84,6 +85,23 @@ describe("DeviceSessionProvider", () => {
     expect(screen.getByTestId("location")).toHaveTextContent("3:2");
     expect(screen.getByTestId("name")).toHaveTextContent("Saved");
     expect(client.getPreset).toHaveBeenCalledWith(3, 2);
+  });
+
+  it("connects to older devices that do not expose a reverb IR inventory", async () => {
+    const client = mockClient({
+      listAssets: vi.fn(async (kind) => {
+        if (kind === "reverb-irs") {
+          throw new ArdorApiError(400, "invalid_asset_kind", "asset kind must be models or irs");
+        }
+        return [];
+      }),
+    });
+    renderSession(() => client);
+
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(await screen.findByText("connected")).toBeInTheDocument();
+    expect(screen.getByTestId("reverb-ir-support")).toHaveTextContent("false");
   });
 
   it("creates a local empty preset when the chosen slot does not exist", async () => {

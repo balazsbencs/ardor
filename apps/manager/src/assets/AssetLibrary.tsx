@@ -52,12 +52,17 @@ export function AssetLibrary({ tone3000DeviceId }: { tone3000DeviceId?: string }
   const hostedPopup = useRef<Window | null>(null);
   const assets = kind === "models" ? session.models : kind === "irs" ? session.irs : session.reverbIrs;
   const section = assetSections[kind];
+  const visibleSections = (Object.keys(assetSections) as AssetKind[])
+    .filter((item) => item !== "reverb-irs" || session.supportsReverbIrs);
   const visible = assets.filter((asset) => asset.filename.toLowerCase().includes(query.toLowerCase()));
   const tone3000Available = hostedCloud && tone3000DeviceId !== undefined;
   const allVisibleSelected = visible.length > 0 && visible.every((asset) => selected.has(asset.id));
 
   // ponytail: any list change (tab switch, upload, rename) just drops the selection.
   useEffect(() => { setSelected(new Set()); }, [kind, assets]);
+  useEffect(() => {
+    if (kind === "reverb-irs" && !session.supportsReverbIrs) setKind("models");
+  }, [kind, session.supportsReverbIrs]);
 
   const toggleSelected = (id: string) => setSelected((current) => {
     const next = new Set(current);
@@ -260,7 +265,7 @@ export function AssetLibrary({ tone3000DeviceId }: { tone3000DeviceId?: string }
   return (
     <main className="assets-view">
       <header className="assets-view__header"><div><p className="eyebrow">Device assets</p><h1>Models & impulse responses</h1><p>Keep cabinet captures and reverb spaces separate, then choose them from the matching block inspector.</p></div><div className="assets-view__actions">{kind === "models" && tone3000Available && <Button className="tone3000-entry" onClick={browseTone3000} disabled={session.busy.upload || conflict !== undefined || tone3000Phase !== "idle"}><Tone3000Brand compact /> Browse TONE3000</Button>}<Button onClick={() => fileRef.current?.click()} disabled={session.busy.upload || conflict !== undefined}><Upload size={16} /> {session.busy.upload ? "Uploading…" : `Upload ${section.singular}`}</Button></div><input ref={fileRef} hidden type="file" multiple accept={section.extension} onChange={(event) => upload(event.target.files)} /></header>
-      <div className="assets-toolbar"><div className="category-tabs" role="group" aria-label="Asset type">{(Object.keys(assetSections) as AssetKind[]).map((item) => <button key={item} type="button" aria-pressed={kind === item} className={kind === item ? "is-active" : ""} onClick={() => setKind(item)}>{assetSections[item].label}</button>)}</div><input className="asset-search" aria-label="Search files" placeholder="Search files" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
+      <div className="assets-toolbar"><div className="category-tabs" role="group" aria-label="Asset type">{visibleSections.map((item) => <button key={item} type="button" aria-pressed={kind === item} className={kind === item ? "is-active" : ""} onClick={() => setKind(item)}>{assetSections[item].label}</button>)}</div><input className="asset-search" aria-label="Search files" placeholder="Search files" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
       <div className="asset-dropzone" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); upload(event.dataTransfer.files); }}><Upload size={16} /><span>Drop {section.extension} files here to upload to {section.label.toLowerCase()}</span></div>
       {error && <p className="assets-error" role="alert">{error}</p>}
       {notice && <p className="assets-notice" role="status">{notice}</p>}

@@ -10,7 +10,8 @@ import { AssetLibrary } from "./AssetLibrary";
 
 function sessionWith(overrides: Partial<DeviceSessionValue>): DeviceSessionValue {
   return {
-    status: "connected", baseUrl: "http://pedal", models: [], irs: [], reverbIrs: [], presets: [], needsTokenFocus: false,
+    status: "connected", baseUrl: "http://pedal", models: [], irs: [], reverbIrs: [], supportsReverbIrs: true,
+    presets: [], needsTokenFocus: false,
     busy: { save: false, apply: false, upload: false }, connect: async () => undefined, disconnect: () => undefined,
     selectLocation: async () => undefined, refreshAssets: async () => undefined, refreshPresets: async () => undefined,
     saveCurrent: async () => undefined, applyCurrent: async () => undefined, uploadAsset: async () => undefined,
@@ -19,6 +20,14 @@ function sessionWith(overrides: Partial<DeviceSessionValue>): DeviceSessionValue
 }
 
 describe("AssetLibrary", () => {
+  it("hides reverb IR management when an older device does not support it", () => {
+    const session = sessionWith({ supportsReverbIrs: false });
+
+    renderWithProviders(<DeviceSessionContext.Provider value={session}><AssetLibrary /></DeviceSessionContext.Provider>);
+
+    expect(screen.queryByRole("button", { name: "Reverb IRs" })).not.toBeInTheDocument();
+  });
+
   it("keeps reverb IRs in their own management section", async () => {
     const user = userEvent.setup();
     const uploadAsset = vi.fn().mockResolvedValue({ id: "room.wav", kind: "ir", filename: "room.wav", path: "reverb-irs/room.wav", sizeBytes: 4 });
