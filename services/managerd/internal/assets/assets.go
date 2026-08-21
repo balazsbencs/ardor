@@ -15,8 +15,9 @@ var ErrExists = errors.New("asset already exists")
 type Kind string
 
 const (
-	KindModel Kind = "model"
-	KindIR    Kind = "ir"
+	KindModel    Kind = "model"
+	KindIR       Kind = "ir"
+	KindReverbIR Kind = "reverb-ir"
 )
 
 type Info struct {
@@ -176,17 +177,25 @@ func (s Store) Rename(kind Kind, id, filename string) (Info, error) {
 }
 
 func (s Store) dir(kind Kind) string {
-	if kind == KindModel {
+	switch kind {
+	case KindModel:
 		return filepath.Join(s.root, "models")
+	case KindReverbIR:
+		return filepath.Join(s.root, "reverb-irs")
+	default:
+		return filepath.Join(s.root, "irs")
 	}
-	return filepath.Join(s.root, "irs")
 }
 
 func (s Store) rel(kind Kind, name string) string {
-	if kind == KindModel {
+	switch kind {
+	case KindModel:
 		return "models/" + name
+	case KindReverbIR:
+		return "reverb-irs/" + name
+	default:
+		return "irs/" + name
 	}
-	return "irs/" + name
 }
 
 func extension(kind Kind) string {

@@ -4,9 +4,36 @@
 #include "cheese/CheeseNetlist.h"
 
 #include <array>
-#include <vector>
 
 namespace ardor {
+
+inline constexpr std::size_t kCheeseStateCount = 8;
+inline constexpr std::size_t kCheesePortCount = 3;
+inline constexpr std::size_t kCheeseInputCount = 2;
+
+// Fixed, float runtime form of the matrices derived by CheeseDk. Derivation
+// uses dynamic double-precision algebra off the audio thread; processing uses
+// this compact form so its bounds are compile-time constants and changing a
+// control never allocates in the callback.
+struct CheesePreparedMatrices {
+  std::array<float, kCheeseStateCount * kCheeseStateCount> a{};
+  std::array<float, kCheeseStateCount * kCheeseInputCount> b{};
+  std::array<float, kCheeseStateCount * kCheesePortCount> c{};
+  std::array<float, kCheesePortCount * kCheeseStateCount> d{};
+  std::array<float, kCheesePortCount * kCheeseInputCount> e{};
+  std::array<float, kCheesePortCount * kCheesePortCount> f{};
+  std::array<float, kCheeseStateCount> g{};
+  std::array<float, kCheeseInputCount> h{};
+  std::array<float, kCheesePortCount> k{};
+  std::array<float, kCheesePortCount> portVoltage{};
+  std::array<float, kCheesePortCount> critical{};
+  float outputOffset = 0.0f;
+};
+
+// Offline/control-thread work. Never call this from process().
+CheesePreparedMatrices prepareCheeseCircuitMatrices(const CheeseNetlist& netlist,
+                                                     float fuzz, float tone,
+                                                     float sampleRate);
 
 // Runtime model of the Big Cheese, evaluated one sample at a time at the
 // OVERSAMPLED rate. It knows nothing about oversampling; CheeseProcessor owns
@@ -33,11 +60,19 @@ namespace ardor {
 // is cheap enough for a control-rate call but must not run per sample.
 class CheeseCircuit {
 public:
-  void init(const CheeseNetlist& netlist, float sampleRate);
+  void init(const CheeseNetlist& netlist, float sampleRate,
+            float fuzz = 0.7f, float tone = 0.5f, float volume = 0.7f);
   void reset();
 
   // Knob positions, 0..1.
   void setControls(float fuzz, float tone, float volume);
+
+  // Applies already-derived coefficients without allocation or state reset.
+  // CheeseProcessor uses this at an audio sample boundary after its control
+  // worker publishes a completed set.
+  void applyPreparedMatrices(const CheesePreparedMatrices& matrices,
+                             float fuzz, float tone) noexcept;
+  void setVolumeGain(float gain) noexcept { volumeGain_ = gain; }
 
   float process(float input);
 
@@ -53,17 +88,21 @@ public:
   unsigned long long unconvergedSamples() const noexcept { return unconverged_; }
 
 private:
-  void rebuild();
-
   CheeseNetlist netlist_{};
-  CheeseDkMatrices matrices_{};
+  CheesePreparedMatrices matrices_{};
   float sampleRate_ = 192000.0f;
 
   float fuzz_ = 0.7f;
   float tone_ = 0.5f;
   float volume_ = 0.7f;
   float volumeGain_ = 1.0f;
-  bool dirty_ = true;
+
+  float bjtVt_ = 0.0f;
+  float diodeVt_ = 0.0f;
+  float bjtIs_ = 0.0f;
+  float diodeIs_ = 0.0f;
+  float clipperJunctions_ = 1.0f;
+  float rail_ = 9.0f;
 
   // --- Input network -----------------------------------------------------
   float inputHighPassCoeff_ = 0.0f;
@@ -78,12 +117,9 @@ private:
   // drift. It does not: with the limiting below fixed, twenty seconds of hard
   // playing leaves the output where it started, and the harmonics agree with a
   // double-precision run to four decimal places.
-  std::vector<float> state_;
-  std::vector<float> scratch_;
+  std::array<float, kCheeseStateCount> state_{};
+  std::array<float, kCheeseStateCount> scratch_{};
   std::array<float, 3> portVolts_{};
-  // Where each port starts being limited, derived from how hard it drives
-  // the network rather than from the device on its own.
-  std::array<float, 3> critical_{};
   float clipperVolts_ = 0.0f;
   unsigned long long unconverged_ = 0;
 

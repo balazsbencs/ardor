@@ -7,6 +7,19 @@ import { renderWithProviders } from "../../test/render";
 import { BlockInspector } from "./BlockInspector";
 
 describe("BlockInspector", () => {
+  it("keeps an installed legacy cabinet-directory IR selected for convolution reverb", () => {
+    const block = createBlockFromDefinition("irreverb", [], "irs/legacy-room.wav");
+    const irs = [{
+      id: "legacy-room.wav", kind: "ir" as const, filename: "legacy-room.wav",
+      path: "irs/legacy-room.wav", sizeBytes: 1,
+    }];
+
+    renderWithProviders(<BlockInspector block={block} issues={[]} models={[]} irs={irs} reverbIrs={[]} onToggle={() => undefined} onParam={() => undefined} onAsset={() => undefined} onMode={() => undefined} onEqBand={() => undefined} onReset={() => undefined} onDuplicate={() => undefined} onDelete={() => undefined} onAssets={() => undefined} />);
+
+    expect(screen.getByRole("combobox", { name: "Reverb IR" })).toHaveValue("irs/legacy-room.wav");
+    expect(screen.queryByText("Missing")).not.toBeInTheDocument();
+  });
+
   it("offers the nano model as an opt-in switch", async () => {
     const user = userEvent.setup();
     const block = createBlockFromDefinition("nam", [], "models/amp.nam");

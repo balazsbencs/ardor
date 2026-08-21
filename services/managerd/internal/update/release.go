@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ed25519"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -64,10 +65,21 @@ func LoadPublicKey(path string) (ed25519.PublicKey, error) {
 		return nil, err
 	}
 	decoded, err := base64.StdEncoding.Strict().DecodeString(strings.TrimSpace(string(data)))
-	if err != nil || len(decoded) != ed25519.PublicKeySize {
+	if err != nil {
 		return nil, errors.New("OTA public key must be one base64-encoded Ed25519 public key")
 	}
-	return ed25519.PublicKey(decoded), nil
+	if len(decoded) == ed25519.PublicKeySize {
+		return ed25519.PublicKey(decoded), nil
+	}
+	key, err := x509.ParsePKIXPublicKey(decoded)
+	if err != nil {
+		return nil, errors.New("OTA public key must be a raw or PKIX-encoded Ed25519 public key")
+	}
+	publicKey, ok := key.(ed25519.PublicKey)
+	if !ok {
+		return nil, errors.New("OTA public key must be an Ed25519 public key")
+	}
+	return publicKey, nil
 }
 
 func (client ReleaseClient) Discover(ctx context.Context, publicKey ed25519.PublicKey, installedVersion, baseVersion string) (Selection, error) {

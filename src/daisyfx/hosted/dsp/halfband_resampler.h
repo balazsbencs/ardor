@@ -80,20 +80,30 @@ public:
     void Reset() { history_.fill(0.0f); write_ = 0; }
 
     std::array<float, 2> Process(float input) {
-        push(input);
-        const float even = 2.0f * halfband::convolve(history_, write_);
-        push(0.0f);
-        const float odd = 2.0f * halfband::convolve(history_, write_);
-        return {even, odd};
+        // Polyphase form of the same zero-stuffed FIR. On the input phase the
+        // eight symmetric coefficient pairs see real samples; on the inserted
+        // zero phase only the half-band centre tap is non-zero. Keeping history
+        // at the input rate evaluates 9 multiplies instead of running two
+        // 9-multiply convolutions over an upsampled buffer.
+        history_[write_] = input;
+        const std::size_t newest = write_;
+        write_ = (write_ + 1U) & kHistoryMask;
+
+        float even = 0.0f;
+        for (std::size_t pair = 0; pair < halfband::kEvenCoeffs.size(); ++pair) {
+            const float a = history_[(newest + kHistory - pair) & kHistoryMask];
+            const float b = history_[(newest + kHistory - (15U - pair)) & kHistoryMask];
+            even += halfband::kEvenCoeffs[pair] * (a + b);
+        }
+        const float odd = halfband::kCentreCoeff
+            * history_[(newest + kHistory - 7U) & kHistoryMask];
+        return {2.0f * even, 2.0f * odd};
     }
 
 private:
-    void push(float input) {
-        history_[write_] = input;
-        write_ = (write_ + 1U) & halfband::kHistoryMask;
-    }
-
-    std::array<float, halfband::kHistory> history_{};
+    static constexpr std::size_t kHistory = 16;
+    static constexpr std::size_t kHistoryMask = kHistory - 1U;
+    std::array<float, kHistory> history_{};
     std::size_t write_ = 0;
 };
 

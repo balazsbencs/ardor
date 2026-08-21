@@ -281,7 +281,7 @@ void CloudClaimOverlay::showFactoryPending(const std::string& resetId)
   lv_label_set_text(title_, "Confirm factory reset");
   lv_obj_align(title_, LV_ALIGN_TOP_MID, 0, 28);
   detail_ = lv_label_create(modal_);
-  lv_label_set_text(detail_, "This removes local access, presets, models, IRs, Wi-Fi, and settings.\nThe stable device identity is preserved.\n\nFootswitch 1: Erase everything    Footswitch 4: Cancel");
+  lv_label_set_text(detail_, "This removes local access, presets, models, cabinet IRs, reverb IRs, Wi-Fi, and settings.\nThe stable device identity is preserved.\n\nFootswitch 1: Erase everything    Footswitch 4: Cancel");
   lv_obj_set_style_text_align(detail_, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(detail_, LV_ALIGN_CENTER, 0, -25);
   styleDialogText(title_, detail_);

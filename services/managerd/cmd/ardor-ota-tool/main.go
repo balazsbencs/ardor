@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"crypto/ed25519"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -236,19 +237,41 @@ func fileSHA256(path string) (string, error) {
 func privateKeyFromEnvironment() (ed25519.PrivateKey, error) {
 	raw := strings.TrimSpace(os.Getenv("ARDOR_OTA_PRIVATE_KEY_BASE64"))
 	decoded, err := base64.StdEncoding.Strict().DecodeString(raw)
-	if err != nil || len(decoded) != ed25519.PrivateKeySize {
+	if err != nil {
 		return nil, errors.New("ARDOR_OTA_PRIVATE_KEY_BASE64 must contain one base64-encoded Ed25519 private key")
 	}
-	return ed25519.PrivateKey(decoded), nil
+	if len(decoded) == ed25519.PrivateKeySize {
+		return ed25519.PrivateKey(decoded), nil
+	}
+	key, err := x509.ParsePKCS8PrivateKey(decoded)
+	if err != nil {
+		return nil, errors.New("ARDOR_OTA_PRIVATE_KEY_BASE64 must contain a raw or PKCS#8-encoded Ed25519 private key")
+	}
+	privateKey, ok := key.(ed25519.PrivateKey)
+	if !ok {
+		return nil, errors.New("ARDOR_OTA_PRIVATE_KEY_BASE64 must contain an Ed25519 private key")
+	}
+	return privateKey, nil
 }
 
 func publicKeyFromEnvironment() (ed25519.PublicKey, error) {
 	raw := strings.TrimSpace(os.Getenv("ARDOR_UPDATE_PUBLIC_KEY_BASE64"))
 	decoded, err := base64.StdEncoding.Strict().DecodeString(raw)
-	if err != nil || len(decoded) != ed25519.PublicKeySize {
+	if err != nil {
 		return nil, errors.New("ARDOR_UPDATE_PUBLIC_KEY_BASE64 must contain one base64-encoded Ed25519 public key")
 	}
-	return ed25519.PublicKey(decoded), nil
+	if len(decoded) == ed25519.PublicKeySize {
+		return ed25519.PublicKey(decoded), nil
+	}
+	key, err := x509.ParsePKIXPublicKey(decoded)
+	if err != nil {
+		return nil, errors.New("ARDOR_UPDATE_PUBLIC_KEY_BASE64 must contain a raw or PKIX-encoded Ed25519 public key")
+	}
+	publicKey, ok := key.(ed25519.PublicKey)
+	if !ok {
+		return nil, errors.New("ARDOR_UPDATE_PUBLIC_KEY_BASE64 must contain an Ed25519 public key")
+	}
+	return publicKey, nil
 }
 
 func fatal(err error) {
