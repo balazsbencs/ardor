@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -9,7 +9,7 @@ import { renderWithProviders } from "../test/render";
 describe("global settings", () => {
   beforeEach(() => localStorage.clear());
 
-  it("opens from the gear and persists a custom accent", async () => {
+  it("opens from the gear and persists the selected Panel palette", async () => {
     const user = userEvent.setup();
     const { container } = renderWithProviders(
       <DeviceSessionProvider><AppShell /></DeviceSessionProvider>,
@@ -18,9 +18,9 @@ describe("global settings", () => {
     await user.click(screen.getByRole("button", { name: "Open settings" }));
     expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Custom accent color"), { target: { value: "#67a6ff" } });
-    expect(container.querySelector(".app-shell")).toHaveStyle("--accent: #67a6ff");
-    expect(localStorage.getItem("ardor-manager.accent")).toBe("#67a6ff");
+    await user.click(screen.getByRole("button", { name: "Ink" }));
+    expect(container.querySelector(".app-shell")).toHaveStyle("--lamp: #5fd0e8");
+    expect(localStorage.getItem("ardor-manager.palette")).toBe("ink");
   });
 
   it("explains that Wi-Fi setup needs a connected pedal", async () => {
