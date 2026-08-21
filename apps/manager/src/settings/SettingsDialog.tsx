@@ -14,14 +14,14 @@ import {
   Wifi,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 import type { UpdateStatus, WiFiSettings } from "../api/types";
 import { Button, IconButton, StatusBadge, cx } from "../components/ui";
 import { useDeviceSession } from "../connection/deviceSession";
 import { localAuthAPI } from "../localAuth/api";
 import { isDeviceHostedRuntime } from "../runtime/platform";
-import { accentChoices, accentVariables, defaultAccent, type Theme } from "../theme/accent";
+import { paletteById, palettes, paletteVariables, type PaletteId } from "../theme/accent";
 
 type SettingsSection = "appearance" | "wifi" | "updates" | "security";
 
@@ -46,15 +46,13 @@ function formatBytes(bytes: number): string {
 export function SettingsDialog({
   open,
   onOpenChange,
-  accent,
-  theme,
-  onAccentChange,
+  palette,
+  onPaletteChange,
 }: {
   open: boolean;
   onOpenChange(open: boolean): void;
-  accent: string;
-  theme: Theme;
-  onAccentChange(accent: string): void;
+  palette: PaletteId;
+  onPaletteChange(palette: PaletteId): void;
 }) {
   const session = useDeviceSession();
   const [section, setSection] = useState<SettingsSection>("appearance");
@@ -80,7 +78,7 @@ export function SettingsDialog({
   const updateAvailable = session.status === "connected"
     && Boolean(session.client)
     && session.device?.capabilities.softwareUpdate === true;
-  const portalStyle = accentVariables(accent, theme);
+  const portalStyle = paletteVariables(palette);
 
   useEffect(() => {
     if (!open || section !== "wifi" || !wifiAvailable || !session.client) return;
@@ -223,7 +221,7 @@ export function SettingsDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <div className="app-shell portal-surface" data-theme={theme} style={portalStyle}>
+        <div className="app-shell portal-surface" data-palette={palette} style={portalStyle}>
           <Dialog.Overlay className="dialog-overlay" />
           <Dialog.Content className="settings-dialog" aria-describedby="settings-description">
           <header className="settings-dialog__header">
@@ -256,47 +254,33 @@ export function SettingsDialog({
             {section === "appearance" ? (
               <section className="settings-panel" aria-labelledby="appearance-heading">
                 <div className="settings-panel__heading">
-                  <p className="eyebrow">Manager appearance</p>
-                  <h2 id="appearance-heading">Accent color</h2>
-                  <p>Used for primary actions, selection states, and focus indicators throughout the app.</p>
+                  <h2 id="appearance-heading">Panel palette</h2>
+                  <p>Use the same named palette system as the pedal. LIVE is reserved for the active preset and selected parameter.</p>
                 </div>
                 <div className="accent-setting">
-                  <div className="accent-preview" style={{ backgroundColor: accent }}>
-                    <span style={{ color: accent }}><Check size={16} /></span>
+                  <div className="accent-preview">
+                    <span><Check size={16} /></span>
                     <div>
-                      <strong>Live preview</strong>
-                      <small>Changes apply everywhere immediately.</small>
+                      <strong>{paletteById(palette).name}</strong>
+                      <small>Applied to every Manager panel immediately.</small>
                     </div>
                   </div>
-                  <div className="accent-swatches" role="group" aria-label="Accent color presets">
-                    {accentChoices.map((choice) => (
+                  <div className="palette-swatches" role="group" aria-label="Panel palette">
+                    {palettes.map((choice) => (
                       <button
-                        key={choice.value}
-                        className={cx(accent.toLowerCase() === choice.value && "is-active")}
-                        style={{ backgroundColor: choice.value }}
+                        key={choice.id}
+                        className={cx(palette === choice.id && "is-active")}
+                        style={{ "--swatch-plate": choice.plate, "--swatch-panel": choice.plate2, "--swatch-lamp": choice.lamp } as CSSProperties}
                         aria-label={choice.name}
-                        aria-pressed={accent.toLowerCase() === choice.value}
-                        onClick={() => onAccentChange(choice.value)}
+                        aria-pressed={palette === choice.id}
+                        onClick={() => onPaletteChange(choice.id)}
                       >
-                        {accent.toLowerCase() === choice.value && <Check size={14} />}
+                        <span aria-hidden="true" />
+                        <strong>{choice.name}</strong>
+                        {palette === choice.id && <Check size={14} />}
                       </button>
                     ))}
                   </div>
-                  <label className="color-field">
-                    <span>Custom color</span>
-                    <span className="color-field__control">
-                      <input
-                        aria-label="Custom accent color"
-                        type="color"
-                        value={accent}
-                        onChange={(event) => onAccentChange(event.target.value)}
-                      />
-                      <output>{accent.toUpperCase()}</output>
-                    </span>
-                  </label>
-                  <Button variant="quiet" onClick={() => onAccentChange(defaultAccent)}>
-                    <RotateCcw size={15} /> Reset to Ardor green
-                  </Button>
                 </div>
               </section>
             ) : section === "wifi" ? (
