@@ -75,7 +75,7 @@ bool TapeProcessor::configure(const nlohmann::json& params, float sampleRate, st
   transport_.setFlutter(flutter);
   transport_.setHissDb(hissDb);
 
-  rebuildFilters();
+  rebuildFilters(true);
   calibrateDriveMakeup();
   reset();
   return true;
@@ -93,7 +93,7 @@ TapeHysteresis::Parameters TapeProcessor::solverParameters() const
   return parameters;
 }
 
-void TapeProcessor::rebuildFilters()
+void TapeProcessor::rebuildFilters(bool resetMagnetics)
 {
   const float oversampledRate = sampleRate_ * static_cast<float>(kOversampling);
 
@@ -124,7 +124,11 @@ void TapeProcessor::rebuildFilters()
     lane->bumpPeak.coefficients = makePeakingEq(sampleRate_, bumpHz, 1.2f, bumpDb);
     lane->bumpDip.coefficients =
       makePeakingEq(sampleRate_, bumpHz / 2.2f, 1.5f, -0.5f * bumpDb);
-    lane->core.configure(parameters, oversampledRate);
+    if (resetMagnetics) {
+      lane->core.configure(parameters, oversampledRate);
+    } else {
+      lane->core.setParameters(parameters);
+    }
   }
 }
 
@@ -210,20 +214,18 @@ bool TapeProcessor::setParameterTarget(const std::string& key, float value)
     transport_.setHissDb(std::clamp(value, TapeTransport::kHissOffDb, -60.0f));
     return true;
   }
-  // Saturation, bias and head bump change filter and solver coefficients, so
-  // they rebuild rather than smooth. They are knob moves, not automation
-  // targets. Saturation and bias also move the knee, so the drive makeup has
-  // to be measured again or the level would drift as they turn.
+  // Saturation, bias and head bump change filter and solver coefficients.
+  // This path is called once per pointer-move event, so it must stay bounded:
+  // calibration is deliberately load-time work, and the hysteresis state is
+  // retained while its material parameters are updated.
   if (key == "saturation") {
     saturationTarget_ = std::clamp(value, 0.0f, 1.0f);
     rebuildFilters();
-    calibrateDriveMakeup();
     return true;
   }
   if (key == "bias") {
     biasTarget_ = std::clamp(value, 0.0f, 1.0f);
     rebuildFilters();
-    calibrateDriveMakeup();
     return true;
   }
   if (key == "head_bump") {

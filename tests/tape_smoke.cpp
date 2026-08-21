@@ -521,6 +521,20 @@ void testRejectsBadConfiguration()
   require(!tape.setParameterTarget("drive", std::nanf("")), "a non-finite value must be rejected");
 }
 
+void testToneControlsCanUpdateWhileProcessing()
+{
+  auto tape = makeTape({});
+  for (int step = 0; step <= 32; ++step) {
+    const float value = static_cast<float>(step) / 32.0f;
+    require(tape.setParameterTarget("saturation", value), "saturation must be live-settable");
+    require(tape.setParameterTarget("bias", 1.0f - value), "bias must be live-settable");
+    require(tape.setParameterTarget("head_bump", value), "head bump must be live-settable");
+    const auto out = tape.process({0.25f, -0.25f});
+    require(std::isfinite(out.left) && std::isfinite(out.right),
+            "live tape tone updates must keep the audio finite");
+  }
+}
+
 } // namespace
 
 int main()
@@ -542,6 +556,7 @@ int main()
     testDriveIsGainCompensated();
     testResetReturnsToConstructedState();
     testRejectsBadConfiguration();
+    testToneControlsCanUpdateWhileProcessing();
   } catch (const std::exception& error) {
     std::fprintf(stderr, "tape smoke failed: %s\n", error.what());
     return 1;
