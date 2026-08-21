@@ -159,7 +159,7 @@ private:
   static constexpr std::size_t kDryBufferSize = 128; // power of two, masked index
   static constexpr std::size_t kDryBufferMask = kDryBufferSize - 1U;
 
-  void rebuildFilters();
+  void rebuildFilters(bool resetMagnetics = false);
   void calibrateDriveMakeup();
   float driveMakeup(float driveDb) const;
   TapeHysteresis::Parameters solverParameters() const;
@@ -185,9 +185,8 @@ private:
 
   // Makeup measured at configure() time by running a probe tone through a
   // scratch copy of the magnetics at each of these drive settings. Nothing
-  // here is hand-tuned; interpolating between measurements is what keeps the
-  // level steady as drive moves, and it stays correct when the hysteresis fit
-  // is retuned.
+  // here is hand-tuned; interpolating between measurements keeps drive
+  // changes level-steady without putting a calibration sweep on the UI path.
   static constexpr std::size_t kCalibrationPoints = 13;
   static constexpr float kCalibrationMinDb = -12.0f;
   static constexpr float kCalibrationMaxDb = 24.0f;

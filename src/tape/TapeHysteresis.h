@@ -67,6 +67,11 @@ public:
   // `oversampledRate` is the rate this core actually runs at — 384000 for the
   // tape block's 8x oversampling, not the host's 48000.
   void configure(const Parameters& parameters, float oversampledRate);
+
+  // Revoice a running core without clearing its magnetic history. This is the
+  // live-control counterpart to configure(): tape saturation and bias change
+  // the material, not the fact that it was already magnetised.
+  void setParameters(const Parameters& parameters) noexcept;
   void reset();
 
   // Takes the applied field H in A/m, returns M / M_s, nominally within +/-1.
