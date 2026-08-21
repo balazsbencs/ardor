@@ -24,7 +24,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   --font-nomenclature: "Saira Condensed", "Arial Narrow", sans-serif;
   --font-measurement: "Saira", "Segoe UI", system-ui, sans-serif;
   --bg: #212528; --surface: #2a2f33; --surface-raised: #2a2f33; --surface-muted: #191c1f;
-  --line: #3b4247; --line-strong: #8d9499; --text: #e2e4e3; --muted: #8d9499; --faint: #5b6266;
+  --line: #3b4247; --line-strong: #8d9499; --text: #e2e4e3; --muted: #8d9499; --faint: #8d9499; --disabled: #5b6266;
   --lamp: #d8422f; --accent: var(--lamp); --accent-ink: #212528; --danger: #bb9186; --fault-line: #6b463c; --warning: #c9973f; --info: #7fa6c8; --success: #5d8f80;
   --focus: #e2e4e3; --amp: #a8814e; --cabinet: #939a9e; --utility: #5f7f9c; --eq: #5f7f9c;
   --modulation: #5d8f80; --delay: #8175a0; --reverb: #a8785c; --unknown: #8d9499;
@@ -522,4 +522,33 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     border-color: var(--text);
     background: var(--surface-muted);
   }
+}
+
+/* Polish: LIVE is a pedal state, not a generic web-selection color. */
+.app-shell :where(
+  .parameter-slider input[type="range"],
+  .asset-bulkbar input[type="checkbox"],
+  .asset-row input[type="checkbox"],
+  .tone3000-architecture input
+) { accent-color: var(--text); }
+.app-shell .eq-slope-options button[aria-pressed="true"] {
+  color: var(--bg);
+  background: var(--text);
+}
+.app-shell .tone3000-architecture label:has(input:checked) {
+  border-color: var(--text);
+  background: var(--surface-muted);
+}
+.app-shell .dual-rig-lane.is-over .dual-rig-lane__rail,
+.app-shell .dual-rig-effect.is-selected {
+  border-color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--text);
+}
+.app-shell .settings-spinner { border-top-color: var(--text); }
+.app-shell .settings-empty > svg { color: var(--muted); }
+.app-shell .palette-swatches button.is-active { box-shadow: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .settings-spinner,
+  .app-shell .tone3000-spinner { animation: none; }
 }

@@ -20,6 +20,8 @@ describe("global settings", () => {
 
     await user.click(screen.getByRole("button", { name: "Ink" }));
     expect(container.querySelector(".app-shell")).toHaveStyle("--lamp: #5fd0e8");
+    expect(container.querySelector(".app-shell")).toHaveStyle("--faint: #7e8fa3");
+    expect(container.querySelector(".app-shell")).toHaveStyle("--disabled: #4d5b6b");
     expect(localStorage.getItem("ardor-manager.palette")).toBe("ink");
   });
 
