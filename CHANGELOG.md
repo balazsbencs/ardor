@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.39](https://github.com/balazsbencs/ardor/compare/v0.1.38...v0.1.39) (2026-08-21)
+
+### Features
+
+* **tone3000:** enable local device model browsing ([#44](https://github.com/balazsbencs/ardor/issues/44)) ([2e2b5d6](https://github.com/balazsbencs/ardor/commit/2e2b5d6aaa6feb6d55f1c3d4a8ef87573a42799e))
+
 ## [0.1.38](https://github.com/balazsbencs/ardor/compare/v0.1.24...v0.1.38) (2026-08-21)
 
 ### Features
