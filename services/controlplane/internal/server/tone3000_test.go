@@ -33,7 +33,7 @@ func TestTone3000CallbackKeepsCredentialsServerSide(t *testing.T) {
 				"user": map[string]any{"id": 7, "username": "maker", "avatar_url": nil, "url": "https://www.tone3000.com/users/maker"},
 			})
 		case "/api/v1/models":
-			if request.URL.Query().Get("architecture_version") != "2" {
+			if request.URL.Query().Get("architecture") != "2" {
 				t.Fatalf("architecture query=%q", request.URL.RawQuery)
 			}
 			writeJSON(writer, http.StatusOK, map[string]any{"data": []any{map[string]any{

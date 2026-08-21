@@ -237,7 +237,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .tone3000-brand--compact img { width: 4.7rem; padding: .12rem .2rem; }
 .tone3000-entry .tone3000-brand--compact img { width: 4.25rem; }
 .tone3000-overlay { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; padding: 1rem; background: #000b; backdrop-filter: blur(7px); }
-.tone3000-dialog { width: min(48rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow: auto; border: 1px solid var(--line-strong); border-radius: 1rem; color: var(--text); background: var(--surface-raised); box-shadow: 0 2rem 7rem #000b; }
+.tone3000-dialog { position: fixed; z-index: 51; top: 50%; left: 50%; width: min(48rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow: auto; overscroll-behavior: contain; border: 1px solid var(--line-strong); border-radius: 1rem; color: var(--text); background: var(--surface-raised); box-shadow: 0 2rem 7rem #000b; transform: translate(-50%, -50%); }
 .tone3000-dialog__header { position: sticky; z-index: 1; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 1rem; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--surface-raised) 92%, transparent); backdrop-filter: blur(12px); }
 .tone3000-dialog__close { display: grid; place-items: center; width: 2rem; height: 2rem; border: 0; border-radius: .45rem; color: var(--muted); background: transparent; }
 .tone3000-dialog__close:hover:not(:disabled) { color: var(--text); background: var(--surface-muted); }
@@ -273,12 +273,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 @media (max-width: 760px) {
   .assets-view__actions { justify-content: start; }
-  .tone3000-dialog { width: calc(100vw - 1rem); max-height: calc(100vh - 1rem); }
+  .tone3000-overlay { padding: 0; }
+  .tone3000-dialog { top: auto; right: 0; bottom: 0; left: 0; width: 100%; max-height: calc(100vh - .5rem); max-height: calc(100dvh - .5rem); border-right: 0; border-bottom: 0; border-left: 0; border-radius: 1rem 1rem 0 0; transform: none; }
   .tone3000-dialog__header { align-items: start; }
   .tone3000-dialog__header > .tone3000-brand { display: grid; gap: .3rem; }
   .tone3000-detail { grid-template-columns: 1fr; }
   .tone3000-detail__image { min-height: 11rem; max-height: 15rem; }
-  .tone3000-intro { padding: 1.4rem; }
+  .tone3000-intro, .tone3000-waiting { padding: 1.4rem 1rem max(1.4rem, env(safe-area-inset-bottom)); }
+  .tone3000-detail__body { padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom)); }
   .tone3000-detail__title { display: grid; }
 }
 

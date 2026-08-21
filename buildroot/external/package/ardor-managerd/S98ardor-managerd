@@ -19,6 +19,8 @@ ENV=/etc/ardor-managerd.env
 : "${ARDOR_BASE_RELEASE_METADATA:=/etc/ardor-release.json}"
 : "${ARDOR_UPDATE_PUBLIC_KEY:=/etc/ardor-update.pub}"
 : "${ARDOR_UPDATER_EXECUTABLE:=/usr/bin/ardor-updater}"
+: "${TONE3000_CLIENT_ID:=}"
+: "${TONE3000_BASE_URL:=https://www.tone3000.com}"
 
 MANAGERD_BIN=/usr/bin/ardor-managerd
 if [ -x "$ARDOR_SYSTEM_ROOT/current/bin/ardor-managerd" ]; then
@@ -34,6 +36,7 @@ export ARDOR_MDNS
 export ARDOR_WIFI_INTERFACE ARDOR_WIFI_CONTROL_SCRIPT
 export ARDOR_SYSTEM_ROOT ARDOR_BASE_RELEASE_METADATA ARDOR_UPDATE_PUBLIC_KEY
 export ARDOR_UPDATER_EXECUTABLE
+export TONE3000_CLIENT_ID TONE3000_BASE_URL
 export ARDOR_RELEASE_MANIFEST
 
 case "$1" in

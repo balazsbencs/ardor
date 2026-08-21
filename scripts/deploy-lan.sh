@@ -23,23 +23,24 @@ Environment:
   ARDOR_PI_HOST          Host/IP when no positional host is passed.
   ARDOR_SSH_USER         SSH user on the pedal. Default: root
   ARDOR_SSH_OPTS         Extra options passed to ssh/scp.
+  ARDOR_VERBOSE=1        Trace local and Docker build commands.
   ARDOR_SKIP_BUILD=1     Upload existing ./ardor-pedal and ./ardor-managerd.
   ARDOR_SKIP_WEB_BUILD=1 Reuse the embedded manager bundle already in managerd.
+  ARDOR_PEDAL_DIRCLEAN=1 Force a clean Buildroot pedal-package rebuild.
   ARDOR_LOCAL_AUTH       on, off, or preserve. Default: on
   ARDOR_SERVICE_LOCAL    Local pedal supervisor script. Defaults to the
                          Buildroot package's S99ardor-pedal.
+  ARDOR_CA_BUNDLE_LOCAL  PEM bundle uploaded for manager HTTPS trust. Default:
+                         /etc/ssl/certs/ca-certificates.crt
 
 Docker build defaults:
   ARDOR_BUILD_MODE       docker or native. Default: docker
   ARDOR_BUILDROOT_VOLUME Docker volume initialized by build-image.sh.
                          Default comes from buildroot/buildroot-version.env.
-  ARDOR_DOCKER_IMAGE     Build container image. Default: ubuntu:24.04
-  ARDOR_APT_CACHE_VOLUME Docker volume for cached APT packages. Default:
-                         <buildroot-volume>_apt_cache.
-  ARDOR_APT_LISTS_VOLUME Docker volume for cached APT indexes. Default:
-                         <buildroot-volume>_apt_lists.
-  ARDOR_APT_TIMEOUT      Per-connection APT timeout in seconds. Default: 60.
-  ARDOR_APT_MIRROR       Ubuntu archive mirror URL. Default:
+  ARDOR_DOCKER_IMAGE     Cached local builder image. Default:
+                         ardor-builder:ubuntu-24.04. Built automatically if missing.
+  ARDOR_APT_MIRROR       Ubuntu mirror used only when building the cached image.
+                         Default:
                          http://archive.ubuntu.com/ubuntu
 
 Native build mode:
@@ -83,8 +84,17 @@ pedal_service="${ARDOR_SERVICE:-/etc/init.d/S99ardor-pedal}"
 pedal_service_local="${ARDOR_SERVICE_LOCAL:-$repo_dir/buildroot/external/package/ardor-pedal/S99ardor-pedal}"
 pedal_service_remote_tmp="${ARDOR_SERVICE_REMOTE_TMP:-/tmp/S99ardor-pedal.new}"
 managerd_service="${ARDOR_MANAGERD_SERVICE:-/etc/init.d/S98ardor-managerd}"
+managerd_service_local="${ARDOR_MANAGERD_SERVICE_LOCAL:-$repo_dir/buildroot/external/package/ardor-managerd/S98ardor-managerd}"
+managerd_service_remote_tmp="${ARDOR_MANAGERD_SERVICE_REMOTE_TMP:-/tmp/S98ardor-managerd.new}"
 managerd_env="${ARDOR_MANAGERD_ENV:-/etc/ardor-managerd.env}"
 local_auth="${ARDOR_LOCAL_AUTH:-on}"
+tone3000_client_id="${TONE3000_CLIENT_ID:-}"
+tone3000_base_url="${TONE3000_BASE_URL:-https://www.tone3000.com}"
+ca_bundle_local="${ARDOR_CA_BUNDLE_LOCAL:-/etc/ssl/certs/ca-certificates.crt}"
+ca_bundle_remote_tmp="${ARDOR_CA_BUNDLE_REMOTE_TMP:-/tmp/ca-certificates.crt.new}"
+ca_bundle_target="${ARDOR_CA_BUNDLE_TARGET:-/etc/ssl/certs/ca-certificates.crt}"
+verbose="${ARDOR_VERBOSE:-0}"
+pedal_dirclean="${ARDOR_PEDAL_DIRCLEAN:-0}"
 # The wah reads a circuit table at run time. It ships on the read-only root and
 # S99ardor-pedal copies it into the data partition, so a deploy has to refresh
 # the root copy — the data partition itself is only seeded when an image is built.
@@ -96,6 +106,15 @@ case "$local_auth" in
   on|off|preserve) ;;
   *) die "ARDOR_LOCAL_AUTH must be on, off, or preserve" ;;
 esac
+case "$verbose" in
+  0|1) ;;
+  *) die "ARDOR_VERBOSE must be 0 or 1" ;;
+esac
+case "$pedal_dirclean" in
+  0|1) ;;
+  *) die "ARDOR_PEDAL_DIRCLEAN must be 0 or 1" ;;
+esac
+[ "$verbose" = "1" ] && set -x
 
 build_manager_web() {
   [ "${ARDOR_SKIP_WEB_BUILD:-0}" != "1" ] || {
@@ -129,34 +148,28 @@ build_with_docker() {
   command -v docker >/dev/null 2>&1 || die "docker is required for ARDOR_BUILD_MODE=docker"
 
   volume="${ARDOR_BUILDROOT_VOLUME:-$BUILDROOT_DOCKER_VOLUME}"
-  image="${ARDOR_DOCKER_IMAGE:-ubuntu:24.04}"
-  apt_cache_volume="${ARDOR_APT_CACHE_VOLUME:-${volume}_apt_cache}"
-  apt_lists_volume="${ARDOR_APT_LISTS_VOLUME:-${volume}_apt_lists}"
-  apt_timeout="${ARDOR_APT_TIMEOUT:-60}"
+  image="${ARDOR_DOCKER_IMAGE:-ardor-builder:ubuntu-24.04}"
   apt_mirror="${ARDOR_APT_MIRROR:-http://archive.ubuntu.com/ubuntu}"
 
-  case "$apt_timeout" in
-    ''|*[!0-9]*) die "ARDOR_APT_TIMEOUT must be a positive integer" ;;
-  esac
-  [ "$apt_timeout" -gt 0 ] || die "ARDOR_APT_TIMEOUT must be a positive integer"
   case "$apt_mirror" in
     http://*|https://*) ;;
     *) die "ARDOR_APT_MIRROR must be an http:// or https:// URL" ;;
   esac
   apt_mirror=${apt_mirror%/}
 
-  docker volume create "$apt_cache_volume" >/dev/null
-  docker volume create "$apt_lists_volume" >/dev/null
+  if ! docker image inspect "$image" >/dev/null 2>&1; then
+    echo "deploy-lan: building cached Docker builder image $image"
+    docker build --build-arg "APT_MIRROR=$apt_mirror" -t "$image" \
+      -f "$script_dir/Dockerfile.ardor-builder" "$script_dir"
+  fi
 
   docker run --rm \
     -v "$volume:/buildroot" \
-    -v "$apt_cache_volume:/var/cache/apt" \
-    -v "$apt_lists_volume:/var/lib/apt/lists" \
     -v "$repo_dir:/ardor" \
     -w /buildroot \
     -e FORCE_UNSAFE_CONFIGURE=1 \
-    -e ARDOR_APT_TIMEOUT="$apt_timeout" \
-    -e ARDOR_APT_MIRROR="$apt_mirror" \
+    -e ARDOR_VERBOSE="$verbose" \
+    -e ARDOR_PEDAL_DIRCLEAN="$pedal_dirclean" \
     "$image" bash -lc '
       set -eu
       . /ardor/buildroot/buildroot-version.env
@@ -169,31 +182,14 @@ build_with_docker() {
         echo "deploy-lan: Buildroot volume version does not match $BUILDROOT_VERSION" >&2
         exit 1
       }
-      export DEBIAN_FRONTEND=noninteractive
-      if [ "$ARDOR_APT_MIRROR" != "http://archive.ubuntu.com/ubuntu" ]; then
-        echo "deploy-lan: using Ubuntu mirror $ARDOR_APT_MIRROR"
-        sed -i "s|http://archive.ubuntu.com/ubuntu/|$ARDOR_APT_MIRROR/|g" \
-          /etc/apt/sources.list.d/ubuntu.sources
-      fi
-      apt_get() {
-        apt-get \
-          -o Acquire::Retries=3 \
-          -o Acquire::http::Timeout="$ARDOR_APT_TIMEOUT" \
-          -o Acquire::https::Timeout="$ARDOR_APT_TIMEOUT" \
-          -o DPkg::Lock::Timeout=60 \
-          "$@"
-      }
-      echo "deploy-lan: updating Docker build dependencies (APT cache is persistent)"
-      apt_get update
-      echo "deploy-lan: installing Docker build dependencies"
-      apt_get install -y build-essential git curl wget rsync cpio unzip bc \
-        python3 python3-dev file pkg-config libssl-dev libelf-dev \
-        dosfstools genimage e2fsprogs mtools device-tree-compiler openssh-client
+      [ "$ARDOR_VERBOSE" = "1" ] && set -x
       # The versioned source volume can survive an interrupted image build with
       # no active Buildroot configuration. Restore the checked-in Ardor config
       # before asking make for a package-specific target.
       make raspberrypi4_ardor_pedal_defconfig BR2_EXTERNAL=/ardor/buildroot/external
-      make ardor-pedal-dirclean BR2_EXTERNAL=/ardor/buildroot/external
+      if [ "${ARDOR_PEDAL_DIRCLEAN:-0}" = "1" ]; then
+        make ardor-pedal-dirclean BR2_EXTERNAL=/ardor/buildroot/external
+      fi
       make ardor-pedal BR2_EXTERNAL=/ardor/buildroot/external
       cp output/build/ardor-pedal-1.0/pedal-poc /ardor/ardor-pedal
     '
@@ -206,7 +202,9 @@ build_native() {
 
   br2_external="${BR2_EXTERNAL:-$repo_dir/buildroot/external}"
   make -C "$buildroot" raspberrypi4_ardor_pedal_defconfig BR2_EXTERNAL="$br2_external"
-  make -C "$buildroot" ardor-pedal-dirclean BR2_EXTERNAL="$br2_external"
+  if [ "$pedal_dirclean" = "1" ]; then
+    make -C "$buildroot" ardor-pedal-dirclean BR2_EXTERNAL="$br2_external"
+  fi
   make -C "$buildroot" ardor-pedal BR2_EXTERNAL="$br2_external"
   cp "$buildroot/output/build/ardor-pedal-1.0/pedal-poc" "$pedal_bin"
 }
@@ -232,22 +230,23 @@ fi
 [ -x "$pedal_bin" ] || die "built binary is missing or not executable: $pedal_bin"
 [ -x "$managerd_bin" ] || die "built binary is missing or not executable: $managerd_bin"
 [ -f "$pedal_service_local" ] || die "pedal supervisor is missing: $pedal_service_local"
+[ -f "$managerd_service_local" ] || die "manager daemon supervisor is missing: $managerd_service_local"
 [ -f "$wah_table_local" ] || die "wah circuit table is missing: $wah_table_local"
+[ -f "$ca_bundle_local" ] || die "CA certificate bundle is missing: $ca_bundle_local"
 
 # Authenticate once, then share that authenticated connection between every
 # legacy-SCP upload and the installation command. This preserves OpenSSH's
-# normal password prompt without putting the development password in a command,
-# environment variable, or process list.
+# normal password prompt without putting it in a command or environment.
 ssh_control_dir=$(mktemp -d "${TMPDIR:-/tmp}/ardor-deploy-ssh.XXXXXX") ||
   die "could not create temporary SSH control directory"
 ssh_control_path="$ssh_control_dir/control"
-
 cleanup_ssh_control() {
   ssh $ssh_opts -o "ControlPath=$ssh_control_path" -O exit "$ssh_target" \
     >/dev/null 2>&1 || true
   rmdir "$ssh_control_dir" 2>/dev/null || true
 }
-trap cleanup_ssh_control EXIT HUP INT TERM
+trap cleanup_ssh_control EXIT
+trap 'exit 130' HUP INT TERM
 
 echo "Authenticating to $ssh_target (password prompt appears once, if needed)"
 # ARDOR_SSH_OPTS is intentionally split into separate ssh/scp arguments.
@@ -258,7 +257,7 @@ ssh $ssh_opts -MNf \
   -o "ControlPath=$ssh_control_path" \
   "$ssh_target"
 
-echo "Uploading pedal, supervisor, and manager daemon to $ssh_target"
+echo "Uploading pedal, supervisors, and manager daemon to $ssh_target"
 # OpenSSH 9+ clients use SFTP for scp by default. The pedal image does not
 # expose the SFTP subsystem, so force the compatible legacy SCP protocol.
 # ARDOR_SSH_OPTS is intentionally split into separate ssh/scp arguments.
@@ -269,7 +268,11 @@ scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$managerd_bin" "$ssh_target
 # shellcheck disable=SC2086
 scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$pedal_service_local" "$ssh_target:$pedal_service_remote_tmp"
 # shellcheck disable=SC2086
+scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$managerd_service_local" "$ssh_target:$managerd_service_remote_tmp"
+# shellcheck disable=SC2086
 scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$wah_table_local" "$ssh_target:$wah_table_remote_tmp"
+# shellcheck disable=SC2086
+scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$ca_bundle_local" "$ssh_target:$ca_bundle_remote_tmp"
 
 echo "Installing and restarting Ardor services on $ssh_target"
 # ARDOR_SSH_OPTS is intentionally split into separate ssh/scp arguments.
@@ -278,7 +281,8 @@ ssh $ssh_opts -o "ControlPath=$ssh_control_path" "$ssh_target" 'sh -s' \
   "$pedal_remote_tmp" "$pedal_target" "$pedal_service" \
   "$managerd_remote_tmp" "$managerd_target" "$managerd_service" \
   "$managerd_env" "$local_auth" "$pedal_service_remote_tmp" \
-  "$wah_table_remote_tmp" "$wah_table_target" <<'REMOTE'
+  "$wah_table_remote_tmp" "$wah_table_target" "$managerd_service_remote_tmp" \
+  "$tone3000_client_id" "$tone3000_base_url" "$ca_bundle_remote_tmp" "$ca_bundle_target" <<'REMOTE'
 set -eu
 
 pedal_remote_tmp=$1
@@ -293,6 +297,11 @@ pedal_service_remote_tmp=$9
 shift 9
 wah_table_remote_tmp=$1
 wah_table_target=$2
+managerd_service_remote_tmp=$3
+tone3000_client_id=$4
+tone3000_base_url=$5
+ca_bundle_remote_tmp=$6
+ca_bundle_target=$7
 remounted=0
 
 cleanup() {
@@ -313,24 +322,35 @@ fi
 cp "$pedal_remote_tmp" "$pedal_target.new"
 cp "$managerd_remote_tmp" "$managerd_target.new"
 cp "$pedal_service_remote_tmp" "$pedal_service.new"
-chmod 755 "$pedal_target.new" "$managerd_target.new" "$pedal_service.new"
+cp "$managerd_service_remote_tmp" "$managerd_service.new"
+chmod 755 "$pedal_target.new" "$managerd_target.new" "$pedal_service.new" "$managerd_service.new"
 mv "$pedal_target.new" "$pedal_target"
 mv "$managerd_target.new" "$managerd_target"
 mv "$pedal_service.new" "$pedal_service"
+mv "$managerd_service.new" "$managerd_service"
 
 mkdir -p "$(dirname "$wah_table_target")"
 cp "$wah_table_remote_tmp" "$wah_table_target.new"
 chmod 644 "$wah_table_target.new"
 mv "$wah_table_target.new" "$wah_table_target"
 
+mkdir -p "$(dirname "$ca_bundle_target")"
+cp "$ca_bundle_remote_tmp" "$ca_bundle_target.new"
+chmod 644 "$ca_bundle_target.new"
+mv "$ca_bundle_target.new" "$ca_bundle_target"
+
 if [ "$local_auth" != "preserve" ]; then
   env_tmp="$managerd_env.new"
   if [ -f "$managerd_env" ]; then
-    sed '/^ARDOR_API_AUTH=/d; /^ARDOR_API_TOKEN=/d' "$managerd_env" > "$env_tmp"
+    sed '/^ARDOR_API_AUTH=/d; /^ARDOR_API_TOKEN=/d; /^TONE3000_CLIENT_ID=/d; /^TONE3000_BASE_URL=/d' "$managerd_env" > "$env_tmp"
   else
     : > "$env_tmp"
   fi
   echo "ARDOR_API_AUTH=$local_auth" >> "$env_tmp"
+  if [ -n "$tone3000_client_id" ]; then
+    echo "TONE3000_CLIENT_ID=$tone3000_client_id" >> "$env_tmp"
+    echo "TONE3000_BASE_URL=$tone3000_base_url" >> "$env_tmp"
+  fi
   chmod 644 "$env_tmp"
   mv "$env_tmp" "$managerd_env"
 fi
@@ -344,7 +364,8 @@ fi
 "$managerd_service" restart
 "$pedal_service" restart
 rm -f "$pedal_remote_tmp" "$managerd_remote_tmp" "$pedal_service_remote_tmp" \
-  "$wah_table_remote_tmp"
+  "$managerd_service_remote_tmp" "$wah_table_remote_tmp"
+rm -f "$ca_bundle_remote_tmp"
 REMOTE
 
 echo "Done. Pedal and manager daemon restarted on $ssh_target."

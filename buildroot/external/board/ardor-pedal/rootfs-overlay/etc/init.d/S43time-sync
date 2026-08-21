@@ -1,0 +1,25 @@
+#!/bin/sh
+
+# The Raspberry Pi has no battery-backed real-time clock. TONE3000 uses HTTPS,
+# so establish wall-clock time after Wi-Fi receives its DHCP lease and before
+# applications that need TLS start.
+
+case "$1" in
+    start)
+        (
+            attempts=0
+            while ! ip -4 addr show dev wlan0 2>/dev/null | grep -q 'inet '; do
+                [ "$attempts" -ge 60 ] && exit 0
+                attempts=$((attempts + 1))
+                sleep 1
+            done
+            /usr/sbin/ntpd -q -p 0.pool.ntp.org -p 1.pool.ntp.org -p 2.pool.ntp.org
+        ) &
+        ;;
+    stop|restart)
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac

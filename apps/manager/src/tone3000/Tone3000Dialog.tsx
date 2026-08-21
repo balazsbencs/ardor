@@ -4,7 +4,6 @@ import { Download, ExternalLink, LoaderCircle, X } from "lucide-react";
 import { Button, StatusBadge } from "../components/ui";
 import { PortalSurface } from "../theme/surface";
 import type { Tone3000Selection } from "./types";
-import type { Tone3000Architecture } from "./hosted";
 import { Tone3000Brand } from "./Tone3000Brand";
 
 export { Tone3000Brand };
@@ -30,8 +29,6 @@ export function Tone3000Dialog({
   onContinue,
   onCancel,
   onInstall,
-  architecture,
-  onArchitecture,
 }: {
   phase: Tone3000Phase;
   selection?: Tone3000Selection;
@@ -40,8 +37,6 @@ export function Tone3000Dialog({
   onContinue(): void;
   onCancel(): void;
   onInstall(): void;
-  architecture: Tone3000Architecture;
-  onArchitecture(value: Tone3000Architecture): void;
 }) {
   const isWorking = phase === "loading" || phase === "installing";
   const refuseDismiss = (event: Event) => { if (isWorking) event.preventDefault(); };
@@ -71,11 +66,7 @@ export function Tone3000Dialog({
             <p className="eyebrow">Models from a global community</p>
             <h2>Find a new sound without leaving Ardor</h2>
             <p>Browse TONE3000’s free library of Neural Amp Modeler captures, choose a model, and install it directly on your connected device.</p>
-            <fieldset className="tone3000-architecture">
-              <legend>Model architecture</legend>
-              <label><input type="radio" name="tone3000-architecture" checked={architecture === "legacy"} onChange={() => onArchitecture("legacy")} /><span><strong>A1 + Custom</strong><small>Original and custom NAM captures</small></span></label>
-              <label><input type="radio" name="tone3000-architecture" checked={architecture === "2"} onChange={() => onArchitecture("2")} /><span><strong>A2</strong><small>Newer high-accuracy captures</small></span></label>
-            </fieldset>
+            <p>Ardor supports NAM A2 captures. TONE3000 will show compatible models only.</p>
             <p className="tone3000-dialog__fineprint">You’ll sign in securely in your browser. Ardor only receives access to the tone you choose.</p>
             <Button variant="primary" onClick={onContinue}>Continue to TONE3000 <ExternalLink size={15} /></Button>
           </div>
