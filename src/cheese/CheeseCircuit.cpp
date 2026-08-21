@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 
 namespace ardor {
 
@@ -91,7 +92,8 @@ float onePoleCoefficient(double hz, double sampleRate)
 
 // Solves a 3x3 system in place by Gaussian elimination with partial pivoting.
 // Hand-rolled because three is small enough that a loop over a general solver
-// would cost more than the arithmetic.
+// would cost more than the arithmetic. Pivoting is required at control-range
+// endpoints even though the usual playing range normally keeps the same rows.
 void solve3(float m[3][3], float rhs[3])
 {
   for (int col = 0; col < 3; ++col) {
@@ -121,11 +123,71 @@ void solve3(float m[3][3], float rhs[3])
 
 } // namespace
 
-void CheeseCircuit::init(const CheeseNetlist& netlist, float sampleRate)
+CheesePreparedMatrices prepareCheeseCircuitMatrices(const CheeseNetlist& netlist,
+                                                     float fuzz, float tone,
+                                                     float sampleRate)
+{
+  const auto derived = deriveCheeseDk(netlist, {fuzz, tone}, static_cast<double>(sampleRate));
+  if (derived.states != kCheeseStateCount || derived.ports != kCheesePortCount
+      || derived.inputs != kCheeseInputCount) {
+    throw std::runtime_error("unexpected Big Cheese matrix dimensions");
+  }
+
+  CheesePreparedMatrices out;
+  const auto copyFloats = [](auto& destination, const auto& source) {
+    if (destination.size() != source.size()) {
+      throw std::runtime_error("unexpected Big Cheese matrix storage size");
+    }
+    std::transform(source.begin(), source.end(), destination.begin(),
+                   [](double value) { return static_cast<float>(value); });
+  };
+  copyFloats(out.a, derived.a);
+  copyFloats(out.b, derived.b);
+  copyFloats(out.c, derived.c);
+  copyFloats(out.d, derived.d);
+  copyFloats(out.e, derived.e);
+  copyFloats(out.f, derived.f);
+  copyFloats(out.g, derived.g);
+  copyFloats(out.h, derived.h);
+  copyFloats(out.k, derived.k);
+  copyFloats(out.portVoltage, derived.portVoltage);
+  out.outputOffset = static_cast<float>(derived.outputOffset);
+
+  const float bjtVt =
+    static_cast<float>(netlist.bjtEmissionCoefficient * netlist.thermalVolts);
+  const float diodeVt =
+    static_cast<float>(netlist.diodeEmissionCoefficient * netlist.thermalVolts);
+  for (std::size_t r = 0; r < out.critical.size(); ++r) {
+    float gain = 0.0f;
+    for (std::size_t c = 0; c < kCheesePortCount; ++c) {
+      gain += std::fabs(out.f[r * kCheesePortCount + c]);
+    }
+    out.critical[r] = criticalVolts(
+      static_cast<float>(r < 2 ? netlist.bjtSaturationCurrent
+                               : netlist.diodeSaturationCurrent),
+      r < 2 ? bjtVt : diodeVt, gain);
+  }
+  return out;
+}
+
+void CheeseCircuit::init(const CheeseNetlist& netlist, float sampleRate,
+                         float fuzz, float tone, float volume)
 {
   netlist_ = netlist;
   sampleRate_ = sampleRate > 0.0f ? sampleRate : 192000.0f;
+  fuzz_ = std::clamp(fuzz, 0.0f, 1.0f);
+  tone_ = std::clamp(tone, 0.0f, 1.0f);
+  volume_ = std::clamp(volume, 0.0f, 1.0f);
+  volumeGain_ = static_cast<float>(
+    std::pow(static_cast<double>(volume_), netlist_.taperExponent));
   const double rate = static_cast<double>(sampleRate_);
+
+  bjtVt_ = static_cast<float>(netlist_.bjtEmissionCoefficient * netlist_.thermalVolts);
+  diodeVt_ = static_cast<float>(netlist_.diodeEmissionCoefficient * netlist_.thermalVolts);
+  bjtIs_ = static_cast<float>(netlist_.bjtSaturationCurrent);
+  diodeIs_ = static_cast<float>(netlist_.diodeSaturationCurrent);
+  clipperJunctions_ = static_cast<float>(netlist_.clipperJunctionCount);
+  rail_ = static_cast<float>(netlist_.supplyVolts);
 
   // The input network ahead of the buffer: a DC block into the bias divider,
   // then a series resistor into a shunt cap that keeps radio out.
@@ -151,35 +213,16 @@ void CheeseCircuit::init(const CheeseNetlist& netlist, float sampleRate)
   outputHighPassCoeff_ = onePoleCoefficient(
     1.0 / (kTwoPi * netlist_.volumeTrackOhms * netlist_.c13Farads), rate);
 
-  dirty_ = true;
-  rebuild();
+  matrices_ = prepareCheeseCircuitMatrices(netlist_, fuzz_, tone_, sampleRate_);
   reset();
 }
 
-void CheeseCircuit::rebuild()
+void CheeseCircuit::applyPreparedMatrices(const CheesePreparedMatrices& matrices,
+                                          float fuzz, float tone) noexcept
 {
-  if (!dirty_) return;
-  dirty_ = false;
-  matrices_ = deriveCheeseDk(netlist_, {fuzz_, tone_}, static_cast<double>(sampleRate_));
-
-  // The limiting threshold depends on how hard each port drives the network, so
-  // it is recomputed whenever the matrices are.
-  const float bjtVt =
-    static_cast<float>(netlist_.bjtEmissionCoefficient * netlist_.thermalVolts);
-  const float diodeVt =
-    static_cast<float>(netlist_.diodeEmissionCoefficient * netlist_.thermalVolts);
-  for (std::size_t r = 0; r < critical_.size(); ++r) {
-    double gain = 0.0;
-    for (std::size_t c = 0; c < 3; ++c) gain += std::fabs(matrices_.f[r * 3 + c]);
-    critical_[r] = criticalVolts(
-      static_cast<float>(r < 2 ? netlist_.bjtSaturationCurrent : netlist_.diodeSaturationCurrent),
-      r < 2 ? bjtVt : diodeVt, static_cast<float>(gain));
-  }
-  state_.assign(matrices_.states, 0.0f);
-  scratch_.assign(matrices_.states, 0.0f);
-  for (std::size_t i = 0; i < portVolts_.size(); ++i) {
-    portVolts_[i] = static_cast<float>(matrices_.portVoltage[i]);
-  }
+  matrices_ = matrices;
+  fuzz_ = std::clamp(fuzz, 0.0f, 1.0f);
+  tone_ = std::clamp(tone, 0.0f, 1.0f);
 }
 
 void CheeseCircuit::reset()
@@ -194,7 +237,7 @@ void CheeseCircuit::reset()
   std::fill(state_.begin(), state_.end(), 0.0f);
   std::fill(scratch_.begin(), scratch_.end(), 0.0f);
   for (std::size_t i = 0; i < portVolts_.size(); ++i) {
-    portVolts_[i] = static_cast<float>(matrices_.portVoltage[i]);
+    portVolts_[i] = matrices_.portVoltage[i];
   }
 
   // Settle the bias network. The model carries the supply rail as an input, so
@@ -213,24 +256,19 @@ void CheeseCircuit::setControls(float fuzz, float tone, float volume)
   volumeGain_ = static_cast<float>(
     std::pow(static_cast<double>(volume), netlist_.taperExponent));
   if (fuzz == fuzz_ && tone == tone_) return;
-  fuzz_ = fuzz;
-  tone_ = tone;
-  dirty_ = true;
-  rebuild();
+  const auto prepared = prepareCheeseCircuitMatrices(netlist_, fuzz, tone, sampleRate_);
+  applyPreparedMatrices(prepared, fuzz, tone);
 }
 
 float CheeseCircuit::process(float input)
 {
   const float sample = std::isfinite(input) ? input : 0.0f;
-  const std::size_t states = matrices_.states;
 
   // --- Input network and buffer ------------------------------------------
   inputHighPassState_ += inputHighPassCoeff_ * (sample - inputHighPassState_);
   const float coupled = sample - inputHighPassState_;
   inputLowPassState_ += inputLowPassCoeff_ * (coupled - inputLowPassState_);
   const float buffered = inputLowPassState_;
-
-  const float rail = static_cast<float>(netlist_.supplyVolts);
 
   // --- Nodal section ------------------------------------------------------
   //
@@ -239,21 +277,13 @@ float CheeseCircuit::process(float input)
   // is one fixed point solved below.
   float p[3];
   for (int r = 0; r < 3; ++r) {
-    double sum = matrices_.e[static_cast<std::size_t>(r) * 2 + 0] * buffered
-      + matrices_.e[static_cast<std::size_t>(r) * 2 + 1] * rail;
-    for (std::size_t j = 0; j < states; ++j) {
-      sum += matrices_.d[static_cast<std::size_t>(r) * states + j] * state_[j];
+    float sum = matrices_.e[static_cast<std::size_t>(r) * 2 + 0] * buffered
+      + matrices_.e[static_cast<std::size_t>(r) * 2 + 1] * rail_;
+    for (std::size_t j = 0; j < kCheeseStateCount; ++j) {
+      sum += matrices_.d[static_cast<std::size_t>(r) * kCheeseStateCount + j] * state_[j];
     }
-    p[r] = static_cast<float>(sum);
+    p[r] = sum;
   }
-
-  const float bjtVt =
-    static_cast<float>(netlist_.bjtEmissionCoefficient * netlist_.thermalVolts);
-  const float diodeVt =
-    static_cast<float>(netlist_.diodeEmissionCoefficient * netlist_.thermalVolts);
-  const float bjtIs = static_cast<float>(netlist_.bjtSaturationCurrent);
-  const float diodeIs = static_cast<float>(netlist_.diodeSaturationCurrent);
-  const float junctions = static_cast<float>(netlist_.clipperJunctionCount);
 
   float current[3]{};
   bool converged = false;
@@ -263,17 +293,17 @@ float CheeseCircuit::process(float input)
     // Q1 and Q2 carry a base current; the clipper carries a node current with a
     // junction facing each way, one of them doubled by Q3's paired junctions.
     for (int r = 0; r < 2; ++r) {
-      const float arg = std::clamp(portVolts_[static_cast<std::size_t>(r)] / bjtVt, -80.0f, 80.0f);
+      const float arg = std::clamp(portVolts_[static_cast<std::size_t>(r)] / bjtVt_, -80.0f, 80.0f);
       const float e = std::exp(arg);
-      current[r] = bjtIs * (e - 1.0f);
-      slope[r] = (bjtIs / bjtVt) * e;
+      current[r] = bjtIs_ * (e - 1.0f);
+      slope[r] = (bjtIs_ / bjtVt_) * e;
     }
     {
-      const float arg = std::clamp(portVolts_[2] / diodeVt, -80.0f, 80.0f);
+      const float arg = std::clamp(portVolts_[2] / diodeVt_, -80.0f, 80.0f);
       const float forward = std::exp(arg);
       const float reverse = 1.0f / forward;
-      current[2] = diodeIs * ((forward - 1.0f) - junctions * (reverse - 1.0f));
-      slope[2] = (diodeIs / diodeVt) * (forward + junctions * reverse);
+      current[2] = diodeIs_ * ((forward - 1.0f) - clipperJunctions_ * (reverse - 1.0f));
+      slope[2] = (diodeIs_ / diodeVt_) * (forward + clipperJunctions_ * reverse);
     }
 
     // Residual of v - p - F g(v), and its Jacobian I - F diag(g').
@@ -297,7 +327,7 @@ float CheeseCircuit::process(float input)
       const float step = std::isfinite(residual[r]) ? residual[r] : 0.0f;
       const float proposed = port - step;
       if (r < 2) {
-        port = limitJunction(proposed, port, bjtVt, critical_[static_cast<std::size_t>(r)]);
+        port = limitJunction(proposed, port, bjtVt_, matrices_.critical[static_cast<std::size_t>(r)]);
       } else {
         // The clipping node conducts either way round, so it is limited on
         // magnitude and the sign put back. Removing this limiting was tried, on
@@ -306,7 +336,7 @@ float CheeseCircuit::process(float input)
         // count. It is load bearing.
         const float sign = proposed < 0.0f ? -1.0f : 1.0f;
         port = sign * limitJunction(std::fabs(proposed), std::fabs(port),
-                                    diodeVt, critical_[2]);
+                                    diodeVt_, matrices_.critical[2]);
       }
       largestStep = std::max(largestStep, std::fabs(port - previous));
     }
@@ -319,19 +349,19 @@ float CheeseCircuit::process(float input)
   if (!converged && lastStep > kUnconvergedStepVolts) ++unconverged_;
 
   // y = G x + H u + K i
-  double out = matrices_.h[0] * buffered + matrices_.h[1] * rail;
+  float out = matrices_.h[0] * buffered + matrices_.h[1] * rail_;
   for (int r = 0; r < 3; ++r) out += matrices_.k[static_cast<std::size_t>(r)] * current[r];
-  for (std::size_t j = 0; j < states; ++j) out += matrices_.g[j] * state_[j];
-  const float stageOut = static_cast<float>(out - matrices_.outputOffset);
+  for (std::size_t j = 0; j < kCheeseStateCount; ++j) out += matrices_.g[j] * state_[j];
+  const float stageOut = out - matrices_.outputOffset;
   clipperVolts_ = portVolts_[2];
 
   // x' = A x + B u + C i
-  for (std::size_t r = 0; r < states; ++r) {
-    double sum = matrices_.b[r * 2 + 0] * buffered + matrices_.b[r * 2 + 1] * rail;
-    const double* row = matrices_.a.data() + r * states;
-    for (std::size_t c = 0; c < states; ++c) sum += row[c] * state_[c];
+  for (std::size_t r = 0; r < kCheeseStateCount; ++r) {
+    float sum = matrices_.b[r * 2 + 0] * buffered + matrices_.b[r * 2 + 1] * rail_;
+    const float* row = matrices_.a.data() + r * kCheeseStateCount;
+    for (std::size_t c = 0; c < kCheeseStateCount; ++c) sum += row[c] * state_[c];
     for (int c = 0; c < 3; ++c) sum += matrices_.c[r * 3 + static_cast<std::size_t>(c)] * current[c];
-    scratch_[r] = static_cast<float>(sum);
+    scratch_[r] = sum;
   }
   state_.swap(scratch_);
 

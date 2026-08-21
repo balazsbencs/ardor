@@ -520,16 +520,16 @@ UiState makeDemoUiState()
     {"Open Back 2x12", "irs/open-back.wav", "cabs", "", "", "Cab · impulse response"},
     {"Vintage 4x12", "irs/vintage.wav", "cabs", "", "", "Cab · impulse response"},
     {"Focused 1x12", "irs/focus.wav", "cabs", "", "", "Cab · impulse response"},
-    // Every impulse response is offered twice, once as a cabinet and once as a
-    // reverb, because the block that consumes it is chosen here rather than
-    // later.
-    {"Open Back 2x12", "irs/open-back.wav", "reverb", "irreverb", "", "Reverb · impulse response"},
+    {"Small Room", "reverb-irs/small-room.wav", "reverb", "irreverb", "", "Reverb · impulse response"},
   };
+  const auto fileBackedAssets = state.assets;
+  state.assets.clear();
   appendDriveAssets(state);
   appendUtilityAssets(state);
   appendDaisyAssets(state);
   state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split",
                           "Runs two independent chains in parallel"});
+  state.assets.insert(state.assets.end(), fileBackedAssets.begin(), fileBackedAssets.end());
   return state;
 }
 
@@ -1687,16 +1687,15 @@ int consumePendingSlotRequest(UiState& state)
 void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoot)
 {
   state.assets.clear();
-  appendAssetsFrom(state, dataRoot / "models", ".nam", "amps", "Amp · neural capture");
-  appendAssetsFrom(state, dataRoot / "irs", ".wav", "cabs", "Cab · impulse response");
-  // Every impulse response is offered twice, once as a cabinet and once as a
-  // reverb, because the block that consumes it is chosen here rather than later.
-  appendAssetsFrom(state, dataRoot / "irs", ".wav", "reverb", "Reverb · impulse response", "irreverb");
   appendDriveAssets(state);
   appendUtilityAssets(state);
   appendDaisyAssets(state);
   state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split",
                           "Runs two independent chains in parallel"});
+  appendAssetsFrom(state, dataRoot / "models", ".nam", "amps", "Amp · neural capture");
+  appendAssetsFrom(state, dataRoot / "irs", ".wav", "cabs", "Cab · impulse response");
+  appendAssetsFrom(state, dataRoot / "reverb-irs", ".wav", "reverb",
+                   "Reverb · impulse response", "irreverb");
   markUiChanged(state, UiChange::Assets | UiChange::Drawers);
 }
 

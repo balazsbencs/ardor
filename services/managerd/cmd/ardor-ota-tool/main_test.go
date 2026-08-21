@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/x509"
 	"encoding/base64"
 	"os"
 	"path/filepath"
@@ -57,5 +58,30 @@ func TestBuildIsDeterministicAndVerifiable(t *testing.T) {
 		filepath.Join(first, prefix+".tar.gz"),
 	); err == nil {
 		t.Fatal("altered bundle passed verification")
+	}
+}
+
+func TestStandardPKIXKeyEncodingsAreAccepted(t *testing.T) {
+	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encodedPrivateKey, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encodedPublicKey, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("ARDOR_OTA_PRIVATE_KEY_BASE64", base64.StdEncoding.EncodeToString(encodedPrivateKey))
+	t.Setenv("ARDOR_UPDATE_PUBLIC_KEY_BASE64", base64.StdEncoding.EncodeToString(encodedPublicKey))
+	loadedPrivateKey, err := privateKeyFromEnvironment()
+	if err != nil || !bytes.Equal(loadedPrivateKey, privateKey) {
+		t.Fatalf("PKCS#8 private key was not accepted: %v", err)
+	}
+	loadedPublicKey, err := publicKeyFromEnvironment()
+	if err != nil || !bytes.Equal(loadedPublicKey, publicKey) {
+		t.Fatalf("PKIX public key was not accepted: %v", err)
 	}
 }

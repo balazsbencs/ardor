@@ -337,10 +337,10 @@ func validateAssetFile(path string, kind assets.Kind) error {
 		return err
 	}
 	defer file.Close()
-	if kind == assets.KindIR {
+	if kind == assets.KindIR || kind == assets.KindReverbIR {
 		header := make([]byte, 12)
 		if _, err := io.ReadFull(file, header); err != nil || string(header[:4]) != "RIFF" || string(header[8:12]) != "WAVE" {
-			return errors.New("cabinet IR must be a RIFF/WAVE file")
+			return errors.New("impulse response must be a RIFF/WAVE file")
 		}
 		return nil
 	}
@@ -377,8 +377,10 @@ func assetKind(value string) (assets.Kind, error) {
 		return assets.KindModel, nil
 	case "irs":
 		return assets.KindIR, nil
+	case "reverb-irs":
+		return assets.KindReverbIR, nil
 	default:
-		return "", errors.New("asset kind must be models or irs")
+		return "", errors.New("asset kind must be models, irs or reverb-irs")
 	}
 }
 
@@ -390,10 +392,14 @@ func assetLimit(kind assets.Kind) int64 {
 }
 
 func assetRelativePath(kind assets.Kind, id string) string {
-	if kind == assets.KindModel {
+	switch kind {
+	case assets.KindModel:
 		return "models/" + id
+	case assets.KindReverbIR:
+		return "reverb-irs/" + id
+	default:
+		return "irs/" + id
 	}
-	return "irs/" + id
 }
 
 func assetFailure(code string, err error) *operationError {

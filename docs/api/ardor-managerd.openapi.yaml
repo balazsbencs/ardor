@@ -280,6 +280,96 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /api/assets/reverb-irs:
+    get:
+      tags:
+        - Assets
+      summary: List convolution reverb IR WAV assets
+      operationId: listReverbIrAssets
+      responses:
+        "200":
+          description: Convolution reverb IR assets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags:
+        - Assets
+      summary: Upload a convolution reverb IR WAV asset
+      operationId: uploadReverbIrAsset
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/AssetUploadRequest"
+      responses:
+        "201":
+          description: Convolution reverb IR uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /api/assets/reverb-irs/{assetId}:
+    patch:
+      tags:
+        - Assets
+      summary: Rename a reverb IR and update saved preset references
+      operationId: renameReverbIrAsset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetRenameRequest"
+      responses:
+        "200":
+          description: Reverb IR renamed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetRenameResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags:
+        - Assets
+      summary: Delete a convolution reverb IR WAV asset
+      operationId: deleteReverbIrAsset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "204":
+          description: Reverb IR deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
   /api/presets:
     get:
       tags:

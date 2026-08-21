@@ -69,6 +69,17 @@ constexpr int kTravelInteriorWidth = kTravelWidth - 2;
 constexpr int kTravelHandleTop = kTravelTop - (kTravelHandleHeight - kTravelRailHeight) / 2;
 constexpr int kDiscreteOptionsHeight = 60;
 constexpr int kDiscreteOptionsTop = kParameterSliderHeight - kDiscreteOptionsHeight - 4;
+constexpr int kChoiceStepperGap = 6;
+constexpr int kChoiceStepperNudgeWidth = 72;
+constexpr int kChoicePickerX = 48;
+constexpr int kChoicePickerY = 96;
+constexpr int kChoicePickerWidth = 1183;
+constexpr int kChoicePickerHeaderHeight = 56;
+constexpr int kChoicePickerBodyInset = 20;
+constexpr int kChoicePickerColumns = 5;
+constexpr int kChoicePickerTileHeight = 76;
+constexpr int kChoicePickerTileGap = 10;
+constexpr int kChoicePickerSectionHeight = 24;
 constexpr int kParameterPanelHeight = 452;
 constexpr int kMappingToolbarX = kParameterSliderGridX;
 constexpr int kMappingToolbarY = kParameterSliderGridY
@@ -138,6 +149,22 @@ struct BypassControlVisual {
   lv_obj_t* inactiveValue = nullptr;
   lv_obj_t* activeValue = nullptr;
 };
+
+bool selectedBlockIsHarmonizer(const UiEventContext* context)
+{
+  if (!context || !context->state || context->state->paramTarget != UiParamTarget::Block) {
+    return false;
+  }
+  const auto* block = selectedUiBlock(*context->state);
+  return block && block->type == "mod" && block->params.value("mode", std::string{}) == "harmonizer";
+}
+
+bool usesHarmonizerMap(const UiEventContext* context, const ParameterControl& control)
+{
+  // The map is meaningful only for the two musically structured controls. Scale
+  // deliberately remains a direct row: its five modes are short and comparable.
+  return selectedBlockIsHarmonizer(context) && (control.key == "depth" || control.key == "p2");
+}
 
 
 
@@ -504,6 +531,310 @@ void onDiscreteOptionSelected(lv_event_t* event)
   redraw(context);
 }
 
+void closeChoicePicker(UiEventContext* context)
+{
+  if (context && context->controlledObject) {
+    lv_obj_delete(context->controlledObject);
+    context->controlledObject = nullptr;
+  }
+}
+
+void onChoicePickerClosed(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  if (lv_event_get_target_obj(event) == context->controlledObject) {
+    closeChoicePicker(context);
+  }
+}
+
+void onChoicePickerCloseButton(lv_event_t* event)
+{
+  closeChoicePicker(static_cast<UiEventContext*>(lv_event_get_user_data(event)));
+}
+
+void onChoicePickerOptionSelected(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  const auto controls = parameterPage(*context->state, context->ui->parameterPage());
+  if (context->index >= controls.size()) return;
+  const auto& control = controls[context->index];
+  context->filter = control.key;
+  context->ui->setFocusedWidgets(context->ghost);
+  context->ui->focusParameter(context->filter);
+  const int delta = static_cast<int>(context->parentIndex)
+    - static_cast<int>(std::lround(control.value));
+  context->ui->applyFocusedParameterDelta(*context->state, delta, false);
+  closeChoicePicker(context);
+  redraw(context);
+}
+
+void onChoiceStepperNudged(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  const auto controls = parameterPage(*context->state, context->ui->parameterPage());
+  if (context->index >= controls.size()) return;
+  const auto& control = controls[context->index];
+  context->filter = control.key;
+  context->ui->setFocusedWidgets(lv_obj_get_parent(lv_event_get_target_obj(event)));
+  context->ui->focusParameter(context->filter);
+  context->ui->applyFocusedParameterDelta(*context->state,
+                                          context->parentIndex == 0 ? -1 : 1, false);
+  redraw(context);
+}
+
+lv_obj_t* choicePickerOverlay(lv_obj_t* slider)
+{
+  lv_obj_t* panelObject = lv_obj_get_parent(slider);
+  return panelObject ? lv_obj_get_parent(panelObject) : nullptr;
+}
+
+UiEventContext* pickerContext(UiEventContext* context, std::size_t controlIndex,
+                              std::size_t choiceIndex, lv_obj_t* overlay)
+{
+  auto* optionContext = context->ui->remember(*context->state, controlIndex);
+  optionContext->parentIndex = choiceIndex;
+  optionContext->controlledObject = overlay;
+  // The harmonizer map can change either Key or Interval. Only reuse the
+  // opening card when the picked value belongs to that same control; otherwise
+  // let the normal parameter sync refresh the correct card.
+  optionContext->ghost = context->index == controlIndex ? context->ghost : nullptr;
+  return optionContext;
+}
+
+lv_obj_t* pickerTile(lv_obj_t* parent, const std::string& choice, int x, int y, int width,
+                     bool selected, UiEventContext* context, std::size_t controlIndex,
+                     std::size_t choiceIndex, lv_obj_t* overlay)
+{
+  lv_obj_t* tile = lv_button_create(parent);
+  lv_obj_set_size(tile, width, kChoicePickerTileHeight);
+  lv_obj_set_pos(tile, x, y);
+  styleSurface(tile, selected ? lamp : panelAlt);
+  lv_obj_set_style_border_color(tile, lv_color_hex(selected ? lamp : rule), 0);
+  lv_obj_set_style_pad_all(tile, 8, 0);
+  lv_obj_t* tileLabel = lv_label_create(tile);
+  lv_label_set_text(tileLabel, choice.c_str());
+  setText(tileLabel, selected ? bg : text, &ardor_font_saira_cond_medium_18);
+  lv_obj_set_width(tileLabel, width - 16);
+  lv_label_set_long_mode(tileLabel, LV_LABEL_LONG_WRAP);
+  lv_obj_set_style_text_align(tileLabel, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_center(tileLabel);
+  lv_obj_add_event_cb(tile, onChoicePickerOptionSelected, LV_EVENT_CLICKED,
+                      pickerContext(context, controlIndex, choiceIndex, overlay));
+  return tile;
+}
+
+void addChoicePickerSection(lv_obj_t* sheet, int* y, const std::string& title,
+                            const ParameterControl& control, std::size_t first,
+                            std::size_t count, UiEventContext* context,
+                            std::size_t controlIndex, lv_obj_t* overlay)
+{
+  if (!title.empty()) {
+    lv_obj_t* heading = label(sheet, uppercase(title), LV_ALIGN_TOP_LEFT,
+                              kChoicePickerBodyInset, *y,
+                              &ardor_font_saira_cond_semibold_11, disabled);
+    lv_obj_set_style_text_letter_space(heading, 2, 0);
+    *y += kChoicePickerSectionHeight;
+  }
+  const int contentWidth = kChoicePickerWidth - 2 * kChoicePickerBodyInset;
+  const int tileWidth = (contentWidth - (kChoicePickerColumns - 1) * kChoicePickerTileGap)
+    / kChoicePickerColumns;
+  for (std::size_t offset = 0; offset < count; ++offset) {
+    const int column = static_cast<int>(offset % kChoicePickerColumns);
+    const int row = static_cast<int>(offset / kChoicePickerColumns);
+    const int width = column + 1 == kChoicePickerColumns
+      ? contentWidth - column * (tileWidth + kChoicePickerTileGap)
+      : tileWidth;
+    const std::size_t index = first + offset;
+    pickerTile(sheet, control.choices[index], kChoicePickerBodyInset + column * (tileWidth + kChoicePickerTileGap),
+               *y + row * (kChoicePickerTileHeight + kChoicePickerTileGap), width,
+               static_cast<int>(index) == static_cast<int>(std::lround(control.value)),
+               context, controlIndex, index, overlay);
+  }
+  const int rows = static_cast<int>((count + kChoicePickerColumns - 1) / kChoicePickerColumns);
+  *y += rows * kChoicePickerTileHeight + std::max(0, rows - 1) * kChoicePickerTileGap;
+}
+
+void openChoiceGridPicker(lv_obj_t* slider, UiEventContext* context)
+{
+  const auto controls = parameterPage(*context->state, context->ui->parameterPage());
+  const auto* visual = static_cast<const ParameterSliderVisual*>(lv_obj_get_user_data(slider));
+  if (!visual || visual->controlIndex >= controls.size()) return;
+  const auto& control = controls[visual->controlIndex];
+  lv_obj_t* root = choicePickerOverlay(slider);
+  if (!root) return;
+
+  lv_obj_t* overlay = lv_obj_create(root);
+  lv_obj_remove_flag(overlay, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_size(overlay, kDesignWidth, kDesignHeight);
+  lv_obj_set_pos(overlay, 0, 0);
+  lv_obj_set_style_bg_color(overlay, lv_color_hex(0x0a0c0d), 0);
+  lv_obj_set_style_bg_opa(overlay, LV_OPA_70, 0);
+  lv_obj_set_style_border_width(overlay, 0, 0);
+  auto* closeContext = context->ui->remember(*context->state);
+  closeContext->controlledObject = overlay;
+  lv_obj_add_event_cb(overlay, onChoicePickerClosed, LV_EVENT_CLICKED, closeContext);
+
+  const bool groupedWhammy = !control.choices.empty() && control.choices.size() == 19
+    && context->state->paramTarget == UiParamTarget::Block
+    && selectedUiBlock(*context->state)
+    && selectedUiBlock(*context->state)->params.value("mode", std::string{}) == "whammy";
+  const int sectionCount = groupedWhammy ? 2 : 1;
+  const int sectionHeadingCount = groupedWhammy ? 2 : 0;
+  const int rows = groupedWhammy ? 4
+    : static_cast<int>((control.choices.size() + kChoicePickerColumns - 1) / kChoicePickerColumns);
+  const int sheetHeight = kChoicePickerHeaderHeight + 2 * kChoicePickerBodyInset
+    + rows * kChoicePickerTileHeight + std::max(0, rows - sectionCount) * kChoicePickerTileGap
+    + sectionHeadingCount * kChoicePickerSectionHeight + (groupedWhammy ? kChoicePickerTileGap : 0);
+  lv_obj_t* sheet = lv_obj_create(overlay);
+  lv_obj_set_size(sheet, kChoicePickerWidth, sheetHeight);
+  lv_obj_set_pos(sheet, kChoicePickerX, kChoicePickerY);
+  lv_obj_remove_flag(sheet, LV_OBJ_FLAG_SCROLLABLE);
+  styleSurface(sheet, panel);
+  lv_obj_set_style_pad_all(sheet, 0, 0);
+
+  lv_obj_t* title = label(sheet, uppercase(control.label), LV_ALIGN_TOP_LEFT,
+                          kChoicePickerBodyInset, 16,
+                          &ardor_font_saira_cond_semibold_22, text);
+  lv_obj_t* count = label(sheet, std::to_string(control.choices.size()) + " OPTIONS",
+                          LV_ALIGN_TOP_LEFT, 20 + lv_obj_get_width(title), 21,
+                          &ardor_font_saira_cond_medium_18, muted);
+  (void) count;
+  lv_obj_t* close = button(sheet, "Close");
+  lv_obj_set_size(close, 88, 40);
+  lv_obj_set_pos(close, kChoicePickerWidth - kChoicePickerBodyInset - 88, 8);
+  lv_obj_add_event_cb(close, onChoicePickerCloseButton, LV_EVENT_CLICKED, closeContext);
+  lv_obj_t* headerRule = lv_obj_create(sheet);
+  lv_obj_remove_style_all(headerRule);
+  lv_obj_set_size(headerRule, kChoicePickerWidth, 1);
+  lv_obj_set_pos(headerRule, 0, kChoicePickerHeaderHeight - 1);
+  lv_obj_set_style_bg_opa(headerRule, LV_OPA_COVER, 0);
+  lv_obj_set_style_bg_color(headerRule, lv_color_hex(rule), 0);
+
+  int y = kChoicePickerHeaderHeight + kChoicePickerBodyInset;
+  if (groupedWhammy) {
+    addChoicePickerSection(sheet, &y, "Whammy", control, 0, 10, context,
+                            visual->controlIndex, overlay);
+    y += kChoicePickerTileGap;
+    addChoicePickerSection(sheet, &y, "Harmony", control, 10, 9, context,
+                            visual->controlIndex, overlay);
+  } else {
+    addChoicePickerSection(sheet, &y, "", control, 0, control.choices.size(), context,
+                            visual->controlIndex, overlay);
+  }
+  lv_obj_move_foreground(overlay);
+}
+
+void openHarmonizerMap(lv_obj_t* slider, UiEventContext* context)
+{
+  const auto controls = parameterPage(*context->state, context->ui->parameterPage());
+  std::size_t intervalIndex = controls.size();
+  std::size_t keyIndex = controls.size();
+  for (std::size_t i = 0; i < controls.size(); ++i) {
+    if (controls[i].key == "depth") intervalIndex = i;
+    if (controls[i].key == "p2") keyIndex = i;
+  }
+  if (intervalIndex == controls.size() || keyIndex == controls.size()) return;
+  lv_obj_t* root = choicePickerOverlay(slider);
+  if (!root) return;
+
+  lv_obj_t* overlay = lv_obj_create(root);
+  lv_obj_remove_flag(overlay, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_size(overlay, kDesignWidth, kDesignHeight);
+  lv_obj_set_pos(overlay, 0, 0);
+  lv_obj_set_style_bg_color(overlay, lv_color_hex(0x0a0c0d), 0);
+  lv_obj_set_style_bg_opa(overlay, LV_OPA_70, 0);
+  lv_obj_set_style_border_width(overlay, 0, 0);
+  auto* closeContext = context->ui->remember(*context->state);
+  closeContext->controlledObject = overlay;
+  lv_obj_add_event_cb(overlay, onChoicePickerClosed, LV_EVENT_CLICKED, closeContext);
+
+  constexpr int kMapSheetHeight = 492;
+  lv_obj_t* sheet = lv_obj_create(overlay);
+  lv_obj_set_size(sheet, kChoicePickerWidth, kMapSheetHeight);
+  lv_obj_set_pos(sheet, kChoicePickerX, 72);
+  lv_obj_remove_flag(sheet, LV_OBJ_FLAG_SCROLLABLE);
+  styleSurface(sheet, panel);
+  lv_obj_set_style_pad_all(sheet, 0, 0);
+  label(sheet, "KEY & INTERVAL", LV_ALIGN_TOP_LEFT, kChoicePickerBodyInset, 16,
+        &ardor_font_saira_cond_semibold_22, text);
+  label(sheet, "HARMONIZER", LV_ALIGN_TOP_LEFT, 220, 21,
+        &ardor_font_saira_cond_medium_18, muted);
+  lv_obj_t* close = button(sheet, "Close");
+  lv_obj_set_size(close, 88, 40);
+  lv_obj_set_pos(close, kChoicePickerWidth - kChoicePickerBodyInset - 88, 8);
+  lv_obj_add_event_cb(close, onChoicePickerCloseButton, LV_EVENT_CLICKED, closeContext);
+
+  label(sheet, "KEY  ·  12 SEMITONES", LV_ALIGN_TOP_LEFT, kChoicePickerBodyInset, 72,
+        &ardor_font_saira_cond_semibold_11, disabled);
+  constexpr std::array<int, 7> kWhiteNotes = {0, 2, 4, 5, 7, 9, 11};
+  constexpr std::array<int, 5> kBlackNotes = {1, 3, 6, 8, 10};
+  constexpr std::array<int, 5> kBlackOffsets = {110, 270, 590, 750, 910};
+  constexpr int kKeyboardY = 94;
+  constexpr int kWhiteKeyWidth = 158;
+  constexpr int kWhiteKeyHeight = 148;
+  for (std::size_t i = 0; i < kWhiteNotes.size(); ++i) {
+    const int note = kWhiteNotes[i];
+    const bool selected = static_cast<int>(std::lround(controls[keyIndex].value)) == note;
+    lv_obj_t* key = pickerTile(sheet, controls[keyIndex].choices[note],
+                               kChoicePickerBodyInset + static_cast<int>(i) * 160,
+                               kKeyboardY, kWhiteKeyWidth, selected,
+                               context, keyIndex, note, overlay);
+    lv_obj_set_height(key, kWhiteKeyHeight);
+    if (!selected) {
+      styleSurface(key, text);
+      lv_obj_set_style_text_color(lv_obj_get_child(key, 0), lv_color_hex(bg), 0);
+    }
+    lv_obj_align(lv_obj_get_child(key, 0), LV_ALIGN_BOTTOM_MID, 0, -14);
+  }
+  for (std::size_t i = 0; i < kBlackNotes.size(); ++i) {
+    const int note = kBlackNotes[i];
+    const bool selected = static_cast<int>(std::lround(controls[keyIndex].value)) == note;
+    lv_obj_t* key = pickerTile(sheet, controls[keyIndex].choices[note],
+                               kChoicePickerBodyInset + kBlackOffsets[i], kKeyboardY, 92, selected,
+                               context, keyIndex, note, overlay);
+    lv_obj_set_height(key, 94);
+    if (!selected) {
+      styleSurface(key, bg);
+      lv_obj_set_style_text_color(lv_obj_get_child(key, 0), lv_color_hex(text), 0);
+    }
+    lv_obj_align(lv_obj_get_child(key, 0), LV_ALIGN_BOTTOM_MID, 0, -10);
+  }
+
+  constexpr int kLadderY = 292;
+  label(sheet, "INTERVAL  ·  DOWN THROUGH UNISON TO UP", LV_ALIGN_TOP_LEFT,
+        kChoicePickerBodyInset, kLadderY - 24, &ardor_font_saira_cond_semibold_11, disabled);
+  const int ladderWidth = (kChoicePickerWidth - 2 * kChoicePickerBodyInset
+    - static_cast<int>(controls[intervalIndex].choices.size() - 1))
+    / static_cast<int>(controls[intervalIndex].choices.size());
+  for (std::size_t i = 0; i < controls[intervalIndex].choices.size(); ++i) {
+    pickerTile(sheet, controls[intervalIndex].choices[i],
+               kChoicePickerBodyInset + static_cast<int>(i) * (ladderWidth + 1), kLadderY,
+               ladderWidth, static_cast<int>(std::lround(controls[intervalIndex].value)) == static_cast<int>(i),
+               context, intervalIndex, i, overlay);
+  }
+  label(sheet, "<  OCTAVE DOWN", LV_ALIGN_TOP_LEFT, kChoicePickerBodyInset, kLadderY + 88,
+        &ardor_font_saira_cond_semibold_11, disabled);
+  label(sheet, "UNISON", LV_ALIGN_TOP_MID, 0, kLadderY + 88,
+        &ardor_font_saira_cond_semibold_11, disabled);
+  label(sheet, "OCTAVE UP  >", LV_ALIGN_TOP_RIGHT, -kChoicePickerBodyInset, kLadderY + 88,
+        &ardor_font_saira_cond_semibold_11, disabled);
+  lv_obj_move_foreground(overlay);
+}
+
+void onChoiceGridOpened(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  lv_obj_t* target = lv_event_get_target_obj(event);
+  openChoiceGridPicker(lv_obj_get_user_data(target) ? target : lv_obj_get_parent(target), context);
+}
+
+void onHarmonizerMapOpened(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  lv_obj_t* target = lv_event_get_target_obj(event);
+  openHarmonizerMap(lv_obj_get_user_data(target) ? target : lv_obj_get_parent(target), context);
+}
+
 void onBypassClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
@@ -630,42 +961,85 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
     lv_obj_set_style_text_align(maximum, LV_TEXT_ALIGN_RIGHT, 0);
   } else {
     const auto count = std::max<std::size_t>(1, control.choices.size());
-    const int optionWidth = kTravelWidth / static_cast<int>(count);
-    lv_obj_t* optsRow = lv_obj_create(slider);
-    lv_obj_remove_flag(optsRow, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_remove_flag(optsRow, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_size(optsRow, kTravelWidth, kDiscreteOptionsHeight);
-    lv_obj_set_pos(optsRow, kParameterSliderTextInset, kDiscreteOptionsTop);
-    lv_obj_set_style_bg_opa(optsRow, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_width(optsRow, 1, 0);
-    lv_obj_set_style_border_color(optsRow, lv_color_hex(rule), 0);
-    lv_obj_set_style_radius(optsRow, 0, 0);
-    lv_obj_set_style_pad_all(optsRow, 0, 0);
-    for (std::size_t i = 0; i < count; ++i) {
-      lv_obj_t* option = lv_obj_create(optsRow);
-      lv_obj_remove_flag(option, LV_OBJ_FLAG_SCROLLABLE);
-      lv_obj_add_flag(option, LV_OBJ_FLAG_CLICKABLE);
-      const int width = i + 1 == count
-        ? kTravelWidth - static_cast<int>(i) * optionWidth
-        : optionWidth;
-      lv_obj_set_size(option, width, kDiscreteOptionsHeight);
-      lv_obj_set_pos(option, static_cast<int>(i) * optionWidth, 0);
-      lv_obj_set_style_radius(option, 0, 0);
-      lv_obj_set_style_pad_all(option, 0, 0);
-      lv_obj_set_style_border_side(option, i == 0 ? LV_BORDER_SIDE_NONE : LV_BORDER_SIDE_LEFT, 0);
-      lv_obj_t* optionLabel = lv_label_create(option);
-      lv_label_set_text(optionLabel,
-                        i < control.choices.size() ? control.choices[i].c_str() : "");
-      setText(optionLabel, muted, count > 3
-        ? &ardor_font_saira_cond_semibold_11
-        : &ardor_font_saira_cond_medium_18);
-      lv_label_set_long_mode(optionLabel, LV_LABEL_LONG_CLIP);
-      lv_obj_set_width(optionLabel, width - 10);
-      lv_obj_center(optionLabel);
-      auto* optionContext = context->ui->remember(*context->state, controlIndex);
-      optionContext->parentIndex = i;
-      lv_obj_add_event_cb(option, onDiscreteOptionSelected, LV_EVENT_CLICKED, optionContext);
-      visual->options.push_back(option);
+    const bool directRow = count <= 4
+      || (selectedBlockIsHarmonizer(context) && control.key == "p1");
+    if (directRow) {
+      const int optionWidth = kTravelWidth / static_cast<int>(count);
+      lv_obj_t* optsRow = lv_obj_create(slider);
+      lv_obj_remove_flag(optsRow, LV_OBJ_FLAG_SCROLLABLE);
+      lv_obj_remove_flag(optsRow, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_set_size(optsRow, kTravelWidth, kDiscreteOptionsHeight);
+      lv_obj_set_pos(optsRow, kParameterSliderTextInset, kDiscreteOptionsTop);
+      lv_obj_set_style_bg_opa(optsRow, LV_OPA_TRANSP, 0);
+      lv_obj_set_style_border_width(optsRow, 1, 0);
+      lv_obj_set_style_border_color(optsRow, lv_color_hex(rule), 0);
+      lv_obj_set_style_radius(optsRow, 0, 0);
+      lv_obj_set_style_pad_all(optsRow, 0, 0);
+      for (std::size_t i = 0; i < count; ++i) {
+        lv_obj_t* option = lv_obj_create(optsRow);
+        lv_obj_remove_flag(option, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_add_flag(option, LV_OBJ_FLAG_CLICKABLE);
+        const int width = i + 1 == count
+          ? kTravelWidth - static_cast<int>(i) * optionWidth
+          : optionWidth;
+        lv_obj_set_size(option, width, kDiscreteOptionsHeight);
+        lv_obj_set_pos(option, static_cast<int>(i) * optionWidth, 0);
+        lv_obj_set_style_radius(option, 0, 0);
+        lv_obj_set_style_pad_all(option, 0, 0);
+        lv_obj_set_style_border_side(option, i == 0 ? LV_BORDER_SIDE_NONE : LV_BORDER_SIDE_LEFT, 0);
+        lv_obj_t* optionLabel = lv_label_create(option);
+        lv_label_set_text(optionLabel,
+                          i < control.choices.size() ? control.choices[i].c_str() : "");
+        setText(optionLabel, muted, count > 3
+          ? &ardor_font_saira_cond_semibold_11
+          : &ardor_font_saira_cond_medium_18);
+        lv_label_set_long_mode(optionLabel, LV_LABEL_LONG_CLIP);
+        lv_obj_set_width(optionLabel, width - 10);
+        lv_obj_center(optionLabel);
+        auto* optionContext = context->ui->remember(*context->state, controlIndex);
+        optionContext->parentIndex = i;
+        lv_obj_add_event_cb(option, onDiscreteOptionSelected, LV_EVENT_CLICKED, optionContext);
+        visual->options.push_back(option);
+      }
+    } else {
+      auto* openContext = context->ui->remember(*context->state, controlIndex);
+      openContext->ghost = slider;
+      const bool map = usesHarmonizerMap(context, control);
+      lv_obj_add_flag(slider, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_add_event_cb(slider, map ? onHarmonizerMapOpened : onChoiceGridOpened,
+                          LV_EVENT_CLICKED, openContext);
+      if (map) {
+        lv_obj_t* open = button(slider, "Open map");
+        lv_obj_set_size(open, kTravelWidth, kDiscreteOptionsHeight);
+        lv_obj_set_pos(open, kParameterSliderTextInset, kDiscreteOptionsTop);
+        styleSurface(open, panelAlt);
+        lv_obj_add_event_cb(open, onHarmonizerMapOpened, LV_EVENT_CLICKED, openContext);
+      } else {
+        lv_obj_t* previous = button(slider, "<");
+        lv_obj_set_size(previous, kChoiceStepperNudgeWidth, kDiscreteOptionsHeight);
+        lv_obj_set_pos(previous, kParameterSliderTextInset, kDiscreteOptionsTop);
+        styleSurface(previous, panelAlt);
+        auto* previousContext = context->ui->remember(*context->state, controlIndex);
+        previousContext->parentIndex = 0;
+        lv_obj_add_event_cb(previous, onChoiceStepperNudged, LV_EVENT_CLICKED, previousContext);
+
+        const int openWidth = kTravelWidth - 2 * kChoiceStepperNudgeWidth - 2 * kChoiceStepperGap;
+        lv_obj_t* open = button(slider, "All options");
+        lv_obj_set_size(open, openWidth, kDiscreteOptionsHeight);
+        lv_obj_set_pos(open, kParameterSliderTextInset + kChoiceStepperNudgeWidth + kChoiceStepperGap,
+                       kDiscreteOptionsTop);
+        styleSurface(open, panelAlt);
+        lv_obj_add_event_cb(open, onChoiceGridOpened, LV_EVENT_CLICKED, openContext);
+
+        lv_obj_t* next = button(slider, ">");
+        lv_obj_set_size(next, kChoiceStepperNudgeWidth, kDiscreteOptionsHeight);
+        lv_obj_set_pos(next, kParameterSliderTextInset + kTravelWidth - kChoiceStepperNudgeWidth,
+                       kDiscreteOptionsTop);
+        styleSurface(next, panelAlt);
+        auto* nextContext = context->ui->remember(*context->state, controlIndex);
+        nextContext->parentIndex = 1;
+        lv_obj_add_event_cb(next, onChoiceStepperNudged, LV_EVENT_CLICKED, nextContext);
+      }
     }
   }
 

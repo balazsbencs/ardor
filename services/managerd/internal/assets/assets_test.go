@@ -71,6 +71,16 @@ func TestStoreSaveListDelete(t *testing.T) {
 	if len(irs) != 1 || irs[0].Path != "irs/Open_Back.wav" {
 		t.Fatalf("bad irs: %+v", irs)
 	}
+	if _, err := store.Save(KindReverbIR, "Small Room.wav", strings.NewReader("wav"), false); err != nil {
+		t.Fatal(err)
+	}
+	reverbIrs, err := store.List(KindReverbIR)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(reverbIrs) != 1 || reverbIrs[0].Path != "reverb-irs/Small_Room.wav" {
+		t.Fatalf("bad reverb irs: %+v", reverbIrs)
+	}
 
 	if err := store.Delete(KindModel, "Clean_Amp_.nam"); err != nil {
 		t.Fatal(err)

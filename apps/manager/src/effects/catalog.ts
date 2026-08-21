@@ -16,7 +16,7 @@ const categories = new Set<EffectCategory>([
   "amp", "cabinet", "drive", "utility", "modulation", "delay", "reverb",
 ]);
 const units = new Set<NumberControl["unit"]>(["percent", "db", "ms", "hz", "ratio", "plain"]);
-const assetKinds = new Set<AssetControl["assetKind"]>(["models", "irs"]);
+const assetKinds = new Set<AssetControl["assetKind"]>(["models", "irs", "reverb-irs"]);
 const constraintGroups = new Set<NonNullable<EffectDefinition["constraintGroup"]>>([
   "nam", "cab", "mod", "delay", "reverb",
 ]);

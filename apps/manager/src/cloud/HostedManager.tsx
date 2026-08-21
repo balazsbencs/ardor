@@ -210,7 +210,7 @@ export function HostedManager() {
     return <DeviceSessionProvider autoConnect connectionId={`cloud:${selectedDevice.id}`} clientFactory={() => new CloudTransport(selectedDevice.id, selectedDevice.remoteMutationsEnabled)}><AppShell onCloudDevices={() => setSelectedDevice(null)} tone3000DeviceId={selectedDevice.id} /></DeviceSessionProvider>;
   }
   return (
-    <div className="app-shell" data-theme="dark">
+    <div className="app-shell" data-palette="slate">
       {account && recoveryCodes ? <RecoveryCodes codes={recoveryCodes} onDone={() => setRecoveryCodes(null)} />
         : account ? <DeviceDashboard account={account} onSignedOut={() => setAccount(null)} onManage={setSelectedDevice} />
           : <AuthPanel onAuthenticated={setAccount} onRegistered={(created, codes) => { setAccount(created); setRecoveryCodes(codes); }} />}

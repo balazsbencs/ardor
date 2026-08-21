@@ -23,6 +23,10 @@ function categoryLabel(category: EffectCategory): string {
   return category === "cabinet" ? "Cabinet" : category[0].toUpperCase() + category.slice(1);
 }
 
+function isImpulseResponse(definition: EffectDefinition): boolean {
+  return definition.category === "cabinet" || definition.id === "irreverb";
+}
+
 export function BlockBrowser({
   open,
   onOpenChange,
@@ -36,9 +40,11 @@ export function BlockBrowser({
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"all" | EffectCategory>("all");
-  const definitions = useMemo(() => allEffectDefinitions().filter((definition) =>
-    (category === "all" || definition.category === category) && matches(definition, query),
-  ), [category, query]);
+  const definitions = useMemo(() => allEffectDefinitions()
+    .filter((definition) =>
+      (category === "all" || definition.category === category) && matches(definition, query),
+    )
+    .sort((left, right) => Number(isImpulseResponse(left)) - Number(isImpulseResponse(right))), [category, query]);
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>

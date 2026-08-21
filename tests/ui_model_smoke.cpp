@@ -58,9 +58,9 @@ int main()
   std::size_t tapeDelayCount = 0;
   for (const auto& asset : catalogState.assets) {
     // The browser prints the name and the subtitle side by side, so those two
-    // together are what has to be unique. One impulse response is offered both
-    // as a cabinet and as a convolution reverb, and shares its name across the
-    // two rows.
+    // together are what has to be unique. Cabinet and reverb impulse responses
+    // are separate asset rows and may use the same filename without sharing a
+    // storage path.
     if (require(assetRows.insert(asset.name + "\x1f" + asset.subtitle).second,
                 "effect browser rows should be unique")) return 1;
     if (asset.name == "Tape Delay") {
@@ -457,7 +457,10 @@ int main()
   completePreview(state);
 
   const auto beforeAdd = state.bank.presets[state.activePreset].blocks.size();
-  ardor::appendAssetBlock(state, 1);
+  const auto crunchAsset = std::find_if(state.assets.begin(), state.assets.end(),
+    [](const auto& asset) { return asset.path == "models/crunch.nam"; });
+  if (require(crunchAsset != state.assets.end(), "demo crunch model should be browsable")) return 1;
+  ardor::appendAssetBlock(state, static_cast<std::size_t>(std::distance(state.assets.begin(), crunchAsset)));
   const auto& added = state.bank.presets[state.activePreset].blocks.back();
   if (require(state.bank.presets[state.activePreset].blocks.size() == beforeAdd + 1, "asset should append block")) return 1;
   if (require(added.assetName == "British Crunch", "added block should use asset name")) return 1;
@@ -470,7 +473,10 @@ int main()
   completePreview(state);
 
   const auto beforeInsert = state.bank.presets[state.activePreset].blocks.size();
-  ardor::insertAssetBlock(state, 0, 1);
+  const auto cleanAsset = std::find_if(state.assets.begin(), state.assets.end(),
+    [](const auto& asset) { return asset.path == "models/clean.nam"; });
+  if (require(cleanAsset != state.assets.end(), "demo clean model should be browsable")) return 1;
+  ardor::insertAssetBlock(state, static_cast<std::size_t>(std::distance(state.assets.begin(), cleanAsset)), 1);
   const auto& inserted = state.bank.presets[state.activePreset].blocks[1];
   if (require(state.bank.presets[state.activePreset].blocks.size() == beforeInsert + 1, "asset should insert block")) return 1;
   if (require(inserted.assetName == "Clean Twin", "inserted block should use asset name")) return 1;
@@ -629,9 +635,11 @@ int main()
   std::filesystem::remove_all(root);
   std::filesystem::create_directories(root / "models");
   std::filesystem::create_directories(root / "irs");
+  std::filesystem::create_directories(root / "reverb-irs");
   {
     std::ofstream(root / "models/clean.nam").put('\n');
     std::ofstream(root / "irs/open.wav").put('\n');
+    std::ofstream(root / "reverb-irs/room.wav").put('\n');
   }
 
   ardor::PresetStore store(root);
@@ -646,8 +654,22 @@ int main()
 
   auto diskState = ardor::makeDemoUiState();
   ardor::loadAssetsFromDataRoot(diskState, root);
-  if (require(diskState.assets.size() >= 2, "data root assets should load")) return 1;
-  if (require(diskState.assets[0].name == "clean", "model asset should use file stem")) return 1;
+  if (require(diskState.assets.size() >= 3, "data root assets should load")) return 1;
+  if (require(diskState.assets.front().type == "drive",
+              "algorithm modules should precede file-backed assets")) return 1;
+  const auto modelAsset = std::find_if(diskState.assets.begin(), diskState.assets.end(),
+    [](const auto& asset) { return asset.path == "models/clean.nam"; });
+  const auto cabinetAsset = std::find_if(diskState.assets.begin(), diskState.assets.end(),
+    [](const auto& asset) { return asset.path == "irs/open.wav"; });
+  const auto diskReverbAsset = std::find_if(diskState.assets.begin(), diskState.assets.end(),
+    [](const auto& asset) { return asset.path == "reverb-irs/room.wav"; });
+  if (require(modelAsset != diskState.assets.end() && modelAsset->name == "clean",
+              "model asset should use file stem")) return 1;
+  if (require(cabinetAsset != diskState.assets.end() && cabinetAsset->type == "cabs",
+              "cabinet IR should use the cabinet category")) return 1;
+  if (require(diskReverbAsset != diskState.assets.end() && diskReverbAsset->type == "reverb"
+                && diskReverbAsset->blockType == "irreverb",
+              "reverb IR should use the convolution reverb category")) return 1;
 
   ardor::loadBankFromStore(diskState, store, 0);
   if (require(diskState.bank.name == "Bank 000", "disk bank name")) return 1;

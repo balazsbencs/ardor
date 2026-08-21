@@ -104,7 +104,7 @@
         {
           "kind": "asset",
           "label": "Reverb IR",
-          "assetKind": "irs"
+          "assetKind": "reverb-irs"
         },
         {
           "kind": "number",
