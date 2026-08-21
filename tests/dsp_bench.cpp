@@ -8,6 +8,7 @@
 #include "dsp/IrConvolver.h"
 #include "dsp/DenormalGuard.h"
 #include "dsp/NamProcessor.h"
+#include "cheese/CheeseProcessor.h"
 #include "daisyfx/DaisyFxCatalog.h"
 #include "daisyfx/DaisyFxProcessor.h"
 #include "dynamics/CompressorProcessor.h"
@@ -248,6 +249,51 @@ int main(int argc, char** argv)
     }
   } else {
     std::printf("NamProcessor  skipped (no model at %s)\n", modelPath.string().c_str());
+  }
+
+  {
+    ardor::CheeseProcessor cheese;
+    std::string error;
+    const auto configureStart = std::chrono::steady_clock::now();
+    if (!cheese.configure({{"mode", "big_cheese"}, {"fuzz", 0.7f},
+                           {"tone", 0.5f}, {"volume", 0.7f}},
+                          static_cast<float>(kSampleRate), error)) {
+      throw std::runtime_error(error);
+    }
+    const double configureMs = std::chrono::duration<double, std::milli>(
+      std::chrono::steady_clock::now() - configureStart).count();
+    std::printf("%-20s time=%7.2fms\n", "cheese/configure", configureMs);
+    report("distortion/cheese", bench([&](const float* in, float* out, size_t frames) {
+      for (size_t i = 0; i < frames; ++i) out[i] = cheese.process({in[i], in[i]}).left;
+    }));
+  }
+  {
+    ardor::CheeseProcessor cheese;
+    std::string error;
+    if (!cheese.configure({{"mode", "big_cheese"}, {"fuzz", 0.7f},
+                           {"tone", 0.5f}, {"volume", 0.7f}},
+                          static_cast<float>(kSampleRate), error)) {
+      throw std::runtime_error(error);
+    }
+    report("cheese/silence", bench([&](const float*, float* out, size_t frames) {
+      for (size_t i = 0; i < frames; ++i) out[i] = cheese.process({0.0f, 0.0f}).left;
+    }));
+  }
+  {
+    ardor::CheeseProcessor cheese;
+    std::string error;
+    if (!cheese.configure({{"mode", "big_cheese"}, {"fuzz", 0.7f},
+                           {"tone", 0.5f}, {"volume", 0.7f}},
+                          static_cast<float>(kSampleRate), error)) {
+      throw std::runtime_error(error);
+    }
+    size_t block = 0;
+    report("cheese/control", bench([&](const float* in, float* out, size_t frames) {
+      if ((block++ % 64U) == 0U) {
+        cheese.setParameterTarget("tone", (block / 64U) % 2U ? 1.0f : 0.0f);
+      }
+      for (size_t i = 0; i < frames; ++i) out[i] = cheese.process({in[i], in[i]}).left;
+    }));
   }
 
   for (const auto& descriptor : ardor::daisyFxCatalog()) {

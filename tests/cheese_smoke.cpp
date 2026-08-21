@@ -4,10 +4,14 @@
 #include "cheese/CheeseProcessor.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
+#include <limits>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -188,6 +192,8 @@ void verifyOutputStaysFinite()
   circuit.init(ardor::cheeseNetlist(), kOversampled);
   circuit.setControls(1.0f, 0.5f, 0.7f);
   circuit.reset();
+  require(std::isfinite(circuit.process(std::numeric_limits<float>::quiet_NaN())),
+          "a non-finite input must be replaced before it reaches the solver");
   for (int n = 0; n < static_cast<int>(kOversampled); ++n) {
     const float x = 0.4f * std::sin(static_cast<float>(kTwoPi) * 110.0f * n / kOversampled)
       + 0.2f * std::sin(static_cast<float>(kTwoPi) * 1730.0f * n / kOversampled);
@@ -195,6 +201,26 @@ void verifyOutputStaysFinite()
     require(std::isfinite(y), "the output must stay finite");
     require(std::fabs(y) < 20.0f,
             "the output must stay inside the supply rails; reached " + std::to_string(y));
+  }
+}
+
+void verifyNewtonJacobianAcrossControlGrid()
+{
+  std::uint32_t random = 0x51a7e2d9u;
+  for (float fuzz : {0.0f, 0.5f, 1.0f}) {
+    for (float tone : {0.0f, 0.5f, 1.0f}) {
+      ardor::CheeseCircuit circuit;
+      circuit.init(ardor::cheeseNetlist(), kOversampled, fuzz, tone, 1.0f);
+      for (int n = 0; n < 4096; ++n) {
+        random = random * 1664525u + 1013904223u;
+        const float x = 0.8f * (static_cast<float>(random >> 8)
+          / static_cast<float>(1u << 24) - 0.5f);
+        const float output = circuit.process(x);
+        require(std::isfinite(output), "the control-grid Newton solve must remain finite");
+        require(std::fabs(output) < 20.0f,
+                "the control-grid Newton solve must remain inside the supply rails");
+      }
+    }
   }
 }
 
@@ -282,6 +308,29 @@ void verifySolveConvergesOnADecayingNote()
             + std::to_string(circuit.unconvergedSamples()) + " did not");
 }
 
+void verifyLiveControlsArePreparedAsynchronously()
+{
+  ardor::CheeseProcessor processor;
+  std::string error;
+  require(processor.configure({{"mode", "big_cheese"}, {"fuzz", 0.2f},
+                               {"tone", 0.2f}, {"volume", 0.7f}},
+                              48000.0f, error), error);
+  require(processor.setParameterTarget("fuzz", 0.95f), "live fuzz target must be accepted");
+  require(processor.setParameterTarget("tone", 0.85f), "live tone target must be accepted");
+
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+  float output = 0.0f;
+  std::size_t frames = 0;
+  while (processor.controlUpdatePending() && std::chrono::steady_clock::now() < deadline) {
+    output = processor.process({0.1f, 0.1f}).left;
+    if ((++frames & 63U) == 0U) std::this_thread::yield();
+  }
+  require(!processor.controlUpdatePending(), "live Cheese matrices must reach the audio handoff");
+  require(processor.controlDerivationFailures() == 0,
+          "live Cheese matrix derivation must not fail");
+  require(std::isfinite(output), "audio must remain finite across a prepared control update");
+}
+
 } // namespace
 
 int main()
@@ -294,8 +343,10 @@ int main()
   verifyItCompressesWithPlayingLevel();
   verifyToneSweeps();
   verifyOutputStaysFinite();
+  verifyNewtonJacobianAcrossControlGrid();
   verifySolveConvergesOnADecayingNote();
   verifyOversamplingSuppressesAliasing();
+  verifyLiveControlsArePreparedAsynchronously();
   std::printf("cheese smoke passed\n");
   return 0;
 }

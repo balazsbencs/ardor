@@ -5,10 +5,14 @@
 #include "daisyfx/hosted/dsp/halfband_resampler.h"
 
 #include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <nlohmann/json.hpp>
 #include <string>
 
 namespace ardor {
+
+struct CheeseControlWorker;
 
 // Block-facing wrapper for the 8x oversampled circuit model.
 //
@@ -31,13 +35,16 @@ namespace ardor {
 class CheeseProcessor {
 public:
   CheeseProcessor() = default;
-  CheeseProcessor(CheeseProcessor&&) noexcept = default;
-  CheeseProcessor& operator=(CheeseProcessor&&) noexcept = default;
+  ~CheeseProcessor();
+  CheeseProcessor(CheeseProcessor&&) noexcept;
+  CheeseProcessor& operator=(CheeseProcessor&&) noexcept;
 
   bool configure(const nlohmann::json& params, float sampleRate, std::string& error);
   bool setParameterTarget(const std::string& key, float value);
   void reset();
   StereoSample process(StereoSample input);
+  bool controlUpdatePending() const noexcept;
+  unsigned long long controlDerivationFailures() const noexcept;
   // Group delay of the six halfband stages, referred to the host rate: 15
   // samples each at 96, 192, 384, 384, 192 and 96 kHz.
   std::size_t latencyFrames() const noexcept { return 26; }
@@ -47,6 +54,7 @@ private:
   CheeseProcessor& operator=(const CheeseProcessor&) = delete;
 
   CheeseCircuit circuit_;
+  std::shared_ptr<CheeseControlWorker> control_;
   pedal::HalfbandInterpolator2x up2x_;
   pedal::HalfbandInterpolator2x up4x_;
   pedal::HalfbandInterpolator2x up8x_;
@@ -56,22 +64,10 @@ private:
 
   float sampleRate_ = 48000.0f;
   float smoothing_ = 0.0f;
+  float volumeGain_ = 1.0f;
 
-  float fuzzTarget_ = 0.7f;
-  float toneTarget_ = 0.5f;
-  float volumeTarget_ = 0.7f;
-  float fuzz_ = 0.7f;
-  float tone_ = 0.5f;
-  float volume_ = 0.7f;
-
-  // A knob turn rebuilds the state space, which costs a matrix factorisation
-  // and a Newton solve for the operating point. That is far too much to do per
-  // sample, so the smoothed values are only pushed into the circuit when one of
-  // them has moved enough to be worth it. The step is below what a listener can
-  // hear on a sweep and well above where the rebuild cost matters.
-  static constexpr float kRebuildStep = 1.0f / 128.0f;
-  float appliedFuzz_ = -1.0f;
-  float appliedTone_ = -1.0f;
+  void resetResamplers() noexcept;
+  void consumePreparedControls() noexcept;
 };
 
 } // namespace ardor
