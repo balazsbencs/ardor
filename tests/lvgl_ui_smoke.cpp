@@ -584,6 +584,35 @@ int main()
               "noise gate should expose meaningful first-page controls")) return 1;
   ui.selectBlock(state, tremIndex);
 
+  auto tapeState = ardor::makeDemoUiState();
+  const auto tapeAsset = std::find_if(
+    tapeState.assets.begin(), tapeState.assets.end(), [](const ardor::UiAsset& asset) {
+      return asset.name == "Tape Machine";
+    });
+  if (require(tapeAsset != tapeState.assets.end(),
+              "Tape Machine should be available for the live slider test")) return 1;
+  ardor::appendAssetBlock(tapeState, static_cast<std::size_t>(
+    std::distance(tapeState.assets.begin(), tapeAsset)));
+  completePreview(tapeState);
+  int liveTapeUpdates = 0;
+  std::string liveTapeKey;
+  ardor::UiActions tapeActions;
+  tapeActions.updateBlockParameter =
+    [&](const std::string&, const std::string& key, float) {
+      ++liveTapeUpdates;
+      liveTapeKey = key;
+      return true;
+    };
+  ardor::LvglUi tapeUi(std::move(tapeActions));
+  tapeUi.selectBlock(
+    tapeState, tapeState.bank.presets[tapeState.activePreset].blocks.size() - 1);
+  tapeUi.focusParameter("saturation");
+  if (require(tapeUi.applyFocusedParameterDelta(tapeState, 1)
+                && tapeUi.applyFocusedParameterDelta(tapeState, 1)
+                && liveTapeUpdates == 2 && liveTapeKey == "saturation"
+                && !ardor::pendingStructuralPreview(tapeState),
+              "Tape Machine slider movement should remain on the live block-parameter path")) return 1;
+
   if (require(ardor::parameterPage(state, 0).size() <= 6, "page must contain <= six sliders")) return 1;
   if (require(ardor::parameterPageCount(state) == 2, "seven params should use two slider pages")) return 1;
 

@@ -939,9 +939,11 @@ int main(int argc, char** argv)
           },
           [&](const std::string& blockId, const std::string& key, float value) {
             // Block identifiers are unique, so the first setter that recognises
-            // this one is the right owner. That saves teaching the UI which
-            // block type each identifier belongs to.
+            // this one is the right owner. Distortion must stay on this live
+            // path: promoting the first touch to a structural preview blocks
+            // the rest of a slider drag while that preview is pending.
             if (liveEngine->setTransientShaperParameter(blockId, key, value)
+                || liveEngine->setDistortionParameter(blockId, key, value)
                 || liveEngine->setStereoWidenerParameter(blockId, key, value)
                 || liveEngine->setIrReverbParameter(blockId, key, value)) {
               return true;
