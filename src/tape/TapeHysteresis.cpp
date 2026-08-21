@@ -26,11 +26,16 @@ float langevinPrime(float x)
 
 void TapeHysteresis::configure(const Parameters& parameters, float oversampledRate)
 {
-  parameters_ = parameters;
+  setParameters(parameters);
   period_ = 1.0f / oversampledRate;
   // The envelope only has to hold across a low note's period, so 50 ms.
   envelopeRelease_ = std::exp(-1.0f / (0.05f * oversampledRate));
   reset();
+}
+
+void TapeHysteresis::setParameters(const Parameters& parameters) noexcept
+{
+  parameters_ = parameters;
 }
 
 void TapeHysteresis::reset()
