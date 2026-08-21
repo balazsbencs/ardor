@@ -2,7 +2,7 @@
 
 All notable changes are generated from Conventional Commit messages.
 
-## [0.1.37](https://github.com/balazsbencs/ardor/compare/v0.1.24...v0.1.37) (2026-08-20)
+## [0.1.38](https://github.com/balazsbencs/ardor/compare/v0.1.24...v0.1.38) (2026-08-21)
 
 ### Features
 
@@ -16,6 +16,7 @@ All notable changes are generated from Conventional Commit messages.
 * ota upgrades with github releases ([0dba758](https://github.com/balazsbencs/ardor/commit/0dba7580f4ed87932ae5cc2fa070ca0ed18cd955))
 * preset title renaming ([9925eb3](https://github.com/balazsbencs/ardor/commit/9925eb3914913392553463482780b186e00a7aef))
 * promote stacked tape and desktop changes ([#34](https://github.com/balazsbencs/ardor/issues/34)) ([126405a](https://github.com/balazsbencs/ardor/commit/126405a30d125500132737c070a6e959f9535829)), references [#28](https://github.com/balazsbencs/ardor/issues/28) [#29](https://github.com/balazsbencs/ardor/issues/29)
+* release stacked UI and firmware updates ([#41](https://github.com/balazsbencs/ardor/issues/41)) ([831e81b](https://github.com/balazsbencs/ardor/commit/831e81ba390a99118523d05254120e24b65f429e))
 * **ui:** make block headers full-width drag surfaces ([6cb0463](https://github.com/balazsbencs/ardor/commit/6cb04635bbae5740945ba527a7939e475044e230))
 * **ui:** make block headers full-width drag surfaces ([286284f](https://github.com/balazsbencs/ardor/commit/286284fe8d28ee3bad9f59ed0f7fe2130353daf6))
 * **ui:** redesign preset cards for at-a-glance readability ([4872e71](https://github.com/balazsbencs/ardor/commit/4872e7146ff8210a6f9470d31bb4154c97198926))
