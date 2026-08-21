@@ -79,6 +79,10 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 		}
 		go resets.Run(ctx)
 	}
+	localTone3000, err := newLocalTone3000(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("configure TONE3000: %w", err)
+	}
 
 	mux.HandleFunc("GET /api/auth/status", func(w http.ResponseWriter, r *http.Request) {
 		if !cfg.AuthEnabled {
@@ -232,8 +236,94 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 				"modelUpload": true, "irUpload": true, "presetRead": true,
 				"presetWrite": true, "presetApply": true, "assetRename": true,
 				"wifiSettings": true, "softwareUpdate": updateManager.Status().Enabled,
+				"tone3000": localTone3000 != nil,
 			},
 		})
+	})
+
+	mux.HandleFunc("POST /api/integrations/tone3000/selections", func(w http.ResponseWriter, r *http.Request) {
+		if !authorized(w, r, cfg, authStore) {
+			return
+		}
+		if localTone3000 == nil {
+			writeError(w, http.StatusNotImplemented, "tone3000_not_configured", "TONE3000 is not configured on this device")
+			return
+		}
+		if !decodeLocalJSON(w, r, &struct{}{}, 1024) {
+			return
+		}
+		flow, authorizeURL, err := localTone3000.start()
+		if err != nil {
+			writeError(w, http.StatusConflict, "tone3000_unavailable", err.Error())
+			return
+		}
+		writeJSON(w, http.StatusCreated, map[string]any{"flowId": flow.id, "authorizeUrl": authorizeURL, "expiresAt": flow.expiresAt})
+	})
+
+	mux.HandleFunc("GET /api/integrations/tone3000/callback", func(w http.ResponseWriter, r *http.Request) {
+		if localTone3000 == nil {
+			writeTone3000Callback(w, false, "TONE3000 is not configured on this device.")
+			return
+		}
+		flow := localTone3000.complete(r)
+		if flow == nil {
+			writeTone3000Callback(w, false, "This selection is invalid or expired.")
+			return
+		}
+		if flow.status == "ready" {
+			writeTone3000Callback(w, true, "Your tone is ready in Ardor.")
+			return
+		}
+		writeTone3000Callback(w, false, flow.errorMessage)
+	})
+
+	mux.HandleFunc("GET /api/integrations/tone3000/selections/{flowId}", func(w http.ResponseWriter, r *http.Request) {
+		if !authorized(w, r, cfg, authStore) {
+			return
+		}
+		if localTone3000 == nil {
+			writeError(w, http.StatusNotImplemented, "tone3000_not_configured", "TONE3000 is not configured on this device")
+			return
+		}
+		flow := localTone3000.snapshot(r.PathValue("flowId"))
+		if flow == nil {
+			writeError(w, http.StatusNotFound, "selection_not_found", "TONE3000 selection was not found")
+			return
+		}
+		response := map[string]any{"flowId": flow.id, "status": flow.status, "expiresAt": flow.expiresAt}
+		if flow.errorMessage != "" {
+			response["message"] = flow.errorMessage
+		}
+		if flow.status == "ready" {
+			models := make([]map[string]any, 0, len(flow.models))
+			for _, model := range flow.models {
+				models = append(models, map[string]any{"id": model.ID, "name": model.Name, "size": model.Size, "tone_id": model.ToneID, "architecture_version": model.ArchitectureVersion})
+			}
+			response["selection"] = map[string]any{"tone": flow.tone, "models": models}
+		}
+		writeJSON(w, http.StatusOK, response)
+	})
+
+	mux.HandleFunc("POST /api/integrations/tone3000/selections/{flowId}/install", func(w http.ResponseWriter, r *http.Request) {
+		if !authorized(w, r, cfg, authStore) {
+			return
+		}
+		if localTone3000 == nil {
+			writeError(w, http.StatusNotImplemented, "tone3000_not_configured", "TONE3000 is not configured on this device")
+			return
+		}
+		var body struct {
+			ModelID int64 `json:"modelId"`
+		}
+		if !decodeLocalJSON(w, r, &body, 1024) {
+			return
+		}
+		info, err := localTone3000.install(r.Context(), r.PathValue("flowId"), body.ModelID, assetStore, cfg.DataRoot)
+		if err != nil {
+			writeError(w, http.StatusBadGateway, "tone3000_install_failed", err.Error())
+			return
+		}
+		writeJSON(w, http.StatusCreated, info)
 	})
 
 	mux.HandleFunc("GET /api/system/update/status", func(w http.ResponseWriter, r *http.Request) {

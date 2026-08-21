@@ -18,6 +18,8 @@ type Config struct {
 	CloudEnabled                bool
 	CloudURL                    string
 	CloudRemoteMutationsEnabled bool
+	Tone3000ClientID            string
+	Tone3000BaseURL             string
 	DiscoveryEnabled            bool
 	ActiveReleaseManifest       string
 	BaseReleaseMetadata         string
@@ -38,6 +40,8 @@ func LoadFromEnv() (Config, error) {
 		WiFiInterface:         env("ARDOR_WIFI_INTERFACE", "wlan0"),
 		WiFiControlScript:     env("ARDOR_WIFI_CONTROL_SCRIPT", "/etc/init.d/S42wifi"),
 		CloudURL:              os.Getenv("ARDOR_CLOUD_URL"),
+		Tone3000ClientID:      os.Getenv("TONE3000_CLIENT_ID"),
+		Tone3000BaseURL:       env("TONE3000_BASE_URL", "https://www.tone3000.com"),
 		ActiveReleaseManifest: os.Getenv("ARDOR_RELEASE_MANIFEST"),
 		BaseReleaseMetadata:   env("ARDOR_BASE_RELEASE_METADATA", "/etc/ardor-release.json"),
 		UpdatePublicKey:       env("ARDOR_UPDATE_PUBLIC_KEY", "/etc/ardor-update.pub"),

@@ -461,6 +461,13 @@ that binds the daemon to port 80 can omit the port. Set `ARDOR_MDNS=off` only
 when discovery must be disabled. The generated bundle is embedded in the
 `ardor-managerd` binary so it remains available without internet access.
 
+For repeat LAN deployments, `scripts/deploy-lan.sh` uses a local Docker builder
+image (`ardor-builder:ubuntu-24.04`) after its first run, avoiding a fresh APT
+installation each time. Normal deploys reuse Buildroot's package output; set
+`ARDOR_PEDAL_DIRCLEAN=1` only when a clean pedal-package rebuild is needed.
+Use `ARDOR_APT_MIRROR=http://hu.archive.ubuntu.com/ubuntu` to build the cached
+image from the Hungarian Ubuntu mirror.
+
 Auth is enabled by default when no environment override is supplied. On first
 start, the pedal displays a short-lived setup code. Open the device-hosted
 manager on a trusted LAN and enter that code to choose one local username and
@@ -469,6 +476,16 @@ password. Passwords are stored as Argon2id hashes; browser sessions use an
 local Origin and Host. Direct LAN access uses HTTP, so the UI clearly warns
 that it is intended for trusted networks. `ARDOR_API_AUTH=off` is for explicit
 development/testing use and no static API token is required.
+
+Set `TONE3000_CLIENT_ID` on the device to enable **Browse TONE3000** under
+Assets → NAM models. Ardor supports NAM A2 captures only. The device starts
+TONE3000's LAN OAuth relay using its Wi-Fi address, so the browser or phone
+used to sign in must be on the same trusted Wi-Fi network as the pedal. OAuth
+credentials remain in device memory only for the one 15-minute selection and
+the selected model is saved through the normal local asset path. The
+publishable `t3k_pub_…` client ID may be deployed on the device; never deploy a
+TONE3000 secret key. `TONE3000_BASE_URL` defaults to
+`https://www.tone3000.com` and is useful only for development overrides.
 
 The Security & reset settings can sign out, reset only local access, or request
 a factory reset. Resetting local access removes the username, password hash,

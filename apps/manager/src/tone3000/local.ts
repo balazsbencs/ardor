@@ -2,8 +2,6 @@ import { ArdorApiError } from "../api/errors";
 import type { Asset } from "../api/types";
 import type { Tone3000Selection } from "./types";
 
-export type Tone3000Architecture = "2";
-
 type StartResponse = { flowId: string; authorizeUrl: string; expiresAt: string };
 type SelectionResponse = {
   flowId: string;
@@ -23,23 +21,17 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return JSON.parse(text) as T;
 }
 
-export function startHostedTone3000Selection(deviceId: string): Promise<StartResponse> {
-  return request<StartResponse>("/v1/integrations/tone3000/selections", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ deviceId, architecture: "2" }),
-  });
+export function startLocalTone3000Selection(): Promise<StartResponse> {
+  return request<StartResponse>("/api/integrations/tone3000/selections", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
 }
 
-export async function getHostedTone3000Selection(flowId: string): Promise<{
-  status: SelectionResponse["status"];
-  message?: string;
-  selection?: Tone3000Selection;
-}> {
-  const response = await request<SelectionResponse>(`/v1/integrations/tone3000/selections/${encodeURIComponent(flowId)}`);
+export async function getLocalTone3000Selection(flowId: string): Promise<Pick<SelectionResponse, "status" | "message" | "selection">> {
+  const response = await request<SelectionResponse>(`/api/integrations/tone3000/selections/${encodeURIComponent(flowId)}`);
   return { status: response.status, message: response.message, selection: response.selection };
 }
 
-export function installHostedTone3000Model(flowId: string, modelId: number): Promise<Asset> {
-  return request<Asset>(`/v1/integrations/tone3000/selections/${encodeURIComponent(flowId)}/install`, {
+export function installLocalTone3000Model(flowId: string, modelId: number): Promise<Asset> {
+  return request<Asset>(`/api/integrations/tone3000/selections/${encodeURIComponent(flowId)}/install`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId }),
   });
 }

@@ -27,6 +27,7 @@ export type DeviceStatus = {
     presetApply: boolean;
     wifiSettings?: boolean;
     softwareUpdate?: boolean;
+    tone3000?: boolean;
   };
 };
 

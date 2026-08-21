@@ -9,12 +9,8 @@ import { useDeviceSession } from "../connection/deviceSession";
 import type { Tone3000Selection } from "../tone3000/types";
 import { Tone3000Brand } from "../tone3000/Tone3000Brand";
 import type { Tone3000Phase } from "../tone3000/Tone3000Dialog";
-import {
-  getHostedTone3000Selection,
-  installHostedTone3000Model,
-  startHostedTone3000Selection,
-  type Tone3000Architecture,
-} from "../tone3000/hosted";
+import { getHostedTone3000Selection, installHostedTone3000Model, startHostedTone3000Selection } from "../tone3000/hosted";
+import { getLocalTone3000Selection, installLocalTone3000Model, startLocalTone3000Selection } from "../tone3000/local";
 import { isHostedCloudRuntime } from "../runtime/platform";
 
 const Tone3000Dialog = lazy(() => import("../tone3000/Tone3000Dialog").then((module) => ({ default: module.Tone3000Dialog })));
@@ -45,7 +41,6 @@ export function AssetLibrary({ tone3000DeviceId }: { tone3000DeviceId?: string }
   const [tone3000Phase, setTone3000Phase] = useState<Tone3000Phase>("idle");
   const [tone3000Selection, setTone3000Selection] = useState<Tone3000Selection>();
   const [selectedTone3000ModelId, setSelectedTone3000ModelId] = useState<number>();
-  const [tone3000Architecture, setTone3000Architecture] = useState<Tone3000Architecture>("legacy");
   const [tone3000FlowId, setTone3000FlowId] = useState<string>();
   const fileRef = useRef<HTMLInputElement>(null);
   const hostedFlowGeneration = useRef(0);
@@ -55,7 +50,7 @@ export function AssetLibrary({ tone3000DeviceId }: { tone3000DeviceId?: string }
   const visibleSections = (Object.keys(assetSections) as AssetKind[])
     .filter((item) => item !== "reverb-irs" || session.supportsReverbIrs);
   const visible = assets.filter((asset) => asset.filename.toLowerCase().includes(query.toLowerCase()));
-  const tone3000Available = hostedCloud && tone3000DeviceId !== undefined;
+  const tone3000Available = kind === "models" && (hostedCloud ? tone3000DeviceId !== undefined : session.device?.capabilities.tone3000 === true);
   const allVisibleSelected = visible.length > 0 && visible.every((asset) => selected.has(asset.id));
 
   // ponytail: any list change (tab switch, upload, rename) just drops the selection.
@@ -181,7 +176,7 @@ export function AssetLibrary({ tone3000DeviceId }: { tone3000DeviceId?: string }
 
   const launchTone3000 = async () => {
     setError(undefined);
-    if (!tone3000DeviceId) {
+    if (hostedCloud && !tone3000DeviceId) {
       setError("No hosted device is selected.");
       return;
     }
@@ -194,14 +189,14 @@ export function AssetLibrary({ tone3000DeviceId }: { tone3000DeviceId?: string }
     hostedPopup.current = popup;
     try {
       setTone3000Phase("waiting");
-      const started = await startHostedTone3000Selection(tone3000DeviceId, tone3000Architecture);
+      const started = hostedCloud ? await startHostedTone3000Selection(tone3000DeviceId!) : await startLocalTone3000Selection();
       if (generation !== hostedFlowGeneration.current) return;
       setTone3000FlowId(started.flowId);
       popup.location.replace(started.authorizeUrl);
       for (;;) {
         await new Promise((resolve) => window.setTimeout(resolve, 900));
         if (generation !== hostedFlowGeneration.current) return;
-        const current = await getHostedTone3000Selection(started.flowId);
+        const current = hostedCloud ? await getHostedTone3000Selection(started.flowId) : await getLocalTone3000Selection(started.flowId);
         if (current.status === "failed") throw new Error(current.message || "TONE3000 selection failed.");
         if (current.status === "ready" && current.selection) {
           setTone3000Selection(current.selection);
@@ -248,7 +243,8 @@ export function AssetLibrary({ tone3000DeviceId }: { tone3000DeviceId?: string }
     setTone3000Phase("installing");
     try {
       if (!tone3000FlowId) throw new Error("TONE3000 selection is no longer available.");
-      await installHostedTone3000Model(tone3000FlowId, model.id);
+      if (hostedCloud) await installHostedTone3000Model(tone3000FlowId, model.id);
+      else await installLocalTone3000Model(tone3000FlowId, model.id);
       await session.refreshAssets("models");
       setKind("models");
       setTone3000Phase("idle");
@@ -298,7 +294,7 @@ export function AssetLibrary({ tone3000DeviceId }: { tone3000DeviceId?: string }
         <label className="rename-field">Filename<input aria-label="New filename" value={renameValue} onChange={(event) => setRenameValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void rename(); }} /></label>
       </ConfirmPopover>
       {tone3000Phase !== "idle" && <Suspense fallback={null}>
-        <Tone3000Dialog phase={tone3000Phase} selection={tone3000Selection} selectedModelId={selectedTone3000ModelId} onSelectedModelId={setSelectedTone3000ModelId} onContinue={continueToTone3000} onCancel={cancelTone3000Flow} onInstall={() => void installTone3000Model()} architecture={tone3000Architecture} onArchitecture={setTone3000Architecture} />
+        <Tone3000Dialog phase={tone3000Phase} selection={tone3000Selection} selectedModelId={selectedTone3000ModelId} onSelectedModelId={setSelectedTone3000ModelId} onContinue={continueToTone3000} onCancel={cancelTone3000Flow} onInstall={() => void installTone3000Model()} />
       </Suspense>}
     </main>
   );

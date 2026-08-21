@@ -18,6 +18,7 @@ import (
 	"ardor.local/managerd/internal/deviceidentity"
 	"ardor.local/managerd/internal/discovery"
 	"ardor.local/managerd/internal/server"
+	"ardor.local/managerd/internal/timesync"
 	"ardor.local/managerd/internal/update"
 	"ardor.local/managerd/internal/webui"
 )
@@ -41,6 +42,7 @@ func main() {
 	cfg.UpdaterVersion = info.UpdaterVersion
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+	go timesync.Run(ctx, log.Default())
 	identity, err := deviceidentity.LoadOrCreate(cfg.DataRoot)
 	if err != nil {
 		log.Fatalf("load device identity: %v", err)

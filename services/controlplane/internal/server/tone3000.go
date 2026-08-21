@@ -175,7 +175,7 @@ func (server *Server) startTone3000Selection(writer http.ResponseWriter, request
 	query.Set("format", "nam")
 	query.Set("menubar", "true")
 	if body.Architecture == "2" {
-		query.Set("architecture_version", "2")
+		query.Set("architecture", "2")
 	}
 	authorize.RawQuery = query.Encode()
 	writeJSON(writer, http.StatusCreated, map[string]any{"flowId": flowID, "authorizeUrl": authorize.String(), "expiresAt": flow.expiresAt})
@@ -361,7 +361,7 @@ func (integration *tone3000Integration) fetchSelection(ctx context.Context, tone
 	}
 	query := url.Values{"tone_id": {toneID}, "page_size": {"300"}}
 	if architecture == "2" {
-		query.Set("architecture_version", "2")
+		query.Set("architecture", "2")
 	}
 	var page struct {
 		Data []tone3000Model `json:"data"`
