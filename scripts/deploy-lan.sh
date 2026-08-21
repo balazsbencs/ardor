@@ -34,6 +34,13 @@ Docker build defaults:
   ARDOR_BUILDROOT_VOLUME Docker volume initialized by build-image.sh.
                          Default comes from buildroot/buildroot-version.env.
   ARDOR_DOCKER_IMAGE     Build container image. Default: ubuntu:24.04
+  ARDOR_APT_CACHE_VOLUME Docker volume for cached APT packages. Default:
+                         <buildroot-volume>_apt_cache.
+  ARDOR_APT_LISTS_VOLUME Docker volume for cached APT indexes. Default:
+                         <buildroot-volume>_apt_lists.
+  ARDOR_APT_TIMEOUT      Per-connection APT timeout in seconds. Default: 60.
+  ARDOR_APT_MIRROR       Ubuntu archive mirror URL. Default:
+                         http://archive.ubuntu.com/ubuntu
 
 Native build mode:
   ARDOR_BUILDROOT        Path to a local Buildroot checkout.
@@ -123,12 +130,33 @@ build_with_docker() {
 
   volume="${ARDOR_BUILDROOT_VOLUME:-$BUILDROOT_DOCKER_VOLUME}"
   image="${ARDOR_DOCKER_IMAGE:-ubuntu:24.04}"
+  apt_cache_volume="${ARDOR_APT_CACHE_VOLUME:-${volume}_apt_cache}"
+  apt_lists_volume="${ARDOR_APT_LISTS_VOLUME:-${volume}_apt_lists}"
+  apt_timeout="${ARDOR_APT_TIMEOUT:-60}"
+  apt_mirror="${ARDOR_APT_MIRROR:-http://archive.ubuntu.com/ubuntu}"
+
+  case "$apt_timeout" in
+    ''|*[!0-9]*) die "ARDOR_APT_TIMEOUT must be a positive integer" ;;
+  esac
+  [ "$apt_timeout" -gt 0 ] || die "ARDOR_APT_TIMEOUT must be a positive integer"
+  case "$apt_mirror" in
+    http://*|https://*) ;;
+    *) die "ARDOR_APT_MIRROR must be an http:// or https:// URL" ;;
+  esac
+  apt_mirror=${apt_mirror%/}
+
+  docker volume create "$apt_cache_volume" >/dev/null
+  docker volume create "$apt_lists_volume" >/dev/null
 
   docker run --rm \
     -v "$volume:/buildroot" \
+    -v "$apt_cache_volume:/var/cache/apt" \
+    -v "$apt_lists_volume:/var/lib/apt/lists" \
     -v "$repo_dir:/ardor" \
     -w /buildroot \
     -e FORCE_UNSAFE_CONFIGURE=1 \
+    -e ARDOR_APT_TIMEOUT="$apt_timeout" \
+    -e ARDOR_APT_MIRROR="$apt_mirror" \
     "$image" bash -lc '
       set -eu
       . /ardor/buildroot/buildroot-version.env
@@ -142,10 +170,25 @@ build_with_docker() {
         exit 1
       }
       export DEBIAN_FRONTEND=noninteractive
-      apt-get update -qq
-      apt-get install -y -qq build-essential git curl wget rsync cpio unzip bc \
+      if [ "$ARDOR_APT_MIRROR" != "http://archive.ubuntu.com/ubuntu" ]; then
+        echo "deploy-lan: using Ubuntu mirror $ARDOR_APT_MIRROR"
+        sed -i "s|http://archive.ubuntu.com/ubuntu/|$ARDOR_APT_MIRROR/|g" \
+          /etc/apt/sources.list.d/ubuntu.sources
+      fi
+      apt_get() {
+        apt-get \
+          -o Acquire::Retries=3 \
+          -o Acquire::http::Timeout="$ARDOR_APT_TIMEOUT" \
+          -o Acquire::https::Timeout="$ARDOR_APT_TIMEOUT" \
+          -o DPkg::Lock::Timeout=60 \
+          "$@"
+      }
+      echo "deploy-lan: updating Docker build dependencies (APT cache is persistent)"
+      apt_get update
+      echo "deploy-lan: installing Docker build dependencies"
+      apt_get install -y build-essential git curl wget rsync cpio unzip bc \
         python3 python3-dev file pkg-config libssl-dev libelf-dev \
-        dosfstools genimage e2fsprogs mtools device-tree-compiler openssh-client > /dev/null
+        dosfstools genimage e2fsprogs mtools device-tree-compiler openssh-client
       # The versioned source volume can survive an interrupted image build with
       # no active Buildroot configuration. Restore the checked-in Ardor config
       # before asking make for a package-specific target.
@@ -191,18 +234,47 @@ fi
 [ -f "$pedal_service_local" ] || die "pedal supervisor is missing: $pedal_service_local"
 [ -f "$wah_table_local" ] || die "wah circuit table is missing: $wah_table_local"
 
+# Authenticate once, then share that authenticated connection between every
+# legacy-SCP upload and the installation command. This preserves OpenSSH's
+# normal password prompt without putting the development password in a command,
+# environment variable, or process list.
+ssh_control_dir=$(mktemp -d "${TMPDIR:-/tmp}/ardor-deploy-ssh.XXXXXX") ||
+  die "could not create temporary SSH control directory"
+ssh_control_path="$ssh_control_dir/control"
+
+cleanup_ssh_control() {
+  ssh $ssh_opts -o "ControlPath=$ssh_control_path" -O exit "$ssh_target" \
+    >/dev/null 2>&1 || true
+  rmdir "$ssh_control_dir" 2>/dev/null || true
+}
+trap cleanup_ssh_control EXIT HUP INT TERM
+
+echo "Authenticating to $ssh_target (password prompt appears once, if needed)"
+# ARDOR_SSH_OPTS is intentionally split into separate ssh/scp arguments.
+# shellcheck disable=SC2086
+ssh $ssh_opts -MNf \
+  -o ControlMaster=yes \
+  -o ControlPersist=5m \
+  -o "ControlPath=$ssh_control_path" \
+  "$ssh_target"
+
 echo "Uploading pedal, supervisor, and manager daemon to $ssh_target"
 # OpenSSH 9+ clients use SFTP for scp by default. The pedal image does not
 # expose the SFTP subsystem, so force the compatible legacy SCP protocol.
 # ARDOR_SSH_OPTS is intentionally split into separate ssh/scp arguments.
-scp -O $ssh_opts "$pedal_bin" "$ssh_target:$pedal_remote_tmp"
-scp -O $ssh_opts "$managerd_bin" "$ssh_target:$managerd_remote_tmp"
-scp -O $ssh_opts "$pedal_service_local" "$ssh_target:$pedal_service_remote_tmp"
-scp -O $ssh_opts "$wah_table_local" "$ssh_target:$wah_table_remote_tmp"
+# shellcheck disable=SC2086
+scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$pedal_bin" "$ssh_target:$pedal_remote_tmp"
+# shellcheck disable=SC2086
+scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$managerd_bin" "$ssh_target:$managerd_remote_tmp"
+# shellcheck disable=SC2086
+scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$pedal_service_local" "$ssh_target:$pedal_service_remote_tmp"
+# shellcheck disable=SC2086
+scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$wah_table_local" "$ssh_target:$wah_table_remote_tmp"
 
 echo "Installing and restarting Ardor services on $ssh_target"
 # ARDOR_SSH_OPTS is intentionally split into separate ssh/scp arguments.
-ssh $ssh_opts "$ssh_target" 'sh -s' \
+# shellcheck disable=SC2086
+ssh $ssh_opts -o "ControlPath=$ssh_control_path" "$ssh_target" 'sh -s' \
   "$pedal_remote_tmp" "$pedal_target" "$pedal_service" \
   "$managerd_remote_tmp" "$managerd_target" "$managerd_service" \
   "$managerd_env" "$local_auth" "$pedal_service_remote_tmp" \

@@ -307,6 +307,24 @@ binaries over legacy SCP, temporarily remounts root read-write, enables local
 authentication, and restarts `S98ardor-managerd` followed by
 `S99ardor-pedal`.
 
+When SSH keys are not configured, the deploy script opens one short-lived SSH
+control connection and reuses it for every upload and the remote install. Enter
+the development device password once at its prompt; the script never stores the
+password.
+
+The Docker build path persists its APT package and index caches in two Docker
+volumes named from the Buildroot volume by default. It also shows APT output and
+uses a 60-second per-connection timeout with retries, so a mirror problem is
+visible rather than appearing as a silent Docker hang. Override the cache
+volumes with `ARDOR_APT_CACHE_VOLUME` and `ARDOR_APT_LISTS_VOLUME`, or adjust
+the timeout with `ARDOR_APT_TIMEOUT`. If the default Ubuntu archive is slow on
+your network, select another mirror for the deployment, for example:
+
+```sh
+ARDOR_APT_MIRROR=http://hu.archive.ubuntu.com/ubuntu \
+  ./scripts/deploy-lan.sh 192.168.88.18
+```
+
 Use `ARDOR_SKIP_BUILD=1` only when both repository-root binaries already exist.
 Use `ARDOR_SKIP_WEB_BUILD=1` to reuse the currently embedded UI, or
 `ARDOR_LOCAL_AUTH=preserve` when the remote image's existing authentication
