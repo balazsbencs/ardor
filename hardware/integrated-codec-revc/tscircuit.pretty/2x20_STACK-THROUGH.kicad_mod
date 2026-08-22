@@ -1,0 +1,842 @@
+(footprint
+  "2x20_STACK-THROUGH"
+  (version 20240108)
+  (generator pcbnew)
+  (generator_version 8.0)
+  (layer F.Cu)
+  (at 0 0 0)
+  (descr "")
+  (tags "")
+  (attr through_hole)
+  (embedded_fonts no)
+  (property "Reference" "REF**"
+    (at 0 -2.62 0)
+    (layer F.SilkS)
+    (uuid 43ac9f20-4e0a-74c1-5868-4a6262c62003)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Value" "Val**"
+    (at 0 2.62 0)
+    (layer F.Fab)
+    (uuid 0514c7e0-5f85-05c1-460a-bc5e14658183)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Datasheet" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 46d06320-3c72-8d7f-3214-b7de27b6e23d)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Description" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 7374a680-76ca-4701-6109-34824b482203)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "3V3"
+    (at -24.13 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "5V"
+    (at -24.13 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO2_SDA"
+    (at -21.59 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "5V_2"
+    (at -19.049999999999997 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO3_SCL"
+    (at -16.509999999999998 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GND"
+    (at -13.969999999999999 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO4"
+    (at -11.43 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO14"
+    (at -8.889999999999999 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GND_2"
+    (at -6.349999999999998 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO15"
+    (at -3.8099999999999987 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO17"
+    (at -1.2699999999999996 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO18_I2S_CLK"
+    (at 1.2699999999999996 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO27_CODEC_SW"
+    (at 3.8100000000000023 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GND_3"
+    (at 6.350000000000001 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO22"
+    (at 8.890000000000004 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO23_CODEC_LED"
+    (at 11.430000000000003 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "3V3_2"
+    (at 13.970000000000002 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO24_CODEC_LED"
+    (at 16.51 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO10_MUTE"
+    (at 19.05 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GND_4"
+    (at 21.59 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO9_UART4_RX"
+    (at 24.13 -0.004999999999999893 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO25_ADC_ALERT"
+    (at 24.13 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO11"
+    (at 21.59 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO8_UART4_TX_RSVD"
+    (at 19.05 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GND_5"
+    (at 16.51 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO7"
+    (at 13.970000000000002 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "ID_SD"
+    (at 11.430000000000003 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "ID_SC"
+    (at 8.890000000000004 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO5"
+    (at 6.350000000000001 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GND_6"
+    (at 3.8100000000000023 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO6"
+    (at 1.2699999999999996 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO12"
+    (at -1.2699999999999996 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO13"
+    (at -3.8099999999999987 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GND_7"
+    (at -6.349999999999998 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO19_I2S_FS"
+    (at -8.889999999999999 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO16"
+    (at -11.43 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO26"
+    (at -13.969999999999999 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO20_I2S_DIN"
+    (at -16.509999999999998 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GND_8"
+    (at -19.049999999999997 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GPIO21_I2S_DOUT"
+    (at -21.59 -2.545 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    reference
+    "REF**"
+    (at 0 -3.81 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.7 0.7)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_rect
+    (start -25.9 -3.04)
+    (end 25.9 3.04)
+    (layer F.CrtYd)
+    (stroke
+      (width 0.05)
+      (type default)
+    )
+    (fill no)
+  )
+  (pad "1" thru_hole rect
+    (at -24.13 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 10feeb5e-0886-29de-000d-685e086b5922)
+  )
+  (pad "2" thru_hole circle
+    (at -24.13 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 6ad0c7a0-7349-8920-7bc2-4aa07bc4f3e0)
+  )
+  (pad "3" thru_hole circle
+    (at -21.59 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 195f8562-10e6-c3e2-086e-0262000abf1e)
+  )
+  (pad "4" thru_hole circle
+    (at -19.049999999999997 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 62702d9c-6ae8-ef1c-7361-b09c7bda721c)
+  )
+  (pad "5" thru_hole circle
+    (at -16.509999999999998 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 21c01f66-1947-5de6-10ce-9c660855dae6)
+  )
+  (pad "6" thru_hole circle
+    (at -13.969999999999999 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 5a0f9398-6288-5518-6b01-16987379d818)
+  )
+  (pad "7" thru_hole circle
+    (at -11.43 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 2a20b96a-21a7-f7ea-192f-366a10b674ea)
+  )
+  (pad "8" thru_hole circle
+    (at -8.889999999999999 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 51aef994-5a27-bb14-62a0-7c946b193e14)
+  )
+  (pad "9" thru_hole circle
+    (at -6.349999999999998 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 3281536e-2a08-91ee-218f-d06e19170eee)
+  )
+  (pad "10" thru_hole circle
+    (at -3.8099999999999987 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 1186d0e0-1826-3f41-1ec5-ada225651c03)
+  )
+  (pad "11" thru_hole circle
+    (at -1.2699999999999996 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 0fad7dc0-164c-ec21-1cec-5a82238bc8e3)
+  )
+  (pad "12" thru_hole circle
+    (at 1.2699999999999996 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 0dd42aa0-1473-9901-1b13-076221b275c3)
+  )
+  (pad "13" thru_hole circle
+    (at 3.8100000000000023 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 0bfad780-129a-45e1-1939-b4421fd922a3)
+  )
+  (pad "14" thru_hole circle
+    (at 6.350000000000001 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 0a218460-10c0-f2c1-1760-61221dffcf83)
+  )
+  (pad "15" thru_hole circle
+    (at 8.890000000000004 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 08483140-0ee7-9fa1-1587-0e021c267c63)
+  )
+  (pad "16" thru_hole circle
+    (at 11.430000000000003 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 066ede20-0d0e-4c81-13ad-bae21a4d2943)
+  )
+  (pad "17" thru_hole circle
+    (at 13.970000000000002 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 04958b00-0b34-f961-11d4-67c21873d623)
+  )
+  (pad "18" thru_hole circle
+    (at 16.51 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 02bc37e0-095b-a641-0ffb-14a2169a8303)
+  )
+  (pad "19" thru_hole circle
+    (at 19.05 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 00e2e4c0-0782-5321-0e21-c18214c12fe3)
+  )
+  (pad "20" thru_hole circle
+    (at 21.59 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 27ca4000-212a-d19f-1a8b-633e13ebf4dd)
+  )
+  (pad "21" thru_hole circle
+    (at 24.13 1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 29a39320-2304-24bf-1c64-b65e15c547fd)
+  )
+  (pad "22" thru_hole circle
+    (at 24.13 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 2b7ce640-24dd-77df-1e3e-097e179e9b1d)
+  )
+  (pad "23" thru_hole circle
+    (at 21.59 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 2d563960-26b6-caff-2017-5c9e1977ee3d)
+  )
+  (pad "24" thru_hole circle
+    (at 19.05 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 2f2f8c80-2890-1e1f-21f0-afbe1b51415d)
+  )
+  (pad "25" thru_hole circle
+    (at 16.51 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 3108dfa0-2a69-713f-23ca-02de1d2a947d)
+  )
+  (pad "26" thru_hole circle
+    (at 13.970000000000002 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 32e232c0-2c42-c45f-25a3-55fe1f03e79d)
+  )
+  (pad "27" thru_hole circle
+    (at 11.430000000000003 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 34bb85e0-2e1c-177f-277c-a91e20dd3abd)
+  )
+  (pad "28" thru_hole circle
+    (at 8.890000000000004 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 3694d900-2ff5-6a9f-2955-fc3e22b68ddd)
+  )
+  (pad "29" thru_hole circle
+    (at 6.350000000000001 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 386e2c20-31ce-bdbf-2b2f-4f5e248fe0fd)
+  )
+  (pad "30" thru_hole circle
+    (at 3.8100000000000023 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 611b50e0-5a7b-e27f-53dc-741e4d3d05bd)
+  )
+  (pad "31" thru_hole circle
+    (at 1.2699999999999996 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 62f4a400-5c55-359f-55b5-c73e4f1658dd)
+  )
+  (pad "32" thru_hole circle
+    (at -1.2699999999999996 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 64cdf720-5e2e-88bf-578f-1a5e50efabfd)
+  )
+  (pad "33" thru_hole circle
+    (at -3.8099999999999987 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 66a74a40-6007-dbdf-5968-6d7e52c8ff1d)
+  )
+  (pad "34" thru_hole circle
+    (at -6.349999999999998 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 68809d60-61e1-2eff-5b41-c09e54a2523d)
+  )
+  (pad "35" thru_hole circle
+    (at -8.889999999999999 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 6a59f080-63ba-821f-5d1b-13be567ba55d)
+  )
+  (pad "36" thru_hole circle
+    (at -11.43 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 6c3343a0-6593-d53f-5ef4-66de5854f87d)
+  )
+  (pad "37" thru_hole circle
+    (at -13.969999999999999 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 6e0c96c0-676d-285f-60cd-b9fe5a2e4b9d)
+  )
+  (pad "38" thru_hole circle
+    (at -16.509999999999998 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 6fe5e9e0-6946-7b7f-62a7-0d1e5c079ebd)
+  )
+  (pad "39" thru_hole circle
+    (at -19.049999999999997 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 71bf3d00-6b1f-ce9f-6480-603e5de0f1dd)
+  )
+  (pad "40" thru_hole circle
+    (at -21.59 -1.27 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 65939e40-6c33-0ca1-72d2-7b027971e963)
+  )
+  (model "../../3dmodels/tscircuit_builtin.3dshapes/pinrow40_rows2_p2.54mm_id1mm_od1.7mm_female.step"
+  )
+)

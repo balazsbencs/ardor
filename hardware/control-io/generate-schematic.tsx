@@ -1,5 +1,6 @@
 import React from "react"
 import { createWriteStream, mkdirSync, writeFileSync } from "node:fs"
+import { pathToFileURL } from "node:url"
 import PDFDocument from "pdfkit"
 import SVGtoPDF from "svg-to-pdfkit"
 import { Circuit } from "tscircuit"
@@ -71,17 +72,72 @@ const Js202Footprint = () => (
   </footprint>
 )
 
-function addSchematic(circuit: Circuit) {
+const Da7212Footprint = () => (
+  <footprint name="DA7212-01UM2_WLCSP34">
+    {Array.from({ length: 17 }, (_, index) => {
+      const column = index + 1
+      const rows = column % 2 === 1 ? ["A", "C"] : ["B", "D"]
+      return rows.map((row, rowIndex) => {
+        const logicalPin = index * 2 + rowIndex + 1
+        const y = { A: 0.75, B: 0.25, C: -0.25, D: -0.75 }[row]!
+        return (
+          <smtpad
+            key={`${row}${column}`}
+            portHints={[`${row}${column}`, String(logicalPin)]}
+            shape="circle"
+            radius="0.125mm"
+            pcbX={`${(column - 9) * 0.25}mm`}
+            pcbY={`${y}mm`}
+          />
+        )
+      })
+    })}
+    <silkscreenrect width="4.54mm" height="1.66mm" filled={false} strokeWidth="0.12mm" />
+    <silkscreencircle radius="0.15mm" pcbX="-2.45mm" pcbY="1.05mm" isFilled />
+  </footprint>
+)
+
+const Asfl1Footprint = () => (
+  <footprint name="ASFL1_7.0X5.0MM">
+    {[
+      ["1", -2.54, 1.9], ["2", -2.54, -1.9],
+      ["3", 2.54, -1.9], ["4", 2.54, 1.9],
+    ].map(([pin, x, y]) => (
+      <smtpad
+        key={pin}
+        portHints={[String(pin)]}
+        shape="rect"
+        width="1.8mm"
+        height="1.4mm"
+        pcbX={`${x}mm`}
+        pcbY={`${y}mm`}
+      />
+    ))}
+    <silkscreenrect width="7mm" height="5mm" filled={false} strokeWidth="0.15mm" />
+    <silkscreencircle radius="0.25mm" pcbX="-3.65mm" pcbY="2.6mm" isFilled />
+  </footprint>
+)
+
+export type SchematicOptions = {
+  integratedCodec?: boolean
+}
+
+export function addSchematic(circuit: Circuit, options: SchematicOptions = {}) {
+  const integratedCodec = options.integratedCodec ?? false
   circuit.add(
     <board width="300mm" height="200mm" routingDisabled>
       <schematictext
-        text="ARDOR PROFESSIONAL AUDIO + CONTROL I/O FOR RASPBERRY PI / CODEC ZERO"
+        text={integratedCodec
+          ? "ARDOR REV C INTEGRATED DA7212 AUDIO + CONTROL HAT"
+          : "ARDOR PROFESSIONAL AUDIO + CONTROL I/O FOR RASPBERRY PI / CODEC ZERO"}
         schX={-12.8}
         schY={8.7}
         fontSize={0.4}
       />
       <schematictext
-        text="Rev B — fail-safe mute, bipolar audio ESD, protected guitar/line/amp, isolated MIDI, expression ADC"
+        text={integratedCodec
+          ? "Rev C — onboard 24-bit codec, fail-safe outputs, protected guitar/line/amp, isolated MIDI, expression ADC"
+          : "Rev B — fail-safe mute, bipolar audio ESD, protected guitar/line/amp, isolated MIDI, expression ADC"}
         schX={-12.8}
         schY={8.15}
         fontSize={0.24}
@@ -110,9 +166,9 @@ function addSchematic(circuit: Circuit) {
           [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40],
         )}
         noConnect={[
-          "pin7", "pin8", "pin10", "pin11", "pin12", "pin13", "pin15", "pin16", "pin18", "pin23",
-          "pin24", "pin26", "pin27", "pin28", "pin29", "pin31", "pin32", "pin33", "pin35", "pin36",
-          "pin37", "pin38", "pin40",
+          "pin7", "pin8", "pin10", "pin11", ...(integratedCodec ? [] : ["pin12"]), "pin13", "pin15", "pin16", "pin18", "pin23",
+          "pin24", "pin26", "pin27", "pin28", "pin29", "pin31", "pin32", "pin33", ...(integratedCodec ? [] : ["pin35"]), "pin36",
+          "pin37", ...(integratedCodec ? [] : ["pin38", "pin40"]),
         ]}
         schX={-10.7}
         schY={5.25}
@@ -169,7 +225,7 @@ function addSchematic(circuit: Circuit) {
       />
       <R0603 name="R30" resistance="1M" schX={6.4} schY={6.8} />
       <C0603 name="C27" capacitance="4.7nF 1kV" footprint="pinrow2_rows1_p7.5mm_id0.8mm_od1.6mm_male" schX={6.4} schY={6.05} />
-      <R0603 name="R31" resistance="0R DNI" schX={8.0} schY={6.45} />
+      <R0603 name="R31" resistance="0R DNI" doNotPlace schX={8.0} schY={6.45} />
 
       <trace from="J8.5V" to="net.V5_RAW" />
       <trace from="J8.5V_2" to="net.V5_RAW" />
@@ -221,7 +277,7 @@ function addSchematic(circuit: Circuit) {
       <trace from="R31.pin2" to="net.AGND" />
 
       {/* GUITAR INPUT */}
-      <schematictext text="2. HIGH-Z GUITAR INPUT → CODEC ZERO AUX IN" schX={-12.8} schY={3.55} fontSize={0.28} />
+      <schematictext text={integratedCodec ? "2. HIGH-Z GUITAR INPUT → ONBOARD DA7212" : "2. HIGH-Z GUITAR INPUT → CODEC ZERO AUX IN"} schX={-12.8} schY={3.55} fontSize={0.28} />
       <chip
         name="J1"
         manufacturerPartNumber="B2B-XH-A(LF)(SN) / PANEL TS HARNESS"
@@ -247,14 +303,15 @@ function addSchematic(circuit: Circuit) {
         schY={2.5}
       />
       <C0603 name="C3" capacitance="2.2uF FILM" footprint="pinrow2_rows1_p5mm_id0.8mm_od1.6mm_male" schX={0.0} schY={2.95} />
-      <R0603 name="R4" resistance="100R" schX={1.2} schY={2.95} />
-      <R0603 name="R5" resistance="100k" schX={2.15} schY={2.15} />
+      <R0603 name="R4" resistance={integratedCodec ? "10k" : "100R"} schX={1.2} schY={2.95} />
+      <R0603 name="R5" resistance={integratedCodec ? "10k" : "100k"} schX={2.15} schY={2.15} />
       <C0603 name="C4" capacitance="2.2uF FILM" footprint="pinrow2_rows1_p5mm_id0.8mm_od1.6mm_male" schX={0.0} schY={1.45} />
-      <R0603 name="R6" resistance="100R" schX={1.2} schY={1.45} />
-      <R0603 name="R7" resistance="100k" schX={2.15} schY={0.75} />
+      <R0603 name="R6" resistance={integratedCodec ? "10k" : "100R"} schX={1.2} schY={1.45} />
+      <R0603 name="R7" resistance={integratedCodec ? "10k" : "100k"} schX={2.15} schY={0.75} />
       <chip
         name="J2"
-        manufacturerPartNumber="22-27-2041 / CODEC ZERO P1 HARNESS"
+        manufacturerPartNumber={integratedCodec ? "22-27-2041 / DNI CODEC INPUT TEST" : "22-27-2041 / CODEC ZERO P1 HARNESS"}
+        doNotPlace={integratedCodec}
         footprint="pinrow4_rows1_p2.54mm_id1mm_od1.7mm_male"
         pinLabels={{ pin1: "LEFT", pin2: "GND_L", pin3: "RIGHT", pin4: "GND_R" }}
         schPinArrangement={left([1, 2, 3, 4])}
@@ -303,10 +360,11 @@ function addSchematic(circuit: Circuit) {
       <trace from="J2.GND_R" to="net.AGND" />
 
       {/* AUDIO OUTPUTS */}
-      <schematictext text="3. CODEC ZERO AUX OUT → STEREO LINE + MONO GUITAR AMP" schX={5.4} schY={3.55} fontSize={0.28} />
+      <schematictext text={integratedCodec ? "3. ONBOARD DA7212 → STEREO LINE + MONO GUITAR AMP" : "3. CODEC ZERO AUX OUT → STEREO LINE + MONO GUITAR AMP"} schX={5.4} schY={3.55} fontSize={0.28} />
       <chip
         name="J3"
-        manufacturerPartNumber="22-27-2041 / CODEC ZERO P2 HARNESS"
+        manufacturerPartNumber={integratedCodec ? "22-27-2041 / DNI CODEC OUTPUT TEST" : "22-27-2041 / CODEC ZERO P2 HARNESS"}
+        doNotPlace={integratedCodec}
         footprint="pinrow4_rows1_p2.54mm_id1mm_od1.7mm_male"
         pinLabels={{ pin1: "LEFT", pin2: "GND_L", pin3: "RIGHT", pin4: "GND_R" }}
         schPinArrangement={left([1, 2, 3, 4])}
@@ -692,6 +750,149 @@ function addSchematic(circuit: Circuit) {
       <trace from="D12.cathode" to="net.RELAY_CLAMP_MID" />
       <trace from="D12.anode" to="net.V5_RELAY_FUSED" />
 
+      {integratedCodec && <>
+        <schematictext text="7. INTEGRATED DA7212 CODEC / I2S / CLOCK / 1.8 V" schX={23.8} schY={7.35} fontSize={0.28} />
+        <chip
+          name="U6"
+          manufacturerPartNumber="DA7212-01UM2"
+          footprint={<Da7212Footprint />}
+          pinLabels={{
+            pin1: "HPCSP", pin2: "HPCSN", pin3: "GND_CP", pin4: "HPCFP",
+            pin5: "HP_L", pin6: "HPCFN", pin7: "GND_SENSE", pin8: "BCLK",
+            pin9: "HP_R", pin10: "DATIN", pin11: "VDD_A", pin12: "WCLK",
+            pin13: "DACREF", pin14: "DATOUT", pin15: "VREF", pin16: "SCL",
+            pin17: "VMID", pin18: "SDA", pin19: "GND_A", pin20: "VDD_IO",
+            pin21: "VDD_SP", pin22: "MCLK", pin23: "SP_P", pin24: "VDIG",
+            pin25: "SP_N", pin26: "AUX_L", pin27: "VDD_MIC", pin28: "AUX_R",
+            pin29: "MICBIAS1", pin30: "MIC2_N", pin31: "MIC1_N", pin32: "MIC2_P",
+            pin33: "MICBIAS2", pin34: "MIC1_P",
+          }}
+          schPinArrangement={split(
+            [26, 28, 5, 9, 1, 2, 4, 6, 13, 15, 17, 11, 27, 24, 3, 7, 19],
+            [8, 12, 10, 14, 16, 18, 22, 20, 21, 23, 25, 29, 30, 31, 32, 33, 34],
+          )}
+          noConnect={["pin21", "pin23", "pin25", "pin29", "pin30", "pin31", "pin32", "pin33", "pin34"]}
+          schX={24.0}
+          schY={4.2}
+        />
+        <chip
+          name="U7"
+          manufacturerPartNumber="TPS7A2018PDBVR"
+          footprint="sot23_5"
+          pinLabels={{ pin1: "IN", pin2: "GND", pin3: "EN", pin4: "NC", pin5: "OUT" }}
+          schPinArrangement={split([1, 3, 2], [5, 4])}
+          noConnect={["pin4"]}
+          schX={21.0}
+          schY={6.2}
+        />
+        <chip
+          name="U8"
+          manufacturerPartNumber="ASFL1-12.288MHZ-EC-T"
+          footprint={<Asfl1Footprint />}
+          pinLabels={{ pin1: "OE", pin2: "GND", pin3: "OUT", pin4: "VDD" }}
+          schPinArrangement={split([1, 2, 4], [3])}
+          schX={28.2}
+          schY={6.15}
+        />
+        <R0603 name="R39" resistance="33R" schX={29.6} schY={6.15} />
+        <R0603 name="R40" resistance="33R" schX={29.9} schY={4.95} />
+        <R0603 name="R41" resistance="33R" schX={29.9} schY={4.55} />
+        <R0603 name="R42" resistance="33R" schX={29.9} schY={4.15} />
+        <R0603 name="R43" resistance="33R" schX={29.9} schY={3.75} />
+        <C0603 name="C30" capacitance="1uF X5R" schX={20.0} schY={5.35} />
+        <C0603 name="C31" capacitance="1uF X5R" schX={22.0} schY={5.35} />
+        <C0603 name="C32" capacitance="1uF X5R" footprint="0201" schX={21.8} schY={2.0} />
+        <C0603 name="C33" capacitance="1uF X5R" footprint="0201" schX={22.6} schY={2.0} />
+        <C0603 name="C34" capacitance="1uF X5R" footprint="0201" schX={25.2} schY={1.9} />
+        <C0603 name="C35" capacitance="1uF X5R" footprint="0201" schX={26.0} schY={1.9} />
+        <C0603 name="C36" capacitance="1uF X5R" footprint="0201" schX={26.8} schY={1.9} />
+        <C0603 name="C37" capacitance="1uF X5R" footprint="0201" schX={27.6} schY={1.9} />
+        <C0603 name="C38" capacitance="1uF X5R" footprint="0201" schX={28.4} schY={1.9} />
+        <C0603 name="C39" capacitance="1uF X5R" footprint="0201" schX={29.2} schY={1.9} />
+        <C0603 name="C40" capacitance="100nF X7R" schX={27.3} schY={5.35} />
+        <C0603 name="C41" capacitance="1uF X5R" footprint="0201" schX={23.4} schY={2.0} />
+        <C0603 name="C42" capacitance="1uF X5R" schX={28.1} schY={5.35} />
+        <chip
+          name="J10"
+          manufacturerPartNumber="I2S CODEC TEST POINTS DNI"
+          doNotPlace
+          footprint="pinrow6_rows1_p2.54mm_id1mm_od1.7mm_male"
+          pinLabels={{ pin1: "MCLK", pin2: "BCLK", pin3: "WCLK", pin4: "DATIN", pin5: "DATOUT", pin6: "GND" }}
+          schPinArrangement={left([1, 2, 3, 4, 5, 6])}
+          schX={31.3}
+          schY={3.8}
+        />
+
+        <trace from="U7.IN" to="net.V3V3" />
+        <trace from="U7.EN" to="net.V3V3" />
+        <trace from="U7.GND" to="net.AGND" />
+        <trace from="U7.OUT" to="net.V1V8_CODEC" />
+        <trace from="C30.pin1" to="net.V3V3" />
+        <trace from="C30.pin2" to="net.AGND" />
+        <trace from="C31.pin1" to="net.V1V8_CODEC" />
+        <trace from="C31.pin2" to="net.AGND" />
+        <trace from="U6.VDD_A" to="net.V1V8_CODEC" />
+        <trace from="U6.VDD_IO" to="net.V3V3" />
+        <trace from="U6.VDD_MIC" to="net.V3V3" />
+        <trace from="U6.GND_A" to="net.AGND" />
+        <trace from="U6.GND_CP" to="net.AGND" />
+        <trace from="U6.GND_SENSE" to="net.AGND" />
+        <trace from="C32.pin1" to="net.V1V8_CODEC" />
+        <trace from="C32.pin2" to="net.AGND" />
+        <trace from="C33.pin1" to="net.V3V3" />
+        <trace from="C33.pin2" to="net.AGND" />
+        <trace from="C41.pin1" to="U6.VDD_MIC" />
+        <trace from="C41.pin2" to="net.AGND" />
+        <trace from="C34.pin1" to="U6.VDIG" />
+        <trace from="C34.pin2" to="net.AGND" />
+        <trace from="C35.pin1" to="U6.DACREF" />
+        <trace from="C35.pin2" to="net.AGND" />
+        <trace from="C36.pin1" to="U6.VREF" />
+        <trace from="C36.pin2" to="net.AGND" />
+        <trace from="C37.pin1" to="U6.VMID" />
+        <trace from="C37.pin2" to="net.AGND" />
+        <trace from="C38.pin1" to="U6.HPCSP" />
+        <trace from="C38.pin2" to="U6.HPCSN" />
+        <trace from="C39.pin1" to="U6.HPCFP" />
+        <trace from="C39.pin2" to="U6.HPCFN" />
+        <trace from="U8.VDD" to="net.V3V3" />
+        <trace from="U8.OE" to="net.V3V3" />
+        <trace from="U8.GND" to="net.AGND" />
+        <trace from="U8.OUT" to="net.MCLK_RAW" />
+        <trace from="R39.pin1" to="net.MCLK_RAW" />
+        <trace from="R39.pin2" to="net.CODEC_MCLK" />
+        <trace from="U6.MCLK" to="net.CODEC_MCLK" />
+        <trace from="C40.pin1" to="net.V3V3" />
+        <trace from="C40.pin2" to="net.AGND" />
+        <trace from="C42.pin1" to="net.V3V3" />
+        <trace from="C42.pin2" to="net.AGND" />
+        <trace from="U6.AUX_L" to="net.CODEC_IN_L" />
+        <trace from="U6.AUX_R" to="net.CODEC_IN_R" />
+        <trace from="U6.HP_L" to="net.CODEC_OUT_L" />
+        <trace from="U6.HP_R" to="net.CODEC_OUT_R" />
+        <trace from="U6.BCLK" to="R40.pin1" />
+        <trace from="R40.pin2" to="net.I2S_BCLK" />
+        <trace from="J8.GPIO18_I2S_CLK" to="net.I2S_BCLK" />
+        <trace from="U6.WCLK" to="R41.pin1" />
+        <trace from="R41.pin2" to="net.I2S_WCLK" />
+        <trace from="J8.GPIO19_I2S_FS" to="net.I2S_WCLK" />
+        <trace from="U6.DATOUT" to="R42.pin1" />
+        <trace from="R42.pin2" to="net.I2S_CODEC_TO_PI" />
+        <trace from="J8.GPIO20_I2S_DIN" to="net.I2S_CODEC_TO_PI" />
+        <trace from="J8.GPIO21_I2S_DOUT" to="R43.pin1" />
+        <trace from="R43.pin2" to="net.I2S_PI_TO_CODEC" />
+        <trace from="U6.DATIN" to="net.I2S_PI_TO_CODEC" />
+        <trace from="U6.SDA" to="net.I2C_SDA_HOST" />
+        <trace from="U6.SCL" to="net.I2C_SCL_HOST" />
+        <trace from="J10.MCLK" to="net.CODEC_MCLK" />
+        <trace from="J10.BCLK" to="net.I2S_BCLK" />
+        <trace from="J10.WCLK" to="net.I2S_WCLK" />
+        <trace from="J10.DATIN" to="net.I2S_PI_TO_CODEC" />
+        <trace from="J10.DATOUT" to="net.I2S_CODEC_TO_PI" />
+        <trace from="J10.GND" to="net.AGND" />
+        <schematictext text="DA7212: 12.288 MHz master clock, 1.8 V analogue rail, 3.3 V I/O; VDD_SP and microphone paths unused." schX={24.0} schY={0.8} fontSize={0.19} />
+      </>}
+
       <schematictext
         text="GPIO10 HIGH closes K1/K2 only after codec clocks and bias are stable; GPIO10 defaults LOW at reset."
         schX={13.4}
@@ -717,7 +918,9 @@ function addSchematic(circuit: Circuit) {
         fontSize={0.2}
       />
       <schematictext
-        text="Codec P1/P2 pin order (square pin 1): LEFT, GND, RIGHT, GND. AUX maximum: 1 V RMS."
+        text={integratedCodec
+          ? "Rev C J2/J3 are DNI bring-up headers. DA7212 input divider provides active-pickup headroom; compensate in codec gain."
+          : "Codec P1/P2 pin order (square pin 1): LEFT, GND, RIGHT, GND. AUX maximum: 1 V RMS."}
         schX={-12.8}
         schY={-8.05}
         fontSize={0.2}
@@ -726,8 +929,7 @@ function addSchematic(circuit: Circuit) {
   )
 }
 
-async function writePdf(svg: string) {
-  const path = new URL("control-io.pdf", import.meta.url)
+async function writePdf(svg: string, path: URL) {
   const doc = new PDFDocument({ size: "A3", layout: "landscape", margin: 18 })
   const stream = createWriteStream(path)
   doc.pipe(stream)
@@ -739,21 +941,26 @@ async function writePdf(svg: string) {
   })
 }
 
-async function main() {
+export async function generateProject({
+  integratedCodec = false,
+  outputDirectory = new URL("./", import.meta.url),
+  projectName = "control-io",
+}: SchematicOptions & { outputDirectory?: URL; projectName?: string } = {}) {
+  mkdirSync(outputDirectory, { recursive: true })
   const circuit = new Circuit()
-  addSchematic(circuit)
+  addSchematic(circuit, { integratedCodec })
   await circuit.renderUntilSettled()
   const circuitJson = circuit.getCircuitJson()
 
   writeFileSync(
-    new URL("control-io.circuit.json", import.meta.url),
+    new URL(`${projectName}.circuit.json`, outputDirectory),
     `${JSON.stringify(circuitJson, null, 2)}\n`,
   )
 
   const converter = new CircuitJsonToKicadSchConverter(circuitJson)
   converter.runUntilFinished()
   writeFileSync(
-    new URL("control-io.kicad_sch", import.meta.url),
+    new URL(`${projectName}.kicad_sch`, outputDirectory),
     converter.getOutputString(),
   )
 
@@ -762,7 +969,7 @@ async function main() {
     footprintLibraryName: "tscircuit",
   })
   libraryConverter.runUntilFinished()
-  const footprintDirectory = new URL("tscircuit.pretty/", import.meta.url)
+  const footprintDirectory = new URL("tscircuit.pretty/", outputDirectory)
   mkdirSync(footprintDirectory, { recursive: true })
   for (const footprint of libraryConverter.getFootprints()) {
     writeFileSync(
@@ -771,28 +978,28 @@ async function main() {
     )
   }
   writeFileSync(
-    new URL("fp-lib-table", import.meta.url),
+    new URL("fp-lib-table", outputDirectory),
     libraryConverter.getFpLibTableString(),
   )
   writeFileSync(
-    new URL("sym-lib-table", import.meta.url),
+    new URL("sym-lib-table", outputDirectory),
     libraryConverter.getSymLibTableString(),
   )
   writeFileSync(
-    new URL("tscircuit.kicad_sym", import.meta.url),
+    new URL("tscircuit.kicad_sym", outputDirectory),
     libraryConverter.getSymbolLibraryString(),
   )
 
   const projectConverter = new CircuitJsonToKicadProConverter(circuitJson, {
-    projectName: "control-io",
-    schematicFilename: "control-io.kicad_sch",
+    projectName,
+    schematicFilename: `${projectName}.kicad_sch`,
   })
   projectConverter.runUntilFinished()
   const project = JSON.parse(projectConverter.getOutputString())
   project.head.created = "2026-08-22T00:00:00.000Z"
   project.head.modified = project.head.created
   writeFileSync(
-    new URL("control-io.kicad_pro", import.meta.url),
+    new URL(`${projectName}.kicad_pro`, outputDirectory),
     `${JSON.stringify(project, null, 2)}\n`,
   )
 
@@ -802,11 +1009,13 @@ async function main() {
     includeVersion: true,
     showErrorsInTextOverlay: false,
   })
-  writeFileSync(new URL("control-io.svg", import.meta.url), svg)
-  await writePdf(svg)
+  writeFileSync(new URL(`${projectName}.svg`, outputDirectory), svg)
+  await writePdf(svg, new URL(`${projectName}.pdf`, outputDirectory))
 }
 
-main().catch((error) => {
-  console.error(error)
-  process.exitCode = 1
-})
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  generateProject().catch((error) => {
+    console.error(error)
+    process.exitCode = 1
+  })
+}

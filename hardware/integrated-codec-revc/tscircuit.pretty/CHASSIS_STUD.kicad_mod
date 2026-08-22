@@ -1,0 +1,101 @@
+(footprint
+  "CHASSIS_STUD"
+  (version 20240108)
+  (generator pcbnew)
+  (generator_version 8.0)
+  (layer F.Cu)
+  (at 0 0 0)
+  (descr "")
+  (tags "")
+  (attr through_hole)
+  (embedded_fonts no)
+  (property "Reference" "REF**"
+    (at 0 -1.5 0)
+    (layer F.SilkS)
+    (uuid 3731f920-21ca-3b1f-0c62-7d1e090540e3)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Value" "Val**"
+    (at 0 1.5 0)
+    (layer F.Fab)
+    (uuid 4fc41220-2c41-6861-08be-bea21ac3eb1d)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Datasheet" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 10d09c20-2638-5a21-3ba0-18225107d623)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Description" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 39d89d00-2097-a0e1-7b07-dec22a87e35d)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "CHASSIS"
+    (at 0 -1.5 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.6000000000000001 0.6000000000000001)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    reference
+    "REF**"
+    (at 0 -2.5400000000000063 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.7 0.7)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_rect
+    (start -1.77 -1.77)
+    (end 1.77 1.77)
+    (layer F.CrtYd)
+    (stroke
+      (width 0.05)
+      (type default)
+    )
+    (fill no)
+  )
+  (pad "1" thru_hole rect
+    (at 0 0 0)
+    (size 2 2)
+    (drill 1.2)
+    (layers *.Cu *.Mask)
+    (uuid 11d4f2da-5f71-affa-52f1-92e60554d5c6)
+  )
+  (model "../../3dmodels/tscircuit_builtin.3dshapes/pinrow1_rows1_p2.54mm_id1.2mm_od2mm_male.step"
+  )
+)

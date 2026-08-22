@@ -1,0 +1,117 @@
+(footprint
+  "AO3400A"
+  (version 20240108)
+  (generator pcbnew)
+  (generator_version 8.0)
+  (layer F.Cu)
+  (at 0 0 0)
+  (descr "")
+  (tags "")
+  (attr smd)
+  (embedded_fonts no)
+  (property "Reference" "REF**"
+    (at 0 -1.7500000000000029 0)
+    (layer F.SilkS)
+    (uuid 06aa3164-2c07-70fc-5eb9-135c6e954a44)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Value" "Val**"
+    (at 0 1.7500000000000029 0)
+    (layer F.Fab)
+    (uuid 5f7bbc68-292e-e0f8-4e26-81a83a841bb8)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Datasheet" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 2919bf70-5bcb-61d0-7182-fbd03ed15970)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Description" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 6ecc4082-21f9-b242-2ad8-dbfe77ab6a3e)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    reference
+    "REF**"
+    (at 0 -2 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.5 0.5)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_poly
+    (pts
+      (xy -2.0500000000000007 -1.5)
+      (xy -1.0500000000000007 -1.5)
+      (xy -1.0500000000000007 -1.7000000000000028)
+      (xy 1.0500000000000007 -1.7000000000000028)
+      (xy 1.0500000000000007 -0.5499999999999972)
+      (xy 2.0500000000000007 -0.5499999999999972)
+      (xy 2.0500000000000007 0.5499999999999972)
+      (xy 1.0500000000000007 0.5499999999999972)
+      (xy 1.0500000000000007 1.7000000000000028)
+      (xy -1.0500000000000007 1.7000000000000028)
+      (xy -1.0500000000000007 1.5)
+      (xy -2.0500000000000007 1.5)
+      (xy -2.0500000000000007 0.39000000000000057)
+      (xy -1.0500000000000007 0.39000000000000057)
+      (xy -1.0500000000000007 -0.39000000000000057)
+      (xy -2.0500000000000007 -0.39000000000000057)
+    )
+    (layer F.CrtYd)
+    (stroke
+      (width 0.05)
+      (type default)
+    )
+    (fill no)
+    (uuid 2e04fe00-5ea4-1081-14b2-e0fe77f62d83)
+  )
+  (pad "1" smd rect
+    (at -1.1374999999999993 -0.9500000000000028 0)
+    (size 1.325 0.6)
+    (layers F.Cu F.Paste F.Mask)
+    (uuid 0aa99180-6146-95a1-32c9-433e3926e3e3)
+  )
+  (pad "2" smd rect
+    (at -1.1374999999999993 0.9500000000000028 0)
+    (size 1.325 0.6)
+    (layers F.Cu F.Paste F.Mask)
+    (uuid 1378a4e0-7f68-cc01-14a7-0cde57491a43)
+  )
+  (pad "3" smd rect
+    (at 1.1374999999999993 0 0)
+    (size 1.325 0.6)
+    (layers F.Cu F.Paste F.Mask)
+    (uuid 319adb40-6274-fd9f-097b-2982756b50a3)
+  )
+  (model "../../3dmodels/tscircuit_builtin.3dshapes/sot23.step"
+  )
+)
