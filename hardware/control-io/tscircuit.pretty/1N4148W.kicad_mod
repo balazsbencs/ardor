@@ -1,0 +1,94 @@
+(footprint
+  "1N4148W"
+  (version 20240108)
+  (generator pcbnew)
+  (generator_version 8.0)
+  (layer F.Cu)
+  (at 0 0 0)
+  (descr "")
+  (tags "")
+  (attr smd)
+  (embedded_fonts no)
+  (property "Reference" "REF**"
+    (at 0 -0.95 0)
+    (layer F.SilkS)
+    (uuid 30fe0f0e-63af-b16e-699e-ac3236ed09d2)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Value" "Val**"
+    (at 0 0.95 0)
+    (layer F.Fab)
+    (uuid 4da105a6-29b4-5cfa-5ef6-4066185f223a)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Datasheet" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 60c1ffe2-6c8c-5dbe-39da-bb5e072918fe)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Description" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 5f2d3930-5400-3890-072d-aa5045a4e3f0)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    reference
+    "REF**"
+    (at -4.31687996699441e-17 -0.7049999999999983 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.5 0.5)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_rect
+    (start -2.35 -1.15)
+    (end 2.35 1.15)
+    (layer F.CrtYd)
+    (stroke
+      (width 0.05)
+      (type default)
+    )
+    (fill no)
+  )
+  (pad "1" smd rect
+    (at -1.6499999999999986 0 0)
+    (size 1.2 0.9)
+    (layers F.Cu F.Paste F.Mask)
+    (uuid 2edd9b20-6532-3dbf-06bd-e96272ae1083)
+  )
+  (pad "2" smd rect
+    (at 1.6499999999999986 0 0)
+    (size 1.2 0.9)
+    (layers F.Cu F.Paste F.Mask)
+    (uuid 4cffd180-4710-075f-24e0-1fc26f2fb91d)
+  )
+  (model "../../3dmodels/tscircuit_builtin.3dshapes/sod123.step"
+  )
+)

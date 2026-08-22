@@ -2,6 +2,7 @@
 
 PID=/var/run/ardor-pedal.pid
 ENV=/etc/ardor-pedal.env
+RELAY_ENABLE=/sys/class/leds/ardor:audio-output-enable/brightness
 
 [ -r "$ENV" ] && . "$ENV"
 
@@ -35,6 +36,11 @@ PEDAL_BIN=/usr/bin/ardor-pedal
 if [ -x "$ARDOR_SYSTEM_ROOT/current/bin/ardor-pedal" ]; then
   PEDAL_BIN="$ARDOR_SYSTEM_ROOT/current/bin/ardor-pedal"
 fi
+
+set_output_relay() {
+  [ -w "$RELAY_ENABLE" ] || return 1
+  echo "$1" > "$RELAY_ENABLE"
+}
 
 control_args=""
 for dev in $CONTROL_DEVICES; do
@@ -81,6 +87,8 @@ run_supervised() {
 
   # Mute -> route -> start -> unmute: no boot pop, and a crash-looping
   # app never plays half-initialized audio at full volume.
+  set_output_relay 0 || echo "Audio-output relay control is unavailable; outputs remain hardware-muted" >&2
+  trap 'set_output_relay 0; amixer -q set '\''Headphone'\'' mute 2>/dev/null' EXIT INT TERM
   amixer -q set 'Headphone' mute 2>/dev/null
   alsactl restore -f /etc/ardor-codec-zero.state 2>/dev/null
   for policy in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do
@@ -118,8 +126,13 @@ run_supervised() {
     APP=$!
     sleep 1
     amixer -q set 'Headphone' unmute 2>/dev/null
+    if ! set_output_relay 1; then
+      echo "Refusing hardware unmute: $RELAY_ENABLE is unavailable" >&2
+    fi
     wait $APP
-    echo "ardor-pedal exited ($?), respawning" >&2
+    app_status=$?
+    set_output_relay 0
+    echo "ardor-pedal exited ($app_status), respawning" >&2
     amixer -q set 'Headphone' mute 2>/dev/null
     sleep 1
   done
@@ -136,6 +149,7 @@ case "$1" in
     ;;
   stop)
     echo "Stopping ardor-pedal"
+    set_output_relay 0
     start-stop-daemon -K -p "$PID"
     killall ardor-pedal 2>/dev/null
     ;;

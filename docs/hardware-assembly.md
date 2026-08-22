@@ -46,6 +46,7 @@ Do not use these GPIOs for pedal controls:
 | GPIO1 | 28 | HAT ID EEPROM bus |
 | GPIO2 | 3 | I2C SDA |
 | GPIO3 | 5 | I2C SCL |
+| GPIO10 | 19 | Audio output relay enable (default-low) |
 | GPIO8 | 24 | UART4 TX reserved for future MIDI output |
 | GPIO9 | 21 | UART4 RX for TRS MIDI input |
 | GPIO18 | 12 | I2S bit clock / `PCM_CLK` |
@@ -118,13 +119,13 @@ View looking down at the Raspberry Pi GPIO header, USB/Ethernet ports to the rig
  3V3  (1) (2)  5V             display power if used
  GPIO2(3) (4)  5V             display power alternative
  GPIO3(5) (6)  GND            display ground if used
- GPIO4(7) (8)  GPIO14
+ GPIO4(7) (8)  GPIO14         free
  GND  (9) (10) GPIO15
  GPIO17(11)(12) GPIO18        encoder A / I2S clock reserved
  GPIO27(13)(14) GND           Codec Zero button / ground
  GPIO22(15)(16) GPIO23        encoder B / Codec Zero LED
  3V3  (17)(18) GPIO24         Codec Zero LED
- GPIO10(19)(20) GND
+ GPIO10(19)(20) GND           output relay enable / ground
  GPIO9 (21)(22) GPIO25        MIDI RX / expression ADC alert
  GPIO11(23)(24) GPIO8         free / MIDI TX reserve
  GND  (25)(26) GPIO7
@@ -158,17 +159,20 @@ Notes:
 - Add hardware debounce only if software debounce is not enough.
 - Use shielded cable or twisted pair for long footswitch runs inside the enclosure.
 
-## MIDI and expression companion board
+## Audio and control companion board
 
-The editable schematic and review PDF are in
-[`hardware/control-io`](../hardware/control-io/README.md). MIDI uses a 3.5 mm
-TRS Type-A input: tip is current sink, ring is current source, and sleeve is
-shield. A 6N138 isolates the jack from the Raspberry Pi. Do not connect a TRS
-MIDI jack directly to a GPIO.
+The editable tscircuit source, native KiCad schematic, and review PDF are in
+[`hardware/control-io`](../hardware/control-io/README.md). The stack-through
+board combines the guitar buffer, Codec Zero input/output conditioning,
+fail-safe audio muting, MIDI input, and expression ADC.
+
+MIDI uses a 3.5 mm TRS input with a Schottky bridge so both Type A and Type B
+polarity work. An H11L1M isolates the jack from the Raspberry Pi. Do not connect
+a TRS MIDI jack directly to a GPIO.
 
 The expression input accepts a passive 6.35 mm TRS pedal. Its DPDT polarity
 switch swaps tip and ring so both common pedal wirings are supported. ADS1115
-AIN0 reads the filtered wiper voltage; R4 limits current if the pedal cable is
+AIN0 reads the filtered wiper voltage; R23 limits current if the pedal cable is
 shorted.
 
 The firmware enables `uart4`, the MIDI baud-rate clock overlay, and the ADS1115
@@ -182,17 +186,24 @@ appears under `/sys/bus/iio/devices/` after the `ads1115` driver binds.
 flowchart LR
   InJack["1/4 inch input jack"] --> Protection["Input protection"]
   Protection --> HighZ["High-Z buffer"]
-  HighZ --> CodecAuxIn["Codec Zero AUX IN left"]
-  CodecAuxOutL["Codec Zero AUX OUT left"] --> LeftJack["1/4 inch left/mono output"]
-  CodecAuxOutR["Codec Zero AUX OUT right"] --> RightJack["1/4 inch right output"]
+  HighZ --> CodecAuxIn["Codec Zero AUX IN L + R"]
+  CodecAuxOut["Codec Zero AUX OUT L + R"] --> StereoBuffer["Stereo buffers + relay"]
+  StereoBuffer --> LineJack["TRS line output L + R"]
+  CodecAuxOut --> MonoSum["(L + R) / 2 buffer + relay"]
+  MonoSum --> AmpJack["TS guitar-amp output"]
 ```
 
 Audio notes:
 
-- Treat Codec Zero AUX input as line-level unless measurements prove otherwise.
-- Put a high-impedance guitar buffer before the codec input.
+- Codec Zero P1/P2 use four pins ordered left, ground, right, ground from square
+  pin 1. AUX IN and AUX OUT are rated up to 1 V RMS.
+- The companion board presents a 1 MΩ guitar input, buffers it at unity gain,
+  and feeds both AUX IN channels.
+- Stereo line out and mono `(L + R) / 2` amp out are buffered and relay-muted;
+  GPIO10 must remain low until codec bias and clocks are stable.
 - Keep audio wiring away from display and GPIO wiring.
-- Tie enclosure/shielding deliberately; avoid multiple noisy ground paths.
+- Use isolated-bushing jacks and bond the metal enclosure at the companion
+  board's J9 chassis point.
 - Start testing at low output volume.
 
 ## Display Wiring
