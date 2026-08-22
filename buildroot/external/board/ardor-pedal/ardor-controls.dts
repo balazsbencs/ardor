@@ -9,6 +9,16 @@
 	fragment@0 {
 		target-path = "/";
 		__overlay__ {
+			gpio-leds {
+				compatible = "gpio-leds";
+
+				audio_output_enable {
+					label = "ardor:audio-output-enable";
+					gpios = <&gpio 10 0>;
+					default-state = "off";
+				};
+			};
+
 			gpio-keys {
 				compatible = "gpio-keys";
 
@@ -41,7 +51,7 @@
 				};
 			};
 
-			rotary: rotary@0 {
+			rotary: rotary-encoder {
 				compatible = "rotary-encoder";
 				gpios = <&gpio 17 1>, <&gpio 22 1>;
 				linux,axis = <0>;

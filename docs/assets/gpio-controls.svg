@@ -1,215 +1,186 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="660" viewBox="0 0 1000 660" role="img" aria-labelledby="title desc">
-  <title id="title">Raspberry Pi pedal control GPIO wiring</title>
-  <desc id="desc">GPIO5, GPIO6, GPIO13, and GPIO16 connect to four footswitches. GPIO17 and GPIO22 connect to encoder A and B. Switch and encoder commons connect to ground.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1160" viewBox="0 0 1600 1160" role="img" aria-labelledby="title desc">
+  <title id="title">Ardor Raspberry Pi, Codec Zero, audio and control wiring</title>
+  <desc id="desc">Complete wiring reference showing every Raspberry Pi 40-pin header function, the companion audio and control board GPIO connections, Codec Zero P1 and P2 pin order, external guitar, line, amplifier, MIDI and expression jacks, footswitches, encoder, grounds and chassis bond.</desc>
   <defs>
     <style>
-      .bg { fill: #f7f7f2; }
-      .panel { fill: #ffffff; stroke: #2d2d2d; stroke-width: 2; }
-      .pin { fill: #f1f1eb; stroke: #555; stroke-width: 1.2; }
-      .pin-text { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #2a2a2a; }
-      .title { font: 700 26px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #1d1d1b; }
-      .subtitle { font: 14px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #555; }
-      .label { font: 700 15px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #1f1f1d; }
-      .small { font: 12px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #4a4a46; }
-      .fs { fill: #3f8f72; stroke: #1f5d49; }
-      .enc { fill: #cc7a2b; stroke: #8f4e15; }
-      .gnd { fill: #4f5d75; stroke: #263247; }
-      .reserved { fill: #dadad2; stroke: #aaa; }
-      .power { fill: #c94f4f; stroke: #8a2d2d; }
-      .callout { fill: #ffffff; stroke-width: 2; rx: 8; }
-      .callout-fs { stroke: #3f8f72; }
-      .callout-enc { stroke: #cc7a2b; }
-      .callout-gnd { stroke: #4f5d75; }
-      .wire-fs { stroke: #3f8f72; stroke-width: 3; fill: none; }
-      .wire-enc { stroke: #cc7a2b; stroke-width: 3; fill: none; }
-      .wire-gnd { stroke: #4f5d75; stroke-width: 3; fill: none; }
-      .legend-dot { stroke-width: 1.5; }
+      .bg { fill: #f5f1e9; }
+      .panel { fill: #fffdfa; stroke: #292d32; stroke-width: 2; }
+      .panel-soft { fill: #fbfaf6; stroke: #9da3aa; stroke-width: 1.5; }
+      .title { font: 700 30px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #17191c; }
+      .subtitle { font: 15px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #545a61; }
+      .section { font: 700 18px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #20242a; letter-spacing: .2px; }
+      .label { font: 700 14px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #20242a; }
+      .body { font: 13px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #343a40; }
+      .small { font: 12px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #555d65; }
+      .micro { font: 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #444a50; }
+      .pin-text { font: 11.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #292d32; }
+      .pin { fill: #ecece6; stroke: #747a80; stroke-width: 1.1; }
+      .power { fill: #d45757; stroke: #8c2f2f; }
+      .ground { fill: #506077; stroke: #29374c; }
+      .i2c { fill: #2f9aa0; stroke: #1c666b; }
+      .audio { fill: #d98a2b; stroke: #935716; }
+      .midi { fill: #4c78c2; stroke: #2d4f88; }
+      .expression { fill: #6a9f50; stroke: #3e6d2b; }
+      .control { fill: #9b67b2; stroke: #653c78; }
+      .footswitch { fill: #3f8f72; stroke: #215e4a; }
+      .encoder { fill: #c9782b; stroke: #8e4d15; }
+      .reserved { fill: #d7d7d0; stroke: #9d9d97; }
+      .free { fill: #f3f3ee; stroke: #b2b4b0; }
+      .wire-power { stroke: #d45757; }
+      .wire-ground { stroke: #506077; }
+      .wire-i2c { stroke: #2f9aa0; }
+      .wire-audio { stroke: #d98a2b; }
+      .wire-midi { stroke: #4c78c2; }
+      .wire-expression { stroke: #6a9f50; }
+      .wire-control { stroke: #9b67b2; }
+      .wire { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .bus { fill: none; stroke-width: 5; stroke-linecap: round; }
+      .port { fill: #fff; stroke-width: 2; rx: 5; }
+      .chip { fill: #f1eadf; stroke: #5d554b; stroke-width: 1.5; }
+      .note { fill: #fff8df; stroke: #c39a31; stroke-width: 1.4; }
+      .danger { fill: #fff0ee; stroke: #bf5147; stroke-width: 1.5; }
+      .legend-dot { stroke-width: 1.2; }
     </style>
-    <marker id="arrow-fs" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-      <path d="M0,0 L8,3 L0,6 Z" fill="#3f8f72"/>
-    </marker>
-    <marker id="arrow-enc" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-      <path d="M0,0 L8,3 L0,6 Z" fill="#cc7a2b"/>
-    </marker>
-    <marker id="arrow-gnd" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-      <path d="M0,0 L8,3 L0,6 Z" fill="#4f5d75"/>
-    </marker>
   </defs>
 
-  <rect class="bg" width="1000" height="660"/>
-  <text x="50" y="46" class="title">Pedal Controls GPIO Wiring</text>
-  <text x="50" y="70" class="subtitle">View looking down at the Raspberry Pi 4B 40-pin header, USB/Ethernet ports to the right.</text>
+  <rect class="bg" width="1600" height="1160"/>
+  <text x="54" y="48" class="title">Ardor Hardware Wiring Map</text>
+  <text x="54" y="76" class="subtitle">Raspberry Pi 4B + Codec Zero + audio/control companion board · header view from above, USB/Ethernet ports to the right</text>
+  <rect x="1260" y="24" width="286" height="36" rx="6" class="danger"/>
+  <text x="1403" y="47" text-anchor="middle" class="label" fill="#a13731">ENGINEERING DRAFT · NOT FOR BUILD</text>
 
-  <rect x="330" y="95" width="340" height="500" rx="14" class="panel"/>
-  <text x="500" y="128" text-anchor="middle" class="label">Raspberry Pi 40-pin header</text>
+  <!-- Raspberry Pi header -->
+  <rect x="54" y="106" width="520" height="662" rx="14" class="panel"/>
+  <text x="314" y="138" text-anchor="middle" class="section">Raspberry Pi 40-pin GPIO header</text>
+  <text x="314" y="160" text-anchor="middle" class="small">Odd pins on the left · even pins on the right</text>
 
-  <g id="header">
-    <g class="row" transform="translate(0,155)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">1  3V3</text>
-      <circle cx="455" cy="0" r="9" class="power"/>
-      <circle cx="545" cy="0" r="9" class="power"/>
-      <text x="570" y="5" class="pin-text">5V  2</text>
-    </g>
-    <g class="row" transform="translate(0,176)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">3  GPIO2</text>
-      <circle cx="455" cy="0" r="9" class="reserved"/>
-      <circle cx="545" cy="0" r="9" class="power"/>
-      <text x="570" y="5" class="pin-text">5V  4</text>
-    </g>
-    <g class="row" transform="translate(0,197)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">5  GPIO3</text>
-      <circle cx="455" cy="0" r="9" class="reserved"/>
-      <circle cx="545" cy="0" r="9" class="gnd"/>
-      <text x="570" y="5" class="pin-text">GND  6</text>
-    </g>
-    <g class="row" transform="translate(0,218)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">7  GPIO4</text>
-      <circle cx="455" cy="0" r="9" class="pin"/>
-      <circle cx="545" cy="0" r="9" class="pin"/>
-      <text x="570" y="5" class="pin-text">GPIO14  8</text>
-    </g>
-    <g class="row" transform="translate(0,239)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">9  GND</text>
-      <circle cx="455" cy="0" r="9" class="gnd"/>
-      <circle cx="545" cy="0" r="9" class="pin"/>
-      <text x="570" y="5" class="pin-text">GPIO15 10</text>
-    </g>
-    <g class="row" transform="translate(0,260)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">11 GPIO17</text>
-      <circle cx="455" cy="0" r="9" class="enc"/>
-      <circle cx="545" cy="0" r="9" class="reserved"/>
-      <text x="570" y="5" class="pin-text">GPIO18 12</text>
-    </g>
-    <g class="row" transform="translate(0,281)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">13 GPIO27</text>
-      <circle cx="455" cy="0" r="9" class="reserved"/>
-      <circle cx="545" cy="0" r="9" class="gnd"/>
-      <text x="570" y="5" class="pin-text">GND 14</text>
-    </g>
-    <g class="row" transform="translate(0,302)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">15 GPIO22</text>
-      <circle cx="455" cy="0" r="9" class="enc"/>
-      <circle cx="545" cy="0" r="9" class="reserved"/>
-      <text x="570" y="5" class="pin-text">GPIO23 16</text>
-    </g>
-    <g class="row" transform="translate(0,323)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">17 3V3</text>
-      <circle cx="455" cy="0" r="9" class="power"/>
-      <circle cx="545" cy="0" r="9" class="reserved"/>
-      <text x="570" y="5" class="pin-text">GPIO24 18</text>
-    </g>
-    <g class="row" transform="translate(0,344)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">19 GPIO10</text>
-      <circle cx="455" cy="0" r="9" class="pin"/>
-      <circle cx="545" cy="0" r="9" class="gnd"/>
-      <text x="570" y="5" class="pin-text">GND 20</text>
-    </g>
-    <g class="row" transform="translate(0,365)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">21 GPIO9</text>
-      <circle cx="455" cy="0" r="9" class="pin"/>
-      <circle cx="545" cy="0" r="9" class="pin"/>
-      <text x="570" y="5" class="pin-text">GPIO25 22</text>
-    </g>
-    <g class="row" transform="translate(0,386)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">23 GPIO11</text>
-      <circle cx="455" cy="0" r="9" class="pin"/>
-      <circle cx="545" cy="0" r="9" class="pin"/>
-      <text x="570" y="5" class="pin-text">GPIO8 24</text>
-    </g>
-    <g class="row" transform="translate(0,407)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">25 GND</text>
-      <circle cx="455" cy="0" r="9" class="gnd"/>
-      <circle cx="545" cy="0" r="9" class="pin"/>
-      <text x="570" y="5" class="pin-text">GPIO7 26</text>
-    </g>
-    <g class="row" transform="translate(0,428)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">27 GPIO0</text>
-      <circle cx="455" cy="0" r="9" class="reserved"/>
-      <circle cx="545" cy="0" r="9" class="reserved"/>
-      <text x="570" y="5" class="pin-text">GPIO1 28</text>
-    </g>
-    <g class="row" transform="translate(0,449)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">29 GPIO5</text>
-      <circle cx="455" cy="0" r="9" class="fs"/>
-      <circle cx="545" cy="0" r="9" class="gnd"/>
-      <text x="570" y="5" class="pin-text">GND 30</text>
-    </g>
-    <g class="row" transform="translate(0,470)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">31 GPIO6</text>
-      <circle cx="455" cy="0" r="9" class="fs"/>
-      <circle cx="545" cy="0" r="9" class="pin"/>
-      <text x="570" y="5" class="pin-text">GPIO12 32</text>
-    </g>
-    <g class="row" transform="translate(0,491)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">33 GPIO13</text>
-      <circle cx="455" cy="0" r="9" class="fs"/>
-      <circle cx="545" cy="0" r="9" class="gnd"/>
-      <text x="570" y="5" class="pin-text">GND 34</text>
-    </g>
-    <g class="row" transform="translate(0,512)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">35 GPIO19</text>
-      <circle cx="455" cy="0" r="9" class="reserved"/>
-      <circle cx="545" cy="0" r="9" class="fs"/>
-      <text x="570" y="5" class="pin-text">GPIO16 36</text>
-    </g>
-    <g class="row" transform="translate(0,533)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">37 GPIO26</text>
-      <circle cx="455" cy="0" r="9" class="pin"/>
-      <circle cx="545" cy="0" r="9" class="reserved"/>
-      <text x="570" y="5" class="pin-text">GPIO20 38</text>
-    </g>
-    <g class="row" transform="translate(0,554)">
-      <text x="430" y="5" text-anchor="end" class="pin-text">39 GND</text>
-      <circle cx="455" cy="0" r="9" class="gnd"/>
-      <circle cx="545" cy="0" r="9" class="reserved"/>
-      <text x="570" y="5" class="pin-text">GPIO21 40</text>
-    </g>
+  <g id="gpio-header">
+    <g transform="translate(0,190)"><text x="262" y="4" text-anchor="end" class="pin-text">1  3V3</text><circle cx="286" cy="0" r="9" class="power"/><circle cx="340" cy="0" r="9" class="power"/><text x="364" y="4" class="pin-text">5V  2</text></g>
+    <g transform="translate(0,218)"><text x="262" y="4" text-anchor="end" class="pin-text">3  GPIO2 / SDA</text><circle cx="286" cy="0" r="9" class="i2c"/><circle cx="340" cy="0" r="9" class="power"/><text x="364" y="4" class="pin-text">5V  4</text></g>
+    <g transform="translate(0,246)"><text x="262" y="4" text-anchor="end" class="pin-text">5  GPIO3 / SCL</text><circle cx="286" cy="0" r="9" class="i2c"/><circle cx="340" cy="0" r="9" class="ground"/><text x="364" y="4" class="pin-text">GND  6</text></g>
+    <g transform="translate(0,274)"><text x="262" y="4" text-anchor="end" class="pin-text">7  GPIO4</text><circle cx="286" cy="0" r="9" class="free"/><circle cx="340" cy="0" r="9" class="free"/><text x="364" y="4" class="pin-text">GPIO14  8</text></g>
+    <g transform="translate(0,302)"><text x="262" y="4" text-anchor="end" class="pin-text">9  GND</text><circle cx="286" cy="0" r="9" class="ground"/><circle cx="340" cy="0" r="9" class="free"/><text x="364" y="4" class="pin-text">GPIO15 10</text></g>
+    <g transform="translate(0,330)"><text x="262" y="4" text-anchor="end" class="pin-text">11 GPIO17 / ENC A</text><circle cx="286" cy="0" r="9" class="encoder"/><circle cx="340" cy="0" r="9" class="reserved"/><text x="364" y="4" class="pin-text">I2S CLK / GPIO18 12</text></g>
+    <g transform="translate(0,358)"><text x="262" y="4" text-anchor="end" class="pin-text">13 GPIO27 / Codec SW</text><circle cx="286" cy="0" r="9" class="reserved"/><circle cx="340" cy="0" r="9" class="ground"/><text x="364" y="4" class="pin-text">GND 14</text></g>
+    <g transform="translate(0,386)"><text x="262" y="4" text-anchor="end" class="pin-text">15 GPIO22 / ENC B</text><circle cx="286" cy="0" r="9" class="encoder"/><circle cx="340" cy="0" r="9" class="reserved"/><text x="364" y="4" class="pin-text">Codec LED / GPIO23 16</text></g>
+    <g transform="translate(0,414)"><text x="262" y="4" text-anchor="end" class="pin-text">17 3V3</text><circle cx="286" cy="0" r="9" class="power"/><circle cx="340" cy="0" r="9" class="reserved"/><text x="364" y="4" class="pin-text">Codec LED / GPIO24 18</text></g>
+    <g transform="translate(0,442)"><text x="262" y="4" text-anchor="end" class="pin-text">19 GPIO10 / MUTE</text><circle cx="286" cy="0" r="9" class="control"/><circle cx="340" cy="0" r="9" class="ground"/><text x="364" y="4" class="pin-text">GND 20</text></g>
+    <g transform="translate(0,470)"><text x="262" y="4" text-anchor="end" class="pin-text">21 GPIO9 / MIDI RX</text><circle cx="286" cy="0" r="9" class="midi"/><circle cx="340" cy="0" r="9" class="expression"/><text x="364" y="4" class="pin-text">ADC ALERT / GPIO25 22</text></g>
+    <g transform="translate(0,498)"><text x="262" y="4" text-anchor="end" class="pin-text">23 GPIO11</text><circle cx="286" cy="0" r="9" class="free"/><circle cx="340" cy="0" r="9" class="reserved"/><text x="364" y="4" class="pin-text">MIDI TX rsvd / GPIO8 24</text></g>
+    <g transform="translate(0,526)"><text x="262" y="4" text-anchor="end" class="pin-text">25 GND</text><circle cx="286" cy="0" r="9" class="ground"/><circle cx="340" cy="0" r="9" class="free"/><text x="364" y="4" class="pin-text">GPIO7 26</text></g>
+    <g transform="translate(0,554)"><text x="262" y="4" text-anchor="end" class="pin-text">27 ID_SD / GPIO0</text><circle cx="286" cy="0" r="9" class="reserved"/><circle cx="340" cy="0" r="9" class="reserved"/><text x="364" y="4" class="pin-text">ID_SC / GPIO1 28</text></g>
+    <g transform="translate(0,582)"><text x="262" y="4" text-anchor="end" class="pin-text">29 GPIO5 / FS1</text><circle cx="286" cy="0" r="9" class="footswitch"/><circle cx="340" cy="0" r="9" class="ground"/><text x="364" y="4" class="pin-text">GND 30</text></g>
+    <g transform="translate(0,610)"><text x="262" y="4" text-anchor="end" class="pin-text">31 GPIO6 / FS2</text><circle cx="286" cy="0" r="9" class="footswitch"/><circle cx="340" cy="0" r="9" class="free"/><text x="364" y="4" class="pin-text">GPIO12 32</text></g>
+    <g transform="translate(0,638)"><text x="262" y="4" text-anchor="end" class="pin-text">33 GPIO13 / FS3</text><circle cx="286" cy="0" r="9" class="footswitch"/><circle cx="340" cy="0" r="9" class="ground"/><text x="364" y="4" class="pin-text">GND 34</text></g>
+    <g transform="translate(0,666)"><text x="262" y="4" text-anchor="end" class="pin-text">35 GPIO19 / I2S FS</text><circle cx="286" cy="0" r="9" class="reserved"/><circle cx="340" cy="0" r="9" class="footswitch"/><text x="364" y="4" class="pin-text">FS4 / GPIO16 36</text></g>
+    <g transform="translate(0,694)"><text x="262" y="4" text-anchor="end" class="pin-text">37 GPIO26</text><circle cx="286" cy="0" r="9" class="free"/><circle cx="340" cy="0" r="9" class="reserved"/><text x="364" y="4" class="pin-text">I2S DIN / GPIO20 38</text></g>
+    <g transform="translate(0,722)"><text x="262" y="4" text-anchor="end" class="pin-text">39 GND</text><circle cx="286" cy="0" r="9" class="ground"/><circle cx="340" cy="0" r="9" class="reserved"/><text x="364" y="4" class="pin-text">I2S DOUT / GPIO21 40</text></g>
   </g>
 
-  <rect x="50" y="160" width="230" height="72" class="callout callout-enc"/>
-  <text x="70" y="188" class="label">Encoder A</text>
-  <text x="70" y="212" class="small">GPIO17 / physical pin 11</text>
-  <path d="M280 196 C335 196 380 260 446 260" class="wire-enc" marker-end="url(#arrow-enc)"/>
+  <!-- Connection schedule -->
+  <rect x="604" y="106" width="942" height="662" rx="14" class="panel"/>
+  <text x="634" y="142" class="section">Connection schedule — exact destinations</text>
 
-  <rect x="50" y="260" width="230" height="72" class="callout callout-enc"/>
-  <text x="70" y="288" class="label">Encoder B</text>
-  <text x="70" y="312" class="small">GPIO22 / physical pin 15</text>
-  <path d="M280 296 C335 296 380 302 446 302" class="wire-enc" marker-end="url(#arrow-enc)"/>
+  <rect x="630" y="166" width="430" height="356" rx="10" class="panel-soft"/>
+  <text x="654" y="196" class="label">Companion board J8 taps</text>
+  <text x="654" y="221" class="small">The stack-through header passes every pin to Codec Zero.</text>
 
-  <rect x="50" y="385" width="230" height="96" class="callout callout-gnd"/>
-  <text x="70" y="414" class="label">Common ground rail</text>
-  <text x="70" y="438" class="small">Switch commons and encoder common</text>
-  <text x="70" y="460" class="small">Use any convenient GND pin</text>
-  <path d="M280 432 C345 430 388 408 446 407" class="wire-gnd" marker-end="url(#arrow-gnd)"/>
+  <g class="body">
+    <circle cx="654" cy="250" r="6" class="power"/><text x="672" y="255">Pi pin 2 or 4 (5V) → J8 → F1 analogue / F2 relay fuses</text>
+    <circle cx="654" cy="280" r="6" class="power"/><text x="672" y="285">Pi pin 1 or 17 (3V3) → J8 3V3 → ADC / MIDI logic</text>
+    <circle cx="654" cy="310" r="6" class="ground"/><text x="672" y="315">Pi pin 6/9/14/20/25/30/34/39 → J8 GND</text>
+    <circle cx="654" cy="340" r="6" class="i2c"/><text x="672" y="345">Pi pin 3, GPIO2/SDA → R25 → ADS1115 SDA</text>
+    <circle cx="654" cy="370" r="6" class="i2c"/><text x="672" y="375">Pi pin 5, GPIO3/SCL → R26 → ADS1115 SCL</text>
+    <circle cx="654" cy="400" r="6" class="control"/><text x="672" y="405">Pi pin 19, GPIO10 → R34/Q1 → K1 + K2 audio unmute</text>
+    <circle cx="654" cy="430" r="6" class="midi"/><text x="672" y="435">Pi pin 21, GPIO9/UART4 RX ← isolated MIDI output</text>
+    <circle cx="654" cy="460" r="6" class="expression"/><text x="672" y="465">Pi pin 22, GPIO25 ← ADS1115 ALERT/RDY</text>
+    <circle cx="654" cy="490" r="6" class="reserved"/><text x="672" y="495">Pi pin 24, GPIO8/UART4 TX reserved; no connection</text>
+  </g>
 
-  <rect x="720" y="340" width="230" height="64" class="callout callout-fs"/>
-  <text x="740" y="366" class="label">Footswitch 1</text>
-  <text x="740" y="388" class="small">GPIO5 / physical pin 29</text>
-  <path d="M720 372 C650 372 540 449 464 449" class="wire-fs" marker-end="url(#arrow-fs)"/>
+  <rect x="1086" y="166" width="430" height="356" rx="10" class="panel-soft"/>
+  <text x="1110" y="196" class="label">Panel controls</text>
+  <g class="body">
+    <circle cx="1110" cy="230" r="6" class="encoder"/><text x="1128" y="235">Encoder A → Pi pin 11, GPIO17</text>
+    <circle cx="1110" cy="260" r="6" class="encoder"/><text x="1128" y="265">Encoder B → Pi pin 15, GPIO22</text>
+    <circle cx="1110" cy="290" r="6" class="ground"/><text x="1128" y="295">Encoder common → any Pi GND</text>
+    <circle cx="1110" cy="330" r="6" class="footswitch"/><text x="1128" y="335">Footswitch 1 → Pi pin 29, GPIO5</text>
+    <circle cx="1110" cy="360" r="6" class="footswitch"/><text x="1128" y="365">Footswitch 2 → Pi pin 31, GPIO6</text>
+    <circle cx="1110" cy="390" r="6" class="footswitch"/><text x="1128" y="395">Footswitch 3 → Pi pin 33, GPIO13</text>
+    <circle cx="1110" cy="420" r="6" class="footswitch"/><text x="1128" y="425">Footswitch 4 → Pi pin 36, GPIO16</text>
+    <circle cx="1110" cy="450" r="6" class="ground"/><text x="1128" y="455">All switch commons → common GND rail</text>
+  </g>
+  <rect x="1110" y="474" width="382" height="30" rx="5" class="note"/>
+  <text x="1124" y="494" class="small">Normally-open switches: pressed = GPIO to GND.</text>
 
-  <rect x="720" y="415" width="230" height="64" class="callout callout-fs"/>
-  <text x="740" y="441" class="label">Footswitch 2</text>
-  <text x="740" y="463" class="small">GPIO6 / physical pin 31</text>
-  <path d="M720 447 C650 447 540 470 464 470" class="wire-fs" marker-end="url(#arrow-fs)"/>
+  <rect x="630" y="548" width="886" height="194" rx="10" class="panel-soft"/>
+  <text x="654" y="578" class="label">Reserved by Codec Zero / HAT</text>
+  <text x="654" y="606" class="body">GPIO18/19/20/21 (pins 12/35/38/40): I2S audio · GPIO23/24 (pins 16/18): Codec LEDs</text>
+  <text x="654" y="633" class="body">GPIO27 (pin 13): Codec button · GPIO0/1 (pins 27/28): HAT EEPROM ID bus</text>
+  <text x="654" y="660" class="body">GPIO2/3 I2C is shared intentionally. Do not add another strong set of pull-ups on the companion board.</text>
+  <rect x="654" y="681" width="838" height="42" rx="6" class="danger"/>
+  <text x="670" y="699" class="small">Never apply 5V to a GPIO. MIDI must pass through U4 isolation; expression must pass through U5 ADC.</text>
+  <text x="670" y="716" class="small">The board remains muted until software drives default-low GPIO10 HIGH after Codec Zero has settled.</text>
 
-  <rect x="720" y="490" width="230" height="64" class="callout callout-fs"/>
-  <text x="740" y="516" class="label">Footswitch 3</text>
-  <text x="740" y="538" class="small">GPIO13 / physical pin 33</text>
-  <path d="M720 522 C650 522 540 491 464 491" class="wire-fs" marker-end="url(#arrow-fs)"/>
+  <!-- Physical harness map -->
+  <text x="54" y="814" class="section">Physical audio and control harnesses</text>
+  <text x="54" y="838" class="small">Connector names match the tscircuit and KiCad schematic.</text>
 
-  <rect x="720" y="565" width="230" height="64" class="callout callout-fs"/>
-  <text x="740" y="591" class="label">Footswitch 4</text>
-  <text x="740" y="613" class="small">GPIO16 / physical pin 36</text>
-  <path d="M720 597 C650 597 620 512 554 512" class="wire-fs" marker-end="url(#arrow-fs)"/>
+  <rect x="54" y="864" width="290" height="242" rx="12" class="panel"/>
+  <text x="199" y="894" text-anchor="middle" class="label">External panel connectors</text>
+  <rect x="76" y="918" width="246" height="30" class="port" stroke="#d98a2b"/><text x="90" y="938" class="body">J1 Guitar IN · TS: tip / sleeve</text>
+  <rect x="76" y="958" width="246" height="30" class="port" stroke="#d98a2b"/><text x="90" y="978" class="body">J4 Line OUT · TRS: L / R / GND</text>
+  <rect x="76" y="998" width="246" height="30" class="port" stroke="#d98a2b"/><text x="90" y="1018" class="body">J5 Amp OUT · TS: mono / GND</text>
+  <rect x="76" y="1038" width="246" height="30" class="port" stroke="#4c78c2"/><text x="90" y="1058" class="micro">J6 MIDI IN · TRS: tip / ring / shield</text>
+  <rect x="76" y="1078" width="246" height="30" class="port" stroke="#6a9f50"/><text x="90" y="1098" class="micro">J7 Expression · TRS: tip / ring / GND</text>
 
-  <g transform="translate(720 118)">
-    <circle cx="0" cy="0" r="7" class="legend-dot fs"/>
-    <text x="18" y="5" class="small">Footswitch input</text>
-    <circle cx="0" cy="26" r="7" class="legend-dot enc"/>
-    <text x="18" y="31" class="small">Encoder input</text>
-    <circle cx="0" cy="52" r="7" class="legend-dot gnd"/>
-    <text x="18" y="57" class="small">Ground</text>
-    <circle cx="0" cy="78" r="7" class="legend-dot reserved"/>
-    <text x="18" y="83" class="small">Reserved by Codec/I2S/HAT</text>
+  <rect x="470" y="864" width="548" height="242" rx="12" class="panel"/>
+  <text x="744" y="894" text-anchor="middle" class="label">Audio + control companion board</text>
+  <rect x="500" y="918" width="210" height="56" rx="6" class="chip"/>
+  <text x="605" y="940" text-anchor="middle" class="body">Protected 1 MΩ input</text><text x="605" y="960" text-anchor="middle" class="micro">J1 → D1/R1/C1/U1A</text>
+  <rect x="778" y="918" width="210" height="56" rx="6" class="chip"/>
+  <text x="883" y="940" text-anchor="middle" class="body">Codec input harness</text><text x="883" y="960" text-anchor="middle" class="micro">J2 → Codec Zero P1</text>
+  <rect x="500" y="990" width="210" height="56" rx="6" class="chip"/>
+  <text x="605" y="1012" text-anchor="middle" class="body">Codec output harness</text><text x="605" y="1032" text-anchor="middle" class="micro">Codec Zero P2 → J3</text>
+  <rect x="778" y="990" width="210" height="56" rx="6" class="chip"/>
+  <text x="883" y="1012" text-anchor="middle" class="body">Buffered + relay-muted outs</text><text x="883" y="1032" text-anchor="middle" class="micro">U1B/C/D → K1/K2 → J4/J5</text>
+  <text x="500" y="1074" class="small">J9 CHASSIS → shortest possible bond to the metal enclosure.</text>
+  <text x="500" y="1095" class="small">Use isolated-bushing audio jacks; keep MIDI cable side isolated from AGND/DGND.</text>
+
+  <rect x="1144" y="864" width="402" height="242" rx="12" class="panel"/>
+  <text x="1345" y="894" text-anchor="middle" class="label">Raspberry Pi Codec Zero</text>
+  <text x="1170" y="925" class="body">P1 AUX IN — from companion J2</text>
+  <g transform="translate(1170,942)">
+    <rect x="0" y="0" width="350" height="34" rx="5" class="panel-soft"/>
+    <rect x="0" y="0" width="87.5" height="34" fill="#f3bd79"/><rect x="87.5" y="0" width="87.5" height="34" fill="#d9dfe7"/><rect x="175" y="0" width="87.5" height="34" fill="#f3bd79"/><rect x="262.5" y="0" width="87.5" height="34" fill="#d9dfe7"/>
+    <text x="43.75" y="14" text-anchor="middle" class="micro">1 LEFT</text><text x="131.25" y="14" text-anchor="middle" class="micro">2 GND</text><text x="218.75" y="14" text-anchor="middle" class="micro">3 RIGHT</text><text x="306.25" y="14" text-anchor="middle" class="micro">4 GND</text>
+    <text x="43.75" y="29" text-anchor="middle" class="micro">square pad</text>
+  </g>
+  <text x="1170" y="1004" class="body">P2 AUX OUT — to companion J3</text>
+  <g transform="translate(1170,1021)">
+    <rect x="0" y="0" width="350" height="34" rx="5" class="panel-soft"/>
+    <rect x="0" y="0" width="87.5" height="34" fill="#f3bd79"/><rect x="87.5" y="0" width="87.5" height="34" fill="#d9dfe7"/><rect x="175" y="0" width="87.5" height="34" fill="#f3bd79"/><rect x="262.5" y="0" width="87.5" height="34" fill="#d9dfe7"/>
+    <text x="43.75" y="14" text-anchor="middle" class="micro">1 LEFT</text><text x="131.25" y="14" text-anchor="middle" class="micro">2 GND</text><text x="218.75" y="14" text-anchor="middle" class="micro">3 RIGHT</text><text x="306.25" y="14" text-anchor="middle" class="micro">4 GND</text>
+    <text x="43.75" y="29" text-anchor="middle" class="micro">square pad</text>
+  </g>
+  <text x="1170" y="1083" class="small">Both AUX interfaces: maximum 1 V RMS.</text>
+
+  <!-- Harness wires -->
+  <path d="M322 933 H500" class="wire wire-audio"/>
+  <path d="M710 946 H778" class="wire wire-audio"/>
+  <path d="M988 946 H1080 V959 H1144" class="wire wire-audio"/>
+  <path d="M1144 1038 H1080 V1018 H710" class="wire wire-audio"/>
+  <path d="M778 1006 H752 V973 H344" class="wire wire-audio"/>
+  <path d="M778 1030 H730 V1013 H344" class="wire wire-audio"/>
+  <path d="M322 1053 H410 V1064 H470" class="wire wire-midi"/>
+  <path d="M322 1093 H430 V1086 H470" class="wire wire-expression"/>
+
+  <!-- Legend -->
+  <g transform="translate(1040,1128)">
+    <circle cx="0" cy="0" r="6" class="legend-dot power"/><text x="14" y="4" class="micro">power</text>
+    <circle cx="82" cy="0" r="6" class="legend-dot ground"/><text x="96" y="4" class="micro">ground</text>
+    <circle cx="180" cy="0" r="6" class="legend-dot i2c"/><text x="194" y="4" class="micro">I2C</text>
+    <circle cx="244" cy="0" r="6" class="legend-dot audio"/><text x="258" y="4" class="micro">audio</text>
+    <circle cx="320" cy="0" r="6" class="legend-dot midi"/><text x="334" y="4" class="micro">MIDI</text>
+    <circle cx="390" cy="0" r="6" class="legend-dot expression"/><text x="404" y="4" class="micro">expression</text>
   </g>
 </svg>
