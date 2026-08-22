@@ -1,0 +1,158 @@
+(footprint
+  "22-27-2041_CODEC_ZERO_P2_HARNESS"
+  (version 20240108)
+  (generator pcbnew)
+  (generator_version 8.0)
+  (layer F.Cu)
+  (at 0 0 0)
+  (descr "")
+  (tags "")
+  (attr through_hole)
+  (embedded_fonts no)
+  (property "Reference" "REF**"
+    (at 0 -1.35 0)
+    (layer F.SilkS)
+    (uuid 021f1b00-45f8-89c1-71ef-d17e29d82cbd)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Value" "Val**"
+    (at 0 1.35 0)
+    (layer F.Fab)
+    (uuid 5d38ee40-4d75-aec1-07db-b43e5d2d173d)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Datasheet" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 08ac9ec0-3f6b-0601-787d-553e3065b07d)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Description" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 7fd70e60-2098-8301-3ea6-085e621b6c43)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "LEFT"
+    (at -3.8099999999999987 -1.2750000000000004 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GND_L"
+    (at -1.2699999999999996 -1.2750000000000004 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "RIGHT"
+    (at 1.2699999999999996 -1.2750000000000004 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GND_R"
+    (at 3.8099999999999987 -1.2750000000000004 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    reference
+    "REF**"
+    (at 0 -2.54 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.7 0.7)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_rect
+    (start -5.58 -1.77)
+    (end 5.58 1.77)
+    (layer F.CrtYd)
+    (stroke
+      (width 0.05)
+      (type default)
+    )
+    (fill no)
+  )
+  (pad "1" thru_hole rect
+    (at -3.8099999999999987 0 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 3cb6b604-04a6-285c-4603-06bc78a01ae4)
+  )
+  (pad "2" thru_hole circle
+    (at -1.2699999999999996 0 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 05b7ad46-3ba5-311a-7d02-0f7a41a11226)
+  )
+  (pad "3" thru_hole circle
+    (at 1.2699999999999996 0 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 31475b78-72a4-39d8-4bfe-e7c80aa20968)
+  )
+  (pad "4" thru_hole circle
+    (at 3.8099999999999987 0 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 68466436-565c-bd6a-14ff-df0a2c5cff56)
+  )
+  (model "../../3dmodels/tscircuit_builtin.3dshapes/pinrow4_rows1_p2.54mm_id1mm_od1.7mm_male.step"
+  )
+)

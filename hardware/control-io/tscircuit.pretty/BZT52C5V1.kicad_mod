@@ -1,0 +1,94 @@
+(footprint
+  "BZT52C5V1"
+  (version 20240108)
+  (generator pcbnew)
+  (generator_version 8.0)
+  (layer F.Cu)
+  (at 0 0 0)
+  (descr "")
+  (tags "")
+  (attr smd)
+  (embedded_fonts no)
+  (property "Reference" "REF**"
+    (at 0 -1.1 0)
+    (layer F.SilkS)
+    (uuid 3654f8b4-7cd8-790c-3005-eacc1ccca374)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Value" "Val**"
+    (at 0 1.1 0)
+    (layer F.Fab)
+    (uuid 3df4b900-466d-7a80-4ee6-3c00575efd80)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Datasheet" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 18a878f8-342a-1548-7f03-5c783230ce38)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Description" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 1be617aa-4681-ea76-5716-136a0b51eeb6)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    reference
+    "REF**"
+    (at 0 -0.7049999999999983 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.5 0.5)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_rect
+    (start -2.35 -1.15)
+    (end 2.35 1.15)
+    (layer F.CrtYd)
+    (stroke
+      (width 0.05)
+      (type default)
+    )
+    (fill no)
+  )
+  (pad "1" smd rect
+    (at -1.6499999999999986 0 0)
+    (size 0.9 1.2)
+    (layers F.Cu F.Paste F.Mask)
+    (uuid 7ddef200-4d5c-12ff-1cd9-33fe13a9ab03)
+  )
+  (pad "2" smd rect
+    (at 1.6499999999999986 0 0)
+    (size 0.9 1.2)
+    (layers F.Cu F.Paste F.Mask)
+    (uuid 5f70cfe0-2eed-f0df-0194-ee223217cd23)
+  )
+  (model "../../3dmodels/tscircuit_builtin.3dshapes/sod123.step"
+  )
+)

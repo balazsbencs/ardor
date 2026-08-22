@@ -19,5 +19,6 @@ dtoverlay=midi-uart4
 # Expression pedal ADC on the existing I2C1 bus, AIN0 single-ended, 4.096 V
 # full scale, 128 samples/s. ADDR is grounded on the companion schematic.
 dtoverlay=ads1115,addr=0x48,cha_enable,cha_cfg=4,cha_gain=1,cha_datarate=4
-# Footswitches + encoder (compiled from ardor-controls.dts)
+# Footswitches, encoder, and default-low GPIO10 audio-output relay control
+# (compiled from ardor-controls.dts)
 dtoverlay=ardor-controls

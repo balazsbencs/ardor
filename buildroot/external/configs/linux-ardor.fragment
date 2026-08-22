@@ -1,0 +1,5 @@
+# GPIO10 is owned from early boot by the gpio-leds driver so the normally-open
+# audio-output relays cannot be enabled by a floating or stale userspace GPIO.
+CONFIG_NEW_LEDS=y
+CONFIG_LEDS_CLASS=y
+CONFIG_LEDS_GPIO=y

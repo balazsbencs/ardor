@@ -1,0 +1,100 @@
+(footprint
+  "JS202011CQN"
+  (version 20240108)
+  (generator pcbnew)
+  (generator_version 8.0)
+  (layer F.Cu)
+  (at 0 0 0)
+  (descr "")
+  (tags "")
+  (attr through_hole)
+  (embedded_fonts no)
+  (property "Reference" "REF**"
+    (at 0 -3.75 0)
+    (layer F.SilkS)
+    (uuid 1f2d400a-7e6a-bdd6-1c02-bbb64665466a)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Value" "Val**"
+    (at 0 3.75 0)
+    (layer F.Fab)
+    (uuid 7027f556-5d26-684a-2a74-c5ea083cdc76)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Datasheet" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 03c2f422-5ea5-0dfe-3ef2-efe22375123e)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Description" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 6297f32c-34f8-0ed4-3377-ef2c641812d4)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (pad "1" thru_hole circle
+    (at -1.6499999999999986 -2.5 0)
+    (size 1.5 1.5)
+    (drill 0.9)
+    (layers *.Cu *.Mask)
+    (uuid 4ca8d560-67ef-f441-7cc8-ecde6181cdfd)
+  )
+  (pad "3" thru_hole circle
+    (at -1.6499999999999986 0 0)
+    (size 1.5 1.5)
+    (drill 0.9)
+    (layers *.Cu *.Mask)
+    (uuid 3c7aeee0-2133-cfff-05ec-b11e155a6dc3)
+  )
+  (pad "2" thru_hole circle
+    (at -1.6499999999999986 2.5 0)
+    (size 1.5 1.5)
+    (drill 0.9)
+    (layers *.Cu *.Mask)
+    (uuid 77e90cc0-5ca1-eddf-415a-cefe2613b01d)
+  )
+  (pad "4" thru_hole circle
+    (at 1.6499999999999986 -2.5 0)
+    (size 1.5 1.5)
+    (drill 0.9)
+    (layers *.Cu *.Mask)
+    (uuid 010cd100-1a3a-4de1-3581-6cc250c88ba3)
+  )
+  (pad "6" thru_hole circle
+    (at 1.6499999999999986 0 0)
+    (size 1.5 1.5)
+    (drill 0.9)
+    (layers *.Cu *.Mask)
+    (uuid 75cf6ac0-6ee9-765f-53a2-577e385b389d)
+  )
+  (pad "5" thru_hole circle
+    (at 1.6499999999999986 2.5 0)
+    (size 1.5 1.5)
+    (drill 0.9)
+    (layers *.Cu *.Mask)
+    (uuid 3a614ce0-55a8-6bc1-70ef-8aa273c9567d)
+  )
+)
