@@ -1,8 +1,4 @@
 ---
-// Site-themed signal-chain diagram. A "split bus" metaphor: the pre-chain feeds
-// a full-width SPLIT bar, everything between the SPLIT and JOIN bars is the two
-// parallel lanes, and the JOIN bar merges them to the stereo output. Compact
-// enough to fit the docs content column without horizontal scrolling.
 const pre = [
   { name: 'Input', kind: 'guitar in', cat: 'io' },
   { name: 'Noise Gate', kind: 'utility', cat: 'utility' },
@@ -24,7 +20,7 @@ const lanes = [
 ];
 ---
 
-<div class="flow" role="img" aria-label="Signal chain: input, noise gate and compressor feed a SPLIT; between SPLIT and JOIN two parallel lanes run — left (amp, cabinet, delay) and right (amp, cabinet, reverb); JOIN merges them to the stereo output and limiter.">
+<div class="flow" role="img" aria-label="Left-to-right signal chain: input, noise gate and compressor feed a split; two parallel lanes run through amp, cabinet and effects blocks; join merges them to the stereo output and limiter.">
   <div class="chain pre">
     {pre.map((b, i) => (
       <>
@@ -37,7 +33,7 @@ const lanes = [
     ))}
   </div>
 
-  <span class="vconn" aria-hidden="true"></span>
+  <span class="conn" aria-hidden="true"></span>
 
   <div class="rig">
     <div class="bus"><span>SPLIT</span></div>
@@ -62,7 +58,7 @@ const lanes = [
     <div class="bus"><span>JOIN</span></div>
   </div>
 
-  <span class="vconn" aria-hidden="true"></span>
+  <span class="conn" aria-hidden="true"></span>
 
   <div class="chain out-row">
     <div class="node c-io out">
@@ -75,128 +71,143 @@ const lanes = [
 <style>
   .flow {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     gap: 0;
+    min-width: 0;
     padding: var(--sp-4);
-    background:
-      radial-gradient(120% 120% at 50% 0, rgba(60, 224, 166, 0.05), transparent 55%),
-      var(--ground-2);
-    border: 1px solid var(--hairline);
-    border-radius: var(--radius-lg);
     overflow-x: auto;
-  }
-  .chain {
-    display: flex;
-    align-items: center;
-    gap: 0;
-  }
-  .node {
-    --c: var(--accent);
-    flex: none;
-    width: 8.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-    padding: 0.5rem 0.75rem;
-    background: var(--surface);
     border: 1px solid var(--hairline);
-    border-left: 3px solid var(--c);
-    border-radius: var(--radius);
-  }
-  .node .k {
-    font-family: var(--font-mono);
-    font-size: 0.6rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--c);
-  }
-  .node .n {
-    font-weight: 600;
-    font-size: var(--step-0);
-    color: var(--text-strong);
-    white-space: nowrap;
-  }
-  .out {
-    box-shadow: 0 0 30px -12px var(--accent-glow);
-  }
-  .wire {
-    flex: none;
-    width: 1rem;
-    height: 2px;
-    background: linear-gradient(90deg, var(--accent-dim), var(--accent));
-  }
-  .vconn {
-    width: 2px;
-    height: 1.4rem;
-    background: linear-gradient(180deg, var(--accent-dim), var(--accent));
+    background: var(--surface);
   }
 
-  /* the split/join bus and the lanes bracketed between them */
-  .rig {
-    width: fit-content;
+  .chain {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0;
   }
+
+  .pre,
+  .rig,
+  .out-row {
+    flex: none;
+  }
+
+  .node {
+    --c: var(--accent);
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: 0.15rem;
+    width: 7.5rem;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid var(--hairline);
+    border-top: 3px solid var(--c);
+    background: var(--elevated);
+  }
+
+  .node .k {
+    color: var(--c);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  .node .n {
+    color: var(--text-strong);
+    font-family: var(--font-display);
+    font-size: var(--step-0);
+    font-weight: 600;
+    letter-spacing: 0.035em;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .out {
+    border-color: var(--accent);
+  }
+
+  .wire {
+    display: block;
+    flex: none;
+    width: 1.1rem;
+    height: 1px;
+    background: var(--hairline-strong);
+  }
+
+  .conn {
+    display: block;
+    flex: none;
+    width: 1.3rem;
+    height: 1px;
+    background: var(--hairline-strong);
+  }
+
+  .rig {
+    display: flex;
+    flex-direction: column;
+    width: fit-content;
+    min-width: 34rem;
+  }
+
   .bus {
     display: grid;
+    height: 2.1rem;
     place-items: center;
-    height: 2rem;
     border: 1px solid var(--accent-dim);
-    border-radius: var(--radius);
-    background: rgba(60, 224, 166, 0.08);
+    background: var(--ground-2);
   }
+
   .bus span {
-    font-family: var(--font-mono);
-    font-size: var(--step--1);
-    letter-spacing: 0.24em;
     color: var(--accent);
+    font-family: var(--font-display);
+    font-size: var(--step--1);
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
   }
+
   .lanes {
     display: flex;
     flex-direction: column;
     gap: var(--sp-2);
-    padding: var(--sp-2) 0;
+    padding: var(--sp-3) 0;
     padding-left: 1.5rem;
     margin-left: 0.75rem;
-    border-left: 2px solid var(--hairline-strong);
+    border-left: 1px solid var(--hairline-strong);
   }
+
   .lane {
     display: flex;
     align-items: center;
     gap: 0.9rem;
   }
+
   .lane-tag {
     flex: none;
     width: 5rem;
-    font-size: 0.66rem;
-    letter-spacing: 0.1em;
     color: var(--muted);
+    font-size: 0.66rem;
+    letter-spacing: 0.09em;
   }
 
-  .c-amp {
-    --c: #ff8a5c;
-  }
-  .c-cabinet {
-    --c: #f5b451;
-  }
-  .c-utility {
-    --c: #9aa7ff;
-  }
-  .c-delay {
-    --c: #3ce0a6;
-  }
-  .c-reverb {
-    --c: #c58cff;
-  }
-  .c-io {
-    --c: var(--accent);
-  }
+  .c-amp { --c: var(--family-amp); }
+  .c-cabinet { --c: var(--family-cab); }
+  .c-utility { --c: var(--family-util); }
+  .c-delay { --c: var(--family-delay); }
+  .c-reverb { --c: var(--family-reverb); }
+  .c-io { --c: var(--accent); }
 
   @media (max-width: 620px) {
-    .lane {
-      flex-wrap: wrap;
+    .flow {
+      align-items: center;
     }
-    .node {
-      width: 7.5rem;
+
+    .lanes {
+      padding-left: 1rem;
     }
   }
 </style>

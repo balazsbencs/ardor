@@ -4,26 +4,28 @@ import { byCategory, describe, counts } from '../lib/effects';
 interface Props {
   /** Show the amp/cab/utility building blocks too, or just the 35 FX. */
   full?: boolean;
+  /** Keep the homepage catalog as a visual sound palette; docs keep the detail. */
+  compact?: boolean;
 }
-const { full = false } = Astro.props;
+const { full = false, compact = false } = Astro.props;
 
 const groups = full
   ? [
-      { key: 'amp', label: 'Amp', accent: '#ff8a5c' },
-      { key: 'cabinet', label: 'Cabinet', accent: '#f5b451' },
-      { key: 'utility', label: 'Utility', accent: '#9aa7ff' },
-      { key: 'modulation', label: 'Modulation', accent: '#59c2e6' },
-      { key: 'delay', label: 'Delay', accent: '#3ce0a6' },
-      { key: 'reverb', label: 'Reverb', accent: '#c58cff' },
+      { key: 'amp', label: 'Amp', accent: 'var(--family-amp)' },
+      { key: 'cabinet', label: 'Cabinet', accent: 'var(--family-cab)' },
+      { key: 'utility', label: 'Utility', accent: 'var(--family-util)' },
+      { key: 'modulation', label: 'Modulation', accent: 'var(--family-mod)' },
+      { key: 'delay', label: 'Delay', accent: 'var(--family-delay)' },
+      { key: 'reverb', label: 'Reverb', accent: 'var(--family-reverb)' },
     ]
   : [
-      { key: 'modulation', label: 'Modulation', accent: '#59c2e6' },
-      { key: 'delay', label: 'Delay', accent: '#3ce0a6' },
-      { key: 'reverb', label: 'Reverb', accent: '#c58cff' },
+      { key: 'modulation', label: 'Modulation', accent: 'var(--family-mod)' },
+      { key: 'delay', label: 'Delay', accent: 'var(--family-delay)' },
+      { key: 'reverb', label: 'Reverb', accent: 'var(--family-reverb)' },
     ];
 ---
 
-<div class="catalog">
+<div class:list={['catalog', { compact }]}>
   {groups.map((g) => {
     const items = byCategory(g.key);
     return (
@@ -38,9 +40,9 @@ const groups = full
               <span class="fx-dot" aria-hidden="true"></span>
               <div class="fx-body">
                 <span class="fx-name">{def.name}</span>
-                <span class="fx-desc">{describe(def)}</span>
+                {!compact && <span class="fx-desc">{describe(def)}</span>}
               </div>
-              {def.controls.length > 0 && (
+              {!compact && def.controls.length > 0 && (
                 <span class="fx-params mono tnum" title={`${def.controls.length} parameters`}>
                   {def.controls.length}p
                 </span>
@@ -66,81 +68,113 @@ const groups = full
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
     gap: var(--sp-4);
   }
+
   .cat {
-    background: linear-gradient(180deg, var(--surface), var(--ground-2));
     border: 1px solid var(--hairline);
-    border-top: 2px solid var(--cat);
-    border-radius: var(--radius-lg);
+    border-top: 3px solid var(--cat);
+    background: var(--surface);
     padding: var(--sp-4);
   }
+
   .cat-head {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     margin-bottom: var(--sp-3);
   }
+
   .cat-head h3 {
     margin: 0;
     color: var(--cat);
     font-size: var(--step-1);
   }
+
   .cat-count {
-    font-size: var(--step-1);
     color: var(--muted-2);
+    font-size: var(--step-1);
   }
+
   .cat-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
     display: flex;
     flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
+
   .fx {
     display: grid;
     grid-template-columns: auto 1fr auto;
     gap: 0.7rem;
     align-items: baseline;
-    padding: 0.6rem 0;
+    padding: 0.58rem 0;
     border-top: 1px solid var(--hairline);
   }
+
   .fx:first-child {
     border-top: 0;
   }
+
   .fx-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 2px;
+    width: 0.42rem;
+    height: 0.42rem;
     background: var(--cat);
-    transform: translateY(-1px);
   }
+
   .fx-body {
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
     min-width: 0;
   }
+
   .fx-name {
-    font-weight: 600;
     color: var(--text-strong);
+    font-family: var(--font-display);
+    font-size: var(--step-0);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    text-transform: uppercase;
   }
+
   .fx-desc {
-    font-size: var(--step--1);
     color: var(--muted);
-    line-height: 1.45;
-  }
-  .fx-params {
     font-size: var(--step--1);
-    color: var(--muted-2);
-    border: 1px solid var(--hairline);
-    border-radius: 3px;
-    padding: 0.05em 0.4em;
-    align-self: center;
+    line-height: 1.4;
   }
+
+  .fx-params {
+    align-self: center;
+    padding: 0.05em 0.4em;
+    border: 1px solid var(--hairline);
+    color: var(--muted-2);
+    font-size: var(--step--1);
+  }
+
+  .catalog.compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .compact .cat {
+    padding: var(--sp-3);
+  }
+
+  .compact .fx {
+    grid-template-columns: auto 1fr;
+  }
+
   .catalog-total {
-    margin-top: var(--sp-4);
-    text-align: center;
+    margin: var(--sp-4) 0 0;
     color: var(--muted);
     font-size: var(--step--1);
     letter-spacing: 0.03em;
+    text-align: center;
+  }
+
+  @media (max-width: 860px) {
+    .catalog.compact {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

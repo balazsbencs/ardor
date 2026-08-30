@@ -1,123 +1,85 @@
-/*
- * Ardor design tokens — "precision instrument / signal chain".
- * Dark sci-fi ground with the pedal's own teal-green accent (#3ce0a6).
- * Neutrals carry a deliberate cool-green bias so the greys read as chosen,
- * not defaulted. Two themes; dark is the primary world.
- */
+/* Ardor website tokens — derived from the Panel LVGL palette system. */
 :root {
-  /* --- palette: dark (primary) --- */
-  --ground: #06080a;
-  --ground-2: #090c0f;
-  --surface: #0d1417;
-  --elevated: #131d21;
-  --hairline: rgba(120, 200, 170, 0.14);
-  --hairline-strong: rgba(120, 200, 170, 0.28);
+  /* Slate is the website's primary world, matching the default device palette. */
+  --ground: #141719;
+  --ground-2: #191c1f;
+  --surface: #212528;
+  --elevated: #2a2f33;
+  --hairline: #3b4247;
+  --hairline-strong: #687178;
 
-  --accent: #3ce0a6;
-  --accent-light: #7ef7c9;
-  --accent-dim: #1f8f6c;
-  --accent-glow: rgba(60, 224, 166, 0.35);
+  --accent: #d8422f;
+  --accent-light: #ed6b58;
+  --accent-dim: #8e3026;
+  --accent-glow: rgba(216, 66, 47, 0.2);
 
-  --text: #dfeae7;
-  --text-strong: #f3faf8;
-  --muted: #8aa39d;
-  --muted-2: #5f7671;
+  --text: #c8cdce;
+  --text-strong: #e2e4e3;
+  --muted: #8d9499;
+  --muted-2: #697278;
 
-  /* semantic — docs callouts only, never used as the brand accent */
-  --warn: #f5b451;
-  --danger: #ff6f6f;
-  --info: #59b6e6;
+  --warn: #c9973f;
+  --danger: #bb9186;
+  --info: #7fa6c8;
 
-  /* --- type --- */
-  --font-display: 'Chakra Petch', 'Open Sans', system-ui, sans-serif;
-  --font-body: 'Open Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+  --family-amp: #a8814e;
+  --family-cab: #939a9e;
+  --family-util: #5f7f9c;
+  --family-mod: #5d8f80;
+  --family-delay: #8175a0;
+  --family-reverb: #a8785c;
 
-  /* modular type scale (1.24) */
-  --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.83rem);
-  --step-0: clamp(0.95rem, 0.92rem + 0.15vw, 1.02rem);
-  --step-1: clamp(1.18rem, 1.1rem + 0.4vw, 1.4rem);
-  --step-2: clamp(1.46rem, 1.3rem + 0.8vw, 1.95rem);
-  --step-3: clamp(1.8rem, 1.5rem + 1.5vw, 2.7rem);
-  --step-4: clamp(2.2rem, 1.7rem + 2.6vw, 3.75rem);
-  --step-5: clamp(2.6rem, 1.8rem + 4.2vw, 5.25rem);
+  --font-display: 'Saira Condensed', 'Arial Narrow', sans-serif;
+  --font-condensed: 'Saira Condensed', 'Arial Narrow', sans-serif;
+  --font-body: 'Saira', system-ui, sans-serif;
+  --font-numeral: 'Saira', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
-  /* --- space & shape --- */
+  --step--1: clamp(0.74rem, 0.72rem + 0.1vw, 0.82rem);
+  --step-0: clamp(0.98rem, 0.94rem + 0.16vw, 1.08rem);
+  --step-1: clamp(1.2rem, 1.08rem + 0.5vw, 1.48rem);
+  --step-2: clamp(1.52rem, 1.3rem + 0.85vw, 2.05rem);
+  --step-3: clamp(2rem, 1.55rem + 1.65vw, 3rem);
+  --step-4: clamp(2.6rem, 1.8rem + 3.1vw, 4.7rem);
+  --step-5: clamp(3.4rem, 2.2rem + 5.4vw, 7rem);
+
   --sp-1: 0.375rem;
   --sp-2: 0.625rem;
   --sp-3: 1rem;
   --sp-4: 1.5rem;
   --sp-5: 2.5rem;
   --sp-6: 4rem;
-  --sp-7: 6.5rem;
+  --sp-7: 7rem;
 
-  --radius: 4px;
-  --radius-lg: 8px;
-  --maxw: 1200px;
-  --maxw-prose: 46rem;
-
-  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.02) inset,
-    0 20px 50px -30px rgba(0, 0, 0, 0.9);
+  --radius: 0;
+  --radius-lg: 0;
+  --maxw: 1240px;
+  --maxw-prose: 48rem;
 
   color-scheme: dark;
 }
 
-/* Light theme: keep the accent working on a bright ground, biased warm-paper
-   cool so it still feels like lab equipment rather than plain white. */
+/* The optional site light theme keeps the same rules, letterforms and red live lamp. */
 :root[data-theme='light'] {
-  --ground: #eef2f0;
-  --ground-2: #e6ece9;
-  --surface: #ffffff;
-  --elevated: #f5f8f6;
-  --hairline: rgba(20, 60, 48, 0.12);
-  --hairline-strong: rgba(20, 60, 48, 0.24);
+  --ground: #e8e5dd;
+  --ground-2: #dedbd2;
+  --surface: #f1eee6;
+  --elevated: #e4e1d8;
+  --hairline: #c5c1b7;
+  --hairline-strong: #8d8b84;
 
-  --accent: #0f9d6f;
-  --accent-light: #12b681;
-  --accent-dim: #0b7a56;
-  --accent-glow: rgba(15, 157, 111, 0.22);
+  --accent: #ae3428;
+  --accent-light: #c94d3c;
+  --accent-dim: #7c2921;
+  --accent-glow: rgba(174, 52, 40, 0.16);
 
-  --text: #14201c;
-  --text-strong: #04110c;
-  --muted: #4a5f59;
-  --muted-2: #6b807a;
-
-  --warn: #b7791f;
-  --danger: #c0392b;
-  --info: #2b74b0;
-
-  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
-    0 18px 40px -32px rgba(9, 40, 30, 0.5);
+  --text: #42484c;
+  --text-strong: #1e2427;
+  --muted: #687075;
+  --muted-2: #858a8d;
+  --warn: #976b1f;
+  --danger: #8e5d55;
+  --info: #476b8a;
 
   color-scheme: light;
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme='dark']) {
-    --ground: #eef2f0;
-    --ground-2: #e6ece9;
-    --surface: #ffffff;
-    --elevated: #f5f8f6;
-    --hairline: rgba(20, 60, 48, 0.12);
-    --hairline-strong: rgba(20, 60, 48, 0.24);
-
-    --accent: #0f9d6f;
-    --accent-light: #12b681;
-    --accent-dim: #0b7a56;
-    --accent-glow: rgba(15, 157, 111, 0.22);
-
-    --text: #14201c;
-    --text-strong: #04110c;
-    --muted: #4a5f59;
-    --muted-2: #6b807a;
-
-    --warn: #b7791f;
-    --danger: #c0392b;
-    --info: #2b74b0;
-
-    --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
-      0 18px 40px -32px rgba(9, 40, 30, 0.5);
-
-    color-scheme: light;
-  }
 }

@@ -13,45 +13,49 @@ const catGroups = [
 
 <DocsLayout
   title="Effects Reference"
-  description="Every Ardor block and its parameters: amp, cabinet, dynamics, EQ, and the 35 hosted modulation, delay, and reverb effects."
-  lede="This reference is generated directly from the pedal's block catalog, so the parameters, ranges, and defaults match the firmware exactly."
+  description="Find every Ardor effect, its controls, and its available value ranges."
+  lede="Open a block on the pedal or in the manager to change its controls. This page explains what each block does and lists the values that it accepts."
 >
-  <h2>Building blocks</h2>
+  <h2>Amp and cabinet</h2>
 
-  <h3>NAM Amp</h3>
-  <p>{describe(byCategory('amp')[0])}</p>
+  <h3>Amp model</h3>
+  <p>
+    An amp model changes the guitar signal to sound like an amplifier. Add an amp model from
+    your asset library, then use these controls to set its level and input mode.
+  </p>
   <ParamTable id="nam" />
 
-  <h3>Cabinet IR</h3>
-  <p>Convolution cabinet impulse response with level and dry/wet mix.</p>
+  <h3>Cabinet sound</h3>
+  <p>
+    A cabinet sound shapes the amp model like a speaker cabinet. Choose a cabinet sound and
+    set its level or dry/wet mix.
+  </p>
   <ParamTable id="cab" />
 
   <h2>Dynamics &amp; EQ</h2>
 
   <h3>Compressor</h3>
-  <p>A studio compressor with selectable detector, sidechain high-pass, and parallel mix.</p>
+  <p>A compressor evens out level changes. It includes a detector choice and a dry/wet mix.</p>
   <ParamTable id="dynamics:compressor" />
 
   <h3>Noise Gate</h3>
   <p>
-    Stereo-linked noise suppression with hold, hysteresis, and sidechain filtering.
-    Detection is stereo-linked and the gate adds no lookahead latency.
+    A noise gate reduces unwanted noise when you are not playing. It includes hold and
+    release controls and does not add extra delay.
   </p>
   <ParamTable id="dynamics:noise_gate" />
 
   <h3>Five-Band Parametric EQ</h3>
   <p>
-    Five fully parametric bands, each with frequency (20–20,000 Hz), Q (0.1–18), and gain
-    (−18 to +18 dB), drawn on a live response graph. Saved presets always contain exactly
-    five complete bands.
+    Five adjustable bands change the tone. Each band has frequency, width, and gain controls
+    and appears on a live response graph. A saved preset always contains five bands.
   </p>
 
-  <h2>Hosted effects</h2>
+  <h2>Built-in effects</h2>
   <p class="lead-in">
-    {counts.modulation} modulation, {counts.delay} delay, and {counts.reverb} reverb
-    algorithms — <strong>35 effects</strong> in total. Each stores catalog-defined
-    normalized controls with semantic labels and physical-value formatting. Expand any
-    effect to see its parameters.
+    Ardor includes {counts.modulation} modulation, {counts.delay} delay, and {counts.reverb}
+    reverb effects — <strong>35 effects</strong> in total. Open an effect below to see its
+    controls and values.
   </p>
 
   {catGroups.map((g) => (

@@ -1,84 +1,259 @@
 ---
 import DocsLayout from '../../layouts/DocsLayout.astro';
+import { site } from '../../data/site';
 import { url } from '../../lib/url';
+
+const latestRelease = `${site.repo}/releases/latest`;
+const bufferProject = `${site.repo}/tree/main/buffer`;
+const bufferProduction = `${bufferProject}/jlcpcb/production_files`;
+const bufferGerber = `${bufferProduction}/GERBER-buffer.zip`;
+const bufferBom = `${bufferProduction}/BOM-buffer.csv`;
+const bufferCpl = `${bufferProduction}/CPL-buffer.csv`;
 ---
 
 <DocsLayout
   title="Getting Started"
-  description="Flash the Ardor firmware image, boot the pedal, and make your first sound."
-  lede="Two ways in: try the desktop simulator on your computer, or flash the firmware image onto a Raspberry Pi and build the real pedal."
+  description="Download a ready-made Ardor image, write it to a microSD card, connect the pedal, and make your first sound."
+  lede="Most users can start with a release image. You do not need Git, Docker, or a compiler."
 >
-  <h2>Two ways to run Ardor</h2>
+  <h2>What you need</h2>
+  <ul>
+    <li>A Raspberry Pi 4.</li>
+    <li>A microSD card and a way to connect it to your computer.</li>
+    <li>A Raspberry Pi Codec Zero audio board.</li>
+    <li>A Raspberry Pi Touch Display 2.</li>
+    <li>The Ardor guitar input buffer board.</li>
+    <li>Guitar and audio cables, plus an amp or audio interface.</li>
+    <li>Four momentary footswitches and one rotary encoder for a full pedal build.</li>
+  </ul>
   <p>
-    Ardor is an <strong>appliance</strong>, not a plugin. The same interface and audio
-    engine run in a desktop simulator and on the physical pedal, so you can explore the
-    whole experience before touching hardware.
+    Read the <a href={url('/docs/hardware')}>Hardware guide</a> before you wire the pedal.
+    If you only want to try the software, start with the release image and connect the
+    display, guitar, and audio output.
   </p>
 
-  <div class="callout">
+  <h2>Prepare the guitar input</h2>
+  <p>
+    The Codec Zero needs a buffered guitar signal. Ardor includes a small input buffer in
+    the{' '}<a href={bufferProject}>buffer project</a>. The project includes the KiCad schematic
+    and PCB. Use the buffer between the guitar jack and the Codec Zero input.
+  </p>
+  <div class="callout warn">
     <p>
-      <strong>Just want to look around?</strong> The desktop simulator renders the exact
-      touchscreen UI and loads real preset files — no Raspberry Pi required.
+      Do not connect a passive guitar pickup directly to the Codec Zero. Connect the guitar
+      to the buffer first, then connect the buffer output to the Codec Zero.
     </p>
   </div>
-
-  <h2>Option A — Desktop simulator</h2>
-  <p>Build the SDL simulator and launch it against the bundled presets:</p>
-  <pre><code>cmake -S . -B build-sdl -DARDOR_UI_BACKEND=sdl -DCMAKE_BUILD_TYPE=Release
-cmake --build build-sdl --target pedal-ui-sim -j
-./build-sdl/pedal-ui-sim --data-root . --bank 0</code></pre>
   <p>
-    The simulator starts on the preset screen. Tap <strong>Edit</strong> to open the chain
-    editor, or <strong>Tuner</strong> for the chromatic tuner. See the
-    <a href={url('/docs/ui-guide')}>UI &amp; Controls guide</a> for the full tour.
+    You can order a ready-built board from JLCPCB. The{' '}
+    <a href="https://jlcpcb.com/">JLCPCB assembly service</a> can use the order-ready files
+    in the{' '}<a href={bufferProduction}>buffer production folder</a>:
   </p>
-
-  <h2>Option B — Flash the pedal firmware</h2>
-  <p>
-    The repository ships a reproducible Buildroot image for a Raspberry Pi 4. Build it from
-    the repository root inside the provided Docker container:
-  </p>
-  <pre><code>./scripts/build-image.sh</code></pre>
-  <p>The resulting <code>sdcard.img</code> contains:</p>
   <ul>
-    <li>The realtime engine <code>ardor-pedal</code> and its init service.</li>
-    <li>The REST <a href={url('/docs/manager')}>manager daemon</a> <code>ardor-managerd</code>.</li>
-    <li>A read-only root filesystem and a writable data partition seeded with four presets.</li>
-    <li>Codec Zero mixer state and environment configuration.</li>
+    <li><a href={bufferGerber}><code>GERBER-buffer.zip</code></a> — the PCB files.</li>
+    <li><a href={bufferBom}><code>BOM-buffer.csv</code></a> — the parts list.</li>
+    <li><a href={bufferCpl}><code>CPL-buffer.csv</code></a> — the part placement list.</li>
   </ul>
-  <p>Flash it to an SD card with your imaging tool of choice, then insert it and power the Pi.</p>
+  <ol>
+    <li>Start a PCB assembly order on JLCPCB.</li>
+    <li>Upload <code>GERBER-buffer.zip</code> for the PCB.</li>
+    <li>Upload the BOM and CPL files when JLCPCB asks for assembly files.</li>
+    <li>Choose SMD assembly and review the parts and placement.</li>
+    <li>Order the board after you check the connector and power requirements.</li>
+  </ol>
+  <p>
+    The production files cover the SMD parts. They do not include the guitar jack, output
+    wiring, power wiring, or enclosure parts. Add wires or connectors to the labeled board
+    points after the board arrives. Follow the schematic for the connections.
+  </p>
+
+  <h2>1. Download a ready-made image</h2>
+  <p>
+    Open the <a href={latestRelease}>latest Ardor release</a> on GitHub. Download these two
+    files:
+  </p>
+  <ul>
+    <li><code>ardor-pedal-&lt;version&gt;.img.gz</code> — the compressed disk image.</li>
+    <li><code>ardor-pedal-&lt;version&gt;.img.gz.sha256</code> — the checksum for the image.</li>
+  </ul>
+  <p>
+    You do not need to open or edit the image. You will write it to the whole microSD card.
+  </p>
 
   <div class="callout warn">
     <p>
-      Real <code>.nam</code> models and cabinet <code>.wav</code> impulse responses are
-      not redistributed with the project. Add your own licensed captures through the
-      <a href={url('/docs/manager')}>manager app</a>, or browse TONE3000 from the hosted manager.
+      Writing an image erases the complete microSD card. Copy any important files from the
+      card before you continue. Check the selected drive one more time before you click{' '}
+      the <strong>Write</strong> button.
     </p>
   </div>
 
-  <h2>First boot</h2>
-  <ol>
-    <li>The pedal boots straight to the preset screen on the touch display.</li>
-    <li>Connect your guitar to the mono input and an amp or interface to the stereo output.</li>
-    <li>Tap a preset slot — or press its footswitch — to make it active.</li>
-    <li>Set master volume with the encoder; the footer shows live buffer headroom.</li>
-  </ol>
-
-  <h2>Targets &amp; goals</h2>
+  <h2>2. Unpack the image</h2>
+  <p>
+    The <code>.gz</code> ending means that the file is compressed. Unpack it before you use
+    Raspberry Pi Imager.
+  </p>
   <table>
-    <thead><tr><th>Setting</th><th>Value</th></tr></thead>
+    <thead><tr><th>Computer</th><th>Action</th></tr></thead>
     <tbody>
-      <tr><td>Sample rate</td><td class="mono">48 kHz</td></tr>
-      <tr><td>Preferred block size</td><td class="mono">64 samples</td></tr>
-      <tr><td>Fallback block size</td><td class="mono">128 samples</td></tr>
-      <tr><td>Input</td><td>Mono (buffered high-Z)</td></tr>
-      <tr><td>Output</td><td>Stereo</td></tr>
-      <tr><td>Round-trip latency goal</td><td class="mono">under 10 ms</td></tr>
+      <tr>
+        <td>macOS</td>
+        <td>Double-click the <code>.img.gz</code> file in Finder. Finder creates an <code>.img</code> file.</td>
+      </tr>
+      <tr>
+        <td>Windows</td>
+        <td>Install <a href="https://www.7-zip.org/">7-Zip</a>. Right-click the file, choose <strong>7-Zip</strong>, then choose <strong>Extract Here</strong>.</td>
+      </tr>
+      <tr>
+        <td>Linux</td>
+        <td>Double-click the file in your archive application and choose <strong>Extract</strong>.</td>
+      </tr>
     </tbody>
   </table>
 
+  <h2>3. Write the image to the card</h2>
   <p>
-    Next: learn how blocks connect in
-    <a href={url('/docs/signal-chain')}>Signal Chain &amp; Routing</a>.
+    <a href="https://www.raspberrypi.com/software/">Raspberry Pi Imager</a> is the
+    recommended tool. It works on macOS, Windows, and Linux.
   </p>
+  <ol>
+    <li>Install and open Raspberry Pi Imager.</li>
+    <li>Choose <strong>Raspberry Pi</strong>, then choose <strong>Use custom</strong>.</li>
+    <li>Select the unpacked <code>.img</code> file.</li>
+    <li>Choose <strong>Storage</strong>, then select the microSD card.</li>
+    <li>Choose <strong>Next</strong>, then confirm that you want to erase the card.</li>
+    <li>Wait for Imager to write and verify the card.</li>
+    <li>Eject the card from your computer.</li>
+  </ol>
+  <p>
+    Remove other USB drives before you choose storage. Use the card size to identify the
+    correct drive.
+  </p>
+  <ul>
+    <li><strong>macOS:</strong> Open Imager from Applications. Allow access to removable storage if macOS asks.</li>
+    <li><strong>Windows:</strong> Accept the administrator prompt. Close File Explorer windows that show the card.</li>
+    <li><strong>Linux:</strong> Allow access to the removable drive if your desktop asks. Do not select your system drive.</li>
+  </ul>
+
+  <p>
+    You can also use <a href="https://etcher.balena.io/">balenaEtcher</a>. Choose the
+    unpacked image, choose the microSD card, and start the flash process.
+  </p>
+
+  <h2>4. Start the pedal</h2>
+  <ol>
+    <li>Insert the card into the Raspberry Pi.</li>
+    <li>Connect the Touch Display 2.</li>
+    <li>Connect your guitar to the mono input.</li>
+    <li>Connect the stereo output to an amp or audio interface.</li>
+    <li>Connect Ethernet for the first setup, then power on the pedal.</li>
+  </ol>
+  <p>
+    The pedal opens on the preset screen. Use the screen or a footswitch to choose a sound.
+    Turn the encoder to set the master volume.
+  </p>
+  <div class="callout">
+    <p>
+      The release image does not contain Wi-Fi details. Use Ethernet for the first network
+      setup. You can add Wi-Fi from the manager after the pedal starts.
+    </p>
+  </div>
+
+  <h2>5. Open the manager</h2>
+  <p>
+    The manager runs on the pedal. You do not need to install a desktop application. Find
+    the pedal IP address in your router, then open this address in a browser:
+  </p>
+  <pre><code>http://&lt;pedal-ip&gt;:8080</code></pre>
+  <p>
+    If your network supports local device names, you can also try <code>http://ardor-XXXXXXXX.local:8080</code>.
+    The display shows a one-time setup code.
+    Enter the code in the browser and create a local username and password.
+  </p>
+  <p>
+    In the manager, open <strong>Settings</strong>, choose <strong>Wi-Fi</strong>, and save
+    your network details. The pedal can disconnect while it reconnects to Wi-Fi. After the
+    connection returns, you can remove Ethernet.
+  </p>
+  <p>
+    See <a href={url('/docs/manager')}>Manager App</a> to learn how to edit presets and add
+    your own amp models and cabinet sounds.
+  </p>
+
+  <h2>Next steps</h2>
+  <p>
+    Learn the screen in <a href={url('/docs/ui-guide')}>UI &amp; Controls</a>. Then follow
+    the signal in <a href={url('/docs/signal-chain')}>Signal Chain &amp; Routing</a>.
+  </p>
+
+  <details>
+    <summary>Advanced: check the download</summary>
+    <p>
+      The release includes a checksum file. Calculate the checksum for the downloaded{' '}
+      <code>.img.gz</code> file and compare the result with the value in the{' '}
+      <code>.sha256</code> file.
+    </p>
+    <pre><code>macOS:   shasum -a 256 ardor-pedal-&lt;version&gt;.img.gz
+Linux:   sha256sum ardor-pedal-&lt;version&gt;.img.gz
+Windows: Get-FileHash .\ardor-pedal-&lt;version&gt;.img.gz -Algorithm SHA256</code></pre>
+  </details>
+
+  <details>
+    <summary>Advanced: flash from a command line</summary>
+    <p>
+      A command-line flash can erase the wrong drive. Use the graphical method above if you
+      are not familiar with disk names. Replace every example value in angle brackets.
+    </p>
+    <h3>macOS</h3>
+    <pre><code>gzip -dk ardor-pedal-&lt;version&gt;.img.gz
+diskutil list
+diskutil unmountDisk /dev/diskN
+sudo dd if=ardor-pedal-&lt;version&gt;.img of=/dev/rdiskN bs=4m
+sync
+diskutil eject /dev/diskN</code></pre>
+    <p>Use the whole disk, such as <code>/dev/diskN</code>. Do not use a partition such as <code>/dev/diskNs1</code>.</p>
+
+    <h3>Linux</h3>
+    <pre><code>gzip -dk ardor-pedal-&lt;version&gt;.img.gz
+lsblk
+sudo umount /dev/sdX1
+sudo dd if=ardor-pedal-&lt;version&gt;.img of=/dev/sdX bs=4M status=progress conv=fsync
+sync</code></pre>
+    <p>Use the whole card, such as <code>/dev/sdX</code>. Do not use a partition such as <code>/dev/sdX1</code>.</p>
+
+    <h3>Windows PowerShell</h3>
+    <p>
+      Raspberry Pi Imager also provides a command-line mode. The destination is the whole
+      physical drive. Replace <code>PhysicalDriveN</code> with the number for your card.
+    </p>
+    <pre><code>rpi-imager.exe --cli --sha256 EXPECTED_SHA256 ardor-pedal-&lt;version&gt;.img.gz \\.\PhysicalDriveN</code></pre>
+    <p>
+      Check the drive number in Disk Management before you run the command. The graphical
+      tool is safer if you are not sure.
+    </p>
+  </details>
+
+  <details>
+    <summary>Advanced: build Ardor from source</summary>
+    <p>
+      Most users do not need this. Use a release image unless you plan to change Ardor or
+      help develop it. The source build needs Git, Docker, and build tools.
+    </p>
+    <pre><code>./scripts/build-image.sh</code></pre>
+    <p>
+      The script creates <code>sdcard.img</code>. You can write that file to a microSD card
+      with the same tools described above.
+    </p>
+  </details>
+
+  <details>
+    <summary>Advanced: run the desktop simulator</summary>
+    <p>
+      Use the simulator if you want to explore the interface without a Raspberry Pi. This
+      is a developer tool and needs a source checkout, CMake, and a C++ compiler.
+    </p>
+    <pre><code>cmake -S . -B build-sdl -DARDOR_UI_BACKEND=sdl -DCMAKE_BUILD_TYPE=Release
+cmake --build build-sdl --target pedal-ui-sim -j
+./build-sdl/pedal-ui-sim --data-root . --bank 0</code></pre>
+  </details>
 </DocsLayout>

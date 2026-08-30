@@ -5,58 +5,108 @@ import { url } from '../../lib/url';
 
 <DocsLayout
   title="Manager App"
-  description="Manage Ardor presets and assets from any browser, backed by the REST manager daemon on the pedal."
-  lede="Editing on the touchscreen is quick, but a bigger screen helps for deep work. The manager app gives you drag-and-drop chain editing, asset management, and TONE3000 browsing."
+  description="Manage Ardor presets, effects, amp models, and cabinet sounds from a browser on your computer."
+  lede="The manager runs on the pedal. Open it in a browser to edit sounds on a larger screen. You do not need to install a desktop application."
 >
-  <h2>How it fits together</h2>
+  <h2>Connect to the pedal</h2>
+  <ol>
+    <li>Connect the pedal to your network with Ethernet.</li>
+    <li>Find the pedal IP address in your router.</li>
+    <li>Open the address in a browser, followed by <code>:8080</code>.</li>
+  </ol>
+  <pre><code>http://&lt;pedal-ip&gt;:8080</code></pre>
   <p>
-    A REST daemon, <code>ardor-managerd</code>, runs on the pedal and manages
-    <code>.nam</code>, <code>.wav</code>, and preset files — without doing management work
-    inside the realtime audio process. Asset uploads queue a catalog refresh, and applying
-    a saved slot queues a live engine swap that the pedal handles without restarting audio.
+    On the first connection, the pedal shows a one-time setup code on its display. Enter the
+    code in the browser. Then create a local username and password for the pedal.
+  </p>
+  <p>
+    If your network supports local device names, the address can also look like{' '}
+    <code>http://ardor-XXXXXXXX.local:8080</code>. See the{' '}
+    <a href={url('/docs/getting-started')}>Getting Started</a> guide if you have not started the
+    pedal yet.
   </p>
 
-  <h2>Three ways to connect</h2>
-  <h3>Device-hosted browser UI</h3>
+  <h2>Set up Wi-Fi</h2>
   <p>
-    The daemon serves a built-in browser build of the manager from <code>/</code>. Open the
-    pedal's address on your network and manage it from any browser — no install, and it
-    keeps working without internet access because the bundle is embedded in the daemon.
+    Keep Ethernet connected for the first setup. In the manager, open{' '}
+    <strong>Settings</strong>, choose{' '}<strong>Wi-Fi</strong>, enter your network details,
+    and save. The pedal can disconnect while it reconnects. After the connection returns,
+    open the manager at the new network address and remove Ethernet if you want.
   </p>
 
+  <h2>Edit a preset</h2>
+  <ol>
+    <li>Choose a bank and preset slot.</li>
+    <li>Open the chain editor.</li>
+    <li>Drag blocks to change their order.</li>
+    <li>Use <strong>+</strong> to add an effect.</li>
+    <li>Open a block to change its controls.</li>
+    <li>Choose <strong>Save</strong>, then <strong>Apply</strong> to use the sound.</li>
+  </ol>
   <p>
-    The manager provides bank/slot browsing, drag-and-drop chain editing, block validation
-    and inspection, undo/redo, Save/Apply, asset upload/rename/delete, and light/dark
-    themes. There is no desktop app to install.
+    Ardor checks the chain before it applies a preset. You can undo an edit before you save
+    it. See <a href={url('/docs/signal-chain')}>Signal Chain &amp; Routing</a> for the order
+    of the blocks.
   </p>
 
-  <h3>Hosted control plane</h3>
+  <h2>Add your own sounds</h2>
   <p>
-    An optional hosted control plane lets a claimed pedal be managed over HTTPS with account
-    sessions, device presence, and physically confirmed claiming. Preset reads work over an
-    authenticated connection; preset save/apply is opt-in per pedal and limited to a small
-    set of allowlisted operations. The pedal's identity is an Ed25519 key stored locally.
+    Open the asset library to add sounds to the pedal. You can add amp models, cabinet
+    sounds, and reverb sounds. After an upload finishes, the new sound is available in the
+    chain editor.
+  </p>
+  <div class="callout">
+    <p>
+      Ardor does not include third-party amp models, cabinet sounds, or reverb sounds. Add only
+      files you own or have permission to use. TONE3000 is available from the hosted manager
+      for compatible content.
+    </p>
+  </div>
+  <p>
+    For a description of every built-in effect, see the{' '}
+    <a href={url('/docs/effects')}>Effects Reference</a>.
   </p>
 
-  <h2>Run the daemon locally</h2>
-  <p>For local development you can run the daemon with authentication disabled:</p>
-  <pre><code>cd services/managerd
+  <h2>Hosted manager</h2>
+  <p>
+    The local manager works on your home network and does not need the internet. An optional
+    hosted manager can connect a claimed pedal to your account over a secure connection.
+    Use the hosted service when you need remote access or TONE3000 browsing. The local
+    manager remains available when the pedal has no internet connection.
+  </p>
+
+  <details>
+    <summary>Advanced: file types</summary>
+    <p>
+      Advanced users may see these file types in the asset library:
+    </p>
+    <ul>
+      <li><code>.nam</code> files contain neural amp captures.</li>
+      <li><code>.wav</code> files can contain cabinet or reverb impulse responses.</li>
+      <li>Preset files store the blocks and their settings.</li>
+    </ul>
+    <p>
+      Upload these files through the manager. Do not use an absolute path or a path that goes
+      outside the pedal data area.
+    </p>
+  </details>
+
+  <details>
+    <summary>Advanced: run the manager for development</summary>
+    <p>
+      This section is for contributors. A normal user should use the ready-made release
+      image. The local command below turns off authentication and binds the service to this
+      computer only.
+    </p>
+    <pre><code>cd services/managerd
 ARDOR_API_AUTH=off \
 ARDOR_DATA_ROOT=../.. \
 ARDOR_API_BIND=127.0.0.1 \
 ARDOR_API_PORT=8080 \
 go run ./cmd/ardor-managerd</code></pre>
-  <p>Then check the device status endpoint:</p>
-  <pre><code>curl http://127.0.0.1:8080/api/device</code></pre>
-  <div class="callout warn">
     <p>
-      Authentication is enabled by default when no override is supplied. For a protected
-      device, set <code>ARDOR_API_AUTH=on</code> and provide <code>ARDOR_API_TOKEN</code>.
+      Authentication is on by default when you use the release image. Do not expose a
+      development service to a network.
     </p>
-  </div>
-
-  <p>
-    Assets you add here become available to the chain editor described in the
-    <a href={url('/docs/ui-guide')}>UI &amp; Controls guide</a>.
-  </p>
+  </details>
 </DocsLayout>

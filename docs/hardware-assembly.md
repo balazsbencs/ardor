@@ -5,6 +5,7 @@ This document captures the first physical pedal target:
 - Raspberry Pi 4B, 1GB RAM
 - Raspberry Pi Codec Zero audio HAT
 - Raspberry Pi DSI touch display
+- Ardor minimal guitar input buffer board from [`buffer/`](../buffer/)
 - Four momentary footswitches
 - One rotary encoder for master output volume
 - Mono guitar input, stereo output
@@ -16,7 +17,8 @@ This document captures the first physical pedal target:
 - Controls are read through Linux input drivers: `gpio-keys` for footswitches and `rotary-encoder` for the encoder.
 - Footswitches and encoder contacts connect GPIO pins to ground. The Pi uses internal pull-ups.
 - All GPIO wiring is 3.3V logic only.
-- Guitar input should be buffered before the Codec Zero input. Passive guitar pickups should not be connected directly to a low-impedance line input if tone and level matter.
+- The guitar jack connects to the standalone buffer board before the Codec Zero input.
+- Do not connect a passive guitar pickup directly to the Codec Zero input.
 
 If the display is not a DSI display, redo the pin table before wiring.
 
@@ -24,7 +26,7 @@ If the display is not a DSI display, redo the pin table before wiring.
 
 ```mermaid
 flowchart LR
-  Guitar["Guitar Input Jack"] --> Buffer["High-Z Buffer / Input Protection"]
+  Guitar["Guitar Input Jack"] --> Buffer["Ardor Input Buffer Board"]
   Buffer --> CodecIn["Codec Zero AUX IN / mono input"]
   CodecIn --> Pi["Raspberry Pi 4B\nPedal App"]
   Pi --> CodecOut["Codec Zero AUX OUT"]
@@ -35,6 +37,31 @@ flowchart LR
   GPIO --> Pi
   Display["DSI Touch Display"] <--> Pi
 ```
+
+## Guitar input buffer board
+
+The separate buffer board is required between a guitar and the Codec Zero input.
+It is a small, minimal KiCad project in [`buffer/`](../buffer/). The project
+contains the editable schematic and PCB files.
+
+You can order a board with the SMD parts fitted. Upload these files from the
+[`JLCPCB production files`](../buffer/jlcpcb/production_files/) folder to a
+JLCPCB PCB assembly order:
+
+- [`GERBER-buffer.zip`](../buffer/jlcpcb/production_files/GERBER-buffer.zip) for the PCB files.
+- [`BOM-buffer.csv`](../buffer/jlcpcb/production_files/BOM-buffer.csv) for the parts list.
+- [`CPL-buffer.csv`](../buffer/jlcpcb/production_files/CPL-buffer.csv) for the part placement list.
+
+The files cover the SMD parts only. They do not include the guitar jack, wires,
+connectors, or enclosure parts. Add wires or connectors to the labeled board
+points after assembly. Connect the guitar jack to `GUITAR_IN`, and connect
+`GUITAR_OUT` to the Codec Zero input. Follow the buffer schematic for power
+and ground connections.
+
+Do not place a second input buffer in series with this board. The alternative
+`hardware/control-io` and `hardware/integrated-codec-revc` designs include
+their own input stages. Choose the input stage that matches the hardware design
+you build.
 
 ## Reserved Pins
 
@@ -163,9 +190,14 @@ Notes:
 ## Audio and control companion board
 
 The editable tscircuit source, native KiCad schematic, and review PDF are in
-[`hardware/control-io`](../hardware/control-io/README.md). The stack-through
-board combines the guitar buffer, Codec Zero input/output conditioning,
-fail-safe audio muting, MIDI input, and expression ADC.
+[`hardware/control-io`](../hardware/control-io/README.md). This is a separate,
+more complete stack-through board. It includes its own guitar input stage,
+Codec Zero input/output conditioning, fail-safe audio muting, MIDI input, and
+expression ADC.
+
+For a build that uses this companion board, follow its input and output
+connections. Do not add the standalone [`buffer/`](../buffer/) board in series
+unless you have checked the complete signal path.
 
 MIDI uses a 3.5 mm TRS input with a Schottky bridge so both Type A and Type B
 polarity work. An H11L1M isolates the jack from the Raspberry Pi. Do not connect
@@ -186,7 +218,7 @@ appears under `/sys/bus/iio/devices/` after the `ads1115` driver binds.
 ```mermaid
 flowchart LR
   InJack["1/4 inch input jack"] --> Protection["Input protection"]
-  Protection --> HighZ["High-Z buffer"]
+  Protection --> HighZ["Input buffer"]
   HighZ --> CodecAuxIn["Codec Zero AUX IN L + R"]
   CodecAuxOut["Codec Zero AUX OUT L + R"] --> StereoBuffer["Stereo buffers + relay"]
   StereoBuffer --> LineJack["TRS line output L + R"]
@@ -198,7 +230,7 @@ Audio notes:
 
 - Codec Zero P1/P2 use four pins ordered left, ground, right, ground from square
   pin 1. AUX IN and AUX OUT are rated up to 1 V RMS.
-- The companion board presents a 1 MΩ guitar input, buffers it at unity gain,
+- The companion board presents a 1 MΩ guitar input and buffers it at unity gain,
   and feeds both AUX IN channels.
 - Stereo line out and mono `(L + R) / 2` amp out are buffered and relay-muted;
   GPIO10 must remain low until codec bias and clocks are stable.
@@ -232,7 +264,9 @@ Do not connect both GPIO power and a separate display power input unless the dis
 3. Install the Codec Zero on the 40-pin header or stacking header.
 4. Wire the four footswitches to their GPIO pins and the ground rail.
 5. Wire the encoder A/B pins and common ground.
-6. Wire audio jacks to the buffer/interface board and Codec Zero AUX pins.
+6. For the standalone-buffer build, wire the guitar jack to `GUITAR_IN` and
+   wire `GUITAR_OUT` to the Codec Zero AUX IN. For the companion-board build,
+   follow its input and output connections.
 7. Inspect continuity with a multimeter before first power.
 8. Power up with no guitar, no amplifier, and volume low.
 9. Verify Linux sees the Codec Zero audio device.
@@ -241,6 +275,8 @@ Do not connect both GPIO power and a separate display power input unless the dis
 ## First Power Checklist
 
 - No loose strands or exposed wire touching the Pi or Codec Zero.
+- The selected input buffer is assembled and connected as shown in its schematic.
+- A passive guitar is not connected directly to the Codec Zero input.
 - Display ribbon fully seated and straight.
 - Codec Zero aligned with pin 1 and seated on all 40 pins.
 - Footswitches short GPIO to ground only, never to 5V.

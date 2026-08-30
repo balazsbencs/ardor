@@ -9,7 +9,7 @@ import ThemeToggle from './ThemeToggle.astro';
     <a class="brand" href={url('/')} aria-label={`${site.name} home`}>
       <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-name">{site.name}</span>
-      <span class="brand-sub">PEDAL</span>
+      <span class="brand-sub">OPEN RIG</span>
     </a>
 
     <nav class="nav-links" aria-label="Primary">
@@ -48,8 +48,7 @@ import ThemeToggle from './ThemeToggle.astro';
     position: sticky;
     top: 0;
     z-index: 100;
-    backdrop-filter: blur(12px);
-    background: color-mix(in srgb, var(--ground) 78%, transparent);
+    background: var(--ground);
     border-bottom: 1px solid var(--hairline);
   }
   .nav-inner {
@@ -72,9 +71,8 @@ import ThemeToggle from './ThemeToggle.astro';
   .brand-mark {
     width: 0.75rem;
     height: 0.75rem;
-    border-radius: 2px;
+    border-radius: 0;
     background: var(--accent);
-    box-shadow: 0 0 12px var(--accent-glow);
     align-self: center;
   }
   .brand-name {
@@ -94,8 +92,11 @@ import ThemeToggle from './ThemeToggle.astro';
   }
   .nav-links a {
     color: var(--muted);
+    font-family: var(--font-display);
     font-size: var(--step-0);
     font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
   .nav-links a:hover {
     color: var(--text-strong);
@@ -115,7 +116,7 @@ import ThemeToggle from './ThemeToggle.astro';
     justify-content: center;
     background: var(--elevated);
     border: 1px solid var(--hairline);
-    border-radius: var(--radius);
+    border-radius: 0;
     cursor: pointer;
   }
   .nav-toggle span {

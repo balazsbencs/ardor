@@ -25,57 +25,95 @@ const presetExample = `{
 
 <DocsLayout
   title="Presets & Storage"
-  description="How Ardor stores presets in banks and slots, the JSON format, and asset path rules."
-  lede="Presets are plain JSON files organized into banks and slots under a single data root. Assets are referenced by relative path."
+  description="Choose, save, and organize Ardor sounds in banks and preset slots."
+  lede="A preset is a saved sound. You can manage presets on the pedal screen or in the browser manager. You do not need to edit a file."
 >
   <h2>Banks and slots</h2>
-  <p>Preset files live under the data root in bank/slot folders:</p>
-  <pre><code>presets/bank-000/preset-0.json
-presets/bank-000/preset-1.json
-presets/bank-000/preset-2.json
-presets/bank-000/preset-3.json</code></pre>
   <p>
-    Each bank holds four slots, mapped to the four footswitches. Block assets inside a
-    preset stay relative to the same data root, such as <code>models/clean.nam</code> or
-    <code>irs/open-back.wav</code>.
+    Ardor has banks numbered 0–99. Each bank has four preset slots. The four footswitches
+    choose slots 1–4 in the active bank.
   </p>
-  <div class="callout warn">
-    <p>
-      Absolute paths and <code>..</code> traversal are rejected. Real <code>.nam</code>
-      models and IRs stay local and are not committed unless redistribution is allowed.
-    </p>
-  </div>
-
-  <h2>Global parameters</h2>
   <table>
-    <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+    <thead><tr><th>Control</th><th>Action</th></tr></thead>
     <tbody>
-      <tr><td class="mono">global.inputGainDb</td><td>Input gain before NAM.</td></tr>
-      <tr><td class="mono">global.outputGainDb</td><td>Output gain after the cabinet.</td></tr>
-      <tr><td class="mono">global.safetyLimitDb</td><td>Limiter ceiling (default −1.0). Stored and applied, but not a tone control.</td></tr>
+      <tr><td>Bank −/+ on the screen</td><td>Move to the previous or next bank.</td></tr>
+      <tr><td>Preset slot on the screen</td><td>Choose a sound.</td></tr>
+      <tr><td>Footswitch 1–4</td><td>Choose slot 1–4 in the active bank.</td></tr>
+      <tr><td>Save</td><td>Keep the changes in the current preset.</td></tr>
+      <tr><td>Apply</td><td>Use the saved sound for the audio output.</td></tr>
     </tbody>
   </table>
 
-  <h2>Versions</h2>
-  <ul>
-    <li><strong>Version 1</strong> — serial chains and the fixed <code>dualAmp</code> block.</li>
-    <li><strong>Version 2</strong> — adds the <code>dualRig</code> block with two independent lanes.</li>
-  </ul>
-  <p>Version-1 presets and the fixed <code>dualAmp</code> block remain fully supported.</p>
-
-  <h2>A version-2 Dual Rig preset</h2>
-  <pre><code>{presetExample}</code></pre>
+  <h2>Make a preset</h2>
+  <ol>
+    <li>Choose a preset slot.</li>
+    <li>Open <strong>Edit</strong>.</li>
+    <li>Add effects with <strong>+</strong>, or open a block to change its controls.</li>
+    <li>Arrange the blocks from left to right.</li>
+    <li>Choose <strong>Save</strong>, then <strong>Apply</strong>.</li>
+  </ol>
   <p>
-    Both lanes receive the same mono input, each lane is processed in its declared order,
-    and the left/right outputs are retained at the merge. See
-    <a href={url('/docs/dual-rig')}>Dual Rig &amp; Dual Amp</a> for the routing rules.
+    You can do the same work in the <a href={url('/docs/manager')}>Manager App</a>. If you
+    leave a preset with unsaved edits, Ardor asks whether you want to save or discard them.
   </p>
 
-  <h2>Editing &amp; applying</h2>
+  <h2>Add amp and cabinet sounds</h2>
   <p>
-    Edit presets on the pedal's <a href={url('/docs/ui-guide')}>touchscreen</a>, or from a
-    computer with the <a href={url('/docs/manager')}>manager app</a>. Applying a saved slot
-    queues a live engine swap handled outside the audio process — a short muted transition
-    protects the active audio callback, so presets change without restarting audio.
+    A preset can use sounds from the pedal asset library. Add your own amp models, cabinet
+    sounds, or reverb sounds in the manager. Then choose them when you edit a block.
   </p>
+  <div class="callout">
+    <p>
+      The release image includes starter presets but does not include third-party amp models,
+      cabinet sounds, or reverb sounds. Add only files you own or have permission to use.
+    </p>
+  </div>
+
+  <h2>Dual Rig presets</h2>
+  <p>
+    A Dual Rig preset has one horizontal path on the left and one on the right. Both paths
+    start with the same guitar signal. The left path feeds the left output. The right path
+    feeds the right output.
+  </p>
+  <p>
+    See <a href={url('/docs/dual-rig')}>Dual Rig &amp; Dual Amp</a> for examples and the
+    screen layout.
+  </p>
+
+  <details>
+    <summary>Advanced: where preset files are stored</summary>
+    <p>
+      The pedal stores four files in each bank folder. The number in a file name starts at
+      zero, so <code>preset-0.json</code> is the first slot shown to a user.
+    </p>
+    <pre><code>presets/bank-000/preset-0.json
+presets/bank-000/preset-1.json
+presets/bank-000/preset-2.json
+presets/bank-000/preset-3.json</code></pre>
+    <p>
+      Asset names are relative to the pedal data area. The pedal rejects absolute paths and
+      paths that try to leave the data area.
+    </p>
+  </details>
+
+  <details>
+    <summary>Advanced: preset file format</summary>
+    <p>
+      Presets use JSON. Most users should use the screen or manager. The example below shows
+      a version-2 preset with two horizontal paths.
+    </p>
+    <pre><code>{presetExample}</code></pre>
+    <p>
+      Version 1 supports serial chains and the fixed Dual Amp block. Version 2 adds the Dual
+      Rig block. Version-1 presets remain supported.
+    </p>
+    <table>
+      <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">global.inputGainDb</td><td>Gain before the amp model.</td></tr>
+        <tr><td class="mono">global.outputGainDb</td><td>Gain after the cabinet.</td></tr>
+        <tr><td class="mono">global.safetyLimitDb</td><td>The output safety ceiling.</td></tr>
+      </tbody>
+    </table>
+  </details>
 </DocsLayout>

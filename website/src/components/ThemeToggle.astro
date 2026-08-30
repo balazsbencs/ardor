@@ -58,23 +58,13 @@
   :root[data-theme='light'] .icon-moon {
     display: none;
   }
-  @media (prefers-color-scheme: light) {
-    :root:not([data-theme='dark']) .icon-moon {
-      display: none;
-    }
-    :root:not([data-theme='dark']) .icon-sun {
-      display: block;
-    }
-  }
 </style>
 
 <script>
   const btn = document.getElementById('theme-toggle');
   btn?.addEventListener('click', () => {
     const root = document.documentElement;
-    const current =
-      root.dataset.theme ||
-      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const current = root.dataset.theme || 'dark';
     const next = current === 'dark' ? 'light' : 'dark';
     root.dataset.theme = next;
     try {

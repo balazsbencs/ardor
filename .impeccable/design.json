@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-30T08:54:12+02:00",
+  "title": "Design System: Ardor Website",
+  "extensions": {
+    "colorMeta": {
+      "live-red": {
+        "role": "primary",
+        "displayName": "Live Red",
+        "canonical": "#d8422f",
+        "tonalRamp": ["#35120e", "#591c15", "#7d271e", "#a33328", "#d8422f", "#e45a48", "#ed8274", "#f5b8ad"]
+      },
+      "graphite-ground": {
+        "role": "neutral",
+        "displayName": "Graphite Ground",
+        "canonical": "#141719",
+        "tonalRamp": ["#0b0d0e", "#101214", "#141719", "#1c2022", "#252a2d", "#343b3f", "#50595e", "#788187"]
+      },
+      "slate-plate": {
+        "role": "neutral",
+        "displayName": "Slate Plate",
+        "canonical": "#212528",
+        "tonalRamp": ["#111416", "#171a1c", "#212528", "#2b3034", "#363d42", "#485157", "#667178", "#899298"]
+      },
+      "slate-panel": {
+        "role": "neutral",
+        "displayName": "Slate Panel",
+        "canonical": "#2a2f33",
+        "tonalRamp": ["#151819", "#1d2124", "#2a2f33", "#353c40", "#424a4f", "#586267", "#737d82", "#969ea2"]
+      },
+      "bone-engrave": {
+        "role": "neutral",
+        "displayName": "Bone Engrave",
+        "canonical": "#e2e4e3",
+        "tonalRamp": ["#3c3e3e", "#5f6160", "#818382", "#a4a6a5", "#c4c6c5", "#e2e4e3", "#edefee", "#f8f9f8"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Saira Condensed",
+        "purpose": "Engraved headlines, actions, names, and navigation."
+      },
+      "body": {
+        "displayName": "Saira",
+        "purpose": "Readable explanatory copy and measured values."
+      },
+      "label": {
+        "displayName": "IBM Plex Mono",
+        "purpose": "Identifiers, metadata, and technical rails only."
+      }
+    },
+    "shadows": [
+      {
+        "name": "product-contact",
+        "value": "0 24px 34px rgba(0, 0, 0, 0.45)",
+        "purpose": "Grounds the physical pedal fallback."
+      },
+      {
+        "name": "screen-frame",
+        "value": "0 18px 34px rgba(0, 0, 0, 0.28)",
+        "purpose": "Separates the display bezel from the page canvas."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-transition",
+        "value": "0.18s ease",
+        "purpose": "Small color and border changes on links and controls."
+      },
+      {
+        "name": "product-reveal",
+        "value": "0.5s ease",
+        "purpose": "Replaces the fallback pedal poster when the interactive render is ready."
+      }
+    ],
+    "breakpoints": [
+      { "name": "nav-mobile", "value": "820px" },
+      { "name": "single-column", "value": "1000px" },
+      { "name": "screens-stack", "value": "760px" },
+      { "name": "small", "value": "520px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "A decisive build or source action in the engraved plate language.",
+      "html": "<button class=\"ds-btn-primary\">START WITH THE BUILD</button>",
+      "css": ".ds-btn-primary{background:#e2e4e3;color:#141719;padding:.75em 1.2em;border:1px solid #e2e4e3;border-radius:0;font:600 1rem/1 'Saira Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase}.ds-btn-primary:hover,.ds-btn-primary:focus-visible{background:#d8422f;border-color:#d8422f;color:#f4e9d7}.ds-btn-primary:focus-visible{outline:2px solid #d8422f;outline-offset:3px}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "A secondary path that stays transparent against the graphite canvas.",
+      "html": "<button class=\"ds-btn-ghost\">SEE THE INTERFACE</button>",
+      "css": ".ds-btn-ghost{background:transparent;color:#e2e4e3;padding:.75em 1.2em;border:1px solid #687178;border-radius:0;font:600 1rem/1 'Saira Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase}.ds-btn-ghost:hover,.ds-btn-ghost:focus-visible{background:transparent;color:#ed6b58;border-color:#d8422f}.ds-btn-ghost:focus-visible{outline:2px solid #d8422f;outline-offset:3px}"
+    },
+    {
+      "name": "Site Navigation",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "A sticky top rail with the red live mark and condensed destinations.",
+      "html": "<nav class=\"ds-nav\"><span class=\"ds-mark\"></span><strong>ARDOR</strong><a href=\"#interface\">THE UI</a><a href=\"/docs\">DOCS</a></nav>",
+      "css": ".ds-nav{display:flex;align-items:center;gap:1.25rem;padding:1rem 1.5rem;border-bottom:1px solid #3b4247;background:#141719;color:#8d9499;font:600 .9rem/1 'Saira Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase}.ds-nav strong{color:#e2e4e3}.ds-mark{width:.75rem;height:.75rem;background:#d8422f}.ds-nav a{color:#8d9499}.ds-nav a:hover{color:#e2e4e3}"
+    },
+    {
+      "name": "Panel Screen",
+      "kind": "custom",
+      "refersTo": "panel-screen-showcase",
+      "description": "A scalable 1280 × 720 device screen with flat plates, rules, and one live lamp.",
+      "html": "<div class=\"ds-screen\"><header>ARDOR <small>BANK 000 · SET A</small><b>LIVE PRESET 2</b></header><div class=\"ds-screen-body\"><span>2</span><strong>DRIVE STACK</strong></div><footer>EDIT <i></i> TUNER</footer></div>",
+      "css": ".ds-screen{aspect-ratio:1280/720;background:#212528;color:#e2e4e3;border:1px solid #3b4247;font-family:'Saira Condensed',sans-serif;text-transform:uppercase}.ds-screen header,.ds-screen footer{display:flex;align-items:center;gap:1rem;height:12%;padding:0 2.2%;border-bottom:1px solid #3b4247;letter-spacing:.18em}.ds-screen footer{border-top:1px solid #3b4247;border-bottom:0}.ds-screen small{color:#8d9499}.ds-screen b{margin-left:auto;color:#d8422f}.ds-screen-body{height:76%;display:flex;align-items:center;gap:2%;padding:2.2%;background:#191c1f}.ds-screen-body span{font:300 4rem/1 'Saira',sans-serif;color:#d8422f}.ds-screen-body strong{font-size:2rem}.ds-screen i{display:block;width:.6rem;height:.6rem;margin-left:auto;background:#d8422f}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The playable nomenclature plate",
+    "overview": "Ardor's website treats the product as an instrument before it treats it as software. The visual system carries the same Panel language as the device UI: graphite planes, bone lettering, calibrated rules, family color bars, and one reserved live lamp. It is technical in its precision, but the first read is always a guitarist finding their sound.\n\nThe homepage is a quiet, dark stage for the physical pedal and its screen. Detail is earned through demonstration: the real preset map, signal rail, EQ editor, and tuner lead into a lighter overview of the rig. The site may offer a light theme, but it keeps the same square geometry, type pairing, rules, and red live accent.",
+    "keyCharacteristics": [
+      "Flat slate plates with hard 1px rules.",
+      "Saira Condensed nomenclature with Saira measurement values.",
+      "Color groups functions; red marks only what is live.",
+      "Screen mockups mirror the actual 1280 × 720 Panel UI."
+    ],
+    "rules": [
+      { "name": "The One Lamp Rule", "body": "Live red means what is running or selected; do not spend it on decoration, general calls to action, or ordinary success states.", "section": "colors" },
+      { "name": "The Family Bar Rule", "body": "Category colors identify amp, cab, utility, modulation, delay, and reverb. They are structural labels, not a rainbow accent system.", "section": "colors" },
+      { "name": "The Engraved Hierarchy Rule", "body": "Use condensed uppercase for what a player scans; use Saira for values and prose; use mono only when the text is truly a label or identifier.", "section": "typography" },
+      { "name": "The Flat Plate Rule", "body": "A screen or UI surface is flat at rest. If depth is needed, change the plane or add a rule; do not add a glow, gradient, glass card, or soft shadow inside the device language.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do let the product and its on-pedal interface appear before the implementation details.",
+      "Do use hard rules, flat tonal planes, and family colors to explain structure.",
+      "Do keep the live red rare and meaningful.",
+      "Do use the Panel screen components as the visual authority for device UI imagery.",
+      "Do preserve the distinction between player-facing clarity on the pedal and depth in the docs/manager."
+    ],
+    "donts": [
+      "Don't bring back the retired teal glow, decorative grid, gradient, or rounded-card language.",
+      "Don't turn every technical fact into a homepage metric; route deeper material to documentation.",
+      "Don't use family colors as generic calls to action or neutral decoration.",
+      "Don't use a gray fault state without a distinct border and explicit recovery text."
+    ]
+  }
+}
