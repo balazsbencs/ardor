@@ -1,109 +1,119 @@
-// Draws the pedal's preset screen onto a canvas so the 3D model's display shows
-// the real UI: dark ground, teal accent, four slots, header and footer bars.
-// Mirrors the layout captured from the LVGL simulator.
+// Canvas fallback for the product render. This is the same Slate Panel language
+// used by the real LVGL preset screen: flat plates, hard rules, and one live lamp.
 export function drawPresetScreen(canvas: HTMLCanvasElement): void {
-  // 125 x 74 viewable → keep that aspect at high resolution for a crisp texture.
   const W = (canvas.width = 1000);
   const H = (canvas.height = 592);
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  const accent = '#3ce0a6';
-  const ink = '#e6f0ee';
-  const muted = '#8aa39d';
+  const plate = '#212528';
+  const plate2 = '#2a2f33';
+  const plate3 = '#191c1f';
+  const engrave = '#e2e4e3';
+  const muted = '#8d9499';
+  const rule = '#3b4247';
+  const lamp = '#d8422f';
+  const family = ['#a8814e', '#939a9e', '#5f7f9c', '#5d8f80', '#8175a0', '#a8785c'];
 
-  // ground
-  ctx.fillStyle = '#0a0f11';
+  ctx.fillStyle = plate;
   ctx.fillRect(0, 0, W, H);
 
-  const pad = 34;
-  const headH = 92;
+  const pad = 24;
+  const headH = 52;
+  ctx.strokeStyle = rule;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, headH);
+  ctx.lineTo(W, headH);
+  ctx.stroke();
 
-  // header buttons
-  const btn = (x: number, w: number, label: string, active = false) => {
-    ctx.fillStyle = active ? 'rgba(60,224,166,0.16)' : '#141c21';
-    ctx.strokeStyle = active ? accent : 'rgba(120,200,170,0.22)';
-    ctx.lineWidth = 2;
-    roundRect(ctx, x, pad, w, headH - pad / 2, 8);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = active ? accent : ink;
-    ctx.font = '600 30px "Open Sans", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(label, x + w / 2, pad + (headH - pad / 2) / 2);
-  };
-  btn(pad, 150, 'Tuner', true);
-  btn(pad + 168, 150, 'Bank −');
-  btn(W - pad - 318, 150, 'Bank +');
-  btn(W - pad - 150, 150, 'Edit');
-
-  ctx.fillStyle = ink;
-  ctx.font = '700 38px "Chakra Petch", "Open Sans", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('BANK 000', W / 2, pad + (headH - pad / 2) / 2);
-
-  // 2 x 2 preset slots
-  const slots = [
-    { name: 'Clean Verb', active: true },
-    { name: 'Crunch Rig', active: false },
-    { name: 'Lead Bloom', active: false },
-    { name: 'Ambient', active: false },
-  ];
-  const gridTop = headH + pad;
-  const gridH = H - gridTop - 78;
-  const gap = 20;
-  const cellW = (W - pad * 2 - gap) / 2;
-  const cellH = (gridH - gap) / 2;
-  slots.forEach((s, i) => {
-    const cx = pad + (i % 2) * (cellW + gap);
-    const cy = gridTop + Math.floor(i / 2) * (cellH + gap);
-    ctx.fillStyle = '#12191d';
-    ctx.strokeStyle = 'rgba(120,200,170,0.16)';
-    ctx.lineWidth = 2;
-    roundRect(ctx, cx, cy, cellW, cellH, 10);
-    ctx.fill();
-    ctx.stroke();
-    if (s.active) {
-      ctx.fillStyle = accent;
-      roundRect(ctx, cx + 8, cy + 14, 6, cellH - 28, 3);
-      ctx.fill();
-    }
-    ctx.fillStyle = s.active ? accent : ink;
-    ctx.font = '600 40px "Open Sans", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(s.name, cx + cellW / 2, cy + cellH / 2);
-  });
-
-  // footer
-  ctx.fillStyle = muted;
-  ctx.font = '500 26px "IBM Plex Mono", monospace';
+  ctx.fillStyle = engrave;
+  ctx.font = '600 28px "Saira Condensed", sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText('BUFFER 41%', pad, H - 40);
-  ctx.textAlign = 'center';
-  ctx.fillStyle = ink;
-  ctx.fillText('Master 82%', W / 2, H - 40);
+  ctx.fillText('ARDOR', pad, headH / 2);
+  ctx.fillStyle = muted;
+  ctx.font = '500 18px "Saira Condensed", sans-serif';
+  ctx.fillText('BANK 000 · SET A', 168, headH / 2);
+  ctx.textAlign = 'right';
+  ctx.fillText('48 KHZ · BLK 64', W - 116, headH / 2);
+  ctx.fillStyle = lamp;
+  ctx.fillRect(W - 90, headH / 2 - 6, 12, 12);
+  ctx.fillStyle = engrave;
+  ctx.fillText('MIDI', W - pad, headH / 2);
+
+  const slots = [
+    { number: '1', name: 'MIDNIGHT CLEAN', fs: 'FS 1', colors: [family[0], family[1], family[5]] },
+    { number: '3', name: 'SPLIT RIG / WIDE', fs: 'FS 3', colors: [family[2], family[3], family[4]] },
+    { number: '2', name: 'DRIVE STACK', fs: 'FS 2', live: true, colors: [family[0], family[1], family[4]] },
+    { number: '4', name: 'AMBIENT BLOOM', fs: 'FS 4', fault: true, colors: [] },
+  ];
+  const gridTop = headH + 16;
+  const gridBottom = H - 74;
+  const gap = 14;
+  const cellW = (W - pad * 2 - gap) / 2;
+  const cellH = (gridBottom - gridTop - gap) / 2;
+
+  slots.forEach((slot, i) => {
+    const x = pad + (i % 2) * (cellW + gap);
+    const y = gridTop + Math.floor(i / 2) * (cellH + gap);
+    ctx.fillStyle = slot.live ? plate2 : slot.fault ? plate3 : plate2;
+    ctx.fillRect(x, y, cellW, cellH);
+    ctx.strokeStyle = slot.live ? lamp : slot.fault ? '#6b463c' : rule;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 1, y + 1, cellW - 2, cellH - 2);
+
+    ctx.fillStyle = slot.live ? lamp : muted;
+    ctx.font = '600 18px "Saira Condensed", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`PRESET ${slot.number}${slot.live ? ' · RUNNING' : ''}`, x + 18, y + 23);
+    ctx.fillStyle = slot.live ? lamp : slot.fault ? '#bb9186' : muted;
+    ctx.font = '300 58px "Saira", sans-serif';
+    ctx.fillText(slot.number, x + 22, y + cellH * 0.57);
+    ctx.fillStyle = slot.fault ? '#bb9186' : engrave;
+    ctx.font = '600 28px "Saira Condensed", sans-serif';
+    ctx.fillText(slot.name, x + 86, y + cellH * 0.57);
+
+    if (slot.colors.length > 0) {
+      slot.colors.forEach((color, colorIndex) => {
+        ctx.fillStyle = color;
+        ctx.fillRect(x + 86 + colorIndex * 78, y + cellH - 24, 58, 4);
+      });
+    } else {
+      ctx.strokeStyle = '#6b463c';
+      ctx.strokeRect(x + 86, y + cellH - 42, 170, 24);
+      ctx.fillStyle = '#bb9186';
+      ctx.font = '600 14px "Saira Condensed", sans-serif';
+      ctx.fillText('ASSET NOT FOUND', x + 96, y + cellH - 29);
+    }
+    ctx.fillStyle = slot.live ? lamp : muted;
+    ctx.font = '600 16px "Saira Condensed", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(slot.fs, x + cellW - 18, y + cellH - 16);
+  });
+
+  ctx.fillStyle = plate;
+  ctx.fillRect(0, H - 74, W, 74);
+  ctx.strokeStyle = rule;
+  ctx.beginPath();
+  ctx.moveTo(0, H - 74);
+  ctx.lineTo(W, H - 74);
+  ctx.stroke();
+  ctx.textAlign = 'left';
+  ctx.fillStyle = engrave;
+  ctx.font = '600 20px "Saira Condensed", sans-serif';
+  ctx.fillText('EDIT', pad, H - 38);
+  ctx.fillStyle = muted;
+  ctx.fillText('TUNER', pad + 88, H - 38);
+  ctx.font = '500 17px "Saira Condensed", sans-serif';
+  ctx.fillText('BANK −', pad + 194, H - 38);
+  ctx.fillText('BANK +', pad + 288, H - 38);
   ctx.textAlign = 'right';
   ctx.fillStyle = muted;
-  ctx.fillText('MIDI', W - pad, H - 40);
-}
-
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-): void {
-  const rr = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + rr, y);
-  ctx.arcTo(x + w, y, x + w, y + h, rr);
-  ctx.arcTo(x + w, y + h, x, y + h, rr);
-  ctx.arcTo(x, y + h, x, y, rr);
-  ctx.arcTo(x, y, x + w, y, rr);
-  ctx.closePath();
+  ctx.fillText('MASTER', W - 170, H - 52);
+  ctx.fillStyle = engrave;
+  ctx.font = '300 28px "Saira", sans-serif';
+  ctx.fillText('72', W - 112, H - 50);
+  ctx.fillStyle = lamp;
+  ctx.fillRect(W - 90, H - 29, 62, 4);
 }

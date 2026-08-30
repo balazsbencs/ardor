@@ -1,106 +1,219 @@
 /*
- * Self-contained styling for the pedal's on-device UI, recreated faithfully
- * from the LVGL interface. These screens keep their own fixed dark palette
- * regardless of the site theme — they represent the physical display.
- * Sizing is in container-query width units (cqw) so a screen scales crisply
- * to any frame size while preserving the 1280 x 720 proportions.
+ * Website representations of the real LVGL Panel screens.
+ * Geometry remains 1280 × 720 and scales with container-query units so the
+ * display language stays intact at every showcase size.
  */
 .screen {
   container-type: inline-size;
   position: relative;
-  aspect-ratio: 1280 / 720;
   width: 100%;
-  background: #0a0f11;
-  color: #e6f0ee;
-  font-family: 'Open Sans', system-ui, sans-serif;
+  aspect-ratio: 1280 / 720;
   overflow: hidden;
-  border-radius: 2px;
-  --scr-accent: #3ce0a6;
-  --scr-panel: #12191d;
-  --scr-panel-2: #141c21;
-  --scr-line: rgba(120, 200, 170, 0.16);
-  --scr-line-2: rgba(120, 200, 170, 0.28);
-  --scr-muted: #8aa39d;
+  border-radius: 0;
+  background: var(--scr-plate);
+  color: var(--scr-engrave);
+  font-family: var(--font-condensed, 'Saira Condensed', sans-serif);
+  --scr-plate: #212528;
+  --scr-plate2: #2a2f33;
+  --scr-plate3: #191c1f;
+  --scr-engrave: #e2e4e3;
+  --scr-engrave-lo: #8d9499;
+  --scr-engrave-off: #5b6266;
+  --scr-rule: #3b4247;
+  --scr-live: #d8422f;
+  --scr-warn: #c9973f;
+  --scr-fault: #6b463c;
+  --scr-fault-text: #bb9186;
+  --scr-amp: #a8814e;
+  --scr-cab: #939a9e;
+  --scr-util: #5f7f9c;
+  --scr-mod: #5d8f80;
+  --scr-delay: #8175a0;
+  --scr-reverb: #a8785c;
 }
+
 .screen * {
   box-sizing: border-box;
 }
 
-/* header bar shared by preset/edit/eq */
 .scr-head {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
-  gap: 1.6cqw;
-  padding: 2.4cqw 2.6cqw;
-  height: 15%;
+  gap: 1.5cqw;
+  height: 7.22%;
+  padding: 0 2.2cqw;
+  border-bottom: 0.14cqw solid var(--scr-rule);
 }
-.scr-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6cqw;
-  padding: 1.4cqw 2.2cqw;
-  border-radius: 1.2cqw;
-  background: var(--scr-panel-2);
-  border: 0.16cqw solid var(--scr-line-2);
-  color: #e6f0ee;
-  font-size: 2.5cqw;
-  font-weight: 600;
+
+.scr-title,
+.scr-context,
+.scr-status,
+.scr-meta {
   white-space: nowrap;
+  text-transform: uppercase;
 }
-.scr-btn--accent {
-  color: var(--scr-accent);
-  border-color: var(--scr-accent);
-  background: rgba(60, 224, 166, 0.14);
-}
-.scr-btn--muted {
-  background: #47504f;
-  color: #cdd8d5;
-  border-color: transparent;
-}
+
 .scr-title {
-  flex: 1;
-  text-align: center;
-  font-family: 'Chakra Petch', 'Open Sans', sans-serif;
-  font-weight: 700;
-  font-size: 3.4cqw;
-  letter-spacing: 0.02em;
+  color: var(--scr-engrave);
+  font-size: 2.2cqw;
+  font-weight: 600;
+  letter-spacing: 0.22em;
 }
+
+.scr-context,
+.scr-meta,
+.scr-status {
+  color: var(--scr-engrave-lo);
+  font-size: 1.5cqw;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+}
+
+.scr-status {
+  color: var(--scr-live);
+}
+
+.scr-status--warn {
+  color: var(--scr-warn);
+}
+
+.scr-status--family {
+  color: var(--scr-mod);
+}
+
 .scr-spacer {
   flex: 1;
 }
 
-/* footer bar */
+.scr-lamp {
+  display: inline-block;
+  flex: none;
+  width: 1.05cqw;
+  height: 1.05cqw;
+  background: var(--scr-rule);
+}
+
+.scr-lamp--live {
+  background: var(--scr-live);
+}
+
+.scr-lamp--warn {
+  background: var(--scr-warn);
+}
+
+.scr-lamp--family {
+  background: var(--scr-mod);
+}
+
 .scr-foot {
   position: absolute;
-  left: 0;
   right: 0;
   bottom: 0;
-  height: 9.5%;
+  left: 0;
+  z-index: 3;
   display: flex;
   align-items: center;
-  gap: 2cqw;
-  padding: 0 2.6cqw;
-  border-top: 0.14cqw solid var(--scr-line);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 2cqw;
-  color: var(--scr-muted);
+  gap: 0.85cqw;
+  height: 12.22%;
+  padding: 0 2.2cqw;
+  border-top: 0.14cqw solid var(--scr-rule);
+  background: var(--scr-plate);
 }
-.scr-foot .master {
-  flex: 1;
-  text-align: center;
-  color: #e6f0ee;
-  font-family: 'Open Sans', sans-serif;
+
+.scr-foot-label {
+  color: var(--scr-engrave-lo);
+  font-size: 1.5cqw;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.scr-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 8cqw;
+  min-height: 5.4cqw;
+  padding: 1cqw 1.7cqw;
+  border: 0.14cqw solid var(--scr-rule);
+  background: var(--scr-plate2);
+  color: var(--scr-engrave);
+  font-size: 1.95cqw;
   font-weight: 600;
-  font-size: 2.4cqw;
+  letter-spacing: 0.17em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
-.scr-gear {
-  width: 4.4cqw;
-  height: 4.4cqw;
-  display: grid;
-  place-items: center;
-  border-radius: 1cqw;
-  background: var(--scr-panel-2);
-  border: 0.14cqw solid var(--scr-line-2);
-  color: var(--scr-accent);
+
+.scr-btn--primary {
+  border-color: var(--scr-engrave);
+  background: var(--scr-engrave);
+  color: var(--scr-plate);
+}
+
+.scr-btn--small {
+  min-width: auto;
+  min-height: 4.6cqw;
+  padding-inline: 1.35cqw;
+  font-size: 1.6cqw;
+}
+
+.scr-scale {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6cqw;
+  width: 20cqw;
+  margin-left: auto;
+}
+
+.scr-scale-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.scr-scale-value {
+  color: var(--scr-engrave);
+  font-family: var(--font-numeral, 'Saira', sans-serif);
+  font-size: 2.8cqw;
+  font-weight: 300;
+}
+
+.scr-track {
+  position: relative;
+  height: 1.8cqw;
+  border-bottom: 0.14cqw solid var(--scr-rule);
+}
+
+.scr-track i {
+  position: absolute;
+  bottom: 0;
+  width: 0.14cqw;
+  height: 0.75cqw;
+  background: var(--scr-rule);
+}
+
+.scr-track i.major {
+  height: 1.3cqw;
+  background: var(--scr-engrave-lo);
+}
+
+.scr-track .scr-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 0.4cqw;
+  background: var(--scr-engrave);
+}
+
+.scr-track .scr-handle {
+  position: absolute;
+  bottom: -0.4cqw;
+  width: 0.4cqw;
+  height: 2.8cqw;
+  transform: translateX(-50%);
+  background: var(--scr-live);
 }

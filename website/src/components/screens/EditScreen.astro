@@ -1,162 +1,221 @@
 ---
 import './screens.css';
-// A representative mono chain in the drag-and-drop editor.
+
 const blocks = [
-  { name: 'Compressor', kind: 'Utility', cat: 'utility' },
-  { name: 'Morgan AC20', kind: 'NAM Amp', cat: 'amp' },
-  { name: 'Open Back 2×12', kind: 'Cabinet', cat: 'cabinet' },
-  { name: 'Chorus', kind: 'Modulation', cat: 'modulation' },
-  { name: 'Tape Delay', kind: 'Delay', cat: 'delay' },
-  { name: 'Hall', kind: 'Reverb', cat: 'reverb' },
+  { name: 'Tweed Deluxe', kind: 'Amp · U1', detail: 'Nano · sum', family: 'amp' },
+  { name: 'Open Back', kind: 'Cab · IR1', detail: '−2.0 dB · mix 100', family: 'cab' },
+  { name: 'Chorus', kind: 'Mod · M1', detail: 'Bypassed', family: 'mod', bypassed: true },
+  { name: 'Tape', kind: 'Delay · D1', detail: '380 ms · fb 34', family: 'delay' },
 ];
 ---
 
 <div class="screen edit">
   <div class="scr-head">
-    <span class="scr-btn scr-btn--muted">Done</span>
-    <span class="scr-title">EDIT CHAIN</span>
-    <span class="scr-btn">Undo</span>
-    <span class="scr-btn scr-btn--accent">Save</span>
+    <span class="scr-title">Preset 2</span>
+    <span class="scr-context">Drive Stack</span>
+    <span class="scr-status scr-status--warn">· Modified</span>
+    <span class="scr-spacer"></span>
+    <span class="scr-meta">4 modules · stereo join</span>
   </div>
 
-  <div class="rail-wrap">
-    <div class="rail">
-      <div class="cap">IN</div>
-      <span class="wire"></span>
-      {blocks.map((b) => (
-        <>
-          <div class="ins" aria-hidden="true">+</div>
-          <span class="wire"></span>
-          <div class:list={['block', `cat-${b.cat}`]}>
-            <span class="grip" aria-hidden="true"><span></span><span></span><span></span></span>
-            <span class="block-kind">{b.kind}</span>
-            <span class="block-name">{b.name}</span>
+  <div class="edit-path">
+    <span class="edit-terminal">In</span>
+    <span class="edit-patch edit-patch--add">+</span>
+    {blocks.map((block, i) => (
+      <>
+        <div class:list={['edit-module', `family-${block.family}`, { bypassed: block.bypassed, selected: i === 1 }]}>
+          {block.bypassed && <span class="bypass-cord">BYP</span>}
+          <div class="module-head">{block.kind}</div>
+          <div class="module-body">
+            <span class="module-name">{block.name}</span>
+            <span class="module-detail">{block.detail}</span>
+            <span class="module-bars"><i></i><i></i><i></i></span>
           </div>
-          <span class="wire"></span>
-        </>
-      ))}
-      <div class="ins" aria-hidden="true">+</div>
-      <span class="wire"></span>
-      <div class="cap">OUT</div>
-    </div>
+        </div>
+        {i < blocks.length - 1 ? (
+          <span class:list={['edit-patch', { 'edit-patch--add': i === 1 }] }>{i === 1 ? '+' : ''}</span>
+        ) : null}
+      </>
+    ))}
+    <span class="edit-terminal">Out</span>
   </div>
 
   <div class="scr-foot">
-    <span>6 BLOCKS</span>
-    <span class="master">Master 82%</span>
-    <span>DRAFT · UNSAVED</span>
+    <span class="scr-btn scr-btn--primary">Save</span>
+    <span class="scr-btn scr-btn--small">Undo</span>
+    <span class="scr-btn scr-btn--small">Redo</span>
+    <span class="scr-btn scr-btn--small">Modules</span>
+    <span class="scr-spacer"></span>
+    <span class="scr-btn">Done</span>
   </div>
 </div>
 
 <style>
-  .rail-wrap {
+  .edit-path {
     position: absolute;
-    inset: 15% 0 9.5% 0;
+    top: 7.22%;
+    bottom: 12.22%;
+    left: 0;
     display: flex;
     align-items: center;
-    overflow: hidden;
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 3%, #000 88%, transparent);
-    mask-image: linear-gradient(90deg, transparent, #000 3%, #000 88%, transparent);
+    padding: 0 2.2cqw;
   }
-  .rail {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    padding: 0 2.6cqw;
-  }
-  .wire {
-    width: 2.4cqw;
-    height: 0.3cqw;
-    background: linear-gradient(90deg, rgba(60, 224, 166, 0.35), rgba(60, 224, 166, 0.6));
+
+  .edit-terminal {
     flex: none;
-  }
-  .cap {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 9cqw;
-    height: 9cqw;
-    border-radius: 50%;
-    border: 0.3cqw solid var(--scr-accent);
-    color: var(--scr-accent);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 2.2cqw;
-    font-weight: 600;
-    box-shadow: 0 0 3cqw rgba(60, 224, 166, 0.25);
-  }
-  .ins {
-    flex: none;
-    display: grid;
-    place-items: center;
     width: 4cqw;
-    height: 4cqw;
-    border-radius: 50%;
-    border: 0.16cqw dashed var(--scr-line-2);
-    color: var(--scr-muted);
-    font-size: 3cqw;
+    color: var(--scr-engrave-lo);
+    font-size: 1.55cqw;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .edit-patch {
+    position: relative;
+    display: grid;
+    flex: none;
+    width: 3.1cqw;
+    height: 3.1cqw;
+    place-items: center;
+    border-block: 0.14cqw solid var(--scr-rule);
+    color: var(--scr-engrave-lo);
+    font-size: 1.8cqw;
     line-height: 1;
   }
-  .block {
-    flex: none;
-    position: relative;
-    width: 26cqw;
-    height: 40cqw;
-    max-height: 62%;
-    border-radius: 2cqw;
-    background: linear-gradient(180deg, #161e22, #0f1518);
-    border: 0.16cqw solid var(--scr-line);
-    border-top: 0.7cqw solid var(--cat, var(--scr-accent));
-    padding: 3cqw 2.4cqw;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    gap: 0.8cqw;
-  }
-  .block-kind {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 1.9cqw;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--cat, var(--scr-accent));
-  }
-  .block-name {
-    font-size: 3cqw;
-    font-weight: 600;
-    line-height: 1.15;
-  }
-  .grip {
+
+  .edit-patch::after {
     position: absolute;
-    top: 2cqw;
-    right: 2cqw;
+    width: 1.2cqw;
+    height: 1.2cqw;
+    border: 0.25cqw solid var(--scr-engrave-lo);
+    border-radius: 50%;
+    background: var(--scr-plate);
+    content: '';
+  }
+
+  .edit-patch--add::after {
+    width: 1.45cqw;
+    height: 1.45cqw;
+    border-color: var(--scr-rule);
+  }
+
+  .edit-patch--add {
+    color: var(--scr-engrave-lo);
+  }
+
+  .edit-patch--add::before {
+    position: absolute;
+    z-index: 1;
+    content: '+';
+    font-size: 1.5cqw;
+  }
+
+  .edit-patch--add {
+    font-size: 0;
+  }
+
+  .edit-module {
+    position: relative;
+    flex: none;
+    width: 11.7cqw;
+    border: 0.14cqw solid var(--scr-rule);
+    background: var(--scr-plate2);
+  }
+
+  .edit-module.selected {
+    border-color: var(--scr-engrave);
+  }
+
+  .module-head {
+    height: 3.1cqw;
+    padding: 0.8cqw 1cqw;
+    color: var(--scr-plate);
+    font-size: 1.35cqw;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  .module-body {
     display: flex;
     flex-direction: column;
-    gap: 0.6cqw;
+    min-height: 21cqw;
+    gap: 1.2cqw;
+    padding: 2cqw 1.1cqw 1.3cqw;
   }
-  .grip span {
-    display: block;
-    width: 3.2cqw;
-    height: 0.4cqw;
-    border-radius: 1cqw;
-    background: var(--scr-muted);
-    opacity: 0.5;
+
+  .module-name {
+    color: var(--scr-engrave);
+    font-size: 2.35cqw;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    line-height: 0.95;
+    text-transform: uppercase;
   }
-  /* category accents */
-  .cat-amp {
-    --cat: #ff8a5c;
+
+  .module-detail {
+    color: var(--scr-engrave-lo);
+    font-family: 'Saira', sans-serif;
+    font-size: 1.3cqw;
+    font-weight: 300;
+    line-height: 1.25;
   }
-  .cat-cabinet {
-    --cat: #f5b451;
+
+  .module-bars {
+    display: flex;
+    gap: 0.35cqw;
+    margin-top: auto;
   }
-  .cat-utility {
-    --cat: #9aa7ff;
+
+  .module-bars i {
+    flex: 1;
+    height: 0.42cqw;
+    background: var(--scr-rule);
   }
-  .cat-modulation {
-    --cat: #59c2e6;
+
+  .module-bars i:first-child {
+    background: var(--module-color);
   }
-  .cat-delay {
-    --cat: #3ce0a6;
+
+  .family-amp { --module-color: var(--scr-amp); }
+  .family-cab { --module-color: var(--scr-cab); }
+  .family-mod { --module-color: var(--scr-mod); }
+  .family-delay { --module-color: var(--scr-delay); }
+
+  .family-amp .module-head { background: var(--scr-amp); }
+  .family-cab .module-head { background: var(--scr-cab); }
+  .family-mod .module-head { background: var(--scr-mod); }
+  .family-delay .module-head { background: var(--scr-delay); }
+
+  .bypassed {
+    background: var(--scr-plate3);
   }
-  .cat-reverb {
-    --cat: #c58cff;
+
+  .bypassed .module-head {
+    background: var(--scr-rule);
+    color: var(--scr-engrave-lo);
+  }
+
+  .bypassed .module-name,
+  .bypassed .module-detail {
+    color: var(--scr-engrave-off);
+  }
+
+  .bypass-cord {
+    position: absolute;
+    top: -2.5cqw;
+    right: -2cqw;
+    left: -2cqw;
+    z-index: 1;
+    border-top: 0.28cqw solid var(--scr-live);
+    color: var(--scr-live);
+    font-size: 1.15cqw;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-align: center;
+    text-transform: uppercase;
   }
 </style>

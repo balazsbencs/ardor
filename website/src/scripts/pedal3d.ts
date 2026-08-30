@@ -5,13 +5,12 @@
 //
 // Treatment is a restrained product shot: anodized-graphite body, brushed-steel
 // stomp switches, an aluminium knob, a glass screen with real glare, a soft
-// contact shadow, and only a whisper of bloom on the screen — no neon.
+// contact shadow, and a flat Panel screen with real glare.
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { drawPresetScreen } from './preset-screen-texture';
 
@@ -30,8 +29,8 @@ function makeWordmark(): THREE.CanvasTexture {
   c.height = 96;
   const ctx = c.getContext('2d')!;
   ctx.clearRect(0, 0, c.width, c.height);
-  ctx.fillStyle = '#c3ccca';
-  ctx.font = '600 46px "Chakra Petch", "Open Sans", sans-serif';
+  ctx.fillStyle = '#e2e4e3';
+  ctx.font = '600 46px "Saira Condensed", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.letterSpacing = '14px';
@@ -71,7 +70,7 @@ export function initPedal(canvas: HTMLCanvasElement): PedalHandle | null {
 
   // ---- materials ------------------------------------------------------------
   const bodyMat = new THREE.MeshPhysicalMaterial({
-    color: 0x282d31,
+    color: 0x2a2f33,
     metalness: 0.55,
     roughness: 0.42,
     clearcoat: 0.35,
@@ -79,7 +78,7 @@ export function initPedal(canvas: HTMLCanvasElement): PedalHandle | null {
     envMapIntensity: 0.85,
   });
   const plateMat = new THREE.MeshStandardMaterial({
-    color: 0x1c2124,
+    color: 0x212528,
     metalness: 0.6,
     roughness: 0.5,
     envMapIntensity: 0.8,
@@ -145,7 +144,7 @@ export function initPedal(canvas: HTMLCanvasElement): PedalHandle | null {
       map: screenTex,
       emissive: 0xffffff,
       emissiveMap: screenTex,
-      emissiveIntensity: 1.5,
+      emissiveIntensity: 0.8,
       roughness: 0.5,
       metalness: 0,
     }),
@@ -213,9 +212,9 @@ export function initPedal(canvas: HTMLCanvasElement): PedalHandle | null {
   const indicator = new THREE.Mesh(
     new THREE.BoxGeometry(1.4, 1, 7),
     new THREE.MeshStandardMaterial({
-      color: 0x3ce0a6,
-      emissive: 0x3ce0a6,
-      emissiveIntensity: 0.9,
+      color: 0xd8422f,
+      emissive: 0xd8422f,
+      emissiveIntensity: 0.55,
       roughness: 0.4,
     }),
   );
@@ -297,11 +296,9 @@ export function initPedal(canvas: HTMLCanvasElement): PedalHandle | null {
   rim.position.set(-110, 70, -220);
   scene.add(rim);
 
-  // ---- postprocessing (subtle bloom, screen only) --------------------------
+  // ---- postprocessing -------------------------------------------------------
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.16, 0.4, 0.9);
-  composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
   // ---- sizing ---------------------------------------------------------------

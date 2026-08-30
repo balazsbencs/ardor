@@ -1,5 +1,4 @@
 ---
-// Wraps a pedal screen in a subtle device bezel with an optional caption.
 interface Props {
   label?: string;
   caption?: string;
@@ -13,8 +12,8 @@ const { label, caption } = Astro.props;
   </div>
   {(label || caption) && (
     <figcaption>
-      {label && <span class="mono">{label}</span>}
-      {caption && <span class="cap">{caption}</span>}
+      {label && <span class="frame-label mono">{label}</span>}
+      {caption && <span class="frame-caption">{caption}</span>}
     </figcaption>
   )}
 </figure>
@@ -26,30 +25,29 @@ const { label, caption } = Astro.props;
     flex-direction: column;
     gap: var(--sp-2);
   }
+
   .bezel {
-    padding: 1.1%;
-    background: linear-gradient(180deg, #05080a, #0a0e10);
+    padding: 0.65rem;
     border: 1px solid var(--hairline-strong);
-    border-radius: 12px;
-    box-shadow:
-      0 0 0 1px rgba(0, 0, 0, 0.6),
-      0 30px 60px -34px rgba(0, 0, 0, 0.9),
-      0 0 60px -30px var(--accent-glow);
+    background: #0c0e10;
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
   }
+
   figcaption {
     display: flex;
-    align-items: baseline;
-    gap: 0.8em;
     flex-wrap: wrap;
+    gap: 0.6em 1em;
+    align-items: baseline;
   }
-  figcaption .mono {
-    font-family: var(--font-mono);
+
+  .frame-label {
+    color: var(--accent);
     font-size: var(--step--1);
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--accent);
   }
-  figcaption .cap {
+
+  .frame-caption {
     color: var(--muted);
     font-size: var(--step--1);
   }

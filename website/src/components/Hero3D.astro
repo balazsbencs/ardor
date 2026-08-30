@@ -10,27 +10,21 @@
   <!-- Schematic fallback / loading poster: real top-view layout of the pedal. -->
   <div class="stage-fallback" id="pedal-fallback">
     <svg viewBox="0 0 360 300" role="img" aria-label="Top view of the Ardor pedal: a touchscreen in the centre, four footswitches in the corners, and an encoder at the rear.">
-      <defs>
-        <radialGradient id="scr" cx="50%" cy="42%" r="70%">
-          <stop offset="0%" stop-color="#123" />
-          <stop offset="100%" stop-color="#0a0f11" />
-        </radialGradient>
-      </defs>
-      <rect x="6" y="6" width="348" height="288" rx="18" fill="#12191d" stroke="rgba(120,200,170,0.28)" stroke-width="1.5" />
+      <rect x="6" y="6" width="348" height="288" rx="4" fill="#212528" stroke="#687178" stroke-width="1.5" />
       <!-- display -->
-      <rect x="70" y="66" width="220" height="150" rx="8" fill="url(#scr)" stroke="rgba(120,200,170,0.3)" />
-      <rect x="86" y="86" width="80" height="46" rx="5" fill="none" stroke="#3ce0a6" stroke-width="1.5" />
-      <rect x="194" y="86" width="80" height="46" rx="5" fill="none" stroke="rgba(120,200,170,0.35)" />
-      <rect x="86" y="150" width="80" height="46" rx="5" fill="none" stroke="rgba(120,200,170,0.35)" />
-      <rect x="194" y="150" width="80" height="46" rx="5" fill="none" stroke="rgba(120,200,170,0.35)" />
+      <rect x="70" y="66" width="220" height="150" rx="2" fill="#191c1f" stroke="#3b4247" />
+      <rect x="86" y="86" width="80" height="46" fill="#2a2f33" stroke="#a8814e" />
+      <rect x="194" y="86" width="80" height="46" fill="#2a2f33" stroke="#939a9e" />
+      <rect x="86" y="150" width="80" height="46" fill="#2a2f33" stroke="#d8422f" />
+      <rect x="194" y="150" width="80" height="46" fill="#191c1f" stroke="#6b463c" />
       <!-- footswitches -->
-      <circle cx="40" cy="46" r="15" fill="#0a0d0f" stroke="#3a444a" stroke-width="2" />
-      <circle cx="320" cy="46" r="15" fill="#0a0d0f" stroke="#3a444a" stroke-width="2" />
-      <circle cx="40" cy="254" r="15" fill="#0a0d0f" stroke="#3a444a" stroke-width="2" />
-      <circle cx="320" cy="254" r="15" fill="#0a0d0f" stroke="#3a444a" stroke-width="2" />
+      <circle cx="40" cy="46" r="15" fill="#0c0d0e" stroke="#3b4247" stroke-width="2" />
+      <circle cx="320" cy="46" r="15" fill="#0c0d0e" stroke="#3b4247" stroke-width="2" />
+      <circle cx="40" cy="254" r="15" fill="#0c0d0e" stroke="#3b4247" stroke-width="2" />
+      <circle cx="320" cy="254" r="15" fill="#0c0d0e" stroke="#3b4247" stroke-width="2" />
       <!-- encoder rear-centre -->
-      <circle cx="180" cy="40" r="13" fill="#1a2226" stroke="#3a444a" stroke-width="2" />
-      <line x1="180" y1="40" x2="180" y2="30" stroke="#3ce0a6" stroke-width="2" />
+      <circle cx="180" cy="40" r="13" fill="#2a2f33" stroke="#3b4247" stroke-width="2" />
+      <line x1="180" y1="40" x2="180" y2="30" stroke="#d8422f" stroke-width="2" />
     </svg>
   </div>
 
@@ -47,16 +41,12 @@
     max-height: 68vh;
     min-height: 320px;
   }
-  /* subtle studio backdrop for depth (not a neon glow) */
+  /* The device world is flat; the object itself carries the physical depth. */
   .stage::before {
     content: '';
     position: absolute;
-    inset: 0;
-    background: radial-gradient(
-      60% 55% at 52% 42%,
-      rgba(120, 150, 145, 0.1),
-      transparent 70%
-    );
+    inset: 1rem;
+    border: 1px solid var(--hairline);
     pointer-events: none;
   }
   #pedal-canvas {
@@ -83,7 +73,7 @@
   .stage-fallback svg {
     width: min(80%, 420px);
     height: auto;
-    filter: drop-shadow(0 30px 60px rgba(0, 0, 0, 0.6));
+    filter: drop-shadow(0 24px 34px rgba(0, 0, 0, 0.45));
   }
   .stage[data-ready='true'] .stage-fallback {
     opacity: 0;
@@ -108,7 +98,7 @@
     color: var(--muted);
     border: 1px solid var(--hairline);
     padding: 0.35em 0.8em;
-    border-radius: 999px;
+    border-radius: 0;
     background: color-mix(in srgb, var(--ground) 70%, transparent);
   }
 </style>

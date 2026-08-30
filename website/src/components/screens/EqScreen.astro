@@ -1,14 +1,11 @@
 ---
 import './screens.css';
 
-// Five parametric bands. The response curve is computed at build time by
-// summing per-band bell responses across a log-frequency axis — the same shape
-// the on-device editor draws live.
 type Band = { f: number; gain: number; q: number };
 const bands: Band[] = [
   { f: 80, gain: 3.5, q: 0.7 },
   { f: 240, gain: -2.5, q: 1.1 },
-  { f: 900, gain: 1.5, q: 1.4 },
+  { f: 1000, gain: 1.5, q: 1.4 },
   { f: 3200, gain: 4.5, q: 1.8 },
   { f: 8000, gain: -3, q: 1.2 },
 ];
@@ -16,9 +13,8 @@ const bands: Band[] = [
 const FMIN = 20;
 const FMAX = 20000;
 const DBMAX = 12;
-const Wd = 100; // viewBox width
-const Hd = 40; // viewBox height
-
+const Wd = 100;
+const Hd = 40;
 const logMin = Math.log10(FMIN);
 const logMax = Math.log10(FMAX);
 const xFor = (f: number) => ((Math.log10(f) - logMin) / (logMax - logMin)) * Wd;
@@ -26,152 +22,245 @@ const yFor = (db: number) => Hd / 2 - (db / DBMAX) * (Hd / 2);
 
 function response(f: number): number {
   let db = 0;
-  for (const b of bands) {
-    const octaves = Math.log2(f / b.f);
-    const width = 1 / b.q;
-    db += b.gain * Math.exp(-(octaves * octaves) / (2 * width * width));
+  for (const band of bands) {
+    const octaves = Math.log2(f / band.f);
+    const width = 1 / band.q;
+    db += band.gain * Math.exp(-(octaves * octaves) / (2 * width * width));
   }
   return db;
 }
 
-const pts: string[] = [];
-for (let i = 0; i <= 160; i++) {
-  const f = Math.pow(10, logMin + (i / 160) * (logMax - logMin));
-  pts.push(`${xFor(f).toFixed(2)},${yFor(response(f)).toFixed(2)}`);
-}
-const curve = pts.join(' ');
-const area = `0,${Hd} ${curve} ${Wd},${Hd}`;
-const gridFreqs = [100, 1000, 10000];
+const curve = Array.from({ length: 160 }, (_, i) => {
+  const f = Math.pow(10, logMin + (i / 159) * (logMax - logMin));
+  return `${xFor(f).toFixed(2)},${yFor(response(f)).toFixed(2)}`;
+}).join(' ');
 ---
 
 <div class="screen eq">
   <div class="scr-head">
-    <span class="scr-btn scr-btn--muted">Done</span>
-    <span class="scr-title">PARAMETRIC EQ · 5 BAND</span>
-    <span class="scr-btn scr-btn--accent">Save</span>
+    <span class="scr-title">Parametric EQ</span>
+    <span class="scr-context">Utility · EQ1 · 5 bands</span>
+    <span class="scr-spacer"></span>
+    <span class="scr-lamp scr-lamp--live" aria-hidden="true"></span>
+    <span class="scr-status">Enabled</span>
   </div>
 
-  <div class="eq-graph">
-    <svg viewBox={`0 0 ${Wd} ${Hd}`} preserveAspectRatio="none" aria-hidden="true">
-      <line x1="0" y1={Hd / 2} x2={Wd} y2={Hd / 2} class="grid mid"></line>
-      {gridFreqs.map((f) => (
-        <line x1={xFor(f)} y1="0" x2={xFor(f)} y2={Hd} class="grid"></line>
-      ))}
-      <polygon points={area} class="fill"></polygon>
-      <polyline points={curve} class="line"></polyline>
-      {bands.map((b) => (
-        <circle cx={xFor(b.f)} cy={yFor(b.gain)} r="0.9" class="node"></circle>
-      ))}
-    </svg>
-    <div class="axis">
-      <span>100 Hz</span><span>1 kHz</span><span>10 kHz</span>
+  <div class="eq-wrap">
+    <div class="eq-graph">
+      <svg viewBox={`0 0 ${Wd} ${Hd}`} preserveAspectRatio="none" aria-label="Five band EQ response curve">
+        <line x1="0" y1={Hd / 2} x2={Wd} y2={Hd / 2} class="graph-zero"></line>
+        {[100, 1000, 10000].map((f) => <line x1={xFor(f)} y1="0" x2={xFor(f)} y2={Hd} class="graph-grid"></line>)}
+        <polyline points={curve} class="graph-curve"></polyline>
+        {bands.map((band, i) => (
+          <g>
+            <circle cx={xFor(band.f)} cy={yFor(band.gain)} r={i === 2 ? 1.6 : 1.05} class:list={['graph-node', { selected: i === 2 }]}></circle>
+            <text x={xFor(band.f)} y={yFor(band.gain) - 3} class="graph-label">B{i + 1}</text>
+          </g>
+        ))}
+        {[-12, 0, 12].map((db) => <text x="1" y={yFor(db)} class="graph-axis">{db > 0 ? `+${db}` : db} dB</text>)}
+        {[100, 1000, 10000].map((f) => <text x={xFor(f)} y="38" class="graph-axis graph-axis--x">{f >= 1000 ? `${f / 1000}k` : f} Hz</text>)}
+      </svg>
+    </div>
+
+    <div class="eq-band-editor">
+      <div class="eq-band-title">
+        <strong>Band 3</strong>
+        <span>Selected / 1.00 kHz</span>
+      </div>
+      <div class="eq-controls">
+        <div class="eq-control">
+          <span class="eq-control-label">Freq</span><strong>1.00<em>kHz</em></strong>
+          <span class="eq-mini-track"><i style="width:50%"></i><b style="left:50%"></b></span>
+        </div>
+        <div class="eq-control">
+          <span class="eq-control-label">Gain</span><strong>+1.5<em>dB</em></strong>
+          <span class="eq-mini-track"><i style="width:57%"></i><b style="left:57%"></b></span>
+        </div>
+        <div class="eq-control">
+          <span class="eq-control-label">Q</span><strong>1.40</strong>
+          <span class="eq-mini-track"><i style="width:34%"></i><b style="left:34%"></b></span>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="eq-bands">
-    {bands.map((b, i) => (
-      <div class="band">
-        <span class="band-i">B{i + 1}</span>
-        <span class="band-f">{b.f >= 1000 ? `${b.f / 1000}k` : b.f} Hz</span>
-        <span class:list={['band-g', { pos: b.gain >= 0 }]}>
-          {b.gain >= 0 ? '+' : ''}{b.gain.toFixed(1)} dB
-        </span>
-        <span class="band-q">Q {b.q.toFixed(1)}</span>
-      </div>
-    ))}
-  </div>
-
   <div class="scr-foot">
-    <span>5 BANDS ACTIVE</span>
-    <span class="master">Master 82%</span>
-    <span>±12 dB</span>
+    <span class="scr-foot-label">Drag a band to shape the curve</span>
+    <span class="scr-spacer"></span>
+    <span class="scr-btn scr-btn--small">Reset</span>
+    <span class="scr-btn scr-btn--primary">Done</span>
   </div>
 </div>
 
 <style>
-  .eq-graph {
+  .eq-wrap {
     position: absolute;
-    inset: 15% 2.6cqw auto 2.6cqw;
-    height: 42%;
+    top: 7.22%;
+    right: 0;
+    bottom: 12.22%;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 2.2cqw 2.2cqw 0;
   }
+
+  .eq-graph {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    border: 0.14cqw solid var(--scr-rule);
+    background: var(--scr-plate3);
+  }
+
   .eq-graph svg {
     width: 100%;
     height: 100%;
-    background: #0c1315;
-    border: 0.14cqw solid var(--scr-line);
-    border-radius: 1.2cqw;
+    overflow: visible;
   }
-  .grid {
-    stroke: rgba(120, 200, 170, 0.14);
-    stroke-width: 0.12;
+
+  .graph-grid,
+  .graph-zero {
+    stroke: var(--scr-rule);
+    stroke-width: 0.35;
   }
-  .grid.mid {
-    stroke: rgba(120, 200, 170, 0.24);
-    stroke-dasharray: 0.6 0.6;
+
+  .graph-zero {
+    stroke: var(--scr-engrave-off);
   }
-  .fill {
-    fill: rgba(60, 224, 166, 0.14);
-  }
-  .line {
+
+  .graph-curve {
     fill: none;
-    stroke: var(--scr-accent);
-    stroke-width: 0.5;
+    stroke: var(--scr-engrave);
+    stroke-width: 0.8;
     vector-effect: non-scaling-stroke;
   }
-  .node {
-    fill: #0a0f11;
-    stroke: var(--scr-accent);
-    stroke-width: 0.4;
+
+  .graph-node {
+    fill: var(--scr-plate);
+    stroke: var(--scr-engrave-lo);
+    stroke-width: 0.45;
   }
-  .axis {
+
+  .graph-node.selected {
+    fill: var(--scr-live);
+    stroke: var(--scr-live);
+  }
+
+  .graph-label,
+  .graph-axis {
+    fill: var(--scr-engrave-lo);
+    font-family: 'Saira', sans-serif;
+    font-size: 2.8px;
+    font-weight: 300;
+    text-anchor: middle;
+  }
+
+  .graph-axis {
+    text-anchor: start;
+  }
+
+  .graph-axis--x {
+    text-anchor: middle;
+  }
+
+  .eq-band-editor {
     display: flex;
-    justify-content: space-between;
-    padding: 0.6cqw 1cqw 0;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 1.7cqw;
-    color: var(--scr-muted);
+    flex: none;
+    min-height: 10.8cqw;
+    margin-top: 1.6cqw;
+    border: 0.14cqw solid var(--scr-live);
+    background: var(--scr-plate2);
   }
-  .eq-bands {
-    position: absolute;
-    left: 2.6cqw;
-    right: 2.6cqw;
-    top: 60%;
-    bottom: 11%;
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1.4cqw;
-  }
-  .band {
+
+  .eq-band-title {
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: center;
     gap: 0.6cqw;
-    background: var(--scr-panel);
-    border: 0.14cqw solid var(--scr-line);
-    border-radius: 1.2cqw;
+    width: 14.5cqw;
+    flex: none;
+    padding: 1.3cqw;
+    border-right: 0.14cqw solid var(--scr-rule);
+    background: var(--scr-plate3);
   }
-  .band-i {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 1.8cqw;
-    color: var(--scr-muted);
-    letter-spacing: 0.1em;
-  }
-  .band-f {
-    font-size: 2.4cqw;
-    font-weight: 600;
-  }
-  .band-g {
-    font-family: 'IBM Plex Mono', monospace;
+
+  .eq-band-title strong {
+    color: var(--scr-live);
     font-size: 2.2cqw;
-    color: #ff9a76;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
   }
-  .band-g.pos {
-    color: var(--scr-accent);
+
+  .eq-band-title span {
+    color: var(--scr-engrave-lo);
+    font-family: 'Saira', sans-serif;
+    font-size: 1.25cqw;
+    font-weight: 300;
   }
-  .band-q {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 1.8cqw;
-    color: var(--scr-muted);
+
+  .eq-controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    flex: 1;
+  }
+
+  .eq-control {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.65cqw;
+    padding: 1.1cqw 1.5cqw;
+    border-left: 0.14cqw solid var(--scr-rule);
+  }
+
+  .eq-control:first-child {
+    border-left: 0;
+  }
+
+  .eq-control-label {
+    color: var(--scr-engrave-lo);
+    font-size: 1.45cqw;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .eq-control strong {
+    color: var(--scr-engrave);
+    font-family: 'Saira', sans-serif;
+    font-size: 2.8cqw;
+    font-weight: 300;
+    line-height: 0.9;
+  }
+
+  .eq-control strong em {
+    margin-left: 0.3em;
+    color: var(--scr-engrave-lo);
+    font-size: 1.35cqw;
+    font-style: normal;
+  }
+
+  .eq-mini-track {
+    position: relative;
+    display: block;
+    height: 1.3cqw;
+    border-bottom: 0.14cqw solid var(--scr-rule);
+  }
+
+  .eq-mini-track i {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 0.32cqw;
+    background: var(--scr-engrave);
+  }
+
+  .eq-mini-track b {
+    position: absolute;
+    bottom: -0.45cqw;
+    width: 0.35cqw;
+    height: 2.3cqw;
+    transform: translateX(-50%);
+    background: var(--scr-live);
   }
 </style>

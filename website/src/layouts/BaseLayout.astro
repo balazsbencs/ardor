@@ -27,7 +27,7 @@ const ogImage = new URL(url('/og.png'), Astro.site).href;
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    <meta name="theme-color" content="#06080a" />
+    <meta name="theme-color" content="#141719" />
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content={pageTitle} />
@@ -49,6 +49,14 @@ const ogImage = new URL(url('/og.png'), Astro.site).href;
     </script>
   </head>
   <body>
+    <!--
+      THESIS: Ardor is a playable instrument, so the homepage reads like its Panel UI rather than a feature brochure.
+      OWN-WORLD: Slate graphite, bone lettering, hard rules, family color bars, and one reserved red LIVE lamp.
+      STORY: A guitarist sees the real on-pedal language first, then finds the open build and the depth behind it.
+      FIRST VIEWPORT: Plain nav, left-aligned promise and actions, right-side pedal view, then a compact hardware readout.
+      FORM: Instrument nomenclature plate, user-pinned Panel direction; concept seed 0a50301c, assigned roll acknowledged.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+    -->
     <a class="skip-link" href="#main">Skip to content</a>
     <Nav />
     <main id="main">

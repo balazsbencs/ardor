@@ -8,314 +8,485 @@ import PresetScreen from '../components/screens/PresetScreen.astro';
 import EditScreen from '../components/screens/EditScreen.astro';
 import EqScreen from '../components/screens/EqScreen.astro';
 import TunerScreen from '../components/screens/TunerScreen.astro';
-import { features, heroStats } from '../data/features';
+import { features } from '../data/features';
 import { site } from '../data/site';
 import { url } from '../lib/url';
+
+const featureFamilies: Record<string, string> = {
+  nam: 'var(--family-amp)',
+  cab: 'var(--family-cab)',
+  effects: 'var(--family-delay)',
+  dualrig: 'var(--family-util)',
+  dynamics: 'var(--family-mod)',
+  ui: 'var(--accent)',
+};
 ---
 
 <BaseLayout>
-  <!-- ============ HERO ============ -->
-  <section class="hero">
+  <!-- The direction contract is recorded in BaseLayout so it survives the build. -->
+
+  <section class="hero" aria-labelledby="hero-heading">
     <div class="container hero-inner">
       <div class="hero-copy">
-        <p class="eyebrow">Open-source Raspberry Pi guitar processor</p>
-        <h1>Your whole rig,<br />on one pedal.</h1>
+        <div class="hero-rule" aria-hidden="true">
+          <span>OPEN SOURCE / PLAY FIRST</span>
+          <span>ARDOR // 001</span>
+        </div>
+        <h1 id="hero-heading">The rig,<br /><span>under your feet.</span></h1>
         <p class="lead">
-          Ardor runs neural amp models, cabinet impulse responses, and 35 studio
-          effects in realtime — all on a Raspberry Pi, driven by four footswitches
-          and a touchscreen. No computer, no plugin host, no subscription.
+          Ardor is an open-source guitar processor for the moment you stop thinking about
+          the setup and start playing.
         </p>
         <div class="hero-cta">
-          <a class="btn" href={url('/docs/getting-started')}>Get started</a>
-          <a class="btn btn--ghost" href="#effects">Explore the effects</a>
+          <a class="btn" href={url('/docs/getting-started')}>Start with the build</a>
+          <a class="btn btn--ghost" href="#interface">See the interface</a>
         </div>
-        <ul class="stat-strip">
-          {heroStats.map((s) => (
-            <li>
-              <span class="stat-val tnum">{s.value}</span>
-              <span class="stat-lbl">{s.label}</span>
-            </li>
-          ))}
-        </ul>
+        <div class="hero-facts" aria-label="Ardor highlights">
+          <span><strong>Raspberry Pi</strong><small>standalone rig</small></span>
+          <span><strong>4 switches</strong><small>made for the stage</small></span>
+          <span><strong>MIT licensed</strong><small>open end to end</small></span>
+        </div>
       </div>
-      <div class="hero-stage">
+
+      <div class="hero-stage-wrap">
         <Hero3D />
+        <div class="hero-stage-rail" aria-hidden="true">
+          <span>ENCLOSURE / TOP VIEW</span>
+          <span><i></i> LIVE PRESET 2</span>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- ============ FEATURES ============ -->
-  <section class="section" id="features">
+  <section class="section interface-section" id="interface" aria-labelledby="interface-heading">
     <div class="container">
-      <div class="section-head">
-        <p class="eyebrow">What's inside</p>
-        <h2>A full pedalboard and amp room, rebuilt in software.</h2>
-        <p>Every stage of a professional rig — captured, modeled, and running under a realtime audio budget on a four-core Pi.</p>
+      <div class="showcase-head">
+        <div class="showcase-mark" aria-hidden="true">01</div>
+        <div>
+          <h2 id="interface-heading">See what's live<br />before you touch it.</h2>
+          <p>
+            The on-pedal interface is a map, not a maze: a running preset gets the lamp,
+            modules sit on one clear rail, and every control has a readable place.
+          </p>
+        </div>
       </div>
-      <div class="feature-grid">
-        {features.map((f) => (
-          <article class="panel panel--tick feature">
+
+      <div class="screens-grid">
+        <ScreenFrame label="Preset map" caption="Four tiles mirror the four footswitches.">
+          <PresetScreen />
+        </ScreenFrame>
+        <ScreenFrame label="Signal path" caption="Patch points and module families on one rail.">
+          <EditScreen />
+        </ScreenFrame>
+        <ScreenFrame label="Parametric EQ" caption="A live curve with an engraved control strip.">
+          <EqScreen />
+        </ScreenFrame>
+        <ScreenFrame label="Tuner" caption="A center-zero readout built for a glance.">
+          <TunerScreen />
+        </ScreenFrame>
+      </div>
+
+      <div class="section-link">
+        <a href={url('/docs/ui-guide')}>Read the UI &amp; controls guide <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section feature-section" id="features" aria-labelledby="features-heading">
+    <div class="container">
+      <div class="showcase-head">
+        <div class="showcase-mark" aria-hidden="true">02</div>
+        <div>
+          <h2 id="features-heading">Open enough to build.<br />Focused enough to play.</h2>
+          <p>
+            Bring the sounds you already trust, shape them into a preset, and keep your
+            attention on the song.
+          </p>
+        </div>
+      </div>
+
+      <div class="feature-list">
+        {features.map((f, i) => (
+          <article class="feature-row" style={`--family:${featureFamilies[f.id] ?? 'var(--accent)'}`}>
+            <span class="feature-index mono">{String(i + 1).padStart(2, '0')}</span>
             <span class="feature-kicker mono">{f.kicker}</span>
             <h3>{f.title}</h3>
             <p>{f.body}</p>
-            {f.spec && (
-              <dl class="feature-spec">
-                {f.spec.map((s) => (
-                  <div>
-                    <dt>{s.label}</dt>
-                    <dd class="mono">{s.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            )}
           </article>
         ))}
       </div>
     </div>
   </section>
 
-  <!-- ============ SIGNAL CHAIN ============ -->
-  <section class="section" id="chain">
+  <section class="section chain-section" id="chain" aria-labelledby="chain-heading">
     <div class="container">
-      <div class="section-head">
-        <p class="eyebrow">How it works</p>
-        <h2>Build the signal chain, block by block.</h2>
-        <p>Drag blocks onto a single left-to-right signal path. Split into two independent rigs for true stereo, then merge back to the output — with a safety limiter always on the end.</p>
+      <div class="showcase-head">
+        <div class="showcase-mark" aria-hidden="true">03</div>
+        <div>
+          <h2 id="chain-heading">Make the path obvious.</h2>
+          <p>
+            Compose the sound left to right, split into two lanes when the rig gets wide,
+            and join it back at the output.
+          </p>
+        </div>
       </div>
       <SignalFlow />
-      <p class="chain-note muted">
-        NAM and cabinet blocks are mono stages; modulation preserves stereo; delays and reverbs keep the stereo dry field while summing their wet input to mono. <a href={url('/docs/signal-chain')}>Read the routing rules →</a>
-      </p>
+      <div class="section-link">
+        <a href={url('/docs/signal-chain')}>See the routing rules <span aria-hidden="true">↗</span></a>
+      </div>
     </div>
   </section>
 
-  <!-- ============ EFFECTS ============ -->
-  <section class="section" id="effects">
+  <section class="section effects-section" id="effects" aria-labelledby="effects-heading">
     <div class="container">
-      <div class="section-head">
-        <p class="eyebrow">Effect catalog</p>
-        <h2>Thirty-five effects, ready to drop in.</h2>
-        <p>Thirteen modulations, ten delays, and twelve reverbs — each with semantic controls and physical-value readouts. Every parameter is documented.</p>
+      <div class="showcase-head">
+        <div class="showcase-mark" aria-hidden="true">04</div>
+        <div>
+          <h2 id="effects-heading">Sound is the destination.</h2>
+          <p>
+            Modulation, delay, reverb, amp captures, cabinets, dynamics, and EQ—arranged
+            around the way a player thinks about a rig.
+          </p>
+        </div>
       </div>
-      <EffectCatalog />
-      <div class="effects-cta">
-        <a class="btn btn--ghost" href={url('/docs/effects')}>Full effects reference</a>
+      <EffectCatalog compact />
+      <div class="section-link">
+        <a href={url('/docs/effects')}>Open the effects reference <span aria-hidden="true">↗</span></a>
       </div>
     </div>
   </section>
 
-  <!-- ============ INTERFACE ============ -->
-  <section class="section" id="interface">
+  <section class="section closing-section" aria-labelledby="closing-heading">
     <div class="container">
-      <div class="section-head">
-        <p class="eyebrow">The interface</p>
-        <h2>Made to be played, not configured.</h2>
-        <p>The same LVGL interface runs on the Raspberry Pi Touch Display 2 and in the desktop simulator. Four preset slots up front, deep editing one tap away.</p>
-      </div>
-      <div class="screens-grid">
-        <ScreenFrame label="Preset screen" caption="Four slots per bank, master volume, and one-tap tuner.">
-          <PresetScreen />
-        </ScreenFrame>
-        <ScreenFrame label="Chain editor" caption="Drag, drop, and reorder blocks with live preview.">
-          <EditScreen />
-        </ScreenFrame>
-        <ScreenFrame label="5-band EQ" caption="Parametric bands with a live response graph.">
-          <EqScreen />
-        </ScreenFrame>
-        <ScreenFrame label="Tuner" caption="Muted chromatic tuner with note and cents guidance.">
-          <TunerScreen />
-        </ScreenFrame>
-      </div>
-      <p class="chain-note muted">
-        <a href={url('/docs/ui-guide')}>See the full UI &amp; controls guide →</a>
-      </p>
-    </div>
-  </section>
-
-  <!-- ============ OPEN SOURCE CTA ============ -->
-  <section class="section cta-band">
-    <div class="container cta-inner">
-      <div>
-        <p class="eyebrow">Fully open</p>
-        <h2>Build it, flash it, make it yours.</h2>
-        <p>Ardor is {site.license}-licensed end to end — the realtime engine, the touch UI, the manager apps, and a reproducible Buildroot firmware image. 3D-printable enclosure files included.</p>
-      </div>
-      <div class="cta-actions">
-        <a class="btn" href={site.repo} target="_blank" rel="noopener">View on GitHub</a>
-        <a class="btn btn--ghost" href={url('/docs/hardware')}>Hardware &amp; build</a>
+      <div class="closing-panel">
+        <div>
+          <p class="closing-label mono">OPEN HARDWARE / OPEN SOFTWARE</p>
+          <h2 id="closing-heading">Build the rig that follows you.</h2>
+          <p>
+            Ardor is {site.license}-licensed from the realtime engine to the touch UI,
+            manager, enclosure files, and reproducible firmware image.
+          </p>
+        </div>
+        <div class="closing-actions">
+          <a class="btn" href={site.repo} target="_blank" rel="noopener">View on GitHub</a>
+          <a class="btn btn--ghost" href={url('/docs/hardware')}>Hardware &amp; build</a>
+        </div>
       </div>
     </div>
   </section>
 </BaseLayout>
 
 <style>
-  /* hero */
   .hero {
-    position: relative;
-    overflow: hidden;
+    border-bottom: 1px solid var(--hairline);
+    background: var(--ground);
   }
+
   .hero-inner {
     display: grid;
-    grid-template-columns: 1.05fr 1fr;
-    gap: var(--sp-5);
+    grid-template-columns: minmax(0, 0.9fr) minmax(26rem, 1.1fr);
+    gap: clamp(var(--sp-5), 7vw, var(--sp-7));
     align-items: center;
-    padding-block: var(--sp-6);
-    min-height: min(80vh, 720px);
+    min-height: min(760px, calc(100vh - 4rem));
+    padding-block: clamp(var(--sp-5), 6vw, var(--sp-7));
   }
+
   .hero-copy {
-    min-width: 0;
-  }
-  .hero h1 {
-    font-size: var(--step-5);
-    margin-bottom: var(--sp-3);
-  }
-  .lead {
-    font-size: var(--step-1);
-    color: var(--muted);
-    max-width: 34rem;
-  }
-  .hero-cta {
-    display: flex;
-    gap: var(--sp-2);
-    flex-wrap: wrap;
-    margin-top: var(--sp-4);
-  }
-  .stat-strip {
-    list-style: none;
-    margin: var(--sp-5) 0 0;
-    padding: var(--sp-4) 0 0;
-    border-top: 1px solid var(--hairline);
-    display: grid;
-    grid-template-columns: repeat(4, auto);
-    gap: var(--sp-4);
-  }
-  .stat-strip li {
-    display: flex;
-    flex-direction: column;
-  }
-  .stat-val {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: var(--step-2);
-    color: var(--accent);
-    line-height: 1;
-  }
-  .stat-lbl {
-    font-size: var(--step--1);
-    color: var(--muted);
-    margin-top: 0.3rem;
-    max-width: 9rem;
-  }
-  .hero-stage {
     position: relative;
-    min-width: 0;
+    z-index: 1;
   }
 
-  /* features */
-  .feature-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-    gap: var(--sp-3);
-  }
-  .feature {
-    padding: var(--sp-4);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  .feature-kicker {
-    font-size: var(--step--1);
-    letter-spacing: 0.2em;
-    color: var(--accent);
-  }
-  .feature h3 {
-    margin: 0;
-  }
-  .feature p {
-    color: var(--muted);
-    margin: 0;
-  }
-  .feature-spec {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem 1.2rem;
-    margin: auto 0 0;
-    padding-top: var(--sp-3);
-    border-top: 1px solid var(--hairline);
-  }
-  .feature-spec div {
-    display: flex;
-    flex-direction: column;
-  }
-  .feature-spec dt {
-    font-size: 0.66rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--muted-2);
-  }
-  .feature-spec dd {
-    margin: 0;
-    color: var(--text-strong);
-    font-size: var(--step--1);
-  }
-
-  .chain-note {
-    margin-top: var(--sp-4);
-    font-size: var(--step-0);
-  }
-  .effects-cta {
-    margin-top: var(--sp-5);
-    display: flex;
-    justify-content: center;
-  }
-
-  /* interface */
-  .screens-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--sp-4);
-  }
-
-  /* cta band */
-  .cta-band {
-    background:
-      radial-gradient(80% 140% at 100% 0, rgba(60, 224, 166, 0.08), transparent 60%),
-      var(--ground-2);
-    border-radius: var(--radius-lg);
-  }
-  .cta-inner {
+  .hero-rule,
+  .hero-stage-rail {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--sp-5);
-    flex-wrap: wrap;
-  }
-  .cta-inner h2 {
-    margin-bottom: var(--sp-2);
-  }
-  .cta-inner p {
+    gap: var(--sp-3);
     color: var(--muted);
-    max-width: 40rem;
-  }
-  .cta-actions {
-    display: flex;
-    gap: var(--sp-2);
-    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    letter-spacing: 0.14em;
+    line-height: 1.2;
+    text-transform: uppercase;
   }
 
-  @media (max-width: 900px) {
+  .hero-rule {
+    max-width: 31rem;
+    margin-bottom: var(--sp-5);
+    padding-bottom: var(--sp-2);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .hero-rule span:first-child {
+    color: var(--accent);
+  }
+
+  .hero h1 {
+    max-width: 8ch;
+    margin-bottom: var(--sp-4);
+    color: var(--text-strong);
+    font-size: var(--step-5);
+    letter-spacing: -0.015em;
+  }
+
+  .hero h1 span {
+    color: var(--accent);
+  }
+
+  .lead {
+    max-width: 31rem;
+    color: var(--muted);
+    font-size: var(--step-1);
+    line-height: 1.35;
+  }
+
+  .hero-cta,
+  .closing-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+
+  .hero-cta {
+    margin-top: var(--sp-5);
+  }
+
+  .hero-facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--sp-3);
+    max-width: 35rem;
+    margin-top: var(--sp-6);
+    padding-top: var(--sp-3);
+    border-top: 1px solid var(--hairline);
+  }
+
+  .hero-facts span {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .hero-facts strong {
+    color: var(--text-strong);
+    font-family: var(--font-display);
+    font-size: var(--step-0);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .hero-facts small {
+    color: var(--muted-2);
+    font-size: var(--step--1);
+  }
+
+  .hero-stage-wrap {
+    min-width: 0;
+  }
+
+  .hero-stage-wrap :global(.stage) {
+    min-height: 0;
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+  }
+
+  .hero-stage-rail {
+    padding-top: var(--sp-2);
+    border-top: 1px solid var(--hairline);
+  }
+
+  .hero-stage-rail i {
+    display: inline-block;
+    width: 0.65em;
+    height: 0.65em;
+    margin-right: 0.45em;
+    background: var(--accent);
+    vertical-align: -0.02em;
+  }
+
+  .hero-stage-rail span:last-child {
+    color: var(--accent);
+  }
+
+  .showcase-head {
+    display: grid;
+    grid-template-columns: 4rem minmax(0, 1fr);
+    gap: var(--sp-4);
+    align-items: start;
+    max-width: 58rem;
+    margin-bottom: var(--sp-5);
+  }
+
+  .showcase-mark {
+    padding-top: 0.25rem;
+    border-top: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    letter-spacing: 0.12em;
+  }
+
+  .showcase-head h2 {
+    margin-bottom: var(--sp-3);
+  }
+
+  .showcase-head p {
+    max-width: 38rem;
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--step-1);
+    line-height: 1.35;
+  }
+
+  .screens-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(var(--sp-4), 4vw, var(--sp-5));
+  }
+
+  .section-link {
+    margin-top: var(--sp-5);
+    padding-top: var(--sp-3);
+    border-top: 1px solid var(--hairline);
+    font-family: var(--font-display);
+    font-size: var(--step-0);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .section-link a span {
+    display: inline-block;
+    margin-left: 0.35em;
+  }
+
+  .feature-list {
+    border-top: 1px solid var(--hairline);
+  }
+
+  .feature-row {
+    display: grid;
+    grid-template-columns: 3rem 5rem minmax(12rem, 0.75fr) minmax(14rem, 1fr);
+    gap: var(--sp-3);
+    align-items: baseline;
+    padding: var(--sp-4) 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .feature-index,
+  .feature-kicker {
+    color: var(--muted-2);
+    font-size: var(--step--1);
+    letter-spacing: 0.12em;
+  }
+
+  .feature-kicker {
+    color: var(--family);
+  }
+
+  .feature-row h3 {
+    margin: 0;
+    font-size: var(--step-1);
+  }
+
+  .feature-row p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .chain-section :global(.flow) {
+    margin-top: var(--sp-5);
+  }
+
+  .closing-panel {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--sp-5);
+    align-items: end;
+    padding: clamp(var(--sp-4), 5vw, var(--sp-6));
+    border: 1px solid var(--hairline-strong);
+    background: var(--surface);
+  }
+
+  .closing-label {
+    margin-bottom: var(--sp-3);
+    color: var(--accent);
+    font-size: var(--step--1);
+    letter-spacing: 0.16em;
+  }
+
+  .closing-panel h2 {
+    margin-bottom: var(--sp-2);
+  }
+
+  .closing-panel p:not(.closing-label) {
+    max-width: 40rem;
+    margin-bottom: 0;
+    color: var(--muted);
+  }
+
+  .closing-actions {
+    flex: none;
+  }
+
+  @media (max-width: 1000px) {
     .hero-inner {
       grid-template-columns: 1fr;
-      padding-block: var(--sp-5);
+      min-height: auto;
     }
-    .hero-stage {
-      order: -1;
+
+    .hero-stage-wrap {
+      max-width: 52rem;
+      margin-inline: auto;
     }
-    .stat-strip {
-      grid-template-columns: 1fr 1fr;
+
+    .hero-copy {
+      max-width: 42rem;
     }
+  }
+
+  @media (max-width: 760px) {
     .screens-grid {
       grid-template-columns: 1fr;
+    }
+
+    .feature-row {
+      grid-template-columns: 2.5rem 1fr;
+      gap: 0.45rem var(--sp-3);
+    }
+
+    .feature-row h3,
+    .feature-row p {
+      grid-column: 2;
+    }
+
+    .feature-kicker {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .feature-index {
+      grid-row: 1 / span 3;
+    }
+
+    .closing-panel {
+      align-items: start;
+      flex-direction: column;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .hero h1 {
+      font-size: clamp(3rem, 17vw, 5rem);
+    }
+
+    .hero-facts {
+      grid-template-columns: 1fr;
+      gap: var(--sp-2);
+    }
+
+    .hero-stage-rail {
+      font-size: 0.63rem;
     }
   }
 </style>

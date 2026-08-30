@@ -1,78 +1,202 @@
 ---
 import './screens.css';
+
 const slots = [
-  { name: 'Clean Verb', active: true },
-  { name: 'Crunch Rig', active: false },
-  { name: 'Lead Bloom', active: false },
-  { name: 'Ambient Wash', active: false },
+  { number: '1', name: 'Midnight Clean', fs: 'FS 1', position: 'tl', family: ['amp', 'cab', 'reverb'] },
+  { number: '3', name: 'Split Rig / Wide', fs: 'FS 3', position: 'tr', family: ['util', 'mod', 'delay'] },
+  { number: '2', name: 'Drive Stack', fs: 'FS 2', position: 'bl', live: true, family: ['amp', 'cab', 'delay'] },
+  { number: '4', name: 'Ambient Bloom', fs: 'FS 4', position: 'br', fault: true, family: [] },
 ];
 ---
 
 <div class="screen preset">
   <div class="scr-head">
-    <span class="scr-btn scr-btn--accent">Tuner</span>
-    <span class="scr-btn scr-btn--muted">Bank −</span>
-    <span class="scr-title">BANK 000</span>
-    <span class="scr-btn">Bank +</span>
-    <span class="scr-btn">Edit</span>
+    <span class="scr-title">Ardor</span>
+    <span class="scr-context">Bank 000 · Set A</span>
+    <span class="scr-spacer"></span>
+    <span class="scr-meta">48 kHz · Blk 64</span>
+    <span class="scr-lamp scr-lamp--family" aria-hidden="true"></span>
+    <span class="scr-status scr-status--family">MIDI</span>
   </div>
 
   <div class="preset-grid">
-    {slots.map((s) => (
-      <div class:list={['slot', { 'slot--active': s.active }]}>
-        {s.active && <span class="slot-bar"></span>}
-        <span class="slot-name">{s.name}</span>
+    {slots.map((slot) => (
+      <div class:list={['preset-slot', slot.position, { live: slot.live, fault: slot.fault }]}>
+        <div class="slot-head">
+          <span>Preset {slot.number}{slot.live ? ' · Running' : ''}</span>
+          <span class:list={['scr-lamp', { 'scr-lamp--live': slot.live, 'scr-lamp--warn': slot.fault }]} aria-hidden="true"></span>
+        </div>
+        <div class="slot-body">
+          <span class="slot-number">{slot.number}</span>
+          <span class="slot-name">{slot.name}</span>
+          {slot.family.length > 0 ? (
+            <div class="slot-families" aria-label="Preset modules">
+              {slot.family.map((family) => <i class={`family-${family}`}></i>)}
+            </div>
+          ) : (
+            <span class="slot-fault">Asset not found</span>
+          )}
+        </div>
+        <span class="slot-switch">{slot.fs}</span>
       </div>
     ))}
   </div>
 
   <div class="scr-foot">
-    <span>BUFFER 41% USED</span>
-    <span class="master">Master 82%</span>
-    <span>EXP: DELAY MIX</span>
-    <span>MIDI</span>
-    <span class="scr-gear" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="60%" height="60%" fill="currentColor"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 4-2.1-.6a7 7 0 0 0-.5-1.2l1-1.9-1.7-1.7-1.9 1a7 7 0 0 0-1.2-.5L13.9 3h-3.8l-.6 2.1a7 7 0 0 0-1.2.5l-1.9-1L4.7 6.3l1 1.9a7 7 0 0 0-.5 1.2L3 12l2.1.6c.1.4.3.8.5 1.2l-1 1.9 1.7 1.7 1.9-1c.4.2.8.4 1.2.5L11 21h3.8l.6-2.1c.4-.1.8-.3 1.2-.5l1.9 1 1.7-1.7-1-1.9c.2-.4.4-.8.5-1.2L21 12Z"/></svg>
-    </span>
+    <span class="scr-btn scr-btn--primary">Edit</span>
+    <span class="scr-btn">Tuner</span>
+    <span class="scr-btn scr-btn--small">Bank −</span>
+    <span class="scr-btn scr-btn--small">Bank +</span>
+    <span class="scr-btn scr-btn--small">Setup</span>
+    <div class="scr-scale">
+      <div class="scr-scale-top">
+        <span class="scr-foot-label">Master</span>
+        <span class="scr-scale-value">72</span>
+      </div>
+      <div class="scr-track">
+        <i class="major" style="left:0"></i><i style="left:25%"></i><i class="major" style="left:50%"></i>
+        <i style="left:75%"></i><i class="major" style="left:100%"></i>
+        <span class="scr-fill" style="width:72%"></span><span class="scr-handle" style="left:72%"></span>
+      </div>
+    </div>
   </div>
 </div>
 
 <style>
   .preset-grid {
     position: absolute;
-    inset: 15% 2.6cqw 9.5% 2.6cqw;
+    top: 7.22%;
+    right: 0;
+    bottom: 12.22%;
+    left: 0;
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
-    gap: 1.6cqw;
-    padding-block: 1.2cqw;
+    gap: 2.2cqw 1.4cqw;
+    padding: 2.5cqw 2.2cqw;
   }
-  .slot {
+
+  .preset-slot {
     position: relative;
-    display: grid;
-    place-items: center;
-    background: #12191d;
-    border: 0.16cqw solid rgba(120, 200, 170, 0.16);
-    border-radius: 1.4cqw;
+    display: flex;
+    flex-direction: column;
+    border: 0.14cqw solid var(--scr-rule);
+    background: var(--scr-plate2);
   }
-  .slot--active {
-    border-color: rgba(60, 224, 166, 0.4);
+
+  .preset-slot.live {
+    border-color: var(--scr-live);
   }
-  .slot-bar {
-    position: absolute;
-    left: 1.6cqw;
-    top: 12%;
-    bottom: 12%;
-    width: 0.7cqw;
-    border-radius: 1cqw;
-    background: var(--scr-accent);
-    box-shadow: 0 0 2cqw rgba(60, 224, 166, 0.6);
+
+  .preset-slot.fault {
+    border-color: var(--scr-fault);
   }
-  .slot-name {
-    font-size: 5cqw;
+
+  .slot-head {
+    display: flex;
+    align-items: center;
+    gap: 1.4cqw;
+    height: 3.6cqw;
+    padding: 0 1.2cqw;
+    background: var(--scr-plate3);
+    color: var(--scr-engrave-lo);
+    font-size: 1.65cqw;
     font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
   }
-  .slot--active .slot-name {
-    color: var(--scr-accent);
+
+  .slot-head .scr-lamp {
+    width: 1.05cqw;
+    height: 1.05cqw;
+    margin-left: auto;
+  }
+
+  .slot-body {
+    display: grid;
+    grid-template-columns: 7cqw 1fr;
+    align-content: center;
+    gap: 0.5cqw 0.8cqw;
+    flex: 1;
+    padding: 0 2cqw;
+  }
+
+  .slot-number {
+    grid-row: span 2;
+    align-self: center;
+    color: var(--scr-engrave-lo);
+    font-family: 'Saira', sans-serif;
+    font-size: 6.2cqw;
+    font-weight: 300;
+    line-height: 0.85;
+  }
+
+  .live .slot-number {
+    color: var(--scr-live);
+  }
+
+  .slot-name {
+    align-self: end;
+    color: var(--scr-engrave);
+    font-size: 3.45cqw;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    line-height: 0.95;
+    text-transform: uppercase;
+  }
+
+  .fault .slot-name {
+    color: var(--scr-fault-text);
+  }
+
+  .slot-families {
+    display: flex;
+    gap: 0.55cqw;
+    align-items: center;
+    margin-top: 1cqw;
+  }
+
+  .slot-families i {
+    width: 5.2cqw;
+    height: 0.35cqw;
+    background: var(--scr-rule);
+  }
+
+  .slot-families .family-amp { background: var(--scr-amp); }
+  .slot-families .family-cab { background: var(--scr-cab); }
+  .slot-families .family-util { background: var(--scr-util); }
+  .slot-families .family-mod { background: var(--scr-mod); }
+  .slot-families .family-delay { background: var(--scr-delay); }
+  .slot-families .family-reverb { background: var(--scr-reverb); }
+
+  .slot-fault {
+    align-self: start;
+    margin-top: 1cqw;
+    padding: 0.65cqw 1cqw;
+    border: 0.14cqw solid var(--scr-fault);
+    color: var(--scr-fault-text);
+    font-size: 1.5cqw;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .slot-switch {
+    position: absolute;
+    right: 1.5cqw;
+    bottom: 1.2cqw;
+    color: var(--scr-engrave-lo);
+    font-size: 1.45cqw;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  .live .slot-switch {
+    color: var(--scr-live);
+  }
+
+  .fault .slot-switch {
+    color: var(--scr-fault-text);
   }
 </style>
