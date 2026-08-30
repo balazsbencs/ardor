@@ -1,0 +1,194 @@
+(footprint
+  "I2S_CODEC_TEST_POINTS_DNI"
+  (version 20240108)
+  (generator pcbnew)
+  (generator_version 8.0)
+  (layer F.Cu)
+  (at 0 0 0)
+  (descr "")
+  (tags "")
+  (attr through_hole)
+  (embedded_fonts no)
+  (property "Reference" "REF**"
+    (at 0 -1.35 0)
+    (layer F.SilkS)
+    (uuid 24523964-37bd-2c24-4b28-1ee45e9311a4)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Value" "Val**"
+    (at 0 1.35 0)
+    (layer F.Fab)
+    (uuid 3feb56e8-1db3-6b98-7b52-2e18270f0f68)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Datasheet" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 796c3f10-7328-ce30-5fbd-db704c52e8b0)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Description" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 39bd12c2-1e36-51a2-02af-908218d7309e)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "MCLK"
+    (at -6.35 -1.2749999999999986 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "BCLK"
+    (at -3.8099999999999996 -1.2749999999999986 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "WCLK"
+    (at -1.2699999999999996 -1.2749999999999986 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "DATIN"
+    (at 1.2700000000000005 -1.2749999999999986 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "DATOUT"
+    (at 3.8100000000000005 -1.2749999999999986 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "GND"
+    (at 6.35 -1.2749999999999986 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.54 0.54)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    reference
+    "REF**"
+    (at 0 -2.539999999999999 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.7 0.7)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_rect
+    (start -8.12 -1.77)
+    (end 8.12 1.77)
+    (layer F.CrtYd)
+    (stroke
+      (width 0.05)
+      (type default)
+    )
+    (fill no)
+  )
+  (pad "1" thru_hole rect
+    (at -6.35 0 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 4ff86080-3a90-a27f-2528-e47e0fc1267d)
+  )
+  (pad "2" thru_hole circle
+    (at -3.8099999999999996 0 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 27d75fa0-3d3f-1da1-52a6-dba2680e99a3)
+  )
+  (pad "3" thru_hole circle
+    (at -1.2699999999999996 0 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 6058e040-4af1-223f-3589-643e2021a63d)
+  )
+  (pad "4" thru_hole circle
+    (at 1.2700000000000005 0 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 1776dfe0-2cde-9de1-4246-5be257ae19e3)
+  )
+  (pad "5" thru_hole circle
+    (at 3.8100000000000005 0 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 70b96000-5b51-a1ff-45e9-e3fe308225fd)
+  )
+  (pad "6" thru_hole circle
+    (at 6.35 0 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers *.Cu *.Mask)
+    (uuid 07166020-1c7e-1e21-31e5-dc22474d9a23)
+  )
+)

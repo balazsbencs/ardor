@@ -72,8 +72,40 @@
   },
   "sheets": [
     [
-      "1d00d7be-38f8-4c44-98c1-0007d015dcae",
+      "f3254a06-b8ab-46d4-bfbc-2b38068ea5b0",
       "Root"
+    ],
+    [
+      "41ff868c-bf57-46f5-8a3e-d62377457b21",
+      "gpio_header"
+    ],
+    [
+      "ad637b01-2401-411b-9394-facbfbd63710",
+      "power_reference"
+    ],
+    [
+      "2955d700-4eab-49f4-8902-4ba6a1e14c27",
+      "guitar_input"
+    ],
+    [
+      "f35733bf-2d04-43cf-87e2-016a5396e0a5",
+      "codec_output_processing"
+    ],
+    [
+      "ddf4e3c5-06d9-4437-a8a2-3cddeb3c676e",
+      "relay_outputs"
+    ],
+    [
+      "499d89bc-a55b-4185-b246-c565785bbd5f",
+      "midi_input"
+    ],
+    [
+      "27d66686-e31e-4f66-8cdc-06ee0c197cd9",
+      "expression_input"
+    ],
+    [
+      "502c74e5-7fa2-4151-b752-e62d9f9758d3",
+      "output_mute"
     ]
   ]
 }

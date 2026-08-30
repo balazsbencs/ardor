@@ -1,0 +1,114 @@
+(footprint
+  "ATQ209_TQ2-5V"
+  (version 20240108)
+  (generator pcbnew)
+  (generator_version 8.0)
+  (layer F.Cu)
+  (at 0 0 0)
+  (descr "")
+  (tags "")
+  (attr through_hole)
+  (embedded_fonts no)
+  (property "Reference" "REF**"
+    (at 0 -5.059999999999999 0)
+    (layer F.SilkS)
+    (uuid 179807f6-50d7-f60a-46b8-0bf621b7f20a)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Value" "Val**"
+    (at 0 5.060000000000002 0)
+    (layer F.Fab)
+    (uuid 5346abd6-5fe6-c5ea-1314-37aa39be5696)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Datasheet" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 232ba15e-7464-60a2-0bf4-62a25c7b9b5e)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Description" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 032fbaec-0f98-3ccc-1c00-beac2869408c)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (pad "1" thru_hole circle
+    (at -3.81 -3.8099999999999987 0)
+    (size 1.5 1.5)
+    (drill 0.9)
+    (layers *.Cu *.Mask)
+    (uuid 54df4c20-4525-cd1f-20d5-19a2792fff9d)
+  )
+  (pad "2" thru_hole circle
+    (at -3.81 -1.2699999999999996 0)
+    (size 1.5 1.5)
+    (drill 0.9)
+    (layers *.Cu *.Mask)
+    (uuid 6d3d75c0-2cc7-a37f-3933-434260d1d5fd)
+  )
+  (pad "3" thru_hole circle
+    (at -3.81 1.2699999999999996 0)
+    (size 1.5 1.5)
+    (drill 0.9)
+    (layers *.Cu *.Mask)
+    (uuid 7a6460a0-1469-79df-5191-6ce24873ac5d)
+  )
+  (pad "4" thru_hole circle
+    (at -3.81 3.8100000000000023 0)
+    (size 1.5 1.5)
+    (drill 0.9)
+    (layers *.Cu *.Mask)
+    (uuid 62063700-03f4-afc1-69ef-9682301582bd)
+  )
+  (pad "10" thru_hole circle
+    (at 3.81 -3.8099999999999987 0)
+    (size 1.5 1.5)
+    (drill 0.9)
+    (layers *.Cu *.Mask)
+    (uuid 6e262f56-14c4-3e16-449d-b32a62005b96)
+  )
+  (pad "9" thru_hole circle
+    (at 3.81 -1.2699999999999996 0)
+    (size 1.5 1.5)
+    (drill 0.9)
+    (layers *.Cu *.Mask)
+    (uuid 17d09920-7dcb-7fe1-1c39-995e49c14d63)
+  )
+  (pad "8" thru_hole circle
+    (at 3.81 1.2699999999999996 0)
+    (size 1.5 1.5)
+    (drill 0.9)
+    (layers *.Cu *.Mask)
+    (uuid 008d9080-656d-5641-3497-c2fe316323c3)
+  )
+  (pad "7" thru_hole circle
+    (at 3.81 3.8100000000000023 0)
+    (size 1.5 1.5)
+    (drill 0.9)
+    (layers *.Cu *.Mask)
+    (uuid 18ebba20-4d0f-2ca1-4cf5-ec9e1904fa23)
+  )
+)

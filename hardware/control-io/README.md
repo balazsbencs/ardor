@@ -28,12 +28,21 @@ The design provides:
   script.
 - `check-connectivity.ts`: automated pin/net and isolation-boundary checks.
 - `control-io.circuit.json`: generated tscircuit Circuit JSON.
+- `control-io.sheets.circuit.json`: the same settled connectivity with the Rev B
+  documentation split into eight functional sheets.
 - `control-io.kicad_pro`: KiCad project metadata.
-- `control-io.kicad_sch`: generated native KiCad schematic.
+- `control-io.kicad_sch`: generated hierarchical KiCad root schematic. Its
+  `gpio_header`, `power_reference`, `guitar_input`,
+  `codec_output_processing`, `relay_outputs`, `midi_input`,
+  `expression_input`, and `output_mute` child sheets are generated alongside it.
 - `tscircuit.pretty/`, `fp-lib-table`: generated, project-local KiCad footprints.
 - `tscircuit.kicad_sym`, `sym-lib-table`: generated project-local symbol library.
-- `control-io.svg`: generated vector schematic preview.
-- `control-io.pdf`: generated one-page A3 landscape schematic.
+- `control-io.svg`: stacked vector overview of every functional sheet.
+- `control-io-01-*.svg` through `control-io-08-*.svg`: tightly cropped,
+  readable feature schematics.
+- `control-io.pdf`: eight-page A3 landscape schematic set.
+- `REV-B-REVIEW.md`: electrical audit, corrected findings, calculations, and
+  remaining fabrication gates.
 
 Regenerate and verify with Node 24:
 
@@ -115,13 +124,14 @@ boundary, not mains-safety isolation.
 
 ## Expression input
 
-The expression jack is for a passive potentiometer pedal with sleeve as the
+The expression jack is only for a passive potentiometer pedal with sleeve as the
 ground end. SW1 is a mechanically linked DPDT switch that swaps tip/ring between
 3.3 V excitation and the ADC wiper, covering the two common pedal polarities.
 R23 limits a shorted cable to approximately 3 mA. R24/C13 form a 4.7 kΩ/100 nF low-pass
 filter, D10 clamps the ADC node, and low-capacitance TVS parts route connector
-ESD to chassis. D17 prevents an externally powered expression pedal from
-back-feeding the Pi 3.3 V rail. ADS1115 address pin is grounded (`0x48`);
+ESD to chassis. D17 blocks reverse current through the pedal excitation path,
+but the input is not a general-purpose control-voltage input: an externally
+powered pedal can still drive the ADC protection clamp. ADS1115 address pin is grounded (`0x48`);
 unused inputs return to ground through 1 kΩ.
 
 ## Power and layout requirements
@@ -140,8 +150,10 @@ For PCB layout:
   region before traces enter the quiet circuit area.
 - Keep the MIDI isolated copper island and its creepage gap free of pours and
   routing. Use a DIP-6 optocoupler footprint if generous separation is desired.
-- Join AGND and DGND at the single schematic connection near the power entry;
-  do not create another split-ground crossing under the audio paths.
+- Treat AGND and DGND as one electrical 0 V net and use a continuous reference
+  plane. Partition noisy relay/digital return currents by placement and routing,
+  not by cutting the ground plane. Keep CHASSIS separate except for the defined
+  R30/C27/D18 coupling network (and optional DNI R31 bond).
 - Put U1, its 100 nF bypass, and the 2.25 V reference together. Keep the 1 MΩ
   guitar node short, guarded by VREF where practical, and away from I2S/display
   clocks and relay-coil routing.
@@ -159,12 +171,14 @@ parts before releasing a board.
 
 ## Engineering status
 
-This revision is a reviewed schematic architecture, not a released production
-PCB. Components have concrete tscircuit footprints and the generated model has
-no missing-footprint errors, but connector, relay, switch, and enclosure
-mechanicals still require validation against purchased parts. Before manufacturing,
-complete a PCB layout, map/verify the generated footprint fields in KiCad, run
-KiCad ERC/DRC, perform analogue simulation or bench gain/headroom
+This revision has passed the connectivity and documentation checks recorded in
+`REV-B-REVIEW.md`, but it is not a released production PCB. Components have
+concrete tscircuit footprints and the generated model has no missing-footprint
+errors; connector, relay, switch, and enclosure mechanicals still require
+validation against purchased parts. The generated project does not contain a
+placed and routed fabrication PCB. Before manufacturing, complete that PCB,
+map and verify every generated footprint field in KiCad, run KiCad ERC/DRC,
+perform analogue simulation or bench gain/headroom
 measurements, and validate IEC 61000-4-2 contact/air ESD, radiated immunity,
 conducted noise, hot-plug pops, relay timing, and ground-loop behavior on the
 assembled Raspberry Pi + display + Codec Zero system.

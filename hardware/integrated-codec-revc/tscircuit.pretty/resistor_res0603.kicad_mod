@@ -1,0 +1,112 @@
+(footprint
+  "resistor_res0603"
+  (version 20240108)
+  (generator pcbnew)
+  (generator_version 8.0)
+  (layer F.Cu)
+  (at 0 0 0)
+  (descr "")
+  (tags "")
+  (attr smd)
+  (embedded_fonts no)
+  (property "Reference" "REF**"
+    (at 0 -0.975 0)
+    (layer F.SilkS)
+    (uuid 0ac314a0-75e4-a59f-0973-a02277341a1d)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Value" "Val**"
+    (at 0 0.975 0)
+    (layer F.Fab)
+    (uuid 186a4a20-0302-8c1f-1265-31e227ccefe3)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Datasheet" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 4c1f5b20-3338-eaa1-4d6e-cf9e31e97623)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Description" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 02802c40-07dd-a961-123b-7f021c9954a3)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    reference
+    "REF**"
+    (at 0 -1.375 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.4 0.4)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_line
+    (start -0.23725799999999708 -0.5224999999999937)
+    (end 0.23725799999999708 -0.5224999999999937)
+    (stroke
+      (width 0.12)
+      (type default)
+    )
+    (layer F.SilkS)
+  )
+  (fp_line
+    (start -0.23725799999999708 0.5224999999999937)
+    (end 0.23725799999999708 0.5224999999999937)
+    (stroke
+      (width 0.12)
+      (type default)
+    )
+    (layer F.SilkS)
+  )
+  (fp_rect
+    (start -1.48 -0.73)
+    (end 1.48 0.73)
+    (layer F.CrtYd)
+    (stroke
+      (width 0.05)
+      (type default)
+    )
+    (fill no)
+  )
+  (pad "1" smd rect
+    (at -0.8250000000000028 0 0)
+    (size 0.8 0.95)
+    (layers F.Cu F.Paste F.Mask)
+    (uuid 2068bdfe-56ec-a4a2-31bd-f8be459769e2)
+  )
+  (pad "2" smd rect
+    (at 0.8250000000000028 0 0)
+    (size 0.8 0.95)
+    (layers F.Cu F.Paste F.Mask)
+    (uuid 29c8db44-5ee1-c21c-1873-a0847036fcdc)
+  )
+  (model "../../3dmodels/tscircuit_builtin.3dshapes/res0603.step"
+  )
+)

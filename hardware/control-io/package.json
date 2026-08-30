@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "generate": "tsx generate-schematic.tsx",
-    "check": "tsx check-connectivity.ts"
+    "check": "tsx check-connectivity.ts",
+    "generate:revc": "tsx ../integrated-codec-revc/generate-schematic.tsx && tsx ../integrated-codec-revc/generate-wiring-svg.ts",
+    "check:revc": "tsx ../integrated-codec-revc/check-connectivity.ts"
   },
   "devDependencies": {
     "@tscircuit/circuit-json-util": "0.0.102",

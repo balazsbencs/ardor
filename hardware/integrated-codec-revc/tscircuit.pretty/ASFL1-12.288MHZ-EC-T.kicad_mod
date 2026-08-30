@@ -1,0 +1,92 @@
+(footprint
+  "ASFL1-12.288MHZ-EC-T"
+  (version 20240108)
+  (generator pcbnew)
+  (generator_version 8.0)
+  (layer F.Cu)
+  (at 0 0 0)
+  (descr "")
+  (tags "")
+  (attr smd)
+  (embedded_fonts no)
+  (property "Reference" "REF**"
+    (at 0 -3.100000000000006 0)
+    (layer F.SilkS)
+    (uuid 0252f980-1814-0bff-2dd5-1e7e439630fd)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Value" "Val**"
+    (at 0 3.100000000000006 0)
+    (layer F.Fab)
+    (uuid 53920240-2d15-b7ff-5242-8dc22e652c7d)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Datasheet" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 440fee40-59d1-00bf-6f92-133e7aacda43)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Description" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 06ebb1a0-4f4d-dbc1-5a78-96de043f097d)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_circle
+    (center -3.65 -2.5999999999999943)
+    (end -3.4 -2.5999999999999943)
+    (layer F.SilkS)
+    (stroke
+      (width 0.1)
+      (type default)
+    )
+    (fill no)
+  )
+  (pad "1" smd rect
+    (at -2.54 -1.9000000000000057 0)
+    (size 1.8 1.4)
+    (layers F.Cu F.Paste F.Mask)
+    (uuid 294df714-0963-ab4c-3c15-4dac6ec6f00c)
+  )
+  (pad "2" smd rect
+    (at -2.54 1.9000000000000057 0)
+    (size 1.8 1.4)
+    (layers F.Cu F.Paste F.Mask)
+    (uuid 100319ae-42b4-bc0e-7566-5e6e57e7ff32)
+  )
+  (pad "3" smd rect
+    (at 2.54 1.9000000000000057 0)
+    (size 1.8 1.4)
+    (layers F.Cu F.Paste F.Mask)
+    (uuid 49542a70-7c05-ccd0-5148-90d01e96ee70)
+  )
+  (pad "4" smd rect
+    (at 2.54 -1.9000000000000057 0)
+    (size 1.8 1.4)
+    (layers F.Cu F.Paste F.Mask)
+    (uuid 7d5ac4ce-4aa9-226e-17f7-800e1aba2252)
+  )
+)

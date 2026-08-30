@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "head": {
+    "generator": "circuit-json-to-kicad",
+    "generator_version": "0.0.1",
+    "project_name": "ardor-revc",
+    "created": "2026-08-22T00:00:00.000Z",
+    "modified": "2026-08-22T00:00:00.000Z"
+  },
+  "meta": {
+    "version": 1
+  },
+  "text_variables": {},
+  "libraries": {
+    "pinned_symbol_libs": [],
+    "pinned_footprint_libs": []
+  },
+  "boards": [],
+  "cvpcb": {
+    "meta": {
+      "version": 0
+    }
+  },
+  "erc": {
+    "meta": {
+      "version": 0
+    },
+    "erc_exclusions": []
+  },
+  "net_settings": {
+    "meta": {
+      "version": 1
+    },
+    "last_net_id": 0,
+    "classes": [
+      {
+        "name": "Default",
+        "track_width": 0.1,
+        "via_diameter": 0.3,
+        "via_drill": 0.2,
+        "clearance": 0.1
+      }
+    ]
+  },
+  "pcbnew": {
+    "page_layout_descr_file": "",
+    "last_paths": {}
+  },
+  "schematic": {
+    "meta": {
+      "version": 1
+    },
+    "page_layout_descr_file": "",
+    "last_opened_files": [
+      "ardor-revc.kicad_sch"
+    ]
+  },
+  "board": {
+    "meta": {
+      "version": 1
+    },
+    "design_settings": {
+      "rules": {
+        "min_via_annular_width": 0.04999999999999999,
+        "min_hole_clearance": 0.1,
+        "min_via_diameter": 0.3,
+        "min_track_width": 0.1,
+        "min_through_hole_diameter": 0.2
+      }
+    },
+    "last_opened_board": "ardor-revc.kicad_pcb"
+  },
+  "sheets": [
+    [
+      "bf9c4187-8f80-4a1d-979e-c687732e5894",
+      "Root"
+    ]
+  ]
+}

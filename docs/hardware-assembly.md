@@ -46,6 +46,7 @@ Do not use these GPIOs for pedal controls:
 | GPIO1 | 28 | HAT ID EEPROM bus |
 | GPIO2 | 3 | I2C SDA |
 | GPIO3 | 5 | I2C SCL |
+| GPIO4 | 7 | Keep free; not used by Rev B because its boot state is unsuitable for fail-safe control |
 | GPIO10 | 19 | Audio output relay enable (default-low) |
 | GPIO8 | 24 | UART4 TX reserved for future MIDI output |
 | GPIO9 | 21 | UART4 RX for TRS MIDI input |
@@ -119,7 +120,7 @@ View looking down at the Raspberry Pi GPIO header, USB/Ethernet ports to the rig
  3V3  (1) (2)  5V             display power if used
  GPIO2(3) (4)  5V             display power alternative
  GPIO3(5) (6)  GND            display ground if used
- GPIO4(7) (8)  GPIO14         free
+ GPIO4(7) (8)  GPIO14         keep GPIO4 free / GPIO14 unused
  GND  (9) (10) GPIO15
  GPIO17(11)(12) GPIO18        encoder A / I2S clock reserved
  GPIO27(13)(14) GND           Codec Zero button / ground
