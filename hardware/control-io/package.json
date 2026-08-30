@@ -3,18 +3,22 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "generate": "tsx generate-schematic.tsx"
+    "generate": "tsx generate-schematic.tsx",
+    "check": "tsx check-connectivity.ts"
   },
   "devDependencies": {
     "@tscircuit/circuit-json-util": "0.0.102",
     "circuit-json-to-kicad": "0.0.171",
+    "circuit-to-svg": "0.0.407",
     "earcut": "3.0.2",
     "kicadts": "0.0.49",
     "polygon-clipping": "0.15.7",
+    "pdfkit": "0.17.2",
     "react": "19.2.8",
     "schematic-symbols": "0.0.238",
     "transformation-matrix": "3.1.0",
     "tscircuit": "0.0.2046",
-    "tsx": "4.20.6"
+    "tsx": "4.20.6",
+    "svg-to-pdfkit": "0.1.8"
   }
 }

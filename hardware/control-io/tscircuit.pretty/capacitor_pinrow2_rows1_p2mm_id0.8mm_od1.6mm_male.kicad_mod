@@ -1,0 +1,120 @@
+(footprint
+  "capacitor_pinrow2_rows1_p2mm_id0.8mm_od1.6mm_male"
+  (version 20240108)
+  (generator pcbnew)
+  (generator_version 8.0)
+  (layer F.Cu)
+  (at 0 0 0)
+  (descr "")
+  (tags "")
+  (attr through_hole)
+  (embedded_fonts no)
+  (property "Reference" "REF**"
+    (at 0 -1.3000000000000003 0)
+    (layer F.SilkS)
+    (uuid 20b42de2-55cc-b9a2-751a-ba9e40022ede)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Value" "Val**"
+    (at 0 1.3000000000000003 0)
+    (layer F.Fab)
+    (uuid 34b568ae-69e2-9b52-087a-9f5258ed5cae)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Datasheet" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 7fb5b5ca-4a9d-2a0a-1584-9e4a1f93ed76)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (property "Description" ""
+    (at 0 0 0)
+    (layer F.Fab)
+    (hide yes)
+    (uuid 15b0e4bc-3b73-bae4-7367-a57c224305dc)
+    (effects
+      (font
+        (size 1.27 1.27)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "pin1"
+    (at -1 -1.2000000000000008 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.52 0.52)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    user
+    "pin2"
+    (at 1 -1.1999999999999995 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.52 0.52)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_text
+    reference
+    "REF**"
+    (at -2.2884754904439333e-17 -2 0)
+    (layer F.SilkS)
+    (effects
+      (font
+        (size 0.7 0.7)
+        (thickness 0.15)
+      )
+    )
+  )
+  (fp_rect
+    (start -2.5 -1.5)
+    (end 2.5 1.5)
+    (layer F.CrtYd)
+    (stroke
+      (width 0.05)
+      (type default)
+    )
+    (fill no)
+  )
+  (pad "1" thru_hole rect
+    (at -1 1.2246467991473532e-16 0)
+    (size 1.6 1.6)
+    (drill 0.8)
+    (layers *.Cu *.Mask)
+    (uuid 768adc20-133e-575f-62f8-752226d0be5d)
+  )
+  (pad "2" thru_hole circle
+    (at 1 -1.2246467991473532e-16 0)
+    (size 1.6 1.6)
+    (drill 0.8)
+    (layers *.Cu *.Mask)
+    (uuid 75548940-1474-aa3f-61c2-22422807113d)
+  )
+  (model "../../3dmodels/tscircuit_builtin.3dshapes/pinrow2_rows1_p2mm_id0.8mm_od1.6mm_male.step"
+  )
+)
