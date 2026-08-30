@@ -1,0 +1,59 @@
+---
+import { url } from '../lib/url';
+---
+
+<figure class="stage">
+  <img
+    src={url('/ardor-pedal-hero.webp')}
+    alt="2D product illustration of the Ardor pedal with a central touchscreen, four footswitches, and a rear encoder."
+    width="1536"
+    height="1024"
+    loading="eager"
+    fetchpriority="high"
+    decoding="async"
+  />
+  <figcaption class="stage-badge mono">2D PRODUCT STUDY</figcaption>
+</figure>
+
+<style>
+  .stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--hairline);
+    background: var(--ground);
+  }
+
+  .stage::after {
+    content: '';
+    position: absolute;
+    inset: 1rem;
+    border: 1px solid var(--hairline);
+    pointer-events: none;
+  }
+
+  .stage img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .stage-badge {
+    position: absolute;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 1;
+    margin: 0;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--hairline-strong);
+    color: var(--muted);
+    background: rgba(20, 23, 25, 0.88);
+    font-size: 0.64rem;
+    letter-spacing: 0.16em;
+  }
+</style>

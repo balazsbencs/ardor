@@ -20,7 +20,7 @@ const lanes = [
 ];
 ---
 
-<div class="flow" role="img" aria-label="Signal chain: input, noise gate and compressor feed a split; two parallel lanes run through amp, cabinet and effects blocks; join merges them to the stereo output and limiter.">
+<div class="flow" role="img" aria-label="Left-to-right signal chain: input, noise gate and compressor feed a split; two parallel lanes run through amp, cabinet and effects blocks; join merges them to the stereo output and limiter.">
   <div class="chain pre">
     {pre.map((b, i) => (
       <>
@@ -33,7 +33,7 @@ const lanes = [
     ))}
   </div>
 
-  <span class="vconn" aria-hidden="true"></span>
+  <span class="conn" aria-hidden="true"></span>
 
   <div class="rig">
     <div class="bus"><span>SPLIT</span></div>
@@ -58,7 +58,7 @@ const lanes = [
     <div class="bus"><span>JOIN</span></div>
   </div>
 
-  <span class="vconn" aria-hidden="true"></span>
+  <span class="conn" aria-hidden="true"></span>
 
   <div class="chain out-row">
     <div class="node c-io out">
@@ -71,9 +71,10 @@ const lanes = [
 <style>
   .flow {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     gap: 0;
+    min-width: 0;
     padding: var(--sp-4);
     overflow-x: auto;
     border: 1px solid var(--hairline);
@@ -82,8 +83,15 @@ const lanes = [
 
   .chain {
     display: flex;
+    flex: none;
     align-items: center;
     gap: 0;
+  }
+
+  .pre,
+  .rig,
+  .out-row {
+    flex: none;
   }
 
   .node {
@@ -92,7 +100,7 @@ const lanes = [
     flex: none;
     flex-direction: column;
     gap: 0.15rem;
-    width: 8.4rem;
+    width: 7.5rem;
     padding: 0.7rem 0.8rem;
     border: 1px solid var(--hairline);
     border-top: 3px solid var(--c);
@@ -130,16 +138,19 @@ const lanes = [
     background: var(--hairline-strong);
   }
 
-  .vconn {
+  .conn {
     display: block;
-    width: 1px;
-    height: 1.3rem;
+    flex: none;
+    width: 1.3rem;
+    height: 1px;
     background: var(--hairline-strong);
   }
 
   .rig {
+    display: flex;
+    flex-direction: column;
     width: fit-content;
-    min-width: min(100%, 42rem);
+    min-width: 34rem;
   }
 
   .bus {
@@ -192,21 +203,11 @@ const lanes = [
 
   @media (max-width: 620px) {
     .flow {
-      align-items: flex-start;
-    }
-
-    .lane {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: var(--sp-1);
+      align-items: center;
     }
 
     .lanes {
       padding-left: 1rem;
-    }
-
-    .lane-tag {
-      width: auto;
     }
   }
 </style>
