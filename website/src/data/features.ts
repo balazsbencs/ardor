@@ -10,9 +10,9 @@ export type Feature = {
 export const features: Feature[] = [
   {
     id: 'nam',
-    title: 'Neural amp modeling',
+    title: 'Bring your amp sound',
     kicker: 'AMP',
-    body: 'Load the captures you already trust and bring their feel with you. Ardor keeps the amp at the center of the preset.',
+    body: 'Bring the amp sounds you trust and keep the feel of your rig in a portable pedal.',
     spec: [
       { label: 'Format', value: '.nam' },
       { label: 'Input fold', value: 'sum / left / right' },
@@ -21,9 +21,9 @@ export const features: Feature[] = [
   },
   {
     id: 'cab',
-    title: 'Cabinet impulse responses',
+    title: 'Bring your cabinet sound',
     kicker: 'CAB',
-    body: 'Bring the cabinet sound that makes the rig feel like yours. Place it in the chain and move on to the playing.',
+    body: 'Use the speaker sound that makes your rig yours. Place it in the chain and keep playing.',
     spec: [
       { label: 'Engine', value: 'partitioned convolution' },
       { label: 'Sample rate', value: '48 kHz' },
@@ -43,9 +43,9 @@ export const features: Feature[] = [
   },
   {
     id: 'dualrig',
-    title: 'Dual Rig routing',
+    title: 'Two amps, side by side',
     kicker: 'SPLIT',
-    body: 'Split wide when the song needs it. Two independent lanes keep the left and right sides distinct all the way to the join.',
+    body: 'Split wide when the song needs it. Keep the left and right sounds distinct all the way to the output.',
     spec: [
       { label: 'Lanes', value: '2 × independent' },
       { label: 'Merge', value: 'stereo L/R' },
@@ -54,9 +54,9 @@ export const features: Feature[] = [
   },
   {
     id: 'dynamics',
-    title: 'Dynamics & 5-band EQ',
+    title: 'Shape the feel',
     kicker: 'UTILITY',
-    body: 'Shape the feel without losing the thread. Dynamics and a readable five-band EQ keep the important moves close at hand.',
+    body: 'Shape the feel without losing the thread. Compression, gating, and a five-band EQ keep important moves close at hand.',
     spec: [
       { label: 'Compressor', value: 'sidechain + knee' },
       { label: 'Gate', value: '0 ms lookahead' },

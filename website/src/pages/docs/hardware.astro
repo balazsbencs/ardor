@@ -1,6 +1,13 @@
 ---
 import DocsLayout from '../../layouts/DocsLayout.astro';
+import { site } from '../../data/site';
 import { url } from '../../lib/url';
+
+const bufferProject = `${site.repo}/tree/main/buffer`;
+const bufferProduction = `${bufferProject}/jlcpcb/production_files`;
+const bufferGerber = `${bufferProduction}/GERBER-buffer.zip`;
+const bufferBom = `${bufferProduction}/BOM-buffer.csv`;
+const bufferCpl = `${bufferProduction}/CPL-buffer.csv`;
 
 const enclosure = [
   { label: 'Outer size', value: '180 × 150 × 55 mm' },
@@ -9,7 +16,7 @@ const enclosure = [
   { label: 'Display', value: 'RPi Touch Display 2' },
   { label: 'Viewable screen', value: '125 × 74 mm' },
   { label: 'Footswitches', value: '4 × 12 mm, corner-inset' },
-  { label: 'Encoder', value: 'rear-centre rotary' },
+  { label: 'Encoder', value: 'rear-center rotary' },
   { label: 'Fixings', value: 'M3 heat-set inserts' },
 ];
 
@@ -27,32 +34,73 @@ const controlPins = [
 
 <DocsLayout
   title="Hardware"
-  description="The Ardor pedal hardware target: Raspberry Pi 4, Codec Zero, touch display, footswitches, encoder, and the 3D-printable enclosure."
-  lede="Ardor's first physical target is a Raspberry Pi 4 with a Codec Zero audio HAT, a DSI touch display, four footswitches, and one encoder — in a 3D-printable enclosure."
+  description="The parts, enclosure, and safe wiring plan for an Ardor Raspberry Pi pedal."
+  lede="Ardor is built around a Raspberry Pi 4, a Codec Zero audio board, a touch display, and simple hands-free controls."
 >
-  <h2>Bill of materials</h2>
+  <h2>Parts for a full pedal</h2>
   <ul>
-    <li>Raspberry Pi 4B (1 GB RAM is sufficient)</li>
-    <li>Raspberry Pi Codec Zero audio HAT</li>
-    <li>Raspberry Pi Touch Display 2 (DSI)</li>
-    <li>Four momentary footswitches</li>
-    <li>One rotary encoder for master output volume</li>
-    <li>Mono guitar input (buffered, high-Z), stereo output</li>
+    <li>Raspberry Pi 4B.</li>
+    <li>Raspberry Pi Codec Zero audio board.</li>
+    <li>Raspberry Pi Touch Display 2.</li>
+    <li>The Ardor minimal guitar input buffer board.</li>
+    <li>Four momentary footswitches.</li>
+    <li>One rotary encoder for master volume.</li>
+    <li>A guitar input jack and a stereo audio output jack.</li>
   </ul>
+  <p>
+    You also need a microSD card and a suitable power supply. Download the{' '}
+    <a href={url('/docs/getting-started')}>ready-made release image</a> before you build the pedal.
+  </p>
 
   <div class="callout warn">
     <p>
-      Buffer the guitar input before the Codec Zero. Passive pickups should not connect
-      directly to a low-impedance line input if tone and level matter. All GPIO wiring is
-      3.3 V logic only.
+      Disconnect power before you wire or change the pedal. Raspberry Pi control pins use
+      3.3 V logic. Do not connect a higher voltage to a control pin. Connect the guitar to
+      the input buffer before you connect it to the Codec Zero.
+    </p>
+  </div>
+
+  <h2>What each part does</h2>
+  <table>
+    <thead><tr><th>Part</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>Raspberry Pi 4B</td><td>Runs the pedal software and the browser manager.</td></tr>
+      <tr><td>Input buffer</td><td>Protects and buffers the guitar signal before the Codec Zero.</td></tr>
+      <tr><td>Codec Zero</td><td>Converts the buffered guitar signal to digital audio and sends audio to the output.</td></tr>
+      <tr><td>Touch Display 2</td><td>Shows presets, the signal path, controls, and the tuner.</td></tr>
+      <tr><td>Footswitches</td><td>Choose the four preset slots in the active bank.</td></tr>
+      <tr><td>Rotary encoder</td><td>Sets the master output volume.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Guitar input buffer</h2>
+  <p>
+    The{' '}<a href={bufferProject}>buffer project</a> is a separate, minimal KiCad board. It
+    sits between the guitar jack and the Codec Zero. Connect the guitar jack to
+    <code>GUITAR_IN</code>. Connect <code>GUITAR_OUT</code> to the Codec Zero input. Share
+    ground, and follow the schematic for power.
+  </p>
+  <p>
+    You can order the board with its SMD parts already fitted. Upload the
+    <a href={bufferGerber}><code>GERBER-buffer.zip</code></a>,{' '}
+    <a href={bufferBom}><code>BOM-buffer.csv</code></a>, and{' '}
+    <a href={bufferCpl}><code>CPL-buffer.csv</code></a> files from the{' '}
+    <a href={bufferProduction}>JLCPCB production folder</a> to the{' '}
+    <a href="https://jlcpcb.com/">JLCPCB assembly service</a>. Review the parts and
+    placement before you order.
+  </p>
+  <div class="callout">
+    <p>
+      The JLCPCB files cover the SMD parts. They do not include jacks, wires, or enclosure
+      parts. Add the signal, power, and ground wires or connectors to the labeled board
+      points after assembly.
     </p>
   </div>
 
   <h2>Enclosure</h2>
   <p>
-    The repository ships an OpenSCAD enclosure and 3MF meshes sized for the display and
-    control layout. The interactive model on the <a href={url('/')}>home page</a> is built
-    to these same dimensions.
+    The repository contains OpenSCAD files and 3MF meshes for a printable enclosure. The
+    enclosure has space for the display, four footswitches, and the rear encoder.
   </p>
   <dl class="spec-grid">
     {enclosure.map((s) => (
@@ -63,49 +111,76 @@ const controlPins = [
     ))}
   </dl>
 
-  <h2>Control wiring</h2>
+  <h2>Controls</h2>
   <p>
-    Footswitches and the encoder connect GPIO pins to ground; the Pi uses internal pull-ups.
-    Controls are read through Linux input drivers — <code>gpio-keys</code> for footswitches
-    and <code>rotary-encoder</code> for the encoder.
+    Connect each footswitch and the encoder to the Raspberry Pi control header. The pedal
+    uses the first four footswitches for preset slots. The encoder controls master volume.
+    The display connects through the display cable. The Codec Zero connects through the
+    Raspberry Pi header.
   </p>
-  <table>
-    <thead><tr><th>Function</th><th>GPIO</th><th>Physical pin</th></tr></thead>
-    <tbody>
-      {controlPins.map((p) => (
-        <tr><td>{p.fn}</td><td class="mono">{p.gpio}</td><td class="mono tnum">{p.pin}</td></tr>
-      ))}
-    </tbody>
-  </table>
   <p>
-    The Codec Zero is an I2S HAT, so I2S, I2C, and the HAT EEPROM pins are reserved. Check
-    the in-repository assembly guide before wiring, and redo the pin table if your display
-    is not a DSI unit.
+    Use the assembly files in the repository for the physical wiring. Test each switch and
+    the encoder before you close the enclosure.
   </p>
 
-  <h2>MIDI &amp; expression</h2>
-  <p>A control-I/O companion circuit adds TRS MIDI input and an expression-pedal ADC:</p>
+  <h2>MIDI and expression control</h2>
+  <p>
+    An optional control circuit can add a TRS MIDI input and an expression pedal. These
+    controls can choose preset slots, change banks, open the tuner, or control an effect
+    parameter.
+  </p>
   <table>
-    <thead><tr><th>Message</th><th>Action</th></tr></thead>
+    <thead><tr><th>MIDI message</th><th>Action</th></tr></thead>
     <tbody>
       <tr><td class="mono">Program Change 0–3</td><td>Select preset slot 1–4 in the active bank.</td></tr>
       <tr><td class="mono">CC 0 / CC 32</td><td>Select bank 0–99.</td></tr>
-      <tr><td class="mono">CC 20 ≥ 64</td><td>Tuner on; below 64, tuner off.</td></tr>
+      <tr><td class="mono">CC 20 ≥ 64</td><td>Open the tuner. A value below 64 closes it.</td></tr>
     </tbody>
   </table>
+
+  <h2>Software</h2>
   <p>
-    MIDI input is channel-omni by default, and per-preset learned CC mappings take priority
-    over the fixed actions. Use <strong>MIDI Learn</strong> in the parameter drawer to bind
-    a CC to any parameter, as a continuous controller or a latched toggle/scene.
+    The release image contains the pedal software, the browser manager, starter presets, and
+    the audio setup. Follow <a href={url('/docs/getting-started')}>Getting Started</a> to
+    write the image to a card. You do not need to build the software for a normal setup.
   </p>
 
-  <h2>Firmware image</h2>
-  <p>
-    A reproducible Buildroot image for the Raspberry Pi 4 packages the engine, manager
-    daemon, Codec Zero mixer state, a read-only root filesystem, and a writable data
-    partition seeded with four presets. Build it with <code>./scripts/build-image.sh</code>
-    — see <a href={url('/docs/getting-started')}>Getting Started</a>.
-  </p>
+  <details>
+    <summary>Advanced: control pin map</summary>
+    <p>
+      Use this table when you make a control board. The physical pin numbers refer to the
+      Raspberry Pi header.
+    </p>
+    <table>
+      <thead><tr><th>Function</th><th>GPIO</th><th>Physical pin</th></tr></thead>
+      <tbody>
+        {controlPins.map((p) => (
+          <tr><td>{p.fn}</td><td class="mono">{p.gpio}</td><td class="mono tnum">{p.pin}</td></tr>
+        ))}
+      </tbody>
+    </table>
+    <p>
+      Footswitches and the encoder connect to ground. The Raspberry Pi uses internal pull-up
+      resistors. The pedal reads footswitches through <code>gpio-keys</code> and the encoder
+      through <code>rotary-encoder</code>.
+    </p>
+  </details>
+
+  <details>
+    <summary>Advanced: audio, display, and control buses</summary>
+    <ul>
+      <li>The Codec Zero uses I2S for audio.</li>
+      <li>The Codec Zero uses I2C for control.</li>
+      <li>The HAT EEPROM pins are reserved by the Codec Zero.</li>
+      <li>The Touch Display 2 uses the DSI display connection.</li>
+      <li>MIDI input uses UART4 RX on GPIO9.</li>
+      <li>The expression pedal alert uses GPIO25.</li>
+    </ul>
+    <p>
+      Check the assembly files before you change the display or the audio board. A different
+      board can use different pins.
+    </p>
+  </details>
 
   <style>
     .spec-grid {

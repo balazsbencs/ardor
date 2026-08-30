@@ -6,6 +6,10 @@ implementation is a stack-through board between the Raspberry Pi 40-pin header
 and Raspberry Pi Codec Zero, with short four-wire harnesses to Codec Zero P1 and
 P2.
 
+This board is an alternative to the separate minimal input buffer in
+[`../../buffer/`](../../buffer/). It already includes its own guitar input stage.
+Do not use both input stages in series.
+
 The design provides:
 
 - 1 MΩ, AC-coupled, protected guitar input buffered into both Codec Zero AUX IN

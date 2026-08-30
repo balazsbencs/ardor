@@ -4,6 +4,9 @@ Rev C is a separate design that puts the same DA7212 codec family used by
 Raspberry Pi Codec Zero directly on the Ardor board. Codec Zero is not required.
 Rev B remains unchanged in `../control-io`.
 
+Rev C includes its own protected guitar input buffer. The separate minimal
+[`../../buffer/`](../../buffer/) board is not required for this design.
+
 ## Generated design files
 
 - `generate-schematic.tsx`: Rev C entry point into the shared tscircuit source.

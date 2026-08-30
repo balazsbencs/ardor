@@ -38,6 +38,25 @@ vulnerabilities should be reported privately according to
 
 Real `.nam` and IR files are ignored by git. Keep licensed/user-provided assets local unless redistribution is allowed.
 
+## Guitar Input Buffer
+
+A passive guitar must pass through the Ardor input buffer before it reaches
+the Codec Zero. The repository contains the separate, minimal KiCad project
+in [`buffer/`](buffer/).
+
+You can order a board with the SMD parts fitted through
+[JLCPCB](https://jlcpcb.com/). Upload these files from
+[`buffer/jlcpcb/production_files/`](buffer/jlcpcb/production_files/):
+
+- [`GERBER-buffer.zip`](buffer/jlcpcb/production_files/GERBER-buffer.zip) for the PCB files.
+- [`BOM-buffer.csv`](buffer/jlcpcb/production_files/BOM-buffer.csv) for the parts list.
+- [`CPL-buffer.csv`](buffer/jlcpcb/production_files/CPL-buffer.csv) for the part placement list.
+
+The production files do not include audio jacks, wires, connectors, or the
+enclosure. Add these parts after the board arrives. Connect the guitar jack to
+`GUITAR_IN` and connect `GUITAR_OUT` to the Codec Zero input. Follow the buffer
+schematic for power and ground connections.
+
 ## Preset Storage
 
 Preset files live under the data root in bank/slot folders, for example:
