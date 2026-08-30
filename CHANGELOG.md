@@ -2,6 +2,17 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.45](https://github.com/balazsbencs/ardor/compare/v0.1.39...v0.1.45) (2026-08-30)
+
+### Features
+
+* add control I/O board and fail-safe audio relay control ([#45](https://github.com/balazsbencs/ardor/issues/45)) ([99bbadc](https://github.com/balazsbencs/ardor/commit/99bbadcdaa2e9e4cb3d79be5bd8ed497552eef11))
+* **website:** refresh website and hardware documentation ([#49](https://github.com/balazsbencs/ardor/issues/49)) ([319e6e0](https://github.com/balazsbencs/ardor/commit/319e6e0bca7847ae9cf3edd82a647673233caea6))
+
+### Bug Fixes
+
+* **tape:** make tone controls responsive ([#43](https://github.com/balazsbencs/ardor/issues/43)) ([91dc3af](https://github.com/balazsbencs/ardor/commit/91dc3af9d33d96a326b9196a672f7213241cf1e8))
+
 ## [0.1.39](https://github.com/balazsbencs/ardor/compare/v0.1.38...v0.1.39) (2026-08-21)
 
 ### Features
