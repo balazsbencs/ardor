@@ -9,7 +9,9 @@ import {
   CircuitJsonToKicadProConverter,
   CircuitJsonToKicadSchConverter,
 } from "circuit-json-to-kicad"
-import { convertCircuitJsonToSchematicSvg } from "circuit-to-svg"
+import {
+  convertCircuitJsonToSchematicSvg,
+} from "circuit-to-svg"
 
 const left = (pins: number[]) => ({
   leftSide: { pins, direction: "top-to-bottom" as const },
@@ -205,10 +207,10 @@ export function addSchematic(circuit: Circuit, options: SchematicOptions = {}) {
         footprint="soic8"
         pinLabels={{
           pin1: "OUT", pin2: "COMMON", pin3: "IN", pin4: "NC1",
-          pin5: "NOISE_REDUCTION", pin6: "NC2", pin7: "NC3", pin8: "NC4",
+          pin5: "NC2", pin6: "NC3", pin7: "NC4", pin8: "NOISE_REDUCTION",
         }}
-        schPinArrangement={split([3, 2, 5], [1, 4, 6, 7, 8])}
-        noConnect={["pin4", "pin6", "pin7", "pin8"]}
+        schPinArrangement={split([3, 2, 8], [1, 4, 5, 6, 7])}
+        noConnect={["pin4", "pin5", "pin6", "pin7"]}
         schX={1.2}
         schY={6.35}
       />
@@ -393,40 +395,40 @@ export function addSchematic(circuit: Circuit, options: SchematicOptions = {}) {
       <R0603 name="R11" resistance="20k" schX={8.8} schY={-0.75} />
       <R0603 name="R12" resistance="10k" schX={11.55} schY={-1.2} />
       <C0603 name="C29" capacitance="100nF" schX={11.8} schY={0.15} />
-      <C0603 name="C7" capacitance="10uF BIPOLAR" footprint="pinrow2_rows1_p2mm_id0.8mm_od1.6mm_male" schX={12.05} schY={3.05} />
-      <R0603 name="R13" resistance="100R" schX={13.15} schY={3.05} />
-      <C0603 name="C8" capacitance="10uF BIPOLAR" footprint="pinrow2_rows1_p2mm_id0.8mm_od1.6mm_male" schX={12.05} schY={1.55} />
-      <R0603 name="R14" resistance="100R" schX={13.15} schY={1.55} />
-      <C0603 name="C9" capacitance="10uF BIPOLAR" footprint="pinrow2_rows1_p2mm_id0.8mm_od1.6mm_male" schX={12.05} schY={-0.45} />
-      <R0603 name="R15" resistance="100R" schX={13.15} schY={-0.45} />
-      <R0603 name="R36" resistance="100k" schX={13.75} schY={2.55} />
-      <R0603 name="R37" resistance="100k" schX={13.75} schY={1.05} />
-      <R0603 name="R38" resistance="100k" schX={13.75} schY={-0.95} />
+      <C0603 name="C7" capacitance="10uF BIPOLAR" footprint="pinrow2_rows1_p2mm_id0.8mm_od1.6mm_male" schX={10.5} schY={3.8} />
+      <R0603 name="R13" resistance="100R" schX={12.0} schY={3.8} />
+      <C0603 name="C8" capacitance="10uF BIPOLAR" footprint="pinrow2_rows1_p2mm_id0.8mm_od1.6mm_male" schX={10.5} schY={1.4} />
+      <R0603 name="R14" resistance="100R" schX={12.0} schY={1.4} />
+      <C0603 name="C9" capacitance="10uF BIPOLAR" footprint="pinrow2_rows1_p2mm_id0.8mm_od1.6mm_male" schX={10.5} schY={-1.8} />
+      <R0603 name="R15" resistance="100R" schX={12.0} schY={-1.8} />
+      <R0603 name="R36" resistance="100k" schX={13.1} schY={4.6} />
+      <R0603 name="R37" resistance="100k" schX={13.1} schY={0.4} />
+      <R0603 name="R38" resistance="100k" schX={13.1} schY={-3.0} />
       <chip
         name="K1"
         manufacturerPartNumber="ATQ209 / TQ2-5V"
         footprint={<Tq2Footprint />}
         pinLabels={{
-          pin1: "COIL_P", pin2: "NC_L", pin3: "COM_L", pin4: "NO_L", pin5: "MECH_5",
-          pin6: "MECH_6", pin7: "NO_R", pin8: "COM_R", pin9: "NC_R", pin10: "COIL_N",
+          pin1: "COIL_P", pin2: "NC_L", pin3: "COM_L", pin4: "NO_L",
+          pin7: "NO_R", pin8: "COM_R", pin9: "NC_R", pin10: "COIL_N",
         }}
-        schPinArrangement={split([1, 10, 3, 8], [2, 4, 5, 6, 7, 9])}
-        noConnect={["pin2", "pin5", "pin6", "pin9"]}
-        schX={14.8}
-        schY={2.3}
+        schPinArrangement={split([1, 10, 3, 8], [2, 4, 7, 9])}
+        noConnect={["pin2", "pin9"]}
+        schX={15.0}
+        schY={2.6}
       />
       <chip
         name="K2"
         manufacturerPartNumber="ATQ209 / TQ2-5V"
         footprint={<Tq2Footprint />}
         pinLabels={{
-          pin1: "COIL_P", pin2: "NC_A", pin3: "COM_A", pin4: "NO_A", pin5: "MECH_5",
-          pin6: "MECH_6", pin7: "NO_B", pin8: "COM_B", pin9: "NC_B", pin10: "COIL_N",
+          pin1: "COIL_P", pin2: "NC_A", pin3: "COM_A", pin4: "NO_A",
+          pin7: "NO_B", pin8: "COM_B", pin9: "NC_B", pin10: "COIL_N",
         }}
-        schPinArrangement={split([1, 10, 3, 8], [2, 4, 5, 6, 7, 9])}
-        noConnect={["pin2", "pin5", "pin6", "pin9"]}
-        schX={14.8}
-        schY={-0.45}
+        schPinArrangement={split([1, 10, 3, 8], [2, 4, 7, 9])}
+        noConnect={["pin2", "pin9"]}
+        schX={15.0}
+        schY={-1.8}
       />
       <chip
         name="J4"
@@ -434,8 +436,8 @@ export function addSchematic(circuit: Circuit, options: SchematicOptions = {}) {
         footprint="pinrow3_rows1_p2.5mm_id1mm_od1.7mm_male"
         pinLabels={{ pin1: "TIP_L", pin2: "RING_R", pin3: "SLEEVE" }}
         schPinArrangement={left([1, 2, 3])}
-        schX={17.35}
-        schY={2.25}
+        schX={19.0}
+        schY={2.6}
       />
       <chip
         name="J5"
@@ -443,15 +445,15 @@ export function addSchematic(circuit: Circuit, options: SchematicOptions = {}) {
         footprint="pinrow2_rows1_p2.5mm_id1mm_od1.7mm_male"
         pinLabels={{ pin1: "TIP", pin2: "SLEEVE" }}
         schPinArrangement={left([1, 2])}
-        schX={17.35}
-        schY={-0.45}
+        schX={19.0}
+        schY={-1.8}
       />
-      <R0603 name="R16" resistance="100k" schX={16.35} schY={1.15} />
-      <R0603 name="R17" resistance="100k" schX={16.9} schY={1.15} />
-      <R0603 name="R18" resistance="100k" schX={16.35} schY={-1.35} />
-      <D_SOD323 name="D3" manufacturerPartNumber="PESD5V0U1BA-Q" schX={16.0} schY={3.4} />
-      <D_SOD323 name="D4" manufacturerPartNumber="PESD5V0U1BA-Q" schX={16.7} schY={3.4} />
-      <D_SOD323 name="D5" manufacturerPartNumber="PESD5V0U1BA-Q" schX={16.0} schY={-0.4} />
+      <R0603 name="R16" resistance="100k" schX={17.4} schY={0.4} />
+      <R0603 name="R17" resistance="100k" schX={18.6} schY={0.4} />
+      <R0603 name="R18" resistance="100k" schX={18.0} schY={-3.0} />
+      <D_SOD323 name="D3" manufacturerPartNumber="PESD5V0U1BA-Q" schX={17.5} schY={4.6} />
+      <D_SOD323 name="D4" manufacturerPartNumber="PESD5V0U1BA-Q" schX={18.7} schY={4.6} />
+      <D_SOD323 name="D5" manufacturerPartNumber="PESD5V0U1BA-Q" schX={18.0} schY={-0.2} />
 
       <trace from="J3.LEFT" to="net.CODEC_OUT_L" />
       <trace from="C5.pin1" to="net.CODEC_OUT_L" />
@@ -544,7 +546,7 @@ export function addSchematic(circuit: Circuit, options: SchematicOptions = {}) {
       <D_SOD323 name="D14" manufacturerPartNumber="PMEG4010CEJ-Q" footprint="sod323f" schX={-9.25} schY={-3.6} />
       <D_SOD323 name="D15" manufacturerPartNumber="PMEG4010CEJ-Q" footprint="sod323f" schX={-8.4} schY={-4.2} />
       <D_SOD323 name="D16" manufacturerPartNumber="PMEG4010CEJ-Q" footprint="sod323f" schX={-7.55} schY={-4.2} />
-      <R0603 name="R19" resistance="220R 0.25W" footprint="0805" schX={-7.15} schY={-3.1} />
+      <R0603 name="R19" resistance="220R 0.25W" footprint="1206" schX={-7.15} schY={-3.1} />
       <chip
         name="U4"
         manufacturerPartNumber="H11L1M"
@@ -555,7 +557,7 @@ export function addSchematic(circuit: Circuit, options: SchematicOptions = {}) {
         schX={-5.25}
         schY={-3.65}
       />
-      <D_SOD323 name="D7" manufacturerPartNumber="1N4148" schX={-6.25} schY={-4.65} />
+      <D_SOD323 name="D7" manufacturerPartNumber="1N4148WS" schX={-6.25} schY={-4.65} />
       <R0603 name="R20" resistance="4.7k" schX={-3.55} schY={-3.05} />
       <R0603 name="R21" resistance="220R" schX={-1.95} schY={-3.65} />
       <C0603 name="C10" capacitance="100nF" schX={-3.55} schY={-4.75} />
@@ -749,7 +751,6 @@ export function addSchematic(circuit: Circuit, options: SchematicOptions = {}) {
       <trace from="D11.cathode" to="net.RELAY_CLAMP_MID" />
       <trace from="D12.cathode" to="net.RELAY_CLAMP_MID" />
       <trace from="D12.anode" to="net.V5_RELAY_FUSED" />
-
       {integratedCodec && <>
         <schematictext text="7. INTEGRATED DA7212 CODEC / I2S / CLOCK / 1.8 V" schX={23.8} schY={7.35} fontSize={0.28} />
         <chip
@@ -929,16 +930,417 @@ export function addSchematic(circuit: Circuit, options: SchematicOptions = {}) {
   )
 }
 
-async function writePdf(svg: string, path: URL) {
-  const doc = new PDFDocument({ size: "A3", layout: "landscape", margin: 18 })
+type JsonElement = Record<string, any> & { type: string }
+type Point = { x: number; y: number }
+
+const revBSheets = [
+  { id: "schematic_sheet_gpio_header", name: "gpio_header", index: 1 },
+  { id: "schematic_sheet_power_reference", name: "power_reference", index: 2 },
+  { id: "schematic_sheet_guitar_input", name: "guitar_input", index: 3 },
+  { id: "schematic_sheet_codec_output_processing", name: "codec_output_processing", index: 4 },
+  { id: "schematic_sheet_relay_outputs", name: "relay_outputs", index: 5 },
+  { id: "schematic_sheet_midi_input", name: "midi_input", index: 6 },
+  { id: "schematic_sheet_expression_input", name: "expression_input", index: 7 },
+  { id: "schematic_sheet_output_mute", name: "output_mute", index: 8 },
+] as const
+
+type RevBSheetName = (typeof revBSheets)[number]["name"]
+
+function sheetFromPosition({ x, y }: Point): RevBSheetName {
+  if (y > 3.7) return x < -8 ? "gpio_header" : "power_reference"
+  if (y > -1.7) return x < 5 ? "guitar_input" : x < 12 ? "codec_output_processing" : "relay_outputs"
+  if (x < 0) return "midi_input"
+  if (x < 13.2) return "expression_input"
+  return "output_mute"
+}
+
+const revBComponentSheets: Record<RevBSheetName, string[]> = {
+  gpio_header: ["J8", "F1", "F2"],
+  power_reference: [
+    "FB1", "C20", "C21", "U2", "C22", "C23", "C24", "U3", "C25", "C26",
+    "J9", "R30", "C27", "R31",
+  ],
+  guitar_input: [
+    "J1", "D1", "R1", "C1", "R2", "R3", "C2", "D2", "C3", "R4", "R5",
+    "C4", "R6", "R7", "J2", "C28",
+  ],
+  codec_output_processing: ["J3", "C5", "R8", "C6", "R9", "U1", "R10", "R11", "R12", "C29"],
+  relay_outputs: [
+    "C7", "R13", "C8", "R14", "C9", "R15", "R36", "R37", "R38", "K1", "K2",
+    "J4", "J5", "R16", "R17", "R18", "D3", "D4", "D5",
+  ],
+  midi_input: ["J6", "D6", "D13", "D14", "D15", "D16", "R19", "U4", "D7", "R20", "R21", "C10", "R22", "C11"],
+  expression_input: [
+    "J7", "D8", "D9", "SW1", "D17", "R23", "C12", "R24", "C13", "D10", "R25",
+    "R26", "U5", "R27", "R28", "R29", "R32", "R33", "C14", "C15", "D18",
+  ],
+  output_mute: ["R34", "R35", "Q1", "D11", "D12"],
+}
+
+function elementPosition(element: JsonElement): Point | undefined {
+  if (element.center) return element.center
+  if (element.position) return element.position
+  if (element.anchor_position) return element.anchor_position
+  if (element.edges?.length) {
+    const points = element.edges.flatMap((edge: { from: Point; to: Point }) => [edge.from, edge.to])
+    return {
+      x: points.reduce((sum: number, point: Point) => sum + point.x, 0) / points.length,
+      y: points.reduce((sum: number, point: Point) => sum + point.y, 0) / points.length,
+    }
+  }
+  return undefined
+}
+
+function spreadVerticalPins(
+  circuitJson: JsonElement[],
+  component: JsonElement,
+  spacing: number,
+) {
+  const ports = circuitJson.filter(
+    (element) => element.type === "schematic_port" &&
+      element.schematic_component_id === component.schematic_component_id,
+  )
+  const verticalSides = ["left", "right"]
+  const oldPortPositions = new Map<string, Point>()
+  const portDeltas = new Map<string, Point>()
+  const oldHeight = component.size.height
+  let requiredHeight = oldHeight
+
+  for (const side of verticalSides) {
+    const sidePorts = ports
+      .filter((port) => port.side_of_component === side)
+      .sort((a, b) => b.center.y - a.center.y)
+    if (sidePorts.length === 0) continue
+    requiredHeight = Math.max(requiredHeight, sidePorts.length * spacing + 0.2)
+    for (const [index, port] of sidePorts.entries()) {
+      const oldPosition = { ...port.center }
+      const newPosition = {
+        x: oldPosition.x,
+        y: component.center.y + ((sidePorts.length - 1) / 2 - index) * spacing,
+      }
+      oldPortPositions.set(port.schematic_port_id, oldPosition)
+      portDeltas.set(port.schematic_port_id, {
+        x: newPosition.x - oldPosition.x,
+        y: newPosition.y - oldPosition.y,
+      })
+      port.center = newPosition
+    }
+  }
+
+  component.size.height = requiredHeight
+  component.pin_spacing = spacing
+  const heightIncrease = requiredHeight - oldHeight
+  for (const text of circuitJson.filter(
+    (element) => element.type === "schematic_text" &&
+      element.schematic_component_id === component.schematic_component_id,
+  )) {
+    text.position.y += text.position.y >= component.center.y ? heightIncrease / 2 : -heightIncrease / 2
+  }
+
+  const nearestDelta = (point: Point): Point | undefined => {
+    let best: { distance: number; delta: Point } | undefined
+    for (const [portId, oldPosition] of oldPortPositions) {
+      const distance = Math.hypot(point.x - oldPosition.x, point.y - oldPosition.y)
+      if (!best || distance < best.distance) best = { distance, delta: portDeltas.get(portId)! }
+    }
+    return best && best.distance <= 0.45 ? best.delta : undefined
+  }
+
+  for (const element of circuitJson) {
+    if (element.type === "schematic_net_label") {
+      const delta = nearestDelta(element.anchor_position)
+      if (!delta) continue
+      element.anchor_position = {
+        x: element.anchor_position.x + delta.x,
+        y: element.anchor_position.y + delta.y,
+      }
+      element.center = { x: element.center.x + delta.x, y: element.center.y + delta.y }
+    }
+    if (element.type === "schematic_trace") {
+      for (const edge of element.edges) {
+        for (const endpoint of [edge.from, edge.to]) {
+          const delta = nearestDelta(endpoint)
+          if (!delta) continue
+          endpoint.x += delta.x
+          endpoint.y += delta.y
+        }
+      }
+      for (const junction of element.junctions ?? []) {
+        const delta = nearestDelta(junction)
+        if (!delta) continue
+        junction.x += delta.x
+        junction.y += delta.y
+      }
+    }
+  }
+}
+
+/**
+ * Create documentation sheets from the settled flat Rev B schematic.
+ *
+ * tscircuit currently does not propagate a <schematicsheet> id to trace
+ * primitives. Assigning sheet ownership after routing keeps the authoritative
+ * netlist and PCB source JSON unchanged; the documentation wires are then
+ * rebuilt as deterministic orthogonal paths within each focused sheet.
+ */
+function createRevBSheetJson(circuitJson: JsonElement[]): JsonElement[] {
+  const result = structuredClone(circuitJson)
+  const sheetIdByName = new Map(revBSheets.map((sheet) => [sheet.name, sheet.id]))
+  const sheetNameByComponentName = new Map< string, RevBSheetName>()
+  for (const [sheetName, names] of Object.entries(revBComponentSheets) as [RevBSheetName, string[]][]) {
+    for (const name of names) sheetNameByComponentName.set(name, sheetName)
+  }
+  const sourceComponents = new Map(
+    result
+      .filter((element) => element.type === "source_component")
+      .map((element) => [element.source_component_id, element]),
+  )
+  const schematicComponents = new Map(
+    result
+      .filter((element) => element.type === "schematic_component")
+      .map((element) => [element.schematic_component_id, element]),
+  )
+  const initialSchematicPorts = result.filter((element) => element.type === "schematic_port")
+  const netLabelSheetNames = new Map<string, RevBSheetName>()
+  for (const label of result.filter((element) => element.type === "schematic_net_label")) {
+    const nearestPort = initialSchematicPorts
+      .map((port) => ({
+        port,
+        distance: Math.hypot(
+          label.anchor_position.x - port.center.x,
+          label.anchor_position.y - port.center.y,
+        ),
+      }))
+      .sort((a, b) => a.distance - b.distance)[0]
+    const component = nearestPort
+      ? schematicComponents.get(nearestPort.port.schematic_component_id)
+      : undefined
+    const componentName = component
+      ? String(sourceComponents.get(component.source_component_id)?.name ?? "")
+      : ""
+    const sheetName = sheetNameByComponentName.get(componentName)
+    if (sheetName && nearestPort.distance < 0.75) {
+      netLabelSheetNames.set(label.schematic_net_label_id, sheetName)
+    }
+  }
+  const componentSheetIds = new Map<string, string>()
+
+  for (const component of schematicComponents.values()) {
+    const sourceComponent = sourceComponents.get(component.source_component_id)
+    const componentName = String(sourceComponent?.name ?? "")
+    const sheetName = sheetNameByComponentName.get(componentName)
+    if (!sheetName) throw new Error(`No Rev B sheet assigned to component ${componentName}`)
+    const sheetId = sheetIdByName.get(sheetName)!
+    component.schematic_sheet_id = sheetId
+    componentSheetIds.set(component.schematic_component_id, sheetId)
+  }
+
+  // Relay symbols carry four pins per side. Give those pins enough vertical
+  // pitch that names, pin numbers, and the two changeover channels cannot
+  // visually collapse into one another on the focused output sheet.
+  for (const component of schematicComponents.values()) {
+    const componentName = String(sourceComponents.get(component.source_component_id)?.name ?? "")
+    if (componentName === "K1" || componentName === "K2") {
+      spreadVerticalPins(result, component, 0.48)
+    }
+  }
+
+  for (const element of result) {
+    if (!element.type.startsWith("schematic_") || element.type === "schematic_group") continue
+    if (element.type === "schematic_component") continue
+
+    if (element.schematic_component_id) {
+      const sheetId = componentSheetIds.get(element.schematic_component_id)
+      if (!sheetId) throw new Error(`Missing sheet owner for ${element.type}`)
+      element.schematic_sheet_id = sheetId
+      continue
+    }
+
+    if (element.type === "schematic_trace") {
+      const match = String(element.source_trace_id ?? "").match(/^([^.]+)\..*-([^.]+)\./)
+      const fromSheet = match ? sheetNameByComponentName.get(match[1]) : undefined
+      const toSheet = match ? sheetNameByComponentName.get(match[2]) : undefined
+      if (fromSheet && toSheet && fromSheet !== toSheet) {
+        continue
+      }
+      if (fromSheet && fromSheet === toSheet) {
+        element.schematic_sheet_id = sheetIdByName.get(fromSheet)!
+        continue
+      }
+    }
+
+    const position = elementPosition(element)
+    if (!position) continue
+    let sheetName: RevBSheetName
+    if (element.type === "schematic_net_label") {
+      sheetName = netLabelSheetNames.get(element.schematic_net_label_id) ?? sheetFromPosition(position)
+    } else {
+      sheetName = sheetFromPosition(position)
+    }
+
+    // The flat drawing keeps general assembly notes in a footer. Route each
+    // note to the feature page it documents instead of its geometric quadrant.
+    if (element.type === "schematic_text") {
+      const text = String(element.text ?? "")
+      if (text.startsWith("ARDOR ") || text.startsWith("Rev B")) sheetName = "gpio_header"
+      if (text.startsWith("1.") || text.startsWith("Use isolated-bushing")) sheetName = "power_reference"
+      if (text.startsWith("2.")) sheetName = "guitar_input"
+      if (text.startsWith("3.") || text.startsWith("U1 ") || text.startsWith("Codec ")) sheetName = "codec_output_processing"
+      if (text.startsWith("4.") || text.startsWith("MIDI ")) sheetName = "midi_input"
+      if (text.startsWith("5.")) sheetName = "expression_input"
+      if (text.startsWith("6.") || text.startsWith("GPIO10 ")) sheetName = "output_mute"
+
+      if (text.startsWith("3.")) element.text = text.replace("3.", "3A.")
+      if (text.startsWith("Use isolated-bushing")) element.position = { x: -6.2, y: 4.65 }
+      if (text.startsWith("U1 ")) element.position = { x: 6.0, y: -2.05 }
+      if (text.startsWith("Codec ")) element.position = { x: 6.0, y: -2.45 }
+    }
+    element.schematic_sheet_id = sheetIdByName.get(sheetName)!
+  }
+
+  // sourceComponents is deliberately resolved here: it catches malformed
+  // component ownership before the KiCad converter gets an opaque reference.
+  for (const component of schematicComponents.values()) {
+    if (!sourceComponents.has(component.source_component_id)) {
+      throw new Error(`Missing source component for ${component.schematic_component_id}`)
+    }
+  }
+
+  const sourceNets = new Map(
+    result
+      .filter((element) => element.type === "source_net")
+      .map((element) => [element.source_net_id, element]),
+  )
+  const netSheetNames = new Map<string, Set<RevBSheetName>>()
+  for (const sourcePort of result.filter(
+    (element) => element.type === "source_port" && !element.do_not_connect,
+  )) {
+    const componentName = String(sourceComponents.get(sourcePort.source_component_id)?.name ?? "")
+    const sheetName = sheetNameByComponentName.get(componentName)
+    const key = sourcePort.subcircuit_connectivity_map_key
+    if (!sheetName || !key) continue
+    if (!netSheetNames.has(key)) netSheetNames.set(key, new Set())
+    netSheetNames.get(key)!.add(sheetName)
+  }
+  const syntheticLocalTraces: JsonElement[] = []
+  for (const [key, sheetNames] of netSheetNames) {
+    if (sheetNames.size !== 1) continue
+    const sheetName = [...sheetNames][0]
+    const netPorts = result
+      .filter((element) =>
+        element.type === "source_port" &&
+        !element.do_not_connect &&
+        element.subcircuit_connectivity_map_key === key,
+      )
+      .map((sourcePort) => result.find((element) =>
+        element.type === "schematic_port" && element.source_port_id === sourcePort.source_port_id,
+      ))
+      .filter(Boolean)
+      .sort((a, b) => a!.center.x - b!.center.x || b!.center.y - a!.center.y) as JsonElement[]
+    if (netPorts.length < 2) continue
+    const edges: Array<{ from: Point; to: Point }> = []
+    for (let index = 1; index < netPorts.length; index += 1) {
+      const from = netPorts[index - 1].center
+      const to = netPorts[index].center
+      if (Math.abs(from.y - to.y) < 0.001 || Math.abs(from.x - to.x) < 0.001) {
+        edges.push({ from: { ...from }, to: { ...to } })
+      } else {
+        const midX = (from.x + to.x) / 2
+        edges.push(
+          { from: { ...from }, to: { x: midX, y: from.y } },
+          { from: { x: midX, y: from.y }, to: { x: midX, y: to.y } },
+          { from: { x: midX, y: to.y }, to: { ...to } },
+        )
+      }
+    }
+    syntheticLocalTraces.push({
+      type: "schematic_trace",
+      schematic_trace_id: `schematic_trace_local_${syntheticLocalTraces.length}`,
+      edges,
+      junctions: [],
+      subcircuit_connectivity_map_key: key,
+      schematic_sheet_id: sheetIdByName.get(sheetName)!,
+    })
+  }
+  const filteredResult = result.filter((element) => {
+    if (element.type === "schematic_trace") {
+      // Rebuild every within-sheet connection below. This makes the focused
+      // sheets deterministic and orthogonal even when the flat autorouter
+      // chose a path that was sensible only in the original overview.
+      return false
+    }
+    if (element.type === "schematic_net_label") {
+      const sourceNet = sourceNets.get(element.source_net_id)
+      const sheetNames = sourceNet
+        ? netSheetNames.get(sourceNet.subcircuit_connectivity_map_key)
+        : undefined
+      if (sheetNames?.size === 1) return false
+    }
+    return true
+  })
+  filteredResult.push(...syntheticLocalTraces)
+  filteredResult.push({
+    type: "schematic_text",
+    schematic_text_id: "schematic_text_gpio_sheet_title",
+    text: "GPIO HEADER / PIN ALLOCATION / FUSED 5 V ENTRY",
+    position: { x: -12.8, y: 7.35 },
+    anchor: "left",
+    rotation: 0,
+    color: "#006464",
+    font_size: 0.28,
+    schematic_sheet_id: sheetIdByName.get("gpio_header")!,
+  })
+  filteredResult.push({
+    type: "schematic_text",
+    schematic_text_id: "schematic_text_relay_outputs_title",
+    text: "3B. FAIL-SAFE STEREO LINE + MONO GUITAR AMP OUTPUTS",
+    position: { x: 9.2, y: 6.0 },
+    anchor: "left",
+    rotation: 0,
+    color: "#006464",
+    font_size: 0.28,
+    schematic_sheet_id: sheetIdByName.get("relay_outputs")!,
+  })
+  filteredResult.push(...revBSheets.map((sheet) => ({
+    type: "schematic_sheet",
+    schematic_sheet_id: sheet.id,
+    name: sheet.name,
+    sheet_index: sheet.index,
+  })))
+  return filteredResult
+}
+
+async function writePdf(svgs: string[], path: URL) {
+  const doc = new PDFDocument({ autoFirstPage: false, margin: 18 })
   const stream = createWriteStream(path)
   doc.pipe(stream)
-  SVGtoPDF(doc, svg, 18, 18, { width: 1154, height: 806, preserveAspectRatio: "xMidYMid meet" })
+  for (const svg of svgs) {
+    doc.addPage({ size: "A3", layout: "landscape", margin: 18 })
+    SVGtoPDF(doc, svg, 18, 18, { width: 1154, height: 806, preserveAspectRatio: "xMidYMid meet" })
+  }
   doc.end()
   await new Promise<void>((resolve, reject) => {
     stream.on("finish", resolve)
     stream.on("error", reject)
   })
+}
+
+function stackSvgs(svgs: string[], labels: string[], width: number, height: number) {
+  const labelHeight = 42
+  const gap = 18
+  const panelHeight = height + labelHeight
+  const body = svgs.map((svg, index) => {
+    const inner = svg.match(/<svg[^>]*>([\s\S]*)<\/svg>/)?.[1]
+    if (!inner) throw new Error(`Could not compose SVG sheet ${labels[index]}`)
+    const y = index * (panelHeight + gap)
+    return `<g transform="translate(0 ${y})"><rect width="${width}" height="${panelHeight}" fill="white"/><text x="20" y="29" font-family="sans-serif" font-size="22" font-weight="600" fill="#202124">${index + 1}. ${labels[index]}</text><g transform="translate(0 ${labelHeight})">${inner}</g></g>`
+  }).join("")
+  const totalHeight = svgs.length * panelHeight + Math.max(0, svgs.length - 1) * gap
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${totalHeight}" viewBox="0 0 ${width} ${totalHeight}">${body}</svg>`
+}
+
+function cleanGeneratedSvg(svg: string) {
+  return `${svg.split("\n").map((line) => line.trimEnd()).join("\n").trim()}\n`
 }
 
 export async function generateProject({
@@ -947,22 +1349,29 @@ export async function generateProject({
   projectName = "control-io",
 }: SchematicOptions & { outputDirectory?: URL; projectName?: string } = {}) {
   mkdirSync(outputDirectory, { recursive: true })
-  const circuit = new Circuit()
-  addSchematic(circuit, { integratedCodec })
-  await circuit.renderUntilSettled()
-  const circuitJson = circuit.getCircuitJson()
+  const flatCircuit = new Circuit()
+  addSchematic(flatCircuit, { integratedCodec })
+  await flatCircuit.renderUntilSettled()
+  const circuitJson = flatCircuit.getCircuitJson() as JsonElement[]
+
+  const schematicJson = integratedCodec ? circuitJson : createRevBSheetJson(circuitJson)
 
   writeFileSync(
     new URL(`${projectName}.circuit.json`, outputDirectory),
     `${JSON.stringify(circuitJson, null, 2)}\n`,
   )
+  if (!integratedCodec) {
+    writeFileSync(
+      new URL(`${projectName}.sheets.circuit.json`, outputDirectory),
+      `${JSON.stringify(schematicJson, null, 2)}\n`,
+    )
+  }
 
-  const converter = new CircuitJsonToKicadSchConverter(circuitJson)
+  const converter = new CircuitJsonToKicadSchConverter(schematicJson)
   converter.runUntilFinished()
-  writeFileSync(
-    new URL(`${projectName}.kicad_sch`, outputDirectory),
-    converter.getOutputString(),
-  )
+  for (const file of converter.getOutputFiles({ schematicFilename: `${projectName}.kicad_sch` })) {
+    writeFileSync(new URL(file.filename, outputDirectory), file.content)
+  }
 
   const libraryConverter = new CircuitJsonToKicadLibraryConverter(circuitJson, {
     libraryName: "tscircuit",
@@ -990,9 +1399,10 @@ export async function generateProject({
     libraryConverter.getSymbolLibraryString(),
   )
 
-  const projectConverter = new CircuitJsonToKicadProConverter(circuitJson, {
+  const projectConverter = new CircuitJsonToKicadProConverter(schematicJson, {
     projectName,
     schematicFilename: `${projectName}.kicad_sch`,
+    schematicSheetPlan: converter.schematicSheetPlan,
   })
   projectConverter.runUntilFinished()
   const project = JSON.parse(projectConverter.getOutputString())
@@ -1003,14 +1413,38 @@ export async function generateProject({
     `${JSON.stringify(project, null, 2)}\n`,
   )
 
-  const svg = convertCircuitJsonToSchematicSvg(circuitJson, {
+  const schematicSheets = schematicJson
+    .filter((element) => element.type === "schematic_sheet")
+    .sort((a, b) => (a.sheet_index ?? 0) - (b.sheet_index ?? 0))
+  const svgOptions = {
     width: 1600,
     height: 1000,
     includeVersion: true,
     showErrorsInTextOverlay: false,
+    css: `
+      .sch-net-label { fill: transparent !important; stroke: none !important; }
+      .sch-net-label-text { font-size: 9px !important; fill: #7b2d2d !important; }
+      .sch-net-label-symbol-text { font-size: 9px !important; }
+    `,
+  }
+  const sheetSvgs = schematicSheets.map((sheet) => {
+    const focusedSheetJson = schematicJson.filter((element) =>
+      !element.type.startsWith("schematic_") ||
+      (element.type !== "schematic_sheet" && element.schematic_sheet_id === sheet.schematic_sheet_id),
+    )
+    return cleanGeneratedSvg(convertCircuitJsonToSchematicSvg(focusedSheetJson, svgOptions))
   })
+  const svg = schematicSheets.length > 0
+    ? cleanGeneratedSvg(stackSvgs(sheetSvgs, schematicSheets.map((sheet) => sheet.name), svgOptions.width, svgOptions.height))
+    : cleanGeneratedSvg(convertCircuitJsonToSchematicSvg(schematicJson, svgOptions))
   writeFileSync(new URL(`${projectName}.svg`, outputDirectory), svg)
-  await writePdf(svg, new URL(`${projectName}.pdf`, outputDirectory))
+  for (const [index, sheet] of schematicSheets.entries()) {
+    writeFileSync(
+      new URL(`${projectName}-${String(index + 1).padStart(2, "0")}-${sheet.name}.svg`, outputDirectory),
+      sheetSvgs[index],
+    )
+  }
+  await writePdf(sheetSvgs.length > 0 ? sheetSvgs : [svg], new URL(`${projectName}.pdf`, outputDirectory))
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -1639,24 +1639,6 @@
         )
       )
       (pin passive line
-        (at -25.4 -2.54 0)
-        (length 6)
-        (name "NOISE_REDUCTION"
-          (effects
-            (font
-              (size 1.27 1.27)
-            )
-          )
-        )
-        (number "5"
-          (effects
-            (font
-              (size 1.27 1.27)
-            )
-          )
-        )
-      )
-      (pin passive line
         (at 25.4 0 180)
         (length 6)
         (name "NC2"
@@ -1666,7 +1648,7 @@
             )
           )
         )
-        (number "6"
+        (number "5"
           (effects
             (font
               (size 1.27 1.27)
@@ -1684,7 +1666,7 @@
             )
           )
         )
-        (number "7"
+        (number "6"
           (effects
             (font
               (size 1.27 1.27)
@@ -1696,6 +1678,24 @@
         (at 25.4 -6.35 180)
         (length 6)
         (name "NC4"
+          (effects
+            (font
+              (size 1.27 1.27)
+            )
+          )
+        )
+        (number "7"
+          (effects
+            (font
+              (size 1.27 1.27)
+            )
+          )
+        )
+      )
+      (pin passive line
+        (at -25.4 -2.54 0)
+        (length 6)
+        (name "NOISE_REDUCTION"
           (effects
             (font
               (size 1.27 1.27)
@@ -3258,11 +3258,11 @@
     (symbol "U_ATQ209_TQ2-5V_0_1"
       (polyline
         (pts
-          (xy -12.7 -10.16)
-          (xy 12.7 -10.16)
-          (xy 12.7 10.16)
-          (xy -12.7 10.16)
-          (xy -12.7 -10.16)
+          (xy -12.7 -7.62)
+          (xy 12.7 -7.62)
+          (xy 12.7 7.62)
+          (xy -12.7 7.62)
+          (xy -12.7 -7.62)
         )
         (stroke
           (width 0.254)
@@ -3293,7 +3293,7 @@
         )
       )
       (pin passive line
-        (at 19.05 7.62 180)
+        (at 19.05 5.08 180)
         (length 6)
         (name "NC_L"
           (effects
@@ -3329,7 +3329,7 @@
         )
       )
       (pin passive line
-        (at 19.05 5.08 180)
+        (at 19.05 1.27 180)
         (length 6)
         (name "NO_L"
           (effects
@@ -3347,43 +3347,7 @@
         )
       )
       (pin passive line
-        (at 19.05 1.27 180)
-        (length 6)
-        (name "MECH_5"
-          (effects
-            (font
-              (size 1.27 1.27)
-            )
-          )
-        )
-        (number "5"
-          (effects
-            (font
-              (size 1.27 1.27)
-            )
-          )
-        )
-      )
-      (pin passive line
         (at 19.05 -1.27 180)
-        (length 6)
-        (name "MECH_6"
-          (effects
-            (font
-              (size 1.27 1.27)
-            )
-          )
-        )
-        (number "6"
-          (effects
-            (font
-              (size 1.27 1.27)
-            )
-          )
-        )
-      )
-      (pin passive line
-        (at 19.05 -5.08 180)
         (length 6)
         (name "NO_R"
           (effects
@@ -3419,7 +3383,7 @@
         )
       )
       (pin passive line
-        (at 19.05 -7.62 180)
+        (at 19.05 -5.08 180)
         (length 6)
         (name "NC_R"
           (effects

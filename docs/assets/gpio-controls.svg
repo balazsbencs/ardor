@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1160" viewBox="0 0 1600 1160" role="img" aria-labelledby="title desc">
-  <title id="title">Ardor Raspberry Pi, Codec Zero, audio and control wiring</title>
-  <desc id="desc">Complete wiring reference showing every Raspberry Pi 40-pin header function, the companion audio and control board GPIO connections, Codec Zero P1 and P2 pin order, external guitar, line, amplifier, MIDI and expression jacks, footswitches, encoder, grounds and chassis bond.</desc>
+  <title id="title">Ardor Rev B Raspberry Pi, Codec Zero, audio and control wiring</title>
+  <desc id="desc">Reviewed Rev B wiring reference showing every Raspberry Pi 40-pin header function, the companion audio and control board GPIO connections, Codec Zero P1 and P2 pin order, external guitar, line, amplifier, MIDI and expression jacks, footswitches, encoder, grounds and chassis bond.</desc>
   <defs>
     <style>
       .bg { fill: #f5f1e9; }
@@ -46,8 +46,8 @@
   <rect class="bg" width="1600" height="1160"/>
   <text x="54" y="48" class="title">Ardor Hardware Wiring Map</text>
   <text x="54" y="76" class="subtitle">Raspberry Pi 4B + Codec Zero + audio/control companion board · header view from above, USB/Ethernet ports to the right</text>
-  <rect x="1260" y="24" width="286" height="36" rx="6" class="danger"/>
-  <text x="1403" y="47" text-anchor="middle" class="label" fill="#a13731">ENGINEERING DRAFT · NOT FOR BUILD</text>
+  <rect x="1260" y="24" width="286" height="36" rx="6" class="note"/>
+  <text x="1403" y="47" text-anchor="middle" class="label">REV B · TOP VIEW · 2026-08-28</text>
 
   <!-- Raspberry Pi header -->
   <rect x="54" y="106" width="520" height="662" rx="14" class="panel"/>
@@ -58,7 +58,7 @@
     <g transform="translate(0,190)"><text x="262" y="4" text-anchor="end" class="pin-text">1  3V3</text><circle cx="286" cy="0" r="9" class="power"/><circle cx="340" cy="0" r="9" class="power"/><text x="364" y="4" class="pin-text">5V  2</text></g>
     <g transform="translate(0,218)"><text x="262" y="4" text-anchor="end" class="pin-text">3  GPIO2 / SDA</text><circle cx="286" cy="0" r="9" class="i2c"/><circle cx="340" cy="0" r="9" class="power"/><text x="364" y="4" class="pin-text">5V  4</text></g>
     <g transform="translate(0,246)"><text x="262" y="4" text-anchor="end" class="pin-text">5  GPIO3 / SCL</text><circle cx="286" cy="0" r="9" class="i2c"/><circle cx="340" cy="0" r="9" class="ground"/><text x="364" y="4" class="pin-text">GND  6</text></g>
-    <g transform="translate(0,274)"><text x="262" y="4" text-anchor="end" class="pin-text">7  GPIO4</text><circle cx="286" cy="0" r="9" class="free"/><circle cx="340" cy="0" r="9" class="free"/><text x="364" y="4" class="pin-text">GPIO14  8</text></g>
+    <g transform="translate(0,274)"><text x="262" y="4" text-anchor="end" class="pin-text">7  GPIO4 / keep free</text><circle cx="286" cy="0" r="9" class="reserved"/><circle cx="340" cy="0" r="9" class="free"/><text x="364" y="4" class="pin-text">GPIO14  8</text></g>
     <g transform="translate(0,302)"><text x="262" y="4" text-anchor="end" class="pin-text">9  GND</text><circle cx="286" cy="0" r="9" class="ground"/><circle cx="340" cy="0" r="9" class="free"/><text x="364" y="4" class="pin-text">GPIO15 10</text></g>
     <g transform="translate(0,330)"><text x="262" y="4" text-anchor="end" class="pin-text">11 GPIO17 / ENC A</text><circle cx="286" cy="0" r="9" class="encoder"/><circle cx="340" cy="0" r="9" class="reserved"/><text x="364" y="4" class="pin-text">I2S CLK / GPIO18 12</text></g>
     <g transform="translate(0,358)"><text x="262" y="4" text-anchor="end" class="pin-text">13 GPIO27 / Codec SW</text><circle cx="286" cy="0" r="9" class="reserved"/><circle cx="340" cy="0" r="9" class="ground"/><text x="364" y="4" class="pin-text">GND 14</text></g>
@@ -109,8 +109,9 @@
     <circle cx="1110" cy="420" r="6" class="footswitch"/><text x="1128" y="425">Footswitch 4 → Pi pin 36, GPIO16</text>
     <circle cx="1110" cy="450" r="6" class="ground"/><text x="1128" y="455">All switch commons → common GND rail</text>
   </g>
-  <rect x="1110" y="474" width="382" height="30" rx="5" class="note"/>
-  <text x="1124" y="494" class="small">Normally-open switches: pressed = GPIO to GND.</text>
+  <rect x="1110" y="470" width="382" height="46" rx="5" class="note"/>
+  <text x="1124" y="489" class="small">Normally-open switches: pressed = GPIO to GND.</text>
+  <text x="1124" y="507" class="small">Wire directly to the stack-through header; Rev B does not route them.</text>
 
   <rect x="630" y="548" width="886" height="194" rx="10" class="panel-soft"/>
   <text x="654" y="578" class="label">Reserved by Codec Zero / HAT</text>
@@ -130,8 +131,8 @@
   <rect x="76" y="918" width="246" height="30" class="port" stroke="#d98a2b"/><text x="90" y="938" class="body">J1 Guitar IN · TS: tip / sleeve</text>
   <rect x="76" y="958" width="246" height="30" class="port" stroke="#d98a2b"/><text x="90" y="978" class="body">J4 Line OUT · TRS: L / R / GND</text>
   <rect x="76" y="998" width="246" height="30" class="port" stroke="#d98a2b"/><text x="90" y="1018" class="body">J5 Amp OUT · TS: mono / GND</text>
-  <rect x="76" y="1038" width="246" height="30" class="port" stroke="#4c78c2"/><text x="90" y="1058" class="micro">J6 MIDI IN · TRS: tip / ring / shield</text>
-  <rect x="76" y="1078" width="246" height="30" class="port" stroke="#6a9f50"/><text x="90" y="1098" class="micro">J7 Expression · TRS: tip / ring / GND</text>
+  <rect x="76" y="1038" width="246" height="30" class="port" stroke="#4c78c2"/><text x="90" y="1058" class="micro">J6 MIDI IN · tip / ring / shield</text>
+  <rect x="76" y="1078" width="246" height="30" class="port" stroke="#6a9f50"/><text x="90" y="1098" class="micro">J7 EXP IN · tip / ring / GND</text>
 
   <rect x="470" y="864" width="548" height="242" rx="12" class="panel"/>
   <text x="744" y="894" text-anchor="middle" class="label">Audio + control companion board</text>

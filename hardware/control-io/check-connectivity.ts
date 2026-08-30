@@ -13,6 +13,9 @@ type Port = Element & {
 const circuit = JSON.parse(
   readFileSync(new URL("control-io.circuit.json", import.meta.url), "utf8"),
 ) as Element[]
+const sheetCircuit = JSON.parse(
+  readFileSync(new URL("control-io.sheets.circuit.json", import.meta.url), "utf8"),
+) as Element[]
 
 const components = new Map(
   circuit
@@ -93,6 +96,33 @@ if (dangling.length > 0) {
   )
 }
 
+const connectedPortGroups = Object.groupBy(
+  ports.filter((candidate) => !candidate.do_not_connect),
+  (candidate) => candidate.subcircuit_connectivity_map_key ?? "missing",
+)
+const singletonNets = Object.entries(connectedPortGroups).filter(
+  ([key, members]) => key !== "missing" && members.length < 2,
+)
+if (singletonNets.length > 0) {
+  throw new Error(`Singleton connectivity nets: ${singletonNets.map(([key]) => key).join(", ")}`)
+}
+
+for (const component of components.values()) {
+  if (!["simple_resistor", "simple_capacitor", "simple_diode", "simple_fuse"].includes(String(component.ftype))) continue
+  const componentPorts = ports.filter(
+    (candidate) => candidate.source_component_id === component.source_component_id && !candidate.do_not_connect,
+  )
+  if (componentPorts.length !== 2) {
+    throw new Error(`Expected two active pins on ${String(component.name)}`)
+  }
+  if (
+    componentPorts[0].subcircuit_connectivity_map_key ===
+    componentPorts[1].subcircuit_connectivity_map_key
+  ) {
+    throw new Error(`Passive component ${String(component.name)} is shorted across one net`)
+  }
+}
+
 sameNet("J8.5V", "F1.pin1")
 sameNet("J8.GPIO10_MUTE", "R34.pin1")
 if (!port("J8.GPIO4").do_not_connect) {
@@ -124,6 +154,8 @@ sameNet("K1.pin7", "K1.NO_R")
 sameNet("K1.COM_L", "R13.pin2", "R36.pin1")
 sameNet("K1.COM_R", "R14.pin2", "R37.pin1")
 sameNet("K2.COM_A", "K2.COM_B", "R15.pin2", "R38.pin1")
+sameNet("C9.pin2", "R15.pin1")
+differentNet("R15.pin1", "R15.pin2")
 
 sameNet("J6.TIP", "D13.pin1", "D15.pin2", "D6.pin1")
 sameNet("J6.RING", "D14.pin1", "D16.pin2", "D6.pin2")
@@ -142,6 +174,12 @@ sameNet("D17.pin2", "R23.pin1")
 sameNet("D18.pin1", "J9.CHASSIS", "R30.pin1", "C27.pin1")
 sameNet("D18.pin2", "R30.pin2", "C27.pin2")
 
+sameNet("U3.pin8", "U3.NOISE_REDUCTION", "C25.pin1")
+sameNet("U3.pin2", "U3.COMMON", "C25.pin2")
+if (!port("U3.pin5").do_not_connect) {
+  throw new Error("TLE2426 physical pin 5 must be marked no-connect")
+}
+
 expectPart("U1", "OPA4377AIPWR")
 expectPart("U3", "TLE2426IDR")
 expectPart("U5", "ADS1115IDGSR (0x48)")
@@ -149,7 +187,69 @@ for (const diode of ["D1", "D3", "D4", "D5"]) {
   expectPart(diode, "PESD5V0U1BA-Q")
 }
 expectPart("D18", "SMBJ5.0CA")
+expectPart("D7", "1N4148WS")
+
+const expectedSheets = [
+  "gpio_header", "power_reference", "guitar_input", "codec_output_processing",
+  "relay_outputs", "midi_input", "expression_input", "output_mute",
+]
+const sheets = sheetCircuit.filter((element) => element.type === "schematic_sheet")
+if (sheets.map((sheet) => sheet.name).join(",") !== expectedSheets.join(",")) {
+  throw new Error(`Unexpected Rev B sheet plan: ${sheets.map((sheet) => String(sheet.name)).join(", ")}`)
+}
+const sheetIds = new Set(sheets.map((sheet) => sheet.schematic_sheet_id))
+const sheetOwnedTypes = new Set([
+  "schematic_component", "schematic_port", "schematic_trace", "schematic_net_label", "schematic_text",
+])
+const unownedSchematicElements = sheetCircuit.filter(
+  (element) => sheetOwnedTypes.has(element.type) && !sheetIds.has(element.schematic_sheet_id),
+)
+if (unownedSchematicElements.length > 0) {
+  throw new Error(`Schematic elements without a valid sheet: ${unownedSchematicElements.length}`)
+}
+const diagonalTraces = sheetCircuit.filter(
+  (element) => element.type === "schematic_trace" &&
+    (element.edges as Array<{ from: { x: number; y: number }; to: { x: number; y: number } }>).some(
+      (edge) => Math.abs(edge.from.x - edge.to.x) > 0.001 && Math.abs(edge.from.y - edge.to.y) > 0.001,
+    ),
+)
+if (diagonalTraces.length > 0) {
+  throw new Error(`Non-orthogonal documentation traces: ${diagonalTraces.length}`)
+}
+const r15SourceId = [...components.values()].find((component) => component.name === "R15")?.source_component_id
+const c9SourceId = [...components.values()].find((component) => component.name === "C9")?.source_component_id
+const sheetComponents = sheetCircuit.filter((element) => element.type === "schematic_component")
+const r15SheetId = sheetComponents.find((component) => component.source_component_id === r15SourceId)?.schematic_sheet_id
+const c9SheetId = sheetComponents.find((component) => component.source_component_id === c9SourceId)?.schematic_sheet_id
+if (!r15SheetId || r15SheetId !== c9SheetId) {
+  throw new Error("C9 and R15 must be drawn on the same schematic sheet")
+}
+const c9Pin2 = port("C9.pin2")
+const r15Pin1 = port("R15.pin1")
+const sheetPortPosition = (sourcePortId: string) => {
+  const candidate = sheetCircuit.find(
+    (element) => element.type === "schematic_port" && element.source_port_id === sourcePortId,
+  )
+  return candidate?.center as { x: number; y: number } | undefined
+}
+const c9Pin2Position = sheetPortPosition(c9Pin2.source_port_id)
+const r15Pin1Position = sheetPortPosition(r15Pin1.source_port_id)
+const samePoint = (
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+) => Math.abs(a.x - b.x) < 0.001 && Math.abs(a.y - b.y) < 0.001
+if (!c9Pin2Position || !r15Pin1Position || !sheetCircuit.some(
+  (element) => element.type === "schematic_trace" &&
+    element.schematic_sheet_id === r15SheetId &&
+    (element.edges as Array<{ from: { x: number; y: number }; to: { x: number; y: number } }>).some(
+      (edge) =>
+        (samePoint(edge.from, c9Pin2Position) && samePoint(edge.to, r15Pin1Position)) ||
+        (samePoint(edge.to, c9Pin2Position) && samePoint(edge.from, r15Pin1Position)),
+    ),
+)) {
+  throw new Error("The visible C9-to-R15 wire is missing from the Rev B documentation")
+}
 
 console.log(
-  `Connectivity checks passed: ${components.size} components, ${ports.length} pins, MIDI isolation intact.`,
+  `Connectivity checks passed: ${components.size} components, ${ports.length} pins, ${sheets.length} readable sheets, MIDI isolation intact.`,
 )

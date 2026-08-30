@@ -1,5 +1,5 @@
 (footprint
-  "PESD3V3U1UL"
+  "1N4148WS"
   (version 20240108)
   (generator pcbnew)
   (generator_version 8.0)
@@ -10,9 +10,9 @@
   (attr smd)
   (embedded_fonts no)
   (property "Reference" "REF**"
-    (at 0 -0.7 0)
+    (at 0 -0.725 0)
     (layer F.SilkS)
-    (uuid 2a0c01fa-385c-0026-653b-fdba02d3fb9a)
+    (uuid 761073c0-528d-ca01-2f0b-20420b887683)
     (effects
       (font
         (size 1.27 1.27)
@@ -21,9 +21,9 @@
     )
   )
   (property "Value" "Val**"
-    (at 0 0.7 0)
+    (at 0 0.7250000000000035 0)
     (layer F.Fab)
-    (uuid 7d725fae-4ac0-bd4e-180f-1aee1aa28772)
+    (uuid 0660fe80-79b7-efff-12f1-1e826065d2fd)
     (effects
       (font
         (size 1.27 1.27)
@@ -35,7 +35,7 @@
     (at 0 0 0)
     (layer F.Fab)
     (hide yes)
-    (uuid 4cfc3626-156b-cbfa-77d3-ce1a25c42fc6)
+    (uuid 45bd7200-6940-1bbf-733d-3a824fba90c3)
     (effects
       (font
         (size 1.27 1.27)
@@ -47,7 +47,7 @@
     (at 0 0 0)
     (layer F.Fab)
     (hide yes)
-    (uuid 3eedb558-2982-48a8-6e0d-b958059dbb58)
+    (uuid 1db6d760-6b36-113f-474a-b4e2063484fd)
     (effects
       (font
         (size 1.27 1.27)
@@ -58,7 +58,7 @@
   (fp_text
     reference
     "REF**"
-    (at -6.123233995736766e-17 -1 0)
+    (at -1.59204083889156e-16 -1.3000000000000007 0)
     (layer F.SilkS)
     (effects
       (font
@@ -68,8 +68,8 @@
     )
   )
   (fp_line
-    (start 0.5500000000000007 -0.6499999999999986)
-    (end -0.8499999999999996 -0.6499999999999986)
+    (start 1.0500000000000007 -0.8999999999999987)
+    (end -1.6500000000000004 -0.8999999999999984)
     (stroke
       (width 0.1)
       (type default)
@@ -77,8 +77,8 @@
     (layer F.SilkS)
   )
   (fp_line
-    (start -0.8499999999999996 -0.6499999999999986)
-    (end -0.8499999999999996 0.6499999999999986)
+    (start -1.6500000000000004 -0.8999999999999984)
+    (end -1.6500000000000004 0.8999999999999988)
     (stroke
       (width 0.1)
       (type default)
@@ -86,8 +86,8 @@
     (layer F.SilkS)
   )
   (fp_line
-    (start -0.8499999999999996 0.6499999999999986)
-    (end 0.5500000000000007 0.6499999999999986)
+    (start -1.6500000000000004 0.8999999999999988)
+    (end 1.0500000000000007 0.8999999999999985)
     (stroke
       (width 0.1)
       (type default)
@@ -95,8 +95,8 @@
     (layer F.SilkS)
   )
   (fp_rect
-    (start -0.8 -0.6)
-    (end 0.8 0.6)
+    (start -1.6 -0.95)
+    (end 1.6 0.95)
     (layer F.CrtYd)
     (stroke
       (width 0.05)
@@ -105,17 +105,17 @@
     (fill no)
   )
   (pad "1" smd rect
-    (at -0.34999999999999964 0 0)
-    (size 0.7 0.4)
+    (at -1.0500000000000007 3.552713678800501e-15 0)
+    (size 0.6 0.45)
     (layers F.Cu F.Paste F.Mask)
-    (uuid 5bc29120-7709-b001-6daf-311e5268123d)
+    (uuid 36041178-4818-ce58-5a2d-8b386c424818)
   )
   (pad "2" smd rect
-    (at 0.34999999999999964 0 0)
-    (size 0.7 0.4)
+    (at 1.0500000000000007 0 0)
+    (size 0.6 0.45)
     (layers F.Cu F.Paste F.Mask)
-    (uuid 68cf5100-4d88-321f-3241-133e16f9f45d)
+    (uuid 23d758ca-11c2-9bea-0052-20f61266ddd6)
   )
-  (model "../../3dmodels/tscircuit_builtin.3dshapes/sod882.step"
+  (model "../../3dmodels/tscircuit_builtin.3dshapes/sod323.step"
   )
 )
