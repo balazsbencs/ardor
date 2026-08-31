@@ -1,0 +1,10 @@
+WARNING: KICAD8_SYMBOL_DIR environment variable is missing, so the default KiCad symbol libraries won't be searched. @ [/home/bbalazs/projects/ardor/hardware/control-io/<frozen importlib._bootstrap_external>:1026=>/home/bbalazs/projects/ardor/hardware/control-io/<frozen importlib._bootstrap>:488]
+WARNING: KICAD7_SYMBOL_DIR environment variable is missing, so the default KiCad symbol libraries won't be searched. @ [/home/bbalazs/projects/ardor/hardware/control-io/<frozen importlib._bootstrap_external>:1026=>/home/bbalazs/projects/ardor/hardware/control-io/<frozen importlib._bootstrap>:488]
+WARNING: KICAD6_SYMBOL_DIR environment variable is missing, so the default KiCad symbol libraries won't be searched. @ [/home/bbalazs/projects/ardor/hardware/control-io/<frozen importlib._bootstrap_external>:1026=>/home/bbalazs/projects/ardor/hardware/control-io/<frozen importlib._bootstrap>:488]
+WARNING: KICAD_SYMBOL_DIR environment variable is missing, so the default KiCad symbol libraries won't be searched. @ [/home/bbalazs/projects/ardor/hardware/control-io/<frozen importlib._bootstrap_external>:1026=>/home/bbalazs/projects/ardor/hardware/control-io/<frozen importlib._bootstrap>:488]
+WARNING: KICAD10_SYMBOL_DIR environment variable is missing, so the default KiCad symbol libraries won't be searched. @ [/home/bbalazs/projects/ardor/hardware/control-io/<frozen importlib._bootstrap_external>:1026=>/home/bbalazs/projects/ardor/hardware/control-io/<frozen importlib._bootstrap>:488]
+WARNING: fp-lib-table file was not found. Component footprints are not available.
+WARNING: fp-lib-table file was not found. Component footprints are not available.
+WARNING: fp-lib-table file was not found. Component footprints are not available.
+WARNING: fp-lib-table file was not found. Component footprints are not available.
+WARNING: fp-lib-table file was not found. Component footprints are not available.

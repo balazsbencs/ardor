@@ -7,7 +7,7 @@ RUN set -eux; \
     export DEBIAN_FRONTEND=noninteractive; \
     apt-get -o Acquire::Retries=3 update; \
     apt-get install -y --no-install-recommends \
-      build-essential git curl wget rsync cpio unzip bc \
+      build-essential git ca-certificates curl wget rsync cpio unzip bc \
       python3 python3-dev file pkg-config libssl-dev libelf-dev \
       dosfstools genimage e2fsprogs mtools device-tree-compiler openssh-client; \
     rm -rf /var/lib/apt/lists/*
