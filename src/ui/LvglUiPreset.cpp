@@ -85,6 +85,13 @@ void onBankUpClicked(lv_event_t* event)
   requestBankChange(static_cast<UiEventContext*>(lv_event_get_user_data(event)), 1);
 }
 
+void onLooperClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  if (context->ui->actions().openLooper) context->ui->actions().openLooper();
+  else enterLooperMode(*context->state);
+}
+
 void onPresetNameSaveClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
@@ -128,6 +135,7 @@ void LvglUi::rebuildPresetView(UiState& state)
   presetMasterValueLabel_ = nullptr;
   presetMasterScaleFill_ = nullptr;
   presetMasterPointer_ = nullptr;
+  presetLooperLabel_ = nullptr;
   contextRegion_ = UiContextRegion::Preset;
   renderPresetMode(presetLayer_, state);
   contextRegion_ = UiContextRegion::None;
@@ -157,6 +165,10 @@ void LvglUi::syncHeaderView(const UiState& state)
   if (presetMasterPointer_) {
     lv_obj_align(presetMasterPointer_, LV_ALIGN_TOP_LEFT,
                 masterPct * kMasterScaleWidth / 100, -3);
+  }
+  if (presetLooperLabel_) {
+    lv_label_set_text(presetLooperLabel_,
+      state.looper.telemetry.sessionState == LooperSessionState::Inactive ? "Looper" : "Resume Loop");
   }
   if (bankDownButton_) {
     if (state.activeBank == kMinBank) lv_obj_add_state(bankDownButton_, LV_STATE_DISABLED);
@@ -199,6 +211,7 @@ void LvglUi::syncPresetCards(const UiState& state)
     lv_label_set_text(presetCardLabels_[i], uppercase(state.bank.presets[i].name).c_str());
     const bool isActive = i == state.activePreset;
     const bool unavailable = presetHasUnavailableAssets(state, i);
+    const bool sessionLocked = state.looper.telemetry.sessionState != LooperSessionState::Inactive;
     lv_obj_set_style_text_color(presetCardLabels_[i], lv_color_hex(unavailable ? danger : text), 0);
     lv_obj_set_style_border_color(presetCardButtons_[i], lv_color_hex(unavailable ? palette().faultLine : (isActive ? lamp : rule)), 0);
     lv_obj_set_style_border_width(presetCardButtons_[i], isActive ? 3 : 1, 0);
@@ -212,6 +225,8 @@ void LvglUi::syncPresetCards(const UiState& state)
       if (unavailable) lv_obj_remove_flag(presetWarningLabels_[i], LV_OBJ_FLAG_HIDDEN);
       else lv_obj_add_flag(presetWarningLabels_[i], LV_OBJ_FLAG_HIDDEN);
     }
+    if (sessionLocked) lv_obj_add_state(presetCardButtons_[i], LV_STATE_DISABLED);
+    else lv_obj_remove_state(presetCardButtons_[i], LV_STATE_DISABLED);
     lv_obj_remove_flag(presetCardButtons_[i], LV_OBJ_FLAG_HIDDEN);
   }
 }
@@ -325,6 +340,9 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     if (!populated || !presetHasUnavailableAssets(state, i)) {
       lv_obj_add_flag(unavailable, LV_OBJ_FLAG_HIDDEN);
     }
+    if (state.looper.telemetry.sessionState != LooperSessionState::Inactive) {
+      lv_obj_add_state(preset, LV_STATE_DISABLED);
+    }
     if (!populated) lv_obj_add_flag(preset, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_event_cb(preset, onPresetClicked, LV_EVENT_CLICKED, remember(state, i));
   }
@@ -359,6 +377,11 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
   lv_obj_t* tuner = railButton("Tuner", 112, false);
   lv_obj_set_style_text_color(lv_obj_get_child(tuner, 0), lv_color_hex(lamp), 0);
   lv_obj_add_event_cb(tuner, onTunerModeClicked, LV_EVENT_PRESSED, remember(state));
+  lv_obj_t* looper = railButton(
+    state.looper.telemetry.sessionState == LooperSessionState::Inactive ? "Looper" : "Resume Loop",
+    142, false);
+  presetLooperLabel_ = lv_obj_get_child(looper, 0);
+  lv_obj_add_event_cb(looper, onLooperClicked, LV_EVENT_PRESSED, remember(state));
   lv_obj_t* bankDown = railButton("Bank -", 96, false);
   bankDownButton_ = bankDown;
   if (state.activeBank == kMinBank) lv_obj_add_state(bankDown, LV_STATE_DISABLED);

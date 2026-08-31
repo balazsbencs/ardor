@@ -19,6 +19,8 @@ struct ActivePresetSelection {
 
 enum class PresetActivationStatus {
   Activated,
+  LooperLocked,
+  LooperNotPaused,
   PreparationFailed,
   BackendRejected,
 };
@@ -54,6 +56,20 @@ PresetActivationOutcome prepareAndActivatePreset(
   ActivePresetSelection targetSelection,
   const std::filesystem::path& dataRoot,
   const EngineLoadOptions& options,
+  float masterVolume,
+  const EngineReplaceCallback& replaceEngine);
+
+// Recalls a saved loop as one prepared unit: stored preset, preallocated loop
+// memory, and decoded track audio. The current engine remains audible unless
+// the complete candidate is accepted by the backend. The current session must
+// already be paused so Save/Load never silently interrupts a performance.
+PresetActivationOutcome prepareAndActivateLoopSession(
+  std::unique_ptr<PedalEngine>& liveEngine,
+  const Preset& storedPreset,
+  const LooperPausedSessionView& storedSession,
+  const std::filesystem::path& dataRoot,
+  const EngineLoadOptions& options,
+  std::size_t looperMemoryBudgetBytes,
   float masterVolume,
   const EngineReplaceCallback& replaceEngine);
 

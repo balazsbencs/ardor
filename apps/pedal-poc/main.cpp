@@ -8,6 +8,8 @@
 #include "audio/MiniaudioBackend.h"
 #include "audio/PresetActivation.h"
 #include "control/ControlEvents.h"
+#include "looper/LooperController.h"
+#include "looper/LooperStore.h"
 #include "control/Expression.h"
 #include "control/Midi.h"
 #if defined(__linux__)
@@ -40,6 +42,7 @@
 #include <exception>
 #include <filesystem>
 #include <fstream>
+#include <future>
 #include <iostream>
 #include <iomanip>
 #include <memory>
@@ -65,6 +68,12 @@
 #endif
 
 namespace {
+
+struct LooperSaveCompletion {
+  bool saved = false;
+  std::string id;
+  std::string error;
+};
 
 volatile std::sig_atomic_t running = 1;
 std::atomic<bool> audioRestartRequested{false};
@@ -807,6 +816,22 @@ int main(int argc, char** argv)
 
       ardor::ControlState controls{args.slot, 80};
       ardor::FootswitchGesture footswitchGesture;
+      ardor::LooperController looperController;
+      ardor::ActivePresetSelection activeSelection{args.bank, args.slot};
+      constexpr std::size_t looperMemoryBudget = 128ULL * 1024ULL * 1024ULL;
+      ardor::LooperStore looperStore(args.dataRoot);
+      std::future<LooperSaveCompletion> looperSaveFuture;
+      std::string activeLoopId;
+      std::string activeLoopName;
+      ardor::LooperSourcePreset activeLoopSource{
+        activeSelection.bank, activeSelection.slot, activePreset.name,
+      };
+      std::optional<ardor::Preset> loopReturnPreset;
+      std::optional<std::string> requestedLoopLoadId;
+      uint64_t pendingNewCleanSequence = 0;
+      bool pendingLoadedClean = false;
+      bool restorePresetAfterLoopClose = false;
+      bool looperIoBusy = false;
       ardor::TunerAnalyzer tuner(static_cast<float>(args.sampleRate));
       bool tunerMode = false;
       int requestedTunerMode = -1;
@@ -814,7 +839,6 @@ int main(int argc, char** argv)
       std::array<float, 2048> tunerInput{};
       int deferredTunerBank = -1;
       int deferredTunerSlot = -1;
-      ardor::ActivePresetSelection activeSelection{args.bank, args.slot};
       liveEngine->setMasterVolume(static_cast<float>(controls.masterVolume) / 100.0f);
       bool presetMidiMappingsChanged = false;
 
@@ -1039,6 +1063,210 @@ int main(int argc, char** argv)
             }
             return true;
           },
+          [&]() {
+            if (looperController.sessionLocked()) {
+              ardor::enterLooperMode(uiState);
+              return;
+            }
+            if (!ardor::previewIsSynchronized(uiState) || uiState.dirty) {
+              ardor::setUiStatus(uiState, "Save preset changes before opening Looper", true);
+              return;
+            }
+            std::string error;
+            if (!liveEngine->prepareLooper(looperMemoryBudget, error)) {
+              ardor::setUiStatus(uiState, "Looper unavailable: " + error, true);
+              return;
+            }
+            const auto action = looperController.openSession();
+            if (!action || !liveEngine->tryEnqueueLooperCommand(action->command)) {
+              if (action) looperController.submissionFailed(*action);
+              ardor::setUiStatus(uiState, "Looper command queue is busy", true);
+              return;
+            }
+            footswitchGesture.reset();
+            activeLoopSource = {
+              activeSelection.bank, activeSelection.slot, activePreset.name,
+            };
+            ardor::enterLooperMode(
+              uiState, activePreset.name, looperMemoryBudget);
+          },
+          [&]() {
+            const auto session = looperController.telemetry().sessionState;
+            if (session != ardor::LooperSessionState::Paused
+                && session != ardor::LooperSessionState::EmptyPaused) {
+              ardor::setUiStatus(uiState, "Stop all tracks before exiting Looper", true);
+              return;
+            }
+            ardor::enterPresetMode(uiState);
+          },
+          [&](std::size_t track) {
+            looperController.selectTrack(track);
+            ardor::updateLooperUi(uiState, looperController.telemetry(),
+                                  looperController.selectedTrack());
+          },
+          [&](ardor::LooperCommandType type, std::size_t track, float value) {
+            if (looperIoBusy) {
+              ardor::setUiStatus(uiState, "Wait for loop save to finish", true);
+              return;
+            }
+            const auto action = looperController.requestCommand(type, track, value);
+            if (!action || !liveEngine->tryEnqueueLooperCommand(action->command)) {
+              if (action) looperController.submissionFailed(*action);
+              ardor::setUiStatus(uiState, "Looper command queue is busy", true);
+            } else if (uiState.statusIsError) {
+              ardor::setUiStatus(uiState, {});
+            }
+          },
+          [&]() {
+            if (looperIoBusy) {
+              ardor::setUiStatus(uiState, "Wait for loop save to finish", true);
+              return;
+            }
+            const auto action = looperController.closeSession();
+            if (!action || !liveEngine->tryEnqueueLooperCommand(action->command)) {
+              if (action) looperController.submissionFailed(*action);
+              ardor::setUiStatus(uiState, "Stop all tracks before closing Looper", true);
+              return;
+            }
+            restorePresetAfterLoopClose = loopReturnPreset.has_value();
+            ardor::enterPresetMode(uiState);
+          },
+          [&]() {
+            if (looperIoBusy) {
+              ardor::setUiStatus(uiState, "Wait for loop save to finish", true);
+              return;
+            }
+            const auto session = looperController.telemetry().sessionState;
+            if (session != ardor::LooperSessionState::Paused
+                && session != ardor::LooperSessionState::EmptyPaused) {
+              ardor::setUiStatus(uiState, "Stop all tracks before starting a new loop", true);
+              return;
+            }
+            if (uiState.looper.modified) {
+              ardor::setUiStatus(uiState, "Save or close the modified loop before starting new", true);
+              return;
+            }
+            const auto action = looperController.requestCommand(ardor::LooperCommandType::ResetSession);
+            if (!action || !liveEngine->tryEnqueueLooperCommand(action->command)) {
+              if (action) looperController.submissionFailed(*action);
+              ardor::setUiStatus(uiState, "Looper command queue is busy", true);
+              return;
+            }
+            pendingNewCleanSequence = action->command.sequence;
+            activeLoopId.clear();
+            activeLoopName.clear();
+            ardor::setUiStatus(uiState, "New loop ready");
+          },
+          [&]() {
+            if (looperIoBusy) {
+              ardor::setUiStatus(uiState, "Loop save already in progress", true);
+              return;
+            }
+            const auto view = liveEngine->pausedLooperSessionView();
+            if (!view || view->loopFrames == 0) {
+              ardor::setUiStatus(uiState, "Stop all tracks before saving a non-empty loop", true);
+              return;
+            }
+            ardor::LooperSaveRequest request;
+            request.id = activeLoopId;
+            request.name = activeLoopName.empty()
+              ? (activePreset.name.empty() ? "Loop" : activePreset.name + " Loop") : activeLoopName;
+            request.sourcePreset = activeLoopSource;
+            request.preset = activePreset;
+            request.session = *view;
+            try {
+              looperIoBusy = true;
+              ardor::setLooperIoBusy(uiState, true);
+              ardor::setUiStatus(uiState, "Saving loop…");
+              looperSaveFuture = std::async(
+                std::launch::async, [&looperStore, request = std::move(request)]() mutable {
+                  LooperSaveCompletion completion;
+                  try {
+                    completion.saved = looperStore.save(request, completion.id, completion.error);
+                  } catch (const std::exception& exception) {
+                    completion.error = exception.what();
+                  }
+                  return completion;
+                });
+            } catch (const std::exception& exception) {
+              looperIoBusy = false;
+              ardor::setLooperIoBusy(uiState, false);
+              ardor::setUiStatus(uiState,
+                                 "Could not start loop save: " + std::string{exception.what()}, true);
+            }
+          },
+          [&]() {
+            if (looperIoBusy) {
+              ardor::setUiStatus(uiState, "Wait for loop save to finish", true);
+              return;
+            }
+            const auto session = looperController.telemetry().sessionState;
+            if (session != ardor::LooperSessionState::Paused
+                && session != ardor::LooperSessionState::EmptyPaused) {
+              ardor::setUiStatus(uiState, "Stop all tracks before loading a loop", true);
+              return;
+            }
+            if (uiState.looper.modified) {
+              ardor::setUiStatus(uiState, "Save or close the modified loop before loading", true);
+              return;
+            }
+            try {
+              const auto entries = looperStore.list(
+                looperMemoryBudget / ardor::RealtimeLooper::kBytesPerMasterFrame,
+                [&](const ardor::Preset& preset, std::string& error) {
+                  return ardor::preflightPreset(preset, args.dataRoot, loadOptions, error);
+                });
+              std::vector<ardor::UiLooperState::LibraryEntry> rows;
+              rows.reserve(entries.size());
+              for (const auto& entry : entries) {
+                rows.push_back({entry.id, entry.name, entry.sourcePresetName, entry.savedAt,
+                                entry.loopFrames, entry.populatedTracks, entry.available,
+                                entry.unavailableReason});
+              }
+              ardor::openLooperLibrary(uiState, std::move(rows));
+              ardor::setUiStatus(uiState, {});
+            } catch (const std::exception& exception) {
+              ardor::setUiStatus(uiState,
+                                 "Could not open loop library: " + std::string{exception.what()}, true);
+            }
+          },
+          [&](const std::string& id) {
+            if (looperIoBusy || uiState.looper.modified) {
+              ardor::setUiStatus(uiState,
+                                 looperIoBusy ? "Wait for loop save to finish"
+                                              : "Save or close the modified loop before loading",
+                                 true);
+              return;
+            }
+            requestedLoopLoadId = id;
+            ardor::setUiStatus(uiState, "Loading saved loop…");
+          },
+          [&](const std::string& id) {
+            std::string deleteError;
+            if (!looperStore.remove(id, deleteError)) {
+              ardor::setUiStatus(uiState, "Loop delete failed: " + deleteError, true);
+              return;
+            }
+            if (id == activeLoopId) {
+              activeLoopId.clear();
+              activeLoopName.clear();
+              ardor::markLooperUnsaved(uiState);
+            }
+            const auto entries = looperStore.list(
+              looperMemoryBudget / ardor::RealtimeLooper::kBytesPerMasterFrame,
+              [&](const ardor::Preset& preset, std::string& error) {
+                return ardor::preflightPreset(preset, args.dataRoot, loadOptions, error);
+              });
+            std::vector<ardor::UiLooperState::LibraryEntry> rows;
+            rows.reserve(entries.size());
+            for (const auto& entry : entries) {
+              rows.push_back({entry.id, entry.name, entry.sourcePresetName, entry.savedAt,
+                              entry.loopFrames, entry.populatedTracks, entry.available,
+                              entry.unavailableReason});
+            }
+            ardor::openLooperLibrary(uiState, std::move(rows));
+            ardor::setUiStatus(uiState, "Saved loop deleted");
+          },
         });
         ui->build(lv_screen_active(), uiState);
         claimOverlay = std::make_unique<ardor::CloudClaimOverlay>(args.dataRoot);
@@ -1154,6 +1382,7 @@ int main(int argc, char** argv)
 #if defined(ARDOR_HAS_UI)
           if (args.enableUi && ui) {
             if (tunerMode) ardor::enterTunerMode(uiState);
+            else if (looperController.sessionLocked()) ardor::enterLooperMode(uiState);
             else ardor::enterPresetMode(uiState);
           }
 #endif
@@ -1192,9 +1421,48 @@ int main(int argc, char** argv)
 #endif
         }
       };
+      const auto applyLooperAction = [&](const ardor::LooperControllerAction& action) {
+        if (looperIoBusy) {
+          if (action.type == ardor::LooperControllerActionType::Command) {
+            looperController.submissionFailed(action);
+          } else {
+            (void)looperController.leaveTuner();
+          }
+#if defined(ARDOR_HAS_UI)
+          if (args.enableUi && ui) {
+            ardor::setUiStatus(uiState, "Wait for loop save to finish", true);
+          }
+#endif
+          return;
+        }
+        if (action.type == ardor::LooperControllerActionType::EnterTuner) {
+          applyFootswitchAction({ardor::FootswitchActionType::ToggleTuner, 0});
+          return;
+        }
+        if (!liveEngine->tryEnqueueLooperCommand(action.command)) {
+          looperController.submissionFailed(action);
+#if defined(ARDOR_HAS_UI)
+          if (args.enableUi && ui) {
+            ardor::setUiStatus(uiState, "Looper command queue is busy", true);
+          }
+#endif
+          return;
+        }
+        if (tunerMode && action.command.type == ardor::LooperCommandType::Resume) {
+          applyFootswitchAction({ardor::FootswitchActionType::ToggleTuner, 0});
+        }
+      };
       const auto requestPresetSelection = [&](int bank, int slot) {
         bank = std::clamp(bank, 0, 99);
         slot = std::clamp(slot, 0, 3);
+        if (looperController.sessionLocked()) {
+#if defined(ARDOR_HAS_UI)
+          if (args.enableUi && ui) {
+            ardor::setUiStatus(uiState, "Close the loop session before changing presets", true);
+          }
+#endif
+          return;
+        }
 #if defined(ARDOR_HAS_UI)
         if (args.enableUi && ui) {
           if (!ardor::requestPresetNavigation(
@@ -1207,6 +1475,130 @@ int main(int argc, char** argv)
         requestedSlot.store(slot, std::memory_order_relaxed);
       };
       while (running && !audioRestartRequested.load(std::memory_order_relaxed)) {
+#if defined(ARDOR_HAS_UI)
+        if (restorePresetAfterLoopClose && !looperController.sessionLocked()
+            && loopReturnPreset) {
+          const auto activation = ardor::prepareAndActivateDraft(
+            liveEngine, *loopReturnPreset, args.dataRoot, loadOptions,
+            static_cast<float>(controls.masterVolume) / 100.0f,
+            [&](ardor::PedalEngine& prepared) { return backend.replaceEngine(prepared); });
+          if (activation.activated()) {
+            activePreset = std::move(*loopReturnPreset);
+            loopReturnPreset.reset();
+            restorePresetAfterLoopClose = false;
+            activeLoopId.clear();
+            activeLoopName.clear();
+            activeLoopSource = {
+              activeSelection.bank, activeSelection.slot, activePreset.name,
+            };
+            liveEngine->setEffectsBypassed(runtime.effectsBypassed());
+#if defined(__linux__)
+            expressionFilter.reset();
+            loadPresetMidiMappings();
+#endif
+            ardor::setUiStatus(uiState, "Loop session closed");
+          } else if (activation.replacementResult != ardor::EngineReplaceResult::Busy) {
+            restorePresetAfterLoopClose = false;
+            ardor::setUiStatus(uiState, "Could not restore preset after loop: "
+                                         + (activation.error.empty()
+                                              ? std::string{replaceResultName(activation.replacementResult)}
+                                              : activation.error), true);
+          }
+        }
+
+        if (looperSaveFuture.valid()
+            && looperSaveFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+          LooperSaveCompletion completion;
+          try {
+            completion = looperSaveFuture.get();
+          } catch (const std::exception& exception) {
+            completion.error = exception.what();
+          }
+          looperIoBusy = false;
+          ardor::setLooperIoBusy(uiState, false);
+          if (completion.saved) {
+            activeLoopId = completion.id;
+            if (activeLoopName.empty()) {
+              activeLoopName = activePreset.name.empty() ? "Loop" : activePreset.name + " Loop";
+            }
+            ardor::markLooperSaved(uiState);
+            ardor::setUiStatus(uiState, "Loop saved");
+          } else {
+            ardor::setUiStatus(uiState, "Loop save failed: " + completion.error, true);
+          }
+        }
+
+        if (requestedLoopLoadId) {
+          const auto id = std::exchange(requestedLoopLoadId, std::nullopt);
+          ardor::LooperLoadedSet loaded;
+          std::string loopError;
+          if (!looperStore.load(*id,
+                                looperMemoryBudget / ardor::RealtimeLooper::kBytesPerMasterFrame,
+                                loaded, loopError)) {
+            ardor::setUiStatus(uiState, "Loop load failed: " + loopError, true);
+          } else {
+            const auto activation = ardor::prepareAndActivateLoopSession(
+              liveEngine, loaded.preset, loaded.pausedSessionView(), args.dataRoot,
+              loadOptions, looperMemoryBudget,
+              static_cast<float>(controls.masterVolume) / 100.0f,
+              [&](ardor::PedalEngine& prepared) { return backend.replaceEngine(prepared); });
+            if (!activation.activated()) {
+              const auto reason = activation.error.empty()
+                ? std::string{replaceResultName(activation.replacementResult)} : activation.error;
+              ardor::setUiStatus(uiState, "Loop load failed: " + reason, true);
+            } else {
+              if (!loopReturnPreset) loopReturnPreset = activePreset;
+              activePreset = std::move(loaded.preset);
+              activeLoopId = loaded.id;
+              activeLoopName = loaded.name;
+              activeLoopSource = loaded.sourcePreset;
+              pendingLoadedClean = true;
+              liveEngine->setEffectsBypassed(runtime.effectsBypassed());
+              footswitchGesture.reset();
+              looperController.resetGestures();
+#if defined(__linux__)
+              expressionFilter.reset();
+              loadPresetMidiMappings();
+#endif
+              ardor::enterLooperMode(
+                uiState,
+                loaded.sourcePreset.name.empty() ? activePreset.name : loaded.sourcePreset.name,
+                looperMemoryBudget);
+              ardor::setUiStatus(uiState, "Loaded " + activeLoopName);
+            }
+          }
+        }
+
+        ardor::LooperTelemetry looperTelemetry;
+        bool receivedLooperTelemetry = false;
+        bool markCurrentLoopClean = false;
+        while (liveEngine->tryReadLooperTelemetry(looperTelemetry)) {
+          looperController.updateTelemetry(looperTelemetry);
+          if (pendingNewCleanSequence > 0
+              && looperTelemetry.lastAppliedCommandSequence >= pendingNewCleanSequence) {
+            pendingNewCleanSequence = 0;
+            markCurrentLoopClean = true;
+          }
+          if (pendingLoadedClean
+              && looperTelemetry.sessionState == ardor::LooperSessionState::Paused) {
+            pendingLoadedClean = false;
+            markCurrentLoopClean = true;
+          }
+          receivedLooperTelemetry = true;
+        }
+        if (args.enableUi && ui
+            && (receivedLooperTelemetry || uiState.mode == ardor::UiMode::Looper)) {
+          ardor::updateLooperUi(
+            uiState, looperController.telemetry(), looperController.selectedTrack(),
+            looperController.clearHoldProgress(ardor::LooperController::Clock::now()));
+          if (markCurrentLoopClean) ardor::markLooperSaved(uiState);
+        }
+#else
+        ardor::LooperTelemetry looperTelemetry;
+        while (liveEngine->tryReadLooperTelemetry(looperTelemetry)) {
+          looperController.updateTelemetry(looperTelemetry);
+        }
+#endif
 #if defined(ARDOR_HAS_UI)
         if (args.enableUi && ui) {
           claimOverlay->poll();
@@ -1294,6 +1686,17 @@ int main(int argc, char** argv)
                 continue;
               }
 #endif
+              if (looperController.sessionLocked()) {
+                const auto action = looperController.handleFootswitch(
+                  controlEvent, ardor::LooperController::Clock::now());
+                if (action) {
+                  applyLooperAction(*action);
+                } else if (tunerMode && !looperController.tunerActive()) {
+                  applyFootswitchAction({ardor::FootswitchActionType::ToggleTuner, 0});
+                }
+                footswitchGesture.reset();
+                continue;
+              }
               if (tunerMode && controlEvent.type == ardor::ControlEventType::FootswitchPressed) {
                 applyFootswitchAction({ardor::FootswitchActionType::ToggleTuner, 0});
                 // The release belonging to this exit press must not turn into
@@ -1331,7 +1734,12 @@ int main(int argc, char** argv)
             }
           }
         }
-        if (const auto action = footswitchGesture.poll(ardor::FootswitchGesture::Clock::now())) {
+        if (looperController.sessionLocked()) {
+          if (const auto action = looperController.poll(ardor::LooperController::Clock::now())) {
+            applyLooperAction(*action);
+          }
+        } else if (const auto action = footswitchGesture.poll(
+                     ardor::FootswitchGesture::Clock::now())) {
           applyFootswitchAction(*action);
         }
 
@@ -1415,7 +1823,16 @@ int main(int argc, char** argv)
           const bool requested = requestedTunerMode != 0;
           requestedTunerMode = -1;
           if (requested != tunerMode) {
-            applyFootswitchAction({ardor::FootswitchActionType::ToggleTuner, 0});
+            if (looperController.sessionLocked()) {
+              const auto action = requested ? looperController.requestTunerMode()
+                                            : looperController.leaveTuner();
+              if (action) applyLooperAction(*action);
+              else if (!requested && tunerMode && !looperController.tunerActive()) {
+                applyFootswitchAction({ardor::FootswitchActionType::ToggleTuner, 0});
+              }
+            } else {
+              applyFootswitchAction({ardor::FootswitchActionType::ToggleTuner, 0});
+            }
           }
         }
         if (tunerMode) {

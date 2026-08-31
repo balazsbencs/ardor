@@ -228,6 +228,13 @@ target_include_directories(ardor_tape PUBLIC
 target_compile_features(ardor_tape PUBLIC cxx_std_20)
 target_link_libraries(ardor_tape PUBLIC ardor_equalizer)
 
+add_library(ardor_looper
+  src/looper/LooperController.cpp
+  src/looper/RealtimeLooper.cpp
+)
+target_include_directories(ardor_looper PUBLIC src)
+target_compile_features(ardor_looper PUBLIC cxx_std_20)
+
 add_library(ardor_dsp OBJECT
   src/dsp/DualAmpProcessor.cpp
   src/dsp/DualRigProcessor.cpp
@@ -250,7 +257,7 @@ target_include_directories(ardor_dsp PUBLIC
 )
 target_compile_features(ardor_dsp PUBLIC cxx_std_20)
 target_compile_definitions(ardor_dsp PRIVATE NAM_ENABLE_A2_FAST NAM_SAMPLE_FLOAT)
-target_link_libraries(ardor_dsp PUBLIC ardor_cheese ardor_daisyfx ardor_dynamics ardor_equalizer ardor_rat ardor_tape ardor_wah)
+target_link_libraries(ardor_dsp PUBLIC ardor_cheese ardor_daisyfx ardor_dynamics ardor_equalizer ardor_looper ardor_rat ardor_tape ardor_wah)
 if(UNIX AND NOT APPLE)
   target_link_libraries(ardor_dsp PUBLIC stdc++fs)
 endif()
@@ -270,6 +277,14 @@ target_include_directories(ardor_preset PUBLIC
 )
 target_compile_features(ardor_preset PUBLIC cxx_std_20)
 target_link_libraries(ardor_preset PUBLIC ardor_daisyfx ardor_equalizer)
+
+add_library(ardor_looper_store
+  src/looper/LooperStore.cpp
+  src/looper/LooperWav.cpp
+)
+target_include_directories(ardor_looper_store PUBLIC src)
+target_compile_features(ardor_looper_store PUBLIC cxx_std_20)
+target_link_libraries(ardor_looper_store PUBLIC ardor_looper ardor_preset)
 
 add_library(ardor_ui
   src/ui/GlobalSettings.cpp
@@ -293,6 +308,7 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
     src/ui/LvglUiEdit.cpp
     src/ui/LvglUiNavigation.cpp
     src/ui/LvglUiEqRenderer.cpp
+    src/ui/LvglUiLooper.cpp
     src/ui/LvglUiParameterRenderer.cpp
     src/ui/LvglUiParameters.cpp
     src/ui/LvglUiPreset.cpp
@@ -356,7 +372,7 @@ endif()
 add_executable(pedal-poc apps/pedal-poc/main.cpp)
 target_compile_features(pedal-poc PRIVATE cxx_std_20)
 target_include_directories(pedal-poc PRIVATE ${miniaudio_SOURCE_DIR})
-target_link_libraries(pedal-poc PRIVATE ardor_audio ardor_dsp ardor_control)
+target_link_libraries(pedal-poc PRIVATE ardor_audio ardor_dsp ardor_control ardor_looper_store)
 target_compile_definitions(pedal-poc PRIVATE
   ARDOR_VERSION="${ARDOR_VERSION}"
   ARDOR_COMMIT="${ARDOR_COMMIT}"
@@ -456,6 +472,22 @@ target_link_libraries(pedal-parametric-eq-smoke PRIVATE ardor_equalizer)
 
 add_executable(pedal-runtime-chain-smoke tests/runtime_chain_smoke.cpp)
 target_link_libraries(pedal-runtime-chain-smoke PRIVATE ardor_dsp ardor_daisyfx)
+
+add_executable(pedal-looper-smoke tests/looper_smoke.cpp)
+target_link_libraries(pedal-looper-smoke PRIVATE ardor_looper)
+
+add_executable(pedal-looper-store-smoke tests/looper_store_smoke.cpp)
+target_link_libraries(pedal-looper-store-smoke PRIVATE ardor_looper_store)
+
+# Target-hardware timing probe, not a ctest: it emits processed-stereo looper
+# distributions plus a comparison-only dry-mono pre-chain reference.
+add_executable(pedal-looper-bench tests/looper_bench.cpp)
+target_link_libraries(pedal-looper-bench PRIVATE ardor_looper)
+target_compile_definitions(pedal-looper-bench PRIVATE
+  ARDOR_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
+  ARDOR_COMPILER="${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}"
+  ARDOR_CXX_FLAGS="${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}"
+)
 
 add_executable(pedal-engine-contract-smoke tests/engine_contract_smoke.cpp)
 target_link_libraries(pedal-engine-contract-smoke PRIVATE ardor_dsp)
@@ -566,6 +598,8 @@ add_test(NAME pedal-compressor-smoke COMMAND pedal-compressor-smoke)
 add_test(NAME pedal-noise-gate-smoke COMMAND pedal-noise-gate-smoke)
 add_test(NAME pedal-parametric-eq-smoke COMMAND pedal-parametric-eq-smoke)
 add_test(NAME pedal-runtime-chain-smoke COMMAND pedal-runtime-chain-smoke)
+add_test(NAME pedal-looper-smoke COMMAND pedal-looper-smoke)
+add_test(NAME pedal-looper-store-smoke COMMAND pedal-looper-store-smoke)
 add_test(NAME pedal-engine-contract-smoke COMMAND pedal-engine-contract-smoke)
 add_test(NAME pedal-tuner-smoke COMMAND pedal-tuner-smoke)
 add_test(NAME pedal-nam-processor-smoke COMMAND pedal-nam-processor-smoke)

@@ -53,6 +53,46 @@ int main()
   ardor::enterPresetMode(tunerState);
   if (require(tunerState.mode == ardor::UiMode::Preset, "tuner should return to preset mode")) return 1;
 
+  auto looperState = ardor::makeDemoUiState();
+  ardor::enterLooperMode(looperState, "Ambient Lead", 128ULL * 1024ULL * 1024ULL);
+  if (require(looperState.mode == ardor::UiMode::Looper
+                && looperState.looper.lockedPresetName == "Ambient Lead",
+              "looper mode should retain the locked preset identity")) return 1;
+  ardor::LooperTelemetry loopTelemetry;
+  loopTelemetry.revision = 1;
+  loopTelemetry.contentRevision = 1;
+  loopTelemetry.sessionState = ardor::LooperSessionState::Running;
+  loopTelemetry.masterFrames = 480000;
+  loopTelemetry.playheadFrame = 240000;
+  loopTelemetry.tracks[0].state = ardor::LooperTrackState::Playing;
+  loopTelemetry.tracks[0].audible = true;
+  const auto looperRevision = looperState.revisions.looper;
+  ardor::updateLooperUi(looperState, loopTelemetry, 2, 0.5f);
+  if (require(looperState.looper.selectedTrack == 2
+                && looperState.looper.telemetry.masterFrames == 480000
+                && looperState.looper.clearHoldProgress == 0.5f
+                && looperState.revisions.looper > looperRevision,
+              "looper telemetry should update its dedicated retained-view revision")) return 1;
+  if (require(looperState.looper.modified,
+              "new loop content should be marked modified independently of playhead telemetry")) return 1;
+  ardor::markLooperSaved(looperState);
+  loopTelemetry.revision = 2;
+  ardor::updateLooperUi(looperState, loopTelemetry, 2);
+  if (require(!looperState.looper.modified,
+              "playhead-only telemetry should not dirty a saved loop")) return 1;
+  loopTelemetry.revision = 3;
+  loopTelemetry.contentRevision = 2;
+  ardor::updateLooperUi(looperState, loopTelemetry, 2);
+  if (require(looperState.looper.modified,
+              "an audio or mix mutation should dirty a saved loop")) return 1;
+  ardor::markLooperSaved(looperState);
+  ardor::markLooperUnsaved(looperState);
+  loopTelemetry.revision = 4;
+  loopTelemetry.contentRevision = 3;
+  ardor::updateLooperUi(looperState, loopTelemetry, 2);
+  if (require(looperState.looper.modified,
+              "deleting the durable snapshot should stay unsaved across later mutations")) return 1;
+
   auto catalogState = ardor::makeDemoUiState();
   std::unordered_set<std::string> assetRows;
   std::size_t tapeDelayCount = 0;

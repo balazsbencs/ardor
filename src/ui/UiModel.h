@@ -1,6 +1,7 @@
 #pragma once
 
 #include "equalizer/EqParameters.h"
+#include "looper/RealtimeLooper.h"
 #include "preset/Preset.h"
 #include "preset/PresetStore.h"
 #include "preset/RuntimeState.h"
@@ -59,7 +60,8 @@ struct UiBank {
 enum class UiMode {
   Preset,
   Edit,
-  Tuner
+  Tuner,
+  Looper,
 };
 
 enum class UiParamTarget {
@@ -85,7 +87,8 @@ enum class UiChange : uint32_t {
   Drawers = 1u << 6,
   Status = 1u << 7,
   Telemetry = 1u << 8,
-  All = (1u << 9) - 1,
+  Looper = 1u << 9,
+  All = (1u << 10) - 1,
 };
 
 constexpr UiChange operator|(UiChange left, UiChange right)
@@ -108,6 +111,7 @@ struct UiRevisions {
   uint64_t drawers = 0;
   uint64_t status = 0;
   uint64_t telemetry = 0;
+  uint64_t looper = 0;
 };
 
 struct UiBlockEditSnapshot {
@@ -183,6 +187,35 @@ struct UiControlInputTelemetry {
   int expressionRaw = 0;
 };
 
+struct UiLooperState {
+  struct LibraryEntry {
+    std::string id;
+    std::string name;
+    std::string sourcePresetName;
+    std::string savedAt;
+    uint64_t loopFrames = 0;
+    std::size_t populatedTracks = 0;
+    bool available = false;
+    std::string unavailableReason;
+  };
+
+  LooperTelemetry telemetry;
+  std::size_t selectedTrack = 0;
+  std::string lockedPresetName;
+  std::size_t memoryBudgetBytes = 0;
+  float clearHoldProgress = 0.0f;
+  uint64_t savedContentRevision = 0;
+  bool durableSnapshotExists = false;
+  bool ioBusy = false;
+  bool modified = false;
+  bool libraryOpen = false;
+  bool mixerOpen = false;
+  bool clearTrackConfirmationOpen = false;
+  std::size_t libraryPage = 0;
+  std::vector<LibraryEntry> library;
+  std::optional<std::string> deleteCandidateId;
+};
+
 struct UiState {
   UiBank bank;
   DeviceSettings settings;
@@ -213,6 +246,7 @@ struct UiState {
   UiClipDebugTelemetry clipDebug;
   UiTunerTelemetry tuner;
   UiControlInputTelemetry controlInputs;
+  UiLooperState looper;
   // The selected compressor block's current gain reduction in dB (<= 0),
   // sampled continuously while its parameter drawer is open. Unlike the
   // other telemetry above, this has no revision of its own -- the meter
@@ -239,6 +273,15 @@ void synchronizePresetSelection(UiState& state, std::size_t index);
 void enterPresetMode(UiState& state);
 void enterEditMode(UiState& state);
 void enterTunerMode(UiState& state);
+void enterLooperMode(UiState& state, std::string lockedPresetName = {},
+                     std::size_t memoryBudgetBytes = 0);
+void updateLooperUi(UiState& state, const LooperTelemetry& telemetry,
+                    std::size_t selectedTrack, float clearHoldProgress = 0.0f);
+void markLooperSaved(UiState& state);
+void markLooperUnsaved(UiState& state);
+void setLooperIoBusy(UiState& state, bool busy);
+void openLooperLibrary(UiState& state, std::vector<UiLooperState::LibraryEntry> entries);
+void closeLooperLibrary(UiState& state);
 void updateTunerTelemetry(UiState& state, UiTunerTelemetry telemetry);
 void openBlockDrawer(UiState& state);
 void openBlockDrawerAt(UiState& state, std::size_t blockIndex);
