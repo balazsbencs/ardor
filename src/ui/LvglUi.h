@@ -22,7 +22,7 @@ namespace ardor {
 class LvglUi;
 
 enum class UiContextRegion {
-  None, Preset, Edit, Tuner, Parameters, Drawer, Status, Settings, PresetName,
+  None, Preset, Edit, Tuner, Looper, Parameters, Drawer, Status, Settings, PresetName,
 };
 
 struct UiEventContext {
@@ -70,6 +70,16 @@ struct UiActions {
   std::function<bool(const std::string&, bool)> updateBlockEnabled;
   std::function<bool(const std::string&, EqPassFilterKind, const EqPassFilterParams&)>
     updateEqPassFilter;
+  std::function<void()> openLooper;
+  std::function<void()> exitLooper;
+  std::function<void(std::size_t)> selectLooperTrack;
+  std::function<void(LooperCommandType, std::size_t, float)> looperCommand;
+  std::function<void()> closeLooper;
+  std::function<void()> newLooper;
+  std::function<void()> saveLooper;
+  std::function<void()> loadLooper;
+  std::function<void(const std::string&)> loadLooperSet;
+  std::function<void(const std::string&)> deleteLooperSet;
 };
 
 struct UiLaneDropTarget {
@@ -192,6 +202,7 @@ private:
   void renderPresetMode(lv_obj_t* root, UiState& state);
   void renderEditMode(lv_obj_t* root, UiState& state);
   void renderTunerMode(lv_obj_t* root, UiState& state);
+  void renderLooperMode(lv_obj_t* root, UiState& state);
   void renderBlockDrawer(lv_obj_t* root, UiState& state);
   void renderSettingsView(lv_obj_t* root, UiState& state);
   void renderPresetNameEditor(lv_obj_t* root, UiState& state);
@@ -216,6 +227,7 @@ private:
   void syncPersistentViews(UiState& state);
   void syncBlockingOverlays(const UiState& state);
   void syncTunerView(UiState& state);
+  void syncLooperView(const UiState& state);
 
   UiActions actions_;
   std::list<UiEventContext> contexts_;
@@ -232,6 +244,7 @@ private:
   lv_obj_t* presetLayer_ = nullptr;
   lv_obj_t* editLayer_ = nullptr;
   lv_obj_t* tunerLayer_ = nullptr;
+  lv_obj_t* looperLayer_ = nullptr;
   lv_obj_t* parameterLayer_ = nullptr;
   lv_obj_t* drawerLayer_ = nullptr;
   lv_obj_t* statusLayer_ = nullptr;
@@ -273,6 +286,7 @@ private:
   lv_obj_t* presetMasterValueLabel_ = nullptr;
   lv_obj_t* presetMasterScaleFill_ = nullptr;
   lv_obj_t* presetMasterPointer_ = nullptr;
+  lv_obj_t* presetLooperLabel_ = nullptr;
   lv_obj_t* editPresetLabel_ = nullptr;
   // Edit screen's own rails, mirroring the preset-screen members above.
   lv_obj_t* editModifiedLabel_ = nullptr;
@@ -292,6 +306,43 @@ private:
   lv_obj_t* tunerGuidanceLabel_ = nullptr;
   lv_obj_t* tunerNeedle_ = nullptr;
   std::array<lv_obj_t*, 3> tunerVerdictLamps_{};
+  std::array<lv_obj_t*, kLooperTrackCount> looperTrackPlates_{};
+  std::array<lv_obj_t*, kLooperTrackCount> looperTrackHeaders_{};
+  std::array<lv_obj_t*, kLooperTrackCount> looperTrackStateLabels_{};
+  std::array<lv_obj_t*, kLooperTrackCount> looperTrackDetailLabels_{};
+  std::array<lv_obj_t*, kLooperTrackCount> looperProgressFills_{};
+  lv_obj_t* looperPresetLabel_ = nullptr;
+  lv_obj_t* looperPositionLabel_ = nullptr;
+  lv_obj_t* looperMemoryLabel_ = nullptr;
+  lv_obj_t* looperNoticeLabel_ = nullptr;
+  lv_obj_t* looperStopButton_ = nullptr;
+  lv_obj_t* looperStopLabel_ = nullptr;
+  lv_obj_t* looperNewButton_ = nullptr;
+  lv_obj_t* looperSaveButton_ = nullptr;
+  lv_obj_t* looperLoadButton_ = nullptr;
+  lv_obj_t* looperExitButton_ = nullptr;
+  lv_obj_t* looperCloseButton_ = nullptr;
+  lv_obj_t* looperCloseOverlay_ = nullptr;
+  lv_obj_t* looperNewOverlay_ = nullptr;
+  static constexpr std::size_t kLooperLibraryRows = 4;
+  lv_obj_t* looperLibraryOverlay_ = nullptr;
+  lv_obj_t* looperLibraryEmptyLabel_ = nullptr;
+  lv_obj_t* looperLibraryPageLabel_ = nullptr;
+  lv_obj_t* looperLibraryPreviousButton_ = nullptr;
+  lv_obj_t* looperLibraryNextButton_ = nullptr;
+  std::array<lv_obj_t*, kLooperLibraryRows> looperLibraryRows_{};
+  std::array<lv_obj_t*, kLooperLibraryRows> looperLibraryNameLabels_{};
+  std::array<lv_obj_t*, kLooperLibraryRows> looperLibraryMetaLabels_{};
+  std::array<lv_obj_t*, kLooperLibraryRows> looperLibraryLoadButtons_{};
+  std::array<lv_obj_t*, kLooperLibraryRows> looperLibraryDeleteButtons_{};
+  lv_obj_t* looperDeleteOverlay_ = nullptr;
+  lv_obj_t* looperDeleteNameLabel_ = nullptr;
+  lv_obj_t* looperMixerOverlay_ = nullptr;
+  lv_obj_t* looperMixerTitleLabel_ = nullptr;
+  lv_obj_t* looperMixerLevelLabel_ = nullptr;
+  lv_obj_t* looperMixerBalanceLabel_ = nullptr;
+  lv_obj_t* looperMixerMuteLabel_ = nullptr;
+  lv_obj_t* looperClearTrackOverlay_ = nullptr;
   std::array<lv_obj_t*, 4> presetCardLabels_{};
   std::array<lv_obj_t*, 4> presetCardButtons_{};
   std::array<lv_obj_t*, 4> presetHeaderStrips_{};

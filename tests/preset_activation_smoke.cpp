@@ -3,6 +3,7 @@
 #include "ui/UiModel.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -83,6 +84,86 @@ int main()
             "failed target preparation must retain the visible UI selection");
     requireFiniteOutput(*liveEngine, "failed target preparation");
 
+    require(liveEngine->prepareLooper(
+                256 * ardor::RealtimeLooper::kBytesPerMasterFrame, error),
+            "live engine should prepare its host looper");
+    require(liveEngine->tryEnqueueLooperCommand(
+                {1, ardor::LooperCommandType::OpenEmpty, 0, 0.0f}),
+            "opening a loop session should enqueue");
+    const auto lockedActivation = ardor::prepareAndActivatePreset(
+      liveEngine, selection, tremPreset("Locked target"), {4, 0}, root, options, 0.8f,
+      [&](ardor::PedalEngine&) {
+        ++replaceCalls;
+        return ardor::EngineReplaceResult::Activated;
+      });
+    require(lockedActivation.status == ardor::PresetActivationStatus::LooperLocked,
+            "an open loop session must reject preset replacement before preparation");
+    require(lockedActivation.error.find("close the loop session") != std::string::npos,
+            "preset lock should provide an actionable reason");
+    require(replaceCalls == 0, "locked preset replacement must not reach the backend");
+
+    float silentInput[64]{};
+    float silentLeft[64]{};
+    float silentRight[64]{};
+    liveEngine->processBlock(silentInput, silentLeft, silentRight, 64);
+    require(liveEngine->tryEnqueueLooperCommand(
+                {2, ardor::LooperCommandType::CloseSession, 0, 0.0f}),
+            "empty paused loop session should close");
+    liveEngine->processBlock(silentInput, silentLeft, silentRight, 64);
+    require(!liveEngine->looperSessionOpen(), "processed close should release the engine lock");
+
+    require(liveEngine->tryEnqueueLooperCommand(
+                {3, ardor::LooperCommandType::OpenEmpty, 0, 0.0f}),
+            "loop recall fixture should open an empty paused session");
+    liveEngine->processBlock(silentInput, silentLeft, silentRight, 64);
+    std::array<float, 128> recalledLeft;
+    std::array<float, 128> recalledRight;
+    recalledLeft.fill(0.1f);
+    recalledRight.fill(0.2f);
+    ardor::LooperPausedSessionView recalledSession;
+    recalledSession.sampleRate = 48000.0f;
+    recalledSession.loopFrames = recalledLeft.size();
+    recalledSession.tracks[0].present = true;
+    recalledSession.tracks[0].baseLeft = recalledLeft;
+    recalledSession.tracks[0].baseRight = recalledRight;
+    int recallReplaceCalls = 0;
+
+    const auto engineBeforeRejectedRecall = liveEngine.get();
+    const auto rejectedRecall = ardor::prepareAndActivateLoopSession(
+      liveEngine, tremPreset("Recalled tone"), recalledSession, root, options,
+      256 * ardor::RealtimeLooper::kBytesPerMasterFrame, 0.8f,
+      [&](ardor::PedalEngine&) {
+        ++recallReplaceCalls;
+        return ardor::EngineReplaceResult::Busy;
+      });
+    require(rejectedRecall.status == ardor::PresetActivationStatus::BackendRejected
+              && liveEngine.get() == engineBeforeRejectedRecall
+              && liveEngine->looperSessionOpen(),
+            "failed loop recall must preserve the prior paused engine and session lock");
+
+    const auto activatedRecall = ardor::prepareAndActivateLoopSession(
+      liveEngine, tremPreset("Recalled tone"), recalledSession, root, options,
+      256 * ardor::RealtimeLooper::kBytesPerMasterFrame, 0.8f,
+      [&](ardor::PedalEngine&) {
+        ++recallReplaceCalls;
+        return ardor::EngineReplaceResult::Activated;
+      });
+    require(activatedRecall.activated() && liveEngine.get() != engineBeforeRejectedRecall
+              && liveEngine->looperSessionOpen() && recallReplaceCalls == 2,
+            "accepted loop recall should atomically replace preset and paused loop audio");
+    liveEngine->processBlock(silentInput, silentLeft, silentRight, 64);
+    ardor::LooperTelemetry recalledTelemetry;
+    require(liveEngine->tryReadLooperTelemetry(recalledTelemetry)
+              && recalledTelemetry.sessionState == ardor::LooperSessionState::Paused
+              && recalledTelemetry.masterFrames == recalledLeft.size()
+              && !recalledTelemetry.tracks[0].undoAvailable,
+            "recalled engine should publish a paused session without persisted undo history");
+    require(liveEngine->tryEnqueueLooperCommand(
+                {1, ardor::LooperCommandType::CloseSession, 0, 0.0f}),
+            "recalled session should close for the remaining activation tests");
+    liveEngine->processBlock(silentInput, silentLeft, silentRight, 64);
+    const auto engineAfterRecall = liveEngine.get();
+
     const auto deviceLoss = ardor::prepareAndActivatePreset(
       liveEngine, selection, tremPreset("Device-loss target"), {4, 0}, root, options, 0.8f,
       [&](ardor::PedalEngine&) {
@@ -94,7 +175,8 @@ int main()
     require(deviceLoss.replacementResult == ardor::EngineReplaceResult::DeviceStopped,
             "device loss must be visible to the control loop for requeue");
     require(replaceCalls == 1, "prepared target should reach the backend exactly once");
-    require(liveEngine.get() == originalEngine, "device loss must retain the live engine for recovery");
+    require(liveEngine.get() == engineAfterRecall,
+            "device loss must retain the live engine for recovery");
     require(selection.bank == 3 && selection.slot == 1,
             "device loss must not commit the target selection before recovery");
     require(uiState.activeBank == 3 && uiState.activePreset == 1,

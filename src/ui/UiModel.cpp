@@ -26,6 +26,7 @@ void markUiChanged(UiState& state, UiChange changes)
   if (hasUiChange(changes, UiChange::Drawers)) ++state.revisions.drawers;
   if (hasUiChange(changes, UiChange::Status)) ++state.revisions.status;
   if (hasUiChange(changes, UiChange::Telemetry)) ++state.revisions.telemetry;
+  if (hasUiChange(changes, UiChange::Looper)) ++state.revisions.looper;
 }
 
 namespace {
@@ -584,6 +585,85 @@ void enterTunerMode(UiState& state)
   state.paramDrawerOpen = false;
   state.tuner = {};
   markUiChanged(state, UiChange::Navigation | UiChange::Drawers | UiChange::Telemetry);
+}
+
+void enterLooperMode(UiState& state, std::string lockedPresetName,
+                     std::size_t memoryBudgetBytes)
+{
+  state.mode = UiMode::Looper;
+  state.blockDrawerOpen = false;
+  state.paramDrawerOpen = false;
+  state.statusMessage.clear();
+  state.statusIsError = false;
+  if (!lockedPresetName.empty()) state.looper.lockedPresetName = std::move(lockedPresetName);
+  if (memoryBudgetBytes > 0) state.looper.memoryBudgetBytes = memoryBudgetBytes;
+  markUiChanged(state, UiChange::Navigation | UiChange::Drawers
+                       | UiChange::Status | UiChange::Looper);
+}
+
+void updateLooperUi(UiState& state, const LooperTelemetry& telemetry,
+                    std::size_t selectedTrack, float clearHoldProgress)
+{
+  selectedTrack = std::min(selectedTrack, kLooperTrackCount - 1);
+  clearHoldProgress = std::clamp(clearHoldProgress, 0.0f, 1.0f);
+  const bool wasOpen = state.looper.telemetry.sessionState != LooperSessionState::Inactive;
+  const bool isOpen = telemetry.sessionState != LooperSessionState::Inactive;
+  if (!wasOpen && isOpen) {
+    state.looper.savedContentRevision = 0;
+    state.looper.durableSnapshotExists = false;
+  }
+  const bool changed = state.looper.telemetry.revision != telemetry.revision
+    || state.looper.selectedTrack != selectedTrack
+    || std::fabs(state.looper.clearHoldProgress - clearHoldProgress) >= 0.01f;
+  state.looper.telemetry = telemetry;
+  state.looper.selectedTrack = selectedTrack;
+  state.looper.clearHoldProgress = clearHoldProgress;
+  state.looper.modified = isOpen
+    && (telemetry.contentRevision != state.looper.savedContentRevision
+        || (!state.looper.durableSnapshotExists && telemetry.masterFrames > 0));
+  if (!isOpen) {
+    state.looper.savedContentRevision = 0;
+    state.looper.durableSnapshotExists = false;
+  }
+  if (changed) markUiChanged(state, UiChange::Looper | (wasOpen != isOpen ? UiChange::Presets : UiChange::None));
+}
+
+void markLooperSaved(UiState& state)
+{
+  state.looper.savedContentRevision = state.looper.telemetry.contentRevision;
+  state.looper.durableSnapshotExists = true;
+  state.looper.modified = false;
+  markUiChanged(state, UiChange::Looper);
+}
+
+void markLooperUnsaved(UiState& state)
+{
+  state.looper.modified = true;
+  state.looper.durableSnapshotExists = false;
+  markUiChanged(state, UiChange::Looper);
+}
+
+void setLooperIoBusy(UiState& state, bool busy)
+{
+  if (state.looper.ioBusy == busy) return;
+  state.looper.ioBusy = busy;
+  markUiChanged(state, UiChange::Looper);
+}
+
+void openLooperLibrary(UiState& state, std::vector<UiLooperState::LibraryEntry> entries)
+{
+  state.looper.library = std::move(entries);
+  state.looper.libraryPage = 0;
+  state.looper.deleteCandidateId.reset();
+  state.looper.libraryOpen = true;
+  markUiChanged(state, UiChange::Looper);
+}
+
+void closeLooperLibrary(UiState& state)
+{
+  state.looper.libraryOpen = false;
+  state.looper.deleteCandidateId.reset();
+  markUiChanged(state, UiChange::Looper);
 }
 
 void updateTunerTelemetry(UiState& state, UiTunerTelemetry telemetry)

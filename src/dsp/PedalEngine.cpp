@@ -384,6 +384,57 @@ void PedalEngine::setCabMix(float mix)
   cabMix_.store(cabMix, std::memory_order_relaxed);
 }
 
+bool PedalEngine::prepareLooper(size_t memoryBudgetBytes, std::string& error)
+{
+  if (looperPrepared_.load(std::memory_order_acquire)) {
+    error.clear();
+    return true;
+  }
+  if (blockSize_ == 0) {
+    error = "prepare the engine block size before preparing the looper";
+    return false;
+  }
+  if (!looper_.prepare(sampleRate_, blockSize_, memoryBudgetBytes, error)) return false;
+  looperPrepared_.store(true, std::memory_order_release);
+  return true;
+}
+
+bool PedalEngine::looperPrepared() const noexcept
+{
+  return looperPrepared_.load(std::memory_order_acquire);
+}
+
+bool PedalEngine::looperSessionOpen() const noexcept
+{
+  return looperPrepared()
+      && looper_.sessionOpen();
+}
+
+bool PedalEngine::tryEnqueueLooperCommand(const LooperCommand& command) noexcept
+{
+  return looperPrepared() && looper_.tryEnqueue(command);
+}
+
+bool PedalEngine::tryReadLooperTelemetry(LooperTelemetry& telemetry) noexcept
+{
+  return looperPrepared() && looper_.tryReadTelemetry(telemetry);
+}
+
+bool PedalEngine::restorePausedLooperSession(const LooperPausedSessionView& session,
+                                             std::string& error)
+{
+  if (!looperPrepared()) {
+    error = "prepare looper memory before restoring a session";
+    return false;
+  }
+  return looper_.restorePausedSession(session, error);
+}
+
+std::optional<LooperPausedSessionView> PedalEngine::pausedLooperSessionView() const noexcept
+{
+  return looperPrepared() ? looper_.pausedSessionView() : std::nullopt;
+}
+
 uint64_t PedalEngine::nonFiniteInputSamples() const noexcept
 {
   return nonFiniteInputSamples_.load(std::memory_order_relaxed);
@@ -524,15 +575,19 @@ std::pair<float, float> PedalEngine::process(float input)
   const float effectsMix = effectsBypassed_.load(std::memory_order_relaxed) ? 0.0f : 1.0f;
   const bool limiterEnabled = safetyLimiterEnabled_.load(std::memory_order_relaxed);
   const float safetyLimit = safetyLimit_.load(std::memory_order_relaxed);
-  const float masterVolume = smoothGain(currentMasterVolume_, masterVolumeTarget);
   const float afterGain = input * smoothGain(currentInputGain_, inputGain);
   observeLevel(inputPeakBits_, inputOverloadFrames_, afterGain, afterGain);
   const auto wet = chain_.process({afterGain, afterGain}, smoothGain(currentCabLevel_, cabLevel),
                                   smoothGain(currentCabMix_, cabMix));
-  const float output = smoothGain(currentOutputGain_, outputGain) * masterVolume;
-  const StereoSample mixed = equalPowerMix({input * masterVolume, input * masterVolume},
-                                           {wet.left * output, wet.right * output},
-                                           smoothEffectsMix(effectsMix));
+  const float output = smoothGain(currentOutputGain_, outputGain);
+  StereoSample mixed = equalPowerMix({input, input}, {wet.left * output, wet.right * output},
+                                     smoothEffectsMix(effectsMix));
+  if (looperPrepared()) {
+    looper_.processBlock(&mixed.left, &mixed.right, 1);
+  }
+  const float masterVolume = smoothGain(currentMasterVolume_, masterVolumeTarget);
+  mixed.left *= masterVolume;
+  mixed.right *= masterVolume;
   observeLevel(outputPeakBits_, outputOverloadFrames_, mixed.left, mixed.right);
   if (limiterEngaged(mixed.left, mixed.right, limiterEnabled, safetyLimit)) {
     limiterFrames_.fetch_add(1, std::memory_order_relaxed);
@@ -590,22 +645,34 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
   }
   commitLevel(inputPeakBits_, inputOverloadFrames_, inputPeak, inputOverloads);
   chain_.processBlock(gainedInput_.data(), left, right, frames, cabLevelBlock_.data(), cabMixBlock_.data());
+  // Build the complete preset program first. The host looper captures this
+  // post-output-gain signal, but deliberately remains before master volume and
+  // the safety limiter so changing stage volume never alters stored audio.
+  for (size_t i = 0; i < frames; ++i) {
+    const float output = smoothGain(currentOutputGain_, outputGain);
+    const StereoSample mixed = equalPowerMix({sanitizedInput_[i], sanitizedInput_[i]},
+                                             {left[i] * output, right[i] * output},
+                                             smoothEffectsMix(effectsMix));
+    left[i] = mixed.left;
+    right[i] = mixed.right;
+  }
+  if (looperPrepared()) {
+    looper_.processBlock(left, right, frames);
+  }
+
   float outputPeak = 0.0f;
   uint64_t outputOverloads = 0;
   uint64_t limitedFrames = 0;
   for (size_t i = 0; i < frames; ++i) {
-    const float output = smoothGain(currentOutputGain_, outputGain)
-                         * smoothGain(currentMasterVolume_, masterVolume);
-    const float master = currentMasterVolume_;
-    const StereoSample mixed = equalPowerMix({sanitizedInput_[i] * master, sanitizedInput_[i] * master},
-                                             {left[i] * output, right[i] * output},
-                                             smoothEffectsMix(effectsMix));
-    const float framePeak = std::max(std::fabs(mixed.left), std::fabs(mixed.right));
+    const float master = smoothGain(currentMasterVolume_, masterVolume);
+    const float mixedLeft = left[i] * master;
+    const float mixedRight = right[i] * master;
+    const float framePeak = std::max(std::fabs(mixedLeft), std::fabs(mixedRight));
     outputPeak = std::max(outputPeak, framePeak);
     outputOverloads += framePeak > 1.0f ? 1U : 0U;
-    limitedFrames += limiterEngaged(mixed.left, mixed.right, limiterEnabled, safetyLimit) ? 1U : 0U;
-    left[i] = applySafety(mixed.left, limiterEnabled, safetyLimit);
-    right[i] = applySafety(mixed.right, limiterEnabled, safetyLimit);
+    limitedFrames += limiterEngaged(mixedLeft, mixedRight, limiterEnabled, safetyLimit) ? 1U : 0U;
+    left[i] = applySafety(mixedLeft, limiterEnabled, safetyLimit);
+    right[i] = applySafety(mixedRight, limiterEnabled, safetyLimit);
   }
   commitLevel(outputPeakBits_, outputOverloadFrames_, outputPeak, outputOverloads);
   if (limitedFrames > 0) {

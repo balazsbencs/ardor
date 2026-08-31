@@ -195,10 +195,19 @@ ctest --test-dir build-sdl --output-on-failure
 ```
 
 The CTest suite covers preset parsing and activation, realtime-chain behavior,
-Daisy effects and automation, compressor, noise gate, and parametric EQ
-processing, tuner and control gestures, UI models/LVGL interaction,
-audio-device enumeration, and reload stress. Hardware latency, Codec Zero
-routing, and subjective audio validation remain device-level checks.
+Daisy effects and automation, compressor, noise gate, parametric EQ, the
+four-track looper and its persistent store, tuner and control gestures, UI
+models/LVGL interaction, audio-device enumeration, and reload stress. The
+looper timing benchmark is intentionally separate from CTest:
+
+```sh
+cmake --build build-sdl --target pedal-looper-bench
+./build-sdl/pedal-looper-bench --block-sizes 64,128 --warmup 100 --iterations 1000
+```
+
+Host results are useful for regressions, but do not replace the Raspberry Pi 4
+acceptance benchmark and ten-minute production-backend soak. Hardware latency,
+Codec Zero routing, and subjective audio validation remain device-level checks.
 
 ## List Audio Devices
 
@@ -417,6 +426,32 @@ movement to master output volume. Hold the two left switches (`KEY_F1` +
 `KEY_F2`) together for one second to mute the output and open the tuner; press
 any footswitch to exit without changing presets. The touchscreen provides the
 same flow through the preset-screen Tuner button and tuner-screen Exit button.
+
+### Four-Track Looper
+
+Select a preset, then press **Looper** on the preset screen. That preset remains
+locked until the loop session is closed, and all recorded audio captures its
+processed stereo output before master volume and the safety limiter. The four
+large track plates select the working track. The four footswitches keep fixed
+performance roles:
+
+- FS1 toggles one-level undo/redo for the selected track;
+- tap FS2 to select the next track, or hold it to clear the selected track;
+- FS3 starts/stops the first recording or an overdub, and FS4 mutes/unmutes the
+  selected track;
+- hold FS1 + FS2 to pause and enter the tuner; leaving the tuner resumes a loop
+  that was previously running;
+- later empty tracks arm and begin recording together at the next master-loop
+  boundary, so all four layers stay synchronized;
+- the touchscreen adds global pause/resume, New/Save/Load/Close, track
+  selection, and per-track level/balance controls.
+
+Save and Load are available only while paused. A saved set contains the four
+effective stereo tracks, mix settings, loop length, and a snapshot of the
+source preset under `loops/<32-character-id>/`. Saving runs outside the audio
+callback and publishes the manifest last, so a failed replacement preserves
+the previous durable revision. Closing a session releases its preset lock and
+restores the preset that was active before a recalled loop.
 
 The planned TRS-A MIDI and expression-pedal interface, message mapping, GPIO
 allocation, and preset expression schema are documented in

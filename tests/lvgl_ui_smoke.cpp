@@ -5,12 +5,41 @@
 #include "ui/fonts/SairaCondSemibold72.h"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
+#include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <iostream>
 #include <optional>
+#include <vector>
 
 namespace {
+
+void captureFlush(lv_display_t* display, const lv_area_t*, uint8_t*)
+{
+  lv_display_flush_ready(display);
+}
+
+bool saveRgb888Ppm(const char* path, const uint8_t* pixels, uint32_t stride,
+                   int width, int height)
+{
+  std::ofstream output(path, std::ios::binary | std::ios::trunc);
+  if (!output) return false;
+  output << "P6\n" << width << ' ' << height << "\n255\n";
+  for (int y = 0; y < height; ++y) {
+    const auto* row = pixels + static_cast<std::size_t>(y) * stride;
+    for (int x = 0; x < width; ++x) {
+      const std::array<char, 3> rgb = {
+        static_cast<char>(row[x * 3 + 2]),
+        static_cast<char>(row[x * 3 + 1]),
+        static_cast<char>(row[x * 3]),
+      };
+      output.write(rgb.data(), static_cast<std::streamsize>(rgb.size()));
+    }
+  }
+  return output.good();
+}
 
 int require(bool condition, const char* message)
 {
@@ -361,6 +390,15 @@ int main()
   int requestedTunerMode = -1;
   int liveBypassUpdates = 0;
   int savedPresetNames = 0;
+  std::size_t selectedLooperTrack = 0;
+  int looperCommandCount = 0;
+  ardor::LooperCommandType lastLooperCommand = ardor::LooperCommandType::OpenEmpty;
+  int closeLooperCalls = 0;
+  int newLooperCalls = 0;
+  int saveLooperCalls = 0;
+  int loadLooperCalls = 0;
+  std::string loadedLoopId;
+  std::string deletedLoopId;
   std::uint32_t savedAudioBlockSize = 0;
   ardor::UiActions uiActions;
   uiActions.savePreset = [&]() {
@@ -378,6 +416,17 @@ int main()
     ++liveBypassUpdates;
     return true;
   };
+  uiActions.selectLooperTrack = [&](std::size_t track) { selectedLooperTrack = track; };
+  uiActions.looperCommand = [&](ardor::LooperCommandType type, std::size_t, float) {
+    lastLooperCommand = type;
+    ++looperCommandCount;
+  };
+  uiActions.closeLooper = [&]() { ++closeLooperCalls; };
+  uiActions.newLooper = [&]() { ++newLooperCalls; };
+  uiActions.saveLooper = [&]() { ++saveLooperCalls; };
+  uiActions.loadLooper = [&]() { ++loadLooperCalls; };
+  uiActions.loadLooperSet = [&](const std::string& id) { loadedLoopId = id; };
+  uiActions.deleteLooperSet = [&](const std::string& id) { deletedLoopId = id; };
   ardor::LvglUi ui(std::move(uiActions));
   const int masterVolume = state.masterVolume;
   ui.focusParameter("levelDb");
@@ -657,6 +706,21 @@ int main()
   if (require(glyphBitmap, "Open Sans glyphs should render in LVGL")) return 1;
 
   lv_display_t* display = lv_display_create(1280, 720);
+  const char* screenshotPath = std::getenv("ARDOR_UI_SCREENSHOT");
+  std::vector<uint8_t> screenshotStorage;
+  uint8_t* screenshotPixels = nullptr;
+  uint32_t screenshotStride = 0;
+  if (screenshotPath != nullptr) {
+    lv_display_set_color_format(display, LV_COLOR_FORMAT_RGB888);
+    screenshotStride = lv_draw_buf_width_to_stride(1280, LV_COLOR_FORMAT_RGB888);
+    const auto screenshotBytes = screenshotStride * 720;
+    screenshotStorage.resize(screenshotBytes + LV_DRAW_BUF_ALIGN);
+    screenshotPixels = static_cast<uint8_t*>(
+      lv_draw_buf_align(screenshotStorage.data(), LV_COLOR_FORMAT_RGB888));
+    lv_display_set_buffers(display, screenshotPixels, nullptr, screenshotBytes,
+                           LV_DISPLAY_RENDER_MODE_FULL);
+    lv_display_set_flush_cb(display, captureFlush);
+  }
   ardor::enterEditMode(dualRigState);
   ui.build(lv_screen_active(), dualRigState);
   lv_obj_update_layout(lv_screen_active());
@@ -1637,6 +1701,161 @@ int main()
   if (require(requestedTunerMode == 1 && state.mode == ardor::UiMode::Preset,
               "the Tuner button should request a host-level tuner transition")) return 1;
   requestedTunerMode = -1;
+  ardor::LooperTelemetry loopTelemetry;
+  loopTelemetry.revision = 1;
+  loopTelemetry.contentRevision = 1;
+  loopTelemetry.sessionState = ardor::LooperSessionState::Running;
+  loopTelemetry.masterFrames = 480000;
+  loopTelemetry.maximumFrames = 1920000;
+  loopTelemetry.playheadFrame = 240000;
+  loopTelemetry.tracks[0].state = ardor::LooperTrackState::Playing;
+  loopTelemetry.tracks[0].audible = true;
+  loopTelemetry.tracks[0].undoAvailable = true;
+  loopTelemetry.tracks[1].state = ardor::LooperTrackState::ArmedOverdub;
+  loopTelemetry.tracks[1].audible = true;
+  loopTelemetry.tracks[2].state = ardor::LooperTrackState::Recording;
+  loopTelemetry.tracks[2].audible = true;
+  loopTelemetry.tracks[3].state = ardor::LooperTrackState::Muted;
+  ardor::enterLooperMode(state, "Ambient Lead", 128ULL * 1024ULL * 1024ULL);
+  ardor::updateLooperUi(state, loopTelemetry, 0);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "LOOPER")
+                && findLabel(lv_screen_active(), "LOCKED · AMBIENT LEAD")
+                && findLabel(lv_screen_active(), "PLAY")
+                && findLabel(lv_screen_active(), "DUB ARMED · NEXT LOOP")
+                && findLabel(lv_screen_active(), "REC")
+                && findLabel(lv_screen_active(), "MUTED")
+                && findLabel(lv_screen_active(), "STOP ALL")
+                && findLabel(lv_screen_active(), "NEW")
+                && findLabel(lv_screen_active(), "SAVE")
+                && findLabel(lv_screen_active(), "LOAD")
+                && findLabel(lv_screen_active(), "EXIT")
+                && findLabel(lv_screen_active(), "CLOSE"),
+              "looper mode should expose locked preset, four track states, and transport")) return 1;
+  auto* looperTitle = findLabel(lv_screen_active(), "LOOPER");
+  auto* looperRoot = looperTitle ? lv_obj_get_parent(lv_obj_get_parent(looperTitle)) : nullptr;
+  if (screenshotPath != nullptr) {
+    lv_refr_now(display);
+    if (require(saveRgb888Ppm(screenshotPath, screenshotPixels, screenshotStride, 1280, 720),
+                "looper screenshot should be writable")) return 1;
+  }
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "REC")), LV_EVENT_CLICKED, nullptr);
+  if (require(selectedLooperTrack == 2 && state.looper.selectedTrack == 2,
+              "touching a track plate should select the physical track")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "STOP ALL")), LV_EVENT_PRESSED, nullptr);
+  if (require(looperCommandCount == 1 && lastLooperCommand == ardor::LooperCommandType::Pause,
+              "running looper Stop All should request an audio-thread pause")) return 1;
+
+  loopTelemetry.revision = 2;
+  loopTelemetry.error = ardor::LooperError::MaximumLengthReached;
+  ardor::updateLooperUi(state, loopTelemetry, 2, 0.5f);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "HOLD TO CLEAR TRACK 3 · 50% · RELEASE CANCELS")
+                && findLabel(lv_screen_active(), "CLEAR 50% · RELEASE CANCELS"),
+              "looper screen should expose the destructive hold countdown")) return 1;
+
+  loopTelemetry.revision = 3;
+  ardor::updateLooperUi(state, loopTelemetry, 2);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "MAX LENGTH · LOOP CLOSED AND PLAYING"),
+              "looper screen should explain an automatic maximum-length close")) return 1;
+
+  loopTelemetry.revision = 4;
+  loopTelemetry.error = ardor::LooperError::None;
+  loopTelemetry.sessionState = ardor::LooperSessionState::Paused;
+  ardor::updateLooperUi(state, loopTelemetry, 2);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "RESUME"),
+              "paused transport should relabel Stop All as Resume")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(looperRoot, "PLAY")), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(looperRoot, "TRACK 1 MIX")
+                && findLabel(looperRoot, "+0 DB")
+                && findLabel(looperRoot, "CENTER")
+                && findLabel(looperRoot, "CLEAR TRACK"),
+              "touching a populated track should expose its large mix controls")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(looperRoot, "+1 DB")), LV_EVENT_PRESSED, nullptr);
+  if (require(lastLooperCommand == ardor::LooperCommandType::SetTrackLevelDb,
+              "track mix overlay should issue realtime level commands")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(looperRoot, "CLEAR TRACK")), LV_EVENT_PRESSED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(looperRoot, "CLEAR SELECTED TRACK?"),
+              "touch Clear Track should require confirmation")) return 1;
+  auto* clearTrackTitle = findLabel(looperRoot, "CLEAR SELECTED TRACK?");
+  auto* clearTrackPanel = clearTrackTitle ? lv_obj_get_parent(clearTrackTitle) : nullptr;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(clearTrackPanel, "CANCEL")), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  state.looper.mixerOpen = false;
+  ardor::markUiChanged(state, ardor::UiChange::Looper);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_send_event(lv_obj_get_parent(findLabel(looperRoot, "NEW")), LV_EVENT_PRESSED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(looperRoot, "START A NEW LOOP?"),
+              "New should protect a modified loop with Save, Discard, and Cancel")) return 1;
+  auto* newLoopTitle = findLabel(looperRoot, "START A NEW LOOP?");
+  auto* newLoopPanel = newLoopTitle ? lv_obj_get_parent(newLoopTitle) : nullptr;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(newLoopPanel, "DISCARD")), LV_EVENT_CLICKED, nullptr);
+  lv_obj_send_event(lv_obj_get_parent(findLabel(looperRoot, "SAVE")), LV_EVENT_PRESSED, nullptr);
+  lv_obj_send_event(lv_obj_get_parent(findLabel(looperRoot, "LOAD")), LV_EVENT_PRESSED, nullptr);
+  if (require(newLooperCalls == 1 && saveLooperCalls == 1 && loadLooperCalls == 1,
+              "paused looper management buttons should invoke their host actions")) return 1;
+  ardor::UiLooperState::LibraryEntry libraryEntry;
+  libraryEntry.id = std::string(32, 'a');
+  libraryEntry.name = "Night Sketch";
+  libraryEntry.sourcePresetName = "Ambient Lead";
+  libraryEntry.savedAt = "2026-08-31T21:00:00Z";
+  libraryEntry.loopFrames = 480000;
+  libraryEntry.populatedTracks = 3;
+  libraryEntry.available = true;
+  ardor::openLooperLibrary(state, {libraryEntry});
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(looperRoot, "SAVED LOOPS")
+                && findLabel(looperRoot, "NIGHT SKETCH")
+                && findLabelContaining(looperRoot, "3 TRACKS"),
+              "saved-loop library should expose name, source, duration, and track count")) return 1;
+  auto* libraryTitle = findLabel(looperRoot, "SAVED LOOPS");
+  auto* libraryPanel = libraryTitle ? lv_obj_get_parent(libraryTitle) : nullptr;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(libraryPanel, "LOAD")), LV_EVENT_CLICKED, nullptr);
+  if (require(loadedLoopId == libraryEntry.id && !state.looper.libraryOpen,
+              "library Load should select the exact saved-loop id and close the overlay")) return 1;
+  ardor::openLooperLibrary(state, {libraryEntry});
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  libraryTitle = findLabel(looperRoot, "SAVED LOOPS");
+  libraryPanel = libraryTitle ? lv_obj_get_parent(libraryTitle) : nullptr;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(libraryPanel, "DELETE")), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(looperRoot, "DELETE SAVED LOOP?") != nullptr,
+              "library Delete should require a destructive confirmation")) return 1;
+  auto* deleteTitle = findLabel(looperRoot, "DELETE SAVED LOOP?");
+  auto* deletePanel = deleteTitle ? lv_obj_get_parent(deleteTitle) : nullptr;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(deletePanel, "DELETE")), LV_EVENT_CLICKED, nullptr);
+  if (require(deletedLoopId == libraryEntry.id,
+              "confirmed library deletion should target the exact saved-loop id")) return 1;
+  ardor::closeLooperLibrary(state);
+  ardor::markLooperUnsaved(state);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "CLOSE")), LV_EVENT_PRESSED, nullptr);
+  auto* discardLoopLabel = findLabel(lv_screen_active(), "DISCARD UNSAVED LOOP?");
+  auto* closeOverlay = discardLoopLabel
+    ? lv_obj_get_parent(lv_obj_get_parent(discardLoopLabel)) : nullptr;
+  if (require(closeOverlay && !lv_obj_has_flag(closeOverlay, LV_OBJ_FLAG_HIDDEN),
+              "closing a modified loop should require explicit discard confirmation")) return 1;
+  auto* closeConfirmation = discardLoopLabel ? lv_obj_get_parent(discardLoopLabel) : nullptr;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(closeConfirmation, "DISCARD")),
+                    LV_EVENT_CLICKED, nullptr);
+  if (require(closeLooperCalls == 1,
+              "discard confirmation should invoke the host close action exactly once")) return 1;
+
   ardor::enterTunerMode(state);
   ui.refresh(lv_screen_active(), state);
   lv_obj_t* tunerTitle = findLabel(lv_screen_active(), "TUNER");

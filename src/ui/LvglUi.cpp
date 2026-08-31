@@ -146,6 +146,7 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   presetLayer_ = createLayer();
   editLayer_ = createLayer();
   tunerLayer_ = createLayer();
+  looperLayer_ = createLayer();
   parameterLayer_ = createLayer();
   drawerLayer_ = createLayer();
   statusLayer_ = createLayer();
@@ -256,6 +257,8 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   rebuildEditView(state);
   contextRegion_ = UiContextRegion::Tuner;
   renderTunerMode(tunerLayer_, state);
+  contextRegion_ = UiContextRegion::Looper;
+  renderLooperMode(looperLayer_, state);
   contextRegion_ = UiContextRegion::None;
   rebuildParameterView(state);
   rebuildDrawerView(state);
@@ -294,11 +297,19 @@ void LvglUi::syncModeVisibility(const UiState& state)
     lv_obj_add_flag(presetLayer_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(editLayer_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(tunerLayer_, LV_OBJ_FLAG_HIDDEN);
-  } else {
+    lv_obj_add_flag(looperLayer_, LV_OBJ_FLAG_HIDDEN);
+  } else if (state.mode == UiMode::Tuner) {
     lv_obj_add_flag(presetLayer_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(editLayer_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(tunerLayer_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(looperLayer_, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_obj_add_flag(presetLayer_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(editLayer_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(tunerLayer_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(looperLayer_, LV_OBJ_FLAG_HIDDEN);
   }
+  if (state.mode == UiMode::Preset) lv_obj_add_flag(looperLayer_, LV_OBJ_FLAG_HIDDEN);
 
   const bool showParameters = state.mode == UiMode::Edit && state.paramDrawerOpen;
   if (showParameters) lv_obj_remove_flag(parameterLayer_, LV_OBJ_FLAG_HIDDEN);
@@ -310,7 +321,7 @@ void LvglUi::syncModeVisibility(const UiState& state)
   // docs/lvgl-ui-redesign-spec.md §4f); the shared status bar stays for the
   // screens not yet migrated to their own rails.
   if (state.mode == UiMode::Tuner || state.mode == UiMode::Preset
-      || state.mode == UiMode::Edit) {
+      || state.mode == UiMode::Edit || state.mode == UiMode::Looper) {
     lv_obj_add_flag(statusLayer_, LV_OBJ_FLAG_HIDDEN);
   } else {
     lv_obj_remove_flag(statusLayer_, LV_OBJ_FLAG_HIDDEN);
@@ -325,6 +336,7 @@ void LvglUi::syncPersistentViews(UiState& state)
   if (!viewsInitialized_) return;
   syncModeVisibility(state);
   syncTunerView(state);
+  syncLooperView(state);
   syncHeaderView(state);
   syncPresetCards(state);
   syncStatusView(state);
@@ -422,6 +434,7 @@ void LvglUi::refresh(lv_obj_t* root, UiState& state)
   if (state.revisions.drawers != renderedRevisions_.drawers) add(UiChange::Drawers);
   if (state.revisions.status != renderedRevisions_.status) add(UiChange::Status);
   if (state.revisions.telemetry != renderedRevisions_.telemetry) add(UiChange::Telemetry);
+  if (state.revisions.looper != renderedRevisions_.looper) add(UiChange::Looper);
 
   // The control loop intentionally services LVGL every 5 ms for responsive
   // touch input. Most ticks carry no model revision, so leave the retained
@@ -437,8 +450,15 @@ void LvglUi::refresh(lv_obj_t* root, UiState& state)
     if (state.mode == UiMode::Tuner) {
       syncTunerView(state);
     }
+    if (state.mode == UiMode::Looper) {
+      syncLooperView(state);
+    }
     renderedRevisions_.status = state.revisions.status;
     renderedRevisions_.telemetry = state.revisions.telemetry;
+  }
+  if (hasUiChange(changes, UiChange::Looper)) {
+    syncLooperView(state);
+    renderedRevisions_.looper = state.revisions.looper;
   }
   // Blocking overlays must become visible even while a slider or drag owns an
   // input device. The control loop forces this retained state to the display

@@ -2,11 +2,13 @@
 
 #include "ClipDiagnostics.h"
 #include "RuntimeChain.h"
+#include "looper/RealtimeLooper.h"
 
 #include <atomic>
 #include <cstdint>
 #include <filesystem>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -67,6 +69,16 @@ public:
   void setSafetyLimiterEnabled(bool enabled);
   void setCabLevel(float gain);
   void setCabMix(float mix);
+  // Allocates the host-level loop memory on the control thread. This must be
+  // called after prepareBlockSize() and before looper commands are submitted.
+  bool prepareLooper(size_t memoryBudgetBytes, std::string& error);
+  bool looperPrepared() const noexcept;
+  bool looperSessionOpen() const noexcept;
+  bool tryEnqueueLooperCommand(const LooperCommand& command) noexcept;
+  bool tryReadLooperTelemetry(LooperTelemetry& telemetry) noexcept;
+  bool restorePausedLooperSession(const LooperPausedSessionView& session,
+                                  std::string& error);
+  std::optional<LooperPausedSessionView> pausedLooperSessionView() const noexcept;
   uint64_t nonFiniteInputSamples() const noexcept;
   uint64_t blockSizeMismatchCount() const noexcept;
   uint64_t nonFiniteBlockCount() const noexcept;
@@ -92,6 +104,7 @@ private:
   std::atomic<float> cabMix_{1.0f};
   std::atomic<bool> effectsBypassed_{false};
   std::atomic<bool> safetyLimiterEnabled_{true};
+  std::atomic<bool> looperPrepared_{false};
   std::atomic<uint64_t> nonFiniteInputSamples_{0};
   std::atomic<uint64_t> blockSizeMismatchCount_{0};
   std::atomic<uint32_t> inputPeakBits_{0};
@@ -100,6 +113,7 @@ private:
   std::atomic<uint64_t> outputOverloadFrames_{0};
   std::atomic<uint64_t> limiterFrames_{0};
   RuntimeChain chain_;
+  RealtimeLooper looper_;
   size_t blockSize_ = 0;
   std::vector<float> sanitizedInput_;
   std::vector<float> gainedInput_;

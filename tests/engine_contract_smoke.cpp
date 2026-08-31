@@ -167,6 +167,84 @@ int main()
     }
     require(std::fabs(settled) < 0.01f, "gain smoothing should converge to its requested value");
 
+    ardor::PedalEngine bypassGainEngine;
+    bypassGainEngine.prepareBlockSize(4);
+    bypassGainEngine.setOutputGain(2.0f);
+    bypassGainEngine.setMasterVolume(0.5f);
+    bypassGainEngine.setSafetyLimiterEnabled(false);
+    bypassGainEngine.setEffectsBypassed(true);
+    const float bypassInput[] = {0.25f, 0.25f, 0.25f, 0.25f};
+    float bypassLeft[4]{};
+    float bypassRight[4]{};
+    for (int block = 0; block < 600; ++block) {
+      bypassGainEngine.processBlock(bypassInput, bypassLeft, bypassRight, 4);
+    }
+    require(near(bypassLeft[3], 0.125f) && near(bypassRight[3], 0.125f),
+            "preset output gain must not alter the bypass branch after looper refactoring");
+
+    ardor::PedalEngine looperEngine;
+    std::string looperError;
+    require(!looperEngine.prepareLooper(
+                64 * ardor::RealtimeLooper::kBytesPerMasterFrame, looperError),
+            "looper preparation should require a known audio quantum");
+    looperEngine.prepareBlockSize(4);
+    looperEngine.setOutputGain(2.0f);
+    looperEngine.setMasterVolume(0.5f);
+    looperEngine.setSafetyLimiterEnabled(false);
+    require(looperEngine.prepareLooper(
+                64 * ardor::RealtimeLooper::kBytesPerMasterFrame, looperError),
+            "host looper should prepare after the engine quantum");
+    require(looperEngine.looperPrepared(), "host should expose looper readiness");
+
+    uint64_t looperSequence = 1;
+    auto looperCommand = [&](ardor::LooperCommandType type) {
+      require(looperEngine.tryEnqueueLooperCommand({looperSequence++, type, 0, 0.0f}),
+              "host should accept a looper command");
+    };
+    auto processLooperBlock = [&](float inputValue, float* output = nullptr) {
+      const float inputBlock[] = {inputValue, inputValue, inputValue, inputValue};
+      float outputLeft[4]{};
+      float outputRight[4]{};
+      looperEngine.processBlock(inputBlock, outputLeft, outputRight, 4);
+      if (output) std::copy(outputLeft, outputLeft + 4, output);
+    };
+
+    looperCommand(ardor::LooperCommandType::OpenEmpty);
+    processLooperBlock(0.0f);
+    looperCommand(ardor::LooperCommandType::RecordOrOverdub);
+    processLooperBlock(0.25f);
+    processLooperBlock(0.25f);
+    looperCommand(ardor::LooperCommandType::RecordOrOverdub);
+    float loopOutput[4]{};
+    processLooperBlock(0.0f, loopOutput);
+    for (float sample : loopOutput) {
+      require(near(sample, 0.25f),
+              "looper should capture after preset output gain and play before master volume");
+    }
+
+    looperCommand(ardor::LooperCommandType::Pause);
+    processLooperBlock(0.0f);
+    looperEngine.setMasterVolume(0.25f);
+    for (int i = 0; i < 600; ++i) processLooperBlock(0.0f);
+    looperCommand(ardor::LooperCommandType::Resume);
+    processLooperBlock(0.0f, loopOutput);
+    for (float sample : loopOutput) {
+      require(near(sample, 0.125f),
+              "master-volume changes should scale playback without being recorded into the loop");
+    }
+
+    ardor::LooperTelemetry looperTelemetry;
+    ardor::LooperTelemetry nextLooperTelemetry;
+    bool receivedLooperTelemetry = false;
+    while (looperEngine.tryReadLooperTelemetry(nextLooperTelemetry)) {
+      looperTelemetry = nextLooperTelemetry;
+      receivedLooperTelemetry = true;
+    }
+    require(receivedLooperTelemetry
+              && looperTelemetry.sessionState == ardor::LooperSessionState::Running
+              && looperTelemetry.masterFrames == 8,
+            "host should return current looper telemetry to the control thread");
+
     return 0;
   } catch (const std::exception& error) {
     std::cerr << "engine_contract_smoke failed: " << error.what() << '\n';
