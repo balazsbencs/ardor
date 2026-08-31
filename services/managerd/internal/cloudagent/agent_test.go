@@ -274,6 +274,7 @@ func TestAgentCompletesPhysicallyApprovedClaim(t *testing.T) {
 	case <-time.After(4 * time.Second):
 		t.Fatal("agent did not submit the physical decision")
 	}
+	deadline = time.Now().Add(4 * time.Second)
 	for {
 		reloaded, err := deviceidentity.LoadOrCreate(dataRoot)
 		if err != nil {
@@ -287,8 +288,18 @@ func TestAgentCompletesPhysicallyApprovedClaim(t *testing.T) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	if _, err := gate.Pending(); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("pending physical claim still exists: %v", err)
+	for {
+		_, err := gate.Pending()
+		if errors.Is(err, os.ErrNotExist) {
+			break
+		}
+		if err != nil {
+			t.Fatalf("read pending physical claim: %v", err)
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("agent did not clear the pending physical claim")
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
