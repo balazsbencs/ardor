@@ -12,13 +12,13 @@ import {
 describe("effect catalog", () => {
   const definitions = allEffectDefinitions();
 
-  it("contains the complete unique set of 51 definitions", () => {
-    expect(definitions).toHaveLength(51);
-    expect(new Set(definitions.map(({ id }) => id)).size).toBe(51);
-    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(51);
-    expect(new Set(definitions.map(({ name }) => name)).size).toBe(51);
+  it("contains the complete unique set of 52 definitions", () => {
+    expect(definitions).toHaveLength(52);
+    expect(new Set(definitions.map(({ id }) => id)).size).toBe(52);
+    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(52);
+    expect(new Set(definitions.map(({ name }) => name)).size).toBe(52);
     expect(definitions.every(({ controls }) => controls.length > 0)).toBe(true);
-    expect(definitions.filter(({ blockType }) => blockType === "mod")).toHaveLength(15);
+    expect(definitions.filter(({ blockType }) => blockType === "mod")).toHaveLength(16);
     expect(definitions.filter(({ blockType }) => blockType === "delay")).toHaveLength(10);
     expect(definitions.filter(({ blockType }) => blockType === "reverb")).toHaveLength(12);
   });
@@ -281,7 +281,7 @@ describe("effect catalog", () => {
       expect(findEffectDefinition(block)?.id).toBe(id);
       return { ...block, id: `block-${index + 1}` };
     });
-    expect(blocks).toHaveLength(51);
+    expect(blocks).toHaveLength(52);
   });
 
   it("chooses the next numeric block id and handles nonstandard collisions", () => {

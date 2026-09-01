@@ -9,6 +9,8 @@ namespace mode_ranges {
     constexpr ParamRange SPEED_PATTREM   = {0.5f,   8.0f, 1.0f};
     constexpr ParamRange SPEED_AUTOSWELL = {0.01f,  0.5f, 1.0f};
     constexpr ParamRange SPEED_QUAD      = {0.1f, 1000.0f, 2.0f};
+    // One LFO cycle per beat, exposed as 40..240 BPM by the host catalogs.
+    constexpr ParamRange SPEED_LADDER    = {2.0f / 3.0f, 4.0f, 0.0f};
 }
 
 const ParamRange& get_param_range(ModModeId mode, ParamId param) {
@@ -19,6 +21,7 @@ const ParamRange& get_param_range(ModModeId mode, ParamId param) {
             case ModModeId::PatternTrem: return mode_ranges::SPEED_PATTREM;
             case ModModeId::AutoSwell:   return mode_ranges::SPEED_AUTOSWELL;
             case ModModeId::Quadrature:  return mode_ranges::SPEED_QUAD;
+            case ModModeId::LadderSweep: return mode_ranges::SPEED_LADDER;
             default: break;
         }
     }

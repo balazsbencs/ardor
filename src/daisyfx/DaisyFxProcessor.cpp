@@ -21,6 +21,7 @@
 #include "modes/duck_delay.h"
 #include "modes/filter_delay.h"
 #include "modes/filter_mode.h"
+#include "modes/ladder_sweep_mode.h"
 #include "modes/flanger_mode.h"
 #include "modes/formant_mode.h"
 #include "modes/hall_reverb.h"
@@ -144,6 +145,7 @@ std::unique_ptr<pedal::ModMode> makeModMode(const std::string& mode, pedal::ModM
   if (mode == "pattern_trem") { id = pedal::ModModeId::PatternTrem; return std::make_unique<pedal::PatternTremMode>(); }
   if (mode == "auto_swell") { id = pedal::ModModeId::AutoSwell; return std::make_unique<pedal::AutoSwellMode>(); }
   if (mode == "filter") { id = pedal::ModModeId::FilterFx; return std::make_unique<pedal::FilterMode>(); }
+  if (mode == "ladder_sweep") { id = pedal::ModModeId::LadderSweep; return std::make_unique<pedal::LadderSweepMode>(); }
   if (mode == "formant") { id = pedal::ModModeId::FormantFx; return std::make_unique<pedal::FormantMode>(); }
   if (mode == "quadrature") { id = pedal::ModModeId::Quadrature; return std::make_unique<pedal::QuadratureMode>(); }
   if (mode == "destroyer") { id = pedal::ModModeId::Destroyer; return std::make_unique<pedal::DestroyerMode>(); }
@@ -302,7 +304,8 @@ struct DaisyFxProcessor::Impl {
   {
     if (kind == Kind::Mod) {
       smoothedMix = modParams.mix;
-      smoothedLevel = modParams.level;
+      // Ladder Sweep consumes Level as input drive inside the model.
+      smoothedLevel = modId == pedal::ModModeId::LadderSweep ? 1.0f : modParams.level;
     } else if (kind == Kind::Delay) {
       smoothedMix = delayParams.mix;
       smoothedLevel = 1.0f;
@@ -319,7 +322,8 @@ struct DaisyFxProcessor::Impl {
     const float step = 1.0f / (kOutputSmoothingSeconds * kHostedDaisySampleRate);
     smoothedMix += step * (targetMix - smoothedMix);
     if (kind == Kind::Mod) {
-      smoothedLevel += step * (modParams.level - smoothedLevel);
+      const float targetLevel = modId == pedal::ModModeId::LadderSweep ? 1.0f : modParams.level;
+      smoothedLevel += step * (targetLevel - smoothedLevel);
     }
   }
 

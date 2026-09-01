@@ -111,6 +111,7 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "vintage_trem") return physical(1, 15, 1, frequency, 0.1);
     if (mode === "destroyer") return physical(1, 48, 1, (value) => `${number(value, value < 10 ? 1 : 0)}x`, 0.1);
     if (mode === "pattern_trem") return physical(30, 480, 1, (value) => `${number(value, 0)} BPM`, 1);
+    if (mode === "ladder_sweep") return physical(40, 240, 0, (value) => `${number(value, 0)} BPM`, 1);
     if (mode === "auto_swell") return physical(10, 500, 1, milliseconds, 1);
     if (mode === "quadrature") return physical(0.1, 1000, 2, frequency, 0.1);
     if (mode === "poly_octave") return scaledPercent(100, 1);
@@ -120,6 +121,7 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     return physical(0.05, 10, 1, frequency, 0.01);
   }
   if (key === "depth") {
+    if (mode === "ladder_sweep") return physical(0, 5, 0, (value) => `${number(value, 1)} oct`, 0.1);
     if (mode === "destroyer") return descendingIntegerChoices(16, 1);
     if (mode === "harmonizer") return choices(["Major", "Minor", "Dorian", "Mixolydian", "Harmonic minor"]);
     if (mode === "auto_swell") return custom((value) => `${number(20 * Math.log10(1 + clamp(value)), 1)} dB`);
@@ -129,6 +131,7 @@ function modDisplay(mode: string, key: string): NumberDisplay {
   if (key === "mix") return normalizedPercent;
   if (key === "tone") {
     if (mode === "filter") return physical(80, 12000, 0, frequency, 10);
+    if (mode === "ladder_sweep") return logPhysical(20, 12000, frequency, 1);
     if (mode === "destroyer") return physical(80, 21600, 0, frequency, 10);
     if (mode === "rotary") return physical(500, 2000, 0, frequency, 10);
     if (mode === "phaser") return logPhysical(300, 10000, frequency, 10);
@@ -139,6 +142,7 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "flanger" || mode === "phaser") return scaledPercent(95);
     if (mode === "vibe") return scaledPercent(70);
     if (mode === "filter") return q(0.5, 20);
+    if (mode === "ladder_sweep") return custom((value) => clamp(value) >= 0.995 ? "Self oscillating" : percent(value));
     if (mode === "formant") return q(2, 10);
     if (mode === "destroyer") return q(0.5, 8.5);
     if (mode === "pattern_trem") return choices(Array.from({ length: 16 }, (_, index) => `Pattern ${index + 1}`));
@@ -166,6 +170,7 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "vintage_trem") return choices(["Tube", "Harmonic", "Photoresistor"]);
     if (mode === "pattern_trem") return choices(["16th", "8th", "Triplet"]);
     if (mode === "filter") return choices(["Sine", "Triangle", "Square", "Ramp up", "Ramp down", "Sample & hold", "Envelope+", "Envelope-"]);
+    if (mode === "ladder_sweep") return choices(["Triangle", "Square"]);
     if (mode === "formant") return choices(["Ah", "Oh", "Oo", "Ee", "Ay", "Ah-Oh", "Oo-Oh"]);
     if (mode === "quadrature") return choices(["AM", "Warble", "Shift +", "Shift -"]);
     // Ten Whammy modes then nine Harmony modes, on one selector.
@@ -182,7 +187,10 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "auto_swell") return scaledPercent(30);
     return normalizedPercent;
   }
-  if (key === "level") return custom((value) => decibels(clamp(value) * 2));
+  if (key === "level") {
+    if (mode === "ladder_sweep") return physical(-6, 18, 0, (value) => `${value >= 0 ? "+" : ""}${number(value, 1)} dB`, 0.5);
+    return custom((value) => decibels(clamp(value) * 2));
+  }
   return normalizedPercent;
 }
 
@@ -206,7 +214,10 @@ function delayDisplay(mode: string, key: string): NumberDisplay {
   if (key === "grit") {
     if (mode === "filter") return choices(["Low-pass", "Band-pass", "High-pass"]);
     if (mode === "pattern") return choices(["Straight", "Dotted 8th", "Triplet"]);
-    if (mode === "lofi") return custom((value) => `${16 - Math.trunc(clamp(value) * 12)} bit / ${number(1 + clamp(value) * 15, 1)}x`);
+    if (mode === "lofi") return custom((value) => {
+      const flutter = Math.fround(1 + Math.fround(Math.fround(clamp(value)) * 15));
+      return `${16 - Math.trunc(clamp(value) * 12)} bit / ${number(flutter, 1)}x`;
+    });
     if (mode === "swell") return custom((value) => `${number(20 * Math.log10(0.05 + clamp(value) * 0.2), 1)} dBFS`);
     return normalizedPercent;
   }
