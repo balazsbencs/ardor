@@ -18,7 +18,7 @@ using namespace lvgl_ui;
 
 constexpr int kBlockDrawerPadding = 18;
 constexpr int kBlockDrawerContentWidth = kBlockDrawerWidth - 2 * kBlockDrawerPadding;
-constexpr int kBlockDrawerContentHeight = kDesignHeight - kStatusBarHeight - 2 * kBlockDrawerPadding;
+constexpr int kBlockDrawerContentHeight = kDesignHeight - 2 * kBlockDrawerPadding;
 constexpr int kDrawerHeaderHeight = 46;
 constexpr int kDrawerCloseSize = 40;
 constexpr int kCategoryColumns = 4;
@@ -502,7 +502,7 @@ void LvglUi::syncDrawerView(UiState& state)
 void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
 {
   lv_obj_t* scrim = lv_obj_create(root);
-  lv_obj_set_size(scrim, kDesignWidth - kBlockDrawerWidth, kDesignHeight - kStatusBarHeight);
+  lv_obj_set_size(scrim, kDesignWidth - kBlockDrawerWidth, kDesignHeight);
   lv_obj_set_pos(scrim, 0, 0);
   lv_obj_set_style_bg_color(scrim, lv_color_hex(panelAlt), 0);
   // ~55% -- the chain stays legible behind the drawer so the chosen insertion
@@ -514,7 +514,7 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   lv_obj_add_event_cb(scrim, onCloseBlockDrawer, LV_EVENT_PRESSED, remember(state));
 
   lv_obj_t* drawer = lv_obj_create(root);
-  lv_obj_set_size(drawer, kBlockDrawerWidth, kDesignHeight - kStatusBarHeight);
+  lv_obj_set_size(drawer, kBlockDrawerWidth, kDesignHeight);
   lv_obj_align(drawer, LV_ALIGN_TOP_RIGHT, 0, 0);
   lv_obj_set_style_bg_color(drawer, lv_color_hex(panelAlt), 0);
   lv_obj_set_style_border_color(drawer, lv_color_hex(rule), 0);

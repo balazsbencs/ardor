@@ -1454,6 +1454,13 @@ int main()
                 && lv_obj_get_width(tunerButton) == 112
                 && lv_obj_get_height(tunerButton) == 52,
               "preset screen should provide a Tuner button and a master travel scale")) return 1;
+  lv_obj_t* masterScaleGroup = lv_obj_get_parent(masterLegend);
+  lv_obj_t* masterRail = findObjectWithSizeAndBgColor(
+    masterScaleGroup, lv_color_hex(0x191c1f), 250, 18);
+  lv_obj_t* masterHandle = findObjectWithSizeAndBgColor(
+    masterScaleGroup, lv_color_hex(0xd8422f), 44, 54);
+  if (require(masterRail && masterHandle,
+              "master should use the same recessed rail and wide thumb as parameter controls")) return 1;
   // Live control telemetry must not add extra content to this intentionally
   // minimal top rail.
   ardor::updateControlInputTelemetry(state, {true, true, true, true, 0.5f, true, 12000});
@@ -1920,8 +1927,9 @@ int main()
   lv_obj_t* retainedAssetList = lv_obj_get_parent(tremAssetButton);
   lv_area_t drawerArea{};
   lv_obj_get_coords(drawer, &drawerArea);
-  if (require(lv_obj_get_width(drawer) == 480 && lv_obj_get_height(drawer) == 672 && drawerArea.x2 == 1279,
-              "block drawer should fill the right edge above the global status bar")) return 1;
+  if (require(lv_obj_get_width(drawer) == 480 && lv_obj_get_height(drawer) == 720
+                && drawerArea.x2 == 1279 && drawerArea.y2 == 719,
+              "block drawer should fill the full right edge")) return 1;
   if (require(lv_color_eq(lv_obj_get_style_bg_color(drawer, LV_PART_MAIN), lv_color_hex(0x191c1f)),
               "block drawer should use the recessed Panel plate")) return 1;
   if (require(lv_obj_get_y(delayFilterButton) > lv_obj_get_y(allFilterButton)
@@ -2066,7 +2074,7 @@ int main()
 
   // The scrim dims the chain (Panel plate at ~55% opacity) rather than
   // covering it outright, so the chosen insertion point stays visible.
-  lv_obj_t* scrim = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 800, 672);
+  lv_obj_t* scrim = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 800, 720);
   if (require(scrim && lv_obj_has_flag(scrim, LV_OBJ_FLAG_CLICKABLE)
                 && lv_obj_get_style_bg_opa(scrim, LV_PART_MAIN) == 140,
               "block drawer should dim the chain with a tappable modal scrim")) return 1;

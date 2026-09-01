@@ -24,6 +24,13 @@ constexpr int kTopRailHeight = 52;
 constexpr int kBottomRailHeight = 88;
 constexpr int kBottomRailY = kDesignHeight - kBottomRailHeight;
 constexpr int kMasterScaleWidth = 250;
+constexpr int kMasterScaleGroupWidth = kMasterScaleWidth + 44;
+constexpr int kMasterRailHeight = 18;
+constexpr int kMasterFillHeight = kMasterRailHeight - 2;
+constexpr int kMasterHandleWidth = 44;
+constexpr int kMasterHandleHeight = 54;
+constexpr int kMasterRailX = kMasterHandleWidth / 2;
+constexpr int kMasterRailY = kBottomRailHeight - kMasterRailHeight;
 constexpr int kPresetHeaderHeight = 44;
 constexpr int kPresetNameHeight = 160;
 constexpr int kMinBank = 0;
@@ -160,11 +167,11 @@ void LvglUi::syncHeaderView(const UiState& state)
     lv_label_set_text(presetMasterValueLabel_, std::to_string(masterPct).c_str());
   }
   if (presetMasterScaleFill_) {
-    lv_obj_set_width(presetMasterScaleFill_, masterPct * kMasterScaleWidth / 100);
+    lv_obj_set_width(presetMasterScaleFill_, masterPct * (kMasterScaleWidth - 2) / 100);
   }
   if (presetMasterPointer_) {
-    lv_obj_align(presetMasterPointer_, LV_ALIGN_TOP_LEFT,
-                masterPct * kMasterScaleWidth / 100, -3);
+    lv_obj_set_x(presetMasterPointer_, kMasterRailX + 1
+      + masterPct * (kMasterScaleWidth - 2) / 100 - kMasterHandleWidth / 2);
   }
   if (presetLooperLabel_) {
     lv_label_set_text(presetLooperLabel_,
@@ -396,7 +403,7 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
   // ---- master travel scale, right-aligned ----
   lv_obj_t* scaleGroup = lv_obj_create(bottomRail);
   lv_obj_remove_style_all(scaleGroup);
-  lv_obj_set_size(scaleGroup, kMasterScaleWidth, 62);
+  lv_obj_set_size(scaleGroup, kMasterScaleGroupWidth, kBottomRailHeight);
   lv_obj_align(scaleGroup, LV_ALIGN_RIGHT_MID, -kRailEdgeInset, 0);
   lv_obj_remove_flag(scaleGroup, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(scaleGroup, LV_OBJ_FLAG_CLICKABLE);
@@ -406,34 +413,36 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
                                   LV_ALIGN_TOP_RIGHT, 0, 0, &ardor_font_saira_light_44, text);
   lv_obj_t* track = lv_obj_create(scaleGroup);
   lv_obj_remove_style_all(track);
-  lv_obj_set_size(track, kMasterScaleWidth, 14);
-  lv_obj_align(track, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+  lv_obj_set_size(track, kMasterScaleWidth, kMasterRailHeight);
+  lv_obj_set_pos(track, kMasterRailX, kMasterRailY);
+  lv_obj_set_style_bg_opa(track, LV_OPA_COVER, 0);
+  lv_obj_set_style_bg_color(track, lv_color_hex(panelAlt), 0);
   lv_obj_set_style_border_width(track, 1, 0);
   lv_obj_set_style_border_color(track, lv_color_hex(rule), 0);
-  lv_obj_set_style_border_side(track, LV_BORDER_SIDE_BOTTOM, 0);
-  for (int t = 0; t <= 8; ++t) {
-    const bool majorTick = t % 4 == 0;
-    lv_obj_t* tick = lv_obj_create(track);
-    lv_obj_remove_style_all(tick);
-    lv_obj_set_size(tick, 1, majorTick ? 11 : 6);
-    lv_obj_align(tick, LV_ALIGN_BOTTOM_LEFT, t * kMasterScaleWidth / 8, 0);
-    lv_obj_set_style_bg_opa(tick, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(tick, lv_color_hex(majorTick ? muted : rule), 0);
-  }
-  lv_obj_t* fill = lv_obj_create(track);
+  lv_obj_t* fill = lv_obj_create(scaleGroup);
   lv_obj_remove_style_all(fill);
-  lv_obj_set_size(fill, state.masterVolume * kMasterScaleWidth / 100, 3);
-  lv_obj_align(fill, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+  lv_obj_set_size(fill, state.masterVolume * (kMasterScaleWidth - 2) / 100,
+                  kMasterFillHeight);
+  lv_obj_set_pos(fill, kMasterRailX + 1, kMasterRailY + 1);
   lv_obj_set_style_bg_opa(fill, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(fill, lv_color_hex(text), 0);
+  lv_obj_set_style_bg_color(fill, lv_color_hex(lamp), 0);
   presetMasterScaleFill_ = fill;
-  lv_obj_t* pointer = lv_obj_create(track);
+  lv_obj_t* pointer = lv_obj_create(scaleGroup);
   lv_obj_remove_style_all(pointer);
-  lv_obj_set_size(pointer, 3, 20);
-  lv_obj_align(pointer, LV_ALIGN_TOP_LEFT, state.masterVolume * kMasterScaleWidth / 100, -3);
+  lv_obj_set_size(pointer, kMasterHandleWidth, kMasterHandleHeight);
+  lv_obj_set_pos(pointer, kMasterRailX + 1
+    + state.masterVolume * (kMasterScaleWidth - 2) / 100 - kMasterHandleWidth / 2,
+    kMasterRailY - (kMasterHandleHeight - kMasterRailHeight) / 2);
   lv_obj_set_style_bg_opa(pointer, LV_OPA_COVER, 0);
   lv_obj_set_style_bg_color(pointer, lv_color_hex(lamp), 0);
-  lv_obj_set_style_translate_x(pointer, -1, 0);
+  lv_obj_set_style_border_width(pointer, 4, 0);
+  lv_obj_set_style_border_color(pointer, lv_color_hex(bg), 0);
+  lv_obj_t* grip = lv_obj_create(pointer);
+  lv_obj_remove_style_all(grip);
+  lv_obj_set_size(grip, 2, 26);
+  lv_obj_center(grip);
+  lv_obj_set_style_bg_opa(grip, LV_OPA_COVER, 0);
+  lv_obj_set_style_bg_color(grip, lv_color_hex(panelAlt), 0);
   presetMasterPointer_ = pointer;
 }
 
