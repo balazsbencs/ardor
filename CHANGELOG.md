@@ -2,7 +2,17 @@
 
 All notable changes are generated from Conventional Commit messages.
 
-## [0.1.48](https://github.com/balazsbencs/ardor/compare/v0.1.46...v0.1.48) (2026-09-01)
+## [0.1.49](https://github.com/balazsbencs/ardor/compare/v0.1.46...v0.1.49) (2026-09-01)
+
+### Features
+
+* **control-io:** add galvanically isolated MIDI input ([6c8a960](https://github.com/balazsbencs/ardor/commit/6c8a960c1a108f9f3f4a853b63fbbeffc3866ae1))
+* **looper:** add four-track performance looper ([cc87713](https://github.com/balazsbencs/ardor/commit/cc87713e94991c20e779686c1eee0c87c625304a))
+
+### Bug Fixes
+
+* **manager:** update vulnerable browserslist dependency ([f646ef1](https://github.com/balazsbencs/ardor/commit/f646ef10710e920fe8045545f61afa919bba3f84))
+* **ui:** refine master control and full-height block drawer ([d7651f8](https://github.com/balazsbencs/ardor/commit/d7651f8efba859f9baab98946b42f8cea85c8c8b))
 
 ## [0.1.46](https://github.com/balazsbencs/ardor/compare/v0.1.39...v0.1.46) (2026-08-31)
 
