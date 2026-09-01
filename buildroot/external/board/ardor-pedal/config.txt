@@ -1,6 +1,8 @@
 kernel=Image
 arm_64bit=1
 enable_uart=1
+# Suppress the firmware rainbow; Ardor draws its own splash once KMS is ready.
+disable_splash=1
 # Full KMS: kernel drives all displays including the DSI panel
 dtoverlay=vc4-kms-v3d
 # Firmware must not pre-configure the display pipeline (matches RPi OS)

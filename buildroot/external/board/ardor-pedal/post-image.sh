@@ -58,6 +58,7 @@ cp "${BINARIES}/bcm2711-rpi-4-b.dtb" "${BOOT}/"
 # Always take config.txt from the board dir, not the (stamped, possibly stale)
 # rpi-firmware copy in BINARIES — config.txt edits must reach every image.
 cp "${BOARD_DIR}/config.txt" "${BOOT}/config.txt"
+cp "${BOARD_DIR}/cmdline.txt" "${BOOT}/cmdline.txt"
 
 # Keep the GPU firmware era-matched with the validated rpi-6.18.y kernel.
 # The exact blobs are cached in BINARIES and verified on every image build.
