@@ -44,6 +44,14 @@ void styleDialogText(lv_obj_t* title, lv_obj_t* detail)
   setText(detail, muted, &ardor_font_saira_cond_medium_18);
 }
 
+void styleBanner(lv_obj_t* banner)
+{
+  styleSurface(banner, panelAlt);
+  lv_obj_set_style_pad_all(banner, 0, 0);
+  lv_obj_set_style_border_side(banner, LV_BORDER_SIDE_BOTTOM, 0);
+  lv_obj_remove_flag(banner, LV_OBJ_FLAG_SCROLLABLE);
+}
+
 } // namespace
 
 CloudClaimOverlay::CloudClaimOverlay(std::filesystem::path dataRoot)
@@ -111,8 +119,10 @@ void CloudClaimOverlay::poll()
     const auto flowId = code.value("claimFlowId", std::string{});
     const auto manualCode = code.value("manualCode", std::string{});
     if (!flowId.empty() && !manualCode.empty()) {
-      if (mode_ != Mode::Code || flowId_ != flowId) showCode(flowId, manualCode);
-      return;
+      if (flowId != dismissedCodeFlowId_) {
+        if (mode_ != Mode::Code || flowId_ != flowId) showCode(flowId, manualCode);
+        return;
+      }
     }
   }
 
@@ -121,8 +131,10 @@ void CloudClaimOverlay::poll()
     const auto setupId = setup.value("setupId", std::string{});
     const auto manualCode = setup.value("manualCode", std::string{});
     if (!setupId.empty() && !manualCode.empty()) {
-      if (mode_ != Mode::LocalSetup || flowId_ != setupId) showLocalSetup(setupId, manualCode);
-      return;
+      if (setupId != dismissedLocalSetupId_) {
+        if (mode_ != Mode::LocalSetup || flowId_ != setupId) showLocalSetup(setupId, manualCode);
+        return;
+      }
     }
   }
 
@@ -132,6 +144,7 @@ void CloudClaimOverlay::poll()
 bool CloudClaimOverlay::handleFootswitch(int index)
 {
   if (!active()) return false;
+  if (mode_ == Mode::Code || mode_ == Mode::LocalSetup) return false;
   if (mode_ == Mode::Pending || mode_ == Mode::FactoryPending) {
     if (index == 0) decide(true);
     else if (index == 3) decide(false);
@@ -210,18 +223,21 @@ void CloudClaimOverlay::showCode(const std::string& flowId, const std::string& c
   flowId_ = flowId;
   mode_ = Mode::Code;
   modal_ = lv_obj_create(lv_layer_top());
-  lv_obj_set_size(modal_, 620, 300);
-  lv_obj_center(modal_);
-  styleDialog(modal_);
+  lv_obj_set_size(modal_, LV_PCT(100), 76);
+  lv_obj_align(modal_, LV_ALIGN_TOP_MID, 0, 0);
+  styleBanner(modal_);
   title_ = lv_label_create(modal_);
   lv_label_set_text(title_, "Claim this Ardor pedal");
-  lv_obj_align(title_, LV_ALIGN_TOP_MID, 0, 28);
+  lv_obj_align(title_, LV_ALIGN_LEFT_MID, 28, -13);
   detail_ = lv_label_create(modal_);
-  const auto text = std::string("Sign in to the hosted manager and enter\n\n") + code;
+  const auto text = std::string("Hosted manager code: ") + code;
   lv_label_set_text(detail_, text.c_str());
-  lv_obj_set_style_text_align(detail_, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_align(detail_, LV_ALIGN_CENTER, 0, 12);
+  lv_obj_align(detail_, LV_ALIGN_LEFT_MID, 28, 15);
   styleDialogText(title_, detail_);
+  reject_ = button(modal_, "Dismiss");
+  lv_obj_set_size(reject_, 142, 48);
+  lv_obj_align(reject_, LV_ALIGN_RIGHT_MID, -18, 0);
+  lv_obj_add_event_cb(reject_, dismissClicked, LV_EVENT_CLICKED, this);
 }
 
 void CloudClaimOverlay::showPending(const std::string& flowId, const std::string& accountName)
@@ -254,18 +270,21 @@ void CloudClaimOverlay::showLocalSetup(const std::string& setupId, const std::st
   flowId_ = setupId;
   mode_ = Mode::LocalSetup;
   modal_ = lv_obj_create(lv_layer_top());
-  lv_obj_set_size(modal_, 650, 320);
-  lv_obj_center(modal_);
-  styleDialog(modal_);
+  lv_obj_set_size(modal_, LV_PCT(100), 76);
+  lv_obj_align(modal_, LV_ALIGN_TOP_MID, 0, 0);
+  styleBanner(modal_);
   title_ = lv_label_create(modal_);
   lv_label_set_text(title_, "Set up local manager access");
-  lv_obj_align(title_, LV_ALIGN_TOP_MID, 0, 28);
+  lv_obj_align(title_, LV_ALIGN_LEFT_MID, 28, -13);
   detail_ = lv_label_create(modal_);
-  const auto text = std::string("Open this pedal in a trusted local browser.\nEnter this one-time setup code:\n\n") + code;
+  const auto text = std::string("One-time setup code: ") + code;
   lv_label_set_text(detail_, text.c_str());
-  lv_obj_set_style_text_align(detail_, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_align(detail_, LV_ALIGN_CENTER, 0, 12);
+  lv_obj_align(detail_, LV_ALIGN_LEFT_MID, 28, 15);
   styleDialogText(title_, detail_);
+  reject_ = button(modal_, "Dismiss");
+  lv_obj_set_size(reject_, 142, 48);
+  lv_obj_align(reject_, LV_ALIGN_RIGHT_MID, -18, 0);
+  lv_obj_add_event_cb(reject_, dismissClicked, LV_EVENT_CLICKED, this);
 }
 
 void CloudClaimOverlay::showFactoryPending(const std::string& resetId)
@@ -331,6 +350,14 @@ void CloudClaimOverlay::hide()
   flowId_.clear();
 }
 
+void CloudClaimOverlay::dismissInformationalBanner()
+{
+  if (mode_ == Mode::Code) dismissedCodeFlowId_ = flowId_;
+  else if (mode_ == Mode::LocalSetup) dismissedLocalSetupId_ = flowId_;
+  else return;
+  hide();
+}
+
 void CloudClaimOverlay::decide(bool approved)
 {
   const auto factory = mode_ == Mode::FactoryPending;
@@ -345,6 +372,11 @@ void CloudClaimOverlay::decide(bool approved)
 void CloudClaimOverlay::approveClicked(lv_event_t* event)
 {
   static_cast<CloudClaimOverlay*>(lv_event_get_user_data(event))->decide(true);
+}
+
+void CloudClaimOverlay::dismissClicked(lv_event_t* event)
+{
+  static_cast<CloudClaimOverlay*>(lv_event_get_user_data(event))->dismissInformationalBanner();
 }
 
 void CloudClaimOverlay::rejectClicked(lv_event_t* event)
