@@ -36,11 +36,33 @@
     "cabinet": [
       "cab"
     ],
+    "reverb": [
+      "irreverb",
+      "reverb:room",
+      "reverb:hall",
+      "reverb:plate",
+      "reverb:spring",
+      "reverb:bloom",
+      "reverb:cloud",
+      "reverb:shimmer",
+      "reverb:chorale",
+      "reverb:nonlinear",
+      "reverb:swell",
+      "reverb:magneto",
+      "reverb:reflections"
+    ],
     "utility": [
       "dynamics:compressor",
       "dynamics:noise_gate",
+      "dynamics:transient_shaper",
       "eq:parametric_eq_5",
+      "stereo:widener",
       "wah:gcb95"
+    ],
+    "drive": [
+      "distortion:rat",
+      "distortion:big_cheese",
+      "distortion:tape"
     ],
     "modulation": [
       "mod:chorus",
@@ -56,7 +78,9 @@
       "mod:ladder_sweep",
       "mod:formant",
       "mod:quadrature",
-      "mod:destroyer"
+      "mod:destroyer",
+      "mod:whammy",
+      "mod:harmonizer"
     ],
     "delay": [
       "delay:digital",
@@ -69,20 +93,6 @@
       "delay:pattern",
       "delay:swell",
       "delay:trem"
-    ],
-    "reverb": [
-      "reverb:room",
-      "reverb:hall",
-      "reverb:plate",
-      "reverb:spring",
-      "reverb:bloom",
-      "reverb:cloud",
-      "reverb:shimmer",
-      "reverb:chorale",
-      "reverb:nonlinear",
-      "reverb:swell",
-      "reverb:magneto",
-      "reverb:reflections"
     ]
   },
   "definitions": [
@@ -158,6 +168,74 @@
           "max": 1,
           "step": 0.05,
           "default": 1
+        }
+      ]
+    },
+    {
+      "id": "irreverb",
+      "name": "Convolution Reverb",
+      "description": "True convolution reverb driven by a room, plate or hall impulse response.",
+      "category": "reverb",
+      "blockType": "irreverb",
+      "mode": null,
+      "maxEnabledInGroup": null,
+      "controls": [
+        {
+          "key": "asset",
+          "label": "Reverb IR",
+          "kind": "asset",
+          "unit": "",
+          "assetKind": "reverb-irs"
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "levelDb",
+          "label": "Level",
+          "kind": "number",
+          "unit": "dB",
+          "min": -60,
+          "max": 12,
+          "step": 1,
+          "default": 0
+        },
+        {
+          "key": "preDelayMs",
+          "label": "Pre-delay",
+          "kind": "number",
+          "unit": "ms",
+          "min": 0,
+          "max": 500,
+          "step": 1,
+          "default": 0
+        },
+        {
+          "key": "lowCutHz",
+          "label": "Low Cut",
+          "kind": "number",
+          "unit": "Hz",
+          "min": 20,
+          "max": 2000,
+          "step": 10,
+          "default": 20
+        },
+        {
+          "key": "highCutHz",
+          "label": "High Cut",
+          "kind": "number",
+          "unit": "Hz",
+          "min": 500,
+          "max": 20000,
+          "step": 100,
+          "default": 20000
         }
       ]
     },
@@ -538,6 +616,57 @@
       ]
     },
     {
+      "id": "dynamics:transient_shaper",
+      "name": "Transient Shaper",
+      "description": "Threshold-free attack and sustain shaping that reads the envelope, not the level.",
+      "category": "utility",
+      "blockType": "dynamics",
+      "mode": "transient_shaper",
+      "maxEnabledInGroup": null,
+      "controls": [
+        {
+          "key": "attack",
+          "label": "Attack",
+          "kind": "number",
+          "unit": "%",
+          "min": -100,
+          "max": 100,
+          "step": 1,
+          "default": 0
+        },
+        {
+          "key": "sustain",
+          "label": "Sustain",
+          "kind": "number",
+          "unit": "%",
+          "min": -100,
+          "max": 100,
+          "step": 1,
+          "default": 0
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": ":1",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 1
+        },
+        {
+          "key": "output_db",
+          "label": "Output",
+          "kind": "number",
+          "unit": "dB",
+          "min": -24,
+          "max": 24,
+          "step": 0.5,
+          "default": 0
+        }
+      ]
+    },
+    {
       "id": "eq:parametric_eq_5",
       "name": "Five Band Parametric EQ",
       "description": "High-pass and low-pass filters with selectable slopes around five fully parametric bands.",
@@ -551,6 +680,57 @@
           "label": "parametric-eq-5",
           "kind": "parametric-eq-5",
           "unit": ""
+        }
+      ]
+    },
+    {
+      "id": "stereo:widener",
+      "name": "Stereo Widener",
+      "description": "Mid/side width with the low end centred and a mono-safe side delay.",
+      "category": "utility",
+      "blockType": "stereo",
+      "mode": null,
+      "maxEnabledInGroup": null,
+      "controls": [
+        {
+          "key": "width",
+          "label": "Width",
+          "kind": "number",
+          "unit": ":1",
+          "min": 0,
+          "max": 2,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "delayMs",
+          "label": "Side Delay",
+          "kind": "number",
+          "unit": "ms",
+          "min": 0,
+          "max": 30,
+          "step": 0.5,
+          "default": 0
+        },
+        {
+          "key": "bassMonoHz",
+          "label": "Bass Mono",
+          "kind": "number",
+          "unit": "Hz",
+          "min": 0,
+          "max": 500,
+          "step": 10,
+          "default": 0
+        },
+        {
+          "key": "levelDb",
+          "label": "Level",
+          "kind": "number",
+          "unit": "dB",
+          "min": -24,
+          "max": 12,
+          "step": 1,
+          "default": 0
         }
       ]
     },
@@ -581,6 +761,190 @@
           "min": -24,
           "max": 24,
           "step": 1,
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "distortion:rat",
+      "name": "RAT Distortion",
+      "description": "Circuit model of the ProCo RAT, slew-limited LM308 and all. Filter runs backwards: turn it up for less treble.",
+      "category": "drive",
+      "blockType": "distortion",
+      "mode": "rat",
+      "maxEnabledInGroup": null,
+      "controls": [
+        {
+          "key": "distortion",
+          "label": "Distortion",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0.5
+        },
+        {
+          "key": "filter",
+          "label": "Filter",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0.5
+        },
+        {
+          "key": "volume",
+          "label": "Volume",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0.7
+        }
+      ]
+    },
+    {
+      "id": "distortion:big_cheese",
+      "name": "Big Cheese Fuzz",
+      "description": "Circuit model of the Lovetone Big Cheese: a two-transistor feedback fuzz into asymmetric clipping and a Big Muff tone stack.",
+      "category": "drive",
+      "blockType": "distortion",
+      "mode": "big_cheese",
+      "maxEnabledInGroup": null,
+      "controls": [
+        {
+          "key": "fuzz",
+          "label": "Fuzz",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0.7
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0.5
+        },
+        {
+          "key": "volume",
+          "label": "Volume",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0.7
+        }
+      ]
+    },
+    {
+      "id": "distortion:tape",
+      "name": "Tape Machine",
+      "description": "Magnetic hysteresis and transport, voiced after a Studer A800.",
+      "category": "drive",
+      "blockType": "distortion",
+      "mode": "tape",
+      "maxEnabledInGroup": null,
+      "controls": [
+        {
+          "key": "drive",
+          "label": "Drive",
+          "kind": "number",
+          "unit": "dB",
+          "min": -12,
+          "max": 24,
+          "step": 0.5,
+          "default": 0
+        },
+        {
+          "key": "saturation",
+          "label": "Saturation",
+          "kind": "number",
+          "unit": ":1",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0.5
+        },
+        {
+          "key": "bias",
+          "label": "Bias",
+          "kind": "number",
+          "unit": ":1",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0.5
+        },
+        {
+          "key": "speed",
+          "label": "Tape speed",
+          "kind": "choice",
+          "unit": "",
+          "choices": [
+            "15 ips",
+            "30 ips"
+          ],
+          "default": "15"
+        },
+        {
+          "key": "head_bump",
+          "label": "Head Bump",
+          "kind": "number",
+          "unit": ":1",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0.5
+        },
+        {
+          "key": "flutter",
+          "label": "Flutter",
+          "kind": "number",
+          "unit": ":1",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0
+        },
+        {
+          "key": "hiss_db",
+          "label": "Hiss",
+          "kind": "number",
+          "unit": "dB",
+          "min": -120,
+          "max": -60,
+          "step": 1,
+          "default": -120
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": ":1",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 1
+        },
+        {
+          "key": "output_db",
+          "label": "Output",
+          "kind": "number",
+          "unit": "dB",
+          "min": -24,
+          "max": 24,
+          "step": 0.5,
           "default": 0
         }
       ]
@@ -1705,6 +2069,168 @@
           "min": 0,
           "max": 1,
           "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:whammy",
+      "name": "Whammy",
+      "description": "Pedal-swept pitch shifter. Ten Whammy presets and nine Harmony presets on one selector.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "whammy",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Glide",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "Harmony Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Pedal",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Preset",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.052632,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:harmonizer",
+      "name": "Harmonizer",
+      "description": "Key-aware harmoniser: shifts by scale degrees so a third follows the key.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "harmonizer",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Tracking",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "Scale",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.2,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Interval",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.1,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Key",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.083333,
           "default": 0
         },
         {
@@ -3503,9 +4029,9 @@
     }
   ],
   "counts": {
-    "total": 43,
-    "modulation": 13,
+    "total": 52,
+    "modulation": 16,
     "delay": 10,
-    "reverb": 12
+    "reverb": 13
   }
 }

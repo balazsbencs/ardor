@@ -74,6 +74,7 @@
 
 namespace {
 
+#if defined(ARDOR_HAS_UI)
 #if defined(__linux__)
 bool managerUpdateRequest(const std::string& method, const std::string& path,
                           const std::string& body, ardor::DeviceUpdateStatus& result,
@@ -138,6 +139,7 @@ bool managerUpdateRequest(const std::string&, const std::string&, const std::str
   error = "Updates are available on the pedal hardware";
   return false;
 }
+#endif
 #endif
 
 struct LooperSaveCompletion {
