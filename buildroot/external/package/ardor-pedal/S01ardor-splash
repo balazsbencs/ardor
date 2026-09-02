@@ -1,0 +1,28 @@
+#!/bin/sh
+
+PID=/var/run/ardor-splash.pid
+BIN=/usr/bin/ardor-splash
+
+case "$1" in
+  start)
+    [ -x "$BIN" ] || exit 0
+    [ -e /dev/fb0 ] || {
+      i=0
+      while [ "$i" -lt 100 ] && [ ! -e /dev/fb0 ]; do
+        sleep 0.05
+        i=$((i + 1))
+      done
+    }
+    [ -e /dev/fb0 ] || exit 0
+    start-stop-daemon -S -b -m -p "$PID" -x "$BIN" -- /dev/fb0
+    ;;
+  stop)
+    start-stop-daemon -K -q -p "$PID" -x "$BIN" || true
+    rm -f "$PID"
+    ;;
+  restart)
+    "$0" stop
+    "$0" start
+    ;;
+  *) echo "Usage: $0 {start|stop|restart}" >&2; exit 1 ;;
+esac

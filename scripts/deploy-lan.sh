@@ -24,9 +24,10 @@ Environment:
   ARDOR_SSH_USER         SSH user on the pedal. Default: root
   ARDOR_SSH_OPTS         Extra options passed to ssh/scp.
   ARDOR_VERBOSE=1        Trace local and Docker build commands.
-  ARDOR_SKIP_BUILD=1     Upload existing ./ardor-pedal and ./ardor-managerd.
+  ARDOR_SKIP_BUILD=1     Upload existing pedal, splash, and manager binaries.
   ARDOR_SKIP_WEB_BUILD=1 Reuse the embedded manager bundle already in managerd.
   ARDOR_PEDAL_DIRCLEAN=1 Force a clean Buildroot pedal-package rebuild.
+  ARDOR_SPLASH_LOCAL     Existing splash binary when ARDOR_SKIP_BUILD=1.
   ARDOR_LOCAL_AUTH       on, off, or preserve. Default: on
   ARDOR_SERVICE_LOCAL    Local pedal supervisor script. Defaults to the
                          Buildroot package's S99ardor-pedal.
@@ -75,10 +76,16 @@ ssh_opts="${ARDOR_SSH_OPTS:-}"
 ssh_target="$ssh_user@$host"
 
 pedal_bin="${ARDOR_LOCAL_BIN:-$repo_dir/ardor-pedal}"
+splash_bin="${ARDOR_SPLASH_LOCAL:-$repo_dir/ardor-splash}"
 managerd_bin="${ARDOR_MANAGERD_LOCAL_BIN:-$repo_dir/ardor-managerd}"
 pedal_remote_tmp="${ARDOR_REMOTE_TMP:-/tmp/ardor-pedal.new}"
 managerd_remote_tmp="${ARDOR_MANAGERD_REMOTE_TMP:-/tmp/ardor-managerd.new}"
 pedal_target="${ARDOR_TARGET_BIN:-/usr/bin/ardor-pedal}"
+splash_remote_tmp="${ARDOR_SPLASH_REMOTE_TMP:-/tmp/ardor-splash.new}"
+splash_target="${ARDOR_SPLASH_TARGET_BIN:-/usr/bin/ardor-splash}"
+splash_service="${ARDOR_SPLASH_SERVICE:-/etc/init.d/S01ardor-splash}"
+splash_service_local="${ARDOR_SPLASH_SERVICE_LOCAL:-$repo_dir/buildroot/external/package/ardor-pedal/S01ardor-splash}"
+splash_service_remote_tmp="${ARDOR_SPLASH_SERVICE_REMOTE_TMP:-/tmp/S01ardor-splash.new}"
 managerd_target="${ARDOR_MANAGERD_TARGET_BIN:-/usr/bin/ardor-managerd}"
 pedal_service="${ARDOR_SERVICE:-/etc/init.d/S99ardor-pedal}"
 pedal_service_local="${ARDOR_SERVICE_LOCAL:-$repo_dir/buildroot/external/package/ardor-pedal/S99ardor-pedal}"
@@ -192,6 +199,7 @@ build_with_docker() {
       fi
       make ardor-pedal BR2_EXTERNAL=/ardor/buildroot/external
       cp output/build/ardor-pedal-1.0/pedal-poc /ardor/ardor-pedal
+      cp output/build/ardor-pedal-1.0/ardor-splash /ardor/ardor-splash
     '
 }
 
@@ -207,6 +215,7 @@ build_native() {
   fi
   make -C "$buildroot" ardor-pedal BR2_EXTERNAL="$br2_external"
   cp "$buildroot/output/build/ardor-pedal-1.0/pedal-poc" "$pedal_bin"
+  cp "$buildroot/output/build/ardor-pedal-1.0/ardor-splash" "$splash_bin"
 }
 
 if [ "${ARDOR_SKIP_BUILD:-0}" != "1" ]; then
@@ -224,12 +233,14 @@ if [ "${ARDOR_SKIP_BUILD:-0}" != "1" ]; then
       ;;
   esac
 else
-  echo "Skipping build; uploading $pedal_bin and $managerd_bin"
+  echo "Skipping build; uploading $pedal_bin, $splash_bin, and $managerd_bin"
 fi
 
 [ -x "$pedal_bin" ] || die "built binary is missing or not executable: $pedal_bin"
+[ -x "$splash_bin" ] || die "built splash is missing or not executable: $splash_bin"
 [ -x "$managerd_bin" ] || die "built binary is missing or not executable: $managerd_bin"
 [ -f "$pedal_service_local" ] || die "pedal supervisor is missing: $pedal_service_local"
+[ -f "$splash_service_local" ] || die "splash supervisor is missing: $splash_service_local"
 [ -f "$managerd_service_local" ] || die "manager daemon supervisor is missing: $managerd_service_local"
 [ -f "$wah_table_local" ] || die "wah circuit table is missing: $wah_table_local"
 [ -f "$ca_bundle_local" ] || die "CA certificate bundle is missing: $ca_bundle_local"
@@ -257,16 +268,20 @@ ssh $ssh_opts -MNf \
   -o "ControlPath=$ssh_control_path" \
   "$ssh_target"
 
-echo "Uploading pedal, supervisors, and manager daemon to $ssh_target"
+echo "Uploading pedal, splash, supervisors, and manager daemon to $ssh_target"
 # OpenSSH 9+ clients use SFTP for scp by default. The pedal image does not
 # expose the SFTP subsystem, so force the compatible legacy SCP protocol.
 # ARDOR_SSH_OPTS is intentionally split into separate ssh/scp arguments.
 # shellcheck disable=SC2086
 scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$pedal_bin" "$ssh_target:$pedal_remote_tmp"
 # shellcheck disable=SC2086
+scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$splash_bin" "$ssh_target:$splash_remote_tmp"
+# shellcheck disable=SC2086
 scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$managerd_bin" "$ssh_target:$managerd_remote_tmp"
 # shellcheck disable=SC2086
 scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$pedal_service_local" "$ssh_target:$pedal_service_remote_tmp"
+# shellcheck disable=SC2086
+scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$splash_service_local" "$ssh_target:$splash_service_remote_tmp"
 # shellcheck disable=SC2086
 scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$managerd_service_local" "$ssh_target:$managerd_service_remote_tmp"
 # shellcheck disable=SC2086
@@ -282,7 +297,8 @@ ssh $ssh_opts -o "ControlPath=$ssh_control_path" "$ssh_target" 'sh -s' \
   "$managerd_remote_tmp" "$managerd_target" "$managerd_service" \
   "$managerd_env" "$local_auth" "$pedal_service_remote_tmp" \
   "$wah_table_remote_tmp" "$wah_table_target" "$managerd_service_remote_tmp" \
-  "$tone3000_client_id" "$tone3000_base_url" "$ca_bundle_remote_tmp" "$ca_bundle_target" <<'REMOTE'
+  "$tone3000_client_id" "$tone3000_base_url" "$ca_bundle_remote_tmp" "$ca_bundle_target" \
+  "$splash_remote_tmp" "$splash_target" "$splash_service_remote_tmp" "$splash_service" <<'REMOTE'
 set -eu
 
 pedal_remote_tmp=$1
@@ -302,6 +318,11 @@ tone3000_client_id=$4
 tone3000_base_url=$5
 ca_bundle_remote_tmp=$6
 ca_bundle_target=$7
+shift 7
+splash_remote_tmp=$1
+splash_target=$2
+splash_service_remote_tmp=$3
+splash_service=$4
 remounted=0
 
 cleanup() {
@@ -313,6 +334,7 @@ trap cleanup EXIT
 
 "$managerd_service" stop || true
 "$pedal_service" stop || true
+"$splash_service" stop 2>/dev/null || true
 sleep 1
 
 if mount -o remount,rw / 2>/dev/null; then
@@ -320,11 +342,16 @@ if mount -o remount,rw / 2>/dev/null; then
 fi
 
 cp "$pedal_remote_tmp" "$pedal_target.new"
+cp "$splash_remote_tmp" "$splash_target.new"
+cp "$splash_service_remote_tmp" "$splash_service.new"
 cp "$managerd_remote_tmp" "$managerd_target.new"
 cp "$pedal_service_remote_tmp" "$pedal_service.new"
 cp "$managerd_service_remote_tmp" "$managerd_service.new"
-chmod 755 "$pedal_target.new" "$managerd_target.new" "$pedal_service.new" "$managerd_service.new"
+chmod 755 "$pedal_target.new" "$splash_target.new" "$managerd_target.new" \
+  "$pedal_service.new" "$splash_service.new" "$managerd_service.new"
 mv "$pedal_target.new" "$pedal_target"
+mv "$splash_target.new" "$splash_target"
+mv "$splash_service.new" "$splash_service"
 mv "$managerd_target.new" "$managerd_target"
 mv "$pedal_service.new" "$pedal_service"
 mv "$managerd_service.new" "$managerd_service"
@@ -361,10 +388,12 @@ if [ "$remounted" = "1" ]; then
   remounted=0
 fi
 
+"$splash_service" start
 "$managerd_service" restart
 "$pedal_service" restart
 rm -f "$pedal_remote_tmp" "$managerd_remote_tmp" "$pedal_service_remote_tmp" \
-  "$managerd_service_remote_tmp" "$wah_table_remote_tmp"
+  "$managerd_service_remote_tmp" "$wah_table_remote_tmp" "$splash_remote_tmp" \
+  "$splash_service_remote_tmp"
 rm -f "$ca_bundle_remote_tmp"
 REMOTE
 

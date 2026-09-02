@@ -76,6 +76,9 @@ seed_missing_assets() {
 }
 
 run_supervised() {
+  # Leave the splash's final frame in place until LVGL paints over it.
+  /etc/init.d/S01ardor-splash stop 2>/dev/null || true
+
   # Silence the framebuffer console so it stops drawing over the LVGL UI.
   # Do NOT unbind vtcon: dropping fbcon releases the DRM pipe and freezes
   # the DSI panel on a decaying last frame. Muting printk and the cursor
