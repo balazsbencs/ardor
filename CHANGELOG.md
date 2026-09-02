@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.50](https://github.com/balazsbencs/ardor/compare/v0.1.49...v0.1.50) (2026-09-02)
+
+### Features
+
+* **boot:** add Ardor framebuffer splash screen ([#55](https://github.com/balazsbencs/ardor/issues/55)) ([a1e770c](https://github.com/balazsbencs/ardor/commit/a1e770c5f6a6ff3058a7eb1a0d279f04e9869cc2))
+
 ## [0.1.49](https://github.com/balazsbencs/ardor/compare/v0.1.46...v0.1.49) (2026-09-01)
 
 ### Features
