@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.51](https://github.com/balazsbencs/ardor/compare/v0.1.50...v0.1.51) (2026-09-02)
+
+### Features
+
+* add Ladder Sweep effect and boot splash ([#56](https://github.com/balazsbencs/ardor/issues/56)) ([2cbaef1](https://github.com/balazsbencs/ardor/commit/2cbaef154bb1529b31e970611838cd1d7caadbcf))
+
 ## [0.1.50](https://github.com/balazsbencs/ardor/compare/v0.1.49...v0.1.50) (2026-09-02)
 
 ### Features
