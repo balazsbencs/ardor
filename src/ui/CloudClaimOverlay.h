@@ -28,7 +28,9 @@ private:
   void showFactoryPending(const std::string& resetId);
   void showFactoryDecided(bool approved);
   void hide();
+  void dismissInformationalBanner();
   void decide(bool approved);
+  static void dismissClicked(lv_event_t* event);
   static void approveClicked(lv_event_t* event);
   static void rejectClicked(lv_event_t* event);
 
@@ -43,6 +45,8 @@ private:
   std::chrono::steady_clock::time_point nextPoll_{};
   Mode mode_ = Mode::Hidden;
   std::string flowId_;
+  std::string dismissedCodeFlowId_;
+  std::string dismissedLocalSetupId_;
   lv_obj_t* modal_ = nullptr;
   lv_obj_t* title_ = nullptr;
   lv_obj_t* detail_ = nullptr;
