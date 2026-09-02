@@ -10,6 +10,7 @@ import type {
   WiFiSettings,
   WiFiSettingsUpdate,
   UpdateStatus,
+	BackupRestoreResult,
 } from "./types";
 import { ArdorApiError } from "./errors";
 import type { ManagerTransport } from "./transport";
@@ -67,6 +68,20 @@ export class ArdorApiClient implements ManagerTransport {
       body: JSON.stringify({ version }),
     });
   }
+
+	async downloadBackup(): Promise<Blob> {
+		const headers: Record<string, string> = {};
+		if (this.token) headers.Authorization = `Bearer ${this.token}`;
+		const response = await this.fetchImpl(`${this.baseUrl}/api/backup`, { credentials: "include", headers });
+		if (!response.ok) throw new ArdorApiError(response.status, "backup_export_failed", "Could not create the backup file");
+		return response.blob();
+	}
+
+	restoreBackup(file: File): Promise<BackupRestoreResult> {
+		const body = new FormData();
+		body.set("file", file);
+		return this.request<BackupRestoreResult>("/api/backup/restore", { method: "POST", body }, null);
+	}
 
   async listAssets(kind: AssetKind): Promise<Asset[]> {
     const response = await this.request<{ assets: Asset[] }>(`/api/assets/${kind}`);

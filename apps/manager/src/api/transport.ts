@@ -10,6 +10,7 @@ import type {
   WiFiSettings,
   WiFiSettingsUpdate,
   UpdateStatus,
+	BackupRestoreResult,
 } from "./types";
 
 /**
@@ -26,6 +27,8 @@ export interface ManagerTransport {
   getUpdateStatus(): Promise<UpdateStatus>;
   checkForUpdate(): Promise<UpdateStatus>;
   installUpdate(version: string): Promise<UpdateStatus>;
+	downloadBackup(): Promise<Blob>;
+	restoreBackup(file: File): Promise<BackupRestoreResult>;
   listAssets(kind: AssetKind): Promise<Asset[]>;
   uploadAsset(kind: AssetKind, file: File, overwrite: boolean): Promise<Asset>;
   deleteAsset(kind: AssetKind, assetId: string): Promise<void>;

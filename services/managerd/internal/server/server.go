@@ -15,12 +15,14 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"ardor.local/managerd/internal/assets"
+	backupstore "ardor.local/managerd/internal/backup"
 	"ardor.local/managerd/internal/config"
 	"ardor.local/managerd/internal/localauth"
 	"ardor.local/managerd/internal/presets"
@@ -237,6 +239,7 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 				"presetWrite": true, "presetApply": true, "assetRename": true,
 				"wifiSettings": true, "softwareUpdate": updateManager.Status().Enabled,
 				"tone3000": localTone3000 != nil,
+				"backup":   true,
 			},
 		})
 	})
@@ -525,6 +528,63 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"presets": items})
+	})
+
+	mux.HandleFunc("GET /api/backup", func(w http.ResponseWriter, r *http.Request) {
+		if !authorized(w, r, cfg, authStore) {
+			return
+		}
+		filename := "ardor-backup-" + time.Now().UTC().Format("2006-01-02") + ".zip"
+		w.Header().Set("Content-Type", "application/zip")
+		w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
+		w.Header().Set("Cache-Control", "no-store")
+		if _, err := backupstore.Export(cfg.DataRoot, w, time.Now()); err != nil {
+			log.Printf("export backup: %v", err)
+		}
+	})
+
+	mux.HandleFunc("POST /api/backup/restore", func(w http.ResponseWriter, r *http.Request) {
+		if !authorized(w, r, cfg, authStore) {
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, 4<<30)
+		file, _, err := r.FormFile("file")
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "missing_backup", "Choose an Ardor backup ZIP file")
+			return
+		}
+		defer file.Close()
+		staged, err := os.CreateTemp(filepath.Dir(cfg.DataRoot), ".ardor-upload-*.zip")
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "backup_stage_failed", err.Error())
+			return
+		}
+		stagedName := staged.Name()
+		defer os.Remove(stagedName)
+		if _, err = io.Copy(staged, file); err != nil {
+			staged.Close()
+			writeError(w, http.StatusBadRequest, "backup_upload_failed", err.Error())
+			return
+		}
+		info, err := staged.Stat()
+		if err == nil {
+			_, err = staged.Seek(0, io.SeekStart)
+		}
+		if err != nil {
+			staged.Close()
+			writeError(w, http.StatusInternalServerError, "backup_stage_failed", err.Error())
+			return
+		}
+		result, err := backupstore.Import(cfg.DataRoot, staged, info.Size())
+		staged.Close()
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_backup", err.Error())
+			return
+		}
+		if err := runtimecontrol.QueueAssetReload(cfg.DataRoot); err != nil {
+			log.Printf("queue asset reload after restore: %v", err)
+		}
+		writeJSON(w, http.StatusOK, result)
 	})
 
 	mux.HandleFunc("GET /api/presets/banks/{bank}/slots/{slot}", func(w http.ResponseWriter, r *http.Request) {
