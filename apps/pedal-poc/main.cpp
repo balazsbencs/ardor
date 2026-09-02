@@ -32,7 +32,10 @@
 #if defined(__linux__)
 #include <cerrno>
 #include <cstring>
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <sys/mman.h>
+#include <unistd.h>
 #endif
 #include <chrono>
 #include <csignal>
@@ -53,6 +56,8 @@
 #include <utility>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 #ifndef ARDOR_VERSION
 #define ARDOR_VERSION "0.0.0"
 #endif
@@ -68,6 +73,72 @@
 #endif
 
 namespace {
+
+#if defined(__linux__)
+bool managerUpdateRequest(const std::string& method, const std::string& path,
+                          const std::string& body, ardor::DeviceUpdateStatus& result,
+                          std::string& error)
+{
+  const int socketFd = ::socket(AF_INET, SOCK_STREAM, 0);
+  if (socketFd < 0) { error = "Update service is unavailable"; return false; }
+  timeval timeout{20, 0};
+  setsockopt(socketFd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+  sockaddr_in address{};
+  address.sin_family = AF_INET;
+  address.sin_port = htons(8080);
+  address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  if (::connect(socketFd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != 0) {
+    ::close(socketFd); error = "Update service is unavailable"; return false;
+  }
+  std::string request = method + " " + path + " HTTP/1.0\r\nHost: 127.0.0.1\r\n"
+    "X-Ardor-Device-UI: 1\r\nContent-Type: application/json\r\nContent-Length: "
+    + std::to_string(body.size()) + "\r\n\r\n" + body;
+  for (std::size_t sent = 0; sent < request.size();) {
+    const auto count = ::send(socketFd, request.data() + sent, request.size() - sent, 0);
+    if (count <= 0) { ::close(socketFd); error = "Could not contact update service"; return false; }
+    sent += static_cast<std::size_t>(count);
+  }
+  std::string response;
+  std::array<char, 4096> buffer{};
+  for (;;) {
+    const auto count = ::recv(socketFd, buffer.data(), buffer.size(), 0);
+    if (count <= 0) break;
+    response.append(buffer.data(), static_cast<std::size_t>(count));
+  }
+  ::close(socketFd);
+  const auto headerEnd = response.find("\r\n\r\n");
+  if (headerEnd == std::string::npos) { error = "Invalid response from update service"; return false; }
+  const bool success = response.starts_with("HTTP/1.0 200") || response.starts_with("HTTP/1.0 202");
+  try {
+    const auto json = nlohmann::json::parse(response.substr(headerEnd + 4));
+    result.state = json.value("state", "idle");
+    result.enabled = json.value("enabled", false);
+    result.installedVersion = json.value("installedVersion", std::string{});
+    result.baseVersion = json.value("baseVersion", std::string{});
+    result.errorMessage = json.value("errorMessage", std::string{});
+    result.availableVersion.clear();
+    if (json.contains("available") && json["available"].is_object()) {
+      const auto& available = json["available"];
+      result.availableVersion = available.value("version", std::string{});
+      result.bundleSize = available.value("bundleSize", std::uint64_t{0});
+      result.reflashRequired = available.value("reflashRequired", false);
+      result.incompatibility = available.value("incompatibility", std::string{});
+    }
+    if (!success) error = result.errorMessage.empty() ? "Update request was rejected" : result.errorMessage;
+    return success;
+  } catch (const std::exception&) {
+    error = "Invalid response from update service";
+    return false;
+  }
+}
+#else
+bool managerUpdateRequest(const std::string&, const std::string&, const std::string&,
+                          ardor::DeviceUpdateStatus&, std::string& error)
+{
+  error = "Updates are available on the pedal hardware";
+  return false;
+}
+#endif
 
 struct LooperSaveCompletion {
   bool saved = false;
@@ -1266,6 +1337,17 @@ int main(int argc, char** argv)
             }
             ardor::openLooperLibrary(uiState, std::move(rows));
             ardor::setUiStatus(uiState, "Saved loop deleted");
+          },
+          [&](ardor::DeviceUpdateStatus& status, std::string& error) {
+            return managerUpdateRequest("GET", "/api/system/update/status", "", status, error);
+          },
+          [&](ardor::DeviceUpdateStatus& status, std::string& error) {
+            return managerUpdateRequest("POST", "/api/system/update/check", "{}", status, error);
+          },
+          [&](const std::string& version, ardor::DeviceUpdateStatus& status,
+              std::string& error) {
+            return managerUpdateRequest("POST", "/api/system/update/install",
+              nlohmann::json{{"version", version}}.dump(), status, error);
           },
         });
         ui->build(lv_screen_active(), uiState);

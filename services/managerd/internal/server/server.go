@@ -327,14 +327,14 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 	})
 
 	mux.HandleFunc("GET /api/system/update/status", func(w http.ResponseWriter, r *http.Request) {
-		if !authorized(w, r, cfg, authStore) {
+		if !authorizedUpdateClient(w, r, cfg, authStore) {
 			return
 		}
 		writeJSON(w, http.StatusOK, update.PublicStatus(updateManager.Status()))
 	})
 
 	mux.HandleFunc("POST /api/system/update/check", func(w http.ResponseWriter, r *http.Request) {
-		if !authorized(w, r, cfg, authStore) {
+		if !authorizedUpdateClient(w, r, cfg, authStore) {
 			return
 		}
 		status, err := updateManager.Check(r.Context())
@@ -346,7 +346,7 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 	})
 
 	mux.HandleFunc("POST /api/system/update/install", func(w http.ResponseWriter, r *http.Request) {
-		if !authorized(w, r, cfg, authStore) {
+		if !authorizedUpdateClient(w, r, cfg, authStore) {
 			return
 		}
 		var body struct {
@@ -693,6 +693,17 @@ func authorized(w http.ResponseWriter, r *http.Request, cfg config.Config, authS
 	w.Header().Set("WWW-Authenticate", `Bearer realm="ardor-local-session"`)
 	writeError(w, http.StatusUnauthorized, "unauthorized", "Local sign-in is required")
 	return false
+}
+
+// The on-pedal UI talks to managerd over the loopback interface. This narrowly
+// scoped exception avoids storing a browser session token in the audio process;
+// LAN clients continue through the normal authentication and origin checks.
+func authorizedUpdateClient(w http.ResponseWriter, r *http.Request, cfg config.Config, authStore *localauth.Store) bool {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err == nil && net.ParseIP(host).IsLoopback() && r.Header.Get("X-Ardor-Device-UI") == "1" {
+		return true
+	}
+	return authorized(w, r, cfg, authStore)
 }
 
 func authenticateRequest(r *http.Request, authStore *localauth.Store) (localauth.Account, bool) {

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PID=/var/run/ardor-splash.pid
+LEGACY_PID=/var/run/ardor-splash.pid
 BIN=/usr/bin/ardor-splash
 
 case "$1" in
@@ -14,11 +14,14 @@ case "$1" in
       done
     }
     [ -e /dev/fb0 ] || exit 0
-    start-stop-daemon -S -b -m -p "$PID" -x "$BIN" -- /dev/fb0
+    "$BIN" /dev/fb0 /usr/share/ardor-pedal/ardor-splash.rgb565
     ;;
   stop)
-    start-stop-daemon -K -q -p "$PID" -x "$BIN" || true
-    rm -f "$PID"
+    # Terminate a painter left by the earlier continuously animated
+    # implementation during an in-place LAN upgrade. The current renderer is
+    # one-shot and has already exited after leaving its frame behind.
+    killall ardor-splash 2>/dev/null || true
+    rm -f "$LEGACY_PID"
     ;;
   restart)
     "$0" stop

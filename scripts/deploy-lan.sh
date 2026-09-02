@@ -26,7 +26,9 @@ Environment:
   ARDOR_VERBOSE=1        Trace local and Docker build commands.
   ARDOR_SKIP_BUILD=1     Upload existing pedal, splash, and manager binaries.
   ARDOR_SKIP_WEB_BUILD=1 Reuse the embedded manager bundle already in managerd.
-  ARDOR_PEDAL_DIRCLEAN=1 Force a clean Buildroot pedal-package rebuild.
+  ARDOR_PEDAL_DIRCLEAN    Cleanly rebuild the Buildroot pedal package so local
+                         source changes are picked up. Default: 1; set 0 only
+                         when deliberately reusing Buildroot's stamped output.
   ARDOR_SPLASH_LOCAL     Existing splash binary when ARDOR_SKIP_BUILD=1.
   ARDOR_LOCAL_AUTH       on, off, or preserve. Default: on
   ARDOR_SERVICE_LOCAL    Local pedal supervisor script. Defaults to the
@@ -86,6 +88,9 @@ splash_target="${ARDOR_SPLASH_TARGET_BIN:-/usr/bin/ardor-splash}"
 splash_service="${ARDOR_SPLASH_SERVICE:-/etc/init.d/S01ardor-splash}"
 splash_service_local="${ARDOR_SPLASH_SERVICE_LOCAL:-$repo_dir/buildroot/external/package/ardor-pedal/S01ardor-splash}"
 splash_service_remote_tmp="${ARDOR_SPLASH_SERVICE_REMOTE_TMP:-/tmp/S01ardor-splash.new}"
+splash_art_local="${ARDOR_SPLASH_ART_LOCAL:-$repo_dir/buildroot/external/package/ardor-pedal/ardor-splash-1280x720.rgb565}"
+splash_art_remote_tmp="${ARDOR_SPLASH_ART_REMOTE_TMP:-/tmp/ardor-splash.rgb565.new}"
+splash_art_target="${ARDOR_SPLASH_ART_TARGET:-/usr/share/ardor-pedal/ardor-splash.rgb565}"
 managerd_target="${ARDOR_MANAGERD_TARGET_BIN:-/usr/bin/ardor-managerd}"
 pedal_service="${ARDOR_SERVICE:-/etc/init.d/S99ardor-pedal}"
 pedal_service_local="${ARDOR_SERVICE_LOCAL:-$repo_dir/buildroot/external/package/ardor-pedal/S99ardor-pedal}"
@@ -96,12 +101,16 @@ managerd_service_remote_tmp="${ARDOR_MANAGERD_SERVICE_REMOTE_TMP:-/tmp/S98ardor-
 managerd_env="${ARDOR_MANAGERD_ENV:-/etc/ardor-managerd.env}"
 local_auth="${ARDOR_LOCAL_AUTH:-on}"
 tone3000_client_id="${TONE3000_CLIENT_ID:-}"
+# ssh assembles remote command arguments as shell text and does not preserve an
+# empty argument. Use a sentinel so the optional client ID cannot shift every
+# positional argument that follows it in the remote installer.
+tone3000_client_id_arg="${tone3000_client_id:-__ARDOR_TONE3000_CLIENT_ID_UNSET__}"
 tone3000_base_url="${TONE3000_BASE_URL:-https://www.tone3000.com}"
 ca_bundle_local="${ARDOR_CA_BUNDLE_LOCAL:-/etc/ssl/certs/ca-certificates.crt}"
 ca_bundle_remote_tmp="${ARDOR_CA_BUNDLE_REMOTE_TMP:-/tmp/ca-certificates.crt.new}"
 ca_bundle_target="${ARDOR_CA_BUNDLE_TARGET:-/etc/ssl/certs/ca-certificates.crt}"
 verbose="${ARDOR_VERBOSE:-0}"
-pedal_dirclean="${ARDOR_PEDAL_DIRCLEAN:-0}"
+pedal_dirclean="${ARDOR_PEDAL_DIRCLEAN:-1}"
 # The wah reads a circuit table at run time. It ships on the read-only root and
 # S99ardor-pedal copies it into the data partition, so a deploy has to refresh
 # the root copy — the data partition itself is only seeded when an image is built.
@@ -198,6 +207,24 @@ build_with_docker() {
         make ardor-pedal-dirclean BR2_EXTERNAL=/ardor/buildroot/external
       fi
       make ardor-pedal BR2_EXTERNAL=/ardor/buildroot/external
+      if [ ! -x output/build/ardor-pedal-1.0/pedal-poc ] || \
+         [ ! -x output/build/ardor-pedal-1.0/ardor-splash ]; then
+        [ "${ARDOR_PEDAL_DIRCLEAN:-0}" != "1" ] || {
+          echo "deploy-lan: pedal package did not produce all deployment binaries" >&2
+          exit 1
+        }
+        echo "deploy-lan: stale pedal package output; rebuilding it cleanly"
+        make ardor-pedal-dirclean BR2_EXTERNAL=/ardor/buildroot/external
+        make ardor-pedal BR2_EXTERNAL=/ardor/buildroot/external
+      fi
+      [ -x output/build/ardor-pedal-1.0/pedal-poc ] || {
+        echo "deploy-lan: pedal package did not produce pedal-poc" >&2
+        exit 1
+      }
+      [ -x output/build/ardor-pedal-1.0/ardor-splash ] || {
+        echo "deploy-lan: pedal package did not produce ardor-splash" >&2
+        exit 1
+      }
       cp output/build/ardor-pedal-1.0/pedal-poc /ardor/ardor-pedal
       cp output/build/ardor-pedal-1.0/ardor-splash /ardor/ardor-splash
     '
@@ -214,6 +241,17 @@ build_native() {
     make -C "$buildroot" ardor-pedal-dirclean BR2_EXTERNAL="$br2_external"
   fi
   make -C "$buildroot" ardor-pedal BR2_EXTERNAL="$br2_external"
+  if [ ! -x "$buildroot/output/build/ardor-pedal-1.0/pedal-poc" ] || \
+     [ ! -x "$buildroot/output/build/ardor-pedal-1.0/ardor-splash" ]; then
+    [ "$pedal_dirclean" != "1" ] || die "pedal package did not produce all deployment binaries"
+    echo "deploy-lan: stale pedal package output; rebuilding it cleanly"
+    make -C "$buildroot" ardor-pedal-dirclean BR2_EXTERNAL="$br2_external"
+    make -C "$buildroot" ardor-pedal BR2_EXTERNAL="$br2_external"
+  fi
+  [ -x "$buildroot/output/build/ardor-pedal-1.0/pedal-poc" ] || \
+    die "pedal package did not produce pedal-poc"
+  [ -x "$buildroot/output/build/ardor-pedal-1.0/ardor-splash" ] || \
+    die "pedal package did not produce ardor-splash"
   cp "$buildroot/output/build/ardor-pedal-1.0/pedal-poc" "$pedal_bin"
   cp "$buildroot/output/build/ardor-pedal-1.0/ardor-splash" "$splash_bin"
 }
@@ -241,6 +279,7 @@ fi
 [ -x "$managerd_bin" ] || die "built binary is missing or not executable: $managerd_bin"
 [ -f "$pedal_service_local" ] || die "pedal supervisor is missing: $pedal_service_local"
 [ -f "$splash_service_local" ] || die "splash supervisor is missing: $splash_service_local"
+[ -f "$splash_art_local" ] || die "splash artwork is missing: $splash_art_local"
 [ -f "$managerd_service_local" ] || die "manager daemon supervisor is missing: $managerd_service_local"
 [ -f "$wah_table_local" ] || die "wah circuit table is missing: $wah_table_local"
 [ -f "$ca_bundle_local" ] || die "CA certificate bundle is missing: $ca_bundle_local"
@@ -283,6 +322,8 @@ scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$pedal_service_local" "$ssh
 # shellcheck disable=SC2086
 scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$splash_service_local" "$ssh_target:$splash_service_remote_tmp"
 # shellcheck disable=SC2086
+scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$splash_art_local" "$ssh_target:$splash_art_remote_tmp"
+# shellcheck disable=SC2086
 scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$managerd_service_local" "$ssh_target:$managerd_service_remote_tmp"
 # shellcheck disable=SC2086
 scp -O $ssh_opts -o "ControlPath=$ssh_control_path" "$wah_table_local" "$ssh_target:$wah_table_remote_tmp"
@@ -297,8 +338,9 @@ ssh $ssh_opts -o "ControlPath=$ssh_control_path" "$ssh_target" 'sh -s' \
   "$managerd_remote_tmp" "$managerd_target" "$managerd_service" \
   "$managerd_env" "$local_auth" "$pedal_service_remote_tmp" \
   "$wah_table_remote_tmp" "$wah_table_target" "$managerd_service_remote_tmp" \
-  "$tone3000_client_id" "$tone3000_base_url" "$ca_bundle_remote_tmp" "$ca_bundle_target" \
-  "$splash_remote_tmp" "$splash_target" "$splash_service_remote_tmp" "$splash_service" <<'REMOTE'
+  "$tone3000_client_id_arg" "$tone3000_base_url" "$ca_bundle_remote_tmp" "$ca_bundle_target" \
+  "$splash_remote_tmp" "$splash_target" "$splash_service_remote_tmp" "$splash_service" \
+  "$splash_art_remote_tmp" "$splash_art_target" <<'REMOTE'
 set -eu
 
 pedal_remote_tmp=$1
@@ -315,6 +357,7 @@ wah_table_remote_tmp=$1
 wah_table_target=$2
 managerd_service_remote_tmp=$3
 tone3000_client_id=$4
+[ "$tone3000_client_id" != "__ARDOR_TONE3000_CLIENT_ID_UNSET__" ] || tone3000_client_id=
 tone3000_base_url=$5
 ca_bundle_remote_tmp=$6
 ca_bundle_target=$7
@@ -323,6 +366,8 @@ splash_remote_tmp=$1
 splash_target=$2
 splash_service_remote_tmp=$3
 splash_service=$4
+splash_art_remote_tmp=$5
+splash_art_target=$6
 remounted=0
 
 cleanup() {
@@ -344,14 +389,18 @@ fi
 cp "$pedal_remote_tmp" "$pedal_target.new"
 cp "$splash_remote_tmp" "$splash_target.new"
 cp "$splash_service_remote_tmp" "$splash_service.new"
+mkdir -p "$(dirname "$splash_art_target")"
+cp "$splash_art_remote_tmp" "$splash_art_target.new"
 cp "$managerd_remote_tmp" "$managerd_target.new"
 cp "$pedal_service_remote_tmp" "$pedal_service.new"
 cp "$managerd_service_remote_tmp" "$managerd_service.new"
 chmod 755 "$pedal_target.new" "$splash_target.new" "$managerd_target.new" \
   "$pedal_service.new" "$splash_service.new" "$managerd_service.new"
+chmod 644 "$splash_art_target.new"
 mv "$pedal_target.new" "$pedal_target"
 mv "$splash_target.new" "$splash_target"
 mv "$splash_service.new" "$splash_service"
+mv "$splash_art_target.new" "$splash_art_target"
 mv "$managerd_target.new" "$managerd_target"
 mv "$pedal_service.new" "$pedal_service"
 mv "$managerd_service.new" "$managerd_service"
@@ -393,7 +442,7 @@ fi
 "$pedal_service" restart
 rm -f "$pedal_remote_tmp" "$managerd_remote_tmp" "$pedal_service_remote_tmp" \
   "$managerd_service_remote_tmp" "$wah_table_remote_tmp" "$splash_remote_tmp" \
-  "$splash_service_remote_tmp"
+  "$splash_service_remote_tmp" "$splash_art_remote_tmp"
 rm -f "$ca_bundle_remote_tmp"
 REMOTE
 

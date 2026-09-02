@@ -119,6 +119,27 @@ func TestAuthCanBeDisabledForTesting(t *testing.T) {
 	}
 }
 
+func TestDeviceUIUpdateAuthorizationIsLoopbackOnly(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		remoteAddr string
+		want       bool
+	}{
+		{name: "pedal process", remoteAddr: "127.0.0.1:42000", want: true},
+		{name: "LAN client", remoteAddr: "192.0.2.25:42000", want: false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodGet, "/api/system/update/status", nil)
+			request.RemoteAddr = test.remoteAddr
+			request.Header.Set("X-Ardor-Device-UI", "1")
+			response := httptest.NewRecorder()
+			if got := authorizedUpdateClient(response, request, config.Config{AuthEnabled: true}, nil); got != test.want {
+				t.Fatalf("authorizedUpdateClient()=%v want %v", got, test.want)
+			}
+		})
+	}
+}
+
 func TestAuthFailureLimiterExpiresAndClears(t *testing.T) {
 	limiter := newAuthFailureLimiter(2, time.Minute)
 	now := time.Unix(100, 0)
