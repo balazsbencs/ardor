@@ -11,10 +11,11 @@ import {
   Settings,
   ShieldAlert,
   Trash2,
+	Upload,
   Wifi,
   X,
 } from "lucide-react";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { UpdateStatus, WiFiSettings } from "../api/types";
 import { Button, IconButton, StatusBadge, cx } from "../components/ui";
@@ -23,7 +24,7 @@ import { localAuthAPI } from "../localAuth/api";
 import { isDeviceHostedRuntime } from "../runtime/platform";
 import { paletteById, palettes, paletteVariables, type PaletteId } from "../theme/accent";
 
-type SettingsSection = "appearance" | "wifi" | "updates" | "security";
+type SettingsSection = "appearance" | "wifi" | "data" | "updates" | "security";
 
 function wifiTone(status?: string): "neutral" | "success" | "warning" {
   if (status === "connected") return "success";
@@ -70,6 +71,10 @@ export function SettingsDialog({
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>();
   const [updateBusy, setUpdateBusy] = useState(false);
   const [updateError, setUpdateError] = useState<string>();
+	const [backupBusy, setBackupBusy] = useState<"export" | "restore">();
+	const [backupNotice, setBackupNotice] = useState<string>();
+	const [backupError, setBackupError] = useState<string>();
+	const backupInput = useRef<HTMLInputElement>(null);
   const localDevice = isDeviceHostedRuntime();
 
   const wifiAvailable = session.status === "connected"
@@ -79,6 +84,36 @@ export function SettingsDialog({
     && Boolean(session.client)
     && session.device?.capabilities.softwareUpdate === true;
   const portalStyle = paletteVariables(palette);
+	const backupAvailable = session.status === "connected" && Boolean(session.client) && session.device?.capabilities.backup === true;
+
+	const exportBackup = async () => {
+		if (!session.client || backupBusy) return;
+		setBackupBusy("export"); setBackupError(undefined); setBackupNotice(undefined);
+		try {
+			const blob = await session.client.downloadBackup();
+			const href = URL.createObjectURL(blob);
+			const link = document.createElement("a");
+			link.href = href;
+			link.download = `ardor-backup-${new Date().toISOString().slice(0, 10)}.zip`;
+			link.click();
+			URL.revokeObjectURL(href);
+			setBackupNotice("Backup created. Keep the ZIP file somewhere safe.");
+		} catch (reason) { setBackupError(reason instanceof Error ? reason.message : "Could not create the backup."); }
+		finally { setBackupBusy(undefined); }
+	};
+
+	const restoreBackup = async (file?: File) => {
+		if (!file || !session.client || backupBusy) return;
+		if (!file.name.toLowerCase().endsWith(".zip")) { setBackupError("Choose an Ardor backup ZIP file."); return; }
+		if (!window.confirm("Restore this backup? It will replace every preset, model, cabinet IR, and reverb IR currently on the pedal. Local access and Wi-Fi settings stay unchanged.")) { if (backupInput.current) backupInput.current.value = ""; return; }
+		setBackupBusy("restore"); setBackupError(undefined); setBackupNotice(undefined);
+		try {
+			const result = await session.client.restoreBackup(file);
+			await Promise.all([session.refreshAssets(), session.refreshPresets()]);
+			setBackupNotice(`Restore complete: ${result.presetCount} presets and ${result.assetCount} assets installed.`);
+		} catch (reason) { setBackupError(reason instanceof Error ? reason.message : "Could not restore the backup. Your current data was not changed."); }
+		finally { setBackupBusy(undefined); if (backupInput.current) backupInput.current.value = ""; }
+	};
 
   useEffect(() => {
     if (!open || section !== "wifi" || !wifiAvailable || !session.client) return;
@@ -243,6 +278,9 @@ export function SettingsDialog({
               <button className={cx(section === "wifi" && "is-active")} onClick={() => setSection("wifi")}>
                 <Wifi size={17} /><span>Wi-Fi</span>
               </button>
+			  {localDevice && <button className={cx(section === "data" && "is-active")} onClick={() => setSection("data")}>
+				<Download size={17} /><span>Backup</span>
+			  </button>}
               {session.device && <button className={cx(section === "updates" && "is-active")} onClick={() => setSection("updates")}>
                 <Download size={17} /><span>Updates</span>
               </button>}
@@ -361,7 +399,20 @@ export function SettingsDialog({
                   </form>
                 )}
               </section>
-            ) : section === "updates" ? (
+            ) : section === "data" ? (
+			  <section className="settings-panel" aria-labelledby="backup-heading">
+				<div className="settings-panel__heading">
+				  <h2 id="backup-heading">Backup & restore</h2>
+				  <p>Keep all presets, amp models, cabinet IRs, and reverb IRs together in one portable ZIP file. Wi-Fi and local access credentials are never included.</p>
+				</div>
+				{!backupAvailable ? <div className="settings-empty"><Download size={24} /><strong>Connect to a compatible pedal first</strong><p>Backup files are created by the pedal and downloaded to this browser.</p></div> : <div className="backup-actions">
+				  <article><div><Download size={18} /><span><strong>Export everything</strong><small>Downloads a dated ZIP without changing the pedal.</small></span></div><Button variant="primary" disabled={Boolean(backupBusy)} onClick={() => void exportBackup()}>{backupBusy === "export" ? "Creating…" : "Download backup"}</Button></article>
+				  <article><div><Upload size={18} /><span><strong>Restore from a backup</strong><small>Validates the whole file, then replaces the current presets and assets.</small></span></div><Button variant="quiet" disabled={Boolean(backupBusy)} onClick={() => backupInput.current?.click()}>{backupBusy === "restore" ? "Restoring…" : "Choose backup…"}</Button><input ref={backupInput} className="visually-hidden" type="file" accept=".zip,application/zip" onChange={(event) => void restoreBackup(event.target.files?.[0])} /></article>
+				  {backupError && <div className="settings-message settings-message--error" role="alert">{backupError}</div>}
+				  {backupNotice && <div className="settings-message settings-message--success" role="status">{backupNotice}</div>}
+				</div>}
+			  </section>
+			) : section === "updates" ? (
               <section className="settings-panel" aria-labelledby="updates-heading">
                 <div className="settings-panel__heading settings-panel__heading--with-status">
                   <div>

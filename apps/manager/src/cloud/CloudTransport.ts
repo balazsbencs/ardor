@@ -4,6 +4,7 @@ import type {
   ApplyPresetResponse, Asset, AssetKind, DeviceStatus, Preset, PresetSlot,
   PresetSlotSummary, RenameAssetResponse, WiFiSettings, WiFiSettingsUpdate,
   UpdateStatus,
+	BackupRestoreResult,
 } from "../api/types";
 
 type FetchImpl = typeof fetch;
@@ -31,6 +32,8 @@ export class CloudTransport implements ManagerTransport {
   getUpdateStatus(): Promise<UpdateStatus> { return this.unsupported("Device updates"); }
   checkForUpdate(): Promise<UpdateStatus> { return this.unsupported("Device updates"); }
   installUpdate(_version: string): Promise<UpdateStatus> { return this.unsupported("Device updates"); }
+	downloadBackup(): Promise<Blob> { return this.unsupported("Backups"); }
+	restoreBackup(_file: File): Promise<BackupRestoreResult> { return this.unsupported("Backups"); }
   async listAssets(kind: AssetKind): Promise<Asset[]> {
     const response = await this.request<{ assets: Asset[] }>(this.assetPath(kind));
     return response.assets;

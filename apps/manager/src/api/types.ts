@@ -28,8 +28,11 @@ export type DeviceStatus = {
     wifiSettings?: boolean;
     softwareUpdate?: boolean;
     tone3000?: boolean;
+	backup?: boolean;
   };
 };
+
+export type BackupRestoreResult = { assetCount: number; presetCount: number };
 
 export type UpdateSelection = {
   version: string;
