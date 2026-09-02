@@ -427,6 +427,21 @@ int main()
   uiActions.loadLooper = [&]() { ++loadLooperCalls; };
   uiActions.loadLooperSet = [&](const std::string& id) { loadedLoopId = id; };
   uiActions.deleteLooperSet = [&](const std::string& id) { deletedLoopId = id; };
+  uiActions.readUpdateStatus = [](ardor::DeviceUpdateStatus& status, std::string&) {
+    status.enabled = true;
+    status.installedVersion = "1.2.3";
+    status.baseVersion = "1.0.0";
+    return true;
+  };
+  uiActions.checkForUpdate = [](ardor::DeviceUpdateStatus& status, std::string&) {
+    status.state = "available";
+    status.availableVersion = "1.3.0";
+    return true;
+  };
+  uiActions.installUpdate = [](const std::string&, ardor::DeviceUpdateStatus& status, std::string&) {
+    status.state = "staged";
+    return true;
+  };
   ardor::LvglUi ui(std::move(uiActions));
   const int masterVolume = state.masterVolume;
   ui.focusParameter("levelDb");
@@ -1689,6 +1704,28 @@ int main()
   if (require(stepperIsAligned(midiChannelTitle)
                 && stepperIsAligned(findLabel(lv_screen_active(), "Tuner on/off CC")),
               "MIDI and tuner steppers should share symmetric padding and centered controls")) return 1;
+  lv_obj_t* updatesSectionLabel = findLabel(lv_screen_active(), "Updates");
+  if (require(updatesSectionLabel, "settings should expose an Updates section")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(updatesSectionLabel), LV_EVENT_PRESSED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "Installed version")
+                && findLabel(lv_screen_active(), "1.2.3")
+                && findLabel(lv_screen_active(), "Check for updates"),
+              "Updates should show the installed version and a manual check action")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "Check for updates")),
+                    LV_EVENT_PRESSED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "Ardor 1.3.0")
+                && findLabel(lv_screen_active(), "Install & restart"),
+              "a compatible release should expose an install action")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "Install & restart")),
+                    LV_EVENT_PRESSED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "Confirm install"),
+              "installing should require a second explicit confirmation")) return 1;
   ui.closeSettings(state);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());

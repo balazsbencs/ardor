@@ -26,7 +26,7 @@ const ardor::DaisyFxParamDescriptor& param(const ardor::DaisyFxDescriptor& effec
 
 int main()
 {
-  require(ardor::daisyFxCatalog().size() == 37, "all Daisy modes are cataloged");
+  require(ardor::daisyFxCatalog().size() == 38, "all Daisy modes are cataloged");
   for (const auto& effect : ardor::daisyFxCatalog()) {
     require(!effect.blockType.empty() && !effect.mode.empty(), "effect has identifier");
     require(!effect.name.empty() && !effect.params.empty(), "effect has editable schema");
@@ -86,6 +86,21 @@ int main()
   const auto* filter = ardor::findDaisyFxDescriptor("mod", "filter");
   require(filter->params[4].label == "Resonance", "filter P1 names resonance");
   require(filter->params[5].label == "Shape / Source", "filter P2 names shape/source");
+
+  const auto* ladder = ardor::findDaisyFxDescriptor("mod", "ladder_sweep");
+  require(ladder != nullptr, "find ladder sweep");
+  require(ladder->params[0].label == "Tempo", "ladder sweep speed names tempo");
+  require(ladder->params[1].label == "Sweep", "ladder sweep depth names sweep");
+  require(ladder->params[3].label == "Cutoff", "ladder sweep tone names cutoff");
+  require(ladder->params[4].label == "Resonance", "ladder sweep P1 names resonance");
+  require(ladder->params[5].label == "Waveform", "ladder sweep P2 names waveform");
+  require(ladder->params[6].label == "Drive", "ladder sweep level names drive");
+  require(ardor::formatDaisyFxParamValue(*ladder, param(*ladder, "speed"), 0.4f) == "120 BPM",
+          "ladder sweep tempo is displayed in BPM");
+  require(ardor::formatDaisyFxParamValue(*ladder, param(*ladder, "p2"), 0.0f) == "Triangle",
+          "ladder sweep exposes the CP-style triangle waveform");
+  require(ardor::formatDaisyFxParamValue(*ladder, param(*ladder, "p2"), 1.0f) == "Square",
+          "ladder sweep exposes the CP-style square waveform");
 
   const auto* formant = ardor::findDaisyFxDescriptor("mod", "formant");
   require(formant->params[4].label == "Resonance", "formant P1 names resonance");

@@ -94,20 +94,41 @@ void onExpressionEndpointCaptured(lv_event_t* event)
   context->ui->captureExpressionEndpoint(*context->state, context->index == 0);
 }
 
+void onUpdateCheckClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->checkForUpdate(*context->state);
+}
+
+void onUpdateInstallClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->installUpdate(*context->state);
+}
+
 } // namespace
 
 void LvglUi::openSettings(UiState& state)
 {
   settingsOpen_ = true;
   settingsSection_ = 0;
+  updateInstallArmed_ = false;
   audioBlockSizeDraft_ = state.settings.audioBlockSize;
   settingsMessage_.clear();
+  if (actions_.readUpdateStatus) {
+    std::string error;
+    if (!actions_.readUpdateStatus(updateStatus_, error) && !error.empty()) {
+      settingsMessage_ = error;
+      settingsMessageIsError_ = true;
+    }
+  }
   viewsInitialized_ = false;
 }
 
 void LvglUi::closeSettings(UiState&)
 {
   settingsOpen_ = false;
+  updateInstallArmed_ = false;
   settingsMessage_.clear();
   wifiPasswordVisible_ = false;
   viewsInitialized_ = false;
@@ -115,9 +136,48 @@ void LvglUi::closeSettings(UiState&)
 
 void LvglUi::showSettingsSection(UiState&, std::size_t section)
 {
-  settingsSection_ = std::min<std::size_t>(section, 3);
+  settingsSection_ = std::min<std::size_t>(section, 4);
+  updateInstallArmed_ = false;
   settingsMessage_.clear();
   wifiPasswordVisible_ = false;
+  viewsInitialized_ = false;
+}
+
+void LvglUi::checkForUpdate(UiState&)
+{
+  updateInstallArmed_ = false;
+  std::string error;
+  if (!actions_.checkForUpdate || !actions_.checkForUpdate(updateStatus_, error)) {
+    settingsMessage_ = error.empty() ? "Could not check for updates" : error;
+    settingsMessageIsError_ = true;
+  } else {
+    settingsMessage_ = updateStatus_.availableVersion.empty()
+      ? "This pedal is up to date" : "A new Ardor release is available";
+    settingsMessageIsError_ = false;
+  }
+  viewsInitialized_ = false;
+}
+
+void LvglUi::installUpdate(UiState&)
+{
+  if (updateStatus_.availableVersion.empty() || updateStatus_.reflashRequired) return;
+  if (!updateInstallArmed_) {
+    updateInstallArmed_ = true;
+    settingsMessage_ = "Audio will mute and the pedal will restart. Tap confirm to continue.";
+    settingsMessageIsError_ = false;
+    viewsInitialized_ = false;
+    return;
+  }
+  updateInstallArmed_ = false;
+  std::string error;
+  if (!actions_.installUpdate
+      || !actions_.installUpdate(updateStatus_.availableVersion, updateStatus_, error)) {
+    settingsMessage_ = error.empty() ? "Could not start the update" : error;
+    settingsMessageIsError_ = true;
+  } else {
+    settingsMessage_ = "Update started - keep the pedal powered";
+    settingsMessageIsError_ = false;
+  }
   viewsInitialized_ = false;
 }
 
@@ -323,7 +383,7 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
   lv_obj_set_style_pad_all(sidebar, 14, 0);
   lv_obj_remove_flag(sidebar, LV_OBJ_FLAG_SCROLLABLE);
 
-  const std::array<std::string, 4> sections = {"Appearance", "Wi-Fi", "Audio", "Control I/O"};
+  const std::array<std::string, 5> sections = {"Appearance", "Wi-Fi", "Audio", "Control I/O", "Updates"};
   for (std::size_t i = 0; i < sections.size(); ++i) {
     lv_obj_t* section = button(sidebar, sections[i]);
     lv_obj_set_size(section, 190, 68);
@@ -520,7 +580,7 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
       lv_obj_add_state(apply, LV_STATE_DISABLED);
     }
     lv_obj_add_event_cb(apply, onAudioBlockSizeApplied, LV_EVENT_PRESSED, remember(state));
-  } else {
+  } else if (settingsSection_ == 3) {
     label(content, "Control I/O", LV_ALIGN_TOP_LEFT, 28, 22,
           &ardor_font_saira_cond_semibold_28);
     label(content, "MIDI over 3.5 mm TRS Type A and expression-pedal calibration.",
@@ -594,6 +654,77 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
     endpoint("toe", state.settings.expressionMaximumRaw, false, 456);
     label(expression, "Calibration is stored globally; parameter assignment is stored per preset.",
           LV_ALIGN_BOTTOM_LEFT, 20, -18, &ardor_font_saira_cond_medium_18, muted);
+  } else {
+    label(content, "Device software", LV_ALIGN_TOP_LEFT, 28, 22,
+          &ardor_font_saira_cond_semibold_28);
+    label(content, "Check for and install signed Ardor application releases.",
+          LV_ALIGN_TOP_LEFT, 28, 60, &ardor_font_saira_cond_medium_18, muted);
+
+    const auto versionCard = [&](const char* title, const std::string& value, int x) {
+      lv_obj_t* card = lv_obj_create(content);
+      lv_obj_set_size(card, 446, 104);
+      lv_obj_set_pos(card, x, 112);
+      styleSurface(card, panelAlt);
+      lv_obj_set_style_pad_all(card, 0, 0);
+      lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+      label(card, title, LV_ALIGN_TOP_LEFT, 18, 14,
+            &ardor_font_saira_cond_medium_18, muted);
+      label(card, value.empty() ? "Unknown" : value, LV_ALIGN_BOTTOM_LEFT, 18, -14,
+            &ardor_font_saira_cond_semibold_22);
+    };
+    versionCard("Installed version", updateStatus_.installedVersion, 28);
+    versionCard("Base image", updateStatus_.baseVersion, 490);
+
+    lv_obj_t* release = lv_obj_create(content);
+    lv_obj_set_size(release, 908, 150);
+    lv_obj_set_pos(release, 28, 238);
+    styleSurface(release, panelAlt);
+    lv_obj_set_style_pad_all(release, 0, 0);
+    lv_obj_remove_flag(release, LV_OBJ_FLAG_SCROLLABLE);
+    const bool updateInProgress = updateStatus_.state == "downloading"
+      || updateStatus_.state == "verifying" || updateStatus_.state == "staged"
+      || updateStatus_.state == "restarting" || updateStatus_.state == "validating";
+    if (!updateStatus_.enabled) {
+      label(release, "Updates require a bootstrap image", LV_ALIGN_TOP_LEFT, 20, 18,
+            &ardor_font_saira_cond_semibold_22);
+      label(release, "Flash an OTA-capable Ardor image before installing releases here.",
+            LV_ALIGN_TOP_LEFT, 20, 58, &ardor_font_saira_cond_medium_18, muted);
+    } else if (updateInProgress) {
+      label(release, "Update in progress", LV_ALIGN_TOP_LEFT, 20, 18,
+            &ardor_font_saira_cond_semibold_22);
+      label(release, "Keep the pedal powered. Audio and Manager may disconnect during restart.",
+            LV_ALIGN_TOP_LEFT, 20, 58, &ardor_font_saira_cond_medium_18, muted);
+    } else if (!updateStatus_.availableVersion.empty()) {
+      label(release, "Ardor " + updateStatus_.availableVersion, LV_ALIGN_TOP_LEFT, 20, 18,
+            &ardor_font_saira_cond_semibold_22);
+      const std::string detail = updateStatus_.reflashRequired
+        ? (updateStatus_.incompatibility.empty() ? "This release requires reflashing the SD card."
+                                                : updateStatus_.incompatibility)
+        : "Compatible signed application update. Presets, assets and settings are preserved.";
+      label(release, detail, LV_ALIGN_TOP_LEFT, 20, 58,
+            &ardor_font_saira_cond_medium_18, updateStatus_.reflashRequired ? danger : muted);
+    } else {
+      label(release, "No update check yet", LV_ALIGN_TOP_LEFT, 20, 18,
+            &ardor_font_saira_cond_semibold_22);
+      label(release, "Updates are manual. Nothing downloads or installs until you choose it.",
+            LV_ALIGN_TOP_LEFT, 20, 58, &ardor_font_saira_cond_medium_18, muted);
+    }
+
+    lv_obj_t* check = button(content, "Check for updates");
+    lv_obj_set_size(check, 220, 62);
+    lv_obj_set_pos(check, 28, 424);
+    lv_obj_add_event_cb(check, onUpdateCheckClicked, LV_EVENT_PRESSED, remember(state));
+    if (!updateStatus_.enabled || !actions_.checkForUpdate) lv_obj_add_state(check, LV_STATE_DISABLED);
+
+    if (!updateStatus_.availableVersion.empty() && !updateStatus_.reflashRequired
+        && updateStatus_.state == "available") {
+      lv_obj_t* install = button(content, updateInstallArmed_ ? "Confirm install" : "Install & restart");
+      lv_obj_set_size(install, 220, 62);
+      lv_obj_set_pos(install, 716, 424);
+      styleSurface(install, text);
+      lv_obj_set_style_text_color(lv_obj_get_child(install, 0), lv_color_hex(bg), 0);
+      lv_obj_add_event_cb(install, onUpdateInstallClicked, LV_EVENT_PRESSED, remember(state));
+    }
   }
 
   if (!settingsMessage_.empty()) {

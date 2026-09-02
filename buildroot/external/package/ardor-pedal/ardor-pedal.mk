@@ -18,6 +18,8 @@ endef
 define ARDOR_PEDAL_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 0755 $(@D)/pedal-poc $(TARGET_DIR)/usr/bin/ardor-pedal
 	$(INSTALL) -D -m 0755 $(@D)/ardor-splash $(TARGET_DIR)/usr/bin/ardor-splash
+	$(INSTALL) -D -m 0644 $(BR2_EXTERNAL_ARDOR_PEDAL_PATH)/package/ardor-pedal/ardor-splash-1280x720.rgb565 \
+		$(TARGET_DIR)/usr/share/ardor-pedal/ardor-splash.rgb565
 	$(INSTALL) -D -m 0644 $(BR2_EXTERNAL_ARDOR_PEDAL_PATH)/board/ardor-pedal/codec-zero.state \
 		$(TARGET_DIR)/etc/ardor-codec-zero.state
 	$(INSTALL) -d -m 0755 $(TARGET_DIR)/opt/ardor-pedal

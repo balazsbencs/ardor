@@ -42,6 +42,18 @@ struct UiEventContext {
   UiContextRegion region = UiContextRegion::None;
 };
 
+struct DeviceUpdateStatus {
+  std::string state = "idle";
+  bool enabled = false;
+  std::string installedVersion;
+  std::string baseVersion;
+  std::string availableVersion;
+  std::string incompatibility;
+  std::uint64_t bundleSize = 0;
+  bool reflashRequired = false;
+  std::string errorMessage;
+};
+
 struct UiActions {
   std::function<void(std::size_t)> selectPreset;
   std::function<void()> savePreset;
@@ -80,6 +92,9 @@ struct UiActions {
   std::function<void()> loadLooper;
   std::function<void(const std::string&)> loadLooperSet;
   std::function<void(const std::string&)> deleteLooperSet;
+  std::function<bool(DeviceUpdateStatus&, std::string&)> readUpdateStatus;
+  std::function<bool(DeviceUpdateStatus&, std::string&)> checkForUpdate;
+  std::function<bool(const std::string&, DeviceUpdateStatus&, std::string&)> installUpdate;
 };
 
 struct UiLaneDropTarget {
@@ -194,6 +209,8 @@ public:
   void adjustMidiChannel(UiState& state, int delta);
   void adjustMidiTunerCc(UiState& state, int delta);
   void captureExpressionEndpoint(UiState& state, bool heel);
+  void checkForUpdate(UiState& state);
+  void installUpdate(UiState& state);
   void openPresetNameEditor(UiState& state);
   void savePresetName(UiState& state);
   void cancelPresetNameEditor();
@@ -275,6 +292,8 @@ private:
   bool wifiPasswordVisible_ = false;
   std::string settingsMessage_;
   bool settingsMessageIsError_ = false;
+  DeviceUpdateStatus updateStatus_;
+  bool updateInstallArmed_ = false;
   lv_obj_t* masterVolumeLabel_ = nullptr;
   lv_obj_t* masterVolumeScaleFill_ = nullptr;
   lv_obj_t* bankDownButton_ = nullptr;

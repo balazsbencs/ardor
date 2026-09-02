@@ -562,6 +562,62 @@
       ]
     },
     {
+      "id": "mod:ladder_sweep",
+      "blockType": "mod",
+      "mode": "ladder_sweep",
+      "params": [
+        {
+          "key": "speed",
+          "label": "Tempo",
+          "defaultValue": 0.400000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "40 BPM"}, {"value": 0.230000, "text": "86 BPM"}, {"value": 0.470000, "text": "134 BPM"}, {"value": 0.710000, "text": "182 BPM"}, {"value": 1.000000, "text": "240 BPM"}]
+        },
+        {
+          "key": "depth",
+          "label": "Sweep",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0.0 oct"}, {"value": 0.230000, "text": "1.1 oct"}, {"value": 0.470000, "text": "2.3 oct"}, {"value": 0.710000, "text": "3.5 oct"}, {"value": 1.000000, "text": "5.0 oct"}]
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "tone",
+          "label": "Cutoff",
+          "defaultValue": 0.375000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "20.0 Hz"}, {"value": 0.230000, "text": "87.1 Hz"}, {"value": 0.470000, "text": "404 Hz"}, {"value": 0.710000, "text": "1.9 kHz"}, {"value": 1.000000, "text": "12 kHz"}]
+        },
+        {
+          "key": "p1",
+          "label": "Resonance",
+          "defaultValue": 0.250000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "Self oscillating"}]
+        },
+        {
+          "key": "p2",
+          "label": "Waveform",
+          "defaultValue": 0.000000,
+          "choiceCount": 2,
+          "samples": [{"value": 0.000000, "text": "Triangle"}, {"value": 1.000000, "text": "Square"}]
+        },
+        {
+          "key": "level",
+          "label": "Drive",
+          "defaultValue": 0.250000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "-6.0 dB"}, {"value": 0.230000, "text": "-0.5 dB"}, {"value": 0.470000, "text": "+5.3 dB"}, {"value": 0.710000, "text": "+11.0 dB"}, {"value": 1.000000, "text": "+18.0 dB"}]
+        }
+      ]
+    },
+    {
       "id": "mod:formant",
       "blockType": "mod",
       "mode": "formant",
@@ -1103,7 +1159,7 @@
           "label": "Crush",
           "defaultValue": 0.000000,
           "choiceCount": 0,
-          "samples": [{"value": 0.000000, "text": "16 bit / 1.0x"}, {"value": 0.230000, "text": "14 bit / 4.5x"}, {"value": 0.470000, "text": "11 bit / 8.1x"}, {"value": 0.710000, "text": "8 bit / 11.6x"}, {"value": 1.000000, "text": "4 bit / 16.0x"}]
+          "samples": [{"value": 0.000000, "text": "16 bit / 1.0x"}, {"value": 0.230000, "text": "14 bit / 4.4x"}, {"value": 0.470000, "text": "11 bit / 8.1x"}, {"value": 0.710000, "text": "8 bit / 11.6x"}, {"value": 1.000000, "text": "4 bit / 16.0x"}]
         },
         {
           "key": "mod_spd",

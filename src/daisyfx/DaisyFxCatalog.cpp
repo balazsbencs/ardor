@@ -71,6 +71,21 @@ DaisyFxDescriptor mod(std::string mode, std::string name, std::string p1 = "P1",
   return {DaisyFxKind::Mod, "mod", std::move(mode), std::move(name), std::move(params)};
 }
 
+DaisyFxDescriptor ladderSweep()
+{
+  auto descriptor = mod("ladder_sweep", "Ladder Sweep", "Resonance", "Waveform", 1.0f,
+                        "Tempo", "Sweep");
+  descriptor.params[0].defaultValue = 0.40f; // 120 BPM
+  descriptor.params[1].defaultValue = 0.50f; // 2.5-octave sweep
+  descriptor.params[3].label = "Cutoff";
+  descriptor.params[3].defaultValue = 0.375f; // about 220 Hz
+  descriptor.params[4].defaultValue = 0.25f;
+  descriptor.params[5].defaultValue = 0.0f; // triangle
+  descriptor.params[6].label = "Drive";
+  descriptor.params[6].defaultValue = 0.25f; // 0 dB
+  return descriptor;
+}
+
 DaisyFxDescriptor delay(std::string mode, std::string name, std::string grit = "Grit",
                         std::string modSpeed = "Mod Rate", std::string modDepth = "Mod Depth",
                         std::string filter = "Filter")
@@ -145,6 +160,13 @@ std::string decibels(float linear, std::string_view suffix = " dB")
   return number(20.0f * std::log10(linear), 1, suffix);
 }
 
+std::string signedDecibels(float value)
+{
+  char buffer[24]{};
+  std::snprintf(buffer, sizeof(buffer), "%+.1f dB", value);
+  return buffer;
+}
+
 std::string qValue(float q)
 {
   return std::string{"Q "} + number(q, q < 10.0f ? 1 : 0);
@@ -195,6 +217,7 @@ pedal::ModModeId modMode(std::string_view mode)
   if (mode == "pattern_trem") return pedal::ModModeId::PatternTrem;
   if (mode == "auto_swell") return pedal::ModModeId::AutoSwell;
   if (mode == "filter") return pedal::ModModeId::FilterFx;
+  if (mode == "ladder_sweep") return pedal::ModModeId::LadderSweep;
   if (mode == "formant") return pedal::ModModeId::FormantFx;
   if (mode == "quadrature") return pedal::ModModeId::Quadrature;
   if (mode == "whammy") return pedal::ModModeId::Whammy;
@@ -279,6 +302,7 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
   if (key == "speed") {
     const float physical = mappedMod(normalized, mode, Id::Speed);
     if (mode == "pattern_trem") return number(physical * 60.0f, 0, " BPM");
+    if (mode == "ladder_sweep") return number(physical * 60.0f, 0, " BPM");
     if (mode == "auto_swell") return milliseconds(physical * 1000.0f);
     if (mode == "destroyer") return number(physical, physical < 10.0f ? 1 : 0, "x");
     if (mode == "poly_octave" || mode == "harmonizer") return percent((physical - 0.05f) / 9.95f);
@@ -288,6 +312,7 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     return frequency(physical);
   }
   if (key == "depth") {
+    if (mode == "ladder_sweep") return number(normalized * 5.0f, 1, " oct");
     if (mode == "destroyer") return number(16.0f - static_cast<int>(normalized * 15.0f), 0, " bit");
     if (mode == "auto_swell") return number(20.0f * std::log10(1.0f + normalized), 1, " dB");
     if (mode == "quadrature") return std::string{"+/-"} + frequency(normalized * 80.0f);
@@ -298,6 +323,7 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
   if (key == "mix") return percent(normalized);
   if (key == "tone") {
     if (mode == "filter") return frequency(80.0f + normalized * 11920.0f);
+    if (mode == "ladder_sweep") return frequency(20.0f * std::pow(600.0f, normalized));
     if (mode == "destroyer") return frequency(80.0f + normalized * (48000.0f * 0.45f - 80.0f));
     if (mode == "rotary") return frequency(500.0f + normalized * 1500.0f);
     if (mode == "phaser") return frequency(300.0f * std::pow(10000.0f / 300.0f, normalized));
@@ -308,6 +334,7 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "flanger" || mode == "phaser") return percent(normalized * 0.95f);
     if (mode == "vibe") return percent(normalized * 0.70f);
     if (mode == "filter") return qValue(0.5f + normalized * 19.5f);
+    if (mode == "ladder_sweep") return normalized >= 0.995f ? "Self oscillating" : percent(normalized);
     if (mode == "formant") return qValue(2.0f + normalized * 8.0f);
     if (mode == "destroyer") return qValue(0.5f + normalized * 8.0f);
     if (mode == "pattern_trem") return "Pattern " + std::to_string(std::min(16, static_cast<int>(normalized * 16.0f) + 1));
@@ -329,6 +356,7 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "vintage_trem") return choice(normalized, std::array<std::string_view, 3>{"Tube", "Harmonic", "Photoresistor"});
     if (mode == "pattern_trem") return choice(normalized, std::array<std::string_view, 3>{"16th", "8th", "Triplet"});
     if (mode == "filter") return choice(normalized, std::array<std::string_view, 8>{"Sine", "Triangle", "Square", "Ramp up", "Ramp down", "Sample & hold", "Envelope+", "Envelope-"});
+    if (mode == "ladder_sweep") return normalized < 0.5f ? "Triangle" : "Square";
     if (mode == "formant") return choice(normalized, std::array<std::string_view, 7>{"Ah", "Oh", "Oo", "Ee", "Ay", "Ah-Oh", "Oo-Oh"});
     if (mode == "quadrature") return choice(normalized, std::array<std::string_view, 4>{"AM", "Warble", "Shift +", "Shift -"});
     if (mode == "whammy") return choice(normalized, kWhammyPresets);
@@ -336,7 +364,10 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "auto_swell") return percent(normalized * 0.30f);
     return percent(normalized);
   }
-  if (key == "level") return decibels(mappedMod(normalized, mode, Id::Level));
+  if (key == "level") {
+    if (mode == "ladder_sweep") return signedDecibels(-6.0f + normalized * 24.0f);
+    return decibels(mappedMod(normalized, mode, Id::Level));
+  }
   return percent(normalized);
 }
 
@@ -457,6 +488,7 @@ const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
     mod("pattern_trem", "Pattern Trem", "Pattern", "Division", 1.0f, "Tempo"),
     mod("auto_swell", "Auto Swell", "Release", "Doubling", 1.0f, "Attack", "Boost"),
     mod("filter", "Filter", "Resonance", "Shape / Source"),
+    ladderSweep(),
     mod("formant", "Formant", "Resonance", "Vowel"),
     mod("quadrature", "Quadrature", "Blend / Spread", "Mode", 1.0f, "Frequency", "FM Depth"),
     mod("destroyer", "Destroyer", "Filter Resonance", "Noise", 1.0f, "Decimation", "Bits"),
@@ -542,6 +574,7 @@ DaisyFxParamControlSpec daisyFxParamControlSpec(const DaisyFxDescriptor& effect,
       else if (mode == "phaser" || mode == "formant") choiceCount = 7;
       else if (mode == "vintage_trem" || mode == "pattern_trem") choiceCount = 3;
       else if (mode == "filter") choiceCount = 8;
+      else if (mode == "ladder_sweep") choiceCount = 2;
       else if (mode == "quadrature") choiceCount = 4;
       else if (mode == "whammy") choiceCount = 19;
       else if (mode == "harmonizer") choiceCount = 12;

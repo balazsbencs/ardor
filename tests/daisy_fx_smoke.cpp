@@ -38,7 +38,7 @@ double controlResponseDifference(const std::string& blockType, const std::string
   highParams[key] = high;
   lowParams["mix"] = 1.0f;
   highParams["mix"] = 1.0f;
-  if (blockType == "mod") {
+  if (blockType == "mod" && key != "level") {
     // The hosted modulation Level range is 0..2; 0.5 is unity.
     lowParams["level"] = 0.5f;
     highParams["level"] = 0.5f;
@@ -865,6 +865,16 @@ int main()
           "pattern trem Tone must affect its response");
   require(controlResponseDifference("mod", "auto_swell", "tone", 0.0f, 1.0f) > 1e-3,
           "auto swell Tone must affect its response");
+  require(controlResponseDifference("mod", "ladder_sweep", "tone", 0.0f, 1.0f) > 1e-3,
+          "ladder sweep Cutoff must affect its response");
+  require(controlResponseDifference("mod", "ladder_sweep", "depth", 0.0f, 1.0f) > 1e-3,
+          "ladder sweep Sweep must affect its response");
+  require(controlResponseDifference("mod", "ladder_sweep", "p1", 0.0f, 0.85f) > 1e-3,
+          "ladder sweep Resonance must affect its response");
+  require(controlResponseDifference("mod", "ladder_sweep", "p2", 0.0f, 1.0f) > 1e-3,
+          "ladder sweep Waveform must affect its response");
+  require(controlResponseDifference("mod", "ladder_sweep", "level", 0.25f, 1.0f) > 1e-3,
+          "ladder sweep Drive must affect its response");
   require(controlResponseDifference("mod", "quadrature", "tone", 0.0f, 1.0f) > 1e-3,
           "quadrature Tone must affect its response");
   require(controlResponseDifference("reverb", "reflections", "mod", 0.0f, 1.0f) > 1e-3,

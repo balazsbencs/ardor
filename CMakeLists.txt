@@ -90,6 +90,7 @@ add_library(ardor_daisyfx_runtime
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/whammy_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/harmonizer_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/filter_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/ladder_sweep_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/flanger_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/formant_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/pattern_trem_mode.cpp
