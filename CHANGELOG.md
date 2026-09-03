@@ -2,6 +2,18 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.53](https://github.com/balazsbencs/ardor/compare/v0.1.52...v0.1.53) (2026-09-03)
+
+### Features
+
+* add pedal backup and restore ([4d4fccf](https://github.com/balazsbencs/ardor/commit/4d4fccfc314162f7c62b50e74b1109761cc67115))
+
+### Bug Fixes
+
+* **ui:** make cloud claim notices dismissible banners ([c244a23](https://github.com/balazsbencs/ardor/commit/c244a237c4b17120e49eb2d9dafb15a227cc00ed))
+
+## [0.1.52](https://github.com/balazsbencs/ardor/compare/v0.1.51...v0.1.52) (2026-09-03)
+
 ## [0.1.51](https://github.com/balazsbencs/ardor/compare/v0.1.50...v0.1.51) (2026-09-02)
 
 ### Features
