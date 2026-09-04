@@ -36,8 +36,13 @@ constexpr int kMasterScaleGroupWidth = kMasterScaleWidth + kMasterHandleWidth;
 constexpr int kMasterRailX = kMasterHandleWidth / 2;
 constexpr int kMasterHeaderHeight = 44;
 constexpr int kMasterBottomInset = 4;
-constexpr int kMasterRailY = kMasterHeaderHeight
-  + (kMasterHandleHeight - kMasterRailHeight) / 2 + 1;
+constexpr int kMasterRailY = kBottomRailHeight - kMasterBottomInset
+  - (kMasterHandleHeight + kMasterRailHeight) / 2;
+constexpr int kMasterHandleTop = kMasterRailY
+  - (kMasterHandleHeight - kMasterRailHeight) / 2;
+static_assert(kMasterHandleTop >= kMasterHeaderHeight);
+static_assert(kMasterHandleTop + kMasterHandleHeight
+              <= kBottomRailHeight - kMasterBottomInset);
 constexpr int kPresetHeaderHeight = 44;
 constexpr int kPresetNameHeight = 160;
 constexpr int kMinBank = 0;
@@ -449,7 +454,7 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
   lv_obj_set_size(pointer, kMasterHandleWidth, kMasterHandleHeight);
   lv_obj_set_pos(pointer, kMasterRailX + 1
     + state.masterVolume * (kMasterScaleWidth - 2) / 100 - kMasterHandleWidth / 2,
-    kMasterRailY - (kMasterHandleHeight - kMasterRailHeight) / 2);
+    kMasterHandleTop);
   lv_obj_set_style_bg_opa(pointer, LV_OPA_COVER, 0);
   lv_obj_set_style_bg_color(pointer, lv_color_hex(lamp), 0);
   lv_obj_set_style_border_width(pointer, 4, 0);

@@ -1492,6 +1492,7 @@ int main()
                 && masterHandleArea.x2 <= masterGroupArea.x2
                 && masterHandleArea.y1 >= masterGroupArea.y1
                 && masterHandleArea.y2 <= masterGroupArea.y2
+                && masterHandleArea.y2 < ardor::lvgl_ui::kDesignHeight
                 && masterLabelCenter == masterRailCenter
                 && lv_obj_get_style_text_align(masterLegend, LV_PART_MAIN) == LV_TEXT_ALIGN_CENTER
                 && lv_obj_get_style_text_align(masterValue, LV_PART_MAIN) == LV_TEXT_ALIGN_RIGHT,
