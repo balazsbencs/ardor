@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.54](https://github.com/balazsbencs/ardor/compare/v0.1.53...v0.1.54) (2026-09-04)
+
+### Features
+
+* add pedal backup and restore ([#59](https://github.com/balazsbencs/ardor/issues/59)) ([82bcdd3](https://github.com/balazsbencs/ardor/commit/82bcdd361f2e4398559db477cc6fc3fccbd52b2d))
+
 ## [0.1.53](https://github.com/balazsbencs/ardor/compare/v0.1.52...v0.1.53) (2026-09-03)
 
 ### Features
