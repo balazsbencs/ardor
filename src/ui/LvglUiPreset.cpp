@@ -24,13 +24,25 @@ constexpr int kTopRailHeight = 52;
 constexpr int kBottomRailHeight = 88;
 constexpr int kBottomRailY = kDesignHeight - kBottomRailHeight;
 constexpr int kMasterScaleWidth = 250;
-constexpr int kMasterScaleGroupWidth = kMasterScaleWidth + 44;
 constexpr int kMasterRailHeight = 18;
 constexpr int kMasterFillHeight = kMasterRailHeight - 2;
 constexpr int kMasterHandleWidth = 44;
-constexpr int kMasterHandleHeight = 54;
+// The preset rail has only 88 px of vertical space. Keep the thumb large
+// enough to grab while leaving a clean header row above it and a small safety
+// inset below it; the parameter editor can use its taller 54 px thumb because
+// its cards are 132 px high.
+constexpr int kMasterHandleHeight = 40;
+constexpr int kMasterScaleGroupWidth = kMasterScaleWidth + kMasterHandleWidth;
 constexpr int kMasterRailX = kMasterHandleWidth / 2;
-constexpr int kMasterRailY = kBottomRailHeight - kMasterRailHeight;
+constexpr int kMasterHeaderHeight = 44;
+constexpr int kMasterBottomInset = 4;
+constexpr int kMasterRailY = kBottomRailHeight - kMasterBottomInset
+  - (kMasterHandleHeight + kMasterRailHeight) / 2;
+constexpr int kMasterHandleTop = kMasterRailY
+  - (kMasterHandleHeight - kMasterRailHeight) / 2;
+static_assert(kMasterHandleTop >= kMasterHeaderHeight);
+static_assert(kMasterHandleTop + kMasterHandleHeight
+              <= kBottomRailHeight - kMasterBottomInset);
 constexpr int kPresetHeaderHeight = 44;
 constexpr int kPresetNameHeight = 160;
 constexpr int kMinBank = 0;
@@ -407,10 +419,20 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
   lv_obj_align(scaleGroup, LV_ALIGN_RIGHT_MID, -kRailEdgeInset, 0);
   lv_obj_remove_flag(scaleGroup, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(scaleGroup, LV_OBJ_FLAG_CLICKABLE);
-  label(scaleGroup, "MASTER", LV_ALIGN_TOP_LEFT, 0, 4,
-        &ardor_font_saira_cond_medium_18, muted);
+  // Keep both readouts on the same visual span as the rail: the legend is
+  // centered over the control, while the value is pinned to the rail's right
+  // edge instead of the thumb's safety margin.
+  lv_obj_t* masterLabel = label(scaleGroup, "MASTER", LV_ALIGN_TOP_LEFT, kMasterRailX, 4,
+                                &ardor_font_saira_cond_medium_18, muted);
+  lv_obj_set_width(masterLabel, kMasterScaleWidth);
+  lv_obj_set_style_text_align(masterLabel, LV_TEXT_ALIGN_CENTER, 0);
+  lv_label_set_long_mode(masterLabel, LV_LABEL_LONG_CLIP);
   presetMasterValueLabel_ = label(scaleGroup, std::to_string(state.masterVolume),
-                                  LV_ALIGN_TOP_RIGHT, 0, 0, &ardor_font_saira_light_44, text);
+                                  LV_ALIGN_TOP_LEFT, kMasterRailX, 0,
+                                  &ardor_font_saira_light_44, text);
+  lv_obj_set_width(presetMasterValueLabel_, kMasterScaleWidth);
+  lv_obj_set_style_text_align(presetMasterValueLabel_, LV_TEXT_ALIGN_RIGHT, 0);
+  lv_label_set_long_mode(presetMasterValueLabel_, LV_LABEL_LONG_CLIP);
   lv_obj_t* track = lv_obj_create(scaleGroup);
   lv_obj_remove_style_all(track);
   lv_obj_set_size(track, kMasterScaleWidth, kMasterRailHeight);
@@ -432,7 +454,7 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
   lv_obj_set_size(pointer, kMasterHandleWidth, kMasterHandleHeight);
   lv_obj_set_pos(pointer, kMasterRailX + 1
     + state.masterVolume * (kMasterScaleWidth - 2) / 100 - kMasterHandleWidth / 2,
-    kMasterRailY - (kMasterHandleHeight - kMasterRailHeight) / 2);
+    kMasterHandleTop);
   lv_obj_set_style_bg_opa(pointer, LV_OPA_COVER, 0);
   lv_obj_set_style_bg_color(pointer, lv_color_hex(lamp), 0);
   lv_obj_set_style_border_width(pointer, 4, 0);
