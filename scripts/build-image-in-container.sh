@@ -43,6 +43,11 @@ apt-get install -y -qq \
   openssh-client patch perl pkg-config python3 python3-dev rsync sed unzip \
   wget xz-utils > /dev/null
 
+# Some Docker/network paths accept GitHub's HTTP/2 ref advertisement but reject
+# the following upload-pack POST with a misleading 401 for public repositories.
+# HTTP/1.1 avoids that broken intermediary behavior for CMake FetchContent.
+git config --global http.version HTTP/1.1
+
 marker=/buildroot/.ardor-buildroot-version
 if [ ! -f /buildroot/Makefile ]; then
   unexpected=$(find /buildroot -mindepth 1 -maxdepth 1 \

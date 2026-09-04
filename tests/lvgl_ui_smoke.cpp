@@ -1473,9 +1473,29 @@ int main()
   lv_obj_t* masterRail = findObjectWithSizeAndBgColor(
     masterScaleGroup, lv_color_hex(0x191c1f), 250, 18);
   lv_obj_t* masterHandle = findObjectWithSizeAndBgColor(
-    masterScaleGroup, lv_color_hex(0xd8422f), 44, 54);
+    masterScaleGroup, lv_color_hex(0xd8422f), 44, 40);
   if (require(masterRail && masterHandle,
               "master should use the same recessed rail and wide thumb as parameter controls")) return 1;
+  lv_area_t masterGroupArea{};
+  lv_area_t masterRailArea{};
+  lv_area_t masterHandleArea{};
+  lv_area_t masterLabelArea{};
+  lv_obj_get_coords(masterScaleGroup, &masterGroupArea);
+  lv_obj_get_coords(masterRail, &masterRailArea);
+  lv_obj_get_coords(masterHandle, &masterHandleArea);
+  lv_obj_get_coords(masterLegend, &masterLabelArea);
+  const int masterRailCenter = (masterRailArea.x1 + masterRailArea.x2) / 2;
+  const int masterLabelCenter = (masterLabelArea.x1 + masterLabelArea.x2) / 2;
+  if (require(masterRailArea.x1 >= masterGroupArea.x1
+                && masterRailArea.x2 <= masterGroupArea.x2
+                && masterHandleArea.x1 >= masterGroupArea.x1
+                && masterHandleArea.x2 <= masterGroupArea.x2
+                && masterHandleArea.y1 >= masterGroupArea.y1
+                && masterHandleArea.y2 <= masterGroupArea.y2
+                && masterLabelCenter == masterRailCenter
+                && lv_obj_get_style_text_align(masterLegend, LV_PART_MAIN) == LV_TEXT_ALIGN_CENTER
+                && lv_obj_get_style_text_align(masterValue, LV_PART_MAIN) == LV_TEXT_ALIGN_RIGHT,
+              "master legend, value, rail, and thumb should share one contained alignment span")) return 1;
   // Live control telemetry must not add extra content to this intentionally
   // minimal top rail.
   ardor::updateControlInputTelemetry(state, {true, true, true, true, 0.5f, true, 12000});
