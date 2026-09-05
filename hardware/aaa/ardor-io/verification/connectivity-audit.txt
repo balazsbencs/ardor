@@ -1,0 +1,26 @@
+Ardor Rev A connectivity verification
+
+PASS: 260 assigned physical pin connections match the exported KiCad netlist.
+PASS: 18 independent circuit invariants.
+
+PASS: Pi UART RX uses GPIO15, pin 10
+PASS: Pi headphone enable uses GPIO17, pin 11
+PASS: Pi line enable uses GPIO22, pin 15
+PASS: Codec button GPIO27 is not borrowed
+PASS: MIDI output is not pulled up to 5V
+PASS: MIDI LED reverse diode correct
+PASS: MIDI differential TVS across DIN4/5
+PASS: ADC address grounded, 0x48
+PASS: Both ADC channels have upper and lower clamps
+PASS: Line relay NC grounds jack; NO carries signal
+PASS: Line capacitor polarity faces biased output
+PASS: Separate line/amp buffers
+PASS: Headphone charge-pump reservoir nets distinct from 5V
+PASS: Headphone flying capacitor across CPP/CPN
+PASS: Headphone gain -6dB and inputs single-ended
+PASS: Headphone ground and thermal pad connected
+PASS: No short between AUX L and R
+PASS: ADC and audio rails distinct
+
+ERC: see erc.rpt. No suppressed ERC rules or exclusions.
+No hardware, SPICE, audio performance or assembled-product ESD qualification has been performed.
