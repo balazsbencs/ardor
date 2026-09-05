@@ -1,0 +1,100 @@
+Reference,Value,MPN,Footprint,Datasheet,Assembly,Sheet
+J101,PI 40-PIN HEADER,Samtec SSQ-120-03-G-D (verify stack height),Connector_PinSocket_2.54mm:PinSocket_2x20_P2.54mm_Vertical,,PCB,1
+J102,CODEC AUX L / GND / R,,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,,PCB,1
+FB101,600R @100MHz,Murata BLM21PG601SN1D,Inductor_SMD:L_0805_2012Metric,,PCB,1
+C101,22u / 10V X7R,,Capacitor_SMD:C_0805_2012Metric,,PCB,1
+C102,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,1
+FB102,600R @100MHz,Murata BLM18AG601SN1D,Resistor_SMD:R_0603_1608Metric,,PCB,1
+C103,10u / 10V X7R,,Capacitor_SMD:C_0805_2012Metric,,PCB,1
+C104,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,1
+R101,0R / chassis bond,,Resistor_SMD:R_1206_3216Metric,,PCB,1
+J201,MIDI IN - PANEL DIN,,,,Panel / wired,2
+FB201,600R @100MHz,Murata BLM18AG601SN1D,Resistor_SMD:R_0603_1608Metric,,PCB,2
+R201,220R / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,2
+FB202,600R @100MHz,Murata BLM18AG601SN1D,Resistor_SMD:R_0603_1608Metric,,PCB,2
+D201,1N4148W,1N4148W,Diode_SMD:D_SOD-123,,PCB,2
+U201,H11L1M,onsemi H11L1M,Package_DIP:DIP-6_W7.62mm,https://www.onsemi.com/pdf/datasheet/h11l3m-d.pdf,PCB,2
+C201,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,2
+R202,1k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,2
+R203,100R,,Resistor_SMD:R_0603_1608Metric,,PCB,2
+D202,PESD5V0S1BA,Nexperia PESD5V0S1BA,Diode_SMD:D_SOD-323,https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf,PCB,2
+C202,100p / 1kV C0G,,Capacitor_SMD:C_1206_3216Metric,,PCB,2
+C203,100p / 1kV C0G,,Capacitor_SMD:C_1206_3216Metric,,PCB,2
+D203,PESD24VL1BA,Nexperia PESD24VL1BA,Diode_SMD:D_SOD-323,https://assets.nexperia.com/documents/data-sheet/PESD24VL1BA.pdf,PCB,2
+D204,PESD24VL1BA,Nexperia PESD24VL1BA,Diode_SMD:D_SOD-323,https://assets.nexperia.com/documents/data-sheet/PESD24VL1BA.pdf,PCB,2
+J301,EXPRESSION / 6.3mm TRS,,,,Panel / wired,3
+JP301,POLARITY / 2 SHUNTS,,Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical,,PCB,3
+R301,1k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,3
+R302,10k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,3
+R303,1M,,Resistor_SMD:R_0603_1608Metric,,PCB,3
+C301,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,3
+D303,BAT54H,"Nexperia BAT54H,115",Diode_SMD:D_SOD-123F,,PCB,3
+D304,BAT54H,"Nexperia BAT54H,115",Diode_SMD:D_SOD-123F,,PCB,3
+D301,PESD5V0S1BA,Nexperia PESD5V0S1BA,Diode_SMD:D_SOD-323,,PCB,3
+D302,PESD5V0S1BA,Nexperia PESD5V0S1BA,Diode_SMD:D_SOD-323,,PCB,3
+U301,ADS1115IDGS,TI ADS1115IDGSR,Package_SO:VSSOP-10_3x3mm_P0.5mm,https://www.ti.com/lit/ds/symlink/ads1115.pdf,PCB,3
+R304,10k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,3
+C302,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,3
+C303,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,3
+R305,33R,,Resistor_SMD:R_0603_1608Metric,,PCB,3
+R306,33R,,Resistor_SMD:R_0603_1608Metric,,PCB,3
+R307,2.2k / rail bleed,,Resistor_SMD:R_0603_1608Metric,,PCB,3
+D305,BAT54H,"Nexperia BAT54H,115",Diode_SMD:D_SOD-123F,,PCB,3
+D306,BAT54H,"Nexperia BAT54H,115",Diode_SMD:D_SOD-123F,,PCB,3
+C401,2.2u / 63V film,WIMA MKS2C042201K00KSSD,Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2,,PCB,4
+R401,100k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4
+U401,OPA2320AIDR,TI OPA2320AIDR,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,https://www.ti.com/lit/ds/symlink/opa2320.pdf,PCB,4
+R403,10k / 0.1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4
+C402,2.2u / 63V film,WIMA MKS2C042201K00KSSD,Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2,,PCB,4
+R402,100k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4
+R404,10k / 0.1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4
+U402,OPA2320AIDR,TI OPA2320AIDR,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,https://www.ti.com/lit/ds/symlink/opa2320.pdf,PCB,4
+R405,10k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4
+R406,10k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4
+C403,10u / 10V X7R,,Capacitor_SMD:C_0805_2012Metric,,PCB,4
+C404,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,4
+C405,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,4
+U501,OPA2320AIDR,TI OPA2320AIDR,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,https://www.ti.com/lit/ds/symlink/opa2320.pdf,PCB,5
+C501,47u / 16V,Panasonic EEE-FK1C470R,Capacitor_SMD:CP_Elec_6.3x5.4,,PCB,5
+R501,10k,,Resistor_SMD:R_0603_1608Metric,,PCB,5
+R502,100R / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,5
+K501,G5V-1 DC5,Omron G5V-1 DC5,Relay_THT:Relay_SPDT_Omron_G5V-1,,PCB,5
+J501,LINE OUT / 6.3mm TS,,,,Panel / wired,5
+D501,PESD5V0S1BA,Nexperia PESD5V0S1BA,Diode_SMD:D_SOD-323,,PCB,5
+Q501,2N7002,Nexperia 2N7002,Package_TO_SOT_SMD:SOT-23,,PCB,5
+R503,1k,,Resistor_SMD:R_0603_1608Metric,,PCB,5
+R504,100k,,Resistor_SMD:R_0603_1608Metric,,PCB,5
+D502,1N4148W,1N4148W,Diode_SMD:D_SOD-123,,PCB,5
+C502,2.2u / 63V film,WIMA MKS2C042201K00KSSD,Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2,,PCB,5
+R505,1k / isolation,,Resistor_SMD:R_0603_1608Metric,,PCB,5
+R506,100k,,Resistor_SMD:R_0603_1608Metric,,PCB,5
+J502,TO YOUR AMP CIRCUIT,,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,,PCB,5
+C503,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,5
+C601,2.2u / 63V film,WIMA MKS2C042201K00KSSD,Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2,,PCB,6
+C602,2.2u / 63V film,WIMA MKS2C042201K00KSSD,Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2,,PCB,6
+U601,TPA6132A2RTER,TI TPA6132A2RTER,Package_DFN_QFN:WQFN-16-1EP_3x3mm_P0.5mm_EP1.6x1.6mm_ThermalVias,https://www.ti.com/lit/ds/symlink/tpa6132a2.pdf,PCB,6
+R601,1k,,Resistor_SMD:R_0603_1608Metric,,PCB,6
+R602,100k,,Resistor_SMD:R_0603_1608Metric,,PCB,6
+R603,2R2 / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,6
+R604,2R2 / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,6
+J601,HEADPHONES / 3.5mm TRS,,,,Panel / wired,6
+D601,PESD5V0S1BA,Nexperia PESD5V0S1BA,Diode_SMD:D_SOD-323,,PCB,6
+D602,PESD5V0S1BA,Nexperia PESD5V0S1BA,Diode_SMD:D_SOD-323,,PCB,6
+C603,2.2u / 10V X7R,,Capacitor_SMD:C_0805_2012Metric,,PCB,6
+C604,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,6
+C605,2.2u / 10V X7R,,Capacitor_SMD:C_0805_2012Metric,,PCB,6
+C606,2.2u / 10V X7R,,Capacitor_SMD:C_0805_2012Metric,,PCB,6
+C607,2.2u / 10V X7R,,Capacitor_SMD:C_0805_2012Metric,,PCB,6
+J202,"TO MIDI PANEL / 4,5",,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,,PCB,2
+J302,"TO EXP PANEL / T,R,S",,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,,PCB,3
+J503,"TO LINE PANEL / T,S",,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,,PCB,5
+J602,"TO HP PANEL / T,R,S",,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,,PCB,6
+TP101,+5V_A,,TestPoint:TestPoint_Pad_D1.5mm,,PCB,1
+TP102,+3V3_ADC,,TestPoint:TestPoint_Pad_D1.5mm,,PCB,1
+TP103,GND,,TestPoint:TestPoint_Pad_D1.5mm,,PCB,1
+TP201,MIDI_RX,,TestPoint:TestPoint_Pad_D1.5mm,,PCB,2
+TP301,EXP_ADC,,TestPoint:TestPoint_Pad_D1.5mm,,PCB,3
+TP401,VREF,,TestPoint:TestPoint_Pad_D1.5mm,,PCB,4
+TP402,MONO_BUF,,TestPoint:TestPoint_Pad_D1.5mm,,PCB,4
+TP501,LINE_JACK,,TestPoint:TestPoint_Pad_D1.5mm,,PCB,5
+TP601,HP_L,,TestPoint:TestPoint_Pad_D1.5mm,,PCB,6
