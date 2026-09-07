@@ -19,6 +19,7 @@ for ref,(x,y,a) in list(poses.items()):
  if 600<=num<700:x-=8;y-=8
  poses[ref]=(x,y,a)
 poses.update({'C607':(76,48.5,270),'C606':(72,52,180),'C604':(72,44.5,180),'R401':(47,24,90),'R202':(34.5,28,90),'TP102':(39,17,0),'R601':(66,44,90),'R505':(79,40.5,0),'U501':(69,31,0),'TP402':(62,35,0),'TP101':(59,18,0),'C401':(38,23,0),'C402':(38,35,0),'R203':(33.5,33,0),'TP201':(33,37,0),'U401':(49,31,0),'R402':(54.5,36.5,90),'R404':(54.5,34,0),'C502':(48,48,90),'C403':(66,41,0),'J502':(87,40,0),'R101':(10,37,90)})
+poses.update({'C401':(40.5,23,0),'C402':(40.5,35,0),'C502':(48,45.5,90),'C601':(59.5,44,0),'C602':(59.5,55,0)})
 for i,xy in enumerate([(4,4),(86,4),(4,60),(86,60)],1):poses['H'+str(i)]=(*xy,0)
 fps={f.GetReference():f for f in b.GetFootprints()}
 removed=list(b.GetTracks())+list(b.Zones())+list(b.GetDrawings())
@@ -35,7 +36,7 @@ for a,c in [((50,50),(140,50)),((140,50),(140,114)),((140,114),(50,114)),((50,11
 def txt(text,x,y,size=.8,layer=p.F_SilkS):
  t=p.PCB_TEXT(b);t.SetText(text);t.SetPosition(pt(50+x,50+y));t.SetTextSize(pt(size,size));t.SetTextThickness(mm(.12));t.SetLayer(layer);b.Add(t);return t
 # Connector labels read in the same order as the adjacent physical pads.
-for s,x,y in [('PI / HOST',48,3),('1',25,4.5),('40',73.3,12.3),('CODEC AUX',11,8.8),('L  G  R',10.54,10.8),('MIDI IN',6.5,20),('4',3.5,26),('5',3.5,28.54),('EXPRESSION',10,40),('T',3.5,45),('R',3.5,47.54),('S',3.5,50.08),('POLARITY',17,42),('LINE OUT',83,14),('T',89.3,27),('S',89.3,29.54),('AMP',86.5,38),('+',89,40),('G',89,42.54),('PHONES',84,56.5),('L',89.3,47),('R',89.3,49.54),('G',89.3,52.08),('ARDOR IO',49,61.8)]:txt(s,x,y)
+for s,x,y in [('PI / HOST',48,3),('1',25,4.5),('40',73.3,12.3),('CODEC AUX',11,8.8),('L  G  R',10.54,10.8),('MIDI IN',6.5,20),('4',3.5,26),('5',3.5,28.54),('EXPRESSION',10,40),('T',3.5,45),('R',3.5,47.54),('S',3.5,50.08),('POLARITY',17,42),('LINE OUT',83,14),('T',89.3,27),('S',89.3,29.54),('AMP',86.5,38),('SIG',83.5,40),('G',89,42.54),('PHONES',84,56.5),('L',89.3,47),('R',89.3,49.54),('G',89.3,52.08),('ARDOR IO',49,61.8)]:txt(s,x,y)
 # MIDI input-side exclusion from logic copper; same corridor as original design.
 z=p.ZONE(b);z.SetIsRuleArea(True);z.SetLayerSet(p.LSET.AllCuMask());z.SetDoNotAllowTracks(True);z.SetDoNotAllowVias(True);z.SetDoNotAllowCopperPour(True);z.SetDoNotAllowPads(False);z.SetDoNotAllowFootprints(False)
 poly=z.Outline();poly.NewOutline()

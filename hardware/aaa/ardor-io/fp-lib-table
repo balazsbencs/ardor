@@ -14,4 +14,5 @@
  (lib (name "Relay_THT")(type "KiCad")(uri "${KICAD9_FOOTPRINT_DIR}/Relay_THT.pretty")(options "")(descr ""))
  (lib (name "Resistor_SMD")(type "KiCad")(uri "${KICAD9_FOOTPRINT_DIR}/Resistor_SMD.pretty")(options "")(descr ""))
  (lib (name "TestPoint")(type "KiCad")(uri "${KICAD9_FOOTPRINT_DIR}/TestPoint.pretty")(options "")(descr ""))
+ (lib (name "Ardor_Capacitor")(type "KiCad")(uri "${KIPRJMOD}/footprints/Ardor_Capacitor.pretty")(options "")(descr "Rubycon manufacturer-recommended film capacitor lands"))
 )

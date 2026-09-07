@@ -1,6 +1,6 @@
 # Ardor Codec Zero I/O — Rev A
 
-Editable KiCad 9 schematic, six A3 sheets. This is an engineering prototype design, with production-oriented protection and documentation. It is **not a hardware-validated production release**. No PCB is included.
+Editable KiCad 9 schematic, six A3 sheets. This is an engineering prototype design, with production-oriented protection and documentation. It is **not a hardware-validated production release**. The routed compact PCB is included; see `routing/README.md` for layout dimensions, checks and mechanical limitations.
 
 ## Agreed interfaces
 
@@ -23,7 +23,7 @@ Codec Zero AUX L and R each see a 2.2 µF film coupling capacitor and a 100 kΩ 
 
 U401 buffers the stereo channels. R403/R404 and U402A form the average `(L + R) / 2`. This retains nominal amplitude for coherent dual-mono material. Antiphase stereo cancels, as it does in any mono fold-down. Never short the codec's L and R outputs together. U402B buffers the 2.5 V midrail. U501A/B give the line and amp feed their own output drivers. The headphone driver is fed from the separate stereo buffers.
 
-All op-amp audio outputs before their coupling capacitors have approximately 2.5 V DC bias. These nets are internal only. Film capacitors C401/C402/C502/C601/C602 use the current WIMA MKS2 2.2 µF / 63 V size: approximately 7.2 × 7.2 mm body, 5 mm pitch. Their voltage rating is for component availability and low distortion, not a requirement for a 63 V system supply.
+All op-amp audio outputs before their coupling capacitors have approximately 2.5 V DC bias. These nets are internal only. C401/C402/C502/C601/C602 now use Rubycon 16MU225KB23225: 2.2 µF ±10%, 16 V, nonpolar SMD film (PMLCAP), 3.2 × 2.5 mm nominal body and 1.8 mm nominal height (2.0 mm maximum). The capacitance and nominal response are unchanged. The 16 V rating covers the intended 5 V audio circuitry; this is not a rating for external high-voltage inputs. Their project-local footprint follows Rubycon’s recommended reflow lands. See `routing/SMD_CAPACITORS.md` for selection, assembly and verification details.
 
 Calculated nominal response, excluding the codec and real-component tolerances:
 

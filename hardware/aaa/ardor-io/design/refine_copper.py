@@ -25,7 +25,7 @@ for f in b.GetFootprints():
   path=ROOT/'footprints'/(lib+'.pretty');path.mkdir(parents=True,exist_ok=True)
   c=p.FOOTPRINT(f);c.SetPosition(p.VECTOR2I(0,0));c.SetOrientationDegrees(0);c.SetReference('REF**');c.SetValue(str(c.GetFPID().GetLibItemName()));c.SetPath(p.KIID_PATH())
   p.PCB_IO_KICAD_SEXPR().FootprintSave(str(path),c)
-(ROOT/'fp-lib-table').write_text('(fp_lib_table\n (version 7)\n'+''.join(f' (lib (name "{l}")(type "KiCad")(uri "'+('${KIPRJMOD}/footprints/' if l in local else '${KICAD9_FOOTPRINT_DIR}/')+f'{l}.pretty")(options "")(descr ""))\n' for l in sorted(libs))+')\n')
+(ROOT/'fp-lib-table').write_text('(fp_lib_table\n (version 7)\n'+''.join(f' (lib (name "{l}")(type "KiCad")(uri "'+('${KIPRJMOD}/footprints/' if l in local|{'Ardor_Capacitor'} else '${KICAD9_FOOTPRINT_DIR}/')+f'{l}.pretty")(options "")(descr ""))\n' for l in sorted(libs))+')\n')
 original={}
 for t in b.GetTracks():
  if isinstance(t,p.PCB_VIA):continue
