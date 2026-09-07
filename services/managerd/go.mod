@@ -1,12 +1,12 @@
 module ardor.local/managerd
 
-go 1.25.0
+go 1.26.0
 
 require (
 	ardor.local/cloudprotocol v0.0.0
 	github.com/coder/websocket v1.8.15
 	github.com/grandcat/zeroconf v1.0.0
-	golang.org/x/crypto v0.55.0
+	golang.org/x/crypto v0.56.0
 	golang.org/x/sys v0.47.0
 )
 
