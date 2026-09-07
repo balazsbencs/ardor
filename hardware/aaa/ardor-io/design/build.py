@@ -195,7 +195,7 @@ def buffer(pg,ref,unit,x,y,inputnet,outnet):
  pg.label(outnet,p1);pg.assign(u,on,outnet);pg.assign(u,nn,outnet)
  return u
 for i,(yy,nn) in enumerate([(73.66,'L'),(124.46,'R')]):
- A.two(C,f'C40{1+i}', '2.2u / 63V film',66.04,yy,'AUX_'+nn,'BIAS_'+nn,fp='Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2',mpn='WIMA MKS2C042201K00KSSD')
+ A.two(C,f'C40{1+i}', '2.2u / 16V film',66.04,yy,'AUX_'+nn,'BIAS_'+nn,fp='Ardor_Capacitor:C_Rubycon_MU_3225',mpn='Rubycon 16MU225KB23225',ds='https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf')
  A.two(R,f'R40{1+i}','100k / 1%',114.3,yy+20.32,'BIAS_'+nn,'VREF',rot=0)
  buffer(A,'U401',i+1,177.8,yy,'BIAS_'+nn,'BUF_'+nn)
  A.two(R,f'R40{3+i}','10k / 0.1%',261.62,yy,'BUF_'+nn,'MONO_MIX')
@@ -231,7 +231,7 @@ L.two(R,'R504','100k',175.26,193.04,'RELAY_GATE','GND',rot=0)
 L.two(D,'D502','1N4148W',279.4,162.56,'+5V_PI','RELAY_LOW',rot=0,fp=FP_S,mpn='1N4148W')
 L.text('AMP CIRCUIT PLACEHOLDER / INTERNAL HARNESS',20,222,1.7)
 buffer(L,'U501',2,50.8,243.84,'MONO_BUF','AMP_BUF')
-L.two(C,'C502','2.2u / 63V film',119.38,243.84,'AMP_BUF','AMP_AC',fp='Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2',mpn='WIMA MKS2C042201K00KSSD')
+L.two(C,'C502','2.2u / 16V film',119.38,243.84,'AMP_BUF','AMP_AC',fp='Ardor_Capacitor:C_Rubycon_MU_3225',mpn='Rubycon 16MU225KB23225',ds='https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf')
 L.two(R,'R505','1k / isolation',185.42,243.84,'AMP_AC','AMP_FEED')
 L.two(R,'R506','100k',243.84,243.84,'AMP_FEED','GND',rot=0)
 j=L.add(J2,'J502','TO YOUR AMP CIRCUIT',307.34,243.84,fp=HDR(2));L.nets(j,{'1':'AMP_FEED','2':'GND'})
@@ -240,8 +240,8 @@ u=L.add(OP,'U501','OPA2320AIDR',340.36,175.26,unit=3,fp=FP_SO,mpn='TI OPA2320AID
 L.cap('C503','100n / 16V',383.54,175.26,'+5V_A')
 # HP
 H=h;H.text('STEREO DIRECTPATH HEADPHONE DRIVER / -6 dB',20,45,1.7)
-H.two(C,'C601','2.2u / 63V film',68.58,66.04,'BUF_R','HP_IN_R',fp='Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2',mpn='WIMA MKS2C042201K00KSSD')
-H.two(C,'C602','2.2u / 63V film',68.58,101.6,'BUF_L','HP_IN_L',fp='Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2',mpn='WIMA MKS2C042201K00KSSD')
+H.two(C,'C601','2.2u / 16V film',68.58,66.04,'BUF_R','HP_IN_R',fp='Ardor_Capacitor:C_Rubycon_MU_3225',mpn='Rubycon 16MU225KB23225',ds='https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf')
+H.two(C,'C602','2.2u / 16V film',68.58,101.6,'BUF_L','HP_IN_L',fp='Ardor_Capacitor:C_Rubycon_MU_3225',mpn='Rubycon 16MU225KB23225',ds='https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf')
 u=H.add(HP,'U601','TPA6132A2RTER',195.58,91.44,fp='Package_DFN_QFN:WQFN-16-1EP_3x3mm_P0.5mm_EP1.6x1.6mm_ThermalVias',mpn='TI TPA6132A2RTER',ds='https://www.ti.com/lit/ds/symlink/tpa6132a2.pdf')
 H.nets(u,{'1':'HP_IN_L','2':'GND','3':'GND','4':'HP_IN_R','5':'HP_R_RAW','6':'GND','7':'GND','8':'HPVSS','9':'CPN','11':'CPP','12':'HPVDD','13':'HP_EN','14':'+5V_A','16':'HP_L_RAW','17':'GND'})
 for pn in ['10','15']:

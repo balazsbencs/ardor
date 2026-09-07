@@ -13,6 +13,10 @@ Reviewed 5 September 2026. URLs may publish newer revisions later. The circuit d
 - [Nexperia PESD24VL1BA data sheet](https://assets.nexperia.com/documents/data-sheet/PESD24VL1BA.pdf) — MIDI common-mode protection, leakage and standoff voltage.
 - [Nexperia BAT54H data sheet](https://assets.nexperia.com/documents/data-sheet/BAT54H.pdf) — secondary ADC clamp diodes and SOD123F package.
 - [Omron G5V-1 data sheet](https://components.omron.com/us-en/system/files/2023-01/datasheet_pdf/K048-E1.pdf) — relay coil, common/NC/NO contacts and footprint.
-- [WIMA MKS2 current product data](https://www.wima.de/en/our-product-range/metallized-capacitors/mks-2/) — 2.2 µF / 63 V film capacitor body dimensions and part-number construction.
+- [Rubycon MU datasheet](https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf) — nonpolar film capacitor specifications, 16MU225KB23225 dimensions and tolerance code.
+- [Rubycon PMLCAP soldering and land pattern](https://www.rubycon.co.jp/wp-content/uploads/catalog/pml-spec3.pdf) — the 3225 recommended reflow lands used in the local footprint.
+- [Rubycon PMLCAP handling](https://www.rubycon.co.jp/wp-content/uploads/catalog/pml-cautions.pdf) — voltage, moisture and assembly conditions.
+
+The Rubycon references were checked on 7 September 2026 for the SMD conversion. They supersede the original WIMA MKS2 selection.
 
 KiCad's standard symbols were copied into a project-local library. The OPA2320 uses the verified standard dual-op-amp SOIC pin mapping. In the TPA6132A2 symbol, HPVDD/HPVSS were changed from `power_in` to `power_out` to accurately model the internal supply generators for ERC; their physical pin numbers are unchanged.

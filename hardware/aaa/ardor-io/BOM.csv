@@ -41,11 +41,11 @@ R306,33R,,Resistor_SMD:R_0603_1608Metric,,PCB,3
 R307,2.2k / rail bleed,,Resistor_SMD:R_0603_1608Metric,,PCB,3
 D305,BAT54H,"Nexperia BAT54H,115",Diode_SMD:D_SOD-123F,,PCB,3
 D306,BAT54H,"Nexperia BAT54H,115",Diode_SMD:D_SOD-123F,,PCB,3
-C401,2.2u / 63V film,WIMA MKS2C042201K00KSSD,Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2,,PCB,4
+C401,2.2u / 16V film,Rubycon 16MU225KB23225,Ardor_Capacitor:C_Rubycon_MU_3225,https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf,PCB,4
 R401,100k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4
 U401,OPA2320AIDR,TI OPA2320AIDR,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,https://www.ti.com/lit/ds/symlink/opa2320.pdf,PCB,4
 R403,10k / 0.1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4
-C402,2.2u / 63V film,WIMA MKS2C042201K00KSSD,Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2,,PCB,4
+C402,2.2u / 16V film,Rubycon 16MU225KB23225,Ardor_Capacitor:C_Rubycon_MU_3225,https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf,PCB,4
 R402,100k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4
 R404,10k / 0.1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4
 U402,OPA2320AIDR,TI OPA2320AIDR,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,https://www.ti.com/lit/ds/symlink/opa2320.pdf,PCB,4
@@ -65,13 +65,13 @@ Q501,2N7002,Nexperia 2N7002,Package_TO_SOT_SMD:SOT-23,,PCB,5
 R503,1k,,Resistor_SMD:R_0603_1608Metric,,PCB,5
 R504,100k,,Resistor_SMD:R_0603_1608Metric,,PCB,5
 D502,1N4148W,1N4148W,Diode_SMD:D_SOD-123,,PCB,5
-C502,2.2u / 63V film,WIMA MKS2C042201K00KSSD,Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2,,PCB,5
+C502,2.2u / 16V film,Rubycon 16MU225KB23225,Ardor_Capacitor:C_Rubycon_MU_3225,https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf,PCB,5
 R505,1k / isolation,,Resistor_SMD:R_0603_1608Metric,,PCB,5
 R506,100k,,Resistor_SMD:R_0603_1608Metric,,PCB,5
 J502,TO YOUR AMP CIRCUIT,,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,,PCB,5
 C503,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,5
-C601,2.2u / 63V film,WIMA MKS2C042201K00KSSD,Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2,,PCB,6
-C602,2.2u / 63V film,WIMA MKS2C042201K00KSSD,Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2,,PCB,6
+C601,2.2u / 16V film,Rubycon 16MU225KB23225,Ardor_Capacitor:C_Rubycon_MU_3225,https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf,PCB,6
+C602,2.2u / 16V film,Rubycon 16MU225KB23225,Ardor_Capacitor:C_Rubycon_MU_3225,https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf,PCB,6
 U601,TPA6132A2RTER,TI TPA6132A2RTER,Package_DFN_QFN:WQFN-16-1EP_3x3mm_P0.5mm_EP1.6x1.6mm_ThermalVias,https://www.ti.com/lit/ds/symlink/tpa6132a2.pdf,PCB,6
 R601,1k,,Resistor_SMD:R_0603_1608Metric,,PCB,6
 R602,100k,,Resistor_SMD:R_0603_1608Metric,,PCB,6
