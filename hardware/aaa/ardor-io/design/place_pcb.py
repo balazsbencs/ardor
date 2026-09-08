@@ -1,8 +1,9 @@
 from pathlib import Path
+import os
 import pcbnew as p, wx, xml.etree.ElementTree as ET, csv, json, math
 app=wx.App(False)
 ROOT=Path(__file__).resolve().parents[1]
-LIB=Path('/Applications/KiCad/KiCad.app/Contents/SharedSupport/footprints')
+LIB=Path(os.environ.get('KICAD9_FOOTPRINT_DIR', '/usr/share/kicad/footprints' if Path('/usr/share/kicad/footprints').exists() else '/Applications/KiCad/KiCad.app/Contents/SharedSupport/footprints'))
 b=p.BOARD();b.SetFileName(str(ROOT/'Ardor_IO.kicad_pcb'));b.SetCopperLayerCount(2)
 courtyard=p.LSET();courtyard.AddLayer(p.F_CrtYd)
 mm=p.FromMM;pt=lambda x,y:p.VECTOR2I(mm(x),mm(y));origin=(50,50)
@@ -25,7 +26,7 @@ comps={c.attrib['ref']:c for c in xml.findall('.//components/comp') if c.findtex
 assert set(comps)==set(poses),(set(comps)-set(poses),set(poses)-set(comps))
 fps={}
 for ref,c in comps.items():
- lid=c.findtext('footprint');lib,nam=lid.split(':');fp=p.FootprintLoad(str(LIB/(lib+'.pretty')),nam);assert fp, lid
+ lid=c.findtext('footprint');lib,nam=lid.split(':');local=ROOT/'footprints'/(lib+'.pretty');fp=p.FootprintLoad(str(local if local.exists() else LIB/(lib+'.pretty')),nam);assert fp, lid
  b.Add(fp);fp.SetReference(ref);fp.SetValue(c.findtext('value'));fp.SetFPID(p.LIB_ID(lib,nam))
  x,y,angle=poses[ref];fp.SetPosition(pt(x+50,y+50));fp.SetOrientationDegrees(angle)
  pathname=c.find('sheetpath').attrib['tstamps']+c.findtext('tstamps').split()[0]

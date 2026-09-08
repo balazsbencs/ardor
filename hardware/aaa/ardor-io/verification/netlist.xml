@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <export version="E">
   <design>
-    <source>/Users/bbalazs/.codex/.chatgpt-projects/g-p-6a9c6ad4cd188191809af603c7f69f9e/ardor-io/Ardor_IO.kicad_sch</source>
-    <date>2026-09-05T21:44:26+0200</date>
-    <tool>Eeschema 9.0.5</tool>
+    <source>/workspace/hardware/aaa/ardor-io/Ardor_IO.kicad_sch</source>
+    <date>2026-09-07T16:16:02+0000</date>
+    <tool>Eeschema 9.0.2+dfsg-1</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
         <title>01 / System interface and power</title>
@@ -1002,16 +1002,17 @@
       <tstamps>9187d197-9bc8-487a-ba1e-16e3a918484f</tstamps>
     </comp>
     <comp ref="C401">
-      <value>2.2u / 63V film</value>
-      <footprint>Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2</footprint>
+      <value>2.2u / 16V film</value>
+      <footprint>Ardor_Capacitor:C_Rubycon_MU_3225</footprint>
+      <datasheet>https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf</datasheet>
       <fields>
-        <field name="MPN">WIMA MKS2C042201K00KSSD</field>
-        <field name="Footprint">Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2</field>
-        <field name="Datasheet"/>
+        <field name="MPN">Rubycon 16MU225KB23225</field>
+        <field name="Footprint">Ardor_Capacitor:C_Rubycon_MU_3225</field>
+        <field name="Datasheet">https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf</field>
         <field name="Description"/>
       </fields>
       <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
-      <property name="MPN" value="WIMA MKS2C042201K00KSSD"/>
+      <property name="MPN" value="Rubycon 16MU225KB23225"/>
       <property name="Sheetname" value="04 / Audio distribution"/>
       <property name="Sheetfile" value="04_Audio.kicad_sch"/>
       <property name="ki_keywords" value="cap capacitor"/>
@@ -1020,16 +1021,17 @@
       <tstamps>c4f35d84-0a8d-46ac-9336-558b9caa6778</tstamps>
     </comp>
     <comp ref="C402">
-      <value>2.2u / 63V film</value>
-      <footprint>Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2</footprint>
+      <value>2.2u / 16V film</value>
+      <footprint>Ardor_Capacitor:C_Rubycon_MU_3225</footprint>
+      <datasheet>https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf</datasheet>
       <fields>
-        <field name="MPN">WIMA MKS2C042201K00KSSD</field>
-        <field name="Footprint">Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2</field>
-        <field name="Datasheet"/>
+        <field name="MPN">Rubycon 16MU225KB23225</field>
+        <field name="Footprint">Ardor_Capacitor:C_Rubycon_MU_3225</field>
+        <field name="Datasheet">https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf</field>
         <field name="Description"/>
       </fields>
       <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
-      <property name="MPN" value="WIMA MKS2C042201K00KSSD"/>
+      <property name="MPN" value="Rubycon 16MU225KB23225"/>
       <property name="Sheetname" value="04 / Audio distribution"/>
       <property name="Sheetfile" value="04_Audio.kicad_sch"/>
       <property name="ki_keywords" value="cap capacitor"/>
@@ -1292,16 +1294,17 @@
       <tstamps>5f61ff9d-0b41-44c0-ba4b-1aeebf5874cf</tstamps>
     </comp>
     <comp ref="C502">
-      <value>2.2u / 63V film</value>
-      <footprint>Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2</footprint>
+      <value>2.2u / 16V film</value>
+      <footprint>Ardor_Capacitor:C_Rubycon_MU_3225</footprint>
+      <datasheet>https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf</datasheet>
       <fields>
-        <field name="MPN">WIMA MKS2C042201K00KSSD</field>
-        <field name="Footprint">Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2</field>
-        <field name="Datasheet"/>
+        <field name="MPN">Rubycon 16MU225KB23225</field>
+        <field name="Footprint">Ardor_Capacitor:C_Rubycon_MU_3225</field>
+        <field name="Datasheet">https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf</field>
         <field name="Description"/>
       </fields>
       <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
-      <property name="MPN" value="WIMA MKS2C042201K00KSSD"/>
+      <property name="MPN" value="Rubycon 16MU225KB23225"/>
       <property name="Sheetname" value="05 / Line and amp feed"/>
       <property name="Sheetfile" value="05_Line_Amp.kicad_sch"/>
       <property name="ki_keywords" value="cap capacitor"/>
@@ -1599,16 +1602,17 @@
       <tstamps>db6aa02c-d648-44a4-aea2-6616fe44d7e6 9d9cb4ee-6788-4458-8f51-c048063ba559 77ec894e-02e1-4055-b181-1a8001a39b4b</tstamps>
     </comp>
     <comp ref="C601">
-      <value>2.2u / 63V film</value>
-      <footprint>Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2</footprint>
+      <value>2.2u / 16V film</value>
+      <footprint>Ardor_Capacitor:C_Rubycon_MU_3225</footprint>
+      <datasheet>https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf</datasheet>
       <fields>
-        <field name="MPN">WIMA MKS2C042201K00KSSD</field>
-        <field name="Footprint">Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2</field>
-        <field name="Datasheet"/>
+        <field name="MPN">Rubycon 16MU225KB23225</field>
+        <field name="Footprint">Ardor_Capacitor:C_Rubycon_MU_3225</field>
+        <field name="Datasheet">https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf</field>
         <field name="Description"/>
       </fields>
       <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
-      <property name="MPN" value="WIMA MKS2C042201K00KSSD"/>
+      <property name="MPN" value="Rubycon 16MU225KB23225"/>
       <property name="Sheetname" value="06 / Stereo headphones"/>
       <property name="Sheetfile" value="06_Headphones.kicad_sch"/>
       <property name="ki_keywords" value="cap capacitor"/>
@@ -1617,16 +1621,17 @@
       <tstamps>33b13f27-fde9-4b2a-aeb2-85024039b783</tstamps>
     </comp>
     <comp ref="C602">
-      <value>2.2u / 63V film</value>
-      <footprint>Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2</footprint>
+      <value>2.2u / 16V film</value>
+      <footprint>Ardor_Capacitor:C_Rubycon_MU_3225</footprint>
+      <datasheet>https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf</datasheet>
       <fields>
-        <field name="MPN">WIMA MKS2C042201K00KSSD</field>
-        <field name="Footprint">Capacitor_THT:C_Rect_L7.2mm_W7.2mm_P5.00mm_FKS2_FKP2_MKS2_MKP2</field>
-        <field name="Datasheet"/>
+        <field name="MPN">Rubycon 16MU225KB23225</field>
+        <field name="Footprint">Ardor_Capacitor:C_Rubycon_MU_3225</field>
+        <field name="Datasheet">https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf</field>
         <field name="Description"/>
       </fields>
       <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
-      <property name="MPN" value="WIMA MKS2C042201K00KSSD"/>
+      <property name="MPN" value="Rubycon 16MU225KB23225"/>
       <property name="Sheetname" value="06 / Stereo headphones"/>
       <property name="Sheetfile" value="06_Headphones.kicad_sch"/>
       <property name="ki_keywords" value="cap capacitor"/>
@@ -2398,7 +2403,7 @@
   </libparts>
   <libraries>
     <library logical="Ardor">
-      <uri>/Users/bbalazs/.codex/.chatgpt-projects/g-p-6a9c6ad4cd188191809af603c7f69f9e/ardor-io/Ardor.kicad_sym</uri>
+      <uri>/workspace/hardware/aaa/ardor-io/Ardor.kicad_sym</uri>
     </library>
   </libraries>
   <nets>

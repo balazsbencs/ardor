@@ -33,9 +33,13 @@ Testpoints are labeled 5V A (TP101), 3V3 ADC (TP102), GND (TP103), MIDI RX (TP20
 - `placement.csv`: component positions measured from the upper-left outline corner.
 - `drc.json`: KiCad 9.0.2 check with all track errors, schematic parity and all severities enabled. **Zero violations, zero unconnected items, zero schematic-parity issues.** No DRC exclusions were added.
 - `connectivity-audit.json`: independent comparison of all **276 numbered pad/net assignments** against the supplied schematic netlist, including all 95 electrical components.
-- `compact.dsn` / `compact.ses`: initial local routing exchange files. The final KiCad board additionally contains ground pours, accepted stitching vias, widened traces and final legends.
+- `compact.dsn` / `compact.ses`: historical local routing exchange files from before the SMD capacitor conversion. The final KiCad board additionally contains ground pours, accepted stitching vias, widened traces, final legends and the SMD capacitor conversion. See [SMD_CAPACITORS.md](SMD_CAPACITORS.md) for the current parts and local routing repair.
 
 The board is electrically checked in CAD, not bench-qualified. The existing analog/audio, MIDI, ESD and assembly release checks in `../DESIGN_NOTES.md` still apply.
+
+## SMD capacitor update
+
+The five audio coupling capacitors now use Rubycon 16MU225KB23225, 2.2 µF / 16 V SMD film. `schematic-netlist.xml` is the current schematic export; `smd-capacitor-audit.json` verifies the new parts and lands. The 90 × 64 mm outline and connector positions are retained.
 
 ## Rebuilding (overwrites board routing)
 

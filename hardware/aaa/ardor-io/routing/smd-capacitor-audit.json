@@ -1,0 +1,31 @@
+{
+  "references": [
+    "C401",
+    "C402",
+    "C502",
+    "C601",
+    "C602"
+  ],
+  "manufacturer_part": "Rubycon 16MU225KB23225",
+  "value": "2.2u / 16V film",
+  "tolerance_percent": 10,
+  "nonpolar": true,
+  "body_nominal_mm": [
+    3.2,
+    2.5,
+    1.8
+  ],
+  "body_max_height_mm": 2.0,
+  "footprint": "Ardor_Capacitor:C_Rubycon_MU_3225",
+  "land_pad_mm": [
+    0.9,
+    2.3
+  ],
+  "pad_center_spacing_mm": 2.7,
+  "inner_gap_mm": 1.8,
+  "outer_span_mm": 3.6,
+  "body_area_reduction_percent": 84.6,
+  "smd_pads_checked": 10,
+  "bom_schematic_board_match": true,
+  "unchanged_capacitor_nets": true
+}
