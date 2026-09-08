@@ -15,14 +15,14 @@
   "drc_violations": 0,
   "unconnected_items": 0,
   "schematic_parity_issues": 0,
-  "track_segments": 693,
-  "vias": 71,
+  "track_segments": 706,
+  "vias": 79,
   "track_widths_mm": {
     "0.15": 13,
-    "0.2": 415,
+    "0.2": 425,
     "0.25": 7,
     "0.3": 33,
-    "0.4": 204,
+    "0.4": 207,
     "0.6": 21
   },
   "kicad_version": "9.0.2"
