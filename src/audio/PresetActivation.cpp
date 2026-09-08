@@ -38,6 +38,43 @@ PresetActivationOutcome prepareAndActivateDraft(
   return outcome;
 }
 
+PresetActivationOutcome prepareAndActivateWdwDraft(
+  std::unique_ptr<PedalEngine>& liveEngine,
+  const ChainPlan& dryPlan,
+  const ChainPlan& wetPlan,
+  const WdwRoutingBuildOptions& options,
+  float masterVolume,
+  const EngineReplaceCallback& replaceEngine,
+  WdwRoutingBuildReport* report)
+{
+  PresetActivationOutcome outcome;
+  if (liveEngine && liveEngine->looperSessionOpen()) {
+    outcome.status = PresetActivationStatus::LooperLocked;
+    outcome.error = "close the loop session before changing presets";
+    return outcome;
+  }
+
+  auto nextEngine = std::make_unique<PedalEngine>();
+  WdwRoutingBuildReport localReport;
+  if (!applyWdwRouting(*nextEngine, dryPlan, wetPlan, options, localReport, outcome.error)) {
+    outcome.status = PresetActivationStatus::PreparationFailed;
+    return outcome;
+  }
+  if (report) *report = localReport;
+
+  nextEngine->setMasterVolume(
+    std::isfinite(masterVolume) ? std::max(0.0f, masterVolume) : 1.0f);
+  outcome.replacementResult = replaceEngine(*nextEngine);
+  if (outcome.replacementResult != EngineReplaceResult::Activated) {
+    outcome.status = PresetActivationStatus::BackendRejected;
+    return outcome;
+  }
+
+  liveEngine = std::move(nextEngine);
+  outcome.status = PresetActivationStatus::Activated;
+  return outcome;
+}
+
 PresetActivationOutcome prepareAndActivatePreset(
   std::unique_ptr<PedalEngine>& liveEngine,
   ActivePresetSelection& activeSelection,

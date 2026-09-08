@@ -1,0 +1,122 @@
+Two-lane wet/dry/wet pair-executor validation
+Date: 2026-09-08
+Target: Raspberry Pi at 192.168.88.12 (aarch64, service stopped during probe)
+
+This run uses the new pair-aware executor.  The dry and wet workers share one
+generation ring, so publication can only copy a complete dry/wet pair from the
+same input generation.  It replaces the earlier independent-executor probe,
+which could report a generation mismatch when one lane completed first.
+
+Measured topology
+  Dry lane: Rat -> NAM (JCM800) -> dense synthetic 8192-frame cab IR
+  Wet lane: NAM (Ampeg/Dumble) -> dense synthetic 8192-frame cab IR
+             -> stereo digital delay -> stereo room reverb
+  Audio callback: CPU 2, SCHED_FIFO priority 60
+  Dry worker: CPU 0, wet worker: CPU 3, SCHED_FIFO priority 69
+  Pipeline: two bounded slots, paced 48 kHz, 64-frame blocks
+  Publication: pair-complete only; one startup silence block; no raw-input bypass
+
+Run: 200 warmup blocks plus 5,000 timed blocks
+
+  pair-ready blocks             5,199 / 5,200
+  pair underflows               1
+  pair submission misses        0
+  initial silence blocks        1
+  callback mean / p99 / p999    10.433 / 16.796 / 19.722 us
+  callback maximum              20.574 us
+  callback deadline misses      0 / 5,000
+  dry worker calls, mean / max  5,200; 961.986 / 1,275.241 us
+  wet worker calls, mean / max  5,200; 739.161 / 1,061.481 us
+  worker CPUs observed          dry 0, wet 3
+  non-finite/fault blocks       0 / 0 / 0
+
+The single underflow is the expected startup condition; the first output is
+silence and no stale or raw signal is emitted.  After startup every published
+output is a generation-matched pair, and the bounded ring recorded no missed
+submissions.  The Pi's ardor-pedal telemetry remained healthy after restart:
+over=0, gaps=0, bypassed=0, worker_over=0, nonfinite=0, block_mismatch=0.
+
+Stress follow-up
+  A 20,000-block / 64-frame run still had zero submission misses and zero
+  deadline misses, but recorded 14 bounded pair underflows (one startup plus
+  occasional one-block holds) while the Rat-enabled dry worker reached
+  1,623.648 us; maximum observed pair age was one block.  This confirms that
+  64 frames is usable only with the explicit hold/silence policy; it is not the
+  safest zero-underflow admission point.
+  A 20,000-block / 128-frame run had one startup underflow, zero submission
+  misses, zero deadline misses, and no non-finite blocks.  Its worker maxima
+  were 2,355.834 us dry and 1,814.982 us wet against a 2,666.667-us quantum;
+  callback mean / p99 / max were 23.498 / 51.593 / 692.315 us, and maximum
+  pair age was zero after the startup block.
+  The 128-frame result is therefore the preferred default for this exact
+  topology; 64 remains an opt-in mode subject to runtime underflow telemetry.
+
+Program-boundary follow-up
+  The feasibility harness was then moved behind `WdwRoutingProgram`, including
+  dry mono conversion, wet stereo preservation, fixed alignment buffers, and
+  the final mix.  A 20,000-block / 128-frame run produced 20,495 matched pairs,
+  five bounded one-block underflows, zero submission misses, zero deadline
+  misses, and zero non-finite blocks.  Maximum pair age was one block; worker
+  maxima were 2,626.907 us dry and 2,099.389 us wet against a 2,666.667-us
+  quantum.  The callback mean / p99 / max were 31.595 / 601.963 / 870.926 us.
+  The corresponding machine-readable row is in
+  `benchmark-results/wdw-program-feasibility-pi4-20260908-128-20k.csv`.
+
+Current-source rerun
+  After the final program overflow-guard and test-harness updates, the same
+  20,000-block / 128-frame paced run produced 20,499 matched pairs, one
+  expected startup underflow, zero submission misses, zero callback deadline
+  misses, and zero non-finite blocks.  Maximum pair age was zero after startup;
+  worker maxima were 2,358.537 us dry and 1,806.556 us wet.  Callback mean /
+  p99 / max were 31.192 / 596.388 / 687.352 us.  The current-source CSV is
+  `benchmark-results/wdw-program-feasibility-pi4-20260908-128-20k-current.csv`.
+
+Measured-latency rerun
+  The harness now probes each prepared lane with a control-thread impulse,
+  resets both chains, and passes the measured first-arrival values into the
+  program's fixed alignment buffers.  The exact 20,000-block / 128-frame Pi
+  run measured dry latency 0 frames and wet latency 31 frames, then produced
+  20,497 matched pairs, three bounded one-block underflows, zero submission
+  misses, zero callback deadline misses, and zero non-finite blocks.  Worker
+  maxima were 2,353.426 us dry and 1,900.056 us wet; callback mean / p99 /
+  max were 32.170 / 610.908 / 756.018 us.  The result is in
+  `benchmark-results/wdw-program-feasibility-pi4-20260908-128-20k-calibrated.csv`.
+
+Three-slot admission follow-up
+  Repeating the calibrated run with a three-slot pair ring reduced the result
+  to the expected single startup underflow, with zero later pair age,
+  submission misses, callback deadline misses, and non-finite blocks.  Worker
+  maxima were 2,339.389 us dry and 1,829.333 us wet; callback mean / p99 /
+  max were 33.417 / 608.500 / 736.611 us.  The additional slot is a small
+  bounded-memory cost and is the preferred Pi admission default; two slots
+  remain useful for memory-constrained experiments.  CSV:
+  `benchmark-results/wdw-program-feasibility-pi4-20260908-128-20k-calibrated-slots3.csv`.
+
+Longer three-slot stress follow-up
+  A 60,000-block / 128-frame paced run with the exact Rat + two-NAM + two-cab
+  + delay/reverb program produced 60,199 matched pairs out of 60,200 calls,
+  one startup underflow, zero submission misses, zero callback deadline
+  misses, zero non-finite blocks, and zero post-startup pair age.  Worker
+  maxima were 2,364.278 us dry and 1,801.945 us wet against a 2,666.667-us
+  quantum; callback mean / p99 / max were 19.923 / 28.148 / 56.982 us.  The
+  machine-readable result is
+  `benchmark-results/wdw-program-feasibility-pi4-20260908-128-60k-calibrated-slots3.csv`.
+
+Host validation also passed the full 47-test suite; the WDW pair/program and
+PedalEngine lifecycle smoke tests pass under ThreadSanitizer and ASan/UBSan,
+including the independent serial-reference comparison.  The ARM contract
+smoke also passes on the Pi, whose service telemetry remains healthy after
+restart.  This is still a prepared-program integration, not preset-driven live
+activation.  The Pi image currently has no WAV/IR/AIFF/FLAC cabinet assets, so
+the measured runs use the dense synthetic 8192-frame IR; actual-asset and
+  one-million-block admission remain.  The control-thread WDW builder and
+  stopped-audio activation smoke also pass on ARM; they enforce the two-lane
+  block contract and perform first-arrival calibration before worker startup.
+  After the longer probe the live service was still running with
+  `callbacks=2276863 over=0 gaps=0 max=0.82ms avg=0.47ms worker_over=0
+  nonfinite=0 block_mismatch=0` against its 1.33-ms callback budget.
+
+  Final admission follow-up is recorded in
+  `wdw-feasibility-pi4-20260908-summary.txt`: a one-million-block run with a
+  production-loader WAV proxy and an all-25-model-pair screen completed on
+  2026-09-09, after which the service was restarted with healthy telemetry.

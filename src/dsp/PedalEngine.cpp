@@ -326,6 +326,9 @@ void PedalEngine::prepareBlockSize(size_t frames)
   if (frames == 0 || blockSize_ == frames) {
     return;
   }
+  if (wdwRouting_ && wdwRouting_->blockSize() != frames) {
+    return;
+  }
   blockSize_ = frames;
   sanitizedInput_.assign(frames, 0.0f);
   gainedInput_.assign(frames, 0.0f);
@@ -336,6 +339,8 @@ void PedalEngine::prepareBlockSize(size_t frames)
 
 void PedalEngine::clearEffects()
 {
+  flexibleRouting_.reset();
+  wdwRouting_.reset();
   chain_.clear();
 }
 
@@ -447,23 +452,38 @@ uint64_t PedalEngine::blockSizeMismatchCount() const noexcept
 
 uint64_t PedalEngine::nonFiniteBlockCount() const noexcept
 {
+  if (wdwRouting_) return wdwRouting_->nonFiniteBlockCount();
+  if (flexibleRouting_) return flexibleRouting_->nonFiniteBlockCount();
   return chain_.nonFiniteBlockCount();
 }
 
 uint64_t PedalEngine::parallelWaitOverBudgetCount() const noexcept
 {
+  if (wdwRouting_) return wdwRouting_->parallelWaitOverBudgetCount();
+  if (flexibleRouting_) return flexibleRouting_->parallelWaitOverBudgetCount();
   return chain_.parallelWaitOverBudgetCount();
 }
 
 std::string PedalEngine::firstNonFiniteBlockId() const
 {
+  if (wdwRouting_) return wdwRouting_->firstNonFiniteBlockId();
+  if (flexibleRouting_) return flexibleRouting_->firstNonFiniteBlockId();
   return chain_.firstNonFiniteBlockId();
 }
 
 ClipDiagnosticsSnapshot PedalEngine::takeClipDiagnostics()
 {
   ClipDiagnosticsSnapshot diagnostics;
-  auto chainDiagnostics = chain_.takeClipDiagnostics();
+  std::vector<ClipStageSnapshot> chainDiagnostics;
+  if (wdwRouting_) {
+    auto routingDiagnostics = wdwRouting_->takeClipDiagnostics();
+    chainDiagnostics = std::move(routingDiagnostics.stages);
+  } else if (flexibleRouting_) {
+    auto routingDiagnostics = flexibleRouting_->takeClipDiagnostics();
+    chainDiagnostics = std::move(routingDiagnostics.stages);
+  } else {
+    chainDiagnostics = chain_.takeClipDiagnostics();
+  }
   diagnostics.stages.reserve(chainDiagnostics.size() + 2);
   diagnostics.stages.push_back(takeLevel(inputPeakBits_, inputOverloadFrames_,
                                          SignalStageKind::Input, {}));
@@ -479,6 +499,8 @@ ClipDiagnosticsSnapshot PedalEngine::takeClipDiagnostics()
 void PedalEngine::replacePreparedProgram(PedalEngine&& prepared)
 {
   chain_ = std::move(prepared.chain_);
+  flexibleRouting_ = std::move(prepared.flexibleRouting_);
+  wdwRouting_ = std::move(prepared.wdwRouting_);
   blockSize_ = prepared.blockSize_;
   sanitizedInput_ = std::move(prepared.sanitizedInput_);
   gainedInput_ = std::move(prepared.gainedInput_);
@@ -506,13 +528,95 @@ void PedalEngine::replacePreparedProgram(PedalEngine&& prepared)
   // unexpectedly change hardware volume or introduce a gain step.
 }
 
+bool PedalEngine::installPreparedRouting(
+  std::unique_ptr<FlexibleRoutingProgram> program, std::string& error)
+{
+  error.clear();
+  if (!program || !program->prepared()) {
+    error = "flexible routing installation requires a prepared program";
+    return false;
+  }
+  if (program->blockSize() == 0) {
+    error = "flexible routing installation requires a non-zero block size";
+    return false;
+  }
+  if (blockSize_ == 0) {
+    prepareBlockSize(program->blockSize());
+  }
+  if (blockSize_ != program->blockSize()) {
+    error = "flexible routing block size does not match the engine quantum";
+    return false;
+  }
+
+  // The two program types are mutually exclusive. Destroy the old worker
+  // graph before clearing the legacy chain, then publish the new immutable
+  // owner while audio is stopped as required by the API contract.
+  flexibleRouting_.reset();
+  wdwRouting_.reset();
+  chain_.clear();
+  flexibleRouting_ = std::move(program);
+  return true;
+}
+
+bool PedalEngine::flexibleRoutingEnabled() const noexcept
+{
+  return static_cast<bool>(flexibleRouting_);
+}
+
+void PedalEngine::clearPreparedRouting()
+{
+  flexibleRouting_.reset();
+  wdwRouting_.reset();
+}
+
+bool PedalEngine::installPreparedWdwRouting(
+  std::unique_ptr<WdwRoutingProgram> program, std::string& error)
+{
+  error.clear();
+  if (!program || !program->prepared()) {
+    error = "WDW routing installation requires a prepared program";
+    return false;
+  }
+  if (program->blockSize() == 0) {
+    error = "WDW routing installation requires a non-zero block size";
+    return false;
+  }
+  if (blockSize_ == 0) {
+    prepareBlockSize(program->blockSize());
+  }
+  if (blockSize_ != program->blockSize()) {
+    error = "WDW routing block size does not match the engine quantum";
+    return false;
+  }
+
+  flexibleRouting_.reset();
+  wdwRouting_.reset();
+  chain_.clear();
+  wdwRouting_ = std::move(program);
+  return true;
+}
+
+bool PedalEngine::wdwRoutingEnabled() const noexcept
+{
+  return static_cast<bool>(wdwRouting_);
+}
+
+void PedalEngine::clearPreparedWdwRouting()
+{
+  wdwRouting_.reset();
+}
+
 void PedalEngine::reset()
 {
-  chain_.reset();
+  if (wdwRouting_) wdwRouting_->reset();
+  else if (flexibleRouting_) flexibleRouting_->reset();
+  else chain_.reset();
 }
 
 size_t PedalEngine::tailFrames() const noexcept
 {
+  if (wdwRouting_) return wdwRouting_->tailFrames();
+  if (flexibleRouting_) return flexibleRouting_->tailFrames();
   return chain_.tailFrames();
 }
 
@@ -577,8 +681,21 @@ std::pair<float, float> PedalEngine::process(float input)
   const float safetyLimit = safetyLimit_.load(std::memory_order_relaxed);
   const float afterGain = input * smoothGain(currentInputGain_, inputGain);
   observeLevel(inputPeakBits_, inputOverloadFrames_, afterGain, afterGain);
-  const auto wet = chain_.process({afterGain, afterGain}, smoothGain(currentCabLevel_, cabLevel),
-                                  smoothGain(currentCabMix_, cabMix));
+  StereoSample wet{};
+  if (wdwRouting_) {
+    // The WDW program owns the dry/wet lane mix. The host-level effects
+    // bypass control still selects raw input when explicitly enabled.
+    wdwRouting_->processSample(afterGain, wet.left, wet.right);
+  } else if (flexibleRouting_) {
+    float wetLeft = 0.0f;
+    float wetRight = 0.0f;
+    if (flexibleRouting_->processSample(afterGain, wetLeft, wetRight)) {
+      wet = {wetLeft, wetRight};
+    }
+  } else {
+    wet = chain_.process({afterGain, afterGain}, smoothGain(currentCabLevel_, cabLevel),
+                         smoothGain(currentCabMix_, cabMix));
+  }
   const float output = smoothGain(currentOutputGain_, outputGain);
   StereoSample mixed = equalPowerMix({input, input}, {wet.left * output, wet.right * output},
                                      smoothEffectsMix(effectsMix));
@@ -644,7 +761,24 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
     inputOverloads += magnitude > 1.0f ? 1U : 0U;
   }
   commitLevel(inputPeakBits_, inputOverloadFrames_, inputPeak, inputOverloads);
-  chain_.processBlock(gainedInput_.data(), left, right, frames, cabLevelBlock_.data(), cabMixBlock_.data());
+  bool routingProcessed = false;
+  if (wdwRouting_) {
+    WdwRoutingProcessResult routingResult;
+    routingProcessed = wdwRouting_->processBlock(gainedInput_.data(), left, right,
+                                                  frames, routingResult);
+  } else if (flexibleRouting_) {
+    FlexibleRoutingGraphProcessResult routingResult;
+    routingProcessed = flexibleRouting_->processBlock(gainedInput_.data(), left, right,
+                                                       frames, routingResult);
+  } else {
+    chain_.processBlock(gainedInput_.data(), left, right, frames,
+                        cabLevelBlock_.data(), cabMixBlock_.data());
+    routingProcessed = true;
+  }
+  if (!routingProcessed) {
+    std::fill(left, left + frames, 0.0f);
+    std::fill(right, right + frames, 0.0f);
+  }
   // Build the complete preset program first. The host looper captures this
   // post-output-gain signal, but deliberately remains before master volume and
   // the safety limiter so changing stage volume never alters stored audio.

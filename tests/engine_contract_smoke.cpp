@@ -245,6 +245,69 @@ int main()
               && looperTelemetry.masterFrames == 8,
             "host should return current looper telemetry to the control thread");
 
+    // The fixed two-lane WDW program installs through the same stopped-audio
+    // boundary as the experimental routing program and remains compatible
+    // with both block and scalar engine entry points in direct mode.
+    ardor::PedalEngine wdwEngine;
+    wdwEngine.prepareBlockSize(4);
+    wdwEngine.setSafetyLimiterEnabled(false);
+    auto wdwProgram = std::make_unique<ardor::WdwRoutingProgram>();
+    ardor::WdwRoutingProgramOptions wdwOptions;
+    wdwOptions.executor.blockSize = 4;
+    wdwOptions.executor.sampleRate = 48000.0;
+    wdwOptions.executor.mode = ardor::WdwPairExecutionMode::Direct;
+    wdwOptions.executor.requireWorkerSetup = false;
+    wdwOptions.executor.requireRealtimeScheduling = false;
+    wdwOptions.executor.requireAffinity = false;
+    wdwOptions.mix = {1.0f, 0.0f, true, 0.0f, 1.0f, false};
+    std::string wdwError;
+    require(wdwProgram->prepare(
+              {"dry", std::make_unique<ardor::RuntimeChain>(), -1},
+              {"wet", std::make_unique<ardor::RuntimeChain>(), -1},
+              wdwOptions, wdwError),
+            "WDW test program should prepare");
+    require(wdwEngine.installPreparedWdwRouting(std::move(wdwProgram), wdwError),
+            "engine should install a prepared WDW program");
+    require(wdwEngine.wdwRoutingEnabled() && !wdwEngine.flexibleRoutingEnabled(),
+            "engine should expose the WDW route as active");
+    const float wdwInput[] = {0.25f, -0.25f, 0.5f, -0.5f};
+    float wdwLeft[4]{};
+    float wdwRight[4]{};
+    wdwEngine.processBlock(wdwInput, wdwLeft, wdwRight, 4);
+    for (int i = 0; i < 4; ++i) {
+      require(near(wdwLeft[i], wdwInput[i] * 0.70710678f),
+              "WDW block left output should preserve centered dry pan");
+      require(near(wdwRight[i], wdwInput[i] * 0.70710678f),
+              "WDW block right output should preserve centered dry pan");
+    }
+    const auto wdwScalar = wdwEngine.process(0.5f);
+    require(near(wdwScalar.first, 0.5f * 0.70710678f)
+              && near(wdwScalar.second, 0.5f * 0.70710678f),
+            "direct WDW program should support scalar engine processing");
+    wdwEngine.setEffectsBypassed(true);
+    std::pair<float, float> wdwBypassed{};
+    for (int i = 0; i < 2400; ++i) wdwBypassed = wdwEngine.process(0.5f);
+    require(near(wdwBypassed.first, 0.5f) && near(wdwBypassed.second, 0.5f),
+            "explicit WDW bypass should select the raw host input");
+    wdwEngine.clearPreparedWdwRouting();
+    require(!wdwEngine.wdwRoutingEnabled(), "WDW route should clear on request");
+
+    ardor::PedalEngine mismatchEngine;
+    mismatchEngine.prepareBlockSize(4);
+    auto mismatchedProgram = std::make_unique<ardor::WdwRoutingProgram>();
+    ardor::WdwRoutingProgramOptions mismatchedOptions = wdwOptions;
+    mismatchedOptions.executor.blockSize = 8;
+    require(mismatchedProgram->prepare(
+              {"dry", std::make_unique<ardor::RuntimeChain>(), -1},
+              {"wet", std::make_unique<ardor::RuntimeChain>(), -1},
+              mismatchedOptions, wdwError),
+            "mismatched WDW program should prepare independently");
+    require(!mismatchEngine.installPreparedWdwRouting(std::move(mismatchedProgram),
+                                                      wdwError),
+            "engine should reject a mismatched WDW quantum");
+    require(!mismatchEngine.wdwRoutingEnabled(),
+            "rejected WDW route must not become active");
+
     return 0;
   } catch (const std::exception& error) {
     std::cerr << "engine_contract_smoke failed: " << error.what() << '\n';

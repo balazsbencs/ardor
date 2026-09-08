@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ardor — wet/dry/wet routing mockups</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@300;400;500;600;700&family=Saira:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+  WDW ROUTING MOCKUP — static layout only.
+
+  This page is deliberately outside the production LVGL and manager code. It
+  records the proposed two-lane information architecture before interaction
+  wiring: the device stays glanceable, while the desktop manager exposes the
+  complete lane topology and admission telemetry.
+*/
+:root {
+  --plate: #212528;
+  --plate2: #2a2f33;
+  --plate3: #191c1f;
+  --engrave: #e2e4e3;
+  --engrave-lo: #8d9499;
+  --engrave-off: #5b6266;
+  --rule: #3b4247;
+  --lamp: #d8422f;
+  --warn: #c9973f;
+  --fault: #bb9186;
+  --dry: #7fa6c8;
+  --wet: #c9a06a;
+  --amp: #a8814e;
+  --cab: #939a9e;
+  --util: #5f7f9c;
+  --mod: #5d8f80;
+  --dly: #8175a0;
+  --verb: #a8785c;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #2b2b2b; color: #bbb; font-family: Saira, sans-serif; padding: 40px 24px 92px; }
+.doc { max-width: 1440px; margin: 0 auto; }
+.doc h1 { color: var(--engrave); font: 700 38px/1 'Saira Condensed', sans-serif;
+  letter-spacing: .08em; text-transform: uppercase; }
+.doc .lede { color: #9a9a9a; font: 15px/1.6 system-ui, sans-serif; max-width: 76ch; margin-top: 12px; }
+.doc .lede b { color: #d8d8d8; font-weight: 600; }
+.cap { display: flex; align-items: baseline; gap: 14px; margin: 46px 0 11px; }
+.cap b { color: #dcdcdc; font: 600 20px/1 'Saira Condensed', sans-serif; letter-spacing: .09em; text-transform: uppercase; }
+.cap span { color: #858585; font: 13px system-ui, sans-serif; }
+.stage-shell { position: relative; height: 1px; }
+.stage { overflow: hidden; transform-origin: top left; box-shadow: 0 16px 44px rgba(0,0,0,.6); }
+.note { color: #8f8f8f; font: 13.5px/1.65 system-ui, sans-serif; margin-top: 14px; max-width: 84ch; }
+.note b { color: #d8d8d8; font-weight: 600; }
+
+/* Shared plate vocabulary. */
+.screen { position: relative; overflow: hidden; background: var(--plate); color: var(--engrave); }
+.device { width: 1280px; height: 720px; font-family: 'Saira Condensed', sans-serif; }
+.manager { width: 1440px; height: 900px; font-family: Saira, sans-serif; }
+.top-rail { position: absolute; top: 0; left: 0; right: 0; height: 52px; border-bottom: 1px solid var(--rule);
+  display: flex; align-items: center; gap: 20px; padding: 0 28px; }
+.top-rail .title { font-size: 19px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; }
+.top-rail .spacer { flex: 1; }
+.legend { color: var(--engrave-lo); font-size: 13px; font-weight: 500; letter-spacing: .26em; text-transform: uppercase; }
+.legend.strong { color: var(--engrave); }
+.lamp { display: inline-block; width: 11px; height: 11px; flex: none; background: var(--rule); }
+.lamp.live { background: var(--lamp); }
+.lamp.ok { background: var(--mod); }
+.lamp.warn { background: var(--warn); }
+.bottom-rail { position: absolute; bottom: 0; left: 0; right: 0; height: 88px; border-top: 1px solid var(--rule);
+  display: flex; align-items: center; gap: 11px; padding: 0 28px; }
+.button { border: 1px solid var(--rule); background: var(--plate2); color: var(--engrave); font: 600 15px/1 'Saira Condensed', sans-serif;
+  letter-spacing: .17em; padding: 12px 17px; text-transform: uppercase; }
+.button.primary { border-color: var(--engrave); background: var(--engrave); color: var(--plate); }
+.button.small { font-size: 13px; padding: 10px 14px; }
+.value { color: var(--engrave); font: 300 21px/1 Saira, sans-serif; }
+.value small { color: var(--engrave-lo); font: 300 12px/1 Saira, sans-serif; letter-spacing: .08em; }
+.measure { display: flex; min-width: 165px; flex-direction: column; gap: 6px; }
+.measure .line { position: relative; height: 12px; border-bottom: 1px solid var(--rule); }
+.measure .line:before { content: ''; position: absolute; left: 0; bottom: 0; width: 54%; height: 3px; background: var(--engrave); }
+.measure .line:after { content: ''; position: absolute; left: 54%; bottom: -3px; width: 3px; height: 18px; background: var(--lamp); }
+.measure .labels { display: flex; justify-content: space-between; color: var(--engrave-lo); font: 11px Saira, sans-serif; }
+
+/* Device: one glanceable plate, with dry and wet identity replacing LEFT/RIGHT. */
+.device .routing { position: absolute; top: 52px; left: 0; right: 0; bottom: 88px; }
+.device .input, .device .output, .device .junction { position: absolute; z-index: 2; display: flex; align-items: center; justify-content: center;
+  background: var(--plate2); border: 1px solid var(--rule); color: var(--engrave-lo); font-size: 13px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; }
+.device .input { left: 28px; top: 218px; width: 72px; height: 64px; }
+.device .output { right: 28px; top: 218px; width: 84px; height: 64px; }
+.device .junction { left: 122px; top: 206px; width: 82px; height: 88px; color: var(--engrave); }
+.device .junction .name { text-align: center; font-size: 16px; line-height: 1.05; }
+.device .junction .name small { display: block; color: var(--engrave-lo); font-size: 10px; letter-spacing: .16em; margin-top: 5px; }
+.device .route { position: absolute; left: 204px; right: 112px; height: 1px; background: var(--rule); }
+.device .route.dry { top: 205px; }
+.device .route.wet { top: 367px; }
+.device .merge { position: absolute; right: 112px; top: 205px; width: 3px; height: 163px; background: var(--rule); }
+.device .lane { position: absolute; left: 218px; right: 138px; height: 145px; border: 1px solid var(--rule); background: var(--plate3); }
+.device .lane.dry { top: 106px; border-color: color-mix(in srgb, var(--dry) 65%, var(--rule)); }
+.device .lane.wet { top: 268px; border-color: color-mix(in srgb, var(--wet) 65%, var(--rule)); }
+.device .lane-label { position: absolute; left: 16px; top: 14px; width: 130px; }
+.device .lane-label .name { font-size: 18px; font-weight: 600; letter-spacing: .17em; text-transform: uppercase; }
+.device .lane-label .detail { color: var(--engrave-lo); font: 12px/1.35 Saira, sans-serif; margin-top: 6px; }
+.device .lane.dry .lane-label .name { color: var(--dry); }
+.device .lane.wet .lane-label .name { color: var(--wet); }
+.device .lane-label .lamp { margin-right: 7px; vertical-align: 1px; width: 8px; height: 8px; }
+.device .lane.dry .lane-label .lamp { background: var(--dry); }
+.device .lane.wet .lane-label .lamp { background: var(--wet); }
+.device .chain { position: absolute; left: 160px; right: 18px; top: 18px; height: 99px; display: flex; align-items: center; }
+.device .lane .wire { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--rule); }
+.device .node { position: relative; z-index: 1; width: 126px; height: 94px; flex: none; margin-right: 10px; border: 1px solid var(--rule); background: var(--plate2); }
+.device .node .head { height: 24px; display: flex; align-items: center; padding: 0 9px; color: var(--plate); font-size: 11px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; }
+.device .node .body { padding: 11px 10px 7px; }
+.device .node .body .name { color: var(--engrave); font-size: 20px; font-weight: 600; line-height: .98; text-transform: uppercase; }
+.device .node .body .asset { color: var(--engrave-lo); font: 11px/1.2 Saira, sans-serif; margin-top: 6px; text-transform: uppercase; }
+.device .node .tick { position: absolute; left: 10px; right: 10px; bottom: 8px; height: 3px; background: var(--rule); }
+.device .node .tick:before { content: ''; display: block; width: 32%; height: 3px; background: var(--amp); }
+.device .node.cab .head { background: var(--cab); }
+.device .node.cab .tick:before { background: var(--cab); }
+.device .node.amp .head { background: var(--amp); }
+.device .node.fx .head { background: var(--dly); }
+.device .node.reverb .head { background: var(--verb); }
+.device .lane.wet .node.fx { width: 112px; }
+.device .lane.wet .node.reverb { width: 112px; }
+.device .lane .end { position: relative; z-index: 1; width: 18px; height: 18px; flex: none; border: 2px solid var(--engrave-lo); background: var(--plate3); }
+.device .lane .lane-control { position: absolute; right: 18px; top: 17px; width: 112px; text-align: right; }
+.device .lane .lane-control .k { color: var(--engrave-lo); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; }
+.device .lane .lane-control .v { color: var(--engrave); font: 300 22px Saira, sans-serif; margin-top: 4px; }
+.device .lane .lane-control .v small { color: var(--engrave-lo); font-size: 12px; }
+.device .lane .lane-control .pan { margin-top: 10px; color: var(--engrave-lo); font: 11px Saira, sans-serif; letter-spacing: .1em; }
+.device .callout { position: absolute; left: 28px; top: 32px; color: var(--engrave-lo); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; }
+.device .callout b { color: var(--engrave); font-weight: 600; }
+.device .lane .add { position: absolute; left: 145px; top: 39px; width: 20px; height: 20px; border: 1px solid var(--rule); color: var(--engrave-lo); text-align: center; font: 15px/18px Saira, sans-serif; }
+.device .drymix, .device .wetmix { display: flex; align-items: center; gap: 13px; }
+.device .drymix { margin-left: 8px; }
+.device .wetmix { margin-left: 16px; }
+
+/* Manager: the same topology opened up for editing and admission review. */
+.manager { background: var(--plate3); }
+.manager .top-rail { height: 64px; padding: 0 32px; }
+.manager .top-rail .title { font-size: 22px; }
+.manager .top-rail .route-name { color: var(--engrave-lo); font-size: 15px; letter-spacing: .08em; }
+.manager .workspace { position: absolute; top: 64px; left: 0; right: 0; bottom: 68px; display: grid; grid-template-columns: 1fr 324px; }
+.manager .editor { padding: 28px 30px 22px; border-right: 1px solid var(--rule); }
+.manager .editor-head { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--rule); padding-bottom: 14px; }
+.manager .editor-head h2 { color: var(--engrave); font: 600 23px/1 'Saira Condensed', sans-serif; letter-spacing: .17em; text-transform: uppercase; }
+.manager .editor-head span { color: var(--engrave-lo); font: 12px Saira, sans-serif; }
+.manager .lane-row { position: relative; display: flex; align-items: center; gap: 0; min-height: 176px; border-bottom: 1px solid var(--rule); }
+.manager .lane-row .lane-name { width: 124px; flex: none; }
+.manager .lane-row .lane-name b { display: block; font: 600 17px/1 'Saira Condensed', sans-serif; letter-spacing: .19em; text-transform: uppercase; }
+.manager .lane-row .lane-name span { display: block; color: var(--engrave-lo); font: 12px/1.45 Saira, sans-serif; margin-top: 8px; max-width: 11ch; }
+.manager .lane-row.dry .lane-name b { color: var(--dry); }
+.manager .lane-row.wet .lane-name b { color: var(--wet); }
+.manager .lane-row .lane-line { position: absolute; left: 124px; right: 0; top: 88px; height: 1px; background: var(--rule); }
+.manager .lane-row .node { position: relative; z-index: 1; width: 164px; height: 116px; margin-right: 10px; border: 1px solid var(--rule); background: var(--plate2); }
+.manager .lane-row .node .head { height: 28px; display: flex; align-items: center; justify-content: space-between; padding: 0 11px; color: var(--plate); font: 600 12px 'Saira Condensed', sans-serif; letter-spacing: .18em; text-transform: uppercase; }
+.manager .lane-row .node .body { padding: 14px 13px; }
+.manager .lane-row .node .body b { display: block; color: var(--engrave); font: 600 22px/1 'Saira Condensed', sans-serif; text-transform: uppercase; }
+.manager .lane-row .node .body span { display: block; color: var(--engrave-lo); font: 12px/1.35 Saira, sans-serif; margin-top: 8px; }
+.manager .lane-row .node .strip { position: absolute; left: 13px; right: 13px; bottom: 11px; display: flex; gap: 3px; }
+.manager .lane-row .node .strip i { height: 3px; flex: 1; background: var(--rule); }
+.manager .lane-row .node .strip i:first-child { background: var(--amp); }
+.manager .lane-row .node.cab .head { background: var(--cab); }
+.manager .lane-row .node.cab .strip i:first-child { background: var(--cab); }
+.manager .lane-row .node.amp .head { background: var(--amp); }
+.manager .lane-row .node.fx .head { background: var(--dly); }
+.manager .lane-row .node.reverb .head { background: var(--verb); }
+.manager .lane-row .insert { position: relative; z-index: 1; width: 30px; height: 30px; margin-right: 10px; border: 1px solid var(--rule); color: var(--engrave-lo); text-align: center; font: 19px/27px Saira, sans-serif; background: var(--plate3); }
+.manager .lane-row .route-end { position: relative; z-index: 1; width: 20px; height: 20px; border: 2px solid var(--engrave-lo); background: var(--plate3); }
+.manager .editor-foot { display: flex; align-items: center; gap: 10px; padding-top: 18px; }
+.manager .editor-foot .hint { color: var(--engrave-lo); font: 12px Saira, sans-serif; margin-left: auto; }
+.manager .inspector { padding: 28px 24px; background: var(--plate); }
+.manager .inspector h3 { color: var(--engrave); font: 600 17px/1 'Saira Condensed', sans-serif; letter-spacing: .2em; text-transform: uppercase; padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
+.manager .inspector .section { padding: 18px 0; border-bottom: 1px solid var(--rule); }
+.manager .inspector .section-title { color: var(--engrave-lo); font: 600 11px Saira, sans-serif; letter-spacing: .2em; text-transform: uppercase; }
+.manager .mix-row { display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; align-items: center; margin-top: 13px; }
+.manager .mix-row label { color: var(--engrave-lo); font: 12px Saira, sans-serif; }
+.manager .mix-row strong { color: var(--engrave); font: 300 18px Saira, sans-serif; }
+.manager .mini-rail { grid-column: 1 / -1; position: relative; height: 12px; border-bottom: 1px solid var(--rule); }
+.manager .mini-rail:before { content: ''; position: absolute; left: 0; bottom: 0; width: 62%; height: 3px; background: var(--engrave); }
+.manager .mini-rail:after { content: ''; position: absolute; left: 62%; bottom: -3px; width: 3px; height: 18px; background: var(--lamp); }
+.manager .admit { margin-top: 14px; border: 1px solid var(--mod); background: var(--plate3); padding: 12px; }
+.manager .admit .status { display: flex; align-items: center; gap: 8px; color: var(--mod); font: 600 13px Saira, sans-serif; letter-spacing: .16em; text-transform: uppercase; }
+.manager .admit p { color: var(--engrave-lo); font: 12px/1.45 Saira, sans-serif; margin-top: 8px; }
+.manager .telemetry { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; margin-top: 14px; }
+.manager .telemetry dt { color: var(--engrave-lo); font: 11px Saira, sans-serif; }
+.manager .telemetry dd { color: var(--engrave); font: 300 14px Saira, sans-serif; text-align: right; }
+.manager .bottom-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 68px; border-top: 1px solid var(--rule); display: flex; align-items: center; gap: 11px; padding: 0 32px; }
+.manager .bottom-bar .spacer { flex: 1; }
+
+@media (max-width: 1500px) {
+  body { padding-left: 18px; padding-right: 18px; }
+  .stage { transform: scale(.76); }
+  .stage-shell { height: 684px; }
+}
+</style>
+</head>
+<body>
+<main class="doc">
+  <h1>Wet / dry / wet routing</h1>
+  <p class="lede"><b>Static layout mockups — no production UI wiring.</b> The proposed topology has two complete lanes:
+  a centred dry amp/cab path and a stereo wet amp/cab path with time-based effects. Direct input is never shown as an
+  output choice. The device view is a glanceable performance surface; the manager view is where lane editing, mix
+  placement and measured admission details live.</p>
+
+  <div class="cap"><b>1 · Device routing surface</b><span>1280 × 720 LVGL design grid · preset edit mode</span></div>
+  <div class="stage-shell"><div class="stage screen device">
+    <div class="top-rail">
+      <span class="title">Ardor</span><span class="legend">Preset 03 · WDW Wide</span><span class="spacer"></span>
+      <span class="legend">48 kHz · BLK 128</span><span class="legend strong"><i class="lamp live"></i>&nbsp; RUNNING</span>
+    </div>
+    <div class="routing">
+      <div class="callout"><b>INPUT</b> &nbsp; MONO &nbsp; / &nbsp; TWO-LANE RETURN</div>
+      <div class="input">IN</div>
+      <div class="junction"><div class="name">SPLIT<small>WDW</small></div></div>
+      <div class="route dry"></div><div class="route wet"></div><div class="merge"></div>
+      <div class="lane dry">
+        <div class="lane-label"><div class="name"><i class="lamp"></i>DRY</div><div class="detail">CENTER AMP / CAB<br>NO TIME EFFECTS</div></div>
+        <div class="chain"><div class="wire"></div><div class="add">+</div>
+          <div class="node amp"><div class="head">DISTORTION</div><div class="body"><div class="name">RAT</div><div class="asset">PRE DRIVE</div></div><div class="tick"></div></div>
+          <div class="node amp"><div class="head">NAM</div><div class="body"><div class="name">JCM 800</div><div class="asset">AMP MODEL</div></div><div class="tick"></div></div>
+          <div class="node cab"><div class="head">CAB IR</div><div class="body"><div class="name">4×12</div><div class="asset">V30 CLOSED</div></div><div class="tick"></div></div>
+          <div class="end"></div>
+        </div>
+        <div class="lane-control"><div class="k">DRY LEVEL</div><div class="v">0 <small>dB</small></div><div class="pan">PAN&nbsp;&nbsp; C</div></div>
+      </div>
+      <div class="lane wet">
+        <div class="lane-label"><div class="name"><i class="lamp"></i>WET</div><div class="detail">STEREO RETURN<br>TIME EFFECTS ONLY</div></div>
+        <div class="chain"><div class="wire"></div><div class="add">+</div>
+          <div class="node amp"><div class="head">NAM</div><div class="body"><div class="name">JCM 800</div><div class="asset">AMP MODEL</div></div><div class="tick"></div></div>
+          <div class="node cab"><div class="head">CAB IR</div><div class="body"><div class="name">4×12</div><div class="asset">V30 CLOSED</div></div><div class="tick"></div></div>
+          <div class="node fx"><div class="head">DELAY</div><div class="body"><div class="name">DIGITAL</div><div class="asset">20 ms · 38%</div></div><div class="tick"></div></div>
+          <div class="node reverb"><div class="head">REVERB</div><div class="body"><div class="name">ROOM</div><div class="asset">35% MIX</div></div><div class="tick"></div></div>
+          <div class="end"></div>
+        </div>
+        <div class="lane-control"><div class="k">WET LEVEL</div><div class="v">−6 <small>dB</small></div><div class="pan">WIDTH&nbsp;&nbsp; 120%</div></div>
+      </div>
+      <div class="output">OUT<br>STEREO</div>
+    </div>
+    <div class="bottom-rail">
+      <div class="drymix"><span class="legend">DRY</span><span class="value">0 <small>dB</small></span></div>
+      <div class="wetmix"><span class="legend">WET</span><span class="value">−6 <small>dB</small></span></div>
+      <div class="measure"><div class="labels"><span>WIDTH</span><span>120%</span></div><div class="line"></div></div>
+      <span class="spacer"></span><button class="button">GLOBAL</button><button class="button">MODULES</button><button class="button primary">DONE</button>
+    </div>
+  </div></div>
+  <p class="note"><b>Device rule:</b> lane color identifies the signal role, not a left/right output. Dry is a mono contribution
+  that can be panned; wet stays stereo after the cab. The split and join remain visible even when a lane is disabled, so
+  the player can reason about the no-direct-path safety rule at a glance.</p>
+
+  <div class="cap"><b>2 · Manager lane editor</b><span>desktop route authoring · admission and CPU placement visible</span></div>
+  <div class="stage-shell"><div class="stage screen manager">
+    <div class="top-rail"><span class="title">ROUTING</span><span class="route-name">PRESET 03 · WDW WIDE</span><span class="spacer"></span><span class="legend">48 kHz</span><span class="legend strong"><i class="lamp ok"></i>&nbsp; READY</span><button class="button small">SAVE</button></div>
+    <div class="workspace">
+      <section class="editor">
+        <div class="editor-head"><h2>Two lanes</h2><span>Each lane is a complete serial chain; changes prepare off the audio thread.</span></div>
+        <div class="lane-row dry"><div class="lane-name"><b>Dry</b><span>centre / pannable<br>no time effects</span></div><div class="lane-line"></div>
+          <div class="insert">+</div><div class="node amp"><div class="head">DISTORTION <span>RAT</span></div><div class="body"><b>Rat</b><span>Pre-stage · 72%</span></div><div class="strip"><i></i><i></i><i></i></div></div>
+          <div class="insert">+</div><div class="node amp"><div class="head">NAM <span>AMP</span></div><div class="body"><b>JCM 800</b><span>Neural capture</span></div><div class="strip"><i></i><i></i><i></i></div></div>
+          <div class="insert">+</div><div class="node cab"><div class="head">CAB IR <span>IR</span></div><div class="body"><b>4×12 V30</b><span>Mono capture</span></div><div class="strip"><i></i><i></i><i></i></div></div>
+          <div class="route-end"></div>
+        </div>
+        <div class="lane-row wet"><div class="lane-name"><b>Wet</b><span>stereo return<br>delay + reverb</span></div><div class="lane-line"></div>
+          <div class="insert">+</div><div class="node amp"><div class="head">NAM <span>AMP</span></div><div class="body"><b>JCM 800</b><span>Neural capture</span></div><div class="strip"><i></i><i></i><i></i></div></div>
+          <div class="insert">+</div><div class="node cab"><div class="head">CAB IR <span>IR</span></div><div class="body"><b>4×12 V30</b><span>Mono capture</span></div><div class="strip"><i></i><i></i><i></i></div></div>
+          <div class="insert">+</div><div class="node fx"><div class="head">DELAY <span>DLY</span></div><div class="body"><b>Digital</b><span>20 ms · 38%</span></div><div class="strip"><i></i><i></i><i></i></div></div>
+          <div class="insert">+</div><div class="node reverb"><div class="head">REVERB <span>REV</span></div><div class="body"><b>Room</b><span>35% mix</span></div><div class="strip"><i></i><i></i><i></i></div></div>
+          <div class="route-end"></div>
+        </div>
+        <div class="editor-foot"><button class="button">ADD LANE</button><button class="button">RESET</button><span class="hint">Drag a block between insertion points · no live rebuild</span></div>
+      </section>
+      <aside class="inspector">
+        <h3>Output mix</h3>
+        <div class="section">
+          <div class="section-title">Contribution levels</div>
+          <div class="mix-row"><label>Dry level</label><strong>0 dB</strong><div class="mini-rail"></div></div>
+          <div class="mix-row"><label>Dry pan</label><strong>Centre</strong><div class="mini-rail"></div></div>
+          <div class="mix-row"><label>Wet level</label><strong>−6 dB</strong><div class="mini-rail"></div></div>
+          <div class="mix-row"><label>Wet width</label><strong>120%</strong><div class="mini-rail"></div></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Admission</div>
+          <div class="admit"><div class="status"><i class="lamp ok"></i> READY TO LOAD</div><p>Both lanes measured before publication. The audio callback never waits for lane work.</p></div>
+          <dl class="telemetry"><dt>Dry latency</dt><dd>0 frames</dd><dt>Wet latency</dt><dd>31 frames</dd><dt>Audio CPU</dt><dd>2</dd><dt>Dry worker</dt><dd>0</dd><dt>Wet worker</dt><dd>3</dd><dt>Pair ring</dt><dd>3 slots</dd></dl>
+        </div>
+        <div class="section"><div class="section-title">Safety</div><p style="color:var(--engrave-lo);font:12px/1.45 Saira,sans-serif;margin-top:12px">Direct input: <span style="color:var(--engrave)">never routed</span><br>Missing lane: <span style="color:var(--engrave)">reject load</span><br>Worker collision: <span style="color:var(--engrave)">reject load</span></p></div>
+      </aside>
+    </div>
+    <div class="bottom-bar"><span class="legend">WDW ROUTE · IMMUTABLE WHILE RUNNING</span><span class="spacer"></span><button class="button">CANCEL</button><button class="button primary">APPLY ROUTING</button></div>
+  </div></div>
+  <p class="note"><b>Manager rule:</b> this is the detailed authoring surface. It exposes the same vocabulary as the device
+  (lane, block, cab, dry/wet contribution) and adds only information that is useful off stage: insertion points, measured
+  latency, worker placement, ring depth and rejection conditions.</p>
+
+  <p class="note" style="margin-top:42px">These are visual contracts for the next implementation pass. They intentionally do not define preset schema,
+  gestures or manager API details; those remain implementation/design work after this feasibility gate.</p>
+</main>
+</body>
+</html>

@@ -809,6 +809,12 @@ void RuntimeChain::reset()
     if (block.cab) {
       block.cab->reset();
     }
+    if (block.irReverb) {
+      block.irReverb->reset();
+    }
+    if (block.stereoWidener) {
+      block.stereoWidener->reset();
+    }
     if (block.daisy) {
       block.daisy->reset();
     }
@@ -845,6 +851,9 @@ size_t RuntimeChain::tailFrames() const noexcept
   for (const auto& block : blocks_) {
     if (block.cab) {
       tail += block.cab->tailFrames();
+    }
+    if (block.irReverb) {
+      tail += block.irReverb->tailFrames();
     }
     if (block.daisy) {
       tail += block.daisy->tailFrames();

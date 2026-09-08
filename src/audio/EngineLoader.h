@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace ardor {
 
@@ -20,6 +21,12 @@ struct EngineLoadOptions {
 };
 
 bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoadOptions& options, std::string& error);
+
+// Prepares one already-validated RuntimeChain on the control thread.  This is
+// shared by the fixed WDW builder and the legacy Dual Rig loader; it never
+// performs work from the realtime callback.
+bool prepareRuntimeChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& blocks,
+                         const EngineLoadOptions& options, std::string& error);
 
 bool preflightPreset(const Preset& preset, const std::filesystem::path& dataRoot,
                      const EngineLoadOptions& options, std::string& error);
