@@ -1,36 +1,27 @@
 # SMD audio coupling capacitors
 
-C401, C402, C502, C601 and C602 use **Rubycon 16MU225KB23225**, replacing WIMA MKS2C042201K00KSSD. Each remains 2.2 µF ±10%, nonpolar film. The new voltage rating is 16 V, sufficient for the intended 5 V signal circuitry. The nominal audio high-pass response is unchanged.
+C401, C402, C502, C601 and C602 use **Samsung CL31B106KBHNNNE**, **10 µF / 50 V / X7R / ±10%**, nonpolar ceramic in **1206**. JLCPCB part number **C89632** is included in the schematic, PCB fields and BOM for these five parts. Blank JLCPCB fields on other BOM rows mean those parts have not been mapped by this change.
 
-The [manufacturer datasheet](https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf) specifies a 3.2 × 2.5 mm body, 1.8 mm nominal height and ±0.2 mm height tolerance. Compared with each old 7.2 × 7.2 mm body, nominal body area falls by **84.6%**. This is a component-body comparison; the overall PCB outline remains **90 × 64 mm**.
+## Selection and sourcing
 
-The part is stocked by an authorized distributor at the time of selection, 7 September 2026. It is a premium component: [DigiKey's listing](https://www.digikey.com/en/products/detail/rubycon/16MU225KB23225/9951728) showed USD 6.39 at quantity one and USD 4.694 at quantity ten, before applicable charges. Check current pricing and supply before procurement. No components have been ordered.
+The [Samsung specification](https://media.digikey.com/pdf/Data%20Sheets/Samsung%20PDFs/CL31B106KBHNNNE_Spec.pdf) gives a nominal body of 3.2 × 1.6 × 1.6 mm, with ±0.2 mm dimensional tolerance. The [JLCPCB listing](https://jlcpcb.com/partdetail/90812-CL31B106KBHNNNE/C89632), checked 8 September 2026, showed 359,276 in stock, 289,372 available to order, and a starting price of USD 0.3750 each. It is an Extended part supported for SMT assembly. These are sourcing observations, not reserved inventory or a confirmed assembly quotation; assembly charges are additional. No order was placed.
 
-## JLCPCB assembly sourcing — checked 8 September 2026
+This replaces the earlier Rubycon 16MU225KB23225 film selection (C3774818), whose limited supplier/preorder availability was unsuitable for straightforward stocked assembly. The original design used WIMA 2.2 µF through-hole film capacitors. Nominal component body area is now 90.1% smaller than the original 7.2 × 7.2 mm WIMA body. The board remains 90 × 64 mm.
 
-The intended assembler is JLCPCB. Its [exact-part listing](https://jlcpcb.com/partdetail/Rubycon-16MU225KB23225/C3774818) identifies **C3774818**, an Extended part supported for SMT assembly with Economic and Standard PCBA. A library listing does not establish ready-to-use assembly stock.
+## Electrical implications
 
-The publicly served part data reported `canPresaleNumber: 15` and `overseasStockCount: 15`; on-hand assembly inventory was not confirmed. This indicates limited supplier/preorder availability, not a reliable stocked production selection. Five capacitors are required per board: 15 parts cover only three boards before assembly attrition. The embedded starting price was USD 8.118 each; this is indicative page data, not a confirmed assembly quotation.
+The change from 2.2 µF to 10 µF is deliberate. Increasing coupling capacitance reduces its audio-band impedance and the AC voltage across the ceramic; see [TI's audio capacitor guidance](https://www.ti.com/lit/an/slyt796a/slyt796a.pdf). It does not guarantee film-equivalent distortion or microphonic performance.
 
-Treat this capacitor's JLCPCB sourcing as unresolved until sufficient quantity is confirmed and allocated. JLCPCB's [parts preorder service](https://jlcpcb.com/help/article/what-is-jlcpcb-parts-pre-order-service) may provide a procurement route. The previous DigiKey stock check did not establish JLCPCB assembly availability. No order or reservation has been placed.
+Using nominal capacitance and the existing input resistances, the approximate high-pass corners become 0.16 Hz at the 100 kΩ AUX inputs and 0.60 Hz at the headphone amplifier's typical 26.4 kΩ input resistance. The capacitor time constants increase by 10/2.2 ≈ 4.55, so prototype startup, mute and plug/unplug settling should also be checked. These input coupling capacitors do not drive the headphone load directly.
 
-For ordinary stocked JLCPCB assembly, reselecting these coupling capacitors is preferable to assuming the Rubycon supply is adequate. A ceramic replacement requires electrical review (effective capacitance under bias and audio linearity) and its own land pattern; it is not an automatic substitution into the existing Rubycon footprint. The present board still specifies the Rubycon part.
+The circuit has approximately 2.5 V internal audio bias and 5 V supplies. The selected 50 V rating provides voltage headroom, but is not an external connector rating or a guarantee of effective capacitance. The exact DC-bias curve has not been verified; nominal 10 µF and ±10% tolerance do not establish capacitance under bias, temperature and aging. Prototype bass response, distortion and sensitivity to mechanical vibration remain release checks.
 
-## Footprint and assembly
+## Footprint and routing
 
-`Ardor_Capacitor:C_Rubycon_MU_3225` is included under `footprints/`. It uses Rubycon's [recommended reflow lands](https://www.rubycon.co.jp/wp-content/uploads/catalog/pml-spec3.pdf), not a generic ceramic 1210 footprint:
+The five parts use standard KiCad 9 `Capacitor_SMD:C_1206_3216Metric` reflow footprints: two 1.15 × 1.8 mm rounded pads, centers 2.95 mm apart, inner gap 1.8 mm and total outer span 4.1 mm. These replace the Rubycon-specific lands, not just the BOM entry. Component centers and orientations are preserved. Connected front-layer trace endpoints move to the new pad centers, and both ground pours are refilled. The existing layer-transition vias and C401 power crossover remain.
 
-- Inner pad gap A: 1.8 mm; total outer span B: 3.6 mm; pad width C: 2.3 mm.
-- Two rectangular 0.9 × 2.3 mm pads centered at x = ±1.35 mm.
-- Courtyard: 4.1 × 3.3 mm, including maximum body tolerance and a 0.25 mm margin.
-- No polarity marking; numbered pads preserve the schematic net assignments.
+`design/convert_coupling_mlcc.py` performs this conversion idempotently on the earlier Rubycon board. The schematic generator and current BOM specify Samsung. `convert_film_smd.py` and `route_smd_update.py` describe the historical THT-to-film stage; they are not the current part-selection workflow.
 
-Use the manufacturer's moisture-handling and reflow instructions. Its soldering profile allows at most two reflow cycles, a 260°C maximum body-surface peak, and 30–60 seconds above 230°C. [Handling instructions](https://www.rubycon.co.jp/wp-content/uploads/catalog/pml-cautions.pdf) also restrict direct iron contact and reuse of removed capacitors. Confirm assembly-house compatibility.
+## Verification
 
-## Layout and checks
-
-The five smaller footprints are centered within the previous capacitor locations. Bottom-layer connections formerly made through capacitor leads now use routing vias. The +5V_PI trace that ran underneath the former C401 body has been rerouted around the new lands. Ground fills and printed connector/testpoint labels are retained.
-
-The current schematic, BOM and schematic generator use the new part and footprint. Final results are in `drc.json`, `connectivity-audit.json`, `smd-capacitor-audit.json` and `../verification/erc.rpt`. The capacitor audit checks footprint geometry, physical SMD pad type, BOM/schematic agreement and unchanged net assignments. Hardware audio/ESD qualification remains as described in `../DESIGN_NOTES.md`.
-
-`design/convert_film_smd.py` implements the legacy-footprint conversion. `design/route_smd_update.py` adds the checked local power crossover and refills the ground pours; the rest of the routing is preserved. Full placement regeneration through `compact_pcb.py` also uses the updated SMD positions.
+`drc.json` records the current KiCad DRC and schematic parity checks. `connectivity-audit.json` compares every numbered PCB pad/net against the schematic. `smd-capacitor-audit.json` checks all five Samsung part identities, JLCPCB numbers, values, pad geometry and unchanged net assignments. The schematic ERC report is in `../verification/erc.rpt`.

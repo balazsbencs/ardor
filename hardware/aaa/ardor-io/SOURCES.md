@@ -17,6 +17,10 @@ Reviewed 5 September 2026. URLs may publish newer revisions later. The circuit d
 - [Rubycon PMLCAP soldering and land pattern](https://www.rubycon.co.jp/wp-content/uploads/catalog/pml-spec3.pdf) — the 3225 recommended reflow lands used in the local footprint.
 - [Rubycon PMLCAP handling](https://www.rubycon.co.jp/wp-content/uploads/catalog/pml-cautions.pdf) — voltage, moisture and assembly conditions.
 
-The Rubycon references were checked on 7 September 2026 for the SMD conversion. They supersede the original WIMA MKS2 selection.
+The Rubycon references were checked on 7 September 2026 for the SMD conversion. They describe the historical replacement for WIMA MKS2; the Samsung selection below supersedes Rubycon.
 
 KiCad's standard symbols were copied into a project-local library. The OPA2320 uses the verified standard dual-op-amp SOIC pin mapping. In the TPA6132A2 symbol, HPVDD/HPVSS were changed from `power_in` to `power_out` to accurately model the internal supply generators for ERC; their physical pin numbers are unchanged.
+
+- [Samsung CL31B106KBHNNNE specification](https://media.digikey.com/pdf/Data%20Sheets/Samsung%20PDFs/CL31B106KBHNNNE_Spec.pdf) — 10 µF, 50 V, X7R, ±10%, 1206 dimensions and assembly guidance.
+- [JLCPCB C89632](https://jlcpcb.com/partdetail/90812-CL31B106KBHNNNE/C89632) — exact Samsung part and SMT assembly sourcing, checked 8 September 2026.
+- [TI: Selecting capacitors to minimize distortion in audio applications](https://www.ti.com/lit/an/slyt796a/slyt796a.pdf) — rationale and limits of increasing ceramic coupling capacitance.

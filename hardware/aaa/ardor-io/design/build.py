@@ -61,11 +61,11 @@ class Page:
   if lid==HP:rx,ry,vx,vy=x+16,y-23,x+16,y-20
   if lid==FLAG:rx,ry,vx,vy=x,y,x,y
   props=''
-  for pn,pv,px,py,hide in [('Reference',ref,rx,ry,lid==FLAG),('Value',val,vx,vy,lid==FLAG),('Footprint',fp,x,y,True),('Datasheet',ds,x,y,True),('MPN',mpn,x,y,True)]:
+  for pn,pv,px,py,hide in [('Reference',ref,rx,ry,lid==FLAG),('Value',val,vx,vy,lid==FLAG),('Footprint',fp,x,y,True),('Datasheet',ds,x,y,True),('MPN',mpn,x,y,True),('JLCPCB Part #','C89632' if mpn=='Samsung CL31B106KBHNNNE' else '',x,y,True)]:
    props+=f'(property {q(pn)} {q(pv)} (at {px} {py} {rot}) (effects (font (size 1.15 1.15))'+(' (hide yes)' if hide else (' (justify left)' if lid in [R,C,CP,FB] and rot==0 else ''))+'))'
   paths=f'(instances (project "Ardor_IO" (path {q("/"+root.id+ ("/"+self.sheet_id if hasattr(self,"sheet_id") else ""))} (reference {q(ref)}) (unit {unit}))))'
   self.items.append(f'(symbol (lib_id {q(lid)}) (at {x} {y} {rot}) (unit {unit}) (in_bom {"no" if lid==FLAG else "yes"}) (on_board {"yes" if board else "no"}) (dnp {"yes" if dnp else "no"}) (uuid {q(id)}) {props} '+''.join(f'(pin {q(n)} (uuid {q(uid())}))' for n in pins)+paths+')')
-  if lid!=FLAG: bom[ref]={'Reference':ref,'Value':val,'MPN':mpn,'Footprint':fp,'Datasheet':ds,'Assembly':'DNP' if dnp else ('PCB' if board else 'Panel / wired'),'Sheet':self.num}
+  if lid!=FLAG: bom[ref]={'Reference':ref,'Value':val,'MPN':mpn,'Footprint':fp,'Datasheet':ds,'Assembly':'DNP' if dnp else ('PCB' if board else 'Panel / wired'),'Sheet':self.num,'JLCPCB Part #':'C89632' if mpn=='Samsung CL31B106KBHNNNE' else ''}
   return (ref,unit)
  def p(self,o,n):return self.pins[o][str(n)][:2]
  def assign(self,o,n,net):
@@ -195,7 +195,7 @@ def buffer(pg,ref,unit,x,y,inputnet,outnet):
  pg.label(outnet,p1);pg.assign(u,on,outnet);pg.assign(u,nn,outnet)
  return u
 for i,(yy,nn) in enumerate([(73.66,'L'),(124.46,'R')]):
- A.two(C,f'C40{1+i}', '2.2u / 16V film',66.04,yy,'AUX_'+nn,'BIAS_'+nn,fp='Ardor_Capacitor:C_Rubycon_MU_3225',mpn='Rubycon 16MU225KB23225',ds='https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf')
+ A.two(C,f'C40{1+i}', '10u / 50V X7R',66.04,yy,'AUX_'+nn,'BIAS_'+nn,fp='Capacitor_SMD:C_1206_3216Metric',mpn='Samsung CL31B106KBHNNNE',ds='https://media.digikey.com/pdf/Data%20Sheets/Samsung%20PDFs/CL31B106KBHNNNE_Spec.pdf')
  A.two(R,f'R40{1+i}','100k / 1%',114.3,yy+20.32,'BIAS_'+nn,'VREF',rot=0)
  buffer(A,'U401',i+1,177.8,yy,'BIAS_'+nn,'BUF_'+nn)
  A.two(R,f'R40{3+i}','10k / 0.1%',261.62,yy,'BUF_'+nn,'MONO_MIX')
@@ -231,7 +231,7 @@ L.two(R,'R504','100k',175.26,193.04,'RELAY_GATE','GND',rot=0)
 L.two(D,'D502','1N4148W',279.4,162.56,'+5V_PI','RELAY_LOW',rot=0,fp=FP_S,mpn='1N4148W')
 L.text('AMP CIRCUIT PLACEHOLDER / INTERNAL HARNESS',20,222,1.7)
 buffer(L,'U501',2,50.8,243.84,'MONO_BUF','AMP_BUF')
-L.two(C,'C502','2.2u / 16V film',119.38,243.84,'AMP_BUF','AMP_AC',fp='Ardor_Capacitor:C_Rubycon_MU_3225',mpn='Rubycon 16MU225KB23225',ds='https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf')
+L.two(C,'C502','10u / 50V X7R',119.38,243.84,'AMP_BUF','AMP_AC',fp='Capacitor_SMD:C_1206_3216Metric',mpn='Samsung CL31B106KBHNNNE',ds='https://media.digikey.com/pdf/Data%20Sheets/Samsung%20PDFs/CL31B106KBHNNNE_Spec.pdf')
 L.two(R,'R505','1k / isolation',185.42,243.84,'AMP_AC','AMP_FEED')
 L.two(R,'R506','100k',243.84,243.84,'AMP_FEED','GND',rot=0)
 j=L.add(J2,'J502','TO YOUR AMP CIRCUIT',307.34,243.84,fp=HDR(2));L.nets(j,{'1':'AMP_FEED','2':'GND'})
@@ -240,8 +240,8 @@ u=L.add(OP,'U501','OPA2320AIDR',340.36,175.26,unit=3,fp=FP_SO,mpn='TI OPA2320AID
 L.cap('C503','100n / 16V',383.54,175.26,'+5V_A')
 # HP
 H=h;H.text('STEREO DIRECTPATH HEADPHONE DRIVER / -6 dB',20,45,1.7)
-H.two(C,'C601','2.2u / 16V film',68.58,66.04,'BUF_R','HP_IN_R',fp='Ardor_Capacitor:C_Rubycon_MU_3225',mpn='Rubycon 16MU225KB23225',ds='https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf')
-H.two(C,'C602','2.2u / 16V film',68.58,101.6,'BUF_L','HP_IN_L',fp='Ardor_Capacitor:C_Rubycon_MU_3225',mpn='Rubycon 16MU225KB23225',ds='https://www.rubycon.co.jp/wp-content/uploads/catalog-pmlcap/MU.pdf')
+H.two(C,'C601','10u / 50V X7R',68.58,66.04,'BUF_R','HP_IN_R',fp='Capacitor_SMD:C_1206_3216Metric',mpn='Samsung CL31B106KBHNNNE',ds='https://media.digikey.com/pdf/Data%20Sheets/Samsung%20PDFs/CL31B106KBHNNNE_Spec.pdf')
+H.two(C,'C602','10u / 50V X7R',68.58,101.6,'BUF_L','HP_IN_L',fp='Capacitor_SMD:C_1206_3216Metric',mpn='Samsung CL31B106KBHNNNE',ds='https://media.digikey.com/pdf/Data%20Sheets/Samsung%20PDFs/CL31B106KBHNNNE_Spec.pdf')
 u=H.add(HP,'U601','TPA6132A2RTER',195.58,91.44,fp='Package_DFN_QFN:WQFN-16-1EP_3x3mm_P0.5mm_EP1.6x1.6mm_ThermalVias',mpn='TI TPA6132A2RTER',ds='https://www.ti.com/lit/ds/symlink/tpa6132a2.pdf')
 H.nets(u,{'1':'HP_IN_L','2':'GND','3':'GND','4':'HP_IN_R','5':'HP_R_RAW','6':'GND','7':'GND','8':'HPVSS','9':'CPN','11':'CPP','12':'HPVDD','13':'HP_EN','14':'+5V_A','16':'HP_L_RAW','17':'GND'})
 for pn in ['10','15']:
@@ -343,6 +343,6 @@ for p in pages:p.save()
 (OUT/'sym-lib-table').write_text('(sym_lib_table (version 7) (lib (name "Ardor")(type "KiCad")(uri "${KIPRJMOD}/Ardor.kicad_sym")(options "")(descr "Embedded verified symbols")))')
 (OUT/'Ardor_IO.kicad_pro').write_text(json.dumps({'meta':{'filename':'Ardor_IO.kicad_pro','version':1},'net_settings':{'classes':[{'name':'Default','clearance':0.2,'track_width':0.25,'via_diameter':0.6,'via_drill':0.3,'microvia_diameter':0.3,'microvia_drill':0.1,'diff_pair_width':0.2,'diff_pair_gap':0.25,'diff_pair_via_gap':0.25}]}}))
 with (OUT/'BOM.csv').open('w') as f:
- w=csv.DictWriter(f,fieldnames=list(next(iter(bom.values()))));w.writeheader();w.writerows(bom.values())
+ w=csv.DictWriter(f,fieldnames=list(next(iter(bom.values()))),lineterminator="\n");w.writeheader();w.writerows(bom.values())
 (OUT/'design/expected_nets.json').write_text(json.dumps({r+'.'+n:v for (r,n),v in expected.items()},indent=2))
 print('Saved',len(pages),'sheets,',len(bom),'components')

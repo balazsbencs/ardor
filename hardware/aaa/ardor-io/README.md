@@ -17,4 +17,4 @@ Rev A is a checked engineering prototype schematic, not a bench-qualified produc
 
 The compact layout retains all 95 schematic components and the existing panel-harness interfaces. Connector functions/pins and testpoint signals are on front silkscreen; JP301 shunt instructions are on the back. Component references remain on F.Fab. Four M3 holes are provisional enclosure mounts, not a verified Raspberry Pi mounting pattern. Confirm mechanical fit and stack height before ordering.
 
-C401/C402/C502/C601/C602 are now 2.2 µF / 16 V Rubycon SMD film capacitors with manufacturer-specific local footprints. See [SMD capacitor selection](routing/SMD_CAPACITORS.md).
+C401/C402/C502/C601/C602 are now 10 µF / 50 V Samsung X7R ceramic capacitors (CL31B106KBHNNNE, JLCPCB C89632) in standard 1206 footprints. See [SMD capacitor selection](routing/SMD_CAPACITORS.md).
