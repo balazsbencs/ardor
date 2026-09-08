@@ -39,7 +39,7 @@ The board is electrically checked in CAD, not bench-qualified. The existing anal
 
 ## SMD capacitor update
 
-The five audio coupling capacitors now use Rubycon 16MU225KB23225, 2.2 µF / 16 V SMD film. `schematic-netlist.xml` is the current schematic export; `smd-capacitor-audit.json` verifies the new parts and lands. The 90 × 64 mm outline and connector positions are retained.
+The five audio coupling capacitors now use Samsung CL31B106KBHNNNE (JLCPCB C89632), 10 µF / 50 V X7R ceramic in 1206. `schematic-netlist.xml` is the current schematic export; `smd-capacitor-audit.json` verifies the new parts and lands. The 90 × 64 mm outline and connector positions are retained.
 
 ## Rebuilding (overwrites board routing)
 
