@@ -35,11 +35,18 @@ func NewStore(root string) Store {
 
 func Validate(preset Preset) error {
 	version, ok := preset["version"].(float64)
-	if !ok || (version != 1 && version != 2) {
-		return errors.New("preset version must be 1 or 2")
+	if !ok || (version != 1 && version != 2 && version != 3) {
+		return errors.New("preset version must be 1, 2, or 3")
 	}
-	if routing, ok := preset["routing"].(string); !ok || routing != "serial" {
-		return errors.New("preset routing must be serial")
+	routing, ok := preset["routing"].(string)
+	if !ok || (routing != "serial" && routing != "wdw") {
+		return errors.New("preset routing must be serial or wdw")
+	}
+	if routing == "serial" && version > 2 {
+		return errors.New("wet/dry/wet routing requires preset version 3")
+	}
+	if routing == "wdw" && version != 3 {
+		return errors.New("wet/dry/wet routing requires preset version 3")
 	}
 	if _, ok := preset["global"].(map[string]any); !ok {
 		return errors.New("preset global must be an object")
@@ -48,7 +55,62 @@ func Validate(preset Preset) error {
 	if !ok {
 		return errors.New("preset blocks must be an array")
 	}
-	return validateBlocks(blocks, version, false)
+	if err := validateBlocks(blocks, version, false); err != nil {
+		return err
+	}
+	if routing != "wdw" {
+		return nil
+	}
+	if len(blocks) != 0 {
+		return errors.New("wet/dry/wet presets must keep top-level blocks empty")
+	}
+	wdw, ok := preset["wdw"].(map[string]any)
+	if !ok {
+		return errors.New("wet/dry/wet preset requires a wdw object")
+	}
+	for _, laneName := range []string{"dry", "wet"} {
+		lane, ok := wdw[laneName].(map[string]any)
+		if !ok {
+			return fmt.Errorf("WDW %s lane must be an object", laneName)
+		}
+		children, ok := lane["blocks"].([]any)
+		if !ok {
+			return fmt.Errorf("WDW %s lane must contain a blocks array", laneName)
+		}
+		if err := validateBlocks(children, version, true); err != nil {
+			return err
+		}
+		if level, ok := lane["levelDb"]; ok {
+			value, ok := level.(float64)
+			if !ok || value < -60 || value > 12 {
+				return fmt.Errorf("WDW %s lane level must be between -60 and 12 dB", laneName)
+			}
+		}
+		if pan, ok := lane["pan"]; ok && laneName == "dry" {
+			value, ok := pan.(float64)
+			if !ok || value < -1 || value > 1 {
+				return fmt.Errorf("WDW %s lane pan must be between -1 and 1", laneName)
+			}
+		} else if pan, ok := lane["pan"]; ok {
+			value, ok := pan.(float64)
+			if !ok || value != 0 {
+				return fmt.Errorf("WDW %s lane does not support pan", laneName)
+			}
+		}
+		if width, ok := lane["width"]; ok {
+			value, ok := width.(float64)
+			if !ok {
+				return fmt.Errorf("WDW %s lane width must be between 0 and 1", laneName)
+			}
+			if laneName == "dry" && value != 1 {
+				return fmt.Errorf("WDW %s lane does not support width", laneName)
+			}
+			if laneName == "wet" && (value < 0 || value > 1) {
+				return fmt.Errorf("WDW %s lane width must be between 0 and 1", laneName)
+			}
+		}
+	}
+	return nil
 }
 
 func validateBlocks(blocks []any, version float64, insideLane bool) error {
@@ -113,10 +175,16 @@ func validateBlocks(blocks []any, version float64, insideLane bool) error {
 // this mapping they appear as unsupported blocks and expose no controls.
 func normalizeLegacyEffectBlocks(preset Preset) {
 	blocks, ok := preset["blocks"].([]any)
-	if !ok {
-		return
+	if ok {
+		normalizeLegacyBlocks(blocks)
 	}
-	normalizeLegacyBlocks(blocks)
+	if wdw, ok := preset["wdw"].(map[string]any); ok {
+		for _, laneName := range []string{"dry", "wet"} {
+			lane, _ := wdw[laneName].(map[string]any)
+			children, _ := lane["blocks"].([]any)
+			normalizeLegacyBlocks(children)
+		}
+	}
 }
 
 func normalizeLegacyBlocks(blocks []any) {
@@ -252,7 +320,17 @@ func (s Store) ReplaceAssetReferences(oldPath, newPath string) (int, error) {
 			if err != nil {
 				return changed, fmt.Errorf("load bank %d slot %d: %w", bank, slot, err)
 			}
-			dirty := replaceAssetInBlocks(loaded.Preset["blocks"].([]any), oldPath, newPath)
+			dirty := false
+			if blocks, ok := loaded.Preset["blocks"].([]any); ok {
+				dirty = replaceAssetInBlocks(blocks, oldPath, newPath)
+			}
+			if wdw, ok := loaded.Preset["wdw"].(map[string]any); ok {
+				for _, laneName := range []string{"dry", "wet"} {
+					lane, _ := wdw[laneName].(map[string]any)
+					children, _ := lane["blocks"].([]any)
+					dirty = replaceAssetInBlocks(children, oldPath, newPath) || dirty
+				}
+			}
 			if !dirty {
 				continue
 			}

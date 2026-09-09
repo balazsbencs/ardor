@@ -394,6 +394,45 @@ int main()
                 && splitState.statusIsError,
               "a preset should reject a second active Split region")) return 1;
 
+  ardor::Preset wdwPreset;
+  wdwPreset.version = 3;
+  wdwPreset.routing = "wdw";
+  wdwPreset.name = "WDW Touch Test";
+  wdwPreset.wdw = ardor::WdwRouting{};
+  wdwPreset.wdw->dry.levelDb = -2.0f;
+  wdwPreset.wdw->dry.pan = -0.35f;
+  wdwPreset.wdw->wet.levelDb = -4.0f;
+  wdwPreset.wdw->wet.width = 0.8f;
+  wdwPreset.wdw->dry.blocks.push_back({"wdw-dry-nam", "nam", true,
+                                       "models/clean.nam", nlohmann::json::object()});
+  wdwPreset.wdw->dry.blocks.push_back({"wdw-dry-cab", "cab", true,
+                                       "irs/open-back.wav", nlohmann::json::object()});
+  wdwPreset.wdw->wet.blocks.push_back({"wdw-wet-nam", "nam", true,
+                                       "models/crunch.nam", nlohmann::json::object()});
+  wdwPreset.wdw->wet.blocks.push_back({"wdw-wet-cab", "cab", true,
+                                       "irs/vintage.wav", nlohmann::json::object()});
+  wdwPreset.wdw->wet.blocks.push_back({"wdw-wet-delay", "delay", true, "",
+                                       {{"mode", "digital"}}});
+  auto wdwState = ardor::makeDemoUiState();
+  ardor::replaceActivePreset(wdwState, wdwPreset);
+  if (require(wdwState.bank.presets[wdwState.activePreset].routing == "wdw"
+                && wdwState.bank.presets[wdwState.activePreset].blocks[0].assetName
+                  == "Dry 2 blocks  /  Wet 3 blocks",
+              "WDW UI state should retain its route and lane summary")) return 1;
+  const auto wdwControls = ardor::parameterPage(wdwState, 0);
+  if (require(wdwControls.size() == 6 && wdwControls[2].key == "dryPan"
+                && wdwControls[5].key == "wetWidth",
+              "WDW UI state should expose lane mix controls")) return 1;
+  ardor::setSelectedBlockParam(wdwState, "dryPan", 1.4f);
+  completePreview(wdwState);
+  ardor::setSelectedBlockParamValue(wdwState, "wetEnabled", false);
+  const auto savedWdw = ardor::activePresetToPreset(wdwState);
+  if (require(savedWdw.version == 3 && savedWdw.routing == "wdw" && savedWdw.wdw
+                && savedWdw.wdw->dry.blocks[1].id == "wdw-dry-cab"
+                && savedWdw.wdw->dry.pan == 1.0f
+                && !savedWdw.wdw->wet.enabled,
+              "WDW UI load/save should preserve lane blocks and mix state")) return 1;
+
   ardor::selectBlock(state, 0);
   if (require(state.paramDrawerOpen, "block selection should open parameter drawer")) return 1;
   ardor::openBlockDrawer(state);

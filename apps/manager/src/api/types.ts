@@ -12,7 +12,7 @@ export type DeviceStatus = {
   dataRootWritable: boolean;
   maxBanks: 100;
   slotsPerBank: 4;
-  supportedPresetVersion: 1 | 2;
+  supportedPresetVersion: 1 | 2 | 3;
   active?: {
     bank: number;
     slot: number;
@@ -96,10 +96,25 @@ export type PresetBlock = {
   [key: string]: unknown;
 };
 
+export type WdwLane = {
+  blocks: PresetBlock[];
+  levelDb: number;
+  /** Dry-only whole-lane pan. Wet remains a stereo pair and uses width. */
+  pan?: number;
+  /** Wet-only stereo width. Dry width is fixed at 1. */
+  width?: number;
+  enabled: boolean;
+};
+
+export type WdwRouting = {
+  dry: WdwLane;
+  wet: WdwLane;
+};
+
 export type Preset = {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   name: string;
-  routing: "serial";
+  routing: "serial" | "wdw";
   global: {
     inputGainDb: number;
     outputGainDb: number;
@@ -126,6 +141,7 @@ export type Preset = {
     }>;
   }>;
   blocks: PresetBlock[];
+  wdw?: WdwRouting;
   [key: string]: unknown;
 };
 

@@ -18,6 +18,13 @@ struct EngineLoadOptions {
   size_t irSamples = 8192;
   bool parallelRigs = false;
   int rigWorkerCpu = -1;
+
+  // WDW uses two independent lane workers when parallelRigs is enabled.  The
+  // legacy single-worker fields above remain unchanged for Dual Rig.
+  int wdwAudioCpu = -1;
+  int wdwDryWorkerCpu = -1;
+  int wdwWetWorkerCpu = -1;
+  std::size_t wdwPipelineSlots = 3;
 };
 
 bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoadOptions& options, std::string& error);

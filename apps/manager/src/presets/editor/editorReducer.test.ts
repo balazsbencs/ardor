@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Preset } from "../../api/types";
 import { createEditorState, editorReducer, isEditorDirty } from "./editorReducer";
 import type { EditorAction, EditorState } from "./editorTypes";
-import { createEmptyPreset } from "./presetFactory";
+import { createEmptyPreset, createWdwPreset } from "./presetFactory";
 
 function preset(): Preset {
   return {
@@ -147,6 +147,44 @@ describe("editorReducer", () => {
 
     const removed = editorReducer(moved, { type: "remove-block", blockId: delay.id });
     expect(removed.selectedBlockId).toBe(rig!.id);
+  });
+
+  it("edits version-3 WDW lanes and keeps lane mix values bounded", () => {
+    const source = createWdwPreset("WDW");
+    const dryId = source.wdw!.dry.blocks[0].id;
+    const wetId = source.wdw!.wet.blocks[1].id;
+    const loaded = createEditorState({ bank: 1, slot: 2 }, source);
+    const edited = reduce(
+      loaded,
+      { type: "set-wdw-mix", lane: "dry", key: "pan", value: 4 },
+      { type: "set-wdw-mix", lane: "wet", key: "width", value: -1 },
+      { type: "add-wdw-block", lane: "wet", definitionId: "delay:digital", index: 2 },
+      { type: "move-wdw-block", blockId: wetId, lane: "dry", index: 0 },
+      { type: "toggle-block", blockId: dryId, enabled: false },
+    );
+    expect(edited.history.present.routing).toBe("wdw");
+    expect(edited.history.present.wdw?.dry.pan).toBe(1);
+    expect(edited.history.present.wdw?.wet.width).toBe(0);
+    expect(edited.history.present.wdw?.wet.blocks.some(({ type }) => type === "delay")).toBe(true);
+    expect(edited.history.present.wdw?.dry.blocks.some(({ id }) => id === wetId)).toBe(true);
+    expect(edited.history.present.wdw?.dry.blocks.find(({ id }) => id === dryId)?.enabled).toBe(false);
+    expect(edited.selectedBlockId).toBe(wetId);
+  });
+
+  it("keeps serial blocks when switching topology and flattens WDW explicitly", () => {
+    const serial = state();
+    const wdw = editorReducer(serial, { type: "set-routing", routing: "wdw" });
+    expect(wdw.history.present).toMatchObject({ version: 3, routing: "wdw", blocks: [] });
+    expect(wdw.history.present.wdw?.dry.blocks.map(({ id }) => id)).toEqual(
+      serial.history.present.blocks.map(({ id }) => id),
+    );
+    expect(new Set(wdw.history.present.wdw?.wet.blocks.map(({ id }) => id))).toHaveProperty("size", 2);
+
+    const flattened = editorReducer(wdw, { type: "set-routing", routing: "serial" });
+    expect(flattened.history.present.routing).toBe("serial");
+    expect(flattened.history.present.version).toBe(2);
+    expect(flattened.history.present.blocks).toHaveLength(5);
+    expect(flattened.history.present.wdw).toBeUndefined();
   });
 
   it("toggles, updates assets, and clamps known parameters", () => {

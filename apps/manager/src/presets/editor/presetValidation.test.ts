@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Asset, Preset, PresetBlock } from "../../api/types";
 import { createBlockFromDefinition } from "../../effects/catalog";
-import { createEmptyPreset } from "./presetFactory";
+import { createEmptyPreset, createWdwPreset } from "./presetFactory";
 import {
   firstBlockingIssue,
   issuesForBlock,
@@ -248,6 +248,34 @@ describe("preset validation", () => {
     expect(validatePreset(preset, assets).issues).toContainEqual(
       expect.objectContaining({ code: "nested-split", blockId: nested.id }),
     );
+  });
+
+  it("validates version-3 WDW lanes and resolves lane-scoped expression/MIDI targets", () => {
+    const preset = createWdwPreset("Wet Dry Wet");
+    const { dry, wet } = preset.wdw!;
+    dry.blocks[0].asset = "models/amp.nam";
+    dry.blocks[1].asset = "irs/cab.wav";
+    wet.blocks[0].asset = "models/amp.nam";
+    wet.blocks[1].asset = "irs/cab.wav";
+    const delay = createBlockFromDefinition("delay:digital", wet.blocks);
+    wet.blocks.push(delay);
+    preset.expression = {
+      blockId: delay.id, parameter: "mix", minimum: 0, maximum: 1, inverted: false,
+    };
+    preset.midiMappings = [{
+      channel: 0, controlChange: 22, mode: "toggle",
+      actions: [{ target: "blockEnabled", blockId: delay.id, value1: 0, value2: 1 }],
+    }];
+    expect(validatePreset(preset, assets)).toMatchObject({ canSave: true, canApply: true });
+
+    wet.blocks[1].asset = "irs/missing.wav";
+    expect(codes(preset)).toContain("asset-missing");
+    wet.blocks[1].asset = "irs/cab.wav";
+    preset.wdw!.dry.pan = 2;
+    expect(codes(preset)).toContain("wdw-pan-range");
+    preset.wdw!.dry.pan = 0;
+    preset.wdw!.wet.pan = 0.25;
+    expect(codes(preset)).toContain("wdw-wet-pan");
   });
 
   it("requires the canonical complete five-band EQ shape", () => {

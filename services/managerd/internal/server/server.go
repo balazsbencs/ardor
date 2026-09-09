@@ -233,7 +233,7 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 			"dataRootWritable":       true,
 			"maxBanks":               100,
 			"slotsPerBank":           4,
-			"supportedPresetVersion": 2,
+			"supportedPresetVersion": 3,
 			"capabilities": map[string]bool{
 				"modelUpload": true, "irUpload": true, "presetRead": true,
 				"presetWrite": true, "presetApply": true, "assetRename": true,

@@ -7,7 +7,7 @@ import {
 } from "../../effects/catalog";
 import type { NumberControl } from "../../effects/types";
 import type { EditorAction, EditorState, EqBand, PresetLocation } from "./editorTypes";
-import { clonePreset, nextPresetBlockId } from "./presetFactory";
+import { clonePreset, createEmptyWdwRouting, nextPresetBlockId } from "./presetFactory";
 
 const historyLimit = 100;
 
@@ -75,9 +75,22 @@ export function allPresetBlocks(blocks: PresetBlock[]): PresetBlock[] {
   ]);
 }
 
+export function allPresetBlocksInPreset(preset: Preset): PresetBlock[] {
+  if (preset.routing !== "wdw" || !preset.wdw) return allPresetBlocks(preset.blocks);
+  return [
+    ...allPresetBlocks(preset.wdw.dry.blocks),
+    ...allPresetBlocks(preset.wdw.wet.blocks),
+  ];
+}
+
 export function findPresetBlock(blocks: PresetBlock[], blockId: string | undefined): PresetBlock | undefined {
   if (!blockId) return undefined;
   return allPresetBlocks(blocks).find(({ id }) => id === blockId);
+}
+
+export function findPresetBlockInPreset(preset: Preset, blockId: string | undefined): PresetBlock | undefined {
+  if (!blockId) return undefined;
+  return allPresetBlocksInPreset(preset).find(({ id }) => id === blockId);
 }
 
 function updateBlockTree(
@@ -101,7 +114,10 @@ function updateBlockTree(
 
 function updatedBlock(preset: Preset, blockId: string, update: (block: PresetBlock) => PresetBlock): Preset | undefined {
   const next = clonePreset(preset);
-  return updateBlockTree(next.blocks, blockId, update) ? next : undefined;
+  if (updateBlockTree(next.blocks, blockId, update)) return next;
+  if (next.wdw && (updateBlockTree(next.wdw.dry.blocks, blockId, update)
+    || updateBlockTree(next.wdw.wet.blocks, blockId, update))) return next;
+  return undefined;
 }
 
 function normalizedControlValue(block: PresetBlock, key: string, value: unknown): unknown | undefined {
@@ -159,7 +175,7 @@ function setEqBand(state: EditorState, blockId: string, band: number, patch: Par
 }
 
 function setBlockParam(state: EditorState, blockId: string, key: string, value: unknown): EditorState {
-  const block = findPresetBlock(state.history.present.blocks, blockId);
+  const block = findPresetBlockInPreset(state.history.present, blockId);
   if (!block) return state;
   const normalized = normalizedControlValue(block, key, value);
   if (normalized === undefined) return state;
@@ -191,6 +207,63 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return withMutation(state, (present) => {
         const next = clonePreset(present);
         next.global[action.key] = clamp(action.value, -60, 24);
+        return next;
+      });
+    }
+    case "set-routing": {
+      if (action.routing === state.history.present.routing) return state;
+      if (action.routing === "wdw") {
+        return withMutation(state, (present) => {
+          const next = clonePreset(present);
+          next.version = 3;
+          next.routing = "wdw";
+          next.wdw = createEmptyWdwRouting();
+          // Keep an existing serial draft audible and editable by placing it
+          // in the dry lane. The wet starter pair receives fresh IDs so a
+          // topology switch never silently drops the user's blocks or creates
+          // duplicate MIDI/expression targets.
+          next.wdw.dry.blocks = structuredClone(present.blocks);
+          const occupied = allPresetBlocks(next.wdw.dry.blocks);
+          const freshWet: PresetBlock[] = [];
+          for (const block of next.wdw.wet.blocks) {
+            const copy = structuredClone(block);
+            copy.id = nextPresetBlockId([...occupied, ...freshWet]);
+            freshWet.push(copy);
+          }
+          next.wdw.wet.blocks = freshWet;
+          next.blocks = [];
+          return next;
+        });
+      }
+      return withMutation(state, (present) => ({
+        ...clonePreset(present),
+        version: 2,
+        routing: "serial",
+        blocks: present.wdw?.dry.blocks.length || present.wdw?.wet.blocks.length
+          ? [...(present.wdw?.dry.blocks ?? []), ...(present.wdw?.wet.blocks ?? [])]
+          : present.blocks,
+        wdw: undefined,
+      }));
+    }
+    case "set-wdw-mix": {
+      const current = state.history.present.wdw;
+      if (state.history.present.routing !== "wdw" || !current) return state;
+      if ((action.key === "pan" && action.lane !== "dry")
+          || (action.key === "width" && action.lane !== "wet")) return state;
+      if (typeof action.value === "number" && !Number.isFinite(action.value)) return state;
+      return withMutation(state, (present) => {
+        if (!present.wdw) return present;
+        const next = clonePreset(present);
+        const lane = next.wdw?.[action.lane];
+        if (!lane) return present;
+        if (action.key === "enabled") {
+          if (typeof action.value !== "boolean") return present;
+          lane.enabled = action.value;
+        } else if (typeof action.value === "number") {
+          const ranges = { levelDb: [-60, 12], pan: [-1, 1], width: [0, 1] } as const;
+          const [minimum, maximum] = ranges[action.key];
+          lane[action.key] = clamp(action.value, minimum, maximum);
+        }
         return next;
       });
     }
@@ -254,6 +327,30 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         return next;
       }), block.id);
     }
+    case "add-wdw-block": {
+      const routing = state.history.present.wdw;
+      if (state.history.present.routing !== "wdw" || !routing) return state;
+      const lane = routing[action.lane];
+      if (lane.blocks.length >= 10) return state;
+      let block: PresetBlock;
+      try {
+        block = createBlockFromDefinition(
+          action.definitionId,
+          allPresetBlocksInPreset(state.history.present),
+          action.initialAsset,
+        );
+      } catch {
+        return state;
+      }
+      return withMutation(state, (present) => {
+        if (!present.wdw) return present;
+        const next = clonePreset(present);
+        const blocks = next.wdw?.[action.lane].blocks;
+        if (!blocks) return present;
+        blocks.splice(clamp(Math.trunc(action.index), 0, blocks.length), 0, block);
+        return next;
+      }, block.id);
+    }
     case "move-lane-block": {
       const rig = findPresetBlock(state.history.present.blocks, action.rigId);
       if (!rig?.lanes) return state;
@@ -274,14 +371,33 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         return next;
       }), action.blockId);
     }
+    case "move-wdw-block": {
+      const routing = state.history.present.wdw;
+      if (state.history.present.routing !== "wdw" || !routing) return state;
+      const sourceLane = routing.dry.blocks.some(({ id }) => id === action.blockId)
+        ? "dry" : routing.wet.blocks.some(({ id }) => id === action.blockId) ? "wet" : undefined;
+      if (!sourceLane) return state;
+      return withMutation(state, (present) => {
+        if (!present.wdw) return present;
+        const next = clonePreset(present);
+        const source = next.wdw?.[sourceLane].blocks;
+        const target = next.wdw?.[action.lane].blocks;
+        if (!source || !target) return present;
+        const sourceIndex = source.findIndex(({ id }) => id === action.blockId);
+        if (sourceIndex < 0) return present;
+        const [block] = source.splice(sourceIndex, 1);
+        target.splice(clamp(Math.trunc(action.index), 0, target.length), 0, block);
+        return next;
+      }, action.blockId);
+    }
     case "toggle-block":
       return withMutation(state, (present) => updatedBlock(present, action.blockId, (block) => ({
         ...block, enabled: action.enabled,
       })));
     case "duplicate-block": {
-      const source = findPresetBlock(state.history.present.blocks, action.blockId);
+      const source = findPresetBlockInPreset(state.history.present, action.blockId);
       if (!source || source.type === "dualRig") return state;
-      const id = nextPresetBlockId(allPresetBlocks(state.history.present.blocks));
+      const id = nextPresetBlockId(allPresetBlocksInPreset(state.history.present));
       return withMutation(state, (present) => {
         const next = clonePreset(present);
         const duplicateIn = (blocks: PresetBlock[]): boolean => {
@@ -294,7 +410,9 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           return blocks.some((block) => block.lanes
             && (duplicateIn(block.lanes.left.blocks) || duplicateIn(block.lanes.right.blocks)));
         };
-        return duplicateIn(next.blocks) ? next : undefined;
+        const duplicated = duplicateIn(next.blocks)
+          || (next.wdw && (duplicateIn(next.wdw.dry.blocks) || duplicateIn(next.wdw.wet.blocks)));
+        return duplicated ? next : undefined;
       }, id);
     }
     case "remove-block": {
@@ -311,7 +429,9 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           && (removeFrom(block.lanes.left.blocks, block.id)
             || removeFrom(block.lanes.right.blocks, block.id)));
       };
-      return removeFrom(next.blocks) ? withMutation(state, () => next, selected) : state;
+      const removed = removeFrom(next.blocks)
+        || (next.wdw && (removeFrom(next.wdw.dry.blocks) || removeFrom(next.wdw.wet.blocks)));
+      return removed ? withMutation(state, () => next, selected) : state;
     }
     case "set-block-asset":
       return withMutation(state, (present) => updatedBlock(present, action.blockId, (block) => ({
@@ -328,7 +448,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       } catch {
         return state;
       }
-      const source = findPresetBlock(state.history.present.blocks, action.blockId);
+      const source = findPresetBlockInPreset(state.history.present, action.blockId);
       if (!source || source.type !== target.blockType || target.mode === undefined) return state;
       return withMutation(state, (present) => updatedBlock(present, action.blockId, (block) => {
         const defaults = defaultsForDefinition(target.id);
@@ -343,7 +463,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case "mark-saved": {
       const saved = clonePreset(action.preset);
       const selectedBlockId = state.selectedBlockId
-        && findPresetBlock(saved.blocks, state.selectedBlockId) ? state.selectedBlockId : undefined;
+        && findPresetBlockInPreset(saved, state.selectedBlockId) ? state.selectedBlockId : undefined;
       return {
         ...state,
         saved,

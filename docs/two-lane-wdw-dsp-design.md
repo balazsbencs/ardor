@@ -1,8 +1,10 @@
 # Two-lane wet/dry/wet DSP design
 
-Status: DSP design proposal after the Pi feasibility probe.  This document
-does not define the editor UI and does not authorize production-route
-integration by itself.
+Status: Feasibility decision and implementation contract after the Pi probe.
+The dedicated pair executor, two-lane builder, immutable activation path, and
+version-3 preset loader are implemented.  The manager and device model now
+round-trip the same contract; remaining work is hardware acceptance and the
+final LVGL interaction polish, not a change to the DSP topology.
 
 ## 1. Decision
 
@@ -23,6 +25,12 @@ or silence according to the bounded underflow policy below.
 This is deliberately a constrained product topology, not a general-purpose
 DAG scheduler.  It covers the intended wet/dry/wet rig, preserves stereo time
 effects, and gives the scheduler a fixed two-worker admission problem.
+
+The persisted product route is `version: 3`, `routing: "wdw"`, with explicit
+`wdw.dry` and `wdw.wet` lane objects.  Serial presets remain versions 1 and 2;
+version 2 continues to describe the older left/right Dual Rig.  The version-3
+loader validates and prepares each lane independently, then publishes one
+immutable `WdwRoutingProgram` activation.
 
 ## 2. Why this is a new boundary
 

@@ -110,6 +110,10 @@ std::string assetNameForPath(const UiState& state, const std::string& path, cons
 std::string assetNameForBlock(const UiState& state, const PresetBlock& block)
 {
   if (block.type == "dualRig") {
+    if (block.params.value("routing", std::string{}) == "wdw") {
+      return "Dry " + std::to_string(block.lanes[0].size())
+        + " blocks  /  Wet " + std::to_string(block.lanes[1].size()) + " blocks";
+    }
     return "Left " + std::to_string(block.lanes[0].size())
       + " blocks  /  Right " + std::to_string(block.lanes[1].size()) + " blocks";
   }
@@ -1090,7 +1094,7 @@ Preset activePresetToPreset(const UiState& state)
   const auto& uiPreset = state.bank.presets[state.activePreset];
   preset.version = uiPreset.version;
   preset.name = uiPreset.name;
-  preset.routing = "serial";
+  preset.routing = uiPreset.routing;
   preset.global = uiPreset.global;
   preset.expression = uiPreset.expression;
   preset.midiBindings = uiPreset.midiBindings;
@@ -1102,6 +1106,34 @@ Preset activePresetToPreset(const UiState& state)
     }
     return converted;
   };
+  if (uiPreset.routing == "wdw") {
+    preset.version = 3;
+    preset.blocks.clear();
+    WdwRouting routing = uiPreset.wdw.value_or(WdwRouting{});
+    const auto wdwRig = std::find_if(uiPreset.blocks.begin(), uiPreset.blocks.end(), [](const UiBlock& block) {
+      return block.type == "dualRig" && block.params.value("routing", std::string{}) == "wdw";
+    });
+    if (wdwRig != uiPreset.blocks.end()) {
+      routing.dry.blocks.clear();
+      routing.wet.blocks.clear();
+      for (const auto& block : wdwRig->lanes[0]) {
+        routing.dry.blocks.push_back(convertBlock(convertBlock, block));
+      }
+      for (const auto& block : wdwRig->lanes[1]) {
+        routing.wet.blocks.push_back(convertBlock(convertBlock, block));
+      }
+      routing.dry.levelDb = wdwRig->params.value("dryLevelDb", routing.dry.levelDb);
+      routing.dry.pan = wdwRig->params.value("dryPan", routing.dry.pan);
+      routing.dry.enabled = wdwRig->enabled
+        && wdwRig->params.value("dryEnabled", routing.dry.enabled);
+      routing.wet.levelDb = wdwRig->params.value("wetLevelDb", routing.wet.levelDb);
+      routing.wet.width = wdwRig->params.value("wetWidth", routing.wet.width);
+      routing.wet.enabled = wdwRig->enabled
+        && wdwRig->params.value("wetEnabled", routing.wet.enabled);
+    }
+    preset.wdw = std::move(routing);
+    return preset;
+  }
   for (const auto& block : uiPreset.blocks) preset.blocks.push_back(convertBlock(convertBlock, block));
   return preset;
 }
@@ -1147,27 +1179,56 @@ void replaceActivePreset(UiState& state, const Preset& preset)
   auto& uiPreset = state.bank.presets[state.activePreset];
   uiPreset.version = preset.version;
   uiPreset.name = preset.name;
+  uiPreset.routing = preset.routing;
+  uiPreset.wdw = preset.wdw;
   uiPreset.global = preset.global;
   uiPreset.expression = preset.expression;
   uiPreset.midiBindings = preset.midiBindings;
   uiPreset.blocks.clear();
+  const auto convertBlock = [&](const auto& self, const PresetBlock& source) -> UiBlock {
+    UiBlock converted{source.id,
+                      source.type,
+                      labelForBlockType(source.type),
+                      assetNameForBlock(state, source),
+                      source.asset,
+                      source.enabled,
+                      paramsWithKnownDefaults(source.type, source.params)};
+    for (std::size_t lane = 0; lane < converted.lanes.size(); ++lane) {
+      for (const auto& child : source.lanes[lane]) converted.lanes[lane].push_back(self(self, child));
+    }
+    return converted;
+  };
+
+  if (preset.routing == "wdw" && preset.wdw) {
+    UiBlock rig;
+    rig.id = "wdw-routing";
+    rig.type = "dualRig";
+    rig.label = "Wet / Dry / Wet";
+    rig.assetName = "Dry " + std::to_string(preset.wdw->dry.blocks.size())
+      + " blocks  /  Wet " + std::to_string(preset.wdw->wet.blocks.size()) + " blocks";
+    rig.enabled = preset.wdw->dry.enabled || preset.wdw->wet.enabled;
+    rig.params = paramsWithKnownDefaults("dualRig", {
+      {"routing", "wdw"},
+      {"dryEnabled", preset.wdw->dry.enabled},
+      {"dryLevelDb", preset.wdw->dry.levelDb},
+      {"dryPan", preset.wdw->dry.pan},
+      {"wetEnabled", preset.wdw->wet.enabled},
+      {"wetLevelDb", preset.wdw->wet.levelDb},
+      {"wetWidth", preset.wdw->wet.width},
+    });
+    for (const auto& block : preset.wdw->dry.blocks) {
+      rig.lanes[0].push_back(convertBlock(convertBlock, block));
+    }
+    for (const auto& block : preset.wdw->wet.blocks) {
+      rig.lanes[1].push_back(convertBlock(convertBlock, block));
+    }
+    uiPreset.blocks.push_back(std::move(rig));
+  }
+
   for (const auto& block : preset.blocks) {
     if (uiPreset.blocks.size() == kMaxEffectBlocks) {
       break;
     }
-    const auto convertBlock = [&](const auto& self, const PresetBlock& source) -> UiBlock {
-      UiBlock converted{source.id,
-                        source.type,
-                        labelForBlockType(source.type),
-                        assetNameForBlock(state, source),
-                        source.asset,
-                        source.enabled,
-                        paramsWithKnownDefaults(source.type, source.params)};
-      for (std::size_t lane = 0; lane < converted.lanes.size(); ++lane) {
-        for (const auto& child : source.lanes[lane]) converted.lanes[lane].push_back(self(self, child));
-      }
-      return converted;
-    };
     uiPreset.blocks.push_back(convertBlock(convertBlock, block));
   }
   state.selectedBlock = 0;
@@ -1252,10 +1313,17 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
     }
   } else if (block.type == "dualAmp" || block.type == "dualRig") {
     if (!previewIsSynchronized(state)) return;
+    const bool wdw = block.type == "dualRig"
+      && block.params.value("routing", std::string{}) == "wdw";
     if (key == "leftCabLevelDb" || key == "rightCabLevelDb"
-        || key == "leftLevelDb" || key == "rightLevelDb") {
+        || key == "leftLevelDb" || key == "rightLevelDb"
+        || (wdw && (key == "dryLevelDb" || key == "wetLevelDb"))) {
       value = clampFloat(value, -60.0f, 12.0f);
     } else if (key == "leftCabMix" || key == "rightCabMix") {
+      value = clampFloat(value, 0.0f, 1.0f);
+    } else if (wdw && key == "dryPan") {
+      value = clampFloat(value, -1.0f, 1.0f);
+    } else if (wdw && key == "wetWidth") {
       value = clampFloat(value, 0.0f, 1.0f);
     } else {
       return;
@@ -1332,9 +1400,12 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
     && (value == "sum" || value == "left" || value == "right");
   const bool dualRigToggleValue = block.type == "dualRig" && value.is_boolean()
     && (key == "leftPolarityInvert" || key == "rightPolarityInvert");
+  const bool wdwToggleValue = block.type == "dualRig"
+    && block.params.value("routing", std::string{}) == "wdw"
+    && value.is_boolean() && (key == "dryEnabled" || key == "wetEnabled");
   if (!compressorValue && !tapeSpeedValue && !namNanoValue && !namInputValue
       && !dualAmpInputValue && !dualAmpToggleValue
-      && !dualRigInputValue && !dualRigToggleValue) {
+      && !dualRigInputValue && !dualRigToggleValue && !wdwToggleValue) {
     return;
   }
   if (block.params.value(key, nlohmann::json{}) == value) return;

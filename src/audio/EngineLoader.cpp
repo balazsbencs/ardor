@@ -1,4 +1,5 @@
 #include "audio/EngineLoader.h"
+#include "audio/WdwRoutingBuilder.h"
 
 #include "audio/WavIo.h"
 
@@ -49,6 +50,29 @@ bool validateLoadOptions(const EngineLoadOptions& options, std::string& error)
     return false;
   }
   return true;
+}
+
+WdwRoutingBuildOptions wdwBuildOptions(const EngineLoadOptions& options,
+                                       const WdwRouting& routing)
+{
+  WdwRoutingBuildOptions result;
+  result.engine = options;
+  result.dryWorkerCpu = options.wdwDryWorkerCpu;
+  result.wetWorkerCpu = options.wdwWetWorkerCpu;
+  result.program.audioCpu = options.wdwAudioCpu;
+  result.program.executor.pipelineSlots = options.wdwPipelineSlots == 0
+    ? 3 : options.wdwPipelineSlots;
+  result.program.executor.mode = options.parallelRigs
+    ? WdwPairExecutionMode::Pipelined : WdwPairExecutionMode::Direct;
+  result.program.mix = {
+    dbToGain(std::clamp(routing.dry.levelDb, -60.0f, 12.0f)),
+    std::clamp(routing.dry.pan, -1.0f, 1.0f),
+    routing.dry.enabled,
+    dbToGain(std::clamp(routing.wet.levelDb, -60.0f, 12.0f)),
+    std::clamp(routing.wet.width, 0.0f, 1.0f),
+    routing.wet.enabled,
+  };
+  return result;
 }
 
 bool validateDaisyParameters(const ChainBlockPlan& block, std::string& error)
@@ -862,6 +886,21 @@ bool preflightPreset(const Preset& preset, const std::filesystem::path& dataRoot
                      const EngineLoadOptions& options, std::string& error)
 {
   try {
+    if (preset.routing == "wdw") {
+      if (!preset.wdw) {
+        error = "wet/dry/wet preset is missing its lane configuration";
+        return false;
+      }
+      const auto dryPlan = buildChainPlanForBlocks(
+        preset.global, preset.wdw->dry.blocks, dataRoot, preset.midiBindings);
+      const auto wetPlan = buildChainPlanForBlocks(
+        preset.global, preset.wdw->wet.blocks, dataRoot, preset.midiBindings);
+      std::unique_ptr<WdwRoutingProgram> ignoredProgram;
+      WdwRoutingBuildReport ignoredReport;
+      return buildWdwRoutingProgram(
+        dryPlan, wetPlan, wdwBuildOptions(options, *preset.wdw),
+        ignoredProgram, ignoredReport, error);
+    }
     return preflightChainPlan(buildChainPlan(preset, dataRoot), options, error);
   } catch (const std::exception& e) {
     error = e.what();
@@ -884,6 +923,20 @@ bool preflightPresetSlot(const PresetStore& store, PresetSlot slot,
 bool applyPreset(PedalEngine& engine, const Preset& preset, const std::filesystem::path& dataRoot,
                  const EngineLoadOptions& options, std::string& error)
 {
+  if (preset.routing == "wdw") {
+    if (!preset.wdw) {
+      error = "wet/dry/wet preset is missing its lane configuration";
+      return false;
+    }
+    const auto dryPlan = buildChainPlanForBlocks(
+      preset.global, preset.wdw->dry.blocks, dataRoot, preset.midiBindings);
+    const auto wetPlan = buildChainPlanForBlocks(
+      preset.global, preset.wdw->wet.blocks, dataRoot, preset.midiBindings);
+    WdwRoutingBuildReport ignoredReport;
+    return applyWdwRouting(
+      engine, dryPlan, wetPlan, wdwBuildOptions(options, *preset.wdw),
+      ignoredReport, error);
+  }
   return applyChainPlan(engine, buildChainPlan(preset, dataRoot), options, error);
 }
 

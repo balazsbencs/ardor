@@ -62,6 +62,67 @@ func TestValidatePreset(t *testing.T) {
 	if err := Validate(dual); err == nil {
 		t.Fatal("dual amp traversal asset should fail")
 	}
+
+	wdw := validPreset()
+	wdw["version"] = float64(3)
+	wdw["routing"] = "wdw"
+	wdw["blocks"] = []any{}
+	wdw["wdw"] = map[string]any{
+		"dry": map[string]any{
+			"levelDb": float64(-2), "pan": float64(-0.25), "enabled": true,
+			"blocks": []any{
+				map[string]any{"id": "dry-nam", "type": "nam", "enabled": true, "asset": "models/dry.nam", "params": map[string]any{}},
+				map[string]any{"id": "dry-cab", "type": "cab", "enabled": true, "asset": "irs/dry.wav", "params": map[string]any{}},
+			},
+		},
+		"wet": map[string]any{
+			"levelDb": float64(-6), "pan": float64(0), "width": float64(0.7), "enabled": true,
+			"blocks": []any{
+				map[string]any{"id": "wet-nam", "type": "nam", "enabled": true, "asset": "models/wet.nam", "params": map[string]any{}},
+				map[string]any{"id": "wet-cab", "type": "cab", "enabled": true, "asset": "irs/wet.wav", "params": map[string]any{}},
+			},
+		},
+	}
+	if err := Validate(wdw); err != nil {
+		t.Fatalf("valid WDW preset rejected: %v", err)
+	}
+	wdw["blocks"] = []any{map[string]any{"id": "legacy", "type": "nam", "enabled": true, "asset": "", "params": map[string]any{}}}
+	if err := Validate(wdw); err == nil {
+		t.Fatal("WDW top-level blocks should fail")
+	}
+}
+
+func TestReplaceWdwAssetReferences(t *testing.T) {
+	root := t.TempDir()
+	store := NewStore(root)
+	preset := validPreset()
+	preset["version"] = float64(3)
+	preset["routing"] = "wdw"
+	preset["blocks"] = []any{}
+	preset["wdw"] = map[string]any{
+		"dry": map[string]any{"blocks": []any{map[string]any{
+			"id": "dry-nam", "type": "nam", "enabled": true, "asset": "models/old.nam", "params": map[string]any{},
+		}}},
+		"wet": map[string]any{"blocks": []any{map[string]any{
+			"id": "wet-nam", "type": "nam", "enabled": true, "asset": "models/wet.nam", "params": map[string]any{},
+		}}},
+	}
+	if _, err := store.Save(0, 0, preset); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := store.ReplaceAssetReferences("models/old.nam", "models/new.nam")
+	if err != nil || changed != 1 {
+		t.Fatalf("WDW replacement changed=%d err=%v", changed, err)
+	}
+	loaded, err := store.Load(0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wdw := loaded.Preset["wdw"].(map[string]any)
+	dry := wdw["dry"].(map[string]any)["blocks"].([]any)
+	if dry[0].(map[string]any)["asset"] != "models/new.nam" {
+		t.Fatalf("WDW lane reference was not updated: %#v", dry[0])
+	}
 }
 
 func TestReplaceDualAmpAssetReferences(t *testing.T) {

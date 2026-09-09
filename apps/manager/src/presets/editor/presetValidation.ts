@@ -186,16 +186,116 @@ function structurallyValidBlock(value: unknown, index: number): value is PresetB
     && Number.isInteger(index);
 }
 
+function validateWdwLane(
+  laneName: "dry" | "wet",
+  laneValue: unknown,
+  assets: AssetInventory,
+  ids: Set<string>,
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  if (!isRecord(laneValue) || !Array.isArray(laneValue.blocks)) {
+    return [error("wdw-lane-shape", `WDW ${laneName} lane must contain a blocks array.`, `wdw.${laneName}.blocks`)];
+  }
+  const lane = laneValue as Record<string, unknown>;
+  const blocks = lane.blocks as unknown[];
+  const levelDb = lane.levelDb ?? 0;
+  const pan = lane.pan ?? 0;
+  const width = lane.width ?? 1;
+  if (typeof levelDb !== "number" || !Number.isFinite(levelDb) || levelDb < -60 || levelDb > 12) {
+    issues.push(error("wdw-level-range", `WDW ${laneName} level must be between -60 and 12 dB.`, `wdw.${laneName}.levelDb`));
+  }
+  if (laneName === "dry" && (typeof pan !== "number" || !Number.isFinite(pan) || pan < -1 || pan > 1)) {
+    issues.push(error("wdw-pan-range", `WDW ${laneName} pan must be between -1 and 1.`, `wdw.${laneName}.pan`));
+  }
+  if (laneName === "wet" && lane.pan !== undefined
+      && (typeof lane.pan !== "number" || !Number.isFinite(lane.pan) || lane.pan !== 0)) {
+    issues.push(error("wdw-wet-pan", "The WDW wet lane stays stereo; use width instead of pan.", "wdw.wet.pan"));
+  }
+  if (laneName === "wet" && (typeof width !== "number" || !Number.isFinite(width) || width < 0 || width > 1)) {
+    issues.push(error("wdw-width-range", `WDW ${laneName} width must be between 0 and 1.`, `wdw.${laneName}.width`));
+  }
+  if (laneName === "dry" && lane.width !== undefined
+      && (typeof lane.width !== "number" || !Number.isFinite(lane.width) || lane.width !== 1)) {
+    issues.push(error("wdw-dry-width", "The WDW dry lane is mono; use pan instead of width.", "wdw.dry.width"));
+  }
+  if (lane.enabled !== undefined && typeof lane.enabled !== "boolean") {
+    issues.push(error("wdw-enabled-type", `WDW ${laneName} enabled must be boolean.`, `wdw.${laneName}.enabled`));
+  }
+  if (blocks.length > 10) {
+    issues.push(error("wdw-lane-limit", `WDW ${laneName} lane can contain at most ten blocks.`, `wdw.${laneName}.blocks`));
+  }
+  const allowed = laneName === "dry"
+    ? new Set(["nam", "cab", "dynamics", "eq", "distortion", "wah"])
+    : new Set(["nam", "cab", "mod", "delay", "reverb", "irreverb", "stereo"]);
+  let namCount = 0;
+  let cabCount = 0;
+  let cabIndex = -1;
+  blocks.forEach((value, index) => {
+    if (!structurallyValidBlock(value, index)) {
+      issues.push(error("block-shape", `WDW ${laneName} block ${index + 1} has an invalid shape.`, `wdw.${laneName}.blocks.${index}`));
+      return;
+    }
+    const block = value;
+    if (block.id.length === 0 || block.id.length > 80) {
+      issues.push(blockError(block, "block-id-length", "Block ID must be between 1 and 80 characters.", "id"));
+    }
+    if (ids.has(block.id)) issues.push(blockError(block, "block-id-duplicate", `Block ID “${block.id}” is duplicated.`, "id"));
+    ids.add(block.id);
+    if (!validAssetPath(block.asset)) {
+      issues.push(blockError(block, "asset-path", "Asset paths must be relative and cannot contain backslashes, . or .. segments.", "asset"));
+    }
+    if (block.type === "dualRig" || block.type === "dualAmp") {
+      issues.push(blockError(block, "nested-split", "WDW lanes cannot contain another split block.", "type"));
+      return;
+    }
+    if (!allowed.has(block.type)) {
+      issues.push(blockWarning(block, "wdw-placement", `${block.type} is not admitted on the WDW ${laneName} lane.`, "type"));
+    }
+    if (block.type === "nam") namCount += 1;
+    if (block.type === "cab") { cabCount += 1; cabIndex = index; }
+    const definition = definitionForValidation(block);
+    if (!definition) {
+      issues.push(blockWarning(block, knownTypes.has(block.type) ? "mode-unsupported" : "block-unsupported",
+        `Block type “${block.type}” is not supported by this manager.`, "type"));
+      return;
+    }
+    for (const control of definition.controls) {
+      const issue = validateControl(block, control);
+      if (issue) issues.push(issue);
+    }
+    if (definition.id === "eq:parametric_eq_5") issues.push(...validateEq(block));
+    issues.push(...assetIssues(block, definition, assets));
+    if (block.enabled && ["mod", "delay", "reverb", "irreverb", "stereo"].includes(block.type) && cabIndex < 0) {
+      issues.push(blockWarning(block, "cab-required-first", "Cabinet must precede time-based effects on this lane.", "type"));
+    }
+  });
+  if (namCount !== 1) issues.push({ severity: "warning", code: "wdw-nam-count", message: `WDW ${laneName} lane requires exactly one NAM block.`, field: `wdw.${laneName}.blocks` });
+  if (cabCount !== 1) issues.push({ severity: "warning", code: "wdw-cab-count", message: `WDW ${laneName} lane requires exactly one cabinet block.`, field: `wdw.${laneName}.blocks` });
+  if (cabIndex >= 0) {
+    const namIndex = blocks.findIndex((block) => structurallyValidBlock(block, 0) && block.type === "nam");
+    if (namIndex > cabIndex) issues.push({ severity: "warning", code: "wdw-nam-order", message: `NAM must precede the cabinet on the WDW ${laneName} lane.`, field: `wdw.${laneName}.blocks` });
+  }
+  return issues;
+}
+
 export function validatePreset(preset: Preset, assets: AssetInventory = emptyAssets): PresetValidationResult {
   const presetIssues: ValidationIssue[] = [];
   const issuesByBlock: ValidationIssue[][] = [];
   const source = preset as unknown as Record<string, unknown>;
   const ids = new Set<string>();
 
-  if (source.version !== 1 && source.version !== 2) {
-    presetIssues.push(error("version", "Preset version must be 1 or 2.", "version"));
+  if (source.version !== 1 && source.version !== 2 && source.version !== 3) {
+    presetIssues.push(error("version", "Preset version must be 1, 2, or 3.", "version"));
   }
-  if (source.routing !== "serial") presetIssues.push(error("routing", "Preset routing must be serial.", "routing"));
+  if (source.routing !== "serial" && source.routing !== "wdw") {
+    presetIssues.push(error("routing", "Preset routing must be serial or wdw.", "routing"));
+  }
+  if (source.routing === "wdw" && source.version !== 3) {
+    presetIssues.push(error("wdw-version", "Wet/dry/wet routing requires preset version 3.", "version"));
+  }
+  if (source.routing === "serial" && source.version === 3) {
+    presetIssues.push(error("version", "Preset version 3 is reserved for wet/dry/wet routing.", "version"));
+  }
   if (typeof source.name !== "string") {
     presetIssues.push(error("name-type", "Preset name must be text.", "name"));
   } else if (source.name.length > 120) {
@@ -221,6 +321,16 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
   if (!Array.isArray(source.blocks)) {
     presetIssues.push(error("blocks-shape", "Preset blocks must be an array.", "blocks"));
   } else {
+    if (source.routing === "wdw") {
+      if (source.blocks.length > 0) presetIssues.push(error("wdw-top-level-blocks", "WDW presets keep top-level blocks empty.", "blocks"));
+      const wdw = source.wdw;
+      if (!isRecord(wdw)) {
+        presetIssues.push(error("wdw-shape", "WDW presets require dry and wet lane objects.", "wdw"));
+      } else {
+        presetIssues.push(...validateWdwLane("dry", wdw.dry, assets, ids));
+        presetIssues.push(...validateWdwLane("wet", wdw.wet, assets, ids));
+      }
+    } else {
     if (source.blocks.length > 10) presetIssues.push(error("block-limit", "A preset can contain at most ten blocks.", "blocks"));
     const enabledGroups = new Map<string, string>();
     let enabledParallelRig: string | undefined;
@@ -416,6 +526,7 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
         stereoEstablished = true;
       }
     });
+    }
   }
 
   if (source.expression !== undefined && source.expression !== null) {
@@ -458,7 +569,6 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
     if (!Array.isArray(source.midiMappings)) {
       presetIssues.push(error("midi-shape", "MIDI mappings must be an array.", "midiMappings"));
     } else {
-      const topLevelIds = new Set(preset.blocks.map(({ id }) => id));
       const occupied: Array<{ channel: number; controlChange: number }> = [];
       source.midiMappings.forEach((mapping, mappingIndex) => {
         const field = `midiMappings.${mappingIndex}`;
@@ -490,13 +600,13 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
           if (!isRecord(action)
               || (action.target !== "parameter" && action.target !== "blockEnabled")
               || typeof action.blockId !== "string"
-              || !topLevelIds.has(action.blockId)
+              || !ids.has(action.blockId)
               || (action.target === "parameter" && typeof action.parameter !== "string")
               || typeof action.value1 !== "number" || !Number.isFinite(action.value1)
               || typeof action.value2 !== "number" || !Number.isFinite(action.value2)) {
             presetIssues.push(error(
               "midi-action-shape",
-              "MIDI actions require a top-level block target and two finite values.",
+              "MIDI actions require an existing block target and two finite values.",
               actionField,
             ));
           }
