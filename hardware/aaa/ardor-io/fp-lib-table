@@ -1,7 +1,6 @@
 (fp_lib_table
  (version 7)
  (lib (name "Capacitor_SMD")(type "KiCad")(uri "${KICAD9_FOOTPRINT_DIR}/Capacitor_SMD.pretty")(options "")(descr ""))
- (lib (name "Capacitor_THT")(type "KiCad")(uri "${KICAD9_FOOTPRINT_DIR}/Capacitor_THT.pretty")(options "")(descr ""))
  (lib (name "Connector_PinHeader_2.54mm")(type "KiCad")(uri "${KICAD9_FOOTPRINT_DIR}/Connector_PinHeader_2.54mm.pretty")(options "")(descr ""))
  (lib (name "Connector_PinSocket_2.54mm")(type "KiCad")(uri "${KICAD9_FOOTPRINT_DIR}/Connector_PinSocket_2.54mm.pretty")(options "")(descr ""))
  (lib (name "Diode_SMD")(type "KiCad")(uri "${KICAD9_FOOTPRINT_DIR}/Diode_SMD.pretty")(options "")(descr ""))
@@ -14,5 +13,4 @@
  (lib (name "Relay_THT")(type "KiCad")(uri "${KICAD9_FOOTPRINT_DIR}/Relay_THT.pretty")(options "")(descr ""))
  (lib (name "Resistor_SMD")(type "KiCad")(uri "${KICAD9_FOOTPRINT_DIR}/Resistor_SMD.pretty")(options "")(descr ""))
  (lib (name "TestPoint")(type "KiCad")(uri "${KICAD9_FOOTPRINT_DIR}/TestPoint.pretty")(options "")(descr ""))
- (lib (name "Ardor_Capacitor")(type "KiCad")(uri "${KIPRJMOD}/footprints/Ardor_Capacitor.pretty")(options "")(descr "Rubycon manufacturer-recommended film capacitor lands"))
 )

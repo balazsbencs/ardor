@@ -29,13 +29,13 @@ Calculated nominal response, excluding the codec and real-component tolerances:
 
 | Path | Approximate behavior |
 |---|---|
-| AUX input coupling | 0.72 Hz pole from 2.2 µF / 100 kΩ |
+| AUX input coupling | 0.16 Hz nominal pole from 10 µF / 100 kΩ |
 | Mono averaging | Equal L/R weights; 0.1% summing resistors |
 | Line out into 10 kΩ | About 0.990 of mono input at midband; 100 Ω source resistor |
 | Line output coupling | About 0.67 Hz with the 10 kΩ pulldown and a 10 kΩ external load |
-| Amp feed into 100 kΩ | About 0.990 midband gain; 100 kΩ internal pulldown; approximately 1.4 Hz output pole |
+| Amp feed into 100 kΩ | About 0.990 midband gain; 100 kΩ internal pulldown; approximately 0.32 Hz nominal output pole |
 | Headphones into 32 Ω | Approximately 0.468 of AUX amplitude with -6 dB IC gain and 2.2 Ω series resistor |
-| Headphone input coupling | Approximately 2.74 Hz with the typical 26.4 kΩ driver input resistance |
+| Headphone input coupling | Approximately 0.60 Hz nominal with 10 µF and the typical 26.4 kΩ driver input resistance |
 
 A 1 Vrms AUX signal therefore gives approximately 0.47 Vrms / 6.8 mW per 32 Ω headphone channel. This is a design estimate, not a hearing-safe volume guarantee or a measured distortion rating. Begin commissioning at low volume. The fixed -6 dB setting permits the nominal 1 Vrms line level without requiring the headphone driver to reproduce 1 Vrms into 32 Ω. This revision has shared codec volume control; it does not include an independent analog headphone volume knob.
 

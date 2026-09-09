@@ -8,14 +8,12 @@ import wx
 app=wx.App(False)
 ROOT=Path(__file__).resolve().parents[1];b=p.LoadBoard(str(ROOT/'Ardor_IO.kicad_pcb'))
 mm=p.FromMM
-# Fix pin legends to match the compact connector coordinates.
-for d in b.GetDrawings():
- if isinstance(d,p.PCB_TEXT) and d.GetLayer()==p.F_SilkS:
-  x,y=p.ToMM(d.GetPosition().x)-50,p.ToMM(d.GetPosition().y)-50
-  if abs(x-89.3)<.01:
-   if d.GetText()=='+' and abs(y-42)<.01:y=40
-   if d.GetText()=='G' and abs(y-44.54)<.01:y=42.54
-   d.SetPosition(p.VECTOR2I(mm(139),mm(50+y)))
+# U601's fine-pitch ground lead uses a solid pour connection; the nearby
+# exposed pad and explicit ground tracks carry its return current.
+for f in b.GetFootprints():
+ if f.GetReference()=='U601':
+  for pad in f.Pads():
+   if pad.GetNumber()=='15':pad.SetLocalZoneConnection(p.ZONE_CONNECTION_FULL)
 # Snapshot the pre-existing package geometry so library checks are portable across KiCad 9 versions.
 local={'Package_SO','Package_DFN_QFN','Package_TO_SOT_SMD'};libs=set()
 for f in b.GetFootprints():
@@ -29,7 +27,7 @@ for f in b.GetFootprints():
 original={}
 for t in b.GetTracks():
  if isinstance(t,p.PCB_VIA):continue
- name=t.GetNetname();width=.2
+ name=t.GetNetname().rsplit('/',1)[-1];width=.2
  if name in ['CHASSIS']:width=.6
  elif name.startswith('+') or name in ['GND','RELAY_LOW']:width=.4
  elif name in ['HP_L','HP_R','HP_L_RAW','HP_R_RAW','HPVDD','HPVSS','CPP','CPN']:width=.3
@@ -37,9 +35,9 @@ for t in b.GetTracks():
 (ROOT/'routing/widths-before.json').write_text(json.dumps(original))
 # Conservative open-space candidates; final KiCad clearance/unconnected checks decide acceptance.
 new=[];boxes=[f.GetBoundingBox(False,False) for f in b.GetFootprints()]
-for x in range(8,86,10):
- for y in range(8,60,10):
-  if x<30 and 17<y<39:continue
+for x in range(5,64,6):
+ for y in range(10,44,6):
+  if x<22 and 15<y<30:continue
   pos=p.VECTOR2I(mm(50+x),mm(50+y))
   if any(bb.Contains(pos) for bb in boxes):continue
   v=p.PCB_VIA(b);v.SetPosition(pos);v.SetWidth(p.F_Cu,mm(.6));v.SetDrill(mm(.3));v.SetViaType(p.VIATYPE_THROUGH);v.SetLayerPair(p.F_Cu,p.B_Cu);v.SetNet(b.FindNet('GND'));b.Add(v);new.append(str(v.m_Uuid.AsString()))
