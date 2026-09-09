@@ -1,6 +1,6 @@
 # Ardor Codec Zero I/O
 
-Open **Ardor_IO.kicad_pro** in KiCad 9. The root schematic opens five functional sheets. **Ardor_IO.kicad_pcb** is the routed 90 × 64 mm compact board (28% smaller than the original 100 × 80 mm placement).
+Open **Ardor_IO.kicad_pro** in KiCad 9. The root schematic opens five functional sheets. **Ardor_IO.kicad_pcb** is the routed 68 × 46 mm compact board (45.7% less area than the previous 90 × 64 mm board; 60.9% less than the original 100 × 80 mm placement).
 
 - **Ardor_IO.pdf** — printable six-sheet schematic.
 - **BOM.csv** — component values, critical part numbers and footprints.

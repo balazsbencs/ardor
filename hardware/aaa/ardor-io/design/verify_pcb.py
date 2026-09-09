@@ -25,7 +25,16 @@ for key in ['violations','unconnected_items','schematic_parity']:assert not r[ke
 edges=[d for d in b.GetDrawings() if d.GetLayer()==p.Edge_Cuts]
 points=[v for e in edges for v in [e.GetStart(),e.GetEnd()]]
 size=[round(p.ToMM(max(v.x for v in points)-min(v.x for v in points)),2),round(p.ToMM(max(v.y for v in points)-min(v.y for v in points)),2)]
-assert size==[90,64],size
+assert size==[68,46],size
+# All component courtyards must fit the outline and remain on the assembly side.
+mask=p.LSET();mask.AddLayer(p.F_CrtYd);bounds={}
+for ref,f in fps.items():
+ assert not f.IsFlipped(),ref
+ f.BuildCourtyardCaches();box=f.GetLayerBoundingBox(mask)
+ edges_mm=[round(p.ToMM(v)-50,3) for v in [box.GetLeft(),box.GetTop(),box.GetRight(),box.GetBottom()]]
+ assert 0<=edges_mm[0]<edges_mm[2]<=68 and 0<=edges_mm[1]<edges_mm[3]<=46,(ref,edges_mm)
+ bounds[ref]=edges_mm
+(ROOT/'routing/placement-bounds.json').write_text(json.dumps(dict(sorted(bounds.items())),indent=2)+'\n')
 tracks=[t for t in b.GetTracks() if not isinstance(t,p.PCB_VIA)];vias=[t for t in b.GetTracks() if isinstance(t,p.PCB_VIA)]
-report={'board_mm':size,'original_board_mm':[100,80],'area_reduction_percent':28,'schematic_components':len(refs),'mounting_holes':4,'pad_net_assignments_checked':len(expected),'netlist_match':True,'drc_violations':0,'unconnected_items':0,'schematic_parity_issues':0,'track_segments':len(tracks),'vias':len(vias),'track_widths_mm':dict(sorted(collections.Counter(round(p.ToMM(t.GetWidth()),3) for t in tracks).items())),'kicad_version':p.Version()}
+report={'board_mm':size,'original_board_mm':[100,80],'area_reduction_percent':60.9,'previous_board_mm':[90,64],'area_reduction_from_previous_percent':round(100*(1-68*46/(90*64)),2),'schematic_components':len(refs),'mounting_holes':4,'all_courtyards_inside_outline':True,'all_components_on_front':True,'pad_net_assignments_checked':len(expected),'netlist_match':True,'drc_violations':0,'unconnected_items':0,'schematic_parity_issues':0,'track_segments':len(tracks),'vias':len(vias),'track_widths_mm':dict(sorted(collections.Counter(round(p.ToMM(t.GetWidth()),3) for t in tracks).items())),'kicad_version':p.Version()}
 (ROOT/'routing/connectivity-audit.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

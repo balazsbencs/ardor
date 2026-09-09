@@ -499,6 +499,7 @@
 		(size 0.25 0.875)
 		(layers "F.Cu" "F.Mask" "F.Paste")
 		(roundrect_rratio 0.25)
+		(zone_connect 2)
 		(uuid "7cad0c3d-1567-4adf-9aa9-22635e904051")
 	)
 	(pad "16" smd roundrect

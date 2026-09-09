@@ -6,7 +6,7 @@ C401, C402, C502, C601 and C602 use **Samsung CL31B106KBHNNNE**, **10 µF / 50 V
 
 The [Samsung specification](https://media.digikey.com/pdf/Data%20Sheets/Samsung%20PDFs/CL31B106KBHNNNE_Spec.pdf) gives a nominal body of 3.2 × 1.6 × 1.6 mm, with ±0.2 mm dimensional tolerance. The [JLCPCB listing](https://jlcpcb.com/partdetail/90812-CL31B106KBHNNNE/C89632), checked 8 September 2026, showed 359,276 in stock, 289,372 available to order, and a starting price of USD 0.3750 each. It is an Extended part supported for SMT assembly. These are sourcing observations, not reserved inventory or a confirmed assembly quotation; assembly charges are additional. No order was placed.
 
-This replaces the earlier Rubycon 16MU225KB23225 film selection (C3774818), whose limited supplier/preorder availability was unsuitable for straightforward stocked assembly. The original design used WIMA 2.2 µF through-hole film capacitors. Nominal component body area is now 90.1% smaller than the original 7.2 × 7.2 mm WIMA body. The board remains 90 × 64 mm.
+This replaces the earlier Rubycon 16MU225KB23225 film selection (C3774818), whose limited supplier/preorder availability was unsuitable for straightforward stocked assembly. The original design used WIMA 2.2 µF through-hole film capacitors. Nominal component body area is now 90.1% smaller than the original 7.2 × 7.2 mm WIMA body. The subsequent placement revision reduces the board to 68 × 46 mm.
 
 ## Electrical implications
 
@@ -18,7 +18,7 @@ The circuit has approximately 2.5 V internal audio bias and 5 V supplies. The se
 
 ## Footprint and routing
 
-The five parts use standard KiCad 9 `Capacitor_SMD:C_1206_3216Metric` reflow footprints: two 1.15 × 1.8 mm rounded pads, centers 2.95 mm apart, inner gap 1.8 mm and total outer span 4.1 mm. These replace the Rubycon-specific lands, not just the BOM entry. Component centers and orientations are preserved. Connected front-layer trace endpoints move to the new pad centers, and both ground pours are refilled. The existing layer-transition vias and C401 power crossover remain.
+The five parts use standard KiCad 9 `Capacitor_SMD:C_1206_3216Metric` reflow footprints: two 1.15 × 1.8 mm rounded pads, centers 2.95 mm apart, inner gap 1.8 mm and total outer span 4.1 mm. These replace the Rubycon-specific lands, not just the BOM entry. The initial replacement preserved component centers and adjusted trace endpoints. The subsequent 68 × 46 mm layout repositions and reroutes these parts with the rest of the board. Both ground pours are refilled.
 
 `design/convert_coupling_mlcc.py` performs this conversion idempotently on the earlier Rubycon board. The schematic generator and current BOM specify Samsung. `convert_film_smd.py` and `route_smd_update.py` describe the historical THT-to-film stage; they are not the current part-selection workflow.
 

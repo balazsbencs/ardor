@@ -7,7 +7,8 @@ mm=p.FromMM;pt=lambda x,y:p.VECTOR2I(mm(x+50),mm(y+50))
 def pad(ref,num):return next(a for a in fps[ref].Pads() if a.GetNumber()==str(num))
 def route(ref,num,other,onum,waypoints=(),width=.25):
  a=pad(ref,num);c=pad(other,onum);assert a.GetNetCode()==c.GetNetCode()
- points=[a.GetPosition(),*[pt(*v) for v in waypoints],c.GetPosition()]
+ offset=(p.ToMM(fps['U601'].GetPosition().x)-50-72,p.ToMM(fps['U601'].GetPosition().y)-50-48) if ref=='U601' else (0,0)
+ points=[a.GetPosition(),*[pt(v[0]+offset[0],v[1]+offset[1]) for v in waypoints],c.GetPosition()]
  for start,end in zip(points,points[1:]):
   t=p.PCB_TRACK(b);t.SetStart(start);t.SetEnd(end);t.SetWidth(mm(width));t.SetLayer(p.F_Cu);t.SetNetCode(a.GetNetCode());b.Add(t)
 for ref in ['U401','U402','U501']:
@@ -20,7 +21,7 @@ route('U601',14,'C604',1,[(72.25,45.7),(72.775,45.175)],.25)
 # Continuous plane pour is kept outside the entire MIDI input component island.
 z=p.ZONE(b);z.SetIsRuleArea(True);z.SetLayerSet(p.LSET.AllCuMask());z.SetDoNotAllowTracks(False);z.SetDoNotAllowVias(False);z.SetDoNotAllowCopperPour(True);z.SetDoNotAllowPads(False);z.SetDoNotAllowFootprints(False)
 poly=z.Outline();poly.NewOutline()
-for x,y in [(1,19),(26.2,19),(26.2,35),(1,35)]:poly.Append(mm(x+50),mm(y+50))
+for x,y in [(.5,15.5),(17.7,15.5),(17.7,29.5),(.5,29.5)]:poly.Append(mm(x+50),mm(y+50))
 b.Add(z)
 p.SaveBoard(str(ROOT/'Ardor_IO.kicad_pcb'),b)
 # KiCad 9 exports pour-only keepouts as routing keepouts; omit this one from DSN.
