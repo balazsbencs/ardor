@@ -362,6 +362,8 @@ struct Args {
   int playbackDeviceIndex = -1;
   int audioCpu = -1;
   int rigWorkerCpu = -1;
+  int wdwDryWorkerCpu = -1;
+  int wdwWetWorkerCpu = -1;
   uint32_t inputChannel = 0;
   ardor::OutputChannel outputChannel = ardor::OutputChannel::Both;
   std::filesystem::path preset;
@@ -498,6 +500,14 @@ bool parse(int argc, char** argv, Args& args)
         const char* v = value();
         if (!v) return false;
         args.rigWorkerCpu = std::stoi(v);
+      } else if (a == "--wdw-dry-worker-cpu") {
+        const char* v = value();
+        if (!v) return false;
+        args.wdwDryWorkerCpu = std::stoi(v);
+      } else if (a == "--wdw-wet-worker-cpu") {
+        const char* v = value();
+        if (!v) return false;
+        args.wdwWetWorkerCpu = std::stoi(v);
       } else if (a == "--input-channel") {
         const char* v = value();
         if (!v || !parseChannel(v, args.inputChannel)) return false;
@@ -605,6 +615,7 @@ bool parse(int argc, char** argv, Args& args)
     return false;
   }
   if (args.audioCpu < -1 || args.rigWorkerCpu < -1
+      || args.wdwDryWorkerCpu < -1 || args.wdwWetWorkerCpu < -1
       || (args.parallelRigs
           && (args.audioCpu < 0 || args.rigWorkerCpu < 0
               || args.audioCpu == args.rigWorkerCpu))
@@ -800,6 +811,7 @@ int main(int argc, char** argv)
                 << "            [--allow-non-realtime] (development only)\n"
                 << "            [--allow-device-resampling] (development only)\n"
                 << "            [--parallel-rigs] [--audio-cpu N] [--rig-worker-cpu N]\n"
+                << "            [--wdw-dry-worker-cpu N] [--wdw-wet-worker-cpu N]\n"
                 << "            [--capture-device N] [--playback-device N] [--input-channel left|right]\n"
                 << "            [--output-channel both|left|right] [--ir-samples N]\n"
                 << "            [--telemetry-file /run/ardor-pedal.telemetry]\n"
@@ -825,13 +837,16 @@ int main(int argc, char** argv)
       std::signal(SIGTERM, handleSignal);
     }
 
-    const ardor::EngineLoadOptions loadOptions{
+    ardor::EngineLoadOptions loadOptions{
       args.sampleRate,
       args.blockSize,
       args.irSamples == 0 ? size_t{8192} : args.irSamples,
       args.realtime && args.parallelRigs,
       args.rigWorkerCpu,
     };
+    loadOptions.wdwAudioCpu = args.audioCpu;
+    loadOptions.wdwDryWorkerCpu = args.wdwDryWorkerCpu;
+    loadOptions.wdwWetWorkerCpu = args.wdwWetWorkerCpu;
 
     // Realtime slot mode: unique_ptr engine enables stop/swap/restart switching
     if (args.realtime && args.presetSlotMode) {
@@ -839,15 +854,47 @@ int main(int argc, char** argv)
       ardor::PresetStore store(args.dataRoot);
       ardor::Preset activePreset;
       std::string loadError;
-      const bool initialPresetLoaded = ardor::applyPresetSlot(
+      bool initialPresetLoaded = ardor::applyPresetSlot(
         *liveEngine, store, {args.bank, args.slot}, args.dataRoot, loadOptions, loadError);
+      const std::string initialPresetError = loadError;
+      bool initialPresetFallback = false;
       if (!initialPresetLoaded) {
         std::cerr << "Warning: preset " << args.bank << ":" << args.slot << " failed (" << loadError
                   << "), using pass-through\n";
         liveEngine->clearEffects();
         liveEngine->prepareBlockSize(loadOptions.blockSize);
+
+        // A malformed or not-yet-complete WDW draft must never be presented as
+        // the audible preset after boot. Prefer the next runnable slot in this
+        // bank so the UI selection and engine remain coupled even when the
+        // requested slot cannot be prepared.
+        for (int offset = 1; offset < 4 && !initialPresetLoaded; ++offset) {
+          const int fallbackSlot = (args.slot + offset) % 4;
+          try {
+            auto fallbackPreset = store.loadOrEmpty({args.bank, fallbackSlot});
+            std::string fallbackError;
+            if (!ardor::applyPreset(*liveEngine, fallbackPreset, args.dataRoot,
+                                    loadOptions, fallbackError)) {
+              continue;
+            }
+            activePreset = std::move(fallbackPreset);
+            args.slot = fallbackSlot;
+            initialPresetLoaded = true;
+            initialPresetFallback = true;
+            std::cerr << "Recovered with preset " << args.bank << ":" << args.slot
+                      << " after the requested preset failed\n";
+          } catch (const std::exception&) {
+            // Keep looking; an empty slot or another malformed slot can be
+            // skipped without changing the pass-through safety fallback.
+          }
+        }
       } else {
         activePreset = store.loadOrEmpty({args.bank, args.slot});
+      }
+      if (!initialPresetLoaded) {
+        // Keep a concrete serial/pass-through snapshot for the control/UI
+        // lifecycle even when every slot in the bank is unavailable.
+        activePreset.name = "No valid preset";
       }
 
       requestedSlot.store(-1, std::memory_order_relaxed);
@@ -979,6 +1026,11 @@ int main(int argc, char** argv)
         // The engine was loaded immediately above. Reflect that state in the
         // UI without queuing the same preset for another audio-engine swap.
         ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
+        if (initialPresetFallback) {
+          ardor::setUiStatus(uiState, "Requested preset unavailable; fallback preset active", true);
+        } else if (!initialPresetLoaded) {
+          ardor::setUiStatus(uiState, "No valid preset active: " + initialPresetError, true);
+        }
         ui = std::make_unique<ardor::LvglUi>(ardor::UiActions{
           [&](std::size_t index) {
             if (ardor::requestPresetNavigation(uiState, {uiState.activeBank, index})) {
@@ -2075,12 +2127,14 @@ int main(int argc, char** argv)
               if (uiState.dirty) {
                 ardor::setUiStatus(uiState, "Could not switch preset; current edits retained.", true);
               } else {
-                // Keep the last valid engine audible, but open the rejected
-                // preset so its missing asset can be repaired in Edit mode.
-                ardor::loadBankFromStore(uiState, store, targetBank);
-                ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(nextSlot));
+                // Keep the visible selection coupled to the last valid engine.
+                // The rejected target can be selected again after its asset or
+                // topology problem is repaired; showing it as active here
+                // makes the UI lie about which sound is audible.
+                ardor::loadBankFromStore(uiState, store, args.bank);
+                ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
                 ardor::setUiStatus(uiState, "Preset unavailable: " + preflightError
-                                            + ". Open Edit to repair it.", true);
+                                            + ". Current preset retained.", true);
               }
             }
 #endif
@@ -2098,10 +2152,10 @@ int main(int argc, char** argv)
                 if (uiState.dirty) {
                   ardor::setUiStatus(uiState, "Could not switch preset; current edits retained.", true);
                 } else {
-                  ardor::loadBankFromStore(uiState, store, targetBank);
-                  ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(nextSlot));
+                  ardor::loadBankFromStore(uiState, store, args.bank);
+                  ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
                   ardor::setUiStatus(uiState, "Preset unavailable: " + activation.error
-                                              + ". Open Edit to repair it.", true);
+                                              + ". Current preset retained.", true);
                 }
               }
 #endif
