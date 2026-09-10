@@ -9,6 +9,7 @@
 #include <exception>
 #include <filesystem>
 #include <iomanip>
+#include <limits>
 #include <sstream>
 #include <system_error>
 #include <utility>
@@ -394,6 +395,115 @@ UiBlock makeEmptyDualRig(const std::vector<UiBlock>& allBlocks)
   return rig;
 }
 
+bool isWdwRig(const UiBlock& block)
+{
+  return block.type == "dualRig"
+    && block.params.value("routing", std::string{}) == "wdw";
+}
+
+const char* wdwLaneName(std::size_t lane)
+{
+  return lane == 0 ? "Dry" : "Wet";
+}
+
+bool wdwBlockAllowed(const UiBlock& block, std::size_t lane)
+{
+  if (lane == 0) {
+    return block.type == "nam" || block.type == "cab" || block.type == "dynamics"
+      || block.type == "eq" || block.type == "distortion" || block.type == "wah";
+  }
+  return block.type == "nam" || block.type == "cab" || block.type == "mod"
+    || block.type == "delay" || block.type == "reverb" || block.type == "irreverb"
+    || block.type == "stereo";
+}
+
+bool isLastRequiredWdwBlock(const std::vector<UiBlock>& lane, const UiBlock& block)
+{
+  if (block.type != "nam" && block.type != "cab") return false;
+  return std::count_if(lane.begin(), lane.end(), [&](const UiBlock& candidate) {
+    return candidate.type == block.type;
+  }) <= 1;
+}
+
+void updateLaneSummary(UiBlock& rig)
+{
+  if (isWdwRig(rig)) {
+    rig.assetName = "Dry " + std::to_string(rig.lanes[0].size())
+      + " blocks  /  Wet " + std::to_string(rig.lanes[1].size()) + " blocks";
+  } else {
+    rig.assetName = "Left " + std::to_string(rig.lanes[0].size())
+      + " blocks  /  Right " + std::to_string(rig.lanes[1].size()) + " blocks";
+  }
+}
+
+UiBlock makeEmptyWdwRig(const std::vector<UiBlock>& allBlocks)
+{
+  UiBlock rig{nextBlockId(allBlocks), "dualRig", "Wet / Dry / Wet",
+              "Dry 0 blocks  /  Wet 0 blocks", "", true,
+              paramsWithKnownDefaults("dualRig", {
+                {"routing", "wdw"},
+                {"dryEnabled", true}, {"dryLevelDb", 0.0f}, {"dryPan", 0.0f},
+                {"wetEnabled", true}, {"wetLevelDb", 0.0f}, {"wetWidth", 1.0f},
+              })};
+  return rig;
+}
+
+bool assetAvailable(const UiState& state, const std::string& path)
+{
+  return !path.empty() && std::any_of(state.assets.begin(), state.assets.end(),
+    [&](const UiAsset& asset) { return asset.path == path; });
+}
+
+bool wdwRouteReadyForPreview(const UiState& state, const UiBlock& rig)
+{
+  if (!isWdwRig(rig)) return false;
+  for (std::size_t laneIndex = 0; laneIndex < rig.lanes.size(); ++laneIndex) {
+    const auto& lane = rig.lanes[laneIndex];
+    std::size_t namCount = 0;
+    std::size_t cabCount = 0;
+    std::size_t namIndex = std::numeric_limits<std::size_t>::max();
+    std::size_t cabIndex = std::numeric_limits<std::size_t>::max();
+    bool cabSeen = false;
+    for (std::size_t blockIndex = 0; blockIndex < lane.size(); ++blockIndex) {
+      const auto& block = lane[blockIndex];
+      if (!wdwBlockAllowed(block, laneIndex)) return false;
+      if (block.type == "nam") {
+        ++namCount;
+        namIndex = blockIndex;
+        if (!block.enabled || !assetAvailable(state, block.assetPath)) return false;
+      } else if (block.type == "cab") {
+        ++cabCount;
+        cabIndex = blockIndex;
+        if (!block.enabled || !assetAvailable(state, block.assetPath)) return false;
+        cabSeen = true;
+      } else if (block.type == "mod" || block.type == "delay" || block.type == "reverb"
+                 || block.type == "irreverb" || block.type == "stereo") {
+        if (!cabSeen) return false;
+        if (!block.assetPath.empty() && !assetAvailable(state, block.assetPath)) return false;
+      }
+    }
+    if (namCount != 1 || cabCount != 1 || namIndex > cabIndex) return false;
+  }
+  return true;
+}
+
+const UiBlock* selectedWdwRig(const UiState& state)
+{
+  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (state.selectedBlock >= blocks.size()) return nullptr;
+  return isWdwRig(blocks[state.selectedBlock]) ? &blocks[state.selectedBlock] : nullptr;
+}
+
+bool queuePreviewOrDeferWdw(UiState& state, UiPreviewSnapshot rollback,
+                           std::string operation, const UiBlock* rig)
+{
+  if (rig && isWdwRig(*rig) && !wdwRouteReadyForPreview(state, *rig)) {
+    setUiStatus(state, "WDW draft updated - finish both NAM / CAB lanes before preview");
+    return false;
+  }
+  return queuePreview(state, std::move(rollback), std::move(operation));
+}
+
 std::string bankName(int bank)
 {
   std::ostringstream out;
@@ -534,6 +644,8 @@ UiState makeDemoUiState()
   appendDaisyAssets(state);
   state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split",
                           "Runs two independent chains in parallel"});
+  state.assets.push_back({"Wet / Dry / Wet", "", "amps", "dualRig", "wdw",
+                          "Two NAM + cab lanes; time effects stay on Wet"});
   state.assets.insert(state.assets.end(), fileBackedAssets.begin(), fileBackedAssets.end());
   return state;
 }
@@ -812,6 +924,11 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
   }
 
   const auto& asset = state.assets[assetIndex];
+  const auto& preset = state.bank.presets[state.activePreset];
+  if (preset.routing == "wdw" && asset.blockType != "dualRig") {
+    setUiStatus(state, "Add modules with the Dry or Wet lane +", true);
+    return;
+  }
   const auto insertAt = std::min(blockIndex, blocks.size());
   if (asset.blockType == "dualRig") {
     const bool alreadySplit = std::any_of(blocks.begin(), blocks.end(), [](const UiBlock& block) {
@@ -824,8 +941,11 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
     const bool standaloneAmp = std::any_of(blocks.begin(), blocks.end(), [](const UiBlock& block) {
       return block.enabled && (block.type == "nam" || block.type == "cab");
     });
-    if (standaloneAmp) {
-      setUiStatus(state, "Remove standalone NAM and IR blocks before adding Split", true);
+    if ((asset.mode == "wdw" && !blocks.empty())
+        || (asset.mode != "wdw" && standaloneAmp)) {
+      setUiStatus(state, asset.mode == "wdw"
+        ? "Remove serial modules before adding Wet / Dry / Wet"
+        : "Remove standalone NAM and IR blocks before adding Split", true);
       return;
     }
   }
@@ -833,9 +953,16 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
   const auto previewRollback = previewSnapshot(state);
   rememberBlockEdit(state);
   if (asset.blockType == "dualRig") {
+    const auto rig = asset.mode == "wdw" ? makeEmptyWdwRig(blocks) : makeEmptyDualRig(blocks);
     blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(insertAt),
-                  makeEmptyDualRig(blocks));
-    state.bank.presets[state.activePreset].version = 2;
+                  rig);
+    if (asset.mode == "wdw") {
+      state.bank.presets[state.activePreset].version = 3;
+      state.bank.presets[state.activePreset].routing = "wdw";
+      state.bank.presets[state.activePreset].wdw = WdwRouting{};
+    } else {
+      state.bank.presets[state.activePreset].version = 2;
+    }
   } else {
     blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(insertAt),
                   blockFromAsset(state, asset, blocks));
@@ -846,8 +973,12 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
   state.blockDrawerOpen = false;
   state.paramDrawerOpen = true;
   state.dirty = true;
-  queuePreview(state, previewRollback, "add " + asset.name);
-  setUiStatus(state, asset.name + " added - Undo");
+  const auto* insertedRig = asset.mode == "wdw" ? &blocks[insertAt] : nullptr;
+  if (queuePreviewOrDeferWdw(state, previewRollback, "add " + asset.name, insertedRig)) {
+    setUiStatus(state, asset.name + " added - Undo");
+  } else if (insertedRig) {
+    setUiStatus(state, asset.name + " added - finish both NAM / CAB lanes before preview");
+  }
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
 }
 
@@ -865,28 +996,46 @@ void insertLaneAssetBlock(UiState& state, std::size_t assetIndex, std::size_t ri
     setUiStatus(state, "A Split cannot be placed inside another Split", true);
     return;
   }
+  const bool wdw = isWdwRig(blocks[rigIndex]);
+  const auto candidate = blockFromAsset(state, asset, blocks);
+  if (wdw && !wdwBlockAllowed(candidate, laneIndex)) {
+    setUiStatus(state, asset.name + " is not admitted on the "
+                + std::string{wdwLaneName(laneIndex)} + " lane", true);
+    return;
+  }
   auto& lane = blocks[rigIndex].lanes[laneIndex];
   if (lane.size() >= kMaxEffectBlocks) {
     setUiStatus(state, "This lane is full", true);
+    return;
+  }
+  if (wdw && (candidate.type == "nam" || candidate.type == "cab")
+      && std::any_of(lane.begin(), lane.end(), [&](const UiBlock& block) {
+        return block.type == candidate.type;
+      })) {
+    setUiStatus(state, "Each WDW lane keeps one " + candidate.label, true);
     return;
   }
 
   const auto previewRollback = previewSnapshot(state);
   rememberBlockEdit(state);
   const auto insertAt = std::min(blockIndex, lane.size());
-  lane.insert(lane.begin() + static_cast<std::ptrdiff_t>(insertAt),
-              blockFromAsset(state, asset, blocks));
-  blocks[rigIndex].assetName = "Left " + std::to_string(blocks[rigIndex].lanes[0].size())
-    + " blocks  /  Right " + std::to_string(blocks[rigIndex].lanes[1].size()) + " blocks";
+  lane.insert(lane.begin() + static_cast<std::ptrdiff_t>(insertAt), candidate);
+  updateLaneSummary(blocks[rigIndex]);
   state.selectedBlock = rigIndex;
   state.selectedBlockId = blocks[rigIndex].id;
   state.paramTarget = UiParamTarget::Block;
   state.blockDrawerOpen = false;
   state.paramDrawerOpen = false;
   state.dirty = true;
-  queuePreview(state, previewRollback, "add " + asset.name + " to lane");
-  setUiStatus(state, asset.name + " added to "
-              + std::string(laneIndex == 0 ? "Left" : "Right") + " - Undo");
+  const auto* rig = &blocks[rigIndex];
+  if (queuePreviewOrDeferWdw(state, previewRollback, "add " + asset.name + " to lane", rig)) {
+    setUiStatus(state, asset.name + " added to "
+                + std::string{wdw ? wdwLaneName(laneIndex)
+                                   : (laneIndex == 0 ? "Left" : "Right")} + " - Undo");
+  } else if (wdw) {
+    setUiStatus(state, asset.name + " added to " + std::string{wdwLaneName(laneIndex)}
+                + " - finish both NAM / CAB lanes before preview");
+  }
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
 }
 
@@ -906,7 +1055,21 @@ bool moveLaneBlock(UiState& state, std::size_t rigIndex, std::size_t sourceLane,
       || (sourceLane != targetLane && target.size() >= kMaxEffectBlocks)) {
     return false;
   }
-
+  const bool wdw = isWdwRig(blocks[rigIndex]);
+  if (wdw && sourceLane != targetLane
+      && !wdwBlockAllowed(source[sourceIndex], targetLane)) {
+    setUiStatus(state, source[sourceIndex].assetName + " stays on the "
+                + std::string{wdwLaneName(sourceLane)} + " lane", true);
+    return false;
+  }
+  if (wdw && sourceLane != targetLane
+      && (source[sourceIndex].type == "nam" || source[sourceIndex].type == "cab")
+      && std::any_of(target.begin(), target.end(), [&](const UiBlock& block) {
+        return block.type == source[sourceIndex].type;
+      })) {
+    setUiStatus(state, "Each WDW lane keeps one " + source[sourceIndex].label, true);
+    return false;
+  }
   targetIndex = std::min(targetIndex, target.size());
   if (sourceLane == targetLane && (targetIndex == sourceIndex || targetIndex == sourceIndex + 1)) {
     return false;
@@ -919,17 +1082,23 @@ bool moveLaneBlock(UiState& state, std::size_t rigIndex, std::size_t sourceLane,
   if (sourceLane == targetLane && targetIndex > sourceIndex) --targetIndex;
   target.insert(target.begin() + static_cast<std::ptrdiff_t>(std::min(targetIndex, target.size())),
                 std::move(moved));
-  blocks[rigIndex].assetName = "Left " + std::to_string(blocks[rigIndex].lanes[0].size())
-    + " blocks  /  Right " + std::to_string(blocks[rigIndex].lanes[1].size()) + " blocks";
+  updateLaneSummary(blocks[rigIndex]);
   state.selectedBlock = rigIndex;
   state.selectedBlockId = blocks[rigIndex].id;
   state.paramTarget = UiParamTarget::Block;
   state.paramDrawerOpen = false;
   state.blockDrawerOpen = false;
   state.dirty = true;
-  queuePreview(state, previewRollback, "move " + movedName + " between lanes");
-  setUiStatus(state, movedName + " moved to "
-              + std::string(targetLane == 0 ? "Left" : "Right") + " - Undo");
+  const auto* rig = &blocks[rigIndex];
+  if (queuePreviewOrDeferWdw(state, previewRollback,
+                             "move " + movedName + " between lanes", rig)) {
+    setUiStatus(state, movedName + " moved to "
+                + std::string{wdw ? wdwLaneName(targetLane)
+                                   : (targetLane == 0 ? "Left" : "Right")} + " - Undo");
+  } else if (wdw) {
+    setUiStatus(state, movedName + " moved to " + std::string{wdwLaneName(targetLane)}
+                + " - finish both NAM / CAB lanes before preview");
+  }
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
   return true;
 }
@@ -973,9 +1142,13 @@ bool deleteSelectedBlock(UiState& state)
       });
       if (found == lane.end()) continue;
       const auto previewRollback = previewSnapshot(state);
-      rememberBlockEdit(state);
       const std::string deletedName = found->assetName;
       const std::string deletedId = found->id;
+      if (isWdwRig(rig) && isLastRequiredWdwBlock(lane, *found)) {
+        setUiStatus(state, "Each WDW lane needs its own " + found->label, true);
+        return false;
+      }
+      rememberBlockEdit(state);
       lane.erase(found);
       auto& assignment = state.bank.presets[state.activePreset].expression;
       if (assignment && assignment->blockId == deletedId) assignment.reset();
@@ -988,14 +1161,21 @@ bool deleteSelectedBlock(UiState& state)
       std::erase_if(bindings, [](const PresetMidiBinding& binding) {
         return binding.actions.empty();
       });
-      rig.assetName = "Left " + std::to_string(rig.lanes[0].size())
-        + " blocks  /  Right " + std::to_string(rig.lanes[1].size()) + " blocks";
+      updateLaneSummary(rig);
       state.selectedBlockId = rig.id;
       state.dirty = true;
       state.paramDrawerOpen = false;
-      setUiStatus(state, deletedName + " deleted from "
-                  + std::string(laneIndex == 0 ? "Left" : "Right") + " - Undo");
-      queuePreview(state, previewRollback, "delete " + deletedName + " from lane");
+      const bool wdw = isWdwRig(rig);
+      if (queuePreviewOrDeferWdw(state, previewRollback,
+                                 "delete " + deletedName + " from lane", &rig)) {
+        setUiStatus(state, deletedName + " deleted from "
+                    + std::string(wdw ? wdwLaneName(laneIndex)
+                                      : (laneIndex == 0 ? "Left" : "Right")) + " - Undo");
+      } else if (wdw) {
+        setUiStatus(state, deletedName + " deleted from "
+                    + std::string{wdwLaneName(laneIndex)}
+                    + " - finish both NAM / CAB lanes before preview");
+      }
       markUiChanged(state, UiChange::Header | UiChange::Chain
                            | UiChange::Parameters | UiChange::Drawers);
       return true;
@@ -1006,6 +1186,7 @@ bool deleteSelectedBlock(UiState& state)
   const auto previewRollback = previewSnapshot(state);
   rememberBlockEdit(state);
   const std::string deletedName = blocks[state.selectedBlock].assetName;
+  const bool deletingWdwRig = isWdwRig(blocks[state.selectedBlock]);
   const auto containsAssignedBlock = [&](const auto& self, const UiBlock& block,
                                          const std::string& id) -> bool {
     if (block.id == id) return true;
@@ -1030,6 +1211,12 @@ bool deleteSelectedBlock(UiState& state)
     return binding.actions.empty();
   });
   blocks.erase(blocks.begin() + static_cast<std::ptrdiff_t>(state.selectedBlock));
+  if (deletingWdwRig) {
+    auto& preset = state.bank.presets[state.activePreset];
+    preset.routing = "serial";
+    preset.version = 2;
+    preset.wdw.reset();
+  }
   if (blocks.empty()) {
     state.selectedBlock = 0;
     state.selectedBlockId.clear();
@@ -1064,8 +1251,12 @@ bool undoLastBlockEdit(UiState& state)
   state.dirty = snapshot.dirty;
   state.blockDrawerOpen = snapshot.blockDrawerOpen;
   state.paramDrawerOpen = snapshot.paramDrawerOpen;
-  setUiStatus(state, "Change undone");
-  queuePreview(state, rollback, "undo change");
+  const auto* rig = selectedWdwRig(state);
+  if (queuePreviewOrDeferWdw(state, rollback, "undo change", rig)) {
+    setUiStatus(state, "Change undone");
+  } else if (rig) {
+    setUiStatus(state, "WDW change undone - finish both NAM / CAB lanes before preview");
+  }
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
   return true;
 }
@@ -1255,12 +1446,18 @@ void setSelectedBlockEnabled(UiState& state, bool enabled)
   if (!previewIsSynchronized(state)) return;
   auto* block = selectedUiBlock(state);
   if (!block || block->enabled == enabled) return;
+  const auto* rig = selectedWdwRig(state);
+  if (rig && !enabled && selectedBlockIsLaneChild(state)
+      && (block->type == "nam" || block->type == "cab")) {
+    setUiStatus(state, "Each WDW lane needs its required " + block->label, true);
+    return;
+  }
   const auto previewRollback = previewSnapshot(state);
   rememberBlockEdit(state);
   block->enabled = enabled;
   state.dirty = true;
-  queuePreview(state, previewRollback, std::string(enabled ? "enable " : "bypass ")
-                                      + block->assetName);
+  const auto operation = std::string(enabled ? "enable " : "bypass ") + block->assetName;
+  queuePreviewOrDeferWdw(state, previewRollback, operation, rig);
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters);
 }
 
@@ -1269,6 +1466,12 @@ bool setSelectedBlockEnabledLive(UiState& state, bool enabled)
   if (!previewIsSynchronized(state)) return false;
   auto* block = selectedUiBlock(state);
   if (!block || block->enabled == enabled) return false;
+  const auto* rig = selectedWdwRig(state);
+  if (rig && !enabled && selectedBlockIsLaneChild(state)
+      && (block->type == "nam" || block->type == "cab")) {
+    setUiStatus(state, "Each WDW lane needs its required " + block->label, true);
+    return false;
+  }
   rememberBlockEdit(state);
   block->enabled = enabled;
   state.dirty = true;
@@ -1366,7 +1569,8 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
   block.params[key] = value;
   state.dirty = true;
   if (previewRollback) {
-    queuePreview(state, *previewRollback, "update " + block.assetName);
+    const auto* rig = block.type == "dualRig" ? &block : selectedWdwRig(state);
+    queuePreviewOrDeferWdw(state, *previewRollback, "update " + block.assetName, rig);
   }
   markUiChanged(state, UiChange::Header | UiChange::Parameters);
 }
@@ -1413,7 +1617,8 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
   rememberBlockEdit(state);
   block.params[key] = std::move(value);
   state.dirty = true;
-  queuePreview(state, previewRollback, "update " + block.assetName);
+  const auto* rig = block.type == "dualRig" ? &block : selectedWdwRig(state);
+  queuePreviewOrDeferWdw(state, previewRollback, "update " + block.assetName, rig);
   markUiChanged(state, UiChange::Header | UiChange::Parameters);
 }
 
@@ -1843,6 +2048,8 @@ void loadAssetsFromDataRoot(UiState& state, const std::filesystem::path& dataRoo
   appendDaisyAssets(state);
   state.assets.push_back({"Split Left / Right", "", "amps", "dualRig", "split",
                           "Runs two independent chains in parallel"});
+  state.assets.push_back({"Wet / Dry / Wet", "", "amps", "dualRig", "wdw",
+                          "Two NAM + cab lanes; time effects stay on Wet"});
   appendAssetsFrom(state, dataRoot / "models", ".nam", "amps", "Amp · neural capture");
   appendAssetsFrom(state, dataRoot / "irs", ".wav", "cabs", "Cab · impulse response");
   appendAssetsFrom(state, dataRoot / "reverb-irs", ".wav", "reverb",

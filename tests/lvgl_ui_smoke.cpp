@@ -853,6 +853,17 @@ int main()
                 && findLabel(lv_screen_active(), "Delay  /  Digital Delay"),
               "clicking a Dual Rig lane effect should open that effect's parameter drawer")) return 1;
 
+  ardor::enterEditMode(wdwState);
+  ui.build(lv_screen_active(), wdwState);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "WDW")
+                && findLabel(lv_screen_active(), "NO DIRECT INPUT")
+                && findLabel(lv_screen_active(), "DRY")
+                && findLabel(lv_screen_active(), "WET")
+                && findLabelContaining(lv_screen_active(), "LEVEL -2 DB")
+                && findLabelContaining(lv_screen_active(), "WIDTH 80%"),
+              "WDW should render explicit dry/wet lanes, mix summaries, and no direct path")) return 1;
+
   ui.selectBlock(state, state.selectedBlock);
   ardor::enterEditMode(state);
   const auto renderControls = ardor::parameterPage(state, 0);

@@ -7,6 +7,7 @@ import type { PresetBlock, WdwRouting } from "../../api/types";
 import { Button, IconButton, StatusBadge, Toggle } from "../../components/ui";
 import { findEffectDefinition } from "../../effects/catalog";
 import type { ValidationIssue } from "../editor/presetValidation";
+import { isWdwBlockAllowed, wdwLaneLabel } from "../editor/wdwPolicy";
 
 function titleFor(block: PresetBlock): string {
   return findEffectDefinition(block)?.name ?? block.type;
@@ -89,7 +90,7 @@ function WdwLane({ lane, config, otherLaneLength, selectedBlockId, issuesFor, ma
   const otherLane = lane === "dry" ? "wet" : "dry";
   return <section className={`wdw-lane wdw-lane--${lane}`}>
     <header className="wdw-lane__heading">
-      <div><span className="wdw-lane__name"><b>{lane === "dry" ? "D" : "W"}</b> {lane === "dry" ? "DRY CONTRIBUTION" : "WET CONTRIBUTION"}</span><small>{lane === "dry" ? "NAM → CAB → drive / utility" : "NAM → CAB → time-based effects"}</small></div>
+      <div><span className="wdw-lane__name"><b>{lane === "dry" ? "D" : "W"}</b> {lane === "dry" ? "DRY CONTRIBUTION" : "WET CONTRIBUTION"}</span><small>{lane === "dry" ? "1 NAM + 1 CAB · drive / utility" : "1 NAM + 1 CAB · time-based effects after CAB"}</small></div>
       <Toggle label={`${lane} lane enabled`} checked={config.enabled} onChange={(enabled) => onMix(lane, "enabled", enabled)} />
     </header>
     <div className="wdw-lane__mix">
@@ -100,20 +101,21 @@ function WdwLane({ lane, config, otherLaneLength, selectedBlockId, issuesFor, ma
     </div>
     <div ref={setNodeRef} className={`wdw-lane__rail ${isOver ? "is-over" : ""}`}>
       <SortableContext items={config.blocks.map(({ id }) => id)} strategy={horizontalListSortingStrategy}>
-        {config.blocks.map((block, index) => <WdwBlock key={block.id} block={block} index={index} count={config.blocks.length} lane={lane} otherLane={otherLane} otherLaneLength={otherLaneLength} selected={selectedBlockId === block.id} issues={issuesFor(block.id)} onSelect={onSelect} onMove={onMove} onToggle={onToggle} onDuplicate={onDuplicate} onReset={onReset} onDelete={onDelete} />)}
+        {config.blocks.map((block, index) => <WdwBlock key={block.id} block={block} index={index} count={config.blocks.length} lane={lane} otherLane={otherLane} otherLaneLength={otherLaneLength} canDuplicate={!((block.type === "nam" || block.type === "cab") && config.blocks.some((candidate) => candidate.id !== block.id && candidate.type === block.type))} selected={selectedBlockId === block.id} issues={issuesFor(block.id)} onSelect={onSelect} onMove={onMove} onToggle={onToggle} onDuplicate={onDuplicate} onReset={onReset} onDelete={onDelete} />)}
       </SortableContext>
       <button className="wdw-add" disabled={maxed || config.blocks.length >= 10} onClick={() => onAdd(lane, config.blocks.length)}><Plus size={14} /> Add block</button>
     </div>
   </section>;
 }
 
-function WdwBlock({ block, index, count, lane, otherLane, otherLaneLength, selected, issues, onSelect, onMove, onToggle, onDuplicate, onReset, onDelete }: {
+function WdwBlock({ block, index, count, lane, otherLane, otherLaneLength, canDuplicate, selected, issues, onSelect, onMove, onToggle, onDuplicate, onReset, onDelete }: {
   block: PresetBlock;
   index: number;
   count: number;
   lane: "dry" | "wet";
   otherLane: "dry" | "wet";
   otherLaneLength: number;
+  canDuplicate: boolean;
   selected: boolean;
   issues: ValidationIssue[];
   onSelect(blockId?: string): void;
@@ -125,12 +127,13 @@ function WdwBlock({ block, index, count, lane, otherLane, otherLaneLength, selec
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
   const definition = findEffectDefinition(block);
+  const canMoveToOtherLane = isWdwBlockAllowed(otherLane, block);
   const error = issues.some(({ severity }) => severity === "error");
   const warning = !error && issues.some(({ severity }) => severity === "warning");
   return <article ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={`wdw-block wdw-block--${definition?.category ?? "unknown"} ${selected ? "is-selected" : ""} ${isDragging ? "is-dragging" : ""} ${!block.enabled ? "is-bypassed" : ""} ${error ? "has-error" : warning ? "has-warning" : ""}`} onClick={() => onSelect(block.id)}>
     <div className="wdw-block__top"><button className="drag-handle" aria-label={`Drag ${titleFor(block)}`} {...attributes} {...listeners}><GripVertical size={14} /></button><span>{index + 1}</span><Toggle label={`${titleFor(block)} enabled`} checked={block.enabled} onChange={(enabled) => onToggle(block.id, enabled)} /></div>
     <strong>{titleFor(block)}</strong><small>{subtitleFor(block)}</small>
     <div className="wdw-block__status">{error && <StatusBadge tone="danger">Fix</StatusBadge>}{!error && warning && <StatusBadge tone="warning">Check</StatusBadge>}{!block.enabled && <StatusBadge>Bypass</StatusBadge>}</div>
-    <footer onClick={(event) => event.stopPropagation()}><IconButton label={`Move ${titleFor(block)} left`} disabled={index === 0} onClick={() => onMove(lane, block.id, index - 1)}><ArrowLeftRight size={13} /></IconButton><IconButton label={`Move ${titleFor(block)} to ${otherLane} lane`} onClick={() => onMove(otherLane, block.id, otherLaneLength)}><ArrowLeftRight size={13} /></IconButton><IconButton label={`Duplicate ${titleFor(block)}`} onClick={() => onDuplicate(block.id)}><Copy size={13} /></IconButton><IconButton label={`Reset ${titleFor(block)}`} onClick={() => onReset(block.id)}><RotateCcw size={13} /></IconButton><IconButton label={`Delete ${titleFor(block)}`} onClick={() => onDelete(block.id)}><Trash2 size={13} /></IconButton></footer>
+    <footer onClick={(event) => event.stopPropagation()}><IconButton label={`Move ${titleFor(block)} left`} disabled={index === 0} onClick={() => onMove(lane, block.id, index - 1)}><ArrowLeftRight size={13} /></IconButton><IconButton label={canMoveToOtherLane ? `Move ${titleFor(block)} to ${wdwLaneLabel(otherLane)} lane` : `${titleFor(block)} stays on the ${wdwLaneLabel(lane)} lane`} disabled={!canMoveToOtherLane} onClick={() => onMove(otherLane, block.id, otherLaneLength)}><ArrowLeftRight size={13} /></IconButton><IconButton label={`Duplicate ${titleFor(block)}`} disabled={!canDuplicate} onClick={() => onDuplicate(block.id)}><Copy size={13} /></IconButton><IconButton label={`Reset ${titleFor(block)}`} onClick={() => onReset(block.id)}><RotateCcw size={13} /></IconButton><IconButton label={`Delete ${titleFor(block)}`} onClick={() => onDelete(block.id)}><Trash2 size={13} /></IconButton></footer>
   </article>;
 }

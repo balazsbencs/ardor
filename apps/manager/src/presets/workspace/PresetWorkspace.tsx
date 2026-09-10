@@ -10,6 +10,7 @@ import { ChainCanvas } from "../chain/ChainCanvas";
 import { allPresetBlocksInPreset, createEditorState, editorReducer, findPresetBlockInPreset, isEditorDirty } from "../editor/editorReducer";
 import type { PresetLocation } from "../editor/editorTypes";
 import { validatePreset, issuesForBlock } from "../editor/presetValidation";
+import { isWdwBlockAllowed, wdwLaneLabel } from "../editor/wdwPolicy";
 import { BlockInspector } from "../inspector/BlockInspector";
 import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
 import { WdwRoutingCanvas } from "../chain/WdwRoutingCanvas";
@@ -84,11 +85,10 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
     const result = new Map<string, string>();
     if (addTarget?.kind === "wdw") {
       const lane = present.wdw?.[addTarget.lane];
-      const allowed = addTarget.lane === "dry"
-        ? new Set(["nam", "cab", "dynamics", "eq", "distortion", "wah"])
-        : new Set(["nam", "cab", "mod", "delay", "reverb", "irreverb", "stereo"]);
       for (const definition of allEffectDefinitions()) {
-        if (!allowed.has(definition.blockType)) result.set(definition.id, `Not admitted on the ${addTarget.lane} WDW lane`);
+        if (!isWdwBlockAllowed(addTarget.lane, definition.blockType)) {
+          result.set(definition.id, `Not admitted on the ${wdwLaneLabel(addTarget.lane)} WDW lane`);
+        }
       }
       if (lane) {
         for (const definition of allEffectDefinitions()) {

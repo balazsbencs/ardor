@@ -1,6 +1,7 @@
 import type { Asset, Preset, PresetBlock } from "../../api/types";
 import { allEffectDefinitions, findEffectDefinition } from "../../effects/catalog";
 import type { EffectControl, EffectDefinition } from "../../effects/types";
+import { isWdwBlockAllowed } from "./wdwPolicy";
 
 export type ValidationIssue = {
   severity: "warning" | "error";
@@ -224,9 +225,6 @@ function validateWdwLane(
   if (blocks.length > 10) {
     issues.push(error("wdw-lane-limit", `WDW ${laneName} lane can contain at most ten blocks.`, `wdw.${laneName}.blocks`));
   }
-  const allowed = laneName === "dry"
-    ? new Set(["nam", "cab", "dynamics", "eq", "distortion", "wah"])
-    : new Set(["nam", "cab", "mod", "delay", "reverb", "irreverb", "stereo"]);
   let namCount = 0;
   let cabCount = 0;
   let cabIndex = -1;
@@ -248,8 +246,12 @@ function validateWdwLane(
       issues.push(blockError(block, "nested-split", "WDW lanes cannot contain another split block.", "type"));
       return;
     }
-    if (!allowed.has(block.type)) {
+    if (!isWdwBlockAllowed(laneName, block.type)) {
       issues.push(blockWarning(block, "wdw-placement", `${block.type} is not admitted on the WDW ${laneName} lane.`, "type"));
+    }
+    if (!block.enabled && (block.type === "nam" || block.type === "cab")) {
+      issues.push(blockError(block, "wdw-required-disabled",
+        `The WDW ${laneName} lane requires its ${block.type.toUpperCase()} block to stay enabled.`, "enabled"));
     }
     if (block.type === "nam") namCount += 1;
     if (block.type === "cab") { cabCount += 1; cabIndex = index; }
@@ -265,7 +267,7 @@ function validateWdwLane(
     }
     if (definition.id === "eq:parametric_eq_5") issues.push(...validateEq(block));
     issues.push(...assetIssues(block, definition, assets));
-    if (block.enabled && ["mod", "delay", "reverb", "irreverb", "stereo"].includes(block.type) && cabIndex < 0) {
+    if (["mod", "delay", "reverb", "irreverb", "stereo"].includes(block.type) && cabIndex < 0) {
       issues.push(blockWarning(block, "cab-required-first", "Cabinet must precede time-based effects on this lane.", "type"));
     }
   });

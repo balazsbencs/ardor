@@ -8,6 +8,7 @@ import {
 import type { NumberControl } from "../../effects/types";
 import type { EditorAction, EditorState, EqBand, PresetLocation } from "./editorTypes";
 import { clonePreset, createEmptyWdwRouting, nextPresetBlockId } from "./presetFactory";
+import { isWdwBlockAllowed } from "./wdwPolicy";
 
 const historyLimit = 100;
 
@@ -65,6 +66,18 @@ function finiteValue(value: unknown): boolean {
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
+}
+
+function isLastWdwRequiredBlock(blocks: PresetBlock[], block: PresetBlock): boolean {
+  if (block.type !== "nam" && block.type !== "cab") return false;
+  return blocks.filter(({ type }) => type === block.type).length <= 1;
+}
+
+function wdwLaneForBlock(preset: Preset, blockId: string): "dry" | "wet" | undefined {
+  if (preset.routing !== "wdw" || !preset.wdw) return undefined;
+  if (preset.wdw.dry.blocks.some(({ id }) => id === blockId)) return "dry";
+  if (preset.wdw.wet.blocks.some(({ id }) => id === blockId)) return "wet";
+  return undefined;
 }
 
 export function allPresetBlocks(blocks: PresetBlock[]): PresetBlock[] {
@@ -330,6 +343,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case "add-wdw-block": {
       const routing = state.history.present.wdw;
       if (state.history.present.routing !== "wdw" || !routing) return state;
+      if (!isWdwBlockAllowed(action.lane, action.definitionId.split(":", 1)[0])) return state;
       const lane = routing[action.lane];
       if (lane.blocks.length >= 10) return state;
       let block: PresetBlock;
@@ -342,6 +356,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       } catch {
         return state;
       }
+      if ((block.type === "nam" || block.type === "cab")
+          && lane.blocks.some(({ type }) => type === block.type)) return state;
       return withMutation(state, (present) => {
         if (!present.wdw) return present;
         const next = clonePreset(present);
@@ -377,6 +393,10 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const sourceLane = routing.dry.blocks.some(({ id }) => id === action.blockId)
         ? "dry" : routing.wet.blocks.some(({ id }) => id === action.blockId) ? "wet" : undefined;
       if (!sourceLane) return state;
+      const sourceBlock = routing[sourceLane].blocks.find(({ id }) => id === action.blockId);
+      if (!sourceBlock || !isWdwBlockAllowed(action.lane, sourceBlock)) return state;
+      const target = routing[action.lane].blocks;
+      if (sourceLane !== action.lane && target.length >= 10) return state;
       return withMutation(state, (present) => {
         if (!present.wdw) return present;
         const next = clonePreset(present);
@@ -397,6 +417,10 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case "duplicate-block": {
       const source = findPresetBlockInPreset(state.history.present, action.blockId);
       if (!source || source.type === "dualRig") return state;
+      const sourceLane = wdwLaneForBlock(state.history.present, action.blockId);
+      if (sourceLane && (source.type === "nam" || source.type === "cab")
+          && state.history.present.wdw![sourceLane].blocks.some(({ id, type }) =>
+            id !== source.id && type === source.type)) return state;
       const id = nextPresetBlockId(allPresetBlocksInPreset(state.history.present));
       return withMutation(state, (present) => {
         const next = clonePreset(present);
@@ -416,6 +440,12 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       }, id);
     }
     case "remove-block": {
+      if (state.history.present.routing === "wdw" && state.history.present.wdw) {
+        for (const lane of [state.history.present.wdw.dry.blocks, state.history.present.wdw.wet.blocks]) {
+          const source = lane.find(({ id }) => id === action.blockId);
+          if (source && isLastWdwRequiredBlock(lane, source)) return state;
+        }
+      }
       let selected: string | undefined;
       const next = clonePreset(state.history.present);
       const removeFrom = (blocks: PresetBlock[], parentId?: string): boolean => {
@@ -450,6 +480,11 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       }
       const source = findPresetBlockInPreset(state.history.present, action.blockId);
       if (!source || source.type !== target.blockType || target.mode === undefined) return state;
+      const sourceLane = wdwLaneForBlock(state.history.present, action.blockId);
+      if (sourceLane && !isWdwBlockAllowed(sourceLane, target.blockType)) return state;
+      if (sourceLane && (target.blockType === "nam" || target.blockType === "cab")
+          && state.history.present.wdw![sourceLane].blocks.some(({ id, type }) =>
+            id !== source.id && type === target.blockType)) return state;
       return withMutation(state, (present) => updatedBlock(present, action.blockId, (block) => {
         const defaults = defaultsForDefinition(target.id);
         const params = { ...defaults, ...block.params, mode: target.mode };

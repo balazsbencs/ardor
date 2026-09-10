@@ -276,6 +276,22 @@ describe("preset validation", () => {
     preset.wdw!.dry.pan = 0;
     preset.wdw!.wet.pan = 0.25;
     expect(codes(preset)).toContain("wdw-wet-pan");
+    preset.wdw!.wet.pan = 0;
+    preset.wdw!.dry.blocks[0].enabled = false;
+    expect(codes(preset)).toContain("wdw-required-disabled");
+  });
+
+  it("flags a time effect placed on Dry and keeps the lane rule singular", () => {
+    const preset = createWdwPreset("WDW placement");
+    const dry = preset.wdw!.dry;
+    dry.blocks[0].asset = "models/amp.nam";
+    dry.blocks[1].asset = "irs/cab.wav";
+    const delay = createBlockFromDefinition("delay:digital", dry.blocks);
+    dry.blocks.push(delay);
+    const placementIssues = validatePreset(preset, assets).issues.filter(({ code, blockId }) =>
+      code === "wdw-placement" && blockId === delay.id,
+    );
+    expect(placementIssues).toHaveLength(1);
   });
 
   it("requires the canonical complete five-band EQ shape", () => {

@@ -44,6 +44,11 @@ not yet contain exactly one NAM and one cab, and the runtime admission path rema
 the final authority for asset availability and topology.
 
 The device model represents the two lanes as a single split/join summary block so
-existing touch navigation, bypass, and preview transactions remain safe. Loading
-and saving that summary round-trips the explicit WDW schema; it never serializes
-the summary as a legacy version-2 Dual Rig.
+existing touch navigation, bypass, and preview transactions remain safe. A newly
+inserted WDW block starts with two empty lanes: the device lets the player author
+the draft incrementally, but defers live preview until both lanes contain one
+enabled, installed NAM followed by one enabled, installed cab. After that point,
+valid additions (such as Wet delay/reverb) preview normally; invalid Dry/Wet
+placements are rejected at the lane drawer. Loading and saving that summary
+round-trips the explicit WDW schema; it never serializes the summary as a legacy
+version-2 Dual Rig.

@@ -169,6 +169,13 @@ describe("editorReducer", () => {
     expect(edited.history.present.wdw?.dry.blocks.some(({ id }) => id === wetId)).toBe(true);
     expect(edited.history.present.wdw?.dry.blocks.find(({ id }) => id === dryId)?.enabled).toBe(false);
     expect(edited.selectedBlockId).toBe(wetId);
+
+    const wetDelay = edited.history.present.wdw?.wet.blocks.find(({ type }) => type === "delay");
+    expect(wetDelay).toBeDefined();
+    const rejected = editorReducer(edited, {
+      type: "move-wdw-block", blockId: wetDelay!.id, lane: "dry", index: 0,
+    });
+    expect(rejected).toBe(edited);
   });
 
   it("keeps serial blocks when switching topology and flattens WDW explicitly", () => {

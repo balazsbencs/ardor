@@ -433,6 +433,87 @@ int main()
                 && !savedWdw.wdw->wet.enabled,
               "WDW UI load/save should preserve lane blocks and mix state")) return 1;
 
+  auto wdwInsertState = ardor::makeDemoUiState();
+  ardor::Preset emptyWdwInsertPreset;
+  emptyWdwInsertPreset.name = "WDW Insert Test";
+  ardor::replaceActivePreset(wdwInsertState, emptyWdwInsertPreset);
+  ardor::enterEditMode(wdwInsertState);
+  const auto wdwAsset = std::find_if(wdwInsertState.assets.begin(), wdwInsertState.assets.end(),
+                                     [](const ardor::UiAsset& asset) {
+                                       return asset.blockType == "dualRig" && asset.mode == "wdw";
+                                     });
+  const auto wdwDelayAsset = std::find_if(wdwInsertState.assets.begin(), wdwInsertState.assets.end(),
+                                       [](const ardor::UiAsset& asset) {
+                                         return asset.blockType == "delay";
+                                       });
+  if (require(wdwAsset != wdwInsertState.assets.end() && wdwDelayAsset != wdwInsertState.assets.end(),
+              "effect browser should expose the WDW route and delay assets")) return 1;
+  const auto wdwAssetIndex = static_cast<std::size_t>(
+    std::distance(wdwInsertState.assets.begin(), wdwAsset));
+  const auto delayAssetIndex = static_cast<std::size_t>(
+    std::distance(wdwInsertState.assets.begin(), wdwDelayAsset));
+  ardor::insertAssetBlock(wdwInsertState, wdwAssetIndex, 0);
+  const auto cleanNamAsset = std::find_if(wdwInsertState.assets.begin(), wdwInsertState.assets.end(),
+                                          [](const ardor::UiAsset& asset) {
+                                            return asset.path == "models/clean.nam";
+                                          });
+  const auto crunchNamAsset = std::find_if(wdwInsertState.assets.begin(), wdwInsertState.assets.end(),
+                                           [](const ardor::UiAsset& asset) {
+                                             return asset.path == "models/crunch.nam";
+                                           });
+  const auto openCabAsset = std::find_if(wdwInsertState.assets.begin(), wdwInsertState.assets.end(),
+                                         [](const ardor::UiAsset& asset) {
+                                           return asset.path == "irs/open-back.wav";
+                                         });
+  const auto vintageCabAsset = std::find_if(wdwInsertState.assets.begin(), wdwInsertState.assets.end(),
+                                            [](const ardor::UiAsset& asset) {
+                                              return asset.path == "irs/vintage.wav";
+                                            });
+  if (require(cleanNamAsset != wdwInsertState.assets.end()
+                && crunchNamAsset != wdwInsertState.assets.end()
+                && openCabAsset != wdwInsertState.assets.end()
+                && vintageCabAsset != wdwInsertState.assets.end(),
+              "WDW insertion should expose installed NAM and cab assets")) return 1;
+  if (require(wdwInsertState.bank.presets[wdwInsertState.activePreset].routing == "wdw"
+                && wdwInsertState.bank.presets[wdwInsertState.activePreset].version == 3
+                && wdwInsertState.bank.presets[wdwInsertState.activePreset].blocks[0].lanes[0].empty()
+                && wdwInsertState.bank.presets[wdwInsertState.activePreset].blocks[0].lanes[1].empty()
+                && !ardor::pendingStructuralPreview(wdwInsertState),
+              "WDW insertion should create an editable empty draft without previewing")) return 1;
+  const auto cleanNamIndex = static_cast<std::size_t>(
+    std::distance(wdwInsertState.assets.begin(), cleanNamAsset));
+  const auto crunchNamIndex = static_cast<std::size_t>(
+    std::distance(wdwInsertState.assets.begin(), crunchNamAsset));
+  const auto openCabIndex = static_cast<std::size_t>(
+    std::distance(wdwInsertState.assets.begin(), openCabAsset));
+  const auto vintageCabIndex = static_cast<std::size_t>(
+    std::distance(wdwInsertState.assets.begin(), vintageCabAsset));
+  ardor::insertLaneAssetBlock(wdwInsertState, cleanNamIndex, 0, 0, 0);
+  ardor::insertLaneAssetBlock(wdwInsertState, openCabIndex, 0, 0, 1);
+  ardor::insertLaneAssetBlock(wdwInsertState, crunchNamIndex, 0, 1, 0);
+  if (require(wdwInsertState.bank.presets[wdwInsertState.activePreset].blocks[0].lanes[0].size() == 2
+                && wdwInsertState.bank.presets[wdwInsertState.activePreset].blocks[0].lanes[1].size() == 1
+                && !ardor::pendingStructuralPreview(wdwInsertState),
+              "incomplete WDW lane edits should remain an offline draft")) return 1;
+  ardor::insertLaneAssetBlock(wdwInsertState, vintageCabIndex, 0, 1, 1);
+  if (require(wdwInsertState.bank.presets[wdwInsertState.activePreset].blocks[0].lanes[1].size() == 2
+                && ardor::pendingStructuralPreview(wdwInsertState),
+              "the final WDW NAM/cab pair should queue a live preview")) return 1;
+  completePreview(wdwInsertState);
+  ardor::openLaneBlockDrawer(wdwInsertState, 0, 0, 2);
+  ardor::insertLaneAssetBlock(wdwInsertState, delayAssetIndex, 0, 0, 2);
+  if (require(wdwInsertState.bank.presets[wdwInsertState.activePreset].blocks[0].lanes[0].size() == 2
+                && wdwInsertState.statusIsError,
+              "WDW dry lane should reject time-based effects")) return 1;
+  ardor::insertLaneAssetBlock(wdwInsertState, delayAssetIndex, 0, 1, 2);
+  if (require(wdwInsertState.bank.presets[wdwInsertState.activePreset].blocks[0].lanes[1].size() == 3
+                && ardor::pendingStructuralPreview(wdwInsertState),
+              "WDW wet lane should accept time-based effects")) return 1;
+  completePreview(wdwInsertState);
+  if (require(!ardor::moveLaneBlock(wdwInsertState, 0, 1, 2, 0, 2)
+                && wdwInsertState.statusIsError,
+              "WDW time-based blocks should not move onto the Dry lane")) return 1;
+
   ardor::selectBlock(state, 0);
   if (require(state.paramDrawerOpen, "block selection should open parameter drawer")) return 1;
   ardor::openBlockDrawer(state);
