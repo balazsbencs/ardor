@@ -37,7 +37,7 @@ void ShimmerReverb::Init() {
     diffuser_r_.SetModulation(2.5f);
 
     Fdn::Config fdn_cfg{};
-    fdn_cfg.n_lines     = 4;
+    fdn_cfg.n_lines     = 8;
     fdn_cfg.sample_rate = REVERB_SAMPLE_RATE;
     fdn_cfg.bufs[0]     = buf_fdn0_;
     fdn_cfg.bufs[1]     = buf_fdn1_;
@@ -47,10 +47,12 @@ void ShimmerReverb::Init() {
     fdn_cfg.delays[1]   = 1626;
     fdn_cfg.delays[2]   = 1932;
     fdn_cfg.delays[3]   = 2254;
-    for (int i = 4; i < Fdn::MAX_LINES; ++i) {
-        fdn_cfg.bufs[i]   = nullptr;
-        fdn_cfg.delays[i] = 0;
-    }
+    fdn_cfg.bufs[4]     = buf_fdn4_; fdn_cfg.delays[4] = 1481;
+    fdn_cfg.bufs[5]     = buf_fdn5_; fdn_cfg.delays[5] = 1777;
+    fdn_cfg.bufs[6]     = buf_fdn6_; fdn_cfg.delays[6] = 2099;
+    fdn_cfg.bufs[7]     = buf_fdn7_; fdn_cfg.delays[7] = 2423;
+    const size_t fdn_sizes[8] = {2730, 3252, 3864, 4508, 2962, 3554, 4198, 4846};
+    for (int i = 0; i < 8; ++i) fdn_cfg.buffer_sizes[i] = fdn_sizes[i];
     fdn_.Init(fdn_cfg);
     fdn_.SetDecay(3.0f);
     fdn_.SetDamping(0.2f);
@@ -87,8 +89,10 @@ void ShimmerReverb::Prepare(const ParamSet& params) {
     pre_delay_l_.SetDelay(delay_samples < 1.0f ? 1.0f : delay_samples);
     pre_delay_r_.SetDelay(delay_samples < 1.0f ? 1.0f : delay_samples);
     fdn_.SetDecay(params.decay);
-    fdn_.SetDamping(0.15f + params.tone * 0.35f);
-    fdn_.SetModulation(params.mod * Fdn::MAX_MOD_DEPTH_SAMPLES);
+    fdn_.SetDampFromRt60Ratio(params.decay, 0.25f + params.tone * 0.75f);
+    // The Mod control is the audible shimmer send. Keep the tank's subtle
+    // decorrelation independent so raising shimmer does not also add chorus.
+    fdn_.SetModulation(2.5f);
     tone_[0].SetKnob(params.tone);
     tone_[1].SetKnob(params.tone);
 

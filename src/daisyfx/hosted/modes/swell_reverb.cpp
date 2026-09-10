@@ -2,6 +2,7 @@
 #include "../config/constants.h"
 
 #include <algorithm>
+#include <cmath>
 
 using namespace pedal::reverb_fx;
 
@@ -24,6 +25,8 @@ void SwellReverb::Init() {
     fdn_cfg.delays[1]   = 1540;
     fdn_cfg.delays[2]   = 1830;
     fdn_cfg.delays[3]   = 2116;
+    const size_t fdn_sizes[4] = {2522, 3080, 3660, 4232};
+    for (int i = 0; i < 4; ++i) fdn_cfg.buffer_sizes[i] = fdn_sizes[i];
     for (int i = 4; i < Fdn::MAX_LINES; ++i) {
         fdn_cfg.bufs[i]   = nullptr;
         fdn_cfg.delays[i] = 0;
@@ -57,7 +60,7 @@ void SwellReverb::Prepare(const ParamSet& params) {
     pre_delay_l_.SetDelay(delay_samples < 1.0f ? 1.0f : delay_samples);
     pre_delay_r_.SetDelay(delay_samples < 1.0f ? 1.0f : delay_samples);
     fdn_.SetDecay(params.decay);
-    fdn_.SetDamping(0.15f + params.tone * 0.35f);
+    fdn_.SetDampFromRt60Ratio(params.decay, 0.25f + params.tone * 0.75f);
     fdn_.SetModulation(params.mod * 4.0f);
     tone_[0].SetKnob(params.tone);
     tone_[1].SetKnob(params.tone);
@@ -83,7 +86,7 @@ StereoFrame SwellReverb::Process(StereoFrame input, const ParamSet& params) {
     const StereoFrame pre{pre_delay_l_.Read(), pre_delay_r_.Read()};
 
     // Envelope follower drives the swell ramp
-    const float env = env_follow_.Process(0.5f * (pre.left + pre.right));
+    const float env = env_follow_.Process(std::max(std::fabs(pre.left), std::fabs(pre.right)));
 
     if (env > 0.01f) {
         ramp_gain_ += ramp_rate_;

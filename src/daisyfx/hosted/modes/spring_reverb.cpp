@@ -110,16 +110,18 @@ void SpringReverb::Prepare(const ParamSet& params) {
 
     // Comb feedback from decay: g = exp(-6.9078 * comb_delay_s / decay_s)
     // Comb delays execute in the 24 kHz reverb stage.
-    static constexpr float kCombDelayS[3] = {
-        2000.0f / REVERB_SAMPLE_RATE,
-        2140.0f / REVERB_SAMPLE_RATE,
-        2260.0f / REVERB_SAMPLE_RATE,
+    // The allpass cascade is inside the loop, so its delay contributes to the
+    // round-trip time used to derive feedback gain.
+    static constexpr float kLoopDelayS[3] = {
+        (2000.0f + 85.0f + 115.0f + 155.0f + 215.0f + 295.0f + 395.0f) / REVERB_SAMPLE_RATE,
+        (2140.0f + 91.0f + 124.0f + 166.0f + 231.0f + 316.0f + 423.0f) / REVERB_SAMPLE_RATE,
+        (2260.0f + 96.0f + 130.0f + 175.0f + 243.0f + 334.0f + 447.0f) / REVERB_SAMPLE_RATE,
     };
     // The dispersive allpass/pickup path loses energy in addition to the comb
     // loop. Compensate so broadband decay follows the displayed spring time.
     const float decay = params.decay < 0.01f ? 0.01f : params.decay * 2.0f;
     for (int sp = 0; sp < 3; ++sp) {
-        const float nominal_fb = std::exp(-6.9078f * kCombDelayS[sp] / decay);
+        const float nominal_fb = std::exp(-6.9078f * kLoopDelayS[sp] / decay);
         comb_fb_[sp] = hold_ ? 1.0f : nominal_fb;
         float makeup = sqrtf(1.0f - nominal_fb * nominal_fb);
         if (makeup < 0.12f) makeup = 0.12f;
@@ -201,21 +203,29 @@ StereoFrame SpringReverb::Process(StereoFrame input, const ParamSet& params) {
             sat_down_[sp].Push(sat_.Process(up[0]), folded);
             if (sat_down_[sp].Push(sat_.Process(up[1]), folded)) s = folded;
         }
+        // Put the dispersive allpasses inside the recirculating path. Passing
+        // only the launch transient through them produces a comb with a spring-
+        // like attack but no increasing dispersion on later round trips.
+        const float resonator = comb_[sp].Read();
+        float feedback_path = s + comb_[sp].Feedback(resonator);
         for (int st = 0; st < 5; ++st) {
-            s = ap_[sp][st].Process(s, kApG[st]);
+            feedback_path = ap_[sp][st].Process(feedback_path, kApG[st]);
         }
         // Last stage is modulated for organic pitch wobble
         const float lfo_val   = spring_lfo_[sp].Process();
         const float mod_delay = static_cast<float>(ap_delays[5]) + lfo_val * mod_depth_;
-        s = ap_[sp][5].ProcessMod(s, kApG[5], mod_delay);
-        const float resonator = comb_[sp].Process(s) * comb_makeup_[sp];
-        pickup_state_[sp] += pickup_coefficient_ * (resonator - pickup_state_[sp]);
+        feedback_path = ap_[sp][5].ProcessMod(feedback_path, kApG[5], mod_delay);
+        comb_[sp].WriteRaw(feedback_path);
+        const float pickup = resonator * comb_makeup_[sp];
+        pickup_state_[sp] += pickup_coefficient_ * (pickup - pickup_state_[sp]);
         // Blend direct wire vibration with a lossier pickup response. The
         // slightly different paths reduce static comb coloration.
-        const float c = 0.65f * resonator + 0.35f * pickup_state_[sp];
-        // Alternate L/R per spring
+        const float c = 0.65f * pickup + 0.35f * pickup_state_[sp];
+        // The first spring is centred while it is alone, then opens left as a
+        // complementary second resonator fades in. This avoids the old hard
+        // left bias without collapsing multi-spring presets to mono.
         const float gain = spring_gain_[sp];
-        if (sp == 0)      { out_l += c * gain; out_r += c * gain * 0.15f; }
+        if (sp == 0)      { out_l += c * gain; out_r += c * gain * (1.0f - 0.82f * spring_gain_[1]); }
         else if (sp == 1) { out_l += c * gain * 0.12f; out_r += c * gain; }
         else              { out_l += c * gain * 0.65f; out_r -= c * gain * 0.65f; }
     }

@@ -4,6 +4,7 @@
 #include "../dsp/early_reflections.h"
 #include "../dsp/diffuser.h"
 #include "../dsp/fdn.h"
+#include "../dsp/tone_filter.h"
 
 namespace pedal {
 
@@ -46,6 +47,7 @@ private:
     Diffuser diffuser_l_;
     Diffuser diffuser_r_;
     Fdn fdn_;
+    ToneFilter tone_[2];
     float early_mix_ = 0.4f;
 };
 

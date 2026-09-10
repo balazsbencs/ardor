@@ -78,7 +78,7 @@ private:
     float          lfo_phase_[MAX_LINES]{};
     float          modulated_delay_[MAX_LINES]{};  // current, sample-rate tap positions
     float          modulated_delay_step_[MAX_LINES]{};
-    float          damp_        = 0.3f;
+    float          damp_[MAX_LINES]{};            // per-line one-pole coefficients
     float          mod_depth_   = 0.0f;
     float          last_decay_s_ = -1.0f;
     float          last_size_ = 1.0f;
