@@ -370,6 +370,14 @@ bool WdwRoutingProgram::setDaisyParameter(const std::string& id, const std::stri
         && wetContext_->chain->setDaisyParameter(id, key, normalized));
 }
 
+bool WdwRoutingProgram::setCabParameter(const std::string& id, const std::string& key, float value)
+{
+  return (dryContext_ && dryContext_->chain
+          && dryContext_->chain->setCabParameter(id, key, value))
+    || (wetContext_ && wetContext_->chain
+        && wetContext_->chain->setCabParameter(id, key, value));
+}
+
 bool WdwRoutingProgram::setCompressorParameter(const std::string& id, const std::string& key,
                                                float value)
 {

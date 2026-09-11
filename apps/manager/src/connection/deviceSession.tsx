@@ -61,12 +61,14 @@ export type DeviceSessionValue = {
   uploadAsset(kind: AssetKind, file: File, overwrite: boolean): Promise<Asset | undefined>;
 };
 
-async function waitForApplyResult(
+export async function waitForApplyResult(
   client: ManagerTransport,
   response: ApplyPresetResponse,
+  timeoutMs = 15_000,
+  pollIntervalMs = 100,
 ): Promise<ApplyPresetResponse> {
   if (!response.id || !client.getApplyStatus) return response;
-  const deadline = Date.now() + 15_000;
+  const deadline = Date.now() + timeoutMs;
   let status: ApplyPresetStatus = {
     id: response.id,
     state: response.state ?? "pending",
@@ -75,11 +77,14 @@ async function waitForApplyResult(
     message: response.message,
   };
   while (status.state === "pending" && Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     status = await client.getApplyStatus(response.id);
   }
   if (status.state === "rejected" || status.state === "superseded") {
     throw new Error(status.message ?? `Preset apply ${status.state}.`);
+  }
+  if (status.state === "pending") {
+    throw new Error(`Preset apply timed out after ${Math.ceil(timeoutMs / 1000)} seconds.`);
   }
   return { ...response, state: status.state, message: status.message ?? response.message };
 }
@@ -179,6 +184,7 @@ export function DeviceSessionProvider({
   const connecting = useRef(false);
   const autoConnectAttempted = useRef(false);
   const operationBusy = useRef(defaultBusy);
+  const activeRefreshRevision = useRef(0);
 
   const setOperationBusy = (kind: keyof BusyState, value: boolean) => {
     operationBusy.current = { ...operationBusy.current, [kind]: value };
@@ -281,6 +287,7 @@ export function DeviceSessionProvider({
 
   const applyCurrent = async () => {
     if (!client || !current || operationBusy.current.apply) return undefined;
+    ++activeRefreshRevision.current;
     setOperationBusy("apply", true);
     try {
       const response = await client.applyPreset(current.location.bank, current.location.slot);
@@ -312,6 +319,33 @@ export function DeviceSessionProvider({
     autoConnectAttempted.current = true;
     void connect(initialBaseUrl);
   }, [autoConnect, initialBaseUrl]);
+
+  useEffect(() => {
+    if (!client || status !== "connected") return;
+    let cancelled = false;
+    let refreshing = false;
+    const refreshActivePreset = async () => {
+      if (refreshing || operationBusy.current.apply) return;
+      refreshing = true;
+      const revision = activeRefreshRevision.current;
+      try {
+        const nextDevice = await client.getDevice();
+        if (!cancelled && revision === activeRefreshRevision.current) {
+          setDevice((previous) => previous ? { ...previous, active: nextDevice.active } : nextDevice);
+        }
+      } catch {
+        // A transient status failure must not disconnect an otherwise usable
+        // editing session. The next interval retries it.
+      } finally {
+        refreshing = false;
+      }
+    };
+    const timer = window.setInterval(() => void refreshActivePreset(), 2_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [client, status]);
 
   const value = useMemo<DeviceSessionValue>(() => ({
     status, baseUrl, device, client, models, irs, reverbIrs, supportsReverbIrs,

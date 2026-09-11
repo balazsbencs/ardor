@@ -1,6 +1,9 @@
 #include "dsp/WdwRoutingProgram.h"
+#include "rat/RatProcessor.h"
+#include "tape/TapeProcessor.h"
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
@@ -27,10 +30,38 @@ std::unique_ptr<ardor::RuntimeChain> emptyChain()
   return std::make_unique<ardor::RuntimeChain>();
 }
 
-std::unique_ptr<ardor::RuntimeChain> referenceChain()
+std::unique_ptr<ardor::RuntimeChain> referenceChain(std::string id = "reference-cab")
 {
   auto chain = std::make_unique<ardor::RuntimeChain>();
-  chain->addCab({1.0f, 0.31f, -0.17f, 0.08f}, 0.83f, 1.0f, "reference-cab");
+  chain->addCab({1.0f, 0.31f, -0.17f, 0.08f}, 0.83f, 1.0f, std::move(id));
+  chain->prepareBlockSize(kReferenceFrames);
+  return chain;
+}
+
+std::unique_ptr<ardor::RuntimeChain> liveControlDryChain(std::string& error)
+{
+  auto chain = std::make_unique<ardor::RuntimeChain>();
+  ardor::RatProcessor rat;
+  if (!rat.configure({{"mode", "rat"}}, 48000.0f, error)) return {};
+  chain->addDistortion("dry-rat", std::move(rat));
+
+  ardor::TapeProcessor tape;
+  if (!tape.configure({{"mode", "tape"}}, 48000.0f, error)) return {};
+  chain->addDistortion("dry-tape", std::move(tape));
+  chain->addCab({1.0f, 0.25f}, 1.0f, 1.0f, "dry-cab");
+  chain->prepareBlockSize(kReferenceFrames);
+  return chain;
+}
+
+std::unique_ptr<ardor::RuntimeChain> liveControlWetChain(std::string& error)
+{
+  auto chain = std::make_unique<ardor::RuntimeChain>();
+  chain->addCab({1.0f, 0.25f}, 1.0f, 1.0f, "wet-cab");
+  std::vector<float> impulse(2048, 0.0f);
+  impulse[0] = 1.0f;
+  impulse[511] = 0.2f;
+  if (!chain->addIrReverb("wet-ir-reverb", impulse, impulse, 48000.0f, error)) return {};
+  if (!chain->addStereoWidener("wet-stereo", 48000.0f, error)) return {};
   chain->prepareBlockSize(kReferenceFrames);
   return chain;
 }
@@ -97,12 +128,25 @@ int main()
 
   ardor::WdwRoutingProgram laneControls;
   auto controlOptions = directOptions();
-  if (!require(laneControls.prepare({"dry", referenceChain(), -1},
-                                    {"wet", referenceChain(), -1},
+  if (!require(laneControls.prepare({"dry", referenceChain("dry-cab"), -1},
+                                    {"wet", referenceChain("wet-cab"), -1},
                                     controlOptions, error),
                error.c_str())) return 1;
-  if (!require(laneControls.setBlockEnabled("reference-cab", false),
+  if (!require(laneControls.setBlockEnabled("dry-cab", false),
                "WDW block-enable control did not reach a lane chain")) return 1;
+  if (!require(laneControls.setCabParameter("wet-cab", "levelDb", -60.0f)
+                 && !laneControls.setCabParameter("missing-cab", "mix", 0.5f),
+               "ID-scoped WDW cabinet control was not routed correctly")) return 1;
+  if (!require(laneControls.setMix({0.0f, 0.0f, false, 1.0f, 1.0f, true}),
+               "cabinet control test could not isolate the wet lane")) return 1;
+  ardor::WdwRoutingProcessResult laneControlResult;
+  for (std::size_t block = 0; block < 2000; ++block) {
+    if (!require(laneControls.processBlock(input.data(), left.data(), right.data(),
+                                           kFrames, laneControlResult),
+                 "cabinet control test could not process WDW audio")) return 1;
+  }
+  if (!require(std::fabs(left.back()) < 0.01f && std::fabs(right.back()) < 0.01f,
+               "lane-scoped cabinet level did not change the wet lane output")) return 1;
 
   if (!require(!program.setMix({std::numeric_limits<float>::quiet_NaN(), 0.0f,
                                 true, 1.0f, 1.0f, true}),
@@ -164,6 +208,65 @@ int main()
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
   if (!require(sawPair, "pipelined WDW program never published a pair")) return 1;
+
+  // Live controls are written by the management thread while the two lane
+  // chains are owned by the executor workers. This loop is intentionally part
+  // of the TSAN subset: it catches processors that accidentally mutate their
+  // audio state directly from a setter.
+  ardor::WdwRoutingProgram concurrentControls;
+  auto concurrentOptions = directOptions();
+  concurrentOptions.executor.mode = ardor::WdwPairExecutionMode::Pipelined;
+  concurrentOptions.executor.requireWorkerSetup = false;
+  concurrentOptions.executor.requireRealtimeScheduling = false;
+  concurrentOptions.executor.requireAffinity = false;
+  auto liveDry = liveControlDryChain(error);
+  auto liveWet = liveControlWetChain(error);
+  if (!require(liveDry && liveWet, error.c_str())) return 1;
+  if (!require(concurrentControls.prepare({"dry", std::move(liveDry), -1},
+                                          {"wet", std::move(liveWet), -1},
+                                          concurrentOptions, error),
+               error.c_str())) return 1;
+  std::atomic<bool> controlStarted{false};
+  std::atomic<bool> keepControlling{true};
+  std::thread controlThread([&] {
+    controlStarted.store(true, std::memory_order_release);
+    std::size_t step = 0;
+    while (keepControlling.load(std::memory_order_acquire)) {
+      const float unit = static_cast<float>(step % 101) / 100.0f;
+      (void)concurrentControls.setDistortionParameter("dry-rat", "distortion", unit);
+      (void)concurrentControls.setDistortionParameter("dry-tape", "saturation", unit);
+      (void)concurrentControls.setDistortionParameter("dry-tape", "bias", 1.0f - unit);
+      (void)concurrentControls.setDistortionParameter("dry-tape", "flutter", unit);
+      (void)concurrentControls.setIrReverbParameter("wet-ir-reverb", "mix", unit);
+      (void)concurrentControls.setIrReverbParameter(
+        "wet-ir-reverb", "lowCutHz", 20.0f + unit * 1980.0f);
+      (void)concurrentControls.setStereoWidenerParameter("wet-stereo", "width", unit * 2.0f);
+      (void)concurrentControls.setStereoWidenerParameter(
+        "wet-stereo", "bassMonoHz", unit * 500.0f);
+      (void)concurrentControls.setCabParameter("dry-cab", "mix", unit);
+      (void)concurrentControls.setCabParameter("wet-cab", "levelDb", -24.0f + unit * 24.0f);
+      ++step;
+    }
+  });
+  while (!controlStarted.load(std::memory_order_acquire)) std::this_thread::yield();
+  bool concurrentOutputFinite = true;
+  for (std::size_t block = 0; block < 400; ++block) {
+    for (std::size_t frame = 0; frame < kFrames; ++frame) {
+      input[frame] = 0.05f * std::sin(static_cast<float>(block * kFrames + frame) * 0.03f);
+    }
+    if (!concurrentControls.processBlock(input.data(), left.data(), right.data(), kFrames, result)) {
+      concurrentOutputFinite = false;
+      break;
+    }
+    for (std::size_t frame = 0; frame < kFrames; ++frame) {
+      concurrentOutputFinite = concurrentOutputFinite
+        && std::isfinite(left[frame]) && std::isfinite(right[frame]);
+    }
+  }
+  keepControlling.store(false, std::memory_order_release);
+  controlThread.join();
+  if (!require(concurrentOutputFinite,
+               "concurrent WDW parameter changes produced invalid output")) return 1;
 
   // Compare the complete direct program against two independently processed
   // serial chains. This is the reference for the final mixer and fixed path

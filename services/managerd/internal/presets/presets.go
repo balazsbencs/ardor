@@ -125,6 +125,7 @@ func ValidateRunnable(preset Preset) error {
 		return nil
 	}
 	wdw := preset["wdw"].(map[string]any)
+	blockIDs := make(map[string]struct{})
 	for _, laneName := range []string{"dry", "wet"} {
 		lane := wdw[laneName].(map[string]any)
 		blocks := lane["blocks"].([]any)
@@ -135,8 +136,28 @@ func ValidateRunnable(preset Preset) error {
 		timeSeen := false
 		for index, raw := range blocks {
 			block := raw.(map[string]any)
-			typeName, _ := block["type"].(string)
-			enabled, _ := block["enabled"].(bool)
+			id, ok := block["id"].(string)
+			if !ok || id == "" {
+				return fmt.Errorf("WDW %s lane contains a block with no ID", laneName)
+			}
+			if _, exists := blockIDs[id]; exists {
+				return fmt.Errorf("WDW routing requires globally unique block IDs: %s", id)
+			}
+			blockIDs[id] = struct{}{}
+			typeName, ok := block["type"].(string)
+			if !ok || typeName == "" {
+				return fmt.Errorf("WDW %s lane block %s has no type", laneName, id)
+			}
+			if !wdwBlockAllowed(laneName, typeName) {
+				return fmt.Errorf("WDW %s lane does not admit %s block: %s", laneName, typeName, id)
+			}
+			enabled, ok := block["enabled"].(bool)
+			if !ok {
+				return fmt.Errorf("WDW %s lane block %s must declare enabled", laneName, id)
+			}
+			if enabled && !wdwBlockModeSupported(typeName, block) {
+				return fmt.Errorf("WDW %s lane block is unsupported: %s", laneName, id)
+			}
 			if typeName == "nam" {
 				if !enabled {
 					return fmt.Errorf("WDW %s lane cannot disable its required NAM block", laneName)
@@ -173,6 +194,98 @@ func ValidateRunnable(preset Preset) error {
 		}
 	}
 	return nil
+}
+
+// ValidateRunnableAt adds the asset-readiness checks that managerd can perform
+// before handing an otherwise valid WDW topology to the pedal runtime.
+func ValidateRunnableAt(preset Preset, dataRoot string) error {
+	if err := ValidateRunnable(preset); err != nil {
+		return err
+	}
+	if preset["routing"] != "wdw" {
+		return nil
+	}
+	wdw := preset["wdw"].(map[string]any)
+	for _, laneName := range []string{"dry", "wet"} {
+		lane := wdw[laneName].(map[string]any)
+		for _, raw := range lane["blocks"].([]any) {
+			block := raw.(map[string]any)
+			enabled, _ := block["enabled"].(bool)
+			if !enabled {
+				continue
+			}
+			typeName, _ := block["type"].(string)
+			id, _ := block["id"].(string)
+			asset := ""
+			switch typeName {
+			case "nam", "cab", "irreverb":
+				asset, _ = block["asset"].(string)
+			case "wah":
+				asset = "assets/wah/gcb95.wahtable"
+			default:
+				continue
+			}
+			if asset == "" || !validRelativeAsset(asset) {
+				return fmt.Errorf("WDW %s lane block is missing its asset: %s", laneName, id)
+			}
+			info, err := os.Stat(filepath.Join(dataRoot, filepath.FromSlash(asset)))
+			if err != nil || !info.Mode().IsRegular() {
+				return fmt.Errorf("WDW %s lane block asset is not ready: %s", laneName, id)
+			}
+		}
+	}
+	return nil
+}
+
+func wdwBlockAllowed(laneName, typeName string) bool {
+	if laneName == "dry" {
+		switch typeName {
+		case "nam", "cab", "dynamics", "eq", "distortion", "wah":
+			return true
+		}
+		return false
+	}
+	switch typeName {
+	case "nam", "cab", "mod", "delay", "reverb", "irreverb", "stereo":
+		return true
+	}
+	return false
+}
+
+func wdwBlockModeSupported(typeName string, block map[string]any) bool {
+	params, _ := block["params"].(map[string]any)
+	mode, _ := params["mode"].(string)
+	switch typeName {
+	case "dynamics":
+		return mode == "compressor" || mode == "noise_gate" || mode == "transient_shaper"
+	case "eq":
+		return mode == "parametric_eq_5"
+	case "distortion":
+		return mode == "" || mode == "rat" || mode == "big_cheese" || mode == "tape"
+	case "wah":
+		return mode == "" || mode == "gcb95"
+	case "mod":
+		return stringIn(mode, "chorus", "flanger", "rotary", "vibe", "phaser", "vintage_trem",
+			"poly_octave", "pattern_trem", "auto_swell", "filter", "ladder_sweep", "formant",
+			"quadrature", "destroyer", "whammy", "harmonizer")
+	case "delay":
+		return stringIn(mode, "digital", "tape", "dual", "filter", "lofi", "dbucket", "duck",
+			"pattern", "swell", "trem")
+	case "reverb":
+		return stringIn(mode, "room", "hall", "plate", "spring", "bloom", "cloud", "shimmer",
+			"chorale", "nonlinear", "swell", "magneto", "reflections")
+	default:
+		return true
+	}
+}
+
+func stringIn(value string, choices ...string) bool {
+	for _, choice := range choices {
+		if value == choice {
+			return true
+		}
+	}
+	return false
 }
 
 func validateBlocks(blocks []any, version float64, insideLane bool) error {

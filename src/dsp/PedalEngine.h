@@ -33,6 +33,7 @@ public:
   bool addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
                    float sampleRate, std::string& error);
   bool setIrReverbParameter(const std::string& id, const std::string& key, float value);
+  bool setCabParameter(const std::string& id, const std::string& key, float value);
   bool addStereoWidener(std::string id, float sampleRate, std::string& error);
   bool setStereoWidenerParameter(const std::string& id, const std::string& key, float value);
   bool addDaisyFx(std::string id, const std::string& blockType, const nlohmann::json& params,
@@ -110,6 +111,8 @@ public:
                                  std::string& error);
   bool wdwRoutingEnabled() const noexcept;
   void clearPreparedWdwRouting();
+  // Throws std::logic_error when the installed routing program is inherently
+  // block-quantized (production WDW). Realtime hosts must use processBlock().
   std::pair<float, float> process(float input);
   void processBlock(const float* input, float* left, float* right, size_t frames);
   void reset();

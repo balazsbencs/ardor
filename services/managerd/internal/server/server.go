@@ -642,7 +642,7 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 			writeError(w, http.StatusNotFound, "preset_not_found", err.Error())
 			return
 		}
-		if err := presets.ValidateRunnable(preset.Preset); err != nil {
+		if err := presets.ValidateRunnableAt(preset.Preset, cfg.DataRoot); err != nil {
 			writeError(w, http.StatusBadRequest, "preset_not_runnable", err.Error())
 			return
 		}

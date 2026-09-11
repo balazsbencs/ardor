@@ -292,6 +292,28 @@ int main()
     wdwEngine.clearPreparedWdwRouting();
     require(!wdwEngine.wdwRoutingEnabled(), "WDW route should clear on request");
 
+    ardor::PedalEngine pipelinedWdwEngine;
+    pipelinedWdwEngine.prepareBlockSize(4);
+    auto pipelinedWdwProgram = std::make_unique<ardor::WdwRoutingProgram>();
+    auto pipelinedWdwOptions = wdwOptions;
+    pipelinedWdwOptions.executor.mode = ardor::WdwPairExecutionMode::Pipelined;
+    require(pipelinedWdwProgram->prepare(
+              {"dry", std::make_unique<ardor::RuntimeChain>(), -1},
+              {"wet", std::make_unique<ardor::RuntimeChain>(), -1},
+              pipelinedWdwOptions, wdwError),
+            "pipelined WDW test program should prepare");
+    require(pipelinedWdwEngine.installPreparedWdwRouting(
+              std::move(pipelinedWdwProgram), wdwError),
+            "engine should install a pipelined WDW program");
+    bool scalarRejected = false;
+    try {
+      (void)pipelinedWdwEngine.process(0.5f);
+    } catch (const std::logic_error&) {
+      scalarRejected = true;
+    }
+    require(scalarRejected,
+            "pipelined WDW scalar processing must fail explicitly instead of returning silence");
+
     ardor::PedalEngine mismatchEngine;
     mismatchEngine.prepareBlockSize(4);
     auto mismatchedProgram = std::make_unique<ardor::WdwRoutingProgram>();

@@ -18,6 +18,7 @@
 #include <cmath>
 #include <iomanip>
 #include <sstream>
+#include <stdexcept>
 #include <utility>
 
 namespace ardor {
@@ -177,6 +178,21 @@ bool PedalEngine::setIrReverbParameter(const std::string& id, const std::string&
 {
   if (wdwRouting_ && wdwRouting_->setIrReverbParameter(id, key, value)) return true;
   return chain_.setIrReverbParameter(id, key, value);
+}
+
+bool PedalEngine::setCabParameter(const std::string& id, const std::string& key, float value)
+{
+  if (wdwRouting_ && wdwRouting_->setCabParameter(id, key, value)) return true;
+  if (!chain_.setCabParameter(id, key, value)) return false;
+  // The legacy serial path supplies host-smoothed cabinet arrays to its chain,
+  // so keep those targets synchronized after resolving the requested block ID.
+  if (key == "mix") {
+    setCabMix(value);
+  } else if (key == "levelDb") {
+    const float db = std::clamp(value, -60.0f, 12.0f);
+    setCabLevel(db <= -60.0f ? 0.0f : std::pow(10.0f, db / 20.0f));
+  }
+  return true;
 }
 
 bool PedalEngine::addStereoWidener(std::string id, float sampleRate, std::string& error)
@@ -712,7 +728,10 @@ std::pair<float, float> PedalEngine::process(float input)
   if (wdwRouting_) {
     // The WDW program owns the dry/wet lane mix. The host-level effects
     // bypass control still selects raw input when explicitly enabled.
-    wdwRouting_->processSample(afterGain, wet.left, wet.right);
+    if (!wdwRouting_->processSample(afterGain, wet.left, wet.right)) {
+      throw std::logic_error(
+        "scalar processing is unavailable for a block-quantized WDW program");
+    }
   } else if (flexibleRouting_) {
     float wetLeft = 0.0f;
     float wetRight = 0.0f;

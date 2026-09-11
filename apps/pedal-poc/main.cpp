@@ -723,14 +723,7 @@ bool applyPresetParameterValue(
     return engine.setIrReverbParameter(block->id, parameter, value);
   }
   if (block->type == "cab") {
-    if (parameter == "mix") {
-      engine.setCabMix(value);
-      return true;
-    }
-    if (parameter == "levelDb") {
-      engine.setCabLevel(dbToGain(value));
-      return true;
-    }
+    return engine.setCabParameter(block->id, parameter, value);
   }
   return false;
 }
@@ -1122,7 +1115,8 @@ int main(int argc, char** argv)
             if (liveEngine->setTransientShaperParameter(blockId, key, value)
                 || liveEngine->setDistortionParameter(blockId, key, value)
                 || liveEngine->setStereoWidenerParameter(blockId, key, value)
-                || liveEngine->setIrReverbParameter(blockId, key, value)) {
+                || liveEngine->setIrReverbParameter(blockId, key, value)
+                || liveEngine->setCabParameter(blockId, key, value)) {
               return true;
             }
             std::cerr << "Unable to update parameter " << blockId << ":" << key << "\n";
@@ -2153,6 +2147,10 @@ int main(int argc, char** argv)
           requestedApplySlot = -1;
           const int targetBank = nextBank >= 0 ? nextBank : args.bank;
           if (tunerMode) {
+            if (!deferredTunerApplyId.empty()) {
+              publishApplyResult(deferredTunerApplyId, "superseded", deferredTunerBank,
+                                 deferredTunerSlot, "a newer apply request replaced it");
+            }
             deferredTunerBank = targetBank;
             deferredTunerSlot = nextSlot;
             deferredTunerApplyId = applyId;

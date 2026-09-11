@@ -229,8 +229,10 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
         if (const auto* selected = selectedUiBlock(state)) {
           const auto& block = *selected;
           if (block.type == "cab") {
-            if (selectedBlockIsLaneChild(state)) {
-              liveUpdateSucceeded = false;
+            if (selectedBlockIsLaneChild(state) && actions_.updateBlockParameter
+                && block.params.contains(control.key) && block.params[control.key].is_number()) {
+              liveUpdateSucceeded = actions_.updateBlockParameter(
+                block.id, control.key, block.params[control.key].get<float>());
             } else if (actions_.updateCabParameters) {
               actions_.updateCabParameters(block.params.value("levelDb", 0.0f),
                                            block.params.value("mix", 1.0f));
