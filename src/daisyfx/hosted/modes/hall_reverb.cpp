@@ -76,6 +76,8 @@ void HallReverb::Init() {
     fdn_.Init(fdn_cfg);
     fdn_.SetDecay(3.0f);
     fdn_.SetDamping(0.25f);
+    tone_[0].Init(REVERB_SAMPLE_RATE);
+    tone_[1].Init(REVERB_SAMPLE_RATE);
 }
 
 void HallReverb::Reset() {
@@ -86,6 +88,8 @@ void HallReverb::Reset() {
     diffuser_l_.Reset();
     diffuser_r_.Reset();
     fdn_.Reset();
+    tone_[0].Reset();
+    tone_[1].Reset();
     mid_fast_[0] = mid_fast_[1] = 0.0f;
     mid_slow_[0] = mid_slow_[1] = 0.0f;
     mid_scale_ = 0.0f;
@@ -102,6 +106,8 @@ void HallReverb::Prepare(const ParamSet& params) {
     fdn_.SetDecay(calibrated_decay);
     // tone: 0=dark (HF RT60 = 30% of LF), 1=bright (HF RT60 = LF, uniform decay)
     fdn_.SetDampFromRt60Ratio(calibrated_decay, 0.30f + params.tone * 0.70f);
+    tone_[0].SetKnob(params.tone);
+    tone_[1].SetKnob(params.tone);
     fdn_.SetModulation(params.mod * 8.0f);
     // Param1 controls pre-diffusion density (0 = minimal, 1 = maximum)
     diffuser_l_.SetDiffusion(0.35f + params.param1 * 0.45f);
@@ -142,7 +148,8 @@ StereoFrame HallReverb::Process(StereoFrame input, const ParamSet& /*params*/) {
     for (int ch = 0; ch < 2; ++ch) {
         mid_fast_[ch] += 0.48f * (tank[ch] - mid_fast_[ch]);
         mid_slow_[ch] += 0.063f * (tank[ch] - mid_slow_[ch]);
-        *channels[ch] = tank[ch] + mid_scale_ * (mid_fast_[ch] - mid_slow_[ch]);
+        const float equalized = tank[ch] + mid_scale_ * (mid_fast_[ch] - mid_slow_[ch]);
+        *channels[ch] = tone_[ch].Process(equalized);
     }
     return out;
 }

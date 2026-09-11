@@ -61,7 +61,7 @@ const AlgoParamDescriptor& get_algo_param_descriptor(ReverbModeId mode) {
     static const AlgoParamDescriptor kDescriptors[] = {
         {"Size",       "Diffusion"},   // Room        = 0
         {"Size",       "Mid EQ"},      // Hall        = 1
-        {"Size",       ""},            // Plate       = 2
+        {"Mod Depth",  "Character"},   // Plate       = 2
         {"Dwell",      "Springs"},     // Spring      = 3
         {"Bloom Time", "Feedback"},    // Bloom       = 4
         {"Diffusion",  "Darkness"},    // Cloud       = 5

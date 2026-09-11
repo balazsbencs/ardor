@@ -1,100 +1,80 @@
 #include "tone_filter.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace pedal {
 
-static constexpr float kTwoPi        = 6.28318530717958647692f;
-static constexpr float kButterworthQ = 0.707106781f;  // 1/sqrt(2): maximally flat
-static constexpr float kMinimumCutoff = 20.0f;
-static constexpr float kDarkCutoff = 200.0f;
-static constexpr float kBrightCutoff = 3000.0f;
+static constexpr float kTwoPi = 6.28318530717958647692f;
 
-static float log_lerp(float from, float to, float amount) {
-    return expf(logf(from) + amount * (logf(to) - logf(from)));
+float ToneFilter::Biquad::Process(float input) {
+    const float output = b0 * input + s1;
+    s1 = b1 * input - a1 * output + s2;
+    s2 = b2 * input - a2 * output;
+    return output;
 }
 
-void ToneFilter::ComputeLpCoeffs(float fc, float q,
-                                  float& b0, float& b1, float& b2,
-                                  float& a1, float& a2) const {
-    const float w0    = kTwoPi * fc * inv_sample_rate_;
-    const float alpha = sinf(w0) / (2.0f * q);
-    const float cw    = cosf(w0);
-    const float inv_a0 = 1.0f / (1.0f + alpha);
-    b0 = (1.0f - cw) * 0.5f * inv_a0;
-    b1 = (1.0f - cw) * inv_a0;
-    b2 = b0;
-    a1 = -2.0f * cw * inv_a0;
-    a2 = (1.0f - alpha) * inv_a0;
-}
-
-void ToneFilter::ComputeHpCoeffs(float fc, float q,
-                                  float& b0, float& b1, float& b2,
-                                  float& a1, float& a2) const {
-    const float w0    = kTwoPi * fc * inv_sample_rate_;
-    const float alpha = sinf(w0) / (2.0f * q);
-    const float cw    = cosf(w0);
-    const float inv_a0 = 1.0f / (1.0f + alpha);
-    b0 = (1.0f + cw) * 0.5f * inv_a0;
-    b1 = -(1.0f + cw) * inv_a0;
-    b2 = b0;
-    a1 = -2.0f * cw * inv_a0;
-    a2 = (1.0f - alpha) * inv_a0;
+// RBJ low/high shelf, S=1. The overlapping shelves produce a broad tilt
+// without the hollow response caused by mixing steep LP/HP filters with dry.
+void ToneFilter::ComputeShelf(bool high, float fc, float gain_db, Biquad& f) const {
+    const float A = std::pow(10.0f, gain_db / 40.0f);
+    const float w0 = kTwoPi * fc * inv_sample_rate_;
+    const float cw = std::cos(w0);
+    const float sw = std::sin(w0);
+    const float alpha = 0.5f * sw * std::sqrt(2.0f);
+    const float beta = 2.0f * std::sqrt(A) * alpha;
+    float a0;
+    if (high) {
+        f.b0 = A * ((A + 1.0f) + (A - 1.0f) * cw + beta);
+        f.b1 = -2.0f * A * ((A - 1.0f) + (A + 1.0f) * cw);
+        f.b2 = A * ((A + 1.0f) + (A - 1.0f) * cw - beta);
+        a0   = (A + 1.0f) - (A - 1.0f) * cw + beta;
+        f.a1 = 2.0f * ((A - 1.0f) - (A + 1.0f) * cw);
+        f.a2 = (A + 1.0f) - (A - 1.0f) * cw - beta;
+    } else {
+        f.b0 = A * ((A + 1.0f) - (A - 1.0f) * cw + beta);
+        f.b1 = 2.0f * A * ((A - 1.0f) - (A + 1.0f) * cw);
+        f.b2 = A * ((A + 1.0f) - (A - 1.0f) * cw - beta);
+        a0   = (A + 1.0f) + (A - 1.0f) * cw + beta;
+        f.a1 = -2.0f * ((A - 1.0f) + (A + 1.0f) * cw);
+        f.a2 = (A + 1.0f) + (A - 1.0f) * cw - beta;
+    }
+    const float inverse = 1.0f / a0;
+    f.b0 *= inverse; f.b1 *= inverse; f.b2 *= inverse;
+    f.a1 *= inverse; f.a2 *= inverse;
 }
 
 void ToneFilter::Init(float sample_rate) {
     sample_rate_ = std::isfinite(sample_rate) && sample_rate > 0.0f ? sample_rate : SAMPLE_RATE;
     inv_sample_rate_ = 1.0f / sample_rate_;
-    shape_ = Shape::Bypass;
-    mix_ = 0.0f;
     last_knob_ = -1.0f;
     Reset();
     SetKnob(0.5f);
 }
 
 void ToneFilter::Reset() {
-    lp_s1_ = lp_s2_ = 0.0f;
-    hp_s1_ = hp_s2_ = 0.0f;
+    low_shelf_.Reset();
+    high_shelf_.Reset();
 }
 
 void ToneFilter::SetKnob(float knob) {
     if (!std::isfinite(knob)) knob = 0.5f;
     knob = std::clamp(knob, 0.0f, 1.0f);
-
-    // Float equality is intentional: live parameter values are held constant
-    // between control-rate updates, so bit-identical repeats are expected.
     if (knob == last_knob_) return;
     last_knob_ = knob;
 
-    const Shape next_shape = knob < 0.5f ? Shape::LowPass
-                           : knob > 0.5f ? Shape::HighPass
-                                         : Shape::Bypass;
-    if (next_shape != shape_) {
-        // The inactive filter has not been updated. Clearing its state prevents
-        // an old resonance from leaking in when the knob crosses centre.
-        Reset();
-        shape_ = next_shape;
-    }
-
-    if (shape_ == Shape::Bypass) {
-        mix_ = 0.0f;
+    const float amount = (knob - 0.5f) * 2.0f;
+    const bool next_bypass = std::fabs(amount) < 0.0001f;
+    if (next_bypass != bypass_) Reset();
+    bypass_ = next_bypass;
+    if (bypass_) {
+        output_gain_ = 1.0f;
         return;
     }
 
-    // RBJ biquad coefficients are only stable below Nyquist. Keeping the
-    // maximum at 45% of the active rate provides a useful transition band and
-    // makes the 24 kHz reverb stage safe at a fully bright setting.
-    const float max_cutoff = std::max(kDarkCutoff, std::min(20000.0f, sample_rate_ * 0.45f));
-    if (shape_ == Shape::LowPass) {
-        mix_ = 1.0f - knob * 2.0f;
-        const float cutoff = log_lerp(max_cutoff, kDarkCutoff, mix_);
-        ComputeLpCoeffs(cutoff, kButterworthQ, lp_b0_, lp_b1_, lp_b2_, lp_a1_, lp_a2_);
-    } else {
-        mix_ = (knob - 0.5f) * 2.0f;
-        const float maximum_bright_cutoff = std::max(kMinimumCutoff, std::min(kBrightCutoff, max_cutoff));
-        const float cutoff = log_lerp(kMinimumCutoff, maximum_bright_cutoff, mix_);
-        ComputeHpCoeffs(cutoff, kButterworthQ, hp_b0_, hp_b1_, hp_b2_, hp_a1_, hp_a2_);
-    }
+    ComputeShelf(false, 500.0f, -4.0f * amount, low_shelf_);
+    ComputeShelf(true, 2000.0f, 7.0f * amount, high_shelf_);
+    output_gain_ = std::pow(10.0f, -std::fabs(amount) * 3.0f / 20.0f);
 }
 
 float ToneFilter::Process(float sample) {
@@ -102,22 +82,10 @@ float ToneFilter::Process(float sample) {
         Reset();
         return 0.0f;
     }
-    if (shape_ == Shape::Bypass) return sample;
-
-    float filtered;
-    if (shape_ == Shape::LowPass) {
-        filtered = lp_b0_ * sample + lp_s1_;
-        lp_s1_ = lp_b1_ * sample - lp_a1_ * filtered + lp_s2_;
-        lp_s2_ = lp_b2_ * sample - lp_a2_ * filtered;
-    } else {
-        filtered = hp_b0_ * sample + hp_s1_;
-        hp_s1_ = hp_b1_ * sample - hp_a1_ * filtered + hp_s2_;
-        hp_s2_ = hp_b2_ * sample - hp_a2_ * filtered;
-    }
-
-    const float output = sample + mix_ * (filtered - sample);
-    if (!std::isfinite(output) || !std::isfinite(lp_s1_) || !std::isfinite(lp_s2_)
-        || !std::isfinite(hp_s1_) || !std::isfinite(hp_s2_)) {
+    if (bypass_) return sample;
+    const float output = high_shelf_.Process(low_shelf_.Process(sample)) * output_gain_;
+    if (!std::isfinite(output) || !std::isfinite(low_shelf_.s1) || !std::isfinite(low_shelf_.s2)
+        || !std::isfinite(high_shelf_.s1) || !std::isfinite(high_shelf_.s2)) {
         Reset();
         return 0.0f;
     }

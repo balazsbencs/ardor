@@ -65,13 +65,23 @@ private:
     float   ratio_       = 1.0f;
     float   sample_rate_ = 48000.0f;
 
-    // Reading the grain buffer faster than it is written is a decimation. With
-    // no band limiting first, everything above fs/(2*ratio) folds back — and in
-    // Shimmer the result is fed round again, so the aliases are shifted a second
-    // time. Two cascaded one-poles ahead of the write keep that out.
-    float   aa_coeff_    = 1.0f;   // 1.0 = bypass (no upward shift)
-    float   aa_state1_   = 0.0f;
-    float   aa_state2_   = 0.0f;
+    struct AntiAliasBiquad {
+        float b0 = 1.0f, b1 = 0.0f, b2 = 0.0f;
+        float a1 = 0.0f, a2 = 0.0f;
+        float s1 = 0.0f, s2 = 0.0f;
+        float Process(float input) {
+            const float output = b0 * input + s1;
+            s1 = b1 * input - a1 * output + s2;
+            s2 = b2 * input - a2 * output;
+            return output;
+        }
+        void Reset() { s1 = s2 = 0.0f; }
+    };
+
+    // Upward reading is decimation. A fourth-order Butterworth prefilter gives
+    // the shimmer feedback meaningful rejection above its new Nyquist limit.
+    AntiAliasBiquad aa_[2];
+    bool aa_active_ = false;
 };
 
 } // namespace pedal

@@ -32,6 +32,8 @@ void ChoraleReverb::Init() {
     fdn_cfg.delays[1]   = 1626;
     fdn_cfg.delays[2]   = 1939;
     fdn_cfg.delays[3]   = 2247;
+    const size_t fdn_sizes[4] = {2732, 3252, 3878, 4494};
+    for (int i = 0; i < 4; ++i) fdn_cfg.buffer_sizes[i] = fdn_sizes[i];
     for (int i = 4; i < Fdn::MAX_LINES; ++i) {
         fdn_cfg.bufs[i]   = nullptr;
         fdn_cfg.delays[i] = 0;
@@ -61,7 +63,7 @@ void ChoraleReverb::Prepare(const ParamSet& params) {
     pre_delay_l_.SetDelay(delay_samples < 1.0f ? 1.0f : delay_samples);
     pre_delay_r_.SetDelay(delay_samples < 1.0f ? 1.0f : delay_samples);
     fdn_.SetDecay(params.decay);
-    fdn_.SetDamping(0.15f + params.tone * 0.35f);
+    fdn_.SetDampFromRt60Ratio(params.decay, 0.25f + params.tone * 0.75f);
     fdn_.SetModulation(params.mod * 4.0f);
     tone_[0].SetKnob(params.tone);
     tone_[1].SetKnob(params.tone);

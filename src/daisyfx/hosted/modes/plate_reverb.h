@@ -3,6 +3,7 @@
 #include "../dsp/allpass.h"
 #include "../dsp/delay_line_sdram.h"
 #include "../dsp/lfo.h"
+#include "../dsp/tone_filter.h"
 
 namespace pedal {
 
@@ -77,6 +78,7 @@ private:
     // Quadrature LFOs for the modulated decay-diffusers
     Lfo lfo_a_;
     Lfo lfo_b_;
+    ToneFilter tone_[2];
 
     // Input diffuser gains (Param2-controlled)
     float in_g_hi_ = 0.75f;   // 0.65 – 0.80 (higher gain)

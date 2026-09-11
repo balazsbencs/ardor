@@ -20,11 +20,23 @@ public:
     // Typical musical range: 0.1 (very dark) to 0.7 (bright).
     void SetDamping(float damp)    { damp_ = damp; }
 
+    float Read() const { return line_.Read(); }
+    float Feedback(float signal) {
+        state_ += damp_ * (signal - state_);
+        return feedback_ * state_;
+    }
+    void WriteRaw(float sample) { line_.Write(sample); }
+
+    // Split read/write form for dispersive resonators. The caller can transform
+    // the delayed sample before it is damped and returned to the delay line.
+    void WriteFeedback(float input, float feedback_signal) {
+        line_.Write(input + Feedback(feedback_signal));
+    }
+
     // Returns the un-damped tap (use for output mixing).
     float Process(float input) {
         const float read     = line_.Read();
-        state_               = state_ + damp_ * (read - state_);  // LP in feedback
-        line_.Write(input + feedback_ * state_);
+        WriteFeedback(input, read);
         return read;
     }
 
