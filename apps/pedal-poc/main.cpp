@@ -362,6 +362,8 @@ struct Args {
   int playbackDeviceIndex = -1;
   int audioCpu = -1;
   int rigWorkerCpu = -1;
+  int wdwDryWorkerCpu = -1;
+  int wdwWetWorkerCpu = -1;
   uint32_t inputChannel = 0;
   ardor::OutputChannel outputChannel = ardor::OutputChannel::Both;
   std::filesystem::path preset;
@@ -498,6 +500,14 @@ bool parse(int argc, char** argv, Args& args)
         const char* v = value();
         if (!v) return false;
         args.rigWorkerCpu = std::stoi(v);
+      } else if (a == "--wdw-dry-worker-cpu") {
+        const char* v = value();
+        if (!v) return false;
+        args.wdwDryWorkerCpu = std::stoi(v);
+      } else if (a == "--wdw-wet-worker-cpu") {
+        const char* v = value();
+        if (!v) return false;
+        args.wdwWetWorkerCpu = std::stoi(v);
       } else if (a == "--input-channel") {
         const char* v = value();
         if (!v || !parseChannel(v, args.inputChannel)) return false;
@@ -605,6 +615,7 @@ bool parse(int argc, char** argv, Args& args)
     return false;
   }
   if (args.audioCpu < -1 || args.rigWorkerCpu < -1
+      || args.wdwDryWorkerCpu < -1 || args.wdwWetWorkerCpu < -1
       || (args.parallelRigs
           && (args.audioCpu < 0 || args.rigWorkerCpu < 0
               || args.audioCpu == args.rigWorkerCpu))
@@ -657,12 +668,28 @@ ardor::PresetBlock* findPresetBlock(
   return nullptr;
 }
 
+const ardor::PresetBlock* findPresetBlock(const ardor::Preset& preset, std::string_view id)
+{
+  if (const auto* block = findPresetBlock(preset.blocks, id)) return block;
+  if (!preset.wdw) return nullptr;
+  if (const auto* block = findPresetBlock(preset.wdw->dry.blocks, id)) return block;
+  return findPresetBlock(preset.wdw->wet.blocks, id);
+}
+
+ardor::PresetBlock* findPresetBlock(ardor::Preset& preset, std::string_view id)
+{
+  if (auto* block = findPresetBlock(preset.blocks, id)) return block;
+  if (!preset.wdw) return nullptr;
+  if (auto* block = findPresetBlock(preset.wdw->dry.blocks, id)) return block;
+  return findPresetBlock(preset.wdw->wet.blocks, id);
+}
+
 bool applyPresetParameterValue(
   ardor::PedalEngine& engine, const ardor::Preset& preset,
   const std::string& blockId, const std::string& parameter, float value,
   bool requireEnabled)
 {
-  const auto* block = findPresetBlock(preset.blocks, blockId);
+  const auto* block = findPresetBlock(preset, blockId);
   if (block == nullptr || (requireEnabled && !block->enabled)) return false;
   if (block->type == "mod" || block->type == "delay" || block->type == "reverb") {
     return engine.setDaisyParameter(block->id, parameter, value);
@@ -696,14 +723,7 @@ bool applyPresetParameterValue(
     return engine.setIrReverbParameter(block->id, parameter, value);
   }
   if (block->type == "cab") {
-    if (parameter == "mix") {
-      engine.setCabMix(value);
-      return true;
-    }
-    if (parameter == "levelDb") {
-      engine.setCabLevel(dbToGain(value));
-      return true;
-    }
+    return engine.setCabParameter(block->id, parameter, value);
   }
   return false;
 }
@@ -723,7 +743,7 @@ bool applyPresetMidiValue(
   const ardor::PresetMidiValue& mapped)
 {
   const auto& action = mapped.action;
-  const auto* block = findPresetBlock(preset.blocks, action.blockId);
+  const auto* block = findPresetBlock(preset, action.blockId);
   if (block == nullptr) return false;
   if (action.target == ardor::PresetMidiTargetType::BlockEnabled) {
     return engine.setBlockEnabled(block->id, mapped.value >= 0.5f);
@@ -800,6 +820,7 @@ int main(int argc, char** argv)
                 << "            [--allow-non-realtime] (development only)\n"
                 << "            [--allow-device-resampling] (development only)\n"
                 << "            [--parallel-rigs] [--audio-cpu N] [--rig-worker-cpu N]\n"
+                << "            [--wdw-dry-worker-cpu N] [--wdw-wet-worker-cpu N]\n"
                 << "            [--capture-device N] [--playback-device N] [--input-channel left|right]\n"
                 << "            [--output-channel both|left|right] [--ir-samples N]\n"
                 << "            [--telemetry-file /run/ardor-pedal.telemetry]\n"
@@ -825,13 +846,16 @@ int main(int argc, char** argv)
       std::signal(SIGTERM, handleSignal);
     }
 
-    const ardor::EngineLoadOptions loadOptions{
+    ardor::EngineLoadOptions loadOptions{
       args.sampleRate,
       args.blockSize,
       args.irSamples == 0 ? size_t{8192} : args.irSamples,
       args.realtime && args.parallelRigs,
       args.rigWorkerCpu,
     };
+    loadOptions.wdwAudioCpu = args.audioCpu;
+    loadOptions.wdwDryWorkerCpu = args.wdwDryWorkerCpu;
+    loadOptions.wdwWetWorkerCpu = args.wdwWetWorkerCpu;
 
     // Realtime slot mode: unique_ptr engine enables stop/swap/restart switching
     if (args.realtime && args.presetSlotMode) {
@@ -839,15 +863,47 @@ int main(int argc, char** argv)
       ardor::PresetStore store(args.dataRoot);
       ardor::Preset activePreset;
       std::string loadError;
-      const bool initialPresetLoaded = ardor::applyPresetSlot(
+      bool initialPresetLoaded = ardor::applyPresetSlot(
         *liveEngine, store, {args.bank, args.slot}, args.dataRoot, loadOptions, loadError);
+      const std::string initialPresetError = loadError;
+      bool initialPresetFallback = false;
       if (!initialPresetLoaded) {
         std::cerr << "Warning: preset " << args.bank << ":" << args.slot << " failed (" << loadError
                   << "), using pass-through\n";
         liveEngine->clearEffects();
         liveEngine->prepareBlockSize(loadOptions.blockSize);
+
+        // A malformed or not-yet-complete WDW draft must never be presented as
+        // the audible preset after boot. Prefer the next runnable slot in this
+        // bank so the UI selection and engine remain coupled even when the
+        // requested slot cannot be prepared.
+        for (int offset = 1; offset < 4 && !initialPresetLoaded; ++offset) {
+          const int fallbackSlot = (args.slot + offset) % 4;
+          try {
+            auto fallbackPreset = store.loadOrEmpty({args.bank, fallbackSlot});
+            std::string fallbackError;
+            if (!ardor::applyPreset(*liveEngine, fallbackPreset, args.dataRoot,
+                                    loadOptions, fallbackError)) {
+              continue;
+            }
+            activePreset = std::move(fallbackPreset);
+            args.slot = fallbackSlot;
+            initialPresetLoaded = true;
+            initialPresetFallback = true;
+            std::cerr << "Recovered with preset " << args.bank << ":" << args.slot
+                      << " after the requested preset failed\n";
+          } catch (const std::exception&) {
+            // Keep looking; an empty slot or another malformed slot can be
+            // skipped without changing the pass-through safety fallback.
+          }
+        }
       } else {
         activePreset = store.loadOrEmpty({args.bank, args.slot});
+      }
+      if (!initialPresetLoaded) {
+        // Keep a concrete serial/pass-through snapshot for the control/UI
+        // lifecycle even when every slot in the bank is unavailable.
+        activePreset.name = "No valid preset";
       }
 
       requestedSlot.store(-1, std::memory_order_relaxed);
@@ -891,6 +947,17 @@ int main(int argc, char** argv)
       ardor::FootswitchGesture footswitchGesture;
       ardor::LooperController looperController;
       ardor::ActivePresetSelection activeSelection{args.bank, args.slot};
+      {
+        std::string stateError;
+        const bool published = initialPresetLoaded
+          ? ardor::writeRuntimeActivePreset(args.dataRoot, activeSelection.bank,
+                                            activeSelection.slot, activePreset.name,
+                                            stateError)
+          : ardor::clearRuntimeActivePreset(args.dataRoot, stateError);
+        if (!published && !stateError.empty()) {
+          std::cerr << "Warning: could not publish active preset state: " << stateError << "\n";
+        }
+      }
       constexpr std::size_t looperMemoryBudget = 128ULL * 1024ULL * 1024ULL;
       ardor::LooperStore looperStore(args.dataRoot);
       std::future<LooperSaveCompletion> looperSaveFuture;
@@ -912,6 +979,7 @@ int main(int argc, char** argv)
       std::array<float, 2048> tunerInput{};
       int deferredTunerBank = -1;
       int deferredTunerSlot = -1;
+      std::string deferredTunerApplyId;
       liveEngine->setMasterVolume(static_cast<float>(controls.masterVolume) / 100.0f);
       bool presetMidiMappingsChanged = false;
 
@@ -979,6 +1047,11 @@ int main(int argc, char** argv)
         // The engine was loaded immediately above. Reflect that state in the
         // UI without queuing the same preset for another audio-engine swap.
         ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
+        if (initialPresetFallback) {
+          ardor::setUiStatus(uiState, "Requested preset unavailable; fallback preset active", true);
+        } else if (!initialPresetLoaded) {
+          ardor::setUiStatus(uiState, "No valid preset active: " + initialPresetError, true);
+        }
         ui = std::make_unique<ardor::LvglUi>(ardor::UiActions{
           [&](std::size_t index) {
             if (ardor::requestPresetNavigation(uiState, {uiState.activeBank, index})) {
@@ -1042,7 +1115,8 @@ int main(int argc, char** argv)
             if (liveEngine->setTransientShaperParameter(blockId, key, value)
                 || liveEngine->setDistortionParameter(blockId, key, value)
                 || liveEngine->setStereoWidenerParameter(blockId, key, value)
-                || liveEngine->setIrReverbParameter(blockId, key, value)) {
+                || liveEngine->setIrReverbParameter(blockId, key, value)
+                || liveEngine->setCabParameter(blockId, key, value)) {
               return true;
             }
             std::cerr << "Unable to update parameter " << blockId << ":" << key << "\n";
@@ -1123,7 +1197,7 @@ int main(int argc, char** argv)
           },
           [&](const std::string& blockId, bool enabled) {
             if (!liveEngine->setBlockEnabled(blockId, enabled)) return false;
-            if (auto* block = findPresetBlock(activePreset.blocks, blockId)) {
+            if (auto* block = findPresetBlock(activePreset, blockId)) {
               block->enabled = enabled;
             }
             return true;
@@ -1443,6 +1517,19 @@ int main(int argc, char** argv)
       }
 #endif
       auto nextRuntimeCommandPoll = std::chrono::steady_clock::now();
+      std::string requestedApplyId;
+      int requestedApplyBank = -1;
+      int requestedApplySlot = -1;
+      const auto publishApplyResult = [&](const std::string& id, const std::string& state,
+                                           int bank, int slot, const std::string& message) {
+        if (id.empty()) return;
+        std::string stateError;
+        if (!ardor::writeRuntimeApplyResult(args.dataRoot, id, state, bank, slot,
+                                            message, stateError)) {
+          std::cerr << "Warning: could not publish apply result " << id << ": "
+                    << stateError << "\n";
+        }
+      };
       auto nextTelemetry = nextRuntimeCommandPoll;
       // Faster than nextTelemetry's 1 s tier: a gain-reduction meter that only
       // refreshed once a second would look frozen while someone is actually
@@ -1472,12 +1559,16 @@ int main(int argc, char** argv)
 #endif
           std::cerr << (tunerMode ? "Tuner active; output muted\n" : "Tuner closed; output restored\n");
           if (!tunerMode && deferredTunerSlot >= 0) {
+            requestedApplyId = std::move(deferredTunerApplyId);
+            requestedApplyBank = deferredTunerBank;
+            requestedApplySlot = deferredTunerSlot;
             if (deferredTunerBank >= 0) {
               requestedBank.store(deferredTunerBank, std::memory_order_relaxed);
             }
             requestedSlot.store(deferredTunerSlot, std::memory_order_relaxed);
             deferredTunerBank = -1;
             deferredTunerSlot = -1;
+            deferredTunerApplyId.clear();
           }
           return;
         }
@@ -2029,6 +2120,13 @@ int main(int argc, char** argv)
             if (command.type == ardor::RuntimeCommandType::ReloadAssets) {
               reloadAssets = true;
             } else if (command.type == ardor::RuntimeCommandType::ApplyPreset) {
+              if (!requestedApplyId.empty()) {
+                publishApplyResult(requestedApplyId, "superseded", requestedApplyBank,
+                                   requestedApplySlot, "a newer apply request replaced it");
+              }
+              requestedApplyId = command.id;
+              requestedApplyBank = command.bank;
+              requestedApplySlot = command.slot;
               requestedBank.store(command.bank, std::memory_order_relaxed);
               requestedSlot.store(command.slot, std::memory_order_relaxed);
             }
@@ -2043,10 +2141,19 @@ int main(int argc, char** argv)
         const int nextBank = requestedBank.exchange(-1, std::memory_order_relaxed);
         const int nextSlot = requestedSlot.exchange(-1, std::memory_order_relaxed);
         if (nextSlot >= 0) {
+          const std::string applyId = std::move(requestedApplyId);
+          requestedApplyId.clear();
+          requestedApplyBank = -1;
+          requestedApplySlot = -1;
           const int targetBank = nextBank >= 0 ? nextBank : args.bank;
           if (tunerMode) {
+            if (!deferredTunerApplyId.empty()) {
+              publishApplyResult(deferredTunerApplyId, "superseded", deferredTunerBank,
+                                 deferredTunerSlot, "a newer apply request replaced it");
+            }
             deferredTunerBank = targetBank;
             deferredTunerSlot = nextSlot;
+            deferredTunerApplyId = applyId;
             continue;
           }
           ardor::Preset targetPreset;
@@ -2054,6 +2161,7 @@ int main(int argc, char** argv)
             targetPreset = store.loadOrEmpty({targetBank, nextSlot});
           } catch (const std::exception& e) {
             std::cerr << "Preset switch rejected before activation: " << e.what() << "\n";
+            publishApplyResult(applyId, "rejected", targetBank, nextSlot, e.what());
 #if defined(ARDOR_HAS_UI)
             if (args.enableUi && ui) {
               if (uiState.dirty) {
@@ -2067,25 +2175,10 @@ int main(int argc, char** argv)
 #endif
             continue;
           }
-          std::string preflightError;
-          if (!ardor::preflightPreset(targetPreset, args.dataRoot, loadOptions, preflightError)) {
-            std::cerr << "Preset switch rejected before activation: " << preflightError << "\n";
-#if defined(ARDOR_HAS_UI)
-            if (args.enableUi && ui) {
-              if (uiState.dirty) {
-                ardor::setUiStatus(uiState, "Could not switch preset; current edits retained.", true);
-              } else {
-                // Keep the last valid engine audible, but open the rejected
-                // preset so its missing asset can be repaired in Edit mode.
-                ardor::loadBankFromStore(uiState, store, targetBank);
-                ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(nextSlot));
-                ardor::setUiStatus(uiState, "Preset unavailable: " + preflightError
-                                            + ". Open Edit to repair it.", true);
-              }
-            }
-#endif
-            continue;
-          }
+          // prepareAndActivatePreset is the single construction boundary for
+          // a live switch. An earlier WDW preflight built both NAM lanes and
+          // their workers a second time, doubling switch cost and creating a
+          // failure window between validation and the real replacement.
           const auto activation = ardor::prepareAndActivatePreset(
             liveEngine, activeSelection, targetPreset, {targetBank, nextSlot}, args.dataRoot,
             loadOptions, static_cast<float>(controls.masterVolume) / 100.0f,
@@ -2093,15 +2186,16 @@ int main(int argc, char** argv)
           if (!activation.activated()) {
             if (activation.status == ardor::PresetActivationStatus::PreparationFailed) {
               std::cerr << "Preset switch failed: " << activation.error << "\n";
+              publishApplyResult(applyId, "rejected", targetBank, nextSlot, activation.error);
 #if defined(ARDOR_HAS_UI)
               if (args.enableUi && ui) {
                 if (uiState.dirty) {
                   ardor::setUiStatus(uiState, "Could not switch preset; current edits retained.", true);
                 } else {
-                  ardor::loadBankFromStore(uiState, store, targetBank);
-                  ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(nextSlot));
+                  ardor::loadBankFromStore(uiState, store, args.bank);
+                  ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
                   ardor::setUiStatus(uiState, "Preset unavailable: " + activation.error
-                                              + ". Open Edit to repair it.", true);
+                                              + ". Current preset retained.", true);
                 }
               }
 #endif
@@ -2110,10 +2204,15 @@ int main(int argc, char** argv)
             std::cerr << "Failed to activate prepared preset: "
                       << replaceResultName(activation.replacementResult) << "\n";
             if (activation.replacementResult == ardor::EngineReplaceResult::DeviceStopped) {
+              requestedApplyId = applyId;
+              requestedApplyBank = targetBank;
+              requestedApplySlot = nextSlot;
               requestedBank.store(targetBank, std::memory_order_relaxed);
               requestedSlot.store(nextSlot, std::memory_order_relaxed);
               continue;
             }
+            publishApplyResult(applyId, "rejected", targetBank, nextSlot,
+                               replaceResultName(activation.replacementResult));
             return 1;
           }
           runtime.changePreset();
@@ -2127,6 +2226,15 @@ int main(int argc, char** argv)
           args.bank = activeSelection.bank;
           args.slot = activeSelection.slot;
           controls.activeSlot = activeSelection.slot;
+          publishApplyResult(applyId, "applied", activeSelection.bank, activeSelection.slot, {});
+          {
+            std::string stateError;
+            if (!ardor::writeRuntimeActivePreset(args.dataRoot, activeSelection.bank,
+                                                 activeSelection.slot, activePreset.name,
+                                                 stateError)) {
+              std::cerr << "Warning: could not publish active preset state: " << stateError << "\n";
+            }
+          }
           std::cerr << "Switched to preset " << args.bank << ":" << args.slot << "\n";
 #if defined(ARDOR_HAS_UI)
           if (args.enableUi && ui) {
@@ -2174,7 +2282,10 @@ int main(int argc, char** argv)
                                                              liveEngine->parallelWaitOverBudgetCount(),
                                                              nonFiniteBlocks,
                                                              liveEngine->blockSizeMismatchCount(),
-                                                             recentAverageMs);
+                                                             recentAverageMs,
+                                                             liveEngine->parallelUnderflowCount(),
+                                                             liveEngine->parallelSubmissionMissCount(),
+                                                             liveEngine->parallelWorkersReady());
           std::cerr << ardor::formatRuntimeTelemetry(telemetry) << "\n";
           publishRuntimeTelemetry(args.telemetryFile, telemetry);
           if (args.clipDebug) {

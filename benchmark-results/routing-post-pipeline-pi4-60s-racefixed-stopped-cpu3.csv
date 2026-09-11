@@ -1,0 +1,2 @@
+scenario,block_size,lane_count,nam_count,has_cab,workers,workers_ready,pipelined,pipeline_underflows,pipeline_submission_misses,post_join_underflows,post_join_submission_misses,budget_us,min_us,mean_us,p99_us,p999_us,max_us,deadline_misses,aggregate_cpu_pct,checksum
+"program-direct-2x-nam-stereo-mix-shared-cab-post-pipeline",64,2,2,1,2,1,1,0,0,1,0,1333.333,496.667,856.745,1245.907,1504.370,2304.629,126,192.768,25514.506

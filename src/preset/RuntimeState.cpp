@@ -13,7 +13,10 @@ RuntimeTelemetry makeRuntimeTelemetry(uint64_t callbacks, uint64_t overBudget, u
                                       uint64_t parallelWaitOverBudget,
                                       uint64_t nonFiniteBlocks,
                                       uint64_t blockSizeMismatches,
-                                      double recentAverageMs)
+                                      double recentAverageMs,
+                                      uint64_t parallelUnderflows,
+                                      uint64_t parallelSubmissionMisses,
+                                      bool parallelWorkersReady)
 {
   RuntimeTelemetry telemetry;
   telemetry.callbacks = callbacks;
@@ -28,6 +31,9 @@ RuntimeTelemetry makeRuntimeTelemetry(uint64_t callbacks, uint64_t overBudget, u
     audioBufferFreePercent(telemetry.recentAverageMs, telemetry.budgetMs);
   telemetry.bypassed = bypassed;
   telemetry.parallelWaitOverBudget = parallelWaitOverBudget;
+  telemetry.parallelUnderflows = parallelUnderflows;
+  telemetry.parallelSubmissionMisses = parallelSubmissionMisses;
+  telemetry.parallelWorkersReady = parallelWorkersReady;
   telemetry.nonFiniteBlocks = nonFiniteBlocks;
   telemetry.blockSizeMismatches = blockSizeMismatches;
   return telemetry;
@@ -67,7 +73,10 @@ std::string formatRuntimeTelemetry(const RuntimeTelemetry& telemetry)
       << " budget=" << telemetry.budgetMs << "ms"
       << " buffer_free=" << telemetry.bufferFreePercent << "%"
       << " bypassed=" << (telemetry.bypassed ? 1 : 0)
+      << " worker_ready=" << (telemetry.parallelWorkersReady ? 1 : 0)
       << " worker_over=" << telemetry.parallelWaitOverBudget
+      << " worker_underflow=" << telemetry.parallelUnderflows
+      << " worker_submit_miss=" << telemetry.parallelSubmissionMisses
       << " nonfinite=" << telemetry.nonFiniteBlocks
       << " block_mismatch=" << telemetry.blockSizeMismatches;
   return out.str();

@@ -19,6 +19,11 @@ RELAY_ENABLE=/sys/class/leds/ardor:audio-output-enable/brightness
 : "${PARALLEL_RIGS:=${DUAL_AMP_PARALLEL:-1}}"
 : "${AUDIO_CPU:=2}"
 : "${RIG_WORKER_CPU:=${DUAL_AMP_WORKER_CPU:-3}}"
+# The Pi 4 reserves CPU 2 for the realtime callback and CPU 3 for the
+# legacy dual-amp worker. WDW owns two independent lane workers on the
+# remaining cores; keep these configurable for other board topologies.
+: "${WDW_DRY_WORKER_CPU:=0}"
+: "${WDW_WET_WORKER_CPU:=1}"
 : "${TELEMETRY_FILE:=/run/ardor-pedal.telemetry}"
 : "${CONTROL_DEVICES:=}"
 : "${MIDI_DEVICE:=}"
@@ -50,7 +55,7 @@ ui_arg=""
 [ "$UI" = "1" ] && ui_arg="--ui"
 parallel_rig_args=""
 [ "$PARALLEL_RIGS" = "1" ] && \
-  parallel_rig_args="--parallel-rigs --audio-cpu $AUDIO_CPU --rig-worker-cpu $RIG_WORKER_CPU"
+  parallel_rig_args="--parallel-rigs --audio-cpu $AUDIO_CPU --rig-worker-cpu $RIG_WORKER_CPU --wdw-dry-worker-cpu $WDW_DRY_WORKER_CPU --wdw-wet-worker-cpu $WDW_WET_WORKER_CPU"
 telemetry_args=""
 [ -n "$TELEMETRY_FILE" ] && telemetry_args="--telemetry-file $TELEMETRY_FILE"
 midi_args=""
@@ -91,7 +96,11 @@ run_supervised() {
   # Mute -> route -> start -> unmute: no boot pop, and a crash-looping
   # app never plays half-initialized audio at full volume.
   set_output_relay 0 || echo "Audio-output relay control is unavailable; outputs remain hardware-muted" >&2
-  trap 'set_output_relay 0; amixer -q set '\''Headphone'\'' mute 2>/dev/null' EXIT INT TERM
+  # TERM must terminate the supervisor as well as its child.  Keeping the
+  # cleanup-only trap on TERM leaves the shell alive, so a deploy's restart
+  # reuses the old supervisor and never picks up updated launch arguments.
+  trap 'set_output_relay 0; amixer -q set '\''Headphone'\'' mute 2>/dev/null' EXIT
+  trap 'exit 143' INT TERM
   amixer -q set 'Headphone' mute 2>/dev/null
   alsactl restore -f /etc/ardor-codec-zero.state 2>/dev/null
   for policy in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do

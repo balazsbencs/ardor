@@ -62,6 +62,129 @@ func TestValidatePreset(t *testing.T) {
 	if err := Validate(dual); err == nil {
 		t.Fatal("dual amp traversal asset should fail")
 	}
+
+	wdw := validPreset()
+	wdw["version"] = float64(3)
+	wdw["routing"] = "wdw"
+	wdw["blocks"] = []any{}
+	wdw["wdw"] = map[string]any{
+		"dry": map[string]any{
+			"levelDb": float64(-2), "pan": float64(-0.25), "enabled": true,
+			"blocks": []any{
+				map[string]any{"id": "dry-nam", "type": "nam", "enabled": true, "asset": "models/dry.nam", "params": map[string]any{}},
+				map[string]any{"id": "dry-cab", "type": "cab", "enabled": true, "asset": "irs/dry.wav", "params": map[string]any{}},
+			},
+		},
+		"wet": map[string]any{
+			"levelDb": float64(-6), "pan": float64(0), "width": float64(0.7), "enabled": true,
+			"blocks": []any{
+				map[string]any{"id": "wet-nam", "type": "nam", "enabled": true, "asset": "models/wet.nam", "params": map[string]any{}},
+				map[string]any{"id": "wet-cab", "type": "cab", "enabled": true, "asset": "irs/wet.wav", "params": map[string]any{}},
+			},
+		},
+	}
+	if err := Validate(wdw); err != nil {
+		t.Fatalf("valid WDW preset rejected: %v", err)
+	}
+	if err := ValidateRunnable(wdw); err != nil {
+		t.Fatalf("runnable WDW preset rejected: %v", err)
+	}
+	assetRoot := t.TempDir()
+	for _, asset := range []string{"models/dry.nam", "models/wet.nam", "irs/dry.wav", "irs/wet.wav"} {
+		filename := filepath.Join(assetRoot, filepath.FromSlash(asset))
+		if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filename, []byte("fixture"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := ValidateRunnableAt(wdw, assetRoot); err != nil {
+		t.Fatalf("asset-ready WDW preset rejected: %v", err)
+	}
+	if err := os.Remove(filepath.Join(assetRoot, "models", "wet.nam")); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateRunnableAt(wdw, assetRoot); err == nil {
+		t.Fatal("WDW preset with a missing model should not be runnable")
+	}
+	dryBlocks := wdw["wdw"].(map[string]any)["dry"].(map[string]any)["blocks"].([]any)
+	wetBlocks := wdw["wdw"].(map[string]any)["wet"].(map[string]any)["blocks"].([]any)
+	wetBlocks[0].(map[string]any)["id"] = "dry-nam"
+	if err := ValidateRunnable(wdw); err == nil {
+		t.Fatal("duplicate WDW block IDs should not be runnable")
+	}
+	wetBlocks[0].(map[string]any)["id"] = "wet-nam"
+	dryBlocks = append(dryBlocks, map[string]any{
+		"id": "dry-delay", "type": "delay", "enabled": true, "asset": "", "params": map[string]any{},
+	})
+	wdw["wdw"].(map[string]any)["dry"].(map[string]any)["blocks"] = dryBlocks
+	if err := ValidateRunnable(wdw); err == nil {
+		t.Fatal("a time effect in the WDW dry lane should not be runnable")
+	}
+	wdw["wdw"].(map[string]any)["dry"].(map[string]any)["blocks"] = dryBlocks[:2]
+	wetBlocks = append(wetBlocks, map[string]any{
+		"id": "wet-drive", "type": "distortion", "enabled": true, "asset": "", "params": map[string]any{},
+	})
+	wdw["wdw"].(map[string]any)["wet"].(map[string]any)["blocks"] = wetBlocks
+	if err := ValidateRunnable(wdw); err == nil {
+		t.Fatal("a distortion in the WDW wet lane should not be runnable")
+	}
+	wdw["wdw"].(map[string]any)["wet"].(map[string]any)["blocks"] = wetBlocks[:2]
+	dryBlocks = append(dryBlocks[:2], map[string]any{
+		"id": "dry-drive", "type": "distortion", "enabled": true, "asset": "",
+		"params": map[string]any{"mode": "unknown"},
+	})
+	wdw["wdw"].(map[string]any)["dry"].(map[string]any)["blocks"] = dryBlocks
+	if err := ValidateRunnable(wdw); err == nil {
+		t.Fatal("an unsupported WDW block mode should not be runnable")
+	}
+	wdw["wdw"].(map[string]any)["dry"].(map[string]any)["blocks"] = dryBlocks[:2]
+	incomplete := wdw
+	incomplete["wdw"].(map[string]any)["wet"].(map[string]any)["blocks"] = []any{}
+	if err := Validate(incomplete); err != nil {
+		t.Fatalf("incomplete WDW draft should remain saveable: %v", err)
+	}
+	if err := ValidateRunnable(incomplete); err == nil {
+		t.Fatal("incomplete WDW draft should not be runnable")
+	}
+	wdw["blocks"] = []any{map[string]any{"id": "legacy", "type": "nam", "enabled": true, "asset": "", "params": map[string]any{}}}
+	if err := Validate(wdw); err == nil {
+		t.Fatal("WDW top-level blocks should fail")
+	}
+}
+
+func TestReplaceWdwAssetReferences(t *testing.T) {
+	root := t.TempDir()
+	store := NewStore(root)
+	preset := validPreset()
+	preset["version"] = float64(3)
+	preset["routing"] = "wdw"
+	preset["blocks"] = []any{}
+	preset["wdw"] = map[string]any{
+		"dry": map[string]any{"blocks": []any{map[string]any{
+			"id": "dry-nam", "type": "nam", "enabled": true, "asset": "models/old.nam", "params": map[string]any{},
+		}}},
+		"wet": map[string]any{"blocks": []any{map[string]any{
+			"id": "wet-nam", "type": "nam", "enabled": true, "asset": "models/wet.nam", "params": map[string]any{},
+		}}},
+	}
+	if _, err := store.Save(0, 0, preset); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := store.ReplaceAssetReferences("models/old.nam", "models/new.nam")
+	if err != nil || changed != 1 {
+		t.Fatalf("WDW replacement changed=%d err=%v", changed, err)
+	}
+	loaded, err := store.Load(0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wdw := loaded.Preset["wdw"].(map[string]any)
+	dry := wdw["dry"].(map[string]any)["blocks"].([]any)
+	if dry[0].(map[string]any)["asset"] != "models/new.nam" {
+		t.Fatalf("WDW lane reference was not updated: %#v", dry[0])
+	}
 }
 
 func TestReplaceDualAmpAssetReferences(t *testing.T) {

@@ -2,6 +2,7 @@
 
 #include "audio/EngineLoader.h"
 #include "audio/MiniaudioBackend.h"
+#include "audio/WdwRoutingBuilder.h"
 
 #include <filesystem>
 #include <functional>
@@ -44,6 +45,18 @@ PresetActivationOutcome prepareAndActivateDraft(
   const EngineLoadOptions& options,
   float masterVolume,
   const EngineReplaceCallback& replaceEngine);
+
+// WDW counterpart to prepareAndActivateDraft.  Lane plans are already
+// explicit at this boundary; the preset/UI schema can be added later without
+// changing the stopped-audio activation contract.
+PresetActivationOutcome prepareAndActivateWdwDraft(
+  std::unique_ptr<PedalEngine>& liveEngine,
+  const ChainPlan& dryPlan,
+  const ChainPlan& wetPlan,
+  const WdwRoutingBuildOptions& options,
+  float masterVolume,
+  const EngineReplaceCallback& replaceEngine,
+  WdwRoutingBuildReport* report = nullptr);
 
 // Builds a complete replacement while liveEngine remains audible, then asks the
 // backend to activate it. Preparation or backend failure leaves both liveEngine

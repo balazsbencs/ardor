@@ -18,6 +18,9 @@ struct RuntimeTelemetry {
   double bufferFreePercent = 0.0;
   bool bypassed = false;
   uint64_t parallelWaitOverBudget = 0;
+  uint64_t parallelUnderflows = 0;
+  uint64_t parallelSubmissionMisses = 0;
+  bool parallelWorkersReady = true;
   uint64_t nonFiniteBlocks = 0;
   uint64_t blockSizeMismatches = 0;
 };
@@ -27,7 +30,10 @@ RuntimeTelemetry makeRuntimeTelemetry(uint64_t callbacks, uint64_t overBudget, u
                                       uint64_t parallelWaitOverBudget = 0,
                                       uint64_t nonFiniteBlocks = 0,
                                       uint64_t blockSizeMismatches = 0,
-                                      double recentAverageMs = -1.0);
+                                      double recentAverageMs = -1.0,
+                                      uint64_t parallelUnderflows = 0,
+                                      uint64_t parallelSubmissionMisses = 0,
+                                      bool parallelWorkersReady = true);
 double recentCallbackAverageMs(uint64_t previousCallbacks, double previousTotalProcessingMs,
                                uint64_t currentCallbacks, double currentTotalProcessingMs,
                                double fallbackAverageMs);

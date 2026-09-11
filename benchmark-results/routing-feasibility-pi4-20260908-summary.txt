@@ -1,0 +1,305 @@
+Ardor flexible-routing feasibility probe
+========================================
+
+Date: 2026-09-08
+Target: Raspberry Pi 4B, AArch64, 4 cores, 927 MiB RAM
+Kernel: 6.18.37-v8 PREEMPT
+Clock: 1.5 GHz fixed during the runs; all CPU governors were performance
+Audio/callback CPU: 2, SCHED_FIFO/60 in the probe (production callback is FIFO/70)
+Worker CPUs: 0, 1, and 3, SCHED_FIFO/69, all affinity setup calls succeeded
+Sample rate: 48 kHz
+Cabinet probe: deterministic dense 8192-sample mono IR
+Models: the five NAM files installed under /opt/ardor-pedal/models on the Pi
+
+The probe is tests/routing_feasibility.cpp and remains a benchmark rather than
+the audio callback. It uses the real RuntimeChain, the prepared
+FlexibleRoutingProgram owner, and the existing DualRigProcessor. It measures
+serial chains, the current two-lane worker implementation, and callback-
+participating N-lane worker shapes. All timed buffers and worker threads are
+created before timing starts.
+
+All isolated runs stopped S99ardor-pedal with an EXIT trap and restarted it on
+every exit. The final device performance probe passed: no callback overruns,
+gaps, worker faults, DSP non-finite values, or block-size mismatches. The
+production service is running again.
+
+Headline sustained result (JCM800, 2,000 timed blocks, 64 frames)
+-------------------------------------------------------------------
+
+The 64-frame deadline is 1,333.333 us. The long-run files are the authoritative
+stress samples; the shorter 500/1,000-block files are useful for seeing the
+best-case distribution but are not admission evidence.
+
+case                                      mean us   p99 us   p999 us  misses
+serial 1 NAM                                447.9     464.4     654.6       0
+serial 2 NAM                                945.9   1,115.2   1,270.0       0
+serial 2 NAM + one cab                    1,122.5   1,208.6   1,260.5       0
+parallel 2 NAM, no cab                     961.7   1,242.6   1,413.4       5
+parallel 3 NAM, no cab                   1,072.5   1,307.7   1,423.6       6
+parallel 2 NAM + cab per lane            1,393.0   2,039.1   2,310.4   1,791
+parallel 3 NAM + cab per lane            1,561.7   2,185.6   2,634.5   2,000
+parallel 3 NAM + one shared callback cab 1,425.0   2,104.3   2,353.1   1,983
+
+The no-cab worker rows demonstrate that aggregate CPU capacity is not the only
+constraint: direct cross-core dispatch/wait has a long-tail wake/processing
+cost. The cabinet rows add a second, larger critical-path cost. A short run can
+look healthy (for example, the 500-block two-lane NAM+cab p99 was about 725 us),
+so any admission rule must use sustained p99.9 data plus margin, not a mean or a
+short smoke run.
+
+Latest prepared-owner slice (JCM800, 1,000 paced blocks, 64 frames)
+---------------------------------------------------------------------
+
+The production-facing FlexibleRoutingProgram now owns the per-lane
+RuntimeChains and is installable in PedalEngine through an explicit control-
+thread API. The real-NAM row below exercises that owner with two panned lanes,
+a centre dry path, and the bounded pipeline:
+
+case                                      mean us   p99 us   p999 us  misses
+prepared program, 2 NAM, stereo mix       1,145.7   1,224.0   1,556.5       1
+prepared program, 2 NAM + shared cab      1,351.7   2,010.6   2,343.5     534
+
+This is a lifecycle/ownership validation, not a 64-frame admission pass: the
+p99.9 tail still exceeds the 1,333.333 us budget. The default program policy
+rejects pipelined per-lane convolution and currently rejects pipelined
+post-join stages unless the dedicated post-stage worker is explicitly selected.
+The shared-cab direct row shows why: putting a dense IR on the callback misses
+the 64-frame budget repeatedly.
+
+Dedicated post-stage worker experiment (JCM800, 1,000 paced blocks, 64 frames)
+-------------------------------------------------------------------------------
+
+The new `ParallelStereoStageExecutor` runs the ordered shared-cab chain on a
+third persistent worker (CPU3), with a bounded two-slot ring and an explicit
+bypass before the first completed generation. The lane workers remain direct;
+the post stage is the only newly pipelined component:
+
+case                                      mean us   p99 us   p999 us  misses
+prepared direct lanes + shared cab       1,347.0   1,996.0   2,458.4     518
+prepared direct lanes + cab post-pipeline 1,186.4   1,265.6   1,466.2       3
+
+The post-pipeline row is materially better: only three callback deadline
+misses in 1,000 paced blocks and one initial post-stage bypass. Its p99 is
+inside the budget, while p99.9 still needs margin and longer-duration evidence.
+This validates the architecture as a feasible next admission candidate, not as
+permission to expose arbitrary post chains without a measured policy.
+
+The prepared graph now also exposes optional allocation-free diagnostics for
+each lane and the post stage: callback calls/total/max nanoseconds, requested
+and observed CPU, direct handoff wait totals/maxima, ring submission misses,
+and initial underflows. Timing collection is opt-in so normal audio callbacks
+do not pay for clock reads.
+
+The targeted 60-second paced run (45,000 timed 64-frame blocks) made the tail
+decision clearer, but those first files were collected before the ring-slot
+ownership race was found and fixed. They are retained as historical artifacts,
+not admission evidence. The corrected admission placement is explicit: lane
+worker CPU0 and post-stage worker CPU3. The corrected run is:
+
+case                                      mean us   p99 us   p999 us  misses
+corrected graph, service stopped             856.7   1,245.9   1,504.4     126
+corrected graph, live service                942.5   1,303.7   1,565.0     285
+
+The corrected long runs still have a p99.9 above the 1,333.333 us budget and
+126–285 deadline misses. They are therefore not a zero-fault admission;
+the next step is to validate the worker-published handoff below and define a
+headroom policy, not UI exposure. The live-service repeat is slightly faster
+on average but has the same tail shape, so service contention is not the only
+cause.
+
+Short service-stopped block-size matrix (1,000 paced blocks per quantum)
+------------------------------------------------------------------------
+
+case / quantum                           mean us   p99 us   p999 us  misses
+post-pipeline, 32 frames                    284.8     316.6     338.8       0
+post-pipeline, 64 frames                    526.0     589.5     771.9       0
+post-pipeline, 128 frames                 1,030.9   1,180.3   1,474.2       0
+
+The race-fixed CPU0/CPU3 short matrix remains comfortably inside each nominal
+budget, including 64 frames. The 60-second 64-frame run remains the admission
+authority because it exposes scheduler tails that the short matrix does not.
+
+Worker-published handoff experiment (JCM800, CPU0 lane / CPU3 post worker)
+--------------------------------------------------------------------------
+
+The callback-side ring-to-snapshot copy was removed from the lane workers and
+the serial post worker. Each worker now writes a preallocated publication ring;
+an acquire/release completion marker transfers ownership, and the callback
+acknowledges a publication only after the graph mixer or host-output copy has
+finished. A worker waits rather than overwriting an unconsumed publication
+slot, so the optimization remains bounded and race-free even when completion
+notifications are observed late.
+
+The short service-stopped matrix improved the 64-frame row from mean 526.0 us /
+p99.9 771.9 us to 512.2 us / 662.6 us, with zero misses. The 32- and 128-frame
+rows were also inside budget:
+
+case / quantum                           mean us   p99 us   p999 us  misses
+worker-published, 32 frames                 288.9     307.4     346.2       0
+worker-published, 64 frames                 512.2     569.9     662.6       0
+worker-published, 128 frames              1,020.0   1,199.9   1,449.5       0
+
+The corrected 60-second stopped-service run improved the mean from 856.7 us to
+811.3 us, but its p99.9 was 1,556.3 us with 166 misses. That is better average
+throughput but not a production admission: the long-tail deadline still fails
+the 1,333.333 us budget. The handoff is therefore a useful implementation
+optimization, not evidence that arbitrary routed plans are ready for UI
+exposure.
+
+The no-cab 64-frame follow-up also completed without publication submission
+misses. The two-lane prepared program pipeline measured 544.5 us mean / 600.7 us
+p99 / 1,310.0 us p99.9 with one deadline miss in 2,000 blocks; the three-lane
+executor pipeline measured 1,215.1 us mean / 1,283.4 us p99 / 1,542.4 us p99.9
+with eight misses. This confirms that the acknowledgment protocol is not
+silently stalling the ordinary lane graph, while still showing why three active
+NAM lanes need a conservative tail admission rule.
+
+Core-placement and telemetry gate
+---------------------------------
+
+The probe now has an opt-in `--telemetry` mode. It reports each lane/post
+callback's process mean/max, requested and observed CPU, direct handoff wait,
+and ring counters without changing the normal benchmark output. In the short
+CPU2/CPU0/CPU3 sample, lane zero averaged 503 us, lane one 505 us, the post
+stage 137 us, and direct handoff wait 8 us. The long instrumented sample saw a
+lane-zero maximum of 2,202 us and a handoff maximum of 961 us, which explains
+why end-to-end p99.9 is scheduler-sensitive even when average worker cost is
+stable.
+
+Worker placement matters. With audio CPU2, lane worker CPU0, and post worker
+CPU3, four short placement samples were clean when the post worker stayed on
+CPU3; moving the post worker to CPU1 produced 10–12 deadline misses and p99.9
+around 1,574 us. A 45,000-block repeat with audio CPU1 and workers CPU0/CPU3
+was clean twice while audio CPU2 produced 163–167 misses in two comparable
+stopped-service runs:
+
+condition / placement                    mean us   p99 us   p999 us  misses
+stopped, audio2 / lane0 / post3 (run 1)    596.2   1,238.0   1,652.3     163
+stopped, audio2 / lane0 / post3 (run 2)    740.5   1,260.8   1,530.5     167
+stopped, audio1 / lane0 / post3 (run 1)    588.2     641.1     897.2       0
+stopped, audio1 / lane0 / post3 (run 2)    554.4     612.1     787.9       0
+live, audio1 / lane0 / post3              568.1     623.4     719.5       0
+
+The audio-CPU result is strong enough to make CPU1 the preferred candidate for
+the next scheduler image/configuration experiment, but not enough to change
+the shipped service arguments yet: it needs repeats across all installed NAM
+models and thermal conditions. The current service remained on CPU2 during
+these tests and reported zero overruns, gaps, worker faults, and non-finite
+blocks.
+
+That model/thermal screen has now completed. All five installed models passed
+10,000 live-service blocks on audio CPU1 with zero deadline misses; the slowest
+short-screen mean was 581.9 us and its p99.9 was 720.8 us. The slowest model
+(Ampeg SHO) then passed a full 45,000-block live run at mean 570.4 us, p99.9
+698.7 us, maximum 880.0 us, and zero misses. This makes the bounded two-lane
+NAM plus shared post-cab topology feasible at 64 frames when its core contract
+is explicit: audio CPU1, lane worker CPU0, post worker CPU3. It does not admit
+arbitrary lane counts or permit changing the shipped CPU2 service assignment
+without a separate deployment/thermal validation.
+
+Lifecycle replacement/reset gate
+---------------------------------
+
+The control-thread lifecycle smoke now installs the pipelined two-lane plus
+dedicated post-stage graph, submits eight blocks, resets it, submits another
+block, and repeats that sequence across eight prepared-program replacements.
+The host test passed, and the same ARM64 binary passed on the Pi. This covers
+worker teardown before callback-context destruction, generation reset, stale
+ring-output invalidation, and engine clear/replacement ownership. It does not
+make concurrent preset replacement legal: the caller must still stop the audio
+callback before install, reset, or clear.
+
+ThreadSanitizer initially found ring-slot ownership races in this gate: a
+worker could begin writing a recycled lane/post slot while the callback still
+read or copied that slot's previous output. The worker-published handoff now
+uses a second bounded publication ring plus an explicit callback-consumed
+generation; worker reuse waits for that generation, and reset/shutdown release
+parked workers safely. The lifecycle smoke passes under ASan/UBSan and
+ThreadSanitizer with the publication protocol, and the Pi matrix was rerun
+with it enabled.
+
+Feasibility decision
+--------------------
+
+1. Multiple serial NAM blocks are computationally feasible as a bounded graph
+   feature. One NAM plus cab is comfortable. Two NAM lanes plus one shared cab
+   are now zero-miss feasible in the 64-frame sustained model screen when the
+   explicit CPU1/CPU0/CPU3 contract is used; three NAM plus cab is not yet
+   admitted.
+
+2. Two or three NAM lanes can run concurrently in terms of total CPU work, but
+   direct “submit this block and spin/wait until every worker finishes” is not a
+   production-safe 64-frame execution contract. Its p99.9 crosses the deadline
+   even without a cab, and the cab cases miss repeatedly.
+
+3. A shared post-mix cab on the callback is not a solution: it serializes the
+   convolver onto the critical path. The dedicated post-stage worker remains
+   the right bounded-latency architecture. The worker-published handoff removes
+   one callback copy and improves the short/mean measurements, but the
+   corrected CPU2 runs still show a scheduler tail above the 64-frame budget,
+   while the CPU1 placement screen passes. Admission therefore needs explicit
+   one-block latency, bounded slots, bypass/hold fallback, a measured
+   worker/core policy, and a sustained tail margin tied to that placement.
+
+4. The first implementation should therefore be a bounded, preallocated graph:
+   serial pre-chain -> fixed lane group -> serial/post stage. Do not expose an
+   arbitrary DAG or unbounded number of workers. The graph compiler must reject
+   or downgrade plans whose measured p99.9 plus safety margin exceeds the
+   selected block budget.
+
+5. For the tested two-lane topology, the current candidate core policy is audio
+   CPU1, lane worker CPU0, and post worker CPU3. CPU2 remains the shipped
+   service assignment until a deployment-level change is approved. CPU0 should
+   otherwise remain housekeeping unless the image explicitly isolates it.
+   Persistent workers, fixed priorities/affinity, no per-block allocation, and
+   an underflow/over-budget telemetry counter are required.
+
+Required next DSP experiment before UI/layout work
+---------------------------------------------------
+
+The next DSP slice should extend the private DSP path (still no UI):
+
+* use the new per-lane/post-stage process-time, handoff-wait, publication-ring,
+  underflow, and worker-CPU telemetry in admission reports;
+* repeat the 32/64/128-frame matrix and 60-second run after any scheduler or
+  ring policy change, including live-service and thermal conditions; validate
+  the CPU1/CPU0/CPU3 contract during the deployment/configuration step;
+* define a numerical headroom/zero-miss admission threshold from those tails;
+* keep the lifecycle smoke in the gate while adding larger real-model swaps.
+
+Only after that scheduler passes a zero-fault sustained run with a defined
+headroom policy should the preset schema and UI layout be designed.
+
+Raw artifacts:
+  routing-feasibility-pi4-20260908.csv       five-model 32/64/128 matrix
+  routing-feasibility-jcm-nocab-pi4-20260908-2000.csv  sustained NAM-only stress
+  routing-feasibility-jcm-shared-cab-pi4-20260908-2000.csv  sustained shared-cab stress
+  routing-feasibility-jcm-cab-pi4-20260908.csv  lane-local cab matrix
+  routing-program-pi4-paced-20260908.csv        prepared-owner real-NAM row
+  routing-program-pi4-paced-20260908.log        prepared-owner run log
+  routing-program-cab-pi4-paced-20260908.csv    prepared-owner shared-cab row
+  routing-program-cab-pi4-paced-20260908.log    prepared-owner cab run log
+  routing-post-pipeline-pi4-20260908.csv        dedicated post-stage worker run
+  routing-post-pipeline-pi4-20260908.log        dedicated post-stage run log
+  routing-post-pipeline-pi4-60s-20260908.csv    45,000-block paced post-stage run
+  routing-post-pipeline-pi4-60s-20260908.log    60-second post-stage run log
+  routing-post-pipeline-pi4-60s-stopped-20260908.csv  60-second run with service stopped
+  routing-post-pipeline-pi4-60s-stopped-20260908.log  stopped-service run log
+  routing-post-pipeline-pi4-60s-racefixed-stopped.csv corrected 60-second stopped-service run
+  routing-post-pipeline-pi4-60s-racefixed-live.csv corrected 60-second live-service run
+  routing-post-pipeline-matrix-pi4-20260908.csv  32/64/128-frame stopped-service matrix
+  routing-post-pipeline-matrix-pi4-20260908-racefixed.csv  same matrix after ring snapshot fix
+  routing-post-pipeline-matrix-pi4-20260908-racefixed-cpu3.csv  corrected matrix with post worker on CPU3
+  routing-post-pipeline-pi4-60s-racefixed-stopped-cpu3.csv corrected stopped run with post worker on CPU3
+  routing-post-pipeline-pi4-60s-racefixed-live-cpu3.csv corrected live run with post worker on CPU3
+  routing-post-pipeline-matrix-pi4-20260908-workerpub-cpu3.csv worker-published handoff matrix
+  routing-post-pipeline-pi4-60s-workerpub-stopped-cpu3.csv worker-published 60-second stopped run
+  routing-feasibility-jcm-nocab-workerpub-pi4-20260908-2000.csv worker-published no-cab 64-frame follow-up
+  routing-post-pipeline-placement-pi4-20260908-2000.csv short CPU/core placement sweep
+  routing-post-pipeline-placement-pi4-60s-20260908.csv sustained CPU/core placement runs
+  routing-post-pipeline-matrix-pi4-20260908-audio1-live.csv live CPU1 32/64/128 matrix
+  routing-post-pipeline-telemetry-pi4-20260908.log worker/handoff telemetry samples
+  routing-post-pipeline-model-screen-audio1-live-20260908-10000.csv all-model live screen
+  routing-post-pipeline-worst-model-60s-live-audio1.csv slowest-model live sustained run
+  routing-post-pipeline-matrix-pi4-20260908.log  matrix run log
+  nam-control-pi4-routing-models-20260908.csv direct NamProcessor control

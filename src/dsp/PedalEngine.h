@@ -1,7 +1,9 @@
 #pragma once
 
 #include "ClipDiagnostics.h"
+#include "FlexibleRoutingProgram.h"
 #include "RuntimeChain.h"
+#include "WdwRoutingProgram.h"
 #include "looper/RealtimeLooper.h"
 
 #include <atomic>
@@ -31,6 +33,7 @@ public:
   bool addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
                    float sampleRate, std::string& error);
   bool setIrReverbParameter(const std::string& id, const std::string& key, float value);
+  bool setCabParameter(const std::string& id, const std::string& key, float value);
   bool addStereoWidener(std::string id, float sampleRate, std::string& error);
   bool setStereoWidenerParameter(const std::string& id, const std::string& key, float value);
   bool addDaisyFx(std::string id, const std::string& blockType, const nlohmann::json& params,
@@ -83,6 +86,9 @@ public:
   uint64_t blockSizeMismatchCount() const noexcept;
   uint64_t nonFiniteBlockCount() const noexcept;
   uint64_t parallelWaitOverBudgetCount() const noexcept;
+  uint64_t parallelUnderflowCount() const noexcept;
+  uint64_t parallelSubmissionMissCount() const noexcept;
+  bool parallelWorkersReady() const noexcept;
   std::string firstNonFiniteBlockId() const;
   // Consumes interval peaks/overloads for the post-input-gain boundary, every
   // chain block, and the final pre-limiter output boundary.
@@ -90,6 +96,23 @@ public:
   // Exchanges a fully prepared program. This is a control-thread operation;
   // the caller must stop audio processing before invoking it.
   void replacePreparedProgram(PedalEngine&& prepared);
+  // Installs an explicitly prepared flexible-routing program. The caller must
+  // stop audio processing before invoking this control-thread operation. The
+  // program's fixed block size must match the engine's prepared quantum.
+  bool installPreparedRouting(std::unique_ptr<FlexibleRoutingProgram> program,
+                              std::string& error);
+  bool flexibleRoutingEnabled() const noexcept;
+  // Control-thread operation; audio must be stopped before destroying the
+  // prepared graph's worker threads.
+  void clearPreparedRouting();
+  // Installs the fixed two-lane wet/dry/wet program. The caller must stop
+  // audio before invoking this control-thread operation.
+  bool installPreparedWdwRouting(std::unique_ptr<WdwRoutingProgram> program,
+                                 std::string& error);
+  bool wdwRoutingEnabled() const noexcept;
+  void clearPreparedWdwRouting();
+  // Throws std::logic_error when the installed routing program is inherently
+  // block-quantized (production WDW). Realtime hosts must use processBlock().
   std::pair<float, float> process(float input);
   void processBlock(const float* input, float* left, float* right, size_t frames);
   void reset();
@@ -113,6 +136,8 @@ private:
   std::atomic<uint64_t> outputOverloadFrames_{0};
   std::atomic<uint64_t> limiterFrames_{0};
   RuntimeChain chain_;
+  std::unique_ptr<FlexibleRoutingProgram> flexibleRouting_;
+  std::unique_ptr<WdwRoutingProgram> wdwRouting_;
   RealtimeLooper looper_;
   size_t blockSize_ = 0;
   std::vector<float> sanitizedInput_;

@@ -379,7 +379,50 @@ func TestAssetUploadPresetSaveAndApply(t *testing.T) {
 	if apply.Code != http.StatusAccepted {
 		t.Fatalf("apply status=%d body=%s", apply.Code, apply.Body.String())
 	}
+	var applyResponse struct {
+		ID    string `json:"id"`
+		State string `json:"state"`
+	}
+	if err := json.Unmarshal(apply.Body.Bytes(), &applyResponse); err != nil {
+		t.Fatal(err)
+	}
+	if applyResponse.ID == "" || applyResponse.State != "pending" {
+		t.Fatalf("apply response=%s", apply.Body.String())
+	}
+	status := httptest.NewRecorder()
+	handler.ServeHTTP(status, httptest.NewRequest(http.MethodGet,
+		"/api/runtime/apply/"+applyResponse.ID, nil))
+	if status.Code != http.StatusAccepted || !bytes.Contains(status.Body.Bytes(), []byte(`"state":"pending"`)) {
+		t.Fatalf("apply status=%d body=%s", status.Code, status.Body.String())
+	}
 	assertQueuedCommand(t, dataRoot, "apply_preset")
+}
+
+func TestApplyRejectsIncompleteWdwDraft(t *testing.T) {
+	dataRoot := t.TempDir()
+	handler := New(config.Config{DataRoot: dataRoot, AuthEnabled: false})
+	preset := map[string]any{
+		"version": float64(3), "name": "Incomplete WDW", "routing": "wdw",
+		"global": map[string]any{"inputGainDb": float64(0), "outputGainDb": float64(0), "safetyLimitDb": float64(-1)},
+		"blocks": []any{},
+		"wdw": map[string]any{
+			"dry": map[string]any{"blocks": []any{}, "enabled": true, "levelDb": float64(0), "pan": float64(0)},
+			"wet": map[string]any{"blocks": []any{}, "enabled": true, "levelDb": float64(0), "width": float64(1)},
+		},
+	}
+	body, _ := json.Marshal(preset)
+	save := httptest.NewRecorder()
+	handler.ServeHTTP(save, httptest.NewRequest(http.MethodPut,
+		"/api/presets/banks/0/slots/0", bytes.NewReader(body)))
+	if save.Code != http.StatusOK {
+		t.Fatalf("save status=%d body=%s", save.Code, save.Body.String())
+	}
+	apply := httptest.NewRecorder()
+	handler.ServeHTTP(apply, httptest.NewRequest(http.MethodPost,
+		"/api/presets/banks/0/slots/0/apply", nil))
+	if apply.Code != http.StatusBadRequest || !bytes.Contains(apply.Body.Bytes(), []byte(`"preset_not_runnable"`)) {
+		t.Fatalf("apply status=%d body=%s", apply.Code, apply.Body.String())
+	}
 }
 
 func assertQueuedCommand(t *testing.T, dataRoot, commandType string) {

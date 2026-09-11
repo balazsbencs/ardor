@@ -9,10 +9,10 @@ namespace ardor {
 
 namespace {
 
-void requireSerialRouting(const std::string& routing)
+void requireRouting(const std::string& routing)
 {
-  if (routing != "serial") {
-    throw std::invalid_argument("preset routing must be serial");
+  if (routing != "serial" && routing != "wdw") {
+    throw std::invalid_argument("preset routing must be serial or wdw");
   }
 }
 
@@ -29,6 +29,12 @@ bool containsBlockId(const std::vector<PresetBlock>& blocks, std::string_view id
   return false;
 }
 
+bool containsWdwBlockId(const WdwRouting& routing, std::string_view id)
+{
+  return containsBlockId(routing.dry.blocks, id)
+      || containsBlockId(routing.wet.blocks, id);
+}
+
 void validateExpression(const Preset& preset)
 {
   if (!preset.expression) return;
@@ -36,7 +42,9 @@ void validateExpression(const Preset& preset)
   if (expression.blockId.empty() || expression.parameter.empty()) {
     throw std::invalid_argument("expression assignment requires blockId and parameter");
   }
-  if (!containsBlockId(preset.blocks, expression.blockId)) {
+  const bool exists = containsBlockId(preset.blocks, expression.blockId)
+    || (preset.wdw && containsWdwBlockId(*preset.wdw, expression.blockId));
+  if (!exists) {
     throw std::invalid_argument("expression assignment block does not exist");
   }
   if (!std::isfinite(expression.minimum) || !std::isfinite(expression.maximum)
@@ -70,8 +78,11 @@ void validateMidiBindings(const Preset& preset)
       }
     }
     for (const auto& action : binding.actions) {
-      if (action.blockId.empty() || !isTopLevelBlockId(preset, action.blockId)) {
-        throw std::invalid_argument("MIDI action target block does not exist at top level");
+      const bool targetExists = !action.blockId.empty()
+        && (isTopLevelBlockId(preset, action.blockId)
+            || (preset.wdw && containsWdwBlockId(*preset.wdw, action.blockId)));
+      if (!targetExists) {
+        throw std::invalid_argument("MIDI action target block does not exist in the preset");
       }
       if (action.target == PresetMidiTargetType::Parameter && action.parameter.empty()) {
         throw std::invalid_argument("MIDI parameter action requires a parameter");
@@ -119,6 +130,26 @@ void validateBlockAssets(const std::vector<PresetBlock>& blocks, int version, bo
       }
     }
   }
+}
+
+void validateWdwLane(const WdwLane& lane, int version, const char* name, bool dry)
+{
+  if (!std::isfinite(lane.levelDb) || lane.levelDb < -60.0f || lane.levelDb > 12.0f) {
+    throw std::invalid_argument(std::string{"WDW "} + name + " lane level must be between -60 and 12 dB");
+  }
+  if (dry && (!std::isfinite(lane.pan) || lane.pan < -1.0f || lane.pan > 1.0f)) {
+    throw std::invalid_argument(std::string{"WDW "} + name + " lane pan must be between -1 and 1");
+  }
+  if (!dry && (!std::isfinite(lane.pan) || std::fabs(lane.pan) > 1.0e-6f)) {
+    throw std::invalid_argument(std::string{"WDW "} + name + " lane does not support pan");
+  }
+  if (!dry && (!std::isfinite(lane.width) || lane.width < 0.0f || lane.width > 1.0f)) {
+    throw std::invalid_argument(std::string{"WDW "} + name + " lane width must be between 0 and 1");
+  }
+  if (dry && (!std::isfinite(lane.width) || std::fabs(lane.width - 1.0f) > 1.0e-6f)) {
+    throw std::invalid_argument(std::string{"WDW "} + name + " lane does not support width");
+  }
+  validateBlockAssets(lane.blocks, version, true);
 }
 
 nlohmann::json blockToJson(const PresetBlock& block)
@@ -214,11 +245,30 @@ bool isValidBlockAssetPath(std::string_view asset)
 
 nlohmann::json toJson(const Preset& preset)
 {
-  if (preset.version != 1 && preset.version != 2) {
-    throw std::invalid_argument("preset version must be 1 or 2");
+  if (preset.version != 1 && preset.version != 2 && preset.version != 3) {
+    throw std::invalid_argument("preset version must be 1, 2, or 3");
   }
-  requireSerialRouting(preset.routing);
+  requireRouting(preset.routing);
+  if (preset.routing == "serial" && preset.version > 2) {
+    throw std::invalid_argument("wet/dry/wet routing requires preset version 3");
+  }
+  if (preset.routing == "wdw" && preset.version != 3) {
+    throw std::invalid_argument("wet/dry/wet routing requires preset version 3");
+  }
+  if (preset.routing == "serial" && preset.wdw) {
+    throw std::invalid_argument("serial presets cannot contain wet/dry/wet lanes");
+  }
+  if (preset.routing == "wdw" && !preset.wdw) {
+    throw std::invalid_argument("wet/dry/wet preset requires dry and wet lanes");
+  }
   validateBlockAssets(preset.blocks, preset.version);
+  if (preset.wdw) {
+    if (!preset.blocks.empty()) {
+      throw std::invalid_argument("wet/dry/wet presets must keep top-level blocks empty");
+    }
+    validateWdwLane(preset.wdw->dry, preset.version, "dry", true);
+    validateWdwLane(preset.wdw->wet, preset.version, "wet", false);
+  }
   validateExpression(preset);
   validateMidiBindings(preset);
 
@@ -238,6 +288,24 @@ nlohmann::json toJson(const Preset& preset)
     }},
     {"blocks", blocks},
   };
+  if (preset.wdw) {
+    auto laneToJson = [](const WdwLane& lane, bool dry) {
+      nlohmann::json laneBlocks = nlohmann::json::array();
+      for (const auto& block : lane.blocks) laneBlocks.push_back(blockToJson(block));
+      nlohmann::json result = {
+        {"blocks", std::move(laneBlocks)},
+        {"levelDb", lane.levelDb},
+        {"enabled", lane.enabled},
+      };
+      if (dry) result["pan"] = lane.pan;
+      else result["width"] = lane.width;
+      return result;
+    };
+    json["wdw"] = {
+      {"dry", laneToJson(preset.wdw->dry, true)},
+      {"wet", laneToJson(preset.wdw->wet, false)},
+    };
+  }
   if (preset.expression) {
     json["expression"] = {
       {"blockId", preset.expression->blockId},
@@ -279,12 +347,18 @@ Preset presetFromJson(const nlohmann::json& json)
 {
   Preset preset;
   preset.version = json.at("version").get<int>();
-  if (preset.version != 1 && preset.version != 2) {
-    throw std::invalid_argument("preset version must be 1 or 2");
+  if (preset.version != 1 && preset.version != 2 && preset.version != 3) {
+    throw std::invalid_argument("preset version must be 1, 2, or 3");
   }
   preset.name = json.value("name", "");
   preset.routing = json.at("routing").get<std::string>();
-  requireSerialRouting(preset.routing);
+  requireRouting(preset.routing);
+  if (preset.routing == "serial" && preset.version > 2) {
+    throw std::invalid_argument("wet/dry/wet routing requires preset version 3");
+  }
+  if (preset.routing == "wdw" && preset.version != 3) {
+    throw std::invalid_argument("wet/dry/wet routing requires preset version 3");
+  }
 
   const auto& global = json.at("global");
   preset.global.inputGainDb = global.value("inputGainDb", 0.0f);
@@ -296,6 +370,40 @@ Preset presetFromJson(const nlohmann::json& json)
   }
 
   validateBlockAssets(preset.blocks, preset.version);
+  if (preset.routing == "wdw" && !preset.blocks.empty()) {
+    throw std::invalid_argument("wet/dry/wet presets must keep top-level blocks empty");
+  }
+  if (const auto wdw = json.find("wdw"); wdw != json.end() && !wdw->is_null()) {
+    if (preset.routing != "wdw") {
+      throw std::invalid_argument("serial presets cannot contain wet/dry/wet lanes");
+    }
+    if (!wdw->is_object() || !wdw->contains("dry") || !wdw->contains("wet")) {
+      throw std::invalid_argument("wet/dry/wet preset requires dry and wet lanes");
+    }
+    auto parseLane = [&](const nlohmann::json& laneJson, const char* name, bool dry) {
+      if (!laneJson.is_object() || !laneJson.contains("blocks")
+          || !laneJson.at("blocks").is_array()) {
+        throw std::invalid_argument(std::string{"WDW "} + name + " lane requires a blocks array");
+      }
+      WdwLane lane;
+      lane.levelDb = laneJson.value("levelDb", 0.0f);
+      lane.pan = laneJson.value("pan", 0.0f);
+      lane.width = laneJson.value("width", 1.0f);
+      lane.enabled = laneJson.value("enabled", true);
+      for (const auto& child : laneJson.at("blocks")) {
+        lane.blocks.push_back(blockFromJson(child, true));
+      }
+      validateWdwLane(lane, preset.version, name, dry);
+      return lane;
+    };
+    preset.wdw = WdwRouting{
+      parseLane(wdw->at("dry"), "dry", true),
+      parseLane(wdw->at("wet"), "wet", false),
+    };
+  }
+  if (preset.routing == "wdw" && !preset.wdw) {
+    throw std::invalid_argument("wet/dry/wet preset requires dry and wet lanes");
+  }
   if (const auto expression = json.find("expression");
       expression != json.end() && !expression->is_null()) {
     preset.expression = PresetExpression{

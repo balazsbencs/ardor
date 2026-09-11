@@ -5,10 +5,14 @@
 #include "rat/RatCircuit.h"
 
 #include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <nlohmann/json.hpp>
 #include <string>
 
 namespace ardor {
+
+struct RatLiveParameters;
 
 // Block-facing wrapper for the 8x oversampled circuit model.
 //
@@ -43,6 +47,7 @@ private:
   RatProcessor& operator=(const RatProcessor&) = delete;
 
   RatCircuit circuit_;
+  std::shared_ptr<RatLiveParameters> liveParameters_;
   pedal::HalfbandInterpolator2x up2x_;
   pedal::HalfbandInterpolator2x up4x_;
   pedal::HalfbandInterpolator2x up8x_;
@@ -59,6 +64,9 @@ private:
   float distortion_ = 0.5f;
   float filter_ = 0.5f;
   float volume_ = 0.7f;
+  std::uint64_t liveRevision_ = 0;
+
+  void refreshLiveParameters() noexcept;
 };
 
 } // namespace ardor

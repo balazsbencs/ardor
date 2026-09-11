@@ -45,6 +45,10 @@ struct ChainPlan {
 };
 
 float dbToGain(float db);
+ChainPlan buildChainPlanForBlocks(const PresetGlobal& global,
+                                  const std::vector<PresetBlock>& blocks,
+                                  const std::filesystem::path& dataRoot,
+                                  const std::vector<PresetMidiBinding>& midiBindings = {});
 ChainPlan buildChainPlan(const Preset& preset, const std::filesystem::path& dataRoot);
 
 } // namespace ardor

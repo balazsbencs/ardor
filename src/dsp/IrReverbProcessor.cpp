@@ -1,9 +1,19 @@
 #include "dsp/IrReverbProcessor.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 
 namespace ardor {
+
+struct IrReverbLiveParameters {
+  std::atomic<float> mix{0.35f};
+  std::atomic<float> levelDb{0.0f};
+  std::atomic<float> preDelayMs{0.0f};
+  std::atomic<float> lowCutHz{IrReverbProcessor::LOW_CUT_MIN_HZ};
+  std::atomic<float> highCutHz{IrReverbProcessor::HIGH_CUT_MAX_HZ};
+  std::atomic<std::uint64_t> revision{0};
+};
 
 namespace {
 
@@ -51,6 +61,10 @@ bool IrReverbProcessor::load(std::vector<float> left, std::vector<float> right,
   preRight_.assign(preDelayCapacity, 0.0f);
   preWrite_ = 0;
 
+  liveParameters_ = std::make_shared<IrReverbLiveParameters>();
+  liveRevision_ = 1;
+  liveParameters_->revision.store(liveRevision_, std::memory_order_release);
+
   updateFilters();
   lowCutL_.reset(); lowCutR_.reset();
   highCutL_.reset(); highCutR_.reset();
@@ -63,6 +77,7 @@ bool IrReverbProcessor::load(std::vector<float> left, std::vector<float> right,
 
 void IrReverbProcessor::reset()
 {
+  refreshLiveParameters();
   left_.reset();
   right_.reset();
   std::fill(preLeft_.begin(), preLeft_.end(), 0.0f);
@@ -76,35 +91,70 @@ void IrReverbProcessor::reset()
 
 void IrReverbProcessor::setMix(float mix)
 {
-  mixTarget_ = std::isfinite(mix) ? std::clamp(mix, 0.0f, 1.0f) : 0.0f;
+  if (!liveParameters_) return;
+  liveParameters_->mix.store(
+    std::isfinite(mix) ? std::clamp(mix, 0.0f, 1.0f) : 0.0f,
+    std::memory_order_relaxed);
+  liveParameters_->revision.fetch_add(1, std::memory_order_release);
 }
 
 void IrReverbProcessor::setLevelDb(float levelDb)
 {
+  if (!liveParameters_) return;
   if (!std::isfinite(levelDb)) levelDb = 0.0f;
-  levelDb = std::clamp(levelDb, -60.0f, 12.0f);
-  levelTarget_ = levelDb <= -60.0f ? 0.0f : std::pow(10.0f, levelDb / 20.0f);
+  liveParameters_->levelDb.store(std::clamp(levelDb, -60.0f, 12.0f),
+                                 std::memory_order_relaxed);
+  liveParameters_->revision.fetch_add(1, std::memory_order_release);
 }
 
 void IrReverbProcessor::setPreDelayMs(float milliseconds)
 {
+  if (!liveParameters_) return;
   if (!std::isfinite(milliseconds) || milliseconds < 0.0f) milliseconds = 0.0f;
-  milliseconds = std::min(milliseconds, 500.0f);
-  const std::size_t samples =
-      static_cast<std::size_t>(milliseconds * 0.001f * sampleRate_);
-  preDelaySamples_ = preLeft_.empty() ? 0 : std::min(samples, preLeft_.size() - 1);
+  liveParameters_->preDelayMs.store(std::min(milliseconds, 500.0f),
+                                    std::memory_order_relaxed);
+  liveParameters_->revision.fetch_add(1, std::memory_order_release);
 }
 
 void IrReverbProcessor::setLowCutHz(float hz)
 {
-  lowCutHz_ = std::isfinite(hz) ? std::clamp(hz, LOW_CUT_MIN_HZ, LOW_CUT_MAX_HZ) : LOW_CUT_MIN_HZ;
-  updateFilters();
+  if (!liveParameters_) return;
+  liveParameters_->lowCutHz.store(
+    std::isfinite(hz) ? std::clamp(hz, LOW_CUT_MIN_HZ, LOW_CUT_MAX_HZ) : LOW_CUT_MIN_HZ,
+    std::memory_order_relaxed);
+  liveParameters_->revision.fetch_add(1, std::memory_order_release);
 }
 
 void IrReverbProcessor::setHighCutHz(float hz)
 {
-  highCutHz_ = std::isfinite(hz) ? std::clamp(hz, HIGH_CUT_MIN_HZ, HIGH_CUT_MAX_HZ) : HIGH_CUT_MAX_HZ;
-  updateFilters();
+  if (!liveParameters_) return;
+  liveParameters_->highCutHz.store(
+    std::isfinite(hz) ? std::clamp(hz, HIGH_CUT_MIN_HZ, HIGH_CUT_MAX_HZ) : HIGH_CUT_MAX_HZ,
+    std::memory_order_relaxed);
+  liveParameters_->revision.fetch_add(1, std::memory_order_release);
+}
+
+void IrReverbProcessor::refreshLiveParameters() noexcept
+{
+  if (!liveParameters_) return;
+  const auto revision = liveParameters_->revision.load(std::memory_order_acquire);
+  if (revision == liveRevision_) return;
+
+  mixTarget_ = liveParameters_->mix.load(std::memory_order_relaxed);
+  const float levelDb = liveParameters_->levelDb.load(std::memory_order_relaxed);
+  levelTarget_ = levelDb <= -60.0f ? 0.0f : std::pow(10.0f, levelDb / 20.0f);
+  const float milliseconds = liveParameters_->preDelayMs.load(std::memory_order_relaxed);
+  const std::size_t samples = static_cast<std::size_t>(milliseconds * 0.001f * sampleRate_);
+  preDelaySamples_ = preLeft_.empty() ? 0 : std::min(samples, preLeft_.size() - 1);
+
+  const float lowCut = liveParameters_->lowCutHz.load(std::memory_order_relaxed);
+  const float highCut = liveParameters_->highCutHz.load(std::memory_order_relaxed);
+  if (lowCut != lowCutHz_ || highCut != highCutHz_) {
+    lowCutHz_ = lowCut;
+    highCutHz_ = highCut;
+    updateFilters();
+  }
+  liveRevision_ = revision;
 }
 
 void IrReverbProcessor::updateFilters()
@@ -126,6 +176,7 @@ std::size_t IrReverbProcessor::tailFrames() const noexcept
 
 StereoSample IrReverbProcessor::process(StereoSample input)
 {
+  refreshLiveParameters();
   if (!loaded_) return input;
 
   // Pre-delay ahead of the convolver, so its buffer only spans the extra delay.

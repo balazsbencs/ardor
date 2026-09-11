@@ -35,11 +35,18 @@ func NewStore(root string) Store {
 
 func Validate(preset Preset) error {
 	version, ok := preset["version"].(float64)
-	if !ok || (version != 1 && version != 2) {
-		return errors.New("preset version must be 1 or 2")
+	if !ok || (version != 1 && version != 2 && version != 3) {
+		return errors.New("preset version must be 1, 2, or 3")
 	}
-	if routing, ok := preset["routing"].(string); !ok || routing != "serial" {
-		return errors.New("preset routing must be serial")
+	routing, ok := preset["routing"].(string)
+	if !ok || (routing != "serial" && routing != "wdw") {
+		return errors.New("preset routing must be serial or wdw")
+	}
+	if routing == "serial" && version > 2 {
+		return errors.New("wet/dry/wet routing requires preset version 3")
+	}
+	if routing == "wdw" && version != 3 {
+		return errors.New("wet/dry/wet routing requires preset version 3")
 	}
 	if _, ok := preset["global"].(map[string]any); !ok {
 		return errors.New("preset global must be an object")
@@ -48,7 +55,237 @@ func Validate(preset Preset) error {
 	if !ok {
 		return errors.New("preset blocks must be an array")
 	}
-	return validateBlocks(blocks, version, false)
+	if err := validateBlocks(blocks, version, false); err != nil {
+		return err
+	}
+	if routing != "wdw" {
+		return nil
+	}
+	if len(blocks) != 0 {
+		return errors.New("wet/dry/wet presets must keep top-level blocks empty")
+	}
+	wdw, ok := preset["wdw"].(map[string]any)
+	if !ok {
+		return errors.New("wet/dry/wet preset requires a wdw object")
+	}
+	for _, laneName := range []string{"dry", "wet"} {
+		lane, ok := wdw[laneName].(map[string]any)
+		if !ok {
+			return fmt.Errorf("WDW %s lane must be an object", laneName)
+		}
+		children, ok := lane["blocks"].([]any)
+		if !ok {
+			return fmt.Errorf("WDW %s lane must contain a blocks array", laneName)
+		}
+		if err := validateBlocks(children, version, true); err != nil {
+			return err
+		}
+		if level, ok := lane["levelDb"]; ok {
+			value, ok := level.(float64)
+			if !ok || value < -60 || value > 12 {
+				return fmt.Errorf("WDW %s lane level must be between -60 and 12 dB", laneName)
+			}
+		}
+		if pan, ok := lane["pan"]; ok && laneName == "dry" {
+			value, ok := pan.(float64)
+			if !ok || value < -1 || value > 1 {
+				return fmt.Errorf("WDW %s lane pan must be between -1 and 1", laneName)
+			}
+		} else if pan, ok := lane["pan"]; ok {
+			value, ok := pan.(float64)
+			if !ok || value != 0 {
+				return fmt.Errorf("WDW %s lane does not support pan", laneName)
+			}
+		}
+		if width, ok := lane["width"]; ok {
+			value, ok := width.(float64)
+			if !ok {
+				return fmt.Errorf("WDW %s lane width must be between 0 and 1", laneName)
+			}
+			if laneName == "dry" && value != 1 {
+				return fmt.Errorf("WDW %s lane does not support width", laneName)
+			}
+			if laneName == "wet" && (value < 0 || value > 1) {
+				return fmt.Errorf("WDW %s lane width must be between 0 and 1", laneName)
+			}
+		}
+	}
+	return nil
+}
+
+// ValidateRunnable applies the runtime topology contract in addition to the
+// storage/schema contract. Draft WDW presets may be saved while being edited,
+// but they must not be submitted to the pedal as an apply request until both
+// lanes can construct a real engine.
+func ValidateRunnable(preset Preset) error {
+	if err := Validate(preset); err != nil {
+		return err
+	}
+	if preset["routing"] != "wdw" {
+		return nil
+	}
+	wdw := preset["wdw"].(map[string]any)
+	blockIDs := make(map[string]struct{})
+	for _, laneName := range []string{"dry", "wet"} {
+		lane := wdw[laneName].(map[string]any)
+		blocks := lane["blocks"].([]any)
+		namCount := 0
+		cabCount := 0
+		namIndex := -1
+		cabIndex := -1
+		timeSeen := false
+		for index, raw := range blocks {
+			block := raw.(map[string]any)
+			id, ok := block["id"].(string)
+			if !ok || id == "" {
+				return fmt.Errorf("WDW %s lane contains a block with no ID", laneName)
+			}
+			if _, exists := blockIDs[id]; exists {
+				return fmt.Errorf("WDW routing requires globally unique block IDs: %s", id)
+			}
+			blockIDs[id] = struct{}{}
+			typeName, ok := block["type"].(string)
+			if !ok || typeName == "" {
+				return fmt.Errorf("WDW %s lane block %s has no type", laneName, id)
+			}
+			if !wdwBlockAllowed(laneName, typeName) {
+				return fmt.Errorf("WDW %s lane does not admit %s block: %s", laneName, typeName, id)
+			}
+			enabled, ok := block["enabled"].(bool)
+			if !ok {
+				return fmt.Errorf("WDW %s lane block %s must declare enabled", laneName, id)
+			}
+			if enabled && !wdwBlockModeSupported(typeName, block) {
+				return fmt.Errorf("WDW %s lane block is unsupported: %s", laneName, id)
+			}
+			if typeName == "nam" {
+				if !enabled {
+					return fmt.Errorf("WDW %s lane cannot disable its required NAM block", laneName)
+				}
+				namCount++
+				namIndex = index
+			}
+			if typeName == "cab" && enabled {
+				if timeSeen {
+					return fmt.Errorf("WDW %s lane requires cabinet before time-based effects", laneName)
+				}
+				cabCount++
+				cabIndex = index
+			}
+			if enabled && (typeName == "mod" || typeName == "delay" || typeName == "reverb" ||
+				typeName == "irreverb" || typeName == "stereo") {
+				if namIndex < 0 {
+					return fmt.Errorf("WDW %s lane requires NAM before time-based effects", laneName)
+				}
+				if cabIndex >= 0 && index < cabIndex {
+					return fmt.Errorf("WDW %s lane requires cabinet before time-based effects", laneName)
+				}
+				timeSeen = true
+			}
+		}
+		if namCount != 1 {
+			return fmt.Errorf("WDW %s lane requires exactly one enabled NAM block", laneName)
+		}
+		if cabCount > 1 {
+			return fmt.Errorf("WDW %s lane supports at most one enabled cabinet block", laneName)
+		}
+		if cabIndex >= 0 && namIndex > cabIndex {
+			return fmt.Errorf("WDW %s lane requires NAM before cabinet", laneName)
+		}
+	}
+	return nil
+}
+
+// ValidateRunnableAt adds the asset-readiness checks that managerd can perform
+// before handing an otherwise valid WDW topology to the pedal runtime.
+func ValidateRunnableAt(preset Preset, dataRoot string) error {
+	if err := ValidateRunnable(preset); err != nil {
+		return err
+	}
+	if preset["routing"] != "wdw" {
+		return nil
+	}
+	wdw := preset["wdw"].(map[string]any)
+	for _, laneName := range []string{"dry", "wet"} {
+		lane := wdw[laneName].(map[string]any)
+		for _, raw := range lane["blocks"].([]any) {
+			block := raw.(map[string]any)
+			enabled, _ := block["enabled"].(bool)
+			if !enabled {
+				continue
+			}
+			typeName, _ := block["type"].(string)
+			id, _ := block["id"].(string)
+			asset := ""
+			switch typeName {
+			case "nam", "cab", "irreverb":
+				asset, _ = block["asset"].(string)
+			case "wah":
+				asset = "assets/wah/gcb95.wahtable"
+			default:
+				continue
+			}
+			if asset == "" || !validRelativeAsset(asset) {
+				return fmt.Errorf("WDW %s lane block is missing its asset: %s", laneName, id)
+			}
+			info, err := os.Stat(filepath.Join(dataRoot, filepath.FromSlash(asset)))
+			if err != nil || !info.Mode().IsRegular() {
+				return fmt.Errorf("WDW %s lane block asset is not ready: %s", laneName, id)
+			}
+		}
+	}
+	return nil
+}
+
+func wdwBlockAllowed(laneName, typeName string) bool {
+	if laneName == "dry" {
+		switch typeName {
+		case "nam", "cab", "dynamics", "eq", "distortion", "wah":
+			return true
+		}
+		return false
+	}
+	switch typeName {
+	case "nam", "cab", "mod", "delay", "reverb", "irreverb", "stereo":
+		return true
+	}
+	return false
+}
+
+func wdwBlockModeSupported(typeName string, block map[string]any) bool {
+	params, _ := block["params"].(map[string]any)
+	mode, _ := params["mode"].(string)
+	switch typeName {
+	case "dynamics":
+		return mode == "compressor" || mode == "noise_gate" || mode == "transient_shaper"
+	case "eq":
+		return mode == "parametric_eq_5"
+	case "distortion":
+		return mode == "" || mode == "rat" || mode == "big_cheese" || mode == "tape"
+	case "wah":
+		return mode == "" || mode == "gcb95"
+	case "mod":
+		return stringIn(mode, "chorus", "flanger", "rotary", "vibe", "phaser", "vintage_trem",
+			"poly_octave", "pattern_trem", "auto_swell", "filter", "ladder_sweep", "formant",
+			"quadrature", "destroyer", "whammy", "harmonizer")
+	case "delay":
+		return stringIn(mode, "digital", "tape", "dual", "filter", "lofi", "dbucket", "duck",
+			"pattern", "swell", "trem")
+	case "reverb":
+		return stringIn(mode, "room", "hall", "plate", "spring", "bloom", "cloud", "shimmer",
+			"chorale", "nonlinear", "swell", "magneto", "reflections")
+	default:
+		return true
+	}
+}
+
+func stringIn(value string, choices ...string) bool {
+	for _, choice := range choices {
+		if value == choice {
+			return true
+		}
+	}
+	return false
 }
 
 func validateBlocks(blocks []any, version float64, insideLane bool) error {
@@ -113,10 +350,16 @@ func validateBlocks(blocks []any, version float64, insideLane bool) error {
 // this mapping they appear as unsupported blocks and expose no controls.
 func normalizeLegacyEffectBlocks(preset Preset) {
 	blocks, ok := preset["blocks"].([]any)
-	if !ok {
-		return
+	if ok {
+		normalizeLegacyBlocks(blocks)
 	}
-	normalizeLegacyBlocks(blocks)
+	if wdw, ok := preset["wdw"].(map[string]any); ok {
+		for _, laneName := range []string{"dry", "wet"} {
+			lane, _ := wdw[laneName].(map[string]any)
+			children, _ := lane["blocks"].([]any)
+			normalizeLegacyBlocks(children)
+		}
+	}
 }
 
 func normalizeLegacyBlocks(blocks []any) {
@@ -252,7 +495,17 @@ func (s Store) ReplaceAssetReferences(oldPath, newPath string) (int, error) {
 			if err != nil {
 				return changed, fmt.Errorf("load bank %d slot %d: %w", bank, slot, err)
 			}
-			dirty := replaceAssetInBlocks(loaded.Preset["blocks"].([]any), oldPath, newPath)
+			dirty := false
+			if blocks, ok := loaded.Preset["blocks"].([]any); ok {
+				dirty = replaceAssetInBlocks(blocks, oldPath, newPath)
+			}
+			if wdw, ok := loaded.Preset["wdw"].(map[string]any); ok {
+				for _, laneName := range []string{"dry", "wet"} {
+					lane, _ := wdw[laneName].(map[string]any)
+					children, _ := lane["blocks"].([]any)
+					dirty = replaceAssetInBlocks(children, oldPath, newPath) || dirty
+				}
+			}
 			if !dirty {
 				continue
 			}

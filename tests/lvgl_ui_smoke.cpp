@@ -352,6 +352,45 @@ int main()
                 && preservedDualRig.blocks[0].lanes[0].size() == 4
                 && preservedDualRig.blocks[0].lanes[1][1].asset == "irs/vintage.wav",
               "touchscreen load/save must preserve version-2 child chains")) return 1;
+
+  ardor::Preset wdwPreset;
+  wdwPreset.version = 3;
+  wdwPreset.routing = "wdw";
+  wdwPreset.name = "Touch Wet Dry Wet";
+  wdwPreset.wdw = ardor::WdwRouting{};
+  wdwPreset.wdw->dry.levelDb = -2.0f;
+  wdwPreset.wdw->dry.pan = -0.35f;
+  wdwPreset.wdw->wet.levelDb = -4.0f;
+  wdwPreset.wdw->wet.width = 0.8f;
+  wdwPreset.wdw->dry.blocks.push_back({"wdw-dry-nam", "nam", true,
+                                       "models/clean.nam", nlohmann::json::object()});
+  wdwPreset.wdw->dry.blocks.push_back({"wdw-dry-cab", "cab", true,
+                                       "irs/open-back.wav", nlohmann::json::object()});
+  wdwPreset.wdw->wet.blocks.push_back({"wdw-wet-nam", "nam", true,
+                                       "models/crunch.nam", nlohmann::json::object()});
+  wdwPreset.wdw->wet.blocks.push_back({"wdw-wet-cab", "cab", true,
+                                       "irs/vintage.wav", nlohmann::json::object()});
+  wdwPreset.wdw->wet.blocks.push_back({"wdw-wet-delay", "delay", true, "",
+                                       {{"mode", "digital"}}});
+  auto wdwState = ardor::makeDemoUiState();
+  ardor::replaceActivePreset(wdwState, wdwPreset);
+  if (require(wdwState.bank.presets[wdwState.activePreset].routing == "wdw"
+                && wdwState.bank.presets[wdwState.activePreset].blocks[0].assetName
+                  == "Dry 2 blocks  /  Wet 3 blocks",
+              "touchscreen should retain the WDW route and lane summary")) return 1;
+  const auto wdwControls = ardor::parameterPage(wdwState, 0);
+  if (require(wdwControls.size() == 6 && wdwControls[2].key == "dryPan"
+                && wdwControls[5].key == "wetWidth",
+              "touchscreen should expose WDW lane mix controls")) return 1;
+  ardor::setSelectedBlockParam(wdwState, "dryPan", 1.4f);
+  if (ardor::pendingStructuralPreview(wdwState)) ardor::completeStructuralPreview(wdwState);
+  ardor::setSelectedBlockParamValue(wdwState, "wetEnabled", false);
+  const auto preservedWdw = ardor::activePresetToPreset(wdwState);
+  if (require(preservedWdw.version == 3 && preservedWdw.routing == "wdw" && preservedWdw.wdw
+                && preservedWdw.wdw->dry.blocks[1].id == "wdw-dry-cab"
+                && preservedWdw.wdw->dry.pan == 1.0f
+                && !preservedWdw.wdw->wet.enabled,
+              "touchscreen load/save must preserve and edit WDW lane state")) return 1;
   if (require(ardor::pendingStructuralPreview(namState),
               "changing NAM model tier should queue an engine preview")) return 1;
 
@@ -813,6 +852,37 @@ int main()
                 && !containsKey(selectedLaneControls, "leftLevelDb")
                 && findLabel(lv_screen_active(), "Delay  /  Digital Delay"),
               "clicking a Dual Rig lane effect should open that effect's parameter drawer")) return 1;
+
+  ardor::enterEditMode(wdwState);
+  ui.build(lv_screen_active(), wdwState);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "WDW")
+                && findLabel(lv_screen_active(), "NO DIRECT INPUT")
+                && findLabel(lv_screen_active(), "DRY")
+                && findLabel(lv_screen_active(), "WET")
+                && findLabelContaining(lv_screen_active(), "LEVEL -2 DB")
+                && findLabelContaining(lv_screen_active(), "WIDTH 80%"),
+              "WDW should render explicit dry/wet lanes, mix summaries, and no direct path")) return 1;
+
+  auto wdwDeleteUiState = ardor::makeDemoUiState();
+  ardor::replaceActivePreset(wdwDeleteUiState, wdwPreset);
+  ardor::enterEditMode(wdwDeleteUiState);
+  ui.build(lv_screen_active(), wdwDeleteUiState);
+  lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* dryNamAsset = findLabel(lv_screen_active(), "CLEAN TWIN");
+  if (require(dryNamAsset, "WDW dry NAM should be selectable in the edit chain")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(dryNamAsset), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), wdwDeleteUiState);
+  lv_obj_t* wdwDeleteLabel = findLabel(lv_screen_active(), "Delete Block");
+  if (require(wdwDeleteLabel && ardor::selectedBlockIsLaneChild(wdwDeleteUiState),
+              "selecting a WDW lane NAM should open its block editor")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(wdwDeleteLabel), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), wdwDeleteUiState);
+  if (require(wdwDeleteUiState.bank.presets[wdwDeleteUiState.activePreset]
+                  .blocks[0].lanes[0].size() == 1
+                && wdwDeleteUiState.bank.presets[wdwDeleteUiState.activePreset]
+                  .blocks[0].lanes[0][0].type == "cab",
+              "WDW Delete Block should remove a selected NAM from its lane")) return 1;
 
   ui.selectBlock(state, state.selectedBlock);
   ardor::enterEditMode(state);

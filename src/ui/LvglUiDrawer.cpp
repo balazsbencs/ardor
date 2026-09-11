@@ -67,11 +67,66 @@ std::string drawerFilterDisplayName(const std::string& filter)
 // The count row's left side: chain-state guidance takes priority when there
 // is any (chain full / lane target); otherwise it names the active filter.
 // Uppercased to match the drawer's other engraved legend text.
+std::string wdwAssetBlockType(const UiAsset& asset)
+{
+  if (!asset.blockType.empty()) return asset.blockType;
+  if (asset.type == "amps") return "nam";
+  if (asset.type == "cabs") return "cab";
+  return asset.type;
+}
+
+bool wdwAssetAllowedOnLane(const UiAsset& asset, std::size_t lane)
+{
+  const auto blockType = wdwAssetBlockType(asset);
+  if (lane == 0) {
+    return blockType == "nam" || blockType == "cab"
+      || blockType == "dynamics" || blockType == "eq"
+      || blockType == "distortion" || blockType == "wah";
+  }
+  return blockType == "nam" || blockType == "cab"
+    || blockType == "mod" || blockType == "delay"
+    || blockType == "reverb" || blockType == "irreverb"
+    || blockType == "stereo";
+}
+
+const UiBlock* laneTarget(const UiState& state)
+{
+  if (!state.blockInsertRig.has_value() || !state.blockInsertLane.has_value()) return nullptr;
+  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  if (*state.blockInsertRig >= blocks.size()) return nullptr;
+  const auto& rig = blocks[*state.blockInsertRig];
+  if (rig.type != "dualRig" || rig.params.value("routing", std::string{}) != "wdw") return nullptr;
+  return &rig;
+}
+
+std::string laneAssetReason(const UiAsset& asset, const UiBlock* rig, std::size_t lane)
+{
+  if (!rig) return {};
+  if (lane >= rig->lanes.size()) return "Invalid lane";
+  const auto blockType = wdwAssetBlockType(asset);
+  if (blockType == "dualRig" || blockType == "dualAmp") {
+    return "No nested Split";
+  }
+  if (!wdwAssetAllowedOnLane(asset, lane)) {
+    return std::string{"Not admitted on the "} + (lane == 0 ? "Dry" : "Wet") + " lane";
+  }
+  if ((blockType == "nam" || blockType == "cab")
+      && std::any_of(rig->lanes[lane].begin(), rig->lanes[lane].end(), [&](const UiBlock& block) {
+        return block.type == blockType;
+      })) {
+    return std::string{"Each lane keeps one "} + (blockType == "nam" ? "NAM" : "CAB");
+  }
+  return {};
+}
+
 std::string drawerInstructionText(const UiState& state, bool chainFull, bool insertingLane)
 {
-  return uppercase(chainFull ? "Chain full - delete a block to add"
-    : (insertingLane ? "Choose an effect for this lane"
-                     : drawerFilterDisplayName(state.categoryFilter)));
+  if (chainFull) return uppercase("Chain full - delete a block to add");
+  if (insertingLane) return uppercase("Choose an effect for this lane");
+  if (state.bank.presets[state.activePreset].routing == "wdw") {
+    return uppercase("Use a Dry or Wet lane + to add modules");
+  }
+  return uppercase(drawerFilterDisplayName(state.categoryFilter));
 }
 
 std::string assetRenderKey(const UiAsset& asset)
@@ -201,6 +256,7 @@ lv_obj_t* decorateDrawerItem(lv_obj_t* item, const UiAsset& asset)
 std::string assetDragText(const UiAsset& asset)
 {
   if (asset.blockType == "dualRig") {
+    if (asset.mode == "wdw") return "Wet / Dry / Wet\nDry + Wet lanes";
     return "Split\nLeft / Right";
   }
   if (asset.type == "amps") {
@@ -457,6 +513,7 @@ void LvglUi::syncDrawerView(UiState& state)
 
   const auto& blocks = state.bank.presets[state.activePreset].blocks;
   const bool insertingLane = state.blockInsertRig.has_value() && state.blockInsertLane.has_value();
+  const UiBlock* targetWdwRig = laneTarget(state);
   bool chainFull = blocks.size() >= kMaxEffectBlocks;
   if (insertingLane && *state.blockInsertRig < blocks.size()
       && *state.blockInsertLane < blocks[*state.blockInsertRig].lanes.size()) {
@@ -489,7 +546,18 @@ void LvglUi::syncDrawerView(UiState& state)
     else lv_obj_add_flag(item, LV_OBJ_FLAG_HIDDEN);
     const bool splitUnavailable = state.assets[i].blockType == "dualRig"
       && (insertingLane || alreadySplit || standaloneAmp);
-    if (chainFull || splitUnavailable) lv_obj_add_state(item, LV_STATE_DISABLED);
+    const std::string laneReason = insertingLane && state.blockInsertLane.has_value()
+      ? laneAssetReason(state.assets[i], targetWdwRig, *state.blockInsertLane) : std::string{};
+    if (insertingLane && targetWdwRig && !laneReason.empty()) {
+      lv_label_set_text(drawerAssetSubtitleLabels_[i], laneReason.c_str());
+    } else {
+      lv_label_set_text(drawerAssetSubtitleLabels_[i], state.assets[i].subtitle.c_str());
+    }
+    const bool routeWdwTopLevel = !insertingLane
+      && state.bank.presets[state.activePreset].routing == "wdw";
+    if (chainFull || splitUnavailable || !laneReason.empty() || routeWdwTopLevel) {
+      lv_obj_add_state(item, LV_STATE_DISABLED);
+    }
     else lv_obj_remove_state(item, LV_STATE_DISABLED);
   }
   if (drawerAssetList_) {
@@ -527,8 +595,11 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
   lv_obj_remove_flag(drawer, LV_OBJ_FLAG_SCROLLABLE);
 
   const bool insertingLane = state.blockInsertRig.has_value() && state.blockInsertLane.has_value();
+  const UiBlock* targetWdwRig = laneTarget(state);
   const std::string drawerTitle = insertingLane
-    ? std::string{"Add to "} + (*state.blockInsertLane == 0 ? "Left" : "Right")
+    ? std::string{"Add to "} + (targetWdwRig
+        ? (*state.blockInsertLane == 0 ? "Dry" : "Wet")
+        : (*state.blockInsertLane == 0 ? "Left" : "Right"))
     : "Modules";
   label(drawer, uppercase(drawerTitle), LV_ALIGN_TOP_LEFT, 0, 6, &ardor_font_saira_cond_semibold_22);
 
@@ -638,6 +709,10 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
     lv_obj_t* itemTitle = lv_obj_get_child(item, 0);
     const bool splitUnavailable = asset.blockType == "dualRig"
       && (insertingLane || alreadySplit || standaloneAmp);
+    const std::string laneReason = insertingLane && state.blockInsertLane.has_value()
+      ? laneAssetReason(asset, targetWdwRig, *state.blockInsertLane) : std::string{};
+    const bool routeWdwTopLevel = !insertingLane
+      && state.bank.presets[state.activePreset].routing == "wdw";
     if (asset.blockType == "dualRig") {
       lv_obj_set_style_border_color(item, lv_color_hex(text), 0);
       lv_obj_set_style_border_width(item, 1, 0);
@@ -658,7 +733,13 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
         lv_obj_align(reasonLabel, LV_ALIGN_CENTER, 0, 15);
       }
     }
-    if (chainFull || splitUnavailable) lv_obj_add_state(item, LV_STATE_DISABLED);
+    if (!laneReason.empty() && asset.blockType != "dualRig") {
+      lv_label_set_text(subtitle, laneReason.c_str());
+      lv_obj_set_style_text_color(subtitle, lv_color_hex(warning), 0);
+    }
+    if (chainFull || splitUnavailable || !laneReason.empty() || routeWdwTopLevel) {
+      lv_obj_add_state(item, LV_STATE_DISABLED);
+    }
     if (state.categoryFilter != "all" && asset.type != state.categoryFilter) {
       lv_obj_add_flag(item, LV_OBJ_FLAG_HIDDEN);
     }

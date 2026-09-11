@@ -22,6 +22,15 @@ struct LevelState {
   std::atomic<uint64_t> overloadFrames{0};
 };
 
+struct CabLiveState {
+  std::atomic<float> levelTarget{1.0f};
+  std::atomic<float> mixTarget{1.0f};
+  float level = 1.0f;
+  float mix = 1.0f;
+};
+
+constexpr float kCabControlSmoothing = 0.001f;
+
 void observeLevel(LevelState& state, float left, float right)
 {
   const float peak = std::max(std::fabs(left), std::fabs(right));
@@ -89,8 +98,7 @@ struct RuntimeChain::Block {
   std::unique_ptr<DualRigProcessor> dualRig;
   std::unique_ptr<LevelState> meter = std::make_unique<LevelState>();
   std::unique_ptr<std::atomic<bool>> enabled = std::make_unique<std::atomic<bool>>(true);
-  float level = 1.0f;
-  float mix = 1.0f;
+  std::unique_ptr<CabLiveState> cabState;
   NamInputMode namInputMode = NamInputMode::Sum;
 };
 
@@ -199,9 +207,32 @@ void RuntimeChain::addCab(std::vector<float> impulse, float level, float mix, st
   block.kind = Block::Kind::Cab;
   block.id = std::move(id);
   block.cab = std::move(cab);
-  block.level = std::max(0.0f, level);
-  block.mix = std::clamp(mix, 0.0f, 1.0f);
+  block.cabState = std::make_unique<CabLiveState>();
+  block.cabState->level = std::max(0.0f, level);
+  block.cabState->mix = std::clamp(mix, 0.0f, 1.0f);
+  block.cabState->levelTarget.store(block.cabState->level, std::memory_order_relaxed);
+  block.cabState->mixTarget.store(block.cabState->mix, std::memory_order_relaxed);
   blocks_.push_back(std::move(block));
+}
+
+bool RuntimeChain::setCabParameter(const std::string& id, const std::string& key, float value)
+{
+  if (!std::isfinite(value)) return false;
+  for (auto& block : blocks_) {
+    if (block.kind != Block::Kind::Cab || block.id != id || !block.cabState) continue;
+    if (key == "mix") {
+      block.cabState->mixTarget.store(std::clamp(value, 0.0f, 1.0f),
+                                      std::memory_order_relaxed);
+    } else if (key == "levelDb") {
+      const float db = std::clamp(value, -60.0f, 12.0f);
+      const float level = db <= -60.0f ? 0.0f : std::pow(10.0f, db / 20.0f);
+      block.cabState->levelTarget.store(level, std::memory_order_relaxed);
+    } else {
+      return false;
+    }
+    return true;
+  }
+  return false;
 }
 
 bool RuntimeChain::addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
@@ -492,8 +523,12 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
     }
     case Block::Kind::Cab: {
       const float dry = current.left;
-      const float level = cabLevel >= 0.0f ? cabLevel : block.level;
-      const float mix = cabMix >= 0.0f ? cabMix : block.mix;
+      block.cabState->level += kCabControlSmoothing
+        * (block.cabState->levelTarget.load(std::memory_order_relaxed) - block.cabState->level);
+      block.cabState->mix += kCabControlSmoothing
+        * (block.cabState->mixTarget.load(std::memory_order_relaxed) - block.cabState->mix);
+      const float level = cabLevel >= 0.0f ? cabLevel : block.cabState->level;
+      const float mix = cabMix >= 0.0f ? cabMix : block.cabState->mix;
       const float wet = block.cab->processSample(dry) * level;
       const float mixed = (wet * mix) + (dry * (1.0f - mix));
       current = {mixed, mixed};
@@ -593,8 +628,12 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       }
       block.cab->processBlock(cabInput, nextLeft, frames);
       for (size_t i = 0; i < frames; ++i) {
-        const float level = cabLevels ? cabLevels[i] : block.level;
-        const float mix = cabMixes ? cabMixes[i] : block.mix;
+        block.cabState->level += kCabControlSmoothing
+          * (block.cabState->levelTarget.load(std::memory_order_relaxed) - block.cabState->level);
+        block.cabState->mix += kCabControlSmoothing
+          * (block.cabState->mixTarget.load(std::memory_order_relaxed) - block.cabState->mix);
+        const float level = cabLevels ? cabLevels[i] : block.cabState->level;
+        const float mix = cabMixes ? cabMixes[i] : block.cabState->mix;
         const float wet = nextLeft[i] * level;
         nextLeft[i] = wet * mix + cabInput[i] * (1.0f - mix);
       }
@@ -808,6 +847,14 @@ void RuntimeChain::reset()
     }
     if (block.cab) {
       block.cab->reset();
+      block.cabState->level = block.cabState->levelTarget.load(std::memory_order_relaxed);
+      block.cabState->mix = block.cabState->mixTarget.load(std::memory_order_relaxed);
+    }
+    if (block.irReverb) {
+      block.irReverb->reset();
+    }
+    if (block.stereoWidener) {
+      block.stereoWidener->reset();
     }
     if (block.daisy) {
       block.daisy->reset();
@@ -845,6 +892,9 @@ size_t RuntimeChain::tailFrames() const noexcept
   for (const auto& block : blocks_) {
     if (block.cab) {
       tail += block.cab->tailFrames();
+    }
+    if (block.irReverb) {
+      tail += block.irReverb->tailFrames();
     }
     if (block.daisy) {
       tail += block.daisy->tailFrames();

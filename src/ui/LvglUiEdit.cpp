@@ -6,6 +6,8 @@
 #include "ui/LvglUiStyle.h"
 
 #include <algorithm>
+#include <cmath>
+#include <cstdio>
 #include <string>
 
 namespace ardor {
@@ -24,6 +26,34 @@ constexpr int kEditRailEdgeInset = 28;
 constexpr int kEditTopRailHeight = 52;
 constexpr int kEditBottomRailHeight = 88;
 constexpr int kEditBottomRailY = kDesignHeight - kEditBottomRailHeight;
+
+bool isWdwRoutingBlock(const UiBlock& block)
+{
+  return block.type == "dualRig"
+    && block.params.value("routing", std::string{}) == "wdw";
+}
+
+std::string wdwLaneMixSummary(const UiBlock& block, std::size_t lane)
+{
+  char buffer[64]{};
+  if (lane == 0) {
+    const float level = block.params.value("dryLevelDb", 0.0f);
+    const float pan = block.params.value("dryPan", 0.0f);
+    const int panPercent = static_cast<int>(std::lround(std::fabs(pan) * 100.0f));
+    if (panPercent == 0) {
+      std::snprintf(buffer, sizeof(buffer), "LEVEL %+.0f DB / PAN C", level);
+    } else {
+      std::snprintf(buffer, sizeof(buffer), "LEVEL %+.0f DB / PAN %c%d%%", level,
+                    pan < 0.0f ? 'L' : 'R', panPercent);
+    }
+  } else {
+    const float level = block.params.value("wetLevelDb", 0.0f);
+    const int width = static_cast<int>(std::lround(
+      std::clamp(block.params.value("wetWidth", 1.0f), 0.0f, 1.0f) * 100.0f));
+    std::snprintf(buffer, sizeof(buffer), "LEVEL %+.0f DB / WIDTH %d%%", level, width);
+  }
+  return buffer;
+}
 
 void redraw(UiEventContext* context)
 {
@@ -356,6 +386,11 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   editModifiedLabel_ = label(topRail, "\xC2\xB7 MODIFIED", LV_ALIGN_LEFT_MID, 520, 0,
                              &ardor_font_saira_cond_medium_18, lamp);
   if (!state.dirty) lv_obj_add_flag(editModifiedLabel_, LV_OBJ_FLAG_HIDDEN);
+  const bool hasWdwRoute = state.bank.presets[state.activePreset].routing == "wdw";
+  if (hasWdwRoute) {
+    label(topRail, "WET / DRY / WET", LV_ALIGN_LEFT_MID, 640, 0,
+          &ardor_font_saira_cond_medium_18, categoryColor("delay"));
+  }
   const auto moduleCount = state.bank.presets[state.activePreset].blocks.size();
   editModuleCountLabel_ = label(topRail,
     std::to_string(moduleCount) + (moduleCount == 1 ? " MODULE" : " MODULES"),
@@ -419,7 +454,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
     label(object, detail, LV_ALIGN_BOTTOM_MID, 0, -8, &ardor_font_saira_cond_medium_18, muted);
     return object;
   };
-  const auto topInsert = [&](int x, std::size_t index) {
+  const auto topInsert = [&](int x, std::size_t index, bool disabled = false) {
     rail(x - kChainGap, kChainRailY, kChainInsertWidth + 2 * kChainGap, muted);
     lv_obj_t* add = button(chainWorld_, "+");
     lv_obj_set_size(add, 46, 46);
@@ -429,6 +464,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
     lv_obj_set_style_border_color(add, lv_color_hex(rule), 0);
     lv_obj_set_style_border_width(add, 1, 0);
     lv_obj_set_style_text_color(lv_obj_get_child(add, 0), lv_color_hex(text), 0);
+    if (disabled) lv_obj_add_state(add, LV_STATE_DISABLED);
     auto* context = remember(state, index);
     lv_obj_add_event_cb(add, onOpenBlockDrawerAt, LV_EVENT_CLICKED, context);
     chainInsertionXs_.push_back(x + kChainInsertWidth / 2);
@@ -484,7 +520,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   int x = kChainStartX;
   terminal(x, "INPUT", "MONO");
   x += kChainTerminalWidth + kChainGap;
-  topInsert(x, 0);
+  topInsert(x, 0, hasWdwRoute);
   x += kChainInsertWidth + kChainGap;
 
   for (std::size_t i = 0; i < blocks.size() && i < kMaxEffectBlocks; ++i) {
@@ -591,15 +627,22 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       x += kChainTileWidth;
     } else {
       renderedRigIndex_ = i;
+      const bool wdw = isWdwRoutingBlock(block);
       const std::size_t longest = std::max(block.lanes[0].size(), block.lanes[1].size());
       const int laneWidth = std::max(laneEnd(longest), laneEnd(1));
       const int splitX = x;
       const int laneStart = splitX + kChainJunctionWidth + 26;
       const int joinX = laneStart + laneWidth + 22;
+      const bool dryLaneEnabled = !wdw || block.params.value("dryEnabled", true);
+      const bool wetLaneEnabled = !wdw || block.params.value("wetEnabled", true);
+      const int dryRailColor = dryLaneEnabled
+        ? (wdw ? categoryColor("amp") : laneL) : muted;
+      const int wetRailColor = wetLaneEnabled
+        ? (wdw ? categoryColor("delay") : laneR) : muted;
       rail(splitX + kChainJunctionWidth / 2, kChainLeftRailY,
-           joinX - splitX, laneL);
+           joinX - splitX, dryRailColor);
       rail(splitX + kChainJunctionWidth / 2, kChainRightRailY,
-           joinX - splitX, laneR);
+           joinX - splitX, wetRailColor);
       lv_obj_t* splitStem = lv_obj_create(chainWorld_);
       lv_obj_set_size(splitStem, 3, kChainRightRailY - kChainLeftRailY);
       lv_obj_set_pos(splitStem, splitX + kChainJunctionWidth / 2 - 1, kChainLeftRailY);
@@ -611,7 +654,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       styleSurface(joinStem, muted);
       lv_obj_remove_flag(joinStem, LV_OBJ_FLAG_CLICKABLE);
 
-      lv_obj_t* split = button(chainWorld_, "SPLIT");
+      lv_obj_t* split = button(chainWorld_, wdw ? "WDW" : "SPLIT");
       lv_obj_set_size(split, kChainJunctionWidth, 82);
       lv_obj_set_pos(split, splitX, kChainRailY - 41);
       styleSurface(split, panelAlt);
@@ -622,6 +665,10 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       lv_obj_set_width(splitLabel, kChainJunctionWidth - kChainHandleWidth - 24);
       lv_obj_align(splitLabel, LV_ALIGN_LEFT_MID, 12, 0);
       lv_obj_set_style_text_align(splitLabel, LV_TEXT_ALIGN_LEFT, 0);
+      if (wdw) {
+        label(split, "NO DIRECT INPUT", LV_ALIGN_BOTTOM_LEFT, 12, -8,
+              &ardor_font_saira_cond_semibold_11, muted);
+      }
       auto* clickContext = remember(state, i);
       lv_obj_add_event_cb(split, onBlockClicked, LV_EVENT_CLICKED, clickContext);
       dragHandle(split, split, i);
@@ -641,12 +688,24 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
 
       for (std::size_t laneIndex = 0; laneIndex < block.lanes.size(); ++laneIndex) {
         const int laneY = laneIndex == 0 ? kChainLeftRailY : kChainRightRailY;
-        const int laneColor = laneIndex == 0 ? laneL : laneR;
-        label(chainWorld_, laneIndex == 0 ? "LEFT" : "RIGHT", LV_ALIGN_TOP_LEFT,
-              splitX + kChainJunctionWidth / 2 + 12, laneY - 54,
-              &ardor_font_saira_cond_semibold_22, laneColor);
+        const bool laneEnabled = !wdw || block.params.value(
+          laneIndex == 0 ? "dryEnabled" : "wetEnabled", true);
+        const int laneColor = wdw
+          ? (laneIndex == 0 ? categoryColor("amp") : categoryColor("delay"))
+          : (laneIndex == 0 ? laneL : laneR);
+        const int visibleLaneColor = laneEnabled ? laneColor : muted;
+        const int laneHeadingY = wdw ? laneY - 78 : laneY - 54;
+        label(chainWorld_, wdw ? (laneIndex == 0 ? "DRY" : "WET")
+                              : (laneIndex == 0 ? "LEFT" : "RIGHT"),
+              LV_ALIGN_TOP_LEFT, splitX + kChainJunctionWidth / 2 + 12, laneHeadingY,
+              &ardor_font_saira_cond_semibold_22, visibleLaneColor);
+        if (wdw) {
+          label(chainWorld_, uppercase(wdwLaneMixSummary(block, laneIndex)),
+                LV_ALIGN_TOP_LEFT, splitX + kChainJunctionWidth / 2 + 12,
+                laneY - 54, &ardor_font_saira_cond_semibold_11, laneEnabled ? muted : disabled);
+        }
         int laneX = laneStart;
-        laneInsert(laneX, laneY, i, laneIndex, 0, laneColor,
+        laneInsert(laneX, laneY, i, laneIndex, 0, visibleLaneColor,
                    block.lanes[laneIndex].size() >= kMaxEffectBlocks);
         laneX += kLaneInsertWidth + 8;
         for (std::size_t childIndex = 0; childIndex < block.lanes[laneIndex].size(); ++childIndex) {
@@ -656,18 +715,19 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
           lv_obj_set_pos(childObject, laneX, laneY - kLaneTileHeight / 2);
           styleSurface(childObject, child.enabled ? panel : panelAlt);
           lv_obj_set_style_pad_all(childObject, 0, 0);
-          lv_obj_set_style_border_color(childObject, lv_color_hex(laneColor), 0);
+          lv_obj_set_style_border_color(childObject, lv_color_hex(visibleLaneColor), 0);
           const bool childSelected = state.paramTarget == UiParamTarget::Block
             && state.selectedBlockId == child.id;
           lv_obj_set_style_border_width(childObject, childSelected ? 3 : 1, 0);
           if (!child.enabled) lv_obj_set_style_opa(childObject, LV_OPA_70, 0);
+          if (!laneEnabled) lv_obj_set_style_opa(childObject, LV_OPA_70, 0);
           // Compact lane cards keep the same interaction grammar: the entire
           // title strip is a deliberate, finger-sized drag surface, while the
           // body remains a tap target for editing.
           lv_obj_t* childHeader = lv_obj_create(childObject);
           lv_obj_set_size(childHeader, kLaneTileWidth, kLaneHeaderHeight);
           lv_obj_set_pos(childHeader, 0, 0);
-          styleSurface(childHeader, child.enabled ? categoryColor(child.type) : rule);
+          styleSurface(childHeader, child.enabled && laneEnabled ? categoryColor(child.type) : rule);
           lv_obj_set_style_border_width(childHeader, 0, 0);
           lv_obj_set_style_pad_all(childHeader, 0, 0);
           lv_obj_remove_flag(childHeader, LV_OBJ_FLAG_SCROLLABLE);
@@ -675,16 +735,16 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
           lv_obj_set_style_opa(childHeader, LV_OPA_70, LV_STATE_PRESSED);
           lv_obj_t* childTitle = label(childHeader, laneToken(child), LV_ALIGN_LEFT_MID, 12, 0,
                                        &ardor_font_saira_cond_semibold_22,
-                                       child.enabled ? bg : muted);
+                                       child.enabled && laneEnabled ? bg : muted);
           lv_obj_t* childDragLabel = label(childHeader, "DRAG", LV_ALIGN_RIGHT_MID, -12, 0,
                                            &ardor_font_saira_cond_semibold_22,
-                                           child.enabled ? bg : muted);
+                                           child.enabled && laneEnabled ? bg : muted);
           lv_obj_set_style_text_letter_space(childDragLabel, 2, 0);
           lv_obj_remove_flag(childTitle, LV_OBJ_FLAG_CLICKABLE);
           lv_obj_remove_flag(childDragLabel, LV_OBJ_FLAG_CLICKABLE);
           lv_obj_t* childAsset = label(childObject, uppercase(child.assetName), LV_ALIGN_BOTTOM_LEFT, 10, -9,
                                        &ardor_font_saira_cond_semibold_22,
-                                       child.enabled ? text : disabled);
+                                       child.enabled && laneEnabled ? text : disabled);
           lv_obj_set_width(childAsset, kLaneTileWidth - 20);
           lv_label_set_long_mode(childAsset, LV_LABEL_LONG_CLIP);
           auto* childClickContext = remember(state, childIndex);
@@ -702,7 +762,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
           lv_obj_add_event_cb(childHeader, onLaneBlockReleased, LV_EVENT_RELEASED, childDragContext);
           lv_obj_add_event_cb(childHeader, onLaneBlockPressLost, LV_EVENT_PRESS_LOST, childDragContext);
           laneX += kLaneTileWidth + 8;
-          laneInsert(laneX, laneY, i, laneIndex, childIndex + 1, laneColor,
+          laneInsert(laneX, laneY, i, laneIndex, childIndex + 1, visibleLaneColor,
                      block.lanes[laneIndex].size() >= kMaxEffectBlocks);
           laneX += kLaneInsertWidth + 8;
         }
@@ -712,7 +772,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
 
     chainItemEnds_.push_back(x);
     x += kChainGap;
-    topInsert(x, i + 1);
+    topInsert(x, i + 1, hasWdwRoute);
     x += kChainInsertWidth + kChainGap;
   }
 

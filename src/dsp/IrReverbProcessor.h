@@ -4,10 +4,14 @@
 #include "dsp/ScheduledConvolver.h"
 
 #include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace ardor {
+
+struct IrReverbLiveParameters;
 
 // True convolution reverb.
 //
@@ -74,6 +78,7 @@ private:
   };
 
   void updateFilters();
+  void refreshLiveParameters() noexcept;
 
   ScheduledConvolver left_;
   ScheduledConvolver right_;
@@ -102,6 +107,8 @@ private:
   float mix_ = 0.35f;
   float levelTarget_ = 1.0f;
   float level_ = 1.0f;
+  std::shared_ptr<IrReverbLiveParameters> liveParameters_;
+  std::uint64_t liveRevision_ = 0;
 };
 
 } // namespace ardor

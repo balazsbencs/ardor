@@ -1,0 +1,11 @@
+placement=audio2,lane0,post3,short-1000
+lane0_calls=1100 lane0_mean_us=503.318 lane0_max_us=653.297 lane0_actual_cpu=2
+lane1_calls=1100 lane1_mean_us=504.771 lane1_max_us=670.926 lane1_actual_cpu=0
+post_calls=1100 post_mean_us=137.235 post_max_us=172.186 post_actual_cpu=3
+direct_wait_mean_us=7.998 direct_wait_max_us=35.278 post_underflows=1 post_submissions=0
+placement=audio2,lane0,post3,long-45000-instrumented
+lane0_calls=45100 lane0_mean_us=760.374 lane0_max_us=2202.445 lane0_actual_cpu=2
+lane1_calls=45100 lane1_mean_us=532.656 lane1_max_us=901.926 lane1_actual_cpu=0
+post_calls=45100 post_mean_us=155.502 post_max_us=449.277 post_actual_cpu=3
+direct_wait_mean_us=11.437 direct_wait_max_us=960.500 post_underflows=1 post_submissions=0
+end_to_end_mean_us=801.808 end_to_end_p999_us=1562.186 deadline_misses=166
