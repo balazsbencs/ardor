@@ -433,6 +433,16 @@ int main()
                 && !savedWdw.wdw->wet.enabled,
               "WDW UI load/save should preserve lane blocks and mix state")) return 1;
 
+  auto wdwDeleteState = ardor::makeDemoUiState();
+  ardor::replaceActivePreset(wdwDeleteState, wdwPreset);
+  ardor::selectLaneBlock(wdwDeleteState, 0, 0, 0);
+  if (require(ardor::deleteSelectedBlock(wdwDeleteState),
+              "WDW should allow deleting the last NAM while drafting")) return 1;
+  if (require(wdwDeleteState.bank.presets[wdwDeleteState.activePreset].blocks[0].lanes[0].size() == 1
+                && wdwDeleteState.bank.presets[wdwDeleteState.activePreset].blocks[0].lanes[0][0].type == "cab"
+                && !wdwDeleteState.statusIsError,
+              "deleting the last WDW NAM should leave an editable draft")) return 1;
+
   auto wdwInsertState = ardor::makeDemoUiState();
   ardor::Preset emptyWdwInsertPreset;
   emptyWdwInsertPreset.name = "WDW Insert Test";
@@ -493,8 +503,9 @@ int main()
   ardor::insertLaneAssetBlock(wdwInsertState, crunchNamIndex, 0, 1, 0);
   if (require(wdwInsertState.bank.presets[wdwInsertState.activePreset].blocks[0].lanes[0].size() == 2
                 && wdwInsertState.bank.presets[wdwInsertState.activePreset].blocks[0].lanes[1].size() == 1
-                && !ardor::pendingStructuralPreview(wdwInsertState),
-              "incomplete WDW lane edits should remain an offline draft")) return 1;
+                && ardor::pendingStructuralPreview(wdwInsertState),
+              "both WDW NAM lanes should activate without separate cabs")) return 1;
+  completePreview(wdwInsertState);
   ardor::insertLaneAssetBlock(wdwInsertState, vintageCabIndex, 0, 1, 1);
   if (require(wdwInsertState.bank.presets[wdwInsertState.activePreset].blocks[0].lanes[1].size() == 2
                 && ardor::pendingStructuralPreview(wdwInsertState),

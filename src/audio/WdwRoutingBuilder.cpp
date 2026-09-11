@@ -18,7 +18,8 @@ const char* laneName(bool wet)
 
 bool isTimeBlock(const std::string& type)
 {
-  return type == "mod" || type == "delay" || type == "reverb" || type == "irreverb";
+  return type == "mod" || type == "delay" || type == "reverb" || type == "irreverb"
+      || type == "stereo";
 }
 
 bool isDryBlock(const std::string& type)
@@ -42,6 +43,7 @@ bool validateLanePlan(const ChainPlan& plan, bool wet,
   std::size_t cabCount = 0;
   std::size_t namIndex = std::numeric_limits<std::size_t>::max();
   std::size_t cabIndex = std::numeric_limits<std::size_t>::max();
+  bool timeSeen = false;
 
   for (std::size_t index = 0; index < plan.blocks.size(); ++index) {
     const auto& block = plan.blocks[index];
@@ -59,11 +61,12 @@ bool validateLanePlan(const ChainPlan& plan, bool wet,
       return false;
     }
     // The legacy plan builder uses Disabled to omit a block from the runtime
-    // chain entirely. Omitting the required NAM or cab would silently turn
-    // this fixed WDW topology into an unprocessed/direct lane, so reject it
-    // instead of counting an absent block toward the topology contract.
+    // chain entirely. Omitting the required NAM would silently turn this fixed
+    // WDW topology into an unprocessed/direct lane, so reject it instead of
+    // counting an absent block toward the topology contract. A cabinet is
+    // optional: NAM captures may already contain the cabinet response.
     if (block.status == ChainBlockStatus::Disabled
-        && (block.type == "nam" || block.type == "cab")) {
+        && block.type == "nam") {
       error = std::string{"WDW "} + label
         + " lane cannot disable its required " + block.type + " block: " + block.id;
       return false;
@@ -83,13 +86,21 @@ bool validateLanePlan(const ChainPlan& plan, bool wet,
       ++namCount;
       namIndex = index;
     } else if (block.type == "cab" && block.status == ChainBlockStatus::Ready) {
+      if (timeSeen) {
+        error = std::string{"WDW "} + label
+          + " lane requires the cabinet before time-based effects: " + block.id;
+        return false;
+      }
       ++cabCount;
       cabIndex = index;
     }
-    if (isTimeBlock(block.type) && cabIndex == std::numeric_limits<std::size_t>::max()) {
-      error = std::string{"WDW "} + label
-        + " lane requires the cabinet before time-based effects: " + block.id;
-      return false;
+    if (block.status == ChainBlockStatus::Ready && isTimeBlock(block.type)) {
+      if (namIndex == std::numeric_limits<std::size_t>::max()) {
+        error = std::string{"WDW "} + label
+          + " lane requires NAM before time-based effects: " + block.id;
+        return false;
+      }
+      timeSeen = true;
     }
   }
 
@@ -97,11 +108,11 @@ bool validateLanePlan(const ChainPlan& plan, bool wet,
     error = std::string{"WDW "} + label + " lane requires exactly one NAM block";
     return false;
   }
-  if (cabCount != 1) {
-    error = std::string{"WDW "} + label + " lane requires exactly one cabinet block";
+  if (cabCount > 1) {
+    error = std::string{"WDW "} + label + " lane supports at most one cabinet block";
     return false;
   }
-  if (namIndex > cabIndex) {
+  if (cabIndex != std::numeric_limits<std::size_t>::max() && namIndex > cabIndex) {
     error = std::string{"WDW "} + label + " lane requires NAM before cabinet";
     return false;
   }

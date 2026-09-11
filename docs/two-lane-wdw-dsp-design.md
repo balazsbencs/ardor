@@ -11,14 +11,16 @@ final LVGL interaction polish, not a change to the DSP topology.
 The first production topology should be a fixed, pair-aware two-lane program:
 
 ```text
-                         +--> dry lane: pre/distortion -> NAM -> cab -> align --+
+                         +--> dry lane: pre/distortion -> NAM -> [cab] -> align --+
 mono input -> copy/sanitize                                                       +--> stereo mix -> output
-                         +--> wet lane: NAM -> cab -> stereo delay -> reverb --+
+                         +--> wet lane: NAM -> [cab] -> stereo delay -> reverb --+
 ```
 
 The dry lane is a complete amp path and is normally centre-panned.  The wet
-lane is a complete amp/cab path followed by stereo time-based effects.  There
-is no raw-input path in the mix.  A lane that is disabled contributes silence;
+lane is a complete amp path followed by optional cab processing and stereo
+time-based effects.  A NAM capture may already include the cabinet response,
+so a separate cab IR is optional in either lane.  There is no raw-input path
+in the mix.  A lane that is disabled contributes silence;
 an unavailable processed generation contributes either the last complete pair
 or silence according to the bounded underflow policy below.
 
@@ -79,8 +81,10 @@ struct WdwRoutingPlan {
 `RuntimeChain` remains the sequential node container inside each lane.  The
 first admitted chain shapes are:
 
-* Dry: zero or more mono pre/drive stages, one NAM, one mono cab.
-* Wet: one NAM, one mono cab, then zero or more stereo time stages.
+* Dry: zero or more mono pre/drive stages, exactly one NAM, and optionally one
+  mono cab IR.
+* Wet: exactly one NAM, optionally one mono cab IR, then zero or more stereo
+  time stages.
 
 The chain builder may support additional serial NAM blocks inside a lane, but
 the admission check must charge every block.  The Pi probe measured one NAM
@@ -93,7 +97,7 @@ state cannot be shared between lanes.
 
 The planner rejects:
 
-* a missing lane, missing NAM/cab, invalid block size, or unsupported effect
+* a missing lane, missing NAM, invalid block size, or unsupported effect
   ordering;
 * a worker CPU equal to the audio CPU or to the other lane worker;
 * worker setup failure when realtime scheduling/affinity is required;
@@ -327,10 +331,11 @@ being designed.
 
 The builder enforces the fixed product contract before starting any worker:
 
-* each lane has exactly one NAM and one cabinet, with NAM before cabinet;
+* each lane has exactly one enabled NAM; an enabled cabinet is optional and,
+  when present, must follow NAM and precede time/stereo effects;
 * dry-lane blocks are NAM/cab, dynamics, EQ, distortion, or wah;
 * wet-lane blocks are NAM/cab, modulation, delay, reverb, IR reverb, or stereo
-  widening; time/stereo stages must follow the cabinet;
+  widening; time/stereo stages must follow NAM and a present cabinet;
 * nested split blocks, missing/unsupported blocks, duplicate IDs, and unknown
   lane effects are rejected;
 * pipelined admission requires distinct worker CPUs and rejects a worker that

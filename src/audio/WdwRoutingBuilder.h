@@ -42,8 +42,9 @@ struct WdwRoutingBuildReport {
   bool latencyCalibrated = false;
 };
 
-// Validates the fixed product topology, prepares both RuntimeChains, probes
-// their first-arrival latency, and returns an immutable WdwRoutingProgram.
+// Validates the fixed product topology (one NAM per lane, with an optional
+// cabinet IR), prepares both RuntimeChains, probes their first-arrival latency,
+// and returns an immutable WdwRoutingProgram.
 // No audio-thread state is touched by this function.  On failure `program`
 // remains null and the error explains which admission rule rejected the plan.
 bool buildWdwRoutingProgram(const ChainPlan& dryPlan, const ChainPlan& wetPlan,

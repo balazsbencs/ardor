@@ -166,6 +166,10 @@ function assetIssues(block: PresetBlock, definition: EffectDefinition, assets: A
       }
       continue;
     }
+    // A bypassed asset block is intentionally absent from the runtime chain.
+    // Keep validating its path for safety, but do not make a draft
+    // unappliable because the optional asset is empty or not installed.
+    if (!block.enabled) continue;
     if (value.length === 0) {
       issues.push(blockWarning(block, "asset-required", `${control.label} is required before this block can be applied.`, field));
       continue;
@@ -227,6 +231,7 @@ function validateWdwLane(
   }
   let namCount = 0;
   let cabCount = 0;
+  let namIndex = -1;
   let cabIndex = -1;
   blocks.forEach((value, index) => {
     if (!structurallyValidBlock(value, index)) {
@@ -249,12 +254,12 @@ function validateWdwLane(
     if (!isWdwBlockAllowed(laneName, block.type)) {
       issues.push(blockWarning(block, "wdw-placement", `${block.type} is not admitted on the WDW ${laneName} lane.`, "type"));
     }
-    if (!block.enabled && (block.type === "nam" || block.type === "cab")) {
+    if (!block.enabled && block.type === "nam") {
       issues.push(blockError(block, "wdw-required-disabled",
-        `The WDW ${laneName} lane requires its ${block.type.toUpperCase()} block to stay enabled.`, "enabled"));
+        `The WDW ${laneName} lane requires its NAM block to stay enabled.`, "enabled"));
     }
-    if (block.type === "nam") namCount += 1;
-    if (block.type === "cab") { cabCount += 1; cabIndex = index; }
+    if (block.enabled && block.type === "nam") { namCount += 1; namIndex = index; }
+    if (block.enabled && block.type === "cab") { cabCount += 1; cabIndex = index; }
     const definition = definitionForValidation(block);
     if (!definition) {
       issues.push(blockWarning(block, knownTypes.has(block.type) ? "mode-unsupported" : "block-unsupported",
@@ -267,16 +272,22 @@ function validateWdwLane(
     }
     if (definition.id === "eq:parametric_eq_5") issues.push(...validateEq(block));
     issues.push(...assetIssues(block, definition, assets));
-    if (["mod", "delay", "reverb", "irreverb", "stereo"].includes(block.type) && cabIndex < 0) {
-      issues.push(blockWarning(block, "cab-required-first", "Cabinet must precede time-based effects on this lane.", "type"));
+  });
+  if (namCount !== 1) issues.push({ severity: "warning", code: "wdw-nam-count", message: `WDW ${laneName} lane requires exactly one enabled NAM block.`, field: `wdw.${laneName}.blocks` });
+  if (cabCount > 1) issues.push({ severity: "warning", code: "wdw-cab-count", message: `WDW ${laneName} lane supports at most one enabled cabinet block.`, field: `wdw.${laneName}.blocks` });
+  if (cabIndex >= 0 && namIndex > cabIndex) {
+    issues.push({ severity: "warning", code: "wdw-nam-order", message: `NAM must precede the cabinet on the WDW ${laneName} lane.`, field: `wdw.${laneName}.blocks` });
+  }
+  blocks.forEach((value, index) => {
+    if (!structurallyValidBlock(value, index) || !value.enabled) return;
+    if (["mod", "delay", "reverb", "irreverb", "stereo"].includes(value.type)) {
+      if (namIndex < 0 || index < namIndex) {
+        issues.push(blockWarning(value, "nam-required-first", "NAM must precede time-based effects on this lane.", "type"));
+      } else if (cabIndex >= 0 && index < cabIndex) {
+        issues.push(blockWarning(value, "cab-required-first", "Cabinet must precede time-based effects when a cabinet is used on this lane.", "type"));
+      }
     }
   });
-  if (namCount !== 1) issues.push({ severity: "warning", code: "wdw-nam-count", message: `WDW ${laneName} lane requires exactly one NAM block.`, field: `wdw.${laneName}.blocks` });
-  if (cabCount !== 1) issues.push({ severity: "warning", code: "wdw-cab-count", message: `WDW ${laneName} lane requires exactly one cabinet block.`, field: `wdw.${laneName}.blocks` });
-  if (cabIndex >= 0) {
-    const namIndex = blocks.findIndex((block) => structurallyValidBlock(block, 0) && block.type === "nam");
-    if (namIndex > cabIndex) issues.push({ severity: "warning", code: "wdw-nam-order", message: `NAM must precede the cabinet on the WDW ${laneName} lane.`, field: `wdw.${laneName}.blocks` });
-  }
   return issues;
 }
 

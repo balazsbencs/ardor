@@ -844,7 +844,7 @@ void onBypassClicked(lv_event_t* event)
   const bool enabled = !selected->enabled;
   const bool wdwRequired = context->state->bank.presets[context->state->activePreset].routing == "wdw"
     && selectedBlockIsLaneChild(*context->state)
-    && (selected->type == "nam" || selected->type == "cab");
+    && selected->type == "nam";
   if (wdwRequired && !enabled) {
     setUiStatus(*context->state, "Each WDW lane needs its required " + selected->label, true);
     redraw(context);

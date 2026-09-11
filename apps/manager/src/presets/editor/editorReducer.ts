@@ -68,11 +68,6 @@ function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
-function isLastWdwRequiredBlock(blocks: PresetBlock[], block: PresetBlock): boolean {
-  if (block.type !== "nam" && block.type !== "cab") return false;
-  return blocks.filter(({ type }) => type === block.type).length <= 1;
-}
-
 function wdwLaneForBlock(preset: Preset, blockId: string): "dry" | "wet" | undefined {
   if (preset.routing !== "wdw" || !preset.wdw) return undefined;
   if (preset.wdw.dry.blocks.some(({ id }) => id === blockId)) return "dry";
@@ -440,12 +435,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       }, id);
     }
     case "remove-block": {
-      if (state.history.present.routing === "wdw" && state.history.present.wdw) {
-        for (const lane of [state.history.present.wdw.dry.blocks, state.history.present.wdw.wet.blocks]) {
-          const source = lane.find(({ id }) => id === action.blockId);
-          if (source && isLastWdwRequiredBlock(lane, source)) return state;
-        }
-      }
       let selected: string | undefined;
       const next = clonePreset(state.history.present);
       const removeFrom = (blocks: PresetBlock[], parentId?: string): boolean => {

@@ -155,9 +155,21 @@ int main(int argc, char** argv)
     auto disabledCab = wet;
     disabledCab.blocks[1].status = ardor::ChainBlockStatus::Disabled;
     disabledCab.blocks[1].enabled = false;
-    require(!ardor::buildWdwRoutingProgram(dry, disabledCab, options, program, report, error)
-              && error.find("cannot disable its required cab") != std::string::npos,
-            "builder accepted a disabled required cab");
+    require(ardor::buildWdwRoutingProgram(dry, disabledCab, options, program, report, error),
+            "builder rejected an optional disabled cab: " + error);
+
+    // Full-chain NAM captures already contain the cabinet response.  Both
+    // lanes must therefore be runnable with NAM-only chains; a separate cab
+    // remains an optional stage for head-only captures.
+    auto dryNamOnly = dry;
+    dryNamOnly.blocks.erase(dryNamOnly.blocks.begin() + 1);
+    auto wetNamOnly = wet;
+    wetNamOnly.blocks.erase(wetNamOnly.blocks.begin() + 1);
+    program.reset();
+    require(ardor::buildWdwRoutingProgram(dryNamOnly, wetNamOnly, options,
+                                           program, report, error),
+            "builder rejected full-chain NAM-only WDW lanes: " + error);
+    require(program && program->prepared(), "NAM-only WDW program was not prepared");
 
     // The production worker contract requires two explicit pinned CPUs when
     // affinity checks are enabled.

@@ -60,7 +60,7 @@ export function WdwRoutingCanvas({
   return <section className="chain-panel wdw-panel" aria-label="Wet dry wet routing">
     <div className="chain-panel__heading">
       <div><p className="eyebrow">Wet / dry / wet</p><h2>Shape the contribution lanes</h2></div>
-      <StatusBadge tone="info">Two complete paths · no direct input</StatusBadge>
+      <StatusBadge tone="info">Two processed paths · no direct input</StatusBadge>
     </div>
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <div className="wdw-flow">
@@ -74,7 +74,7 @@ export function WdwRoutingCanvas({
         <div className="chain-terminal chain-terminal--out"><span>OUT</span><small>Stereo</small></div>
       </div>
     </DndContext>
-    <p className="wdw-panel__note">Dry is the mono contribution and can be panned. Wet keeps stereo after the cab and exposes width for the time-based lane.</p>
+    <p className="wdw-panel__note">Dry is the mono contribution and can be panned. Wet keeps stereo through an optional cab and exposes width for the time-based lane.</p>
   </section>;
 }
 
@@ -90,7 +90,7 @@ function WdwLane({ lane, config, otherLaneLength, selectedBlockId, issuesFor, ma
   const otherLane = lane === "dry" ? "wet" : "dry";
   return <section className={`wdw-lane wdw-lane--${lane}`}>
     <header className="wdw-lane__heading">
-      <div><span className="wdw-lane__name"><b>{lane === "dry" ? "D" : "W"}</b> {lane === "dry" ? "DRY CONTRIBUTION" : "WET CONTRIBUTION"}</span><small>{lane === "dry" ? "1 NAM + 1 CAB · drive / utility" : "1 NAM + 1 CAB · time-based effects after CAB"}</small></div>
+      <div><span className="wdw-lane__name"><b>{lane === "dry" ? "D" : "W"}</b> {lane === "dry" ? "DRY CONTRIBUTION" : "WET CONTRIBUTION"}</span><small>{lane === "dry" ? "1 NAM · optional CAB IR · drive / utility" : "1 NAM · optional CAB IR · time effects after NAM"}</small></div>
       <Toggle label={`${lane} lane enabled`} checked={config.enabled} onChange={(enabled) => onMix(lane, "enabled", enabled)} />
     </header>
     <div className="wdw-lane__mix">

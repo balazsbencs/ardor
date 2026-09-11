@@ -178,6 +178,17 @@ describe("editorReducer", () => {
     expect(rejected).toBe(edited);
   });
 
+  it("allows WDW drafts to remove the last NAM or optional cab", () => {
+    const source = createWdwPreset("Draft WDW");
+    const namId = source.wdw!.dry.blocks[0].id;
+    const cabId = source.wdw!.wet.blocks[1].id;
+    const loaded = createEditorState({ bank: 1, slot: 1 }, source);
+    const withoutNam = editorReducer(loaded, { type: "remove-block", blockId: namId });
+    expect(withoutNam.history.present.wdw!.dry.blocks.map(({ id }) => id)).not.toContain(namId);
+    const withoutCab = editorReducer(withoutNam, { type: "remove-block", blockId: cabId });
+    expect(withoutCab.history.present.wdw!.wet.blocks.map(({ id }) => id)).not.toContain(cabId);
+  });
+
   it("keeps serial blocks when switching topology and flattens WDW explicitly", () => {
     const serial = state();
     const wdw = editorReducer(serial, { type: "set-routing", routing: "wdw" });

@@ -39,15 +39,18 @@ and two explicit lanes:
 ```
 
 The dry lane is mono at its lane boundary and may contain drive/utility stages;
-the wet lane preserves stereo time-based stages. The editor warns when a lane does
-not yet contain exactly one NAM and one cab, and the runtime admission path remains
-the final authority for asset availability and topology.
+the wet lane preserves stereo time-based stages. Each lane needs exactly one
+enabled NAM; a cabinet IR is optional because a NAM capture may already include
+the cab response. When present, the cab sits between NAM and time-based stages.
+The runtime admission path remains the final authority for asset availability
+and topology.
 
 The device model represents the two lanes as a single split/join summary block so
 existing touch navigation, bypass, and preview transactions remain safe. A newly
 inserted WDW block starts with two empty lanes: the device lets the player author
 the draft incrementally, but defers live preview until both lanes contain one
-enabled, installed NAM followed by one enabled, installed cab. After that point,
+enabled, installed NAM. An installed cab may be added after NAM when a separate
+IR is desired. After that point,
 valid additions (such as Wet delay/reverb) preview normally; invalid Dry/Wet
 placements are rejected at the lane drawer. Loading and saving that summary
 round-trips the explicit WDW schema; it never serializes the summary as a legacy

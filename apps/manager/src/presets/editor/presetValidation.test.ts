@@ -268,6 +268,15 @@ describe("preset validation", () => {
     }];
     expect(validatePreset(preset, assets)).toMatchObject({ canSave: true, canApply: true });
 
+    const namOnly = structuredClone(preset);
+    namOnly.wdw!.dry.blocks.splice(1, 1);
+    namOnly.wdw!.wet.blocks.splice(1, 1);
+    expect(validatePreset(namOnly, assets)).toMatchObject({ canSave: true, canApply: true });
+
+    const bypassedCab = structuredClone(preset);
+    bypassedCab.wdw!.dry.blocks[1].enabled = false;
+    expect(validatePreset(bypassedCab, assets)).toMatchObject({ canSave: true, canApply: true });
+
     wet.blocks[1].asset = "irs/missing.wav";
     expect(codes(preset)).toContain("asset-missing");
     wet.blocks[1].asset = "irs/cab.wav";
