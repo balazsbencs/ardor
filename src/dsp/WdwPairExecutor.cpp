@@ -89,8 +89,8 @@ struct WdwPairExecutor::Impl {
   std::uint64_t submittedGeneration = 0;
   std::uint64_t outputGeneration = 0;
   std::size_t outputAgeBlocks = 0;
-  std::uint64_t underflows = 0;
-  std::uint64_t submissionMisses = 0;
+  std::atomic<std::uint64_t> underflows{0};
+  std::atomic<std::uint64_t> submissionMisses{0};
   bool haveLastPair = false;
   std::vector<float> lastDryLeft;
   std::vector<float> lastDryRight;
@@ -129,8 +129,8 @@ struct WdwPairExecutor::Impl {
     submittedGeneration = 0;
     outputGeneration = 0;
     outputAgeBlocks = 0;
-    underflows = 0;
-    submissionMisses = 0;
+    underflows.store(0, std::memory_order_relaxed);
+    submissionMisses.store(0, std::memory_order_relaxed);
     haveLastPair = false;
   }
 
@@ -504,10 +504,13 @@ bool WdwPairExecutor::configured() const noexcept { return impl_->configured; }
 bool WdwPairExecutor::parallelEnabled() const noexcept { return impl_->parallel; }
 bool WdwPairExecutor::workersReady() const noexcept { return impl_->ready; }
 std::size_t WdwPairExecutor::blockSize() const noexcept { return impl_->options.blockSize; }
-std::uint64_t WdwPairExecutor::underflowCount() const noexcept { return impl_->underflows; }
+std::uint64_t WdwPairExecutor::underflowCount() const noexcept
+{
+  return impl_->underflows.load(std::memory_order_relaxed);
+}
 std::uint64_t WdwPairExecutor::submissionMissCount() const noexcept
 {
-  return impl_->submissionMisses;
+  return impl_->submissionMisses.load(std::memory_order_relaxed);
 }
 
 WdwPairTimingSnapshot WdwPairExecutor::timing(std::size_t lane) const noexcept
@@ -539,8 +542,8 @@ void WdwPairExecutor::reset() noexcept
   impl_->submittedGeneration = 0;
   impl_->outputGeneration = 0;
   impl_->outputAgeBlocks = 0;
-  impl_->underflows = 0;
-  impl_->submissionMisses = 0;
+  impl_->underflows.store(0, std::memory_order_relaxed);
+  impl_->submissionMisses.store(0, std::memory_order_relaxed);
   impl_->haveLastPair = false;
   for (std::size_t slot = 0; slot < impl_->slotCount; ++slot) {
     auto& current = impl_->slots[slot];

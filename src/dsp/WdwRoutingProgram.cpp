@@ -343,6 +343,111 @@ bool WdwRoutingProgram::setMix(WdwMixConfig config) noexcept
   return true;
 }
 
+bool WdwRoutingProgram::setParametricEqBand(const std::string& id, std::size_t band,
+                                            const EqBandParams& params)
+{
+  return (dryContext_ && dryContext_->chain
+          && dryContext_->chain->setParametricEqBand(id, band, params))
+    || (wetContext_ && wetContext_->chain
+        && wetContext_->chain->setParametricEqBand(id, band, params));
+}
+
+bool WdwRoutingProgram::setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,
+                                                  const EqPassFilterParams& params)
+{
+  return (dryContext_ && dryContext_->chain
+          && dryContext_->chain->setParametricEqPassFilter(id, kind, params))
+    || (wetContext_ && wetContext_->chain
+        && wetContext_->chain->setParametricEqPassFilter(id, kind, params));
+}
+
+bool WdwRoutingProgram::setDaisyParameter(const std::string& id, const std::string& key,
+                                          float normalized)
+{
+  return (dryContext_ && dryContext_->chain
+          && dryContext_->chain->setDaisyParameter(id, key, normalized))
+    || (wetContext_ && wetContext_->chain
+        && wetContext_->chain->setDaisyParameter(id, key, normalized));
+}
+
+bool WdwRoutingProgram::setCompressorParameter(const std::string& id, const std::string& key,
+                                               float value)
+{
+  return (dryContext_ && dryContext_->chain
+          && dryContext_->chain->setCompressorParameter(id, key, value))
+    || (wetContext_ && wetContext_->chain
+        && wetContext_->chain->setCompressorParameter(id, key, value));
+}
+
+bool WdwRoutingProgram::compressorGainReductionDb(const std::string& id, float& outDb) const
+{
+  return (dryContext_ && dryContext_->chain
+          && dryContext_->chain->compressorGainReductionDb(id, outDb))
+    || (wetContext_ && wetContext_->chain
+        && wetContext_->chain->compressorGainReductionDb(id, outDb));
+}
+
+bool WdwRoutingProgram::setNoiseGateParameter(const std::string& id, const std::string& key,
+                                              float value)
+{
+  return (dryContext_ && dryContext_->chain
+          && dryContext_->chain->setNoiseGateParameter(id, key, value))
+    || (wetContext_ && wetContext_->chain
+        && wetContext_->chain->setNoiseGateParameter(id, key, value));
+}
+
+bool WdwRoutingProgram::setTransientShaperParameter(const std::string& id, const std::string& key,
+                                                    float value)
+{
+  return (dryContext_ && dryContext_->chain
+          && dryContext_->chain->setTransientShaperParameter(id, key, value))
+    || (wetContext_ && wetContext_->chain
+        && wetContext_->chain->setTransientShaperParameter(id, key, value));
+}
+
+bool WdwRoutingProgram::setWahParameter(const std::string& id, const std::string& key, float value)
+{
+  return (dryContext_ && dryContext_->chain
+          && dryContext_->chain->setWahParameter(id, key, value))
+    || (wetContext_ && wetContext_->chain
+        && wetContext_->chain->setWahParameter(id, key, value));
+}
+
+bool WdwRoutingProgram::setDistortionParameter(const std::string& id, const std::string& key,
+                                               float value)
+{
+  return (dryContext_ && dryContext_->chain
+          && dryContext_->chain->setDistortionParameter(id, key, value))
+    || (wetContext_ && wetContext_->chain
+        && wetContext_->chain->setDistortionParameter(id, key, value));
+}
+
+bool WdwRoutingProgram::setStereoWidenerParameter(const std::string& id, const std::string& key,
+                                                  float value)
+{
+  return (dryContext_ && dryContext_->chain
+          && dryContext_->chain->setStereoWidenerParameter(id, key, value))
+    || (wetContext_ && wetContext_->chain
+        && wetContext_->chain->setStereoWidenerParameter(id, key, value));
+}
+
+bool WdwRoutingProgram::setIrReverbParameter(const std::string& id, const std::string& key,
+                                             float value)
+{
+  return (dryContext_ && dryContext_->chain
+          && dryContext_->chain->setIrReverbParameter(id, key, value))
+    || (wetContext_ && wetContext_->chain
+        && wetContext_->chain->setIrReverbParameter(id, key, value));
+}
+
+bool WdwRoutingProgram::setBlockEnabled(const std::string& id, bool enabled)
+{
+  return (dryContext_ && dryContext_->chain
+          && dryContext_->chain->setBlockEnabled(id, enabled))
+    || (wetContext_ && wetContext_->chain
+        && wetContext_->chain->setBlockEnabled(id, enabled));
+}
+
 void WdwRoutingProgram::processDry(void* opaque, const float* input, float* left,
                                    float* right, std::size_t frames) noexcept
 {

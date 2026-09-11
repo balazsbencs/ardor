@@ -443,6 +443,18 @@ int main()
                 && !wdwDeleteState.statusIsError,
               "deleting the last WDW NAM should leave an editable draft")) return 1;
 
+  auto pendingWdwDeleteState = ardor::makeDemoUiState();
+  ardor::replaceActivePreset(pendingWdwDeleteState, wdwPreset);
+  ardor::selectLaneBlock(pendingWdwDeleteState, 0, 0, 0);
+  pendingWdwDeleteState.pendingPreview = ardor::UiPreviewTransaction{
+    ardor::captureUiPreviewSnapshot(pendingWdwDeleteState), "test pending apply"};
+  if (require(!ardor::deleteSelectedBlock(pendingWdwDeleteState)
+                && pendingWdwDeleteState.bank.presets[pendingWdwDeleteState.activePreset]
+                    .blocks[0].lanes[0].size() == 2
+                && pendingWdwDeleteState.statusIsError
+                && pendingWdwDeleteState.statusMessage == "Effect chain is still applying",
+              "WDW delete during a pending preview should explain why the edit is deferred")) return 1;
+
   auto wdwInsertState = ardor::makeDemoUiState();
   ardor::Preset emptyWdwInsertPreset;
   emptyWdwInsertPreset.name = "WDW Insert Test";

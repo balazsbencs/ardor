@@ -46,4 +46,20 @@ func TestQueueCommandsAtomically(t *testing.T) {
 	if apply := commands[TypeApplyPreset]; apply.Bank != 2 || apply.Slot != 3 {
 		t.Fatalf("apply command=%+v", apply)
 	}
+	if commands[TypeApplyPreset].ID == "" {
+		t.Fatal("apply command has no correlation id")
+	}
+	status, err := ReadApplyStatus(root, commands[TypeApplyPreset].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.State != "pending" || status.Bank != 2 || status.Slot != 3 {
+		t.Fatalf("pending status=%+v", status)
+	}
+}
+
+func TestReadApplyStatusRejectsUnsafeIDs(t *testing.T) {
+	if _, err := ReadApplyStatus(t.TempDir(), "../active-preset"); !os.IsNotExist(err) {
+		t.Fatalf("unsafe id error=%v", err)
+	}
 }

@@ -162,7 +162,18 @@ export type PresetSlot = {
 
 export type ApplyPresetResponse = {
   accepted: boolean;
+  id?: string;
+  state?: "pending" | "applied" | "rejected" | "superseded";
   bank: number;
   slot: number;
   message?: string;
+};
+
+export type ApplyPresetStatus = {
+  id: string;
+  state: "pending" | "applied" | "rejected" | "superseded";
+  bank: number;
+  slot: number;
+  message?: string;
+  updatedAt?: string;
 };

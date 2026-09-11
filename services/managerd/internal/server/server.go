@@ -221,7 +221,7 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 				authState = "authenticated"
 			}
 		}
-		writeJSON(w, http.StatusOK, map[string]any{
+		status := map[string]any{
 			"deviceName":             "Ardor Pedal",
 			"apiVersion":             "0.1.0",
 			"softwareVersion":        versionOrDefault(cfg.SoftwareVersion),
@@ -241,7 +241,11 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 				"tone3000": localTone3000 != nil,
 				"backup":   true,
 			},
-		})
+		}
+		if active, err := runtimecontrol.ReadActivePreset(cfg.DataRoot); err == nil {
+			status["active"] = active
+		}
+		writeJSON(w, http.StatusOK, status)
 	})
 
 	mux.HandleFunc("POST /api/integrations/tone3000/selections", func(w http.ResponseWriter, r *http.Request) {
@@ -633,18 +637,44 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 		if !ok {
 			return
 		}
-		if _, err := presetStore.Load(bank, slot); err != nil {
+		preset, err := presetStore.Load(bank, slot)
+		if err != nil {
 			writeError(w, http.StatusNotFound, "preset_not_found", err.Error())
 			return
 		}
-		if err := runtimecontrol.QueueApplyPreset(cfg.DataRoot, bank, slot); err != nil {
+		if err := presets.ValidateRunnable(preset.Preset); err != nil {
+			writeError(w, http.StatusBadRequest, "preset_not_runnable", err.Error())
+			return
+		}
+		id, err := runtimecontrol.QueueApplyPresetWithID(cfg.DataRoot, bank, slot)
+		if err != nil {
 			writeError(w, http.StatusServiceUnavailable, "runtime_command_failed", err.Error())
 			return
 		}
 		writeJSON(w, http.StatusAccepted, map[string]any{
-			"accepted": true, "bank": bank, "slot": slot,
+			"accepted": true, "id": id, "state": "pending", "bank": bank, "slot": slot,
 			"message": "apply request queued",
 		})
+	})
+
+	mux.HandleFunc("GET /api/runtime/apply/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if !authorized(w, r, cfg, authStore) {
+			return
+		}
+		status, err := runtimecontrol.ReadApplyStatus(cfg.DataRoot, r.PathValue("id"))
+		if errors.Is(err, os.ErrNotExist) {
+			writeError(w, http.StatusNotFound, "apply_not_found", "Apply request was not found")
+			return
+		}
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "apply_status_failed", err.Error())
+			return
+		}
+		code := http.StatusOK
+		if status.State == "pending" {
+			code = http.StatusAccepted
+		}
+		writeJSON(w, code, status)
 	})
 
 	mux.Handle("GET /", webUIHandler(webFiles))

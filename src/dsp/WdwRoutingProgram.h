@@ -86,6 +86,24 @@ public:
   // rate.  Structural lane/chain changes still require a new program.
   bool setMix(WdwMixConfig config) noexcept;
 
+  // Live block controls are forwarded to the two prepared lane chains. The
+  // lane chains are immutable after prepare(), so these operations only touch
+  // processor parameter targets from the management thread.
+  bool setParametricEqBand(const std::string& id, std::size_t band,
+                           const EqBandParams& params);
+  bool setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,
+                                 const EqPassFilterParams& params);
+  bool setDaisyParameter(const std::string& id, const std::string& key, float normalized);
+  bool setCompressorParameter(const std::string& id, const std::string& key, float value);
+  bool compressorGainReductionDb(const std::string& id, float& outDb) const;
+  bool setNoiseGateParameter(const std::string& id, const std::string& key, float value);
+  bool setTransientShaperParameter(const std::string& id, const std::string& key, float value);
+  bool setWahParameter(const std::string& id, const std::string& key, float value);
+  bool setDistortionParameter(const std::string& id, const std::string& key, float value);
+  bool setStereoWidenerParameter(const std::string& id, const std::string& key, float value);
+  bool setIrReverbParameter(const std::string& id, const std::string& key, float value);
+  bool setBlockEnabled(const std::string& id, bool enabled);
+
   bool prepared() const noexcept { return prepared_; }
   std::size_t blockSize() const noexcept { return blockSize_; }
   double sampleRate() const noexcept { return sampleRate_; }

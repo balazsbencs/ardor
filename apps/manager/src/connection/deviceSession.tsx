@@ -13,6 +13,7 @@ import { ArdorApiError } from "../api/errors";
 import type { ManagerTransport } from "../api/transport";
 import type {
   ApplyPresetResponse,
+  ApplyPresetStatus,
   Asset,
   AssetKind,
   DeviceStatus,
@@ -59,6 +60,29 @@ export type DeviceSessionValue = {
   applyCurrent(): Promise<ApplyPresetResponse | undefined>;
   uploadAsset(kind: AssetKind, file: File, overwrite: boolean): Promise<Asset | undefined>;
 };
+
+async function waitForApplyResult(
+  client: ManagerTransport,
+  response: ApplyPresetResponse,
+): Promise<ApplyPresetResponse> {
+  if (!response.id || !client.getApplyStatus) return response;
+  const deadline = Date.now() + 15_000;
+  let status: ApplyPresetStatus = {
+    id: response.id,
+    state: response.state ?? "pending",
+    bank: response.bank,
+    slot: response.slot,
+    message: response.message,
+  };
+  while (status.state === "pending" && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    status = await client.getApplyStatus(response.id);
+  }
+  if (status.state === "rejected" || status.state === "superseded") {
+    throw new Error(status.message ?? `Preset apply ${status.state}.`);
+  }
+  return { ...response, state: status.state, message: status.message ?? response.message };
+}
 
 const baseUrlKey = "ardor-manager.base-url";
 const locationKey = (baseUrl: string) => `ardor-manager.location:${baseUrl}`;
@@ -259,7 +283,15 @@ export function DeviceSessionProvider({
     if (!client || !current || operationBusy.current.apply) return undefined;
     setOperationBusy("apply", true);
     try {
-      return await client.applyPreset(current.location.bank, current.location.slot);
+      const response = await client.applyPreset(current.location.bank, current.location.slot);
+      const result = await waitForApplyResult(client, response);
+      if (result.state === "applied") {
+        setDevice((previous) => previous ? {
+          ...previous,
+          active: { bank: current.location.bank, slot: current.location.slot, name: current.preset.name },
+        } : previous);
+      }
+      return result;
     } finally {
       setOperationBusy("apply", false);
     }

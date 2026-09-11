@@ -95,6 +95,15 @@ int main()
                  && near(right[2], 1.0f + kSqrtHalf),
                "dry and wet lanes were not aligned and mixed")) return 1;
 
+  ardor::WdwRoutingProgram laneControls;
+  auto controlOptions = directOptions();
+  if (!require(laneControls.prepare({"dry", referenceChain(), -1},
+                                    {"wet", referenceChain(), -1},
+                                    controlOptions, error),
+               error.c_str())) return 1;
+  if (!require(laneControls.setBlockEnabled("reference-cab", false),
+               "WDW block-enable control did not reach a lane chain")) return 1;
+
   if (!require(!program.setMix({std::numeric_limits<float>::quiet_NaN(), 0.0f,
                                 true, 1.0f, 1.0f, true}),
                "non-finite mix target was accepted")) return 1;

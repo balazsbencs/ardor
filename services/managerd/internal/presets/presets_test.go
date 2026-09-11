@@ -86,6 +86,17 @@ func TestValidatePreset(t *testing.T) {
 	if err := Validate(wdw); err != nil {
 		t.Fatalf("valid WDW preset rejected: %v", err)
 	}
+	if err := ValidateRunnable(wdw); err != nil {
+		t.Fatalf("runnable WDW preset rejected: %v", err)
+	}
+	incomplete := wdw
+	incomplete["wdw"].(map[string]any)["wet"].(map[string]any)["blocks"] = []any{}
+	if err := Validate(incomplete); err != nil {
+		t.Fatalf("incomplete WDW draft should remain saveable: %v", err)
+	}
+	if err := ValidateRunnable(incomplete); err == nil {
+		t.Fatal("incomplete WDW draft should not be runnable")
+	}
 	wdw["blocks"] = []any{map[string]any{"id": "legacy", "type": "nam", "enabled": true, "asset": "", "params": map[string]any{}}}
 	if err := Validate(wdw); err == nil {
 		t.Fatal("WDW top-level blocks should fail")

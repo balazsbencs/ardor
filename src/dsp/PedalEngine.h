@@ -85,6 +85,9 @@ public:
   uint64_t blockSizeMismatchCount() const noexcept;
   uint64_t nonFiniteBlockCount() const noexcept;
   uint64_t parallelWaitOverBudgetCount() const noexcept;
+  uint64_t parallelUnderflowCount() const noexcept;
+  uint64_t parallelSubmissionMissCount() const noexcept;
+  bool parallelWorkersReady() const noexcept;
   std::string firstNonFiniteBlockId() const;
   // Consumes interval peaks/overloads for the post-input-gain boundary, every
   // chain block, and the final pre-limiter output boundary.

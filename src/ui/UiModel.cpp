@@ -1125,7 +1125,13 @@ void moveBlock(UiState& state, std::size_t from, std::size_t to)
 
 bool deleteSelectedBlock(UiState& state)
 {
-  if (!previewIsSynchronized(state)) return false;
+  if (!previewIsSynchronized(state)) {
+    // Structural edits are serialized with the audio-engine swap.  A delete
+    // tap during that short window used to be a silent no-op, which looked
+    // like WDW lane blocks were not deletable at all on the touchscreen.
+    setUiStatus(state, "Effect chain is still applying", true);
+    return false;
+  }
   auto& blocks = state.bank.presets[state.activePreset].blocks;
   if (state.selectedBlock >= blocks.size()) {
     return false;

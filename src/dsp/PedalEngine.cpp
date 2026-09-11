@@ -175,6 +175,7 @@ bool PedalEngine::addIrReverb(std::string id, std::vector<float> left, std::vect
 
 bool PedalEngine::setIrReverbParameter(const std::string& id, const std::string& key, float value)
 {
+  if (wdwRouting_ && wdwRouting_->setIrReverbParameter(id, key, value)) return true;
   return chain_.setIrReverbParameter(id, key, value);
 }
 
@@ -185,6 +186,7 @@ bool PedalEngine::addStereoWidener(std::string id, float sampleRate, std::string
 
 bool PedalEngine::setStereoWidenerParameter(const std::string& id, const std::string& key, float value)
 {
+  if (wdwRouting_ && wdwRouting_->setStereoWidenerParameter(id, key, value)) return true;
   return chain_.setStereoWidenerParameter(id, key, value);
 }
 
@@ -201,6 +203,7 @@ bool PedalEngine::addDaisyFx(std::string id, const std::string& blockType, const
 
 bool PedalEngine::setDaisyParameter(const std::string& id, const std::string& key, float normalized)
 {
+  if (wdwRouting_ && wdwRouting_->setDaisyParameter(id, key, normalized)) return true;
   return chain_.setDaisyParameter(id, key, normalized);
 }
 
@@ -216,12 +219,14 @@ bool PedalEngine::addCompressor(std::string id, const nlohmann::json& params, fl
 
 bool PedalEngine::setCompressorParameter(const std::string& id, const std::string& key, float value)
 {
+  if (wdwRouting_ && wdwRouting_->setCompressorParameter(id, key, value)) return true;
   return chain_.setCompressorParameter(id, key, value);
 }
 
 float PedalEngine::compressorGainReductionDb(const std::string& id) const
 {
   float value = 0.0f;
+  if (wdwRouting_ && wdwRouting_->compressorGainReductionDb(id, value)) return value;
   chain_.compressorGainReductionDb(id, value);
   return value;
 }
@@ -239,6 +244,7 @@ bool PedalEngine::addNoiseGate(std::string id, const nlohmann::json& params,
 
 bool PedalEngine::setNoiseGateParameter(const std::string& id, const std::string& key, float value)
 {
+  if (wdwRouting_ && wdwRouting_->setNoiseGateParameter(id, key, value)) return true;
   return chain_.setNoiseGateParameter(id, key, value);
 }
 
@@ -255,6 +261,7 @@ bool PedalEngine::addTransientShaper(std::string id, const nlohmann::json& param
 
 bool PedalEngine::setTransientShaperParameter(const std::string& id, const std::string& key, float value)
 {
+  if (wdwRouting_ && wdwRouting_->setTransientShaperParameter(id, key, value)) return true;
   return chain_.setTransientShaperParameter(id, key, value);
 }
 
@@ -282,6 +289,7 @@ bool PedalEngine::addDistortion(std::string id, const nlohmann::json& params,
 
 bool PedalEngine::setDistortionParameter(const std::string& id, const std::string& key, float value)
 {
+  if (wdwRouting_ && wdwRouting_->setDistortionParameter(id, key, value)) return true;
   return chain_.setDistortionParameter(id, key, value);
 }
 
@@ -296,11 +304,13 @@ bool PedalEngine::addWah(std::string id, const nlohmann::json& params, float sam
 
 bool PedalEngine::setWahParameter(const std::string& id, const std::string& key, float value)
 {
+  if (wdwRouting_ && wdwRouting_->setWahParameter(id, key, value)) return true;
   return chain_.setWahParameter(id, key, value);
 }
 
 bool PedalEngine::setBlockEnabled(const std::string& id, bool enabled)
 {
+  if (wdwRouting_ && wdwRouting_->setBlockEnabled(id, enabled)) return true;
   return chain_.setBlockEnabled(id, enabled);
 }
 
@@ -312,12 +322,14 @@ bool PedalEngine::addParametricEq(const std::string& id, const nlohmann::json& p
 
 bool PedalEngine::setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params)
 {
+  if (wdwRouting_ && wdwRouting_->setParametricEqBand(id, band, params)) return true;
   return chain_.setParametricEqBand(id, band, params);
 }
 
 bool PedalEngine::setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,
                                             const EqPassFilterParams& params)
 {
+  if (wdwRouting_ && wdwRouting_->setParametricEqPassFilter(id, kind, params)) return true;
   return chain_.setParametricEqPassFilter(id, kind, params);
 }
 
@@ -462,6 +474,21 @@ uint64_t PedalEngine::parallelWaitOverBudgetCount() const noexcept
   if (wdwRouting_) return wdwRouting_->parallelWaitOverBudgetCount();
   if (flexibleRouting_) return flexibleRouting_->parallelWaitOverBudgetCount();
   return chain_.parallelWaitOverBudgetCount();
+}
+
+uint64_t PedalEngine::parallelUnderflowCount() const noexcept
+{
+  return wdwRouting_ ? wdwRouting_->pairUnderflowCount() : 0;
+}
+
+uint64_t PedalEngine::parallelSubmissionMissCount() const noexcept
+{
+  return wdwRouting_ ? wdwRouting_->pairSubmissionMissCount() : 0;
+}
+
+bool PedalEngine::parallelWorkersReady() const noexcept
+{
+  return !wdwRouting_ || wdwRouting_->workersReady();
 }
 
 std::string PedalEngine::firstNonFiniteBlockId() const

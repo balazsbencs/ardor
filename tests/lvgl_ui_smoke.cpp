@@ -864,6 +864,26 @@ int main()
                 && findLabelContaining(lv_screen_active(), "WIDTH 80%"),
               "WDW should render explicit dry/wet lanes, mix summaries, and no direct path")) return 1;
 
+  auto wdwDeleteUiState = ardor::makeDemoUiState();
+  ardor::replaceActivePreset(wdwDeleteUiState, wdwPreset);
+  ardor::enterEditMode(wdwDeleteUiState);
+  ui.build(lv_screen_active(), wdwDeleteUiState);
+  lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* dryNamAsset = findLabel(lv_screen_active(), "CLEAN TWIN");
+  if (require(dryNamAsset, "WDW dry NAM should be selectable in the edit chain")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(dryNamAsset), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), wdwDeleteUiState);
+  lv_obj_t* wdwDeleteLabel = findLabel(lv_screen_active(), "Delete Block");
+  if (require(wdwDeleteLabel && ardor::selectedBlockIsLaneChild(wdwDeleteUiState),
+              "selecting a WDW lane NAM should open its block editor")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(wdwDeleteLabel), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), wdwDeleteUiState);
+  if (require(wdwDeleteUiState.bank.presets[wdwDeleteUiState.activePreset]
+                  .blocks[0].lanes[0].size() == 1
+                && wdwDeleteUiState.bank.presets[wdwDeleteUiState.activePreset]
+                  .blocks[0].lanes[0][0].type == "cab",
+              "WDW Delete Block should remove a selected NAM from its lane")) return 1;
+
   ui.selectBlock(state, state.selectedBlock);
   ardor::enterEditMode(state);
   const auto renderControls = ardor::parameterPage(state, 0);

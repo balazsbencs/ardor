@@ -168,7 +168,9 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
     setActionError(undefined);
     try {
       const response = await session.applyCurrent();
-      if (response?.accepted) setApplied(editor.location);
+      if (response?.accepted && (!response.id || response.state === "applied")) {
+        setApplied(editor.location);
+      }
     } catch (reason) {
       setActionError(reason instanceof Error ? reason.message : "Could not apply preset.");
     }
@@ -193,7 +195,7 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
   const applyBlocked = !validation.canApply || dirty || session.busy.apply || saving;
   return (
     <main className="workspace">
-      <PresetSidebar summaries={session.presets} selected={editor.location} disabled={saving || session.busy.apply} onSelect={selectLocation} />
+      <PresetSidebar summaries={session.presets} selected={editor.location} active={session.device?.active} disabled={saving || session.busy.apply} onSelect={selectLocation} />
       <section className="workspace-main">
         <header className="preset-header">
           <div><p className="eyebrow">{locationLabel}</p><input aria-label="Preset name" className="preset-name-input" value={present.name} onChange={(event) => dispatch({ type: "set-name", name: event.target.value })} /><div className="preset-header__meta">{dirty && <StatusBadge tone="warning">Unsaved changes</StatusBadge>}{applied?.bank === editor.location.bank && applied.slot === editor.location.slot && <StatusBadge tone="success"><Check size={13} /> Applied this session</StatusBadge>}</div></div>

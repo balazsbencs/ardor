@@ -113,6 +113,68 @@ func Validate(preset Preset) error {
 	return nil
 }
 
+// ValidateRunnable applies the runtime topology contract in addition to the
+// storage/schema contract. Draft WDW presets may be saved while being edited,
+// but they must not be submitted to the pedal as an apply request until both
+// lanes can construct a real engine.
+func ValidateRunnable(preset Preset) error {
+	if err := Validate(preset); err != nil {
+		return err
+	}
+	if preset["routing"] != "wdw" {
+		return nil
+	}
+	wdw := preset["wdw"].(map[string]any)
+	for _, laneName := range []string{"dry", "wet"} {
+		lane := wdw[laneName].(map[string]any)
+		blocks := lane["blocks"].([]any)
+		namCount := 0
+		cabCount := 0
+		namIndex := -1
+		cabIndex := -1
+		timeSeen := false
+		for index, raw := range blocks {
+			block := raw.(map[string]any)
+			typeName, _ := block["type"].(string)
+			enabled, _ := block["enabled"].(bool)
+			if typeName == "nam" {
+				if !enabled {
+					return fmt.Errorf("WDW %s lane cannot disable its required NAM block", laneName)
+				}
+				namCount++
+				namIndex = index
+			}
+			if typeName == "cab" && enabled {
+				if timeSeen {
+					return fmt.Errorf("WDW %s lane requires cabinet before time-based effects", laneName)
+				}
+				cabCount++
+				cabIndex = index
+			}
+			if enabled && (typeName == "mod" || typeName == "delay" || typeName == "reverb" ||
+				typeName == "irreverb" || typeName == "stereo") {
+				if namIndex < 0 {
+					return fmt.Errorf("WDW %s lane requires NAM before time-based effects", laneName)
+				}
+				if cabIndex >= 0 && index < cabIndex {
+					return fmt.Errorf("WDW %s lane requires cabinet before time-based effects", laneName)
+				}
+				timeSeen = true
+			}
+		}
+		if namCount != 1 {
+			return fmt.Errorf("WDW %s lane requires exactly one enabled NAM block", laneName)
+		}
+		if cabCount > 1 {
+			return fmt.Errorf("WDW %s lane supports at most one enabled cabinet block", laneName)
+		}
+		if cabIndex >= 0 && namIndex > cabIndex {
+			return fmt.Errorf("WDW %s lane requires NAM before cabinet", laneName)
+		}
+	}
+	return nil
+}
+
 func validateBlocks(blocks []any, version float64, insideLane bool) error {
 	for _, item := range blocks {
 		block, ok := item.(map[string]any)
