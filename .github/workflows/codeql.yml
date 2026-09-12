@@ -55,7 +55,7 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
           # Keep the path-injection alert suppression query enabled so a
           # narrowly annotated, canonicalized asset sink is auditable in SARIF.
-          queries: security-extended,codeql/cpp-queries:AlertSuppression.ql
+          queries: security-extended,codeql/cpp-queries@*:AlertSuppression.ql
 
       - name: Build C++ code
         if: matrix.language == 'c-cpp'
