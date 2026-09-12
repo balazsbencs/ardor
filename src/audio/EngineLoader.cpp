@@ -104,6 +104,63 @@ bool validateAssetPath(const std::filesystem::path& assetPath,
   return true;
 }
 
+// Return the directory-entry spelling of a confined asset. The caller's
+// assetPath is used only to locate and compare the canonical target; the path
+// forwarded to a file-backed DSP component comes from the trusted directory
+// iterator instead of from the preset/command-line value.
+bool resolveConfinedAssetPath(const std::filesystem::path& assetPath,
+                              const EngineLoadOptions& options, std::string& error,
+                              std::filesystem::path& resolvedPath)
+{
+  if (options.assetRoot.empty()) {
+    error = "configured asset root is required for file-backed effects";
+    return false;
+  }
+  if (assetPath.empty()) {
+    error = "asset path is empty";
+    return false;
+  }
+
+  std::error_code ec;
+  const auto canonicalRoot = std::filesystem::canonical(options.assetRoot, ec);
+  if (ec || !std::filesystem::is_directory(canonicalRoot, ec) || ec) {
+    error = "configured asset root is unavailable: " + options.assetRoot.string();
+    return false;
+  }
+  const auto canonicalAsset = std::filesystem::canonical(assetPath, ec);
+  if (ec || !std::filesystem::is_regular_file(canonicalAsset, ec) || ec) {
+    error = "asset is not a regular file: " + assetPath.string();
+    return false;
+  }
+
+  const auto relative = canonicalAsset.lexically_relative(canonicalRoot);
+  const auto first = relative.begin();
+  if (relative.empty() || first == relative.end() || *first == "..") {
+    error = "asset path escapes configured data root: " + assetPath.string();
+    return false;
+  }
+
+  std::filesystem::recursive_directory_iterator iterator(
+    canonicalRoot, std::filesystem::directory_options::skip_permission_denied, ec);
+  const std::filesystem::recursive_directory_iterator end;
+  for (; iterator != end; iterator.increment(ec)) {
+    if (ec) {
+      ec.clear();
+      continue;
+    }
+    std::error_code entryEc;
+    if (!iterator->is_regular_file(entryEc) || entryEc) continue;
+    const auto entryCanonical = std::filesystem::canonical(iterator->path(), entryEc);
+    if (!entryEc && entryCanonical == canonicalAsset) {
+      resolvedPath = iterator->path();
+      return true;
+    }
+  }
+
+  error = "asset could not be resolved within configured data root: " + assetPath.string();
+  return false;
+}
+
 WdwRoutingBuildOptions wdwBuildOptions(const EngineLoadOptions& options,
                                        const WdwRouting& routing)
 {
@@ -551,19 +608,10 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
     }
     if (block.type == "wah") {
       std::filesystem::path resolvedPath;
-      if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
-      // Keep the path value bounded at the file-backed sink as well as inside
-      // validateAssetPath. This is a real input limit (and gives static
-      // analyzers a local proof that the path cannot be an unbounded command
-      // line value).
-      constexpr std::size_t kMaxAssetPathLength = 4096;
-      if (resolvedPath.native().size() > kMaxAssetPathLength) {
-        error = "wah table path is too long";
-        return false;
-      }
+      if (!resolveConfinedAssetPath(block.assetPath, options, error, resolvedPath)) return false;
       WahProcessor processor;
-      // validateAssetPath canonicalizes the preset asset against the configured
-      // data root before WahCircuit loads it.
+      // resolveConfinedAssetPath canonicalizes the preset asset against the
+      // configured data root before WahCircuit loads it.
       if (!processor.configure(block.params, static_cast<float>(options.sampleRate), resolvedPath, error)) {
         return false;
       }
@@ -932,14 +980,9 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
     }
     if (block.type == "wah") {
       std::filesystem::path resolvedPath;
-      if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
-      constexpr std::size_t kMaxAssetPathLength = 4096;
-      if (resolvedPath.native().size() > kMaxAssetPathLength) {
-        error = "wah table path is too long";
-        return false;
-      }
-      // validateAssetPath canonicalizes and confines the table path before it
-      // reaches WahCircuit's file-backed loader.
+      if (!resolveConfinedAssetPath(block.assetPath, options, error, resolvedPath)) return false;
+      // resolveConfinedAssetPath canonicalizes and confines the table path
+      // before it reaches WahCircuit's file-backed loader.
       if (!engine.addWah(block.id, block.params, static_cast<float>(options.sampleRate),
                          resolvedPath, error)) {
         return false;
