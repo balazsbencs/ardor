@@ -25,6 +25,12 @@ struct EngineLoadOptions {
   int wdwDryWorkerCpu = -1;
   int wdwWetWorkerCpu = -1;
   std::size_t wdwPipelineSlots = 3;
+
+  // When a preset is loaded, the caller supplies the directory that owns its
+  // model, cabinet, reverb, and wah assets.  An empty root preserves the
+  // lower-level plan APIs used by offline tools and tests; applyPreset()
+  // always fills this from its dataRoot before loading user-selected assets.
+  std::filesystem::path assetRoot;
 };
 
 bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoadOptions& options, std::string& error);

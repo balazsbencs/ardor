@@ -62,6 +62,27 @@ void fftInPlace(std::vector<std::complex<float>>& a)
 // the residual error is well under the guard margin the caller applies.
 constexpr size_t kResponseOversample = 8;
 
+std::filesystem::path resolveWavPath(const std::filesystem::path& input)
+{
+  if (input.empty()) {
+    throw std::runtime_error("wav path is empty");
+  }
+
+  const auto normalized = input.lexically_normal();
+  for (const auto& component : normalized) {
+    if (component == "..") {
+      throw std::runtime_error("wav path must not contain '..': " + input.string());
+    }
+  }
+
+  std::error_code ec;
+  const auto canonical = std::filesystem::canonical(normalized, ec);
+  if (ec || !std::filesystem::is_regular_file(canonical, ec) || ec) {
+    throw std::runtime_error("wav path is not a regular file: " + input.string());
+  }
+  return canonical;
+}
+
 float magnitudeResponsePeak(const std::vector<float>& ir)
 {
   const size_t m = nextPowerOfTwo(ir.size() * kResponseOversample);
@@ -81,9 +102,12 @@ float magnitudeResponsePeak(const std::vector<float>& ir)
 
 InterleavedWav readInterleavedWav(const std::filesystem::path& path)
 {
+  const auto safePath = resolveWavPath(path);
   ma_decoder_config cfg = ma_decoder_config_init(ma_format_f32, 0, 0);
   ma_decoder decoder;
-  if (ma_decoder_init_file(path.string().c_str(), &cfg, &decoder) != MA_SUCCESS) {
+  // codeql[cpp/path-injection]: resolveWavPath canonicalizes and validates a
+  // regular file before this offline asset reader opens it.
+  if (ma_decoder_init_file(safePath.string().c_str(), &cfg, &decoder) != MA_SUCCESS) {
     throw std::runtime_error("failed to open wav: " + path.string());
   }
 
@@ -117,12 +141,15 @@ InterleavedWav readInterleavedWav(const std::filesystem::path& path)
 
 MonoWav readMonoWav(const std::filesystem::path& path)
 {
+  const auto safePath = resolveWavPath(path);
   // Leave the output channel count native while opening the file. Asking
   // miniaudio for one output channel would otherwise silently downmix a
   // stereo cabinet capture before the engine has a chance to reject it.
   ma_decoder_config cfg = ma_decoder_config_init(ma_format_f32, 0, 0);
   ma_decoder decoder;
-  if (ma_decoder_init_file(path.string().c_str(), &cfg, &decoder) != MA_SUCCESS) {
+  // codeql[cpp/path-injection]: resolveWavPath canonicalizes and validates a
+  // regular file before this offline asset reader opens it.
+  if (ma_decoder_init_file(safePath.string().c_str(), &cfg, &decoder) != MA_SUCCESS) {
     throw std::runtime_error("failed to open wav: " + path.string());
   }
 

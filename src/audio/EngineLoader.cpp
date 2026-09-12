@@ -14,6 +14,7 @@
 
 #include <cmath>
 #include <exception>
+#include <filesystem>
 #include <utility>
 
 namespace ardor {
@@ -47,6 +48,46 @@ bool validateLoadOptions(const EngineLoadOptions& options, std::string& error)
   }
   if (options.blockSize == 0) {
     error = "audio block size must be greater than zero";
+    return false;
+  }
+  return true;
+}
+
+// Preset assets are resolved from a single data root before they reach any
+// file-backed DSP component. Canonicalizing both sides makes the check
+// resistant to traversal and symlink escapes; a lexical prefix check alone
+// would accept a path such as dataRoot/assets/link -> /etc/passwd.
+bool validateAssetPath(const std::filesystem::path& assetPath,
+                       const EngineLoadOptions& options, std::string& error)
+{
+  if (assetPath.empty()) {
+    error = "asset path is empty";
+    return false;
+  }
+  if (options.assetRoot.empty()) {
+    // applyChainPlan()/prepareRuntimeChain() are also used by offline tools
+    // that intentionally provide already-resolved paths. Preset activation
+    // always supplies assetRoot below, so production user-selected assets
+    // never take this compatibility path.
+    return true;
+  }
+
+  std::error_code ec;
+  const auto canonicalRoot = std::filesystem::canonical(options.assetRoot, ec);
+  if (ec || !std::filesystem::is_directory(canonicalRoot, ec) || ec) {
+    error = "configured asset root is unavailable: " + options.assetRoot.string();
+    return false;
+  }
+  const auto canonicalAsset = std::filesystem::canonical(assetPath, ec);
+  if (ec || !std::filesystem::is_regular_file(canonicalAsset, ec) || ec) {
+    error = "asset is not a regular file: " + assetPath.string();
+    return false;
+  }
+
+  const auto relative = canonicalAsset.lexically_relative(canonicalRoot);
+  const auto first = relative.begin();
+  if (relative.empty() || first == relative.end() || *first == "..") {
+    error = "asset path escapes configured data root: " + assetPath.string();
     return false;
   }
   return true;
@@ -269,6 +310,7 @@ bool prepareReverbIr(const InterleavedWav& wav, std::vector<float>& left,
 bool loadPreparedIr(const std::filesystem::path& path, const EngineLoadOptions& options,
                     std::vector<float>& samples, std::string& error)
 {
+  if (!validateAssetPath(path, options, error)) return false;
   MonoWav wav;
   try {
     wav = readMonoWav(path);
@@ -307,6 +349,7 @@ bool makeDualAmpLane(const ChainBlockPlan& block, std::size_t laneIndex,
     return false;
   }
   lane.modelPath = block.dualAmpLanes[laneIndex].modelPath;
+  if (!validateAssetPath(lane.modelPath, options, error)) return false;
   lane.slimmableSize = useNano ? 0.0f : 1.0f;
   lane.cabLevel = std::pow(10.0f, levelDb / 20.0f);
   return loadPreparedIr(block.dualAmpLanes[laneIndex].cabPath, options, lane.impulse, error);
@@ -342,6 +385,7 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
           || !namInputMode(block, inputMode, error)) {
         return false;
       }
+      if (!validateAssetPath(block.assetPath, options, error)) return false;
       if (!chain.addNam(block.assetPath, options.sampleRate,
                         static_cast<int>(options.blockSize), block.id,
                         slimmableSize, inputMode)) {
@@ -382,6 +426,7 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       continue;
     }
     if (block.type == "irreverb") {
+      if (!validateAssetPath(block.assetPath, options, error)) return false;
       InterleavedWav wav;
       try {
         wav = readInterleavedWav(block.assetPath);
@@ -491,7 +536,10 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       continue;
     }
     if (block.type == "wah") {
+      if (!validateAssetPath(block.assetPath, options, error)) return false;
       WahProcessor processor;
+      // codeql[cpp/path-injection]: validateAssetPath canonicalizes the
+      // preset asset against the configured data root before WahCircuit loads it.
       if (!processor.configure(block.params, static_cast<float>(options.sampleRate),
                                block.assetPath, error)) {
         return false;
@@ -555,6 +603,7 @@ bool preflightChainPlan(const ChainPlan& plan, const EngineLoadOptions& options,
       if (!namInputMode(block, ignoredInputMode, error)) {
         return false;
       }
+      if (!validateAssetPath(block.assetPath, options, error)) return false;
       loadedNam = true;
       stereoEstablished = false;
       continue;
@@ -603,6 +652,7 @@ bool preflightChainPlan(const ChainPlan& plan, const EngineLoadOptions& options,
         error = "cabinet must precede stereo effects: " + block.id;
         return false;
       }
+      if (!validateAssetPath(block.assetPath, options, error)) return false;
       MonoWav wav;
       try {
         wav = readMonoWav(block.assetPath);
@@ -670,6 +720,7 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       if (!namInputMode(block, inputMode, error)) {
         return false;
       }
+      if (!validateAssetPath(block.assetPath, options, error)) return false;
       if (!engine.loadNam(block.assetPath, options.sampleRate, static_cast<int>(options.blockSize),
                           block.id, slimmableSize, inputMode)) {
         error = "failed to load NAM: " + block.assetPath.string();
@@ -737,6 +788,7 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
         error = "cabinet must precede stereo effects: " + block.id;
         return false;
       }
+      if (!validateAssetPath(block.assetPath, options, error)) return false;
       MonoWav wav;
       try {
         wav = readMonoWav(block.assetPath);
@@ -759,6 +811,7 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       continue;
     }
     if (block.type == "irreverb") {
+      if (!validateAssetPath(block.assetPath, options, error)) return false;
       InterleavedWav wav;
       try {
         wav = readInterleavedWav(block.assetPath);
@@ -852,6 +905,7 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       continue;
     }
     if (block.type == "wah") {
+      if (!validateAssetPath(block.assetPath, options, error)) return false;
       if (!engine.addWah(block.id, block.params, static_cast<float>(options.sampleRate),
                          block.assetPath, error)) {
         return false;
@@ -886,6 +940,8 @@ bool preflightPreset(const Preset& preset, const std::filesystem::path& dataRoot
                      const EngineLoadOptions& options, std::string& error)
 {
   try {
+    EngineLoadOptions guardedOptions = options;
+    guardedOptions.assetRoot = dataRoot;
     if (preset.routing == "wdw") {
       if (!preset.wdw) {
         error = "wet/dry/wet preset is missing its lane configuration";
@@ -898,10 +954,10 @@ bool preflightPreset(const Preset& preset, const std::filesystem::path& dataRoot
       std::unique_ptr<WdwRoutingProgram> ignoredProgram;
       WdwRoutingBuildReport ignoredReport;
       return buildWdwRoutingProgram(
-        dryPlan, wetPlan, wdwBuildOptions(options, *preset.wdw),
+        dryPlan, wetPlan, wdwBuildOptions(guardedOptions, *preset.wdw),
         ignoredProgram, ignoredReport, error);
     }
-    return preflightChainPlan(buildChainPlan(preset, dataRoot), options, error);
+    return preflightChainPlan(buildChainPlan(preset, dataRoot), guardedOptions, error);
   } catch (const std::exception& e) {
     error = e.what();
     return false;
@@ -923,6 +979,8 @@ bool preflightPresetSlot(const PresetStore& store, PresetSlot slot,
 bool applyPreset(PedalEngine& engine, const Preset& preset, const std::filesystem::path& dataRoot,
                  const EngineLoadOptions& options, std::string& error)
 {
+  EngineLoadOptions guardedOptions = options;
+  guardedOptions.assetRoot = dataRoot;
   if (preset.routing == "wdw") {
     if (!preset.wdw) {
       error = "wet/dry/wet preset is missing its lane configuration";
@@ -934,10 +992,10 @@ bool applyPreset(PedalEngine& engine, const Preset& preset, const std::filesyste
       preset.global, preset.wdw->wet.blocks, dataRoot, preset.midiBindings);
     WdwRoutingBuildReport ignoredReport;
     return applyWdwRouting(
-      engine, dryPlan, wetPlan, wdwBuildOptions(options, *preset.wdw),
+      engine, dryPlan, wetPlan, wdwBuildOptions(guardedOptions, *preset.wdw),
       ignoredReport, error);
   }
-  return applyChainPlan(engine, buildChainPlan(preset, dataRoot), options, error);
+  return applyChainPlan(engine, buildChainPlan(preset, dataRoot), guardedOptions, error);
 }
 
 bool applyPresetSlot(PedalEngine& engine, const PresetStore& store, PresetSlot slot,
