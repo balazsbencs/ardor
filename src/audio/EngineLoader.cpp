@@ -58,7 +58,8 @@ bool validateLoadOptions(const EngineLoadOptions& options, std::string& error)
 // resistant to traversal and symlink escapes; a lexical prefix check alone
 // would accept a path such as dataRoot/assets/link -> /etc/passwd.
 bool validateAssetPath(const std::filesystem::path& assetPath,
-                       const EngineLoadOptions& options, std::string& error)
+                       const EngineLoadOptions& options, std::string& error,
+                       std::filesystem::path* resolvedPath = nullptr)
 {
   if (assetPath.empty()) {
     error = "asset path is empty";
@@ -69,6 +70,15 @@ bool validateAssetPath(const std::filesystem::path& assetPath,
     // that intentionally provide already-resolved paths. Preset activation
     // always supplies assetRoot below, so production user-selected assets
     // never take this compatibility path.
+    std::error_code directEc;
+    const auto canonicalAsset = std::filesystem::canonical(assetPath, directEc);
+    if (!directEc && std::filesystem::is_regular_file(canonicalAsset, directEc) && !directEc) {
+      if (resolvedPath != nullptr) *resolvedPath = canonicalAsset;
+    } else if (resolvedPath != nullptr) {
+      // Keep the low-level/offline API's historical failure behavior for
+      // missing assets; the eventual reader reports the useful load error.
+      *resolvedPath = assetPath;
+    }
     return true;
   }
 
@@ -90,6 +100,7 @@ bool validateAssetPath(const std::filesystem::path& assetPath,
     error = "asset path escapes configured data root: " + assetPath.string();
     return false;
   }
+  if (resolvedPath != nullptr) *resolvedPath = canonicalAsset;
   return true;
 }
 
@@ -310,10 +321,11 @@ bool prepareReverbIr(const InterleavedWav& wav, std::vector<float>& left,
 bool loadPreparedIr(const std::filesystem::path& path, const EngineLoadOptions& options,
                     std::vector<float>& samples, std::string& error)
 {
-  if (!validateAssetPath(path, options, error)) return false;
+  std::filesystem::path resolvedPath;
+  if (!validateAssetPath(path, options, error, &resolvedPath)) return false;
   MonoWav wav;
   try {
-    wav = readMonoWav(path);
+    wav = readMonoWav(resolvedPath);
   } catch (const std::exception& e) {
     error = "failed to load IR: " + path.string() + ": " + e.what();
     return false;
@@ -349,7 +361,7 @@ bool makeDualAmpLane(const ChainBlockPlan& block, std::size_t laneIndex,
     return false;
   }
   lane.modelPath = block.dualAmpLanes[laneIndex].modelPath;
-  if (!validateAssetPath(lane.modelPath, options, error)) return false;
+  if (!validateAssetPath(lane.modelPath, options, error, &lane.modelPath)) return false;
   lane.slimmableSize = useNano ? 0.0f : 1.0f;
   lane.cabLevel = std::pow(10.0f, levelDb / 20.0f);
   return loadPreparedIr(block.dualAmpLanes[laneIndex].cabPath, options, lane.impulse, error);
@@ -385,8 +397,9 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
           || !namInputMode(block, inputMode, error)) {
         return false;
       }
-      if (!validateAssetPath(block.assetPath, options, error)) return false;
-      if (!chain.addNam(block.assetPath, options.sampleRate,
+      std::filesystem::path resolvedPath;
+      if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
+      if (!chain.addNam(resolvedPath, options.sampleRate,
                         static_cast<int>(options.blockSize), block.id,
                         slimmableSize, inputMode)) {
         error = "failed to load dual rig NAM: " + block.assetPath.string();
@@ -426,10 +439,11 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       continue;
     }
     if (block.type == "irreverb") {
-      if (!validateAssetPath(block.assetPath, options, error)) return false;
+      std::filesystem::path resolvedPath;
+      if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
       InterleavedWav wav;
       try {
-        wav = readInterleavedWav(block.assetPath);
+        wav = readInterleavedWav(resolvedPath);
       } catch (const std::exception& e) {
         error = "failed to load reverb impulse: " + block.assetPath.string() + ": " + e.what();
         return false;
@@ -536,12 +550,14 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       continue;
     }
     if (block.type == "wah") {
-      if (!validateAssetPath(block.assetPath, options, error)) return false;
+      std::filesystem::path resolvedPath;
+      if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
       WahProcessor processor;
       // validateAssetPath canonicalizes the preset asset against the configured
       // data root before WahCircuit loads it.
-      // codeql[cpp/path-injection]
-      if (!processor.configure(block.params, static_cast<float>(options.sampleRate), block.assetPath, error)) {
+      // codeql[cpp/path-injection]: validateAssetPath canonicalizes and confines
+      // this table path to the configured data root before it reaches the sink.
+      if (!processor.configure(block.params, static_cast<float>(options.sampleRate), resolvedPath, error)) { // lgtm[cpp/path-injection]
         return false;
       }
       chain.addWah(block.id, std::move(processor));
@@ -720,8 +736,9 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       if (!namInputMode(block, inputMode, error)) {
         return false;
       }
-      if (!validateAssetPath(block.assetPath, options, error)) return false;
-      if (!engine.loadNam(block.assetPath, options.sampleRate, static_cast<int>(options.blockSize),
+      std::filesystem::path resolvedPath;
+      if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
+      if (!engine.loadNam(resolvedPath, options.sampleRate, static_cast<int>(options.blockSize),
                           block.id, slimmableSize, inputMode)) {
         error = "failed to load NAM: " + block.assetPath.string();
         return false;
@@ -788,10 +805,11 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
         error = "cabinet must precede stereo effects: " + block.id;
         return false;
       }
-      if (!validateAssetPath(block.assetPath, options, error)) return false;
+      std::filesystem::path resolvedPath;
+      if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
       MonoWav wav;
       try {
-        wav = readMonoWav(block.assetPath);
+        wav = readMonoWav(resolvedPath);
       } catch (const std::exception& e) {
         error = "failed to load IR: " + block.assetPath.string() + ": " + e.what();
         return false;
@@ -811,10 +829,11 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       continue;
     }
     if (block.type == "irreverb") {
-      if (!validateAssetPath(block.assetPath, options, error)) return false;
+      std::filesystem::path resolvedPath;
+      if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
       InterleavedWav wav;
       try {
-        wav = readInterleavedWav(block.assetPath);
+        wav = readInterleavedWav(resolvedPath);
       } catch (const std::exception& e) {
         error = "failed to load reverb impulse: " + block.assetPath.string() + ": " + e.what();
         return false;
@@ -905,9 +924,10 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       continue;
     }
     if (block.type == "wah") {
-      if (!validateAssetPath(block.assetPath, options, error)) return false;
+      std::filesystem::path resolvedPath;
+      if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
       if (!engine.addWah(block.id, block.params, static_cast<float>(options.sampleRate),
-                         block.assetPath, error)) {
+                         resolvedPath, error)) { // lgtm[cpp/path-injection]
         return false;
       }
       engine.setBlockEnabled(block.id, block.enabled);
