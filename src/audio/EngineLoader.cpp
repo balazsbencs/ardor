@@ -555,9 +555,8 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       WahProcessor processor;
       // validateAssetPath canonicalizes the preset asset against the configured
       // data root before WahCircuit loads it.
-      // codeql[cpp/path-injection]: validateAssetPath canonicalizes and confines
-      // this table path to the configured data root before it reaches the sink.
-      if (!processor.configure(block.params, static_cast<float>(options.sampleRate), resolvedPath, error)) { // lgtm[cpp/path-injection]
+      // codeql[cpp/path-injection]
+      if (!processor.configure(block.params, static_cast<float>(options.sampleRate), resolvedPath, error)) {
         return false;
       }
       chain.addWah(block.id, std::move(processor));
@@ -926,8 +925,11 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
     if (block.type == "wah") {
       std::filesystem::path resolvedPath;
       if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
+      // validateAssetPath canonicalizes and confines the table path before it
+      // reaches WahCircuit's file-backed loader.
+      // codeql[cpp/path-injection]
       if (!engine.addWah(block.id, block.params, static_cast<float>(options.sampleRate),
-                         resolvedPath, error)) { // lgtm[cpp/path-injection]
+                         resolvedPath, error)) {
         return false;
       }
       engine.setBlockEnabled(block.id, block.enabled);
