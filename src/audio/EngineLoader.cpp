@@ -538,8 +538,9 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
     if (block.type == "wah") {
       if (!validateAssetPath(block.assetPath, options, error)) return false;
       WahProcessor processor;
-      // codeql[cpp/path-injection] validateAssetPath canonicalizes the preset
-      // asset against the configured data root before WahCircuit loads it.
+      // validateAssetPath canonicalizes the preset asset against the configured
+      // data root before WahCircuit loads it.
+      // codeql[cpp/path-injection]
       if (!processor.configure(block.params, static_cast<float>(options.sampleRate), block.assetPath, error)) {
         return false;
       }
