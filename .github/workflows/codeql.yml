@@ -39,23 +39,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Initialize CodeQL (non-C++)
-        if: matrix.language != 'c-cpp'
+      - name: Initialize CodeQL
         uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
           queries: security-extended
-
-      - name: Initialize CodeQL (C++)
-        if: matrix.language == 'c-cpp'
-        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
-        with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
-          # Keep the path-injection alert suppression query enabled so a
-          # narrowly annotated, canonicalized asset sink is auditable in SARIF.
-          queries: security-extended,./.github/codeql/AlertSuppression.ql
 
       - name: Build C++ code
         if: matrix.language == 'c-cpp'

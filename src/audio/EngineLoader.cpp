@@ -552,10 +552,18 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
     if (block.type == "wah") {
       std::filesystem::path resolvedPath;
       if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
+      // Keep the path value bounded at the file-backed sink as well as inside
+      // validateAssetPath. This is a real input limit (and gives static
+      // analyzers a local proof that the path cannot be an unbounded command
+      // line value).
+      constexpr std::size_t kMaxAssetPathLength = 4096;
+      if (resolvedPath.native().size() > kMaxAssetPathLength) {
+        error = "wah table path is too long";
+        return false;
+      }
       WahProcessor processor;
       // validateAssetPath canonicalizes the preset asset against the configured
       // data root before WahCircuit loads it.
-      // codeql[cpp/path-injection]
       if (!processor.configure(block.params, static_cast<float>(options.sampleRate), resolvedPath, error)) {
         return false;
       }
@@ -925,9 +933,13 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
     if (block.type == "wah") {
       std::filesystem::path resolvedPath;
       if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
+      constexpr std::size_t kMaxAssetPathLength = 4096;
+      if (resolvedPath.native().size() > kMaxAssetPathLength) {
+        error = "wah table path is too long";
+        return false;
+      }
       // validateAssetPath canonicalizes and confines the table path before it
       // reaches WahCircuit's file-backed loader.
-      // codeql[cpp/path-injection]
       if (!engine.addWah(block.id, block.params, static_cast<float>(options.sampleRate),
                          resolvedPath, error)) {
         return false;
