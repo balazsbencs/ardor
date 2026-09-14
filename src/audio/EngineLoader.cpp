@@ -50,6 +50,11 @@ bool validateLoadOptions(const EngineLoadOptions& options, std::string& error)
     error = "audio block size must be greater than zero";
     return false;
   }
+  if (options.inputReferenceLevelDbU
+      && !std::isfinite(*options.inputReferenceLevelDbU)) {
+    error = "input reference level must be finite";
+    return false;
+  }
   return true;
 }
 
@@ -420,6 +425,7 @@ bool makeDualAmpLane(const ChainBlockPlan& block, std::size_t laneIndex,
   lane.modelPath = block.dualAmpLanes[laneIndex].modelPath;
   if (!validateAssetPath(lane.modelPath, options, error, &lane.modelPath)) return false;
   lane.slimmableSize = useNano ? 0.0f : 1.0f;
+  lane.inputReferenceLevelDbU = options.inputReferenceLevelDbU;
   lane.cabLevel = std::pow(10.0f, levelDb / 20.0f);
   return loadPreparedIr(block.dualAmpLanes[laneIndex].cabPath, options, lane.impulse, error);
 }
@@ -458,7 +464,7 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
       if (!chain.addNam(resolvedPath, options.sampleRate,
                         static_cast<int>(options.blockSize), block.id,
-                        slimmableSize, inputMode)) {
+                        slimmableSize, inputMode, options.inputReferenceLevelDbU)) {
         error = "failed to load dual rig NAM: " + block.assetPath.string();
         return false;
       }
@@ -794,7 +800,8 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       std::filesystem::path resolvedPath;
       if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
       if (!engine.loadNam(resolvedPath, options.sampleRate, static_cast<int>(options.blockSize),
-                          block.id, slimmableSize, inputMode)) {
+                          block.id, slimmableSize, inputMode,
+                          options.inputReferenceLevelDbU)) {
         error = "failed to load NAM: " + block.assetPath.string();
         return false;
       }

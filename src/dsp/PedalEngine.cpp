@@ -126,11 +126,13 @@ void PedalEngine::setSampleRate(double sampleRate)
 }
 
 bool PedalEngine::loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
-                          std::string id, float slimmableSize, NamInputMode inputMode)
+                          std::string id, float slimmableSize, NamInputMode inputMode,
+                          std::optional<float> inputReferenceLevelDbU)
 {
   setSampleRate(sampleRate);
   prepareBlockSize(static_cast<size_t>(std::max(1, maxBlockSize)));
-  return chain_.addNam(modelPath, sampleRate, maxBlockSize, std::move(id), slimmableSize, inputMode);
+  return chain_.addNam(modelPath, sampleRate, maxBlockSize, std::move(id), slimmableSize,
+                       inputMode, inputReferenceLevelDbU);
 }
 
 bool PedalEngine::addDualAmp(std::string id, DualAmpLaneConfig left, DualAmpLaneConfig right,
@@ -692,7 +694,7 @@ float PedalEngine::smoothEffectsMix(float target)
   return currentEffectsMix_;
 }
 
-StereoSample PedalEngine::equalPowerMix(StereoSample dry, StereoSample wet, float wetMix)
+StereoSample PedalEngine::bypassMix(StereoSample dry, StereoSample wet, float wetMix)
 {
   const float clampedMix = std::clamp(wetMix, 0.0f, 1.0f);
   if (clampedMix <= 0.0f) {
@@ -701,9 +703,12 @@ StereoSample PedalEngine::equalPowerMix(StereoSample dry, StereoSample wet, floa
   if (clampedMix >= 1.0f) {
     return wet;
   }
-  const float dryGain = std::sqrt(1.0f - clampedMix);
-  const float wetGain = std::sqrt(clampedMix);
-  return {dry.left * dryGain + wet.left * wetGain, dry.right * dryGain + wet.right * wetGain};
+  // The dry and processed signals are normally strongly correlated. A linear
+  // crossfade therefore preserves unity for transparent chains, while an
+  // equal-power curve would add 3 dB halfway through every bypass transition.
+  const float dryGain = 1.0f - clampedMix;
+  return {dry.left * dryGain + wet.left * clampedMix,
+          dry.right * dryGain + wet.right * clampedMix};
 }
 
 std::pair<float, float> PedalEngine::process(float input)
@@ -724,8 +729,11 @@ std::pair<float, float> PedalEngine::process(float input)
   const float safetyLimit = safetyLimit_.load(std::memory_order_relaxed);
   const float afterGain = input * smoothGain(currentInputGain_, inputGain);
   observeLevel(inputPeakBits_, inputOverloadFrames_, afterGain, afterGain);
+  const float smoothedEffectsMix = smoothEffectsMix(effectsMix);
   StereoSample wet{};
-  if (wdwRouting_) {
+  if (smoothedEffectsMix <= 0.0f) {
+    wet = {input, input};
+  } else if (wdwRouting_) {
     // The WDW program owns the dry/wet lane mix. The host-level effects
     // bypass control still selects raw input when explicitly enabled.
     if (!wdwRouting_->processSample(afterGain, wet.left, wet.right)) {
@@ -743,8 +751,8 @@ std::pair<float, float> PedalEngine::process(float input)
                          smoothGain(currentCabMix_, cabMix));
   }
   const float output = smoothGain(currentOutputGain_, outputGain);
-  StereoSample mixed = equalPowerMix({input, input}, {wet.left * output, wet.right * output},
-                                     smoothEffectsMix(effectsMix));
+  StereoSample mixed = bypassMix({input, input}, {wet.left * output, wet.right * output},
+                                 smoothedEffectsMix);
   if (looperPrepared()) {
     looper_.processBlock(&mixed.left, &mixed.right, 1);
   }
@@ -807,32 +815,41 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
     inputOverloads += magnitude > 1.0f ? 1U : 0U;
   }
   commitLevel(inputPeakBits_, inputOverloadFrames_, inputPeak, inputOverloads);
-  bool routingProcessed = false;
-  if (wdwRouting_) {
-    WdwRoutingProcessResult routingResult;
-    routingProcessed = wdwRouting_->processBlock(gainedInput_.data(), left, right,
-                                                  frames, routingResult);
-  } else if (flexibleRouting_) {
-    FlexibleRoutingGraphProcessResult routingResult;
-    routingProcessed = flexibleRouting_->processBlock(gainedInput_.data(), left, right,
-                                                       frames, routingResult);
+  // Once a bypass fade has reached dry, stop executing the chain. This makes
+  // the overload latch an actual CPU escape hatch instead of only changing
+  // what is audible while the expensive processors continue to run.
+  const bool processEffects = currentEffectsMix_ > 0.0f || effectsMix > 0.0f;
+  if (processEffects) {
+    bool routingProcessed = false;
+    if (wdwRouting_) {
+      WdwRoutingProcessResult routingResult;
+      routingProcessed = wdwRouting_->processBlock(gainedInput_.data(), left, right,
+                                                    frames, routingResult);
+    } else if (flexibleRouting_) {
+      FlexibleRoutingGraphProcessResult routingResult;
+      routingProcessed = flexibleRouting_->processBlock(gainedInput_.data(), left, right,
+                                                         frames, routingResult);
+    } else {
+      chain_.processBlock(gainedInput_.data(), left, right, frames,
+                          cabLevelBlock_.data(), cabMixBlock_.data());
+      routingProcessed = true;
+    }
+    if (!routingProcessed) {
+      std::fill(left, left + frames, 0.0f);
+      std::fill(right, right + frames, 0.0f);
+    }
   } else {
-    chain_.processBlock(gainedInput_.data(), left, right, frames,
-                        cabLevelBlock_.data(), cabMixBlock_.data());
-    routingProcessed = true;
-  }
-  if (!routingProcessed) {
-    std::fill(left, left + frames, 0.0f);
-    std::fill(right, right + frames, 0.0f);
+    std::copy(sanitizedInput_.begin(), sanitizedInput_.begin() + static_cast<std::ptrdiff_t>(frames), left);
+    std::copy(sanitizedInput_.begin(), sanitizedInput_.begin() + static_cast<std::ptrdiff_t>(frames), right);
   }
   // Build the complete preset program first. The host looper captures this
   // post-output-gain signal, but deliberately remains before master volume and
   // the safety limiter so changing stage volume never alters stored audio.
   for (size_t i = 0; i < frames; ++i) {
     const float output = smoothGain(currentOutputGain_, outputGain);
-    const StereoSample mixed = equalPowerMix({sanitizedInput_[i], sanitizedInput_[i]},
-                                             {left[i] * output, right[i] * output},
-                                             smoothEffectsMix(effectsMix));
+    const StereoSample mixed = bypassMix({sanitizedInput_[i], sanitizedInput_[i]},
+                                         {left[i] * output, right[i] * output},
+                                         smoothEffectsMix(effectsMix));
     left[i] = mixed.left;
     right[i] = mixed.right;
   }

@@ -6,6 +6,7 @@
 // Falls back to <source>/models/test.nam when no argument is given.
 
 #include "dsp/IrConvolver.h"
+#include "dsp/IrReverbProcessor.h"
 #include "dsp/DenormalGuard.h"
 #include "dsp/NamProcessor.h"
 #include "cheese/CheeseProcessor.h"
@@ -216,6 +217,29 @@ int main(int argc, char** argv)
     convolver.prepareBlockSize(kBlockSize);
     report("IrConvolver", bench([&](const float* in, float* out, size_t frames) {
       convolver.processBlock(in, out, frames);
+    }));
+  }
+
+  {
+    ardor::IrReverbProcessor reverb;
+    std::vector<float> impulse(static_cast<std::size_t>(kSampleRate * 2.0), 0.0f);
+    uint32_t noise = 0x91e10da5u;
+    for (std::size_t i = 0; i < impulse.size(); ++i) {
+      const float decay = std::exp(-5.0f * static_cast<float>(i) /
+                                   static_cast<float>(impulse.size()));
+      impulse[i] = nextNoise(noise) * decay * 0.1f;
+    }
+    impulse[0] = 1.0f;
+    std::string error;
+    if (!reverb.load(std::move(impulse), {}, static_cast<float>(kSampleRate), error)) {
+      throw std::runtime_error(error);
+    }
+    reverb.setMix(1.0f);
+    reverb.reset();
+    report("IR reverb (2 s)", bench([&](const float* in, float* out, size_t frames) {
+      for (std::size_t i = 0; i < frames; ++i) {
+        out[i] = reverb.process({in[i], in[i]}).left;
+      }
     }));
   }
 

@@ -55,7 +55,7 @@ struct MiniaudioBackendState {
   // Written only by the audio callback after construction.
   enum class TransitionPhase { Normal, FadeOut, FadeIn } transitionPhase = TransitionPhase::Normal;
   ma_uint32 transitionFrame = 0;
-  ma_uint32 transitionFrames = 480; // 10 ms at the fixed 48 kHz engine rate.
+  ma_uint32 transitionFrames = 512; // start() rounds the nominal 10 ms to whole blocks.
   std::vector<float> inputBlock;
   std::vector<float> leftBlock;
   std::vector<float> rightBlock;
@@ -220,35 +220,61 @@ void callback(ma_device* device, void* output, const void* input, ma_uint32 fram
 
   const auto start = std::chrono::steady_clock::now();
 
+  if (state->transitionPhase == MiniaudioBackendState::TransitionPhase::Normal
+      && state->swapRequested.load(std::memory_order_acquire)) {
+    state->transitionPhase = MiniaudioBackendState::TransitionPhase::FadeOut;
+    state->transitionFrame = 0;
+  }
+
   // The device normally invokes us with the prepared engine quantum. Process
   // that block before emitting it, rather than feeding the FIFO after taking
   // its output; this removes the otherwise unavoidable one-quantum latency.
+  // Preset fades stay on this path too. transitionFrames is rounded to a whole
+  // number of engine blocks, so the old engine reaches silence exactly at a
+  // callback boundary and the new engine can start the following block.
   // Irregular device callbacks continue through the FIFO below.
   if (frameCount == state->blockSize
       && state->inputFill == 0
-      && state->outputAvailable == 0
-      && state->transitionPhase == MiniaudioBackendState::TransitionPhase::Normal
-      && !state->swapRequested.load(std::memory_order_acquire)) {
+      && state->outputAvailable == 0) {
     for (ma_uint32 i = 0; i < frameCount; ++i) {
       state->inputBlock[i] = in[i * state->captureChannels + state->inputChannel];
       monitorInput(*state, state->inputBlock[i]);
     }
     engine->processBlock(state->inputBlock.data(), state->leftBlock.data(), state->rightBlock.data(), frameCount);
     for (ma_uint32 i = 0; i < frameCount; ++i) {
+      float transitionGain = 1.0f;
+      if (state->transitionPhase == MiniaudioBackendState::TransitionPhase::FadeOut) {
+        transitionGain = 1.0f - static_cast<float>(state->transitionFrame + 1)
+                                   / static_cast<float>(state->transitionFrames);
+      } else if (state->transitionPhase == MiniaudioBackendState::TransitionPhase::FadeIn) {
+        transitionGain = static_cast<float>(state->transitionFrame + 1)
+                         / static_cast<float>(state->transitionFrames);
+      }
       const float muteGain = nextMuteGain(*state);
-      const float left = state->leftBlock[i] * muteGain;
-      const float right = state->rightBlock[i] * muteGain;
+      const float left = state->leftBlock[i] * transitionGain * muteGain;
+      const float right = state->rightBlock[i] * transitionGain * muteGain;
       out[i * 2] = (state->outputChannel == OutputChannel::Right) ? 0.0f : left;
       out[i * 2 + 1] = (state->outputChannel == OutputChannel::Left) ? 0.0f : right;
+
+      if (state->transitionPhase == MiniaudioBackendState::TransitionPhase::FadeOut
+          && ++state->transitionFrame == state->transitionFrames) {
+        PedalEngine* replacement = state->pendingEngine.exchange(nullptr, std::memory_order_acq_rel);
+        if (replacement) {
+          state->engine.store(replacement, std::memory_order_release);
+          engine = replacement;
+        }
+        state->swapRequested.store(false, std::memory_order_release);
+        state->swapCompleted.store(true, std::memory_order_release);
+        state->transitionPhase = MiniaudioBackendState::TransitionPhase::FadeIn;
+        state->transitionFrame = 0;
+      } else if (state->transitionPhase == MiniaudioBackendState::TransitionPhase::FadeIn
+                 && ++state->transitionFrame == state->transitionFrames) {
+        state->transitionPhase = MiniaudioBackendState::TransitionPhase::Normal;
+        state->transitionFrame = 0;
+      }
     }
     recordCallbackTiming(*state, start, frameCount);
     return;
-  }
-
-  if (state->transitionPhase == MiniaudioBackendState::TransitionPhase::Normal
-      && state->swapRequested.load(std::memory_order_acquire)) {
-    state->transitionPhase = MiniaudioBackendState::TransitionPhase::FadeOut;
-    state->transitionFrame = 0;
   }
 
   for (ma_uint32 i = 0; i < frameCount; ++i) {
@@ -377,6 +403,10 @@ bool MiniaudioBackend::start(PedalEngine& engine, const RealtimeOptions& options
   state_->sampleRate = static_cast<double>(options.sampleRate);
   state_->budgetMs = static_cast<double>(options.blockSize) / static_cast<double>(options.sampleRate) * 1000.0;
   state_->blockSize = options.blockSize;
+  constexpr ma_uint32 kNominalTransitionFrames = 480;
+  state_->transitionFrames = std::max(
+      options.blockSize,
+      ((kNominalTransitionFrames + options.blockSize - 1) / options.blockSize) * options.blockSize);
   state_->audioCpu = options.audioCpu;
   state_->inputBlock.assign(options.blockSize, 0.0f);
   state_->leftBlock.assign(options.blockSize, 0.0f);

@@ -76,7 +76,6 @@ bool TapeProcessor::configure(const nlohmann::json& params, float sampleRate, st
   const float flutter = clampedNumber(params, "flutter", 0.0f, 0.0f, 1.0f);
   const float hissDb = clampedNumber(params, "hiss_db", TapeTransport::kHissOffDb,
                                      TapeTransport::kHissOffDb, -60.0f);
-
   liveParameters_ = std::make_shared<TapeLiveParameters>();
   liveParameters_->driveDb.store(driveDbTarget_, std::memory_order_relaxed);
   liveParameters_->saturation.store(saturationTarget_, std::memory_order_relaxed);

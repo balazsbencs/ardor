@@ -51,9 +51,12 @@ int main()
   require(std::isfinite(chained.left) && std::isfinite(chained.right),
           "runtime chain should process the wah block");
   require(chain.setBlockEnabled("wah-1", false), "runtime wah should be bypassable");
-  const auto bypassed = chain.process({0.2f, -0.1f});
+  ardor::StereoSample bypassed{};
+  for (int i = 0; i < 241; ++i) {
+    bypassed = chain.process({0.2f, -0.1f});
+  }
   require(bypassed.left == 0.2f && bypassed.right == -0.1f,
-          "a bypassed wah should preserve both input channels");
+          "a bypassed wah should fade to and preserve both input channels");
 
   ardor::WahProcessor unsupported;
   require(!unsupported.configure({{"mode", "unknown"}}, 48000.0f, table, error),

@@ -21,7 +21,8 @@ public:
   void setSampleRate(double sampleRate);
   bool loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
                std::string id = "nam", float slimmableSize = 1.0f,
-               NamInputMode inputMode = NamInputMode::Sum);
+               NamInputMode inputMode = NamInputMode::Sum,
+               std::optional<float> inputReferenceLevelDbU = std::nullopt);
   bool addDualAmp(std::string id, DualAmpLaneConfig left, DualAmpLaneConfig right,
                   NamInputMode inputMode, double sampleRate, int maxBlockSize,
                   bool requestParallel, int workerCpu, std::string& error);
@@ -157,7 +158,7 @@ private:
   void beginAudioProcessing();
   float smoothGain(float& current, float target) const;
   float smoothEffectsMix(float target);
-  static StereoSample equalPowerMix(StereoSample dry, StereoSample wet, float wetMix);
+  static StereoSample bypassMix(StereoSample dry, StereoSample wet, float wetMix);
   static bool limiterEngaged(float left, float right, bool enabled, float limit);
   static float applySafety(float sample, bool limiterEnabled, float safetyLimit);
 };

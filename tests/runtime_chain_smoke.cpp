@@ -6,10 +6,12 @@
 #include "tape/TapeProcessor.h"
 
 #include <array>
+#include <atomic>
 #include <cmath>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -224,9 +226,17 @@ int main()
   }
   require(engineChanged, "trem should affect engine output");
   require(engine.setBlockEnabled("trem", false), "scene should bypass a block by stable ID");
-  const auto sceneDry = engine.process(0.5f);
-  require(near(sceneDry.first, 0.5f) && near(sceneDry.second, 0.5f),
-          "scene-bypassed block should pass dry audio");
+  float previousScene = engine.process(0.5f).first;
+  ardor::StereoSample sceneDry{};
+  for (int i = 0; i < 240; ++i) {
+    const auto output = engine.process(0.5f);
+    require(std::fabs(output.first - previousScene) < 0.2f,
+            "scene bypass should not introduce a hard discontinuity");
+    previousScene = output.first;
+    sceneDry = {output.first, output.second};
+  }
+  require(near(sceneDry.left, 0.5f) && near(sceneDry.right, 0.5f),
+          "scene-bypassed block should converge to dry audio");
   require(!engine.setBlockEnabled("missing", true), "missing scene block ID rejected");
   require(engine.setBlockEnabled("trem", true), "scene should re-enable a prepared block");
 
@@ -321,6 +331,47 @@ int main()
     tapeChain.reset();
   }
 
+  // Live controls are written by the UI/control thread while DSP runs on the
+  // callback thread. Exercise that ownership boundary directly so this test is
+  // useful under ThreadSanitizer as well as checking finite output normally.
+  {
+    ardor::PedalEngine automationEngine;
+    automationEngine.prepareBlockSize(64);
+    automationEngine.setSafetyLimiterEnabled(false);
+    require(automationEngine.addDistortion("live-tape", {{"mode", "tape"}}, 48000.0f, error), error);
+    require(automationEngine.addIrReverb("live-ir", {1.0f}, {}, 48000.0f, error), error);
+    require(automationEngine.addStereoWidener("live-width", 48000.0f, error), error);
+    require(automationEngine.addTransientShaper("live-transient", {}, 48000.0f, error), error);
+
+    std::atomic<bool> startAutomation{false};
+    std::thread controls([&] {
+      while (!startAutomation.load(std::memory_order_acquire)) std::this_thread::yield();
+      for (int i = 0; i < 512; ++i) {
+        const float unit = static_cast<float>(i & 63) / 63.0f;
+        require(automationEngine.setDistortionParameter("live-tape", "drive", -12.0f + 36.0f * unit),
+                "concurrent tape automation should be accepted");
+        require(automationEngine.setIrReverbParameter("live-ir", "mix", unit),
+                "concurrent IR automation should be accepted");
+        require(automationEngine.setStereoWidenerParameter("live-width", "width", 2.0f * unit),
+                "concurrent width automation should be accepted");
+        require(automationEngine.setTransientShaperParameter("live-transient", "attack", 200.0f * unit - 100.0f),
+                "concurrent transient automation should be accepted");
+      }
+    });
+
+    float blockInput[64]{};
+    float blockLeft[64]{};
+    float blockRight[64]{};
+    startAutomation.store(true, std::memory_order_release);
+    for (int block = 0; block < 512; ++block) {
+      for (int i = 0; i < 64; ++i) blockInput[i] = ((block * 64 + i) & 1) ? 0.1f : -0.1f;
+      automationEngine.processBlock(blockInput, blockLeft, blockRight, 64);
+      require(std::isfinite(blockLeft[63]) && std::isfinite(blockRight[63]),
+              "concurrent live automation must keep DSP output finite");
+    }
+    controls.join();
+  }
+
   engine.setEffectsBypassed(true);
   ardor::StereoSample dry{};
   for (int i = 0; i < 2400; ++i) {
@@ -330,7 +381,7 @@ int main()
   require(near(dry.left, 0.5f), "bypass should return dry left");
   require(near(dry.right, 0.5f), "bypass should return dry right");
 
-  // A bypass request is a short equal-power transition. It must remain finite
+  // A bypass request is a short unity-preserving transition. It must remain finite
   // and converge to the dry signal without a hard state reset.
   engine.setEffectsBypassed(false);
   float previous = engine.process(0.5f).first;
