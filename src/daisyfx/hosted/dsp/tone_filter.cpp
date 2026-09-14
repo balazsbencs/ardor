@@ -74,7 +74,11 @@ void ToneFilter::SetKnob(float knob) {
 
     ComputeShelf(false, 500.0f, -4.0f * amount, low_shelf_);
     ComputeShelf(true, 2000.0f, 7.0f * amount, high_shelf_);
-    output_gain_ = std::pow(10.0f, -std::fabs(amount) * 3.0f / 20.0f);
+    // ToneFilter is also used inside delay feedback loops. Normalize the
+    // boosted end of each tilt to unity so no knob position can turn a
+    // sub-unity feedback coefficient into a self-sustaining loop.
+    const float maximum_boost_db = amount > 0.0f ? 7.0f * amount : -4.0f * amount;
+    output_gain_ = std::pow(10.0f, -maximum_boost_db / 20.0f);
 }
 
 float ToneFilter::Process(float sample) {

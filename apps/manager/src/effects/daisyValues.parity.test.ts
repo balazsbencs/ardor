@@ -87,4 +87,18 @@ describe("daisyValues mirrors the device catalog", () => {
       });
     });
   }
+
+  it("edits the Reflections level in the displayed decibel unit", () => {
+    const display = daisyNumberDisplay("reverb", "reflections", "decay");
+    expect(display).toBeDefined();
+    expect(display!.minimum).toBe(-9.6);
+    expect(display!.maximum).toBe(0);
+    expect(display!.step).toBe(0.1);
+    expect(display!.toInput(1)).toBeCloseTo(0, 6);
+    expect(display!.fromInput(-6)).toBeCloseTo(
+      (0.4 * 10 ** (-6 / 20) - 0.133) / (0.4 - 0.133),
+      6,
+    );
+    expect(display!.format(display!.fromInput(-6))).toBe("-6.0 dB");
+  });
 });

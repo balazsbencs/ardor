@@ -95,6 +95,20 @@ function tone(_sampleRate: number): NumberDisplay {
   });
 }
 
+function reflectionsLevel(): NumberDisplay {
+  const minimumGain = 0.133;
+  const maximumGain = 0.4;
+  const gainToDb = (gain: number) => 20 * Math.log10(gain / maximumGain);
+  const normalizedToGain = (value: number) => map(value, minimumGain, maximumGain);
+  const minimumDb = Number(gainToDb(minimumGain).toFixed(1));
+  return custom(
+    (value) => `${number(gainToDb(normalizedToGain(value)), 1)} dB`,
+    (value) => gainToDb(normalizedToGain(value)),
+    (value) => unmap(maximumGain * 10 ** (value / 20), minimumGain, maximumGain),
+    minimumDb, 0, 0.1,
+  );
+}
+
 const q = (minimum: number, maximum: number) => physical(minimum, maximum, 0, (value) => `Q ${number(value, value < 10 ? 1 : 0)}`, 0.1);
 const normalizedPercent = custom(percent);
 // The device's percent() always formats with zero decimals; matching it keeps
@@ -242,9 +256,7 @@ const decayRanges: Record<string, [number, number]> = {
 
 function reverbDisplay(mode: string, key: string): NumberDisplay {
   if (key === "decay") {
-    if (mode === "reflections") {
-      return physical(0.133, 0.4, 0, (value) => `${number(20 * Math.log10(value / 0.4), 1)} dB`, 0.01);
-    }
+    if (mode === "reflections") return reflectionsLevel();
     const [minimum, maximum] = decayRanges[mode] ?? [0.5, 20];
     return physical(minimum, maximum, mode === "reflections" ? 0 : mode === "magneto" || mode === "nonlinear" ? 1 : 2, seconds, 0.01);
   }
