@@ -721,13 +721,18 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       currentIsStereo = false;
       break;
     case Block::Kind::Distortion:
-      for (size_t i = 0; i < frames; ++i) {
-        const StereoSample input{currentLeft[i], currentRight[i]};
-        const auto processed =
-          std::visit([&](auto& processor) { return processor.process(input); }, *block.distortion);
-        nextLeft[i] = processed.left;
-        nextRight[i] = processed.right;
-      }
+      std::visit([&](auto& processor) {
+        using Processor = std::decay_t<decltype(processor)>;
+        if constexpr (std::is_same_v<Processor, CheeseProcessor>) {
+          processor.processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);
+        } else {
+          for (size_t i = 0; i < frames; ++i) {
+            const auto processed = processor.process({currentLeft[i], currentRight[i]});
+            nextLeft[i] = processed.left;
+            nextRight[i] = processed.right;
+          }
+        }
+      }, *block.distortion);
       // The pedal is mono, so both channels carry the same signal from here.
       currentIsStereo = false;
       break;

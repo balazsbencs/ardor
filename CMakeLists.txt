@@ -202,7 +202,7 @@ target_compile_features(ardor_cheese PUBLIC cxx_std_20)
 # intact. Spectral, convergence and control-grid tests cover the relaxed math.
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(ardor_cheese PRIVATE
-    -fno-math-errno -fno-trapping-math -funsafe-math-optimizations)
+    -O3 -fno-math-errno -fno-trapping-math -funsafe-math-optimizations)
 endif()
 target_link_libraries(ardor_cheese PUBLIC ardor_circuit)
 
