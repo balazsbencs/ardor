@@ -51,8 +51,8 @@ bool IrReverbProcessor::load(std::vector<float> left, std::vector<float> right,
   if (right.empty()) right = left;
 
   impulseFrames_ = std::max(left.size(), right.size());
-  left_.load(std::move(left), PARTITION_FRAMES);
-  right_.load(std::move(right), PARTITION_FRAMES);
+  left_.load(std::move(left));
+  right_.load(std::move(right));
 
   // Room for the largest pre-delay the control offers, plus a guard sample.
   const std::size_t preDelayCapacity =
@@ -178,6 +178,7 @@ StereoSample IrReverbProcessor::process(StereoSample input)
 {
   refreshLiveParameters();
   if (!loaded_) return input;
+  refreshLiveParameters();
 
   // Pre-delay ahead of the convolver, so its buffer only spans the extra delay.
   // Always run the line, even at zero delay: skipping the write would leave

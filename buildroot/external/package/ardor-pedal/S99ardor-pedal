@@ -96,11 +96,19 @@ run_supervised() {
   # Mute -> route -> start -> unmute: no boot pop, and a crash-looping
   # app never plays half-initialized audio at full volume.
   set_output_relay 0 || echo "Audio-output relay control is unavailable; outputs remain hardware-muted" >&2
-  # TERM must terminate the supervisor as well as its child.  Keeping the
-  # cleanup-only trap on TERM leaves the shell alive, so a deploy's restart
-  # reuses the old supervisor and never picks up updated launch arguments.
-  trap 'set_output_relay 0; amixer -q set '\''Headphone'\'' mute 2>/dev/null' EXIT
-  trap 'exit 143' INT TERM
+  shutdown_supervisor() {
+    set_output_relay 0
+    amixer -q set 'Headphone' mute 2>/dev/null
+    if [ -n "${APP:-}" ]; then
+      kill "$APP" 2>/dev/null
+      wait "$APP" 2>/dev/null
+    fi
+  }
+  trap shutdown_supervisor EXIT
+  # A signal trap that only performs cleanup returns to the supervision loop,
+  # allowing it to respawn the child after an intentional service stop.
+  # Exit explicitly; the EXIT trap above keeps the hardware output muted.
+  trap 'exit 0' INT TERM
   amixer -q set 'Headphone' mute 2>/dev/null
   alsactl restore -f /etc/ardor-codec-zero.state 2>/dev/null
   for policy in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do
@@ -164,6 +172,22 @@ case "$1" in
     set_output_relay 0
     start-stop-daemon -K -p "$PID"
     killall ardor-pedal 2>/dev/null
+    # Do not return while either process can still own ALSA. A prompt restart
+    # after an update would otherwise race the old child for the device.
+    supervisor=$(cat "$PID" 2>/dev/null)
+    attempts=0
+    while [ "$attempts" -lt 50 ]; do
+      supervisor_alive=0
+      [ -n "$supervisor" ] && kill -0 "$supervisor" 2>/dev/null && supervisor_alive=1
+      child_alive=0
+      pidof ardor-pedal >/dev/null 2>&1 && child_alive=1
+      [ "$supervisor_alive" = 0 ] && [ "$child_alive" = 0 ] && break
+      sleep 0.1
+      attempts=$((attempts + 1))
+    done
+    pidof ardor-pedal >/dev/null 2>&1 && killall -9 ardor-pedal 2>/dev/null
+    [ -n "$supervisor" ] && kill -0 "$supervisor" 2>/dev/null && kill -9 "$supervisor" 2>/dev/null
+    rm -f "$PID"
     ;;
   restart)
     "$0" stop

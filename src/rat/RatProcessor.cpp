@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <atomic>
 
 namespace ardor {
 
@@ -99,6 +100,7 @@ void RatProcessor::reset()
   down2x_.Reset();
   down1x_.Reset();
   circuit_.reset();
+  refreshLiveParameters();
   distortion_ = distortionTarget_;
   filter_ = filterTarget_;
   volume_ = volumeTarget_;

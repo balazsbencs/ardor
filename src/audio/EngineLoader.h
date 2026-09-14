@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -31,6 +32,9 @@ struct EngineLoadOptions {
   // lower-level plan APIs used by offline tools and tests; applyPreset()
   // always fills this from its dataRoot before loading user-selected assets.
   std::filesystem::path assetRoot;
+
+  // Analog dBu RMS at the ADC that corresponds to a 0 dBFS-peak 1 kHz sine.
+  std::optional<float> inputReferenceLevelDbU;
 };
 
 bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoadOptions& options, std::string& error);

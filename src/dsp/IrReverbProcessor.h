@@ -1,7 +1,7 @@
 #pragma once
 
 #include "daisyfx/DaisyFxProcessor.h"
-#include "dsp/ScheduledConvolver.h"
+#include "dsp/NonUniformConvolver.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -15,23 +15,11 @@ struct IrReverbLiveParameters;
 
 // True convolution reverb.
 //
-// The cabinet block runs IrConvolver at the host block size, which for a
-// cabinet's few thousand taps is cheap. A reverb impulse is two orders of
-// magnitude longer, and doing the whole accumulation at a block boundary puts
-// the entire cost into one quantum: measured with a 2 s stereo impulse at 64
-// frames, the median block took 0.83 us and the worst took 658 us against a
-// 1333 us budget. Scaled to a Cortex-A72 that overruns outright.
-//
-// ScheduledConvolver spreads that work across the period instead, which flattens
-// the profile without changing the result:
-//
-//              median      p99      max
-//   before     0.83 us    538 us   658 us
-//   after     32.08 us    118 us   141 us
-//
-// The peak no longer grows with impulse length — a 0.5 s impulse peaks at 144 us
-// and a 2 s one at 141 us — because all that remains at the boundary is two
-// transforms and a single multiply pass.
+// Long-tail accumulation is spread across large scheduled partitions instead
+// of arriving as one callback-boundary burst. The first 1024 taps use 128-frame
+// partitions so initial reflections begin after 2.67 ms at 48 kHz; the rest use
+// 1024-frame partitions to keep the steady-state cost low. Only the
+// nonredundant half of each real-input spectrum is stored and multiplied.
 //
 // The partition delay lands on the wet path only; the dry passes straight
 // through. On a reverb that reads as pre-delay rather than as latency, which is
@@ -41,9 +29,10 @@ struct IrReverbLiveParameters;
 class IrReverbProcessor {
 public:
   // Impulses longer than this are truncated. At 48 kHz a 4 s stereo impulse
-  // already costs about 15 MB of partition tables.
+  // uses about 8 MB across stereo impulse and history storage.
   static constexpr float MAX_IMPULSE_SECONDS = 4.0f;
-  static constexpr std::size_t PARTITION_FRAMES = 1024;
+  static constexpr std::size_t PARTITION_FRAMES =
+      NonUniformConvolver::EARLY_PARTITION_FRAMES;
   // Ends of the wet tone controls; at these values the filter is bypassed.
   static constexpr float LOW_CUT_MIN_HZ = 20.0f;
   static constexpr float LOW_CUT_MAX_HZ = 2000.0f;
@@ -80,8 +69,8 @@ private:
   void updateFilters();
   void refreshLiveParameters() noexcept;
 
-  ScheduledConvolver left_;
-  ScheduledConvolver right_;
+  NonUniformConvolver left_;
+  NonUniformConvolver right_;
   bool loaded_ = false;
   float sampleRate_ = 48000.0f;
   std::size_t impulseFrames_ = 0;
