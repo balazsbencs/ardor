@@ -43,8 +43,24 @@ public:
   bool setParameterTarget(const std::string& key, float value);
   void reset();
   StereoSample process(StereoSample input);
+  void processBlock(const float* left, const float* right,
+                    float* outputLeft, float* outputRight, std::size_t frames);
   bool controlUpdatePending() const noexcept;
   unsigned long long controlDerivationFailures() const noexcept;
+  unsigned long long processedOversampledSamples() const noexcept
+  {
+    return circuit_.processedSamples();
+  }
+  unsigned long long newtonIterations() const noexcept { return circuit_.newtonIterations(); }
+  unsigned maxNewtonIterations() const noexcept { return circuit_.maxNewtonIterations(); }
+  const std::array<unsigned long long, 17>& newtonIterationHistogram() const noexcept
+  {
+    return circuit_.newtonIterationHistogram();
+  }
+  const std::array<unsigned long long, 7>& cappedStepHistogram() const noexcept
+  {
+    return circuit_.cappedStepHistogram();
+  }
   // Group delay of the six halfband stages, referred to the host rate: 15
   // samples each at 96, 192, 384, 384, 192 and 96 kHz.
   std::size_t latencyFrames() const noexcept { return 26; }
@@ -68,6 +84,7 @@ private:
 
   void resetResamplers() noexcept;
   void consumePreparedControls() noexcept;
+  float processMono(float input, float targetGain) noexcept;
 };
 
 } // namespace ardor
