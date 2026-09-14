@@ -121,6 +121,9 @@ struct UiRevisions {
 
 struct UiBlockEditSnapshot {
   std::vector<UiBlock> blocks;
+  int version = 1;
+  std::string routing = "serial";
+  std::optional<WdwRouting> wdw;
   std::optional<PresetExpression> expression;
   std::vector<PresetMidiBinding> midiBindings;
   std::size_t selectedBlock = 0;

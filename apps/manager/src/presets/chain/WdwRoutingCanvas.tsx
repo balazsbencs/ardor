@@ -51,9 +51,10 @@ export function WdwRoutingCanvas({
       : routing.dry.blocks.some(({ id }) => id === destination) ? "dry" : "wet";
     const blocks = routing[lane].blocks;
     const overIndex = blocks.findIndex(({ id }) => id === destination);
-    const sourceIndex = blocks.findIndex(({ id }) => id === activeId);
-    const index = overIndex < 0 ? blocks.length
-      : sourceIndex >= 0 && sourceIndex < overIndex ? overIndex - 1 : overIndex;
+    // The reducer removes the source before inserting at this final index.
+    // Keep the reported destination so a forward drag lands after its target
+    // while a backward drag lands before it.
+    const index = overIndex < 0 ? blocks.length : overIndex;
     actions.onMove(lane, activeId, index);
   };
 

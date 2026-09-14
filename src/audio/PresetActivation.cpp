@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <exception>
 #include <utility>
 
 namespace ardor {
@@ -21,7 +22,13 @@ PresetActivationOutcome prepareAndActivateDraft(
     return outcome;
   }
   auto nextEngine = std::make_unique<PedalEngine>();
-  if (!applyPreset(*nextEngine, draft, dataRoot, options, outcome.error)) {
+  try {
+    if (!applyPreset(*nextEngine, draft, dataRoot, options, outcome.error)) {
+      outcome.status = PresetActivationStatus::PreparationFailed;
+      return outcome;
+    }
+  } catch (const std::exception& exception) {
+    outcome.error = exception.what();
     outcome.status = PresetActivationStatus::PreparationFailed;
     return outcome;
   }
@@ -56,7 +63,13 @@ PresetActivationOutcome prepareAndActivateWdwDraft(
 
   auto nextEngine = std::make_unique<PedalEngine>();
   WdwRoutingBuildReport localReport;
-  if (!applyWdwRouting(*nextEngine, dryPlan, wetPlan, options, localReport, outcome.error)) {
+  try {
+    if (!applyWdwRouting(*nextEngine, dryPlan, wetPlan, options, localReport, outcome.error)) {
+      outcome.status = PresetActivationStatus::PreparationFailed;
+      return outcome;
+    }
+  } catch (const std::exception& exception) {
+    outcome.error = exception.what();
     outcome.status = PresetActivationStatus::PreparationFailed;
     return outcome;
   }
@@ -108,9 +121,15 @@ PresetActivationOutcome prepareAndActivateLoopSession(
   }
 
   auto nextEngine = std::make_unique<PedalEngine>();
-  if (!applyPreset(*nextEngine, storedPreset, dataRoot, options, outcome.error)
-      || !nextEngine->prepareLooper(looperMemoryBudgetBytes, outcome.error)
-      || !nextEngine->restorePausedLooperSession(storedSession, outcome.error)) {
+  try {
+    if (!applyPreset(*nextEngine, storedPreset, dataRoot, options, outcome.error)
+        || !nextEngine->prepareLooper(looperMemoryBudgetBytes, outcome.error)
+        || !nextEngine->restorePausedLooperSession(storedSession, outcome.error)) {
+      outcome.status = PresetActivationStatus::PreparationFailed;
+      return outcome;
+    }
+  } catch (const std::exception& exception) {
+    outcome.error = exception.what();
     outcome.status = PresetActivationStatus::PreparationFailed;
     return outcome;
   }

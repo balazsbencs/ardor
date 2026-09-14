@@ -518,6 +518,9 @@ void rememberBlockEdit(UiState& state)
 {
   state.blockEditUndo = UiBlockEditSnapshot{
     state.bank.presets[state.activePreset].blocks,
+    state.bank.presets[state.activePreset].version,
+    state.bank.presets[state.activePreset].routing,
+    state.bank.presets[state.activePreset].wdw,
     state.bank.presets[state.activePreset].expression,
     state.bank.presets[state.activePreset].midiBindings,
     state.selectedBlock,
@@ -1242,6 +1245,9 @@ bool undoLastBlockEdit(UiState& state)
   const auto rollback = previewSnapshot(state);
   auto snapshot = std::move(*state.blockEditUndo);
   state.blockEditUndo.reset();
+  state.bank.presets[state.activePreset].version = snapshot.version;
+  state.bank.presets[state.activePreset].routing = std::move(snapshot.routing);
+  state.bank.presets[state.activePreset].wdw = std::move(snapshot.wdw);
   state.bank.presets[state.activePreset].blocks = std::move(snapshot.blocks);
   state.bank.presets[state.activePreset].expression = std::move(snapshot.expression);
   state.bank.presets[state.activePreset].midiBindings = std::move(snapshot.midiBindings);
@@ -1887,6 +1893,10 @@ bool beginMidiLearnForBlockEnabled(UiState& state)
   if (state.paramTarget != UiParamTarget::Block || selectedBlockIsLaneChild(state)) return false;
   const auto* block = selectedUiBlock(state);
   if (!block) return false;
+  if (isWdwRig(*block)) {
+    setUiStatus(state, "MIDI Learn is unavailable for the WDW routing container", true);
+    return false;
+  }
   state.midiLearn = {};
   state.midiLearn.stage = UiMidiLearnStage::Waiting;
   state.midiLearn.mode = PresetMidiBindingMode::Toggle;

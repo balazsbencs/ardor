@@ -433,6 +433,14 @@ int main()
                 && !savedWdw.wdw->wet.enabled,
               "WDW UI load/save should preserve lane blocks and mix state")) return 1;
 
+  auto wdwMidiState = ardor::makeDemoUiState();
+  ardor::replaceActivePreset(wdwMidiState, wdwPreset);
+  ardor::selectBlock(wdwMidiState, 0);
+  if (require(!ardor::beginMidiLearnForBlockEnabled(wdwMidiState)
+                && wdwMidiState.midiLearn.stage == ardor::UiMidiLearnStage::None
+                && wdwMidiState.statusIsError,
+              "MIDI Learn should reject the synthetic WDW routing container")) return 1;
+
   auto wdwDeleteState = ardor::makeDemoUiState();
   ardor::replaceActivePreset(wdwDeleteState, wdwPreset);
   ardor::selectLaneBlock(wdwDeleteState, 0, 0, 0);
@@ -502,6 +510,31 @@ int main()
                 && wdwInsertState.bank.presets[wdwInsertState.activePreset].blocks[0].lanes[1].empty()
                 && !ardor::pendingStructuralPreview(wdwInsertState),
               "WDW insertion should create an editable empty draft without previewing")) return 1;
+
+  auto wdwTopologyUndoState = ardor::makeDemoUiState();
+  ardor::replaceActivePreset(wdwTopologyUndoState, emptyWdwInsertPreset);
+  ardor::enterEditMode(wdwTopologyUndoState);
+  const auto wdwTopologyAsset = std::find_if(
+    wdwTopologyUndoState.assets.begin(), wdwTopologyUndoState.assets.end(),
+    [](const ardor::UiAsset& asset) {
+      return asset.blockType == "dualRig" && asset.mode == "wdw";
+    });
+  if (require(wdwTopologyAsset != wdwTopologyUndoState.assets.end(),
+              "topology Undo test needs the WDW asset")) return 1;
+  ardor::insertAssetBlock(wdwTopologyUndoState, static_cast<std::size_t>(
+    std::distance(wdwTopologyUndoState.assets.begin(), wdwTopologyAsset)), 0);
+  if (require(wdwTopologyUndoState.bank.presets[wdwTopologyUndoState.activePreset].routing == "wdw"
+                && wdwTopologyUndoState.bank.presets[wdwTopologyUndoState.activePreset].version == 3,
+              "WDW insertion should update the draft topology")) return 1;
+  if (require(ardor::undoLastBlockEdit(wdwTopologyUndoState)
+                && wdwTopologyUndoState.bank.presets[wdwTopologyUndoState.activePreset].routing == "serial"
+                && wdwTopologyUndoState.bank.presets[wdwTopologyUndoState.activePreset].version == 1
+                && !wdwTopologyUndoState.bank.presets[wdwTopologyUndoState.activePreset].wdw
+                && wdwTopologyUndoState.bank.presets[wdwTopologyUndoState.activePreset].blocks.empty()
+                && ardor::pendingStructuralPreview(wdwTopologyUndoState),
+              "Undo should restore the complete pre-WDW topology")) return 1;
+  completePreview(wdwTopologyUndoState);
+
   const auto cleanNamIndex = static_cast<std::size_t>(
     std::distance(wdwInsertState.assets.begin(), cleanNamAsset));
   const auto crunchNamIndex = static_cast<std::size_t>(

@@ -694,7 +694,10 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
           ? (laneIndex == 0 ? categoryColor("amp") : categoryColor("delay"))
           : (laneIndex == 0 ? laneL : laneR);
         const int visibleLaneColor = laneEnabled ? laneColor : muted;
-        const int laneHeadingY = wdw ? laneY - 78 : laneY - 54;
+        // Keep the lane captions outside the WDW junction: Dry sits above its
+        // cards, while Wet mirrors that spacing below its cards.
+        const int laneHeadingY = !wdw ? laneY - 54
+          : laneIndex == 0 ? laneY - 78 : laneY + 54;
         label(chainWorld_, wdw ? (laneIndex == 0 ? "DRY" : "WET")
                               : (laneIndex == 0 ? "LEFT" : "RIGHT"),
               LV_ALIGN_TOP_LEFT, splitX + kChainJunctionWidth / 2 + 12, laneHeadingY,
@@ -702,7 +705,8 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
         if (wdw) {
           label(chainWorld_, uppercase(wdwLaneMixSummary(block, laneIndex)),
                 LV_ALIGN_TOP_LEFT, splitX + kChainJunctionWidth / 2 + 12,
-                laneY - 54, &ardor_font_saira_cond_semibold_11, laneEnabled ? muted : disabled);
+                laneIndex == 0 ? laneY - 54 : laneY + 78,
+                &ardor_font_saira_cond_semibold_11, laneEnabled ? muted : disabled);
         }
         int laneX = laneStart;
         laneInsert(laneX, laneY, i, laneIndex, 0, visibleLaneColor,

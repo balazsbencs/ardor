@@ -126,6 +126,28 @@ int main(int argc, char** argv)
               "built WDW output is non-finite");
     }
 
+    // A reverb's user pre-delay is intentional wet timing and must not be
+    // promoted to host-visible lane latency during first-arrival calibration.
+    auto delayedWet = wet;
+    delayedWet.blocks.pop_back();
+    ardor::ChainBlockPlan delayedReverb;
+    delayedReverb.id = "wet-irreverb";
+    delayedReverb.type = "irreverb";
+    delayedReverb.status = ardor::ChainBlockStatus::Ready;
+    delayedReverb.assetPath = cabPath;
+    delayedReverb.params = {
+      {"mix", 1.0f}, {"levelDb", 0.0f}, {"preDelayMs", 500.0f},
+    };
+    delayedWet.blocks.push_back(std::move(delayedReverb));
+    auto delayedOptions = options;
+    delayedOptions.calibrationBlocks = 2048;
+    program.reset();
+    require(ardor::buildWdwRoutingProgram(dry, delayedWet, delayedOptions,
+                                           program, report, error),
+            "builder rejected a wet reverb with pre-delay: " + error);
+    require(report.wetLatencyFrames < 10000,
+            "user reverb pre-delay must not become WDW lane latency");
+
     // The admission policy catches accidental cross-lane ID reuse before any
     // model worker is started.
     auto duplicateWet = wet;

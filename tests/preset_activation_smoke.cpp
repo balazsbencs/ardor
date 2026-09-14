@@ -113,6 +113,24 @@ int main()
             "failed target preparation must retain the visible UI selection");
     requireFiniteOutput(*liveEngine, "failed target preparation");
 
+    // Malformed JSON parameters must be reported as a failed preparation, not
+    // allowed to escape from the control path and terminate the host.
+    auto malformedPreset = tremPreset("Malformed parameters");
+    malformedPreset.blocks.front().params["mode"] = 17;
+    const auto engineBeforeMalformed = liveEngine.get();
+    const auto malformedPreparation = ardor::prepareAndActivatePreset(
+      liveEngine, selection, malformedPreset, {3, 2}, root, options, 0.8f,
+      [&](ardor::PedalEngine&) {
+        ++replaceCalls;
+        return ardor::EngineReplaceResult::Activated;
+      });
+    require(malformedPreparation.status == ardor::PresetActivationStatus::PreparationFailed,
+            "malformed preset parameters must fail during replacement preparation");
+    require(!malformedPreparation.error.empty(),
+            "malformed preset parameters should return an actionable error");
+    require(replaceCalls == 0 && liveEngine.get() == engineBeforeMalformed,
+            "malformed preset parameters must not reach or replace the live engine");
+
     require(liveEngine->prepareLooper(
                 256 * ardor::RealtimeLooper::kBytesPerMasterFrame, error),
             "live engine should prepare its host looper");

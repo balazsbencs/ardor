@@ -856,13 +856,32 @@ int main()
   ardor::enterEditMode(wdwState);
   ui.build(lv_screen_active(), wdwState);
   lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* dryWdwHeading = findLabel(lv_screen_active(), "DRY");
+  lv_obj_t* wetWdwHeading = findLabel(lv_screen_active(), "WET");
+  lv_obj_t* dryWdwAsset = findLabel(lv_screen_active(), "CLEAN TWIN");
+  lv_obj_t* wetWdwEffect = findLabel(lv_screen_active(), "DLY");
+  lv_area_t dryWdwHeadingArea{};
+  lv_area_t wetWdwHeadingArea{};
+  lv_area_t dryWdwTileArea{};
+  lv_area_t wetWdwTileArea{};
+  if (dryWdwHeading) lv_obj_get_coords(dryWdwHeading, &dryWdwHeadingArea);
+  if (wetWdwHeading) lv_obj_get_coords(wetWdwHeading, &wetWdwHeadingArea);
+  if (dryWdwAsset) {
+    lv_obj_get_coords(lv_obj_get_parent(dryWdwAsset), &dryWdwTileArea);
+  }
+  if (wetWdwEffect) {
+    lv_obj_get_coords(lv_obj_get_parent(lv_obj_get_parent(wetWdwEffect)), &wetWdwTileArea);
+  }
   if (require(findLabel(lv_screen_active(), "WDW")
                 && findLabel(lv_screen_active(), "NO DIRECT INPUT")
-                && findLabel(lv_screen_active(), "DRY")
-                && findLabel(lv_screen_active(), "WET")
+                && dryWdwHeading && wetWdwHeading
                 && findLabelContaining(lv_screen_active(), "LEVEL -2 DB")
                 && findLabelContaining(lv_screen_active(), "WIDTH 80%"),
               "WDW should render explicit dry/wet lanes, mix summaries, and no direct path")) return 1;
+  if (require(dryWdwAsset && wetWdwEffect
+                && dryWdwHeadingArea.y2 < dryWdwTileArea.y1
+                && wetWdwHeadingArea.y1 > wetWdwTileArea.y2,
+              "WDW lane captions should flank their effect chains without covering the junction")) return 1;
 
   auto wdwDeleteUiState = ardor::makeDemoUiState();
   ardor::replaceActivePreset(wdwDeleteUiState, wdwPreset);

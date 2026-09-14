@@ -169,12 +169,43 @@ bool validateBuildOptions(const WdwRoutingBuildOptions& options, std::string& er
 }
 
 bool calibrateFirstArrival(RuntimeChain& chain, std::size_t blockSize,
+                           const std::vector<ChainBlockPlan>& plan,
                            std::size_t probeBlocks, float threshold,
                            std::size_t& firstArrival, std::string& error)
 {
   if (probeBlocks > (std::numeric_limits<std::size_t>::max() / blockSize)) {
     error = "WDW latency probe exceeds addressable frame count";
     return false;
+  }
+
+  // User pre-delay is intentional wet timing, not fixed WDW path latency.
+  // Temporarily remove it while probing so a 500 ms reverb setting cannot make
+  // the dry contribution wait half a second. The value is restored before the
+  // prepared chain is handed to the program.
+  std::vector<std::pair<std::string, float>> preDelayOverrides;
+  const auto restorePreDelay = [&]() {
+    for (const auto& [id, preDelayMs] : preDelayOverrides) {
+      chain.setIrReverbParameter(id, "preDelayMs", preDelayMs);
+    }
+    chain.reset();
+  };
+  for (const auto& block : plan) {
+    if (block.type != "irreverb" || block.status != ChainBlockStatus::Ready) continue;
+    float preDelayMs = 0.0f;
+    if (block.params.is_object()) {
+      const auto it = block.params.find("preDelayMs");
+      if (it != block.params.end() && it->is_number()) {
+        const float value = it->get<float>();
+        if (std::isfinite(value)) preDelayMs = std::clamp(value, 0.0f, 500.0f);
+      }
+    }
+    if (preDelayMs <= 0.0f) continue;
+    if (!chain.setIrReverbParameter(block.id, "preDelayMs", 0.0f)) {
+      restorePreDelay();
+      error = "WDW latency probe could not suspend reverb pre-delay: " + block.id;
+      return false;
+    }
+    preDelayOverrides.emplace_back(block.id, preDelayMs);
   }
 
   std::vector<float> input(blockSize, 0.0f);
@@ -190,22 +221,22 @@ bool calibrateFirstArrival(RuntimeChain& chain, std::size_t blockSize,
     for (std::size_t frame = 0; frame < blockSize; ++frame) {
       if (!std::isfinite(left[frame]) || !std::isfinite(right[frame])) {
         error = "WDW latency probe produced non-finite audio";
-        chain.reset();
+        restorePreDelay();
         return false;
       }
       if (std::max(std::fabs(left[frame]), std::fabs(right[frame])) >= threshold) {
         firstArrival = block * blockSize + frame;
         if (chain.nonFiniteBlockCount() != initialFaults) {
           error = "WDW latency probe observed a non-finite block";
-          chain.reset();
+          restorePreDelay();
           return false;
         }
-        chain.reset();
+        restorePreDelay();
         return true;
       }
     }
   }
-  chain.reset();
+  restorePreDelay();
   error = "WDW latency probe found no signal in " + std::to_string(maximumFrames)
     + " frames";
   return false;
@@ -244,10 +275,10 @@ bool buildWdwRoutingProgram(const ChainPlan& dryPlan, const ChainPlan& wetPlan,
   programOptions.audioCpu = options.program.audioCpu;
 
   if (options.calibrateLatencies) {
-    if (!calibrateFirstArrival(*dryChain, options.engine.blockSize,
+    if (!calibrateFirstArrival(*dryChain, options.engine.blockSize, dryPlan.blocks,
                                options.calibrationBlocks, options.calibrationThreshold,
                                report.dryLatencyFrames, error)
-        || !calibrateFirstArrival(*wetChain, options.engine.blockSize,
+        || !calibrateFirstArrival(*wetChain, options.engine.blockSize, wetPlan.blocks,
                                   options.calibrationBlocks, options.calibrationThreshold,
                                   report.wetLatencyFrames, error)) {
       return false;
