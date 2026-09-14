@@ -7,11 +7,13 @@ import { allEffectDefinitions, findEffectDefinition } from "../../effects/catalo
 import { PresetSidebar } from "../browser/PresetSidebar";
 import { BlockBrowser } from "../block-browser/BlockBrowser";
 import { ChainCanvas } from "../chain/ChainCanvas";
-import { createEditorState, editorReducer, findPresetBlock, isEditorDirty } from "../editor/editorReducer";
+import { allPresetBlocksInPreset, createEditorState, editorReducer, findPresetBlockInPreset, isEditorDirty } from "../editor/editorReducer";
 import type { PresetLocation } from "../editor/editorTypes";
 import { validatePreset, issuesForBlock } from "../editor/presetValidation";
+import { isWdwBlockAllowed, wdwLaneLabel } from "../editor/wdwPolicy";
 import { BlockInspector } from "../inspector/BlockInspector";
 import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
+import { WdwRoutingCanvas } from "../chain/WdwRoutingCanvas";
 
 export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; onConnection(): void }) {
   const session = useDeviceSession();
@@ -21,6 +23,7 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
   const [addTarget, setAddTarget] = useState<
     | { kind: "top"; index: number }
     | { kind: "lane"; rigId: string; lane: "left" | "right"; index: number }
+    | { kind: "wdw"; lane: "dry" | "wet"; index: number }
   >();
   const [pendingLocation, setPendingLocation] = useState<PresetLocation>();
   const [actionError, setActionError] = useState<string>();
@@ -37,8 +40,9 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
     models: session.models, irs: session.irs, reverbIrs: session.reverbIrs,
   }), [present, session.models, session.irs, session.reverbIrs]);
   const dirty = isEditorDirty(editor);
-  const selected = findPresetBlock(present.blocks, editor.selectedBlockId);
-  const expressionTargets = useMemo(() => present.blocks.flatMap((block) => {
+  const allBlocks = useMemo(() => allPresetBlocksInPreset(present), [present]);
+  const selected = findPresetBlockInPreset(present, editor.selectedBlockId);
+  const expressionTargets = useMemo(() => allBlocks.flatMap((block) => {
     if (!["mod", "delay", "reverb", "dynamics", "cab", "wah"].includes(block.type)) return [];
     const definition = findEffectDefinition(block);
     const parameters = definition?.controls.flatMap((control) =>
@@ -49,7 +53,7 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
       name: definition?.name ?? block.type,
       parameters,
     }] : [];
-  }), [present.blocks]);
+  }), [allBlocks]);
   const expressionTarget = expressionTargets.find(({ block }) =>
     block.id === present.expression?.blockId,
   );
@@ -79,10 +83,27 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
   };
   const disabledDefinitions = useMemo(() => {
     const result = new Map<string, string>();
+    if (addTarget?.kind === "wdw") {
+      const lane = present.wdw?.[addTarget.lane];
+      for (const definition of allEffectDefinitions()) {
+        if (!isWdwBlockAllowed(addTarget.lane, definition.blockType)) {
+          result.set(definition.id, `Not admitted on the ${wdwLaneLabel(addTarget.lane)} WDW lane`);
+        }
+      }
+      if (lane) {
+        for (const definition of allEffectDefinitions()) {
+          if (!definition.constraintGroup || definition.maxEnabledInGroup !== 1) continue;
+          const conflict = lane.blocks.find((block) => block.enabled
+            && findEffectDefinition(block)?.constraintGroup === definition.constraintGroup);
+          if (conflict) result.set(definition.id, `Disable ${findEffectDefinition(conflict)?.name ?? conflict.type} first`);
+        }
+      }
+      return result;
+    }
     if (addTarget?.kind === "lane") {
       result.set("dualAmp", "Split blocks cannot be nested");
       result.set("dualRig", "Split blocks cannot be nested");
-      const rig = findPresetBlock(present.blocks, addTarget.rigId);
+      const rig = findPresetBlockInPreset(present, addTarget.rigId);
       const blocks = rig?.lanes?.[addTarget.lane].blocks ?? [];
       for (const definition of allEffectDefinitions()) {
         if (!definition.constraintGroup || definition.maxEnabledInGroup !== 1) continue;
@@ -92,9 +113,9 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
       }
       return result;
     }
-    const enabledParallelRig = present.blocks.find((block) => block.enabled
+    const enabledParallelRig = allBlocks.find((block) => block.enabled
       && (block.type === "dualAmp" || block.type === "dualRig"));
-    const enabledStandaloneAmp = present.blocks.find((block) => block.enabled && (block.type === "nam" || block.type === "cab"));
+    const enabledStandaloneAmp = allBlocks.find((block) => block.enabled && (block.type === "nam" || block.type === "cab"));
     for (const definition of allEffectDefinitions()) {
       if ((definition.id === "dualAmp" || definition.id === "dualRig") && enabledParallelRig) {
         result.set(definition.id, `Disable the existing ${findEffectDefinition(enabledParallelRig)?.name ?? "parallel rig"} first`);
@@ -109,11 +130,11 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
         continue;
       }
       if (!definition.constraintGroup || definition.maxEnabledInGroup !== 1) continue;
-      const conflict = present.blocks.find((block) => block.enabled && findEffectDefinition(block)?.constraintGroup === definition.constraintGroup);
+      const conflict = allBlocks.find((block) => block.enabled && findEffectDefinition(block)?.constraintGroup === definition.constraintGroup);
       if (conflict) result.set(definition.id, `Disable ${findEffectDefinition(conflict)?.name ?? conflict.type} first`);
     }
     return result;
-  }, [addTarget, present.blocks]);
+  }, [addTarget, allBlocks, present]);
 
   const selectLocation = (location: PresetLocation) => {
     if (location.bank === editor.location.bank && location.slot === editor.location.slot) return;
@@ -147,7 +168,9 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
     setActionError(undefined);
     try {
       const response = await session.applyCurrent();
-      if (response?.accepted) setApplied(editor.location);
+      if (response?.accepted && (!response.id || response.state === "applied")) {
+        setApplied(editor.location);
+      }
     } catch (reason) {
       setActionError(reason instanceof Error ? reason.message : "Could not apply preset.");
     }
@@ -172,13 +195,13 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
   const applyBlocked = !validation.canApply || dirty || session.busy.apply || saving;
   return (
     <main className="workspace">
-      <PresetSidebar summaries={session.presets} selected={editor.location} disabled={saving || session.busy.apply} onSelect={selectLocation} />
+      <PresetSidebar summaries={session.presets} selected={editor.location} active={session.device?.active} disabled={saving || session.busy.apply} onSelect={selectLocation} />
       <section className="workspace-main">
         <header className="preset-header">
           <div><p className="eyebrow">{locationLabel}</p><input aria-label="Preset name" className="preset-name-input" value={present.name} onChange={(event) => dispatch({ type: "set-name", name: event.target.value })} /><div className="preset-header__meta">{dirty && <StatusBadge tone="warning">Unsaved changes</StatusBadge>}{applied?.bank === editor.location.bank && applied.slot === editor.location.slot && <StatusBadge tone="success"><Check size={13} /> Applied this session</StatusBadge>}</div></div>
           <div className="preset-actions"><IconButton label="Undo" disabled={editor.history.past.length === 0} onClick={() => dispatch({ type: "undo" })}><Undo2 size={17} /></IconButton><IconButton label="Redo" disabled={editor.history.future.length === 0} onClick={() => dispatch({ type: "redo" })}><Redo2 size={17} /></IconButton><Button variant="secondary" disabled={!dirty || !validation.canSave || saving} onClick={() => void save()}><Save size={16} /> {saving ? "Saving…" : "Save"}</Button><Button variant="primary" disabled={!validation.canApply || saving || session.busy.apply} onClick={() => void saveAndApply()}><Send size={16} /> Save & Apply</Button><Button variant="quiet" disabled={applyBlocked} onClick={() => void apply()}>Apply</Button></div>
         </header>
-        <div className="global-strip"><SlidersHorizontal size={17} /><label>Input<input type="number" min={-60} max={24} value={present.global.inputGainDb} onChange={(event) => dispatch({ type: "set-global", key: "inputGainDb", value: Number(event.target.value) })} /><small>dB</small></label><label>Output<input type="number" min={-60} max={24} value={present.global.outputGainDb} onChange={(event) => dispatch({ type: "set-global", key: "outputGainDb", value: Number(event.target.value) })} /><small>dB</small></label><span>Serial routing</span></div>
+        <div className="global-strip"><SlidersHorizontal size={17} /><label>Input<input type="number" min={-60} max={24} value={present.global.inputGainDb} onChange={(event) => dispatch({ type: "set-global", key: "inputGainDb", value: Number(event.target.value) })} /><small>dB</small></label><label>Output<input type="number" min={-60} max={24} value={present.global.outputGainDb} onChange={(event) => dispatch({ type: "set-global", key: "outputGainDb", value: Number(event.target.value) })} /><small>dB</small></label><label className="routing-picker">Topology<select aria-label="Preset topology" value={present.routing} onChange={(event) => dispatch({ type: "set-routing", routing: event.target.value as "serial" | "wdw" })}><option value="serial">Serial</option><option value="wdw">Wet / dry / wet</option></select></label><span>{present.routing === "wdw" ? "Two complete lanes · bounded pair execution" : "Serial routing"}</span></div>
         <div className="expression-strip">
           <label className="expression-strip__enable">
             <input
@@ -268,12 +291,16 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
           </small>}
         </div>
         {(!validation.canSave || validation.issues.length > 0 || actionError) && <div className="workspace-alert" role="alert"><AlertCircle size={17} /><div>{actionError ? <p>{actionError}</p> : <p>{validation.issues[0]?.message}</p>}<small>{!validation.canSave ? "Fix this before saving." : !validation.canApply ? "You can save this draft, but cannot apply it yet." : "Review the highlighted block."}</small></div></div>}
-        <ChainCanvas blocks={present.blocks} selectedBlockId={editor.selectedBlockId} issuesFor={(id) => issuesForBlock(validation, id)} maxed={present.blocks.length >= 10} onSelect={(blockId) => dispatch({ type: "select-block", blockId })} onAdd={(index) => setAddTarget({ kind: "top", index })} onMove={(blockId, index) => dispatch({ type: "move-block", blockId, index })} onLaneAdd={(rigId, lane, index) => setAddTarget({ kind: "lane", rigId, lane, index })} onLaneMove={(rigId, blockId, lane, index) => dispatch({ type: "move-lane-block", rigId, blockId, lane, index })} onToggle={(blockId, enabled) => dispatch({ type: "toggle-block", blockId, enabled })} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} />
+        {present.routing === "wdw" && present.wdw
+          ? <WdwRoutingCanvas routing={present.wdw} selectedBlockId={editor.selectedBlockId} issuesFor={(id) => issuesForBlock(validation, id)} maxed={allBlocks.length >= 20} onSelect={(blockId) => dispatch({ type: "select-block", blockId })} onAdd={(lane, index) => setAddTarget({ kind: "wdw", lane, index })} onMove={(lane, blockId, index) => dispatch({ type: "move-wdw-block", lane, blockId, index })} onToggle={(blockId, enabled) => dispatch({ type: "toggle-block", blockId, enabled })} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} onMix={(lane, key, value) => dispatch({ type: "set-wdw-mix", lane, key, value })} />
+          : <ChainCanvas blocks={present.blocks} selectedBlockId={editor.selectedBlockId} issuesFor={(id) => issuesForBlock(validation, id)} maxed={present.blocks.length >= 10} onSelect={(blockId) => dispatch({ type: "select-block", blockId })} onAdd={(index) => setAddTarget({ kind: "top", index })} onMove={(blockId, index) => dispatch({ type: "move-block", blockId, index })} onLaneAdd={(rigId, lane, index) => setAddTarget({ kind: "lane", rigId, lane, index })} onLaneMove={(rigId, blockId, lane, index) => dispatch({ type: "move-lane-block", rigId, blockId, lane, index })} onToggle={(blockId, enabled) => dispatch({ type: "toggle-block", blockId, enabled })} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} />}
       </section>
       <BlockInspector block={selected} issues={selected ? issuesForBlock(validation, selected.id) : []} models={session.models} irs={session.irs} reverbIrs={session.reverbIrs} onToggle={(blockId, enabled) => dispatch({ type: "toggle-block", blockId, enabled })} onParam={(blockId, key, value) => dispatch({ type: "set-block-param", blockId, key, value })} onAsset={(blockId, asset) => dispatch({ type: "set-block-asset", blockId, asset })} onMode={(blockId, definitionId) => dispatch({ type: "change-definition", blockId, definitionId })} onEqBand={(blockId, band, patch) => dispatch({ type: "set-eq-band", blockId, band, patch })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} onAssets={onAssets} onClose={() => dispatch({ type: "select-block" })} />
       <BlockBrowser open={addTarget !== undefined} onOpenChange={(open) => { if (!open) setAddTarget(undefined); }} disabledIds={disabledDefinitions} onChoose={(definition) => {
         if (addTarget?.kind === "lane") {
           dispatch({ type: "add-lane-block", definitionId: definition.id, rigId: addTarget.rigId, lane: addTarget.lane, index: addTarget.index });
+        } else if (addTarget?.kind === "wdw") {
+          dispatch({ type: "add-wdw-block", definitionId: definition.id, lane: addTarget.lane, index: addTarget.index });
         } else {
           dispatch({ type: "add-block", definitionId: definition.id, index: addTarget?.index ?? present.blocks.length });
         }

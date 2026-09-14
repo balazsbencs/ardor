@@ -86,18 +86,27 @@ function logPhysical(minimum: number, maximum: number, format: (value: number) =
     (value) => clamp(Math.log(value / minimum) / Math.log(maximum / minimum)), minimum, maximum, inputStep);
 }
 
-function tone(sampleRate: number): NumberDisplay {
+function tone(_sampleRate: number): NumberDisplay {
   return custom((value) => {
     value = clamp(value);
     if (Math.abs(value - 0.5) < 0.001) return "Flat";
-    if (value < 0.5) {
-      const maximum = Math.min(20000, sampleRate * 0.45);
-      const amount = 1 - value * 2;
-      return `LP ${frequency(Math.exp(Math.log(maximum) + amount * (Math.log(200) - Math.log(maximum))))}`;
-    }
-    const amount = (value - 0.5) * 2;
-    return `HP ${frequency(Math.exp(Math.log(20) + amount * (Math.log(3000) - Math.log(20))))}`;
+    const amount = Math.round(Math.abs(value - 0.5) * 200);
+    return `${value < 0.5 ? "Dark" : "Bright"} ${amount}%`;
   });
+}
+
+function reflectionsLevel(): NumberDisplay {
+  const minimumGain = 0.133;
+  const maximumGain = 0.4;
+  const gainToDb = (gain: number) => 20 * Math.log10(gain / maximumGain);
+  const normalizedToGain = (value: number) => map(value, minimumGain, maximumGain);
+  const minimumDb = Number(gainToDb(minimumGain).toFixed(1));
+  return custom(
+    (value) => `${number(gainToDb(normalizedToGain(value)), 1)} dB`,
+    (value) => gainToDb(normalizedToGain(value)),
+    (value) => unmap(maximumGain * 10 ** (value / 20), minimumGain, maximumGain),
+    minimumDb, 0, 0.1,
+  );
 }
 
 const q = (minimum: number, maximum: number) => physical(minimum, maximum, 0, (value) => `Q ${number(value, value < 10 ? 1 : 0)}`, 0.1);
@@ -247,7 +256,7 @@ const decayRanges: Record<string, [number, number]> = {
 
 function reverbDisplay(mode: string, key: string): NumberDisplay {
   if (key === "decay") {
-    if (mode === "reflections") return physical(13.3, 40, 0, (value) => `${number(value, 0)}%`, 1);
+    if (mode === "reflections") return reflectionsLevel();
     const [minimum, maximum] = decayRanges[mode] ?? [0.5, 20];
     return physical(minimum, maximum, mode === "reflections" ? 0 : mode === "magneto" || mode === "nonlinear" ? 1 : 2, seconds, 0.01);
   }

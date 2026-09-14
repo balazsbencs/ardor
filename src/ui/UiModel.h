@@ -48,6 +48,11 @@ struct UiPreset {
   std::vector<UiBlock> blocks;
   PresetGlobal global;
   int version = 1;
+  // The touchscreen still renders a single split/join container for WDW, but
+  // these fields keep the persisted route explicit so a load/save or preview
+  // cannot silently flatten a version-3 preset back into a serial chain.
+  std::string routing = "serial";
+  std::optional<WdwRouting> wdw;
   std::optional<PresetExpression> expression;
   std::vector<PresetMidiBinding> midiBindings;
 };
@@ -116,6 +121,9 @@ struct UiRevisions {
 
 struct UiBlockEditSnapshot {
   std::vector<UiBlock> blocks;
+  int version = 1;
+  std::string routing = "serial";
+  std::optional<WdwRouting> wdw;
   std::optional<PresetExpression> expression;
   std::vector<PresetMidiBinding> midiBindings;
   std::size_t selectedBlock = 0;

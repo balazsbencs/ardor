@@ -25,7 +25,29 @@ struct Metrics {
   double density100To200 = 0.0;
   double density200To500 = 0.0;
   double rt60From20Db = 0.0;
+  double lowRt60 = 0.0;
+  double highRt60 = 0.0;
 };
+
+double estimateRt60(std::vector<double> energy)
+{
+  double remaining = 0.0;
+  for (auto it = energy.rbegin(); it != energy.rend(); ++it) {
+    remaining += *it;
+    *it = remaining;
+  }
+  if (energy.empty() || energy.front() <= 1e-24) return 0.0;
+  const double atMinus5 = energy.front() * std::pow(10.0, -0.5);
+  const double atMinus25 = energy.front() * std::pow(10.0, -2.5);
+  const auto firstBelow = [&](double target) {
+    const auto it = std::find_if(energy.begin(), energy.end(),
+                                 [target](double value) { return value <= target; });
+    return static_cast<std::size_t>(it - energy.begin());
+  };
+  const std::size_t t5 = firstBelow(atMinus5);
+  const std::size_t t25 = firstBelow(atMinus25);
+  return t25 > t5 ? 3.0 * static_cast<double>(t25 - t5) / kSampleRate : 0.0;
+}
 
 double density(const std::vector<float>& left, const std::vector<float>& right,
                std::size_t begin, std::size_t end, double threshold)
@@ -58,6 +80,12 @@ Metrics measure(const ardor::DaisyFxDescriptor& descriptor)
   double sumRight = 0.0;
   double sumCross = 0.0;
   std::vector<double> frameEnergy(kFrames);
+  std::vector<double> lowEnergy(kFrames);
+  std::vector<double> highEnergy(kFrames);
+  double lowStateL = 0.0, lowStateR = 0.0;
+  double highLpL = 0.0, highLpR = 0.0;
+  const double lowCoeff = 1.0 - std::exp(-6.28318530718 * 500.0 / kSampleRate);
+  const double highCoeff = 1.0 - std::exp(-6.28318530718 * 4000.0 / kSampleRate);
   for (std::size_t frame = 0; frame < kFrames; ++frame) {
     const float impulse = frame == 0 ? 1.0f : 0.0f;
     const auto output = processor.process({impulse, impulse});
@@ -73,6 +101,14 @@ Metrics measure(const ardor::DaisyFxDescriptor& descriptor)
     sumRight += r2;
     sumCross += static_cast<double>(output.left) * output.right;
     frameEnergy[frame] = l2 + r2;
+    lowStateL += lowCoeff * (output.left - lowStateL);
+    lowStateR += lowCoeff * (output.right - lowStateR);
+    highLpL += highCoeff * (output.left - highLpL);
+    highLpR += highCoeff * (output.right - highLpR);
+    const double highL = output.left - highLpL;
+    const double highR = output.right - highLpR;
+    lowEnergy[frame] = lowStateL * lowStateL + lowStateR * lowStateR;
+    highEnergy[frame] = highL * highL + highR * highR;
   }
 
   Metrics result;
@@ -83,23 +119,9 @@ Metrics measure(const ardor::DaisyFxDescriptor& descriptor)
   result.density100To200 = density(left, right, 4800, 9600, densityThreshold);
   result.density200To500 = density(left, right, 9600, 24000, densityThreshold);
 
-  double remaining = 0.0;
-  for (auto it = frameEnergy.rbegin(); it != frameEnergy.rend(); ++it) {
-    remaining += *it;
-    *it = remaining;
-  }
-  const double total = frameEnergy.front();
-  const double atMinus5 = total * std::pow(10.0, -0.5);
-  const double atMinus25 = total * std::pow(10.0, -2.5);
-  const auto firstBelow = [&](double target) {
-    const auto it = std::find_if(frameEnergy.begin(), frameEnergy.end(),
-                                 [target](double value) { return value <= target; });
-    return static_cast<std::size_t>(it - frameEnergy.begin());
-  };
-  const std::size_t t5 = firstBelow(atMinus5);
-  const std::size_t t25 = firstBelow(atMinus25);
-  result.rt60From20Db = t25 > t5
-    ? 3.0 * static_cast<double>(t25 - t5) / kSampleRate : 0.0;
+  result.rt60From20Db = estimateRt60(frameEnergy);
+  result.lowRt60 = estimateRt60(lowEnergy);
+  result.highRt60 = estimateRt60(highEnergy);
   return result;
 }
 
@@ -107,13 +129,14 @@ Metrics measure(const ardor::DaisyFxDescriptor& descriptor)
 
 int main()
 {
-  std::printf("mode          peak dB  energy dB  L/R corr  density 100-200  density 200-500  RT60(20dB)\n");
+  std::printf("mode          peak dB  energy dB  L/R corr  density 100-200  density 200-500  RT60    low<500  high>4k\n");
   for (const auto& descriptor : ardor::daisyFxCatalog()) {
     if (descriptor.blockType != "reverb") continue;
     const auto metrics = measure(descriptor);
-    std::printf("%-12s %8.2f %10.2f %9.3f %16.3f %16.3f %11.3f s\n",
+    std::printf("%-12s %8.2f %10.2f %9.3f %16.3f %16.3f %7.3f s %7.3f s %7.3f s\n",
                 descriptor.mode.c_str(), metrics.peakDb, metrics.energyDb,
                 metrics.correlation, metrics.density100To200,
-                metrics.density200To500, metrics.rt60From20Db);
+                metrics.density200To500, metrics.rt60From20Db,
+                metrics.lowRt60, metrics.highRt60);
   }
 }

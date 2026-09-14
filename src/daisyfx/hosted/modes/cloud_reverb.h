@@ -50,6 +50,10 @@ private:
     float buf_fdn1_[6152];
     float buf_fdn2_[7700];
     float buf_fdn3_[9002];
+    float buf_fdn4_[5366];
+    float buf_fdn5_[6898];
+    float buf_fdn6_[8354];
+    float buf_fdn7_[9742];
 };
 
 } // namespace pedal

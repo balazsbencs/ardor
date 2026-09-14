@@ -51,7 +51,7 @@ double controlResponseDifference(const std::string& blockType, const std::string
   require(highProcessor.configure(blockType, highParams, 48000.0f, error), error);
 
   double difference = 0.0;
-  for (int i = 0; i < 8192; ++i) {
+  for (int i = 0; i < 16384; ++i) {
     // Repeated note bursts exercise envelope-controlled effects as well as
     // steady-state modulation and early-reflection movement.
     const float envelope = (i % 1600) < 480 ? 1.0f : 0.0f;
@@ -63,6 +63,29 @@ double controlResponseDifference(const std::string& blockType, const std::string
                 + std::fabs(static_cast<double>(a.right) - b.right);
   }
   return difference;
+}
+
+double reverbToneBandEnergy(const std::string& mode, float tone, float frequency)
+{
+  const auto* descriptor = ardor::findDaisyFxDescriptor("reverb", mode);
+  require(descriptor != nullptr, mode + " tone descriptor exists");
+  auto params = ardor::defaultDaisyFxParams(*descriptor);
+  params["mix"] = 1.0f;
+  params["pre_delay"] = 0.0f;
+  params["tone"] = tone;
+  ardor::DaisyFxProcessor processor;
+  std::string error;
+  require(processor.configure("reverb", params, 48000.0f, error), error);
+  double energy = 0.0;
+  for (int frame = 0; frame < 48000; ++frame) {
+    const float input = frame < 12000
+      ? 0.2f * std::sin(6.28318530718f * frequency * static_cast<float>(frame) / 48000.0f)
+      : 0.0f;
+    const auto output = processor.process({input, input});
+    energy += static_cast<double>(output.left) * output.left
+            + static_cast<double>(output.right) * output.right;
+  }
+  return energy;
 }
 
 struct ReverbSpatialMetrics {
@@ -891,6 +914,25 @@ int main()
           "magneto Tone must affect its response");
   require(controlResponseDifference("reverb", "reflections", "tone", 0.0f, 1.0f) > 1e-3,
           "reflections Tone must affect its response");
+
+  // Tone must remain audible near centre, where the former filtered/dry blend
+  // changed representative guitar frequencies by less than a tenth of a dB.
+  for (const auto& descriptor : ardor::daisyFxCatalog()) {
+    if (descriptor.blockType != "reverb") continue;
+    require(controlResponseDifference("reverb", descriptor.mode, "tone", 0.5f, 0.6f) > 1e-3,
+            descriptor.mode + " Tone must respond through its middle range");
+  }
+
+  // Verify direction as well as mere numerical change on the principal tank
+  // families. Bright must raise the high/low wet-energy ratio decisively.
+  for (const std::string mode : {"room", "hall", "plate", "cloud"}) {
+    const double darkRatio = reverbToneBandEnergy(mode, 0.0f, 4000.0f)
+                           / std::max(reverbToneBandEnergy(mode, 0.0f, 250.0f), 1e-18);
+    const double brightRatio = reverbToneBandEnergy(mode, 1.0f, 4000.0f)
+                             / std::max(reverbToneBandEnergy(mode, 1.0f, 250.0f), 1e-18);
+    require(brightRatio > darkRatio * 4.0,
+            mode + " Tone must provide at least 6 dB of useful spectral tilt");
+  }
 
   // Default wet trims must keep every topology audible without consuming the
   // remaining chain headroom. Periodic bursts exercise the specialty envelope

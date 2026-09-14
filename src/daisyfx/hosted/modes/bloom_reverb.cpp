@@ -2,6 +2,7 @@
 #include "../config/constants.h"
 
 #include <algorithm>
+#include <cmath>
 
 using namespace pedal::reverb_fx;
 
@@ -39,7 +40,7 @@ void BloomReverb::Init() {
     diffuser_r_.SetModulation(2.5f);
 
     Fdn::Config fdn_cfg{};
-    fdn_cfg.n_lines     = 4;
+    fdn_cfg.n_lines     = 8;
     fdn_cfg.sample_rate = REVERB_SAMPLE_RATE;
     fdn_cfg.bufs[0]     = buf_fdn0_;
     fdn_cfg.bufs[1]     = buf_fdn1_;
@@ -49,10 +50,12 @@ void BloomReverb::Init() {
     fdn_cfg.delays[1]   = 1746;
     fdn_cfg.delays[2]   = 2080;
     fdn_cfg.delays[3]   = 2407;
-    for (int i = 4; i < Fdn::MAX_LINES; ++i) {
-        fdn_cfg.bufs[i]   = nullptr;
-        fdn_cfg.delays[i] = 0;
-    }
+    fdn_cfg.bufs[4]     = buf_fdn4_; fdn_cfg.delays[4] = 1583;
+    fdn_cfg.bufs[5]     = buf_fdn5_; fdn_cfg.delays[5] = 1901;
+    fdn_cfg.bufs[6]     = buf_fdn6_; fdn_cfg.delays[6] = 2243;
+    fdn_cfg.bufs[7]     = buf_fdn7_; fdn_cfg.delays[7] = 2593;
+    const size_t fdn_sizes[8] = {2904, 3492, 4160, 4814, 3166, 3802, 4486, 5186};
+    for (int i = 0; i < 8; ++i) fdn_cfg.buffer_sizes[i] = fdn_sizes[i];
     fdn_.Init(fdn_cfg);
     fdn_.SetDecay(3.0f);
     fdn_.SetDamping(0.25f);
@@ -86,7 +89,7 @@ void BloomReverb::Prepare(const ParamSet& params) {
     pre_delay_l_.SetDelay(delay_samples < 1.0f ? 1.0f : delay_samples);
     pre_delay_r_.SetDelay(delay_samples < 1.0f ? 1.0f : delay_samples);
     fdn_.SetDecay(params.decay);
-    fdn_.SetDamping(0.15f + params.tone * 0.35f);
+    fdn_.SetDampFromRt60Ratio(params.decay, 0.25f + params.tone * 0.75f);
     fdn_.SetModulation(params.mod * Fdn::MAX_MOD_DEPTH_SAMPLES);
     tone_[0].SetKnob(params.tone);
     tone_[1].SetKnob(params.tone);
@@ -112,7 +115,7 @@ StereoFrame BloomReverb::Process(StereoFrame input, const ParamSet& /*params*/) 
         diffuser_r_.Process(pre_r)
     };
 
-    const float input_env = input_env_.Process(0.5f * (pre_l + pre_r));
+    const float input_env = input_env_.Process(std::max(std::fabs(pre_l), std::fabs(pre_r)));
     const bool onset = input_env > 0.035f && input_env > input_env_slow_ + 0.025f;
     input_env_slow_ += 0.0015f * (input_env - input_env_slow_);
     if (onset) bloom_env_ = 0.0f;

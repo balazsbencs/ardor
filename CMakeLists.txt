@@ -246,6 +246,13 @@ add_library(ardor_dsp OBJECT
   src/dsp/IrReverbProcessor.cpp
   src/dsp/NamProcessor.cpp
   src/dsp/PedalEngine.cpp
+  src/dsp/ParallelLaneExecutor.cpp
+  src/dsp/ParallelLaneMixer.cpp
+  src/dsp/ParallelStereoStageExecutor.cpp
+  src/dsp/WdwPairExecutor.cpp
+  src/dsp/WdwRoutingProgram.cpp
+  src/dsp/FlexibleRoutingGraph.cpp
+  src/dsp/FlexibleRoutingProgram.cpp
   src/dsp/RuntimeChain.cpp
   src/dsp/Tuner.cpp
   ${NAM_SOURCES}
@@ -349,6 +356,7 @@ endif()
 add_library(ardor_audio
   src/audio/MiniaudioBackend.cpp
   src/audio/EngineLoader.cpp
+  src/audio/WdwRoutingBuilder.cpp
   src/audio/PresetActivation.cpp
   src/audio/WavIo.cpp
 )
@@ -497,6 +505,36 @@ target_compile_definitions(pedal-looper-bench PRIVATE
 add_executable(pedal-engine-contract-smoke tests/engine_contract_smoke.cpp)
 target_link_libraries(pedal-engine-contract-smoke PRIVATE ardor_dsp)
 
+add_executable(pedal-parallel-lane-executor-smoke tests/parallel_lane_executor_smoke.cpp)
+target_link_libraries(pedal-parallel-lane-executor-smoke PRIVATE ardor_dsp)
+if(UNIX)
+  target_link_libraries(pedal-parallel-lane-executor-smoke PRIVATE pthread)
+endif()
+
+add_executable(pedal-parallel-lane-mixer-smoke tests/parallel_lane_mixer_smoke.cpp)
+target_link_libraries(pedal-parallel-lane-mixer-smoke PRIVATE ardor_dsp)
+if(UNIX)
+  target_link_libraries(pedal-parallel-lane-mixer-smoke PRIVATE pthread)
+endif()
+
+add_executable(pedal-flexible-routing-graph-smoke tests/flexible_routing_graph_smoke.cpp)
+target_link_libraries(pedal-flexible-routing-graph-smoke PRIVATE ardor_dsp)
+if(UNIX)
+  target_link_libraries(pedal-flexible-routing-graph-smoke PRIVATE pthread)
+endif()
+
+add_executable(pedal-flexible-routing-program-smoke tests/flexible_routing_program_smoke.cpp)
+target_link_libraries(pedal-flexible-routing-program-smoke PRIVATE ardor_dsp)
+if(UNIX)
+  target_link_libraries(pedal-flexible-routing-program-smoke PRIVATE pthread)
+endif()
+
+add_executable(pedal-flexible-routing-engine-smoke tests/flexible_routing_engine_smoke.cpp)
+target_link_libraries(pedal-flexible-routing-engine-smoke PRIVATE ardor_dsp)
+if(UNIX)
+  target_link_libraries(pedal-flexible-routing-engine-smoke PRIVATE pthread)
+endif()
+
 add_executable(pedal-tuner-smoke tests/tuner_smoke.cpp)
 target_link_libraries(pedal-tuner-smoke PRIVATE ardor_dsp)
 
@@ -561,6 +599,41 @@ target_compile_definitions(pedal-nam-bench PRIVATE
   ARDOR_CXX_FLAGS="${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}"
 )
 
+# Target-hardware feasibility probe for the proposed flexible routing graph.
+# It is intentionally separate from production DSP and is not a ctest.
+add_executable(pedal-routing-feasibility tests/routing_feasibility.cpp)
+target_link_libraries(pedal-routing-feasibility PRIVATE ardor_dsp)
+if(UNIX)
+  target_link_libraries(pedal-routing-feasibility PRIVATE pthread)
+endif()
+
+# Private feasibility probe for the two-lane wet/dry/wet DSP topology.
+add_executable(pedal-wdw-feasibility tests/wdw_feasibility.cpp)
+target_link_libraries(pedal-wdw-feasibility PRIVATE ardor_audio ardor_dsp)
+if(UNIX)
+  target_link_libraries(pedal-wdw-feasibility PRIVATE pthread)
+endif()
+
+add_executable(pedal-wdw-pair-executor-smoke tests/wdw_pair_executor_smoke.cpp)
+target_link_libraries(pedal-wdw-pair-executor-smoke PRIVATE ardor_dsp)
+if(UNIX)
+  target_link_libraries(pedal-wdw-pair-executor-smoke PRIVATE pthread)
+endif()
+
+add_executable(pedal-wdw-routing-program-smoke tests/wdw_routing_program_smoke.cpp)
+target_link_libraries(pedal-wdw-routing-program-smoke PRIVATE ardor_dsp)
+if(UNIX)
+  target_link_libraries(pedal-wdw-routing-program-smoke PRIVATE pthread)
+endif()
+
+add_executable(pedal-wdw-routing-builder-smoke tests/wdw_routing_builder_smoke.cpp)
+target_link_libraries(pedal-wdw-routing-builder-smoke PRIVATE ardor_audio ardor_dsp)
+target_compile_definitions(pedal-wdw-routing-builder-smoke PRIVATE
+  ARDOR_NAM_EXAMPLE_MODEL="${neuralampmodelercore_SOURCE_DIR}/example_models/lstm.nam")
+if(UNIX)
+  target_link_libraries(pedal-wdw-routing-builder-smoke PRIVATE pthread)
+endif()
+
 add_executable(pedal-ui-model-smoke tests/ui_model_smoke.cpp)
 target_link_libraries(pedal-ui-model-smoke PRIVATE ardor_ui)
 
@@ -606,6 +679,14 @@ add_test(NAME pedal-runtime-chain-smoke COMMAND pedal-runtime-chain-smoke)
 add_test(NAME pedal-looper-smoke COMMAND pedal-looper-smoke)
 add_test(NAME pedal-looper-store-smoke COMMAND pedal-looper-store-smoke)
 add_test(NAME pedal-engine-contract-smoke COMMAND pedal-engine-contract-smoke)
+add_test(NAME pedal-parallel-lane-executor-smoke COMMAND pedal-parallel-lane-executor-smoke)
+add_test(NAME pedal-parallel-lane-mixer-smoke COMMAND pedal-parallel-lane-mixer-smoke)
+add_test(NAME pedal-flexible-routing-graph-smoke COMMAND pedal-flexible-routing-graph-smoke)
+add_test(NAME pedal-flexible-routing-program-smoke COMMAND pedal-flexible-routing-program-smoke)
+add_test(NAME pedal-flexible-routing-engine-smoke COMMAND pedal-flexible-routing-engine-smoke)
+add_test(NAME pedal-wdw-pair-executor-smoke COMMAND pedal-wdw-pair-executor-smoke)
+add_test(NAME pedal-wdw-routing-program-smoke COMMAND pedal-wdw-routing-program-smoke)
+add_test(NAME pedal-wdw-routing-builder-smoke COMMAND pedal-wdw-routing-builder-smoke)
 add_test(NAME pedal-tuner-smoke COMMAND pedal-tuner-smoke)
 add_test(NAME pedal-nam-processor-smoke COMMAND pedal-nam-processor-smoke)
 add_test(NAME pedal-ui-model-smoke COMMAND pedal-ui-model-smoke)

@@ -361,8 +361,12 @@ sequential processing. The older `--parallel-dual-amp` and
 
 The Buildroot image enables that layout by default through
 `PARALLEL_RIGS=1`, `AUDIO_CPU=2`, and `RIG_WORKER_CPU=3` in
-`/etc/ardor-pedal.env`. The UI and non-audio work remain normal-priority Linux
-tasks; the realtime DSP threads preempt them on their assigned cores.
+`/etc/ardor-pedal.env`. WDW adds two independent lane workers; the image
+defaults to `WDW_DRY_WORKER_CPU=0` and `WDW_WET_WORKER_CPU=1` and passes them as
+`--wdw-dry-worker-cpu` / `--wdw-wet-worker-cpu`. These assignments keep the
+audio callback, legacy dual-rig worker, and both WDW lanes on distinct Pi 4
+cores. The UI and non-audio work remain normal-priority Linux tasks; the
+realtime DSP threads preempt them on their assigned cores.
 
 Measure that layout on a running pedal over SSH:
 

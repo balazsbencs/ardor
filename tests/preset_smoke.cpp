@@ -313,6 +313,79 @@ int main()
     }
     require(rejectedNestedDualRig, "reject nested dual rig split regions");
 
+    const auto wdwJson = nlohmann::json::parse(R"({
+      "version": 3,
+      "name": "Wet Dry Wet",
+      "routing": "wdw",
+      "global": {"inputGainDb": -3.0, "outputGainDb": -1.0, "safetyLimitDb": -1.0},
+      "blocks": [],
+      "wdw": {
+        "dry": {
+          "levelDb": -2.0, "pan": -0.25, "enabled": true,
+          "blocks": [
+            {"id":"dry-nam","type":"nam","enabled":true,"asset":"models/dry.nam","params":{}},
+            {"id":"dry-cab","type":"cab","enabled":true,"asset":"irs/dry.wav","params":{"mix":1.0}}
+          ]
+        },
+        "wet": {
+          "levelDb": -6.0, "width": 0.7, "enabled": true,
+          "blocks": [
+            {"id":"wet-nam","type":"nam","enabled":true,"asset":"models/wet.nam","params":{}},
+            {"id":"wet-cab","type":"cab","enabled":true,"asset":"irs/wet.wav","params":{"mix":1.0}},
+            {"id":"wet-delay","type":"delay","enabled":true,"asset":"","params":{"mode":"digital"}}
+          ]
+        }
+      }
+    })");
+    const auto wdwPreset = ardor::presetFromJson(wdwJson);
+    require(wdwPreset.version == 3 && wdwPreset.routing == "wdw" && wdwPreset.wdw,
+            "WDW preset parses its version and routing");
+    require(wdwPreset.blocks.empty() && wdwPreset.wdw->dry.blocks.size() == 2
+              && wdwPreset.wdw->wet.blocks.size() == 3,
+            "WDW preset preserves complete dry and wet lanes");
+    require(wdwPreset.wdw->dry.pan == -0.25f && wdwPreset.wdw->wet.width == 0.7f,
+            "WDW lane mix controls parse");
+    auto wdwExpressionJson = wdwJson;
+    wdwExpressionJson["expression"] = {
+      {"blockId", "wet-delay"}, {"parameter", "mix"},
+      {"minimum", 0.0}, {"maximum", 1.0}, {"inverted", false},
+    };
+    const auto wdwExpression = ardor::presetFromJson(wdwExpressionJson);
+    require(wdwExpression.expression && wdwExpression.expression->blockId == "wet-delay",
+            "WDW expression can target a lane block");
+    auto wdwMidiJson = wdwJson;
+    wdwMidiJson["wdw"]["wet"]["blocks"][2]["enabled"] = false;
+    wdwMidiJson["midiMappings"] = nlohmann::json::array({{
+      {"channel", 0}, {"controlChange", 22}, {"mode", "toggle"},
+      {"actions", nlohmann::json::array({nlohmann::json{
+        {"target", "blockEnabled"}, {"blockId", "wet-delay"},
+        {"value1", 0}, {"value2", 1},
+      }})},
+    }});
+    const auto wdwMidi = ardor::presetFromJson(wdwMidiJson);
+    const auto wdwMidiPlan = ardor::buildChainPlanForBlocks(
+      wdwMidi.global, wdwMidi.wdw->wet.blocks, {}, wdwMidi.midiBindings);
+    require(wdwMidiPlan.blocks[2].status == ardor::ChainBlockStatus::Ready
+              && !wdwMidiPlan.blocks[2].enabled,
+            "WDW MIDI block targets should prepare disabled lane blocks");
+    const auto wdwRoundTrip = ardor::presetFromJson(ardor::toJson(wdwPreset));
+    require(wdwRoundTrip.wdw && wdwRoundTrip.wdw->dry.blocks[1].id == "dry-cab"
+              && wdwRoundTrip.wdw->wet.blocks[2].params.value("mode", "") == "digital",
+            "WDW lanes round trip");
+    const auto wdwSerialized = ardor::toJson(wdwPreset);
+    require(!wdwSerialized["wdw"]["dry"].contains("width")
+              && !wdwSerialized["wdw"]["wet"].contains("pan"),
+            "WDW serialization keeps dry pan and wet width semantics explicit");
+    bool rejectedWdwTopLevelBlocks = false;
+    try {
+      auto invalid = wdwJson;
+      invalid["blocks"] = nlohmann::json::array({json["blocks"][0]});
+      (void)ardor::presetFromJson(invalid);
+    } catch (const std::invalid_argument&) {
+      rejectedWdwTopLevelBlocks = true;
+    }
+    require(rejectedWdwTopLevelBlocks, "reject top-level blocks in WDW preset");
+
     bool rejectedAbsoluteWrite = false;
     try {
       auto invalid = preset;

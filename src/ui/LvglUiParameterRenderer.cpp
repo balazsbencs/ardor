@@ -842,6 +842,14 @@ void onBypassClicked(lv_event_t* event)
   const auto* selected = selectedUiBlock(*context->state);
   if (!selected || !previewIsSynchronized(*context->state)) return;
   const bool enabled = !selected->enabled;
+  const bool wdwRequired = context->state->bank.presets[context->state->activePreset].routing == "wdw"
+    && selectedBlockIsLaneChild(*context->state)
+    && selected->type == "nam";
+  if (wdwRequired && !enabled) {
+    setUiStatus(*context->state, "Each WDW lane needs its required " + selected->label, true);
+    redraw(context);
+    return;
+  }
   const bool updatedLive = context->ui->actions().updateBlockEnabled
     && context->ui->actions().updateBlockEnabled(selected->id, enabled);
   if (updatedLive) setSelectedBlockEnabledLive(*context->state, enabled);

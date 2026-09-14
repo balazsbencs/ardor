@@ -1,0 +1,14 @@
+Representative cabinet IR fixture
+
+This deterministic mono 48 kHz / 8192-frame fixture was used for the final Pi
+admission run because the deployed image contains no cabinet WAV/AIFF/FLAC/IR
+asset. It is a dense, decaying cabinet-shaped proxy, not a microphone capture:
+
+  h[0] = 0.9
+  h[n>0] = 0.035 * exp(-n / 1600) * (0.72 + 0.28 * cos(0.013 n))
+
+The probe loads this file through readMonoWav() and prepareMonoIr(), so sample
+rate, finite samples, truncation fade, and frequency-response ceiling handling
+are identical to production cab loading. Replace this fixture with a licensed
+captured cab asset when one is available; the command-line probe accepts any
+mono 48 kHz WAV through --cab-path.

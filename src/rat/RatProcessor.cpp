@@ -3,9 +3,17 @@
 #include "rat/RatNetlist.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 
 namespace ardor {
+
+struct RatLiveParameters {
+  std::atomic<float> distortion{0.5f};
+  std::atomic<float> filter{0.5f};
+  std::atomic<float> volume{0.7f};
+  std::atomic<std::uint64_t> revision{0};
+};
 
 namespace {
 
@@ -48,23 +56,42 @@ bool RatProcessor::configure(const nlohmann::json& params, float sampleRate, std
   smoothing_ = 1.0f - std::exp(-1.0f / (kSmoothingSeconds * sampleRate_));
 
   circuit_.init(ratNetlist(), sampleRate_ * 8.0f);
+  liveParameters_ = std::make_shared<RatLiveParameters>();
+  liveParameters_->distortion.store(distortionTarget_, std::memory_order_relaxed);
+  liveParameters_->filter.store(filterTarget_, std::memory_order_relaxed);
+  liveParameters_->volume.store(volumeTarget_, std::memory_order_relaxed);
+  liveRevision_ = 1;
+  liveParameters_->revision.store(liveRevision_, std::memory_order_release);
   reset();
   return true;
 }
 
 bool RatProcessor::setParameterTarget(const std::string& key, float value)
 {
-  if (!std::isfinite(value)) return false;
+  if (!liveParameters_ || !std::isfinite(value)) return false;
   const float clamped = std::clamp(value, 0.0f, 1.0f);
-  if (key == "distortion") distortionTarget_ = clamped;
-  else if (key == "filter") filterTarget_ = clamped;
-  else if (key == "volume") volumeTarget_ = clamped;
+  if (key == "distortion") liveParameters_->distortion.store(clamped, std::memory_order_relaxed);
+  else if (key == "filter") liveParameters_->filter.store(clamped, std::memory_order_relaxed);
+  else if (key == "volume") liveParameters_->volume.store(clamped, std::memory_order_relaxed);
   else return false;
+  liveParameters_->revision.fetch_add(1, std::memory_order_release);
   return true;
+}
+
+void RatProcessor::refreshLiveParameters() noexcept
+{
+  if (!liveParameters_) return;
+  const auto revision = liveParameters_->revision.load(std::memory_order_acquire);
+  if (revision == liveRevision_) return;
+  distortionTarget_ = liveParameters_->distortion.load(std::memory_order_relaxed);
+  filterTarget_ = liveParameters_->filter.load(std::memory_order_relaxed);
+  volumeTarget_ = liveParameters_->volume.load(std::memory_order_relaxed);
+  liveRevision_ = revision;
 }
 
 void RatProcessor::reset()
 {
+  refreshLiveParameters();
   up2x_.Reset();
   up4x_.Reset();
   up8x_.Reset();
@@ -80,6 +107,7 @@ void RatProcessor::reset()
 
 StereoSample RatProcessor::process(StereoSample input)
 {
+  refreshLiveParameters();
   distortion_ += smoothing_ * (distortionTarget_ - distortion_);
   filter_ += smoothing_ * (filterTarget_ - filter_);
   volume_ += smoothing_ * (volumeTarget_ - volume_);

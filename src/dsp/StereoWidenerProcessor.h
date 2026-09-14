@@ -3,9 +3,13 @@
 #include "daisyfx/DaisyFxProcessor.h"
 
 #include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace ardor {
+
+struct StereoWidenerLiveParameters;
 
 // Mid/side width, with the low end kept centred and an optional side delay.
 //
@@ -38,7 +42,11 @@ public:
   StereoSample process(StereoSample input);
 
 private:
+  void refreshLiveParameters() noexcept;
+
   float sampleRate_ = 48000.0f;
+  std::shared_ptr<StereoWidenerLiveParameters> liveParameters_;
+  std::uint64_t liveRevision_ = 0;
 
   std::vector<float> sideDelay_;
   std::size_t write_ = 0;

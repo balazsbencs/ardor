@@ -58,16 +58,18 @@ void CloudReverb::Init() {
     diffuser1_r_.SetModulation(2.5f);
 
     Fdn::Config fdn_cfg{};
-    fdn_cfg.n_lines     = 4;
+    fdn_cfg.n_lines     = 8;
     fdn_cfg.sample_rate = REVERB_SAMPLE_RATE;
     fdn_cfg.bufs[0]     = buf_fdn0_;   fdn_cfg.delays[0] = 2401;
     fdn_cfg.bufs[1]     = buf_fdn1_;   fdn_cfg.delays[1] = 3076;
     fdn_cfg.bufs[2]     = buf_fdn2_;   fdn_cfg.delays[2] = 3850;
     fdn_cfg.bufs[3]     = buf_fdn3_;   fdn_cfg.delays[3] = 4501;
-    for (int i = 4; i < Fdn::MAX_LINES; ++i) {
-        fdn_cfg.bufs[i]   = nullptr;
-        fdn_cfg.delays[i] = 0;
-    }
+    fdn_cfg.bufs[4]     = buf_fdn4_;   fdn_cfg.delays[4] = 2683;
+    fdn_cfg.bufs[5]     = buf_fdn5_;   fdn_cfg.delays[5] = 3449;
+    fdn_cfg.bufs[6]     = buf_fdn6_;   fdn_cfg.delays[6] = 4177;
+    fdn_cfg.bufs[7]     = buf_fdn7_;   fdn_cfg.delays[7] = 4871;
+    const size_t fdn_sizes[8] = {4802, 6152, 7700, 9002, 5366, 6898, 8354, 9742};
+    for (int i = 0; i < 8; ++i) fdn_cfg.buffer_sizes[i] = fdn_sizes[i];
     fdn_.Init(fdn_cfg);
     fdn_.SetDecay(10.0f);
     fdn_.SetDamping(0.3f);
@@ -101,8 +103,9 @@ void CloudReverb::Prepare(const ParamSet& params) {
     diffuser1_l_.SetDiffusion(diff);
     diffuser1_r_.SetDiffusion(diff);
 
-    const float damp = 0.5f - params.param2 * 0.4f;
-    fdn_.SetDamping(damp);
+    // Darkness controls the rate at which high frequencies leave the tail;
+    // derive it per line so changing tank geometry does not alter the colour.
+    fdn_.SetDampFromRt60Ratio(params.decay, 0.90f - params.param2 * 0.70f);
 
     tone_[0].SetKnob(params.tone);
     tone_[1].SetKnob(params.tone);

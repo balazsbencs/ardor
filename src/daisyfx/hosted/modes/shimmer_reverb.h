@@ -34,6 +34,10 @@ private:
     float          buf_fdn1_[3252];
     float          buf_fdn2_[3864];
     float          buf_fdn3_[4508];
+    float          buf_fdn4_[2962];
+    float          buf_fdn5_[3554];
+    float          buf_fdn6_[4198];
+    float          buf_fdn7_[4846];
     float          buf_pitch0_[8192];
     float          buf_pitch1_[8192];
     DelayLineSdram pre_delay_l_;

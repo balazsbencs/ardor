@@ -21,8 +21,8 @@ void PitchShifter::Init(float* buf, size_t buf_size, float sample_rate,
         grain_phase_[g] = offset;
     }
     ratio_     = 1.0f;
-    aa_state1_ = 0.0f;
-    aa_state2_ = 0.0f;
+    aa_[0].Reset();
+    aa_[1].Reset();
     UpdateAntiAlias();
 }
 
@@ -34,8 +34,8 @@ void PitchShifter::Reset() {
         read_pos_[g]    = static_cast<float>(grain_size_) * offset;
         grain_phase_[g] = offset;
     }
-    aa_state1_ = 0.0f;
-    aa_state2_ = 0.0f;
+    aa_[0].Reset();
+    aa_[1].Reset();
 }
 
 float PitchShifter::clampRatio(float ratio) const {
@@ -52,14 +52,24 @@ void PitchShifter::SetShift(float semitones) {
     UpdateAntiAlias();
 }
 
-// Corner at fs/(2*ratio) - the highest frequency that survives the decimation
-// the upward read performs. A downward shift interpolates instead, so nothing
-// folds and the filter is bypassed.
+// Fourth-order Butterworth low-pass at 90% of the post-shift Nyquist limit.
 void PitchShifter::UpdateAntiAlias() {
-    if (ratio_ <= 1.0f) { aa_coeff_ = 1.0f; return; }
-    const float cutoff = 0.5f * sample_rate_ / ratio_;
-    const float k = 1.0f - std::exp(-6.2831853f * cutoff / sample_rate_);
-    aa_coeff_ = k < 0.02f ? 0.02f : (k > 1.0f ? 1.0f : k);
+    aa_active_ = ratio_ > 1.0f;
+    if (!aa_active_) return;
+    const float cutoff = 0.45f * sample_rate_ / ratio_;
+    const float w0 = 6.28318530718f * cutoff / sample_rate_;
+    const float cw = std::cos(w0);
+    const float sw = std::sin(w0);
+    static constexpr float q[2] = {0.5411961001f, 1.3065629649f};
+    for (int i = 0; i < 2; ++i) {
+        const float alpha = sw / (2.0f * q[i]);
+        const float inv_a0 = 1.0f / (1.0f + alpha);
+        aa_[i].b0 = (1.0f - cw) * 0.5f * inv_a0;
+        aa_[i].b1 = (1.0f - cw) * inv_a0;
+        aa_[i].b2 = aa_[i].b0;
+        aa_[i].a1 = -2.0f * cw * inv_a0;
+        aa_[i].a2 = (1.0f - alpha) * inv_a0;
+    }
 }
 
 float PitchShifter::At(long index) const {
@@ -154,10 +164,8 @@ float PitchShifter::ReadInterp(float pos) const {
 float PitchShifter::Process(float input) {
     if (!buf_) return input;
 
-    if (aa_coeff_ < 1.0f) {
-        aa_state1_ += aa_coeff_ * (input - aa_state1_);
-        aa_state2_ += aa_coeff_ * (aa_state1_ - aa_state2_);
-        input = aa_state2_;
+    if (aa_active_) {
+        input = aa_[1].Process(aa_[0].Process(input));
     }
 
     buf_[write_pos_] = input;

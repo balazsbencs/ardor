@@ -12,11 +12,13 @@ function slotFor(summaries: PresetSlotSummary[], bank: number, slot: number): Pr
 export function PresetSidebar({
   summaries,
   selected,
+  active: activeLocation,
   disabled,
   onSelect,
 }: {
   summaries: PresetSlotSummary[];
   selected?: PresetLocation;
+  active?: PresetLocation;
   disabled?: boolean;
   onSelect(location: PresetLocation): void;
 }) {
@@ -52,19 +54,21 @@ export function PresetSidebar({
       </div>
       <div className="preset-slots">
         {slots.map((summary, slot) => {
-          const active = selected?.bank === bank && selected.slot === slot;
+          const selectedHere = selected?.bank === bank && selected.slot === slot;
+          const audible = activeLocation?.bank === bank && activeLocation.slot === slot;
           const exists = summary?.exists ?? false;
           const warnings = (summary?.missingAssetCount ?? 0) + (summary?.unsupportedBlockCount ?? 0);
           return (
             <button
               key={slot}
-              className={`preset-slot ${active ? "preset-slot--active" : ""}`}
-              aria-current={active ? "true" : undefined}
+              className={`preset-slot ${selectedHere ? "preset-slot--active" : ""}`}
+              aria-current={selectedHere ? "true" : undefined}
               disabled={disabled}
               onClick={() => onSelect({ bank, slot })}
             >
               <span className="preset-slot__number">{slot + 1}</span>
               <span className="preset-slot__body"><strong>{exists ? summary?.name || "Unnamed" : "Empty slot"}</strong><small>{exists ? `Slot ${slot + 1}` : "Create a preset"}</small></span>
+              {audible && <StatusBadge tone="success">LIVE</StatusBadge>}
               {warnings > 0 && <StatusBadge tone="warning">{warnings}</StatusBadge>}
             </button>
           );

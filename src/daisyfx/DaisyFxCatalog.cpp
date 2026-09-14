@@ -113,6 +113,14 @@ DaisyFxDescriptor reverb(std::string mode, std::string name, std::string param1 
   return {DaisyFxKind::Reverb, "reverb", std::move(mode), std::move(name), std::move(params)};
 }
 
+DaisyFxDescriptor reflectionsReverb()
+{
+  auto descriptor = reverb("reflections", "Reflections Reverb", "Depth", "Width",
+                           0.50f, 0.50f, "Motion");
+  descriptor.params[0].label = "Level";
+  return descriptor;
+}
+
 template <std::size_t N>
 std::string choice(float normalized, const std::array<std::string_view, N>& choices)
 {
@@ -192,17 +200,11 @@ std::vector<float> evenlySpacedChoices(std::size_t count)
 
 std::string tone(float normalized, float sampleRate)
 {
+  (void)sampleRate;
   normalized = std::clamp(normalized, 0.0f, 1.0f);
   if (std::fabs(normalized - 0.5f) < 0.001f) return "Flat";
-  const float maxCutoff = std::min(20000.0f, sampleRate * 0.45f);
-  if (normalized < 0.5f) {
-    const float amount = 1.0f - normalized * 2.0f;
-    const float cutoff = std::exp(std::log(maxCutoff) + amount * (std::log(200.0f) - std::log(maxCutoff)));
-    return std::string{"LP "} + frequency(cutoff);
-  }
-  const float amount = (normalized - 0.5f) * 2.0f;
-  const float cutoff = std::exp(std::log(20.0f) + amount * (std::log(3000.0f) - std::log(20.0f)));
-  return std::string{"HP "} + frequency(cutoff);
+  const int amount = static_cast<int>(std::lround(std::fabs(normalized - 0.5f) * 200.0f));
+  return std::string{normalized < 0.5f ? "Dark " : "Bright "} + std::to_string(amount) + "%";
 }
 
 pedal::ModModeId modMode(std::string_view mode)
@@ -422,7 +424,8 @@ std::string formatReverb(std::string_view mode, std::string_view key, float norm
   using Id = pedal::reverb_fx::ParamId;
   if (key == "decay") {
     const float physical = mappedReverb(normalized, mode, Id::Decay);
-    return mode == "reflections" ? percent(physical) : seconds(physical);
+    return mode == "reflections" ? number(20.0f * std::log10(physical / 0.4f), 1, " dB")
+                                 : seconds(physical);
   }
   if (key == "pre_delay") {
     const float physical = mappedReverb(normalized, mode, Id::PreDelay);
@@ -506,7 +509,7 @@ const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
     delay("trem", "Tremolo Delay", "Shape", "Trem Rate", "Trem Depth"),
     reverb("room", "Room Reverb", "Size", "Diffusion", 0.50f, 0.50f, "Mod Depth"),
     reverb("hall", "Hall Reverb", "Diffusion", "Mid EQ", 0.50f, 0.50f, "Mod Depth"),
-    reverb("plate", "Plate Reverb", "Size", "Character", 0.50f, 0.50f, "Mod Rate"),
+    reverb("plate", "Plate Reverb", "Mod Depth", "Character", 0.50f, 0.50f, "Mod Rate"),
     reverb("spring", "Spring Reverb", "Dwell", "Springs", 0.50f, 0.50f, "Wobble"),
     reverb("bloom", "Bloom Reverb", "Bloom Time", "Feedback", 0.50f, 0.50f, "Mod Depth"),
     reverb("cloud", "Cloud Reverb", "Diffusion", "Darkness", 0.50f, 0.50f, "Mod Depth"),
@@ -517,7 +520,7 @@ const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
     reverb("nonlinear", "Nonlinear Reverb", "Shape", "Diffusion", 0.50f, 0.50f, "Mod Depth"),
     reverb("swell", "Swell Reverb", "Rise Time", "Direction", 0.50f, 0.50f, "Mod Depth"),
     reverb("magneto", "Magneto Reverb", "Heads", "Spacing", 0.50f, 0.50f, "Diffusion", "Feedback"),
-    reverb("reflections", "Reflections Reverb", "Depth", "Width", 0.50f, 0.50f, "Motion"),
+    reflectionsReverb(),
   };
   return catalog;
 }

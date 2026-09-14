@@ -1,5 +1,6 @@
 import type {
   ApplyPresetResponse,
+  ApplyPresetStatus,
   Asset,
   AssetKind,
   DeviceStatus,
@@ -126,6 +127,10 @@ export class ArdorApiClient implements ManagerTransport {
 
   applyPreset(bank: number, slot: number): Promise<ApplyPresetResponse> {
     return this.request<ApplyPresetResponse>(`/api/presets/banks/${bank}/slots/${slot}/apply`, { method: "POST" });
+  }
+
+  getApplyStatus(id: string): Promise<ApplyPresetStatus> {
+    return this.request<ApplyPresetStatus>(`/api/runtime/apply/${encodeURIComponent(id)}`);
   }
 
   private async request<T>(

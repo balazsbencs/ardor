@@ -19,7 +19,7 @@ export class CloudTransport implements ManagerTransport {
   getDevice(): Promise<DeviceStatus> {
     return Promise.resolve({
       deviceName: "Ardor Pedal", apiVersion: "0.1.0", authEnabled: true, dataRootWritable: true,
-      maxBanks: 100, slotsPerBank: 4, supportedPresetVersion: 2,
+      maxBanks: 100, slotsPerBank: 4, supportedPresetVersion: 3,
       capabilities: {
         modelUpload: this.remoteMutationsEnabled, irUpload: this.remoteMutationsEnabled, assetRename: this.remoteMutationsEnabled,
         presetRead: true, presetWrite: this.remoteMutationsEnabled, presetApply: this.remoteMutationsEnabled, wifiSettings: false,

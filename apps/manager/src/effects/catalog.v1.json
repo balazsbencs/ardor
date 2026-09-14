@@ -3394,7 +3394,7 @@
         {
           "kind": "number",
           "key": "param1",
-          "label": "Size",
+          "label": "Mod Depth",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -4113,7 +4113,7 @@
         {
           "kind": "number",
           "key": "decay",
-          "label": "Decay",
+          "label": "Level",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,

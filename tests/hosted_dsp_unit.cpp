@@ -69,6 +69,40 @@ void verifyToneFilter(float sampleRate)
   require(tone.Process(0.0f) == 0.0f, "ToneFilter reset must clear state");
 }
 
+void verifyBrightDelayFeedbackDecays()
+{
+  const auto* descriptor = ardor::findDaisyFxDescriptor("delay", "digital");
+  require(descriptor != nullptr, "digital delay descriptor exists");
+  auto params = ardor::defaultDaisyFxParams(*descriptor);
+  params["mix"] = 1.0f;
+  params["time"] = 0.1f;
+  params["repeats"] = 0.8f;
+  params["filter"] = 1.0f;
+  params["grit"] = 0.0f;
+  params["mod_dep"] = 0.0f;
+
+  ardor::DaisyFxProcessor processor;
+  std::string error;
+  require(processor.configure("delay", params, 48000.0f, error), error);
+
+  float finalPeak = 0.0f;
+  constexpr int kFrames = 4 * 48000;
+  for (int frame = 0; frame < kFrames; ++frame) {
+    const float input = frame < 4800
+      ? 0.001f * std::sin(6.28318530718f * 8000.0f * static_cast<float>(frame) / 48000.0f)
+      : 0.0f;
+    const auto output = processor.process({input, input});
+    requireFinite(output.left, "bright digital delay must remain finite");
+    requireFinite(output.right, "bright digital delay must remain finite");
+    if (frame >= 3 * 48000) {
+      finalPeak = std::max(finalPeak, std::max(std::fabs(output.left), std::fabs(output.right)));
+    }
+  }
+  require(finalPeak < 0.001f,
+          "bright digital delay feedback must decay after input stops; final peak was "
+            + std::to_string(finalPeak));
+}
+
 // A high shelf must reach its full gain well above the corner, sit at half gain
 // on the corner itself, and leave the low end alone. Inverting the gain must
 // invert the response, because that is how the tape block builds a de-emphasis
@@ -958,6 +992,7 @@ int main()
 {
   verifyToneFilter(24000.0f);
   verifyToneFilter(48000.0f);
+  verifyBrightDelayFeedbackDecays();
   verifyHighShelf();
   verifyHalfbandResamplers();
   verifyFastSineAccuracy();

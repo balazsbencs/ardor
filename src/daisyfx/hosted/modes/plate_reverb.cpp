@@ -89,6 +89,8 @@ void PlateReverb::Init() {
     lfo_b_.Init(1.0f, LfoWave::Sine, SAMPLE_RATE);
     lfo_b_.SetPhaseOffset(1.5707963f);  // π/2
     lfo_b_.Reset();
+    tone_[0].Init(SAMPLE_RATE);
+    tone_[1].Init(SAMPLE_RATE);
 
     lp_a_ = lp_b_ = 0.0f;
     last_ap7_ = last_ap8_ = 0.0f;
@@ -108,6 +110,8 @@ void PlateReverb::Reset() {
     ap6_.Reset();  d7_.Reset();  ap8_.Reset();  d8_.Reset();
     lfo_a_.Reset();
     lfo_b_.Reset();
+    tone_[0].Reset();
+    tone_[1].Reset();
     lp_a_ = lp_b_ = 0.0f;
     last_ap7_ = last_ap8_ = 0.0f;
     hold_ = false;
@@ -124,6 +128,8 @@ void PlateReverb::Prepare(const ParamSet& params) {
 
     // One-pole LP coefficient: tone=0 → dark (0.90), tone=1 → bright (0.05)
     lp_coef_ = std::sqrt(0.90f - params.tone * 0.85f);
+    tone_[0].SetKnob(params.tone);
+    tone_[1].SetKnob(params.tone);
 
     // Input bandwidth tracks Tone: 6 kHz dark, about 20 kHz bright. Kept
     // deliberately open — the reference design's default bandwidth is near
@@ -240,7 +246,7 @@ StereoFrame PlateReverb::Process(StereoFrame input, const ParamSet& params) {
     const float wet_r = kOutGain * (  d7_r0 + d7_r1 - last_ap8_
                                      - d8_r  + d5_r0 - d5_r1 - last_ap7_);
 
-    return StereoFrame{ wet_l, wet_r };
+    return StereoFrame{ tone_[0].Process(wet_l), tone_[1].Process(wet_r) };
 }
 
 void PlateReverb::SetHold(bool h) {

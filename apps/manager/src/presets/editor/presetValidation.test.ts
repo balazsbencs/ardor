@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Asset, Preset, PresetBlock } from "../../api/types";
 import { createBlockFromDefinition } from "../../effects/catalog";
-import { createEmptyPreset } from "./presetFactory";
+import { createEmptyPreset, createWdwPreset } from "./presetFactory";
 import {
   firstBlockingIssue,
   issuesForBlock,
@@ -248,6 +248,59 @@ describe("preset validation", () => {
     expect(validatePreset(preset, assets).issues).toContainEqual(
       expect.objectContaining({ code: "nested-split", blockId: nested.id }),
     );
+  });
+
+  it("validates version-3 WDW lanes and resolves lane-scoped expression/MIDI targets", () => {
+    const preset = createWdwPreset("Wet Dry Wet");
+    const { dry, wet } = preset.wdw!;
+    dry.blocks[0].asset = "models/amp.nam";
+    dry.blocks[1].asset = "irs/cab.wav";
+    wet.blocks[0].asset = "models/amp.nam";
+    wet.blocks[1].asset = "irs/cab.wav";
+    const delay = createBlockFromDefinition("delay:digital", wet.blocks);
+    wet.blocks.push(delay);
+    preset.expression = {
+      blockId: delay.id, parameter: "mix", minimum: 0, maximum: 1, inverted: false,
+    };
+    preset.midiMappings = [{
+      channel: 0, controlChange: 22, mode: "toggle",
+      actions: [{ target: "blockEnabled", blockId: delay.id, value1: 0, value2: 1 }],
+    }];
+    expect(validatePreset(preset, assets)).toMatchObject({ canSave: true, canApply: true });
+
+    const namOnly = structuredClone(preset);
+    namOnly.wdw!.dry.blocks.splice(1, 1);
+    namOnly.wdw!.wet.blocks.splice(1, 1);
+    expect(validatePreset(namOnly, assets)).toMatchObject({ canSave: true, canApply: true });
+
+    const bypassedCab = structuredClone(preset);
+    bypassedCab.wdw!.dry.blocks[1].enabled = false;
+    expect(validatePreset(bypassedCab, assets)).toMatchObject({ canSave: true, canApply: true });
+
+    wet.blocks[1].asset = "irs/missing.wav";
+    expect(codes(preset)).toContain("asset-missing");
+    wet.blocks[1].asset = "irs/cab.wav";
+    preset.wdw!.dry.pan = 2;
+    expect(codes(preset)).toContain("wdw-pan-range");
+    preset.wdw!.dry.pan = 0;
+    preset.wdw!.wet.pan = 0.25;
+    expect(codes(preset)).toContain("wdw-wet-pan");
+    preset.wdw!.wet.pan = 0;
+    preset.wdw!.dry.blocks[0].enabled = false;
+    expect(codes(preset)).toContain("wdw-required-disabled");
+  });
+
+  it("flags a time effect placed on Dry and keeps the lane rule singular", () => {
+    const preset = createWdwPreset("WDW placement");
+    const dry = preset.wdw!.dry;
+    dry.blocks[0].asset = "models/amp.nam";
+    dry.blocks[1].asset = "irs/cab.wav";
+    const delay = createBlockFromDefinition("delay:digital", dry.blocks);
+    dry.blocks.push(delay);
+    const placementIssues = validatePreset(preset, assets).issues.filter(({ code, blockId }) =>
+      code === "wdw-placement" && blockId === delay.id,
+    );
+    expect(placementIssues).toHaveLength(1);
   });
 
   it("requires the canonical complete five-band EQ shape", () => {

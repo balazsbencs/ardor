@@ -44,6 +44,7 @@ void Fdn::Init(const Config& cfg) {
         lp_state_[i]  = 0.0f;
         lfo_phase_[i] = static_cast<float>(i) / static_cast<float>(n_lines_);
         feedback_[i]  = 0.7f;  // reasonable default
+        damp_[i]      = 0.3f;
         dc_[i].Init(sample_rate_, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
     }
 }
@@ -87,7 +88,8 @@ void Fdn::SetDecay(float decay_s) {
 
 void Fdn::SetDamping(float damp) {
     if (!std::isfinite(damp)) damp = 0.3f;
-    damp_ = damp < 0.0f ? 0.0f : (damp > 1.0f ? 1.0f : damp);
+    const float clamped = damp < 0.0f ? 0.0f : (damp > 1.0f ? 1.0f : damp);
+    for (int i = 0; i < n_lines_; ++i) damp_[i] = clamped;
     last_rt60_lf_s_ = -1.0f;
     last_hf_ratio_ = -1.0f;
 }
@@ -103,19 +105,29 @@ void Fdn::SetDampFromRt60Ratio(float rt60_lf_s, float hf_ratio) {
 
     const float rt60_hf_s = rt60_lf_s * hf_ratio;
 
-    // Use median line delay for the approximation.
-    const int   mid       = n_lines_ / 2;
-    const float delay_med = delay_s_[mid];
-
-    const float g_lf = expf(-6.9078f * delay_med / rt60_lf_s);
-    const float g_hf = expf(-6.9078f * delay_med / rt60_hf_s);
-
-    // From LP filter Nyquist gain: g_nyquist = damp/(2-damp)
-    // Solve: damp = 2*g_hf / (g_lf + g_hf)
-    const float g_sum = g_lf + g_hf;
-    damp_ = (g_sum > 0.001f) ? (2.0f * g_hf / g_sum) : 0.5f;
-    if (damp_ < 0.01f) damp_ = 0.01f;
-    if (damp_ > 1.0f)  damp_ = 1.0f;
+    // Derive each loop filter from its own acoustic delay. A shared coefficient
+    // gives long and short lines different attenuation per second and makes the
+    // modal decay coloration depend on the delay geometry.
+    for (int i = 0; i < n_lines_; ++i) {
+        const float g_lf = expf(-6.9078f * delay_s_[i] / rt60_lf_s);
+        const float g_hf = expf(-6.9078f * delay_s_[i] / rt60_hf_s);
+        const float ratio = g_lf > 1.0e-9f ? g_hf / g_lf : 0.0f;
+        // Solve the one-pole magnitude equation at 6 kHz, where brightness is
+        // perceptually useful. Calibrating only at the 12 kHz Nyquist point
+        // left most guitar and keyboard harmonics close to the LF decay time.
+        const float reference_hz = std::min(6000.0f, sample_rate_ * 0.25f);
+        const float cosine = std::cos(6.28318530718f * reference_hz / sample_rate_);
+        const float r2 = ratio * ratio;
+        const float a = 1.0f - r2;
+        const float numerator = 2.0f - 2.0f * r2 * cosine;
+        const float discriminant = std::max(0.0f, numerator * numerator - 4.0f * a * a);
+        const float pole = a > 1.0e-7f
+            ? (numerator - std::sqrt(discriminant)) / (2.0f * a)
+            : 0.0f;
+        damp_[i] = 1.0f - pole;
+        if (damp_[i] < 0.01f) damp_[i] = 0.01f;
+        if (damp_[i] > 1.0f)  damp_[i] = 1.0f;
+    }
 }
 
 void Fdn::SetModulation(float depth_samples) {
@@ -206,7 +218,7 @@ StereoFrame Fdn::Process(StereoFrame input) {
         if (hold_) {
             lp_state_[i] = raw_blocked;  // bypass LP during hold; frozen pad stays bright
         } else {
-            lp_state_[i] += damp_ * (raw_blocked - lp_state_[i]);
+            lp_state_[i] += damp_[i] * (raw_blocked - lp_state_[i]);
         }
         if (!std::isfinite(lp_state_[i])) {
             lp_state_[i] = 0.0f;

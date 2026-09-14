@@ -9,10 +9,14 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <nlohmann/json.hpp>
 #include <string>
 
 namespace ardor {
+
+struct TapeLiveParameters;
 
 // A studio tape machine, voiced after a Studer A800.
 //
@@ -160,6 +164,7 @@ private:
   static constexpr std::size_t kDryBufferMask = kDryBufferSize - 1U;
 
   void rebuildFilters(bool resetMagnetics = false);
+  void refreshLiveParameters() noexcept;
   void calibrateDriveMakeup();
   float driveMakeup(float driveDb) const;
   TapeHysteresis::Parameters solverParameters() const;
@@ -169,6 +174,8 @@ private:
   float sampleRate_ = 48000.0f;
   float smoothing_ = 0.0f;
   bool fastSpeed_ = false; // false is 15 ips, true is 30 ips
+  std::shared_ptr<TapeLiveParameters> liveParameters_;
+  std::uint64_t liveRevision_ = 0;
 
   float driveDbTarget_ = 0.0f;
   float saturationTarget_ = 0.5f;

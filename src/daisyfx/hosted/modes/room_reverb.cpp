@@ -87,6 +87,8 @@ void RoomReverb::Init() {
     fdn_.Init(fdn_cfg);
     fdn_.SetDecay(2.0f);
     fdn_.SetDamping(0.3f);
+    tone_[0].Init(REVERB_SAMPLE_RATE);
+    tone_[1].Init(REVERB_SAMPLE_RATE);
 }
 
 void RoomReverb::Reset() {
@@ -97,6 +99,8 @@ void RoomReverb::Reset() {
     diffuser_l_.Reset();
     diffuser_r_.Reset();
     fdn_.Reset();
+    tone_[0].Reset();
+    tone_[1].Reset();
     early_mix_ = 0.4f;
 }
 
@@ -110,6 +114,8 @@ void RoomReverb::Prepare(const ParamSet& params) {
     const float calibrated_decay = params.decay * 1.34f;
     fdn_.SetDecay(calibrated_decay);
     fdn_.SetDampFromRt60Ratio(calibrated_decay, 0.30f + params.tone * 0.70f);
+    tone_[0].SetKnob(params.tone);
+    tone_[1].SetKnob(params.tone);
     fdn_.SetModulation(params.mod * 8.0f);
     diffuser_l_.SetDiffusion(params.param2);
     diffuser_r_.SetDiffusion(params.param2);
@@ -154,8 +160,8 @@ StereoFrame RoomReverb::Process(StereoFrame input, const ParamSet& /*params*/) {
     const StereoFrame late = fdn_.Process(diffused);
 
     const StereoFrame out{
-        er.left  * early_mix_ + late.left  * (1.0f - early_mix_),
-        er.right * early_mix_ + late.right * (1.0f - early_mix_)
+        tone_[0].Process(er.left  * early_mix_ + late.left  * (1.0f - early_mix_)),
+        tone_[1].Process(er.right * early_mix_ + late.right * (1.0f - early_mix_))
     };
     return out;
 }
