@@ -1,0 +1,2 @@
+routing-feasibility: audio_cpu=2 pinned=1 realtime=1 models=1 cab=1
+Dual Rig parallel lanes enabled: complete right lane on CPU 3.

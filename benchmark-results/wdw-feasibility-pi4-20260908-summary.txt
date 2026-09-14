@@ -1,0 +1,79 @@
+Two-lane wet/dry/wet feasibility probe
+Date: 2026-09-08
+Target: Raspberry Pi at 192.168.88.12 (aarch64, service stopped during probe)
+
+Topology measured
+  Dry lane: Rat (exact run) -> NAM (JCM800) -> dense synthetic 8192-frame cab IR
+  Wet lane: NAM (Ampeg/Dumble) -> dense synthetic 8192-frame cab IR -> stereo digital delay -> stereo room reverb
+  Audio callback: CPU 1 for the matrix, CPU 2 for the placement check
+  Dry worker: CPU 0, wet worker: CPU 3, SCHED_FIFO priority 69
+  Publication: accept only equal dry/wet generations; otherwise hold the last
+               complete pair, with initial silence (never raw-input bypass)
+  All runs used paced 48 kHz input and a 2-slot bounded pipeline.
+
+Exact Rat-enabled matrix (1,000 timed blocks plus 100 warmup blocks)
+  block  mode      callback mean / p99 / max us       deadline misses   dry worker mean / max us   wet worker mean / max us
+   32    pipeline  8.213 / 12.408 / 14.148             0 / 1000          566.495 / 711.074           450.077 / 612.852
+   64    pipeline 10.520 / 19.630 / 41.519             0 / 1000          978.776 / 1380.852          756.756 / 1179.093
+  128    pipeline 15.318 / 25.574 / 32.334             0 / 1000         1761.850 / 2266.111         1282.228 / 1731.722
+
+The direct-thread reference missed 1,000/1,000 deadlines at 32, 64, and 128
+frames (callback means 987.820, 1692.351, and 3007.766 us respectively).
+
+No-Rat comparison (same two NAM + two cab + delay/reverb topology)
+  Pipelined callback deadline misses were 0/1000 at 32, 64, and 128 frames.
+  Dry/wet worker means were 418/458 us (32), 688/773 us (64), and 1208/1340 us (128).
+
+Long exact run (20,000 timed + 500 warmup, 64 frames, audio CPU 1)
+  callback mean 11.822 us, p99 20.408 us, p999 24.704 us, max 35.315 us,
+  deadline misses 0/20,000, non-finite outputs 0, submission misses 0.
+  20,481/20,500 calls produced a generation-matched pair; 19 mismatches were
+  handled by holding the last complete pair. Each lane had one startup underflow.
+  Worker means/maxima: dry 1009.720/1546.833 us, wet 771.873/1234.278 us.
+
+Production-placement check (5,000 timed + 200 warmup, 64 frames, audio CPU 2)
+  callback mean 9.792 us, p99 18.296 us, max 26.093 us, deadline misses 0/5000;
+  pair mismatches 1, startup underflow 1 per lane; worker means/maxima were
+  dry 965.717/1302.278 us and wet 735.889/1130.593 us.
+
+After each run the S99ardor-pedal service was restarted. Post-run service
+telemetry remained healthy: over=0, gaps=0, bypassed=0, worker_over=0,
+nonfinite=0, block_mismatch=0.
+
+Final admission follow-up (2026-09-09)
+  The probe was extended with --cab-path and a deterministic mono 48 kHz /
+  8192-frame cabinet-shaped WAV fixture. The deployed image has no licensed
+  cabinet capture, so this is a production-loader stress proxy; provenance is
+  in benchmark-results/representative-cab-ir-48k.txt.
+
+  128-frame / three-slot / Rat + cab / 1,000,000 paced timed blocks plus 200
+  warmup blocks produced 1,000,196 matched pairs out of 1,000,200 calls,
+  four bounded underflows, one maximum pair age block, zero submission misses,
+  zero callback deadline misses, and zero non-finite/fault blocks. Measured
+  latency was dry 0 frames and wet 31 frames. Callback mean / p99 / p999 / max
+  were 18.938 / 26.426 / 45.481 / 114.296 us; worker maxima were 2,354.722
+  us dry and 2,050.777 us wet against the 2,666.667 us quantum. Exact CSV:
+  benchmark-results/wdw-feasibility-pi4-20260908-real-ir-1m.csv.
+
+  All 25 dry/wet pairs from the five NAM models on the Pi were then screened at
+  128 frames with the same fixture (100 warmup + 1,000 paced timed blocks per
+  pair). Every pair stayed on dry CPU 0 / wet CPU 3, with one startup
+  underflow, zero submission/deadline/non-finite/fault blocks, and 31 wet
+  latency frames. Worst worker maxima were 1,788.156 us dry and 1,466.686 us
+  wet. Exact CSV: benchmark-results/wdw-model-pair-screen-pi4-20260909.csv.
+
+  The service was started after the probes; telemetry returned to over=0,
+  gaps=0, worker_over=0, nonfinite=0, and block_mismatch=0.
+
+Feasibility decision
+  The topology is feasible as a bounded two-worker pipeline on this Pi when
+  the complete lanes run off the callback and publication is generation matched.
+  64 frames is a practical minimum for the Rat-enabled case; 128 frames gives
+  more worker headroom. 32 frames had zero callback misses in this run but the
+  dry worker's worst sample slightly exceeded one quantum, so it should not be
+  the default admission point without stricter worst-case testing.
+  The editor contract can therefore expose two complete lanes, each with its
+  own NAM and cab, with delay/reverb restricted to the wet lane. The follow-up
+  pair/program work now supplies the explicit latency/underflow policy and
+  stopped-audio control-thread builder/activation seam; this historical probe
+  itself does not change the live route.

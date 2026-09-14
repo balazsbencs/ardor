@@ -1,0 +1,12 @@
+Stopping ardor-pedal
+stopped process in pidfile '/var/run/ardor-pedal.pid' (pid 401)
+wdw-feasibility: audio_cpu=1 pinned=1 realtime=1 models=2 rat=1 cab=1 workers=0,3 relaxed_workers=0
+scenario,block_size,rat,cab,pipelined,workers_ready,pair_ready,pair_mismatches,initial_silence,nonfinite_outputs,dry_fault_blocks,wet_fault_blocks,wet_stereo_spread,deadline_misses,min_us,mean_us,p99_us,p999_us,max_us,checksum,dry_underflows,dry_submission_misses,wet_underflows,wet_submission_misses,dry_worker_calls,dry_worker_mean_us,dry_worker_max_us,dry_requested_cpu,dry_actual_cpu,wet_worker_calls,wet_worker_mean_us,wet_worker_max_us,wet_requested_cpu,wet_actual_cpu
+wdw-pipeline,32,1,1,1,1,1098,2,2,0,0,0,902.275795838,0,6.444,8.212884,12.408,14.148,14.148,-259.627787523,2,0,1,0,1100,566.495288182,711.074,0,0,1100,450.077107273,612.852,3,3
+wdw-direct,32,1,1,0,1,1100,0,0,0,0,0,900.974398261,1000,956.408,987.819706,1087.944,1204.907,1204.907,-259.560596384,0,0,0,0,1100,555.583100909,831.389,0,1,1100,430.450074545,537.889,3,1
+wdw-pipeline,64,1,1,1,1,1097,3,1,0,0,0,2376.56034744,0,7.852,10.520046,19.63,41.519,41.519,-175.950677298,1,0,1,0,1100,978.77588,1380.852,0,0,1100,756.755500909,1179.093,3,3
+wdw-direct,64,1,1,0,1,1100,0,0,0,0,0,2376.32634026,1000,1637.278,1692.351499,1836.241,1872.537,1872.537,-175.865641467,0,0,0,0,1100,969.243536364,1183.556,0,1,1100,718.91755,828.851,3,1
+wdw-pipeline,128,1,1,1,1,1099,1,1,0,0,0,2689.42263627,0,9.481,15.318365,25.574,32.334,32.334,46.6747146379,1,0,1,0,1100,1761.84985727,2266.111,0,0,1100,1282.22785364,1731.722,3,3
+wdw-direct,128,1,1,0,1,1100,0,0,0,0,0,2689.46049509,1000,2930.685,3007.765784,3180.445,3296.296,3296.296,46.6371652884,0,0,0,0,1100,1731.23449273,2015.092,0,1,1100,1267.34349818,1534.537,3,1
+Starting ardor-pedal
+/bin/sh is already running

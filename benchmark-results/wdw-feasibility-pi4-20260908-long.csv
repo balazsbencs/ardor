@@ -1,0 +1,7 @@
+Stopping ardor-pedal
+stopped process in pidfile '/var/run/ardor-pedal.pid' (pid 401)
+wdw-feasibility: audio_cpu=1 pinned=1 realtime=1 models=2 rat=1 cab=1 workers=0,3 relaxed_workers=0
+scenario,block_size,rat,cab,pipelined,workers_ready,pair_ready,pair_mismatches,initial_silence,nonfinite_outputs,dry_fault_blocks,wet_fault_blocks,wet_stereo_spread,deadline_misses,min_us,mean_us,p99_us,p999_us,max_us,checksum,dry_underflows,dry_submission_misses,wet_underflows,wet_submission_misses,dry_worker_calls,dry_worker_mean_us,dry_worker_max_us,dry_requested_cpu,dry_actual_cpu,wet_worker_calls,wet_worker_mean_us,wet_worker_max_us,wet_requested_cpu,wet_actual_cpu
+wdw-pipeline,64,1,1,1,1,20481,19,1,0,0,0,45518.38078,0,7.555,11.82207255,20.408,24.704,35.315,-3718.20808875,1,0,1,0,20500,1009.71984478,1546.833,0,0,20500,771.872850634,1234.278,3,3
+Starting ardor-pedal
+/bin/sh is already running

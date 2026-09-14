@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <exception>
 #include <utility>
 
 namespace ardor {
@@ -21,12 +22,61 @@ PresetActivationOutcome prepareAndActivateDraft(
     return outcome;
   }
   auto nextEngine = std::make_unique<PedalEngine>();
-  if (!applyPreset(*nextEngine, draft, dataRoot, options, outcome.error)) {
+  try {
+    if (!applyPreset(*nextEngine, draft, dataRoot, options, outcome.error)) {
+      outcome.status = PresetActivationStatus::PreparationFailed;
+      return outcome;
+    }
+  } catch (const std::exception& exception) {
+    outcome.error = exception.what();
     outcome.status = PresetActivationStatus::PreparationFailed;
     return outcome;
   }
 
   nextEngine->setMasterVolume(std::isfinite(masterVolume) ? std::max(0.0f, masterVolume) : 1.0f);
+  outcome.replacementResult = replaceEngine(*nextEngine);
+  if (outcome.replacementResult != EngineReplaceResult::Activated) {
+    outcome.status = PresetActivationStatus::BackendRejected;
+    return outcome;
+  }
+
+  liveEngine = std::move(nextEngine);
+  outcome.status = PresetActivationStatus::Activated;
+  return outcome;
+}
+
+PresetActivationOutcome prepareAndActivateWdwDraft(
+  std::unique_ptr<PedalEngine>& liveEngine,
+  const ChainPlan& dryPlan,
+  const ChainPlan& wetPlan,
+  const WdwRoutingBuildOptions& options,
+  float masterVolume,
+  const EngineReplaceCallback& replaceEngine,
+  WdwRoutingBuildReport* report)
+{
+  PresetActivationOutcome outcome;
+  if (liveEngine && liveEngine->looperSessionOpen()) {
+    outcome.status = PresetActivationStatus::LooperLocked;
+    outcome.error = "close the loop session before changing presets";
+    return outcome;
+  }
+
+  auto nextEngine = std::make_unique<PedalEngine>();
+  WdwRoutingBuildReport localReport;
+  try {
+    if (!applyWdwRouting(*nextEngine, dryPlan, wetPlan, options, localReport, outcome.error)) {
+      outcome.status = PresetActivationStatus::PreparationFailed;
+      return outcome;
+    }
+  } catch (const std::exception& exception) {
+    outcome.error = exception.what();
+    outcome.status = PresetActivationStatus::PreparationFailed;
+    return outcome;
+  }
+  if (report) *report = localReport;
+
+  nextEngine->setMasterVolume(
+    std::isfinite(masterVolume) ? std::max(0.0f, masterVolume) : 1.0f);
   outcome.replacementResult = replaceEngine(*nextEngine);
   if (outcome.replacementResult != EngineReplaceResult::Activated) {
     outcome.status = PresetActivationStatus::BackendRejected;
@@ -71,9 +121,15 @@ PresetActivationOutcome prepareAndActivateLoopSession(
   }
 
   auto nextEngine = std::make_unique<PedalEngine>();
-  if (!applyPreset(*nextEngine, storedPreset, dataRoot, options, outcome.error)
-      || !nextEngine->prepareLooper(looperMemoryBudgetBytes, outcome.error)
-      || !nextEngine->restorePausedLooperSession(storedSession, outcome.error)) {
+  try {
+    if (!applyPreset(*nextEngine, storedPreset, dataRoot, options, outcome.error)
+        || !nextEngine->prepareLooper(looperMemoryBudgetBytes, outcome.error)
+        || !nextEngine->restorePausedLooperSession(storedSession, outcome.error)) {
+      outcome.status = PresetActivationStatus::PreparationFailed;
+      return outcome;
+    }
+  } catch (const std::exception& exception) {
+    outcome.error = exception.what();
     outcome.status = PresetActivationStatus::PreparationFailed;
     return outcome;
   }

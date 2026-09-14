@@ -29,6 +29,25 @@ struct PresetBlock {
   std::array<std::vector<PresetBlock>, 2> lanes;
 };
 
+// Version-3 wet/dry/wet presets keep the two complete signal lanes explicit.
+// The dry lane contributes a mono signal with an equal-power pan; the wet lane
+// preserves stereo and exposes a width control.  These are persisted in dB so
+// the preset format stays friendly to the manager and device editors.
+struct WdwLane {
+  std::vector<PresetBlock> blocks;
+  float levelDb = 0.0f;
+  // Used by the mono dry contribution. Wet remains a stereo pair and uses
+  // width instead of a whole-lane pan control. Dry width is fixed at 1.
+  float pan = 0.0f;
+  float width = 1.0f;
+  bool enabled = true;
+};
+
+struct WdwRouting {
+  WdwLane dry;
+  WdwLane wet;
+};
+
 struct PresetExpression {
   // Stable block ID plus the block parameter key avoids binding a preset to
   // the block's current position in the signal chain.
@@ -74,6 +93,7 @@ struct Preset {
   std::string routing = "serial";
   PresetGlobal global;
   std::vector<PresetBlock> blocks;
+  std::optional<WdwRouting> wdw;
   std::optional<PresetExpression> expression;
   std::vector<PresetMidiBinding> midiBindings;
 };

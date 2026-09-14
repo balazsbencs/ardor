@@ -30,6 +30,13 @@ std::string formatSignedPercent(float value)
   return (rounded > 0 ? "+" : "") + std::to_string(rounded) + "%";
 }
 
+std::string formatPan(float value)
+{
+  if (std::fabs(value) < 0.01f) return "C";
+  const int percent = static_cast<int>(std::lround(std::fabs(value) * 100.0f));
+  return std::string{value < 0.0f ? "L " : "R "} + std::to_string(percent);
+}
+
 std::string formatMilliseconds(float value)
 {
   if (std::fabs(value) < 10.0f) {
@@ -147,6 +154,22 @@ std::vector<ParameterControl> controlsFor(const UiState& state)
   }
 
   if (block.type == "dualRig") {
+    if (block.params.value("routing", std::string{}) == "wdw") {
+      return {
+        choiceControl("dryEnabled", "Dry lane", {"Off", "On"},
+                      block.params.value("dryEnabled", true) ? 1 : 0, ParameterControlKind::Toggle),
+        control("dryLevelDb", "Dry level", -60.0f, 12.0f, 1.0f,
+                block.params.value("dryLevelDb", 0.0f), formatDb),
+        control("dryPan", "Dry pan", -1.0f, 1.0f, 0.05f,
+                block.params.value("dryPan", 0.0f), formatPan),
+        choiceControl("wetEnabled", "Wet lane", {"Off", "On"},
+                      block.params.value("wetEnabled", true) ? 1 : 0, ParameterControlKind::Toggle),
+        control("wetLevelDb", "Wet level", -60.0f, 12.0f, 1.0f,
+                block.params.value("wetLevelDb", 0.0f), formatDb),
+        control("wetWidth", "Wet width", 0.0f, 1.0f, 0.05f,
+                block.params.value("wetWidth", 1.0f), formatPercent),
+      };
+    }
     const auto inputMode = block.params.value("inputMode", std::string{"sum"});
     const std::size_t inputModeIndex = inputMode == "left" ? 1 : inputMode == "right" ? 2 : 0;
     return {

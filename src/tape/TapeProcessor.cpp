@@ -1,9 +1,22 @@
 #include "tape/TapeProcessor.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 
 namespace ardor {
+
+struct TapeLiveParameters {
+  std::atomic<float> driveDb{0.0f};
+  std::atomic<float> saturation{0.5f};
+  std::atomic<float> bias{0.5f};
+  std::atomic<float> headBump{0.5f};
+  std::atomic<float> mix{1.0f};
+  std::atomic<float> output{1.0f};
+  std::atomic<float> flutter{0.0f};
+  std::atomic<float> hissDb{TapeTransport::kHissOffDb};
+  std::atomic<std::uint64_t> revision{0};
+};
 
 namespace {
 
@@ -63,6 +76,18 @@ bool TapeProcessor::configure(const nlohmann::json& params, float sampleRate, st
   const float flutter = clampedNumber(params, "flutter", 0.0f, 0.0f, 1.0f);
   const float hissDb = clampedNumber(params, "hiss_db", TapeTransport::kHissOffDb,
                                      TapeTransport::kHissOffDb, -60.0f);
+
+  liveParameters_ = std::make_shared<TapeLiveParameters>();
+  liveParameters_->driveDb.store(driveDbTarget_, std::memory_order_relaxed);
+  liveParameters_->saturation.store(saturationTarget_, std::memory_order_relaxed);
+  liveParameters_->bias.store(biasTarget_, std::memory_order_relaxed);
+  liveParameters_->headBump.store(headBumpTarget_, std::memory_order_relaxed);
+  liveParameters_->mix.store(mixTarget_, std::memory_order_relaxed);
+  liveParameters_->output.store(outputTarget_, std::memory_order_relaxed);
+  liveParameters_->flutter.store(flutter, std::memory_order_relaxed);
+  liveParameters_->hissDb.store(hissDb, std::memory_order_relaxed);
+  liveRevision_ = 1;
+  liveParameters_->revision.store(liveRevision_, std::memory_order_release);
 
   // A knob turn has to reach the magnetics without stepping.
   constexpr float kSmoothingSeconds = 0.015f;
@@ -193,53 +218,62 @@ float TapeProcessor::driveMakeup(float driveDb) const
 
 bool TapeProcessor::setParameterTarget(const std::string& key, float value)
 {
-  if (!std::isfinite(value)) return false;
+  if (!liveParameters_ || !std::isfinite(value)) return false;
   if (key == "drive") {
-    driveDbTarget_ = std::clamp(value, -12.0f, 24.0f);
-    return true;
+    liveParameters_->driveDb.store(std::clamp(value, -12.0f, 24.0f), std::memory_order_relaxed);
+  } else if (key == "output_db") {
+    const float output = std::pow(10.0f, std::clamp(value, -24.0f, 24.0f) / 20.0f);
+    liveParameters_->output.store(output, std::memory_order_relaxed);
+  } else if (key == "mix") {
+    liveParameters_->mix.store(std::clamp(value, 0.0f, 1.0f), std::memory_order_relaxed);
+  } else if (key == "flutter") {
+    liveParameters_->flutter.store(std::clamp(value, 0.0f, 1.0f), std::memory_order_relaxed);
+  } else if (key == "hiss_db") {
+    liveParameters_->hissDb.store(
+      std::clamp(value, TapeTransport::kHissOffDb, -60.0f), std::memory_order_relaxed);
+  } else if (key == "saturation") {
+    liveParameters_->saturation.store(std::clamp(value, 0.0f, 1.0f),
+                                      std::memory_order_relaxed);
+  } else if (key == "bias") {
+    liveParameters_->bias.store(std::clamp(value, 0.0f, 1.0f), std::memory_order_relaxed);
+  } else if (key == "head_bump") {
+    liveParameters_->headBump.store(std::clamp(value, 0.0f, 1.0f),
+                                    std::memory_order_relaxed);
+  } else {
+    // speed is a load-time choice: it is a `choice` control in the catalog and
+    // reaches the engine by rebuilding the chain.
+    return false;
   }
-  if (key == "output_db") {
-    outputTarget_ = std::pow(10.0f, std::clamp(value, -24.0f, 24.0f) / 20.0f);
-    return true;
-  }
-  if (key == "mix") {
-    mixTarget_ = std::clamp(value, 0.0f, 1.0f);
-    return true;
-  }
-  if (key == "flutter") {
-    transport_.setFlutter(std::clamp(value, 0.0f, 1.0f));
-    return true;
-  }
-  if (key == "hiss_db") {
-    transport_.setHissDb(std::clamp(value, TapeTransport::kHissOffDb, -60.0f));
-    return true;
-  }
-  // Saturation, bias and head bump change filter and solver coefficients.
-  // This path is called once per pointer-move event, so it must stay bounded:
-  // calibration is deliberately load-time work, and the hysteresis state is
-  // retained while its material parameters are updated.
-  if (key == "saturation") {
-    saturationTarget_ = std::clamp(value, 0.0f, 1.0f);
-    rebuildFilters();
-    return true;
-  }
-  if (key == "bias") {
-    biasTarget_ = std::clamp(value, 0.0f, 1.0f);
-    rebuildFilters();
-    return true;
-  }
-  if (key == "head_bump") {
-    headBumpTarget_ = std::clamp(value, 0.0f, 1.0f);
-    rebuildFilters();
-    return true;
-  }
-  // speed is a load-time choice: it is a `choice` control in the catalog and
-  // reaches the engine by rebuilding the chain.
-  return false;
+  liveParameters_->revision.fetch_add(1, std::memory_order_release);
+  return true;
+}
+
+void TapeProcessor::refreshLiveParameters() noexcept
+{
+  if (!liveParameters_) return;
+  const auto revision = liveParameters_->revision.load(std::memory_order_acquire);
+  if (revision == liveRevision_) return;
+
+  const float saturation = liveParameters_->saturation.load(std::memory_order_relaxed);
+  const float bias = liveParameters_->bias.load(std::memory_order_relaxed);
+  const float headBump = liveParameters_->headBump.load(std::memory_order_relaxed);
+  const bool rebuild = saturation != saturationTarget_ || bias != biasTarget_
+                    || headBump != headBumpTarget_;
+  driveDbTarget_ = liveParameters_->driveDb.load(std::memory_order_relaxed);
+  saturationTarget_ = saturation;
+  biasTarget_ = bias;
+  headBumpTarget_ = headBump;
+  mixTarget_ = liveParameters_->mix.load(std::memory_order_relaxed);
+  outputTarget_ = liveParameters_->output.load(std::memory_order_relaxed);
+  transport_.setFlutter(liveParameters_->flutter.load(std::memory_order_relaxed));
+  transport_.setHissDb(liveParameters_->hissDb.load(std::memory_order_relaxed));
+  if (rebuild) rebuildFilters();
+  liveRevision_ = revision;
 }
 
 void TapeProcessor::reset()
 {
+  refreshLiveParameters();
   for (Lane* lane : {&left_, &right_}) {
     lane->up2x.Reset();
     lane->up4x.Reset();
@@ -325,6 +359,7 @@ float TapeProcessor::readDry(const std::array<float, kDryBufferSize>& buffer) co
 
 StereoSample TapeProcessor::process(StereoSample input)
 {
+  refreshLiveParameters();
   driveDb_ += smoothing_ * (driveDbTarget_ - driveDb_);
   mix_ += smoothing_ * (mixTarget_ - mix_);
   output_ += smoothing_ * (outputTarget_ - output_);

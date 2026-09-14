@@ -211,10 +211,14 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
         if (const auto* selected = selectedUiBlock(state)) {
           const auto& block = *selected;
           const auto mode = block.params.value("mode", std::string{});
+          const bool wdwMixParameter = block.type == "dualRig"
+            && block.params.value("routing", std::string{}) == "wdw"
+            && (control.key == "dryLevelDb" || control.key == "dryPan"
+                || control.key == "wetLevelDb" || control.key == "wetWidth");
           const bool coveredAbove = block.type == "mod" || block.type == "delay"
             || block.type == "reverb" || block.type == "wah" || block.type == "cab"
             || (block.type == "dynamics" && (mode == "compressor" || mode == "noise_gate"));
-          if (!coveredAbove && block.params.contains(control.key)
+          if (!coveredAbove && !wdwMixParameter && block.params.contains(control.key)
               && block.params[control.key].is_number()) {
             liveUpdateSucceeded = actions_.updateBlockParameter(
               block.id, control.key, block.params[control.key].get<float>());
@@ -225,8 +229,10 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
         if (const auto* selected = selectedUiBlock(state)) {
           const auto& block = *selected;
           if (block.type == "cab") {
-            if (selectedBlockIsLaneChild(state)) {
-              liveUpdateSucceeded = false;
+            if (selectedBlockIsLaneChild(state) && actions_.updateBlockParameter
+                && block.params.contains(control.key) && block.params[control.key].is_number()) {
+              liveUpdateSucceeded = actions_.updateBlockParameter(
+                block.id, control.key, block.params[control.key].get<float>());
             } else if (actions_.updateCabParameters) {
               actions_.updateCabParameters(block.params.value("levelDb", 0.0f),
                                            block.params.value("mix", 1.0f));

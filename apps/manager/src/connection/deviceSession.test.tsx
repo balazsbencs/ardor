@@ -1,4 +1,4 @@
-import { act, screen } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -9,6 +9,7 @@ import { renderWithProviders } from "../test/render";
 import {
   DeviceSessionProvider,
   useDeviceSession,
+  waitForApplyResult,
   type DeviceClientFactory,
 } from "./deviceSession";
 
@@ -45,6 +46,8 @@ function Probe() {
       <span data-testid="status">{session.status}</span>
       <span data-testid="location">{session.current ? `${session.current.location.bank}:${session.current.location.slot}` : "none"}</span>
       <span data-testid="name">{session.current?.preset.name ?? "none"}</span>
+      <span data-testid="active">{session.device?.active
+        ? `${session.device.active.bank}:${session.device.active.slot}` : "none"}</span>
       <span data-testid="token-focus">{String(session.needsTokenFocus)}</span>
       <span data-testid="reverb-ir-support">{String(session.supportsReverbIrs)}</span>
       <span>{session.error?.message}</span>
@@ -60,9 +63,23 @@ function renderSession(factory: DeviceClientFactory, autoConnect = false) {
   );
 }
 
-afterEach(() => localStorage.clear());
+afterEach(() => {
+  localStorage.clear();
+  vi.restoreAllMocks();
+});
 
 describe("DeviceSessionProvider", () => {
+  it("reports an apply request that never leaves pending state", async () => {
+    const client = mockClient({
+      getApplyStatus: vi.fn(async (_id: string) => ({
+        id: "apply-1", state: "pending" as const, bank: 2, slot: 1,
+      })),
+    });
+    await expect(waitForApplyResult(client, {
+      accepted: true, id: "apply-1", state: "pending", bank: 2, slot: 1,
+    }, 5, 1)).rejects.toThrow("Preset apply timed out");
+  });
+
   it("connects automatically when running as the device-hosted manager", async () => {
     const factory = vi.fn(() => mockClient());
     renderSession(factory, true);
@@ -85,6 +102,34 @@ describe("DeviceSessionProvider", () => {
     expect(screen.getByTestId("location")).toHaveTextContent("3:2");
     expect(screen.getByTestId("name")).toHaveTextContent("Saved");
     expect(client.getPreset).toHaveBeenCalledWith(3, 2);
+  });
+
+  it("refreshes the active preset changed by hardware", async () => {
+    let active = { bank: 1, slot: 0, name: "First" };
+    const client = mockClient({
+      getDevice: vi.fn(async () => ({ ...device, active })),
+      listPresets: vi.fn(async () => [
+        { bank: 1, slot: 0, exists: true, name: "First" },
+        { bank: 2, slot: 3, exists: true, name: "Second" },
+      ]),
+    });
+    let refresh: (() => void) | undefined;
+    vi.spyOn(window, "setInterval").mockImplementation((handler: TimerHandler, timeout?: number) => {
+      if (timeout === 2_000 && typeof handler === "function") refresh = handler as () => void;
+      return 1;
+    });
+    renderSession(() => client);
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    await screen.findByText("connected");
+    expect(screen.getByTestId("active")).toHaveTextContent("1:0");
+    await waitFor(() => expect(refresh).toBeTypeOf("function"));
+
+    active = { bank: 2, slot: 3, name: "Second" };
+    await act(async () => {
+      refresh?.();
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(screen.getByTestId("active")).toHaveTextContent("2:3"));
   });
 
   it("connects to older devices that do not expose a reverb IR inventory", async () => {

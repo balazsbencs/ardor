@@ -1,0 +1,1 @@
+routing-feasibility: audio_cpu=2 pinned=1 realtime=1 models=1 cab=1

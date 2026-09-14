@@ -470,10 +470,13 @@ func (agent *Agent) handlePresetOperation(ctx context.Context, connection *webso
 		if err != nil {
 			return err
 		}
-		if _, err := store.Load(bank, slot); errors.Is(err, os.ErrNotExist) {
+		preset, err := store.Load(bank, slot)
+		if errors.Is(err, os.ErrNotExist) {
 			operationFailure = &operationError{Code: "preset_not_found", Message: "preset was not found"}
 		} else if err != nil {
 			operationFailure = &operationError{Code: "preset_read_failed", Message: err.Error()}
+		} else if err := presets.ValidateRunnable(preset.Preset); err != nil {
+			operationFailure = &operationError{Code: "preset_not_runnable", Message: err.Error()}
 		} else if err := runtimecontrol.QueueApplyPreset(agent.config.DataRoot, bank, slot); err != nil {
 			operationFailure = &operationError{Code: "runtime_command_failed", Message: err.Error()}
 		} else {

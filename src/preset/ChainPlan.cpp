@@ -205,20 +205,28 @@ float dbToGain(float db)
 
 ChainPlan buildChainPlan(const Preset& preset, const std::filesystem::path& dataRoot)
 {
+  return buildChainPlanForBlocks(preset.global, preset.blocks, dataRoot, preset.midiBindings);
+}
+
+ChainPlan buildChainPlanForBlocks(const PresetGlobal& global,
+                                  const std::vector<PresetBlock>& blocks,
+                                  const std::filesystem::path& dataRoot,
+                                  const std::vector<PresetMidiBinding>& midiBindings)
+{
   ChainPlan plan;
   std::unordered_set<std::string> midiEnabledBlocks;
-  for (const auto& binding : preset.midiBindings) {
+  for (const auto& binding : midiBindings) {
     for (const auto& action : binding.actions) {
       if (action.target == PresetMidiTargetType::BlockEnabled) {
         midiEnabledBlocks.insert(action.blockId);
       }
     }
   }
-  plan.inputGain = dbToGain(std::clamp(preset.global.inputGainDb, -60.0f, 24.0f));
-  plan.outputGain = dbToGain(std::clamp(preset.global.outputGainDb, -60.0f, 24.0f));
-  plan.safetyLimit = dbToGain(std::clamp(preset.global.safetyLimitDb, -60.0f, 0.0f));
+  plan.inputGain = dbToGain(std::clamp(global.inputGainDb, -60.0f, 24.0f));
+  plan.outputGain = dbToGain(std::clamp(global.outputGainDb, -60.0f, 24.0f));
+  plan.safetyLimit = dbToGain(std::clamp(global.safetyLimitDb, -60.0f, 0.0f));
 
-  for (const auto& block : preset.blocks) {
+  for (const auto& block : blocks) {
     plan.blocks.push_back(buildBlockPlan(
       block, dataRoot, plan.runnableBlockCount, midiEnabledBlocks));
   }

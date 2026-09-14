@@ -59,6 +59,35 @@ int main()
     auto liveEngine = std::make_unique<ardor::PedalEngine>();
     std::string error;
     require(ardor::applyPreset(*liveEngine, tremPreset("Active"), root, options, error), error);
+
+    // Preset activation must not follow an asset symlink out of its data root.
+    // This exercises the same guard used by NAM, cabinet, reverb, and wah
+    // loading before any decoder or model reader receives the path.
+    const auto securityRoot = root / "asset-root-security";
+    const auto outsideAsset = root / "outside.wav";
+    const auto escapingLink = securityRoot / "escape.wav";
+    std::filesystem::remove_all(securityRoot);
+    std::filesystem::remove(outsideAsset);
+    std::filesystem::create_directories(securityRoot);
+    {
+      std::ofstream outside(outsideAsset, std::ios::binary);
+      outside << "not a wav";
+    }
+    std::filesystem::create_symlink(outsideAsset, escapingLink);
+    ardor::ChainPlan escapingPlan;
+    ardor::ChainBlockPlan escapingCab;
+    escapingCab.id = "escaping-cab";
+    escapingCab.type = "cab";
+    escapingCab.status = ardor::ChainBlockStatus::Ready;
+    escapingCab.assetPath = escapingLink;
+    escapingPlan.blocks.push_back(std::move(escapingCab));
+    auto guardedOptions = options;
+    guardedOptions.assetRoot = securityRoot;
+    ardor::PedalEngine guardedEngine;
+    require(!ardor::applyChainPlan(guardedEngine, escapingPlan, guardedOptions, error),
+            "asset symlink escape must be rejected");
+    require(error.find("escapes configured data root") != std::string::npos,
+            "asset symlink rejection should explain the configured data root");
     const auto originalEngine = liveEngine.get();
     ardor::ActivePresetSelection selection{3, 1};
 
@@ -83,6 +112,24 @@ int main()
     require(uiState.activeBank == 3 && uiState.activePreset == 1,
             "failed target preparation must retain the visible UI selection");
     requireFiniteOutput(*liveEngine, "failed target preparation");
+
+    // Malformed JSON parameters must be reported as a failed preparation, not
+    // allowed to escape from the control path and terminate the host.
+    auto malformedPreset = tremPreset("Malformed parameters");
+    malformedPreset.blocks.front().params["mode"] = 17;
+    const auto engineBeforeMalformed = liveEngine.get();
+    const auto malformedPreparation = ardor::prepareAndActivatePreset(
+      liveEngine, selection, malformedPreset, {3, 2}, root, options, 0.8f,
+      [&](ardor::PedalEngine&) {
+        ++replaceCalls;
+        return ardor::EngineReplaceResult::Activated;
+      });
+    require(malformedPreparation.status == ardor::PresetActivationStatus::PreparationFailed,
+            "malformed preset parameters must fail during replacement preparation");
+    require(!malformedPreparation.error.empty(),
+            "malformed preset parameters should return an actionable error");
+    require(replaceCalls == 0 && liveEngine.get() == engineBeforeMalformed,
+            "malformed preset parameters must not reach or replace the live engine");
 
     require(liveEngine->prepareLooper(
                 256 * ardor::RealtimeLooper::kBytesPerMasterFrame, error),

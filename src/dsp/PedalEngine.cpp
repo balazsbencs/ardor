@@ -18,6 +18,7 @@
 #include <cmath>
 #include <iomanip>
 #include <sstream>
+#include <stdexcept>
 #include <utility>
 
 namespace ardor {
@@ -175,7 +176,23 @@ bool PedalEngine::addIrReverb(std::string id, std::vector<float> left, std::vect
 
 bool PedalEngine::setIrReverbParameter(const std::string& id, const std::string& key, float value)
 {
+  if (wdwRouting_ && wdwRouting_->setIrReverbParameter(id, key, value)) return true;
   return chain_.setIrReverbParameter(id, key, value);
+}
+
+bool PedalEngine::setCabParameter(const std::string& id, const std::string& key, float value)
+{
+  if (wdwRouting_ && wdwRouting_->setCabParameter(id, key, value)) return true;
+  if (!chain_.setCabParameter(id, key, value)) return false;
+  // The legacy serial path supplies host-smoothed cabinet arrays to its chain,
+  // so keep those targets synchronized after resolving the requested block ID.
+  if (key == "mix") {
+    setCabMix(value);
+  } else if (key == "levelDb") {
+    const float db = std::clamp(value, -60.0f, 12.0f);
+    setCabLevel(db <= -60.0f ? 0.0f : std::pow(10.0f, db / 20.0f));
+  }
+  return true;
 }
 
 bool PedalEngine::addStereoWidener(std::string id, float sampleRate, std::string& error)
@@ -185,6 +202,7 @@ bool PedalEngine::addStereoWidener(std::string id, float sampleRate, std::string
 
 bool PedalEngine::setStereoWidenerParameter(const std::string& id, const std::string& key, float value)
 {
+  if (wdwRouting_ && wdwRouting_->setStereoWidenerParameter(id, key, value)) return true;
   return chain_.setStereoWidenerParameter(id, key, value);
 }
 
@@ -201,6 +219,7 @@ bool PedalEngine::addDaisyFx(std::string id, const std::string& blockType, const
 
 bool PedalEngine::setDaisyParameter(const std::string& id, const std::string& key, float normalized)
 {
+  if (wdwRouting_ && wdwRouting_->setDaisyParameter(id, key, normalized)) return true;
   return chain_.setDaisyParameter(id, key, normalized);
 }
 
@@ -216,12 +235,14 @@ bool PedalEngine::addCompressor(std::string id, const nlohmann::json& params, fl
 
 bool PedalEngine::setCompressorParameter(const std::string& id, const std::string& key, float value)
 {
+  if (wdwRouting_ && wdwRouting_->setCompressorParameter(id, key, value)) return true;
   return chain_.setCompressorParameter(id, key, value);
 }
 
 float PedalEngine::compressorGainReductionDb(const std::string& id) const
 {
   float value = 0.0f;
+  if (wdwRouting_ && wdwRouting_->compressorGainReductionDb(id, value)) return value;
   chain_.compressorGainReductionDb(id, value);
   return value;
 }
@@ -239,6 +260,7 @@ bool PedalEngine::addNoiseGate(std::string id, const nlohmann::json& params,
 
 bool PedalEngine::setNoiseGateParameter(const std::string& id, const std::string& key, float value)
 {
+  if (wdwRouting_ && wdwRouting_->setNoiseGateParameter(id, key, value)) return true;
   return chain_.setNoiseGateParameter(id, key, value);
 }
 
@@ -255,6 +277,7 @@ bool PedalEngine::addTransientShaper(std::string id, const nlohmann::json& param
 
 bool PedalEngine::setTransientShaperParameter(const std::string& id, const std::string& key, float value)
 {
+  if (wdwRouting_ && wdwRouting_->setTransientShaperParameter(id, key, value)) return true;
   return chain_.setTransientShaperParameter(id, key, value);
 }
 
@@ -282,6 +305,7 @@ bool PedalEngine::addDistortion(std::string id, const nlohmann::json& params,
 
 bool PedalEngine::setDistortionParameter(const std::string& id, const std::string& key, float value)
 {
+  if (wdwRouting_ && wdwRouting_->setDistortionParameter(id, key, value)) return true;
   return chain_.setDistortionParameter(id, key, value);
 }
 
@@ -296,11 +320,13 @@ bool PedalEngine::addWah(std::string id, const nlohmann::json& params, float sam
 
 bool PedalEngine::setWahParameter(const std::string& id, const std::string& key, float value)
 {
+  if (wdwRouting_ && wdwRouting_->setWahParameter(id, key, value)) return true;
   return chain_.setWahParameter(id, key, value);
 }
 
 bool PedalEngine::setBlockEnabled(const std::string& id, bool enabled)
 {
+  if (wdwRouting_ && wdwRouting_->setBlockEnabled(id, enabled)) return true;
   return chain_.setBlockEnabled(id, enabled);
 }
 
@@ -312,18 +338,23 @@ bool PedalEngine::addParametricEq(const std::string& id, const nlohmann::json& p
 
 bool PedalEngine::setParametricEqBand(const std::string& id, std::size_t band, const EqBandParams& params)
 {
+  if (wdwRouting_ && wdwRouting_->setParametricEqBand(id, band, params)) return true;
   return chain_.setParametricEqBand(id, band, params);
 }
 
 bool PedalEngine::setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,
                                             const EqPassFilterParams& params)
 {
+  if (wdwRouting_ && wdwRouting_->setParametricEqPassFilter(id, kind, params)) return true;
   return chain_.setParametricEqPassFilter(id, kind, params);
 }
 
 void PedalEngine::prepareBlockSize(size_t frames)
 {
   if (frames == 0 || blockSize_ == frames) {
+    return;
+  }
+  if (wdwRouting_ && wdwRouting_->blockSize() != frames) {
     return;
   }
   blockSize_ = frames;
@@ -336,6 +367,8 @@ void PedalEngine::prepareBlockSize(size_t frames)
 
 void PedalEngine::clearEffects()
 {
+  flexibleRouting_.reset();
+  wdwRouting_.reset();
   chain_.clear();
 }
 
@@ -447,23 +480,53 @@ uint64_t PedalEngine::blockSizeMismatchCount() const noexcept
 
 uint64_t PedalEngine::nonFiniteBlockCount() const noexcept
 {
+  if (wdwRouting_) return wdwRouting_->nonFiniteBlockCount();
+  if (flexibleRouting_) return flexibleRouting_->nonFiniteBlockCount();
   return chain_.nonFiniteBlockCount();
 }
 
 uint64_t PedalEngine::parallelWaitOverBudgetCount() const noexcept
 {
+  if (wdwRouting_) return wdwRouting_->parallelWaitOverBudgetCount();
+  if (flexibleRouting_) return flexibleRouting_->parallelWaitOverBudgetCount();
   return chain_.parallelWaitOverBudgetCount();
+}
+
+uint64_t PedalEngine::parallelUnderflowCount() const noexcept
+{
+  return wdwRouting_ ? wdwRouting_->pairUnderflowCount() : 0;
+}
+
+uint64_t PedalEngine::parallelSubmissionMissCount() const noexcept
+{
+  return wdwRouting_ ? wdwRouting_->pairSubmissionMissCount() : 0;
+}
+
+bool PedalEngine::parallelWorkersReady() const noexcept
+{
+  return !wdwRouting_ || wdwRouting_->workersReady();
 }
 
 std::string PedalEngine::firstNonFiniteBlockId() const
 {
+  if (wdwRouting_) return wdwRouting_->firstNonFiniteBlockId();
+  if (flexibleRouting_) return flexibleRouting_->firstNonFiniteBlockId();
   return chain_.firstNonFiniteBlockId();
 }
 
 ClipDiagnosticsSnapshot PedalEngine::takeClipDiagnostics()
 {
   ClipDiagnosticsSnapshot diagnostics;
-  auto chainDiagnostics = chain_.takeClipDiagnostics();
+  std::vector<ClipStageSnapshot> chainDiagnostics;
+  if (wdwRouting_) {
+    auto routingDiagnostics = wdwRouting_->takeClipDiagnostics();
+    chainDiagnostics = std::move(routingDiagnostics.stages);
+  } else if (flexibleRouting_) {
+    auto routingDiagnostics = flexibleRouting_->takeClipDiagnostics();
+    chainDiagnostics = std::move(routingDiagnostics.stages);
+  } else {
+    chainDiagnostics = chain_.takeClipDiagnostics();
+  }
   diagnostics.stages.reserve(chainDiagnostics.size() + 2);
   diagnostics.stages.push_back(takeLevel(inputPeakBits_, inputOverloadFrames_,
                                          SignalStageKind::Input, {}));
@@ -479,6 +542,8 @@ ClipDiagnosticsSnapshot PedalEngine::takeClipDiagnostics()
 void PedalEngine::replacePreparedProgram(PedalEngine&& prepared)
 {
   chain_ = std::move(prepared.chain_);
+  flexibleRouting_ = std::move(prepared.flexibleRouting_);
+  wdwRouting_ = std::move(prepared.wdwRouting_);
   blockSize_ = prepared.blockSize_;
   sanitizedInput_ = std::move(prepared.sanitizedInput_);
   gainedInput_ = std::move(prepared.gainedInput_);
@@ -506,13 +571,95 @@ void PedalEngine::replacePreparedProgram(PedalEngine&& prepared)
   // unexpectedly change hardware volume or introduce a gain step.
 }
 
+bool PedalEngine::installPreparedRouting(
+  std::unique_ptr<FlexibleRoutingProgram> program, std::string& error)
+{
+  error.clear();
+  if (!program || !program->prepared()) {
+    error = "flexible routing installation requires a prepared program";
+    return false;
+  }
+  if (program->blockSize() == 0) {
+    error = "flexible routing installation requires a non-zero block size";
+    return false;
+  }
+  if (blockSize_ == 0) {
+    prepareBlockSize(program->blockSize());
+  }
+  if (blockSize_ != program->blockSize()) {
+    error = "flexible routing block size does not match the engine quantum";
+    return false;
+  }
+
+  // The two program types are mutually exclusive. Destroy the old worker
+  // graph before clearing the legacy chain, then publish the new immutable
+  // owner while audio is stopped as required by the API contract.
+  flexibleRouting_.reset();
+  wdwRouting_.reset();
+  chain_.clear();
+  flexibleRouting_ = std::move(program);
+  return true;
+}
+
+bool PedalEngine::flexibleRoutingEnabled() const noexcept
+{
+  return static_cast<bool>(flexibleRouting_);
+}
+
+void PedalEngine::clearPreparedRouting()
+{
+  flexibleRouting_.reset();
+  wdwRouting_.reset();
+}
+
+bool PedalEngine::installPreparedWdwRouting(
+  std::unique_ptr<WdwRoutingProgram> program, std::string& error)
+{
+  error.clear();
+  if (!program || !program->prepared()) {
+    error = "WDW routing installation requires a prepared program";
+    return false;
+  }
+  if (program->blockSize() == 0) {
+    error = "WDW routing installation requires a non-zero block size";
+    return false;
+  }
+  if (blockSize_ == 0) {
+    prepareBlockSize(program->blockSize());
+  }
+  if (blockSize_ != program->blockSize()) {
+    error = "WDW routing block size does not match the engine quantum";
+    return false;
+  }
+
+  flexibleRouting_.reset();
+  wdwRouting_.reset();
+  chain_.clear();
+  wdwRouting_ = std::move(program);
+  return true;
+}
+
+bool PedalEngine::wdwRoutingEnabled() const noexcept
+{
+  return static_cast<bool>(wdwRouting_);
+}
+
+void PedalEngine::clearPreparedWdwRouting()
+{
+  wdwRouting_.reset();
+}
+
 void PedalEngine::reset()
 {
-  chain_.reset();
+  if (wdwRouting_) wdwRouting_->reset();
+  else if (flexibleRouting_) flexibleRouting_->reset();
+  else chain_.reset();
 }
 
 size_t PedalEngine::tailFrames() const noexcept
 {
+  if (wdwRouting_) return wdwRouting_->tailFrames();
+  if (flexibleRouting_) return flexibleRouting_->tailFrames();
   return chain_.tailFrames();
 }
 
@@ -577,8 +724,24 @@ std::pair<float, float> PedalEngine::process(float input)
   const float safetyLimit = safetyLimit_.load(std::memory_order_relaxed);
   const float afterGain = input * smoothGain(currentInputGain_, inputGain);
   observeLevel(inputPeakBits_, inputOverloadFrames_, afterGain, afterGain);
-  const auto wet = chain_.process({afterGain, afterGain}, smoothGain(currentCabLevel_, cabLevel),
-                                  smoothGain(currentCabMix_, cabMix));
+  StereoSample wet{};
+  if (wdwRouting_) {
+    // The WDW program owns the dry/wet lane mix. The host-level effects
+    // bypass control still selects raw input when explicitly enabled.
+    if (!wdwRouting_->processSample(afterGain, wet.left, wet.right)) {
+      throw std::logic_error(
+        "scalar processing is unavailable for a block-quantized WDW program");
+    }
+  } else if (flexibleRouting_) {
+    float wetLeft = 0.0f;
+    float wetRight = 0.0f;
+    if (flexibleRouting_->processSample(afterGain, wetLeft, wetRight)) {
+      wet = {wetLeft, wetRight};
+    }
+  } else {
+    wet = chain_.process({afterGain, afterGain}, smoothGain(currentCabLevel_, cabLevel),
+                         smoothGain(currentCabMix_, cabMix));
+  }
   const float output = smoothGain(currentOutputGain_, outputGain);
   StereoSample mixed = equalPowerMix({input, input}, {wet.left * output, wet.right * output},
                                      smoothEffectsMix(effectsMix));
@@ -644,7 +807,24 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
     inputOverloads += magnitude > 1.0f ? 1U : 0U;
   }
   commitLevel(inputPeakBits_, inputOverloadFrames_, inputPeak, inputOverloads);
-  chain_.processBlock(gainedInput_.data(), left, right, frames, cabLevelBlock_.data(), cabMixBlock_.data());
+  bool routingProcessed = false;
+  if (wdwRouting_) {
+    WdwRoutingProcessResult routingResult;
+    routingProcessed = wdwRouting_->processBlock(gainedInput_.data(), left, right,
+                                                  frames, routingResult);
+  } else if (flexibleRouting_) {
+    FlexibleRoutingGraphProcessResult routingResult;
+    routingProcessed = flexibleRouting_->processBlock(gainedInput_.data(), left, right,
+                                                       frames, routingResult);
+  } else {
+    chain_.processBlock(gainedInput_.data(), left, right, frames,
+                        cabLevelBlock_.data(), cabMixBlock_.data());
+    routingProcessed = true;
+  }
+  if (!routingProcessed) {
+    std::fill(left, left + frames, 0.0f);
+    std::fill(right, right + frames, 0.0f);
+  }
   // Build the complete preset program first. The host looper captures this
   // post-output-gain signal, but deliberately remains before master volume and
   // the safety limiter so changing stage volume never alters stored audio.

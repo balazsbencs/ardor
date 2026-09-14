@@ -1,4 +1,5 @@
 #include "audio/EngineLoader.h"
+#include "audio/WdwRoutingBuilder.h"
 
 #include "audio/WavIo.h"
 
@@ -13,6 +14,7 @@
 
 #include <cmath>
 #include <exception>
+#include <filesystem>
 #include <utility>
 
 namespace ardor {
@@ -49,6 +51,137 @@ bool validateLoadOptions(const EngineLoadOptions& options, std::string& error)
     return false;
   }
   return true;
+}
+
+// Preset assets are resolved from a single data root before they reach any
+// file-backed DSP component. Canonicalizing both sides makes the check
+// resistant to traversal and symlink escapes; a lexical prefix check alone
+// would accept a path such as dataRoot/assets/link -> /etc/passwd.
+bool validateAssetPath(const std::filesystem::path& assetPath,
+                       const EngineLoadOptions& options, std::string& error,
+                       std::filesystem::path* resolvedPath = nullptr)
+{
+  if (assetPath.empty()) {
+    error = "asset path is empty";
+    return false;
+  }
+  if (options.assetRoot.empty()) {
+    // applyChainPlan()/prepareRuntimeChain() are also used by offline tools
+    // that intentionally provide already-resolved paths. Preset activation
+    // always supplies assetRoot below, so production user-selected assets
+    // never take this compatibility path.
+    std::error_code directEc;
+    const auto canonicalAsset = std::filesystem::canonical(assetPath, directEc);
+    if (!directEc && std::filesystem::is_regular_file(canonicalAsset, directEc) && !directEc) {
+      if (resolvedPath != nullptr) *resolvedPath = canonicalAsset;
+    } else if (resolvedPath != nullptr) {
+      // Keep the low-level/offline API's historical failure behavior for
+      // missing assets; the eventual reader reports the useful load error.
+      *resolvedPath = assetPath;
+    }
+    return true;
+  }
+
+  std::error_code ec;
+  const auto canonicalRoot = std::filesystem::canonical(options.assetRoot, ec);
+  if (ec || !std::filesystem::is_directory(canonicalRoot, ec) || ec) {
+    error = "configured asset root is unavailable: " + options.assetRoot.string();
+    return false;
+  }
+  const auto canonicalAsset = std::filesystem::canonical(assetPath, ec);
+  if (ec || !std::filesystem::is_regular_file(canonicalAsset, ec) || ec) {
+    error = "asset is not a regular file: " + assetPath.string();
+    return false;
+  }
+
+  const auto relative = canonicalAsset.lexically_relative(canonicalRoot);
+  const auto first = relative.begin();
+  if (relative.empty() || first == relative.end() || *first == "..") {
+    error = "asset path escapes configured data root: " + assetPath.string();
+    return false;
+  }
+  if (resolvedPath != nullptr) *resolvedPath = canonicalAsset;
+  return true;
+}
+
+// Return the directory-entry spelling of a confined asset. The caller's
+// assetPath is used only to locate and compare the canonical target; the path
+// forwarded to a file-backed DSP component comes from the trusted directory
+// iterator instead of from the preset/command-line value.
+bool resolveConfinedAssetPath(const std::filesystem::path& assetPath,
+                              const EngineLoadOptions& options, std::string& error,
+                              std::filesystem::path& resolvedPath)
+{
+  if (options.assetRoot.empty()) {
+    error = "configured asset root is required for file-backed effects";
+    return false;
+  }
+  if (assetPath.empty()) {
+    error = "asset path is empty";
+    return false;
+  }
+
+  std::error_code ec;
+  const auto canonicalRoot = std::filesystem::canonical(options.assetRoot, ec);
+  if (ec || !std::filesystem::is_directory(canonicalRoot, ec) || ec) {
+    error = "configured asset root is unavailable: " + options.assetRoot.string();
+    return false;
+  }
+  const auto canonicalAsset = std::filesystem::canonical(assetPath, ec);
+  if (ec || !std::filesystem::is_regular_file(canonicalAsset, ec) || ec) {
+    error = "asset is not a regular file: " + assetPath.string();
+    return false;
+  }
+
+  const auto relative = canonicalAsset.lexically_relative(canonicalRoot);
+  const auto first = relative.begin();
+  if (relative.empty() || first == relative.end() || *first == "..") {
+    error = "asset path escapes configured data root: " + assetPath.string();
+    return false;
+  }
+
+  std::filesystem::recursive_directory_iterator iterator(
+    canonicalRoot, std::filesystem::directory_options::skip_permission_denied, ec);
+  const std::filesystem::recursive_directory_iterator end;
+  for (; iterator != end; iterator.increment(ec)) {
+    if (ec) {
+      ec.clear();
+      continue;
+    }
+    std::error_code entryEc;
+    if (!iterator->is_regular_file(entryEc) || entryEc) continue;
+    const auto entryCanonical = std::filesystem::canonical(iterator->path(), entryEc);
+    if (!entryEc && entryCanonical == canonicalAsset) {
+      resolvedPath = iterator->path();
+      return true;
+    }
+  }
+
+  error = "asset could not be resolved within configured data root: " + assetPath.string();
+  return false;
+}
+
+WdwRoutingBuildOptions wdwBuildOptions(const EngineLoadOptions& options,
+                                       const WdwRouting& routing)
+{
+  WdwRoutingBuildOptions result;
+  result.engine = options;
+  result.dryWorkerCpu = options.wdwDryWorkerCpu;
+  result.wetWorkerCpu = options.wdwWetWorkerCpu;
+  result.program.audioCpu = options.wdwAudioCpu;
+  result.program.executor.pipelineSlots = options.wdwPipelineSlots == 0
+    ? 3 : options.wdwPipelineSlots;
+  result.program.executor.mode = options.parallelRigs
+    ? WdwPairExecutionMode::Pipelined : WdwPairExecutionMode::Direct;
+  result.program.mix = {
+    dbToGain(std::clamp(routing.dry.levelDb, -60.0f, 12.0f)),
+    std::clamp(routing.dry.pan, -1.0f, 1.0f),
+    routing.dry.enabled,
+    dbToGain(std::clamp(routing.wet.levelDb, -60.0f, 12.0f)),
+    std::clamp(routing.wet.width, 0.0f, 1.0f),
+    routing.wet.enabled,
+  };
+  return result;
 }
 
 bool validateDaisyParameters(const ChainBlockPlan& block, std::string& error)
@@ -245,9 +378,11 @@ bool prepareReverbIr(const InterleavedWav& wav, std::vector<float>& left,
 bool loadPreparedIr(const std::filesystem::path& path, const EngineLoadOptions& options,
                     std::vector<float>& samples, std::string& error)
 {
+  std::filesystem::path resolvedPath;
+  if (!validateAssetPath(path, options, error, &resolvedPath)) return false;
   MonoWav wav;
   try {
-    wav = readMonoWav(path);
+    wav = readMonoWav(resolvedPath);
   } catch (const std::exception& e) {
     error = "failed to load IR: " + path.string() + ": " + e.what();
     return false;
@@ -283,6 +418,7 @@ bool makeDualAmpLane(const ChainBlockPlan& block, std::size_t laneIndex,
     return false;
   }
   lane.modelPath = block.dualAmpLanes[laneIndex].modelPath;
+  if (!validateAssetPath(lane.modelPath, options, error, &lane.modelPath)) return false;
   lane.slimmableSize = useNano ? 0.0f : 1.0f;
   lane.cabLevel = std::pow(10.0f, levelDb / 20.0f);
   return loadPreparedIr(block.dualAmpLanes[laneIndex].cabPath, options, lane.impulse, error);
@@ -298,18 +434,18 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
   for (const auto& block : blocks) {
     if (block.status != ChainBlockStatus::Ready) {
       if (block.status != ChainBlockStatus::Disabled) {
-        error = "dual rig lane block not ready: " + block.id + " (" + statusName(block.status) + ")";
+        error = "routing lane block not ready: " + block.id + " (" + statusName(block.status) + ")";
         return false;
       }
       continue;
     }
     if (block.type == "dualRig" || block.type == "dualAmp") {
-      error = "nested split blocks are not supported in a dual rig lane: " + block.id;
+      error = "nested split blocks are not supported in a routing lane: " + block.id;
       return false;
     }
     if (block.type == "nam") {
       if (loadedNam) {
-        error = "multiple NAM blocks are not supported in one dual rig lane: " + block.id;
+        error = "multiple NAM blocks are not supported in one routing lane: " + block.id;
         return false;
       }
       float slimmableSize = 1.0f;
@@ -318,7 +454,9 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
           || !namInputMode(block, inputMode, error)) {
         return false;
       }
-      if (!chain.addNam(block.assetPath, options.sampleRate,
+      std::filesystem::path resolvedPath;
+      if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
+      if (!chain.addNam(resolvedPath, options.sampleRate,
                         static_cast<int>(options.blockSize), block.id,
                         slimmableSize, inputMode)) {
         error = "failed to load dual rig NAM: " + block.assetPath.string();
@@ -326,21 +464,23 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       }
       loadedNam = true;
       stereoEstablished = false;
+      chain.setBlockEnabled(block.id, block.enabled);
       continue;
     }
     if (block.type == "cab") {
       if (loadedCab) {
-        error = "multiple cabinet blocks are not supported in one dual rig lane: " + block.id;
+        error = "multiple cabinet blocks are not supported in one routing lane: " + block.id;
         return false;
       }
       if (stereoEstablished) {
-        error = "cabinet must precede stereo effects in a dual rig lane: " + block.id;
+        error = "cabinet must precede stereo effects in a routing lane: " + block.id;
         return false;
       }
       std::vector<float> impulse;
       if (!loadPreparedIr(block.assetPath, options, impulse, error)) return false;
       chain.addCab(std::move(impulse), block.level, block.mix, block.id);
       loadedCab = true;
+      chain.setBlockEnabled(block.id, block.enabled);
       continue;
     }
     if (block.type == "mod" || block.type == "delay" || block.type == "reverb") {
@@ -352,6 +492,55 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       }
       chain.addDaisy(block.id, std::move(processor));
       stereoEstablished = true;
+      chain.setBlockEnabled(block.id, block.enabled);
+      continue;
+    }
+    if (block.type == "irreverb") {
+      std::filesystem::path resolvedPath;
+      if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
+      InterleavedWav wav;
+      try {
+        wav = readInterleavedWav(resolvedPath);
+      } catch (const std::exception& e) {
+        error = "failed to load reverb impulse: " + block.assetPath.string() + ": " + e.what();
+        return false;
+      }
+      if (wav.sampleRate != options.sampleRate) {
+        error = "reverb impulse sample rate mismatch: " + block.assetPath.string();
+        return false;
+      }
+      std::vector<float> left;
+      std::vector<float> right;
+      std::string irError;
+      if (!prepareReverbIr(wav, left, right, irError)) {
+        error = "invalid reverb impulse: " + block.assetPath.string() + ": " + irError;
+        return false;
+      }
+      if (!chain.addIrReverb(block.id, std::move(left), std::move(right),
+                             static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
+      const auto& params = block.params;
+      chain.setIrReverbParameter(block.id, "mix", reverbParam(params, "mix", 0.35f));
+      chain.setIrReverbParameter(block.id, "levelDb", reverbParam(params, "levelDb", 0.0f));
+      chain.setIrReverbParameter(block.id, "preDelayMs", reverbParam(params, "preDelayMs", 0.0f));
+      chain.setIrReverbParameter(block.id, "lowCutHz", reverbParam(params, "lowCutHz", 20.0f));
+      chain.setIrReverbParameter(block.id, "highCutHz", reverbParam(params, "highCutHz", 20000.0f));
+      stereoEstablished = true;
+      chain.setBlockEnabled(block.id, block.enabled);
+      continue;
+    }
+    if (block.type == "stereo") {
+      if (!chain.addStereoWidener(block.id, static_cast<float>(options.sampleRate), error)) {
+        return false;
+      }
+      const auto& params = block.params;
+      chain.setStereoWidenerParameter(block.id, "width", reverbParam(params, "width", 1.0f));
+      chain.setStereoWidenerParameter(block.id, "delayMs", reverbParam(params, "delayMs", 0.0f));
+      chain.setStereoWidenerParameter(block.id, "bassMonoHz", reverbParam(params, "bassMonoHz", 0.0f));
+      chain.setStereoWidenerParameter(block.id, "levelDb", reverbParam(params, "levelDb", 0.0f));
+      stereoEstablished = true;
+      chain.setBlockEnabled(block.id, block.enabled);
       continue;
     }
     if (block.type == "dynamics") {
@@ -375,9 +564,10 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
         }
         chain.addTransientShaper(block.id, std::move(processor));
       } else {
-        error = "unsupported dynamics mode in dual rig lane: " + block.id;
+        error = "unsupported dynamics mode in routing lane: " + block.id;
         return false;
       }
+      chain.setBlockEnabled(block.id, block.enabled);
       continue;
     }
     if (block.type == "eq") {
@@ -385,6 +575,7 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
                                  static_cast<float>(options.sampleRate), error)) {
         return false;
       }
+      chain.setBlockEnabled(block.id, block.enabled);
       continue;
     }
     if (block.type == "distortion") {
@@ -395,6 +586,7 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
           return false;
         }
         chain.addDistortion(block.id, std::move(processor));
+        chain.setBlockEnabled(block.id, block.enabled);
         continue;
       }
       if (distortionMode == "big_cheese") {
@@ -403,6 +595,7 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
           return false;
         }
         chain.addDistortion(block.id, std::move(processor));
+        chain.setBlockEnabled(block.id, block.enabled);
         continue;
       }
       RatProcessor processor;
@@ -410,18 +603,23 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
         return false;
       }
       chain.addDistortion(block.id, std::move(processor));
+      chain.setBlockEnabled(block.id, block.enabled);
       continue;
     }
     if (block.type == "wah") {
+      std::filesystem::path resolvedPath;
+      if (!resolveConfinedAssetPath(block.assetPath, options, error, resolvedPath)) return false;
       WahProcessor processor;
-      if (!processor.configure(block.params, static_cast<float>(options.sampleRate),
-                               block.assetPath, error)) {
+      // resolveConfinedAssetPath canonicalizes the preset asset against the
+      // configured data root before WahCircuit loads it.
+      if (!processor.configure(block.params, static_cast<float>(options.sampleRate), resolvedPath, error)) {
         return false;
       }
       chain.addWah(block.id, std::move(processor));
+      chain.setBlockEnabled(block.id, block.enabled);
       continue;
     }
-    error = "unsupported block in dual rig lane: " + block.id;
+    error = "unsupported block in routing lane: " + block.id;
     return false;
   }
   return true;
@@ -476,6 +674,7 @@ bool preflightChainPlan(const ChainPlan& plan, const EngineLoadOptions& options,
       if (!namInputMode(block, ignoredInputMode, error)) {
         return false;
       }
+      if (!validateAssetPath(block.assetPath, options, error)) return false;
       loadedNam = true;
       stereoEstablished = false;
       continue;
@@ -524,6 +723,7 @@ bool preflightChainPlan(const ChainPlan& plan, const EngineLoadOptions& options,
         error = "cabinet must precede stereo effects: " + block.id;
         return false;
       }
+      if (!validateAssetPath(block.assetPath, options, error)) return false;
       MonoWav wav;
       try {
         wav = readMonoWav(block.assetPath);
@@ -591,7 +791,9 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       if (!namInputMode(block, inputMode, error)) {
         return false;
       }
-      if (!engine.loadNam(block.assetPath, options.sampleRate, static_cast<int>(options.blockSize),
+      std::filesystem::path resolvedPath;
+      if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
+      if (!engine.loadNam(resolvedPath, options.sampleRate, static_cast<int>(options.blockSize),
                           block.id, slimmableSize, inputMode)) {
         error = "failed to load NAM: " + block.assetPath.string();
         return false;
@@ -658,9 +860,11 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
         error = "cabinet must precede stereo effects: " + block.id;
         return false;
       }
+      std::filesystem::path resolvedPath;
+      if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
       MonoWav wav;
       try {
-        wav = readMonoWav(block.assetPath);
+        wav = readMonoWav(resolvedPath);
       } catch (const std::exception& e) {
         error = "failed to load IR: " + block.assetPath.string() + ": " + e.what();
         return false;
@@ -680,9 +884,11 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       continue;
     }
     if (block.type == "irreverb") {
+      std::filesystem::path resolvedPath;
+      if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
       InterleavedWav wav;
       try {
-        wav = readInterleavedWav(block.assetPath);
+        wav = readInterleavedWav(resolvedPath);
       } catch (const std::exception& e) {
         error = "failed to load reverb impulse: " + block.assetPath.string() + ": " + e.what();
         return false;
@@ -773,8 +979,12 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       continue;
     }
     if (block.type == "wah") {
+      std::filesystem::path resolvedPath;
+      if (!resolveConfinedAssetPath(block.assetPath, options, error, resolvedPath)) return false;
+      // resolveConfinedAssetPath canonicalizes and confines the table path
+      // before it reaches WahCircuit's file-backed loader.
       if (!engine.addWah(block.id, block.params, static_cast<float>(options.sampleRate),
-                         block.assetPath, error)) {
+                         resolvedPath, error)) {
         return false;
       }
       engine.setBlockEnabled(block.id, block.enabled);
@@ -786,6 +996,12 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
 }
 
 } // namespace
+
+bool prepareRuntimeChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& blocks,
+                         const EngineLoadOptions& options, std::string& error)
+{
+  return prepareLaneChain(chain, blocks, options, error);
+}
 
 bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoadOptions& options, std::string& error)
 {
@@ -801,7 +1017,24 @@ bool preflightPreset(const Preset& preset, const std::filesystem::path& dataRoot
                      const EngineLoadOptions& options, std::string& error)
 {
   try {
-    return preflightChainPlan(buildChainPlan(preset, dataRoot), options, error);
+    EngineLoadOptions guardedOptions = options;
+    guardedOptions.assetRoot = dataRoot;
+    if (preset.routing == "wdw") {
+      if (!preset.wdw) {
+        error = "wet/dry/wet preset is missing its lane configuration";
+        return false;
+      }
+      const auto dryPlan = buildChainPlanForBlocks(
+        preset.global, preset.wdw->dry.blocks, dataRoot, preset.midiBindings);
+      const auto wetPlan = buildChainPlanForBlocks(
+        preset.global, preset.wdw->wet.blocks, dataRoot, preset.midiBindings);
+      std::unique_ptr<WdwRoutingProgram> ignoredProgram;
+      WdwRoutingBuildReport ignoredReport;
+      return buildWdwRoutingProgram(
+        dryPlan, wetPlan, wdwBuildOptions(guardedOptions, *preset.wdw),
+        ignoredProgram, ignoredReport, error);
+    }
+    return preflightChainPlan(buildChainPlan(preset, dataRoot), guardedOptions, error);
   } catch (const std::exception& e) {
     error = e.what();
     return false;
@@ -823,7 +1056,23 @@ bool preflightPresetSlot(const PresetStore& store, PresetSlot slot,
 bool applyPreset(PedalEngine& engine, const Preset& preset, const std::filesystem::path& dataRoot,
                  const EngineLoadOptions& options, std::string& error)
 {
-  return applyChainPlan(engine, buildChainPlan(preset, dataRoot), options, error);
+  EngineLoadOptions guardedOptions = options;
+  guardedOptions.assetRoot = dataRoot;
+  if (preset.routing == "wdw") {
+    if (!preset.wdw) {
+      error = "wet/dry/wet preset is missing its lane configuration";
+      return false;
+    }
+    const auto dryPlan = buildChainPlanForBlocks(
+      preset.global, preset.wdw->dry.blocks, dataRoot, preset.midiBindings);
+    const auto wetPlan = buildChainPlanForBlocks(
+      preset.global, preset.wdw->wet.blocks, dataRoot, preset.midiBindings);
+    WdwRoutingBuildReport ignoredReport;
+    return applyWdwRouting(
+      engine, dryPlan, wetPlan, wdwBuildOptions(guardedOptions, *preset.wdw),
+      ignoredReport, error);
+  }
+  return applyChainPlan(engine, buildChainPlan(preset, dataRoot), guardedOptions, error);
 }
 
 bool applyPresetSlot(PedalEngine& engine, const PresetStore& store, PresetSlot slot,

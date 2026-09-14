@@ -1,5 +1,6 @@
 import type {
   ApplyPresetResponse,
+  ApplyPresetStatus,
   Asset,
   AssetKind,
   DeviceStatus,
@@ -37,4 +38,5 @@ export interface ManagerTransport {
   getPreset(bank: number, slot: number): Promise<PresetSlot>;
   savePreset(bank: number, slot: number, preset: Preset): Promise<PresetSlot>;
   applyPreset(bank: number, slot: number): Promise<ApplyPresetResponse>;
+  getApplyStatus?(id: string): Promise<ApplyPresetStatus>;
 }

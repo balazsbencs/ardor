@@ -37,11 +37,15 @@ export type EditorAction =
   | { type: "select-block"; blockId?: string }
   | { type: "set-name"; name: string }
   | { type: "set-global"; key: "inputGainDb" | "outputGainDb"; value: number }
+  | { type: "set-routing"; routing: "serial" | "wdw" }
+  | { type: "set-wdw-mix"; lane: "dry" | "wet"; key: "levelDb" | "pan" | "width" | "enabled"; value: number | boolean }
   | { type: "set-expression"; expression?: Preset["expression"] }
   | { type: "add-block"; definitionId: string; index: number; initialAsset?: string }
   | { type: "move-block"; blockId: string; index: number }
   | { type: "add-lane-block"; rigId: string; lane: "left" | "right"; definitionId: string; index: number; initialAsset?: string }
   | { type: "move-lane-block"; rigId: string; blockId: string; lane: "left" | "right"; index: number }
+  | { type: "add-wdw-block"; lane: "dry" | "wet"; definitionId: string; index: number; initialAsset?: string }
+  | { type: "move-wdw-block"; lane: "dry" | "wet"; blockId: string; index: number }
   | { type: "toggle-block"; blockId: string; enabled: boolean }
   | { type: "duplicate-block"; blockId: string }
   | { type: "remove-block"; blockId: string }

@@ -1,0 +1,4 @@
+scenario,block_size,lane_count,nam_count,has_cab,workers,workers_ready,pipelined,pipeline_underflows,pipeline_submission_misses,post_join_underflows,post_join_submission_misses,budget_us,min_us,mean_us,p99_us,p999_us,max_us,deadline_misses,aggregate_cpu_pct,checksum
+"program-direct-2x-nam-stereo-mix-shared-cab-post-pipeline",32,2,2,1,2,1,1,0,0,1,0,666.667,302.833,321.362,345.074,381.167,381.167,0,144.613,617.072
+"program-direct-2x-nam-stereo-mix-shared-cab-post-pipeline",64,2,2,1,2,1,1,0,0,1,0,1333.333,543.296,584.626,642.537,779.834,779.834,0,131.541,566.906
+"program-direct-2x-nam-stereo-mix-shared-cab-post-pipeline",128,2,2,1,2,1,1,0,0,1,0,2666.667,1007.685,1045.740,1130.425,1337.185,1337.185,0,117.646,-157.671
