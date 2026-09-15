@@ -13,6 +13,7 @@ export const primaryNav: NavLink[] = [
   { label: 'Features', href: '/#features' },
   { label: 'Effects', href: '/#effects' },
   { label: 'The UI', href: '/#interface' },
+  { label: 'User manual', href: '/user-manual' },
   { label: 'Docs', href: '/docs' },
 ];
 

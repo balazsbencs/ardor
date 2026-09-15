@@ -1,0 +1,6 @@
+{
+  "prompt": "Use case: precise-object-edit\nAsset type: corrected product render for an interactive web manual\nInput image: website/public/ardor-pedal-hero.webp is the edit target.\nPrimary request: Correct only the rotary encoder mounting. Move the black ribbed encoder knob so it is mounted vertically through the enclosure’s horizontal top panel, centered left-to-right and positioned near the rear edge, about 20 mm inward. Its base and shaft must visibly emerge from the textured top face inside the enclosure outline, behind the touchscreen—not from a wall or outside the silhouette.\nInvariants: preserve the 3:2 canvas, perspective, black background, enclosure dimensions, top-panel texture, four footswitch positions and materials, screws, red status lamp, touchscreen bezel and artwork, shadows, lighting and color.\nConstraints: change only the encoder position and minimum nearby pixels; add no controls or text; no watermark.",
+  "generatedWith": "built-in imagegen",
+  "derivedAsset": "website/public/ardor-pedal-manual.webp",
+  "reference": "website/public/ardor-pedal-hero.webp"
+}
