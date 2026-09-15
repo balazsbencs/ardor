@@ -82,6 +82,7 @@ void verifyImpulseResponseAlignment()
   reverb.reset();
 
   const int latency = static_cast<int>(reverb.preDelayFrames());
+  require(latency == 128, "IR reverb early reflections should have 128-frame latency");
   const auto rendered = renderImpulse(reverb, latency + kIrFrames);
 
   // The wet output, shifted back by the reported latency, must be the impulse.

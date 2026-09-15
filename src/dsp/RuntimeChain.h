@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -41,7 +42,8 @@ public:
   void clear();
   bool addNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
               std::string id = "nam", float slimmableSize = 1.0f,
-              NamInputMode inputMode = NamInputMode::Sum);
+              NamInputMode inputMode = NamInputMode::Sum,
+              std::optional<float> inputReferenceLevelDbU = std::nullopt);
   bool addDualAmp(std::string id, DualAmpLaneConfig left, DualAmpLaneConfig right,
                   NamInputMode inputMode, double sampleRate, int maxBlockSize,
                   bool requestParallel, int workerCpu, std::string& error);

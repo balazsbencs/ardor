@@ -96,29 +96,72 @@ float onePoleCoefficient(double hz, double sampleRate)
 // endpoints even though the usual playing range normally keeps the same rows.
 void solve3(float m[3][3], float rhs[3])
 {
-  for (int col = 0; col < 3; ++col) {
-    int pivot = col;
-    for (int row = col + 1; row < 3; ++row) {
-      if (std::fabs(m[row][col]) > std::fabs(m[pivot][col])) pivot = row;
-    }
-    if (pivot != col) {
-      for (int j = 0; j < 3; ++j) std::swap(m[col][j], m[pivot][j]);
-      std::swap(rhs[col], rhs[pivot]);
-    }
-    const float diagonal = m[col][col];
-    if (std::fabs(diagonal) < 1.0e-30f) continue;
-    for (int row = col + 1; row < 3; ++row) {
-      const float factor = m[row][col] / diagonal;
-      if (factor == 0.0f) continue;
-      for (int j = col; j < 3; ++j) m[row][j] -= factor * m[col][j];
-      rhs[row] -= factor * rhs[col];
-    }
+  const float a = m[0][0], b = m[0][1], c = m[0][2];
+  const float d = m[1][0], e = m[1][1], f = m[1][2];
+  const float g = m[2][0], h = m[2][1], i = m[2][2];
+  const float c00 = e * i - f * h;
+  const float c01 = c * h - b * i;
+  const float c02 = b * f - c * e;
+  const float determinant = a * c00 + d * c01 + g * c02;
+  if (std::isfinite(determinant) && std::fabs(determinant) >= 1.0e-20f) {
+    const float r0 = rhs[0], r1 = rhs[1], r2 = rhs[2];
+    const float reciprocal = 1.0f / determinant;
+    rhs[0] = (c00 * r0 + c01 * r1 + c02 * r2) * reciprocal;
+    rhs[1] = ((f * g - d * i) * r0 + (a * i - c * g) * r1
+              + (c * d - a * f) * r2) * reciprocal;
+    rhs[2] = ((d * h - e * g) * r0 + (b * g - a * h) * r1
+              + (a * e - b * d) * r2) * reciprocal;
+    return;
   }
-  for (int i = 2; i >= 0; --i) {
-    float sum = rhs[i];
-    for (int j = i + 1; j < 3; ++j) sum -= m[i][j] * rhs[j];
-    rhs[i] = std::fabs(m[i][i]) < 1.0e-30f ? 0.0f : sum / m[i][i];
+
+  // The direct inverse above is cheaper and is well-conditioned through the
+  // normal control range. Retain partial pivoting for a pathological Jacobian
+  // rather than allowing a near-zero determinant to poison the audio state.
+  int pivot = std::fabs(m[1][0]) > std::fabs(m[0][0]) ? 1 : 0;
+  if (std::fabs(m[2][0]) > std::fabs(m[pivot][0])) pivot = 2;
+  if (pivot != 0) {
+    std::swap(m[0][0], m[pivot][0]);
+    std::swap(m[0][1], m[pivot][1]);
+    std::swap(m[0][2], m[pivot][2]);
+    std::swap(rhs[0], rhs[pivot]);
   }
+
+  const float d0 = m[0][0];
+  if (std::fabs(d0) < 1.0e-30f) {
+    rhs[0] = rhs[1] = rhs[2] = 0.0f;
+    return;
+  }
+  const float f10 = m[1][0] / d0;
+  const float f20 = m[2][0] / d0;
+  m[1][1] -= f10 * m[0][1];
+  m[1][2] -= f10 * m[0][2];
+  rhs[1] -= f10 * rhs[0];
+  m[2][1] -= f20 * m[0][1];
+  m[2][2] -= f20 * m[0][2];
+  rhs[2] -= f20 * rhs[0];
+
+  if (std::fabs(m[2][1]) > std::fabs(m[1][1])) {
+    std::swap(m[1][1], m[2][1]);
+    std::swap(m[1][2], m[2][2]);
+    std::swap(rhs[1], rhs[2]);
+  }
+  const float d1 = m[1][1];
+  if (std::fabs(d1) < 1.0e-30f) {
+    rhs[0] = rhs[1] = rhs[2] = 0.0f;
+    return;
+  }
+  const float f21 = m[2][1] / d1;
+  m[2][2] -= f21 * m[1][2];
+  rhs[2] -= f21 * rhs[1];
+
+  const float d2 = m[2][2];
+  if (std::fabs(d2) < 1.0e-30f) {
+    rhs[0] = rhs[1] = rhs[2] = 0.0f;
+    return;
+  }
+  rhs[2] /= d2;
+  rhs[1] = (rhs[1] - m[1][2] * rhs[2]) / d1;
+  rhs[0] = (rhs[0] - m[0][1] * rhs[1] - m[0][2] * rhs[2]) / d0;
 }
 
 } // namespace
@@ -167,6 +210,43 @@ CheesePreparedMatrices prepareCheeseCircuitMatrices(const CheeseNetlist& netlist
                                : netlist.diodeSaturationCurrent),
       r < 2 ? bjtVt : diodeVt, gain);
   }
+
+  // At DC the capacitors' trapezoidal states satisfy x = A*x + B*u + C*i.
+  // Solve that system once here instead of advancing 384,000 silent samples
+  // every time a preset is prepared.
+  float dcCurrent[kCheesePortCount]{};
+  for (std::size_t r = 0; r < 2; ++r) {
+    const float e = std::exp(std::clamp(out.portVoltage[r] / bjtVt, -80.0f, 80.0f));
+    dcCurrent[r] = static_cast<float>(netlist.bjtSaturationCurrent) * (e - 1.0f);
+  }
+  const float clipArg = std::clamp(out.portVoltage[2] / diodeVt, -80.0f, 80.0f);
+  const float clipForward = std::exp(clipArg);
+  dcCurrent[2] = static_cast<float>(netlist.diodeSaturationCurrent)
+    * ((clipForward - 1.0f)
+       - static_cast<float>(netlist.clipperJunctionCount) * (1.0f / clipForward - 1.0f));
+
+  circuit::Mat steadyMatrix(kCheeseStateCount, kCheeseStateCount);
+  circuit::Mat steadyRhs(kCheeseStateCount, 1);
+  for (std::size_t r = 0; r < kCheeseStateCount; ++r) {
+    for (std::size_t c = 0; c < kCheeseStateCount; ++c) {
+      steadyMatrix.at(r, c) = (r == c ? 1.0 : 0.0) - out.a[r * kCheeseStateCount + c];
+    }
+    double rhs = out.b[r * kCheeseInputCount + 1] * static_cast<float>(netlist.supplyVolts);
+    for (std::size_t c = 0; c < kCheesePortCount; ++c) {
+      rhs += out.c[r * kCheesePortCount + c] * dcCurrent[c];
+    }
+    steadyRhs.at(r, 0) = rhs;
+  }
+  const auto steady = circuit::solve(std::move(steadyMatrix), std::move(steadyRhs));
+  for (std::size_t r = 0; r < kCheeseStateCount; ++r) {
+    out.equilibriumState[r] = static_cast<float>(steady.at(r, 0));
+  }
+  float stageOutput = out.h[1] * static_cast<float>(netlist.supplyVolts) - out.outputOffset;
+  for (std::size_t r = 0; r < kCheesePortCount; ++r) stageOutput += out.k[r] * dcCurrent[r];
+  for (std::size_t r = 0; r < kCheeseStateCount; ++r) {
+    stageOutput += out.g[r] * out.equilibriumState[r];
+  }
+  out.equilibriumStageOutput = stageOutput;
   return out;
 }
 
@@ -230,22 +310,32 @@ void CheeseCircuit::reset()
   inputHighPassState_ = 0.0f;
   inputLowPassState_ = 0.0f;
   c10History_ = 0.0f;
-  leg18History_ = 0.0f;
-  outputHighPassState_ = 0.0f;
+  leg18History_ = matrices_.equilibriumStageOutput;
+  outputHighPassState_ = matrices_.equilibriumStageOutput;
   clipperVolts_ = 0.0f;
   unconverged_ = 0;
-  std::fill(state_.begin(), state_.end(), 0.0f);
+  processedSamples_ = 0;
+  newtonIterations_ = 0;
+  maxNewtonIterations_ = 0;
+  newtonIterationHistogram_.fill(0);
+  cappedStepHistogram_.fill(0);
+  state_ = matrices_.equilibriumState;
   std::fill(scratch_.begin(), scratch_.end(), 0.0f);
   for (std::size_t i = 0; i < portVolts_.size(); ++i) {
     portVolts_[i] = matrices_.portVoltage[i];
   }
 
-  // Settle the bias network. The model carries the supply rail as an input, so
-  // from a zeroed state the coupling caps charge over a real time constant —
-  // the 4.7 uF across the Fuzz pot alone runs to seconds. Running that silently
-  // here means the first note after a preset change is not a thump.
-  const auto settle = static_cast<std::size_t>(sampleRate_);
-  for (std::size_t i = 0; i < settle; ++i) (void)process(0.0f);
+  // The prepared state is the exact discrete-time DC solution, so reset starts
+  // close to the float runtime fixed point. A short polish removes coefficient
+  // rounding residuals without simulating seconds of capacitor charging.
+  constexpr std::size_t kResetPolishSamples = 4096;
+  for (std::size_t i = 0; i < kResetPolishSamples; ++i) (void)process(0.0f);
+  unconverged_ = 0;
+  processedSamples_ = 0;
+  newtonIterations_ = 0;
+  maxNewtonIterations_ = 0;
+  newtonIterationHistogram_.fill(0);
+  cappedStepHistogram_.fill(0);
 }
 
 void CheeseCircuit::setControls(float fuzz, float tone, float volume)
@@ -288,7 +378,9 @@ float CheeseCircuit::process(float input)
   float current[3]{};
   bool converged = false;
   float lastStep = 0.0f;
+  unsigned iterationsUsed = 0;
   for (int iteration = 0; iteration < kMaxNewtonIterations; ++iteration) {
+    ++iterationsUsed;
     float slope[3];
     // Q1 and Q2 carry a base current; the clipper carries a node current with a
     // junction facing each way, one of them doubled by Q3's paired junctions.
@@ -345,6 +437,16 @@ float CheeseCircuit::process(float input)
       break;
     }
     lastStep = largestStep;
+  }
+  ++processedSamples_;
+  newtonIterations_ += iterationsUsed;
+  maxNewtonIterations_ = std::max(maxNewtonIterations_, iterationsUsed);
+  ++newtonIterationHistogram_[iterationsUsed];
+  if (iterationsUsed == kMaxNewtonIterations) {
+    const float limits[] = {2.0e-5f, 5.0e-5f, 1.0e-4f, 3.0e-4f, 1.0e-3f, 3.0e-3f};
+    std::size_t bucket = 0;
+    while (bucket < std::size(limits) && lastStep >= limits[bucket]) ++bucket;
+    ++cappedStepHistogram_[bucket];
   }
   if (!converged && lastStep > kUnconvergedStepVolts) ++unconverged_;
 

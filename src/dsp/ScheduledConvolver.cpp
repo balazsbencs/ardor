@@ -9,28 +9,31 @@ void ScheduledConvolver::load(std::vector<float> impulse, std::size_t partitionF
   impulse_ = std::move(impulse);
   partition_ = nextPowerOfTwo(std::max<std::size_t>(partitionFrames, 16));
   fftSize_ = partition_ * 2;
+  frequencyBins_ = fftSize_ / 2 + 1;
   fft_.prepare(fftSize_);
 
   partitionCount_ = impulse_.empty()
       ? 0
       : (impulse_.size() + partition_ - 1) / partition_;
 
-  impulseSpectra_.assign(partitionCount_, std::vector<std::complex<float>>(fftSize_));
+  impulseSpectra_.assign(partitionCount_, std::vector<std::complex<float>>(frequencyBins_));
+  scratch_.assign(fftSize_, {});
   for (std::size_t p = 0; p < partitionCount_; ++p) {
     auto& spectrum = impulseSpectra_[p];
-    std::fill(spectrum.begin(), spectrum.end(), std::complex<float>{});
+    std::fill(scratch_.begin(), scratch_.end(), std::complex<float>{});
     const std::size_t start = p * partition_;
     const std::size_t count = std::min(partition_, impulse_.size() - start);
     for (std::size_t i = 0; i < count; ++i) {
-      spectrum[i] = impulse_[start + i];
+      scratch_[i] = impulse_[start + i];
     }
-    fft_.transform(spectrum, false);
+    fft_.transform(scratch_, false);
+    std::copy(scratch_.begin(), scratch_.begin() + static_cast<std::ptrdiff_t>(frequencyBins_),
+              spectrum.begin());
   }
 
   inputSpectra_.assign(std::max<std::size_t>(partitionCount_, 1),
-                       std::vector<std::complex<float>>(fftSize_));
-  accumulator_.assign(fftSize_, {});
-  scratch_.assign(fftSize_, {});
+                       std::vector<std::complex<float>>(frequencyBins_));
+  accumulator_.assign(frequencyBins_, {});
   overlap_.assign(partition_, 0.0f);
   inBuffer_.assign(partition_, 0.0f);
   outBuffer_.assign(partition_, 0.0f);
@@ -79,7 +82,7 @@ void ScheduledConvolver::advanceSchedule()
         (newestInput_ + inputSpectra_.size() - (p - 1)) % inputSpectra_.size();
     const auto& h = impulseSpectra_[p];
     const auto& x = inputSpectra_[slot];
-    for (std::size_t bin = 0; bin < fftSize_; ++bin) {
+    for (std::size_t bin = 0; bin < frequencyBins_; ++bin) {
       accumulator_[bin] += h[bin] * x[bin];
     }
   }
@@ -95,11 +98,12 @@ void ScheduledConvolver::closeBlock()
   fft_.transform(scratch_, false);
 
   newestInput_ = (newestInput_ + 1) % inputSpectra_.size();
-  std::copy(scratch_.begin(), scratch_.end(), inputSpectra_[newestInput_].begin());
+  std::copy(scratch_.begin(), scratch_.begin() + static_cast<std::ptrdiff_t>(frequencyBins_),
+            inputSpectra_[newestInput_].begin());
 
   if (partitionCount_ > 0) {
     const auto& h = impulseSpectra_[0];
-    for (std::size_t bin = 0; bin < fftSize_; ++bin) {
+    for (std::size_t bin = 0; bin < frequencyBins_; ++bin) {
       accumulator_[bin] += h[bin] * scratch_[bin];
     }
   }
@@ -113,15 +117,21 @@ void ScheduledConvolver::closeBlock()
         (newestInput_ + inputSpectra_.size() - p) % inputSpectra_.size();
     const auto& h = impulseSpectra_[p];
     const auto& x = inputSpectra_[slot];
-    for (std::size_t bin = 0; bin < fftSize_; ++bin) {
+    for (std::size_t bin = 0; bin < frequencyBins_; ++bin) {
       accumulator_[bin] += h[bin] * x[bin];
     }
   }
 
-  fft_.transform(accumulator_, true);
+  std::copy(accumulator_.begin(), accumulator_.end(), scratch_.begin());
+  scratch_[0] = {scratch_[0].real(), 0.0f};
+  scratch_[fftSize_ / 2] = {scratch_[fftSize_ / 2].real(), 0.0f};
+  for (std::size_t bin = 1; bin < fftSize_ / 2; ++bin) {
+    scratch_[fftSize_ - bin] = std::conj(scratch_[bin]);
+  }
+  fft_.transform(scratch_, true);
   for (std::size_t i = 0; i < partition_; ++i) {
-    outBuffer_[i] = accumulator_[i].real() + overlap_[i];
-    overlap_[i] = accumulator_[i + partition_].real();
+    outBuffer_[i] = scratch_[i].real() + overlap_[i];
+    overlap_[i] = scratch_[i + partition_].real();
   }
 
   beginPeriod();

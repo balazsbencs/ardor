@@ -27,6 +27,39 @@ constexpr int kEditTopRailHeight = 52;
 constexpr int kEditBottomRailHeight = 88;
 constexpr int kEditBottomRailY = kDesignHeight - kEditBottomRailHeight;
 
+void drawBypassedOutline(lv_event_t* event)
+{
+  auto* object = lv_event_get_target_obj(event);
+  if (!lv_obj_has_state(object, LV_STATE_USER_1)) return;
+
+  lv_area_t area{};
+  lv_obj_get_coords(object, &area);
+  area.x1 += 1;
+  area.y1 += 1;
+  area.x2 -= 1;
+  area.y2 -= 1;
+
+  lv_draw_line_dsc_t line{};
+  lv_draw_line_dsc_init(&line);
+  line.color = lv_color_hex(rule);
+  line.width = 2;
+  line.dash_width = 9;
+  line.dash_gap = 6;
+  line.opa = LV_OPA_COVER;
+  auto* layer = lv_event_get_layer(event);
+  const auto draw = [&](int x1, int y1, int x2, int y2) {
+    line.p1.x = x1;
+    line.p1.y = y1;
+    line.p2.x = x2;
+    line.p2.y = y2;
+    lv_draw_line(layer, &line);
+  };
+  draw(area.x1, area.y1, area.x2, area.y1);
+  draw(area.x2, area.y1, area.x2, area.y2);
+  draw(area.x2, area.y2, area.x1, area.y2);
+  draw(area.x1, area.y2, area.x1, area.y1);
+}
+
 bool isWdwRoutingBlock(const UiBlock& block)
 {
   return block.type == "dualRig"
@@ -195,9 +228,7 @@ void onBlockPressing(lv_event_t* event)
 void onBlockReleased(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
-  const lv_opa_t restingOpacity = context->index < blocks.size() && !blocks[context->index].enabled
-    ? LV_OPA_70 : LV_OPA_COVER;
+  const lv_opa_t restingOpacity = LV_OPA_COVER;
   lv_obj_set_style_opa(context->controlledObject ? context->controlledObject
                                                  : lv_event_get_target_obj(event), restingOpacity, 0);
   context->ui->setChainDragActive(false);
@@ -231,9 +262,7 @@ void onBlockReleased(lv_event_t* event)
 void onBlockPressLost(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
-  const lv_opa_t restingOpacity = context->index < blocks.size() && !blocks[context->index].enabled
-    ? LV_OPA_70 : LV_OPA_COVER;
+  const lv_opa_t restingOpacity = LV_OPA_COVER;
   lv_obj_set_style_opa(context->controlledObject ? context->controlledObject
                                                  : lv_event_get_target_obj(event), restingOpacity, 0);
   context->ui->setChainDragActive(false);
@@ -309,13 +338,8 @@ void onLaneBlockPressing(lv_event_t* event)
 void onLaneBlockReleased(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
-  const bool enabled = context->parentIndex < blocks.size()
-    && context->laneIndex < blocks[context->parentIndex].lanes.size()
-    && context->index < blocks[context->parentIndex].lanes[context->laneIndex].size()
-    && blocks[context->parentIndex].lanes[context->laneIndex][context->index].enabled;
   if (context->controlledObject) {
-    lv_obj_set_style_opa(context->controlledObject, enabled ? LV_OPA_COVER : LV_OPA_70, 0);
+    lv_obj_set_style_opa(context->controlledObject, LV_OPA_COVER, 0);
   }
   context->ui->setChainDragActive(false);
   if (!context->dragging) return;
@@ -340,13 +364,8 @@ void onLaneBlockReleased(lv_event_t* event)
 void onLaneBlockPressLost(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
-  const bool enabled = context->parentIndex < blocks.size()
-    && context->laneIndex < blocks[context->parentIndex].lanes.size()
-    && context->index < blocks[context->parentIndex].lanes[context->laneIndex].size()
-    && blocks[context->parentIndex].lanes[context->laneIndex][context->index].enabled;
   if (context->controlledObject) {
-    lv_obj_set_style_opa(context->controlledObject, enabled ? LV_OPA_COVER : LV_OPA_70, 0);
+    lv_obj_set_style_opa(context->controlledObject, LV_OPA_COVER, 0);
   }
   context->ui->setChainDragActive(false);
   context->suppressClick = context->dragging;
@@ -538,11 +557,18 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       lv_obj_set_pos(object, x, kChainTileTop);
       styleSurface(object, block.enabled ? panel : panelAlt);
       lv_obj_set_style_pad_all(object, 0, 0);
-      if (!block.enabled) lv_obj_set_style_opa(object, LV_OPA_70, 0);
+      lv_obj_set_style_bg_opa(object, block.enabled ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
+      if (block.enabled) {
+        lv_obj_remove_state(object, LV_STATE_USER_1);
+      } else {
+        lv_obj_add_state(object, LV_STATE_USER_1);
+      }
+      lv_obj_add_event_cb(object, drawBypassedOutline, LV_EVENT_DRAW_POST, nullptr);
       // Selection reads as a lighter border, matching the mockup's .sel state
       // (panel.html line 148) rather than a separate indicator bar competing
       // with the family ticks for the card's bottom edge.
       lv_obj_set_style_border_color(object, lv_color_hex(selected ? text : rule), 0);
+      lv_obj_set_style_border_width(object, selected ? 3 : (block.enabled ? 1 : 0), 0);
       if (isBlockHighlighted(block.id)) {
         lv_obj_set_style_border_color(object, lv_color_hex(text), 0);
         lv_obj_set_style_border_width(object, 3, 0);
@@ -550,8 +576,8 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       const int catColor = categoryColor(block.type);
       // Family identity lives in the printed header strip, never as a wide
       // coloured side border. That keeps the card legible in every palette.
-      // Bypassed blocks go to bare metal (mockup panel.html line 150): the
-      // header loses its family colour rather than just dimming it.
+      // Bypassed blocks leave only a dashed footprint: the face clears to the
+      // signal canvas and the header loses its family colour.
       lv_obj_t* categoryHeader = lv_obj_create(object);
       lv_obj_set_size(categoryHeader, kChainTileWidth, kChainHeaderHeight);
       lv_obj_set_pos(categoryHeader, 0, 0);
@@ -582,7 +608,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
                                   block.enabled ? text : disabled);
       lv_obj_set_width(assetName, kChainTextWidth);
       lv_label_set_long_mode(assetName, LV_LABEL_LONG_WRAP);
-      lv_obj_t* bypassed = label(object, "BYPASSED", LV_ALIGN_TOP_LEFT, kChainTextX,
+      lv_obj_t* bypassed = label(object, "OFF", LV_ALIGN_TOP_LEFT, kChainTextX,
                                  kChainHeaderHeight + 18 + 58, &ardor_font_saira_cond_medium_18, disabled);
       if (block.enabled) lv_obj_add_flag(bypassed, LV_OBJ_FLAG_HIDDEN);
 
@@ -590,32 +616,18 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       // mirroring the mockup's .grp strip (panel.html lines 146-147).
       constexpr int kFamilyBarGap = 3;
       const int familyBarWidth = (kChainTextWidth - 2 * kFamilyBarGap) / 3;
+      lv_obj_t* familyTick = nullptr;
       for (int bar = 0; bar < 3; ++bar) {
         lv_obj_t* tick = lv_obj_create(object);
         lv_obj_set_size(tick, familyBarWidth, 3);
         lv_obj_set_pos(tick, kChainTextX + bar * (familyBarWidth + kFamilyBarGap),
                        kChainTileHeight - 16 - 3);
-        styleSurface(tick, bar == 0 ? catColor : rule);
+        styleSurface(tick, block.enabled && bar == 0 ? catColor : rule);
         lv_obj_set_style_border_width(tick, 0, 0);
         lv_obj_remove_flag(tick, LV_OBJ_FLAG_CLICKABLE);
+        if (bar == 0) familyTick = tick;
       }
 
-      if (!block.enabled) {
-        // Bypass jumper: a cord routed over the module rather than a text
-        // label alone, per docs/lvgl-ui-redesign-spec.md §8.7.
-        lv_obj_t* jumper = lv_obj_create(chainWorld_);
-        lv_obj_remove_style_all(jumper);
-        lv_obj_set_size(jumper, kChainTileWidth + 46, 2);
-        lv_obj_set_pos(jumper, x - 23, kChainTileTop - 20);
-        lv_obj_set_style_bg_opa(jumper, LV_OPA_COVER, 0);
-        lv_obj_set_style_bg_color(jumper, lv_color_hex(lamp), 0);
-        lv_obj_remove_flag(jumper, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_t* jumperLabel = label(chainWorld_, "BYP", LV_ALIGN_DEFAULT, 0, 0,
-                                      &ardor_font_saira_cond_medium_18, lamp);
-        lv_obj_align(jumperLabel, LV_ALIGN_DEFAULT, x + kChainTileWidth / 2 - 14,
-                    kChainTileTop - 20 + 4);
-        lv_obj_remove_flag(jumperLabel, LV_OBJ_FLAG_CLICKABLE);
-      }
       auto* clickContext = remember(state, i);
       lv_obj_add_event_cb(object, onBlockClicked, LV_EVENT_CLICKED, clickContext);
 
@@ -623,6 +635,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       chainCategoryLabels_[i] = categoryLabel;
       chainAssetLabels_[i] = assetName;
       chainBypassLabels_[i] = bypassed;
+      chainFamilyTicks_[i] = familyTick;
       chainClickContexts_[i] = clickContext;
       x += kChainTileWidth;
     } else {
@@ -719,11 +732,19 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
           lv_obj_set_pos(childObject, laneX, laneY - kLaneTileHeight / 2);
           styleSurface(childObject, child.enabled ? panel : panelAlt);
           lv_obj_set_style_pad_all(childObject, 0, 0);
-          lv_obj_set_style_border_color(childObject, lv_color_hex(visibleLaneColor), 0);
           const bool childSelected = state.paramTarget == UiParamTarget::Block
             && state.selectedBlockId == child.id;
-          lv_obj_set_style_border_width(childObject, childSelected ? 3 : 1, 0);
-          if (!child.enabled) lv_obj_set_style_opa(childObject, LV_OPA_70, 0);
+          lv_obj_set_style_bg_opa(childObject, child.enabled ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
+          lv_obj_set_style_border_color(childObject,
+                                        lv_color_hex(childSelected ? text : visibleLaneColor), 0);
+          lv_obj_set_style_border_width(childObject,
+                                        childSelected ? 3 : (child.enabled ? 1 : 0), 0);
+          if (child.enabled) {
+            lv_obj_remove_state(childObject, LV_STATE_USER_1);
+          } else {
+            lv_obj_add_state(childObject, LV_STATE_USER_1);
+          }
+          lv_obj_add_event_cb(childObject, drawBypassedOutline, LV_EVENT_DRAW_POST, nullptr);
           if (!laneEnabled) lv_obj_set_style_opa(childObject, LV_OPA_70, 0);
           // Compact lane cards keep the same interaction grammar: the entire
           // title strip is a deliberate, finger-sized drag surface, while the
@@ -746,7 +767,9 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
           lv_obj_set_style_text_letter_space(childDragLabel, 2, 0);
           lv_obj_remove_flag(childTitle, LV_OBJ_FLAG_CLICKABLE);
           lv_obj_remove_flag(childDragLabel, LV_OBJ_FLAG_CLICKABLE);
-          lv_obj_t* childAsset = label(childObject, uppercase(child.assetName), LV_ALIGN_BOTTOM_LEFT, 10, -9,
+          const std::string childReadout = child.enabled
+            ? uppercase(child.assetName) : "OFF  /  " + uppercase(child.assetName);
+          lv_obj_t* childAsset = label(childObject, childReadout, LV_ALIGN_BOTTOM_LEFT, 10, -9,
                                        &ardor_font_saira_cond_semibold_22,
                                        child.enabled && laneEnabled ? text : disabled);
           lv_obj_set_width(childAsset, kLaneTileWidth - 20);

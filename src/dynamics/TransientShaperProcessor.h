@@ -4,6 +4,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <cstdint>
+#include <memory>
 #include <string>
 
 namespace ardor {
@@ -55,6 +57,8 @@ private:
   TransientShaperProcessor& operator=(const TransientShaperProcessor&) = delete;
 
   static constexpr float kSilenceDb = -140.0f;
+  struct LiveParameters;
+  void refreshLiveParameters();
 
   float sampleRate_ = 48000.0f;
 
@@ -76,6 +80,8 @@ private:
   float sustainReferenceDb_ = kSilenceDb;
   float smoothedGain_ = 1.0f;
   float lastGainDb_ = 0.0f;
+  std::shared_ptr<LiveParameters> liveParameters_;
+  std::uint64_t liveRevision_ = 0;
 };
 
 } // namespace ardor

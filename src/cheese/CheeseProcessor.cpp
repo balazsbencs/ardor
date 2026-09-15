@@ -270,13 +270,31 @@ void CheeseProcessor::reset()
 StereoSample CheeseProcessor::process(StereoSample input)
 {
   consumePreparedControls();
-  if (control_) {
-    const float targetGain = control_->volumeGainTarget.load(std::memory_order_relaxed);
-    volumeGain_ += smoothing_ * (targetGain - volumeGain_);
-    circuit_.setVolumeGain(volumeGain_);
-  }
+  const float targetGain = control_
+    ? control_->volumeGainTarget.load(std::memory_order_relaxed) : volumeGain_;
+  const float output = processMono((input.left + input.right) * 0.5f, targetGain);
+  return {output, output};
+}
 
-  const float mono = (input.left + input.right) * 0.5f;
+void CheeseProcessor::processBlock(const float* left, const float* right,
+                                   float* outputLeft, float* outputRight,
+                                   std::size_t frames)
+{
+  consumePreparedControls();
+  const float targetGain = control_
+    ? control_->volumeGainTarget.load(std::memory_order_relaxed) : volumeGain_;
+  for (std::size_t i = 0; i < frames; ++i) {
+    const float output = processMono((left[i] + right[i]) * 0.5f, targetGain);
+    outputLeft[i] = output;
+    outputRight[i] = output;
+  }
+}
+
+float CheeseProcessor::processMono(float mono, float targetGain) noexcept
+{
+  volumeGain_ += smoothing_ * (targetGain - volumeGain_);
+  circuit_.setVolumeGain(volumeGain_);
+
   const auto at2x = up2x_.Process(mono);
   float at2xFiltered[2]{};
   for (std::size_t i = 0; i < 2; ++i) {
@@ -295,7 +313,7 @@ StereoSample CheeseProcessor::process(StereoSample input)
   }
   float output = 0.0f;
   for (const float sample : at2xFiltered) (void)down1x_.Push(sample, output);
-  return {output, output};
+  return output;
 }
 
 bool CheeseProcessor::controlUpdatePending() const noexcept

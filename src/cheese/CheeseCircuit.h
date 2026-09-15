@@ -27,6 +27,8 @@ struct CheesePreparedMatrices {
   std::array<float, kCheesePortCount> k{};
   std::array<float, kCheesePortCount> portVoltage{};
   std::array<float, kCheesePortCount> critical{};
+  std::array<float, kCheeseStateCount> equilibriumState{};
+  float equilibriumStageOutput = 0.0f;
   float outputOffset = 0.0f;
 };
 
@@ -86,6 +88,17 @@ public:
   // limiting makes the solve struggle, this is what says so, rather than a
   // listener eventually noticing crackle.
   unsigned long long unconvergedSamples() const noexcept { return unconverged_; }
+  unsigned long long processedSamples() const noexcept { return processedSamples_; }
+  unsigned long long newtonIterations() const noexcept { return newtonIterations_; }
+  unsigned maxNewtonIterations() const noexcept { return maxNewtonIterations_; }
+  const std::array<unsigned long long, 17>& newtonIterationHistogram() const noexcept
+  {
+    return newtonIterationHistogram_;
+  }
+  const std::array<unsigned long long, 7>& cappedStepHistogram() const noexcept
+  {
+    return cappedStepHistogram_;
+  }
 
 private:
   CheeseNetlist netlist_{};
@@ -122,6 +135,11 @@ private:
   std::array<float, 3> portVolts_{};
   float clipperVolts_ = 0.0f;
   unsigned long long unconverged_ = 0;
+  unsigned long long processedSamples_ = 0;
+  unsigned long long newtonIterations_ = 0;
+  unsigned maxNewtonIterations_ = 0;
+  std::array<unsigned long long, 17> newtonIterationHistogram_{};
+  std::array<unsigned long long, 7> cappedStepHistogram_{};
 
   // --- Output stage ------------------------------------------------------
   float feedbackSlope_ = 1.0f;

@@ -78,6 +78,12 @@ NAM block params:
 - `params.inputMode`: stereo-to-mono routing at the NAM input: `"sum"` averages left and right (default), `"left"` uses the left/mono channel, and `"right"` uses the right channel.
 - `params.useNano`: when `true`, selects the embedded nano submodel to reduce CPU usage; missing or `false` selects the full model.
 
+Pass `--input-reference-dbu DBU` to map the audio interface's measured analog
+input reference to NAM models that contain `input_level_dbu` metadata. The
+reference is the analog dBu RMS level that produces a 0 dBFS-peak 1 kHz sine at
+the ADC. Models without the metadata retain unity input scaling. Preset input
+gain remains available as a separate creative or corrective control.
+
 Cab block params:
 
 - `params.levelDb`: cab level before output gain.

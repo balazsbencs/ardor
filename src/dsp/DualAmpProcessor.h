@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -16,6 +17,7 @@ struct DualAmpLaneConfig {
   std::filesystem::path modelPath;
   std::vector<float> impulse;
   float slimmableSize = 1.0f;
+  std::optional<float> inputReferenceLevelDbU;
   float cabLevel = 1.0f;
   float cabMix = 1.0f;
   bool polarityInverted = false;

@@ -1,9 +1,18 @@
 #include "dynamics/TransientShaperProcessor.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 
 namespace ardor {
+
+struct TransientShaperProcessor::LiveParameters {
+  std::atomic<float> attack{0.0f};
+  std::atomic<float> sustain{0.0f};
+  std::atomic<float> outputDb{0.0f};
+  std::atomic<float> mix{1.0f};
+  std::atomic<std::uint64_t> revision{0};
+};
 
 namespace {
 
@@ -74,6 +83,9 @@ bool TransientShaperProcessor::configure(const nlohmann::json& params, float sam
   sustainReference_ = coefficientFor(kSustainReferenceMs, sampleRate_);
   gainSmoothing_ = coefficientFor(kGainSmoothingMs, sampleRate_);
 
+  liveParameters_ = std::make_shared<LiveParameters>();
+  liveRevision_ = 0;
+
   setParameterTarget("attack", readNumber(params, "attack", 0.0f));
   setParameterTarget("sustain", readNumber(params, "sustain", 0.0f));
   setParameterTarget("output_db", readNumber(params, "output_db", 0.0f));
@@ -86,28 +98,38 @@ bool TransientShaperProcessor::configure(const nlohmann::json& params, float sam
 
 bool TransientShaperProcessor::setParameterTarget(const std::string& key, float value)
 {
-  if (!std::isfinite(value)) return false;
+  if (!liveParameters_ || !std::isfinite(value)) return false;
   if (key == "attack") {
-    attackAmount_ = std::clamp(value, -100.0f, 100.0f) * 0.01f;
-    return true;
+    liveParameters_->attack.store(std::clamp(value, -100.0f, 100.0f), std::memory_order_relaxed);
+  } else if (key == "sustain") {
+    liveParameters_->sustain.store(std::clamp(value, -100.0f, 100.0f), std::memory_order_relaxed);
+  } else if (key == "output_db") {
+    liveParameters_->outputDb.store(std::clamp(value, -24.0f, 24.0f), std::memory_order_relaxed);
+  } else if (key == "mix") {
+    liveParameters_->mix.store(std::clamp(value, 0.0f, 1.0f), std::memory_order_relaxed);
+  } else {
+    return false;
   }
-  if (key == "sustain") {
-    sustainAmount_ = std::clamp(value, -100.0f, 100.0f) * 0.01f;
-    return true;
-  }
-  if (key == "output_db") {
-    outputGain_ = std::pow(10.0f, std::clamp(value, -24.0f, 24.0f) / 20.0f);
-    return true;
-  }
-  if (key == "mix") {
-    mix_ = std::clamp(value, 0.0f, 1.0f);
-    return true;
-  }
-  return false;
+  liveParameters_->revision.fetch_add(1, std::memory_order_release);
+  return true;
+}
+
+void TransientShaperProcessor::refreshLiveParameters()
+{
+  if (!liveParameters_) return;
+  const auto revision = liveParameters_->revision.load(std::memory_order_acquire);
+  if (revision == liveRevision_) return;
+  liveRevision_ = revision;
+  attackAmount_ = liveParameters_->attack.load(std::memory_order_relaxed) * 0.01f;
+  sustainAmount_ = liveParameters_->sustain.load(std::memory_order_relaxed) * 0.01f;
+  outputGain_ = std::pow(10.0f,
+      liveParameters_->outputDb.load(std::memory_order_relaxed) / 20.0f);
+  mix_ = liveParameters_->mix.load(std::memory_order_relaxed);
 }
 
 void TransientShaperProcessor::reset()
 {
+  refreshLiveParameters();
   level_ = 0.0f;
   attackReferenceDb_ = kSilenceDb;
   sustainReferenceDb_ = kSilenceDb;
@@ -117,6 +139,7 @@ void TransientShaperProcessor::reset()
 
 StereoSample TransientShaperProcessor::process(StereoSample input)
 {
+  refreshLiveParameters();
   const float left = std::isfinite(input.left) ? input.left : 0.0f;
   const float right = std::isfinite(input.right) ? input.right : 0.0f;
 
