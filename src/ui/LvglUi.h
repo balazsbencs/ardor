@@ -372,6 +372,7 @@ private:
   std::array<lv_obj_t*, kMaxEffectBlocks> chainCategoryLabels_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainAssetLabels_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainBypassLabels_{};
+  std::array<lv_obj_t*, kMaxEffectBlocks> chainFamilyTicks_{};
   std::array<UiEventContext*, kMaxEffectBlocks> chainClickContexts_{};
   std::array<UiEventContext*, kMaxEffectBlocks> chainDragContexts_{};
   std::vector<std::string> renderedBlockIds_;

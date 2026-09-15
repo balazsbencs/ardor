@@ -761,10 +761,11 @@ int main()
 
   lv_display_t* display = lv_display_create(1280, 720);
   const char* screenshotPath = std::getenv("ARDOR_UI_SCREENSHOT");
+  const char* editScreenshotPath = std::getenv("ARDOR_UI_EDIT_SCREENSHOT");
   std::vector<uint8_t> screenshotStorage;
   uint8_t* screenshotPixels = nullptr;
   uint32_t screenshotStride = 0;
-  if (screenshotPath != nullptr) {
+  if (screenshotPath != nullptr || editScreenshotPath != nullptr) {
     lv_display_set_color_format(display, LV_COLOR_FORMAT_RGB888);
     screenshotStride = lv_draw_buf_width_to_stride(1280, LV_COLOR_FORMAT_RGB888);
     const auto screenshotBytes = screenshotStride * 720;
@@ -915,6 +916,17 @@ int main()
   ardor::setUiStatus(state, "Preset saved");
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
+  if (editScreenshotPath != nullptr) {
+    auto chainCaptureState = state;
+    chainCaptureState.paramDrawerOpen = false;
+    ui.build(lv_screen_active(), chainCaptureState);
+    lv_obj_update_layout(lv_screen_active());
+    lv_refr_now(display);
+    if (require(saveRgb888Ppm(editScreenshotPath, screenshotPixels, screenshotStride, 1280, 720),
+                "edit-chain screenshot should be writable")) return 1;
+    ui.build(lv_screen_active(), state);
+    lv_obj_update_layout(lv_screen_active());
+  }
 
   const auto& selected = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
   const std::string titleText = selected.label + "  /  " + selected.assetName;
@@ -1142,29 +1154,44 @@ int main()
   if (require(lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE)
                 && lv_obj_get_scrollbar_mode(chain) == LV_SCROLLBAR_MODE_AUTO,
               "releasing an effect drag handle should restore ordinary chain scrolling")) return 1;
-  if (require(findLabel(lv_screen_active(), "BYPASSED"),
-              "disabled blocks should show an explicit bypass state")) return 1;
   lv_obj_t* firstCardAssetLabel = findLabel(firstChainBlock,
       upper(state.bank.presets[state.activePreset].blocks.front().assetName).c_str());
-  lv_obj_t* firstBypassedLabel = findLabel(firstChainBlock, "BYPASSED");
+  lv_obj_t* firstOffLabel = findLabel(firstChainBlock, "OFF");
   lv_obj_t* firstDragHandle = findLabel(firstChainBlock, "DRAG");
-  if (require(firstCategoryLabel && firstCardAssetLabel && firstBypassedLabel && firstDragHandle,
-              "disabled chain card should render all text rows and its drag handle")) return 1;
+  if (require(firstCategoryLabel && firstCardAssetLabel && firstOffLabel && firstDragHandle,
+              "disabled chain card should render its name, OFF state, and drag handle")) return 1;
+  if (require(!findLabel(firstChainBlock, "BYPASSED")
+                && lv_obj_has_state(firstChainBlock, LV_STATE_USER_1)
+                && lv_obj_get_style_bg_opa(firstChainBlock, LV_PART_MAIN) == LV_OPA_TRANSP,
+              "disabled chain card should use the transparent outline treatment")) return 1;
   lv_area_t firstCategoryArea{};
   lv_area_t firstAssetArea{};
-  lv_area_t firstBypassedArea{};
+  lv_area_t firstOffArea{};
   lv_area_t firstDragHandleArea{};
   lv_obj_get_coords(firstCategoryLabel, &firstCategoryArea);
   lv_obj_get_coords(firstCardAssetLabel, &firstAssetArea);
-  lv_obj_get_coords(firstBypassedLabel, &firstBypassedArea);
+  lv_obj_get_coords(firstOffLabel, &firstOffArea);
   lv_obj_get_coords(firstDragHandle, &firstDragHandleArea);
   if (require(firstCategoryArea.y2 < firstAssetArea.y1
-                && firstAssetArea.y2 < firstBypassedArea.y1,
-              "chain-card category, asset, and bypass labels should occupy separate rows")) return 1;
+                && firstAssetArea.y2 < firstOffArea.y1,
+              "chain-card category, asset, and OFF labels should occupy separate rows")) return 1;
   // The large drag surface stacks its category and action into separate rows;
-  // the asset name and bypass status continue in the card body below it.
+  // the asset name and OFF status continue in the card body below it.
   if (require(firstCategoryArea.y2 < firstDragHandleArea.y1,
               "the chain-card header should separate its category and drag instruction")) return 1;
+  state.bank.presets[state.activePreset].blocks.front().enabled = true;
+  ardor::markUiChanged(state, ardor::UiChange::Chain);
+  ui.refresh(lv_screen_active(), state);
+  if (require(!lv_obj_has_state(firstChainBlock, LV_STATE_USER_1)
+                && lv_obj_get_style_bg_opa(firstChainBlock, LV_PART_MAIN) == LV_OPA_COVER
+                && lv_obj_has_flag(firstOffLabel, LV_OBJ_FLAG_HIDDEN),
+              "enabling a retained chain card should clear its outline state")) return 1;
+  state.bank.presets[state.activePreset].blocks.front().enabled = false;
+  ardor::markUiChanged(state, ardor::UiChange::Chain);
+  ui.refresh(lv_screen_active(), state);
+  if (require(lv_obj_has_state(firstChainBlock, LV_STATE_USER_1)
+                && !lv_obj_has_flag(firstOffLabel, LV_OBJ_FLAG_HIDDEN),
+              "bypassing a retained chain card should restore its outline state")) return 1;
   // The instructional hint text was retired: the bottom rail's Input/Output
   // jump controls now sit in a tighter band, and the circular patch points
   // plus drag handles are self-evident per the redesign's lettering-first,
