@@ -30,6 +30,42 @@ int main()
     if (require(std::fabs(input[i] - output[i]) < 0.0001f, "unloaded NAM block should pass through")) return 1;
   }
 
+  // NAM's input_level_dbu metadata describes the analog level represented by
+  // 0 dBFS during capture. A device reference 6.0206 dB below that must apply
+  // exactly half-scale before the neural model.
+  {
+    const std::filesystem::path metadataModel = ARDOR_NAM_EXAMPLE_MODEL;
+    ardor::NamProcessor metadataProbe;
+    if (require(metadataProbe.load(metadataModel, 48000.0, 64),
+                "metadata NAM model should load")) return 1;
+    if (require(metadataProbe.modelInputLevelDbU().has_value(),
+                "metadata NAM model should expose its input reference")) return 1;
+
+    const float deviceReference = *metadataProbe.modelInputLevelDbU() - 6.0205999f;
+    ardor::NamProcessor calibrated;
+    ardor::NamProcessor manual;
+    if (require(calibrated.load(metadataModel, 48000.0, 64, 1.0f, deviceReference),
+                "calibrated NAM model should load")) return 1;
+    if (require(manual.load(metadataModel, 48000.0, 64),
+                "manual-reference NAM model should load")) return 1;
+    if (require(std::fabs(calibrated.inputCalibrationGain() - 0.5f) < 0.0001f,
+                "NAM device/model reference delta should become input gain")) return 1;
+
+    std::vector<float> source(128);
+    std::vector<float> calibratedOut(source.size());
+    std::vector<float> manualOut(source.size());
+    for (std::size_t i = 0; i < source.size(); ++i) {
+      source[i] = 0.2f * std::sin(static_cast<float>(i) * 0.11f);
+    }
+    calibrated.processBlock(source.data(), calibratedOut.data(), source.size());
+    for (auto& sample : source) sample *= 0.5f;
+    manual.processBlock(source.data(), manualOut.data(), source.size());
+    for (std::size_t i = 0; i < source.size(); ++i) {
+      if (require(std::fabs(calibratedOut[i] - manualOut[i]) < 0.0001f,
+                  "calibrated NAM drive should match explicit input scaling")) return 1;
+    }
+  }
+
   // Block-vs-sample equivalence with a real model. models/test.nam is a local
   // asset (not committed), so this section self-gates on its presence.
   const std::filesystem::path namPath = std::filesystem::path{ARDOR_SOURCE_DIR} / "models/test.nam";

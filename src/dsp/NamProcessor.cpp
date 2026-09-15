@@ -20,7 +20,7 @@ NamProcessor::NamProcessor() = default;
 NamProcessor::~NamProcessor() = default;
 
 bool NamProcessor::load(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
-                        float slimmableSize)
+                        float slimmableSize, std::optional<float> inputReferenceLevelDbU)
 {
   try {
     model_ = nam::get_dsp(modelPath);
@@ -59,6 +59,18 @@ bool NamProcessor::load(const std::filesystem::path& modelPath, double sampleRat
   normGain_ = model_->HasLoudness()
     ? static_cast<float>(std::pow(10.0, (kTargetLoudnessDb - model_->GetLoudness()) / 20.0))
     : 1.0f;
+  modelInputLevelDbU_ = model_->HasInputLevel()
+    ? std::optional<float>{static_cast<float>(model_->GetInputLevel())}
+    : std::nullopt;
+  inputCalibrationGain_ = 1.0f;
+  if (modelInputLevelDbU_ && inputReferenceLevelDbU
+      && std::isfinite(*modelInputLevelDbU_) && std::isfinite(*inputReferenceLevelDbU)) {
+    // Both levels are dBu RMS for a 0 dBFS-peak 1 kHz sine. Their difference
+    // maps the device ADC scale to the scale used for the model capture.
+    const float deltaDb = std::clamp(
+        *inputReferenceLevelDbU - *modelInputLevelDbU_, -60.0f, 60.0f);
+    inputCalibrationGain_ = static_cast<float>(std::pow(10.0, deltaDb / 20.0));
+  }
 
   return true;
 }
@@ -69,7 +81,7 @@ float NamProcessor::process(float input)
     return input;
   }
 
-  input_[0] = input;
+  input_[0] = input * inputCalibrationGain_;
   float* in[] = {input_.data()};
   float* out[] = {output_.data()};
   model_->process(in, out, 1);
@@ -86,7 +98,13 @@ void NamProcessor::processBlock(const float* input, float* output, size_t frames
   size_t offset = 0;
   while (offset < frames) {
     const size_t chunk = std::min<size_t>(static_cast<size_t>(maxBlockSize_), frames - offset);
-    std::copy(input + offset, input + offset + chunk, input_.begin());
+    const float calibrationGain = inputCalibrationGain_;
+    if (calibrationGain == 1.0f) {
+      std::copy(input + offset, input + offset + chunk, input_.begin());
+    } else {
+      std::transform(input + offset, input + offset + chunk, input_.begin(),
+                     [calibrationGain](float sample) { return sample * calibrationGain; });
+    }
     float* in[] = {input_.data()};
     float* out[] = {output_.data()};
     model_->process(in, out, static_cast<int>(chunk));
@@ -105,6 +123,8 @@ void NamProcessor::clear()
   sampleRate_ = 0.0;
   maxBlockSize_ = 0;
   normGain_ = 1.0f;
+  modelInputLevelDbU_.reset();
+  inputCalibrationGain_ = 1.0f;
   slimmableSize_ = 1.0f;
 }
 

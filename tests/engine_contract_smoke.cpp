@@ -167,6 +167,18 @@ int main()
     }
     require(std::fabs(settled) < 0.01f, "gain smoothing should converge to its requested value");
 
+    ardor::PedalEngine transparentBypassEngine;
+    transparentBypassEngine.setSafetyLimiterEnabled(false);
+    (void)transparentBypassEngine.process(0.5f);
+    transparentBypassEngine.setEffectsBypassed(true);
+    float bypassTransitionPeak = 0.0f;
+    for (int i = 0; i < 2400; ++i) {
+      bypassTransitionPeak = std::max(
+          bypassTransitionPeak, std::fabs(transparentBypassEngine.process(0.5f).first));
+    }
+    require(bypassTransitionPeak <= 0.5001f,
+            "a transparent bypass transition must not add an equal-power gain bump");
+
     ardor::PedalEngine bypassGainEngine;
     bypassGainEngine.prepareBlockSize(4);
     bypassGainEngine.setOutputGain(2.0f);

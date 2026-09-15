@@ -29,6 +29,7 @@ private:
   size_t blockSize_ = 0;
   uint64_t blockSizeMismatchCount_ = 0;
   size_t fftSize_ = 0;
+  size_t frequencyBins_ = 0;
   size_t writeIndex_ = 0;
   std::vector<float> overlap_;
   std::vector<std::complex<float>> scratch_;

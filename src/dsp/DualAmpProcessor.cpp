@@ -34,8 +34,9 @@ struct DualAmpProcessor::ParallelState {
   std::atomic<uint64_t> submitted{0};
   std::atomic<uint64_t> completed{0};
   std::atomic<uint64_t> waitsOverBudget{0};
-  const float* input = nullptr;
-  float* output = nullptr;
+  std::atomic<bool> disabled{false};
+  std::vector<float> input;
+  std::vector<float> output;
   std::size_t frames = 0;
   int requestedCpu = -1;
 #endif
@@ -66,7 +67,8 @@ bool DualAmpProcessor::configure(DualAmpLaneConfig left, DualAmpLaneConfig right
   blockSize_ = static_cast<std::size_t>(std::max(1, maxBlockSize));
 
   const auto loadLane = [&](Lane& lane, DualAmpLaneConfig&& config, const char* name) {
-    if (!lane.nam.load(config.modelPath, sampleRate, maxBlockSize, config.slimmableSize)) {
+    if (!lane.nam.load(config.modelPath, sampleRate, maxBlockSize, config.slimmableSize,
+                       config.inputReferenceLevelDbU)) {
       error = std::string{"failed to load dual amp "} + name + " NAM: " + config.modelPath.string();
       return false;
     }
@@ -93,6 +95,8 @@ bool DualAmpProcessor::configure(DualAmpLaneConfig left, DualAmpLaneConfig right
   } else if (requestParallel) {
     auto state = std::make_unique<ParallelState>();
     state->requestedCpu = workerCpu;
+    state->input.assign(blockSize_, 0.0f);
+    state->output.assign(blockSize_, 0.0f);
     if (sem_init(&state->jobReady, 0, 0) == 0) {
       ParallelState* raw = state.get();
       raw->worker = std::thread([this, raw]() {
@@ -128,7 +132,7 @@ bool DualAmpProcessor::configure(DualAmpLaneConfig left, DualAmpLaneConfig right
           }
           if (raw->stopping.load(std::memory_order_acquire)) break;
           const uint64_t generation = raw->submitted.load(std::memory_order_acquire);
-          processLaneBlock(right_, raw->input, raw->output, raw->frames);
+          processLaneBlock(right_, raw->input.data(), raw->output.data(), raw->frames);
           raw->completed.store(generation, std::memory_order_release);
         }
       });
@@ -169,6 +173,12 @@ void DualAmpProcessor::prepareBlockSize(std::size_t frames)
   right_.cabOutput.assign(frames, 0.0f);
   left_.cab.prepareBlockSize(frames);
   right_.cab.prepareBlockSize(frames);
+#if defined(__linux__)
+  if (parallel_) {
+    parallel_->input.assign(frames, 0.0f);
+    parallel_->output.assign(frames, 0.0f);
+  }
+#endif
 }
 
 void DualAmpProcessor::processLaneBlock(Lane& lane, const float* input,
@@ -202,22 +212,40 @@ void DualAmpProcessor::processBlock(const float* inputLeft, const float* inputRi
 
 #if defined(__linux__)
   if (parallel_) {
+    if (parallel_->disabled.load(std::memory_order_relaxed)) {
+      processLaneBlock(left_, monoInput_.data(), outputLeft, frames);
+      if (parallel_->completed.load(std::memory_order_acquire)
+          == parallel_->submitted.load(std::memory_order_relaxed)) {
+        processLaneBlock(right_, monoInput_.data(), outputRight, frames);
+      } else {
+        // Keep the image centred while the overdue worker drains. Losing the
+        // alternate lane is less conspicuous than dropping the right channel.
+        std::copy(outputLeft, outputLeft + frames, outputRight);
+      }
+      return;
+    }
     const uint64_t generation = parallel_->submitted.load(std::memory_order_relaxed) + 1;
-    parallel_->input = monoInput_.data();
-    parallel_->output = outputRight;
+    std::copy(monoInput_.begin(), monoInput_.begin() + static_cast<std::ptrdiff_t>(frames),
+              parallel_->input.begin());
     parallel_->frames = frames;
     parallel_->submitted.store(generation, std::memory_order_release);
     sem_post(&parallel_->jobReady);
 
     const auto blockStart = std::chrono::steady_clock::now();
     processLaneBlock(left_, monoInput_.data(), outputLeft, frames);
+    const auto deadline = blockStart + std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+      std::chrono::duration<double>(static_cast<double>(frames) / sampleRate_));
+    unsigned polls = 0;
     while (parallel_->completed.load(std::memory_order_acquire) != generation) {
-      // Both DSP threads are SCHED_FIFO; product configuration also pins them
-      // to separate Pi cores.
+      if ((++polls & 63U) == 0U && std::chrono::steady_clock::now() >= deadline) break;
     }
-    if (std::chrono::duration<double>(std::chrono::steady_clock::now() - blockStart).count()
-        > static_cast<double>(frames) / sampleRate_) {
+    if (parallel_->completed.load(std::memory_order_acquire) != generation) {
       parallel_->waitsOverBudget.fetch_add(1, std::memory_order_relaxed);
+      parallel_->disabled.store(true, std::memory_order_relaxed);
+      std::copy(outputLeft, outputLeft + frames, outputRight);
+    } else {
+      std::copy(parallel_->output.begin(),
+                parallel_->output.begin() + static_cast<std::ptrdiff_t>(frames), outputRight);
     }
     return;
   }
@@ -250,7 +278,7 @@ std::size_t DualAmpProcessor::tailFrames() const noexcept
 
 bool DualAmpProcessor::parallelEnabled() const noexcept
 {
-  return parallel_ != nullptr;
+  return parallel_ && !parallel_->disabled.load(std::memory_order_relaxed);
 }
 
 uint64_t DualAmpProcessor::parallelWaitOverBudgetCount() const noexcept

@@ -202,7 +202,7 @@ target_compile_features(ardor_cheese PUBLIC cxx_std_20)
 # intact. Spectral, convergence and control-grid tests cover the relaxed math.
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(ardor_cheese PRIVATE
-    -fno-math-errno -fno-trapping-math -funsafe-math-optimizations)
+    -O3 -fno-math-errno -fno-trapping-math -funsafe-math-optimizations)
 endif()
 target_link_libraries(ardor_cheese PUBLIC ardor_circuit)
 
@@ -242,6 +242,7 @@ add_library(ardor_dsp OBJECT
   src/dsp/RealtimeFft.cpp
   src/dsp/StereoWidenerProcessor.cpp
   src/dsp/ScheduledConvolver.cpp
+  src/dsp/NonUniformConvolver.cpp
   src/dsp/IrConvolver.cpp
   src/dsp/IrReverbProcessor.cpp
   src/dsp/NamProcessor.cpp
@@ -572,6 +573,9 @@ add_test(NAME pedal-ir-reverb-smoke COMMAND pedal-ir-reverb-smoke)
 
 add_executable(pedal-nam-processor-smoke tests/nam_processor_smoke.cpp)
 target_link_libraries(pedal-nam-processor-smoke PRIVATE ardor_dsp)
+target_compile_definitions(pedal-nam-processor-smoke PRIVATE
+  ARDOR_NAM_EXAMPLE_MODEL="${neuralampmodelercore_SOURCE_DIR}/example_models/lstm.nam"
+)
 target_compile_definitions(pedal-nam-processor-smoke PRIVATE ARDOR_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
 # Benchmark, not a ctest: measures the wah table's cache behaviour on target
