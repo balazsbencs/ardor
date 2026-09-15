@@ -10,12 +10,30 @@ interface Props {
   description?: string;
   /** Suppress the default page chrome (used by full-bleed landing hero pages). */
   wide?: boolean;
+  surface?: 'site' | 'user-manual';
 }
 
-const { title, description = site.description } = Astro.props;
+const { title, description = site.description, surface = 'site' } = Astro.props;
 const pageTitle = title ? `${title} · ${site.name}` : `${site.name} — ${site.tagline}`;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const ogImage = new URL(url('/og.png'), Astro.site).href;
+const directionContract = surface === 'user-manual'
+  ? `<!--
+      THESIS: Learn Ardor by operating a faithful pedal, with explanation attached to the control in use instead of separated into a generic manual.
+      OWN-WORLD: Graphite instrument plate, bone engraving, calibrated rules, physical metal controls, and one red live event.
+      STORY: Try a control, see the device react, understand the gesture, then compare every mode in the reference ledger.
+      FIRST VIEWPORT: A near-life-size pedal owns the left field; one continuous contextual sidecar owns the right; live timing spans below.
+      FORM: Annotated instrument with contextual sidecar, approved Version A; surface seed 9213e9de.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+    -->`
+  : `<!--
+      THESIS: Ardor is a playable instrument, so the homepage reads like its Panel UI rather than a feature brochure.
+      OWN-WORLD: Slate graphite, bone lettering, hard rules, family color bars, and one reserved red LIVE lamp.
+      STORY: A guitarist sees the real on-pedal language first, then finds the open build and the depth behind it.
+      FIRST VIEWPORT: Plain nav, left-aligned promise and actions, right-side pedal view, then a compact hardware readout.
+      FORM: Instrument nomenclature plate, user-pinned Panel direction; concept seed 0a50301c, assigned roll acknowledged.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+    -->`;
 ---
 
 <!doctype html>
@@ -49,14 +67,7 @@ const ogImage = new URL(url('/og.png'), Astro.site).href;
     </script>
   </head>
   <body>
-    <!--
-      THESIS: Ardor is a playable instrument, so the homepage reads like its Panel UI rather than a feature brochure.
-      OWN-WORLD: Slate graphite, bone lettering, hard rules, family color bars, and one reserved red LIVE lamp.
-      STORY: A guitarist sees the real on-pedal language first, then finds the open build and the depth behind it.
-      FIRST VIEWPORT: Plain nav, left-aligned promise and actions, right-side pedal view, then a compact hardware readout.
-      FORM: Instrument nomenclature plate, user-pinned Panel direction; concept seed 0a50301c, assigned roll acknowledged.
-      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
-    -->
+    <Fragment set:html={directionContract} />
     <a class="skip-link" href="#main">Skip to content</a>
     <Nav />
     <main id="main">

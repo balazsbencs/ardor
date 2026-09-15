@@ -1,0 +1,1590 @@
+---
+import { url } from '../../lib/url';
+
+const presets = [
+  { slot: 1, name: 'Midnight Clean' },
+  { slot: 3, name: 'Split Rig / Wide' },
+  { slot: 2, name: 'Drive Stack' },
+  { slot: 4, name: 'Ambient Bloom' },
+];
+---
+
+<section class="manual-simulator" data-manual-simulator aria-labelledby="manual-title">
+  <h1 id="manual-title" class="visually-hidden">Ardor interactive user manual</h1>
+
+  <div class="manual-workspace">
+    <div class="device-field">
+      <div class="field-rail" aria-hidden="true">
+        <span>TRY THE PEDAL</span>
+        <span><i></i><b data-rail-mode>PRESET MODE</b></span>
+      </div>
+
+      <div class="pedal-art" data-selected="combo">
+        <img
+          src={url('/ardor-pedal-manual.webp')}
+          alt="Ardor pedal with four corner footswitches, a central touchscreen, and a top-panel rotary encoder."
+          width="1536"
+          height="1024"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
+        />
+
+        <svg class="control-leaders" viewBox="0 0 1536 1024" aria-hidden="true">
+          <path data-line="fs1" d="M286 292 L286 145 L1305 145 L1536 220"></path>
+          <path data-line="fs2" d="M286 734 L286 835 L1305 835 L1536 724"></path>
+          <path data-line="fs3" d="M1245 292 L1370 220 L1536 220"></path>
+          <path data-line="fs4" d="M1245 734 L1370 724 L1536 724"></path>
+          <path data-line="encoder" d="M768 148 L768 100 L1305 100 L1536 175"></path>
+          <path data-line="screen" d="M1080 510 L1370 510 L1536 510"></path>
+          <path data-line="combo" d="M286 292 L286 145 L1305 145 L1536 220 M286 734 L286 835 L1305 835 L1536 724"></path>
+        </svg>
+
+        <div class="device-screen" data-device-screen aria-live="polite">
+          <div class="screen-mode screen-mode--preset" data-screen-mode="preset">
+            <div class="screen-head">
+              <b>ARDOR</b>
+              <span data-bank-label>BANK 000 · SET A</span>
+              <span>48 kHz · BLK 64</span>
+            </div>
+            <div class="preset-map">
+              {presets.map((preset) => (
+                <button type="button" class="preset-tile" data-screen-slot={preset.slot}>
+                  <small>PRESET {preset.slot}</small>
+                  <span>{preset.slot}</span>
+                  <b>{preset.name}</b>
+                  <i aria-hidden="true"></i>
+                </button>
+              ))}
+            </div>
+            <div class="screen-actions">
+              <button type="button" data-touch-action="edit">EDIT</button>
+              <button type="button" data-touch-action="tuner">TUNER</button>
+              <button type="button" data-touch-action="looper">LOOPER</button>
+              <button type="button" data-touch-action="bank-down">BANK −</button>
+              <button type="button" data-touch-action="bank-up">BANK +</button>
+              <span>MASTER <b data-screen-master>72</b></span>
+            </div>
+          </div>
+
+          <div class="screen-mode screen-mode--tuner" data-screen-mode="tuner" hidden>
+            <div class="screen-head">
+              <b>TUNER</b><span>CHROMATIC · A4 = 440.0</span><em>OUTPUT MUTED</em>
+            </div>
+            <div class="tuner-readout">
+              <strong>A<sup>2</sup></strong>
+              <span>110.42 Hz · <b data-tuner-cents>−6.0</b> cents</span>
+              <div class="tuner-rule"><i data-tuner-needle></i></div>
+              <small data-tuner-guidance>FLAT · TUNE UP</small>
+            </div>
+            <div class="screen-actions screen-actions--tuner">
+              <span>ANY FOOTSWITCH EXITS</span>
+              <button type="button" data-touch-action="tuner-pitch">PLAY NOTE</button>
+              <button type="button" data-touch-action="tuner-exit">EXIT</button>
+            </div>
+          </div>
+
+          <div class="screen-mode screen-mode--looper" data-screen-mode="looper" hidden>
+            <div class="screen-head">
+              <b>LOOPER</b><span>DRIVE STACK · PRESET LOCKED</span><em data-loop-transport>RUNNING</em>
+            </div>
+            <div class="track-map">
+              {[1, 3, 2, 4].map((track) => (
+                <button type="button" data-track={track}>
+                  <small>TRACK {track}</small>
+                  <b data-track-state={track}>{track === 1 ? 'PLAY' : 'EMPTY'}</b>
+                  <i aria-hidden="true"></i>
+                </button>
+              ))}
+            </div>
+            <div class="looper-legends">
+              <span>FS1 UNDO</span><span>FS3 REC / DUB</span>
+              <span>FS2 TRACK / CLEAR</span><span>FS4 PLAY / MUTE</span>
+            </div>
+            <div class="screen-actions">
+              <button type="button" data-touch-action="loop-pause">STOP ALL</button>
+              <button type="button" data-touch-action="loop-new">NEW</button>
+              <button type="button" data-touch-action="loop-exit">EXIT</button>
+              <span>MASTER <b data-screen-master>72</b></span>
+            </div>
+          </div>
+
+          <div class="screen-mode screen-mode--edit" data-screen-mode="edit" hidden>
+            <div class="screen-head"><b>EDIT</b><span>DRIVE STACK</span><em>UNSAVED</em></div>
+            <div class="chain-map" aria-label="Illustrative signal chain">
+              <span>IN</span><i></i><b>GATE</b><i></i><b>AMP</b><i></i><b>CAB</b><i></i><b>DELAY</b><i></i><span>OUT</span>
+            </div>
+            <div class="screen-actions">
+              <button type="button" data-touch-action="edit-exit">BACK</button>
+              <button type="button" data-touch-action="edit-block">OPEN AMP</button>
+              <span>TURN ENCODER FOR MASTER</span>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="hardware-control footswitch fs1" data-fs="1" aria-label="Footswitch 1">
+          <span>FS1</span>
+        </button>
+        <button type="button" class="hardware-control footswitch fs2" data-fs="2" aria-label="Footswitch 2">
+          <span>FS2</span>
+        </button>
+        <button type="button" class="hardware-control footswitch fs3" data-fs="3" aria-label="Footswitch 3">
+          <span>FS3</span>
+        </button>
+        <button type="button" class="hardware-control footswitch fs4" data-fs="4" aria-label="Footswitch 4">
+          <span>FS4</span>
+        </button>
+        <button
+          type="button"
+          class="hardware-control encoder-control"
+          data-encoder
+          aria-label="Master output encoder. Use the mouse wheel, drag, or arrow keys."
+        >
+          <span>ENCODER</span>
+        </button>
+      </div>
+
+      <div class="live-strip" aria-live="polite">
+        <div class="hold-meter">
+          <span data-hold-label>READY</span>
+          <progress data-hold-progress max="100" value="0">0%</progress>
+          <strong data-hold-time>0.0 s</strong>
+        </div>
+        <div class="input-state">
+          <svg viewBox="0 0 80 28" aria-hidden="true"><path d="M2 14 C10 14 11 3 20 3 S30 25 40 25 50 3 60 3 69 14 78 14"></path></svg>
+          <span data-live-result>Choose a control to begin</span>
+        </div>
+      </div>
+    </div>
+
+    <aside class="context-manual" aria-labelledby="context-title">
+      <div class="mode-switcher" aria-label="Preview a pedal mode">
+        <button type="button" class="active" data-mode-target="preset">PRESET</button>
+        <button type="button" data-mode-target="looper">LOOPER</button>
+        <button type="button" data-mode-target="tuner">TUNER</button>
+      </div>
+
+      <div class="context-copy">
+        <span class="mode-name" data-context-mode>PRESET MODE</span>
+        <h2 id="context-title" data-context-title>FS1 + FS2</h2>
+        <strong data-context-gesture>HOLD 1 SECOND</strong>
+        <p data-context-description>Mute the output and open the tuner. Press any footswitch to return.</p>
+      </div>
+
+      <div class="gesture-visual" data-gesture-visual>
+        <div><i></i><span>FS1</span></div>
+        <b>+</b>
+        <div><i></i><span>FS2</span></div>
+      </div>
+
+      <div class="try-actions">
+        <button type="button" data-demo-combo>TRY FS1 + FS2</button>
+        <button type="button" data-demo-looper>HOLD ACTIVE PRESET</button>
+      </div>
+
+      <div class="context-note">
+        <span>PHYSICAL INPUT</span>
+        <p>Click a switch, hold a number key, or use multi-touch. Hold <kbd>1</kbd> + <kbd>2</kbd> together for the tuner.</p>
+        <a href="#looper-guide">Read the beginner Looper guide</a>
+      </div>
+
+      <div class="event-log" aria-label="Recent simulated inputs">
+        <span>RECENT INPUTS</span>
+        <ol data-event-log>
+          <li><b>READY</b><small>Waiting for input</small></li>
+        </ol>
+      </div>
+    </aside>
+  </div>
+
+  <section class="control-reference" aria-labelledby="reference-title">
+    <header>
+      <h2 id="reference-title">Every control, in context.</h2>
+      <p>The same four switches change roles in Looper mode. Tuner keeps one simple escape rule: any switch exits.</p>
+    </header>
+
+    <div class="reference-table-wrap">
+      <table>
+        <thead>
+          <tr><th>Control</th><th>Preset mode</th><th>Looper mode</th><th>Tuner</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>FS1</th><td>Select preset 1</td><td>Undo / redo selected track</td><td>Exit tuner</td></tr>
+          <tr><th>FS2</th><td>Select preset 2</td><td>Next track; hold 1.5 s to clear</td><td>Exit tuner</td></tr>
+          <tr><th>FS3</th><td>Select preset 3</td><td>Record / finish / overdub</td><td>Exit tuner</td></tr>
+          <tr><th>FS4</th><td>Select preset 4</td><td>Play / mute selected track</td><td>Exit tuner</td></tr>
+          <tr><th>FS1 + FS2</th><td>Hold 1 s: open tuner</td><td>Hold 1 s: pause and open tuner</td><td>—</td></tr>
+          <tr><th>Active preset</th><td>Hold 1 s: enter Looper</td><td>Preset remains locked</td><td>—</td></tr>
+          <tr><th>Encoder</th><td>Master output volume</td><td>Master output volume</td><td>Master output volume</td></tr>
+          <tr><th>Touchscreen</th><td>Bank, Edit, Tuner, Looper, Setup</td><td>Tracks, transport, save/load and exit</td><td>Exit</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>
+
+<style>
+  .manual-simulator {
+    --manual-ground: #111416;
+    --manual-ground-2: #171a1d;
+    --manual-plate: #212528;
+    --manual-raised: #2a2f33;
+    --manual-rule: #3b4247;
+    --manual-rule-strong: #687178;
+    --manual-text: #e2e4e3;
+    --manual-muted: #8d9499;
+    --manual-red: #d8422f;
+    min-height: 100vh;
+    background: var(--manual-ground);
+    color: var(--manual-text);
+  }
+
+  .manual-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 72%) minmax(19rem, 28%);
+    min-height: calc(100svh - 4rem);
+    border-bottom: 1px solid var(--manual-rule);
+  }
+
+  .device-field {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    min-width: 0;
+    overflow: hidden;
+    border-right: 1px solid var(--manual-rule);
+  }
+
+  .field-rail {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 2.7rem;
+    padding: 0 var(--sp-4);
+    border-bottom: 1px solid var(--manual-rule);
+    color: var(--manual-muted);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    line-height: 1;
+  }
+
+  .field-rail > span:last-child {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .field-rail i {
+    width: 0.45rem;
+    height: 0.45rem;
+    background: var(--manual-red);
+  }
+
+  .field-rail b {
+    color: var(--manual-text);
+    font-weight: 500;
+  }
+
+  .pedal-art {
+    position: relative;
+    align-self: center;
+    width: min(100%, 70rem);
+    margin: auto;
+    isolation: isolate;
+    user-select: none;
+    touch-action: none;
+  }
+
+  .pedal-art > img {
+    position: relative;
+    z-index: 0;
+    width: 100%;
+  }
+
+  .control-leaders {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  .control-leaders path {
+    fill: none;
+    stroke: var(--manual-red);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+    opacity: 0;
+    transition: opacity 160ms ease;
+  }
+
+  .pedal-art[data-selected='fs1'] [data-line='fs1'],
+  .pedal-art[data-selected='fs2'] [data-line='fs2'],
+  .pedal-art[data-selected='fs3'] [data-line='fs3'],
+  .pedal-art[data-selected='fs4'] [data-line='fs4'],
+  .pedal-art[data-selected='encoder'] [data-line='encoder'],
+  .pedal-art[data-selected='screen'] [data-line='screen'],
+  .pedal-art[data-selected='combo'] [data-line='combo'] {
+    opacity: 1;
+  }
+
+  .hardware-control {
+    position: absolute;
+    z-index: 7;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--manual-text);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .footswitch {
+    width: 13%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .footswitch::before {
+    position: absolute;
+    inset: 13%;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    content: '';
+    transition: border-color 140ms ease, box-shadow 140ms ease, transform 90ms ease;
+  }
+
+  .footswitch:hover::before,
+  .footswitch:focus-visible::before {
+    border-color: var(--manual-text);
+  }
+
+  .footswitch.is-pressed::before {
+    border-color: var(--manual-red);
+    box-shadow: 0 5px 12px rgba(216, 66, 47, 0.28);
+    transform: scale(0.9);
+  }
+
+  .footswitch span,
+  .encoder-control span {
+    position: absolute;
+    left: 50%;
+    bottom: -0.45rem;
+    padding: 0.15rem 0.4rem;
+    transform: translateX(-50%);
+    background: rgba(17, 20, 22, 0.92);
+    color: var(--manual-muted);
+    font-family: var(--font-mono);
+    font-size: clamp(0.46rem, 0.72vw, 0.68rem);
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+  }
+
+  .fs1 { left: 18.7%; top: 28.6%; }
+  .fs2 { left: 18.7%; top: 72.3%; }
+  .fs3 { left: 81.2%; top: 28.6%; }
+  .fs4 { left: 81.2%; top: 72.3%; }
+
+  .encoder-control {
+    left: 45.5%;
+    top: 8.5%;
+    width: 9%;
+    aspect-ratio: 1.05;
+    border-radius: 50%;
+  }
+
+  .encoder-control::before {
+    position: absolute;
+    inset: 0;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    content: '';
+    transition: border-color 140ms ease, transform 160ms ease;
+  }
+
+  .encoder-control:hover::before,
+  .encoder-control:focus-visible::before,
+  .encoder-control.is-active::before {
+    border-color: var(--manual-red);
+  }
+
+  .encoder-control.is-turning::before {
+    transform: rotate(28deg) scale(0.92);
+  }
+
+  .device-screen {
+    container-type: inline-size;
+    position: absolute;
+    top: 34.55%;
+    left: 28.9%;
+    z-index: 4;
+    width: 41.5%;
+    height: 33.2%;
+    overflow: hidden;
+    background: #191c1f;
+    color: #e2e4e3;
+    font-family: var(--font-condensed);
+    touch-action: manipulation;
+  }
+
+  .screen-mode {
+    position: absolute;
+    inset: 0;
+    background: #212528;
+  }
+
+  .screen-head {
+    display: flex;
+    align-items: center;
+    gap: 1.8cqw;
+    height: 14%;
+    padding: 0 2.5cqw;
+    border-bottom: 0.25cqw solid #3b4247;
+    color: #8d9499;
+    font-size: 1.9cqw;
+    letter-spacing: 0.14em;
+    white-space: nowrap;
+  }
+
+  .screen-head b {
+    color: #e2e4e3;
+  }
+
+  .screen-head span:nth-child(2) {
+    flex: 1;
+  }
+
+  .screen-head em {
+    color: #c9973f;
+    font-style: normal;
+  }
+
+  .preset-map,
+  .track-map {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 1.4cqw;
+    height: 66%;
+    padding: 2.2cqw;
+  }
+
+  .preset-tile,
+  .track-map button {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto 1fr;
+    align-items: center;
+    gap: 0 1.5cqw;
+    padding: 1.2cqw 1.8cqw;
+    border: 0.25cqw solid #3b4247;
+    border-radius: 0;
+    background: #2a2f33;
+    color: #e2e4e3;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .preset-tile small,
+  .track-map small {
+    grid-column: 1 / -1;
+    color: #8d9499;
+    font-size: 1.55cqw;
+    letter-spacing: 0.12em;
+  }
+
+  .preset-tile > span {
+    color: #8d9499;
+    font-family: var(--font-body);
+    font-size: 7cqw;
+    font-weight: 300;
+    line-height: 1;
+  }
+
+  .preset-tile > b {
+    font-size: 2.6cqw;
+    letter-spacing: 0.04em;
+    line-height: 0.95;
+  }
+
+  .preset-tile > i,
+  .track-map button > i {
+    position: absolute;
+    right: 1.4cqw;
+    bottom: 1cqw;
+    left: 10cqw;
+    height: 0.55cqw;
+    background: #5f7f9c;
+  }
+
+  .preset-tile:nth-child(2) > i { background: #8175a0; }
+  .preset-tile:nth-child(3) > i { background: #a8814e; }
+  .preset-tile:nth-child(4) > i { background: #a8785c; }
+
+  .preset-tile.active {
+    border-color: #d8422f;
+  }
+
+  .preset-tile.active > span,
+  .preset-tile.active small {
+    color: #d8422f;
+  }
+
+  .screen-actions {
+    display: flex;
+    align-items: center;
+    gap: 1cqw;
+    height: 20%;
+    padding: 0 2.2cqw;
+    border-top: 0.25cqw solid #3b4247;
+  }
+
+  .screen-actions button {
+    min-height: 6.3cqw;
+    padding: 0 1.4cqw;
+    border: 0.22cqw solid #687178;
+    border-radius: 0;
+    background: #2a2f33;
+    color: #e2e4e3;
+    font: 600 1.55cqw/1 var(--font-condensed);
+    letter-spacing: 0.1em;
+    cursor: pointer;
+  }
+
+  .screen-actions button:first-child {
+    border-color: #e2e4e3;
+    background: #e2e4e3;
+    color: #191c1f;
+  }
+
+  .screen-actions > span {
+    margin-left: auto;
+    color: #8d9499;
+    font-size: 1.6cqw;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  .screen-actions > span b {
+    color: #e2e4e3;
+    font-family: var(--font-body);
+    font-size: 2.5cqw;
+    font-weight: 300;
+  }
+
+  .tuner-readout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 66%;
+  }
+
+  .tuner-readout > strong {
+    color: #d8422f;
+    font-size: 16cqw;
+    line-height: 0.8;
+  }
+
+  .tuner-readout sup {
+    margin-left: 1cqw;
+    color: #8d9499;
+    font-family: var(--font-body);
+    font-size: 4cqw;
+    font-weight: 300;
+  }
+
+  .tuner-readout > span,
+  .tuner-readout > small {
+    margin-top: 1.6cqw;
+    color: #8d9499;
+    font-family: var(--font-body);
+    font-size: 2.15cqw;
+  }
+
+  .tuner-rule {
+    position: relative;
+    width: 68%;
+    height: 5cqw;
+    margin-top: 2.2cqw;
+    border-bottom: 0.25cqw solid #687178;
+  }
+
+  .tuner-rule::before {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0.3cqw;
+    height: 3.2cqw;
+    background: #e2e4e3;
+    content: '';
+  }
+
+  .tuner-rule i {
+    position: absolute;
+    bottom: 0;
+    left: 44%;
+    width: 0.55cqw;
+    height: 5cqw;
+    transform: translateX(-50%);
+    background: #d8422f;
+    transition: left 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .screen-actions--tuner span {
+    margin-left: 0;
+    margin-right: auto;
+  }
+
+  .track-map {
+    height: 58%;
+  }
+
+  .track-map button {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .track-map button.selected {
+    border-color: #e2e4e3;
+  }
+
+  .track-map b {
+    font-size: 2.6cqw;
+    letter-spacing: 0.08em;
+  }
+
+  .track-map button.recording {
+    border-color: #d8422f;
+  }
+
+  .track-map button.recording b {
+    color: #d8422f;
+  }
+
+  .track-map button.muted b {
+    color: #697278;
+  }
+
+  .looper-legends {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 8%;
+    padding-inline: 2.4cqw;
+    color: #8d9499;
+    font-size: 1.35cqw;
+    letter-spacing: 0.1em;
+  }
+
+  .chain-map {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 66%;
+    padding: 4cqw;
+  }
+
+  .chain-map b,
+  .chain-map span {
+    padding: 3cqw 2cqw;
+    border: 0.25cqw solid #687178;
+    color: #e2e4e3;
+    font-size: 2cqw;
+    letter-spacing: 0.08em;
+  }
+
+  .chain-map b:nth-of-type(2) { border-color: #a8814e; }
+  .chain-map b:nth-of-type(3) { border-color: #939a9e; }
+  .chain-map b:nth-of-type(4) { border-color: #8175a0; }
+
+  .chain-map i {
+    flex: 1;
+    max-width: 3cqw;
+    height: 0.25cqw;
+    background: #687178;
+  }
+
+  .live-strip {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(15rem, 0.6fr);
+    min-height: 5.8rem;
+    border-top: 1px solid var(--manual-rule);
+  }
+
+  .hold-meter,
+  .input-state {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
+  }
+
+  .hold-meter {
+    border-right: 1px solid var(--manual-rule);
+  }
+
+  .hold-meter > span {
+    width: 9rem;
+    color: var(--manual-muted);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+  }
+
+  .hold-meter progress {
+    width: 100%;
+    height: 0.55rem;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: var(--manual-rule);
+  }
+
+  .hold-meter progress::-webkit-progress-bar { background: var(--manual-rule); }
+  .hold-meter progress::-webkit-progress-value { background: var(--manual-red); }
+  .hold-meter progress::-moz-progress-bar { background: var(--manual-red); }
+
+  .hold-meter strong {
+    min-width: 3.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .input-state svg {
+    width: 4.5rem;
+    color: var(--manual-text);
+  }
+
+  .input-state path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+
+  .input-state span {
+    color: var(--manual-muted);
+    font-size: 0.88rem;
+  }
+
+  .context-manual {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--manual-ground-2);
+  }
+
+  .mode-switcher {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid var(--manual-rule);
+  }
+
+  .mode-switcher button {
+    min-height: 2.7rem;
+    border: 0;
+    border-right: 1px solid var(--manual-rule);
+    border-radius: 0;
+    background: transparent;
+    color: var(--manual-muted);
+    font: 500 0.7rem/1 var(--font-mono);
+    letter-spacing: 0.12em;
+    cursor: pointer;
+  }
+
+  .mode-switcher button:last-child { border-right: 0; }
+
+  .mode-switcher button.active {
+    box-shadow: inset 0 -3px var(--manual-red);
+    color: var(--manual-text);
+  }
+
+  .context-copy,
+  .gesture-visual,
+  .try-actions,
+  .context-note,
+  .event-log {
+    padding-inline: clamp(1.25rem, 2.3vw, 2.5rem);
+  }
+
+  .context-copy {
+    padding-top: clamp(1.4rem, 3vw, 3.2rem);
+    padding-bottom: var(--sp-4);
+    border-bottom: 1px solid var(--manual-rule);
+  }
+
+  .mode-name {
+    display: block;
+    margin-bottom: var(--sp-3);
+    color: var(--manual-muted);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+  }
+
+  .context-copy h2 {
+    margin-bottom: var(--sp-3);
+    color: var(--manual-text);
+    font-size: clamp(2.5rem, 4.5vw, 4.9rem);
+    line-height: 0.85;
+  }
+
+  .context-copy > strong {
+    display: block;
+    margin-bottom: var(--sp-3);
+    color: var(--manual-red);
+    font-family: var(--font-condensed);
+    font-size: clamp(1.1rem, 2vw, 1.65rem);
+    letter-spacing: 0.08em;
+  }
+
+  .context-copy p {
+    margin: 0;
+    color: var(--manual-text);
+    font-size: clamp(0.92rem, 1.25vw, 1.12rem);
+    line-height: 1.45;
+  }
+
+  .gesture-visual {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--sp-3);
+    padding-top: var(--sp-4);
+    padding-bottom: var(--sp-4);
+    border-bottom: 1px solid var(--manual-rule);
+  }
+
+  .gesture-visual > div {
+    display: grid;
+    place-items: center;
+    gap: 0.45rem;
+    min-height: 5rem;
+    border: 1px solid var(--manual-rule-strong);
+  }
+
+  .gesture-visual i {
+    display: block;
+    width: 1.7rem;
+    height: 1.7rem;
+    border: 2px solid var(--manual-red);
+    border-radius: 50%;
+  }
+
+  .gesture-visual span {
+    color: var(--manual-muted);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+  }
+
+  .gesture-visual > b {
+    font-size: 1.5rem;
+    font-weight: 400;
+  }
+
+  .try-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    background: var(--manual-rule);
+  }
+
+  .try-actions button {
+    min-height: 3.4rem;
+    padding: 0.65rem;
+    border: 0;
+    border-radius: 0;
+    background: var(--manual-plate);
+    color: var(--manual-text);
+    font: 600 0.78rem/1.2 var(--font-condensed);
+    letter-spacing: 0.08em;
+    cursor: pointer;
+  }
+
+  .try-actions button:hover {
+    background: var(--manual-text);
+    color: var(--manual-ground);
+  }
+
+  .context-note,
+  .event-log {
+    padding-top: var(--sp-3);
+    padding-bottom: var(--sp-3);
+    border-top: 1px solid var(--manual-rule);
+  }
+
+  .context-note > span,
+  .event-log > span {
+    color: var(--manual-muted);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+  }
+
+  .context-note p {
+    margin: 0.5rem 0 0;
+    color: var(--manual-muted);
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  .context-note a {
+    display: inline-block;
+    margin-top: 0.35rem;
+    color: var(--manual-text);
+    font-family: var(--font-condensed);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .event-log {
+    margin-top: auto;
+  }
+
+  .event-log ol {
+    display: grid;
+    gap: 0;
+    margin: 0.55rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .event-log li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--sp-2);
+    padding: 0.45rem 0;
+    border-top: 1px solid var(--manual-rule);
+    color: var(--manual-text);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+  }
+
+  .event-log small {
+    color: var(--manual-muted);
+    font-size: inherit;
+    text-align: right;
+  }
+
+  .control-reference {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: var(--sp-7) var(--sp-4);
+  }
+
+  .control-reference header {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: var(--sp-6);
+    align-items: end;
+    margin-bottom: var(--sp-5);
+  }
+
+  .control-reference h2 {
+    max-width: 12ch;
+    color: var(--manual-text);
+    font-size: var(--step-4);
+  }
+
+  .control-reference p {
+    margin: 0;
+    color: var(--manual-muted);
+  }
+
+  .reference-table-wrap {
+    overflow-x: auto;
+    border-top: 1px solid var(--manual-rule-strong);
+    border-bottom: 1px solid var(--manual-rule-strong);
+  }
+
+  .control-reference table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 50rem;
+  }
+
+  .control-reference th,
+  .control-reference td {
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--manual-rule);
+    color: var(--manual-muted);
+    text-align: left;
+  }
+
+  .control-reference thead th,
+  .control-reference tbody th {
+    color: var(--manual-text);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+  }
+
+  .control-reference tbody tr:last-child th,
+  .control-reference tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  @media (max-width: 1080px) {
+    .manual-workspace {
+      grid-template-columns: 1fr;
+    }
+
+    .device-field {
+      min-height: auto;
+      border-right: 0;
+      border-bottom: 1px solid var(--manual-rule);
+    }
+
+    .pedal-art {
+      width: min(100%, 70rem);
+    }
+
+    .context-manual {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+    }
+
+    .mode-switcher,
+    .event-log {
+      grid-column: 1 / -1;
+    }
+
+    .context-copy {
+      border-right: 1px solid var(--manual-rule);
+    }
+
+    .try-actions,
+    .context-note {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .field-rail {
+      padding-inline: var(--sp-3);
+      color: var(--manual-text);
+      font-size: 0.7rem;
+    }
+
+    .pedal-art {
+      width: 115%;
+      margin-left: -7.5%;
+    }
+
+    .footswitch {
+      width: 15%;
+    }
+
+    .footswitch span,
+    .encoder-control span,
+    .control-leaders {
+      display: none;
+    }
+
+    .live-strip {
+      grid-template-columns: 1fr;
+    }
+
+    .hold-meter {
+      border-right: 0;
+      border-bottom: 1px solid var(--manual-rule);
+    }
+
+    .hold-meter > span {
+      width: 6.5rem;
+    }
+
+    .context-manual {
+      display: flex;
+    }
+
+    .context-copy {
+      border-right: 0;
+    }
+
+    .context-copy h2 {
+      font-size: 3.6rem;
+    }
+
+    .control-reference {
+      padding-block: var(--sp-6);
+    }
+
+    .control-reference header {
+      grid-template-columns: 1fr;
+      gap: var(--sp-3);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .control-leaders path,
+    .footswitch::before,
+    .encoder-control::before,
+    .tuner-rule i {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  type Mode = 'preset' | 'looper' | 'tuner' | 'edit';
+  type Context = { title: string; gesture: string; description: string };
+
+  const root = document.querySelector<HTMLElement>('[data-manual-simulator]');
+
+  if (root) {
+    const manualRoot = root;
+    const pedal = manualRoot.querySelector<HTMLElement>('.pedal-art')!;
+    const fsButtons = new Map<number, HTMLButtonElement>(
+      [...root.querySelectorAll<HTMLButtonElement>('[data-fs]')].map((button) => [Number(button.dataset.fs), button]),
+    );
+    const encoder = root.querySelector<HTMLButtonElement>('[data-encoder]')!;
+    const progress = root.querySelector<HTMLProgressElement>('[data-hold-progress]')!;
+    const progressLabel = root.querySelector<HTMLElement>('[data-hold-label]')!;
+    const progressTime = root.querySelector<HTMLElement>('[data-hold-time]')!;
+    const liveResult = root.querySelector<HTMLElement>('[data-live-result]')!;
+    const contextMode = root.querySelector<HTMLElement>('[data-context-mode]')!;
+    const contextTitle = root.querySelector<HTMLElement>('[data-context-title]')!;
+    const contextGesture = root.querySelector<HTMLElement>('[data-context-gesture]')!;
+    const contextDescription = root.querySelector<HTMLElement>('[data-context-description]')!;
+    const eventLog = root.querySelector<HTMLOListElement>('[data-event-log]')!;
+    const railMode = root.querySelector<HTMLElement>('[data-rail-mode]')!;
+
+    let mode: Mode = 'preset';
+    let returnMode: Mode = 'preset';
+    let activePreset = 2;
+    let bank = 0;
+    let master = 72;
+    let selectedTrack = 1;
+    let loopRunning = true;
+    let lastTakeUndone = false;
+    let tunerCents = -6;
+    let gestureToken = 0;
+    let holdTriggered = false;
+    let chordAttempted = false;
+    let encoderDragY: number | null = null;
+    const held = new Set<number>();
+    const tracks = new Map<number, { state: string; muted: boolean }>([
+      [1, { state: 'PLAY', muted: false }],
+      [2, { state: 'EMPTY', muted: false }],
+      [3, { state: 'EMPTY', muted: false }],
+      [4, { state: 'EMPTY', muted: false }],
+    ]);
+
+    const contexts: Record<string, Context> = {
+      combo: { title: 'FS1 + FS2', gesture: 'HOLD 1 SECOND', description: 'Mute the output and open the tuner. Press any footswitch to return.' },
+      preset1: { title: 'FS1', gesture: 'PRESS', description: 'Select preset slot 1 in the active bank.' },
+      preset2: { title: 'FS2', gesture: 'PRESS', description: 'Select preset slot 2. Hold it for one second when it is active to enter Looper.' },
+      preset3: { title: 'FS3', gesture: 'PRESS', description: 'Select preset slot 3 in the active bank.' },
+      preset4: { title: 'FS4', gesture: 'PRESS', description: 'Select preset slot 4 in the active bank.' },
+      looper1: { title: 'FS1', gesture: 'PRESS', description: 'Undo or redo the latest take on the selected track.' },
+      looper2: { title: 'FS2', gesture: 'PRESS / HOLD', description: 'Press to select the next track. Hold for 1.5 seconds to clear the selected track.' },
+      looper3: { title: 'FS3', gesture: 'PRESS', description: 'Start or finish the first loop, or arm one synchronized overdub.' },
+      looper4: { title: 'FS4', gesture: 'PRESS', description: 'Mute or unmute the selected track without stopping its shared clock.' },
+      tuner: { title: 'ANY FS', gesture: 'PRESS', description: 'Leave the tuner without changing the selected preset.' },
+      encoder: { title: 'ENCODER', gesture: 'TURN', description: 'Change the master output volume. Scroll, drag vertically, or use the arrow keys.' },
+      screen: { title: 'TOUCHSCREEN', gesture: 'TAP', description: 'Open Edit, Tuner, Looper, bank controls, and mode-specific actions directly on the display.' },
+    };
+
+    const modeLabel = () => mode === 'edit' ? 'EDIT SCREEN' : `${mode.toUpperCase()} MODE`;
+
+    function setContext(key: string, selected = key) {
+      const data = contexts[key] ?? contexts.screen;
+      contextMode.textContent = modeLabel();
+      contextTitle.textContent = data.title;
+      contextGesture.textContent = data.gesture;
+      contextDescription.textContent = data.description;
+      pedal.dataset.selected = selected;
+    }
+
+    function logEvent(label: string, detail: string) {
+      if (eventLog.firstElementChild?.querySelector('b')?.textContent === 'READY') eventLog.innerHTML = '';
+      const item = document.createElement('li');
+      const title = document.createElement('b');
+      const note = document.createElement('small');
+      title.textContent = label;
+      note.textContent = detail;
+      item.append(title, note);
+      eventLog.prepend(item);
+      while (eventLog.children.length > 3) eventLog.lastElementChild?.remove();
+    }
+
+    function resetProgress() {
+      gestureToken += 1;
+      progress.value = 0;
+      progressLabel.textContent = 'READY';
+      progressTime.textContent = '0.0 s';
+    }
+
+    function beginHold(duration: number, label: string, onComplete: () => void) {
+      const token = ++gestureToken;
+      const started = performance.now();
+      progressLabel.textContent = label;
+      progress.value = 0;
+      holdTriggered = false;
+
+      const frame = (now: number) => {
+        if (token !== gestureToken) return;
+        const elapsed = Math.min(duration, now - started);
+        progress.value = (elapsed / duration) * 100;
+        progressTime.textContent = `${(elapsed / 1000).toFixed(1)} s`;
+        if (elapsed >= duration) {
+          holdTriggered = true;
+          onComplete();
+          return;
+        }
+        requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    }
+
+    function finishProgress(label: string) {
+      progress.value = 100;
+      progressLabel.textContent = label;
+      setTimeout(() => {
+        if (!held.size) resetProgress();
+      }, 650);
+    }
+
+    function render() {
+      manualRoot.querySelectorAll<HTMLElement>('[data-screen-mode]').forEach((screen) => {
+        screen.hidden = screen.dataset.screenMode !== mode;
+      });
+      manualRoot.querySelectorAll<HTMLButtonElement>('[data-mode-target]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.modeTarget === mode);
+      });
+      manualRoot.querySelectorAll<HTMLElement>('[data-screen-master]').forEach((item) => item.textContent = String(master));
+      manualRoot.querySelector<HTMLElement>('[data-bank-label]')!.textContent = `BANK ${String(bank).padStart(3, '0')} · SET A`;
+      manualRoot.querySelectorAll<HTMLButtonElement>('[data-screen-slot]').forEach((tile) => {
+        tile.classList.toggle('active', Number(tile.dataset.screenSlot) === activePreset);
+      });
+      manualRoot.querySelectorAll<HTMLButtonElement>('[data-track]').forEach((tile) => {
+        const track = Number(tile.dataset.track);
+        const trackData = tracks.get(track)!;
+        tile.classList.toggle('selected', track === selectedTrack);
+        tile.classList.toggle('recording', trackData.state === 'REC' || trackData.state === 'OVERDUB');
+        tile.classList.toggle('muted', trackData.muted);
+        manualRoot.querySelector<HTMLElement>(`[data-track-state="${track}"]`)!.textContent = trackData.muted ? 'MUTED' : trackData.state;
+      });
+      const transport = manualRoot.querySelector<HTMLElement>('[data-loop-transport]');
+      if (transport) transport.textContent = loopRunning ? 'RUNNING' : 'PAUSED';
+      railMode.textContent = modeLabel();
+    }
+
+    function setMode(next: Mode, message?: string) {
+      mode = next;
+      render();
+      if (next === 'tuner') setContext('tuner', 'screen');
+      else if (next === 'looper') setContext(`looper${selectedTrack}`, `fs${selectedTrack}`);
+      else if (next === 'edit') setContext('screen', 'screen');
+      else setContext(`preset${activePreset}`, `fs${activePreset}`);
+      if (message) liveResult.textContent = message;
+    }
+
+    function selectPreset(slot: number) {
+      activePreset = slot;
+      setMode('preset', `Preset ${slot} selected`);
+      logEvent(`FS${slot}`, `Preset ${slot}`);
+    }
+
+    function enterTuner(origin: Mode = mode) {
+      returnMode = origin === 'looper' ? 'looper' : 'preset';
+      if (origin === 'looper') loopRunning = false;
+      setMode('tuner', 'Output muted · tuner open');
+      logEvent('FS1 + FS2', 'Tuner open');
+      finishProgress('TUNER OPEN');
+    }
+
+    function exitTuner() {
+      const target = returnMode === 'looper' ? 'looper' : 'preset';
+      if (target === 'looper') loopRunning = true;
+      setMode(target, target === 'looper' ? 'Looper restored' : `Preset ${activePreset} unchanged`);
+      logEvent('TUNER EXIT', `Return to ${target}`);
+    }
+
+    function enterLooper() {
+      setMode('looper', `Looper opened with preset ${activePreset} locked`);
+      logEvent(`HOLD FS${activePreset}`, 'Looper open');
+      finishProgress('LOOPER OPEN');
+    }
+
+    function looperFsAction(fs: number, onRelease = false) {
+      const track = tracks.get(selectedTrack)!;
+      if (fs === 1 && onRelease) {
+        if (track.state === 'EMPTY') {
+          liveResult.textContent = `Track ${selectedTrack} has no take to undo`;
+        } else {
+          lastTakeUndone = !lastTakeUndone;
+          track.state = lastTakeUndone ? 'UNDONE' : 'PLAY';
+          liveResult.textContent = `${lastTakeUndone ? 'Undid' : 'Restored'} Track ${selectedTrack}'s latest take`;
+        }
+        logEvent('FS1', lastTakeUndone ? 'Undo' : 'Redo');
+      }
+      if (fs === 2 && onRelease) {
+        selectedTrack = selectedTrack === 4 ? 1 : selectedTrack + 1;
+        liveResult.textContent = `Track ${selectedTrack} selected`;
+        logEvent('FS2', `Track ${selectedTrack}`);
+      }
+      if (fs === 3 && !onRelease) {
+        if (track.state === 'EMPTY') track.state = 'REC';
+        else if (track.state === 'REC') track.state = 'PLAY';
+        else track.state = 'OVERDUB';
+        liveResult.textContent = `Track ${selectedTrack}: ${track.state}`;
+        logEvent('FS3', track.state);
+      }
+      if (fs === 4 && !onRelease) {
+        track.muted = !track.muted;
+        liveResult.textContent = `Track ${selectedTrack} ${track.muted ? 'muted' : 'playing'}`;
+        logEvent('FS4', track.muted ? 'Mute' : 'Play');
+      }
+      render();
+      setContext(`looper${fs}`, `fs${fs}`);
+    }
+
+    function clearSelectedTrack() {
+      const track = tracks.get(selectedTrack)!;
+      track.state = 'EMPTY';
+      track.muted = false;
+      liveResult.textContent = `Track ${selectedTrack} cleared`;
+      logEvent('HOLD FS2', `Clear Track ${selectedTrack}`);
+      render();
+      finishProgress('TRACK CLEARED');
+    }
+
+    function pressSwitch(fs: number) {
+      const button = fsButtons.get(fs)!;
+      if (held.has(fs)) return;
+      held.add(fs);
+      button.classList.add('is-pressed');
+      holdTriggered = false;
+
+      if (mode === 'tuner') {
+        setContext('tuner', `fs${fs}`);
+        liveResult.textContent = `FS${fs} pressed · exiting tuner`;
+        setTimeout(exitTuner, 180);
+        return;
+      }
+
+      if (held.has(1) && held.has(2)) {
+        chordAttempted = true;
+        setContext('combo', 'combo');
+        liveResult.textContent = 'FS1 + FS2 detected · keep holding';
+        beginHold(1000, 'HOLD FOR TUNER', () => enterTuner(mode));
+        return;
+      }
+
+      chordAttempted = false;
+      const key = mode === 'looper' ? `looper${fs}` : `preset${fs}`;
+      setContext(key, `fs${fs}`);
+      liveResult.textContent = `FS${fs} down`;
+
+      if (mode === 'preset' && fs === activePreset) {
+        beginHold(1000, `HOLD FS${fs} FOR LOOPER`, enterLooper);
+      } else if (mode === 'looper' && fs === 2) {
+        beginHold(1500, 'HOLD FS2 TO CLEAR', clearSelectedTrack);
+      } else if (mode === 'looper' && (fs === 3 || fs === 4)) {
+        looperFsAction(fs, false);
+      }
+    }
+
+    function releaseSwitch(fs: number) {
+      const wasHeld = held.delete(fs);
+      fsButtons.get(fs)?.classList.remove('is-pressed');
+      if (!wasHeld) return;
+      const completed = holdTriggered;
+
+      if (mode !== 'tuner' && chordAttempted) {
+        if (!completed) {
+          liveResult.textContent = 'Chord released early · no action';
+          logEvent('FS1 + FS2', 'Released early');
+          resetProgress();
+        }
+        if (!held.size) chordAttempted = false;
+        return;
+      }
+
+      if (completed) {
+        if (!held.size) resetProgress();
+        return;
+      }
+
+      resetProgress();
+      if (mode === 'preset') selectPreset(fs);
+      else if (mode === 'looper' && (fs === 1 || fs === 2)) looperFsAction(fs, true);
+    }
+
+    function setMaster(next: number, delta: number) {
+      master = Math.max(0, Math.min(100, next));
+      render();
+      encoder.classList.add('is-active', 'is-turning');
+      setContext('encoder', 'encoder');
+      contextDescription.textContent = `Master output ${master}. Scroll, drag vertically, or use the arrow keys.`;
+      liveResult.textContent = `Master output ${master}`;
+      logEvent(`ENCODER ${delta > 0 ? '+' : '−'}${Math.abs(delta)}`, `Master ${master}`);
+      setTimeout(() => encoder.classList.remove('is-turning'), 170);
+    }
+
+    fsButtons.forEach((button, fs) => {
+      button.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        button.setPointerCapture(event.pointerId);
+        pressSwitch(fs);
+      });
+      button.addEventListener('pointerup', (event) => {
+        if (button.hasPointerCapture(event.pointerId)) button.releasePointerCapture(event.pointerId);
+        releaseSwitch(fs);
+      });
+      button.addEventListener('pointercancel', () => releaseSwitch(fs));
+      button.addEventListener('lostpointercapture', () => {
+        if (held.has(fs)) releaseSwitch(fs);
+      });
+    });
+
+    encoder.addEventListener('wheel', (event) => {
+      event.preventDefault();
+      const delta = event.deltaY < 0 ? 1 : -1;
+      setMaster(master + delta, delta);
+    }, { passive: false });
+    encoder.addEventListener('click', () => setMaster(master + 1, 1));
+    encoder.addEventListener('pointerdown', (event) => {
+      encoderDragY = event.clientY;
+      encoder.setPointerCapture(event.pointerId);
+      setContext('encoder', 'encoder');
+    });
+    encoder.addEventListener('pointermove', (event) => {
+      if (encoderDragY === null) return;
+      const movement = encoderDragY - event.clientY;
+      if (Math.abs(movement) >= 8) {
+        const delta = movement > 0 ? 1 : -1;
+        encoderDragY = event.clientY;
+        setMaster(master + delta, delta);
+      }
+    });
+    encoder.addEventListener('pointerup', () => { encoderDragY = null; });
+    encoder.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowUp' || event.key === 'ArrowRight') {
+        event.preventDefault(); setMaster(master + 1, 1);
+      }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowLeft') {
+        event.preventDefault(); setMaster(master - 1, -1);
+      }
+    });
+
+    root.querySelectorAll<HTMLButtonElement>('[data-screen-slot]').forEach((button) => {
+      button.addEventListener('click', () => selectPreset(Number(button.dataset.screenSlot)));
+    });
+    root.querySelectorAll<HTMLButtonElement>('[data-track]').forEach((button) => {
+      button.addEventListener('click', () => {
+        selectedTrack = Number(button.dataset.track);
+        render();
+        liveResult.textContent = `Track ${selectedTrack} selected on touchscreen`;
+        setContext('screen', 'screen');
+        logEvent('TOUCH', `Track ${selectedTrack}`);
+      });
+    });
+
+    root.querySelectorAll<HTMLButtonElement>('[data-touch-action]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const action = button.dataset.touchAction;
+        setContext('screen', 'screen');
+        if (action === 'edit') setMode('edit', 'Signal chain editor open');
+        if (action === 'tuner') { returnMode = 'preset'; setMode('tuner', 'Output muted · tuner opened by touch'); }
+        if (action === 'looper') enterLooper();
+        if (action === 'bank-down') { bank = Math.max(0, bank - 1); render(); liveResult.textContent = `Bank ${String(bank).padStart(3, '0')}`; }
+        if (action === 'bank-up') { bank += 1; render(); liveResult.textContent = `Bank ${String(bank).padStart(3, '0')}`; }
+        if (action === 'tuner-exit') exitTuner();
+        if (action === 'tuner-pitch') {
+          tunerCents = tunerCents >= 8 ? -9 : tunerCents + 3;
+          root.querySelector<HTMLElement>('[data-tuner-cents]')!.textContent = `${tunerCents >= 0 ? '+' : '−'}${Math.abs(tunerCents).toFixed(1)}`;
+          root.querySelector<HTMLElement>('[data-tuner-needle]')!.style.left = `${50 + tunerCents * 0.7}%`;
+          root.querySelector<HTMLElement>('[data-tuner-guidance]')!.textContent = Math.abs(tunerCents) <= 2 ? 'IN TUNE' : tunerCents < 0 ? 'FLAT · TUNE UP' : 'SHARP · TUNE DOWN';
+          liveResult.textContent = `Tuner input ${tunerCents >= 0 ? '+' : ''}${tunerCents.toFixed(1)} cents`;
+        }
+        if (action === 'loop-pause') { loopRunning = !loopRunning; render(); liveResult.textContent = loopRunning ? 'All tracks resumed' : 'All tracks paused'; }
+        if (action === 'loop-new') { tracks.forEach((track) => { track.state = 'EMPTY'; track.muted = false; }); render(); liveResult.textContent = 'New empty loop session'; }
+        if (action === 'loop-exit') setMode('preset', 'Loop session paused · preset navigation restored');
+        if (action === 'edit-exit') setMode('preset', 'Returned to preset screen');
+        if (action === 'edit-block') liveResult.textContent = 'Amp controls selected';
+        if (action) logEvent('TOUCH', action.replaceAll('-', ' ').toUpperCase());
+      });
+    });
+
+    root.querySelectorAll<HTMLButtonElement>('[data-mode-target]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const target = button.dataset.modeTarget as Mode;
+        if (target === 'tuner') returnMode = mode === 'looper' ? 'looper' : 'preset';
+        setMode(target, `${target[0].toUpperCase()}${target.slice(1)} mode preview`);
+        logEvent('MODE', target.toUpperCase());
+      });
+    });
+
+    window.addEventListener('ardor:open-looper', () => {
+      setMode('looper', `Looper opened with preset ${activePreset} locked`);
+      logEvent('GUIDE', 'Looper practice');
+    });
+
+    function simulateHold(buttons: number[], duration: number, label: string, complete: () => void) {
+      if (held.size) return;
+      buttons.forEach((fs) => {
+        held.add(fs);
+        fsButtons.get(fs)?.classList.add('is-pressed');
+      });
+      if (buttons.length === 2) {
+        chordAttempted = true;
+        setContext('combo', 'combo');
+      }
+      liveResult.textContent = `${buttons.map((fs) => `FS${fs}`).join(' + ')} held`;
+      beginHold(duration, label, () => {
+        complete();
+        setTimeout(() => {
+          buttons.forEach((fs) => fsButtons.get(fs)?.classList.remove('is-pressed'));
+          held.clear();
+          chordAttempted = false;
+          resetProgress();
+        }, 450);
+      });
+    }
+
+    root.querySelector<HTMLButtonElement>('[data-demo-combo]')!.addEventListener('click', () => {
+      simulateHold([1, 2], 1000, 'HOLD FOR TUNER', () => enterTuner(mode));
+    });
+    root.querySelector<HTMLButtonElement>('[data-demo-looper]')!.addEventListener('click', () => {
+      if (mode !== 'preset') setMode('preset');
+      simulateHold([activePreset], 1000, `HOLD FS${activePreset} FOR LOOPER`, enterLooper);
+    });
+
+    const keyboardHeld = new Set<number>();
+    document.addEventListener('keydown', (event) => {
+      if (event.repeat || event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+      const fs = Number(event.key);
+      if (fs >= 1 && fs <= 4 && !keyboardHeld.has(fs)) {
+        event.preventDefault();
+        keyboardHeld.add(fs);
+        pressSwitch(fs);
+      }
+    });
+    document.addEventListener('keyup', (event) => {
+      const fs = Number(event.key);
+      if (keyboardHeld.delete(fs)) {
+        event.preventDefault();
+        releaseSwitch(fs);
+      }
+    });
+
+    render();
+    setContext('combo', 'combo');
+  }
+</script>
