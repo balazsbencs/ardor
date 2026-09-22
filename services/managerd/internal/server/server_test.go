@@ -12,11 +12,13 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"testing/fstest"
 	"time"
 
 	"ardor.local/managerd/internal/config"
+	"ardor.local/managerd/internal/presets"
 )
 
 func TestDeviceHostedManagerUI(t *testing.T) {
@@ -74,6 +76,9 @@ func TestDeviceAndAuth(t *testing.T) {
 	}
 	if !bytes.Contains(device.Body.Bytes(), []byte(`"authEnabled":true`)) {
 		t.Fatalf("device body=%s", device.Body.String())
+	}
+	if !bytes.Contains(device.Body.Bytes(), []byte(`"supportedPresetVersion":4`)) {
+		t.Fatalf("device does not advertise scene-capable presets: %s", device.Body.String())
 	}
 
 	unauthorized := httptest.NewRecorder()
@@ -342,7 +347,7 @@ func TestAssetUploadPresetSaveAndApply(t *testing.T) {
 	}
 	assertQueuedCommand(t, dataRoot, "reload_assets")
 
-	preset := map[string]any{
+	preset := presets.Preset{
 		"version": float64(1),
 		"name":    "HTTP Preset",
 		"routing": "serial",
@@ -422,6 +427,81 @@ func TestApplyRejectsIncompleteWdwDraft(t *testing.T) {
 		"/api/presets/banks/0/slots/0/apply", nil))
 	if apply.Code != http.StatusBadRequest || !bytes.Contains(apply.Body.Bytes(), []byte(`"preset_not_runnable"`)) {
 		t.Fatalf("apply status=%d body=%s", apply.Code, apply.Body.String())
+	}
+}
+
+func TestSceneRecallRequiresActiveGeneration(t *testing.T) {
+	dataRoot := t.TempDir()
+	handler := New(config.Config{DataRoot: dataRoot, AuthEnabled: false})
+	activeDirectory := filepath.Join(dataRoot, "runtime")
+	if err := os.MkdirAll(activeDirectory, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(activeDirectory, "active-preset.json"),
+		[]byte(`{"bank":0,"slot":0,"generation":77,"liveSceneId":"verse","liveSceneIndex":0}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	stale := httptest.NewRecorder()
+	staleRequest := httptest.NewRequest(http.MethodPost,
+		"/api/runtime/scenes/solo/recall", strings.NewReader(`{"generation":76,"requestId":"request-stale"}`))
+	staleRequest.Header.Set("Content-Type", "application/json")
+	handler.ServeHTTP(stale, staleRequest)
+	if stale.Code != http.StatusConflict || !bytes.Contains(stale.Body.Bytes(), []byte("stale_scene_generation")) {
+		t.Fatalf("stale recall status=%d body=%s", stale.Code, stale.Body.String())
+	}
+
+	accepted := httptest.NewRecorder()
+	acceptedRequest := httptest.NewRequest(http.MethodPost,
+		"/api/runtime/scenes/solo/recall", strings.NewReader(`{"generation":77,"requestId":"request-current"}`))
+	acceptedRequest.Header.Set("Content-Type", "application/json")
+	handler.ServeHTTP(accepted, acceptedRequest)
+	if accepted.Code != http.StatusAccepted {
+		t.Fatalf("recall status=%d body=%s", accepted.Code, accepted.Body.String())
+	}
+	entries, err := os.ReadDir(filepath.Join(activeDirectory, "live-commands"))
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("live commands=%v error=%v", entries, err)
+	}
+	if durable, err := os.ReadDir(filepath.Join(activeDirectory, "commands")); err == nil && len(durable) != 0 {
+		t.Fatalf("unexpected durable scene commands=%v", durable)
+	}
+}
+
+func TestDeviceReportsWhetherStoredPresetMatchesActiveRevision(t *testing.T) {
+	dataRoot := t.TempDir()
+	handler := New(config.Config{DataRoot: dataRoot, AuthEnabled: false})
+	preset := map[string]any{
+		"version": float64(1), "name": "Revision", "routing": "serial",
+		"global": map[string]any{"inputGainDb": float64(0), "outputGainDb": float64(0), "safetyLimitDb": float64(-1)},
+		"blocks": []any{},
+	}
+	body, _ := json.Marshal(preset)
+	save := httptest.NewRecorder()
+	handler.ServeHTTP(save, httptest.NewRequest(http.MethodPut, "/api/presets/banks/2/slots/1", bytes.NewReader(body)))
+	if save.Code != http.StatusOK {
+		t.Fatalf("save status=%d body=%s", save.Code, save.Body.String())
+	}
+	if err := os.MkdirAll(filepath.Join(dataRoot, "runtime"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	active := fmt.Sprintf(`{"bank":2,"slot":1,"generation":91,"revision":%q}`, presetRevision(preset))
+	if err := os.WriteFile(filepath.Join(dataRoot, "runtime", "active-preset.json"), []byte(active), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	status := httptest.NewRecorder()
+	handler.ServeHTTP(status, httptest.NewRequest(http.MethodGet, "/api/device", nil))
+	if status.Code != http.StatusOK || !bytes.Contains(status.Body.Bytes(), []byte(`"storedRevisionMatches":true`)) {
+		t.Fatalf("device status=%d body=%s", status.Code, status.Body.String())
+	}
+
+	preset["name"] = "Saved after apply"
+	body, _ = json.Marshal(preset)
+	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodPut, "/api/presets/banks/2/slots/1", bytes.NewReader(body)))
+	status = httptest.NewRecorder()
+	handler.ServeHTTP(status, httptest.NewRequest(http.MethodGet, "/api/device", nil))
+	if bytes.Contains(status.Body.Bytes(), []byte(`"storedRevisionMatches":true`)) {
+		t.Fatalf("stale revision still matched: %s", status.Body.String())
 	}
 }
 

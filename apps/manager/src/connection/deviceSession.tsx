@@ -57,7 +57,8 @@ export type DeviceSessionValue = {
   refreshAssets(kind?: AssetKind): Promise<void>;
   refreshPresets(): Promise<void>;
   saveCurrent(preset: Preset): Promise<PresetSlot | undefined>;
-  applyCurrent(): Promise<ApplyPresetResponse | undefined>;
+  applyCurrent(sceneId?: string): Promise<ApplyPresetResponse | undefined>;
+  recallScene?(sceneId: string): Promise<boolean>;
   uploadAsset(kind: AssetKind, file: File, overwrite: boolean): Promise<Asset | undefined>;
 };
 
@@ -279,29 +280,46 @@ export function DeviceSessionProvider({
     try {
       const response = await client.savePreset(current.location.bank, current.location.slot, preset);
       setCurrent({ location: current.location, preset: response.preset, exists: true });
+      setDevice((previous) => previous?.active
+        && previous.active.bank === current.location.bank
+        && previous.active.slot === current.location.slot
+        ? { ...previous, active: { ...previous.active, storedRevisionMatches: false } }
+        : previous);
       return response;
     } finally {
       setOperationBusy("save", false);
     }
   };
 
-  const applyCurrent = async () => {
+  const applyCurrent = async (sceneId?: string) => {
     if (!client || !current || operationBusy.current.apply) return undefined;
     ++activeRefreshRevision.current;
     setOperationBusy("apply", true);
     try {
-      const response = await client.applyPreset(current.location.bank, current.location.slot);
+      const response = await client.applyPreset(current.location.bank, current.location.slot, sceneId);
       const result = await waitForApplyResult(client, response);
       if (result.state === "applied") {
-        setDevice((previous) => previous ? {
-          ...previous,
-          active: { bank: current.location.bank, slot: current.location.slot, name: current.preset.name },
-        } : previous);
+        const refreshed = await client.getDevice();
+        setDevice(refreshed);
+        return { ...result, generation: refreshed.active?.generation };
       }
       return result;
     } finally {
       setOperationBusy("apply", false);
     }
+  };
+
+  const recallScene = async (sceneId: string) => {
+    const generation = device?.active?.generation;
+    if (!client?.recallScene || !generation || !current) return false;
+    if (device.active?.bank !== current.location.bank || device.active.slot !== current.location.slot) return false;
+    const response = await client.recallScene(sceneId, generation, crypto.randomUUID());
+    if (!response.accepted) return false;
+    setDevice((previous) => previous?.active ? {
+      ...previous,
+      active: { ...previous.active, liveSceneId: response.sceneId },
+    } : previous);
+    return true;
   };
 
   const uploadAsset = async (kind: AssetKind, file: File, overwrite: boolean) => {
@@ -350,7 +368,7 @@ export function DeviceSessionProvider({
   const value = useMemo<DeviceSessionValue>(() => ({
     status, baseUrl, device, client, models, irs, reverbIrs, supportsReverbIrs,
     presets, current, error, needsTokenFocus, busy,
-    connect, disconnect, selectLocation, refreshAssets, refreshPresets, saveCurrent, applyCurrent, uploadAsset,
+    connect, disconnect, selectLocation, refreshAssets, refreshPresets, saveCurrent, applyCurrent, recallScene, uploadAsset,
   }), [status, baseUrl, device, client, models, irs, reverbIrs, supportsReverbIrs,
     presets, current, error, needsTokenFocus, busy]);
 

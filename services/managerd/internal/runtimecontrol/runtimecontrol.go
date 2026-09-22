@@ -12,13 +12,18 @@ import (
 const (
 	TypeReloadAssets = "reload_assets"
 	TypeApplyPreset  = "apply_preset"
+	TypeRecallScene  = "recall_scene"
 )
 
 type Command struct {
-	ID   string `json:"id,omitempty"`
-	Type string `json:"type"`
-	Bank int    `json:"bank,omitempty"`
-	Slot int    `json:"slot,omitempty"`
+	ID         string `json:"id,omitempty"`
+	Type       string `json:"type"`
+	Bank       int    `json:"bank,omitempty"`
+	Slot       int    `json:"slot,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
+	SceneID    string `json:"sceneId,omitempty"`
+	RequestID  string `json:"requestId,omitempty"`
+	Revision   string `json:"revision,omitempty"`
 }
 
 type ApplyStatus struct {
@@ -31,10 +36,15 @@ type ApplyStatus struct {
 }
 
 type ActivePreset struct {
-	Bank      int    `json:"bank"`
-	Slot      int    `json:"slot"`
-	Name      string `json:"name,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
+	Bank                  int    `json:"bank"`
+	Slot                  int    `json:"slot"`
+	Name                  string `json:"name,omitempty"`
+	UpdatedAt             string `json:"updatedAt,omitempty"`
+	Generation            uint64 `json:"generation,omitempty"`
+	LiveSceneID           string `json:"liveSceneId,omitempty"`
+	LiveSceneIndex        int    `json:"liveSceneIndex,omitempty"`
+	Revision              string `json:"revision,omitempty"`
+	StoredRevisionMatches bool   `json:"storedRevisionMatches,omitempty"`
 }
 
 func QueueAssetReload(dataRoot string) error {
@@ -47,6 +57,10 @@ func QueueApplyPreset(dataRoot string, bank, slot int) error {
 }
 
 func QueueApplyPresetWithID(dataRoot string, bank, slot int) (string, error) {
+	return QueueApplyPresetSceneWithID(dataRoot, bank, slot, "", "")
+}
+
+func QueueApplyPresetSceneWithID(dataRoot string, bank, slot int, sceneID, revision string) (string, error) {
 	id := fmt.Sprintf("apply-%d", time.Now().UnixNano())
 	status := ApplyStatus{
 		ID:        id,
@@ -58,7 +72,7 @@ func QueueApplyPresetWithID(dataRoot string, bank, slot int) (string, error) {
 	if err := writeApplyStatus(dataRoot, status); err != nil {
 		return "", err
 	}
-	if err := queue(dataRoot, Command{ID: id, Type: TypeApplyPreset, Bank: bank, Slot: slot}); err != nil {
+	if err := queue(dataRoot, Command{ID: id, Type: TypeApplyPreset, Bank: bank, Slot: slot, SceneID: sceneID, Revision: revision}); err != nil {
 		status.State = "rejected"
 		status.Message = err.Error()
 		status.UpdatedAt = time.Now().UTC().Format(time.RFC3339Nano)
@@ -66,6 +80,18 @@ func QueueApplyPresetWithID(dataRoot string, bank, slot int) (string, error) {
 		return "", err
 	}
 	return id, nil
+}
+
+// QueueSceneRecall publishes a generation-bound, ephemeral performance command.
+// Scene recalls deliberately use a separate mailbox from durable control-plane
+// commands so they cannot be replayed as preset work after a restart.
+func QueueSceneRecall(dataRoot string, generation uint64, sceneID, requestID string) error {
+	if generation == 0 || sceneID == "" || requestID == "" {
+		return fmt.Errorf("scene recall requires generation, scene id, and request id")
+	}
+	return queueAt(filepath.Join(dataRoot, "runtime", "live-commands"), Command{
+		Type: TypeRecallScene, Generation: generation, SceneID: sceneID, RequestID: requestID,
+	})
 }
 
 func ReadApplyStatus(dataRoot, id string) (ApplyStatus, error) {
@@ -99,7 +125,10 @@ func ReadActivePreset(dataRoot string) (ActivePreset, error) {
 }
 
 func queue(dataRoot string, command Command) error {
-	directory := filepath.Join(dataRoot, "runtime", "commands")
+	return queueAt(filepath.Join(dataRoot, "runtime", "commands"), command)
+}
+
+func queueAt(directory string, command Command) error {
 	if err := os.MkdirAll(directory, 0o755); err != nil {
 		return err
 	}

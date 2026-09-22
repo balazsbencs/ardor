@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
@@ -158,8 +159,15 @@ func TestAccountIsolationAndPhysicallyConfirmedClaim(t *testing.T) {
 	response.Body.Close()
 
 	preset := map[string]any{
-		"version": 1, "name": "Cloud Clean", "routing": "serial",
+		"version": 4, "name": "Cloud Scenes", "routing": "serial",
 		"global": map[string]any{"inputGainDb": 0, "outputGainDb": 0, "safetyLimitDb": -1}, "blocks": []any{},
+		"sceneSet": map[string]any{"defaultSceneId": "scene-1", "openIn": "scenes", "scenes": []any{
+			map[string]any{"id": "scene-1", "name": "One", "enterTimeMs": 0, "outputTrimDb": 0, "targets": []any{}},
+			map[string]any{"id": "scene-2", "name": "Two", "enterTimeMs": 500, "outputTrimDb": 1, "targets": []any{}},
+			map[string]any{"id": "scene-3", "name": "Three", "enterTimeMs": 0, "outputTrimDb": 0, "targets": []any{}},
+			map[string]any{"id": "scene-4", "name": "Four", "enterTimeMs": 0, "outputTrimDb": 0, "targets": []any{}},
+		}},
+		"sceneMidiMappings": []any{map[string]any{"channel": 0, "controlChange": 70, "action": "selectScene", "sceneId": "scene-2"}},
 	}
 	const idempotencyKey = "018f7f1a-8b25-7e31-a951-5c43272e1999"
 	saveResponse := startJSONRequest(t, http.MethodPut, origin+"/v1/devices/"+deviceID+"/presets/banks/2/slots/1", origin, aliceCookie, preset, idempotencyKey)
@@ -167,12 +175,43 @@ func TestAccountIsolationAndPhysicallyConfirmedClaim(t *testing.T) {
 	if saveRequest.Operation != cloudprotocol.OperationPresetSave {
 		t.Fatalf("relayed save operation = %s", saveRequest.Operation)
 	}
+	var relayedSave struct {
+		Preset map[string]any `json:"preset"`
+	}
+	if err := json.Unmarshal(saveRequest.Payload, &relayedSave); err != nil {
+		t.Fatal(err)
+	}
+	normalizedPreset, _ := json.Marshal(preset)
+	var expectedPreset map[string]any
+	_ = json.Unmarshal(normalizedPreset, &expectedPreset)
+	if !reflect.DeepEqual(relayedSave.Preset, expectedPreset) {
+		t.Fatalf("hosted save changed scene preset: %#v", relayedSave.Preset)
+	}
 	savedSlot := map[string]any{"bank": 2, "slot": 1, "preset": preset}
 	writeOperationResult(t, connection, saveRequest, savedSlot)
 	response = awaitHTTPResponse(t, saveResponse)
 	firstSaveBody := readBody(response)
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("preset save status = %d, body=%s", response.StatusCode, firstSaveBody)
+	}
+
+	readResponse := startJSONRequest(t, http.MethodGet, origin+"/v1/devices/"+deviceID+"/presets/banks/2/slots/1", "", aliceCookie, nil, "")
+	readRequest := readTestEnvelope(t, connection)
+	if readRequest.Operation != cloudprotocol.OperationPresetRead {
+		t.Fatalf("relayed read operation = %s", readRequest.Operation)
+	}
+	writeOperationResult(t, connection, readRequest, savedSlot)
+	response = awaitHTTPResponse(t, readResponse)
+	var readSlot map[string]any
+	if err := json.NewDecoder(response.Body).Decode(&readSlot); err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	var expectedSlot map[string]any
+	normalizedSlot, _ := json.Marshal(savedSlot)
+	_ = json.Unmarshal(normalizedSlot, &expectedSlot)
+	if response.StatusCode != http.StatusOK || !reflect.DeepEqual(readSlot, expectedSlot) {
+		t.Fatalf("hosted read changed scene preset: status=%d body=%#v", response.StatusCode, readSlot)
 	}
 
 	response = jsonRequestWithIdempotency(t, http.MethodPut, origin+"/v1/devices/"+deviceID+"/presets/banks/2/slots/1", origin, aliceCookie, preset, idempotencyKey)

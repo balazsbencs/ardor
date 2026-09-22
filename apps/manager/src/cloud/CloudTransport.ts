@@ -5,6 +5,7 @@ import type {
   PresetSlotSummary, RenameAssetResponse, WiFiSettings, WiFiSettingsUpdate,
   UpdateStatus,
 	BackupRestoreResult,
+  RecallSceneResponse,
 } from "../api/types";
 
 type FetchImpl = typeof fetch;
@@ -72,10 +73,14 @@ export class CloudTransport implements ManagerTransport {
     });
   }
 
-  applyPreset(bank: number, slot: number): Promise<ApplyPresetResponse> {
+  applyPreset(bank: number, slot: number, _sceneId?: string): Promise<ApplyPresetResponse> {
     return this.request<ApplyPresetResponse>(`${this.slotPath(bank, slot)}/apply`, {
       method: "POST", headers: { "Idempotency-Key": crypto.randomUUID() },
     });
+  }
+
+  recallScene(_sceneId: string, _generation: number, _requestId: string): Promise<RecallSceneResponse> {
+    return this.unsupported("Live scene recall");
   }
 
   private presetPath(): string { return `/v1/devices/${encodeURIComponent(this.deviceId)}/presets`; }
