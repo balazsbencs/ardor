@@ -1,0 +1,68 @@
+{
+  "version": 4,
+  "name": "Scenes Starter",
+  "routing": "serial",
+  "global": { "inputGainDb": 0.0, "outputGainDb": -3.0, "safetyLimitDb": -1.0 },
+  "blocks": [
+    {
+      "id": "drive-1", "type": "distortion", "enabled": true, "asset": "",
+      "params": { "mode": "rat", "distortion": 0.35, "filter": 0.55, "volume": 0.6 }
+    },
+    {
+      "id": "delay-1", "type": "delay", "enabled": true, "sceneBypass": "letRing", "asset": "",
+      "params": { "mode": "digital", "time": 0.35, "feedback": 0.35, "mix": 0.2 }
+    }
+  ],
+  "sceneSet": {
+    "defaultSceneId": "scene-clean",
+    "openIn": "scenes",
+    "scenes": [
+      {
+        "id": "scene-clean", "name": "Clean", "enterTimeMs": 0, "outputTrimDb": 0.0,
+        "targets": [
+          { "target": "inputGainDb", "value": 0.0 },
+          { "target": "blockEnabled", "blockId": "drive-1", "value": false },
+          { "target": "parameter", "blockId": "drive-1", "parameter": "distortion", "value": 0.2 },
+          { "target": "blockEnabled", "blockId": "delay-1", "value": false },
+          { "target": "parameter", "blockId": "delay-1", "parameter": "mix", "value": 0.15 }
+        ]
+      },
+      {
+        "id": "scene-rhythm", "name": "Rhythm", "enterTimeMs": 100, "outputTrimDb": 0.0,
+        "targets": [
+          { "target": "inputGainDb", "value": 0.0 },
+          { "target": "blockEnabled", "blockId": "drive-1", "value": true },
+          { "target": "parameter", "blockId": "drive-1", "parameter": "distortion", "value": 0.35 },
+          { "target": "blockEnabled", "blockId": "delay-1", "value": false },
+          { "target": "parameter", "blockId": "delay-1", "parameter": "mix", "value": 0.15 }
+        ]
+      },
+      {
+        "id": "scene-lead", "name": "Lead", "enterTimeMs": 500, "outputTrimDb": 2.0,
+        "targets": [
+          { "target": "inputGainDb", "value": 1.0 },
+          { "target": "blockEnabled", "blockId": "drive-1", "value": true },
+          { "target": "parameter", "blockId": "drive-1", "parameter": "distortion", "value": 0.65 },
+          { "target": "blockEnabled", "blockId": "delay-1", "value": true },
+          { "target": "parameter", "blockId": "delay-1", "parameter": "mix", "value": 0.35 }
+        ]
+      },
+      {
+        "id": "scene-ambient", "name": "Ambient", "enterTimeMs": 2000, "outputTrimDb": -1.0,
+        "targets": [
+          { "target": "inputGainDb", "value": -2.0 },
+          { "target": "blockEnabled", "blockId": "drive-1", "value": false },
+          { "target": "parameter", "blockId": "drive-1", "parameter": "distortion", "value": 0.2 },
+          { "target": "blockEnabled", "blockId": "delay-1", "value": true },
+          { "target": "parameter", "blockId": "delay-1", "parameter": "mix", "value": 0.55 }
+        ]
+      }
+    ]
+  },
+  "sceneMidiMappings": [
+    { "channel": 0, "controlChange": 70, "action": "selectScene", "sceneId": "scene-clean" },
+    { "channel": 0, "controlChange": 71, "action": "selectScene", "sceneId": "scene-rhythm" },
+    { "channel": 0, "controlChange": 72, "action": "selectScene", "sceneId": "scene-lead" },
+    { "channel": 0, "controlChange": 73, "action": "selectScene", "sceneId": "scene-ambient" }
+  ]
+}
