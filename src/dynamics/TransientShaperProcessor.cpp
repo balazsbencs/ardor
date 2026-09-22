@@ -96,7 +96,7 @@ bool TransientShaperProcessor::configure(const nlohmann::json& params, float sam
   return true;
 }
 
-bool TransientShaperProcessor::setParameterTarget(const std::string& key, float value)
+bool TransientShaperProcessor::setParameterTarget(std::string_view key, float value)
 {
   if (!liveParameters_ || !std::isfinite(value)) return false;
   if (key == "attack") {

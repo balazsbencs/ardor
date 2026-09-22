@@ -16,6 +16,7 @@ struct DeviceSettings {
   std::string wifiCountry = "HU";
   int midiChannel = -1;
   int midiTunerCc = 20;
+  bool sceneLayerChordEnabled = true;
   int expressionMinimumRaw = 0;
   int expressionMaximumRaw = 26400;
   float expressionSmoothing = 0.25f;

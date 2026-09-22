@@ -27,7 +27,9 @@ bool applyControlEvent(ControlState& state, const ControlEvent& event);
 
 enum class FootswitchActionType {
   SelectPreset,
+  SelectScene,
   ToggleTuner,
+  ToggleSceneLayer,
 };
 
 struct FootswitchAction {
@@ -45,18 +47,27 @@ public:
 
   std::optional<FootswitchAction> handle(const ControlEvent& event, Clock::time_point now);
   std::optional<FootswitchAction> poll(Clock::time_point now);
+  // Reconfiguring a layer consumes every pending press/release from the old
+  // interpretation. Presets without scenes retain the legacy parser.
+  void configureScenes(bool available, bool sceneLayer, bool layerChordEnabled = true);
   void reset();
 
   static constexpr auto chordWindow = std::chrono::milliseconds(150);
+  static constexpr auto sceneChordWindow = std::chrono::milliseconds(60);
   static constexpr auto tunerHold = std::chrono::milliseconds(1000);
+  static constexpr auto sceneLayerHold = std::chrono::milliseconds(600);
 
 private:
   std::array<bool, 4> down_{};
-  std::array<bool, 2> pendingLeft_{};
-  std::array<Clock::time_point, 2> pressedAt_{};
-  bool chordActive_ = false;
-  bool chordTriggered_ = false;
+  std::array<bool, 4> pending_{};
+  std::array<Clock::time_point, 4> pressedAt_{};
+  int activePair_ = -1;
+  bool pairTriggered_ = false;
+  bool cancelledUntilRelease_ = false;
   Clock::time_point chordStarted_{};
+  bool scenesAvailable_ = false;
+  bool sceneLayer_ = false;
+  bool layerChordEnabled_ = true;
 };
 
 } // namespace ardor

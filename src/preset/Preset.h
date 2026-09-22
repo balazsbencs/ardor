@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -17,6 +18,11 @@ struct PresetGlobal {
   float safetyLimitDb = -1.0f;
 };
 
+enum class PresetSceneBypassPolicy {
+  Cut,
+  LetRing,
+};
+
 struct PresetBlock {
   std::string id;
   std::string type;
@@ -27,6 +33,7 @@ struct PresetBlock {
   // block types leave both vectors empty. Nested Dual Rig blocks are rejected
   // during validation so the runtime remains a single split/merge region.
   std::array<std::vector<PresetBlock>, 2> lanes;
+  PresetSceneBypassPolicy sceneBypass = PresetSceneBypassPolicy::Cut;
 };
 
 // Version-3 wet/dry/wet presets keep the two complete signal lanes explicit.
@@ -87,6 +94,60 @@ struct PresetMidiBinding {
   std::vector<PresetMidiAction> actions;
 };
 
+enum class PresetSceneMidiActionType {
+  SelectScene,
+  SceneNumber,
+  ShowPresets,
+  ShowScenes,
+};
+
+// Scene actions are kept separate from legacy parameter mappings so stable
+// scene identity and layer selection never acquire toggle-endpoint semantics.
+struct PresetSceneMidiBinding {
+  int channel = -1;
+  std::uint8_t controlChange = 0;
+  PresetSceneMidiActionType action = PresetSceneMidiActionType::SelectScene;
+  // Used only by SelectScene. SceneNumber intentionally follows physical slots.
+  std::string sceneId;
+};
+
+enum class PresetSceneOpenMode {
+  Presets,
+  Scenes,
+};
+
+enum class PresetSceneTargetType {
+  InputGainDb,
+  Parameter,
+  BlockEnabled,
+  WdwLane,
+};
+
+// Scene target addresses remain self-describing in preset JSON. The loader
+// validates their shape and value type; the later realtime preparation stage
+// resolves these strings to bounded runtime handles before audio starts.
+struct PresetSceneTarget {
+  PresetSceneTargetType target = PresetSceneTargetType::Parameter;
+  std::string blockId;
+  std::string parameter;
+  std::string lane;
+  nlohmann::json value;
+};
+
+struct PresetScene {
+  std::string id;
+  std::string name;
+  std::uint32_t enterTimeMs = 0;
+  float outputTrimDb = 0.0f;
+  std::vector<PresetSceneTarget> targets;
+};
+
+struct PresetSceneSet {
+  std::string defaultSceneId;
+  PresetSceneOpenMode openIn = PresetSceneOpenMode::Scenes;
+  std::array<PresetScene, 4> scenes;
+};
+
 struct Preset {
   int version = 1;
   std::string name;
@@ -96,10 +157,17 @@ struct Preset {
   std::optional<WdwRouting> wdw;
   std::optional<PresetExpression> expression;
   std::vector<PresetMidiBinding> midiBindings;
+  std::vector<PresetSceneMidiBinding> sceneMidiBindings;
+  std::optional<PresetSceneSet> sceneSet;
 };
 
 nlohmann::json toJson(const Preset& preset);
 Preset presetFromJson(const nlohmann::json& json);
+// Resolves one authored scene into an ordinary scene-free preset. Named-scene
+// bindings and scene-only tail policy are removed; legacy MIDI/expression
+// mappings and the existing routing topology are preserved.
+bool flattenPresetScene(const Preset& source, std::size_t sceneIndex,
+                        Preset& flattened, std::string& error);
 bool isValidBlockAssetPath(std::string_view asset);
 float expressionValueAt(const PresetExpression& assignment, float normalizedPosition);
 float midiActionValueAt(const PresetMidiAction& action, std::uint8_t controlValue);

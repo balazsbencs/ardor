@@ -28,6 +28,24 @@ ardor::Preset tremPreset(std::string name, std::string mode = "vintage_trem")
   return preset;
 }
 
+ardor::Preset sceneTremPreset()
+{
+  auto preset = tremPreset("Scene trem");
+  preset.version = 4;
+  ardor::PresetSceneSet set;
+  set.defaultSceneId = "a";
+  for (std::size_t index = 0; index < set.scenes.size(); ++index) {
+    auto& scene = set.scenes[index];
+    scene.id = std::string(1, static_cast<char>('a' + index));
+    scene.name = "Scene " + std::to_string(index + 1);
+    scene.enterTimeMs = index == 0 ? 0 : 500;
+    scene.targets = {{ardor::PresetSceneTargetType::Parameter,
+                      "trem", "mix", "", static_cast<float>(index) / 3.0f}};
+  }
+  preset.sceneSet = std::move(set);
+  return preset;
+}
+
 void requireFiniteOutput(ardor::PedalEngine& engine, const std::string& context)
 {
   float input[64] = {};
@@ -59,6 +77,35 @@ int main()
     auto liveEngine = std::make_unique<ardor::PedalEngine>();
     std::string error;
     require(ardor::applyPreset(*liveEngine, tremPreset("Active"), root, options, error), error);
+
+    ardor::PedalEngine sceneEngine;
+    require(ardor::applyPreset(sceneEngine, sceneTremPreset(), root, options, error), error);
+    require(sceneEngine.scenesPrepared() && sceneEngine.scenePresetGeneration() != 0,
+            "version-4 activation should install its prepared scene program");
+    const auto sceneGeneration = sceneEngine.scenePresetGeneration();
+    require(sceneEngine.tryRequestScene({sceneGeneration, 1, 0, 3}),
+            "activated preset should accept scene recall");
+    float sceneInput[64]{};
+    float sceneLeft[64]{};
+    float sceneRight[64]{};
+    sceneEngine.processBlock(sceneInput, sceneLeft, sceneRight, 64);
+    require(sceneEngine.sceneTransitionTelemetry().currentSceneIndex == 3,
+            "activated preset should dispatch an instant scene at the next block boundary");
+
+    auto oversizedScenePreset = sceneTremPreset();
+    oversizedScenePreset.blocks.push_back(
+      {"trem-2", "mod", true, "", {{"mode", "vintage_trem"}}});
+    for (auto& scene : oversizedScenePreset.sceneSet->scenes) {
+      scene.targets.push_back({ardor::PresetSceneTargetType::Parameter,
+                               "trem-2", "mix", "", 0.5f});
+    }
+    auto limitedSceneOptions = options;
+    limitedSceneOptions.scenePreparedProcessorLimit = 1;
+    require(!ardor::preflightPreset(
+              oversizedScenePreset, root, limitedSceneOptions, error),
+            "preset preflight must enforce prepared scene processor admission");
+    require(error.find("processor states") != std::string::npos,
+            "scene admission failure should explain its prepared-state budget");
 
     // Preset activation must not follow an asset symlink out of its data root.
     // This exercises the same guard used by NAM, cabinet, reverb, and wah

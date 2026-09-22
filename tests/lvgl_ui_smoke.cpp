@@ -88,6 +88,19 @@ lv_obj_t* findLabel(lv_obj_t* parent, const char* text)
   return nullptr;
 }
 
+lv_obj_t* findLabelWithParentWidth(lv_obj_t* parent, const char* text, int width)
+{
+  if (lv_obj_check_type(parent, &lv_label_class)
+      && std::strcmp(lv_label_get_text(parent), text) == 0
+      && lv_obj_get_parent(parent) && lv_obj_get_width(lv_obj_get_parent(parent)) == width)
+    return parent;
+  for (uint32_t index = 0; index < lv_obj_get_child_count(parent); ++index) {
+    if (auto* found = findLabelWithParentWidth(lv_obj_get_child(parent, index), text, width))
+      return found;
+  }
+  return nullptr;
+}
+
 lv_obj_t* findNestedLabel(lv_obj_t* parent, const char* text)
 {
   for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
@@ -439,6 +452,7 @@ int main()
   std::string loadedLoopId;
   std::string deletedLoopId;
   std::uint32_t savedAudioBlockSize = 0;
+  std::size_t requestedScene = 99;
   ardor::UiActions uiActions;
   uiActions.savePreset = [&]() {
     ++savedPresetNames;
@@ -449,6 +463,9 @@ int main()
   uiActions.setTunerMode = [&](bool enabled) { requestedTunerMode = enabled ? 1 : 0; };
   uiActions.saveAudioBlockSize = [&](std::uint32_t blockSize, std::string&) {
     savedAudioBlockSize = blockSize;
+    return true;
+  };
+  uiActions.saveControlInputSettings = [](const ardor::DeviceSettings&, std::string&) {
     return true;
   };
   uiActions.updateBlockEnabled = [&](const std::string&, bool) {
@@ -481,6 +498,7 @@ int main()
     status.state = "staged";
     return true;
   };
+  uiActions.selectScene = [&](std::size_t scene) { requestedScene = scene; };
   ardor::LvglUi ui(std::move(uiActions));
   const int masterVolume = state.masterVolume;
   ui.focusParameter("levelDb");
@@ -762,10 +780,13 @@ int main()
   lv_display_t* display = lv_display_create(1280, 720);
   const char* screenshotPath = std::getenv("ARDOR_UI_SCREENSHOT");
   const char* editScreenshotPath = std::getenv("ARDOR_UI_EDIT_SCREENSHOT");
+  const char* scenesScreenshotPath = std::getenv("ARDOR_UI_SCENES_SCREENSHOT");
+  const char* sceneEditorScreenshotPath = std::getenv("ARDOR_UI_SCENE_EDITOR_SCREENSHOT");
   std::vector<uint8_t> screenshotStorage;
   uint8_t* screenshotPixels = nullptr;
   uint32_t screenshotStride = 0;
-  if (screenshotPath != nullptr || editScreenshotPath != nullptr) {
+  if (screenshotPath != nullptr || editScreenshotPath != nullptr
+      || scenesScreenshotPath != nullptr || sceneEditorScreenshotPath != nullptr) {
     lv_display_set_color_format(display, LV_COLOR_FORMAT_RGB888);
     screenshotStride = lv_draw_buf_width_to_stride(1280, LV_COLOR_FORMAT_RGB888);
     const auto screenshotBytes = screenshotStride * 720;
@@ -903,6 +924,108 @@ int main()
                 && wdwDeleteUiState.bank.presets[wdwDeleteUiState.activePreset]
                   .blocks[0].lanes[0][0].type == "cab",
               "WDW Delete Block should remove a selected NAM from its lane")) return 1;
+
+  state.bank.presets[state.activePreset].sceneSet = ardor::PresetSceneSet{};
+  state.bank.presets[state.activePreset].sceneSet->defaultSceneId = "scene-1";
+  const std::array sceneNames = {"Verse", "Chorus", "Solo", "Outro"};
+  for (std::size_t index = 0; index < sceneNames.size(); ++index) {
+    auto& scene = state.bank.presets[state.activePreset].sceneSet->scenes[index];
+    scene.id = "scene-" + std::to_string(index + 1);
+    scene.name = sceneNames[index];
+    scene.enterTimeMs = index == 1 ? 500 : 0;
+    scene.outputTrimDb = index == 2 ? 2.0f : 0.0f;
+  }
+  state.dirty = true;
+  ardor::enterScenesMode(state);
+  ardor::updateSceneTelemetry(state, {0, 2, 0.5f, false, true, false, false, {}});
+  ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(findLabel(lv_screen_active(), "SCENES")
+                && findLabel(lv_screen_active(), "VERSE")
+                && findLabel(lv_screen_active(), "FS 3  ·  GOING TO")
+                && findLabel(lv_screen_active(), "+2.0 dB  ·  Instant")
+                && findLabel(lv_screen_active(), "UNSAVED")
+                && findLabel(lv_screen_active(), "Presets"),
+              "Scenes mode should render four physical-map plates and its control rail")) return 1;
+  if (scenesScreenshotPath != nullptr) {
+    lv_refr_now(display);
+    if (require(saveRgb888Ppm(scenesScreenshotPath, screenshotPixels, screenshotStride, 1280, 720),
+                "Scenes screenshot should be writable")) return 1;
+  }
+  ardor::updateSceneTelemetry(state, {2, 2, 1.0f, false, false, true, true, {}});
+  ui.refresh(lv_screen_active(), state);
+  if (require(findLabel(lv_screen_active(), "FS 3  ·  LIVE  ·  PEDAL"),
+              "Scenes mode should distinguish a pedal-altered live scene")) return 1;
+
+  ardor::enterEditMode(state);
+  ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* sceneTwoTab = findLabel(lv_screen_active(), "FS2  CHORUS");
+  if (require(findLabel(lv_screen_active(), "EDITING") && sceneTwoTab
+                && findLabel(lv_screen_active(), "SCENE SETTINGS"),
+              "scene-enabled presets should add an explicit scene strip to the editor")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(sceneTwoTab), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  if (require(state.editingScene == 1 && requestedScene == 1,
+              "choosing an edit tab should select and recall that draft scene")) return 1;
+  if (require(findLabelContaining(lv_screen_active(), "SCENE 2"),
+              "the edit header should identify the selected scene")) return 1;
+  lv_obj_t* sceneSettingsLabel = findLabel(lv_screen_active(), "SCENE SETTINGS");
+  lv_obj_send_event(lv_obj_get_parent(sceneSettingsLabel), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  if (require(state.sceneSettingsOpen
+                && findLabel(lv_screen_active(), "ENTER TIME")
+                && findLabel(lv_screen_active(), "SCENE TRIM")
+                && findLabel(lv_screen_active(), "DEFAULT ON PRESET LOAD")
+                && findLabel(lv_screen_active(), "COPY TO")
+                && findLabel(lv_screen_active(), "MORE  ·  CAPTURE")
+                && findLabel(lv_screen_active(), "MORE  ·  DISABLE")
+                && findLabel(lv_screen_active(), "PRESET SETTINGS  ·  OPEN IN"),
+              "scene settings should expose authored timing, trim, default, copy, swap, and Open in")) return 1;
+  if (sceneEditorScreenshotPath != nullptr) {
+    lv_refr_now(display);
+    if (require(saveRgb888Ppm(sceneEditorScreenshotPath, screenshotPixels, screenshotStride,
+                              1280, 720),
+                "scene editor screenshot should be writable")) return 1;
+  }
+  lv_obj_t* instantButton = findLabel(lv_screen_active(), "INSTANT");
+  if (require(instantButton, "scene settings should offer instant transitions")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(instantButton), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  if (require(state.bank.presets[state.activePreset].sceneSet->scenes[1].enterTimeMs == 0,
+              "scene timing controls should update the authored draft")) return 1;
+  lv_obj_t* copyVerse = findLabel(lv_screen_active(), "1 VERSE");
+  if (require(copyVerse, "scene settings should offer named copy destinations")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(copyVerse), LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  if (require(findLabel(lv_screen_active(), "REPLACE SCENE SOUND?")
+                && findLabel(lv_screen_active(), "REPLACE")
+                && findLabel(lv_screen_active(), "CANCEL"),
+              "copying a scene should show an explicit overwrite confirmation")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "CANCEL")),
+                    LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  ardor::closeSceneSettings(state);
+  ui.selectBlock(state, state.selectedBlock);
+  ui.build(lv_screen_active(), state);
+  lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* sharedScope = findLabelWithParentWidth(lv_screen_active(), "SHARED", 108);
+  if (require(sharedScope,
+              "scene-enabled parameter cards should label shared ownership")) return 1;
+  if (!lv_obj_has_state(lv_obj_get_parent(sharedScope), LV_STATE_DISABLED)) {
+    lv_obj_send_event(lv_obj_get_parent(sharedScope), LV_EVENT_CLICKED, nullptr);
+    ui.refresh(lv_screen_active(), state);
+    if (require(state.pendingPreview.has_value(),
+                "the scope action should queue a prepared scene-bank update")) return 1;
+    if (require(findLabel(lv_screen_active(), "THIS SCENE"),
+                "the scope action should promote an eligible shared control to This scene")) return 1;
+    ardor::completeStructuralPreview(state);
+  }
+  state.bank.presets[state.activePreset].sceneSet.reset();
+  state.sceneSettingsOpen = false;
+  state.dirty = false;
+
 
   ui.selectBlock(state, state.selectedBlock);
   ardor::enterEditMode(state);
@@ -1795,9 +1918,16 @@ int main()
   if (require(findLabel(lv_screen_active(), "MIDI receive channel")
                 && findLabel(lv_screen_active(), "Tuner on/off CC")
                 && findLabel(lv_screen_active(), "Expression pedal")
+                && findLabel(lv_screen_active(), "Scene layer chord:  On")
                 && findLabel(lv_screen_active(), "Capture heel:  0")
                 && findLabel(lv_screen_active(), "Capture toe:  26400"),
               "Control I/O should integrate MIDI and expression calibration")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "Scene layer chord:  On")),
+                    LV_EVENT_CLICKED, nullptr);
+  ui.refresh(lv_screen_active(), state);
+  if (require(!state.settings.sceneLayerChordEnabled
+                && findLabel(lv_screen_active(), "Scene layer chord:  Off"),
+              "Control I/O should persist the scene-layer chord preference")) return 1;
   lv_obj_t* midiChannelTitle = findLabel(lv_screen_active(), "MIDI receive channel");
   lv_obj_t* midiChannelCard = midiChannelTitle ? lv_obj_get_parent(midiChannelTitle) : nullptr;
   lv_obj_t* midiChannelMinus = midiChannelCard ? lv_obj_get_child(midiChannelCard, 1) : nullptr;

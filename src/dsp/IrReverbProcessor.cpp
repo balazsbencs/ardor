@@ -171,14 +171,18 @@ void IrReverbProcessor::updateFilters()
 
 std::size_t IrReverbProcessor::tailFrames() const noexcept
 {
-  return loaded_ ? impulseFrames_ + PARTITION_FRAMES : 0;
+  return loaded_ ? impulseFrames_ + PARTITION_FRAMES + preDelaySamples_ : 0;
 }
 
 StereoSample IrReverbProcessor::process(StereoSample input)
 {
+  return processFrame(input).mixed;
+}
+
+IrReverbFrame IrReverbProcessor::processFrame(StereoSample input)
+{
   refreshLiveParameters();
-  if (!loaded_) return input;
-  refreshLiveParameters();
+  if (!loaded_) return {input, {}};
 
   // Pre-delay ahead of the convolver, so its buffer only spans the extra delay.
   // Always run the line, even at zero delay: skipping the write would leave
@@ -213,9 +217,16 @@ StereoSample IrReverbProcessor::process(StereoSample input)
   if (!std::isfinite(wetR)) wetR = 0.0f;
 
   const float dry = 1.0f - mix_;
-  return StereoSample{
-      (input.left * dry + wetL * mix_) * level_,
-      (input.right * dry + wetR * mix_) * level_,
+  const StereoSample wet{
+      wetL * mix_ * level_,
+      wetR * mix_ * level_,
+  };
+  return {
+    {
+      input.left * dry * level_ + wet.left,
+      input.right * dry * level_ + wet.right,
+    },
+    wet,
   };
 }
 

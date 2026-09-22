@@ -35,6 +35,11 @@ struct EngineLoadOptions {
 
   // Analog dBu RMS at the ADC that corresponds to a 0 dBFS-peak 1 kHz sine.
   std::optional<float> inputReferenceLevelDbU;
+
+  // Conservative structural scene admission limits. These charge retained
+  // processor state separately from worst-transition render work.
+  std::size_t scenePreparedProcessorLimit = 20;
+  std::size_t sceneConcurrentProcessorLimit = 20;
 };
 
 bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoadOptions& options, std::string& error);

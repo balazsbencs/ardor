@@ -198,7 +198,12 @@ void LvglUi::syncHeaderView(const UiState& state)
     else lv_obj_remove_state(bankUpButton_, LV_STATE_DISABLED);
   }
   if (editPresetLabel_) {
-    lv_label_set_text(editPresetLabel_, state.bank.presets[state.activePreset].name.c_str());
+    const auto& preset = state.bank.presets[state.activePreset];
+    const std::string identity = preset.sceneSet
+      ? "SCENE " + std::to_string(state.editingScene + 1) + "  ·  "
+          + uppercase(preset.sceneSet->scenes[state.editingScene].name)
+      : preset.name;
+    lv_label_set_text(editPresetLabel_, identity.c_str());
   }
   if (saveButtonLabel_) {
     // Save renders as a primary (inverted) button: dark text on a light
@@ -475,7 +480,23 @@ void LvglUi::openPresetNameEditor(UiState& state)
     return;
   }
   presetNameEditorOpen_ = true;
+  editingSceneName_ = false;
   lv_textarea_set_text(presetNameField_, state.bank.presets[state.activePreset].name.c_str());
+  lv_label_set_text(presetNameMessageLabel_, "");
+  lv_keyboard_set_textarea(presetNameKeyboard_, presetNameField_);
+  lv_obj_remove_flag(presetNameOverlay_, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_move_foreground(presetNameOverlay_);
+}
+
+void LvglUi::openSceneNameEditor(UiState& state)
+{
+  const auto& set = state.bank.presets[state.activePreset].sceneSet;
+  if (!presetNameOverlay_ || !presetNameField_ || !set
+      || state.editingScene >= set->scenes.size()) return;
+  presetNameEditorOpen_ = true;
+  editingSceneName_ = true;
+  sceneNameTarget_ = state.editingScene;
+  lv_textarea_set_text(presetNameField_, set->scenes[sceneNameTarget_].name.c_str());
   lv_label_set_text(presetNameMessageLabel_, "");
   lv_keyboard_set_textarea(presetNameKeyboard_, presetNameField_);
   lv_obj_remove_flag(presetNameOverlay_, LV_OBJ_FLAG_HIDDEN);
@@ -485,6 +506,7 @@ void LvglUi::openPresetNameEditor(UiState& state)
 void LvglUi::cancelPresetNameEditor()
 {
   presetNameEditorOpen_ = false;
+  editingSceneName_ = false;
   if (presetNameOverlay_) lv_obj_add_flag(presetNameOverlay_, LV_OBJ_FLAG_HIDDEN);
 }
 
@@ -493,7 +515,22 @@ void LvglUi::savePresetName(UiState& state)
   if (!presetNameField_ || state.activePreset >= state.bank.presets.size()) return;
   const std::string name = trimmed(lv_textarea_get_text(presetNameField_));
   if (name.empty()) {
-    lv_label_set_text(presetNameMessageLabel_, "Enter a preset name");
+    lv_label_set_text(presetNameMessageLabel_, editingSceneName_
+      ? "Enter a scene name" : "Enter a preset name");
+    return;
+  }
+
+  if (editingSceneName_) {
+    if (name.size() > 24) {
+      lv_label_set_text(presetNameMessageLabel_, "Scene names use at most 24 characters");
+      return;
+    }
+    const auto currentEditingScene = state.editingScene;
+    state.editingScene = sceneNameTarget_;
+    const bool changed = renameEditingScene(state, name);
+    state.editingScene = currentEditingScene;
+    cancelPresetNameEditor();
+    if (changed) invalidate(UiChange::Header | UiChange::Presets | UiChange::Chain);
     return;
   }
 

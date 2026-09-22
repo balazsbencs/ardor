@@ -308,7 +308,8 @@ bool buildWdwRoutingProgram(const ChainPlan& dryPlan, const ChainPlan& wetPlan,
 bool applyWdwRouting(PedalEngine& engine, const ChainPlan& dryPlan,
                      const ChainPlan& wetPlan,
                      const WdwRoutingBuildOptions& options,
-                     WdwRoutingBuildReport& report, std::string& error)
+                     WdwRoutingBuildReport& report, std::string& error,
+                     SceneTransitionProgram* scenes)
 {
   if (std::fabs(dryPlan.inputGain - wetPlan.inputGain) > 1.0e-6f
       || std::fabs(dryPlan.outputGain - wetPlan.outputGain) > 1.0e-6f
@@ -332,6 +333,7 @@ bool applyWdwRouting(PedalEngine& engine, const ChainPlan& dryPlan,
   if (!prepared.installPreparedWdwRouting(std::move(program), error)) {
     return false;
   }
+  if (scenes && !prepared.installPreparedScenes(std::move(*scenes), error)) return false;
   engine.replacePreparedProgram(std::move(prepared));
   return true;
 }

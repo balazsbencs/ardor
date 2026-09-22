@@ -27,6 +27,7 @@ int main()
   ardor::DeviceSettings controls;
   controls.midiChannel = 4;
   controls.midiTunerCc = 64;
+  controls.sceneLayerChordEnabled = false;
   controls.expressionMinimumRaw = 123;
   controls.expressionMaximumRaw = 24567;
   controls.expressionSmoothing = 0.4f;
@@ -42,6 +43,8 @@ int main()
   if (!require(settings.wifiCountry == "HU", "country should be normalized")) return 1;
   if (!require(settings.midiChannel == 4 && settings.midiTunerCc == 64,
                "MIDI settings should persist")) return 1;
+  if (!require(!settings.sceneLayerChordEnabled,
+               "scene layer chord setting should persist")) return 1;
   if (!require(settings.expressionMinimumRaw == 123
                 && settings.expressionMaximumRaw == 24567,
                "expression calibration should persist")) return 1;

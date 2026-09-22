@@ -9,6 +9,7 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <string_view>
 
 namespace ardor {
 
@@ -40,7 +41,7 @@ public:
   CheeseProcessor& operator=(CheeseProcessor&&) noexcept;
 
   bool configure(const nlohmann::json& params, float sampleRate, std::string& error);
-  bool setParameterTarget(const std::string& key, float value);
+  bool setParameterTarget(std::string_view key, float value);
   void reset();
   StereoSample process(StereoSample input);
   void processBlock(const float* left, const float* right,

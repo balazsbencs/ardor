@@ -237,6 +237,7 @@ target_include_directories(ardor_looper PUBLIC src)
 target_compile_features(ardor_looper PUBLIC cxx_std_20)
 
 add_library(ardor_dsp OBJECT
+  src/dsp/SceneTransition.cpp
   src/dsp/DualAmpProcessor.cpp
   src/dsp/DualRigProcessor.cpp
   src/dsp/RealtimeFft.cpp
@@ -275,6 +276,7 @@ add_library(ardor_preset
   src/preset/Preset.cpp
   src/preset/PresetStore.cpp
   src/preset/ChainPlan.cpp
+  src/preset/ScenePlan.cpp
 
   src/preset/RuntimeCommands.cpp
   src/preset/RuntimeState.cpp
@@ -321,6 +323,7 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
     src/ui/LvglUiParameterRenderer.cpp
     src/ui/LvglUiParameters.cpp
     src/ui/LvglUiPreset.cpp
+    src/ui/LvglUiScenes.cpp
     src/ui/LvglUiSettings.cpp
     src/ui/LvglUiStatus.cpp
     src/ui/LvglUiStyle.cpp
@@ -415,6 +418,12 @@ target_compile_definitions(pedal-offline-smoke PRIVATE
 
 add_executable(pedal-preset-smoke tests/preset_smoke.cpp)
 target_link_libraries(pedal-preset-smoke PRIVATE ardor_preset ardor_audio)
+
+add_executable(pedal-scene-plan-smoke tests/scene_plan_smoke.cpp)
+target_link_libraries(pedal-scene-plan-smoke PRIVATE ardor_preset)
+
+add_executable(pedal-scene-transition-smoke tests/scene_transition_smoke.cpp)
+target_link_libraries(pedal-scene-transition-smoke PRIVATE ardor_dsp)
 
 add_executable(pedal-preset-activation-smoke tests/preset_activation_smoke.cpp)
 target_link_libraries(pedal-preset-activation-smoke PRIVATE ardor_audio ardor_ui)
@@ -662,6 +671,8 @@ target_link_libraries(pedal-control-smoke PRIVATE ardor_control)
 enable_testing()
 add_test(NAME pedal-offline-smoke COMMAND pedal-offline-smoke)
 add_test(NAME pedal-preset-smoke COMMAND pedal-preset-smoke)
+add_test(NAME pedal-scene-plan-smoke COMMAND pedal-scene-plan-smoke)
+add_test(NAME pedal-scene-transition-smoke COMMAND pedal-scene-transition-smoke)
 add_test(NAME pedal-preset-activation-smoke COMMAND pedal-preset-activation-smoke)
 add_test(NAME pedal-runtime-commands-smoke COMMAND pedal-runtime-commands-smoke)
 add_test(NAME pedal-daisy-fx-catalog-smoke COMMAND pedal-daisy-fx-catalog-smoke)

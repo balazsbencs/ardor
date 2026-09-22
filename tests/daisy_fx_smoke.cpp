@@ -171,6 +171,22 @@ int main()
             catalogError);
     const auto sample = catalogProcessor.process({0.5f, 0.5f});
     require(std::isfinite(sample.left) && std::isfinite(sample.right), "catalog output finite");
+
+    ardor::DaisyFxProcessor framed;
+    ardor::DaisyFxProcessor ordinary;
+    const auto defaults = ardor::defaultDaisyFxParams(descriptor);
+    require(framed.configure(descriptor.blockType, defaults, 48000.0f, catalogError), catalogError);
+    require(ordinary.configure(descriptor.blockType, defaults, 48000.0f, catalogError), catalogError);
+    for (int frame = 0; frame < 256; ++frame) {
+      const float input = frame == 0 ? 0.5f : 0.0f;
+      const auto split = framed.processFrame({input, input});
+      const auto mixed = ordinary.process({input, input});
+      require(std::fabs(split.mixed.left - mixed.left) < 1.0e-7f
+                && std::fabs(split.mixed.right - mixed.right) < 1.0e-7f,
+              descriptor.mode + " split wet path must preserve mixed output");
+      require(std::isfinite(split.wet.left) && std::isfinite(split.wet.right),
+              descriptor.mode + " split wet output finite");
+    }
   }
 
   // A bypass/re-enable cycle must not retain LFO, filter, or envelope state

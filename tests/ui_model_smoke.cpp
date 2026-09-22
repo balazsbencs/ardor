@@ -1,5 +1,6 @@
 #include "preset/PresetStore.h"
 #include "preset/RuntimeState.h"
+#include "preset/ScenePlan.h"
 #include "ui/ParameterControls.h"
 #include "ui/UiModel.h"
 
@@ -393,6 +394,150 @@ int main()
   if (require(splitState.bank.presets[splitState.activePreset].blocks.size() == splitBlockCount
                 && splitState.statusIsError,
               "a preset should reject a second active Split region")) return 1;
+
+  ardor::Preset sceneUiPreset;
+  sceneUiPreset.version = 4;
+  sceneUiPreset.name = "Scene Round Trip";
+  sceneUiPreset.sceneSet = ardor::PresetSceneSet{};
+  sceneUiPreset.sceneSet->defaultSceneId = "scene-1";
+  for (std::size_t index = 0; index < sceneUiPreset.sceneSet->scenes.size(); ++index) {
+    auto& scene = sceneUiPreset.sceneSet->scenes[index];
+    scene.id = "scene-" + std::to_string(index + 1);
+    scene.name = "Scene " + std::to_string(index + 1);
+    scene.enterTimeMs = index == 1 ? 500 : 0;
+  }
+  sceneUiPreset.sceneMidiBindings.push_back({
+    0, 70, ardor::PresetSceneMidiActionType::SelectScene, "scene-2",
+  });
+  auto sceneUiState = ardor::makeDemoUiState();
+  ardor::replaceActivePreset(sceneUiState, sceneUiPreset);
+  const auto preservedScenePreset = ardor::activePresetToPreset(sceneUiState);
+  if (require(preservedScenePreset.version == 4 && preservedScenePreset.sceneSet
+                && preservedScenePreset.sceneSet->defaultSceneId == "scene-1"
+                && preservedScenePreset.sceneSet->scenes[1].enterTimeMs == 500
+                && preservedScenePreset.sceneMidiBindings.size() == 1
+                && preservedScenePreset.sceneMidiBindings[0].sceneId == "scene-2",
+              "touchscreen load/save must preserve scenes and named MIDI actions")) return 1;
+  ardor::enterScenesMode(sceneUiState);
+  ardor::updateSceneTelemetry(sceneUiState, {7, 6, 1.5f, true, true, true, false, "busy"});
+  if (require(sceneUiState.mode == ardor::UiMode::Scenes
+                && sceneUiState.scenes.currentScene == 3
+                && sceneUiState.scenes.destinationScene == 3
+                && sceneUiState.scenes.progress == 1.0f,
+              "scene UI telemetry should clamp indexes and transition progress")) return 1;
+
+  auto sceneAuthorState = ardor::makeDemoUiState();
+  ardor::enterEditMode(sceneAuthorState);
+  if (require(ardor::enableScenes(sceneAuthorState)
+                && sceneAuthorState.bank.presets[0].sceneSet
+                && !sceneAuthorState.bank.presets[0].sceneSet->scenes[0].targets.empty()
+                && sceneAuthorState.pendingPreview.has_value(),
+              "enabling scenes should capture the current sound into four prepared drafts")) return 1;
+  ardor::completeStructuralPreview(sceneAuthorState);
+  ardor::ScenePlan authoredPlan;
+  std::string authoredPlanError;
+  if (require(ardor::buildScenePlan(ardor::activePresetToPreset(sceneAuthorState),
+                                    authoredPlan, authoredPlanError),
+              "newly captured scenes should always form a valid realtime plan")) return 1;
+  if (require(ardor::selectEditingScene(sceneAuthorState, 2)
+                && ardor::renameEditingScene(sceneAuthorState, "Solo")
+                && ardor::setEditingSceneEnterTime(sceneAuthorState, 700)
+                && ardor::setEditingSceneTrim(sceneAuthorState, 2.5f)
+                && ardor::makeEditingSceneDefault(sceneAuthorState),
+              "scene settings should edit the selected authored scene")) return 1;
+  auto& authoredSet = *sceneAuthorState.bank.presets[0].sceneSet;
+  const auto destinationId = authoredSet.scenes[1].id;
+  const auto destinationName = authoredSet.scenes[1].name;
+  if (require(ardor::copyScene(sceneAuthorState, 2, 1)
+                && authoredSet.scenes[1].id == destinationId
+                && authoredSet.scenes[1].name == destinationName
+                && authoredSet.scenes[1].enterTimeMs == 700
+                && authoredSet.scenes[1].outputTrimDb == 2.5f,
+              "copy should replace sound and timing while preserving destination identity")) return 1;
+  if (require(ardor::requestSceneOperation(sceneAuthorState, ardor::UiSceneOperation::Swap, 2, 0)
+                && sceneAuthorState.sceneOperation.operation == ardor::UiSceneOperation::Swap,
+              "copy and swap actions should support a reviewable confirmation prompt")) return 1;
+  ardor::cancelSceneOperation(sceneAuthorState);
+  if (require(sceneAuthorState.sceneOperation.operation == ardor::UiSceneOperation::None,
+              "canceling a scene operation should leave authored scenes unchanged")) return 1;
+  const auto soloId = authoredSet.scenes[2].id;
+  if (require(ardor::swapScenes(sceneAuthorState, 2, 3)
+                && authoredSet.scenes[3].id == soloId
+                && authoredSet.defaultSceneId == soloId
+                && sceneAuthorState.editingScene == 3,
+              "swapping slots should move identity, default, and the editing focus together")) return 1;
+  if (require(ardor::undoLastBlockEdit(sceneAuthorState)
+                && sceneAuthorState.bank.presets[0].sceneSet->scenes[2].id == soloId
+                && sceneAuthorState.editingScene == 2,
+              "scene slot changes should use the existing one-step preset undo")) return 1;
+  ardor::completeStructuralPreview(sceneAuthorState);
+  if (require(ardor::setSceneOpenMode(sceneAuthorState, ardor::PresetSceneOpenMode::Presets)
+                && sceneAuthorState.bank.presets[0].sceneSet->openIn
+                     == ardor::PresetSceneOpenMode::Presets,
+              "scene authoring should expose the preset-wide Open in setting")) return 1;
+
+  const float keptTrim = sceneAuthorState.bank.presets[0].sceneSet->scenes[2].outputTrimDb;
+  const float baseOutput = sceneAuthorState.bank.presets[0].global.outputGainDb;
+  if (require(ardor::disableScenes(sceneAuthorState, 2)
+                && !sceneAuthorState.bank.presets[0].sceneSet
+                && sceneAuthorState.bank.presets[0].sceneMidiBindings.empty()
+                && sceneAuthorState.bank.presets[0].global.outputGainDb == baseOutput + keptTrim,
+              "disabling scenes should retain the chosen sound and fold its trim into output")) return 1;
+  ardor::completeStructuralPreview(sceneAuthorState);
+  if (require(ardor::undoLastBlockEdit(sceneAuthorState)
+                && sceneAuthorState.bank.presets[0].sceneSet.has_value(),
+              "disabling scenes should remain undoable until save")) return 1;
+
+  auto sceneScopeState = ardor::makeDemoUiState();
+  ardor::selectPreset(sceneScopeState, 2);
+  ardor::enterEditMode(sceneScopeState);
+  ardor::selectBlock(sceneScopeState, 1);
+  if (require(ardor::enableScenes(sceneScopeState),
+              "scene scope test should enable scenes for a modulation preset")) return 1;
+  ardor::completeStructuralPreview(sceneScopeState);
+  const auto scopedControls = ardor::parameterPage(sceneScopeState, 0);
+  const auto scopedControl = std::find_if(scopedControls.begin(), scopedControls.end(),
+    [](const auto& control) { return control.sceneScope == ardor::UiSceneScope::ThisScene; });
+  if (require(scopedControl != scopedControls.end(),
+              "eligible parameter controls should start owned by each scene")) return 1;
+  const auto scopedIndex = ardor::selectedParameterSceneTargetIndex(
+    sceneScopeState, scopedControl->key);
+  if (require(scopedIndex.has_value(),
+              "a scene-owned control should resolve to its prepared target index")) return 1;
+  const auto otherSceneValue = sceneScopeState.bank.presets[2].sceneSet
+    ->scenes[1].targets[*scopedIndex].value;
+  if (require(ardor::applyParameterDelta(sceneScopeState, *scopedControl, 1)
+                && sceneScopeState.bank.presets[2].sceneSet
+                     ->scenes[0].targets[*scopedIndex].value != otherSceneValue
+                && sceneScopeState.bank.presets[2].sceneSet
+                     ->scenes[1].targets[*scopedIndex].value == otherSceneValue,
+              "editing This scene should change only the selected scene definition")) return 1;
+  if (require(ardor::setSelectedParameterSceneScope(
+                  sceneScopeState, scopedControl->key, ardor::UiSceneScope::Shared)
+                && sceneScopeState.pendingPreview.has_value()
+                && ardor::selectedParameterSceneScope(sceneScopeState, scopedControl->key)
+                     == ardor::UiSceneScope::Shared,
+              "making a control Shared should remove it from all scene target lists")) return 1;
+  ardor::completeStructuralPreview(sceneScopeState);
+  if (require(ardor::undoLastBlockEdit(sceneScopeState)
+                && ardor::selectedParameterSceneScope(sceneScopeState, scopedControl->key)
+                     == ardor::UiSceneScope::ThisScene,
+              "scene ownership changes should be one undoable authored edit")) return 1;
+  ardor::completeStructuralPreview(sceneScopeState);
+  sceneScopeState.scenes.transitioning = true;
+  if (require(!ardor::requestCurrentSoundCapture(sceneScopeState)
+                && sceneScopeState.statusIsError,
+              "current-sound capture should be disabled during a transition")) return 1;
+  sceneScopeState.scenes.transitioning = false;
+  const auto captureCount = sceneScopeState.bank.presets[2].sceneSet->scenes[0].targets.size();
+  std::vector<float> capturedValues(captureCount, 0.25f);
+  if (require(ardor::requestCurrentSoundCapture(sceneScopeState)
+                && ardor::completeCurrentSoundCapture(sceneScopeState, capturedValues)
+                && sceneScopeState.bank.presets[2].sceneSet->scenes[0]
+                     .targets[*scopedIndex].value.get<float>() == 0.25f
+                && sceneScopeState.bank.presets[2].sceneSet->scenes[1]
+                     .targets[*scopedIndex].value == otherSceneValue,
+              "capture should replace only the selected scene's settled owned values")) return 1;
 
   ardor::Preset wdwPreset;
   wdwPreset.version = 3;

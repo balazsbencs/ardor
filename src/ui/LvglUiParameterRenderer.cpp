@@ -841,7 +841,10 @@ void onBypassClicked(lv_event_t* event)
   lv_obj_t* control = lv_event_get_target_obj(event);
   const auto* selected = selectedUiBlock(*context->state);
   if (!selected || !previewIsSynchronized(*context->state)) return;
-  const bool enabled = !selected->enabled;
+  const auto sceneEnabled = selectedParameterSceneValue(*context->state, "blockEnabled");
+  const bool currentlyEnabled = sceneEnabled && sceneEnabled->is_boolean()
+    ? sceneEnabled->get<bool>() : selected->enabled;
+  const bool enabled = !currentlyEnabled;
   const bool wdwRequired = context->state->bank.presets[context->state->activePreset].routing == "wdw"
     && selectedBlockIsLaneChild(*context->state)
     && selected->type == "nam";
@@ -850,12 +853,24 @@ void onBypassClicked(lv_event_t* event)
     redraw(context);
     return;
   }
-  const bool updatedLive = context->ui->actions().updateBlockEnabled
-    && context->ui->actions().updateBlockEnabled(selected->id, enabled);
+  bool updatedLive = false;
+  if (const auto targetIndex = selectedParameterSceneTargetIndex(
+        *context->state, "blockEnabled")) {
+    updatedLive = context->ui->actions().updateSceneTarget
+      && context->ui->actions().updateSceneTarget(*targetIndex, enabled ? 1.0f : 0.0f);
+  } else {
+    updatedLive = context->ui->actions().updateBlockEnabled
+      && context->ui->actions().updateBlockEnabled(selected->id, enabled);
+  }
   if (updatedLive) setSelectedBlockEnabledLive(*context->state, enabled);
   else setSelectedBlockEnabled(*context->state, enabled);
   selected = selectedUiBlock(*context->state);
-  if (selected) refreshBypassControlVisual(control, !selected->enabled);
+  if (selected) {
+    const auto displayed = selectedParameterSceneValue(*context->state, "blockEnabled");
+    const bool displayedEnabled = displayed && displayed->is_boolean()
+      ? displayed->get<bool>() : selected->enabled;
+    refreshBypassControlVisual(control, !displayedEnabled);
+  }
   redraw(context);
 }
 
@@ -865,6 +880,29 @@ void onBypassMidiLearnClicked(lv_event_t* event)
   beginMidiLearnForBlockEnabled(*context->state);
   context->ui->invalidate(UiChange::Parameters | UiChange::Status);
   redraw(context);
+}
+
+void onBypassSceneScopeClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  const auto scope = selectedParameterSceneScope(*context->state, "blockEnabled");
+  if (scope == UiSceneScope::Unavailable) return;
+  setSelectedParameterSceneScope(*context->state, "blockEnabled",
+    scope == UiSceneScope::ThisScene ? UiSceneScope::Shared : UiSceneScope::ThisScene);
+  context->ui->invalidate(UiChange::Presets | UiChange::Parameters);
+}
+
+void onSceneScopeClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  const auto controls = parameterPage(*context->state, context->ui->parameterPage());
+  if (context->index >= controls.size()) return;
+  const auto& control = controls[context->index];
+  if (control.sceneScope == UiSceneScope::Unavailable) return;
+  setSelectedParameterSceneScope(*context->state, control.key,
+    control.sceneScope == UiSceneScope::ThisScene ? UiSceneScope::Shared
+                                                  : UiSceneScope::ThisScene);
+  context->ui->invalidate(UiChange::Presets | UiChange::Parameters);
 }
 
 
@@ -897,6 +935,26 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
   lv_obj_set_style_text_letter_space(visual->keyLabel, 2, 0);
   lv_obj_set_width(visual->keyLabel, kTravelWidth);
   lv_label_set_long_mode(visual->keyLabel, LV_LABEL_LONG_CLIP);
+
+  const bool scenesEnabled = context->state->bank.presets[context->state->activePreset]
+    .sceneSet.has_value();
+  if (scenesEnabled) {
+    const char* scopeText = control.sceneScope == UiSceneScope::ThisScene
+      ? "THIS SCENE" : "SHARED";
+    lv_obj_t* scope = button(slider, scopeText);
+    lv_obj_set_size(scope, 108, 28);
+    lv_obj_set_pos(scope, kParameterSliderWidth - 120, 6);
+    styleSurface(scope, control.sceneScope == UiSceneScope::ThisScene ? panelAlt : panel);
+    lv_obj_set_style_text_font(lv_obj_get_child(scope, 0),
+                               &ardor_font_saira_cond_semibold_11, 0);
+    lv_obj_set_style_text_color(lv_obj_get_child(scope, 0),
+      lv_color_hex(control.sceneScope == UiSceneScope::ThisScene ? lamp : muted), 0);
+    if (control.sceneScope == UiSceneScope::Unavailable
+        || !previewIsSynchronized(*context->state)) lv_obj_add_state(scope, LV_STATE_DISABLED);
+    lv_obj_add_event_cb(scope, onSceneScopeClicked, LV_EVENT_CLICKED,
+                        context->ui->remember(*context->state, controlIndex));
+    lv_obj_set_width(visual->keyLabel, kTravelWidth - 120);
+  }
 
   const bool continuous = control.kind == ParameterControlKind::Continuous;
   visual->valueLabel = label(slider, "", LV_ALIGN_TOP_LEFT, kParameterSliderTextInset, 27,
@@ -1125,6 +1183,9 @@ void renderBypassControl(lv_obj_t* parent, UiState& state, UiEventContext* conte
   const auto* selected = selectedUiBlock(state);
   if (!selected) return;
   const auto& block = *selected;
+  const auto sceneEnabled = selectedParameterSceneValue(state, "blockEnabled");
+  const bool displayedEnabled = sceneEnabled && sceneEnabled->is_boolean()
+    ? sceneEnabled->get<bool>() : block.enabled;
   lv_obj_t* control = lv_obj_create(parent);
   lv_obj_set_size(control, kBypassControlWidth, kPanelActionHeight);
   lv_obj_set_pos(control, kBypassControlX, kPanelActionTop);
@@ -1146,7 +1207,7 @@ void renderBypassControl(lv_obj_t* parent, UiState& state, UiEventContext* conte
                             &ardor_font_saira_cond_semibold_22, color);
     lv_obj_set_width(title, 90);
     lv_label_set_long_mode(title, LV_LABEL_LONG_CLIP);
-    lv_obj_t* value = label(layer, block.enabled ? "Off" : "On", LV_ALIGN_RIGHT_MID, -16, 0,
+    lv_obj_t* value = label(layer, displayedEnabled ? "Off" : "On", LV_ALIGN_RIGHT_MID, -16, 0,
                             &ardor_font_saira_cond_semibold_22, color);
     lv_obj_set_width(value, 44);
     lv_label_set_long_mode(value, LV_LABEL_LONG_CLIP);
@@ -1177,7 +1238,20 @@ void renderBypassControl(lv_obj_t* parent, UiState& state, UiEventContext* conte
   lv_obj_set_style_pad_all(activeTextLayer, 0, 0);
   addTextPair(activeTextLayer, 0x102014, &visual->activeValue);
 
-  refreshBypassControlVisual(control, !block.enabled);
+  if (state.bank.presets[state.activePreset].sceneSet) {
+    const auto scope = selectedParameterSceneScope(state, "blockEnabled");
+    lv_obj_t* scopeLabel = label(control,
+      scope == UiSceneScope::ThisScene ? "THIS SCENE" : "SHARED",
+      LV_ALIGN_TOP_LEFT, 16, 2, &ardor_font_saira_cond_semibold_11,
+      scope == UiSceneScope::ThisScene ? lamp : muted);
+    lv_obj_add_flag(scopeLabel, LV_OBJ_FLAG_CLICKABLE);
+    if (scope == UiSceneScope::Unavailable || !previewIsSynchronized(state))
+      lv_obj_add_state(scopeLabel, LV_STATE_DISABLED);
+    lv_obj_add_event_cb(scopeLabel, onBypassSceneScopeClicked, LV_EVENT_CLICKED,
+                        context->ui->remember(state));
+  }
+
+  refreshBypassControlVisual(control, !displayedEnabled);
   if (controlOut) *controlOut = control;
 }
 

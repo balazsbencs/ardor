@@ -67,7 +67,7 @@ bool WahProcessor::configure(const nlohmann::json& params, float sampleRate,
   return true;
 }
 
-bool WahProcessor::setParameterTarget(const std::string& key, float value)
+bool WahProcessor::setParameterTarget(std::string_view key, float value)
 {
   if (!liveParameters_ || !std::isfinite(value)) return false;
   if (key == "position") {

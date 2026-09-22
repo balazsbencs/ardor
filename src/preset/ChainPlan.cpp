@@ -99,6 +99,7 @@ ChainBlockPlan buildBlockPlan(const PresetBlock& block, const std::filesystem::p
   blockPlan.id = block.id;
   blockPlan.type = block.type;
   blockPlan.enabled = block.enabled;
+  blockPlan.sceneLetRing = block.sceneBypass == PresetSceneBypassPolicy::LetRing;
   blockPlan.params = block.params.is_null() ? nlohmann::json::object() : block.params;
   if (block.type == "cab") {
     blockPlan.level = dbToGain(std::clamp(
@@ -205,13 +206,16 @@ float dbToGain(float db)
 
 ChainPlan buildChainPlan(const Preset& preset, const std::filesystem::path& dataRoot)
 {
-  return buildChainPlanForBlocks(preset.global, preset.blocks, dataRoot, preset.midiBindings);
+  return buildChainPlanForBlocks(preset.global, preset.blocks, dataRoot,
+                                 preset.midiBindings,
+                                 preset.sceneSet ? &*preset.sceneSet : nullptr);
 }
 
 ChainPlan buildChainPlanForBlocks(const PresetGlobal& global,
                                   const std::vector<PresetBlock>& blocks,
                                   const std::filesystem::path& dataRoot,
-                                  const std::vector<PresetMidiBinding>& midiBindings)
+                                  const std::vector<PresetMidiBinding>& midiBindings,
+                                  const PresetSceneSet* sceneSet)
 {
   ChainPlan plan;
   std::unordered_set<std::string> midiEnabledBlocks;
@@ -219,6 +223,16 @@ ChainPlan buildChainPlanForBlocks(const PresetGlobal& global,
     for (const auto& action : binding.actions) {
       if (action.target == PresetMidiTargetType::BlockEnabled) {
         midiEnabledBlocks.insert(action.blockId);
+      }
+    }
+  }
+  if (sceneSet) {
+    for (const auto& scene : sceneSet->scenes) {
+      for (const auto& target : scene.targets) {
+        if (target.target == PresetSceneTargetType::BlockEnabled
+            || target.target == PresetSceneTargetType::Parameter) {
+          midiEnabledBlocks.insert(target.blockId);
+        }
       }
     }
   }

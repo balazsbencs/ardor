@@ -30,6 +30,7 @@ struct ChainBlockPlan {
   std::filesystem::path assetPath;
   nlohmann::json params = nlohmann::json::object();
   bool enabled = true;
+  bool sceneLetRing = false;
   float level = 1.0f;
   float mix = 1.0f;
   std::array<DualAmpLane, 2> dualAmpLanes;
@@ -48,7 +49,8 @@ float dbToGain(float db);
 ChainPlan buildChainPlanForBlocks(const PresetGlobal& global,
                                   const std::vector<PresetBlock>& blocks,
                                   const std::filesystem::path& dataRoot,
-                                  const std::vector<PresetMidiBinding>& midiBindings = {});
+                                  const std::vector<PresetMidiBinding>& midiBindings = {},
+                                  const PresetSceneSet* sceneSet = nullptr);
 ChainPlan buildChainPlan(const Preset& preset, const std::filesystem::path& dataRoot);
 
 } // namespace ardor
