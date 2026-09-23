@@ -3278,7 +3278,7 @@
         },
         {
           "key": "param1",
-          "label": "Size",
+          "label": "Mod Depth",
           "kind": "number",
           "unit": "%",
           "min": 0,
@@ -3957,7 +3957,7 @@
       "controls": [
         {
           "key": "decay",
-          "label": "Decay",
+          "label": "Level",
           "kind": "number",
           "unit": "%",
           "min": 0,

@@ -22,7 +22,7 @@ namespace ardor {
 class LvglUi;
 
 enum class UiContextRegion {
-  None, Preset, Edit, Tuner, Looper, Parameters, Drawer, Status, Settings, PresetName,
+  None, Preset, Scenes, Edit, Tuner, Looper, Parameters, Drawer, Status, Settings, PresetName,
 };
 
 struct UiEventContext {
@@ -95,6 +95,10 @@ struct UiActions {
   std::function<bool(DeviceUpdateStatus&, std::string&)> readUpdateStatus;
   std::function<bool(DeviceUpdateStatus&, std::string&)> checkForUpdate;
   std::function<bool(const std::string&, DeviceUpdateStatus&, std::string&)> installUpdate;
+  std::function<void(std::size_t)> selectScene;
+  std::function<void(bool)> setSceneLayer;
+  std::function<bool(std::size_t, float)> updateSceneTarget;
+  std::function<void()> requestSceneCapture;
 };
 
 struct UiLaneDropTarget {
@@ -191,6 +195,20 @@ public:
   }
 
   const UiActions& actions() const { return actions_; }
+  void setSceneActions(std::function<void(std::size_t)> selectScene,
+                       std::function<void(bool)> setSceneLayer)
+  {
+    actions_.selectScene = std::move(selectScene);
+    actions_.setSceneLayer = std::move(setSceneLayer);
+  }
+  void setSceneTargetAction(std::function<bool(std::size_t, float)> updateSceneTarget)
+  {
+    actions_.updateSceneTarget = std::move(updateSceneTarget);
+  }
+  void setSceneCaptureAction(std::function<void()> requestSceneCapture)
+  {
+    actions_.requestSceneCapture = std::move(requestSceneCapture);
+  }
 
   // The UI is built on a scaled canvas (see build()). Drag handlers read the
   // pointer in display space; these translate to the canvas' design space so
@@ -208,15 +226,18 @@ public:
   void toggleExpressionAssignment(UiState& state, const ParameterControl& control);
   void adjustMidiChannel(UiState& state, int delta);
   void adjustMidiTunerCc(UiState& state, int delta);
+  void toggleSceneLayerChord(UiState& state);
   void captureExpressionEndpoint(UiState& state, bool heel);
   void checkForUpdate(UiState& state);
   void installUpdate(UiState& state);
   void openPresetNameEditor(UiState& state);
+  void openSceneNameEditor(UiState& state);
   void savePresetName(UiState& state);
   void cancelPresetNameEditor();
 
 private:
   void renderPresetMode(lv_obj_t* root, UiState& state);
+  void renderScenesMode(lv_obj_t* root, UiState& state);
   void renderEditMode(lv_obj_t* root, UiState& state);
   void renderTunerMode(lv_obj_t* root, UiState& state);
   void renderLooperMode(lv_obj_t* root, UiState& state);
@@ -224,6 +245,7 @@ private:
   void renderSettingsView(lv_obj_t* root, UiState& state);
   void renderPresetNameEditor(lv_obj_t* root, UiState& state);
   void rebuildPresetView(UiState& state);
+  void rebuildScenesView(UiState& state);
   void rebuildEditView(UiState& state);
   void rebuildParameterView(UiState& state);
   void rebuildDrawerView(UiState& state);
@@ -240,6 +262,7 @@ private:
   void syncModeVisibility(const UiState& state);
   void syncHeaderView(const UiState& state);
   void syncPresetCards(const UiState& state);
+  void syncScenesView(const UiState& state);
   void syncStatusView(const UiState& state);
   void syncPersistentViews(UiState& state);
   void syncBlockingOverlays(const UiState& state);
@@ -259,6 +282,7 @@ private:
   lv_obj_t* focusedEqGraph_ = nullptr;
   lv_obj_t* canvas_ = nullptr;
   lv_obj_t* presetLayer_ = nullptr;
+  lv_obj_t* scenesLayer_ = nullptr;
   lv_obj_t* editLayer_ = nullptr;
   lv_obj_t* tunerLayer_ = nullptr;
   lv_obj_t* looperLayer_ = nullptr;
@@ -287,6 +311,8 @@ private:
   lv_obj_t* presetNameMessageLabel_ = nullptr;
   bool settingsOpen_ = false;
   bool presetNameEditorOpen_ = false;
+  bool editingSceneName_ = false;
+  std::size_t sceneNameTarget_ = 0;
   std::size_t settingsSection_ = 0;
   std::uint32_t audioBlockSizeDraft_ = 64;
   bool wifiPasswordVisible_ = false;
@@ -306,6 +332,15 @@ private:
   lv_obj_t* presetMasterScaleFill_ = nullptr;
   lv_obj_t* presetMasterPointer_ = nullptr;
   lv_obj_t* presetLooperLabel_ = nullptr;
+  std::array<lv_obj_t*, 4> sceneCardButtons_{};
+  std::array<lv_obj_t*, 4> sceneHeaderStrips_{};
+  std::array<lv_obj_t*, 4> sceneHeaderLabels_{};
+  std::array<lv_obj_t*, 4> sceneNameLabels_{};
+  std::array<lv_obj_t*, 4> sceneDetailLabels_{};
+  std::array<lv_obj_t*, 4> sceneProgressFills_{};
+  lv_obj_t* scenesPresetLabel_ = nullptr;
+  lv_obj_t* scenesUnsavedLabel_ = nullptr;
+  lv_obj_t* scenesFaultLabel_ = nullptr;
   lv_obj_t* editPresetLabel_ = nullptr;
   // Edit screen's own rails, mirroring the preset-screen members above.
   lv_obj_t* editModifiedLabel_ = nullptr;
@@ -372,6 +407,7 @@ private:
   std::array<lv_obj_t*, kMaxEffectBlocks> chainCategoryLabels_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainAssetLabels_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainBypassLabels_{};
+  std::array<lv_obj_t*, kMaxEffectBlocks> chainFamilyTicks_{};
   std::array<UiEventContext*, kMaxEffectBlocks> chainClickContexts_{};
   std::array<UiEventContext*, kMaxEffectBlocks> chainDragContexts_{};
   std::vector<std::string> renderedBlockIds_;

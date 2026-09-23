@@ -331,7 +331,31 @@ std::vector<ParameterControl> controlsFor(const UiState& state)
 
 std::vector<ParameterControl> parameterPage(const UiState& state, std::size_t page)
 {
-  const auto controls = controlsFor(state);
+  UiState displayedState = state;
+  const auto& set = state.bank.presets[state.activePreset].sceneSet;
+  if (set && state.editingScene < set->scenes.size()) {
+    auto& displayedPreset = displayedState.bank.presets[displayedState.activePreset];
+    auto* displayedBlock = displayedState.paramTarget == UiParamTarget::Block
+      ? selectedUiBlock(displayedState) : nullptr;
+    for (const auto& target : set->scenes[state.editingScene].targets) {
+      if (target.target == PresetSceneTargetType::InputGainDb
+          && displayedState.paramTarget == UiParamTarget::Globals && target.value.is_number()) {
+        displayedPreset.global.inputGainDb = target.value.get<float>();
+      } else if (displayedBlock && target.target == PresetSceneTargetType::Parameter
+                 && target.blockId == displayedBlock->id) {
+        displayedBlock->params[target.parameter] = target.value;
+      } else if (displayedBlock && target.target == PresetSceneTargetType::WdwLane
+                 && displayedBlock->type == "dualRig") {
+        const std::string prefix = target.lane == "dry" ? "dry" : "wet";
+        const std::string key = target.parameter == "enabled" ? prefix + "Enabled"
+          : target.parameter == "levelDb" ? prefix + "LevelDb"
+          : target.parameter == "pan" ? "dryPan" : "wetWidth";
+        displayedBlock->params[key] = target.value;
+      }
+    }
+  }
+  auto controls = controlsFor(displayedState);
+  for (auto& item : controls) item.sceneScope = selectedParameterSceneScope(state, item.key);
   const std::size_t first = page * kControlsPerPage;
   if (first >= controls.size()) {
     return {};
@@ -357,6 +381,12 @@ bool applyParameterDelta(UiState& state, const ParameterControl& control, int de
     const float value = control.value + control.step * static_cast<float>(delta);
     const auto& global = state.bank.presets[state.activePreset].global;
     if (control.key == "inputGainDb") {
+      if (control.sceneScope == UiSceneScope::ThisScene) {
+        const float next = std::clamp(value, control.minimum, control.maximum);
+        if (next == control.value) return false;
+        setActiveInputGainDb(state, next);
+        return true;
+      }
       const float before = global.inputGainDb;
       setActiveInputGainDb(state, value);
       return global.inputGainDb != before;
@@ -376,11 +406,21 @@ bool applyParameterDelta(UiState& state, const ParameterControl& control, int de
       static_cast<int>(std::lround(control.value)) + delta, 0,
       static_cast<int>(control.choices.size() - 1)));
     if (control.kind == ParameterControlKind::NormalizedChoice) {
+      if (control.sceneScope == UiSceneScope::ThisScene) {
+        if (static_cast<std::size_t>(std::lround(control.value)) == selected) return false;
+        setSelectedBlockParam(state, control.key, control.choiceValues[selected]);
+        return true;
+      }
       const float before = selectedBlock->params.value(control.key, 0.0f);
       setSelectedBlockParam(state, control.key, control.choiceValues[selected]);
       return selectedUiBlock(state)->params.value(control.key, 0.0f) != before;
     }
     if (control.kind == ParameterControlKind::Toggle) {
+      if (control.sceneScope == UiSceneScope::ThisScene) {
+        if ((control.value != 0.0f) == (selected != 0)) return false;
+        setSelectedBlockParamValue(state, control.key, selected != 0);
+        return true;
+      }
       const bool before = selectedBlock->params.value(control.key, false);
       setSelectedBlockParamValue(state, control.key, selected != 0);
       return selectedUiBlock(state)->params.value(control.key, false) != before;
@@ -399,6 +439,12 @@ bool applyParameterDelta(UiState& state, const ParameterControl& control, int de
     return selectedUiBlock(state)->params.value(control.key, std::string{}) != before;
   }
   const float value = control.value + control.step * static_cast<float>(delta);
+  if (control.sceneScope == UiSceneScope::ThisScene) {
+    const float next = std::clamp(value, control.minimum, control.maximum);
+    if (next == control.value) return false;
+    setSelectedBlockParam(state, control.key, next);
+    return true;
+  }
   const float before = selectedBlock->params.value(control.key, control.value);
   setSelectedBlockParam(state, control.key, value);
   return selectedUiBlock(state)->params.value(control.key, control.value) != before;

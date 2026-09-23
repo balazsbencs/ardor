@@ -62,6 +62,17 @@ ardor::DaisyFxProcessor makeSwellReverb()
   return processor;
 }
 
+ardor::DaisyFxProcessor makeDigitalDelay()
+{
+  ardor::DaisyFxProcessor processor;
+  std::string error;
+  require(processor.configure("delay", {
+    {"mode", "digital"}, {"time", 0.05f}, {"repeats", 0.65f}, {"mix", 1.0f},
+    {"filter", 0.5f}, {"grit", 0.0f}, {"mod_spd", 0.0f}, {"mod_dep", 0.0f},
+  }, 48000.0f, error), error);
+  return processor;
+}
+
 std::vector<float> render(ardor::RuntimeChain& chain)
 {
   std::vector<float> out;
@@ -228,7 +239,7 @@ int main()
   require(engine.setBlockEnabled("trem", false), "scene should bypass a block by stable ID");
   float previousScene = engine.process(0.5f).first;
   ardor::StereoSample sceneDry{};
-  for (int i = 0; i < 240; ++i) {
+  for (int i = 0; i < 480; ++i) {
     const auto output = engine.process(0.5f);
     require(std::fabs(output.first - previousScene) < 0.2f,
             "scene bypass should not introduce a hard discontinuity");
@@ -237,6 +248,42 @@ int main()
   }
   require(near(sceneDry.left, 0.5f) && near(sceneDry.right, 0.5f),
           "scene-bypassed block should converge to dry audio");
+
+  ardor::RuntimeChain cutTiming;
+  cutTiming.addCab({0.0f}, 1.0f, 1.0f, "silent-cab");
+  require(near(cutTiming.process({1.0f, 1.0f}).left, 0.0f),
+          "cut timing fixture should begin fully processed");
+  require(cutTiming.setBlockEnabled("silent-cab", false),
+          "cut timing fixture should accept bypass");
+  float cutValue = 0.0f;
+  for (int frame = 0; frame < 240; ++frame) cutValue = cutTiming.process({1.0f, 1.0f}).left;
+  require(std::fabs(cutValue - 0.5f) < 0.01f,
+          "scene Cut should reach its midpoint after 5 ms");
+  for (int frame = 240; frame < 480; ++frame) cutValue = cutTiming.process({1.0f, 1.0f}).left;
+  require(near(cutValue, 1.0f), "scene Cut should reach dry after 10 ms");
+
+  ardor::RuntimeChain cutTail;
+  ardor::RuntimeChain tailReference;
+  cutTail.addDaisy("delay", makeDigitalDelay());
+  tailReference.addDaisy("delay", makeDigitalDelay());
+  (void)cutTail.process({1.0f, 1.0f});
+  (void)tailReference.process({1.0f, 1.0f});
+  require(cutTail.setBlockEnabled("delay", false), "tail fixture should accept Cut bypass");
+  for (int frame = 0; frame < 3000; ++frame) {
+    (void)cutTail.process({});
+    (void)tailReference.process({});
+  }
+  require(cutTail.setBlockEnabled("delay", true), "tail fixture should re-enable");
+  for (int frame = 0; frame < 480; ++frame) {
+    (void)cutTail.process({});
+    (void)tailReference.process({});
+  }
+  for (int frame = 0; frame < 128; ++frame) {
+    const auto resumed = cutTail.process({});
+    const auto reference = tailReference.process({});
+    require(near(resumed.left, reference.left) && near(resumed.right, reference.right),
+            "Cut bypass must drain hidden time-effect history instead of freezing it");
+  }
   require(!engine.setBlockEnabled("missing", true), "missing scene block ID rejected");
   require(engine.setBlockEnabled("trem", true), "scene should re-enable a prepared block");
 
@@ -329,6 +376,143 @@ int main()
               "the tape block must stay finite in the chain");
     }
     tapeChain.reset();
+  }
+
+  // Let-ring scene bypass keeps the IR reverb's already-generated wet signal
+  // audible after the 10 ms bypass transition. Cut drains the same internal
+  // history silently.
+  {
+    std::vector<float> tailIr(4096);
+    for (std::size_t i = 0; i < tailIr.size(); ++i) {
+      tailIr[i] = 0.2f * std::exp(-4.0f * static_cast<float>(i) / tailIr.size());
+    }
+    ardor::RuntimeChain letRing;
+    ardor::RuntimeChain letRingWithDry;
+    ardor::RuntimeChain cut;
+    require(letRing.addIrReverb("ring", tailIr, {}, 48000.0f, error, true), error);
+    require(letRingWithDry.addIrReverb("ring-dry", tailIr, {}, 48000.0f, error, true), error);
+    require(cut.addIrReverb("cut", tailIr, {}, 48000.0f, error, false), error);
+    require(letRing.setIrReverbParameter("ring", "mix", 1.0f), "set let-ring mix");
+    require(letRingWithDry.setIrReverbParameter("ring-dry", "mix", 1.0f), "set dry-probe mix");
+    require(cut.setIrReverbParameter("cut", "mix", 1.0f), "set cut mix");
+    letRing.reset();
+    letRingWithDry.reset();
+    cut.reset();
+    for (int i = 0; i < 256; ++i) {
+      const float input = i == 0 ? 1.0f : 0.0f;
+      (void)letRing.process({input, input});
+      (void)letRingWithDry.process({input, input});
+      (void)cut.process({input, input});
+    }
+    ardor::SceneRuntimeAddress bypassAddress;
+    bypassAddress.kind = ardor::SceneRuntimeTargetKind::BlockEnabled;
+    require(letRing.applySceneTarget(bypassAddress, 0.0f), "scene-disable let-ring reverb");
+    require(letRingWithDry.applySceneTarget(bypassAddress, 0.0f), "scene-disable dry-probe reverb");
+    require(cut.applySceneTarget(bypassAddress, 0.0f), "scene-disable cut reverb");
+    float ringPeak = 0.0f;
+    float cutPeak = 0.0f;
+    float worstDryError = 0.0f;
+    for (int i = 0; i < 1400; ++i) {
+      const auto ringOut = letRing.process({});
+      const float dryInput = i >= 500 ? 0.25f : 0.0f;
+      const auto dryOut = letRingWithDry.process({dryInput, dryInput});
+      const auto cutOut = cut.process({});
+      if (i >= 500) {
+        ringPeak = std::max(ringPeak, std::fabs(ringOut.left));
+        cutPeak = std::max(cutPeak, std::fabs(cutOut.left));
+        worstDryError = std::max(worstDryError,
+          std::fabs((dryOut.left - ringOut.left) - dryInput));
+      }
+    }
+    require(ringPeak > 1.0e-4f, "let ring should preserve wet output after bypass settles");
+    require(cutPeak < 1.0e-6f, "cut should silence wet output after bypass settles");
+    require(worstDryError < 1.0e-5f, "let ring should add exactly one live dry path");
+
+    require(letRing.applySceneTarget(bypassAddress, 1.0f), "scene re-enable let-ring reverb");
+    float previous = letRing.process({}).left;
+    for (int i = 0; i < 512; ++i) {
+      const float current = letRing.process({}).left;
+      require(std::isfinite(current), "let-ring re-enable stays finite");
+      require(std::fabs(current - previous) < 0.25f,
+              "let-ring re-enable avoids a hard discontinuity");
+      previous = current;
+    }
+
+    ardor::RuntimeChain blockRing;
+    require(blockRing.addIrReverb("block-ring", tailIr, {}, 48000.0f, error, true), error);
+    require(blockRing.setIrReverbParameter("block-ring", "mix", 1.0f), "set block let-ring mix");
+    blockRing.prepareBlockSize(64);
+    blockRing.reset();
+    float input[64]{};
+    float left[64]{};
+    float right[64]{};
+    input[0] = 1.0f;
+    blockRing.processBlock(input, left, right, 64);
+    input[0] = 0.0f;
+    for (int i = 0; i < 3; ++i) blockRing.processBlock(input, left, right, 64);
+    require(blockRing.applySceneTarget(bypassAddress, 0.0f), "block scene-disable let-ring reverb");
+    float blockTailPeak = 0.0f;
+    for (int block = 0; block < 20; ++block) {
+      blockRing.processBlock(input, left, right, 64);
+      if (block >= 8) {
+        for (float sample : left) blockTailPeak = std::max(blockTailPeak, std::fabs(sample));
+      }
+    }
+    require(blockTailPeak > 1.0e-4f, "block processing should preserve the let-ring tail");
+
+    const nlohmann::json delayParams = {
+      {"mode", "digital"}, {"time", 0.05f}, {"repeats", 0.65f},
+      {"mix", 1.0f}, {"filter", 0.5f}, {"grit", 0.0f},
+      {"mod_spd", 0.0f}, {"mod_dep", 0.0f},
+    };
+    ardor::DaisyFxProcessor delayProcessor;
+    ardor::DaisyFxProcessor cutDelayProcessor;
+    require(delayProcessor.configure("delay", delayParams, 48000.0f, error), error);
+    require(cutDelayProcessor.configure("delay", delayParams, 48000.0f, error), error);
+    ardor::RuntimeChain delayRing;
+    ardor::RuntimeChain delayCut;
+    delayRing.addDaisy("delay-ring", std::move(delayProcessor), true);
+    delayCut.addDaisy("delay-cut", std::move(cutDelayProcessor), false);
+    for (int i = 0; i < 128; ++i) {
+      const float sample = i == 0 ? 1.0f : 0.0f;
+      (void)delayRing.process({sample, sample});
+      (void)delayCut.process({sample, sample});
+    }
+    require(delayRing.applySceneTarget(bypassAddress, 0.0f), "scene-disable let-ring delay");
+    require(delayCut.applySceneTarget(bypassAddress, 0.0f), "scene-disable cut delay");
+    float delayRingPeak = 0.0f;
+    float delayCutPeak = 0.0f;
+    for (int i = 0; i < 12000; ++i) {
+      const auto ringOut = delayRing.process({});
+      const auto cutOut = delayCut.process({});
+      if (i >= 500) {
+        delayRingPeak = std::max(delayRingPeak, std::fabs(ringOut.left));
+        delayCutPeak = std::max(delayCutPeak, std::fabs(cutOut.left));
+      }
+    }
+    require(delayRingPeak > 1.0e-4f, "hosted delay let ring should preserve repeats");
+    require(delayCutPeak < 1.0e-6f, "hosted delay Cut should silence settled repeats");
+
+    const nlohmann::json reverbParams = {
+      {"mode", "room"}, {"decay", 0.45f}, {"pre_delay", 0.0f},
+      {"mix", 1.0f}, {"tone", 0.5f}, {"mod", 0.2f},
+      {"param1", 0.0f}, {"param2", 0.0f},
+    };
+    ardor::DaisyFxProcessor reverbProcessor;
+    require(reverbProcessor.configure("reverb", reverbParams, 48000.0f, error), error);
+    ardor::RuntimeChain reverbRing;
+    reverbRing.addDaisy("reverb-ring", std::move(reverbProcessor), true);
+    for (int i = 0; i < 512; ++i) {
+      const float sample = i == 0 ? 1.0f : 0.0f;
+      (void)reverbRing.process({sample, sample});
+    }
+    require(reverbRing.applySceneTarget(bypassAddress, 0.0f), "scene-disable let-ring reverb");
+    float hostedReverbPeak = 0.0f;
+    for (int i = 0; i < 12000; ++i) {
+      const auto output = reverbRing.process({});
+      if (i >= 500) hostedReverbPeak = std::max(hostedReverbPeak, std::fabs(output.left));
+    }
+    require(hostedReverbPeak > 1.0e-5f, "hosted reverb let ring should preserve decay");
   }
 
   // Live controls are written by the UI/control thread while DSP runs on the

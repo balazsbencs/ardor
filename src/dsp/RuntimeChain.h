@@ -4,6 +4,7 @@
 #include "dsp/IrReverbProcessor.h"
 #include "dsp/StereoWidenerProcessor.h"
 #include "dsp/SignalRouting.h"
+#include "dsp/SceneTransition.h"
 #include "daisyfx/DaisyFxProcessor.h"
 #include "dynamics/CompressorProcessor.h"
 #include "dynamics/NoiseGateProcessor.h"
@@ -53,12 +54,12 @@ public:
   void addCab(std::vector<float> impulse, float level, float mix, std::string id = "cab");
   // Convolution reverb. `right` may be empty for a mono impulse.
   bool addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
-                   float sampleRate, std::string& error);
+                   float sampleRate, std::string& error, bool sceneLetRing = false);
   bool setIrReverbParameter(const std::string& id, const std::string& key, float value);
   bool setCabParameter(const std::string& id, const std::string& key, float value);
   bool addStereoWidener(std::string id, float sampleRate, std::string& error);
   bool setStereoWidenerParameter(const std::string& id, const std::string& key, float value);
-  void addDaisy(std::string id, DaisyFxProcessor processor);
+  void addDaisy(std::string id, DaisyFxProcessor processor, bool sceneLetRing = false);
   void addCompressor(std::string id, CompressorProcessor processor);
   void addNoiseGate(std::string id, NoiseGateProcessor processor);
   void addTransientShaper(std::string id, TransientShaperProcessor processor);
@@ -80,6 +81,7 @@ public:
   bool setWahParameter(const std::string& id, const std::string& key, float value);
   bool setDistortionParameter(const std::string& id, const std::string& key, float value);
   bool setBlockEnabled(const std::string& id, bool enabled);
+  bool applySceneTarget(const SceneRuntimeAddress& address, float value) noexcept;
   // Negative cab arguments use each cabinet block's prepared level/mix. The
   // PedalEngine supplies non-negative smoothed values for its legacy
   // top-level cabinet control; nested Dual Rig lanes use prepared values.

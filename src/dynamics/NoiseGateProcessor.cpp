@@ -84,7 +84,7 @@ bool NoiseGateProcessor::configure(const nlohmann::json& params, float sampleRat
   return true;
 }
 
-bool NoiseGateProcessor::setParameterTarget(const std::string& key, float value)
+bool NoiseGateProcessor::setParameterTarget(std::string_view key, float value)
 {
   if (!liveParameters_ || !std::isfinite(value)) return false;
   std::atomic<float>* target = nullptr;

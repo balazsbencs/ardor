@@ -1,0 +1,7 @@
+{
+  "prompt": "Use case: precise-object-edit\nAsset type: corrected approved desktop web UI concept\nInput image: user-manual-a-sidecar.png is the edit target.\nPrimary request: Correct only the rotary encoder’s physical mounting. It must be mounted vertically through the enclosure’s top panel, centered horizontally and positioned near the rear edge of the top face. Its base must visibly rest on the horizontal textured surface inside the enclosure outline, slightly behind the touchscreen—not on the rear wall, side wall, or outside silhouette. Preserve the entire Version A composition and interaction state.\nInvariants: keep the navigation, typography, copy, contextual sidecar, FS1+FS2 pressed state, leader line, hold progress, combination table, touchscreen content, pedal proportions, four footswitch positions, lighting, colors, materials, and spacing.\nConstraints: move only the encoder and the minimum surrounding pixels required for a credible top-panel mount; add or remove no controls; do not move the footswitches or screen; no watermark.",
+  "approved": true,
+  "approvalNote": "Version A approved by user; encoder corrected to top-panel mounting.",
+  "generatedWith": "built-in imagegen",
+  "reference": ".impeccable/mocks/user-manual-a-sidecar.png"
+}

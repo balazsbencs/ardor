@@ -65,6 +65,26 @@ Preset files live under the data root in bank/slot folders, for example:
 
 Block assets inside preset JSON stay relative to that same data root, such as `models/clean.nam`, `irs/open-back.wav`, or `reverb-irs/small-room.wav`. Cabinet IRs and convolution reverb IRs use separate directories. Existing convolution presets that reference an installed `irs/` asset remain compatible, while new reverb selections use `reverb-irs/`. Absolute paths and `..` traversal are rejected. Real `.nam` models and IRs stay local and are not committed unless redistribution is allowed.
 
+### Scenes
+
+Version-4 presets contain four named scenes. A scene changes prepared parameter
+values, qualified effect bypass states, input gain, WDW lane values, and a
+post-rig trim without rebuilding the audio engine. Each scene can switch
+instantly or transition over 0.1–10 seconds.
+
+Hold footswitches 1 and 2 for 600 ms to enter or leave the dedicated Scenes
+layer. The four footswitches then recall the four scene plates. The touchscreen
+and Manager show the live scene separately from the scene being edited.
+
+Qualified delay and reverb blocks offer shared **Cut** and **Let ring** bypass
+policies. Let ring stops new wet input while the existing decay continues for a
+bounded lifetime. Version-4 data survives preset copies, backup/restore, hosted
+read/write, and Looper source snapshots. Explicit flattening resolves one scene,
+folds its trim into output gain, removes scene-only mappings, and produces the
+minimum compatible ordinary preset version. See
+[`presets/bank-002/preset-1.json`](presets/bank-002/preset-1.json) for an
+asset-free example.
+
 ### Supported Parameters
 
 Preset globals:

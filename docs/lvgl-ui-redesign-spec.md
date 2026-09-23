@@ -371,17 +371,17 @@ numeral takes `lamp`.
 3-segment group rule. The full header is a labeled `DRAG` surface rather than containing a
 small grip; its 64 px height is deliberate for reliable touchscreen acquisition. A tap on
 either header or body still opens the block. Compact Dual Rig lane cards use the same pattern
-with a 52 px header. States: normal, selected (`engrave` border), bypassed (`plate3` body,
-`rule` header, `engrave_off` text).
+with a 52 px header. States: normal, selected (`engrave` border), bypassed (transparent body,
+dashed `rule` perimeter, `rule` header, `engrave_off` text, explicit `OFF` readout).
 
 ### 8.6 Patch point
 15 px circle, 2 px `engrave_lo` border, on a 1 px connecting rule. Insertion variant is
 19 px with a `+` glyph and a `rule` border.
 
-### 8.7 Bypass jumper
-An `lv_line` drawn above the module layer in `lamp`, entering and leaving at the patch points
-either side of the bypassed block, with a `BYP` legend. Requires correct z-order during drag —
-this is the one component that touches `LvglUiDrag.cpp`.
+### 8.7 Bypass outline
+A bypassed module keeps its exact footprint but drops its filled face and family colour. A
+2 px dashed `rule` perimeter and an `OFF` readout carry the state without spending `lamp` or
+moving the surrounding chain. Selection may add the ordinary solid `engrave` perimeter.
 
 ### 8.8 Annunciator toast
 See § 10.
@@ -426,7 +426,7 @@ Two existing decorative marks are retired: the settings gear icon
 | Screen | Source file | Change |
 |---|---|---|
 | Preset | `LvglUiPreset.cpp` | Grid cells transposed to column-major; card restyled (§ 13.1) |
-| Edit chain | `LvglUiEdit.cpp`, `LvglChainLayout.cpp` | Restyle; bypass becomes a jumper |
+| Edit chain | `LvglUiEdit.cpp`, `LvglChainLayout.cpp` | Restyle; bypass becomes an outline frame |
 | Split lanes | `LvglUiEdit.cpp` | Restyle as a bracketed module group |
 | Module drawer | `LvglUiDrawer.cpp` | Restyle; filters wrap to 4 + 3 rows; footer count |
 | Parameters | `LvglUiParameters.cpp`, `LvglUiParameterRenderer.cpp` | Sliders become travel scales |
@@ -545,7 +545,7 @@ One authored moment, not scattered effects.
   device, not in the simulator — panel gamma and viewing angle change the result.
 - All touch targets ≥ 44 px including text-only controls.
 - Colour is never the only carrier of a state. Live also has a lamp and a border; bypassed
-  also has a recessed body and a jumper; fault also has hatch and legend text.
+  also has a transparent body, dashed frame, and `OFF` readout; fault also has hatch and legend text.
 - Verify at a steep angle in low light, standing, with the pedal on the floor. This is the
   primary operating scene per `PRODUCT.md` § Operating Context.
 
@@ -566,8 +566,8 @@ toast, dialog in `LvglUiStyle.cpp`. Migrate `button()` and `label()` callers.
 **Phase 4 — Preset screen.** Cell transpose plus restyle. See § 13.1 for the detailed
 breakdown. Highest user-visible value; ship it alone if nothing else lands.
 
-**Phase 5 — Edit, drawer, split.** Block cards, patch points, bypass jumper, drawer
-restyle. Touches `LvglUiDrag.cpp` for jumper z-order.
+**Phase 5 — Edit, drawer, split.** Block cards, patch points, bypass outline, drawer
+restyle.
 
 **Phase 6 — Parameters, EQ, tuner.** Travel scales, curve stroke, engraved meter. Includes
 the EQ interaction model (§ 9.1): shoulder grips, band editor strip, and encoder retargeting.
@@ -895,11 +895,10 @@ block.
 Becomes `laneL` / `laneR`. This is the only place lane identity is expressed, so it is a
 two-line change once the tokens exist.
 
-**5c. Bypass jumper (§ 8.7).** The one genuinely new mechanic. An `lv_line` above the module
-layer, entering and leaving at the patch points either side of the bypassed block. Z-order
-during drag is the hazard: the jumper must not paint over a card being dragged. Draw it into
-the same layer the drag indicator uses (`LvglUiDrag.cpp:33, 53`) and rebuild it on
-`endInteraction()`, never mid-drag.
+**5c. Bypass outline (§ 8.7).** Draw the frame in the card's post-draw event using four dashed
+lines. Keep the card object and dimensions unchanged, clear only its body fill, neutralise the
+family header and ticks, and expose `OFF`. The custom state must update on retained-card sync so
+an enable/bypass toggle does not require rebuilding the chain.
 
 **5d. Drawer restyle.** Filters wrap 4 + 3 (seven will not fit across 480 px at a legible
 size). Footer carries visible/total count. The category accent bar at `:303, 516` becomes the
@@ -914,7 +913,7 @@ acceptable), and missing assets listed rather than hidden so a broken preset is 
 from the pedal.
 
 **Definition of done.** Chain, split, drawer and asset library all in the new system; bypass
-reads as a jumper; no left accent bars remain; drag still passes `lvgl_ui_smoke`.
+reads as an outline frame; no left accent bars remain; drag still passes `lvgl_ui_smoke`.
 
 ---
 

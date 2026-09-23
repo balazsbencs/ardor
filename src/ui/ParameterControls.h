@@ -26,6 +26,7 @@ struct ParameterControl {
   ParameterControlKind kind = ParameterControlKind::Continuous;
   std::vector<std::string> choices;
   std::vector<float> choiceValues;
+  UiSceneScope sceneScope = UiSceneScope::Unavailable;
 };
 
 std::vector<ParameterControl> parameterPage(const UiState& state, std::size_t page);

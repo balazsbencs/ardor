@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -18,6 +18,22 @@ describe("BlockInspector", () => {
 
     expect(screen.getByRole("combobox", { name: "Reverb IR" })).toHaveValue("irs/legacy-room.wav");
     expect(screen.queryByText("Missing")).not.toBeInTheDocument();
+  });
+
+  it("offers Cut and Let ring for IR reverb while scenes are enabled", async () => {
+    const user = userEvent.setup();
+    const block = createBlockFromDefinition("irreverb", []);
+    const onSceneBypass = vi.fn();
+    renderWithProviders(<BlockInspector block={block} issues={[]} models={[]} irs={[]}
+      scenesEnabled onSceneBypass={onSceneBypass} onToggle={() => undefined}
+      onParam={() => undefined} onAsset={() => undefined} onMode={() => undefined}
+      onEqBand={() => undefined} onReset={() => undefined} onDuplicate={() => undefined}
+      onDelete={() => undefined} onAssets={() => undefined} />);
+
+    const policy = screen.getByRole("combobox", { name: "On scene bypass" });
+    expect(policy).toHaveValue("letRing");
+    await user.selectOptions(policy, "cut");
+    expect(onSceneBypass).toHaveBeenCalledWith(block.id, "cut");
   });
 
   it("offers the nano model as an opt-in switch", async () => {
@@ -73,6 +89,24 @@ describe("BlockInspector", () => {
     expect(screen.getByText("98.1 ms")).toBeInTheDocument();
     expect(screen.getByRole("slider", { name: "Time" })).toHaveAttribute("step", "0.001");
     expect(screen.getByRole("slider", { name: "Flutter Rate" })).toHaveAttribute("step", "0.001");
+  });
+
+  it("exposes explicit Shared and This scene ownership for scene-capable values", async () => {
+    const user = userEvent.setup();
+    const block = createBlockFromDefinition("delay:tape", []);
+    const onSceneScope = vi.fn();
+    renderWithProviders(<BlockInspector block={block} issues={[]} models={[]} irs={[]}
+      scenesEnabled sceneScopeFor={() => "scene"}
+      onSceneScope={onSceneScope} onToggle={() => undefined} onParam={() => undefined}
+      onAsset={() => undefined} onMode={() => undefined} onEqBand={() => undefined}
+      onReset={() => undefined} onDuplicate={() => undefined} onDelete={() => undefined}
+      onAssets={() => undefined} />);
+
+    const timeOwnership = screen.getByRole("group", { name: "Time ownership" });
+    expect(timeOwnership).toHaveTextContent("This scene");
+    expect(timeOwnership.querySelector('[aria-pressed="true"]')).toHaveTextContent("This scene");
+    await user.click(within(timeOwnership).getByRole("button", { name: "This scene" }));
+    expect(onSceneScope).toHaveBeenCalled();
   });
 
   it("edits high-pass and low-pass stages around the five EQ bands", async () => {

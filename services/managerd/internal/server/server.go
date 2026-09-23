@@ -3,6 +3,8 @@ package server
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -233,16 +235,20 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 			"dataRootWritable":       true,
 			"maxBanks":               100,
 			"slotsPerBank":           4,
-			"supportedPresetVersion": 3,
+			"supportedPresetVersion": 4,
 			"capabilities": map[string]bool{
 				"modelUpload": true, "irUpload": true, "presetRead": true,
 				"presetWrite": true, "presetApply": true, "assetRename": true,
 				"wifiSettings": true, "softwareUpdate": updateManager.Status().Enabled,
 				"tone3000": localTone3000 != nil,
-				"backup":   true,
+				"backup":   true, "sceneRecall": true, "sceneTelemetry": true,
 			},
 		}
 		if active, err := runtimecontrol.ReadActivePreset(cfg.DataRoot); err == nil {
+			active.StoredRevisionMatches = false
+			if stored, loadErr := presetStore.Load(active.Bank, active.Slot); loadErr == nil {
+				active.StoredRevisionMatches = active.Revision != "" && active.Revision == presetRevision(stored.Preset)
+			}
 			status["active"] = active
 		}
 		writeJSON(w, http.StatusOK, status)
@@ -646,7 +652,21 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 			writeError(w, http.StatusBadRequest, "preset_not_runnable", err.Error())
 			return
 		}
-		id, err := runtimecontrol.QueueApplyPresetWithID(cfg.DataRoot, bank, slot)
+		var request struct {
+			SceneID string `json:"sceneId"`
+		}
+		if r.ContentLength != 0 && !decodeLocalJSON(w, r, &request, 4096) {
+			return
+		}
+		if len(request.SceneID) > 128 {
+			writeError(w, http.StatusBadRequest, "invalid_scene", "Scene identifier is too long")
+			return
+		}
+		if request.SceneID != "" && !presetContainsScene(preset.Preset, request.SceneID) {
+			writeError(w, http.StatusBadRequest, "scene_not_found", "Scene does not exist in this preset revision")
+			return
+		}
+		id, err := runtimecontrol.QueueApplyPresetSceneWithID(cfg.DataRoot, bank, slot, request.SceneID, presetRevision(preset.Preset))
 		if err != nil {
 			writeError(w, http.StatusServiceUnavailable, "runtime_command_failed", err.Error())
 			return
@@ -677,6 +697,41 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 		writeJSON(w, code, status)
 	})
 
+	mux.HandleFunc("POST /api/runtime/scenes/{sceneId}/recall", func(w http.ResponseWriter, r *http.Request) {
+		if !authorized(w, r, cfg, authStore) {
+			return
+		}
+		active, err := runtimecontrol.ReadActivePreset(cfg.DataRoot)
+		if err != nil || active.Generation == 0 {
+			writeError(w, http.StatusConflict, "scene_runtime_unavailable", "No scene-capable preset revision is active")
+			return
+		}
+		var request struct {
+			Generation uint64 `json:"generation"`
+			RequestID  string `json:"requestId"`
+		}
+		if !decodeLocalJSON(w, r, &request, 4096) {
+			return
+		}
+		if request.Generation != active.Generation {
+			writeError(w, http.StatusConflict, "stale_scene_generation", "The pedal is running a different preset revision")
+			return
+		}
+		sceneID := r.PathValue("sceneId")
+		if sceneID == "" || len(sceneID) > 128 || request.RequestID == "" || len(request.RequestID) > 128 {
+			writeError(w, http.StatusBadRequest, "invalid_scene_recall", "Scene and request identifiers are required")
+			return
+		}
+		if err := runtimecontrol.QueueSceneRecall(cfg.DataRoot, request.Generation, sceneID, request.RequestID); err != nil {
+			writeError(w, http.StatusServiceUnavailable, "runtime_command_failed", err.Error())
+			return
+		}
+		writeJSON(w, http.StatusAccepted, map[string]any{
+			"accepted": true, "generation": request.Generation, "sceneId": sceneID,
+			"requestId": request.RequestID,
+		})
+	})
+
 	mux.Handle("GET /", webUIHandler(webFiles))
 
 	return withCORS(mux), nil
@@ -684,6 +739,33 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 
 func versionOrDefault(value string) string {
 	return stringOrDefault(value, "0.0.0")
+}
+
+func presetContainsScene(preset presets.Preset, sceneID string) bool {
+	sceneSet, ok := preset["sceneSet"].(map[string]any)
+	if !ok {
+		return false
+	}
+	scenes, ok := sceneSet["scenes"].([]any)
+	if !ok {
+		return false
+	}
+	for _, value := range scenes {
+		scene, ok := value.(map[string]any)
+		if ok && scene["id"] == sceneID {
+			return true
+		}
+	}
+	return false
+}
+
+func presetRevision(preset presets.Preset) string {
+	body, err := json.Marshal(preset)
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(body)
+	return hex.EncodeToString(sum[:])
 }
 
 func stringOrDefault(value, fallback string) string {

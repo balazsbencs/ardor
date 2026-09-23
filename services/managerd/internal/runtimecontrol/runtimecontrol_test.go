@@ -63,3 +63,33 @@ func TestReadApplyStatusRejectsUnsafeIDs(t *testing.T) {
 		t.Fatalf("unsafe id error=%v", err)
 	}
 }
+
+func TestQueueSceneRecallUsesEphemeralCommandChannel(t *testing.T) {
+	root := t.TempDir()
+	if err := QueueSceneRecall(root, 42, "scene-solo", "request-1"); err != nil {
+		t.Fatal(err)
+	}
+	body, err := os.ReadFile(filepath.Join(root, "runtime", "live-commands", mustOnlyEntry(t, filepath.Join(root, "runtime", "live-commands"))))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var command Command
+	if err := json.Unmarshal(body, &command); err != nil {
+		t.Fatal(err)
+	}
+	if command.Type != TypeRecallScene || command.Generation != 42 || command.SceneID != "scene-solo" || command.RequestID != "request-1" {
+		t.Fatalf("scene command=%+v", command)
+	}
+	if _, err := os.Stat(filepath.Join(root, "runtime", "commands")); !os.IsNotExist(err) {
+		t.Fatal("scene recall leaked into durable command queue")
+	}
+}
+
+func mustOnlyEntry(t *testing.T, directory string) string {
+	t.Helper()
+	entries, err := os.ReadDir(directory)
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("entries=%v error=%v", entries, err)
+	}
+	return entries[0].Name()
+}

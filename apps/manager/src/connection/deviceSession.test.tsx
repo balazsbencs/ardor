@@ -48,11 +48,14 @@ function Probe() {
       <span data-testid="name">{session.current?.preset.name ?? "none"}</span>
       <span data-testid="active">{session.device?.active
         ? `${session.device.active.bank}:${session.device.active.slot}` : "none"}</span>
+      <span data-testid="revision-match">{String(session.device?.active?.storedRevisionMatches)}</span>
       <span data-testid="token-focus">{String(session.needsTokenFocus)}</span>
       <span data-testid="reverb-ir-support">{String(session.supportsReverbIrs)}</span>
       <span>{session.error?.message}</span>
       <button type="button" onClick={() => void session.connect("http://pedal", "secret")}>Connect</button>
       <button type="button" onClick={session.disconnect}>Disconnect</button>
+      <button type="button" onClick={() => session.current && void session.saveCurrent(session.current.preset)}>Save current</button>
+      <button type="button" onClick={() => void session.recallScene?.("solo")}>Recall solo</button>
     </div>
   );
 }
@@ -132,6 +135,29 @@ describe("DeviceSessionProvider", () => {
     await waitFor(() => expect(screen.getByTestId("active")).toHaveTextContent("2:3"));
   });
 
+  it("keeps the editing session connected through a transient status-poll failure", async () => {
+    let calls = 0;
+    const client = mockClient({
+      getDevice: vi.fn(async () => {
+        calls += 1;
+        if (calls > 1) throw new TypeError("Temporary network loss");
+        return { ...device, active: { bank: 1, slot: 0, name: "First" } };
+      }),
+    });
+    let refresh: (() => void) | undefined;
+    vi.spyOn(window, "setInterval").mockImplementation((handler: TimerHandler, timeout?: number) => {
+      if (timeout === 2_000 && typeof handler === "function") refresh = handler as () => void;
+      return 1;
+    });
+    renderSession(() => client);
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    await screen.findByText("connected");
+    await waitFor(() => expect(refresh).toBeTypeOf("function"));
+    await act(async () => { refresh?.(); await Promise.resolve(); });
+    expect(screen.getByTestId("status")).toHaveTextContent("connected");
+    expect(screen.getByTestId("active")).toHaveTextContent("1:0");
+  });
+
   it("connects to older devices that do not expose a reverb IR inventory", async () => {
     const client = mockClient({
       listAssets: vi.fn(async (kind) => {
@@ -203,5 +229,32 @@ describe("DeviceSessionProvider", () => {
     expect(getDevice).toHaveBeenCalledTimes(1);
     await act(async () => resolveDevice(device));
     await screen.findByText("connected");
+  });
+
+  it("invalidates active revision matching immediately after save", async () => {
+    const activeDevice = { ...device, active: { bank: 0, slot: 0, generation: 72, storedRevisionMatches: true } };
+    const client = mockClient({
+      getDevice: vi.fn(async () => activeDevice),
+      savePreset: vi.fn(async (bank, slot, preset) => ({ bank, slot, preset })),
+    });
+    renderSession(() => client);
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    await screen.findByText("connected");
+    expect(screen.getByTestId("revision-match")).toHaveTextContent("true");
+    await userEvent.click(screen.getByRole("button", { name: "Save current" }));
+    await waitFor(() => expect(screen.getByTestId("revision-match")).toHaveTextContent("false"));
+  });
+
+  it("binds scene recall to the active generation", async () => {
+    const recallScene = vi.fn(async () => ({ accepted: true, generation: 72, sceneId: "solo", requestId: "request" }));
+    const client = mockClient({
+      getDevice: vi.fn(async () => ({ ...device, active: { bank: 0, slot: 0, generation: 72, storedRevisionMatches: true } })),
+      recallScene,
+    });
+    renderSession(() => client);
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    await screen.findByText("connected");
+    await userEvent.click(screen.getByRole("button", { name: "Recall solo" }));
+    expect(recallScene).toHaveBeenCalledWith("solo", 72, expect.any(String));
   });
 });

@@ -171,9 +171,10 @@ void PedalEngine::addCab(std::vector<float> impulse, float level, float mix, std
 }
 
 bool PedalEngine::addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
-                              float sampleRate, std::string& error)
+                              float sampleRate, std::string& error, bool sceneLetRing)
 {
-  return chain_.addIrReverb(std::move(id), std::move(left), std::move(right), sampleRate, error);
+  return chain_.addIrReverb(std::move(id), std::move(left), std::move(right), sampleRate, error,
+                            sceneLetRing);
 }
 
 bool PedalEngine::setIrReverbParameter(const std::string& id, const std::string& key, float value)
@@ -209,13 +210,13 @@ bool PedalEngine::setStereoWidenerParameter(const std::string& id, const std::st
 }
 
 bool PedalEngine::addDaisyFx(std::string id, const std::string& blockType, const nlohmann::json& params,
-                             float sampleRate, std::string& error)
+                             float sampleRate, std::string& error, bool sceneLetRing)
 {
   DaisyFxProcessor processor;
   if (!processor.configure(blockType, params, sampleRate, error)) {
     return false;
   }
-  chain_.addDaisy(std::move(id), std::move(processor));
+  chain_.addDaisy(std::move(id), std::move(processor), sceneLetRing);
   return true;
 }
 
@@ -364,11 +365,15 @@ void PedalEngine::prepareBlockSize(size_t frames)
   gainedInput_.assign(frames, 0.0f);
   cabLevelBlock_.assign(frames, 1.0f);
   cabMixBlock_.assign(frames, 1.0f);
+  sceneInputGainBlock_.assign(frames, 1.0f);
+  sceneTrimBlock_.assign(frames, 1.0f);
   chain_.prepareBlockSize(frames);
 }
 
 void PedalEngine::clearEffects()
 {
+  sceneTransition_.reset();
+  sceneInputGainTarget_ = static_cast<std::size_t>(-1);
   flexibleRouting_.reset();
   wdwRouting_.reset();
   chain_.clear();
@@ -453,6 +458,103 @@ bool PedalEngine::tryEnqueueLooperCommand(const LooperCommand& command) noexcept
 bool PedalEngine::tryReadLooperTelemetry(LooperTelemetry& telemetry) noexcept
 {
   return looperPrepared() && looper_.tryReadTelemetry(telemetry);
+}
+
+bool PedalEngine::installPreparedScenes(SceneTransitionProgram program, std::string& error)
+{
+  auto controller = std::make_unique<SceneTransitionController>();
+  if (!controller->prepare(std::move(program))) {
+    error = "scene transition program is invalid";
+    return false;
+  }
+  sceneTransition_ = std::move(controller);
+  sceneInputGainTarget_ = static_cast<std::size_t>(-1);
+  const auto& targets = sceneTransition_->targets();
+  for (std::size_t index = 0; index < targets.size(); ++index) {
+    if (targets[index].address.kind == SceneRuntimeTargetKind::InputGainDb) {
+      sceneInputGainTarget_ = index;
+      break;
+    }
+  }
+  if (!applySceneValues()) {
+    sceneTransition_.reset();
+    error = "scene transition target could not be resolved in the prepared DSP program";
+    return false;
+  }
+  error.clear();
+  return true;
+}
+
+bool PedalEngine::tryRequestScene(const SceneTransitionRequest& request) noexcept
+{
+  return sceneTransition_ && sceneTransition_->request(request);
+}
+
+bool PedalEngine::tryOverrideSceneTarget(std::size_t targetIndex, float value) noexcept
+{
+  return sceneTransition_ && sceneTransition_->requestOverride(targetIndex, value);
+}
+
+void PedalEngine::requestSceneValueSnapshot() noexcept
+{
+  sceneSnapshotRequested_.store(true, std::memory_order_release);
+}
+
+bool PedalEngine::tryReadSceneValueSnapshot(std::uint64_t& lastSerial,
+                                            std::vector<float>& values) const
+{
+  const auto serial = sceneSnapshotSerial_.load(std::memory_order_acquire);
+  if (serial == lastSerial) return false;
+  const auto count = std::min(sceneSnapshotCount_.load(std::memory_order_acquire),
+                              SceneTransitionController::kMaximumTargets);
+  values.resize(count);
+  for (std::size_t index = 0; index < count; ++index)
+    values[index] = sceneSnapshotValues_[index].load(std::memory_order_relaxed);
+  lastSerial = serial;
+  return true;
+}
+
+SceneTransitionTelemetry PedalEngine::sceneTransitionTelemetry() const noexcept
+{
+  return sceneTransition_ ? sceneTransition_->telemetry() : SceneTransitionTelemetry{};
+}
+
+std::uint64_t PedalEngine::scenePresetGeneration() const noexcept
+{
+  return sceneTransition_ ? sceneTransition_->presetGeneration() : 0;
+}
+
+bool PedalEngine::applySceneValues() noexcept
+{
+  if (!sceneTransition_) return true;
+  const auto& targets = sceneTransition_->targets();
+  const auto values = sceneTransition_->currentValues();
+  if (sceneSnapshotRequested_.exchange(false, std::memory_order_acq_rel)) {
+    const auto count = std::min(values.size(), SceneTransitionController::kMaximumTargets);
+    for (std::size_t index = 0; index < count; ++index)
+      sceneSnapshotValues_[index].store(values[index], std::memory_order_relaxed);
+    sceneSnapshotCount_.store(count, std::memory_order_release);
+    sceneSnapshotSerial_.fetch_add(1, std::memory_order_release);
+  }
+  for (std::size_t index = 0; index < targets.size(); ++index) {
+    const auto& address = targets[index].address;
+    if (address.kind == SceneRuntimeTargetKind::InputGainDb) continue;
+    bool applied = false;
+    if (wdwRouting_) applied = wdwRouting_->applySceneTarget(address, values[index]);
+    else if (address.kind != SceneRuntimeTargetKind::WdwLaneParameter)
+      applied = chain_.applySceneTarget(address, values[index]);
+    if (!applied) return false;
+    if (!wdwRouting_ && address.kind == SceneRuntimeTargetKind::CabParameter
+        && !address.child && address.container == SceneBlockContainer::Serial) {
+      const auto parameter = static_cast<SceneRuntimeParameter>(address.parameterIndex);
+      if (parameter == SceneRuntimeParameter::Mix) setCabMix(values[index]);
+      else if (parameter == SceneRuntimeParameter::LevelDb) {
+        const float db = std::clamp(values[index], -60.0f, 12.0f);
+        setCabLevel(db <= -60.0f ? 0.0f : std::pow(10.0f, db / 20.0f));
+      }
+    }
+  }
+  return true;
 }
 
 bool PedalEngine::restorePausedLooperSession(const LooperPausedSessionView& session,
@@ -551,6 +653,10 @@ void PedalEngine::replacePreparedProgram(PedalEngine&& prepared)
   gainedInput_ = std::move(prepared.gainedInput_);
   cabLevelBlock_ = std::move(prepared.cabLevelBlock_);
   cabMixBlock_ = std::move(prepared.cabMixBlock_);
+  sceneInputGainBlock_ = std::move(prepared.sceneInputGainBlock_);
+  sceneTrimBlock_ = std::move(prepared.sceneTrimBlock_);
+  sceneTransition_ = std::move(prepared.sceneTransition_);
+  sceneInputGainTarget_ = prepared.sceneInputGainTarget_;
   sampleRate_ = prepared.sampleRate_;
   gainSmoothingCoefficient_ = prepared.gainSmoothingCoefficient_;
 
@@ -598,6 +704,8 @@ bool PedalEngine::installPreparedRouting(
   // owner while audio is stopped as required by the API contract.
   flexibleRouting_.reset();
   wdwRouting_.reset();
+  sceneTransition_.reset();
+  sceneInputGainTarget_ = static_cast<std::size_t>(-1);
   chain_.clear();
   flexibleRouting_ = std::move(program);
   return true;
@@ -610,6 +718,8 @@ bool PedalEngine::flexibleRoutingEnabled() const noexcept
 
 void PedalEngine::clearPreparedRouting()
 {
+  sceneTransition_.reset();
+  sceneInputGainTarget_ = static_cast<std::size_t>(-1);
   flexibleRouting_.reset();
   wdwRouting_.reset();
 }
@@ -636,6 +746,8 @@ bool PedalEngine::installPreparedWdwRouting(
 
   flexibleRouting_.reset();
   wdwRouting_.reset();
+  sceneTransition_.reset();
+  sceneInputGainTarget_ = static_cast<std::size_t>(-1);
   chain_.clear();
   wdwRouting_ = std::move(program);
   return true;
@@ -648,6 +760,8 @@ bool PedalEngine::wdwRoutingEnabled() const noexcept
 
 void PedalEngine::clearPreparedWdwRouting()
 {
+  sceneTransition_.reset();
+  sceneInputGainTarget_ = static_cast<std::size_t>(-1);
   wdwRouting_.reset();
 }
 
@@ -715,6 +829,10 @@ std::pair<float, float> PedalEngine::process(float input)
 {
   const ScopedDenormalGuard denormalGuard;
   beginAudioProcessing();
+  if (sceneTransition_) {
+    sceneTransition_->beginBlock();
+    applySceneValues();
+  }
   if (!std::isfinite(input)) {
     nonFiniteInputSamples_.fetch_add(1, std::memory_order_relaxed);
     input = 0.0f;
@@ -727,7 +845,10 @@ std::pair<float, float> PedalEngine::process(float input)
   const float effectsMix = effectsBypassed_.load(std::memory_order_relaxed) ? 0.0f : 1.0f;
   const bool limiterEnabled = safetyLimiterEnabled_.load(std::memory_order_relaxed);
   const float safetyLimit = safetyLimit_.load(std::memory_order_relaxed);
-  const float afterGain = input * smoothGain(currentInputGain_, inputGain);
+  const float sceneInputGain = sceneTransition_ && sceneInputGainTarget_ < sceneTransition_->currentValues().size()
+    ? std::pow(10.0f, sceneTransition_->currentValues()[sceneInputGainTarget_] / 20.0f)
+    : smoothGain(currentInputGain_, inputGain);
+  const float afterGain = input * sceneInputGain;
   observeLevel(inputPeakBits_, inputOverloadFrames_, afterGain, afterGain);
   const float smoothedEffectsMix = smoothEffectsMix(effectsMix);
   StereoSample wet{};
@@ -753,6 +874,12 @@ std::pair<float, float> PedalEngine::process(float input)
   const float output = smoothGain(currentOutputGain_, outputGain);
   StereoSample mixed = bypassMix({input, input}, {wet.left * output, wet.right * output},
                                  smoothedEffectsMix);
+  if (sceneTransition_) {
+    const float trim = std::pow(10.0f, sceneTransition_->currentOutputTrimDb() / 20.0f);
+    mixed.left *= trim;
+    mixed.right *= trim;
+    sceneTransition_->advanceFrame();
+  }
   if (looperPrepared()) {
     looper_.processBlock(&mixed.left, &mixed.right, 1);
   }
@@ -784,6 +911,11 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
     return;
   }
 
+  if (sceneTransition_) {
+    sceneTransition_->beginBlock();
+    applySceneValues();
+  }
+
   const float inputGain = inputGain_.load(std::memory_order_relaxed);
   const float outputGain = outputGain_.load(std::memory_order_relaxed);
   const float masterVolume = masterVolume_.load(std::memory_order_relaxed);
@@ -800,7 +932,18 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
       ++nonFiniteSamples;
     }
     sanitizedInput_[i] = safeInput;
-    gainedInput_[i] = safeInput * smoothGain(currentInputGain_, inputGain);
+    if (sceneTransition_) {
+      const auto values = sceneTransition_->currentValues();
+      sceneInputGainBlock_[i] = sceneInputGainTarget_ < values.size()
+        ? std::pow(10.0f, values[sceneInputGainTarget_] / 20.0f)
+        : smoothGain(currentInputGain_, inputGain);
+      sceneTrimBlock_[i] = std::pow(10.0f, sceneTransition_->currentOutputTrimDb() / 20.0f);
+      sceneTransition_->advanceFrame();
+    } else {
+      sceneInputGainBlock_[i] = smoothGain(currentInputGain_, inputGain);
+      sceneTrimBlock_[i] = 1.0f;
+    }
+    gainedInput_[i] = safeInput * sceneInputGainBlock_[i];
     cabLevelBlock_[i] = smoothGain(currentCabLevel_, cabLevel);
     cabMixBlock_[i] = smoothGain(currentCabMix_, cabMix);
   }
@@ -850,8 +993,8 @@ void PedalEngine::processBlock(const float* input, float* left, float* right, si
     const StereoSample mixed = bypassMix({sanitizedInput_[i], sanitizedInput_[i]},
                                          {left[i] * output, right[i] * output},
                                          smoothEffectsMix(effectsMix));
-    left[i] = mixed.left;
-    right[i] = mixed.right;
+    left[i] = mixed.left * sceneTrimBlock_[i];
+    right[i] = mixed.right * sceneTrimBlock_[i];
   }
   if (looperPrepared()) {
     looper_.processBlock(left, right, frames);

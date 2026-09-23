@@ -1,6 +1,7 @@
 #include "ui/UiModel.h"
 
 #include "daisyfx/DaisyFxCatalog.h"
+#include "preset/ScenePlan.h"
 #include "ui/ParameterControls.h"
 
 #include <algorithm>
@@ -523,12 +524,16 @@ void rememberBlockEdit(UiState& state)
     state.bank.presets[state.activePreset].wdw,
     state.bank.presets[state.activePreset].expression,
     state.bank.presets[state.activePreset].midiBindings,
+    state.bank.presets[state.activePreset].sceneMidiBindings,
+    state.bank.presets[state.activePreset].sceneSet,
     state.selectedBlock,
     state.selectedBlockId,
     state.paramTarget,
     state.dirty,
     state.blockDrawerOpen,
     state.paramDrawerOpen,
+    state.editingScene,
+    state.sceneSettingsOpen,
   };
 }
 
@@ -659,6 +664,10 @@ void setActivePreset(UiState& state, std::size_t index, bool requestAudioSwap)
   state.activePreset = index;
   state.selectedBlock = 0;
   state.selectedBlockId.clear();
+  state.editingScene = 0;
+  state.sceneSettingsOpen = false;
+  state.sceneOperation = {};
+  state.sceneCapturePending = false;
   if (requestAudioSwap) {
     state.pendingSlotRequest = static_cast<int>(index);
   }
@@ -684,9 +693,26 @@ void synchronizePresetSelection(UiState& state, std::size_t index)
 void enterPresetMode(UiState& state)
 {
   state.mode = UiMode::Preset;
+  state.sceneSettingsOpen = false;
+  state.sceneOperation = {};
+  state.sceneCapturePending = false;
   state.blockDrawerOpen = false;
   state.paramDrawerOpen = false;
   markUiChanged(state, UiChange::Navigation | UiChange::Drawers | UiChange::Parameters);
+}
+
+void enterScenesMode(UiState& state)
+{
+  if (!state.bank.presets[state.activePreset].sceneSet) {
+    enterPresetMode(state);
+    return;
+  }
+  state.mode = UiMode::Scenes;
+  state.sceneSettingsOpen = false;
+  state.blockDrawerOpen = false;
+  state.paramDrawerOpen = false;
+  markUiChanged(state, UiChange::Navigation | UiChange::Drawers
+                       | UiChange::Presets | UiChange::Telemetry);
 }
 
 void enterEditMode(UiState& state)
@@ -958,11 +984,13 @@ void insertAssetBlock(UiState& state, std::size_t assetIndex, std::size_t blockI
     blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(insertAt),
                   rig);
     if (asset.mode == "wdw") {
-      state.bank.presets[state.activePreset].version = 3;
+      state.bank.presets[state.activePreset].version =
+        state.bank.presets[state.activePreset].sceneSet ? 4 : 3;
       state.bank.presets[state.activePreset].routing = "wdw";
       state.bank.presets[state.activePreset].wdw = WdwRouting{};
     } else {
-      state.bank.presets[state.activePreset].version = 2;
+      state.bank.presets[state.activePreset].version =
+        state.bank.presets[state.activePreset].sceneSet ? 4 : 2;
     }
   } else {
     blocks.insert(blocks.begin() + static_cast<std::ptrdiff_t>(insertAt),
@@ -1217,7 +1245,7 @@ bool deleteSelectedBlock(UiState& state)
   if (deletingWdwRig) {
     auto& preset = state.bank.presets[state.activePreset];
     preset.routing = "serial";
-    preset.version = 2;
+    preset.version = preset.sceneSet ? 4 : 2;
     preset.wdw.reset();
   }
   if (blocks.empty()) {
@@ -1251,12 +1279,17 @@ bool undoLastBlockEdit(UiState& state)
   state.bank.presets[state.activePreset].blocks = std::move(snapshot.blocks);
   state.bank.presets[state.activePreset].expression = std::move(snapshot.expression);
   state.bank.presets[state.activePreset].midiBindings = std::move(snapshot.midiBindings);
+  state.bank.presets[state.activePreset].sceneMidiBindings = std::move(snapshot.sceneMidiBindings);
+  state.bank.presets[state.activePreset].sceneSet = std::move(snapshot.sceneSet);
   state.selectedBlock = snapshot.selectedBlock;
   state.selectedBlockId = std::move(snapshot.selectedBlockId);
   state.paramTarget = snapshot.paramTarget;
   state.dirty = snapshot.dirty;
   state.blockDrawerOpen = snapshot.blockDrawerOpen;
   state.paramDrawerOpen = snapshot.paramDrawerOpen;
+  state.editingScene = snapshot.editingScene;
+  state.sceneSettingsOpen = snapshot.sceneSettingsOpen;
+  state.sceneOperation = {};
   const auto* rig = selectedWdwRig(state);
   if (queuePreviewOrDeferWdw(state, rollback, "undo change", rig)) {
     setUiStatus(state, "Change undone");
@@ -1266,6 +1299,428 @@ bool undoLastBlockEdit(UiState& state)
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
   return true;
 }
+
+bool enableScenes(UiState& state)
+{
+  auto& preset = state.bank.presets[state.activePreset];
+  if (preset.sceneSet || !previewIsSynchronized(state)) return false;
+  const auto rollback = previewSnapshot(state);
+  rememberBlockEdit(state);
+  Preset source = activePresetToPreset(state);
+  const auto targets = captureSceneTargets(source);
+  PresetSceneSet set;
+  for (std::size_t index = 0; index < set.scenes.size(); ++index) {
+    auto& scene = set.scenes[index];
+    scene.id = "scene-" + std::to_string(index + 1);
+    scene.name = "Scene " + std::to_string(index + 1);
+    scene.targets = targets;
+  }
+  set.defaultSceneId = set.scenes[0].id;
+  preset.sceneSet = std::move(set);
+  preset.version = 4;
+  state.editingScene = 0;
+  state.sceneSettingsOpen = false;
+  state.dirty = true;
+  queuePreview(state, rollback, "enable scenes");
+  setUiStatus(state, "Four scenes created - edit Scene 1");
+  markUiChanged(state, UiChange::Header | UiChange::Presets | UiChange::Chain);
+  return true;
+}
+
+bool selectEditingScene(UiState& state, std::size_t sceneIndex)
+{
+  const auto& preset = state.bank.presets[state.activePreset];
+  if (!preset.sceneSet || sceneIndex >= preset.sceneSet->scenes.size()) return false;
+  if (state.editingScene == sceneIndex) return true;
+  state.editingScene = sceneIndex;
+  markUiChanged(state, UiChange::Header | UiChange::Presets | UiChange::Chain
+                       | UiChange::Parameters);
+  return true;
+}
+
+void openSceneSettings(UiState& state)
+{
+  if (!state.bank.presets[state.activePreset].sceneSet) return;
+  state.sceneSettingsOpen = true;
+  markUiChanged(state, UiChange::Presets | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
+}
+
+void closeSceneSettings(UiState& state)
+{
+  if (!state.sceneSettingsOpen) return;
+  state.sceneSettingsOpen = false;
+  state.sceneOperation = {};
+  markUiChanged(state, UiChange::Presets | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
+}
+
+namespace {
+
+PresetScene* editingScene(UiState& state)
+{
+  auto& set = state.bank.presets[state.activePreset].sceneSet;
+  if (!set || state.editingScene >= set->scenes.size()) return nullptr;
+  return &set->scenes[state.editingScene];
+}
+
+void finishSceneEdit(UiState& state, const std::string& status)
+{
+  state.bank.presets[state.activePreset].version = 4;
+  state.dirty = true;
+  setUiStatus(state, status);
+  markUiChanged(state, UiChange::Header | UiChange::Presets | UiChange::Chain
+                       | UiChange::Parameters);
+}
+
+bool validSceneNameInput(const std::string& name)
+{
+  return !name.empty() && name.size() <= 24
+    && name.front() != ' ' && name.back() != ' ';
+}
+
+} // namespace
+
+bool renameEditingScene(UiState& state, std::string name)
+{
+  auto* scene = editingScene(state);
+  if (!scene || !validSceneNameInput(name) || scene->name == name) return false;
+  rememberBlockEdit(state);
+  scene = editingScene(state);
+  scene->name = std::move(name);
+  finishSceneEdit(state, "Scene renamed - Undo");
+  return true;
+}
+
+bool setEditingSceneEnterTime(UiState& state, std::uint32_t milliseconds)
+{
+  if (milliseconds != 0 && (milliseconds < 100 || milliseconds > 10000
+                            || milliseconds % 100 != 0)) return false;
+  auto* scene = editingScene(state);
+  if (!scene || scene->enterTimeMs == milliseconds) return false;
+  rememberBlockEdit(state);
+  editingScene(state)->enterTimeMs = milliseconds;
+  finishSceneEdit(state, milliseconds == 0 ? "Scene enters instantly - Undo"
+                                           : "Scene enter time updated - Undo");
+  return true;
+}
+
+bool setEditingSceneTrim(UiState& state, float db)
+{
+  if (!std::isfinite(db) || db < -12.0f || db > 6.0f) return false;
+  auto* scene = editingScene(state);
+  if (!scene || std::fabs(scene->outputTrimDb - db) < 0.0001f) return false;
+  rememberBlockEdit(state);
+  editingScene(state)->outputTrimDb = db;
+  finishSceneEdit(state, "Scene trim updated - Undo");
+  return true;
+}
+
+bool makeEditingSceneDefault(UiState& state)
+{
+  auto& set = state.bank.presets[state.activePreset].sceneSet;
+  auto* scene = editingScene(state);
+  if (!set || !scene || set->defaultSceneId == scene->id) return false;
+  rememberBlockEdit(state);
+  set->defaultSceneId = scene->id;
+  finishSceneEdit(state, scene->name + " is now the default - Undo");
+  return true;
+}
+
+bool copyScene(UiState& state, std::size_t source, std::size_t destination)
+{
+  auto& set = state.bank.presets[state.activePreset].sceneSet;
+  if (!set || source >= set->scenes.size() || destination >= set->scenes.size()
+      || source == destination) return false;
+  rememberBlockEdit(state);
+  const auto copied = set->scenes[source];
+  auto& target = set->scenes[destination];
+  target.enterTimeMs = copied.enterTimeMs;
+  target.outputTrimDb = copied.outputTrimDb;
+  target.targets = copied.targets;
+  finishSceneEdit(state, "Scene copied to " + std::to_string(destination + 1) + " - Undo");
+  return true;
+}
+
+bool swapScenes(UiState& state, std::size_t first, std::size_t second)
+{
+  auto& set = state.bank.presets[state.activePreset].sceneSet;
+  if (!set || first >= set->scenes.size() || second >= set->scenes.size() || first == second)
+    return false;
+  rememberBlockEdit(state);
+  std::swap(set->scenes[first], set->scenes[second]);
+  if (state.editingScene == first) state.editingScene = second;
+  else if (state.editingScene == second) state.editingScene = first;
+  finishSceneEdit(state, "Scene slots swapped - Undo");
+  return true;
+}
+
+bool setSceneOpenMode(UiState& state, PresetSceneOpenMode mode)
+{
+  auto& set = state.bank.presets[state.activePreset].sceneSet;
+  if (!set || set->openIn == mode) return false;
+  rememberBlockEdit(state);
+  set->openIn = mode;
+  finishSceneEdit(state, mode == PresetSceneOpenMode::Scenes
+    ? "Preset will open in Scenes" : "Preset will open in Presets");
+  return true;
+}
+
+bool disableScenes(UiState& state, std::size_t keepScene)
+{
+  auto& uiPreset = state.bank.presets[state.activePreset];
+  if (!uiPreset.sceneSet || keepScene >= uiPreset.sceneSet->scenes.size()
+      || !previewIsSynchronized(state)) return false;
+  const std::string keptSceneName = uiPreset.sceneSet->scenes[keepScene].name;
+  Preset ordinary;
+  std::string flattenError;
+  if (!flattenPresetScene(activePresetToPreset(state), keepScene, ordinary, flattenError)) {
+    setUiStatus(state, flattenError, true);
+    return false;
+  }
+
+  const auto rollback = previewSnapshot(state);
+  rememberBlockEdit(state);
+  auto undo = state.blockEditUndo;
+  replaceActivePreset(state, ordinary);
+  state.blockEditUndo = std::move(undo);
+  state.editingScene = 0;
+  state.sceneSettingsOpen = false;
+  state.dirty = true;
+  queuePreview(state, rollback, "disable scenes");
+  setUiStatus(state, "Scenes disabled; kept " + keptSceneName + " - Undo");
+  markUiChanged(state, UiChange::All);
+  return true;
+}
+
+bool requestSceneOperation(UiState& state, UiSceneOperation operation,
+                           std::size_t source, std::size_t destination)
+{
+  const auto& set = state.bank.presets[state.activePreset].sceneSet;
+  if (!set || operation == UiSceneOperation::None
+      || source >= set->scenes.size() || destination >= set->scenes.size()) return false;
+  if ((operation == UiSceneOperation::Copy || operation == UiSceneOperation::Swap)
+      && source == destination) return false;
+  state.sceneOperation = {operation, source, destination};
+  markUiChanged(state, UiChange::Presets);
+  return true;
+}
+
+void cancelSceneOperation(UiState& state)
+{
+  if (state.sceneOperation.operation == UiSceneOperation::None) return;
+  state.sceneOperation = {};
+  markUiChanged(state, UiChange::Presets);
+}
+
+bool confirmSceneOperation(UiState& state)
+{
+  const auto prompt = state.sceneOperation;
+  state.sceneOperation = {};
+  switch (prompt.operation) {
+  case UiSceneOperation::Copy:
+    return copyScene(state, prompt.source, prompt.destination);
+  case UiSceneOperation::Swap:
+    return swapScenes(state, prompt.source, prompt.destination);
+  case UiSceneOperation::Disable:
+    return disableScenes(state, prompt.source);
+  case UiSceneOperation::None:
+    return false;
+  }
+  return false;
+}
+
+namespace {
+
+bool sameSceneAddress(const PresetSceneTarget& left, const PresetSceneTarget& right)
+{
+  return left.target == right.target && left.blockId == right.blockId
+    && left.parameter == right.parameter && left.lane == right.lane;
+}
+
+std::optional<PresetSceneTarget> selectedSceneTargetTemplate(const UiState& state,
+                                                              const std::string& key)
+{
+  if (!state.bank.presets[state.activePreset].sceneSet) return std::nullopt;
+  PresetSceneTarget address;
+  if (state.paramTarget == UiParamTarget::Globals) {
+    if (key != "inputGainDb") return std::nullopt;
+    address.target = PresetSceneTargetType::InputGainDb;
+  } else {
+    const auto* block = selectedUiBlock(state);
+    if (!block) return std::nullopt;
+    const bool wdw = block->type == "dualRig"
+      && block->params.value("routing", std::string{}) == "wdw";
+    if (wdw && (key == "dryEnabled" || key == "dryLevelDb" || key == "dryPan"
+                || key == "wetEnabled" || key == "wetLevelDb" || key == "wetWidth")) {
+      address.target = PresetSceneTargetType::WdwLane;
+      address.lane = key.starts_with("dry") ? "dry" : "wet";
+      if (key.ends_with("Enabled")) address.parameter = "enabled";
+      else if (key.ends_with("LevelDb")) address.parameter = "levelDb";
+      else if (key == "dryPan") address.parameter = "pan";
+      else address.parameter = "width";
+    } else {
+      address.target = key == "blockEnabled" ? PresetSceneTargetType::BlockEnabled
+                                               : PresetSceneTargetType::Parameter;
+      address.blockId = block->id;
+      if (address.target == PresetSceneTargetType::Parameter) address.parameter = key;
+    }
+  }
+  const auto candidates = captureSceneTargets(activePresetToPreset(state));
+  const auto found = std::find_if(candidates.begin(), candidates.end(),
+    [&](const PresetSceneTarget& candidate) { return sameSceneAddress(candidate, address); });
+  return found == candidates.end() ? std::nullopt
+                                   : std::optional<PresetSceneTarget>{*found};
+}
+
+void applySharedSceneTarget(UiState& state, const PresetSceneTarget& target)
+{
+  auto& preset = state.bank.presets[state.activePreset];
+  if (target.target == PresetSceneTargetType::InputGainDb) {
+    preset.global.inputGainDb = target.value.get<float>();
+    return;
+  }
+  auto* block = selectedUiBlock(state);
+  if (!block) return;
+  if (target.target == PresetSceneTargetType::WdwLane) {
+    const std::string prefix = target.lane == "dry" ? "dry" : "wet";
+    const std::string key = target.parameter == "enabled" ? prefix + "Enabled"
+      : target.parameter == "levelDb" ? prefix + "LevelDb"
+      : target.parameter == "pan" ? "dryPan" : "wetWidth";
+    block->params[key] = target.value;
+  } else if (target.target == PresetSceneTargetType::BlockEnabled) {
+    block->enabled = target.value.get<bool>();
+  } else {
+    block->params[target.parameter] = target.value;
+  }
+}
+
+} // namespace
+
+std::optional<std::size_t> selectedParameterSceneTargetIndex(const UiState& state,
+                                                              const std::string& key)
+{
+  const auto& set = state.bank.presets[state.activePreset].sceneSet;
+  const auto address = selectedSceneTargetTemplate(state, key);
+  if (!set || !address || state.editingScene >= set->scenes.size()) return std::nullopt;
+  const auto& targets = set->scenes[state.editingScene].targets;
+  const auto found = std::find_if(targets.begin(), targets.end(),
+    [&](const PresetSceneTarget& target) { return sameSceneAddress(target, *address); });
+  if (found == targets.end()) return std::nullopt;
+  return static_cast<std::size_t>(std::distance(targets.begin(), found));
+}
+
+std::optional<nlohmann::json> selectedParameterSceneValue(const UiState& state,
+                                                           const std::string& key)
+{
+  const auto index = selectedParameterSceneTargetIndex(state, key);
+  const auto& set = state.bank.presets[state.activePreset].sceneSet;
+  if (!index || !set) return std::nullopt;
+  return set->scenes[state.editingScene].targets[*index].value;
+}
+
+UiSceneScope selectedParameterSceneScope(const UiState& state, const std::string& key)
+{
+  if (!selectedSceneTargetTemplate(state, key)) return UiSceneScope::Unavailable;
+  return selectedParameterSceneTargetIndex(state, key) ? UiSceneScope::ThisScene
+                                                        : UiSceneScope::Shared;
+}
+
+bool setSelectedParameterSceneScope(UiState& state, const std::string& key,
+                                    UiSceneScope scope)
+{
+  if (scope == UiSceneScope::Unavailable || !previewIsSynchronized(state)) return false;
+  auto& set = state.bank.presets[state.activePreset].sceneSet;
+  auto candidate = selectedSceneTargetTemplate(state, key);
+  if (!set || !candidate) return false;
+  const auto current = selectedParameterSceneScope(state, key);
+  if (current == scope) return true;
+  const auto rollback = previewSnapshot(state);
+  rememberBlockEdit(state);
+  if (scope == UiSceneScope::ThisScene) {
+    for (auto& scene : set->scenes) scene.targets.push_back(*candidate);
+  } else {
+    const auto index = selectedParameterSceneTargetIndex(state, key);
+    if (!index) return false;
+    candidate->value = set->scenes[state.editingScene].targets[*index].value;
+    applySharedSceneTarget(state, *candidate);
+    for (auto& scene : set->scenes) scene.targets.erase(scene.targets.begin()
+      + static_cast<std::ptrdiff_t>(*index));
+  }
+  state.dirty = true;
+  queuePreview(state, rollback, scope == UiSceneScope::ThisScene
+    ? "make parameter per scene" : "make parameter shared");
+  setUiStatus(state, scope == UiSceneScope::ThisScene
+    ? "Parameter now belongs to each scene - Undo"
+    : "Using this scene's value across all scenes - Undo");
+  markUiChanged(state, UiChange::Header | UiChange::Presets | UiChange::Parameters
+                       | UiChange::Chain);
+  return true;
+}
+
+bool requestCurrentSoundCapture(UiState& state)
+{
+  const auto& set = state.bank.presets[state.activePreset].sceneSet;
+  if (!set || state.sceneCapturePending) return false;
+  if (state.scenes.transitioning || state.scenes.pending) {
+    setUiStatus(state, "Wait for the scene transition to finish", true);
+    return false;
+  }
+  state.sceneCapturePending = true;
+  setUiStatus(state, "Capturing current scene-owned sound...");
+  markUiChanged(state, UiChange::Presets | UiChange::Status);
+  return true;
+}
+
+bool completeCurrentSoundCapture(UiState& state, const std::vector<float>& values)
+{
+  auto& set = state.bank.presets[state.activePreset].sceneSet;
+  if (!state.sceneCapturePending || !set || state.editingScene >= set->scenes.size()) return false;
+  state.sceneCapturePending = false;
+  auto& targets = set->scenes[state.editingScene].targets;
+  if (values.size() != targets.size()
+      || std::any_of(values.begin(), values.end(), [](float value) { return !std::isfinite(value); })) {
+    setUiStatus(state, "Current sound capture did not match this scene bank", true);
+    markUiChanged(state, UiChange::Presets | UiChange::Status);
+    return false;
+  }
+  rememberBlockEdit(state);
+  for (std::size_t index = 0; index < targets.size(); ++index) {
+    targets[index].value = targets[index].value.is_boolean()
+      ? nlohmann::json(values[index] >= 0.5f) : nlohmann::json(values[index]);
+  }
+  state.dirty = true;
+  setUiStatus(state, "Captured " + std::to_string(targets.size())
+                     + " scene-owned values - Undo");
+  markUiChanged(state, UiChange::Header | UiChange::Presets | UiChange::Parameters
+                       | UiChange::Status);
+  return true;
+}
+
+void failCurrentSoundCapture(UiState& state, std::string error)
+{
+  if (!state.sceneCapturePending) return;
+  state.sceneCapturePending = false;
+  setUiStatus(state, std::move(error), true);
+  markUiChanged(state, UiChange::Presets | UiChange::Status);
+}
+
+namespace {
+
+bool updateSelectedSceneTargetValue(UiState& state, const std::string& key,
+                                    nlohmann::json value)
+{
+  const auto index = selectedParameterSceneTargetIndex(state, key);
+  auto& set = state.bank.presets[state.activePreset].sceneSet;
+  if (!index || !set) return false;
+  auto& target = set->scenes[state.editingScene].targets[*index];
+  if (target.value == value) return true;
+  rememberBlockEdit(state);
+  set->scenes[state.editingScene].targets[*index].value = std::move(value);
+  state.dirty = true;
+  markUiChanged(state, UiChange::Header | UiChange::Presets | UiChange::Parameters);
+  return true;
+}
+
+} // namespace
 
 void closeParamDrawer(UiState& state)
 {
@@ -1295,6 +1750,8 @@ Preset activePresetToPreset(const UiState& state)
   preset.global = uiPreset.global;
   preset.expression = uiPreset.expression;
   preset.midiBindings = uiPreset.midiBindings;
+  preset.sceneMidiBindings = uiPreset.sceneMidiBindings;
+  preset.sceneSet = uiPreset.sceneSet;
   const auto convertBlock = [&](const auto& self, const UiBlock& block) -> PresetBlock {
     PresetBlock converted{block.id, block.type, block.enabled, block.assetPath,
                           block.params.is_null() ? nlohmann::json::object() : block.params};
@@ -1304,7 +1761,7 @@ Preset activePresetToPreset(const UiState& state)
     return converted;
   };
   if (uiPreset.routing == "wdw") {
-    preset.version = 3;
+    preset.version = uiPreset.sceneSet ? 4 : 3;
     preset.blocks.clear();
     WdwRouting routing = uiPreset.wdw.value_or(WdwRouting{});
     const auto wdwRig = std::find_if(uiPreset.blocks.begin(), uiPreset.blocks.end(), [](const UiBlock& block) {
@@ -1381,6 +1838,8 @@ void replaceActivePreset(UiState& state, const Preset& preset)
   uiPreset.global = preset.global;
   uiPreset.expression = preset.expression;
   uiPreset.midiBindings = preset.midiBindings;
+  uiPreset.sceneMidiBindings = preset.sceneMidiBindings;
+  uiPreset.sceneSet = preset.sceneSet;
   uiPreset.blocks.clear();
   const auto convertBlock = [&](const auto& self, const PresetBlock& source) -> UiBlock {
     UiBlock converted{source.id,
@@ -1451,7 +1910,12 @@ void setSelectedBlockEnabled(UiState& state, bool enabled)
 {
   if (!previewIsSynchronized(state)) return;
   auto* block = selectedUiBlock(state);
-  if (!block || block->enabled == enabled) return;
+  if (!block) return;
+  if (selectedParameterSceneScope(state, "blockEnabled") == UiSceneScope::ThisScene) {
+    updateSelectedSceneTargetValue(state, "blockEnabled", enabled);
+    return;
+  }
+  if (block->enabled == enabled) return;
   const auto* rig = selectedWdwRig(state);
   if (rig && !enabled && selectedBlockIsLaneChild(state)
       && block->type == "nam") {
@@ -1471,7 +1935,10 @@ bool setSelectedBlockEnabledLive(UiState& state, bool enabled)
 {
   if (!previewIsSynchronized(state)) return false;
   auto* block = selectedUiBlock(state);
-  if (!block || block->enabled == enabled) return false;
+  if (!block) return false;
+  if (selectedParameterSceneScope(state, "blockEnabled") == UiSceneScope::ThisScene)
+    return updateSelectedSceneTargetValue(state, "blockEnabled", enabled);
+  if (block->enabled == enabled) return false;
   const auto* rig = selectedWdwRig(state);
   if (rig && !enabled && selectedBlockIsLaneChild(state)
       && block->type == "nam") {
@@ -1487,7 +1954,12 @@ bool setSelectedBlockEnabledLive(UiState& state, bool enabled)
 
 void setActiveInputGainDb(UiState& state, float db)
 {
-  state.bank.presets[state.activePreset].global.inputGainDb = clampFloat(db, -60.0f, 12.0f);
+  db = clampFloat(db, -60.0f, 12.0f);
+  if (selectedParameterSceneScope(state, "inputGainDb") == UiSceneScope::ThisScene) {
+    updateSelectedSceneTargetValue(state, "inputGainDb", db);
+    return;
+  }
+  state.bank.presets[state.activePreset].global.inputGainDb = db;
   state.dirty = true;
   markUiChanged(state, UiChange::Header | UiChange::Parameters);
 }
@@ -1565,6 +2037,10 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
     if (key == "position") value = clampFloat(value, 0.0f, 1.0f);
     else if (key == "level") value = clampFloat(value, -24.0f, 24.0f);
   }
+  if (selectedParameterSceneScope(state, key) == UiSceneScope::ThisScene) {
+    updateSelectedSceneTargetValue(state, key, value);
+    return;
+  }
   const auto existing = block.params.find(key);
   if ((block.type == "dualAmp" || block.type == "dualRig")
       && existing != block.params.end() && existing->is_number()
@@ -1616,6 +2092,10 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
   if (!compressorValue && !tapeSpeedValue && !namNanoValue && !namInputValue
       && !dualAmpInputValue && !dualAmpToggleValue
       && !dualRigInputValue && !dualRigToggleValue && !wdwToggleValue) {
+    return;
+  }
+  if (selectedParameterSceneScope(state, key) == UiSceneScope::ThisScene) {
+    updateSelectedSceneTargetValue(state, key, std::move(value));
     return;
   }
   if (block.params.value(key, nlohmann::json{}) == value) return;
@@ -1820,6 +2300,23 @@ void updateControlInputTelemetry(UiState& state, UiControlInputTelemetry telemet
     || state.controlInputs.expressionRaw != telemetry.expressionRaw;
   state.controlInputs = telemetry;
   if (visibleChanged) markUiChanged(state, UiChange::Telemetry);
+}
+
+void updateSceneTelemetry(UiState& state, UiSceneTelemetry telemetry)
+{
+  telemetry.currentScene = std::min<std::size_t>(telemetry.currentScene, 3);
+  telemetry.destinationScene = std::min<std::size_t>(telemetry.destinationScene, 3);
+  telemetry.progress = std::clamp(telemetry.progress, 0.0f, 1.0f);
+  const bool changed = state.scenes.currentScene != telemetry.currentScene
+    || state.scenes.destinationScene != telemetry.destinationScene
+    || std::fabs(state.scenes.progress - telemetry.progress) >= 0.001f
+    || state.scenes.pending != telemetry.pending
+    || state.scenes.transitioning != telemetry.transitioning
+    || state.scenes.altered != telemetry.altered
+    || state.scenes.pedalOverride != telemetry.pedalOverride
+    || state.scenes.rejection != telemetry.rejection;
+  state.scenes = std::move(telemetry);
+  if (changed) markUiChanged(state, UiChange::Telemetry);
 }
 
 bool parameterSupportsExpression(const UiState& state, const ParameterControl& control)

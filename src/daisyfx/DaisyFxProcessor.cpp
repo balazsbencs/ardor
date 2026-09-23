@@ -492,7 +492,7 @@ bool DaisyFxProcessor::configure(const std::string& blockType, const nlohmann::j
   return true;
 }
 
-bool DaisyFxProcessor::setParameterTarget(const std::string& key, float normalized)
+bool DaisyFxProcessor::setParameterTarget(std::string_view key, float normalized)
 {
   if (!impl_ || !std::isfinite(normalized)) {
     return false;
@@ -512,6 +512,14 @@ bool DaisyFxProcessor::setParameterTarget(const std::string& key, float normaliz
   return true;
 }
 
+bool DaisyFxProcessor::setParameterTarget(std::size_t parameterIndex, float normalized)
+{
+  if (!impl_ || parameterIndex >= Impl::Count || !std::isfinite(normalized)) return false;
+  impl_->targets[parameterIndex].store(std::clamp(normalized, 0.0f, 1.0f),
+                                       std::memory_order_release);
+  return true;
+}
+
 void DaisyFxProcessor::reset()
 {
   if (impl_) impl_->reset();
@@ -519,7 +527,12 @@ void DaisyFxProcessor::reset()
 
 StereoSample DaisyFxProcessor::process(StereoSample input)
 {
-  if (!impl_) return input;
+  return processFrame(input).mixed;
+}
+
+DaisyFxFrame DaisyFxProcessor::processFrame(StereoSample input)
+{
+  if (!impl_) return {input, {}};
   // The vendor effects expect Prepare() at their 48-frame control interval.
   // Ardor's 64-frame audio quantum must not change those time constants.
   impl_->advanceControlRate();
@@ -527,29 +540,41 @@ StereoSample DaisyFxProcessor::process(StereoSample input)
 
   if (impl_->mod) {
     const auto wet = impl_->mod->Process({input.left, input.right}, impl_->modParams);
-    return {
-      ((input.left * (1.0f - impl_->smoothedMix)) + (finiteWet(wet.left) * impl_->smoothedMix)) * impl_->smoothedLevel,
-      ((input.right * (1.0f - impl_->smoothedMix)) + (finiteWet(wet.right) * impl_->smoothedMix)) * impl_->smoothedLevel,
+    const StereoSample contribution{
+      finiteWet(wet.left) * impl_->smoothedMix * impl_->smoothedLevel,
+      finiteWet(wet.right) * impl_->smoothedMix * impl_->smoothedLevel,
     };
+    return {{
+      input.left * (1.0f - impl_->smoothedMix) * impl_->smoothedLevel + contribution.left,
+      input.right * (1.0f - impl_->smoothedMix) * impl_->smoothedLevel + contribution.right,
+    }, contribution};
   }
   if (impl_->delay) {
     const auto wet = impl_->delay->Process({input.left, input.right}, impl_->delayParams);
-    return {
-      (input.left * (1.0f - impl_->smoothedMix)) + (finiteWet(wet.left) * impl_->smoothedMix),
-      (input.right * (1.0f - impl_->smoothedMix)) + (finiteWet(wet.right) * impl_->smoothedMix),
+    const StereoSample contribution{
+      finiteWet(wet.left) * impl_->smoothedMix,
+      finiteWet(wet.right) * impl_->smoothedMix,
     };
+    return {{
+      input.left * (1.0f - impl_->smoothedMix) + contribution.left,
+      input.right * (1.0f - impl_->smoothedMix) + contribution.right,
+    }, contribution};
   }
   if (impl_->reverb) {
     // Plate runs natively at the host rate. The remaining reverbs use the
     // latency-matched 48 <-> 24 kHz FIR boundary.
     const auto dry = impl_->nativeRateReverb() ? input : impl_->delayReverbDry(input);
     const auto wet = impl_->processReverbWet(input);
-    return {
-      (dry.left * (1.0f - impl_->smoothedMix)) + (finiteWet(wet.left) * impl_->smoothedMix),
-      (dry.right * (1.0f - impl_->smoothedMix)) + (finiteWet(wet.right) * impl_->smoothedMix),
+    const StereoSample contribution{
+      finiteWet(wet.left) * impl_->smoothedMix,
+      finiteWet(wet.right) * impl_->smoothedMix,
     };
+    return {{
+      dry.left * (1.0f - impl_->smoothedMix) + contribution.left,
+      dry.right * (1.0f - impl_->smoothedMix) + contribution.right,
+    }, contribution};
   }
-  return input;
+  return {input, {}};
 }
 
 size_t DaisyFxProcessor::latencyFrames() const noexcept

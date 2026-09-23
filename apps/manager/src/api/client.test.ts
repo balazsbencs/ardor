@@ -119,9 +119,25 @@ describe("ArdorApiClient", () => {
       accepted: true, bank: 4, slot: 2, message: "queued",
     })));
     const client = new ArdorApiClient({ baseUrl: "http://pedal", fetchImpl: fetchMock });
-    await expect(client.applyPreset(4, 2)).resolves.toEqual({
+    await expect(client.applyPreset(4, 2, "solo")).resolves.toEqual({
       accepted: true, bank: 4, slot: 2, message: "queued",
     });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://pedal/api/presets/banks/4/slots/2/apply",
+      expect.objectContaining({ method: "POST", body: '{"sceneId":"solo"}' }),
+    );
+  });
+
+  it("sends generation-bound scene recalls with an idempotency id", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      accepted: true, generation: 81, sceneId: "solo/lead", requestId: "request-7",
+    }), { status: 202 }));
+    const client = new ArdorApiClient({ baseUrl: "http://pedal", fetchImpl: fetchMock });
+    await expect(client.recallScene("solo/lead", 81, "request-7")).resolves.toMatchObject({ accepted: true });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://pedal/api/runtime/scenes/solo%2Flead/recall",
+      expect.objectContaining({ method: "POST", body: '{"generation":81,"requestId":"request-7"}' }),
+    );
   });
 
   it("updates runtime Wi-Fi settings without requiring an image rebuild", async () => {

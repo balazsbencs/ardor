@@ -104,6 +104,7 @@ public:
   bool setStereoWidenerParameter(const std::string& id, const std::string& key, float value);
   bool setIrReverbParameter(const std::string& id, const std::string& key, float value);
   bool setBlockEnabled(const std::string& id, bool enabled);
+  bool applySceneTarget(const SceneRuntimeAddress& address, float value) noexcept;
 
   bool prepared() const noexcept { return prepared_; }
   std::size_t blockSize() const noexcept { return blockSize_; }
@@ -206,6 +207,7 @@ private:
   DelayLine wetDelayRight_;
   MixTargets mixTargets_;
   MixCurrent mixCurrent_;
+  WdwMixConfig sceneMix_;
   std::atomic<std::uint64_t> nonFiniteBlocks_{0};
   std::size_t blockSize_ = 0;
   double sampleRate_ = 0.0;

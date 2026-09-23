@@ -70,12 +70,35 @@ struct PresetMidiValue {
   float value = 0.0f;
 };
 
+class ControllerPickup {
+public:
+  void arm(float targetPosition, float minimumMovement, float tolerance,
+           bool crossingPossible = true) noexcept;
+  void reset() noexcept;
+  bool observe(float position) noexcept;
+  bool pending() const noexcept { return pending_; }
+  float targetPosition() const noexcept { return targetPosition_; }
+
+private:
+  float lastPosition_ = 0.0f;
+  float originPosition_ = 0.0f;
+  float targetPosition_ = 0.0f;
+  float minimumMovement_ = 0.0f;
+  float tolerance_ = 0.0f;
+  bool positionKnown_ = false;
+  bool originKnown_ = false;
+  bool freshMovement_ = false;
+  bool crossingPossible_ = true;
+  bool pending_ = false;
+};
+
 // Stateful per-preset mapper. Toggle bindings latch on the CC high edge so a
 // momentary footswitch release does not immediately undo the selected scene.
 class PresetMidiMapper {
 public:
   void load(const std::vector<PresetMidiBinding>& bindings);
   std::vector<PresetMidiValue> reset();
+  void rearmSceneOwned(const PresetScene& destination);
   bool handles(const MidiMessage& message) const;
   std::vector<PresetMidiValue> map(const MidiMessage& message);
 
@@ -83,7 +106,39 @@ private:
   struct BindingState {
     PresetMidiBinding binding;
     bool inputHigh = false;
-    bool scene2 = false;
+    std::vector<bool> scene2;
+    std::vector<ControllerPickup> pickup;
+  };
+  std::vector<BindingState> bindings_;
+};
+
+enum class SceneMidiActionType {
+  SelectScene,
+  ShowPresets,
+  ShowScenes,
+};
+
+struct SceneMidiAction {
+  SceneMidiActionType type = SceneMidiActionType::SelectScene;
+  int sceneIndex = 0;
+};
+
+// Direct scene and layer actions use a low-to-high edge. Scene-number actions
+// use exact values 0..3 and ignore the remainder of the CC range.
+class SceneMidiMapper {
+public:
+  void load(const std::vector<PresetSceneMidiBinding>& bindings,
+            const std::optional<PresetSceneSet>& sceneSet);
+  void resetInputState();
+  bool handles(const MidiMessage& message) const;
+  std::optional<SceneMidiAction> map(const MidiMessage& message);
+
+private:
+  struct BindingState {
+    PresetSceneMidiBinding binding;
+    int sceneIndex = -1;
+    bool inputHigh = false;
+    int lastSceneNumber = -1;
   };
   std::vector<BindingState> bindings_;
 };

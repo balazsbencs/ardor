@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 type Preset map[string]any
@@ -35,18 +38,18 @@ func NewStore(root string) Store {
 
 func Validate(preset Preset) error {
 	version, ok := preset["version"].(float64)
-	if !ok || (version != 1 && version != 2 && version != 3) {
-		return errors.New("preset version must be 1, 2, or 3")
+	if !ok || (version != 1 && version != 2 && version != 3 && version != 4) {
+		return errors.New("preset version must be 1, 2, 3, or 4")
 	}
 	routing, ok := preset["routing"].(string)
 	if !ok || (routing != "serial" && routing != "wdw") {
 		return errors.New("preset routing must be serial or wdw")
 	}
-	if routing == "serial" && version > 2 {
+	if routing == "serial" && version == 3 {
 		return errors.New("wet/dry/wet routing requires preset version 3")
 	}
-	if routing == "wdw" && version != 3 {
-		return errors.New("wet/dry/wet routing requires preset version 3")
+	if routing == "wdw" && version != 3 && version != 4 {
+		return errors.New("wet/dry/wet routing requires preset version 3 or 4")
 	}
 	if _, ok := preset["global"].(map[string]any); !ok {
 		return errors.New("preset global must be an object")
@@ -59,7 +62,7 @@ func Validate(preset Preset) error {
 		return err
 	}
 	if routing != "wdw" {
-		return nil
+		return validateScenesAndMidi(preset, version)
 	}
 	if len(blocks) != 0 {
 		return errors.New("wet/dry/wet presets must keep top-level blocks empty")
@@ -109,6 +112,324 @@ func Validate(preset Preset) error {
 				return fmt.Errorf("WDW %s lane width must be between 0 and 1", laneName)
 			}
 		}
+	}
+	return validateScenesAndMidi(preset, version)
+}
+
+func validateScenesAndMidi(preset Preset, version float64) error {
+	if err := validateSceneSet(preset, version); err != nil {
+		return err
+	}
+	return validateSceneMidiMappings(preset)
+}
+
+type midiAddress struct {
+	channel int
+	cc      int
+}
+
+func midiAddressesOverlap(left, right midiAddress) bool {
+	return left.cc == right.cc && (left.channel == -1 || right.channel == -1 || left.channel == right.channel)
+}
+
+func midiAddressFromMapping(mapping map[string]any) (midiAddress, error) {
+	channelValue, channelOK := mapping["channel"].(float64)
+	ccValue, ccOK := mapping["controlChange"].(float64)
+	if !channelOK || channelValue != math.Trunc(channelValue) || channelValue < -1 || channelValue > 15 ||
+		!ccOK || ccValue != math.Trunc(ccValue) || ccValue < 0 || ccValue > 127 {
+		return midiAddress{}, errors.New("MIDI binding channel or controller is invalid")
+	}
+	return midiAddress{int(channelValue), int(ccValue)}, nil
+}
+
+func validateSceneMidiMappings(preset Preset) error {
+	occupied := []midiAddress{}
+	actionCount := 0
+	if raw, present := preset["midiMappings"]; present && raw != nil {
+		mappings, ok := raw.([]any)
+		if !ok {
+			return errors.New("MIDI mappings must be an array")
+		}
+		for _, rawMapping := range mappings {
+			mapping, ok := rawMapping.(map[string]any)
+			if !ok {
+				return errors.New("MIDI mapping must be an object")
+			}
+			address, err := midiAddressFromMapping(mapping)
+			if err != nil {
+				return err
+			}
+			occupied = append(occupied, address)
+			if actions, ok := mapping["actions"].([]any); ok {
+				actionCount += len(actions)
+			}
+		}
+	}
+	raw, present := preset["sceneMidiMappings"]
+	if !present || raw == nil {
+		if actionCount > 256 {
+			return errors.New("a preset can contain at most 256 MIDI action targets")
+		}
+		return nil
+	}
+	mappings, ok := raw.([]any)
+	if !ok {
+		return errors.New("scene MIDI mappings must be an array")
+	}
+	if len(mappings) > 0 {
+		if _, ok := preset["sceneSet"].(map[string]any); !ok {
+			return errors.New("scene MIDI actions require a scene set")
+		}
+	}
+	sceneIDs := map[string]bool{}
+	if sceneSet, ok := preset["sceneSet"].(map[string]any); ok {
+		if scenes, ok := sceneSet["scenes"].([]any); ok {
+			for _, rawScene := range scenes {
+				if scene, ok := rawScene.(map[string]any); ok {
+					if id, ok := scene["id"].(string); ok {
+						sceneIDs[id] = true
+					}
+				}
+			}
+		}
+	}
+	for _, rawMapping := range mappings {
+		mapping, ok := rawMapping.(map[string]any)
+		if !ok {
+			return errors.New("scene MIDI mapping must be an object")
+		}
+		address, err := midiAddressFromMapping(mapping)
+		if err != nil {
+			return err
+		}
+		for _, other := range occupied {
+			if midiAddressesOverlap(address, other) {
+				return errors.New("scene and parameter MIDI bindings must not overlap")
+			}
+		}
+		occupied = append(occupied, address)
+		action, ok := mapping["action"].(string)
+		if !ok || (action != "selectScene" && action != "sceneNumber" &&
+			action != "showPresets" && action != "showScenes") {
+			return errors.New("unknown scene MIDI action")
+		}
+		sceneID, hasSceneID := mapping["sceneId"].(string)
+		if action == "selectScene" {
+			if !hasSceneID || !sceneIDs[sceneID] {
+				return errors.New("scene MIDI action must reference an existing scene ID")
+			}
+		} else if _, present := mapping["sceneId"]; present {
+			return errors.New("only direct scene MIDI actions may contain a scene ID")
+		}
+		actionCount++
+	}
+	if actionCount > 256 {
+		return errors.New("a preset can contain at most 256 MIDI action targets")
+	}
+	return nil
+}
+
+func validSceneID(value string) bool {
+	if len(value) == 0 || len(value) > 64 {
+		return false
+	}
+	for _, char := range []byte(value) {
+		if !((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') ||
+			(char >= '0' && char <= '9') || char == '-' || char == '_') {
+			return false
+		}
+	}
+	return true
+}
+
+func collectBlockTypes(raw []any, blocks map[string]string) {
+	for _, value := range raw {
+		block, ok := value.(map[string]any)
+		if !ok {
+			continue
+		}
+		if id, ok := block["id"].(string); ok && id != "" {
+			typeName, _ := block["type"].(string)
+			blocks[id] = typeName
+		}
+		lanes, _ := block["lanes"].(map[string]any)
+		for _, laneName := range []string{"left", "right"} {
+			lane, _ := lanes[laneName].(map[string]any)
+			children, _ := lane["blocks"].([]any)
+			collectBlockTypes(children, blocks)
+		}
+	}
+}
+
+func finiteSceneNumber(value any) bool {
+	number, ok := value.(float64)
+	return ok && !math.IsNaN(number) && !math.IsInf(number, 0)
+}
+
+func validateSceneTarget(target map[string]any, blockTypes map[string]string, hasWDW bool) (string, error) {
+	targetType, ok := target["target"].(string)
+	if !ok {
+		return "", errors.New("scene target requires a target type")
+	}
+	value, hasValue := target["value"]
+	if !hasValue {
+		return "", errors.New("scene target requires a value")
+	}
+	blockID, _ := target["blockId"].(string)
+	parameter, _ := target["parameter"].(string)
+	lane, _ := target["lane"].(string)
+	switch targetType {
+	case "inputGainDb":
+		if blockID != "" || parameter != "" || lane != "" || !finiteSceneNumber(value) {
+			return "", errors.New("scene input gain target is invalid")
+		}
+		return "inputGainDb", nil
+	case "parameter":
+		if _, exists := blockTypes[blockID]; !exists || parameter == "" || lane != "" || !finiteSceneNumber(value) {
+			return "", errors.New("scene parameter target is invalid")
+		}
+		return "parameter\x1f" + blockID + "\x1f" + parameter, nil
+	case "blockEnabled":
+		blockType, exists := blockTypes[blockID]
+		if !exists || parameter != "" || lane != "" {
+			return "", errors.New("scene block-enabled target is invalid")
+		}
+		if _, ok := value.(bool); !ok {
+			return "", errors.New("scene block-enabled target requires a boolean value")
+		}
+		sceneBypassType := blockType == "mod" || blockType == "delay" || blockType == "reverb" ||
+			blockType == "irreverb" || blockType == "stereo" || blockType == "dynamics" ||
+			blockType == "distortion" || blockType == "wah" || blockType == "eq"
+		if !sceneBypassType {
+			return "", errors.New("structural block enable is shared by all scenes")
+		}
+		return "blockEnabled\x1f" + blockID, nil
+	case "wdwLane":
+		laneValid := lane == "dry" || lane == "wet"
+		parameterValid := parameter == "levelDb" || parameter == "enabled" ||
+			(lane == "dry" && parameter == "pan") || (lane == "wet" && parameter == "width")
+		valueValid := finiteSceneNumber(value)
+		if parameter == "enabled" {
+			_, valueValid = value.(bool)
+		}
+		if !hasWDW || blockID != "" || !laneValid || !parameterValid || !valueValid {
+			return "", errors.New("scene wet/dry/wet lane target is invalid")
+		}
+		return "wdwLane\x1f" + lane + "\x1f" + parameter, nil
+	default:
+		return "", errors.New("unknown scene target type")
+	}
+}
+
+func sameAddressSet(left, right map[string]struct{}) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for address := range left {
+		if _, ok := right[address]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func validateSceneSet(preset Preset, version float64) error {
+	raw, present := preset["sceneSet"]
+	if version == 4 && (!present || raw == nil) {
+		return errors.New("preset version 4 requires a scene set")
+	}
+	if version != 4 && present && raw != nil {
+		return errors.New("scenes require preset version 4")
+	}
+	if version != 4 {
+		return nil
+	}
+	sceneSet, ok := raw.(map[string]any)
+	if !ok {
+		return errors.New("scene set must be an object")
+	}
+	openIn, ok := sceneSet["openIn"].(string)
+	if !ok || (openIn != "presets" && openIn != "scenes") {
+		return errors.New("scene set openIn must be presets or scenes")
+	}
+	scenes, ok := sceneSet["scenes"].([]any)
+	if !ok || len(scenes) != 4 {
+		return errors.New("scene set requires exactly four scenes")
+	}
+	blockTypes := make(map[string]string)
+	blocks, _ := preset["blocks"].([]any)
+	collectBlockTypes(blocks, blockTypes)
+	wdw, hasWDW := preset["wdw"].(map[string]any)
+	if hasWDW {
+		for _, laneName := range []string{"dry", "wet"} {
+			lane, _ := wdw[laneName].(map[string]any)
+			children, _ := lane["blocks"].([]any)
+			collectBlockTypes(children, blockTypes)
+		}
+	}
+	ids := make(map[string]struct{})
+	var expected map[string]struct{}
+	for index, rawScene := range scenes {
+		scene, ok := rawScene.(map[string]any)
+		if !ok {
+			return errors.New("scene must be an object")
+		}
+		id, ok := scene["id"].(string)
+		if !ok || !validSceneID(id) {
+			return errors.New("scene IDs must be safe identifiers")
+		}
+		if _, exists := ids[id]; exists {
+			return errors.New("scene IDs must be unique")
+		}
+		ids[id] = struct{}{}
+		name, ok := scene["name"].(string)
+		if !ok || !utf8.ValidString(name) || strings.TrimSpace(name) != name || utf8.RuneCountInString(name) < 1 || utf8.RuneCountInString(name) > 24 {
+			return errors.New("scene name must contain 1 to 24 characters without surrounding whitespace")
+		}
+		for _, char := range name {
+			if unicode.IsControl(char) {
+				return errors.New("scene name cannot contain control characters")
+			}
+		}
+		enterTime, ok := scene["enterTimeMs"].(float64)
+		if !ok || enterTime != math.Trunc(enterTime) || (enterTime != 0 && (enterTime < 100 || enterTime > 10000 || int(enterTime)%100 != 0)) {
+			return errors.New("scene enter time must be instant or 100 to 10000 ms in 100 ms steps")
+		}
+		trim, ok := scene["outputTrimDb"].(float64)
+		if !ok || math.IsNaN(trim) || math.IsInf(trim, 0) || trim < -12 || trim > 6 {
+			return errors.New("scene output trim must be between -12 and 6 dB")
+		}
+		targets, ok := scene["targets"].([]any)
+		if !ok || len(targets) > 512 {
+			return errors.New("scene targets must be an array with at most 512 entries")
+		}
+		addresses := make(map[string]struct{}, len(targets))
+		for _, rawTarget := range targets {
+			target, ok := rawTarget.(map[string]any)
+			if !ok {
+				return errors.New("scene target must be an object")
+			}
+			address, err := validateSceneTarget(target, blockTypes, hasWDW)
+			if err != nil {
+				return err
+			}
+			if _, duplicate := addresses[address]; duplicate {
+				return errors.New("scene target addresses must be unique")
+			}
+			addresses[address] = struct{}{}
+		}
+		if index == 0 {
+			expected = addresses
+		} else if !sameAddressSet(expected, addresses) {
+			return errors.New("all scenes must define the same target addresses")
+		}
+	}
+	defaultID, ok := sceneSet["defaultSceneId"].(string)
+	if !ok {
+		return errors.New("scene set requires a default scene ID")
+	}
+	if _, exists := ids[defaultID]; !exists {
+		return errors.New("default scene ID must reference one of the four scenes")
 	}
 	return nil
 }
@@ -298,6 +619,17 @@ func validateBlocks(blocks []any, version float64, insideLane bool) error {
 		if asset != "" && !validRelativeAsset(asset) {
 			return errors.New("preset asset must stay under data root")
 		}
+		if policy, present := block["sceneBypass"]; present {
+			policyName, ok := policy.(string)
+			if !ok || (policyName != "cut" && policyName != "letRing") {
+				return errors.New("scene bypass must be cut or letRing")
+			}
+			typeName, _ := block["type"].(string)
+			if policyName == "letRing" && (version != 4 ||
+				(typeName != "delay" && typeName != "reverb" && typeName != "irreverb")) {
+				return errors.New("let-ring scene bypass requires a version 4 delay or reverb block")
+			}
+		}
 		if block["type"] == "dualAmp" {
 			if insideLane {
 				return errors.New("dual rig lanes cannot contain split blocks")
@@ -317,8 +649,8 @@ func validateBlocks(blocks []any, version float64, insideLane bool) error {
 			}
 		}
 		if block["type"] == "dualRig" {
-			if version != 2 {
-				return errors.New("dual rig requires preset version 2")
+			if version != 2 && version != 4 {
+				return errors.New("dual rig requires preset version 2 or 4")
 			}
 			if insideLane {
 				return errors.New("nested dual rig blocks are not supported")

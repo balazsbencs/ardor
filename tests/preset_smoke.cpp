@@ -136,6 +136,192 @@ int main()
     }
     require(rejectedOverlappingMidi, "reject overlapping MIDI bindings");
 
+    auto scenesJson = midiJson;
+    scenesJson["version"] = 4;
+    scenesJson["sceneSet"] = {
+      {"defaultSceneId", "scene-1"},
+      {"openIn", "scenes"},
+      {"scenes", nlohmann::json::array()},
+    };
+    for (int index = 0; index < 4; ++index) {
+      scenesJson["sceneSet"]["scenes"].push_back({
+        {"id", "scene-" + std::to_string(index + 1)},
+        {"name", index == 0 ? "Verse" : "Scene " + std::to_string(index + 1)},
+        {"enterTimeMs", index == 1 ? 500 : 0},
+        {"outputTrimDb", index == 2 ? 2.0 : 0.0},
+        {"targets", nlohmann::json::array({
+          {{"target", "inputGainDb"}, {"value", -3.0 + index}},
+          {{"target", "blockEnabled"}, {"blockId", "block-2"}, {"value", index != 0}},
+          {{"target", "parameter"}, {"blockId", "block-2"},
+           {"parameter", "mix"}, {"value", 0.1 + index * 0.1}},
+        })},
+      });
+    }
+    scenesJson["sceneMidiMappings"] = nlohmann::json::array({
+      {{"channel", 0}, {"controlChange", 70}, {"action", "selectScene"},
+       {"sceneId", "scene-2"}},
+      {{"channel", 0}, {"controlChange", 71}, {"action", "sceneNumber"}},
+      {{"channel", 0}, {"controlChange", 72}, {"action", "showPresets"}},
+      {{"channel", 0}, {"controlChange", 73}, {"action", "showScenes"}},
+    });
+    const auto scenesPreset = ardor::presetFromJson(scenesJson);
+    require(scenesPreset.version == 4 && scenesPreset.sceneSet,
+            "version 4 scene set parses");
+    require(scenesPreset.blocks[1].sceneBypass == ardor::PresetSceneBypassPolicy::LetRing,
+            "qualified version 4 delay defaults to let ring");
+    auto cutScenesPreset = scenesPreset;
+    cutScenesPreset.blocks[1].sceneBypass = ardor::PresetSceneBypassPolicy::Cut;
+    const auto cutScenesRoundTrip = ardor::presetFromJson(ardor::toJson(cutScenesPreset));
+    require(cutScenesRoundTrip.blocks[1].sceneBypass == ardor::PresetSceneBypassPolicy::Cut,
+            "explicit version 4 Cut policy round trips without reverting to Let ring");
+    require(scenesPreset.sceneSet->defaultSceneId == "scene-1"
+              && scenesPreset.sceneSet->scenes[1].enterTimeMs == 500
+              && scenesPreset.sceneSet->scenes[2].outputTrimDb == 2.0f,
+            "scene settings parse");
+    require(scenesPreset.sceneSet->scenes[3].targets.size() == 3
+              && scenesPreset.sceneSet->scenes[3].targets[1].value.get<bool>(),
+            "scene targets retain typed values");
+    const auto scenesRoundTrip = ardor::presetFromJson(ardor::toJson(scenesPreset));
+    require(scenesRoundTrip.sceneSet
+              && scenesRoundTrip.sceneSet->scenes[0].name == "Verse"
+              && scenesRoundTrip.sceneSet->openIn == ardor::PresetSceneOpenMode::Scenes
+              && scenesRoundTrip.sceneMidiBindings.size() == 4
+              && scenesRoundTrip.sceneMidiBindings[0].sceneId == "scene-2",
+            "scene set and named MIDI actions round trip");
+    ardor::Preset flattenedScene;
+    std::string flattenError;
+    require(ardor::flattenPresetScene(scenesPreset, 2, flattenedScene, flattenError),
+            flattenError);
+    require(flattenedScene.version == 1 && !flattenedScene.sceneSet
+              && flattenedScene.sceneMidiBindings.empty(),
+            "flatten should remove scene-only data and choose the compatible serial version");
+    require(flattenedScene.midiBindings.size() == scenesPreset.midiBindings.size()
+              && std::fabs(flattenedScene.global.inputGainDb - -1.0f) < 1.0e-6f
+              && std::fabs(flattenedScene.global.outputGainDb - -4.0f) < 1.0e-6f
+              && flattenedScene.blocks[1].enabled
+              && std::fabs(flattenedScene.blocks[1].params.at("mix").get<float>() - 0.3f) < 1.0e-6f,
+            "flatten should resolve the selected sound while preserving compatible MIDI");
+    require(flattenedScene.blocks[1].sceneBypass == ardor::PresetSceneBypassPolicy::Cut,
+            "legacy flatten should clear scene-only tail policy");
+    const auto flattenedJson = ardor::toJson(flattenedScene);
+    require(!flattenedJson.contains("sceneSet")
+              && !flattenedJson.contains("sceneMidiMappings")
+              && !flattenedJson["blocks"][1].contains("sceneBypass"),
+            "flattened serialization must contain no version-4 scene fields");
+    auto overflowingFlatten = scenesPreset;
+    overflowingFlatten.global.outputGainDb = 12.0f;
+    require(!ardor::flattenPresetScene(
+              overflowingFlatten, 2, flattenedScene, flattenError)
+              && flattenError.find("output range") != std::string::npos,
+            "flatten must reject a scene trim that cannot fit output gain");
+    bool rejectedSceneMidiOverlap = false;
+    try {
+      auto invalid = scenesJson;
+      invalid["sceneMidiMappings"][0]["controlChange"] = 11;
+      (void)ardor::presetFromJson(invalid);
+    } catch (const std::invalid_argument&) {
+      rejectedSceneMidiOverlap = true;
+    }
+    require(rejectedSceneMidiOverlap,
+            "named scene MIDI must not overlap parameter MIDI");
+    bool rejectedMissingMidiScene = false;
+    try {
+      auto invalid = scenesJson;
+      invalid["sceneMidiMappings"][0]["sceneId"] = "missing";
+      (void)ardor::presetFromJson(invalid);
+    } catch (const std::invalid_argument&) {
+      rejectedMissingMidiScene = true;
+    }
+    require(rejectedMissingMidiScene,
+            "named scene MIDI must reference a stable scene ID");
+    auto sceneOnlyJson = scenesJson;
+    sceneOnlyJson.erase("midiMappings");
+    const auto sceneOnlyPlan = ardor::buildChainPlan(ardor::presetFromJson(sceneOnlyJson), {});
+    require(sceneOnlyPlan.blocks[1].status == ardor::ChainBlockStatus::Ready,
+            "scene-targeted disabled blocks should be prepared for live enable");
+
+    auto letRingJson = scenesJson;
+    letRingJson["blocks"][1]["type"] = "irreverb";
+    letRingJson["blocks"][1]["asset"] = "irs/hall.wav";
+    letRingJson["blocks"][1]["params"] = {{"mix", 0.5}};
+    letRingJson["blocks"][1]["sceneBypass"] = "letRing";
+    const auto letRingPreset = ardor::presetFromJson(letRingJson);
+    require(letRingPreset.blocks[1].sceneBypass == ardor::PresetSceneBypassPolicy::LetRing,
+            "IR reverb let-ring policy parses");
+    const auto letRingRoundTrip = ardor::toJson(letRingPreset);
+    require(letRingRoundTrip["blocks"][1]["sceneBypass"] == "letRing",
+            "IR reverb let-ring policy round trips");
+    require(ardor::buildChainPlan(letRingPreset, {}).blocks[1].sceneLetRing,
+            "chain plan retains IR reverb let-ring policy");
+
+    auto delayLetRingJson = scenesJson;
+    delayLetRingJson["blocks"][1]["sceneBypass"] = "letRing";
+    require(ardor::presetFromJson(delayLetRingJson).blocks[1].sceneBypass
+              == ardor::PresetSceneBypassPolicy::LetRing,
+            "hosted delay accepts let ring after wet-path separation");
+
+    bool rejectedUnsupportedLetRing = false;
+    try {
+      auto invalid = scenesJson;
+      invalid["blocks"][1]["type"] = "mod";
+      invalid["blocks"][1]["sceneBypass"] = "letRing";
+      (void)ardor::presetFromJson(invalid);
+    } catch (const std::invalid_argument&) {
+      rejectedUnsupportedLetRing = true;
+    }
+    require(rejectedUnsupportedLetRing, "let ring remains unavailable for modulation blocks");
+
+    bool rejectedLegacyLetRing = false;
+    try {
+      auto invalid = letRingJson;
+      invalid["version"] = 1;
+      invalid.erase("sceneSet");
+      (void)ardor::presetFromJson(invalid);
+    } catch (const std::invalid_argument&) {
+      rejectedLegacyLetRing = true;
+    }
+    require(rejectedLegacyLetRing, "let ring requires preset version 4");
+
+    bool rejectedMissingSceneSet = false;
+    try {
+      auto invalid = scenesJson;
+      invalid.erase("sceneSet");
+      (void)ardor::presetFromJson(invalid);
+    } catch (const std::invalid_argument&) {
+      rejectedMissingSceneSet = true;
+    }
+    require(rejectedMissingSceneSet, "version 4 requires scene set");
+
+    bool rejectedSceneTargetMismatch = false;
+    try {
+      auto invalid = scenesJson;
+      invalid["sceneSet"]["scenes"][3]["targets"].erase(2);
+      (void)ardor::presetFromJson(invalid);
+    } catch (const std::invalid_argument&) {
+      rejectedSceneTargetMismatch = true;
+    }
+    require(rejectedSceneTargetMismatch, "all scenes require identical target addresses");
+
+    bool rejectedSceneDefault = false;
+    try {
+      auto invalid = scenesJson;
+      invalid["sceneSet"]["defaultSceneId"] = "missing";
+      (void)ardor::presetFromJson(invalid);
+    } catch (const std::invalid_argument&) {
+      rejectedSceneDefault = true;
+    }
+    require(rejectedSceneDefault, "default scene must exist");
+
+    bool rejectedSceneValueType = false;
+    try {
+      auto invalid = scenesJson;
+      invalid["sceneSet"]["scenes"][0]["targets"][1]["value"] = 1;
+      (void)ardor::presetFromJson(invalid);
+    } catch (const std::invalid_argument&) {
+      rejectedSceneValueType = true;
+    }
+    require(rejectedSceneValueType, "scene enabled target requires boolean value");
+
     const auto legacyEffectsJson = nlohmann::json::parse(R"({
       "version": 1,
       "name": "Legacy placeholders",
@@ -433,6 +619,14 @@ int main()
     session.discard();
     require(session.working().name == "Disk Changed", "discard reloads disk change");
     require(!session.isDirty(), "clean after reload");
+
+    const ardor::PresetSlot sceneSourceSlot{2, 2};
+    const ardor::PresetSlot sceneCopySlot{2, 1};
+    store.save(sceneSourceSlot, scenesPreset);
+    const auto sceneCopy = store.load(sceneSourceSlot);
+    store.save(sceneCopySlot, sceneCopy);
+    require(ardor::toJson(store.load(sceneCopySlot)) == ardor::toJson(scenesPreset),
+            "copying a stored preset between slots must preserve complete scene data");
 
     // Corrupt preset: garbage bytes → load must throw
     {

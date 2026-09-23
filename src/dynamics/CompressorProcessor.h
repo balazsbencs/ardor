@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 
 #include <string>
+#include <string_view>
 #include <memory>
 
 namespace ardor {
@@ -21,7 +22,7 @@ public:
   CompressorProcessor(CompressorProcessor&&) noexcept = default;
   CompressorProcessor& operator=(CompressorProcessor&&) noexcept = default;
   bool configure(const nlohmann::json& params, float sampleRate, std::string& error);
-  bool setParameterTarget(const std::string& key, float value);
+  bool setParameterTarget(std::string_view key, float value);
   void reset();
   StereoSample process(StereoSample input);
   // Current gain reduction in dB (<= 0), published from the audio thread on

@@ -182,6 +182,7 @@ DeviceSettings GlobalSettingsStore::load() const
         }
         settings.midiChannel = std::clamp(json.value("midiChannel", -1), -1, 15);
         settings.midiTunerCc = std::clamp(json.value("midiTunerCc", 20), 0, 127);
+        settings.sceneLayerChordEnabled = json.value("sceneLayerChordEnabled", true);
         settings.expressionMinimumRaw = json.value("expressionMinimumRaw", 0);
         settings.expressionMaximumRaw = json.value("expressionMaximumRaw", 26400);
         settings.expressionSmoothing = json.value("expressionSmoothing", 0.25f);
@@ -256,6 +257,7 @@ bool GlobalSettingsStore::saveControlInputs(const DeviceSettings& settings, std:
   auto json = loadSettingsDocument(dataRoot_);
   json["midiChannel"] = settings.midiChannel;
   json["midiTunerCc"] = settings.midiTunerCc;
+  json["sceneLayerChordEnabled"] = settings.sceneLayerChordEnabled;
   json["expressionMinimumRaw"] = settings.expressionMinimumRaw;
   json["expressionMaximumRaw"] = settings.expressionMaximumRaw;
   json["expressionSmoothing"] = settings.expressionSmoothing;

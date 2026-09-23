@@ -189,7 +189,7 @@ bool CheeseProcessor::configure(const nlohmann::json& params, float sampleRate, 
   return true;
 }
 
-bool CheeseProcessor::setParameterTarget(const std::string& key, float value)
+bool CheeseProcessor::setParameterTarget(std::string_view key, float value)
 {
   if (!std::isfinite(value)) return false;
   if (!control_) return false;

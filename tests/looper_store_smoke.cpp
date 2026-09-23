@@ -75,7 +75,22 @@ ardor::LooperPausedSessionView makePausedLoop(ardor::RealtimeLooper& looper)
 ardor::Preset sourcePreset()
 {
   ardor::Preset preset;
+  preset.version = 4;
   preset.name = "Persistence Tone";
+  ardor::PresetSceneSet scenes;
+  scenes.defaultSceneId = "scene-1";
+  for (std::size_t index = 0; index < scenes.scenes.size(); ++index) {
+    auto& scene = scenes.scenes[index];
+    scene.id = "scene-" + std::to_string(index + 1);
+    scene.name = "Scene " + std::to_string(index + 1);
+    scene.enterTimeMs = index == 1 ? 500 : 0;
+    scene.outputTrimDb = index == 2 ? 1.5f : 0.0f;
+    scene.targets.push_back(
+      {ardor::PresetSceneTargetType::InputGainDb, {}, {}, {}, -3.0f + index});
+  }
+  preset.sceneSet = std::move(scenes);
+  preset.sceneMidiBindings.push_back(
+    {0, 70, ardor::PresetSceneMidiActionType::SelectScene, "scene-2"});
   return preset;
 }
 
@@ -121,6 +136,8 @@ int main()
               && loaded.loopFrames == 8 && loaded.tracks[0].present
               && loaded.tracks[0].muted && loaded.tracks[0].levelDb == -3.0f,
             "manifest and preset snapshot should round trip");
+    require(ardor::toJson(loaded.preset) == ardor::toJson(request.preset),
+            "looper preset snapshots must preserve complete scene data");
     requireNear(loaded.tracks[0].audio.left[0], 0.35f,
                 "save should flatten an audible latest take into left audio");
     requireNear(loaded.tracks[0].audio.right[0], 0.7f,

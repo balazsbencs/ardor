@@ -27,6 +27,39 @@ constexpr int kEditTopRailHeight = 52;
 constexpr int kEditBottomRailHeight = 88;
 constexpr int kEditBottomRailY = kDesignHeight - kEditBottomRailHeight;
 
+void drawBypassedOutline(lv_event_t* event)
+{
+  auto* object = lv_event_get_target_obj(event);
+  if (!lv_obj_has_state(object, LV_STATE_USER_1)) return;
+
+  lv_area_t area{};
+  lv_obj_get_coords(object, &area);
+  area.x1 += 1;
+  area.y1 += 1;
+  area.x2 -= 1;
+  area.y2 -= 1;
+
+  lv_draw_line_dsc_t line{};
+  lv_draw_line_dsc_init(&line);
+  line.color = lv_color_hex(rule);
+  line.width = 2;
+  line.dash_width = 9;
+  line.dash_gap = 6;
+  line.opa = LV_OPA_COVER;
+  auto* layer = lv_event_get_layer(event);
+  const auto draw = [&](int x1, int y1, int x2, int y2) {
+    line.p1.x = x1;
+    line.p1.y = y1;
+    line.p2.x = x2;
+    line.p2.y = y2;
+    lv_draw_line(layer, &line);
+  };
+  draw(area.x1, area.y1, area.x2, area.y1);
+  draw(area.x2, area.y1, area.x2, area.y2);
+  draw(area.x2, area.y2, area.x1, area.y2);
+  draw(area.x1, area.y2, area.x1, area.y1);
+}
+
 bool isWdwRoutingBlock(const UiBlock& block)
 {
   return block.type == "dualRig"
@@ -73,6 +106,130 @@ void onPresetNameEditClicked(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
   context->ui->openPresetNameEditor(*context->state);
+}
+
+void onSceneNameEditClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->openSceneNameEditor(*context->state);
+}
+
+void onSceneTabClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  if (!selectEditingScene(*context->state, context->index)) return;
+  if (context->ui->actions().selectScene) context->ui->actions().selectScene(context->index);
+  context->ui->invalidate(UiChange::Presets);
+}
+
+void onCreateScenesClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  enableScenes(*context->state);
+  context->ui->invalidate(UiChange::Presets);
+}
+
+void onOpenSceneSettingsClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  openSceneSettings(*context->state);
+  context->ui->invalidate(UiChange::Presets);
+}
+
+void onCloseSceneSettingsClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  closeSceneSettings(*context->state);
+  context->ui->invalidate(UiChange::Presets);
+}
+
+void onSceneInstantClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  setEditingSceneEnterTime(*context->state, 0);
+}
+
+void onSceneTimedClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  const auto& scene = context->state->bank.presets[context->state->activePreset]
+    .sceneSet->scenes[context->state->editingScene];
+  setEditingSceneEnterTime(*context->state, scene.enterTimeMs == 0 ? 500 : scene.enterTimeMs);
+}
+
+void onSceneEnterDeltaClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  const auto& scene = context->state->bank.presets[context->state->activePreset]
+    .sceneSet->scenes[context->state->editingScene];
+  const int current = scene.enterTimeMs == 0 ? 500 : static_cast<int>(scene.enterTimeMs);
+  setEditingSceneEnterTime(*context->state,
+    static_cast<std::uint32_t>(std::clamp(current + (context->index == 0 ? -100 : 100), 100, 10000)));
+}
+
+void onSceneTrimDeltaClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  const auto& scene = context->state->bank.presets[context->state->activePreset]
+    .sceneSet->scenes[context->state->editingScene];
+  setEditingSceneTrim(*context->state,
+    std::clamp(scene.outputTrimDb + (context->index == 0 ? -0.5f : 0.5f), -12.0f, 6.0f));
+}
+
+void onSceneDefaultClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  makeEditingSceneDefault(*context->state);
+}
+
+void onSceneCopyClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  requestSceneOperation(*context->state, UiSceneOperation::Copy,
+                        context->state->editingScene, context->index);
+}
+
+void onSceneSwapClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  requestSceneOperation(*context->state, UiSceneOperation::Swap,
+                        context->state->editingScene, context->index);
+}
+
+void onSceneOperationCancelClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  cancelSceneOperation(*context->state);
+}
+
+void onSceneOperationConfirmClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  confirmSceneOperation(*context->state);
+}
+
+void onSceneOpenModeClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  setSceneOpenMode(*context->state, context->index == 0
+    ? PresetSceneOpenMode::Presets : PresetSceneOpenMode::Scenes);
+}
+
+void onDisableScenesClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  requestSceneOperation(*context->state, UiSceneOperation::Disable,
+                        context->state->editingScene, context->state->editingScene);
+}
+
+void onCaptureCurrentSoundClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  if (!requestCurrentSoundCapture(*context->state)) return;
+  if (context->ui->actions().requestSceneCapture)
+    context->ui->actions().requestSceneCapture();
+  else
+    failCurrentSoundCapture(*context->state, "Current sound capture is unavailable");
 }
 
 void onOpenBlockDrawer(lv_event_t* event)
@@ -195,9 +352,7 @@ void onBlockPressing(lv_event_t* event)
 void onBlockReleased(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
-  const lv_opa_t restingOpacity = context->index < blocks.size() && !blocks[context->index].enabled
-    ? LV_OPA_70 : LV_OPA_COVER;
+  const lv_opa_t restingOpacity = LV_OPA_COVER;
   lv_obj_set_style_opa(context->controlledObject ? context->controlledObject
                                                  : lv_event_get_target_obj(event), restingOpacity, 0);
   context->ui->setChainDragActive(false);
@@ -231,9 +386,7 @@ void onBlockReleased(lv_event_t* event)
 void onBlockPressLost(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
-  const lv_opa_t restingOpacity = context->index < blocks.size() && !blocks[context->index].enabled
-    ? LV_OPA_70 : LV_OPA_COVER;
+  const lv_opa_t restingOpacity = LV_OPA_COVER;
   lv_obj_set_style_opa(context->controlledObject ? context->controlledObject
                                                  : lv_event_get_target_obj(event), restingOpacity, 0);
   context->ui->setChainDragActive(false);
@@ -309,13 +462,8 @@ void onLaneBlockPressing(lv_event_t* event)
 void onLaneBlockReleased(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
-  const bool enabled = context->parentIndex < blocks.size()
-    && context->laneIndex < blocks[context->parentIndex].lanes.size()
-    && context->index < blocks[context->parentIndex].lanes[context->laneIndex].size()
-    && blocks[context->parentIndex].lanes[context->laneIndex][context->index].enabled;
   if (context->controlledObject) {
-    lv_obj_set_style_opa(context->controlledObject, enabled ? LV_OPA_COVER : LV_OPA_70, 0);
+    lv_obj_set_style_opa(context->controlledObject, LV_OPA_COVER, 0);
   }
   context->ui->setChainDragActive(false);
   if (!context->dragging) return;
@@ -340,13 +488,8 @@ void onLaneBlockReleased(lv_event_t* event)
 void onLaneBlockPressLost(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  const auto& blocks = context->state->bank.presets[context->state->activePreset].blocks;
-  const bool enabled = context->parentIndex < blocks.size()
-    && context->laneIndex < blocks[context->parentIndex].lanes.size()
-    && context->index < blocks[context->parentIndex].lanes[context->laneIndex].size()
-    && blocks[context->parentIndex].lanes[context->laneIndex][context->index].enabled;
   if (context->controlledObject) {
-    lv_obj_set_style_opa(context->controlledObject, enabled ? LV_OPA_COVER : LV_OPA_70, 0);
+    lv_obj_set_style_opa(context->controlledObject, LV_OPA_COVER, 0);
   }
   context->ui->setChainDragActive(false);
   context->suppressClick = context->dragging;
@@ -372,9 +515,15 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   lv_obj_set_style_pad_all(topRail, 0, 0);
   lv_obj_remove_flag(topRail, LV_OBJ_FLAG_SCROLLABLE);
 
-  label(topRail, "PRESET " + std::to_string(state.activePreset + 1), LV_ALIGN_LEFT_MID,
+  const auto& editedPreset = state.bank.presets[state.activePreset];
+  const auto* sceneSet = editedPreset.sceneSet ? &*editedPreset.sceneSet : nullptr;
+  label(topRail, sceneSet ? "EDITING" : "PRESET " + std::to_string(state.activePreset + 1), LV_ALIGN_LEFT_MID,
         kEditRailEdgeInset, 0, &ardor_font_saira_cond_semibold_22, text);
-  editPresetLabel_ = label(topRail, state.bank.presets[state.activePreset].name,
+  const std::string editorIdentity = sceneSet
+    ? "SCENE " + std::to_string(state.editingScene + 1) + "  ·  "
+        + uppercase(sceneSet->scenes[state.editingScene].name)
+    : editedPreset.name;
+  editPresetLabel_ = label(topRail, editorIdentity,
                            LV_ALIGN_LEFT_MID, 154, 0, &ardor_font_saira_cond_medium_18, muted);
   lv_obj_set_width(editPresetLabel_, 236);
   lv_label_set_long_mode(editPresetLabel_, LV_LABEL_LONG_CLIP);
@@ -395,6 +544,36 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   editModuleCountLabel_ = label(topRail,
     std::to_string(moduleCount) + (moduleCount == 1 ? " MODULE" : " MODULES"),
     LV_ALIGN_RIGHT_MID, -kEditRailEdgeInset, 0, &ardor_font_saira_cond_medium_18, muted);
+
+  if (sceneSet) {
+    constexpr int stripY = 54;
+    constexpr int stripWidth = 202;
+    for (std::size_t index = 0; index < sceneSet->scenes.size(); ++index) {
+      const auto& scene = sceneSet->scenes[index];
+      lv_obj_t* tab = button(root, "FS" + std::to_string(index + 1) + "  " + uppercase(scene.name));
+      lv_obj_set_size(tab, stripWidth, 38);
+      lv_obj_set_pos(tab, 28 + static_cast<int>(index) * (stripWidth + 8), stripY);
+      styleSurface(tab, index == state.editingScene ? text : panelAlt);
+      lv_obj_set_style_text_color(lv_obj_get_child(tab, 0),
+                                  lv_color_hex(index == state.editingScene ? bg : text), 0);
+      lv_obj_add_event_cb(tab, onSceneTabClicked, LV_EVENT_CLICKED, remember(state, index));
+    }
+    lv_obj_t* sceneSettings = button(root, state.sceneSettingsOpen ? "CLOSE SETTINGS" : "SCENE SETTINGS");
+    lv_obj_set_size(sceneSettings, 190, 38);
+    lv_obj_set_pos(sceneSettings, 1062, stripY);
+    styleSurface(sceneSettings, panelAlt);
+    lv_obj_add_event_cb(sceneSettings,
+      state.sceneSettingsOpen ? onCloseSceneSettingsClicked : onOpenSceneSettingsClicked,
+      LV_EVENT_CLICKED, remember(state));
+  } else {
+    label(root, "SCENES  ·  FOUR SOUNDS USING THIS RIG", LV_ALIGN_TOP_LEFT, 28, 61,
+          &ardor_font_saira_cond_medium_18, muted);
+    lv_obj_t* createScenes = button(root, "CREATE FOUR SCENES");
+    lv_obj_set_size(createScenes, 226, 38);
+    lv_obj_set_pos(createScenes, 1026, 54);
+    styleSurface(createScenes, panelAlt);
+    lv_obj_add_event_cb(createScenes, onCreateScenesClicked, LV_EVENT_CLICKED, remember(state));
+  }
 
   const auto& blocks = state.bank.presets[state.activePreset].blocks;
   const auto* selectedEffect = selectedUiBlock(state);
@@ -538,11 +717,18 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       lv_obj_set_pos(object, x, kChainTileTop);
       styleSurface(object, block.enabled ? panel : panelAlt);
       lv_obj_set_style_pad_all(object, 0, 0);
-      if (!block.enabled) lv_obj_set_style_opa(object, LV_OPA_70, 0);
+      lv_obj_set_style_bg_opa(object, block.enabled ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
+      if (block.enabled) {
+        lv_obj_remove_state(object, LV_STATE_USER_1);
+      } else {
+        lv_obj_add_state(object, LV_STATE_USER_1);
+      }
+      lv_obj_add_event_cb(object, drawBypassedOutline, LV_EVENT_DRAW_POST, nullptr);
       // Selection reads as a lighter border, matching the mockup's .sel state
       // (panel.html line 148) rather than a separate indicator bar competing
       // with the family ticks for the card's bottom edge.
       lv_obj_set_style_border_color(object, lv_color_hex(selected ? text : rule), 0);
+      lv_obj_set_style_border_width(object, selected ? 3 : (block.enabled ? 1 : 0), 0);
       if (isBlockHighlighted(block.id)) {
         lv_obj_set_style_border_color(object, lv_color_hex(text), 0);
         lv_obj_set_style_border_width(object, 3, 0);
@@ -550,8 +736,8 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       const int catColor = categoryColor(block.type);
       // Family identity lives in the printed header strip, never as a wide
       // coloured side border. That keeps the card legible in every palette.
-      // Bypassed blocks go to bare metal (mockup panel.html line 150): the
-      // header loses its family colour rather than just dimming it.
+      // Bypassed blocks leave only a dashed footprint: the face clears to the
+      // signal canvas and the header loses its family colour.
       lv_obj_t* categoryHeader = lv_obj_create(object);
       lv_obj_set_size(categoryHeader, kChainTileWidth, kChainHeaderHeight);
       lv_obj_set_pos(categoryHeader, 0, 0);
@@ -582,7 +768,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
                                   block.enabled ? text : disabled);
       lv_obj_set_width(assetName, kChainTextWidth);
       lv_label_set_long_mode(assetName, LV_LABEL_LONG_WRAP);
-      lv_obj_t* bypassed = label(object, "BYPASSED", LV_ALIGN_TOP_LEFT, kChainTextX,
+      lv_obj_t* bypassed = label(object, "OFF", LV_ALIGN_TOP_LEFT, kChainTextX,
                                  kChainHeaderHeight + 18 + 58, &ardor_font_saira_cond_medium_18, disabled);
       if (block.enabled) lv_obj_add_flag(bypassed, LV_OBJ_FLAG_HIDDEN);
 
@@ -590,32 +776,18 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       // mirroring the mockup's .grp strip (panel.html lines 146-147).
       constexpr int kFamilyBarGap = 3;
       const int familyBarWidth = (kChainTextWidth - 2 * kFamilyBarGap) / 3;
+      lv_obj_t* familyTick = nullptr;
       for (int bar = 0; bar < 3; ++bar) {
         lv_obj_t* tick = lv_obj_create(object);
         lv_obj_set_size(tick, familyBarWidth, 3);
         lv_obj_set_pos(tick, kChainTextX + bar * (familyBarWidth + kFamilyBarGap),
                        kChainTileHeight - 16 - 3);
-        styleSurface(tick, bar == 0 ? catColor : rule);
+        styleSurface(tick, block.enabled && bar == 0 ? catColor : rule);
         lv_obj_set_style_border_width(tick, 0, 0);
         lv_obj_remove_flag(tick, LV_OBJ_FLAG_CLICKABLE);
+        if (bar == 0) familyTick = tick;
       }
 
-      if (!block.enabled) {
-        // Bypass jumper: a cord routed over the module rather than a text
-        // label alone, per docs/lvgl-ui-redesign-spec.md §8.7.
-        lv_obj_t* jumper = lv_obj_create(chainWorld_);
-        lv_obj_remove_style_all(jumper);
-        lv_obj_set_size(jumper, kChainTileWidth + 46, 2);
-        lv_obj_set_pos(jumper, x - 23, kChainTileTop - 20);
-        lv_obj_set_style_bg_opa(jumper, LV_OPA_COVER, 0);
-        lv_obj_set_style_bg_color(jumper, lv_color_hex(lamp), 0);
-        lv_obj_remove_flag(jumper, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_t* jumperLabel = label(chainWorld_, "BYP", LV_ALIGN_DEFAULT, 0, 0,
-                                      &ardor_font_saira_cond_medium_18, lamp);
-        lv_obj_align(jumperLabel, LV_ALIGN_DEFAULT, x + kChainTileWidth / 2 - 14,
-                    kChainTileTop - 20 + 4);
-        lv_obj_remove_flag(jumperLabel, LV_OBJ_FLAG_CLICKABLE);
-      }
       auto* clickContext = remember(state, i);
       lv_obj_add_event_cb(object, onBlockClicked, LV_EVENT_CLICKED, clickContext);
 
@@ -623,6 +795,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       chainCategoryLabels_[i] = categoryLabel;
       chainAssetLabels_[i] = assetName;
       chainBypassLabels_[i] = bypassed;
+      chainFamilyTicks_[i] = familyTick;
       chainClickContexts_[i] = clickContext;
       x += kChainTileWidth;
     } else {
@@ -719,11 +892,19 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
           lv_obj_set_pos(childObject, laneX, laneY - kLaneTileHeight / 2);
           styleSurface(childObject, child.enabled ? panel : panelAlt);
           lv_obj_set_style_pad_all(childObject, 0, 0);
-          lv_obj_set_style_border_color(childObject, lv_color_hex(visibleLaneColor), 0);
           const bool childSelected = state.paramTarget == UiParamTarget::Block
             && state.selectedBlockId == child.id;
-          lv_obj_set_style_border_width(childObject, childSelected ? 3 : 1, 0);
-          if (!child.enabled) lv_obj_set_style_opa(childObject, LV_OPA_70, 0);
+          lv_obj_set_style_bg_opa(childObject, child.enabled ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
+          lv_obj_set_style_border_color(childObject,
+                                        lv_color_hex(childSelected ? text : visibleLaneColor), 0);
+          lv_obj_set_style_border_width(childObject,
+                                        childSelected ? 3 : (child.enabled ? 1 : 0), 0);
+          if (child.enabled) {
+            lv_obj_remove_state(childObject, LV_STATE_USER_1);
+          } else {
+            lv_obj_add_state(childObject, LV_STATE_USER_1);
+          }
+          lv_obj_add_event_cb(childObject, drawBypassedOutline, LV_EVENT_DRAW_POST, nullptr);
           if (!laneEnabled) lv_obj_set_style_opa(childObject, LV_OPA_70, 0);
           // Compact lane cards keep the same interaction grammar: the entire
           // title strip is a deliberate, finger-sized drag surface, while the
@@ -746,7 +927,9 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
           lv_obj_set_style_text_letter_space(childDragLabel, 2, 0);
           lv_obj_remove_flag(childTitle, LV_OBJ_FLAG_CLICKABLE);
           lv_obj_remove_flag(childDragLabel, LV_OBJ_FLAG_CLICKABLE);
-          lv_obj_t* childAsset = label(childObject, uppercase(child.assetName), LV_ALIGN_BOTTOM_LEFT, 10, -9,
+          const std::string childReadout = child.enabled
+            ? uppercase(child.assetName) : "OFF  /  " + uppercase(child.assetName);
+          lv_obj_t* childAsset = label(childObject, childReadout, LV_ALIGN_BOTTOM_LEFT, 10, -9,
                                        &ardor_font_saira_cond_semibold_22,
                                        child.enabled && laneEnabled ? text : disabled);
           lv_obj_set_width(childAsset, kLaneTileWidth - 20);
@@ -801,6 +984,177 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   lv_obj_set_pos(outputJump, 1108, 592);
   styleSurface(outputJump, panelAlt);
   lv_obj_add_event_cb(outputJump, onChainEndClicked, LV_EVENT_CLICKED, remember(state));
+
+  if (sceneSet && state.sceneSettingsOpen) {
+    const auto& scene = sceneSet->scenes[state.editingScene];
+    lv_obj_t* sheet = lv_obj_create(root);
+    lv_obj_set_size(sheet, kDesignWidth, 536);
+    lv_obj_set_pos(sheet, 0, 96);
+    styleSurface(sheet, bg);
+    lv_obj_set_style_pad_all(sheet, 0, 0);
+    lv_obj_set_style_radius(sheet, 0, 0);
+    lv_obj_remove_flag(sheet, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t* back = button(sheet, "<  BACK TO CHAIN");
+    lv_obj_set_size(back, 184, 44);
+    lv_obj_set_pos(back, 28, 18);
+    styleSurface(back, panelAlt);
+    lv_obj_add_event_cb(back, onCloseSceneSettingsClicked, LV_EVENT_CLICKED, remember(state));
+    label(sheet, "SCENE " + std::to_string(state.editingScene + 1) + "  ·  " + uppercase(scene.name),
+          LV_ALIGN_TOP_LEFT, 238, 25, &ardor_font_saira_cond_semibold_22, text);
+
+    const auto card = [&](int x, int y, int width, int height, const std::string& title) {
+      lv_obj_t* result = lv_obj_create(sheet);
+      lv_obj_set_size(result, width, height);
+      lv_obj_set_pos(result, x, y);
+      styleSurface(result, panel);
+      lv_obj_set_style_pad_all(result, 0, 0);
+      lv_obj_remove_flag(result, LV_OBJ_FLAG_SCROLLABLE);
+      label(result, title, LV_ALIGN_TOP_LEFT, 20, 14,
+            &ardor_font_saira_cond_semibold_11, muted);
+      return result;
+    };
+    const auto smallAction = [&](lv_obj_t* parent, const std::string& caption,
+                                 int x, int y, int width, lv_event_cb_t callback,
+                                 std::size_t index = 0) {
+      lv_obj_t* action = button(parent, caption);
+      lv_obj_set_size(action, width, 44);
+      lv_obj_set_pos(action, x, y);
+      styleSurface(action, panelAlt);
+      lv_obj_add_event_cb(action, callback, LV_EVENT_CLICKED, remember(state, index));
+      return action;
+    };
+
+    lv_obj_t* nameCard = card(28, 76, 594, 124, "NAME");
+    label(nameCard, scene.name, LV_ALIGN_BOTTOM_LEFT, 20, -18,
+          &ardor_font_saira_cond_semibold_28, text);
+    smallAction(nameCard, "RENAME", 452, 60, 122, onSceneNameEditClicked);
+
+    lv_obj_t* enterCard = card(638, 76, 614, 124, "ENTER TIME");
+    lv_obj_t* instant = smallAction(enterCard, "INSTANT", 20, 58, 112, onSceneInstantClicked);
+    lv_obj_t* timed = smallAction(enterCard, "TIMED", 142, 58, 102, onSceneTimedClicked);
+    styleSurface(scene.enterTimeMs == 0 ? instant : timed, text);
+    lv_obj_set_style_text_color(lv_obj_get_child(scene.enterTimeMs == 0 ? instant : timed, 0),
+                                lv_color_hex(bg), 0);
+    lv_obj_t* enterMinus = smallAction(enterCard, "-", 310, 58, 48, onSceneEnterDeltaClicked, 0);
+    lv_obj_t* enterPlus = smallAction(enterCard, "+", 546, 58, 48, onSceneEnterDeltaClicked, 1);
+    char enterText[32]{};
+    if (scene.enterTimeMs == 0) std::snprintf(enterText, sizeof(enterText), "INSTANT");
+    else std::snprintf(enterText, sizeof(enterText), "%.1f s", scene.enterTimeMs / 1000.0f);
+    label(enterCard, enterText, LV_ALIGN_TOP_LEFT, 382, 68,
+          &ardor_font_saira_cond_semibold_22, scene.enterTimeMs == 0 ? muted : text);
+    if (scene.enterTimeMs == 0) {
+      lv_obj_add_state(enterMinus, LV_STATE_DISABLED);
+      lv_obj_add_state(enterPlus, LV_STATE_DISABLED);
+    }
+
+    lv_obj_t* trimCard = card(28, 216, 594, 128, "SCENE TRIM");
+    smallAction(trimCard, "-", 20, 62, 54, onSceneTrimDeltaClicked, 0);
+    smallAction(trimCard, "+", 520, 62, 54, onSceneTrimDeltaClicked, 1);
+    char trimText[32]{};
+    std::snprintf(trimText, sizeof(trimText), "%+.1f dB", scene.outputTrimDb);
+    label(trimCard, "-12 dB", LV_ALIGN_BOTTOM_LEFT, 90, -22,
+          &ardor_font_saira_cond_medium_18, muted);
+    label(trimCard, trimText, LV_ALIGN_BOTTOM_MID, 0, -20,
+          &ardor_font_saira_cond_semibold_28, text);
+    label(trimCard, "+6 dB", LV_ALIGN_BOTTOM_RIGHT, -90, -22,
+          &ardor_font_saira_cond_medium_18, muted);
+
+    lv_obj_t* defaultCard = card(638, 216, 614, 128, "DEFAULT ON PRESET LOAD");
+    const bool isDefault = sceneSet->defaultSceneId == scene.id;
+    lv_obj_t* makeDefault = smallAction(defaultCard,
+      isDefault ? "CURRENT DEFAULT" : "MAKE " + uppercase(scene.name) + " DEFAULT",
+      20, 62, 286, onSceneDefaultClicked);
+    if (isDefault) lv_obj_add_state(makeDefault, LV_STATE_DISABLED);
+    const auto defaultScene = std::find_if(sceneSet->scenes.begin(), sceneSet->scenes.end(),
+      [&](const PresetScene& candidate) { return candidate.id == sceneSet->defaultSceneId; });
+    label(defaultCard, "Current: " + (defaultScene == sceneSet->scenes.end()
+          ? std::string{"Unknown"} : defaultScene->name),
+          LV_ALIGN_BOTTOM_RIGHT, -20, -24, &ardor_font_saira_cond_medium_18, muted);
+
+    lv_obj_t* operations = card(28, 360, 824, 150, "COPY SOUND TO / SWAP PHYSICAL SLOT");
+    label(operations, "COPY TO", LV_ALIGN_TOP_LEFT, 20, 55,
+          &ardor_font_saira_cond_medium_18, muted);
+    label(operations, "SWAP", LV_ALIGN_TOP_LEFT, 20, 106,
+          &ardor_font_saira_cond_medium_18, muted);
+    for (std::size_t index = 0; index < sceneSet->scenes.size(); ++index) {
+      const int bx = 132 + static_cast<int>(index) * 164;
+      auto* copy = smallAction(operations, std::to_string(index + 1) + " "
+        + uppercase(sceneSet->scenes[index].name), bx, 45, 152, onSceneCopyClicked, index);
+      auto* swap = smallAction(operations, "SLOT " + std::to_string(index + 1),
+                               bx, 96, 152, onSceneSwapClicked, index);
+      if (index == state.editingScene) {
+        lv_obj_add_state(copy, LV_STATE_DISABLED);
+        lv_obj_add_state(swap, LV_STATE_DISABLED);
+      }
+    }
+
+    lv_obj_t* presetSettings = card(868, 360, 384, 150, "PRESET SETTINGS  ·  OPEN IN");
+    auto* openPresets = smallAction(presetSettings, "PRESETS", 20, 42, 158,
+                                    onSceneOpenModeClicked, 0);
+    auto* openScenes = smallAction(presetSettings, "SCENES", 196, 42, 168,
+                                   onSceneOpenModeClicked, 1);
+    auto* selectedOpen = sceneSet->openIn == PresetSceneOpenMode::Presets ? openPresets : openScenes;
+    styleSurface(selectedOpen, text);
+    lv_obj_set_style_text_color(lv_obj_get_child(selectedOpen, 0), lv_color_hex(bg), 0);
+    lv_obj_t* capture = smallAction(presetSettings,
+      state.sceneCapturePending ? "CAPTURING..." : "MORE  ·  CAPTURE",
+      20, 94, 166, onCaptureCurrentSoundClicked);
+    if (state.sceneCapturePending || state.scenes.transitioning || state.scenes.pending)
+      lv_obj_add_state(capture, LV_STATE_DISABLED);
+    lv_obj_t* disable = smallAction(presetSettings, "MORE  ·  DISABLE", 198, 94, 166,
+                                    onDisableScenesClicked);
+    lv_obj_set_style_text_color(lv_obj_get_child(disable, 0), lv_color_hex(danger), 0);
+
+    if (state.sceneOperation.operation != UiSceneOperation::None) {
+      const auto prompt = state.sceneOperation;
+      lv_obj_t* veil = lv_obj_create(sheet);
+      lv_obj_set_size(veil, kDesignWidth, 536);
+      lv_obj_set_pos(veil, 0, 0);
+      lv_obj_set_style_bg_color(veil, lv_color_hex(0x000000), 0);
+      lv_obj_set_style_bg_opa(veil, LV_OPA_70, 0);
+      lv_obj_set_style_border_width(veil, 0, 0);
+      lv_obj_set_style_pad_all(veil, 0, 0);
+      lv_obj_remove_flag(veil, LV_OBJ_FLAG_SCROLLABLE);
+      lv_obj_t* dialog = lv_obj_create(veil);
+      lv_obj_set_size(dialog, 650, 244);
+      lv_obj_align(dialog, LV_ALIGN_CENTER, 0, 0);
+      styleSurface(dialog, panelAlt);
+      lv_obj_set_style_pad_all(dialog, 0, 0);
+      lv_obj_remove_flag(dialog, LV_OBJ_FLAG_SCROLLABLE);
+      const auto& source = sceneSet->scenes[prompt.source];
+      const auto& destination = sceneSet->scenes[prompt.destination];
+      const bool copying = prompt.operation == UiSceneOperation::Copy;
+      const bool disabling = prompt.operation == UiSceneOperation::Disable;
+      label(dialog, copying ? "REPLACE SCENE SOUND?"
+                            : disabling ? "DISABLE ALL SCENES?" : "SWAP PHYSICAL SLOTS?",
+            LV_ALIGN_TOP_LEFT, 28, 24, &ardor_font_saira_cond_semibold_28, text);
+      const std::string explanation = copying
+        ? "Copy " + source.name + " into " + destination.name
+            + ". The destination name and ID stay in place."
+        : disabling
+        ? "Keep " + source.name
+            + " as the ordinary preset sound and remove scene data and scene MIDI links."
+        : source.name + " and " + destination.name
+            + " move with their IDs, defaults, and MIDI links.";
+      lv_obj_t* details = label(dialog, explanation, LV_ALIGN_TOP_LEFT, 28, 74,
+                                &ardor_font_saira_cond_medium_18, muted);
+      lv_obj_set_width(details, 594);
+      lv_label_set_long_mode(details, LV_LABEL_LONG_WRAP);
+      lv_obj_t* cancel = button(dialog, "CANCEL");
+      lv_obj_set_size(cancel, 174, 54);
+      lv_obj_set_pos(cancel, 254, 166);
+      styleSurface(cancel, panel);
+      lv_obj_add_event_cb(cancel, onSceneOperationCancelClicked, LV_EVENT_CLICKED, remember(state));
+      lv_obj_t* confirm = button(dialog, copying ? "REPLACE"
+                                                 : disabling ? "DISABLE" : "SWAP SLOTS");
+      lv_obj_set_size(confirm, 184, 54);
+      lv_obj_set_pos(confirm, 438, 166);
+      styleSurface(confirm, text);
+      lv_obj_set_style_text_color(lv_obj_get_child(confirm, 0), lv_color_hex(bg), 0);
+      lv_obj_add_event_cb(confirm, onSceneOperationConfirmClicked, LV_EVENT_CLICKED, remember(state));
+    }
+  }
 
   // ---- bottom control rail: Save is primary, Modules opens the drawer,
   // Global reaches the input/output gain page, Done returns to Preset.

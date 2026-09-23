@@ -52,7 +52,7 @@ int main()
           "runtime chain should process the wah block");
   require(chain.setBlockEnabled("wah-1", false), "runtime wah should be bypassable");
   ardor::StereoSample bypassed{};
-  for (int i = 0; i < 241; ++i) {
+  for (int i = 0; i < 481; ++i) {
     bypassed = chain.process({0.2f, -0.1f});
   }
   require(bypassed.left == 0.2f && bypassed.right == -0.1f,
