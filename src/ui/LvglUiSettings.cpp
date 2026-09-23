@@ -88,6 +88,12 @@ void onMidiTunerCcAdjusted(lv_event_t* event)
   context->ui->adjustMidiTunerCc(*context->state, context->index == 0 ? -1 : 1);
 }
 
+void onSceneLayerChordToggled(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  context->ui->toggleSceneLayerChord(*context->state);
+}
+
 void onExpressionEndpointCaptured(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
@@ -235,6 +241,24 @@ void LvglUi::adjustMidiTunerCc(UiState& state, int delta)
     settingsMessageIsError_ = false;
   } else {
     settingsMessage_ = error.empty() ? "Could not save tuner CC" : error;
+    settingsMessageIsError_ = true;
+  }
+  viewsInitialized_ = false;
+}
+
+void LvglUi::toggleSceneLayerChord(UiState& state)
+{
+  const bool previous = state.settings.sceneLayerChordEnabled;
+  state.settings.sceneLayerChordEnabled = !previous;
+  std::string error;
+  if (actions_.saveControlInputSettings
+      && actions_.saveControlInputSettings(state.settings, error)) {
+    settingsMessage_ = state.settings.sceneLayerChordEnabled
+      ? "Scene layer chord enabled" : "Scene layer chord disabled";
+    settingsMessageIsError_ = false;
+  } else {
+    state.settings.sceneLayerChordEnabled = previous;
+    settingsMessage_ = error.empty() ? "Could not save scene layer chord" : error;
     settingsMessageIsError_ = true;
   }
   viewsInitialized_ = false;
@@ -640,6 +664,16 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
           state.controlInputs.expressionConnected ? palette().family[3] : muted);
     label(expression, "Move to heel, capture; then move to toe and capture.",
           LV_ALIGN_TOP_LEFT, 20, 54, &ardor_font_saira_cond_medium_18, muted);
+    lv_obj_t* sceneChord = button(expression,
+      std::string("Scene layer chord:  ")
+        + (state.settings.sceneLayerChordEnabled ? "On" : "Off"));
+    lv_obj_set_size(sceneChord, 292, 42);
+    lv_obj_set_pos(sceneChord, 604, 48);
+    styleSurface(sceneChord, panelAlt);
+    lv_obj_set_style_text_font(
+      lv_obj_get_child(sceneChord, 0), &ardor_font_saira_cond_medium_18, 0);
+    lv_obj_add_event_cb(sceneChord, onSceneLayerChordToggled, LV_EVENT_CLICKED,
+                        remember(state));
 
     const auto endpoint = [&](const char* name, int raw, bool heel, int x) {
       lv_obj_t* capture = button(expression,

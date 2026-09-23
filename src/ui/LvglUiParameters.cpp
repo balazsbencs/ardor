@@ -163,6 +163,21 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
     }
     if (applyParameterDelta(state, control, delta)) {
       bool liveUpdateSucceeded = true;
+      const bool sceneOwned = control.sceneScope == UiSceneScope::ThisScene;
+      if (sceneOwned) {
+        const auto targetIndex = selectedParameterSceneTargetIndex(state, control.key);
+        if (targetIndex) {
+          const auto& target = state.bank.presets[state.activePreset].sceneSet
+            ->scenes[state.editingScene].targets[*targetIndex];
+          const float targetValue = target.value.is_boolean()
+            ? (target.value.get<bool>() ? 1.0f : 0.0f) : target.value.get<float>();
+          liveUpdateSucceeded = actions_.updateSceneTarget
+            && actions_.updateSceneTarget(*targetIndex, targetValue);
+        } else {
+          liveUpdateSucceeded = false;
+        }
+      }
+      if (!sceneOwned) {
       if (state.paramTarget == UiParamTarget::Globals && actions_.updateGlobalGains) {
         const auto& global = state.bank.presets[state.activePreset].global;
         actions_.updateGlobalGains(global.inputGainDb, global.outputGainDb);
@@ -240,6 +255,20 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
           }
         }
       }
+      }
+      if (!liveUpdateSucceeded && sceneOwned) {
+        if (const auto targetIndex = selectedParameterSceneTargetIndex(state, control.key)) {
+          auto& target = state.bank.presets[state.activePreset].sceneSet
+            ->scenes[state.editingScene].targets[*targetIndex];
+          if (target.value.is_boolean()) target.value = control.value != 0.0f;
+          else if (control.kind == ParameterControlKind::NormalizedChoice)
+            target.value = control.choiceValues[static_cast<std::size_t>(std::lround(control.value))];
+          else target.value = control.value;
+        }
+        state.dirty = dirtyBefore;
+        invalidate(UiChange::Parameters | UiChange::Header);
+        return false;
+      }
       if (!liveUpdateSucceeded && hasBlockSnapshot) {
         auto* selected = selectedUiBlock(state);
         if (!selected) {
@@ -312,7 +341,10 @@ void LvglUi::rebuildParameterView(UiState& state)
   if (editingEq) {
     selectEqStage(selectedEqStage_);
   }
-  const std::string signature = editingEq
+  const auto& sceneSet = state.bank.presets[state.activePreset].sceneSet;
+  const std::string sceneSignature = sceneSet
+    ? ":scenes:" + std::to_string(sceneSet->scenes[state.editingScene].targets.size()) : ":shared";
+  const std::string signature = (editingEq
     ? "eq:parametric"
     : (state.paramTarget == UiParamTarget::Globals
         ? "globals:" + std::to_string(parameterPage_)
@@ -320,7 +352,7 @@ void LvglUi::rebuildParameterView(UiState& state)
             ? "block:" + selected->type + ":"
                 + selected->params.value("mode", std::string{}) + ":"
                 + std::to_string(parameterPage_)
-            : "none"));
+            : "none"))) + sceneSignature;
 
   for (auto& [key, view] : parameterViews_) {
     (void) key;
@@ -413,7 +445,10 @@ void LvglUi::syncParameterView(UiState& state)
   const auto* selected = selectedUiBlock(state);
   const bool editingEq = state.paramTarget == UiParamTarget::Block
     && selected && selected->type == "eq" && isParametricEqMode(selected->params);
-  const std::string signature = editingEq
+  const auto& sceneSet = state.bank.presets[state.activePreset].sceneSet;
+  const std::string sceneSignature = sceneSet
+    ? ":scenes:" + std::to_string(sceneSet->scenes[state.editingScene].targets.size()) : ":shared";
+  const std::string signature = (editingEq
     ? "eq:parametric"
     : (state.paramTarget == UiParamTarget::Globals
         ? "globals:" + std::to_string(parameterPage_)
@@ -421,14 +456,17 @@ void LvglUi::syncParameterView(UiState& state)
             ? "block:" + selected->type + ":"
                 + selected->params.value("mode", std::string{}) + ":"
                 + std::to_string(parameterPage_)
-            : "none"));
+            : "none"))) + sceneSignature;
   if (signature != renderedParameterSignature_) {
     rebuildParameterView(state);
     return;
   }
 
   if (parameterBypassControl_ && state.paramTarget == UiParamTarget::Block && selected) {
-    parameter_view::syncBypass(parameterBypassControl_, !selected->enabled);
+    const auto sceneEnabled = selectedParameterSceneValue(state, "blockEnabled");
+    const bool displayedEnabled = sceneEnabled && sceneEnabled->is_boolean()
+      ? sceneEnabled->get<bool>() : selected->enabled;
+    parameter_view::syncBypass(parameterBypassControl_, !displayedEnabled);
   }
 
   if (!editingEq) {

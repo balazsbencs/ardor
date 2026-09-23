@@ -13,6 +13,14 @@ namespace ardor {
 
 struct IrReverbLiveParameters;
 
+struct IrReverbFrame {
+  StereoSample mixed;
+  // The wet contribution after the block's mix and level controls. Keeping
+  // this separate lets scene bypass preserve a tail without adding a second
+  // dry signal or advancing the convolution engine twice.
+  StereoSample wet;
+};
+
 // True convolution reverb.
 //
 // Long-tail accumulation is spread across large scheduled partitions instead
@@ -51,6 +59,7 @@ public:
   void setHighCutHz(float hz);         // low-pass on the wet path
 
   StereoSample process(StereoSample input);
+  IrReverbFrame processFrame(StereoSample input);
 
   // Delay the wet path carries before any pre-delay is added, in frames.
   std::size_t preDelayFrames() const noexcept { return PARTITION_FRAMES; }

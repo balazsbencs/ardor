@@ -3,10 +3,12 @@
 #include "ClipDiagnostics.h"
 #include "FlexibleRoutingProgram.h"
 #include "RuntimeChain.h"
+#include "SceneTransition.h"
 #include "WdwRoutingProgram.h"
 #include "looper/RealtimeLooper.h"
 
 #include <atomic>
+#include <array>
 #include <cstdint>
 #include <filesystem>
 #include <nlohmann/json.hpp>
@@ -32,13 +34,13 @@ public:
   void loadIr(std::vector<float> impulse);
   void addCab(std::vector<float> impulse, float level, float mix, std::string id = "cab");
   bool addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
-                   float sampleRate, std::string& error);
+                   float sampleRate, std::string& error, bool sceneLetRing = false);
   bool setIrReverbParameter(const std::string& id, const std::string& key, float value);
   bool setCabParameter(const std::string& id, const std::string& key, float value);
   bool addStereoWidener(std::string id, float sampleRate, std::string& error);
   bool setStereoWidenerParameter(const std::string& id, const std::string& key, float value);
   bool addDaisyFx(std::string id, const std::string& blockType, const nlohmann::json& params,
-                  float sampleRate, std::string& error);
+                  float sampleRate, std::string& error, bool sceneLetRing = false);
   bool addCompressor(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool addNoiseGate(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool addTransientShaper(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
@@ -80,6 +82,15 @@ public:
   bool looperSessionOpen() const noexcept;
   bool tryEnqueueLooperCommand(const LooperCommand& command) noexcept;
   bool tryReadLooperTelemetry(LooperTelemetry& telemetry) noexcept;
+  bool installPreparedScenes(SceneTransitionProgram program, std::string& error);
+  bool tryRequestScene(const SceneTransitionRequest& request) noexcept;
+  bool tryOverrideSceneTarget(std::size_t targetIndex, float value) noexcept;
+  void requestSceneValueSnapshot() noexcept;
+  bool tryReadSceneValueSnapshot(std::uint64_t& lastSerial,
+                                 std::vector<float>& values) const;
+  SceneTransitionTelemetry sceneTransitionTelemetry() const noexcept;
+  std::uint64_t scenePresetGeneration() const noexcept;
+  bool scenesPrepared() const noexcept { return static_cast<bool>(sceneTransition_); }
   bool restorePausedLooperSession(const LooperPausedSessionView& session,
                                   std::string& error);
   std::optional<LooperPausedSessionView> pausedLooperSessionView() const noexcept;
@@ -145,6 +156,15 @@ private:
   std::vector<float> gainedInput_;
   std::vector<float> cabLevelBlock_;
   std::vector<float> cabMixBlock_;
+  std::vector<float> sceneInputGainBlock_;
+  std::vector<float> sceneTrimBlock_;
+  std::unique_ptr<SceneTransitionController> sceneTransition_;
+  std::atomic<bool> sceneSnapshotRequested_{false};
+  std::array<std::atomic<float>, SceneTransitionController::kMaximumTargets>
+    sceneSnapshotValues_{};
+  std::atomic<std::size_t> sceneSnapshotCount_{0};
+  std::atomic<std::uint64_t> sceneSnapshotSerial_{0};
+  std::size_t sceneInputGainTarget_ = static_cast<std::size_t>(-1);
   float sampleRate_ = 48000.0f;
   float gainSmoothingCoefficient_ = 0.004157998f; // 5 ms at 48 kHz.
   float currentInputGain_ = 1.0f;
@@ -161,6 +181,7 @@ private:
   static StereoSample bypassMix(StereoSample dry, StereoSample wet, float wetMix);
   static bool limiterEngaged(float left, float right, bool enabled, float limit);
   static float applySafety(float sample, bool limiterEnabled, float safetyLimit);
+  bool applySceneValues() noexcept;
 };
 
 } // namespace ardor

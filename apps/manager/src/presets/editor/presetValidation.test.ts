@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Asset, Preset, PresetBlock } from "../../api/types";
 import { createBlockFromDefinition } from "../../effects/catalog";
-import { createEmptyPreset, createWdwPreset } from "./presetFactory";
+import { createEmptyPreset, createSceneSet, createWdwPreset, enableScenes } from "./presetFactory";
 import {
   firstBlockingIssue,
   issuesForBlock,
@@ -22,6 +22,29 @@ function validPreset(blocks: PresetBlock[] = []): Preset {
 
 function codes(preset: Preset): string[] {
   return validatePreset(preset, assets).issues.map(({ code }) => code);
+}
+
+function scenePreset(): Preset {
+  const block = createBlockFromDefinition("delay:digital", []);
+  return {
+    ...validPreset([block]),
+    version: 4,
+    sceneSet: {
+      defaultSceneId: "scene-1",
+      openIn: "scenes",
+      scenes: [0, 1, 2, 3].map((index) => ({
+        id: `scene-${index + 1}`,
+        name: `Scene ${index + 1}`,
+        enterTimeMs: index === 1 ? 500 : 0,
+        outputTrimDb: index === 2 ? 2 : 0,
+        targets: [
+          { target: "inputGainDb" as const, value: index },
+          { target: "blockEnabled" as const, blockId: block.id, value: index !== 0 },
+          { target: "parameter" as const, blockId: block.id, parameter: "mix", value: index / 4 },
+        ],
+      })) as NonNullable<Preset["sceneSet"]>["scenes"],
+    },
+  };
 }
 
 describe("preset validation", () => {
@@ -47,6 +70,84 @@ describe("preset validation", () => {
     const result = validatePreset(preset, assets);
     expect(result).toMatchObject({ canSave: false, canApply: false });
     expect(result.issues[0].code).toBe(code);
+  });
+
+  it("accepts a complete version 4 scene set", () => {
+    expect(codes(scenePreset())).not.toEqual(expect.arrayContaining([
+      "version", "scene-set-required", "scene-target-shape", "scene-target-mismatch",
+    ]));
+  });
+
+  it("enables four independent scene drafts without changing the rig", () => {
+    const source = validPreset();
+    const converted = enableScenes(source, [{ target: "inputGainDb", value: source.global.inputGainDb }]);
+    expect(converted).toMatchObject({ version: 4, routing: "serial", blocks: source.blocks });
+    expect(converted.sceneSet).toEqual(createSceneSet([{ target: "inputGainDb", value: 0 }]));
+    converted.sceneSet!.scenes[0].targets[0].value = -12;
+    expect(converted.sceneSet!.scenes[1].targets[0].value).toBe(0);
+  });
+
+  it("requires scenes for version 4 and rejects scenes on legacy versions", () => {
+    const missing = validPreset();
+    missing.version = 4;
+    expect(codes(missing)).toContain("scene-set-required");
+
+    const legacy = scenePreset();
+    legacy.version = 1;
+    expect(codes(legacy)).toContain("scene-version");
+  });
+
+  it("validates scene identity, timing, default, and complete targets", () => {
+    const preset = scenePreset();
+    preset.sceneSet!.scenes[1].id = "scene-1";
+    preset.sceneSet!.scenes[2].enterTimeMs = 150;
+    preset.sceneSet!.scenes[3].targets.pop();
+    preset.sceneSet!.defaultSceneId = "missing";
+    expect(codes(preset)).toEqual(expect.arrayContaining([
+      "scene-id-duplicate", "scene-enter-time", "scene-target-mismatch", "scene-default",
+    ]));
+  });
+
+  it("validates scene target value types and existing block references", () => {
+    const preset = scenePreset();
+    const first = preset.sceneSet!.scenes[0].targets;
+    first[1] = { target: "blockEnabled", blockId: "missing", value: true };
+    (first[2] as { value: unknown }).value = false;
+    expect(codes(preset)).toContain("scene-target-shape");
+  });
+
+  it("keeps structural block enables shared across scenes", () => {
+    const preset = scenePreset();
+    const cab = createBlockFromDefinition("cab", []);
+    preset.blocks.push(cab);
+    preset.sceneSet!.scenes.forEach((scene) => {
+      scene.targets = scene.targets.map((target) => target.target === "blockEnabled"
+        ? { target: "blockEnabled", blockId: cab.id, value: true }
+        : target);
+    });
+    expect(codes(preset)).toContain("scene-bypass-shared");
+  });
+
+  it("allows let ring only for version 4 delay and reverb blocks", () => {
+    const reverb = createBlockFromDefinition("irreverb", []);
+    reverb.asset = "reverb-irs/room.wav";
+    reverb.sceneBypass = "letRing";
+    const preset = enableScenes(validPreset([reverb]), []);
+    expect(codes(preset)).not.toContain("scene-bypass-policy");
+
+    const legacy = { ...preset, version: 1 as const, sceneSet: undefined };
+    expect(codes(legacy)).toContain("scene-bypass-policy");
+
+    const delay = createBlockFromDefinition("delay:digital", []);
+    delay.sceneBypass = "letRing";
+    expect(codes(enableScenes(validPreset([delay]), []))).not.toContain("scene-bypass-policy");
+
+    const modulation = createBlockFromDefinition("mod:chorus", []);
+    modulation.sceneBypass = "letRing";
+    expect(codes(enableScenes(validPreset([modulation]), []))).toContain("scene-bypass-policy");
+
+    reverb.sceneBypass = "future" as "cut";
+    expect(codes(enableScenes(validPreset([reverb]), []))).toContain("scene-bypass-policy");
   });
 
   it.each([
@@ -105,6 +206,32 @@ describe("preset validation", () => {
     });
     expect(codes(preset)).toEqual(expect.arrayContaining([
       "midi-binding-overlap", "midi-action-shape",
+    ]));
+  });
+
+  it("validates named scene MIDI actions and controller conflicts", () => {
+    const preset = scenePreset();
+    preset.sceneMidiMappings = [
+      { channel: 0, controlChange: 70, action: "selectScene", sceneId: "scene-3" },
+      { channel: 0, controlChange: 71, action: "sceneNumber" },
+      { channel: 0, controlChange: 72, action: "showPresets" },
+      { channel: 0, controlChange: 73, action: "showScenes" },
+    ];
+    expect(codes(preset)).not.toEqual(expect.arrayContaining([
+      "scene-midi-shape", "scene-midi-binding-shape", "scene-midi-scene", "midi-binding-overlap",
+    ]));
+
+    preset.midiMappings = [{
+      channel: -1,
+      controlChange: 70,
+      mode: "continuous",
+      actions: [{
+        target: "parameter", blockId: preset.blocks[0].id, parameter: "mix", value1: 0, value2: 1,
+      }],
+    }];
+    preset.sceneMidiMappings[0].sceneId = "missing";
+    expect(codes(preset)).toEqual(expect.arrayContaining([
+      "midi-binding-overlap", "scene-midi-scene",
     ]));
   });
 

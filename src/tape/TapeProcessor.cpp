@@ -215,7 +215,7 @@ float TapeProcessor::driveMakeup(float driveDb) const
   return makeupTable_[low] + fraction * (makeupTable_[high] - makeupTable_[low]);
 }
 
-bool TapeProcessor::setParameterTarget(const std::string& key, float value)
+bool TapeProcessor::setParameterTarget(std::string_view key, float value)
 {
   if (!liveParameters_ || !std::isfinite(value)) return false;
   if (key == "drive") {

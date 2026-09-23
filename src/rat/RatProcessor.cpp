@@ -67,7 +67,7 @@ bool RatProcessor::configure(const nlohmann::json& params, float sampleRate, std
   return true;
 }
 
-bool RatProcessor::setParameterTarget(const std::string& key, float value)
+bool RatProcessor::setParameterTarget(std::string_view key, float value)
 {
   if (!liveParameters_ || !std::isfinite(value)) return false;
   const float clamped = std::clamp(value, 0.0f, 1.0f);

@@ -29,12 +29,29 @@ export type EditorState = {
   saved: Preset;
   history: PresetHistory;
   selectedBlockId?: string;
+  editingSceneId?: string;
   recoveryAvailable?: Preset;
 };
 
 export type EditorAction =
   | { type: "load"; location: PresetLocation; preset: Preset }
   | { type: "select-block"; blockId?: string }
+  | { type: "select-scene"; sceneId: string }
+  | { type: "enable-scenes" }
+  | { type: "set-scene-name"; sceneId: string; name: string }
+  | { type: "set-scene-enter-time"; sceneId: string; value: number }
+  | { type: "set-scene-trim"; sceneId: string; value: number }
+  | { type: "set-default-scene"; sceneId: string }
+  | { type: "set-scene-open-in"; value: "presets" | "scenes" }
+  | { type: "copy-scene"; sourceSceneId: string; destinationSceneId: string }
+  | { type: "swap-scenes"; firstSceneId: string; secondSceneId: string }
+  | { type: "copy-scene-row-across"; sourceSceneId: string; rowKey: string }
+  | { type: "set-scene-parameter"; sceneId: string; blockId: string; parameter: string; value: number }
+  | { type: "set-scene-block-enabled"; sceneId: string; blockId: string; value: boolean }
+  | { type: "set-scene-input-gain"; sceneId: string; value: number }
+  | { type: "set-scene-input-scope"; sceneId: string; scope: "shared" | "scene" }
+  | { type: "set-scene-wdw-mix"; sceneId: string; lane: "dry" | "wet"; key: "levelDb" | "pan" | "width" | "enabled"; value: number | boolean }
+  | { type: "set-scene-scope"; sceneId: string; blockId: string; parameter?: string; scope: "shared" | "scene"; value: number | boolean }
   | { type: "set-name"; name: string }
   | { type: "set-global"; key: "inputGainDb" | "outputGainDb"; value: number }
   | { type: "set-routing"; routing: "serial" | "wdw" }
@@ -51,6 +68,7 @@ export type EditorAction =
   | { type: "remove-block"; blockId: string }
   | { type: "set-block-asset"; blockId: string; asset: string }
   | { type: "set-block-param"; blockId: string; key: string; value: unknown }
+  | { type: "set-scene-bypass"; blockId: string; policy: "cut" | "letRing" }
   | { type: "set-eq-band"; blockId: string; band: number; patch: Partial<EqBand> }
   | { type: "change-definition"; blockId: string; definitionId: string }
   | { type: "reset-block"; blockId: string }

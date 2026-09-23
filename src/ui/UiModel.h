@@ -55,6 +55,8 @@ struct UiPreset {
   std::optional<WdwRouting> wdw;
   std::optional<PresetExpression> expression;
   std::vector<PresetMidiBinding> midiBindings;
+  std::vector<PresetSceneMidiBinding> sceneMidiBindings;
+  std::optional<PresetSceneSet> sceneSet;
 };
 
 struct UiBank {
@@ -64,6 +66,7 @@ struct UiBank {
 
 enum class UiMode {
   Preset,
+  Scenes,
   Edit,
   Tuner,
   Looper,
@@ -75,6 +78,15 @@ enum class UiParamTarget {
 };
 
 enum class UiNavigationDecision { Save, Discard, Cancel };
+
+enum class UiSceneOperation { None, Copy, Swap, Disable };
+enum class UiSceneScope { Unavailable, Shared, ThisScene };
+
+struct UiSceneOperationPrompt {
+  UiSceneOperation operation = UiSceneOperation::None;
+  std::size_t source = 0;
+  std::size_t destination = 0;
+};
 
 struct UiNavigationTarget {
   int bank = 0;
@@ -126,12 +138,16 @@ struct UiBlockEditSnapshot {
   std::optional<WdwRouting> wdw;
   std::optional<PresetExpression> expression;
   std::vector<PresetMidiBinding> midiBindings;
+  std::vector<PresetSceneMidiBinding> sceneMidiBindings;
+  std::optional<PresetSceneSet> sceneSet;
   std::size_t selectedBlock = 0;
   std::string selectedBlockId;
   UiParamTarget paramTarget = UiParamTarget::Block;
   bool dirty = false;
   bool blockDrawerOpen = false;
   bool paramDrawerOpen = false;
+  std::size_t editingScene = 0;
+  bool sceneSettingsOpen = false;
 };
 
 enum class UiMidiLearnStage { None, Waiting, Captured, Advanced };
@@ -195,6 +211,17 @@ struct UiControlInputTelemetry {
   int expressionRaw = 0;
 };
 
+struct UiSceneTelemetry {
+  std::size_t currentScene = 0;
+  std::size_t destinationScene = 0;
+  float progress = 1.0f;
+  bool pending = false;
+  bool transitioning = false;
+  bool altered = false;
+  bool pedalOverride = false;
+  std::string rejection;
+};
+
 struct UiLooperState {
   struct LibraryEntry {
     std::string id;
@@ -254,6 +281,11 @@ struct UiState {
   UiClipDebugTelemetry clipDebug;
   UiTunerTelemetry tuner;
   UiControlInputTelemetry controlInputs;
+  UiSceneTelemetry scenes;
+  std::size_t editingScene = 0;
+  bool sceneSettingsOpen = false;
+  UiSceneOperationPrompt sceneOperation;
+  bool sceneCapturePending = false;
   UiLooperState looper;
   // The selected compressor block's current gain reduction in dB (<= 0),
   // sampled continuously while its parameter drawer is open. Unlike the
@@ -279,6 +311,7 @@ void selectPreset(UiState& state, std::size_t index);
 // Unlike selectPreset(), this never queues another audio-engine swap.
 void synchronizePresetSelection(UiState& state, std::size_t index);
 void enterPresetMode(UiState& state);
+void enterScenesMode(UiState& state);
 void enterEditMode(UiState& state);
 void enterTunerMode(UiState& state);
 void enterLooperMode(UiState& state, std::string lockedPresetName = {},
@@ -311,6 +344,32 @@ bool moveLaneBlock(UiState& state, std::size_t rigIndex, std::size_t sourceLane,
 void moveBlock(UiState& state, std::size_t from, std::size_t to);
 bool deleteSelectedBlock(UiState& state);
 bool undoLastBlockEdit(UiState& state);
+bool enableScenes(UiState& state);
+bool disableScenes(UiState& state, std::size_t keepScene);
+bool selectEditingScene(UiState& state, std::size_t sceneIndex);
+void openSceneSettings(UiState& state);
+void closeSceneSettings(UiState& state);
+bool renameEditingScene(UiState& state, std::string name);
+bool setEditingSceneEnterTime(UiState& state, std::uint32_t milliseconds);
+bool setEditingSceneTrim(UiState& state, float db);
+bool makeEditingSceneDefault(UiState& state);
+bool copyScene(UiState& state, std::size_t source, std::size_t destination);
+bool swapScenes(UiState& state, std::size_t first, std::size_t second);
+bool setSceneOpenMode(UiState& state, PresetSceneOpenMode mode);
+bool requestSceneOperation(UiState& state, UiSceneOperation operation,
+                           std::size_t source, std::size_t destination);
+void cancelSceneOperation(UiState& state);
+bool confirmSceneOperation(UiState& state);
+UiSceneScope selectedParameterSceneScope(const UiState& state, const std::string& key);
+std::optional<std::size_t> selectedParameterSceneTargetIndex(const UiState& state,
+                                                              const std::string& key);
+std::optional<nlohmann::json> selectedParameterSceneValue(const UiState& state,
+                                                           const std::string& key);
+bool setSelectedParameterSceneScope(UiState& state, const std::string& key,
+                                    UiSceneScope scope);
+bool requestCurrentSoundCapture(UiState& state);
+bool completeCurrentSoundCapture(UiState& state, const std::vector<float>& values);
+void failCurrentSoundCapture(UiState& state, std::string error);
 void closeParamDrawer(UiState& state);
 void setCategoryFilter(UiState& state, std::string filter);
 Preset activePresetToPreset(const UiState& state);
@@ -349,6 +408,7 @@ void updateRealtimeTelemetry(UiState& state, const RuntimeTelemetry& telemetry);
 void updateClipDebugTelemetry(UiState& state, UiClipDebugTelemetry telemetry);
 void updateCompressorGainReduction(UiState& state, float reductionDb);
 void updateControlInputTelemetry(UiState& state, UiControlInputTelemetry telemetry);
+void updateSceneTelemetry(UiState& state, UiSceneTelemetry telemetry);
 bool parameterSupportsExpression(const UiState& state, const ParameterControl& control);
 bool parameterHasMidiBinding(const UiState& state, const ParameterControl& control);
 bool toggleExpressionAssignment(UiState& state, const ParameterControl& control);

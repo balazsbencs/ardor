@@ -1,4 +1,4 @@
-import type { Preset, PresetBlock, WdwRouting } from "../../api/types";
+import type { Preset, PresetBlock, PresetSceneSet, PresetSceneTarget, WdwRouting } from "../../api/types";
 import { createBlockFromDefinition } from "../../effects/catalog";
 
 export function clonePreset(preset: Preset): Preset {
@@ -39,6 +39,27 @@ export function createWdwPreset(name = "New WDW Preset"): Preset {
     blocks: [],
     wdw: createEmptyWdwRouting(),
   };
+}
+
+export function createSceneSet(targets: PresetSceneTarget[] = []): PresetSceneSet {
+  const scenes = [0, 1, 2, 3].map((index) => ({
+    id: `scene-${index + 1}`,
+    name: `Scene ${index + 1}`,
+    enterTimeMs: 0,
+    outputTrimDb: 0,
+    targets: structuredClone(targets),
+  })) as PresetSceneSet["scenes"];
+  return { defaultSceneId: scenes[0].id, openIn: "scenes", scenes };
+}
+
+// Target eligibility belongs to the runtime capability registry. This helper
+// only performs the versioned document conversion with a caller-supplied,
+// already-qualified target set.
+export function enableScenes(preset: Preset, targets: PresetSceneTarget[] = []): Preset {
+  const next = clonePreset(preset);
+  next.version = 4;
+  next.sceneSet = createSceneSet(targets);
+  return next;
 }
 
 export function nextPresetBlockId(blocks: PresetBlock[]): string {

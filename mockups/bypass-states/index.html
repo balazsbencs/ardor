@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ardor — Bypassed block studies</title>
+  <style>
+    @font-face {
+      font-family: "Saira";
+      src: url("/apps/manager/node_modules/@fontsource/saira/files/saira-latin-400-normal.woff2") format("woff2");
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Saira";
+      src: url("/apps/manager/node_modules/@fontsource/saira/files/saira-latin-600-normal.woff2") format("woff2");
+      font-style: normal;
+      font-weight: 600;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Saira Condensed";
+      src: url("/apps/manager/node_modules/@fontsource/saira-condensed/files/saira-condensed-latin-600-normal.woff2") format("woff2");
+      font-style: normal;
+      font-weight: 600;
+      font-display: swap;
+    }
+
+    :root {
+      color-scheme: dark;
+      --ground: #141719;
+      --recess: #191c1f;
+      --plate: #212528;
+      --panel: #2a2f33;
+      --rule: #3b4247;
+      --rule-strong: #687178;
+      --engrave: #e2e4e3;
+      --secondary: #a5acb0;
+      --disabled: #697278;
+      --live: #d8422f;
+      --mod: #5d8f80;
+      --delay: #8175a0;
+      --cab: #939a9e;
+      --amber: #c9973f;
+      --rail: #9da4a8;
+      --condensed: "Saira Condensed", "Arial Narrow", sans-serif;
+      --body: "Saira", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--engrave);
+      background: var(--ground);
+      font-family: var(--body);
+      line-height: 1.45;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, a:focus-visible {
+      outline: 2px solid var(--engrave);
+      outline-offset: 3px;
+    }
+
+    .topbar {
+      position: sticky;
+      z-index: 20;
+      top: 0;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      min-height: 56px;
+      padding: 0 clamp(1rem, 4vw, 3rem);
+      border-bottom: 1px solid var(--rule);
+      background: color-mix(in srgb, var(--ground) 94%, transparent);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      color: var(--engrave);
+      font-family: var(--condensed);
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+    .brand-mark {
+      width: 20px;
+      height: 20px;
+      border: 1px solid var(--rule-strong);
+      background: var(--plate);
+    }
+    .topbar-note {
+      margin-left: auto;
+      color: var(--secondary);
+      font-family: var(--condensed);
+      font-size: .76rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    main { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; }
+    .intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(17rem, .65fr);
+      gap: clamp(2rem, 7vw, 7rem);
+      padding: clamp(3.75rem, 10vw, 7rem) 0 3.5rem;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      max-width: 16ch;
+      margin-bottom: 1.35rem;
+      font-family: var(--condensed);
+      font-size: clamp(3rem, 7.8vw, 6.4rem);
+      font-weight: 600;
+      letter-spacing: -.018em;
+      line-height: .9;
+      text-transform: uppercase;
+      text-wrap: balance;
+    }
+    .intro-copy {
+      max-width: 59ch;
+      margin: 0;
+      color: var(--secondary);
+      font-size: 1.04rem;
+    }
+    .principle {
+      align-self: end;
+      border-top: 1px solid var(--rule-strong);
+      padding-top: 1rem;
+    }
+    .principle strong, .principle span { display: block; }
+    .principle strong {
+      margin-bottom: .4rem;
+      font-family: var(--condensed);
+      font-size: 1.05rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .principle span { color: var(--secondary); font-size: .85rem; }
+
+    .baseline {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 1.25rem;
+      margin-bottom: 3.5rem;
+      border: 1px solid var(--rule);
+      padding: 1rem;
+      background: var(--recess);
+    }
+    .baseline-card {
+      position: relative;
+      width: 118px;
+      height: 82px;
+      opacity: .62;
+      border: 1px solid var(--rule);
+      border-top: 2px solid var(--live);
+      padding: .75rem;
+      background: var(--plate);
+    }
+    .baseline-card strong {
+      display: block;
+      font-family: var(--condensed);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .baseline-card small {
+      display: inline-block;
+      margin-top: .6rem;
+      border: 1px solid var(--rule);
+      padding: .05rem .3rem;
+      color: var(--secondary);
+      font-family: var(--condensed);
+      font-size: .63rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .baseline p { margin: 0; color: var(--secondary); font-size: .86rem; }
+    .baseline b { color: var(--engrave); font-weight: 600; }
+
+    .studies { border-top: 1px solid var(--rule); }
+    .study {
+      display: grid;
+      grid-template-columns: 17rem minmax(0, 1fr);
+      gap: clamp(1.5rem, 5vw, 4.5rem);
+      padding: clamp(3rem, 7vw, 5.5rem) 0;
+      border-bottom: 1px solid var(--rule);
+      scroll-margin-top: 75px;
+    }
+    .study-copy { align-self: center; }
+    .study-kicker {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      margin-bottom: .65rem;
+      color: var(--secondary);
+      font-family: var(--condensed);
+      font-size: .77rem;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+    .study-index {
+      display: grid;
+      place-items: center;
+      width: 1.45rem;
+      height: 1.45rem;
+      border: 1px solid var(--rule-strong);
+      color: var(--engrave);
+      font-family: var(--body);
+      letter-spacing: 0;
+    }
+    .pick {
+      border: 1px solid color-mix(in srgb, var(--mod) 75%, var(--rule));
+      padding: .12rem .38rem;
+      color: color-mix(in srgb, var(--mod) 58%, var(--engrave));
+      font-size: .66rem;
+      letter-spacing: .08em;
+    }
+    .study h2 {
+      margin-bottom: .75rem;
+      font-family: var(--condensed);
+      font-size: clamp(1.8rem, 4vw, 2.55rem);
+      font-weight: 600;
+      letter-spacing: .01em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+    .study-copy > p { color: var(--secondary); font-size: .88rem; }
+    .tradeoff {
+      margin-top: 1.2rem;
+      border-top: 1px solid var(--rule);
+      padding-top: .7rem;
+      color: var(--disabled);
+      font-size: .75rem;
+    }
+    .tradeoff b { color: var(--secondary); font-weight: 600; }
+    .demo {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--rule);
+      background: var(--plate);
+    }
+    .demo-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      min-height: 48px;
+      border-bottom: 1px solid var(--rule);
+      padding: .55rem .75rem .55rem 1rem;
+      background: var(--recess);
+    }
+    .demo-head strong {
+      font-family: var(--condensed);
+      font-size: .84rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .preview-toggle {
+      min-height: 32px;
+      border: 1px solid var(--rule-strong);
+      border-radius: 0;
+      padding: .25rem .62rem;
+      color: var(--engrave);
+      background: transparent;
+      font-family: var(--condensed);
+      font-size: .7rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .preview-toggle:hover { border-color: var(--engrave); background: var(--plate); }
+    .chain {
+      position: relative;
+      display: flex;
+      align-items: center;
+      min-width: 680px;
+      min-height: 270px;
+      padding: 2.25rem 1.5rem;
+    }
+    .chain::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: 2.1rem;
+      left: 2.1rem;
+      height: 1px;
+      background: var(--rule-strong);
+    }
+    .terminal {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      flex: 0 0 44px;
+      height: 44px;
+      border: 1px solid var(--rule-strong);
+      border-radius: 50%;
+      color: var(--secondary);
+      background: var(--recess);
+      font-family: var(--condensed);
+      font-size: .66rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+    }
+    .connector {
+      position: relative;
+      z-index: 2;
+      flex: 0 0 34px;
+      height: 1px;
+      background: var(--rule-strong);
+    }
+    .connector::before {
+      content: "+";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      transform: translate(-50%, -50%);
+      border: 1px solid var(--rule);
+      border-radius: 50%;
+      color: var(--disabled);
+      background: var(--plate);
+      font-size: .8rem;
+    }
+    .block {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      flex: 0 0 148px;
+      flex-direction: column;
+      min-height: 172px;
+      border: 1px solid var(--rule);
+      padding: .75rem;
+      background: var(--recess);
+    }
+    .block.enabled { border-top-color: var(--family, var(--rule-strong)); background: var(--panel); }
+    .block.enabled::before {
+      content: "";
+      position: absolute;
+      top: -1px;
+      right: -1px;
+      left: -1px;
+      height: 1px;
+      background: var(--family, var(--rule-strong));
+    }
+    .block-head { display: flex; align-items: center; gap: .5rem; min-height: 22px; }
+    .grip {
+      width: 11px;
+      height: 16px;
+      opacity: .7;
+      background: radial-gradient(circle, var(--secondary) 1px, transparent 1.5px) 0 0 / 5px 5px;
+    }
+    .ordinal {
+      display: grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      margin-right: auto;
+      border: 1px solid var(--rule);
+      color: var(--secondary);
+      font-size: .65rem;
+    }
+    .switch {
+      position: relative;
+      width: 28px;
+      height: 16px;
+      border: 1px solid var(--rule-strong);
+      background: var(--plate);
+    }
+    .switch::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 8px;
+      height: 8px;
+      background: var(--disabled);
+      transition: transform 180ms cubic-bezier(.2,.8,.2,1), background 180ms ease;
+    }
+    .enabled .switch::after { transform: translateX(12px); background: var(--engrave); }
+    .block-name {
+      margin-top: 1.7rem;
+      font-family: var(--condensed);
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: .055em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+    .block-sub { margin-top: .35rem; color: var(--secondary); font-size: .69rem; white-space: nowrap; }
+    .actions {
+      display: flex;
+      gap: 5px;
+      margin-top: auto;
+      border-top: 1px solid var(--rule);
+      padding-top: .55rem;
+    }
+    .actions i {
+      display: block;
+      width: 20px;
+      height: 20px;
+      border: 1px solid var(--rule);
+    }
+    .is-live .bypassed { --is-live: 1; }
+    .is-live .bypassed::before { opacity: 1; }
+
+    /* Option 1 — a dry signal channel through the face. */
+    .variant-rail .bypassed { color: var(--secondary); }
+    .variant-rail .bypassed .block-name { color: var(--disabled); }
+    .variant-rail .bypassed .block-sub { opacity: 0; }
+    .dry-channel {
+      position: absolute;
+      z-index: 4;
+      top: 93px;
+      right: -1px;
+      left: -1px;
+      display: flex;
+      align-items: center;
+      gap: .55rem;
+      height: 33px;
+      border-top: 1px solid var(--rule-strong);
+      border-bottom: 1px solid var(--rule-strong);
+      padding: 0 .6rem;
+      color: var(--secondary);
+      background: var(--plate);
+      font-family: var(--condensed);
+      font-size: .64rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .dry-channel::before, .dry-channel::after {
+      content: "";
+      width: 5px;
+      height: 5px;
+      border: 1px solid var(--engrave);
+      border-radius: 50%;
+    }
+    .dry-channel::after { margin-left: auto; }
+    .dry-channel span { position: absolute; right: 29px; left: 29px; height: 1px; background: var(--rail); }
+    .dry-channel em { z-index: 1; margin: auto; padding: 0 .4rem; background: var(--plate); font-style: normal; }
+
+    /* Option 2 — faceplate drops behind the surrounding modules. */
+    .variant-recess .bypassed {
+      transform: translateY(5px);
+      border-color: #31373b;
+      color: var(--disabled);
+      background: #171a1c;
+      box-shadow: inset 0 7px 12px color-mix(in srgb, var(--ground) 72%, transparent);
+    }
+    .variant-recess .bypassed .block-sub { color: var(--disabled); }
+    .variant-recess .bypassed .actions { opacity: .45; }
+    .recess-state {
+      margin-top: .9rem;
+      color: var(--secondary);
+      font-family: var(--condensed);
+      font-size: 1.85rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+    .recess-state small {
+      display: block;
+      margin-top: .3rem;
+      color: var(--disabled);
+      font-family: var(--body);
+      font-size: .62rem;
+      font-weight: 400;
+      letter-spacing: .03em;
+      text-transform: none;
+    }
+
+    /* Option 3 — an unambiguous open-circuit diagram. */
+    .variant-switch .bypassed { border-color: var(--rule-strong); color: var(--secondary); }
+    .variant-switch .bypassed .block-name, .variant-switch .bypassed .block-sub { color: var(--disabled); }
+    .circuit-mark {
+      position: relative;
+      height: 42px;
+      margin: .9rem -.75rem 0;
+    }
+    .circuit-mark::before, .circuit-mark::after {
+      content: "";
+      position: absolute;
+      top: 23px;
+      width: 50px;
+      height: 1px;
+      background: var(--rail);
+    }
+    .circuit-mark::before { left: 0; }
+    .circuit-mark::after { right: 0; }
+    .circuit-dot {
+      position: absolute;
+      top: 19px;
+      width: 7px;
+      height: 7px;
+      border: 1px solid var(--engrave);
+      border-radius: 50%;
+      background: var(--recess);
+    }
+    .circuit-dot:first-child { left: 47px; }
+    .circuit-dot:nth-child(2) { right: 47px; }
+    .circuit-arm {
+      position: absolute;
+      top: 11px;
+      left: 54px;
+      width: 40px;
+      height: 1px;
+      transform: rotate(-19deg);
+      transform-origin: left center;
+      background: var(--engrave);
+    }
+    .circuit-caption {
+      display: block;
+      margin-top: .1rem;
+      color: var(--secondary);
+      font-family: var(--condensed);
+      font-size: .65rem;
+      letter-spacing: .1em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    /* Option 4 — leave only the block's place in the chain. */
+    .variant-outline .bypassed {
+      border-style: dashed;
+      border-color: var(--rule-strong);
+      color: var(--secondary);
+      background: transparent;
+    }
+    .variant-outline .bypassed .block-head, .variant-outline .bypassed .actions { opacity: .58; }
+    .variant-outline .bypassed .block-sub { color: var(--disabled); }
+    .outline-mark {
+      position: absolute;
+      right: 14px;
+      bottom: 47px;
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--rule-strong);
+      border-radius: 50%;
+    }
+    .outline-mark::after {
+      content: "";
+      position: absolute;
+      top: 14px;
+      left: 4px;
+      width: 20px;
+      height: 1px;
+      transform: rotate(-45deg);
+      background: var(--engrave);
+    }
+    .outline-note {
+      margin-top: .78rem;
+      color: var(--secondary);
+      font-family: var(--condensed);
+      font-size: .66rem;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    /* Option 5 — collapse the inactive processor to a spacer. */
+    .variant-fold .bypassed {
+      flex-basis: 58px;
+      min-height: 172px;
+      overflow: hidden;
+      border-color: var(--rule-strong);
+      padding: .55rem;
+      color: var(--secondary);
+      background: var(--recess);
+      transition: flex-basis 180ms cubic-bezier(.2,.8,.2,1);
+    }
+    .variant-fold .bypassed .grip, .variant-fold .bypassed .ordinal,
+    .variant-fold .bypassed .block-sub, .variant-fold .bypassed .actions { display: none; }
+    .variant-fold .bypassed .block-head { justify-content: center; }
+    .variant-fold .bypassed .block-name {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 130px;
+      margin: 0;
+      transform: translate(-50%, -50%) rotate(-90deg);
+      color: var(--secondary);
+      font-size: .82rem;
+      letter-spacing: .1em;
+      text-align: center;
+    }
+    .variant-fold .bypassed .block-name::after {
+      content: " · OFF";
+      color: var(--disabled);
+    }
+
+    /* Enabled preview removes the variant-specific bypass treatment. */
+    .demo.is-enabled .bypassed {
+      flex-basis: 148px;
+      min-height: 172px;
+      transform: none;
+      overflow: visible;
+      border: 1px solid var(--rule);
+      border-top-color: var(--mod);
+      padding: .75rem;
+      color: var(--engrave);
+      background: var(--panel);
+      box-shadow: none;
+    }
+    .demo.is-enabled .bypassed::before {
+      content: "";
+      position: absolute;
+      top: -1px;
+      right: -1px;
+      left: -1px;
+      height: 1px;
+      background: var(--mod);
+    }
+    .demo.is-enabled .bypassed .grip, .demo.is-enabled .bypassed .ordinal,
+    .demo.is-enabled .bypassed .block-sub, .demo.is-enabled .bypassed .actions { display: flex; opacity: 1; }
+    .demo.is-enabled .bypassed .block-name {
+      position: static;
+      width: auto;
+      margin-top: 1.7rem;
+      transform: none;
+      color: var(--engrave);
+      font-size: 1rem;
+      letter-spacing: .055em;
+      text-align: left;
+    }
+    .demo.is-enabled .bypassed .block-name::after { content: none; }
+    .demo.is-enabled .bypassed .block-sub { color: var(--secondary); }
+    .demo.is-enabled .bypassed .switch::after { transform: translateX(12px); background: var(--engrave); }
+    .demo.is-enabled .dry-channel, .demo.is-enabled .recess-state,
+    .demo.is-enabled .circuit-mark, .demo.is-enabled .circuit-caption,
+    .demo.is-enabled .outline-mark, .demo.is-enabled .outline-note { display: none; }
+
+    .summary {
+      display: grid;
+      grid-template-columns: minmax(0, .7fr) minmax(18rem, 1.3fr);
+      gap: clamp(2rem, 7vw, 6rem);
+      padding: clamp(4rem, 8vw, 7rem) 0 6rem;
+    }
+    .summary h2 {
+      font-family: var(--condensed);
+      font-size: clamp(2.2rem, 5vw, 3.7rem);
+      font-weight: 600;
+      letter-spacing: -.01em;
+      line-height: .95;
+      text-transform: uppercase;
+    }
+    .scorecard { border-top: 1px solid var(--rule-strong); }
+    .score-row {
+      display: grid;
+      grid-template-columns: 2rem minmax(8rem, 1fr) minmax(11rem, 1.4fr);
+      gap: .75rem;
+      align-items: baseline;
+      padding: .85rem 0;
+      border-bottom: 1px solid var(--rule);
+    }
+    .score-row span:first-child { color: var(--secondary); font-variant-numeric: tabular-nums; }
+    .score-row strong { font-family: var(--condensed); letter-spacing: .05em; text-transform: uppercase; }
+    .score-row small { color: var(--secondary); }
+
+    @media (max-width: 840px) {
+      .intro, .study, .summary { grid-template-columns: 1fr; }
+      .intro { gap: 2rem; }
+      .study-copy { max-width: 36rem; }
+      .demo { overflow-x: auto; }
+      .topbar-note { display: none; }
+    }
+    @media (max-width: 520px) {
+      main { width: min(100% - 1.25rem, 1180px); }
+      .baseline { grid-template-columns: 1fr; }
+      .score-row { grid-template-columns: 2rem 1fr; }
+      .score-row small { grid-column: 2; }
+      .study { padding-block: 3.3rem; }
+      .chain {
+        justify-content: center;
+        min-width: 0;
+        min-height: 230px;
+        padding: 1.75rem .5rem;
+      }
+      .chain > :nth-child(2), .chain > :nth-child(3),
+      .chain > :nth-child(7), .chain > :nth-child(8) { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>Ardor / Bypass study</a>
+    <span class="topbar-note">Five directions · manager UI</span>
+  </header>
+
+  <main id="top">
+    <section class="intro">
+      <div>
+        <h1>When a block leaves the signal path</h1>
+        <p class="intro-copy">Five quieter ways to make bypass unmistakable without spending Ardor’s live red. Every study keeps the effect name readable, preserves its place in the chain, and uses shape or depth so color is never the only cue.</p>
+      </div>
+      <aside class="principle">
+        <strong>One semantic correction</strong>
+        <span>Red means running or selected. Bypass should read as absence, disconnection, or direct passage—not alarm.</span>
+      </aside>
+    </section>
+
+    <section class="baseline" aria-label="Current treatment">
+      <div class="baseline-card"><strong>Chorus</strong><small>Bypass</small></div>
+      <p><b>Current treatment.</b> The red edge and status badge compete for attention even though this block is doing less. The studies below replace both.</p>
+    </section>
+
+    <div class="studies">
+      <section class="study" id="dry-rail">
+        <div class="study-copy">
+          <div class="study-kicker"><span class="study-index">1</span><span class="pick">Recommended</span></div>
+          <h2>Dry rail</h2>
+          <p>A literal signal channel crosses the faceplate. The effect stays identifiable above it, while two jack points and a continuous rail explain that audio passes through untouched.</p>
+          <p class="tradeoff"><b>Best fit:</b> clearest link to Ardor’s signal-flow language; needs a little vertical room.</p>
+        </div>
+        <div class="demo variant-rail">
+          <div class="demo-head"><strong>In context</strong><button class="preview-toggle" type="button" aria-pressed="false">Preview enabled</button></div>
+          <div class="chain">
+            <span class="terminal">IN</span><span class="connector"></span>
+            <article class="block enabled" style="--family: var(--cab)"><div class="block-head"><span class="grip"></span><span class="ordinal">1</span><span class="switch"></span></div><strong class="block-name">Cabinet</strong><span class="block-sub">Greenback 4×12.wav</span><div class="actions"><i></i><i></i><i></i></div></article>
+            <span class="connector"></span>
+            <article class="block bypassed"><div class="block-head"><span class="grip"></span><span class="ordinal">2</span><span class="switch"></span></div><strong class="block-name">Chorus</strong><span class="block-sub">Classic</span><div class="dry-channel"><span></span><em>Dry</em></div><div class="actions"><i></i><i></i><i></i></div></article>
+            <span class="connector"></span>
+            <article class="block enabled" style="--family: var(--delay)"><div class="block-head"><span class="grip"></span><span class="ordinal">3</span><span class="switch"></span></div><strong class="block-name">Tape delay</strong><span class="block-sub">420 ms</span><div class="actions"><i></i><i></i><i></i></div></article>
+            <span class="connector"></span><span class="terminal">OUT</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="study" id="recessed-plate">
+        <div class="study-copy">
+          <div class="study-kicker"><span class="study-index">2</span></div>
+          <h2>Recessed plate</h2>
+          <p>The whole block drops behind the working surface. A large engraved “Off” replaces the badge; the effect name remains present but quiet, like an unpowered rack unit.</p>
+          <p class="tradeoff"><b>Best fit:</b> calmest treatment and very easy to implement; depth alone may be subtle on poor displays.</p>
+        </div>
+        <div class="demo variant-recess">
+          <div class="demo-head"><strong>In context</strong><button class="preview-toggle" type="button" aria-pressed="false">Preview enabled</button></div>
+          <div class="chain">
+            <span class="terminal">IN</span><span class="connector"></span>
+            <article class="block enabled" style="--family: var(--cab)"><div class="block-head"><span class="grip"></span><span class="ordinal">1</span><span class="switch"></span></div><strong class="block-name">Cabinet</strong><span class="block-sub">Greenback 4×12.wav</span><div class="actions"><i></i><i></i><i></i></div></article>
+            <span class="connector"></span>
+            <article class="block bypassed"><div class="block-head"><span class="grip"></span><span class="ordinal">2</span><span class="switch"></span></div><strong class="block-name">Chorus</strong><span class="block-sub">Classic</span><div class="recess-state">Off<small>Signal passes unchanged</small></div><div class="actions"><i></i><i></i><i></i></div></article>
+            <span class="connector"></span>
+            <article class="block enabled" style="--family: var(--delay)"><div class="block-head"><span class="grip"></span><span class="ordinal">3</span><span class="switch"></span></div><strong class="block-name">Tape delay</strong><span class="block-sub">420 ms</span><div class="actions"><i></i><i></i><i></i></div></article>
+            <span class="connector"></span><span class="terminal">OUT</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="study" id="open-circuit">
+        <div class="study-copy">
+          <div class="study-kicker"><span class="study-index">3</span></div>
+          <h2>Open circuit</h2>
+          <p>A familiar switch diagram becomes the state marker. It is compact, technical without being decorative, and remains unambiguous in monochrome or high-contrast viewing.</p>
+          <p class="tradeoff"><b>Best fit:</b> strongest non-verbal cue; some players may read the open circuit as “no audio” rather than dry-through.</p>
+        </div>
+        <div class="demo variant-switch">
+          <div class="demo-head"><strong>In context</strong><button class="preview-toggle" type="button" aria-pressed="false">Preview enabled</button></div>
+          <div class="chain">
+            <span class="terminal">IN</span><span class="connector"></span>
+            <article class="block enabled" style="--family: var(--cab)"><div class="block-head"><span class="grip"></span><span class="ordinal">1</span><span class="switch"></span></div><strong class="block-name">Cabinet</strong><span class="block-sub">Greenback 4×12.wav</span><div class="actions"><i></i><i></i><i></i></div></article>
+            <span class="connector"></span>
+            <article class="block bypassed"><div class="block-head"><span class="grip"></span><span class="ordinal">2</span><span class="switch"></span></div><strong class="block-name">Chorus</strong><span class="block-sub">Classic</span><div class="circuit-mark"><i class="circuit-dot"></i><i class="circuit-dot"></i><i class="circuit-arm"></i></div><span class="circuit-caption">Processor disconnected</span><div class="actions"><i></i><i></i><i></i></div></article>
+            <span class="connector"></span>
+            <article class="block enabled" style="--family: var(--delay)"><div class="block-head"><span class="grip"></span><span class="ordinal">3</span><span class="switch"></span></div><strong class="block-name">Tape delay</strong><span class="block-sub">420 ms</span><div class="actions"><i></i><i></i><i></i></div></article>
+            <span class="connector"></span><span class="terminal">OUT</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="study" id="outline-frame">
+        <div class="study-copy">
+          <div class="study-kicker"><span class="study-index">4</span></div>
+          <h2>Outline frame</h2>
+          <p>The filled faceplate disappears, leaving a dashed footprint and a small universal “not active” mark. The layout stays stable while the visual weight falls away.</p>
+          <p class="tradeoff"><b>Best fit:</b> economical and easy to scan; dashed edges are less native to the existing hard-rule system.</p>
+        </div>
+        <div class="demo variant-outline">
+          <div class="demo-head"><strong>In context</strong><button class="preview-toggle" type="button" aria-pressed="false">Preview enabled</button></div>
+          <div class="chain">
+            <span class="terminal">IN</span><span class="connector"></span>
+            <article class="block enabled" style="--family: var(--cab)"><div class="block-head"><span class="grip"></span><span class="ordinal">1</span><span class="switch"></span></div><strong class="block-name">Cabinet</strong><span class="block-sub">Greenback 4×12.wav</span><div class="actions"><i></i><i></i><i></i></div></article>
+            <span class="connector"></span>
+            <article class="block bypassed"><div class="block-head"><span class="grip"></span><span class="ordinal">2</span><span class="switch"></span></div><strong class="block-name">Chorus</strong><span class="block-sub">Classic</span><span class="outline-note">Inactive footprint</span><span class="outline-mark" aria-hidden="true"></span><div class="actions"><i></i><i></i><i></i></div></article>
+            <span class="connector"></span>
+            <article class="block enabled" style="--family: var(--delay)"><div class="block-head"><span class="grip"></span><span class="ordinal">3</span><span class="switch"></span></div><strong class="block-name">Tape delay</strong><span class="block-sub">420 ms</span><div class="actions"><i></i><i></i><i></i></div></article>
+            <span class="connector"></span><span class="terminal">OUT</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="study" id="folded-block">
+        <div class="study-copy">
+          <div class="study-kicker"><span class="study-index">5</span></div>
+          <h2>Folded block</h2>
+          <p>The inactive processor collapses to a labeled spacer. Long chains become easier to inspect, yet the block keeps its order and can be restored from the same switch.</p>
+          <p class="tradeoff"><b>Best fit:</b> maximum density and clearest active/inactive distinction; the width change can make chain editing feel less stable.</p>
+        </div>
+        <div class="demo variant-fold">
+          <div class="demo-head"><strong>In context</strong><button class="preview-toggle" type="button" aria-pressed="false">Preview enabled</button></div>
+          <div class="chain">
+            <span class="terminal">IN</span><span class="connector"></span>
+            <article class="block enabled" style="--family: var(--cab)"><div class="block-head"><span class="grip"></span><span class="ordinal">1</span><span class="switch"></span></div><strong class="block-name">Cabinet</strong><span class="block-sub">Greenback 4×12.wav</span><div class="actions"><i></i><i></i><i></i></div></article>
+            <span class="connector"></span>
+            <article class="block bypassed"><div class="block-head"><span class="grip"></span><span class="ordinal">2</span><span class="switch"></span></div><strong class="block-name">Chorus</strong><span class="block-sub">Classic</span><div class="actions"><i></i><i></i><i></i></div></article>
+            <span class="connector"></span>
+            <article class="block enabled" style="--family: var(--delay)"><div class="block-head"><span class="grip"></span><span class="ordinal">3</span><span class="switch"></span></div><strong class="block-name">Tape delay</strong><span class="block-sub">420 ms</span><div class="actions"><i></i><i></i><i></i></div></article>
+            <span class="connector"></span><span class="terminal">OUT</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="summary">
+      <h2>A quick read</h2>
+      <div class="scorecard">
+        <div class="score-row"><span>1</span><strong>Dry rail</strong><small>Best overall: explicit signal behavior, stable layout, native metaphor.</small></div>
+        <div class="score-row"><span>2</span><strong>Recessed plate</strong><small>Quietest and simplest production change.</small></div>
+        <div class="score-row"><span>3</span><strong>Open circuit</strong><small>Most technical and strongest at a glance.</small></div>
+        <div class="score-row"><span>4</span><strong>Outline frame</strong><small>Good visual absence, slightly outside the current grammar.</small></div>
+        <div class="score-row"><span>5</span><strong>Folded block</strong><small>Useful for dense chains, but changes spatial memory.</small></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    document.querySelectorAll('.preview-toggle').forEach((button) => {
+      button.addEventListener('click', () => {
+        const demo = button.closest('.demo');
+        const enabled = demo.classList.toggle('is-enabled');
+        button.setAttribute('aria-pressed', String(enabled));
+        button.textContent = enabled ? 'Show bypassed' : 'Preview enabled';
+      });
+    });
+  </script>
+</body>
+</html>

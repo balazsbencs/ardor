@@ -12,11 +12,16 @@ export type DeviceStatus = {
   dataRootWritable: boolean;
   maxBanks: 100;
   slotsPerBank: 4;
-  supportedPresetVersion: 1 | 2 | 3;
+  supportedPresetVersion: 1 | 2 | 3 | 4;
   active?: {
     bank: number;
     slot: number;
     name?: string;
+    generation?: number;
+    liveSceneId?: string;
+    liveSceneIndex?: number;
+    revision?: string;
+    storedRevisionMatches?: boolean;
   };
   capabilities: {
     modelUpload: boolean;
@@ -29,6 +34,8 @@ export type DeviceStatus = {
     softwareUpdate?: boolean;
     tone3000?: boolean;
 	backup?: boolean;
+    sceneRecall?: boolean;
+    sceneTelemetry?: boolean;
   };
 };
 
@@ -87,6 +94,7 @@ export type PresetBlock = {
   id: string;
   type: string;
   enabled: boolean;
+  sceneBypass?: "cut" | "letRing";
   asset: string;
   params: Record<string, unknown>;
   lanes?: {
@@ -111,8 +119,28 @@ export type WdwRouting = {
   wet: WdwLane;
 };
 
+export type PresetSceneTarget =
+  | { target: "inputGainDb"; value: number }
+  | { target: "parameter"; blockId: string; parameter: string; value: number }
+  | { target: "blockEnabled"; blockId: string; value: boolean }
+  | { target: "wdwLane"; lane: "dry" | "wet"; parameter: "levelDb" | "pan" | "width" | "enabled"; value: number | boolean };
+
+export type PresetScene = {
+  id: string;
+  name: string;
+  enterTimeMs: number;
+  outputTrimDb: number;
+  targets: PresetSceneTarget[];
+};
+
+export type PresetSceneSet = {
+  defaultSceneId: string;
+  openIn: "presets" | "scenes";
+  scenes: [PresetScene, PresetScene, PresetScene, PresetScene];
+};
+
 export type Preset = {
-  version: 1 | 2 | 3;
+  version: 1 | 2 | 3 | 4;
   name: string;
   routing: "serial" | "wdw";
   global: {
@@ -140,8 +168,15 @@ export type Preset = {
       value2: number;
     }>;
   }>;
+  sceneMidiMappings?: Array<{
+    channel: number;
+    controlChange: number;
+    action: "selectScene" | "sceneNumber" | "showPresets" | "showScenes";
+    sceneId?: string;
+  }>;
   blocks: PresetBlock[];
   wdw?: WdwRouting;
+  sceneSet?: PresetSceneSet;
   [key: string]: unknown;
 };
 
@@ -167,6 +202,7 @@ export type ApplyPresetResponse = {
   bank: number;
   slot: number;
   message?: string;
+  generation?: number;
 };
 
 export type ApplyPresetStatus = {
@@ -176,4 +212,11 @@ export type ApplyPresetStatus = {
   slot: number;
   message?: string;
   updatedAt?: string;
+};
+
+export type RecallSceneResponse = {
+  accepted: boolean;
+  generation: number;
+  sceneId: string;
+  requestId: string;
 };

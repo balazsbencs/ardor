@@ -8,6 +8,7 @@ import type {
   PresetSlot,
   PresetSlotSummary,
   RenameAssetResponse,
+  RecallSceneResponse,
   WiFiSettings,
   WiFiSettingsUpdate,
   UpdateStatus,
@@ -125,12 +126,23 @@ export class ArdorApiClient implements ManagerTransport {
     });
   }
 
-  applyPreset(bank: number, slot: number): Promise<ApplyPresetResponse> {
-    return this.request<ApplyPresetResponse>(`/api/presets/banks/${bank}/slots/${slot}/apply`, { method: "POST" });
+  applyPreset(bank: number, slot: number, sceneId?: string): Promise<ApplyPresetResponse> {
+    return this.request<ApplyPresetResponse>(`/api/presets/banks/${bank}/slots/${slot}/apply`, {
+      method: "POST",
+      ...(sceneId ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sceneId }) } : {}),
+    });
   }
 
   getApplyStatus(id: string): Promise<ApplyPresetStatus> {
     return this.request<ApplyPresetStatus>(`/api/runtime/apply/${encodeURIComponent(id)}`);
+  }
+
+  recallScene(sceneId: string, generation: number, requestId: string): Promise<RecallSceneResponse> {
+    return this.request<RecallSceneResponse>(`/api/runtime/scenes/${encodeURIComponent(sceneId)}/recall`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ generation, requestId }),
+    });
   }
 
   private async request<T>(

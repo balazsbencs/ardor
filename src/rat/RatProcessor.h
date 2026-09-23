@@ -9,6 +9,7 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <string_view>
 
 namespace ardor {
 
@@ -35,7 +36,7 @@ public:
   RatProcessor& operator=(RatProcessor&&) noexcept = default;
 
   bool configure(const nlohmann::json& params, float sampleRate, std::string& error);
-  bool setParameterTarget(const std::string& key, float value);
+  bool setParameterTarget(std::string_view key, float value);
   void reset();
   StereoSample process(StereoSample input);
   // Group delay of the six halfband stages, referred to the host rate: 15

@@ -1,4 +1,4 @@
-import type { Preset, PresetBlock } from "../../api/types";
+import type { Preset, PresetBlock, PresetSceneTarget } from "../../api/types";
 import {
   createBlockFromDefinition,
   defaultsForDefinition,
@@ -7,7 +7,7 @@ import {
 } from "../../effects/catalog";
 import type { NumberControl } from "../../effects/types";
 import type { EditorAction, EditorState, EqBand, PresetLocation } from "./editorTypes";
-import { clonePreset, createEmptyWdwRouting, nextPresetBlockId } from "./presetFactory";
+import { clonePreset, createEmptyWdwRouting, enableScenes, nextPresetBlockId } from "./presetFactory";
 import { isWdwBlockAllowed } from "./wdwPolicy";
 
 const historyLimit = 100;
@@ -35,6 +35,7 @@ export function createEditorState(location: PresetLocation, preset: Preset): Edi
     location: { ...location },
     saved,
     history: { past: [], present: clonePreset(preset), future: [] },
+    editingSceneId: preset.sceneSet?.defaultSceneId,
   };
 }
 
@@ -66,6 +67,13 @@ function finiteValue(value: unknown): boolean {
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
+}
+
+function sceneTargetKey(target: PresetSceneTarget): string {
+  if (target.target === "inputGainDb") return "inputGainDb";
+  if (target.target === "parameter") return `parameter:${target.blockId}:${target.parameter}`;
+  if (target.target === "blockEnabled") return `enabled:${target.blockId}`;
+  return `wdw:${target.lane}:${target.parameter}`;
 }
 
 function wdwLaneForBlock(preset: Preset, blockId: string): "dry" | "wet" | undefined {
@@ -208,6 +216,214 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return createEditorState(action.location, action.preset);
     case "select-block":
       return state.selectedBlockId === action.blockId ? state : { ...state, selectedBlockId: action.blockId };
+    case "select-scene":
+      return state.history.present.sceneSet?.scenes.some(({ id }) => id === action.sceneId)
+        ? { ...state, editingSceneId: action.sceneId }
+        : state;
+    case "enable-scenes": {
+      if (state.history.present.sceneSet) return state;
+      const next = withMutation(state, (present) => enableScenes(present));
+      return { ...next, editingSceneId: next.history.present.sceneSet?.defaultSceneId };
+    }
+    case "set-scene-name":
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        const scene = next.sceneSet?.scenes.find(({ id }) => id === action.sceneId);
+        if (!scene) return undefined;
+        scene.name = action.name.slice(0, 24);
+        return next;
+      });
+    case "set-scene-enter-time":
+      if (!Number.isFinite(action.value)) return state;
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        const scene = next.sceneSet?.scenes.find(({ id }) => id === action.sceneId);
+        if (!scene) return undefined;
+        scene.enterTimeMs = clamp(Math.round(action.value), 0, 10000);
+        return next;
+      });
+    case "set-scene-trim":
+      if (!Number.isFinite(action.value)) return state;
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        const scene = next.sceneSet?.scenes.find(({ id }) => id === action.sceneId);
+        if (!scene) return undefined;
+        scene.outputTrimDb = clamp(action.value, -12, 6);
+        return next;
+      });
+    case "set-default-scene":
+      return withMutation(state, (present) => {
+        if (!present.sceneSet?.scenes.some(({ id }) => id === action.sceneId)) return undefined;
+        const next = clonePreset(present);
+        if (next.sceneSet) next.sceneSet.defaultSceneId = action.sceneId;
+        return next;
+      });
+    case "set-scene-open-in":
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        if (next.sceneSet) next.sceneSet.openIn = action.value;
+        return next;
+      });
+    case "copy-scene":
+      if (action.sourceSceneId === action.destinationSceneId) return state;
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        const source = next.sceneSet?.scenes.find(({ id }) => id === action.sourceSceneId);
+        const destination = next.sceneSet?.scenes.find(({ id }) => id === action.destinationSceneId);
+        if (!source || !destination) return undefined;
+        destination.enterTimeMs = source.enterTimeMs;
+        destination.outputTrimDb = source.outputTrimDb;
+        destination.targets = structuredClone(source.targets);
+        return next;
+      });
+    case "swap-scenes":
+      if (action.firstSceneId === action.secondSceneId) return state;
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        const first = next.sceneSet!.scenes.findIndex(({ id }) => id === action.firstSceneId);
+        const second = next.sceneSet!.scenes.findIndex(({ id }) => id === action.secondSceneId);
+        if (first < 0 || second < 0) return undefined;
+        [next.sceneSet!.scenes[first], next.sceneSet!.scenes[second]] = [
+          next.sceneSet!.scenes[second], next.sceneSet!.scenes[first],
+        ];
+        return next;
+      });
+    case "copy-scene-row-across":
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        const source = next.sceneSet!.scenes.find(({ id }) => id === action.sourceSceneId);
+        if (!source) return undefined;
+        if (action.rowKey === "enterTime") {
+          for (const scene of next.sceneSet!.scenes) scene.enterTimeMs = source.enterTimeMs;
+          return next;
+        }
+        if (action.rowKey === "trim") {
+          for (const scene of next.sceneSet!.scenes) scene.outputTrimDb = source.outputTrimDb;
+          return next;
+        }
+        const sourceTarget = source.targets.find((target) => sceneTargetKey(target) === action.rowKey);
+        if (!sourceTarget) return undefined;
+        for (const scene of next.sceneSet!.scenes) {
+          const index = scene.targets.findIndex((target) => sceneTargetKey(target) === action.rowKey);
+          if (index < 0) scene.targets.push(structuredClone(sourceTarget));
+          else scene.targets[index] = structuredClone(sourceTarget);
+        }
+        return next;
+      });
+    case "set-scene-parameter":
+      if (!Number.isFinite(action.value)) return state;
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        const scene = next.sceneSet?.scenes.find(({ id }) => id === action.sceneId);
+        const target = scene?.targets.find((candidate) => candidate.target === "parameter"
+          && candidate.blockId === action.blockId && candidate.parameter === action.parameter);
+        if (!target || target.target !== "parameter") return undefined;
+        target.value = action.value;
+        return next;
+      });
+    case "set-scene-block-enabled":
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        const scene = next.sceneSet?.scenes.find(({ id }) => id === action.sceneId);
+        const target = scene?.targets.find((candidate) => candidate.target === "blockEnabled"
+          && candidate.blockId === action.blockId);
+        if (!target || target.target !== "blockEnabled") return undefined;
+        target.value = action.value;
+        return next;
+      });
+    case "set-scene-input-gain":
+      if (!Number.isFinite(action.value)) return state;
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        const scene = next.sceneSet?.scenes.find(({ id }) => id === action.sceneId);
+        const target = scene?.targets.find((candidate) => candidate.target === "inputGainDb");
+        if (!target || target.target !== "inputGainDb") return undefined;
+        target.value = clamp(action.value, -60, 24);
+        return next;
+      });
+    case "set-scene-input-scope":
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        if (action.scope === "scene") {
+          for (const scene of next.sceneSet!.scenes) {
+            if (!scene.targets.some((target) => target.target === "inputGainDb")) {
+              scene.targets.push({ target: "inputGainDb", value: next.global.inputGainDb });
+            }
+          }
+        } else {
+          const selected = next.sceneSet!.scenes.find(({ id }) => id === action.sceneId);
+          const owned = selected?.targets.find((target) => target.target === "inputGainDb");
+          if (owned?.target === "inputGainDb") next.global.inputGainDb = owned.value;
+          for (const scene of next.sceneSet!.scenes) {
+            scene.targets = scene.targets.filter((target) => target.target !== "inputGainDb");
+          }
+        }
+        return next;
+      });
+    case "set-scene-wdw-mix":
+      if (typeof action.value === "number" && !Number.isFinite(action.value)) return state;
+      if ((action.key === "pan" && action.lane !== "dry")
+          || (action.key === "width" && action.lane !== "wet")) return state;
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        const scene = next.sceneSet?.scenes.find(({ id }) => id === action.sceneId);
+        const target = scene?.targets.find((candidate) => candidate.target === "wdwLane"
+          && candidate.lane === action.lane && candidate.parameter === action.key);
+        if (!target || target.target !== "wdwLane") return undefined;
+        if (action.key === "enabled") {
+          if (typeof action.value !== "boolean") return undefined;
+          target.value = action.value;
+        } else {
+          if (typeof action.value !== "number") return undefined;
+          const ranges = { levelDb: [-60, 12], pan: [-1, 1], width: [0, 1] } as const;
+          const [minimum, maximum] = ranges[action.key];
+          target.value = clamp(action.value, minimum, maximum);
+        }
+        return next;
+      });
+    case "set-scene-scope":
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        const matches = (target: PresetSceneTarget) =>
+          action.parameter !== undefined
+            ? target.target === "parameter" && target.blockId === action.blockId && target.parameter === action.parameter
+            : target.target === "blockEnabled" && target.blockId === action.blockId;
+        if (action.scope === "scene") {
+          for (const scene of next.sceneSet!.scenes) {
+            if (scene.targets.some(matches)) continue;
+            if (action.parameter !== undefined && typeof action.value === "number") {
+              scene.targets.push({ target: "parameter", blockId: action.blockId, parameter: action.parameter, value: action.value });
+            } else if (action.parameter === undefined && typeof action.value === "boolean") {
+              scene.targets.push({ target: "blockEnabled", blockId: action.blockId, value: action.value });
+            }
+          }
+          return next;
+        }
+        const editingScene = next.sceneSet!.scenes.find(({ id }) => id === action.sceneId);
+        const owned = editingScene?.targets.find(matches);
+        if (!owned) return undefined;
+        const applyShared = (blocks: PresetBlock[]) => updateBlockTree(blocks, action.blockId, (block) => {
+          if (owned.target === "parameter") return { ...block, params: { ...block.params, [owned.parameter]: owned.value } };
+          if (owned.target === "blockEnabled") return { ...block, enabled: owned.value };
+          return block;
+        });
+        applyShared(next.blocks) || (next.wdw && (applyShared(next.wdw.dry.blocks) || applyShared(next.wdw.wet.blocks)));
+        for (const scene of next.sceneSet!.scenes) scene.targets = scene.targets.filter((target) => !matches(target));
+        return next;
+      });
     case "set-name":
       return withMutation(state, (present) => ({ ...clonePreset(present), name: action.name }));
     case "set-global": {
@@ -223,7 +439,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       if (action.routing === "wdw") {
         return withMutation(state, (present) => {
           const next = clonePreset(present);
-          next.version = 3;
+          next.version = next.sceneSet ? 4 : 3;
           next.routing = "wdw";
           next.wdw = createEmptyWdwRouting();
           // Keep an existing serial draft audible and editable by placing it
@@ -245,7 +461,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       }
       return withMutation(state, (present) => ({
         ...clonePreset(present),
-        version: 2,
+        version: present.sceneSet ? 4 : 2,
         routing: "serial",
         blocks: present.wdw?.dry.blocks.length || present.wdw?.wet.blocks.length
           ? [...(present.wdw?.dry.blocks ?? []), ...(present.wdw?.wet.blocks ?? [])]
@@ -297,7 +513,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         const next = clonePreset(present);
         const index = clamp(Math.trunc(action.index), 0, next.blocks.length);
         next.blocks.splice(index, 0, block);
-        if (block.type === "dualRig") next.version = 2;
+        if (block.type === "dualRig") next.version = next.sceneSet ? 4 : 2;
         return next;
       }, block.id);
     }
@@ -458,6 +674,11 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       })));
     case "set-block-param":
       return setBlockParam(state, action.blockId, action.key, action.value);
+    case "set-scene-bypass":
+      return withMutation(state, (present) => updatedBlock(present, action.blockId, (block) => {
+        if (!["delay", "reverb", "irreverb"].includes(block.type) || present.version !== 4) return block;
+        return { ...block, sceneBypass: action.policy };
+      }));
     case "set-eq-band":
       return setEqBand(state, action.blockId, action.band, action.patch);
     case "change-definition": {

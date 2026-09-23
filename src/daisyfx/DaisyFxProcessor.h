@@ -5,12 +5,18 @@
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <string_view>
 
 namespace ardor {
 
 struct StereoSample {
   float left = 0.0f;
   float right = 0.0f;
+};
+
+struct DaisyFxFrame {
+  StereoSample mixed;
+  StereoSample wet;
 };
 
 class DaisyFxProcessor {
@@ -24,9 +30,11 @@ public:
                  float sampleRate, std::string& error);
   // Control-thread safe: publishes a normalized continuous target. The audio
   // thread consumes it at the vendor's existing 48-sample control cadence.
-  bool setParameterTarget(const std::string& key, float normalized);
+  bool setParameterTarget(std::string_view key, float normalized);
+  bool setParameterTarget(std::size_t parameterIndex, float normalized);
   void reset();
   StereoSample process(StereoSample input);
+  DaisyFxFrame processFrame(StereoSample input);
   // Algorithmic latency introduced by the 48 kHz <-> 24 kHz reverb boundary.
   // Native-rate reverbs report zero. Hosts can use this for chain alignment.
   size_t latencyFrames() const noexcept;

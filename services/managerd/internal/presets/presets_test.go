@@ -1,10 +1,25 @@
 package presets
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+func TestScenesStarterExampleIsValid(t *testing.T) {
+	body, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "presets", "bank-002", "preset-1.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var preset Preset
+	if err := json.Unmarshal(body, &preset); err != nil {
+		t.Fatal(err)
+	}
+	if err := Validate(preset); err != nil {
+		t.Fatalf("Scenes Starter example is invalid: %v", err)
+	}
+}
 
 func validPreset() Preset {
 	return Preset{
@@ -30,9 +45,126 @@ func validPreset() Preset {
 	}
 }
 
+func validSceneSet(targets func(int) []any) map[string]any {
+	scenes := make([]any, 4)
+	for index := range scenes {
+		scenes[index] = map[string]any{
+			"id":           "scene-" + string(rune('1'+index)),
+			"name":         "Scene " + string(rune('1'+index)),
+			"enterTimeMs":  float64(0),
+			"outputTrimDb": float64(0),
+			"targets":      targets(index),
+		}
+	}
+	return map[string]any{
+		"defaultSceneId": "scene-1",
+		"openIn":         "scenes",
+		"scenes":         scenes,
+	}
+}
+
 func TestValidatePreset(t *testing.T) {
 	if err := Validate(validPreset()); err != nil {
 		t.Fatal(err)
+	}
+
+	scenePreset := validPreset()
+	scenePreset["version"] = float64(4)
+	scenePreset["blocks"] = append(scenePreset["blocks"].([]any), map[string]any{
+		"id": "mod-1", "type": "mod", "enabled": true, "asset": "",
+		"params": map[string]any{"mode": "vintage_trem"},
+	})
+	scenePreset["sceneSet"] = validSceneSet(func(index int) []any {
+		return []any{
+			map[string]any{"target": "inputGainDb", "value": float64(index)},
+			map[string]any{"target": "blockEnabled", "blockId": "mod-1", "value": index != 0},
+		}
+	})
+	if err := Validate(scenePreset); err != nil {
+		t.Fatalf("valid scene preset rejected: %v", err)
+	}
+	scenePreset["sceneMidiMappings"] = []any{
+		map[string]any{"channel": float64(0), "controlChange": float64(70),
+			"action": "selectScene", "sceneId": "scene-3"},
+		map[string]any{"channel": float64(0), "controlChange": float64(71),
+			"action": "sceneNumber"},
+		map[string]any{"channel": float64(0), "controlChange": float64(72),
+			"action": "showPresets"},
+		map[string]any{"channel": float64(0), "controlChange": float64(73),
+			"action": "showScenes"},
+	}
+	if err := Validate(scenePreset); err != nil {
+		t.Fatalf("valid named scene MIDI actions rejected: %v", err)
+	}
+	conflictingSceneMidi := validPreset()
+	conflictingSceneMidi["version"] = float64(4)
+	conflictingSceneMidi["sceneSet"] = validSceneSet(func(index int) []any { return []any{} })
+	conflictingSceneMidi["midiMappings"] = []any{map[string]any{
+		"channel": float64(-1), "controlChange": float64(70), "actions": []any{map[string]any{}},
+	}}
+	conflictingSceneMidi["sceneMidiMappings"] = []any{map[string]any{
+		"channel": float64(0), "controlChange": float64(70),
+		"action": "selectScene", "sceneId": "missing",
+	}}
+	if err := Validate(conflictingSceneMidi); err == nil {
+		t.Fatal("overlapping or missing named scene MIDI action should fail")
+	}
+	letRing := validPreset()
+	letRing["version"] = float64(4)
+	letRing["blocks"] = []any{map[string]any{
+		"id": "ir-1", "type": "irreverb", "enabled": true,
+		"asset": "reverb-irs/room.wav", "params": map[string]any{},
+		"sceneBypass": "letRing",
+	}}
+	letRing["sceneSet"] = validSceneSet(func(index int) []any { return []any{} })
+	if err := Validate(letRing); err != nil {
+		t.Fatalf("valid IR let-ring policy rejected: %v", err)
+	}
+	unsupportedLetRing := validPreset()
+	unsupportedLetRing["blocks"].([]any)[0].(map[string]any)["sceneBypass"] = "letRing"
+	if err := Validate(unsupportedLetRing); err == nil {
+		t.Fatal("let ring should require a version 4 IR reverb block")
+	}
+	invalidLetRing := validPreset()
+	invalidLetRing["blocks"].([]any)[0].(map[string]any)["sceneBypass"] = "future"
+	if err := Validate(invalidLetRing); err == nil {
+		t.Fatal("unknown scene bypass policy should fail")
+	}
+	structuralBypass := validPreset()
+	structuralBypass["version"] = float64(4)
+	structuralBypass["sceneSet"] = validSceneSet(func(index int) []any {
+		return []any{map[string]any{
+			"target": "blockEnabled", "blockId": "block-1", "value": index != 0,
+		}}
+	})
+	if err := Validate(structuralBypass); err == nil {
+		t.Fatal("structural NAM bypass should remain shared across scenes")
+	}
+
+	missingScenes := validPreset()
+	missingScenes["version"] = float64(4)
+	if err := Validate(missingScenes); err == nil {
+		t.Fatal("version 4 without scenes should fail")
+	}
+
+	badDefault := validPreset()
+	badDefault["version"] = float64(4)
+	badDefault["sceneSet"] = validSceneSet(func(index int) []any { return []any{} })
+	badDefault["sceneSet"].(map[string]any)["defaultSceneId"] = "missing"
+	if err := Validate(badDefault); err == nil {
+		t.Fatal("missing default scene should fail")
+	}
+
+	mismatchedTargets := validPreset()
+	mismatchedTargets["version"] = float64(4)
+	mismatchedTargets["sceneSet"] = validSceneSet(func(index int) []any {
+		if index == 3 {
+			return []any{}
+		}
+		return []any{map[string]any{"target": "inputGainDb", "value": float64(index)}}
+	})
+	if err := Validate(mismatchedTargets); err == nil {
+		t.Fatal("mismatched scene target addresses should fail")
 	}
 
 	badRouting := validPreset()
@@ -89,6 +221,20 @@ func TestValidatePreset(t *testing.T) {
 	if err := ValidateRunnable(wdw); err != nil {
 		t.Fatalf("runnable WDW preset rejected: %v", err)
 	}
+	wdw["version"] = float64(4)
+	wdw["sceneSet"] = validSceneSet(func(index int) []any {
+		return []any{
+			map[string]any{"target": "parameter", "blockId": "wet-cab", "parameter": "mix", "value": float64(index) / 3},
+			map[string]any{"target": "wdwLane", "lane": "wet", "parameter": "width", "value": float64(index) / 3},
+		}
+	})
+	if err := Validate(wdw); err != nil {
+		t.Fatalf("valid version 4 WDW scenes rejected: %v", err)
+	}
+	// The remaining assertions mutate this shared fixture to exercise legacy
+	// version-3 WDW draft behavior independently of scene references.
+	wdw["version"] = float64(3)
+	delete(wdw, "sceneSet")
 	assetRoot := t.TempDir()
 	for _, asset := range []string{"models/dry.nam", "models/wet.nam", "irs/dry.wav", "irs/wet.wav"} {
 		filename := filepath.Join(assetRoot, filepath.FromSlash(asset))

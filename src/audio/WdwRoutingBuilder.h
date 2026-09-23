@@ -58,6 +58,7 @@ bool buildWdwRoutingProgram(const ChainPlan& dryPlan, const ChainPlan& wetPlan,
 bool applyWdwRouting(PedalEngine& engine, const ChainPlan& dryPlan,
                      const ChainPlan& wetPlan,
                      const WdwRoutingBuildOptions& options,
-                     WdwRoutingBuildReport& report, std::string& error);
+                     WdwRoutingBuildReport& report, std::string& error,
+                     SceneTransitionProgram* scenes = nullptr);
 
 } // namespace ardor

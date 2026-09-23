@@ -98,7 +98,7 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   focusedEqGraph_ = nullptr;
   parameterViews_.clear();
   activeParameterLayer_ = nullptr;
-  if (state.mode == UiMode::Preset || !state.paramDrawerOpen) {
+  if (state.mode == UiMode::Preset || state.mode == UiMode::Scenes || !state.paramDrawerOpen) {
     resetParameterPage();
   }
   lv_obj_clean(root);
@@ -144,6 +144,7 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
     return layer;
   };
   presetLayer_ = createLayer();
+  scenesLayer_ = createLayer();
   editLayer_ = createLayer();
   tunerLayer_ = createLayer();
   looperLayer_ = createLayer();
@@ -254,6 +255,7 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   lv_obj_add_flag(midiLearnOverlay_, LV_OBJ_FLAG_HIDDEN);
 
   rebuildPresetView(state);
+  rebuildScenesView(state);
   rebuildEditView(state);
   contextRegion_ = UiContextRegion::Tuner;
   renderTunerMode(tunerLayer_, state);
@@ -291,20 +293,30 @@ void LvglUi::syncModeVisibility(const UiState& state)
   if (!viewsInitialized_) return;
   if (state.mode == UiMode::Preset) {
     lv_obj_remove_flag(presetLayer_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(scenesLayer_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(editLayer_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(tunerLayer_, LV_OBJ_FLAG_HIDDEN);
+  } else if (state.mode == UiMode::Scenes) {
+    lv_obj_add_flag(presetLayer_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(scenesLayer_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(editLayer_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(tunerLayer_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(looperLayer_, LV_OBJ_FLAG_HIDDEN);
   } else if (state.mode == UiMode::Edit) {
     lv_obj_add_flag(presetLayer_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(scenesLayer_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(editLayer_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(tunerLayer_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(looperLayer_, LV_OBJ_FLAG_HIDDEN);
   } else if (state.mode == UiMode::Tuner) {
     lv_obj_add_flag(presetLayer_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(scenesLayer_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(editLayer_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(tunerLayer_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(looperLayer_, LV_OBJ_FLAG_HIDDEN);
   } else {
     lv_obj_add_flag(presetLayer_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(scenesLayer_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(editLayer_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(tunerLayer_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(looperLayer_, LV_OBJ_FLAG_HIDDEN);
@@ -321,6 +333,7 @@ void LvglUi::syncModeVisibility(const UiState& state)
   // docs/lvgl-ui-redesign-spec.md §4f); the shared status bar stays for the
   // screens not yet migrated to their own rails.
   if (state.mode == UiMode::Tuner || state.mode == UiMode::Preset
+      || state.mode == UiMode::Scenes
       || state.mode == UiMode::Edit || state.mode == UiMode::Looper) {
     lv_obj_add_flag(statusLayer_, LV_OBJ_FLAG_HIDDEN);
   } else {
@@ -339,6 +352,7 @@ void LvglUi::syncPersistentViews(UiState& state)
   syncLooperView(state);
   syncHeaderView(state);
   syncPresetCards(state);
+  syncScenesView(state);
   syncStatusView(state);
   syncBlockingOverlays(state);
 }
@@ -378,7 +392,7 @@ void LvglUi::syncBlockingOverlays(const UiState& state)
         lv_obj_remove_flag(midiLearnAdvancedGroup_, LV_OBJ_FLAG_HIDDEN);
         const bool toggle = learn.mode == PresetMidiBindingMode::Toggle;
         lv_label_set_text(lv_obj_get_child(midiLearnModeButton_, 0),
-                          toggle ? "Toggle / Scene" : "Continuous");
+                          toggle ? "Toggle values" : "Continuous");
         const std::array values = {learn.action.value1, learn.action.value2};
         const float range = learn.targetMaximum - learn.targetMinimum;
         for (std::size_t endpoint = 0; endpoint < 2; ++endpoint) {
@@ -471,8 +485,16 @@ void LvglUi::refresh(lv_obj_t* root, UiState& state)
 
   const bool presetChanged = state.activePreset != renderedPreset_ || state.activeBank != renderedBank_;
   if (presetChanged || hasUiChange(changes, UiChange::Presets)) {
-    syncChainCards(state);
-    syncParameterView(state);
+    rebuildScenesView(state);
+    const bool rebuildSceneEditor = state.mode == UiMode::Edit
+      && hasUiChange(changes, UiChange::Presets);
+    if (rebuildSceneEditor) {
+      rebuildEditView(state);
+      rebuildParameterView(state);
+    } else {
+      syncChainCards(state);
+      syncParameterView(state);
+    }
     if (hasUiChange(changes, UiChange::Assets)) syncDrawerAssets(state);
     syncDrawerView(state);
   } else {

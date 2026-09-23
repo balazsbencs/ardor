@@ -10,9 +10,12 @@
 #include "dynamics/CompressorProcessor.h"
 #include "dynamics/NoiseGateProcessor.h"
 #include "equalizer/EqParameters.h"
+#include "preset/ScenePlan.h"
 #include "wah/WahProcessor.h"
 
 #include <cmath>
+#include <atomic>
+#include <chrono>
 #include <exception>
 #include <filesystem>
 #include <utility>
@@ -20,6 +23,10 @@
 namespace ardor {
 
 namespace {
+
+std::atomic<std::uint64_t> nextSceneGeneration{
+  static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+    std::chrono::system_clock::now().time_since_epoch()).count())};
 
 const char* statusName(ChainBlockStatus status)
 {
@@ -496,7 +503,7 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
                                static_cast<float>(options.sampleRate), error)) {
         return false;
       }
-      chain.addDaisy(block.id, std::move(processor));
+      chain.addDaisy(block.id, std::move(processor), block.sceneLetRing);
       stereoEstablished = true;
       chain.setBlockEnabled(block.id, block.enabled);
       continue;
@@ -523,7 +530,8 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
         return false;
       }
       if (!chain.addIrReverb(block.id, std::move(left), std::move(right),
-                             static_cast<float>(options.sampleRate), error)) {
+                             static_cast<float>(options.sampleRate), error,
+                             block.sceneLetRing)) {
         return false;
       }
       const auto& params = block.params;
@@ -912,7 +920,8 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
         return false;
       }
       if (!engine.addIrReverb(block.id, std::move(left), std::move(right),
-                              static_cast<float>(options.sampleRate), error)) {
+                              static_cast<float>(options.sampleRate), error,
+                              block.sceneLetRing)) {
         return false;
       }
       const auto& params = block.params;
@@ -939,7 +948,9 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       continue;
     }
     if (block.type == "mod" || block.type == "delay" || block.type == "reverb") {
-      if (!engine.addDaisyFx(block.id, block.type, block.params, static_cast<float>(options.sampleRate), error)) {
+      if (!engine.addDaisyFx(block.id, block.type, block.params,
+                             static_cast<float>(options.sampleRate), error,
+                             block.sceneLetRing)) {
         return false;
       }
       stereoEstablished = true;
@@ -1024,6 +1035,12 @@ bool preflightPreset(const Preset& preset, const std::filesystem::path& dataRoot
                      const EngineLoadOptions& options, std::string& error)
 {
   try {
+    if (preset.sceneSet) {
+      ScenePlan scenePlan;
+      if (!buildScenePlan(preset, scenePlan, error)) return false;
+      if (!admitScenePlan(scenePlan, options.scenePreparedProcessorLimit,
+                          options.sceneConcurrentProcessorLimit, error)) return false;
+    }
     EngineLoadOptions guardedOptions = options;
     guardedOptions.assetRoot = dataRoot;
     if (preset.routing == "wdw") {
@@ -1032,9 +1049,11 @@ bool preflightPreset(const Preset& preset, const std::filesystem::path& dataRoot
         return false;
       }
       const auto dryPlan = buildChainPlanForBlocks(
-        preset.global, preset.wdw->dry.blocks, dataRoot, preset.midiBindings);
+        preset.global, preset.wdw->dry.blocks, dataRoot, preset.midiBindings,
+        preset.sceneSet ? &*preset.sceneSet : nullptr);
       const auto wetPlan = buildChainPlanForBlocks(
-        preset.global, preset.wdw->wet.blocks, dataRoot, preset.midiBindings);
+        preset.global, preset.wdw->wet.blocks, dataRoot, preset.midiBindings,
+        preset.sceneSet ? &*preset.sceneSet : nullptr);
       std::unique_ptr<WdwRoutingProgram> ignoredProgram;
       WdwRoutingBuildReport ignoredReport;
       return buildWdwRoutingProgram(
@@ -1063,6 +1082,15 @@ bool preflightPresetSlot(const PresetStore& store, PresetSlot slot,
 bool applyPreset(PedalEngine& engine, const Preset& preset, const std::filesystem::path& dataRoot,
                  const EngineLoadOptions& options, std::string& error)
 {
+  std::optional<SceneTransitionProgram> sceneProgram;
+  if (preset.sceneSet) {
+    ScenePlan scenePlan;
+    if (!buildScenePlan(preset, scenePlan, error)) return false;
+    if (!admitScenePlan(scenePlan, options.scenePreparedProcessorLimit,
+                        options.sceneConcurrentProcessorLimit, error)) return false;
+    sceneProgram = makeSceneTransitionProgram(
+      scenePlan, nextSceneGeneration.fetch_add(1, std::memory_order_relaxed));
+  }
   EngineLoadOptions guardedOptions = options;
   guardedOptions.assetRoot = dataRoot;
   if (preset.routing == "wdw") {
@@ -1071,15 +1099,22 @@ bool applyPreset(PedalEngine& engine, const Preset& preset, const std::filesyste
       return false;
     }
     const auto dryPlan = buildChainPlanForBlocks(
-      preset.global, preset.wdw->dry.blocks, dataRoot, preset.midiBindings);
+      preset.global, preset.wdw->dry.blocks, dataRoot, preset.midiBindings,
+      preset.sceneSet ? &*preset.sceneSet : nullptr);
     const auto wetPlan = buildChainPlanForBlocks(
-      preset.global, preset.wdw->wet.blocks, dataRoot, preset.midiBindings);
+      preset.global, preset.wdw->wet.blocks, dataRoot, preset.midiBindings,
+      preset.sceneSet ? &*preset.sceneSet : nullptr);
     WdwRoutingBuildReport ignoredReport;
     return applyWdwRouting(
       engine, dryPlan, wetPlan, wdwBuildOptions(guardedOptions, *preset.wdw),
-      ignoredReport, error);
+      ignoredReport, error, sceneProgram ? &*sceneProgram : nullptr);
   }
-  return applyChainPlan(engine, buildChainPlan(preset, dataRoot), guardedOptions, error);
+  const auto chainPlan = buildChainPlan(preset, dataRoot);
+  PedalEngine prepared;
+  if (!prepareChainPlan(prepared, chainPlan, guardedOptions, error)) return false;
+  if (sceneProgram && !prepared.installPreparedScenes(std::move(*sceneProgram), error)) return false;
+  engine.replacePreparedProgram(std::move(prepared));
+  return true;
 }
 
 bool applyPresetSlot(PedalEngine& engine, const PresetStore& store, PresetSlot slot,

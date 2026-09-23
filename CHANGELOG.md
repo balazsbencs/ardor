@@ -2,6 +2,23 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## Unreleased
+
+### Features
+
+* add four named scenes per preset with instant and timed realtime recall
+* add dedicated footswitch Scenes mode, named MIDI actions, and controller pickup
+* add qualified Cut and Let ring behavior for delay and reverb tails
+* add scene authoring, comparison, copy/swap, live recall, and revision tracking in Ardor Manager
+* preserve scenes through backups, hosted preset access, preset copies, and Looper snapshots
+* add explicit scene flattening for ordinary legacy-compatible presets
+
+### Compatibility
+
+* scenes use preset version 4; versions 1–3 retain their existing meaning
+* older software must reject version 4 instead of silently dropping scene data
+* flattening removes scene-only MIDI actions and keeps compatible legacy mappings
+
 ## [0.1.69](https://github.com/balazsbencs/ardor/compare/v0.1.68...v0.1.69) (2026-09-23)
 
 ## [0.1.68](https://github.com/balazsbencs/ardor/compare/v0.1.67...v0.1.68) (2026-09-22)

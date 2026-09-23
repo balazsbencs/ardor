@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dsp/SignalRouting.h"
+#include "dsp/SceneTransition.h"
 #include "equalizer/EqParameters.h"
 
 #include <cstddef>
@@ -44,6 +45,9 @@ public:
   bool setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,
                                  const EqPassFilterParams& params);
   bool setBlockEnabled(const std::string& id, bool enabled);
+  bool applySceneTarget(std::size_t lane, std::size_t childIndex,
+                        SceneRuntimeTargetKind kind, std::uint16_t parameterIndex,
+                        float value) noexcept;
   void reset();
   std::size_t tailFrames() const noexcept;
   bool parallelEnabled() const noexcept;

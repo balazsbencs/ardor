@@ -63,52 +63,63 @@ bool writeJsonAtomically(const std::filesystem::path& path, const nlohmann::json
 std::vector<RuntimeCommand> consumeRuntimeCommands(const std::filesystem::path& dataRoot)
 {
   namespace fs = std::filesystem;
-
-  const fs::path directory = dataRoot / "runtime" / "commands";
-  std::error_code ec;
-  if (!fs::is_directory(directory, ec)) {
-    return {};
-  }
-
-  std::vector<fs::path> paths;
-  for (fs::directory_iterator it(directory, ec), end; !ec && it != end; it.increment(ec)) {
-    const auto& entry = *it;
-    std::error_code entryEc;
-    if (entry.is_regular_file(entryEc) && entry.path().extension() == ".json") {
-      paths.push_back(entry.path());
-    }
-    if (entryEc) {
-      return {};
-    }
-  }
-  if (ec) {
-    return {};
-  }
-  std::sort(paths.begin(), paths.end());
-
   std::vector<RuntimeCommand> commands;
-  for (const auto& path : paths) {
-    try {
-      std::ifstream input(path);
-      nlohmann::json json;
-      input >> json;
-      const std::string type = json.value("type", "");
-      if (type == "reload_assets") {
-        commands.push_back({RuntimeCommandType::ReloadAssets});
-      } else if (type == "apply_preset") {
-        const int bank = json.value("bank", -1);
-        const int slot = json.value("slot", -1);
-        if (bank >= 0 && bank < 100 && slot >= 0 && slot < 4) {
-          commands.push_back({RuntimeCommandType::ApplyPreset,
-                              json.value("id", std::string{}), bank, slot});
-        }
+  const auto consume = [&](const fs::path& directory, bool liveOnly) {
+    std::error_code ec;
+    if (!fs::is_directory(directory, ec)) return;
+    std::vector<fs::path> paths;
+    for (fs::directory_iterator it(directory, ec), end; !ec && it != end; it.increment(ec)) {
+      std::error_code entryEc;
+      if (it->is_regular_file(entryEc) && it->path().extension() == ".json") {
+        paths.push_back(it->path());
       }
-    } catch (const std::exception&) {
-      // Bad commands are discarded so a malformed file cannot stall runtime
-      // command processing indefinitely.
+      if (entryEc) return;
     }
-    fs::remove(path, ec);
-  }
+    if (ec) return;
+    std::sort(paths.begin(), paths.end());
+    for (const auto& path : paths) {
+      try {
+        std::ifstream input(path);
+        nlohmann::json json;
+        input >> json;
+        const std::string type = json.value("type", "");
+        if (!liveOnly && type == "reload_assets") {
+          commands.push_back({RuntimeCommandType::ReloadAssets});
+        } else if (!liveOnly && type == "apply_preset") {
+          const int bank = json.value("bank", -1);
+          const int slot = json.value("slot", -1);
+          if (bank >= 0 && bank < 100 && slot >= 0 && slot < 4) {
+            RuntimeCommand command;
+            command.type = RuntimeCommandType::ApplyPreset;
+            command.id = json.value("id", std::string{});
+            command.bank = bank;
+            command.slot = slot;
+            command.sceneId = json.value("sceneId", std::string{});
+            command.revision = json.value("revision", std::string{});
+            commands.push_back(std::move(command));
+          }
+        } else if (liveOnly && type == "recall_scene") {
+          const auto generation = json.value("generation", std::uint64_t{0});
+          const auto sceneId = json.value("sceneId", std::string{});
+          const auto requestId = json.value("requestId", std::string{});
+          if (generation != 0 && !sceneId.empty() && !requestId.empty()) {
+            RuntimeCommand command;
+            command.type = RuntimeCommandType::RecallScene;
+            command.generation = generation;
+            command.sceneId = sceneId;
+            command.requestId = requestId;
+            commands.push_back(std::move(command));
+          }
+        }
+      } catch (const std::exception&) {
+        // Bad commands are discarded so a malformed file cannot stall runtime
+        // command processing indefinitely.
+      }
+      fs::remove(path, ec);
+    }
+  };
+  consume(dataRoot / "runtime" / "commands", false);
+  consume(dataRoot / "runtime" / "live-commands", true);
   return commands;
 }
 
@@ -130,12 +141,19 @@ bool writeRuntimeApplyResult(const std::filesystem::path& dataRoot,
 
 bool writeRuntimeActivePreset(const std::filesystem::path& dataRoot,
                               int bank, int slot, const std::string& name,
-                              std::string& error)
+                              std::string& error, std::uint64_t generation,
+                              const std::string& liveSceneId, int liveSceneIndex,
+                              const std::string& revision)
 {
   const auto path = dataRoot / "runtime" / "active-preset.json";
-  return writeJsonAtomically(path, nlohmann::json{
+  nlohmann::json state{
     {"bank", bank}, {"slot", slot}, {"name", name},
-  }, error);
+  };
+  if (generation != 0) state["generation"] = generation;
+  if (!liveSceneId.empty()) state["liveSceneId"] = liveSceneId;
+  if (liveSceneIndex >= 0) state["liveSceneIndex"] = liveSceneIndex;
+  if (!revision.empty()) state["revision"] = revision;
+  return writeJsonAtomically(path, state, error);
 }
 
 bool clearRuntimeActivePreset(const std::filesystem::path& dataRoot,

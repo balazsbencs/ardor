@@ -14,7 +14,8 @@ func TestRoundTripReplacesAssetsAndPresets(t *testing.T) {
 	write(t, source, "models/clean.nam", "model")
 	write(t, source, "irs/cab.wav", "cab")
 	write(t, source, "reverb-irs/hall.wav", "hall")
-	write(t, source, "presets/bank-002/preset-3.json", `{"version":2,"name":"Clean","routing":"serial","global":{},"blocks":[]}`)
+	scenePreset := `{"version":4,"name":"Scenes","routing":"serial","global":{"inputGainDb":0,"outputGainDb":0,"safetyLimitDb":-1},"blocks":[],"sceneSet":{"defaultSceneId":"scene-1","openIn":"scenes","scenes":[{"id":"scene-1","name":"One","enterTimeMs":0,"outputTrimDb":0,"targets":[]},{"id":"scene-2","name":"Two","enterTimeMs":500,"outputTrimDb":1,"targets":[]},{"id":"scene-3","name":"Three","enterTimeMs":0,"outputTrimDb":0,"targets":[]},{"id":"scene-4","name":"Four","enterTimeMs":0,"outputTrimDb":0,"targets":[]}]},"sceneMidiMappings":[{"channel":0,"controlChange":70,"action":"selectScene","sceneId":"scene-2"}]}`
+	write(t, source, "presets/bank-002/preset-3.json", scenePreset)
 	var archive bytes.Buffer
 	manifest, err := Export(source, &archive, time.Unix(100, 0))
 	if err != nil {
@@ -39,6 +40,9 @@ func TestRoundTripReplacesAssetsAndPresets(t *testing.T) {
 	}
 	if body, err := os.ReadFile(filepath.Join(target, "models", "clean.nam")); err != nil || string(body) != "model" {
 		t.Fatalf("restored asset=%q err=%v", body, err)
+	}
+	if body, err := os.ReadFile(filepath.Join(target, "presets/bank-002/preset-3.json")); err != nil || string(body) != scenePreset {
+		t.Fatalf("restored scene preset changed: %q err=%v", body, err)
 	}
 }
 

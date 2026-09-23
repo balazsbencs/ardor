@@ -45,7 +45,7 @@ same message is used. Program Change remains available for preset selection.
 In the on-device parameter drawer, tap **MIDI** beside a parameter, then move a
 pedal or press a footswitch. Ardor captures the CC number and channel. Press
 **Save** for automatic behavior, **Advanced** to choose Continuous or
-Toggle/Scene and edit endpoints **1** and **2**, or **Cancel** to leave the
+Toggle values and edit endpoints **1** and **2**, or **Cancel** to leave the
 preset unchanged. The Bypass header has its own MIDI learn target.
 
 Automatic learn treats a CC with several values across a useful span as a
@@ -95,6 +95,32 @@ control to the scene. Every preset activation resets toggle bindings to setting
 prepared even when setting 1 bypasses them, so enabling them does not rebuild
 the audio engine. Live MIDI targets are currently limited to top-level blocks;
 Dual Rig lane children remain preset-load-only targets.
+
+### Named scene actions
+
+Version-4 presets keep named scene commands separate from two-endpoint
+`midiMappings`, preserving the meaning of existing toggle mappings.
+
+```json
+{
+  "sceneMidiMappings": [
+    { "channel": 0, "controlChange": 70, "action": "selectScene", "sceneId": "scene-solo" },
+    { "channel": 0, "controlChange": 71, "action": "sceneNumber" },
+    { "channel": 0, "controlChange": 72, "action": "showPresets" },
+    { "channel": 0, "controlChange": 73, "action": "showScenes" }
+  ]
+}
+```
+
+`selectScene` follows its stable scene ID when slots are swapped.
+`sceneNumber` maps CC values `0..3` to physical scene slots 1..4.
+`showPresets` and `showScenes` change the performance layer without recalling
+audio. Named scene CCs cannot overlap ordinary parameter mappings.
+
+After recall, continuous MIDI and expression targets use pickup: the controller
+must cross the recalled value before taking control. Taking over one target
+cancels only that target's timed ramp. Toggle-value bindings reset to endpoint
+1 on scene recall.
 
 ## Expression assignment in a preset
 

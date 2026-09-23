@@ -291,20 +291,191 @@ function validateWdwLane(
   return issues;
 }
 
+function collectSceneBlockTypes(source: Record<string, unknown>): Map<string, string> {
+  const result = new Map<string, string>();
+  const visit = (values: unknown): void => {
+    if (!Array.isArray(values)) return;
+    values.forEach((value) => {
+      if (!isRecord(value)) return;
+      if (typeof value.id === "string" && typeof value.type === "string") result.set(value.id, value.type);
+      if (isRecord(value.lanes)) {
+        for (const laneName of ["left", "right"] as const) {
+          const lane = value.lanes[laneName];
+          if (isRecord(lane)) visit(lane.blocks);
+        }
+      }
+    });
+  };
+  visit(source.blocks);
+  if (isRecord(source.wdw)) {
+    for (const laneName of ["dry", "wet"] as const) {
+      const lane = source.wdw[laneName];
+      if (isRecord(lane)) visit(lane.blocks);
+    }
+  }
+  return result;
+}
+
+function validateSceneBypassPolicies(source: Record<string, unknown>): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const visit = (values: unknown): void => {
+    if (!Array.isArray(values)) return;
+    values.forEach((value) => {
+      if (!isRecord(value)) return;
+      const policy = value.sceneBypass;
+      if (policy !== undefined && policy !== "cut" && policy !== "letRing") {
+        issues.push(error("scene-bypass-policy", "Scene bypass must be cut or letRing.", "sceneBypass"));
+      } else if (policy === "letRing" && (source.version !== 4
+          || (value.type !== "delay" && value.type !== "reverb" && value.type !== "irreverb"))) {
+        issues.push(error("scene-bypass-policy",
+          "Let ring requires a version 4 delay or reverb block.", "sceneBypass"));
+      }
+      if (isRecord(value.lanes)) {
+        for (const laneName of ["left", "right"] as const) {
+          const lane = value.lanes[laneName];
+          if (isRecord(lane)) visit(lane.blocks);
+        }
+      }
+    });
+  };
+  visit(source.blocks);
+  if (isRecord(source.wdw)) {
+    for (const laneName of ["dry", "wet"] as const) {
+      const lane = source.wdw[laneName];
+      if (isRecord(lane)) visit(lane.blocks);
+    }
+  }
+  return issues;
+}
+
+function validateSceneSet(source: Record<string, unknown>, ids: Set<string>,
+  blockTypes: Map<string, string>): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const value = source.sceneSet;
+  if (source.version === 4 && !isRecord(value)) {
+    return [error("scene-set-required", "Preset version 4 requires a scene set.", "sceneSet")];
+  }
+  if (source.version !== 4 && value !== undefined && value !== null) {
+    return [error("scene-version", "Scenes require preset version 4.", "version")];
+  }
+  if (!isRecord(value)) return issues;
+  if (value.openIn !== "presets" && value.openIn !== "scenes") {
+    issues.push(error("scene-open-mode", "Scene open mode must be presets or scenes.", "sceneSet.openIn"));
+  }
+  if (!Array.isArray(value.scenes) || value.scenes.length !== 4) {
+    issues.push(error("scene-count", "A scene set must contain exactly four scenes.", "sceneSet.scenes"));
+    return issues;
+  }
+  const sceneIds = new Set<string>();
+  let expectedAddresses: Set<string> | undefined;
+  value.scenes.forEach((sceneValue, sceneIndex) => {
+    const field = `sceneSet.scenes.${sceneIndex}`;
+    if (!isRecord(sceneValue)) {
+      issues.push(error("scene-shape", "Each scene must be an object.", field));
+      return;
+    }
+    if (typeof sceneValue.id !== "string" || !/^[A-Za-z0-9_-]{1,64}$/.test(sceneValue.id)) {
+      issues.push(error("scene-id", "Scene IDs must be 1–64 letters, numbers, underscores, or hyphens.", `${field}.id`));
+    } else if (sceneIds.has(sceneValue.id)) {
+      issues.push(error("scene-id-duplicate", `Scene ID “${sceneValue.id}” is duplicated.`, `${field}.id`));
+    } else {
+      sceneIds.add(sceneValue.id);
+    }
+    const codePoints = typeof sceneValue.name === "string" ? [...sceneValue.name].length : 0;
+    if (typeof sceneValue.name !== "string" || sceneValue.name.trim() !== sceneValue.name
+        || codePoints < 1 || codePoints > 24 || /[\p{Cc}]/u.test(sceneValue.name)) {
+      issues.push(error("scene-name", "Scene names must contain 1–24 characters with no surrounding whitespace or controls.", `${field}.name`));
+    }
+    if (typeof sceneValue.enterTimeMs !== "number" || !Number.isInteger(sceneValue.enterTimeMs)
+        || (sceneValue.enterTimeMs !== 0
+          && (sceneValue.enterTimeMs < 100 || sceneValue.enterTimeMs > 10_000 || sceneValue.enterTimeMs % 100 !== 0))) {
+      issues.push(error("scene-enter-time", "Enter time must be Instant or 0.1–10.0 seconds in 0.1-second steps.", `${field}.enterTimeMs`));
+    }
+    if (typeof sceneValue.outputTrimDb !== "number" || !Number.isFinite(sceneValue.outputTrimDb)
+        || sceneValue.outputTrimDb < -12 || sceneValue.outputTrimDb > 6) {
+      issues.push(error("scene-trim", "Scene trim must be between −12 and +6 dB.", `${field}.outputTrimDb`));
+    }
+    if (!Array.isArray(sceneValue.targets) || sceneValue.targets.length > 512) {
+      issues.push(error("scene-targets", "Scene targets must be an array with at most 512 entries.", `${field}.targets`));
+      return;
+    }
+    const addresses = new Set<string>();
+    sceneValue.targets.forEach((targetValue, targetIndex) => {
+      const targetField = `${field}.targets.${targetIndex}`;
+      if (!isRecord(targetValue) || !("value" in targetValue)) {
+        issues.push(error("scene-target-shape", "Each scene target must be an object with a value.", targetField));
+        return;
+      }
+      let address: string | undefined;
+      if (targetValue.target === "inputGainDb") {
+        if (typeof targetValue.value !== "number" || !Number.isFinite(targetValue.value)
+            || targetValue.blockId !== undefined || targetValue.parameter !== undefined || targetValue.lane !== undefined) {
+          issues.push(error("scene-target-shape", "Input gain scene targets require one finite numeric value.", targetField));
+        } else address = "inputGainDb";
+      } else if (targetValue.target === "parameter") {
+        if (typeof targetValue.blockId !== "string" || !ids.has(targetValue.blockId)
+            || typeof targetValue.parameter !== "string" || targetValue.parameter.length === 0
+            || typeof targetValue.value !== "number" || !Number.isFinite(targetValue.value)
+            || targetValue.lane !== undefined) {
+          issues.push(error("scene-target-shape", "Parameter scene targets require an existing block, parameter, and finite value.", targetField));
+        } else address = `parameter\u001f${targetValue.blockId}\u001f${targetValue.parameter}`;
+      } else if (targetValue.target === "blockEnabled") {
+        const sceneBypassTypes = new Set(["mod", "delay", "reverb", "irreverb", "stereo", "dynamics", "distortion", "wah", "eq"]);
+        if (typeof targetValue.blockId !== "string" || !ids.has(targetValue.blockId)
+            || typeof targetValue.value !== "boolean"
+            || targetValue.parameter !== undefined || targetValue.lane !== undefined) {
+          issues.push(error("scene-target-shape", "Block scene targets require an existing block and on/off value.", targetField));
+        } else if (!sceneBypassTypes.has(blockTypes.get(targetValue.blockId) ?? "")) {
+          issues.push(error("scene-bypass-shared", "This structural block enable is shared by all scenes.", targetField));
+        } else address = `blockEnabled\u001f${targetValue.blockId}`;
+      } else if (targetValue.target === "wdwLane") {
+        const lane = targetValue.lane;
+        const parameter = targetValue.parameter;
+        const parameterValid = parameter === "levelDb" || parameter === "enabled"
+          || (lane === "dry" && parameter === "pan")
+          || (lane === "wet" && parameter === "width");
+        const valueValid = parameter === "enabled"
+          ? typeof targetValue.value === "boolean"
+          : typeof targetValue.value === "number" && Number.isFinite(targetValue.value);
+        if (source.routing !== "wdw" || (lane !== "dry" && lane !== "wet")
+            || !parameterValid || !valueValid || targetValue.blockId !== undefined) {
+          issues.push(error("scene-target-shape", "WDW scene targets require a valid lane control and matching value.", targetField));
+        } else address = `wdwLane\u001f${lane}\u001f${parameter}`;
+      } else {
+        issues.push(error("scene-target-shape", "Unknown scene target type.", targetField));
+      }
+      if (!address) return;
+      if (addresses.has(address)) {
+        issues.push(error("scene-target-duplicate", "Scene target addresses must be unique.", targetField));
+      }
+      addresses.add(address);
+    });
+    if (!expectedAddresses) expectedAddresses = addresses;
+    else if (addresses.size !== expectedAddresses.size
+        || [...addresses].some((address) => !expectedAddresses?.has(address))) {
+      issues.push(error("scene-target-mismatch", "All four scenes must define the same target addresses.", `${field}.targets`));
+    }
+  });
+  if (typeof value.defaultSceneId !== "string" || !sceneIds.has(value.defaultSceneId)) {
+    issues.push(error("scene-default", "Default scene must reference one of the four scenes.", "sceneSet.defaultSceneId"));
+  }
+  return issues;
+}
+
 export function validatePreset(preset: Preset, assets: AssetInventory = emptyAssets): PresetValidationResult {
   const presetIssues: ValidationIssue[] = [];
   const issuesByBlock: ValidationIssue[][] = [];
   const source = preset as unknown as Record<string, unknown>;
   const ids = new Set<string>();
 
-  if (source.version !== 1 && source.version !== 2 && source.version !== 3) {
-    presetIssues.push(error("version", "Preset version must be 1, 2, or 3.", "version"));
+  if (source.version !== 1 && source.version !== 2 && source.version !== 3 && source.version !== 4) {
+    presetIssues.push(error("version", "Preset version must be 1, 2, 3, or 4.", "version"));
   }
   if (source.routing !== "serial" && source.routing !== "wdw") {
     presetIssues.push(error("routing", "Preset routing must be serial or wdw.", "routing"));
   }
-  if (source.routing === "wdw" && source.version !== 3) {
-    presetIssues.push(error("wdw-version", "Wet/dry/wet routing requires preset version 3.", "version"));
+  if (source.routing === "wdw" && source.version !== 3 && source.version !== 4) {
+    presetIssues.push(error("wdw-version", "Wet/dry/wet routing requires preset version 3 or 4.", "version"));
   }
   if (source.routing === "serial" && source.version === 3) {
     presetIssues.push(error("version", "Preset version 3 is reserved for wet/dry/wet routing.", "version"));
@@ -467,9 +638,9 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
         if (definition.id === "eq:parametric_eq_5") blockIssues.push(...validateEq(block));
         blockIssues.push(...assetIssues(block, definition, assets));
         if (block.type === "dualRig") {
-          if (source.version !== 2) {
+          if (source.version !== 2 && source.version !== 4) {
             blockIssues.push(blockError(block, "dual-rig-version",
-              "Dual Rig requires preset version 2.", "type"));
+              "Dual Rig requires preset version 2 or 4.", "type"));
           }
           if (!isRecord(block.lanes)) {
             blockIssues.push(blockError(block, "dual-rig-lanes",
@@ -578,11 +749,12 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
     }
   }
 
+  const occupiedMidi: Array<{ channel: number; controlChange: number }> = [];
+  let midiActionCount = 0;
   if (source.midiMappings !== undefined && source.midiMappings !== null) {
     if (!Array.isArray(source.midiMappings)) {
       presetIssues.push(error("midi-shape", "MIDI mappings must be an array.", "midiMappings"));
     } else {
-      const occupied: Array<{ channel: number; controlChange: number }> = [];
       source.midiMappings.forEach((mapping, mappingIndex) => {
         const field = `midiMappings.${mappingIndex}`;
         if (!isRecord(mapping)
@@ -599,7 +771,7 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
           ));
           return;
         }
-        if (occupied.some((item) => item.controlChange === mapping.controlChange
+        if (occupiedMidi.some((item) => item.controlChange === mapping.controlChange
           && (item.channel === -1 || mapping.channel === -1 || item.channel === mapping.channel))) {
           presetIssues.push(error(
             "midi-binding-overlap",
@@ -607,7 +779,8 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
             field,
           ));
         }
-        occupied.push({ channel: mapping.channel, controlChange: mapping.controlChange });
+        occupiedMidi.push({ channel: mapping.channel, controlChange: mapping.controlChange });
+        midiActionCount += mapping.actions.length;
         mapping.actions.forEach((action, actionIndex) => {
           const actionField = `${field}.actions.${actionIndex}`;
           if (!isRecord(action)
@@ -627,6 +800,56 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
       });
     }
   }
+
+  if (source.sceneMidiMappings !== undefined && source.sceneMidiMappings !== null) {
+    if (!Array.isArray(source.sceneMidiMappings)) {
+      presetIssues.push(error("scene-midi-shape", "Scene MIDI mappings must be an array.", "sceneMidiMappings"));
+    } else {
+      const sceneIds = new Set<string>();
+      if (isRecord(source.sceneSet) && Array.isArray(source.sceneSet.scenes)) {
+        source.sceneSet.scenes.forEach((scene) => {
+          if (isRecord(scene) && typeof scene.id === "string") sceneIds.add(scene.id);
+        });
+      }
+      source.sceneMidiMappings.forEach((mapping, mappingIndex) => {
+        const field = `sceneMidiMappings.${mappingIndex}`;
+        if (!isRecord(mapping)
+            || typeof mapping.channel !== "number" || !Number.isInteger(mapping.channel)
+            || mapping.channel < -1 || mapping.channel > 15
+            || typeof mapping.controlChange !== "number" || !Number.isInteger(mapping.controlChange)
+            || mapping.controlChange < 0 || mapping.controlChange > 127
+            || !["selectScene", "sceneNumber", "showPresets", "showScenes"].includes(
+              typeof mapping.action === "string" ? mapping.action : "")) {
+          presetIssues.push(error("scene-midi-binding-shape",
+            "Each scene MIDI mapping needs a channel, CC number, and named action.", field));
+          return;
+        }
+        if (occupiedMidi.some((item) => item.controlChange === mapping.controlChange
+          && (item.channel === -1 || mapping.channel === -1 || item.channel === mapping.channel))) {
+          presetIssues.push(error("midi-binding-overlap",
+            `MIDI CC ${mapping.controlChange} overlaps another mapping on this channel.`, field));
+        }
+        occupiedMidi.push({ channel: mapping.channel, controlChange: mapping.controlChange });
+        midiActionCount += 1;
+        if (mapping.action === "selectScene") {
+          if (typeof mapping.sceneId !== "string" || !sceneIds.has(mapping.sceneId)) {
+            presetIssues.push(error("scene-midi-scene",
+              "Direct scene MIDI actions must reference an existing scene ID.", `${field}.sceneId`));
+          }
+        } else if (mapping.sceneId !== undefined) {
+          presetIssues.push(error("scene-midi-scene",
+            "Only direct scene MIDI actions may contain a scene ID.", `${field}.sceneId`));
+        }
+      });
+    }
+  }
+  if (midiActionCount > 256) {
+    presetIssues.push(error("midi-action-limit",
+      "A preset can contain at most 256 MIDI action targets.", "midiMappings"));
+  }
+
+  presetIssues.push(...validateSceneSet(source, ids, collectSceneBlockTypes(source)));
+  presetIssues.push(...validateSceneBypassPolicies(source));
 
   const issues = [...presetIssues, ...issuesByBlock.flat()];
   const canSave = !issues.some(({ severity }) => severity === "error");

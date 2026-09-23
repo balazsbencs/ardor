@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 
 namespace ardor {
 
@@ -45,7 +46,7 @@ public:
   TransientShaperProcessor& operator=(TransientShaperProcessor&&) noexcept = default;
 
   bool configure(const nlohmann::json& params, float sampleRate, std::string& error);
-  bool setParameterTarget(const std::string& key, float value);
+  bool setParameterTarget(std::string_view key, float value);
   void reset();
   StereoSample process(StereoSample input);
 

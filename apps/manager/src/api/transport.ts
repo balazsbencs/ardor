@@ -8,6 +8,7 @@ import type {
   PresetSlot,
   PresetSlotSummary,
   RenameAssetResponse,
+  RecallSceneResponse,
   WiFiSettings,
   WiFiSettingsUpdate,
   UpdateStatus,
@@ -37,6 +38,7 @@ export interface ManagerTransport {
   listPresets(): Promise<PresetSlotSummary[]>;
   getPreset(bank: number, slot: number): Promise<PresetSlot>;
   savePreset(bank: number, slot: number, preset: Preset): Promise<PresetSlot>;
-  applyPreset(bank: number, slot: number): Promise<ApplyPresetResponse>;
+  applyPreset(bank: number, slot: number, sceneId?: string): Promise<ApplyPresetResponse>;
   getApplyStatus?(id: string): Promise<ApplyPresetStatus>;
+  recallScene?(sceneId: string, generation: number, requestId: string): Promise<RecallSceneResponse>;
 }

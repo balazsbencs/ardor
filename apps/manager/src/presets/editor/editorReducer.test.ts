@@ -220,6 +220,24 @@ describe("editorReducer", () => {
     })).toBe(edited);
   });
 
+  it("updates let-ring policy only on version 4 IR reverb blocks", () => {
+    const source = preset();
+    source.version = 4;
+    source.blocks[0] = {
+      id: "block-1", type: "irreverb", enabled: true,
+      asset: "reverb-irs/room.wav", params: {},
+    };
+    const edited = editorReducer(state(source), {
+      type: "set-scene-bypass", blockId: "block-1", policy: "letRing",
+    });
+    expect(edited.history.present.blocks[0].sceneBypass).toBe("letRing");
+
+    source.version = 1;
+    expect(editorReducer(state(source), {
+      type: "set-scene-bypass", blockId: "block-1", policy: "letRing",
+    })).toEqual(state(source));
+  });
+
   it("duplicates immediately after the source with a collision-free id and selects it", () => {
     const edited = editorReducer(state(), { type: "duplicate-block", blockId: "block-1" });
     expect(edited.history.present.blocks.map(({ id }) => id)).toEqual(["block-1", "block-3", "block-2", "custom"]);
@@ -292,6 +310,135 @@ describe("editorReducer", () => {
     expect(saved.saved).toEqual(canonical);
     expect(saved.history.present).toEqual(canonical);
     expect(isEditorDirty(saved)).toBe(false);
+  });
+
+  it("edits scene identity and transition settings without recalling audio", () => {
+    const preset = createEmptyPreset("Scenes");
+    preset.version = 4;
+    preset.sceneSet = {
+      defaultSceneId: "scene-1", openIn: "presets",
+      scenes: [
+        { id: "scene-1", name: "Scene 1", enterTimeMs: 0, outputTrimDb: 0, targets: [] },
+        { id: "scene-2", name: "Scene 2", enterTimeMs: 0, outputTrimDb: 0, targets: [] },
+        { id: "scene-3", name: "Scene 3", enterTimeMs: 0, outputTrimDb: 0, targets: [] },
+        { id: "scene-4", name: "Scene 4", enterTimeMs: 0, outputTrimDb: 0, targets: [] },
+      ],
+    };
+    const selected = editorReducer(state(preset), { type: "select-scene", sceneId: "scene-3" });
+    expect(selected.editingSceneId).toBe("scene-3");
+    expect(selected.history.past).toHaveLength(0);
+
+    const edited = reduce(selected,
+      { type: "set-scene-name", sceneId: "scene-3", name: "Lead" },
+      { type: "set-scene-enter-time", sceneId: "scene-3", value: 550 },
+      { type: "set-scene-trim", sceneId: "scene-3", value: 2.5 },
+      { type: "set-default-scene", sceneId: "scene-3" },
+      { type: "set-scene-open-in", value: "scenes" },
+    );
+    expect(edited.history.present.sceneSet?.scenes[2]).toMatchObject({ name: "Lead", enterTimeMs: 550, outputTrimDb: 2.5 });
+    expect(edited.history.present.sceneSet).toMatchObject({ defaultSceneId: "scene-3", openIn: "scenes" });
+    expect(editorReducer(edited, { type: "undo" }).history.present.sceneSet?.openIn).toBe("presets");
+  });
+
+  it("starts four editable scenes and routes owned input gain to the selected scene", () => {
+    const enabled = editorReducer(state(), { type: "enable-scenes" });
+    expect(enabled.history.present.version).toBe(4);
+    expect(enabled.history.present.sceneSet?.scenes).toHaveLength(4);
+    expect(enabled.editingSceneId).toBe("scene-1");
+    expect(editorReducer(enabled, { type: "undo" }).history.present.sceneSet).toBeUndefined();
+
+    const owned = editorReducer(enabled, {
+      type: "set-scene-input-scope", sceneId: "scene-1", scope: "scene",
+    });
+    expect(owned.history.present.sceneSet?.scenes.every((scene) =>
+      scene.targets.some((target) => target.target === "inputGainDb"))).toBe(true);
+    const changed = editorReducer(owned, {
+      type: "set-scene-input-gain", sceneId: "scene-1", value: 6,
+    });
+    expect(changed.history.present.global.inputGainDb).toBe(0);
+    expect(changed.history.present.sceneSet?.scenes[0].targets[0]).toEqual({ target: "inputGainDb", value: 6 });
+    expect(changed.history.present.sceneSet?.scenes[1].targets[0]).toEqual({ target: "inputGainDb", value: 0 });
+    const shared = editorReducer(changed, {
+      type: "set-scene-input-scope", sceneId: "scene-1", scope: "shared",
+    });
+    expect(shared.history.present.global.inputGainDb).toBe(6);
+    expect(shared.history.present.sceneSet?.scenes.every((scene) => scene.targets.length === 0)).toBe(true);
+  });
+
+  it("edits an owned wet/dry/wet lane value without changing the shared lane", () => {
+    const source = createWdwPreset();
+    const enabled = editorReducer(state(source), { type: "enable-scenes" });
+    const withTargets = structuredClone(enabled.history.present);
+    for (const scene of withTargets.sceneSet!.scenes) {
+      scene.targets.push({ target: "wdwLane", lane: "wet", parameter: "levelDb", value: 0 });
+    }
+    const changed = editorReducer(state(withTargets), {
+      type: "set-scene-wdw-mix", sceneId: "scene-1", lane: "wet", key: "levelDb", value: -6,
+    });
+    expect(changed.history.present.wdw?.wet.levelDb).toBe(0);
+    expect(changed.history.present.sceneSet?.scenes[0].targets[0]).toMatchObject({ value: -6 });
+    expect(changed.history.present.sceneSet?.scenes[1].targets[0]).toMatchObject({ value: 0 });
+  });
+
+  it("converts parameter ownership across all scenes and commits the editing value when shared", () => {
+    const source = preset();
+    source.version = 4;
+    source.sceneSet = {
+      defaultSceneId: "scene-1", openIn: "scenes", scenes: [
+        { id: "scene-1", name: "One", enterTimeMs: 0, outputTrimDb: 0, targets: [] },
+        { id: "scene-2", name: "Two", enterTimeMs: 0, outputTrimDb: 0, targets: [] },
+        { id: "scene-3", name: "Three", enterTimeMs: 0, outputTrimDb: 0, targets: [] },
+        { id: "scene-4", name: "Four", enterTimeMs: 0, outputTrimDb: 0, targets: [] },
+      ],
+    };
+    let editor = editorReducer(state(source), {
+      type: "set-scene-scope", sceneId: "scene-1", blockId: "block-1",
+      parameter: "threshold_db", scope: "scene", value: -18,
+    });
+    expect(editor.history.present.sceneSet?.scenes.every((scene) => scene.targets.some((target) =>
+      target.target === "parameter" && target.parameter === "threshold_db" && target.value === -18))).toBe(true);
+
+    editor = editorReducer(editor, {
+      type: "set-scene-parameter", sceneId: "scene-1", blockId: "block-1",
+      parameter: "threshold_db", value: -9,
+    });
+    editor = editorReducer(editor, {
+      type: "set-scene-scope", sceneId: "scene-1", blockId: "block-1",
+      parameter: "threshold_db", scope: "shared", value: -9,
+    });
+    expect(editor.history.present.blocks[0].params.threshold_db).toBe(-9);
+    expect(editor.history.present.sceneSet?.scenes.every((scene) => scene.targets.length === 0)).toBe(true);
+  });
+
+  it("copies scene sound data without replacing destination identity and swaps complete identities", () => {
+    const source = createEmptyPreset("Scenes");
+    source.version = 4;
+    source.sceneSet = {
+      defaultSceneId: "one", openIn: "scenes", scenes: [
+        { id: "one", name: "One", enterTimeMs: 500, outputTrimDb: 2, targets: [{ target: "inputGainDb", value: 3 }] },
+        { id: "two", name: "Two", enterTimeMs: 0, outputTrimDb: 0, targets: [{ target: "inputGainDb", value: -2 }] },
+        { id: "three", name: "Three", enterTimeMs: 0, outputTrimDb: 0, targets: [] },
+        { id: "four", name: "Four", enterTimeMs: 0, outputTrimDb: 0, targets: [] },
+      ],
+    };
+    const copied = editorReducer(state(source), { type: "copy-scene", sourceSceneId: "one", destinationSceneId: "two" });
+    expect(copied.history.present.sceneSet?.scenes[1]).toMatchObject({
+      id: "two", name: "Two", enterTimeMs: 500, outputTrimDb: 2, targets: [{ target: "inputGainDb", value: 3 }],
+    });
+    expect(editorReducer(copied, { type: "undo" }).history.present.sceneSet?.scenes[1].targets[0]).toMatchObject({ value: -2 });
+
+    const swapped = editorReducer(copied, { type: "swap-scenes", firstSceneId: "one", secondSceneId: "three" });
+    expect(swapped.history.present.sceneSet?.scenes.map(({ id }) => id)).toEqual(["three", "two", "one", "four"]);
+    expect(swapped.history.present.sceneSet?.defaultSceneId).toBe("one");
+
+    const rowCopied = editorReducer(state(source), { type: "copy-scene-row-across", sourceSceneId: "one", rowKey: "inputGainDb" });
+    expect(rowCopied.history.present.sceneSet?.scenes.map((scene) => scene.targets[0])).toEqual([
+      { target: "inputGainDb", value: 3 },
+      { target: "inputGainDb", value: 3 },
+      { target: "inputGainDb", value: 3 },
+      { target: "inputGainDb", value: 3 },
+    ]);
+    expect(editorReducer(rowCopied, { type: "undo" }).history.present.sceneSet?.scenes[1].targets[0]).toMatchObject({ value: -2 });
   });
 
   it("supports undo, redo, branch truncation, and a 100-snapshot cap", () => {

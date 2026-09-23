@@ -168,6 +168,7 @@ bool WdwRoutingProgram::prepare(WdwRoutingLane dry, WdwRoutingLane wet,
   mixTargets_.wetLevel.store(wetLevel, std::memory_order_relaxed);
   mixTargets_.wetWidth.store(wetWidth, std::memory_order_relaxed);
   mixCurrent_ = {dryLeftGain, dryRightGain, wetLevel, wetWidth};
+  sceneMix_ = options.mix;
   nonFiniteBlocks_.store(0, std::memory_order_relaxed);
 
   if (!executor_.configure({dryContext_.get(), &WdwRoutingProgram::processDry,
@@ -454,6 +455,35 @@ bool WdwRoutingProgram::setBlockEnabled(const std::string& id, bool enabled)
           && dryContext_->chain->setBlockEnabled(id, enabled))
     || (wetContext_ && wetContext_->chain
         && wetContext_->chain->setBlockEnabled(id, enabled));
+}
+
+bool WdwRoutingProgram::applySceneTarget(const SceneRuntimeAddress& address, float value) noexcept
+{
+  if (!std::isfinite(value)) return false;
+  if (address.kind == SceneRuntimeTargetKind::WdwLaneParameter) {
+    const auto parameter = static_cast<SceneRuntimeParameter>(address.parameterIndex);
+    if (address.lane == SceneWdwLane::Dry) {
+      if (parameter == SceneRuntimeParameter::LevelDb)
+        sceneMix_.dryLevel = value <= -60.0f ? 0.0f : std::pow(10.0f, value / 20.0f);
+      else if (parameter == SceneRuntimeParameter::Pan) sceneMix_.dryPan = value;
+      else if (parameter == SceneRuntimeParameter::Enabled) sceneMix_.dryEnabled = value >= 0.5f;
+      else return false;
+    } else if (address.lane == SceneWdwLane::Wet) {
+      if (parameter == SceneRuntimeParameter::LevelDb)
+        sceneMix_.wetLevel = value <= -60.0f ? 0.0f : std::pow(10.0f, value / 20.0f);
+      else if (parameter == SceneRuntimeParameter::Width) sceneMix_.wetWidth = value;
+      else if (parameter == SceneRuntimeParameter::Enabled) sceneMix_.wetEnabled = value >= 0.5f;
+      else return false;
+    } else return false;
+    return setMix(sceneMix_);
+  }
+  RuntimeChain* chain = nullptr;
+  if (address.container == SceneBlockContainer::WdwDry && dryContext_)
+    chain = dryContext_->chain.get();
+  else if (address.container == SceneBlockContainer::WdwWet && wetContext_)
+    chain = wetContext_->chain.get();
+  if (!chain) return false;
+  return chain->applySceneTarget(address, value);
 }
 
 void WdwRoutingProgram::processDry(void* opaque, const float* input, float* left,

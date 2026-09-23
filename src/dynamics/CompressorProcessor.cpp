@@ -117,7 +117,7 @@ bool CompressorProcessor::configure(const nlohmann::json& params, float sampleRa
   return true;
 }
 
-bool CompressorProcessor::setParameterTarget(const std::string& key, float value)
+bool CompressorProcessor::setParameterTarget(std::string_view key, float value)
 {
   if (!liveParameters_ || !std::isfinite(value)) return false;
   std::atomic<float>* target = nullptr;

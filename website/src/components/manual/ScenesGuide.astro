@@ -1,0 +1,47 @@
+<section class="scenes-guide" id="scenes-guide" aria-labelledby="scenes-title">
+  <header>
+    <p>FOUR SOUNDS · ONE PREPARED RIG</p>
+    <h2 id="scenes-title">Change the whole moment with one switch.</h2>
+    <span>Scenes recall values inside the current preset without reloading its audio engine.</span>
+  </header>
+
+  <div class="scene-steps">
+    <article><b>01</b><h3>Enter Scenes</h3><p>Hold FS1 + FS2 for 600 ms. The four screen plates now match the four footswitches.</p></article>
+    <article><b>02</b><h3>Recall</h3><p>Press FS1–FS4. Instant scenes switch at the next audio boundary; timed scenes move for their saved Enter time.</p></article>
+    <article><b>03</b><h3>Read the state</h3><p><strong>Live</strong> is the sound you hear. <strong>Editing</strong> is the scene whose stored values you are changing.</p></article>
+    <article><b>04</b><h3>Return</h3><p>Hold FS1 + FS2 again to return to Presets. Tuner and Looper keep their existing priority gestures.</p></article>
+  </div>
+
+  <div class="scene-notes">
+    <article>
+      <h3>Build a scene</h3>
+      <p>Enable Scenes from the preset editor, name all four sounds, choose an Enter time, and mark eligible controls as <strong>This scene</strong>. Shared controls remain common to the preset.</p>
+    </article>
+    <article>
+      <h3>Keep delay and reverb natural</h3>
+      <p><strong>Cut</strong> fades the effect contribution out. <strong>Let ring</strong> stops new wet input and lets the existing bounded tail decay.</p>
+    </article>
+    <article>
+      <h3>Save and share safely</h3>
+      <p>Save stores all four scenes together. To send one sound to older software, flatten that scene into an ordinary preset; Ardor folds in its trim and removes scene-only actions.</p>
+    </article>
+  </div>
+</section>
+
+<style>
+  .scenes-guide { padding: clamp(4rem, 8vw, 8rem) max(1.25rem, calc((100vw - 1180px) / 2)); color: var(--text-strong); background: var(--ground); }
+  .scenes-guide > header { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(16rem, .7fr); gap: 1rem 4rem; align-items: end; padding-bottom: 2rem; border-bottom: 1px solid var(--hairline); }
+  .scenes-guide header p { grid-column: 1 / -1; margin: 0; color: var(--warn); font: 700 .74rem/1.2 var(--font-mono); letter-spacing: .14em; }
+  .scenes-guide h2 { margin: 0; max-width: 16ch; font-size: clamp(2.4rem, 6vw, 5.5rem); line-height: .93; letter-spacing: -.045em; }
+  .scenes-guide header span { color: var(--muted); font-size: 1.05rem; line-height: 1.6; }
+  .scene-steps { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--hairline); }
+  .scene-steps article { min-height: 15rem; padding: 1.5rem; border-right: 1px solid var(--hairline); }
+  .scene-steps article:last-child { border-right: 0; }
+  .scene-steps b { color: var(--warn); font: 700 1rem/1 var(--font-mono); }
+  .scene-steps h3, .scene-notes h3 { margin: 3.5rem 0 .7rem; font-size: 1.1rem; }
+  .scene-steps p, .scene-notes p { margin: 0; color: var(--muted); line-height: 1.65; }
+  .scene-notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3rem; padding-top: 2.5rem; }
+  .scene-notes h3 { margin-top: 0; }
+  @media (max-width: 800px) { .scenes-guide > header, .scene-notes { grid-template-columns: 1fr; }.scene-steps { grid-template-columns: repeat(2, 1fr); }.scene-steps article:nth-child(2) { border-right: 0; }.scene-steps article:nth-child(-n+2) { border-bottom: 1px solid var(--hairline); } }
+  @media (max-width: 480px) { .scene-steps { grid-template-columns: 1fr; }.scene-steps article { min-height: auto; border-right: 0; border-bottom: 1px solid var(--hairline); }.scene-steps h3 { margin-top: 2rem; } }
+</style>

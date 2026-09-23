@@ -306,6 +306,21 @@ bool DualRigProcessor::setBlockEnabled(const std::string& id, bool enabled)
     || (right_.chain && right_.chain->setBlockEnabled(id, enabled));
 }
 
+bool DualRigProcessor::applySceneTarget(std::size_t lane, std::size_t childIndex,
+                                        SceneRuntimeTargetKind kind,
+                                        std::uint16_t parameterIndex,
+                                        float value) noexcept
+{
+  if (lane >= 2) return false;
+  auto& selected = lane == 0 ? left_ : right_;
+  if (!selected.chain) return false;
+  SceneRuntimeAddress address;
+  address.kind = kind;
+  address.topIndex = static_cast<std::uint16_t>(childIndex);
+  address.parameterIndex = parameterIndex;
+  return selected.chain->applySceneTarget(address, value);
+}
+
 void DualRigProcessor::reset()
 {
   left_.chain->reset();

@@ -761,6 +761,33 @@ bool applyPresetMidiValue(
     engine, preset, action.blockId, action.parameter, mapped.value, false);
 }
 
+std::optional<std::size_t> sceneTargetIndex(
+  const ardor::Preset& preset, const std::string& blockId, const std::string& parameter,
+  ardor::PresetSceneTargetType type)
+{
+  if (!preset.sceneSet) return std::nullopt;
+  const auto& targets = preset.sceneSet->scenes[0].targets;
+  const auto found = std::find_if(targets.begin(), targets.end(), [&](const auto& target) {
+    return target.target == type && target.blockId == blockId
+      && (type == ardor::PresetSceneTargetType::BlockEnabled
+          || target.parameter == parameter);
+  });
+  if (found == targets.end()) return std::nullopt;
+  return static_cast<std::size_t>(std::distance(targets.begin(), found));
+}
+
+std::optional<float> sceneParameterValue(
+  const ardor::PresetScene& scene, const std::string& blockId, const std::string& parameter)
+{
+  const auto found = std::find_if(scene.targets.begin(), scene.targets.end(),
+    [&](const auto& target) {
+      return target.target == ardor::PresetSceneTargetType::Parameter
+        && target.blockId == blockId && target.parameter == parameter;
+    });
+  if (found == scene.targets.end() || !found->value.is_number()) return std::nullopt;
+  return found->value.get<float>();
+}
+
 void writeStereo(const std::filesystem::path& path, const std::vector<float>& interleaved, ma_uint32 sampleRate)
 {
   ma_encoder_config cfg = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 2, sampleRate);
@@ -954,14 +981,41 @@ int main(int argc, char** argv)
 
       ardor::ControlState controls{args.slot, 80};
       ardor::FootswitchGesture footswitchGesture;
+      bool sceneLayerActive = activePreset.sceneSet
+        && activePreset.sceneSet->openIn == ardor::PresetSceneOpenMode::Scenes;
+      bool sceneLayerChordEnabled = true;
+      footswitchGesture.configureScenes(
+        activePreset.sceneSet.has_value(), sceneLayerActive, sceneLayerChordEnabled);
+      std::uint64_t nextSceneRequestId = 1;
+      std::uint64_t pendingSceneRequestId = 0;
+      bool sceneAltered = false;
+      bool scenePedalOverride = false;
+      bool sceneMidiOverride = false;
+      const auto synchronizeFootswitchScenes = [&](bool useOpenPreference) {
+        const bool available = activePreset.sceneSet.has_value();
+        if (!available) sceneLayerActive = false;
+        else if (useOpenPreference) {
+          sceneLayerActive = activePreset.sceneSet->openIn == ardor::PresetSceneOpenMode::Scenes;
+        }
+        footswitchGesture.configureScenes(
+          available, sceneLayerActive, sceneLayerChordEnabled);
+      };
       ardor::LooperController looperController;
       ardor::ActivePresetSelection activeSelection{args.bank, args.slot};
+      std::string activePresetRevision;
+      std::vector<std::string> recentSceneRecallIds;
       {
         std::string stateError;
+        const auto sceneIndex = static_cast<std::size_t>(
+          liveEngine->sceneTransitionTelemetry().currentSceneIndex);
+        const std::string sceneId = activePreset.sceneSet && sceneIndex < 4
+          ? activePreset.sceneSet->scenes[sceneIndex].id : std::string{};
         const bool published = initialPresetLoaded
           ? ardor::writeRuntimeActivePreset(args.dataRoot, activeSelection.bank,
                                             activeSelection.slot, activePreset.name,
-                                            stateError)
+                                            stateError, liveEngine->scenePresetGeneration(),
+                                            sceneId, sceneId.empty() ? -1 : static_cast<int>(sceneIndex),
+                                            activePresetRevision)
           : ardor::clearRuntimeActivePreset(args.dataRoot, stateError);
         if (!published && !stateError.empty()) {
           std::cerr << "Warning: could not publish active preset state: " << stateError << "\n";
@@ -989,11 +1043,15 @@ int main(int argc, char** argv)
       int deferredTunerBank = -1;
       int deferredTunerSlot = -1;
       std::string deferredTunerApplyId;
+      std::string deferredTunerSceneId;
+      std::string deferredTunerRevision;
       liveEngine->setMasterVolume(static_cast<float>(controls.masterVolume) / 100.0f);
       bool presetMidiMappingsChanged = false;
 
 #if defined(ARDOR_HAS_UI)
       std::unique_ptr<ardor::LvglUi> ui;
+      std::uint64_t sceneSnapshotSerial = 0;
+      std::vector<float> sceneSnapshotValues;
       std::unique_ptr<ardor::CloudClaimOverlay> claimOverlay;
       ardor::UiState uiState;
       ardor::GlobalSettingsStore globalSettings(args.dataRoot);
@@ -1047,6 +1105,8 @@ int main(int argc, char** argv)
         uiState.settings.audioBlockSize = args.blockSize;
         args.midiChannel = uiState.settings.midiChannel;
         args.midiTunerCc = uiState.settings.midiTunerCc;
+        sceneLayerChordEnabled = uiState.settings.sceneLayerChordEnabled;
+        synchronizeFootswitchScenes(false);
         args.expressionMinimumRaw = uiState.settings.expressionMinimumRaw;
         args.expressionMaximumRaw = uiState.settings.expressionMaximumRaw;
         args.expressionSmoothing = uiState.settings.expressionSmoothing;
@@ -1435,6 +1495,7 @@ int main(int argc, char** argv)
               nlohmann::json{{"version", version}}.dump(), status, error);
           },
         });
+        if (sceneLayerActive && activePreset.sceneSet) ardor::enterScenesMode(uiState);
         ui->build(lv_screen_active(), uiState);
         claimOverlay = std::make_unique<ardor::CloudClaimOverlay>(args.dataRoot);
       }
@@ -1461,13 +1522,41 @@ int main(int argc, char** argv)
         args.midiChannel, static_cast<std::uint8_t>(args.midiTunerCc),
       }};
       ardor::PresetMidiMapper presetMidiMapper;
+      ardor::SceneMidiMapper sceneMidiMapper;
+      ardor::ControllerPickup expressionPickup;
+      const auto armControllerPickupForScene = [&](const ardor::PresetScene& scene) {
+        presetMidiMapper.rearmSceneOwned(scene);
+        if (!activePreset.expression) return;
+        const auto& assignment = *activePreset.expression;
+        const auto target = sceneParameterValue(
+          scene, assignment.blockId, assignment.parameter);
+        if (!target) return;
+        const float span = assignment.maximum - assignment.minimum;
+        const bool crossingPossible = std::fabs(span) > 1.0e-9f;
+        float targetPosition = crossingPossible
+          ? (*target - assignment.minimum) / span : 0.0f;
+        if (assignment.inverted) targetPosition = 1.0f - targetPosition;
+        expressionPickup.arm(targetPosition, 0.02f, 0.02f, crossingPossible);
+      };
       const auto loadPresetMidiMappings = [&] {
         presetMidiMapper.load(activePreset.midiBindings);
+        sceneMidiMapper.load(activePreset.sceneMidiBindings, activePreset.sceneSet);
         for (const auto& value : presetMidiMapper.reset()) {
+          if (sceneTargetIndex(
+                activePreset, value.action.blockId, value.action.parameter,
+                value.action.target == ardor::PresetMidiTargetType::BlockEnabled
+                  ? ardor::PresetSceneTargetType::BlockEnabled
+                  : ardor::PresetSceneTargetType::Parameter)) continue;
           if (!applyPresetMidiValue(*liveEngine, activePreset, value)) {
             std::cerr << "MIDI scene target is not live-controllable: "
                       << value.action.blockId << ":" << value.action.parameter << "\n";
           }
+        }
+        expressionPickup.reset();
+        if (activePreset.sceneSet) {
+          const auto sceneIndex = std::min<std::size_t>(
+            liveEngine->sceneTransitionTelemetry().destinationSceneIndex, 3);
+          armControllerPickupForScene(activePreset.sceneSet->scenes[sceneIndex]);
         }
       };
       loadPresetMidiMappings();
@@ -1527,6 +1616,8 @@ int main(int argc, char** argv)
 #endif
       auto nextRuntimeCommandPoll = std::chrono::steady_clock::now();
       std::string requestedApplyId;
+      std::string requestedApplySceneId;
+      std::string requestedApplyRevision;
       int requestedApplyBank = -1;
       int requestedApplySlot = -1;
       const auto publishApplyResult = [&](const std::string& id, const std::string& state,
@@ -1544,6 +1635,76 @@ int main(int argc, char** argv)
       // refreshed once a second would look frozen while someone is actually
       // watching it and dragging the threshold slider.
       auto nextGainReductionPoll = nextRuntimeCommandPoll;
+      auto nextSceneTelemetryPoll = nextRuntimeCommandPoll;
+      const auto requestSceneSelection = [&](int index) {
+        if (tunerMode || !activePreset.sceneSet || index < 0 || index >= 4) return false;
+        const auto& scene = activePreset.sceneSet->scenes[static_cast<std::size_t>(index)];
+        const auto durationFrames = static_cast<std::uint32_t>(std::llround(
+          static_cast<double>(scene.enterTimeMs) * args.sampleRate / 1000.0));
+        const auto requestId = nextSceneRequestId++;
+        const ardor::SceneTransitionRequest request{
+          liveEngine->scenePresetGeneration(), requestId, durationFrames,
+          static_cast<std::uint8_t>(index),
+        };
+        if (!liveEngine->tryRequestScene(request)) {
+#if defined(ARDOR_HAS_UI)
+          if (args.enableUi && ui) {
+            auto telemetry = uiState.scenes;
+            telemetry.pending = false;
+            telemetry.rejection = "SCENE RECALL REJECTED";
+            ardor::updateSceneTelemetry(uiState, std::move(telemetry));
+          }
+#endif
+          return false;
+        }
+        pendingSceneRequestId = requestId;
+        sceneAltered = false;
+        scenePedalOverride = false;
+        sceneMidiOverride = false;
+#if defined(ARDOR_HAS_UI)
+        if (args.enableUi && ui) {
+          auto telemetry = uiState.scenes;
+          telemetry.destinationScene = static_cast<std::size_t>(index);
+          telemetry.pending = true;
+          telemetry.rejection.clear();
+          ardor::updateSceneTelemetry(uiState, std::move(telemetry));
+        }
+#endif
+#if defined(__linux__)
+        armControllerPickupForScene(scene);
+#endif
+        std::string stateError;
+        if (!ardor::writeRuntimeActivePreset(
+              args.dataRoot, activeSelection.bank, activeSelection.slot, activePreset.name,
+              stateError, liveEngine->scenePresetGeneration(), scene.id, index,
+              activePresetRevision)) {
+          std::cerr << "Warning: could not publish live scene state: " << stateError << "\n";
+        }
+        return true;
+      };
+#if defined(ARDOR_HAS_UI)
+      if (args.enableUi && ui) {
+        ui->setSceneActions(
+          [&](std::size_t index) {
+            if (!requestSceneSelection(static_cast<int>(index))) {
+              ardor::setUiStatus(uiState, "Scene recall was rejected", true);
+            }
+          },
+          [&](bool scenes) {
+            if (scenes && !activePreset.sceneSet) return;
+            sceneLayerActive = scenes;
+            synchronizeFootswitchScenes(false);
+            if (scenes) ardor::enterScenesMode(uiState);
+            else ardor::enterPresetMode(uiState);
+          });
+        ui->setSceneTargetAction([&](std::size_t targetIndex, float value) {
+          return liveEngine->tryOverrideSceneTarget(targetIndex, value);
+        });
+        ui->setSceneCaptureAction([&]() {
+          liveEngine->requestSceneValueSnapshot();
+        });
+      }
+#endif
       const auto applyFootswitchAction = [&](const ardor::FootswitchAction& action) {
 #if defined(ARDOR_HAS_UI)
         if (args.enableUi && ui && !ardor::previewIsSynchronized(uiState)) {
@@ -1553,8 +1714,31 @@ int main(int argc, char** argv)
           return;
         }
 #endif
+        if (action.type == ardor::FootswitchActionType::ToggleSceneLayer) {
+          if (!activePreset.sceneSet) return;
+          sceneLayerActive = !sceneLayerActive;
+          footswitchGesture.configureScenes(
+            true, sceneLayerActive, sceneLayerChordEnabled);
+#if defined(ARDOR_HAS_UI)
+          if (args.enableUi && ui) {
+            if (sceneLayerActive) ardor::enterScenesMode(uiState);
+            else ardor::enterPresetMode(uiState);
+            ardor::setUiStatus(uiState,
+              sceneLayerActive ? "Scene footswitches active" : "Preset footswitches active");
+          }
+#endif
+          return;
+        }
         if (action.type == ardor::FootswitchActionType::ToggleTuner) {
+          footswitchGesture.reset();
           tunerMode = !tunerMode;
+#if defined(__linux__)
+          if (!tunerMode && activePreset.sceneSet) {
+            const auto sceneIndex = std::min<std::size_t>(
+              liveEngine->sceneTransitionTelemetry().destinationSceneIndex, 3);
+            armControllerPickupForScene(activePreset.sceneSet->scenes[sceneIndex]);
+          }
+#endif
           backend.setOutputMuted(tunerMode);
           backend.discardCapturedInput();
           tuner.reset();
@@ -1563,12 +1747,15 @@ int main(int argc, char** argv)
           if (args.enableUi && ui) {
             if (tunerMode) ardor::enterTunerMode(uiState);
             else if (looperController.sessionLocked()) ardor::enterLooperMode(uiState);
+            else if (sceneLayerActive) ardor::enterScenesMode(uiState);
             else ardor::enterPresetMode(uiState);
           }
 #endif
           std::cerr << (tunerMode ? "Tuner active; output muted\n" : "Tuner closed; output restored\n");
           if (!tunerMode && deferredTunerSlot >= 0) {
             requestedApplyId = std::move(deferredTunerApplyId);
+            requestedApplySceneId = std::move(deferredTunerSceneId);
+            requestedApplyRevision = std::move(deferredTunerRevision);
             requestedApplyBank = deferredTunerBank;
             requestedApplySlot = deferredTunerSlot;
             if (deferredTunerBank >= 0) {
@@ -1578,10 +1765,23 @@ int main(int argc, char** argv)
             deferredTunerBank = -1;
             deferredTunerSlot = -1;
             deferredTunerApplyId.clear();
+            deferredTunerSceneId.clear();
+            deferredTunerRevision.clear();
           }
           return;
         }
         if (tunerMode) return;
+        if (action.type == ardor::FootswitchActionType::SelectScene) {
+          if (!sceneLayerActive) return;
+          if (!requestSceneSelection(action.index)) {
+#if defined(ARDOR_HAS_UI)
+            if (args.enableUi && ui) {
+              ardor::setUiStatus(uiState, "Scene recall was rejected", true);
+            }
+#endif
+          }
+          return;
+        }
         const int previousSlot = controls.activeSlot;
         if (ardor::applyControlEvent(
               controls, {ardor::ControlEventType::FootswitchPressed, action.index, 0})
@@ -1668,6 +1868,7 @@ int main(int argc, char** argv)
             [&](ardor::PedalEngine& prepared) { return backend.replaceEngine(prepared); });
           if (activation.activated()) {
             activePreset = std::move(*loopReturnPreset);
+            synchronizeFootswitchScenes(true);
             loopReturnPreset.reset();
             restorePresetAfterLoopClose = false;
             activeLoopId.clear();
@@ -1678,6 +1879,7 @@ int main(int argc, char** argv)
             liveEngine->setEffectsBypassed(runtime.effectsBypassed());
 #if defined(__linux__)
             expressionFilter.reset();
+            expressionPickup.reset();
             loadPresetMidiMappings();
 #endif
             ardor::setUiStatus(uiState, "Loop session closed");
@@ -1742,6 +1944,7 @@ int main(int argc, char** argv)
               looperController.resetGestures();
 #if defined(__linux__)
               expressionFilter.reset();
+              expressionPickup.reset();
               loadPresetMidiMappings();
 #endif
               ardor::enterLooperMode(
@@ -1785,6 +1988,10 @@ int main(int argc, char** argv)
 #endif
 #if defined(ARDOR_HAS_UI)
         if (args.enableUi && ui) {
+          if (uiState.sceneCapturePending
+              && liveEngine->tryReadSceneValueSnapshot(sceneSnapshotSerial, sceneSnapshotValues)) {
+            ardor::completeCurrentSoundCapture(uiState, sceneSnapshotValues);
+          }
           claimOverlay->poll();
           lv_timer_handler();
           ui->refresh(lv_screen_active(), uiState);
@@ -1837,12 +2044,17 @@ int main(int argc, char** argv)
         if (args.enableUi && ui
             && (args.midiChannel != uiState.settings.midiChannel
                 || args.midiTunerCc != uiState.settings.midiTunerCc
+                || sceneLayerChordEnabled != uiState.settings.sceneLayerChordEnabled
                 || args.expressionMinimumRaw != uiState.settings.expressionMinimumRaw
                 || args.expressionMaximumRaw != uiState.settings.expressionMaximumRaw
                 || args.expressionSmoothing != uiState.settings.expressionSmoothing
                 || args.expressionDeadband != uiState.settings.expressionDeadband)) {
           args.midiChannel = uiState.settings.midiChannel;
           args.midiTunerCc = uiState.settings.midiTunerCc;
+          if (sceneLayerChordEnabled != uiState.settings.sceneLayerChordEnabled) {
+            sceneLayerChordEnabled = uiState.settings.sceneLayerChordEnabled;
+            synchronizeFootswitchScenes(false);
+          }
           args.expressionMinimumRaw = uiState.settings.expressionMinimumRaw;
           args.expressionMaximumRaw = uiState.settings.expressionMaximumRaw;
           args.expressionSmoothing = uiState.settings.expressionSmoothing;
@@ -1942,11 +2154,44 @@ int main(int argc, char** argv)
               continue;
             }
 #endif
+            if (sceneMidiMapper.handles(message)) {
+              const auto action = sceneMidiMapper.map(message);
+              if (!action) continue;
+              if (action->type == ardor::SceneMidiActionType::ShowPresets
+                  || action->type == ardor::SceneMidiActionType::ShowScenes) {
+                sceneLayerActive = action->type == ardor::SceneMidiActionType::ShowScenes;
+                synchronizeFootswitchScenes(false);
+#if defined(ARDOR_HAS_UI)
+                if (args.enableUi && ui) {
+                  if (sceneLayerActive) ardor::enterScenesMode(uiState);
+                  else ardor::enterPresetMode(uiState);
+                  ardor::setUiStatus(uiState, sceneLayerActive
+                    ? "Scene footswitches active" : "Preset footswitches active");
+                }
+#endif
+              } else if (!requestSceneSelection(action->sceneIndex)) {
+#if defined(ARDOR_HAS_UI)
+                if (args.enableUi && ui) {
+                  ardor::setUiStatus(uiState, "MIDI scene recall was rejected", true);
+                }
+#endif
+              }
+              continue;
+            }
             if (presetMidiMapper.handles(message)) {
               for (const auto& value : presetMidiMapper.map(message)) {
                 if (!applyPresetMidiValue(*liveEngine, activePreset, value)) {
                   std::cerr << "MIDI mapping target is not live-controllable: "
                             << value.action.blockId << ":" << value.action.parameter << "\n";
+                } else if (const auto targetIndex = sceneTargetIndex(
+                             activePreset, value.action.blockId, value.action.parameter,
+                             value.action.target == ardor::PresetMidiTargetType::BlockEnabled
+                               ? ardor::PresetSceneTargetType::BlockEnabled
+                               : ardor::PresetSceneTargetType::Parameter)) {
+                  liveEngine->tryOverrideSceneTarget(*targetIndex, value.value);
+                  sceneAltered = true;
+                  scenePedalOverride = false;
+                  sceneMidiOverride = true;
                 }
               }
               continue;
@@ -1989,10 +2234,20 @@ int main(int argc, char** argv)
                 });
               }
 #endif
-              if (activePreset.expression.has_value()
+              const bool expressionAccepted = expressionPickup.observe(*position);
+              if (expressionAccepted && activePreset.expression.has_value()
                   && applyExpressionPosition(*liveEngine, activePreset, *position)) {
                 expressionTargetWarningPrinted = false;
-              } else if (activePreset.expression.has_value()
+                const auto& assignment = *activePreset.expression;
+                if (const auto targetIndex = sceneTargetIndex(
+                      activePreset, assignment.blockId, assignment.parameter,
+                      ardor::PresetSceneTargetType::Parameter)) {
+                  liveEngine->tryOverrideSceneTarget(
+                    *targetIndex, ardor::expressionValueAt(assignment, *position));
+                  sceneAltered = true;
+                  scenePedalOverride = !sceneMidiOverride;
+                }
+              } else if (expressionAccepted && activePreset.expression.has_value()
                          && !expressionTargetWarningPrinted) {
                 const auto& assignment = *activePreset.expression;
                 std::cerr << "Expression assignment is not live-controllable: "
@@ -2083,6 +2338,7 @@ int main(int argc, char** argv)
               runtime.changePreset();
               liveEngine->setEffectsBypassed(runtime.effectsBypassed());
               activePreset = previewPreset;
+              synchronizeFootswitchScenes(false);
 #if defined(__linux__)
               expressionTargetWarningPrinted = false;
               loadPresetMidiMappings();
@@ -2121,6 +2377,23 @@ int main(int argc, char** argv)
             }
           }
         }
+        if (args.enableUi && ui && now >= nextSceneTelemetryPoll) {
+          nextSceneTelemetryPoll = now + std::chrono::milliseconds(50);
+          const auto scene = liveEngine->sceneTransitionTelemetry();
+          const bool pending = pendingSceneRequestId != 0
+            && scene.lastAppliedRequestId < pendingSceneRequestId;
+          if (!pending && scene.lastAppliedRequestId >= pendingSceneRequestId) {
+            pendingSceneRequestId = 0;
+          }
+          const float progress = scene.totalFrames == 0 ? 1.0f
+            : std::clamp(static_cast<float>(scene.elapsedFrames)
+                / static_cast<float>(scene.totalFrames), 0.0f, 1.0f);
+          ardor::updateSceneTelemetry(uiState, {
+            scene.currentSceneIndex, scene.destinationSceneIndex, progress,
+            pending, scene.transitioning, sceneAltered, scenePedalOverride,
+            uiState.scenes.rejection,
+          });
+        }
 #endif
         if (now >= nextRuntimeCommandPoll) {
           nextRuntimeCommandPoll = now + std::chrono::milliseconds(100);
@@ -2134,10 +2407,29 @@ int main(int argc, char** argv)
                                    requestedApplySlot, "a newer apply request replaced it");
               }
               requestedApplyId = command.id;
+              requestedApplySceneId = command.sceneId;
+              requestedApplyRevision = command.revision;
               requestedApplyBank = command.bank;
               requestedApplySlot = command.slot;
               requestedBank.store(command.bank, std::memory_order_relaxed);
               requestedSlot.store(command.slot, std::memory_order_relaxed);
+            } else if (command.type == ardor::RuntimeCommandType::RecallScene) {
+              const bool duplicate = std::find(recentSceneRecallIds.begin(), recentSceneRecallIds.end(),
+                                               command.requestId) != recentSceneRecallIds.end();
+              if (duplicate || command.generation != liveEngine->scenePresetGeneration()
+                  || !activePreset.sceneSet) {
+                continue;
+              }
+              const auto scene = std::find_if(
+                activePreset.sceneSet->scenes.begin(), activePreset.sceneSet->scenes.end(),
+                [&](const auto& candidate) { return candidate.id == command.sceneId; });
+              if (scene == activePreset.sceneSet->scenes.end()) continue;
+              const auto index = static_cast<int>(
+                std::distance(activePreset.sceneSet->scenes.begin(), scene));
+              if (requestSceneSelection(index)) {
+                recentSceneRecallIds.push_back(command.requestId);
+                if (recentSceneRecallIds.size() > 128) recentSceneRecallIds.erase(recentSceneRecallIds.begin());
+              }
             }
           }
 #if defined(ARDOR_HAS_UI)
@@ -2151,7 +2443,11 @@ int main(int argc, char** argv)
         const int nextSlot = requestedSlot.exchange(-1, std::memory_order_relaxed);
         if (nextSlot >= 0) {
           const std::string applyId = std::move(requestedApplyId);
+          const std::string applySceneId = std::move(requestedApplySceneId);
+          const std::string applyRevision = std::move(requestedApplyRevision);
           requestedApplyId.clear();
+          requestedApplySceneId.clear();
+          requestedApplyRevision.clear();
           requestedApplyBank = -1;
           requestedApplySlot = -1;
           const int targetBank = nextBank >= 0 ? nextBank : args.bank;
@@ -2163,6 +2459,8 @@ int main(int argc, char** argv)
             deferredTunerBank = targetBank;
             deferredTunerSlot = nextSlot;
             deferredTunerApplyId = applyId;
+            deferredTunerSceneId = applySceneId;
+            deferredTunerRevision = applyRevision;
             continue;
           }
           ardor::Preset targetPreset;
@@ -2214,6 +2512,8 @@ int main(int argc, char** argv)
                       << replaceResultName(activation.replacementResult) << "\n";
             if (activation.replacementResult == ardor::EngineReplaceResult::DeviceStopped) {
               requestedApplyId = applyId;
+              requestedApplySceneId = applySceneId;
+              requestedApplyRevision = applyRevision;
               requestedApplyBank = targetBank;
               requestedApplySlot = nextSlot;
               requestedBank.store(targetBank, std::memory_order_relaxed);
@@ -2227,28 +2527,51 @@ int main(int argc, char** argv)
           runtime.changePreset();
           liveEngine->setEffectsBypassed(runtime.effectsBypassed());
           activePreset = std::move(targetPreset);
+          activePresetRevision = applyRevision;
+          recentSceneRecallIds.clear();
+          synchronizeFootswitchScenes(true);
 #if defined(__linux__)
           expressionFilter.reset();
+          expressionPickup.reset();
           expressionTargetWarningPrinted = false;
           loadPresetMidiMappings();
 #endif
           args.bank = activeSelection.bank;
           args.slot = activeSelection.slot;
           controls.activeSlot = activeSelection.slot;
-          publishApplyResult(applyId, "applied", activeSelection.bank, activeSelection.slot, {});
           {
             std::string stateError;
             if (!ardor::writeRuntimeActivePreset(args.dataRoot, activeSelection.bank,
                                                  activeSelection.slot, activePreset.name,
-                                                 stateError)) {
+                                                 stateError, liveEngine->scenePresetGeneration(),
+                                                 activePreset.sceneSet
+                                                   ? activePreset.sceneSet->scenes[
+                                                       liveEngine->sceneTransitionTelemetry().currentSceneIndex].id
+                                                   : std::string{},
+                                                 activePreset.sceneSet
+                                                   ? static_cast<int>(liveEngine->sceneTransitionTelemetry().currentSceneIndex)
+                                                   : -1,
+                                                 activePresetRevision)) {
               std::cerr << "Warning: could not publish active preset state: " << stateError << "\n";
             }
           }
+          if (!applySceneId.empty() && activePreset.sceneSet) {
+            const auto scene = std::find_if(
+              activePreset.sceneSet->scenes.begin(), activePreset.sceneSet->scenes.end(),
+              [&](const auto& candidate) { return candidate.id == applySceneId; });
+            if (scene != activePreset.sceneSet->scenes.end()) {
+              requestSceneSelection(static_cast<int>(
+                std::distance(activePreset.sceneSet->scenes.begin(), scene)));
+            }
+          }
+          publishApplyResult(applyId, "applied", activeSelection.bank, activeSelection.slot, {});
           std::cerr << "Switched to preset " << args.bank << ":" << args.slot << "\n";
 #if defined(ARDOR_HAS_UI)
           if (args.enableUi && ui) {
             ardor::loadBankFromStore(uiState, store, args.bank);
             ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
+            if (sceneLayerActive) ardor::enterScenesMode(uiState);
+            else ardor::enterPresetMode(uiState);
             auto telemetry = uiState.telemetry;
             telemetry.bypassed = runtime.effectsBypassed();
             ardor::updateRealtimeTelemetry(uiState, telemetry);

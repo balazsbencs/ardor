@@ -1,5 +1,6 @@
 import { AlertTriangle, Copy, RotateCcw, Trash2, X } from "lucide-react";
 import { useState } from "react";
+import type { ReactNode } from "react";
 
 import type { Asset, PresetBlock } from "../../api/types";
 import { allEffectDefinitions, findEffectDefinition } from "../../effects/catalog";
@@ -34,6 +35,10 @@ export function BlockInspector({
   onDelete,
   onAssets,
   onClose,
+  scenesEnabled = false,
+  onSceneBypass,
+  sceneScopeFor,
+  onSceneScope,
 }: {
   block?: PresetBlock;
   issues: ValidationIssue[];
@@ -50,6 +55,10 @@ export function BlockInspector({
   onDelete(blockId: string): void;
   onClose?(): void;
   onAssets(): void;
+  scenesEnabled?: boolean;
+  onSceneBypass?(blockId: string, policy: "cut" | "letRing"): void;
+  sceneScopeFor?(blockId: string, parameter?: string): "shared" | "scene";
+  onSceneScope?(blockId: string, parameter: string | undefined, scope: "shared" | "scene", value: number | boolean): void;
 }) {
   if (!block) return <aside className="inspector inspector--empty"><div><p className="eyebrow">Inspector</p><h2>Select a block</h2><p>Choose a block in the chain to edit its sound, routing state and asset.</p></div></aside>;
   const definition = findEffectDefinition(block);
@@ -64,7 +73,13 @@ export function BlockInspector({
           : irs;
       return <AssetPicker key={control.key ?? control.label} value={value} label={control.label} assets={assets} onChange={(asset) => control.key ? onParam(block.id, control.key, asset) : onAsset(block.id, asset)} onAssets={onAssets} />;
     }
-    if (control.kind === "number") return <ParameterSlider key={control.key} control={control} value={Number(valueFor(block, control.key, control.defaultValue))} onChange={(value) => onParam(block.id, control.key, value)} />;
+    if (control.kind === "number") {
+      const value = Number(valueFor(block, control.key, control.defaultValue));
+      const slider = <ParameterSlider control={control} value={value} onChange={(next) => onParam(block.id, control.key, next)} />;
+      return scenesEnabled && sceneScopeFor && onSceneScope
+        ? <SceneScopeControl key={control.key} label={control.label} scope={sceneScopeFor(block.id, control.key)} onScope={(scope) => onSceneScope(block.id, control.key, scope, value)}>{slider}</SceneScopeControl>
+        : <div key={control.key}>{slider}</div>;
+    }
     if (control.kind === "choice") return <ChoiceField key={control.key} control={control} value={String(valueFor(block, control.key, control.defaultValue))} onChange={(value) => onParam(block.id, control.key, value)} />;
     if (control.kind === "toggle") return <ToggleField key={control.key} control={control} value={Boolean(valueFor(block, control.key, control.defaultValue))} onChange={(value) => onParam(block.id, control.key, value)} />;
     return <EqControls key="eq" block={block} onEqBand={onEqBand} onParam={onParam} />;
@@ -80,9 +95,19 @@ export function BlockInspector({
   return (
     <aside className="inspector" aria-label={`${definition.name} inspector`}>
       <div className="inspector__heading"><div><p className="eyebrow">{definition.category}</p><h2>{definition.name}</h2><span className="inspector__id">{block.id}</span></div><div className="inspector__heading-actions"><Toggle label={`${definition.name} enabled`} checked={block.enabled} onChange={(enabled) => onToggle(block.id, enabled)} />{onClose && <IconButton className="inspector__close" label="Close inspector" onClick={onClose}><X size={16} /></IconButton>}</div></div>
+      {scenesEnabled && sceneScopeFor && onSceneScope && <SceneScopeControl label={`${definition.name} enabled`} scope={sceneScopeFor(block.id)} onScope={(scope) => onSceneScope(block.id, undefined, scope, block.enabled)}><span className="scene-scope-control__value">Effect enabled: {block.enabled ? "On" : "Off"}</span></SceneScopeControl>}
       {issues.length > 0 && <div className="inspector-issues">{issues.map((issue, index) => <p key={`${issue.code}-${index}`}><AlertTriangle size={15} /><span>{issue.message}</span></p>)}</div>}
       {modes.length > 1 && <label className="form-field"><span>Mode</span><select aria-label="Effect mode" value={definition.id} onChange={(event) => onMode(block.id, event.target.value)}>{modes.map((mode) => <option value={mode.id} key={mode.id}>{mode.name}</option>)}</select></label>}
       <div className="inspector__controls">
+        {scenesEnabled && ["delay", "reverb", "irreverb"].includes(block.type) && onSceneBypass && <label className="form-field">
+          <span>On scene bypass</span>
+          <select aria-label="On scene bypass" value={block.sceneBypass ?? "letRing"}
+            onChange={(event) => onSceneBypass(block.id, event.target.value as "cut" | "letRing")}>
+            <option value="cut">Cut</option>
+            <option value="letRing">Let ring</option>
+          </select>
+          <small>Let ring fades new wet input over 10 ms and preserves the existing tail.</small>
+        </label>}
         {(block.type === "dualAmp" || block.type === "dualRig") ? <>
           {generalControls.map(renderControl)}
           <div className="dual-amp-controls">
@@ -94,6 +119,16 @@ export function BlockInspector({
       <div className="inspector__footer"><Button variant="quiet" onClick={() => onReset(block.id)}><RotateCcw size={15} /> Reset</Button><Button variant="quiet" disabled={block.type === "dualAmp" || block.type === "dualRig"} onClick={() => onDuplicate(block.id)}><Copy size={15} /> Duplicate</Button><Button variant="danger" onClick={() => onDelete(block.id)}><Trash2 size={15} /> Delete</Button></div>
     </aside>
   );
+}
+
+function SceneScopeControl({ label, scope, onScope, children }: { label: string; scope: "shared" | "scene"; onScope(scope: "shared" | "scene"): void; children: ReactNode }) {
+  return <div className="scene-scope-control">
+    {children}
+    <div className="scene-scope-control__switch" role="group" aria-label={`${label} ownership`}>
+      <button type="button" aria-pressed={scope === "scene"} onClick={() => onScope("scene")}>This scene</button>
+      <button type="button" aria-pressed={scope === "shared"} onClick={() => onScope("shared")}>Shared</button>
+    </div>
+  </div>;
 }
 
 function allModesFor(definition: EffectDefinition): EffectDefinition[] {
