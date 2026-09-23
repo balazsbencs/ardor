@@ -30,7 +30,6 @@ struct DualRigProcessor::ParallelState {
   std::atomic<uint64_t> submitted{0};
   std::atomic<uint64_t> completed{0};
   std::atomic<uint64_t> waitsOverBudget{0};
-  std::atomic<bool> disabled{false};
   std::vector<float> input;
   std::vector<float> output;
   std::size_t frames = 0;
@@ -193,19 +192,15 @@ void DualRigProcessor::processBlock(const float* inputLeft, const float* inputRi
 
 #if defined(__linux__)
   if (parallel_) {
-    if (parallel_->disabled.load(std::memory_order_relaxed)) {
+    const uint64_t submitted = parallel_->submitted.load(std::memory_order_relaxed);
+    if (parallel_->completed.load(std::memory_order_acquire) != submitted) {
+      // Keep the worker's buffers untouched until its overdue job finishes.
+      // A later block can submit work again once completed catches up.
       processLaneBlock(left_, false, monoInput_.data(), outputLeft, frames);
-      if (parallel_->completed.load(std::memory_order_acquire)
-          == parallel_->submitted.load(std::memory_order_relaxed)) {
-        processLaneBlock(right_, true, monoInput_.data(), outputRight, frames);
-      } else {
-        // Keep the image centred while the overdue worker drains. Losing the
-        // alternate lane is less conspicuous than dropping the right channel.
-        std::copy(outputLeft, outputLeft + frames, outputRight);
-      }
+      std::copy(outputLeft, outputLeft + frames, outputRight);
       return;
     }
-    const uint64_t generation = parallel_->submitted.load(std::memory_order_relaxed) + 1;
+    const uint64_t generation = submitted + 1;
     std::copy(monoInput_.begin(), monoInput_.begin() + static_cast<std::ptrdiff_t>(frames),
               parallel_->input.begin());
     parallel_->frames = frames;
@@ -222,7 +217,6 @@ void DualRigProcessor::processBlock(const float* inputLeft, const float* inputRi
     }
     if (parallel_->completed.load(std::memory_order_acquire) != generation) {
       parallel_->waitsOverBudget.fetch_add(1, std::memory_order_relaxed);
-      parallel_->disabled.store(true, std::memory_order_relaxed);
       std::copy(outputLeft, outputLeft + frames, outputRight);
     } else {
       std::copy(parallel_->output.begin(),
@@ -325,7 +319,7 @@ std::size_t DualRigProcessor::tailFrames() const noexcept
 
 bool DualRigProcessor::parallelEnabled() const noexcept
 {
-  return parallel_ && !parallel_->disabled.load(std::memory_order_relaxed);
+  return parallel_ != nullptr;
 }
 
 uint64_t DualRigProcessor::parallelWaitOverBudgetCount() const noexcept
