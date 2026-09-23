@@ -231,9 +231,9 @@ CheesePreparedMatrices prepareCheeseCircuitMatrices(const CheeseNetlist& netlist
     for (std::size_t c = 0; c < kCheeseStateCount; ++c) {
       steadyMatrix.at(r, c) = (r == c ? 1.0 : 0.0) - out.a[r * kCheeseStateCount + c];
     }
-    double rhs = out.b[r * kCheeseInputCount + 1] * static_cast<float>(netlist.supplyVolts);
+    double rhs = static_cast<double>(out.b[r * kCheeseInputCount + 1]) * netlist.supplyVolts;
     for (std::size_t c = 0; c < kCheesePortCount; ++c) {
-      rhs += out.c[r * kCheesePortCount + c] * dcCurrent[c];
+      rhs += static_cast<double>(out.c[r * kCheesePortCount + c]) * dcCurrent[c];
     }
     steadyRhs.at(r, 0) = rhs;
   }
