@@ -207,29 +207,31 @@ void SceneTransitionController::advanceFrame() noexcept
 
 void SceneTransitionController::publishTelemetry() noexcept
 {
-  telemetrySerial_.fetch_add(1, std::memory_order_acq_rel);
-  telemetryRequestId_.store(lastAppliedRequestId_, std::memory_order_relaxed);
-  telemetryCurrentScene_.store(currentSceneIndex_, std::memory_order_relaxed);
-  telemetryDestinationScene_.store(destinationSceneIndex_, std::memory_order_relaxed);
-  telemetryElapsedFrames_.store(elapsedFrames_, std::memory_order_relaxed);
-  telemetryTotalFrames_.store(totalFrames_, std::memory_order_relaxed);
-  telemetryTransitioning_.store(transitioning_, std::memory_order_relaxed);
-  telemetrySerial_.fetch_add(1, std::memory_order_release);
+  // One total order covers the serial and every field: a reader cannot accept
+  // a mixed snapshot if publication overlaps its two serial loads.
+  telemetrySerial_.fetch_add(1);
+  telemetryRequestId_.store(lastAppliedRequestId_);
+  telemetryCurrentScene_.store(currentSceneIndex_);
+  telemetryDestinationScene_.store(destinationSceneIndex_);
+  telemetryElapsedFrames_.store(elapsedFrames_);
+  telemetryTotalFrames_.store(totalFrames_);
+  telemetryTransitioning_.store(transitioning_);
+  telemetrySerial_.fetch_add(1);
 }
 
 SceneTransitionTelemetry SceneTransitionController::telemetry() const noexcept
 {
   SceneTransitionTelemetry snapshot;
   for (int attempt = 0; attempt < 4; ++attempt) {
-    const auto before = telemetrySerial_.load(std::memory_order_acquire);
+    const auto before = telemetrySerial_.load();
     if ((before & 1U) != 0) continue;
-    snapshot.lastAppliedRequestId = telemetryRequestId_.load(std::memory_order_relaxed);
-    snapshot.currentSceneIndex = telemetryCurrentScene_.load(std::memory_order_relaxed);
-    snapshot.destinationSceneIndex = telemetryDestinationScene_.load(std::memory_order_relaxed);
-    snapshot.elapsedFrames = telemetryElapsedFrames_.load(std::memory_order_relaxed);
-    snapshot.totalFrames = telemetryTotalFrames_.load(std::memory_order_relaxed);
-    snapshot.transitioning = telemetryTransitioning_.load(std::memory_order_relaxed);
-    if (before == telemetrySerial_.load(std::memory_order_acquire)) return snapshot;
+    snapshot.lastAppliedRequestId = telemetryRequestId_.load();
+    snapshot.currentSceneIndex = telemetryCurrentScene_.load();
+    snapshot.destinationSceneIndex = telemetryDestinationScene_.load();
+    snapshot.elapsedFrames = telemetryElapsedFrames_.load();
+    snapshot.totalFrames = telemetryTotalFrames_.load();
+    snapshot.transitioning = telemetryTransitioning_.load();
+    if (before == telemetrySerial_.load()) return snapshot;
   }
   // Every field remains atomic even when publication overlaps all attempts.
   // A brief missed UI poll is preferable to blocking the audio thread.
