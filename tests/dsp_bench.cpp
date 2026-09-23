@@ -6,6 +6,7 @@
 // Falls back to <source>/models/test.nam when no argument is given.
 
 #include "dsp/IrConvolver.h"
+#include "dsp/IrReverbProcessor.h"
 #include "dsp/DenormalGuard.h"
 #include "dsp/NamProcessor.h"
 #include "cheese/CheeseProcessor.h"
@@ -24,6 +25,7 @@
 #include <filesystem>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -66,15 +68,14 @@ double percentile(std::vector<double> samples, double fraction)
   return samples[index];
 }
 
-template <typename ProcessBlock>
-BenchResult bench(ProcessBlock&& processBlock)
+template <typename ProcessBlock, typename FillBlock>
+BenchResult benchGenerated(ProcessBlock&& processBlock, FillBlock&& fillBlock)
 {
-  uint32_t noise = 0x1234567u;
   std::vector<float> in(kBlockSize, 0.0f);
   std::vector<float> out(kBlockSize, 0.0f);
 
   for (size_t b = 0; b < kWarmupBlocks; ++b) {
-    for (auto& s : in) s = nextNoise(noise);
+    fillBlock(in, b);
     processBlock(in.data(), out.data(), kBlockSize);
   }
 
@@ -84,7 +85,7 @@ BenchResult bench(ProcessBlock&& processBlock)
   samples.reserve(kTimedBlocks);
   double totalUs = 0.0;
   for (size_t b = 0; b < kTimedBlocks; ++b) {
-    for (auto& s : in) s = nextNoise(noise);
+    fillBlock(in, kWarmupBlocks + b);
     const auto start = std::chrono::steady_clock::now();
     processBlock(in.data(), out.data(), kBlockSize);
     const auto elapsed = std::chrono::steady_clock::now() - start;
@@ -99,6 +100,16 @@ BenchResult bench(ProcessBlock&& processBlock)
   result.p99Us = percentile(samples, 0.99);
   result.p999Us = percentile(samples, 0.999);
   return result;
+}
+
+template <typename ProcessBlock>
+BenchResult bench(ProcessBlock&& processBlock)
+{
+  uint32_t noise = 0x1234567u;
+  return benchGenerated(std::forward<ProcessBlock>(processBlock),
+    [&noise](std::vector<float>& input, size_t) {
+      for (auto& sample : input) sample = nextNoise(noise);
+    });
 }
 
 void report(const char* name, const BenchResult& r)
@@ -219,6 +230,29 @@ int main(int argc, char** argv)
     }));
   }
 
+  {
+    ardor::IrReverbProcessor reverb;
+    std::vector<float> impulse(static_cast<std::size_t>(kSampleRate * 2.0), 0.0f);
+    uint32_t noise = 0x91e10da5u;
+    for (std::size_t i = 0; i < impulse.size(); ++i) {
+      const float decay = std::exp(-5.0f * static_cast<float>(i) /
+                                   static_cast<float>(impulse.size()));
+      impulse[i] = nextNoise(noise) * decay * 0.1f;
+    }
+    impulse[0] = 1.0f;
+    std::string error;
+    if (!reverb.load(std::move(impulse), {}, static_cast<float>(kSampleRate), error)) {
+      throw std::runtime_error(error);
+    }
+    reverb.setMix(1.0f);
+    reverb.reset();
+    report("IR reverb (2 s)", bench([&](const float* in, float* out, size_t frames) {
+      for (std::size_t i = 0; i < frames; ++i) {
+        out[i] = reverb.process({in[i], in[i]}).left;
+      }
+    }));
+  }
+
   std::filesystem::path modelPath = argc > 1
     ? std::filesystem::path{argv[1]}
     : std::filesystem::path{ARDOR_SOURCE_DIR} / "models/test.nam";
@@ -254,6 +288,34 @@ int main(int argc, char** argv)
   {
     ardor::CheeseProcessor cheese;
     std::string error;
+    if (!cheese.configure({{"mode", "big_cheese"}, {"fuzz", 0.7f},
+                           {"tone", 0.5f}, {"volume", 0.7f}},
+                          static_cast<float>(kSampleRate), error)) {
+      throw std::runtime_error(error);
+    }
+    report("cheese/music", benchGenerated(
+      [&](const float* in, float* out, size_t frames) {
+        cheese.processBlock(in, in, out, out, frames);
+      },
+      [](std::vector<float>& input, size_t block) {
+        for (size_t i = 0; i < input.size(); ++i) {
+          const size_t frame = block * input.size() + i;
+          const float notePhase = static_cast<float>(frame % 24000U) / 24000.0f;
+          const float envelope = std::min(notePhase * 100.0f, 1.0f) * std::exp(-5.0f * notePhase);
+          const float t = static_cast<float>(frame) / static_cast<float>(kSampleRate);
+          input[i] = envelope * (0.28f * std::sin(6.28318530718f * 110.0f * t)
+            + 0.09f * std::sin(6.28318530718f * 220.0f * t)
+            + 0.03f * std::sin(6.28318530718f * 1320.0f * t));
+        }
+      }));
+    std::printf("%-20s avg_iterations=%.3f max_iterations=%u\n", "cheese/music-newton",
+                static_cast<double>(cheese.newtonIterations())
+                  / static_cast<double>(cheese.processedOversampledSamples()),
+                cheese.maxNewtonIterations());
+  }
+  {
+    ardor::CheeseProcessor cheese;
+    std::string error;
     const auto configureStart = std::chrono::steady_clock::now();
     if (!cheese.configure({{"mode", "big_cheese"}, {"fuzz", 0.7f},
                            {"tone", 0.5f}, {"volume", 0.7f}},
@@ -264,8 +326,21 @@ int main(int argc, char** argv)
       std::chrono::steady_clock::now() - configureStart).count();
     std::printf("%-20s time=%7.2fms\n", "cheese/configure", configureMs);
     report("distortion/cheese", bench([&](const float* in, float* out, size_t frames) {
-      for (size_t i = 0; i < frames; ++i) out[i] = cheese.process({in[i], in[i]}).left;
+      cheese.processBlock(in, in, out, out, frames);
     }));
+    std::printf("%-20s avg_iterations=%.3f max_iterations=%u\n", "cheese/newton",
+                static_cast<double>(cheese.newtonIterations())
+                  / static_cast<double>(cheese.processedOversampledSamples()),
+                cheese.maxNewtonIterations());
+    std::printf("%-20s", "cheese/iterations");
+    const auto& histogram = cheese.newtonIterationHistogram();
+    for (std::size_t i = 1; i < histogram.size(); ++i) {
+      if (histogram[i] != 0) std::printf(" %zu:%llu", i, histogram[i]);
+    }
+    std::printf("\n");
+    std::printf("%-20s", "cheese/capped-step");
+    for (const auto count : cheese.cappedStepHistogram()) std::printf(" %llu", count);
+    std::printf("\n");
   }
   {
     ardor::CheeseProcessor cheese;
@@ -276,7 +351,8 @@ int main(int argc, char** argv)
       throw std::runtime_error(error);
     }
     report("cheese/silence", bench([&](const float*, float* out, size_t frames) {
-      for (size_t i = 0; i < frames; ++i) out[i] = cheese.process({0.0f, 0.0f}).left;
+      std::array<float, kBlockSize> silence{};
+      cheese.processBlock(silence.data(), silence.data(), out, out, frames);
     }));
   }
   {
@@ -292,7 +368,7 @@ int main(int argc, char** argv)
       if ((block++ % 64U) == 0U) {
         cheese.setParameterTarget("tone", (block / 64U) % 2U ? 1.0f : 0.0f);
       }
-      for (size_t i = 0; i < frames; ++i) out[i] = cheese.process({in[i], in[i]}).left;
+      cheese.processBlock(in, in, out, out, frames);
     }));
   }
 

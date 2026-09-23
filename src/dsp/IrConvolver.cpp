@@ -19,6 +19,7 @@ void IrConvolver::loadImpulse(std::vector<float> impulse)
   blockSize_ = 0;
   blockSizeMismatchCount_ = 0;
   fftSize_ = 0;
+  frequencyBins_ = 0;
   writeIndex_ = 0;
   overlap_.clear();
   scratch_.clear();
@@ -79,25 +80,28 @@ void IrConvolver::preparePartitions(size_t frames)
 {
   blockSize_ = frames;
   fftSize_ = nextPowerOfTwo(frames * 2);
+  frequencyBins_ = fftSize_ / 2 + 1;
   writeIndex_ = 0;
   fft_.prepare(fftSize_);
 
   const size_t partitionCount = (impulse_.size() + frames - 1) / frames;
   overlap_.assign(frames, 0.0f);
   scratch_.assign(fftSize_, {});
-  sum_.assign(fftSize_, {});
-  impulsePartitions_.assign(partitionCount, std::vector<std::complex<float>>(fftSize_));
-  inputPartitions_.assign(partitionCount, std::vector<std::complex<float>>(fftSize_));
+  sum_.assign(frequencyBins_, {});
+  impulsePartitions_.assign(partitionCount, std::vector<std::complex<float>>(frequencyBins_));
+  inputPartitions_.assign(partitionCount, std::vector<std::complex<float>>(frequencyBins_));
 
   for (size_t p = 0; p < partitionCount; ++p) {
     auto& partition = impulsePartitions_[p];
-    std::fill(partition.begin(), partition.end(), std::complex<float>{});
+    std::fill(scratch_.begin(), scratch_.end(), std::complex<float>{});
     const size_t start = p * frames;
     const size_t count = std::min(frames, impulse_.size() - start);
     for (size_t i = 0; i < count; ++i) {
-      partition[i] = impulse_[start + i];
+      scratch_[i] = impulse_[start + i];
     }
-    fft_.transform(partition, false);
+    fft_.transform(scratch_, false);
+    std::copy(scratch_.begin(), scratch_.begin() + static_cast<std::ptrdiff_t>(frequencyBins_),
+              partition.begin());
   }
 }
 
@@ -131,7 +135,8 @@ void IrConvolver::processBlock(const float* input, float* output, size_t frames)
   // Both vectors are allocated during preparePartitions(). Copy into the
   // existing slot so the realtime path never relies on vector assignment
   // capacity behavior.
-  std::copy(scratch_.begin(), scratch_.end(), inputPartitions_[writeIndex_].begin());
+  std::copy(scratch_.begin(), scratch_.begin() + static_cast<std::ptrdiff_t>(frequencyBins_),
+            inputPartitions_[writeIndex_].begin());
 
   std::fill(sum_.begin(), sum_.end(), std::complex<float>{});
   const size_t partitionCount = impulsePartitions_.size();
@@ -139,16 +144,22 @@ void IrConvolver::processBlock(const float* input, float* output, size_t frames)
     const size_t inputIndex = (writeIndex_ + partitionCount - p) % partitionCount;
     const auto& x = inputPartitions_[inputIndex];
     const auto& h = impulsePartitions_[p];
-    for (size_t i = 0; i < fftSize_; ++i) {
+    for (size_t i = 0; i < frequencyBins_; ++i) {
       sum_[i] += x[i] * h[i];
     }
   }
 
-  fft_.transform(sum_, true);
+  std::copy(sum_.begin(), sum_.end(), scratch_.begin());
+  scratch_[0] = {scratch_[0].real(), 0.0f};
+  scratch_[fftSize_ / 2] = {scratch_[fftSize_ / 2].real(), 0.0f};
+  for (size_t bin = 1; bin < fftSize_ / 2; ++bin) {
+    scratch_[fftSize_ - bin] = std::conj(scratch_[bin]);
+  }
+  fft_.transform(scratch_, true);
 
   for (size_t i = 0; i < frames; ++i) {
-    output[i] = sum_[i].real() + overlap_[i];
-    overlap_[i] = sum_[i + frames].real();
+    output[i] = scratch_[i].real() + overlap_[i];
+    overlap_[i] = scratch_[i + frames].real();
   }
 
   writeIndex_ = (writeIndex_ + 1) % partitionCount;

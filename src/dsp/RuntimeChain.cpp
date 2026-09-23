@@ -31,6 +31,14 @@ struct CabLiveState {
 
 constexpr float kCabControlSmoothing = 0.001f;
 
+constexpr float kBlockBypassStep = 1.0f / 240.0f; // 5 ms at the fixed 48 kHz rate.
+
+float advanceBypassMix(float current, bool enabled)
+{
+  return enabled ? std::min(1.0f, current + kBlockBypassStep)
+                 : std::max(0.0f, current - kBlockBypassStep);
+}
+
 void observeLevel(LevelState& state, float left, float right)
 {
   const float peak = std::max(std::fabs(left), std::fabs(right));
@@ -99,6 +107,7 @@ struct RuntimeChain::Block {
   std::unique_ptr<LevelState> meter = std::make_unique<LevelState>();
   std::unique_ptr<std::atomic<bool>> enabled = std::make_unique<std::atomic<bool>>(true);
   std::unique_ptr<CabLiveState> cabState;
+  float bypassMix = 1.0f; // audio-thread-owned transition position
   NamInputMode namInputMode = NamInputMode::Sum;
 };
 
@@ -148,10 +157,12 @@ void RuntimeChain::clear()
 }
 
 bool RuntimeChain::addNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
-                          std::string id, float slimmableSize, NamInputMode inputMode)
+                          std::string id, float slimmableSize, NamInputMode inputMode,
+                          std::optional<float> inputReferenceLevelDbU)
 {
   auto nam = std::make_unique<NamProcessor>();
-  if (!nam->load(modelPath, sampleRate, maxBlockSize, slimmableSize)) {
+  if (!nam->load(modelPath, sampleRate, maxBlockSize, slimmableSize,
+                 inputReferenceLevelDbU)) {
     return false;
   }
   Block block;
@@ -510,10 +521,12 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
   StereoSample current = input;
   for (size_t index = 0; index < blocks_.size(); ++index) {
     auto& block = blocks_[index];
-    if (!block.enabled->load(std::memory_order_relaxed)) {
+    const bool enabled = block.enabled->load(std::memory_order_relaxed);
+    if (!enabled && block.bypassMix <= 0.0f) {
       observeLevel(*block.meter, current.left, current.right);
       continue;
     }
+    const StereoSample dry = current;
     switch (block.kind) {
     case Block::Kind::Nam: {
       const float mono = block.nam->process(
@@ -576,6 +589,11 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
       faults_->firstIndex.compare_exchange_strong(expected, static_cast<int>(index),
                                                    std::memory_order_relaxed);
     }
+    block.bypassMix = advanceBypassMix(block.bypassMix, enabled);
+    if (block.bypassMix < 1.0f) {
+      current.left = dry.left + block.bypassMix * (current.left - dry.left);
+      current.right = dry.right + block.bypassMix * (current.right - dry.right);
+    }
     observeLevel(*block.meter, current.left, current.right);
   }
   return current;
@@ -605,7 +623,9 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
   bool currentIsStereo = false;
 
   for (auto& block : blocks_) {
-    if (!block.enabled->load(std::memory_order_relaxed)) {
+    const bool enabled = block.enabled->load(std::memory_order_relaxed);
+    const bool inputWasStereo = currentIsStereo;
+    if (!enabled && block.bypassMix <= 0.0f) {
       std::copy(currentLeft, currentLeft + frames, nextLeft);
       std::copy(currentRight, currentRight + frames, nextRight);
     } else switch (block.kind) {
@@ -701,13 +721,18 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       currentIsStereo = false;
       break;
     case Block::Kind::Distortion:
-      for (size_t i = 0; i < frames; ++i) {
-        const StereoSample input{currentLeft[i], currentRight[i]};
-        const auto processed =
-          std::visit([&](auto& processor) { return processor.process(input); }, *block.distortion);
-        nextLeft[i] = processed.left;
-        nextRight[i] = processed.right;
-      }
+      std::visit([&](auto& processor) {
+        using Processor = std::decay_t<decltype(processor)>;
+        if constexpr (std::is_same_v<Processor, CheeseProcessor>) {
+          processor.processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);
+        } else {
+          for (size_t i = 0; i < frames; ++i) {
+            const auto processed = processor.process({currentLeft[i], currentRight[i]});
+            nextLeft[i] = processed.left;
+            nextRight[i] = processed.right;
+          }
+        }
+      }, *block.distortion);
       // The pedal is mono, so both channels carry the same signal from here.
       currentIsStereo = false;
       break;
@@ -719,6 +744,22 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       block.dualRig->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);
       currentIsStereo = true;
       break;
+    }
+
+    const bool processedIsStereo = currentIsStereo;
+    if (enabled || block.bypassMix > 0.0f) {
+      float mix = block.bypassMix;
+      for (size_t i = 0; i < frames; ++i) {
+        mix = advanceBypassMix(mix, enabled);
+        nextLeft[i] = currentLeft[i] + mix * (nextLeft[i] - currentLeft[i]);
+        nextRight[i] = currentRight[i] + mix * (nextRight[i] - currentRight[i]);
+      }
+      block.bypassMix = mix;
+      currentIsStereo = mix <= 0.0f ? inputWasStereo
+                       : mix >= 1.0f ? processedIsStereo
+                       : inputWasStereo || processedIsStereo;
+    } else {
+      currentIsStereo = inputWasStereo;
     }
 
     bool nonFinite = false;

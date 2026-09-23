@@ -51,6 +51,7 @@ private:
   std::vector<float> impulse_;
   std::size_t partition_ = 0;
   std::size_t fftSize_ = 0;
+  std::size_t frequencyBins_ = 0;
   std::size_t partitionCount_ = 0;
   RealtimeFft fft_;
 
@@ -58,8 +59,8 @@ private:
   std::vector<std::vector<std::complex<float>>> inputSpectra_;
   std::size_t newestInput_ = 0;   // index of the most recently stored input spectrum
 
-  std::vector<std::complex<float>> accumulator_;  // running sum for the next output
-  std::vector<std::complex<float>> scratch_;
+  std::vector<std::complex<float>> accumulator_;  // nonredundant real-FFT bins
+  std::vector<std::complex<float>> scratch_;      // full complex FFT workspace
   std::vector<float> overlap_;
   std::vector<float> inBuffer_;
   std::vector<float> outBuffer_;

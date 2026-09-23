@@ -354,6 +354,7 @@ struct Args {
   float tailSeconds = -1.0f;
   bool noTail = false;
   float inputGainDb = 0.0f;
+  std::optional<float> inputReferenceLevelDbU;
   float outputGainDb = 0.0f;
   float safetyLimitDb = -1.0f;
   bool safetyLimiter = true;
@@ -472,6 +473,12 @@ bool parse(int argc, char** argv, Args& args)
         const char* v = value();
         if (!v) return false;
         args.inputGainDb = std::stof(v);
+      } else if (a == "--input-reference-dbu") {
+        const char* v = value();
+        if (!v) return false;
+        const float level = std::stof(v);
+        if (!std::isfinite(level)) return false;
+        args.inputReferenceLevelDbU = level;
       } else if (a == "--output-gain-db") {
         const char* v = value();
         if (!v) return false;
@@ -825,6 +832,7 @@ int main(int argc, char** argv)
                 << "            [--output-channel both|left|right] [--ir-samples N]\n"
                 << "            [--telemetry-file /run/ardor-pedal.telemetry]\n"
                 << "            [--input-gain-db DB] [--output-gain-db DB]\n"
+                << "            [--input-reference-dbu DBU] (enables NAM input calibration)\n"
                 << "            [--safety-limit-db DB] [--no-safety-limit]\n"
                 << "            [--clip-debug] (per-stage peak/overload diagnostics)\n"
                 << "            [--control-device /dev/input/eventX]...\n"
@@ -853,6 +861,7 @@ int main(int argc, char** argv)
       args.realtime && args.parallelRigs,
       args.rigWorkerCpu,
     };
+    loadOptions.inputReferenceLevelDbU = args.inputReferenceLevelDbU;
     loadOptions.wdwAudioCpu = args.audioCpu;
     loadOptions.wdwDryWorkerCpu = args.wdwDryWorkerCpu;
     loadOptions.wdwWetWorkerCpu = args.wdwWetWorkerCpu;
@@ -2351,7 +2360,9 @@ int main(int argc, char** argv)
       // input -> NAM amp model -> cabinet IR. The older fixed pipeline did not
       // depend on load order, but the serial runner does.
       if (!args.bypassNam
-          && !engine.loadNam(args.model, args.sampleRate, static_cast<int>(args.blockSize))) {
+          && !engine.loadNam(args.model, args.sampleRate, static_cast<int>(args.blockSize),
+                             "nam", 1.0f, ardor::NamInputMode::Sum,
+                             args.inputReferenceLevelDbU)) {
         std::cerr << "Failed to load NAM model\n";
         return 1;
       }

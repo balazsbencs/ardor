@@ -331,6 +331,50 @@ void verifyLiveControlsArePreparedAsynchronously()
   require(std::isfinite(output), "audio must remain finite across a prepared control update");
 }
 
+void verifyResetStartsAtSilence()
+{
+  ardor::CheeseProcessor processor;
+  std::string error;
+  require(processor.configure({{"mode", "big_cheese"}, {"fuzz", 0.7f},
+                               {"tone", 0.5f}, {"volume", 1.0f}},
+                              48000.0f, error), error);
+  processor.reset();
+  float peak = 0.0f;
+  for (int i = 0; i < 4096; ++i) {
+    peak = std::max(peak, std::fabs(processor.process({0.0f, 0.0f}).left));
+  }
+  // Sanitizer instrumentation changes float scheduling slightly; both the
+  // normal and instrumented builds remain below -70 dBFS here.
+  require(peak < 3.0e-4f,
+          "the prepared DC state must start silently; peak was " + std::to_string(peak));
+}
+
+void verifyBlockMatchesSampleProcessing()
+{
+  const auto params = nlohmann::json{{"mode", "big_cheese"}, {"fuzz", 0.8f},
+                                     {"tone", 0.35f}, {"volume", 0.7f}};
+  ardor::CheeseProcessor samples;
+  ardor::CheeseProcessor blocks;
+  std::string error;
+  require(samples.configure(params, 48000.0f, error), error);
+  require(blocks.configure(params, 48000.0f, error), error);
+
+  std::vector<float> input(257);
+  std::vector<float> expected(input.size());
+  std::vector<float> actualLeft(input.size());
+  std::vector<float> actualRight(input.size());
+  for (std::size_t i = 0; i < input.size(); ++i) {
+    input[i] = 0.3f * std::sin(static_cast<float>(i) * 0.071f);
+    expected[i] = samples.process({input[i], input[i]}).left;
+  }
+  blocks.processBlock(input.data(), input.data(), actualLeft.data(), actualRight.data(), input.size());
+  for (std::size_t i = 0; i < input.size(); ++i) {
+    require(std::fabs(expected[i] - actualLeft[i]) < 1.0e-6f,
+            "block Cheese output must match sample processing");
+    require(actualLeft[i] == actualRight[i], "the block Cheese output must remain mono");
+  }
+}
+
 } // namespace
 
 int main()
@@ -347,6 +391,8 @@ int main()
   verifySolveConvergesOnADecayingNote();
   verifyOversamplingSuppressesAliasing();
   verifyLiveControlsArePreparedAsynchronously();
+  verifyResetStartsAtSilence();
+  verifyBlockMatchesSampleProcessing();
   std::printf("cheese smoke passed\n");
   return 0;
 }

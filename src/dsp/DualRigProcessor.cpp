@@ -30,8 +30,8 @@ struct DualRigProcessor::ParallelState {
   std::atomic<uint64_t> submitted{0};
   std::atomic<uint64_t> completed{0};
   std::atomic<uint64_t> waitsOverBudget{0};
-  const float* input = nullptr;
-  float* output = nullptr;
+  std::vector<float> input;
+  std::vector<float> output;
   std::size_t frames = 0;
   int requestedCpu = -1;
 #endif
@@ -82,6 +82,8 @@ bool DualRigProcessor::configure(DualRigLaneConfig left, DualRigLaneConfig right
     constexpr int kWorkerPriority = 69;
     auto state = std::make_unique<ParallelState>();
     state->requestedCpu = workerCpu;
+    state->input.assign(blockSize_, 0.0f);
+    state->output.assign(blockSize_, 0.0f);
     if (sem_init(&state->jobReady, 0, 0) == 0) {
       ParallelState* raw = state.get();
       raw->worker = std::thread([this, raw]() {
@@ -115,7 +117,7 @@ bool DualRigProcessor::configure(DualRigLaneConfig left, DualRigLaneConfig right
           }
           if (raw->stopping.load(std::memory_order_acquire)) break;
           const uint64_t generation = raw->submitted.load(std::memory_order_acquire);
-          processLaneBlock(right_, true, raw->input, raw->output, raw->frames);
+          processLaneBlock(right_, true, raw->input.data(), raw->output.data(), raw->frames);
           raw->completed.store(generation, std::memory_order_release);
         }
       });
@@ -154,6 +156,12 @@ void DualRigProcessor::prepareBlockSize(std::size_t frames)
   right_.secondOutput.assign(frames, 0.0f);
   if (left_.chain) left_.chain->prepareBlockSize(frames);
   if (right_.chain) right_.chain->prepareBlockSize(frames);
+#if defined(__linux__)
+  if (parallel_) {
+    parallel_->input.assign(frames, 0.0f);
+    parallel_->output.assign(frames, 0.0f);
+  }
+#endif
 }
 
 void DualRigProcessor::processLaneBlock(Lane& lane, bool takeRightOutput,
@@ -184,22 +192,35 @@ void DualRigProcessor::processBlock(const float* inputLeft, const float* inputRi
 
 #if defined(__linux__)
   if (parallel_) {
-    const uint64_t generation = parallel_->submitted.load(std::memory_order_relaxed) + 1;
-    parallel_->input = monoInput_.data();
-    parallel_->output = outputRight;
+    const uint64_t submitted = parallel_->submitted.load(std::memory_order_relaxed);
+    if (parallel_->completed.load(std::memory_order_acquire) != submitted) {
+      // Keep the worker's buffers untouched until its overdue job finishes.
+      // A later block can submit work again once completed catches up.
+      processLaneBlock(left_, false, monoInput_.data(), outputLeft, frames);
+      std::copy(outputLeft, outputLeft + frames, outputRight);
+      return;
+    }
+    const uint64_t generation = submitted + 1;
+    std::copy(monoInput_.begin(), monoInput_.begin() + static_cast<std::ptrdiff_t>(frames),
+              parallel_->input.begin());
     parallel_->frames = frames;
     parallel_->submitted.store(generation, std::memory_order_release);
     sem_post(&parallel_->jobReady);
 
     const auto blockStart = std::chrono::steady_clock::now();
     processLaneBlock(left_, false, monoInput_.data(), outputLeft, frames);
+    const auto deadline = blockStart + std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+      std::chrono::duration<double>(static_cast<double>(frames) / sampleRate_));
+    unsigned polls = 0;
     while (parallel_->completed.load(std::memory_order_acquire) != generation) {
-      // Both realtime threads are pinned to separate product-configured cores.
+      if ((++polls & 63U) == 0U && std::chrono::steady_clock::now() >= deadline) break;
     }
-    if (std::chrono::duration<double>(
-          std::chrono::steady_clock::now() - blockStart).count()
-        > static_cast<double>(frames) / sampleRate_) {
+    if (parallel_->completed.load(std::memory_order_acquire) != generation) {
       parallel_->waitsOverBudget.fetch_add(1, std::memory_order_relaxed);
+      std::copy(outputLeft, outputLeft + frames, outputRight);
+    } else {
+      std::copy(parallel_->output.begin(),
+                parallel_->output.begin() + static_cast<std::ptrdiff_t>(frames), outputRight);
     }
     return;
   }
