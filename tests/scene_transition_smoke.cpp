@@ -2,8 +2,10 @@
 #include "dsp/PedalEngine.h"
 
 #include <cmath>
+#include <atomic>
 #include <cstdlib>
 #include <iostream>
+#include <thread>
 
 namespace {
 
@@ -51,6 +53,9 @@ int main()
   require(near(controller.currentValues()[0], 0.25f), "linear quarter point is wrong");
   require(near(controller.currentValues()[1], 200.0f, 0.01f), "logarithmic quarter point is wrong");
   require(near(controller.currentOutputTrimDb(), 1.5f), "trim quarter point is wrong");
+  require(controller.telemetry().lastAppliedRequestId == 1
+            && controller.telemetry().totalFrames == 4,
+          "control-thread telemetry did not publish the active request");
 
   // A new transition snapshots the rendered quarter-point values rather than
   // jumping back to either endpoint.
@@ -98,6 +103,28 @@ int main()
   ardor::SceneTransitionProgram invalid = program();
   invalid.outputTrimDb[0] = 7.0f;
   require(!controller.prepare(std::move(invalid)), "invalid trim range was accepted");
+
+  // Telemetry is read by the control loop while the audio callback advances
+  // transitions. Keep this path safe for thread-sanitized builds too.
+  ardor::SceneTransitionController concurrent;
+  require(concurrent.prepare(program()), "concurrent telemetry program should prepare");
+  require(concurrent.request({42, 1, 4096, 1}), "concurrent telemetry request failed");
+  concurrent.beginBlock();
+  std::atomic<bool> done{false};
+  std::atomic<bool> coherent{true};
+  std::thread reader([&] {
+    while (!done.load(std::memory_order_acquire)) {
+      const auto snapshot = concurrent.telemetry();
+      if (snapshot.currentSceneIndex >= 4 || snapshot.destinationSceneIndex >= 4
+          || snapshot.elapsedFrames > snapshot.totalFrames) {
+        coherent.store(false, std::memory_order_relaxed);
+      }
+    }
+  });
+  for (int frame = 0; frame < 4096; ++frame) concurrent.advanceFrame();
+  done.store(true, std::memory_order_release);
+  reader.join();
+  require(coherent.load(std::memory_order_relaxed), "concurrent telemetry snapshot was inconsistent");
 
   // The engine applies scene input gain before the rig and scene trim before
   // looper capture/master/limiter. Both paths use the same transition clock.

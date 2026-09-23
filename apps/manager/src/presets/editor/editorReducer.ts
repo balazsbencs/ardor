@@ -7,7 +7,7 @@ import {
 } from "../../effects/catalog";
 import type { NumberControl } from "../../effects/types";
 import type { EditorAction, EditorState, EqBand, PresetLocation } from "./editorTypes";
-import { clonePreset, createEmptyWdwRouting, nextPresetBlockId } from "./presetFactory";
+import { clonePreset, createEmptyWdwRouting, enableScenes, nextPresetBlockId } from "./presetFactory";
 import { isWdwBlockAllowed } from "./wdwPolicy";
 
 const historyLimit = 100;
@@ -220,6 +220,11 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return state.history.present.sceneSet?.scenes.some(({ id }) => id === action.sceneId)
         ? { ...state, editingSceneId: action.sceneId }
         : state;
+    case "enable-scenes": {
+      if (state.history.present.sceneSet) return state;
+      const next = withMutation(state, (present) => enableScenes(present));
+      return { ...next, editingSceneId: next.history.present.sceneSet?.defaultSceneId };
+    }
     case "set-scene-name":
       return withMutation(state, (present) => {
         if (!present.sceneSet) return undefined;
@@ -333,6 +338,59 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           && candidate.blockId === action.blockId);
         if (!target || target.target !== "blockEnabled") return undefined;
         target.value = action.value;
+        return next;
+      });
+    case "set-scene-input-gain":
+      if (!Number.isFinite(action.value)) return state;
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        const scene = next.sceneSet?.scenes.find(({ id }) => id === action.sceneId);
+        const target = scene?.targets.find((candidate) => candidate.target === "inputGainDb");
+        if (!target || target.target !== "inputGainDb") return undefined;
+        target.value = clamp(action.value, -60, 24);
+        return next;
+      });
+    case "set-scene-input-scope":
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        if (action.scope === "scene") {
+          for (const scene of next.sceneSet!.scenes) {
+            if (!scene.targets.some((target) => target.target === "inputGainDb")) {
+              scene.targets.push({ target: "inputGainDb", value: next.global.inputGainDb });
+            }
+          }
+        } else {
+          const selected = next.sceneSet!.scenes.find(({ id }) => id === action.sceneId);
+          const owned = selected?.targets.find((target) => target.target === "inputGainDb");
+          if (owned?.target === "inputGainDb") next.global.inputGainDb = owned.value;
+          for (const scene of next.sceneSet!.scenes) {
+            scene.targets = scene.targets.filter((target) => target.target !== "inputGainDb");
+          }
+        }
+        return next;
+      });
+    case "set-scene-wdw-mix":
+      if (typeof action.value === "number" && !Number.isFinite(action.value)) return state;
+      if ((action.key === "pan" && action.lane !== "dry")
+          || (action.key === "width" && action.lane !== "wet")) return state;
+      return withMutation(state, (present) => {
+        if (!present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        const scene = next.sceneSet?.scenes.find(({ id }) => id === action.sceneId);
+        const target = scene?.targets.find((candidate) => candidate.target === "wdwLane"
+          && candidate.lane === action.lane && candidate.parameter === action.key);
+        if (!target || target.target !== "wdwLane") return undefined;
+        if (action.key === "enabled") {
+          if (typeof action.value !== "boolean") return undefined;
+          target.value = action.value;
+        } else {
+          if (typeof action.value !== "number") return undefined;
+          const ranges = { levelDb: [-60, 12], pan: [-1, 1], width: [0, 1] } as const;
+          const [minimum, maximum] = ranges[action.key];
+          target.value = clamp(action.value, minimum, maximum);
+        }
         return next;
       });
     case "set-scene-scope":

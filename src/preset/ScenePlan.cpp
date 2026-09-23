@@ -308,6 +308,20 @@ bool numberValue(const nlohmann::json& value, float& result)
   return std::isfinite(result);
 }
 
+std::string targetAddress(const PresetSceneTarget& target)
+{
+  switch (target.target) {
+    case PresetSceneTargetType::InputGainDb: return "inputGainDb";
+    case PresetSceneTargetType::Parameter:
+      return "parameter\x1f" + target.blockId + "\x1f" + target.parameter;
+    case PresetSceneTargetType::BlockEnabled:
+      return "blockEnabled\x1f" + target.blockId;
+    case PresetSceneTargetType::WdwLane:
+      return "wdwLane\x1f" + target.lane + "\x1f" + target.parameter;
+  }
+  return {};
+}
+
 bool prepareTarget(const Preset& preset, const PresetSceneTarget& source,
                    ScenePreparedTarget& target, float& value, std::string& error)
 {
@@ -449,11 +463,33 @@ bool buildScenePlan(const Preset& preset, ScenePlan& plan, std::string& error)
     return false;
   }
   plan.targets.resize(targetCount);
-  for (std::size_t index = 0; index < plan.targets.size(); ++index) {
-    for (std::size_t scene = 0; scene < set.scenes.size(); ++scene) {
+  std::unordered_map<std::string, std::size_t> targetIndices;
+  targetIndices.reserve(targetCount);
+  for (std::size_t scene = 0; scene < set.scenes.size(); ++scene) {
+    std::vector<bool> seen(targetCount, false);
+    for (std::size_t sourceIndex = 0; sourceIndex < targetCount; ++sourceIndex) {
+      const auto& source = set.scenes[scene].targets[sourceIndex];
+      const auto address = targetAddress(source);
+      std::size_t index = sourceIndex;
+      if (scene == 0) {
+        if (!targetIndices.emplace(address, index).second) {
+          error = "scene target addresses must be unique";
+          plan = {};
+          return false;
+        }
+      } else {
+        const auto found = targetIndices.find(address);
+        if (found == targetIndices.end() || seen[found->second]) {
+          error = "scene target addresses must match in all four scenes";
+          plan = {};
+          return false;
+        }
+        index = found->second;
+      }
+      seen[index] = true;
       ScenePreparedTarget candidate;
       float value = 0.0f;
-      if (!prepareTarget(preset, set.scenes[scene].targets[index], candidate, value, error)) {
+      if (!prepareTarget(preset, source, candidate, value, error)) {
         error = "scene " + set.scenes[scene].id + ": " + error;
         plan = {};
         return false;

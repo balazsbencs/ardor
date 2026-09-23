@@ -164,6 +164,7 @@ private:
                            float position) noexcept;
   void startRequest(const SceneTransitionRequest& request) noexcept;
   void consumeOverrides() noexcept;
+  void publishTelemetry() noexcept;
 
   SceneTransitionProgram program_;
   SceneRequestMailbox mailbox_;
@@ -184,6 +185,14 @@ private:
   std::uint8_t destinationSceneIndex_ = 0;
   bool transitioning_ = false;
   bool prepared_ = false;
+  // Audio publishes a coherent, bounded snapshot for control-thread readers.
+  std::atomic<std::uint64_t> telemetrySerial_{0};
+  std::atomic<std::uint64_t> telemetryRequestId_{0};
+  std::atomic<std::uint8_t> telemetryCurrentScene_{0};
+  std::atomic<std::uint8_t> telemetryDestinationScene_{0};
+  std::atomic<std::uint32_t> telemetryElapsedFrames_{0};
+  std::atomic<std::uint32_t> telemetryTotalFrames_{0};
+  std::atomic<bool> telemetryTransitioning_{false};
 };
 
 } // namespace ardor

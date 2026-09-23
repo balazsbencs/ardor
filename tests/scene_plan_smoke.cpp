@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <utility>
 
 namespace {
 
@@ -67,6 +68,12 @@ int main()
             && plan.admission.maximumTransitionProcessors == 2
             && plan.admission.maximumRetainedTails == 1,
           "let-ring admission accounting changed");
+  auto reordered = makePreset();
+  std::swap(reordered.sceneSet->scenes[1].targets[0], reordered.sceneSet->scenes[1].targets[1]);
+  require(ardor::buildScenePlan(reordered, plan, error),
+          "scene target order should not change address matching");
+  require(plan.targets[0].values[1] == -5.0f && plan.targets[1].values[1] == 0.2f,
+          "reordered scene values were assigned to the wrong addresses");
   require(ardor::admitScenePlan(plan, 2, 2, error), error);
   const auto transitionProgram = ardor::makeSceneTransitionProgram(plan, 17);
   require(transitionProgram.presetGeneration == 17

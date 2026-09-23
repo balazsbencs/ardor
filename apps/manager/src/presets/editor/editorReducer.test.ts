@@ -340,6 +340,46 @@ describe("editorReducer", () => {
     expect(editorReducer(edited, { type: "undo" }).history.present.sceneSet?.openIn).toBe("presets");
   });
 
+  it("starts four editable scenes and routes owned input gain to the selected scene", () => {
+    const enabled = editorReducer(state(), { type: "enable-scenes" });
+    expect(enabled.history.present.version).toBe(4);
+    expect(enabled.history.present.sceneSet?.scenes).toHaveLength(4);
+    expect(enabled.editingSceneId).toBe("scene-1");
+    expect(editorReducer(enabled, { type: "undo" }).history.present.sceneSet).toBeUndefined();
+
+    const owned = editorReducer(enabled, {
+      type: "set-scene-input-scope", sceneId: "scene-1", scope: "scene",
+    });
+    expect(owned.history.present.sceneSet?.scenes.every((scene) =>
+      scene.targets.some((target) => target.target === "inputGainDb"))).toBe(true);
+    const changed = editorReducer(owned, {
+      type: "set-scene-input-gain", sceneId: "scene-1", value: 6,
+    });
+    expect(changed.history.present.global.inputGainDb).toBe(0);
+    expect(changed.history.present.sceneSet?.scenes[0].targets[0]).toEqual({ target: "inputGainDb", value: 6 });
+    expect(changed.history.present.sceneSet?.scenes[1].targets[0]).toEqual({ target: "inputGainDb", value: 0 });
+    const shared = editorReducer(changed, {
+      type: "set-scene-input-scope", sceneId: "scene-1", scope: "shared",
+    });
+    expect(shared.history.present.global.inputGainDb).toBe(6);
+    expect(shared.history.present.sceneSet?.scenes.every((scene) => scene.targets.length === 0)).toBe(true);
+  });
+
+  it("edits an owned wet/dry/wet lane value without changing the shared lane", () => {
+    const source = createWdwPreset();
+    const enabled = editorReducer(state(source), { type: "enable-scenes" });
+    const withTargets = structuredClone(enabled.history.present);
+    for (const scene of withTargets.sceneSet!.scenes) {
+      scene.targets.push({ target: "wdwLane", lane: "wet", parameter: "levelDb", value: 0 });
+    }
+    const changed = editorReducer(state(withTargets), {
+      type: "set-scene-wdw-mix", sceneId: "scene-1", lane: "wet", key: "levelDb", value: -6,
+    });
+    expect(changed.history.present.wdw?.wet.levelDb).toBe(0);
+    expect(changed.history.present.sceneSet?.scenes[0].targets[0]).toMatchObject({ value: -6 });
+    expect(changed.history.present.sceneSet?.scenes[1].targets[0]).toMatchObject({ value: 0 });
+  });
+
   it("converts parameter ownership across all scenes and commits the editing value when shared", () => {
     const source = preset();
     source.version = 4;

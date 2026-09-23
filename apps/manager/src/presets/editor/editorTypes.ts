@@ -37,6 +37,7 @@ export type EditorAction =
   | { type: "load"; location: PresetLocation; preset: Preset }
   | { type: "select-block"; blockId?: string }
   | { type: "select-scene"; sceneId: string }
+  | { type: "enable-scenes" }
   | { type: "set-scene-name"; sceneId: string; name: string }
   | { type: "set-scene-enter-time"; sceneId: string; value: number }
   | { type: "set-scene-trim"; sceneId: string; value: number }
@@ -47,6 +48,9 @@ export type EditorAction =
   | { type: "copy-scene-row-across"; sourceSceneId: string; rowKey: string }
   | { type: "set-scene-parameter"; sceneId: string; blockId: string; parameter: string; value: number }
   | { type: "set-scene-block-enabled"; sceneId: string; blockId: string; value: boolean }
+  | { type: "set-scene-input-gain"; sceneId: string; value: number }
+  | { type: "set-scene-input-scope"; sceneId: string; scope: "shared" | "scene" }
+  | { type: "set-scene-wdw-mix"; sceneId: string; lane: "dry" | "wet"; key: "levelDb" | "pan" | "width" | "enabled"; value: number | boolean }
   | { type: "set-scene-scope"; sceneId: string; blockId: string; parameter?: string; scope: "shared" | "scene"; value: number | boolean }
   | { type: "set-name"; name: string }
   | { type: "set-global"; key: "inputGainDb" | "outputGainDb"; value: number }

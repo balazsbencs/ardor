@@ -4,7 +4,7 @@ import { useEffect, useMemo, useReducer, useState } from "react";
 import { Button, IconButton, StatusBadge } from "../../components/ui";
 import { displayValue } from "../../components/ParameterSlider";
 import { useDeviceSession } from "../../connection/deviceSession";
-import type { PresetSceneTarget } from "../../api/types";
+import type { PresetBlock, PresetSceneTarget, WdwRouting } from "../../api/types";
 import { allEffectDefinitions, findEffectDefinition } from "../../effects/catalog";
 import { PresetSidebar } from "../browser/PresetSidebar";
 import { BlockBrowser } from "../block-browser/BlockBrowser";
@@ -18,6 +18,17 @@ import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
 import { WdwRoutingCanvas } from "../chain/WdwRoutingCanvas";
 import { SceneWorkspaceBar, type SharedComparisonRow } from "../scenes/SceneWorkspaceBar";
 import { activeRevisionMatchesDraft } from "../scenes/sceneRevision";
+
+function blocksForScene(blocks: PresetBlock[], enabledById: Map<string, boolean>): PresetBlock[] {
+  return blocks.map((block) => ({
+    ...block,
+    enabled: enabledById.get(block.id) ?? block.enabled,
+    ...(block.lanes ? { lanes: {
+      left: { blocks: blocksForScene(block.lanes.left.blocks, enabledById) },
+      right: { blocks: blocksForScene(block.lanes.right.blocks, enabledById) },
+    } } : {}),
+  }));
+}
 
 export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; onConnection(): void }) {
   const session = useDeviceSession();
@@ -48,6 +59,29 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
   const allBlocks = useMemo(() => allPresetBlocksInPreset(present), [present]);
   const selected = findPresetBlockInPreset(present, editor.selectedBlockId);
   const editingScene = present.sceneSet?.scenes.find(({ id }) => id === editor.editingSceneId);
+  const sceneInputGain = editingScene?.targets.find((target) => target.target === "inputGainDb");
+  const sceneInputOwned = sceneInputGain?.target === "inputGainDb";
+  const displayedInputGain = sceneInputOwned ? sceneInputGain.value : present.global.inputGainDb;
+  const enabledById = useMemo(() => new Map(
+    editingScene?.targets.flatMap((target) => target.target === "blockEnabled"
+      ? [[target.blockId, target.value] as const] : []) ?? [],
+  ), [editingScene]);
+  const displayedBlocks = useMemo(() => blocksForScene(present.blocks, enabledById), [present.blocks, enabledById]);
+  const displayedWdw = useMemo<WdwRouting | undefined>(() => {
+    if (!present.wdw) return undefined;
+    const routing = structuredClone(present.wdw);
+    routing.dry.blocks = blocksForScene(routing.dry.blocks, enabledById);
+    routing.wet.blocks = blocksForScene(routing.wet.blocks, enabledById);
+    for (const target of editingScene?.targets ?? []) {
+      if (target.target !== "wdwLane") continue;
+      const lane = routing[target.lane];
+      if (target.parameter === "enabled" && typeof target.value === "boolean") lane.enabled = target.value;
+      else if (target.parameter === "levelDb" && typeof target.value === "number") lane.levelDb = target.value;
+      else if (target.parameter === "pan" && typeof target.value === "number") lane.pan = target.value;
+      else if (target.parameter === "width" && typeof target.value === "number") lane.width = target.value;
+    }
+    return routing;
+  }, [present.wdw, editingScene, enabledById]);
   const inspectorBlock = useMemo(() => {
     if (!selected || !editingScene) return selected;
     const block = structuredClone(selected);
@@ -70,6 +104,12 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
     if (editingScene && typeof value === "number" && sceneScopeFor(blockId, parameter) === "scene") {
       dispatch({ type: "set-scene-parameter", sceneId: editingScene.id, blockId, parameter, value });
     } else dispatch({ type: "set-block-param", blockId, key: parameter, value });
+  };
+  const editWdwMix = (lane: "dry" | "wet", key: "levelDb" | "pan" | "width" | "enabled", value: number | boolean) => {
+    if (editingScene?.targets.some((target) => target.target === "wdwLane"
+        && target.lane === lane && target.parameter === key)) {
+      dispatch({ type: "set-scene-wdw-mix", sceneId: editingScene.id, lane, key, value });
+    } else dispatch({ type: "set-wdw-mix", lane, key, value });
   };
   const expressionTargets = useMemo(() => allBlocks.flatMap((block) => {
     if (!["mod", "delay", "reverb", "dynamics", "cab", "wah"].includes(block.type)) return [];
@@ -330,7 +370,7 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
       <section className="workspace-main">
         <header className="preset-header">
           <div><p className="eyebrow">{locationLabel}</p><input aria-label="Preset name" className="preset-name-input" value={present.name} onChange={(event) => dispatch({ type: "set-name", name: event.target.value })} /><div className="preset-header__meta">{dirty && <StatusBadge tone="warning">Unsaved changes</StatusBadge>}{applied?.bank === editor.location.bank && applied.slot === editor.location.slot && <StatusBadge tone="success"><Check size={13} /> Applied this session</StatusBadge>}</div></div>
-          <div className="preset-actions"><IconButton label="Undo" disabled={editor.history.past.length === 0} onClick={() => dispatch({ type: "undo" })}><Undo2 size={17} /></IconButton><IconButton label="Redo" disabled={editor.history.future.length === 0} onClick={() => dispatch({ type: "redo" })}><Redo2 size={17} /></IconButton><Button variant="secondary" disabled={!dirty || !validation.canSave || saving} onClick={() => void save()}><Save size={16} /> {saving ? "Saving…" : "Save"}</Button><Button variant="primary" disabled={!validation.canApply || saving || session.busy.apply} onClick={() => void saveAndApply()}><Send size={16} /> Save & Apply</Button><Button variant="quiet" disabled={applyBlocked} onClick={() => void apply()}>Apply</Button></div>
+          <div className="preset-actions"><IconButton label="Undo" disabled={editor.history.past.length === 0} onClick={() => dispatch({ type: "undo" })}><Undo2 size={17} /></IconButton><IconButton label="Redo" disabled={editor.history.future.length === 0} onClick={() => dispatch({ type: "redo" })}><Redo2 size={17} /></IconButton>{!present.sceneSet && <Button variant="secondary" disabled={saving || (session.device?.supportedPresetVersion !== undefined && session.device.supportedPresetVersion < 4)} onClick={() => dispatch({ type: "enable-scenes" })}>Enable scenes</Button>}<Button variant="secondary" disabled={!dirty || !validation.canSave || saving} onClick={() => void save()}><Save size={16} /> {saving ? "Saving…" : "Save"}</Button><Button variant="primary" disabled={!validation.canApply || saving || session.busy.apply} onClick={() => void saveAndApply()}><Send size={16} /> Save & Apply</Button><Button variant="quiet" disabled={applyBlocked} onClick={() => void apply()}>Apply</Button></div>
         </header>
         {present.sceneSet && <SceneWorkspaceBar
           sceneSet={present.sceneSet}
@@ -352,7 +392,11 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
           sharedRows={sharedComparisonRows}
           onCopyRow={(rowKey, sourceSceneId) => dispatch({ type: "copy-scene-row-across", rowKey, sourceSceneId })}
         />}
-        <div className="global-strip"><SlidersHorizontal size={17} /><label>Input<input type="number" min={-60} max={24} value={present.global.inputGainDb} onChange={(event) => dispatch({ type: "set-global", key: "inputGainDb", value: Number(event.target.value) })} /><small>dB</small></label><label>Output<input type="number" min={-60} max={24} value={present.global.outputGainDb} onChange={(event) => dispatch({ type: "set-global", key: "outputGainDb", value: Number(event.target.value) })} /><small>dB</small></label><label className="routing-picker">Topology<select aria-label="Preset topology" value={present.routing} onChange={(event) => dispatch({ type: "set-routing", routing: event.target.value as "serial" | "wdw" })}><option value="serial">Serial</option><option value="wdw">Wet / dry / wet</option></select></label><span>{present.routing === "wdw" ? "Two complete lanes · bounded pair execution" : "Serial routing"}</span></div>
+        <div className="global-strip"><SlidersHorizontal size={17} /><label>Input<input aria-label="Input gain" type="number" min={-60} max={24} value={displayedInputGain} onChange={(event) => {
+          const value = Number(event.target.value);
+          if (sceneInputOwned && editingScene) dispatch({ type: "set-scene-input-gain", sceneId: editingScene.id, value });
+          else dispatch({ type: "set-global", key: "inputGainDb", value });
+        }} /><small>dB</small></label>{editingScene && <label>Input scope<select aria-label="Input gain scope" value={sceneInputOwned ? "scene" : "shared"} onChange={(event) => dispatch({ type: "set-scene-input-scope", sceneId: editingScene.id, scope: event.target.value as "shared" | "scene" })}><option value="shared">Shared</option><option value="scene">This scene</option></select></label>}<label>Output<input type="number" min={-60} max={24} value={present.global.outputGainDb} onChange={(event) => dispatch({ type: "set-global", key: "outputGainDb", value: Number(event.target.value) })} /><small>dB</small></label><label className="routing-picker">Topology<select aria-label="Preset topology" value={present.routing} onChange={(event) => dispatch({ type: "set-routing", routing: event.target.value as "serial" | "wdw" })}><option value="serial">Serial</option><option value="wdw">Wet / dry / wet</option></select></label><span>{present.routing === "wdw" ? "Two complete lanes · bounded pair execution" : "Serial routing"}</span></div>
         <div className="expression-strip">
           <label className="expression-strip__enable">
             <input
@@ -442,9 +486,9 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
           </small>}
         </div>
         {(!validation.canSave || validation.issues.length > 0 || actionError) && <div className="workspace-alert" role="alert"><AlertCircle size={17} /><div>{actionError ? <p>{actionError}</p> : <p>{validation.issues[0]?.message}</p>}<small>{!validation.canSave ? "Fix this before saving." : !validation.canApply ? "You can save this draft, but cannot apply it yet." : "Review the highlighted block."}</small></div></div>}
-        {present.routing === "wdw" && present.wdw
-          ? <WdwRoutingCanvas routing={present.wdw} selectedBlockId={editor.selectedBlockId} issuesFor={(id) => issuesForBlock(validation, id)} maxed={allBlocks.length >= 20} onSelect={(blockId) => dispatch({ type: "select-block", blockId })} onAdd={(lane, index) => setAddTarget({ kind: "wdw", lane, index })} onMove={(lane, blockId, index) => dispatch({ type: "move-wdw-block", lane, blockId, index })} onToggle={(blockId, enabled) => dispatch({ type: "toggle-block", blockId, enabled })} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} onMix={(lane, key, value) => dispatch({ type: "set-wdw-mix", lane, key, value })} />
-          : <ChainCanvas blocks={present.blocks} selectedBlockId={editor.selectedBlockId} issuesFor={(id) => issuesForBlock(validation, id)} maxed={present.blocks.length >= 10} onSelect={(blockId) => dispatch({ type: "select-block", blockId })} onAdd={(index) => setAddTarget({ kind: "top", index })} onMove={(blockId, index) => dispatch({ type: "move-block", blockId, index })} onLaneAdd={(rigId, lane, index) => setAddTarget({ kind: "lane", rigId, lane, index })} onLaneMove={(rigId, blockId, lane, index) => dispatch({ type: "move-lane-block", rigId, blockId, lane, index })} onToggle={(blockId, enabled) => dispatch({ type: "toggle-block", blockId, enabled })} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} />}
+        {present.routing === "wdw" && displayedWdw
+          ? <WdwRoutingCanvas routing={displayedWdw} selectedBlockId={editor.selectedBlockId} issuesFor={(id) => issuesForBlock(validation, id)} maxed={allBlocks.length >= 20} onSelect={(blockId) => dispatch({ type: "select-block", blockId })} onAdd={(lane, index) => setAddTarget({ kind: "wdw", lane, index })} onMove={(lane, blockId, index) => dispatch({ type: "move-wdw-block", lane, blockId, index })} onToggle={editBlockEnabled} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} onMix={editWdwMix} />
+          : <ChainCanvas blocks={displayedBlocks} selectedBlockId={editor.selectedBlockId} issuesFor={(id) => issuesForBlock(validation, id)} maxed={present.blocks.length >= 10} onSelect={(blockId) => dispatch({ type: "select-block", blockId })} onAdd={(index) => setAddTarget({ kind: "top", index })} onMove={(blockId, index) => dispatch({ type: "move-block", blockId, index })} onLaneAdd={(rigId, lane, index) => setAddTarget({ kind: "lane", rigId, lane, index })} onLaneMove={(rigId, blockId, lane, index) => dispatch({ type: "move-lane-block", rigId, blockId, lane, index })} onToggle={editBlockEnabled} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} />}
       </section>
       <BlockInspector block={inspectorBlock} issues={selected ? issuesForBlock(validation, selected.id) : []} models={session.models} irs={session.irs} reverbIrs={session.reverbIrs} scenesEnabled={present.version === 4} onToggle={editBlockEnabled} onParam={editParameter} sceneScopeFor={sceneScopeFor} onSceneScope={(blockId, parameter, scope, value) => editingScene && dispatch({ type: "set-scene-scope", sceneId: editingScene.id, blockId, parameter, scope, value })} onSceneBypass={(blockId, policy) => dispatch({ type: "set-scene-bypass", blockId, policy })} onAsset={(blockId, asset) => dispatch({ type: "set-block-asset", blockId, asset })} onMode={(blockId, definitionId) => dispatch({ type: "change-definition", blockId, definitionId })} onEqBand={(blockId, band, patch) => dispatch({ type: "set-eq-band", blockId, band, patch })} onReset={(blockId) => dispatch({ type: "reset-block", blockId })} onDuplicate={(blockId) => dispatch({ type: "duplicate-block", blockId })} onDelete={(blockId) => dispatch({ type: "remove-block", blockId })} onAssets={onAssets} onClose={() => dispatch({ type: "select-block" })} />
       <BlockBrowser open={addTarget !== undefined} onOpenChange={(open) => { if (!open) setAddTarget(undefined); }} disabledIds={disabledDefinitions} onChoose={(definition) => {

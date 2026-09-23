@@ -127,7 +127,7 @@ export function SceneWorkspaceBar(props: Props) {
     </div>
     {settingsOpen && <div className="scene-settings" aria-label={`${selected.name} scene settings`}>
       <label>Name<input value={selected.name} maxLength={24} onChange={(event) => props.onName(selected.id, event.target.value)} /></label>
-      <label>Enter time (ms)<input type="number" min={0} max={10000} step={10} value={selected.enterTimeMs} onChange={(event) => props.onEnterTime(selected.id, Number(event.target.value))} /></label>
+      <label>Enter time (ms)<input type="number" min={0} max={10000} step={100} value={selected.enterTimeMs} onChange={(event) => props.onEnterTime(selected.id, Number(event.target.value))} /></label>
       <label>Scene trim (dB)<input type="number" min={-12} max={6} step={0.1} value={selected.outputTrimDb} onChange={(event) => props.onTrim(selected.id, Number(event.target.value))} /></label>
       <label>Open preset in<select value={props.sceneSet.openIn} onChange={(event) => props.onOpenIn(event.target.value as "presets" | "scenes")}><option value="presets">Presets</option><option value="scenes">Scenes</option></select></label>
       <Button variant="quiet" disabled={props.sceneSet.defaultSceneId === selected.id} onClick={() => props.onDefault(selected.id)}>Make default</Button>

@@ -98,6 +98,7 @@ describe("SceneWorkspaceBar", () => {
     expect(screen.getByText("Preset · topology")).toBeInTheDocument();
     expect(screen.getByText("Serial")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Scene settings" }));
+    expect(screen.getByRole("spinbutton", { name: "Enter time (ms)" })).toHaveAttribute("step", "100");
     fireEvent.click(screen.getByRole("button", { name: "Copy to…" }));
     expect(screen.getByRole("alertdialog")).toHaveTextContent("destination keeps its name and identity");
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
