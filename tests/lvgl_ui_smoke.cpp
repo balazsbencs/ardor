@@ -1353,11 +1353,20 @@ int main()
   {
     // Enabled cards summarise the block with its main values instead of the
     // old family ticks; the summary follows parameter edits on retained cards.
-    const auto& summaryBlock = state.bank.presets[state.activePreset].blocks.front();
-    const auto summary = ardor::blockSummaryControls(summaryBlock, 2);
-    if (require(!summary.empty()
-                  && findLabel(firstChainBlock, upper(summary[0].label).c_str())
-                  && findLabel(firstChainBlock, summary[0].formatted.c_str()),
+    const auto& chainBlocks = state.bank.presets[state.activePreset].blocks;
+    const auto summaryBlock = std::find_if(chainBlocks.begin(), chainBlocks.end(),
+      [](const ardor::UiBlock& block) {
+        return block.enabled && block.type != "dualRig"
+          && !ardor::blockSummaryControls(block, 2).empty();
+      });
+    if (require(summaryBlock != chainBlocks.end(),
+                "the demo chain should include a block with continuous controls")) return 1;
+    const auto summary = ardor::blockSummaryControls(*summaryBlock, 2);
+    lv_obj_t* summaryAsset = findLabel(chain, upper(summaryBlock->assetName).c_str());
+    lv_obj_t* summaryCard = summaryAsset ? lv_obj_get_parent(summaryAsset) : nullptr;
+    if (require(summaryCard
+                  && findLabel(summaryCard, upper(summary[0].label).c_str())
+                  && findLabel(summaryCard, summary[0].formatted.c_str()),
                 "enabled chain cards should show their main parameter values")) return 1;
   }
   state.bank.presets[state.activePreset].blocks.front().enabled = false;
@@ -2367,8 +2376,28 @@ int main()
                 && separatorArea.x1 == instructionArea.x1
                 && instructionArea.x1 == retainedListArea.x1,
               "drawer section labels and content should share one left edge")) return 1;
+  {
+    // Each row carries a family-coloured type-code square instead of a thin tick.
+    const auto tremAsset = std::find_if(state.assets.begin(), state.assets.end(),
+      [](const ardor::UiAsset& asset) { return asset.name == "Vintage Trem"; });
+    lv_obj_t* tremCode = tremAsset == state.assets.end() ? nullptr
+      : findLabel(tremAssetButton, ardor::blockTypeCode(tremAsset->blockType).c_str());
+    if (require(tremCode && lv_color_eq(lv_obj_get_style_bg_color(lv_obj_get_parent(tremCode), LV_PART_MAIN),
+                                        lv_color_hex(ardor::lvgl_ui::categoryColor(tremAsset->type)))
+                  && lv_obj_get_width(lv_obj_get_parent(tremCode)) == 44,
+                "drawer rows should show a family-coloured type-code square")) return 1;
+  }
   lv_obj_send_event(utilityFilterButton, LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
+  if (require(lv_color_eq(lv_obj_get_style_bg_color(utilityFilterButton, LV_PART_MAIN),
+                          lv_color_hex(ardor::lvgl_ui::text))
+                && lv_color_eq(lv_obj_get_style_text_color(utilityFilter, LV_PART_MAIN),
+                               lv_color_hex(ardor::lvgl_ui::bg))
+                && lv_color_eq(lv_obj_get_style_bg_color(allFilterButton, LV_PART_MAIN),
+                               lv_color_hex(ardor::lvgl_ui::panel))
+                && lv_color_eq(lv_obj_get_style_text_color(allFilter, LV_PART_MAIN),
+                               lv_color_hex(ardor::lvgl_ui::text)),
+              "the chosen filter should invert to bone with dark lettering, using palette tokens")) return 1;
   if (require(state.categoryFilter == "utility"
                 && !lv_obj_has_flag(compressorAssetButton, LV_OBJ_FLAG_HIDDEN)
                 && !lv_obj_has_flag(noiseGateAssetButton, LV_OBJ_FLAG_HIDDEN)

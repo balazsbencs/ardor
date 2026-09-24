@@ -22,6 +22,9 @@ struct ChainStripSegment {
 // a real asset name fall back to a type code such as "AMP" or "DLY".
 std::string chainStripCode(const UiBlock& block);
 
+// Type code alone ("AMP", "DLY", "RIG"); unknown types upper-case as-is.
+std::string blockTypeCode(const std::string& type);
+
 // Top-level blocks of a preset, in chain order. Dual Rig lanes collapse into
 // their parent block's single segment.
 std::vector<ChainStripSegment> presetChainStrip(const UiPreset& preset);

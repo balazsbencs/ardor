@@ -60,6 +60,11 @@ bool usesSummaryName(const std::string& type)
 
 } // namespace
 
+std::string blockTypeCode(const std::string& type)
+{
+  return typeCode(type);
+}
+
 std::string chainStripCode(const UiBlock& block)
 {
   if (block.assetName.empty() || block.assetName == block.type || usesSummaryName(block.type)) {

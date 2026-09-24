@@ -376,11 +376,9 @@ std::vector<ParameterControl> blockSummaryControls(const UiBlock& block, std::si
   const auto controls = controlsForBlock(block);
   std::vector<ParameterControl> summary;
   summary.reserve(std::min(count, controls.size()));
-  for (const bool continuous : {true, false}) {
-    for (const auto& item : controls) {
-      if (summary.size() >= count) return summary;
-      if ((item.kind == ParameterControlKind::Continuous) == continuous) summary.push_back(item);
-    }
+  for (const auto& item : controls) {
+    if (summary.size() >= count) break;
+    if (item.kind == ParameterControlKind::Continuous) summary.push_back(item);
   }
   return summary;
 }

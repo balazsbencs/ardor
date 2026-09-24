@@ -48,6 +48,11 @@ int main()
   if (require(chainStripCode(block("custom", "")) == "CUSTOM",
               "unknown types should fall back to the upper-case type")) return 1;
 
+  if (require(ardor::blockTypeCode("delay") == "DLY" && ardor::blockTypeCode("nam") == "AMP"
+                && ardor::blockTypeCode("dualRig") == "RIG"
+                && ardor::blockTypeCode("custom") == "CUSTOM",
+              "type codes should be available on their own for drawer rows")) return 1;
+
   ardor::UiPreset preset;
   preset.blocks = {block("dynamics", "Compressor"), block("nam", "Clean Twin"),
                    block("mod", "Chorus", false)};

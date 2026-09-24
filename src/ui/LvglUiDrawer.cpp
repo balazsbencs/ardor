@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -39,7 +40,10 @@ constexpr int kDrawerListHeight =
   kBlockDrawerContentHeight - kDrawerListTop - kDrawerFooterHeight - 10;
 constexpr int kDrawerAssetButtonHeight = 72;
 // Family tick (13 left inset + 26 wide) then a 14 px gutter to the text column.
-constexpr int kDrawerItemTextX = 53;
+constexpr int kDrawerCodeSize = 44;
+constexpr int kDrawerCodeX = 12;
+constexpr int kDrawerItemTextX = kDrawerCodeX + kDrawerCodeSize + 14;
+constexpr int kDrawerFilterBarHeight = 4;
 constexpr int kDrawerGripBarWidth = 16;
 constexpr std::array<std::pair<const char*, const char*>, 8> kDrawerFilters = {{
   {"All", "all"}, {"Amps", "amps"}, {"Cabs", "cabs"}, {"Drive", "drive"},
@@ -213,14 +217,19 @@ lv_obj_t* decorateDrawerItem(lv_obj_t* item, const UiAsset& asset)
   lv_obj_set_width(itemTitle, LV_SIZE_CONTENT);
   lv_obj_align(itemTitle, LV_ALIGN_LEFT_MID, kDrawerItemTextX, 0);
 
+  // Family square with the block's type code; it matches the chain strip on
+  // the preset tiles, so a module reads the same in both places.
   lv_obj_t* tick = lv_obj_create(item);
-  lv_obj_set_size(tick, 26, 3);
-  lv_obj_align(tick, LV_ALIGN_LEFT_MID, 13, 0);
-  styleSurface(tick, categoryColor(asset.type));
-  lv_obj_set_style_border_width(tick, 0, 0);
-  lv_obj_set_style_shadow_width(tick, 0, 0);
-  lv_obj_set_style_radius(tick, 0, 0);
+  lv_obj_remove_style_all(tick);
+  lv_obj_set_size(tick, kDrawerCodeSize, kDrawerCodeSize);
+  lv_obj_align(tick, LV_ALIGN_LEFT_MID, kDrawerCodeX, 0);
+  lv_obj_set_style_bg_opa(tick, LV_OPA_COVER, 0);
+  lv_obj_set_style_bg_color(tick, lv_color_hex(categoryColor(asset.type)), 0);
   lv_obj_remove_flag(tick, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_remove_flag(tick, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_t* code = label(tick, blockTypeCode(asset.blockType), LV_ALIGN_CENTER, 0, 0,
+                         &ardor_font_saira_cond_medium_18, bg);
+  lv_obj_remove_flag(code, LV_OBJ_FLAG_CLICKABLE);
 
   lv_obj_update_layout(item);
   const int titleWidth = lv_obj_get_width(itemTitle);
@@ -389,6 +398,15 @@ void onAssetPressLost(lv_event_t* event)
   }
 }
 
+// Filters rest on the raised plate with a family bar along the top; the
+// chosen one inverts to bone with dark lettering.
+void styleDrawerFilter(lv_obj_t* filterButton, bool selected)
+{
+  styleSurface(filterButton, selected ? text : panel);
+  lv_obj_set_style_text_color(lv_obj_get_child(filterButton, 0),
+                              lv_color_hex(selected ? bg : text), 0);
+}
+
 } // namespace
 
 void LvglUi::rebuildDrawerView(UiState& state)
@@ -505,10 +523,7 @@ void LvglUi::syncDrawerView(UiState& state)
   for (std::size_t i = 0; i < drawerCategoryButtons_.size(); ++i) {
     lv_obj_t* category = drawerCategoryButtons_[i];
     if (!category) continue;
-    const bool selected = state.categoryFilter == kDrawerFilters[i].second;
-    styleSurface(category, selected ? 0x333333 : 0x1b1b1b);
-    lv_obj_set_style_text_color(lv_obj_get_child(category, 0),
-                                lv_color_hex(selected ? categoryColor(kDrawerFilters[i].second) : text), 0);
+    styleDrawerFilter(category, state.categoryFilter == kDrawerFilters[i].second);
   }
 
   const auto& blocks = state.bank.presets[state.activePreset].blocks;
@@ -648,9 +663,17 @@ void LvglUi::renderBlockDrawer(lv_obj_t* root, UiState& state)
                          static_cast<int32_t>(i % kCategoryColumns), 1,
                          LV_GRID_ALIGN_STRETCH,
                          static_cast<int32_t>(i / kCategoryColumns), 1);
-    styleSurface(filterButton, state.categoryFilter == filter ? panel : panelAlt);
-    lv_obj_set_style_text_color(lv_obj_get_child(filterButton, 0),
-                                lv_color_hex(state.categoryFilter == filter ? categoryColor(filter) : text), 0);
+    styleDrawerFilter(filterButton, state.categoryFilter == filter);
+    // No padding, so the family bar runs along the button's true top edge.
+    lv_obj_set_style_pad_all(filterButton, 0, 0);
+    lv_obj_t* familyBar = lv_obj_create(filterButton);
+    lv_obj_remove_style_all(familyBar);
+    lv_obj_set_size(familyBar, LV_PCT(100), kDrawerFilterBarHeight);
+    lv_obj_align(familyBar, LV_ALIGN_TOP_MID, 0, 0);
+    lv_obj_set_style_bg_opa(familyBar, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(familyBar, lv_color_hex(
+      std::string_view{filter} == "all" ? text : static_cast<std::uint32_t>(categoryColor(filter))), 0);
+    lv_obj_remove_flag(familyBar, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(filterButton, onFilterClicked, LV_EVENT_CLICKED, remember(state, 0, filter));
     drawerCategoryButtons_[i] = filterButton;
   }

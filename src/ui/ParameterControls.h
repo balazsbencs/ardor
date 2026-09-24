@@ -30,8 +30,9 @@ struct ParameterControl {
 };
 
 std::vector<ParameterControl> parameterPage(const UiState& state, std::size_t page);
-// Up to `count` controls that summarise a block on its chain card: continuous
-// controls first, then choices. Works for any block, selected or not.
+// Up to `count` continuous controls that summarise a block on its chain card.
+// Choices are left out: their labels and values do not fit a card. Works for
+// any block, selected or not.
 std::vector<ParameterControl> blockSummaryControls(const UiBlock& block, std::size_t count);
 std::size_t parameterPageCount(const UiState& state);
 bool applyParameterDelta(UiState& state, const ParameterControl& control, int delta);
