@@ -4,6 +4,7 @@
 #include "ui/LvglUiStyle.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <array>
 #include <string>
 #include <utility>
@@ -321,6 +322,123 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
     return true;
   }
   return false;
+}
+
+namespace {
+
+// The strip covers the band of chain canvas left visible above the drawer.
+constexpr int kChipStripX = 20;
+constexpr int kChipStripY = 97;
+constexpr int kChipStripWidth = 1240;
+constexpr int kChipStripHeight = 119;
+constexpr int kChipStripPadding = 16;
+constexpr int kChipGap = 8;
+constexpr int kChipHeight = 64;
+constexpr int kChipMaxWidth = 180;
+constexpr int kChipBarHeight = 6;
+constexpr int kChipTextInset = 10;
+
+void onParameterChipClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  lv_obj_t* chip = lv_event_get_current_target_obj(event);
+  const auto index = reinterpret_cast<std::uintptr_t>(lv_obj_get_user_data(chip));
+  context->ui->selectBlock(*context->state, static_cast<std::size_t>(index));
+  context->ui->invalidate(UiChange::Chain | UiChange::Parameters | UiChange::Header);
+}
+
+std::string chipKey(const UiBlock& block)
+{
+  return block.id + "|" + block.type + "|" + block.assetName + (block.enabled ? "|on" : "|off");
+}
+
+} // namespace
+
+void LvglUi::syncParameterChipStrip(UiState& state)
+{
+  if (!parameterLayer_) return;
+  const auto* selected = selectedUiBlock(state);
+  const bool editingEq = state.paramTarget == UiParamTarget::Block
+    && selected && selected->type == "eq" && isParametricEqMode(selected->params);
+  const bool show = state.mode == UiMode::Edit && state.paramDrawerOpen
+    && state.paramTarget == UiParamTarget::Block && !editingEq;
+  if (!parameterChipStrip_) {
+    if (!show) return;
+    parameterChipStrip_ = lv_obj_create(parameterLayer_);
+    lv_obj_remove_style_all(parameterChipStrip_);
+    lv_obj_set_size(parameterChipStrip_, kChipStripWidth, kChipStripHeight);
+    lv_obj_set_pos(parameterChipStrip_, kChipStripX, kChipStripY);
+    lv_obj_set_style_bg_opa(parameterChipStrip_, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(parameterChipStrip_, lv_color_hex(bg), 0);
+    lv_obj_set_style_pad_hor(parameterChipStrip_, kChipStripPadding, 0);
+    lv_obj_set_style_pad_column(parameterChipStrip_, kChipGap, 0);
+    lv_obj_set_flex_flow(parameterChipStrip_, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(parameterChipStrip_, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_remove_flag(parameterChipStrip_, LV_OBJ_FLAG_SCROLLABLE);
+    contextRegion_ = UiContextRegion::Parameters;
+    parameterChipContext_ = remember(state);
+    contextRegion_ = UiContextRegion::None;
+  }
+  if (!show) {
+    lv_obj_add_flag(parameterChipStrip_, LV_OBJ_FLAG_HIDDEN);
+    return;
+  }
+  lv_obj_remove_flag(parameterChipStrip_, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_move_foreground(parameterChipStrip_);
+
+  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  std::vector<std::string> keys;
+  keys.reserve(blocks.size());
+  for (const auto& block : blocks) keys.push_back(chipKey(block));
+  if (keys != renderedChipKeys_) {
+    lv_obj_clean(parameterChipStrip_);
+    const int count = std::max<int>(1, static_cast<int>(blocks.size()));
+    const int chipWidth = std::min(kChipMaxWidth,
+      (kChipStripWidth - 2 * kChipStripPadding - kChipGap * (count - 1)) / count);
+    for (std::size_t i = 0; i < blocks.size(); ++i) {
+      const auto& block = blocks[i];
+      lv_obj_t* chip = lv_obj_create(parameterChipStrip_);
+      lv_obj_remove_style_all(chip);
+      lv_obj_set_size(chip, chipWidth, kChipHeight);
+      lv_obj_set_style_bg_opa(chip, LV_OPA_COVER, 0);
+      lv_obj_set_style_border_opa(chip, LV_OPA_COVER, 0);
+      lv_obj_add_flag(chip, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_remove_flag(chip, LV_OBJ_FLAG_SCROLLABLE);
+      lv_obj_remove_flag(chip, LV_OBJ_FLAG_GESTURE_BUBBLE);
+      lv_obj_set_user_data(chip, reinterpret_cast<void*>(static_cast<std::uintptr_t>(i)));
+      lv_obj_add_event_cb(chip, onParameterChipClicked, LV_EVENT_CLICKED, parameterChipContext_);
+      lv_obj_t* bar = lv_obj_create(chip);
+      lv_obj_remove_style_all(bar);
+      lv_obj_set_size(bar, LV_PCT(100), kChipBarHeight);
+      lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, 0);
+      lv_obj_set_style_bg_color(bar, lv_color_hex(
+        block.enabled ? static_cast<std::uint32_t>(categoryColor(block.type)) : rule), 0);
+      lv_obj_remove_flag(bar, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_t* type = label(chip, uppercase(block.enabled ? block.label : block.label + "  /  off"),
+                             LV_ALIGN_TOP_LEFT, kChipTextInset, 12,
+                             &ardor_font_saira_cond_semibold_11, muted);
+      lv_obj_set_style_text_letter_space(type, 2, 0);
+      lv_obj_set_width(type, chipWidth - 2 * kChipTextInset);
+      lv_label_set_long_mode(type, LV_LABEL_LONG_CLIP);
+      lv_obj_t* name = label(chip, uppercase(block.assetName), LV_ALIGN_TOP_LEFT,
+                             kChipTextInset, 30, &ardor_font_saira_cond_semibold_22,
+                             block.enabled ? text : disabled);
+      lv_obj_set_width(name, chipWidth - 2 * kChipTextInset);
+      lv_label_set_long_mode(name, LV_LABEL_LONG_CLIP);
+    }
+    renderedChipKeys_ = std::move(keys);
+  }
+
+  const bool laneChild = selectedBlockIsLaneChild(state);
+  const auto chips = lv_obj_get_child_count(parameterChipStrip_);
+  for (uint32_t i = 0; i < chips; ++i) {
+    lv_obj_t* chip = lv_obj_get_child(parameterChipStrip_, static_cast<int32_t>(i));
+    const bool isSelected = !laneChild && i == state.selectedBlock;
+    lv_obj_set_style_bg_color(chip, lv_color_hex(isSelected ? panel : panelAlt), 0);
+    lv_obj_set_style_border_color(chip, lv_color_hex(isSelected ? text : rule), 0);
+    lv_obj_set_style_border_width(chip, isSelected ? 3 : 1, 0);
+  }
 }
 
 void LvglUi::rebuildParameterView(UiState& state)

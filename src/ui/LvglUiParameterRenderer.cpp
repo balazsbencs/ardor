@@ -93,6 +93,17 @@ constexpr int kMappingButtonWidth = 148;
 constexpr int kMappingButtonHeight = 40;
 constexpr int kMappingMidiButtonX = kMappingToolbarWidth - 18 - kMappingButtonWidth;
 constexpr int kMappingExpButtonX = kMappingMidiButtonX - 14 - kMappingButtonWidth;
+// Context rail: legend, control name, large value, then - / + fine steps.
+constexpr int kRailLegendX = 18;
+constexpr int kRailNameX = 118;
+constexpr int kRailNameWidth = 360;
+constexpr int kRailStepWidth = 56;
+constexpr int kRailStepGap = 8;
+constexpr int kRailStepUpX = kMappingExpButtonX - 24 - kRailStepWidth;
+constexpr int kRailStepDownX = kRailStepUpX - kRailStepGap - kRailStepWidth;
+constexpr int kRailValueWidth = 180;
+constexpr int kRailValueX = kRailStepDownX - 18 - kRailValueWidth;
+static_assert(kRailNameX + kRailNameWidth < kRailValueX);
 
 struct ParameterSliderVisual {
   std::size_t controlIndex = 0;
@@ -143,6 +154,8 @@ std::string uppercase(const std::string& value)
 struct ParameterMappingVisual {
   lv_obj_t* parameterLabel = nullptr;
   lv_obj_t* valueLabel = nullptr;
+  lv_obj_t* stepDownButton = nullptr;
+  lv_obj_t* stepUpButton = nullptr;
   lv_obj_t* expressionButton = nullptr;
   lv_obj_t* midiButton = nullptr;
   UiEventContext* expressionContext = nullptr;
@@ -332,9 +345,16 @@ void refreshParameterMappingVisual(lv_obj_t* toolbar, const ParameterControl& co
   auto* visual = static_cast<ParameterMappingVisual*>(lv_obj_get_user_data(toolbar));
   if (!visual) return;
 
-  const auto selected = "Selected  /  " + control.label;
-  lv_label_set_text(visual->parameterLabel, selected.c_str());
+  lv_label_set_text(visual->parameterLabel, uppercase(control.label).c_str());
   lv_label_set_text(visual->valueLabel, control.formatted.c_str());
+  // Fine steps only make sense on a continuous travel; choices keep their
+  // own segmented buttons.
+  const bool steppable = control.kind == ParameterControlKind::Continuous;
+  for (lv_obj_t* step : {visual->stepDownButton, visual->stepUpButton}) {
+    if (!step) continue;
+    if (steppable) lv_obj_remove_flag(step, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(step, LV_OBJ_FLAG_HIDDEN);
+  }
   lv_label_set_text(lv_obj_get_child(visual->expressionButton, 0),
                     expressionAssigned ? "EXP Assigned" : "Assign EXP");
   lv_label_set_text(lv_obj_get_child(visual->midiButton, 0),
@@ -362,6 +382,17 @@ void onExpressionAssignmentClicked(lv_event_t* event)
   context->ui->toggleExpressionAssignment(*context->state, controls[context->index]);
   redraw(context);
 }
+
+void stepFocusedParameter(lv_event_t* event, int delta)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  if (context->ui->applyFocusedParameterDelta(*context->state, delta)) {
+    context->ui->invalidate(UiChange::Parameters | UiChange::Header);
+  }
+}
+
+void onParameterStepDown(lv_event_t* event) { stepFocusedParameter(event, -1); }
+void onParameterStepUp(lv_event_t* event) { stepFocusedParameter(event, 1); }
 
 void onMidiLearnClicked(lv_event_t* event)
 {
@@ -1139,16 +1170,31 @@ lv_obj_t* renderParameterMappingToolbar(lv_obj_t* parent, UiState& state,
   lv_obj_set_user_data(toolbar, visual);
   lv_obj_add_event_cb(toolbar, freeParameterMappingVisual, LV_EVENT_DELETE, visual);
 
-  visual->parameterLabel = label(toolbar, "", LV_ALIGN_LEFT_MID, 18, 0,
+  lv_obj_t* legend = label(toolbar, "SELECTED", LV_ALIGN_LEFT_MID, kRailLegendX, 0,
+                           &ardor_font_saira_cond_medium_18, muted);
+  lv_obj_set_style_text_letter_space(legend, 2, 0);
+  visual->parameterLabel = label(toolbar, "", LV_ALIGN_LEFT_MID, kRailNameX, 0,
                                  &ardor_font_saira_cond_semibold_22, text);
-  lv_obj_set_width(visual->parameterLabel, 600);
+  lv_obj_set_width(visual->parameterLabel, kRailNameWidth);
   lv_label_set_long_mode(visual->parameterLabel, LV_LABEL_LONG_CLIP);
 
-  visual->valueLabel = label(toolbar, "", LV_ALIGN_LEFT_MID, 650, 0,
-                             &ardor_font_saira_cond_semibold_22, text);
-  lv_obj_set_width(visual->valueLabel, 180);
+  visual->valueLabel = label(toolbar, "", LV_ALIGN_LEFT_MID, kRailValueX, 0,
+                             &ardor_font_saira_cond_semibold_28, text);
+  lv_obj_set_width(visual->valueLabel, kRailValueWidth);
   lv_label_set_long_mode(visual->valueLabel, LV_LABEL_LONG_CLIP);
   lv_obj_set_style_text_align(visual->valueLabel, LV_TEXT_ALIGN_RIGHT, 0);
+
+  auto* stepContext = context->ui->remember(state, controlIndex);
+  visual->stepDownButton = button(toolbar, "-");
+  lv_obj_set_size(visual->stepDownButton, kRailStepWidth, kMappingButtonHeight);
+  lv_obj_set_pos(visual->stepDownButton, kRailStepDownX, 10);
+  styleSurface(visual->stepDownButton, panel);
+  lv_obj_add_event_cb(visual->stepDownButton, onParameterStepDown, LV_EVENT_CLICKED, stepContext);
+  visual->stepUpButton = button(toolbar, "+");
+  lv_obj_set_size(visual->stepUpButton, kRailStepWidth, kMappingButtonHeight);
+  lv_obj_set_pos(visual->stepUpButton, kRailStepUpX, 10);
+  styleSurface(visual->stepUpButton, panel);
+  lv_obj_add_event_cb(visual->stepUpButton, onParameterStepUp, LV_EVENT_CLICKED, stepContext);
 
   visual->expressionButton = button(toolbar, "Assign EXP");
   lv_obj_set_size(visual->expressionButton, kMappingButtonWidth, kMappingButtonHeight);

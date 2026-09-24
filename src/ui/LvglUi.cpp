@@ -98,6 +98,9 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   focusedEqGraph_ = nullptr;
   parameterViews_.clear();
   activeParameterLayer_ = nullptr;
+  parameterChipStrip_ = nullptr;
+  parameterChipContext_ = nullptr;
+  renderedChipKeys_.clear();
   if (state.mode == UiMode::Preset || state.mode == UiMode::Scenes || !state.paramDrawerOpen) {
     resetParameterPage();
   }
@@ -354,6 +357,7 @@ void LvglUi::syncPersistentViews(UiState& state)
   syncPresetCards(state);
   syncScenesView(state);
   syncStatusView(state);
+  syncParameterChipStrip(state);
   syncBlockingOverlays(state);
 }
 

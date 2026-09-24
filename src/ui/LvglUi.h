@@ -266,6 +266,7 @@ private:
   void stylePresetCard(const UiState& state, std::size_t index);
   static void renderChainSummary(lv_obj_t* container, const UiState& state, const UiBlock& block);
   void syncChainLiftPlate(const UiState& state);
+  void syncParameterChipStrip(UiState& state);
   void syncScenesView(const UiState& state);
   void syncStatusView(const UiState& state);
   void syncPersistentViews(UiState& state);
@@ -443,6 +444,12 @@ private:
   lv_obj_t* drawerFooterCountLabel_ = nullptr;
   std::vector<lv_obj_t*> parameterControls_;
   lv_obj_t* parameterTitleLabel_ = nullptr;
+  // Chip strip above the parameter drawer: one chip per top-level block.
+  // It lives until the next full build(), with one shared click context;
+  // each chip stores its block index as user data.
+  lv_obj_t* parameterChipStrip_ = nullptr;
+  UiEventContext* parameterChipContext_ = nullptr;
+  std::vector<std::string> renderedChipKeys_;
   lv_obj_t* parameterBypassControl_ = nullptr;
   lv_obj_t* parameterMappingToolbar_ = nullptr;
   lv_obj_t* eqGraph_ = nullptr;

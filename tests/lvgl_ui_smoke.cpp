@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <optional>
 #include <vector>
@@ -74,6 +75,24 @@ bool containsKey(const std::vector<ardor::ParameterControl>& controls, const cha
   return std::any_of(controls.begin(), controls.end(), [key](const auto& control) {
     return control.key == key;
   });
+}
+
+// A slider-card legend: the label sits on a 385 px parameter card. The chain
+// cards and the context rail can repeat the same legend.
+lv_obj_t* findSliderLabel(lv_obj_t* parent, const char* text)
+{
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    lv_obj_t* child = lv_obj_get_child(parent, static_cast<int32_t>(i));
+    if (lv_obj_check_type(child, &lv_label_class) && std::strcmp(lv_label_get_text(child), text) == 0
+        && lv_obj_get_width(parent) == 385 && !lv_obj_has_flag(parent, LV_OBJ_FLAG_HIDDEN)) {
+      lv_obj_t* layer = parent;
+      bool visible = true;
+      while ((layer = lv_obj_get_parent(layer))) visible = visible && !lv_obj_has_flag(layer, LV_OBJ_FLAG_HIDDEN);
+      if (visible) return child;
+    }
+    if (lv_obj_t* found = findSliderLabel(child, text)) return found;
+  }
+  return nullptr;
 }
 
 // A full-height chain card (326 px) whose asset label reads `asset`. The
@@ -1119,7 +1138,7 @@ int main()
   lv_obj_t* title = findLastLabel(lv_screen_active(), titleText.c_str());
   lv_obj_t* status = findLabel(lv_screen_active(), "Preset saved");
   lv_obj_t* undoLabel = findLabel(lv_screen_active(), "UNDO");
-  lv_obj_t* depthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
+  lv_obj_t* depthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   lv_obj_t* depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
   lv_obj_t* depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
   if (require(title && depthSlider && depthFill, "parameter header and slider should render")) return 1;
@@ -1199,11 +1218,16 @@ int main()
               "every discrete option should provide a finger-sized touch target")) return 1;
 
   const auto& defaultMappingControl = renderControls.front();
-  lv_obj_t* mappingSelection = findLabel(lv_screen_active(),
-    ("Selected  /  " + defaultMappingControl.label).c_str());
-  lv_obj_t* mappingToolbar = mappingSelection ? lv_obj_get_parent(mappingSelection) : nullptr;
+  // The context rail is found through its EXP action: the plain control name
+  // also appears on the sliders and the chain cards.
+  lv_obj_t* railExpression = findLastLabel(lv_screen_active(), "Assign EXP");
+  lv_obj_t* mappingToolbar = railExpression
+    ? lv_obj_get_parent(lv_obj_get_parent(railExpression)) : nullptr;
   lv_obj_t* assignExpression = mappingToolbar ? findLabel(mappingToolbar, "Assign EXP") : nullptr;
   lv_obj_t* learnMidi = mappingToolbar ? findLabel(mappingToolbar, "MIDI Learn") : nullptr;
+  if (require(mappingToolbar && findLabel(mappingToolbar, "SELECTED")
+                && findLabel(mappingToolbar, upper(defaultMappingControl.label).c_str()),
+              "the context rail should name the selected control under a SELECTED legend")) return 1;
   if (require(mappingToolbar && assignExpression && learnMidi
                 && !findLabel(depthSlider, "EXP") && !findLabel(depthSlider, "MIDI"),
               "parameter mapping actions should live in one contextual toolbar")) return 1;
@@ -1260,9 +1284,24 @@ int main()
                 && findLabel(depthSlider, numericPrefix(updatedDepth->formatted).c_str()),
               "slider drag should update the value label before release")) return 1;
   if (require(updatedDepth != updatedControls.end()
-                && findLabel(mappingToolbar, ("Selected  /  " + updatedDepth->label).c_str())
+                && findLabel(mappingToolbar, upper(updatedDepth->label).c_str())
                 && findLabel(mappingToolbar, updatedDepth->formatted.c_str()),
               "contextual mapping toolbar should follow the touched parameter and live value")) return 1;
+  {
+    // Fine steps on the context rail move the selected control by one step.
+    lv_obj_t* stepUp = findLabel(mappingToolbar, "+");
+    lv_obj_t* stepDown = findLabel(mappingToolbar, "-");
+    const float before = ardor::selectedUiBlock(state)->params.value("depth", 0.0f);
+    if (require(stepUp && stepDown, "the context rail should offer - and + steps")) return 1;
+    lv_obj_send_event(lv_obj_get_parent(stepUp), LV_EVENT_CLICKED, nullptr);
+    ui.refresh(lv_screen_active(), state);
+    const float after = ardor::selectedUiBlock(state)->params.value("depth", 0.0f);
+    if (require(after > before, "the + step should raise the selected control")) return 1;
+    lv_obj_send_event(lv_obj_get_parent(stepDown), LV_EVENT_CLICKED, nullptr);
+    ui.refresh(lv_screen_active(), state);
+    if (require(ardor::selectedUiBlock(state)->params.value("depth", 0.0f) < after,
+                "the - step should lower the selected control")) return 1;
+  }
   simulatedPointer.state = LV_INDEV_STATE_RELEASED;
   lv_indev_read(simulatedInput);
   ui.refresh(lv_screen_active(), state);
@@ -1295,7 +1334,7 @@ int main()
   page = findLabel(lv_screen_active(), "PAGE 1 / 2");
   next = findLabel(lv_screen_active(), ">");
   title = findLastLabel(lv_screen_active(), titleText.c_str());
-  depthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
+  depthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
   depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
 
@@ -1438,7 +1477,7 @@ int main()
   ui.refresh(lv_screen_active(), state);
   title = findLastLabel(lv_screen_active(), titleText.c_str());
   page = findLabel(lv_screen_active(), "PAGE 1 / 2");
-  depthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
+  depthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
   depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
 
@@ -1473,6 +1512,44 @@ int main()
     }
     if (require(idleFills > 0 && idleFillsFamily,
                 "idle travel fills should use the block's family colour")) return 1;
+  }
+  {
+    // Chip strip: the chain shrinks to one chip per block above the drawer,
+    // so another block is one tap away without closing the drawer.
+    const auto& chipBlocks = state.bank.presets[state.activePreset].blocks;
+    const auto findChip = [&](const std::string& asset) -> lv_obj_t* {
+      std::function<lv_obj_t*(lv_obj_t*)> walk = [&](lv_obj_t* parent) -> lv_obj_t* {
+        for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+          lv_obj_t* child = lv_obj_get_child(parent, static_cast<int32_t>(i));
+          if (lv_obj_check_type(child, &lv_label_class) && upper(asset) == lv_label_get_text(child)
+              && lv_obj_get_height(parent) == 64 && !lv_obj_has_flag(parent, LV_OBJ_FLAG_HIDDEN)) {
+            return parent;
+          }
+          if (lv_obj_t* found = walk(child)) return found;
+        }
+        return nullptr;
+      };
+      return walk(lv_screen_active());
+    };
+    lv_obj_update_layout(lv_screen_active());
+    lv_obj_t* selectedChip = findChip(chipBlocks[state.selectedBlock].assetName);
+    const std::size_t otherIndex = state.selectedBlock == 0 ? 1 : 0;
+    lv_obj_t* otherChip = findChip(chipBlocks[otherIndex].assetName);
+    if (require(selectedChip && otherChip
+                  && lv_obj_get_style_border_width(selectedChip, LV_PART_MAIN) == 3
+                  && lv_obj_get_style_border_width(otherChip, LV_PART_MAIN) == 1,
+                "the parameter drawer should show a chip per block, the selected one framed")) return 1;
+    const std::size_t returnIndex = state.selectedBlock;
+    lv_obj_send_event(otherChip, LV_EVENT_CLICKED, nullptr);
+    ui.refresh(lv_screen_active(), state);
+    lv_obj_update_layout(lv_screen_active());
+    if (require(state.selectedBlock == otherIndex && state.paramDrawerOpen,
+                "tapping a chip should select that block and keep the drawer open")) return 1;
+    lv_obj_send_event(findChip(chipBlocks[returnIndex].assetName), LV_EVENT_CLICKED, nullptr);
+    ui.refresh(lv_screen_active(), state);
+    lv_obj_update_layout(lv_screen_active());
+    if (require(state.selectedBlock == returnIndex,
+                "tapping the first chip again should return to that block")) return 1;
   }
   lv_obj_t* parameterClose = findLabel(lv_screen_active(), "Close");
   lv_obj_t* deleteBlock = findLabel(lv_screen_active(), "Delete Block");
@@ -1553,7 +1630,7 @@ int main()
   ui.focusParameter(depth->key);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  lv_obj_t* focusedLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
+  lv_obj_t* focusedLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   lv_obj_t* focusedSlider = focusedLabel ? lv_obj_get_parent(focusedLabel) : nullptr;
   if (require(focusedSlider && lv_obj_get_style_outline_width(focusedSlider, LV_PART_MAIN) == 1
                 && lv_color_eq(lv_obj_get_style_outline_color(focusedSlider, LV_PART_MAIN), lv_color_hex(ardor::lvgl_ui::lamp)),
@@ -1564,7 +1641,7 @@ int main()
   if (require(ui.applyFocusedParameterDelta(state, 1), "focused encoder adjustment should be consumed")) return 1;
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  focusedLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
+  focusedLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   focusedSlider = focusedLabel ? lv_obj_get_parent(focusedLabel) : nullptr;
   focusedFill = focusedSlider ? findObjectWithBgColor(focusedSlider, lv_color_hex(ardor::lvgl_ui::lamp)) : nullptr;
   if (require(focusedFill && lv_obj_get_width(focusedFill) > minimumFillWidth,
@@ -1583,7 +1660,7 @@ int main()
 
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  lv_obj_t* stableDepthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
+  lv_obj_t* stableDepthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   lv_obj_t* stableDepthSlider = stableDepthLabel ? lv_obj_get_parent(stableDepthLabel) : nullptr;
   lv_obj_t* stableFill = stableDepthSlider
     ? findObjectWithBgColor(stableDepthSlider, lv_color_hex(ardor::lvgl_ui::lamp)) : nullptr;
@@ -1594,7 +1671,7 @@ int main()
   if (require(ui.applyFocusedParameterDelta(state, 5), "targeted encoder adjustment should be consumed")) return 1;
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(stableDepthSlider);
-  lv_obj_t* retainedDepthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
+  lv_obj_t* retainedDepthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   if (require(retainedDepthLabel && lv_obj_get_parent(retainedDepthLabel) == stableDepthSlider,
               "targeted encoder adjustment should retain the slider object")) return 1;
   if (require(lv_obj_get_width(stableFill) > stableFillWidth,
@@ -1602,7 +1679,7 @@ int main()
   ui.focusParameter("");
   ardor::setSelectedBlockParam(state, "depth", depth->minimum);
   ui.refresh(lv_screen_active(), state);
-  retainedDepthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
+  retainedDepthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   if (require(retainedDepthLabel && lv_obj_get_parent(retainedDepthLabel) == stableDepthSlider,
               "model-driven parameter updates should retain the slider object")) return 1;
   const auto retainedBlockIndex = state.selectedBlock;
@@ -1610,14 +1687,14 @@ int main()
   ui.refresh(lv_screen_active(), state);
   ui.selectBlock(state, retainedBlockIndex);
   ui.refresh(lv_screen_active(), state);
-  retainedDepthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
+  retainedDepthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   if (require(retainedDepthLabel && lv_obj_get_parent(retainedDepthLabel) == stableDepthSlider,
               "switching parameter targets should reactivate the cached retained panel")) return 1;
 
   ardor::setSelectedBlockParam(state, "depth", depth->maximum);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  depthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
+  depthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
   depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
   lv_obj_t* depthRail = depthSlider ? findObjectWithHeight(depthSlider, 18) : nullptr;
