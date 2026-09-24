@@ -469,6 +469,13 @@ void LvglUi::syncParameterView(UiState& state)
     parameter_view::syncBypass(parameterBypassControl_, !displayedEnabled);
   }
 
+  // Parameter edits publish Parameters, not Chain, so the chain would keep
+  // showing stale values. Refresh only the selected card's summary rows.
+  if (state.paramTarget == UiParamTarget::Block && selected && !selectedBlockIsLaneChild(state)
+      && state.selectedBlock < chainSummaries_.size()) {
+    renderChainSummary(chainSummaries_[state.selectedBlock], state, *selected);
+  }
+
   if (!editingEq) {
     if (parameterTitleLabel_) {
       if (state.paramTarget == UiParamTarget::Globals) {

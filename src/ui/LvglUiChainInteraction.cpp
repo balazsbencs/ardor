@@ -298,7 +298,7 @@ void LvglUi::syncChainCards(UiState& state)
     lv_obj_set_style_border_width(categoryHeader, 0, 0);
     lv_label_set_text(chainAssetLabels_[i], uppercase(block.assetName).c_str());
     setText(chainAssetLabels_[i], block.enabled ? text : disabled, &ardor_font_saira_cond_semibold_28);
-    renderChainSummary(chainSummaries_[i], block);
+    renderChainSummary(chainSummaries_[i], state, block);
     if (block.enabled) {
       lv_obj_add_flag(chainBypassLabels_[i], LV_OBJ_FLAG_HIDDEN);
     } else {

@@ -76,6 +76,21 @@ bool containsKey(const std::vector<ardor::ParameterControl>& controls, const cha
   });
 }
 
+// A full-height chain card (326 px) whose asset label reads `asset`. The
+// module drawer and the parameter title can repeat the same name.
+lv_obj_t* findChainCard(lv_obj_t* parent, const std::string& asset)
+{
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    lv_obj_t* child = lv_obj_get_child(parent, static_cast<int32_t>(i));
+    if (lv_obj_check_type(child, &lv_label_class) && asset == lv_label_get_text(child)
+        && lv_obj_get_height(parent) == 326) {
+      return parent;
+    }
+    if (lv_obj_t* found = findChainCard(child, asset)) return found;
+  }
+  return nullptr;
+}
+
 // Last match in tree order. Parameter drawers are created after the chain,
 // so this finds a drawer control even when a chain-card summary repeats its
 // legend ("DEPTH" on both).
@@ -998,6 +1013,21 @@ int main()
   ui.refresh(lv_screen_active(), state);
   if (require(state.editingScene == 1 && requestedScene == 1,
               "choosing an edit tab should select and recall that draft scene")) return 1;
+  lv_obj_update_layout(lv_screen_active());
+  {
+    int checkedCards = 0;
+    bool sceneValuesShown = true;
+    for (const auto& block : state.bank.presets[state.activePreset].blocks) {
+      const auto summary = ardor::blockSummaryControls(state, block, 2);
+      if (!block.enabled || block.type == "dualRig" || summary.empty()) continue;
+      lv_obj_t* card = findChainCard(lv_screen_active(), upper(block.assetName));
+      sceneValuesShown = sceneValuesShown && card
+        && findLabel(card, summary[0].formatted.c_str());
+      ++checkedCards;
+    }
+    if (require(checkedCards > 0 && sceneValuesShown,
+                "chain cards should show the values of the scene being edited")) return 1;
+  }
   if (require(findLabelContaining(lv_screen_active(), "SCENE 2"),
               "the edit header should identify the selected scene")) return 1;
   lv_obj_t* sceneSettingsLabel = findLabel(lv_screen_active(), "SCENE SETTINGS");
@@ -1539,6 +1569,17 @@ int main()
   focusedFill = focusedSlider ? findObjectWithBgColor(focusedSlider, lv_color_hex(ardor::lvgl_ui::lamp)) : nullptr;
   if (require(focusedFill && lv_obj_get_width(focusedFill) > minimumFillWidth,
               "focused encoder adjustment should increase the slider fill")) return 1;
+  {
+    // The selected card's summary follows live parameter edits.
+    const auto& editedBlock = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
+    const auto summary = ardor::blockSummaryControls(state, editedBlock, 2);
+    const auto edited = std::find_if(summary.begin(), summary.end(),
+      [&](const auto& item) { return item.key == depth->key; });
+    lv_obj_t* editedCard = findChainCard(lv_screen_active(), upper(editedBlock.assetName));
+    if (require(edited != summary.end() && editedCard
+                  && findLabel(editedCard, edited->formatted.c_str()),
+                "the selected chain card should show the edited value")) return 1;
+  }
 
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());

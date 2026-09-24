@@ -264,7 +264,7 @@ private:
   void syncHeaderView(const UiState& state);
   void syncPresetCards(const UiState& state);
   void stylePresetCard(const UiState& state, std::size_t index);
-  static void renderChainSummary(lv_obj_t* container, const UiBlock& block);
+  static void renderChainSummary(lv_obj_t* container, const UiState& state, const UiBlock& block);
   void syncChainLiftPlate(const UiState& state);
   void syncScenesView(const UiState& state);
   void syncStatusView(const UiState& state);

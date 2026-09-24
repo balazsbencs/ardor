@@ -80,6 +80,23 @@ ParameterControl choiceControl(std::string key, std::string label, std::vector<s
 
 std::vector<ParameterControl> controlsForBlock(const UiBlock& block);
 
+// Writes a scene's authored values for `block` into its params, the way the
+// engine would hear them in that scene.
+void applySceneTargets(const PresetScene& scene, UiBlock& block)
+{
+  for (const auto& target : scene.targets) {
+    if (target.target == PresetSceneTargetType::Parameter && target.blockId == block.id) {
+      block.params[target.parameter] = target.value;
+    } else if (target.target == PresetSceneTargetType::WdwLane && block.type == "dualRig") {
+      const std::string prefix = target.lane == "dry" ? "dry" : "wet";
+      const std::string key = target.parameter == "enabled" ? prefix + "Enabled"
+        : target.parameter == "levelDb" ? prefix + "LevelDb"
+        : target.parameter == "pan" ? "dryPan" : "wetWidth";
+      block.params[key] = target.value;
+    }
+  }
+}
+
 std::vector<ParameterControl> controlsFor(const UiState& state)
 {
   if (state.paramTarget == UiParamTarget::Globals) {
@@ -343,22 +360,14 @@ std::vector<ParameterControl> parameterPage(const UiState& state, std::size_t pa
     auto& displayedPreset = displayedState.bank.presets[displayedState.activePreset];
     auto* displayedBlock = displayedState.paramTarget == UiParamTarget::Block
       ? selectedUiBlock(displayedState) : nullptr;
-    for (const auto& target : set->scenes[state.editingScene].targets) {
+    const auto& scene = set->scenes[state.editingScene];
+    for (const auto& target : scene.targets) {
       if (target.target == PresetSceneTargetType::InputGainDb
           && displayedState.paramTarget == UiParamTarget::Globals && target.value.is_number()) {
         displayedPreset.global.inputGainDb = target.value.get<float>();
-      } else if (displayedBlock && target.target == PresetSceneTargetType::Parameter
-                 && target.blockId == displayedBlock->id) {
-        displayedBlock->params[target.parameter] = target.value;
-      } else if (displayedBlock && target.target == PresetSceneTargetType::WdwLane
-                 && displayedBlock->type == "dualRig") {
-        const std::string prefix = target.lane == "dry" ? "dry" : "wet";
-        const std::string key = target.parameter == "enabled" ? prefix + "Enabled"
-          : target.parameter == "levelDb" ? prefix + "LevelDb"
-          : target.parameter == "pan" ? "dryPan" : "wetWidth";
-        displayedBlock->params[key] = target.value;
       }
     }
+    if (displayedBlock) applySceneTargets(scene, *displayedBlock);
   }
   auto controls = controlsFor(displayedState);
   for (auto& item : controls) item.sceneScope = selectedParameterSceneScope(state, item.key);
@@ -381,6 +390,16 @@ std::vector<ParameterControl> blockSummaryControls(const UiBlock& block, std::si
     if (item.kind == ParameterControlKind::Continuous) summary.push_back(item);
   }
   return summary;
+}
+
+std::vector<ParameterControl> blockSummaryControls(const UiState& state, const UiBlock& block,
+                                                   std::size_t count)
+{
+  const auto& set = state.bank.presets[state.activePreset].sceneSet;
+  if (!set || state.editingScene >= set->scenes.size()) return blockSummaryControls(block, count);
+  UiBlock displayed = block;
+  applySceneTargets(set->scenes[state.editingScene], displayed);
+  return blockSummaryControls(displayed, count);
 }
 
 std::size_t parameterPageCount(const UiState& state)

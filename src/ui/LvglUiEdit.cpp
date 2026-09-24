@@ -806,7 +806,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       lv_obj_set_pos(summary, kChainTextX, kChainTileHeight - kSummaryBottom - kSummaryHeight);
       lv_obj_remove_flag(summary, LV_OBJ_FLAG_CLICKABLE);
       lv_obj_remove_flag(summary, LV_OBJ_FLAG_SCROLLABLE);
-      renderChainSummary(summary, block);
+      renderChainSummary(summary, state, block);
 
       auto* clickContext = remember(state, i);
       lv_obj_add_event_cb(object, onBlockClicked, LV_EVENT_CLICKED, clickContext);
@@ -1225,7 +1225,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   lv_obj_add_event_cb(done, onPresetModeClicked, LV_EVENT_PRESSED, remember(state));
 }
 
-void LvglUi::renderChainSummary(lv_obj_t* container, const UiBlock& block)
+void LvglUi::renderChainSummary(lv_obj_t* container, const UiState& state, const UiBlock& block)
 {
   if (!container) return;
   lv_obj_clean(container);
@@ -1233,7 +1233,7 @@ void LvglUi::renderChainSummary(lv_obj_t* container, const UiBlock& block)
   if (!block.enabled) return;
   const auto family = static_cast<std::uint32_t>(categoryColor(block.type));
   int y = 0;
-  for (const auto& item : blockSummaryControls(block, kSummaryRows)) {
+  for (const auto& item : blockSummaryControls(state, block, kSummaryRows)) {
     lv_obj_t* legend = label(container, uppercase(item.label), LV_ALIGN_TOP_LEFT, 0, y,
                              &ardor_font_saira_cond_medium_18, muted);
     lv_obj_set_width(legend, kChainTextWidth - kSummaryValueWidth);

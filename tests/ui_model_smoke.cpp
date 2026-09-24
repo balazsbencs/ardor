@@ -512,6 +512,34 @@ int main()
                 && sceneScopeState.bank.presets[2].sceneSet
                      ->scenes[1].targets[*scopedIndex].value == otherSceneValue,
               "editing This scene should change only the selected scene definition")) return 1;
+  {
+    // Chain-card summaries follow the scene being edited, exactly like the
+    // parameter drawer does.
+    const auto& sceneBlock = sceneScopeState.bank.presets[2].blocks[1];
+    std::vector<float> sceneValues;
+    for (const std::size_t scene : {std::size_t{0}, std::size_t{1}}) {
+      sceneScopeState.editingScene = scene;
+      std::vector<ardor::ParameterControl> page;
+      for (std::size_t index = 0; index < ardor::parameterPageCount(sceneScopeState); ++index) {
+        const auto controls = ardor::parameterPage(sceneScopeState, index);
+        page.insert(page.end(), controls.begin(), controls.end());
+      }
+      const auto summary = ardor::blockSummaryControls(sceneScopeState, sceneBlock, 6);
+      bool matches = !summary.empty();
+      for (const auto& item : summary) {
+        const auto shown = std::find_if(page.begin(), page.end(),
+          [&](const auto& control) { return control.key == item.key; });
+        matches = matches && shown != page.end() && shown->formatted == item.formatted;
+      }
+      if (require(matches, "scene-aware summaries should match the drawer for each scene")) return 1;
+      const auto scoped = std::find_if(summary.begin(), summary.end(),
+        [&](const auto& item) { return item.key == scopedControl->key; });
+      if (scoped != summary.end()) sceneValues.push_back(scoped->value);
+    }
+    if (require(sceneValues.size() != 2 || sceneValues[0] != sceneValues[1],
+                "a scene-owned value should differ between the edited scenes")) return 1;
+    sceneScopeState.editingScene = 0;
+  }
   if (require(ardor::setSelectedParameterSceneScope(
                   sceneScopeState, scopedControl->key, ardor::UiSceneScope::Shared)
                 && sceneScopeState.pendingPreview.has_value()
