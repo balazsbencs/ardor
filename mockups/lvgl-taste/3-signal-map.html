@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signal Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Saira:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+  /* Direction 3: the signal path is the picture. Ink-blue ground, one
+     teal lamp for LIVE and the selected control, saturated family nodes. */
+  .d3 {
+    --ground: #0b1115;
+    --plate: #121b21;
+    --plate-hi: #1a262e;
+    --rule: #24343e;
+    --bone: #e4ecf0;
+    --bone-2: #8ea2ae;
+    --bone-3: #53666f;
+    --lamp: #2fe0bf;
+    --lamp-ink: #04201b;
+    --warn: #f0b23e;
+    --amp: #e39a3b;
+    --cab: #b3bec5;
+    --util: #5a9be0;
+    --mod: #4cc28e;
+    --dly: #a58cf0;
+    --rev: #e27c5c;
+    --drv: #e8c547;
+    background: var(--ground); color: var(--bone); font-family: "Saira Condensed", sans-serif;
+  }
+  .d3 .hdr { position: absolute; left: 0; top: 0; width: 1280px; height: 64px; display: flex; align-items: center; gap: 18px; padding: 0 28px; border-bottom: 1px solid var(--rule); }
+  .d3 .hdr b { font-weight: 700; font-size: 28px; letter-spacing: .04em; }
+  .d3 .hdr span { font-weight: 500; font-size: 22px; color: var(--bone-2); letter-spacing: .06em; }
+  .d3 .meters { margin-left: auto; display: flex; gap: 22px; align-items: center; }
+  .d3 .meter { display: flex; align-items: center; gap: 8px; font: 600 14px "IBM Plex Mono", monospace; color: var(--bone-3); }
+  .d3 .meter i { display: block; width: 6px; height: 18px; background: var(--plate-hi); }
+  .d3 .meter i.on { background: var(--bone-2); }
+  .d3 .meter i.hot { background: var(--warn); }
+
+  .d3 .map { position: absolute; left: 24px; top: 80px; width: 1232px; height: 520px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; }
+  .d3 .tile { position: relative; background: var(--plate); border: 1px solid var(--rule); }
+  .d3 .tile .fs { position: absolute; left: 24px; top: 18px; font-weight: 600; font-size: 19px; letter-spacing: .16em; color: var(--bone-3); }
+  .d3 .tile .name { position: absolute; left: 24px; top: 46px; font-weight: 700; font-size: 64px; line-height: 1; text-transform: uppercase; }
+  .d3 .flow { position: absolute; left: 24px; right: 24px; bottom: 26px; height: 64px; }
+  .d3 .flow .line { position: absolute; left: 0; right: 0; top: 16px; height: 3px; background: var(--rule); }
+  .d3 .flow .node { position: absolute; top: 3px; width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--c); background: var(--plate); }
+  .d3 .flow .node::after { content: attr(data-l); position: absolute; top: 36px; left: 50%; transform: translateX(-50%); font: 600 12px "IBM Plex Mono", monospace; color: var(--bone-3); white-space: nowrap; }
+  .d3 .flow .end { position: absolute; top: 9px; width: 16px; height: 16px; background: var(--bone-3); }
+
+  .d3 .tile.live { background: var(--plate-hi); border: 3px solid var(--lamp); }
+  .d3 .tile.live .fs { color: var(--lamp); }
+  .d3 .tile.live .name { font-size: 78px; font-weight: 800; }
+  .d3 .tile.live .flow .line { background: var(--lamp); }
+  .d3 .tile.live .flow .node { background: var(--c); border-color: var(--c); }
+  .d3 .tile.live .flow .node::after { color: var(--bone); }
+  .d3 .tile.live .flow .end { background: var(--lamp); }
+  .d3 .livetag { position: absolute; right: 22px; top: 16px; background: var(--lamp); color: var(--lamp-ink); font-weight: 800; font-size: 20px; letter-spacing: .2em; padding: 2px 14px; }
+
+  .d3 .rail { position: absolute; left: 0; bottom: 0; width: 1280px; height: 108px; border-top: 1px solid var(--rule); display: flex; align-items: center; gap: 12px; padding: 0 24px; }
+  .d3 .btn { height: 60px; min-width: 120px; padding: 0 22px; display: flex; align-items: center; justify-content: center; background: var(--plate); border: 1px solid var(--rule); font-weight: 600; font-size: 22px; letter-spacing: .1em; text-transform: uppercase; }
+  .d3 .btn.primary { background: var(--bone); color: var(--ground); border-color: var(--bone); }
+  .d3 .push { margin-left: auto; }
+  .d3 .mst { display: flex; align-items: center; gap: 14px; }
+  .d3 .mst .l { font-weight: 600; font-size: 16px; letter-spacing: .18em; color: var(--bone-2); }
+
+  /* Parameter page: arcs replace choice rows and sliders */
+  .d3 .ptitle { position: absolute; left: 28px; top: 84px; display: flex; align-items: baseline; gap: 16px; }
+  .d3 .ptitle .cat { background: var(--amp); color: #1d1204; font-weight: 700; font-size: 18px; letter-spacing: .16em; padding: 4px 12px; }
+  .d3 .ptitle .nm { font-weight: 800; font-size: 46px; line-height: 1; text-transform: uppercase; }
+  .d3 .ptitle .pg { font-weight: 500; font-size: 20px; color: var(--bone-3); letter-spacing: .1em; }
+  .d3 .knobs { position: absolute; left: 28px; right: 28px; top: 170px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .d3 .kn { position: relative; height: 292px; background: var(--plate); border: 1px solid var(--rule); display: flex; flex-direction: column; align-items: center; padding-top: 20px; }
+  .d3 .kn.sel { border: 3px solid var(--lamp); background: var(--plate-hi); }
+  .d3 .kn svg { width: 190px; height: 190px; }
+  .d3 .kn .val { position: absolute; top: 88px; font-weight: 700; font-size: 50px; line-height: 1; }
+  .d3 .kn .unit { position: absolute; top: 142px; font: 500 15px "Saira", sans-serif; color: var(--bone-2); }
+  .d3 .kn .lab { margin-top: 10px; font-weight: 600; font-size: 22px; letter-spacing: .14em; text-transform: uppercase; }
+  .d3 .kn.sel .lab { color: var(--lamp); }
+  .d3 .kn .enc { position: absolute; right: 12px; top: 10px; font: 600 12px "IBM Plex Mono", monospace; color: var(--lamp-ink); background: var(--lamp); padding: 2px 6px; }
+  .d3 .seg2 { position: absolute; left: 28px; top: 484px; display: flex; gap: 0; }
+  .d3 .seg2 span { height: 56px; padding: 0 24px; display: flex; align-items: center; border: 1px solid var(--rule); background: var(--plate); font-weight: 600; font-size: 20px; letter-spacing: .08em; color: var(--bone-2); }
+  .d3 .seg2 span.on { background: var(--bone); color: var(--ground); border-color: var(--bone); }
+  .d3 .seg2 .cap { background: none; border: 0; padding: 0 16px 0 0; font-size: 16px; letter-spacing: .16em; color: var(--bone-3); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav"><a href="index.html">Ardor LVGL taste review</a><div class="pager"><a href="2-enclosures.html">Prev: Enclosures</a><a href="4-poster.html">Next: Poster</a></div></nav>
+  <h1>3. Signal Map</h1>
+  <p class="lede">The chain is the picture. Every preset tile draws its own signal path, and parameters become large arc knobs that the rotary encoder turns directly.</p>
+
+  <div class="notes">
+    <div>
+      <h3>What changes</h3>
+      <ul>
+        <li>Each tile draws its chain as family-coloured nodes on a rail. On the live tile the rail and the nodes light up.</li>
+        <li>The header gets flat IN and OUT segment meters, so the screen shows that sound is passing. Amber marks a hot input.</li>
+        <li>Continuous parameters become 270 degree arcs with the value in the centre. The encoder turns the selected arc.</li>
+        <li>Choice parameters stay as segmented rows, but sit below the arcs as one group.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>LVGL build notes</h3>
+      <ul>
+        <li>Arcs: <code>lv_arc</code> with flat indicator colour and <code>arc_rounded 0</code>. The scale ticks are an <code>lv_scale</code> in round mode.</li>
+        <li>Flow nodes: <code>LV_RADIUS_CIRCLE</code> objects on a 3 px rail. Label text comes from a short name per block type.</li>
+        <li>Meters need input and output peak values in <code>RuntimeTelemetry</code>. Check if the engine publishes them now.</li>
+        <li>Teal lamp is a new palette. It could ship as a fifth <code>PaletteId</code> next to Slate, Ink, Sodium and Nord.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="frame"><div class="screen d3">
+      <div class="hdr"><b>BANK 01</b><span>SUNDAY SET</span>
+        <div class="meters">
+          <span class="meter">IN <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="hot"></i><i></i><i></i><i></i></span>
+          <span class="meter">OUT <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></span>
+        </div>
+      </div>
+      <div class="map" id="map"></div>
+      <div class="rail">
+        <span class="btn primary">Edit</span><span class="btn">Tuner</span><span class="btn">Looper</span><span class="btn">Bank -</span><span class="btn">Bank +</span><span class="btn">Setup</span>
+        <span class="push mst"><span class="l">MASTER</span><span id="mknob"></span></span>
+      </div>
+    </div></div>
+    <p class="caption"><b>Preset screen.</b> You can tell Crunch from Solo by the shape of the path before you read the name. The live tile is the only one with a lit rail and filled nodes.</p>
+  </div>
+
+  <div class="shot">
+    <div class="frame"><div class="screen d3">
+      <div class="hdr"><b>EDIT</b><span>CLEAN LEAD  /  BLOCK 2 OF 6</span></div>
+      <div class="ptitle"><span class="cat">NEURAL AMP</span><span class="nm">Clean Twin</span><span class="pg">PAGE 1 OF 2</span></div>
+      <div class="knobs" id="knobs"></div>
+      <div class="seg2"><span class="cap">INPUT</span><span class="on">L+R AVG</span><span>LEFT</span><span>RIGHT</span></div>
+      <div class="seg2" style="left:560px"><span class="cap">NANO MODEL</span><span class="on">OFF</span><span>ON</span></div>
+      <div class="rail">
+        <span class="btn">Back</span><span class="btn">Bypass</span><span class="btn">MIDI</span><span class="btn">Assign EXP</span>
+        <span class="push btn primary">Done</span>
+      </div>
+    </div></div>
+    <p class="caption"><b>Parameter page.</b> This replaces the current page, where a choice row and a large empty area share the screen. The selected knob carries the lamp and an ENC tag, so the player knows what the encoder turns.</p>
+  </div>
+</div>
+<script>
+  // Build tiles and arc knobs from data so the markup stays readable.
+  const presets = [
+    { fs: 1, name: "Clean Lead", live: true, chain: [["util","CMP"],["amp","TWIN"],["cab","2X12"],["mod","CHO"],["dly","DLY"],["rev","PLATE"]] },
+    { fs: 3, name: "Ambient", chain: [["amp","TWIN"],["cab","2X12"],["mod","TREM"],["rev","SHIM"],["dly","DLY"]] },
+    { fs: 2, name: "Crunch", chain: [["util","GATE"],["drv","RAT"],["amp","PLEXI"],["cab","4X12"],["rev","ROOM"]] },
+    { fs: 4, name: "Solo", chain: [["drv","FUZZ"],["amp","PLEXI"],["cab","4X12"],["dly","DLY"],["rev","HALL"]] },
+  ];
+  const map = document.getElementById("map");
+  map.innerHTML = presets.map((p) => {
+    const width = 560, step = (width - 40) / (p.chain.length + 1);
+    const nodes = p.chain.map(([fam, label], i) =>
+      `<i class="node" data-l="${label}" style="--c:var(--${fam});left:${step * (i + 1)}px"></i>`).join("");
+    return `<div class="tile${p.live ? " live" : ""}"><span class="fs">FS ${p.fs}</span>${p.live ? '<span class="livetag">LIVE</span>' : ""}
+      <div class="name">${p.name}</div>
+      <div class="flow"><div class="line"></div><i class="end" style="left:0"></i>${nodes}<i class="end" style="right:0"></i></div></div>`;
+  }).join("");
+
+  const arc = (size, stroke, pct, color, track) => {
+    const r = (size - stroke) / 2, c = 2 * Math.PI * r, sweep = 0.75;
+    const common = `cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke-width="${stroke}" transform="rotate(135 ${size / 2} ${size / 2})"`;
+    return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+      <circle ${common} stroke="${track}" stroke-dasharray="${c * sweep} ${c}"/>
+      <circle ${common} stroke="${color}" stroke-dasharray="${c * sweep * pct} ${c}"/></svg>`;
+  };
+  document.getElementById("mknob").innerHTML =
+    `<span style="position:relative;display:inline-flex;align-items:center;justify-content:center">${arc(76, 8, 0.82, "var(--bone)", "var(--plate-hi)")}<b style="position:absolute;font-size:26px">82</b></span>`;
+
+  const knobs = [
+    { lab: "Input", val: "+3.0", unit: "dB", pct: 0.62, sel: true },
+    { lab: "Output", val: "-1.5", unit: "dB", pct: 0.44 },
+    { lab: "Bass", val: "5.5", unit: "of 10", pct: 0.55 },
+    { lab: "Presence", val: "7.2", unit: "of 10", pct: 0.72 },
+  ];
+  document.getElementById("knobs").innerHTML = knobs.map((k) =>
+    `<div class="kn${k.sel ? " sel" : ""}">${k.sel ? '<span class="enc">ENC</span>' : ""}
+      ${arc(190, 16, k.pct, k.sel ? "var(--lamp)" : "var(--amp)", "var(--plate-hi)")}
+      <span class="val">${k.val}</span><span class="unit">${k.unit}</span><span class="lab">${k.lab}</span></div>`).join("");
+</script>
+<script src="scale.js"></script>
+</body>
+</html>

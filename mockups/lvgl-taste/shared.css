@@ -1,0 +1,73 @@
+/* Gallery chrome for the LVGL taste mockups. The device screens themselves
+   are styled per direction; this file only frames them. */
+:root {
+  --page: #101112;
+  --page-2: #17191b;
+  --ink: #e6e7e6;
+  --ink-2: #9a9fa3;
+  --line: #2c3033;
+  --pick: #e0452f;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 16px/1.55 "Saira", system-ui, sans-serif;
+}
+
+a { color: inherit; }
+
+.wrap { max-width: 1320px; margin: 0 auto; padding: 0 16px 96px; }
+
+.topnav {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  height: 64px; border-bottom: 1px solid var(--line); margin-bottom: 48px;
+  font: 600 15px/1 "Saira Condensed", sans-serif; letter-spacing: .06em; text-transform: uppercase;
+}
+.topnav a { text-decoration: none; color: var(--ink-2); }
+.topnav a:hover { color: var(--ink); }
+.topnav .pager { display: flex; gap: 24px; }
+
+h1 {
+  font: 600 clamp(40px, 6vw, 72px)/1 "Saira Condensed", sans-serif;
+  text-transform: uppercase; letter-spacing: .01em; margin: 0 0 16px;
+}
+h2 {
+  font: 600 28px/1.1 "Saira Condensed", sans-serif; text-transform: uppercase;
+  letter-spacing: .02em; margin: 64px 0 16px;
+}
+.lede { font-size: 20px; color: var(--ink-2); max-width: 62ch; margin: 0 0 40px; }
+
+.notes {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 32px; margin: 0 0 56px;
+}
+.notes h3 {
+  font: 600 18px/1.2 "Saira Condensed", sans-serif; text-transform: uppercase;
+  letter-spacing: .04em; margin: 0 0 8px; padding-top: 12px; border-top: 2px solid var(--ink);
+}
+.notes ul { margin: 0; padding-left: 18px; color: var(--ink-2); }
+.notes li { margin: 6px 0; }
+.notes code { font: 13px "JetBrains Mono", ui-monospace, monospace; color: var(--ink); }
+
+/* 1280 x 720 device frame, scaled to the column width by scale.js */
+.shot { margin: 0 0 16px; }
+.frame {
+  position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
+  background: #000; outline: 12px solid #050505; outline-offset: 0;
+  margin: 12px 0 0;
+}
+.screen {
+  position: absolute; top: 0; left: 0; width: 1280px; height: 720px;
+  transform-origin: 0 0; overflow: hidden;
+}
+.caption { color: var(--ink-2); font-size: 15px; margin: 22px 0 56px; max-width: 80ch; }
+.caption b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 640px) {
+  .topnav .pager { gap: 12px; }
+  .frame { outline-width: 6px; }
+}

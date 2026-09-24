@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Saira+Condensed:wght@600;700&family=Saira:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+  /* Direction 4: gig-poster type. No boxes on the preset screen: type
+     scale and one yellow flood carry all hierarchy. */
+  .d4 {
+    --ground: #0d0d0c;
+    --ghost: #1d1d1b;
+    --rule: #2c2c29;
+    --bone: #f3f1ea;
+    --bone-2: #a3a097;
+    --lamp: #ffd21f;
+    --lamp-ink: #14120a;
+    --flat: #ff6a3d;
+    background: var(--ground); color: var(--bone); font-family: "Big Shoulders Display", sans-serif;
+  }
+  .d4 .quad { position: absolute; width: 640px; height: 306px; overflow: hidden; }
+  .d4 .q1 { left: 0; top: 0; } .d4 .q3 { left: 640px; top: 0; }
+  .d4 .q2 { left: 0; top: 306px; } .d4 .q4 { left: 640px; top: 306px; }
+  .d4 .num {
+    position: absolute; right: 18px; top: -28px; font-weight: 900; font-size: 380px; line-height: 1; color: var(--ghost);
+  }
+  .d4 .nm { position: absolute; left: 36px; bottom: 34px; font-weight: 800; font-size: 104px; line-height: .9; text-transform: uppercase; letter-spacing: .005em; }
+  .d4 .fs { position: absolute; left: 38px; top: 30px; font: 700 20px "Saira Condensed", sans-serif; letter-spacing: .2em; color: var(--bone-2); }
+  .d4 .quad.live { background: var(--lamp); color: var(--lamp-ink); }
+  .d4 .quad.live .num { color: #f0c000; }
+  .d4 .quad.live .fs { color: var(--lamp-ink); }
+  .d4 .quad.live .nm { font-size: 104px; font-weight: 900; }
+  .d4 .vr { position: absolute; left: 639px; top: 0; width: 2px; height: 612px; background: var(--rule); }
+  .d4 .hr { position: absolute; left: 0; top: 305px; width: 1280px; height: 2px; background: var(--rule); }
+  .d4 .foot { position: absolute; left: 0; bottom: 0; width: 1280px; height: 108px; border-top: 2px solid var(--bone); display: flex; align-items: center; padding: 0 32px; gap: 34px; }
+  .d4 .foot .bk { font-weight: 900; font-size: 54px; line-height: 1; }
+  .d4 .foot .bk small { font: 600 18px "Saira Condensed", sans-serif; letter-spacing: .18em; color: var(--bone-2); margin-left: 10px; vertical-align: middle; }
+  .d4 .foot .t { height: 60px; display: flex; align-items: center; padding: 0 4px; font: 700 24px "Saira Condensed", sans-serif; letter-spacing: .14em; text-transform: uppercase; border-bottom: 3px solid transparent; }
+  .d4 .foot .t.u { border-bottom-color: var(--bone); }
+  .d4 .foot .mv { margin-left: auto; font-weight: 900; font-size: 54px; line-height: 1; }
+  .d4 .foot .mv small { font: 600 18px "Saira Condensed", sans-serif; letter-spacing: .18em; color: var(--bone-2); margin-right: 12px; vertical-align: middle; }
+
+  /* Tuner */
+  .d4 .tnote { position: absolute; left: 0; width: 1280px; top: 36px; text-align: center; font-weight: 900; font-size: 400px; line-height: .9; }
+  .d4 .tnote sup { font-size: 120px; vertical-align: top; position: relative; top: 40px; margin-left: 8px; color: var(--bone-2); }
+  .d4 .strip { position: absolute; left: 40px; right: 40px; top: 470px; height: 90px; display: grid; grid-template-columns: repeat(41, 1fr); gap: 6px; }
+  .d4 .strip i { display: block; background: var(--ghost); }
+  .d4 .strip i.c { background: var(--bone-2); }
+  .d4 .strip i.hit { background: var(--flat); }
+  .d4 .tlabels { position: absolute; left: 40px; right: 40px; top: 572px; display: flex; justify-content: space-between; font: 700 20px "Saira Condensed", sans-serif; letter-spacing: .14em; color: var(--bone-2); }
+  .d4 .tinfo { position: absolute; left: 40px; top: 36px; font: 700 22px "Saira Condensed", sans-serif; letter-spacing: .16em; color: var(--bone-2); }
+  .d4 .tinfo b { display: block; font-family: "Big Shoulders Display"; font-weight: 800; font-size: 64px; letter-spacing: 0; color: var(--flat); line-height: 1; margin-top: 4px; }
+  .d4 .tright { position: absolute; right: 40px; top: 36px; text-align: right; font: 700 22px "Saira Condensed", sans-serif; letter-spacing: .16em; color: var(--bone-2); }
+  .d4 .tright b { display: block; font-family: "Big Shoulders Display"; font-weight: 800; font-size: 64px; letter-spacing: 0; color: var(--bone); line-height: 1; margin-top: 4px; }
+  .d4 .texit { position: absolute; left: 0; bottom: 0; width: 1280px; height: 84px; border-top: 2px solid var(--rule); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; font: 700 22px "Saira Condensed", sans-serif; letter-spacing: .16em; color: var(--bone-2); }
+  .d4 .texit .muted { color: var(--flat); }
+
+  .d4.intune { background: var(--lamp); color: var(--lamp-ink); }
+  .d4.intune .strip i { background: #e6bc00; }
+  .d4.intune .strip i.c { background: var(--lamp-ink); }
+  .d4.intune .tnote sup, .d4.intune .tinfo, .d4.intune .tright, .d4.intune .tlabels, .d4.intune .texit { color: #5a4c00; }
+  .d4.intune .tinfo b, .d4.intune .tright b { color: var(--lamp-ink); }
+  .d4.intune .texit { border-top-color: #d9b200; }
+  .d4.intune .texit .muted { color: var(--lamp-ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav"><a href="index.html">Ardor LVGL taste review</a><div class="pager"><a href="3-signal-map.html">Prev: Signal Map</a><a href="5-amp-chassis.html">Next: Amp Chassis</a></div></nav>
+  <h1>4. Poster</h1>
+  <p class="lede">Built for the dark stage at 1.5 m. No boxes, no chrome: huge names, huge footswitch numerals, and one yellow flood for the live preset.</p>
+
+  <div class="notes">
+    <div>
+      <h3>What changes</h3>
+      <ul>
+        <li>The four quadrants are the four footswitches. Thin rules separate them. There are no cards.</li>
+        <li>A 380 px ghost numeral sits behind each name, so the footswitch number reads even from the side.</li>
+        <li>The live quadrant floods yellow. Yellow is brighter than red on a dark stage and survives glare better.</li>
+        <li>The tuner fills the whole screen. When the note is in tune, the whole screen turns yellow, which you can see with peripheral vision.</li>
+        <li>Navigation becomes a text rail with an underline, not a row of grey boxes.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>LVGL build notes</h3>
+      <ul>
+        <li>Ghost numerals: a digits-only font (1 to 4, about 380 px) keeps flash cost small. Compile it with <code>lv_font_conv</code> like the tuner font.</li>
+        <li>Tuner strip: 41 flat <code>lv_obj</code> cells. Recolour only the cells that change, which is cheap at 200 Hz.</li>
+        <li>Screen flood on in-tune: one <code>bg_color</code> change on the screen object. No tween, per spec section 11.</li>
+        <li>Text-only rail buttons still need a 60 px hit box with <code>lv_obj_set_ext_click_area</code>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="frame"><div class="screen d4">
+      <div class="quad q1 live"><span class="num">1</span><span class="fs">FS 1  LIVE</span><span class="nm">Clean<br>Lead</span></div>
+      <div class="quad q3"><span class="num">3</span><span class="fs">FS 3</span><span class="nm">Ambient</span></div>
+      <div class="quad q2"><span class="num">2</span><span class="fs">FS 2</span><span class="nm">Crunch</span></div>
+      <div class="quad q4"><span class="num">4</span><span class="fs">FS 4</span><span class="nm">Solo</span></div>
+      <div class="vr"></div><div class="hr"></div>
+      <div class="foot">
+        <span class="bk">01<small>SUNDAY SET</small></span>
+        <span class="t u">Edit</span><span class="t">Tuner</span><span class="t">Looper</span><span class="t">Bank</span><span class="t">Setup</span>
+        <span class="mv"><small>MASTER</small>82</span>
+      </div>
+    </div></div>
+    <p class="caption"><b>Preset screen.</b> The type does all the work. The only colour on the screen is the live quadrant, so a glance from any angle tells you which footswitch is active.</p>
+  </div>
+
+  <div class="shot">
+    <div class="frame"><div class="screen d4">
+      <div class="tinfo">FLAT<b>-7 CENTS</b></div>
+      <div class="tright">110.9 HZ<b>A 440</b></div>
+      <div class="tnote">A<sup>2</sup></div>
+      <div class="strip" id="stripFlat"></div>
+      <div class="tlabels"><span>-50</span><span>0</span><span>+50</span></div>
+      <div class="texit"><span>PRESS ANY FOOTSWITCH TO EXIT</span><span class="muted">OUTPUT MUTED</span></div>
+    </div></div>
+    <p class="caption"><b>Tuner, flat.</b> The note is 400 px high. The strip lights the cells between centre and the pitch in orange, so direction and distance read at the same time.</p>
+  </div>
+
+  <div class="shot">
+    <div class="frame"><div class="screen d4 intune">
+      <div class="tinfo">IN TUNE<b>0 CENTS</b></div>
+      <div class="tright">110.0 HZ<b>A 440</b></div>
+      <div class="tnote">A<sup>2</sup></div>
+      <div class="strip" id="stripTune"></div>
+      <div class="tlabels"><span>-50</span><span>0</span><span>+50</span></div>
+      <div class="texit"><span>PRESS ANY FOOTSWITCH TO EXIT</span><span class="muted">OUTPUT MUTED</span></div>
+    </div></div>
+    <p class="caption"><b>Tuner, in tune.</b> The whole screen floods with the lamp colour. Here the lamp means "this string is live and correct", which fits the One Lamp Rule.</p>
+  </div>
+</div>
+<script>
+  // 41 cells: index 20 is centre. Flat by 7 cents lights cells 17 to 19.
+  const strip = (id, lit) => {
+    document.getElementById(id).innerHTML = Array.from({ length: 41 }, (_, i) =>
+      `<i class="${i === 20 ? "c" : ""}${lit.includes(i) ? " hit" : ""}"></i>`).join("");
+  };
+  strip("stripFlat", [17, 18, 19]);
+  strip("stripTune", []);
+</script>
+<script src="scale.js"></script>
+</body>
+</html>

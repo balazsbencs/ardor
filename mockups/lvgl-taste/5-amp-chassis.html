@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amp Chassis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sofia+Sans+Condensed:ital,wght@0,500;0,700;0,800;0,900;1,800&family=Saira+Condensed:wght@600&family=Saira:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+  /* Direction 5: amp hardware. Textures stand in for small RGB565 bitmaps
+     that are dithered offline, so the device never renders a live ramp.
+     Shape rule: plates 6 px, jewels and knobs are circles. */
+  .d5 {
+    --tolex: #141312;
+    --plate: #33373a;
+    --plate-lo: #202325;
+    --plate-hi: #4b5054;
+    --chrome: #c9ced1;
+    --chrome-lo: #8d9397;
+    --chrome-hi: #eef0f1;
+    --engrave: #dfe2e3;
+    --engrave-2: #9ba1a5;
+    --ink: #17191a;
+    --lamp: #ff3a22;
+    --face: #eee3c4;
+    --face-ink: #2a2418;
+    background:
+      repeating-linear-gradient(45deg, #1a1918 0 2px, transparent 2px 5px),
+      repeating-linear-gradient(-45deg, #1a1918 0 2px, transparent 2px 5px),
+      var(--tolex);
+    color: var(--engrave); font-family: "Sofia Sans Condensed", sans-serif;
+  }
+  .d5 .brushed {
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px), var(--plate);
+    border-top: 2px solid var(--plate-hi); border-bottom: 2px solid var(--plate-lo); border-radius: 6px;
+  }
+  .d5 .chrome {
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,.25) 0 1px, transparent 1px 3px), var(--chrome);
+    border-top: 2px solid var(--chrome-hi); border-bottom: 2px solid var(--chrome-lo); border-radius: 6px; color: var(--ink);
+  }
+  .d5 .eng { text-shadow: 0 -1px 0 #0b0c0c, 0 1px 0 #5a5f63; }
+  .d5 .chrome .eng { text-shadow: 0 1px 0 var(--chrome-hi), 0 -1px 0 #7c8286; }
+
+  .d5 .hdr { position: absolute; left: 24px; top: 14px; right: 24px; height: 52px; display: flex; align-items: center; gap: 18px; }
+  .d5 .logo { height: 44px; padding: 0 18px; display: flex; align-items: center; font: italic 900 30px "Sofia Sans Condensed", sans-serif; letter-spacing: .06em; }
+  .d5 .hdr .bk { font-weight: 800; font-size: 28px; letter-spacing: .08em; }
+  .d5 .hdr .bn { font-weight: 700; font-size: 22px; letter-spacing: .12em; color: var(--engrave-2); }
+  .d5 .hdr .r { margin-left: auto; font-weight: 700; font-size: 18px; letter-spacing: .12em; color: var(--engrave-2); }
+
+  .d5 .map { position: absolute; left: 24px; top: 80px; width: 1232px; height: 504px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 16px; }
+  .d5 .pl { position: relative; }
+  .d5 .pl .rv { position: absolute; width: 14px; height: 14px; border-radius: 50%; background: var(--plate-lo); box-shadow: inset 0 0 0 3px var(--plate-hi); }
+  .d5 .chrome .rv { background: var(--chrome-lo); box-shadow: inset 0 0 0 3px var(--chrome-hi); }
+  .d5 .r1 { left: 14px; top: 14px; } .d5 .r2 { right: 14px; top: 14px; } .d5 .r3 { left: 14px; bottom: 14px; } .d5 .r4 { right: 14px; bottom: 14px; }
+  .d5 .pl .fs { position: absolute; left: 44px; top: 24px; font-weight: 800; font-size: 20px; letter-spacing: .24em; color: var(--engrave-2); }
+  .d5 .chrome .fs { color: #4a4f52; }
+  .d5 .pl .nm { position: absolute; left: 42px; top: 64px; font-weight: 900; font-size: 84px; line-height: 1; text-transform: uppercase; letter-spacing: .01em; }
+  .d5 .pl .amp { position: absolute; left: 44px; bottom: 30px; font-weight: 700; font-size: 20px; letter-spacing: .16em; color: var(--engrave-2); }
+  .d5 .chrome .amp { color: #4a4f52; }
+  .d5 .jewel { position: absolute; right: 42px; top: 50%; margin-top: -36px; width: 72px; height: 72px; border-radius: 50%; background: #3a0e0a; box-shadow: 0 0 0 6px var(--plate-lo), 0 0 0 9px var(--plate-hi); }
+  .d5 .jewel::after { content: ""; position: absolute; left: 16px; top: 14px; width: 16px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.14); }
+  .d5 .chrome .jewel { background: var(--lamp); box-shadow: 0 0 0 6px var(--ink), 0 0 0 9px var(--chrome-hi); }
+  .d5 .chrome .jewel::after { background: #ffc2b8; }
+
+  .d5 .panel { position: absolute; left: 24px; right: 24px; bottom: 12px; height: 112px; display: flex; align-items: center; gap: 12px; padding: 0 18px; }
+  .d5 .sw { height: 58px; padding: 0 22px; display: flex; align-items: center; border-radius: 6px; background: var(--ink); border: 2px solid #050606; border-top-color: #3a3e41; font-weight: 800; font-size: 22px; letter-spacing: .14em; text-transform: uppercase; color: var(--engrave); }
+  .d5 .sw.on { background: var(--chrome); color: var(--ink); border-top-color: var(--chrome-hi); border-bottom-color: var(--chrome-lo); }
+  .d5 .ctl { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .d5 .ctl .lbl { font-weight: 800; font-size: 16px; letter-spacing: .22em; color: var(--engrave-2); }
+  .d5 .knob { position: relative; width: 92px; height: 92px; }
+  .d5 .knob .cap { position: absolute; left: 16px; top: 16px; width: 60px; height: 60px; border-radius: 50%; background: var(--ink); box-shadow: inset 0 0 0 4px #2d3134; }
+  .d5 .knob .ptr { position: absolute; left: 44px; top: 18px; width: 4px; height: 28px; background: var(--chrome-hi); transform-origin: 2px 28px; transform: rotate(98deg); }
+  .d5 .knob .tick { position: absolute; left: 45px; top: 0; width: 2px; height: 8px; background: var(--engrave-2); transform-origin: 1px 46px; }
+  .d5 .ctl .v { font-weight: 900; font-size: 44px; width: 56px; }
+
+  /* VU tuner */
+  .d5 .vu { position: absolute; left: 210px; top: 84px; width: 860px; height: 380px; overflow: hidden; }
+  .d5 .vu .face { position: absolute; left: 20px; top: 20px; right: 20px; bottom: 20px; background: var(--face); border-radius: 4px; color: var(--face-ink); }
+  .d5 .vu svg { position: absolute; left: 0; top: 0; }
+  .d5 .vu .brand { position: absolute; left: 56px; top: 44px; text-align: left; font-weight: 800; font-size: 22px; letter-spacing: .3em; }
+  .d5 .tn { position: absolute; left: 0; right: 0; top: 478px; text-align: center; font-weight: 900; font-size: 120px; line-height: 1; }
+  .d5 .tn small { font-size: 56px; color: var(--engrave-2); }
+  .d5 .tl { position: absolute; top: 500px; font-weight: 800; font-size: 20px; letter-spacing: .2em; color: var(--engrave-2); }
+  .d5 .tl b { display: block; font-size: 52px; letter-spacing: 0; color: var(--engrave); margin-top: 4px; font-weight: 900; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav"><a href="index.html">Ardor LVGL taste review</a><div class="pager"><a href="4-poster.html">Prev: Poster</a><a href="index.html">Back to overview</a></div></nav>
+  <h1>5. Amp Chassis</h1>
+  <p class="lede">The warmest direction. Presets are engraved faceplates on tolex, the live one is polished chrome with a lit pilot jewel, and the tuner is a real VU meter.</p>
+
+  <div class="notes">
+    <div>
+      <h3>What changes</h3>
+      <ul>
+        <li>Surfaces get material: tolex ground, brushed plates, chrome for the live preset. This is the biggest break from the flat Panel language.</li>
+        <li>Engraving is two 1 px hard offsets, one light and one dark. It reads as depth but has no blur.</li>
+        <li>A pilot jewel on each plate is the LIVE lamp. Only the live one glows red.</li>
+        <li>Master becomes a chicken-head style knob with a printed scale. The tuner becomes a VU face with a needle.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>LVGL build notes</h3>
+      <ul>
+        <li>Textures: tolex and brushed-metal tiles, dithered offline to RGB565 and tiled with <code>lv_image</code>. The dither is baked in, so no banding.</li>
+        <li>Engraved text: two extra <code>lv_label</code> copies offset by 1 px. That triples label count, so use it only for preset names.</li>
+        <li>VU needle: one <code>lv_line</code> rotated with <code>lv_obj_set_style_transform_rotation</code>. The face is a static image.</li>
+        <li>Risk: this look depends on image assets. Each palette would need its own texture set.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="frame"><div class="screen d5">
+      <div class="hdr">
+        <span class="logo chrome"><span class="eng">ARDOR</span></span>
+        <span class="bk eng">BANK 01</span><span class="bn">SUNDAY SET</span><span class="r">1.33 MS</span>
+      </div>
+      <div class="map">
+        <div class="pl chrome"><i class="rv r1"></i><i class="rv r2"></i><i class="rv r3"></i><i class="rv r4"></i>
+          <span class="fs">FS 1  /  LIVE</span><span class="nm eng">Clean Lead</span><span class="amp">CLEAN TWIN  /  OPEN 2X12</span><i class="jewel"></i></div>
+        <div class="pl brushed"><i class="rv r1"></i><i class="rv r2"></i><i class="rv r3"></i><i class="rv r4"></i>
+          <span class="fs">FS 3</span><span class="nm eng">Ambient</span><span class="amp">CLEAN TWIN  /  SHIMMER</span><i class="jewel"></i></div>
+        <div class="pl brushed"><i class="rv r1"></i><i class="rv r2"></i><i class="rv r3"></i><i class="rv r4"></i>
+          <span class="fs">FS 2</span><span class="nm eng">Crunch</span><span class="amp">RAT  /  PLEXI  /  4X12</span><i class="jewel"></i></div>
+        <div class="pl brushed"><i class="rv r1"></i><i class="rv r2"></i><i class="rv r3"></i><i class="rv r4"></i>
+          <span class="fs">FS 4</span><span class="nm eng">Solo</span><span class="amp">FUZZ  /  PLEXI  /  HALL</span><i class="jewel"></i></div>
+      </div>
+      <div class="panel brushed">
+        <span class="sw on">Edit</span><span class="sw">Tuner</span><span class="sw">Looper</span><span class="sw">Bank -</span><span class="sw">Bank +</span><span class="sw">Setup</span>
+        <span class="ctl"><span class="lbl">MASTER</span><span class="knob" id="knob"><i class="cap"></i><i class="ptr"></i></span><span class="v eng">82</span></span>
+      </div>
+    </div></div>
+    <p class="caption"><b>Preset screen.</b> The chrome plate is the brightest surface, and its jewel is the only red. The other plates stay dark and engraved, so they recede without going grey.</p>
+  </div>
+
+  <div class="shot">
+    <div class="frame"><div class="screen d5">
+      <div class="hdr">
+        <span class="logo chrome"><span class="eng">ARDOR</span></span>
+        <span class="bk eng">TUNER</span><span class="r" style="color:#ff8a78">OUTPUT MUTED</span>
+      </div>
+      <div class="vu brushed">
+        <div class="face"></div>
+        <svg id="vu" width="860" height="380" viewBox="0 0 860 380"></svg>
+        <div class="brand" style="color:var(--face-ink)">CENTS</div>
+      </div>
+      <div class="tl" style="left:120px">FLAT<b>-7.0</b></div>
+      <div class="tn eng">A<small>2</small></div>
+      <div class="tl" style="right:120px;text-align:right">FREQ<b>110.9</b></div>
+      <div class="panel brushed" style="height:84px">
+        <span class="sw">Exit</span>
+        <span class="ctl"><span class="lbl">PRESS ANY FOOTSWITCH TO EXIT</span></span>
+      </div>
+    </div></div>
+    <p class="caption"><b>Tuner.</b> A needle is the fastest tuning display to read with peripheral vision, and players know it from hardware tuners. The note sits under the meter in engraved type.</p>
+  </div>
+</div>
+<script>
+  // Master knob scale: 11 ticks over 270 degrees.
+  const knob = document.getElementById("knob");
+  for (let i = 0; i <= 10; i++) {
+    const t = document.createElement("i");
+    t.className = "tick";
+    t.style.transform = `rotate(${-135 + i * 27}deg)`;
+    knob.appendChild(t);
+  }
+
+  // VU scale from -50 to +50 cents across a 100 degree arc.
+  const svg = document.getElementById("vu");
+  const cx = 430, cy = 470, r = 360, span = 100;
+  const pt = (deg, rad) => {
+    const a = (deg - 90) * Math.PI / 180;
+    return [cx + rad * Math.cos(a), cy + rad * Math.sin(a)];
+  };
+  let out = "";
+  for (let c = -50; c <= 50; c += 5) {
+    const deg = c / 50 * span / 2, major = c % 25 === 0;
+    const [x1, y1] = pt(deg, r - (major ? 44 : 26)), [x2, y2] = pt(deg, r);
+    const color = Math.abs(c) <= 5 ? "#c0301f" : "#2a2418";
+    out += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${major ? 4 : 2}"/>`;
+    if (major) {
+      const [tx, ty] = pt(deg, r - 72);
+      out += `<text x="${tx}" y="${ty}" fill="#2a2418" font-family="Sofia Sans Condensed" font-weight="800" font-size="26" text-anchor="middle">${c > 0 ? "+" + c : c}</text>`;
+    }
+  }
+  const [ax, ay] = pt(-5 / 50 * span / 2, r + 4), [bx, by] = pt(5 / 50 * span / 2, r + 4);
+  out += `<path d="M${ax} ${ay} A ${r + 4} ${r + 4} 0 0 1 ${bx} ${by}" stroke="#c0301f" stroke-width="10" fill="none"/>`;
+  const [nx, ny] = pt(-7 / 50 * span / 2, r + 10);
+  const [px, py] = pt(-7 / 50 * span / 2, 190);
+  out += `<line x1="${px}" y1="${py}" x2="${nx}" y2="${ny}" stroke="#17191a" stroke-width="4"/>`;
+  svg.innerHTML = out;
+</script>
+<script src="scale.js"></script>
+</body>
+</html>
