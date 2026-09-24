@@ -26,6 +26,22 @@ constexpr int kEditRailEdgeInset = 28;
 constexpr int kEditTopRailHeight = 52;
 constexpr int kEditBottomRailHeight = 88;
 constexpr int kEditBottomRailY = kDesignHeight - kEditBottomRailHeight;
+// Chain card body: up to two summary rows sit above the card's foot, each a
+// legend, a value and (for continuous controls) a family-coloured bar.
+constexpr std::size_t kSummaryRows = 2;
+constexpr int kSummaryRowPitch = 42;
+constexpr int kSummaryBarTop = 27;
+constexpr int kSummaryBarHeight = 4;
+constexpr int kSummaryBottom = 16;
+constexpr int kSummaryHeight = static_cast<int>(kSummaryRows) * kSummaryRowPitch;
+constexpr int kSummaryValueWidth = 56;
+// Header grip: three flat lines at the right edge mark the drag surface.
+constexpr int kGripLines = 3;
+constexpr int kGripWidth = 18;
+constexpr int kGripGap = 5;
+constexpr int kGripRight = 12;
+// The selected card rests on one hard offset plate.
+constexpr int kLiftOffset = 8;
 
 void drawBypassedOutline(lv_event_t* event)
 {
@@ -696,6 +712,14 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   chainItemEnds_.clear();
   chainInsertionXs_.clear();
   renderedBlockIds_.clear();
+  // Created before every card so it always draws behind the selected one.
+  chainLiftPlate_ = lv_obj_create(chainWorld_);
+  lv_obj_remove_style_all(chainLiftPlate_);
+  lv_obj_set_size(chainLiftPlate_, kChainTileWidth, kChainTileHeight);
+  lv_obj_set_style_bg_opa(chainLiftPlate_, LV_OPA_COVER, 0);
+  lv_obj_set_style_bg_color(chainLiftPlate_, lv_color_hex(rule), 0);
+  lv_obj_remove_flag(chainLiftPlate_, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_flag(chainLiftPlate_, LV_OBJ_FLAG_HIDDEN);
   int x = kChainStartX;
   terminal(x, "INPUT", "MONO");
   x += kChainTerminalWidth + kChainGap;
@@ -749,17 +773,21 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       lv_obj_set_style_opa(categoryHeader, LV_OPA_70, LV_STATE_PRESSED);
 
       lv_obj_t* categoryLabel = label(categoryHeader, uppercase(block.label),
-                                      LV_ALIGN_LEFT_MID, 12, -10,
+                                      LV_ALIGN_LEFT_MID, 12, 0,
                                       &ardor_font_saira_cond_semibold_22,
                                       block.enabled ? bg : muted);
-      lv_obj_set_width(categoryLabel, kChainTileWidth - 24);
+      lv_obj_set_width(categoryLabel, kChainTileWidth - 24 - kGripWidth - kGripRight);
       lv_label_set_long_mode(categoryLabel, LV_LABEL_LONG_CLIP);
-      lv_obj_t* dragLabel = label(categoryHeader, "DRAG", LV_ALIGN_LEFT_MID, 12, 15,
-                                  &ardor_font_saira_cond_semibold_22,
-                                  block.enabled ? bg : muted);
-      lv_obj_set_style_text_letter_space(dragLabel, 3, 0);
       lv_obj_remove_flag(categoryLabel, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_remove_flag(dragLabel, LV_OBJ_FLAG_CLICKABLE);
+      for (int line = 0; line < kGripLines; ++line) {
+        lv_obj_t* grip = lv_obj_create(categoryHeader);
+        lv_obj_remove_style_all(grip);
+        lv_obj_set_size(grip, kGripWidth, 2);
+        lv_obj_align(grip, LV_ALIGN_RIGHT_MID, -kGripRight, (line - 1) * kGripGap);
+        lv_obj_set_style_bg_opa(grip, LV_OPA_COVER, 0);
+        lv_obj_set_style_bg_color(grip, lv_color_hex(block.enabled ? bg : muted), 0);
+        lv_obj_remove_flag(grip, LV_OBJ_FLAG_CLICKABLE);
+      }
       bindBlockDragSurface(categoryHeader, object, i);
 
       lv_obj_t* assetName = label(object, uppercase(block.assetName), LV_ALIGN_TOP_LEFT,
@@ -772,21 +800,13 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
                                  kChainHeaderHeight + 18 + 58, &ardor_font_saira_cond_medium_18, disabled);
       if (block.enabled) lv_obj_add_flag(bypassed, LV_OBJ_FLAG_HIDDEN);
 
-      // Family swatch ticks at the card's foot, first tinted by category,
-      // mirroring the mockup's .grp strip (panel.html lines 146-147).
-      constexpr int kFamilyBarGap = 3;
-      const int familyBarWidth = (kChainTextWidth - 2 * kFamilyBarGap) / 3;
-      lv_obj_t* familyTick = nullptr;
-      for (int bar = 0; bar < 3; ++bar) {
-        lv_obj_t* tick = lv_obj_create(object);
-        lv_obj_set_size(tick, familyBarWidth, 3);
-        lv_obj_set_pos(tick, kChainTextX + bar * (familyBarWidth + kFamilyBarGap),
-                       kChainTileHeight - 16 - 3);
-        styleSurface(tick, block.enabled && bar == 0 ? catColor : rule);
-        lv_obj_set_style_border_width(tick, 0, 0);
-        lv_obj_remove_flag(tick, LV_OBJ_FLAG_CLICKABLE);
-        if (bar == 0) familyTick = tick;
-      }
+      lv_obj_t* summary = lv_obj_create(object);
+      lv_obj_remove_style_all(summary);
+      lv_obj_set_size(summary, kChainTextWidth, kSummaryHeight);
+      lv_obj_set_pos(summary, kChainTextX, kChainTileHeight - kSummaryBottom - kSummaryHeight);
+      lv_obj_remove_flag(summary, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_remove_flag(summary, LV_OBJ_FLAG_SCROLLABLE);
+      renderChainSummary(summary, block);
 
       auto* clickContext = remember(state, i);
       lv_obj_add_event_cb(object, onBlockClicked, LV_EVENT_CLICKED, clickContext);
@@ -795,7 +815,7 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       chainCategoryLabels_[i] = categoryLabel;
       chainAssetLabels_[i] = assetName;
       chainBypassLabels_[i] = bypassed;
-      chainFamilyTicks_[i] = familyTick;
+      chainSummaries_[i] = summary;
       chainClickContexts_[i] = clickContext;
       x += kChainTileWidth;
     } else {
@@ -1203,6 +1223,55 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   lv_obj_set_style_text_color(lv_obj_get_child(done, 0), lv_color_hex(bg), 0);
   lv_obj_set_style_text_letter_space(lv_obj_get_child(done, 0), 2, 0);
   lv_obj_add_event_cb(done, onPresetModeClicked, LV_EVENT_PRESSED, remember(state));
+}
+
+void LvglUi::renderChainSummary(lv_obj_t* container, const UiBlock& block)
+{
+  if (!container) return;
+  lv_obj_clean(container);
+  // A bypassed card shows only its OFF legend; values would suggest it runs.
+  if (!block.enabled) return;
+  const auto family = static_cast<std::uint32_t>(categoryColor(block.type));
+  int y = 0;
+  for (const auto& item : blockSummaryControls(block, kSummaryRows)) {
+    lv_obj_t* legend = label(container, uppercase(item.label), LV_ALIGN_TOP_LEFT, 0, y,
+                             &ardor_font_saira_cond_medium_18, muted);
+    lv_obj_set_width(legend, kChainTextWidth - kSummaryValueWidth);
+    lv_label_set_long_mode(legend, LV_LABEL_LONG_CLIP);
+    lv_obj_t* value = label(container, item.formatted, LV_ALIGN_TOP_RIGHT, 0, y,
+                            &ardor_font_saira_cond_medium_18, text);
+    lv_obj_set_width(value, kSummaryValueWidth);
+    lv_obj_set_style_text_align(value, LV_TEXT_ALIGN_RIGHT, 0);
+    lv_label_set_long_mode(value, LV_LABEL_LONG_CLIP);
+    if (item.kind == ParameterControlKind::Continuous && item.maximum > item.minimum) {
+      const float fraction = std::clamp((item.value - item.minimum) / (item.maximum - item.minimum),
+                                        0.0f, 1.0f);
+      lv_obj_t* bar = lv_obj_create(container);
+      lv_obj_remove_style_all(bar);
+      lv_obj_set_size(bar, std::max(2, static_cast<int>(fraction * kChainTextWidth)),
+                      kSummaryBarHeight);
+      lv_obj_set_pos(bar, 0, y + kSummaryBarTop);
+      lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, 0);
+      lv_obj_set_style_bg_color(bar, lv_color_hex(family), 0);
+      lv_obj_remove_flag(bar, LV_OBJ_FLAG_CLICKABLE);
+    }
+    y += kSummaryRowPitch;
+  }
+}
+
+void LvglUi::syncChainLiftPlate(const UiState& state)
+{
+  if (!chainLiftPlate_) return;
+  const bool topLevelSelected = state.paramTarget == UiParamTarget::Block
+    && !selectedBlockIsLaneChild(state) && state.selectedBlock < chainCards_.size();
+  lv_obj_t* card = topLevelSelected ? chainCards_[state.selectedBlock] : nullptr;
+  // Only full-height module cards lift; split/join junctions stay flat.
+  if (!card || lv_obj_get_height(card) != kChainTileHeight) {
+    lv_obj_add_flag(chainLiftPlate_, LV_OBJ_FLAG_HIDDEN);
+    return;
+  }
+  lv_obj_set_pos(chainLiftPlate_, lv_obj_get_x(card) + kLiftOffset, lv_obj_get_y(card) + kLiftOffset);
+  lv_obj_remove_flag(chainLiftPlate_, LV_OBJ_FLAG_HIDDEN);
 }
 
 } // namespace ardor

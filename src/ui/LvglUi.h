@@ -264,6 +264,8 @@ private:
   void syncHeaderView(const UiState& state);
   void syncPresetCards(const UiState& state);
   void stylePresetCard(const UiState& state, std::size_t index);
+  static void renderChainSummary(lv_obj_t* container, const UiBlock& block);
+  void syncChainLiftPlate(const UiState& state);
   void syncScenesView(const UiState& state);
   void syncStatusView(const UiState& state);
   void syncPersistentViews(UiState& state);
@@ -413,7 +415,10 @@ private:
   std::array<lv_obj_t*, kMaxEffectBlocks> chainCategoryLabels_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainAssetLabels_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainBypassLabels_{};
-  std::array<lv_obj_t*, kMaxEffectBlocks> chainFamilyTicks_{};
+  // Up to two value rows per card, and one hard offset plate that lifts the
+  // selected card.
+  std::array<lv_obj_t*, kMaxEffectBlocks> chainSummaries_{};
+  lv_obj_t* chainLiftPlate_ = nullptr;
   std::array<UiEventContext*, kMaxEffectBlocks> chainClickContexts_{};
   std::array<UiEventContext*, kMaxEffectBlocks> chainDragContexts_{};
   std::vector<std::string> renderedBlockIds_;

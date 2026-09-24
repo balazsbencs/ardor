@@ -230,7 +230,8 @@ void LvglUi::rebuildEditView(UiState& state)
   chainCategoryLabels_.fill(nullptr);
   chainAssetLabels_.fill(nullptr);
   chainBypassLabels_.fill(nullptr);
-  chainFamilyTicks_.fill(nullptr);
+  chainSummaries_.fill(nullptr);
+  chainLiftPlate_ = nullptr;
   chainClickContexts_.fill(nullptr);
   chainDragContexts_.fill(nullptr);
   renderedBlockIds_.clear();
@@ -245,6 +246,7 @@ void LvglUi::rebuildEditView(UiState& state)
   contextRegion_ = UiContextRegion::Edit;
   renderEditMode(editLayer_, state);
   contextRegion_ = UiContextRegion::None;
+  syncChainLiftPlate(state);
 }
 
 void LvglUi::syncChainCards(UiState& state)
@@ -265,7 +267,7 @@ void LvglUi::syncChainCards(UiState& state)
   for (std::size_t i = 0; i < blocks.size(); ++i) {
     const auto& block = blocks[i];
     if (!chainCards_[i] || !chainCategoryLabels_[i] || !chainAssetLabels_[i]
-        || !chainBypassLabels_[i] || !chainFamilyTicks_[i]
+        || !chainBypassLabels_[i] || !chainSummaries_[i]
         || !chainClickContexts_[i] || !chainDragContexts_[i]) {
       rebuildEditView(state);
       return;
@@ -290,14 +292,13 @@ void LvglUi::syncChainCards(UiState& state)
     }
 
     lv_label_set_text(chainCategoryLabels_[i], uppercase(block.label).c_str());
-    setText(chainCategoryLabels_[i], block.enabled ? bg : muted, &ardor_font_saira_cond_medium_18);
+    setText(chainCategoryLabels_[i], block.enabled ? bg : muted, &ardor_font_saira_cond_semibold_22);
     auto* categoryHeader = lv_obj_get_parent(chainCategoryLabels_[i]);
     styleSurface(categoryHeader, block.enabled ? categoryColor(block.type) : rule);
     lv_obj_set_style_border_width(categoryHeader, 0, 0);
     lv_label_set_text(chainAssetLabels_[i], uppercase(block.assetName).c_str());
     setText(chainAssetLabels_[i], block.enabled ? text : disabled, &ardor_font_saira_cond_semibold_28);
-    styleSurface(chainFamilyTicks_[i], block.enabled ? categoryColor(block.type) : rule);
-    lv_obj_set_style_border_width(chainFamilyTicks_[i], 0, 0);
+    renderChainSummary(chainSummaries_[i], block);
     if (block.enabled) {
       lv_obj_add_flag(chainBypassLabels_[i], LV_OBJ_FLAG_HIDDEN);
     } else {
@@ -308,6 +309,7 @@ void LvglUi::syncChainCards(UiState& state)
     chainDragContexts_[i]->index = i;
     chainDragContexts_[i]->controlledObject = card;
   }
+  syncChainLiftPlate(state);
 }
 
 } // namespace ardor

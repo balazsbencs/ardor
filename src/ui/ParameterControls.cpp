@@ -78,6 +78,8 @@ ParameterControl choiceControl(std::string key, std::string label, std::vector<s
           static_cast<float>(selected), choices[selected], kind, std::move(choices)};
 }
 
+std::vector<ParameterControl> controlsForBlock(const UiBlock& block);
+
 std::vector<ParameterControl> controlsFor(const UiState& state)
 {
   if (state.paramTarget == UiParamTarget::Globals) {
@@ -90,7 +92,11 @@ std::vector<ParameterControl> controlsFor(const UiState& state)
 
   const auto* selected = selectedUiBlock(state);
   if (!selected) return {};
-  const auto& block = *selected;
+  return controlsForBlock(*selected);
+}
+
+std::vector<ParameterControl> controlsForBlock(const UiBlock& block)
+{
   if (block.type == "nam") {
     bool useNano = false;
     const auto explicitPreference = block.params.find("useNano");
@@ -363,6 +369,20 @@ std::vector<ParameterControl> parameterPage(const UiState& state, std::size_t pa
   const std::size_t last = std::min(first + kControlsPerPage, controls.size());
   return {controls.begin() + static_cast<std::ptrdiff_t>(first),
           controls.begin() + static_cast<std::ptrdiff_t>(last)};
+}
+
+std::vector<ParameterControl> blockSummaryControls(const UiBlock& block, std::size_t count)
+{
+  const auto controls = controlsForBlock(block);
+  std::vector<ParameterControl> summary;
+  summary.reserve(std::min(count, controls.size()));
+  for (const bool continuous : {true, false}) {
+    for (const auto& item : controls) {
+      if (summary.size() >= count) return summary;
+      if ((item.kind == ParameterControlKind::Continuous) == continuous) summary.push_back(item);
+    }
+  }
+  return summary;
 }
 
 std::size_t parameterPageCount(const UiState& state)

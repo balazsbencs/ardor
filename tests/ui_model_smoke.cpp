@@ -1139,6 +1139,36 @@ int main()
               "selected block delete should remove the selected id")) return 1;
   if (require(migrationState.dirty, "selected block delete should dirty the preset")) return 1;
 
+  {
+    // Chain cards summarise a block with its first continuous controls, then
+    // fill up with choices, so a card never needs the block to be selected.
+    auto summaryState = ardor::makeDemoUiState();
+    const auto& summaryBlocks = summaryState.bank.presets[summaryState.activePreset].blocks;
+    for (std::size_t index = 0; index < summaryBlocks.size(); ++index) {
+      ardor::selectBlock(summaryState, index);
+      const auto full = ardor::parameterPage(summaryState, 0);
+      std::vector<std::string> expected;
+      for (const auto& item : full) {
+        if (item.kind == ardor::ParameterControlKind::Continuous && expected.size() < 2) {
+          expected.push_back(item.key);
+        }
+      }
+      for (const auto& item : full) {
+        if (item.kind != ardor::ParameterControlKind::Continuous && expected.size() < 2) {
+          expected.push_back(item.key);
+        }
+      }
+      const auto summary = ardor::blockSummaryControls(summaryBlocks[index], 2);
+      std::vector<std::string> keys;
+      for (const auto& item : summary) keys.push_back(item.key);
+      if (require(keys == expected,
+                  "block summary should list continuous controls first: " + summaryBlocks[index].type)) {
+        return 1;
+      }
+      if (require(summary.size() <= 2, "block summary should respect the requested count")) return 1;
+    }
+  }
+
   ardor::Preset eqAssetNamePreset;
   eqAssetNamePreset.name = "EQ Asset Name";
   eqAssetNamePreset.blocks.push_back({"eq-asset", "eq", true, "",

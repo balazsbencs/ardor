@@ -76,6 +76,22 @@ bool containsKey(const std::vector<ardor::ParameterControl>& controls, const cha
   });
 }
 
+// Last match in tree order. Parameter drawers are created after the chain,
+// so this finds a drawer control even when a chain-card summary repeats its
+// legend ("DEPTH" on both).
+lv_obj_t* findLastLabel(lv_obj_t* parent, const char* text)
+{
+  for (uint32_t i = lv_obj_get_child_count(parent); i > 0; --i) {
+    if (auto* result = findLastLabel(lv_obj_get_child(parent, static_cast<int32_t>(i - 1)), text)) {
+      return result;
+    }
+  }
+  if (lv_obj_check_type(parent, &lv_label_class) && std::strcmp(lv_label_get_text(parent), text) == 0) {
+    return parent;
+  }
+  return nullptr;
+}
+
 lv_obj_t* findLabel(lv_obj_t* parent, const char* text)
 {
   if (lv_obj_check_type(parent, &lv_label_class) && std::strcmp(lv_label_get_text(parent), text) == 0) {
@@ -1072,7 +1088,7 @@ int main()
   lv_obj_t* title = findLabel(lv_screen_active(), titleText.c_str());
   lv_obj_t* status = findLabel(lv_screen_active(), "Preset saved");
   lv_obj_t* undoLabel = findLabel(lv_screen_active(), "UNDO");
-  lv_obj_t* depthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  lv_obj_t* depthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
   lv_obj_t* depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
   lv_obj_t* depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
   if (require(title && depthSlider && depthFill, "parameter header and slider should render")) return 1;
@@ -1248,7 +1264,7 @@ int main()
   page = findLabel(lv_screen_active(), "PAGE 1 / 2");
   next = findLabel(lv_screen_active(), ">");
   title = findLabel(lv_screen_active(), titleText.c_str());
-  depthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  depthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
   depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
 
@@ -1264,6 +1280,24 @@ int main()
   if (require(firstChainBlock && lv_obj_get_width(firstChainBlock) == 168
                 && lv_obj_get_height(firstChainBlock) == 326,
               "the chain should use tall engraved module cards, per the mockup")) return 1;
+  {
+    // The selected card lifts on one hard offset plate behind it: no blur,
+    // so it cannot band on the RGB565 panel.
+    lv_obj_t* selectedCard = nullptr;
+    for (uint32_t child = 0; child < lv_obj_get_child_count(lv_obj_get_parent(firstChainBlock)); ++child) {
+      lv_obj_t* candidate = lv_obj_get_child(lv_obj_get_parent(firstChainBlock), static_cast<int32_t>(child));
+      if (lv_obj_get_width(candidate) == 168 && lv_obj_get_height(candidate) == 326
+          && lv_obj_get_style_border_width(candidate, LV_PART_MAIN) == 3) {
+        selectedCard = candidate;
+      }
+    }
+    lv_obj_t* liftPlate = selectedCard ? findObjectWithSizeAndBgColor(
+      lv_obj_get_parent(selectedCard), lv_color_hex(ardor::lvgl_ui::rule), 168, 326) : nullptr;
+    if (require(selectedCard && liftPlate && !lv_obj_has_flag(liftPlate, LV_OBJ_FLAG_HIDDEN)
+                  && lv_obj_get_x(liftPlate) == lv_obj_get_x(selectedCard) + 8
+                  && lv_obj_get_y(liftPlate) == lv_obj_get_y(selectedCard) + 8,
+                "the selected chain card should lift on a hard offset plate")) return 1;
+  }
   int retainedChainCardMarker = 0;
   lv_obj_set_user_data(firstChainBlock, &retainedChainCardMarker);
   ui.selectBlock(state, state.selectedBlock);
@@ -1276,12 +1310,13 @@ int main()
               "selection-only chain updates should retain existing card objects")) return 1;
   if (require(lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE),
               "the signal canvas should scroll independently of dedicated drag handles")) return 1;
-  lv_obj_t* dragHandleLabel = findLabel(chain, "DRAG");
-  if (require(dragHandleLabel
-                && lv_obj_get_width(lv_obj_get_parent(dragHandleLabel)) == 168
-                && lv_obj_get_height(lv_obj_get_parent(dragHandleLabel)) == 64,
+  // The title bar is still the drag surface; a flat grip replaces the old
+  // DRAG legend so the header can carry only the block type.
+  lv_obj_t* dragHandle = lv_obj_get_parent(firstCategoryLabel);
+  if (require(dragHandle && lv_obj_get_width(dragHandle) == 168
+                && lv_obj_get_height(dragHandle) == 64
+                && !findLabel(dragHandle, "DRAG"),
               "chain blocks should use the full title bar as a touch drag target")) return 1;
-  lv_obj_t* dragHandle = lv_obj_get_parent(dragHandleLabel);
   lv_obj_send_event(dragHandle, LV_EVENT_PRESSED, nullptr);
   if (require(!lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE)
                 && lv_obj_get_scrollbar_mode(chain) == LV_SCROLLBAR_MODE_OFF,
@@ -1293,9 +1328,8 @@ int main()
   lv_obj_t* firstCardAssetLabel = findLabel(firstChainBlock,
       upper(state.bank.presets[state.activePreset].blocks.front().assetName).c_str());
   lv_obj_t* firstOffLabel = findLabel(firstChainBlock, "OFF");
-  lv_obj_t* firstDragHandle = findLabel(firstChainBlock, "DRAG");
-  if (require(firstCategoryLabel && firstCardAssetLabel && firstOffLabel && firstDragHandle,
-              "disabled chain card should render its name, OFF state, and drag handle")) return 1;
+  if (require(firstCategoryLabel && firstCardAssetLabel && firstOffLabel,
+              "disabled chain card should render its name and OFF state")) return 1;
   if (require(!findLabel(firstChainBlock, "BYPASSED")
                 && lv_obj_has_state(firstChainBlock, LV_STATE_USER_1)
                 && lv_obj_get_style_bg_opa(firstChainBlock, LV_PART_MAIN) == LV_OPA_TRANSP,
@@ -1303,18 +1337,12 @@ int main()
   lv_area_t firstCategoryArea{};
   lv_area_t firstAssetArea{};
   lv_area_t firstOffArea{};
-  lv_area_t firstDragHandleArea{};
   lv_obj_get_coords(firstCategoryLabel, &firstCategoryArea);
   lv_obj_get_coords(firstCardAssetLabel, &firstAssetArea);
   lv_obj_get_coords(firstOffLabel, &firstOffArea);
-  lv_obj_get_coords(firstDragHandle, &firstDragHandleArea);
   if (require(firstCategoryArea.y2 < firstAssetArea.y1
                 && firstAssetArea.y2 < firstOffArea.y1,
               "chain-card category, asset, and OFF labels should occupy separate rows")) return 1;
-  // The large drag surface stacks its category and action into separate rows;
-  // the asset name and OFF status continue in the card body below it.
-  if (require(firstCategoryArea.y2 < firstDragHandleArea.y1,
-              "the chain-card header should separate its category and drag instruction")) return 1;
   state.bank.presets[state.activePreset].blocks.front().enabled = true;
   ardor::markUiChanged(state, ardor::UiChange::Chain);
   ui.refresh(lv_screen_active(), state);
@@ -1322,6 +1350,16 @@ int main()
                 && lv_obj_get_style_bg_opa(firstChainBlock, LV_PART_MAIN) == LV_OPA_COVER
                 && lv_obj_has_flag(firstOffLabel, LV_OBJ_FLAG_HIDDEN),
               "enabling a retained chain card should clear its outline state")) return 1;
+  {
+    // Enabled cards summarise the block with its main values instead of the
+    // old family ticks; the summary follows parameter edits on retained cards.
+    const auto& summaryBlock = state.bank.presets[state.activePreset].blocks.front();
+    const auto summary = ardor::blockSummaryControls(summaryBlock, 2);
+    if (require(!summary.empty()
+                  && findLabel(firstChainBlock, upper(summary[0].label).c_str())
+                  && findLabel(firstChainBlock, summary[0].formatted.c_str()),
+                "enabled chain cards should show their main parameter values")) return 1;
+  }
   state.bank.presets[state.activePreset].blocks.front().enabled = false;
   ardor::markUiChanged(state, ardor::UiChange::Chain);
   ui.refresh(lv_screen_active(), state);
@@ -1360,7 +1398,7 @@ int main()
   ui.refresh(lv_screen_active(), state);
   title = findLabel(lv_screen_active(), titleText.c_str());
   page = findLabel(lv_screen_active(), "PAGE 1 / 2");
-  depthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  depthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
   depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
 
@@ -1444,7 +1482,7 @@ int main()
   ui.focusParameter(depth->key);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  lv_obj_t* focusedLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  lv_obj_t* focusedLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
   lv_obj_t* focusedSlider = focusedLabel ? lv_obj_get_parent(focusedLabel) : nullptr;
   if (require(focusedSlider && lv_obj_get_style_outline_width(focusedSlider, LV_PART_MAIN) == 1
                 && lv_color_eq(lv_obj_get_style_outline_color(focusedSlider, LV_PART_MAIN), lv_color_hex(ardor::lvgl_ui::lamp)),
@@ -1455,7 +1493,7 @@ int main()
   if (require(ui.applyFocusedParameterDelta(state, 1), "focused encoder adjustment should be consumed")) return 1;
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  focusedLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  focusedLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
   focusedSlider = focusedLabel ? lv_obj_get_parent(focusedLabel) : nullptr;
   focusedFill = focusedSlider ? findObjectWithBgColor(focusedSlider, lv_color_hex(ardor::lvgl_ui::lamp)) : nullptr;
   if (require(focusedFill && lv_obj_get_width(focusedFill) > minimumFillWidth,
@@ -1463,7 +1501,7 @@ int main()
 
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  lv_obj_t* stableDepthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  lv_obj_t* stableDepthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
   lv_obj_t* stableDepthSlider = stableDepthLabel ? lv_obj_get_parent(stableDepthLabel) : nullptr;
   lv_obj_t* stableFill = stableDepthSlider
     ? findObjectWithBgColor(stableDepthSlider, lv_color_hex(ardor::lvgl_ui::lamp)) : nullptr;
@@ -1474,7 +1512,7 @@ int main()
   if (require(ui.applyFocusedParameterDelta(state, 5), "targeted encoder adjustment should be consumed")) return 1;
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(stableDepthSlider);
-  lv_obj_t* retainedDepthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  lv_obj_t* retainedDepthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
   if (require(retainedDepthLabel && lv_obj_get_parent(retainedDepthLabel) == stableDepthSlider,
               "targeted encoder adjustment should retain the slider object")) return 1;
   if (require(lv_obj_get_width(stableFill) > stableFillWidth,
@@ -1482,7 +1520,7 @@ int main()
   ui.focusParameter("");
   ardor::setSelectedBlockParam(state, "depth", depth->minimum);
   ui.refresh(lv_screen_active(), state);
-  retainedDepthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  retainedDepthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
   if (require(retainedDepthLabel && lv_obj_get_parent(retainedDepthLabel) == stableDepthSlider,
               "model-driven parameter updates should retain the slider object")) return 1;
   const auto retainedBlockIndex = state.selectedBlock;
@@ -1490,14 +1528,14 @@ int main()
   ui.refresh(lv_screen_active(), state);
   ui.selectBlock(state, retainedBlockIndex);
   ui.refresh(lv_screen_active(), state);
-  retainedDepthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  retainedDepthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
   if (require(retainedDepthLabel && lv_obj_get_parent(retainedDepthLabel) == stableDepthSlider,
               "switching parameter targets should reactivate the cached retained panel")) return 1;
 
   ardor::setSelectedBlockParam(state, "depth", depth->maximum);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  depthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  depthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
   depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
   lv_obj_t* depthRail = depthSlider ? findObjectWithHeight(depthSlider, 18) : nullptr;
