@@ -208,6 +208,10 @@ void onAssetClicked(lv_event_t* event)
 lv_obj_t* decorateDrawerItem(lv_obj_t* item, const UiAsset& asset)
 {
   const int columnWidth = kBlockDrawerContentWidth - 14 - kDrawerItemTextX - kDrawerGripBarWidth - 27;
+  // The column math above measures from the row's true edges. The theme's
+  // button padding would shift every child inwards and push the subtitle
+  // under the grip, so the row carries no padding.
+  lv_obj_set_style_pad_all(item, 0, 0);
 
   // Name and subtitle sit inline on one line, per the mockup ("CHORUS
   // Modulation · 6 controls..."), not stacked -- the title auto-sizes to its

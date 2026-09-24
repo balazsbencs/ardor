@@ -2461,6 +2461,24 @@ int main()
               "drawer asset tiles should be charcoal")) return 1;
   if (require(lv_obj_get_height(tremAssetButton) == 72,
               "drawer asset tiles should have large vertical touch targets")) return 1;
+  {
+    // Child order is fixed: 0 title, 1 code square, 2 subtitle, 3 grip.
+    lv_obj_t* rows = lv_obj_get_parent(tremAssetButton);
+    int checkedRows = 0;
+    bool clear = true;
+    for (uint32_t row = 0; row < lv_obj_get_child_count(rows); ++row) {
+      lv_obj_t* item = lv_obj_get_child(rows, static_cast<int32_t>(row));
+      if (lv_obj_has_flag(item, LV_OBJ_FLAG_HIDDEN) || lv_obj_get_child_count(item) < 4) continue;
+      lv_area_t subtitleArea{};
+      lv_area_t gripArea{};
+      lv_obj_get_coords(lv_obj_get_child(item, 2), &subtitleArea);
+      lv_obj_get_coords(lv_obj_get_child(item, 3), &gripArea);
+      clear = clear && subtitleArea.x2 < gripArea.x1;
+      ++checkedRows;
+    }
+    if (require(checkedRows > 0 && clear,
+                "drawer subtitles should end before the drag grip")) return 1;
+  }
   lv_obj_t* assetList = lv_obj_get_parent(tremAssetButton);
   if (require(lv_obj_has_flag(assetList, LV_OBJ_FLAG_SCROLLABLE)
                 && lv_obj_get_scroll_dir(assetList) == LV_DIR_VER,
