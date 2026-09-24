@@ -133,6 +133,10 @@ The pedal's default Slate palette carries the **Lamp Black** values (`device-*` 
 
 The website's screen showcase (`website/src/components/screens/`) uses the same values, and its preset screen mirrors the flooded live tile, chain strip and master meter.
 
+Device extras beyond the Panel tokens: **raised plate** (`#202326`) for selected chips and segments, **lamp ink** (`#1a0b08`) for lettering on the flooded lamp, **danger** text on a **danger rule** (`#f0a497` on `#6b3a32`) for destructive actions, a **lift shadow** (`#040505`) under the selected chain card, and **warn ink** (`#1b1305`) on warn tags.
+
+**Device type scale.** The device renders the mockup's CSS type exactly: Saira Condensed 500–800, Saira 400–700 and JetBrains Mono 500 (the chain-strip and module codes), cut to bitmap fonts in `src/ui/fonts/lamp/` by `scripts/generate-lamp-black-fonts.sh`. Each role (header title, rail button, control value, chip, cap…) is a named `lb::type` in `src/ui/LampBlack.h`, which also places text on the CSS baseline so glyphs land where the mockup puts them. Every screen shares the 64 px header over a rule, the 108 px rail with 60 px buttons at y = 637, 12 px gaps and the 24 px gutter.
+
 ## Typography
 
 **Display Font:** Saira Condensed (with Arial Narrow, sans-serif)

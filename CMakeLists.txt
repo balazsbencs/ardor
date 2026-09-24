@@ -312,6 +312,7 @@ target_link_libraries(ardor_ui PUBLIC ardor_preset)
 if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   target_sources(ardor_ui PRIVATE
     src/ui/CloudClaimOverlay.cpp
+    src/ui/LampBlack.cpp
     src/ui/LvglChainLayout.cpp
     src/ui/LvglUi.cpp
     src/ui/LvglUiChainInteraction.cpp
@@ -342,10 +343,16 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
     src/ui/fonts/SairaLight44.c
     src/ui/fonts/SairaCondSemiboldTuner110.c
   )
+  file(GLOB ARDOR_LAMP_BLACK_FONTS CONFIGURE_DEPENDS src/ui/fonts/lamp/*.c)
+  target_sources(ardor_ui PRIVATE ${ARDOR_LAMP_BLACK_FONTS})
   target_link_libraries(ardor_ui PUBLIC lvgl)
 
   add_executable(pedal-lvgl-ui-smoke tests/lvgl_ui_smoke.cpp)
   target_link_libraries(pedal-lvgl-ui-smoke PRIVATE ardor_ui)
+
+  # Renders every screen to PPM for visual review; not a ctest.
+  add_executable(pedal-lvgl-ui-screenshots tests/lvgl_ui_screenshots.cpp)
+  target_link_libraries(pedal-lvgl-ui-screenshots PRIVATE ardor_ui)
 
   add_executable(pedal-cloud-claim-overlay-smoke tests/cloud_claim_overlay_smoke.cpp)
   target_link_libraries(pedal-cloud-claim-overlay-smoke PRIVATE ardor_ui)

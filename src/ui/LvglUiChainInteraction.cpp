@@ -115,7 +115,7 @@ void LvglUi::setChainDragActive(bool active)
     lv_obj_set_scrollbar_mode(chainViewport_, LV_SCROLLBAR_MODE_OFF);
   } else {
     lv_obj_add_flag(chainViewport_, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_scrollbar_mode(chainViewport_, LV_SCROLLBAR_MODE_AUTO);
+    lv_obj_set_scrollbar_mode(chainViewport_, LV_SCROLLBAR_MODE_ACTIVE);
   }
 }
 
@@ -273,41 +273,11 @@ void LvglUi::syncChainCards(UiState& state)
       return;
     }
 
-    auto* card = chainCards_[i];
-    styleSurface(card, block.enabled ? panel : panelAlt);
-    lv_obj_set_style_bg_opa(card, block.enabled ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
-    lv_obj_set_style_opa(card, LV_OPA_COVER, 0);
-    if (block.enabled) {
-      lv_obj_remove_state(card, LV_STATE_USER_1);
-    } else {
-      lv_obj_add_state(card, LV_STATE_USER_1);
-    }
-    const bool selected = state.paramTarget == UiParamTarget::Block
-      && state.selectedBlock == i && !selectedBlockIsLaneChild(state);
-    lv_obj_set_style_border_color(card, lv_color_hex(selected ? text : rule), 0);
-    lv_obj_set_style_border_width(card, selected ? 3 : (block.enabled ? 1 : 0), 0);
-    if (isBlockHighlighted(block.id)) {
-      lv_obj_set_style_border_color(card, lv_color_hex(text), 0);
-      lv_obj_set_style_border_width(card, 3, 0);
-    }
-
-    lv_label_set_text(chainCategoryLabels_[i], uppercase(block.label).c_str());
-    setText(chainCategoryLabels_[i], block.enabled ? bg : muted, &ardor_font_saira_cond_semibold_22);
-    auto* categoryHeader = lv_obj_get_parent(chainCategoryLabels_[i]);
-    styleSurface(categoryHeader, block.enabled ? categoryColor(block.type) : rule);
-    lv_obj_set_style_border_width(categoryHeader, 0, 0);
-    lv_label_set_text(chainAssetLabels_[i], uppercase(block.assetName).c_str());
-    setText(chainAssetLabels_[i], block.enabled ? text : disabled, &ardor_font_saira_cond_semibold_28);
-    renderChainSummary(chainSummaries_[i], state, block);
-    if (block.enabled) {
-      lv_obj_add_flag(chainBypassLabels_[i], LV_OBJ_FLAG_HIDDEN);
-    } else {
-      lv_obj_remove_flag(chainBypassLabels_[i], LV_OBJ_FLAG_HIDDEN);
-    }
+    styleChainCard(state, i);
 
     chainClickContexts_[i]->index = i;
     chainDragContexts_[i]->index = i;
-    chainDragContexts_[i]->controlledObject = card;
+    chainDragContexts_[i]->controlledObject = chainCards_[i];
   }
   syncChainLiftPlate(state);
 }

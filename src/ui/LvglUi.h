@@ -253,6 +253,7 @@ private:
   void syncChainCards(UiState& state);
   void syncDrawerAssets(UiState& state);
   void syncDrawerView(UiState& state);
+  void orderDrawerList(const UiState& state, const std::vector<lv_obj_t*>& buttons);
   void syncParameterView(UiState& state);
   // Reads state.compressorGainReductionDb into the meter widget directly.
   // Called from refresh() BEFORE the activeInteractions_ gate (same carve-out
@@ -265,6 +266,7 @@ private:
   void syncPresetCards(const UiState& state);
   void stylePresetCard(const UiState& state, std::size_t index);
   static void renderChainSummary(lv_obj_t* container, const UiState& state, const UiBlock& block);
+  void styleChainCard(const UiState& state, std::size_t index);
   void syncChainLiftPlate(const UiState& state);
   void syncParameterChipStrip(UiState& state);
   void syncScenesView(const UiState& state);
@@ -333,6 +335,9 @@ private:
   // docs/lvgl-ui-redesign-spec.md §4f). Distinct from the shared status-bar
   // members above, which remain in use by the screens not yet migrated.
   lv_obj_t* presetBankLabel_ = nullptr;
+  lv_obj_t* presetBankTitleLabel_ = nullptr;
+  // Rail controls in order, re-laid out when the Looper legend changes width.
+  std::vector<lv_obj_t*> presetRailItems_;
   lv_obj_t* presetTelemetryLabel_ = nullptr;
   lv_obj_t* presetMasterValueLabel_ = nullptr;
   lv_obj_t* presetMasterMeter_ = nullptr;
@@ -359,6 +364,7 @@ private:
   lv_obj_t* undoButton_ = nullptr;
   std::uint64_t statusToastRevision_ = 0;
   const UiState* statusToastState_ = nullptr;
+  lv_obj_t* tunerPlate_ = nullptr;
   lv_obj_t* tunerNoteLabel_ = nullptr;
   lv_obj_t* tunerFrequencyLabel_ = nullptr;
   lv_obj_t* tunerCentsLabel_ = nullptr;
@@ -404,6 +410,7 @@ private:
   lv_obj_t* looperClearTrackOverlay_ = nullptr;
   std::array<lv_obj_t*, 4> presetCardLabels_{};
   std::array<lv_obj_t*, 4> presetCardButtons_{};
+  // LIVE tag plate per tile; shown only on the active preset.
   std::array<lv_obj_t*, 4> presetHeaderStrips_{};
   std::array<lv_obj_t*, 4> presetHeaderLabels_{};
   // Chain strip per preset tile. The cache keeps retained syncs from
@@ -435,6 +442,8 @@ private:
   static constexpr std::size_t kDrawerCategoryCount = 8;
   std::array<lv_obj_t*, kDrawerCategoryCount> drawerCategoryButtons_{};
   std::vector<lv_obj_t*> drawerAssetButtons_;
+  // One header row per module family in the drawer list, keyed by filter.
+  std::vector<std::pair<std::string, lv_obj_t*>> drawerGroupHeaders_;
   std::vector<UiEventContext*> drawerAssetContexts_;
   std::vector<lv_obj_t*> drawerAssetSubtitleLabels_;
   std::vector<std::string> renderedAssetKeys_;

@@ -1,5 +1,6 @@
 #include "ui/LvglUi.h"
 
+#include "ui/LampBlack.h"
 #include "ui/LvglUiStyle.h"
 
 #include <algorithm>
@@ -18,11 +19,18 @@ constexpr std::array<std::pair<const char*, PaletteId>, 4> kPalettes = {{
   {"Sodium", PaletteId::Sodium},
   {"Nord", PaletteId::Nord},
 }};
-// Four tiles across the same 944 px band three used to share unevenly (290
-// wide with room to spare) -- shrunk just enough to fit the new palette
-// without spilling past the content column's right edge.
-constexpr int kPaletteTileWidth = 224;
-constexpr int kPaletteTileStep = 240;
+// Setup layout: a 220 px section list and a content plate between the
+// 64 px header and the 108 px rail.
+constexpr int kSettingsNavTop = 80;
+constexpr int kSettingsNavWidth = 220;
+constexpr int kSettingsContentX = lb::kGutter + kSettingsNavWidth + lb::kGap;
+constexpr int kSettingsContentY = 80;
+constexpr int kSettingsContentWidth = kDesignWidth - lb::kGutter - kSettingsContentX;
+constexpr int kSettingsContentHeight = lb::kRailY - 12 - kSettingsContentY;
+constexpr int kSettingsPad = 27;
+constexpr int kWifiLabelTop = 104;
+constexpr int kWifiFieldTop = 132;
+constexpr int kWifiKeyboardTop = 208;
 constexpr std::array<std::uint32_t, 3> kAudioBlockSizes = {32, 64, 128};
 constexpr std::array<const char*, 3> kAudioBlockTimes = {"0.67 ms", "1.33 ms", "2.67 ms"};
 
@@ -363,183 +371,139 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
   }
   lv_obj_remove_flag(root, LV_OBJ_FLAG_HIDDEN);
 
-  lv_obj_t* backdrop = lv_obj_create(root);
-  lv_obj_set_size(backdrop, kDesignWidth, kDesignHeight);
-  lv_obj_set_pos(backdrop, 0, 0);
-  styleSurface(backdrop, bg);
-  lv_obj_set_style_radius(backdrop, 0, 0);
-  lv_obj_remove_flag(backdrop, LV_OBJ_FLAG_SCROLLABLE);
+  lb::box(root, 0, 0, kDesignWidth, kDesignHeight, bg);
+  lb::header(root);
+  lb::textLabel(root, lb::type::headerTitle, "SETUP", text, 28, 9);
+  lb::textLabel(root, lb::type::headerSub, "PEDAL PREFERENCES AND CONNECTIVITY", muted,
+                28 + lb::textWidth(lb::type::headerTitle, "SETUP") + 20, 13);
 
-  lv_obj_t* header = lv_obj_create(root);
-  lv_obj_set_size(header, kDesignWidth, 82);
-  lv_obj_set_pos(header, 0, 0);
-  styleSurface(header, panelAlt);
-  lv_obj_set_style_radius(header, 0, 0);
-  lv_obj_set_style_border_width(header, 1, 0);
-  lv_obj_set_style_border_side(header, LV_BORDER_SIDE_BOTTOM, 0);
-  lv_obj_set_style_border_color(header, lv_color_hex(rule), 0);
-  lv_obj_remove_flag(header, LV_OBJ_FLAG_SCROLLABLE);
-
-  lv_obj_t* mark = lv_obj_create(header);
-  lv_obj_set_size(mark, 52, 52);
-  lv_obj_align(mark, LV_ALIGN_LEFT_MID, 24, 0);
-  styleSurface(mark, panel);
-  lv_obj_t* markIcon = lv_label_create(mark);
-  lv_label_set_text(markIcon, LV_SYMBOL_SETTINGS);
-  lv_obj_set_style_text_color(markIcon, lv_color_hex(bg), 0);
-  lv_obj_set_style_text_font(markIcon, LV_FONT_DEFAULT, 0);
-  lv_obj_center(markIcon);
-
-  label(header, "Settings", LV_ALIGN_LEFT_MID, 92, -10,
-        &ardor_font_saira_cond_semibold_28);
-  label(header, "Pedal preferences and connectivity", LV_ALIGN_LEFT_MID, 92, 20,
-        &ardor_font_saira_cond_medium_18, muted);
-
-  lv_obj_t* close = button(header, "Close");
-  lv_obj_set_size(close, 116, 54);
-  lv_obj_align(close, LV_ALIGN_RIGHT_MID, -22, 0);
-  lv_obj_add_event_cb(close, onSettingsClosed, LV_EVENT_PRESSED, remember(state));
-
-  lv_obj_t* sidebar = lv_obj_create(root);
-  lv_obj_set_size(sidebar, 222, 614);
-  lv_obj_set_pos(sidebar, 20, 92);
-  styleSurface(sidebar, panelAlt);
-  lv_obj_set_style_pad_all(sidebar, 14, 0);
-  lv_obj_remove_flag(sidebar, LV_OBJ_FLAG_SCROLLABLE);
-
+  // Section list on the left; the chosen section is the bone button.
   const std::array<std::string, 5> sections = {"Appearance", "Wi-Fi", "Audio", "Control I/O", "Updates"};
   for (std::size_t i = 0; i < sections.size(); ++i) {
-    lv_obj_t* section = button(sidebar, sections[i]);
-    lv_obj_set_size(section, 190, 68);
-    lv_obj_set_pos(section, 0, static_cast<int>(i) * 78);
-    styleSurface(section, i == settingsSection_ ? panel : panelAlt);
-    lv_obj_set_style_text_color(lv_obj_get_child(section, 0),
-                                lv_color_hex(i == settingsSection_ ? bg : text), 0);
+    lv_obj_t* section = lb::button(root, sections[i],
+      i == settingsSection_ ? lb::ButtonKind::Primary : lb::ButtonKind::Normal,
+      lb::kGutter, kSettingsNavTop + static_cast<int>(i) * (lb::kButtonHeight + lb::kGap),
+      kSettingsNavWidth);
     lv_obj_add_event_cb(section, onSettingsSectionClicked, LV_EVENT_PRESSED,
                         remember(state, i));
   }
 
-  lv_obj_t* content = lv_obj_create(root);
-  lv_obj_set_size(content, 1000, 614);
-  lv_obj_set_pos(content, 256, 92);
-  styleSurface(content, panel);
-  lv_obj_set_style_pad_all(content, 0, 0);
-  lv_obj_remove_flag(content, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_t* content = lb::box(root, kSettingsContentX, kSettingsContentY, kSettingsContentWidth,
+                              kSettingsContentHeight, panel, rule, 1);
+  lv_obj_add_flag(content, LV_OBJ_FLAG_CLICKABLE);
+  const int inner = kSettingsContentWidth - 2 - 2 * kSettingsPad;
+  const auto heading = [&](const std::string& title, const std::string& description) {
+    lb::textLabel(content, lb::type::drawerTitle, uppercase(title), text, kSettingsPad, 22);
+    lv_obj_t* body = lb::textLabel(content, lb::type::itemSubtitle, description, muted,
+                                   kSettingsPad, 66);
+    lv_obj_set_width(body, inner);
+    lv_label_set_long_mode(body, LV_LABEL_LONG_WRAP);
+  };
+  // A ground card with a ruled frame and a small-caps legend.
+  const auto card = [&](int x, int y, int width, int height, const std::string& title) {
+    lv_obj_t* result = lb::box(content, x, y, width, height, bg, rule, 1);
+    if (!title.empty()) lb::textLabel(result, lb::type::controlLabel, uppercase(title), muted, 19, 14);
+    return result;
+  };
+  const auto selectCard = [](lv_obj_t* object, bool selected) {
+    lv_obj_set_style_border_width(object, selected ? 3 : 1, 0);
+    lv_obj_set_style_border_color(object, lv_color_hex(selected ? text : rule), 0);
+    lv_obj_set_style_bg_color(object, lv_color_hex(selected ? plateHi : bg), 0);
+  };
 
   if (settingsSection_ == 0) {
-    label(content, "Panel palette", LV_ALIGN_TOP_LEFT, 28, 24,
-          &ardor_font_saira_cond_semibold_28);
-    label(content, "Each named palette keeps the plate, lettering, LIVE lamp and family colours in balance.",
-          LV_ALIGN_TOP_LEFT, 28, 62, &ardor_font_saira_cond_medium_18, muted);
-
+    heading("Panel palette",
+            "Each named palette keeps the plate, lettering, LIVE lamp and family colours in balance.");
+    const int tileWidth = (inner - 3 * lb::kGap) / 4;
     for (std::size_t i = 0; i < kPalettes.size(); ++i) {
-      const int x = 28 + static_cast<int>(i) * kPaletteTileStep;
+      const int x = kSettingsPad + static_cast<int>(i) * (tileWidth + lb::kGap);
       const bool selected = state.settings.paletteId == kPalettes[i].second;
       const auto& candidate = palette(kPalettes[i].second);
       lv_obj_t* choice = lv_button_create(content);
-      lv_obj_set_size(choice, kPaletteTileWidth, 146);
-      lv_obj_set_pos(choice, x, 118);
-      styleSurface(choice, candidate.plate2);
-      lv_obj_set_style_border_width(choice, selected ? 2 : 1, 0);
-      lv_obj_set_style_border_color(
-        choice, lv_color_hex(selected ? candidate.engrave : candidate.rule), 0);
-      lv_obj_t* swatch = lv_obj_create(choice);
-      lv_obj_set_size(swatch, kPaletteTileWidth - 52, 52);
-      lv_obj_align(swatch, LV_ALIGN_TOP_MID, 0, 8);
-      styleSurface(swatch, candidate.plate);
-      lv_obj_set_style_border_color(swatch, lv_color_hex(candidate.lamp), 0);
-      lv_obj_remove_flag(swatch, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_t* name = label(choice, kPalettes[i].first, LV_ALIGN_BOTTOM_MID, 0, -12,
-                             &ardor_font_saira_cond_medium_18,
-                             candidate.engrave);
+      lv_obj_remove_style_all(choice);
+      lv_obj_set_pos(choice, x, 110);
+      lv_obj_set_size(choice, tileWidth, 166);
+      lv_obj_set_style_bg_opa(choice, LV_OPA_COVER, 0);
+      lv_obj_set_style_bg_color(choice, lv_color_hex(candidate.plate), 0);
+      lb::setBorder(choice, selected ? text : rule, selected ? 3 : 1);
+      const int border = selected ? 3 : 1;
+      // Swatch: the candidate's plate, its lamp as a flooded bar, and its
+      // six family colours as a chain strip.
+      lb::box(choice, 16 - border, 16 - border, tileWidth - 32, 56, candidate.plate2, candidate.rule, 1);
+      lb::box(choice, 16 - border, 16 - border, 56, 56, candidate.lamp);
+      const int familyWidth = (tileWidth - 32 - 5 * 4) / 6;
+      for (int family = 0; family < 6; ++family) {
+        lb::box(choice, 16 - border + family * (familyWidth + 4), 84 - border, familyWidth, 16,
+                candidate.family[family]);
+      }
+      lv_obj_t* name = lb::textLabel(choice, lb::type::footswitch, uppercase(kPalettes[i].first),
+                                     candidate.engrave, 16 - border, 118 - border);
       lv_obj_remove_flag(name, LV_OBJ_FLAG_CLICKABLE);
+      for (uint32_t child = 0; child < lv_obj_get_child_count(choice); ++child) {
+        lv_obj_remove_flag(lv_obj_get_child(choice, static_cast<int32_t>(child)), LV_OBJ_FLAG_CLICKABLE);
+      }
       lv_obj_add_event_cb(choice, onPaletteClicked, LV_EVENT_PRESSED, remember(state, i));
     }
 
-    lv_obj_t* preview = lv_obj_create(content);
-    lv_obj_set_size(preview, 944, 146);
-    lv_obj_set_pos(preview, 28, 304);
-    styleSurface(preview, panelAlt);
-    lv_obj_remove_flag(preview, LV_OBJ_FLAG_SCROLLABLE);
-    label(preview, "LIVE", LV_ALIGN_LEFT_MID, 28, -18,
-          &ardor_font_saira_cond_semibold_22, lamp);
-    label(preview, "Reserved for the running preset and selected parameter.",
-          LV_ALIGN_LEFT_MID, 28, 20, &ardor_font_saira_cond_medium_18, muted);
+    lv_obj_t* preview = card(kSettingsPad, 296, inner, 130, "");
+    lv_obj_t* live = lb::box(preview, 19, 24, lb::textWidth(lb::type::liveTag, "LIVE") + 24, 37, lamp);
+    lb::textLabel(live, lb::type::liveTag, "LIVE", lampInk, 12, 2);
+    lv_obj_t* note = lb::textLabel(preview, lb::type::itemSubtitle,
+      "Reserved for the running preset, the recording loop track and the selected parameter.",
+      muted, 19, 78);
+    lv_obj_set_width(note, inner - 40);
   } else if (settingsSection_ == 1) {
-    label(content, "Wi-Fi", LV_ALIGN_TOP_LEFT, 28, 20,
-          &ardor_font_saira_cond_semibold_28);
-    label(content, state.settings.wifiConfigured
+    heading("Wi-Fi", state.settings.wifiConfigured
             ? "Update the network or leave the password blank to keep it."
-            : "Connect the pedal without rebuilding the system image.",
-          LV_ALIGN_TOP_LEFT, 28, 58, &ardor_font_saira_cond_medium_18, muted);
+            : "Connect the pedal without rebuilding the system image.");
 
-    const auto makeField = [&](const char* title, const char* placeholder, int x, int y,
-                               int width, std::size_t maxLength) {
-      label(content, title, LV_ALIGN_TOP_LEFT, x, y,
-            &ardor_font_saira_cond_medium_18, muted);
+    const auto makeField = [&](const char* title, const char* placeholder, int x, int width,
+                               std::size_t maxLength) {
+      lb::textLabel(content, lb::type::controlLabel, uppercase(title), muted, x, kWifiLabelTop);
       lv_obj_t* field = lv_textarea_create(content);
-      lv_obj_set_pos(field, x, y + 28);
+      lv_obj_set_pos(field, x, kWifiFieldTop);
       lv_textarea_set_one_line(field, true);
-      lv_obj_set_size(field, width, 62);
+      lv_obj_set_size(field, width, lb::kButtonHeight);
       lv_textarea_set_max_length(field, maxLength);
       lv_textarea_set_placeholder_text(field, placeholder);
-      lv_obj_set_style_bg_color(field, lv_color_hex(panelAlt), 0);
-      lv_obj_set_style_text_color(field, lv_color_hex(text), 0);
-      lv_obj_set_style_text_font(field, &ardor_font_saira_cond_medium_18, 0);
-      lv_obj_set_style_pad_top(field, 20, 0);
-      lv_obj_set_style_pad_bottom(field, 20, 0);
-      lv_obj_set_style_border_width(field, 1, 0);
-      lv_obj_set_style_border_color(field, lv_color_hex(rule), 0);
-      lv_obj_set_style_border_color(field, lv_color_hex(text), LV_STATE_FOCUSED);
-      lv_obj_set_style_radius(field, 0, 0);
+      lb::styleField(field);
       return field;
     };
 
-    constexpr int wifiFieldLabelY = 102;
-    constexpr int wifiFieldY = wifiFieldLabelY + 28;
-    wifiSSIDField_ = makeField(
-      "Network name", "Wi-Fi network (SSID)", 28, wifiFieldLabelY, 300, 32);
+    wifiSSIDField_ = makeField("Network name", "Wi-Fi network (SSID)", kSettingsPad, 300, 32);
     lv_textarea_set_text(wifiSSIDField_, state.settings.wifiSSID.c_str());
     wifiPasswordField_ = makeField("Password", state.settings.wifiConfigured
       ? "Leave blank to keep current" : "8 characters minimum",
-      344, wifiFieldLabelY, 300, 64);
+      kSettingsPad + 312, 300, 64);
     lv_textarea_set_password_mode(wifiPasswordField_, !wifiPasswordVisible_);
     lv_obj_set_style_pad_right(wifiPasswordField_, 64, 0);
-    lv_obj_t* showPassword = button(
-      content, wifiPasswordVisible_ ? LV_SYMBOL_EYE_CLOSE : LV_SYMBOL_EYE_OPEN);
-    wifiPasswordToggleLabel_ = lv_obj_get_child(showPassword, 0);
-    lv_obj_set_size(showPassword, 54, 58);
-    lv_obj_set_pos(showPassword, 588, wifiFieldY + 2);
-    styleSurface(showPassword, panel);
+    lv_obj_t* showPassword = lb::button(content, "", lb::ButtonKind::Normal,
+                                        kSettingsPad + 312 + 300 - 56, kWifiFieldTop + 4, 52, 52);
+    lv_obj_set_style_border_width(showPassword, 0, 0);
+    lv_obj_set_style_bg_opa(showPassword, LV_OPA_TRANSP, 0);
+    wifiPasswordToggleLabel_ = lb::buttonLabel(showPassword);
+    lv_label_set_text(wifiPasswordToggleLabel_,
+                      wifiPasswordVisible_ ? LV_SYMBOL_EYE_CLOSE : LV_SYMBOL_EYE_OPEN);
     lv_obj_set_style_text_font(wifiPasswordToggleLabel_, LV_FONT_DEFAULT, 0);
+    lv_obj_center(wifiPasswordToggleLabel_);
     lv_obj_set_style_text_color(
       wifiPasswordToggleLabel_, lv_color_hex(wifiPasswordVisible_ ? text : muted), 0);
     lv_obj_add_event_cb(showPassword, onWifiPasswordVisibilityClicked, LV_EVENT_CLICKED,
                         remember(state));
 
-    wifiCountryField_ = makeField(
-      "Country code", "HU", 660, wifiFieldLabelY, 90, 2);
+    wifiCountryField_ = makeField("Country", "HU", kSettingsPad + 624, 92, 2);
     lv_textarea_set_text(wifiCountryField_, state.settings.wifiCountry.c_str());
 
-    lv_obj_t* save = button(content, state.settings.wifiConfigured
-      ? "Save & reconnect" : "Connect pedal");
-    lv_obj_set_size(save, 206, 62);
-    lv_obj_set_pos(save, 766, wifiFieldY);
-    styleSurface(save, text);
-    lv_obj_set_style_text_color(lv_obj_get_child(save, 0), lv_color_hex(bg), 0);
-    lv_obj_set_style_text_font(
-      lv_obj_get_child(save, 0), &ardor_font_saira_cond_medium_18, 0);
+    const std::string saveLegend = state.settings.wifiConfigured ? "Save & reconnect" : "Connect";
+    const int saveWidth = inner - 736;
+    lv_obj_t* save = lb::button(content, saveLegend, lb::ButtonKind::Primary,
+                                kSettingsPad + 736, kWifiFieldTop, saveWidth);
     lv_obj_add_event_cb(save, onWifiSaveClicked, LV_EVENT_PRESSED, remember(state));
 
     wifiKeyboard_ = lv_keyboard_create(content);
-    lv_obj_set_size(wifiKeyboard_, 944, 360);
-    lv_obj_align(wifiKeyboard_, LV_ALIGN_TOP_LEFT, 28, 224);
-    lv_obj_set_style_bg_color(wifiKeyboard_, lv_color_hex(panelAlt), 0);
-    lv_obj_set_style_text_color(wifiKeyboard_, lv_color_hex(text), LV_PART_ITEMS);
-    lv_obj_set_style_bg_color(wifiKeyboard_, lv_color_hex(panel), LV_PART_ITEMS);
-    lv_obj_set_style_bg_color(
-      wifiKeyboard_, lv_color_hex(text),
-      static_cast<lv_style_selector_t>(LV_PART_ITEMS) | LV_STATE_PRESSED);
+    lv_obj_set_size(wifiKeyboard_, inner, kSettingsContentHeight - 2 - kWifiKeyboardTop - kSettingsPad);
+    lv_obj_align(wifiKeyboard_, LV_ALIGN_TOP_LEFT, kSettingsPad, kWifiKeyboardTop);
+    lb::styleKeyboard(wifiKeyboard_);
 
     for (lv_obj_t* field : {wifiSSIDField_, wifiPasswordField_, wifiCountryField_}) {
       auto* context = remember(state);
@@ -549,226 +513,181 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
     }
     lv_keyboard_set_textarea(wifiKeyboard_, wifiSSIDField_);
   } else if (settingsSection_ == 2) {
-    label(content, "Audio", LV_ALIGN_TOP_LEFT, 28, 22,
-          &ardor_font_saira_cond_semibold_28);
-    label(content, "Choose how much audio the engine processes at once.",
-          LV_ALIGN_TOP_LEFT, 28, 60, &ardor_font_saira_cond_medium_18, muted);
-
+    heading("Audio", "Choose how much audio the engine processes at once.");
+    const int choiceWidth = (inner - 2 * lb::kGap) / 3;
     for (std::size_t i = 0; i < kAudioBlockSizes.size(); ++i) {
       const bool selected = audioBlockSizeDraft_ == kAudioBlockSizes[i];
       lv_obj_t* choice = lv_button_create(content);
-      lv_obj_set_size(choice, 288, 132);
-      lv_obj_set_pos(choice, 28 + static_cast<int>(i) * 306, 112);
-      styleSurface(choice, selected ? text : panelAlt);
-      lv_obj_set_style_border_width(choice, 1, 0);
-      lv_obj_set_style_border_color(choice, lv_color_hex(selected ? text : rule), 0);
-      lv_obj_set_style_pad_all(choice, 0, 0);
-      lv_obj_t* sizeLabel = label(
-        choice, std::to_string(kAudioBlockSizes[i]) + " samples",
-        LV_ALIGN_TOP_LEFT, 18, 16, &ardor_font_saira_cond_semibold_22,
-        selected ? bg : text);
-      lv_obj_remove_flag(sizeLabel, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_t* timeLabel = label(
-        choice, std::string(kAudioBlockTimes[i]) + " block time",
-        LV_ALIGN_BOTTOM_LEFT, 18, -18, &ardor_font_saira_cond_medium_18,
-        selected ? bg : muted);
-      lv_obj_remove_flag(timeLabel, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_remove_style_all(choice);
+      lv_obj_set_pos(choice, kSettingsPad + static_cast<int>(i) * (choiceWidth + lb::kGap), 110);
+      lv_obj_set_size(choice, choiceWidth, 132);
+      lv_obj_set_style_bg_opa(choice, LV_OPA_COVER, 0);
+      selectCard(choice, selected);
+      const int border = selected ? 3 : 1;
+      lv_obj_t* sizeLabel = lb::textLabel(choice, lb::type::controlValue,
+                                          std::to_string(kAudioBlockSizes[i]), text,
+                                          20 - border, 18 - border);
+      lv_obj_t* unit = lb::textLabel(choice, lb::type::controlUnit, "samples", muted,
+        20 - border + lb::textWidth(lb::type::controlValue, std::to_string(kAudioBlockSizes[i])) + 6,
+        48 - border);
+      lv_obj_t* timeLabel = lb::textLabel(choice, lb::type::controlLabel,
+                                          uppercase(std::string(kAudioBlockTimes[i]) + " block time"),
+                                          selected ? text : muted, 20 - border, 92 - border);
+      for (lv_obj_t* child : {sizeLabel, unit, timeLabel}) lv_obj_remove_flag(child, LV_OBJ_FLAG_CLICKABLE);
       lv_obj_add_event_cb(choice, onAudioBlockSizeSelected, LV_EVENT_PRESSED,
                           remember(state, i));
     }
 
-    lv_obj_t* explanation = lv_obj_create(content);
-    lv_obj_set_size(explanation, 900, 112);
-    lv_obj_set_pos(explanation, 28, 274);
-    styleSurface(explanation, panelAlt);
-    lv_obj_set_style_pad_all(explanation, 0, 0);
-    lv_obj_remove_flag(explanation, LV_OBJ_FLAG_SCROLLABLE);
-    label(explanation, "Latency and stability", LV_ALIGN_TOP_LEFT, 20, 16,
-          &ardor_font_saira_cond_semibold_22);
-    label(explanation,
-          "Smaller blocks respond sooner but leave less DSP time. If audio crackles, choose 64 or 128 samples.",
-          LV_ALIGN_TOP_LEFT, 20, 54, &ardor_font_saira_cond_medium_18, muted);
+    lv_obj_t* explanation = card(kSettingsPad, 262, inner, 112, "Latency and stability");
+    lv_obj_t* detail = lb::textLabel(explanation, lb::type::itemSubtitle,
+      "Smaller blocks respond sooner but leave less DSP time. If audio crackles, choose 64 or 128 samples.",
+      muted, 19, 50);
+    lv_obj_set_width(detail, inner - 40);
+    lv_label_set_long_mode(detail, LV_LABEL_LONG_WRAP);
 
-    label(content,
-          "Block time excludes audio-interface and driver delay; it is not total round-trip latency.",
-          LV_ALIGN_TOP_LEFT, 28, 410, &ardor_font_saira_cond_medium_18, muted);
+    lv_obj_t* footnote = lb::textLabel(content, lb::type::itemSubtitle,
+      "Block time excludes audio-interface and driver delay; it is not total round-trip latency.",
+      disabled, kSettingsPad, 394);
+    lv_obj_set_width(footnote, inner);
 
-    lv_obj_t* apply = button(content, "Apply & restart audio");
-    lv_obj_set_size(apply, 252, 62);
-    lv_obj_set_pos(apply, 676, 470);
-    styleSurface(apply, text);
-    lv_obj_set_style_text_color(lv_obj_get_child(apply, 0), lv_color_hex(bg), 0);
-    lv_obj_set_style_text_font(
-      lv_obj_get_child(apply, 0), &ardor_font_saira_cond_medium_18, 0);
+    const std::string applyLegend = "Apply & restart audio";
+    const int applyWidth = lb::buttonWidth(applyLegend);
+    lv_obj_t* apply = lb::button(content, applyLegend, lb::ButtonKind::Primary,
+                                 kSettingsPad + inner - applyWidth,
+                                 kSettingsContentHeight - 2 - kSettingsPad - lb::kButtonHeight,
+                                 applyWidth);
     if (audioBlockSizeDraft_ == state.settings.audioBlockSize) {
       lv_obj_add_state(apply, LV_STATE_DISABLED);
     }
     lv_obj_add_event_cb(apply, onAudioBlockSizeApplied, LV_EVENT_PRESSED, remember(state));
   } else if (settingsSection_ == 3) {
-    label(content, "Control I/O", LV_ALIGN_TOP_LEFT, 28, 22,
-          &ardor_font_saira_cond_semibold_28);
-    label(content, "MIDI over 3.5 mm TRS Type A and expression-pedal calibration.",
-          LV_ALIGN_TOP_LEFT, 28, 60, &ardor_font_saira_cond_medium_18, muted);
+    heading("Control I/O", "MIDI over 3.5 mm TRS Type A and expression-pedal calibration.");
 
-    const auto makeStepper = [&](const std::string& title, const std::string& value,
-                                 int x, int y, lv_event_cb_t callback) {
-      lv_obj_t* card = lv_obj_create(content);
-      lv_obj_set_size(card, 450, 112);
-      lv_obj_set_pos(card, x, y);
-      styleSurface(card, panel);
-      lv_obj_set_style_pad_all(card, 0, 0);
-      lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLLABLE);
-      lv_obj_t* titleLabel = lv_label_create(card);
-      lv_label_set_text(titleLabel, title.c_str());
-      setText(titleLabel, muted, &ardor_font_saira_cond_medium_18);
-      lv_obj_set_pos(titleLabel, 18, 10);
-      lv_obj_set_size(titleLabel, 414, 28);
-      lv_label_set_long_mode(titleLabel, LV_LABEL_LONG_CLIP);
-      lv_obj_t* minus = button(card, "-");
-      lv_obj_set_size(minus, 58, 46);
-      lv_obj_set_pos(minus, 10, 54);
-      lv_obj_set_style_pad_all(minus, 0, 0);
+    const int stepperWidth = (inner - lb::kGap) / 2;
+    const auto makeStepper = [&](const std::string& title, const std::string& value, int x,
+                                 lv_event_cb_t callback) {
+      lv_obj_t* stepper = card(x, 110, stepperWidth, 120, title);
+      const int buttonY = 120 - 2 - 16 - lb::kButtonHeight + 4;
+      // Child order: title, minus, value, plus.
+      lv_obj_t* minus = lb::button(stepper, "-", lb::ButtonKind::Normal, 19, buttonY - 4, 72,
+                                   lb::kButtonHeight, lb::type::stepButton);
       lv_obj_add_event_cb(minus, callback, LV_EVENT_CLICKED, remember(state, 0));
-      lv_obj_t* valueLabel = lv_label_create(card);
-      lv_label_set_text(valueLabel, value.c_str());
-      setText(valueLabel, text, &ardor_font_saira_cond_semibold_22);
-      lv_obj_set_pos(valueLabel, 82, 62);
-      lv_obj_set_size(valueLabel, 286, 30);
-      lv_obj_set_style_text_align(valueLabel, LV_TEXT_ALIGN_CENTER, 0);
-      lv_obj_t* plus = button(card, "+");
-      lv_obj_set_size(plus, 58, 46);
-      lv_obj_set_pos(plus, 382, 54);
-      lv_obj_set_style_pad_all(plus, 0, 0);
+      const std::string legend = uppercase(value);
+      lb::centeredText(stepper, lb::type::contextValueSmall, legend, text, 19 + 72, buttonY - 4,
+                       stepperWidth - 2 - 38 - 144, lb::kButtonHeight);
+      lv_obj_t* plus = lb::button(stepper, "+", lb::ButtonKind::Normal,
+                                  stepperWidth - 2 - 19 - 72, buttonY - 4, 72, lb::kButtonHeight,
+                                  lb::type::stepButton);
       lv_obj_add_event_cb(plus, callback, LV_EVENT_CLICKED, remember(state, 1));
     };
 
     const std::string channel = state.settings.midiChannel < 0
       ? "Omni" : "Channel " + std::to_string(state.settings.midiChannel + 1);
-    makeStepper("MIDI receive channel", channel, 28, 104, onMidiChannelAdjusted);
+    makeStepper("MIDI receive channel", channel, kSettingsPad, onMidiChannelAdjusted);
     makeStepper("Tuner on/off CC", "CC " + std::to_string(state.settings.midiTunerCc),
-                494, 104, onMidiTunerCcAdjusted);
+                kSettingsPad + stepperWidth + lb::kGap, onMidiTunerCcAdjusted);
 
-    lv_obj_t* expression = lv_obj_create(content);
-    lv_obj_set_size(expression, 916, 254);
-    lv_obj_set_pos(expression, 28, 234);
-    styleSurface(expression, panel);
-    lv_obj_set_style_pad_all(expression, 0, 0);
-    lv_obj_remove_flag(expression, LV_OBJ_FLAG_SCROLLABLE);
-    label(expression, "Expression pedal", LV_ALIGN_TOP_LEFT, 20, 16,
-          &ardor_font_saira_cond_semibold_22);
+    lv_obj_t* expression = card(kSettingsPad, 242, inner, 238, "Expression pedal");
     const std::string liveRaw = state.controlInputs.expressionRawKnown
       ? "LIVE ADC  " + std::to_string(state.controlInputs.expressionRaw)
       : "LIVE ADC  --";
-    label(expression, liveRaw, LV_ALIGN_TOP_RIGHT, -20, 18,
-          &ardor_font_saira_cond_medium_18,
-          state.controlInputs.expressionConnected ? palette().family[3] : muted);
-    label(expression, "Move to heel, capture; then move to toe and capture.",
-          LV_ALIGN_TOP_LEFT, 20, 54, &ardor_font_saira_cond_medium_18, muted);
-    lv_obj_t* sceneChord = button(expression,
-      std::string("Scene layer chord:  ")
-        + (state.settings.sceneLayerChordEnabled ? "On" : "Off"));
-    lv_obj_set_size(sceneChord, 292, 42);
-    lv_obj_set_pos(sceneChord, 604, 48);
-    styleSurface(sceneChord, panelAlt);
-    lv_obj_set_style_text_font(
-      lv_obj_get_child(sceneChord, 0), &ardor_font_saira_cond_medium_18, 0);
-    lv_obj_add_event_cb(sceneChord, onSceneLayerChordToggled, LV_EVENT_CLICKED,
-                        remember(state));
-
+    lb::textLabel(expression, lb::type::controlTag, liveRaw,
+                  state.controlInputs.expressionConnected ? palette().family[3] : disabled,
+                  inner - 2 - 19 - lb::textWidth(lb::type::controlTag, liveRaw), 16);
+    lb::textLabel(expression, lb::type::itemSubtitle,
+                  "Move to heel, capture; then move to toe and capture.", muted, 19, 46);
+    const int endpointWidth = (inner - 2 - 38 - lb::kGap) / 2;
     const auto endpoint = [&](const char* name, int raw, bool heel, int x) {
-      lv_obj_t* capture = button(expression,
-        std::string("Capture ") + name + ":  " + std::to_string(raw));
-      lv_obj_set_size(capture, 420, 72);
-      lv_obj_set_pos(capture, x, 104);
-      styleSurface(capture, panel);
+      lv_obj_t* capture = lb::button(expression,
+        std::string("Capture ") + name + ":  " + std::to_string(raw), lb::ButtonKind::Normal,
+        x, 80, endpointWidth);
       lv_obj_add_event_cb(capture, onExpressionEndpointCaptured, LV_EVENT_CLICKED,
                           remember(state, heel ? 0 : 1));
     };
-    endpoint("heel", state.settings.expressionMinimumRaw, true, 20);
-    endpoint("toe", state.settings.expressionMaximumRaw, false, 456);
-    label(expression, "Calibration is stored globally; parameter assignment is stored per preset.",
-          LV_ALIGN_BOTTOM_LEFT, 20, -18, &ardor_font_saira_cond_medium_18, muted);
+    endpoint("heel", state.settings.expressionMinimumRaw, true, 19);
+    endpoint("toe", state.settings.expressionMaximumRaw, false, 19 + endpointWidth + lb::kGap);
+    lv_obj_t* sceneChord = lb::button(expression,
+      std::string("Scene layer chord:  ") + (state.settings.sceneLayerChordEnabled ? "On" : "Off"),
+      lb::ButtonKind::Normal, 19, 152, endpointWidth);
+    lv_obj_add_event_cb(sceneChord, onSceneLayerChordToggled, LV_EVENT_CLICKED,
+                        remember(state));
+    lv_obj_t* stored = lb::textLabel(expression, lb::type::itemSubtitle,
+      "Calibration is stored globally; parameter assignment is stored per preset.", disabled,
+      19 + endpointWidth + lb::kGap, 170);
+    lv_obj_set_width(stored, endpointWidth);
+    lv_label_set_long_mode(stored, LV_LABEL_LONG_WRAP);
   } else {
-    label(content, "Device software", LV_ALIGN_TOP_LEFT, 28, 22,
-          &ardor_font_saira_cond_semibold_28);
-    label(content, "Check for and install signed Ardor application releases.",
-          LV_ALIGN_TOP_LEFT, 28, 60, &ardor_font_saira_cond_medium_18, muted);
+    heading("Device software", "Check for and install signed Ardor application releases.");
 
+    const int versionWidth = (inner - lb::kGap) / 2;
     const auto versionCard = [&](const char* title, const std::string& value, int x) {
-      lv_obj_t* card = lv_obj_create(content);
-      lv_obj_set_size(card, 446, 104);
-      lv_obj_set_pos(card, x, 112);
-      styleSurface(card, panelAlt);
-      lv_obj_set_style_pad_all(card, 0, 0);
-      lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLLABLE);
-      label(card, title, LV_ALIGN_TOP_LEFT, 18, 14,
-            &ardor_font_saira_cond_medium_18, muted);
-      label(card, value.empty() ? "Unknown" : value, LV_ALIGN_BOTTOM_LEFT, 18, -14,
-            &ardor_font_saira_cond_semibold_22);
+      lv_obj_t* result = card(x, 110, versionWidth, 104, title);
+      lb::textLabel(result, lb::type::contextValueSmall,
+                    uppercase(value.empty() ? "Unknown" : value), value.empty() ? disabled : text,
+                    19, 50);
     };
-    versionCard("Installed version", updateStatus_.installedVersion, 28);
-    versionCard("Base image", updateStatus_.baseVersion, 490);
+    versionCard("Installed version", updateStatus_.installedVersion, kSettingsPad);
+    versionCard("Base image", updateStatus_.baseVersion, kSettingsPad + versionWidth + lb::kGap);
 
-    lv_obj_t* release = lv_obj_create(content);
-    lv_obj_set_size(release, 908, 150);
-    lv_obj_set_pos(release, 28, 238);
-    styleSurface(release, panelAlt);
-    lv_obj_set_style_pad_all(release, 0, 0);
-    lv_obj_remove_flag(release, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t* release = card(kSettingsPad, 226, inner, 150, "");
     const bool updateInProgress = updateStatus_.state == "downloading"
       || updateStatus_.state == "verifying" || updateStatus_.state == "staged"
       || updateStatus_.state == "restarting" || updateStatus_.state == "validating";
+    std::string releaseTitle;
+    std::string releaseDetail;
+    std::uint32_t detailColor = muted;
     if (!updateStatus_.enabled) {
-      label(release, "Updates require a bootstrap image", LV_ALIGN_TOP_LEFT, 20, 18,
-            &ardor_font_saira_cond_semibold_22);
-      label(release, "Flash an OTA-capable Ardor image before installing releases here.",
-            LV_ALIGN_TOP_LEFT, 20, 58, &ardor_font_saira_cond_medium_18, muted);
+      releaseTitle = "Updates require a bootstrap image";
+      releaseDetail = "Flash an OTA-capable Ardor image before installing releases here.";
     } else if (updateInProgress) {
-      label(release, "Update in progress", LV_ALIGN_TOP_LEFT, 20, 18,
-            &ardor_font_saira_cond_semibold_22);
-      label(release, "Keep the pedal powered. Audio and Manager may disconnect during restart.",
-            LV_ALIGN_TOP_LEFT, 20, 58, &ardor_font_saira_cond_medium_18, muted);
+      releaseTitle = "Update in progress";
+      releaseDetail = "Keep the pedal powered. Audio and Manager may disconnect during restart.";
     } else if (!updateStatus_.availableVersion.empty()) {
-      label(release, "Ardor " + updateStatus_.availableVersion, LV_ALIGN_TOP_LEFT, 20, 18,
-            &ardor_font_saira_cond_semibold_22);
-      const std::string detail = updateStatus_.reflashRequired
+      releaseTitle = "Ardor " + updateStatus_.availableVersion;
+      releaseDetail = updateStatus_.reflashRequired
         ? (updateStatus_.incompatibility.empty() ? "This release requires reflashing the SD card."
                                                 : updateStatus_.incompatibility)
         : "Compatible signed application update. Presets, assets and settings are preserved.";
-      label(release, detail, LV_ALIGN_TOP_LEFT, 20, 58,
-            &ardor_font_saira_cond_medium_18, updateStatus_.reflashRequired ? danger : muted);
+      if (updateStatus_.reflashRequired) detailColor = dangerText;
     } else {
-      label(release, "No update check yet", LV_ALIGN_TOP_LEFT, 20, 18,
-            &ardor_font_saira_cond_semibold_22);
-      label(release, "Updates are manual. Nothing downloads or installs until you choose it.",
-            LV_ALIGN_TOP_LEFT, 20, 58, &ardor_font_saira_cond_medium_18, muted);
+      releaseTitle = "No update check yet";
+      releaseDetail = "Updates are manual. Nothing downloads or installs until you choose it.";
     }
+    lb::textLabel(release, lb::type::itemTitle, uppercase(releaseTitle), text, 19, 18);
+    lv_obj_t* releaseBody = lb::textLabel(release, lb::type::itemSubtitle, releaseDetail,
+                                          detailColor, 19, 58);
+    lv_obj_set_width(releaseBody, inner - 40);
+    lv_label_set_long_mode(releaseBody, LV_LABEL_LONG_WRAP);
 
-    lv_obj_t* check = button(content, "Check for updates");
-    lv_obj_set_size(check, 220, 62);
-    lv_obj_set_pos(check, 28, 424);
+    const int actionY = kSettingsContentHeight - 2 - kSettingsPad - lb::kButtonHeight;
+    lv_obj_t* check = lb::button(content, "Check for updates", lb::ButtonKind::Normal,
+                                 kSettingsPad, actionY);
     lv_obj_add_event_cb(check, onUpdateCheckClicked, LV_EVENT_PRESSED, remember(state));
     if (!updateStatus_.enabled || !actions_.checkForUpdate) lv_obj_add_state(check, LV_STATE_DISABLED);
 
     if (!updateStatus_.availableVersion.empty() && !updateStatus_.reflashRequired
         && updateStatus_.state == "available") {
-      lv_obj_t* install = button(content, updateInstallArmed_ ? "Confirm install" : "Install & restart");
-      lv_obj_set_size(install, 220, 62);
-      lv_obj_set_pos(install, 716, 424);
-      styleSurface(install, text);
-      lv_obj_set_style_text_color(lv_obj_get_child(install, 0), lv_color_hex(bg), 0);
+      const std::string installLegend = updateInstallArmed_ ? "Confirm install" : "Install & restart";
+      const int installWidth = lb::buttonWidth("Install & restart");
+      lv_obj_t* install = lb::button(content, installLegend, lb::ButtonKind::Primary,
+                                     kSettingsPad + inner - installWidth, actionY, installWidth);
       lv_obj_add_event_cb(install, onUpdateInstallClicked, LV_EVENT_PRESSED, remember(state));
     }
   }
 
   if (!settingsMessage_.empty()) {
-    lv_obj_t* message = label(content, settingsMessage_, LV_ALIGN_BOTTOM_RIGHT, -28, -28,
-                              &ardor_font_saira_cond_medium_18,
-                              settingsMessageIsError_ ? danger : text);
-    lv_obj_set_width(message, settingsSection_ == 0 ? 944 : 590);
+    lv_obj_t* message = lb::textLabel(root, lb::type::legend, uppercase(settingsMessage_),
+                                      settingsMessageIsError_ ? dangerText : text, 0, 653);
+    lv_obj_set_width(message, 700);
+    lv_obj_set_x(message, kDesignWidth - lb::kGutter - lb::kButtonMinWidth - lb::kGap - 700);
     lv_obj_set_style_text_align(message, LV_TEXT_ALIGN_RIGHT, 0);
-    lv_label_set_long_mode(message, LV_LABEL_LONG_CLIP);
+    lv_label_set_long_mode(message, LV_LABEL_LONG_MODE_DOTS);
   }
+
+  lb::rail(root);
+  lv_obj_t* close = lb::button(root, "DONE", lb::ButtonKind::Primary,
+                               kDesignWidth - lb::kGutter - lb::kButtonMinWidth, lb::kRailButtonY);
+  lv_obj_add_event_cb(close, onSettingsClosed, LV_EVENT_PRESSED, remember(state));
 }
 
 } // namespace ardor

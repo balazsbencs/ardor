@@ -2,6 +2,7 @@
 
 #include "ui/LvglUi.h"
 #include "ui/LvglUiNavigation.h"
+#include "ui/LampBlack.h"
 #include "ui/LvglUiStyle.h"
 #include "ui/UiStatusPresentation.h"
 
@@ -17,6 +18,8 @@ using namespace lvgl_ui;
 using namespace lvgl_navigation;
 
 constexpr std::uint32_t kStatusToastHoldMs = 1950;
+constexpr int kToastWidth = 560;
+constexpr int kToastHeight = 52;
 
 void setToastOffset(void* object, std::int32_t offset)
 {
@@ -138,13 +141,11 @@ void LvglUi::syncStatusView(const UiState& state)
       statusToastState_ = &state;
       statusToastRevision_ = state.revisions.status;
       const auto toastText = statusToastText(state);
-      lv_label_set_text(statusMessageLabel_, toastText.c_str());
+      lv_label_set_text(statusMessageLabel_, uppercase(toastText).c_str());
       lv_obj_set_style_text_color(statusMessageLabel_,
-                                  lv_color_hex(state.statusIsError ? danger : text), 0);
-      lv_obj_set_style_bg_color(statusMessageLabel_,
-                                lv_color_hex(state.statusIsError ? panelAlt : panel), 0);
+                                  lv_color_hex(state.statusIsError ? dangerText : text), 0);
       lv_obj_set_style_border_color(statusMessageLabel_,
-                                    lv_color_hex(state.statusIsError ? palette().faultLine : rule), 0);
+                                    lv_color_hex(state.statusIsError ? dangerRule : disabled), 0);
       if (state.statusMessage.empty()) lv_obj_add_flag(statusMessageLabel_, LV_OBJ_FLAG_HIDDEN);
       else animateToast(statusMessageLabel_);
     }
@@ -233,21 +234,21 @@ void renderStatusBar(LvglUi* ui, lv_obj_t* root, UiState& state,
   lv_obj_add_event_cb(settings, onSettingsClicked, LV_EVENT_PRESSED, ui->remember(state));
   if (settingsOut) *settingsOut = settings;
 
-  lv_obj_t* message = label(root, statusToastText(state), LV_ALIGN_TOP_MID, 0, 88,
-                            &ardor_font_saira_cond_semibold_22,
-                            state.statusIsError ? danger : text);
-  lv_obj_set_size(message, 700, 54);
-  lv_label_set_long_mode(message, LV_LABEL_LONG_CLIP);
+  // Toast: a plate just above the rail, centred, in small bold capitals.
+  lv_obj_t* message = lv_label_create(root);
+  lv_label_set_text(message, uppercase(statusToastText(state)).c_str());
+  lb::applyType(message, lb::type::legend, state.statusIsError ? dangerText : text);
+  lv_obj_set_size(message, kToastWidth, kToastHeight);
+  lv_obj_set_pos(message, (kDesignWidth - kToastWidth) / 2, lb::kRailY - 16 - kToastHeight);
+  lv_label_set_long_mode(message, LV_LABEL_LONG_MODE_DOTS);
   lv_obj_set_style_text_align(message, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_set_style_pad_top(message, 13, 0);
-  lv_obj_set_style_pad_left(message, 20, 0);
-  lv_obj_set_style_pad_right(message, 20, 0);
+  lv_obj_set_style_pad_top(message, lb::centeredTextTop(lb::type::legend, 0, kToastHeight) - 1, 0);
+  lv_obj_set_style_pad_hor(message, 20, 0);
   lv_obj_set_style_bg_opa(message, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(message,
-                            lv_color_hex(state.statusIsError ? panelAlt : panel), 0);
+  lv_obj_set_style_bg_color(message, lv_color_hex(plateHi), 0);
   lv_obj_set_style_border_width(message, 1, 0);
   lv_obj_set_style_border_color(message,
-                                lv_color_hex(state.statusIsError ? palette().faultLine : rule), 0);
+                                lv_color_hex(state.statusIsError ? dangerRule : disabled), 0);
   lv_obj_set_style_radius(message, 0, 0);
   lv_obj_add_flag(message, LV_OBJ_FLAG_HIDDEN);
   if (messageOut) *messageOut = message;

@@ -2,9 +2,8 @@
 
 #include "ui/LvglUiParameterView.h"
 #include "ui/LvglUiParameterWidgets.h"
+#include "ui/LampBlack.h"
 #include "ui/LvglUiStyle.h"
-#include "ui/fonts/SairaCondSemibold28.h"
-#include "ui/fonts/SairaLight44.h"
 
 #include <algorithm>
 #include <array>
@@ -19,91 +18,106 @@ namespace {
 
 using namespace lvgl_ui;
 
-constexpr int kParameterPanelWidth = 1240;
-constexpr int kPanelEdgeInset = 28;
-constexpr int kPanelActionTop = 14;
-constexpr int kPanelActionHeight = 52;
-constexpr int kPanelCloseButtonWidth = 88;
-constexpr int kPanelCloseButtonHeight = kPanelActionHeight;
-constexpr int kPanelCloseButtonX = kParameterPanelWidth - kPanelEdgeInset - kPanelCloseButtonWidth;
-constexpr int kBypassControlWidth = 160;
-constexpr int kBypassControlX = kPanelCloseButtonX - 36 - kBypassControlWidth;
-constexpr int kBypassMidiWidth = 72;
-constexpr int kBypassMidiX = kBypassControlX - 84;
-constexpr int kDeleteBlockWidth = 156;
-constexpr int kDeleteBlockX = kBypassMidiX - 24 - kDeleteBlockWidth;
-constexpr int kParameterTitleX = 270;
-constexpr int kPanelFamilyBarHeight = 4;
-constexpr int kTypeTagPadding = 10;
-constexpr int kTypeTagGap = 14;
-constexpr int kParameterTitleWidthFull = kDeleteBlockX - kParameterTitleX - 24;
-// Gain-reduction meter: a compressor-only pill sitting between the title and
-// Delete Block. Every other block type keeps the full-width title above.
-constexpr int kGainMeterWidth = 120;
+// Lamp Black parameter drawer (mockups/lvgl-taste/1-lamp-black.html). The
+// drawer spans the screen from y = 148 under the chip strip to the rail at
+// 612, with a 4 px family-colour top edge. All positions below are relative
+// to the drawer's outer box unless they say otherwise.
+constexpr int kDrawerY = 148;
+constexpr int kDrawerHeight = lb::kRailY - kDrawerY;
+constexpr int kDrawerTopEdge = 4;
+constexpr int kParameterPanelWidth = kDesignWidth;
+constexpr int kPanelEdgeInset = lb::kGutter;
+// Header row: family tag, block name, pager, then Block / MIDI / Delete.
+constexpr int kPanelActionTop = 22;
+constexpr int kPanelActionHeight = lb::kButtonHeight;
+constexpr int kTypeTagTop = 35;
+constexpr int kTypeTagHeight = 35;
+constexpr int kTypeTagPadding = 12;
+constexpr int kTypeTagGap = 16;
+constexpr int kDrawerNameTop = 20;
+constexpr int kDrawerNameGap = 20;
+constexpr int kPagerStepWidth = 60;
+constexpr int kPagerLegendPad = 14;
+constexpr int kDeleteBlockWidth = lb::kButtonMinWidth;
+constexpr int kDeleteBlockX = kParameterPanelWidth - kPanelEdgeInset - kDeleteBlockWidth;
+constexpr int kBypassMidiWidth = lb::kButtonMinWidth;
+constexpr int kBypassMidiX = kDeleteBlockX - lb::kGap - kBypassMidiWidth;
+// "BLOCK [ON]": legend, a 12 px gap and a 48 x 38 state badge.
+constexpr int kBypassBadgeWidth = 48;
+constexpr int kBypassBadgeHeight = 38;
+constexpr int kBypassBadgePad = 10;
+constexpr int kBypassControlWidth = 167;
+constexpr int kBypassControlX = kBypassMidiX - lb::kGap - kBypassControlWidth;
+// Gain-reduction meter: a compressor-only readout left of the Block button.
+constexpr int kGainMeterWidth = lb::kButtonMinWidth;
 constexpr int kGainMeterHeight = kPanelActionHeight;
-constexpr int kGainMeterX = kDeleteBlockX - 24 - kGainMeterWidth;
+constexpr int kGainMeterX = kBypassControlX - lb::kGap - kGainMeterWidth;
 constexpr int kGainMeterBarWidth = 8;
-constexpr int kGainMeterBarHeight = 30;
-constexpr int kGainMeterBarX = 14;
-constexpr int kGainMeterBarY = (kGainMeterHeight - kGainMeterBarHeight) / 2;
-constexpr int kGainMeterLabelX = kGainMeterBarX + kGainMeterBarWidth + 10;
+constexpr int kGainMeterBarHeight = 36;
+constexpr int kGainMeterBarX = 16;
+constexpr int kGainMeterBarY = (kGainMeterHeight - 2 - kGainMeterBarHeight) / 2;
+constexpr int kGainMeterLabelX = kGainMeterBarX + kGainMeterBarWidth + 12;
 constexpr float kGainMeterFullScaleDb = 24.0f;
-constexpr int kParameterTitleWidthWithGainMeter = kGainMeterX - kParameterTitleX - 24;
+constexpr int kParameterTitleX = kPanelEdgeInset;
+// Control grid: 3 x 2 cards of 403 x 166 with 12 px gaps, 96 px down.
 constexpr int kParameterSliderColumns = 3;
-constexpr int kParameterSliderWidth = 385;
-constexpr int kParameterSliderHeight = 132;
-constexpr int kParameterSliderColumnGap = 14;
-constexpr int kParameterSliderRowGap = 16;
-constexpr int kParameterSliderGridX = 28;
-constexpr int kParameterSliderGridY = 78;
-constexpr int kParameterSliderRadius = 0;
-constexpr int kParameterSliderTextInset = 24;
-// Rail + Thumb: a conventional recessed track and a visibly grabbable handle.
-// The 44 px thumb is deliberately wider than the selected mockup's first pass;
-// the retained slider object remains the full 385 x 132 touch target.
-constexpr int kTravelRailHeight = 18;
-constexpr int kTravelFillHeight = kTravelRailHeight - 2;
-constexpr int kTravelHandleWidth = 44;
-constexpr int kTravelHandleHeight = 54;
-constexpr int kTravelWidth = kParameterSliderWidth - 2 * kParameterSliderTextInset;
-constexpr int kTravelTop = 88;
-constexpr int kTravelInteriorX = kParameterSliderTextInset + 1;
-constexpr int kTravelInteriorWidth = kTravelWidth - 2;
-constexpr int kTravelHandleTop = kTravelTop - (kTravelHandleHeight - kTravelRailHeight) / 2;
-constexpr int kDiscreteOptionsHeight = 60;
-constexpr int kDiscreteOptionsTop = kParameterSliderHeight - kDiscreteOptionsHeight - 4;
-constexpr int kChoiceStepperGap = 6;
+constexpr int kParameterSliderWidth = 403;
+constexpr int kParameterSliderHeight = 166;
+constexpr int kParameterSliderColumnGap = lb::kGap;
+constexpr int kParameterSliderRowGap = lb::kGap;
+constexpr int kParameterSliderGridX = kPanelEdgeInset;
+constexpr int kParameterSliderGridY = 100;
+// Card interior, from the outer edge: 20 px padding inside the border.
+constexpr int kCardPad = 20;
+constexpr int kCardLabelX = 21;
+constexpr int kCardLabelTop = 16;
+constexpr int kCardValueBox = 46;
+constexpr int kCardValueHeight = 50;
+constexpr int kCardUnitGap = 6;
+constexpr int kCardTagHeight = 24;
+constexpr int kCardTagTop = 12;
+constexpr int kCardEncoderRight = 14;
+constexpr int kCardScopeRight = 16;
+constexpr int kCardScopeTop = 14;
+constexpr int kCardTagGap = 8;
+constexpr int kFocusedBorder = 3;
+// Travel scale: 11 ticks over an 8 px track, a family fill and a bone handle.
+constexpr int kTravelBottom = 18;
+constexpr int kTravelHeight = 30;
+constexpr int kTravelTicks = 11;
+constexpr int kTravelTickWidth = 2;
+constexpr int kTravelTickHeight = 8;
+constexpr int kTravelTrackTop = 14;
+constexpr int kTravelTrackHeight = 8;
+constexpr int kTravelHandleTop = 2;
+constexpr int kTravelHandleWidth = 8;
+constexpr int kTravelHandleHeight = 32;
+// The travel box is widened by this much on each side so the end ticks and
+// the handle, which overhang the track, are not clipped.
+constexpr int kTravelOverhang = 4;
+// Segmented choices: 56 px cells, 16 px above the card's foot.
+constexpr int kDiscreteOptionsHeight = 56;
+constexpr int kDiscreteOptionsBottom = 16;
+constexpr int kSegmentMarkHeight = 5;
 constexpr int kChoiceStepperNudgeWidth = 72;
 constexpr int kChoicePickerX = 48;
 constexpr int kChoicePickerY = 96;
 constexpr int kChoicePickerWidth = 1183;
-constexpr int kChoicePickerHeaderHeight = 56;
-constexpr int kChoicePickerBodyInset = 20;
+constexpr int kChoicePickerHeaderHeight = 72;
+constexpr int kChoicePickerBodyInset = 24;
 constexpr int kChoicePickerColumns = 5;
 constexpr int kChoicePickerTileHeight = 76;
 constexpr int kChoicePickerTileGap = 10;
-constexpr int kChoicePickerSectionHeight = 24;
-constexpr int kParameterPanelHeight = 452;
-constexpr int kMappingToolbarX = kParameterSliderGridX;
-constexpr int kMappingToolbarY = kParameterSliderGridY
-  + 2 * kParameterSliderHeight + kParameterSliderRowGap + 14;
-constexpr int kMappingToolbarWidth = 1183;
-constexpr int kMappingToolbarHeight = 60;
-constexpr int kMappingButtonWidth = 148;
-constexpr int kMappingButtonHeight = 40;
-constexpr int kMappingMidiButtonX = kMappingToolbarWidth - 18 - kMappingButtonWidth;
-constexpr int kMappingExpButtonX = kMappingMidiButtonX - 14 - kMappingButtonWidth;
-// Context rail: legend, control name, large value, then - / + fine steps.
-constexpr int kRailLegendX = 18;
-constexpr int kRailNameX = 118;
-constexpr int kRailNameWidth = 360;
-constexpr int kRailStepWidth = 56;
-constexpr int kRailStepGap = 8;
-constexpr int kRailStepUpX = kMappingExpButtonX - 24 - kRailStepWidth;
-constexpr int kRailStepDownX = kRailStepUpX - kRailStepGap - kRailStepWidth;
-constexpr int kRailValueWidth = 180;
-constexpr int kRailValueX = kRailStepDownX - 18 - kRailValueWidth;
-static_assert(kRailNameX + kRailNameWidth < kRailValueX);
+constexpr int kChoicePickerSectionHeight = 32;
+constexpr int kParameterPanelHeight = kDrawerHeight;
+// Context rail: the selected control's name and value, fine steps, EXP and
+// MIDI assignment, and Done. It replaces the edit rail while the drawer is
+// open. The value keeps a fixed 150 px column so the buttons never move.
+constexpr int kRailValueWidth = 150;
+constexpr int kRailValueGap = 8;
+constexpr int kRailStepWidth = 72;
+constexpr int kRailNameTop = 631;
+constexpr int kRailValueTop = 644;
 
 struct ParameterSliderVisual {
   std::size_t controlIndex = 0;
@@ -111,16 +125,22 @@ struct ParameterSliderVisual {
   lv_obj_t* keyLabel = nullptr;
   lv_obj_t* valueLabel = nullptr;
   lv_obj_t* unitLabel = nullptr;
-  // Continuous: recessed rail and wide thumb.
+  // ENC marks the control the encoder turns; the scope tag names scene
+  // ownership. Both sit top right.
+  lv_obj_t* encoderTag = nullptr;
+  lv_obj_t* scopeTag = nullptr;
+  // Continuous: the travel scale.
+  lv_obj_t* travel = nullptr;
   lv_obj_t* fill = nullptr;
   lv_obj_t* handle = nullptr;
-  int travelX = kTravelInteriorX;
-  int travelWidth = kTravelInteriorWidth;
-  int handleWidth = kTravelHandleWidth;
-  // Idle fill colour: the block's family, or engraved text for globals.
+  std::vector<lv_obj_t*> ticks;
+  // Family colour of the owning block, or bone-3 for globals.
   std::uint32_t accent = 0;
-  // Discrete: segmented option row.
+  // Discrete: segmented option row, or the stepper for long lists.
+  lv_obj_t* optionRow = nullptr;
   std::vector<lv_obj_t*> options;
+  // Long lists: previous, all options and next cells, or one map cell.
+  std::vector<lv_obj_t*> stepper;
 };
 
 // Splits a formatted value like "380 ms" or "34%" into a big numeral and a
@@ -155,6 +175,7 @@ struct ParameterMappingVisual {
   lv_obj_t* parameterLabel = nullptr;
   lv_obj_t* valueLabel = nullptr;
   lv_obj_t* stepDownButton = nullptr;
+  lv_obj_t* doneButton = nullptr;
   lv_obj_t* stepUpButton = nullptr;
   lv_obj_t* expressionButton = nullptr;
   lv_obj_t* midiButton = nullptr;
@@ -163,9 +184,8 @@ struct ParameterMappingVisual {
 };
 
 struct BypassControlVisual {
-  lv_obj_t* fill = nullptr;
-  lv_obj_t* inactiveValue = nullptr;
-  lv_obj_t* activeValue = nullptr;
+  lv_obj_t* badge = nullptr;
+  lv_obj_t* badgeLabel = nullptr;
 };
 
 bool selectedBlockIsHarmonizer(const UiEventContext* context)
@@ -272,15 +292,115 @@ void onParameterGesture(lv_event_t* event)
   }
 }
 
+// Places a card's children for its border width: a focused card draws a
+// 3 px lamp border inside the same outer box, and LVGL offsets children by
+// the border, so every position subtracts it.
+void layoutParameterCard(lv_obj_t* slider, ParameterSliderVisual& visual, int border)
+{
+  const int inner = kParameterSliderWidth - 2 * border - 2 * kCardPad;
+  lv_obj_set_pos(visual.keyLabel, kCardLabelX - border,
+                 lb::textTop(lb::type::controlLabel, kCardLabelTop) - border);
+  int tagRight = kParameterSliderWidth - 2 * border;
+  if (visual.encoderTag) {
+    const int width = lv_obj_get_style_width(visual.encoderTag, LV_PART_MAIN);
+    tagRight -= kCardEncoderRight + width;
+    lv_obj_set_pos(visual.encoderTag, tagRight, kCardTagTop);
+    tagRight -= kCardTagGap;
+  }
+  if (visual.scopeTag) {
+    const int width = lv_obj_get_style_width(visual.scopeTag, LV_PART_MAIN);
+    const bool encoderShown = visual.encoderTag
+      && !lv_obj_has_flag(visual.encoderTag, LV_OBJ_FLAG_HIDDEN);
+    const int right = encoderShown ? tagRight : kParameterSliderWidth - 2 * border - kCardScopeRight;
+    lv_obj_set_pos(visual.scopeTag, right - width, encoderShown ? kCardTagTop : kCardScopeTop);
+  }
+  if (visual.valueLabel) {
+    // The value box sits 20 px in and 46 px down inside the border, so it
+    // moves with the border as CSS absolute positioning does.
+    const int valueX = kCardPad;
+    const int valueTop = lb::centeredTextTop(lb::type::controlValue, kCardValueBox,
+                                             kCardValueHeight);
+    lv_obj_set_pos(visual.valueLabel, valueX, valueTop);
+    if (visual.unitLabel && visual.valueLabel) {
+      // The unit shares the numeral's baseline.
+      const int baseline = valueTop + lv_font_get_line_height(lb::type::controlValue.font)
+        - lb::type::controlValue.font->base_line;
+      const int unitTop = baseline - (lv_font_get_line_height(lb::type::controlUnit.font)
+        - lb::type::controlUnit.font->base_line);
+      lv_obj_set_pos(visual.unitLabel,
+                     valueX + lb::textWidth(lb::type::controlValue,
+                                            lv_label_get_text(visual.valueLabel)) + kCardUnitGap,
+                     unitTop);
+    }
+  }
+  if (visual.travel) {
+    lv_obj_set_pos(visual.travel, kCardPad - kTravelOverhang,
+                   kParameterSliderHeight - 2 * border - kTravelBottom - kTravelHeight);
+    lv_obj_set_width(visual.travel, inner + 2 * kTravelOverhang);
+    for (std::size_t i = 0; i < visual.ticks.size(); ++i) {
+      lv_obj_set_x(visual.ticks[i], kTravelOverhang + static_cast<int>(std::lround(
+        inner * static_cast<double>(i) / (kTravelTicks - 1))));
+    }
+    lv_obj_t* track = lv_obj_get_child(visual.travel, static_cast<int32_t>(visual.ticks.size()));
+    lv_obj_set_x(track, kTravelOverhang);
+    lv_obj_set_width(track, inner);
+    lv_obj_set_x(visual.fill, kTravelOverhang);
+  }
+  if (visual.optionRow) {
+    lv_obj_set_pos(visual.optionRow, kCardPad - 1,
+                   kParameterSliderHeight - 2 * border - kDiscreteOptionsBottom
+                     - kDiscreteOptionsHeight);
+    lv_obj_set_width(visual.optionRow, inner + 1);
+    if (visual.stepper.size() == 3) {
+      const int middle = inner + 1 - 2 * kChoiceStepperNudgeWidth + 2;
+      lv_obj_set_pos(visual.stepper[0], 0, 0);
+      lv_obj_set_width(visual.stepper[0], kChoiceStepperNudgeWidth);
+      lv_obj_set_pos(visual.stepper[1], kChoiceStepperNudgeWidth - 1, 0);
+      lv_obj_set_width(visual.stepper[1], middle);
+      lv_obj_set_pos(visual.stepper[2], inner + 1 - kChoiceStepperNudgeWidth, 0);
+      lv_obj_set_width(visual.stepper[2], kChoiceStepperNudgeWidth);
+    } else if (visual.stepper.size() == 1) {
+      lv_obj_set_pos(visual.stepper[0], 0, 0);
+      lv_obj_set_width(visual.stepper[0], inner + 1);
+    }
+    for (lv_obj_t* cell : visual.stepper) {
+      lv_obj_set_style_text_color(lb::buttonLabel(cell), lv_color_hex(text), 0);
+      lb::setButtonText(cell, lv_label_get_text(lb::buttonLabel(cell)));
+    }
+    // CSS: flex cells with a -1 px left margin, so neighbours share a rule.
+    const int count = static_cast<int>(visual.options.size());
+    const double cell = static_cast<double>(inner + count) / std::max(1, count);
+    lv_obj_set_width(visual.optionRow, inner + 1);
+    for (int i = 0; i < count; ++i) {
+      const int left = static_cast<int>(std::lround(i * (cell - 1.0)));
+      const int right = static_cast<int>(std::lround(i * (cell - 1.0) + cell));
+      lv_obj_t* option = visual.options[static_cast<std::size_t>(i)];
+      lv_obj_set_pos(option, left, 0);
+      lv_obj_set_width(option, right - left);
+      lb::fitButtonText(option, lv_label_get_text(lb::buttonLabel(option)), lb::type::segment,
+                        lb::type::segmentSmall, right - left - 12);
+    }
+  }
+  (void) slider;
+}
+
 void refreshParameterSliderVisual(lv_obj_t* slider, const ParameterControl& control,
                                   bool focused = true)
 {
-  const auto* visual = static_cast<const ParameterSliderVisual*>(lv_obj_get_user_data(slider));
+  auto* visual = static_cast<ParameterSliderVisual*>(lv_obj_get_user_data(slider));
   if (!visual) {
     return;
   }
+  const int border = focused ? kFocusedBorder : 1;
+  lv_obj_set_style_border_width(slider, border, 0);
+  lv_obj_set_style_border_color(slider, lv_color_hex(focused ? lamp : rule), 0);
   if (visual->keyLabel) {
     lv_label_set_text(visual->keyLabel, uppercase(control.label).c_str());
+    lv_obj_set_style_text_color(visual->keyLabel, lv_color_hex(focused ? lamp : muted), 0);
+  }
+  if (visual->encoderTag) {
+    if (focused) lv_obj_remove_flag(visual->encoderTag, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(visual->encoderTag, LV_OBJ_FLAG_HIDDEN);
   }
   const auto [valueText, unitText] = splitFormattedValue(control.formatted);
   if (visual->valueLabel) {
@@ -288,21 +408,19 @@ void refreshParameterSliderVisual(lv_obj_t* slider, const ParameterControl& cont
   }
   if (visual->unitLabel) {
     lv_label_set_text(visual->unitLabel, unitText.c_str());
-    lv_obj_align_to(visual->unitLabel, visual->valueLabel, LV_ALIGN_OUT_RIGHT_BOTTOM, 6, -2);
   }
 
-  if (visual->fill && visual->handle) {
+  if (visual->fill && visual->handle && visual->travel) {
     const float range = control.maximum - control.minimum;
     const float ratio = range == 0.0f ? 0.0f
       : std::clamp((control.value - control.minimum) / range, 0.0f, 1.0f);
-    lv_obj_set_width(visual->fill,
-                     static_cast<int32_t>(std::lround(ratio * visual->travelWidth)));
-    lv_obj_set_x(visual->handle, visual->travelX + static_cast<int32_t>(std::lround(
-      ratio * static_cast<float>(visual->travelWidth))) - visual->handleWidth / 2);
-    // Design law 3: the lamp colour is reserved for the running preset and
-    // the selected parameter. An idle rail carries the block's family colour.
-    lv_obj_set_style_bg_color(visual->fill, lv_color_hex(focused ? lamp : visual->accent), 0);
-    lv_obj_set_style_bg_color(visual->handle, lv_color_hex(focused ? lamp : text), 0);
+    const int inner = kParameterSliderWidth - 2 * border - 2 * kCardPad;
+    const int position = static_cast<int32_t>(std::lround(ratio * inner));
+    lv_obj_set_width(visual->fill, position);
+    lv_obj_set_x(visual->handle, kTravelOverhang + position - kTravelHandleWidth / 2);
+    // Design law 3: the lamp colour marks the selected control's frame and
+    // legend; the travel keeps the block's family colour.
+    lv_obj_set_style_bg_color(visual->fill, lv_color_hex(visual->accent), 0);
   }
 
   const auto selectedIndex = static_cast<int>(std::lround(control.value));
@@ -310,16 +428,14 @@ void refreshParameterSliderVisual(lv_obj_t* slider, const ParameterControl& cont
     lv_obj_t* option = visual->options[i];
     if (!option) continue;
     const bool on = static_cast<int>(i) == selectedIndex;
-    styleSurface(option, on ? text : bg);
-    lv_obj_set_style_bg_opa(option, on ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_width(option, i == 0 ? 0 : 1, 0);
-    lv_obj_set_style_border_color(option, lv_color_hex(rule), 0);
-    lv_obj_set_style_text_color(lv_obj_get_child(option, 0), lv_color_hex(on ? bg : muted), 0);
+    lv_obj_set_style_bg_color(option, lv_color_hex(on ? plateHi : panel), 0);
+    lv_obj_set_style_text_color(lb::buttonLabel(option), lv_color_hex(on ? text : disabled), 0);
+    if (lv_obj_t* mark = lv_obj_get_child(option, 1)) {
+      if (on) lv_obj_remove_flag(mark, LV_OBJ_FLAG_HIDDEN);
+      else lv_obj_add_flag(mark, LV_OBJ_FLAG_HIDDEN);
+    }
   }
-
-  lv_obj_set_style_outline_width(slider, focused ? 1 : 0, 0);
-  lv_obj_set_style_outline_color(slider, lv_color_hex(lamp), 0);
-  lv_obj_set_style_outline_pad(slider, 2, 0);
+  layoutParameterCard(slider, *visual, border);
 }
 
 void styleMappingButton(lv_obj_t* control, bool supported, bool assigned)
@@ -329,12 +445,9 @@ void styleMappingButton(lv_obj_t* control, bool supported, bool assigned)
   } else {
     lv_obj_add_state(control, LV_STATE_DISABLED);
   }
-  styleSurface(control, assigned ? panel : panelAlt);
-  lv_obj_set_style_border_width(control, assigned ? 2 : 1, 0);
-  lv_obj_set_style_border_color(control,
-                                lv_color_hex(assigned ? lamp : disabled), 0);
-  lv_obj_set_style_text_color(lv_obj_get_child(control, 0),
-                              lv_color_hex(assigned ? lamp : (supported ? text : muted)), 0);
+  // An assignment reads as a bone frame; lamp stays on the selected control.
+  lb::styleButton(control, supported ? lb::ButtonKind::Normal : lb::ButtonKind::Off);
+  lv_obj_set_style_border_color(control, lv_color_hex(assigned ? text : rule), 0);
 }
 
 void refreshParameterMappingVisual(lv_obj_t* toolbar, const ParameterControl& control,
@@ -346,19 +459,27 @@ void refreshParameterMappingVisual(lv_obj_t* toolbar, const ParameterControl& co
   if (!visual) return;
 
   lv_label_set_text(visual->parameterLabel, uppercase(control.label).c_str());
+  // A long choice name drops to the smaller value face on the same baseline.
+  const bool fits = lb::textWidth(lb::type::contextValue, control.formatted) <= kRailValueWidth;
+  const lb::Type& valueType = fits ? lb::type::contextValue : lb::type::contextValueSmall;
+  lb::applyType(visual->valueLabel, valueType, text);
+  const int valueBaseline = kRailValueTop - lb::kRailY - 1
+    + lb::type::contextValue.size * lb::kSairaAscent / 1000;
+  lv_obj_set_y(visual->valueLabel, valueBaseline
+    - (lv_font_get_line_height(valueType.font) - valueType.font->base_line));
+  lv_label_set_long_mode(visual->valueLabel, LV_LABEL_LONG_MODE_DOTS);
   lv_label_set_text(visual->valueLabel, control.formatted.c_str());
   // Fine steps only make sense on a continuous travel; choices keep their
   // own segmented buttons.
   const bool steppable = control.kind == ParameterControlKind::Continuous;
   for (lv_obj_t* step : {visual->stepDownButton, visual->stepUpButton}) {
     if (!step) continue;
-    if (steppable) lv_obj_remove_flag(step, LV_OBJ_FLAG_HIDDEN);
-    else lv_obj_add_flag(step, LV_OBJ_FLAG_HIDDEN);
+    if (steppable) lv_obj_remove_state(step, LV_STATE_DISABLED);
+    else lv_obj_add_state(step, LV_STATE_DISABLED);
+    lb::styleButton(step, steppable ? lb::ButtonKind::Normal : lb::ButtonKind::Off);
   }
-  lv_label_set_text(lv_obj_get_child(visual->expressionButton, 0),
-                    expressionAssigned ? "EXP Assigned" : "Assign EXP");
-  lv_label_set_text(lv_obj_get_child(visual->midiButton, 0),
-                    midiAssigned ? "MIDI Mapped" : "MIDI Learn");
+  lb::setButtonText(visual->expressionButton, expressionAssigned ? "EXP Assigned" : "Assign EXP");
+  lb::setButtonText(visual->midiButton, midiAssigned ? "MIDI Mapped" : "MIDI Learn");
   visual->expressionContext->index = controlIndex;
   visual->midiContext->index = controlIndex;
   styleMappingButton(visual->expressionButton, expressionSupported, expressionAssigned);
@@ -423,38 +544,15 @@ void refreshGainMeterVisual(lv_obj_t* fill, lv_obj_t* valueLabel, float reductio
 
 void renderGainMeter(lv_obj_t* parent, float reductionDb, lv_obj_t** fillOut, lv_obj_t** labelOut)
 {
-  lv_obj_t* pill = lv_obj_create(parent);
-  lv_obj_set_size(pill, kGainMeterWidth, kGainMeterHeight);
-  lv_obj_set_pos(pill, kGainMeterX, kPanelActionTop);
-  lv_obj_remove_flag(pill, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(pill, LV_OBJ_FLAG_CLICKABLE);
-  styleSurface(pill, panel);
-  lv_obj_set_style_radius(pill, 0, 0);
-  lv_obj_set_style_pad_all(pill, 0, 0);
-
-  lv_obj_t* track = lv_obj_create(pill);
-  lv_obj_remove_style_all(track);
-  lv_obj_set_size(track, kGainMeterBarWidth, kGainMeterBarHeight);
-  lv_obj_set_pos(track, kGainMeterBarX, kGainMeterBarY);
-  lv_obj_set_style_bg_opa(track, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(track, lv_color_hex(rule), 0);
-  lv_obj_remove_flag(track, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(track, LV_OBJ_FLAG_CLICKABLE);
-
+  lv_obj_t* pill = lb::box(parent, kGainMeterX, kPanelActionTop, kGainMeterWidth,
+                           kGainMeterHeight, bg, rule, 1);
+  lb::box(pill, kGainMeterBarX, kGainMeterBarY, kGainMeterBarWidth, kGainMeterBarHeight, plateHi);
   // Anchored to the track's top so growing height reads as "filling down
   // from 0 dB", matching refreshGainMeterVisual's fill-height math.
-  lv_obj_t* fill = lv_obj_create(pill);
-  lv_obj_remove_style_all(fill);
-  lv_obj_set_size(fill, kGainMeterBarWidth, 0);
-  lv_obj_set_pos(fill, kGainMeterBarX, kGainMeterBarY);
-  lv_obj_set_style_bg_opa(fill, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(fill, lv_color_hex(lamp), 0);
-  lv_obj_remove_flag(fill, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(fill, LV_OBJ_FLAG_CLICKABLE);
-
-  lv_obj_t* valueLabel = label(pill, "0.0 dB", LV_ALIGN_LEFT_MID, kGainMeterLabelX, 0,
-                               &ardor_font_saira_cond_semibold_22, text);
-  lv_obj_set_width(valueLabel, kGainMeterWidth - kGainMeterLabelX - 10);
+  lv_obj_t* fill = lb::box(pill, kGainMeterBarX, kGainMeterBarY, kGainMeterBarWidth, 0, text);
+  lb::textLabel(pill, lb::type::chipSmall, "GR", disabled, kGainMeterLabelX, 6);
+  lv_obj_t* valueLabel = lb::textLabel(pill, lb::type::page, "0.0 dB", text, kGainMeterLabelX, 22);
+  lv_obj_set_width(valueLabel, kGainMeterWidth - kGainMeterLabelX - 8);
   lv_label_set_long_mode(valueLabel, LV_LABEL_LONG_CLIP);
 
   refreshGainMeterVisual(fill, valueLabel, reductionDb);
@@ -473,11 +571,18 @@ void refreshBypassControlVisual(lv_obj_t* control, bool bypassed)
   } else {
     lv_obj_remove_state(control, LV_STATE_CHECKED);
   }
-  if (visual->fill) {
-    lv_obj_set_width(visual->fill, bypassed ? kBypassControlWidth : 0);
+  // ON prints ground on bone; OFF drops to a ruled, recessed badge.
+  if (visual->badge) {
+    lv_obj_set_style_bg_color(visual->badge, lv_color_hex(bypassed ? bg : text), 0);
+    lb::setBorder(visual->badge, bypassed ? disabled : text, bypassed ? 1 : 0);
   }
-  for (lv_obj_t* value : {visual->inactiveValue, visual->activeValue}) {
-    if (value) lv_label_set_text(value, bypassed ? "On" : "Off");
+  if (visual->badgeLabel) {
+    lv_label_set_text(visual->badgeLabel, bypassed ? "OFF" : "ON");
+    lv_obj_set_style_text_color(visual->badgeLabel, lv_color_hex(bypassed ? muted : bg), 0);
+    const int width = lb::textWidth(lb::type::buttonState, bypassed ? "OFF" : "ON");
+    const int border = bypassed ? 1 : 0;
+    lv_obj_set_pos(visual->badgeLabel, (kBypassBadgeWidth - width) / 2 - border,
+                   lb::centeredTextTop(lb::type::buttonState, 0, kBypassBadgeHeight) - border);
   }
 }
 
@@ -940,22 +1045,56 @@ void onSceneScopeClicked(lv_event_t* event)
 }
 
 
+// CSS divides the 1232 px grid into three 402.67 px columns, so columns land
+// on 24, 439 and 853 while every card still renders 403 px wide.
+int parameterColumnX(int column)
+{
+  const double pitch = (kDesignWidth - 2 * kPanelEdgeInset
+                        - (kParameterSliderColumns - 1) * kParameterSliderColumnGap)
+    / static_cast<double>(kParameterSliderColumns) + kParameterSliderColumnGap;
+  return kParameterSliderGridX + static_cast<int>(std::lround(column * pitch - 0.001));
+}
+
+// A 1 px bordered tag with small bold capitals, used for ENC and scope.
+lv_obj_t* cardTag(lv_obj_t* parent, const lb::Type& type, const std::string& legend,
+                  std::uint32_t fill, std::uint32_t ink, std::uint32_t border)
+{
+  const int width = lb::textWidth(type, legend) + 2 * (border ? 9 : 8);
+  lv_obj_t* tag = lb::box(parent, 0, 0, width, kCardTagHeight, fill, border, border ? 1 : 0);
+  if (!border) lv_obj_set_style_bg_color(tag, lv_color_hex(fill), 0);
+  if (fill == bg && border) lv_obj_set_style_bg_opa(tag, LV_OPA_TRANSP, 0);
+  lb::centeredText(tag, type, legend, ink, border ? -1 : 0, border ? -1 : 0, width,
+                   kCardTagHeight);
+  return tag;
+}
+
+// One segment cell: a ruled plate with its legend and a 5 px family mark
+// along the foot of the selected cell.
+lv_obj_t* segmentCell(lv_obj_t* row, const std::string& legend, std::uint32_t accent)
+{
+  lv_obj_t* cell = lb::button(row, legend, lb::ButtonKind::Normal, 0, 0, 91,
+                              kDiscreteOptionsHeight, lb::type::segment);
+  lv_label_set_long_mode(lb::buttonLabel(cell), LV_LABEL_LONG_CLIP);
+  lv_obj_t* mark = lb::box(cell, 0, kDiscreteOptionsHeight - 2 - kSegmentMarkHeight, LV_PCT(100),
+                           kSegmentMarkHeight, accent);
+  lv_obj_add_flag(mark, LV_OBJ_FLAG_HIDDEN);
+  return cell;
+}
+
 lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& control, int x, int y,
                                 bool focused, UiEventContext* context,
                                 lv_event_cb_t onPressed, lv_event_cb_t onPressing,
                                 std::size_t controlIndex)
 {
   lv_obj_t* slider = lv_obj_create(parent);
+  lv_obj_remove_style_all(slider);
   lv_obj_set_size(slider, kParameterSliderWidth, kParameterSliderHeight);
   lv_obj_set_pos(slider, x, y);
   lv_obj_remove_flag(slider, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(slider, LV_OBJ_FLAG_GESTURE_BUBBLE);
-  styleSurface(slider, panel);
-  lv_obj_set_style_border_width(slider, 1, 0);
-  lv_obj_set_style_border_color(slider, lv_color_hex(rule), 0);
-  lv_obj_set_style_radius(slider, kParameterSliderRadius, 0);
-  lv_obj_set_style_pad_all(slider, 0, 0);
-  lv_obj_set_style_shadow_width(slider, 0, 0);
+  lv_obj_set_style_bg_opa(slider, LV_OPA_COVER, 0);
+  lv_obj_set_style_bg_color(slider, lv_color_hex(bg), 0);
+  lb::setBorder(slider, rule, 1);
 
   auto* visual = new ParameterSliderVisual{};
   visual->controlIndex = controlIndex;
@@ -966,145 +1105,80 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
   lv_obj_set_user_data(slider, visual);
   lv_obj_add_event_cb(slider, freeParameterSliderVisual, LV_EVENT_DELETE, visual);
 
-  visual->keyLabel = label(slider, uppercase(control.label), LV_ALIGN_TOP_LEFT,
-                           kParameterSliderTextInset, 8,
-                           &ardor_font_saira_cond_medium_18, muted);
-  lv_obj_set_style_text_letter_space(visual->keyLabel, 2, 0);
-  lv_obj_set_width(visual->keyLabel, kTravelWidth);
+  visual->keyLabel = lb::textLabel(slider, lb::type::controlLabel, uppercase(control.label),
+                                   muted, 0, 0);
+  lv_obj_set_width(visual->keyLabel, kParameterSliderWidth - 2 * kCardPad - 110);
   lv_label_set_long_mode(visual->keyLabel, LV_LABEL_LONG_CLIP);
+  visual->encoderTag = cardTag(slider, lb::type::encoderTag, "ENC", lamp, lampInk, 0);
 
   const bool scenesEnabled = context->state->bank.presets[context->state->activePreset]
     .sceneSet.has_value();
   if (scenesEnabled) {
-    const char* scopeText = control.sceneScope == UiSceneScope::ThisScene
-      ? "THIS SCENE" : "SHARED";
-    lv_obj_t* scope = button(slider, scopeText);
-    lv_obj_set_size(scope, 108, 28);
-    lv_obj_set_pos(scope, kParameterSliderWidth - 120, 6);
-    styleSurface(scope, control.sceneScope == UiSceneScope::ThisScene ? panelAlt : panel);
-    lv_obj_set_style_text_font(lv_obj_get_child(scope, 0),
-                               &ardor_font_saira_cond_semibold_11, 0);
-    lv_obj_set_style_text_color(lv_obj_get_child(scope, 0),
-      lv_color_hex(control.sceneScope == UiSceneScope::ThisScene ? lamp : muted), 0);
+    const bool perScene = control.sceneScope == UiSceneScope::ThisScene;
+    lv_obj_t* scope = cardTag(slider, lb::type::controlTag, perScene ? "THIS SCENE" : "SHARED",
+                              bg, perScene ? text : muted, disabled);
+    lv_obj_add_flag(scope, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_ext_click_area(scope, 12);
+    lv_obj_set_style_opa(scope, LV_OPA_40, LV_STATE_DISABLED);
     if (control.sceneScope == UiSceneScope::Unavailable
         || !previewIsSynchronized(*context->state)) lv_obj_add_state(scope, LV_STATE_DISABLED);
     lv_obj_add_event_cb(scope, onSceneScopeClicked, LV_EVENT_CLICKED,
                         context->ui->remember(*context->state, controlIndex));
-    lv_obj_set_width(visual->keyLabel, kTravelWidth - 120);
+    visual->scopeTag = scope;
   }
 
   const bool continuous = control.kind == ParameterControlKind::Continuous;
-  visual->valueLabel = label(slider, "", LV_ALIGN_TOP_LEFT, kParameterSliderTextInset, 27,
-                             continuous ? &ardor_font_saira_light_44
-                                        : &ardor_font_saira_cond_semibold_28,
-                             text);
-  lv_obj_set_width(visual->valueLabel, LV_SIZE_CONTENT);
-  lv_obj_set_style_max_width(visual->valueLabel, kTravelWidth, 0);
-  lv_label_set_long_mode(visual->valueLabel, LV_LABEL_LONG_CLIP);
-
   if (continuous) {
+    visual->valueLabel = lb::textLabel(slider, lb::type::controlValue, "", text, 0, 0);
+    lv_obj_set_style_max_width(visual->valueLabel, kParameterSliderWidth - 2 * kCardPad - 60, 0);
+    lv_label_set_long_mode(visual->valueLabel, LV_LABEL_LONG_CLIP);
+    visual->unitLabel = lb::textLabel(slider, lb::type::controlUnit, "", muted, 0, 0);
+
     lv_obj_add_flag(slider, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(slider, onPressed, LV_EVENT_PRESSED, context);
     lv_obj_add_event_cb(slider, onPressing, LV_EVENT_PRESSING, context);
     lv_obj_add_event_cb(slider, onParameterControlReleased, LV_EVENT_RELEASED, context);
     lv_obj_add_event_cb(slider, onParameterControlReleased, LV_EVENT_PRESS_LOST, context);
 
-    visual->unitLabel = label(slider, "", LV_ALIGN_TOP_LEFT, 0, 0,
-                              &ardor_font_saira_cond_medium_18, muted);
-
-    lv_obj_t* rail = lv_obj_create(slider);
-    lv_obj_remove_style_all(rail);
-    lv_obj_set_size(rail, kTravelWidth, kTravelRailHeight);
-    lv_obj_set_pos(rail, kParameterSliderTextInset, kTravelTop);
-    lv_obj_set_style_bg_opa(rail, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(rail, lv_color_hex(panelAlt), 0);
-    lv_obj_set_style_border_width(rail, 1, 0);
-    lv_obj_set_style_border_color(rail, lv_color_hex(rule), 0);
-    lv_obj_remove_flag(rail, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_remove_flag(rail, LV_OBJ_FLAG_CLICKABLE);
-
-    lv_obj_t* fill = lv_obj_create(slider);
-    lv_obj_remove_style_all(fill);
-    lv_obj_set_size(fill, 0, kTravelFillHeight);
-    lv_obj_set_pos(fill, kTravelInteriorX, kTravelTop + 1);
-    lv_obj_set_style_bg_opa(fill, LV_OPA_COVER, 0);
-    lv_obj_remove_flag(fill, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_remove_flag(fill, LV_OBJ_FLAG_CLICKABLE);
-    visual->fill = fill;
-
-    lv_obj_t* handle = lv_obj_create(slider);
-    lv_obj_remove_style_all(handle);
-    lv_obj_set_size(handle, kTravelHandleWidth, kTravelHandleHeight);
-    lv_obj_set_pos(handle, kTravelInteriorX - kTravelHandleWidth / 2, kTravelHandleTop);
-    lv_obj_set_style_bg_opa(handle, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_width(handle, 4, 0);
-    lv_obj_set_style_border_color(handle, lv_color_hex(panel), 0);
-    lv_obj_remove_flag(handle, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_remove_flag(handle, LV_OBJ_FLAG_CLICKABLE);
-    visual->handle = handle;
-
-    lv_obj_t* grip = lv_obj_create(handle);
-    lv_obj_remove_style_all(grip);
-    lv_obj_set_size(grip, 2, 26);
-    lv_obj_center(grip);
-    lv_obj_set_style_bg_opa(grip, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(grip, lv_color_hex(panelAlt), 0);
-    lv_obj_remove_flag(grip, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_remove_flag(grip, LV_OBJ_FLAG_CLICKABLE);
-
-    lv_obj_t* minimum = label(slider, "MIN", LV_ALIGN_TOP_LEFT,
-                              kParameterSliderTextInset, kTravelTop + kTravelRailHeight + 2,
-                              &ardor_font_saira_cond_semibold_11, muted);
-    lv_obj_set_width(minimum, 32);
-    lv_obj_t* maximum = label(slider, "MAX", LV_ALIGN_TOP_LEFT,
-                              kParameterSliderWidth - kParameterSliderTextInset - 32,
-                              kTravelTop + kTravelRailHeight + 2,
-                              &ardor_font_saira_cond_semibold_11, muted);
-    lv_obj_set_width(maximum, 32);
-    lv_obj_set_style_text_align(maximum, LV_TEXT_ALIGN_RIGHT, 0);
+    const int inner = kParameterSliderWidth - 2 - 2 * kCardPad;
+    lv_obj_t* travel = lv_obj_create(slider);
+    lv_obj_remove_style_all(travel);
+    lv_obj_set_size(travel, inner, kTravelHeight);
+    lv_obj_remove_flag(travel, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(travel, LV_OBJ_FLAG_CLICKABLE);
+    visual->travel = travel;
+    for (int tick = 0; tick < kTravelTicks; ++tick) {
+      visual->ticks.push_back(lb::box(travel, 0, 0, kTravelTickWidth, kTravelTickHeight, disabled));
+    }
+    lb::box(travel, 0, kTravelTrackTop, inner, kTravelTrackHeight, plateHi);
+    visual->fill = lb::box(travel, 0, kTravelTrackTop, 0, kTravelTrackHeight, visual->accent);
+    visual->handle = lb::box(travel, 0, kTravelHandleTop, kTravelHandleWidth,
+                             kTravelHandleHeight, text);
   } else {
     const auto count = std::max<std::size_t>(1, control.choices.size());
     const bool directRow = count <= 4
       || (selectedBlockIsHarmonizer(context) && control.key == "p1");
+    lv_obj_t* row = lv_obj_create(slider);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_height(row, kDiscreteOptionsHeight);
+    lv_obj_remove_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(row, LV_OBJ_FLAG_CLICKABLE);
+    visual->optionRow = row;
     if (directRow) {
-      const int optionWidth = kTravelWidth / static_cast<int>(count);
-      lv_obj_t* optsRow = lv_obj_create(slider);
-      lv_obj_remove_flag(optsRow, LV_OBJ_FLAG_SCROLLABLE);
-      lv_obj_remove_flag(optsRow, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_set_size(optsRow, kTravelWidth, kDiscreteOptionsHeight);
-      lv_obj_set_pos(optsRow, kParameterSliderTextInset, kDiscreteOptionsTop);
-      lv_obj_set_style_bg_opa(optsRow, LV_OPA_TRANSP, 0);
-      lv_obj_set_style_border_width(optsRow, 1, 0);
-      lv_obj_set_style_border_color(optsRow, lv_color_hex(rule), 0);
-      lv_obj_set_style_radius(optsRow, 0, 0);
-      lv_obj_set_style_pad_all(optsRow, 0, 0);
       for (std::size_t i = 0; i < count; ++i) {
-        lv_obj_t* option = lv_obj_create(optsRow);
-        lv_obj_remove_flag(option, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_add_flag(option, LV_OBJ_FLAG_CLICKABLE);
-        const int width = i + 1 == count
-          ? kTravelWidth - static_cast<int>(i) * optionWidth
-          : optionWidth;
-        lv_obj_set_size(option, width, kDiscreteOptionsHeight);
-        lv_obj_set_pos(option, static_cast<int>(i) * optionWidth, 0);
-        lv_obj_set_style_radius(option, 0, 0);
-        lv_obj_set_style_pad_all(option, 0, 0);
-        lv_obj_set_style_border_side(option, i == 0 ? LV_BORDER_SIDE_NONE : LV_BORDER_SIDE_LEFT, 0);
-        lv_obj_t* optionLabel = lv_label_create(option);
-        lv_label_set_text(optionLabel,
-                          i < control.choices.size() ? control.choices[i].c_str() : "");
-        setText(optionLabel, muted, count > 3
-          ? &ardor_font_saira_cond_semibold_11
-          : &ardor_font_saira_cond_medium_18);
-        lv_label_set_long_mode(optionLabel, LV_LABEL_LONG_CLIP);
-        lv_obj_set_width(optionLabel, width - 10);
-        lv_obj_center(optionLabel);
+        lv_obj_t* option = segmentCell(
+          row, i < control.choices.size() ? uppercase(control.choices[i]) : "", visual->accent);
         auto* optionContext = context->ui->remember(*context->state, controlIndex);
         optionContext->parentIndex = i;
         lv_obj_add_event_cb(option, onDiscreteOptionSelected, LV_EVENT_CLICKED, optionContext);
         visual->options.push_back(option);
       }
     } else {
+      // Long lists: step through the choices, or open the full picker.
+      // The current choice is the value; the centre cell opens the list.
+      visual->valueLabel = lb::textLabel(slider, lb::type::controlValue, "", text, 0, 0);
+      lv_obj_set_style_max_width(visual->valueLabel, kParameterSliderWidth - 2 * kCardPad, 0);
+      lv_label_set_long_mode(visual->valueLabel, LV_LABEL_LONG_MODE_DOTS);
       auto* openContext = context->ui->remember(*context->state, controlIndex);
       openContext->ghost = slider;
       const bool map = usesHarmonizerMap(context, control);
@@ -1112,36 +1186,21 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
       lv_obj_add_event_cb(slider, map ? onHarmonizerMapOpened : onChoiceGridOpened,
                           LV_EVENT_CLICKED, openContext);
       if (map) {
-        lv_obj_t* open = button(slider, "Open map");
-        lv_obj_set_size(open, kTravelWidth, kDiscreteOptionsHeight);
-        lv_obj_set_pos(open, kParameterSliderTextInset, kDiscreteOptionsTop);
-        styleSurface(open, panelAlt);
+        lv_obj_t* open = segmentCell(row, "OPEN MAP", visual->accent);
         lv_obj_add_event_cb(open, onHarmonizerMapOpened, LV_EVENT_CLICKED, openContext);
+        visual->stepper.push_back(open);
       } else {
-        lv_obj_t* previous = button(slider, "<");
-        lv_obj_set_size(previous, kChoiceStepperNudgeWidth, kDiscreteOptionsHeight);
-        lv_obj_set_pos(previous, kParameterSliderTextInset, kDiscreteOptionsTop);
-        styleSurface(previous, panelAlt);
+        lv_obj_t* previous = segmentCell(row, "<", visual->accent);
         auto* previousContext = context->ui->remember(*context->state, controlIndex);
         previousContext->parentIndex = 0;
         lv_obj_add_event_cb(previous, onChoiceStepperNudged, LV_EVENT_CLICKED, previousContext);
-
-        const int openWidth = kTravelWidth - 2 * kChoiceStepperNudgeWidth - 2 * kChoiceStepperGap;
-        lv_obj_t* open = button(slider, "All options");
-        lv_obj_set_size(open, openWidth, kDiscreteOptionsHeight);
-        lv_obj_set_pos(open, kParameterSliderTextInset + kChoiceStepperNudgeWidth + kChoiceStepperGap,
-                       kDiscreteOptionsTop);
-        styleSurface(open, panelAlt);
+        lv_obj_t* open = segmentCell(row, "ALL OPTIONS", visual->accent);
         lv_obj_add_event_cb(open, onChoiceGridOpened, LV_EVENT_CLICKED, openContext);
-
-        lv_obj_t* next = button(slider, ">");
-        lv_obj_set_size(next, kChoiceStepperNudgeWidth, kDiscreteOptionsHeight);
-        lv_obj_set_pos(next, kParameterSliderTextInset + kTravelWidth - kChoiceStepperNudgeWidth,
-                       kDiscreteOptionsTop);
-        styleSurface(next, panelAlt);
+        lv_obj_t* next = segmentCell(row, ">", visual->accent);
         auto* nextContext = context->ui->remember(*context->state, controlIndex);
         nextContext->parentIndex = 1;
         lv_obj_add_event_cb(next, onChoiceStepperNudged, LV_EVENT_CLICKED, nextContext);
+        visual->stepper = {previous, open, next};
       }
     }
   }
@@ -1155,60 +1214,59 @@ lv_obj_t* renderParameterMappingToolbar(lv_obj_t* parent, UiState& state,
                                         const ParameterControl& control,
                                         std::size_t controlIndex)
 {
-  lv_obj_t* toolbar = lv_obj_create(parent);
-  lv_obj_set_size(toolbar, kMappingToolbarWidth, kMappingToolbarHeight);
-  lv_obj_set_pos(toolbar, kMappingToolbarX, kMappingToolbarY);
-  lv_obj_remove_flag(toolbar, LV_OBJ_FLAG_SCROLLABLE);
+  // The context rail covers the edit rail: same 108 px band, same rule.
+  lv_obj_t* toolbar = lb::rail(parent);
+  lv_obj_add_flag(toolbar, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_remove_flag(toolbar, LV_OBJ_FLAG_GESTURE_BUBBLE);
-  styleSurface(toolbar, panelAlt);
-  lv_obj_set_style_radius(toolbar, kParameterSliderRadius, 0);
-  lv_obj_set_style_border_width(toolbar, 1, 0);
-  lv_obj_set_style_border_color(toolbar, lv_color_hex(rule), 0);
-  lv_obj_set_style_pad_all(toolbar, 0, 0);
 
   auto* visual = new ParameterMappingVisual{};
   lv_obj_set_user_data(toolbar, visual);
   lv_obj_add_event_cb(toolbar, freeParameterMappingVisual, LV_EVENT_DELETE, visual);
 
-  lv_obj_t* legend = label(toolbar, "SELECTED", LV_ALIGN_LEFT_MID, kRailLegendX, 0,
-                           &ardor_font_saira_cond_medium_18, muted);
-  lv_obj_set_style_text_letter_space(legend, 2, 0);
-  visual->parameterLabel = label(toolbar, "", LV_ALIGN_LEFT_MID, kRailNameX, 0,
-                                 &ardor_font_saira_cond_semibold_22, text);
-  lv_obj_set_width(visual->parameterLabel, kRailNameWidth);
+  // Rail children sit below its 1 px top rule; screen positions lose a pixel.
+  const int top = lb::kRailY + 1;
+  visual->parameterLabel = lb::textLabel(toolbar, lb::type::contextName, "", muted, lb::kGutter,
+                                         kRailNameTop - top);
+  lv_obj_set_width(visual->parameterLabel, kRailValueWidth + kRailValueGap);
   lv_label_set_long_mode(visual->parameterLabel, LV_LABEL_LONG_CLIP);
-
-  visual->valueLabel = label(toolbar, "", LV_ALIGN_LEFT_MID, kRailValueX, 0,
-                             &ardor_font_saira_cond_semibold_28, text);
+  visual->valueLabel = lb::textLabel(toolbar, lb::type::contextValue, "", text, lb::kGutter,
+                                     kRailValueTop - top);
   lv_obj_set_width(visual->valueLabel, kRailValueWidth);
   lv_label_set_long_mode(visual->valueLabel, LV_LABEL_LONG_CLIP);
-  lv_obj_set_style_text_align(visual->valueLabel, LV_TEXT_ALIGN_RIGHT, 0);
 
+  int x = lb::kGutter + kRailValueWidth + kRailValueGap + lb::kGap;
+  const int buttonY = lb::kRailButtonY - top;
   auto* stepContext = context->ui->remember(state, controlIndex);
-  visual->stepDownButton = button(toolbar, "-");
-  lv_obj_set_size(visual->stepDownButton, kRailStepWidth, kMappingButtonHeight);
-  lv_obj_set_pos(visual->stepDownButton, kRailStepDownX, 10);
-  styleSurface(visual->stepDownButton, panel);
+  visual->stepDownButton = lb::button(toolbar, "-", lb::ButtonKind::Normal, x, buttonY,
+                                      kRailStepWidth, lb::kButtonHeight, lb::type::stepButton);
   lv_obj_add_event_cb(visual->stepDownButton, onParameterStepDown, LV_EVENT_CLICKED, stepContext);
-  visual->stepUpButton = button(toolbar, "+");
-  lv_obj_set_size(visual->stepUpButton, kRailStepWidth, kMappingButtonHeight);
-  lv_obj_set_pos(visual->stepUpButton, kRailStepUpX, 10);
-  styleSurface(visual->stepUpButton, panel);
+  x += kRailStepWidth + lb::kGap;
+  visual->stepUpButton = lb::button(toolbar, "+", lb::ButtonKind::Normal, x, buttonY,
+                                    kRailStepWidth, lb::kButtonHeight, lb::type::stepButton);
   lv_obj_add_event_cb(visual->stepUpButton, onParameterStepUp, LV_EVENT_CLICKED, stepContext);
+  x += kRailStepWidth + lb::kGap;
 
-  visual->expressionButton = button(toolbar, "Assign EXP");
-  lv_obj_set_size(visual->expressionButton, kMappingButtonWidth, kMappingButtonHeight);
-  lv_obj_set_pos(visual->expressionButton, kMappingExpButtonX, 10);
+  // Both mapping buttons keep the width of their longer legend, so a
+  // relabel never moves its neighbour.
+  const int expWidth = lb::buttonWidth("EXP Assigned");
+  visual->expressionButton = lb::button(toolbar, "Assign EXP", lb::ButtonKind::Normal, x, buttonY,
+                                        expWidth);
   visual->expressionContext = context->ui->remember(state, controlIndex);
   lv_obj_add_event_cb(visual->expressionButton, onExpressionAssignmentClicked,
                       LV_EVENT_CLICKED, visual->expressionContext);
-
-  visual->midiButton = button(toolbar, "MIDI Learn");
-  lv_obj_set_size(visual->midiButton, kMappingButtonWidth, kMappingButtonHeight);
-  lv_obj_set_pos(visual->midiButton, kMappingMidiButtonX, 10);
+  x += expWidth + lb::kGap;
+  const int midiWidth = lb::buttonWidth("MIDI Mapped");
+  visual->midiButton = lb::button(toolbar, "MIDI Learn", lb::ButtonKind::Normal, x, buttonY,
+                                  midiWidth);
   visual->midiContext = context->ui->remember(state, controlIndex);
   lv_obj_add_event_cb(visual->midiButton, onMidiLearnClicked,
                       LV_EVENT_CLICKED, visual->midiContext);
+
+  visual->doneButton = lb::button(toolbar, "DONE", lb::ButtonKind::Primary,
+                                  kDesignWidth - lb::kGutter - lb::kButtonMinWidth, buttonY);
+  // Close on touch-down: a finger can move slightly before release, which
+  // would otherwise cancel LV_EVENT_CLICKED.
+  lv_obj_add_event_cb(visual->doneButton, onCloseParamDrawer, LV_EVENT_PRESSED, context);
 
   refreshParameterMappingVisual(
     toolbar, control, controlIndex, parameterSupportsExpression(state, control),
@@ -1217,14 +1275,15 @@ lv_obj_t* renderParameterMappingToolbar(lv_obj_t* parent, UiState& state,
   return toolbar;
 }
 
+// The context rail's Done closes the drawer; this keeps a Done-only rail
+// for views without a mapping target (EQ, empty pages).
 lv_obj_t* renderPanelCloseButton(lv_obj_t* parent, UiEventContext* context)
 {
-  lv_obj_t* close = button(parent, "Close");
-  lv_obj_set_size(close, kPanelCloseButtonWidth, kPanelCloseButtonHeight);
-  lv_obj_set_pos(close, kPanelCloseButtonX, kPanelActionTop);
-  styleSurface(close, panel);
-  // Close on touch-down: a finger can move slightly before release, which
-  // would otherwise cancel LV_EVENT_CLICKED on these overlay panels.
+  lv_obj_t* railBand = lb::rail(parent);
+  lv_obj_add_flag(railBand, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_t* close = lb::button(railBand, "DONE", lb::ButtonKind::Primary,
+                               kDesignWidth - lb::kGutter - lb::kButtonMinWidth,
+                               lb::kRailButtonY - lb::kRailY - 1);
   lv_obj_add_event_cb(close, onCloseParamDrawer, LV_EVENT_PRESSED, context);
   return close;
 }
@@ -1238,68 +1297,38 @@ void renderBypassControl(lv_obj_t* parent, UiState& state, UiEventContext* conte
   const auto sceneEnabled = selectedParameterSceneValue(state, "blockEnabled");
   const bool displayedEnabled = sceneEnabled && sceneEnabled->is_boolean()
     ? sceneEnabled->get<bool>() : block.enabled;
-  lv_obj_t* control = lv_obj_create(parent);
-  lv_obj_set_size(control, kBypassControlWidth, kPanelActionHeight);
-  lv_obj_set_pos(control, kBypassControlX, kPanelActionTop);
-  lv_obj_remove_flag(control, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(control, LV_OBJ_FLAG_GESTURE_BUBBLE);
-  lv_obj_add_flag(control, LV_OBJ_FLAG_CLICKABLE);
-  styleSurface(control, panel);
-  lv_obj_set_style_radius(control, 0, 0);
-  lv_obj_set_style_clip_corner(control, true, 0);
-  lv_obj_set_style_pad_all(control, 0, 0);
+  lv_obj_t* control = lb::button(parent, "", lb::ButtonKind::Normal, kBypassControlX,
+                                 kPanelActionTop, kBypassControlWidth);
+  lv_obj_t* legend = lb::buttonLabel(control);
+  lv_label_set_text(legend, "BLOCK");
+  const int legendWidth = lb::textWidth(lb::type::button, "BLOCK");
+  const int contentWidth = legendWidth + lb::kGap + kBypassBadgeWidth;
+  const int legendX = (kBypassControlWidth - contentWidth) / 2;
+  lv_obj_set_x(legend, legendX - 1);
 
   auto* visual = new BypassControlVisual{};
+  visual->badge = lb::box(control, legendX + legendWidth + lb::kGap - 1,
+                          (kPanelActionHeight - kBypassBadgeHeight) / 2 - 1,
+                          kBypassBadgeWidth, kBypassBadgeHeight, text);
+  visual->badgeLabel = lb::textLabel(visual->badge, lb::type::buttonState, "ON", bg, 0, 0);
   lv_obj_set_user_data(control, visual);
   lv_obj_add_event_cb(control, freeBypassControlVisual, LV_EVENT_DELETE, visual);
   lv_obj_add_event_cb(control, onBypassClicked, LV_EVENT_CLICKED, context);
 
-  const auto addTextPair = [&](lv_obj_t* layer, int color, lv_obj_t** valueOut) {
-    lv_obj_t* title = label(layer, "Bypass", LV_ALIGN_LEFT_MID, 16, 0,
-                            &ardor_font_saira_cond_semibold_22, color);
-    lv_obj_set_width(title, 90);
-    lv_label_set_long_mode(title, LV_LABEL_LONG_CLIP);
-    lv_obj_t* value = label(layer, displayedEnabled ? "Off" : "On", LV_ALIGN_RIGHT_MID, -16, 0,
-                            &ardor_font_saira_cond_semibold_22, color);
-    lv_obj_set_width(value, 44);
-    lv_label_set_long_mode(value, LV_LABEL_LONG_CLIP);
-    lv_obj_set_style_text_align(value, LV_TEXT_ALIGN_RIGHT, 0);
-    *valueOut = value;
-  };
-
-  addTextPair(control, text, &visual->inactiveValue);
-
-  lv_obj_t* fill = lv_obj_create(control);
-  lv_obj_set_size(fill, 0, kPanelActionHeight);
-  lv_obj_set_pos(fill, 0, 0);
-  lv_obj_remove_flag(fill, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(fill, LV_OBJ_FLAG_CLICKABLE);
-  styleSurface(fill, lamp);
-  lv_obj_set_style_radius(fill, 0, 0);
-  lv_obj_set_style_clip_corner(fill, true, 0);
-  lv_obj_set_style_pad_all(fill, 0, 0);
-  visual->fill = fill;
-
-  lv_obj_t* activeTextLayer = lv_obj_create(fill);
-  lv_obj_set_size(activeTextLayer, kBypassControlWidth, kPanelActionHeight);
-  lv_obj_set_pos(activeTextLayer, 0, 0);
-  lv_obj_remove_flag(activeTextLayer, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(activeTextLayer, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_set_style_bg_opa(activeTextLayer, LV_OPA_TRANSP, 0);
-  lv_obj_set_style_border_width(activeTextLayer, 0, 0);
-  lv_obj_set_style_pad_all(activeTextLayer, 0, 0);
-  addTextPair(activeTextLayer, 0x102014, &visual->activeValue);
-
   if (state.bank.presets[state.activePreset].sceneSet) {
     const auto scope = selectedParameterSceneScope(state, "blockEnabled");
-    lv_obj_t* scopeLabel = label(control,
-      scope == UiSceneScope::ThisScene ? "THIS SCENE" : "SHARED",
-      LV_ALIGN_TOP_LEFT, 16, 2, &ardor_font_saira_cond_semibold_11,
-      scope == UiSceneScope::ThisScene ? lamp : muted);
-    lv_obj_add_flag(scopeLabel, LV_OBJ_FLAG_CLICKABLE);
+    const bool perScene = scope == UiSceneScope::ThisScene;
+    const std::string scopeText = perScene ? "THIS SCENE" : "SHARED";
+    lv_obj_t* scopeButton = lb::button(parent, scopeText, lb::ButtonKind::Normal, 0,
+                                       kPanelActionTop, 0, kPanelActionHeight,
+                                       lb::type::page);
+    lv_obj_set_x(scopeButton, kBypassControlX - lb::kGap
+                 - lv_obj_get_style_width(scopeButton, LV_PART_MAIN));
+    lv_obj_set_style_text_color(lb::buttonLabel(scopeButton),
+                                lv_color_hex(perScene ? text : muted), 0);
     if (scope == UiSceneScope::Unavailable || !previewIsSynchronized(state))
-      lv_obj_add_state(scopeLabel, LV_STATE_DISABLED);
-    lv_obj_add_event_cb(scopeLabel, onBypassSceneScopeClicked, LV_EVENT_CLICKED,
+      lv_obj_add_state(scopeButton, LV_STATE_DISABLED);
+    lv_obj_add_event_cb(scopeButton, onBypassSceneScopeClicked, LV_EVENT_CLICKED,
                         context->ui->remember(state));
   }
 
@@ -1311,102 +1340,97 @@ void renderBlockPanelActions(lv_obj_t* parent, UiState& state, UiEventContext* c
                              lv_obj_t** bypassOut = nullptr)
 {
   renderBypassControl(parent, state, context, bypassOut);
-  lv_obj_t* bypassMidi = button(parent, "MIDI");
-  lv_obj_set_size(bypassMidi, kBypassMidiWidth, kPanelActionHeight);
-  lv_obj_set_pos(bypassMidi, kBypassMidiX, kPanelActionTop);
+  lv_obj_t* bypassMidi = lb::button(parent, "MIDI", lb::ButtonKind::Normal, kBypassMidiX,
+                                    kPanelActionTop, kBypassMidiWidth);
   lv_obj_add_event_cb(bypassMidi, onBypassMidiLearnClicked, LV_EVENT_CLICKED, context);
-  lv_obj_t* remove = button(parent, "Delete Block");
-  lv_obj_set_size(remove, kDeleteBlockWidth, kPanelActionHeight);
-  lv_obj_set_pos(remove, kDeleteBlockX, kPanelActionTop);
-  styleSurface(remove, panelAlt);
-  lv_obj_set_style_text_color(lv_obj_get_child(remove, 0), lv_color_hex(danger), 0);
+  lv_obj_t* remove = lb::button(parent, "Delete", lb::ButtonKind::Danger, kDeleteBlockX,
+                                kPanelActionTop, kDeleteBlockWidth);
   lv_obj_add_event_cb(remove, onDeleteSelectedBlock, LV_EVENT_CLICKED, context);
 }
 
-void renderPageNavigation(lv_obj_t* parent, UiState& state, UiEventContext* context)
+// "< PAGE 1 / 2 >": two 60 px steps around a recessed legend. A single
+// page keeps the legend so the header does not shift between blocks.
+void renderPageNavigation(lv_obj_t* parent, UiState& state, UiEventContext* context, int x)
 {
   const auto count = std::max<std::size_t>(1, parameterPageCount(state));
   const auto page = std::min(context->ui->parameterPage(), count - 1);
-  if (count > 1) {
-    lv_obj_t* previous = button(parent, "<");
-    lv_obj_set_size(previous, 48, 48);
-    lv_obj_align(previous, LV_ALIGN_TOP_LEFT, 28, 12);
-    lv_obj_add_event_cb(previous, onPreviousParameterPage, LV_EVENT_CLICKED, context);
-  }
-  lv_obj_t* pageLabel = label(parent, "PAGE " + std::to_string(page + 1) + " / " + std::to_string(count),
-                              LV_ALIGN_TOP_LEFT, 88, 25, &ardor_font_saira_cond_medium_18, muted);
-  lv_obj_set_width(pageLabel, 118);
-  lv_label_set_long_mode(pageLabel, LV_LABEL_LONG_CLIP);
-  if (count > 1) {
-    lv_obj_t* next = button(parent, ">");
-    lv_obj_set_size(next, 48, 48);
-    lv_obj_align(next, LV_ALIGN_TOP_LEFT, 214, 12);
-    lv_obj_add_event_cb(next, onNextParameterPage, LV_EVENT_CLICKED, context);
-  }
+  lv_obj_t* previous = lb::button(parent, "<", page == 0 ? lb::ButtonKind::Off
+                                                        : lb::ButtonKind::Normal,
+                                  x, kPanelActionTop, kPagerStepWidth);
+  if (page == 0) lv_obj_add_state(previous, LV_STATE_DISABLED);
+  lv_obj_set_style_opa(previous, LV_OPA_COVER, LV_STATE_DISABLED);
+  lv_obj_add_event_cb(previous, onPreviousParameterPage, LV_EVENT_CLICKED, context);
+  const std::string legend = "PAGE " + std::to_string(page + 1) + " / " + std::to_string(count);
+  const int legendWidth = lb::textWidth(lb::type::page, legend) + 2 * kPagerLegendPad;
+  lv_obj_t* legendBox = lb::box(parent, x + kPagerStepWidth, kPanelActionTop, legendWidth,
+                                kPanelActionHeight, bg);
+  lb::setBorder(legendBox, rule, 1,
+                static_cast<lv_border_side_t>(LV_BORDER_SIDE_TOP | LV_BORDER_SIDE_BOTTOM));
+  lb::centeredText(legendBox, lb::type::page, legend, muted, 0, -1, legendWidth,
+                   kPanelActionHeight);
+  const bool last = page + 1 >= count;
+  lv_obj_t* next = lb::button(parent, ">", last ? lb::ButtonKind::Off : lb::ButtonKind::Normal,
+                              x + kPagerStepWidth + legendWidth, kPanelActionTop, kPagerStepWidth);
+  if (last) lv_obj_add_state(next, LV_STATE_DISABLED);
+  lv_obj_set_style_opa(next, LV_OPA_COVER, LV_STATE_DISABLED);
+  lv_obj_add_event_cb(next, onNextParameterPage, LV_EVENT_CLICKED, context);
 }
-
 
 void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* context,
                           std::vector<lv_obj_t*>* controlsOut, lv_obj_t** bypassOut,
                           lv_obj_t** titleOut, lv_obj_t** mappingToolbarOut,
                           lv_obj_t** gainMeterFillOut, lv_obj_t** gainMeterLabelOut)
 {
-  lv_obj_t* panelObject = lv_obj_create(root);
-  lv_obj_set_size(panelObject, kParameterPanelWidth, kParameterPanelHeight);
-  lv_obj_align(panelObject, LV_ALIGN_BOTTOM_MID, 0, -52);
-  lv_obj_remove_flag(panelObject, LV_OBJ_FLAG_SCROLLABLE);
-  styleSurface(panelObject, panelAlt);
-  lv_obj_set_style_pad_all(panelObject, 0, 0);
+  // The chip strip band above the drawer is ground; the chip strip itself is
+  // a shared object drawn over it.
+  lb::box(root, 0, lb::kHeaderHeight, kDesignWidth, kDrawerY - lb::kHeaderHeight, bg);
+  lv_obj_t* panelObject = lb::box(root, 0, kDrawerY, kParameterPanelWidth, kParameterPanelHeight,
+                                  panel);
+  lv_obj_add_flag(panelObject, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_event_cb(panelObject, onParameterGesture, LV_EVENT_GESTURE, context);
 
-  renderPanelCloseButton(panelObject, context);
+  const auto* selected = state.paramTarget == UiParamTarget::Block ? selectedUiBlock(state) : nullptr;
+  const auto family = selected ? static_cast<std::uint32_t>(categoryColor(selected->type))
+                               : disabled;
+  lb::box(panelObject, 0, 0, kParameterPanelWidth, kDrawerTopEdge, family);
 
+  int x = kParameterTitleX;
   if (state.paramTarget == UiParamTarget::Globals) {
-    lv_obj_t* title = label(panelObject, "GLOBAL", LV_ALIGN_TOP_LEFT, kParameterTitleX, 18,
-                            &ardor_font_saira_cond_semibold_28);
+    lv_obj_t* title = lb::textLabel(panelObject, lb::type::drawerName, "GLOBAL", text, x,
+                                    kDrawerNameTop);
     if (titleOut) *titleOut = title;
-    lv_obj_set_width(title, 660);
-    lv_label_set_long_mode(title, LV_LABEL_LONG_CLIP);
+    x += lb::textWidth(lb::type::drawerName, "GLOBAL") + kDrawerNameGap;
   } else {
-    const auto* selected = selectedUiBlock(state);
     if (!selected) return;
     const auto& block = *selected;
     const bool isCompressor = block.type == "dynamics"
       && block.params.value("mode", std::string{}) == "compressor";
-    // Views are cached per block type and mode, so the family bar and type
+    // Views are cached per block type and mode, so the family edge and type
     // tag stay valid for every block this view shows; only the name syncs.
-    const auto family = static_cast<std::uint32_t>(categoryColor(block.type));
-    lv_obj_t* familyBar = lv_obj_create(panelObject);
-    lv_obj_remove_style_all(familyBar);
-    lv_obj_set_size(familyBar, kParameterPanelWidth, kPanelFamilyBarHeight);
-    lv_obj_set_pos(familyBar, 0, 0);
-    lv_obj_set_style_bg_opa(familyBar, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(familyBar, lv_color_hex(family), 0);
-    lv_obj_remove_flag(familyBar, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_t* tag = label(panelObject, uppercase(block.label), LV_ALIGN_TOP_LEFT, kParameterTitleX, 24,
-                          &ardor_font_saira_cond_medium_18, bg);
-    lv_obj_set_style_bg_opa(tag, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(tag, lv_color_hex(family), 0);
-    lv_obj_set_style_pad_hor(tag, kTypeTagPadding, 0);
-    lv_obj_set_style_pad_ver(tag, 3, 0);
-    lv_obj_set_style_text_letter_space(tag, 2, 0);
-    lv_obj_update_layout(tag);
-    const int nameX = kParameterTitleX + lv_obj_get_width(tag) + kTypeTagGap;
-    lv_obj_t* title = label(panelObject, uppercase(block.assetName),
-                            LV_ALIGN_TOP_LEFT, nameX, 18,
-                            &ardor_font_saira_cond_semibold_28);
-    lv_obj_set_width(title, std::max(80, (isCompressor ? kParameterTitleWidthWithGainMeter
-                                                         : kParameterTitleWidthFull)
-                                           - (nameX - kParameterTitleX)));
+    const std::string tagText = uppercase(block.label);
+    const int tagWidth = lb::textWidth(lb::type::category, tagText) + 2 * kTypeTagPadding;
+    lv_obj_t* tag = lb::box(panelObject, x, kTypeTagTop, tagWidth, kTypeTagHeight, family);
+    lb::textLabel(tag, lb::type::category, tagText, bg, kTypeTagPadding, 4);
+    x += tagWidth + kTypeTagGap;
+    // The pager follows the name; the name's width is fixed per view so a
+    // long name clips instead of pushing the pager into the actions.
+    const int titleRight = (isCompressor ? kGainMeterX : kBypassControlX) - lb::kGap
+      - (2 * kPagerStepWidth + 106) - kDrawerNameGap;
+    const std::string name = uppercase(block.assetName);
+    lv_obj_t* title = lb::textLabel(panelObject, lb::type::drawerName, name, text, x,
+                                    kDrawerNameTop);
+    const int nameWidth = std::min(lb::textWidth(lb::type::drawerName, name), titleRight - x);
+    lv_obj_set_width(title, std::max(80, nameWidth));
     lv_label_set_long_mode(title, LV_LABEL_LONG_CLIP);
     if (titleOut) *titleOut = title;
+    x += std::max(80, nameWidth) + kDrawerNameGap;
     renderBlockPanelActions(panelObject, state, context, bypassOut);
     if (isCompressor) {
       renderGainMeter(panelObject, state.compressorGainReductionDb, gainMeterFillOut, gainMeterLabelOut);
     }
   }
 
-  renderPageNavigation(panelObject, state, context);
+  renderPageNavigation(panelObject, state, context, x);
   const auto controls = parameterPage(state, context->ui->parameterPage());
   if (!controls.empty()
       && std::none_of(controls.begin(), controls.end(), [&](const auto& control) {
@@ -1418,29 +1442,40 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
     const int column = static_cast<int>(i % kParameterSliderColumns);
     const int row = static_cast<int>(i / kParameterSliderColumns);
     lv_obj_t* slider = createParameterSlider(
-      panelObject, controls[i],
-      kParameterSliderGridX + column * (kParameterSliderWidth + kParameterSliderColumnGap),
+      panelObject, controls[i], parameterColumnX(column),
       kParameterSliderGridY + row * (kParameterSliderHeight + kParameterSliderRowGap),
       context->ui->isParameterFocused(controls[i].key), context,
       onParameterSliderPressed, onParameterSliderPressing, i);
     if (controlsOut) controlsOut->push_back(slider);
   }
   if (!controls.empty()) {
-    const auto selected = std::find_if(controls.begin(), controls.end(), [&](const auto& control) {
+    const auto selectedControl = std::find_if(controls.begin(), controls.end(), [&](const auto& control) {
       return context->ui->isParameterFocused(control.key);
     });
-    const auto selectedIndex = selected == controls.end()
+    const auto selectedIndex = selectedControl == controls.end()
       ? std::size_t{0}
-      : static_cast<std::size_t>(std::distance(controls.begin(), selected));
+      : static_cast<std::size_t>(std::distance(controls.begin(), selectedControl));
     lv_obj_t* toolbar = renderParameterMappingToolbar(
-      panelObject, state, context, controls[selectedIndex], selectedIndex);
+      root, state, context, controls[selectedIndex], selectedIndex);
     if (mappingToolbarOut) *mappingToolbarOut = toolbar;
+  } else {
+    renderPanelCloseButton(root, context);
   }
 }
 
 } // namespace
 
 namespace parameter_widgets {
+
+int columnX(int column)
+{
+  return parameterColumnX(column);
+}
+
+void bindClose(lv_obj_t* button, UiEventContext* context)
+{
+  lv_obj_add_event_cb(button, onCloseParamDrawer, LV_EVENT_PRESSED, context);
+}
 
 float sliderRatioForInput(lv_obj_t* slider, lv_indev_t* input)
 {

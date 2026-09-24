@@ -1,14 +1,15 @@
 #include "ui/LvglUi.h"
 
+#include "ui/LampBlack.h"
 #include "ui/LvglUiStyle.h"
-#include "ui/fonts/SairaCondSemibold28.h"
-#include "ui/fonts/SairaCondSemibold52.h"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdio>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace ardor {
 namespace {
@@ -21,10 +22,26 @@ using namespace lvgl_ui;
 // FIRST VIEWPORT: locked preset rail, physical 1/2/3/4 plate map, fixed transport rail.
 // FORM: established Ardor Panel language extended by the approved looper specification.
 
-constexpr int kTopRailHeight = 58;
-constexpr int kBottomRailHeight = 92;
-constexpr int kEdgeInset = 26;
+// Lamp Black looper: the preset map's 2 x 2 plates (shorter, to leave a
+// notice line above the rail), the 64 px header and the 108 px rail.
+constexpr int kTrackX = lb::kGutter;
+constexpr int kTrackY = 80;
+constexpr int kTrackWidth = 610;
+constexpr int kTrackHeight = 236;
+constexpr int kTrackGap = 12;
+constexpr int kTrackPadX = 26;
+constexpr int kTrackTitleTop = 19;
+constexpr int kTrackStateTop = 58;
+constexpr int kTrackDetailTop = 158;
+constexpr int kTrackProgressBottom = 22;
+constexpr int kTrackProgressHeight = 8;
+constexpr int kNoticeTop = kTrackY + 2 * kTrackHeight + kTrackGap + 14;
 constexpr std::size_t kLibraryRows = 4;
+using lb::createDialog;
+using lb::createOverlay;
+using lb::dialogActions;
+using lb::dialogBody;
+using lb::kDialogInset;
 
 bool populated(LooperTrackState state)
 {
@@ -328,389 +345,255 @@ void onSaveCloseClicked(lv_event_t* event)
 
 void LvglUi::renderLooperMode(lv_obj_t* root, UiState& state)
 {
-  lv_obj_t* topRail = lv_obj_create(root);
-  lv_obj_set_size(topRail, kDesignWidth, kTopRailHeight);
-  lv_obj_set_pos(topRail, 0, 0);
-  styleSurface(topRail, panel);
-  lv_obj_set_style_border_side(topRail, LV_BORDER_SIDE_BOTTOM, 0);
-  lv_obj_set_style_pad_all(topRail, 0, 0);
-  lv_obj_remove_flag(topRail, LV_OBJ_FLAG_SCROLLABLE);
-
-  label(topRail, "LOOPER", LV_ALIGN_LEFT_MID, kEdgeInset, 0,
-        &ardor_font_saira_cond_semibold_28, text);
-  looperPresetLabel_ = label(topRail, "LOCKED · --", LV_ALIGN_LEFT_MID, 168, 0,
-                             &ardor_font_saira_cond_medium_18, muted);
-  looperPositionLabel_ = label(topRail, "00:00 / 00:00", LV_ALIGN_CENTER, 0, 0,
-                               &ardor_font_saira_cond_semibold_28, text);
-  looperMemoryLabel_ = label(topRail, "128 MB", LV_ALIGN_RIGHT_MID, -kEdgeInset, 0,
-                             &ardor_font_saira_cond_medium_18, muted);
-
-  lv_obj_t* grid = lv_obj_create(root);
-  lv_obj_set_pos(grid, kEdgeInset, kTopRailHeight + 14);
-  lv_obj_set_size(grid, kDesignWidth - 2 * kEdgeInset,
-                  kDesignHeight - kTopRailHeight - kBottomRailHeight - 28);
-  lv_obj_set_style_bg_opa(grid, LV_OPA_TRANSP, 0);
-  lv_obj_set_style_border_width(grid, 0, 0);
-  lv_obj_set_style_pad_all(grid, 0, 0);
-  lv_obj_set_style_pad_column(grid, 12, 0);
-  lv_obj_set_style_pad_row(grid, 12, 0);
-  lv_obj_set_layout(grid, LV_LAYOUT_GRID);
-  lv_obj_remove_flag(grid, LV_OBJ_FLAG_SCROLLABLE);
-  static int32_t columns[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-  static int32_t rows[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-  lv_obj_set_grid_dsc_array(grid, columns, rows);
+  lb::box(root, 0, 0, kDesignWidth, kDesignHeight, bg);
+  lb::header(root);
+  lb::textLabel(root, lb::type::headerTitle, "LOOPER", text, 28, 9);
+  looperPresetLabel_ = lb::textLabel(root, lb::type::headerSub, "LOCKED · --", muted,
+                                     28 + lb::textWidth(lb::type::headerTitle, "LOOPER") + 20, 13);
+  looperPositionLabel_ = lb::textLabel(root, lb::type::headerTitle, "00:00 / 00:00", text, 0, 9);
+  looperMemoryLabel_ = lb::textLabel(root, lb::type::headerRight, "128 MB", disabled, 0, 18);
 
   const std::array<const char*, kLooperTrackCount> legends = {
     "FS1 · UNDO", "FS2 · TRACK / HOLD CLEAR", "FS3 · REC / DUB", "FS4 · PLAY / MUTE"
   };
   for (std::size_t index = 0; index < kLooperTrackCount; ++index) {
-    auto* plate = lv_obj_create(grid);
-    looperTrackPlates_[index] = plate;
-    lv_obj_set_grid_cell(plate, LV_GRID_ALIGN_STRETCH, static_cast<int>(index / 2), 1,
-                         LV_GRID_ALIGN_STRETCH, static_cast<int>(index % 2), 1);
-    styleSurface(plate, panel);
-    lv_obj_set_style_pad_all(plate, 0, 0);
+    // Column-major, as on the preset map: FS1/FS2 left, FS3/FS4 right.
+    const int column = static_cast<int>(index / 2);
+    const int row = static_cast<int>(index % 2);
+    auto* plate = lv_button_create(root);
+    lv_obj_remove_style_all(plate);
     lv_obj_remove_flag(plate, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(plate, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    lv_obj_set_pos(plate, kTrackX + column * (kTrackWidth + kTrackGap),
+                   kTrackY + row * (kTrackHeight + kTrackGap));
+    lv_obj_set_size(plate, kTrackWidth, kTrackHeight);
+    lv_obj_set_style_bg_opa(plate, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(plate, lv_color_hex(panel), 0);
+    lb::setBorder(plate, rule, 1);
+    looperTrackPlates_[index] = plate;
     lv_obj_add_event_cb(plate, onTrackClicked, LV_EVENT_CLICKED, remember(state, index));
 
+    // The header container keeps the title and footswitch legend together
+    // so the sync can recolour them as one.
     auto* header = lv_obj_create(plate);
-    looperTrackHeaders_[index] = header;
-    lv_obj_set_size(header, LV_PCT(100), 42);
-    lv_obj_set_pos(header, 0, 0);
-    styleSurface(header, panelAlt);
-    lv_obj_set_style_border_width(header, 0, 0);
-    lv_obj_set_style_pad_all(header, 0, 0);
+    lv_obj_remove_style_all(header);
+    lv_obj_set_size(header, kTrackWidth - 2, 50);
     lv_obj_remove_flag(header, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_remove_flag(header, LV_OBJ_FLAG_CLICKABLE);
-    label(header, "TRACK " + std::to_string(index + 1), LV_ALIGN_LEFT_MID, 15, 0,
-          &ardor_font_saira_cond_semibold_28, text);
-    label(header, legends[index], LV_ALIGN_RIGHT_MID, -15, 0,
-          &ardor_font_saira_cond_medium_18, muted);
+    looperTrackHeaders_[index] = header;
+    lb::textLabel(header, lb::type::footswitch, "TRACK " + std::to_string(index + 1), disabled,
+                  kTrackPadX, kTrackTitleTop);
+    lv_obj_t* legend = lb::textLabel(header, lb::type::legend, legends[index], disabled, 0,
+                                     kTrackTitleTop + 2);
+    lv_obj_set_x(legend, kTrackWidth - 2 - kTrackPadX - lb::textWidth(lb::type::legend, legends[index]));
 
-    looperTrackStateLabels_[index] = label(
-      plate, "EMPTY", LV_ALIGN_LEFT_MID, 20, 4, &ardor_font_saira_cond_semibold_52, disabled);
-    looperTrackDetailLabels_[index] = label(
-      plate, "0 DB · C", LV_ALIGN_BOTTOM_LEFT, 20, -24,
-      &ardor_font_saira_cond_medium_18, muted);
+    looperTrackStateLabels_[index] = lb::textLabel(plate, lb::type::presetName, "EMPTY", disabled,
+                                                   kTrackPadX, kTrackStateTop);
+    looperTrackDetailLabels_[index] = lb::textLabel(plate, lb::type::legend, "0 DB · C", muted,
+                                                    kTrackPadX, kTrackDetailTop);
 
-    auto* progressTrack = lv_obj_create(plate);
-    lv_obj_remove_style_all(progressTrack);
-    lv_obj_set_size(progressTrack, LV_PCT(100), 5);
-    lv_obj_align(progressTrack, LV_ALIGN_BOTTOM_LEFT, 0, 0);
-    lv_obj_set_style_bg_opa(progressTrack, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(progressTrack, lv_color_hex(rule), 0);
-    auto* progress = lv_obj_create(progressTrack);
-    lv_obj_remove_style_all(progress);
-    lv_obj_set_size(progress, 0, 5);
-    lv_obj_align(progress, LV_ALIGN_LEFT_MID, 0, 0);
-    lv_obj_set_style_bg_opa(progress, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(progress, lv_color_hex(text), 0);
-    looperProgressFills_[index] = progress;
+    const int progressWidth = kTrackWidth - 2 - 2 * kTrackPadX;
+    auto* progressTrack = lb::box(plate, kTrackPadX,
+      kTrackHeight - 2 - kTrackProgressBottom - kTrackProgressHeight, progressWidth,
+      kTrackProgressHeight, plateHi);
+    looperProgressFills_[index] = lb::box(progressTrack, 0, 0, 0, kTrackProgressHeight, text);
   }
 
-  auto* bottomRail = lv_obj_create(root);
-  lv_obj_set_size(bottomRail, kDesignWidth, kBottomRailHeight);
-  lv_obj_set_pos(bottomRail, 0, kDesignHeight - kBottomRailHeight);
-  styleSurface(bottomRail, bg);
-  lv_obj_set_style_border_side(bottomRail, LV_BORDER_SIDE_TOP, 0);
-  lv_obj_set_style_pad_all(bottomRail, 0, 0);
-  lv_obj_remove_flag(bottomRail, LV_OBJ_FLAG_SCROLLABLE);
-
-  looperNoticeLabel_ = label(bottomRail, "TRACK 1 SELECTED · FS2 NEXT · HOLD FS2 CLEAR",
-                             LV_ALIGN_TOP_MID, 0, 3,
-                             &ardor_font_saira_cond_medium_18, muted);
-  lv_obj_set_width(looperNoticeLabel_, 760);
+  looperNoticeLabel_ = lb::textLabel(root, lb::type::legend,
+                                     "TRACK 1 SELECTED · FS2 NEXT · HOLD FS2 CLEAR", muted, 0,
+                                     kNoticeTop);
+  lv_obj_set_width(looperNoticeLabel_, kDesignWidth - 2 * lb::kGutter);
+  lv_obj_set_x(looperNoticeLabel_, lb::kGutter);
   lv_obj_set_style_text_align(looperNoticeLabel_, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_long_mode(looperNoticeLabel_, LV_LABEL_LONG_CLIP);
 
-  looperNewButton_ = button(bottomRail, "NEW");
-  lv_obj_set_size(looperNewButton_, 150, 54);
-  lv_obj_align(looperNewButton_, LV_ALIGN_BOTTOM_LEFT, kEdgeInset, -7);
+  lb::rail(root);
+  int railX = lb::kGutter;
+  const auto leftButton = [&](const char* legend) {
+    lv_obj_t* btn = lb::button(root, legend, lb::ButtonKind::Normal, railX, lb::kRailButtonY);
+    railX += lv_obj_get_style_width(btn, LV_PART_MAIN) + lb::kGap;
+    return btn;
+  };
+  looperNewButton_ = leftButton("NEW");
   auto* newContext = remember(state);
   lv_obj_add_event_cb(looperNewButton_, onNewClicked, LV_EVENT_PRESSED, newContext);
-
-  looperSaveButton_ = button(bottomRail, "SAVE");
-  lv_obj_set_size(looperSaveButton_, 150, 54);
-  lv_obj_align(looperSaveButton_, LV_ALIGN_BOTTOM_LEFT, kEdgeInset + 162, -7);
+  looperSaveButton_ = leftButton("SAVE");
   lv_obj_add_event_cb(looperSaveButton_, onSaveClicked, LV_EVENT_PRESSED, remember(state));
-
-  looperLoadButton_ = button(bottomRail, "LOAD");
-  lv_obj_set_size(looperLoadButton_, 150, 54);
-  lv_obj_align(looperLoadButton_, LV_ALIGN_BOTTOM_LEFT, kEdgeInset + 324, -7);
+  looperLoadButton_ = leftButton("LOAD");
   lv_obj_add_event_cb(looperLoadButton_, onLoadClicked, LV_EVENT_PRESSED, remember(state));
 
-  looperStopButton_ = button(bottomRail, "STOP ALL");
-  lv_obj_set_size(looperStopButton_, 150, 54);
-  lv_obj_align(looperStopButton_, LV_ALIGN_BOTTOM_RIGHT, -366, -7);
-  looperStopLabel_ = lv_obj_get_child(looperStopButton_, 0);
-  lv_obj_add_event_cb(looperStopButton_, onStopClicked, LV_EVENT_PRESSED, remember(state));
-
-  looperExitButton_ = button(bottomRail, "EXIT");
-  lv_obj_set_size(looperExitButton_, 150, 54);
-  lv_obj_align(looperExitButton_, LV_ALIGN_BOTTOM_RIGHT, -196, -7);
-  lv_obj_add_event_cb(looperExitButton_, onExitClicked, LV_EVENT_PRESSED, remember(state));
-
-  auto* closeButton = button(bottomRail, "CLOSE");
+  // Right group: Close rightmost, then Exit, then the transport.
+  int rightX = kDesignWidth - lb::kGutter;
+  const auto rightButton = [&](const char* legend, lb::ButtonKind kind, int width = 0) {
+    const int w = width > 0 ? width : lb::buttonWidth(legend);
+    rightX -= w;
+    lv_obj_t* btn = lb::button(root, legend, kind, rightX, lb::kRailButtonY, w);
+    rightX -= lb::kGap;
+    return btn;
+  };
+  auto* closeButton = rightButton("CLOSE", lb::ButtonKind::Normal);
   looperCloseButton_ = closeButton;
-  lv_obj_set_size(closeButton, 150, 54);
-  lv_obj_align(closeButton, LV_ALIGN_BOTTOM_RIGHT, -kEdgeInset, -7);
   auto* closeContext = remember(state);
   lv_obj_add_event_cb(closeButton, onCloseClicked, LV_EVENT_PRESSED, closeContext);
+  looperExitButton_ = rightButton("EXIT", lb::ButtonKind::Normal);
+  lv_obj_add_event_cb(looperExitButton_, onExitClicked, LV_EVENT_PRESSED, remember(state));
+  looperStopButton_ = rightButton("STOP ALL", lb::ButtonKind::Primary, lb::buttonWidth("STOP ALL"));
+  looperStopLabel_ = lb::buttonLabel(looperStopButton_);
+  lv_obj_add_event_cb(looperStopButton_, onStopClicked, LV_EVENT_PRESSED, remember(state));
 
-  looperCloseOverlay_ = lv_obj_create(root);
-  lv_obj_set_size(looperCloseOverlay_, kDesignWidth, kDesignHeight);
-  lv_obj_set_pos(looperCloseOverlay_, 0, 0);
-  lv_obj_set_style_bg_color(looperCloseOverlay_, lv_color_hex(0x000000), 0);
-  lv_obj_set_style_bg_opa(looperCloseOverlay_, LV_OPA_80, 0);
-  lv_obj_set_style_border_width(looperCloseOverlay_, 0, 0);
-  lv_obj_remove_flag(looperCloseOverlay_, LV_OBJ_FLAG_SCROLLABLE);
-  auto* confirmation = lv_obj_create(looperCloseOverlay_);
-  lv_obj_set_size(confirmation, 620, 240);
-  lv_obj_align(confirmation, LV_ALIGN_CENTER, 0, 0);
-  styleSurface(confirmation, panelAlt);
-  lv_obj_remove_flag(confirmation, LV_OBJ_FLAG_SCROLLABLE);
-  label(confirmation, "DISCARD UNSAVED LOOP?", LV_ALIGN_TOP_MID, 0, 28,
-        &ardor_font_saira_cond_semibold_28, text);
-  label(confirmation, "SAVE KEEPS THE LOOP OPEN; PRESS CLOSE AGAIN AFTER SAVING.",
-        LV_ALIGN_TOP_MID, 0, 78, &ardor_font_saira_cond_medium_18, muted);
-  auto* cancel = button(confirmation, "CANCEL");
-  lv_obj_set_size(cancel, 150, 58);
-  lv_obj_align(cancel, LV_ALIGN_BOTTOM_MID, -166, -28);
+  // ---- dialogs ----
+  constexpr int kConfirmWidth = 660;
+  constexpr int kConfirmHeight = 250;
+  looperCloseOverlay_ = createOverlay(root);
+  auto* confirmation = createDialog(looperCloseOverlay_, kConfirmWidth, kConfirmHeight,
+                                    "DISCARD UNSAVED LOOP?");
+  dialogBody(confirmation, "SAVE KEEPS THE LOOP OPEN; PRESS CLOSE AGAIN AFTER SAVING.",
+             kConfirmWidth);
+  auto closeActions = dialogActions(confirmation, kConfirmWidth, kConfirmHeight,
+    {{"CANCEL", lb::ButtonKind::Normal}, {"SAVE", lb::ButtonKind::Normal},
+     {"DISCARD", lb::ButtonKind::Danger}});
   auto* cancelContext = remember(state);
   cancelContext->controlledObject = looperCloseOverlay_;
-  lv_obj_add_event_cb(cancel, onCancelCloseClicked, LV_EVENT_CLICKED, cancelContext);
-  auto* saveClose = button(confirmation, "SAVE");
-  lv_obj_set_size(saveClose, 150, 58);
-  lv_obj_align(saveClose, LV_ALIGN_BOTTOM_MID, 0, -28);
+  lv_obj_add_event_cb(closeActions[0], onCancelCloseClicked, LV_EVENT_CLICKED, cancelContext);
   auto* saveCloseContext = remember(state);
   saveCloseContext->controlledObject = looperCloseOverlay_;
-  lv_obj_add_event_cb(saveClose, onSaveCloseClicked, LV_EVENT_CLICKED, saveCloseContext);
-  auto* discard = button(confirmation, "DISCARD");
-  lv_obj_set_size(discard, 150, 58);
-  lv_obj_align(discard, LV_ALIGN_BOTTOM_MID, 166, -28);
-  styleSurface(discard, text);
-  lv_obj_set_style_text_color(lv_obj_get_child(discard, 0), lv_color_hex(bg), 0);
+  lv_obj_add_event_cb(closeActions[1], onSaveCloseClicked, LV_EVENT_CLICKED, saveCloseContext);
   auto* discardContext = remember(state);
   discardContext->controlledObject = looperCloseOverlay_;
-  lv_obj_add_event_cb(discard, onDiscardCloseClicked, LV_EVENT_CLICKED, discardContext);
+  lv_obj_add_event_cb(closeActions[2], onDiscardCloseClicked, LV_EVENT_CLICKED, discardContext);
   closeContext->controlledObject = looperCloseOverlay_;
   lv_obj_add_flag(looperCloseOverlay_, LV_OBJ_FLAG_HIDDEN);
 
-  looperNewOverlay_ = lv_obj_create(root);
-  lv_obj_set_size(looperNewOverlay_, kDesignWidth, kDesignHeight);
-  lv_obj_set_pos(looperNewOverlay_, 0, 0);
-  lv_obj_set_style_bg_color(looperNewOverlay_, lv_color_hex(0x000000), 0);
-  lv_obj_set_style_bg_opa(looperNewOverlay_, LV_OPA_80, 0);
-  lv_obj_set_style_border_width(looperNewOverlay_, 0, 0);
-  lv_obj_remove_flag(looperNewOverlay_, LV_OBJ_FLAG_SCROLLABLE);
-  auto* newPanel = lv_obj_create(looperNewOverlay_);
-  lv_obj_set_size(newPanel, 650, 260);
-  lv_obj_align(newPanel, LV_ALIGN_CENTER, 0, 0);
-  styleSurface(newPanel, panelAlt);
-  lv_obj_remove_flag(newPanel, LV_OBJ_FLAG_SCROLLABLE);
-  label(newPanel, "START A NEW LOOP?", LV_ALIGN_TOP_MID, 0, 24,
-        &ardor_font_saira_cond_semibold_28, text);
-  label(newPanel, "SAVE KEEPS THIS LOOP OPEN; PRESS NEW AGAIN AFTER SAVING.", LV_ALIGN_TOP_MID, 0, 76,
-        &ardor_font_saira_cond_medium_18, muted);
-  auto* newCancel = button(newPanel, "CANCEL");
-  lv_obj_set_size(newCancel, 150, 58);
-  lv_obj_align(newCancel, LV_ALIGN_BOTTOM_MID, -166, -24);
+  looperNewOverlay_ = createOverlay(root);
+  auto* newPanel = createDialog(looperNewOverlay_, kConfirmWidth, kConfirmHeight,
+                                "START A NEW LOOP?");
+  dialogBody(newPanel, "SAVE KEEPS THIS LOOP OPEN; PRESS NEW AGAIN AFTER SAVING.", kConfirmWidth);
+  auto newActions = dialogActions(newPanel, kConfirmWidth, kConfirmHeight,
+    {{"CANCEL", lb::ButtonKind::Normal}, {"SAVE", lb::ButtonKind::Normal},
+     {"DISCARD", lb::ButtonKind::Danger}});
   auto* newCancelContext = remember(state);
   newCancelContext->controlledObject = looperNewOverlay_;
-  lv_obj_add_event_cb(newCancel, onCancelCloseClicked, LV_EVENT_CLICKED, newCancelContext);
-  auto* newSave = button(newPanel, "SAVE");
-  lv_obj_set_size(newSave, 150, 58);
-  lv_obj_align(newSave, LV_ALIGN_BOTTOM_MID, 0, -24);
+  lv_obj_add_event_cb(newActions[0], onCancelCloseClicked, LV_EVENT_CLICKED, newCancelContext);
   auto* newSaveContext = remember(state);
   newSaveContext->controlledObject = looperNewOverlay_;
-  lv_obj_add_event_cb(newSave, onSaveThenRetryClicked, LV_EVENT_CLICKED, newSaveContext);
-  auto* newDiscard = button(newPanel, "DISCARD");
-  lv_obj_set_size(newDiscard, 150, 58);
-  lv_obj_align(newDiscard, LV_ALIGN_BOTTOM_MID, 166, -24);
+  lv_obj_add_event_cb(newActions[1], onSaveThenRetryClicked, LV_EVENT_CLICKED, newSaveContext);
   auto* newDiscardContext = remember(state);
   newDiscardContext->controlledObject = looperNewOverlay_;
-  lv_obj_add_event_cb(newDiscard, onDiscardNewClicked, LV_EVENT_CLICKED, newDiscardContext);
+  lv_obj_add_event_cb(newActions[2], onDiscardNewClicked, LV_EVENT_CLICKED, newDiscardContext);
   newContext->controlledObject = looperNewOverlay_;
   lv_obj_add_flag(looperNewOverlay_, LV_OBJ_FLAG_HIDDEN);
 
-  looperLibraryOverlay_ = lv_obj_create(root);
-  lv_obj_set_size(looperLibraryOverlay_, kDesignWidth, kDesignHeight);
-  lv_obj_set_pos(looperLibraryOverlay_, 0, 0);
-  lv_obj_set_style_bg_color(looperLibraryOverlay_, lv_color_hex(0x000000), 0);
-  lv_obj_set_style_bg_opa(looperLibraryOverlay_, LV_OPA_80, 0);
-  lv_obj_set_style_border_width(looperLibraryOverlay_, 0, 0);
-  lv_obj_remove_flag(looperLibraryOverlay_, LV_OBJ_FLAG_SCROLLABLE);
-  auto* libraryPanel = lv_obj_create(looperLibraryOverlay_);
-  lv_obj_set_size(libraryPanel, 1080, 620);
-  lv_obj_align(libraryPanel, LV_ALIGN_CENTER, 0, 0);
-  styleSurface(libraryPanel, panelAlt);
-  lv_obj_set_style_pad_all(libraryPanel, 0, 0);
-  lv_obj_remove_flag(libraryPanel, LV_OBJ_FLAG_SCROLLABLE);
-  label(libraryPanel, "SAVED LOOPS", LV_ALIGN_TOP_LEFT, 28, 20,
-        &ardor_font_saira_cond_semibold_28, text);
-  auto* libraryClose = button(libraryPanel, "CLOSE");
-  lv_obj_set_size(libraryClose, 130, 48);
-  lv_obj_align(libraryClose, LV_ALIGN_TOP_RIGHT, -22, 14);
+  constexpr int kLibraryWidth = 1080;
+  constexpr int kLibraryHeight = 640;
+  constexpr int kLibraryRowHeight = 100;
+  constexpr int kLibraryRowGap = 12;
+  constexpr int kLibraryRowTop = 96;
+  looperLibraryOverlay_ = createOverlay(root);
+  auto* libraryPanel = createDialog(looperLibraryOverlay_, kLibraryWidth, kLibraryHeight, "SAVED LOOPS");
+  auto* libraryClose = lb::button(libraryPanel, "CLOSE", lb::ButtonKind::Normal,
+                                  kLibraryWidth - 2 - kDialogInset - lb::kButtonMinWidth, 20);
   lv_obj_add_event_cb(libraryClose, onLibraryCloseClicked, LV_EVENT_CLICKED, remember(state));
-
+  const int rowWidth = kLibraryWidth - 2 - 2 * kDialogInset;
   for (std::size_t row = 0; row < kLooperLibraryRows; ++row) {
-    auto* plate = lv_obj_create(libraryPanel);
+    auto* plate = lb::box(libraryPanel, kDialogInset - 1,
+                          kLibraryRowTop + static_cast<int>(row) * (kLibraryRowHeight + kLibraryRowGap),
+                          rowWidth, kLibraryRowHeight, bg, rule, 1);
     looperLibraryRows_[row] = plate;
-    lv_obj_set_size(plate, 1024, 105);
-    lv_obj_set_pos(plate, 28, 76 + static_cast<int>(row) * 112);
-    styleSurface(plate, panel);
-    lv_obj_set_style_pad_all(plate, 0, 0);
-    lv_obj_remove_flag(plate, LV_OBJ_FLAG_SCROLLABLE);
-    looperLibraryNameLabels_[row] = label(
-      plate, "--", LV_ALIGN_TOP_LEFT, 18, 12, &ardor_font_saira_cond_semibold_28, text);
-    looperLibraryMetaLabels_[row] = label(
-      plate, "--", LV_ALIGN_BOTTOM_LEFT, 18, -14, &ardor_font_saira_cond_medium_18, muted);
-    lv_obj_set_width(looperLibraryNameLabels_[row], 610);
-    lv_obj_set_width(looperLibraryMetaLabels_[row], 610);
-    lv_label_set_long_mode(looperLibraryNameLabels_[row], LV_LABEL_LONG_CLIP);
-    lv_label_set_long_mode(looperLibraryMetaLabels_[row], LV_LABEL_LONG_CLIP);
-    auto* load = button(plate, "LOAD");
+    looperLibraryNameLabels_[row] = lb::textLabel(plate, lb::type::itemTitle, "--", text, 19, 16);
+    looperLibraryMetaLabels_[row] = lb::textLabel(plate, lb::type::itemSubtitle, "--", muted, 19, 54);
+    lv_obj_set_width(looperLibraryNameLabels_[row], rowWidth - 340);
+    lv_obj_set_width(looperLibraryMetaLabels_[row], rowWidth - 340);
+    lv_label_set_long_mode(looperLibraryNameLabels_[row], LV_LABEL_LONG_MODE_DOTS);
+    lv_label_set_long_mode(looperLibraryMetaLabels_[row], LV_LABEL_LONG_MODE_DOTS);
+    const int buttonY = (kLibraryRowHeight - 2 - lb::kButtonHeight) / 2;
+    auto* remove = lb::button(plate, "DELETE", lb::ButtonKind::Danger,
+                              rowWidth - 2 - 19 - lb::kButtonMinWidth, buttonY);
+    auto* load = lb::button(plate, "LOAD", lb::ButtonKind::Normal,
+                            rowWidth - 2 - 19 - 2 * lb::kButtonMinWidth - lb::kGap, buttonY);
     looperLibraryLoadButtons_[row] = load;
-    lv_obj_set_size(load, 150, 58);
-    lv_obj_align(load, LV_ALIGN_RIGHT_MID, -178, 0);
-    lv_obj_add_event_cb(load, onLibraryLoadClicked, LV_EVENT_CLICKED, remember(state, row));
-    auto* remove = button(plate, "DELETE");
     looperLibraryDeleteButtons_[row] = remove;
-    lv_obj_set_size(remove, 150, 58);
-    lv_obj_align(remove, LV_ALIGN_RIGHT_MID, -16, 0);
+    lv_obj_add_event_cb(load, onLibraryLoadClicked, LV_EVENT_CLICKED, remember(state, row));
     lv_obj_add_event_cb(remove, onLibraryDeleteClicked, LV_EVENT_CLICKED, remember(state, row));
   }
-  looperLibraryEmptyLabel_ = label(
-    libraryPanel, "NO SAVED LOOPS · SAVE A PAUSED LOOP FIRST", LV_ALIGN_CENTER, 0, -8,
-    &ardor_font_saira_cond_semibold_28, muted);
-  looperLibraryPreviousButton_ = button(libraryPanel, "PREVIOUS");
-  lv_obj_set_size(looperLibraryPreviousButton_, 150, 48);
-  lv_obj_align(looperLibraryPreviousButton_, LV_ALIGN_BOTTOM_LEFT, 28, -14);
+  const std::string empty = "NO SAVED LOOPS · SAVE A PAUSED LOOP FIRST";
+  looperLibraryEmptyLabel_ = lb::textLabel(libraryPanel, lb::type::controlLabel, empty, muted,
+    (kLibraryWidth - 2 - lb::textWidth(lb::type::controlLabel, empty)) / 2, 280);
+  const int pagerY = kLibraryHeight - 2 - 24 - lb::kButtonHeight;
+  looperLibraryPreviousButton_ = lb::button(libraryPanel, "PREVIOUS", lb::ButtonKind::Normal,
+                                            kDialogInset - 1, pagerY);
   lv_obj_add_event_cb(looperLibraryPreviousButton_, onLibraryPageClicked,
                       LV_EVENT_CLICKED, remember(state, 0));
-  looperLibraryNextButton_ = button(libraryPanel, "NEXT");
-  lv_obj_set_size(looperLibraryNextButton_, 150, 48);
-  lv_obj_align(looperLibraryNextButton_, LV_ALIGN_BOTTOM_RIGHT, -28, -14);
+  looperLibraryNextButton_ = lb::button(libraryPanel, "NEXT", lb::ButtonKind::Normal,
+                                        kLibraryWidth - 2 - kDialogInset - lb::kButtonMinWidth, pagerY);
   lv_obj_add_event_cb(looperLibraryNextButton_, onLibraryPageClicked,
                       LV_EVENT_CLICKED, remember(state, 1));
-  looperLibraryPageLabel_ = label(
-    libraryPanel, "PAGE 1 / 1", LV_ALIGN_BOTTOM_MID, 0, -27,
-    &ardor_font_saira_cond_medium_18, muted);
+  looperLibraryPageLabel_ = lb::textLabel(libraryPanel, lb::type::page, "PAGE 1 / 1", muted, 0, 0);
+  lv_obj_set_width(looperLibraryPageLabel_, kLibraryWidth - 2);
+  lv_obj_set_style_text_align(looperLibraryPageLabel_, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_set_y(looperLibraryPageLabel_, lb::centeredTextTop(lb::type::page, pagerY, lb::kButtonHeight));
   lv_obj_add_flag(looperLibraryOverlay_, LV_OBJ_FLAG_HIDDEN);
 
-  looperDeleteOverlay_ = lv_obj_create(looperLibraryOverlay_);
-  lv_obj_set_size(looperDeleteOverlay_, kDesignWidth, kDesignHeight);
-  lv_obj_set_pos(looperDeleteOverlay_, 0, 0);
-  lv_obj_set_style_bg_color(looperDeleteOverlay_, lv_color_hex(0x000000), 0);
-  lv_obj_set_style_bg_opa(looperDeleteOverlay_, LV_OPA_80, 0);
-  lv_obj_set_style_border_width(looperDeleteOverlay_, 0, 0);
-  lv_obj_remove_flag(looperDeleteOverlay_, LV_OBJ_FLAG_SCROLLABLE);
-  auto* deletePanel = lv_obj_create(looperDeleteOverlay_);
-  lv_obj_set_size(deletePanel, 620, 260);
-  lv_obj_align(deletePanel, LV_ALIGN_CENTER, 0, 0);
-  styleSurface(deletePanel, panelAlt);
-  lv_obj_remove_flag(deletePanel, LV_OBJ_FLAG_SCROLLABLE);
-  label(deletePanel, "DELETE SAVED LOOP?", LV_ALIGN_TOP_MID, 0, 24,
-        &ardor_font_saira_cond_semibold_28, text);
-  looperDeleteNameLabel_ = label(deletePanel, "--", LV_ALIGN_TOP_MID, 0, 76,
-                                  &ardor_font_saira_cond_medium_18, muted);
-  lv_obj_set_width(looperDeleteNameLabel_, 540);
-  lv_obj_set_style_text_align(looperDeleteNameLabel_, LV_TEXT_ALIGN_CENTER, 0);
-  lv_label_set_long_mode(looperDeleteNameLabel_, LV_LABEL_LONG_CLIP);
-  auto* deleteCancel = button(deletePanel, "CANCEL");
-  lv_obj_set_size(deleteCancel, 170, 58);
-  lv_obj_align(deleteCancel, LV_ALIGN_BOTTOM_MID, -96, -24);
-  lv_obj_add_event_cb(deleteCancel, onLibraryDeleteCancelClicked,
+  looperDeleteOverlay_ = createOverlay(looperLibraryOverlay_);
+  auto* deletePanel = createDialog(looperDeleteOverlay_, kConfirmWidth, kConfirmHeight,
+                                   "DELETE SAVED LOOP?");
+  looperDeleteNameLabel_ = dialogBody(deletePanel, "--", kConfirmWidth);
+  auto deleteActions = dialogActions(deletePanel, kConfirmWidth, kConfirmHeight,
+    {{"CANCEL", lb::ButtonKind::Normal}, {"DELETE", lb::ButtonKind::Danger}});
+  lv_obj_add_event_cb(deleteActions[0], onLibraryDeleteCancelClicked,
                       LV_EVENT_CLICKED, remember(state));
-  auto* deleteConfirm = button(deletePanel, "DELETE");
-  lv_obj_set_size(deleteConfirm, 170, 58);
-  lv_obj_align(deleteConfirm, LV_ALIGN_BOTTOM_MID, 96, -24);
-  lv_obj_add_event_cb(deleteConfirm, onLibraryDeleteConfirmClicked,
+  lv_obj_add_event_cb(deleteActions[1], onLibraryDeleteConfirmClicked,
                       LV_EVENT_CLICKED, remember(state));
   lv_obj_add_flag(looperDeleteOverlay_, LV_OBJ_FLAG_HIDDEN);
 
-  looperMixerOverlay_ = lv_obj_create(root);
-  lv_obj_set_size(looperMixerOverlay_, kDesignWidth, kDesignHeight);
-  lv_obj_set_pos(looperMixerOverlay_, 0, 0);
-  lv_obj_set_style_bg_color(looperMixerOverlay_, lv_color_hex(0x000000), 0);
-  lv_obj_set_style_bg_opa(looperMixerOverlay_, LV_OPA_80, 0);
-  lv_obj_set_style_border_width(looperMixerOverlay_, 0, 0);
-  lv_obj_remove_flag(looperMixerOverlay_, LV_OBJ_FLAG_SCROLLABLE);
-  auto* mixerPanel = lv_obj_create(looperMixerOverlay_);
-  lv_obj_set_size(mixerPanel, 900, 470);
-  lv_obj_align(mixerPanel, LV_ALIGN_CENTER, 0, 0);
-  styleSurface(mixerPanel, panelAlt);
-  lv_obj_remove_flag(mixerPanel, LV_OBJ_FLAG_SCROLLABLE);
-  looperMixerTitleLabel_ = label(mixerPanel, "TRACK 1 MIX", LV_ALIGN_TOP_LEFT, 18, 8,
-                                  &ardor_font_saira_cond_semibold_28, text);
-  auto* mixerClose = button(mixerPanel, "CLOSE");
-  lv_obj_set_size(mixerClose, 140, 50);
-  lv_obj_align(mixerClose, LV_ALIGN_TOP_RIGHT, -12, 0);
+  // Track mix: two control cards (level, balance) over Mute and Clear.
+  constexpr int kMixerWidth = 900;
+  constexpr int kMixerHeight = 440;
+  constexpr int kMixerCardTop = 100;
+  constexpr int kMixerCardHeight = 196;
+  looperMixerOverlay_ = createOverlay(root);
+  auto* mixerPanel = createDialog(looperMixerOverlay_, kMixerWidth, kMixerHeight, "TRACK 1 MIX");
+  looperMixerTitleLabel_ = lv_obj_get_child(mixerPanel, 0);
+  auto* mixerClose = lb::button(mixerPanel, "CLOSE", lb::ButtonKind::Normal,
+                                kMixerWidth - 2 - kDialogInset - lb::kButtonMinWidth, 20);
   lv_obj_add_event_cb(mixerClose, onMixerCloseClicked, LV_EVENT_CLICKED, remember(state));
-
-  label(mixerPanel, "LEVEL", LV_ALIGN_TOP_LEFT, 32, 96,
-        &ardor_font_saira_cond_medium_18, muted);
-  auto* levelDown = button(mixerPanel, "-1 DB");
-  lv_obj_set_size(levelDown, 180, 72);
-  lv_obj_align(levelDown, LV_ALIGN_LEFT_MID, 24, -30);
-  lv_obj_add_event_cb(levelDown, onMixerCommandClicked, LV_EVENT_PRESSED, remember(state, 0));
-  looperMixerLevelLabel_ = label(mixerPanel, "+0 DB", LV_ALIGN_CENTER, -220, -30,
-                                  &ardor_font_saira_cond_semibold_52, text);
-  auto* levelUp = button(mixerPanel, "+1 DB");
-  lv_obj_set_size(levelUp, 180, 72);
-  lv_obj_align(levelUp, LV_ALIGN_CENTER, -22, -30);
-  lv_obj_add_event_cb(levelUp, onMixerCommandClicked, LV_EVENT_PRESSED, remember(state, 1));
-
-  label(mixerPanel, "STEREO BALANCE", LV_ALIGN_TOP_LEFT, 472, 96,
-        &ardor_font_saira_cond_medium_18, muted);
-  auto* balanceLeft = button(mixerPanel, "LEFT");
-  lv_obj_set_size(balanceLeft, 150, 72);
-  lv_obj_align(balanceLeft, LV_ALIGN_CENTER, 164, -30);
-  lv_obj_add_event_cb(balanceLeft, onMixerCommandClicked, LV_EVENT_PRESSED, remember(state, 2));
-  looperMixerBalanceLabel_ = label(mixerPanel, "CENTER", LV_ALIGN_CENTER, 316, -30,
-                                    &ardor_font_saira_cond_semibold_28, text);
-  auto* balanceRight = button(mixerPanel, "RIGHT");
-  lv_obj_set_size(balanceRight, 150, 72);
-  lv_obj_align(balanceRight, LV_ALIGN_RIGHT_MID, -18, -30);
-  lv_obj_add_event_cb(balanceRight, onMixerCommandClicked, LV_EVENT_PRESSED, remember(state, 3));
-
-  auto* mixerMute = button(mixerPanel, "MUTE");
-  lv_obj_set_size(mixerMute, 250, 74);
-  lv_obj_align(mixerMute, LV_ALIGN_BOTTOM_LEFT, 24, -28);
-  looperMixerMuteLabel_ = lv_obj_get_child(mixerMute, 0);
+  const int cardWidth = (kMixerWidth - 2 - 2 * kDialogInset - lb::kGap) / 2;
+  const auto mixerCard = [&](int column, const char* title, const char* down, const char* up,
+                             std::size_t downIndex, std::size_t upIndex, lv_obj_t** valueOut) {
+    lv_obj_t* card = lb::box(mixerPanel, kDialogInset - 1 + column * (cardWidth + lb::kGap),
+                             kMixerCardTop, cardWidth, kMixerCardHeight, bg, rule, 1);
+    lb::textLabel(card, lb::type::controlLabel, title, muted, 20, 15);
+    *valueOut = lb::textLabel(card, lb::type::contextValue, "", text, 20, 46);
+    const int buttonY = kMixerCardHeight - 2 - 20 - lb::kButtonHeight;
+    const int buttonWidth = (cardWidth - 2 - 40 - lb::kGap) / 2;
+    auto* downButton = lb::button(card, down, lb::ButtonKind::Normal, 20, buttonY, buttonWidth);
+    lv_obj_add_event_cb(downButton, onMixerCommandClicked, LV_EVENT_PRESSED,
+                        remember(state, downIndex));
+    auto* upButton = lb::button(card, up, lb::ButtonKind::Normal, 20 + buttonWidth + lb::kGap,
+                                buttonY, buttonWidth);
+    lv_obj_add_event_cb(upButton, onMixerCommandClicked, LV_EVENT_PRESSED, remember(state, upIndex));
+  };
+  mixerCard(0, "LEVEL", "-1 DB", "+1 DB", 0, 1, &looperMixerLevelLabel_);
+  mixerCard(1, "STEREO BALANCE", "LEFT", "RIGHT", 2, 3, &looperMixerBalanceLabel_);
+  const int mixerActionY = kMixerHeight - 2 - 28 - lb::kButtonHeight;
+  auto* mixerMute = lb::button(mixerPanel, "UNMUTE", lb::ButtonKind::Normal, kDialogInset - 1,
+                               mixerActionY);
+  lb::setButtonText(mixerMute, "MUTE");
+  looperMixerMuteLabel_ = lb::buttonLabel(mixerMute);
   lv_obj_add_event_cb(mixerMute, onMixerCommandClicked, LV_EVENT_PRESSED, remember(state, 4));
-  auto* mixerClear = button(mixerPanel, "CLEAR TRACK");
-  lv_obj_set_size(mixerClear, 250, 74);
-  lv_obj_align(mixerClear, LV_ALIGN_BOTTOM_RIGHT, -24, -28);
+  const int clearWidth = lb::buttonWidth("CLEAR TRACK");
+  auto* mixerClear = lb::button(mixerPanel, "CLEAR TRACK", lb::ButtonKind::Danger,
+                                kMixerWidth - 2 - kDialogInset - clearWidth, mixerActionY, clearWidth);
   lv_obj_add_event_cb(mixerClear, onMixerCommandClicked, LV_EVENT_PRESSED, remember(state, 5));
   lv_obj_add_flag(looperMixerOverlay_, LV_OBJ_FLAG_HIDDEN);
 
-  looperClearTrackOverlay_ = lv_obj_create(looperMixerOverlay_);
-  lv_obj_set_size(looperClearTrackOverlay_, kDesignWidth, kDesignHeight);
-  lv_obj_set_pos(looperClearTrackOverlay_, 0, 0);
-  lv_obj_set_style_bg_color(looperClearTrackOverlay_, lv_color_hex(0x000000), 0);
-  lv_obj_set_style_bg_opa(looperClearTrackOverlay_, LV_OPA_80, 0);
-  lv_obj_set_style_border_width(looperClearTrackOverlay_, 0, 0);
-  lv_obj_remove_flag(looperClearTrackOverlay_, LV_OBJ_FLAG_SCROLLABLE);
-  auto* clearPanel = lv_obj_create(looperClearTrackOverlay_);
-  lv_obj_set_size(clearPanel, 620, 250);
-  lv_obj_align(clearPanel, LV_ALIGN_CENTER, 0, 0);
-  styleSurface(clearPanel, panelAlt);
-  lv_obj_remove_flag(clearPanel, LV_OBJ_FLAG_SCROLLABLE);
-  label(clearPanel, "CLEAR SELECTED TRACK?", LV_ALIGN_TOP_MID, 0, 24,
-        &ardor_font_saira_cond_semibold_28, text);
-  label(clearPanel, "THIS REMOVES ITS AUDIO. THE OTHER TRACKS KEEP PLAYING.",
-        LV_ALIGN_TOP_MID, 0, 76, &ardor_font_saira_cond_medium_18, muted);
-  auto* clearCancel = button(clearPanel, "CANCEL");
-  lv_obj_set_size(clearCancel, 170, 58);
-  lv_obj_align(clearCancel, LV_ALIGN_BOTTOM_MID, -96, -24);
-  lv_obj_add_event_cb(clearCancel, onClearTrackCancelClicked,
-                      LV_EVENT_CLICKED, remember(state));
-  auto* clearConfirm = button(clearPanel, "CLEAR");
-  lv_obj_set_size(clearConfirm, 170, 58);
-  lv_obj_align(clearConfirm, LV_ALIGN_BOTTOM_MID, 96, -24);
-  lv_obj_add_event_cb(clearConfirm, onClearTrackConfirmClicked,
-                      LV_EVENT_CLICKED, remember(state));
+  looperClearTrackOverlay_ = createOverlay(looperMixerOverlay_);
+  auto* clearPanel = createDialog(looperClearTrackOverlay_, kConfirmWidth, kConfirmHeight,
+                                  "CLEAR SELECTED TRACK?");
+  dialogBody(clearPanel, "THIS REMOVES ITS AUDIO. THE OTHER TRACKS KEEP PLAYING.", kConfirmWidth);
+  auto clearActions = dialogActions(clearPanel, kConfirmWidth, kConfirmHeight,
+    {{"CANCEL", lb::ButtonKind::Normal}, {"CLEAR", lb::ButtonKind::Danger}});
+  lv_obj_add_event_cb(clearActions[0], onClearTrackCancelClicked, LV_EVENT_CLICKED, remember(state));
+  lv_obj_add_event_cb(clearActions[1], onClearTrackConfirmClicked, LV_EVENT_CLICKED, remember(state));
   lv_obj_add_flag(looperClearTrackOverlay_, LV_OBJ_FLAG_HIDDEN);
 
   syncLooperView(state);
@@ -723,8 +606,10 @@ void LvglUi::syncLooperView(const UiState& state)
   const auto& telemetry = looper.telemetry;
   const auto preset = uppercase(looper.lockedPresetName.empty() ? "--" : looper.lockedPresetName);
   lv_label_set_text(looperPresetLabel_, ("LOCKED · " + preset).c_str());
-  lv_label_set_text(looperPositionLabel_,
-                    (clockText(telemetry.playheadFrame) + " / " + clockText(telemetry.masterFrames)).c_str());
+  const auto position = clockText(telemetry.playheadFrame) + " / " + clockText(telemetry.masterFrames);
+  lv_label_set_text(looperPositionLabel_, position.c_str());
+  const int positionX = kDesignWidth - 28 - lb::textWidth(lb::type::headerTitle, position);
+  lv_obj_set_x(looperPositionLabel_, positionX);
 
   const auto memoryMiB = looper.memoryBudgetBytes / (1024 * 1024);
   const auto remainingFrames = telemetry.maximumFrames > telemetry.masterFrames
@@ -733,6 +618,7 @@ void LvglUi::syncLooperView(const UiState& state)
     + clockText(remainingFrames) + " LEFT · "
     + (looper.ioBusy ? "SAVING" : looper.modified ? "MODIFIED" : "SAVED");
   lv_label_set_text(looperMemoryLabel_, memoryText.c_str());
+  lv_obj_set_x(looperMemoryLabel_, positionX - 24 - lb::textWidth(lb::type::headerRight, memoryText));
 
   const bool hasNotice = looper.clearHoldProgress > 0.0f
     || telemetry.error != LooperError::None
@@ -751,22 +637,44 @@ void LvglUi::syncLooperView(const UiState& state)
     const bool selected = index == looper.selectedTrack;
     const bool isRecording = recording(track.state);
     const bool isArmed = armed(track.state);
-    const int stateColor = isRecording ? lamp : isArmed ? warning
+    // A recording track floods with the lamp, like the LIVE preset tile.
+    const std::uint32_t stateColor = isRecording ? lampInk : isArmed ? warning
       : track.state == LooperTrackState::Muted ? disabled
       : populated(track.state) ? text : disabled;
-    lv_obj_set_style_border_width(looperTrackPlates_[index], selected ? 3 : 1, 0);
-    lv_obj_set_style_border_color(looperTrackPlates_[index],
-                                  lv_color_hex(selected ? text : rule), 0);
-    lv_obj_set_style_bg_color(looperTrackHeaders_[index],
-                              lv_color_hex(isRecording ? lamp : isArmed ? warning : panelAlt), 0);
+    lv_obj_t* plate = looperTrackPlates_[index];
+    lv_obj_set_style_bg_color(plate, lv_color_hex(isRecording ? lamp : panel), 0);
+    const int border = selected ? 3 : 1;
+    lv_obj_set_style_border_width(plate, border, 0);
+    lv_obj_set_style_border_color(plate, lv_color_hex(
+      selected ? (isRecording ? lampInk : text) : (isRecording ? lamp : isArmed ? warning : rule)), 0);
+    // Children sit inside the border; keep them on the 1 px grid.
+    lv_obj_set_pos(looperTrackHeaders_[index], 1 - border, 1 - border);
     const auto headerChildCount = lv_obj_get_child_count(looperTrackHeaders_[index]);
     for (uint32_t childIndex = 0; childIndex < headerChildCount; ++childIndex) {
       lv_obj_set_style_text_color(
         lv_obj_get_child(looperTrackHeaders_[index], static_cast<int32_t>(childIndex)),
-        lv_color_hex((isRecording || isArmed) ? bg : (childIndex == 0 ? text : muted)), 0);
+        lv_color_hex(isRecording ? lampInk : isArmed ? warning : disabled), 0);
     }
-    lv_label_set_text(looperTrackStateLabels_[index], stateText(track.state));
-    lv_obj_set_style_text_color(looperTrackStateLabels_[index], lv_color_hex(stateColor), 0);
+    lv_obj_t* stateLabel = looperTrackStateLabels_[index];
+    lv_label_set_text(stateLabel, stateText(track.state));
+    // Long states drop to the smaller face so they stay inside the plate.
+    const auto& stateType = lb::textWidth(lb::type::presetName, stateText(track.state))
+        <= kTrackWidth - 2 * kTrackPadX ? lb::type::presetName : lb::type::masterValue;
+    lb::applyType(stateLabel, stateType, stateColor);
+    const int stateBaseline = kTrackStateTop + lb::type::presetName.size * lb::kSairaAscent / 1000;
+    lv_obj_set_pos(stateLabel, kTrackPadX - border,
+                   stateBaseline - (lv_font_get_line_height(stateType.font) - stateType.font->base_line)
+                     - border);
+    lv_obj_set_pos(looperTrackDetailLabels_[index], kTrackPadX - border,
+                   lb::textTop(lb::type::legend, kTrackDetailTop) - border);
+    lv_obj_set_style_text_color(looperTrackDetailLabels_[index],
+                                lv_color_hex(isRecording ? lampInk : muted), 0);
+    lv_obj_t* progressTrack = lv_obj_get_parent(looperProgressFills_[index]);
+    lv_obj_set_pos(progressTrack, kTrackPadX - border,
+                   kTrackHeight - 1 - border - kTrackProgressBottom - kTrackProgressHeight);
+    // On the flooded tile the track is a 30 % ink tint and the fill full ink.
+    lv_obj_set_style_bg_color(progressTrack, isRecording
+      ? lv_color_mix(lv_color_hex(lampInk), lv_color_hex(lamp), 77) : lv_color_hex(plateHi), 0);
 
     char detail[96]{};
     const char* undo = track.undoAvailable ? (track.undoApplied ? "UNDO APPLIED · " : "UNDO READY · ") : "";
@@ -779,16 +687,17 @@ void LvglUi::syncLooperView(const UiState& state)
       std::snprintf(detail, sizeof(detail), "%s%+.0f DB · %s", undo, track.levelDb, pan);
     }
     lv_label_set_text(looperTrackDetailLabels_[index], detail);
-    const int progressWidth = std::max(0, lv_obj_get_width(looperTrackPlates_[index]) - 2);
+    const int progressWidth = kTrackWidth - 2 - 2 * kTrackPadX;
     lv_obj_set_width(looperProgressFills_[index],
                      populated(track.state) || recording(track.state)
                        ? static_cast<int>(phase * progressWidth) : 0);
-    lv_obj_set_style_bg_color(looperProgressFills_[index], lv_color_hex(stateColor), 0);
+    lv_obj_set_style_bg_color(looperProgressFills_[index],
+                              lv_color_hex(isRecording ? lampInk : isArmed ? warning : stateColor), 0);
   }
 
   if (looperStopLabel_) {
     const bool paused = telemetry.sessionState == LooperSessionState::Paused;
-    lv_label_set_text(looperStopLabel_, paused ? "RESUME" : "STOP ALL");
+    lb::setButtonText(looperStopButton_, paused ? "RESUME" : "STOP ALL");
     if (!looper.ioBusy
         && (telemetry.sessionState == LooperSessionState::Running
             || telemetry.sessionState == LooperSessionState::Paused)) {
@@ -879,7 +788,7 @@ void LvglUi::syncLooperView(const UiState& state)
       ? "L " + std::to_string(static_cast<int>(std::lround(-selectedTrack.balance * 100.0f)))
       : "R " + std::to_string(static_cast<int>(std::lround(selectedTrack.balance * 100.0f)));
   lv_label_set_text(looperMixerBalanceLabel_, balanceText.c_str());
-  lv_label_set_text(looperMixerMuteLabel_, selectedTrack.audible ? "MUTE" : "UNMUTE");
+  lb::setButtonText(lv_obj_get_parent(looperMixerMuteLabel_), selectedTrack.audible ? "MUTE" : "UNMUTE");
   if (looper.clearTrackConfirmationOpen) {
     lv_obj_remove_flag(looperClearTrackOverlay_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(looperClearTrackOverlay_);

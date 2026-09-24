@@ -13,22 +13,26 @@ namespace {
 constexpr PanelPalette kSlate{0x0b0c0d, 0x16181a, 0x121416,
   0xeceeed, 0x9aa1a6, 0x5c6368, 0x2b2f33,
   0xe8472f, 0xe0a53c, 0x6b463c, 0xd19a8c, 0x7fa6c8, 0xc9a06a,
-  {0xd2923f, 0xaab2b7, 0x5f95c9, 0x3fb08c, 0x9a82d6, 0xd07a5a}};
+  {0xd2923f, 0xaab2b7, 0x5f95c9, 0x3fb08c, 0x9a82d6, 0xd07a5a},
+  0x202326, 0x1a0b08, 0xf0a497, 0x6b3a32, 0x040505, 0x1b1305};
 constexpr PanelPalette kInk{0x10161f, 0x182130, 0x0b1017,
   0xdde6ee, 0x7e8fa3, 0x4d5b6b, 0x2a3646,
   0x5fd0e8, 0xd9a04e, 0x5c3946, 0xc08e97, 0x6d8fd0, 0xc99050,
-  {0xc99050, 0x8296ab, 0x6d8fd0, 0x4fa89a, 0x8d7fc4, 0xcf7a86}};
+  {0xc99050, 0x8296ab, 0x6d8fd0, 0x4fa89a, 0x8d7fc4, 0xcf7a86},
+  0x222d3f, 0x06222a, 0xe8a0a8, 0x5c3946, 0x05080c, 0x1b1305};
 constexpr PanelPalette kSodium{0x0c0b09, 0x16140f, 0x070605,
   0xf0e4cd, 0x9a8f7a, 0x5e574a, 0x302b22,
   0xffb01f, 0xc98a3c, 0x5d3a2e, 0xc19183, 0x7f9ab5, 0xc9924f,
-  {0xb06a3a, 0x9a8f7a, 0x6f8296, 0x5f9280, 0x8b7aa5, 0xb3705f}};
+  {0xb06a3a, 0x9a8f7a, 0x6f8296, 0x5f9280, 0x8b7aa5, 0xb3705f},
+  0x211e17, 0x1f1400, 0xe0a58f, 0x5d3a2e, 0x030302, 0x1b1305};
 // Nord (arctic-ice-studio.github.io/nord): frost-blue plates with the
 // signature nord8 cyan reserved for LIVE, matching this palette's own
 // convention of a single warm/bright accent against cool, muted greys.
 constexpr PanelPalette kNord{0x2e3440, 0x3b4252, 0x242933,
   0xd8dee9, 0x8b96a8, 0x4c566a, 0x434c5e,
   0x88c0d0, 0xebcb8b, 0x5c3a40, 0xc38f96, 0x81a1c1, 0xd08770,
-  {0xd6975f, 0x8fa0b8, 0x5e81ac, 0x8fbcbb, 0xb48ead, 0xc17a72}};
+  {0xd6975f, 0x8fa0b8, 0x5e81ac, 0x8fbcbb, 0xb48ead, 0xc17a72},
+  0x434c5e, 0x1c2a33, 0xe3a0a8, 0x6b4148, 0x1d2129, 0x2a2210};
 const PanelPalette* currentPalette = &kSlate;
 }
 
@@ -44,6 +48,12 @@ std::uint32_t warning = kSlate.warn;
 std::uint32_t danger = kSlate.faultText;
 std::uint32_t laneL = kSlate.laneL;
 std::uint32_t laneR = kSlate.laneR;
+std::uint32_t plateHi = kSlate.plateHi;
+std::uint32_t lampInk = kSlate.lampInk;
+std::uint32_t dangerText = kSlate.dangerText;
+std::uint32_t dangerRule = kSlate.dangerRule;
+std::uint32_t liftShadow = kSlate.shadow;
+std::uint32_t warnInk = kSlate.warnInk;
 
 const PanelPalette& palette() { return *currentPalette; }
 const PanelPalette& palette(PaletteId id)
@@ -65,6 +75,8 @@ void setPalette(PaletteId id)
   text = colors.engrave; muted = colors.engraveLo; disabled = colors.engraveOff;
   rule = colors.rule; lamp = colors.lamp; warning = colors.warn; danger = colors.faultText;
   laneL = colors.laneL; laneR = colors.laneR;
+  plateHi = colors.plateHi; lampInk = colors.lampInk; dangerText = colors.dangerText;
+  dangerRule = colors.dangerRule; liftShadow = colors.shadow; warnInk = colors.warnInk;
 }
 
 void setText(lv_obj_t* object, int color, const lv_font_t* font)

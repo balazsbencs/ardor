@@ -1,12 +1,12 @@
 #include "ui/LvglUi.h"
 
 #include "ui/LvglUiNavigation.h"
+#include "ui/LampBlack.h"
 #include "ui/LvglUiStyle.h"
-#include "ui/fonts/SairaCondSemibold52.h"
-#include "ui/fonts/SairaCondSemibold72.h"
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <cstdio>
 #include <string>
 
@@ -16,47 +16,36 @@ namespace {
 using namespace lvgl_navigation;
 using namespace lvgl_ui;
 
-// Top legend rail and bottom control rail, per
-// docs/lvgl-ui-redesign-spec.md §4f and §6 (Layout): 52 px / 88 px, the
-// preset grid fills the 580 px content band between them.
-constexpr int kRailEdgeInset = 28;
-constexpr int kTopRailHeight = 52;
-constexpr int kBottomRailHeight = 88;
-constexpr int kBottomRailY = kDesignHeight - kBottomRailHeight;
-// Master: legend, value and a 16-segment meter that rises left to right.
-// The encoder sets the volume; the meter only reports it, in bone, because
-// the lamp colour is reserved for LIVE.
-constexpr int kMasterSegments = 16;
-constexpr int kMasterSegmentWidth = 9;
-constexpr int kMasterSegmentGap = 3;
-constexpr int kMasterSegmentMinHeight = 14;
-constexpr int kMasterSegmentStep = 2;
-constexpr int kMasterMeterWidth = kMasterSegments * (kMasterSegmentWidth + kMasterSegmentGap)
-  - kMasterSegmentGap;
-constexpr int kMasterMeterHeight = kMasterSegmentMinHeight
-  + (kMasterSegments - 1) * kMasterSegmentStep;
-constexpr int kMasterLegendWidth = 80;
-constexpr int kMasterValueWidth = 76;
-constexpr int kMasterGap = 14;
-constexpr int kMasterGroupWidth = kMasterLegendWidth + kMasterGap + kMasterValueWidth
-  + kMasterGap + kMasterMeterWidth;
-static_assert(kMasterMeterHeight < kBottomRailHeight);
-constexpr int kPresetHeaderHeight = 44;
-constexpr int kPresetNameHeight = 160;
-constexpr int kPresetNameTop = 48;
-constexpr int kPresetGridGap = 14;
-constexpr int kPresetGridTopGap = 18;
-constexpr int kPresetCardWidth = (kDesignWidth - 2 * kRailEdgeInset - kPresetGridGap) / 2;
-constexpr int kPresetCardHeight = (kDesignHeight - kTopRailHeight - kBottomRailHeight
-  - 2 * kPresetGridTopGap - kPresetGridGap) / 2;
+// Lamp Black preset screen (mockups/lvgl-taste/1-lamp-black.html): a 64 px
+// header, a 2 x 2 map of 610 x 254 tiles with 12 px gaps, and the 108 px rail.
+constexpr int kTileX = 24;
+constexpr int kTileY = 80;
+constexpr int kTileWidth = 610;
+constexpr int kTileHeight = 254;
+constexpr int kTileGap = 12;
+// Tile content sits 26 px in from the 1 px border and 20 px down from it.
+constexpr int kTilePadX = 27;
+constexpr int kFootswitchTop = 20;
+constexpr int kTileInnerWidth = kTileWidth - 2 * kTilePadX;
+constexpr int kLiveTagPadX = 12;
+constexpr int kLiveTagHeight = 37;
+constexpr int kLiveTagY = 19;
+constexpr int kNameTop = 49;
+constexpr int kLiveNameTop = 35;
 // Chain strip: one family-coloured segment per block along the tile's foot.
-constexpr int kChainStripInset = 24;
-constexpr int kChainStripHeight = 34;
-constexpr int kChainStripBottom = 20;
+constexpr int kChainStripY = 201;
+constexpr int kChainStripHeight = 30;
 constexpr int kChainStripGap = 4;
 constexpr int kChainStripCodeInset = 8;
-static_assert(kPresetNameTop + kPresetNameHeight
-              <= kPresetCardHeight - kChainStripBottom - kChainStripHeight);
+constexpr int kChainStripCodeTop = 7;
+// CSS gives amp segments 1.6 and cab segments 1.2 of the others' width.
+constexpr int kAmpSegmentWeight = 16;
+constexpr int kCabSegmentWeight = 12;
+constexpr int kSegmentWeight = 10;
+// Off-lamp tiles print their strip at 78 %.
+constexpr lv_opa_t kChainStripOpa = 199;
+constexpr int kBankPairStepWidth = 76;
+constexpr int kBankPairLegendPad = 16;
 constexpr int kMinBank = 0;
 constexpr int kMaxBank = 99;
 constexpr std::size_t kPresetNameMaxLength = 32;
@@ -66,58 +55,96 @@ std::string presetTelemetryText(const UiState& state)
   char value[96]{};
   const double latencyMs = static_cast<double>(state.settings.audioBlockSize) / 48.0;
   if (state.telemetry.budgetMs <= 0.0) {
-    std::snprintf(value, sizeof(value), "LATENCY %.2f MS  \xC2\xB7  BUFFER --%% USED", latencyMs);
+    std::snprintf(value, sizeof(value), "%.2f MS", latencyMs);
   } else {
     const double used = std::clamp(100.0 - state.telemetry.bufferFreePercent, 0.0, 100.0);
-    std::snprintf(value, sizeof(value), "LATENCY %.2f MS  \xC2\xB7  BUFFER %.0f%% USED",
-                  latencyMs, used);
+    std::snprintf(value, sizeof(value), "%.2f MS  \xC2\xB7  BUFFER %.0f%%", latencyMs, used);
   }
   return value;
 }
 
-int masterLitSegments(int volume)
+// "BANK 01" on the left of the header; the bank's own name, when the store
+// gives one after " - ", sits beside it in bone-2.
+std::string bankNumberText(const UiState& state)
 {
-  return (std::clamp(volume, 0, 100) * kMasterSegments + 50) / 100;
+  char value[16]{};
+  std::snprintf(value, sizeof(value), "BANK %02d", std::clamp(state.activeBank, kMinBank, kMaxBank));
+  return value;
 }
 
-void syncMasterMeter(lv_obj_t* meter, int volume)
+std::string bankTitleText(const UiState& state)
 {
-  if (!meter) return;
-  const int lit = masterLitSegments(volume);
-  const auto count = static_cast<int>(lv_obj_get_child_count(meter));
-  for (int segment = 0; segment < count; ++segment) {
-    lv_obj_set_style_bg_color(lv_obj_get_child(meter, segment),
-                              lv_color_hex(segment < lit ? text : rule), 0);
-  }
+  const auto separator = state.bank.name.find(" - ");
+  return separator == std::string::npos ? std::string{}
+                                        : uppercase(state.bank.name.substr(separator + 3));
 }
 
-// On the flooded LIVE tile the strip inverts: dark cells with lamp codes.
-// Elsewhere each cell takes its family colour; bypassed blocks drop to rule.
+void placeRightAligned(lv_obj_t* label, const lb::Type& type, int right)
+{
+  lv_obj_set_x(label, right - lb::textWidth(type, lv_label_get_text(label)));
+}
+
+int chainSegmentWeight(const std::string& type)
+{
+  const auto color = categoryColor(type);
+  if (color == static_cast<int>(palette().family[0])) return kAmpSegmentWeight;
+  if (color == static_cast<int>(palette().family[1])) return kCabSegmentWeight;
+  return kSegmentWeight;
+}
+
+// On the flooded LIVE tile the strip inverts: lamp-ink cells with lamp codes.
+// Elsewhere each cell takes its family colour at 78 %; bypassed blocks drop
+// to the rule colour.
 void renderChainStrip(lv_obj_t* strip, const std::vector<ChainStripSegment>& segments, bool live)
 {
   lv_obj_clean(strip);
+  if (segments.empty()) return;
+  // CSS flex: each cell keeps its 8 px code inset and shares what is left of
+  // the strip by weight. Positions accumulate before rounding, as a browser's
+  // do, so the last cell ends exactly on the strip's right edge.
+  int totalWeight = 0;
+  for (const auto& segment : segments) totalWeight += chainSegmentWeight(segment.type);
+  const auto count = static_cast<int>(segments.size());
+  const double share = static_cast<double>(kTileInnerWidth - (count - 1) * kChainStripGap
+                                           - count * kChainStripCodeInset) / totalWeight;
+  double x = 0.0;
   for (const auto& segment : segments) {
-    const std::uint32_t fill = live ? bg
+    const std::uint32_t fill = live ? lampInk
       : (segment.enabled ? static_cast<std::uint32_t>(categoryColor(segment.type)) : rule);
     const std::uint32_t ink = live ? (segment.enabled ? lamp : disabled)
       : (segment.enabled ? bg : muted);
-    lv_obj_t* cell = lv_obj_create(strip);
-    lv_obj_remove_style_all(cell);
-    lv_obj_set_height(cell, kChainStripHeight);
-    lv_obj_set_flex_grow(cell, 1);
-    lv_obj_set_style_bg_opa(cell, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(cell, lv_color_hex(fill), 0);
-    lv_obj_set_style_pad_left(cell, kChainStripCodeInset, 0);
-    lv_obj_set_style_pad_right(cell, kChainStripCodeInset / 2, 0);
-    lv_obj_remove_flag(cell, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_remove_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_t* code = lv_label_create(cell);
-    lv_label_set_text(code, segment.code.c_str());
-    setText(code, static_cast<int>(ink), &ardor_font_saira_cond_medium_18);
-    lv_obj_set_width(code, LV_PCT(100));
+    const double width = kChainStripCodeInset + share * chainSegmentWeight(segment.type);
+    const int left = static_cast<int>(std::lround(x));
+    const int right = static_cast<int>(std::lround(x + width));
+    lv_obj_t* cell = lb::box(strip, left, 0, right - left, kChainStripHeight, fill);
+    if (!live) lv_obj_set_style_opa(cell, kChainStripOpa, 0);
+    lv_obj_t* code = lb::textLabel(cell, lb::type::code, segment.code, ink,
+                                   kChainStripCodeInset, kChainStripCodeTop);
+    lv_obj_set_width(code, right - left - kChainStripCodeInset);
     lv_label_set_long_mode(code, LV_LABEL_LONG_CLIP);
-    lv_obj_align(code, LV_ALIGN_LEFT_MID, 0, 0);
+    x += width + kChainStripGap;
   }
+}
+
+// Returns the x after the last item. Widths are read from the style, which
+// holds the value set at build, because coordinates lag until a layout pass.
+int layoutRow(const std::vector<lv_obj_t*>& items, int x, int gap)
+{
+  for (lv_obj_t* item : items) {
+    lv_obj_set_x(item, x);
+    x += lv_obj_get_style_width(item, LV_PART_MAIN) + gap;
+  }
+  return x;
+}
+
+// Edit, Tuner, Looper, [- BANK +], Setup. The bank pair shares its borders,
+// so only its outer edges take the rail gap.
+void layoutPresetRail(const std::vector<lv_obj_t*>& items)
+{
+  if (items.size() != 7) return;
+  const int pairX = layoutRow({items[0], items[1], items[2]}, lb::kGutter, lb::kGap);
+  const int setupX = layoutRow({items[3], items[4], items[5]}, pairX, 0) + lb::kGap;
+  lv_obj_set_x(items[6], setupX);
 }
 
 std::string trimmed(std::string value)
@@ -210,6 +237,8 @@ void LvglUi::rebuildPresetView(UiState& state)
   bankDownButton_ = nullptr;
   bankUpButton_ = nullptr;
   presetBankLabel_ = nullptr;
+  presetBankTitleLabel_ = nullptr;
+  presetRailItems_.clear();
   presetTelemetryLabel_ = nullptr;
   presetMasterValueLabel_ = nullptr;
   presetMasterMeter_ = nullptr;
@@ -230,52 +259,52 @@ void LvglUi::syncHeaderView(const UiState& state)
     lv_obj_set_width(masterVolumeScaleFill_, std::clamp(state.masterVolume, 0, 100) * 120 / 100);
   }
   if (presetTelemetryLabel_) {
-    const auto value = presetTelemetryText(state);
-    lv_label_set_text(presetTelemetryLabel_, value.c_str());
+    lv_label_set_text(presetTelemetryLabel_, presetTelemetryText(state).c_str());
+    placeRightAligned(presetTelemetryLabel_, lb::type::headerRight, kDesignWidth - 28);
   }
-  const int masterPct = std::clamp(state.masterVolume, 0, 100);
-  if (presetMasterValueLabel_) {
-    lv_label_set_text(presetMasterValueLabel_, std::to_string(masterPct).c_str());
-  }
-  syncMasterMeter(presetMasterMeter_, masterPct);
+  lb::syncMasterReadout(presetMasterValueLabel_, state.masterVolume);
   if (presetBankLabel_) {
-    lv_label_set_text(presetBankLabel_, uppercase(state.bank.name).c_str());
+    lv_label_set_text(presetBankLabel_, bankNumberText(state).c_str());
+  }
+  if (presetBankTitleLabel_ && presetBankLabel_) {
+    lv_label_set_text(presetBankTitleLabel_, bankTitleText(state).c_str());
+    lv_obj_set_x(presetBankTitleLabel_,
+                 28 + lb::textWidth(lb::type::bank, lv_label_get_text(presetBankLabel_)) + 20);
   }
   if (presetLooperLabel_) {
-    lv_label_set_text(presetLooperLabel_,
-      state.looper.telemetry.sessionState == LooperSessionState::Inactive ? "LOOPER" : "RESUME LOOP");
+    lv_obj_t* looper = lv_obj_get_parent(presetLooperLabel_);
+    const std::string legend =
+      state.looper.telemetry.sessionState == LooperSessionState::Inactive ? "LOOPER" : "RESUME LOOP";
+    if (legend != lv_label_get_text(presetLooperLabel_)) {
+      lv_obj_set_width(looper, lb::buttonWidth(legend));
+      lb::setButtonText(looper, legend);
+      layoutPresetRail(presetRailItems_);
+    }
   }
   if (bankDownButton_) {
+    lb::styleButton(bankDownButton_,
+                    state.activeBank == kMinBank ? lb::ButtonKind::Off : lb::ButtonKind::Normal);
     if (state.activeBank == kMinBank) lv_obj_add_state(bankDownButton_, LV_STATE_DISABLED);
     else lv_obj_remove_state(bankDownButton_, LV_STATE_DISABLED);
   }
   if (bankUpButton_) {
+    lb::styleButton(bankUpButton_,
+                    state.activeBank == kMaxBank ? lb::ButtonKind::Off : lb::ButtonKind::Normal);
     if (state.activeBank == kMaxBank) lv_obj_add_state(bankUpButton_, LV_STATE_DISABLED);
     else lv_obj_remove_state(bankUpButton_, LV_STATE_DISABLED);
   }
   if (editPresetLabel_) {
-    const auto& preset = state.bank.presets[state.activePreset];
-    const std::string identity = preset.sceneSet
-      ? "SCENE " + std::to_string(state.editingScene + 1) + "  ·  "
-          + uppercase(preset.sceneSet->scenes[state.editingScene].name)
-      : preset.name;
-    lv_label_set_text(editPresetLabel_, identity.c_str());
-  }
-  if (saveButtonLabel_) {
-    // Save renders as a primary (inverted) button: dark text on a light
-    // plate. `warning` still reads clearly there; `text` would not, so the
-    // clean state uses `bg` instead of the usual light-on-dark convention.
-    lv_label_set_text(saveButtonLabel_, state.dirty ? "SAVE*" : "SAVE");
-    lv_obj_set_style_text_color(saveButtonLabel_, lv_color_hex(state.dirty ? warning : bg), 0);
+    lv_label_set_text(editPresetLabel_, lb::editIdentityText(state).c_str());
+    lb::placeModifiedTag(editPresetLabel_, editModifiedLabel_);
   }
   if (editModifiedLabel_) {
     if (state.dirty) lv_obj_remove_flag(editModifiedLabel_, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(editModifiedLabel_, LV_OBJ_FLAG_HIDDEN);
   }
   if (editModuleCountLabel_) {
-    const auto count = state.bank.presets[state.activePreset].blocks.size();
-    lv_label_set_text(editModuleCountLabel_,
-      (std::to_string(count) + (count == 1 ? " MODULE" : " MODULES")).c_str());
+    const auto count = lb::editCountText(state);
+    lv_label_set_text(editModuleCountLabel_, count.c_str());
+    placeRightAligned(editModuleCountLabel_, lb::type::headerRight, kDesignWidth - 28);
   }
 }
 
@@ -308,15 +337,26 @@ void LvglUi::stylePresetCard(const UiState& state, std::size_t index)
   const bool floods = isActive && !unavailable;
   lv_obj_set_style_bg_color(card, lv_color_hex(floods ? lamp : panel), 0);
   lv_obj_set_style_border_color(card, lv_color_hex(
-    unavailable ? palette().faultLine : (isActive ? lamp : rule)), 0);
-  lv_obj_set_style_border_width(card, isActive ? 3 : 1, 0);
+    unavailable ? palette().faultLine : (floods ? lamp : rule)), 0);
+  lv_obj_set_style_border_width(card, 1, 0);
   lv_obj_set_style_border_opa(card, LV_OPA_COVER, 0);
-  lv_obj_set_style_text_color(presetCardLabels_[index],
-                              lv_color_hex(unavailable ? danger : (floods ? bg : text)), 0);
-  lv_obj_set_style_bg_color(presetHeaderStrips_[index], lv_color_hex(isActive ? lamp : panel), 0);
-  lv_label_set_text(presetHeaderLabels_[index],
-    ("FS " + std::to_string(index + 1) + (isActive ? "  \xC2\xB7  LIVE" : "")).c_str());
-  lv_obj_set_style_text_color(presetHeaderLabels_[index], lv_color_hex(isActive ? bg : muted), 0);
+
+  lv_obj_t* name = presetCardLabels_[index];
+  const lb::Type& nameType = floods ? lb::type::livePresetName : lb::type::presetName;
+  lb::applyType(name, nameType, unavailable ? danger : (floods ? lampInk : text));
+  lv_obj_set_y(name, lb::textTop(nameType, floods ? kLiveNameTop : kNameTop) - 1);
+
+  lv_label_set_text(presetHeaderLabels_[index], ("FS " + std::to_string(index + 1)).c_str());
+  lv_obj_set_style_text_color(presetHeaderLabels_[index],
+                              lv_color_hex(floods ? lampInk : disabled), 0);
+  if (lv_obj_t* liveTag = presetHeaderStrips_[index]) {
+    if (isActive) lv_obj_remove_flag(liveTag, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(liveTag, LV_OBJ_FLAG_HIDDEN);
+    // On a faulted LIVE tile the tag prints lamp-on-plate so it still reads.
+    lv_obj_set_style_bg_color(liveTag, lv_color_hex(floods ? lampInk : lamp), 0);
+    lv_obj_set_style_text_color(lv_obj_get_child(liveTag, 0),
+                                lv_color_hex(floods ? lamp : lampInk), 0);
+  }
   if (presetWarningLabels_[index]) {
     if (unavailable) lv_obj_remove_flag(presetWarningLabels_[index], LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(presetWarningLabels_[index], LV_OBJ_FLAG_HIDDEN);
@@ -333,110 +373,68 @@ void LvglUi::stylePresetCard(const UiState& state, std::size_t index)
 
 void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
 {
-  // ---- top legend rail: the bank on the left, engine load on the right ----
-  lv_obj_t* topRail = lv_obj_create(root);
-  lv_obj_set_size(topRail, kDesignWidth, kTopRailHeight);
-  lv_obj_set_pos(topRail, 0, 0);
-  lv_obj_set_style_bg_color(topRail, lv_color_hex(bg), 0);
-  lv_obj_set_style_bg_opa(topRail, LV_OPA_COVER, 0);
-  lv_obj_set_style_border_width(topRail, 1, 0);
-  lv_obj_set_style_border_side(topRail, LV_BORDER_SIDE_BOTTOM, 0);
-  lv_obj_set_style_border_color(topRail, lv_color_hex(rule), 0);
-  lv_obj_set_style_radius(topRail, 0, 0);
-  lv_obj_set_style_pad_all(topRail, 0, 0);
-  lv_obj_remove_flag(topRail, LV_OBJ_FLAG_SCROLLABLE);
+  // ---- header: bank number and name on the left, latency on the right ----
+  lb::header(root);
+  presetBankLabel_ = lb::textLabel(root, lb::type::bank, bankNumberText(state), text, 28, 7);
+  presetBankTitleLabel_ = lb::textLabel(root, lb::type::bankName, bankTitleText(state), muted,
+    28 + lb::textWidth(lb::type::bank, bankNumberText(state)) + 20, 13);
+  // The engine publishes buffer telemetry once per second. It is secondary,
+  // so it sits small in bone-3 beside the configured block latency.
+  presetTelemetryLabel_ = lb::textLabel(root, lb::type::headerRight, presetTelemetryText(state),
+                                   disabled, 0, 18);
+  placeRightAligned(presetTelemetryLabel_, lb::type::headerRight, kDesignWidth - 28);
 
-  presetBankLabel_ = label(topRail, uppercase(state.bank.name), LV_ALIGN_LEFT_MID,
-                           kRailEdgeInset, 0, &ardor_font_saira_cond_semibold_28, text);
-  lv_obj_set_style_text_letter_space(presetBankLabel_, 1, 0);
-  // The engine publishes buffer telemetry once per second. Pair that live load
-  // with the configured block latency; it is secondary, so it sits small and
-  // muted on the right.
-  presetTelemetryLabel_ = label(topRail, presetTelemetryText(state),
-                                LV_ALIGN_RIGHT_MID, -kRailEdgeInset, 0,
-                                &ardor_font_saira_cond_medium_18, muted);
-
-  // ---- preset grid: fills the band between the two rails ----
-  lv_obj_t* grid = lv_obj_create(root);
-  lv_obj_set_size(grid, kDesignWidth - 2 * kRailEdgeInset,
-                  kDesignHeight - kTopRailHeight - kBottomRailHeight - 2 * kPresetGridTopGap);
-  lv_obj_remove_flag(grid, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_pos(grid, kRailEdgeInset, kTopRailHeight + kPresetGridTopGap);
-  lv_obj_set_style_bg_opa(grid, LV_OPA_TRANSP, 0);
-  lv_obj_set_style_border_width(grid, 0, 0);
-  lv_obj_set_style_pad_all(grid, 0, 0);
-  lv_obj_set_style_pad_column(grid, kPresetGridGap, 0);
-  lv_obj_set_style_pad_row(grid, kPresetGridGap, 0);
-  lv_obj_set_layout(grid, LV_LAYOUT_GRID);
-
-  static int32_t cols[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-  static int32_t rows[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-  lv_obj_set_grid_dsc_array(grid, cols, rows);
-
+  // ---- preset map: 1 / 3 over 2 / 4 mirrors the footswitch corners ----
   for (std::size_t i = 0; i < presetCardButtons_.size(); ++i) {
     const bool populated = i < state.bank.presets.size();
-    lv_obj_t* preset = button(grid, populated ? uppercase(state.bank.presets[i].name) : "");
-    presetCardButtons_[i] = preset;
     // Column-major maps each slot to its physical footswitch corner: FS1/FS2
     // on the left, FS3/FS4 on the right. Do not change this to reading order.
-    lv_obj_set_grid_cell(preset, LV_GRID_ALIGN_STRETCH, static_cast<int32_t>(i / 2), 1,
-                         LV_GRID_ALIGN_STRETCH, static_cast<int32_t>(i % 2), 1);
-    styleSurface(preset, panel);
-    // The default button theme's padding would otherwise inset the header
-    // strip from the card's true edges, throwing off every child alignment
-    // anchored to LV_ALIGN_*_RIGHT/LEFT below.
-    lv_obj_set_style_pad_all(preset, 0, 0);
-    lv_obj_t* presetName = lv_obj_get_child(preset, 0);
-    presetCardLabels_[i] = presetName;
-    // Preset identity must survive a one-second glance from standing height.
-    // A native 72 px bitmap face keeps the stems crisp on the panel.
-    lv_obj_set_style_text_font(presetName, &ardor_font_saira_cond_semibold_72, 0);
-    lv_obj_set_style_text_letter_space(presetName, 0, 0);
-    lv_obj_set_style_text_line_space(presetName, -7, 0);
-    lv_obj_set_style_text_align(presetName, LV_TEXT_ALIGN_LEFT, 0);
-    lv_obj_set_size(presetName, LV_PCT(84), kPresetNameHeight);
+    const int column = static_cast<int>(i / 2);
+    const int row = static_cast<int>(i % 2);
+    lv_obj_t* preset = lv_button_create(root);
+    lv_obj_remove_style_all(preset);
+    lv_obj_remove_flag(preset, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(preset, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    lv_obj_set_pos(preset, kTileX + column * (kTileWidth + kTileGap),
+                   kTileY + row * (kTileHeight + kTileGap));
+    lv_obj_set_size(preset, kTileWidth, kTileHeight);
+    lv_obj_set_style_bg_opa(preset, LV_OPA_COVER, 0);
+    lb::setBorder(preset, rule, 1);
+    lv_obj_set_style_outline_color(preset, lv_color_hex(text), LV_STATE_PRESSED);
+    lv_obj_set_style_outline_width(preset, 2, LV_STATE_PRESSED);
+    lv_obj_set_style_opa(preset, LV_OPA_40, LV_STATE_DISABLED);
+    presetCardButtons_[i] = preset;
+    // Children sit inside the 1 px border, so tile offsets lose one pixel.
+    // The name is the first child: tests and retained syncs read it there.
+    lv_obj_t* presetName = lb::textLabel(preset, lb::type::presetName,
+                                    populated ? uppercase(state.bank.presets[i].name) : "",
+                                    text, kTilePadX - 1, kNameTop);
+    lv_obj_set_width(presetName, kTileInnerWidth);
     lv_label_set_long_mode(presetName, LV_LABEL_LONG_MODE_DOTS);
-    // button() centres its label; anchor it top-left so the name lines up
-    // with the FS legend and the chain strip.
-    lv_obj_set_align(presetName, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(presetName, 24, kPresetNameTop);
-    lv_obj_t* header = lv_obj_create(preset);
-    lv_obj_set_size(header, LV_PCT(100), kPresetHeaderHeight);
-    lv_obj_set_pos(header, 0, 0);
-    styleSurface(header, panel);
-    lv_obj_set_style_border_width(header, 0, 0);
-    // The default theme's own padding would otherwise inset the title from
-    // the header's true edges.
-    lv_obj_set_style_pad_all(header, 0, 0);
-    lv_obj_remove_flag(header, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_remove_flag(header, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_t* titleLabel = label(header, "FS " + std::to_string(i + 1), LV_ALIGN_LEFT_MID, 24, 0,
-                                 &ardor_font_saira_cond_semibold_22, muted);
-    lv_obj_set_style_text_letter_space(titleLabel, 3, 0);
-    presetHeaderStrips_[i] = header;
-    presetHeaderLabels_[i] = titleLabel;
-    // The chain strip replaces the old corner numeral, which only repeated
-    // the FS label: each segment names one block in its family colour.
+    presetCardLabels_[i] = presetName;
+    presetHeaderLabels_[i] = lb::textLabel(preset, lb::type::footswitch, "FS " + std::to_string(i + 1),
+                                      disabled, kTilePadX - 1, kFootswitchTop - 1);
+    // LIVE tag: lamp-ink plate with lamp lettering, top right.
+    const int tagWidth = lb::textWidth(lb::type::liveTag, "LIVE") + 2 * kLiveTagPadX;
+    lv_obj_t* liveTag = lb::box(preset, kTileWidth - kTilePadX - tagWidth - 1, kLiveTagY - 1,
+                                tagWidth, kLiveTagHeight, lampInk);
+    lb::textLabel(liveTag, lb::type::liveTag, "LIVE", lamp, kLiveTagPadX, 2);
+    presetHeaderStrips_[i] = liveTag;
+    // The chain strip names every block in its family colour.
     lv_obj_t* strip = lv_obj_create(preset);
     lv_obj_remove_style_all(strip);
-    lv_obj_set_size(strip, kPresetCardWidth - 2 * kChainStripInset, kChainStripHeight);
-    lv_obj_align(strip, LV_ALIGN_BOTTOM_LEFT, kChainStripInset, -kChainStripBottom);
-    lv_obj_set_flex_flow(strip, LV_FLEX_FLOW_ROW);
-    lv_obj_set_style_pad_column(strip, kChainStripGap, 0);
+    lv_obj_set_pos(strip, kTilePadX - 1, kChainStripY - 1);
+    lv_obj_set_size(strip, kTileInnerWidth, kChainStripHeight);
     lv_obj_remove_flag(strip, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_remove_flag(strip, LV_OBJ_FLAG_SCROLLABLE);
     presetChainStrips_[i] = strip;
-    // Fault legend: a bordered chip above the strip, part of the plate's own
+    // Fault legend: a bordered tag above the strip, part of the plate's own
     // nomenclature rather than a tooltip.
-    lv_obj_t* unavailable = label(preset, "ASSET NOT FOUND", LV_ALIGN_BOTTOM_LEFT, kChainStripInset,
-                                  -(kChainStripBottom + kChainStripHeight + 10),
-                                  &ardor_font_saira_cond_medium_18, palette().family[5]);
-    lv_obj_set_style_pad_hor(unavailable, 10, 0);
-    lv_obj_set_style_pad_ver(unavailable, 4, 0);
-    lv_obj_set_style_border_width(unavailable, 1, 0);
-    lv_obj_set_style_border_color(unavailable, lv_color_hex(palette().faultLine), 0);
-    lv_obj_set_style_bg_opa(unavailable, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(unavailable, lv_color_hex(panel), 0);
+    const std::string fault = "ASSET NOT FOUND";
+    const int faultWidth = lb::textWidth(lb::type::tag, fault) + 20;
+    lv_obj_t* unavailable = lb::box(preset, kTilePadX - 1, kChainStripY - 1 - 12 - 33,
+                                    faultWidth, 33, panel, palette().faultLine, 1);
+    lb::textLabel(unavailable, lb::type::tag, fault, danger, 9, 3);
     presetWarningLabels_[i] = unavailable;
     lv_obj_add_flag(unavailable, LV_OBJ_FLAG_HIDDEN);
     stylePresetCard(state, i);
@@ -447,88 +445,49 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     lv_obj_add_event_cb(preset, onPresetClicked, LV_EVENT_CLICKED, remember(state, i));
   }
 
-  // ---- bottom control rail: transport + the master meter ----
-  lv_obj_t* bottomRail = lv_obj_create(root);
-  lv_obj_set_size(bottomRail, kDesignWidth, kBottomRailHeight);
-  lv_obj_set_pos(bottomRail, 0, kBottomRailY);
-  lv_obj_set_style_bg_color(bottomRail, lv_color_hex(bg), 0);
-  lv_obj_set_style_bg_opa(bottomRail, LV_OPA_COVER, 0);
-  lv_obj_set_style_border_width(bottomRail, 1, 0);
-  lv_obj_set_style_border_side(bottomRail, LV_BORDER_SIDE_TOP, 0);
-  lv_obj_set_style_border_color(bottomRail, lv_color_hex(rule), 0);
-  lv_obj_set_style_radius(bottomRail, 0, 0);
-  lv_obj_set_style_pad_all(bottomRail, 0, 0);
-  lv_obj_remove_flag(bottomRail, LV_OBJ_FLAG_SCROLLABLE);
-
-  int railX = kRailEdgeInset;
-  const auto railButton = [&](const std::string& label_, int width, bool primary) {
-    lv_obj_t* btn = button(bottomRail, label_);
-    lv_obj_set_size(btn, width, 52);
-    lv_obj_align(btn, LV_ALIGN_LEFT_MID, railX, 0);
-    lv_obj_set_style_text_letter_space(lv_obj_get_child(btn, 0), 1, 0);
-    if (primary) {
-      styleSurface(btn, text);
-      lv_obj_set_style_text_color(lv_obj_get_child(btn, 0), lv_color_hex(bg), 0);
-    }
-    railX += width + 11;
-    return btn;
-  };
-  lv_obj_t* edit = railButton("EDIT", 112, true);
+  // ---- bottom rail: transport, the bank pair and the master meter ----
+  lb::rail(root);
+  presetRailItems_.clear();
+  lv_obj_t* edit = lb::button(root, "EDIT", lb::ButtonKind::Primary, 0, lb::kRailButtonY);
   lv_obj_add_event_cb(edit, onEditModeClicked, LV_EVENT_PRESSED, remember(state));
-  lv_obj_t* tuner = railButton("TUNER", 112, false);
+  lv_obj_t* tuner = lb::button(root, "TUNER", lb::ButtonKind::Normal, 0, lb::kRailButtonY);
   lv_obj_add_event_cb(tuner, onTunerModeClicked, LV_EVENT_PRESSED, remember(state));
-  lv_obj_t* looper = railButton(
-    state.looper.telemetry.sessionState == LooperSessionState::Inactive ? "LOOPER" : "RESUME LOOP",
-    142, false);
-  presetLooperLabel_ = lv_obj_get_child(looper, 0);
+  const std::string looperLegend =
+    state.looper.telemetry.sessionState == LooperSessionState::Inactive ? "LOOPER" : "RESUME LOOP";
+  lv_obj_t* looper = lb::button(root, looperLegend, lb::ButtonKind::Normal, 0, lb::kRailButtonY);
+  presetLooperLabel_ = lb::buttonLabel(looper);
   lv_obj_add_event_cb(looper, onLooperClicked, LV_EVENT_PRESSED, remember(state));
-  lv_obj_t* bankDown = railButton("BANK -", 96, false);
+  // Bank pair: two step buttons around a recessed legend, borders shared.
+  lv_obj_t* bankDown = lb::button(root, "-", lb::ButtonKind::Normal, 0, lb::kRailButtonY,
+                                  kBankPairStepWidth);
   bankDownButton_ = bankDown;
-  if (state.activeBank == kMinBank) lv_obj_add_state(bankDown, LV_STATE_DISABLED);
   lv_obj_add_event_cb(bankDown, onBankDownClicked, LV_EVENT_CLICKED, remember(state));
-  lv_obj_t* bankUp = railButton("BANK +", 96, false);
+  const int legendWidth = lb::textWidth(lb::type::pairLegend, "BANK") + 2 * kBankPairLegendPad;
+  lv_obj_t* bankLegend = lb::box(root, 0, lb::kRailButtonY, legendWidth, lb::kButtonHeight, bg);
+  lb::setBorder(bankLegend, rule, 1,
+                static_cast<lv_border_side_t>(LV_BORDER_SIDE_TOP | LV_BORDER_SIDE_BOTTOM));
+  lb::centeredText(bankLegend, lb::type::pairLegend, "BANK", muted, 0, -1, legendWidth,
+                   lb::kButtonHeight);
+  lv_obj_t* bankUp = lb::button(root, "+", lb::ButtonKind::Normal, 0, lb::kRailButtonY,
+                                kBankPairStepWidth);
   bankUpButton_ = bankUp;
-  if (state.activeBank == kMaxBank) lv_obj_add_state(bankUp, LV_STATE_DISABLED);
   lv_obj_add_event_cb(bankUp, onBankUpClicked, LV_EVENT_CLICKED, remember(state));
-  lv_obj_t* setup = railButton("SETUP", 96, false);
-  lv_obj_add_event_cb(setup, onSettingsClicked, LV_EVENT_PRESSED, remember(state));
-
-  // ---- master meter, right-aligned: legend, value, then segments ----
-  lv_obj_t* scaleGroup = lv_obj_create(bottomRail);
-  lv_obj_remove_style_all(scaleGroup);
-  lv_obj_set_size(scaleGroup, kMasterGroupWidth, kBottomRailHeight);
-  lv_obj_align(scaleGroup, LV_ALIGN_RIGHT_MID, -kRailEdgeInset, 0);
-  lv_obj_remove_flag(scaleGroup, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(scaleGroup, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_t* masterLabel = label(scaleGroup, "MASTER", LV_ALIGN_LEFT_MID, 0, 0,
-                                &ardor_font_saira_cond_medium_18, muted);
-  lv_obj_set_style_text_letter_space(masterLabel, 3, 0);
-  const int masterPct = std::clamp(state.masterVolume, 0, 100);
-  presetMasterValueLabel_ = label(scaleGroup, std::to_string(masterPct), LV_ALIGN_LEFT_MID,
-                                  kMasterLegendWidth + kMasterGap, 0,
-                                  &ardor_font_saira_cond_semibold_52, text);
-  lv_obj_set_width(presetMasterValueLabel_, kMasterValueWidth);
-  lv_obj_set_style_text_align(presetMasterValueLabel_, LV_TEXT_ALIGN_RIGHT, 0);
-  lv_label_set_long_mode(presetMasterValueLabel_, LV_LABEL_LONG_CLIP);
-  lv_obj_t* meter = lv_obj_create(scaleGroup);
-  lv_obj_remove_style_all(meter);
-  lv_obj_set_size(meter, kMasterMeterWidth, kMasterMeterHeight);
-  lv_obj_align(meter, LV_ALIGN_LEFT_MID,
-               kMasterLegendWidth + kMasterGap + kMasterValueWidth + kMasterGap, 0);
-  lv_obj_remove_flag(meter, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(meter, LV_OBJ_FLAG_CLICKABLE);
-  for (int segment = 0; segment < kMasterSegments; ++segment) {
-    const int height = kMasterSegmentMinHeight + segment * kMasterSegmentStep;
-    lv_obj_t* cell = lv_obj_create(meter);
-    lv_obj_remove_style_all(cell);
-    lv_obj_set_size(cell, kMasterSegmentWidth, height);
-    lv_obj_set_pos(cell, segment * (kMasterSegmentWidth + kMasterSegmentGap),
-                   kMasterMeterHeight - height);
-    lv_obj_set_style_bg_opa(cell, LV_OPA_COVER, 0);
-    lv_obj_remove_flag(cell, LV_OBJ_FLAG_CLICKABLE);
+  if (state.activeBank == kMinBank) {
+    lb::styleButton(bankDown, lb::ButtonKind::Off);
+    lv_obj_add_state(bankDown, LV_STATE_DISABLED);
   }
-  presetMasterMeter_ = meter;
-  syncMasterMeter(meter, masterPct);
+  if (state.activeBank == kMaxBank) {
+    lb::styleButton(bankUp, lb::ButtonKind::Off);
+    lv_obj_add_state(bankUp, LV_STATE_DISABLED);
+  }
+  lv_obj_t* setup = lb::button(root, "SETUP", lb::ButtonKind::Normal, 0, lb::kRailButtonY);
+  lv_obj_add_event_cb(setup, onSettingsClicked, LV_EVENT_PRESSED, remember(state));
+  presetRailItems_ = {edit, tuner, looper, bankDown, bankLegend, bankUp, setup};
+  layoutPresetRail(presetRailItems_);
+
+  // ---- master readout, right-aligned: legend, value, then segments ----
+  presetMasterValueLabel_ = lb::masterReadout(root, state.masterVolume);
+  presetMasterMeter_ = nullptr;
 }
 
 void LvglUi::openPresetNameEditor(UiState& state)
@@ -612,80 +571,45 @@ void LvglUi::savePresetName(UiState& state)
 
 void LvglUi::renderPresetNameEditor(lv_obj_t* root, UiState& state)
 {
-  presetNameOverlay_ = lv_obj_create(root);
-  lv_obj_set_size(presetNameOverlay_, kDesignWidth, kDesignHeight);
-  lv_obj_set_pos(presetNameOverlay_, 0, 0);
-  lv_obj_set_style_bg_color(presetNameOverlay_, lv_color_hex(0x000000), 0);
-  lv_obj_set_style_bg_opa(presetNameOverlay_, LV_OPA_80, 0);
-  lv_obj_set_style_border_width(presetNameOverlay_, 0, 0);
-  lv_obj_set_style_pad_all(presetNameOverlay_, 0, 0);
-  lv_obj_remove_flag(presetNameOverlay_, LV_OBJ_FLAG_SCROLLABLE);
+  constexpr int kSheetWidth = 1232;
+  constexpr int kSheetHeight = 672;
+  constexpr int kInset = lb::kDialogInset;
+  presetNameOverlay_ = lb::createOverlay(root);
+  lv_obj_t* sheet = lb::createDialog(presetNameOverlay_, kSheetWidth, kSheetHeight, "RENAME");
+  lv_obj_t* hint = lb::textLabel(sheet, lb::type::itemSubtitle,
+                                 "The new name is saved to the active slot.", muted, kInset - 1, 70);
+  (void) hint;
 
-  lv_obj_t* sheet = lv_obj_create(presetNameOverlay_);
-  lv_obj_set_size(sheet, 1120, 650);
-  lv_obj_align(sheet, LV_ALIGN_CENTER, 0, 0);
-  styleSurface(sheet, panelAlt);
-  lv_obj_set_style_pad_all(sheet, 0, 0);
-  lv_obj_remove_flag(sheet, LV_OBJ_FLAG_SCROLLABLE);
-
-  label(sheet, "Rename preset", LV_ALIGN_TOP_LEFT, 28, 22,
-        &ardor_font_saira_cond_semibold_28, text);
-  label(sheet, "The new name is saved to the active slot.", LV_ALIGN_TOP_LEFT, 28, 60,
-        &ardor_font_saira_cond_medium_18, muted);
-
+  const int buttonsWidth = 2 * lb::kButtonMinWidth + lb::kGap;
+  const int fieldWidth = kSheetWidth - 2 - 2 * kInset - buttonsWidth - lb::kGap;
   presetNameField_ = lv_textarea_create(sheet);
-  lv_obj_set_pos(presetNameField_, 28, 94);
-  lv_obj_set_size(presetNameField_, 760, 64);
+  lv_obj_set_pos(presetNameField_, kInset - 1, 104);
+  lv_obj_set_size(presetNameField_, fieldWidth, lb::kButtonHeight);
   lv_textarea_set_one_line(presetNameField_, true);
   lv_textarea_set_max_length(presetNameField_, kPresetNameMaxLength);
   lv_textarea_set_placeholder_text(presetNameField_, "Preset name");
   lv_textarea_set_text(presetNameField_,
     state.activePreset < state.bank.presets.size()
       ? state.bank.presets[state.activePreset].name.c_str() : "");
-  lv_obj_set_style_bg_color(presetNameField_, lv_color_hex(panel), 0);
-  lv_obj_set_style_text_color(presetNameField_, lv_color_hex(text), 0);
-  lv_obj_set_style_text_font(presetNameField_, &ardor_font_saira_cond_semibold_22, 0);
-  lv_obj_set_style_pad_top(presetNameField_, 18, 0);
-  lv_obj_set_style_pad_bottom(presetNameField_, 18, 0);
-  lv_obj_set_style_border_width(presetNameField_, 1, 0);
-  lv_obj_set_style_border_color(presetNameField_, lv_color_hex(rule), 0);
-  lv_obj_set_style_border_color(presetNameField_, lv_color_hex(text), LV_STATE_FOCUSED);
-  lv_obj_set_style_radius(presetNameField_, 0, 0);
+  lb::styleField(presetNameField_);
+  lv_obj_set_style_text_font(presetNameField_, &ardor_lb_cond600_22, 0);
+  lv_obj_set_style_pad_ver(presetNameField_, 17, 0);
 
-  lv_obj_t* cancel = button(sheet, "CANCEL");
-  lv_obj_set_size(cancel, 124, 64);
-  lv_obj_set_pos(cancel, 808, 94);
-  styleSurface(cancel, panel);
+  const int cancelX = kInset - 1 + fieldWidth + lb::kGap;
+  lv_obj_t* cancel = lb::button(sheet, "CANCEL", lb::ButtonKind::Normal, cancelX, 104);
   lv_obj_add_event_cb(cancel, onPresetNameCancelClicked, LV_EVENT_CLICKED, remember(state));
-
-  lv_obj_t* save = button(sheet, "SAVE");
-  lv_obj_set_size(save, 124, 64);
-  lv_obj_set_pos(save, 952, 94);
-  styleSurface(save, text);
-  lv_obj_set_style_text_color(lv_obj_get_child(save, 0), lv_color_hex(bg), 0);
+  lv_obj_t* save = lb::button(sheet, "SAVE", lb::ButtonKind::Primary,
+                              cancelX + lb::kButtonMinWidth + lb::kGap, 104);
   lv_obj_add_event_cb(save, onPresetNameSaveClicked, LV_EVENT_CLICKED, remember(state));
 
-  presetNameMessageLabel_ = label(sheet, "", LV_ALIGN_TOP_LEFT, 28, 164,
-                                  &ardor_font_saira_cond_medium_18, danger);
+  presetNameMessageLabel_ = lb::textLabel(sheet, lb::type::legend, "", dangerText, kInset - 1, 176);
 
   presetNameKeyboard_ = lv_keyboard_create(sheet);
-  lv_obj_set_size(presetNameKeyboard_, 1064, 430);
+  lv_obj_set_size(presetNameKeyboard_, kSheetWidth - 2 - 2 * kInset, kSheetHeight - 2 - 208 - kInset);
   // Keyboard widgets default to a bottom alignment. Pin this one explicitly so
   // all rows stay inside the sheet instead of inheriting the default offset.
-  lv_obj_align(presetNameKeyboard_, LV_ALIGN_TOP_LEFT, 28, 196);
-  lv_obj_set_style_bg_color(presetNameKeyboard_, lv_color_hex(panelAlt), 0);
-  lv_obj_set_style_border_width(presetNameKeyboard_, 0, 0);
-  lv_obj_set_style_text_color(presetNameKeyboard_, lv_color_hex(text), LV_PART_ITEMS);
-  lv_obj_set_style_bg_color(presetNameKeyboard_, lv_color_hex(panel), LV_PART_ITEMS);
-  lv_obj_set_style_border_color(presetNameKeyboard_, lv_color_hex(rule), LV_PART_ITEMS);
-  lv_obj_set_style_border_width(presetNameKeyboard_, 1, LV_PART_ITEMS);
-  lv_obj_set_style_radius(presetNameKeyboard_, 0, LV_PART_ITEMS);
-  lv_obj_set_style_bg_color(
-    presetNameKeyboard_, lv_color_hex(text),
-    static_cast<lv_style_selector_t>(LV_PART_ITEMS) | LV_STATE_PRESSED);
-  lv_obj_set_style_text_color(
-    presetNameKeyboard_, lv_color_hex(bg),
-    static_cast<lv_style_selector_t>(LV_PART_ITEMS) | LV_STATE_PRESSED);
+  lv_obj_align(presetNameKeyboard_, LV_ALIGN_TOP_LEFT, kInset - 1, 208);
+  lb::styleKeyboard(presetNameKeyboard_);
   lv_keyboard_set_textarea(presetNameKeyboard_, presetNameField_);
   lv_obj_add_event_cb(presetNameKeyboard_, onPresetNameSaveClicked,
                       LV_EVENT_READY, remember(state));
