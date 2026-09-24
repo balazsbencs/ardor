@@ -21,6 +21,21 @@ colors:
   modulation-teal: "#5d8f80"
   delay-violet: "#8175a0"
   reverb-clay: "#a8785c"
+  device-ground: "#0b0c0d"
+  device-recess: "#121416"
+  device-plate: "#16181a"
+  device-rule: "#2b2f33"
+  device-bone: "#eceeed"
+  device-secondary: "#9aa1a6"
+  device-disabled: "#5c6368"
+  device-lamp: "#e8472f"
+  device-warning: "#e0a53c"
+  device-amp: "#d2923f"
+  device-cabinet: "#aab2b7"
+  device-utility: "#5f95c9"
+  device-modulation: "#3fb08c"
+  device-delay: "#9a82d6"
+  device-reverb: "#d07a5a"
 typography:
   display:
     fontFamily: "Saira Condensed, Arial Narrow, sans-serif"
@@ -106,6 +121,17 @@ The palette is restrained: graphite and bone do most of the work; muted family c
 **The One Lamp Rule.** Live red means what is running or selected; do not spend it on decoration, general calls to action, or ordinary success states.
 
 **The Family Bar Rule.** Category colors identify amp, cab, utility, modulation, delay, and reverb. They are structural labels, not a rainbow accent system.
+
+### Device screen: Lamp Black
+
+The pedal's default Slate palette carries the **Lamp Black** values (`device-*` tokens above; source of truth `src/ui/LvglUiStyle.cpp`, mockups in `mockups/lvgl-taste/`). It keeps the Panel language but widens the value range, because the earlier plates were too close in value to separate at a glance:
+
+- **Device ground** (`#0b0c0d`) sits under **device plate** (`#16181a`) and **device recess** (`#121416`), so plates read as raised.
+- **Device lamp** (`#e8472f`) floods the whole live preset tile, lettered in device ground. It still means LIVE and the selected control only.
+- **Family colours** are raised in chroma so the chain strip on each preset tile, the chain-card value bars and the drawer code squares read at a glance.
+- Flatness stays a hard rule on the device: the Pi panel is RGB565, so depth comes from flat planes and hard offset plates, never gradients or blur.
+
+The website's screen showcase still uses the earlier Slate values; moving it to the `device-*` tokens is open work.
 
 ## Typography
 
