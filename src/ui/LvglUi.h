@@ -2,6 +2,7 @@
 
 #include "ui/EqEditorModel.h"
 #include "ui/ParameterControls.h"
+#include "ui/PresetChainStrip.h"
 
 #include <algorithm>
 #include <array>
@@ -262,6 +263,7 @@ private:
   void syncModeVisibility(const UiState& state);
   void syncHeaderView(const UiState& state);
   void syncPresetCards(const UiState& state);
+  void stylePresetCard(const UiState& state, std::size_t index);
   void syncScenesView(const UiState& state);
   void syncStatusView(const UiState& state);
   void syncPersistentViews(UiState& state);
@@ -327,10 +329,10 @@ private:
   // Preset screen's own top legend rail + bottom control rail (per
   // docs/lvgl-ui-redesign-spec.md §4f). Distinct from the shared status-bar
   // members above, which remain in use by the screens not yet migrated.
+  lv_obj_t* presetBankLabel_ = nullptr;
   lv_obj_t* presetTelemetryLabel_ = nullptr;
   lv_obj_t* presetMasterValueLabel_ = nullptr;
-  lv_obj_t* presetMasterScaleFill_ = nullptr;
-  lv_obj_t* presetMasterPointer_ = nullptr;
+  lv_obj_t* presetMasterMeter_ = nullptr;
   lv_obj_t* presetLooperLabel_ = nullptr;
   std::array<lv_obj_t*, 4> sceneCardButtons_{};
   std::array<lv_obj_t*, 4> sceneHeaderStrips_{};
@@ -401,7 +403,11 @@ private:
   std::array<lv_obj_t*, 4> presetCardButtons_{};
   std::array<lv_obj_t*, 4> presetHeaderStrips_{};
   std::array<lv_obj_t*, 4> presetHeaderLabels_{};
-  std::array<lv_obj_t*, 4> presetNumerals_{};
+  // Chain strip per preset tile. The cache keeps retained syncs from
+  // rebuilding segments when neither the chain nor the LIVE state changed.
+  std::array<lv_obj_t*, 4> presetChainStrips_{};
+  std::array<std::vector<ChainStripSegment>, 4> presetChainStripCache_{};
+  std::array<bool, 4> presetChainStripLive_{};
   std::array<lv_obj_t*, 4> presetWarningLabels_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainCards_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainCategoryLabels_{};

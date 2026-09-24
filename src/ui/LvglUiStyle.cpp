@@ -6,10 +6,14 @@
 namespace ardor::lvgl_ui {
 
 namespace {
-constexpr PanelPalette kSlate{0x212528, 0x2a2f33, 0x191c1f,
-  0xe2e4e3, 0x8d9499, 0x5b6266, 0x3b4247,
-  0xd8422f, 0xc9973f, 0x6b463c, 0xbb9186, 0x7fa6c8, 0xc9a06a,
-  {0xa8814e, 0x939a9e, 0x5f7f9c, 0x5d8f80, 0x8175a0, 0xa8785c}};
+// Slate carries the Lamp Black values (mockups/lvgl-taste/1-lamp-black.html):
+// a near-black ground so plates sit clearly above it, one lamp bright enough
+// to flood the live tile, and family colours raised in chroma so the chain
+// strip on each preset reads at a glance.
+constexpr PanelPalette kSlate{0x0b0c0d, 0x16181a, 0x121416,
+  0xeceeed, 0x9aa1a6, 0x5c6368, 0x2b2f33,
+  0xe8472f, 0xe0a53c, 0x6b463c, 0xd19a8c, 0x7fa6c8, 0xc9a06a,
+  {0xd2923f, 0xaab2b7, 0x5f95c9, 0x3fb08c, 0x9a82d6, 0xd07a5a}};
 constexpr PanelPalette kInk{0x10161f, 0x182130, 0x0b1017,
   0xdde6ee, 0x7e8fa3, 0x4d5b6b, 0x2a3646,
   0x5fd0e8, 0xd9a04e, 0x5c3946, 0xc08e97, 0x6d8fd0, 0xc99050,
@@ -98,6 +102,9 @@ lv_obj_t* button(lv_obj_t* parent, const std::string& value)
   styleSurface(object);
   lv_obj_set_style_border_color(object, lv_color_hex(text), LV_STATE_PRESSED);
   lv_obj_set_style_border_opa(object, LV_OPA_COVER, LV_STATE_PRESSED);
+  // The default theme greys disabled buttons out with its own light fill;
+  // keep the recessed plate so a disabled button never reads as selected.
+  lv_obj_set_style_bg_color(object, lv_color_hex(panelAlt), LV_STATE_DISABLED);
   lv_obj_set_style_opa(object, LV_OPA_40, LV_STATE_DISABLED);
   lv_obj_t* buttonLabel = lv_label_create(object);
   lv_label_set_text(buttonLabel, value.c_str());
@@ -108,15 +115,17 @@ lv_obj_t* button(lv_obj_t* parent, const std::string& value)
 
 int categoryColor(const std::string& key)
 {
-  if (key == "nam" || key == "amp" || key == "amps") return palette().family[0];
+  if (key == "nam" || key == "amp" || key == "amps" || key == "dualAmp") return palette().family[0];
   // Drive shares the amp colour: it sits in the same part of the chain and
   // the palette has six families, not seven.
   if (key == "drive" || key == "distortion") return palette().family[0];
   if (key == "cab" || key == "cabinet" || key == "cabs") return palette().family[1];
-  if (key == "mod" || key == "modulation") return palette().family[3];
-  if (key == "delay") return palette().family[4];
-  if (key == "reverb") return palette().family[5];
-  if (key == "dynamics" || key == "eq" || key == "utility") return palette().family[2];
+  if (key == "mod" || key == "modulation" || key == "wah") return palette().family[3];
+  if (key == "delay" || key == "time") return palette().family[4];
+  if (key == "reverb" || key == "irreverb") return palette().family[5];
+  if (key == "dynamics" || key == "eq" || key == "utility" || key == "stereo") {
+    return palette().family[2];
+  }
   return static_cast<int>(muted);
 }
 

@@ -23,28 +23,40 @@ constexpr int kRailEdgeInset = 28;
 constexpr int kTopRailHeight = 52;
 constexpr int kBottomRailHeight = 88;
 constexpr int kBottomRailY = kDesignHeight - kBottomRailHeight;
-constexpr int kMasterScaleWidth = 250;
-constexpr int kMasterRailHeight = 18;
-constexpr int kMasterFillHeight = kMasterRailHeight - 2;
-constexpr int kMasterHandleWidth = 44;
-// The preset rail has only 88 px of vertical space. Keep the thumb large
-// enough to grab while leaving a clean header row above it and a small safety
-// inset below it; the parameter editor can use its taller 54 px thumb because
-// its cards are 132 px high.
-constexpr int kMasterHandleHeight = 40;
-constexpr int kMasterScaleGroupWidth = kMasterScaleWidth + kMasterHandleWidth;
-constexpr int kMasterRailX = kMasterHandleWidth / 2;
-constexpr int kMasterHeaderHeight = 44;
-constexpr int kMasterBottomInset = 4;
-constexpr int kMasterRailY = kBottomRailHeight - kMasterBottomInset
-  - (kMasterHandleHeight + kMasterRailHeight) / 2;
-constexpr int kMasterHandleTop = kMasterRailY
-  - (kMasterHandleHeight - kMasterRailHeight) / 2;
-static_assert(kMasterHandleTop >= kMasterHeaderHeight);
-static_assert(kMasterHandleTop + kMasterHandleHeight
-              <= kBottomRailHeight - kMasterBottomInset);
+// Master: legend, value and a 16-segment meter that rises left to right.
+// The encoder sets the volume; the meter only reports it, in bone, because
+// the lamp colour is reserved for LIVE.
+constexpr int kMasterSegments = 16;
+constexpr int kMasterSegmentWidth = 9;
+constexpr int kMasterSegmentGap = 3;
+constexpr int kMasterSegmentMinHeight = 14;
+constexpr int kMasterSegmentStep = 2;
+constexpr int kMasterMeterWidth = kMasterSegments * (kMasterSegmentWidth + kMasterSegmentGap)
+  - kMasterSegmentGap;
+constexpr int kMasterMeterHeight = kMasterSegmentMinHeight
+  + (kMasterSegments - 1) * kMasterSegmentStep;
+constexpr int kMasterLegendWidth = 80;
+constexpr int kMasterValueWidth = 76;
+constexpr int kMasterGap = 14;
+constexpr int kMasterGroupWidth = kMasterLegendWidth + kMasterGap + kMasterValueWidth
+  + kMasterGap + kMasterMeterWidth;
+static_assert(kMasterMeterHeight < kBottomRailHeight);
 constexpr int kPresetHeaderHeight = 44;
 constexpr int kPresetNameHeight = 160;
+constexpr int kPresetNameTop = 48;
+constexpr int kPresetGridGap = 14;
+constexpr int kPresetGridTopGap = 18;
+constexpr int kPresetCardWidth = (kDesignWidth - 2 * kRailEdgeInset - kPresetGridGap) / 2;
+constexpr int kPresetCardHeight = (kDesignHeight - kTopRailHeight - kBottomRailHeight
+  - 2 * kPresetGridTopGap - kPresetGridGap) / 2;
+// Chain strip: one family-coloured segment per block along the tile's foot.
+constexpr int kChainStripInset = 24;
+constexpr int kChainStripHeight = 34;
+constexpr int kChainStripBottom = 20;
+constexpr int kChainStripGap = 4;
+constexpr int kChainStripCodeInset = 8;
+static_assert(kPresetNameTop + kPresetNameHeight
+              <= kPresetCardHeight - kChainStripBottom - kChainStripHeight);
 constexpr int kMinBank = 0;
 constexpr int kMaxBank = 99;
 constexpr std::size_t kPresetNameMaxLength = 32;
@@ -61,6 +73,51 @@ std::string presetTelemetryText(const UiState& state)
                   latencyMs, used);
   }
   return value;
+}
+
+int masterLitSegments(int volume)
+{
+  return (std::clamp(volume, 0, 100) * kMasterSegments + 50) / 100;
+}
+
+void syncMasterMeter(lv_obj_t* meter, int volume)
+{
+  if (!meter) return;
+  const int lit = masterLitSegments(volume);
+  const auto count = static_cast<int>(lv_obj_get_child_count(meter));
+  for (int segment = 0; segment < count; ++segment) {
+    lv_obj_set_style_bg_color(lv_obj_get_child(meter, segment),
+                              lv_color_hex(segment < lit ? text : rule), 0);
+  }
+}
+
+// On the flooded LIVE tile the strip inverts: dark cells with lamp codes.
+// Elsewhere each cell takes its family colour; bypassed blocks drop to rule.
+void renderChainStrip(lv_obj_t* strip, const std::vector<ChainStripSegment>& segments, bool live)
+{
+  lv_obj_clean(strip);
+  for (const auto& segment : segments) {
+    const std::uint32_t fill = live ? bg
+      : (segment.enabled ? static_cast<std::uint32_t>(categoryColor(segment.type)) : rule);
+    const std::uint32_t ink = live ? (segment.enabled ? lamp : disabled)
+      : (segment.enabled ? bg : muted);
+    lv_obj_t* cell = lv_obj_create(strip);
+    lv_obj_remove_style_all(cell);
+    lv_obj_set_height(cell, kChainStripHeight);
+    lv_obj_set_flex_grow(cell, 1);
+    lv_obj_set_style_bg_opa(cell, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(cell, lv_color_hex(fill), 0);
+    lv_obj_set_style_pad_left(cell, kChainStripCodeInset, 0);
+    lv_obj_set_style_pad_right(cell, kChainStripCodeInset / 2, 0);
+    lv_obj_remove_flag(cell, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t* code = lv_label_create(cell);
+    lv_label_set_text(code, segment.code.c_str());
+    setText(code, static_cast<int>(ink), &ardor_font_saira_cond_medium_18);
+    lv_obj_set_width(code, LV_PCT(100));
+    lv_label_set_long_mode(code, LV_LABEL_LONG_CLIP);
+    lv_obj_align(code, LV_ALIGN_LEFT_MID, 0, 0);
+  }
 }
 
 std::string trimmed(std::string value)
@@ -146,14 +203,16 @@ void LvglUi::rebuildPresetView(UiState& state)
   presetCardButtons_.fill(nullptr);
   presetHeaderStrips_.fill(nullptr);
   presetHeaderLabels_.fill(nullptr);
-  presetNumerals_.fill(nullptr);
+  presetChainStrips_.fill(nullptr);
+  presetChainStripCache_ = {};
+  presetChainStripLive_.fill(false);
   presetWarningLabels_.fill(nullptr);
   bankDownButton_ = nullptr;
   bankUpButton_ = nullptr;
+  presetBankLabel_ = nullptr;
   presetTelemetryLabel_ = nullptr;
   presetMasterValueLabel_ = nullptr;
-  presetMasterScaleFill_ = nullptr;
-  presetMasterPointer_ = nullptr;
+  presetMasterMeter_ = nullptr;
   presetLooperLabel_ = nullptr;
   contextRegion_ = UiContextRegion::Preset;
   renderPresetMode(presetLayer_, state);
@@ -178,16 +237,13 @@ void LvglUi::syncHeaderView(const UiState& state)
   if (presetMasterValueLabel_) {
     lv_label_set_text(presetMasterValueLabel_, std::to_string(masterPct).c_str());
   }
-  if (presetMasterScaleFill_) {
-    lv_obj_set_width(presetMasterScaleFill_, masterPct * (kMasterScaleWidth - 2) / 100);
-  }
-  if (presetMasterPointer_) {
-    lv_obj_set_x(presetMasterPointer_, kMasterRailX + 1
-      + masterPct * (kMasterScaleWidth - 2) / 100 - kMasterHandleWidth / 2);
+  syncMasterMeter(presetMasterMeter_, masterPct);
+  if (presetBankLabel_) {
+    lv_label_set_text(presetBankLabel_, uppercase(state.bank.name).c_str());
   }
   if (presetLooperLabel_) {
     lv_label_set_text(presetLooperLabel_,
-      state.looper.telemetry.sessionState == LooperSessionState::Inactive ? "Looper" : "Resume Loop");
+      state.looper.telemetry.sessionState == LooperSessionState::Inactive ? "LOOPER" : "RESUME LOOP");
   }
   if (bankDownButton_) {
     if (state.activeBank == kMinBank) lv_obj_add_state(bankDownButton_, LV_STATE_DISABLED);
@@ -233,35 +289,55 @@ void LvglUi::syncPresetCards(const UiState& state)
       continue;
     }
     lv_label_set_text(presetCardLabels_[i], uppercase(state.bank.presets[i].name).c_str());
-    const bool isActive = i == state.activePreset;
-    const bool unavailable = presetHasUnavailableAssets(state, i);
     const bool sessionLocked = state.looper.telemetry.sessionState != LooperSessionState::Inactive;
-    lv_obj_set_style_text_color(presetCardLabels_[i], lv_color_hex(unavailable ? danger : text), 0);
-    lv_obj_set_style_border_color(presetCardButtons_[i], lv_color_hex(unavailable ? palette().faultLine : (isActive ? lamp : rule)), 0);
-    lv_obj_set_style_border_width(presetCardButtons_[i], isActive ? 3 : 1, 0);
-    lv_obj_set_style_border_opa(presetCardButtons_[i], LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(presetHeaderStrips_[i], lv_color_hex(isActive ? lamp : panelAlt), 0);
-    lv_label_set_text(presetHeaderLabels_[i],
-      ("FS " + std::to_string(i + 1) + (isActive ? "  \xC2\xB7  LIVE" : "")).c_str());
-    lv_obj_set_style_text_color(presetHeaderLabels_[i], lv_color_hex(isActive ? bg : text), 0);
-    lv_obj_set_style_text_color(presetNumerals_[i], lv_color_hex(isActive ? lamp : muted), 0);
-    if (presetWarningLabels_[i]) {
-      if (unavailable) lv_obj_remove_flag(presetWarningLabels_[i], LV_OBJ_FLAG_HIDDEN);
-      else lv_obj_add_flag(presetWarningLabels_[i], LV_OBJ_FLAG_HIDDEN);
-    }
+    stylePresetCard(state, i);
     if (sessionLocked) lv_obj_add_state(presetCardButtons_[i], LV_STATE_DISABLED);
     else lv_obj_remove_state(presetCardButtons_[i], LV_STATE_DISABLED);
     lv_obj_remove_flag(presetCardButtons_[i], LV_OBJ_FLAG_HIDDEN);
   }
 }
 
+void LvglUi::stylePresetCard(const UiState& state, std::size_t index)
+{
+  lv_obj_t* card = presetCardButtons_[index];
+  if (!card || index >= state.bank.presets.size()) return;
+  const bool isActive = index == state.activePreset;
+  const bool unavailable = presetHasUnavailableAssets(state, index);
+  // A faulted LIVE preset keeps the fault border and legend on a plain plate:
+  // lamp-on-lamp would hide the fault, so only healthy LIVE tiles flood.
+  const bool floods = isActive && !unavailable;
+  lv_obj_set_style_bg_color(card, lv_color_hex(floods ? lamp : panel), 0);
+  lv_obj_set_style_border_color(card, lv_color_hex(
+    unavailable ? palette().faultLine : (isActive ? lamp : rule)), 0);
+  lv_obj_set_style_border_width(card, isActive ? 3 : 1, 0);
+  lv_obj_set_style_border_opa(card, LV_OPA_COVER, 0);
+  lv_obj_set_style_text_color(presetCardLabels_[index],
+                              lv_color_hex(unavailable ? danger : (floods ? bg : text)), 0);
+  lv_obj_set_style_bg_color(presetHeaderStrips_[index], lv_color_hex(isActive ? lamp : panel), 0);
+  lv_label_set_text(presetHeaderLabels_[index],
+    ("FS " + std::to_string(index + 1) + (isActive ? "  \xC2\xB7  LIVE" : "")).c_str());
+  lv_obj_set_style_text_color(presetHeaderLabels_[index], lv_color_hex(isActive ? bg : muted), 0);
+  if (presetWarningLabels_[index]) {
+    if (unavailable) lv_obj_remove_flag(presetWarningLabels_[index], LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(presetWarningLabels_[index], LV_OBJ_FLAG_HIDDEN);
+  }
+  if (lv_obj_t* strip = presetChainStrips_[index]) {
+    auto segments = presetChainStrip(state.bank.presets[index]);
+    if (segments != presetChainStripCache_[index] || floods != presetChainStripLive_[index]) {
+      renderChainStrip(strip, segments, floods);
+      presetChainStripCache_[index] = std::move(segments);
+      presetChainStripLive_[index] = floods;
+    }
+  }
+}
+
 void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
 {
-  // ---- top legend rail: a panel always names itself ----
+  // ---- top legend rail: the bank on the left, engine load on the right ----
   lv_obj_t* topRail = lv_obj_create(root);
   lv_obj_set_size(topRail, kDesignWidth, kTopRailHeight);
   lv_obj_set_pos(topRail, 0, 0);
-  lv_obj_set_style_bg_color(topRail, lv_color_hex(panel), 0);
+  lv_obj_set_style_bg_color(topRail, lv_color_hex(bg), 0);
   lv_obj_set_style_bg_opa(topRail, LV_OPA_COVER, 0);
   lv_obj_set_style_border_width(topRail, 1, 0);
   lv_obj_set_style_border_side(topRail, LV_BORDER_SIDE_BOTTOM, 0);
@@ -270,24 +346,27 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
   lv_obj_set_style_pad_all(topRail, 0, 0);
   lv_obj_remove_flag(topRail, LV_OBJ_FLAG_SCROLLABLE);
 
+  presetBankLabel_ = label(topRail, uppercase(state.bank.name), LV_ALIGN_LEFT_MID,
+                           kRailEdgeInset, 0, &ardor_font_saira_cond_semibold_28, text);
+  lv_obj_set_style_text_letter_space(presetBankLabel_, 1, 0);
   // The engine publishes buffer telemetry once per second. Pair that live load
-  // with the configured block latency; the fixed sample rate does not need
-  // permanent rail space.
+  // with the configured block latency; it is secondary, so it sits small and
+  // muted on the right.
   presetTelemetryLabel_ = label(topRail, presetTelemetryText(state),
-                                LV_ALIGN_CENTER, 0, 0,
-                                &ardor_font_saira_cond_medium_18, text);
+                                LV_ALIGN_RIGHT_MID, -kRailEdgeInset, 0,
+                                &ardor_font_saira_cond_medium_18, muted);
 
-  // ---- preset grid: fills the 580 px band between the two rails ----
+  // ---- preset grid: fills the band between the two rails ----
   lv_obj_t* grid = lv_obj_create(root);
   lv_obj_set_size(grid, kDesignWidth - 2 * kRailEdgeInset,
-                  kDesignHeight - kTopRailHeight - kBottomRailHeight - 36);
+                  kDesignHeight - kTopRailHeight - kBottomRailHeight - 2 * kPresetGridTopGap);
   lv_obj_remove_flag(grid, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_pos(grid, kRailEdgeInset, kTopRailHeight + 18);
+  lv_obj_set_pos(grid, kRailEdgeInset, kTopRailHeight + kPresetGridTopGap);
   lv_obj_set_style_bg_opa(grid, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(grid, 0, 0);
   lv_obj_set_style_pad_all(grid, 0, 0);
-  lv_obj_set_style_pad_column(grid, 14, 0);
-  lv_obj_set_style_pad_row(grid, 14, 0);
+  lv_obj_set_style_pad_column(grid, kPresetGridGap, 0);
+  lv_obj_set_style_pad_row(grid, kPresetGridGap, 0);
   lv_obj_set_layout(grid, LV_LAYOUT_GRID);
 
   static int32_t cols[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
@@ -307,63 +386,60 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     // strip from the card's true edges, throwing off every child alignment
     // anchored to LV_ALIGN_*_RIGHT/LEFT below.
     lv_obj_set_style_pad_all(preset, 0, 0);
-    const bool isActive = populated && i == state.activePreset;
-    if (isActive) {
-      lv_obj_set_style_border_color(preset, lv_color_hex(lamp), 0);
-      lv_obj_set_style_border_width(preset, 3, 0);
-      lv_obj_set_style_border_opa(preset, LV_OPA_COVER, 0);
-    }
     lv_obj_t* presetName = lv_obj_get_child(preset, 0);
     presetCardLabels_[i] = presetName;
-    lv_obj_set_style_text_color(presetName, lv_color_hex(text), 0);
-    // Preset identity is the only card content that must survive a one-second
-    // glance from standing height. A native 72 px bitmap face keeps the stems
-    // crisp on the panel; compact chain metadata is intentionally omitted
-    // because it becomes visual noise at that distance.
+    // Preset identity must survive a one-second glance from standing height.
+    // A native 72 px bitmap face keeps the stems crisp on the panel.
     lv_obj_set_style_text_font(presetName, &ardor_font_saira_cond_semibold_72, 0);
     lv_obj_set_style_text_letter_space(presetName, 0, 0);
     lv_obj_set_style_text_line_space(presetName, -7, 0);
     lv_obj_set_style_text_align(presetName, LV_TEXT_ALIGN_LEFT, 0);
     lv_obj_set_size(presetName, LV_PCT(84), kPresetNameHeight);
     lv_label_set_long_mode(presetName, LV_LABEL_LONG_MODE_DOTS);
-    lv_obj_set_pos(presetName, 24, 61);
+    // button() centres its label; anchor it top-left so the name lines up
+    // with the FS legend and the chain strip.
+    lv_obj_set_align(presetName, LV_ALIGN_TOP_LEFT);
+    lv_obj_set_pos(presetName, 24, kPresetNameTop);
     lv_obj_t* header = lv_obj_create(preset);
     lv_obj_set_size(header, LV_PCT(100), kPresetHeaderHeight);
     lv_obj_set_pos(header, 0, 0);
-    styleSurface(header, isActive ? lamp : panelAlt);
+    styleSurface(header, panel);
     lv_obj_set_style_border_width(header, 0, 0);
-    // The default theme's own padding would otherwise inset the title and
-    // lamp from the header's true edges (this bit the lamp specifically:
-    // it stayed ~30px short of the corner despite the header spanning the
-    // full card width).
+    // The default theme's own padding would otherwise inset the title from
+    // the header's true edges.
     lv_obj_set_style_pad_all(header, 0, 0);
     lv_obj_remove_flag(header, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_remove_flag(header, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_t* titleLabel = label(header,
-      "FS " + std::to_string(i + 1) + (isActive ? "  \xC2\xB7  LIVE" : ""),
-      LV_ALIGN_LEFT_MID, 16, 0, &ardor_font_saira_cond_semibold_28,
-      isActive ? bg : text);
+    lv_obj_t* titleLabel = label(header, "FS " + std::to_string(i + 1), LV_ALIGN_LEFT_MID, 24, 0,
+                                 &ardor_font_saira_cond_semibold_22, muted);
     lv_obj_set_style_text_letter_space(titleLabel, 3, 0);
     presetHeaderStrips_[i] = header;
     presetHeaderLabels_[i] = titleLabel;
-    // The footswitch numeral stays clearly subordinate to the preset name,
-    // while using the same crisp condensed family at a smaller size.
-    lv_obj_t* numeral = label(preset, std::to_string(i + 1), LV_ALIGN_BOTTOM_RIGHT, -22, -16,
-                               &ardor_font_saira_cond_semibold_52,
-                               isActive ? lamp : muted);
-    presetNumerals_[i] = numeral;
-    // Fault legend: a bordered chip inside the body, not a corner overlay —
-    // it reads as part of the plate's own nomenclature, not a tooltip.
-    lv_obj_t* unavailable = label(preset, "ASSET NOT FOUND", LV_ALIGN_BOTTOM_LEFT, 22, -16,
+    // The chain strip replaces the old corner numeral, which only repeated
+    // the FS label: each segment names one block in its family colour.
+    lv_obj_t* strip = lv_obj_create(preset);
+    lv_obj_remove_style_all(strip);
+    lv_obj_set_size(strip, kPresetCardWidth - 2 * kChainStripInset, kChainStripHeight);
+    lv_obj_align(strip, LV_ALIGN_BOTTOM_LEFT, kChainStripInset, -kChainStripBottom);
+    lv_obj_set_flex_flow(strip, LV_FLEX_FLOW_ROW);
+    lv_obj_set_style_pad_column(strip, kChainStripGap, 0);
+    lv_obj_remove_flag(strip, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(strip, LV_OBJ_FLAG_SCROLLABLE);
+    presetChainStrips_[i] = strip;
+    // Fault legend: a bordered chip above the strip, part of the plate's own
+    // nomenclature rather than a tooltip.
+    lv_obj_t* unavailable = label(preset, "ASSET NOT FOUND", LV_ALIGN_BOTTOM_LEFT, kChainStripInset,
+                                  -(kChainStripBottom + kChainStripHeight + 10),
                                   &ardor_font_saira_cond_medium_18, palette().family[5]);
     lv_obj_set_style_pad_hor(unavailable, 10, 0);
     lv_obj_set_style_pad_ver(unavailable, 4, 0);
     lv_obj_set_style_border_width(unavailable, 1, 0);
     lv_obj_set_style_border_color(unavailable, lv_color_hex(palette().faultLine), 0);
+    lv_obj_set_style_bg_opa(unavailable, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(unavailable, lv_color_hex(panel), 0);
     presetWarningLabels_[i] = unavailable;
-    if (!populated || !presetHasUnavailableAssets(state, i)) {
-      lv_obj_add_flag(unavailable, LV_OBJ_FLAG_HIDDEN);
-    }
+    lv_obj_add_flag(unavailable, LV_OBJ_FLAG_HIDDEN);
+    stylePresetCard(state, i);
     if (state.looper.telemetry.sessionState != LooperSessionState::Inactive) {
       lv_obj_add_state(preset, LV_STATE_DISABLED);
     }
@@ -371,7 +447,7 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     lv_obj_add_event_cb(preset, onPresetClicked, LV_EVENT_CLICKED, remember(state, i));
   }
 
-  // ---- bottom control rail: transport + the master travel scale ----
+  // ---- bottom control rail: transport + the master meter ----
   lv_obj_t* bottomRail = lv_obj_create(root);
   lv_obj_set_size(bottomRail, kDesignWidth, kBottomRailHeight);
   lv_obj_set_pos(bottomRail, 0, kBottomRailY);
@@ -389,6 +465,7 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     lv_obj_t* btn = button(bottomRail, label_);
     lv_obj_set_size(btn, width, 52);
     lv_obj_align(btn, LV_ALIGN_LEFT_MID, railX, 0);
+    lv_obj_set_style_text_letter_space(lv_obj_get_child(btn, 0), 1, 0);
     if (primary) {
       styleSurface(btn, text);
       lv_obj_set_style_text_color(lv_obj_get_child(btn, 0), lv_color_hex(bg), 0);
@@ -396,81 +473,62 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     railX += width + 11;
     return btn;
   };
-  lv_obj_t* edit = railButton("Edit", 112, true);
+  lv_obj_t* edit = railButton("EDIT", 112, true);
   lv_obj_add_event_cb(edit, onEditModeClicked, LV_EVENT_PRESSED, remember(state));
-  lv_obj_t* tuner = railButton("Tuner", 112, false);
-  lv_obj_set_style_text_color(lv_obj_get_child(tuner, 0), lv_color_hex(lamp), 0);
+  lv_obj_t* tuner = railButton("TUNER", 112, false);
   lv_obj_add_event_cb(tuner, onTunerModeClicked, LV_EVENT_PRESSED, remember(state));
   lv_obj_t* looper = railButton(
-    state.looper.telemetry.sessionState == LooperSessionState::Inactive ? "Looper" : "Resume Loop",
+    state.looper.telemetry.sessionState == LooperSessionState::Inactive ? "LOOPER" : "RESUME LOOP",
     142, false);
   presetLooperLabel_ = lv_obj_get_child(looper, 0);
   lv_obj_add_event_cb(looper, onLooperClicked, LV_EVENT_PRESSED, remember(state));
-  lv_obj_t* bankDown = railButton("Bank -", 96, false);
+  lv_obj_t* bankDown = railButton("BANK -", 96, false);
   bankDownButton_ = bankDown;
   if (state.activeBank == kMinBank) lv_obj_add_state(bankDown, LV_STATE_DISABLED);
   lv_obj_add_event_cb(bankDown, onBankDownClicked, LV_EVENT_CLICKED, remember(state));
-  lv_obj_t* bankUp = railButton("Bank +", 96, false);
+  lv_obj_t* bankUp = railButton("BANK +", 96, false);
   bankUpButton_ = bankUp;
   if (state.activeBank == kMaxBank) lv_obj_add_state(bankUp, LV_STATE_DISABLED);
   lv_obj_add_event_cb(bankUp, onBankUpClicked, LV_EVENT_CLICKED, remember(state));
-  lv_obj_t* setup = railButton("Setup", 96, false);
+  lv_obj_t* setup = railButton("SETUP", 96, false);
   lv_obj_add_event_cb(setup, onSettingsClicked, LV_EVENT_PRESSED, remember(state));
 
-  // ---- master travel scale, right-aligned ----
+  // ---- master meter, right-aligned: legend, value, then segments ----
   lv_obj_t* scaleGroup = lv_obj_create(bottomRail);
   lv_obj_remove_style_all(scaleGroup);
-  lv_obj_set_size(scaleGroup, kMasterScaleGroupWidth, kBottomRailHeight);
+  lv_obj_set_size(scaleGroup, kMasterGroupWidth, kBottomRailHeight);
   lv_obj_align(scaleGroup, LV_ALIGN_RIGHT_MID, -kRailEdgeInset, 0);
   lv_obj_remove_flag(scaleGroup, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(scaleGroup, LV_OBJ_FLAG_CLICKABLE);
-  // Keep both readouts on the same visual span as the rail: the legend is
-  // centered over the control, while the value is pinned to the rail's right
-  // edge instead of the thumb's safety margin.
-  lv_obj_t* masterLabel = label(scaleGroup, "MASTER", LV_ALIGN_TOP_LEFT, kMasterRailX, 4,
+  lv_obj_t* masterLabel = label(scaleGroup, "MASTER", LV_ALIGN_LEFT_MID, 0, 0,
                                 &ardor_font_saira_cond_medium_18, muted);
-  lv_obj_set_width(masterLabel, kMasterScaleWidth);
-  lv_obj_set_style_text_align(masterLabel, LV_TEXT_ALIGN_CENTER, 0);
-  lv_label_set_long_mode(masterLabel, LV_LABEL_LONG_CLIP);
-  presetMasterValueLabel_ = label(scaleGroup, std::to_string(state.masterVolume),
-                                  LV_ALIGN_TOP_LEFT, kMasterRailX, 0,
-                                  &ardor_font_saira_light_44, text);
-  lv_obj_set_width(presetMasterValueLabel_, kMasterScaleWidth);
+  lv_obj_set_style_text_letter_space(masterLabel, 3, 0);
+  const int masterPct = std::clamp(state.masterVolume, 0, 100);
+  presetMasterValueLabel_ = label(scaleGroup, std::to_string(masterPct), LV_ALIGN_LEFT_MID,
+                                  kMasterLegendWidth + kMasterGap, 0,
+                                  &ardor_font_saira_cond_semibold_52, text);
+  lv_obj_set_width(presetMasterValueLabel_, kMasterValueWidth);
   lv_obj_set_style_text_align(presetMasterValueLabel_, LV_TEXT_ALIGN_RIGHT, 0);
   lv_label_set_long_mode(presetMasterValueLabel_, LV_LABEL_LONG_CLIP);
-  lv_obj_t* track = lv_obj_create(scaleGroup);
-  lv_obj_remove_style_all(track);
-  lv_obj_set_size(track, kMasterScaleWidth, kMasterRailHeight);
-  lv_obj_set_pos(track, kMasterRailX, kMasterRailY);
-  lv_obj_set_style_bg_opa(track, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(track, lv_color_hex(panelAlt), 0);
-  lv_obj_set_style_border_width(track, 1, 0);
-  lv_obj_set_style_border_color(track, lv_color_hex(rule), 0);
-  lv_obj_t* fill = lv_obj_create(scaleGroup);
-  lv_obj_remove_style_all(fill);
-  lv_obj_set_size(fill, state.masterVolume * (kMasterScaleWidth - 2) / 100,
-                  kMasterFillHeight);
-  lv_obj_set_pos(fill, kMasterRailX + 1, kMasterRailY + 1);
-  lv_obj_set_style_bg_opa(fill, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(fill, lv_color_hex(lamp), 0);
-  presetMasterScaleFill_ = fill;
-  lv_obj_t* pointer = lv_obj_create(scaleGroup);
-  lv_obj_remove_style_all(pointer);
-  lv_obj_set_size(pointer, kMasterHandleWidth, kMasterHandleHeight);
-  lv_obj_set_pos(pointer, kMasterRailX + 1
-    + state.masterVolume * (kMasterScaleWidth - 2) / 100 - kMasterHandleWidth / 2,
-    kMasterHandleTop);
-  lv_obj_set_style_bg_opa(pointer, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(pointer, lv_color_hex(lamp), 0);
-  lv_obj_set_style_border_width(pointer, 4, 0);
-  lv_obj_set_style_border_color(pointer, lv_color_hex(bg), 0);
-  lv_obj_t* grip = lv_obj_create(pointer);
-  lv_obj_remove_style_all(grip);
-  lv_obj_set_size(grip, 2, 26);
-  lv_obj_center(grip);
-  lv_obj_set_style_bg_opa(grip, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(grip, lv_color_hex(panelAlt), 0);
-  presetMasterPointer_ = pointer;
+  lv_obj_t* meter = lv_obj_create(scaleGroup);
+  lv_obj_remove_style_all(meter);
+  lv_obj_set_size(meter, kMasterMeterWidth, kMasterMeterHeight);
+  lv_obj_align(meter, LV_ALIGN_LEFT_MID,
+               kMasterLegendWidth + kMasterGap + kMasterValueWidth + kMasterGap, 0);
+  lv_obj_remove_flag(meter, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(meter, LV_OBJ_FLAG_CLICKABLE);
+  for (int segment = 0; segment < kMasterSegments; ++segment) {
+    const int height = kMasterSegmentMinHeight + segment * kMasterSegmentStep;
+    lv_obj_t* cell = lv_obj_create(meter);
+    lv_obj_remove_style_all(cell);
+    lv_obj_set_size(cell, kMasterSegmentWidth, height);
+    lv_obj_set_pos(cell, segment * (kMasterSegmentWidth + kMasterSegmentGap),
+                   kMasterMeterHeight - height);
+    lv_obj_set_style_bg_opa(cell, LV_OPA_COVER, 0);
+    lv_obj_remove_flag(cell, LV_OBJ_FLAG_CLICKABLE);
+  }
+  presetMasterMeter_ = meter;
+  syncMasterMeter(meter, masterPct);
 }
 
 void LvglUi::openPresetNameEditor(UiState& state)
