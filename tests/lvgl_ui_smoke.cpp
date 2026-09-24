@@ -901,7 +901,8 @@ int main()
                 && dualRigState.paramDrawerOpen
                 && !selectedLaneControls.empty()
                 && !containsKey(selectedLaneControls, "leftLevelDb")
-                && findLabel(lv_screen_active(), "Delay  /  Digital Delay"),
+                && findLastLabel(lv_screen_active(), "DIGITAL DELAY")
+                && findLastLabel(lv_screen_active(), "DELAY"),
               "clicking a Dual Rig lane effect should open that effect's parameter drawer")) return 1;
 
   ardor::enterEditMode(wdwState);
@@ -1081,11 +1082,11 @@ int main()
   }
 
   const auto& selected = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
-  const std::string titleText = selected.label + "  /  " + selected.assetName;
+  const std::string titleText = upper(selected.assetName);
   lv_obj_t* previous = findLabel(lv_screen_active(), "<");
   lv_obj_t* page = findLabel(lv_screen_active(), "PAGE 1 / 2");
   lv_obj_t* next = findLabel(lv_screen_active(), ">");
-  lv_obj_t* title = findLabel(lv_screen_active(), titleText.c_str());
+  lv_obj_t* title = findLastLabel(lv_screen_active(), titleText.c_str());
   lv_obj_t* status = findLabel(lv_screen_active(), "Preset saved");
   lv_obj_t* undoLabel = findLabel(lv_screen_active(), "UNDO");
   lv_obj_t* depthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
@@ -1263,7 +1264,7 @@ int main()
   previous = findLabel(lv_screen_active(), "<");
   page = findLabel(lv_screen_active(), "PAGE 1 / 2");
   next = findLabel(lv_screen_active(), ">");
-  title = findLabel(lv_screen_active(), titleText.c_str());
+  title = findLastLabel(lv_screen_active(), titleText.c_str());
   depthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
   depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
@@ -1405,13 +1406,44 @@ int main()
   completePreview(state);
   ui.selectBlock(state, selectedBeforeReorder);
   ui.refresh(lv_screen_active(), state);
-  title = findLabel(lv_screen_active(), titleText.c_str());
+  title = findLastLabel(lv_screen_active(), titleText.c_str());
   page = findLabel(lv_screen_active(), "PAGE 1 / 2");
   depthLabel = findLastLabel(lv_screen_active(), upper(depth->label).c_str());
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
   depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
 
   lv_obj_t* parameterPanel = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::panelAlt), 1240, 452);
+  // Scope the title to the drawer: the module drawer and chain cards can
+  // repeat the same asset name.
+  title = parameterPanel ? findLabel(parameterPanel, titleText.c_str()) : nullptr;
+  {
+    // The drawer takes the block's family colour along its top edge and in a
+    // type tag; idle travel fills use the family colour, the lamp stays on
+    // the focused control only.
+    const auto& panelBlock = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
+    const auto family = lv_color_hex(ardor::lvgl_ui::categoryColor(panelBlock.type));
+    lv_obj_t* familyBar = parameterPanel
+      ? findObjectWithSizeAndBgColor(parameterPanel, family, 1240, 4) : nullptr;
+    lv_obj_t* typeTag = parameterPanel ? findLabel(parameterPanel, upper(panelBlock.label).c_str()) : nullptr;
+    if (require(familyBar && typeTag
+                  && lv_color_eq(lv_obj_get_style_bg_color(typeTag, LV_PART_MAIN), family)
+                  && lv_color_eq(lv_obj_get_style_text_color(typeTag, LV_PART_MAIN),
+                                 lv_color_hex(ardor::lvgl_ui::bg)),
+                "the parameter drawer should carry a family bar and a family type tag")) return 1;
+    int idleFills = 0;
+    bool idleFillsFamily = true;
+    for (uint32_t child = 0; parameterPanel && child < lv_obj_get_child_count(parameterPanel); ++child) {
+      lv_obj_t* card = lv_obj_get_child(parameterPanel, static_cast<int32_t>(child));
+      if (lv_obj_get_width(card) != 385 || lv_obj_get_style_outline_width(card, LV_PART_MAIN) != 0) continue;
+      lv_obj_t* fill = findObjectWithHeight(card, 16);
+      if (!fill) continue;
+      ++idleFills;
+      idleFillsFamily = idleFillsFamily
+        && lv_color_eq(lv_obj_get_style_bg_color(fill, LV_PART_MAIN), family);
+    }
+    if (require(idleFills > 0 && idleFillsFamily,
+                "idle travel fills should use the block's family colour")) return 1;
+  }
   lv_obj_t* parameterClose = findLabel(lv_screen_active(), "Close");
   lv_obj_t* deleteBlock = findLabel(lv_screen_active(), "Delete Block");
   lv_obj_t* bypassLabel = parameterPanel ? findLabel(parameterPanel, "Bypass") : nullptr;

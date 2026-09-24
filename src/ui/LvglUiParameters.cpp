@@ -472,10 +472,9 @@ void LvglUi::syncParameterView(UiState& state)
   if (!editingEq) {
     if (parameterTitleLabel_) {
       if (state.paramTarget == UiParamTarget::Globals) {
-        lv_label_set_text(parameterTitleLabel_, "Global");
+        lv_label_set_text(parameterTitleLabel_, "GLOBAL");
       } else if (selected) {
-        const auto title = selected->label + "  /  " + selected->assetName;
-        lv_label_set_text(parameterTitleLabel_, title.c_str());
+        lv_label_set_text(parameterTitleLabel_, uppercase(selected->assetName).c_str());
       }
     }
     const auto controls = ardor::parameterPage(state, parameterPage_);

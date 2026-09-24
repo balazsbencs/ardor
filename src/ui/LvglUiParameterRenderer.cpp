@@ -33,6 +33,9 @@ constexpr int kBypassMidiX = kBypassControlX - 84;
 constexpr int kDeleteBlockWidth = 156;
 constexpr int kDeleteBlockX = kBypassMidiX - 24 - kDeleteBlockWidth;
 constexpr int kParameterTitleX = 270;
+constexpr int kPanelFamilyBarHeight = 4;
+constexpr int kTypeTagPadding = 10;
+constexpr int kTypeTagGap = 14;
 constexpr int kParameterTitleWidthFull = kDeleteBlockX - kParameterTitleX - 24;
 // Gain-reduction meter: a compressor-only pill sitting between the title and
 // Delete Block. Every other block type keeps the full-width title above.
@@ -103,6 +106,8 @@ struct ParameterSliderVisual {
   int travelX = kTravelInteriorX;
   int travelWidth = kTravelInteriorWidth;
   int handleWidth = kTravelHandleWidth;
+  // Idle fill colour: the block's family, or engraved text for globals.
+  std::uint32_t accent = 0;
   // Discrete: segmented option row.
   std::vector<lv_obj_t*> options;
 };
@@ -282,10 +287,8 @@ void refreshParameterSliderVisual(lv_obj_t* slider, const ParameterControl& cont
     lv_obj_set_x(visual->handle, visual->travelX + static_cast<int32_t>(std::lround(
       ratio * static_cast<float>(visual->travelWidth))) - visual->handleWidth / 2);
     // Design law 3: the lamp colour is reserved for the running preset and
-    // the selected parameter. An idle rail reads in the same ink as the
-    // surrounding nomenclature.
-    const int accent = focused ? lamp : text;
-    lv_obj_set_style_bg_color(visual->fill, lv_color_hex(accent), 0);
+    // the selected parameter. An idle rail carries the block's family colour.
+    lv_obj_set_style_bg_color(visual->fill, lv_color_hex(focused ? lamp : visual->accent), 0);
     lv_obj_set_style_bg_color(visual->handle, lv_color_hex(focused ? lamp : text), 0);
   }
 
@@ -926,6 +929,9 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
   auto* visual = new ParameterSliderVisual{};
   visual->controlIndex = controlIndex;
   visual->kind = control.kind;
+  const auto* owner = context->state->paramTarget == UiParamTarget::Block
+    ? selectedUiBlock(*context->state) : nullptr;
+  visual->accent = owner ? static_cast<std::uint32_t>(categoryColor(owner->type)) : text;
   lv_obj_set_user_data(slider, visual);
   lv_obj_add_event_cb(slider, freeParameterSliderVisual, LV_EVENT_DELETE, visual);
 
@@ -1310,7 +1316,8 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
   renderPanelCloseButton(panelObject, context);
 
   if (state.paramTarget == UiParamTarget::Globals) {
-    lv_obj_t* title = label(panelObject, "Global", LV_ALIGN_TOP_LEFT, 270, 22, &ardor_font_saira_cond_semibold_22);
+    lv_obj_t* title = label(panelObject, "GLOBAL", LV_ALIGN_TOP_LEFT, kParameterTitleX, 18,
+                            &ardor_font_saira_cond_semibold_28);
     if (titleOut) *titleOut = title;
     lv_obj_set_width(title, 660);
     lv_label_set_long_mode(title, LV_LABEL_LONG_CLIP);
@@ -1320,10 +1327,31 @@ void renderParameterPanel(lv_obj_t* root, UiState& state, UiEventContext* contex
     const auto& block = *selected;
     const bool isCompressor = block.type == "dynamics"
       && block.params.value("mode", std::string{}) == "compressor";
-    lv_obj_t* title = label(panelObject, block.label + "  /  " + block.assetName,
-                            LV_ALIGN_TOP_LEFT, kParameterTitleX, 22,
-                            &ardor_font_saira_cond_semibold_22);
-    lv_obj_set_width(title, isCompressor ? kParameterTitleWidthWithGainMeter : kParameterTitleWidthFull);
+    // Views are cached per block type and mode, so the family bar and type
+    // tag stay valid for every block this view shows; only the name syncs.
+    const auto family = static_cast<std::uint32_t>(categoryColor(block.type));
+    lv_obj_t* familyBar = lv_obj_create(panelObject);
+    lv_obj_remove_style_all(familyBar);
+    lv_obj_set_size(familyBar, kParameterPanelWidth, kPanelFamilyBarHeight);
+    lv_obj_set_pos(familyBar, 0, 0);
+    lv_obj_set_style_bg_opa(familyBar, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(familyBar, lv_color_hex(family), 0);
+    lv_obj_remove_flag(familyBar, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_t* tag = label(panelObject, uppercase(block.label), LV_ALIGN_TOP_LEFT, kParameterTitleX, 24,
+                          &ardor_font_saira_cond_medium_18, bg);
+    lv_obj_set_style_bg_opa(tag, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(tag, lv_color_hex(family), 0);
+    lv_obj_set_style_pad_hor(tag, kTypeTagPadding, 0);
+    lv_obj_set_style_pad_ver(tag, 3, 0);
+    lv_obj_set_style_text_letter_space(tag, 2, 0);
+    lv_obj_update_layout(tag);
+    const int nameX = kParameterTitleX + lv_obj_get_width(tag) + kTypeTagGap;
+    lv_obj_t* title = label(panelObject, uppercase(block.assetName),
+                            LV_ALIGN_TOP_LEFT, nameX, 18,
+                            &ardor_font_saira_cond_semibold_28);
+    lv_obj_set_width(title, std::max(80, (isCompressor ? kParameterTitleWidthWithGainMeter
+                                                         : kParameterTitleWidthFull)
+                                           - (nameX - kParameterTitleX)));
     lv_label_set_long_mode(title, LV_LABEL_LONG_CLIP);
     if (titleOut) *titleOut = title;
     renderBlockPanelActions(panelObject, state, context, bypassOut);
