@@ -13,23 +13,25 @@
   background: var(--scr-plate);
   color: var(--scr-engrave);
   font-family: var(--font-condensed, 'Saira Condensed', sans-serif);
-  --scr-plate: #212528;
-  --scr-plate2: #2a2f33;
-  --scr-plate3: #191c1f;
-  --scr-engrave: #e2e4e3;
-  --scr-engrave-lo: #8d9499;
-  --scr-engrave-off: #5b6266;
-  --scr-rule: #3b4247;
-  --scr-live: #d8422f;
-  --scr-warn: #c9973f;
+  /* Lamp Black device values (DESIGN.md device-* tokens,
+     src/ui/LvglUiStyle.cpp kSlate). */
+  --scr-plate: #0b0c0d;
+  --scr-plate2: #16181a;
+  --scr-plate3: #121416;
+  --scr-engrave: #eceeed;
+  --scr-engrave-lo: #9aa1a6;
+  --scr-engrave-off: #5c6368;
+  --scr-rule: #2b2f33;
+  --scr-live: #e8472f;
+  --scr-warn: #e0a53c;
   --scr-fault: #6b463c;
-  --scr-fault-text: #bb9186;
-  --scr-amp: #a8814e;
-  --scr-cab: #939a9e;
-  --scr-util: #5f7f9c;
-  --scr-mod: #5d8f80;
-  --scr-delay: #8175a0;
-  --scr-reverb: #a8785c;
+  --scr-fault-text: #d19a8c;
+  --scr-amp: #d2923f;
+  --scr-cab: #aab2b7;
+  --scr-util: #5f95c9;
+  --scr-mod: #3fb08c;
+  --scr-delay: #9a82d6;
+  --scr-reverb: #d07a5a;
 }
 
 .screen * {
@@ -161,59 +163,36 @@
   font-size: 1.6cqw;
 }
 
-.scr-scale {
+/* Master: legend, value and a 16-segment meter in bone. The lamp colour is
+   reserved for LIVE, so the meter never uses it. */
+.scr-master {
   display: flex;
-  flex-direction: column;
-  gap: 0.6cqw;
-  width: 20cqw;
+  align-items: center;
+  gap: 1.1cqw;
   margin-left: auto;
 }
 
-.scr-scale-top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.scr-scale-value {
+.scr-master-value {
+  width: 6cqw;
   color: var(--scr-engrave);
-  font-family: var(--font-numeral, 'Saira', sans-serif);
-  font-size: 2.8cqw;
-  font-weight: 300;
+  font-size: 4.1cqw;
+  font-weight: 600;
+  line-height: 1;
+  text-align: right;
 }
 
-.scr-track {
-  position: relative;
-  height: 1.8cqw;
-  border-bottom: 0.14cqw solid var(--scr-rule);
+.scr-meter {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.23cqw;
+  height: 3.45cqw;
 }
 
-.scr-track i {
-  position: absolute;
-  bottom: 0;
-  width: 0.14cqw;
-  height: 0.75cqw;
+.scr-meter i {
+  width: 0.7cqw;
   background: var(--scr-rule);
 }
 
-.scr-track i.major {
-  height: 1.3cqw;
-  background: var(--scr-engrave-lo);
-}
-
-.scr-track .scr-fill {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  height: 0.4cqw;
+.scr-meter i.on {
   background: var(--scr-engrave);
-}
-
-.scr-track .scr-handle {
-  position: absolute;
-  bottom: -0.4cqw;
-  width: 0.4cqw;
-  height: 2.8cqw;
-  transform: translateX(-50%);
-  background: var(--scr-live);
 }

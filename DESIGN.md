@@ -131,7 +131,7 @@ The pedal's default Slate palette carries the **Lamp Black** values (`device-*` 
 - **Family colours** are raised in chroma so the chain strip on each preset tile, the chain-card value bars and the drawer code squares read at a glance.
 - Flatness stays a hard rule on the device: the Pi panel is RGB565, so depth comes from flat planes and hard offset plates, never gradients or blur.
 
-The website's screen showcase still uses the earlier Slate values; moving it to the `device-*` tokens is open work.
+The website's screen showcase (`website/src/components/screens/`) uses the same values, and its preset screen mirrors the flooded live tile, chain strip and master meter.
 
 ## Typography
 
