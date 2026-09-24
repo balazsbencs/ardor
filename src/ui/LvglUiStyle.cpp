@@ -102,8 +102,11 @@ lv_obj_t* button(lv_obj_t* parent, const std::string& value)
   styleSurface(object);
   lv_obj_set_style_border_color(object, lv_color_hex(text), LV_STATE_PRESSED);
   lv_obj_set_style_border_opa(object, LV_OPA_COVER, LV_STATE_PRESSED);
-  // The default theme greys disabled buttons out with its own light fill;
-  // keep the recessed plate so a disabled button never reads as selected.
+  // The default theme recolours disabled objects 50% towards grey
+  // (lv_theme_default.c, styles.disabled), so a disabled button read as a
+  // lit, selected one. Drop the recolour and keep the recessed plate; the
+  // 40% opacity does the dimming.
+  lv_obj_set_style_recolor_opa(object, LV_OPA_TRANSP, LV_STATE_DISABLED);
   lv_obj_set_style_bg_color(object, lv_color_hex(panelAlt), LV_STATE_DISABLED);
   lv_obj_set_style_opa(object, LV_OPA_40, LV_STATE_DISABLED);
   lv_obj_t* buttonLabel = lv_label_create(object);
