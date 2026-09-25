@@ -49,30 +49,48 @@ int positiveMod(int a, int b)
 
 } // namespace
 
+// Pan of the two voices when both sound: equal power, each about a third of
+// the way to its side. The gains carry sqrt(2) so each voice keeps the power
+// it has when centred at unity in both channels.
+constexpr float kPanNear = 1.3066f;   // sqrt(2) * cos(pi/8)
+constexpr float kPanFar  = 0.5412f;   // sqrt(2) * sin(pi/8)
+// Envelope time for choosing the tracker's source.
+constexpr float kSourceSmoothing = 0.0004f;
+
 void HarmonizerMode::Init()
 {
-    shifter_.Init(buf_, kBufSize, SAMPLE_RATE, kGrainSize);
+    for (auto& voice : voices_) {
+        for (auto& channel : voice.channels) {
+            channel.shifter.Init(channel.buf, kBufSize, SAMPLE_RATE, kGrainSize);
+            // Loudness-neutral: the voice feeds no loop.
+            channel.tone.Init(SAMPLE_RATE, ToneGain::Loudness);
+        }
+    }
     tracker_.Init(SAMPLE_RATE);
-    // Loudness-neutral: the voice feeds no loop.
-    tone_.Init(SAMPLE_RATE, ToneGain::Loudness);
     Reset();
 }
 
 void HarmonizerMode::Reset()
 {
-    shifter_.Reset();
+    for (auto& voice : voices_) {
+        for (auto& channel : voice.channels) {
+            channel.shifter.Reset();
+            channel.tone.Reset();
+            channel.dc.Init();
+        }
+        voice.semitones = 0.0f;
+        voice.semitoneTarget = 0.0f;
+        voice.ratio = 1.0f;
+        voice.ratioStep = 0.0f;
+    }
     tracker_.Reset();
-    tone_.Reset();
-    dc_.Init();
+    env_mid_ = 0.0f;
+    env_side_ = 0.0f;
     lastNote_ = -1;
-    semitones_ = 0.0f;
-    semitoneTarget_ = 0.0f;
-    ratio_ = 1.0f;
-    ratioStep_ = 0.0f;
     seeded_ = false;
 }
 
-float HarmonizerMode::semitonesForNote(int midiNote) const
+float HarmonizerMode::semitonesForNote(int midiNote, int interval) const
 {
     const int* scale = kScales[scale_];
 
@@ -95,7 +113,7 @@ float HarmonizerMode::semitonesForNote(int midiNote) const
         }
     }
 
-    const int targetIndex = degree + kIntervalDegrees[interval_];
+    const int targetIndex = degree + kIntervalDegrees[interval];
     const int targetOctave = octave + floorDiv(targetIndex, SCALE_DEGREES);
     const int targetDegree = positiveMod(targetIndex, SCALE_DEGREES);
 
@@ -104,14 +122,53 @@ float HarmonizerMode::semitonesForNote(int midiNote) const
     return static_cast<float>(targetSemitone - playedSemitone);
 }
 
+void HarmonizerMode::PrepareVoice(Voice& voice, float tone)
+{
+    if (lastNote_ >= 0) voice.semitoneTarget = semitonesForNote(lastNote_, voice.interval);
+    if (!seeded_) {
+        voice.semitones = voice.semitoneTarget;
+        voice.ratio = std::pow(2.0f, voice.semitones / 12.0f);
+    }
+    voice.semitones += glide_ * (voice.semitoneTarget - voice.semitones);
+    const float targetRatio = std::pow(2.0f, voice.semitones / 12.0f);
+    voice.ratioStep = (targetRatio - voice.ratio) / static_cast<float>(BLOCK_SIZE);
+    for (auto& channel : voice.channels) {
+        channel.shifter.SetShift(voice.semitones);
+        channel.tone.SetKnob(tone);
+    }
+}
+
 void HarmonizerMode::Prepare(const ParamSet& params)
 {
-    interval_ = std::clamp(
+    voices_[0].interval = std::clamp(
         static_cast<int>(params.p1 * static_cast<float>(INTERVAL_COUNT)), 0, INTERVAL_COUNT - 1);
     key_ = std::clamp(
         static_cast<int>(params.p2 * static_cast<float>(KEY_COUNT)), 0, KEY_COUNT - 1);
     scale_ = std::clamp(
         static_cast<int>(params.depth * static_cast<float>(SCALE_COUNT)), 0, SCALE_COUNT - 1);
+
+    // Interval 2 (p3): Off, then the same ten intervals. Voice 2 Level (p4)
+    // balances it against the first voice. The host's Mix scales both voices
+    // together (output = dry + Mix x (voice 1 + level x voice 2)), so Mix is
+    // the overall harmony level.
+    const int second = std::clamp(
+        static_cast<int>(params.p3 * static_cast<float>(INTERVAL_COUNT + 1)), 0, INTERVAL_COUNT);
+    voices_[1].active = second > 0;
+    voices_[1].interval = second > 0 ? second - 1 : 0;
+    voices_[1].level = params.p4;
+
+    // Two voices spread apart; one voice stays centred, as it always was. The
+    // spread follows Voice 2's level over its first quarter, so a silent
+    // second voice leaves the first one exactly centred: panning on the
+    // selection alone moved the stereo image with a control that made no
+    // sound (review of #89).
+    const float spread = voices_[1].active
+        ? (voices_[1].level * 4.0f > 1.0f ? 1.0f : voices_[1].level * 4.0f)
+        : 0.0f;
+    voices_[0].gain[0] = 1.0f + spread * (kPanNear - 1.0f);
+    voices_[0].gain[1] = 1.0f + spread * (kPanFar - 1.0f);
+    voices_[1].gain[0] = 1.0f + spread * (kPanFar - 1.0f);
+    voices_[1].gain[1] = 1.0f + spread * (kPanNear - 1.0f);
 
     // Speed is presented as Tracking: how quickly the voice moves to a new note.
     const float speed = std::clamp((params.speed - 0.05f) / 9.95f, 0.0f, 1.0f);
@@ -128,41 +185,42 @@ void HarmonizerMode::Prepare(const ParamSet& params)
             if (lastNote_ < 0 || std::fabs(midi - static_cast<float>(lastNote_)) > kNoteHysteresis) {
                 lastNote_ = static_cast<int>(std::lround(midi));
             }
-            semitoneTarget_ = semitonesForNote(lastNote_);
         }
     }
     // When nothing is being tracked the previous interval is held, so a
     // decaying string does not drag the harmony somewhere else.
 
-    if (!seeded_) {
-        seeded_ = true;
-        semitones_ = semitoneTarget_;
-        ratio_ = std::pow(2.0f, semitones_ / 12.0f);
-    }
-
-    semitones_ += glide_ * (semitoneTarget_ - semitones_);
-    const float targetRatio = std::pow(2.0f, semitones_ / 12.0f);
-
-    shifter_.SetShift(semitones_);
-    ratioStep_ = (targetRatio - ratio_) / static_cast<float>(BLOCK_SIZE);
-
-    tone_.SetKnob(params.tone);
+    PrepareVoice(voices_[0], params.tone);
+    if (voices_[1].active) PrepareVoice(voices_[1], params.tone);
+    seeded_ = true;
 }
 
 StereoFrame HarmonizerMode::Process(StereoFrame input, const ParamSet& params)
 {
-    const float mono = input.mono();
-    tracker_.Push(mono);
-
-    ratio_ += ratioStep_;
-    shifter_.SetRatioFast(ratio_);
-
-    const float voice = dc_.Process(tone_.Process(shifter_.Process(mono)));
+    (void)params;
+    const float mid = 0.5f * (input.left + input.right);
+    const float side = 0.5f * (input.left - input.right);
+    env_mid_ += kSourceSmoothing * (std::fabs(mid) - env_mid_);
+    env_side_ += kSourceSmoothing * (std::fabs(side) - env_side_);
+    tracker_.Push(env_side_ > env_mid_ ? side : mid);
 
     // The harmony sits against the dry note; the engine applies its own dry/wet
     // mix on top of this.
-    const float out = mono + voice;
-    return {out, out};
+    StereoFrame out{input.left, input.right};
+    const float in[2] = {input.left, input.right};
+    for (auto& voice : voices_) {
+        if (!voice.active) continue;
+        voice.ratio += voice.ratioStep;
+        float wet[2];
+        for (int c = 0; c < 2; ++c) {
+            auto& channel = voice.channels[c];
+            channel.shifter.SetRatioFast(voice.ratio);
+            wet[c] = channel.dc.Process(channel.tone.Process(channel.shifter.Process(in[c])));
+        }
+        out.left  += wet[0] * voice.gain[0] * voice.level;
+        out.right += wet[1] * voice.gain[1] * voice.level;
+    }
+    return out;
 }
 
 } // namespace pedal
