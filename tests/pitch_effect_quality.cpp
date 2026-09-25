@@ -261,6 +261,43 @@ void verifyWhammyDetune()
   require(channelDifference(render(deep, input)) > 1e-3, "whammy Detune must spread across the channels");
 }
 
+// Switching from a shifted preset to Detune glides both voices from the old
+// interval. The right voice reads at the left voice's ratio times the detune
+// spread, but its anti-alias filter was set for the mirrored (downward) pitch,
+// where it is off: during the glide it passed material that its upward read
+// then folded back across Nyquist (review of #88).
+double detuneSwitchVoiceBalanceDb()
+{
+  auto params = whammy(1, 1.0f); // 1 Oct up at the toe
+  params["speed"] = 0.0f;        // slowest glide
+  params["mix"] = 1.0f;
+  params["depth"] = 1.0f;
+  ardor::DaisyFxProcessor processor;
+  std::string error;
+  require(processor.configure("mod", params, kSampleRate, error), error);
+  const auto input = sine(15000.0, 0.3f, 2 * 48000);
+  double left = 0.0, right = 0.0;
+  for (size_t i = 0; i < input.size(); ++i) {
+    if (i == 48000) processor.setParameterTarget("p3", 1.0f); // Deep
+    const auto y = processor.process({input[i], input[i]});
+    // Detune carries the dry note; subtract it to leave each voice. Both
+    // voices read upward at nearly the same ratio during the glide, so with
+    // their filters set alike they carry nearly the same energy.
+    if (i >= 48000 + 480 && i < 48000 + 2880) {
+      left += static_cast<double>(y.left - input[i]) * (y.left - input[i]);
+      right += static_cast<double>(y.right - input[i]) * (y.right - input[i]);
+    }
+  }
+  return 10.0 * std::log10(std::max(right, 1e-30) / std::max(left, 1e-30));
+}
+
+void verifyWhammyDetuneSwitchFiltersBothVoices()
+{
+  const double balance = detuneSwitchVoiceBalanceDb();
+  require(std::fabs(balance) < 3.0, "whammy Detune switch must filter both voices alike, right voice " +
+                                        fmt(balance) + " dB against the left");
+}
+
 } // namespace
 
 int main()
@@ -274,6 +311,7 @@ int main()
     {"whammy pitch", verifyWhammyPitchIsCleanAndInTune},
     {"whammy stereo", verifyWhammyTakesStereoInput},
     {"whammy detune", verifyWhammyDetune},
+    {"whammy detune switch", verifyWhammyDetuneSwitchFiltersBothVoices},
   };
   int failures = 0;
   for (const auto& [name, check] : checks) {
