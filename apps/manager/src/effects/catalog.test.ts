@@ -89,6 +89,8 @@ describe("effect catalog", () => {
       if (definition.blockType === "mod") {
         expect(keys.slice(0, 7)).toEqual(["speed", "depth", "mix", "tone", "p1", "p2", "level"]);
         expect(keys.slice(7)).toEqual(["p3", "p4"].slice(0, keys.length - 7));
+      } else if (definition.blockType === "delay") {
+        expect(keys.slice(7)).toEqual(["width"]);
       } else {
         expect(keys).toHaveLength(7);
       }
