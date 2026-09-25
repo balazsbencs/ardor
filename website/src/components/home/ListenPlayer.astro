@@ -1,0 +1,311 @@
+---
+// The A/B player is a preset tile. When the Ardor output plays, the tile
+// floods with lamp red and lights the ground around it (the Glow Rule: the
+// live tile is the light source). Dry leaves the tile dark.
+import type { DemoAudio } from '../../lib/demo-audio';
+
+interface Props {
+  audio: DemoAudio;
+}
+const { audio } = Astro.props;
+---
+
+<div
+  class="tile"
+  data-ab
+  data-source="wet"
+  data-dry={audio.dry}
+  data-wet={audio.wet}
+  data-peaks={JSON.stringify(audio.peaks)}
+  data-reveal
+>
+  <div class="tile-top">
+    <span>Now playing</span>
+    <span class="badge">Live</span>
+  </div>
+  <p class="tile-name" aria-live="polite">
+    <span class="name-dry">Dry</span><span class="name-wet">Ardor</span>
+  </p>
+  <div class="wave" data-ab-wave role="slider" tabindex="0" aria-label="Playback position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+  <div class="tile-controls">
+    <button type="button" class="play" data-ab-play aria-label="Play">
+      <svg class="icon-play" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 2l14 8-14 8z" fill="currentColor"></path></svg>
+      <svg class="icon-pause" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 2h4v16H4zM12 2h4v16h-4z" fill="currentColor"></path></svg>
+    </button>
+    <div class="src" role="group" aria-label="Source">
+      <button type="button" data-ab-src="dry" aria-pressed="false">Dry</button>
+      <button type="button" data-ab-src="wet" aria-pressed="true">Ardor</button>
+    </div>
+    <span class="time mono" data-ab-time>0:00</span>
+  </div>
+</div>
+
+<style>
+  .tile {
+    position: relative;
+    padding: 30px 32px 28px;
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+    color: var(--text-strong);
+    transition: background-color 0.35s var(--ease-out), color 0.35s, border-color 0.35s;
+  }
+  .tile::before {
+    position: absolute;
+    inset: -40% -30%;
+    z-index: -1;
+    background: radial-gradient(closest-side, var(--glow-lamp-strong), var(--glow-lamp-soft) 55%, transparent 80%);
+    content: '';
+    opacity: 0.12;
+    pointer-events: none;
+    transition: opacity 0.6s var(--ease-out);
+  }
+  .tile[data-source='wet'] {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  .tile[data-source='wet']::before {
+    opacity: 1;
+  }
+  .tile-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .badge {
+    padding: 8px 12px;
+    background: var(--accent-ink);
+    color: var(--accent);
+    visibility: hidden;
+  }
+  .tile[data-source='wet'] .badge {
+    visibility: visible;
+  }
+  .tile-name {
+    margin: 18px 0 22px;
+    max-width: none;
+    font-family: var(--font-display);
+    font-size: clamp(4rem, 2rem + 7vw, 8.4rem);
+    font-weight: 800;
+    line-height: 0.9;
+    text-transform: uppercase;
+  }
+  .name-wet,
+  .tile[data-source='wet'] .name-dry {
+    display: none;
+  }
+  .tile[data-source='wet'] .name-wet {
+    display: inline;
+  }
+  .wave {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 84px;
+    cursor: pointer;
+  }
+  .wave :global(i) {
+    flex: 1;
+    height: 100%;
+    background: currentColor;
+    opacity: 0.28;
+    transform: scaleY(var(--s, 0.3));
+    transition: transform 0.3s var(--ease-out);
+  }
+  .wave :global(i.on) {
+    opacity: 1;
+  }
+  .tile-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .play {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border: 0;
+    background: var(--text-strong);
+    color: var(--ground);
+    cursor: pointer;
+  }
+  .tile[data-source='wet'] .play {
+    background: var(--accent-ink);
+    color: var(--accent);
+  }
+  .play svg {
+    width: 20px;
+    height: 20px;
+  }
+  .icon-pause,
+  .is-playing .icon-play {
+    display: none;
+  }
+  .is-playing .icon-pause {
+    display: block;
+  }
+  .src {
+    display: flex;
+  }
+  .src button {
+    height: 56px;
+    padding: 0 22px;
+    border: 1px solid currentColor;
+    background: transparent;
+    color: inherit;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .src button + button {
+    border-left: 0;
+  }
+  .src button[aria-pressed='true'] {
+    background: var(--text-strong);
+    color: var(--surface);
+  }
+  .tile[data-source='wet'] .src button[aria-pressed='true'] {
+    background: var(--accent-ink);
+    color: var(--accent);
+  }
+  .time {
+    margin-left: auto;
+    font-size: 0.95rem;
+  }
+  .tile :focus-visible {
+    outline-color: currentColor;
+  }
+  @media (max-width: 560px) {
+    .tile {
+      padding: 22px 18px;
+    }
+    .src button {
+      padding: 0 16px;
+    }
+  }
+</style>
+
+<script>
+  // Both clips play in sync; the source buttons only switch which one is audible.
+  function formatTime(seconds: number): string {
+    const s = Math.max(0, Math.floor(seconds));
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  }
+
+  function setupPlayer(root: HTMLElement): void {
+    const dryUrl = root.dataset.dry;
+    const wetUrl = root.dataset.wet;
+    if (!dryUrl || !wetUrl) return;
+
+    let peaks: { dry: number[]; wet: number[] } = { dry: [], wet: [] };
+    try {
+      peaks = JSON.parse(root.dataset.peaks ?? '{}');
+    } catch (error) {
+      console.error('Demo waveform data is unreadable', error);
+    }
+
+    const tracks = { dry: new Audio(dryUrl), wet: new Audio(wetUrl) };
+    Object.values(tracks).forEach((a) => {
+      a.preload = 'metadata';
+      a.loop = true;
+    });
+
+    const playBtn = root.querySelector<HTMLButtonElement>('[data-ab-play]');
+    const wave = root.querySelector<HTMLElement>('[data-ab-wave]');
+    const time = root.querySelector<HTMLElement>('[data-ab-time]');
+    const srcBtns = root.querySelectorAll<HTMLButtonElement>('[data-ab-src]');
+    let source: 'dry' | 'wet' = 'wet';
+
+    // Keep at least 5 px per bar so the gaps never eat the bars on narrow screens.
+    const barCount = wave ? Math.min(110, Math.max(24, Math.floor(wave.clientWidth / 5))) : 0;
+    const bars = Array.from({ length: barCount }, () => document.createElement('i'));
+    bars.forEach((bar) => wave?.appendChild(bar));
+
+    const duration = () => tracks.dry.duration || tracks.wet.duration || 0;
+
+    function drawBars(): void {
+      const list = peaks[source] ?? [];
+      bars.forEach((bar, i) => {
+        const v = list.length ? list[Math.min(list.length - 1, Math.floor((i / barCount) * list.length))] : 0.3;
+        bar.style.setProperty('--s', Math.max(0.06, v).toFixed(3));
+      });
+    }
+
+    function paint(): void {
+      const a = tracks[source];
+      const ratio = duration() ? a.currentTime / duration() : 0;
+      const played = Math.round(ratio * barCount);
+      bars.forEach((bar, i) => bar.classList.toggle('on', i < played));
+      if (time) time.textContent = formatTime(a.currentTime);
+      wave?.setAttribute('aria-valuenow', String(Math.round(ratio * 100)));
+    }
+
+    function setSource(next: 'dry' | 'wet'): void {
+      source = next;
+      root.dataset.source = next;
+      srcBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.abSrc === next)));
+      tracks.dry.muted = next !== 'dry';
+      tracks.wet.muted = next !== 'wet';
+      drawBars();
+      paint();
+    }
+
+    function seek(ratio: number): void {
+      const t = Math.min(1, Math.max(0, ratio)) * duration();
+      Object.values(tracks).forEach((a) => {
+        a.currentTime = t;
+      });
+      paint();
+    }
+
+    srcBtns.forEach((b) => b.addEventListener('click', () => setSource(b.dataset.abSrc === 'dry' ? 'dry' : 'wet')));
+
+    wave?.addEventListener('click', (event) => {
+      const rect = wave.getBoundingClientRect();
+      seek((event.clientX - rect.left) / rect.width);
+    });
+    wave?.addEventListener('keydown', (event) => {
+      if (!duration()) return;
+      const step = 5 / duration();
+      const now = tracks[source].currentTime / duration();
+      if (event.key === 'ArrowRight') seek(now + step);
+      else if (event.key === 'ArrowLeft') seek(now - step);
+      else return;
+      event.preventDefault();
+    });
+
+    playBtn?.addEventListener('click', async () => {
+      if (root.classList.contains('is-playing')) {
+        Object.values(tracks).forEach((a) => a.pause());
+        root.classList.remove('is-playing');
+        playBtn.setAttribute('aria-label', 'Play');
+        return;
+      }
+      tracks.wet.currentTime = tracks.dry.currentTime;
+      try {
+        await Promise.all(Object.values(tracks).map((a) => a.play()));
+        root.classList.add('is-playing');
+        playBtn.setAttribute('aria-label', 'Pause');
+      } catch (error) {
+        console.error('Demo audio could not play', error);
+        if (time) time.textContent = 'Audio unavailable';
+      }
+    });
+
+    tracks.dry.addEventListener('timeupdate', paint);
+    setSource(source);
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-ab]').forEach(setupPlayer);
+</script>
