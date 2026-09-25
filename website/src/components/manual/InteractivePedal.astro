@@ -1,11 +1,13 @@
 ---
 import { url } from '../../lib/url';
 
+// Tiles follow the real Lamp Black preset screen: FS label, name, and the
+// chain as a strip of family colours. Order 1/3 above 2/4 mirrors the switches.
 const presets = [
-  { slot: 1, name: 'Midnight Clean' },
-  { slot: 3, name: 'Split Rig / Wide' },
-  { slot: 2, name: 'Drive Stack' },
-  { slot: 4, name: 'Ambient Bloom' },
+  { slot: 1, name: 'Midnight Clean', chain: [['CMP', 'util'], ['TWIN', 'amp'], ['1X12', 'cab'], ['PLATE', 'reverb']] },
+  { slot: 3, name: 'Split Rig / Wide', chain: [['RIG', 'amp'], ['CHO', 'mod'], ['DLY', 'delay']] },
+  { slot: 2, name: 'Drive Stack', chain: [['RAT', 'amp'], ['PLEXI', 'amp'], ['4X12', 'cab'], ['ECHO', 'delay']] },
+  { slot: 4, name: 'Ambient Bloom', chain: [['TWIN', 'amp'], ['SHIM', 'reverb'], ['BLOOM', 'reverb']] },
 ];
 ---
 
@@ -50,10 +52,11 @@ const presets = [
             <div class="preset-map">
               {presets.map((preset) => (
                 <button type="button" class="preset-tile" data-screen-slot={preset.slot}>
-                  <small>PRESET {preset.slot}</small>
-                  <span>{preset.slot}</span>
+                  <small>FS {preset.slot}<em>LIVE</em></small>
                   <b>{preset.name}</b>
-                  <i aria-hidden="true"></i>
+                  <span class="tile-chain" aria-hidden="true">
+                    {preset.chain.map(([code, family]) => <i class={`fam-${family}`}>{code}</i>)}
+                  </span>
                 </button>
               ))}
             </div>
@@ -225,15 +228,16 @@ const presets = [
 
 <style>
   .manual-simulator {
-    --manual-ground: #111416;
-    --manual-ground-2: #171a1d;
-    --manual-plate: #212528;
-    --manual-raised: #2a2f33;
-    --manual-rule: #3b4247;
-    --manual-rule-strong: #687178;
-    --manual-text: #e2e4e3;
-    --manual-muted: #8d9499;
-    --manual-red: #d8422f;
+    /* The manual page follows the site theme; only the pedal screen keeps device colours. */
+    --manual-ground: var(--ground);
+    --manual-ground-2: var(--ground-2);
+    --manual-plate: var(--surface);
+    --manual-raised: var(--elevated);
+    --manual-rule: var(--hairline);
+    --manual-rule-strong: var(--hairline-strong);
+    --manual-text: var(--text-strong);
+    --manual-muted: var(--muted);
+    --manual-red: var(--accent);
     min-height: 100vh;
     background: var(--manual-ground);
     color: var(--manual-text);
@@ -416,7 +420,25 @@ const presets = [
     transform: rotate(28deg) scale(0.92);
   }
 
+  /* The pedal screen always shows the device palette (Lamp Black), in both site themes. */
   .device-screen {
+    --lb-ground: #0b0c0d;
+    --lb-plate: #16181a;
+    --lb-raised: #1d2023;
+    --lb-rule: #2b2f33;
+    --lb-bone: #eceeed;
+    --lb-secondary: #9aa1a6;
+    --lb-disabled: #5c6368;
+    --lb-lamp: #e8472f;
+    --lb-lamp-ink: #1a0906;
+    --lb-warning: #e0a53c;
+    --lb-amp: #d2923f;
+    --lb-cab: #aab2b7;
+    --lb-util: #5f95c9;
+    --lb-mod: #3fb08c;
+    --lb-delay: #9a82d6;
+    --lb-reverb: #d07a5a;
+
     container-type: inline-size;
     position: absolute;
     top: 34.55%;
@@ -425,16 +447,16 @@ const presets = [
     width: 41.5%;
     height: 33.2%;
     overflow: hidden;
-    background: #191c1f;
-    color: #e2e4e3;
-    font-family: var(--font-condensed);
+    background: var(--lb-ground);
+    color: var(--lb-bone);
+    font-family: var(--font-display);
     touch-action: manipulation;
   }
 
   .screen-mode {
     position: absolute;
     inset: 0;
-    background: #212528;
+    background: var(--lb-ground);
   }
 
   .screen-head {
@@ -443,15 +465,18 @@ const presets = [
     gap: 1.8cqw;
     height: 14%;
     padding: 0 2.5cqw;
-    border-bottom: 0.25cqw solid #3b4247;
-    color: #8d9499;
+    border-bottom: 0.2cqw solid var(--lb-rule);
+    color: var(--lb-secondary);
     font-size: 1.9cqw;
-    letter-spacing: 0.14em;
+    font-weight: 600;
+    letter-spacing: 0.1em;
     white-space: nowrap;
   }
 
   .screen-head b {
-    color: #e2e4e3;
+    color: var(--lb-bone);
+    font-size: 2.4cqw;
+    font-weight: 800;
   }
 
   .screen-head span:nth-child(2) {
@@ -459,8 +484,11 @@ const presets = [
   }
 
   .screen-head em {
-    color: #c9973f;
+    padding: 0.5cqw 1cqw;
+    background: var(--lb-warning);
+    color: var(--lb-ground);
     font-style: normal;
+    font-weight: 700;
   }
 
   .preset-map,
@@ -468,24 +496,22 @@ const presets = [
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
-    gap: 1.4cqw;
+    gap: 1.3cqw;
     height: 66%;
-    padding: 2.2cqw;
+    padding: 1.9cqw;
   }
 
   .preset-tile,
   .track-map button {
     position: relative;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto 1fr;
-    align-items: center;
-    gap: 0 1.5cqw;
-    padding: 1.2cqw 1.8cqw;
-    border: 0.25cqw solid #3b4247;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1.3cqw 1.9cqw 1.5cqw;
+    border: 0.2cqw solid var(--lb-rule);
     border-radius: 0;
-    background: #2a2f33;
-    color: #e2e4e3;
+    background: var(--lb-plate);
+    color: var(--lb-bone);
     font: inherit;
     text-align: left;
     cursor: pointer;
@@ -493,47 +519,70 @@ const presets = [
 
   .preset-tile small,
   .track-map small {
-    grid-column: 1 / -1;
-    color: #8d9499;
-    font-size: 1.55cqw;
-    letter-spacing: 0.12em;
+    display: flex;
+    justify-content: space-between;
+    color: var(--lb-secondary);
+    font-size: 1.5cqw;
+    font-weight: 700;
+    letter-spacing: 0.14em;
   }
 
-  .preset-tile > span {
-    color: #8d9499;
-    font-family: var(--font-body);
-    font-size: 7cqw;
-    font-weight: 300;
-    line-height: 1;
+  .preset-tile small em {
+    padding: 0.3cqw 0.8cqw;
+    background: var(--lb-lamp-ink);
+    color: var(--lb-lamp);
+    font-style: normal;
+    visibility: hidden;
   }
 
   .preset-tile > b {
-    font-size: 2.6cqw;
-    letter-spacing: 0.04em;
-    line-height: 0.95;
+    font-size: 3.6cqw;
+    font-weight: 800;
+    line-height: 0.9;
+    text-transform: uppercase;
   }
 
-  .preset-tile > i,
-  .track-map button > i {
-    position: absolute;
-    right: 1.4cqw;
-    bottom: 1cqw;
-    left: 10cqw;
-    height: 0.55cqw;
-    background: #5f7f9c;
+  .tile-chain {
+    display: flex;
+    gap: 0.4cqw;
   }
 
-  .preset-tile:nth-child(2) > i { background: #8175a0; }
-  .preset-tile:nth-child(3) > i { background: #a8814e; }
-  .preset-tile:nth-child(4) > i { background: #a8785c; }
+  .tile-chain i {
+    flex: 1;
+    padding: 0.35cqw 0.6cqw;
+    background: var(--c);
+    color: rgba(11, 12, 13, 0.75);
+    font-family: var(--font-mono);
+    font-size: 0.95cqw;
+    font-style: normal;
+    letter-spacing: 0.08em;
+  }
 
+  .fam-amp { --c: var(--lb-amp); }
+  .fam-cab { --c: var(--lb-cab); }
+  .fam-util { --c: var(--lb-util); }
+  .fam-mod { --c: var(--lb-mod); }
+  .fam-delay { --c: var(--lb-delay); }
+  .fam-reverb { --c: var(--lb-reverb); }
+
+  /* The live preset is the only flooded tile: the One Lamp Rule. */
   .preset-tile.active {
-    border-color: #d8422f;
+    border-color: var(--lb-lamp);
+    background: var(--lb-lamp);
+    color: var(--lb-lamp-ink);
   }
 
-  .preset-tile.active > span,
   .preset-tile.active small {
-    color: #d8422f;
+    color: var(--lb-lamp-ink);
+  }
+
+  .preset-tile.active small em {
+    visibility: visible;
+  }
+
+  .preset-tile.active .tile-chain i {
+    background: var(--lb-lamp-ink);
+    color: var(--lb-lamp);
   }
 
   .screen-actions {
@@ -541,41 +590,43 @@ const presets = [
     align-items: center;
     gap: 1cqw;
     height: 20%;
-    padding: 0 2.2cqw;
-    border-top: 0.25cqw solid #3b4247;
+    padding: 0 1.9cqw;
+    border-top: 0.2cqw solid var(--lb-rule);
   }
 
   .screen-actions button {
     min-height: 6.3cqw;
     padding: 0 1.4cqw;
-    border: 0.22cqw solid #687178;
+    border: 0.2cqw solid var(--lb-rule);
     border-radius: 0;
-    background: #2a2f33;
-    color: #e2e4e3;
-    font: 600 1.55cqw/1 var(--font-condensed);
+    background: var(--lb-plate);
+    color: var(--lb-bone);
+    font: 700 1.6cqw/1 var(--font-display);
     letter-spacing: 0.1em;
+    white-space: nowrap;
     cursor: pointer;
   }
 
   .screen-actions button:first-child {
-    border-color: #e2e4e3;
-    background: #e2e4e3;
-    color: #191c1f;
+    border-color: var(--lb-bone);
+    background: var(--lb-bone);
+    color: var(--lb-ground);
   }
 
   .screen-actions > span {
     margin-left: auto;
-    color: #8d9499;
-    font-size: 1.6cqw;
-    letter-spacing: 0.1em;
+    color: var(--lb-secondary);
+    font-size: 1.5cqw;
+    font-weight: 600;
+    letter-spacing: 0.12em;
     white-space: nowrap;
   }
 
   .screen-actions > span b {
-    color: #e2e4e3;
-    font-family: var(--font-body);
-    font-size: 2.5cqw;
-    font-weight: 300;
+    margin-left: 0.8cqw;
+    color: var(--lb-bone);
+    font-size: 3cqw;
+    font-weight: 800;
   }
 
   .tuner-readout {
@@ -587,33 +638,34 @@ const presets = [
   }
 
   .tuner-readout > strong {
-    color: #d8422f;
-    font-size: 16cqw;
-    line-height: 0.8;
+    padding: 1cqw 6cqw 1.4cqw;
+    background: var(--lb-lamp);
+    color: var(--lb-lamp-ink);
+    font-size: 10cqw;
+    font-weight: 800;
+    line-height: 0.9;
   }
 
   .tuner-readout sup {
-    margin-left: 1cqw;
-    color: #8d9499;
-    font-family: var(--font-body);
+    margin-left: 0.6cqw;
     font-size: 4cqw;
-    font-weight: 300;
   }
 
   .tuner-readout > span,
   .tuner-readout > small {
-    margin-top: 1.6cqw;
-    color: #8d9499;
-    font-family: var(--font-body);
-    font-size: 2.15cqw;
+    margin-top: 1.4cqw;
+    color: var(--lb-secondary);
+    font-size: 1.9cqw;
+    font-weight: 600;
+    letter-spacing: 0.08em;
   }
 
   .tuner-rule {
     position: relative;
     width: 68%;
-    height: 5cqw;
-    margin-top: 2.2cqw;
-    border-bottom: 0.25cqw solid #687178;
+    height: 4cqw;
+    margin-top: 1.8cqw;
+    border-bottom: 0.2cqw solid var(--lb-rule);
   }
 
   .tuner-rule::before {
@@ -621,8 +673,8 @@ const presets = [
     bottom: 0;
     left: 50%;
     width: 0.3cqw;
-    height: 3.2cqw;
-    background: #e2e4e3;
+    height: 3cqw;
+    background: var(--lb-bone);
     content: '';
   }
 
@@ -630,10 +682,10 @@ const presets = [
     position: absolute;
     bottom: 0;
     left: 44%;
-    width: 0.55cqw;
-    height: 5cqw;
+    width: 0.8cqw;
+    height: 4cqw;
     transform: translateX(-50%);
-    background: #d8422f;
+    background: var(--lb-bone);
     transition: left 260ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -646,30 +698,37 @@ const presets = [
     height: 58%;
   }
 
-  .track-map button {
-    display: flex;
-    justify-content: space-between;
+  .track-map b {
+    font-size: 3.4cqw;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+
+  .track-map button > i {
+    height: 0.6cqw;
+    background: var(--lb-raised);
   }
 
   .track-map button.selected {
-    border-color: #e2e4e3;
-  }
-
-  .track-map b {
-    font-size: 2.6cqw;
-    letter-spacing: 0.08em;
+    border-color: var(--lb-bone);
   }
 
   .track-map button.recording {
-    border-color: #d8422f;
+    border-color: var(--lb-lamp);
+    background: var(--lb-lamp);
+    color: var(--lb-lamp-ink);
   }
 
-  .track-map button.recording b {
-    color: #d8422f;
+  .track-map button.recording small {
+    color: var(--lb-lamp-ink);
+  }
+
+  .track-map button.recording > i {
+    background: var(--lb-lamp-ink);
   }
 
   .track-map button.muted b {
-    color: #697278;
+    color: var(--lb-disabled);
   }
 
   .looper-legends {
@@ -677,8 +736,9 @@ const presets = [
     grid-template-columns: 1fr 1fr;
     height: 8%;
     padding-inline: 2.4cqw;
-    color: #8d9499;
+    color: var(--lb-secondary);
     font-size: 1.35cqw;
+    font-weight: 600;
     letter-spacing: 0.1em;
   }
 
@@ -693,21 +753,27 @@ const presets = [
   .chain-map b,
   .chain-map span {
     padding: 3cqw 2cqw;
-    border: 0.25cqw solid #687178;
-    color: #e2e4e3;
+    border: 0.2cqw solid var(--lb-rule);
+    background: var(--lb-plate);
+    color: var(--lb-bone);
     font-size: 2cqw;
+    font-weight: 700;
     letter-spacing: 0.08em;
   }
 
-  .chain-map b:nth-of-type(2) { border-color: #a8814e; }
-  .chain-map b:nth-of-type(3) { border-color: #939a9e; }
-  .chain-map b:nth-of-type(4) { border-color: #8175a0; }
+  .chain-map b {
+    border-top: 1.2cqw solid var(--lb-util);
+  }
+
+  .chain-map b:nth-of-type(2) { border-top-color: var(--lb-amp); }
+  .chain-map b:nth-of-type(3) { border-top-color: var(--lb-cab); }
+  .chain-map b:nth-of-type(4) { border-top-color: var(--lb-delay); }
 
   .chain-map i {
     flex: 1;
     max-width: 3cqw;
     height: 0.25cqw;
-    background: #687178;
+    background: var(--lb-rule);
   }
 
   .live-strip {
