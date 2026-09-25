@@ -1,10 +1,10 @@
-/* Self-hosted faces — the website borrows its letterforms from the LVGL UI. */
-@import '@fontsource/saira/300.css';
+/* Self-hosted faces: the website uses the same letterforms as the pedal UI. */
 @import '@fontsource/saira/400.css';
 @import '@fontsource/saira/500.css';
-@import '@fontsource/saira-condensed/500.css';
+@import '@fontsource/saira/600.css';
 @import '@fontsource/saira-condensed/600.css';
 @import '@fontsource/saira-condensed/700.css';
+@import '@fontsource/saira-condensed/800.css';
 @import '@fontsource/ibm-plex-mono/400.css';
 @import '@fontsource/ibm-plex-mono/500.css';
 @import './tokens.css';
@@ -17,7 +17,7 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 4.5rem;
+  scroll-padding-top: 5rem;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -41,9 +41,14 @@ body {
   color: var(--text);
   font-family: var(--font-body);
   font-size: var(--step-0);
-  line-height: 1.55;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Glows can reach past the page edge; the page must never scroll sideways. */
+main {
+  overflow-x: clip;
 }
 
 h1,
@@ -53,15 +58,17 @@ h4 {
   margin: 0 0 var(--sp-3);
   color: var(--text-strong);
   font-family: var(--font-display);
-  font-weight: 600;
-  line-height: 0.98;
-  letter-spacing: 0.015em;
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: 0.005em;
   text-transform: uppercase;
   text-wrap: balance;
 }
 
 h1 {
   font-size: var(--step-5);
+  font-weight: 800;
+  line-height: 0.9;
 }
 
 h2 {
@@ -69,7 +76,7 @@ h2 {
 }
 
 h3 {
-  font-size: var(--step-1);
+  font-size: var(--step-2);
 }
 
 p {
@@ -78,13 +85,13 @@ p {
 }
 
 a {
-  color: var(--accent);
+  color: var(--accent-light);
   text-decoration: none;
   transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
 }
 
 a:hover {
-  color: var(--accent-light);
+  color: var(--text-strong);
 }
 
 strong {
@@ -102,9 +109,9 @@ samp,
 :not(pre) > code {
   padding: 0.1em 0.35em;
   border: 1px solid var(--hairline);
-  border-radius: 0;
   background: var(--elevated);
-  color: var(--accent-light);
+  color: var(--text-strong);
+  font-size: 0.9em;
 }
 
 pre {
@@ -112,7 +119,6 @@ pre {
   margin: 0 0 var(--sp-3);
   padding: var(--sp-3);
   border: 1px solid var(--hairline);
-  border-radius: 0;
   background: var(--ground-2);
   font-family: var(--font-mono);
   font-size: var(--step--1);
@@ -123,10 +129,9 @@ kbd {
   padding: 0.1em 0.45em;
   border: 1px solid var(--hairline-strong);
   border-bottom-width: 2px;
-  border-radius: 0;
   background: var(--elevated);
   color: var(--text-strong);
-  font-size: 0.82em;
+  font-size: 0.85em;
 }
 
 :focus-visible {
@@ -136,7 +141,7 @@ kbd {
 
 ::selection {
   background: var(--accent);
-  color: #f4e9d7;
+  color: var(--accent-ink);
 }
 
 img {
@@ -156,25 +161,32 @@ hr {
   width: 100%;
   max-width: var(--maxw);
   margin-inline: auto;
-  padding-inline: var(--sp-4);
+  padding-inline: clamp(16px, 4vw, 48px);
+}
+
+.lede {
+  max-width: 34em;
+  color: var(--muted);
+  font-size: var(--step-1);
 }
 
 .eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 0.6em;
-  margin: 0 0 var(--sp-2);
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: var(--step--1);
-  letter-spacing: 0.18em;
+  gap: 0.75rem;
+  margin: 0 0 var(--sp-4);
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .eyebrow::before {
-  width: 1.4em;
-  height: 1px;
-  background: currentColor;
+  width: 1.75rem;
+  height: 3px;
+  background: var(--muted-2);
   content: '';
 }
 
@@ -204,9 +216,8 @@ hr {
   left: -999px;
   z-index: 200;
   padding: 0.6em 1em;
-  border-radius: 0;
-  background: var(--accent);
-  color: var(--text-strong);
+  background: var(--text-strong);
+  color: var(--ground);
   font-weight: 600;
 }
 
@@ -214,73 +225,72 @@ hr {
   left: 0;
 }
 
-/* Flat panel primitive shared with docs. Depth comes from planes and rules. */
+/* Flat plate primitive shared with docs. Depth comes from planes and rules. */
 .panel {
   position: relative;
   border: 1px solid var(--hairline);
-  border-radius: 0;
   background: var(--surface);
 }
 
-.panel--tick::before,
-.panel--tick::after {
-  position: absolute;
-  width: 11px;
-  height: 11px;
-  border: 1px solid var(--hairline-strong);
-  content: '';
-  pointer-events: none;
-}
-
-.panel--tick::before {
-  top: -1px;
-  left: -1px;
-  border-right: 0;
-  border-bottom: 0;
-}
-
-.panel--tick::after {
-  right: -1px;
-  bottom: -1px;
-  border-top: 0;
-  border-left: 0;
-}
-
-/* Buttons use the same engraved-plate convention as the device. */
+/* Buttons follow the device: a bone fill is primary, a plate is secondary. */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.55em;
-  padding: 0.75em 1.2em;
+  gap: 0.6em;
+  min-height: 3.5rem;
+  padding: 0 1.6rem;
   border: 1px solid var(--text-strong);
-  border-radius: 0;
   background: var(--text-strong);
   color: var(--ground);
   font-family: var(--font-display);
-  font-size: var(--step-0);
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   line-height: 1;
   text-transform: uppercase;
+  white-space: nowrap;
   cursor: pointer;
+  transition: transform 0.2s var(--ease-out), background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .btn:hover {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #f4e9d7;
+  background: var(--text-bright);
+  border-color: var(--text-bright);
+  color: var(--ground);
+}
+
+.btn:active {
+  transform: translateY(1px);
 }
 
 .btn--ghost {
-  border-color: var(--hairline-strong);
-  background: transparent;
+  border-color: var(--hairline);
+  background: var(--surface);
   color: var(--text-strong);
 }
 
 .btn--ghost:hover {
-  border-color: var(--accent);
-  background: transparent;
-  color: var(--accent-light);
+  border-color: var(--hairline-strong);
+  background: var(--surface);
+  color: var(--text-strong);
+}
+
+.btn--small {
+  min-height: 2.6rem;
+  padding: 0 1.1rem;
+  font-size: 0.95rem;
+}
+
+.text-link {
+  display: inline-flex;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--accent);
+  color: var(--text-strong);
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .section {
@@ -292,54 +302,22 @@ hr {
   border-top: 1px solid var(--hairline);
 }
 
-.section-head {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 0.8fr);
-  gap: var(--sp-5);
-  align-items: end;
-  margin-bottom: var(--sp-5);
-}
+/* Scroll reveal: enabled by a small script, and only without reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .js-reveal [data-reveal] {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.9s var(--ease-out), transform 0.9s var(--ease-out);
+  }
 
-.section-head h2 {
-  margin-bottom: 0;
-}
-
-.section-head p {
-  margin-bottom: 0;
-  color: var(--muted);
-  font-size: var(--step-1);
-}
-
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45em;
-  padding: 0.25em 0.7em;
-  border: 1px solid var(--hairline-strong);
-  border-radius: 0;
-  background: var(--elevated);
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: var(--step--1);
-  letter-spacing: 0.04em;
-}
-
-.pill--accent {
-  border-color: var(--accent-dim);
-  color: var(--accent);
+  .js-reveal [data-reveal].is-in {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (max-width: 720px) {
-  .container {
-    padding-inline: var(--sp-3);
-  }
-
-  .section {
-    padding-block: var(--sp-6);
-  }
-
-  .section-head {
-    grid-template-columns: 1fr;
-    gap: var(--sp-3);
+  .btn {
+    padding: 0 1.2rem;
   }
 }
