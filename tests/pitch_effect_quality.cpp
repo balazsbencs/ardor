@@ -230,7 +230,7 @@ double beatRateHz(const Render& out)
   std::vector<double> env;
   for (size_t start = 48000; start + kBlock <= out.left.size(); start += kBlock) {
     double sum = 0.0;
-    for (size_t i = start; i < start + kBlock; ++i) sum += out.left[i] * out.left[i];
+    for (size_t i = start; i < start + kBlock; ++i) sum += static_cast<double>(out.left[i]) * out.left[i];
     env.push_back(std::sqrt(sum / kBlock));
   }
   const double mean = std::accumulate(env.begin(), env.end(), 0.0) / env.size();
