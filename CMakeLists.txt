@@ -460,6 +460,9 @@ target_link_libraries(pedal-daisy-fx-response PRIVATE ardor_daisyfx)
 add_executable(pedal-mod-effect-quality tests/mod_effect_quality.cpp)
 target_link_libraries(pedal-mod-effect-quality PRIVATE ardor_daisyfx)
 
+add_executable(pedal-mod-effect-controls tests/mod_effect_controls.cpp)
+target_link_libraries(pedal-mod-effect-controls PRIVATE ardor_daisyfx)
+
 add_executable(pedal-reverb-quality tests/reverb_quality.cpp)
 target_link_libraries(pedal-reverb-quality PRIVATE ardor_daisyfx)
 
@@ -701,6 +704,7 @@ add_test(NAME pedal-hosted-dsp-unit COMMAND pedal-hosted-dsp-unit)
 add_test(NAME pedal-daisy-fx-response COMMAND pedal-daisy-fx-response)
 add_test(NAME pedal-daisy-fx-automation COMMAND pedal-daisy-fx-automation)
 add_test(NAME pedal-mod-effect-quality COMMAND pedal-mod-effect-quality)
+add_test(NAME pedal-mod-effect-controls COMMAND pedal-mod-effect-controls)
 add_test(NAME pedal-wah-netlist-smoke COMMAND pedal-wah-netlist-smoke)
 add_test(NAME pedal-wah-dk-smoke COMMAND pedal-wah-dk-smoke)
 add_test(NAME pedal-wah-table-smoke COMMAND pedal-wah-table-smoke)

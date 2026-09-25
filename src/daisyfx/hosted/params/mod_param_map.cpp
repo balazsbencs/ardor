@@ -37,6 +37,8 @@ const ParamRange& get_param_range(ModModeId mode, ParamId param) {
         case ParamId::P1:    return default_ranges::P1;
         case ParamId::P2:    return default_ranges::P2;
         case ParamId::Level: return default_ranges::LEVEL;
+        case ParamId::P3:    return default_ranges::P3;
+        case ParamId::P4:    return default_ranges::P4;
         default:             return default_ranges::MIX;
     }
 }

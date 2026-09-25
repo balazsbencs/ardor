@@ -54,6 +54,13 @@
           "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Width",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         }
       ]
     },
@@ -110,6 +117,20 @@
           "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Manual",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "p4",
+          "label": "Stereo",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0°"}, {"value": 0.230000, "text": "41°"}, {"value": 0.470000, "text": "85°"}, {"value": 0.710000, "text": "128°"}, {"value": 1.000000, "text": "180°"}]
         }
       ]
     },
@@ -166,6 +187,20 @@
           "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Balance",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "Horn 0%"}, {"value": 0.230000, "text": "Horn 46%"}, {"value": 0.470000, "text": "Horn 94%"}, {"value": 0.710000, "text": "Drum 58%"}, {"value": 1.000000, "text": "Drum 0%"}]
+        },
+        {
+          "key": "p4",
+          "label": "Mic Spread",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "90°"}, {"value": 0.230000, "text": "111°"}, {"value": 0.470000, "text": "132°"}, {"value": 0.710000, "text": "154°"}, {"value": 1.000000, "text": "180°"}]
         }
       ]
     },
@@ -278,6 +313,20 @@
           "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Stereo",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0°"}, {"value": 0.230000, "text": "41°"}, {"value": 0.470000, "text": "85°"}, {"value": 0.710000, "text": "128°"}, {"value": 1.000000, "text": "180°"}]
+        },
+        {
+          "key": "p4",
+          "label": "Polarity",
+          "defaultValue": 0.000000,
+          "choiceCount": 2,
+          "samples": [{"value": 0.000000, "text": "Positive"}, {"value": 1.000000, "text": "Negative"}]
         }
       ]
     },
@@ -334,6 +383,13 @@
           "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Stereo",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0°"}, {"value": 0.230000, "text": "41°"}, {"value": 0.470000, "text": "85°"}, {"value": 0.710000, "text": "128°"}, {"value": 1.000000, "text": "180°"}]
         }
       ]
     },
@@ -446,6 +502,20 @@
           "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Smooth",
+          "defaultValue": 0.350000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0.5 ms"}, {"value": 0.230000, "text": "1.3 ms"}, {"value": 0.470000, "text": "3.4 ms"}, {"value": 0.710000, "text": "9.2 ms"}, {"value": 1.000000, "text": "30.0 ms"}]
+        },
+        {
+          "key": "p4",
+          "label": "Swing",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "50%"}, {"value": 0.230000, "text": "56%"}, {"value": 0.470000, "text": "62%"}, {"value": 0.710000, "text": "68%"}, {"value": 1.000000, "text": "75%"}]
         }
       ]
     },

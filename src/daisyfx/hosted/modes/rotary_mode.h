@@ -31,10 +31,23 @@ private:
     Lfo        drum_lfo_q_;     // slow rotor, 90° quadrature
     Saturation drive_;
     DcBlocker  dc_l_, dc_r_;
-    // 4th-order Linkwitz-Riley crossover: two cascaded Butterworth sections
-    // per band. xover_[0..1] low-pass the drum band, xover_[2..3] high-pass
-    // the horn band.
-    Svf        xover_[4];
+    // Per-channel signal path into the rotors. Both channels share the rotors
+    // and the mics; each carries its own input, so a stereo source keeps its
+    // image and an anti-phase one does not cancel.
+    struct Feed {
+        // 4th-order Linkwitz-Riley crossover: two cascaded Butterworth
+        // sections per band. xover[0..1] low-pass the drum band, xover[2..3]
+        // high-pass the horn band.
+        Svf            xover[4];
+        float          horn_buf[kHornBufSize];
+        float          drum_buf[kDrumBufSize];
+        DelayLineSdram horn_line;
+        DelayLineSdram drum_line;
+    };
+    // Drives, splits and writes one input sample into its feed's rotor lines.
+    void WriteFeed(Feed& feed, float input);
+
+    Feed       feeds_[2];
     Svf        horn_color_l_;   // resonant peak for horn cabinet (L)
     Svf        horn_color_r_;   // resonant peak for horn cabinet (R)
 
@@ -45,13 +58,11 @@ private:
     float drum_mod_  = 0.0f;
     float horn_am_makeup_ = 1.0f;
     float drum_am_makeup_ = 1.0f;
+    float horn_level_     = 1.0f;   // Balance (p3)
+    float drum_level_     = 1.0f;
     float drive_blend_    = 0.0f;
     float drive_makeup_   = 1.0f;
 
-    float          horn_buf_[kHornBufSize];
-    float          drum_buf_[kDrumBufSize];
-    DelayLineSdram horn_line_;
-    DelayLineSdram drum_line_;
 };
 
 } // namespace pedal

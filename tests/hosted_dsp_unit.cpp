@@ -389,6 +389,7 @@ void verifyRotaryCrossoverHasNoNull()
   params.p1 = 0.0f;      // no drive
   params.p2 = 0.0f;      // chorale
   params.tone = 0.2f;    // crossover lands at 500 + 0.2*1500 = 800 Hz
+  params.p3 = 0.5f;      // Balance even: both rotors at full level
 
   // Hold the probe tone fixed and sweep Tone, which moves the crossover across
   // 500-2000 Hz. This isolates the crossover from the fixed horn/drum path
