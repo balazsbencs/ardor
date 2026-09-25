@@ -1298,7 +1298,7 @@
         {
           "kind": "number",
           "key": "p2",
-          "label": "Shape",
+          "label": "Lag",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,

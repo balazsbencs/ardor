@@ -1,10 +1,36 @@
 #include "vintage_trem_mode.h"
 #include "../config/constants.h"
+#include "../dsp/fast_math.h"
 #include <cmath>
 
 using namespace pedal::mod_fx;
 
 namespace pedal {
+
+namespace {
+
+// CdS photocell response. Attack is the cell lighting up (the level
+// falling), release is the cell going dark again (the level recovering).
+constexpr float kCellAttackSeconds  = 0.005f;
+constexpr float kCellReleaseSeconds = 0.070f;
+// The make-up follows the gain's mean square over about a second: slow
+// enough to hold still within a cycle, fast enough to settle after a change.
+constexpr float kMakeupSeconds = 1.0f;
+constexpr float kMaxMakeup = 1.41f;  // +3 dB, as for the other types
+
+float one_pole(float seconds) {
+    return 1.0f - std::exp(-1.0f / (seconds * SAMPLE_RATE));
+}
+
+const float kCellAttack  = one_pole(kCellAttackSeconds);
+const float kCellRelease = one_pole(kCellReleaseSeconds);
+const float kMakeupCoef  = one_pole(kMakeupSeconds);
+// The peak must hold across many cycles, or the make-up ripples within one
+// and reshapes the tremolo.
+constexpr float kPeakHoldSeconds = 10.0f;
+const float kPeakDecay   = std::exp(-1.0f / (kPeakHoldSeconds * SAMPLE_RATE));
+
+} // namespace
 
 void VintageTremMode::Init() {
     tone_l_.Init(SAMPLE_RATE, ToneGain::Loudness);
@@ -22,15 +48,16 @@ void VintageTremMode::Reset() {
     shape_ = 0.0f;
     crossover_l_ = 0.0f;
     crossover_r_ = 0.0f;
+    photo_[0] = {};
+    photo_[1] = {};
     sub_mode_ = 0;
 }
 
 void VintageTremMode::Prepare(const ParamSet& params) {
-    // sub-mode from p2: 0=Tube (sine), 1=Harmonic (true crossover), 2=Photoresistor (exponential)
+    // sub-mode from p2: 0=Tube (sine), 1=Harmonic (true crossover), 2=Photoresistor (lamp + CdS cell)
     sub_mode_ = static_cast<int>(params.p2 * 2.999f);
-    const LfoWave wave = sub_mode_ == 2 ? LfoWave::Exponential : LfoWave::Sine;
-    lfo_.SetWave(wave);
-    lfo_r_.SetWave(wave);
+    lfo_.SetWave(LfoWave::Sine);
+    lfo_r_.SetWave(LfoWave::Sine);
 
     lfo_.SetRate(params.speed);
     lfo_r_.SetRate(params.speed);
@@ -46,13 +73,16 @@ void VintageTremMode::Prepare(const ParamSet& params) {
     // Full RMS make-up reaches +4.3 dB at the peaks at full depth. Cap it at
     // +3 dB instead: the peaks stay clear of the next stage without a limiter,
     // and full depth gives up only 1.3 dB of average level.
-    static constexpr float kMaxMakeup = 1.41f;
     const float mean = 1.0f - depth_ * 0.5f;
     const float mean_square = mean * mean + depth_ * depth_ * 0.125f;
     makeup_ = mean_square > 0.0001f ? 1.0f / std::sqrt(mean_square) : 1.0f;
     if (makeup_ > kMaxMakeup) makeup_ = kMaxMakeup;
     // Shape morphs the sine tremolo toward a more pulsed optical contour.
     shape_ = params.p1;
+    // In the Photoresistor type Shape sets how hard the lamp switches: a
+    // neon bulb strikes and quenches abruptly, so even the softest setting
+    // is well on the way to a pulse.
+    lamp_knee_ = 3.0f + 17.0f * params.p1;
     tone_l_.SetKnob(params.tone);
     tone_r_.SetKnob(params.tone);
 }
@@ -77,6 +107,27 @@ void VintageTremMode::HarmonicGains(float lfo_value, float& gain_lp, float& gain
     // it needs no make-up.
     gain_lp = 1.0f - depth_ * contour_lp;
     gain_hp = 1.0f - depth_ * contour_hp;
+}
+
+float VintageTremMode::PhotoGain(Photocell& cell, float lfo_value) {
+    const float lamp = 0.5f + 0.5f * soft_clip_tanh(lamp_knee_ * lfo_value)
+                                   / soft_clip_tanh(lamp_knee_);
+    const float coef = lamp > cell.light ? kCellAttack : kCellRelease;
+    cell.light += coef * (lamp - cell.light);
+    const float gain = 1.0f - depth_ * cell.light;
+    // The lag reshapes the modulator, so the sine make-up does not apply;
+    // restore the gain's own RMS instead. It depends only on the LFO, never
+    // on the signal, so it cannot pump.
+    cell.mean_square += kMakeupCoef * (gain * gain - cell.mean_square);
+    cell.peak = gain > cell.peak * kPeakDecay ? gain : cell.peak * kPeakDecay;
+    float target = cell.mean_square > 0.0001f ? 1.0f / std::sqrt(cell.mean_square) : 1.0f;
+    // Limit the loudest output point, not the factor: the slow cell never
+    // goes fully dark at depth, so its gain peaks below unity and a fixed
+    // factor cap left full depth 3.7 dB quiet with 1 dB of headroom unused.
+    const float peak_limit = cell.peak > 0.0001f ? kMaxMakeup / cell.peak : kMaxMakeup;
+    if (target > peak_limit) target = peak_limit;
+    cell.makeup += kMakeupCoef * (target - cell.makeup);
+    return gain * cell.makeup;
 }
 
 StereoFrame VintageTremMode::Process(StereoFrame input, const ParamSet& /*params*/) {
@@ -110,6 +161,10 @@ StereoFrame VintageTremMode::Process(StereoFrame input, const ParamSet& /*params
     // signal, even at zero depth: -35 dBc of third harmonic on a -6 dBFS tone.
     // A tremolo must pass a clean signal clean; the capped make-up keeps the
     // peaks within +3 dB instead.
+    if (sub_mode_ == 2) {
+        return {tone_l_.Process(input.left * PhotoGain(photo_[0], lfo_l)),
+                tone_r_.Process(input.right * PhotoGain(photo_[1], lfo_r))};
+    }
     return {tone_l_.Process(input.left * AmplitudeGain(lfo_l)),
             tone_r_.Process(input.right * AmplitudeGain(lfo_r))};
 }

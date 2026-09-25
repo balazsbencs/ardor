@@ -9,10 +9,15 @@ namespace pedal {
 
 static constexpr float PI_2_3 = 2.094395f; // 2π/3 = 120°
 
+// Multi's voice rates as multiples of Speed. They share no simple ratio, so
+// the voices never fall back into step: the ensemble keeps moving instead of
+// repeating one wobble.
+static constexpr float kMultiRate[4] = {1.0f, 1.31f, 0.79f, 1.13f};
+
 void ChorusMode::Init() {
     chorus_line_.Init(chorus_buf_, kChorusBufSize);
     chorus_line_r_.Init(chorus_buf_r_, kChorusBufSize);
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < kVoices; ++i) {
         lfo_[i].Init(0.5f, LfoWave::Sine);
         if (i == 0) lfo_[i].SetJitter(0.3f);   // leader jitters; the others follow
         lfo_[i].SetPhaseOffset(static_cast<float>(i) * PI_2_3);
@@ -51,9 +56,7 @@ void ChorusMode::Reset() {
     fb_l_       = 0.0f;
     fb_r_       = 0.0f;
     feedback_   = 0.0f;
-    delays_[0]  = 0.0f;
-    delays_[1]  = 0.0f;
-    delays_[2]  = 0.0f;
+    for (float& delay : delays_) delay = 0.0f;
 }
 
 void ChorusMode::Prepare(const ParamSet& params) {
@@ -70,7 +73,11 @@ void ChorusMode::Prepare(const ParamSet& params) {
         sub_mode_ = candidate;
     }
 
-    for (auto& l : lfo_) l.SetRate(params.speed);
+    // Followers copy the leader's rate each sample, so only Multi, whose
+    // voices run free, uses the per-voice multiples.
+    for (int i = 0; i < kVoices; ++i) {
+        lfo_[i].SetRate(sub_mode_ == 1 ? params.speed * kMultiRate[i] : params.speed);
+    }
 
     if (sub_mode_ == 0) {
         // dBucket (CE-2w style): triangle LFO matches the CE-2's clock-modulation
@@ -150,18 +157,20 @@ StereoFrame ChorusMode::Process(StereoFrame input, const ParamSet& params) {
     float wet_l, wet_r;
 
     if (sub_mode_ == 1) {
-        // Multi: per-sample LFO for all 3 taps (no block-boundary jumps)
-        for (int i = 0; i < 3; ++i) {
-            if (i != 0) lfo_[i].FollowPhaseOf(lfo_[0]);
+        // Multi: an ensemble of four free-running voices, two per side, so no
+        // voice is shared between the channels. The earlier version sent one
+        // tap to both sides and measured 0.49 L/R correlation, the narrowest
+        // of the types. Per-sample LFOs avoid block-boundary jumps.
+        for (int i = 0; i < kVoices; ++i) {
             delays_[i] = clamp_delay(base_samps_ + mod_depth_ * lfo_[i].Process());
         }
-        // The taps are mutually uncorrelated, so they add in power: scale by
-        // 1/sqrt(2), not 1/2, or Multi sits 3 dB below the other types.
+        // The voices are mutually uncorrelated, so they add in power: scale
+        // by 1/sqrt(2), not 1/2, or Multi sits 3 dB below the other types.
         static constexpr float kTwoVoiceGain = 0.70710678f;
         wet_l = (chorus_line_.ReadAtHighQuality(delays_[0])
                + chorus_line_.ReadAtHighQuality(delays_[1])) * kTwoVoiceGain;
-        wet_r = (chorus_line_r_.ReadAtHighQuality(delays_[0])
-               + chorus_line_r_.ReadAtHighQuality(delays_[2])) * kTwoVoiceGain;
+        wet_r = (chorus_line_r_.ReadAtHighQuality(delays_[2])
+               + chorus_line_r_.ReadAtHighQuality(delays_[3])) * kTwoVoiceGain;
     } else if (sub_mode_ == 3) {
         // True Detune: pitch shift L down and R up. Shifting rather than
         // sweeping a delay gives a wide, lush stereo field without the

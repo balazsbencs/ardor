@@ -165,7 +165,7 @@
           "label": "Tone",
           "defaultValue": 0.500000,
           "choiceCount": 0,
-          "samples": [{"value": 0.000000, "text": "500 Hz"}, {"value": 0.230000, "text": "845 Hz"}, {"value": 0.470000, "text": "1.2 kHz"}, {"value": 0.710000, "text": "1.6 kHz"}, {"value": 1.000000, "text": "2.0 kHz"}]
+          "samples": [{"value": 0.000000, "text": "Dark 100%"}, {"value": 0.230000, "text": "Dark 54%"}, {"value": 0.470000, "text": "Dark 6%"}, {"value": 0.710000, "text": "Bright 42%"}, {"value": 1.000000, "text": "Bright 100%"}]
         },
         {
           "key": "p1",
@@ -178,8 +178,8 @@
           "key": "p2",
           "label": "Rotor",
           "defaultValue": 0.000000,
-          "choiceCount": 2,
-          "samples": [{"value": 0.000000, "text": "Slow"}, {"value": 1.000000, "text": "Fast"}]
+          "choiceCount": 3,
+          "samples": [{"value": 0.000000, "text": "Slow"}, {"value": 0.500000, "text": "Stop"}, {"value": 1.000000, "text": "Fast"}]
         },
         {
           "key": "level",
@@ -246,7 +246,7 @@
         },
         {
           "key": "p2",
-          "label": "Shape",
+          "label": "Lag",
           "defaultValue": 0.000000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
@@ -487,7 +487,7 @@
           "label": "Pattern",
           "defaultValue": 0.000000,
           "choiceCount": 16,
-          "samples": [{"value": 0.000000, "text": "Pattern 1"}, {"value": 0.066667, "text": "Pattern 2"}, {"value": 0.133333, "text": "Pattern 3"}, {"value": 0.200000, "text": "Pattern 4"}, {"value": 0.266667, "text": "Pattern 5"}, {"value": 0.333333, "text": "Pattern 6"}, {"value": 0.400000, "text": "Pattern 7"}, {"value": 0.466667, "text": "Pattern 8"}, {"value": 0.533333, "text": "Pattern 9"}, {"value": 0.600000, "text": "Pattern 10"}, {"value": 0.666667, "text": "Pattern 11"}, {"value": 0.733333, "text": "Pattern 12"}, {"value": 0.800000, "text": "Pattern 13"}, {"value": 0.866667, "text": "Pattern 14"}, {"value": 0.933333, "text": "Pattern 15"}, {"value": 1.000000, "text": "Pattern 16"}]
+          "samples": [{"value": 0.000000, "text": "Dotted 8ths"}, {"value": 0.066667, "text": "Sixteenths"}, {"value": 0.133333, "text": "Quarters"}, {"value": 0.200000, "text": "Half time"}, {"value": 0.266667, "text": "Bar break"}, {"value": 0.333333, "text": "Downbeat"}, {"value": 0.400000, "text": "Eighths"}, {"value": 0.466667, "text": "Gallop"}, {"value": 0.533333, "text": "Three 16ths"}, {"value": 0.600000, "text": "Syncopated"}, {"value": 0.666667, "text": "Stutter"}, {"value": 0.733333, "text": "Push"}, {"value": 0.800000, "text": "Shuffle"}, {"value": 0.866667, "text": "Reverse shuffle"}, {"value": 0.933333, "text": "Long short"}, {"value": 1.000000, "text": "Broken"}]
         },
         {
           "key": "p2",

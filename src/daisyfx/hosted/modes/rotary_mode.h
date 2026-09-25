@@ -5,13 +5,14 @@
 #include "../dsp/dc_blocker.h"
 #include "../dsp/svf.h"
 #include "../dsp/delay_line_sdram.h"
+#include "../dsp/tone_filter.h"
 #include <cstddef>
 
 namespace pedal {
 
 /// Leslie rotating speaker simulation.
 /// Horn (HF) and drum (LF) rotate at independent speeds with motor inertia.
-/// P2: slow/fast switch (chorale ↔ tremolo); motor ramps with physical inertia.
+/// P2: Slow / Stop / Fast switch; the motors ramp with physical inertia.
 class RotaryMode : public ModMode {
 public:
     void Init() override;
@@ -31,6 +32,7 @@ private:
     Lfo        drum_lfo_q_;     // slow rotor, 90° quadrature
     Saturation drive_;
     DcBlocker  dc_l_, dc_r_;
+    ToneFilter tone_l_, tone_r_;  // cabinet tone (Tone)
     // Per-channel signal path into the rotors. Both channels share the rotors
     // and the mics; each carries its own input, so a stereo source keeps its
     // image and an anti-phase one does not cancel.

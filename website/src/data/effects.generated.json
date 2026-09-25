@@ -1321,7 +1321,7 @@
         },
         {
           "key": "p2",
-          "label": "Shape",
+          "label": "Lag",
           "kind": "number",
           "unit": "%",
           "min": 0,

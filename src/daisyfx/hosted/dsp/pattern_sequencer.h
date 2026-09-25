@@ -58,24 +58,29 @@ public:
 
 private:
     static bool GetStep(int pattern, int step) {
-        // 16 built-in patterns stored as 16-bit bitmasks (MSB = step 0)
+        // 16 built-in patterns stored as 16-bit bitmasks (MSB = step 0). The
+        // names match kPatternNames in DaisyFxCatalog.cpp; in the default 16th
+        // division each group of four bits is one beat.
+        //
+        // Pattern 0 was 0xFFFF, every step on, which never gated at all. It is
+        // now the dotted-8th rhythm, an onset every three 16ths.
         static const uint16_t kPatterns[16] = {
-            0xFFFF, // 0: all on
-            0xAAAA, // 1: every other (8th notes)
-            0x8888, // 2: quarter notes
-            0xF0F0, // 3: half-note on/off
-            0xFFF0, // 4: 3 on, 1 off
-            0xF000, // 5: first quarter only
-            0xCCCC, // 6: dotted-8th pattern
-            0xA8A8, // 7: syncopated
-            0xEEEE, // 8: 3+1 groups
-            0x8A8A, // 9: sparse syncopation
-            0xFEFE, // 10: accent first beat
-            0x9999, // 11: sparse even
-            0xE8E8, // 12: swung-8th feel
-            0x8E8E, // 13: swung reverse
-            0xF8F8, // 14: strong downbeats
-            0xB6B6, // 15: complex
+            0x9249, // 0: Dotted 8ths
+            0xAAAA, // 1: Sixteenths (every other 16th)
+            0x8888, // 2: Quarters
+            0xF0F0, // 3: Half time (a beat on, a beat off)
+            0xFFF0, // 4: Bar break (three beats on, one off)
+            0xF000, // 5: Downbeat
+            0xCCCC, // 6: Eighths
+            0xA8A8, // 7: Gallop
+            0xEEEE, // 8: Three 16ths
+            0x8A8A, // 9: Syncopated
+            0xFEFE, // 10: Stutter
+            0x9999, // 11: Push
+            0xE8E8, // 12: Shuffle
+            0x8E8E, // 13: Reverse shuffle
+            0xF8F8, // 14: Long short
+            0xB6B6, // 15: Broken
         };
         return (kPatterns[pattern] >> (15 - step)) & 1;
     }

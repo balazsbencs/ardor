@@ -21,11 +21,31 @@ static constexpr float kDrumSwing = 12.0f;
 // and the short centre keeps latency near 0.7 ms.
 static constexpr float kRotorCenter = 8.0f + kHornSwing;
 
-// Motor inertia: ramp coefficient per Prepare() call (once per BLOCK_SIZE samples).
-// Horn τ ≈ 1.2 s → coef = 1 − exp(−BLOCK_SIZE / (SAMPLE_RATE × 1.2))
-static constexpr float kHornRampCoef = 8.33e-4f;
-// Drum τ ≈ 2.5 s → coef = 1 − exp(−BLOCK_SIZE / (SAMPLE_RATE × 2.5))
-static constexpr float kDrumRampCoef = 4.00e-4f;
+// Motor inertia, as time constants per rotor and direction. The light horn
+// spins up in about a second and coasts down more slowly; the heavy drum
+// takes several seconds either way, which is what makes a Leslie's speed
+// change sound like two rotors instead of one. The earlier model used one
+// symmetric time constant per rotor (1.2 s horn, 2.5 s drum).
+static constexpr float kHornUpSeconds   = 0.5f;
+static constexpr float kHornDownSeconds = 0.9f;
+static constexpr float kDrumUpSeconds   = 2.0f;
+static constexpr float kDrumDownSeconds = 2.5f;
+// Below this a braked rotor has stopped; exponential coasting never reaches 0.
+static constexpr float kStoppedHz = 0.05f;
+// The crossover of a Leslie 122 is a fixed 800 Hz passive network.
+static constexpr float kCrossoverHz = 800.0f;
+
+// One Prepare() step (BLOCK_SIZE samples) of a first-order approach.
+static float ramp_coef(float seconds) {
+    return 1.0f - std::exp(-static_cast<float>(BLOCK_SIZE) / (SAMPLE_RATE * seconds));
+}
+
+static float approach(float actual, float target, float up_seconds, float down_seconds) {
+    const float coef = ramp_coef(target > actual ? up_seconds : down_seconds);
+    float next = actual + (target - actual) * coef;
+    if (target == 0.0f && next < kStoppedHz) next = 0.0f;
+    return next;
+}
 
 // Leslie 122 chorale (slow) speeds: horn near 50 rpm, drum near 40 rpm.
 static constexpr float kHornChorale = 0.83f;
@@ -81,7 +101,7 @@ void RotaryMode::Init() {
     for (auto& feed : feeds_) {
         for (auto& section : feed.xover) {
             section.SetQ(0.70710678f);
-            section.SetFreq(800.0f);
+            section.SetFreq(kCrossoverHz);
         }
     }
 
@@ -92,6 +112,8 @@ void RotaryMode::Init() {
     horn_color_r_.SetFreq(2500.0f);
 
     drive_.Init(WaveCurve::Tube);
+    tone_l_.Init(SAMPLE_RATE, ToneGain::Loudness);
+    tone_r_.Init(SAMPLE_RATE, ToneGain::Loudness);
     dc_l_.Init();
     dc_r_.Init();
 }
@@ -112,27 +134,37 @@ void RotaryMode::Reset() {
     horn_color_r_.Reset();
     dc_l_.Init();
     dc_r_.Init();
+    tone_l_.Reset();
+    tone_r_.Reset();
 }
 
 void RotaryMode::Prepare(const ParamSet& params) {
-    // P2 ≥ 0.5 → tremolo (fast); P2 < 0.5 → chorale (slow).
-    // Speed param sets the fast horn target; drum is always at the Leslie ratio.
-    const float target_horn = (params.p2 >= 0.5f) ? params.speed : kHornChorale;
-    const float target_drum = (params.p2 >= 0.5f) ? params.speed * kDrumFastRatio : kDrumChorale;
-
-    // Exponential smoothing toward target — motor inertia
-    actual_horn_rate_ += (target_horn - actual_horn_rate_) * kHornRampCoef;
-    actual_drum_rate_ += (target_drum - actual_drum_rate_) * kDrumRampCoef;
+    // Rotor (p2), the Leslie half-moon switch: Slow (chorale), Stop, Fast
+    // (tremolo). Saved presets hold 0 for Slow and 1 for Fast, which keep
+    // their meaning. Speed sets the fast horn rate; the drum follows at the
+    // Leslie ratio. On Stop both rotors coast to rest where they are.
+    const int rotor = static_cast<int>(params.p2 * 2.999f);
+    float target_horn = kHornChorale;
+    float target_drum = kDrumChorale;
+    if (rotor == 1) {
+        target_horn = 0.0f;
+        target_drum = 0.0f;
+    } else if (rotor == 2) {
+        target_horn = params.speed;
+        target_drum = params.speed * kDrumFastRatio;
+    }
+    actual_horn_rate_ = approach(actual_horn_rate_, target_horn, kHornUpSeconds, kHornDownSeconds);
+    actual_drum_rate_ = approach(actual_drum_rate_, target_drum, kDrumUpSeconds, kDrumDownSeconds);
 
     horn_lfo_.SetRate(actual_horn_rate_);
     horn_lfo_q_.SetRate(actual_horn_rate_);
     drum_lfo_.SetRate(actual_drum_rate_);
     drum_lfo_q_.SetRate(actual_drum_rate_);
 
-    // Tone maps to crossover frequency: 0 → 500 Hz, 1 → 2000 Hz
-    for (auto& feed : feeds_) {
-        for (auto& section : feed.xover) section.SetFreq(500.0f + params.tone * 1500.0f);
-    }
+    // Tone is the cabinet's brightness: a loudness-neutral tilt on the output.
+    // It used to move the crossover, which a Leslie cannot do.
+    tone_l_.SetKnob(params.tone);
+    tone_r_.SetKnob(params.tone);
 
     // Horn cabinet resonance tracks tone: 0 → 1.8 kHz (warm), 1 → 3.5 kHz (bright)
     const float horn_fc = 1800.0f + params.tone * 1700.0f;
@@ -238,8 +270,8 @@ StereoFrame RotaryMode::Process(StereoFrame input, const ParamSet& params) {
     float out_l = colored_horn_l * horn_am_l * horn_level_ + drum_l * drum_am_l * drum_level_;
     float out_r = colored_horn_r * horn_am_r * horn_level_ + drum_r * drum_am_r * drum_level_;
 
-    out_l = dc_l_.Process(out_l);
-    out_r = dc_r_.Process(out_r);
+    out_l = tone_l_.Process(dc_l_.Process(out_l));
+    out_r = tone_r_.Process(dc_r_.Process(out_r));
     return {out_l, out_r};
 }
 

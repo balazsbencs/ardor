@@ -7,11 +7,13 @@
 
 namespace pedal {
 
-/// UniVibe emulation: 4 allpass stages with per-stage phase-offset LFO modulation.
-/// Each stage models a distinct LDR position around the original circuit's lamp:
-/// independent phase offset, center frequency, and sweep depth per stage.
-/// Includes unipolar smoothstep LDR response, AM throb at 90° phase offset,
-/// and mild pre-saturation for germanium transistor coloring.
+/// Uni-Vibe emulation: one lamp lights four photocells, each setting the
+/// corner of one allpass stage. The lamp's filament lags the oscillator, the
+/// cells answer light quickly and darkness slowly, and each stage's corner
+/// follows the cell's resistance as a power law. That chain, not the
+/// oscillator, gives the Vibe its lopsided, speed-dependent throb.
+/// Includes AM throb from the same lamp and mild pre-saturation for
+/// germanium transistor coloring.
 class VibeMode : public ModMode {
 public:
     void Init() override;
@@ -37,7 +39,9 @@ private:
     Lfo           lfo_;
     Channel       channels_[2];
     float         stage_centre_[kStages]{};
-    float         sweep_shape_ = 0.0f;
+    float         lamp_ = 0.0f;      // filament temperature (filtered drive power)
+    float         cell_ = 0.0f;      // photocell conductance, shared by the four cells
+    float         cell_release_ = 0.0f;  // release coefficient, from Lag (p2)
 };
 
 } // namespace pedal

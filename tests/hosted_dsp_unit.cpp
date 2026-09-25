@@ -388,14 +388,11 @@ void verifyRotaryCrossoverHasNoNull()
   params.depth = 0.0f;   // no Doppler or AM, so only the crossover shapes the output
   params.p1 = 0.0f;      // no drive
   params.p2 = 0.0f;      // chorale
-  params.tone = 0.2f;    // crossover lands at 500 + 0.2*1500 = 800 Hz
   params.p3 = 0.5f;      // Balance even: both rotors at full level
 
-  // Hold the probe tone fixed and sweep Tone, which moves the crossover across
-  // 500-2000 Hz. This isolates the crossover from the fixed horn/drum path
-  // delay difference, which combs the response by a couple of dB by design.
-  // With the broken split, the output collapsed as the crossover passed the
-  // probe frequency. It must now stay live at every Tone setting.
+  // Probe at the crossover itself, the Leslie's fixed 800 Hz, where the broken
+  // split nulled completely. Sweep Tone too: it tilts the cabinet and moves
+  // the horn resonance, and the output must stay live at every setting.
   constexpr float kProbeHz = 800.0f;
   double worstGain = 1.0e9;
   float worstTone = 0.0f;
