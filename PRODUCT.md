@@ -87,7 +87,9 @@ Engine and product facts future work must not contradict:
 - Mono input, stereo output.
 - Neural Amp Modeler `.nam` captures with optional embedded nano submodels.
 - Cabinet IRs via partitioned convolution.
-- 35 built-in effects: 13 modulation/special, 10 delay, 12 reverb.
+- 48 built-in effects: 3 drive, 6 dynamics and tone, 16 modulation, 10 delay,
+  13 reverb. The catalog (`apps/manager/src/effects/catalog.v1.json`) is the
+  source of truth; the website takes its counts from it at build time.
 - Compressor, stereo-linked noise gate with zero added latency, five-band
   parametric EQ (±18 dB) with high-pass and low-pass filters and a live response graph.
 - Dual Amp (fixed two-lane block) and Dual Rig (two independent child chains,
@@ -108,14 +110,16 @@ Terminology used consistently across product and interface: *block*, *chain*,
 
 **Only the name "Ardor" is fixed.** Nothing else is locked.
 
-- `website/public/favicon.svg` and `website/public/og.png` are **placeholders**,
-  explicitly free to be replaced.
+- The website uses the device's **Lamp Black** palette (chosen 2026-09-25; see
+  `DESIGN.md`). `website/public/favicon.svg` is a lamp-red square and
+  `website/public/og.png` repeats the homepage hero. Both are working marks,
+  not a committed logo, and stay free to be replaced.
 - The green default UI accent is *not* a binding commitment; the device already
   offers a user-selectable global accent color.
 - No wordmark, logo system, typeface, or palette has been committed to.
-- There is no established voice document. Existing copy in `README.md` and
-  `website/src/data/` is precise, technical, and unhyped — a reasonable starting
-  reference, not a ratified standard.
+- Website copy follows Simplified Technical English (confirmed 2026-09-25):
+  precise, technical, and unhyped, with product terms kept exact. `DESIGN.md`
+  records the rules and `npm run test:copy` enforces the checkable ones.
 
 The user has stated they are **open to redesign and want new perspectives**, on
 the current website and identity. This is an invitation, not a rejection of what
@@ -130,12 +134,12 @@ Real:
 - **Audio demos exist or can be recorded.** `dryguitar.wav`, `ardor-wet.wav`, and
   `ardor-wet2.wav` are in the repository root; real playing demos are obtainable.
 - **Real LVGL UI screenshots are obtainable** from the SDL simulator
-  (`./scripts/build-sim.sh`, then `pedal-ui-sim`). The current website renders the
-  device screens as hand-built HTML approximations in
-  `website/src/components/screens/` rather than captures of the real interface.
-- **35 effects with real parameter metadata** — names, semantic labels, physical
-  units, defaults, and ranges — generated from `src/daisyfx/DaisyFxCatalog.cpp`
-  into `website/src/data/effects.generated.json`.
+  (`./scripts/build-sim.sh`, then `pedal-ui-sim`) and from
+  `pedal-lvgl-ui-screenshots`. The website shows these captures in
+  `website/src/assets/device/`.
+- **52 blocks with real parameter metadata** (48 effects plus NAM, cabinet,
+  Dual Amp, and Dual Rig): names, semantic labels, physical units, defaults, and
+  ranges, generated from the catalog into `website/src/data/effects.generated.json`.
 - **A physical enclosure design** — `enclosure.openscad` and printable `.3mf`
   files in `3d_files/`. A KiCad schematic for the control-I/O board is in
   `hardware/control-io/`.
