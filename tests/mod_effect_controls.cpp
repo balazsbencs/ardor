@@ -132,8 +132,8 @@ std::pair<std::vector<double>, std::vector<double>> envelopes(const Render& out)
   for (size_t start = 48000; start + kBlock <= out.left.size(); start += kBlock) {
     double l = 0.0, r = 0.0;
     for (size_t i = start; i < start + kBlock; ++i) {
-      l += out.left[i] * out.left[i];
-      r += out.right[i] * out.right[i];
+      l += static_cast<double>(out.left[i]) * out.left[i];
+      r += static_cast<double>(out.right[i]) * out.right[i];
     }
     left.push_back(std::sqrt(l / kBlock));
     right.push_back(std::sqrt(r / kBlock));
@@ -211,7 +211,7 @@ double levelOfTone(nlohmann::json params, double hz)
 {
   const auto out = render(params, sine(hz, 0.3f, 3 * 48000));
   double sum = 0.0;
-  for (size_t i = 48000; i < out.left.size(); ++i) sum += out.left[i] * out.left[i];
+  for (size_t i = 48000; i < out.left.size(); ++i) sum += static_cast<double>(out.left[i]) * out.left[i];
   return db(std::sqrt(sum / (out.left.size() - 48000)) / (0.3 / std::sqrt(2.0)));
 }
 

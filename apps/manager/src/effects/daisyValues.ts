@@ -251,7 +251,10 @@ function delayDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "filter") return choices(["Low-pass", "Band-pass", "High-pass"]);
     if (mode === "pattern") return choices(["Straight", "Dotted 8th", "Triplet"]);
     if (mode === "lofi") return custom((value) => {
-      const flutter = Math.fround(1 + Math.fround(Math.fround(clamp(value)) * 15));
+      // Mirrors the device: the float32 knob value, then double arithmetic,
+      // then float32 for printing. The all-float32 form sat on a rounding tie
+      // at 0.23 whose result depended on fused multiply-add.
+      const flutter = Math.fround(1 + Math.fround(clamp(value)) * 15);
       return `${16 - Math.trunc(clamp(value) * 12)} bit / ${number(flutter, 1)}x`;
     });
     if (mode === "swell") return custom((value) => `${number(20 * Math.log10(0.05 + clamp(value) * 0.2), 1)} dBFS`);
