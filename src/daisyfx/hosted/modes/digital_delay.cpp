@@ -21,6 +21,7 @@ void DigitalDelay::Init() {
 }
 
 void DigitalDelay::Reset() {
+    spread_.Reset();
     digital_line_l_.Reset();
     digital_line_r_.Reset();
     lfo_.Reset();
@@ -64,12 +65,13 @@ StereoFrame DigitalDelay::Process(StereoFrame input, const ParamSet& params) {
     const float lfo_val   = lfo_.Process();
     const float mod_samps = params.mod_dep * 30.0f;
 
-    const auto read = [mod_samps](const DelayLineSdram& line, float delay) {
-        return mod_samps <= 0.00001f ? line.ReadNearest(delay)
-                                     : line.ReadAtHighQuality(delay);
+    const float spread = spread_.Update(kStereoOffsetSamples, params.width);
+    const bool nearest = mod_samps <= 0.00001f && !spread_.Fractional();
+    const auto read = [nearest](const DelayLineSdram& line, float delay) {
+        return nearest ? line.ReadNearest(delay) : line.ReadAtHighQuality(delay);
     };
     const auto readHead = [&](float base, bool right) {
-        const float offset = right ? kStereoOffsetSamples - lfo_val * mod_samps
+        const float offset = right ? spread - lfo_val * mod_samps
                                    : lfo_val * mod_samps;
         return read(right ? digital_line_r_ : digital_line_l_, base + offset);
     };
@@ -89,9 +91,13 @@ StereoFrame DigitalDelay::Process(StereoFrame input, const ParamSet& params) {
     wet_r = filter_r_.Process(wet_r);
 
     // Keep the clean digital repeat path exactly transparent at grit=0, then
-    // progressively blend in tape-like loop saturation at higher values.
-    const float colored_l = wet_l + params.grit * (sat_.Process(wet_l) - wet_l);
-    const float colored_r = wet_r + params.grit * (sat_.Process(wet_r) - wet_r);
+    // progressively blend in tape-like loop saturation at higher values. The
+    // saturator is divided by its drive for unity small-signal gain: raw, its
+    // gain grew to 16x with Grit and the repeats never decayed (at Repeats
+    // 0.35 and full Grit they held at +1 dB for good).
+    const float drive = 1.0f + params.grit * params.grit * 15.0f;
+    const float colored_l = wet_l + params.grit * (sat_.Process(wet_l) / drive - wet_l);
+    const float colored_r = wet_r + params.grit * (sat_.Process(wet_r) / drive - wet_r);
     const float feedback_l = dc_fb_l_.Process(fb_lim_l_.Process(colored_l * params.repeats));
     const float feedback_r = dc_fb_r_.Process(fb_lim_r_.Process(colored_r * params.repeats));
 
@@ -101,8 +107,10 @@ StereoFrame DigitalDelay::Process(StereoFrame input, const ParamSet& params) {
     digital_line_l_.Write(aa_state_l_);
     digital_line_r_.Write(aa_state_r_);
 
-    wet_l = dc_l_.Process(wet_l);
-    wet_r = dc_r_.Process(wet_r);
+    // The loop keeps the loop-safe tilt; the output alone is corrected so the
+    // first repeat keeps its loudness at any Tone setting.
+    wet_l = dc_l_.Process(wet_l) * filter_l_.LoudnessCorrection();
+    wet_r = dc_r_.Process(wet_r) * filter_r_.LoudnessCorrection();
 
     return StereoFrame{wet_l, wet_r};
 }

@@ -4,6 +4,11 @@
 
 using namespace pedal::delay_fx;
 
+namespace {
+// Peak modulation at full depth: 0.6 ms, the Digital delay's range.
+constexpr float kModulationSamples = 30.0f;
+} // namespace
+
 namespace pedal {
 
 static constexpr float kStereoOffsetSamples = 150.0f;
@@ -20,6 +25,7 @@ void DualDelay::Init() {
 }
 
 void DualDelay::Reset() {
+    spread_.Reset();
     line_l_.Reset();
     line_r_.Reset();
     lfo_.Reset();
@@ -48,12 +54,16 @@ StereoFrame DualDelay::Process(float input, const ParamSet& params) {
 StereoFrame DualDelay::Process(StereoFrame input, const ParamSet& params) {
     const float pp = params.grit;
     const float lfo_val   = lfo_.Process();
+    const float spread = spread_.Update(kStereoOffsetSamples, params.width);
     const auto readHeads = [&](float base) {
-        const float mod_samps = base * params.mod_dep * 0.005f;
+        // Absolute depth, as in the other modes. It used to be a fraction of
+        // the delay time, so the same knob gave 11 cents of pitch movement at
+        // 0.1 s and 109 cents at 1 s.
+        const float mod_samps = params.mod_dep * kModulationSamples;
         const float delay_l = base + lfo_val * mod_samps;
         const float delay_r = base * (1.0f + 0.5f * pp) +
-                              (1.0f - pp) * kStereoOffsetSamples - lfo_val * mod_samps;
-        if (mod_samps <= 0.00001f) {
+                              (1.0f - pp) * spread - lfo_val * mod_samps;
+        if (mod_samps <= 0.00001f && !spread_.Fractional()) {
             return StereoFrame{line_l_.ReadNearest(delay_l), line_r_.ReadNearest(delay_r)};
         }
         return StereoFrame{line_l_.ReadAtHighQuality(delay_l),
@@ -87,8 +97,10 @@ StereoFrame DualDelay::Process(StereoFrame input, const ParamSet& params) {
     line_l_.Write(write_l);
     line_r_.Write(write_r);
 
-    wet_l = dc_l_.Process(wet_l);
-    wet_r = dc_r_.Process(wet_r);
+    // Loop-safe Tone inside the loop; the output alone is corrected so the
+    // first repeat keeps its loudness at any Tone setting.
+    wet_l = dc_l_.Process(wet_l) * filter_l_.LoudnessCorrection();
+    wet_r = dc_r_.Process(wet_r) * filter_r_.LoudnessCorrection();
 
     return StereoFrame{wet_l, wet_r};
 }

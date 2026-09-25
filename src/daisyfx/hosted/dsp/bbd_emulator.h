@@ -81,7 +81,14 @@ public:
         const float sat = saturator_.Process(x);
         // Compensate the input gain so Drive changes harmonic density and
         // compression rather than redefining loop gain or output loudness.
-        return sat / drive;
+        //
+        // Blend in from a clean path over the first 10 % of Drive, so Drive at
+        // zero is clean: the curve alone bent a 0.6 tone to -32 dBc of third
+        // harmonic. Chorus dBucket runs at a fixed 0.15, where the blend is
+        // complete and its sound is unchanged.
+        const float clean = lp2_ + (noise + whine) / drive;
+        const float blend = drive_amount * 10.0f > 1.0f ? 1.0f : drive_amount * 10.0f;
+        return clean + blend * (sat / drive - clean);
     }
 
     /// Apply HF shelf boost to the delay-line output.
