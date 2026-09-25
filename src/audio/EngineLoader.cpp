@@ -513,7 +513,7 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
       InterleavedWav wav;
       try {
-        wav = readInterleavedWav(resolvedPath);
+        wav = readInterleavedWav(resolvedPath, options.sampleRate);
       } catch (const std::exception& e) {
         error = "failed to load reverb impulse: " + block.assetPath.string() + ": " + e.what();
         return false;
@@ -903,7 +903,7 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
       InterleavedWav wav;
       try {
-        wav = readInterleavedWav(resolvedPath);
+        wav = readInterleavedWav(resolvedPath, options.sampleRate);
       } catch (const std::exception& e) {
         error = "failed to load reverb impulse: " + block.assetPath.string() + ": " + e.what();
         return false;

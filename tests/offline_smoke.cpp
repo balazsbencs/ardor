@@ -78,6 +78,46 @@ int main()
   const auto wav441 = ardor::readMonoWav(wav441Path);
   if (require(wav441.sampleRate == 44100)) return 1;
 
+  const auto stereo441Path = std::filesystem::temp_directory_path() / "ardor-reverb-44100-smoke.wav";
+  {
+    std::vector<float> samples(441 * 2, 0.0f);
+    samples[100 * 2] = 1.0f;
+    samples[200 * 2 + 1] = 0.5f;
+    ma_encoder_config cfg = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 2, 44100);
+    ma_encoder encoder;
+    if (require(ma_encoder_init_file(stereo441Path.string().c_str(), &cfg, &encoder) == MA_SUCCESS)) return 1;
+    ma_encoder_write_pcm_frames(&encoder, samples.data(), 441, nullptr);
+    ma_encoder_uninit(&encoder);
+  }
+  const auto reverbIr = ardor::readInterleavedWav(stereo441Path, 48000);
+  if (require(reverbIr.sampleRate == 48000 && reverbIr.channels == 2)) return 1;
+  if (require(reverbIr.samples.size() / 2 >= 478 && reverbIr.samples.size() / 2 <= 482)) return 1;
+  float leftPeak = 0.0f, rightPeak = 0.0f;
+  size_t leftAt = 0, rightAt = 0;
+  for (size_t i = 0; i < reverbIr.samples.size() / 2; ++i) {
+    if (std::fabs(reverbIr.samples[i * 2]) > leftPeak) {
+      leftPeak = std::fabs(reverbIr.samples[i * 2]);
+      leftAt = i;
+    }
+    if (std::fabs(reverbIr.samples[i * 2 + 1]) > rightPeak) {
+      rightPeak = std::fabs(reverbIr.samples[i * 2 + 1]);
+      rightAt = i;
+    }
+  }
+  if (require(leftPeak > 0.5f && rightPeak > 0.2f)) return 1;
+  if (require(leftAt >= 107 && leftAt <= 111 && rightAt >= 216 && rightAt <= 220)) return 1;
+  ardor::ChainPlan reverbPlan;
+  reverbPlan.blocks.push_back({"reverb-441", "irreverb", ardor::ChainBlockStatus::Ready,
+                                stereo441Path, nlohmann::json::object()});
+  std::string reverbError;
+  ardor::RuntimeChain reverbLane;
+  if (require(ardor::prepareRuntimeChain(reverbLane, reverbPlan.blocks,
+                                         {48000, 64, 8192}, reverbError))) return 1;
+  ardor::PedalEngine reverbEngine;
+  if (require(ardor::applyChainPlan(reverbEngine, reverbPlan,
+                                    {48000, 64, 8192}, reverbError))) return 1;
+  std::filesystem::remove(stereo441Path);
+
   ardor::MonoWav emptyIr;
   emptyIr.sampleRate = 48000;
   emptyIr.channels = 1;
