@@ -1,0 +1,100 @@
+---
+// Effect families as the pedal's module drawer shows them: a family-colour
+// header with the count, then every block as a chip. Light falls from the
+// coloured header into the card (the Glow Rule: the header is the source).
+import { effectFamilies, type Definition } from '../../lib/effects';
+
+// Inside a family card the family word is redundant: "Tape" under Delay.
+function shortName(def: Definition, familyKey: string): string {
+  if (def.id === 'eq:parametric_eq_5') return '5-Band EQ';
+  const suffix = familyKey === 'delay' ? ' Delay' : familyKey === 'reverb' ? ' Reverb' : '';
+  return suffix && def.name.endsWith(suffix) ? def.name.slice(0, -suffix.length) : def.name;
+}
+
+const widest = Math.max(...effectFamilies.map((f) => f.definitions.length));
+---
+
+<div class="families">
+  {effectFamilies.map((family) => (
+    <section
+      class:list={['fam', { wide: family.definitions.length === widest }]}
+      style={`--c:${family.color}`}
+      aria-labelledby={`fam-${family.key}`}
+      data-reveal
+    >
+      <header>
+        <h3 id={`fam-${family.key}`}>{family.label}</h3>
+        <b class="tnum" aria-label={`${family.definitions.length} blocks`}>{family.definitions.length}</b>
+      </header>
+      <ul>
+        {family.definitions.map((def) => <li>{shortName(def, family.key)}</li>)}
+      </ul>
+    </section>
+  ))}
+</div>
+
+<style>
+  .families {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-flow: dense;
+    gap: 16px;
+  }
+  .fam {
+    grid-column: span 4;
+    border: 1px solid var(--hairline);
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--c) 16%, var(--surface)), var(--surface) 70%);
+  }
+  .fam.wide {
+    grid-column: span 8;
+  }
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: var(--c);
+    color: var(--ground);
+  }
+  :global(:root[data-theme='light']) header {
+    color: var(--text-bright);
+  }
+  h3 {
+    margin: 0;
+    color: inherit;
+    font-size: 1.35rem;
+    letter-spacing: 0.08em;
+  }
+  header b {
+    font-family: var(--font-display);
+    font-size: 2.4rem;
+    font-weight: 800;
+    line-height: 0.8;
+  }
+  ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    padding: 18px 20px 22px;
+    list-style: none;
+  }
+  li {
+    padding: 9px 11px;
+    border: 1px solid var(--hairline);
+    background: var(--ground-2);
+    color: var(--text-strong);
+    font-family: var(--font-display);
+    font-size: 0.98rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+  @media (max-width: 980px) {
+    .fam,
+    .fam.wide {
+      grid-column: span 12;
+    }
+  }
+</style>
