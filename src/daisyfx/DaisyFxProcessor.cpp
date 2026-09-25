@@ -190,8 +190,8 @@ std::unique_ptr<pedal::ReverbMode> makeReverbMode(const std::string& mode, pedal
 
 struct DaisyFxProcessor::Impl {
   enum class Kind { None, Mod, Delay, Reverb };
-  // P3 and P4 exist only for modulation modes that declare them; delay and
-  // reverb use the first seven.
+  // P3 and P4 exist only for modulation modes that declare them. Delays use
+  // P3 for Width. Reverbs use the first seven.
   enum Target : size_t { Speed, Depth, Mix, Tone, P1, P2, Level, P3, P4, Count };
   Kind kind = Kind::None;
   pedal::ModModeId modId{};
@@ -263,6 +263,8 @@ struct DaisyFxProcessor::Impl {
              mappedDelayParam(target(P2), delayId, pedal::delay_fx::ParamId::ModSpd));
       smooth(delayParams.mod_dep,
              mappedDelayParam(target(Level), delayId, pedal::delay_fx::ParamId::ModDep));
+      smooth(delayParams.width,
+             mappedDelayParam(target(P3), delayId, pedal::delay_fx::ParamId::Width));
     } else if (kind == Kind::Reverb) {
       const float interval = static_cast<float>(controlInterval()) / kHostedDaisySampleRate;
       const float coefficient = 1.0f - std::exp(-interval / kFeedbackSmoothingSeconds);
@@ -467,6 +469,7 @@ bool DaisyFxProcessor::configure(const std::string& blockType, const nlohmann::j
     next->targets[Impl::P1].store(param("grit"));
     next->targets[Impl::P2].store(param("mod_spd"));
     next->targets[Impl::Level].store(param("mod_dep"));
+    next->targets[Impl::P3].store(param("width"));
     next->delay->Init();
     next->prepare();
     next->seedOutputSmoothing();
@@ -512,6 +515,7 @@ bool DaisyFxProcessor::setParameterTarget(std::string_view key, float normalized
   else if (key == "p2" || key == "mod_spd" || key == "param1") target = Impl::P2;
   else if (key == "level" || key == "mod_dep" || key == "param2") target = Impl::Level;
   else if (key == "p3" && impl_->kind == Impl::Kind::Mod) target = Impl::P3;
+  else if (key == "width" && impl_->kind == Impl::Kind::Delay) target = Impl::P3;
   else if (key == "p4" && impl_->kind == Impl::Kind::Mod) target = Impl::P4;
   if (!target.has_value()) {
     return false;
@@ -523,7 +527,8 @@ bool DaisyFxProcessor::setParameterTarget(std::string_view key, float normalized
 bool DaisyFxProcessor::setParameterTarget(std::size_t parameterIndex, float normalized)
 {
   if (!impl_ || parameterIndex >= Impl::Count || !std::isfinite(normalized)) return false;
-  if (parameterIndex >= Impl::P3 && impl_->kind != Impl::Kind::Mod) return false;
+  if (parameterIndex >= Impl::P3 && impl_->kind != Impl::Kind::Mod
+      && !(parameterIndex == Impl::P3 && impl_->kind == Impl::Kind::Delay)) return false;
   impl_->targets[parameterIndex].store(std::clamp(normalized, 0.0f, 1.0f),
                                        std::memory_order_release);
   return true;
@@ -570,14 +575,29 @@ DaisyFxFrame DaisyFxProcessor::processFrame(StereoSample input)
     }, contribution};
   }
   if (impl_->delay) {
-    const auto wet = impl_->delay->Process({input.left, input.right}, impl_->delayParams);
+    auto wet = impl_->delay->Process({input.left, input.right}, impl_->delayParams);
+    // Width: scale the side of the repeats. Full width skips the arithmetic,
+    // so the default stays bit-exact with presets saved before Width existed.
+    const float width = impl_->delayParams.width;
+    if (width < 1.0f) {
+      const float mid = 0.5f * (wet.left + wet.right);
+      const float side = 0.5f * (wet.left - wet.right) * width;
+      wet.left = mid + side;
+      wet.right = mid - side;
+    }
     const StereoSample contribution{
       finiteWet(wet.left) * impl_->smoothedMix,
       finiteWet(wet.right) * impl_->smoothedMix,
     };
+    // A delay adds repeats to the played note: the dry stays at unity up to
+    // 50 % Mix and only then fades, reaching zero at 100 %. The linear
+    // crossfade used before turned the dry note down by 2.5 dB at the default
+    // 25 % Mix and 6 dB at 50 %. The wet level at each Mix is unchanged, so
+    // saved presets keep their balance of repeats.
+    const float dry = std::min(1.0f, 2.0f * (1.0f - impl_->smoothedMix));
     return {{
-      input.left * (1.0f - impl_->smoothedMix) + contribution.left,
-      input.right * (1.0f - impl_->smoothedMix) + contribution.right,
+      input.left * dry + contribution.left,
+      input.right * dry + contribution.right,
     }, contribution};
   }
   if (impl_->reverb) {

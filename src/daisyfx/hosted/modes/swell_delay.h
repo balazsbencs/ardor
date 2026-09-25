@@ -45,6 +45,7 @@ private:
     float          swell_buf_r_[MAX_DELAY_SAMPLES];
     DelayLineSdram swell_line_l_;
     DelayLineSdram swell_line_r_;
+    StereoSpread spread_;   // right-head offset, scaled by Width
 };
 
 } // namespace pedal

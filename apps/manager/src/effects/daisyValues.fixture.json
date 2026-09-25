@@ -1055,6 +1055,13 @@
           "defaultValue": 0.000000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "0.0 ms"}, {"value": 0.230000, "text": "0.1 ms"}, {"value": 0.470000, "text": "0.3 ms"}, {"value": 0.710000, "text": "0.4 ms"}, {"value": 1.000000, "text": "0.6 ms"}]
+        },
+        {
+          "key": "width",
+          "label": "Width",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         }
       ]
     },
@@ -1111,6 +1118,13 @@
           "defaultValue": 0.000000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "0.0 ms"}, {"value": 0.230000, "text": "0.2 ms"}, {"value": 0.470000, "text": "0.5 ms"}, {"value": 0.710000, "text": "0.7 ms"}, {"value": 1.000000, "text": "1.0 ms"}]
+        },
+        {
+          "key": "width",
+          "label": "Width",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         }
       ]
     },
@@ -1166,7 +1180,14 @@
           "label": "Mod Depth",
           "defaultValue": 0.000000,
           "choiceCount": 0,
-          "samples": [{"value": 0.000000, "text": "0.00%"}, {"value": 0.230000, "text": "0.12%"}, {"value": 0.470000, "text": "0.23%"}, {"value": 0.710000, "text": "0.35%"}, {"value": 1.000000, "text": "0.50%"}]
+          "samples": [{"value": 0.000000, "text": "0.0 ms"}, {"value": 0.230000, "text": "0.1 ms"}, {"value": 0.470000, "text": "0.3 ms"}, {"value": 0.710000, "text": "0.4 ms"}, {"value": 1.000000, "text": "0.6 ms"}]
+        },
+        {
+          "key": "width",
+          "label": "Width",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         }
       ]
     },
@@ -1223,6 +1244,13 @@
           "defaultValue": 0.000000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "0.0 ms"}, {"value": 0.230000, "text": "7.2 ms"}, {"value": 0.470000, "text": "14.7 ms"}, {"value": 0.710000, "text": "22.2 ms"}, {"value": 1.000000, "text": "31.2 ms"}]
+        },
+        {
+          "key": "width",
+          "label": "Width",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         }
       ]
     },
@@ -1279,6 +1307,13 @@
           "defaultValue": 0.000000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "0.0 ms"}, {"value": 0.230000, "text": "0.1 ms"}, {"value": 0.470000, "text": "0.2 ms"}, {"value": 0.710000, "text": "0.3 ms"}, {"value": 1.000000, "text": "0.4 ms"}]
+        },
+        {
+          "key": "width",
+          "label": "Width",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         }
       ]
     },
@@ -1335,6 +1370,13 @@
           "defaultValue": 0.000000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "0.0 ms"}, {"value": 0.230000, "text": "0.1 ms"}, {"value": 0.470000, "text": "0.2 ms"}, {"value": 0.710000, "text": "0.3 ms"}, {"value": 1.000000, "text": "0.4 ms"}]
+        },
+        {
+          "key": "width",
+          "label": "Width",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         }
       ]
     },
@@ -1391,6 +1433,13 @@
           "defaultValue": 0.000000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "0.0 ms"}, {"value": 0.230000, "text": "0.1 ms"}, {"value": 0.470000, "text": "0.1 ms"}, {"value": 0.710000, "text": "0.2 ms"}, {"value": 1.000000, "text": "0.3 ms"}]
+        },
+        {
+          "key": "width",
+          "label": "Width",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         }
       ]
     },
@@ -1447,6 +1496,13 @@
           "defaultValue": 0.000000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "0.0 ms"}, {"value": 0.230000, "text": "0.1 ms"}, {"value": 0.470000, "text": "0.2 ms"}, {"value": 0.710000, "text": "0.4 ms"}, {"value": 1.000000, "text": "0.5 ms"}]
+        },
+        {
+          "key": "width",
+          "label": "Width",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         }
       ]
     },
@@ -1503,6 +1559,13 @@
           "defaultValue": 0.000000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "2.50 s"}, {"value": 0.230000, "text": "1.94 s"}, {"value": 0.470000, "text": "1.36 s"}, {"value": 0.710000, "text": "782 ms"}, {"value": 1.000000, "text": "80.0 ms"}]
+        },
+        {
+          "key": "width",
+          "label": "Width",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         }
       ]
     },
@@ -1557,6 +1620,13 @@
           "key": "mod_dep",
           "label": "Trem Depth",
           "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "width",
+          "label": "Width",
+          "defaultValue": 1.000000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         }
