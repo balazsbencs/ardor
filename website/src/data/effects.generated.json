@@ -4,27 +4,38 @@
   "categoryMeta": {
     "amp": {
       "label": "Amp",
-      "order": 0
+      "order": 0,
+      "effect": false
     },
     "cabinet": {
       "label": "Cabinet",
-      "order": 1
+      "order": 1,
+      "effect": false
+    },
+    "drive": {
+      "label": "Drive",
+      "order": 2,
+      "effect": true
     },
     "utility": {
-      "label": "Utility",
-      "order": 2
+      "label": "Dynamics and tone",
+      "order": 3,
+      "effect": true
     },
     "modulation": {
       "label": "Modulation",
-      "order": 3
+      "order": 4,
+      "effect": true
     },
     "delay": {
       "label": "Delay",
-      "order": 4
+      "order": 5,
+      "effect": true
     },
     "reverb": {
       "label": "Reverb",
-      "order": 5
+      "order": 6,
+      "effect": true
     }
   },
   "categories": {
@@ -110,7 +121,8 @@
           "label": "NAM model",
           "kind": "asset",
           "unit": "",
-          "assetKind": "models"
+          "assetKind": "models",
+          "assetLabel": "NAM capture (.nam)"
         },
         {
           "key": "inputMode",
@@ -122,7 +134,7 @@
             "Left / Mono",
             "Right"
           ],
-          "default": "sum"
+          "default": "L+R Average"
         },
         {
           "key": "useNano",
@@ -147,7 +159,8 @@
           "label": "Cabinet IR",
           "kind": "asset",
           "unit": "",
-          "assetKind": "irs"
+          "assetKind": "irs",
+          "assetLabel": "Cabinet impulse response"
         },
         {
           "key": "levelDb",
@@ -185,7 +198,8 @@
           "label": "Reverb IR",
           "kind": "asset",
           "unit": "",
-          "assetKind": "reverb-irs"
+          "assetKind": "reverb-irs",
+          "assetLabel": "Reverb impulse response"
         },
         {
           "key": "mix",
@@ -258,14 +272,15 @@
             "Left / Mono",
             "Right"
           ],
-          "default": "sum"
+          "default": "L+R Average"
         },
         {
           "key": "leftNamAsset",
           "label": "Left NAM model",
           "kind": "asset",
           "unit": "",
-          "assetKind": "models"
+          "assetKind": "models",
+          "assetLabel": "NAM capture (.nam)"
         },
         {
           "key": "leftUseNano",
@@ -279,7 +294,8 @@
           "label": "Left cabinet IR",
           "kind": "asset",
           "unit": "",
-          "assetKind": "irs"
+          "assetKind": "irs",
+          "assetLabel": "Cabinet impulse response"
         },
         {
           "key": "leftCabLevelDb",
@@ -313,7 +329,8 @@
           "label": "Right NAM model",
           "kind": "asset",
           "unit": "",
-          "assetKind": "models"
+          "assetKind": "models",
+          "assetLabel": "NAM capture (.nam)"
         },
         {
           "key": "rightUseNano",
@@ -327,7 +344,8 @@
           "label": "Right cabinet IR",
           "kind": "asset",
           "unit": "",
-          "assetKind": "irs"
+          "assetKind": "irs",
+          "assetLabel": "Cabinet impulse response"
         },
         {
           "key": "rightCabLevelDb",
@@ -377,7 +395,7 @@
             "Left / Mono",
             "Right"
           ],
-          "default": "sum"
+          "default": "L+R Average"
         },
         {
           "key": "leftLevelDb",
@@ -523,7 +541,7 @@
             "Peak",
             "RMS"
           ],
-          "default": "peak"
+          "default": "Peak"
         },
         {
           "key": "auto_makeup",
@@ -895,7 +913,7 @@
             "15 ips",
             "30 ips"
           ],
-          "default": "15"
+          "default": "15 ips"
         },
         {
           "key": "head_bump",
@@ -4030,6 +4048,11 @@
   ],
   "counts": {
     "total": 52,
+    "effects": 48,
+    "amp": 3,
+    "cabinet": 1,
+    "drive": 3,
+    "utility": 6,
     "modulation": 16,
     "delay": 10,
     "reverb": 13
