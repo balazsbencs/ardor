@@ -100,6 +100,7 @@ void ToneFilter::Recompute(float knob) {
     bypass_ = next_bypass;
     if (bypass_) {
         output_gain_ = 1.0f;
+        loudness_correction_ = 1.0f;
         return;
     }
 
@@ -111,6 +112,7 @@ void ToneFilter::Recompute(float knob) {
         // 400 Hz keeps both ends of the knob within 0.6 dB of flat, where
         // 800 Hz left the dark end +2.7 dB louder and the bright end -1.9 dB.
         output_gain_ = 1.0f / MagnitudeAt(pivot_hz_);
+        loudness_correction_ = 1.0f;
         return;
     }
     // ToneFilter is also used inside delay feedback loops. Normalize the
@@ -118,6 +120,7 @@ void ToneFilter::Recompute(float knob) {
     // sub-unity feedback coefficient into a self-sustaining loop.
     const float maximum_boost_db = amount > 0.0f ? 7.0f * amount : -4.0f * amount;
     output_gain_ = std::pow(10.0f, -maximum_boost_db / 20.0f);
+    loudness_correction_ = 1.0f / (MagnitudeAt(pivot_hz_) * output_gain_);
 }
 
 float ToneFilter::Process(float sample) {

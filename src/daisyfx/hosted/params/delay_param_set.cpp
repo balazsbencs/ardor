@@ -12,6 +12,7 @@ float ParamSet::get(ParamId id) const {
         case ParamId::Grit:    return grit;
         case ParamId::ModSpd:  return mod_spd;
         case ParamId::ModDep:  return mod_dep;
+        case ParamId::Width:   return width;
         default:               return 0.0f;
     }
 }
@@ -25,6 +26,7 @@ ParamSet ParamSet::make_default() {
         .grit     = 0.0f,
         .mod_spd  = 0.5f,
         .mod_dep  = 0.0f,
+        .width    = 1.0f,
     };
 }
 

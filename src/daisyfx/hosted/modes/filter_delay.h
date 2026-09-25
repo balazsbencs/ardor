@@ -33,11 +33,14 @@ private:
     DelayTapTransition time_transition_;
     FilterType filter_type_ = FilterType::Lowpass;
     float     sweep_depth_indices_ = 0.0f;
+    float     q_ = 0.5f;
+    float     makeup_ = 1.0f;   // resonance make-up for the selected type
 
     float          filter_buf_l_[MAX_DELAY_SAMPLES];
     float          filter_buf_r_[MAX_DELAY_SAMPLES];
     DelayLineSdram filter_line_l_;
     DelayLineSdram filter_line_r_;
+    StereoSpread spread_;   // right-head offset, scaled by Width
 };
 
 } // namespace pedal

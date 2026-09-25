@@ -240,10 +240,8 @@ function modDisplay(mode: string, key: string): NumberDisplay {
 }
 
 function delayModDepth(mode: string): NumberDisplay {
-  const samples: Record<string, number> = { digital: 30, tape: 50, filter: 1500, lofi: 20, dbucket: 20, duck: 15, pattern: 25 };
+  const samples: Record<string, number> = { digital: 30, dual: 30, tape: 50, filter: 1500, lofi: 20, dbucket: 20, duck: 15, pattern: 25 };
   if (samples[mode]) return physical(0, samples[mode] * 1000 / 48000, 0, milliseconds, 0.01);
-  // The device prints the dual delay's ping-pong depth with two decimals.
-  if (mode === "dual") return physical(0, 0.5, 0, (value) => `${number(value, 2)}%`, 0.01);
   return normalizedPercent;
 }
 

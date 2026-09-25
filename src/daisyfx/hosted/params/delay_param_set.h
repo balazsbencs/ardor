@@ -12,6 +12,7 @@ struct ParamSet {
     float grit;     // dirt/saturation amount 0..1
     float mod_spd;  // modulation rate in Hz 0.05..10
     float mod_dep;  // modulation depth 0..1
+    float width;    // stereo width of the repeats 0..1 (1 = full, 0 = mono)
 
     float get(ParamId id) const;
     static ParamSet make_default();

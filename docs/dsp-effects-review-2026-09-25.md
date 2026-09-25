@@ -17,10 +17,10 @@ before the fix and passes after it.
 | 2 | Whammy, Harmonizer, Poly Octave | Done | Done | [#88](https://github.com/balazsbencs/ardor/pull/88), [#89](https://github.com/balazsbencs/ardor/pull/89) |
 | 3 | Filter, Ladder Sweep, Formant, Quadrature | Done | Quick fixes done | [#91](https://github.com/balazsbencs/ardor/pull/91) |
 | — | Auto Swell, Destroyer | Not started | — | — |
-| — | Delays (10 modes) | Not started | — | — |
+| 4 | Delays: Digital, Tape, Dual, Filter, Lo-fi, Bucket Brigade, Duck, Pattern, Swell, Tremolo | Done | D1–D8 done | [#92](https://github.com/balazsbencs/ardor/pull/92) |
 | — | Reverbs (12 modes) | Not started | — | — |
 
-The PRs are stacked. Merge them in order: #87, #88, #89, #91. After each
+The PRs are stacked. Merge them in order: #87, #88, #89, #91, #92. After each
 merge, GitHub moves the next PR to `main`.
 
 None of the PRs is tested on the pedal yet. See [Open items](#open-items).
@@ -132,6 +132,86 @@ Tests: `tests/pitch_effect_quality.cpp`, `tests/harmonizer_quality.cpp`.
 
 Test: `tests/filter_effect_quality.cpp`.
 
+## Phase 4 — delays
+
+All ten modes share one host path: the Daisy processor blends dry and wet
+with a linear crossfade, and each mode runs a per-channel loop with the
+right head 150 samples (3.1 ms) behind the left.
+
+### Measured findings
+
+| # | Mode | Finding | Measured |
+|---|---|---|---|
+| D1 | All | Engaging a delay turns the dry note down: the host mix is a linear crossfade | dry −2.5 dB at the default 25 % Mix, −6.0 dB at 50 % |
+| D2 | Digital, Tape | Grit adds loop gain: the saturator's small-signal gain grows to 16×, so repeats stop decaying | Repeats 0.35, level 6 s after a burst: Digital −186 dB at Grit 0, −31 dB at 0.5, **+1.2 dB at 1.0**; Tape −190 / **−6.9** / **+0.7 dB** |
+| D3 | Filter | Output soft clip on the wet signal, and no resonance make-up | first repeat H3 −35 dBc at 0.3, −24 dBc at 0.6; first repeat +4.3 dB at the default resonance |
+| D4 | Digital, Dual, Duck, Pattern, Trem | The loop-safe Tone tilt also sets the first repeat's level | Tone 1: first repeat −9.4 dB on guitar |
+| D5 | Tape | Tone and Grit colour only the feedback path, so they do nothing to the first repeat | Tone 0 / 1: 0.00 dB change on the first repeat |
+| D6 | Dual | Modulation depth is a fraction of the delay time | 11 cents peak to peak at 0.1 s, **109 cents** at 1.0 s |
+| D7 | All but Pattern, Trem | The 150-sample right-head offset combs the repeats when the output is summed to mono | mono-sum response spread 47–75 dB between 100 Hz and 4 kHz |
+| D8 | Tape, Bucket Brigade | Always some saturation, even at Grit 0 | Tape H3 −56 / −44 dBc (0.3 / 0.6 input); Bucket Brigade −44 / −32 dBc |
+| D9 | All | Shortest time is 60 ms (Lo-fi 2 ms): no doubling or short slapback | range 60 ms – 2.5 s |
+| D10 | All | No tap tempo, tempo sync or note divisions | Ardor has no global tempo yet |
+
+Checked and fine:
+
+- First-repeat gain is 0 dB in Digital, Dual, Lo-fi, Duck and Trem. Pattern
+  sits at −2.2 dB by its tap weights, and Swell's first repeat depends on its
+  attack time, as designed.
+- Grit in Bucket Brigade is level-compensated; repeats decay at every Grit.
+- Delay-time changes: the clean modes crossfade two heads over 50 ms; Tape
+  and Bucket Brigade glide the pitch like a varispeed.
+- In-loop DC blockers: 20 repeats lose only 0.5 dB more at 60 Hz than at
+  1 kHz, so the 5.35 Hz blockers are not worth changing.
+
+### Fixes
+
+| # | Fix | Before | After |
+|---|---|---|---|
+| D1 | Delay mix law: dry = min(1, 2 × (1 − Mix)), wet = Mix | dry −2.5 dB at 25 % Mix, −6.0 dB at 50 % | 0.00 dB up to 50 %; wet level unchanged |
+| D2 | Digital and Tape saturators divided by their drive (unity small-signal gain), blended in by Grit | Repeats 0.35, full Grit: +1.2 dB (Digital) and +0.7 dB (Tape) 6 s later | below −190 dB |
+| D3 | Filter Delay: no output clip; constant-peak band-pass, low/high-pass make-up above Q 4, soft limiter above −3 dBFS | H3 −24 dBc; first repeat +4.3 dB | H3 −141 dBc; first repeat −0.9 dB; peaks within +12 dB |
+| D4 | `ToneFilter::LoudnessCorrection()` applied to the wet output only; the loop keeps the loop-safe tilt | first repeat −9.4 dB at Tone 1 | within 0.4 dB at both ends |
+| D5 | Tape record path: tape EQ, normalised saturation and head loss act on everything written, Tone on playback | Tone and Grit did nothing to the first repeat | both shape it |
+| D6 | Dual modulation depth is absolute (30 samples at full, as Digital) | 11 / 109 cents at 0.1 / 1 s | 13.7 cents at both |
+| D7 | New **Width** control for every delay (index 7, default 100 %): it scales the right-head offset (gliding over ~20 ms) and the side of the repeats | mono sum combed by 47–75 dB | Width 0: identical channels, flat mono sum; Width 1: bit-exact with the old image |
+| D8 | Tape write limiter clean below −3 dBFS; `BbdEmulator` blends into its saturator over the first 10 % of Drive | H3 −44 dBc (Tape), −32 dBc (Bucket Brigade) at 0.6 | below −150 dBc |
+
+Notes:
+
+- Chorus dBucket also uses `BbdEmulator`, at a fixed Drive of 0.15, where
+  the blend is complete. Its sound is unchanged.
+- The Tape first repeat now passes the head loss (a one-pole near 4.6 kHz)
+  that only later repeats had before. That is how a tape echo sounds.
+- `soft_limit_above()` in `fast_math.h` is now shared by the Filter mode, the
+  Filter Delay and the Tape write.
+- The Dual Mod Depth display now reads in milliseconds, like the other modes.
+- Width is the delays' first control after the original seven: it uses the
+  processor's P3 slot, which the delay kind now accepts by key (`width`) and
+  by index. The default keeps saved presets unchanged; mono rigs set it to 0.
+
+Test: `tests/delay_effect_quality.cpp`.
+
+### Still open
+
+- **D9, D10.** A shorter minimum time; tap tempo and note divisions once the
+  host has a tempo.
+- **Mix law for reverbs.** The reverbs use the same linear crossfade. Measure
+  it in the reverb phase before changing it.
+
+## PR review feedback
+
+A third-party review commented on #87, #88, #89 and #91. Each comment was
+checked against the code before a change.
+
+| PR | Comment | Outcome |
+|---|---|---|
+| #87 | Chorus Vibrato ignored Mix | Fixed: Vibrato uses the same equal-power blend; Mix at full is the pure vibrato |
+| #88 | Preset → Detune switch with a slow Glide | Partly correct. Gliding both voices from the old interval is the Glide behaviour. The real defect: the right voice's anti-alias filter was set for the mirrored pitch, so it aliased during the glide (+3.5 dB more energy than the left voice on 15 kHz). Fixed: the filter follows the voice's real pitch |
+| #89 | Mix and Voice 2 Level | The behaviour is sound; the description was wrong. Mix sets both voices together (dry + Mix × (voice 1 + level × voice 2)); Voice 2 Level balances voice 2 against voice 1. Description corrected |
+| #89 | A silent Voice 2 still panned Voice 1 | Fixed: the pan follows Voice 2's level, so at 0 Voice 1 stays centred |
+| #91 | Carry the Filter migration into the release guidance | Done: see [Release notes](#release-notes); the commit carries a `BREAKING CHANGE:` footer for the generated changelog |
+
 ## Decisions and trade-offs
 
 - **Rotary peaks.** The LR4 crossover shifts the phase, which can make sharp
@@ -153,6 +233,13 @@ Test: `tests/filter_effect_quality.cpp`.
   fix needs a different engine, for example an FFT phase vocoder.
 
 ## Preset impact
+
+- Delays: the dry note is louder by 2.5 dB at 25 % Mix and up to 6 dB at
+  50 %, which is the missing level coming back.
+- Bank 0, preset 0 (Digital, Grit 0.57, Repeats 0.59): the repeats used to
+  hold at the limiter for good; they now decay.
+- Tape presets (bank 0, presets 0 and 2): the first repeat now has the tape
+  head loss.
 
 - Bank 0, preset 2 (Chorus, Digital): delay 13.5 → 18 ms; Tone now tilts.
 - Bank 0, preset 3 (Vintage Trem, Photoresistor): new photocell model, no
@@ -192,7 +279,8 @@ guidance.
 - **Phase 3 quality items.** Stereo input for Filter, Formant and Quadrature.
   True formant morphing. Sample & Hold smoothing and an envelope Sensitivity
   control for Filter. Lag and tempo divisions for Ladder Sweep.
-- **Not reviewed yet.** Auto Swell, Destroyer, all delays, all reverbs.
+- **Delay items D9, D10.** See Phase 4.
+- **Not reviewed yet.** Auto Swell, Destroyer, all reverbs.
 - **Tempo sync** for the modulation effects needs a global tempo from the
   host.
 - **Pre-existing test failures, not caused by this work.** On macOS, eight

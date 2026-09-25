@@ -30,6 +30,7 @@ void DbucketDelay::Init() {
 }
 
 void DbucketDelay::Reset() {
+    spread_.Reset();
     line_l_.Reset();
     line_r_.Reset();
     lfo_.Reset();
@@ -70,7 +71,7 @@ void DbucketDelay::Prepare(const ParamSet& params) {
     bbd_l_.SetInputLpK(input_lp);
     bbd_r_.SetInputLpK(input_lp);
     bbd_l_.SetClockDelaySamples(ds);
-    bbd_r_.SetClockDelaySamples(ds + kStereoOffsetSamples);
+    bbd_r_.SetClockDelaySamples(ds + kStereoOffsetSamples * params.width);
 }
 
 StereoFrame DbucketDelay::Process(float input, const ParamSet& params) {
@@ -92,8 +93,10 @@ StereoFrame DbucketDelay::Process(StereoFrame input, const ParamSet& params) {
     const float lfo_val   = lfo_.Process();
     const float modulation = params.mod_dep * 20.0f;
     const float delay_l = delay_smooth_ + lfo_val * modulation;
-    const float delay_r = delay_smooth_ + kStereoOffsetSamples - lfo_val * modulation;
-    const bool moving = modulation > 0.00001f || fabsf(base_samps - delay_smooth_) > 0.01f;
+    const float spread = spread_.Update(kStereoOffsetSamples, params.width);
+    const float delay_r = delay_smooth_ + spread - lfo_val * modulation;
+    const bool moving = modulation > 0.00001f || fabsf(base_samps - delay_smooth_) > 0.01f
+                     || spread_.Fractional();
     const float tap_l = moving ? line_l_.ReadAtHighQuality(delay_l) : line_l_.ReadNearest(delay_l);
     const float tap_r = moving ? line_r_.ReadAtHighQuality(delay_r) : line_r_.ReadNearest(delay_r);
     float wet_l = filter_l_.Process(bbd_l_.Deemphasis(tap_l));
