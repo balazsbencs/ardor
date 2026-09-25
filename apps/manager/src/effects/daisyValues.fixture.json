@@ -400,15 +400,15 @@
       "params": [
         {
           "key": "speed",
-          "label": "Tracking",
-          "defaultValue": 0.350000,
+          "label": "Attack",
+          "defaultValue": 0.000000,
           "choiceCount": 0,
-          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "5%"}, {"value": 0.470000, "text": "22%"}, {"value": 0.710000, "text": "50%"}, {"value": 1.000000, "text": "100%"}]
+          "samples": [{"value": 0.000000, "text": "Off"}, {"value": 0.230000, "text": "13.2 ms"}, {"value": 0.470000, "text": "55.2 ms"}, {"value": 0.710000, "text": "126 ms"}, {"value": 1.000000, "text": "250 ms"}]
         },
         {
           "key": "depth",
           "label": "Oct Down 2",
-          "defaultValue": 0.700000,
+          "defaultValue": 0.000000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         },
@@ -436,7 +436,7 @@
         {
           "key": "p2",
           "label": "Oct Down",
-          "defaultValue": 0.000000,
+          "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         },
@@ -446,6 +446,13 @@
           "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Dry",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         }
       ]
     },
@@ -908,6 +915,13 @@
           "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Detune",
+          "defaultValue": 0.000000,
+          "choiceCount": 3,
+          "samples": [{"value": 0.000000, "text": "Off"}, {"value": 0.500000, "text": "Shallow"}, {"value": 1.000000, "text": "Deep"}]
         }
       ]
     },

@@ -53,8 +53,11 @@ private:
     static constexpr int kMatchWindow = 256;  // trailing context compared
     static constexpr int kMatchStride = 4;    // decimation within that window
     static constexpr int kCoarseStride = 8;   // first-pass step, refined after
-    // Below this jump size there is no meaningful discontinuity to repair.
-    static constexpr float kMinJumpForSearch = 8.0f;
+    // A restart never moves less than this far back, so the half-sample
+    // refinement and the partner's fraction cannot push it past nominal.
+    static constexpr long kMinBack = 2;
+    // Distance a restart keeps behind the write head.
+    static constexpr float kWriteMargin = 4.0f;
 
     float*  buf_         = nullptr;
     size_t  buf_size_    = 0;

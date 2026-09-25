@@ -130,7 +130,11 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "ladder_sweep") return physical(40, 240, 0, (value) => `${number(value, 0)} BPM`, 1);
     if (mode === "auto_swell") return physical(10, 500, 1, milliseconds, 1);
     if (mode === "quadrature") return physical(0.1, 1000, 2, frequency, 0.1);
-    if (mode === "poly_octave") return scaledPercent(100, 1);
+    // Attack: the voices swell in over up to 250 ms after each note.
+    if (mode === "poly_octave") return custom((value) => {
+      const seconds = clamp(value) ** 2 * 0.25;
+      return seconds < 0.0005 ? "Off" : milliseconds(seconds * 1000);
+    });
     // Glide is a time, not a rate: ~50 ms at the slow end, ~1 ms at the fast end.
     if (mode === "whammy") return custom((value) => milliseconds(1 / (0.02 + clamp(value) * 0.95)));
     if (mode === "harmonizer") return scaledPercent(100, 1);
@@ -211,6 +215,7 @@ function modDisplay(mode: string, key: string): NumberDisplay {
   }
   // Optional p3/p4 controls, mirroring formatMod() in DaisyFxCatalog.cpp.
   if (key === "p3") {
+    if (mode === "whammy") return choices(["Off", "Shallow", "Deep"]);
     if (mode === "phaser" || mode === "vintage_trem") return physical(0, 180, 0, degrees, 1);
     if (mode === "pattern_trem") return logPhysical(0.5, 30, milliseconds, 0.1);
     if (mode === "rotary") return custom(rotaryBalance);

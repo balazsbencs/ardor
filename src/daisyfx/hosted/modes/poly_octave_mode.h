@@ -61,7 +61,15 @@ private:
     float up1_level_   = 0.0f;
     float down1_level_ = 0.0f;
     float down2_level_ = 0.0f;
-    float tracking_coefficient_ = 1.0f;
+    float dry_target_  = 1.0f;   // Dry (p3)
+    float dry_level_   = 1.0f;
+
+    // Attack (Speed): the voices swell in after each note. A slow envelope of
+    // the input divided by a fast one dips at every onset and recovers over
+    // the attack time; with no attack the two are the same and the gain is 1.
+    float env_fast_ = 0.0f;   // the note's envelope
+    float env_slow_ = 0.0f;   // its copy that rises at the Attack rate
+    float attack_coefficient_ = 1.0f;
 };
 
 } // namespace pedal

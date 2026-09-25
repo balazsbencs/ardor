@@ -53,7 +53,8 @@ void HarmonizerMode::Init()
 {
     shifter_.Init(buf_, kBufSize, SAMPLE_RATE, kGrainSize);
     tracker_.Init(SAMPLE_RATE);
-    tone_.Init();
+    // Loudness-neutral: the voice feeds no loop.
+    tone_.Init(SAMPLE_RATE, ToneGain::Loudness);
     Reset();
 }
 
@@ -119,14 +120,15 @@ void HarmonizerMode::Prepare(const ParamSet& params)
     if (tracker_.Voiced()) {
         const float hz = tracker_.FrequencyHz();
         if (hz > 20.0f) {
-            const int note = static_cast<int>(
-                std::lround(69.0f + 12.0f * std::log2(hz / 440.0f)));
-            // Recompute only when the note or the harmony settings change; the
-            // interval is a property of the note, not of every control block.
-            if (note != lastNote_) {
-                lastNote_ = note;
+            // Hysteresis: keep the current note until the pitch is clearly on
+            // another one. Rounding alone flipped the harmony every time
+            // vibrato or a bend crossed a semitone boundary, 29 times in 3 s
+            // of +/-20 cents of vibrato.
+            const float midi = 69.0f + 12.0f * std::log2(hz / 440.0f);
+            if (lastNote_ < 0 || std::fabs(midi - static_cast<float>(lastNote_)) > kNoteHysteresis) {
+                lastNote_ = static_cast<int>(std::lround(midi));
             }
-            semitoneTarget_ = semitonesForNote(note);
+            semitoneTarget_ = semitonesForNote(lastNote_);
         }
     }
     // When nothing is being tracked the previous interval is held, so a
