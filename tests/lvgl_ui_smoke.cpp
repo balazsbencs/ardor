@@ -3023,6 +3023,54 @@ int main()
                 && !navigationState.navigationPrompt.has_value(),
               "Discard should release the selected destination for activation")) return 1;
 
+  auto pickerState = ardor::makeDemoUiState();
+  const auto whammyAsset = std::find_if(pickerState.assets.begin(), pickerState.assets.end(),
+    [](const ardor::UiAsset& asset) { return asset.name == "Whammy"; });
+  if (require(whammyAsset != pickerState.assets.end(),
+              "Whammy should be available for the choice picker test")) return 1;
+  ardor::appendAssetBlock(pickerState, static_cast<std::size_t>(
+    std::distance(pickerState.assets.begin(), whammyAsset)));
+  completePreview(pickerState);
+  ardor::enterEditMode(pickerState);
+  ardor::LvglUi pickerUi;
+  pickerUi.selectBlock(pickerState,
+                       pickerState.bank.presets[pickerState.activePreset].blocks.size() - 1);
+  pickerUi.build(lv_screen_active(), pickerState);
+  lv_obj_t* allOptions = findLastLabel(lv_screen_active(), "ALL OPTIONS");
+  if (require(allOptions && !findLabel(lv_screen_active(), "19 OPTIONS"),
+              "Whammy should show the All Options control before opening its picker")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(allOptions), LV_EVENT_CLICKED, nullptr);
+  if (require(findLabel(lv_screen_active(), "19 OPTIONS")
+                && findLabel(lv_screen_active(), "HARMONY")
+                && findLabel(lv_screen_active(), "Dive bomb"),
+              "touching All Options should open the grouped Whammy choice picker")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "Dive bomb")),
+                    LV_EVENT_CLICKED, nullptr);
+  if (require(!findLabel(lv_screen_active(), "19 OPTIONS")
+                && pickerState.bank.presets[pickerState.activePreset].blocks.back()
+                     .params.value("p2", 0.0f) > 0.0f,
+              "selecting a Whammy option should update the preset and close the picker")) return 1;
+
+  auto harmonizerState = ardor::makeDemoUiState();
+  const auto harmonizerAsset = std::find_if(harmonizerState.assets.begin(), harmonizerState.assets.end(),
+    [](const ardor::UiAsset& asset) { return asset.name == "Harmonizer"; });
+  if (require(harmonizerAsset != harmonizerState.assets.end(),
+              "Harmonizer should be available for the map picker test")) return 1;
+  ardor::appendAssetBlock(harmonizerState, static_cast<std::size_t>(
+    std::distance(harmonizerState.assets.begin(), harmonizerAsset)));
+  completePreview(harmonizerState);
+  ardor::enterEditMode(harmonizerState);
+  ardor::LvglUi harmonizerUi;
+  harmonizerUi.selectBlock(harmonizerState,
+    harmonizerState.bank.presets[harmonizerState.activePreset].blocks.size() - 1);
+  harmonizerUi.build(lv_screen_active(), harmonizerState);
+  lv_obj_t* openMap = findLastLabel(lv_screen_active(), "OPEN MAP");
+  if (require(openMap && !findLabel(lv_screen_active(), "KEY & INTERVAL"),
+              "Harmonizer should show Open Map before opening its picker")) return 1;
+  lv_obj_send_event(lv_obj_get_parent(openMap), LV_EVENT_CLICKED, nullptr);
+  if (require(findLabel(lv_screen_active(), "KEY & INTERVAL"),
+              "touching Open Map should show the Harmonizer picker")) return 1;
+
   // Gain-reduction meter: renders for a selected compressor block, and stays
   // live even while a slider drag holds an input device -- guarding against
   // the interaction-gate bug class already fixed once for the EQ graph (see
