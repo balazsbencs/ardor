@@ -190,7 +190,9 @@ std::unique_ptr<pedal::ReverbMode> makeReverbMode(const std::string& mode, pedal
 
 struct DaisyFxProcessor::Impl {
   enum class Kind { None, Mod, Delay, Reverb };
-  enum Target : size_t { Speed, Depth, Mix, Tone, P1, P2, Level, Count };
+  // P3 and P4 exist only for modulation modes that declare them; delay and
+  // reverb use the first seven.
+  enum Target : size_t { Speed, Depth, Mix, Tone, P1, P2, Level, P3, P4, Count };
   Kind kind = Kind::None;
   pedal::ModModeId modId{};
   pedal::DelayModeId delayId{};
@@ -240,6 +242,8 @@ struct DaisyFxProcessor::Impl {
       modParams.p1 = mappedModParam(target(P1), modId, pedal::mod_fx::ParamId::P1);
       modParams.p2 = mappedModParam(target(P2), modId, pedal::mod_fx::ParamId::P2);
       modParams.level = mappedModParam(target(Level), modId, pedal::mod_fx::ParamId::Level);
+      modParams.p3 = mappedModParam(target(P3), modId, pedal::mod_fx::ParamId::P3);
+      modParams.p4 = mappedModParam(target(P4), modId, pedal::mod_fx::ParamId::P4);
     } else if (kind == Kind::Delay) {
       delayParams.time = mappedDelayParam(target(Speed), delayId, pedal::delay_fx::ParamId::Time);
       const float interval = static_cast<float>(controlInterval()) / kHostedDaisySampleRate;
@@ -442,6 +446,8 @@ bool DaisyFxProcessor::configure(const std::string& blockType, const nlohmann::j
     next->targets[Impl::P1].store(param("p1"));
     next->targets[Impl::P2].store(param("p2"));
     next->targets[Impl::Level].store(param("level"));
+    next->targets[Impl::P3].store(param("p3"));
+    next->targets[Impl::P4].store(param("p4"));
     next->mod->Init();
     next->prepare();
     next->seedOutputSmoothing();
@@ -505,6 +511,8 @@ bool DaisyFxProcessor::setParameterTarget(std::string_view key, float normalized
   else if (key == "p1" || key == "grit" || key == "mod") target = Impl::P1;
   else if (key == "p2" || key == "mod_spd" || key == "param1") target = Impl::P2;
   else if (key == "level" || key == "mod_dep" || key == "param2") target = Impl::Level;
+  else if (key == "p3" && impl_->kind == Impl::Kind::Mod) target = Impl::P3;
+  else if (key == "p4" && impl_->kind == Impl::Kind::Mod) target = Impl::P4;
   if (!target.has_value()) {
     return false;
   }
@@ -515,6 +523,7 @@ bool DaisyFxProcessor::setParameterTarget(std::string_view key, float normalized
 bool DaisyFxProcessor::setParameterTarget(std::size_t parameterIndex, float normalized)
 {
   if (!impl_ || parameterIndex >= Impl::Count || !std::isfinite(normalized)) return false;
+  if (parameterIndex >= Impl::P3 && impl_->kind != Impl::Kind::Mod) return false;
   impl_->targets[parameterIndex].store(std::clamp(normalized, 0.0f, 1.0f),
                                        std::memory_order_release);
   return true;
@@ -539,6 +548,17 @@ DaisyFxFrame DaisyFxProcessor::processFrame(StereoSample input)
   impl_->advanceOutputSmoothing();
 
   if (impl_->mod) {
+    if (impl_->mod->OwnsDryMix()) {
+      // Hand the mode the same smoothed Mix the host would have used, so
+      // automation ramps exactly as it does for host-mixed modes.
+      auto params = impl_->modParams;
+      params.mix = impl_->smoothedMix;
+      const auto mixed = impl_->mod->Process({input.left, input.right}, params);
+      const float level = impl_->smoothedLevel;
+      // These modes have no separable wet part, so both views are the output.
+      return {{finiteWet(mixed.left) * level, finiteWet(mixed.right) * level},
+              {finiteWet(mixed.left) * level, finiteWet(mixed.right) * level}};
+    }
     const auto wet = impl_->mod->Process({input.left, input.right}, impl_->modParams);
     const StereoSample contribution{
       finiteWet(wet.left) * impl_->smoothedMix * impl_->smoothedLevel,

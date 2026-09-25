@@ -82,7 +82,16 @@ describe("effect catalog", () => {
 
   it("keeps Daisy presets normalized while attaching physical UI displays", () => {
     for (const definition of definitions.filter(({ blockType }) => ["mod", "delay", "reverb"].includes(blockType))) {
-      expect(definition.controls).toHaveLength(7);
+      // Seven original controls in fixed slots (scenes store the index);
+      // modulation modes may append the optional p3 and p4.
+      const keys = definition.controls.map((control) => ("key" in control ? control.key : undefined));
+      expect(keys.slice(0, 7)).toHaveLength(7);
+      if (definition.blockType === "mod") {
+        expect(keys.slice(0, 7)).toEqual(["speed", "depth", "mix", "tone", "p1", "p2", "level"]);
+        expect(keys.slice(7)).toEqual(["p3", "p4"].slice(0, keys.length - 7));
+      } else {
+        expect(keys).toHaveLength(7);
+      }
       for (const control of definition.controls) {
         expect(control).toMatchObject({ kind: "number", minimum: 0, maximum: 1, unit: "percent", display: expect.any(Object) });
         if (control.kind === "number") {

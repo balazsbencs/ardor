@@ -1045,6 +1045,16 @@
           "max": 1,
           "step": 0.05,
           "default": 0.5
+        },
+        {
+          "key": "p3",
+          "label": "Width",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
         }
       ]
     },
@@ -1126,6 +1136,26 @@
           "max": 1,
           "step": 0.05,
           "default": 0.5
+        },
+        {
+          "key": "p3",
+          "label": "Manual",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p4",
+          "label": "Stereo",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
         }
       ]
     },
@@ -1140,13 +1170,13 @@
       "controls": [
         {
           "key": "speed",
-          "label": "Speed",
+          "label": "Fast Rate",
           "kind": "number",
           "unit": "%",
           "min": 0,
           "max": 1,
           "step": 0.05,
-          "default": 0.35
+          "default": 0.54
         },
         {
           "key": "depth",
@@ -1190,7 +1220,7 @@
         },
         {
           "key": "p2",
-          "label": "Speed",
+          "label": "Rotor",
           "kind": "number",
           "unit": "%",
           "min": 0,
@@ -1207,6 +1237,26 @@
           "max": 1,
           "step": 0.05,
           "default": 0.5
+        },
+        {
+          "key": "p3",
+          "label": "Balance",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p4",
+          "label": "Mic Spread",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
         }
       ]
     },
@@ -1271,7 +1321,7 @@
         },
         {
           "key": "p2",
-          "label": "Shape",
+          "label": "Lag",
           "kind": "number",
           "unit": "%",
           "min": 0,
@@ -1369,6 +1419,26 @@
           "max": 1,
           "step": 0.05,
           "default": 0.5
+        },
+        {
+          "key": "p3",
+          "label": "Stereo",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p4",
+          "label": "Polarity",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
         }
       ]
     },
@@ -1450,6 +1520,16 @@
           "max": 1,
           "step": 0.05,
           "default": 0.5
+        },
+        {
+          "key": "p3",
+          "label": "Stereo",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
         }
       ]
     },
@@ -1612,6 +1692,26 @@
           "max": 1,
           "step": 0.05,
           "default": 0.5
+        },
+        {
+          "key": "p3",
+          "label": "Smooth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "p4",
+          "label": "Swing",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
         }
       ]
     },

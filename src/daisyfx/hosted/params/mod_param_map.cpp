@@ -9,6 +9,9 @@ namespace mode_ranges {
     constexpr ParamRange SPEED_PATTREM   = {0.5f,   8.0f, 1.0f};
     constexpr ParamRange SPEED_AUTOSWELL = {0.01f,  0.5f, 1.0f};
     constexpr ParamRange SPEED_QUAD      = {0.1f, 1000.0f, 2.0f};
+    // Fast horn rate. A Leslie 122 turns near 6.7 Hz (400 rpm) on fast; the
+    // range covers slower and faster motors around it.
+    constexpr ParamRange SPEED_ROTARY    = {4.0f,   9.0f, 0.0f};
     // One LFO cycle per beat, exposed as 40..240 BPM by the host catalogs.
     constexpr ParamRange SPEED_LADDER    = {2.0f / 3.0f, 4.0f, 0.0f};
 }
@@ -21,6 +24,7 @@ const ParamRange& get_param_range(ModModeId mode, ParamId param) {
             case ModModeId::PatternTrem: return mode_ranges::SPEED_PATTREM;
             case ModModeId::AutoSwell:   return mode_ranges::SPEED_AUTOSWELL;
             case ModModeId::Quadrature:  return mode_ranges::SPEED_QUAD;
+            case ModModeId::Rotary:      return mode_ranges::SPEED_ROTARY;
             case ModModeId::LadderSweep: return mode_ranges::SPEED_LADDER;
             default: break;
         }
@@ -33,6 +37,8 @@ const ParamRange& get_param_range(ModModeId mode, ParamId param) {
         case ParamId::P1:    return default_ranges::P1;
         case ParamId::P2:    return default_ranges::P2;
         case ParamId::Level: return default_ranges::LEVEL;
+        case ParamId::P3:    return default_ranges::P3;
+        case ParamId::P4:    return default_ranges::P4;
         default:             return default_ranges::MIX;
     }
 }

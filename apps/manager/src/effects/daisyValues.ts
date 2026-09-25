@@ -16,6 +16,13 @@ const milliseconds = (ms: number) => `${number(ms, ms < 100 ? 1 : 0)} ms`;
 const seconds = (value: number) => value < 1
   ? milliseconds(value * 1000)
   : `${number(value, value < 10 ? 2 : 1)} s`;
+const degrees = (value: number) => `${number(value, 0)}\u00B0`;
+// Rotary Balance turns one rotor down at a time; 0.5 plays both at full level.
+const rotaryBalance = (value: number) => {
+  const balance = clamp(value);
+  if (Math.abs(balance - 0.5) < 0.005) return "Even";
+  return balance < 0.5 ? `Horn ${percent(balance * 2)}` : `Drum ${percent((1 - balance) * 2)}`;
+};
 const decibels = (linear: number) => linear <= 0.000001 ? "-inf dB" : `${number(20 * Math.log10(linear), 1)} dB`;
 const semitones = (value: number) => {
   const precision = Math.abs(value - Math.round(value)) < 0.01 ? 0 : 1;
@@ -127,6 +134,8 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     // Glide is a time, not a rate: ~50 ms at the slow end, ~1 ms at the fast end.
     if (mode === "whammy") return custom((value) => milliseconds(1 / (0.02 + clamp(value) * 0.95)));
     if (mode === "harmonizer") return scaledPercent(100, 1);
+    // Fast rotor rate; a Leslie 122 horn turns near 6.7 Hz on fast.
+    if (mode === "rotary") return physical(4, 9, 0, frequency, 0.01);
     return physical(0.05, 10, 1, frequency, 0.01);
   }
   if (key === "depth") {
@@ -142,9 +151,8 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "filter") return physical(80, 12000, 0, frequency, 10);
     if (mode === "ladder_sweep") return logPhysical(20, 12000, frequency, 1);
     if (mode === "destroyer") return physical(80, 21600, 0, frequency, 10);
-    if (mode === "rotary") return physical(500, 2000, 0, frequency, 10);
     if (mode === "phaser") return logPhysical(300, 10000, frequency, 10);
-    if (mode === "flanger" || mode === "chorus") return normalizedPercent;
+    if (mode === "flanger") return normalizedPercent;
     return tone(48000);
   }
   if (key === "p1") {
@@ -154,9 +162,14 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "ladder_sweep") return custom((value) => clamp(value) >= 0.995 ? "Self oscillating" : percent(value));
     if (mode === "formant") return q(2, 10);
     if (mode === "destroyer") return q(0.5, 8.5);
-    if (mode === "pattern_trem") return choices(Array.from({ length: 16 }, (_, index) => `Pattern ${index + 1}`));
+    // Matches kPatternNames in DaisyFxCatalog.cpp.
+    if (mode === "pattern_trem") return choices([
+      "Dotted 8ths", "Sixteenths", "Quarters", "Half time", "Bar break", "Downbeat",
+      "Eighths", "Gallop", "Three 16ths", "Syncopated", "Stutter", "Push",
+      "Shuffle", "Reverse shuffle", "Long short", "Broken",
+    ]);
     if (mode === "auto_swell") return physical(50, 2000, 0, milliseconds, 1);
-    if (mode === "rotary") return custom((value) => `${number(1 + clamp(value) ** 2 * 0.6, 1)}x`);
+    if (mode === "rotary") return custom((value) => `${number(1 + clamp(value) ** 2 * 5.4, 1)}x`);
     // Scale degrees, not semitones: a third is two degrees, major or minor
     // according to where the played note sits in the key.
     if (mode === "harmonizer") return choices([
@@ -174,7 +187,7 @@ function modDisplay(mode: string, key: string): NumberDisplay {
   if (key === "p2") {
     if (mode === "chorus") return choices(["dBucket", "Multi", "Vibrato", "Detune", "Digital"]);
     if (mode === "flanger") return choices(["Silver", "Grey", "Black+", "Black-", "Zero+", "Zero-"]);
-    if (mode === "rotary") return choices(["Slow", "Fast"]);
+    if (mode === "rotary") return choices(["Slow", "Stop", "Fast"]);
     if (mode === "phaser") return choices(["2 stages", "4 stages", "6 stages", "8 stages", "12 stages", "16 stages", "Barber pole"]);
     if (mode === "vintage_trem") return choices(["Tube", "Harmonic", "Photoresistor"]);
     if (mode === "pattern_trem") return choices(["16th", "8th", "Triplet"]);
@@ -194,6 +207,20 @@ function modDisplay(mode: string, key: string): NumberDisplay {
       "3rd up / 4th up", "Min 3rd up / 3rd up", "2nd up / 3rd up",
     ]);
     if (mode === "auto_swell") return scaledPercent(30);
+    return normalizedPercent;
+  }
+  // Optional p3/p4 controls, mirroring formatMod() in DaisyFxCatalog.cpp.
+  if (key === "p3") {
+    if (mode === "phaser" || mode === "vintage_trem") return physical(0, 180, 0, degrees, 1);
+    if (mode === "pattern_trem") return logPhysical(0.5, 30, milliseconds, 0.1);
+    if (mode === "rotary") return custom(rotaryBalance);
+    return normalizedPercent;
+  }
+  if (key === "p4") {
+    if (mode === "flanger") return physical(0, 180, 0, degrees, 1);
+    if (mode === "phaser") return choices(["Positive", "Negative"]);
+    if (mode === "pattern_trem") return physical(50, 75, 0, (value) => `${number(value, 0)}%`, 1);
+    if (mode === "rotary") return physical(90, 180, 0, degrees, 1);
     return normalizedPercent;
   }
   if (key === "level") {
@@ -224,7 +251,10 @@ function delayDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "filter") return choices(["Low-pass", "Band-pass", "High-pass"]);
     if (mode === "pattern") return choices(["Straight", "Dotted 8th", "Triplet"]);
     if (mode === "lofi") return custom((value) => {
-      const flutter = Math.fround(1 + Math.fround(Math.fround(clamp(value)) * 15));
+      // Mirrors the device: the float32 knob value, then double arithmetic,
+      // then float32 for printing. The all-float32 form sat on a rounding tie
+      // at 0.23 whose result depended on fused multiply-add.
+      const flutter = Math.fround(1 + Math.fround(clamp(value)) * 15);
       return `${16 - Math.trunc(clamp(value) * 12)} bit / ${number(flutter, 1)}x`;
     });
     if (mode === "swell") return custom((value) => `${number(20 * Math.log10(0.05 + clamp(value) * 0.2), 1)} dBFS`);

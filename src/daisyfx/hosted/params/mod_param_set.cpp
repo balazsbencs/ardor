@@ -12,6 +12,8 @@ float ParamSet::get(ParamId id) const {
         case ParamId::P1:    return p1;
         case ParamId::P2:    return p2;
         case ParamId::Level: return level;
+        case ParamId::P3:    return p3;
+        case ParamId::P4:    return p4;
         default:             return 0.0f;
     }
 }
@@ -25,6 +27,8 @@ ParamSet ParamSet::make_default() {
         .p1    = 0.0f,
         .p2    = 0.0f,
         .level = 1.0f,
+        .p3    = 0.0f,
+        .p4    = 0.0f,
     };
 }
 

@@ -53,10 +53,17 @@ public:
     void Prepare(const mod_fx::ParamSet& params) override;
     StereoFrame Process(StereoFrame input, const mod_fx::ParamSet& params) override;
     const char* Name() const override { return "Flanger"; }
+    // The through-zero types delay their dry path to meet the wet tap, so the
+    // flanger blends dry and wet itself for every type.
+    bool OwnsDryMix() const override { return true; }
 
 private:
     // 10ms max delay = 480 samples + headroom
     static constexpr size_t kFlangerBufSize = 512;
+    // Shortest tap the 16-tap sinc read can serve: it needs seven samples
+    // newer than the tap. Asking for less is silently clamped there, which
+    // left a flat spot at the bottom of every deep sweep.
+    static constexpr float kMinDelay = 7.0f;
 
     Lfo       lfo_;
     Lfo       lfo_r_;  // right channel LFO, offset by π/2 for stereo spread
@@ -75,6 +82,15 @@ private:
 
     float     max_depth_ = 240.0f;  // max delay swing for current sub-mode
     float     depth_     = 0.5f;    // cached params.depth
+    // Manual: the sweep centre, as a fraction of max_depth_. Prepare() sets
+    // the target and Process() glides to it (~20 ms), so turning Manual
+    // sweeps smoothly instead of stepping the tap.
+    static constexpr float kCentreSlew = 0.001f;
+    float     centre_target_ = 120.0f;
+    float     centre_        = 120.0f;
+    bool      centre_seeded_ = false;
+    // Stereo: how far the R drift follows its own random walk (0 = shares L).
+    float     drift_spread_  = 1.0f;
     float     fb_sign_   = 1.0f;    // +1 or -1 from sub-mode
 
     // Wow and flutter. kDriftCoeff sets the rate (~1.5 Hz at 48 kHz) and

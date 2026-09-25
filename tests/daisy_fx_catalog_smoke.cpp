@@ -59,11 +59,12 @@ int main()
   require(descriptor->blockType == "mod", "vintage trem block type");
   require(descriptor->mode == "vintage_trem", "vintage trem mode");
   require(descriptor->name == "Vintage Trem", "vintage trem name");
-  require(descriptor->params.size() == 7, "vintage trem param count");
+  // The seven original controls plus the optional Stereo (p3).
+  require(descriptor->params.size() == 8, "vintage trem param count");
 
   const auto defaults = ardor::defaultDaisyFxParams(*descriptor);
   require(defaults.value("mode", "") == "vintage_trem", "default mode");
-  for (const auto* key : {"speed", "depth", "mix", "tone", "p1", "p2", "level"}) {
+  for (const auto* key : {"speed", "depth", "mix", "tone", "p1", "p2", "level", "p3"}) {
     require(defaults.contains(key), std::string{"default contains "} + key);
     require(defaults.at(key).is_number(), std::string{"default numeric "} + key);
   }

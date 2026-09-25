@@ -71,6 +71,16 @@ DaisyFxDescriptor mod(std::string mode, std::string name, std::string p1 = "P1",
   return {DaisyFxKind::Mod, "mod", std::move(mode), std::move(name), std::move(params)};
 }
 
+// Appends the optional p3/p4 controls. They always follow the original seven,
+// so scene targets, which store descriptor indexes, keep their meaning.
+DaisyFxDescriptor withExtras(DaisyFxDescriptor descriptor, std::string p3Label, float p3Default,
+                             std::string p4Label = {}, float p4Default = 0.0f)
+{
+  descriptor.params.push_back({"p3", std::move(p3Label), p3Default});
+  if (!p4Label.empty()) descriptor.params.push_back({"p4", std::move(p4Label), p4Default});
+  return descriptor;
+}
+
 DaisyFxDescriptor ladderSweep()
 {
   auto descriptor = mod("ladder_sweep", "Ladder Sweep", "Resonance", "Waveform", 1.0f,
@@ -84,6 +94,15 @@ DaisyFxDescriptor ladderSweep()
   descriptor.params[6].label = "Drive";
   descriptor.params[6].defaultValue = 0.25f; // 0 dB
   return descriptor;
+}
+
+DaisyFxDescriptor rotary()
+{
+  // Speed is the fast rotor rate; Rotor switches between chorale and fast.
+  auto descriptor = mod("rotary", "Rotary", "Drive", "Rotor", 1.0f, "Fast Rate");
+  descriptor.params[0].defaultValue = 0.54f; // 6.7 Hz, a Leslie 122 horn on fast
+  // Balance 0.5 plays both rotors at full level; Mic Spread 0 is 90 degrees.
+  return withExtras(std::move(descriptor), "Balance", 0.5f, "Mic Spread", 0.0f);
 }
 
 DaisyFxDescriptor delay(std::string mode, std::string name, std::string grit = "Grit",
@@ -178,6 +197,25 @@ std::string signedDecibels(float value)
 std::string qValue(float q)
 {
   return std::string{"Q "} + number(q, q < 10.0f ? 1 : 0);
+}
+
+std::string degrees(float value)
+{
+  return number(value, 0, "\u00B0");
+}
+
+// Pattern Trem edge time constant: 0.5 ms .. 30 ms, logarithmic.
+float patternSmoothMs(float normalized)
+{
+  return 0.5f * std::pow(60.0f, normalized);
+}
+
+// Rotary Balance attenuates one rotor at a time; 0.5 plays both at full level.
+std::string rotaryBalance(float normalized)
+{
+  if (std::fabs(normalized - 0.5f) < 0.005f) return "Even";
+  if (normalized < 0.5f) return "Horn " + percent(normalized * 2.0f);
+  return "Drum " + percent((1.0f - normalized) * 2.0f);
 }
 
 std::string signedSemitones(float value)
@@ -290,6 +328,13 @@ constexpr std::array<std::string_view, 5> kHarmonyScales{
     "Major", "Minor", "Dorian", "Mixolydian", "Harmonic minor",
 };
 
+// Pattern Trem rhythms, matching kPatterns in pattern_sequencer.h.
+constexpr std::array<std::string_view, 16> kPatternNames{
+    "Dotted 8ths", "Sixteenths", "Quarters", "Half time", "Bar break", "Downbeat",
+    "Eighths", "Gallop", "Three 16ths", "Syncopated", "Stutter", "Push",
+    "Shuffle", "Reverse shuffle", "Long short", "Broken",
+};
+
 constexpr std::array<std::string_view, 19> kWhammyPresets{
     "2 Oct up", "1 Oct up", "5th up", "4th up", "2nd dn",
     "4th dn", "5th dn", "1 Oct dn", "2 Oct dn", "Dive bomb",
@@ -327,9 +372,8 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "filter") return frequency(80.0f + normalized * 11920.0f);
     if (mode == "ladder_sweep") return frequency(20.0f * std::pow(600.0f, normalized));
     if (mode == "destroyer") return frequency(80.0f + normalized * (48000.0f * 0.45f - 80.0f));
-    if (mode == "rotary") return frequency(500.0f + normalized * 1500.0f);
     if (mode == "phaser") return frequency(300.0f * std::pow(10000.0f / 300.0f, normalized));
-    if (mode == "flanger" || mode == "chorus") return percent(normalized);
+    if (mode == "flanger") return percent(normalized);
     return tone(normalized, 48000.0f);
   }
   if (key == "p1") {
@@ -339,9 +383,10 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "ladder_sweep") return normalized >= 0.995f ? "Self oscillating" : percent(normalized);
     if (mode == "formant") return qValue(2.0f + normalized * 8.0f);
     if (mode == "destroyer") return qValue(0.5f + normalized * 8.0f);
-    if (mode == "pattern_trem") return "Pattern " + std::to_string(std::min(16, static_cast<int>(normalized * 16.0f) + 1));
+    if (mode == "pattern_trem") return choice(normalized, kPatternNames);
     if (mode == "auto_swell") return milliseconds(50.0f + normalized * 1950.0f);
-    if (mode == "rotary") return number(1.0f + normalized * normalized * 0.6f, 1, "x");
+    // Rotary drive: WaveShaper gain 1 + 15 * (0.6 * p1)^2, so 1x..6.4x.
+    if (mode == "rotary") return number(1.0f + normalized * normalized * 5.4f, 1, "x");
     if (mode == "harmonizer") return choice(normalized, kHarmonyIntervals);
     if (mode == "whammy") {
       if (normalized <= 0.001f) return "Heel";
@@ -353,7 +398,7 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
   if (key == "p2") {
     if (mode == "chorus") return choice(normalized, std::array<std::string_view, 5>{"dBucket", "Multi", "Vibrato", "Detune", "Digital"});
     if (mode == "flanger") return choice(normalized, std::array<std::string_view, 6>{"Silver", "Grey", "Black+", "Black-", "Zero+", "Zero-"});
-    if (mode == "rotary") return normalized < 0.5f ? "Slow" : "Fast";
+    if (mode == "rotary") return choice(normalized, std::array<std::string_view, 3>{"Slow", "Stop", "Fast"});
     if (mode == "phaser") return choice(normalized, std::array<std::string_view, 7>{"2 stages", "4 stages", "6 stages", "8 stages", "12 stages", "16 stages", "Barber pole"});
     if (mode == "vintage_trem") return choice(normalized, std::array<std::string_view, 3>{"Tube", "Harmonic", "Photoresistor"});
     if (mode == "pattern_trem") return choice(normalized, std::array<std::string_view, 3>{"16th", "8th", "Triplet"});
@@ -364,6 +409,20 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "whammy") return choice(normalized, kWhammyPresets);
     if (mode == "harmonizer") return choice(normalized, kHarmonyKeys);
     if (mode == "auto_swell") return percent(normalized * 0.30f);
+    return percent(normalized);
+  }
+  if (key == "p3") {
+    if (mode == "flanger") return percent(normalized);
+    if (mode == "phaser" || mode == "vintage_trem") return degrees(normalized * 180.0f);
+    if (mode == "pattern_trem") return milliseconds(patternSmoothMs(normalized));
+    if (mode == "rotary") return rotaryBalance(normalized);
+    return percent(normalized);
+  }
+  if (key == "p4") {
+    if (mode == "flanger") return degrees(normalized * 180.0f);
+    if (mode == "phaser") return normalized < 0.5f ? "Positive" : "Negative";
+    if (mode == "pattern_trem") return percent(0.5f + normalized * 0.25f);
+    if (mode == "rotary") return degrees(90.0f + normalized * 90.0f);
     return percent(normalized);
   }
   if (key == "level") {
@@ -403,7 +462,12 @@ std::string formatDelay(std::string_view mode, std::string_view key, float norma
     if (mode == "pattern") return choice(normalized, std::array<std::string_view, 3>{"Straight", "Dotted 8th", "Triplet"});
     if (mode == "lofi") {
       const int bits = 16 - static_cast<int>(normalized * 12.0f);
-      return std::to_string(bits) + " bit / " + number(1.0f + normalized * 15.0f, 1, "x");
+      // Double precision: at 0.23, 1 + 0.23f * 15 lands exactly between two
+      // float32 values, so the displayed tenth depended on whether the
+      // compiler fused the multiply-add (4.5x on Apple clang, 4.4x on the
+      // Linux CI build). In double it is 4.45000006, clear of the tie.
+      const double flutter = 1.0 + static_cast<double>(normalized) * 15.0;
+      return std::to_string(bits) + " bit / " + number(static_cast<float>(flutter), 1, "x");
     }
     if (mode == "swell") return number(20.0f * std::log10(0.05f + normalized * 0.20f), 1, " dBFS");
     return percent(normalized);
@@ -479,16 +543,20 @@ std::string formatReverb(std::string_view mode, std::string_view key, float norm
 const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
 {
   static const std::vector<DaisyFxDescriptor> catalog{
-    // Chorus' vendor mode returns wet signal only. A 50/50 default retains
-    // dry signal and produces an actual chorus rather than vibrato.
-    mod("chorus", "Chorus", "Delay", "Type", 0.5f),
-    mod("flanger", "Flanger", "Regen", "Type", 0.5f),
-    mod("rotary", "Rotary", "Drive", "Speed"),
-    mod("vibe", "Vibe", "Regen", "Shape"),
-    mod("phaser", "Phaser", "Regen", "Stages", 0.5f),
-    mod("vintage_trem", "Vintage Trem", "Shape", "Type"),
+    // A 50/50 default retains dry signal and produces an actual chorus. For
+    // a pure vibrato, select Vibrato and set Mix to full.
+    withExtras(mod("chorus", "Chorus", "Delay", "Type", 0.5f), "Width", 1.0f),
+    // Manual 0.5 and Stereo 0.5 (90 degrees) are the sweep this flanger had
+    // before either control existed.
+    withExtras(mod("flanger", "Flanger", "Regen", "Type", 0.5f), "Manual", 0.5f, "Stereo", 0.5f),
+    rotary(),
+    mod("vibe", "Vibe", "Regen", "Lag"),
+    withExtras(mod("phaser", "Phaser", "Regen", "Stages", 0.5f), "Stereo", 0.5f, "Polarity", 0.0f),
+    withExtras(mod("vintage_trem", "Vintage Trem", "Shape", "Type"), "Stereo", 0.0f),
     mod("poly_octave", "Poly Octave", "Oct Up", "Oct Down", 1.0f, "Tracking", "Oct Down 2"),
-    mod("pattern_trem", "Pattern Trem", "Pattern", "Division", 1.0f, "Tempo"),
+    // Smooth 0.35 is the fixed ~2 ms edge this mode had before the control.
+    withExtras(mod("pattern_trem", "Pattern Trem", "Pattern", "Division", 1.0f, "Tempo"),
+               "Smooth", 0.35f, "Swing", 0.0f),
     mod("auto_swell", "Auto Swell", "Release", "Doubling", 1.0f, "Attack", "Boost"),
     mod("filter", "Filter", "Resonance", "Shape / Source"),
     ladderSweep(),
@@ -573,7 +641,7 @@ DaisyFxParamControlSpec daisyFxParamControlSpec(const DaisyFxDescriptor& effect,
     if (key == "p2") {
       if (mode == "chorus") choiceCount = 5;
       else if (mode == "flanger") choiceCount = 6;
-      else if (mode == "rotary") choiceCount = 2;
+      else if (mode == "rotary") choiceCount = 3;
       else if (mode == "phaser" || mode == "formant") choiceCount = 7;
       else if (mode == "vintage_trem" || mode == "pattern_trem") choiceCount = 3;
       else if (mode == "filter") choiceCount = 8;
@@ -582,6 +650,7 @@ DaisyFxParamControlSpec daisyFxParamControlSpec(const DaisyFxDescriptor& effect,
       else if (mode == "whammy") choiceCount = 19;
       else if (mode == "harmonizer") choiceCount = 12;
     }
+    if (key == "p4" && mode == "phaser") choiceCount = 2;
   } else if (effect.kind == DaisyFxKind::Delay) {
     if (key == "grit" && (mode == "filter" || mode == "pattern")) choiceCount = 3;
   } else {

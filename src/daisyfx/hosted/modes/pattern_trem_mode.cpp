@@ -1,13 +1,14 @@
 #include "pattern_trem_mode.h"
 #include "../config/constants.h"
+#include <cmath>
 
 using namespace pedal::mod_fx;
 
 namespace pedal {
 
 void PatternTremMode::Init() {
-    tone_l_.Init();
-    tone_r_.Init();
+    tone_l_.Init(SAMPLE_RATE, ToneGain::Loudness);
+    tone_r_.Init(SAMPLE_RATE, ToneGain::Loudness);
     Reset();
 }
 
@@ -37,6 +38,15 @@ void PatternTremMode::Prepare(const ParamSet& params) {
 
     seq_.SetPeriodSamples(beat_period);
     seq_.SetPattern(pattern, steps_per_beat);
+    // Swing (p4): 50 % (straight) to 75 % (hard shuffle).
+    seq_.SetSwing(0.5f + params.p4 * 0.25f);
+
+    // Smooth (p3): edge time constant 0.5 ms .. 30 ms, logarithmic. The
+    // release is twice the attack, as the fixed edges always were; 0.35 lands
+    // on the ~2 ms attack this mode used before the control.
+    const float attack_seconds = 0.0005f * std::pow(60.0f, params.p3);
+    attack_  = 1.0f - std::exp(-1.0f / (attack_seconds * SAMPLE_RATE));
+    release_ = 1.0f - std::exp(-1.0f / (2.0f * attack_seconds * SAMPLE_RATE));
     tone_l_.SetKnob(params.tone);
     tone_r_.SetKnob(params.tone);
 }
@@ -44,12 +54,8 @@ void PatternTremMode::Prepare(const ParamSet& params) {
 StereoFrame PatternTremMode::Process(StereoFrame input, const ParamSet& params) {
     gate_ = seq_.Process();
 
-    // Smooth gate edges to avoid clicks (simple one-pole envelope).
-    // attack ≈ 7 ms, release ≈ 3.5 ms 99%-settling at 48 kHz.
-    // Keep short enough to preserve pattern definition at fast tempos.
-    static constexpr float attack  = 0.01f;
-    static constexpr float release = 0.005f;
-    const float coef = (gate_ > smoothed_) ? attack : release;
+    // Smooth gate edges to avoid clicks (one-pole envelope, set by Smooth).
+    const float coef = (gate_ > smoothed_) ? attack_ : release_;
     smoothed_ += coef * (gate_ - smoothed_);
 
     // Apply tremolo: mix between 0 and input based on depth

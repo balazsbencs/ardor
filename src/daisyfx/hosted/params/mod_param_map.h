@@ -16,6 +16,8 @@ namespace default_ranges {
     constexpr ParamRange P1    = {0.0f,   1.0f, 0.0f};
     constexpr ParamRange P2    = {0.0f,   1.0f, 0.0f};
     constexpr ParamRange LEVEL = {0.0f,   2.0f, 0.0f};
+    constexpr ParamRange P3    = {0.0f,   1.0f, 0.0f};
+    constexpr ParamRange P4    = {0.0f,   1.0f, 0.0f};
 }
 
 } // namespace mod_fx

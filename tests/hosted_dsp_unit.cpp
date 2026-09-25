@@ -388,13 +388,11 @@ void verifyRotaryCrossoverHasNoNull()
   params.depth = 0.0f;   // no Doppler or AM, so only the crossover shapes the output
   params.p1 = 0.0f;      // no drive
   params.p2 = 0.0f;      // chorale
-  params.tone = 0.2f;    // crossover lands at 500 + 0.2*1500 = 800 Hz
+  params.p3 = 0.5f;      // Balance even: both rotors at full level
 
-  // Hold the probe tone fixed and sweep Tone, which moves the crossover across
-  // 500-2000 Hz. This isolates the crossover from the fixed horn/drum path
-  // delay difference, which combs the response by a couple of dB by design.
-  // With the broken split, the output collapsed as the crossover passed the
-  // probe frequency. It must now stay live at every Tone setting.
+  // Probe at the crossover itself, the Leslie's fixed 800 Hz, where the broken
+  // split nulled completely. Sweep Tone too: it tilts the cabinet and moves
+  // the horn resonance, and the output must stay live at every setting.
   constexpr float kProbeHz = 800.0f;
   double worstGain = 1.0e9;
   float worstTone = 0.0f;
@@ -884,7 +882,10 @@ void verifyFlangerRegenDoesNotAddHeadroom()
   const auto peakGainDb = [&descriptor](float regen) {
     double worst = -99.0;
     // No sweep, so the delay sits still and a tone can settle on the resonance.
-    for (float frequency = 40.0f; frequency < 2000.0f; frequency *= 1.15f) {
+    // The grid must be fine: the resonance at high regen is only a few percent
+    // wide, and a 15 % grid once stepped over it and under-read the peak by
+    // more than a decibel.
+    for (float frequency = 40.0f; frequency < 2000.0f; frequency *= 1.02f) {
       auto params = ardor::defaultDaisyFxParams(*descriptor);
       params["mix"] = 1.0f;
       params["level"] = 0.5f;
@@ -900,10 +901,10 @@ void verifyFlangerRegenDoesNotAddHeadroom()
 
       constexpr float kAmplitude = 0.3f;
       double peak = 0.0;
-      for (int n = 0; n < 40000; ++n) {
+      for (int n = 0; n < 24000; ++n) {
         const float x = kAmplitude * std::sin(6.283185f * frequency * n / 48000.0f);
         const auto y = processor.process({x, x});
-        if (n > 30000) peak = std::max(peak, static_cast<double>(std::fabs(y.left)));
+        if (n > 16000) peak = std::max(peak, static_cast<double>(std::fabs(y.left)));
       }
       worst = std::max(worst, 20.0 * std::log10(peak / kAmplitude));
     }

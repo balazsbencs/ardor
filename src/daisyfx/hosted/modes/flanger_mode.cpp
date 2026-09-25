@@ -29,6 +29,7 @@ void FlangerMode::Init() {
     rand_state_ = 12345;
     drift_l_ = 0.0f;
     drift_r_ = 0.0f;
+    centre_seeded_ = false;
 }
 
 void FlangerMode::Reset() {
@@ -49,6 +50,7 @@ void FlangerMode::Reset() {
     rand_state_ = 12345;
     drift_l_ = 0.0f;
     drift_r_ = 0.0f;
+    centre_seeded_ = false;
 }
 
 void FlangerMode::Prepare(const ParamSet& params) {
@@ -99,6 +101,17 @@ void FlangerMode::Prepare(const ParamSet& params) {
     // Black and Zero sub-modes allow higher depth
     max_depth_ = (sub >= 2) ? 460.0f : 240.0f;
     depth_ = params.depth;
+
+    // Manual (p3) places the sweep centre; 0.5 is the fixed centre this mode
+    // had before the control. In the through-zero types the dry path stays
+    // put, so Manual sets how far the wet tap passes through zero.
+    centre_target_ = max_depth_ * params.p3;
+
+    // Stereo (p4): 0..180 degrees between the L and R sweeps. 0.5 is the
+    // 90 degrees this mode always used. At 0 the channels share one sweep and
+    // one drift, so a mono source stays mono.
+    lfo_r_.SetPhaseOffset(params.p4 * 3.14159265f);
+    drift_spread_ = params.p4 * 2.0f > 1.0f ? 1.0f : params.p4 * 2.0f;
 }
 
 StereoFrame FlangerMode::Process(StereoFrame input, const ParamSet& params) {
@@ -107,9 +120,11 @@ StereoFrame FlangerMode::Process(StereoFrame input, const ParamSet& params) {
     dry_delay_r_.Write(input.right);
 
     // 1. Advance both LFOs per-sample; right channel leads by π/2 for stereo spread
-    const float lfo_l = lfo_.Process();
-    lfo_r_.FollowPhaseOf(lfo_);   // hold the 90 deg stereo spread exactly
+    //    Follow before the leader advances, so both read the same instant and
+    //    a 0 degree Stereo setting gives identical sweeps.
+    lfo_r_.FollowPhaseOf(lfo_);   // hold the stereo spread exactly
     const float lfo_r = lfo_r_.Process();
+    const float lfo_l = lfo_.Process();
 
     // 2. Update slow-moving organic drift (wow and flutter emulation).
     // A one-pole on uniform noise settles at sigma*sqrt(a/2); at a = 0.0002
@@ -123,13 +138,23 @@ StereoFrame FlangerMode::Process(StereoFrame input, const ParamSet& params) {
 
     const int sub = static_cast<int>(params.p2 * 5.999f);
     const float drift_amt = kDriftGain * ((sub >= 4) ? 1.5f : 0.8f);
+    const float drift_r = drift_spread_ >= 1.0f
+        ? drift_r_ : drift_l_ + drift_spread_ * (drift_r_ - drift_l_);
 
-    // 3. Calculate delays and clamp to buffer bounds
-    const float center = max_depth_ * 0.5f;
-    float delay_l = center + lfo_l * depth_ * center + 1.0f + drift_l_ * drift_amt;
-    float delay_r = center + lfo_r * depth_ * center + 1.0f + drift_r_ * drift_amt;
-    if (delay_l < 1.0f) delay_l = 1.0f;
-    if (delay_r < 1.0f) delay_r = 1.0f;
+    // 3. Calculate delays and clamp to buffer bounds. The sweep sits on
+    //    kMinDelay so its whole range is audible; see the header. The swing
+    //    narrows as Manual nears either end, so the sweep stays in range.
+    if (!centre_seeded_) {
+        centre_seeded_ = true;
+        centre_ = centre_target_;
+    }
+    centre_ += kCentreSlew * (centre_target_ - centre_);
+    const float headroom = max_depth_ - centre_;
+    const float swing = depth_ * (centre_ < headroom ? centre_ : headroom);
+    float delay_l = kMinDelay + centre_ + lfo_l * swing + drift_l_ * drift_amt;
+    float delay_r = kMinDelay + centre_ + lfo_r * swing + drift_r * drift_amt;
+    if (delay_l < kMinDelay) delay_l = kMinDelay;
+    if (delay_r < kMinDelay) delay_r = kMinDelay;
     if (delay_l >= static_cast<float>(kFlangerBufSize - 1)) delay_l = static_cast<float>(kFlangerBufSize - 1);
     if (delay_r >= static_cast<float>(kFlangerBufSize - 1)) delay_r = static_cast<float>(kFlangerBufSize - 1);
 
@@ -170,38 +195,48 @@ StereoFrame FlangerMode::Process(StereoFrame input, const ParamSet& params) {
     // It deliberately does not flatten the peak. A single gain cannot fix both
     // ends of this: the resonance is narrow band, so taking all of it out costs
     // broadband level, and the flanger would get quieter as regen went up,
-    // which is the wrong way round. Measured across the control, the value
-    // below leaves the worst-case peak at +3.1 dB instead of +9.4 and costs
-    // 4.7 dB of average level at the top. Flattening the peak completely would
-    // have cost 7.8 dB.
-    static constexpr float kRegenMakeup = 1.2f;
+    // which is the wrong way round. Measured on a 0.4 % frequency grid across
+    // the control, the value below leaves the worst-case peak at +3.6 dB
+    // instead of +9.4. The earlier 1.2 was fitted on a 15 % grid that stepped
+    // over the resonance; its true peak was +4.5 dB. 1.5 costs 1.1 dB more
+    // wet level at the top of the control than 1.2 did.
+    static constexpr float kRegenMakeup = 1.5f;
     const float resonance_makeup = 1.0f / (1.0f + kRegenMakeup * regen);
 
     float wet_l = dc_l_.Process(wet_l_tap) * resonance_makeup;
     float wet_r = dc_r_.Process(wet_r_tap) * resonance_makeup;
 
-    // 8. If Through-Zero Flanger, compensate for external engine dry mix
+    // 8. Blend dry and wet. The host hands over its smoothed Mix because this
+    //    mode owns the blend (see OwnsDryMix()).
+    //
+    // Through-zero types take their dry path from a fixed delay equal to the
+    // centre of the wet sweep, so the wet tap passes through the dry one and
+    // the notches cancel completely at the zero point. The dry path must be
+    // only the delayed copy: the earlier version kept the host's undelayed dry
+    // and tried to cancel it with a ratio that was exact only at 50 % Mix,
+    // leaving up to 27 % of undelayed dry to comb against the delayed copy.
+    const float mix = params.mix;
+    float dry_l = input.left;
+    float dry_r = input.right;
     if (sub >= 4) {
-        static constexpr float kDryDelay = 230.0f;
-        float dry_delayed_l = dry_delay_l_.Read(static_cast<size_t>(kDryDelay));
-        float dry_delayed_r = dry_delay_r_.Read(static_cast<size_t>(kDryDelay));
-
-        // ZERO- (sub 5) inverts the phase of the wet signal to cause cancellation
-        float wet_mod_l = wet_l * fb_sign_;
-        float wet_mod_r = wet_r * fb_sign_;
-
-        // Calculate dry/wet mix ratio: mod_dry / mod_wet
-        float ratio = 0.0f;
-        if (params.mix > 0.001f) {
-            float angle = params.mix * 1.57079632679f;
-            ratio = fast_cos(angle) / fast_sin(angle);
-            if (ratio > 10.0f) ratio = 10.0f; // clamp to prevent division blowup
-        }
-
-        // Apply cancellation formula to override external dry path with delayed dry path
-        wet_l = wet_mod_l + (dry_delayed_l - input.left) * ratio;
-        wet_r = wet_mod_r + (dry_delayed_r - input.right) * ratio;
+        // The dry path sits at the middle of the full range, not at Manual:
+        // moving it would pitch-bend the dry signal.
+        const size_t dry_delay = static_cast<size_t>(kMinDelay + max_depth_ * 0.5f);
+        dry_l = dry_delay_l_.Read(dry_delay);
+        dry_r = dry_delay_r_.Read(dry_delay);
+        // Zero- inverts the wet path so the two cancel at the zero point.
+        wet_l *= fb_sign_;
+        wet_r *= fb_sign_;
     }
+    // Equal-power blend: across the spectrum a comb's wet copy is on average
+    // uncorrelated with the dry, so a linear 50/50 blend lost 3.4 dB. Equal
+    // gains at 50 % still give full-depth notches and a full through-zero
+    // cancellation.
+    const float angle = mix * 1.57079633f;
+    const float dry_gain = fast_cos(angle);
+    const float wet_gain = fast_sin(angle);
+    wet_l = dry_l * dry_gain + wet_l * wet_gain;
+    wet_r = dry_r * dry_gain + wet_r * wet_gain;
 
     return {wet_l, wet_r};
 }

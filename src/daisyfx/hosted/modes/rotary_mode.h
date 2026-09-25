@@ -5,13 +5,14 @@
 #include "../dsp/dc_blocker.h"
 #include "../dsp/svf.h"
 #include "../dsp/delay_line_sdram.h"
+#include "../dsp/tone_filter.h"
 #include <cstddef>
 
 namespace pedal {
 
 /// Leslie rotating speaker simulation.
 /// Horn (HF) and drum (LF) rotate at independent speeds with motor inertia.
-/// P2: slow/fast switch (chorale ↔ tremolo); motor ramps with physical inertia.
+/// P2: Slow / Stop / Fast switch; the motors ramp with physical inertia.
 class RotaryMode : public ModMode {
 public:
     void Init() override;
@@ -21,9 +22,9 @@ public:
     const char* Name() const override { return "Rotary"; }
 
 private:
-    // Horn: max ~5ms = 240 samples; Drum: max ~10ms = 480 samples
+    // Each rotor reads within ~60 samples; 256 leaves the sinc read headroom.
     static constexpr size_t kHornBufSize = 256;
-    static constexpr size_t kDrumBufSize = 512;
+    static constexpr size_t kDrumBufSize = 256;
 
     Lfo        horn_lfo_;       // fast rotor, in-phase
     Lfo        horn_lfo_q_;     // fast rotor, 90° quadrature
@@ -31,7 +32,24 @@ private:
     Lfo        drum_lfo_q_;     // slow rotor, 90° quadrature
     Saturation drive_;
     DcBlocker  dc_l_, dc_r_;
-    Svf        xover_;          // LP = drum band, HP = horn band
+    ToneFilter tone_l_, tone_r_;  // cabinet tone (Tone)
+    // Per-channel signal path into the rotors. Both channels share the rotors
+    // and the mics; each carries its own input, so a stereo source keeps its
+    // image and an anti-phase one does not cancel.
+    struct Feed {
+        // 4th-order Linkwitz-Riley crossover: two cascaded Butterworth
+        // sections per band. xover[0..1] low-pass the drum band, xover[2..3]
+        // high-pass the horn band.
+        Svf            xover[4];
+        float          horn_buf[kHornBufSize];
+        float          drum_buf[kDrumBufSize];
+        DelayLineSdram horn_line;
+        DelayLineSdram drum_line;
+    };
+    // Drives, splits and writes one input sample into its feed's rotor lines.
+    void WriteFeed(Feed& feed, float input);
+
+    Feed       feeds_[2];
     Svf        horn_color_l_;   // resonant peak for horn cabinet (L)
     Svf        horn_color_r_;   // resonant peak for horn cabinet (R)
 
@@ -40,11 +58,13 @@ private:
     float am_depth_  = 0.0f;
     float horn_mod_  = 0.0f;
     float drum_mod_  = 0.0f;
+    float horn_am_makeup_ = 1.0f;
+    float drum_am_makeup_ = 1.0f;
+    float horn_level_     = 1.0f;   // Balance (p3)
+    float drum_level_     = 1.0f;
+    float drive_blend_    = 0.0f;
+    float drive_makeup_   = 1.0f;
 
-    float          horn_buf_[kHornBufSize];
-    float          drum_buf_[kDrumBufSize];
-    DelayLineSdram horn_line_;
-    DelayLineSdram drum_line_;
 };
 
 } // namespace pedal

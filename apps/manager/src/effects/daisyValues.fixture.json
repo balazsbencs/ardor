@@ -32,7 +32,7 @@
           "label": "Tone",
           "defaultValue": 0.500000,
           "choiceCount": 0,
-          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+          "samples": [{"value": 0.000000, "text": "Dark 100%"}, {"value": 0.230000, "text": "Dark 54%"}, {"value": 0.470000, "text": "Dark 6%"}, {"value": 0.710000, "text": "Bright 42%"}, {"value": 1.000000, "text": "Bright 100%"}]
         },
         {
           "key": "p1",
@@ -54,6 +54,13 @@
           "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Width",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         }
       ]
     },
@@ -110,6 +117,20 @@
           "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Manual",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "p4",
+          "label": "Stereo",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0°"}, {"value": 0.230000, "text": "41°"}, {"value": 0.470000, "text": "85°"}, {"value": 0.710000, "text": "128°"}, {"value": 1.000000, "text": "180°"}]
         }
       ]
     },
@@ -120,10 +141,10 @@
       "params": [
         {
           "key": "speed",
-          "label": "Speed",
-          "defaultValue": 0.350000,
+          "label": "Fast Rate",
+          "defaultValue": 0.540000,
           "choiceCount": 0,
-          "samples": [{"value": 0.000000, "text": "0.05 Hz"}, {"value": 0.230000, "text": "0.58 Hz"}, {"value": 0.470000, "text": "2.2 Hz"}, {"value": 0.710000, "text": "5.1 Hz"}, {"value": 1.000000, "text": "10.0 Hz"}]
+          "samples": [{"value": 0.000000, "text": "4.0 Hz"}, {"value": 0.230000, "text": "5.2 Hz"}, {"value": 0.470000, "text": "6.3 Hz"}, {"value": 0.710000, "text": "7.5 Hz"}, {"value": 1.000000, "text": "9.0 Hz"}]
         },
         {
           "key": "depth",
@@ -144,21 +165,21 @@
           "label": "Tone",
           "defaultValue": 0.500000,
           "choiceCount": 0,
-          "samples": [{"value": 0.000000, "text": "500 Hz"}, {"value": 0.230000, "text": "845 Hz"}, {"value": 0.470000, "text": "1.2 kHz"}, {"value": 0.710000, "text": "1.6 kHz"}, {"value": 1.000000, "text": "2.0 kHz"}]
+          "samples": [{"value": 0.000000, "text": "Dark 100%"}, {"value": 0.230000, "text": "Dark 54%"}, {"value": 0.470000, "text": "Dark 6%"}, {"value": 0.710000, "text": "Bright 42%"}, {"value": 1.000000, "text": "Bright 100%"}]
         },
         {
           "key": "p1",
           "label": "Drive",
           "defaultValue": 0.000000,
           "choiceCount": 0,
-          "samples": [{"value": 0.000000, "text": "1.0x"}, {"value": 0.230000, "text": "1.0x"}, {"value": 0.470000, "text": "1.1x"}, {"value": 0.710000, "text": "1.3x"}, {"value": 1.000000, "text": "1.6x"}]
+          "samples": [{"value": 0.000000, "text": "1.0x"}, {"value": 0.230000, "text": "1.3x"}, {"value": 0.470000, "text": "2.2x"}, {"value": 0.710000, "text": "3.7x"}, {"value": 1.000000, "text": "6.4x"}]
         },
         {
           "key": "p2",
-          "label": "Speed",
+          "label": "Rotor",
           "defaultValue": 0.000000,
-          "choiceCount": 2,
-          "samples": [{"value": 0.000000, "text": "Slow"}, {"value": 1.000000, "text": "Fast"}]
+          "choiceCount": 3,
+          "samples": [{"value": 0.000000, "text": "Slow"}, {"value": 0.500000, "text": "Stop"}, {"value": 1.000000, "text": "Fast"}]
         },
         {
           "key": "level",
@@ -166,6 +187,20 @@
           "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Balance",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "Horn 0%"}, {"value": 0.230000, "text": "Horn 46%"}, {"value": 0.470000, "text": "Horn 94%"}, {"value": 0.710000, "text": "Drum 58%"}, {"value": 1.000000, "text": "Drum 0%"}]
+        },
+        {
+          "key": "p4",
+          "label": "Mic Spread",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "90°"}, {"value": 0.230000, "text": "111°"}, {"value": 0.470000, "text": "132°"}, {"value": 0.710000, "text": "154°"}, {"value": 1.000000, "text": "180°"}]
         }
       ]
     },
@@ -211,7 +246,7 @@
         },
         {
           "key": "p2",
-          "label": "Shape",
+          "label": "Lag",
           "defaultValue": 0.000000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
@@ -278,6 +313,20 @@
           "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Stereo",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0°"}, {"value": 0.230000, "text": "41°"}, {"value": 0.470000, "text": "85°"}, {"value": 0.710000, "text": "128°"}, {"value": 1.000000, "text": "180°"}]
+        },
+        {
+          "key": "p4",
+          "label": "Polarity",
+          "defaultValue": 0.000000,
+          "choiceCount": 2,
+          "samples": [{"value": 0.000000, "text": "Positive"}, {"value": 1.000000, "text": "Negative"}]
         }
       ]
     },
@@ -334,6 +383,13 @@
           "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Stereo",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0°"}, {"value": 0.230000, "text": "41°"}, {"value": 0.470000, "text": "85°"}, {"value": 0.710000, "text": "128°"}, {"value": 1.000000, "text": "180°"}]
         }
       ]
     },
@@ -431,7 +487,7 @@
           "label": "Pattern",
           "defaultValue": 0.000000,
           "choiceCount": 16,
-          "samples": [{"value": 0.000000, "text": "Pattern 1"}, {"value": 0.066667, "text": "Pattern 2"}, {"value": 0.133333, "text": "Pattern 3"}, {"value": 0.200000, "text": "Pattern 4"}, {"value": 0.266667, "text": "Pattern 5"}, {"value": 0.333333, "text": "Pattern 6"}, {"value": 0.400000, "text": "Pattern 7"}, {"value": 0.466667, "text": "Pattern 8"}, {"value": 0.533333, "text": "Pattern 9"}, {"value": 0.600000, "text": "Pattern 10"}, {"value": 0.666667, "text": "Pattern 11"}, {"value": 0.733333, "text": "Pattern 12"}, {"value": 0.800000, "text": "Pattern 13"}, {"value": 0.866667, "text": "Pattern 14"}, {"value": 0.933333, "text": "Pattern 15"}, {"value": 1.000000, "text": "Pattern 16"}]
+          "samples": [{"value": 0.000000, "text": "Dotted 8ths"}, {"value": 0.066667, "text": "Sixteenths"}, {"value": 0.133333, "text": "Quarters"}, {"value": 0.200000, "text": "Half time"}, {"value": 0.266667, "text": "Bar break"}, {"value": 0.333333, "text": "Downbeat"}, {"value": 0.400000, "text": "Eighths"}, {"value": 0.466667, "text": "Gallop"}, {"value": 0.533333, "text": "Three 16ths"}, {"value": 0.600000, "text": "Syncopated"}, {"value": 0.666667, "text": "Stutter"}, {"value": 0.733333, "text": "Push"}, {"value": 0.800000, "text": "Shuffle"}, {"value": 0.866667, "text": "Reverse shuffle"}, {"value": 0.933333, "text": "Long short"}, {"value": 1.000000, "text": "Broken"}]
         },
         {
           "key": "p2",
@@ -446,6 +502,20 @@
           "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Smooth",
+          "defaultValue": 0.350000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0.5 ms"}, {"value": 0.230000, "text": "1.3 ms"}, {"value": 0.470000, "text": "3.4 ms"}, {"value": 0.710000, "text": "9.2 ms"}, {"value": 1.000000, "text": "30.0 ms"}]
+        },
+        {
+          "key": "p4",
+          "label": "Swing",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "50%"}, {"value": 0.230000, "text": "56%"}, {"value": 0.470000, "text": "62%"}, {"value": 0.710000, "text": "68%"}, {"value": 1.000000, "text": "75%"}]
         }
       ]
     },
@@ -1159,7 +1229,7 @@
           "label": "Crush",
           "defaultValue": 0.000000,
           "choiceCount": 0,
-          "samples": [{"value": 0.000000, "text": "16 bit / 1.0x"}, {"value": 0.230000, "text": "14 bit / 4.4x"}, {"value": 0.470000, "text": "11 bit / 8.1x"}, {"value": 0.710000, "text": "8 bit / 11.6x"}, {"value": 1.000000, "text": "4 bit / 16.0x"}]
+          "samples": [{"value": 0.000000, "text": "16 bit / 1.0x"}, {"value": 0.230000, "text": "14 bit / 4.5x"}, {"value": 0.470000, "text": "11 bit / 8.1x"}, {"value": 0.710000, "text": "8 bit / 11.6x"}, {"value": 1.000000, "text": "4 bit / 16.0x"}]
         },
         {
           "key": "mod_spd",
