@@ -2533,6 +2533,16 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "width",
+          "label": "Width",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 1.0
         }
       ]
     },
@@ -2619,6 +2629,16 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "width",
+          "label": "Width",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 1.0
         }
       ]
     },
@@ -2704,6 +2724,16 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "width",
+          "label": "Width",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 1.0
         }
       ]
     },
@@ -2789,6 +2819,16 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "width",
+          "label": "Width",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 1.0
         }
       ]
     },
@@ -2875,6 +2915,16 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "width",
+          "label": "Width",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 1.0
         }
       ]
     },
@@ -2962,6 +3012,16 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "width",
+          "label": "Width",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 1.0
         }
       ]
     },
@@ -3048,6 +3108,16 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "width",
+          "label": "Width",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 1.0
         }
       ]
     },
@@ -3134,6 +3204,16 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "width",
+          "label": "Width",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 1.0
         }
       ]
     },
@@ -3219,6 +3299,16 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "width",
+          "label": "Width",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 1.0
         }
       ]
     },
@@ -3305,6 +3395,16 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0
+        },
+        {
+          "kind": "number",
+          "key": "width",
+          "label": "Width",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 1.0
         }
       ]
     },

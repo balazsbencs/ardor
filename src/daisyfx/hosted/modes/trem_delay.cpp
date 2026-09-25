@@ -85,7 +85,10 @@ StereoFrame TremDelay::Process(StereoFrame input, const ParamSet& params) {
     trem_line_l_.Write(input.left + feedback_l);
     trem_line_r_.Write(input.right + feedback_r);
 
-    return StereoFrame{dc_l_.Process(wet_l * gain_l), dc_r_.Process(wet_r * gain_r)};
+    // Loop-safe Tone inside the loop; the output alone is corrected so the
+    // first repeat keeps its loudness at any Tone setting.
+    return StereoFrame{dc_l_.Process(wet_l * gain_l) * filter_l_.LoudnessCorrection(),
+                       dc_r_.Process(wet_r * gain_r) * filter_r_.LoudnessCorrection()};
 }
 
 } // namespace pedal

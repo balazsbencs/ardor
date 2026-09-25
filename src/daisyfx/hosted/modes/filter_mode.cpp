@@ -93,11 +93,7 @@ float FilterMode::bandOutput(const Svf& svf) const {
 }
 
 float FilterMode::SoftLimit(float x) {
-    static constexpr float kKnee = 0.7f;
-    const float magnitude = std::fabs(x);
-    if (magnitude <= kKnee) return x;
-    const float limited = kKnee + (1.0f - kKnee) * soft_clip_tanh((magnitude - kKnee) / (1.0f - kKnee));
-    return x < 0.0f ? -limited : limited;
+    return soft_limit_above(x, 0.7f);
 }
 
 StereoFrame FilterMode::Process(StereoFrame input, const ParamSet& params) {

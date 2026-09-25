@@ -37,6 +37,7 @@ void FilterDelay::Init() {
 }
 
 void FilterDelay::Reset() {
+    spread_.Reset();
     filter_line_l_.Reset();
     filter_line_r_.Reset();
     lfo_.Reset();
@@ -63,6 +64,7 @@ void FilterDelay::Prepare(const ParamSet& params) {
     float q = 0.5f + params.filter * 14.5f;
     svf_l_.SetQ(q);
     svf_r_.SetQ(q);
+    q_ = q;
 
     // Do not chatter between filter topologies when an automated control
     // hovers around a boundary. The 0.03 dead bands are inaudible in normal
@@ -81,6 +83,12 @@ void FilterDelay::Prepare(const ParamSet& params) {
     }
 
     sweep_depth_indices_ = params.mod_dep * 128.0f;
+
+    // Resonance make-up, as in the Filter mode: the SVF band-pass peaks at Q,
+    // so dividing by Q gives a constant-peak band-pass; low- and high-pass
+    // are scaled back above Q 4 so their peak stays within +12 dB.
+    makeup_ = filter_type_ == FilterType::Bandpass ? 1.0f / q_
+            : (q_ > 4.0f ? 4.0f / q_ : 1.0f);
 }
 
 StereoFrame FilterDelay::Process(float input, const ParamSet& params) {
@@ -105,9 +113,12 @@ StereoFrame FilterDelay::Process(StereoFrame input, const ParamSet& params) {
     svf_l_.SetG(tableG(128.0f + lfo_val * sweep_depth_indices_));
     svf_r_.SetG(tableG(128.0f - lfo_val * sweep_depth_indices_));
 
+    const float spread = spread_.Update(kStereoOffsetSamples, params.width);
+    const bool fractional = spread_.Fractional();
     const auto readHeads = [&](float base) {
         return StereoFrame{filter_line_l_.ReadNearest(base),
-                           filter_line_r_.ReadNearest(base + kStereoOffsetSamples)};
+                           fractional ? filter_line_r_.ReadAtHighQuality(base + spread)
+                                      : filter_line_r_.ReadNearest(base + spread)};
     };
     StereoFrame raw = readHeads(time_transition_.to());
     if (time_transition_.active()) {
@@ -147,10 +158,11 @@ StereoFrame FilterDelay::Process(StereoFrame input, const ParamSet& params) {
     filter_line_l_.Write(input.left + feedback_l);
     filter_line_r_.Write(input.right + feedback_r);
 
-    // A resonant SVF can exceed unity even with bounded input. Soft limiting
-    // reserves explicit output headroom without changing the feedback decay.
-    wet_l = dc_l_.Process(soft_clip_tanh(wet_l));
-    wet_r = dc_r_.Process(soft_clip_tanh(wet_r));
+    // No clip on the signal path: the soft clip that sat here put -24 dBc of
+    // third harmonic on a 0.6 tone. Resonant peaks are scaled by the make-up
+    // and caught by a limiter that is clean below -3 dBFS.
+    wet_l = dc_l_.Process(soft_limit_above(wet_l * makeup_, 0.7f));
+    wet_r = dc_r_.Process(soft_limit_above(wet_r * makeup_, 0.7f));
 
     return StereoFrame{wet_l, wet_r};
 }
