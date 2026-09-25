@@ -28,7 +28,7 @@ std::vector<double> envelope(const Render& out)
   std::vector<double> env;
   for (size_t start = 48000; start + kBlock <= out.left.size(); start += kBlock) {
     double sum = 0.0;
-    for (size_t i = start; i < start + kBlock; ++i) sum += out.left[i] * out.left[i];
+    for (size_t i = start; i < start + kBlock; ++i) sum += static_cast<double>(out.left[i]) * out.left[i];
     env.push_back(std::sqrt(sum / kBlock));
   }
   return env;
@@ -115,7 +115,7 @@ double toneGainDb(nlohmann::json params, double hz)
 {
   const auto out = render(params, sine(hz, 0.3f, 2 * 48000));
   double sum = 0.0;
-  for (size_t i = 48000; i < out.left.size(); ++i) sum += out.left[i] * out.left[i];
+  for (size_t i = 48000; i < out.left.size(); ++i) sum += static_cast<double>(out.left[i]) * out.left[i];
   return db(std::sqrt(sum / (out.left.size() - 48000)) / (0.3 / std::sqrt(2.0)));
 }
 
@@ -145,9 +145,9 @@ void verifyChorusMultiIsAnEnsemble()
   const auto out = render(params, guitarPhrase());
   double lr = 0.0, ll = 0.0, rr = 0.0;
   for (size_t i = 0; i < out.left.size(); ++i) {
-    lr += out.left[i] * out.right[i];
-    ll += out.left[i] * out.left[i];
-    rr += out.right[i] * out.right[i];
+    lr += static_cast<double>(out.left[i]) * out.right[i];
+    ll += static_cast<double>(out.left[i]) * out.left[i];
+    rr += static_cast<double>(out.right[i]) * out.right[i];
   }
   const double correlation = lr / std::sqrt(ll * rr);
   require(correlation < 0.25, "chorus Multi must give each side its own voices, L/R correlation " +

@@ -462,7 +462,12 @@ std::string formatDelay(std::string_view mode, std::string_view key, float norma
     if (mode == "pattern") return choice(normalized, std::array<std::string_view, 3>{"Straight", "Dotted 8th", "Triplet"});
     if (mode == "lofi") {
       const int bits = 16 - static_cast<int>(normalized * 12.0f);
-      return std::to_string(bits) + " bit / " + number(1.0f + normalized * 15.0f, 1, "x");
+      // Double precision: at 0.23, 1 + 0.23f * 15 lands exactly between two
+      // float32 values, so the displayed tenth depended on whether the
+      // compiler fused the multiply-add (4.5x on Apple clang, 4.4x on the
+      // Linux CI build). In double it is 4.45000006, clear of the tie.
+      const double flutter = 1.0 + static_cast<double>(normalized) * 15.0;
+      return std::to_string(bits) + " bit / " + number(static_cast<float>(flutter), 1, "x");
     }
     if (mode == "swell") return number(20.0f * std::log10(0.05f + normalized * 0.20f), 1, " dBFS");
     return percent(normalized);
