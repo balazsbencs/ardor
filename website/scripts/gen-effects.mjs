@@ -24,6 +24,13 @@ const catalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
 
 const UNIT_LABEL = { db: 'dB', percent: '%', ratio: ':1', ms: 'ms', hz: 'Hz' };
 
+// Player-facing names for asset kinds; the catalog keys are storage folder names.
+const ASSET_LABEL = {
+  models: 'NAM capture (.nam)',
+  irs: 'Cabinet impulse response',
+  'reverb-irs': 'Reverb impulse response',
+};
+
 /** Turn one catalog control into a compact, display-ready parameter record. */
 function normalizeControl(control) {
   const unit = control.unit ? UNIT_LABEL[control.unit] ?? control.unit : '';
@@ -40,25 +47,32 @@ function normalizeControl(control) {
     base.default = control.defaultValue;
   }
   if (control.kind === 'choice') {
-    base.choices = (control.choices ?? []).map((c) => c.label ?? c.value);
-    base.default = control.defaultValue;
+    const choices = control.choices ?? [];
+    base.choices = choices.map((c) => c.label ?? c.value);
+    // Show the default by its label ("L+R Average"), not its stored value ("sum").
+    const match = choices.find((c) => c.value === control.defaultValue);
+    base.default = match ? (match.label ?? match.value) : control.defaultValue;
   }
   if (control.kind === 'toggle') {
     base.default = control.defaultValue;
   }
   if (control.kind === 'asset') {
     base.assetKind = control.assetKind;
+    base.assetLabel = ASSET_LABEL[control.assetKind] ?? control.assetKind;
   }
   return base;
 }
 
+// Every catalog category must be listed here, or its blocks disappear from the
+// site. The script fails on an unknown category for that reason.
 const CATEGORY_META = {
-  amp: { label: 'Amp', order: 0 },
-  cabinet: { label: 'Cabinet', order: 1 },
-  utility: { label: 'Utility', order: 2 },
-  modulation: { label: 'Modulation', order: 3 },
-  delay: { label: 'Delay', order: 4 },
-  reverb: { label: 'Reverb', order: 5 },
+  amp: { label: 'Amp', order: 0, effect: false },
+  cabinet: { label: 'Cabinet', order: 1, effect: false },
+  drive: { label: 'Drive', order: 2, effect: true },
+  utility: { label: 'Dynamics and tone', order: 3, effect: true },
+  modulation: { label: 'Modulation', order: 4, effect: true },
+  delay: { label: 'Delay', order: 5, effect: true },
+  reverb: { label: 'Reverb', order: 6, effect: true },
 };
 
 const definitions = catalog.definitions.map((def) => ({
@@ -77,6 +91,17 @@ for (const def of definitions) {
   (categories[def.category] ??= []).push(def.id);
 }
 
+const unknown = Object.keys(categories).filter((key) => !(key in CATEGORY_META));
+if (unknown.length > 0) {
+  console.error(`[gen-effects] add these categories to CATEGORY_META: ${unknown.join(', ')}`);
+  process.exit(1);
+}
+
+const countOf = (key) => (categories[key] ?? []).length;
+const effectTotal = Object.entries(CATEGORY_META)
+  .filter(([, meta]) => meta.effect)
+  .reduce((sum, [key]) => sum + countOf(key), 0);
+
 const out = {
   version: catalog.version,
   generatedFrom: 'apps/manager/src/effects/catalog.v1.json',
@@ -85,9 +110,8 @@ const out = {
   definitions,
   counts: {
     total: definitions.length,
-    modulation: (categories.modulation ?? []).length,
-    delay: (categories.delay ?? []).length,
-    reverb: (categories.reverb ?? []).length,
+    effects: effectTotal,
+    ...Object.fromEntries(Object.keys(CATEGORY_META).map((key) => [key, countOf(key)])),
   },
 };
 
@@ -95,5 +119,6 @@ mkdirSync(dirname(outPath), { recursive: true });
 writeFileSync(outPath, JSON.stringify(out, null, 2) + '\n');
 console.log(
   `[gen-effects] wrote ${definitions.length} definitions ` +
-    `(${out.counts.modulation} mod / ${out.counts.delay} delay / ${out.counts.reverb} reverb)`,
+    `(${out.counts.effects} effects: ${out.counts.drive} drive / ${out.counts.utility} dynamics / ` +
+    `${out.counts.modulation} mod / ${out.counts.delay} delay / ${out.counts.reverb} reverb)`,
 );

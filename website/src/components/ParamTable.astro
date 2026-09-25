@@ -7,24 +7,25 @@ interface Props {
 const { id } = Astro.props;
 const def = allDefinitions.find((d) => d.id === id);
 
-// The device formats normalized 0..1 percent controls as 0–100%, so match it.
+// The device formats normalized 0..1 percent controls as 0 to 100%, so match it.
 function isNormPercent(c: Control): boolean {
   return c.unit === '%' && c.min === 0 && c.max === 1;
 }
+// Ranges read "-60 to 12 dB": a word is clearer than a dash next to a minus sign.
 function range(c: Control): string {
   if (c.kind === 'number' && c.min !== undefined && c.max !== undefined) {
-    if (isNormPercent(c)) return '0 – 100%';
-    return c.unit ? `${c.min} – ${c.max} ${c.unit}` : `${c.min} – ${c.max}`;
+    if (isNormPercent(c)) return '0 to 100%';
+    return c.unit ? `${c.min} to ${c.max} ${c.unit}` : `${c.min} to ${c.max}`;
   }
-  if (c.kind === 'choice' && c.choices) return c.choices.join(' · ');
-  if (c.kind === 'toggle') return 'on / off';
-  if (c.kind === 'asset') return `${c.assetKind ?? 'asset'} file`;
+  if (c.kind === 'choice' && c.choices) return c.choices.join(', ');
+  if (c.kind === 'toggle') return 'On or off';
+  if (c.kind === 'asset') return c.assetLabel ?? 'File';
   if (c.kind === 'parametric-eq-5') return '5 bands';
-  return '—';
+  return 'None';
 }
-function def_(c: Control): string {
-  if (c.default === undefined || c.default === null) return '—';
-  if (typeof c.default === 'boolean') return c.default ? 'on' : 'off';
+function defaultValue(c: Control): string {
+  if (c.default === undefined || c.default === null) return 'None';
+  if (typeof c.default === 'boolean') return c.default ? 'On' : 'Off';
   if (isNormPercent(c) && typeof c.default === 'number') {
     return `${Math.round(c.default * 100)}%`;
   }
@@ -42,7 +43,7 @@ function def_(c: Control): string {
         <tr>
           <td>{c.label}</td>
           <td class="mono">{range(c)}</td>
-          <td class="mono">{def_(c)}</td>
+          <td class="mono">{defaultValue(c)}</td>
         </tr>
       ))}
     </tbody>

@@ -1,68 +1,45 @@
 ---
 import DocsLayout from '../../layouts/DocsLayout.astro';
 import ParamTable from '../../components/ParamTable.astro';
-import { byCategory, describe, counts } from '../../lib/effects';
+import { byCategory, describe, counts, effectFamilies } from '../../lib/effects';
 import { url } from '../../lib/url';
 
-const catGroups = [
-  { key: 'modulation', label: 'Modulation', accent: '#59c2e6' },
-  { key: 'delay', label: 'Delay', accent: '#3ce0a6' },
-  { key: 'reverb', label: 'Reverb', accent: '#c58cff' },
-];
+const rigBlocks = [...byCategory('amp'), ...byCategory('cabinet')];
 ---
 
 <DocsLayout
   title="Effects Reference"
-  description="Find every Ardor effect, its controls, and its available value ranges."
-  lede="Open a block on the pedal or in the manager to change its controls. This page explains what each block does and lists the values that it accepts."
+  description="Every Ardor block, what it does, and the values that its controls accept."
+  lede="Open a block on the pedal or in the manager to change its controls. This page tells you what each block does and lists the values that it accepts."
 >
   <h2>Amp and cabinet</h2>
-
-  <h3>Amp model</h3>
   <p>
-    An amp model changes the guitar signal to sound like an amplifier. Add an amp model from
-    your asset library, then use these controls to set its level and input mode.
+    These blocks are the core of the rig. Add your own amp captures and impulse responses in the
+    <a href={url('/docs/manager')}>manager</a>, then choose them in the block.
   </p>
-  <ParamTable id="nam" />
+  <div class="fx-details" style="--cat: var(--family-amp)">
+    {rigBlocks.map((def) => (
+      <details>
+        <summary>
+          <span class="sum-name">{def.name}</span>
+          <span class="sum-desc">{describe(def)}</span>
+        </summary>
+        <ParamTable id={def.id} />
+      </details>
+    ))}
+  </div>
 
-  <h3>Cabinet sound</h3>
-  <p>
-    A cabinet sound shapes the amp model like a speaker cabinet. Choose a cabinet sound and
-    set its level or dry/wet mix.
-  </p>
-  <ParamTable id="cab" />
-
-  <h2>Dynamics &amp; EQ</h2>
-
-  <h3>Compressor</h3>
-  <p>A compressor evens out level changes. It includes a detector choice and a dry/wet mix.</p>
-  <ParamTable id="dynamics:compressor" />
-
-  <h3>Noise Gate</h3>
-  <p>
-    A noise gate reduces unwanted noise when you are not playing. It includes hold and
-    release controls and does not add extra delay.
-  </p>
-  <ParamTable id="dynamics:noise_gate" />
-
-  <h3>Five-Band Parametric EQ</h3>
-  <p>
-    Five adjustable bands change the tone. Each band has frequency, width, and gain controls
-    and appears on a live response graph. A saved preset always contains five bands.
-  </p>
-
-  <h2>Built-in effects</h2>
+  <h2>Effects</h2>
   <p class="lead-in">
-    Ardor includes {counts.modulation} modulation, {counts.delay} delay, and {counts.reverb}
-    reverb effects — <strong>35 effects</strong> in total. Open an effect below to see its
-    controls and values.
+    Ardor has {counts.effects} built-in effects in {effectFamilies.length} families. Each family has
+    one color, on the pedal and in the manager. Open an effect to see its controls and values.
   </p>
 
-  {catGroups.map((g) => (
-    <section class="fx-group" style={`--cat:${g.accent}`}>
-      <h3>{g.label} <span class="mono tnum">· {byCategory(g.key).length}</span></h3>
+  {effectFamilies.map((family) => (
+    <section class="fx-group" style={`--cat:${family.color}`} id={family.key}>
+      <h3><span class="swatch" aria-hidden="true"></span>{family.label} <span class="count mono tnum">{family.definitions.length}</span></h3>
       <div class="fx-details">
-        {byCategory(g.key).map((def) => (
+        {family.definitions.map((def) => (
           <details>
             <summary>
               <span class="sum-name">{def.name}</span>
@@ -75,6 +52,11 @@ const catGroups = [
     </section>
   ))}
 
+  <p class="trademark">
+    Product names such as ProCo RAT, Lovetone Big Cheese, Studer, Whammy, and GCB-95 belong to their
+    owners. Ardor uses them only to identify the circuits that its models follow.
+  </p>
+
   <p>
     See how these blocks connect in <a href={url('/docs/signal-chain')}>Signal Chain &amp; Routing</a>.
   </p>
@@ -82,20 +64,32 @@ const catGroups = [
   <style>
     .fx-group {
       margin-bottom: var(--sp-4);
+      scroll-margin-top: 5rem;
     }
-    .fx-group h3 .mono {
-      color: var(--cat);
+    .fx-group h3 {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .swatch {
+      width: 0.8rem;
+      height: 0.8rem;
+      background: var(--cat);
+    }
+    .count {
+      color: var(--muted);
+      font-size: var(--step-0);
     }
     .fx-details {
       display: flex;
       flex-direction: column;
       gap: 0.4rem;
+      margin-bottom: var(--sp-4);
     }
     details {
       border: 1px solid var(--hairline);
-      border-left: 2px solid var(--cat);
-      border-radius: var(--radius);
-      background: var(--ground-2);
+      border-top: 3px solid var(--cat);
+      background: linear-gradient(to bottom, color-mix(in srgb, var(--cat) 8%, var(--surface)), var(--surface) 3.5rem);
       padding: 0 var(--sp-3);
     }
     details[open] {
@@ -103,7 +97,7 @@ const catGroups = [
     }
     summary {
       cursor: pointer;
-      padding: 0.7rem 0;
+      padding: 0.75rem 0;
       display: flex;
       flex-wrap: wrap;
       align-items: baseline;
@@ -117,21 +111,31 @@ const catGroups = [
       content: '+';
       font-family: var(--font-mono);
       color: var(--cat);
-      margin-right: 0.4rem;
+      margin-right: 0.2rem;
     }
     details[open] summary::before {
-      content: '−';
+      content: '-';
     }
     .sum-name {
+      font-family: var(--font-display);
+      font-size: var(--step-1);
       font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
       color: var(--text-strong);
     }
     .sum-desc {
+      flex-basis: 100%;
       color: var(--muted);
-      font-size: var(--step--1);
+      font-size: var(--step-0);
     }
     details table {
       margin-top: 0;
+    }
+    .trademark {
+      margin-top: var(--sp-4);
+      color: var(--muted);
+      font-size: var(--step--1);
     }
   </style>
 </DocsLayout>
