@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.71](https://github.com/balazsbencs/ardor/compare/v0.1.70...v0.1.71) (2026-09-25)
+
+### Features
+
+* Lamp Black touchscreen UI ([#79](https://github.com/balazsbencs/ardor/issues/79)) ([4998e8d](https://github.com/balazsbencs/ardor/commit/4998e8dba5ff8b63e344c02dea684dc54eeda658))
+
 ## [0.1.70](https://github.com/balazsbencs/ardor/compare/v0.1.69...v0.1.70) (2026-09-23)
 
 ## [0.1.69](https://github.com/balazsbencs/ardor/compare/v0.1.68...v0.1.69) (2026-09-23)
