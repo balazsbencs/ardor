@@ -543,8 +543,8 @@ std::string formatReverb(std::string_view mode, std::string_view key, float norm
 const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
 {
   static const std::vector<DaisyFxDescriptor> catalog{
-    // A 50/50 default retains dry signal and produces an actual chorus. The
-    // Vibrato type ignores Mix: it is always fully wet.
+    // A 50/50 default retains dry signal and produces an actual chorus. For
+    // a pure vibrato, select Vibrato and set Mix to full.
     withExtras(mod("chorus", "Chorus", "Delay", "Type", 0.5f), "Width", 1.0f),
     // Manual 0.5 and Stereo 0.5 (90 degrees) are the sweep this flanger had
     // before either control existed.

@@ -17,7 +17,7 @@ public:
     void Prepare(const mod_fx::ParamSet& params) override;
     StereoFrame Process(StereoFrame input, const mod_fx::ParamSet& params) override;
     const char* Name() const override { return "Chorus"; }
-    // Vibrato is wet only whatever Mix says, so the mode does its own blend.
+    // The mode does its own equal-power dry/wet blend.
     bool OwnsDryMix() const override { return true; }
 
 private:
