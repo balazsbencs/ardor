@@ -213,6 +213,11 @@ playback. If GPIO13 stays `lo` with no switch pressed, inspect its wiring;
 if it reports `bias pull down`, reinstall the updated `ardor-controls.dtbo` on
 the boot partition and reboot.
 
+If the display draws but touch does not respond, check for a `Goodix Capacitive
+TouchScreen` entry in `/sys/class/input/event*/device/name`. The Goodix I2C
+probe can fail during boot before the panel has powered up. The pedal supervisor
+retries that probe before launching the app; a successful launch should have an
+open descriptor for the Goodix event node under `/proc/$(pidof ardor-pedal)/fd`.
 
 ## Run the REST API locally
 
@@ -463,6 +468,8 @@ to match it. The Vite development server intentionally requires port 1420.
 ### Realtime audio does not start
 
 - Re-run `pedal-poc --devices` and check both device indexes.
+- On the Pi, confirm `ALSA_CARD=Zero` selects Codec Zero; HDMI may otherwise be
+  card 0 and has no capture input.
 - Grant microphone permission to Terminal or the launching IDE.
 - Set the audio interface to 48 kHz when possible.
 - Check whether another application is holding the interface.
