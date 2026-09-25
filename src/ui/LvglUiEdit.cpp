@@ -58,6 +58,10 @@ constexpr int kSceneTabWidth = 132;
 constexpr int kSceneTabHeight = 44;
 constexpr int kSceneTabGap = 8;
 constexpr int kSceneTabY = 10;
+// Scene settings cards share the parameter drawer's 403 x 166 control card.
+// They live at file scope because GCC rejects locals as lambda defaults.
+constexpr int kSceneCardWidth = 403;
+constexpr int kSceneCardHeight = 166;
 
 struct HatchImage {
   std::vector<std::uint16_t> pixels;
@@ -984,17 +988,15 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
     lv_obj_t* sheet = lb::box(root, 0, lb::kHeaderHeight, kDesignWidth,
                               lb::kRailY - lb::kHeaderHeight, bg);
     lv_obj_add_flag(sheet, LV_OBJ_FLAG_CLICKABLE);
-    constexpr int kCardHeight = 166;
     constexpr int kRowA = 12;
-    constexpr int kRowB = kRowA + kCardHeight + lb::kGap;
-    constexpr int kRowC = kRowB + kCardHeight + lb::kGap;
+    constexpr int kRowB = kRowA + kSceneCardHeight + lb::kGap;
+    constexpr int kRowC = kRowB + kSceneCardHeight + lb::kGap;
     constexpr int kWideHeight = lb::kRailY - lb::kHeaderHeight - kRowC - lb::kGap;
     const auto columnX = [](int column) {
       return lb::kGutter + static_cast<int>(std::lround(column * ((1232.0 - 24.0) / 3.0 + 12.0) - 0.001));
     };
-    constexpr int kCardWidth = 403;
-    const auto card = [&](int column, int y, const std::string& title, int width = kCardWidth,
-                          int height = kCardHeight) {
+    const auto card = [&](int column, int y, const std::string& title, int width = kSceneCardWidth,
+                          int height = kSceneCardHeight) {
       lv_obj_t* result = lb::box(sheet, columnX(column), y, width, height, panel, rule, 1);
       lb::textLabel(result, lb::type::controlLabel, title, muted, 20, 15);
       return result;
@@ -1017,8 +1019,8 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
                            lb::centeredTextTop(lb::type::contextValue, 46, 50)
                              - lb::textTop(lb::type::contextValue, 0) + 0);
     };
-    constexpr int kInner = kCardWidth - 2 - 40;
-    constexpr int kFootY = kCardHeight - 2 - 16 - 56;
+    constexpr int kInner = kSceneCardWidth - 2 - 40;
+    constexpr int kFootY = kSceneCardHeight - 2 - 16 - 56;
 
     lv_obj_t* nameCard = card(0, kRowA, "NAME");
     value(nameCard, uppercase(scene.name), text);
