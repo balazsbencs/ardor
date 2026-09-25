@@ -26,6 +26,11 @@ RELAY_ENABLE=/sys/class/leds/ardor:audio-output-enable/brightness
 : "${WDW_WET_WORKER_CPU:=1}"
 : "${TELEMETRY_FILE:=/run/ardor-pedal.telemetry}"
 : "${CONTROL_DEVICES:=}"
+# Older pedal images pin event0/event1, but touchscreen and GPIO enumeration
+# can change across boots. Migrate only that shipped default to name discovery.
+if [ "$CONTROL_DEVICES" = "/dev/input/event0 /dev/input/event1" ]; then
+  CONTROL_DEVICES=auto
+fi
 : "${MIDI_DEVICE:=}"
 : "${MIDI_CHANNEL:=omni}"
 : "${MIDI_TUNER_CC:=20}"
@@ -48,9 +53,11 @@ set_output_relay() {
 }
 
 control_args=""
-for dev in $CONTROL_DEVICES; do
-  control_args="$control_args --control-device $dev"
-done
+if [ "$CONTROL_DEVICES" != "auto" ]; then
+  for dev in $CONTROL_DEVICES; do
+    control_args="$control_args --control-device $dev"
+  done
+fi
 ui_arg=""
 [ "$UI" = "1" ] && ui_arg="--ui"
 parallel_rig_args=""

@@ -46,7 +46,9 @@ std::optional<FootswitchAction> FootswitchGesture::handle(const ControlEvent& ev
       return std::nullopt;
     }
     down_[index] = true;
-    if (!enhanced && index >= 2) {
+    const bool looperCandidate = !sceneLayer_
+      && static_cast<int>(index) == looperEntrySlot_;
+    if (!enhanced && index >= 2 && !looperCandidate) {
       return selectAction(event.index);
     }
 
@@ -115,7 +117,15 @@ std::optional<FootswitchAction> FootswitchGesture::poll(Clock::time_point now)
 
   const auto window = scenesAvailable_ && layerChordEnabled_ ? sceneChordWindow : chordWindow;
   for (std::size_t index = 0; index < pending_.size(); ++index) {
-    if (pending_[index] && down_[index] && now - pressedAt_[index] >= window) {
+    if (pending_[index] && down_[index]
+        && !sceneLayer_ && static_cast<int>(index) == looperEntrySlot_
+        && now - pressedAt_[index] >= looperHold) {
+      pending_[index] = false;
+      return FootswitchAction{FootswitchActionType::OpenLooper, static_cast<int>(index)};
+    }
+    if (pending_[index] && down_[index]
+        && static_cast<int>(index) != looperEntrySlot_
+        && now - pressedAt_[index] >= window) {
       pending_[index] = false;
       return FootswitchAction{
         sceneLayer_ ? FootswitchActionType::SelectScene : FootswitchActionType::SelectPreset,
@@ -124,6 +134,17 @@ std::optional<FootswitchAction> FootswitchGesture::poll(Clock::time_point now)
     }
   }
   return std::nullopt;
+}
+
+void FootswitchGesture::setLooperEntrySlot(int activePresetSlot)
+{
+  if (activePresetSlot < 0 || activePresetSlot >= static_cast<int>(down_.size())) {
+    activePresetSlot = -1;
+  }
+  if (looperEntrySlot_ != activePresetSlot) {
+    looperEntrySlot_ = activePresetSlot;
+    reset();
+  }
 }
 
 void FootswitchGesture::configureScenes(bool available, bool sceneLayer, bool layerChordEnabled)

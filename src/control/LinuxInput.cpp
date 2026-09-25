@@ -2,12 +2,35 @@
 
 #include <cerrno>
 #include <cstring>
+#include <fstream>
+#include <vector>
 
 #include <fcntl.h>
 #include <linux/input.h>
 #include <unistd.h>
 
 namespace ardor {
+
+std::vector<std::filesystem::path> discoverPedalControlDevices(
+    const std::filesystem::path& sysInputRoot,
+    const std::filesystem::path& devInputRoot)
+{
+  std::vector<std::filesystem::path> devices;
+  std::error_code error;
+  for (std::filesystem::directory_iterator it(sysInputRoot, error), end;
+       !error && it != end; it.increment(error)) {
+    const auto node = it->path().filename().string();
+    if (node.rfind("event", 0) != 0) continue;
+    std::ifstream nameFile(it->path() / "device" / "name");
+    std::string name;
+    std::getline(nameFile, name);
+    if (name != "gpio-keys" && name != "rotary-encoder") continue;
+    const auto path = devInputRoot / node;
+    if (std::filesystem::exists(path, error)) devices.push_back(path);
+    error.clear();
+  }
+  return devices;
+}
 
 LinuxInputDevice::~LinuxInputDevice()
 {

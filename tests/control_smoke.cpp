@@ -128,6 +128,48 @@ int main()
                 && noScenesRight->type == ardor::FootswitchActionType::SelectPreset,
               "presets without scenes should retain legacy preset switching")) return 1;
 
+  gesture.configureScenes(false, false);
+  gesture.setLooperEntrySlot(2);
+  if (require(!gesture.handle({ardor::ControlEventType::FootswitchPressed, 2, 0}, start),
+              "active right preset must wait for its looper hold")) return 1;
+  if (require(!gesture.poll(start + 999ms), "looper entry must wait one second")) return 1;
+  const auto openLooper = gesture.poll(start + 1000ms);
+  if (require(openLooper && openLooper->type == ardor::FootswitchActionType::OpenLooper
+                && openLooper->index == 2,
+              "holding active preset must open Looper")) return 1;
+  if (require(!gesture.poll(start + 1500ms)
+                && !gesture.handle({ardor::ControlEventType::FootswitchReleased, 2, 0},
+                                   start + 1510ms),
+              "looper entry must fire once and suppress release selection")) return 1;
+  gesture.handle({ardor::ControlEventType::FootswitchPressed, 2, 0}, start + 2s);
+  const auto activeTap = gesture.handle(
+    {ardor::ControlEventType::FootswitchReleased, 2, 0}, start + 2050ms);
+  if (require(activeTap && activeTap->type == ardor::FootswitchActionType::SelectPreset,
+              "a short active-preset tap must retain preset selection")) return 1;
+  const auto inactiveTap = gesture.handle(
+    {ardor::ControlEventType::FootswitchPressed, 3, 0}, start + 3s);
+  if (require(inactiveTap && inactiveTap->type == ardor::FootswitchActionType::SelectPreset
+                && inactiveTap->index == 3,
+              "an inactive preset must still select immediately")) return 1;
+  gesture.handle({ardor::ControlEventType::FootswitchReleased, 3, 0}, start + 3050ms);
+
+  gesture.configureScenes(false, false);
+  gesture.setLooperEntrySlot(0);
+  gesture.handle({ardor::ControlEventType::FootswitchPressed, 0, 0}, start);
+  gesture.handle({ardor::ControlEventType::FootswitchPressed, 1, 0}, start + 50ms);
+  const auto chordBeforeLooper = gesture.poll(start + 1050ms);
+  if (require(chordBeforeLooper
+                && chordBeforeLooper->type == ardor::FootswitchActionType::ToggleTuner,
+              "the tuner chord must outrank an active-preset looper hold")) return 1;
+  gesture.handle({ardor::ControlEventType::FootswitchReleased, 0, 0}, start + 1100ms);
+  gesture.handle({ardor::ControlEventType::FootswitchReleased, 1, 0}, start + 1100ms);
+  gesture.setLooperEntrySlot(-1);
+  const auto noLooperEntry = gesture.handle(
+    {ardor::ControlEventType::FootswitchPressed, 2, 0}, start + 2s);
+  if (require(noLooperEntry && noLooperEntry->type == ardor::FootswitchActionType::SelectPreset,
+              "looper entry must be disabled away from the preset screen")) return 1;
+  gesture.handle({ardor::ControlEventType::FootswitchReleased, 2, 0}, start + 2050ms);
+
   ardor::MidiStreamParser midi;
   ardor::MidiControlMapper midiControls;
   if (require(!midi.push(0xc2), "program status should wait for data")) return 1;
