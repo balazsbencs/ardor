@@ -17,11 +17,10 @@ before the fix and passes after it.
 | 2 | Whammy, Harmonizer, Poly Octave | Done | Done | [#88](https://github.com/balazsbencs/ardor/pull/88), [#89](https://github.com/balazsbencs/ardor/pull/89) |
 | 3 | Filter, Ladder Sweep, Formant, Quadrature | Done | Quick fixes done | [#91](https://github.com/balazsbencs/ardor/pull/91) |
 | — | Auto Swell, Destroyer | Not started | — | — |
-| 4 | Delays: Digital, Tape, Dual, Filter, Lo-fi, Bucket Brigade, Duck, Pattern, Swell, Tremolo | Done | D1–D8 done | not opened yet (branch `fix/delay-effects`) |
+| 4 | Delays: Digital, Tape, Dual, Filter, Lo-fi, Bucket Brigade, Duck, Pattern, Swell, Tremolo | Done | D1–D8 done | [#92](https://github.com/balazsbencs/ardor/pull/92) |
 | — | Reverbs (12 modes) | Not started | — | — |
 
-The PRs are stacked. Merge them in order: #87, #88, #89, #91, then the
-delay PR. After each
+The PRs are stacked. Merge them in order: #87, #88, #89, #91, #92. After each
 merge, GitHub moves the next PR to `main`.
 
 None of the PRs is tested on the pedal yet. See [Open items](#open-items).
