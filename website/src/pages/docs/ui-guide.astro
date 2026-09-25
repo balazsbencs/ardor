@@ -1,35 +1,39 @@
 ---
 import DocsLayout from '../../layouts/DocsLayout.astro';
-import ScreenFrame from '../../components/screens/ScreenFrame.astro';
-import PresetScreen from '../../components/screens/PresetScreen.astro';
-import EditScreen from '../../components/screens/EditScreen.astro';
-import EqScreen from '../../components/screens/EqScreen.astro';
-import TunerScreen from '../../components/screens/TunerScreen.astro';
+import DeviceScreen from '../../components/DeviceScreen.astro';
 import { url } from '../../lib/url';
+import presetScreen from '../../assets/device/01-preset.png';
+import editScreen from '../../assets/device/02-edit.png';
+import modulesScreen from '../../assets/device/30-modules.png';
+import ratScreen from '../../assets/device/20-param-rat.png';
+import eqScreen from '../../assets/device/17-param-eq.png';
+import tunerScreen from '../../assets/device/40-tuner.png';
+
+const docSizes = '(max-width: 860px) 100vw, 52rem';
 ---
 
 <DocsLayout
   title="UI & Controls"
   description="Use the Ardor touchscreen, four footswitches, and encoder to choose sounds, edit a chain, and tune."
-  lede="The Ardor screen is made for playing. Choose a preset with your foot, change a sound on the touch display, and keep the signal path easy to follow from left to right."
+  lede="The Ardor screen is made for playing. Choose a preset with your foot, change a sound on the touch display, and follow the chain from left to right."
 >
   <h2>Preset screen</h2>
-  <ScreenFrame label="Preset" caption="The home screen: four slots in the active bank.">
-    <PresetScreen />
-  </ScreenFrame>
-  <p>The home screen shows four preset slots and these controls:</p>
+  <DeviceScreen src={presetScreen} alt="Preset screen: bank 01 with four preset tiles. Clean Lead is live in red." caption="The home screen: four slots in the active bank. The live preset is red." glow={{ x: 26, y: 26, strength: 'soft' }} sizes={docSizes} />
+  <p>
+    The header shows the bank number and name. Each tile shows its footswitch, the preset name,
+    and its chain in family colors. The live preset fills with red. The controls at the bottom are:
+  </p>
   <ul>
-    <li><strong>Bank −/+</strong> moves between banks.</li>
+    <li><strong>Edit</strong> opens the chain editor for the live preset.</li>
     <li><strong>Tuner</strong> opens the chromatic tuner.</li>
-    <li><strong>Edit</strong> opens the signal path editor.</li>
-    <li><strong>Settings</strong> opens Wi-Fi and display settings.</li>
-    <li>The footer shows the master volume and audio status.</li>
+    <li><strong>Looper</strong> opens the four-track looper.</li>
+    <li><strong>Bank −</strong> and <strong>Bank +</strong> move to the previous or next bank.</li>
+    <li><strong>Setup</strong> opens the settings: appearance, Wi-Fi, audio, controls, and updates.</li>
+    <li><strong>Master</strong> shows the output volume. Turn the encoder to change it.</li>
   </ul>
 
   <h2>Edit a sound</h2>
-  <ScreenFrame label="Edit" caption="The signal moves in one horizontal path from input to output.">
-    <EditScreen />
-  </ScreenFrame>
+  <DeviceScreen src={editScreen} alt="Chain editor: compressor, Clean Twin amp, open back 2x12 cabinet, chorus switched off, and tape delay, from left to right." caption="The chain runs from the input at the left to the output at the right." sizes={docSizes} />
   <p>
     The editor shows the signal from left to right. Your guitar enters at the left. Each
     effect appears in the order that it runs. The output is at the right. Scroll the canvas
@@ -39,28 +43,27 @@ import { url } from '../../lib/url';
     <li>Tap <strong>+</strong> between two blocks to add an effect.</li>
     <li>Tap a block to open its controls.</li>
     <li>Drag a block to change its place in the chain.</li>
-    <li>Use the filter buttons to find amps, cabinets, delays, reverbs, and other effects.</li>
-    <li>Tap <strong>Save</strong> when you want to keep the change.</li>
+    <li>Tap <strong>Modules</strong>, then use the family buttons to find amps, cabinets, drives, delays, reverbs, and other blocks.</li>
+    <li>Tap <strong>Save</strong> when you want to keep the change. Tap <strong>Undo</strong> to go back one step.</li>
   </ol>
+  <DeviceScreen src={modulesScreen} alt="Modules drawer: family filter buttons and a list of amp captures, each with a plus button." caption="The Modules drawer. Tap + to insert a block, or hold a block to drag it." sizes={docSizes} />
   <p>
-    Tap <strong>Split Left / Right</strong> when you want two horizontal paths. See{' '}
-    <a href={url('/docs/dual-rig')}>the Dual Rig &amp; Dual Amp</a> guide for the two-path layout.
+    Choose <strong>Split Left / Right</strong> in the Modules drawer when you want two lanes. See{' '}
+    <a href={url('/docs/dual-rig')}>Dual Rig &amp; Dual Amp</a> for the two-lane layout.
   </p>
 
   <h2>Change effect controls</h2>
-  <ScreenFrame label="EQ" caption="The five-band EQ shows the tone shape on a live graph.">
-    <EqScreen />
-  </ScreenFrame>
+  <DeviceScreen src={ratScreen} alt="RAT Distortion controls: Distortion, Filter, and Volume sliders. Distortion has a red outline and an ENC mark." caption="The encoder edits the control with the red outline and the ENC mark." glow={{ x: 18, y: 48, strength: 'soft' }} sizes={docSizes} />
   <p>
-    Most effects show large sliders with the control name and value. Drag a slider, or tap
-    its value when the control supports direct entry. Use the bypass control to hear the
-    sound with the effect off. The five-band EQ has a separate page with a live graph.
+    Each block shows its controls as large sliders with the name and the value. Drag a slider, or
+    turn the encoder to change the control with the <strong>ENC</strong> mark. Use <strong>−</strong>
+    and <strong>+</strong> for fine steps. Tap <strong>Block On</strong> to bypass the block and hear
+    the sound without it.
   </p>
+  <DeviceScreen src={eqScreen} alt="Five-band EQ page: a response graph with high-pass, five bands, and low-pass, and sliders for frequency, Q, and gain." caption="The five-band EQ has its own page with a live response graph." sizes={docSizes} />
 
   <h2>Tuner</h2>
-  <ScreenFrame label="Tuner" caption="The tuner mutes the output while you tune.">
-    <TunerScreen />
-  </ScreenFrame>
+  <DeviceScreen src={tunerScreen} alt="Tuner screen: E2 at 82.4 Hz, minus 2 cents, in tune, with the output muted." caption="The tuner mutes the output while you tune." glow={{ x: 50, y: 30, strength: 'soft' }} sizes={docSizes} />
   <p>
     The tuner shows the note, frequency, and whether the note is flat or sharp. It mutes the
     output while it is open. Tap the on-screen exit button, or press any footswitch, to
@@ -71,7 +74,7 @@ import { url } from '../../lib/url';
   <table>
     <thead><tr><th>Control</th><th>Action</th></tr></thead>
     <tbody>
-      <tr><td class="mono">Footswitch 1–4</td><td>Choose preset slots 1–4 in the active bank.</td></tr>
+      <tr><td class="mono">Footswitch 1 to 4</td><td>Choose preset slot 1 to 4 in the active bank.</td></tr>
       <tr><td class="mono">Encoder</td><td>Change the master output volume.</td></tr>
       <tr><td class="mono">Hold FS1 + FS2</td><td>Hold for one second to mute and open the tuner.</td></tr>
       <tr><td>Any footswitch</td><td>Leave the tuner without changing the preset.</td></tr>

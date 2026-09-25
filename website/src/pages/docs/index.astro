@@ -10,9 +10,8 @@ import { url } from '../../lib/url';
   lede="Start with a ready-made image, learn the screen, and build your sounds. Use the advanced notes only when you need them."
 >
   <div class="doc-cards">
-    {docsNav.map((d, i) => (
-      <a class="doc-card panel panel--tick" href={url(d.href)}>
-        <span class="doc-card-num mono tnum">{String(i + 1).padStart(2, '0')}</span>
+    {docsNav.map((d) => (
+      <a class="doc-card panel" href={url(d.href)}>
         <h3>{d.label}</h3>
         <p>{d.blurb}</p>
         <span class="doc-card-go mono">Open →</span>
@@ -44,7 +43,8 @@ import { url } from '../../lib/url';
       color: var(--text);
     }
     .doc-card:hover {
-      border-color: var(--accent-dim);
+      border-color: var(--hairline-strong);
+      background: var(--elevated);
       color: var(--text);
     }
     .doc-card h3 {
@@ -57,15 +57,14 @@ import { url } from '../../lib/url';
       color: var(--muted);
       font-size: var(--step-0);
     }
-    .doc-card-num {
-      color: var(--accent);
-      font-size: var(--step--1);
-    }
     .doc-card-go {
       margin-top: auto;
       padding-top: var(--sp-2);
-      color: var(--accent);
+      color: var(--muted);
       font-size: var(--step--1);
+    }
+    .doc-card:hover .doc-card-go {
+      color: var(--text-strong);
     }
   </style>
 </DocsLayout>
