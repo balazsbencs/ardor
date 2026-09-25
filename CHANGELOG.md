@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.74](https://github.com/balazsbencs/ardor/compare/v0.1.72...v0.1.74) (2026-09-25)
+
+### Bug Fixes
+
+* **pedal:** restore footswitch and looper control ([#80](https://github.com/balazsbencs/ardor/issues/80)) ([e411512](https://github.com/balazsbencs/ardor/commit/e4115127fc82fc68bfa49bfddbbd3768e61f58e0)), references [#81](https://github.com/balazsbencs/ardor/issues/81)
+
 ## [0.1.72](https://github.com/balazsbencs/ardor/compare/v0.1.71...v0.1.72) (2026-09-25)
 
 ### Bug Fixes
