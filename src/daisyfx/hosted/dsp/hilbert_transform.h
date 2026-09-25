@@ -7,10 +7,15 @@ namespace pedal {
 /// delay. The two paths form a quadrature pair suitable for single-sideband
 /// frequency shifting.
 ///
-/// Path A → "real"  output (constant group delay)
-/// Path B → "imaginary" output (~90° relative to A)
+/// Path A → "real" output
+/// Path B → "imaginary" output, 90° behind A (within about 1° from 60 Hz to
+///          15 kHz), one sample later.
 ///
-/// Coefficients: Niemitalo-style 4-section polyphase Hilbert pair.
+/// Coefficients: Niemitalo 4-section polyphase Hilbert pair, stored squared.
+/// Each section is H(z) = (a - z^-2) / (1 - a z^-2). The earlier sections
+/// had the sign of z^-2 flipped, which moves the 90° band up to a quarter of
+/// the sample rate, and the delay sat on the wrong path: the "single-sideband"
+/// shift left the unwanted sideband within 5 dB of the wanted one below 2 kHz.
 class HilbertTransform {
 public:
     struct Frame { float re; float im; };
@@ -24,7 +29,7 @@ public:
             path_a_[i].Reset();
             path_b_[i].Reset();
         }
-        re_delay_ = 0.0f;
+        im_delay_ = 0.0f;
     }
 
     /// Returns {re, im} where im ≈ Hilbert-transform of re.
@@ -35,9 +40,9 @@ public:
             re = path_a_[i].Process(re);
             im = path_b_[i].Process(im);
         }
-        const float delayed_re = re_delay_;
-        re_delay_ = re;
-        return {delayed_re, im};
+        const float delayed_im = im_delay_;
+        im_delay_ = im;
+        return {re, delayed_im};
     }
 
 private:
@@ -47,7 +52,7 @@ private:
         void SetCoeff(float a) { a_ = a; }
         void Reset() { x1_ = x2_ = y1_ = y2_ = 0.0f; }
         float Process(float x) {
-            const float y = a_ * x + x2_ - a_ * y2_;
+            const float y = a_ * (x + y2_) - x2_;
             x2_ = x1_;
             x1_ = x;
             y2_ = y1_;
@@ -75,7 +80,7 @@ private:
         Allpass2(0.976599f),
         Allpass2(0.997500f),
     };
-    float re_delay_ = 0.0f;
+    float im_delay_ = 0.0f;
 };
 
 } // namespace pedal

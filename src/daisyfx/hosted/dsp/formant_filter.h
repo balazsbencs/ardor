@@ -17,6 +17,10 @@ constexpr float kFormants[7][5] = {
     { 600,  950, 2600, 3100, 4000 },
     { 330,  640, 2280, 2800, 3400 },
 };
+// Relative formant levels of a sung vowel, F1 to F5, in linear gain:
+// 0, -6, -12, -16 and -22 dB. Real voices put most energy in the first two
+// formants; equal levels make a thin, hard vowel.
+constexpr float kNaturalLevels[5] = {1.0f, 0.501f, 0.251f, 0.158f, 0.0794f};
 } // namespace detail
 
 // 5-band biquad bandpass formant filter bank for vowel shaping.
@@ -44,6 +48,12 @@ public:
     // Q: Mild=2, Medium=5, High=10
     void SetResonance(float Q) { Q_ = Q; }
 
+    // Opt-in: weight the bands by a sung vowel's formant levels and skip the
+    // 1/BANDS normalisation, leaving the overall level to the caller. Off by
+    // default, so Chorale Reverb keeps the response its output trim was
+    // fitted to.
+    void SetNaturalLevels(bool natural) { natural_ = natural; }
+
     void Prepare() { ComputeCoeffs(); }
 
     float Process(float input) {
@@ -56,7 +66,7 @@ public:
             b.w2 = b.w1;
             b.w1 = w;
         }
-        return out * (1.0f / BANDS);
+        return natural_ ? out : out * (1.0f / BANDS);
     }
 
 private:
@@ -76,7 +86,7 @@ private:
             const float cw0   = std::cos(w0);
             const float alpha = sw0 / (2.0f * Q_);
             const float a0    = 1.0f + alpha;
-            bands_[i].b0 = alpha / a0;
+            bands_[i].b0 = alpha / a0 * (natural_ ? detail::kNaturalLevels[i] : 1.0f);
             bands_[i].a1 = -2.0f * cw0 / a0;
             bands_[i].a2 = (1.0f - alpha) / a0;
         }
@@ -86,6 +96,7 @@ private:
     float  sample_rate_ = SAMPLE_RATE;
     int    vowel_       = 0;
     float  Q_           = 5.0f;
+    bool   natural_     = false;
 };
 
 } // namespace pedal
