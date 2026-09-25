@@ -16,6 +16,10 @@ namespace pedal {
 /// P1 is the pedal position and is the control worth assigning to an expression
 /// input. P2 selects the preset within the family.
 ///
+/// P3 selects Detune (Shallow or Deep), which overrides the preset: the dry
+/// note plus a copy detuned down on the left and up on the right. The pedal
+/// scales the detune from half to one and a half times its nominal amount.
+///
 /// The engine is the granular shifter rather than the band-shifter that drives
 /// Poly Octave. That one produces its voices with double- and half-angle
 /// identities, so it is structurally limited to octaves and cannot express a
@@ -39,10 +43,15 @@ private:
     // fundamental, short enough to keep the latency near the original unit.
     static constexpr size_t kGrainSize  = 1024;
 
-    float buf_[kBufSize];
-    PitchShifter shifter_;
-    ToneFilter   tone_;
-    DcBlocker    dc_;
+    // One voice per channel, so a stereo source keeps its image. Both follow
+    // the same pitch, except in Detune where they spread apart.
+    struct Voice {
+        float        buf[kBufSize];
+        PitchShifter shifter;
+        ToneFilter   tone;
+        DcBlocker    dc;
+    };
+    Voice voices_[2];
 
     // Pedal glide, in semitones. Slewing the ratio instead would accelerate the
     // sweep toward the top of its travel, because ratio is exponential in pitch.
@@ -55,6 +64,10 @@ private:
     float ratio_           = 1.0f;
     float ratio_step_      = 0.0f;
 
+    // Detune: 0 = off, otherwise the nominal detune in semitones.
+    float detune_         = 0.0f;
+    // R channel ratio relative to L. 1 except in Detune.
+    float spread_ratio_   = 1.0f;
     bool  harmony_        = false;
     float harmony_level_  = 1.0f;
     int   preset_         = 0;

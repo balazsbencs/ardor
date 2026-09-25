@@ -34,6 +34,9 @@ private:
     // history left for the slowest downward read.
     static constexpr size_t kBufSize = 8192;
     static constexpr size_t kGrainSize = 1024;
+    // A new note is taken once the pitch is 35 cents past the boundary to it,
+    // so vibrato and bends up to that far keep the harmony still.
+    static constexpr float kNoteHysteresis = 0.85f;
     // Semitones from the tracked note to the harmony note, for the current
     // interval and key. Recomputed only when the played note changes.
     float semitonesForNote(int midiNote) const;

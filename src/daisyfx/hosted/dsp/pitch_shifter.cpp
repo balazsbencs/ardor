@@ -119,7 +119,9 @@ float PitchShifter::FindRestart(float nominal, float trailing_from) const {
     // pitch this is used at, and the refine recovers the exact position.
     float best_score = -1.0e30f;
     long  best_offset = 0;
-    for (long back = 0; back <= kSearchSpan; back += kCoarseStride) {
+    // Search from kMinBack so the sub-sample refinement below can never land
+    // the restart later than nominal.
+    for (long back = kMinBack; back <= kSearchSpan; back += kCoarseStride) {
         const float score = score_at(start - back);
         if (score > best_score) {
             best_score = score;
@@ -129,14 +131,33 @@ float PitchShifter::FindRestart(float nominal, float trailing_from) const {
     const long lo = best_offset - kCoarseStride + 1;
     const long hi = best_offset + kCoarseStride - 1;
     for (long back = lo; back <= hi; ++back) {
-        if (back < 0 || back > kSearchSpan) continue;
+        if (back < kMinBack || back > kSearchSpan) continue;
         const float score = score_at(start - back);
         if (score > best_score) {
             best_score = score;
             best_offset = back;
         }
     }
-    return nominal - static_cast<float>(best_offset);
+
+    // Sub-sample alignment. The scores compare whole-sample positions, but the
+    // partner reads between samples. Fit a parabola through the best score and
+    // its neighbours for the fractional offset, and carry the partner's own
+    // fraction, so the two grains overlap in phase to a fraction of a sample.
+    // Keeping the nominal position's fraction instead left up to half a sample
+    // of error at every restart, which showed as sidebands around the note.
+    float fraction = 0.0f;
+    if (best_offset > kMinBack && best_offset < kSearchSpan) {
+        const float left  = score_at(start - (best_offset - 1));
+        const float right = score_at(start - (best_offset + 1));
+        const float curvature = left - 2.0f * best_score + right;
+        if (curvature < -1.0e-12f) {
+            fraction = 0.5f * (left - right) / curvature;
+            if (fraction > 0.5f) fraction = 0.5f;
+            if (fraction < -0.5f) fraction = -0.5f;
+        }
+    }
+    const float partner_fraction = trailing_from - static_cast<float>(target);
+    return static_cast<float>(start - best_offset) - fraction + partner_fraction;
 }
 
 float PitchShifter::ReadInterp(float pos) const {
@@ -194,13 +215,29 @@ float PitchShifter::Process(float input) {
             // for the whole overlap. Matching a grain against itself leaves the
             // pair free to land in anti-phase, which cancels the carrier and
             // leaves the output as a pair of sidebands at +/- the grain rate.
-            const float partner = read_pos_[g ^ 1];
-            float restart = static_cast<float>(write_pos_);
+            //
+            // Align with the partner where it will read NEXT sample, which is
+            // where this grain first reads too. Grain 1 is updated after grain
+            // 0 in this loop, so when grain 0 restarts its partner has not yet
+            // advanced this sample. Using that stale position put every other
+            // restart `ratio` samples late, always the same way: the output ran
+            // flat (1.4 to 4.5 cents) and the error pattern cycled slowly,
+            // making sidebands around the note.
+            const float partner = (g == 0) ? read_pos_[1] + ratio_ : read_pos_[0];
+            // Stay a few samples behind the writer: the cubic read looks two
+            // samples ahead, and the sub-sample alignment may move it later.
+            float restart = static_cast<float>(write_pos_) - kWriteMargin;
             if (ratio_ > 1.0f) {
-                restart -= (ratio_ - 1.0f) * grain + 4.0f;
+                restart -= (ratio_ - 1.0f) * grain;
             }
-            const float jump = std::fabs(restart - partner);
-            read_pos_[g] = (jump >= kMinJumpForSearch)
+            //
+            // Search at every ratio except unison. A small shift makes only a
+            // small jump, but skipping the search for it (as a jump threshold
+            // once did) restarts each grain relative to the write head, which
+            // gives back the offset the grain built up: at 8 cents on a 196 Hz
+            // note the restarts cancelled the shift almost exactly, leaving the
+            // average pitch unshifted with a warble at the grain rate.
+            read_pos_[g] = (ratio_ != 1.0f)
                 ? FindRestart(restart, partner)
                 : restart;
         }
