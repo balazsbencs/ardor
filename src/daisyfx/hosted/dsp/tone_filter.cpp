@@ -80,6 +80,18 @@ void ToneFilter::SetKnob(float knob) {
     if (!std::isfinite(knob)) knob = 0.5f;
     knob = std::clamp(knob, 0.0f, 1.0f);
     if (knob == last_knob_) return;
+    Recompute(knob);
+}
+
+void ToneFilter::SetPivotHz(float hz) {
+    if (!std::isfinite(hz)) return;
+    hz = std::clamp(hz, 50.0f, 0.4f * sample_rate_);
+    if (hz == pivot_hz_) return;
+    pivot_hz_ = hz;
+    if (last_knob_ >= 0.0f) Recompute(last_knob_);
+}
+
+void ToneFilter::Recompute(float knob) {
     last_knob_ = knob;
 
     const float amount = (knob - 0.5f) * 2.0f;
@@ -98,8 +110,7 @@ void ToneFilter::SetKnob(float knob) {
         // mids, so the pivot does too: measured on a DI guitar recording,
         // 400 Hz keeps both ends of the knob within 0.6 dB of flat, where
         // 800 Hz left the dark end +2.7 dB louder and the bright end -1.9 dB.
-        static constexpr float kPivotHz = 400.0f;
-        output_gain_ = 1.0f / MagnitudeAt(kPivotHz);
+        output_gain_ = 1.0f / MagnitudeAt(pivot_hz_);
         return;
     }
     // ToneFilter is also used inside delay feedback loops. Normalize the

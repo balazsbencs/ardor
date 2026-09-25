@@ -1544,13 +1544,13 @@
       "controls": [
         {
           "key": "speed",
-          "label": "Tracking",
+          "label": "Attack",
           "kind": "number",
           "unit": "%",
           "min": 0,
           "max": 1,
           "step": 0.05,
-          "default": 0.35
+          "default": 0
         },
         {
           "key": "depth",
@@ -1560,7 +1560,7 @@
           "min": 0,
           "max": 1,
           "step": 0.05,
-          "default": 0.7
+          "default": 0
         },
         {
           "key": "mix",
@@ -1600,7 +1600,7 @@
           "min": 0,
           "max": 1,
           "step": 0.05,
-          "default": 0
+          "default": 0.5
         },
         {
           "key": "level",
@@ -1611,6 +1611,16 @@
           "max": 1,
           "step": 0.05,
           "default": 0.5
+        },
+        {
+          "key": "p3",
+          "label": "Dry",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
         }
       ]
     },
@@ -2279,6 +2289,16 @@
           "max": 1,
           "step": 0.05,
           "default": 0.5
+        },
+        {
+          "key": "p3",
+          "label": "Detune",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
         }
       ]
     },

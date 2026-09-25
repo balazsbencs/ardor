@@ -81,6 +81,19 @@ DaisyFxDescriptor withExtras(DaisyFxDescriptor descriptor, std::string p3Label, 
   return descriptor;
 }
 
+DaisyFxDescriptor polyOctave()
+{
+  // The mode blends its own dry note (p3), so Mix stays at full. The default
+  // is the played note plus one octave down: the old default played only the
+  // two-octave-down voice, 7.3 dB below bypass and with no dry note at all.
+  auto descriptor = mod("poly_octave", "Poly Octave", "Oct Up", "Oct Down", 1.0f, "Attack",
+                        "Oct Down 2");
+  descriptor.params[0].defaultValue = 0.0f;  // Attack off
+  descriptor.params[1].defaultValue = 0.0f;  // Oct Down 2
+  descriptor.params[5].defaultValue = 0.5f;  // Oct Down
+  return withExtras(std::move(descriptor), "Dry", 1.0f);
+}
+
 DaisyFxDescriptor ladderSweep()
 {
   auto descriptor = mod("ladder_sweep", "Ladder Sweep", "Resonance", "Waveform", 1.0f,
@@ -352,7 +365,11 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "ladder_sweep") return number(physical * 60.0f, 0, " BPM");
     if (mode == "auto_swell") return milliseconds(physical * 1000.0f);
     if (mode == "destroyer") return number(physical, physical < 10.0f ? 1 : 0, "x");
-    if (mode == "poly_octave" || mode == "harmonizer") return percent((physical - 0.05f) / 9.95f);
+    if (mode == "poly_octave") {
+      const float seconds = (physical - 0.05f) / 9.95f * 0.25f;
+      return seconds < 0.0005f ? "Off" : milliseconds(seconds * 1000.0f);
+    }
+    if (mode == "harmonizer") return percent((physical - 0.05f) / 9.95f);
     // Whammy Speed is a glide time: the pedal follows over ~50 ms at the
     // slow end and ~1 ms at the fast end.
     if (mode == "whammy") return milliseconds(1.0f / (0.02f + normalized * 0.95f));
@@ -413,6 +430,7 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
   }
   if (key == "p3") {
     if (mode == "flanger") return percent(normalized);
+    if (mode == "whammy") return choice(normalized, std::array<std::string_view, 3>{"Off", "Shallow", "Deep"});
     if (mode == "phaser" || mode == "vintage_trem") return degrees(normalized * 180.0f);
     if (mode == "pattern_trem") return milliseconds(patternSmoothMs(normalized));
     if (mode == "rotary") return rotaryBalance(normalized);
@@ -553,7 +571,7 @@ const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
     mod("vibe", "Vibe", "Regen", "Lag"),
     withExtras(mod("phaser", "Phaser", "Regen", "Stages", 0.5f), "Stereo", 0.5f, "Polarity", 0.0f),
     withExtras(mod("vintage_trem", "Vintage Trem", "Shape", "Type"), "Stereo", 0.0f),
-    mod("poly_octave", "Poly Octave", "Oct Up", "Oct Down", 1.0f, "Tracking", "Oct Down 2"),
+    polyOctave(),
     // Smooth 0.35 is the fixed ~2 ms edge this mode had before the control.
     withExtras(mod("pattern_trem", "Pattern Trem", "Pattern", "Division", 1.0f, "Tempo"),
                "Smooth", 0.35f, "Swing", 0.0f),
@@ -563,7 +581,8 @@ const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
     mod("formant", "Formant", "Resonance", "Vowel"),
     mod("quadrature", "Quadrature", "Blend / Spread", "Mode", 1.0f, "Frequency", "FM Depth"),
     mod("destroyer", "Destroyer", "Filter Resonance", "Noise", 1.0f, "Decimation", "Bits"),
-    mod("whammy", "Whammy", "Pedal", "Preset", 1.0f, "Glide", "Harmony Level"),
+    withExtras(mod("whammy", "Whammy", "Pedal", "Preset", 1.0f, "Glide", "Harmony Level"),
+               "Detune", 0.0f),
     mod("harmonizer", "Harmonizer", "Interval", "Key", 0.5f, "Tracking", "Scale"),
     delay("digital", "Digital Delay", "Saturation", "Mod Rate", "Mod Depth"),
     delay("tape", "Tape Delay", "Saturation", "Flutter Rate", "Flutter"),
@@ -651,6 +670,7 @@ DaisyFxParamControlSpec daisyFxParamControlSpec(const DaisyFxDescriptor& effect,
       else if (mode == "harmonizer") choiceCount = 12;
     }
     if (key == "p4" && mode == "phaser") choiceCount = 2;
+    if (key == "p3" && mode == "whammy") choiceCount = 3;
   } else if (effect.kind == DaisyFxKind::Delay) {
     if (key == "grit" && (mode == "filter" || mode == "pattern")) choiceCount = 3;
   } else {

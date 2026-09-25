@@ -22,6 +22,10 @@ public:
     void Init(float sample_rate = SAMPLE_RATE, ToneGain gain = ToneGain::LoopSafe);
     void Reset();
     void SetKnob(float knob);
+    // Loudness mode only: the frequency held at 0 dB (default 400 Hz, the
+    // centre of a guitar's energy). A pitch shifter moves that energy by its
+    // ratio, so it should move the pivot with it.
+    void SetPivotHz(float hz);
     float Process(float sample);
 
 private:
@@ -38,7 +42,10 @@ private:
 
     float MagnitudeAt(float hz) const;
 
+    void Recompute(float knob);
+
     ToneGain gain_mode_ = ToneGain::LoopSafe;
+    float pivot_hz_ = 400.0f;
     float last_knob_ = -1.0f;
     float sample_rate_ = SAMPLE_RATE;
     float inv_sample_rate_ = INV_SAMPLE_RATE;
