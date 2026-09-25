@@ -1,14 +1,24 @@
 #include "formant_mode.h"
 #include "../config/constants.h"
+#include <cmath>
 
 using namespace pedal::mod_fx;
 
 namespace pedal {
 
+namespace {
+// Overall gain of the vowel bank at the mildest resonance: +8 dB brings the
+// vowels to within about 2 dB of bypass on DI and synthetic guitar.
+constexpr float kFormantMakeup = 2.5f;
+} // namespace
+
 void FormantMode::Init() {
     ff_a_.Init();
     ff_b_.Init();
-    tone_.Init();
+    ff_a_.SetNaturalLevels(true);
+    ff_b_.SetNaturalLevels(true);
+    // Loudness-neutral: the tone stage feeds no loop.
+    tone_.Init(SAMPLE_RATE, ToneGain::Loudness);
     Reset();
 }
 
@@ -39,6 +49,11 @@ void FormantMode::Prepare(const ParamSet& params) {
 
     // P1 controls resonance Q: 2 = natural, 10 = focused/peaky
     const float q = 2.0f + params.p1 * 8.0f;
+    // A band-pass passes energy in proportion to its bandwidth, so a higher Q
+    // lets less of the note through. Restore it with sqrt(Q). The bank used
+    // to sum five unity bands and divide by five: -17 dB at the default and
+    // -27 dB at the highest resonance.
+    makeup_ = kFormantMakeup * std::sqrt(q / 2.0f);
 
     // Tone is neutral at the catalog default (0.5); its two sides shape the
     // vowel bank without moving the selected formant frequencies.
@@ -55,7 +70,7 @@ void FormantMode::Prepare(const ParamSet& params) {
 
 StereoFrame FormantMode::Process(StereoFrame input, const mod_fx::ParamSet& /*params*/) {
     const float mono = input.mono();
-    const float out  = ff_a_.Process(mono) * blend_a_ + ff_b_.Process(mono) * blend_b_;
+    const float out  = (ff_a_.Process(mono) * blend_a_ + ff_b_.Process(mono) * blend_b_) * makeup_;
     const float wet  = dc_.Process(tone_.Process(out));
     return {wet, wet};
 }

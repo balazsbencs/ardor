@@ -28,6 +28,7 @@ private:
     ToneFilter    tone_;
     float         blend_a_ = 1.0f;
     float         blend_b_ = 0.0f;
+    float         makeup_  = 1.0f;
 };
 
 } // namespace pedal

@@ -379,14 +379,13 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "ladder_sweep") return number(normalized * 5.0f, 1, " oct");
     if (mode == "destroyer") return number(16.0f - static_cast<int>(normalized * 15.0f), 0, " bit");
     if (mode == "auto_swell") return number(20.0f * std::log10(1.0f + normalized), 1, " dB");
-    if (mode == "quadrature") return std::string{"+/-"} + frequency(normalized * 80.0f);
     if (mode == "whammy") return percent(normalized);
     if (mode == "harmonizer") return choice(normalized, kHarmonyScales);
     return percent(normalized);
   }
   if (key == "mix") return percent(normalized);
   if (key == "tone") {
-    if (mode == "filter") return frequency(80.0f + normalized * 11920.0f);
+    if (mode == "filter") return frequency(80.0f * std::pow(150.0f, normalized));
     if (mode == "ladder_sweep") return frequency(20.0f * std::pow(600.0f, normalized));
     if (mode == "destroyer") return frequency(80.0f + normalized * (48000.0f * 0.45f - 80.0f));
     if (mode == "phaser") return frequency(300.0f * std::pow(10000.0f / 300.0f, normalized));
@@ -431,6 +430,7 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
   if (key == "p3") {
     if (mode == "flanger") return percent(normalized);
     if (mode == "whammy") return choice(normalized, std::array<std::string_view, 3>{"Off", "Shallow", "Deep"});
+    if (mode == "filter") return choice(normalized, std::array<std::string_view, 4>{"Low-pass", "Band-pass", "High-pass", "Notch"});
     if (mode == "harmonizer") {
       const auto index = std::min<std::size_t>(static_cast<std::size_t>(normalized * 11.0f), 10);
       return index == 0 ? "Off" : std::string(kHarmonyIntervals[index - 1]);
@@ -580,10 +580,12 @@ const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
     withExtras(mod("pattern_trem", "Pattern Trem", "Pattern", "Division", 1.0f, "Tempo"),
                "Smooth", 0.35f, "Swing", 0.0f),
     mod("auto_swell", "Auto Swell", "Release", "Doubling", 1.0f, "Attack", "Boost"),
-    mod("filter", "Filter", "Resonance", "Shape / Source"),
+    // Type (p3) is its own control; Tone is the frequency for every type.
+    withExtras(mod("filter", "Filter", "Resonance", "Shape / Source"), "Type", 0.0f),
     ladderSweep(),
     mod("formant", "Formant", "Resonance", "Vowel"),
-    mod("quadrature", "Quadrature", "Blend / Spread", "Mode", 1.0f, "Frequency", "FM Depth"),
+    // Depth is the AM depth, the Warble depth or the Shift feedback.
+    mod("quadrature", "Quadrature", "Blend / Spread", "Mode", 1.0f, "Frequency", "Depth"),
     mod("destroyer", "Destroyer", "Filter Resonance", "Noise", 1.0f, "Decimation", "Bits"),
     withExtras(mod("whammy", "Whammy", "Pedal", "Preset", 1.0f, "Glide", "Harmony Level"),
                "Detune", 0.0f),
@@ -679,6 +681,7 @@ DaisyFxParamControlSpec daisyFxParamControlSpec(const DaisyFxDescriptor& effect,
     }
     if (key == "p4" && mode == "phaser") choiceCount = 2;
     if (key == "p3" && mode == "whammy") choiceCount = 3;
+    if (key == "p3" && mode == "filter") choiceCount = 4;
     if (key == "p3" && mode == "harmonizer") choiceCount = 11;
   } else if (effect.kind == DaisyFxKind::Delay) {
     if (key == "grit" && (mode == "filter" || mode == "pattern")) choiceCount = 3;

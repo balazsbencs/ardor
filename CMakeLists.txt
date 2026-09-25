@@ -472,6 +472,9 @@ target_link_libraries(pedal-pitch-effect-quality PRIVATE ardor_daisyfx)
 add_executable(pedal-harmonizer-quality tests/harmonizer_quality.cpp)
 target_link_libraries(pedal-harmonizer-quality PRIVATE ardor_daisyfx)
 
+add_executable(pedal-filter-effect-quality tests/filter_effect_quality.cpp)
+target_link_libraries(pedal-filter-effect-quality PRIVATE ardor_daisyfx)
+
 add_executable(pedal-reverb-quality tests/reverb_quality.cpp)
 target_link_libraries(pedal-reverb-quality PRIVATE ardor_daisyfx)
 
@@ -717,6 +720,7 @@ add_test(NAME pedal-mod-effect-controls COMMAND pedal-mod-effect-controls)
 add_test(NAME pedal-mod-effect-models COMMAND pedal-mod-effect-models)
 add_test(NAME pedal-pitch-effect-quality COMMAND pedal-pitch-effect-quality)
 add_test(NAME pedal-harmonizer-quality COMMAND pedal-harmonizer-quality)
+add_test(NAME pedal-filter-effect-quality COMMAND pedal-filter-effect-quality)
 add_test(NAME pedal-wah-netlist-smoke COMMAND pedal-wah-netlist-smoke)
 add_test(NAME pedal-wah-dk-smoke COMMAND pedal-wah-dk-smoke)
 add_test(NAME pedal-wah-table-smoke COMMAND pedal-wah-table-smoke)
