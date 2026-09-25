@@ -119,16 +119,18 @@ another Buildroot release is rejected rather than modified in place.
 
 ## Automated Releases
 
-Every push to `main` runs `.github/workflows/release.yml`. The workflow creates
-its own `v0.1.<run-number>` tag and builds the compressed Raspberry Pi image,
-then publishes one GitHub Release after all builds and manager tests pass. Tags
-do not need to be created or pushed manually.
+Every push to `main` runs `.github/workflows/release.yml`. When the push changes
+image inputs, such as Buildroot configuration, device software, or the Manager
+app embedded in the image, the workflow creates its own `v0.1.<run-number>` tag,
+builds the compressed Raspberry Pi image, and publishes one GitHub Release after
+the required checks pass. Documentation-only changes do not create a release or
+build an image. Tags do not need to be created or pushed manually.
 
 The compressed Raspberry Pi image is cached by a content hash of its Buildroot
 configuration, build scripts, pedal sources, third-party headers, embedded app
-sources, and manager-daemon sources. Commits that only affect documentation or
-tests reuse the cached image and skip the complete Buildroot build. The cached image is copied to a versioned filename and uploaded to every
-release, so each release remains self-contained.
+sources, and manager-daemon sources. Within a release run, the cache can reuse a
+completed build when rerun. Each image contains its release version and commit,
+so images are not reused across releases.
 
 Each release also contains a signed `ardor-device-<version>-linux-aarch64`
 application bundle for OTA-capable images. The bundle replaces `ardor-pedal` and

@@ -19,8 +19,47 @@ env:
   OTA_MINIMUM_BASE_VERSION: '0.1.24'
 
 jobs:
+  changes:
+    name: Check release inputs
+    runs-on: ubuntu-24.04
+    outputs:
+      firmware_changed: ${{ steps.firmware-changes.outputs.changed }}
+    steps:
+      - name: Check out the complete history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Check for firmware changes
+        id: firmware-changes
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        shell: bash
+        run: |
+          # A new branch or unavailable base has no reliable comparison.
+          if [[ "$BEFORE_SHA" =~ ^0+$ ]] || ! git cat-file -e "$BEFORE_SHA^{commit}"; then
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git diff --quiet "$BEFORE_SHA" "$GITHUB_SHA" -- \
+            .github/workflows/release.yml \
+            CMakeLists.txt \
+            lv_conf.h \
+            src third_party plugins assets \
+            apps/audio-probe apps/pedal-poc apps/manager \
+            services/managerd protocol/cloud \
+            buildroot \
+            scripts/build-image.sh scripts/build-image-in-container.sh; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+
   prepare:
     name: Prepare release
+    needs: changes
+    if: needs.changes.outputs.firmware_changed == 'true'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -126,6 +165,8 @@ jobs:
 
   manager-checks:
     name: Check manager app
+    needs: changes
+    if: needs.changes.outputs.firmware_changed == 'true'
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -154,6 +195,8 @@ jobs:
 
   device-checks:
     name: Check device software
+    needs: changes
+    if: needs.changes.outputs.firmware_changed == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
