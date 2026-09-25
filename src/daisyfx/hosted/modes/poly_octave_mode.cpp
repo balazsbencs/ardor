@@ -63,12 +63,36 @@ ShelfBiquad ShelfBiquad::make_lowshelf(double db_gain, double freq_hz, double sp
 
 // ── PolyOctaveMode ────────────────────────────────────────────────────────────
 
+namespace {
+
+// Make-up per voice so that each, alone at full level, sits about 1.5 dB under
+// the dry note. Measured on a DI guitar recording and a synthetic phrase, the
+// generator's raw voices came out at -13.7 (up), -5.7 (down) and -3.2 dB
+// (down 2): the octave up was barely audible at full.
+constexpr float kUp1Gain   = 4.07f;   // +12.2 dB
+constexpr float kDown1Gain = 1.62f;   // +4.2 dB
+constexpr float kDown2Gain = 1.22f;   // +1.7 dB
+
+// Knob moves glide over ~20 ms so a swept level does not step.
+constexpr float kLevelSmoothing = 0.001f;
+// Attack envelopes. A symmetric 10 ms smoother gives the note's envelope; the
+// slow copy rises at the Attack rate but falls with it at once. In sustain the
+// two agree and the voices sit at full level; at each new note the slow copy
+// lags and the voices swell in. Two peak detectors with different attacks
+// would not agree in sustain: the slow one only rises on each cycle's peaks
+// and settles lower, turning the voices down for good.
+const float kEnvSmoothing = 1.0f - std::exp(-1.0f / (0.010f * SAMPLE_RATE));
+constexpr float kMaxAttackSeconds = 0.25f;
+
+} // namespace
+
 void PolyOctaveMode::Init()
 {
     octave_gen_.init(SAMPLE_RATE / static_cast<float>(resample_factor));
     eq_high_ = ShelfBiquad::make_highshelf(-11.0, 140.0, SAMPLE_RATE);
     eq_low_  = ShelfBiquad::make_lowshelf(   5.0, 160.0, SAMPLE_RATE);
-    tone_.Init();
+    // Loudness-neutral: the voices feed no loop.
+    tone_.Init(SAMPLE_RATE, ToneGain::Loudness);
     Reset();
 }
 
@@ -89,47 +113,49 @@ void PolyOctaveMode::Reset()
     up1_level_    = 0.0f;
     down1_level_  = 0.0f;
     down2_level_  = 0.0f;
-    tracking_coefficient_ = 1.0f;
+    dry_target_   = 1.0f;
+    dry_level_    = 1.0f;
+    env_fast_     = 0.0f;
+    env_slow_     = 0.0f;
+    attack_coefficient_ = 1.0f;
 }
 
 void PolyOctaveMode::Prepare(const ParamSet& params)
 {
-    // p1 → octave up 1, p2 → octave down 1, depth → octave down 2.
-    up1_target_   = params.p1;
-    down1_target_ = params.p2;
-    down2_target_ = params.depth;
+    // p1 → octave up 1, p2 → octave down 1, depth → octave down 2, p3 → dry.
+    up1_target_   = params.p1 * kUp1Gain;
+    down1_target_ = params.p2 * kDown1Gain;
+    down2_target_ = params.depth * kDown2Gain;
+    dry_target_   = params.p3;
 
-    // Tone's bright half is a high-pass that reaches 3 kHz at full travel. This
-    // mode generates sub-harmonic content — a 196 Hz note produces 49, 98 and
-    // 392 Hz — so at the top of the knob almost nothing survives. Measured
-    // output against the dry input: +8.1 dB at tone 0.5, -0.2 dB at 0.8,
-    // -6.1 dB at 0.9, then -39.7 dB at 1.0. That last tenth of travel is a
-    // 33 dB cliff and makes the effect sound broken rather than bright.
-    //
-    // Keep the dark half exactly as it was and compress only the bright half,
-    // so the top of the knob thins the voices instead of deleting them.
-    const float tone = params.tone <= 0.5f
-        ? params.tone
-        : 0.5f + (params.tone - 0.5f) * 0.76f;   // 1.0 maps to 0.88
-    tone_.SetKnob(tone);
-    // Speed is presented as Tracking: low settings deliberately soften note
-    // attacks, while the top of the range stays effectively immediate.
-    // This coefficient smooths the VOICE LEVELS, not the audio. Applying it to
-    // the output sample (as this once did) is a one-pole low-pass on the signal
-    // and rolled the mode off from 2.2 kHz even at the fastest setting.
-    const float tracking = (params.speed - 0.05f) / 9.95f;
-    tracking_coefficient_ = 0.0005f + std::clamp(tracking, 0.0f, 1.0f) * 0.25f;
+    // Tone shapes the voices only; the dry note passes untouched.
+    tone_.SetKnob(params.tone);
+
+    // Attack (Speed): 0 is immediate, full is a 250 ms swell. Speed used to be
+    // "Tracking", which only smoothed knob moves and measured 80 dB below the
+    // signal between its two ends: the control did nothing audible.
+    const float amount = std::clamp((params.speed - 0.05f) / 9.95f, 0.0f, 1.0f);
+    const float seconds = amount * kMaxAttackSeconds;
+    attack_coefficient_ = seconds > 0.0005f
+        ? 1.0f - std::exp(-1.0f / (seconds * SAMPLE_RATE))
+        : 1.0f;
 }
 
 StereoFrame PolyOctaveMode::Process(StereoFrame input, const ParamSet& /*params*/)
 {
-    in_buf_[buf_idx_++] = input.mono();
+    const float mono = input.mono();
+    in_buf_[buf_idx_++] = mono;
 
-    // Slew the voice levels toward their targets. Tracking shapes how quickly a
-    // voice swells in behind a note; it must never touch the audio itself.
-    up1_level_   += tracking_coefficient_ * (up1_target_   - up1_level_);
-    down1_level_ += tracking_coefficient_ * (down1_target_ - down1_level_);
-    down2_level_ += tracking_coefficient_ * (down2_target_ - down2_level_);
+    up1_level_   += kLevelSmoothing * (up1_target_   - up1_level_);
+    down1_level_ += kLevelSmoothing * (down1_target_ - down1_level_);
+    down2_level_ += kLevelSmoothing * (down2_target_ - down2_level_);
+    dry_level_   += kLevelSmoothing * (dry_target_   - dry_level_);
+
+    // Attack envelope pair on the input.
+    env_fast_ += kEnvSmoothing * (std::fabs(mono) - env_fast_);
+    env_slow_ += attack_coefficient_ * (env_fast_ - env_slow_);
+    if (env_slow_ > env_fast_) env_slow_ = env_fast_;
+    const float swell = env_fast_ > 1.0e-6f ? env_slow_ / env_fast_ : 1.0f;
 
     if (buf_idx_ == static_cast<int>(resample_factor))
     {
@@ -149,8 +175,9 @@ StereoFrame PolyOctaveMode::Process(StereoFrame input, const ParamSet& /*params*
         out_idx_ = 0;
     }
 
-    const float shaped = tone_.Process(out_buf_[out_idx_++]);
-    return {shaped, shaped};
+    // The generator is mono; the dry note keeps the source's stereo image.
+    const float voices = tone_.Process(out_buf_[out_idx_++]) * swell;
+    return {input.left * dry_level_ + voices, input.right * dry_level_ + voices};
 }
 
 } // namespace pedal
