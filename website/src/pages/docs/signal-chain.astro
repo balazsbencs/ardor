@@ -1,6 +1,7 @@
 ---
 import DocsLayout from '../../layouts/DocsLayout.astro';
-import SignalFlow from '../../components/SignalFlow.astro';
+import DeviceScreen from '../../components/DeviceScreen.astro';
+import editScreen from '../../assets/device/02-edit.png';
 import { url } from '../../lib/url';
 ---
 
@@ -14,7 +15,7 @@ import { url } from '../../lib/url';
     Your guitar enters at <strong>IN</strong>. Ardor sends the signal through each block in
     order, then sends it to <strong>OUT</strong>. The safety limiter stays at the end.
   </p>
-  <SignalFlow />
+  <DeviceScreen src={editScreen} alt="Chain editor: IN, compressor, Clean Twin amp, open back 2x12 cabinet, chorus switched off, and tape delay, from left to right." caption="The chain editor on the pedal. The signal runs from IN at the left to the output at the right." sizes="(max-width: 860px) 100vw, 52rem" />
 
   <h2>Build a sound from left to right</h2>
   <ol>
@@ -24,18 +25,18 @@ import { url } from '../../lib/url';
     <li>End at the output.</li>
   </ol>
   <p>
-    Drag a block to change its place. Tap <strong>+</strong> to add a block. The editor keeps
-    the path horizontal, so you can see what happens before and after each block.
+    Drag a block to change its place. Tap <strong>+</strong> to add a block. The editor shows the
+    chain from left to right, so you can see what happens before and after each block.
   </p>
 
-  <h2>Use two paths</h2>
+  <h2>Use two lanes</h2>
   <p>
-    Add a Dual Rig when one path is not enough. The guitar signal enters the split, then runs
-    through two horizontal paths. The left path feeds the left output. The right path feeds
-    the right output. The paths join as a stereo signal.
+    Add a Dual Rig when one chain is not enough. The guitar signal enters the split, then runs
+    through two lanes. The left lane feeds the left output. The right lane feeds the right
+    output. The lanes join as a stereo signal.
   </p>
   <p>
-    See <a href={url('/docs/dual-rig')}>Dual Rig &amp; Dual Amp</a> for the two-path layout.
+    See <a href={url('/docs/dual-rig')}>Dual Rig &amp; Dual Amp</a> for the two-lane layout.
   </p>
 
   <h2>Keep the level clear</h2>

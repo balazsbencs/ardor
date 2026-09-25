@@ -100,8 +100,9 @@ const next = idx >= 0 && idx < docsNav.length - 1 ? docsNav[idx + 1] : null;
   .docs-side a:hover {
     color: var(--text-strong);
   }
+  /* The current page is the selected item, so it takes the lamp. */
   .docs-side a.active {
-    color: var(--accent);
+    color: var(--text-strong);
     border-left-color: var(--accent);
     font-weight: 600;
   }
@@ -115,8 +116,11 @@ const next = idx >= 0 && idx < docsNav.length - 1 ? docsNav[idx + 1] : null;
     border-bottom: 1px solid var(--hairline);
   }
   .docs-header h1 {
-    font-size: var(--step-4);
     margin: 0;
+    font-size: var(--step-4);
+  }
+  .docs-header .eyebrow {
+    margin-bottom: var(--sp-3);
   }
   .docs-lede {
     font-size: var(--step-1);
@@ -142,7 +146,8 @@ const next = idx >= 0 && idx < docsNav.length - 1 ? docsNav[idx + 1] : null;
     min-width: 42%;
   }
   .pager:hover {
-    border-color: var(--accent-dim);
+    border-color: var(--hairline-strong);
+    background: var(--surface);
   }
   .pager.next {
     text-align: right;
@@ -172,9 +177,8 @@ const next = idx >= 0 && idx < docsNav.length - 1 ? docsNav[idx + 1] : null;
       gap: 0.3rem;
     }
     .docs-side a {
-      border: 1px solid var(--hairline);
-      border-radius: 999px;
       margin-left: 0;
+      border: 1px solid var(--hairline);
     }
     .docs-side a.active {
       border-color: var(--accent);
@@ -207,7 +211,7 @@ const next = idx >= 0 && idx < docsNav.length - 1 ? docsNav[idx + 1] : null;
     margin-bottom: 0.4rem;
   }
   .prose ul li::marker {
-    color: var(--accent);
+    color: var(--muted-2);
   }
   .prose table {
     width: 100%;
@@ -239,18 +243,43 @@ const next = idx >= 0 && idx < docsNav.length - 1 ? docsNav[idx + 1] : null;
   .prose .callout {
     display: flex;
     gap: 0.8rem;
-    padding: var(--sp-3);
-    border: 1px solid var(--hairline);
-    border-left: 3px solid var(--accent);
-    border-radius: var(--radius);
-    background: var(--ground-2);
     margin: var(--sp-4) 0;
+    padding: var(--sp-3) var(--sp-4);
+    border: 1px solid var(--hairline-strong);
+    background: var(--surface);
   }
   .prose .callout p:last-child {
     margin-bottom: 0;
   }
   .prose .callout.warn {
-    border-left-color: var(--warn);
+    border-color: color-mix(in srgb, var(--warn) 55%, transparent);
+    background: color-mix(in srgb, var(--warn) 8%, var(--surface));
+  }
+  .prose .device-screen {
+    margin: var(--sp-4) 0 var(--sp-5);
+  }
+  /* "Advanced" sections: collapsed plates at the end of a guide. */
+  .prose > details {
+    margin: var(--sp-4) 0;
+    padding: 0 var(--sp-4);
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+  }
+  .prose > details[open] {
+    padding-bottom: var(--sp-3);
+  }
+  .prose > details > summary {
+    padding: var(--sp-3) 0;
+    color: var(--text-strong);
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .prose > details > summary::marker {
+    color: var(--muted-2);
   }
   .prose .lead-in {
     font-size: var(--step-1);

@@ -80,6 +80,9 @@ jobs:
       - name: Check internal links
         run: npm run test:links
 
+      - name: Check site copy
+        run: npm run test:copy
+
   managerd:
     name: Manager daemon
     runs-on: ubuntu-24.04

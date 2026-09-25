@@ -42,7 +42,8 @@ function resolves(pathname) {
 }
 
 const files = walk(dist);
-const attrRe = /(?:href|src)\s*=\s*"([^"]+)"/gi;
+// The lookbehind keeps data attributes such as data-ab-src="dry" out of the check.
+const attrRe = /(?<![\w-])(?:href|src)\s*=\s*"([^"]+)"/gi;
 let checked = 0;
 const broken = [];
 

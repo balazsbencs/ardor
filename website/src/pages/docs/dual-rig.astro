@@ -1,29 +1,30 @@
 ---
 import DocsLayout from '../../layouts/DocsLayout.astro';
-import SignalFlow from '../../components/SignalFlow.astro';
+import DeviceScreen from '../../components/DeviceScreen.astro';
 import { url } from '../../lib/url';
+import dualRigScreen from '../../assets/device/90-dual-rig.png';
 ---
 
 <DocsLayout
   title="Dual Rig & Dual Amp"
-  description="Run two horizontal amp and effect paths and send them to a stereo output."
-  lede="Use two rigs when you want two amp sounds at the same time. Ardor shows both paths side by side from the split to the stereo output."
+  description="Split the sound into a left lane and a right lane, each with its own amp and effects, and send them to a stereo output."
+  lede="Use two rigs when you want two amp sounds at the same time. Ardor shows both lanes side by side from the split to the stereo output."
 >
-  <SignalFlow />
+  <DeviceScreen src={dualRigScreen} alt="Dual Rig editor: the input splits into a left lane with Clean Twin, an open back cabinet, and chorus, and a right lane with British Crunch and digital delay. The lanes join at the output." caption="The left lane is blue and the right lane is amber, from SPLIT to JOIN." glow="dual" sizes="(max-width: 860px) 100vw, 52rem" />
 
   <h2>Choose the layout</h2>
   <table>
     <thead><tr><th>Block</th><th>Use it when you want to</th></tr></thead>
     <tbody>
-      <tr><td><strong>Dual Amp</strong></td><td>Use two fixed amp and cabinet paths with simple controls.</td></tr>
+      <tr><td><strong>Dual Amp</strong></td><td>Use two fixed amp and cabinet lanes with simple controls.</td></tr>
       <tr><td><strong>Dual Rig</strong></td><td>Build a different effect chain on the left and right side.</td></tr>
     </tbody>
   </table>
 
   <h2>Dual Amp</h2>
   <p>
-    Dual Amp has two horizontal paths. Both paths receive the guitar signal. The left path
-    goes to the left output, and the right path goes to the right output. Choose an amp
+    Dual Amp has two lanes. Both lanes receive the guitar signal. The left lane goes to
+    the left output, and the right lane goes to the right output. Choose an amp
     model and cabinet sound for each side.
   </p>
   <div class="callout">
@@ -35,25 +36,25 @@ import { url } from '../../lib/url';
 
   <h2>Dual Rig</h2>
   <p>
-    Dual Rig gives each side its own horizontal chain. You can use a different amp, cabinet,
-    delay, or other effect on each side. Ardor merges the two paths into a stereo output.
+    Dual Rig gives each side its own chain. You can use a different amp, cabinet,
+    delay, or other effect on each side. Ardor merges the two lanes into a stereo output.
   </p>
   <ol>
     <li>Add a Dual Rig block to the main chain.</li>
-    <li>Add blocks to the <strong>Left</strong> path.</li>
-    <li>Add blocks to the <strong>Right</strong> path.</li>
+    <li>Add blocks to the <strong>Left</strong> lane.</li>
+    <li>Add blocks to the <strong>Right</strong> lane.</li>
     <li>Save the preset, then apply it.</li>
   </ol>
   <ul>
-    <li>Both paths receive the same mono guitar signal.</li>
-    <li>Each path runs from left to right.</li>
-    <li>The left path feeds the left output.</li>
-    <li>The right path feeds the right output.</li>
-    <li>Both paths need at least one block.</li>
+    <li>Both lanes receive the same mono guitar signal.</li>
+    <li>Each lane runs from left to right.</li>
+    <li>The left lane feeds the left output.</li>
+    <li>The right lane feeds the right output.</li>
+    <li>Both lanes need at least one block.</li>
   </ul>
   <p>
     The editor marks the layout with <strong>SPLIT</strong>, <strong>LEFT</strong>, <strong>RIGHT</strong>,
-    and <strong>JOIN</strong>. This makes the two horizontal paths
+    and <strong>JOIN</strong>. This keeps the two lanes
     clear while you edit.
   </p>
 
@@ -74,12 +75,12 @@ import { url } from '../../lib/url';
   <details>
     <summary>Advanced: processing on the Raspberry Pi</summary>
     <p>
-      Ardor can process the two paths at the same time on a four-core Raspberry Pi 4. If the
-      parallel worker is not available, Ardor processes the paths one after the other. The
+      Ardor can process the two lanes at the same time on a four-core Raspberry Pi 4. If the
+      parallel worker is not available, Ardor processes the lanes one after the other. The
       pedal keeps playing in both cases.
     </p>
     <p>
-      The release image enables the parallel path with these settings:
+      The release image enables parallel processing with these settings:
     </p>
     <table>
       <thead><tr><th>Setting</th><th>Value</th></tr></thead>

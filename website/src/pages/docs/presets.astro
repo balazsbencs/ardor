@@ -30,15 +30,15 @@ const presetExample = `{
 >
   <h2>Banks and slots</h2>
   <p>
-    Ardor has banks numbered 0–99. Each bank has four preset slots. The four footswitches
-    choose slots 1–4 in the active bank.
+    Ardor has banks numbered 0 to 99. Each bank has four preset slots. The four footswitches
+    choose slots 1 to 4 in the active bank.
   </p>
   <table>
     <thead><tr><th>Control</th><th>Action</th></tr></thead>
     <tbody>
       <tr><td>Bank −/+ on the screen</td><td>Move to the previous or next bank.</td></tr>
       <tr><td>Preset slot on the screen</td><td>Choose a sound.</td></tr>
-      <tr><td>Footswitch 1–4</td><td>Choose slot 1–4 in the active bank.</td></tr>
+      <tr><td>Footswitch 1 to 4</td><td>Choose slot 1 to 4 in the active bank.</td></tr>
       <tr><td>Save</td><td>Keep the changes in the current preset.</td></tr>
       <tr><td>Apply</td><td>Use the saved sound for the audio output.</td></tr>
     </tbody>
@@ -71,9 +71,9 @@ const presetExample = `{
 
   <h2>Dual Rig presets</h2>
   <p>
-    A Dual Rig preset has one horizontal path on the left and one on the right. Both paths
-    start with the same guitar signal. The left path feeds the left output. The right path
-    feeds the right output.
+    A Dual Rig preset has a left lane and a right lane. Both lanes start with the same
+    guitar signal. The left lane feeds the left output. The right lane feeds the right
+    output.
   </p>
   <p>
     See <a href={url('/docs/dual-rig')}>Dual Rig &amp; Dual Amp</a> for examples and the
@@ -100,7 +100,7 @@ presets/bank-000/preset-3.json</code></pre>
     <summary>Advanced: preset file format</summary>
     <p>
       Presets use JSON. Most users should use the screen or manager. The example below shows
-      a version-2 preset with two horizontal paths.
+      a version-2 preset with two lanes.
     </p>
     <pre><code>{presetExample}</code></pre>
     <p>
