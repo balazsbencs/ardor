@@ -19,6 +19,9 @@ void ChorusMode::Init() {
     dc_.Init();
     dc_r_.Init();
 
+    tone_l_.Init(SAMPLE_RATE, ToneGain::Loudness);
+    tone_r_.Init(SAMPLE_RATE, ToneGain::Loudness);
+
     shifter_l_.Init(detune_buf_l_, kDetuneBufSize, SAMPLE_RATE);
     shifter_r_.Init(detune_buf_r_, kDetuneBufSize, SAMPLE_RATE);
 }
@@ -32,6 +35,8 @@ void ChorusMode::Reset() {
     bbd_r_.Reset();
     shifter_l_.Reset();
     shifter_r_.Reset();
+    tone_l_.Reset();
+    tone_r_.Reset();
     rand_       = 12345;
     sub_mode_   = 4;
     delay_seeded_ = false;
@@ -71,14 +76,18 @@ void ChorusMode::Prepare(const ParamSet& params) {
         base_target_ = 144.0f + params.p1 * 240.0f;
         // CE-2 modulation depth: ±2 ms max (96 samples).
         depth_target_ = fminf(params.depth * 96.0f, base_target_ - 1.0f);
-        // Tone controls feedback depth (0–20%). CE-2 has ~10–15% fixed; center
-        // knob (0.5) lands at 10%, matching the original circuit.
-        feedback_ = params.tone * 0.20f;
+        // Fixed 10 % feedback, the lushness of the original circuit. Tone used
+        // to set this, which left Tone doing nothing in the other four types;
+        // it is now the wet tone control everywhere.
+        feedback_ = 0.10f;
     } else {
         lfo_[0].SetWave(LfoWave::Sine);
         lfo_[1].SetWave(LfoWave::Sine);
-        // Base delay: p1 maps 1 ms..20 ms → 48..960 samples
-        base_target_ = 48.0f + params.p1 * 912.0f;
+        // Base delay. A chorus sits at 5..25 ms (240..1200 samples); below
+        // that it combs like a flanger. Vibrato is wet only, so its delay is
+        // pure latency: it keeps a short 1..10 ms range.
+        base_target_ = (sub_mode_ == 2) ? 48.0f + params.p1 * 432.0f
+                                        : 240.0f + params.p1 * 960.0f;
         // LFO depth: ±10 ms max, capped so delay never goes below 1 sample
         depth_target_ = fminf(params.depth * 480.0f, base_target_ - 1.0f);
         feedback_   = 0.0f;
@@ -92,6 +101,8 @@ void ChorusMode::Prepare(const ParamSet& params) {
         shifter_r_.SetShift(shift_semitones);
     }
     if (sub_mode_ == 0) bbd_.SetClockDelaySamples(base_target_);
+    tone_l_.SetKnob(params.tone);
+    tone_r_.SetKnob(params.tone);
     // Multi and single-voice: LFO advanced per-sample in Process() to avoid
     // block-boundary delay jumps that cause zipper noise at high LFO rates.
 }
@@ -117,9 +128,8 @@ StereoFrame ChorusMode::Process(StereoFrame input, const ParamSet& params) {
         write_in = bbd_.Process(write_in + feedback_ * fb_samp_, 0.15f, rand_, base_samps_);
     }
 
-    if (sub_mode_ != 3) {
-        chorus_line_.Write(write_in);
-    }
+    // Every type writes the line: Detune reads it as its pre-delay.
+    chorus_line_.Write(write_in);
 
     float wet_l, wet_r;
 
@@ -138,12 +148,14 @@ StereoFrame ChorusMode::Process(StereoFrame input, const ParamSet& params) {
         wet_l = (t0 + t1) * 0.5f;
         wet_r = (t0 + t2) * 0.5f;
     } else if (sub_mode_ == 3) {
-        // True Detune: pitch shift L down and R up.
-        // It operates directly on the input signal, creating a wide, lush
-        // pitch-detuned stereo field without any comb-filtering notches!
-        const float mono_in = input.mono();
-        wet_l = shifter_l_.Process(mono_in);
-        wet_r = shifter_r_.Process(mono_in);
+        // True Detune: pitch shift L down and R up. Shifting rather than
+        // sweeping a delay gives a wide, lush stereo field without the
+        // comb-filter notches of a modulated tap.
+        // Delay sets a pre-delay ahead of the shifters, as studio micro-pitch
+        // units do; it separates the detuned voices from the dry note.
+        const float delayed = chorus_line_.ReadAtHighQuality(base_samps_);
+        wet_l = shifter_l_.Process(delayed);
+        wet_r = shifter_r_.Process(delayed);
     } else if (sub_mode_ == 0) {
         // dBucket CE-2w: two stereo taps at 120° LFO phase offset.
         // lfo_[0] drives L, lfo_[1] (initialised 120° ahead) drives R.
@@ -158,8 +170,15 @@ StereoFrame ChorusMode::Process(StereoFrame input, const ParamSet& params) {
         wet_r = bbd_r_.Deemphasis(chorus_line_.ReadAtHighQuality(d_r));
         // Average feeds back; keeps the summed signal from building up.
         fb_samp_ = (wet_l + wet_r) * 0.5f;
+    } else if (sub_mode_ == 2) {
+        // Vibrato: one tap for both channels, so the pitch moves together.
+        float d = base_samps_ + mod_depth_ * lfo_[0].Process();
+        if (d < 1.0f) d = 1.0f;
+        if (d > kBufMax) d = kBufMax;
+        wet_l = chorus_line_.ReadAtHighQuality(d);
+        wet_r = wet_l;
     } else {
-        // Single-voice (Vibrato=2, Digital=4): two taps at 120° LFO offset for width
+        // Digital: two taps at 120° LFO offset for width
         float d_l = base_samps_ + mod_depth_ * lfo_[0].Process();
         lfo_[1].FollowPhaseOf(lfo_[0]);
         float d_r = base_samps_ + mod_depth_ * lfo_[1].Process();
@@ -171,10 +190,13 @@ StereoFrame ChorusMode::Process(StereoFrame input, const ParamSet& params) {
         wet_r = chorus_line_.ReadAtHighQuality(d_r);
     }
 
-    wet_l = dc_.Process(wet_l);
-    wet_r = dc_r_.Process(wet_r);
+    wet_l = tone_l_.Process(dc_.Process(wet_l));
+    wet_r = tone_r_.Process(dc_r_.Process(wet_r));
 
-    return {wet_l, wet_r};
+    // Vibrato is all wet: any dry signal would turn it back into a chorus.
+    if (sub_mode_ == 2) return {wet_l, wet_r};
+    const float mix = params.mix;
+    return {input.left + mix * (wet_l - input.left), input.right + mix * (wet_r - input.right)};
 }
 
 } // namespace pedal

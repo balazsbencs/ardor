@@ -539,6 +539,17 @@ DaisyFxFrame DaisyFxProcessor::processFrame(StereoSample input)
   impl_->advanceOutputSmoothing();
 
   if (impl_->mod) {
+    if (impl_->mod->OwnsDryMix()) {
+      // Hand the mode the same smoothed Mix the host would have used, so
+      // automation ramps exactly as it does for host-mixed modes.
+      auto params = impl_->modParams;
+      params.mix = impl_->smoothedMix;
+      const auto mixed = impl_->mod->Process({input.left, input.right}, params);
+      const float level = impl_->smoothedLevel;
+      // These modes have no separable wet part, so both views are the output.
+      return {{finiteWet(mixed.left) * level, finiteWet(mixed.right) * level},
+              {finiteWet(mixed.left) * level, finiteWet(mixed.right) * level}};
+    }
     const auto wet = impl_->mod->Process({input.left, input.right}, impl_->modParams);
     const StereoSample contribution{
       finiteWet(wet.left) * impl_->smoothedMix * impl_->smoothedLevel,

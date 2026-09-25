@@ -32,7 +32,7 @@
           "label": "Tone",
           "defaultValue": 0.500000,
           "choiceCount": 0,
-          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+          "samples": [{"value": 0.000000, "text": "Dark 100%"}, {"value": 0.230000, "text": "Dark 54%"}, {"value": 0.470000, "text": "Dark 6%"}, {"value": 0.710000, "text": "Bright 42%"}, {"value": 1.000000, "text": "Bright 100%"}]
         },
         {
           "key": "p1",
@@ -120,10 +120,10 @@
       "params": [
         {
           "key": "speed",
-          "label": "Speed",
-          "defaultValue": 0.350000,
+          "label": "Fast Rate",
+          "defaultValue": 0.540000,
           "choiceCount": 0,
-          "samples": [{"value": 0.000000, "text": "0.05 Hz"}, {"value": 0.230000, "text": "0.58 Hz"}, {"value": 0.470000, "text": "2.2 Hz"}, {"value": 0.710000, "text": "5.1 Hz"}, {"value": 1.000000, "text": "10.0 Hz"}]
+          "samples": [{"value": 0.000000, "text": "4.0 Hz"}, {"value": 0.230000, "text": "5.2 Hz"}, {"value": 0.470000, "text": "6.3 Hz"}, {"value": 0.710000, "text": "7.5 Hz"}, {"value": 1.000000, "text": "9.0 Hz"}]
         },
         {
           "key": "depth",
@@ -151,11 +151,11 @@
           "label": "Drive",
           "defaultValue": 0.000000,
           "choiceCount": 0,
-          "samples": [{"value": 0.000000, "text": "1.0x"}, {"value": 0.230000, "text": "1.0x"}, {"value": 0.470000, "text": "1.1x"}, {"value": 0.710000, "text": "1.3x"}, {"value": 1.000000, "text": "1.6x"}]
+          "samples": [{"value": 0.000000, "text": "1.0x"}, {"value": 0.230000, "text": "1.3x"}, {"value": 0.470000, "text": "2.2x"}, {"value": 0.710000, "text": "3.7x"}, {"value": 1.000000, "text": "6.4x"}]
         },
         {
           "key": "p2",
-          "label": "Speed",
+          "label": "Rotor",
           "defaultValue": 0.000000,
           "choiceCount": 2,
           "samples": [{"value": 0.000000, "text": "Slow"}, {"value": 1.000000, "text": "Fast"}]
@@ -1159,7 +1159,7 @@
           "label": "Crush",
           "defaultValue": 0.000000,
           "choiceCount": 0,
-          "samples": [{"value": 0.000000, "text": "16 bit / 1.0x"}, {"value": 0.230000, "text": "14 bit / 4.4x"}, {"value": 0.470000, "text": "11 bit / 8.1x"}, {"value": 0.710000, "text": "8 bit / 11.6x"}, {"value": 1.000000, "text": "4 bit / 16.0x"}]
+          "samples": [{"value": 0.000000, "text": "16 bit / 1.0x"}, {"value": 0.230000, "text": "14 bit / 4.5x"}, {"value": 0.470000, "text": "11 bit / 8.1x"}, {"value": 0.710000, "text": "8 bit / 11.6x"}, {"value": 1.000000, "text": "4 bit / 16.0x"}]
         },
         {
           "key": "mod_spd",

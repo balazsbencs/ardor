@@ -86,6 +86,14 @@ DaisyFxDescriptor ladderSweep()
   return descriptor;
 }
 
+DaisyFxDescriptor rotary()
+{
+  // Speed is the fast rotor rate; Rotor switches between chorale and fast.
+  auto descriptor = mod("rotary", "Rotary", "Drive", "Rotor", 1.0f, "Fast Rate");
+  descriptor.params[0].defaultValue = 0.54f; // 6.7 Hz, a Leslie 122 horn on fast
+  return descriptor;
+}
+
 DaisyFxDescriptor delay(std::string mode, std::string name, std::string grit = "Grit",
                         std::string modSpeed = "Mod Rate", std::string modDepth = "Mod Depth",
                         std::string filter = "Filter")
@@ -329,7 +337,7 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "destroyer") return frequency(80.0f + normalized * (48000.0f * 0.45f - 80.0f));
     if (mode == "rotary") return frequency(500.0f + normalized * 1500.0f);
     if (mode == "phaser") return frequency(300.0f * std::pow(10000.0f / 300.0f, normalized));
-    if (mode == "flanger" || mode == "chorus") return percent(normalized);
+    if (mode == "flanger") return percent(normalized);
     return tone(normalized, 48000.0f);
   }
   if (key == "p1") {
@@ -341,7 +349,8 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "destroyer") return qValue(0.5f + normalized * 8.0f);
     if (mode == "pattern_trem") return "Pattern " + std::to_string(std::min(16, static_cast<int>(normalized * 16.0f) + 1));
     if (mode == "auto_swell") return milliseconds(50.0f + normalized * 1950.0f);
-    if (mode == "rotary") return number(1.0f + normalized * normalized * 0.6f, 1, "x");
+    // Rotary drive: WaveShaper gain 1 + 15 * (0.6 * p1)^2, so 1x..6.4x.
+    if (mode == "rotary") return number(1.0f + normalized * normalized * 5.4f, 1, "x");
     if (mode == "harmonizer") return choice(normalized, kHarmonyIntervals);
     if (mode == "whammy") {
       if (normalized <= 0.001f) return "Heel";
@@ -479,11 +488,11 @@ std::string formatReverb(std::string_view mode, std::string_view key, float norm
 const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
 {
   static const std::vector<DaisyFxDescriptor> catalog{
-    // Chorus' vendor mode returns wet signal only. A 50/50 default retains
-    // dry signal and produces an actual chorus rather than vibrato.
+    // A 50/50 default retains dry signal and produces an actual chorus. The
+    // Vibrato type ignores Mix: it is always fully wet.
     mod("chorus", "Chorus", "Delay", "Type", 0.5f),
     mod("flanger", "Flanger", "Regen", "Type", 0.5f),
-    mod("rotary", "Rotary", "Drive", "Speed"),
+    rotary(),
     mod("vibe", "Vibe", "Regen", "Shape"),
     mod("phaser", "Phaser", "Regen", "Stages", 0.5f),
     mod("vintage_trem", "Vintage Trem", "Shape", "Type"),

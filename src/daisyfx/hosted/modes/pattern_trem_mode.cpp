@@ -6,8 +6,8 @@ using namespace pedal::mod_fx;
 namespace pedal {
 
 void PatternTremMode::Init() {
-    tone_l_.Init();
-    tone_r_.Init();
+    tone_l_.Init(SAMPLE_RATE, ToneGain::Loudness);
+    tone_r_.Init(SAMPLE_RATE, ToneGain::Loudness);
     Reset();
 }
 

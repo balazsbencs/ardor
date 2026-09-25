@@ -1113,12 +1113,12 @@
         {
           "kind": "number",
           "key": "speed",
-          "label": "Speed",
+          "label": "Fast Rate",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
           "unit": "percent",
-          "defaultValue": 0.35
+          "defaultValue": 0.54
         },
         {
           "kind": "number",
@@ -1163,7 +1163,7 @@
         {
           "kind": "number",
           "key": "p2",
-          "label": "Speed",
+          "label": "Rotor",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,

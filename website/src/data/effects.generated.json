@@ -1140,13 +1140,13 @@
       "controls": [
         {
           "key": "speed",
-          "label": "Speed",
+          "label": "Fast Rate",
           "kind": "number",
           "unit": "%",
           "min": 0,
           "max": 1,
           "step": 0.05,
-          "default": 0.35
+          "default": 0.54
         },
         {
           "key": "depth",
@@ -1190,7 +1190,7 @@
         },
         {
           "key": "p2",
-          "label": "Speed",
+          "label": "Rotor",
           "kind": "number",
           "unit": "%",
           "min": 0,
