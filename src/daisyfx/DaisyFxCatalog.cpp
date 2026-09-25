@@ -431,6 +431,10 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
   if (key == "p3") {
     if (mode == "flanger") return percent(normalized);
     if (mode == "whammy") return choice(normalized, std::array<std::string_view, 3>{"Off", "Shallow", "Deep"});
+    if (mode == "harmonizer") {
+      const auto index = std::min<std::size_t>(static_cast<std::size_t>(normalized * 11.0f), 10);
+      return index == 0 ? "Off" : std::string(kHarmonyIntervals[index - 1]);
+    }
     if (mode == "phaser" || mode == "vintage_trem") return degrees(normalized * 180.0f);
     if (mode == "pattern_trem") return milliseconds(patternSmoothMs(normalized));
     if (mode == "rotary") return rotaryBalance(normalized);
@@ -583,7 +587,10 @@ const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
     mod("destroyer", "Destroyer", "Filter Resonance", "Noise", 1.0f, "Decimation", "Bits"),
     withExtras(mod("whammy", "Whammy", "Pedal", "Preset", 1.0f, "Glide", "Harmony Level"),
                "Detune", 0.0f),
-    mod("harmonizer", "Harmonizer", "Interval", "Key", 0.5f, "Tracking", "Scale"),
+    // A second voice (p3, Off by default) stacks a second interval; its level
+    // (p4) is set against the first voice, whose level is Mix.
+    withExtras(mod("harmonizer", "Harmonizer", "Interval", "Key", 0.5f, "Tracking", "Scale"),
+               "Interval 2", 0.0f, "Voice 2 Level", 0.8f),
     delay("digital", "Digital Delay", "Saturation", "Mod Rate", "Mod Depth"),
     delay("tape", "Tape Delay", "Saturation", "Flutter Rate", "Flutter"),
     delay("dual", "Dual Delay", "Ping-Pong"),
@@ -671,6 +678,7 @@ DaisyFxParamControlSpec daisyFxParamControlSpec(const DaisyFxDescriptor& effect,
     }
     if (key == "p4" && mode == "phaser") choiceCount = 2;
     if (key == "p3" && mode == "whammy") choiceCount = 3;
+    if (key == "p3" && mode == "harmonizer") choiceCount = 11;
   } else if (effect.kind == DaisyFxKind::Delay) {
     if (key == "grit" && (mode == "filter" || mode == "pattern")) choiceCount = 3;
   } else {

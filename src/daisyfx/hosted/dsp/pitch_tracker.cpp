@@ -22,7 +22,6 @@ void PitchTracker::Reset()
     write_ = 0;
     lag_ = 0;
     running_ = false;
-    since_pass_ = 0;
     frequency_ = 0.0f;
     confidence_ = 0.0f;
     voiced_ = false;
@@ -46,14 +45,20 @@ void PitchTracker::startPass()
 
 void PitchTracker::stepPass()
 {
-    // One lag per decimated sample.
-    float sum = 0.0f;
-    for (int j = 0; j < kWindow; ++j) {
-        const float delta = snapshot_[j] - snapshot_[j + lag_];
-        sum += delta * delta;
+    // A few lags per decimated sample. The window ends at the newest sample
+    // and is compared with the one a lag earlier. Starting it at the oldest
+    // sample instead, as this once did, left the newest (kMaxLag - lag)
+    // samples out of every short lag: about 12 ms of a new note ignored.
+    for (int step = 0; step < kLagsPerStep && lag_ <= kMaxLag; ++step) {
+        const int base = kHistory - kWindow;
+        float sum = 0.0f;
+        for (int j = 0; j < kWindow; ++j) {
+            const float delta = snapshot_[base + j] - snapshot_[base + j - lag_];
+            sum += delta * delta;
+        }
+        difference_[lag_] = sum;
+        ++lag_;
     }
-    difference_[lag_] = sum;
-    ++lag_;
     if (lag_ > kMaxLag) finishPass();
 }
 
@@ -141,11 +146,9 @@ void PitchTracker::Push(float sample)
         return;
     }
 
-    // Start a new pass once enough fresh audio has arrived to be worth it.
-    if (++since_pass_ >= kMaxLag) {
-        since_pass_ = 0;
-        startPass();
-    }
+    // Start the next pass straight away: each one only takes ~4 ms, and a
+    // fresh estimate is what lets the harmony follow a new note quickly.
+    startPass();
 }
 
 } // namespace pedal
