@@ -100,10 +100,11 @@ float magnitudeResponsePeak(const std::vector<float>& ir)
 
 } // namespace
 
-InterleavedWav readInterleavedWav(const std::filesystem::path& path)
+InterleavedWav readInterleavedWav(const std::filesystem::path& path, uint32_t outputSampleRate)
 {
   const auto safePath = resolveWavPath(path);
-  ma_decoder_config cfg = ma_decoder_config_init(ma_format_f32, 0, 0);
+  ma_decoder_config cfg = ma_decoder_config_init(ma_format_f32, 0, outputSampleRate);
+  cfg.resampling.linear.lpfOrder = MA_MAX_FILTER_ORDER;
   ma_decoder decoder;
   // codeql[cpp/path-injection]: resolveWavPath canonicalizes and validates a
   // regular file before this offline asset reader opens it.
@@ -130,9 +131,12 @@ InterleavedWav readInterleavedWav(const std::filesystem::path& path)
   const ma_uint64 framesPerChunk = sizeof(chunk) / sizeof(float) / channels;
   for (;;) {
     ma_uint64 read = 0;
-    if (ma_decoder_read_pcm_frames(&decoder, chunk, framesPerChunk, &read) != MA_SUCCESS || read == 0) {
-      break;
+    const ma_result result = ma_decoder_read_pcm_frames(&decoder, chunk, framesPerChunk, &read);
+    if (result != MA_SUCCESS && result != MA_AT_END) {
+      ma_decoder_uninit(&decoder);
+      throw std::runtime_error("failed to read wav: " + path.string());
     }
+    if (read == 0) break;
     wav.samples.insert(wav.samples.end(), chunk, chunk + read * channels);
   }
   ma_decoder_uninit(&decoder);

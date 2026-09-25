@@ -23,7 +23,10 @@ struct InterleavedWav {
   unsigned sampleRate = 0;
   unsigned channels = 0;
 };
-InterleavedWav readInterleavedWav(const std::filesystem::path& path);
+// An optional output rate resamples a reverb IR during offline loading while
+// preserving its native mono or stereo channel layout.
+InterleavedWav readInterleavedWav(const std::filesystem::path& path,
+                                  uint32_t outputSampleRate = 0);
 
 // Validates an IR for the live mono cabinet path and, when capped, applies a
 // short fade to avoid turning a hard truncation into an audible discontinuity.
