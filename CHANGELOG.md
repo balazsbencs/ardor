@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.72](https://github.com/balazsbencs/ardor/compare/v0.1.71...v0.1.72) (2026-09-25)
+
+### Bug Fixes
+
+* **manager:** contain signal chain block actions ([#83](https://github.com/balazsbencs/ardor/issues/83)) ([e7b03ee](https://github.com/balazsbencs/ardor/commit/e7b03ee40211213f31ca08a23c95320d90d036bd))
+
 ## [0.1.71](https://github.com/balazsbencs/ardor/compare/v0.1.70...v0.1.71) (2026-09-25)
 
 ### Features
