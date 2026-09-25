@@ -213,6 +213,21 @@ void verifyChorusControlsAreLive()
   digital["p2"] = 1.0f;
   require(maxDifference(vibrato, digital) > 1e-3, "chorus Vibrato must differ from Digital");
 
+  // Mix must work in Vibrato too: Mix 0 is the dry note, Mix 1 the full
+  // vibrato. It once ignored Mix and stayed fully wet at every setting.
+  const std::vector<float> phrase(guitarPhrase().begin(), guitarPhrase().begin() + 48000);
+  auto dryVibrato = vibrato;
+  dryVibrato["mix"] = 0.0f;
+  const auto dry = render(dryVibrato, phrase);
+  double leak = 0.0;
+  for (size_t i = 0; i < phrase.size(); ++i) leak = std::max(leak, static_cast<double>(std::fabs(dry.left[i] - phrase[i])));
+  require(leak < 1e-4, "chorus Vibrato at Mix 0 must pass the dry note, differs by " + fmt(leak));
+  auto halfVibrato = vibrato;
+  halfVibrato["mix"] = 0.5f;
+  auto fullVibrato = vibrato;
+  fullVibrato["mix"] = 1.0f;
+  require(maxDifference(halfVibrato, fullVibrato) > 1e-3, "chorus Vibrato Mix must change the sound");
+
   auto shortDetune = defaults("chorus");
   shortDetune["p2"] = 0.75f;
   shortDetune["p1"] = 0.0f;

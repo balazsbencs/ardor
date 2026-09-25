@@ -216,11 +216,11 @@ StereoFrame ChorusMode::Process(StereoFrame input, const ParamSet& params) {
         wet_r = mid - side;
     }
 
-    // Vibrato is all wet: any dry signal would turn it back into a chorus.
-    if (sub_mode_ == 2) return {wet_l, wet_r};
-    // Equal-power blend. The wet voices are delayed, modulated copies and
-    // largely uncorrelated with the dry note, so a linear 50/50 blend lost
-    // about 3 dB. Constant power keeps the level across the Mix control.
+    // Equal-power blend, in every type. The wet voices are delayed, modulated
+    // copies and largely uncorrelated with the dry note, so a linear 50/50
+    // blend lost about 3 dB; constant power keeps the level across Mix.
+    // Vibrato used to ignore Mix and stay fully wet, which left a control with
+    // no effect. Mix at full is still the pure vibrato.
     const float angle = params.mix * 1.57079633f;
     const float dry_gain = fast_cos(angle);
     const float wet_gain = fast_sin(angle);
