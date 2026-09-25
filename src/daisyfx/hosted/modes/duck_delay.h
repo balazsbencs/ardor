@@ -36,6 +36,7 @@ private:
     float            duck_buf_r_[MAX_DELAY_SAMPLES];
     DelayLineSdram   duck_line_l_;
     DelayLineSdram   duck_line_r_;
+    StereoSpread spread_;   // right-head offset, scaled by Width
 };
 
 } // namespace pedal

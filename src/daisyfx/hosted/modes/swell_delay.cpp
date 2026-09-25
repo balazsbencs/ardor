@@ -24,6 +24,7 @@ void SwellDelay::Init() {
 }
 
 void SwellDelay::Reset() {
+    spread_.Reset();
     swell_line_l_.Reset();
     swell_line_r_.Reset();
     follower_.Reset();
@@ -104,9 +105,12 @@ StereoFrame SwellDelay::Process(StereoFrame input, const ParamSet& params) {
             break;
     }
 
+    const float spread = spread_.Update(kStereoOffsetSamples, params.width);
+    const bool fractional = spread_.Fractional();
     const auto readHeads = [&](float base) {
         return StereoFrame{swell_line_l_.ReadNearest(base),
-                           swell_line_r_.ReadNearest(base + kStereoOffsetSamples)};
+                           fractional ? swell_line_r_.ReadAtHighQuality(base + spread)
+                                      : swell_line_r_.ReadNearest(base + spread)};
     };
     StereoFrame wet = readHeads(time_transition_.to());
     if (time_transition_.active()) {
@@ -129,7 +133,10 @@ StereoFrame SwellDelay::Process(StereoFrame input, const ParamSet& params) {
     swell_line_l_.Write(input.left + feedback_l);
     swell_line_r_.Write(input.right + feedback_r);
 
-    return StereoFrame{dc_l_.Process(wet_l), dc_r_.Process(wet_r)};
+    // Loop-safe Tone inside the loop; the output alone is corrected so the
+    // first repeat keeps its loudness at any Tone setting.
+    return StereoFrame{dc_l_.Process(wet_l) * filter_l_.LoudnessCorrection(),
+                       dc_r_.Process(wet_r) * filter_r_.LoudnessCorrection()};
 }
 
 } // namespace pedal

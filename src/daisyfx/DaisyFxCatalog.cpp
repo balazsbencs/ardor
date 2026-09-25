@@ -43,6 +43,9 @@ std::vector<DaisyFxParamDescriptor> delayParams()
     {"grit", "Grit", 0.0f},
     {"mod_spd", "Mod Spd", 0.0f},
     {"mod_dep", "Mod Dep", 0.0f},
+    // After the original seven, so scene indexes do not move. 1 keeps the
+    // stereo image delays always had; 0 is mono-safe (no comb when summed).
+    {"width", "Width", 1.0f},
   };
 }
 
@@ -457,14 +460,13 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
 std::string modulationDepth(std::string_view mode, float normalized)
 {
   float samples = 0.0f;
-  if (mode == "digital") samples = 30.0f;
+  if (mode == "digital" || mode == "dual") samples = 30.0f;
   else if (mode == "tape") samples = 50.0f;
   else if (mode == "filter") samples = 1500.0f;
   else if (mode == "lofi" || mode == "dbucket") samples = 20.0f;
   else if (mode == "duck") samples = 15.0f;
   else if (mode == "pattern") samples = 25.0f;
   if (samples > 0.0f) return milliseconds(normalized * samples * 1000.0f / 48000.0f);
-  if (mode == "dual") return number(normalized * 0.5f, 2, "%");
   return percent(normalized);
 }
 

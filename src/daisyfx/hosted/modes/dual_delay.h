@@ -35,6 +35,7 @@ private:
     float          buf_r_[kDualDelaySamples];
     DelayLineSdram line_l_;
     DelayLineSdram line_r_;
+    StereoSpread spread_;   // right-head offset, scaled by Width
 };
 
 } // namespace pedal

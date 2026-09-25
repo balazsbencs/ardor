@@ -26,6 +26,10 @@ public:
     // centre of a guitar's energy). A pitch shifter moves that energy by its
     // ratio, so it should move the pivot with it.
     void SetPivotHz(float hz);
+    // LoopSafe mode: the gain that would make this tilt loudness-neutral at
+    // the pivot. A delay applies it to its wet output only, so the first
+    // repeat keeps its level while the loop stays safe. 1 in Loudness mode.
+    float LoudnessCorrection() const { return loudness_correction_; }
     float Process(float sample);
 
 private:
@@ -50,6 +54,7 @@ private:
     float sample_rate_ = SAMPLE_RATE;
     float inv_sample_rate_ = INV_SAMPLE_RATE;
     float output_gain_ = 1.0f;
+    float loudness_correction_ = 1.0f;
     bool bypass_ = true;
     Biquad low_shelf_;
     Biquad high_shelf_;

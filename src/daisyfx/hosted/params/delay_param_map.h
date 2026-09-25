@@ -17,6 +17,7 @@ namespace default_ranges {
     constexpr ParamRange GRIT      = {0.0f,   1.0f, 0.0f};
     constexpr ParamRange MOD_SPD   = {0.05f, 10.0f, 1.0f};
     constexpr ParamRange MOD_DEP   = {0.0f,   1.0f, 0.0f};
+    constexpr ParamRange WIDTH     = {0.0f,   1.0f, 0.0f};
 }
 
 } // namespace delay_fx

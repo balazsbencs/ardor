@@ -25,6 +25,7 @@ void LofiDelay::Init() {
 }
 
 void LofiDelay::Reset() {
+    spread_.Reset();
     line_l_.Reset();
     line_r_.Reset();
     lfo_.Reset();
@@ -64,10 +65,11 @@ StereoFrame LofiDelay::Process(float input, const ParamSet& params) {
 StereoFrame LofiDelay::Process(StereoFrame input, const ParamSet& params) {
     const float lfo_val    = lfo_.Process();
     const float modulation = params.mod_dep * 20.0f;
+    const float spread = spread_.Update(kStereoOffsetSamples, params.width);
     const auto readHeads = [&](float base) {
         const float left_delay = base + lfo_val * modulation;
-        const float right_delay = base + kStereoOffsetSamples - lfo_val * modulation;
-        if (modulation <= 0.00001f) {
+        const float right_delay = base + spread - lfo_val * modulation;
+        if (modulation <= 0.00001f && !spread_.Fractional()) {
             return StereoFrame{line_l_.ReadNearest(left_delay), line_r_.ReadNearest(right_delay)};
         }
         return StereoFrame{line_l_.ReadAtHighQuality(left_delay),

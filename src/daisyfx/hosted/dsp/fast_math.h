@@ -61,6 +61,16 @@ inline float soft_clip_tanh(float x) noexcept {
     return x * (27.0f + x2) / (27.0f + 9.0f * x2);
 }
 
+/// Clean below `knee`, then a soft curve that reaches full scale (1.0). For
+/// safety limiting where ordinary signals must pass untouched and only
+/// resonant or feedback peaks near full scale are bent.
+inline float soft_limit_above(float x, float knee) noexcept {
+    const float magnitude = x < 0.0f ? -x : x;
+    if (magnitude <= knee) return x;
+    const float limited = knee + (1.0f - knee) * soft_clip_tanh((magnitude - knee) / (1.0f - knee));
+    return x < 0.0f ? -limited : limited;
+}
+
 /// Antiderivative of soft_clip_tanh, for the anti-aliased version below.
 ///
 /// Inside the knee the curve is (1/9)(x + 24x/(x^2+3)), which integrates to

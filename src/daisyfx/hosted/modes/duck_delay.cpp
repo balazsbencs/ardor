@@ -23,6 +23,7 @@ void DuckDelay::Init() {
 }
 
 void DuckDelay::Reset() {
+    spread_.Reset();
     duck_line_l_.Reset();
     duck_line_r_.Reset();
     lfo_.Reset();
@@ -64,10 +65,11 @@ StereoFrame DuckDelay::Process(StereoFrame input, const ParamSet& params) {
     t = t * t * (3.0f - 2.0f * t);          // smoothstep
     const float duck_amount = 1.0f - t * params.grit;
 
+    const float spread = spread_.Update(kStereoOffsetSamples, params.width);
     const auto readHeads = [&](float base) {
         const float left = base + lfo_val * modulation;
-        const float right = base + kStereoOffsetSamples - lfo_val * modulation;
-        if (modulation <= 0.00001f) {
+        const float right = base + spread - lfo_val * modulation;
+        if (modulation <= 0.00001f && !spread_.Fractional()) {
             return StereoFrame{duck_line_l_.ReadNearest(left), duck_line_r_.ReadNearest(right)};
         }
         return StereoFrame{duck_line_l_.ReadAtHighQuality(left),
@@ -94,7 +96,10 @@ StereoFrame DuckDelay::Process(StereoFrame input, const ParamSet& params) {
     duck_line_l_.Write(input.left + feedback_l);
     duck_line_r_.Write(input.right + feedback_r);
 
-    return StereoFrame{dc_l_.Process(wet_l * duck_amount), dc_r_.Process(wet_r * duck_amount)};
+    // Loop-safe Tone inside the loop; the output alone is corrected so the
+    // first repeat keeps its loudness at any Tone setting.
+    return StereoFrame{dc_l_.Process(wet_l * duck_amount) * filter_l_.LoudnessCorrection(),
+                       dc_r_.Process(wet_r * duck_amount) * filter_r_.LoudnessCorrection()};
 }
 
 } // namespace pedal
