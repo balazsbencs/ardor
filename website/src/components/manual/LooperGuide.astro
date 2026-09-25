@@ -256,17 +256,17 @@ const physicalTracks = [0, 2, 1, 3];
 
 <style>
   .looper-guide {
-    --lg-ground: #141719;
-    --lg-recess: #191c1f;
-    --lg-plate: #212528;
-    --lg-raised: #2a2f33;
-    --lg-rule: #3b4247;
-    --lg-rule-strong: #687178;
-    --lg-text: #e2e4e3;
-    --lg-muted: #8d9499;
-    --lg-off: #697278;
-    --lg-live: #d8422f;
-    --lg-warn: #c9973f;
+    --lg-ground: var(--ground);
+    --lg-recess: var(--ground-2);
+    --lg-plate: var(--surface);
+    --lg-raised: var(--elevated);
+    --lg-rule: var(--hairline);
+    --lg-rule-strong: var(--hairline-strong);
+    --lg-text: var(--text-strong);
+    --lg-muted: var(--muted);
+    --lg-off: var(--muted-2);
+    --lg-live: var(--accent);
+    --lg-warn: var(--warn);
     background: var(--lg-ground);
     color: var(--lg-text);
     border-top: 1px solid var(--lg-rule);
@@ -478,13 +478,26 @@ const physicalTracks = [0, 2, 1, 3];
     font-size: 0.9rem;
   }
 
+  /* A device screen: fixed Lamp Black values in both site themes. */
   .looper-screen-study {
+    --lg-ground: #0b0c0d;
+    --lg-recess: #121416;
+    --lg-plate: #16181a;
+    --lg-raised: #1d2023;
+    --lg-rule: #2b2f33;
+    --lg-rule-strong: #525a60;
+    --lg-text: #eceeed;
+    --lg-muted: #9aa1a6;
+    --lg-off: #5c6368;
+    --lg-live: #e8472f;
+    --lg-warn: #e0a53c;
     align-self: end;
     width: min(90%, 42rem);
     margin: 0 auto 3rem;
-    border: 0.65rem solid #111416;
-    background: var(--lg-plate);
-    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
+    border: 0.65rem solid var(--bezel);
+    background: var(--lg-ground);
+    color: var(--lg-text);
+    box-shadow: var(--shadow-object);
   }
 
   .looper-screen-study > header {
