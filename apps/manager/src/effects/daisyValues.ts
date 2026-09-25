@@ -147,12 +147,11 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "destroyer") return descendingIntegerChoices(16, 1);
     if (mode === "harmonizer") return choices(["Major", "Minor", "Dorian", "Mixolydian", "Harmonic minor"]);
     if (mode === "auto_swell") return custom((value) => `${number(20 * Math.log10(1 + clamp(value)), 1)} dB`);
-    if (mode === "quadrature") return physical(0, 80, 0, (value) => `+/-${frequency(value)}`, 1);
     return normalizedPercent;
   }
   if (key === "mix") return normalizedPercent;
   if (key === "tone") {
-    if (mode === "filter") return physical(80, 12000, 0, frequency, 10);
+    if (mode === "filter") return logPhysical(80, 12000, frequency, 10);
     if (mode === "ladder_sweep") return logPhysical(20, 12000, frequency, 1);
     if (mode === "destroyer") return physical(80, 21600, 0, frequency, 10);
     if (mode === "phaser") return logPhysical(300, 10000, frequency, 10);
@@ -216,6 +215,7 @@ function modDisplay(mode: string, key: string): NumberDisplay {
   // Optional p3/p4 controls, mirroring formatMod() in DaisyFxCatalog.cpp.
   if (key === "p3") {
     if (mode === "whammy") return choices(["Off", "Shallow", "Deep"]);
+    if (mode === "filter") return choices(["Low-pass", "Band-pass", "High-pass", "Notch"]);
     if (mode === "harmonizer") return choices([
       "Off", "Oct down", "6th down", "5th down", "4th down", "3rd down",
       "3rd up", "4th up", "5th up", "6th up", "Oct up",

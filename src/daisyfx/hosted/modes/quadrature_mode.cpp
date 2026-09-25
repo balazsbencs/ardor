@@ -28,8 +28,9 @@ void QuadratureMode::Init() {
     lfo_.Init(1.0f, LfoWave::Sine);
     dc_.Init();
     dc_r_.Init();
-    tone_l_.Init();
-    tone_r_.Init();
+    // Loudness-neutral: Tone sits after the feedback tap, outside the loop.
+    tone_l_.Init(SAMPLE_RATE, ToneGain::Loudness);
+    tone_r_.Init(SAMPLE_RATE, ToneGain::Loudness);
     carrier_phase_ = 0.0f;
     phase_inc_     = 0.0f;
     sub_mode_      = 0;
@@ -44,6 +45,7 @@ void QuadratureMode::Reset() {
     tone_r_.Reset();
     carrier_phase_ = 0.0f;
     phase_inc_     = 0.0f;
+    feedback_      = 0.0f;
     sub_mode_      = 0;
 }
 
@@ -68,7 +70,13 @@ StereoFrame QuadratureMode::Process(StereoFrame input, const ParamSet& params) {
     const float mono = input.mono();
     float re = mono, im = 0.0f;
     if (sub_mode_ != 0) {
-        const auto frame = hilbert_.Process(mono);
+        // Shift feedback (Depth, up to 90 %): the shifted output re-enters
+        // the shifter, so each pass moves a further step and the partials
+        // spiral. The soft clip keeps the loop bounded near its top.
+        const float fed = sub_mode_ >= 2
+            ? mono + soft_clip_tanh(feedback_ * params.depth * 0.9f)
+            : mono;
+        const auto frame = hilbert_.Process(fed);
         re = frame.re; im = frame.im;
     }
 
@@ -88,13 +96,17 @@ StereoFrame QuadratureMode::Process(StereoFrame input, const ParamSet& params) {
 
     switch (sub_mode_) {
         case 0: {
-            // AM — ring modulation with stereo rotation.
-            // Left: always input*cos (ring mod). Right blends from ring to input*-sin.
-            // P1=0 → mono ring-mod on both channels; P1=1 → full quadrature stereo.
-            const float ring = mono * cos_c;
-            const float p1   = params.p1;
-            const float left  = dc_.Process(ring);
-            const float right = dc_r_.Process(ring * (1.0f - p1) + (mono * (-sin_c)) * p1);
+            // AM — Depth blends from the dry note (0) to ring modulation (1):
+            // gain = 1 - d + d * carrier. Right blends from the same carrier
+            // to its quadrature partner, for stereo rotation (P1). Depth used
+            // to do nothing here: the mode was ring modulation or nothing.
+            // No DC blocker: an AC input times a carrier makes no DC, and one
+            // would phase-shift the dry note at zero depth.
+            const float d = params.depth;
+            const float p1 = params.p1;
+            const float carrier_r = cos_c * (1.0f - p1) - sin_c * p1;
+            const float left  = mono * (1.0f - d + d * cos_c);
+            const float right = mono * (1.0f - d + d * carrier_r);
             return {tone_l_.Process(left), tone_r_.Process(right)};
         }
 
@@ -114,6 +126,7 @@ StereoFrame QuadratureMode::Process(StereoFrame input, const ParamSet& params) {
             // FreqShift+ — single-sideband upward shift.
             // P1 blends shifted signal with unshifted real part.
             const float shifted = re * cos_c - im * sin_c;
+            feedback_ = shifted;
             const float blend   = params.p1;
             const float out     = dc_.Process(shifted * (1.0f - blend) + re * blend);
             const float shaped = tone_l_.Process(out);
@@ -123,6 +136,7 @@ StereoFrame QuadratureMode::Process(StereoFrame input, const ParamSet& params) {
         case 3: {
             // FreqShift- — single-sideband downward shift.
             const float shifted = re * cos_c + im * sin_c;
+            feedback_ = shifted;
             const float blend   = params.p1;
             const float out     = dc_.Process(shifted * (1.0f - blend) + re * blend);
             const float shaped = tone_l_.Process(out);

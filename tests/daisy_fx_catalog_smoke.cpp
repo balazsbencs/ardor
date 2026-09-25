@@ -128,7 +128,8 @@ int main()
 
   const auto* quadrature = ardor::findDaisyFxDescriptor("mod", "quadrature");
   require(quadrature->params[0].label == "Frequency", "quadrature speed names frequency");
-  require(quadrature->params[1].label == "FM Depth", "quadrature depth names FM depth");
+  // Depth works in every type (AM depth, Warble depth, Shift feedback).
+  require(quadrature->params[1].label == "Depth", "quadrature depth names depth");
   require(quadrature->params[4].label == "Blend / Spread", "quadrature P1 names blend/spread");
   require(quadrature->params[5].label == "Mode", "quadrature P2 names mode");
 
