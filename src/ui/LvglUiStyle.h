@@ -29,6 +29,10 @@ struct PanelPalette {
   std::uint32_t lamp, warn, faultLine, faultText;
   std::uint32_t laneL, laneR;
   std::uint32_t family[6];
+  // Lamp Black extras: a raised plate for selected chips and segments, the
+  // ink printed on the flooded lamp, the destructive-action pair, the hard
+  // lift shadow under a selected card, and the ink printed on a warn tag.
+  std::uint32_t plateHi, lampInk, dangerText, dangerRule, shadow, warnInk;
 };
 
 const PanelPalette& palette();
@@ -39,6 +43,7 @@ void setPalette(PaletteId id);
 // together by setPalette(), so a scene rebuild cannot mix palette values.
 extern std::uint32_t bg, panel, panelAlt, text, muted, disabled, rule;
 extern std::uint32_t lamp, warning, danger, laneL, laneR;
+extern std::uint32_t plateHi, lampInk, dangerText, dangerRule, liftShadow, warnInk;
 
 void setText(lv_obj_t* object, int color = text,
              const lv_font_t* font = &ardor_font_saira_cond_medium_18);

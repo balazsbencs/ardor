@@ -1,6 +1,10 @@
 #include "ui/LvglUi.h"
 
+#include "ui/LampBlack.h"
 #include "ui/LvglUiStyle.h"
+
+#include <array>
+#include <utility>
 
 #include <algorithm>
 #include <cmath>
@@ -10,6 +14,18 @@ namespace ardor {
 namespace {
 
 using namespace lvgl_ui;
+
+// Tuner stage: a note plate over a cents scale over the verdict row.
+constexpr int kTunerPlateWidth = 520;
+constexpr int kTunerPlateHeight = 250;
+constexpr int kTunerPlateX = (kDesignWidth - kTunerPlateWidth) / 2;
+constexpr int kTunerPlateY = 92;
+constexpr int kTunerScaleWidth = 1000;
+constexpr int kTunerScaleX = (kDesignWidth - kTunerScaleWidth) / 2;
+constexpr int kTunerScaleY = 370;
+constexpr int kTunerScaleMargin = 24;
+constexpr int kTunerVerdictWidth = 200;
+constexpr int kTunerVerdictY = 470;
 
 void onTunerExit(lv_event_t* event)
 {
@@ -26,76 +42,74 @@ void onTunerExit(lv_event_t* event)
 
 void LvglUi::renderTunerMode(lv_obj_t* root, UiState& state)
 {
-  lv_obj_t* exit = button(root, "Exit");
-  lv_obj_set_size(exit, 120, kHeaderButtonHeight);
-  lv_obj_align(exit, LV_ALIGN_TOP_LEFT, 28, 20);
-  styleSurface(exit, panel);
-  lv_obj_add_event_cb(exit, onTunerExit, LV_EVENT_PRESSED, remember(state));
+  lb::box(root, 0, 0, kDesignWidth, kDesignHeight, bg);
+  lb::header(root);
+  lb::textLabel(root, lb::type::headerTitle, "TUNER", text, 28, 9);
+  const int tagX = 28 + lb::textWidth(lb::type::headerTitle, "TUNER") + 20;
+  lv_obj_t* mutedTag = lb::box(root, tagX, 15,
+                               lb::textWidth(lb::type::tag, "OUTPUT MUTED") + 20, 33, warning);
+  lb::textLabel(mutedTag, lb::type::tag, "OUTPUT MUTED", warnInk, 10, 3);
+  const std::string hint = "PRESS ANY FOOTSWITCH TO EXIT";
+  lb::textLabel(root, lb::type::headerRight, hint, disabled,
+                kDesignWidth - 28 - lb::textWidth(lb::type::headerRight, hint), 18);
 
-  label(root, "TUNER", LV_ALIGN_TOP_MID, 0, 24,
-        &ardor_font_saira_cond_semibold_28, lamp);
-  label(root, "OUTPUT MUTED", LV_ALIGN_TOP_RIGHT, -34, 30,
-        &ardor_font_saira_cond_semibold_22, danger);
-
-  // Real tuner-designator face (subsetted A-G/#/0-9), per
-  // docs/lvgl-ui-redesign-spec.md §4c/§5 — no bitmap-scaling hack.
-  tunerNoteLabel_ = label(root, "--", LV_ALIGN_TOP_MID, 0, 112,
+  // Note plate: floods with the lamp when the string is in tune, the same
+  // gesture as the LIVE preset tile.
+  tunerPlate_ = lb::box(root, kTunerPlateX, kTunerPlateY, kTunerPlateWidth, kTunerPlateHeight,
+                        panel, rule, 1);
+  tunerNoteLabel_ = label(tunerPlate_, "--", LV_ALIGN_TOP_MID, 0, 20,
                           &ardor_font_saira_cond_semibold_tuner_110, text);
-  lv_obj_set_width(tunerNoteLabel_, 360);
+  lv_obj_set_width(tunerNoteLabel_, kTunerPlateWidth - 2);
   lv_obj_set_style_text_align(tunerNoteLabel_, LV_TEXT_ALIGN_CENTER, 0);
+  tunerFrequencyLabel_ = lb::textLabel(tunerPlate_, lb::type::controlLabel, "PLAY A STRING",
+                                       muted, 0, kTunerPlateHeight - 62);
+  lv_obj_set_width(tunerFrequencyLabel_, kTunerPlateWidth - 2);
+  lv_obj_set_style_text_align(tunerFrequencyLabel_, LV_TEXT_ALIGN_CENTER, 0);
+  tunerCentsLabel_ = lb::textLabel(tunerPlate_, lb::type::contextValue, "", text, 0,
+                                   kTunerPlateHeight + 20);
+  lv_obj_add_flag(tunerCentsLabel_, LV_OBJ_FLAG_HIDDEN);
 
-  tunerFrequencyLabel_ = label(root, "Play a string", LV_ALIGN_TOP_MID, 0, 286,
-                               &ardor_font_saira_cond_semibold_22, muted);
-  tunerCentsLabel_ = label(root, "", LV_ALIGN_TOP_MID, 0, 332,
-                           &ardor_font_saira_cond_semibold_28, muted);
-
-  lv_obj_t* meter = lv_obj_create(root);
-  lv_obj_set_size(meter, 760, 112);
-  lv_obj_set_pos(meter, 260, 398);
-  lv_obj_remove_flag(meter, LV_OBJ_FLAG_SCROLLABLE);
-  styleSurface(meter, panelAlt);
-  lv_obj_set_style_border_color(meter, lv_color_hex(rule), 0);
-  lv_obj_set_style_border_width(meter, 1, 0);
-  for (int tick = -5; tick <= 5; ++tick) {
-    lv_obj_t* line = lv_obj_create(meter);
-    lv_obj_remove_style_all(line);
-    lv_obj_set_size(line, tick == 0 ? 4 : 2,
-                    tick == 0 ? 76 : (tick % 5 == 0 ? 54 : 34));
-    lv_obj_set_style_bg_opa(line, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(line, lv_color_hex(tick == 0 ? lamp : muted), 0);
-    lv_obj_align(line, LV_ALIGN_CENTER, tick * 70, 0);
+  // Cents scale: a travel scale from -50 to +50 with a tick every 5 cents.
+  lv_obj_t* scale = lv_obj_create(root);
+  lv_obj_remove_style_all(scale);
+  // The box is wider than the scale so the end legends are not clipped.
+  lv_obj_set_pos(scale, kTunerScaleX - kTunerScaleMargin, kTunerScaleY);
+  lv_obj_set_size(scale, kTunerScaleWidth + 2 * kTunerScaleMargin, 80);
+  lv_obj_remove_flag(scale, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(scale, LV_OBJ_FLAG_CLICKABLE);
+  for (int tick = 0; tick <= 20; ++tick) {
+    const bool major = tick % 10 == 0;
+    const int x = kTunerScaleMargin + static_cast<int>(std::lround(kTunerScaleWidth * tick / 20.0));
+    lb::box(scale, x - (major ? 1 : 0), major ? 0 : 6, major ? 4 : 2, major ? 20 : 8,
+            tick == 10 ? text : disabled);
   }
-  label(meter, "-50", LV_ALIGN_BOTTOM_LEFT, 12, -7,
-        &ardor_font_saira_cond_medium_18, muted);
-  label(meter, "0", LV_ALIGN_BOTTOM_MID, 0, -7,
-        &ardor_font_saira_cond_medium_18, muted);
-  label(meter, "+50", LV_ALIGN_BOTTOM_RIGHT, -12, -7,
-        &ardor_font_saira_cond_medium_18, muted);
+  lb::box(scale, kTunerScaleMargin, 28, kTunerScaleWidth, 8, plateHi);
+  for (const auto& [legend, fraction] : {std::pair{"-50", 0.0}, std::pair{"0", 0.5},
+                                         std::pair{"+50", 1.0}}) {
+    const int x = kTunerScaleMargin + static_cast<int>(std::lround(kTunerScaleWidth * fraction));
+    lb::textLabel(scale, lb::type::page, legend, disabled,
+                  x - lb::textWidth(lb::type::page, legend) / 2, 48);
+  }
+  tunerNeedle_ = lb::box(scale, 0, 14, 8, 36, text);
 
-  tunerNeedle_ = lv_obj_create(root);
-  lv_obj_remove_style_all(tunerNeedle_);
-  lv_obj_set_size(tunerNeedle_, 8, 92);
-  lv_obj_set_style_radius(tunerNeedle_, 0, 0);
-  lv_obj_set_style_bg_opa(tunerNeedle_, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(tunerNeedle_, lv_color_hex(lamp), 0);
-
-  tunerGuidanceLabel_ = label(root, "PLAY A STRING", LV_ALIGN_TOP_MID, 0, 536,
-                              &ardor_font_saira_cond_semibold_28, muted);
+  // Verdict row: FLAT / IN TUNE / SHARP as segment cells; the active one
+  // lifts to the raised plate with a coloured foot.
+  const int rowX = (kDesignWidth - kTunerVerdictWidth * 3 + 2) / 2;
   constexpr std::array<const char*, 3> kVerdicts = {"FLAT", "IN TUNE", "SHARP"};
-  constexpr std::array<int, 3> kVerdictX = {-160, 0, 160};
   for (std::size_t i = 0; i < kVerdicts.size(); ++i) {
-    lv_obj_t* lampCell = lv_obj_create(root);
-    lv_obj_set_size(lampCell, 11, 11);
-    lv_obj_align(lampCell, LV_ALIGN_TOP_MID, kVerdictX[i] - 42, 588);
-    styleSurface(lampCell, rule);
-    lv_obj_set_style_border_width(lampCell, 0, 0);
-    lv_obj_remove_flag(lampCell, LV_OBJ_FLAG_CLICKABLE);
-    tunerVerdictLamps_[i] = lampCell;
-    label(root, kVerdicts[i], LV_ALIGN_TOP_MID, kVerdictX[i] + 10, 582,
-          &ardor_font_saira_cond_medium_18, muted);
+    lv_obj_t* cell = lb::button(root, kVerdicts[i], lb::ButtonKind::Off,
+                                rowX + static_cast<int>(i) * (kTunerVerdictWidth - 1), kTunerVerdictY,
+                                kTunerVerdictWidth, 56, lb::type::segment);
+    lv_obj_remove_flag(cell, LV_OBJ_FLAG_CLICKABLE);
+    lb::box(cell, 0, 56 - 2 - 5, kTunerVerdictWidth - 2, 5, disabled);
+    tunerVerdictLamps_[i] = cell;
   }
-  label(root, "Press any footswitch to exit", LV_ALIGN_BOTTOM_MID, 0, -30,
-        &ardor_font_saira_cond_semibold_22, muted);
+  tunerGuidanceLabel_ = lb::textLabel(root, lb::type::controlLabel, "PLAY A STRING", disabled,
+                                      0, kTunerVerdictY + 72);
+
+  lb::rail(root);
+  lv_obj_t* exit = lb::button(root, "EXIT", lb::ButtonKind::Primary, lb::kGutter, lb::kRailButtonY);
+  lv_obj_add_event_cb(exit, onTunerExit, LV_EVENT_PRESSED, remember(state));
   syncTunerView(state);
 }
 
@@ -103,46 +117,59 @@ void LvglUi::syncTunerView(UiState& state)
 {
   if (!tunerNoteLabel_ || !tunerNeedle_) return;
   const auto& tuner = state.tuner;
+  const auto centreGuidance = [this](const char* guidance, std::uint32_t color) {
+    lv_label_set_text(tunerGuidanceLabel_, guidance);
+    lv_obj_set_style_text_color(tunerGuidanceLabel_, lv_color_hex(color), 0);
+    lv_obj_set_x(tunerGuidanceLabel_,
+                 (kDesignWidth - lb::textWidth(lb::type::controlLabel, guidance)) / 2);
+  };
+  const auto styleVerdicts = [this](int active, std::uint32_t color) {
+    for (std::size_t i = 0; i < tunerVerdictLamps_.size(); ++i) {
+      lv_obj_t* cell = tunerVerdictLamps_[i];
+      if (!cell) continue;
+      const bool on = static_cast<int>(i) == active;
+      lv_obj_set_style_bg_color(cell, lv_color_hex(on ? plateHi : panel), 0);
+      lv_obj_set_style_text_color(lb::buttonLabel(cell), lv_color_hex(on ? text : disabled), 0);
+      lv_obj_set_style_bg_color(lv_obj_get_child(cell, 1), lv_color_hex(on ? color : rule), 0);
+    }
+  };
   if (!tuner.signalDetected) {
     lv_label_set_text(tunerNoteLabel_, "--");
-    lv_label_set_text(tunerFrequencyLabel_, "Play a string");
+    lv_label_set_text(tunerFrequencyLabel_, "PLAY A STRING");
     lv_label_set_text(tunerCentsLabel_, "");
-    lv_label_set_text(tunerGuidanceLabel_, "PLAY A STRING");
-    lv_obj_set_style_text_color(tunerGuidanceLabel_, lv_color_hex(muted), 0);
-    for (lv_obj_t* verdict : tunerVerdictLamps_) {
-      if (verdict) lv_obj_set_style_bg_color(verdict, lv_color_hex(rule), 0);
-    }
+    centreGuidance("PLAY A STRING", disabled);
+    styleVerdicts(-1, rule);
+    lv_obj_set_style_bg_color(tunerPlate_, lv_color_hex(panel), 0);
+    lv_obj_set_style_border_color(tunerPlate_, lv_color_hex(rule), 0);
+    lv_obj_set_style_text_color(tunerNoteLabel_, lv_color_hex(disabled), 0);
+    lv_obj_set_style_text_color(tunerFrequencyLabel_, lv_color_hex(muted), 0);
     lv_obj_add_flag(tunerNeedle_, LV_OBJ_FLAG_HIDDEN);
     return;
   }
 
   char note[16]{};
-  char frequency[32]{};
-  char cents[32]{};
+  char detail[64]{};
   std::snprintf(note, sizeof(note), "%s%d", tuner.note.c_str(), tuner.octave);
-  std::snprintf(frequency, sizeof(frequency), "%.1f Hz", tuner.frequencyHz);
-  std::snprintf(cents, sizeof(cents), "%+.1f cents", tuner.cents);
+  std::snprintf(detail, sizeof(detail), "%.1f HZ  \xC2\xB7  %+.1f CENTS", tuner.frequencyHz,
+                tuner.cents);
   lv_label_set_text(tunerNoteLabel_, note);
-  lv_label_set_text(tunerFrequencyLabel_, frequency);
-  lv_label_set_text(tunerCentsLabel_, cents);
+  lv_label_set_text(tunerFrequencyLabel_, detail);
+  lv_label_set_text(tunerCentsLabel_, detail);
 
   const float absoluteCents = std::fabs(tuner.cents);
-  const int color = absoluteCents <= 3.0f
-    ? lamp : (absoluteCents <= 10.0f ? warning : danger);
-  const char* guidance = absoluteCents <= 3.0f ? "IN TUNE"
-    : (tuner.cents < 0.0f ? "FLAT  -  TUNE UP" : "SHARP  -  TUNE DOWN");
-  lv_label_set_text(tunerGuidanceLabel_, guidance);
-  lv_obj_set_style_text_color(tunerGuidanceLabel_, lv_color_hex(color), 0);
-  const std::size_t verdictIndex = absoluteCents <= 3.0f ? 1 : (tuner.cents < 0.0f ? 0 : 2);
-  for (std::size_t i = 0; i < tunerVerdictLamps_.size(); ++i) {
-    if (!tunerVerdictLamps_[i]) continue;
-    const int verdictColor = i == verdictIndex ? color : rule;
-    lv_obj_set_style_bg_color(tunerVerdictLamps_[i], lv_color_hex(verdictColor), 0);
-  }
-  lv_obj_set_style_bg_color(tunerNeedle_, lv_color_hex(color), 0);
-  const int needleX = 636 + static_cast<int>(
-    std::lround(std::clamp(tuner.cents, -50.0f, 50.0f) * 7.0f));
-  lv_obj_set_pos(tunerNeedle_, needleX, 408);
+  const bool inTune = absoluteCents <= 3.0f;
+  const std::uint32_t color = inTune ? lamp : (absoluteCents <= 10.0f ? warning : dangerText);
+  centreGuidance(inTune ? "IN TUNE" : (tuner.cents < 0.0f ? "FLAT  -  TUNE UP" : "SHARP  -  TUNE DOWN"),
+                 inTune ? text : color);
+  styleVerdicts(inTune ? 1 : (tuner.cents < 0.0f ? 0 : 2), color);
+  lv_obj_set_style_bg_color(tunerPlate_, lv_color_hex(inTune ? lamp : panel), 0);
+  lv_obj_set_style_border_color(tunerPlate_, lv_color_hex(inTune ? lamp : rule), 0);
+  lv_obj_set_style_text_color(tunerNoteLabel_, lv_color_hex(inTune ? lampInk : text), 0);
+  lv_obj_set_style_text_color(tunerFrequencyLabel_, lv_color_hex(inTune ? lampInk : muted), 0);
+  lv_obj_set_style_bg_color(tunerNeedle_, lv_color_hex(inTune ? text : color), 0);
+  const int needleX = kTunerScaleMargin + static_cast<int>(std::lround(
+    (std::clamp(tuner.cents, -50.0f, 50.0f) + 50.0f) / 100.0f * kTunerScaleWidth)) - 4;
+  lv_obj_set_x(tunerNeedle_, needleX);
   lv_obj_remove_flag(tunerNeedle_, LV_OBJ_FLAG_HIDDEN);
 }
 

@@ -1,8 +1,7 @@
 #include "ui/LvglUi.h"
 
+#include "ui/LampBlack.h"
 #include "ui/LvglUiStyle.h"
-#include "ui/fonts/SairaCondSemibold52.h"
-#include "ui/fonts/SairaCondSemibold72.h"
 
 #include <algorithm>
 #include <cmath>
@@ -13,10 +12,20 @@ namespace {
 
 using namespace lvgl_ui;
 
-constexpr int kTopRailHeight = 52;
-constexpr int kBottomRailHeight = 88;
-constexpr int kBottomRailY = kDesignHeight - kBottomRailHeight;
-constexpr int kEdge = 28;
+// Scenes mirror the preset map: four 610 x 254 plates, the flooded plate is
+// the live scene.
+constexpr int kTileX = 24;
+constexpr int kTileY = 80;
+constexpr int kTileWidth = 610;
+constexpr int kTileHeight = 254;
+constexpr int kTileGap = 12;
+constexpr int kTilePadX = 27;
+constexpr int kFootswitchTop = 20;
+constexpr int kNameTop = 49;
+constexpr int kLiveNameTop = 35;
+constexpr int kDetailTop = 196;
+constexpr int kProgressHeight = 8;
+constexpr int kProgressBottom = 22;
 
 void onSceneClicked(lv_event_t* event)
 {
@@ -93,111 +102,80 @@ void LvglUi::rebuildScenesView(UiState& state)
 void LvglUi::renderScenesMode(lv_obj_t* root, UiState& state)
 {
   const auto& preset = state.bank.presets[state.activePreset];
-  lv_obj_t* top = lv_obj_create(root);
-  lv_obj_set_size(top, kDesignWidth, kTopRailHeight);
-  lv_obj_set_pos(top, 0, 0);
-  styleSurface(top, panel);
-  lv_obj_set_style_radius(top, 0, 0);
-  lv_obj_set_style_pad_all(top, 0, 0);
-  lv_obj_set_style_border_side(top, LV_BORDER_SIDE_BOTTOM, 0);
-  lv_obj_remove_flag(top, LV_OBJ_FLAG_SCROLLABLE);
-  label(top, "SCENES", LV_ALIGN_LEFT_MID, kEdge, 0,
-        &ardor_font_saira_cond_semibold_22, lamp);
-  scenesPresetLabel_ = label(top, uppercase(preset.name), LV_ALIGN_CENTER, 0, 0,
-                             &ardor_font_saira_cond_semibold_28);
-  label(top, "BANK " + std::to_string(state.activeBank + 1) + "  /  PRESET "
-             + std::to_string(state.activePreset + 1),
-        LV_ALIGN_RIGHT_MID, -kEdge, 0, &ardor_font_saira_cond_medium_18, muted);
-  scenesUnsavedLabel_ = label(top, "UNSAVED", LV_ALIGN_RIGHT_MID, -300, 0,
-                              &ardor_font_saira_cond_medium_18, warning);
+  lb::header(root);
+  lb::textLabel(root, lb::type::headerTitle, "SCENES", text, 28, 9);
+  const int nameX = 28 + lb::textWidth(lb::type::headerTitle, "SCENES") + 20;
+  scenesPresetLabel_ = lb::textLabel(root, lb::type::headerSub, uppercase(preset.name), muted,
+                                     nameX, 13);
+  scenesUnsavedLabel_ = lb::box(root, 0, 15, lb::textWidth(lb::type::tag, "UNSAVED") + 20, 33,
+                                warning);
+  lb::textLabel(scenesUnsavedLabel_, lb::type::tag, "UNSAVED", warnInk, 10, 3);
+  lb::placeModifiedTag(scenesPresetLabel_, scenesUnsavedLabel_);
   if (!state.dirty) lv_obj_add_flag(scenesUnsavedLabel_, LV_OBJ_FLAG_HIDDEN);
-
-  lv_obj_t* grid = lv_obj_create(root);
-  lv_obj_set_size(grid, kDesignWidth - 2 * kEdge,
-                  kDesignHeight - kTopRailHeight - kBottomRailHeight - 36);
-  lv_obj_set_pos(grid, kEdge, kTopRailHeight + 18);
-  lv_obj_set_style_bg_opa(grid, LV_OPA_TRANSP, 0);
-  lv_obj_set_style_border_width(grid, 0, 0);
-  lv_obj_set_style_pad_all(grid, 0, 0);
-  lv_obj_set_style_pad_column(grid, 14, 0);
-  lv_obj_set_style_pad_row(grid, 14, 0);
-  lv_obj_set_layout(grid, LV_LAYOUT_GRID);
-  lv_obj_remove_flag(grid, LV_OBJ_FLAG_SCROLLABLE);
-  static int32_t cols[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-  static int32_t rows[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-  lv_obj_set_grid_dsc_array(grid, cols, rows);
+  char where[48]{};
+  std::snprintf(where, sizeof(where), "BANK %02d  \xC2\xB7  PRESET %zu", state.activeBank,
+                state.activePreset + 1);
+  lb::textLabel(root, lb::type::headerRight, where, disabled,
+                kDesignWidth - 28 - lb::textWidth(lb::type::headerRight, where), 18);
 
   for (std::size_t index = 0; index < 4; ++index) {
     const PresetScene fallback{"", "Scene " + std::to_string(index + 1)};
     const auto& scene = preset.sceneSet ? preset.sceneSet->scenes[index] : fallback;
-    lv_obj_t* card = button(grid, uppercase(scene.name));
+    const int column = static_cast<int>(index / 2);
+    const int row = static_cast<int>(index % 2);
+    lv_obj_t* card = lv_button_create(root);
+    lv_obj_remove_style_all(card);
+    lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(card, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    lv_obj_set_pos(card, kTileX + column * (kTileWidth + kTileGap),
+                   kTileY + row * (kTileHeight + kTileGap));
+    lv_obj_set_size(card, kTileWidth, kTileHeight);
+    lv_obj_set_style_bg_opa(card, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(card, lv_color_hex(panel), 0);
+    lb::setBorder(card, rule, 1);
+    lv_obj_set_style_outline_color(card, lv_color_hex(text), LV_STATE_PRESSED);
+    lv_obj_set_style_outline_width(card, 2, LV_STATE_PRESSED);
+    lv_obj_set_style_opa(card, LV_OPA_40, LV_STATE_DISABLED);
     sceneCardButtons_[index] = card;
-    lv_obj_set_grid_cell(card, LV_GRID_ALIGN_STRETCH, static_cast<int32_t>(index / 2), 1,
-                         LV_GRID_ALIGN_STRETCH, static_cast<int32_t>(index % 2), 1);
-    styleSurface(card, panel);
-    lv_obj_set_style_pad_all(card, 0, 0);
-    lv_obj_t* name = lv_obj_get_child(card, 0);
-    sceneNameLabels_[index] = name;
-    lv_obj_set_style_text_font(name,
-      scene.name.size() <= 14 ? &ardor_font_saira_cond_semibold_72
-                              : &ardor_font_saira_cond_semibold_52, 0);
-    lv_obj_set_style_text_align(name, LV_TEXT_ALIGN_LEFT, 0);
-    lv_obj_set_size(name, LV_PCT(86), 146);
+    lv_obj_t* name = lb::textLabel(card, lb::type::presetName, uppercase(scene.name), text,
+                                   kTilePadX - 1, kNameTop - 1);
+    lv_obj_set_width(name, kTileWidth - 2 * kTilePadX);
     lv_label_set_long_mode(name, LV_LABEL_LONG_MODE_DOTS);
-    lv_obj_set_pos(name, 24, 62);
-
+    sceneNameLabels_[index] = name;
+    // The header strip is kept as a transparent holder for the FS legend.
     lv_obj_t* header = lv_obj_create(card);
-    sceneHeaderStrips_[index] = header;
-    lv_obj_set_size(header, LV_PCT(100), 44);
-    lv_obj_set_pos(header, 0, 0);
-    styleSurface(header, panelAlt);
-    lv_obj_set_style_border_width(header, 0, 0);
-    lv_obj_set_style_pad_all(header, 0, 0);
+    lv_obj_remove_style_all(header);
+    lv_obj_set_size(header, kTileWidth - 2, 60);
     lv_obj_remove_flag(header, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_remove_flag(header, LV_OBJ_FLAG_SCROLLABLE);
-    sceneHeaderLabels_[index] = label(header, "FS " + std::to_string(index + 1),
-      LV_ALIGN_LEFT_MID, 16, 0, &ardor_font_saira_cond_semibold_28);
-    sceneDetailLabels_[index] = label(card, sceneDetail(scene),
-      LV_ALIGN_BOTTOM_LEFT, 22, -16, &ardor_font_saira_cond_semibold_22, muted);
-    lv_obj_t* progress = lv_obj_create(card);
-    sceneProgressFills_[index] = progress;
-    lv_obj_remove_style_all(progress);
-    lv_obj_set_size(progress, 0, 3);
-    lv_obj_align(progress, LV_ALIGN_BOTTOM_LEFT, 0, 0);
-    lv_obj_set_style_bg_opa(progress, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(progress, lv_color_hex(lamp), 0);
-    lv_obj_add_flag(progress, LV_OBJ_FLAG_HIDDEN);
+    sceneHeaderStrips_[index] = header;
+    sceneHeaderLabels_[index] = lb::textLabel(header, lb::type::footswitch,
+                                              "FS " + std::to_string(index + 1), disabled,
+                                              kTilePadX - 1, kFootswitchTop - 1);
+    sceneDetailLabels_[index] = lb::textLabel(card, lb::type::controlLabel, sceneDetail(scene),
+                                              muted, kTilePadX - 1, kDetailTop - 1);
+    lv_obj_t* progressTrack = lb::box(card, kTilePadX - 1,
+      kTileHeight - 1 - kProgressBottom - kProgressHeight, kTileWidth - 2 * kTilePadX,
+      kProgressHeight, plateHi);
+    sceneProgressFills_[index] = lb::box(progressTrack, 0, 0, 0, kProgressHeight, text);
+    lv_obj_add_flag(progressTrack, LV_OBJ_FLAG_HIDDEN);
     if (!preset.sceneSet) lv_obj_add_state(card, LV_STATE_DISABLED);
     lv_obj_add_event_cb(card, onSceneClicked, LV_EVENT_CLICKED, remember(state, index));
   }
 
-  lv_obj_t* bottom = lv_obj_create(root);
-  lv_obj_set_size(bottom, kDesignWidth, kBottomRailHeight);
-  lv_obj_set_pos(bottom, 0, kBottomRailY);
-  styleSurface(bottom, bg);
-  lv_obj_set_style_radius(bottom, 0, 0);
-  lv_obj_set_style_pad_all(bottom, 0, 0);
-  lv_obj_set_style_border_side(bottom, LV_BORDER_SIDE_TOP, 0);
-  lv_obj_remove_flag(bottom, LV_OBJ_FLAG_SCROLLABLE);
-  int x = kEdge;
-  const auto railButton = [&](const char* value, int width, lv_event_cb_t callback) {
-    lv_obj_t* control = button(bottom, value);
-    lv_obj_set_size(control, width, 60);
-    lv_obj_align(control, LV_ALIGN_LEFT_MID, x, 0);
+  lb::rail(root);
+  int x = lb::kGutter;
+  const auto railButton = [&](const char* value, lb::ButtonKind kind, lv_event_cb_t callback) {
+    lv_obj_t* control = lb::button(root, value, kind, x, lb::kRailButtonY);
     lv_obj_add_event_cb(control, callback, LV_EVENT_CLICKED, remember(state));
-    x += width + 12;
+    x += lv_obj_get_style_width(control, LV_PART_MAIN) + lb::kGap;
   };
-  railButton("Presets", 132, onPresetsClicked);
-  railButton("Tuner", 112, onSceneTunerClicked);
-  railButton("Looper", 124, onSceneLooperClicked);
-  railButton("Edit", 112, onSceneEditClicked);
-  scenesFaultLabel_ = label(bottom, "", LV_ALIGN_CENTER, 80, 0,
-                            &ardor_font_saira_cond_semibold_22, danger);
-  label(bottom, "BUFFER  " + std::to_string(static_cast<int>(std::clamp(
-          100.0 - state.telemetry.bufferFreePercent, 0.0, 100.0))) + "% USED",
-        LV_ALIGN_RIGHT_MID, -190, -16, &ardor_font_saira_cond_medium_18, muted);
-  label(bottom, "MASTER  " + std::to_string(state.masterVolume),
-        LV_ALIGN_RIGHT_MID, -kEdge, 16, &ardor_font_saira_cond_semibold_28);
+  railButton("EDIT", lb::ButtonKind::Primary, onSceneEditClicked);
+  railButton("TUNER", lb::ButtonKind::Normal, onSceneTunerClicked);
+  railButton("LOOPER", lb::ButtonKind::Normal, onSceneLooperClicked);
+  railButton("PRESETS", lb::ButtonKind::Normal, onPresetsClicked);
+  scenesFaultLabel_ = lb::textLabel(root, lb::type::legend, "", dangerText, x + 8, 653);
+  lb::masterReadout(root, state.masterVolume);
   syncScenesView(state);
 }
 
@@ -205,22 +183,26 @@ void LvglUi::syncScenesView(const UiState& state)
 {
   if (!viewsInitialized_ && !scenesLayer_) return;
   const auto& preset = state.bank.presets[state.activePreset];
-  if (scenesPresetLabel_) lv_label_set_text(scenesPresetLabel_, uppercase(preset.name).c_str());
+  if (scenesPresetLabel_) {
+    lv_label_set_text(scenesPresetLabel_, uppercase(preset.name).c_str());
+    lb::placeModifiedTag(scenesPresetLabel_, scenesUnsavedLabel_);
+  }
   if (scenesUnsavedLabel_) {
     if (state.dirty) lv_obj_remove_flag(scenesUnsavedLabel_, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(scenesUnsavedLabel_, LV_OBJ_FLAG_HIDDEN);
   }
   if (scenesFaultLabel_) {
-    lv_label_set_text(scenesFaultLabel_, state.scenes.rejection.c_str());
+    lv_label_set_text(scenesFaultLabel_, uppercase(state.scenes.rejection).c_str());
     if (state.scenes.rejection.empty()) lv_obj_add_flag(scenesFaultLabel_, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_remove_flag(scenesFaultLabel_, LV_OBJ_FLAG_HIDDEN);
   }
   for (std::size_t index = 0; index < sceneCardButtons_.size(); ++index) {
-    if (!sceneCardButtons_[index]) continue;
+    lv_obj_t* card = sceneCardButtons_[index];
+    if (!card) continue;
     if (preset.sceneSet) {
       const auto& scene = preset.sceneSet->scenes[index];
       lv_label_set_text(sceneNameLabels_[index], uppercase(scene.name).c_str());
-      lv_label_set_text(sceneDetailLabels_[index], sceneDetail(scene).c_str());
+      lv_label_set_text(sceneDetailLabels_[index], uppercase(sceneDetail(scene)).c_str());
     }
     const bool goingTo = state.scenes.transitioning && state.scenes.destinationScene == index;
     const bool pending = state.scenes.pending && state.scenes.destinationScene == index;
@@ -234,18 +216,31 @@ void LvglUi::syncScenesView(const UiState& state)
       header += state.scenes.pedalOverride ? "  ·  PEDAL" : "  ·  ALTERED";
     }
     lv_label_set_text(sceneHeaderLabels_[index], header.c_str());
-    lv_obj_set_style_bg_color(sceneHeaderStrips_[index],
-                              lv_color_hex(live ? lamp : panelAlt), 0);
-    lv_obj_set_style_text_color(sceneHeaderLabels_[index], lv_color_hex(live ? bg : text), 0);
-    lv_obj_set_style_border_color(sceneCardButtons_[index],
-                                  lv_color_hex((live || goingTo) ? lamp : rule), 0);
-    lv_obj_set_style_border_width(sceneCardButtons_[index], (live || goingTo) ? 3 : 1, 0);
+    // The live scene floods with the lamp; the destination of a timed
+    // change lifts to a bone frame with its travel along the foot.
+    lv_obj_set_style_bg_color(card, lv_color_hex(live ? lamp : panel), 0);
+    const int border = goingTo ? 3 : 1;
+    lv_obj_set_style_border_width(card, border, 0);
+    lv_obj_set_style_border_color(card, lv_color_hex(live ? lamp : goingTo ? text : rule), 0);
+    lv_obj_set_style_text_color(sceneHeaderLabels_[index],
+                                lv_color_hex(live ? lampInk : goingTo ? text : disabled), 0);
+    lv_obj_set_pos(sceneHeaderStrips_[index], 1 - border, 1 - border);
+    const lb::Type& nameType = live ? lb::type::livePresetName : lb::type::presetName;
+    lb::applyType(sceneNameLabels_[index], nameType, live ? lampInk : text);
+    lv_obj_set_pos(sceneNameLabels_[index], kTilePadX - border,
+                   lb::textTop(nameType, live ? kLiveNameTop : kNameTop) - border);
+    lv_obj_set_style_text_color(sceneDetailLabels_[index], lv_color_hex(live ? lampInk : muted), 0);
+    lv_obj_set_pos(sceneDetailLabels_[index], kTilePadX - border,
+                   lb::textTop(lb::type::controlLabel, kDetailTop) - border);
+    lv_obj_t* progressTrack = lv_obj_get_parent(sceneProgressFills_[index]);
+    lv_obj_set_pos(progressTrack, kTilePadX - border,
+                   kTileHeight - border - kProgressBottom - kProgressHeight);
     if (goingTo) {
-      lv_obj_remove_flag(sceneProgressFills_[index], LV_OBJ_FLAG_HIDDEN);
-      lv_obj_set_width(sceneProgressFills_[index],
-        LV_PCT(static_cast<int>(std::lround(state.scenes.progress * 100.0f))));
+      lv_obj_remove_flag(progressTrack, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_set_width(sceneProgressFills_[index], static_cast<int>(std::lround(
+        std::clamp(state.scenes.progress, 0.0f, 1.0f) * (kTileWidth - 2 * kTilePadX))));
     } else {
-      lv_obj_add_flag(sceneProgressFills_[index], LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(progressTrack, LV_OBJ_FLAG_HIDDEN);
     }
   }
 }

@@ -1,9 +1,12 @@
 #include "ui/LvglUi.h"
 
 #include "ui/LvglUiParameterView.h"
+#include "ui/LampBlack.h"
 #include "ui/LvglUiStyle.h"
+#include "ui/PresetChainStrip.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <array>
 #include <string>
 #include <utility>
@@ -323,6 +326,172 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
   return false;
 }
 
+namespace {
+
+// The chip strip fills the 84 px band between the header and the drawer:
+// IN, one chip per top-level block, OUT. Chips are 56 px tall with a 6 px
+// family-colour top edge and at least 150 px wide; the strip scrolls
+// sideways when a long chain does not fit.
+constexpr int kChipStripY = lb::kHeaderHeight;
+constexpr int kChipStripHeight = 84;
+constexpr int kChipY = 14;
+constexpr int kChipGap = 8;
+constexpr int kChipHeight = 56;
+constexpr int kChipMinWidth = 150;
+constexpr int kChipIoWidth = 72;
+constexpr int kChipTopEdge = 6;
+constexpr int kChipTextInset = 15;
+constexpr int kChipSmallTop = 9;
+constexpr int kChipNameTop = 23;
+constexpr int kSelectedChipBorder = 3;
+constexpr std::uintptr_t kChipGlobals = static_cast<std::uintptr_t>(-1);
+
+void onParameterChipClicked(lv_event_t* event)
+{
+  auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
+  lv_obj_t* chip = lv_event_get_current_target_obj(event);
+  const auto index = reinterpret_cast<std::uintptr_t>(lv_obj_get_user_data(chip));
+  // IN and OUT open the global input and output gains.
+  if (index == kChipGlobals) context->ui->selectGlobalParams(*context->state);
+  else context->ui->selectBlock(*context->state, static_cast<std::size_t>(index));
+  context->ui->invalidate(UiChange::Chain | UiChange::Parameters | UiChange::Header);
+}
+
+std::string chipKey(const UiBlock& block)
+{
+  return block.id + "|" + block.type + "|" + block.assetName + (block.enabled ? "|on" : "|off");
+}
+
+std::string chipSmallText(const UiBlock& block)
+{
+  return block.enabled ? uppercase(block.label) : blockTypeCode(block.type) + "  /  OFF";
+}
+
+lv_obj_t* createChip(lv_obj_t* strip, int x, int width, std::uintptr_t index,
+                     UiEventContext* context)
+{
+  lv_obj_t* chip = lv_obj_create(strip);
+  lv_obj_remove_style_all(chip);
+  lv_obj_set_pos(chip, x, kChipY);
+  lv_obj_set_size(chip, width, kChipHeight);
+  lv_obj_set_style_bg_opa(chip, LV_OPA_COVER, 0);
+  lv_obj_set_style_bg_color(chip, lv_color_hex(panel), 0);
+  lb::setBorder(chip, rule, 1);
+  lv_obj_add_flag(chip, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_remove_flag(chip, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(chip, LV_OBJ_FLAG_GESTURE_BUBBLE);
+  lv_obj_set_user_data(chip, reinterpret_cast<void*>(index));
+  lv_obj_add_event_cb(chip, onParameterChipClicked, LV_EVENT_CLICKED, context);
+  return chip;
+}
+
+// The IN / OUT end chips: ruled on three sides, the legend centred.
+lv_obj_t* createIoChip(lv_obj_t* strip, int x, const char* legend, UiEventContext* context)
+{
+  lv_obj_t* chip = createChip(strip, x, kChipIoWidth, kChipGlobals, context);
+  lb::setBorder(chip, rule, 1, static_cast<lv_border_side_t>(
+    LV_BORDER_SIDE_LEFT | LV_BORDER_SIDE_RIGHT | LV_BORDER_SIDE_BOTTOM));
+  lb::centeredText(chip, lb::type::chipIo, legend, text, -1, 0, kChipIoWidth, kChipHeight - 1);
+  return chip;
+}
+
+// Positions a block chip's children for its border: a selected chip has a
+// 3 px bone border under the same 6 px family edge.
+void styleBlockChip(lv_obj_t* chip, const UiBlock& block, bool selected)
+{
+  const int side = selected ? kSelectedChipBorder : 1;
+  lv_obj_set_style_bg_color(chip, lv_color_hex(selected ? plateHi : panel), 0);
+  lv_obj_set_style_border_color(chip, lv_color_hex(selected ? text : rule), 0);
+  lv_obj_set_style_border_width(chip, side, 0);
+  lv_obj_t* edge = lv_obj_get_child(chip, 0);
+  lv_obj_set_pos(edge, -side, -side);
+  lv_obj_set_width(edge, lv_obj_get_style_width(chip, LV_PART_MAIN));
+  lv_obj_set_style_bg_color(edge, lv_color_hex(categoryColor(block.type)), 0);
+  const int shift = selected ? 2 : 0;
+  lv_obj_t* small = lv_obj_get_child(chip, 1);
+  lv_obj_t* name = lv_obj_get_child(chip, 2);
+  lv_obj_set_pos(small, kChipTextInset + shift - side,
+                 lb::textTop(lb::type::chipSmall, kChipSmallTop - (selected ? 1 : 0)) - side);
+  lv_obj_set_pos(name, kChipTextInset + shift - side,
+                 lb::textTop(lb::type::chip, kChipNameTop - (selected ? 1 : 0)) - side);
+  lv_obj_set_style_text_color(name, lv_color_hex(block.enabled ? text : disabled), 0);
+}
+
+} // namespace
+
+void LvglUi::syncParameterChipStrip(UiState& state)
+{
+  if (!parameterLayer_) return;
+  const auto* selected = selectedUiBlock(state);
+  const bool editingEq = state.paramTarget == UiParamTarget::Block
+    && selected && selected->type == "eq" && isParametricEqMode(selected->params);
+  const bool show = state.mode == UiMode::Edit && state.paramDrawerOpen && !editingEq;
+  if (!parameterChipStrip_) {
+    if (!show) return;
+    parameterChipStrip_ = lv_obj_create(parameterLayer_);
+    lv_obj_remove_style_all(parameterChipStrip_);
+    lv_obj_set_size(parameterChipStrip_, kDesignWidth, kChipStripHeight);
+    lv_obj_set_pos(parameterChipStrip_, 0, kChipStripY);
+    lv_obj_set_style_bg_opa(parameterChipStrip_, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(parameterChipStrip_, lv_color_hex(bg), 0);
+    lv_obj_set_scroll_dir(parameterChipStrip_, LV_DIR_HOR);
+    lv_obj_set_scrollbar_mode(parameterChipStrip_, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_remove_flag(parameterChipStrip_, LV_OBJ_FLAG_SCROLL_ELASTIC);
+    contextRegion_ = UiContextRegion::Parameters;
+    parameterChipContext_ = remember(state);
+    contextRegion_ = UiContextRegion::None;
+  }
+  if (!show) {
+    lv_obj_add_flag(parameterChipStrip_, LV_OBJ_FLAG_HIDDEN);
+    return;
+  }
+  lv_obj_remove_flag(parameterChipStrip_, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_move_foreground(parameterChipStrip_);
+
+  const auto& blocks = state.bank.presets[state.activePreset].blocks;
+  std::vector<std::string> keys;
+  keys.reserve(blocks.size());
+  for (const auto& block : blocks) keys.push_back(chipKey(block));
+  if (keys != renderedChipKeys_) {
+    lv_obj_clean(parameterChipStrip_);
+    int x = lb::kGutter;
+    createIoChip(parameterChipStrip_, x, "IN", parameterChipContext_);
+    x += kChipIoWidth + kChipGap;
+    for (std::size_t i = 0; i < blocks.size(); ++i) {
+      const auto& block = blocks[i];
+      const std::string name = uppercase(block.assetName);
+      const std::string small = chipSmallText(block);
+      const int width = std::max({kChipMinWidth,
+        lb::textWidth(lb::type::chip, name) + 2 * kChipTextInset + 2,
+        lb::textWidth(lb::type::chipSmall, small) + 2 * kChipTextInset + 2});
+      lv_obj_t* chip = createChip(parameterChipStrip_, x, width,
+                                  static_cast<std::uintptr_t>(i), parameterChipContext_);
+      lb::box(chip, 0, 0, width, kChipTopEdge, categoryColor(block.type));
+      lv_obj_add_flag(lv_obj_get_child(chip, 0), LV_OBJ_FLAG_FLOATING);
+      lb::textLabel(chip, lb::type::chipSmall, small, disabled, 0, 0);
+      lb::textLabel(chip, lb::type::chip, name, text, 0, 0);
+      x += width + kChipGap;
+    }
+    createIoChip(parameterChipStrip_, x, "OUT", parameterChipContext_);
+    renderedChipKeys_ = std::move(keys);
+  }
+
+  const bool laneChild = selectedBlockIsLaneChild(state);
+  const bool globals = state.paramTarget == UiParamTarget::Globals;
+  const auto chips = lv_obj_get_child_count(parameterChipStrip_);
+  for (uint32_t i = 1; i + 1 < chips && i - 1 < blocks.size(); ++i) {
+    lv_obj_t* chip = lv_obj_get_child(parameterChipStrip_, static_cast<int32_t>(i));
+    styleBlockChip(chip, blocks[i - 1], !globals && !laneChild && i - 1 == state.selectedBlock);
+  }
+  // IN and OUT light together while the global gains are open.
+  for (uint32_t i : {0u, chips - 1}) {
+    lv_obj_t* chip = lv_obj_get_child(parameterChipStrip_, static_cast<int32_t>(i));
+    lv_obj_set_style_bg_color(chip, lv_color_hex(globals ? plateHi : panel), 0);
+    lv_obj_set_style_border_color(chip, lv_color_hex(globals ? text : rule), 0);
+  }
+  syncHeaderView(state);
+}
+
 void LvglUi::rebuildParameterView(UiState& state)
 {
   if (!parameterLayer_) return;
@@ -469,13 +638,19 @@ void LvglUi::syncParameterView(UiState& state)
     parameter_view::syncBypass(parameterBypassControl_, !displayedEnabled);
   }
 
+  // Parameter edits publish Parameters, not Chain, so the chain would keep
+  // showing stale values. Refresh only the selected card's summary rows.
+  if (state.paramTarget == UiParamTarget::Block && selected && !selectedBlockIsLaneChild(state)
+      && state.selectedBlock < chainSummaries_.size()) {
+    renderChainSummary(chainSummaries_[state.selectedBlock], state, *selected);
+  }
+
   if (!editingEq) {
     if (parameterTitleLabel_) {
       if (state.paramTarget == UiParamTarget::Globals) {
-        lv_label_set_text(parameterTitleLabel_, "Global");
+        lv_label_set_text(parameterTitleLabel_, "GLOBAL");
       } else if (selected) {
-        const auto title = selected->label + "  /  " + selected->assetName;
-        lv_label_set_text(parameterTitleLabel_, title.c_str());
+        lv_label_set_text(parameterTitleLabel_, uppercase(selected->assetName).c_str());
       }
     }
     const auto controls = ardor::parameterPage(state, parameterPage_);
@@ -523,12 +698,9 @@ void LvglUi::syncParameterView(UiState& state)
     ? passFilterForStage(params, selectedEqStage_).enabled
     : params.bands[selectedEqStage_ - kEqFirstBandStage].enabled;
   if (eqEnabledButton_) {
-    lv_label_set_text(lv_obj_get_child(eqEnabledButton_, 0),
-                      enabled ? (passStage ? "Filter On" : "Band On")
-                              : (passStage ? "Filter Off" : "Band Off"));
-    styleSurface(eqEnabledButton_, enabled ? panel : panelAlt);
-    lv_obj_set_style_text_color(lv_obj_get_child(eqEnabledButton_, 0),
-                                lv_color_hex(enabled ? lamp : danger), 0);
+    lb::setButtonText(eqEnabledButton_, enabled ? (passStage ? "Filter On" : "Band On")
+                                                : (passStage ? "Filter Off" : "Band Off"));
+    lb::styleButton(eqEnabledButton_, enabled ? lb::ButtonKind::Normal : lb::ButtonKind::Off);
   }
   if (eqEnabledContext_) eqEnabledContext_->index = selectedEqStage_;
   if (eqResetContext_) eqResetContext_->index = selectedEqStage_;

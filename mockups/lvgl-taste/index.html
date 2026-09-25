@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LVGL Taste Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=Saira:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+  .read { font: 500 15px "JetBrains Mono", monospace; color: var(--ink-2); border-top: 1px solid var(--line); padding: 14px 0 0; margin: 0 0 48px; max-width: 90ch; }
+  .read b { color: var(--ink); font-weight: 500; }
+  .big { font: 600 clamp(26px, 3.2vw, 38px)/1.15 "Saira Condensed", sans-serif; text-transform: uppercase; max-width: 30ch; margin: 0 0 24px; }
+  .big em { font-style: normal; color: var(--pick); }
+
+  .current { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin: 0 0 16px; }
+  .current figure { margin: 0; }
+  .current img { width: 100%; display: block; outline: 6px solid #050505; }
+  .current figcaption { font-size: 14px; color: var(--ink-2); margin-top: 12px; }
+
+  .finds { counter-reset: f; display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 28px 40px; margin: 24px 0 0; }
+  .find { counter-increment: f; }
+  .find h3 { font: 600 20px/1.2 "Saira Condensed", sans-serif; text-transform: uppercase; letter-spacing: .03em; margin: 0 0 6px; display: flex; gap: 12px; }
+  .find h3::before { content: counter(f); color: var(--pick); min-width: 1ch; }
+  .find p { margin: 0; color: var(--ink-2); padding-left: calc(1ch + 12px); }
+  .find code { font: 13px "JetBrains Mono", monospace; color: var(--ink); }
+
+  .dirs { display: grid; gap: 0; margin: 24px 0 0; border-top: 1px solid var(--line); }
+  .dir { display: grid; grid-template-columns: 64px 1fr 220px 150px; gap: 24px; align-items: center; padding: 26px 0; border-bottom: 1px solid var(--line); text-decoration: none; }
+  .dir:hover h3 { color: var(--pick); }
+  .dir .n { font: 700 44px/1 "Saira Condensed", sans-serif; color: var(--ink-2); }
+  .dir h3 { font: 600 28px/1 "Saira Condensed", sans-serif; text-transform: uppercase; margin: 0 0 8px; transition: color .15s; }
+  .dir p { margin: 0; color: var(--ink-2); max-width: 60ch; }
+  .sw { display: flex; height: 40px; }
+  .sw i { flex: 1; }
+  .meta { font: 500 13px "JetBrains Mono", monospace; color: var(--ink-2); line-height: 1.7; }
+  .meta b { color: var(--ink); font-weight: 500; }
+
+  .rec { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; }
+  .rec ol, .rec ul { margin: 0; padding-left: 20px; color: var(--ink-2); }
+  .rec li { margin: 8px 0; }
+  .rec li b { color: var(--ink); font-weight: 600; }
+  .rec h3 { font: 600 18px/1.2 "Saira Condensed", sans-serif; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 8px; padding-top: 12px; border-top: 2px solid var(--ink); }
+
+  @media (max-width: 860px) {
+    .current { grid-template-columns: 1fr; }
+    .dir { grid-template-columns: 44px 1fr; }
+    .dir .sw, .dir .meta { grid-column: 2; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav"><span>Ardor LVGL taste review</span><div class="pager"><a href="1-lamp-black.html">Start with direction 1</a></div></nav>
+
+  <h1>Why the pedal UI<br>feels flat</h1>
+  <p class="lede">A review of the current LVGL touch UI, with five mockup directions. All screenshots below come from the real UI, rendered headless from <code>pedal-lvgl-ui-smoke</code> and a small capture tool.</p>
+  <p class="read"><b>Design read:</b> redesign of a 1280 x 720 appliance touch UI for gigging guitarists who glance at it from 1.5 m in low light. Instrument-panel language, built only from flat LVGL planes, arcs and pre-dithered bitmaps. <b>Dials:</b> variance 5, motion 2 (patch change must be instant), density 3.</p>
+
+  <p class="big">Flat is not the problem. The spec asks for flat on purpose, because RGB565 bands every gradient. The problem is <em>low contrast, no colour and no scale</em>.</p>
+
+  <h2>The current UI</h2>
+  <div class="current">
+    <figure><img src="current/preset.png" alt="Current preset screen: four grey tiles, the live one with a red border and header"><figcaption>Preset screen. Three of four tiles are the same grey. The header shows latency, not the bank.</figcaption></figure>
+    <figure><img src="current/edit.png" alt="Current edit screen: chain of tall block cards with DRAG labels"><figcaption>Edit screen. Tall block cards are mostly empty. The header row says DRAG on every block.</figcaption></figure>
+    <figure><img src="current/param.png" alt="Current parameter drawer: two choice rows and a large empty area"><figcaption>Parameter page. Two small choice rows, then a large empty area.</figcaption></figure>
+    <figure><img src="current/tuner.png" alt="Current tuner: large note, small meter strip, small state legend"><figcaption>Tuner. A big note, but the meter is small and sits in the lower half.</figcaption></figure>
+  </div>
+
+  <h2>What makes it feel flat</h2>
+  <div class="finds">
+    <div class="find"><h3>The value range is too narrow</h3><p>The Slate plates are <code>#191c1f</code>, <code>#212528</code> and <code>#2a2f33</code>. That is three greys within a few percent of luminance. Nothing is really dark and nothing is really bright, so no surface comes forward.</p></div>
+    <div class="find"><h3>There is almost no colour</h3><p>Red appears only on the live border. The family colours are desaturated, and the preset screen does not use them. Three quarters of the main screen is neutral grey.</p></div>
+    <div class="find"><h3>The live state is only an outline</h3><p>The live tile has the same fill, the same name size and the same weight as the others. From a steep angle a 3 px border is easy to miss.</p></div>
+    <div class="find"><h3>Tiles carry no information about the sound</h3><p>Each tile is a large rectangle with one word. The big slot numeral repeats the FS label. Nothing tells you what the preset sounds like.</p></div>
+    <div class="find"><h3>The type scale is uniform</h3><p>All four preset names are the same size. Buttons, headers and legends use similar sizes and weights, so the eye has no entry point.</p></div>
+    <div class="find"><h3>Rules are broken in small places</h3><p>The Tuner button text and the master slider use the lamp red, which the One Lamp Rule reserves for LIVE. Button labels mix "Edit" and "SAVE" case. Master mixes Saira Light and Condensed.</p></div>
+    <div class="find"><h3>Every control looks the same</h3><p>Primary, secondary and disabled buttons are all the same grey box. Only a white fill marks the primary one, and that fill also means "selected" in choice rows.</p></div>
+    <div class="find"><h3>Space is not used</h3><p>The edit rail leaves half its area empty, and block cards are 330 px tall with one name in them. The parameter page is mostly blank.</p></div>
+  </div>
+
+  <h2>Five directions</h2>
+  <div class="dirs">
+    <a class="dir" href="1-lamp-black.html"><span class="n">1</span><div><h3>Lamp Black</h3><p>Keep the Panel language. Near-black ground, a fully flooded live tile, family-colour chain strips on every preset.</p></div>
+      <span class="sw"><i style="background:#0b0c0d"></i><i style="background:#16181a"></i><i style="background:#e8472f"></i><i style="background:#d2923f"></i><i style="background:#5f95c9"></i><i style="background:#3fb08c"></i></span>
+      <span class="meta"><b>Effort</b> low<br><b>Risk</b> low<br><b>Punch</b> medium</span></a>
+    <a class="dir" href="2-enclosures.html"><span class="n">2</span><div><h3>Enclosures</h3><p>Each preset is a painted stompbox in a colour the player picks. Hard offset shadows, jewels, footswitches, patch cables.</p></div>
+      <span class="sw"><i style="background:#121110"></i><i style="background:#4fa8e6"></i><i style="background:#43b99b"></i><i style="background:#eaa82a"></i><i style="background:#e8603a"></i><i style="background:#ff3b24"></i></span>
+      <span class="meta"><b>Effort</b> medium<br><b>Risk</b> schema field<br><b>Punch</b> high</span></a>
+    <a class="dir" href="3-signal-map.html"><span class="n">3</span><div><h3>Signal Map</h3><p>Every tile draws its own signal path. Parameters become big arc knobs that the encoder turns. IN and OUT meters in the header.</p></div>
+      <span class="sw"><i style="background:#0b1115"></i><i style="background:#1a262e"></i><i style="background:#2fe0bf"></i><i style="background:#e39a3b"></i><i style="background:#a58cf0"></i><i style="background:#e27c5c"></i></span>
+      <span class="meta"><b>Effort</b> medium<br><b>Risk</b> meter telemetry<br><b>Punch</b> high</span></a>
+    <a class="dir" href="4-poster.html"><span class="n">4</span><div><h3>Poster</h3><p>Gig-poster type. No boxes, huge names over ghost footswitch numerals, one yellow flood. The tuner floods the whole screen when in tune.</p></div>
+      <span class="sw"><i style="background:#0d0d0c"></i><i style="background:#1d1d1b"></i><i style="background:#f3f1ea"></i><i style="background:#ffd21f"></i><i style="background:#ff6a3d"></i><i style="background:#0d0d0c"></i></span>
+      <span class="meta"><b>Effort</b> low<br><b>Risk</b> new fonts<br><b>Punch</b> high</span></a>
+    <a class="dir" href="5-amp-chassis.html"><span class="n">5</span><div><h3>Amp Chassis</h3><p>Tolex, brushed plates and a chrome live plate with a pilot jewel. Chicken-head master knob and a VU needle tuner.</p></div>
+      <span class="sw"><i style="background:#141312"></i><i style="background:#33373a"></i><i style="background:#c9ced1"></i><i style="background:#ff3a22"></i><i style="background:#eee3c4"></i><i style="background:#17191a"></i></span>
+      <span class="meta"><b>Effort</b> high<br><b>Risk</b> bitmap assets<br><b>Punch</b> high</span></a>
+  </div>
+
+  <h2>Recommendation</h2>
+  <div class="rec">
+    <div>
+      <h3>Suggested path</h3>
+      <ol>
+        <li><b>Ship direction 1 first.</b> It is mostly a token change in <code>LvglUiStyle.cpp</code> and fixes the value range and the weak live state.</li>
+        <li><b>Add the Signal Map parts next.</b> Flow nodes on tiles and arc knobs on the parameter page give the most new information per pixel.</li>
+        <li><b>Take the tuner from Poster.</b> The full-screen in-tune flood is the best stage feature of the five, and it is cheap.</li>
+        <li>Keep Enclosures in mind if you want per-preset colour later. It needs a new preset field, so it is a schema decision.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Quick wins for any direction</h3>
+      <ul>
+        <li>Remove the lamp red from the Tuner button and the master slider.</li>
+        <li>Show the bank number and name in the preset header. Move latency to a small readout.</li>
+        <li>Replace the DRAG label on block headers with the block's two main values.</li>
+        <li>Use one letter case for all buttons, and one font for master.</li>
+        <li>Give primary actions a different treatment from "selected" in choice rows.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</body>
+</html>

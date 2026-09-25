@@ -1,5 +1,7 @@
 #include "ui/LvglUi.h"
 #include "ui/LvglUiStyle.h"
+#include "ui/fonts/LampBlackFonts.h"
+#include "ui/PresetChainStrip.h"
 #include "ui/EqEditorModel.h"
 #include "ui/fonts/SairaCondSemibold52.h"
 #include "ui/fonts/SairaCondSemibold72.h"
@@ -10,6 +12,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <optional>
 #include <vector>
@@ -75,6 +78,84 @@ bool containsKey(const std::vector<ardor::ParameterControl>& controls, const cha
   });
 }
 
+// A slider-card legend: the label sits on a 385 px parameter card. The chain
+// cards and the context rail can repeat the same legend.
+// A control card's travel scale is its only 30 px tall child; the fill sits
+// after the 11 ticks and the track.
+lv_obj_t* findTravelFill(lv_obj_t* card)
+{
+  for (uint32_t i = 0; i < lv_obj_get_child_count(card); ++i) {
+    lv_obj_t* child = lv_obj_get_child(card, static_cast<int32_t>(i));
+    if (lv_obj_get_height(child) == 30 && lv_obj_get_child_count(child) == 14) {
+      return lv_obj_get_child(child, 12);
+    }
+  }
+  return nullptr;
+}
+
+lv_obj_t* findSliderLabel(lv_obj_t* parent, const char* text)
+{
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    lv_obj_t* child = lv_obj_get_child(parent, static_cast<int32_t>(i));
+    if (lv_obj_check_type(child, &lv_label_class) && std::strcmp(lv_label_get_text(child), text) == 0
+        && lv_obj_get_width(parent) == 403 && !lv_obj_has_flag(parent, LV_OBJ_FLAG_HIDDEN)) {
+      lv_obj_t* layer = parent;
+      bool visible = true;
+      while ((layer = lv_obj_get_parent(layer))) visible = visible && !lv_obj_has_flag(layer, LV_OBJ_FLAG_HIDDEN);
+      if (visible) return child;
+    }
+    if (lv_obj_t* found = findSliderLabel(child, text)) return found;
+  }
+  return nullptr;
+}
+
+// A full-height chain card (296 px) whose asset label reads `asset`. The
+// module drawer and the parameter title can repeat the same name.
+// A lane card's token sits in its 52 px drag header. Preset tiles print the
+// same codes in their chain strips, so match on the header too.
+lv_obj_t* findLaneToken(lv_obj_t* parent, const char* token)
+{
+  if (lv_obj_check_type(parent, &lv_label_class) && std::strcmp(lv_label_get_text(parent), token) == 0
+      && lv_obj_get_height(lv_obj_get_parent(parent)) == 52) {
+    return parent;
+  }
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    if (auto* found = findLaneToken(lv_obj_get_child(parent, static_cast<int32_t>(i)), token)) {
+      return found;
+    }
+  }
+  return nullptr;
+}
+
+lv_obj_t* findChainCard(lv_obj_t* parent, const std::string& asset)
+{
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    lv_obj_t* child = lv_obj_get_child(parent, static_cast<int32_t>(i));
+    if (lv_obj_check_type(child, &lv_label_class) && asset == lv_label_get_text(child)
+        && lv_obj_get_height(parent) == 296) {
+      return parent;
+    }
+    if (lv_obj_t* found = findChainCard(child, asset)) return found;
+  }
+  return nullptr;
+}
+
+// Last match in tree order. Parameter drawers are created after the chain,
+// so this finds a drawer control even when a chain-card summary repeats its
+// legend ("DEPTH" on both).
+lv_obj_t* findLastLabel(lv_obj_t* parent, const char* text)
+{
+  for (uint32_t i = lv_obj_get_child_count(parent); i > 0; --i) {
+    if (auto* result = findLastLabel(lv_obj_get_child(parent, static_cast<int32_t>(i - 1)), text)) {
+      return result;
+    }
+  }
+  if (lv_obj_check_type(parent, &lv_label_class) && std::strcmp(lv_label_get_text(parent), text) == 0) {
+    return parent;
+  }
+  return nullptr;
+}
+
 lv_obj_t* findLabel(lv_obj_t* parent, const char* text)
 {
   if (lv_obj_check_type(parent, &lv_label_class) && std::strcmp(lv_label_get_text(parent), text) == 0) {
@@ -83,6 +164,22 @@ lv_obj_t* findLabel(lv_obj_t* parent, const char* text)
   for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
     if (auto* result = findLabel(lv_obj_get_child(parent, static_cast<int32_t>(i)), text)) {
       return result;
+    }
+  }
+  return nullptr;
+}
+
+// A control card's scope tag is a 24 px ruled tag holding its legend.
+lv_obj_t* findLabelWithParentHeight(lv_obj_t* parent, const char* text, int height)
+{
+  if (lv_obj_check_type(parent, &lv_label_class) && std::strcmp(lv_label_get_text(parent), text) == 0
+      && lv_obj_get_height(lv_obj_get_parent(parent)) == height) {
+    return parent;
+  }
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    if (auto* found = findLabelWithParentHeight(lv_obj_get_child(parent, static_cast<int32_t>(i)),
+                                                text, height)) {
+      return found;
     }
   }
   return nullptr;
@@ -226,7 +323,7 @@ lv_obj_t* findHorizontalRailEndingAt(lv_obj_t* parent, lv_color_t color, int x)
 {
   lv_area_t area{};
   lv_obj_get_coords(parent, &area);
-  if (lv_obj_get_height(parent) == 3 && area.x2 == x
+  if (lv_obj_get_height(parent) == 4 && area.x2 == x
       && lv_color_eq(lv_obj_get_style_bg_color(parent, LV_PART_MAIN), color)) {
     return parent;
   }
@@ -768,6 +865,18 @@ int main()
                 && ardor::lvgl_ui::categoryColor("delay") == 0xb48ead,
               "Nord palette should apply plate, LIVE, and family tokens together")) return 1;
   ardor::lvgl_ui::setPalette(ardor::PaletteId::Slate);
+  if (require(ardor::lvgl_ui::palette().plate == 0x0b0c0d
+                && ardor::lvgl_ui::palette().plate2 == 0x16181a
+                && ardor::lvgl_ui::palette().plate3 == 0x121416
+                && ardor::lvgl_ui::palette().lamp == 0xe8472f
+                && ardor::lvgl_ui::categoryColor("delay") == 0x9a82d6,
+              "Slate should carry the Lamp Black ground, plates, lamp, and family tokens")) return 1;
+  if (require(ardor::lvgl_ui::categoryColor("irreverb") == ardor::lvgl_ui::categoryColor("reverb")
+                && ardor::lvgl_ui::categoryColor("wah") == ardor::lvgl_ui::categoryColor("modulation")
+                && ardor::lvgl_ui::categoryColor("dualAmp") == ardor::lvgl_ui::categoryColor("amp")
+                && ardor::lvgl_ui::categoryColor("time") == ardor::lvgl_ui::categoryColor("delay")
+                && ardor::lvgl_ui::categoryColor("stereo") == ardor::lvgl_ui::categoryColor("utility"),
+              "every block type should map to a family colour for the chain strip")) return 1;
   lv_font_glyph_dsc_t glyph{};
   if (require(lv_font_get_glyph_dsc(&ardor_font_saira_cond_medium_18, &glyph, 'A', 0),
               "Open Sans should provide glyph descriptors")) return 1;
@@ -804,8 +913,8 @@ int main()
   lv_obj_t* joinJunction = findLabel(lv_screen_active(), "JOIN");
   lv_obj_t* leftRigLane = findLabel(lv_screen_active(), "LEFT");
   lv_obj_t* rightRigLane = findLabel(lv_screen_active(), "RIGHT");
-  lv_obj_t* leftOnlyEffect = findLabel(lv_screen_active(), "CHO");
-  lv_obj_t* rightOnlyEffect = findLabel(lv_screen_active(), "DLY");
+  lv_obj_t* leftOnlyEffect = findLaneToken(lv_screen_active(), "CHO");
+  lv_obj_t* rightOnlyEffect = findLaneToken(lv_screen_active(), "DLY");
   lv_obj_t* laneDragHandle = findLabel(lv_screen_active(), "DRAG");
   lv_obj_t* splitDragHandle = splitJunction
     ? findLabel(lv_obj_get_parent(splitJunction), "|||") : nullptr;
@@ -853,7 +962,7 @@ int main()
                 && lv_obj_get_height(lv_obj_get_parent(laneDragHandle)) == 52,
               "Dual Rig effects should use their full title bar as a touch drag target")) return 1;
   lv_obj_t* dualRigChain = findObjectWithSizeAndBgColor(
-    lv_screen_active(), lv_color_hex(0x212528), 1240, 492);
+    lv_screen_active(), lv_color_hex(ardor::lvgl_ui::bg), 1280, 548);
   lv_obj_t* laneDragSurface = lv_obj_get_parent(laneDragHandle);
   lv_obj_send_event(laneDragSurface, LV_EVENT_PRESSED, nullptr);
   if (require(dualRigChain && !lv_obj_has_flag(dualRigChain, LV_OBJ_FLAG_SCROLLABLE),
@@ -872,7 +981,8 @@ int main()
                 && dualRigState.paramDrawerOpen
                 && !selectedLaneControls.empty()
                 && !containsKey(selectedLaneControls, "leftLevelDb")
-                && findLabel(lv_screen_active(), "Delay  /  Digital Delay"),
+                && findLastLabel(lv_screen_active(), "DIGITAL DELAY")
+                && findLastLabel(lv_screen_active(), "DELAY"),
               "clicking a Dual Rig lane effect should open that effect's parameter drawer")) return 1;
 
   ardor::enterEditMode(wdwState);
@@ -881,7 +991,7 @@ int main()
   lv_obj_t* dryWdwHeading = findLabel(lv_screen_active(), "DRY");
   lv_obj_t* wetWdwHeading = findLabel(lv_screen_active(), "WET");
   lv_obj_t* dryWdwAsset = findLabel(lv_screen_active(), "CLEAN TWIN");
-  lv_obj_t* wetWdwEffect = findLabel(lv_screen_active(), "DLY");
+  lv_obj_t* wetWdwEffect = findLaneToken(lv_screen_active(), "DLY");
   lv_area_t dryWdwHeadingArea{};
   lv_area_t wetWdwHeadingArea{};
   lv_area_t dryWdwTileArea{};
@@ -914,7 +1024,7 @@ int main()
   if (require(dryNamAsset, "WDW dry NAM should be selectable in the edit chain")) return 1;
   lv_obj_send_event(lv_obj_get_parent(dryNamAsset), LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), wdwDeleteUiState);
-  lv_obj_t* wdwDeleteLabel = findLabel(lv_screen_active(), "Delete Block");
+  lv_obj_t* wdwDeleteLabel = findLastLabel(lv_screen_active(), "DELETE");
   if (require(wdwDeleteLabel && ardor::selectedBlockIsLaneChild(wdwDeleteUiState),
               "selecting a WDW lane NAM should open its block editor")) return 1;
   lv_obj_send_event(lv_obj_get_parent(wdwDeleteLabel), LV_EVENT_CLICKED, nullptr);
@@ -943,9 +1053,9 @@ int main()
   if (require(findLabel(lv_screen_active(), "SCENES")
                 && findLabel(lv_screen_active(), "VERSE")
                 && findLabel(lv_screen_active(), "FS 3  ·  GOING TO")
-                && findLabel(lv_screen_active(), "+2.0 dB  ·  Instant")
+                && findLabel(lv_screen_active(), "+2.0 DB  ·  INSTANT")
                 && findLabel(lv_screen_active(), "UNSAVED")
-                && findLabel(lv_screen_active(), "Presets"),
+                && findLabel(lv_screen_active(), "PRESETS"),
               "Scenes mode should render four physical-map plates and its control rail")) return 1;
   if (scenesScreenshotPath != nullptr) {
     lv_refr_now(display);
@@ -961,13 +1071,28 @@ int main()
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   lv_obj_t* sceneTwoTab = findLabel(lv_screen_active(), "FS2  CHORUS");
-  if (require(findLabel(lv_screen_active(), "EDITING") && sceneTwoTab
+  if (require(findLabel(lv_screen_active(), "EDIT") && sceneTwoTab
                 && findLabel(lv_screen_active(), "SCENE SETTINGS"),
               "scene-enabled presets should add an explicit scene strip to the editor")) return 1;
   lv_obj_send_event(lv_obj_get_parent(sceneTwoTab), LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
   if (require(state.editingScene == 1 && requestedScene == 1,
               "choosing an edit tab should select and recall that draft scene")) return 1;
+  lv_obj_update_layout(lv_screen_active());
+  {
+    int checkedCards = 0;
+    bool sceneValuesShown = true;
+    for (const auto& block : state.bank.presets[state.activePreset].blocks) {
+      const auto summary = ardor::blockSummaryControls(state, block, 2);
+      if (!block.enabled || block.type == "dualRig" || summary.empty()) continue;
+      lv_obj_t* card = findChainCard(lv_screen_active(), upper(block.assetName));
+      sceneValuesShown = sceneValuesShown && card
+        && findLabel(card, summary[0].formatted.c_str());
+      ++checkedCards;
+    }
+    if (require(checkedCards > 0 && sceneValuesShown,
+                "chain cards should show the values of the scene being edited")) return 1;
+  }
   if (require(findLabelContaining(lv_screen_active(), "SCENE 2"),
               "the edit header should identify the selected scene")) return 1;
   lv_obj_t* sceneSettingsLabel = findLabel(lv_screen_active(), "SCENE SETTINGS");
@@ -989,7 +1114,7 @@ int main()
                               1280, 720),
                 "scene editor screenshot should be writable")) return 1;
   }
-  lv_obj_t* instantButton = findLabel(lv_screen_active(), "INSTANT");
+  lv_obj_t* instantButton = findLastLabel(lv_screen_active(), "INSTANT");
   if (require(instantButton, "scene settings should offer instant transitions")) return 1;
   lv_obj_send_event(lv_obj_get_parent(instantButton), LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
@@ -1010,7 +1135,7 @@ int main()
   ui.selectBlock(state, state.selectedBlock);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  lv_obj_t* sharedScope = findLabelWithParentWidth(lv_screen_active(), "SHARED", 108);
+  lv_obj_t* sharedScope = findLabelWithParentHeight(lv_screen_active(), "SHARED", 24);
   if (require(sharedScope,
               "scene-enabled parameter cards should label shared ownership")) return 1;
   if (!lv_obj_has_state(lv_obj_get_parent(sharedScope), LV_STATE_DISABLED)) {
@@ -1052,23 +1177,24 @@ int main()
   }
 
   const auto& selected = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
-  const std::string titleText = selected.label + "  /  " + selected.assetName;
+  const std::string titleText = upper(selected.assetName);
   lv_obj_t* previous = findLabel(lv_screen_active(), "<");
   lv_obj_t* page = findLabel(lv_screen_active(), "PAGE 1 / 2");
   lv_obj_t* next = findLabel(lv_screen_active(), ">");
-  lv_obj_t* title = findLabel(lv_screen_active(), titleText.c_str());
-  lv_obj_t* status = findLabel(lv_screen_active(), "Preset saved");
+  lv_obj_t* title = findLastLabel(lv_screen_active(), titleText.c_str());
+  // The looper's notice line repeats the status; the toast is drawn last.
+  lv_obj_t* status = findLastLabel(lv_screen_active(), "PRESET SAVED");
   lv_obj_t* undoLabel = findLabel(lv_screen_active(), "UNDO");
-  lv_obj_t* depthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  lv_obj_t* depthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   lv_obj_t* depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
-  lv_obj_t* depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
+  lv_obj_t* depthFill = depthSlider ? findTravelFill(depthSlider) : nullptr;
   if (require(title && depthSlider && depthFill, "parameter header and slider should render")) return 1;
-  if (require(status && lv_color_eq(lv_obj_get_style_text_color(status, LV_PART_MAIN), lv_color_hex(0xe2e4e3)),
+  if (require(status && lv_color_eq(lv_obj_get_style_text_color(status, LV_PART_MAIN), lv_color_hex(ardor::lvgl_ui::text)),
               "success status should render in engraved text")) return 1;
   lv_area_t statusToastArea{};
   lv_obj_get_coords(status, &statusToastArea);
-  if (require(statusToastArea.y1 >= 80 && statusToastArea.y2 < 180,
-              "transient status should render as a top toast instead of footer text")) return 1;
+  if (require(statusToastArea.y1 >= 500 && statusToastArea.y2 < 612,
+              "transient status should render as a toast just above the rail")) return 1;
   if (require(lv_anim_get(status, nullptr) != nullptr,
               "status toast should run the Panel slide-in/hold/dismiss animation")) return 1;
   lv_obj_t* retainedCanvas = ui.canvas();
@@ -1081,7 +1207,7 @@ int main()
     ardor::setUiStatus(state, "tick " + std::to_string(i));
     ui.refresh(lv_screen_active(), state);
   }
-  if (require(ui.canvas() == retainedCanvas && findLabel(lv_screen_active(), "tick 255") == retainedStatus,
+  if (require(ui.canvas() == retainedCanvas && findLastLabel(lv_screen_active(), "TICK 255") == retainedStatus,
               "telemetry and status churn should update retained objects in place")) return 1;
   ardor::setUiStatus(state, "Preset saved");
   ui.refresh(lv_screen_active(), state);
@@ -1093,8 +1219,8 @@ int main()
               "touchscreen clip diagnostic should render in red")) return 1;
   ardor::updateClipDebugTelemetry(state, {});
   ui.refresh(lv_screen_active(), state);
-  if (require(undoLabel && lv_obj_get_width(lv_obj_get_parent(undoLabel)) == 96
-                && lv_obj_get_height(lv_obj_get_parent(undoLabel)) == 52,
+  if (require(undoLabel && lv_obj_get_width(lv_obj_get_parent(undoLabel)) == 124
+                && lv_obj_get_height(lv_obj_get_parent(undoLabel)) == 60,
               "reversible block edits should expose a large Undo action")) return 1;
   if (require(page, "parameter header should show PAGE n/total")) return 1;
   if (require(previous && next, "a seventh control should enable page navigation")) return 1;
@@ -1103,29 +1229,30 @@ int main()
   lv_area_t sliderPanelArea{};
   lv_obj_get_coords(depthSlider, &sliderArea);
   lv_obj_get_coords(lv_obj_get_parent(depthSlider), &sliderPanelArea);
-  // The Panel plate's visible one-pixel rule forms part of the inner origin.
-  const int expectedDepthX = 29 + (depthIndex % 3) * (385 + 14);
-  const int expectedDepthY = 79 + (depthIndex / 3) * (132 + 16);
+  // CSS grid columns of 402.67 px land the cards on 24, 439 and 853.
+  const std::array<int, 3> columnX = {24, 439, 853};
+  const int expectedDepthX = columnX[static_cast<std::size_t>(depthIndex % 3)];
+  const int expectedDepthY = 100 + (depthIndex / 3) * (166 + 12);
   if (require(sliderArea.x1 - sliderPanelArea.x1 == expectedDepthX
                 && sliderArea.y1 - sliderPanelArea.y1 == expectedDepthY,
               "parameter sliders should use a three-column, two-row grid")) return 1;
-  if (require(lv_obj_get_width(depthSlider) == 385 && lv_obj_get_height(depthSlider) == 132,
+  if (require(lv_obj_get_width(depthSlider) == 403 && lv_obj_get_height(depthSlider) == 166,
               "parameter slider should provide a large vertical touch target")) return 1;
-  if (require(findObjectWithSize(depthSlider, 44, 54),
-              "parameter slider should expose a wide, finger-readable thumb")) return 1;
+  if (require(findObjectWithSize(depthSlider, 8, 32),
+              "parameter slider should expose the travel scale's bone handle")) return 1;
   if (require(lv_obj_get_style_radius(depthSlider, LV_PART_MAIN) == 0
                 && lv_obj_get_style_radius(depthFill, LV_PART_MAIN) == 0,
               "parameter slider should use flat, unrounded plate geometry")) return 1;
   if (require(lv_obj_get_width(depthFill) == 0,
               "minimum parameter value should leave the active fill empty")) return 1;
-  if (require(lv_color_eq(lv_obj_get_style_text_color(depthLabel, LV_PART_MAIN), lv_color_hex(0x8d9499)),
+  if (require(lv_color_eq(lv_obj_get_style_text_color(depthLabel, LV_PART_MAIN), lv_color_hex(ardor::lvgl_ui::muted)),
               "an unfocused slider's key label should read as muted engraving")) return 1;
   lv_obj_t* typeLabel = findLabel(lv_screen_active(), "TYPE");
   lv_obj_t* typeSlider = typeLabel ? lv_obj_get_parent(typeLabel) : nullptr;
   // A discrete card renders the selected value once as its readout and again
   // inside the segmented option row. Target the nested copy so these checks
   // exercise the option button rather than the card itself.
-  lv_obj_t* photoresistorValue = typeSlider ? findNestedLabel(typeSlider, "Photoresistor") : nullptr;
+  lv_obj_t* photoresistorValue = typeSlider ? findNestedLabel(typeSlider, "PHOTORESISTOR") : nullptr;
   lv_area_t typeSliderArea{};
   lv_area_t photoresistorArea{};
   if (typeSlider) lv_obj_get_coords(typeSlider, &typeSliderArea);
@@ -1134,16 +1261,20 @@ int main()
                 && photoresistorArea.x1 >= typeSliderArea.x1 && photoresistorArea.x2 <= typeSliderArea.x2,
               "discrete modulation choices should render as segmented options inside the slider")) return 1;
   if (require(photoresistorValue
-                && lv_obj_get_height(lv_obj_get_parent(photoresistorValue)) == 60
+                && lv_obj_get_height(lv_obj_get_parent(photoresistorValue)) == 56
                 && lv_obj_get_width(lv_obj_get_parent(photoresistorValue)) >= 44,
               "every discrete option should provide a finger-sized touch target")) return 1;
 
   const auto& defaultMappingControl = renderControls.front();
-  lv_obj_t* mappingSelection = findLabel(lv_screen_active(),
-    ("Selected  /  " + defaultMappingControl.label).c_str());
-  lv_obj_t* mappingToolbar = mappingSelection ? lv_obj_get_parent(mappingSelection) : nullptr;
-  lv_obj_t* assignExpression = mappingToolbar ? findLabel(mappingToolbar, "Assign EXP") : nullptr;
-  lv_obj_t* learnMidi = mappingToolbar ? findLabel(mappingToolbar, "MIDI Learn") : nullptr;
+  // The context rail is found through its EXP action: the plain control name
+  // also appears on the sliders and the chain cards.
+  lv_obj_t* railExpression = findLastLabel(lv_screen_active(), "ASSIGN EXP");
+  lv_obj_t* mappingToolbar = railExpression
+    ? lv_obj_get_parent(lv_obj_get_parent(railExpression)) : nullptr;
+  lv_obj_t* assignExpression = mappingToolbar ? findLabel(mappingToolbar, "ASSIGN EXP") : nullptr;
+  lv_obj_t* learnMidi = mappingToolbar ? findLabel(mappingToolbar, "MIDI LEARN") : nullptr;
+  if (require(mappingToolbar && findLabel(mappingToolbar, upper(defaultMappingControl.label).c_str()),
+              "the context rail should name the selected control")) return 1;
   if (require(mappingToolbar && assignExpression && learnMidi
                 && !findLabel(depthSlider, "EXP") && !findLabel(depthSlider, "MIDI"),
               "parameter mapping actions should live in one contextual toolbar")) return 1;
@@ -1151,25 +1282,25 @@ int main()
   if (require(state.midiLearn.stage == ardor::UiMidiLearnStage::Waiting,
               "contextual MIDI Learn should target the selected parameter")) return 1;
   ui.refresh(lv_screen_active(), state);
-  lv_obj_t* listeningLabel = findLabel(lv_screen_active(), "Listening...");
+  lv_obj_t* listeningLabel = findLabel(lv_screen_active(), "LISTENING...");
   lv_obj_t* midiLearnCard = listeningLabel ? lv_obj_get_parent(listeningLabel) : nullptr;
-  lv_obj_t* midiLearnTitle = midiLearnCard ? findLabel(midiLearnCard, "MIDI Learn") : nullptr;
+  lv_obj_t* midiLearnTitle = midiLearnCard ? findLabel(midiLearnCard, "MIDI LEARN") : nullptr;
   if (require(midiLearnTitle
                 && listeningLabel,
               "MIDI Learn should show a blocking listening sheet")) return 1;
   ardor::observeMidiLearnControlChange(state, 0, 11, 64);
   ui.refresh(lv_screen_active(), state);
-  lv_obj_t* advancedLearn = midiLearnCard ? findLabel(midiLearnCard, "Advanced") : nullptr;
-  if (require(findLabel(lv_screen_active(), "CC 11  ·  Channel 1")
-                && advancedLearn && findLabel(lv_screen_active(), "Save"),
+  lv_obj_t* advancedLearn = midiLearnCard ? findLabel(midiLearnCard, "ADVANCED") : nullptr;
+  if (require(findLabel(lv_screen_active(), "CC 11  ·  CHANNEL 1")
+                && advancedLearn && findLabel(midiLearnCard, "SAVE"),
               "captured CC should expose Save and Advanced actions")) return 1;
   lv_obj_send_event(lv_obj_get_parent(advancedLearn), LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
-  if (require(findLabel(lv_screen_active(), "Continuous")
+  if (require(findLabel(lv_screen_active(), "CONTINUOUS")
                 && findLabel(lv_screen_active(), "1")
                 && findLabel(lv_screen_active(), "2"),
               "advanced MIDI Learn should show mode and two endpoint sliders")) return 1;
-  lv_obj_t* cancelLearn = midiLearnCard ? findLabel(midiLearnCard, "Cancel") : nullptr;
+  lv_obj_t* cancelLearn = midiLearnCard ? findLabel(midiLearnCard, "CANCEL") : nullptr;
   lv_obj_send_event(lv_obj_get_parent(cancelLearn), LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
   if (require(state.midiLearn.stage == ardor::UiMidiLearnStage::None,
@@ -1200,9 +1331,24 @@ int main()
                 && findLabel(depthSlider, numericPrefix(updatedDepth->formatted).c_str()),
               "slider drag should update the value label before release")) return 1;
   if (require(updatedDepth != updatedControls.end()
-                && findLabel(mappingToolbar, ("Selected  /  " + updatedDepth->label).c_str())
+                && findLabel(mappingToolbar, upper(updatedDepth->label).c_str())
                 && findLabel(mappingToolbar, updatedDepth->formatted.c_str()),
               "contextual mapping toolbar should follow the touched parameter and live value")) return 1;
+  {
+    // Fine steps on the context rail move the selected control by one step.
+    lv_obj_t* stepUp = findLabel(mappingToolbar, "+");
+    lv_obj_t* stepDown = findLabel(mappingToolbar, "-");
+    const float before = ardor::selectedUiBlock(state)->params.value("depth", 0.0f);
+    if (require(stepUp && stepDown, "the context rail should offer - and + steps")) return 1;
+    lv_obj_send_event(lv_obj_get_parent(stepUp), LV_EVENT_CLICKED, nullptr);
+    ui.refresh(lv_screen_active(), state);
+    const float after = ardor::selectedUiBlock(state)->params.value("depth", 0.0f);
+    if (require(after > before, "the + step should raise the selected control")) return 1;
+    lv_obj_send_event(lv_obj_get_parent(stepDown), LV_EVENT_CLICKED, nullptr);
+    ui.refresh(lv_screen_active(), state);
+    if (require(ardor::selectedUiBlock(state)->params.value("depth", 0.0f) < after,
+                "the - step should lower the selected control")) return 1;
+  }
   simulatedPointer.state = LV_INDEV_STATE_RELEASED;
   lv_indev_read(simulatedInput);
   ui.refresh(lv_screen_active(), state);
@@ -1216,7 +1362,9 @@ int main()
   if (require(ui.parameterPage() == 1 && pageTwoLayer
                 && !lv_obj_has_flag(pageTwoLayer, LV_OBJ_FLAG_HIDDEN),
               "page navigation should remain usable after dragging a parameter slider")) return 1;
-  lv_obj_t* pageTwoPrevious = pageTwo ? findLabel(lv_obj_get_parent(pageTwo), "<") : nullptr;
+  // PAGE n / m sits in its recessed legend box between the two steps.
+  lv_obj_t* pageTwoPrevious = pageTwo ? findLabel(lv_obj_get_parent(lv_obj_get_parent(pageTwo)), "<")
+                                      : nullptr;
   if (require(pageTwoPrevious, "the second parameter page should provide a back action")) return 1;
   lv_obj_send_event(lv_obj_get_parent(pageTwoPrevious), LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
@@ -1234,12 +1382,12 @@ int main()
   previous = findLabel(lv_screen_active(), "<");
   page = findLabel(lv_screen_active(), "PAGE 1 / 2");
   next = findLabel(lv_screen_active(), ">");
-  title = findLabel(lv_screen_active(), titleText.c_str());
-  depthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  title = findLastLabel(lv_screen_active(), titleText.c_str());
+  depthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
-  depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
+  depthFill = depthSlider ? findTravelFill(depthSlider) : nullptr;
 
-  lv_obj_t* chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x212528), 1240, 492);
+  lv_obj_t* chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::bg), 1280, 548);
   if (require(chain, "signal chain should use the Panel plate ground")) return 1;
   std::string firstCategory = state.bank.presets[state.activePreset].blocks.front().label;
   std::transform(firstCategory.begin(), firstCategory.end(), firstCategory.begin(), [](unsigned char character) {
@@ -1248,9 +1396,27 @@ int main()
   lv_obj_t* firstCategoryLabel = findLabel(chain, firstCategory.c_str());
   lv_obj_t* firstChainBlock = firstCategoryLabel
     ? lv_obj_get_parent(lv_obj_get_parent(firstCategoryLabel)) : nullptr;
-  if (require(firstChainBlock && lv_obj_get_width(firstChainBlock) == 168
-                && lv_obj_get_height(firstChainBlock) == 326,
+  if (require(firstChainBlock && lv_obj_get_width(firstChainBlock) == 172
+                && lv_obj_get_height(firstChainBlock) == 296,
               "the chain should use tall engraved module cards, per the mockup")) return 1;
+  {
+    // The selected card lifts on one hard offset plate behind it: no blur,
+    // so it cannot band on the RGB565 panel.
+    lv_obj_t* selectedCard = nullptr;
+    for (uint32_t child = 0; child < lv_obj_get_child_count(lv_obj_get_parent(firstChainBlock)); ++child) {
+      lv_obj_t* candidate = lv_obj_get_child(lv_obj_get_parent(firstChainBlock), static_cast<int32_t>(child));
+      if (lv_obj_get_width(candidate) == 172 && lv_obj_get_height(candidate) == 296
+          && lv_obj_get_style_border_width(candidate, LV_PART_MAIN) == 3) {
+        selectedCard = candidate;
+      }
+    }
+    lv_obj_t* liftPlate = selectedCard ? findObjectWithSizeAndBgColor(
+      lv_obj_get_parent(selectedCard), lv_color_hex(ardor::lvgl_ui::liftShadow), 172, 296) : nullptr;
+    if (require(selectedCard && liftPlate && !lv_obj_has_flag(liftPlate, LV_OBJ_FLAG_HIDDEN)
+                  && lv_obj_get_x(liftPlate) == lv_obj_get_x(selectedCard) + 8
+                  && lv_obj_get_y(liftPlate) == lv_obj_get_y(selectedCard) + 8,
+                "the selected chain card should lift on a hard offset plate")) return 1;
+  }
   int retainedChainCardMarker = 0;
   lv_obj_set_user_data(firstChainBlock, &retainedChainCardMarker);
   ui.selectBlock(state, state.selectedBlock);
@@ -1263,63 +1429,78 @@ int main()
               "selection-only chain updates should retain existing card objects")) return 1;
   if (require(lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE),
               "the signal canvas should scroll independently of dedicated drag handles")) return 1;
-  lv_obj_t* dragHandleLabel = findLabel(chain, "DRAG");
-  if (require(dragHandleLabel
-                && lv_obj_get_width(lv_obj_get_parent(dragHandleLabel)) == 168
-                && lv_obj_get_height(lv_obj_get_parent(dragHandleLabel)) == 64,
+  // The title bar is still the drag surface; a flat grip replaces the old
+  // DRAG legend so the header can carry only the block type.
+  lv_obj_t* dragHandle = lv_obj_get_parent(firstCategoryLabel);
+  if (require(dragHandle && lv_obj_get_width(dragHandle) == 170
+                && lv_obj_get_height(dragHandle) == 64
+                && !findLabel(dragHandle, "DRAG"),
               "chain blocks should use the full title bar as a touch drag target")) return 1;
-  lv_obj_t* dragHandle = lv_obj_get_parent(dragHandleLabel);
   lv_obj_send_event(dragHandle, LV_EVENT_PRESSED, nullptr);
   if (require(!lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE)
                 && lv_obj_get_scrollbar_mode(chain) == LV_SCROLLBAR_MODE_OFF,
               "pressing an effect drag handle should lock the competing chain scrollbar")) return 1;
   lv_obj_send_event(dragHandle, LV_EVENT_RELEASED, nullptr);
   if (require(lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE)
-                && lv_obj_get_scrollbar_mode(chain) == LV_SCROLLBAR_MODE_AUTO,
+                && lv_obj_get_scrollbar_mode(chain) == LV_SCROLLBAR_MODE_ACTIVE,
               "releasing an effect drag handle should restore ordinary chain scrolling")) return 1;
   lv_obj_t* firstCardAssetLabel = findLabel(firstChainBlock,
       upper(state.bank.presets[state.activePreset].blocks.front().assetName).c_str());
   lv_obj_t* firstOffLabel = findLabel(firstChainBlock, "OFF");
-  lv_obj_t* firstDragHandle = findLabel(firstChainBlock, "DRAG");
-  if (require(firstCategoryLabel && firstCardAssetLabel && firstOffLabel && firstDragHandle,
-              "disabled chain card should render its name, OFF state, and drag handle")) return 1;
+  if (require(firstCategoryLabel && firstCardAssetLabel && firstOffLabel,
+              "disabled chain card should render its name and OFF state")) return 1;
   if (require(!findLabel(firstChainBlock, "BYPASSED")
                 && lv_obj_has_state(firstChainBlock, LV_STATE_USER_1)
-                && lv_obj_get_style_bg_opa(firstChainBlock, LV_PART_MAIN) == LV_OPA_TRANSP,
-              "disabled chain card should use the transparent outline treatment")) return 1;
+                && !lv_obj_has_flag(lv_obj_get_child(firstChainBlock, 0), LV_OBJ_FLAG_HIDDEN),
+              "disabled chain card should show the bypass hatch")) return 1;
   lv_area_t firstCategoryArea{};
   lv_area_t firstAssetArea{};
   lv_area_t firstOffArea{};
-  lv_area_t firstDragHandleArea{};
   lv_obj_get_coords(firstCategoryLabel, &firstCategoryArea);
   lv_obj_get_coords(firstCardAssetLabel, &firstAssetArea);
   lv_obj_get_coords(firstOffLabel, &firstOffArea);
-  lv_obj_get_coords(firstDragHandle, &firstDragHandleArea);
+  // Lamp Black puts the OFF tag on the name's row, against the right edge.
   if (require(firstCategoryArea.y2 < firstAssetArea.y1
-                && firstAssetArea.y2 < firstOffArea.y1,
-              "chain-card category, asset, and OFF labels should occupy separate rows")) return 1;
-  // The large drag surface stacks its category and action into separate rows;
-  // the asset name and OFF status continue in the card body below it.
-  if (require(firstCategoryArea.y2 < firstDragHandleArea.y1,
-              "the chain-card header should separate its category and drag instruction")) return 1;
+                && firstOffArea.x1 > firstAssetArea.x1
+                && firstOffArea.y1 < firstAssetArea.y2,
+              "chain-card OFF tag should sit on the name row, right-aligned")) return 1;
   state.bank.presets[state.activePreset].blocks.front().enabled = true;
   ardor::markUiChanged(state, ardor::UiChange::Chain);
   ui.refresh(lv_screen_active(), state);
   if (require(!lv_obj_has_state(firstChainBlock, LV_STATE_USER_1)
-                && lv_obj_get_style_bg_opa(firstChainBlock, LV_PART_MAIN) == LV_OPA_COVER
-                && lv_obj_has_flag(firstOffLabel, LV_OBJ_FLAG_HIDDEN),
+                && lv_obj_has_flag(lv_obj_get_child(firstChainBlock, 0), LV_OBJ_FLAG_HIDDEN)
+                && lv_obj_has_flag(lv_obj_get_parent(firstOffLabel), LV_OBJ_FLAG_HIDDEN),
               "enabling a retained chain card should clear its outline state")) return 1;
+  {
+    // Enabled cards summarise the block with its main values instead of the
+    // old family ticks; the summary follows parameter edits on retained cards.
+    const auto& chainBlocks = state.bank.presets[state.activePreset].blocks;
+    const auto summaryBlock = std::find_if(chainBlocks.begin(), chainBlocks.end(),
+      [](const ardor::UiBlock& block) {
+        return block.enabled && block.type != "dualRig"
+          && !ardor::blockSummaryControls(block, 2).empty();
+      });
+    if (require(summaryBlock != chainBlocks.end(),
+                "the demo chain should include a block with continuous controls")) return 1;
+    const auto summary = ardor::blockSummaryControls(*summaryBlock, 2);
+    lv_obj_t* summaryAsset = findLabel(chain, upper(summaryBlock->assetName).c_str());
+    lv_obj_t* summaryCard = summaryAsset ? lv_obj_get_parent(summaryAsset) : nullptr;
+    if (require(summaryCard
+                  && findLabel(summaryCard, summary[0].label.c_str())
+                  && findLabel(summaryCard, summary[0].formatted.c_str()),
+                "enabled chain cards should show their main parameter values")) return 1;
+  }
   state.bank.presets[state.activePreset].blocks.front().enabled = false;
   ardor::markUiChanged(state, ardor::UiChange::Chain);
   ui.refresh(lv_screen_active(), state);
   if (require(lv_obj_has_state(firstChainBlock, LV_STATE_USER_1)
-                && !lv_obj_has_flag(firstOffLabel, LV_OBJ_FLAG_HIDDEN),
-              "bypassing a retained chain card should restore its outline state")) return 1;
+                && !lv_obj_has_flag(lv_obj_get_parent(firstOffLabel), LV_OBJ_FLAG_HIDDEN),
+              "bypassing a retained chain card should restore its hatch and OFF tag")) return 1;
   // The instructional hint text was retired: the bottom rail's Input/Output
   // jump controls now sit in a tighter band, and the circular patch points
   // plus drag handles are self-evident per the redesign's lettering-first,
   // no-borrowed-icon philosophy (docs/lvgl-ui-redesign-spec.md §8.11).
-  if (require(findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 1280, 48),
+  if (require(findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::panelAlt), 1280, 48),
               "runtime and action feedback should use a dedicated status bar")) return 1;
   if (require(findLabel(lv_screen_active(), "MODULATION"),
               "chain card should render an uppercase category")) return 1;
@@ -1345,58 +1526,118 @@ int main()
   completePreview(state);
   ui.selectBlock(state, selectedBeforeReorder);
   ui.refresh(lv_screen_active(), state);
-  title = findLabel(lv_screen_active(), titleText.c_str());
+  title = findLastLabel(lv_screen_active(), titleText.c_str());
   page = findLabel(lv_screen_active(), "PAGE 1 / 2");
-  depthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  depthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
-  depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
+  depthFill = depthSlider ? findTravelFill(depthSlider) : nullptr;
 
-  lv_obj_t* parameterPanel = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 1240, 452);
-  lv_obj_t* parameterClose = findLabel(lv_screen_active(), "Close");
-  lv_obj_t* deleteBlock = findLabel(lv_screen_active(), "Delete Block");
-  lv_obj_t* bypassLabel = parameterPanel ? findLabel(parameterPanel, "Bypass") : nullptr;
+  lv_obj_t* parameterPanel = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::panel), 1280, 464);
+  // Scope the title to the drawer: the module drawer and chain cards can
+  // repeat the same asset name.
+  title = parameterPanel ? findLabel(parameterPanel, titleText.c_str()) : nullptr;
+  {
+    // The drawer takes the block's family colour along its top edge and in a
+    // type tag; travel fills use the family colour, the lamp frames the
+    // focused control only.
+    const auto& panelBlock = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
+    const auto family = lv_color_hex(ardor::lvgl_ui::categoryColor(panelBlock.type));
+    lv_obj_t* familyBar = parameterPanel
+      ? findObjectWithSizeAndBgColor(parameterPanel, family, 1280, 4) : nullptr;
+    lv_obj_t* typeTag = parameterPanel ? findLabel(parameterPanel, upper(panelBlock.label).c_str()) : nullptr;
+    if (require(familyBar && typeTag
+                  && lv_color_eq(lv_obj_get_style_bg_color(lv_obj_get_parent(typeTag), LV_PART_MAIN), family)
+                  && lv_color_eq(lv_obj_get_style_text_color(typeTag, LV_PART_MAIN),
+                                 lv_color_hex(ardor::lvgl_ui::bg)),
+                "the parameter drawer should carry a family edge and a family type tag")) return 1;
+    int fills = 0;
+    bool fillsFamily = true;
+    for (uint32_t child = 0; parameterPanel && child < lv_obj_get_child_count(parameterPanel); ++child) {
+      lv_obj_t* card = lv_obj_get_child(parameterPanel, static_cast<int32_t>(child));
+      if (lv_obj_get_width(card) != 403) continue;
+      lv_obj_t* fill = findTravelFill(card);
+      if (!fill) continue;
+      ++fills;
+      fillsFamily = fillsFamily && lv_color_eq(lv_obj_get_style_bg_color(fill, LV_PART_MAIN), family);
+    }
+    if (require(fills > 0 && fillsFamily,
+                "travel fills should use the block's family colour")) return 1;
+  }
+  {
+    // Chip strip: the chain shrinks to one chip per block above the drawer,
+    // so another block is one tap away without closing the drawer.
+    const auto& chipBlocks = state.bank.presets[state.activePreset].blocks;
+    const auto findChip = [&](const std::string& asset) -> lv_obj_t* {
+      std::function<lv_obj_t*(lv_obj_t*)> walk = [&](lv_obj_t* parent) -> lv_obj_t* {
+        for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+          lv_obj_t* child = lv_obj_get_child(parent, static_cast<int32_t>(i));
+          if (lv_obj_check_type(child, &lv_label_class) && upper(asset) == lv_label_get_text(child)
+              && lv_obj_get_height(parent) == 56 && !lv_obj_has_flag(parent, LV_OBJ_FLAG_HIDDEN)) {
+            return parent;
+          }
+          if (lv_obj_t* found = walk(child)) return found;
+        }
+        return nullptr;
+      };
+      return walk(lv_screen_active());
+    };
+    lv_obj_update_layout(lv_screen_active());
+    lv_obj_t* selectedChip = findChip(chipBlocks[state.selectedBlock].assetName);
+    const std::size_t otherIndex = state.selectedBlock == 0 ? 1 : 0;
+    lv_obj_t* otherChip = findChip(chipBlocks[otherIndex].assetName);
+    if (require(selectedChip && otherChip
+                  && lv_obj_get_style_border_width(selectedChip, LV_PART_MAIN) == 3
+                  && lv_obj_get_style_border_width(otherChip, LV_PART_MAIN) == 1,
+                "the parameter drawer should show a chip per block, the selected one framed")) return 1;
+    const std::size_t returnIndex = state.selectedBlock;
+    lv_obj_send_event(otherChip, LV_EVENT_CLICKED, nullptr);
+    ui.refresh(lv_screen_active(), state);
+    lv_obj_update_layout(lv_screen_active());
+    if (require(state.selectedBlock == otherIndex && state.paramDrawerOpen,
+                "tapping a chip should select that block and keep the drawer open")) return 1;
+    lv_obj_send_event(findChip(chipBlocks[returnIndex].assetName), LV_EVENT_CLICKED, nullptr);
+    ui.refresh(lv_screen_active(), state);
+    lv_obj_update_layout(lv_screen_active());
+    if (require(state.selectedBlock == returnIndex,
+                "tapping the first chip again should return to that block")) return 1;
+  }
+  // The context rail's Done closes the drawer; the drawer's header carries
+  // BLOCK [ON], MIDI and DELETE right-aligned after the title and pager.
+  lv_obj_t* parameterClose = findLastLabel(lv_screen_active(), "DONE");
+  lv_obj_t* deleteBlock = parameterPanel ? findLabel(parameterPanel, "DELETE") : nullptr;
+  lv_obj_t* bypassLabel = parameterPanel ? findLabel(parameterPanel, "BLOCK") : nullptr;
   lv_obj_t* bypassControl = bypassLabel ? lv_obj_get_parent(bypassLabel) : nullptr;
-  lv_obj_t* bypassValue = bypassControl ? findLabel(bypassControl, "Off") : nullptr;
-  lv_obj_t* bypassFill = bypassControl
-    ? findObjectWithBgColor(bypassControl, lv_color_hex(0xd8422f)) : nullptr;
+  lv_obj_t* bypassValue = bypassControl ? findLabel(bypassControl, "ON") : nullptr;
+  lv_obj_t* bypassBadge = bypassValue ? lv_obj_get_parent(bypassValue) : nullptr;
   if (require(parameterPanel && parameterClose && deleteBlock && bypassLabel && bypassControl
-                && bypassValue && bypassFill,
+                && bypassValue && bypassBadge,
               "parameter panel header controls should render")) return 1;
-  lv_area_t parameterPanelArea{};
   lv_area_t parameterCloseArea{};
   lv_area_t deleteBlockArea{};
   lv_area_t bypassControlArea{};
   lv_area_t titleArea{};
-  lv_obj_get_coords(parameterPanel, &parameterPanelArea);
   lv_obj_get_coords(lv_obj_get_parent(parameterClose), &parameterCloseArea);
   lv_obj_get_coords(lv_obj_get_parent(deleteBlock), &deleteBlockArea);
   lv_obj_get_coords(bypassControl, &bypassControlArea);
   lv_obj_get_coords(title, &titleArea);
-  if (require(parameterCloseArea.x2 > parameterPanelArea.x1 + (lv_obj_get_width(parameterPanel) * 9) / 10,
-              "parameter close button should stay in the top-right corner")) return 1;
-  if (require(lv_obj_get_width(lv_obj_get_parent(parameterClose)) == 88
-                && lv_obj_get_height(lv_obj_get_parent(parameterClose)) == 52,
-              "parameter close button should be a large dedicated target")) return 1;
-  if (require(bypassControlArea.x2 + 32 < parameterCloseArea.x1,
-              "bypass control should leave a generous gap before the close button")) return 1;
-  if (require(titleArea.x2 + 20 < deleteBlockArea.x1
-                && deleteBlockArea.x2 + 20 < bypassControlArea.x1,
-              "parameter title, delete, and bypass control should have fixed gaps")) return 1;
+  if (require(parameterCloseArea.y1 >= 612 && parameterCloseArea.x2 == 1255
+                && lv_obj_get_width(lv_obj_get_parent(parameterClose)) == 124
+                && lv_obj_get_height(lv_obj_get_parent(parameterClose)) == 60,
+              "Done should close the drawer from the right end of the context rail")) return 1;
+  if (require(titleArea.x2 < bypassControlArea.x1 && bypassControlArea.x2 < deleteBlockArea.x1
+                && deleteBlockArea.x2 == 1255,
+              "title, Block, MIDI and Delete should read left to right")) return 1;
   if (require(!lv_obj_has_state(bypassControl, LV_STATE_CHECKED),
-              "enabled block should show Bypass as Off")) return 1;
-  if (require(lv_obj_get_width(bypassControl) == 160 && lv_obj_get_height(bypassControl) == 52,
-              "bypass control should provide a large rectangular touch target")) return 1;
+              "an enabled block should show Block ON")) return 1;
+  if (require(lv_obj_get_width(bypassControl) == 167 && lv_obj_get_height(bypassControl) == 60,
+              "the Block control should provide a large rectangular touch target")) return 1;
   if (require(lv_obj_get_style_radius(bypassControl, LV_PART_MAIN) == 0,
-              "bypass control should use a square Panel plate")) return 1;
-  if (require(lv_color_eq(lv_obj_get_style_bg_color(bypassControl, LV_PART_MAIN),
-                          lv_color_hex(0x2a2f33))
-                && lv_obj_get_width(bypassFill) == 0,
-              "Bypass Off should use the dark inactive surface with no active fill")) return 1;
+              "the Block control should use a square Panel plate")) return 1;
+  if (require(lv_color_eq(lv_obj_get_style_bg_color(bypassBadge, LV_PART_MAIN),
+                          lv_color_hex(ardor::lvgl_ui::text)),
+              "Block ON should print ground on a bone badge")) return 1;
   if (require(!findObjectOfClass(bypassControl, &lv_switch_class),
-              "bypass control should not retain a native switch or circular thumb")) return 1;
-  if (require(lv_color_eq(lv_obj_get_style_bg_color(lv_obj_get_parent(parameterClose), LV_PART_MAIN),
-                          lv_color_hex(0x2a2f33)),
-              "parameter close button should use the raised Panel plate")) return 1;
+              "the Block control should not retain a native switch or circular thumb")) return 1;
 
   const auto bypassedBlock = state.selectedBlock;
   lv_obj_send_event(bypassControl, LV_EVENT_CLICKED, nullptr);
@@ -1406,9 +1647,10 @@ int main()
                 && liveBypassUpdates == 1
                 && ardor::previewIsSynchronized(state)
                 && lv_obj_has_state(bypassControl, LV_STATE_CHECKED)
-                && findLabel(bypassControl, "On")
-                && lv_obj_get_width(bypassFill) == 160,
-              "tapping Bypass should disable the block and fill the control green")) return 1;
+                && findLabel(bypassControl, "OFF")
+                && lv_color_eq(lv_obj_get_style_bg_color(bypassBadge, LV_PART_MAIN),
+                               lv_color_hex(ardor::lvgl_ui::bg)),
+              "tapping Block should bypass the block and drop the badge to OFF")) return 1;
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   lv_obj_send_event(bypassControl, LV_EVENT_CLICKED, nullptr);
@@ -1418,42 +1660,51 @@ int main()
                 && liveBypassUpdates == 2
                 && ardor::previewIsSynchronized(state)
                 && !lv_obj_has_state(bypassControl, LV_STATE_CHECKED)
-                && findLabel(bypassControl, "Off")
-                && lv_obj_get_width(bypassFill) == 0,
-              "tapping Bypass again should restore the inactive Off state")) return 1;
+                && findLabel(bypassControl, "ON"),
+              "tapping Block again should restore Block ON")) return 1;
   lv_area_t pageArea{};
   lv_obj_get_coords(page, &pageArea);
-  if (require(pageArea.x2 < titleArea.x1,
-              "parameter page status and title should not overlap")) return 1;
+  if (require(pageArea.x1 > titleArea.x2,
+              "the pager should follow the title without overlapping it")) return 1;
   if (require(depthFill && lv_obj_get_width(depthFill) == 0,
               "minimum slider value should start with no active fill")) return 1;
 
   ui.focusParameter(depth->key);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  lv_obj_t* focusedLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  lv_obj_t* focusedLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   lv_obj_t* focusedSlider = focusedLabel ? lv_obj_get_parent(focusedLabel) : nullptr;
-  if (require(focusedSlider && lv_obj_get_style_outline_width(focusedSlider, LV_PART_MAIN) == 1
-                && lv_color_eq(lv_obj_get_style_outline_color(focusedSlider, LV_PART_MAIN), lv_color_hex(0xd8422f)),
-              "focused slider should use the LIVE outline")) return 1;
+  if (require(focusedSlider && lv_obj_get_style_border_width(focusedSlider, LV_PART_MAIN) == 3
+                && lv_color_eq(lv_obj_get_style_border_color(focusedSlider, LV_PART_MAIN), lv_color_hex(ardor::lvgl_ui::lamp)),
+              "the focused control should take the 3 px lamp frame")) return 1;
 
-  lv_obj_t* focusedFill = findObjectWithBgColor(focusedSlider, lv_color_hex(0xd8422f));
+  lv_obj_t* focusedFill = focusedSlider ? findTravelFill(focusedSlider) : nullptr;
   const int minimumFillWidth = focusedFill ? lv_obj_get_width(focusedFill) : -1;
   if (require(ui.applyFocusedParameterDelta(state, 1), "focused encoder adjustment should be consumed")) return 1;
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  focusedLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  focusedLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   focusedSlider = focusedLabel ? lv_obj_get_parent(focusedLabel) : nullptr;
-  focusedFill = focusedSlider ? findObjectWithBgColor(focusedSlider, lv_color_hex(0xd8422f)) : nullptr;
+  focusedFill = focusedSlider ? findTravelFill(focusedSlider) : nullptr;
   if (require(focusedFill && lv_obj_get_width(focusedFill) > minimumFillWidth,
               "focused encoder adjustment should increase the slider fill")) return 1;
+  {
+    // The selected card's summary follows live parameter edits.
+    const auto& editedBlock = state.bank.presets[state.activePreset].blocks[state.selectedBlock];
+    const auto summary = ardor::blockSummaryControls(state, editedBlock, 2);
+    const auto edited = std::find_if(summary.begin(), summary.end(),
+      [&](const auto& item) { return item.key == depth->key; });
+    lv_obj_t* editedCard = findChainCard(lv_screen_active(), upper(editedBlock.assetName));
+    if (require(edited != summary.end() && editedCard
+                  && findLabel(editedCard, edited->formatted.c_str()),
+                "the selected chain card should show the edited value")) return 1;
+  }
 
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  lv_obj_t* stableDepthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  lv_obj_t* stableDepthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   lv_obj_t* stableDepthSlider = stableDepthLabel ? lv_obj_get_parent(stableDepthLabel) : nullptr;
-  lv_obj_t* stableFill = stableDepthSlider
-    ? findObjectWithBgColor(stableDepthSlider, lv_color_hex(0xd8422f)) : nullptr;
+  lv_obj_t* stableFill = stableDepthSlider ? findTravelFill(stableDepthSlider) : nullptr;
   if (require(stableDepthSlider && stableFill, "focused slider should expose stable visual handles")) return 1;
   const int stableFillWidth = lv_obj_get_width(stableFill);
   ui.setFocusedWidgets(stableDepthSlider);
@@ -1461,7 +1712,7 @@ int main()
   if (require(ui.applyFocusedParameterDelta(state, 5), "targeted encoder adjustment should be consumed")) return 1;
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(stableDepthSlider);
-  lv_obj_t* retainedDepthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  lv_obj_t* retainedDepthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   if (require(retainedDepthLabel && lv_obj_get_parent(retainedDepthLabel) == stableDepthSlider,
               "targeted encoder adjustment should retain the slider object")) return 1;
   if (require(lv_obj_get_width(stableFill) > stableFillWidth,
@@ -1469,7 +1720,7 @@ int main()
   ui.focusParameter("");
   ardor::setSelectedBlockParam(state, "depth", depth->minimum);
   ui.refresh(lv_screen_active(), state);
-  retainedDepthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  retainedDepthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   if (require(retainedDepthLabel && lv_obj_get_parent(retainedDepthLabel) == stableDepthSlider,
               "model-driven parameter updates should retain the slider object")) return 1;
   const auto retainedBlockIndex = state.selectedBlock;
@@ -1477,20 +1728,20 @@ int main()
   ui.refresh(lv_screen_active(), state);
   ui.selectBlock(state, retainedBlockIndex);
   ui.refresh(lv_screen_active(), state);
-  retainedDepthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  retainedDepthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   if (require(retainedDepthLabel && lv_obj_get_parent(retainedDepthLabel) == stableDepthSlider,
               "switching parameter targets should reactivate the cached retained panel")) return 1;
 
   ardor::setSelectedBlockParam(state, "depth", depth->maximum);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  depthLabel = findLabel(lv_screen_active(), upper(depth->label).c_str());
+  depthLabel = findSliderLabel(lv_screen_active(), upper(depth->label).c_str());
   depthSlider = depthLabel ? lv_obj_get_parent(depthLabel) : nullptr;
-  depthFill = depthSlider ? findObjectWithHeight(depthSlider, 16) : nullptr;
-  lv_obj_t* depthRail = depthSlider ? findObjectWithHeight(depthSlider, 18) : nullptr;
+  depthFill = depthSlider ? findTravelFill(depthSlider) : nullptr;
+  lv_obj_t* depthRail = depthFill ? lv_obj_get_child(lv_obj_get_parent(depthFill), 11) : nullptr;
   if (require(depthFill && depthRail
-                && lv_obj_get_width(depthFill) == lv_obj_get_width(depthRail) - 2,
-              "maximum slider value should fill the rail interior")) return 1;
+                && lv_obj_get_width(depthFill) == lv_obj_get_width(depthRail),
+              "maximum slider value should fill the whole track")) return 1;
 
   ui.selectGlobalParams(state);
   ui.build(lv_screen_active(), state);
@@ -1510,44 +1761,87 @@ int main()
                                       0, 0, 0, 2.5));
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  if (require(!findLabel(lv_screen_active(), state.bank.name.c_str()),
-              "the minimal top rail should omit the bank title")) return 1;
+  if (require(findLabel(lv_screen_active(), "BANK 00") && findLabel(lv_screen_active(), "CORE SOUNDS"),
+              "the header should name the active bank by number and name")) return 1;
   lv_obj_t* presetName = findLabel(lv_screen_active(), upper(state.bank.presets[state.activePreset].name).c_str());
-  if (require(presetName && lv_obj_get_style_text_font(presetName, LV_PART_MAIN) == &ardor_font_saira_cond_semibold_72,
-              "preset-card names should render in the distance-readable 72 px Panel face")) return 1;
-  if (require(lv_obj_get_height(presetName) == 160 &&
-              lv_label_get_long_mode(presetName) == LV_LABEL_LONG_MODE_DOTS,
-              "preset-card names should reserve a bounded two-line title area")) return 1;
+  if (require(presetName && lv_obj_get_style_text_font(presetName, LV_PART_MAIN) == &ardor_lb_cond800_96,
+              "the live preset name should print in the 96 px extra-bold face")) return 1;
+  if (require(lv_obj_get_width(presetName) == 556
+                && lv_label_get_long_mode(presetName) == LV_LABEL_LONG_MODE_DOTS,
+              "preset-card names should stay inside the tile's content width")) return 1;
   const std::size_t activeSlot = state.activePreset;
   const std::size_t inactiveSlot = (activeSlot + 1) % state.bank.presets.size();
-  const std::string activeFsText = "FS " + std::to_string(activeSlot + 1) + "  \xC2\xB7  LIVE";
+  const std::string activeFsText = "FS " + std::to_string(activeSlot + 1);
   const std::string inactiveFsText = "FS " + std::to_string(inactiveSlot + 1);
-  lv_obj_t* activeFsLabel = findLabel(lv_screen_active(), activeFsText.c_str());
-  lv_obj_t* inactiveFsLabel = findLabel(lv_screen_active(), inactiveFsText.c_str());
-  if (require(activeFsLabel && inactiveFsLabel,
-              "preset tiles should identify the physical footswitch and explicit live state")) return 1;
-  lv_obj_t* activeHeader = activeFsLabel ? lv_obj_get_parent(activeFsLabel) : nullptr;
-  if (require(activeHeader && lv_obj_get_height(activeHeader) == 44
-                && lv_color_eq(lv_obj_get_style_bg_color(activeHeader, LV_PART_MAIN),
-                               lv_color_hex(0xd8422f)),
-              "active preset should use a distance-visible full-width LIVE header")) return 1;
   lv_obj_t* retainedPresetCard = lv_obj_get_parent(presetName);
   lv_obj_t* inactivePresetName = findLabel(
     lv_screen_active(), upper(state.bank.presets[inactiveSlot].name).c_str());
   lv_obj_t* inactivePresetCard = inactivePresetName ? lv_obj_get_parent(inactivePresetName) : nullptr;
-  if (require(lv_obj_get_style_border_width(retainedPresetCard, LV_PART_MAIN) == 3
+  lv_obj_t* activeFsLabel = findLabel(retainedPresetCard, activeFsText.c_str());
+  lv_obj_t* inactiveFsLabel = inactivePresetCard ? findLabel(inactivePresetCard, inactiveFsText.c_str())
+                                                 : nullptr;
+  if (require(activeFsLabel && inactiveFsLabel,
+              "preset tiles should identify the physical footswitch")) return 1;
+  lv_obj_t* activeLiveTag = findLabel(retainedPresetCard, "LIVE");
+  lv_obj_t* inactiveLiveTag = inactivePresetCard ? findLabel(inactivePresetCard, "LIVE") : nullptr;
+  if (require(activeLiveTag && inactiveLiveTag
+                && !lv_obj_has_flag(lv_obj_get_parent(activeLiveTag), LV_OBJ_FLAG_HIDDEN)
+                && lv_obj_has_flag(lv_obj_get_parent(inactiveLiveTag), LV_OBJ_FLAG_HIDDEN)
+                && lv_color_eq(lv_obj_get_style_bg_color(lv_obj_get_parent(activeLiveTag), LV_PART_MAIN),
+                               lv_color_hex(ardor::lvgl_ui::lampInk)),
+              "only the active preset should show the lamp-ink LIVE tag")) return 1;
+  if (require(lv_obj_get_style_border_width(retainedPresetCard, LV_PART_MAIN) == 1
                 && inactivePresetCard
                 && lv_obj_get_style_border_width(inactivePresetCard, LV_PART_MAIN) == 1,
-              "live preset should have a stronger perimeter than inactive presets")) return 1;
+              "every preset tile should keep a 1 px frame; the flood marks LIVE")) return 1;
+  if (require(lv_color_eq(lv_obj_get_style_bg_color(retainedPresetCard, LV_PART_MAIN),
+                          lv_color_hex(ardor::lvgl_ui::lamp))
+                && lv_color_eq(lv_obj_get_style_text_color(presetName, LV_PART_MAIN),
+                               lv_color_hex(ardor::lvgl_ui::lampInk))
+                && lv_color_eq(lv_obj_get_style_bg_color(inactivePresetCard, LV_PART_MAIN),
+                               lv_color_hex(ardor::lvgl_ui::panel))
+                && lv_color_eq(lv_obj_get_style_text_color(inactivePresetName, LV_PART_MAIN),
+                               lv_color_hex(ardor::lvgl_ui::text)),
+              "the live preset should flood its whole tile with the lamp and use lamp-ink lettering")) return 1;
+  {
+    const auto& liveBlocks = state.bank.presets[activeSlot].blocks;
+    const auto& idleBlocks = state.bank.presets[inactiveSlot].blocks;
+    // Search only the tile's child containers, so a preset named like its
+    // first block's code ("Crunch" / "CRUNCH") cannot match the name label.
+    const auto findStripCode = [](lv_obj_t* card, const std::string& code) -> lv_obj_t* {
+      for (uint32_t child = 0; child < lv_obj_get_child_count(card); ++child) {
+        lv_obj_t* container = lv_obj_get_child(card, static_cast<int32_t>(child));
+        if (lv_obj_check_type(container, &lv_label_class)) continue;
+        if (lv_obj_t* found = findLabel(container, code.c_str())) return found;
+      }
+      return nullptr;
+    };
+    lv_obj_t* liveCode = liveBlocks.empty() ? nullptr
+      : findStripCode(retainedPresetCard, ardor::chainStripCode(liveBlocks[0]));
+    lv_obj_t* idleCode = idleBlocks.empty() ? nullptr
+      : findStripCode(inactivePresetCard, ardor::chainStripCode(idleBlocks[0]));
+    if (require(liveCode && idleCode,
+                "each preset tile should show its chain as a strip of block codes")) return 1;
+    if (require(lv_color_eq(lv_obj_get_style_bg_color(lv_obj_get_parent(liveCode), LV_PART_MAIN),
+                            lv_color_hex(ardor::lvgl_ui::lampInk))
+                  && lv_color_eq(lv_obj_get_style_bg_color(lv_obj_get_parent(idleCode), LV_PART_MAIN),
+                                 lv_color_hex(idleBlocks[0].enabled
+                                   ? ardor::lvgl_ui::categoryColor(idleBlocks[0].type)
+                                   : ardor::lvgl_ui::rule)),
+                "chain segments should be dark on the lamp and family-coloured elsewhere")) return 1;
+  }
   ardor::synchronizePresetSelection(state, inactiveSlot);
   ui.refresh(lv_screen_active(), state);
-  const std::string movedLiveText = "FS " + std::to_string(inactiveSlot + 1) + "  \xC2\xB7  LIVE";
-  const std::string previousFsText = "FS " + std::to_string(activeSlot + 1);
-  if (require(findLabel(lv_screen_active(), movedLiveText.c_str())
-                && findLabel(lv_screen_active(), previousFsText.c_str())
-                && lv_obj_get_style_border_width(inactivePresetCard, LV_PART_MAIN) == 3
-                && lv_obj_get_style_border_width(retainedPresetCard, LV_PART_MAIN) == 1,
+  if (require(!lv_obj_has_flag(lv_obj_get_parent(inactiveLiveTag), LV_OBJ_FLAG_HIDDEN)
+                && lv_obj_has_flag(lv_obj_get_parent(activeLiveTag), LV_OBJ_FLAG_HIDDEN)
+                && lv_obj_get_style_text_font(inactivePresetName, LV_PART_MAIN) == &ardor_lb_cond800_96
+                && lv_obj_get_style_text_font(presetName, LV_PART_MAIN) == &ardor_lb_cond700_76,
               "retained preset cards should move the complete LIVE treatment together")) return 1;
+  if (require(lv_color_eq(lv_obj_get_style_bg_color(inactivePresetCard, LV_PART_MAIN),
+                          lv_color_hex(ardor::lvgl_ui::lamp))
+                && lv_color_eq(lv_obj_get_style_bg_color(retainedPresetCard, LV_PART_MAIN),
+                               lv_color_hex(ardor::lvgl_ui::panel)),
+              "the lamp flood should move with the LIVE preset")) return 1;
   ardor::synchronizePresetSelection(state, activeSlot);
   ui.refresh(lv_screen_active(), state);
   const auto installedAssetPath = state.bank.presets[state.activePreset].blocks[0].assetPath;
@@ -1561,14 +1855,14 @@ int main()
   ardor::markUiChanged(state, ardor::UiChange::Presets);
   ui.refresh(lv_screen_active(), state);
   lv_obj_t* unavailableLabel = findLabel(retainedPresetCard, "ASSET NOT FOUND");
-  if (require(unavailableLabel && !lv_obj_has_flag(unavailableLabel, LV_OBJ_FLAG_HIDDEN),
+  if (require(unavailableLabel && !lv_obj_has_flag(lv_obj_get_parent(unavailableLabel), LV_OBJ_FLAG_HIDDEN),
               "preset cards should identify presets with unavailable assets")) return 1;
   state.bank.presets[state.activePreset].blocks[0].assetPath = installedAssetPath;
   state.bank.presets[state.activePreset].blocks[0].type = installedBlockType;
   state.bank.presets[state.activePreset].blocks[0].enabled = installedBlockEnabled;
   ardor::markUiChanged(state, ardor::UiChange::Presets);
   ui.refresh(lv_screen_active(), state);
-  if (require(lv_obj_has_flag(unavailableLabel, LV_OBJ_FLAG_HIDDEN),
+  if (require(lv_obj_has_flag(lv_obj_get_parent(unavailableLabel), LV_OBJ_FLAG_HIDDEN),
               "the unavailable indicator should clear after the asset is repaired")) return 1;
   const auto originalPresetName = state.bank.presets[state.activePreset].name;
   state.bank.presets[state.activePreset].name = "Retained preset";
@@ -1589,11 +1883,13 @@ int main()
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   lv_obj_t* renameLabel = findLabel(lv_screen_active(), "RENAME");
-  if (require(renameLabel && lv_obj_get_width(lv_obj_get_parent(renameLabel)) == 96,
+  if (require(renameLabel && lv_obj_get_width(lv_obj_get_parent(renameLabel)) >= 124
+                && lv_obj_get_height(lv_obj_get_parent(renameLabel)) == 60,
               "the edit rail should expose a clear preset rename target")) return 1;
   const std::string nameBeforeRename = state.bank.presets[state.activePreset].name;
   lv_obj_send_event(lv_obj_get_parent(renameLabel), LV_EVENT_CLICKED, nullptr);
-  lv_obj_t* renameTitle = findLabel(lv_screen_active(), "Rename preset");
+  // The rename sheet is drawn last; its title repeats the rail legend.
+  lv_obj_t* renameTitle = findLastLabel(lv_screen_active(), "RENAME");
   lv_obj_t* renameSheet = renameTitle ? lv_obj_get_parent(renameTitle) : nullptr;
   lv_obj_t* renameOverlay = renameSheet ? lv_obj_get_parent(renameSheet) : nullptr;
   lv_obj_t* renameField = renameSheet
@@ -1620,16 +1916,13 @@ int main()
   ui.refresh(lv_screen_active(), state);
   if (require(savedPresetNames == 1
                 && state.bank.presets[state.activePreset].name == "Stage Lead"
-                && findLabel(lv_screen_active(), "Stage Lead")
+                && findLabelContaining(lv_screen_active(), "STAGE LEAD")
                 && lv_obj_has_flag(renameOverlay, LV_OBJ_FLAG_HIDDEN),
               "saving preset rename should trim, persist, and refresh the active preset name")) return 1;
-  chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x212528), 1240, 492);
+  chain = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::bg), 1280, 548);
   if (require(chain && lv_obj_has_flag(chain, LV_OBJ_FLAG_SCROLLABLE)
                 && lv_obj_get_scroll_right(chain) > 0,
               "long chains should remain on one horizontally scrollable rail")) return 1;
-  if (require(findLabel(lv_screen_active(), "<  INPUT")
-                && findLabel(lv_screen_active(), "OUTPUT  >"),
-              "the fixed chain footer should expose Input and Output jump controls")) return 1;
   ui.scrollChainToEnd(state);
   lv_obj_update_layout(lv_screen_active());
   if (require(state.chainScrollOffsets[state.activePreset] > 0,
@@ -1647,20 +1940,22 @@ int main()
   ui.scrollChainToStart(state);
 
   constexpr std::size_t blockCount = 10;
-  if (require(ardor::LvglUi::chainSlotForPoint(blockCount, {283, 324}) == 0,
+  // Lamp Black chain: block i spans x = 164 + 228 i, 172 px wide, and the
+  // insert circle before it centres on x = 136 + 228 i.
+  if (require(ardor::LvglUi::chainSlotForPoint(blockCount, {250, 328}) == 0,
               "the first horizontal tile should map to the first block")) return 1;
-  if (require(ardor::LvglUi::chainSlotForPoint(blockCount, {1633, 324}) == 5,
+  if (require(ardor::LvglUi::chainSlotForPoint(blockCount, {1390, 328}) == 5,
               "the sixth horizontal tile should map to the sixth block")) return 1;
-  if (require(ardor::LvglUi::chainInsertionSlotForPoint(blockCount, {1538, 324}) == 5,
+  if (require(ardor::LvglUi::chainInsertionSlotForPoint(blockCount, {1276, 328}) == 5,
               "horizontal insertion should use the nearest signal boundary")) return 1;
   const auto sixthIndicator = ardor::LvglUi::chainIndicatorPosition(blockCount, 5);
-  if (require(sixthIndicator.x == 1428 && sixthIndicator.y == 161,
+  if (require(sixthIndicator.x == 1284 && sixthIndicator.y == 180,
               "sixth-slot insertion indicator should stay on the single horizontal rail")) return 1;
   const auto forwardIndicator = ardor::LvglUi::chainReorderIndicatorPosition(blockCount, 0, 1);
-  if (require(forwardIndicator.x == 684 && forwardIndicator.y == 161,
+  if (require(forwardIndicator.x == 600 && forwardIndicator.y == 180,
               "forward reorder indicator should appear after the hovered block")) return 1;
   const auto backwardIndicator = ardor::LvglUi::chainReorderIndicatorPosition(blockCount, 4, 1);
-  if (require(backwardIndicator.x == 436 && backwardIndicator.y == 161,
+  if (require(backwardIndicator.x == 372 && backwardIndicator.y == 180,
               "backward reorder indicator should appear before the hovered block")) return 1;
 
   // Preset now carries its own top legend rail and bottom control rail, per
@@ -1669,80 +1964,84 @@ int main()
   ardor::enterPresetMode(state);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  lv_obj_t* telemetryLegend = findLabel(
-    lv_screen_active(), "LATENCY 1.33 MS  \xC2\xB7  BUFFER 25% USED");
+  lv_obj_t* telemetryLegend = findLabel(lv_screen_active(), "1.33 MS  \xC2\xB7  BUFFER 25%");
   lv_obj_t* presetTopRail = telemetryLegend ? lv_obj_get_parent(telemetryLegend) : nullptr;
-  lv_obj_t* editButtonLabel = findLabel(lv_screen_active(), "Edit");
+  lv_obj_t* editButtonLabel = findLabel(lv_screen_active(), "EDIT");
   lv_obj_t* editButton = editButtonLabel ? lv_obj_get_parent(editButtonLabel) : nullptr;
-  lv_obj_t* setupButtonLabel = findLabel(lv_screen_active(), "Setup");
+  lv_obj_t* setupButtonLabel = findLabel(lv_screen_active(), "SETUP");
   lv_obj_t* setupButton = setupButtonLabel ? lv_obj_get_parent(setupButtonLabel) : nullptr;
-  lv_obj_t* tunerButtonLabel = findLabel(lv_screen_active(), "Tuner");
+  lv_obj_t* tunerButtonLabel = findLabel(lv_screen_active(), "TUNER");
   lv_obj_t* tunerButton = tunerButtonLabel ? lv_obj_get_parent(tunerButtonLabel) : nullptr;
-  lv_obj_t* bankDownLabel = findLabel(lv_screen_active(), "Bank -");
-  lv_obj_t* bankUpLabel = findLabel(lv_screen_active(), "Bank +");
+  // The bank pair: two 76 px steps around a recessed BANK legend.
+  lv_obj_t* bankLegend = presetTopRail ? findLabel(presetTopRail, "BANK") : nullptr;
+  lv_obj_t* bankDownLabel = presetTopRail ? findLabel(presetTopRail, "-") : nullptr;
+  lv_obj_t* bankUpLabel = presetTopRail ? findLabel(presetTopRail, "+") : nullptr;
   lv_obj_t* masterLegend = findLabel(lv_screen_active(), "MASTER");
   lv_obj_t* masterValue = findLabel(lv_screen_active(), std::to_string(state.masterVolume).c_str());
   lv_obj_t* bankDownButton = bankDownLabel ? lv_obj_get_parent(bankDownLabel) : nullptr;
   lv_obj_t* bankUpButton = bankUpLabel ? lv_obj_get_parent(bankUpLabel) : nullptr;
   if (require(presetTopRail
                 && !findLabel(presetTopRail, "ARDOR")
-                && !findLabel(presetTopRail, "MIDI")
-                && !findLabel(presetTopRail, "48 KHZ"),
-              "preset top rail should contain only latency and live buffer use")) return 1;
+                && !findLabel(presetTopRail, "48 KHZ")
+                && findLabel(presetTopRail, "BANK 00"),
+              "preset header should carry the bank, latency, and live buffer use")) return 1;
   ardor::updateRealtimeTelemetry(
     state, ardor::makeRuntimeTelemetry(120, 0, 0, 7.0, 3.0, 10.0, false,
                                       0, 0, 0, 6.0));
   ui.refresh(lv_screen_active(), state);
-  if (require(findLabel(lv_screen_active(),
-                        "LATENCY 1.33 MS  \xC2\xB7  BUFFER 60% USED") == telemetryLegend,
-              "the retained top-rail buffer percentage should follow one-second telemetry updates")) return 1;
-  if (require(editButton && lv_obj_get_width(editButton) == 112 && lv_obj_get_height(editButton) == 52,
+  if (require(findLabel(lv_screen_active(), "1.33 MS  \xC2\xB7  BUFFER 60%") == telemetryLegend,
+              "the retained header buffer percentage should follow one-second telemetry updates")) return 1;
+  if (require(editButton && lv_obj_get_width(editButton) == 124 && lv_obj_get_height(editButton) == 60,
               "Edit should have a large, finger-friendly hit target")) return 1;
-  if (require(setupButton && lv_obj_get_width(setupButton) == 96 && lv_obj_get_height(setupButton) == 52,
+  if (require(setupButton && lv_obj_get_width(setupButton) >= 124 && lv_obj_get_height(setupButton) == 60,
               "bottom rail should expose a Setup control")) return 1;
-  if (require(bankDownButton && bankUpButton && lv_obj_get_width(bankUpButton) == 96
-                && lv_obj_get_height(bankUpButton) == 52
-                && lv_obj_get_height(bankDownButton) == 52,
-              "preset screen should render dedicated bank up and down buttons")) return 1;
+  if (require(bankLegend && bankDownButton && bankUpButton && lv_obj_get_width(bankUpButton) == 76
+                && lv_obj_get_height(bankUpButton) == 60
+                && lv_obj_get_height(bankDownButton) == 60,
+              "preset screen should render the - BANK + pair")) return 1;
   if (require(masterLegend && masterValue && tunerButton
-                && lv_obj_get_width(tunerButton) == 112
-                && lv_obj_get_height(tunerButton) == 52,
-              "preset screen should provide a Tuner button and a master travel scale")) return 1;
-  lv_obj_t* masterScaleGroup = lv_obj_get_parent(masterLegend);
-  lv_obj_t* masterRail = findObjectWithSizeAndBgColor(
-    masterScaleGroup, lv_color_hex(0x191c1f), 250, 18);
-  lv_obj_t* masterHandle = findObjectWithSizeAndBgColor(
-    masterScaleGroup, lv_color_hex(0xd8422f), 44, 40);
-  if (require(masterRail && masterHandle,
-              "master should use the same recessed rail and wide thumb as parameter controls")) return 1;
-  lv_area_t masterGroupArea{};
-  lv_area_t masterRailArea{};
-  lv_area_t masterHandleArea{};
+                && lv_obj_get_width(tunerButton) >= 124
+                && lv_obj_get_height(tunerButton) == 60,
+              "preset screen should provide a Tuner button and a master readout")) return 1;
+  const auto masterMeter = [&]() -> lv_obj_t* {
+    lv_obj_t* parent = lv_obj_get_parent(masterValue);
+    return lv_obj_get_child(parent, static_cast<int32_t>(lv_obj_get_index(masterValue)) + 1);
+  };
+  const auto litMasterSegments = [&]() {
+    lv_obj_t* meter = masterMeter();
+    int lit = 0;
+    for (uint32_t segment = 0; meter && segment < lv_obj_get_child_count(meter); ++segment) {
+      lit += lv_color_eq(lv_obj_get_style_bg_color(
+        lv_obj_get_child(meter, static_cast<int32_t>(segment)), LV_PART_MAIN),
+        lv_color_hex(ardor::lvgl_ui::text)) ? 1 : 0;
+    }
+    return lit;
+  };
+  if (require(masterMeter() && lv_obj_get_child_count(masterMeter()) == 16
+                && litMasterSegments() == (state.masterVolume * 16 + 99) / 100,
+              "master should render a 16-segment bone meter lit to the volume")) return 1;
+  if (require(lv_obj_get_style_text_font(masterValue, LV_PART_MAIN) == &ardor_lb_cond700_52,
+              "the master value should use the bold condensed rail face")) return 1;
+  if (require(lv_color_eq(lv_obj_get_style_text_color(tunerButtonLabel, LV_PART_MAIN),
+                          lv_color_hex(ardor::lvgl_ui::text)),
+              "the Tuner button should not spend the LIVE lamp colour")) return 1;
+  lv_area_t masterMeterArea{};
+  lv_area_t masterValueArea{};
   lv_area_t masterLabelArea{};
-  lv_obj_get_coords(masterScaleGroup, &masterGroupArea);
-  lv_obj_get_coords(masterRail, &masterRailArea);
-  lv_obj_get_coords(masterHandle, &masterHandleArea);
+  lv_obj_get_coords(masterMeter(), &masterMeterArea);
+  lv_obj_get_coords(masterValue, &masterValueArea);
   lv_obj_get_coords(masterLegend, &masterLabelArea);
-  const int masterRailCenter = (masterRailArea.x1 + masterRailArea.x2) / 2;
-  const int masterLabelCenter = (masterLabelArea.x1 + masterLabelArea.x2) / 2;
-  if (require(masterRailArea.x1 >= masterGroupArea.x1
-                && masterRailArea.x2 <= masterGroupArea.x2
-                && masterHandleArea.x1 >= masterGroupArea.x1
-                && masterHandleArea.x2 <= masterGroupArea.x2
-                && masterHandleArea.y1 >= masterGroupArea.y1
-                && masterHandleArea.y2 <= masterGroupArea.y2
-                && masterHandleArea.y2 < ardor::lvgl_ui::kDesignHeight
-                && masterLabelCenter == masterRailCenter
-                && lv_obj_get_style_text_align(masterLegend, LV_PART_MAIN) == LV_TEXT_ALIGN_CENTER
-                && lv_obj_get_style_text_align(masterValue, LV_PART_MAIN) == LV_TEXT_ALIGN_RIGHT,
-              "master legend, value, rail, and thumb should share one contained alignment span")) return 1;
+  if (require(masterMeterArea.x2 == 1255 && masterMeterArea.y2 == 688
+                && masterLabelArea.x2 < masterValueArea.x1
+                && masterValueArea.x2 < masterMeterArea.x1,
+              "master legend, value, and meter should read left to right to the gutter")) return 1;
   // Live control telemetry must not add extra content to this intentionally
-  // minimal top rail.
+  // minimal header.
   ardor::updateControlInputTelemetry(state, {true, true, true, true, 0.5f, true, 12000});
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   if (require(!findLabel(presetTopRail, "MIDI ON"),
-              "live control status should not add extra top-rail content")) return 1;
+              "live control status should not add extra header content")) return 1;
   lv_area_t bankDownArea{};
   lv_area_t bankUpArea{};
   lv_area_t tunerButtonArea{};
@@ -1753,32 +2052,34 @@ int main()
   lv_obj_get_coords(tunerButton, &tunerButtonArea);
   lv_obj_get_coords(setupButton, &setupButtonArea);
   lv_obj_get_coords(editButton, &editButtonArea);
-  if (require(editButtonArea.x1 < tunerButtonArea.x1 && tunerButtonArea.x1 < bankDownArea.x1
+  if (require(editButtonArea.x1 == 24 && editButtonArea.x1 < tunerButtonArea.x1
+                && tunerButtonArea.x1 < bankDownArea.x1
                 && bankDownArea.x1 < bankUpArea.x1 && bankUpArea.x1 < setupButtonArea.x1,
-              "bottom rail should order Edit, Tuner, Bank-, Bank+, Setup left to right")) return 1;
-  if (require(editButtonArea.y1 == tunerButtonArea.y1
+              "bottom rail should order Edit, Tuner, -, +, Setup left to right")) return 1;
+  if (require(editButtonArea.y1 == 637
+                && editButtonArea.y1 == tunerButtonArea.y1
                 && tunerButtonArea.y1 == bankDownArea.y1
                 && bankDownArea.y1 == bankUpArea.y1
                 && bankUpArea.y1 == setupButtonArea.y1,
-              "bottom-rail controls should share one row")) return 1;
+              "bottom-rail controls should share one row at y = 637")) return 1;
   if (require(masterValue && masterLegend, "master travel scale should render a legend and value")) return 1;
   ardor::setMasterVolume(state, 50);
   ui.refresh(lv_screen_active(), state);
-  if (require(findLabel(lv_screen_active(), "50"),
-              "master volume should update the retained travel-scale value")) return 1;
+  if (require(findLabel(lv_screen_active(), "50") && litMasterSegments() == 8,
+              "master volume should update the retained value and meter")) return 1;
   if (require(lv_obj_has_state(bankDownButton, LV_STATE_DISABLED),
               "bank down should be disabled at the first bank")) return 1;
-  if (require(lv_obj_get_style_text_font(bankUpLabel, LV_PART_MAIN) == &ardor_font_saira_cond_semibold_22,
+  if (require(lv_obj_get_style_text_font(bankUpLabel, LV_PART_MAIN) == &ardor_lb_cond600_22,
               "buttons should use the larger, more legible font")) return 1;
 
   lv_obj_send_event(setupButton, LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  if (require(findLabel(lv_screen_active(), "Settings")
-                && findLabel(lv_screen_active(), "Appearance")
-                && findLabel(lv_screen_active(), "Panel palette"),
+  if (require(findLabel(lv_screen_active(), "SETUP")
+                && findLabel(lv_screen_active(), "APPEARANCE")
+                && findLabel(lv_screen_active(), "PANEL PALETTE"),
               "settings gear should open the touchscreen appearance screen")) return 1;
-  lv_obj_t* inkPalette = findLabel(lv_screen_active(), "Ink");
+  lv_obj_t* inkPalette = findLabel(lv_screen_active(), "INK");
   if (require(inkPalette, "Appearance should offer the Ink Panel palette")) return 1;
   lv_obj_send_event(lv_obj_get_parent(inkPalette), LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
@@ -1786,15 +2087,15 @@ int main()
   if (require(state.settings.paletteId == ardor::PaletteId::Ink
                 && ardor::lvgl_ui::palette().plate == 0x10161f,
               "selecting Ink should rebuild the UI with Ink tokens")) return 1;
-  lv_obj_t* slatePalette = findLabel(lv_screen_active(), "Slate");
+  lv_obj_t* slatePalette = findLabel(lv_screen_active(), "SLATE");
   if (require(slatePalette, "Appearance should keep Slate available after a palette rebuild")) return 1;
   lv_obj_send_event(lv_obj_get_parent(slatePalette), LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   if (require(state.settings.paletteId == ardor::PaletteId::Slate
-                && ardor::lvgl_ui::palette().plate == 0x212528,
+                && ardor::lvgl_ui::palette().plate == 0x0b0c0d,
               "returning to Slate should restore the default palette cleanly")) return 1;
-  lv_obj_t* nordPalette = findLabel(lv_screen_active(), "Nord");
+  lv_obj_t* nordPalette = findLabel(lv_screen_active(), "NORD");
   if (require(nordPalette, "Appearance should offer the Nord palette")) return 1;
   lv_obj_send_event(lv_obj_get_parent(nordPalette), LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
@@ -1802,19 +2103,19 @@ int main()
   if (require(state.settings.paletteId == ardor::PaletteId::Nord
                 && ardor::lvgl_ui::palette().plate == 0x2e3440,
               "selecting Nord should rebuild the UI with Nord tokens")) return 1;
-  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "Slate")), LV_EVENT_PRESSED, nullptr);
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "SLATE")), LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   if (require(state.settings.paletteId == ardor::PaletteId::Slate,
               "returning to Slate after Nord should restore the default palette")) return 1;
-  lv_obj_t* wifiSectionLabel = findLabel(lv_screen_active(), "Wi-Fi");
+  lv_obj_t* wifiSectionLabel = findLabel(lv_screen_active(), "WI-FI");
   if (require(wifiSectionLabel, "settings should expose a Wi-Fi section")) return 1;
   lv_obj_send_event(lv_obj_get_parent(wifiSectionLabel), LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   lv_obj_t* wifiKeyboard = findObjectOfClass(lv_screen_active(), &lv_keyboard_class);
-  if (require(findLabel(lv_screen_active(), "Network name")
-                && findLabel(lv_screen_active(), "Password")
+  if (require(findLabel(lv_screen_active(), "NETWORK NAME")
+                && findLabel(lv_screen_active(), "PASSWORD")
                 && wifiKeyboard,
               "touchscreen Wi-Fi settings should render fields and an on-screen keyboard")) return 1;
   lv_area_t keyboardArea{};
@@ -1822,15 +2123,14 @@ int main()
   lv_obj_get_coords(wifiKeyboard, &keyboardArea);
   lv_obj_get_coords(lv_obj_get_parent(wifiKeyboard), &wifiContentArea);
   if (require(lv_obj_get_width(wifiKeyboard) == 944
-                && lv_obj_get_height(wifiKeyboard) == 360
-                && keyboardArea.x1 == wifiContentArea.x1 + 29
-                && keyboardArea.x2 == wifiContentArea.x2 - 27
-                && keyboardArea.y1 == wifiContentArea.y1 + 225
+                && keyboardArea.x1 == wifiContentArea.x1 + 28
+                && keyboardArea.x2 == wifiContentArea.x2 - 28
+                && keyboardArea.y1 == wifiContentArea.y1 + 209
                 && keyboardArea.y2 < wifiContentArea.y2,
               "Wi-Fi keyboard should be a fully contained, proportionate bottom panel")) return 1;
   lv_obj_t* passwordEye = findLabel(lv_screen_active(), LV_SYMBOL_EYE_OPEN);
   lv_obj_t* passwordEyeButton = passwordEye ? lv_obj_get_parent(passwordEye) : nullptr;
-  lv_obj_t* passwordLabel = findLabel(lv_screen_active(), "Password");
+  lv_obj_t* passwordLabel = findLabel(lv_screen_active(), "PASSWORD");
   lv_obj_t* passwordField = passwordLabel
     ? lv_obj_get_child(lv_obj_get_parent(passwordLabel), lv_obj_get_index(passwordLabel) + 1)
     : nullptr;
@@ -1840,15 +2140,15 @@ int main()
   if (passwordField) lv_obj_get_coords(passwordField, &passwordFieldArea);
   if (require(passwordEyeButton && passwordField
                 && lv_obj_check_type(passwordField, &lv_textarea_class)
-                && lv_obj_get_height(passwordField) == 62
-                && lv_obj_get_width(passwordEyeButton) == 54
-                && lv_obj_get_height(passwordEyeButton) == 58
+                && lv_obj_get_height(passwordField) == 60
+                && lv_obj_get_width(passwordEyeButton) == 52
+                && lv_obj_get_height(passwordEyeButton) == 52
                 && passwordEyeArea.x1 >= passwordFieldArea.x1
                 && passwordEyeArea.x2 <= passwordFieldArea.x2
                 && passwordEyeArea.y1 >= passwordFieldArea.y1
                 && passwordEyeArea.y2 <= passwordFieldArea.y2,
               "password visibility should use a compact eye control inside the input")) return 1;
-  lv_obj_t* countryLabel = findLabel(lv_screen_active(), "Country code");
+  lv_obj_t* countryLabel = findLabel(lv_screen_active(), "COUNTRY");
   lv_obj_t* countryField = countryLabel
     ? lv_obj_get_child(lv_obj_get_parent(countryLabel), lv_obj_get_index(countryLabel) + 1)
     : nullptr;
@@ -1869,23 +2169,23 @@ int main()
                 && !lv_textarea_get_password_mode(passwordField),
               "password eye should clearly reflect and toggle the visible state")) return 1;
   lv_obj_send_event(passwordEyeButton, LV_EVENT_CLICKED, nullptr);
-  lv_obj_t* audioSectionLabel = findLabel(lv_screen_active(), "Audio");
+  lv_obj_t* audioSectionLabel = findLabel(lv_screen_active(), "AUDIO");
   if (require(audioSectionLabel, "settings should expose a dedicated Audio section")) return 1;
   lv_obj_send_event(lv_obj_get_parent(audioSectionLabel), LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  if (require(findLabel(lv_screen_active(), "32 samples")
-                && findLabel(lv_screen_active(), "64 samples")
-                && findLabel(lv_screen_active(), "128 samples")
-                && findLabel(lv_screen_active(), "Apply & restart audio"),
+  if (require(findLabel(lv_screen_active(), "0.67 MS BLOCK TIME")
+                && findLabel(lv_screen_active(), "1.33 MS BLOCK TIME")
+                && findLabel(lv_screen_active(), "2.67 MS BLOCK TIME")
+                && findLabel(lv_screen_active(), "APPLY & RESTART AUDIO"),
               "Audio settings should offer the supported buffers and an explicit restart action")) return 1;
-  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "32 samples")),
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "0.67 MS BLOCK TIME")),
                     LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  lv_obj_t* audioChoice = lv_obj_get_parent(findLabel(lv_screen_active(), "32 samples"));
-  lv_obj_t* audioExplanation = lv_obj_get_parent(findLabel(lv_screen_active(), "Latency and stability"));
-  lv_obj_t* audioApply = lv_obj_get_parent(findLabel(lv_screen_active(), "Apply & restart audio"));
+  lv_obj_t* audioChoice = lv_obj_get_parent(findLabel(lv_screen_active(), "0.67 MS BLOCK TIME"));
+  lv_obj_t* audioExplanation = lv_obj_get_parent(findLabel(lv_screen_active(), "LATENCY AND STABILITY"));
+  lv_obj_t* audioApply = lv_obj_get_parent(findLabel(lv_screen_active(), "APPLY & RESTART AUDIO"));
   lv_area_t audioChoiceArea{}, audioExplanationArea{}, audioApplyArea{}, audioContentArea{};
   lv_obj_get_coords(audioChoice, &audioChoiceArea);
   lv_obj_get_coords(audioExplanation, &audioExplanationArea);
@@ -1900,8 +2200,8 @@ int main()
   lv_obj_send_event(audioApply, LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  lv_obj_t* audioMessage = findLabel(lv_screen_active(), "Buffer saved - restarting audio");
-  lv_obj_t* disabledAudioApply = lv_obj_get_parent(findLabel(lv_screen_active(), "Apply & restart audio"));
+  lv_obj_t* audioMessage = findLabel(lv_screen_active(), "BUFFER SAVED - RESTARTING AUDIO");
+  lv_obj_t* disabledAudioApply = lv_obj_get_parent(findLabel(lv_screen_active(), "APPLY & RESTART AUDIO"));
   lv_area_t audioMessageArea{}, disabledAudioApplyArea{};
   if (audioMessage) lv_obj_get_coords(audioMessage, &audioMessageArea);
   if (disabledAudioApply) lv_obj_get_coords(disabledAudioApply, &disabledAudioApplyArea);
@@ -1910,25 +2210,25 @@ int main()
                 && lv_obj_has_state(disabledAudioApply, LV_STATE_DISABLED)
                 && disabledAudioApplyArea.y2 < audioMessageArea.y1,
               "applying an audio buffer should persist it and announce the restart")) return 1;
-  lv_obj_t* controlSectionLabel = findLabel(lv_screen_active(), "Control I/O");
+  lv_obj_t* controlSectionLabel = findLabel(lv_screen_active(), "CONTROL I/O");
   if (require(controlSectionLabel, "settings should expose a Control I/O section")) return 1;
   lv_obj_send_event(lv_obj_get_parent(controlSectionLabel), LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  if (require(findLabel(lv_screen_active(), "MIDI receive channel")
-                && findLabel(lv_screen_active(), "Tuner on/off CC")
-                && findLabel(lv_screen_active(), "Expression pedal")
-                && findLabel(lv_screen_active(), "Scene layer chord:  On")
-                && findLabel(lv_screen_active(), "Capture heel:  0")
-                && findLabel(lv_screen_active(), "Capture toe:  26400"),
+  if (require(findLabel(lv_screen_active(), "MIDI RECEIVE CHANNEL")
+                && findLabel(lv_screen_active(), "TUNER ON/OFF CC")
+                && findLabel(lv_screen_active(), "EXPRESSION PEDAL")
+                && findLabel(lv_screen_active(), "SCENE LAYER CHORD:  ON")
+                && findLabel(lv_screen_active(), "CAPTURE HEEL:  0")
+                && findLabel(lv_screen_active(), "CAPTURE TOE:  26400"),
               "Control I/O should integrate MIDI and expression calibration")) return 1;
-  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "Scene layer chord:  On")),
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "SCENE LAYER CHORD:  ON")),
                     LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
   if (require(!state.settings.sceneLayerChordEnabled
-                && findLabel(lv_screen_active(), "Scene layer chord:  Off"),
+                && findLabel(lv_screen_active(), "SCENE LAYER CHORD:  OFF"),
               "Control I/O should persist the scene-layer chord preference")) return 1;
-  lv_obj_t* midiChannelTitle = findLabel(lv_screen_active(), "MIDI receive channel");
+  lv_obj_t* midiChannelTitle = findLabel(lv_screen_active(), "MIDI RECEIVE CHANNEL");
   lv_obj_t* midiChannelCard = midiChannelTitle ? lv_obj_get_parent(midiChannelTitle) : nullptr;
   lv_obj_t* midiChannelMinus = midiChannelCard ? lv_obj_get_child(midiChannelCard, 1) : nullptr;
   lv_area_t midiChannelTitleArea{};
@@ -1958,52 +2258,55 @@ int main()
     lv_obj_get_coords(plusLabel, &plusLabelArea);
     const auto centerX = [](const lv_area_t& area) { return area.x1 + area.x2; };
     const auto centerY = [](const lv_area_t& area) { return area.y1 + area.y2; };
-    return std::abs((titleArea.x1 - cardArea.x1) - (cardArea.x2 - titleArea.x2)) <= 2
+    // The legend shares the steps' left inset; the steps mirror each other.
+    return titleArea.x1 == minusArea.x1
       && std::abs((minusArea.x1 - cardArea.x1) - (cardArea.x2 - plusArea.x2)) <= 2
-      && std::abs(centerX(valueArea) - centerX(cardArea)) <= 2
-      && centerY(minusArea) == centerY(valueArea)
-      && centerY(valueArea) == centerY(plusArea)
-      && std::abs(centerX(minusLabelArea) - centerX(minusArea)) <= 1
-      && std::abs(centerY(minusLabelArea) - centerY(minusArea)) <= 1
-      && std::abs(centerX(plusLabelArea) - centerX(plusArea)) <= 1
-      && std::abs(centerY(plusLabelArea) - centerY(plusArea)) <= 1;
+      // Legends centre on their CSS baseline, not their glyph box, so the
+      // label boxes may sit a few pixels off the geometric centre.
+      && std::abs(centerX(valueArea) - centerX(cardArea)) <= 4
+      && centerY(minusArea) == centerY(plusArea)
+      && std::abs(centerY(minusArea) - centerY(valueArea)) <= 12
+      && std::abs(centerX(minusLabelArea) - centerX(minusArea)) <= 4
+      && std::abs(centerY(minusLabelArea) - centerY(minusArea)) <= 12
+      && std::abs(centerX(plusLabelArea) - centerX(plusArea)) <= 4
+      && std::abs(centerY(plusLabelArea) - centerY(plusArea)) <= 12;
   };
   if (require(stepperIsAligned(midiChannelTitle)
-                && stepperIsAligned(findLabel(lv_screen_active(), "Tuner on/off CC")),
+                && stepperIsAligned(findLabel(lv_screen_active(), "TUNER ON/OFF CC")),
               "MIDI and tuner steppers should share symmetric padding and centered controls")) return 1;
-  lv_obj_t* updatesSectionLabel = findLabel(lv_screen_active(), "Updates");
+  lv_obj_t* updatesSectionLabel = findLabel(lv_screen_active(), "UPDATES");
   if (require(updatesSectionLabel, "settings should expose an Updates section")) return 1;
   lv_obj_send_event(lv_obj_get_parent(updatesSectionLabel), LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  if (require(findLabel(lv_screen_active(), "Installed version")
+  if (require(findLabel(lv_screen_active(), "INSTALLED VERSION")
                 && findLabel(lv_screen_active(), "1.2.3")
-                && findLabel(lv_screen_active(), "Check for updates"),
+                && findLabel(lv_screen_active(), "CHECK FOR UPDATES"),
               "Updates should show the installed version and a manual check action")) return 1;
-  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "Check for updates")),
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "CHECK FOR UPDATES")),
                     LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  if (require(findLabel(lv_screen_active(), "Ardor 1.3.0")
-                && findLabel(lv_screen_active(), "Install & restart"),
+  if (require(findLabel(lv_screen_active(), "ARDOR 1.3.0")
+                && findLabel(lv_screen_active(), "INSTALL & RESTART"),
               "a compatible release should expose an install action")) return 1;
-  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "Install & restart")),
+  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "INSTALL & RESTART")),
                     LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  if (require(findLabel(lv_screen_active(), "Confirm install"),
+  if (require(findLabel(lv_screen_active(), "CONFIRM INSTALL"),
               "installing should require a second explicit confirmation")) return 1;
   ui.closeSettings(state);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
   if (require(findLabel(lv_screen_active(),
-                        "LATENCY 0.67 MS  \xC2\xB7  BUFFER 60% USED"),
+                        "0.67 MS  \xC2\xB7  BUFFER 60%"),
               "the top rail should reflect the active latency setting and buffer use")) return 1;
-  bankUpLabel = findLabel(lv_screen_active(), "Bank +");
+  bankUpLabel = findLabel(lv_screen_active(), "+");
   bankUpButton = bankUpLabel ? lv_obj_get_parent(bankUpLabel) : nullptr;
-  tunerButtonLabel = findLabel(lv_screen_active(), "Tuner");
+  tunerButtonLabel = findLabel(lv_screen_active(), "TUNER");
   tunerButton = tunerButtonLabel ? lv_obj_get_parent(tunerButtonLabel) : nullptr;
-  editButtonLabel = findLabel(lv_screen_active(), "Edit");
+  editButtonLabel = findLabel(lv_screen_active(), "EDIT");
   editButton = editButtonLabel ? lv_obj_get_parent(editButtonLabel) : nullptr;
 
   lv_obj_send_event(bankUpButton, LV_EVENT_CLICKED, nullptr);
@@ -2044,8 +2347,10 @@ int main()
                 && findLabel(lv_screen_active(), "EXIT")
                 && findLabel(lv_screen_active(), "CLOSE"),
               "looper mode should expose locked preset, four track states, and transport")) return 1;
-  auto* looperTitle = findLabel(lv_screen_active(), "LOOPER");
-  auto* looperRoot = looperTitle ? lv_obj_get_parent(lv_obj_get_parent(looperTitle)) : nullptr;
+  // The scenes rail also has a LOOPER button; the lock legend is unique to
+  // the looper's own header, which sits directly on the looper layer.
+  auto* looperLock = findLabel(lv_screen_active(), "LOCKED · AMBIENT LEAD");
+  auto* looperRoot = looperLock ? lv_obj_get_parent(looperLock) : nullptr;
   if (screenshotPath != nullptr) {
     lv_refr_now(display);
     if (require(saveRgb888Ppm(screenshotPath, screenshotPixels, screenshotStride, 1280, 720),
@@ -2181,18 +2486,18 @@ int main()
   lv_obj_update_layout(lv_screen_active());
   lv_obj_t* blocksButtonLabel = findLabel(lv_screen_active(), "MODULES");
   lv_obj_t* blocksButton = blocksButtonLabel ? lv_obj_get_parent(blocksButtonLabel) : nullptr;
-  if (require(blocksButton && lv_obj_get_width(blocksButton) == 112 && lv_obj_get_height(blocksButton) == 52,
+  if (require(blocksButton && lv_obj_get_width(blocksButton) >= 124 && lv_obj_get_height(blocksButton) == 60,
               "Modules should have a large, finger-friendly hit target")) return 1;
   lv_obj_send_event(blocksButton, LV_EVENT_PRESSED, nullptr);
   if (require(state.mode == ardor::UiMode::Edit && state.blockDrawerOpen,
               "pressing Modules should reliably keep the edit screen open and show the drawer")) return 1;
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  lv_obj_t* drawer = findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 480);
-  lv_obj_t* allFilter = drawer ? findLabel(drawer, "All") : nullptr;
-  lv_obj_t* utilityFilter = drawer ? findLabel(drawer, "Utility") : nullptr;
-  lv_obj_t* delayFilter = drawer ? findLabel(drawer, "Delays") : nullptr;
-  lv_obj_t* reverbFilter = drawer ? findLabel(drawer, "Reverbs") : nullptr;
+  lv_obj_t* drawer = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::panel), 480, 720);
+  lv_obj_t* allFilter = drawer ? findLabel(drawer, "ALL") : nullptr;
+  lv_obj_t* utilityFilter = drawer ? findLabel(drawer, "UTILITY") : nullptr;
+  lv_obj_t* delayFilter = drawer ? findLabel(drawer, "DELAYS") : nullptr;
+  lv_obj_t* reverbFilter = drawer ? findLabel(drawer, "REVERBS") : nullptr;
   lv_obj_t* tremAssetLabel = drawer ? findLabel(drawer, "VINTAGE TREM") : nullptr;
   lv_obj_t* compressorAssetLabel = drawer ? findLabel(drawer, "COMPRESSOR") : nullptr;
   lv_obj_t* noiseGateAssetLabel = drawer ? findLabel(drawer, "NOISE GATE") : nullptr;
@@ -2211,14 +2516,10 @@ int main()
   lv_obj_get_coords(splitAssetLabel, &splitTitleArea);
   lv_obj_get_coords(splitUnavailableReason, &splitReasonArea);
   lv_obj_get_coords(splitAssetButton, &splitButtonArea);
-  if (require(splitTitleArea.y2 < splitReasonArea.y1
-                && std::abs((splitTitleArea.x1 + splitTitleArea.x2)
-                              - (splitButtonArea.x1 + splitButtonArea.x2)) <= 1
-                && std::abs((splitReasonArea.x1 + splitReasonArea.x2)
-                              - (splitButtonArea.x1 + splitButtonArea.x2)) <= 1
-                && std::abs((splitTitleArea.y1 + splitReasonArea.y2)
-                              - (splitButtonArea.y1 + splitButtonArea.y2)) <= 1,
-              "disabled Split text should form a centered, non-overlapping two-line group")) return 1;
+  if (require(splitTitleArea.y2 <= splitReasonArea.y1
+                && splitTitleArea.x1 == splitReasonArea.x1
+                && splitReasonArea.y2 < splitButtonArea.y2,
+              "a disabled Split row should give its reason on the subtitle line")) return 1;
   lv_obj_t* allFilterButton = lv_obj_get_parent(allFilter);
   lv_obj_t* utilityFilterButton = lv_obj_get_parent(utilityFilter);
   lv_obj_t* delayFilterButton = lv_obj_get_parent(delayFilter);
@@ -2234,38 +2535,52 @@ int main()
   if (require(lv_obj_get_width(drawer) == 480 && lv_obj_get_height(drawer) == 720
                 && drawerArea.x2 == 1279 && drawerArea.y2 == 719,
               "block drawer should fill the full right edge")) return 1;
-  if (require(lv_color_eq(lv_obj_get_style_bg_color(drawer, LV_PART_MAIN), lv_color_hex(0x191c1f)),
-              "block drawer should use the recessed Panel plate")) return 1;
+  if (require(lv_color_eq(lv_obj_get_style_bg_color(drawer, LV_PART_MAIN), lv_color_hex(ardor::lvgl_ui::panel)),
+              "block drawer should use the Lamp Black plate")) return 1;
   if (require(lv_obj_get_y(delayFilterButton) > lv_obj_get_y(allFilterButton)
               && lv_obj_get_y(reverbFilterButton) == lv_obj_get_y(delayFilterButton)
-                && lv_obj_get_width(allFilterButton) == 105 && lv_obj_get_height(allFilterButton) == 58,
+                && lv_obj_get_width(allFilterButton) == 102 && lv_obj_get_height(allFilterButton) == 52,
               "all seven drawer filters should fill a fixed two-row touch grid")) return 1;
   lv_obj_t* categorySlider = findObjectOfClass(drawer, &lv_slider_class);
   lv_obj_t* filterRow = lv_obj_get_parent(allFilterButton);
   if (require(!categorySlider && !lv_obj_has_flag(filterRow, LV_OBJ_FLAG_SCROLLABLE),
               "category grid should have no competing slider or native scrolling")) return 1;
-  lv_obj_t* drawerInstruction = findLabel(drawer, "ALL MODULES");
-  lv_obj_t* drawerSeparator = findObjectWithSizeAndBgColor(drawer, lv_color_hex(0x3b4247), 444, 1);
+  lv_obj_t* drawerInstruction = findLabel(drawer, "INSERT AFTER ");
   lv_area_t filterArea{};
-  lv_area_t separatorArea{};
   lv_area_t instructionArea{};
   lv_area_t retainedListArea{};
-  if (require(drawerSeparator && drawerInstruction,
-              "drawer should render its list separator and helper text")) return 1;
+  if (require(drawerInstruction, "drawer should name the insert point")) return 1;
   lv_obj_get_coords(filterRow, &filterArea);
-  lv_obj_get_coords(drawerSeparator, &separatorArea);
   lv_obj_get_coords(drawerInstruction, &instructionArea);
   lv_obj_get_coords(retainedAssetList, &retainedListArea);
-  if (require(filterArea.y2 < separatorArea.y1
-                && separatorArea.y2 < instructionArea.y1
-                && instructionArea.y2 < retainedListArea.y1,
-              "drawer categories, separator, helper text, and asset list should not overlap")) return 1;
-  if (require(filterArea.x1 == separatorArea.x1
-                && separatorArea.x1 == instructionArea.x1
-                && instructionArea.x1 == retainedListArea.x1,
-              "drawer section labels and content should share one left edge")) return 1;
+  if (require(instructionArea.y2 < filterArea.y1 && filterArea.y2 < retainedListArea.y1,
+              "the insert line, filters, and asset list should not overlap")) return 1;
+  // Rows bleed 12 px past the content column for their pressed highlight.
+  if (require(filterArea.x1 == instructionArea.x1
+                && retainedListArea.x1 == filterArea.x1 - 12,
+              "drawer sections should share one left edge")) return 1;
+  {
+    // Each row carries a family-coloured type-code square instead of a thin tick.
+    const auto tremAsset = std::find_if(state.assets.begin(), state.assets.end(),
+      [](const ardor::UiAsset& asset) { return asset.name == "Vintage Trem"; });
+    lv_obj_t* tremCode = tremAsset == state.assets.end() ? nullptr
+      : findLabel(tremAssetButton, ardor::assetCode(tremAsset->name, tremAsset->blockType).c_str());
+    if (require(tremCode && lv_color_eq(lv_obj_get_style_bg_color(lv_obj_get_parent(tremCode), LV_PART_MAIN),
+                                        lv_color_hex(ardor::lvgl_ui::categoryColor(tremAsset->type)))
+                  && lv_obj_get_width(lv_obj_get_parent(tremCode)) == 52,
+                "drawer rows should show a family-coloured type-code square")) return 1;
+  }
   lv_obj_send_event(utilityFilterButton, LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
+  if (require(lv_color_eq(lv_obj_get_style_bg_color(utilityFilterButton, LV_PART_MAIN),
+                          lv_color_hex(ardor::lvgl_ui::text))
+                && lv_color_eq(lv_obj_get_style_text_color(utilityFilter, LV_PART_MAIN),
+                               lv_color_hex(ardor::lvgl_ui::bg))
+                && lv_color_eq(lv_obj_get_style_bg_color(allFilterButton, LV_PART_MAIN),
+                               lv_color_hex(ardor::lvgl_ui::bg))
+                && lv_color_eq(lv_obj_get_style_text_color(allFilter, LV_PART_MAIN),
+                               lv_color_hex(ardor::lvgl_ui::text)),
+              "the chosen filter should invert to bone with dark lettering, using palette tokens")) return 1;
   if (require(state.categoryFilter == "utility"
                 && !lv_obj_has_flag(compressorAssetButton, LV_OBJ_FLAG_HIDDEN)
                 && !lv_obj_has_flag(noiseGateAssetButton, LV_OBJ_FLAG_HIDDEN)
@@ -2275,9 +2590,9 @@ int main()
   lv_obj_send_event(delayFilterButton, LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  drawer = findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 480);
+  drawer = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::panel), 480, 720);
   categorySlider = findObjectOfClass(drawer, &lv_slider_class);
-  allFilter = drawer ? findLabel(drawer, "All") : nullptr;
+  allFilter = drawer ? findLabel(drawer, "ALL") : nullptr;
   tremAssetLabel = drawer ? findLabel(drawer, "TAPE DELAY") : nullptr;
   tremAssetButton = tremAssetLabel ? lv_obj_get_parent(tremAssetLabel) : nullptr;
   lv_obj_t* roomReverbLabel = drawer ? findLabel(drawer, "ROOM REVERB") : nullptr;
@@ -2293,10 +2608,28 @@ int main()
               "Delays should hide reverb assets")) return 1;
   if (require(!categorySlider && !lv_obj_has_flag(filterRow, LV_OBJ_FLAG_SCROLLABLE),
               "choosing a category should keep the fixed category grid stable")) return 1;
-  if (require(tremAssetButton && lv_color_eq(lv_obj_get_style_bg_color(tremAssetButton, LV_PART_MAIN), lv_color_hex(0x2a2f33)),
+  if (require(tremAssetButton && lv_color_eq(lv_obj_get_style_bg_color(tremAssetButton, LV_PART_MAIN), lv_color_hex(ardor::lvgl_ui::panel)),
               "drawer asset tiles should be charcoal")) return 1;
   if (require(lv_obj_get_height(tremAssetButton) == 72,
               "drawer asset tiles should have large vertical touch targets")) return 1;
+  {
+    // Child order is fixed: 0 title, 1 code square, 2 subtitle, 3 the + target.
+    lv_obj_t* rows = lv_obj_get_parent(tremAssetButton);
+    int checkedRows = 0;
+    bool clear = true;
+    for (uint32_t row = 0; row < lv_obj_get_child_count(rows); ++row) {
+      lv_obj_t* item = lv_obj_get_child(rows, static_cast<int32_t>(row));
+      if (lv_obj_has_flag(item, LV_OBJ_FLAG_HIDDEN) || lv_obj_get_child_count(item) < 4) continue;
+      lv_area_t subtitleArea{};
+      lv_area_t gripArea{};
+      lv_obj_get_coords(lv_obj_get_child(item, 2), &subtitleArea);
+      lv_obj_get_coords(lv_obj_get_child(item, 3), &gripArea);
+      clear = clear && subtitleArea.x2 < gripArea.x1;
+      ++checkedRows;
+    }
+    if (require(checkedRows > 0 && clear,
+                "drawer subtitles should end before the + target")) return 1;
+  }
   lv_obj_t* assetList = lv_obj_get_parent(tremAssetButton);
   if (require(lv_obj_has_flag(assetList, LV_OBJ_FLAG_SCROLLABLE)
                 && lv_obj_get_scroll_dir(assetList) == LV_DIR_VER,
@@ -2311,7 +2644,7 @@ int main()
   lv_obj_send_event(reverbFilterButton, LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  drawer = findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 480);
+  drawer = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::panel), 480, 720);
   tremAssetLabel = drawer ? findLabel(drawer, "TAPE DELAY") : nullptr;
   tremAssetButton = tremAssetLabel ? lv_obj_get_parent(tremAssetLabel) : nullptr;
   roomReverbLabel = drawer ? findLabel(drawer, "ROOM REVERB") : nullptr;
@@ -2321,11 +2654,11 @@ int main()
                 && !lv_obj_has_flag(roomReverbButton, LV_OBJ_FLAG_HIDDEN),
               "Reverbs should show reverb assets and hide delay assets")) return 1;
 
-  allFilter = drawer ? findLabel(drawer, "All") : nullptr;
+  allFilter = drawer ? findLabel(drawer, "ALL") : nullptr;
   lv_obj_send_event(lv_obj_get_parent(allFilter), LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  drawer = findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 480);
+  drawer = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::panel), 480, 720);
   lv_obj_t* firstAssetLabel = drawer ? findLabel(drawer, upper(state.assets.front().name).c_str()) : nullptr;
   assetList = firstAssetLabel ? lv_obj_get_parent(lv_obj_get_parent(firstAssetLabel)) : nullptr;
   if (require(assetList, "all-assets drawer list should render")) return 1;
@@ -2337,12 +2670,12 @@ int main()
   lv_obj_send_event(assetList, LV_EVENT_SCROLL_BEGIN, nullptr);
   ui.invalidate(ardor::UiChange::Drawers);
   ui.refresh(lv_screen_active(), state);
-  if (require(findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 480) == drawer,
+  if (require(findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::panel), 480, 720) == drawer,
               "pending refresh should not delete the drawer during scrolling")) return 1;
   lv_obj_send_event(assetList, LV_EVENT_SCROLL_END, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  drawer = findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 480);
+  drawer = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::panel), 480, 720);
   firstAssetLabel = drawer ? findLabel(drawer, upper(state.assets.front().name).c_str()) : nullptr;
   assetList = firstAssetLabel ? lv_obj_get_parent(lv_obj_get_parent(firstAssetLabel)) : nullptr;
   if (require(assetList && lv_obj_get_scroll_y(assetList) == savedScrollOffset,
@@ -2367,7 +2700,7 @@ int main()
   fullState.blockDrawerOpen = true;
   ui.build(lv_screen_active(), fullState);
   lv_obj_update_layout(lv_screen_active());
-  drawer = findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 480);
+  drawer = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::panel), 480, 720);
   firstAssetLabel = drawer ? findLabel(drawer, upper(fullState.assets.front().name).c_str()) : nullptr;
   if (require(drawer && findLabel(drawer, "CHAIN FULL - DELETE A BLOCK TO ADD")
                 && firstAssetLabel
@@ -2378,9 +2711,9 @@ int main()
 
   // The scrim dims the chain (Panel plate at ~55% opacity) rather than
   // covering it outright, so the chosen insertion point stays visible.
-  lv_obj_t* scrim = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 800, 720);
+  lv_obj_t* scrim = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x08090a), 800, 720);
   if (require(scrim && lv_obj_has_flag(scrim, LV_OBJ_FLAG_CLICKABLE)
-                && lv_obj_get_style_bg_opa(scrim, LV_PART_MAIN) == 140,
+                && lv_obj_get_style_bg_opa(scrim, LV_PART_MAIN) == 184,
               "block drawer should dim the chain with a tappable modal scrim")) return 1;
   lv_obj_send_event(scrim, LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
@@ -2388,7 +2721,7 @@ int main()
   ardor::openBlockDrawer(state);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  drawer = findObjectWithBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 480);
+  drawer = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::panel), 480, 720);
   lv_obj_t* digitalDelayLabel = drawer ? findLabel(drawer, "DIGITAL DELAY") : nullptr;
   if (require(digitalDelayLabel, "drawer should reopen after modal dismissal")) return 1;
   const auto blocksBeforeQuickAdd = state.bank.presets[state.activePreset].blocks.size();
@@ -2403,7 +2736,7 @@ int main()
   if (require(addedDelayCard
                 && lv_obj_get_style_border_width(addedDelayCard, LV_PART_MAIN) == 3
                 && lv_color_eq(lv_obj_get_style_border_color(addedDelayCard, LV_PART_MAIN),
-                               lv_color_hex(0xe2e4e3)),
+                               lv_color_hex(ardor::lvgl_ui::text)),
               "newly added block should receive a clear highlight")) return 1;
   completePreview(state);
 
@@ -2417,19 +2750,19 @@ int main()
   ui.selectBlock(state, state.bank.presets[state.activePreset].blocks.size() - 1);
   ui.build(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  if (require(findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 1240, 578),
+  if (require(findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::panel), 1280, 548),
               "EQ should open as the main editor surface")) return 1;
-  lv_obj_t* eqPanel = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 1240, 578);
-  lv_obj_t* eqGraph = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 1184, 236);
+  lv_obj_t* eqPanel = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::panel), 1280, 548);
+  lv_obj_t* eqGraph = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::bg), 1232, 186);
   if (require(eqGraph,
               "EQ main editor should reserve a tall response graph")) return 1;
-  if (require(findLabel(lv_screen_active(), "Parametric EQ"), "EQ should render its dedicated editor title")) return 1;
-  if (require(findLabelContaining(lv_screen_active(), "Band 1"), "EQ should render its selected-band strip")) return 1;
-  if (require(findLabel(lv_screen_active(), "Reset Band"), "EQ should render a reset-band control")) return 1;
-  lv_obj_t* eqHeaderDelete = lv_obj_get_parent(findLabel(lv_screen_active(), "Delete Block"));
-  lv_obj_t* eqBypassLabel = findLabel(eqPanel, "Bypass");
+  if (require(findLabel(eqPanel, "FIVE BAND EQ"), "EQ should render its block name")) return 1;
+  if (require(findLabelContaining(lv_screen_active(), "BAND 1"), "EQ should name the selected band")) return 1;
+  if (require(findLabel(lv_screen_active(), "RESET BAND"), "EQ should render a reset-band control")) return 1;
+  lv_obj_t* eqHeaderDelete = lv_obj_get_parent(findLastLabel(lv_screen_active(), "DELETE"));
+  lv_obj_t* eqBypassLabel = findLabel(eqPanel, "BLOCK");
   lv_obj_t* eqHeaderBypass = eqBypassLabel ? lv_obj_get_parent(eqBypassLabel) : nullptr;
-  lv_obj_t* eqHeaderClose = lv_obj_get_parent(findLabel(lv_screen_active(), "Close"));
+  lv_obj_t* eqHeaderClose = lv_obj_get_parent(findLastLabel(lv_screen_active(), "DONE"));
   if (require(eqHeaderDelete && eqHeaderBypass && eqHeaderClose,
               "EQ should render the shared rectangular header actions")) return 1;
   lv_area_t eqPanelArea{};
@@ -2448,9 +2781,9 @@ int main()
   if (require(std::abs((eqGraphArea.x1 - eqPanelArea.x1) - (eqPanelArea.x2 - eqGraphArea.x2)) <= 2,
               "EQ response graph should have equal left and right insets")) return 1;
   if (require(eqDeleteArea.y1 + eqDeleteArea.y2 == eqBypassArea.y1 + eqBypassArea.y2
-                && eqBypassArea.y1 + eqBypassArea.y2 == eqCloseArea.y1 + eqCloseArea.y2,
-              "EQ Delete, Bypass, and Close controls should share one centre line")) return 1;
-  if (require(eqGraphArea.y1 > std::max({eqDeleteArea.y2, eqBypassArea.y2, eqCloseArea.y2}) + 10,
+                && eqCloseArea.y1 >= 612,
+              "EQ Delete and Block share the header row; Done sits on the rail")) return 1;
+  if (require(eqGraphArea.y1 > std::max(eqDeleteArea.y2, eqBypassArea.y2) + 10,
               "EQ response graph should not overlap the header actions")) return 1;
   lv_obj_t* eqNodeLabel = findLabel(eqGraph, "B1");
   if (require(eqNodeLabel && lv_obj_get_width(lv_obj_get_parent(eqNodeLabel)) == 44
@@ -2459,7 +2792,7 @@ int main()
   lv_obj_t* eqNode = lv_obj_get_parent(eqNodeLabel);
   lv_obj_t* eqNodeMark = lv_obj_get_child(eqNode, 0);
   if (require(eqNodeMark && lv_obj_get_width(eqNodeMark) == 19 && lv_obj_get_height(eqNodeMark) == 19
-                && lv_color_eq(lv_obj_get_style_bg_color(eqNodeMark, LV_PART_MAIN), lv_color_hex(0xd8422f)),
+                && lv_color_eq(lv_obj_get_style_bg_color(eqNodeMark, LV_PART_MAIN), lv_color_hex(ardor::lvgl_ui::lamp)),
               "the selected band's node mark should be sized and coloured on the very first render, "
               "not only after the next drag or slider tweak repaints the graph")) return 1;
   lv_obj_t* frequencyLabel = findLabel(lv_screen_active(), "FREQUENCY");
@@ -2469,7 +2802,7 @@ int main()
               "EQ should render frequency, Q, and gain as dedicated sliders")) return 1;
   lv_obj_t* frequencySlider = lv_obj_get_parent(frequencyLabel);
   const int freqFillWidthBeforeNodeDrag = [&] {
-    lv_obj_t* fill = findObjectWithHeight(frequencySlider, 16);
+    lv_obj_t* fill = findTravelFill(frequencySlider);
     return fill ? lv_obj_get_width(fill) : -1;
   }();
   lv_area_t eqNodeArea{};
@@ -2484,7 +2817,7 @@ int main()
   nodePointer.point.x += 200;
   lv_indev_read(nodeInput);
   lv_obj_update_layout(frequencySlider);
-  lv_obj_t* freqFillDuringNodeDrag = findObjectWithHeight(frequencySlider, 16);
+  lv_obj_t* freqFillDuringNodeDrag = findTravelFill(frequencySlider);
   if (require(freqFillDuringNodeDrag
                 && lv_obj_get_width(freqFillDuringNodeDrag) != freqFillWidthBeforeNodeDrag,
               "dragging an EQ graph node should live-update the Frequency slider before release, "
@@ -2496,9 +2829,9 @@ int main()
   lv_obj_t* qSlider = lv_obj_get_parent(qLabel);
   // Q is the band editor's default encoder target (spec 9.1), so its slider
   // starts focused/lamp-coloured as soon as the EQ editor opens.
-  lv_obj_t* qFill = findObjectWithHeight(qSlider, 16);
+  lv_obj_t* qFill = findTravelFill(qSlider);
   if (require(qFill && !findObjectOfClass(qSlider, &lv_arc_class)
-                && lv_obj_get_width(qSlider) == 385 && lv_obj_get_height(qSlider) == 132
+                && lv_obj_get_width(qSlider) == 403 && lv_obj_get_height(qSlider) == 166
                 && lv_obj_get_style_radius(qSlider, LV_PART_MAIN) == 0,
               "EQ controls should use the same engraved-scale slider visuals")) return 1;
   const float qBeforeDrag = ardor::selectedParametricEqParams(state).bands[0].q;
@@ -2523,11 +2856,20 @@ int main()
   lv_indev_read(eqInput);
   ui.refresh(lv_screen_active(), state);
   lv_indev_delete(eqInput);
-  lv_obj_t* graph = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 1184, 236);
+  lv_obj_t* graph = findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::bg), 1232, 186);
   lv_obj_t* responseLine = findLineWithPointCount(graph, ardor::kEqCurvePointCount);
   lv_obj_t* gainSlider = lv_obj_get_parent(findLabel(lv_screen_active(), "GAIN"));
-  const int responsePoint = 51;  // Band 1 is centred at 80 Hz, roughly 20% into the log graph.
-  const int32_t responseYBefore = lv_line_get_points(responseLine)[responsePoint].y;
+  // Earlier drags moved band 1 and narrowed it, so compare the whole curve.
+  std::vector<int32_t> responseYBefore;
+  for (uint32_t point = 0; point < lv_line_get_point_count(responseLine); ++point) {
+    responseYBefore.push_back(lv_line_get_points(responseLine)[point].y);
+  }
+  const auto responseChanged = [&]() {
+    for (uint32_t point = 0; point < lv_line_get_point_count(responseLine); ++point) {
+      if (lv_line_get_points(responseLine)[point].y != responseYBefore[point]) return true;
+    }
+    return false;
+  };
   lv_area_t gainSliderArea{};
   lv_obj_get_coords(gainSlider, &gainSliderArea);
   SimulatedPointer gainPointer{{(gainSliderArea.x1 + gainSliderArea.x2) / 2,
@@ -2540,7 +2882,7 @@ int main()
   lv_indev_read(gainInput);
   gainPointer.point.x = gainSliderArea.x1 + (lv_obj_get_width(gainSlider) * 3) / 4;
   lv_indev_read(gainInput);
-  if (require(lv_line_get_points(responseLine)[responsePoint].y != responseYBefore,
+  if (require(responseChanged(),
               "EQ response graph should redraw during a slider drag")) return 1;
   gainPointer.state = LV_INDEV_STATE_RELEASED;
   lv_indev_read(gainInput);
@@ -2551,16 +2893,16 @@ int main()
   lv_obj_t* bandTwoLabel = findLabelContaining(lv_screen_active(), "B2");
   lv_obj_send_event(lv_obj_get_parent(bandTwoLabel), LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
-  if (require(findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 1184, 236)
+  if (require(findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::bg), 1232, 186)
                 == retainedEqGraph
                 && lv_obj_get_parent(findLabel(lv_screen_active(), "Q")) == retainedQSlider,
               "EQ band selection should retain the response graph and slider objects")) return 1;
   lv_obj_t* highPassLabel = findLabelContaining(lv_screen_active(), "HP  ");
   lv_obj_send_event(lv_obj_get_parent(highPassLabel), LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
-  if (require(findLabelContaining(lv_screen_active(), "High-pass filter") != nullptr,
+  if (require(findLabelContaining(lv_screen_active(), "HIGH-PASS FILTER") != nullptr,
               "EQ should expose a selectable high-pass stage")) return 1;
-  lv_obj_t* filterOffLabel = findLabel(lv_screen_active(), "Filter Off");
+  lv_obj_t* filterOffLabel = findLabel(lv_screen_active(), "FILTER OFF");
   lv_obj_send_event(lv_obj_get_parent(filterOffLabel), LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
   if (require(ardor::selectedParametricEqParams(state).highPass.enabled,
@@ -2575,13 +2917,13 @@ int main()
                 && ardor::selectedParametricEqParams(state).highPass.slopeDbPerOctave
                   > slopeBefore,
               "hardware encoder should move pass-filter slope between supported choices")) return 1;
-  lv_obj_t* deleteBlockLabel = findLabel(lv_screen_active(), "Delete Block");
-  if (require(deleteBlockLabel && lv_obj_get_width(lv_obj_get_parent(deleteBlockLabel)) >= 156
+  lv_obj_t* deleteBlockLabel = findLastLabel(lv_screen_active(), "DELETE");
+  if (require(deleteBlockLabel && lv_obj_get_width(lv_obj_get_parent(deleteBlockLabel)) >= 124
                 && lv_obj_get_height(lv_obj_get_parent(deleteBlockLabel)) >= 48,
               "EQ should render a finger-sized delete-block control")) return 1;
   if (require(findLineWithPointCount(lv_screen_active(), ardor::kEqCurvePointCount),
               "EQ should render a sampled response curve")) return 1;
-  lv_obj_t* eqCloseLabel = findLabel(lv_screen_active(), "Close");
+  lv_obj_t* eqCloseLabel = findLastLabel(lv_screen_active(), "DONE");
   lv_obj_t* eqCloseButton = eqCloseLabel ? lv_obj_get_parent(eqCloseLabel) : nullptr;
   lv_obj_send_event(eqCloseButton, LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
@@ -2591,10 +2933,10 @@ int main()
   ui.selectBlock(state, state.bank.presets[state.activePreset].blocks.size() - 1);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  if (require(findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(0x191c1f), 1184, 236)
+  if (require(findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::bg), 1232, 186)
                 == retainedEqGraph,
               "closing and reopening EQ should reactivate the retained editor")) return 1;
-  deleteBlockLabel = findLabel(lv_screen_active(), "Delete Block");
+  deleteBlockLabel = findLastLabel(lv_screen_active(), "DELETE");
   const auto blocksBeforeDelete = state.bank.presets[state.activePreset].blocks.size();
   lv_obj_send_event(lv_obj_get_parent(deleteBlockLabel), LV_EVENT_CLICKED, nullptr);
   ui.refresh(lv_screen_active(), state);
@@ -2605,7 +2947,8 @@ int main()
   ardor::updateTunerTelemetry(state, {true, 82.4f, -2.0f, 0.96f, "E", 2});
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
-  lv_obj_t* tunerExitLabel = findLabel(lv_screen_active(), "Exit");
+  // The tuner layer precedes the looper's, so the first EXIT is the tuner's.
+  lv_obj_t* tunerExitLabel = findLabel(lv_screen_active(), "EXIT");
   lv_obj_t* tunerExitButton = tunerExitLabel ? lv_obj_get_parent(tunerExitLabel) : nullptr;
   if (require(findLabel(lv_screen_active(), "TUNER")
                 && findLabel(lv_screen_active(), "OUTPUT MUTED")
@@ -2613,18 +2956,19 @@ int main()
                 && findLabel(lv_screen_active(), "FLAT")
                 && findLabel(lv_screen_active(), "IN TUNE")
                 && findLabel(lv_screen_active(), "SHARP")
-                && findObjectWithBgColor(lv_screen_active(), lv_color_hex(0xd8422f), 11)
-                && findLabel(lv_screen_active(), "Press any footswitch to exit")
-                && tunerExitButton && lv_obj_get_width(tunerExitButton) == 120
+                && findObjectWithSizeAndBgColor(lv_screen_active(), lv_color_hex(ardor::lvgl_ui::lamp),
+                                                520, 250)
+                && findLabel(lv_screen_active(), "PRESS ANY FOOTSWITCH TO EXIT")
+                && tunerExitButton && lv_obj_get_width(tunerExitButton) == 124
                 && lv_obj_get_height(tunerExitButton) == 60,
-              "tuner mode should render live note, mute state, and three-lamp guidance")) return 1;
+              "tuner mode should flood the note plate when in tune and show the verdict row")) return 1;
   lv_obj_send_event(tunerExitButton, LV_EVENT_PRESSED, nullptr);
   if (require(requestedTunerMode == 0 && state.mode == ardor::UiMode::Tuner,
               "the tuner Exit button should request a host-level audio restore")) return 1;
   requestedTunerMode = -1;
   ardor::enterPresetMode(state);
   ui.refresh(lv_screen_active(), state);
-  if (require(findLabel(lv_screen_active(), "Edit"),
+  if (require(findLabel(lv_screen_active(), "EDIT"),
               "exiting tuner should restore the preset screen")) return 1;
 
   auto overlayState = ardor::makeDemoUiState();
@@ -2660,18 +3004,21 @@ int main()
   navigationUi.build(lv_screen_active(), navigationState);
   navigationUi.selectPreset(navigationState, 1);
   navigationUi.refresh(lv_screen_active(), navigationState);
+  // Other dialogs carry the same legends, so search inside the prompt.
+  lv_obj_t* navigationTitle = findLabel(lv_screen_active(), "UNSAVED CHANGES");
+  lv_obj_t* navigationDialog = navigationTitle ? lv_obj_get_parent(navigationTitle) : nullptr;
   if (require(navigationState.activePreset == 0 && navigationState.navigationPrompt.has_value()
-                && findLabel(lv_screen_active(), "Unsaved changes")
-                && findLabel(lv_screen_active(), "Save") && findLabel(lv_screen_active(), "Discard")
-                && findLabel(lv_screen_active(), "Cancel"),
+                && navigationDialog
+                && findLabel(navigationDialog, "SAVE") && findLabel(navigationDialog, "DISCARD")
+                && findLabel(navigationDialog, "CANCEL"),
               "dirty navigation should retain the draft and present Save/Discard/Cancel")) return 1;
-  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "Cancel")), LV_EVENT_CLICKED, nullptr);
+  lv_obj_send_event(lv_obj_get_parent(findLabel(navigationDialog, "CANCEL")), LV_EVENT_CLICKED, nullptr);
   if (require(navigationDecision == ardor::UiNavigationDecision::Cancel
                 && !navigationState.navigationPrompt.has_value() && navigationState.activePreset == 0,
               "Cancel should retain the current draft and selection")) return 1;
   navigationUi.selectPreset(navigationState, 1);
   navigationUi.refresh(lv_screen_active(), navigationState);
-  lv_obj_send_event(lv_obj_get_parent(findLabel(lv_screen_active(), "Discard")), LV_EVENT_CLICKED, nullptr);
+  lv_obj_send_event(lv_obj_get_parent(findLabel(navigationDialog, "DISCARD")), LV_EVENT_CLICKED, nullptr);
   if (require(navigationDecision == ardor::UiNavigationDecision::Discard
                 && !navigationState.navigationPrompt.has_value(),
               "Discard should release the selected destination for activation")) return 1;
@@ -2702,14 +3049,16 @@ int main()
   if (require(gainMeterLabel, "compressor panel should render the gain-reduction meter at 0 dB "
                               "before any reduction has been reported")) return 1;
   lv_obj_t* gainMeterPill = lv_obj_get_parent(gainMeterLabel);
-  lv_obj_t* gainMeterDeleteButton = lv_obj_get_parent(findLabel(lv_screen_active(), "Delete Block"));
+  // The GR readout sits just before the Block control in the header row.
+  lv_obj_t* gainMeterBlockButton = lv_obj_get_parent(findLastLabel(lv_screen_active(), "BLOCK"));
   lv_area_t gainMeterArea{};
-  lv_area_t gainMeterDeleteArea{};
+  lv_area_t gainMeterBlockArea{};
   lv_obj_get_coords(gainMeterPill, &gainMeterArea);
-  lv_obj_get_coords(gainMeterDeleteButton, &gainMeterDeleteArea);
-  if (require(lv_obj_get_width(gainMeterPill) == 120 && lv_obj_get_height(gainMeterPill) == 52
-                && gainMeterArea.x2 < gainMeterDeleteArea.x1,
-              "the gain-reduction meter should sit as a fixed-size pill just before Delete Block"))
+  lv_obj_get_coords(gainMeterBlockButton, &gainMeterBlockArea);
+  if (require(lv_obj_get_width(gainMeterPill) == 124 && lv_obj_get_height(gainMeterPill) == 60
+                && gainMeterArea.x2 < gainMeterBlockArea.x1
+                && gainMeterArea.y1 == gainMeterBlockArea.y1,
+              "the gain-reduction meter should sit as a fixed-size readout just before Block"))
     return 1;
 
   ardor::updateCompressorGainReduction(gainMeterState, -6.0f);

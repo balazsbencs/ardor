@@ -2,6 +2,7 @@
 
 #include "ui/EqEditorModel.h"
 #include "ui/ParameterControls.h"
+#include "ui/PresetChainStrip.h"
 
 #include <algorithm>
 #include <array>
@@ -252,6 +253,7 @@ private:
   void syncChainCards(UiState& state);
   void syncDrawerAssets(UiState& state);
   void syncDrawerView(UiState& state);
+  void orderDrawerList(const UiState& state, const std::vector<lv_obj_t*>& buttons);
   void syncParameterView(UiState& state);
   // Reads state.compressorGainReductionDb into the meter widget directly.
   // Called from refresh() BEFORE the activeInteractions_ gate (same carve-out
@@ -262,6 +264,11 @@ private:
   void syncModeVisibility(const UiState& state);
   void syncHeaderView(const UiState& state);
   void syncPresetCards(const UiState& state);
+  void stylePresetCard(const UiState& state, std::size_t index);
+  static void renderChainSummary(lv_obj_t* container, const UiState& state, const UiBlock& block);
+  void styleChainCard(const UiState& state, std::size_t index);
+  void syncChainLiftPlate(const UiState& state);
+  void syncParameterChipStrip(UiState& state);
   void syncScenesView(const UiState& state);
   void syncStatusView(const UiState& state);
   void syncPersistentViews(UiState& state);
@@ -327,10 +334,13 @@ private:
   // Preset screen's own top legend rail + bottom control rail (per
   // docs/lvgl-ui-redesign-spec.md §4f). Distinct from the shared status-bar
   // members above, which remain in use by the screens not yet migrated.
+  lv_obj_t* presetBankLabel_ = nullptr;
+  lv_obj_t* presetBankTitleLabel_ = nullptr;
+  // Rail controls in order, re-laid out when the Looper legend changes width.
+  std::vector<lv_obj_t*> presetRailItems_;
   lv_obj_t* presetTelemetryLabel_ = nullptr;
   lv_obj_t* presetMasterValueLabel_ = nullptr;
-  lv_obj_t* presetMasterScaleFill_ = nullptr;
-  lv_obj_t* presetMasterPointer_ = nullptr;
+  lv_obj_t* presetMasterMeter_ = nullptr;
   lv_obj_t* presetLooperLabel_ = nullptr;
   std::array<lv_obj_t*, 4> sceneCardButtons_{};
   std::array<lv_obj_t*, 4> sceneHeaderStrips_{};
@@ -354,6 +364,7 @@ private:
   lv_obj_t* undoButton_ = nullptr;
   std::uint64_t statusToastRevision_ = 0;
   const UiState* statusToastState_ = nullptr;
+  lv_obj_t* tunerPlate_ = nullptr;
   lv_obj_t* tunerNoteLabel_ = nullptr;
   lv_obj_t* tunerFrequencyLabel_ = nullptr;
   lv_obj_t* tunerCentsLabel_ = nullptr;
@@ -399,15 +410,23 @@ private:
   lv_obj_t* looperClearTrackOverlay_ = nullptr;
   std::array<lv_obj_t*, 4> presetCardLabels_{};
   std::array<lv_obj_t*, 4> presetCardButtons_{};
+  // LIVE tag plate per tile; shown only on the active preset.
   std::array<lv_obj_t*, 4> presetHeaderStrips_{};
   std::array<lv_obj_t*, 4> presetHeaderLabels_{};
-  std::array<lv_obj_t*, 4> presetNumerals_{};
+  // Chain strip per preset tile. The cache keeps retained syncs from
+  // rebuilding segments when neither the chain nor the LIVE state changed.
+  std::array<lv_obj_t*, 4> presetChainStrips_{};
+  std::array<std::vector<ChainStripSegment>, 4> presetChainStripCache_{};
+  std::array<bool, 4> presetChainStripLive_{};
   std::array<lv_obj_t*, 4> presetWarningLabels_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainCards_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainCategoryLabels_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainAssetLabels_{};
   std::array<lv_obj_t*, kMaxEffectBlocks> chainBypassLabels_{};
-  std::array<lv_obj_t*, kMaxEffectBlocks> chainFamilyTicks_{};
+  // Up to two value rows per card, and one hard offset plate that lifts the
+  // selected card.
+  std::array<lv_obj_t*, kMaxEffectBlocks> chainSummaries_{};
+  lv_obj_t* chainLiftPlate_ = nullptr;
   std::array<UiEventContext*, kMaxEffectBlocks> chainClickContexts_{};
   std::array<UiEventContext*, kMaxEffectBlocks> chainDragContexts_{};
   std::vector<std::string> renderedBlockIds_;
@@ -423,6 +442,8 @@ private:
   static constexpr std::size_t kDrawerCategoryCount = 8;
   std::array<lv_obj_t*, kDrawerCategoryCount> drawerCategoryButtons_{};
   std::vector<lv_obj_t*> drawerAssetButtons_;
+  // One header row per module family in the drawer list, keyed by filter.
+  std::vector<std::pair<std::string, lv_obj_t*>> drawerGroupHeaders_;
   std::vector<UiEventContext*> drawerAssetContexts_;
   std::vector<lv_obj_t*> drawerAssetSubtitleLabels_;
   std::vector<std::string> renderedAssetKeys_;
@@ -432,6 +453,12 @@ private:
   lv_obj_t* drawerFooterCountLabel_ = nullptr;
   std::vector<lv_obj_t*> parameterControls_;
   lv_obj_t* parameterTitleLabel_ = nullptr;
+  // Chip strip above the parameter drawer: one chip per top-level block.
+  // It lives until the next full build(), with one shared click context;
+  // each chip stores its block index as user data.
+  lv_obj_t* parameterChipStrip_ = nullptr;
+  UiEventContext* parameterChipContext_ = nullptr;
+  std::vector<std::string> renderedChipKeys_;
   lv_obj_t* parameterBypassControl_ = nullptr;
   lv_obj_t* parameterMappingToolbar_ = nullptr;
   lv_obj_t* eqGraph_ = nullptr;

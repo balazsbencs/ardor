@@ -119,15 +119,21 @@ Eleven tokens plus six family colours. Every screen is built from these and noth
 
 ### 4.2 The three palettes
 
-**Slate — default.** Cool neutral graphite, signal red.
+**Slate — default.** Carries the **Lamp Black** values (2026-09-24,
+`mockups/lvgl-taste/1-lamp-black.html`): a near-black ground so plates sit clearly above it,
+a lamp bright enough to flood the live tile, and family colours raised in chroma for the
+chain strip. The earlier Slate values had three plates within a few percent of luminance,
+which made every surface read as the same grey.
 
 ```
-plate #212528  plate2 #2a2f33  plate3 #191c1f
-engrave #e2e4e3  engrave_lo #8d9499  engrave_off #5b6266  rule #3b4247
-lamp #d8422f   warn #c9973f  faultline #6b463c  faulttext #bb9186
+plate #0b0c0d  plate2 #16181a  plate3 #121416
+engrave #eceeed  engrave_lo #9aa1a6  engrave_off #5c6368  rule #2b2f33
+lamp #e8472f   warn #e0a53c  faultline #6b463c  faulttext #d19a8c
 laneL #7fa6c8  laneR #c9a06a
-amp #a8814e  cab #939a9e  util #5f7f9c  mod #5d8f80  dly #8175a0  verb #a8785c
+amp #d2923f  cab #aab2b7  util #5f95c9  mod #3fb08c  dly #9a82d6  verb #d07a5a
 ```
+
+Dark lettering on the flooded lamp uses `plate` (`#0b0c0d` on `#e8472f` is about 5:1).
 
 **Ink.** Deep navy, ice cyan. Most legible at a steep angle.
 
@@ -445,9 +451,13 @@ Two existing decorative marks are retired: the settings gear icon
 
 ### Notes on specific screens
 
-**Preset.** Four tiles. Live tile differs by lit lamp, full-chroma header, `lamp` numeral and
-`lamp` border. Fault tile takes `faultline` border, a `verb` lamp and a legend chip naming
-the missing asset. Master volume and headroom live in the bottom rail as an engraved scale.
+**Preset.** Four tiles. The live tile floods its whole face with `lamp` and letters it in
+`plate`. Each tile carries a chain strip along its foot: one segment per block, coloured by
+family, named by a short code (`PresetChainStrip.h`); on the live tile the strip inverts to
+`plate` cells with `lamp` codes. The strip replaces the corner numeral, which only repeated
+the FS legend. A faulted live tile does not flood: it keeps the `faultline` border and the
+legend chip on a plain plate. The top rail names the bank; latency sits muted on the right.
+Master is a numeral plus a 16-segment meter in `engrave`, never `lamp`.
 
 **Module drawer.** 480 px from the right, dimming the chain behind rather than covering it,
 so the chosen insertion point stays visible as a dashed slot on the rail. Seven filters in
@@ -691,8 +701,8 @@ std::array<lv_obj_t*, 4> presetNomenRows_{};
 
 | State | Treatment |
 |---|---|
-| Live | Border, header strip and numeral take `lamp`; lamp lit; header legend adds `· Running` |
-| Normal | `rule` border, `plate3` header, `engrave_lo` numeral, unlit lamp |
+| Live | Whole tile floods with `lamp`, lettering in `plate`, header legend adds `· LIVE`, chain strip inverts |
+| Normal | `rule` border, `plate2` face, `engrave_lo` FS legend, family-coloured chain strip |
 | Fault | `faultline` border, `verb` lamp, name in `faulttext`, legend chip naming the missing asset |
 | Empty | Hidden, as today |
 

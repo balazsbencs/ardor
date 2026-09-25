@@ -2,6 +2,7 @@
 
 #include "ui/LvglUiNavigation.h"
 #include "ui/LvglUiStatus.h"
+#include "ui/LampBlack.h"
 #include "ui/LvglUiStyle.h"
 
 #include <array>
@@ -98,6 +99,9 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   focusedEqGraph_ = nullptr;
   parameterViews_.clear();
   activeParameterLayer_ = nullptr;
+  parameterChipStrip_ = nullptr;
+  parameterChipContext_ = nullptr;
+  renderedChipKeys_.clear();
   if (state.mode == UiMode::Preset || state.mode == UiMode::Scenes || !state.paramDrawerOpen) {
     resetParameterPage();
   }
@@ -152,106 +156,81 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   drawerLayer_ = createLayer();
   statusLayer_ = createLayer();
   settingsLayer_ = createLayer();
-  navigationOverlay_ = lv_obj_create(canvas);
-  lv_obj_set_size(navigationOverlay_, kDesignWidth, kDesignHeight);
-  lv_obj_set_pos(navigationOverlay_, 0, 0);
-  lv_obj_set_style_bg_color(navigationOverlay_, lv_color_hex(0x000000), 0);
-  lv_obj_set_style_bg_opa(navigationOverlay_, LV_OPA_70, 0);
-  lv_obj_set_style_border_width(navigationOverlay_, 0, 0);
-  lv_obj_remove_flag(navigationOverlay_, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_t* prompt = lv_label_create(navigationOverlay_);
-  lv_label_set_text(prompt, "Unsaved changes");
-  lv_obj_set_style_text_color(prompt, lv_color_hex(text), 0);
-  lv_obj_set_style_text_font(prompt, &ardor_font_saira_cond_semibold_22, 0);
-  lv_obj_align(prompt, LV_ALIGN_CENTER, 0, -92);
-  lv_obj_t* guidance = lv_label_create(navigationOverlay_);
-  lv_label_set_text(guidance, "Save changes before switching presets?");
-  lv_obj_set_style_text_color(guidance, lv_color_hex(muted), 0);
-  lv_obj_align(guidance, LV_ALIGN_CENTER, 0, -52);
-  const std::array<std::string, 3> choices = {"Save", "Discard", "Cancel"};
-  for (std::size_t i = 0; i < choices.size(); ++i) {
-    lv_obj_t* choice = button(navigationOverlay_, choices[i]);
-    lv_obj_set_size(choice, 150, 56);
-    lv_obj_align(choice, LV_ALIGN_CENTER, static_cast<int>(i) * 166 - 166, 18);
-    if (i == 0) styleSurface(choice, panel);
-    lv_obj_add_event_cb(choice, onNavigationDecision, LV_EVENT_CLICKED, remember(state, i));
+  // Unsaved-changes prompt before a preset switch.
+  {
+    constexpr int kWidth = 660;
+    constexpr int kHeight = 250;
+    navigationOverlay_ = lb::createOverlay(canvas);
+    lv_obj_t* prompt = lb::createDialog(navigationOverlay_, kWidth, kHeight, "UNSAVED CHANGES");
+    lb::dialogBody(prompt, "SAVE CHANGES BEFORE SWITCHING PRESETS?", kWidth);
+    const auto choices = lb::dialogActions(prompt, kWidth, kHeight,
+      {{"Save", lb::ButtonKind::Primary}, {"Discard", lb::ButtonKind::Danger},
+       {"Cancel", lb::ButtonKind::Normal}});
+    for (std::size_t i = 0; i < choices.size(); ++i) {
+      lv_obj_add_event_cb(choices[i], onNavigationDecision, LV_EVENT_CLICKED, remember(state, i));
+    }
+    lv_obj_add_flag(navigationOverlay_, LV_OBJ_FLAG_HIDDEN);
   }
-  lv_obj_add_flag(navigationOverlay_, LV_OBJ_FLAG_HIDDEN);
 
-  midiLearnOverlay_ = lv_obj_create(canvas);
-  lv_obj_set_size(midiLearnOverlay_, kDesignWidth, kDesignHeight);
-  lv_obj_set_pos(midiLearnOverlay_, 0, 0);
-  lv_obj_set_style_bg_color(midiLearnOverlay_, lv_color_hex(0x000000), 0);
-  lv_obj_set_style_bg_opa(midiLearnOverlay_, LV_OPA_80, 0);
-  lv_obj_set_style_border_width(midiLearnOverlay_, 0, 0);
-  lv_obj_remove_flag(midiLearnOverlay_, LV_OBJ_FLAG_SCROLLABLE);
-
-  lv_obj_t* learnCard = lv_obj_create(midiLearnOverlay_);
-  lv_obj_set_size(learnCard, 760, 430);
-  lv_obj_align(learnCard, LV_ALIGN_CENTER, 0, -10);
-  styleSurface(learnCard, panelAlt);
-  lv_obj_remove_flag(learnCard, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_t* learnTitle = lv_label_create(learnCard);
-  lv_label_set_text(learnTitle, "MIDI Learn");
-  lv_obj_set_style_text_color(learnTitle, lv_color_hex(text), 0);
-  lv_obj_set_style_text_font(learnTitle, &ardor_font_saira_cond_semibold_22, 0);
-  lv_obj_align(learnTitle, LV_ALIGN_TOP_LEFT, 28, 22);
-  midiLearnGuidanceLabel_ = lv_label_create(learnCard);
-  lv_obj_set_width(midiLearnGuidanceLabel_, 690);
-  lv_obj_set_style_text_color(midiLearnGuidanceLabel_, lv_color_hex(muted), 0);
-  lv_obj_set_style_text_align(midiLearnGuidanceLabel_, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_align(midiLearnGuidanceLabel_, LV_ALIGN_TOP_MID, 0, 72);
-  midiLearnCaptureLabel_ = lv_label_create(learnCard);
-  lv_obj_set_style_text_color(midiLearnCaptureLabel_, lv_color_hex(lamp), 0);
-  lv_obj_set_style_text_font(midiLearnCaptureLabel_, &ardor_font_saira_cond_semibold_22, 0);
-  lv_obj_align(midiLearnCaptureLabel_, LV_ALIGN_TOP_MID, 0, 116);
+  // MIDI learn: listen for a controller, optionally shape the mapping.
+  constexpr int kLearnWidth = 800;
+  constexpr int kLearnHeight = 440;
+  midiLearnOverlay_ = lb::createOverlay(canvas);
+  lv_obj_t* learnCard = lb::createDialog(midiLearnOverlay_, kLearnWidth, kLearnHeight, "MIDI LEARN");
+  midiLearnGuidanceLabel_ = lb::dialogBody(learnCard, "", kLearnWidth);
+  lv_obj_set_style_text_font(midiLearnGuidanceLabel_, &ardor_lb_saira400_15, 0);
+  lv_obj_set_style_text_letter_space(midiLearnGuidanceLabel_, 0, 0);
+  midiLearnCaptureLabel_ = lb::textLabel(learnCard, lb::type::controlLabel, "", text,
+                                         lb::kDialogInset - 1, 120);
 
   midiLearnAdvancedGroup_ = lv_obj_create(learnCard);
   lv_obj_remove_style_all(midiLearnAdvancedGroup_);
-  lv_obj_set_size(midiLearnAdvancedGroup_, 690, 170);
-  lv_obj_align(midiLearnAdvancedGroup_, LV_ALIGN_TOP_MID, 0, 155);
-  midiLearnModeButton_ = button(midiLearnAdvancedGroup_, "Continuous");
-  lv_obj_set_size(midiLearnModeButton_, 170, 48);
-  lv_obj_align(midiLearnModeButton_, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_obj_set_size(midiLearnAdvancedGroup_, kLearnWidth - 2 - 2 * lb::kDialogInset, 170);
+  lv_obj_set_pos(midiLearnAdvancedGroup_, lb::kDialogInset - 1, 160);
+  lv_obj_remove_flag(midiLearnAdvancedGroup_, LV_OBJ_FLAG_SCROLLABLE);
+  midiLearnModeButton_ = lb::button(midiLearnAdvancedGroup_, "Continuous", lb::ButtonKind::Normal,
+                                    0, 0, lb::buttonWidth("Continuous"));
   lv_obj_add_event_cb(midiLearnModeButton_, onMidiLearnMode, LV_EVENT_CLICKED, remember(state));
+  const int sliderX = lb::buttonWidth("Continuous") + 48;
+  const int sliderWidth = kLearnWidth - 2 - 2 * lb::kDialogInset - sliderX - 96;
   for (std::size_t endpoint = 0; endpoint < 2; ++endpoint) {
-    auto* endpointLabel = lv_label_create(midiLearnAdvancedGroup_);
-    lv_label_set_text_fmt(endpointLabel, "%d", static_cast<int>(endpoint + 1));
-    lv_obj_set_style_text_color(endpointLabel, lv_color_hex(text), 0);
-    lv_obj_align(endpointLabel, LV_ALIGN_TOP_LEFT, 205, 14 + static_cast<int>(endpoint) * 72);
+    const int rowY = static_cast<int>(endpoint) * 72;
+    lb::textLabel(midiLearnAdvancedGroup_, lb::type::controlLabel,
+                  std::to_string(endpoint + 1), muted, sliderX - 28, rowY + 16);
     auto* slider = lv_slider_create(midiLearnAdvancedGroup_);
-    lv_obj_set_size(slider, 360, 28);
-    lv_obj_align(slider, LV_ALIGN_TOP_LEFT, 240, 10 + static_cast<int>(endpoint) * 72);
+    lv_obj_set_size(slider, sliderWidth, 8);
+    lv_obj_set_pos(slider, sliderX, rowY + 26);
     lv_slider_set_range(slider, 0, 1000);
-    lv_obj_set_style_bg_color(slider, lv_color_hex(panelAlt), LV_PART_MAIN);
-    lv_obj_set_style_bg_color(slider, lv_color_hex(lamp), LV_PART_INDICATOR);
+    lv_obj_set_style_radius(slider, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(slider, 0, LV_PART_INDICATOR);
+    lv_obj_set_style_radius(slider, 0, LV_PART_KNOB);
+    lv_obj_set_style_bg_color(slider, lv_color_hex(plateHi), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(slider, lv_color_hex(muted), LV_PART_INDICATOR);
     lv_obj_set_style_bg_color(slider, lv_color_hex(text), LV_PART_KNOB);
+    lv_obj_set_style_pad_hor(slider, 0, LV_PART_KNOB);
+    lv_obj_set_style_pad_ver(slider, 12, LV_PART_KNOB);
+    lv_obj_set_style_shadow_width(slider, 0, LV_PART_KNOB);
+    lv_obj_set_ext_click_area(slider, 20);
     lv_obj_add_event_cb(slider, onMidiLearnSlider, LV_EVENT_VALUE_CHANGED,
                         remember(state, endpoint));
     midiLearnSliders_[endpoint] = slider;
-    auto* valueLabel = lv_label_create(midiLearnAdvancedGroup_);
+    auto* valueLabel = lb::textLabel(midiLearnAdvancedGroup_, lb::type::controlLabel, "", text,
+                                     sliderX + sliderWidth + 20, rowY + 16);
     lv_obj_set_width(valueLabel, 76);
     lv_obj_set_style_text_align(valueLabel, LV_TEXT_ALIGN_RIGHT, 0);
-    lv_obj_set_style_text_color(valueLabel, lv_color_hex(text), 0);
-    lv_obj_align(valueLabel, LV_ALIGN_TOP_RIGHT, 0, 13 + static_cast<int>(endpoint) * 72);
     midiLearnValueLabels_[endpoint] = valueLabel;
   }
 
-  midiLearnAdvancedButton_ = button(learnCard, "Advanced");
-  lv_obj_set_size(midiLearnAdvancedButton_, 150, 56);
-  lv_obj_align(midiLearnAdvancedButton_, LV_ALIGN_BOTTOM_MID, -166, -22);
+  const auto learnActions = lb::dialogActions(learnCard, kLearnWidth, kLearnHeight,
+    {{"Advanced", lb::ButtonKind::Normal}, {"Save", lb::ButtonKind::Primary},
+     {"Cancel", lb::ButtonKind::Normal}});
+  midiLearnAdvancedButton_ = learnActions[0];
   lv_obj_add_event_cb(midiLearnAdvancedButton_, onMidiLearnAdvanced,
                       LV_EVENT_CLICKED, remember(state));
-  midiLearnSaveButton_ = button(learnCard, "Save");
-  lv_obj_set_size(midiLearnSaveButton_, 150, 56);
-  lv_obj_align(midiLearnSaveButton_, LV_ALIGN_BOTTOM_MID, 0, -22);
-  styleSurface(midiLearnSaveButton_, panel);
+  midiLearnSaveButton_ = learnActions[1];
   lv_obj_add_event_cb(midiLearnSaveButton_, onMidiLearnSave,
                       LV_EVENT_CLICKED, remember(state));
-  lv_obj_t* learnCancel = button(learnCard, "Cancel");
-  lv_obj_set_size(learnCancel, 150, 56);
-  lv_obj_align(learnCancel, LV_ALIGN_BOTTOM_MID, 166, -22);
-  lv_obj_add_event_cb(learnCancel, onMidiLearnCancel, LV_EVENT_CLICKED, remember(state));
+  lv_obj_add_event_cb(learnActions[2], onMidiLearnCancel, LV_EVENT_CLICKED, remember(state));
   lv_obj_add_flag(midiLearnOverlay_, LV_OBJ_FLAG_HIDDEN);
 
   rebuildPresetView(state);
@@ -332,12 +311,17 @@ void LvglUi::syncModeVisibility(const UiState& state)
   // Preset and Edit now carry their own top+bottom rails (per
   // docs/lvgl-ui-redesign-spec.md §4f); the shared status bar stays for the
   // screens not yet migrated to their own rails.
-  if (state.mode == UiMode::Tuner || state.mode == UiMode::Preset
-      || state.mode == UiMode::Scenes
-      || state.mode == UiMode::Edit || state.mode == UiMode::Looper) {
-    lv_obj_add_flag(statusLayer_, LV_OBJ_FLAG_HIDDEN);
-  } else {
-    lv_obj_remove_flag(statusLayer_, LV_OBJ_FLAG_HIDDEN);
+  // Only the legacy bar hides; the layer stays up so status toasts show on
+  // every screen.
+  lv_obj_remove_flag(statusLayer_, LV_OBJ_FLAG_HIDDEN);
+  if (lv_obj_t* bar = lv_obj_get_child(statusLayer_, 0)) {
+    if (state.mode == UiMode::Tuner || state.mode == UiMode::Preset
+        || state.mode == UiMode::Scenes
+        || state.mode == UiMode::Edit || state.mode == UiMode::Looper) {
+      lv_obj_add_flag(bar, LV_OBJ_FLAG_HIDDEN);
+    } else {
+      lv_obj_remove_flag(bar, LV_OBJ_FLAG_HIDDEN);
+    }
   }
 }
 
@@ -354,6 +338,7 @@ void LvglUi::syncPersistentViews(UiState& state)
   syncPresetCards(state);
   syncScenesView(state);
   syncStatusView(state);
+  syncParameterChipStrip(state);
   syncBlockingOverlays(state);
 }
 
@@ -376,9 +361,9 @@ void LvglUi::syncBlockingOverlays(const UiState& state)
                     : "Keep moving the pedal, or save this control.")
         : "Move a pedal or press a footswitch on your MIDI controller.");
       const std::string capture = captured
-        ? "CC " + std::to_string(learn.controlChange) + "  ·  Channel "
+        ? "CC " + std::to_string(learn.controlChange) + "  ·  CHANNEL "
             + std::to_string(learn.channel + 1)
-        : "Listening...";
+        : "LISTENING...";
       lv_label_set_text(midiLearnCaptureLabel_, capture.c_str());
       if (captured) {
         lv_obj_remove_flag(midiLearnSaveButton_, LV_OBJ_FLAG_HIDDEN);
@@ -388,11 +373,20 @@ void LvglUi::syncBlockingOverlays(const UiState& state)
         lv_obj_add_flag(midiLearnSaveButton_, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(midiLearnAdvancedButton_, LV_OBJ_FLAG_HIDDEN);
       }
+      // The dialog grows only when the advanced mapping controls show.
+      lv_obj_t* card = lv_obj_get_parent(midiLearnAdvancedGroup_);
+      const int height = advanced ? 440 : 260;
+      lv_obj_set_height(card, height);
+      lv_obj_set_y(card, (kDesignHeight - height) / 2);
+      for (lv_obj_t* action : {midiLearnAdvancedButton_, midiLearnSaveButton_,
+                               lv_obj_get_child(card, static_cast<int32_t>(
+                                 lv_obj_get_child_count(card)) - 1)}) {
+        lv_obj_set_y(action, height - 2 - 28 - lb::kButtonHeight);
+      }
       if (advanced) {
         lv_obj_remove_flag(midiLearnAdvancedGroup_, LV_OBJ_FLAG_HIDDEN);
         const bool toggle = learn.mode == PresetMidiBindingMode::Toggle;
-        lv_label_set_text(lv_obj_get_child(midiLearnModeButton_, 0),
-                          toggle ? "Toggle values" : "Continuous");
+        lb::setButtonText(midiLearnModeButton_, toggle ? "Toggle" : "Continuous");
         const std::array values = {learn.action.value1, learn.action.value2};
         const float range = learn.targetMaximum - learn.targetMinimum;
         for (std::size_t endpoint = 0; endpoint < 2; ++endpoint) {

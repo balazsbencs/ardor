@@ -2,6 +2,7 @@
 
 #include "ui/LvglUiParameterView.h"
 #include "ui/LvglUiParameterWidgets.h"
+#include "ui/LampBlack.h"
 #include "ui/LvglUiStyle.h"
 
 #include <algorithm>
@@ -21,12 +22,15 @@ constexpr std::array<int, kEqStageCount> eqStageColors = {
   0x56c7ff, 0x8be28b, 0xf5d76e, 0xffb45c, 0xff8c69, 0xc792ea, 0xf06eb7,
 };
 
-constexpr int kEqPanelTop = 94;
-constexpr int kEqPanelHeight = 578;
+// The EQ drawer takes the whole stage under the header (no chip strip): a
+// 4 px family edge, the header row, the response graph, the band strip and
+// the three band cards. Band On / Reset and Done sit on the context rail.
+constexpr int kEqPanelTop = lb::kHeaderHeight;
+constexpr int kEqPanelHeight = lb::kRailY - lb::kHeaderHeight;
 constexpr int kEqGraphX = parameter_widgets::panelEdgeInset;
-constexpr int kEqGraphY = 80;
+constexpr int kEqGraphY = 94;
 constexpr int kEqGraphWidth = parameter_widgets::panelWidth - 2 * parameter_widgets::panelEdgeInset;
-constexpr int kEqGraphHeight = 236;
+constexpr int kEqGraphHeight = 186;
 // Handles carry a small, quiet visual mark but keep a 44 px touch target
 // underneath it, per the redesign's minimum-touch-target rule.
 constexpr int kEqNodeHitSize = 44;
@@ -35,11 +39,11 @@ constexpr int kEqNodeVisualSizeSelected = 19;
 constexpr int kEqGripWidth = 13;
 constexpr int kEqGripHeight = 26;
 constexpr int kEqGripHitSize = 44;
-constexpr int kEqStageStripY = 330;
-constexpr int kEqStageChipWidth = 158;
-constexpr int kEqStageChipGap = 10;
-constexpr int kEqEditorHeadingY = 392;
-constexpr int kEqSlidersY = 436;
+constexpr int kEqStageStripY = 292;
+constexpr int kEqStageChipHeight = 52;
+constexpr int kEqStageChipGap = 8;
+constexpr int kEqSlidersY = 356;
+constexpr int kEqRailButtonWidth = 160;
 constexpr uint32_t kEqCurveRefreshIntervalMs = 33;
 
 struct EqGraphVisual {
@@ -599,17 +603,21 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
 {
   if (!selectedUiBlock(state)) return;
 
-  lv_obj_t* panelObject = lv_obj_create(root);
-  lv_obj_set_size(panelObject, 1240, kEqPanelHeight);
-  lv_obj_align(panelObject, LV_ALIGN_TOP_MID, 0, kEqPanelTop);
-  lv_obj_remove_flag(panelObject, LV_OBJ_FLAG_SCROLLABLE);
-  styleSurface(panelObject, panelAlt);
-  // Every EQ child uses panel-local coordinates. Theme padding used to add an
-  // invisible left inset and consume the intended right margin.
-  lv_obj_set_style_pad_all(panelObject, 0, 0);
-  label(panelObject, "Parametric EQ", LV_ALIGN_TOP_LEFT, 28, 15, &ardor_font_saira_cond_semibold_22);
-  label(panelObject, "High-pass  \xC2\xB7  five bands  \xC2\xB7  low-pass", LV_ALIGN_TOP_LEFT, 205, 18,
-        &ardor_font_saira_cond_medium_18, muted);
+  const auto* block = selectedUiBlock(state);
+  const auto family = static_cast<std::uint32_t>(categoryColor(block->type));
+  lv_obj_t* panelObject = lb::box(root, 0, kEqPanelTop, parameter_widgets::panelWidth,
+                                  kEqPanelHeight, panel);
+  lv_obj_add_flag(panelObject, LV_OBJ_FLAG_CLICKABLE);
+  lb::box(panelObject, 0, 0, parameter_widgets::panelWidth, 4, family);
+  const std::string tagText = uppercase(block->label);
+  const int tagWidth = lb::textWidth(lb::type::category, tagText) + 24;
+  lv_obj_t* tag = lb::box(panelObject, parameter_widgets::panelEdgeInset, 35, tagWidth, 35, family);
+  lb::textLabel(tag, lb::type::category, tagText, bg, 12, 4);
+  const int nameX = parameter_widgets::panelEdgeInset + tagWidth + 16;
+  const std::string name = uppercase(block->assetName);
+  lb::textLabel(panelObject, lb::type::drawerName, name, text, nameX, 20);
+  lb::textLabel(panelObject, lb::type::subtitle, "HIGH-PASS  \xC2\xB7  FIVE BANDS  \xC2\xB7  LOW-PASS",
+                muted, nameX + lb::textWidth(lb::type::drawerName, name) + 20, 39);
 
   const auto params = selectedParametricEqParams(state);
   const auto curve = makeEqCurveData(params, 48000.0f);
@@ -617,9 +625,8 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
   lv_obj_set_size(graph, kEqGraphWidth, kEqGraphHeight);
   lv_obj_set_pos(graph, kEqGraphX, kEqGraphY);
   lv_obj_remove_flag(graph, LV_OBJ_FLAG_SCROLLABLE);
-  styleSurface(graph, panelAlt);
-  lv_obj_set_style_border_color(graph, lv_color_hex(rule), 0);
-  lv_obj_set_style_border_width(graph, 1, 0);
+  styleSurface(graph, bg);
+  lv_obj_set_style_pad_all(graph, 0, 0);
   auto* graphVisual = new EqGraphVisual{};
   lv_obj_set_user_data(graph, graphVisual);
   lv_obj_add_event_cb(graph, freeEqGraphVisual, LV_EVENT_DELETE, graphVisual);
@@ -638,9 +645,10 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
   for (const float gainDb : {18.0f, 9.0f, 0.0f, -9.0f}) {
     char buffer[8]{};
     std::snprintf(buffer, sizeof(buffer), "%+d", static_cast<int>(gainDb));
-    lv_obj_t* gainLabel = label(graph, gainDb == 0.0f ? "0" : buffer, LV_ALIGN_TOP_LEFT,
-                                8, std::clamp(eqYFromGain(gainDb, kEqGraphHeight) + 2, 0, kEqGraphHeight - 14),
-                                &ardor_font_saira_cond_medium_18, muted);
+    lv_obj_t* gainLabel = lb::textLabel(graph, lb::type::footer, gainDb == 0.0f ? "0" : buffer,
+                                        disabled, 8,
+                                        std::clamp(eqYFromGain(gainDb, kEqGraphHeight) + 2, 0,
+                                                   kEqGraphHeight - 24));
     lv_obj_remove_flag(gainLabel, LV_OBJ_FLAG_CLICKABLE);
   }
   for (const float frequency : {100.0f, 1000.0f, 10000.0f}) {
@@ -651,9 +659,9 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
     lv_obj_remove_flag(gridLine, LV_OBJ_FLAG_CLICKABLE);
     const std::string freqLabel = frequency >= 1000.0f
       ? std::to_string(static_cast<int>(frequency / 1000.0f)) + "k" : "100";
-    lv_obj_t* xLabel = label(graph, freqLabel, LV_ALIGN_BOTTOM_LEFT,
-                             eqXFromFrequency(frequency, kEqGraphWidth) + 4, -6,
-                             &ardor_font_saira_cond_medium_18, muted);
+    lv_obj_t* xLabel = lb::textLabel(graph, lb::type::footer, uppercase(freqLabel), disabled,
+                                     eqXFromFrequency(frequency, kEqGraphWidth) + 6,
+                                     kEqGraphHeight - 28);
     lv_obj_remove_flag(xLabel, LV_OBJ_FLAG_CLICKABLE);
   }
 
@@ -684,7 +692,7 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
     graphVisual->nodeMarks[i] = mark;
 
     lv_obj_t* markLabel = label(node, stageName(i), LV_ALIGN_TOP_MID, 0, -21,
-                                &ardor_font_saira_cond_medium_18, muted);
+                                &ardor_lb_cond600_15, muted);
     lv_obj_remove_flag(markLabel, LV_OBJ_FLAG_CLICKABLE);
     graphVisual->nodeLabels[i] = markLabel;
     auto* nodeContext = context->ui->remember(state, i);
@@ -753,76 +761,64 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
 
   // Create the header actions after the graph so they remain topmost even if
   // a future layout adjustment accidentally brings the two regions close.
-  parameter_widgets::renderCloseButton(panelObject, context);
   parameter_widgets::renderBlockActions(panelObject, state, context, bypassOut);
 
   const auto selectedStage = context->ui->selectedEqStage();
   const bool selectedIsPass = isPassStage(selectedStage);
 
+  std::array<lv_obj_t*, kEqStageCount> chips{};
+  const double chipPitch = (kEqGraphWidth + kEqStageChipGap) / static_cast<double>(kEqStageCount);
   for (std::size_t i = 0; i < kEqStageCount; ++i) {
-    const bool selected = i == selectedStage;
-    lv_obj_t* stageChip = button(panelObject, "");
-    lv_obj_set_size(stageChip, kEqStageChipWidth, 50);
-    lv_obj_set_pos(stageChip, 28 + static_cast<int>(i) * (kEqStageChipWidth + kEqStageChipGap),
-                   kEqStageStripY);
-    styleSurface(stageChip, selected ? panel : panelAlt);
-    lv_obj_set_style_border_color(stageChip, lv_color_hex(selected ? lamp : rule), 0);
-    lv_label_set_text(lv_obj_get_child(stageChip, 0), "");
-    lv_obj_t* dot = lv_obj_create(stageChip);
-    lv_obj_remove_flag(dot, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_remove_flag(dot, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_size(dot, 8, 8);
-    lv_obj_align(dot, LV_ALIGN_LEFT_MID, 12, 0);
-    styleSurface(dot, stageEnabled(params, i) && selected ? lamp : disabled);
-    lv_obj_set_style_border_width(dot, 0, 0);
-    lv_obj_t* chipLabel = label(
-      stageChip, stageName(i) + "  " + eqFrequencyCompact(stageFrequency(params, i)),
-      LV_ALIGN_LEFT_MID, 28, 0, &ardor_font_saira_cond_medium_18, selected ? text : muted);
-    lv_obj_set_width(chipLabel, kEqStageChipWidth - 34);
+    const int left = kEqGraphX + static_cast<int>(std::lround(i * chipPitch));
+    const int right = kEqGraphX + static_cast<int>(std::lround((i + 1) * chipPitch)) - kEqStageChipGap;
+    lv_obj_t* stageChip = lb::button(panelObject, "", lb::ButtonKind::Normal, left, kEqStageStripY,
+                                     right - left, kEqStageChipHeight);
+    lv_obj_t* dot = lb::box(stageChip, 14, (kEqStageChipHeight - 2 - 10) / 2, 10, 10, disabled);
+    lv_obj_t* chipLabel = lb::textLabel(
+      stageChip, lb::type::page,
+      uppercase(stageName(i) + "  " + eqFrequencyCompact(stageFrequency(params, i))), muted, 34, 0);
+    lv_obj_set_width(chipLabel, right - left - 44);
     lv_label_set_long_mode(chipLabel, LV_LABEL_LONG_CLIP);
+    (void) dot;
     lv_obj_add_event_cb(stageChip, onEqStageSelected, LV_EVENT_CLICKED,
                         context->ui->remember(state, i));
+    chips[i] = stageChip;
     if (bandButtonsOut) (*bandButtonsOut)[i] = stageChip;
   }
 
-  graphVisual->editorTitle = label(
-    panelObject, stageEditorTitle(selectedStage), LV_ALIGN_TOP_LEFT, 28, kEqEditorHeadingY,
-    &ardor_font_saira_cond_medium_18, lamp);
-
-  lv_obj_t* bandeditBox = lv_obj_create(panelObject);
-  lv_obj_remove_flag(bandeditBox, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(bandeditBox, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_set_size(bandeditBox, parameter_widgets::panelWidth - 2 * parameter_widgets::panelEdgeInset + 12,
-                 132 + 12);
-  lv_obj_set_pos(bandeditBox, parameter_widgets::panelEdgeInset - 6, kEqSlidersY - 6);
-  lv_obj_set_style_bg_opa(bandeditBox, LV_OPA_TRANSP, 0);
-  lv_obj_set_style_border_width(bandeditBox, 1, 0);
-  lv_obj_set_style_border_color(bandeditBox, lv_color_hex(lamp), 0);
-  lv_obj_set_style_radius(bandeditBox, 0, 0);
-  lv_obj_move_background(bandeditBox);
-
+  // Context rail: which stage the encoder edits on the left; the stage's
+  // on/off and reset beside Done on the right.
+  lv_obj_t* railBand = lb::rail(root);
+  lv_obj_add_flag(railBand, LV_OBJ_FLAG_CLICKABLE);
+  const int railTop = lb::kRailY + 1;
+  const int buttonY = lb::kRailButtonY - railTop;
+  graphVisual->editorTitle = lb::textLabel(railBand, lb::type::contextName,
+                                           uppercase(stageEditorTitle(selectedStage)), muted,
+                                           lb::kGutter, 0);
+  lv_obj_set_y(graphVisual->editorTitle,
+               lb::centeredTextTop(lb::type::contextName, 0, lb::kRailHeight - 1));
+  const int doneX = kDesignWidth - lb::kGutter - lb::kButtonMinWidth;
+  const int resetWidth = lb::buttonWidth("Reset Filter");
+  const int resetX = doneX - lb::kGap - resetWidth;
+  const int enabledX = resetX - lb::kGap - kEqRailButtonWidth;
   const bool selectedEnabled = stageEnabled(params, selectedStage);
-  lv_obj_t* enabled = button(panelObject, selectedEnabled
+  lv_obj_t* enabled = lb::button(railBand, selectedEnabled
     ? (selectedIsPass ? "Filter On" : "Band On")
-    : (selectedIsPass ? "Filter Off" : "Band Off"));
-  lv_obj_set_size(enabled, 130, 44);
-  lv_obj_set_pos(enabled, 930, kEqEditorHeadingY - 8);
-  styleSurface(enabled, selectedEnabled ? panel : panelAlt);
-  lv_obj_set_style_text_color(lv_obj_get_child(enabled, 0),
-                              lv_color_hex(selectedEnabled ? lamp : danger), 0);
+    : (selectedIsPass ? "Filter Off" : "Band Off"),
+    lb::ButtonKind::Normal, enabledX, buttonY, kEqRailButtonWidth);
   auto* enabledContext = context->ui->remember(state, selectedStage);
   lv_obj_add_event_cb(enabled, onEqStageEnabled, LV_EVENT_CLICKED, enabledContext);
   if (enabledOut) *enabledOut = enabled;
   if (enabledContextOut) *enabledContextOut = enabledContext;
 
-  lv_obj_t* reset = button(panelObject, selectedIsPass ? "Reset Filter" : "Reset Band");
+  lv_obj_t* reset = lb::button(railBand, selectedIsPass ? "Reset Filter" : "Reset Band",
+                               lb::ButtonKind::Normal, resetX, buttonY, resetWidth);
   graphVisual->resetButton = reset;
-  lv_obj_set_size(reset, 148, 44);
-  lv_obj_set_pos(reset, 1074, kEqEditorHeadingY - 8);
-  styleSurface(reset, panelAlt);
   auto* resetContext = context->ui->remember(state, selectedStage);
   lv_obj_add_event_cb(reset, onEqStageReset, LV_EVENT_CLICKED, resetContext);
   if (resetContextOut) *resetContextOut = resetContext;
+  lv_obj_t* done = lb::button(railBand, "DONE", lb::ButtonKind::Primary, doneX, buttonY);
+  parameter_widgets::bindClose(done, context);
 
   constexpr std::array<EqBandField, 3> bandSliderFields = {
     EqBandField::Frequency, EqBandField::Q, EqBandField::Gain,
@@ -842,12 +838,12 @@ void renderParametricEqPanel(lv_obj_t* root, UiState& state, UiEventContext* con
       panelObject, selectedIsPass
         ? eqSliderControl(field, passFilterForStage(params, selectedStage))
         : eqSliderControl(field, params.bands[selectedStage - kEqFirstBandStage]),
-      parameter_widgets::sliderGridX + static_cast<int>(i) * (parameter_widgets::sliderWidth + parameter_widgets::sliderColumnGap),
-      kEqSlidersY, context->ui->isEqBandFieldFocused(field), sliderContext,
+      parameter_widgets::columnX(static_cast<int>(i)), kEqSlidersY, context->ui->isEqBandFieldFocused(field), sliderContext,
       onEqSliderPressed, onEqSliderPressing, i);
     if (slidersOut) (*slidersOut)[i] = slider;
     if (sliderContextsOut) (*sliderContextsOut)[i] = sliderContext;
   }
+  parameter_view::syncEqBandSelection(graph, chips, params, selectedStage);
 }
 
 } // namespace
@@ -878,28 +874,34 @@ void syncEqBandSelection(
   if (graphVisual) {
     graphVisual->selectedStage = selectedStage;
     if (graphVisual->editorTitle) {
-      lv_label_set_text(graphVisual->editorTitle, stageEditorTitle(selectedStage).c_str());
+      lv_label_set_text(graphVisual->editorTitle, uppercase(stageEditorTitle(selectedStage)).c_str());
     }
     if (graphVisual->resetButton) {
-      lv_label_set_text(lv_obj_get_child(graphVisual->resetButton, 0),
+      lb::setButtonText(graphVisual->resetButton,
                         isPassStage(selectedStage) ? "Reset Filter" : "Reset Band");
     }
   }
   refreshEqGraphCurve(graph, params, false);
   for (std::size_t i = 0; i < kEqStageCount; ++i) {
     const bool selected = selectedStage == i;
-    if (bandButtons[i]) {
-      styleSurface(bandButtons[i], selected ? panel : panelAlt);
-      lv_obj_set_style_border_color(bandButtons[i], lv_color_hex(selected ? lamp : rule), 0);
-      if (lv_obj_t* dot = lv_obj_get_child(bandButtons[i], 1)) {
-        styleSurface(dot, stageEnabled(params, i) && selected ? lamp : disabled);
-        lv_obj_set_style_border_width(dot, 0, 0);
-      }
-      if (lv_obj_t* chipLabel = lv_obj_get_child(bandButtons[i], 2)) {
-        lv_obj_set_style_text_color(chipLabel, lv_color_hex(selected ? text : muted), 0);
-        const auto chipText = stageName(i) + "  " + eqFrequencyCompact(stageFrequency(params, i));
-        lv_label_set_text(chipLabel, chipText.c_str());
-      }
+    lv_obj_t* stageChip = bandButtons[i];
+    if (!stageChip) continue;
+    // The selected stage reads like a selected chip: raised plate, bone frame.
+    const int border = selected ? 3 : 1;
+    lv_obj_set_style_bg_color(stageChip, lv_color_hex(selected ? plateHi : panel), 0);
+    lv_obj_set_style_border_color(stageChip, lv_color_hex(selected ? text : rule), 0);
+    lv_obj_set_style_border_width(stageChip, border, 0);
+    if (lv_obj_t* dot = lv_obj_get_child(stageChip, 1)) {
+      lv_obj_set_pos(dot, 15 - border, (kEqStageChipHeight - 10) / 2 - border);
+      lv_obj_set_style_bg_color(dot, lv_color_hex(
+        stageEnabled(params, i) ? static_cast<std::uint32_t>(eqStageColors[i]) : disabled), 0);
+    }
+    if (lv_obj_t* chipLabel = lv_obj_get_child(stageChip, 2)) {
+      lv_obj_set_style_text_color(chipLabel, lv_color_hex(selected ? text : muted), 0);
+      const auto chipText = uppercase(stageName(i) + "  " + eqFrequencyCompact(stageFrequency(params, i)));
+      lv_label_set_text(chipLabel, chipText.c_str());
+      lv_obj_set_pos(chipLabel, 35 - border,
+                     lb::centeredTextTop(lb::type::page, 0, kEqStageChipHeight) - border);
     }
   }
 }

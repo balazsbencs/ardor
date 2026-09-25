@@ -303,6 +303,7 @@ add_library(ardor_ui
   src/ui/ParameterControls.cpp
   src/ui/EqEditorModel.cpp
   src/ui/UiStatusPresentation.cpp
+  src/ui/PresetChainStrip.cpp
 )
 target_include_directories(ardor_ui PUBLIC src)
 target_compile_features(ardor_ui PUBLIC cxx_std_20)
@@ -311,6 +312,7 @@ target_link_libraries(ardor_ui PUBLIC ardor_preset)
 if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   target_sources(ardor_ui PRIVATE
     src/ui/CloudClaimOverlay.cpp
+    src/ui/LampBlack.cpp
     src/ui/LvglChainLayout.cpp
     src/ui/LvglUi.cpp
     src/ui/LvglUiChainInteraction.cpp
@@ -341,10 +343,16 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
     src/ui/fonts/SairaLight44.c
     src/ui/fonts/SairaCondSemiboldTuner110.c
   )
+  file(GLOB ARDOR_LAMP_BLACK_FONTS CONFIGURE_DEPENDS src/ui/fonts/lamp/*.c)
+  target_sources(ardor_ui PRIVATE ${ARDOR_LAMP_BLACK_FONTS})
   target_link_libraries(ardor_ui PUBLIC lvgl)
 
   add_executable(pedal-lvgl-ui-smoke tests/lvgl_ui_smoke.cpp)
   target_link_libraries(pedal-lvgl-ui-smoke PRIVATE ardor_ui)
+
+  # Renders every screen to PPM for visual review; not a ctest.
+  add_executable(pedal-lvgl-ui-screenshots tests/lvgl_ui_screenshots.cpp)
+  target_link_libraries(pedal-lvgl-ui-screenshots PRIVATE ardor_ui)
 
   add_executable(pedal-cloud-claim-overlay-smoke tests/cloud_claim_overlay_smoke.cpp)
   target_link_libraries(pedal-cloud-claim-overlay-smoke PRIVATE ardor_ui)
@@ -650,6 +658,9 @@ endif()
 add_executable(pedal-ui-model-smoke tests/ui_model_smoke.cpp)
 target_link_libraries(pedal-ui-model-smoke PRIVATE ardor_ui)
 
+add_executable(pedal-preset-chain-strip-smoke tests/preset_chain_strip_smoke.cpp)
+target_link_libraries(pedal-preset-chain-strip-smoke PRIVATE ardor_ui)
+
 add_executable(pedal-global-settings-smoke tests/global_settings_smoke.cpp)
 target_link_libraries(pedal-global-settings-smoke PRIVATE ardor_ui)
 
@@ -705,6 +716,7 @@ add_test(NAME pedal-wdw-routing-builder-smoke COMMAND pedal-wdw-routing-builder-
 add_test(NAME pedal-tuner-smoke COMMAND pedal-tuner-smoke)
 add_test(NAME pedal-nam-processor-smoke COMMAND pedal-nam-processor-smoke)
 add_test(NAME pedal-ui-model-smoke COMMAND pedal-ui-model-smoke)
+add_test(NAME pedal-preset-chain-strip-smoke COMMAND pedal-preset-chain-strip-smoke)
 add_test(NAME pedal-global-settings-smoke COMMAND pedal-global-settings-smoke)
 add_test(NAME pedal-eq-editor-model-smoke COMMAND pedal-eq-editor-model-smoke)
 if(NOT ARDOR_UI_BACKEND STREQUAL "none")

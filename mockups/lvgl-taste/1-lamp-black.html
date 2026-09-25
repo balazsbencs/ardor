@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lamp Black</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Saira:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+  /* Direction 1 tokens. Wider value range than Slate: near-black ground,
+     one bright flooded lamp, family colours raised in chroma. */
+  .d1 {
+    --ground: #0b0c0d;
+    --plate: #16181a;
+    --plate-hi: #202326;
+    --rule: #2b2f33;
+    --bone: #eceeed;
+    --bone-2: #9aa1a6;
+    --bone-3: #5c6368;
+    --lamp: #e8472f;
+    --lamp-ink: #1a0b08;
+    --warn: #e0a53c;
+    --amp: #d2923f;
+    --cab: #aab2b7;
+    --util: #5f95c9;
+    --mod: #3fb08c;
+    --dly: #9a82d6;
+    --rev: #d07a5a;
+    background: var(--ground);
+    color: var(--bone);
+    font-family: "Saira Condensed", sans-serif;
+  }
+  .d1 .hdr {
+    position: absolute; left: 0; top: 0; width: 1280px; height: 64px;
+    display: flex; align-items: center; gap: 20px; padding: 0 28px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .d1 .bank { font-weight: 700; font-size: 30px; letter-spacing: .02em; }
+  .d1 .bankname { font-weight: 500; font-size: 22px; color: var(--bone-2); letter-spacing: .06em; }
+  .d1 .hdr .right { margin-left: auto; font: 500 18px "Saira", sans-serif; color: var(--bone-3); letter-spacing: .04em; }
+
+  /* Preset map: 1 / 3 over 2 / 4 mirrors the footswitch corners. */
+  .d1 .map {
+    position: absolute; left: 24px; top: 80px; width: 1232px; height: 520px;
+    display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px;
+  }
+  .d1 .tile {
+    position: relative; background: var(--plate); border: 1px solid var(--rule);
+    padding: 20px 26px;
+  }
+  .d1 .fs { font-weight: 600; font-size: 20px; letter-spacing: .14em; color: var(--bone-3); }
+  .d1 .name {
+    position: absolute; left: 26px; top: 70px; font-weight: 700; font-size: 76px;
+    line-height: 1; letter-spacing: .005em; text-transform: uppercase;
+  }
+  .d1 .chain { position: absolute; left: 26px; right: 26px; bottom: 22px; display: flex; gap: 4px; }
+  .d1 .chain span {
+    height: 30px; flex: 1; display: flex; align-items: center; padding-left: 8px;
+    font: 500 13px "JetBrains Mono", monospace; letter-spacing: .04em; color: #0b0c0d;
+  }
+  .d1 .chain .amp { background: var(--amp); flex: 1.6; }
+  .d1 .chain .cab { background: var(--cab); flex: 1.2; }
+  .d1 .chain .util { background: var(--util); }
+  .d1 .chain .mod { background: var(--mod); }
+  .d1 .chain .dly { background: var(--dly); }
+  .d1 .chain .rev { background: var(--rev); }
+  .d1 .tile:not(.live) .chain span { opacity: .78; }
+
+  /* The live tile floods with the lamp. The only use of --lamp on screen. */
+  .d1 .tile.live { background: var(--lamp); border-color: var(--lamp); color: var(--lamp-ink); }
+  .d1 .tile.live .fs { color: var(--lamp-ink); }
+  .d1 .tile.live .name { font-size: 96px; top: 62px; font-weight: 800; }
+  .d1 .tile.live .livetag {
+    position: absolute; right: 26px; top: 18px; font-weight: 700; font-size: 20px;
+    letter-spacing: .2em; background: var(--lamp-ink); color: var(--lamp); padding: 3px 12px;
+  }
+  .d1 .tile.live .chain span { background: var(--lamp-ink); color: var(--lamp); opacity: 1; }
+
+  .d1 .rail {
+    position: absolute; left: 0; bottom: 0; width: 1280px; height: 108px;
+    border-top: 1px solid var(--rule); display: flex; align-items: center; gap: 12px; padding: 0 24px;
+  }
+  .d1 .btn {
+    height: 60px; min-width: 124px; padding: 0 22px; display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--rule); background: var(--plate); font-weight: 600; font-size: 22px;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--bone);
+  }
+  .d1 .btn.primary { background: var(--bone); color: var(--ground); border-color: var(--bone); }
+  .d1 .btn.off { color: var(--bone-3); }
+  .d1 .pair { display: flex; }
+  .d1 .pair .btn { min-width: 76px; }
+  .d1 .pair .mid {
+    height: 60px; padding: 0 16px; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); background: var(--ground);
+    font-weight: 600; font-size: 14px; letter-spacing: .16em; color: var(--bone-2);
+  }
+  .d1 .master { margin-left: auto; display: flex; align-items: center; gap: 18px; }
+  .d1 .master .lbl { font-weight: 600; font-size: 16px; letter-spacing: .18em; color: var(--bone-2); }
+  .d1 .master .val { font-weight: 700; font-size: 52px; line-height: 1; width: 64px; text-align: right; }
+  .d1 .seg { display: flex; gap: 3px; align-items: flex-end; height: 44px; }
+  .d1 .seg i { display: block; width: 9px; background: var(--plate-hi); }
+  .d1 .seg i.on { background: var(--bone); }
+
+  /* Edit screen */
+  .d1 .ehdr .title { font-weight: 700; font-size: 28px; letter-spacing: .06em; }
+  .d1 .ehdr .sub { font-weight: 500; font-size: 22px; color: var(--bone-2); }
+  .d1 .tag { font-weight: 700; font-size: 16px; letter-spacing: .16em; padding: 4px 10px; background: var(--warn); color: #1b1305; }
+  .d1 .stage { position: absolute; left: 0; top: 64px; width: 1280px; height: 548px; }
+  .d1 .wire { position: absolute; left: 60px; right: 60px; top: 262px; height: 4px; background: var(--bone-3); }
+  .d1 .jack {
+    position: absolute; top: 236px; width: 88px; height: 56px; border: 2px solid var(--bone-3); background: var(--ground);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; letter-spacing: .1em;
+  }
+  .d1 .jack small { font-weight: 500; font-size: 12px; color: var(--bone-3); letter-spacing: .14em; }
+  .d1 .block {
+    position: absolute; top: 116px; width: 172px; height: 296px; background: var(--plate);
+    border: 1px solid var(--rule);
+  }
+  .d1 .block .cap {
+    height: 64px; padding: 10px 14px; color: #0b0c0d; font-weight: 700; font-size: 17px; letter-spacing: .16em;
+  }
+  .d1 .block .bn { padding: 14px 14px 0; font-weight: 700; font-size: 30px; line-height: 1; text-transform: uppercase; }
+  .d1 .block .params { position: absolute; left: 14px; right: 14px; bottom: 16px; display: grid; gap: 10px; }
+  .d1 .block .p { display: flex; justify-content: space-between; font: 500 15px "Saira", sans-serif; color: var(--bone-2); }
+  .d1 .block .p b { color: var(--bone); font-weight: 600; }
+  .d1 .block .p + .bar { height: 4px; }
+  .d1 .block .bar { height: 4px; }
+  .d1 .block.sel { border: 3px solid var(--bone); box-shadow: 8px 8px 0 0 #040505; transform: translate(-4px, -4px); }
+  .d1 .block.bypass { background: repeating-linear-gradient(135deg, var(--plate) 0 10px, #24282b 10px 13px); }
+  .d1 .block.bypass .cap { opacity: .45; }
+  .d1 .block.bypass .bn { color: var(--bone-3); }
+  .d1 .offtag { position: absolute; right: 12px; top: 76px; font-weight: 700; font-size: 14px; letter-spacing: .18em; color: var(--bone-2); border: 1px solid var(--bone-3); padding: 2px 8px; }
+  .d1 .plus {
+    position: absolute; top: 246px; width: 36px; height: 36px; border-radius: 50%; background: var(--ground);
+    border: 2px solid var(--bone-3); display: flex; align-items: center; justify-content: center; font: 600 22px "Saira", sans-serif; color: var(--bone-2);
+  }
+
+  /* Parameter drawer. The chain shrinks to a chip strip so the player can
+     hop between blocks without closing the drawer. */
+  .d1 .chips { position: absolute; left: 0; top: 64px; width: 1280px; height: 84px; display: flex; align-items: center; gap: 8px; padding: 0 24px; }
+  .d1 .chip {
+    height: 56px; min-width: 150px; padding: 0 14px; display: flex; flex-direction: column; justify-content: center;
+    background: var(--plate); border: 1px solid var(--rule); border-top: 6px solid var(--c);
+    font-weight: 700; font-size: 20px; text-transform: uppercase; line-height: 1;
+  }
+  .d1 .chip small { font-weight: 600; font-size: 12px; letter-spacing: .16em; color: var(--bone-3); margin-bottom: 4px; }
+  .d1 .chip.sel { border: 3px solid var(--bone); border-top: 6px solid var(--c); background: var(--plate-hi); }
+  .d1 .chip.off { color: var(--bone-3); }
+  .d1 .chip.io { min-width: 72px; border-top-color: var(--bone-3); align-items: center; font-size: 18px; letter-spacing: .1em; }
+  .d1 .drawer { position: absolute; left: 0; top: 148px; width: 1280px; height: 464px; background: var(--plate); border-top: 4px solid var(--c); }
+  .d1 .dhead { position: absolute; left: 24px; right: 24px; top: 18px; height: 60px; display: flex; align-items: center; gap: 12px; }
+  .d1 .cat { background: var(--c); color: #0b0c0d; font-weight: 700; font-size: 16px; letter-spacing: .16em; padding: 5px 12px; }
+  .d1 .dname { font-weight: 800; font-size: 40px; line-height: 1; text-transform: uppercase; margin: 0 8px 0 4px; }
+  .d1 .pager2 { display: flex; align-items: center; }
+  .d1 .pager2 .btn { min-width: 60px; padding: 0; }
+  .d1 .pager2 .pg { height: 60px; padding: 0 14px; display: flex; align-items: center; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); background: var(--ground); font-weight: 600; font-size: 16px; letter-spacing: .14em; color: var(--bone-2); }
+  .d1 .dhead .sp { margin-left: auto; }
+  .d1 .btn.danger { color: #f0a497; border-color: #6b3a32; }
+  .d1 .btn.state { gap: 12px; }
+  .d1 .btn.state b { font-weight: 700; color: var(--ground); background: var(--bone); padding: 2px 10px; letter-spacing: .12em; }
+  .d1 .grid { position: absolute; left: 24px; right: 24px; top: 96px; bottom: 20px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; gap: 12px; }
+  .d1 .ctl { position: relative; background: var(--ground); border: 1px solid var(--rule); padding: 16px 20px; }
+  .d1 .ctl .lab { font-weight: 600; font-size: 18px; letter-spacing: .16em; color: var(--bone-2); text-transform: uppercase; }
+  .d1 .ctl .scope { position: absolute; right: 16px; top: 14px; font-weight: 700; font-size: 13px; letter-spacing: .16em; color: var(--bone); border: 1px solid var(--bone-3); padding: 1px 8px; }
+  .d1 .ctl .val { position: absolute; left: 20px; top: 46px; font-weight: 700; font-size: 50px; line-height: 1; }
+  .d1 .ctl .val small { font: 500 18px "Saira", sans-serif; color: var(--bone-2); margin-left: 6px; }
+  .d1 .travel { position: absolute; left: 20px; right: 20px; bottom: 18px; height: 30px; }
+  .d1 .travel .trk { position: absolute; left: 0; right: 0; top: 14px; height: 8px; background: var(--plate-hi); }
+  .d1 .travel .fill { position: absolute; left: 0; top: 14px; height: 8px; background: var(--c); }
+  .d1 .travel .hdl { position: absolute; top: 2px; width: 8px; height: 32px; margin-left: -4px; background: var(--bone); }
+  .d1 .travel .tk { position: absolute; top: 0; width: 2px; height: 8px; background: var(--bone-3); }
+  .d1 .ctl.sel { border: 3px solid var(--lamp); padding: 14px 18px; }
+  .d1 .ctl.sel .lab { color: var(--lamp); }
+  .d1 .ctl .enc { position: absolute; right: 14px; top: 12px; background: var(--lamp); color: var(--lamp-ink); font-weight: 800; font-size: 13px; letter-spacing: .16em; padding: 2px 8px; }
+  .d1 .segs { position: absolute; left: 20px; right: 20px; bottom: 16px; display: flex; }
+  .d1 .segs span { flex: 1; height: 56px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--rule); margin-left: -1px; font-weight: 600; font-size: 20px; letter-spacing: .08em; color: var(--bone-3); background: var(--plate); }
+  .d1 .segs span.on { color: var(--bone); background: var(--plate-hi); box-shadow: inset 0 -5px 0 var(--c); }
+  .d1 .ctxrail .sel-name { font-weight: 600; font-size: 16px; letter-spacing: .16em; color: var(--bone-2); }
+  .d1 .ctxrail .sel-val { font-weight: 700; font-size: 44px; line-height: 1; margin-right: 8px; min-width: 150px; }
+  .d1 .ctxrail .btn.step { min-width: 72px; font-size: 30px; padding: 0; }
+
+  /* Module drawer: 480 px from the right, the chain dimmed behind it. */
+  .d1 .dim { position: absolute; inset: 0; background: rgba(8, 9, 10, .72); }
+  .d1 .mark {
+    position: absolute; left: 590px; top: 306px; width: 44px; height: 44px; border-radius: 50%; background: var(--bone); color: var(--ground);
+    display: flex; align-items: center; justify-content: center; font: 700 26px "Saira", sans-serif; box-shadow: 0 0 0 6px var(--ground), 0 0 0 8px var(--bone);
+  }
+  .d1 .marklbl { position: absolute; left: 540px; top: 384px; width: 144px; text-align: center; font-weight: 700; font-size: 15px; letter-spacing: .18em; color: var(--bone); }
+  .d1 .mdrawer { position: absolute; left: 800px; top: 0; width: 480px; height: 720px; background: var(--plate); border-left: 1px solid var(--bone-3); }
+  .d1 .mhead { position: absolute; left: 24px; right: 24px; top: 14px; height: 60px; display: flex; align-items: center; gap: 12px; }
+  .d1 .mhead h4 { margin: 0; font-weight: 800; font-size: 32px; letter-spacing: .06em; }
+  .d1 .mhead .n { font-weight: 600; font-size: 20px; color: var(--bone-3); }
+  .d1 .mhead .btn { margin-left: auto; min-width: 100px; }
+  .d1 .msub { position: absolute; left: 24px; top: 80px; font-weight: 600; font-size: 16px; letter-spacing: .14em; color: var(--bone-2); }
+  .d1 .msub b { color: var(--bone); font-weight: 700; }
+  .d1 .filters { position: absolute; left: 24px; right: 24px; top: 116px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .d1 .filters span {
+    height: 52px; display: flex; align-items: center; justify-content: center; background: var(--ground); border: 1px solid var(--rule);
+    border-top: 4px solid var(--c); font-weight: 600; font-size: 19px; letter-spacing: .08em; text-transform: uppercase;
+  }
+  .d1 .filters span.on { background: var(--bone); color: var(--ground); border-color: var(--bone); }
+  .d1 .mlist { position: absolute; left: 24px; right: 24px; top: 250px; bottom: 64px; overflow: hidden; }
+  .d1 .grp { display: flex; justify-content: space-between; padding: 12px 0 8px; font-weight: 700; font-size: 14px; letter-spacing: .2em; color: var(--bone-3); border-bottom: 1px solid var(--rule); }
+  .d1 .item { display: flex; align-items: center; gap: 14px; height: 72px; border-bottom: 1px solid var(--rule); }
+  .d1 .code { width: 52px; height: 52px; flex: none; background: var(--c); color: #0b0c0d; display: flex; align-items: center; justify-content: center; font: 500 13px "JetBrains Mono", monospace; letter-spacing: .04em; }
+  .d1 .item .t { flex: 1; min-width: 0; }
+  .d1 .item .t b { display: block; font-weight: 700; font-size: 24px; line-height: 1.05; text-transform: uppercase; }
+  .d1 .item .t small { display: block; font: 400 15px "Saira", sans-serif; color: var(--bone-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .d1 .item .add { width: 52px; height: 52px; flex: none; border: 1px solid var(--bone-3); display: flex; align-items: center; justify-content: center; font: 600 26px "Saira", sans-serif; }
+  .d1 .item.hl { background: var(--plate-hi); margin: 0 -12px; padding: 0 12px; }
+  .d1 .item.hl .add { background: var(--bone); color: var(--ground); border-color: var(--bone); }
+  .d1 .scroll { position: absolute; right: 8px; top: 256px; width: 4px; height: 120px; background: var(--bone-3); }
+  .d1 .mfoot { position: absolute; left: 24px; right: 24px; bottom: 0; height: 64px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--rule); font-weight: 600; font-size: 15px; letter-spacing: .14em; color: var(--bone-3); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav"><a href="index.html">Ardor LVGL taste review</a><div class="pager"><a href="index.html">Overview</a><a href="2-enclosures.html">Next: Enclosures</a></div></nav>
+  <h1>1. Lamp Black</h1>
+  <p class="lede">The lowest-risk upgrade. Keep the Panel language, but widen the value range from near-black to a fully flooded lamp tile, and let each preset show its chain in colour.</p>
+
+  <div class="notes">
+    <div>
+      <h3>What changes</h3>
+      <ul>
+        <li>Ground drops from <code>#212528</code> to <code>#0b0c0d</code>. Plates sit clearly above it.</li>
+        <li>The live preset floods the whole tile with the lamp. You can see it from 1.5 m without reading.</li>
+        <li>Every tile carries a family-colour chain strip, so the four slots stop looking identical.</li>
+        <li>The header shows the bank, not latency. Latency moves to a small readout on the right.</li>
+        <li>Master is a numeral plus a segment meter in bone. Red stays reserved for LIVE.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>LVGL build notes</h3>
+      <ul>
+        <li>Token change in <code>LvglUiStyle.cpp</code> plus one new tile layout. Nothing needs new widgets.</li>
+        <li>Chain strip: a flex row of flat <code>lv_obj</code> segments with <code>flex_grow</code> weights.</li>
+        <li>Selected block lift: a solid dark <code>lv_obj</code> offset 8 px behind the card. No blur, so no banding on RGB565.</li>
+        <li>Bypass hatch: a small pre-built RGB565 tile image, as the spec already asks (law 7).</li>
+        <li>Module drawer keeps <code>kBlockDrawerWidth</code> (480 px). The dim layer is one flat <code>lv_obj</code> at fixed opacity, with no fade.</li>
+        <li>Parameter travel scale: an <code>lv_bar</code> for the fill, an <code>lv_scale</code> for the ticks and a flat handle object. <code>lv_slider</code> with custom parts can also do it.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="frame"><div class="screen d1">
+      <div class="hdr">
+        <span class="bank">BANK 01</span><span class="bankname">SUNDAY SET</span>
+        <span class="right">1.33 MS</span>
+      </div>
+      <div class="map">
+        <div class="tile live">
+          <span class="fs">FS 1</span><span class="livetag">LIVE</span>
+          <div class="name">Clean Lead</div>
+          <div class="chain"><span class="util">CMP</span><span class="amp">TWIN</span><span class="cab">2X12</span><span class="mod">CHO</span><span class="dly">DLY</span><span class="rev">PLATE</span></div>
+        </div>
+        <div class="tile">
+          <span class="fs">FS 3</span>
+          <div class="name">Ambient</div>
+          <div class="chain"><span class="amp">TWIN</span><span class="cab">2X12</span><span class="mod">TREM</span><span class="rev">SHIMMER</span><span class="dly">DLY</span></div>
+        </div>
+        <div class="tile">
+          <span class="fs">FS 2</span>
+          <div class="name">Crunch</div>
+          <div class="chain"><span class="util">GATE</span><span class="amp">RAT</span><span class="amp">PLEXI</span><span class="cab">4X12</span><span class="rev">ROOM</span></div>
+        </div>
+        <div class="tile">
+          <span class="fs">FS 4</span>
+          <div class="name">Solo</div>
+          <div class="chain"><span class="amp">FUZZ</span><span class="amp">PLEXI</span><span class="cab">4X12</span><span class="dly">DLY</span><span class="rev">HALL</span></div>
+        </div>
+      </div>
+      <div class="rail">
+        <span class="btn primary">Edit</span>
+        <span class="btn">Tuner</span>
+        <span class="btn">Looper</span>
+        <span class="pair"><span class="btn off">-</span><span class="mid">BANK</span><span class="btn">+</span></span>
+        <span class="btn">Setup</span>
+        <span class="master"><span class="lbl">MASTER</span><span class="val">82</span>
+          <span class="seg">
+            <i class="on" style="height:14px"></i><i class="on" style="height:16px"></i><i class="on" style="height:18px"></i><i class="on" style="height:20px"></i><i class="on" style="height:22px"></i><i class="on" style="height:24px"></i><i class="on" style="height:26px"></i><i class="on" style="height:28px"></i><i class="on" style="height:30px"></i><i class="on" style="height:32px"></i><i class="on" style="height:34px"></i><i class="on" style="height:36px"></i><i class="on" style="height:38px"></i><i class="on" style="height:40px"></i><i style="height:42px"></i><i style="height:44px"></i>
+          </span>
+        </span>
+      </div>
+    </div></div>
+    <p class="caption"><b>Preset screen.</b> The live tile is the brightest object on the screen by a wide margin. The other three tiles are still readable, and their chain strips tell you which sound is which before you read the name.</p>
+  </div>
+
+  <div class="shot">
+    <div class="frame"><div class="screen d1">
+      <div class="hdr ehdr">
+        <span class="title">EDIT</span><span class="sub">PRESET 1  CLEAN LEAD</span><span class="tag">MODIFIED</span>
+        <span class="right">6 BLOCKS</span>
+      </div>
+      <div class="stage">
+        <div class="wire"></div>
+        <div class="jack" style="left:20px">IN<small>MONO</small></div>
+        <div class="plus" style="left:118px">+</div>
+        <div class="block" style="left:164px">
+          <div class="cap" style="background:var(--util)">DYNAMICS</div>
+          <div class="bn">Compressor</div>
+          <div class="params">
+            <div class="p">Threshold <b>-24 dB</b></div><div class="bar" style="background:var(--util);width:52%"></div>
+            <div class="p">Ratio <b>4.0</b></div><div class="bar" style="background:var(--util);width:40%"></div>
+          </div>
+        </div>
+        <div class="plus" style="left:346px">+</div>
+        <div class="block sel" style="left:392px">
+          <div class="cap" style="background:var(--amp)">NEURAL AMP</div>
+          <div class="bn">Clean Twin</div>
+          <div class="params">
+            <div class="p">Input <b>+3.0 dB</b></div><div class="bar" style="background:var(--amp);width:62%"></div>
+            <div class="p">Output <b>-1.5 dB</b></div><div class="bar" style="background:var(--amp);width:44%"></div>
+          </div>
+        </div>
+        <div class="plus" style="left:574px">+</div>
+        <div class="block" style="left:620px">
+          <div class="cap" style="background:var(--cab)">CAB</div>
+          <div class="bn">Open Back 2x12</div>
+          <div class="params">
+            <div class="p">Mix <b>100 %</b></div><div class="bar" style="background:var(--cab);width:100%"></div>
+          </div>
+        </div>
+        <div class="plus" style="left:802px">+</div>
+        <div class="block bypass" style="left:848px">
+          <div class="cap" style="background:var(--mod)">MODULATION</div>
+          <span class="offtag">OFF</span>
+          <div class="bn">Chorus</div>
+        </div>
+        <div class="plus" style="left:1030px">+</div>
+        <div class="block" style="left:1076px">
+          <div class="cap" style="background:var(--dly)">DELAY</div>
+          <div class="bn">Tape Echo</div>
+          <div class="params">
+            <div class="p">Time <b>380 ms</b></div><div class="bar" style="background:var(--dly);width:38%"></div>
+            <div class="p">Mix <b>22 %</b></div><div class="bar" style="background:var(--dly);width:22%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="rail">
+        <span class="btn primary">Save</span>
+        <span class="btn">Undo</span>
+        <span class="btn">Modules</span>
+        <span class="btn">Global</span>
+        <span class="master"><span class="btn">Done</span></span>
+      </div>
+    </div></div>
+    <p class="caption"><b>Edit screen.</b> Block cards show their two main values instead of the word DRAG. The selected block lifts on a hard offset plate. The bypassed block carries a hatch and an OFF legend, so its state does not depend on colour alone.</p>
+  </div>
+
+  <div class="shot">
+    <div class="frame"><div class="screen d1">
+      <div class="hdr ehdr">
+        <span class="title">EDIT</span><span class="sub">PRESET 1  CLEAN LEAD</span><span class="tag">MODIFIED</span>
+        <span class="right">BLOCK 5 OF 6</span>
+      </div>
+      <div class="chips">
+        <span class="chip io">IN</span>
+        <span class="chip" style="--c:var(--util)"><small>DYNAMICS</small>Comp</span>
+        <span class="chip" style="--c:var(--amp)"><small>NEURAL AMP</small>Clean Twin</span>
+        <span class="chip" style="--c:var(--cab)"><small>CAB</small>2x12 Open</span>
+        <span class="chip off" style="--c:var(--mod)"><small>MOD  /  OFF</small>Chorus</span>
+        <span class="chip sel" style="--c:var(--dly)"><small>DELAY</small>Tape Echo</span>
+        <span class="chip" style="--c:var(--rev)"><small>REVERB</small>Plate</span>
+        <span class="chip io">OUT</span>
+      </div>
+      <div class="drawer" style="--c:var(--dly)">
+        <div class="dhead">
+          <span class="cat">DELAY</span><span class="dname">Tape Echo</span>
+          <span class="pager2"><span class="btn off">&lt;</span><span class="pg">PAGE 1 / 2</span><span class="btn">&gt;</span></span>
+          <span class="sp"></span>
+          <span class="btn state">Block <b>ON</b></span>
+          <span class="btn">MIDI</span>
+          <span class="btn danger">Delete</span>
+        </div>
+        <div class="grid">
+          <div class="ctl sel"><span class="lab">Time</span><span class="enc">ENC</span><span class="val">380<small>ms</small></span>
+            <div class="travel" data-v="0.38"></div></div>
+          <div class="ctl"><span class="lab">Feedback</span><span class="val">42<small>%</small></span>
+            <div class="travel" data-v="0.42"></div></div>
+          <div class="ctl"><span class="lab">Mix</span><span class="scope">PER SCENE</span><span class="val">22<small>%</small></span>
+            <div class="travel" data-v="0.22"></div></div>
+          <div class="ctl"><span class="lab">Tone</span><span class="val">5.2<small>kHz</small></span>
+            <div class="travel" data-v="0.61"></div></div>
+          <div class="ctl"><span class="lab">Sync</span>
+            <div class="segs"><span class="on">FREE</span><span>1/4</span><span>1/8.</span><span>1/8</span></div></div>
+          <div class="ctl"><span class="lab">Trails</span>
+            <div class="segs"><span>OFF</span><span class="on">ON</span></div></div>
+        </div>
+      </div>
+      <div class="rail ctxrail">
+        <span><span class="sel-name">TIME</span><br><span class="sel-val">380 ms</span></span>
+        <span class="btn step">-</span><span class="btn step">+</span>
+        <span class="btn">Assign EXP</span>
+        <span class="btn">MIDI Learn</span>
+        <span class="master"><span class="btn primary">Done</span></span>
+      </div>
+    </div></div>
+    <p class="caption"><b>Parameter drawer.</b> The chain shrinks to a chip strip at the top, so you can jump to the next block without closing the drawer. The drawer takes the block's family colour on its top edge. The selected control is the only lamp-coloured object, with an ENC tag that shows what the encoder turns. The bottom rail becomes a context rail for that control: big value, fine steps, EXP and MIDI assignment. A PER SCENE tag marks values that change between scenes.</p>
+  </div>
+
+  <div class="shot">
+    <div class="frame"><div class="screen d1">
+      <div class="hdr ehdr">
+        <span class="title">EDIT</span><span class="sub">PRESET 1  CLEAN LEAD</span><span class="tag">MODIFIED</span>
+      </div>
+      <div class="stage">
+        <div class="wire"></div>
+        <div class="jack" style="left:20px">IN<small>MONO</small></div>
+        <div class="plus" style="left:118px">+</div>
+        <div class="block" style="left:164px">
+          <div class="cap" style="background:var(--util)">DYNAMICS</div>
+          <div class="bn">Compressor</div>
+        </div>
+        <div class="plus" style="left:346px">+</div>
+        <div class="block" style="left:392px">
+          <div class="cap" style="background:var(--amp)">NEURAL AMP</div>
+          <div class="bn">Clean Twin</div>
+        </div>
+        <div class="block" style="left:660px">
+          <div class="cap" style="background:var(--cab)">CAB</div>
+          <div class="bn">Open Back 2x12</div>
+        </div>
+      </div>
+      <div class="rail">
+        <span class="btn primary">Save</span><span class="btn">Undo</span><span class="btn">Modules</span><span class="btn">Global</span>
+      </div>
+      <div class="dim"></div>
+      <div class="mark">+</div>
+      <div class="marklbl">INSERT HERE</div>
+      <div class="mdrawer">
+        <div class="mhead"><h4>MODULES</h4><span class="n">56</span><span class="btn">Close</span></div>
+        <div class="msub">INSERT AFTER <b>CLEAN TWIN</b></div>
+        <div class="filters">
+          <span class="on" style="--c:var(--bone)">All</span>
+          <span style="--c:var(--amp)">Amps</span>
+          <span style="--c:var(--cab)">Cabs</span>
+          <span style="--c:var(--amp)">Drive</span>
+          <span style="--c:var(--util)">Utility</span>
+          <span style="--c:var(--mod)">Mod</span>
+          <span style="--c:var(--dly)">Delays</span>
+          <span style="--c:var(--rev)">Reverbs</span>
+        </div>
+        <div class="mlist">
+          <div class="grp"><span>DRIVE</span><span>3</span></div>
+          <div class="item hl"><span class="code" style="--c:var(--amp)">RAT</span><span class="t"><b>Rat Distortion</b><small>ProCo RAT circuit model</small></span><span class="add">+</span></div>
+          <div class="item"><span class="code" style="--c:var(--amp)">FUZZ</span><span class="t"><b>Big Cheese Fuzz</b><small>Lovetone Big Cheese circuit</small></span><span class="add">+</span></div>
+          <div class="item"><span class="code" style="--c:var(--amp)">TAPE</span><span class="t"><b>Tape Machine</b><small>Studer A800 tape saturation</small></span><span class="add">+</span></div>
+          <div class="grp"><span>UTILITY</span><span>4</span></div>
+          <div class="item"><span class="code" style="--c:var(--util)">CMP</span><span class="t"><b>Compressor</b><small>Dynamics</small></span><span class="add">+</span></div>
+          <div class="item"><span class="code" style="--c:var(--util)">GATE</span><span class="t"><b>Noise Gate</b><small>Dynamics, zero added latency</small></span><span class="add">+</span></div>
+        </div>
+        <div class="scroll"></div>
+        <div class="mfoot"><span>TAP + TO INSERT  /  HOLD TO DRAG</span><span>56 OF 56</span></div>
+      </div>
+    </div></div>
+    <p class="caption"><b>Module drawer.</b> The drawer names the insert point, and a bone marker on the dimmed rail shows it. Filters carry their family colour on the top edge, and the list groups modules by family with a count. Each row has a colour code square that matches the chain strip labels, and an explicit + button as a 52 px tap target. The pressed row shows its highlight state.</p>
+  </div>
+</div>
+<script>
+  // Travel scales: 11 printed ticks, a family-colour fill and a bone handle.
+  document.querySelectorAll(".d1 .travel").forEach((travel) => {
+    const value = Number(travel.dataset.v);
+    const ticks = Array.from({ length: 11 }, (_, i) => `<i class="tk" style="left:${i * 10}%"></i>`).join("");
+    travel.innerHTML = `${ticks}<i class="trk"></i><i class="fill" style="width:${value * 100}%"></i><i class="hdl" style="left:${value * 100}%"></i>`;
+  });
+</script>
+<script src="scale.js"></script>
+</body>
+</html>

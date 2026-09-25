@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enclosures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=Archivo:wght@500;700;800;900&family=Saira+Condensed:wght@600&family=Saira:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+  /* Direction 2: every preset is a painted stompbox enclosure.
+     Shape rule: enclosures and buttons use 14 px corners, jewels and
+     footswitches are circles. Nothing else is rounded. */
+  .d2 {
+    --floor: #121110;
+    --floor-2: #1a1917;
+    --rule: #2d2b28;
+    --ink: #151412;
+    --bone: #f1efe9;
+    --bone-2: #a19c93;
+    --lamp: #ff3b24;
+    --metal: #cfd3d6;
+    --metal-2: #8e9498;
+    --metal-3: #e9ebec;
+    background:
+      radial-gradient(#1b1a18 1px, transparent 1.4px) 0 0 / 6px 6px,
+      var(--floor);
+    color: var(--bone);
+    font-family: "Archivo", sans-serif;
+  }
+  .d2 .hdr {
+    position: absolute; left: 0; top: 0; width: 1280px; height: 64px; display: flex; align-items: center;
+    gap: 18px; padding: 0 28px; background: var(--floor); border-bottom: 1px solid var(--rule);
+  }
+  .d2 .hdr .bank { font: 800 28px "Archivo", sans-serif; letter-spacing: .02em; }
+  .d2 .hdr .bn { font: 600 22px "Archivo Narrow", sans-serif; color: var(--bone-2); letter-spacing: .06em; }
+  .d2 .hdr .r { margin-left: auto; font: 500 18px "Archivo Narrow", sans-serif; color: var(--bone-2); }
+
+  .d2 .map {
+    position: absolute; left: 28px; top: 84px; width: 1216px; height: 508px;
+    display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 24px 28px;
+  }
+  .d2 .box {
+    position: relative; border-radius: 14px; background: var(--c-dim); color: var(--c-ink);
+    box-shadow: 8px 8px 0 0 #070706;
+  }
+  .d2 .box.live { background: var(--c); color: var(--ink); box-shadow: 10px 10px 0 0 #070706, inset 0 0 0 3px var(--bone); transform: translate(-3px, -3px); }
+  .d2 .screw { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: var(--c-screw); }
+  .d2 .live .screw { background: rgba(0,0,0,.28); }
+  .d2 .s1 { left: 12px; top: 12px; } .d2 .s2 { right: 12px; top: 12px; }
+  .d2 .s3 { left: 12px; bottom: 12px; } .d2 .s4 { right: 12px; bottom: 12px; }
+  .d2 .jewel {
+    position: absolute; left: 40px; top: 34px; width: 26px; height: 26px; border-radius: 50%;
+    background: #2a0906; box-shadow: 0 0 0 4px var(--c-screw);
+  }
+  .d2 .live .jewel { background: var(--lamp); box-shadow: 0 0 0 4px var(--ink), 0 0 0 7px #ff8a78; }
+  .d2 .fs { position: absolute; left: 82px; top: 34px; font: 700 20px "Archivo Narrow", sans-serif; letter-spacing: .14em; }
+  .d2 .name {
+    position: absolute; left: 38px; top: 78px; font: 900 70px/1 "Archivo", sans-serif; letter-spacing: -.01em; white-space: nowrap;
+    text-transform: uppercase;
+  }
+  .d2 .live .name { font-size: 74px; }
+  .d2 .sub { position: absolute; left: 40px; bottom: 34px; font: 600 19px "Archivo Narrow", sans-serif; letter-spacing: .08em; opacity: .85; }
+  .d2 .stomp {
+    position: absolute; right: 40px; bottom: 26px; width: 64px; height: 64px; border-radius: 50%;
+    background: var(--metal-2); box-shadow: inset 0 0 0 6px var(--metal), inset 0 0 0 16px var(--metal-2), inset 0 0 0 40px var(--metal-3);
+  }
+  .d2 .box:not(.live) .stomp { opacity: .55; }
+
+  .d2 .rail {
+    position: absolute; left: 0; bottom: 0; width: 1280px; height: 104px; display: flex; align-items: center; gap: 12px;
+    padding: 0 28px; background: var(--floor); border-top: 1px solid var(--rule);
+  }
+  .d2 .btn {
+    height: 60px; padding: 0 24px; display: flex; align-items: center; border-radius: 14px;
+    background: var(--floor-2); border: 2px solid var(--rule); font: 700 22px "Archivo Narrow", sans-serif;
+    letter-spacing: .1em; text-transform: uppercase;
+  }
+  .d2 .btn.primary { background: var(--bone); color: var(--ink); border-color: var(--bone); }
+  .d2 .knob { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+  .d2 .knob .dial {
+    position: relative; width: 72px; height: 72px; border-radius: 50%; background: var(--floor-2);
+    box-shadow: inset 0 0 0 3px var(--metal-2);
+  }
+  .d2 .knob .dial::after {
+    content: ""; position: absolute; left: 34px; top: 8px; width: 4px; height: 26px; background: var(--bone);
+    transform-origin: 2px 28px; transform: rotate(118deg);
+  }
+  .d2 .knob .t { font: 700 16px "Archivo Narrow", sans-serif; letter-spacing: .16em; color: var(--bone-2); }
+  .d2 .knob .v { font: 800 44px/1 "Archivo", sans-serif; }
+
+  /* Edit: the chain as a row of pedals joined by patch cables */
+  .d2 .cable { position: absolute; height: 10px; border-radius: 5px; background: #0a0a09; box-shadow: 0 0 0 2px #2b2926; }
+  .d2 .ped {
+    position: absolute; top: 190px; width: 168px; height: 270px; border-radius: 14px; background: var(--c); color: var(--ink);
+    box-shadow: 8px 8px 0 0 #070706;
+  }
+  .d2 .ped .k { position: absolute; top: 26px; width: 40px; height: 40px; border-radius: 50%; background: var(--ink); }
+  .d2 .ped .k::after { content: ""; position: absolute; left: 18px; top: 4px; width: 4px; height: 14px; background: var(--bone); transform-origin: 2px 16px; transform: rotate(var(--r)); }
+  .d2 .ped .k1 { left: 22px; } .d2 .ped .k2 { left: 64px; } .d2 .ped .k3 { left: 106px; }
+  .d2 .ped .pn { position: absolute; left: 18px; right: 12px; top: 92px; font: 900 28px/1 "Archivo", sans-serif; text-transform: uppercase; }
+  .d2 .ped .pt { position: absolute; left: 18px; bottom: 76px; font: 700 14px "Archivo Narrow", sans-serif; letter-spacing: .16em; opacity: .8; }
+  .d2 .ped .st {
+    position: absolute; left: 56px; bottom: 16px; width: 52px; height: 52px; border-radius: 50%;
+    background: var(--metal-2); box-shadow: inset 0 0 0 5px var(--metal), inset 0 0 0 13px var(--metal-2), inset 0 0 0 30px var(--metal-3);
+  }
+  .d2 .ped .led { position: absolute; right: 16px; bottom: 34px; width: 16px; height: 16px; border-radius: 50%; background: var(--lamp); box-shadow: 0 0 0 3px var(--ink); }
+  .d2 .ped.off { background: var(--c-dim); color: var(--bone-2); }
+  .d2 .ped.off .led { background: #2a0906; }
+  .d2 .ped.off .k { background: #0e0d0c; }
+  .d2 .ped.sel { box-shadow: 10px 10px 0 0 #070706, inset 0 0 0 3px var(--bone); transform: translate(-3px, -8px); }
+  .d2 .io {
+    position: absolute; top: 295px; width: 92px; height: 60px; border-radius: 14px; border: 2px solid var(--rule); background: var(--floor-2);
+    display: flex; align-items: center; justify-content: center; font: 800 20px "Archivo Narrow", sans-serif; letter-spacing: .12em;
+  }
+  .d2 .hint { position: absolute; left: 28px; top: 90px; font: 600 18px "Archivo Narrow", sans-serif; color: var(--bone-2); letter-spacing: .08em; }
+  .d2 .mod { font: 700 16px "Archivo Narrow", sans-serif; letter-spacing: .16em; background: #e7b43a; color: var(--ink); padding: 4px 10px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav"><a href="index.html">Ardor LVGL taste review</a><div class="pager"><a href="1-lamp-black.html">Prev: Lamp Black</a><a href="3-signal-map.html">Next: Signal Map</a></div></nav>
+  <h1>2. Enclosures</h1>
+  <p class="lede">The most colourful direction. Each preset is a painted stompbox. Players pick the colour when they save, so a set list becomes a row of recognisable pedals.</p>
+
+  <div class="notes">
+    <div>
+      <h3>What changes</h3>
+      <ul>
+        <li>Preset colour becomes a saved preset field (8 swatches). This is a schema addition, so it needs your approval.</li>
+        <li>Inactive presets show a dark shade of their colour. The live preset shows the full colour, a bone frame and a lit jewel.</li>
+        <li>Hard offset plates under each enclosure give real depth with zero blur.</li>
+        <li>In the editor, blocks become small pedals with knob pointers and a status LED, joined by patch cables.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>LVGL build notes</h3>
+      <ul>
+        <li>Enclosure: <code>lv_obj</code> with <code>radius 14</code> and a solid offset <code>lv_obj</code> behind it. Circles are <code>LV_RADIUS_CIRCLE</code>.</li>
+        <li>Footswitch: three stacked flat circles. The knob pointer is an <code>lv_line</code> with a set angle.</li>
+        <li>Floor texture: one 6 x 6 px RGB565 tile image, repeated with <code>lv_image</code> tiling.</li>
+        <li>Risk: 8 preset colours must each pass 4.5:1 with dark ink. Check each swatch on the device panel.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="frame"><div class="screen d2">
+      <div class="hdr"><span class="bank">BANK 01</span><span class="bn">SUNDAY SET</span><span class="r">1.33 ms</span></div>
+      <div class="map">
+        <div class="box live" style="--c:#4fa8e6;--c-dim:#1d3a4f;--c-ink:#a9cde6;--c-screw:#2f5d7d">
+          <i class="screw s1"></i><i class="screw s2"></i><i class="screw s3"></i><i class="screw s4"></i>
+          <i class="jewel"></i><span class="fs">FS 1 LIVE</span>
+          <div class="name">Clean Lead</div>
+          <div class="sub">TWIN  /  2X12  /  CHORUS  /  PLATE</div>
+          <i class="stomp"></i>
+        </div>
+        <div class="box" style="--c:#43b99b;--c-dim:#193d34;--c-ink:#a7d8ca;--c-screw:#26594c">
+          <i class="screw s1"></i><i class="screw s2"></i><i class="screw s3"></i><i class="screw s4"></i>
+          <i class="jewel"></i><span class="fs">FS 3</span>
+          <div class="name">Ambient</div>
+          <div class="sub">TWIN  /  TREM  /  SHIMMER</div>
+          <i class="stomp"></i>
+        </div>
+        <div class="box" style="--c:#eaa82a;--c-dim:#4a3713;--c-ink:#ecd29b;--c-screw:#6c521f">
+          <i class="screw s1"></i><i class="screw s2"></i><i class="screw s3"></i><i class="screw s4"></i>
+          <i class="jewel"></i><span class="fs">FS 2</span>
+          <div class="name">Crunch</div>
+          <div class="sub">RAT  /  PLEXI  /  4X12</div>
+          <i class="stomp"></i>
+        </div>
+        <div class="box" style="--c:#e8603a;--c-dim:#4c2317;--c-ink:#f0b8a6;--c-screw:#703424">
+          <i class="screw s1"></i><i class="screw s2"></i><i class="screw s3"></i><i class="screw s4"></i>
+          <i class="jewel"></i><span class="fs">FS 4</span>
+          <div class="name">Solo</div>
+          <div class="sub">FUZZ  /  PLEXI  /  HALL</div>
+          <i class="stomp"></i>
+        </div>
+      </div>
+      <div class="rail">
+        <span class="btn primary">Edit</span><span class="btn">Tuner</span><span class="btn">Looper</span>
+        <span class="btn">Bank -</span><span class="btn">Bank +</span><span class="btn">Setup</span>
+        <span class="knob"><span class="t">MASTER</span><span class="dial"></span><span class="v">82</span></span>
+      </div>
+    </div></div>
+    <p class="caption"><b>Preset screen.</b> The four enclosures keep the 1 / 3 over 2 / 4 footswitch map. The live one is the only full-colour object, and its red jewel is the only use of the lamp.</p>
+  </div>
+
+  <div class="shot">
+    <div class="frame"><div class="screen d2">
+      <div class="hdr"><span class="bank">EDIT</span><span class="bn">CLEAN LEAD</span><span class="mod">MODIFIED</span><span class="r">6 blocks</span></div>
+      <span class="hint">TAP A PEDAL TO EDIT  /  HOLD TO MOVE</span>
+      <div class="cable" style="left:112px;top:320px;width:60px"></div>
+      <div class="cable" style="left:320px;top:320px;width:40px"></div>
+      <div class="cable" style="left:508px;top:320px;width:40px"></div>
+      <div class="cable" style="left:696px;top:320px;width:40px"></div>
+      <div class="cable" style="left:884px;top:320px;width:40px"></div>
+      <div class="cable" style="left:1072px;top:320px;width:40px"></div>
+      <div class="io" style="left:24px">IN</div>
+      <div class="ped" style="left:160px;--c:#6a9fd6">
+        <i class="k k1" style="--r:-40deg"></i><i class="k k2" style="--r:30deg"></i><i class="k k3" style="--r:90deg"></i>
+        <div class="pn">Comp</div><div class="pt">DYNAMICS</div><i class="st"></i><i class="led"></i>
+      </div>
+      <div class="ped sel" style="left:348px;--c:#e0a04a">
+        <i class="k k1" style="--r:60deg"></i><i class="k k2" style="--r:-20deg"></i><i class="k k3" style="--r:10deg"></i>
+        <div class="pn">Clean Twin</div><div class="pt">NEURAL AMP</div><i class="st"></i><i class="led"></i>
+      </div>
+      <div class="ped" style="left:536px;--c:#b9c0c4">
+        <i class="k k1" style="--r:140deg"></i><i class="k k2" style="--r:0deg"></i><i class="k k3" style="--r:-60deg"></i>
+        <div class="pn">2x12 Open</div><div class="pt">CAB</div><i class="st"></i><i class="led"></i>
+      </div>
+      <div class="ped off" style="left:724px;--c:#43b99b;--c-dim:#1c3a33">
+        <i class="k k1" style="--r:-90deg"></i><i class="k k2" style="--r:20deg"></i><i class="k k3" style="--r:40deg"></i>
+        <div class="pn">Chorus</div><div class="pt">MOD  /  OFF</div><i class="st"></i><i class="led"></i>
+      </div>
+      <div class="ped" style="left:912px;--c:#a88fe0">
+        <i class="k k1" style="--r:-10deg"></i><i class="k k2" style="--r:-70deg"></i><i class="k k3" style="--r:50deg"></i>
+        <div class="pn">Tape Echo</div><div class="pt">DELAY</div><i class="st"></i><i class="led"></i>
+      </div>
+      <div class="io" style="left:1100px;width:156px">OUT  L+R</div>
+      <div class="rail">
+        <span class="btn primary">Save</span><span class="btn">Undo</span><span class="btn">Modules</span><span class="btn">Global</span>
+        <span class="knob"><span class="btn">Done</span></span>
+      </div>
+    </div></div>
+    <p class="caption"><b>Edit screen.</b> The knob pointers show the three main values at a glance. A bypassed pedal goes dark, its LED goes out, and its label says OFF. The selected pedal rises and gets a bone frame.</p>
+  </div>
+</div>
+<script src="scale.js"></script>
+</body>
+</html>

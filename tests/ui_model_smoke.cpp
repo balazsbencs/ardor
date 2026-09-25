@@ -512,6 +512,34 @@ int main()
                 && sceneScopeState.bank.presets[2].sceneSet
                      ->scenes[1].targets[*scopedIndex].value == otherSceneValue,
               "editing This scene should change only the selected scene definition")) return 1;
+  {
+    // Chain-card summaries follow the scene being edited, exactly like the
+    // parameter drawer does.
+    const auto& sceneBlock = sceneScopeState.bank.presets[2].blocks[1];
+    std::vector<float> sceneValues;
+    for (const std::size_t scene : {std::size_t{0}, std::size_t{1}}) {
+      sceneScopeState.editingScene = scene;
+      std::vector<ardor::ParameterControl> page;
+      for (std::size_t index = 0; index < ardor::parameterPageCount(sceneScopeState); ++index) {
+        const auto controls = ardor::parameterPage(sceneScopeState, index);
+        page.insert(page.end(), controls.begin(), controls.end());
+      }
+      const auto summary = ardor::blockSummaryControls(sceneScopeState, sceneBlock, 6);
+      bool matches = !summary.empty();
+      for (const auto& item : summary) {
+        const auto shown = std::find_if(page.begin(), page.end(),
+          [&](const auto& control) { return control.key == item.key; });
+        matches = matches && shown != page.end() && shown->formatted == item.formatted;
+      }
+      if (require(matches, "scene-aware summaries should match the drawer for each scene")) return 1;
+      const auto scoped = std::find_if(summary.begin(), summary.end(),
+        [&](const auto& item) { return item.key == scopedControl->key; });
+      if (scoped != summary.end()) sceneValues.push_back(scoped->value);
+    }
+    if (require(sceneValues.size() != 2 || sceneValues[0] != sceneValues[1],
+                "a scene-owned value should differ between the edited scenes")) return 1;
+    sceneScopeState.editingScene = 0;
+  }
   if (require(ardor::setSelectedParameterSceneScope(
                   sceneScopeState, scopedControl->key, ardor::UiSceneScope::Shared)
                 && sceneScopeState.pendingPreview.has_value()
@@ -1138,6 +1166,31 @@ int main()
                            [&](const ardor::UiBlock& block) { return block.id == deletedBlockId; }),
               "selected block delete should remove the selected id")) return 1;
   if (require(migrationState.dirty, "selected block delete should dirty the preset")) return 1;
+
+  {
+    // Chain cards summarise a block with its first continuous controls only:
+    // choice labels and values do not fit a card. No selection is needed.
+    auto summaryState = ardor::makeDemoUiState();
+    const auto& summaryBlocks = summaryState.bank.presets[summaryState.activePreset].blocks;
+    for (std::size_t index = 0; index < summaryBlocks.size(); ++index) {
+      ardor::selectBlock(summaryState, index);
+      const auto full = ardor::parameterPage(summaryState, 0);
+      std::vector<std::string> expected;
+      for (const auto& item : full) {
+        if (item.kind == ardor::ParameterControlKind::Continuous && expected.size() < 2) {
+          expected.push_back(item.key);
+        }
+      }
+      const auto summary = ardor::blockSummaryControls(summaryBlocks[index], 2);
+      std::vector<std::string> keys;
+      for (const auto& item : summary) keys.push_back(item.key);
+      if (require(keys == expected,
+                  "block summary should list only continuous controls: " + summaryBlocks[index].type)) {
+        return 1;
+      }
+      if (require(summary.size() <= 2, "block summary should respect the requested count")) return 1;
+    }
+  }
 
   ardor::Preset eqAssetNamePreset;
   eqAssetNamePreset.name = "EQ Asset Name";

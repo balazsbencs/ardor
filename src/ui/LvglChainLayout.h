@@ -9,34 +9,40 @@
 
 namespace ardor::chain_layout {
 
-inline constexpr int kChainLeft = 20;
-inline constexpr int kChainWidth = 1240;
-inline constexpr int kChainTop = 96;
-inline constexpr int kChainHeight = 492;
-inline constexpr int kChainWorldHeight = 456;
-inline constexpr int kChainRailY = 228;
-inline constexpr int kChainLeftRailY = 126;
-inline constexpr int kChainRightRailY = 330;
-inline constexpr int kChainStartX = 24;
-inline constexpr int kChainTerminalWidth = 92;
+// Lamp Black edit stage (mockups/lvgl-taste/1-lamp-black.html): the chain
+// fills the band between the 64 px header and the 108 px rail. The 4 px wire
+// runs through y = 328 on screen; cards are 172 x 296 with 36 px insert
+// circles 10 px either side of them.
+inline constexpr int kChainLeft = 0;
+inline constexpr int kChainWidth = 1280;
+inline constexpr int kChainTop = 64;
+inline constexpr int kChainHeight = 548;
+inline constexpr int kChainWorldHeight = 548;
+inline constexpr int kChainRailY = 264;
+inline constexpr int kChainWireHeight = 4;
+inline constexpr int kChainLeftRailY = 162;
+inline constexpr int kChainRightRailY = 366;
+inline constexpr int kChainStartX = 20;
+inline constexpr int kChainTerminalWidth = 88;
+inline constexpr int kChainTerminalHeight = 56;
 inline constexpr int kChainJunctionWidth = 132;
-// Tall module cards keep a compact footprint on the horizontal signal chain,
-// but their full-width 64 px headers are dedicated drag surfaces. That clears
-// the 44 px touchscreen floor with room for both the category and the action.
-inline constexpr int kChainTileHeight = 326;
-inline constexpr int kChainTileWidth = 168;
+// The full-width 64 px card header is the drag surface; the body is a tap
+// target that opens the block's parameters.
+inline constexpr int kChainTileHeight = 296;
+inline constexpr int kChainTileWidth = 172;
 inline constexpr int kChainHeaderHeight = 64;
 inline constexpr int kChainHandleWidth = 48;
-inline constexpr int kChainInsertWidth = 52;
-inline constexpr int kChainGap = 14;
+inline constexpr int kChainInsertWidth = 36;
+inline constexpr int kChainGap = 10;
 inline constexpr int kLaneTileWidth = 200;
 inline constexpr int kLaneTileHeight = 92;
 inline constexpr int kLaneHeaderHeight = 52;
 inline constexpr int kLaneInsertWidth = 48;
 inline constexpr int kChainSlotWidth = kChainTileWidth + kChainInsertWidth + 2 * kChainGap;
 inline constexpr int kChainTileTop = kChainRailY - kChainTileHeight / 2;
-inline constexpr int kChainTextX = 13;
-inline constexpr int kChainTextWidth = kChainTileWidth - 2 * kChainTextX;
+// Card text sits 14 px inside the 1 px border.
+inline constexpr int kChainTextX = 14;
+inline constexpr int kChainTextWidth = kChainTileWidth - 2 - 2 * kChainTextX;
 
 std::size_t slotForPoint(std::size_t blockCount, lv_point_t canvasPoint);
 std::size_t insertionSlotForPoint(std::size_t blockCount, lv_point_t canvasPoint);
