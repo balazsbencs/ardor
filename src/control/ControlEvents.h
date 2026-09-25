@@ -30,6 +30,7 @@ enum class FootswitchActionType {
   SelectScene,
   ToggleTuner,
   ToggleSceneLayer,
+  OpenLooper,
 };
 
 struct FootswitchAction {
@@ -50,12 +51,15 @@ public:
   // Reconfiguring a layer consumes every pending press/release from the old
   // interpretation. Presets without scenes retain the legacy parser.
   void configureScenes(bool available, bool sceneLayer, bool layerChordEnabled = true);
+  // -1 disables foot-only looper entry (for example while editing or in Scenes).
+  void setLooperEntrySlot(int activePresetSlot);
   void reset();
 
   static constexpr auto chordWindow = std::chrono::milliseconds(150);
   static constexpr auto sceneChordWindow = std::chrono::milliseconds(60);
   static constexpr auto tunerHold = std::chrono::milliseconds(1000);
   static constexpr auto sceneLayerHold = std::chrono::milliseconds(600);
+  static constexpr auto looperHold = std::chrono::milliseconds(1000);
 
 private:
   std::array<bool, 4> down_{};
@@ -68,6 +72,7 @@ private:
   bool scenesAvailable_ = false;
   bool sceneLayer_ = false;
   bool layerChordEnabled_ = true;
+  int looperEntrySlot_ = -1;
 };
 
 } // namespace ardor

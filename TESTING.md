@@ -180,6 +180,45 @@ Pi-specific evdev footswitches, the encoder, serial MIDI, the expression ADC,
 Linux realtime scheduling, framebuffer presentation, and touch calibration are
 not reproduced on macOS.
 
+On Linux, the looper integration test uses temporary evdev files and a fake
+`/sys/class/input` tree. It verifies that the pedal finds GPIO switches when
+the touchscreen changes event numbering, then follows physical switch events
+through Looper entry, recording, playback, follower capture, overdub,
+undo/redo, mute, clear, tuner pause/resume, and session close:
+
+```sh
+cmake -S . -B build-ci -DARDOR_UI_BACKEND=none
+cmake --build build-ci --target pedal-looper-e2e pedal-looper-smoke pedal-looper-store-smoke pedal-control-smoke
+ctest --test-dir build-ci -R 'pedal-(looper|control-smoke)' --output-on-failure
+```
+
+The synthetic test cannot verify GPIO wiring or the actual Pi audio device;
+those still need a physical pedal check after installation.
+
+On the Pi, verify the boot overlay has configured all four active-low switches
+with pull-ups before testing the UI. With no switches pressed, GPIO 5, 6, 13,
+and 16 should read `hi` in `/sys/kernel/debug/gpio`, and their pin configuration
+should report `bias pull up`:
+
+```sh
+mount -t debugfs none /sys/kernel/debug 2>/dev/null || true
+cat /sys/kernel/debug/gpio
+cat /sys/kernel/debug/pinctrl/*/pinconf-pins
+```
+
+Then open **LOOPER** on the touchscreen (or hold FS4 for one second from the
+preset screen). Press FS3 once to start recording. The screen should show the
+recording state immediately. Press FS3 again to stop recording and start
+playback. If GPIO13 stays `lo` with no switch pressed, inspect its wiring;
+if it reports `bias pull down`, reinstall the updated `ardor-controls.dtbo` on
+the boot partition and reboot.
+
+If the display draws but touch does not respond, check for a `Goodix Capacitive
+TouchScreen` entry in `/sys/class/input/event*/device/name`. The Goodix I2C
+probe can fail during boot before the panel has powered up. The pedal supervisor
+retries that probe before launching the app; a successful launch should have an
+open descriptor for the Goodix event node under `/proc/$(pidof ardor-pedal)/fd`.
+
 ## Run the REST API locally
 
 Start the real manager daemon with authentication disabled for local testing:
@@ -429,6 +468,8 @@ to match it. The Vite development server intentionally requires port 1420.
 ### Realtime audio does not start
 
 - Re-run `pedal-poc --devices` and check both device indexes.
+- On the Pi, confirm `ALSA_CARD=Zero` selects Codec Zero; HDMI may otherwise be
+  card 0 and has no capture input.
 - Grant microphone permission to Terminal or the launching IDE.
 - Set the audio interface to 48 kHz when possible.
 - Check whether another application is holding the interface.

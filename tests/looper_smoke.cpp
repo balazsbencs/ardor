@@ -501,6 +501,8 @@ void testFootswitchController()
   telemetry.sessionState = ardor::LooperSessionState::Paused;
   telemetry.lastAppliedCommandSequence = resumeAfterTuner->command.sequence;
   controller.updateTelemetry(telemetry);
+  controller.handleFootswitch(
+      {ardor::ControlEventType::FootswitchPressed, 0, 0}, start + 4500ms);
   const auto close = controller.closeSession();
   require(close && close->command.type == ardor::LooperCommandType::CloseSession,
           "paused session should be closable");
@@ -508,6 +510,20 @@ void testFootswitchController()
   telemetry.lastAppliedCommandSequence = close->command.sequence;
   controller.updateTelemetry(telemetry);
   require(!controller.sessionLocked(), "close acknowledgement should release the preset lock");
+
+  const auto reopened = controller.openSession();
+  require(reopened && controller.sessionLocked(), "a closed session should reopen");
+  telemetry.sessionState = ardor::LooperSessionState::EmptyPaused;
+  telemetry.lastAppliedCommandSequence = reopened->command.sequence;
+  controller.updateTelemetry(telemetry);
+  const auto firstPressAfterReopen = controller.handleFootswitch(
+      {ardor::ControlEventType::FootswitchPressed, 0, 0}, start + 5s);
+  require(!firstPressAfterReopen, "FS1 action should wait for release after reopening");
+  const auto firstReleaseAfterReopen = controller.handleFootswitch(
+      {ardor::ControlEventType::FootswitchReleased, 0, 0}, start + 5050ms);
+  require(firstReleaseAfterReopen
+            && firstReleaseAfterReopen->command.type == ardor::LooperCommandType::ToggleUndo,
+          "reopening must clear stale held-switch state from the prior session");
 
   ardor::LooperController captureController;
   const auto captureOpen = captureController.openSession();

@@ -14,6 +14,10 @@ RELAY_ENABLE=/sys/class/leds/ardor:audio-output-enable/brightness
 : "${IR_SAMPLES:=8192}"
 : "${CAPTURE_DEVICE:=-1}"
 : "${PLAYBACK_DEVICE:=-1}"
+# ALSA's card 0 may be HDMI, which has no capture channel. Select the Codec
+# Zero by its stable card name when the app uses the default audio device.
+: "${ALSA_CARD:=Zero}"
+export ALSA_CARD
 : "${INPUT_CHANNEL:=0}"
 : "${OUTPUT_CHANNEL:=both}"
 : "${PARALLEL_RIGS:=${DUAL_AMP_PARALLEL:-1}}"
@@ -26,6 +30,11 @@ RELAY_ENABLE=/sys/class/leds/ardor:audio-output-enable/brightness
 : "${WDW_WET_WORKER_CPU:=1}"
 : "${TELEMETRY_FILE:=/run/ardor-pedal.telemetry}"
 : "${CONTROL_DEVICES:=}"
+# Older pedal images pin event0/event1, but touchscreen and GPIO enumeration
+# can change across boots. Migrate only that shipped default to name discovery.
+if [ "$CONTROL_DEVICES" = "/dev/input/event0 /dev/input/event1" ]; then
+  CONTROL_DEVICES=auto
+fi
 : "${MIDI_DEVICE:=}"
 : "${MIDI_CHANNEL:=omni}"
 : "${MIDI_TUNER_CC:=20}"
@@ -48,9 +57,11 @@ set_output_relay() {
 }
 
 control_args=""
-for dev in $CONTROL_DEVICES; do
-  control_args="$control_args --control-device $dev"
-done
+if [ "$CONTROL_DEVICES" != "auto" ]; then
+  for dev in $CONTROL_DEVICES; do
+    control_args="$control_args --control-device $dev"
+  done
+fi
 ui_arg=""
 [ "$UI" = "1" ] && ui_arg="--ui"
 parallel_rig_args=""
@@ -78,6 +89,33 @@ seed_missing_assets() {
     mkdir -p "$(dirname "$target")"
     cp "$file" "$target"
   done
+}
+
+touchscreen_ready() {
+  for name in /sys/class/input/event*/device/name; do
+    [ -r "$name" ] || continue
+    grep -qi goodix "$name" && return 0
+  done
+  return 1
+}
+
+restore_touchscreen() {
+  [ "$UI" = "1" ] || return 0
+  touchscreen_ready && return 0
+  # The DSI Touch Display 2 can answer its first Goodix I2C probe too late.
+  # A failed probe leaves no input node, and the app only opens touch at launch.
+  # Retry the driver bind once the panel has had time to power up.
+  for attempt in 1 2 3 4 5; do
+    sleep 1
+    touchscreen_ready && return 0
+    if [ -e /sys/bus/i2c/devices/10-005d ] &&
+       [ ! -e /sys/bus/i2c/devices/10-005d/driver ] &&
+       [ -w /sys/bus/i2c/drivers/Goodix-TS/bind ]; then
+      echo 10-005d > /sys/bus/i2c/drivers/Goodix-TS/bind 2>/dev/null || true
+    fi
+    touchscreen_ready && return 0
+  done
+  echo "Warning: Goodix touchscreen is unavailable" >&2
 }
 
 run_supervised() {
@@ -115,6 +153,7 @@ run_supervised() {
     [ -w "$policy" ] && echo performance > "$policy"
   done
   while :; do
+    restore_touchscreen
     # The touchscreen stores its audio choice in the global settings document.
     # Re-read it for every supervised launch so a clean child exit can apply a
     # new period without restarting the supervisor shell itself.

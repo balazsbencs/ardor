@@ -15,6 +15,7 @@ LooperControllerAction LooperController::command(LooperCommandType type,
 std::optional<LooperControllerAction> LooperController::openSession()
 {
   if (sessionLocked_) return std::nullopt;
+  resetGestures();
   sessionLocked_ = true;
   selectedTrack_ = 0;
   return command(LooperCommandType::OpenEmpty);

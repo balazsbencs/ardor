@@ -1508,13 +1508,21 @@ int main(int argc, char** argv)
       uint64_t previousNonFiniteBlocks = 0;
 #if defined(__linux__)
       std::vector<ardor::LinuxInputDevice> inputDevices;
-      inputDevices.resize(args.controlDevices.size());
-      for (std::size_t i = 0; i < args.controlDevices.size(); ++i) {
+      const auto controlDevicePaths = args.controlDevices.empty()
+        ? ardor::discoverPedalControlDevices() : args.controlDevices;
+#if defined(ARDOR_HAS_UI) && defined(ARDOR_UI_BACKEND_FBDEV)
+      if (args.enableUi && controlDevicePaths.empty()) {
+        ardor::setUiStatus(uiState, "Footswitch input unavailable", true);
+      }
+#endif
+      inputDevices.resize(controlDevicePaths.size());
+      for (std::size_t i = 0; i < controlDevicePaths.size(); ++i) {
         std::string error;
-        if (!inputDevices[i].open(args.controlDevices[i], error)) {
-          std::cerr << "Failed to open control device " << args.controlDevices[i] << ": " << error << "\n";
+        if (!inputDevices[i].open(controlDevicePaths[i], error)) {
+          std::cerr << "Failed to open control device " << controlDevicePaths[i] << ": " << error << "\n";
           return 1;
         }
+        std::cerr << "Control input active on " << controlDevicePaths[i] << "\n";
       }
 
       ardor::LinuxMidiInput midiInput;
@@ -1714,6 +1722,14 @@ int main(int argc, char** argv)
           return;
         }
 #endif
+        if (action.type == ardor::FootswitchActionType::OpenLooper) {
+#if defined(ARDOR_HAS_UI)
+          if (args.enableUi && ui && ui->actions().openLooper) {
+            ui->actions().openLooper();
+          }
+#endif
+          return;
+        }
         if (action.type == ardor::FootswitchActionType::ToggleSceneLayer) {
           if (!activePreset.sceneSet) return;
           sceneLayerActive = !sceneLayerActive;
@@ -2068,6 +2084,14 @@ int main(int argc, char** argv)
           }};
         }
 #endif
+        footswitchGesture.setLooperEntrySlot(
+#if defined(ARDOR_HAS_UI)
+          args.enableUi && ui && uiState.mode == ardor::UiMode::Preset && !tunerMode
+            ? activeSelection.slot : -1
+#else
+          -1
+#endif
+        );
         for (auto& inputDevice : inputDevices) {
           ardor::ControlEvent controlEvent;
           while (inputDevice.poll(controlEvent)) {
