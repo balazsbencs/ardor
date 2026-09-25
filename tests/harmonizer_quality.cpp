@@ -115,6 +115,14 @@ void verifyHarmonizerSecondVoice()
                                               " vs fifth " + fmt(fifth));
   require(channelDifference(out) > 1e-3, "two voices must spread across the channels");
 
+  // A silent second voice must not move the first: selecting Interval 2 with
+  // its level at zero used to pan Voice 1 to the left (review of #89).
+  auto silent = cMajorThirdUp();
+  silent["p3"] = both["p3"];
+  silent["p4"] = 0.0f;
+  require(maxDifference(single, silent) == 0.0,
+          "harmonizer with a silent Voice 2 must sound exactly like one voice");
+
   both["p4"] = 0.0f;
   const auto quiet = render(both, input);
   const double quietFifth = componentDb(quiet.left, 48000, 392.00);

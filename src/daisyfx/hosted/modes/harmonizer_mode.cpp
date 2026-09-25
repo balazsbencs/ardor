@@ -148,23 +148,27 @@ void HarmonizerMode::Prepare(const ParamSet& params)
         static_cast<int>(params.depth * static_cast<float>(SCALE_COUNT)), 0, SCALE_COUNT - 1);
 
     // Interval 2 (p3): Off, then the same ten intervals. Voice 2 Level (p4)
-    // sets it against the first voice, whose level is the Mix control.
+    // balances it against the first voice. The host's Mix scales both voices
+    // together (output = dry + Mix x (voice 1 + level x voice 2)), so Mix is
+    // the overall harmony level.
     const int second = std::clamp(
         static_cast<int>(params.p3 * static_cast<float>(INTERVAL_COUNT + 1)), 0, INTERVAL_COUNT);
     voices_[1].active = second > 0;
     voices_[1].interval = second > 0 ? second - 1 : 0;
     voices_[1].level = params.p4;
 
-    // Two voices spread apart; one voice stays centred, as it always was.
-    if (voices_[1].active) {
-        voices_[0].gain[0] = kPanNear;
-        voices_[0].gain[1] = kPanFar;
-        voices_[1].gain[0] = kPanFar;
-        voices_[1].gain[1] = kPanNear;
-    } else {
-        voices_[0].gain[0] = 1.0f;
-        voices_[0].gain[1] = 1.0f;
-    }
+    // Two voices spread apart; one voice stays centred, as it always was. The
+    // spread follows Voice 2's level over its first quarter, so a silent
+    // second voice leaves the first one exactly centred: panning on the
+    // selection alone moved the stereo image with a control that made no
+    // sound (review of #89).
+    const float spread = voices_[1].active
+        ? (voices_[1].level * 4.0f > 1.0f ? 1.0f : voices_[1].level * 4.0f)
+        : 0.0f;
+    voices_[0].gain[0] = 1.0f + spread * (kPanNear - 1.0f);
+    voices_[0].gain[1] = 1.0f + spread * (kPanFar - 1.0f);
+    voices_[1].gain[0] = 1.0f + spread * (kPanFar - 1.0f);
+    voices_[1].gain[1] = 1.0f + spread * (kPanNear - 1.0f);
 
     // Speed is presented as Tracking: how quickly the voice moves to a new note.
     const float speed = std::clamp((params.speed - 0.05f) / 9.95f, 0.0f, 1.0f);
