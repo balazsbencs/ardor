@@ -2380,6 +2380,26 @@
           "max": 1,
           "step": 0.05,
           "default": 0.5
+        },
+        {
+          "key": "p3",
+          "label": "Interval 2",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p4",
+          "label": "Voice 2 Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.8
         }
       ]
     },

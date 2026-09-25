@@ -216,6 +216,10 @@ function modDisplay(mode: string, key: string): NumberDisplay {
   // Optional p3/p4 controls, mirroring formatMod() in DaisyFxCatalog.cpp.
   if (key === "p3") {
     if (mode === "whammy") return choices(["Off", "Shallow", "Deep"]);
+    if (mode === "harmonizer") return choices([
+      "Off", "Oct down", "6th down", "5th down", "4th down", "3rd down",
+      "3rd up", "4th up", "5th up", "6th up", "Oct up",
+    ]);
     if (mode === "phaser" || mode === "vintage_trem") return physical(0, 180, 0, degrees, 1);
     if (mode === "pattern_trem") return logPhysical(0.5, 30, milliseconds, 0.1);
     if (mode === "rotary") return custom(rotaryBalance);

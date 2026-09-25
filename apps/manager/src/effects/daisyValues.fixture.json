@@ -978,6 +978,20 @@
           "defaultValue": 0.500000,
           "choiceCount": 0,
           "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Interval 2",
+          "defaultValue": 0.000000,
+          "choiceCount": 11,
+          "samples": [{"value": 0.000000, "text": "Off"}, {"value": 0.100000, "text": "Oct down"}, {"value": 0.200000, "text": "6th down"}, {"value": 0.300000, "text": "5th down"}, {"value": 0.400000, "text": "4th down"}, {"value": 0.500000, "text": "3rd down"}, {"value": 0.600000, "text": "3rd up"}, {"value": 0.700000, "text": "4th up"}, {"value": 0.800000, "text": "5th up"}, {"value": 0.900000, "text": "6th up"}, {"value": 1.000000, "text": "Oct up"}]
+        },
+        {
+          "key": "p4",
+          "label": "Voice 2 Level",
+          "defaultValue": 0.800000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
         }
       ]
     },

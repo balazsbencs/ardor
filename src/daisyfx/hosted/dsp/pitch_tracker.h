@@ -16,8 +16,9 @@ namespace pedal {
 // harmoniser that drops an octave on a strummed note is worse than one that
 // briefly holds its previous answer.
 //
-// Cost is one lag of the difference function per decimated sample, so the whole
-// search is spread over about 15 ms rather than landing in a single callback.
+// Cost is kLagsPerStep lags of the difference function per decimated sample,
+// so a whole search takes about 4 ms and never lands in a single callback.
+// Passes run back to back, so the estimate refreshes every 4 ms.
 class PitchTracker {
 public:
     void Init(float sample_rate);
@@ -41,8 +42,12 @@ private:
     // reached 43 cents, which is uncomfortably close to rounding a note to the
     // wrong semitone. 12 kHz brings it inside 20.
     static constexpr int kDecimation = 4;
-    // 576 samples at 12 kHz is 48 ms, about four periods of a low E.
-    static constexpr int kWindow = 576;
+    // 288 samples at 12 kHz is 24 ms, two periods of a low E: the least YIN
+    // needs to see the lowest note. The earlier 48 ms window, one lag per
+    // sample and a 16 ms pause between passes made a new note wait 107 ms
+    // for its harmony, long enough to hear the old interval on it.
+    static constexpr int kWindow = 288;
+    static constexpr int kLagsPerStep = 4;
     // 63 Hz to 1333 Hz, which covers a dropped-D low string up to the dusty end.
     static constexpr int kMinLag = 9;
     static constexpr int kMaxLag = 192;
@@ -71,7 +76,6 @@ private:
     float difference_[kMaxLag + 1] = {};
     int   lag_ = 0;
     bool  running_ = false;
-    int   since_pass_ = 0;
 
     float frequency_ = 0.0f;
     float confidence_ = 0.0f;
