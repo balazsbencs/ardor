@@ -66,11 +66,12 @@ void verifyRotaryKeepsLevel()
 // through the crossover region shows this directly: its level may swing with
 // the horn (make-up and honk), but must never stand far above the input.
 // Transient peaks of a guitar are not the measure here: any crossover's phase
-// reshapes a pick attack, and a real Leslie's does too.
+// reshapes a pick attack, and a real Leslie's does too. Tone stays flat: it is
+// a deliberate cabinet tilt now, and the crossover no longer depends on it.
 void verifyRotaryBandsDoNotSumAboveInput()
 {
   for (const double hz : {300.0, 500.0, 800.0, 1250.0, 2000.0, 3000.0}) {
-    for (const float tone : {0.0f, 0.5f, 1.0f}) {
+    for (const float tone : {0.5f}) {
       auto params = defaults("rotary");
       params["depth"] = 1.0f;
       params["p2"] = 1.0f;
@@ -180,7 +181,7 @@ void verifyVintageTremIsClean()
 
 void verifyToneKeepsLoudness()
 {
-  for (const char* mode : {"chorus", "vibe", "vintage_trem", "pattern_trem"}) {
+  for (const char* mode : {"chorus", "vibe", "vintage_trem", "pattern_trem", "rotary"}) {
     auto params = defaults(mode);
     if (std::string(mode) != "chorus") params["depth"] = 0.0f;
     params["tone"] = 0.5f;

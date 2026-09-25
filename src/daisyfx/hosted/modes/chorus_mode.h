@@ -26,14 +26,17 @@ private:
     static constexpr size_t kChorusBufSize = 2400;
     static constexpr size_t kDetuneBufSize = 4096;
 
-    Lfo         lfo_[3];          // lfo_[0]/[1]: dBucket L/R + single-voice; lfo_[2]: Multi 3rd tap
+    // lfo_[0]/[1]: dBucket and Digital L/R (lfo_[1] follows lfo_[0]).
+    // Multi runs all four freely, one per voice, at unrelated rates.
+    static constexpr int kVoices = 4;
+    Lfo         lfo_[kVoices];
     BbdEmulator bbd_;             // dBucket L: BBD pre-coloration + deemphasis
     BbdEmulator bbd_r_;           // dBucket R: BBD pre-coloration + deemphasis
     DcBlocker   dc_;
     DcBlocker   dc_r_;
     uint32_t    rand_ = 12345;
     uint32_t    rand_r_ = 67890;
-    float       delays_[3] = {};
+    float       delays_[kVoices] = {};
     // Prepare() writes the targets; Process() glides the live values toward
     // them. ~20 ms at 48 kHz, fast enough to track a knob, slow enough that a
     // 128-step MIDI CC does not tick.

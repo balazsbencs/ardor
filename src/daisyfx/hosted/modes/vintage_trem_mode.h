@@ -20,6 +20,17 @@ private:
     float AmplitudeGain(float lfo_value) const;
     void  HarmonicGains(float lfo_value, float& gain_lp, float& gain_hp) const;
 
+    // Photoresistor type: a lamp fired by the LFO lights a CdS cell that
+    // shunts the signal. The cell answers light in a few milliseconds and
+    // darkens over tens, so the level drops fast and recovers slowly.
+    struct Photocell {
+        float light       = 0.0f;  // cell conductance, 0 dark .. 1 fully lit
+        float mean_square = 1.0f;  // running mean square of the gain
+        float peak        = 1.0f;  // slowly decaying peak of the gain
+        float makeup      = 1.0f;  // smoothed make-up factor
+    };
+    float PhotoGain(Photocell& cell, float lfo_value);
+
     Lfo   lfo_;
     Lfo   lfo_r_;   // follows lfo_ at the Stereo (p3) offset
     ToneFilter tone_l_;
@@ -29,6 +40,8 @@ private:
     float shape_ = 0.0f;
     float crossover_l_ = 0.0f;
     float crossover_r_ = 0.0f;
+    Photocell photo_[2];
+    float lamp_knee_ = 3.0f;       // lamp switching hardness, from Shape
     int   sub_mode_ = 0;
 };
 
