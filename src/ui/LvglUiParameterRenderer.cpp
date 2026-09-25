@@ -963,15 +963,13 @@ void openHarmonizerMap(lv_obj_t* slider, UiEventContext* context)
 void onChoiceGridOpened(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  lv_obj_t* target = lv_event_get_target_obj(event);
-  openChoiceGridPicker(lv_obj_get_user_data(target) ? target : lv_obj_get_parent(target), context);
+  openChoiceGridPicker(context->ghost, context);
 }
 
 void onHarmonizerMapOpened(lv_event_t* event)
 {
   auto* context = static_cast<UiEventContext*>(lv_event_get_user_data(event));
-  lv_obj_t* target = lv_event_get_target_obj(event);
-  openHarmonizerMap(lv_obj_get_user_data(target) ? target : lv_obj_get_parent(target), context);
+  openHarmonizerMap(context->ghost, context);
 }
 
 void onBypassClicked(lv_event_t* event)
@@ -1180,6 +1178,7 @@ lv_obj_t* createParameterSlider(lv_obj_t* parent, const ParameterControl& contro
       lv_obj_set_style_max_width(visual->valueLabel, kParameterSliderWidth - 2 * kCardPad, 0);
       lv_label_set_long_mode(visual->valueLabel, LV_LABEL_LONG_MODE_DOTS);
       auto* openContext = context->ui->remember(*context->state, controlIndex);
+      // The card and its nested open button both use this callback context.
       openContext->ghost = slider;
       const bool map = usesHarmonizerMap(context, control);
       lv_obj_add_flag(slider, LV_OBJ_FLAG_CLICKABLE);
