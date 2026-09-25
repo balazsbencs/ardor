@@ -1,0 +1,41 @@
+/* Review chrome shared by every direction. It sits outside the design on purpose. */
+.review-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 16px;
+  background: #2b2d31;
+  color: #d9dadc;
+  font: 500 12px/1.4 ui-monospace, 'SF Mono', Menlo, monospace;
+  letter-spacing: 0.02em;
+}
+.review-bar a { color: #fff; text-decoration: none; }
+.review-bar a:hover { text-decoration: underline; }
+.review-bar nav { display: flex; gap: 16px; flex-wrap: wrap; }
+.review-bar b { color: #fff; font-weight: 600; }
+
+/* A note that marks a fact the user must confirm before the copy ships. */
+.confirm {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 3px 8px;
+  border: 1px dashed #d6a23b;
+  color: #d6a23b;
+  font: 500 12px/1.4 ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+@media (max-width: 640px) {
+  .review-bar { flex-direction: column; align-items: flex-start; gap: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

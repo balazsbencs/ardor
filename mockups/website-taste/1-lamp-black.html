@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ardor · Lamp Black</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Saira:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+  :root {
+    --ground: #0b0c0d;
+    --recess: #121416;
+    --plate: #16181a;
+    --rule: #2b2f33;
+    --bone: #eceeed;
+    --ink-2: #a3aaaf;
+    --ink-3: #6d757a;
+    --lamp: #e8472f;
+    --lamp-ink: #1a0906;
+    /* Glow rule: every glow has a visible source. Red spills only around live red; family strips spill their own colour. */
+    --glow: rgba(232,71,47,0.30);
+    --glow-soft: rgba(232,71,47,0.10);
+    --warn: #e0a53c;
+    --amp: #d2923f;
+    --cab: #aab2b7;
+    --util: #5f95c9;
+    --mod: #3fb08c;
+    --delay: #9a82d6;
+    --reverb: #d07a5a;
+    --drive: #d2923f; /* drive shares the amp colour on the device */
+    --display: 'Saira Condensed', 'Arial Narrow', sans-serif;
+    --body: 'Saira', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --maxw: 1320px;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--ground); color: var(--bone); font: 400 17px/1.6 var(--body); -webkit-font-smoothing: antialiased; }
+  img { display: block; max-width: 100%; height: auto; }
+  a { color: inherit; }
+  main { overflow-x: clip; } /* glows may extend past the edge; never scroll sideways */
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 clamp(16px, 4vw, 48px); }
+  h1, h2, h3 { font-family: var(--display); text-transform: uppercase; margin: 0; letter-spacing: 0.005em; }
+  h2 { font-size: clamp(2.3rem, 1.4rem + 3vw, 4.2rem); line-height: 0.95; font-weight: 700; }
+  p { margin: 0; }
+  .lede { color: var(--ink-2); font-size: clamp(1.05rem, 1rem + 0.3vw, 1.25rem); max-width: 34em; }
+
+  /* Buttons: device grammar. White fill is primary, plate is secondary. */
+  .btn { display: inline-flex; align-items: center; gap: 10px; height: 56px; padding: 0 26px; font: 700 1.1rem/1 var(--display); letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; border: 1px solid var(--rule); background: var(--plate); color: var(--bone); transition: transform .2s var(--ease), background .2s, border-color .2s; }
+  .btn:hover { border-color: var(--ink-3); }
+  .btn:active { transform: translateY(1px); }
+  .btn--primary { background: var(--bone); color: var(--ground); border-color: var(--bone); }
+  .btn--primary:hover { background: #f7f8f7; }
+  .btn:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--lamp); outline-offset: 3px; }
+
+  /* Nav */
+  .nav { position: sticky; top: 0; z-index: 50; background: rgba(11,12,13,0.86); backdrop-filter: blur(10px); border-bottom: 1px solid var(--rule); }
+  .nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+  .brand { display: flex; align-items: center; gap: 10px; font: 800 1.5rem/1 var(--display); text-transform: uppercase; letter-spacing: 0.04em; text-decoration: none; }
+  .brand i { width: 14px; height: 14px; background: var(--lamp); }
+  .nav ul { display: flex; gap: 30px; list-style: none; margin: 0; padding: 0; }
+  .nav ul a { font: 600 1rem/1 var(--display); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); text-decoration: none; }
+  .nav ul a:hover { color: var(--bone); }
+  .nav .btn { height: 42px; padding: 0 18px; font-size: 0.95rem; }
+
+  /* Hero */
+  .hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--rule); background: radial-gradient(90% 70% at 78% 105%, var(--glow-soft), transparent 70%), var(--ground); }
+  .hero .wrap { display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 24px; align-items: center; min-height: min(740px, calc(100dvh - 68px)); padding-top: 48px; padding-bottom: 48px; }
+  .eyebrow { font: 600 0.95rem/1 var(--display); letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 22px; display: flex; align-items: center; gap: 12px; }
+  .eyebrow::before { content: ''; width: 28px; height: 3px; background: var(--ink-3); }
+  .hero h1 { font-size: clamp(2.8rem, 1.2rem + 4.2vw, 4.6rem); line-height: 0.9; font-weight: 800; margin-bottom: 28px; }
+  .hero h1 em { font-style: normal; color: var(--ink-2); }
+  .hero .lede { margin-bottom: 36px; }
+  .cta { display: flex; gap: 12px; flex-wrap: wrap; }
+  .hero-stage { position: relative; }
+  .hero-stage::before { content: ''; position: absolute; inset: -45% -70% -45% -45%; background: radial-gradient(closest-side, rgba(232,71,47,0.46), rgba(232,71,47,0.12) 50%, transparent 80%); z-index: 0; }
+  .hero-stage img { position: relative; z-index: 1; width: 190%; max-width: none; margin-left: -34%; -webkit-mask-image: radial-gradient(ellipse 62% 64% at 50% 52%, #000 62%, transparent 100%); mask-image: radial-gradient(ellipse 62% 64% at 50% 52%, #000 62%, transparent 100%); }
+  .hero-stage figcaption { position: relative; z-index: 1; margin-top: -40px; text-align: left; max-width: 26em; font: 500 0.8rem/1.4 var(--mono); color: var(--ink-3); }
+
+  /* The chain strip: the preset tile's family strip, scaled to the page. */
+  .chainstrip { display: grid; grid-template-columns: 1fr 1.5fr 1.2fr 1fr 1fr 1.3fr; height: 44px; }
+  .chainstrip span { display: flex; align-items: center; padding-left: 16px; font: 700 0.85rem/1 var(--display); letter-spacing: 0.14em; color: rgba(11,12,13,0.78); }
+
+  /* Sections */
+  section.block { padding: clamp(80px, 10vw, 140px) 0; border-bottom: 1px solid var(--rule); }
+  .head { max-width: 44rem; margin-bottom: 56px; }
+  .head h2 { margin-bottom: 20px; }
+
+  /* Listen: the player is a preset tile. Ardor output floods it with lamp red. */
+  .listen { background:
+      linear-gradient(to bottom, transparent, var(--ground) 380px),
+      linear-gradient(90deg, color-mix(in srgb, var(--util) 20%, transparent), color-mix(in srgb, var(--amp) 20%, transparent) 30%, color-mix(in srgb, var(--cab) 14%, transparent) 50%, color-mix(in srgb, var(--mod) 20%, transparent) 65%, color-mix(in srgb, var(--delay) 20%, transparent) 80%, color-mix(in srgb, var(--reverb) 20%, transparent)); }
+  .listen .wrap { position: relative; z-index: 0; display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 56px; align-items: center; }
+  .tile { position: relative; background: var(--plate); border: 1px solid var(--rule); padding: 30px 32px 28px; transition: background .35s var(--ease), color .35s; }
+  .tile::before { content: ''; position: absolute; inset: -40% -30%; z-index: -1; pointer-events: none; background: radial-gradient(closest-side, rgba(232,71,47,0.42), rgba(232,71,47,0.10) 55%, transparent 80%); opacity: 0.12; transition: opacity .6s var(--ease); }
+  .tile[data-source="wet"]::before { opacity: 1; }
+  .tile[data-source="wet"] { background: var(--lamp); color: var(--lamp-ink); border-color: var(--lamp); }
+  .tile-top { display: flex; justify-content: space-between; align-items: center; font: 700 1rem/1 var(--display); letter-spacing: 0.14em; }
+  .tile-top .badge { padding: 8px 12px; background: var(--lamp-ink); color: var(--lamp); visibility: hidden; }
+  .tile[data-source="wet"] .badge { visibility: visible; }
+  .tile-name { font: 800 clamp(4rem, 2rem + 7vw, 8.4rem)/0.9 var(--display); text-transform: uppercase; margin: 18px 0 22px; }
+  .tile-name .wet, .tile[data-source="wet"] .tile-name .dry { display: none; }
+  .tile[data-source="wet"] .tile-name .wet { display: inline; }
+  .wave { display: flex; align-items: center; gap: 2px; height: 84px; cursor: pointer; }
+  .wave i { flex: 1; height: 100%; transform: scaleY(var(--s, 0.3)); transform-origin: center; background: currentColor; opacity: 0.28; transition: transform .3s var(--ease); }
+  .wave i.on { opacity: 1; }
+  .tile-controls { display: flex; align-items: center; gap: 10px; margin-top: 24px; }
+  .play { width: 56px; height: 56px; border: 0; background: var(--bone); color: var(--ground); cursor: pointer; display: grid; place-items: center; }
+  .tile[data-source="wet"] .play { background: var(--lamp-ink); color: var(--lamp); }
+  .play svg { width: 20px; height: 20px; }
+  .play .pause, .is-playing .play .go { display: none; }
+  .is-playing .play .pause { display: block; }
+  .src { display: flex; }
+  .src button { height: 56px; padding: 0 22px; font: 700 1.05rem/1 var(--display); letter-spacing: 0.1em; text-transform: uppercase; border: 1px solid currentColor; background: transparent; color: inherit; cursor: pointer; opacity: 0.7; }
+  .src button + button { border-left: 0; }
+  .src button[aria-pressed="true"] { opacity: 1; background: currentColor; }
+  .src button[aria-pressed="true"] span { color: var(--plate); }
+  .tile[data-source="wet"] .src button[aria-pressed="true"] span { color: var(--lamp); }
+  .time { margin-left: auto; font: 500 0.9rem/1 var(--mono); }
+
+  /* Screens: real LVGL captures in a plain black bezel. */
+  .screen { position: relative; isolation: isolate; margin: 0; }
+  .screen::before, .screen.dual::after { content: ''; position: absolute; left: var(--gx, 50%); top: var(--gy, 40%); width: 120%; aspect-ratio: 1.7; transform: translate(-50%, -50%); z-index: -1; pointer-events: none; background: radial-gradient(closest-side, var(--gc, rgba(232,71,47,0.34)), transparent); }
+  .screen.no-glow::before { display: none; }
+  .screen .bezel { background: #050505; padding: 10px; box-shadow: 0 30px 60px -20px rgba(0,0,0,0.8), 0 0 0 1px #1d2023; }
+  .screen figcaption { margin-top: 14px; color: var(--ink-2); font-size: 0.98rem; }
+  .screen figcaption b { font: 700 1rem/1 var(--display); letter-spacing: 0.1em; text-transform: uppercase; color: var(--bone); margin-right: 8px; }
+  .bento { display: grid; grid-template-columns: 1.55fr 1fr; gap: 40px 32px; }
+  .bento .big { grid-row: span 2; }
+
+  .pair { display: grid; grid-template-columns: 1.25fr 0.75fr; gap: 56px; align-items: center; }
+  .pair + .pair { margin-top: clamp(80px, 9vw, 120px); }
+  .pair.flip { grid-template-columns: 0.75fr 1.25fr; }
+  .pair.flip .screen { order: 2; }
+  .pair h3 { font-size: clamp(2rem, 1.3rem + 2.2vw, 3.2rem); line-height: 0.95; font-weight: 700; margin-bottom: 18px; }
+  .pair p { color: var(--ink-2); }
+  .footnote { margin-top: 18px; font: 500 0.85rem/1.5 var(--mono); color: var(--ink-3); }
+
+  .chain .screen { margin-top: 8px; }
+  /* Dual Rig: the blue left lane and the amber right lane each light the ground. */
+  .screen.dual::before { --gx: 50%; --gy: 30%; --gc: color-mix(in srgb, var(--util) 32%, transparent); }
+  .screen.dual::after { --gx: 50%; --gy: 72%; --gc: color-mix(in srgb, var(--amp) 26%, transparent); }
+
+  /* Tones: four measured-or-stated values, set large. */
+  .specs { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--rule); margin-top: 56px; }
+  .spec { padding: 28px 24px 0 0; }
+  .spec + .spec { border-left: 1px solid var(--rule); padding-left: 24px; }
+  .spec b { display: block; font: 700 clamp(2.4rem, 1.6rem + 2.4vw, 3.6rem)/1 var(--display); }
+  .spec span { display: block; margin-top: 10px; color: var(--ink-2); font-size: 0.95rem; }
+  .tones-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: end; }
+  .formats { display: flex; gap: 10px; flex-wrap: wrap; }
+  .formats span { font: 700 1rem/1 var(--display); letter-spacing: 0.08em; text-transform: uppercase; padding: 14px 16px; background: linear-gradient(to bottom, color-mix(in srgb, var(--c) 24%, var(--plate)), var(--plate)); border-top: 4px solid var(--c); }
+
+  /* Effects: families like the module drawer. */
+  .families { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+  .fam { grid-column: span 4; background: linear-gradient(to bottom, color-mix(in srgb, var(--c) 16%, var(--plate)), var(--plate) 70%); border: 1px solid var(--rule); }
+  .fam.wide { grid-column: span 8; }
+  .fam header { display: flex; justify-content: space-between; align-items: baseline; padding: 16px 20px; background: var(--c); color: var(--ground); }
+  .fam header h3 { font-size: 1.35rem; letter-spacing: 0.08em; }
+  .fam header b { font: 800 2.4rem/0.8 var(--display); }
+  .fam ul { list-style: none; margin: 0; padding: 18px 20px 22px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .fam li { font: 600 0.98rem/1 var(--display); letter-spacing: 0.06em; text-transform: uppercase; padding: 9px 11px; background: var(--recess); border: 1px solid var(--rule); }
+  .more { display: inline-flex; margin-top: 36px; font: 700 1.05rem/1 var(--display); letter-spacing: 0.1em; text-transform: uppercase; color: var(--bone); text-decoration: none; border-bottom: 2px solid var(--lamp); padding-bottom: 6px; }
+
+  /* Open source close */
+  .open { position: relative; overflow: hidden; border-bottom: 0; }
+  .open::before { content: ''; position: absolute; left: 50%; bottom: -60%; width: 1200px; height: 900px; transform: translateX(-50%); background: radial-gradient(closest-side, rgba(232,71,47,0.34), rgba(232,71,47,0.08) 55%, transparent 75%); }
+  .open .wrap { position: relative; text-align: left; }
+  .open h2 { font-size: clamp(3rem, 1.4rem + 5vw, 6.4rem); max-width: 10em; margin-bottom: 24px; }
+  .layers { display: flex; flex-wrap: wrap; gap: 0; margin: 40px 0 44px; border: 1px solid var(--rule); width: fit-content; }
+  .layers span { padding: 14px 20px; font: 600 1rem/1 var(--display); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
+  .layers span + span { border-left: 1px solid var(--rule); }
+
+  footer { border-top: 1px solid var(--rule); padding: 48px 0 56px; color: var(--ink-3); font-size: 0.9rem; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+  footer b { color: var(--bone); font: 800 1.2rem/1 var(--display); text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* Motion: hero enters once; sections rise on scroll. */
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-copy > * { animation: rise .9s var(--ease) both; }
+    .hero-copy > *:nth-child(2) { animation-delay: .06s; }
+    .hero-copy > *:nth-child(3) { animation-delay: .12s; }
+    .hero-copy > *:nth-child(4) { animation-delay: .18s; }
+    .hero-stage { animation: fade 1.4s var(--ease) .15s both; }
+    [data-reveal] { opacity: 0; transform: translateY(28px); transition: opacity .9s var(--ease), transform .9s var(--ease); }
+    [data-reveal].is-in { opacity: 1; transform: none; }
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(24px); } }
+  @keyframes fade { from { opacity: 0; transform: scale(0.97); } }
+
+  @media (max-width: 980px) {
+    .nav ul { display: none; }
+    .hero .wrap, .listen .wrap, .pair, .pair.flip, .tones-grid, .bento { grid-template-columns: 1fr; }
+    .hero .wrap { min-height: 0; padding-top: 40px; }
+    .hero-stage img { width: 150%; margin: -8% -25% 0; }
+    .hero-stage figcaption { margin-top: -6%; }
+    .pair.flip .screen { order: 0; }
+    .bento .big { grid-row: auto; }
+    .specs { grid-template-columns: 1fr 1fr; }
+    .spec:nth-child(3) { border-left: 0; padding-left: 0; }
+    .fam, .fam.wide { grid-column: span 12; }
+    .chainstrip span { font-size: 0.7rem; padding-left: 8px; letter-spacing: 0.06em; }
+  }
+  @media (max-width: 560px) {
+    .tile { padding: 22px 18px; }
+    .tile-controls { flex-wrap: wrap; }
+    .src button { padding: 0 16px; }
+    .layers span { flex: 1 1 50%; }
+    .layers span + span { border-left: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="review-bar"><span><b>Direction 1 of 4</b> · Lamp Black</span><nav><a href="index.html">Review</a><a href="2-signal-path.html">Next: Signal Path</a></nav></div>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#"><i></i>Ardor</a>
+    <ul>
+      <li><a href="#listen">Listen</a></li>
+      <li><a href="#interface">Interface</a></li>
+      <li><a href="#effects">Effects</a></li>
+      <li><a href="#">Manual</a></li>
+      <li><a href="#">Docs</a></li>
+    </ul>
+    <a class="btn" href="https://github.com/balazsbencs/ardor">GitHub</a>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-copy">
+        <p class="eyebrow">Open-source guitar processor</p>
+        <h1>Play the whole rig<br>from <em>four footswitches.</em></h1>
+        <p class="lede">Ardor runs NAM amp captures, cabinet IRs, and 48 built-in effects on a Raspberry Pi. The source is open.</p>
+        <div class="cta">
+          <a class="btn btn--primary" href="#">Get started</a>
+          <a class="btn" href="#listen">Hear it</a>
+        </div>
+      </div>
+      <figure class="hero-stage">
+        <img src="pedal-preset.webp" width="1536" height="1024" alt="The Ardor pedal. The screen shows bank 01 with the Clean Lead preset live in red.">
+        <figcaption>Concept render with the real preset screen. A photo of the built pedal replaces it.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <div class="chainstrip" aria-hidden="true">
+    <span style="background:var(--util)">CMP</span>
+    <span style="background:var(--amp)">TWIN</span>
+    <span style="background:var(--cab)">2X12</span>
+    <span style="background:var(--mod)">CHO</span>
+    <span style="background:var(--delay)">DLY</span>
+    <span style="background:var(--reverb)">PLATE</span>
+  </div>
+
+  <section class="block listen" id="listen">
+    <div class="wrap">
+      <div data-reveal>
+        <h2>Hear it first.</h2>
+        <p class="lede" style="margin-top:20px">One guitar take, recorded dry. Switch to the Ardor output while it plays.</p>
+        <span class="confirm">Confirm: preset name and recording chain for this clip</span>
+      </div>
+      <div class="tile" data-ab data-source="wet" data-bars="110" data-reveal>
+        <div class="tile-top"><span>Now playing</span><span class="badge">LIVE</span></div>
+        <div class="tile-name"><span class="dry">Dry</span><span class="wet">Ardor</span></div>
+        <div class="wave" data-ab-wave aria-label="Waveform. Click to move the playhead."></div>
+        <div class="tile-controls">
+          <button class="play" data-ab-play aria-label="Play">
+            <svg class="go" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 2l14 8-14 8z" fill="currentColor"/></svg>
+            <svg class="pause" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 2h4v16H4zM12 2h4v16h-4z" fill="currentColor"/></svg>
+          </button>
+          <div class="src" role="group" aria-label="Source">
+            <button data-ab-src="dry" aria-pressed="false"><span>Dry</span></button>
+            <button data-ab-src="wet" aria-pressed="true"><span>Ardor</span></button>
+          </div>
+          <span class="time" data-ab-time>0:00</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="interface">
+    <div class="wrap">
+      <div class="head" data-reveal>
+        <h2>Read it from standing height.</h2>
+        <p class="lede">The live preset fills with red. Each tile shows its chain in family colors. The four tiles match the four footswitches.</p>
+      </div>
+      <div class="bento">
+        <figure class="screen big" style="--gx:26%;--gy:26%" data-reveal>
+          <div class="bezel"><img src="device/01-preset.png" width="1280" height="720" alt="Preset screen: four preset tiles, Clean Lead live in red."></div>
+          <figcaption><b>Presets</b>The live preset is the only red tile.</figcaption>
+        </figure>
+        <figure class="screen" style="--gx:50%;--gy:30%" data-reveal>
+          <div class="bezel"><img src="device/40-tuner.png" width="1280" height="720" alt="Tuner screen showing E2, in tune."></div>
+          <figcaption><b>Tuner</b>The output mutes. Any footswitch exits.</figcaption>
+        </figure>
+        <figure class="screen" style="--gx:18%;--gy:48%;--gc:rgba(232,71,47,0.2)" data-reveal>
+          <div class="bezel"><img src="device/20-param-rat.png" width="1280" height="720" alt="RAT Distortion controls with three large sliders."></div>
+          <figcaption><b>Controls</b>Large values. The encoder edits the red one.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <div class="pair">
+        <figure class="screen" style="--gx:74%;--gy:28%" data-reveal>
+          <div class="bezel"><img src="device/61-scenes-live.png" width="1280" height="720" alt="Scenes screen: Verse, Chorus, Solo live in red, Outro."></div>
+        </figure>
+        <div data-reveal>
+          <h3>Four sounds in one preset.</h3>
+          <p>Scenes change values inside one preset. The audio engine does not reload. Name them verse, chorus, solo, and outro.</p>
+          <p class="footnote">Hold FS1 + FS2 to open Scenes.</p>
+        </div>
+      </div>
+      <div class="pair flip">
+        <div data-reveal>
+          <h3>A four-track looper at your feet.</h3>
+          <p>The first loop sets the length. Each new layer starts on the loop boundary, so the layers stay in time.</p>
+          <p class="footnote">Hold the live preset switch for 1 second to open the Looper.</p>
+        </div>
+        <figure class="screen" style="--gx:74%;--gy:30%" data-reveal>
+          <div class="bezel"><img src="device/50-looper.png" width="1280" height="720" alt="Looper screen with four tracks: play, recording, overdub armed, muted."></div>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="block chain">
+    <div class="wrap">
+      <div class="head" data-reveal>
+        <h2>Build the chain from left to right.</h2>
+        <p class="lede">Add drive, amp, cabinet, and effect blocks in the order you want. Split into two lanes for a stereo rig.</p>
+      </div>
+      <figure class="screen dual" data-reveal>
+        <div class="bezel"><img src="device/90-dual-rig.png" width="1280" height="720" alt="Dual Rig editor: a split into a left lane and a right lane, joined at the output."></div>
+        <figcaption><b>Dual Rig</b>Each lane has its own amp and effects. The left lane goes left, the right lane goes right.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="block" id="features">
+    <div class="wrap">
+      <div class="tones-grid">
+        <div data-reveal>
+          <h2>Use the tones you already own.</h2>
+          <p class="lede" style="margin-top:20px">Load Neural Amp Modeler captures and cabinet IRs in the browser manager. Ardor includes no third-party captures.</p>
+        </div>
+        <div class="formats" data-reveal>
+          <span style="--c:var(--amp)">.nam captures</span>
+          <span style="--c:var(--cab)">Cabinet IRs</span>
+          <span style="--c:var(--reverb)">Reverb IRs</span>
+          <span style="--c:var(--util)">MIDI + expression</span>
+        </div>
+      </div>
+      <div class="specs" data-reveal>
+        <div class="spec"><b>48 kHz</b><span>Realtime engine</span></div>
+        <div class="spec"><b>&lt;10 ms</b><span>Round-trip latency goal</span></div>
+        <div class="spec"><b>1 in, 2 out</b><span>Mono input, stereo output</span></div>
+        <div class="spec"><b>−1 dBFS</b><span>Safety limiter, always on</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="effects">
+    <div class="wrap">
+      <div class="head" data-reveal>
+        <h2>48 effects in five families.</h2>
+        <p class="lede">Each family has one color, on the pedal and in the manager.</p>
+      </div>
+      <div class="families">
+        <div class="fam wide" style="--c:var(--mod)" data-reveal>
+          <header><h3>Modulation</h3><b>16</b></header>
+          <ul><li>Chorus</li><li>Flanger</li><li>Rotary</li><li>Vibe</li><li>Phaser</li><li>Vintage Trem</li><li>Poly Octave</li><li>Pattern Trem</li><li>Auto Swell</li><li>Filter</li><li>Ladder Sweep</li><li>Formant</li><li>Quadrature</li><li>Destroyer</li><li>Whammy</li><li>Harmonizer</li></ul>
+        </div>
+        <div class="fam" style="--c:var(--drive)" data-reveal>
+          <header><h3>Drive</h3><b>3</b></header>
+          <ul><li>RAT Distortion</li><li>Big Cheese Fuzz</li><li>Tape Machine</li></ul>
+        </div>
+        <div class="fam" style="--c:var(--util)" data-reveal>
+          <header><h3>Dynamics + tone</h3><b>6</b></header>
+          <ul><li>Compressor</li><li>Noise Gate</li><li>Transient Shaper</li><li>5-Band EQ</li><li>Stereo Widener</li><li>GCB-95 Wah</li></ul>
+        </div>
+        <div class="fam" style="--c:var(--delay)" data-reveal>
+          <header><h3>Delay</h3><b>10</b></header>
+          <ul><li>Digital</li><li>Tape</li><li>Dual</li><li>Filter</li><li>Lo-fi</li><li>Bucket Brigade</li><li>Duck</li><li>Pattern</li><li>Swell</li><li>Tremolo</li></ul>
+        </div>
+        <div class="fam" style="--c:var(--reverb)" data-reveal>
+          <header><h3>Reverb</h3><b>13</b></header>
+          <ul><li>Convolution</li><li>Room</li><li>Hall</li><li>Plate</li><li>Spring</li><li>Bloom</li><li>Cloud</li><li>Shimmer</li><li>Chorale</li><li>Nonlinear</li><li>Swell</li><li>Magneto</li><li>Reflections</li></ul>
+        </div>
+      </div>
+      <a class="more" href="#">Open the effects reference</a>
+    </div>
+  </section>
+
+  <section class="block open">
+    <div class="wrap" data-reveal>
+      <h2>Every layer is open.</h2>
+      <p class="lede">The DSP engine, the touch UI, the preset format, the enclosure files, and the firmware image are MIT-licensed. Build it, change it, and send your changes back.</p>
+      <div class="layers"><span>DSP engine</span><span>Touch UI</span><span>Manager</span><span>Presets</span><span>Enclosure</span><span>Firmware image</span></div>
+      <div class="cta">
+        <a class="btn btn--primary" href="https://github.com/balazsbencs/ardor">View on GitHub</a>
+        <a class="btn" href="#">Read the build guide</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div><b>Ardor</b><p style="margin-top:10px">Open-source guitar processor for Raspberry Pi. MIT license.</p></div>
+    <p>Not affiliated with Raspberry Pi Ltd or the Neural Amp Modeler project.</p>
+  </div>
+</footer>
+
+<script src="audio/peaks.js"></script>
+<script src="shared.js"></script>
+</body>
+</html>
