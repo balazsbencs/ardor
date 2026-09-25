@@ -2,6 +2,21 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.77](https://github.com/balazsbencs/ardor/compare/v0.1.74...v0.1.77) (2026-09-25)
+
+### Features
+
+* **website:** adopt the Lamp Black palette, type, and chrome ([0630128](https://github.com/balazsbencs/ardor/commit/06301284a572e4e4bdef564def868cf0b3cacd08))
+* **website:** rebuild the homepage in the Lamp Black direction ([fa5584f](https://github.com/balazsbencs/ardor/commit/fa5584f28996278d2d56a9e62b5d1f44b37bbd6d))
+* **website:** restyle the docs and use real screens in the guides ([b65a87e](https://github.com/balazsbencs/ardor/commit/b65a87e6eef90b51d6f9096ae2387df7d6685360))
+* **website:** show the Lamp Black screen in the interactive manual ([0037db5](https://github.com/balazsbencs/ardor/commit/0037db5e005bbd78f7f66170dfb56d97b6dbe9c6))
+
+### Bug Fixes
+
+* **pedal:** open choice pickers from nested buttons ([997a446](https://github.com/balazsbencs/ardor/commit/997a446a99d28f4ec2c5ff31168c6989e80f31b1))
+* **website:** add Node type definitions for the demo audio loader ([7936c9d](https://github.com/balazsbencs/ardor/commit/7936c9d4d04711f231786eb1aa743035e940cd2b))
+* **website:** show every catalog block and take counts from the catalog ([fd85bb7](https://github.com/balazsbencs/ardor/commit/fd85bb757aa4292bb488ded4abc31880708ec443))
+
 ## [0.1.74](https://github.com/balazsbencs/ardor/compare/v0.1.72...v0.1.74) (2026-09-25)
 
 ### Bug Fixes
