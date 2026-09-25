@@ -160,6 +160,30 @@ Test: `tests/filter_effect_quality.cpp`.
 - Saved Filter presets: Tone now means frequency only (log scale). No repo
   preset uses Filter.
 
+## Release notes
+
+Changes that alter how saved settings sound. Carry these into the release
+guidance.
+
+- **Filter (modulation slot).** Tone now sets only the frequency, 80 Hz –
+  12 kHz on a log scale, and a new Type control (LP / BP / HP / Notch)
+  selects the filter. A saved Filter without Type loads as low-pass, at the
+  frequency its Tone value now maps to. Before, Tone also picked the type
+  (low-pass below about 0.4, band-pass around 0.5, high-pass above about 0.6).
+  Re-select the type for band-pass, high-pass or notch sounds.
+- **Rotary.** Speed is now the fast rotor rate (4–9 Hz); the second
+  control is Rotor (Slow / Stop / Fast). Saved Slow and Fast keep their
+  meaning; Tone is now a cabinet tone instead of the crossover frequency.
+- **Pattern Trem.** Pattern 1 (all steps on) is now "Dotted 8ths".
+- **Vibe.** The second control is now Lag (photocell recovery) instead of
+  Shape.
+- **Quadrature.** Depth now acts in every type (AM depth, Shift feedback);
+  a saved Depth in AM or Shift now changes the sound.
+- **Chorus.** Tone is a wet tone control in every type (was dBucket
+  feedback), Vibrato follows Mix, and Digital and Multi use a 5–25 ms delay.
+- **Delays.** The dry note stays at unity up to 50 % Mix; Grit no longer
+  sustains repeats; Tape colours the first repeat.
+
 ## Open items
 
 - **On-device check.** Listen on the pedal, and measure CPU. Rotary, Chorus,
