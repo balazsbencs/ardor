@@ -39,6 +39,8 @@ private:
     float sweepSpan_ = 0.0f;
     float resonance_ = 0.0f;
     float drive_ = 1.0f;
+    float drive_makeup_ = 1.0f;
+    float resonance_makeup_ = 1.0f;
 };
 
 } // namespace pedal
