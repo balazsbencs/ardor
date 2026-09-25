@@ -28,7 +28,7 @@ double responseDb(const nlohmann::json& params, double hz, float amplitude = 0.0
 {
   const auto out = render(params, sine(hz, amplitude, 48000));
   double sum = 0.0;
-  for (size_t i = 24000; i < 48000; ++i) sum += out.left[i] * out.left[i];
+  for (size_t i = 24000; i < 48000; ++i) sum += static_cast<double>(out.left[i]) * out.left[i];
   return db(std::sqrt(sum / 24000.0) / (amplitude / std::sqrt(2.0)));
 }
 
@@ -153,7 +153,7 @@ void verifyLadderIsStableBelowSelfOscillation()
       input[100] = 0.5f;
       const auto out = render(params, input);
       double sum = 0.0;
-      for (size_t i = 48000; i < input.size(); ++i) sum += out.left[i] * out.left[i];
+      for (size_t i = 48000; i < input.size(); ++i) sum += static_cast<double>(out.left[i]) * out.left[i];
       const double ring = 10.0 * std::log10(sum / 48000.0 + 1e-30);
       require(ring < -90.0, "ladder must decay below self-oscillation: tone " + fmt(tone) + " resonance " +
                                 fmt(resonance) + " still at " + fmt(ring) + " dBFS after 1 s");
@@ -167,7 +167,7 @@ void verifyLadderIsStableBelowSelfOscillation()
   input[100] = 0.5f;
   const auto out = render(oscillating, input);
   double sum = 0.0;
-  for (size_t i = 48000; i < input.size(); ++i) sum += out.left[i] * out.left[i];
+  for (size_t i = 48000; i < input.size(); ++i) sum += static_cast<double>(out.left[i]) * out.left[i];
   require(10.0 * std::log10(sum / 48000.0 + 1e-30) > -40.0, "ladder must self-oscillate at full Resonance");
 }
 
