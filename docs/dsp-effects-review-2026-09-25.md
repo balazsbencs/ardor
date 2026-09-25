@@ -199,6 +199,19 @@ Test: `tests/delay_effect_quality.cpp`.
 - **Mix law for reverbs.** The reverbs use the same linear crossfade. Measure
   it in the reverb phase before changing it.
 
+## PR review feedback
+
+A third-party review commented on #87, #88, #89 and #91. Each comment was
+checked against the code before a change.
+
+| PR | Comment | Outcome |
+|---|---|---|
+| #87 | Chorus Vibrato ignored Mix | Fixed: Vibrato uses the same equal-power blend; Mix at full is the pure vibrato |
+| #88 | Preset → Detune switch with a slow Glide | Partly correct. Gliding both voices from the old interval is the Glide behaviour. The real defect: the right voice's anti-alias filter was set for the mirrored pitch, so it aliased during the glide (+3.5 dB more energy than the left voice on 15 kHz). Fixed: the filter follows the voice's real pitch |
+| #89 | Mix and Voice 2 Level | The behaviour is sound; the description was wrong. Mix sets both voices together (dry + Mix × (voice 1 + level × voice 2)); Voice 2 Level balances voice 2 against voice 1. Description corrected |
+| #89 | A silent Voice 2 still panned Voice 1 | Fixed: the pan follows Voice 2's level, so at 0 Voice 1 stays centred |
+| #91 | Carry the Filter migration into the release guidance | Done: see [Release notes](#release-notes); the commit carries a `BREAKING CHANGE:` footer for the generated changelog |
+
 ## Decisions and trade-offs
 
 - **Rotary peaks.** The LR4 crossover shifts the phase, which can make sharp
