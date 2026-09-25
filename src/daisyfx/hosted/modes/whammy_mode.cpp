@@ -126,7 +126,13 @@ void WhammyMode::Prepare(const ParamSet& params) {
     // In Detune the R voice sits as far above the note as L sits below it.
     spread_ratio_ = detune_ > 0.0f ? std::pow(2.0f, 2.0f * detune_ / 12.0f) : 1.0f;
     voices_[0].shifter.SetShift(semitones_);
-    voices_[1].shifter.SetShift(detune_ > 0.0f ? -semitones_ : semitones_);
+    // Tune each voice's anti-alias filter for the pitch it actually reads at.
+    // The right voice runs at the left one times the spread, so its pitch is
+    // the left pitch plus twice the detune. Mirroring the left pitch instead
+    // was right only once a glide had settled: gliding from an upward preset
+    // into Detune left the right filter off while that voice still read
+    // upward, and it aliased (review of #88).
+    voices_[1].shifter.SetShift(detune_ > 0.0f ? semitones_ + 2.0f * detune_ : semitones_);
     ratio_step_ = (target_ratio - ratio_) / static_cast<float>(BLOCK_SIZE);
 
     // The shifted voice carries the guitar's energy up or down with it, so the
