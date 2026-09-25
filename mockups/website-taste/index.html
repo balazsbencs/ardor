@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Website Taste Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@600;700&family=Saira:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #0e0f10; --plate: #17191b; --line: #2c3034; --ink: #eceeed; --ink-2: #a2a9ae; --ink-3: #6f777c; --pick: #e8472f; --warn: #e0a53c; --ok: #3fb08c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16.5px/1.6 'Saira', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  img { display: block; max-width: 100%; height: auto; }
+  a { color: inherit; }
+  code { font: 500 0.86em 'JetBrains Mono', monospace; color: var(--ink); background: var(--plate); padding: 1px 5px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 40px clamp(16px, 4vw, 40px) 96px; }
+  .topnav { display: flex; justify-content: space-between; align-items: center; gap: 16px; font: 500 13px 'JetBrains Mono', monospace; color: var(--ink-2); padding-bottom: 20px; border-bottom: 1px solid var(--line); margin-bottom: 56px; flex-wrap: wrap; }
+  .topnav a { color: var(--ink); }
+  h1, h2, h3 { font-family: 'Saira Condensed', sans-serif; text-transform: uppercase; margin: 0; line-height: 0.95; }
+  h1 { font-size: clamp(2.8rem, 1.6rem + 4vw, 5rem); margin-bottom: 20px; }
+  h2 { font-size: clamp(1.9rem, 1.3rem + 1.8vw, 2.8rem); margin: 88px 0 24px; padding-top: 18px; border-top: 2px solid var(--ink); }
+  h3 { font-size: 1.3rem; letter-spacing: 0.03em; }
+  .lede { color: var(--ink-2); font-size: 1.15rem; max-width: 50em; margin: 0 0 20px; }
+  .read { font: 500 14px/1.6 'JetBrains Mono', monospace; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 14px; margin: 28px 0 40px; max-width: 92ch; }
+  .read b { color: var(--ink); font-weight: 500; }
+  .big { font: 700 clamp(1.6rem, 1.1rem + 1.6vw, 2.4rem)/1.12 'Saira Condensed', sans-serif; text-transform: uppercase; max-width: 34ch; margin: 0; }
+  .big em { font-style: normal; color: var(--pick); }
+
+  .shots { display: grid; grid-template-columns: repeat(2, 1fr); gap: 28px 24px; }
+  .shots figure { margin: 0; }
+  .shots img { outline: 1px solid var(--line); }
+  .shots figcaption { margin-top: 10px; font-size: 0.95rem; color: var(--ink-2); }
+  .shots .phone { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .shots .phone img { max-height: 640px; width: auto; }
+
+  .finds { counter-reset: f; display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 30px 44px; }
+  .find { counter-increment: f; }
+  .find h3 { display: flex; gap: 12px; margin-bottom: 8px; }
+  .find h3::before { content: counter(f); color: var(--pick); min-width: 1.2ch; }
+  .find p { margin: 0; color: var(--ink-2); padding-left: calc(1.2ch + 12px); }
+
+  .facts { display: grid; gap: 0; border-top: 1px solid var(--line); }
+  .fact { display: grid; grid-template-columns: 90px 1fr; gap: 20px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .fact .sev { font: 500 12px/1.6 'JetBrains Mono', monospace; text-transform: uppercase; }
+  .fact .sev.hi { color: var(--pick); }
+  .fact .sev.md { color: var(--warn); }
+  .fact p { margin: 0; color: var(--ink-2); }
+  .fact p b { color: var(--ink); font-weight: 600; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.97rem; }
+  th { text-align: left; font: 600 0.95rem 'Saira Condensed', sans-serif; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2); padding: 10px 14px 10px 0; border-bottom: 2px solid var(--ink); }
+  td { vertical-align: top; padding: 14px 14px 14px 0; border-bottom: 1px solid var(--line); }
+  td:first-child { font: 600 1rem 'Saira Condensed', sans-serif; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+  td.old { color: var(--ink-3); }
+  td.new { color: var(--ink); }
+  td.why { color: var(--ink-2); font-size: 0.92rem; }
+  .table-wrap { overflow-x: auto; }
+
+  .fx-rewrite { display: grid; gap: 14px; }
+  .fx-rewrite div { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .fx-rewrite .o { color: var(--ink-3); }
+
+  .dirs { display: grid; gap: 56px; }
+  .dir { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 36px; align-items: start; text-decoration: none; }
+  .dir img { outline: 1px solid var(--line); transition: outline-color .2s; }
+  .dir:hover img { outline-color: var(--ink-2); }
+  .dir .n { font: 700 1rem 'JetBrains Mono', monospace; color: var(--pick); }
+  .dir h3 { font-size: clamp(1.8rem, 1.3rem + 1.4vw, 2.6rem); margin: 6px 0 14px; }
+  .dir p { margin: 0 0 14px; color: var(--ink-2); }
+  .sw { display: flex; height: 22px; margin: 16px 0; max-width: 360px; outline: 1px solid var(--line); }
+  .sw i { flex: 1; }
+  .meta { font: 500 13px/1.8 'JetBrains Mono', monospace; color: var(--ink-2); }
+  .meta b { color: var(--ink); font-weight: 500; }
+  .open-link { display: inline-block; margin-top: 8px; font: 700 1rem 'Saira Condensed', sans-serif; letter-spacing: 0.1em; text-transform: uppercase; border-bottom: 2px solid var(--pick); padding-bottom: 4px; }
+
+  .rec { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; }
+  .rec ul { margin: 0; padding-left: 18px; color: var(--ink-2); }
+  .rec li { margin: 8px 0; }
+  .rec li b { color: var(--ink); font-weight: 600; }
+  .rec h3 { padding-top: 12px; border-top: 2px solid var(--ink); margin-bottom: 8px; }
+  .pick { background: var(--plate); border: 1px solid var(--line); padding: 22px 24px; margin-top: 32px; }
+  .pick p { margin: 0; color: var(--ink-2); max-width: 70em; }
+  .pick b { color: var(--ink); }
+
+  @media (max-width: 860px) {
+    .shots, .dir, .fx-rewrite div { grid-template-columns: 1fr; }
+    .fact { grid-template-columns: 1fr; gap: 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav"><span>Ardor website taste review · 2026-09-25</span><a href="1-lamp-black.html">Start with direction 1</a></nav>
+
+  <h1>Why the website<br>feels flat</h1>
+  <p class="lede">A review of the Astro site in <code>website/</code>, a review of all its text, and four mockup directions. The screenshots below come from the real build: headless Chromium against <code>astro preview</code> at <code>/ardor/</code>, at 1440 x 900 and 390 x 844. The device screens in the mockups are real LVGL captures from <code>pedal-lvgl-ui-screenshots</code>, not HTML copies.</p>
+  <p class="read"><b>Design read:</b> an overhaul of the marketing and docs site for an open-source hardware project. The audience is the gigging guitarist, then the builder. The language is an instrument panel on a dark stage. Content and URLs stay. <b>Dials:</b> variance 7, motion 5, density 4.</p>
+
+  <p class="big">The site has the same problem the pedal had: <em>a narrow value range, almost no color, and one template repeated five times.</em> It also undersells the pedal. Scenes, the Looper, and the drive blocks are not on the homepage.</p>
+
+  <h2>The current site</h2>
+  <div class="shots">
+    <figure><img src="current/home-fold.png" width="1200" height="750" alt="Current homepage hero at 1440 x 900."><figcaption>Hero at 1440 x 900. The five-line headline pushes the buttons to the fold line. The pedal render shows a UI that the pedal does not have.</figcaption></figure>
+    <figure><img src="current/home-screens.png" width="1200" height="1167" alt="Current screen showcase section."><figcaption>Screen showcase. Hand-built HTML copies of the device screens. The best part of the page, but small.</figcaption></figure>
+    <figure><img src="current/home-features.png" width="1200" height="1167" alt="Current feature list and signal flow."><figcaption>Features are six hairline rows. In the signal flow, "OUTPUT + LIMITER" runs out of its box.</figcaption></figure>
+    <figure><img src="current/home-effects.png" width="1200" height="1167" alt="Current effects catalog."><figcaption>Effects are 39 hairline rows in three equal cards. The total line says 16 + 10 + 13 = 35.</figcaption></figure>
+    <figure class="phone"><img src="current/mobile-fold.png" width="390" height="844" alt="Current homepage on a phone."><img src="current/mobile-screens.png" width="390" height="1600" alt="Current screen showcase on a phone."><figcaption style="grid-column:1/-1">Phone. The section number column takes 88 px of 390 px. The screen copies become unreadable.</figcaption></figure>
+    <figure><img src="current/light-fold.png" width="1200" height="750" alt="Current light theme."><figcaption>Light theme. Warm beige ground, and the dark render sits in a black box.</figcaption></figure>
+  </div>
+
+  <h2>What makes it feel flat</h2>
+  <div class="finds">
+    <div class="find"><h3>The value range is narrow</h3><p>The site still uses the old Slate palette: <code>#141719</code>, <code>#212528</code>, <code>#2a2f33</code>. Nothing is really dark and nothing comes forward. The pedal moved to Lamp Black (<code>#0b0c0d</code> ground, <code>#e8472f</code> lamp) and the site did not follow.</p></div>
+    <div class="find"><h3>Color is spent almost nowhere</h3><p>Red appears on two hero words and on small labels. The family colors are desaturated (<code>#5d8f80</code>, <code>#8175a0</code>) and appear only as 3 px borders.</p></div>
+    <div class="find"><h3>One template, five times</h3><p>Every section is a "0N" mark, a condensed heading, a grey paragraph, content, and a red text link. The eye never changes pace.</p></div>
+    <div class="find"><h3>The hero wastes its first screen</h3><p>The headline is five lines at 7 rem. At 1440 x 900 the buttons sit at y = 950, below the fold. The image column has 300 px of empty ground above the pedal.</p></div>
+    <div class="find"><h3>The hero image is not true</h3><p>The render shows icon tiles that the pedal UI does not have. The real Lamp Black screens are stronger and true. The mockups put the real preset screen into the render until a photo exists.</p></div>
+    <div class="find"><h3>Lists do the work of pictures</h3><p>Features are six table rows. The effects are 39 rows. The real screens for Scenes, Looper, Dual Rig, and the tuner exist and are not used.</p></div>
+    <div class="find"><h3>There is no sound</h3><p>The tagline says "Endless sound." The page has no audio. Dry and wet recordings of one take are in the repository root.</p></div>
+    <div class="find"><h3>Labels decorate instead of inform</h3><p>"ARDOR // 001", "2D PRODUCT VIEW / PANEL UI", "LIVE PRESET 2", and "01" to "04" section numbers tell a player nothing.</p></div>
+  </div>
+
+  <h2>Copy review: wrong facts</h2>
+  <p class="lede">Fix these in every direction. They are errors, not taste.</p>
+  <div class="facts">
+    <div class="fact"><span class="sev hi">High</span><p><b>The effect counts are wrong.</b> <code>features.ts</code> says 13 modulation, 10 delay, 12 reverb. The homepage and <code>docs/effects.astro</code> say "35 effects". The catalog now has 16 modulation, 10 delay, and 13 reverb. The homepage prints "16 · 10 · 13 = 35", which adds to 39. <code>PRODUCT.md</code> also says 35. Proposal: build every count from <code>effects.generated.json</code> so the text cannot drift again.</p></div>
+    <div class="fact"><span class="sev hi">High</span><p><b>The drive blocks are on no page.</b> RAT Distortion, Big Cheese Fuzz, and Tape Machine are in the catalog, but <code>categoryMeta</code> has no <code>drive</code> key, so no page lists them. Ten blocks have no description in <code>effect-copy.ts</code>, for example Transient Shaper, Stereo Widener, GCB-95 Wah, Whammy, and Harmonizer.</p></div>
+    <div class="fact"><span class="sev hi">High</span><p><b>The homepage omits real features.</b> Scenes, the four-track Looper, MIDI and expression control, and the wah do not appear on the homepage.</p></div>
+    <div class="fact"><span class="sev md">Medium</span><p><b>The footer names Neural DSP.</b> "Not affiliated with Raspberry Pi or Neural DSP." The site never mentions Neural DSP. NAM is a separate open-source project. Proposal: "Not affiliated with Raspberry Pi Ltd or the Neural Amp Modeler project."</p></div>
+    <div class="fact"><span class="sev md">Medium</span><p><b>The effects reference shows raw keys.</b> The Input source default reads "sum" next to the label "L+R Average". Ranges read "models file" and "irs file". The intro reads "13reverb effects".</p></div>
+    <div class="fact"><span class="sev md">Medium</span><p><b>The user manual shows the old screen.</b> The interactive pedal draws the Slate preset screen (grey tiles, red outline), not Lamp Black.</p></div>
+    <div class="fact"><span class="sev md">Medium</span><p><b>The latency goal needs its qualifier everywhere.</b> "&lt;10 ms" is a goal, not a measurement. The mockups always print "round-trip latency goal".</p></div>
+    <div class="fact"><span class="sev md">Medium</span><p><b>The audio demo needs its source.</b> Before the A/B player ships, name the preset and the recording chain for <code>ardor-wet.wav</code>. The WAV files are not in Git now.</p></div>
+  </div>
+
+  <h2>Copy review: style and STE</h2>
+  <p class="lede">The docs are already close to Simplified Technical English: short sentences, one instruction each, active voice. The homepage and the effect descriptions are not. They use metaphors that say nothing concrete, and they repeat themselves.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Where</th><th>Current</th><th>Proposed</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Tagline</td><td class="old">Open source power. Endless sound.</td><td class="new">Open-source guitar processor for Raspberry Pi.</td><td class="why">"Power" and "endless" are claims with no content.</td></tr>
+      <tr><td>Hero H1</td><td class="old">Open source power. Endless sound.</td><td class="new">Play the whole rig from four footswitches.</td><td class="why">One concrete instruction, player first.</td></tr>
+      <tr><td>Hero text</td><td class="old">Ardor is an open-source guitar processor for the moment you stop thinking about the setup and start playing.</td><td class="new">Ardor runs NAM amp captures, cabinet IRs, and 48 built-in effects on a Raspberry Pi. The source is open.</td><td class="why">Says what it runs and on what. 20 words.</td></tr>
+      <tr><td>Hero buttons</td><td class="old">Get started · See the interface</td><td class="new">Get started · Hear it</td><td class="why">The second button now leads to sound.</td></tr>
+      <tr><td>New: listen</td><td class="old">(none)</td><td class="new">Hear it first. One guitar take, recorded dry. Switch to the Ardor output while it plays.</td><td class="why">A guitarist judges with ears.</td></tr>
+      <tr><td>Interface</td><td class="old">See what's live before you touch it. The on-pedal interface is a map, not a maze: a running preset gets the lamp…</td><td class="new">Read it from standing height. The live preset fills with red. Each tile shows its chain in family colors. The four tiles match the four footswitches.</td><td class="why">Replaces the metaphor with what the player sees.</td></tr>
+      <tr><td>New: scenes</td><td class="old">(none)</td><td class="new">Four sounds in one preset. Scenes change values inside one preset. The audio engine does not reload.</td><td class="why">A real feature with a real screen.</td></tr>
+      <tr><td>New: looper</td><td class="old">(none)</td><td class="new">A four-track looper at your feet. The first loop sets the length. Each new layer starts on the loop boundary, so the layers stay in time.</td><td class="why">A real feature with a real screen.</td></tr>
+      <tr><td>Chain</td><td class="old">Make the path obvious. Compose the sound left to right, split into two lanes when the rig gets wide…</td><td class="new">Build the chain from left to right. Add drive, amp, cabinet, and effect blocks in the order you want. Split into two lanes for a stereo rig.</td><td class="why">One instruction per sentence.</td></tr>
+      <tr><td>Amp + cab</td><td class="old">Bring your amp sound. Bring the amp sounds you trust… Bring your cabinet sound. Use the speaker sound that makes your rig yours.</td><td class="new">Use the tones you already own. Load Neural Amp Modeler captures and cabinet IRs in the browser manager. Ardor includes no third-party captures.</td><td class="why">One section instead of two that repeat. Names the formats. States the limit.</td></tr>
+      <tr><td>Effects</td><td class="old">Sound is the destination. Modulation, delay, reverb, amp captures, cabinets, dynamics, and EQ—arranged around the way a player thinks about a rig.</td><td class="new">48 effects in five families. Each family has one color, on the pedal and in the manager.</td><td class="why">A true count, no em dash, a concrete fact.</td></tr>
+      <tr><td>Feel</td><td class="old">Shape the feel. Shape the feel without losing the thread.</td><td class="new">(merged into the effects families)</td><td class="why">Title and text repeat. "The thread" is a metaphor.</td></tr>
+      <tr><td>Close</td><td class="old">Build the rig that follows you. Ardor is MIT-licensed. The software, touch interface, manager, and enclosure files are open…</td><td class="new">Every layer is open. The DSP engine, the touch UI, the preset format, the enclosure files, and the firmware image are MIT-licensed. Build it, change it, and send your changes back.</td><td class="why">The positioning claim from PRODUCT.md, stated as fact.</td></tr>
+      <tr><td>Nav</td><td class="old">Features · Effects · The UI · User manual · Docs</td><td class="new">Listen · Interface · Effects · Manual · Docs</td><td class="why">Labels match the section headings. Anchors <code>#features</code>, <code>#effects</code>, <code>#interface</code> stay.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3 style="margin:48px 0 8px">Effect descriptions (<code>effect-copy.ts</code>)</h3>
+  <p class="lede">These use slang, long noun clusters, and five em dashes. Proposed pattern: what the block is, then what it does to the sound.</p>
+  <div class="fx-rewrite">
+    <div><span class="o">Sweeping comb filter with feedback for jet-plane whooshes and metallic resonance.</span><span>A comb filter that sweeps up and down. More feedback gives a stronger, metallic sound.</span></div>
+    <div><span class="o">Drippy, boingy spring-tank reverb straight out of a vintage amp.</span><span>A spring tank reverb, like the reverb in many vintage amps.</span></div>
+    <div><span class="o">Classic pitch-shimmer thickening from a modulated short delay — from subtle width to full swirl.</span><span>A short delay with pitch modulation. It makes the sound wider and thicker.</span></div>
+  </div>
+
+  <h3 style="margin:48px 0 8px">Docs pages</h3>
+  <p class="lede">Keep their structure and voice. Small fixes: use the product term "lanes" instead of "horizontal paths", use one case for page names ("User manual" and "User Manual" both appear), and remove the 16 em dashes in the built HTML.</p>
+
+  <h2>Four directions</h2>
+  <p class="lede">All four use the same proposed copy, the same page order (except where noted), the real device screens, and a working A/B player with the real recordings. The difference is the visual language. Each page works at phone width and respects reduced motion.</p>
+  <div class="dirs">
+    <a class="dir" href="1-lamp-black.html">
+      <img src="thumbs/d1.png" width="960" height="600" alt="Direction 1, Lamp Black, hero.">
+      <div>
+        <span class="n">01</span>
+        <h3>Lamp Black</h3>
+        <p>The device language on the web. Near-black ground, saturated family colors, and a strict One Lamp Rule: red means live, nothing else. The A/B player is a preset tile. It floods with red when you hear Ardor. Effects look like the module drawer.</p>
+        <div class="sw"><i style="background:#0b0c0d"></i><i style="background:#16181a"></i><i style="background:#eceeed"></i><i style="background:#e8472f"></i><i style="background:#d2923f"></i><i style="background:#5f95c9"></i><i style="background:#3fb08c"></i><i style="background:#9a82d6"></i><i style="background:#d07a5a"></i></div>
+        <p class="meta"><b>Type</b> Saira Condensed + Saira, as on the pedal<br><b>Shape</b> square everywhere<br><b>Risk</b> the smallest jump from today</p>
+        <span class="open-link">Open direction 1</span>
+      </div>
+    </a>
+    <a class="dir" href="2-signal-path.html">
+      <img src="thumbs/d2.png" width="960" height="600" alt="Direction 2, Signal Path, hero.">
+      <div>
+        <span class="n">02</span>
+        <h3>Signal Path</h3>
+        <p>The page is a signal chain. One rail runs down the page. Each section is a block with a family-color header, from Guitar in to Stereo out. A node lights when you reach it. The page ends at the output, where you hear the result.</p>
+        <div class="sw"><i style="background:#0d1012"></i><i style="background:#171c20"></i><i style="background:#e9edef"></i><i style="background:#d2923f"></i><i style="background:#aab2b7"></i><i style="background:#3fb08c"></i><i style="background:#5f95c9"></i><i style="background:#e8472f"></i></div>
+        <p class="meta"><b>Type</b> Archivo (with wide labels) + IBM Plex Mono<br><b>Shape</b> square, round patch points<br><b>Risk</b> the listen section moves to the end</p>
+        <span class="open-link">Open direction 2</span>
+      </div>
+    </a>
+    <a class="dir" href="3-stage-poster.html">
+      <img src="thumbs/d3.png" width="960" height="600" alt="Direction 3, Stage Poster, hero.">
+      <div>
+        <span class="n">03</span>
+        <h3>Stage Poster</h3>
+        <p>A gig flyer. Very large condensed type, the pedal pushed into the headline, one full-width red block where the words DRY and ARDOR are the switch, edge-to-edge screens, and one marquee of effect names. Red is poster ink here, so it breaks the One Lamp Rule on purpose.</p>
+        <div class="sw"><i style="background:#0f0f10"></i><i style="background:#ecedea"></i><i style="background:#e8472f"></i><i style="background:#140605"></i><i style="background:#d2923f"></i><i style="background:#aab2b7"></i></div>
+        <p class="meta"><b>Type</b> Big Shoulders Display + Hanken Grotesk<br><b>Shape</b> square, outlined buttons<br><b>Risk</b> docs pages need a calmer sub-style</p>
+        <span class="open-link">Open direction 3</span>
+      </div>
+    </a>
+    <a class="dir" href="4-daylight-bench.html">
+      <img src="thumbs/d4.png" width="960" height="600" alt="Direction 4, Daylight Bench, hero.">
+      <div>
+        <span class="n">04</span>
+        <h3>Daylight Bench</h3>
+        <p>Light first and calm. Cool paper ground, the device screens as dark objects with real shadows, a sticky text column beside the screens, and a typographic effects index. It reads best for long docs pages. It needs a dark mode to keep the stage mood.</p>
+        <div class="sw"><i style="background:#f1f2ef"></i><i style="background:#e6e8e4"></i><i style="background:#121416"></i><i style="background:#d6402a"></i><i style="background:#c7862f"></i><i style="background:#4f86bb"></i><i style="background:#2f9a78"></i></div>
+        <p class="meta"><b>Type</b> Schibsted Grotesk + Spline Sans Mono<br><b>Shape</b> soft, 10 px radius<br><b>Risk</b> the furthest from the pedal's own look</p>
+        <span class="open-link">Open direction 4</span>
+      </div>
+    </a>
+  </div>
+
+  <h2>What every direction does</h2>
+  <div class="rec">
+    <div><h3>Content</h3><ul>
+      <li><b>Real screens</b> replace the HTML copies and the invented render UI.</li>
+      <li><b>Scenes, Looper, drive, and Dual Rig</b> get space on the homepage.</li>
+      <li><b>An A/B player</b> with one dry take and the Ardor output.</li>
+      <li><b>Counts come from the catalog</b> at build time.</li>
+    </ul></div>
+    <div><h3>Structure</h3><ul>
+      <li><b>No section numbers</b> and no decorative micro-labels.</li>
+      <li><b>At least five layout families</b> on the homepage, never the same one twice in a row.</li>
+      <li><b>Headline in two lines</b> and buttons above the fold at 1440 x 900.</li>
+      <li><b>URLs and anchors stay</b>: <code>#features</code>, <code>#effects</code>, <code>#interface</code>.</li>
+    </ul></div>
+    <div><h3>Still to do after the pick</h3><ul>
+      <li><b>Docs and manual pages</b> in the chosen direction.</li>
+      <li><b>A photo of the built pedal</b> to replace the render.</li>
+      <li><b>Self-hosted fonts</b> through Fontsource, as the site does today.</li>
+      <li><b>DESIGN.md update</b> with the new tokens.</li>
+    </ul></div>
+  </div>
+
+  <div class="pick">
+    <p><b>My recommendation: direction 1, Lamp Black.</b> It fixes every point in the audit, it carries the pedal language that you already chose, and it is the lowest risk for the docs pages. If you want the biggest change, take direction 3. Parts can also move between directions, for example the full-width red listen block from direction 3 or the lit signal rail from direction 2.</p>
+  </div>
+</div>
+</body>
+</html>
