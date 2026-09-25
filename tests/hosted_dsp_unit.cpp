@@ -884,7 +884,10 @@ void verifyFlangerRegenDoesNotAddHeadroom()
   const auto peakGainDb = [&descriptor](float regen) {
     double worst = -99.0;
     // No sweep, so the delay sits still and a tone can settle on the resonance.
-    for (float frequency = 40.0f; frequency < 2000.0f; frequency *= 1.15f) {
+    // The grid must be fine: the resonance at high regen is only a few percent
+    // wide, and a 15 % grid once stepped over it and under-read the peak by
+    // more than a decibel.
+    for (float frequency = 40.0f; frequency < 2000.0f; frequency *= 1.02f) {
       auto params = ardor::defaultDaisyFxParams(*descriptor);
       params["mix"] = 1.0f;
       params["level"] = 0.5f;
@@ -900,10 +903,10 @@ void verifyFlangerRegenDoesNotAddHeadroom()
 
       constexpr float kAmplitude = 0.3f;
       double peak = 0.0;
-      for (int n = 0; n < 40000; ++n) {
+      for (int n = 0; n < 24000; ++n) {
         const float x = kAmplitude * std::sin(6.283185f * frequency * n / 48000.0f);
         const auto y = processor.process({x, x});
-        if (n > 30000) peak = std::max(peak, static_cast<double>(std::fabs(y.left)));
+        if (n > 16000) peak = std::max(peak, static_cast<double>(std::fabs(y.left)));
       }
       worst = std::max(worst, 20.0 * std::log10(peak / kAmplitude));
     }

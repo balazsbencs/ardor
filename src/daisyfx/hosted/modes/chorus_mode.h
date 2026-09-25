@@ -5,6 +5,7 @@
 #include "../dsp/bbd_emulator.h"
 #include "../dsp/dc_blocker.h"
 #include "../dsp/pitch_shifter.h"
+#include "../dsp/tone_filter.h"
 
 namespace pedal {
 
@@ -16,6 +17,8 @@ public:
     void Prepare(const mod_fx::ParamSet& params) override;
     StereoFrame Process(StereoFrame input, const mod_fx::ParamSet& params) override;
     const char* Name() const override { return "Chorus"; }
+    // Vibrato is wet only whatever Mix says, so the mode does its own blend.
+    bool OwnsDryMix() const override { return true; }
 
 private:
     // Chorus needs a longer delay than MAX_MOD_DELAY_SAMPLES (25ms).
@@ -42,7 +45,9 @@ private:
     float       base_samps_ = 48.0f;
     float       mod_depth_  = 0.0f;
     float       fb_samp_    = 0.0f;  // feedback register for dBucket
-    float       feedback_   = 0.0f;  // feedback coefficient (set from tone in Prepare)
+    float       feedback_   = 0.0f;  // dBucket feedback coefficient
+    ToneFilter  tone_l_;
+    ToneFilter  tone_r_;
     float          chorus_buf_[kChorusBufSize];
     DelayLineSdram chorus_line_;
     float          detune_buf_l_[kDetuneBufSize];

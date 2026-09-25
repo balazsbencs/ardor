@@ -1,6 +1,5 @@
 #include "vintage_trem_mode.h"
 #include "../config/constants.h"
-#include "../dsp/fast_math.h"
 #include <cmath>
 
 using namespace pedal::mod_fx;
@@ -8,8 +7,8 @@ using namespace pedal::mod_fx;
 namespace pedal {
 
 void VintageTremMode::Init() {
-    tone_l_.Init();
-    tone_r_.Init();
+    tone_l_.Init(SAMPLE_RATE, ToneGain::Loudness);
+    tone_r_.Init(SAMPLE_RATE, ToneGain::Loudness);
     Reset();
 }
 
@@ -38,9 +37,15 @@ void VintageTremMode::Prepare(const ParamSet& params) {
     // 1 - depth/2 and mean square (1 - depth/2)^2 + depth^2/8. Compensating the
     // mean would put peaks 6 dB over unity at full depth; matching RMS restores
     // the perceived level with far less headroom cost.
+    //
+    // Full RMS make-up reaches +4.3 dB at the peaks at full depth. Cap it at
+    // +3 dB instead: the peaks stay clear of the next stage without a limiter,
+    // and full depth gives up only 1.3 dB of average level.
+    static constexpr float kMaxMakeup = 1.41f;
     const float mean = 1.0f - depth_ * 0.5f;
     const float mean_square = mean * mean + depth_ * depth_ * 0.125f;
     makeup_ = mean_square > 0.0001f ? 1.0f / std::sqrt(mean_square) : 1.0f;
+    if (makeup_ > kMaxMakeup) makeup_ = kMaxMakeup;
     // Shape morphs the sine tremolo toward a more pulsed optical contour.
     shape_ = params.p1;
     tone_l_.SetKnob(params.tone);
@@ -85,10 +90,11 @@ StereoFrame VintageTremMode::Process(StereoFrame input, const ParamSet& /*params
     // Make-up gain. The mean of the modulator is 0.5, so without this the mode
     // is 6 dB quieter than bypass at full depth and engaging it drops the level.
     gain *= makeup_;
-    // Make-up lifts peaks above unity, so limit smoothly rather than let a
-    // downstream stage hard clip them.
-    return {soft_clip_tanh(tone_l_.Process(input.left * gain)),
-            soft_clip_tanh(tone_r_.Process(input.right * gain))};
+    // No output clipper. The soft clip that used to sit here distorted every
+    // signal, even at zero depth: -35 dBc of third harmonic on a -6 dBFS tone.
+    // A tremolo must pass a clean signal clean; the capped make-up above keeps
+    // the peaks within +3 dB instead.
+    return {tone_l_.Process(input.left * gain), tone_r_.Process(input.right * gain)};
 }
 
 } // namespace pedal

@@ -124,12 +124,13 @@ StereoFrame FlangerMode::Process(StereoFrame input, const ParamSet& params) {
     const int sub = static_cast<int>(params.p2 * 5.999f);
     const float drift_amt = kDriftGain * ((sub >= 4) ? 1.5f : 0.8f);
 
-    // 3. Calculate delays and clamp to buffer bounds
+    // 3. Calculate delays and clamp to buffer bounds. The sweep sits on
+    //    kMinDelay so its whole range is audible; see the header.
     const float center = max_depth_ * 0.5f;
-    float delay_l = center + lfo_l * depth_ * center + 1.0f + drift_l_ * drift_amt;
-    float delay_r = center + lfo_r * depth_ * center + 1.0f + drift_r_ * drift_amt;
-    if (delay_l < 1.0f) delay_l = 1.0f;
-    if (delay_r < 1.0f) delay_r = 1.0f;
+    float delay_l = kMinDelay + center + lfo_l * depth_ * center + drift_l_ * drift_amt;
+    float delay_r = kMinDelay + center + lfo_r * depth_ * center + drift_r_ * drift_amt;
+    if (delay_l < kMinDelay) delay_l = kMinDelay;
+    if (delay_r < kMinDelay) delay_r = kMinDelay;
     if (delay_l >= static_cast<float>(kFlangerBufSize - 1)) delay_l = static_cast<float>(kFlangerBufSize - 1);
     if (delay_r >= static_cast<float>(kFlangerBufSize - 1)) delay_r = static_cast<float>(kFlangerBufSize - 1);
 
@@ -170,38 +171,39 @@ StereoFrame FlangerMode::Process(StereoFrame input, const ParamSet& params) {
     // It deliberately does not flatten the peak. A single gain cannot fix both
     // ends of this: the resonance is narrow band, so taking all of it out costs
     // broadband level, and the flanger would get quieter as regen went up,
-    // which is the wrong way round. Measured across the control, the value
-    // below leaves the worst-case peak at +3.1 dB instead of +9.4 and costs
-    // 4.7 dB of average level at the top. Flattening the peak completely would
-    // have cost 7.8 dB.
-    static constexpr float kRegenMakeup = 1.2f;
+    // which is the wrong way round. Measured on a 0.4 % frequency grid across
+    // the control, the value below leaves the worst-case peak at +3.6 dB
+    // instead of +9.4. The earlier 1.2 was fitted on a 15 % grid that stepped
+    // over the resonance; its true peak was +4.5 dB. 1.5 costs 1.1 dB more
+    // wet level at the top of the control than 1.2 did.
+    static constexpr float kRegenMakeup = 1.5f;
     const float resonance_makeup = 1.0f / (1.0f + kRegenMakeup * regen);
 
     float wet_l = dc_l_.Process(wet_l_tap) * resonance_makeup;
     float wet_r = dc_r_.Process(wet_r_tap) * resonance_makeup;
 
-    // 8. If Through-Zero Flanger, compensate for external engine dry mix
+    // 8. Blend dry and wet. The host hands over its smoothed Mix because this
+    //    mode owns the blend (see OwnsDryMix()).
+    //
+    // Through-zero types take their dry path from a fixed delay equal to the
+    // centre of the wet sweep, so the wet tap passes through the dry one and
+    // the notches cancel completely at the zero point. The dry path must be
+    // only the delayed copy: the earlier version kept the host's undelayed dry
+    // and tried to cancel it with a ratio that was exact only at 50 % Mix,
+    // leaving up to 27 % of undelayed dry to comb against the delayed copy.
+    const float mix = params.mix;
+    float dry_l = input.left;
+    float dry_r = input.right;
     if (sub >= 4) {
-        static constexpr float kDryDelay = 230.0f;
-        float dry_delayed_l = dry_delay_l_.Read(static_cast<size_t>(kDryDelay));
-        float dry_delayed_r = dry_delay_r_.Read(static_cast<size_t>(kDryDelay));
-
-        // ZERO- (sub 5) inverts the phase of the wet signal to cause cancellation
-        float wet_mod_l = wet_l * fb_sign_;
-        float wet_mod_r = wet_r * fb_sign_;
-
-        // Calculate dry/wet mix ratio: mod_dry / mod_wet
-        float ratio = 0.0f;
-        if (params.mix > 0.001f) {
-            float angle = params.mix * 1.57079632679f;
-            ratio = fast_cos(angle) / fast_sin(angle);
-            if (ratio > 10.0f) ratio = 10.0f; // clamp to prevent division blowup
-        }
-
-        // Apply cancellation formula to override external dry path with delayed dry path
-        wet_l = wet_mod_l + (dry_delayed_l - input.left) * ratio;
-        wet_r = wet_mod_r + (dry_delayed_r - input.right) * ratio;
+        const size_t dry_delay = static_cast<size_t>(kMinDelay + center);
+        dry_l = dry_delay_l_.Read(dry_delay);
+        dry_r = dry_delay_r_.Read(dry_delay);
+        // Zero- inverts the wet path so the two cancel at the zero point.
+        wet_l *= fb_sign_;
+        wet_r *= fb_sign_;
     }
+    wet_l = dry_l + mix * (wet_l - dry_l);
+    wet_r = dry_r + mix * (wet_r - dry_r);
 
     return {wet_l, wet_r};
 }

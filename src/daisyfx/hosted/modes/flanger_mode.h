@@ -53,10 +53,17 @@ public:
     void Prepare(const mod_fx::ParamSet& params) override;
     StereoFrame Process(StereoFrame input, const mod_fx::ParamSet& params) override;
     const char* Name() const override { return "Flanger"; }
+    // The through-zero types delay their dry path to meet the wet tap, so the
+    // flanger blends dry and wet itself for every type.
+    bool OwnsDryMix() const override { return true; }
 
 private:
     // 10ms max delay = 480 samples + headroom
     static constexpr size_t kFlangerBufSize = 512;
+    // Shortest tap the 16-tap sinc read can serve: it needs seven samples
+    // newer than the tap. Asking for less is silently clamped there, which
+    // left a flat spot at the bottom of every deep sweep.
+    static constexpr float kMinDelay = 7.0f;
 
     Lfo       lfo_;
     Lfo       lfo_r_;  // right channel LFO, offset by π/2 for stereo spread

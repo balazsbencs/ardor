@@ -127,6 +127,8 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     // Glide is a time, not a rate: ~50 ms at the slow end, ~1 ms at the fast end.
     if (mode === "whammy") return custom((value) => milliseconds(1 / (0.02 + clamp(value) * 0.95)));
     if (mode === "harmonizer") return scaledPercent(100, 1);
+    // Fast rotor rate; a Leslie 122 horn turns near 6.7 Hz on fast.
+    if (mode === "rotary") return physical(4, 9, 0, frequency, 0.01);
     return physical(0.05, 10, 1, frequency, 0.01);
   }
   if (key === "depth") {
@@ -144,7 +146,7 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "destroyer") return physical(80, 21600, 0, frequency, 10);
     if (mode === "rotary") return physical(500, 2000, 0, frequency, 10);
     if (mode === "phaser") return logPhysical(300, 10000, frequency, 10);
-    if (mode === "flanger" || mode === "chorus") return normalizedPercent;
+    if (mode === "flanger") return normalizedPercent;
     return tone(48000);
   }
   if (key === "p1") {
@@ -156,7 +158,7 @@ function modDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "destroyer") return q(0.5, 8.5);
     if (mode === "pattern_trem") return choices(Array.from({ length: 16 }, (_, index) => `Pattern ${index + 1}`));
     if (mode === "auto_swell") return physical(50, 2000, 0, milliseconds, 1);
-    if (mode === "rotary") return custom((value) => `${number(1 + clamp(value) ** 2 * 0.6, 1)}x`);
+    if (mode === "rotary") return custom((value) => `${number(1 + clamp(value) ** 2 * 5.4, 1)}x`);
     // Scale degrees, not semitones: a third is two degrees, major or minor
     // according to where the played note sits in the key.
     if (mode === "harmonizer") return choices([

@@ -40,7 +40,9 @@ void VibeMode::Reset() {
     lfo_.SetJitter(0.15f);
     for (auto& s : stages_) s.Reset();
     dc_.Init();
-    tone_.Init(); // initialises to flat (knob = 0.5)
+    // Loudness-neutral: the tone stage sits after the regen tap, outside the
+    // feedback loop, so its treble lift cannot raise the loop gain.
+    tone_.Init(SAMPLE_RATE, ToneGain::Loudness); // initialises to flat (knob = 0.5)
     feedback_ = 0.0f;
     sweep_shape_ = 0.0f;
 }
@@ -101,11 +103,13 @@ StereoFrame VibeMode::Process(StereoFrame input, const ParamSet& params) {
     if (am_gain < 0.1f) am_gain = 0.1f;
     x *= am_gain;
 
+    x = dc_.Process(x);
+    // Take regen before the tone stage. Regen is capped at 0.7 and the stages
+    // are allpass, so the loop gain stays below unity for any Tone setting.
+    feedback_ = x;
+
     // Transistor preamp coloring via tone knob.
     x = tone_.Process(x);
-
-    x = dc_.Process(x);
-    feedback_ = x;
     return {x, x};
 }
 

@@ -57,14 +57,20 @@ inline float g_at(float position)
 }
 
 // Maps a normalised sweep position to a first-order allpass coefficient using
-// the sign convention the phaser and vibe stages expect: a in [-1, 0), with
-// -0.99 near the bottom of the range and values approaching 0 at the top.
+// the sign convention the phaser and vibe stages expect: a near -1 at the
+// bottom of the range, 0 at a quarter of the sample rate (12 kHz), and
+// positive above that.
+//
+// The coefficient used to be clamped to [-0.99, -0.01], which froze every
+// corner above 11.9 kHz: a bright, deep phaser sweep stalled at the top of
+// each cycle. Positive coefficients are just as stable. The clamp now only
+// keeps the pole off the unit circle.
 inline float allpass_coeff_at(float position)
 {
     const float g = g_at(position);
     float a = -(1.0f - g) / (1.0f + g);
-    if (a > -0.01f) a = -0.01f;
-    if (a < -0.99f) a = -0.99f;
+    if (a > 0.999f) a = 0.999f;
+    if (a < -0.999f) a = -0.999f;
     return a;
 }
 

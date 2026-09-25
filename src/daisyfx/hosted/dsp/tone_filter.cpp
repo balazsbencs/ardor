@@ -14,6 +14,24 @@ float ToneFilter::Biquad::Process(float input) {
     return output;
 }
 
+float ToneFilter::Biquad::MagnitudeAt(float w) const {
+    // |H(e^jw)| from the transfer function (b0 + b1 z^-1 + b2 z^-2) /
+    // (1 + a1 z^-1 + a2 z^-2), evaluated at control rate only.
+    const float c1 = std::cos(w), s1w = std::sin(w);
+    const float c2 = std::cos(2.0f * w), s2w = std::sin(2.0f * w);
+    const float num_re = b0 + b1 * c1 + b2 * c2;
+    const float num_im = -(b1 * s1w + b2 * s2w);
+    const float den_re = 1.0f + a1 * c1 + a2 * c2;
+    const float den_im = -(a1 * s1w + a2 * s2w);
+    return std::sqrt((num_re * num_re + num_im * num_im) /
+                     (den_re * den_re + den_im * den_im));
+}
+
+float ToneFilter::MagnitudeAt(float hz) const {
+    const float w = kTwoPi * hz * inv_sample_rate_;
+    return low_shelf_.MagnitudeAt(w) * high_shelf_.MagnitudeAt(w);
+}
+
 // RBJ low/high shelf, S=1. The overlapping shelves produce a broad tilt
 // without the hollow response caused by mixing steep LP/HP filters with dry.
 void ToneFilter::ComputeShelf(bool high, float fc, float gain_db, Biquad& f) const {
@@ -44,7 +62,8 @@ void ToneFilter::ComputeShelf(bool high, float fc, float gain_db, Biquad& f) con
     f.a1 *= inverse; f.a2 *= inverse;
 }
 
-void ToneFilter::Init(float sample_rate) {
+void ToneFilter::Init(float sample_rate, ToneGain gain) {
+    gain_mode_ = gain;
     sample_rate_ = std::isfinite(sample_rate) && sample_rate > 0.0f ? sample_rate : SAMPLE_RATE;
     inv_sample_rate_ = 1.0f / sample_rate_;
     last_knob_ = -1.0f;
@@ -74,6 +93,15 @@ void ToneFilter::SetKnob(float knob) {
 
     ComputeShelf(false, 500.0f, -4.0f * amount, low_shelf_);
     ComputeShelf(true, 2000.0f, 7.0f * amount, high_shelf_);
+    if (gain_mode_ == ToneGain::Loudness) {
+        // Hold the pivot at 0 dB. Most guitar energy sits in the low
+        // mids, so the pivot does too: measured on a DI guitar recording,
+        // 400 Hz keeps both ends of the knob within 0.6 dB of flat, where
+        // 800 Hz left the dark end +2.7 dB louder and the bright end -1.9 dB.
+        static constexpr float kPivotHz = 400.0f;
+        output_gain_ = 1.0f / MagnitudeAt(kPivotHz);
+        return;
+    }
     // ToneFilter is also used inside delay feedback loops. Normalize the
     // boosted end of each tilt to unity so no knob position can turn a
     // sub-unity feedback coefficient into a self-sustaining loop.
