@@ -28,10 +28,23 @@ public:
                         : (steps_per_beat > 16) ? 16 : steps_per_beat;
     }
 
+    /// Swing: share of each pair of steps given to the first one, 0.5..0.75.
+    /// Applies to straight divisions only; a triplet has no pairs to swing.
+    void SetSwing(float ratio) {
+        swing_ = ratio < 0.5f ? 0.5f : (ratio > 0.75f ? 0.75f : ratio);
+    }
+
     /// Advance one sample. Returns current step gate (0.0 or 1.0).
     float Process() {
         const int step_samples = period_ / steps_per_beat_;
-        const int threshold = (step_samples > 0) ? step_samples : 1;
+        int threshold = (step_samples > 0) ? step_samples : 1;
+        if (steps_per_beat_ != 3 && swing_ > 0.5f) {
+            // At 50 % both halves are exactly step_samples, as without swing.
+            const int pair = 2 * threshold;
+            const int first = static_cast<int>(static_cast<float>(pair) * swing_ + 0.5f);
+            threshold = (current_step_ & 1) ? pair - first : first;
+            if (threshold < 1) threshold = 1;
+        }
         ++sample_counter_;
         if (sample_counter_ >= threshold) {
             sample_counter_ -= threshold;
@@ -73,6 +86,7 @@ private:
     int      pattern_idx_    = 0;
     int      steps_per_beat_ = 4;
     bool     step_active_    = true;
+    float    swing_          = 0.5f;
 };
 
 } // namespace pedal

@@ -16,6 +16,13 @@ const milliseconds = (ms: number) => `${number(ms, ms < 100 ? 1 : 0)} ms`;
 const seconds = (value: number) => value < 1
   ? milliseconds(value * 1000)
   : `${number(value, value < 10 ? 2 : 1)} s`;
+const degrees = (value: number) => `${number(value, 0)}\u00B0`;
+// Rotary Balance turns one rotor down at a time; 0.5 plays both at full level.
+const rotaryBalance = (value: number) => {
+  const balance = clamp(value);
+  if (Math.abs(balance - 0.5) < 0.005) return "Even";
+  return balance < 0.5 ? `Horn ${percent(balance * 2)}` : `Drum ${percent((1 - balance) * 2)}`;
+};
 const decibels = (linear: number) => linear <= 0.000001 ? "-inf dB" : `${number(20 * Math.log10(linear), 1)} dB`;
 const semitones = (value: number) => {
   const precision = Math.abs(value - Math.round(value)) < 0.01 ? 0 : 1;
@@ -196,6 +203,20 @@ function modDisplay(mode: string, key: string): NumberDisplay {
       "3rd up / 4th up", "Min 3rd up / 3rd up", "2nd up / 3rd up",
     ]);
     if (mode === "auto_swell") return scaledPercent(30);
+    return normalizedPercent;
+  }
+  // Optional p3/p4 controls, mirroring formatMod() in DaisyFxCatalog.cpp.
+  if (key === "p3") {
+    if (mode === "phaser" || mode === "vintage_trem") return physical(0, 180, 0, degrees, 1);
+    if (mode === "pattern_trem") return logPhysical(0.5, 30, milliseconds, 0.1);
+    if (mode === "rotary") return custom(rotaryBalance);
+    return normalizedPercent;
+  }
+  if (key === "p4") {
+    if (mode === "flanger") return physical(0, 180, 0, degrees, 1);
+    if (mode === "phaser") return choices(["Positive", "Negative"]);
+    if (mode === "pattern_trem") return physical(50, 75, 0, (value) => `${number(value, 0)}%`, 1);
+    if (mode === "rotary") return physical(90, 180, 0, degrees, 1);
     return normalizedPercent;
   }
   if (key === "level") {

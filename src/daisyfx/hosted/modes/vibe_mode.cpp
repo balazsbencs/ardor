@@ -38,29 +38,26 @@ void VibeMode::Reset() {
     }
     lfo_.Init(1.0f, LfoWave::Sine);
     lfo_.SetJitter(0.15f);
-    for (auto& s : stages_) s.Reset();
-    dc_.Init();
-    // Loudness-neutral: the tone stage sits after the regen tap, outside the
-    // feedback loop, so its treble lift cannot raise the loop gain.
-    tone_.Init(SAMPLE_RATE, ToneGain::Loudness); // initialises to flat (knob = 0.5)
-    feedback_ = 0.0f;
+    for (auto& channel : channels_) {
+        for (auto& stage : channel.stages) stage.Reset();
+        channel.dc.Init();
+        // Loudness-neutral: the tone stage sits after the regen tap, outside
+        // the feedback loop, so its treble lift cannot raise the loop gain.
+        channel.tone.Init(SAMPLE_RATE, ToneGain::Loudness); // flat (knob = 0.5)
+        channel.feedback = 0.0f;
+    }
     sweep_shape_ = 0.0f;
 }
 
 void VibeMode::Prepare(const ParamSet& params) {
     lfo_.SetRate(params.speed);
-    tone_.SetKnob(params.tone); // only recomputes coefficients when tone changes
+    for (auto& channel : channels_) channel.tone.SetKnob(params.tone); // recomputes only on change
     sweep_shape_ = params.p2;
 }
 
-StereoFrame VibeMode::Process(StereoFrame input, const ParamSet& params) {
-    // Capture phase before advancing so per-stage offsets are anchored to this sample.
-    const float base_phase = lfo_.GetPhase();
-    lfo_.Process(); // advance only; value discarded (computed per-stage below)
-
-    // Regen feedback mixed into input.
-    const float regen = params.p1 * 0.7f;
-    float x = input.mono() + feedback_ * regen;
+float VibeMode::ProcessChannel(Channel& channel, float input, const float* coeffs,
+                               float regen, float am_gain) {
+    float x = input + channel.feedback * regen;
 
     // Mild pre-saturation: germanium transistor 3rd-harmonic coloring (~4%).
     // Clamp before applying: x - 0.04x³ is non-monotonic above |x|=2.89, which
@@ -69,7 +66,29 @@ StereoFrame VibeMode::Process(StereoFrame input, const ParamSet& params) {
     if (x < -2.87f) x = -2.87f;
     x = x - 0.04f * x * x * x;
 
-    // Per-stage allpass sweep with independent LDR phase offsets.
+    for (int i = 0; i < kStages; ++i) {
+        channel.stages[i].SetCoeff(coeffs[i]);
+        x = channel.stages[i].Process(x);
+    }
+    x *= am_gain;
+
+    x = channel.dc.Process(x);
+    // Take regen before the tone stage. Regen is capped at 0.7 and the stages
+    // are allpass, so the loop gain stays below unity for any Tone setting.
+    channel.feedback = x;
+
+    // Transistor preamp coloring via tone knob.
+    return channel.tone.Process(x);
+}
+
+StereoFrame VibeMode::Process(StereoFrame input, const ParamSet& params) {
+    // Capture phase before advancing so per-stage offsets are anchored to this sample.
+    const float base_phase = lfo_.GetPhase();
+    lfo_.Process(); // advance only; value discarded (computed per-stage below)
+
+    // Per-stage allpass sweep with independent LDR phase offsets. Computed
+    // once and shared by both channels.
+    float coeffs[kStages];
     for (int i = 0; i < kStages; ++i) {
         float ph = base_phase + kStagePhase[i];
         if (ph >= TWO_PI) ph -= TWO_PI;
@@ -78,8 +97,6 @@ StereoFrame VibeMode::Process(StereoFrame input, const ParamSet& params) {
         const float lamp = 0.5f + 0.5f * fast_sin(ph);
 
         // Smoothstep LDR response: approximates power-law photoresistor curve.
-        // Creates asymmetric attack/decay — notches fall quickly as lamp brightens,
-        // return slowly as it dims.
         const float smooth_ldr = lamp * lamp * (3.0f - 2.0f * lamp);
         // Shape moves from the original smooth optical response to a more
         // asymmetric, pulse-like photocell sweep without discontinuous modes.
@@ -90,8 +107,7 @@ StereoFrame VibeMode::Process(StereoFrame input, const ParamSet& params) {
         // then convert to a coefficient through the shared log-frequency table.
         const float octaves = params.depth * kStageOctaves[i] * (ldr - 0.5f);
         const float position = stage_centre_[i] + octaves * (1.0f / freq_table::kOctaves);
-        stages_[i].SetCoeff(freq_table::allpass_coeff_at(position));
-        x = stages_[i].Process(x);
+        coeffs[i] = freq_table::allpass_coeff_at(position);
     }
 
     // AM throb: volume dips slightly ahead of the sweep peak, matching the
@@ -101,16 +117,10 @@ StereoFrame VibeMode::Process(StereoFrame input, const ParamSet& params) {
     const float am_lamp = 0.5f + 0.5f * fast_sin(am_ph);
     float am_gain = 1.0f - params.depth * 0.12f * am_lamp;
     if (am_gain < 0.1f) am_gain = 0.1f;
-    x *= am_gain;
 
-    x = dc_.Process(x);
-    // Take regen before the tone stage. Regen is capped at 0.7 and the stages
-    // are allpass, so the loop gain stays below unity for any Tone setting.
-    feedback_ = x;
-
-    // Transistor preamp coloring via tone knob.
-    x = tone_.Process(x);
-    return {x, x};
+    const float regen = params.p1 * 0.7f;
+    return {ProcessChannel(channels_[0], input.left, coeffs, regen, am_gain),
+            ProcessChannel(channels_[1], input.right, coeffs, regen, am_gain)};
 }
 
 } // namespace pedal

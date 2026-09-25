@@ -12,6 +12,8 @@ struct ParamSet {
     float p1;      // mode-specific parameter 1
     float p2;      // mode-specific parameter 2
     float level;   // output gain 0..2 (unity at 1.0)
+    float p3;      // mode-specific parameter 3 (optional control)
+    float p4;      // mode-specific parameter 4 (optional control)
 
     float get(ParamId id) const;
     static ParamSet make_default();

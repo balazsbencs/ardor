@@ -27,11 +27,12 @@ private:
     static constexpr size_t kDetuneBufSize = 4096;
 
     Lfo         lfo_[3];          // lfo_[0]/[1]: dBucket L/R + single-voice; lfo_[2]: Multi 3rd tap
-    BbdEmulator bbd_;             // BBD pre-coloration + L deemphasis
-    BbdEmulator bbd_r_;           // separate deemphasis state for dBucket R channel
+    BbdEmulator bbd_;             // dBucket L: BBD pre-coloration + deemphasis
+    BbdEmulator bbd_r_;           // dBucket R: BBD pre-coloration + deemphasis
     DcBlocker   dc_;
     DcBlocker   dc_r_;
     uint32_t    rand_ = 12345;
+    uint32_t    rand_r_ = 67890;
     float       delays_[3] = {};
     // Prepare() writes the targets; Process() glides the live values toward
     // them. ~20 ms at 48 kHz, fast enough to track a knob, slow enough that a
@@ -44,12 +45,18 @@ private:
     float       depth_target_ = 0.0f;
     float       base_samps_ = 48.0f;
     float       mod_depth_  = 0.0f;
-    float       fb_samp_    = 0.0f;  // feedback register for dBucket
+    float       fb_l_       = 0.0f;  // dBucket feedback register, L line
+    float       fb_r_       = 0.0f;  // dBucket feedback register, R line
     float       feedback_   = 0.0f;  // dBucket feedback coefficient
+    float       width_      = 1.0f;  // wet stereo width (p3), 0 = mono
     ToneFilter  tone_l_;
     ToneFilter  tone_r_;
+    // One line per channel, so a stereo source keeps its image and an
+    // anti-phase one does not cancel before the delay.
     float          chorus_buf_[kChorusBufSize];
+    float          chorus_buf_r_[kChorusBufSize];
     DelayLineSdram chorus_line_;
+    DelayLineSdram chorus_line_r_;
     float          detune_buf_l_[kDetuneBufSize];
     float          detune_buf_r_[kDetuneBufSize];
     PitchShifter   shifter_l_;

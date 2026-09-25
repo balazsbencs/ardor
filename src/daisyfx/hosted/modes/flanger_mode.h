@@ -82,6 +82,15 @@ private:
 
     float     max_depth_ = 240.0f;  // max delay swing for current sub-mode
     float     depth_     = 0.5f;    // cached params.depth
+    // Manual: the sweep centre, as a fraction of max_depth_. Prepare() sets
+    // the target and Process() glides to it (~20 ms), so turning Manual
+    // sweeps smoothly instead of stepping the tap.
+    static constexpr float kCentreSlew = 0.001f;
+    float     centre_target_ = 120.0f;
+    float     centre_        = 120.0f;
+    bool      centre_seeded_ = false;
+    // Stereo: how far the R drift follows its own random walk (0 = shares L).
+    float     drift_spread_  = 1.0f;
     float     fb_sign_   = 1.0f;    // +1 or -1 from sub-mode
 
     // Wow and flutter. kDriftCoeff sets the rate (~1.5 Hz at 48 kHz) and

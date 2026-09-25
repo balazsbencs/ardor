@@ -71,6 +71,16 @@ DaisyFxDescriptor mod(std::string mode, std::string name, std::string p1 = "P1",
   return {DaisyFxKind::Mod, "mod", std::move(mode), std::move(name), std::move(params)};
 }
 
+// Appends the optional p3/p4 controls. They always follow the original seven,
+// so scene targets, which store descriptor indexes, keep their meaning.
+DaisyFxDescriptor withExtras(DaisyFxDescriptor descriptor, std::string p3Label, float p3Default,
+                             std::string p4Label = {}, float p4Default = 0.0f)
+{
+  descriptor.params.push_back({"p3", std::move(p3Label), p3Default});
+  if (!p4Label.empty()) descriptor.params.push_back({"p4", std::move(p4Label), p4Default});
+  return descriptor;
+}
+
 DaisyFxDescriptor ladderSweep()
 {
   auto descriptor = mod("ladder_sweep", "Ladder Sweep", "Resonance", "Waveform", 1.0f,
@@ -91,7 +101,8 @@ DaisyFxDescriptor rotary()
   // Speed is the fast rotor rate; Rotor switches between chorale and fast.
   auto descriptor = mod("rotary", "Rotary", "Drive", "Rotor", 1.0f, "Fast Rate");
   descriptor.params[0].defaultValue = 0.54f; // 6.7 Hz, a Leslie 122 horn on fast
-  return descriptor;
+  // Balance 0.5 plays both rotors at full level; Mic Spread 0 is 90 degrees.
+  return withExtras(std::move(descriptor), "Balance", 0.5f, "Mic Spread", 0.0f);
 }
 
 DaisyFxDescriptor delay(std::string mode, std::string name, std::string grit = "Grit",
@@ -186,6 +197,25 @@ std::string signedDecibels(float value)
 std::string qValue(float q)
 {
   return std::string{"Q "} + number(q, q < 10.0f ? 1 : 0);
+}
+
+std::string degrees(float value)
+{
+  return number(value, 0, "\u00B0");
+}
+
+// Pattern Trem edge time constant: 0.5 ms .. 30 ms, logarithmic.
+float patternSmoothMs(float normalized)
+{
+  return 0.5f * std::pow(60.0f, normalized);
+}
+
+// Rotary Balance attenuates one rotor at a time; 0.5 plays both at full level.
+std::string rotaryBalance(float normalized)
+{
+  if (std::fabs(normalized - 0.5f) < 0.005f) return "Even";
+  if (normalized < 0.5f) return "Horn " + percent(normalized * 2.0f);
+  return "Drum " + percent((1.0f - normalized) * 2.0f);
 }
 
 std::string signedSemitones(float value)
@@ -375,6 +405,20 @@ std::string formatMod(std::string_view mode, std::string_view key, float normali
     if (mode == "auto_swell") return percent(normalized * 0.30f);
     return percent(normalized);
   }
+  if (key == "p3") {
+    if (mode == "flanger") return percent(normalized);
+    if (mode == "phaser" || mode == "vintage_trem") return degrees(normalized * 180.0f);
+    if (mode == "pattern_trem") return milliseconds(patternSmoothMs(normalized));
+    if (mode == "rotary") return rotaryBalance(normalized);
+    return percent(normalized);
+  }
+  if (key == "p4") {
+    if (mode == "flanger") return degrees(normalized * 180.0f);
+    if (mode == "phaser") return normalized < 0.5f ? "Positive" : "Negative";
+    if (mode == "pattern_trem") return percent(0.5f + normalized * 0.25f);
+    if (mode == "rotary") return degrees(90.0f + normalized * 90.0f);
+    return percent(normalized);
+  }
   if (key == "level") {
     if (mode == "ladder_sweep") return signedDecibels(-6.0f + normalized * 24.0f);
     return decibels(mappedMod(normalized, mode, Id::Level));
@@ -490,14 +534,18 @@ const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
   static const std::vector<DaisyFxDescriptor> catalog{
     // A 50/50 default retains dry signal and produces an actual chorus. The
     // Vibrato type ignores Mix: it is always fully wet.
-    mod("chorus", "Chorus", "Delay", "Type", 0.5f),
-    mod("flanger", "Flanger", "Regen", "Type", 0.5f),
+    withExtras(mod("chorus", "Chorus", "Delay", "Type", 0.5f), "Width", 1.0f),
+    // Manual 0.5 and Stereo 0.5 (90 degrees) are the sweep this flanger had
+    // before either control existed.
+    withExtras(mod("flanger", "Flanger", "Regen", "Type", 0.5f), "Manual", 0.5f, "Stereo", 0.5f),
     rotary(),
     mod("vibe", "Vibe", "Regen", "Shape"),
-    mod("phaser", "Phaser", "Regen", "Stages", 0.5f),
-    mod("vintage_trem", "Vintage Trem", "Shape", "Type"),
+    withExtras(mod("phaser", "Phaser", "Regen", "Stages", 0.5f), "Stereo", 0.5f, "Polarity", 0.0f),
+    withExtras(mod("vintage_trem", "Vintage Trem", "Shape", "Type"), "Stereo", 0.0f),
     mod("poly_octave", "Poly Octave", "Oct Up", "Oct Down", 1.0f, "Tracking", "Oct Down 2"),
-    mod("pattern_trem", "Pattern Trem", "Pattern", "Division", 1.0f, "Tempo"),
+    // Smooth 0.35 is the fixed ~2 ms edge this mode had before the control.
+    withExtras(mod("pattern_trem", "Pattern Trem", "Pattern", "Division", 1.0f, "Tempo"),
+               "Smooth", 0.35f, "Swing", 0.0f),
     mod("auto_swell", "Auto Swell", "Release", "Doubling", 1.0f, "Attack", "Boost"),
     mod("filter", "Filter", "Resonance", "Shape / Source"),
     ladderSweep(),
@@ -591,6 +639,7 @@ DaisyFxParamControlSpec daisyFxParamControlSpec(const DaisyFxDescriptor& effect,
       else if (mode == "whammy") choiceCount = 19;
       else if (mode == "harmonizer") choiceCount = 12;
     }
+    if (key == "p4" && mode == "phaser") choiceCount = 2;
   } else if (effect.kind == DaisyFxKind::Delay) {
     if (key == "grit" && (mode == "filter" || mode == "pattern")) choiceCount = 3;
   } else {

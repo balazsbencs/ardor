@@ -57,8 +57,10 @@ static float am_makeup(float d) {
 }
 
 void RotaryMode::Init() {
-    horn_line_.Init(horn_buf_, kHornBufSize);
-    drum_line_.Init(drum_buf_, kDrumBufSize);
+    for (auto& feed : feeds_) {
+        feed.horn_line.Init(feed.horn_buf, kHornBufSize);
+        feed.drum_line.Init(feed.drum_buf, kDrumBufSize);
+    }
 
     actual_horn_rate_ = kHornChorale;
     actual_drum_rate_ = kDrumChorale;
@@ -76,9 +78,11 @@ void RotaryMode::Init() {
     drum_lfo_q_.Reset();
 
     // Butterworth sections for the LR4 crossover; frequency set in Prepare()
-    for (auto& section : xover_) {
-        section.SetQ(0.70710678f);
-        section.SetFreq(800.0f);
+    for (auto& feed : feeds_) {
+        for (auto& section : feed.xover) {
+            section.SetQ(0.70710678f);
+            section.SetFreq(800.0f);
+        }
     }
 
     // Horn cabinet resonance: Q fixed here, frequency updated each Prepare() via tone
@@ -93,15 +97,17 @@ void RotaryMode::Init() {
 }
 
 void RotaryMode::Reset() {
-    horn_line_.Reset();
-    drum_line_.Reset();
+    for (auto& feed : feeds_) {
+        feed.horn_line.Reset();
+        feed.drum_line.Reset();
+        for (auto& section : feed.xover) section.Reset();
+    }
     horn_lfo_.Reset();
     horn_lfo_q_.Reset();
     drum_lfo_.Reset();
     drum_lfo_q_.Reset();
     actual_horn_rate_ = kHornChorale;
     actual_drum_rate_ = kDrumChorale;
-    for (auto& section : xover_) section.Reset();
     horn_color_l_.Reset();
     horn_color_r_.Reset();
     dc_l_.Init();
@@ -124,7 +130,9 @@ void RotaryMode::Prepare(const ParamSet& params) {
     drum_lfo_q_.SetRate(actual_drum_rate_);
 
     // Tone maps to crossover frequency: 0 → 500 Hz, 1 → 2000 Hz
-    for (auto& section : xover_) section.SetFreq(500.0f + params.tone * 1500.0f);
+    for (auto& feed : feeds_) {
+        for (auto& section : feed.xover) section.SetFreq(500.0f + params.tone * 1500.0f);
+    }
 
     // Horn cabinet resonance tracks tone: 0 → 1.8 kHz (warm), 1 → 3.5 kHz (bright)
     const float horn_fc = 1800.0f + params.tone * 1700.0f;
@@ -151,13 +159,25 @@ void RotaryMode::Prepare(const ParamSet& params) {
     // raising Depth does not drop the level.
     horn_am_makeup_ = am_makeup(am_depth_);
     drum_am_makeup_ = am_makeup(am_depth_ * 0.6f);
+
+    // Balance (p3): turns one rotor down at a time. 0.5 plays both at full
+    // level; 0 leaves only the drum and 1 only the horn.
+    horn_level_ = params.p3 * 2.0f > 1.0f ? 1.0f : params.p3 * 2.0f;
+    drum_level_ = (1.0f - params.p3) * 2.0f > 1.0f ? 1.0f : (1.0f - params.p3) * 2.0f;
+
+    // Mic Spread (p4): the angle between the two mics, 90 to 180 degrees.
+    // 90 is the classic close pair; 180 puts them on opposite sides, where
+    // the Doppler of the two channels runs in opposition for the widest image.
+    const float spread = kTwoPi * (0.25f + 0.25f * params.p4);
+    horn_lfo_q_.SetPhaseOffset(spread);
+    drum_lfo_q_.SetPhaseOffset(spread);
 }
 
-StereoFrame RotaryMode::Process(StereoFrame input, const ParamSet& params) {
-    float mono = input.mono();
+void RotaryMode::WriteFeed(Feed& feed, float input) {
+    float x = input;
     if (drive_blend_ > 0.0f) {
-        const float driven = drive_.Process(mono) * drive_makeup_;
-        mono += drive_blend_ * (driven - mono);
+        const float driven = drive_.Process(x) * drive_makeup_;
+        x += drive_blend_ * (driven - x);
     }
 
     // Linkwitz-Riley crossover: LP -> drum band, HP -> horn band.
@@ -170,11 +190,17 @@ StereoFrame RotaryMode::Process(StereoFrame input, const ParamSet& params) {
     // the crossover, so once the rotors moved the bands apart they could sum
     // to +4.2 dB over the input and pushed guitar peaks close to full scale.
     // (A single SVF's lp() + hp() is worse still: it nulls at the crossover.)
-    xover_[0].Process(mono);
-    const float drum_in = xover_[1].Process(xover_[0].lp());
-    xover_[2].Process(mono);
-    xover_[3].Process(xover_[2].hp());
-    const float horn_in = xover_[3].hp();
+    feed.xover[0].Process(x);
+    feed.drum_line.Write(feed.xover[1].Process(feed.xover[0].lp()));
+    feed.xover[2].Process(x);
+    feed.xover[3].Process(feed.xover[2].hp());
+    feed.horn_line.Write(feed.xover[3].hp());
+}
+
+StereoFrame RotaryMode::Process(StereoFrame input, const ParamSet& params) {
+    (void)params;
+    WriteFeed(feeds_[0], input.left);
+    WriteFeed(feeds_[1], input.right);
 
     // Per-sample LFO advance (avoids block-boundary zipper noise on Doppler)
     const float hl  = horn_lfo_.Process();
@@ -184,16 +210,13 @@ StereoFrame RotaryMode::Process(StereoFrame input, const ParamSet& params) {
     drum_lfo_q_.FollowPhaseOf(drum_lfo_);
     const float dlq = drum_lfo_q_.Process();
 
-    // True stereo Doppler: single write per band, two quadrature reads.
-    // L mic = in-phase LFO, R mic = 90° quadrature — physically correct for
-    // two microphones placed 90° apart around a rotating speaker.
-    horn_line_.Write(horn_in);
-    const float horn_l = horn_line_.ReadAtHighQuality(kRotorCenter + hl  * horn_mod_);
-    const float horn_r = horn_line_.ReadAtHighQuality(kRotorCenter + hlq * horn_mod_);
-
-    drum_line_.Write(drum_in);
-    const float drum_l = drum_line_.ReadAtHighQuality(kRotorCenter + dl  * drum_mod_);
-    const float drum_r = drum_line_.ReadAtHighQuality(kRotorCenter + dlq * drum_mod_);
+    // True stereo Doppler: L mic = in-phase LFO, R mic = 90° quadrature —
+    // physically correct for two microphones placed 90° apart around a
+    // rotating speaker. Each mic reads its own channel's feed.
+    const float horn_l = feeds_[0].horn_line.ReadAtHighQuality(kRotorCenter + hl  * horn_mod_);
+    const float horn_r = feeds_[1].horn_line.ReadAtHighQuality(kRotorCenter + hlq * horn_mod_);
+    const float drum_l = feeds_[0].drum_line.ReadAtHighQuality(kRotorCenter + dl  * drum_mod_);
+    const float drum_r = feeds_[1].drum_line.ReadAtHighQuality(kRotorCenter + dlq * drum_mod_);
 
     // Horn cabinet coloring: add resonant BP peak (~2.5 kHz "honk").
     // L and R use independent SVF state so they don't cross-contaminate.
@@ -212,8 +235,8 @@ StereoFrame RotaryMode::Process(StereoFrame input, const ParamSet& params) {
 
     // The LR4 bands sum to an allpass copy of the input, so they add back to
     // unity level at full weight. A 0.5 here once cost 6 dB.
-    float out_l = colored_horn_l * horn_am_l + drum_l * drum_am_l;
-    float out_r = colored_horn_r * horn_am_r + drum_r * drum_am_r;
+    float out_l = colored_horn_l * horn_am_l * horn_level_ + drum_l * drum_am_l * drum_level_;
+    float out_r = colored_horn_r * horn_am_r * horn_level_ + drum_r * drum_am_r * drum_level_;
 
     out_l = dc_l_.Process(out_l);
     out_r = dc_r_.Process(out_r);

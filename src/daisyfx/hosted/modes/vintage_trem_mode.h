@@ -15,7 +15,13 @@ public:
     const char* Name() const override { return "VintTrem"; }
 
 private:
+    // Gain of the plain amplitude modulator, and the two band gains of the
+    // harmonic one, for one LFO value.
+    float AmplitudeGain(float lfo_value) const;
+    void  HarmonicGains(float lfo_value, float& gain_lp, float& gain_hp) const;
+
     Lfo   lfo_;
+    Lfo   lfo_r_;   // follows lfo_ at the Stereo (p3) offset
     ToneFilter tone_l_;
     ToneFilter tone_r_;
     float depth_ = 0.5f;

@@ -20,6 +20,8 @@ private:
     PatternSequencer seq_;
     float            gate_      = 0.0f;   // current gate value (0 or 1)
     float            smoothed_  = 0.0f;   // smoothed gate (attack/release)
+    float            attack_    = 0.01f;  // one-pole coefficients from Smooth (p3)
+    float            release_   = 0.005f;
     ToneFilter       tone_l_;
     ToneFilter       tone_r_;
 };

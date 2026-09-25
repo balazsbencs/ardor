@@ -1009,6 +1009,16 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "p3",
+          "label": "Width",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 1.0
         }
       ]
     },
@@ -1089,6 +1099,26 @@
           "kind": "number",
           "key": "level",
           "label": "Level",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "p3",
+          "label": "Manual",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "p4",
+          "label": "Stereo",
           "minimum": 0,
           "maximum": 1,
           "step": 0.05,
@@ -1179,6 +1209,26 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "p3",
+          "label": "Balance",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "p4",
+          "label": "Mic Spread",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.0
         }
       ]
     },
@@ -1349,6 +1399,26 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "p3",
+          "label": "Stereo",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "p4",
+          "label": "Polarity",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.0
         }
       ]
     },
@@ -1435,6 +1505,16 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "p3",
+          "label": "Stereo",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.0
         }
       ]
     },
@@ -1607,6 +1687,26 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "p3",
+          "label": "Smooth",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.35
+        },
+        {
+          "kind": "number",
+          "key": "p4",
+          "label": "Swing",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.05,
+          "unit": "percent",
+          "defaultValue": 0.0
         }
       ]
     },

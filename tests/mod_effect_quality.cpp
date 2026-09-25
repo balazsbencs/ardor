@@ -5,8 +5,8 @@
 // cannot come back unnoticed. The thresholds are physical (dB, dBc, Hz,
 // percent of pitch), not snapshots of a particular implementation.
 
-#include "daisyfx/DaisyFxCatalog.h"
-#include "daisyfx/DaisyFxProcessor.h"
+#include "mod_effect_test_support.h"
+
 #include "daisyfx/hosted/dsp/freq_table.h"
 
 #include <algorithm>
@@ -19,148 +19,7 @@
 
 namespace {
 
-constexpr float kSampleRate = 48000.0f;
-constexpr double kTwoPi = 6.283185307179586;
-
-void require(bool condition, const std::string& message)
-{
-  if (!condition) throw std::runtime_error(message);
-}
-
-double db(double value) { return 20.0 * std::log10(std::max(value, 1e-12)); }
-
-std::string fmt(double value)
-{
-  char buffer[32];
-  std::snprintf(buffer, sizeof buffer, "%.3f", value);
-  return buffer;
-}
-
-// A plucked-string stand-in for a guitar: a phrase of decaying notes with a
-// 1/n harmonic series, peaking near -6 dBFS. Its energy sits below 2 kHz like
-// a real guitar, which is what makes tone and level checks meaningful.
-const std::vector<float>& guitarPhrase()
-{
-  static const std::vector<float> phrase = [] {
-    constexpr double kNotes[] = {82.4, 110.0, 146.8, 196.0, 246.9, 329.6, 196.0, 110.0};
-    constexpr int kNoteFrames = 24000;
-    std::vector<float> out;
-    out.reserve(std::size(kNotes) * kNoteFrames);
-    for (const double f0 : kNotes) {
-      for (int i = 0; i < kNoteFrames; ++i) {
-        const double t = i / static_cast<double>(kSampleRate);
-        double sample = 0.0;
-        for (int h = 1; h <= 20 && f0 * h < 12000.0; ++h) {
-          sample += std::sin(kTwoPi * f0 * h * t) * std::exp(-t * (2.0 + 0.6 * h)) / h;
-        }
-        out.push_back(static_cast<float>(0.3 * sample));
-      }
-    }
-    return out;
-  }();
-  return phrase;
-}
-
-nlohmann::json defaults(const std::string& mode)
-{
-  const auto* descriptor = ardor::findDaisyFxDescriptor("mod", mode);
-  require(descriptor != nullptr, mode + " descriptor exists");
-  return ardor::defaultDaisyFxParams(*descriptor);
-}
-
-ardor::DaisyFxProcessor configured(const nlohmann::json& params)
-{
-  ardor::DaisyFxProcessor processor;
-  std::string error;
-  require(processor.configure("mod", params, kSampleRate, error), error);
-  return processor;
-}
-
-struct Render {
-  std::vector<float> left;
-  std::vector<float> right;
-};
-
-Render render(const nlohmann::json& params, const std::vector<float>& input)
-{
-  auto processor = configured(params);
-  Render out;
-  out.left.reserve(input.size());
-  out.right.reserve(input.size());
-  for (const float x : input) {
-    const auto y = processor.process({x, x});
-    out.left.push_back(y.left);
-    out.right.push_back(y.right);
-  }
-  return out;
-}
-
-// Engaged RMS relative to the input, in dB, across both channels.
-double levelDb(const nlohmann::json& params)
-{
-  const auto& input = guitarPhrase();
-  const auto out = render(params, input);
-  double inSq = 0.0, outSq = 0.0;
-  for (size_t i = 0; i < input.size(); ++i) {
-    inSq += static_cast<double>(input[i]) * input[i];
-    outSq += 0.5 * (out.left[i] * out.left[i] + out.right[i] * out.right[i]);
-  }
-  return db(std::sqrt(outSq / inSq));
-}
-
-double maxDifference(const nlohmann::json& a, const nlohmann::json& b)
-{
-  const std::vector<float> input(guitarPhrase().begin(), guitarPhrase().begin() + 48000);
-  const auto ra = render(a, input), rb = render(b, input);
-  double diff = 0.0;
-  for (size_t i = 0; i < input.size(); ++i) {
-    diff = std::max(diff, static_cast<double>(std::fabs(ra.left[i] - rb.left[i])));
-    diff = std::max(diff, static_cast<double>(std::fabs(ra.right[i] - rb.right[i])));
-  }
-  return diff;
-}
-
-std::vector<float> sine(double hz, float amplitude, int frames)
-{
-  std::vector<float> out(frames);
-  for (int i = 0; i < frames; ++i) {
-    out[i] = amplitude * static_cast<float>(std::sin(kTwoPi * hz * i / kSampleRate));
-  }
-  return out;
-}
-
-// Level of harmonic `h` relative to the fundamental, on the left channel,
-// after the first second has settled.
-double harmonicDbc(const std::vector<float>& signal, double f0, int h)
-{
-  const size_t start = 48000;
-  double re1 = 0, im1 = 0, reh = 0, imh = 0;
-  for (size_t i = start; i < signal.size(); ++i) {
-    const double w = kTwoPi * f0 * static_cast<double>(i) / kSampleRate;
-    re1 += signal[i] * std::cos(w);
-    im1 += signal[i] * std::sin(w);
-    reh += signal[i] * std::cos(w * h);
-    imh += signal[i] * std::sin(w * h);
-  }
-  return db(std::hypot(reh, imh) / std::hypot(re1, im1));
-}
-
-// Instantaneous frequency from interpolated rising zero crossings. Amplitude
-// modulation does not move zero crossings, so this isolates Doppler pitch.
-std::vector<double> frequencyTrack(const std::vector<float>& signal, size_t start)
-{
-  std::vector<double> crossings;
-  for (size_t i = start + 1; i < signal.size(); ++i) {
-    if (signal[i - 1] < 0.0f && signal[i] >= 0.0f) {
-      crossings.push_back(static_cast<double>(i - 1) + signal[i - 1] / (signal[i - 1] - signal[i]));
-    }
-  }
-  std::vector<double> hz;
-  for (size_t i = 1; i < crossings.size(); ++i) {
-    hz.push_back(kSampleRate / (crossings[i] - crossings[i - 1]));
-  }
-  return hz;
-}
+using namespace mod_test;
 
 // --- Flanger --------------------------------------------------------------
 
@@ -373,6 +232,50 @@ void verifyAllpassReachesTheTopOfTheSweep()
           "allpass corner must keep rising above 12 kHz, got " + fmt(at12k) + " and " + fmt(at16k));
 }
 
+// --- Stereo input and mix level -----------------------------------------------
+
+// These effects once summed L and R before processing, so a stereo source
+// partly cancelled and an anti-phase one vanished entirely. An anti-phase
+// input must come out as loud as a mono one.
+void verifyStereoInputIsNotCancelled()
+{
+  const auto& phrase = guitarPhrase();
+  std::vector<float> inverted(phrase.size());
+  std::transform(phrase.begin(), phrase.end(), inverted.begin(), [](float x) { return -x; });
+  for (const char* mode : {"chorus", "phaser", "vibe", "rotary"}) {
+    const auto params = defaults(mode);
+    const double mono = rmsDb(renderStereo(params, phrase, phrase));
+    const double antiPhase = rmsDb(renderStereo(params, phrase, inverted));
+    require(std::fabs(antiPhase - mono) < 1.5, std::string(mode) +
+                " must process stereo input, anti-phase level differs by " + fmt(antiPhase - mono) +
+                " dB");
+  }
+}
+
+// A delayed, modulated copy is largely uncorrelated with the dry signal, so a
+// linear 50/50 blend loses about 3 dB. Chorus and Flanger own their blend and
+// must hold their level across the Mix control, in every type.
+//
+// 1.5 dB, not less: a short delay is not uncorrelated at guitar fundamentals.
+// dBucket's 3 ms puts its first comb notch near 167 Hz, which measures -1.4 dB
+// at 50 % Mix. That comb is the sound of the circuit, not a gain error.
+void verifyMixKeepsLevel()
+{
+  for (const char* mode : {"chorus", "flanger"}) {
+    for (const float type : {0.0f, 0.25f, 0.5f, 0.75f, 1.0f}) {
+      for (const float mix : {0.25f, 0.5f, 0.75f, 1.0f}) {
+        auto params = defaults(mode);
+        params["p2"] = type;
+        params["mix"] = mix;
+        const double level = levelDb(params);
+        require(std::fabs(level) < 1.5, std::string(mode) + " type " + fmt(type) + " at mix " +
+                                            fmt(mix) + " must stay within 1.5 dB of bypass, got " +
+                                            fmt(level));
+      }
+    }
+  }
+}
+
 } // namespace
 
 int main()
@@ -387,6 +290,8 @@ int main()
     {"tone loudness", verifyToneKeepsLoudness},
     {"chorus controls", verifyChorusControlsAreLive},
     {"phaser sweep top", verifyAllpassReachesTheTopOfTheSweep},
+    {"stereo input", verifyStereoInputIsNotCancelled},
+    {"mix level", verifyMixKeepsLevel},
   };
   int failures = 0;
   for (const auto& [name, check] : checks) {
