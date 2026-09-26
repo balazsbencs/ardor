@@ -2,6 +2,38 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.78](https://github.com/balazsbencs/ardor/compare/v0.1.77...v0.1.78) (2026-09-26)
+
+### ⚠ BREAKING CHANGES
+
+* the modulation-slot Filter's Tone now sets only the
+  frequency (80 Hz-12 kHz, log scale) and a new Type control selects
+  LP / BP / HP / Notch. A saved Filter without Type loads as low-pass at the
+  frequency its Tone value now maps to; before, Tone also picked the type.
+  Re-select Type for band-pass, high-pass or notch settings.
+
+### Features
+
+* **harmonizer:** faster note tracking, a second voice and stereo input ([b2437d4](https://github.com/balazsbencs/ardor/commit/b2437d4ce1558f23c328b42e87e4705351d060c6))
+* **mod:** physical models for Vibe, opto trem, Rotary motor and Chorus ensemble ([581fe78](https://github.com/balazsbencs/ardor/commit/581fe7896ad3a3ea2355db02094634b485e4e6d3))
+* **mod:** stereo input, level-true mix and extra controls ([ac60f6b](https://github.com/balazsbencs/ardor/commit/ac60f6b5fba5a86ab8a6922bfa9f16934ea19ce4))
+
+### Bug Fixes
+
+* **audio:** resample convolution reverb IRs to engine rate ([2f45eba](https://github.com/balazsbencs/ardor/commit/2f45eba352f659451b656efd68d708d8db7f377f))
+* **catalog:** make the Lo-fi grit display independent of FMA ([df4a554](https://github.com/balazsbencs/ardor/commit/df4a554e47b592bd838d16bcc5270f1696b675b2))
+* **chorus:** let Mix work in the Vibrato type ([3889049](https://github.com/balazsbencs/ardor/commit/38890491cb2771c1e03d5cf3f39228c9f844272b)), references [#87](https://github.com/balazsbencs/ardor/issues/87)
+* **delay:** unity dry, stable Grit, clean Filter/Tape/BBD, level-true Tone, Width ([2398dcf](https://github.com/balazsbencs/ardor/commit/2398dcf2145795253f1fcb5e0ff84b06640fd531))
+* **harmonizer:** keep Voice 1 centred while Voice 2 is silent ([703dbff](https://github.com/balazsbencs/ardor/commit/703dbff893ad59e64a919a4581802989779caa1c)), references [#89](https://github.com/balazsbencs/ardor/issues/89)
+* **mod:** correct measured defects in the classic modulation effects ([24936fa](https://github.com/balazsbencs/ardor/commit/24936fae938504451eab70a75725b046b6149bef))
+* **mod:** working frequency shifter, independent filter type, stable ladder, level-true formant ([38a2bbf](https://github.com/balazsbencs/ardor/commit/38a2bbfa4e1510873132ed18ac9ce96d87ce79f2))
+* **pitch:** in-tune Whammy with Detune, balanced Poly Octave, steady Harmonizer ([fe977be](https://github.com/balazsbencs/ardor/commit/fe977bec22a6294000483a870264f54a297c4510))
+* **whammy:** tune the right Detune voice's anti-alias filter for its real pitch ([5ba832b](https://github.com/balazsbencs/ardor/commit/5ba832b685f5dd1ac0a5f4d5f055b1bca089a803)), references [#88](https://github.com/balazsbencs/ardor/issues/88)
+
+### Documentation
+
+* add release notes for changes to saved settings ([b0bc24f](https://github.com/balazsbencs/ardor/commit/b0bc24f41d7ad908a0171aa7d78886b9af2611d0)), references [#91](https://github.com/balazsbencs/ardor/issues/91)
+
 ## [0.1.77](https://github.com/balazsbencs/ardor/compare/v0.1.74...v0.1.77) (2026-09-25)
 
 ### Features
