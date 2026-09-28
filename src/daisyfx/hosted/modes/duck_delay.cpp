@@ -20,6 +20,8 @@ void DuckDelay::Init() {
     filter_r_.SetKnob(0.5f);
     dc_l_.Init();
     dc_r_.Init();
+    dc_fb_l_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
+    dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
 }
 
 void DuckDelay::Reset() {
@@ -27,6 +29,7 @@ void DuckDelay::Reset() {
     duck_line_l_.Reset();
     duck_line_r_.Reset();
     lfo_.Reset();
+    previous_lfo_ = 0.0f;
     follower_.Reset();
     filter_l_.Reset();
     filter_r_.Reset();
@@ -35,8 +38,8 @@ void DuckDelay::Reset() {
     time_transition_.Reset();
     fb_lim_l_.Reset();
     fb_lim_r_.Reset();
-    dc_fb_l_.Init();
-    dc_fb_r_.Init();
+    dc_fb_l_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
+    dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
 }
 
 void DuckDelay::Prepare(const ParamSet& params) {
@@ -54,6 +57,8 @@ StereoFrame DuckDelay::Process(StereoFrame input, const ParamSet& params) {
     static constexpr float kThresh    = 0.10f;
 
     const float lfo_val   = lfo_.Process();
+    const float lfo_step = lfo_val - previous_lfo_;
+    previous_lfo_ = lfo_val;
     const float modulation = params.mod_dep * 15.0f;
 
     // Soft-knee duck: below 0.5*thresh transparent, above 1.5*thresh fully ducked
@@ -72,8 +77,8 @@ StereoFrame DuckDelay::Process(StereoFrame input, const ParamSet& params) {
         if (modulation <= 0.00001f && !spread_.Fractional()) {
             return StereoFrame{duck_line_l_.ReadNearest(left), duck_line_r_.ReadNearest(right)};
         }
-        return StereoFrame{duck_line_l_.ReadAtHighQuality(left),
-                           duck_line_r_.ReadAtHighQuality(right)};
+        return StereoFrame{duck_line_l_.ReadAtResampled(left, 1.0f - lfo_step * modulation),
+                           duck_line_r_.ReadAtResampled(right, 1.0f + lfo_step * modulation)};
     };
     StereoFrame wet = readHeads(time_transition_.to());
     if (time_transition_.active()) {

@@ -1,6 +1,7 @@
 #include "pattern_delay.h"
 #include "../dsp/delay_line_sdram.h"
 #include "../config/constants.h"
+#include "../dsp/fast_math.h"
 
 using namespace pedal::delay_fx;
 
@@ -19,6 +20,8 @@ void PatternDelay::Init() {
     filter_r_.SetKnob(0.5f);
     dc_l_.Init();
     dc_r_.Init();
+    dc_fb_l_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
+    dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
 }
 
 void PatternDelay::Reset() {
@@ -29,11 +32,14 @@ void PatternDelay::Reset() {
     filter_r_.Reset();
     dc_l_.Init();
     dc_r_.Init();
-    dc_fb_l_.Init();
-    dc_fb_r_.Init();
+    dc_fb_l_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
+    dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
+    fb_lim_l_.Reset();
+    fb_lim_r_.Reset();
     time_transition_.Reset();
     pattern_transition_.Reset();
     selected_pattern_ = -1;
+    previous_lfo_ = 0.0f;
 }
 
 void PatternDelay::Prepare(const ParamSet& params) {
@@ -42,21 +48,9 @@ void PatternDelay::Prepare(const ParamSet& params) {
     filter_r_.SetKnob(params.filter);
     time_transition_.SetTarget(params.time * SAMPLE_RATE);
 
-    // Hysteresis prevents a noisy control from repeatedly changing all taps
-    // at a pattern boundary. Actual changes use the same click-free queued
-    // transition as delay-time changes.
-    if (selected_pattern_ < 0) {
-        selected_pattern_ = params.grit < 1.0f / 3.0f ? 0
-                          : params.grit < 2.0f / 3.0f ? 1 : 2;
-    } else if (selected_pattern_ == 0 && params.grit > 0.36f) {
-        selected_pattern_ = 1;
-    } else if (selected_pattern_ == 1 && params.grit < 0.30f) {
-        selected_pattern_ = 0;
-    } else if (selected_pattern_ == 1 && params.grit > 0.70f) {
-        selected_pattern_ = 2;
-    } else if (selected_pattern_ == 2 && params.grit < 0.63f) {
-        selected_pattern_ = 1;
-    }
+    // Match the catalog's three equal thirds at initialization and on edits.
+    selected_pattern_ = params.grit < 1.0f / 3.0f ? 0
+                      : params.grit < 2.0f / 3.0f ? 1 : 2;
     pattern_transition_.SetTarget(static_cast<float>(selected_pattern_));
 }
 
@@ -66,19 +60,23 @@ StereoFrame PatternDelay::Process(float input, const ParamSet& params) {
 
 StereoFrame PatternDelay::Process(StereoFrame input, const ParamSet& params) {
     const float lfo_val = lfo_.Process();
+    const float lfo_step = lfo_val - previous_lfo_;
+    previous_lfo_ = lfo_val;
     const float modulation = params.mod_dep * 25.0f;
     struct BankOutput { StereoFrame wet; StereoFrame first; };
     const auto renderBank = [&](float base, int pattern) {
-        static constexpr float weights_l[3] = {0.775f, 0.560f, 0.300f};
-        static constexpr float weights_r[3] = {0.300f, 0.560f, 0.775f};
+        // Coherent taps must also fit the output headroom budget.
+        static constexpr float weights_l[3] = {0.474f, 0.343f, 0.183f};
+        static constexpr float weights_r[3] = {0.183f, 0.343f, 0.474f};
         BankOutput output{};
         base += lfo_val * modulation;
         for (int i = 0; i < 3; ++i) {
             const float delay = base * PATTERNS[pattern][i];
+            const float read_rate = 1.0f - lfo_step * modulation * PATTERNS[pattern][i];
             const float tap_l = modulation <= 0.00001f ? line_l_.ReadNearest(delay)
-                                                       : line_l_.ReadAtHighQuality(delay);
+                                                       : line_l_.ReadAtResampled(delay, read_rate);
             const float tap_r = modulation <= 0.00001f ? line_r_.ReadNearest(delay)
-                                                       : line_r_.ReadAtHighQuality(delay);
+                                                       : line_r_.ReadAtResampled(delay, read_rate);
             if (i == 0) output.first = StereoFrame{tap_l, tap_r};
             output.wet.left += tap_l * weights_l[i];
             output.wet.right += tap_r * weights_r[i];
@@ -118,15 +116,13 @@ StereoFrame PatternDelay::Process(StereoFrame input, const ParamSet& params) {
     wet_l = filter_l_.Process(wet_l);
     wet_r = filter_r_.Process(wet_r);
 
-    const float feedback_l = dc_fb_l_.Process(output.first.left * params.repeats);
-    const float feedback_r = dc_fb_r_.Process(output.first.right * params.repeats);
+    const float feedback_l = dc_fb_l_.Process(fb_lim_l_.Process(output.first.left * params.repeats));
+    const float feedback_r = dc_fb_r_.Process(fb_lim_r_.Process(output.first.right * params.repeats));
     line_l_.Write(input.left + feedback_l);
     line_r_.Write(input.right + feedback_r);
 
-    // Loop-safe Tone inside the loop; the output alone is corrected so the
-    // first repeat keeps its loudness at any Tone setting.
-    return StereoFrame{dc_l_.Process(wet_l) * filter_l_.LoudnessCorrection(),
-                       dc_r_.Process(wet_r) * filter_r_.LoudnessCorrection()};
+    return StereoFrame{dc_l_.Process(soft_headroom(wet_l * filter_l_.LoudnessCorrection())),
+                       dc_r_.Process(soft_headroom(wet_r * filter_r_.LoudnessCorrection()))};
 }
 
 } // namespace pedal

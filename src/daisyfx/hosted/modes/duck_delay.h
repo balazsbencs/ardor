@@ -22,6 +22,7 @@ public:
 
 private:
     Lfo              lfo_;
+    float            previous_lfo_ = 0.0f;
     EnvelopeFollower follower_;
     ToneFilter       filter_l_;
     ToneFilter       filter_r_;

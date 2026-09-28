@@ -22,6 +22,9 @@ public:
     // sample reads for a perfectly flat magnitude response.
     float ReadHighQuality() const;
     float ReadAtHighQuality(float delay_samples) const;
+    // A moving tap whose read position advances faster than one stored sample
+    // per output sample needs a correspondingly lower reconstruction bandwidth.
+    float ReadAtResampled(float delay_samples, float playback_rate) const;
     float ReadLinear(float delay_samples) const;  // read arbitrary tap (linear, 2 reads)
     float ReadNearest(float delay_samples) const; // read arbitrary tap (nearest, 1 read)
 

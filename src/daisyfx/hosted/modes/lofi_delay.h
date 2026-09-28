@@ -20,6 +20,7 @@ public:
 
 private:
     Lfo       lfo_;
+    float     previous_lfo_ = 0.0f;
     DcBlocker dc_l_;
     DcBlocker dc_r_;
 

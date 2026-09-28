@@ -2,7 +2,7 @@
 #include "delay_mode.h"
 #include "../dsp/lfo.h"
 #include "../dsp/tone_filter.h"
-#include "../dsp/saturation.h"
+#include "../dsp/fast_math.h"
 #include "../dsp/dc_blocker.h"
 #include "../dsp/feedback_limiter.h"
 #include "../dsp/delay_line_sdram.h"
@@ -24,12 +24,15 @@ private:
     Lfo        lfo_;
     ToneFilter filter_l_;
     ToneFilter filter_r_;
-    Saturation sat_;
+    AntiAliasedTapeClip sat_l_;
+    AntiAliasedTapeClip sat_r_;
     DcBlocker  dc_l_;
     DcBlocker  dc_r_;
     float aa_state_l_ = 0.0f;  // anti-alias LP state for L write
     float aa_state_r_ = 0.0f;  // anti-alias LP state for R write
     float aa_coef_    = 1.0f;  // LP coefficient (1.0 = bypass)
+    float aa_mix_     = 0.0f;
+    float previous_lfo_ = 0.0f;
     DelayTapTransition time_transition_;
     FeedbackLimiter fb_lim_l_;
     FeedbackLimiter fb_lim_r_;

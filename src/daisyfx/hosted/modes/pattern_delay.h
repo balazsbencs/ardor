@@ -3,6 +3,7 @@
 #include "../dsp/lfo.h"
 #include "../dsp/tone_filter.h"
 #include "../dsp/dc_blocker.h"
+#include "../dsp/feedback_limiter.h"
 #include "../dsp/delay_line_sdram.h"
 #include "../dsp/delay_tap_transition.h"
 #include "../config/constants.h"
@@ -26,9 +27,12 @@ private:
     DcBlocker  dc_r_;
     DcBlocker  dc_fb_l_;
     DcBlocker  dc_fb_r_;
+    FeedbackLimiter fb_lim_l_;
+    FeedbackLimiter fb_lim_r_;
     DelayTapTransition time_transition_;
     DelayTapTransition pattern_transition_;
     int             selected_pattern_ = -1;
+    float           previous_lfo_ = 0.0f;
     static constexpr size_t kPatternDelaySamples = static_cast<size_t>(SAMPLE_RATE * 7.51f);
     float           buf_l_[kPatternDelaySamples];
     float           buf_r_[kPatternDelaySamples];

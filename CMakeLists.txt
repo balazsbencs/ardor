@@ -486,6 +486,9 @@ target_link_libraries(pedal-reverb-quality PRIVATE ardor_daisyfx)
 add_executable(pedal-delay-quality tests/delay_quality.cpp)
 target_link_libraries(pedal-delay-quality PRIVATE ardor_daisyfx)
 
+add_executable(pedal-delay-regression tests/delay_regression.cpp)
+target_link_libraries(pedal-delay-regression PRIVATE ardor_daisyfx)
+
 add_executable(pedal-delay-bench tests/delay_bench.cpp)
 target_link_libraries(pedal-delay-bench PRIVATE ardor_daisyfx)
 target_compile_definitions(pedal-delay-bench PRIVATE
@@ -718,6 +721,7 @@ add_test(NAME pedal-daisy-fx-smoke COMMAND pedal-daisy-fx-smoke)
 add_test(NAME pedal-hosted-dsp-unit COMMAND pedal-hosted-dsp-unit)
 add_test(NAME pedal-daisy-fx-response COMMAND pedal-daisy-fx-response)
 add_test(NAME pedal-daisy-fx-automation COMMAND pedal-daisy-fx-automation)
+add_test(NAME pedal-delay-regression COMMAND pedal-delay-regression)
 add_test(NAME pedal-mod-effect-quality COMMAND pedal-mod-effect-quality)
 add_test(NAME pedal-mod-effect-controls COMMAND pedal-mod-effect-controls)
 add_test(NAME pedal-mod-effect-models COMMAND pedal-mod-effect-models)

@@ -34,6 +34,8 @@ void FilterDelay::Init() {
     svf_l_.Reset();
     svf_r_.Reset();
     (void)filterGTable();
+    dc_fb_l_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
+    dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
 }
 
 void FilterDelay::Reset() {
@@ -46,11 +48,11 @@ void FilterDelay::Reset() {
     svf_l_.Reset();
     svf_r_.Reset();
     time_transition_.Reset();
-    filter_type_ = FilterType::Lowpass;
+    filter_transition_.Reset();
     fb_lim_l_.Reset();
     fb_lim_r_.Reset();
-    dc_fb_l_.Init();
-    dc_fb_r_.Init();
+    dc_fb_l_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
+    dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
 }
 
 void FilterDelay::Prepare(const ParamSet& params) {
@@ -66,29 +68,12 @@ void FilterDelay::Prepare(const ParamSet& params) {
     svf_r_.SetQ(q);
     q_ = q;
 
-    // Do not chatter between filter topologies when an automated control
-    // hovers around a boundary. The 0.03 dead bands are inaudible in normal
-    // use but eliminate rapid state changes and their associated clicks.
-    switch (filter_type_) {
-        case FilterType::Lowpass:
-            if (params.grit > 0.36f) filter_type_ = FilterType::Bandpass;
-            break;
-        case FilterType::Bandpass:
-            if (params.grit < 0.30f) filter_type_ = FilterType::Lowpass;
-            else if (params.grit > 0.69f) filter_type_ = FilterType::Highpass;
-            break;
-        case FilterType::Highpass:
-            if (params.grit < 0.63f) filter_type_ = FilterType::Bandpass;
-            break;
-    }
+    const int type = params.grit < 1.0f / 3.0f ? 0
+                   : params.grit < 2.0f / 3.0f ? 1 : 2;
+    filter_transition_.SetTarget(static_cast<float>(type));
 
     sweep_depth_indices_ = params.mod_dep * 128.0f;
 
-    // Resonance make-up, as in the Filter mode: the SVF band-pass peaks at Q,
-    // so dividing by Q gives a constant-peak band-pass; low- and high-pass
-    // are scaled back above Q 4 so their peak stays within +12 dB.
-    makeup_ = filter_type_ == FilterType::Bandpass ? 1.0f / q_
-            : (q_ > 4.0f ? 4.0f / q_ : 1.0f);
 }
 
 StereoFrame FilterDelay::Process(float input, const ParamSet& params) {
@@ -135,19 +120,20 @@ StereoFrame FilterDelay::Process(StereoFrame input, const ParamSet& params) {
     svf_l_.Process(wet_l);
     svf_r_.Process(wet_r);
 
-    switch (filter_type_) {
-        case FilterType::Lowpass:
-            wet_l = svf_l_.lp();
-            wet_r = svf_r_.lp();
-            break;
-        case FilterType::Bandpass:
-            wet_l = svf_l_.bp();
-            wet_r = svf_r_.bp();
-            break;
-        case FilterType::Highpass:
-            wet_l = svf_l_.hp();
-            wet_r = svf_r_.hp();
-            break;
+    const auto select = [this](const Svf& svf, int type) {
+        const float makeup = type == 1 ? 1.0f / q_
+            : (q_ > 4.0f ? 4.0f / q_ : 1.0f);
+        return (type == 0 ? svf.lp() : type == 1 ? svf.bp() : svf.hp()) * makeup;
+    };
+    const int current = static_cast<int>(filter_transition_.to() + 0.5f);
+    wet_l = select(svf_l_, current);
+    wet_r = select(svf_r_, current);
+    if (filter_transition_.active()) {
+        const int previous = static_cast<int>(filter_transition_.from() + 0.5f);
+        const float fade = filter_transition_.mix();
+        wet_l = select(svf_l_, previous) + fade * (wet_l - select(svf_l_, previous));
+        wet_r = select(svf_r_, previous) + fade * (wet_r - select(svf_r_, previous));
+        filter_transition_.Advance();
     }
 
     // Keep repeat decay independent of resonance. The filter is an animated
@@ -161,8 +147,8 @@ StereoFrame FilterDelay::Process(StereoFrame input, const ParamSet& params) {
     // No clip on the signal path: the soft clip that sat here put -24 dBc of
     // third harmonic on a 0.6 tone. Resonant peaks are scaled by the make-up
     // and caught by a limiter that is clean below -3 dBFS.
-    wet_l = dc_l_.Process(soft_limit_above(wet_l * makeup_, 0.7f));
-    wet_r = dc_r_.Process(soft_limit_above(wet_r * makeup_, 0.7f));
+    wet_l = dc_l_.Process(soft_limit_above(wet_l, 0.7f));
+    wet_r = dc_r_.Process(soft_limit_above(wet_r, 0.7f));
 
     return StereoFrame{wet_l, wet_r};
 }
