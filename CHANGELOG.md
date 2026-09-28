@@ -2,6 +2,16 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.82](https://github.com/balazsbencs/ardor/compare/v0.1.79...v0.1.82) (2026-09-28)
+
+### Bug Fixes
+
+* **delay:** fade capped let-ring tails over final repeat ([#97](https://github.com/balazsbencs/ardor/issues/97)) ([dc4f371](https://github.com/balazsbencs/ardor/commit/dc4f3711ba5d47aa4ce83f60ee802c6d9d814104)), references [#99](https://github.com/balazsbencs/ardor/issues/99)
+* **delay:** stabilize feedback and smooth delay automation ([#96](https://github.com/balazsbencs/ardor/issues/96)) ([c3ff4ec](https://github.com/balazsbencs/ardor/commit/c3ff4ecc4381b95720474c1f9f243acdf6ccfc42))
+* **reverb:** stabilize feedback and smooth live controls ([#95](https://github.com/balazsbencs/ardor/issues/95)) ([c8426cf](https://github.com/balazsbencs/ardor/commit/c8426cfc1b50dd6d07633e3370a9b28cc13f82ed))
+
+## [0.1.79](https://github.com/balazsbencs/ardor/compare/v0.1.78...v0.1.79) (2026-09-28)
+
 ## [0.1.78](https://github.com/balazsbencs/ardor/compare/v0.1.77...v0.1.78) (2026-09-26)
 
 ### ⚠ BREAKING CHANGES
