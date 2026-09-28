@@ -22,6 +22,8 @@ void LofiDelay::Init() {
     decimate_     = 1.0f;
     aa_lp_l_ = aa_lp_r_ = 0.0f;
     time_transition_.Reset();
+    dc_fb_l_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
+    dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
 }
 
 void LofiDelay::Reset() {
@@ -29,10 +31,11 @@ void LofiDelay::Reset() {
     line_l_.Reset();
     line_r_.Reset();
     lfo_.Reset();
+    previous_lfo_ = 0.0f;
     dc_l_.Init();
     dc_r_.Init();
-    dc_fb_l_.Init();
-    dc_fb_r_.Init();
+    dc_fb_l_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
+    dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
     held_sample_l_ = held_sample_r_ = 0.0f;
     sr_counter_   = 0.0f;
     bits_         = 16;
@@ -64,6 +67,8 @@ StereoFrame LofiDelay::Process(float input, const ParamSet& params) {
 
 StereoFrame LofiDelay::Process(StereoFrame input, const ParamSet& params) {
     const float lfo_val    = lfo_.Process();
+    const float lfo_step = lfo_val - previous_lfo_;
+    previous_lfo_ = lfo_val;
     const float modulation = params.mod_dep * 20.0f;
     const float spread = spread_.Update(kStereoOffsetSamples, params.width);
     const auto readHeads = [&](float base) {
@@ -72,8 +77,8 @@ StereoFrame LofiDelay::Process(StereoFrame input, const ParamSet& params) {
         if (modulation <= 0.00001f && !spread_.Fractional()) {
             return StereoFrame{line_l_.ReadNearest(left_delay), line_r_.ReadNearest(right_delay)};
         }
-        return StereoFrame{line_l_.ReadAtHighQuality(left_delay),
-                           line_r_.ReadAtHighQuality(right_delay)};
+        return StereoFrame{line_l_.ReadAtResampled(left_delay, 1.0f - lfo_step * modulation),
+                           line_r_.ReadAtResampled(right_delay, 1.0f + lfo_step * modulation)};
     };
     StereoFrame wet = readHeads(time_transition_.to());
     if (time_transition_.active()) {
@@ -89,14 +94,15 @@ StereoFrame LofiDelay::Process(StereoFrame input, const ParamSet& params) {
     if (params.grit > 0.00001f) {
         // Anti-alias before sample-rate reduction. At Crush=0 the entire
         // degradation stage is a bit-exact bypass.
-        float aa_k = 3.14159f / decimate_;
-        aa_k *= 0.5f + params.filter;
-        if (aa_k < 0.02f) aa_k = 0.02f;
-        if (aa_k > 1.0f) aa_k = 1.0f;
+        // Higher Anti-alias means a lower pre-decimation cutoff. The old
+        // coefficient clamped to 1 through much of the useful Crush range.
+        const float cutoff = SAMPLE_RATE * (0.42f - 0.36f * params.filter) / decimate_;
+        const float aa_k = 1.0f - expf(-6.2831853f * cutoff * INV_SAMPLE_RATE);
         aa_lp_l_ += aa_k * (wet_l - aa_lp_l_);
         aa_lp_r_ += aa_k * (wet_r - aa_lp_r_);
-        wet_l = aa_lp_l_;
-        wet_r = aa_lp_r_;
+        const float fade = fminf(params.grit * 8.0f, 1.0f);
+        wet_l += fade * (aa_lp_l_ - wet_l);
+        wet_r += fade * (aa_lp_r_ - wet_r);
 
         wet_l = roundf(wet_l * bit_scale_) / bit_scale_;
         wet_r = roundf(wet_r * bit_scale_) / bit_scale_;

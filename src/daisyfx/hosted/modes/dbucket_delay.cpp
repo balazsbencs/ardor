@@ -20,13 +20,14 @@ void DbucketDelay::Init() {
     filter_r_.SetKnob(0.4f);
     dc_l_.Init();
     dc_r_.Init();
-    dc_fb_l_.Init();
-    dc_fb_r_.Init();
+    dc_fb_l_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
+    dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
     bbd_l_.Reset();
     bbd_r_.Reset();
     noise_seed_l_ = 12345u;
     noise_seed_r_ = 0x9e3779b9u;
     delay_smooth_ = -1.0f;
+    previous_lfo_ = 0.0f;
 }
 
 void DbucketDelay::Reset() {
@@ -38,13 +39,14 @@ void DbucketDelay::Reset() {
     filter_r_.Reset();
     dc_l_.Init();
     dc_r_.Init();
-    dc_fb_l_.Init();
-    dc_fb_r_.Init();
+    dc_fb_l_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
+    dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
     bbd_l_.Reset();
     bbd_r_.Reset();
     noise_seed_l_ = 12345u;
     noise_seed_r_ = 0x9e3779b9u;
     delay_smooth_ = -1.0f;
+    previous_lfo_ = 0.0f;
 }
 
 void DbucketDelay::Prepare(const ParamSet& params) {
@@ -61,17 +63,18 @@ void DbucketDelay::Prepare(const ParamSet& params) {
     static constexpr float kBbdSampMin = 2880.0f;
     static constexpr float kBbdSampMax = 120000.0f;
     const float ds = params.time * SAMPLE_RATE;
-    const float t = (ds <= kBbdSampMin) ? 0.0f
-                  : (ds >= kBbdSampMax) ? 1.0f
-                  : logf(ds / kBbdSampMin) / logf(kBbdSampMax / kBbdSampMin);
+    const float clock_samps = delay_smooth_ >= 0.0 ? static_cast<float>(delay_smooth_) : ds;
+    const float t = (clock_samps <= kBbdSampMin) ? 0.0f
+                  : (clock_samps >= kBbdSampMax) ? 1.0f
+                  : logf(clock_samps / kBbdSampMin) / logf(kBbdSampMax / kBbdSampMin);
     // Calibrated two-pole bandwidth: about 9 kHz at the shortest delay and
     // 2.5 kHz at the longest, logarithmically interpolated with clock time.
     const float cutoff = expf(logf(9000.0f) + t * (logf(2500.0f) - logf(9000.0f)));
     const float input_lp = 1.0f - expf(-6.2831853f * cutoff * INV_SAMPLE_RATE);
     bbd_l_.SetInputLpK(input_lp);
     bbd_r_.SetInputLpK(input_lp);
-    bbd_l_.SetClockDelaySamples(ds);
-    bbd_r_.SetClockDelaySamples(ds + kStereoOffsetSamples * params.width);
+    bbd_l_.SetClockDelaySamples(clock_samps);
+    bbd_r_.SetClockDelaySamples(clock_samps + kStereoOffsetSamples * params.width);
 }
 
 StereoFrame DbucketDelay::Process(float input, const ParamSet& params) {
@@ -81,24 +84,33 @@ StereoFrame DbucketDelay::Process(float input, const ParamSet& params) {
 StereoFrame DbucketDelay::Process(StereoFrame input, const ParamSet& params) {
     static constexpr float kDelaySlew = 0.0001f;  // BBD clock change glides pitch
 
-    const float base_samps = params.time * SAMPLE_RATE;
-    if (delay_smooth_ < 0.0f) delay_smooth_ = base_samps;
+    const double base_samps = static_cast<double>(params.time) * SAMPLE_RATE;
+    if (delay_smooth_ < 0.0) delay_smooth_ = base_samps;
+    const double previous_delay = delay_smooth_;
     {
-        float step = kDelaySlew * (base_samps - delay_smooth_);
-        if (step >  0.5f) step =  0.5f;
-        if (step < -0.5f) step = -0.5f;
+        double step = kDelaySlew * (base_samps - delay_smooth_);
+        if (step >  0.5) step =  0.5;
+        if (step < -0.5) step = -0.5;
         delay_smooth_ += step;
+        if (fabs(base_samps - delay_smooth_) < 0.001) delay_smooth_ = base_samps;
     }
 
     const float lfo_val   = lfo_.Process();
+    const float lfo_step = lfo_val - previous_lfo_;
+    previous_lfo_ = lfo_val;
     const float modulation = params.mod_dep * 20.0f;
-    const float delay_l = delay_smooth_ + lfo_val * modulation;
+    const float delay_l = static_cast<float>(delay_smooth_ +
+        static_cast<double>(lfo_val) * modulation);
     const float spread = spread_.Update(kStereoOffsetSamples, params.width);
-    const float delay_r = delay_smooth_ + spread - lfo_val * modulation;
-    const bool moving = modulation > 0.00001f || fabsf(base_samps - delay_smooth_) > 0.01f
-                     || spread_.Fractional();
-    const float tap_l = moving ? line_l_.ReadAtHighQuality(delay_l) : line_l_.ReadNearest(delay_l);
-    const float tap_r = moving ? line_r_.ReadAtHighQuality(delay_r) : line_r_.ReadNearest(delay_r);
+    const float delay_r = static_cast<float>(delay_smooth_ + spread -
+        static_cast<double>(lfo_val) * modulation);
+    const bool moving = modulation > 0.00001f || fabs(base_samps - delay_smooth_) > 0.001;
+    const float slew_rate = static_cast<float>(1.0 - (delay_smooth_ - previous_delay));
+    const float tap_l = moving ? line_l_.ReadAtResampled(delay_l, slew_rate - lfo_step * modulation)
+                               : line_l_.ReadNearest(delay_l);
+    const float tap_r = moving || spread_.Fractional()
+        ? line_r_.ReadAtResampled(delay_r, slew_rate + lfo_step * modulation)
+        : line_r_.ReadNearest(delay_r);
     float wet_l = filter_l_.Process(bbd_l_.Deemphasis(tap_l));
     float wet_r = filter_r_.Process(bbd_r_.Deemphasis(tap_r));
 

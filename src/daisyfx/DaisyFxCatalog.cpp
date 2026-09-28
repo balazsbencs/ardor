@@ -462,7 +462,6 @@ std::string modulationDepth(std::string_view mode, float normalized)
   float samples = 0.0f;
   if (mode == "digital" || mode == "dual") samples = 30.0f;
   else if (mode == "tape") samples = 50.0f;
-  else if (mode == "filter") samples = 1500.0f;
   else if (mode == "lofi" || mode == "dbucket") samples = 20.0f;
   else if (mode == "duck") samples = 15.0f;
   else if (mode == "pattern") samples = 25.0f;
@@ -502,6 +501,7 @@ std::string formatDelay(std::string_view mode, std::string_view key, float norma
   }
   if (key == "mod_dep") {
     if (mode == "swell") return seconds(2.5f - 2.42f * normalized);
+    if (mode == "filter") return "±" + number(normalized * 3.0f, 2, " oct");
     return modulationDepth(mode, normalized);
   }
   return percent(normalized);

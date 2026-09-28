@@ -19,7 +19,7 @@ class Lfo {
 public:
     void Init(float rate_hz = 1.0f, LfoWave wave = LfoWave::Sine,
               float sample_rate = SAMPLE_RATE);
-    void Reset() { phase_ = phase_offset_; amplitude_ = 0.0f; smooth_value_ = 0.0f; sh_value_ = 0.0f; rand_ = 12345; phase_inc_ = phase_inc_base_; }
+    void Reset() { phase_ = phase_offset_; amplitude_ = 0.0f; smooth_value_ = 0.0f; rand_ = 12345; sh_value_ = wave_ == LfoWave::SmoothRandom ? lcg_to_float(rand_) : 0.0f; phase_inc_ = phase_inc_base_; }
     void SetRate(float rate_hz);
     void SetWave(LfoWave wave) { wave_ = wave; }
     void SetJitter(float amount) { jitter_ = amount; }

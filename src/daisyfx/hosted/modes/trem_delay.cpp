@@ -16,6 +16,8 @@ void TremDelay::Init() {
     filter_r_.SetKnob(0.5f);
     dc_l_.Init();
     dc_r_.Init();
+    dc_fb_l_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
+    dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
 }
 
 void TremDelay::Reset() {
@@ -29,8 +31,8 @@ void TremDelay::Reset() {
     time_transition_.Reset();
     fb_lim_l_.Reset();
     fb_lim_r_.Reset();
-    dc_fb_l_.Init();
-    dc_fb_r_.Init();
+    dc_fb_l_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
+    dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
 }
 
 void TremDelay::Prepare(const ParamSet& params) {

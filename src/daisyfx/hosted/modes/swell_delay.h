@@ -20,7 +20,7 @@ public:
     const char* Name() const override { return "Swell"; }
 
 private:
-    enum class SwellState { Idle, Attack, Decay };
+    enum class SwellState { Idle, Attack, Sustain, Release };
 
     EnvelopeFollower follower_;
     ToneFilter       filter_l_;
@@ -35,7 +35,7 @@ private:
     SwellState state_    = SwellState::Idle;
     float      env_gain_ = 0.0f;
     float      attack_rate_ = 0.0f;
-    float      decay_rate_  = 0.0f;
+    float      release_rate_  = 0.0f;
     DelayTapTransition time_transition_;
     bool       prev_above_threshold_ = false;
 

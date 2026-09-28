@@ -26,6 +26,8 @@ private:
     DcBlocker  dc_l_;
     DcBlocker  dc_r_;
     DelayTapTransition time_transition_;
+    DelayTapTransition ratio_transition_;
+    float previous_lfo_ = 0.0f;
     FeedbackLimiter fb_lim_l_;
     FeedbackLimiter fb_lim_r_;
     DcBlocker  dc_fb_l_;

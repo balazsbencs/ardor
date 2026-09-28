@@ -320,8 +320,8 @@ int main()
   swellDelayTailParams["mod_spd"] = 0.0f;
   swellDelayTailParams["mod_dep"] = 0.0f;
   require(processor.configure("delay", swellDelayTailParams, 48000.0f, error), error);
-  require(processor.tailFrames() > swellFastEnvelopeTail,
-          "swell delay tail must include its attack and decay envelope");
+  require(processor.tailFrames() == swellFastEnvelopeTail,
+          "swell delay tail follows delay and feedback after the envelope is recorded");
 
   // Reconfigure the short-delay render case. The maximum-time live target above
   // must not produce a spurious two-sample echo before its real delay time.

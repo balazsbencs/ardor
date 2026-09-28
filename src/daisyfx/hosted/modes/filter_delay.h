@@ -20,7 +20,6 @@ public:
     const char* Name() const override { return "Filter"; }
 
 private:
-    enum class FilterType { Lowpass, Bandpass, Highpass };
     Lfo       lfo_;
     Svf       svf_l_;
     Svf       svf_r_;
@@ -31,10 +30,9 @@ private:
     DcBlocker  dc_fb_l_;
     DcBlocker  dc_fb_r_;
     DelayTapTransition time_transition_;
-    FilterType filter_type_ = FilterType::Lowpass;
+    DelayTapTransition filter_transition_;
     float     sweep_depth_indices_ = 0.0f;
     float     q_ = 0.5f;
-    float     makeup_ = 1.0f;   // resonance make-up for the selected type
 
     float          filter_buf_l_[MAX_DELAY_SAMPLES];
     float          filter_buf_r_[MAX_DELAY_SAMPLES];

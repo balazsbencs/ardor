@@ -2,7 +2,7 @@
 #include "delay_mode.h"
 #include "../dsp/lfo.h"
 #include "../dsp/tone_filter.h"
-#include "../dsp/saturation.h"
+#include "../dsp/fast_math.h"
 #include "../dsp/dc_blocker.h"
 #include "../dsp/feedback_limiter.h"
 #include "../dsp/delay_line_sdram.h"
@@ -23,7 +23,8 @@ private:
     Lfo        lfo_;
     ToneFilter filter_l_;
     ToneFilter filter_r_;
-    Saturation sat_;
+    AntiAliasedTapeClip sat_l_;
+    AntiAliasedTapeClip sat_r_;
     DcBlocker  dc_l_;
     DcBlocker  dc_r_;
     DcBlocker  dc_fb_l_;
@@ -32,10 +33,12 @@ private:
     float      env_state_r_ = 0.0f;
     float      tape_lp_l_ = 0.0f;
     float      tape_lp_r_ = 0.0f;
-    float      delay_smooth_ = -1.0f;
+    double     delay_smooth_ = -1.0;
+    float      previous_lfo_ = 0.0f;
     float aa_state_l_ = 0.0f;
     float aa_state_r_ = 0.0f;
     float aa_coef_  = 1.0f;
+    float aa_mix_   = 0.0f;
     FeedbackLimiter fb_lim_l_;
     FeedbackLimiter fb_lim_r_;
     float pre_shelf_state_l_  = 0.0f;  // HF pre-emphasis state

@@ -251,6 +251,10 @@ struct DaisyFxProcessor::Impl {
       const auto smooth = [this, coefficient](float& current, float value) {
         if (!controlSmoothingSeeded) current = value;
         else current += coefficient * (value - current);
+        // End a fade exactly at its target. Otherwise float rounding leaves
+        // discrete delay controls (notably 4-bit Crush) on the wrong side of
+        // their final threshold indefinitely.
+        if (std::fabs(value - current) < 1.0e-6f) current = value;
       };
       smooth(delayParams.repeats,
              mappedDelayParam(target(Depth), delayId, pedal::delay_fx::ParamId::Repeats));
@@ -670,17 +674,6 @@ size_t DaisyFxProcessor::tailFrames() const noexcept
         // Feedback is taken from the first tap, but the last repeat can still
         // emerge from the later rhythmic taps.
         tailSeconds = delaySeconds * (repeatsUntilSilent + kLatestTapMultiplier[patternIndex] - 1.0f) + 0.01f;
-        break;
-      }
-      case pedal::DelayModeId::Swell: {
-        const float modSpeed = mappedDelayParam(target(Impl::P2), impl_->delayId,
-                                                 pedal::delay_fx::ParamId::ModSpd);
-        const float modDepth = mappedDelayParam(target(Impl::Level), impl_->delayId,
-                                                 pedal::delay_fx::ParamId::ModDep);
-        const float speedNorm = std::clamp((modSpeed - 0.05f) / (10.0f - 0.05f), 0.0f, 1.0f);
-        const float attackSeconds = 1.5f - 1.48f * speedNorm;
-        const float decaySeconds = 2.5f - 2.42f * modDepth;
-        tailSeconds += attackSeconds + decaySeconds;
         break;
       }
       default:

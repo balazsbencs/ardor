@@ -31,7 +31,8 @@ private:
     BbdEmulator   bbd_r_;
     uint32_t      noise_seed_l_ = 12345u;
     uint32_t      noise_seed_r_ = 0x9e3779b9u;
-    float         delay_smooth_ = -1.0f;
+    double        delay_smooth_ = -1.0;
+    float         previous_lfo_ = 0.0f;
     float          buf_l_[MAX_DELAY_SAMPLES];
     float          buf_r_[MAX_DELAY_SAMPLES];
     DelayLineSdram line_l_;

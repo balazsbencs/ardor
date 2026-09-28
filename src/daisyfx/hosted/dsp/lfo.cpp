@@ -11,7 +11,7 @@ void Lfo::Init(float rate_hz, LfoWave wave, float sample_rate) {
     phase_        = 0.0f;
     phase_offset_ = 0.0f;
     amplitude_    = 0.0f;
-    sh_value_     = 0.0f;
+    sh_value_     = wave == LfoWave::SmoothRandom ? lcg_to_float(12345u) : 0.0f;
     smooth_value_ = 0.0f;
     rand_         = 12345;
     jitter_       = 0.0f;

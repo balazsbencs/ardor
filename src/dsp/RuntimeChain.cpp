@@ -729,9 +729,11 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
         block.bypassMix = advanceBypassMix(block.bypassMix, enabled);
         const float mix = block.bypassMix;
         const auto frame = block.daisy->processFrame({dry.left * mix, dry.right * mix});
+        const float tailGain = !enabled && block.tailFramesRemaining < 480U
+          ? static_cast<float>(block.tailFramesRemaining) / 480.0f : 1.0f;
         current = {
-          frame.mixed.left + (1.0f - mix) * alignedDry.left,
-          frame.mixed.right + (1.0f - mix) * alignedDry.right,
+          frame.mixed.left * tailGain + (1.0f - mix) * alignedDry.left,
+          frame.mixed.right * tailGain + (1.0f - mix) * alignedDry.right,
         };
         if (!enabled) --block.tailFramesRemaining;
         else if (mix >= 1.0f) block.tailFramesRemaining = 0;
@@ -916,8 +918,10 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
           block.bypassMix = advanceBypassMix(block.bypassMix, enabled);
           const float mix = block.bypassMix;
           const auto frame = block.daisy->processFrame({dry.left * mix, dry.right * mix});
-          nextLeft[i] = frame.mixed.left + (1.0f - mix) * bypassLeft[i];
-          nextRight[i] = frame.mixed.right + (1.0f - mix) * bypassRight[i];
+          const float tailGain = !enabled && block.tailFramesRemaining < 480U
+            ? static_cast<float>(block.tailFramesRemaining) / 480.0f : 1.0f;
+          nextLeft[i] = frame.mixed.left * tailGain + (1.0f - mix) * bypassLeft[i];
+          nextRight[i] = frame.mixed.right * tailGain + (1.0f - mix) * bypassRight[i];
           if (!enabled && block.tailFramesRemaining > 0) --block.tailFramesRemaining;
           else if (enabled && mix >= 1.0f) block.tailFramesRemaining = 0;
         } else if (renderLetRing && !enabled) {

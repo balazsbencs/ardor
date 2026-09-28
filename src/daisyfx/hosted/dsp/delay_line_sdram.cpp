@@ -12,8 +12,42 @@ constexpr size_t kSincPhases = 256;
 constexpr int kSincLeft = 7;
 constexpr int kSincRight = 8;
 constexpr float kPi = 3.14159265358979323846f;
+constexpr size_t kResampleTaps = 32;
+constexpr size_t kResampleBands = 9;
 
 using SincTable = std::array<std::array<float, kSincTaps>, kSincPhases>;
+using ResampleTable = std::array<std::array<std::array<float, kResampleTaps>, kSincPhases>, kResampleBands>;
+
+const ResampleTable& resampleTable()
+{
+    static const ResampleTable table = [] {
+        ResampleTable result{};
+        for (size_t band = 0; band < kResampleBands; ++band) {
+            const double rate = 1.0 + static_cast<double>(band) / 8.0;
+            const double cutoff = 0.96 / rate;
+            for (size_t phase = 0; phase < kSincPhases; ++phase) {
+                const double fraction = static_cast<double>(phase) / kSincPhases;
+                double sum = 0.0;
+                for (size_t tap = 0; tap < kResampleTaps; ++tap) {
+                    const double distance = static_cast<double>(tap) - 15.0 - fraction;
+                    const double arg = cutoff * distance;
+                    const double sinc = arg == 0.0 ? 1.0 : std::sin(kPi * arg) / (kPi * arg);
+                    const double position = static_cast<double>(tap) / (kResampleTaps - 1);
+                    const double window = 0.42 - 0.5 * std::cos(2.0 * kPi * position)
+                                        + 0.08 * std::cos(4.0 * kPi * position);
+                    const float coefficient = static_cast<float>(cutoff * sinc * window);
+                    result[band][phase][tap] = coefficient;
+                    sum += coefficient;
+                }
+                for (float& coefficient : result[band][phase]) {
+                    coefficient = static_cast<float>(coefficient / sum);
+                }
+            }
+        }
+        return result;
+    }();
+    return table;
+}
 
 const SincTable& highQualityTable()
 {
@@ -50,6 +84,7 @@ const SincTable& highQualityTable()
 
 void DelayLineSdram::Init(float* buf, size_t size) {
     (void)highQualityTable();
+    (void)resampleTable();
     buf_   = buf;
     size_  = size;
     write_ = 0;
@@ -143,6 +178,39 @@ float DelayLineSdram::ReadAtHighQuality(float delay_samples) const {
     float output = 0.0f;
     for (size_t tap = 0; tap < kSincTaps; ++tap) {
         output += coefficients[tap] * buf_[wrap_idx(write_, first + tap, size_)];
+    }
+    return output;
+}
+
+float DelayLineSdram::ReadAtResampled(float delay_samples, float playback_rate) const {
+    if (playback_rate <= 1.0f || size_ <= kResampleTaps) {
+        return ReadAtHighQuality(delay_samples);
+    }
+    if (delay_samples < 15.0f) delay_samples = 15.0f;
+    const float maximum = static_cast<float>(size_ - 18U);
+    if (delay_samples > maximum) delay_samples = maximum;
+    const size_t integer = static_cast<size_t>(delay_samples);
+    size_t phase = static_cast<size_t>((delay_samples - integer) * kSincPhases + 0.5f);
+    size_t sample = integer;
+    if (phase == kSincPhases) { phase = 0; ++sample; }
+    const float band_position = fminf(playback_rate - 1.0f, 1.0f) * 8.0f;
+    const size_t lower = static_cast<size_t>(band_position);
+    const size_t upper = lower < 8 ? lower + 1 : lower;
+    const float blend = band_position - lower;
+    const auto& table = resampleTable();
+    float output = 0.0f;
+    const size_t first = sample - 15U;
+    for (size_t tap = 0; tap < kResampleTaps; ++tap) {
+        const float coefficient = table[lower][phase][tap] + blend *
+            (table[upper][phase][tap] - table[lower][phase][tap]);
+        output += coefficient * buf_[wrap_idx(write_, first + tap, size_)];
+    }
+    // Fade in the wider kernel to avoid a spectral step as the tap starts
+    // moving faster than the write head.
+    if (playback_rate < 1.05f) {
+        const float fade = (playback_rate - 1.0f) / 0.05f;
+        const float original = ReadAtHighQuality(delay_samples);
+        output = original + fade * (output - original);
     }
     return output;
 }

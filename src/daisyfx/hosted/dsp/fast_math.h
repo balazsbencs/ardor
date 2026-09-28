@@ -61,9 +61,7 @@ inline float soft_clip_tanh(float x) noexcept {
     return x * (27.0f + x2) / (27.0f + 9.0f * x2);
 }
 
-/// Clean below `knee`, then a soft curve that reaches full scale (1.0). For
-/// safety limiting where ordinary signals must pass untouched and only
-/// resonant or feedback peaks near full scale are bent.
+/// Clean below `knee`, then soft-limit peaks toward full scale.
 inline float soft_limit_above(float x, float knee) noexcept {
     const float magnitude = x < 0.0f ? -x : x;
     if (magnitude <= knee) return x;
@@ -71,17 +69,29 @@ inline float soft_limit_above(float x, float knee) noexcept {
     return x < 0.0f ? -limited : limited;
 }
 
+// Unity-slope soft ceiling. Leaves ordinary samples untouched, while keeping
+// a coherent multi-tap sum inside full scale without a hard clipping corner.
+inline float soft_headroom(float x) noexcept {
+    const float magnitude = std::abs(x);
+    if (magnitude <= 0.8f) return x;
+    const float over = magnitude - 0.8f;
+    const float bounded = 0.8f + 0.2f * over / (0.2f + over);
+    return x < 0.0f ? -bounded : bounded;
+}
+
 /// Antiderivative of soft_clip_tanh, for the anti-aliased version below.
 ///
 /// Inside the knee the curve is (1/9)(x + 24x/(x^2+3)), which integrates to
-/// (1/9)(x^2/2 + 12 ln(x^2+3)). Outside it the curve is flat at +/-1, so the
-/// integral is |x| plus whatever constant makes the two meet: 0.813172 at
-/// |x| = 3, where the slopes already agree at 1.
-inline float soft_clip_tanh_integral(float x) noexcept {
-    const float ax = x < 0.0f ? -x : x;
-    if (ax >= 3.0f) return ax + 0.813172f;
-    const float x2 = x * x;
-    return (0.5f * x2 + 12.0f * std::log(x2 + 3.0f)) * (1.0f / 9.0f);
+/// (1/9)(x^2/2 + 12 log1p(x^2/3)) after removing the constant. Beyond +/-3
+/// the curve is flat; the outer integral meets the inner one continuously.
+inline double soft_clip_tanh_integral(double x) noexcept {
+    const double ax = std::abs(x);
+    // Remove the arbitrary integral constant. Near silence, subtracting two
+    // large float logarithms overwhelmed the wanted signal.
+    constexpr double kOutsideOffset = (4.5 + 12.0 * 1.3862943611198906) / 9.0 - 3.0;
+    if (ax >= 3.0) return ax + kOutsideOffset;
+    const double x2 = x * x;
+    return (0.5 * x2 + 12.0 * std::log1p(x2 / 3.0)) / 9.0;
 }
 
 /// soft_clip_tanh with first-order antiderivative anti-aliasing.
@@ -108,21 +118,46 @@ public:
     }
 
     float Process(float x) noexcept {
-        const float integral = soft_clip_tanh_integral(x);
-        const float delta = x - previous_;
+        const double integral = soft_clip_tanh_integral(x);
+        const double delta = static_cast<double>(x) - previous_;
         // Across a segment too short to divide by, fall back to the midpoint of
         // the curve, which is what the average tends to anyway.
-        const float out = (delta > 1.0e-5f || delta < -1.0e-5f)
+        const float out = (delta > 1.0e-5 || delta < -1.0e-5)
             ? (integral - previous_integral_) / delta
-            : soft_clip_tanh(0.5f * (x + previous_));
+            : soft_clip_tanh(0.5f * (x + static_cast<float>(previous_)));
         previous_ = x;
         previous_integral_ = integral;
         return out;
     }
 
 private:
-    float previous_ = 0.0f;
-    float previous_integral_ = soft_clip_tanh_integral(0.0f);
+    double previous_ = 0.0;
+    double previous_integral_ = soft_clip_tanh_integral(0.0);
+};
+
+// First-order antiderivative antialiasing for x/(1+|x|). Output is divided
+// by the requested drive, so the feedback loop retains unity small-signal
+// gain while the curve compresses stronger repeats.
+class AntiAliasedTapeClip {
+public:
+    void Reset() noexcept { previous_ = previous_integral_ = 0.0; }
+
+    float Process(float input, float drive) noexcept {
+        const double x = static_cast<double>(input) * drive;
+        const double magnitude = std::abs(x);
+        const double integral = magnitude - std::log1p(magnitude);
+        const double delta = x - previous_;
+        const double shaped = std::abs(delta) > 1.0e-5
+            ? (integral - previous_integral_) / delta
+            : 0.5 * (x + previous_) / (1.0 + std::abs(0.5 * (x + previous_)));
+        previous_ = x;
+        previous_integral_ = integral;
+        return static_cast<float>(shaped / drive);
+    }
+
+private:
+    double previous_ = 0.0;
+    double previous_integral_ = 0.0;
 };
 
 } // namespace pedal

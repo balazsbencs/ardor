@@ -21,6 +21,8 @@ void SwellDelay::Init() {
     state_                = SwellState::Idle;
     env_gain_             = 0.0f;
     prev_above_threshold_ = false;
+    dc_fb_l_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
+    dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
 }
 
 void SwellDelay::Reset() {
@@ -35,30 +37,30 @@ void SwellDelay::Reset() {
     state_                = SwellState::Idle;
     env_gain_             = 0.0f;
     attack_rate_          = 0.0f;
-    decay_rate_           = 0.0f;
+    release_rate_         = 0.0f;
     time_transition_.Reset();
     prev_above_threshold_ = false;
     fb_lim_l_.Reset();
     fb_lim_r_.Reset();
-    dc_fb_l_.Init();
-    dc_fb_r_.Init();
+    dc_fb_l_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
+    dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
 }
 
 void SwellDelay::Prepare(const ParamSet& params) {
     filter_l_.SetKnob(params.filter);
     filter_r_.SetKnob(params.filter);
-    // Map modulation controls to musically useful AD envelope times.
+    // Map modulation controls to attack and release times.
     // mod_spd (0.05..10 Hz) -> attack time ~1.5s .. 0.02s
     float mod_spd_norm = (params.mod_spd - 0.05f) / (10.0f - 0.05f);
     if (mod_spd_norm < 0.0f) mod_spd_norm = 0.0f;
     if (mod_spd_norm > 1.0f) mod_spd_norm = 1.0f;
     const float attack_time_s = 1.5f - 1.48f * mod_spd_norm;
 
-    // mod_dep (0..1) -> decay time ~2.5s .. 0.08s
-    const float decay_time_s  = 2.5f - 2.42f * params.mod_dep;
+    // mod_dep (0..1) -> release time ~2.5s .. 0.08s
+    const float release_time_s  = 2.5f - 2.42f * params.mod_dep;
 
     attack_rate_ = 1.0f / (attack_time_s * SAMPLE_RATE);
-    decay_rate_  = 1.0f / (decay_time_s * SAMPLE_RATE);
+    release_rate_ = 1.0f / (release_time_s * SAMPLE_RATE);
 
     time_transition_.SetTarget(params.time * SAMPLE_RATE);
 }
@@ -75,15 +77,18 @@ StereoFrame SwellDelay::Process(StereoFrame input, const ParamSet& params) {
     // trigger at zero, then raise it to make the swell progressively less
     // sensitive to quiet notes and pickup noise.
     const float triggerThreshold = kBaseTriggerThreshold + params.grit * 0.20f;
-    const bool  now_above   = level > triggerThreshold;
+    const bool  now_above   = level > triggerThreshold *
+        (prev_above_threshold_ ? 0.7f : 1.0f);
     const bool  rising_edge = now_above && !prev_above_threshold_;
     prev_above_threshold_   = now_above;
 
     if (rising_edge) {
         state_ = SwellState::Attack;
+    } else if (!now_above && (state_ == SwellState::Attack || state_ == SwellState::Sustain)) {
+        state_ = SwellState::Release;
     }
 
-    // Advance AD state machine
+    // Sustain the shaped note while it is held, then release smoothly.
     switch (state_) {
         case SwellState::Idle:
             break; // env_gain_ is always 0 here
@@ -92,12 +97,15 @@ StereoFrame SwellDelay::Process(StereoFrame input, const ParamSet& params) {
             env_gain_ += attack_rate_;
             if (env_gain_ >= 1.0f) {
                 env_gain_ = 1.0f;
-                state_    = SwellState::Decay;
+                state_    = SwellState::Sustain;
             }
             break;
 
-        case SwellState::Decay:
-            env_gain_ -= decay_rate_;
+        case SwellState::Sustain:
+            break;
+
+        case SwellState::Release:
+            env_gain_ -= release_rate_;
             if (env_gain_ <= 0.0f) {
                 env_gain_ = 0.0f;
                 state_    = SwellState::Idle;
@@ -122,16 +130,18 @@ StereoFrame SwellDelay::Process(StereoFrame input, const ParamSet& params) {
     }
     float wet_l = wet.left;
     float wet_r = wet.right;
-    wet_l = filter_l_.Process(wet_l) * env_gain_;
-    wet_r = filter_r_.Process(wet_r) * env_gain_;
+    wet_l = filter_l_.Process(wet_l);
+    wet_r = filter_r_.Process(wet_r);
 
     // DC blocker in the feedback path, matching the other seven delay modes.
     // The ToneFilter in this loop has non-zero DC gain, so offset otherwise
     // accumulates across repeats and eats headroom.
     const float feedback_l = dc_fb_l_.Process(fb_lim_l_.Process(wet_l * params.repeats));
     const float feedback_r = dc_fb_r_.Process(fb_lim_r_.Process(wet_r * params.repeats));
-    swell_line_l_.Write(input.left + feedback_l);
-    swell_line_r_.Write(input.right + feedback_r);
+    // The gain envelope travels with the recorded note. Gating the play head
+    // made short notes disappear whenever Time exceeded the envelope length.
+    swell_line_l_.Write(input.left * env_gain_ + feedback_l);
+    swell_line_r_.Write(input.right * env_gain_ + feedback_r);
 
     // Loop-safe Tone inside the loop; the output alone is corrected so the
     // first repeat keeps its loudness at any Tone setting.
