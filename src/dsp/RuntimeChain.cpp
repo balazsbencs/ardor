@@ -33,6 +33,8 @@ constexpr float kCabControlSmoothing = 0.001f;
 
 constexpr float kBlockBypassStep = 1.0f / 480.0f; // 10 ms at the fixed 48 kHz rate.
 constexpr std::uint64_t kMaximumLetRingFrames = 30U * 48000U;
+constexpr std::uint64_t kOrdinaryTailFadeFrames = 480U;
+constexpr std::uint64_t kCappedTailFadeFrames = 120000U; // one maximum-length delay repeat
 
 float advanceBypassMix(float current, bool enabled)
 {
@@ -115,6 +117,7 @@ struct RuntimeChain::Block {
   bool sceneLetRing = false;
   bool lastEnabled = true;
   std::uint64_t tailFramesRemaining = 0;
+  std::uint64_t tailFadeFrames = kOrdinaryTailFadeFrames;
   NamInputMode namInputMode = NamInputMode::Sum;
 };
 
@@ -650,8 +653,10 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
           && block.sceneBypassRequested->load(std::memory_order_relaxed)) {
         const std::uint64_t tailFrames = block.irReverb
           ? block.irReverb->tailFrames() : block.daisy->tailFrames();
+        block.tailFadeFrames = tailFrames + kOrdinaryTailFadeFrames >= kMaximumLetRingFrames
+          ? kCappedTailFadeFrames : kOrdinaryTailFadeFrames;
         block.tailFramesRemaining = std::min<std::uint64_t>(
-          tailFrames + 480U,
+          tailFrames + kOrdinaryTailFadeFrames,
           kMaximumLetRingFrames);
       }
       block.lastEnabled = enabled;
@@ -711,8 +716,9 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
         block.bypassMix = advanceBypassMix(block.bypassMix, enabled);
         const float mix = block.bypassMix;
         const auto frame = block.daisy->processFrame({dry.left * mix, dry.right * mix});
-        const float tailGain = !enabled && block.tailFramesRemaining < 480U
-          ? static_cast<float>(block.tailFramesRemaining) / 480.0f : 1.0f;
+        const float tailGain = !enabled && block.tailFramesRemaining < block.tailFadeFrames
+          ? static_cast<float>(block.tailFramesRemaining) /
+              static_cast<float>(block.tailFadeFrames) : 1.0f;
         current = {
           frame.mixed.left * tailGain + (1.0f - mix) * dry.left,
           frame.mixed.right * tailGain + (1.0f - mix) * dry.right,
@@ -796,8 +802,10 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
           && block.sceneBypassRequested->load(std::memory_order_relaxed)) {
         const std::uint64_t tailFrames = block.irReverb
           ? block.irReverb->tailFrames() : block.daisy->tailFrames();
+        block.tailFadeFrames = tailFrames + kOrdinaryTailFadeFrames >= kMaximumLetRingFrames
+          ? kCappedTailFadeFrames : kOrdinaryTailFadeFrames;
         block.tailFramesRemaining = std::min<std::uint64_t>(
-          tailFrames + 480U,
+          tailFrames + kOrdinaryTailFadeFrames,
           kMaximumLetRingFrames);
       }
       block.lastEnabled = enabled;
@@ -888,8 +896,9 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
           block.bypassMix = advanceBypassMix(block.bypassMix, enabled);
           const float mix = block.bypassMix;
           const auto frame = block.daisy->processFrame({dry.left * mix, dry.right * mix});
-          const float tailGain = !enabled && block.tailFramesRemaining < 480U
-            ? static_cast<float>(block.tailFramesRemaining) / 480.0f : 1.0f;
+          const float tailGain = !enabled && block.tailFramesRemaining < block.tailFadeFrames
+            ? static_cast<float>(block.tailFramesRemaining) /
+                static_cast<float>(block.tailFadeFrames) : 1.0f;
           nextLeft[i] = frame.mixed.left * tailGain + (1.0f - mix) * dry.left;
           nextRight[i] = frame.mixed.right * tailGain + (1.0f - mix) * dry.right;
           if (!enabled && block.tailFramesRemaining > 0) --block.tailFramesRemaining;

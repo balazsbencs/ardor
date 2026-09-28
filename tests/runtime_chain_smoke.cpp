@@ -493,6 +493,34 @@ int main()
     require(delayRingPeak > 1.0e-4f, "hosted delay let ring should preserve repeats");
     require(delayCutPeak < 1.0e-6f, "hosted delay Cut should silence settled repeats");
 
+    // A long, high-feedback repeat can still be loud at the scene's 30 s
+    // resource limit. The forced tail must fade over the final repeats.
+    auto cappedParams = delayParams;
+    cappedParams["time"] = 0.73f;
+    cappedParams["repeats"] = 1.0f;
+    cappedParams["width"] = 0.0f;
+    ardor::DaisyFxProcessor cappedProcessor;
+    require(cappedProcessor.configure("delay", cappedParams, 48000.0f, error), error);
+    ardor::RuntimeChain cappedRing;
+    cappedRing.addDaisy("capped-ring", std::move(cappedProcessor), true);
+    for (int i = 0; i < 48000; ++i) {
+      const float note = 0.1f * std::sin(6.2831853f * 500.0f * i / 48000.0f);
+      (void)cappedRing.process({note, note});
+    }
+    require(cappedRing.applySceneTarget(bypassAddress, 0.0f), "scene-disable capped delay");
+    double earlyEnergy = 0.0;
+    double finalEnergy = 0.0;
+    for (int i = 0; i < 30 * 48000; ++i) {
+      const float output = cappedRing.process({}).left;
+      if (i >= 26 * 48000 && i < 27 * 48000) earlyEnergy += output * output;
+      if (i >= 29 * 48000) finalEnergy += output * output;
+    }
+    require(earlyEnergy > 1.0, "capped delay must still ring before the fade");
+    require(finalEnergy < earlyEnergy * 0.25,
+            "capped let-ring delay must fade over its final repeats");
+    require(std::fabs(cappedRing.process({}).left) < 1.0e-6f,
+            "capped delay must reach silence without a final step");
+
     const nlohmann::json reverbParams = {
       {"mode", "room"}, {"decay", 0.45f}, {"pre_delay", 0.0f},
       {"mix", 1.0f}, {"tone", 0.5f}, {"mod", 0.2f},
