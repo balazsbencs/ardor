@@ -96,7 +96,8 @@ StereoFrame TapeDelay::Process(StereoFrame input, const ParamSet& params) {
         delay_smooth_ += step;
         if (fabs(target_samps - delay_smooth_) < 0.001) delay_smooth_ = target_samps;
     }
-    const float delay_samps = static_cast<float>(delay_smooth_ + lfo_val * flutter);
+    const float delay_samps = static_cast<float>(delay_smooth_ +
+        static_cast<double>(lfo_val) * flutter);
     const float read_rate = static_cast<float>(1.0 - (delay_smooth_ - previous_delay))
                           - (lfo_val - previous_lfo_) * flutter;
     previous_lfo_ = lfo_val;

@@ -99,9 +99,11 @@ StereoFrame DbucketDelay::Process(StereoFrame input, const ParamSet& params) {
     const float lfo_step = lfo_val - previous_lfo_;
     previous_lfo_ = lfo_val;
     const float modulation = params.mod_dep * 20.0f;
-    const float delay_l = static_cast<float>(delay_smooth_ + lfo_val * modulation);
+    const float delay_l = static_cast<float>(delay_smooth_ +
+        static_cast<double>(lfo_val) * modulation);
     const float spread = spread_.Update(kStereoOffsetSamples, params.width);
-    const float delay_r = static_cast<float>(delay_smooth_ + spread - lfo_val * modulation);
+    const float delay_r = static_cast<float>(delay_smooth_ + spread -
+        static_cast<double>(lfo_val) * modulation);
     const bool moving = modulation > 0.00001f || fabs(base_samps - delay_smooth_) > 0.001;
     const float slew_rate = static_cast<float>(1.0 - (delay_smooth_ - previous_delay));
     const float tap_l = moving ? line_l_.ReadAtResampled(delay_l, slew_rate - lfo_step * modulation)
