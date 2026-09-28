@@ -51,6 +51,9 @@ public:
     // Per-line LFO modulation depth in samples (0 = no modulation).
     void SetModulation(float depth_samples);
 
+    // Remaining gain before the strongest feedback line reaches unity.
+    float FeedbackHeadroom() const;
+
     // Advance LFO phases one block and ramp modulated tap positions across the
     // following block. Must be called once per block (e.g. at end of Prepare()).
     void PrepareBlock();

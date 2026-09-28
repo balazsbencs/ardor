@@ -329,7 +329,7 @@ function reverbDisplay(mode: string, key: string): NumberDisplay {
     if (mode === "shimmer") return physical(-12, 24, 0, semitones, 0.1);
     if (mode === "spring" || mode === "chorale") return choices(["Mild", "Medium", "High"]);
     if (mode === "nonlinear") return physical(40, 80, 0, (value) => `${number(value, 0)}%`, 1);
-    if (mode === "swell") return choices(["Wet swell", "Dry swell"]);
+    if (mode === "swell") return choices(["Wet swell", "Wet duck"]);
     if (mode === "magneto") return mappedChoices(["Even", "Golden"], [0, 1], (value) => value <= 0.5 ? 0 : 1);
     return normalizedPercent;
   }

@@ -2,6 +2,7 @@
 #include "reverb_mode.h"
 #include "../dsp/allpass.h"
 #include "../dsp/delay_line_sdram.h"
+#include "../dsp/clickless_delay_line.h"
 #include "../dsp/lfo.h"
 #include "../dsp/tone_filter.h"
 
@@ -37,9 +38,8 @@ private:
     float buf_d8_[5102];
 
     // Pre-delay (0..500 ms)
-    DelayLineSdram pre_delay_l_;
-    DelayLineSdram pre_delay_r_;
-    size_t         pre_delay_samp_ = 0;
+    ClicklessDelayLine pre_delay_l_;
+    ClicklessDelayLine pre_delay_r_;
 
     // Input diffusion: 4 series allpass (k1=0.75, k1=0.75, k2=0.625, k2=0.625)
     DelayAllpassFilter idif_[4];

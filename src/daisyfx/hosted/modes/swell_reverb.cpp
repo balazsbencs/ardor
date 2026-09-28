@@ -35,12 +35,14 @@ void SwellReverb::Init() {
     fdn_.SetDecay(2.0f);
     fdn_.SetDamping(0.3f);
 
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
     env_follow_.Init(5.0f, 100.0f, REVERB_SAMPLE_RATE);
 
     ramp_gain_ = 0.0f;
     swell_dry_ = true;
+    direction_seeded_ = false;
+    direction_mix_ = 1.0f;
     ramp_rate_ = 1.0f / (0.5f * REVERB_SAMPLE_RATE);
 }
 
@@ -48,11 +50,13 @@ void SwellReverb::Reset() {
     pre_delay_l_.Reset();
     pre_delay_r_.Reset();
     fdn_.Reset();
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
     env_follow_.Init(5.0f, 100.0f, REVERB_SAMPLE_RATE);
     ramp_gain_ = 0.0f;
     swell_dry_ = true;
+    direction_seeded_ = false;
+    direction_mix_ = 1.0f;
 }
 
 void SwellReverb::Prepare(const ParamSet& params) {
@@ -73,6 +77,7 @@ void SwellReverb::Prepare(const ParamSet& params) {
     } else if (params.param2 > 0.55f) {
         swell_dry_ = true;
     }
+    if (!direction_seeded_) direction_mix_ = swell_dry_ ? 1.0f : 0.0f;
     fdn_.PrepareBlock();
 }
 
@@ -96,20 +101,21 @@ StereoFrame SwellReverb::Process(StereoFrame input, const ParamSet& params) {
         if (ramp_gain_ < 0.0f) ramp_gain_ = 0.0f;
     }
 
-    StereoFrame out{};
-    if (!swell_dry_) {
-        // Swell Wet: reverb fades in
-        const StereoFrame late = fdn_.Process({pre.left * ramp_gain_, pre.right * ramp_gain_});
-        out.left  = tone_[0].Process(late.left);
-        out.right = tone_[1].Process(late.right);
-    } else {
-        // Swell Dry: reverb fades out
-        const StereoFrame late = fdn_.Process(pre);
-        const float scale = 1.0f - ramp_gain_;
-        out.left  = tone_[0].Process(late.left  * scale);
-        out.right = tone_[1].Process(late.right * scale);
-    }
-    return out;
+    direction_seeded_ = true;
+    const float target = swell_dry_ ? 1.0f : 0.0f;
+    static constexpr float kDirectionStep = 1.0f / (0.020f * REVERB_SAMPLE_RATE);
+    direction_mix_ += std::clamp(target - direction_mix_, -kDirectionStep, kDirectionStep);
+
+    // At either end these are the original wet-swell and wet-duck paths.
+    // Moving both gains gradually avoids an abrupt change of tank excitation
+    // or output level when Direction crosses its selector boundary.
+    const float input_gain = ramp_gain_ + direction_mix_ * (1.0f - ramp_gain_);
+    const StereoFrame late = fdn_.Process({pre.left * input_gain, pre.right * input_gain});
+    const float output_gain = 1.0f - direction_mix_ * ramp_gain_;
+    return {
+        tone_[0].Process(late.left * output_gain),
+        tone_[1].Process(late.right * output_gain)
+    };
 }
 
 } // namespace pedal

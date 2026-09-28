@@ -53,8 +53,8 @@ void SpringReverb::Init() {
 
     sat_.Init();
     for (int sp = 0; sp < 3; ++sp) { sat_up_[sp].Reset(); sat_down_[sp].Reset(); }
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
     hold_ = false;
     active_springs_ = 1;
     spring_gain_[0] = 1.0f;
@@ -88,8 +88,8 @@ void SpringReverb::Reset() {
     comb_[0].SetDelay(2000);
     comb_[1].SetDelay(2140);
     comb_[2].SetDelay(2260);
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
     hold_ = false;
     active_springs_ = 1;
     spring_gain_[0] = 1.0f;
@@ -185,9 +185,10 @@ StereoFrame SpringReverb::Process(StereoFrame input, const ParamSet& params) {
         // Per-spring delay table pointer for modulated last stage
         const size_t* ap_delays = (sp == 0) ? kApDelays0 : (sp == 1) ? kApDelays1 : kApDelays2;
 
-        // A complementary input matrix gives the one-spring setting access to
-        // both channels and retains stereo side energy as paths are added.
-        float source = sp == 0 ? 0.85f * delayed.left + 0.15f * delayed.right
+        // The lone spring hears both channels equally. As the second spring
+        // fades in, steer the first toward left and the second toward right.
+        const float first_left = 0.5f + 0.35f * spring_gain_[1];
+        float source = sp == 0 ? first_left * delayed.left + (1.0f - first_left) * delayed.right
                      : sp == 1 ? 0.15f * delayed.left + 0.85f * delayed.right
                                      : 0.5f * (delayed.left + delayed.right);
         const float launch_transient = source - input_previous_[sp];

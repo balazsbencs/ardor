@@ -1,6 +1,7 @@
 #pragma once
 #include "../config/constants.h"
 #include "fast_math.h"
+#include <algorithm>
 #include <cmath>
 
 namespace pedal {
@@ -42,7 +43,14 @@ public:
 
     void SetVowel(int index) {
         if (index < 0 || index >= VOWELS) index = 0;
-        vowel_ = index;
+        vowel_position_ = static_cast<float>(index);
+    }
+
+    // Continuous position for an automated vowel morph. Integer positions
+    // retain the original formant presets used by other effects.
+    void SetVowelPosition(float position) {
+        if (!std::isfinite(position)) return;
+        vowel_position_ = std::clamp(position, 0.0f, float(VOWELS - 1));
     }
 
     // Q: Mild=2, Medium=5, High=10
@@ -79,8 +87,12 @@ private:
     };
 
     void ComputeCoeffs() {
+        const int lower = static_cast<int>(vowel_position_);
+        const int upper = std::min(lower + 1, VOWELS - 1);
+        const float blend = vowel_position_ - float(lower);
         for (int i = 0; i < BANDS; ++i) {
-            const float f0    = detail::kFormants[vowel_][i];
+            const float f0    = detail::kFormants[lower][i]
+                              + blend * (detail::kFormants[upper][i] - detail::kFormants[lower][i]);
             const float w0    = 2.0f * 3.14159265f * f0 / sample_rate_;
             const float sw0   = std::sin(w0);
             const float cw0   = std::cos(w0);
@@ -94,7 +106,7 @@ private:
 
     Biquad bands_[BANDS]{};
     float  sample_rate_ = SAMPLE_RATE;
-    int    vowel_       = 0;
+    float  vowel_position_ = 0.0f;
     float  Q_           = 5.0f;
     bool   natural_     = false;
 };
