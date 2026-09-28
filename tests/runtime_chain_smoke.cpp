@@ -512,8 +512,10 @@ int main()
     double finalEnergy = 0.0;
     for (int i = 0; i < 30 * 48000; ++i) {
       const float output = cappedRing.process({}).left;
-      if (i >= 26 * 48000 && i < 27 * 48000) earlyEnergy += output * output;
-      if (i >= 29 * 48000) finalEnergy += output * output;
+      if (i >= 26 * 48000 && i < 27 * 48000)
+        earlyEnergy += static_cast<double>(output) * output;
+      if (i >= 29 * 48000)
+        finalEnergy += static_cast<double>(output) * output;
     }
     require(earlyEnergy > 1.0, "capped delay must still ring before the fade");
     require(finalEnergy < earlyEnergy * 0.25,
