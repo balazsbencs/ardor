@@ -90,6 +90,9 @@ private:
   std::vector<float> preRight_;
   std::size_t preWrite_ = 0;
   std::size_t preDelaySamples_ = 0;
+  std::size_t preDelayCurrent_ = 0;
+  std::size_t preDelayTarget_ = 0;
+  std::size_t preDelayFadeRemaining_ = 0;
 
   OnePole lowCutL_, lowCutR_, highCutL_, highCutR_;
   float lowCutHz_ = LOW_CUT_MIN_HZ;
@@ -100,6 +103,10 @@ private:
   // loaded from.
   bool lowCutActive_ = false;
   bool highCutActive_ = false;
+  float lowCutCoeffTarget_ = 1.0f;
+  float highCutCoeffTarget_ = 1.0f;
+  float lowCutMix_ = 0.0f;
+  float highCutMix_ = 0.0f;
 
   float mixTarget_ = 0.35f;
   float mix_ = 0.35f;

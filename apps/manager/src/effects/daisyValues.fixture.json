@@ -2188,7 +2188,7 @@
           "label": "Direction",
           "defaultValue": 0.500000,
           "choiceCount": 2,
-          "samples": [{"value": 0.000000, "text": "Wet swell"}, {"value": 1.000000, "text": "Dry swell"}]
+          "samples": [{"value": 0.000000, "text": "Wet swell"}, {"value": 1.000000, "text": "Wet duck"}]
         }
       ]
     },

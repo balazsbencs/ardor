@@ -42,8 +42,8 @@ void ChoraleReverb::Init() {
     fdn_.SetDecay(3.0f);
     fdn_.SetDamping(0.25f);
 
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
     resonance_mode_ = 1;
 }
 
@@ -53,8 +53,8 @@ void ChoraleReverb::Reset() {
     formant_l_.Reset();
     formant_r_.Reset();
     fdn_.Reset();
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
     resonance_mode_ = 1;
 }
 
@@ -68,10 +68,10 @@ void ChoraleReverb::Prepare(const ParamSet& params) {
     tone_[0].SetKnob(params.tone);
     tone_[1].SetKnob(params.tone);
 
-    // Param1 is mapped to the physical vowel index 0…6 by the adapter.
-    const int vowel = static_cast<int>(std::lround(params.param1));
-    formant_l_.SetVowel(std::clamp(vowel, 0, 6));
-    formant_r_.SetVowel(std::clamp(vowel, 0, 6));
+    // Morph the formant frequencies between the seven physical vowel presets
+    // so automation does not switch all five filter coefficients at once.
+    formant_l_.SetVowelPosition(params.param1);
+    formant_r_.SetVowelPosition(params.param1);
 
     if (resonance_mode_ == 0) {
         if (params.param2 > 0.36f) resonance_mode_ = 1;

@@ -47,8 +47,8 @@ void ReflectionsReverb::Init() {
     er_l_.Init(buf_er_l_, 6144);
     er_r_.Init(buf_er_r_, 6144);
     motion_lfo_.Init(0.1f, LfoWave::Sine, REVERB_SAMPLE_RATE);
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
 
     // Build default tap table
     ErTap taps_l[16];
@@ -90,12 +90,14 @@ void ReflectionsReverb::Prepare(const ParamSet& params) {
     tone_[0].SetKnob(params.tone);
     tone_[1].SetKnob(params.tone);
 
-    // param2 (Loc X): shift stereo pan spread
-    // param1 (Loc Y): front-back — scale gains slightly
+    // Depth moves the reflection field in time as well as changing its
+    // level. Width changes the stereo pan spread and channel timing offsets.
+    const float depth_scale = 0.7f + 0.6f * params.param1;
     ErTap taps_l[16];
     ErTap taps_r[16];
     for (int i = 0; i < 16; ++i) {
-        taps_l[i].delay_samples = kTapDelays[i];
+        const int base_delay = static_cast<int>(std::lround(kTapDelays[i] * depth_scale));
+        taps_l[i].delay_samples = static_cast<uint16_t>(base_delay);
         taps_l[i].gain          = kTapGains[i] * (0.6f + params.param1 * 0.4f) * params.decay;
         // Pan: alternating + shifted by param2
         const float base_pan  = (i & 1) ? 1.0f : -1.0f;
@@ -109,7 +111,7 @@ void ReflectionsReverb::Prepare(const ParamSet& params) {
         taps_r[i] = taps_l[i];
         const float delay_offset = static_cast<float>(kRightTapOffsets[i])
                                  * (0.25f + 0.75f * params.param2);
-        const int right_delay = static_cast<int>(kTapDelays[i])
+        const int right_delay = base_delay
                               + static_cast<int>(std::lround(delay_offset));
         taps_r[i].delay_samples = static_cast<uint16_t>(right_delay);
         taps_r[i].pan = -pan;

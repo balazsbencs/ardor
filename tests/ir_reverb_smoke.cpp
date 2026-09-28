@@ -1,5 +1,6 @@
 #include "dsp/IrReverbProcessor.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <stdexcept>
@@ -134,6 +135,33 @@ void verifyPreDelayShiftsTheTail()
               std::to_string(measured) + " expected " + std::to_string(expectedShift));
 }
 
+void verifyLiveControlsDoNotClick()
+{
+  for (int control = 0; control < 3; ++control) {
+    ardor::IrReverbProcessor reverb;
+    std::string error;
+    require(reverb.load({1.0f}, {}, kRate, error), error);
+    reverb.setMix(1.0f);
+    if (control == 2) reverb.setHighCutHz(1000.0f);
+    reverb.reset();
+    float previous = 0.0f;
+    float maximumStep = 0.0f;
+    for (int frame = 0; frame < 2 * 48000; ++frame) {
+      if (frame == 48000) {
+        if (control == 0) reverb.setPreDelayMs(77.0f);
+        else reverb.setHighCutHz(control == 1 ? 500.0f : 5000.0f);
+      }
+      const float input = 0.25f * std::sin(6.28318530718f * 173.0f * frame / kRate);
+      const float output = reverb.process({input, input}).left;
+      if (frame >= 48000) maximumStep = std::max(maximumStep, std::fabs(output - previous));
+      previous = output;
+    }
+    require(maximumStep < (control == 0 ? 0.03f : 0.02f),
+            control == 0 ? "moving IR pre-delay must not click"
+                         : "IR high-cut automation must not click");
+  }
+}
+
 // A stereo impulse must drive the two channels independently.
 void verifyStereoImpulsesStayIndependent()
 {
@@ -187,6 +215,7 @@ int main()
   verifyDryPassthrough();
   verifyImpulseResponseAlignment();
   verifyPreDelayShiftsTheTail();
+  verifyLiveControlsDoNotClick();
   verifyStereoImpulsesStayIndependent();
   verifyImpulseLengthIsCapped();
   verifyRejectsBadInput();
