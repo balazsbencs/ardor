@@ -1,6 +1,6 @@
 #pragma once
 #include "reverb_mode.h"
-#include "../dsp/delay_line_sdram.h"
+#include "../dsp/clickless_delay_line.h"
 #include "../dsp/early_reflections.h"
 #include "../dsp/diffuser.h"
 #include "../dsp/fdn.h"
@@ -40,8 +40,8 @@ private:
     float buf_fdn6_[4127];
     float buf_fdn3_[4799];
     float buf_fdn7_[5463];
-    DelayLineSdram pre_delay_l_;
-    DelayLineSdram pre_delay_r_;
+    ClicklessDelayLine pre_delay_l_;
+    ClicklessDelayLine pre_delay_r_;
     EarlyReflections er_l_;
     EarlyReflections er_r_;
     Diffuser diffuser_l_;

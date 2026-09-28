@@ -32,7 +32,8 @@ struct CabLiveState {
 constexpr float kCabControlSmoothing = 0.001f;
 
 constexpr float kBlockBypassStep = 1.0f / 480.0f; // 10 ms at the fixed 48 kHz rate.
-constexpr std::uint64_t kMaximumLetRingFrames = 30U * 48000U;
+constexpr std::uint64_t kMaximumDelayLetRingFrames = 30U * 48000U;
+constexpr std::uint64_t kMaximumReverbLetRingFrames = 60U * 48000U;
 constexpr std::uint64_t kOrdinaryTailFadeFrames = 480U;
 constexpr std::uint64_t kCappedTailFadeFrames = 120000U; // one maximum-length delay repeat
 
@@ -118,7 +119,18 @@ struct RuntimeChain::Block {
   bool lastEnabled = true;
   std::uint64_t tailFramesRemaining = 0;
   std::uint64_t tailFadeFrames = kOrdinaryTailFadeFrames;
+  std::vector<StereoSample> bypassDryDelay;
+  size_t bypassDryIndex = 0;
   NamInputMode namInputMode = NamInputMode::Sum;
+
+  StereoSample alignedBypassDry(StereoSample input)
+  {
+    if (bypassDryDelay.empty()) return input;
+    const auto delayed = bypassDryDelay[bypassDryIndex];
+    bypassDryDelay[bypassDryIndex] = input;
+    bypassDryIndex = (bypassDryIndex + 1U) % bypassDryDelay.size();
+    return delayed;
+  }
 };
 
 struct RuntimeChain::FaultState {
@@ -147,6 +159,8 @@ void RuntimeChain::prepareBlockSize(size_t frames)
   leftB_.assign(frames, 0.0f);
   rightB_.assign(frames, 0.0f);
   monoScratch_.assign(frames, 0.0f);
+  bypassDryLeft_.assign(frames, 0.0f);
+  bypassDryRight_.assign(frames, 0.0f);
   for (auto& block : blocks_) {
     if (block.cab) {
       block.cab->prepareBlockSize(frames);
@@ -322,6 +336,9 @@ void RuntimeChain::addDaisy(std::string id, DaisyFxProcessor processor, bool sce
   block.kind = Block::Kind::Daisy;
   block.id = std::move(id);
   block.drainWhenBypassed = processor.tailFrames() > 0;
+  // Keep the reverb's 31-frame dry latency through bypass. Crossfading it
+  // against live dry produces a deep comb null near the fade midpoint.
+  block.bypassDryDelay.resize(processor.latencyFrames());
   block.sceneLetRing = sceneLetRing;
   block.daisy = std::make_unique<DaisyFxProcessor>(std::move(processor));
   blocks_.push_back(std::move(block));
@@ -647,17 +664,21 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
   StereoSample current = input;
   for (size_t index = 0; index < blocks_.size(); ++index) {
     auto& block = blocks_[index];
+    const StereoSample alignedDry = block.alignedBypassDry(current);
     const bool enabled = block.enabled->load(std::memory_order_relaxed);
     if (enabled != block.lastEnabled) {
       if (!enabled && block.sceneLetRing && (block.irReverb || block.daisy)
           && block.sceneBypassRequested->load(std::memory_order_relaxed)) {
         const std::uint64_t tailFrames = block.irReverb
           ? block.irReverb->tailFrames() : block.daisy->tailFrames();
-        block.tailFadeFrames = tailFrames + kOrdinaryTailFadeFrames >= kMaximumLetRingFrames
+        const auto maximumFrames = block.irReverb
+          ? kMaximumReverbLetRingFrames : kMaximumDelayLetRingFrames;
+        block.tailFadeFrames = block.daisy
+          && tailFrames + kOrdinaryTailFadeFrames >= maximumFrames
           ? kCappedTailFadeFrames : kOrdinaryTailFadeFrames;
         block.tailFramesRemaining = std::min<std::uint64_t>(
           tailFrames + kOrdinaryTailFadeFrames,
-          kMaximumLetRingFrames);
+          maximumFrames);
       }
       block.lastEnabled = enabled;
     }
@@ -668,6 +689,7 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
         if (block.irReverb) (void)block.irReverb->process({});
         else if (block.daisy) (void)block.daisy->process({});
       }
+      current = alignedDry;
       observeLevel(*block.meter, current.left, current.right);
       continue;
     }
@@ -720,8 +742,8 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
           ? static_cast<float>(block.tailFramesRemaining) /
               static_cast<float>(block.tailFadeFrames) : 1.0f;
         current = {
-          frame.mixed.left * tailGain + (1.0f - mix) * dry.left,
-          frame.mixed.right * tailGain + (1.0f - mix) * dry.right,
+          frame.mixed.left * tailGain + (1.0f - mix) * alignedDry.left,
+          frame.mixed.right * tailGain + (1.0f - mix) * alignedDry.right,
         };
         if (!enabled) --block.tailFramesRemaining;
         else if (mix >= 1.0f) block.tailFramesRemaining = 0;
@@ -764,8 +786,8 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
     }
     if (!renderLetRing) block.bypassMix = advanceBypassMix(block.bypassMix, enabled);
     if (!renderLetRing && block.bypassMix < 1.0f) {
-      current.left = dry.left + block.bypassMix * (current.left - dry.left);
-      current.right = dry.right + block.bypassMix * (current.right - dry.right);
+      current.left = alignedDry.left + block.bypassMix * (current.left - alignedDry.left);
+      current.right = alignedDry.right + block.bypassMix * (current.right - alignedDry.right);
     }
     observeLevel(*block.meter, current.left, current.right);
   }
@@ -796,17 +818,32 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
   bool currentIsStereo = false;
 
   for (auto& block : blocks_) {
+    const bool alignBypassDry = !block.bypassDryDelay.empty();
+    const float* bypassLeft = currentLeft;
+    const float* bypassRight = currentRight;
+    if (alignBypassDry) {
+      for (size_t i = 0; i < frames; ++i) {
+        const auto delayed = block.alignedBypassDry({currentLeft[i], currentRight[i]});
+        bypassDryLeft_[i] = delayed.left;
+        bypassDryRight_[i] = delayed.right;
+      }
+      bypassLeft = bypassDryLeft_.data();
+      bypassRight = bypassDryRight_.data();
+    }
     const bool enabled = block.enabled->load(std::memory_order_relaxed);
     if (enabled != block.lastEnabled) {
       if (!enabled && block.sceneLetRing && (block.irReverb || block.daisy)
           && block.sceneBypassRequested->load(std::memory_order_relaxed)) {
         const std::uint64_t tailFrames = block.irReverb
           ? block.irReverb->tailFrames() : block.daisy->tailFrames();
-        block.tailFadeFrames = tailFrames + kOrdinaryTailFadeFrames >= kMaximumLetRingFrames
+        const auto maximumFrames = block.irReverb
+          ? kMaximumReverbLetRingFrames : kMaximumDelayLetRingFrames;
+        block.tailFadeFrames = block.daisy
+          && tailFrames + kOrdinaryTailFadeFrames >= maximumFrames
           ? kCappedTailFadeFrames : kOrdinaryTailFadeFrames;
         block.tailFramesRemaining = std::min<std::uint64_t>(
           tailFrames + kOrdinaryTailFadeFrames,
-          kMaximumLetRingFrames);
+          maximumFrames);
       }
       block.lastEnabled = enabled;
     }
@@ -821,8 +858,8 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
           for (size_t i = 0; i < frames; ++i) (void)block.daisy->process({});
         }
       }
-      std::copy(currentLeft, currentLeft + frames, nextLeft);
-      std::copy(currentRight, currentRight + frames, nextRight);
+      std::copy(bypassLeft, bypassLeft + frames, nextLeft);
+      std::copy(bypassRight, bypassRight + frames, nextRight);
     } else switch (block.kind) {
     case Block::Kind::Nam: {
       for (size_t i = 0; i < frames; ++i) {
@@ -899,14 +936,14 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
           const float tailGain = !enabled && block.tailFramesRemaining < block.tailFadeFrames
             ? static_cast<float>(block.tailFramesRemaining) /
                 static_cast<float>(block.tailFadeFrames) : 1.0f;
-          nextLeft[i] = frame.mixed.left * tailGain + (1.0f - mix) * dry.left;
-          nextRight[i] = frame.mixed.right * tailGain + (1.0f - mix) * dry.right;
+          nextLeft[i] = frame.mixed.left * tailGain + (1.0f - mix) * bypassLeft[i];
+          nextRight[i] = frame.mixed.right * tailGain + (1.0f - mix) * bypassRight[i];
           if (!enabled && block.tailFramesRemaining > 0) --block.tailFramesRemaining;
           else if (enabled && mix >= 1.0f) block.tailFramesRemaining = 0;
         } else if (renderLetRing && !enabled) {
           (void)block.daisy->processFrame({});
-          nextLeft[i] = currentLeft[i];
-          nextRight[i] = currentRight[i];
+          nextLeft[i] = bypassLeft[i];
+          nextRight[i] = bypassRight[i];
         } else {
           const auto processed = block.daisy->process({currentLeft[i], currentRight[i]});
           nextLeft[i] = processed.left;
@@ -979,8 +1016,8 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       float mix = block.bypassMix;
       for (size_t i = 0; i < frames; ++i) {
         mix = advanceBypassMix(mix, enabled);
-        nextLeft[i] = currentLeft[i] + mix * (nextLeft[i] - currentLeft[i]);
-        nextRight[i] = currentRight[i] + mix * (nextRight[i] - currentRight[i]);
+        nextLeft[i] = bypassLeft[i] + mix * (nextLeft[i] - bypassLeft[i]);
+        nextRight[i] = bypassRight[i] + mix * (nextRight[i] - bypassRight[i]);
       }
       block.bypassMix = mix;
       currentIsStereo = mix <= 0.0f ? inputWasStereo
@@ -1114,6 +1151,8 @@ void RuntimeChain::reset()
     block.tailFramesRemaining = 0;
     block.lastEnabled = block.enabled->load(std::memory_order_relaxed);
     block.bypassMix = block.lastEnabled ? 1.0f : 0.0f;
+    std::fill(block.bypassDryDelay.begin(), block.bypassDryDelay.end(), StereoSample{});
+    block.bypassDryIndex = 0;
     if (block.nam) {
       block.nam->reset();
     }

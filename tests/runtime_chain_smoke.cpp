@@ -73,6 +73,50 @@ ardor::DaisyFxProcessor makeDigitalDelay()
   return processor;
 }
 
+void verifyReverbBypassAlignment(bool blockProcessing)
+{
+  ardor::DaisyFxProcessor processor;
+  std::string error;
+  require(processor.configure("reverb", {
+    {"mode", "cloud"}, {"decay", 0.5f}, {"pre_delay", 0.0f},
+    {"mix", 0.0f}, {"tone", 0.5f}, {"mod", 0.0f},
+    {"param1", 0.5f}, {"param2", 0.5f},
+  }, 48000.0f, error), error);
+  ardor::RuntimeChain chain;
+  chain.addDaisy("cloud-bypass", std::move(processor));
+  chain.prepareBlockSize(64);
+  chain.reset();
+
+  double before = 0.0;
+  double middle = 0.0;
+  const auto measure = [&](int sample, float output) {
+    if (sample >= 47000 && sample < 47992) before += double(output) * output;
+    if (sample >= 48208 && sample < 48272) middle += double(output) * output;
+  };
+  if (blockProcessing) {
+    float input[64]{};
+    float left[64]{};
+    float right[64]{};
+    for (int block = 0; block < 766; ++block) {
+      if (block == 750) require(chain.setBlockEnabled("cloud-bypass", false), "bypass cloud block");
+      for (int i = 0; i < 64; ++i) {
+        const int sample = block * 64 + i;
+        input[i] = 0.25f * std::sin(6.28318530718f * sample / 62.0f);
+      }
+      chain.processBlock(input, left, right, 64);
+      for (int i = 0; i < 64; ++i) measure(block * 64 + i, left[i]);
+    }
+  } else {
+    for (int sample = 0; sample < 49024; ++sample) {
+      if (sample == 48000) require(chain.setBlockEnabled("cloud-bypass", false), "bypass cloud sample");
+      const float input = 0.25f * std::sin(6.28318530718f * sample / 62.0f);
+      measure(sample, chain.process({input, input}).left);
+    }
+  }
+  require(middle / 64.0 > 0.8 * before / 992.0,
+          "reverb bypass must not phase-cancel its latency-matched dry signal");
+}
+
 std::vector<float> render(ardor::RuntimeChain& chain)
 {
   std::vector<float> out;
@@ -87,6 +131,8 @@ std::vector<float> render(ardor::RuntimeChain& chain)
 
 int main()
 {
+  verifyReverbBypassAlignment(false);
+  verifyReverbBypassAlignment(true);
   require(near(ardor::routeNamInput(ardor::NamInputMode::Sum, 0.75f, -0.25f), 0.25f),
           "NAM sum input averages left and right without a gain increase");
   require(near(ardor::routeNamInput(ardor::NamInputMode::Left, 0.75f, -0.25f), 0.75f),

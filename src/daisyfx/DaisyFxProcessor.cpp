@@ -704,8 +704,8 @@ size_t DaisyFxProcessor::tailFrames() const noexcept
     switch (impl_->reverbId) {
       case pedal::ReverbModeId::Magneto: {
         // Each tape-head period is repeated by the feedback loop until it is
-        // below -60 dB. The implementation caps loop gain at 0.85.
-        const float feedback = std::min(0.85f, mappedReverbParam(
+        // below -60 dB. The implementation caps loop gain at 0.95.
+        const float feedback = std::min(0.95f, mappedReverbParam(
             target(Impl::Depth), impl_->reverbId, pedal::reverb_fx::ParamId::PreDelay));
         float repeatsUntilSilent = 1.0f;
         if (feedback > 0.0f) {
@@ -715,19 +715,20 @@ size_t DaisyFxProcessor::tailFrames() const noexcept
         break;
       }
       case pedal::ReverbModeId::Reflections:
-        // No feedback loop: maximum programmed reflection is 2,521 samples
-        // at the 24 kHz core rate.
-        tailSeconds = preDelaySeconds + (2521.0f / 24000.0f) + 0.01f;
+        // No feedback loop: Depth scales the latest 2,521-sample tap and
+        // Width can add up to 73 samples to the right-channel field.
+        tailSeconds = preDelaySeconds
+                    + (2521.0f * (0.7f + 0.6f * param1) + 73.0f) / 24000.0f
+                    + 0.01f;
         break;
       case pedal::ReverbModeId::Bloom:
-        // Bloom's onset envelope can take up to param1 seconds to reveal a
-        // tail; param2 adds a bounded output-feedback extension.
-        tailSeconds = preDelaySeconds + decaySeconds + param1
-                    + decaySeconds * (param2 / std::max(0.05f, 1.0f - param2));
+        // Feedback extends the tank RT60 by up to 70%; the bloom envelope
+        // can take param1 seconds to reveal it.
+        tailSeconds = preDelaySeconds + decaySeconds * (1.0f + param2) + param1;
         break;
       case pedal::ReverbModeId::Shimmer:
-        // Pitch feedback is controlled by mod; reserve one additional RT60 at
-        // full shimmer feedback without claiming an unbounded tail.
+        // Allow a conservative extra RT60 for the bounded pitch return at
+        // full Shimmer depth.
         tailSeconds = preDelaySeconds + decaySeconds * (1.0f + mod) + 0.15f;
         break;
       case pedal::ReverbModeId::Swell:

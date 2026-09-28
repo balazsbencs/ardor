@@ -555,7 +555,7 @@ std::string formatReverb(std::string_view mode, std::string_view key, float norm
     if (mode == "shimmer") return signedSemitones(physical);
     if (mode == "spring" || mode == "chorale") return choice(normalized, std::array<std::string_view, 3>{"Mild", "Medium", "High"});
     if (mode == "nonlinear") return percent(0.4f + normalized * 0.4f);
-    if (mode == "swell") return normalized < 0.5f ? "Wet swell" : "Dry swell";
+    if (mode == "swell") return normalized < 0.5f ? "Wet swell" : "Wet duck";
     if (mode == "magneto") return normalized <= 0.5f ? "Even" : "Golden";
     return percent(normalized);
   }

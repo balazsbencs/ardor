@@ -19,6 +19,9 @@ namespace {
 
 constexpr float kTwoPi = 6.28318530718f;
 constexpr float kMixSmoothing = 0.0005f;
+constexpr std::size_t kPreDelayFadeFrames = 960; // 20 ms at the 48 kHz host rate
+constexpr float kFilterBypassStep = 1.0f / 480.0f;
+constexpr float kFilterCoeffSmoothing = 1.0f / 240.0f;
 
 float onePoleCoeff(float cutoffHz, float sampleRate)
 {
@@ -60,16 +63,27 @@ bool IrReverbProcessor::load(std::vector<float> left, std::vector<float> right,
   preLeft_.assign(preDelayCapacity, 0.0f);
   preRight_.assign(preDelayCapacity, 0.0f);
   preWrite_ = 0;
+  preDelaySamples_ = preDelayCurrent_ = preDelayTarget_ = 0;
+  preDelayFadeRemaining_ = 0;
 
   liveParameters_ = std::make_shared<IrReverbLiveParameters>();
   liveRevision_ = 1;
   liveParameters_->revision.store(liveRevision_, std::memory_order_release);
 
+  mixTarget_ = 0.35f;
+  levelTarget_ = 1.0f;
+  lowCutHz_ = LOW_CUT_MIN_HZ;
+  highCutHz_ = HIGH_CUT_MAX_HZ;
+
   updateFilters();
+  lowCutL_.coeff = lowCutR_.coeff = lowCutCoeffTarget_;
+  highCutL_.coeff = highCutR_.coeff = highCutCoeffTarget_;
   lowCutL_.reset(); lowCutR_.reset();
   highCutL_.reset(); highCutR_.reset();
   mix_ = mixTarget_;
   level_ = levelTarget_;
+  lowCutMix_ = lowCutActive_ ? 1.0f : 0.0f;
+  highCutMix_ = highCutActive_ ? 1.0f : 0.0f;
   loaded_ = true;
   error.clear();
   return true;
@@ -83,10 +97,16 @@ void IrReverbProcessor::reset()
   std::fill(preLeft_.begin(), preLeft_.end(), 0.0f);
   std::fill(preRight_.begin(), preRight_.end(), 0.0f);
   preWrite_ = 0;
+  preDelayCurrent_ = preDelayTarget_ = preDelaySamples_;
+  preDelayFadeRemaining_ = 0;
+  lowCutL_.coeff = lowCutR_.coeff = lowCutCoeffTarget_;
+  highCutL_.coeff = highCutR_.coeff = highCutCoeffTarget_;
   lowCutL_.reset(); lowCutR_.reset();
   highCutL_.reset(); highCutR_.reset();
   mix_ = mixTarget_;
   level_ = levelTarget_;
+  lowCutMix_ = lowCutActive_ ? 1.0f : 0.0f;
+  highCutMix_ = highCutActive_ ? 1.0f : 0.0f;
 }
 
 void IrReverbProcessor::setMix(float mix)
@@ -146,6 +166,10 @@ void IrReverbProcessor::refreshLiveParameters() noexcept
   const float milliseconds = liveParameters_->preDelayMs.load(std::memory_order_relaxed);
   const std::size_t samples = static_cast<std::size_t>(milliseconds * 0.001f * sampleRate_);
   preDelaySamples_ = preLeft_.empty() ? 0 : std::min(samples, preLeft_.size() - 1);
+  if (preDelayFadeRemaining_ == 0 && preDelaySamples_ != preDelayCurrent_) {
+    preDelayTarget_ = preDelaySamples_;
+    preDelayFadeRemaining_ = kPreDelayFadeFrames;
+  }
 
   const float lowCut = liveParameters_->lowCutHz.load(std::memory_order_relaxed);
   const float highCut = liveParameters_->highCutHz.load(std::memory_order_relaxed);
@@ -161,17 +185,14 @@ void IrReverbProcessor::updateFilters()
 {
   lowCutActive_ = lowCutHz_ > LOW_CUT_MIN_HZ;
   highCutActive_ = highCutHz_ < HIGH_CUT_MAX_HZ;
-  const float lowCut = onePoleCoeff(lowCutHz_, sampleRate_);
-  const float highCut = onePoleCoeff(highCutHz_, sampleRate_);
-  lowCutL_.coeff = lowCut;
-  lowCutR_.coeff = lowCut;
-  highCutL_.coeff = highCut;
-  highCutR_.coeff = highCut;
+  lowCutCoeffTarget_ = onePoleCoeff(lowCutHz_, sampleRate_);
+  highCutCoeffTarget_ = onePoleCoeff(highCutHz_, sampleRate_);
 }
 
 std::size_t IrReverbProcessor::tailFrames() const noexcept
 {
-  return loaded_ ? impulseFrames_ + PARTITION_FRAMES + preDelaySamples_ : 0;
+  return loaded_ ? impulseFrames_ + PARTITION_FRAMES
+                   + std::max({preDelaySamples_, preDelayCurrent_, preDelayTarget_}) : 0;
 }
 
 StereoSample IrReverbProcessor::process(StereoSample input)
@@ -189,26 +210,54 @@ IrReverbFrame IrReverbProcessor::processFrame(StereoSample input)
   // stale audio behind for the control to uncover when it is raised again.
   preLeft_[preWrite_] = input.left;
   preRight_[preWrite_] = input.right;
-  const std::size_t read =
-      (preWrite_ + preLeft_.size() - preDelaySamples_) % preLeft_.size();
-  const float sendL = preLeft_[read];
-  const float sendR = preRight_[read];
+  const auto readTap = [this](std::size_t delay) {
+    return (preWrite_ + preLeft_.size() - delay) % preLeft_.size();
+  };
+  const std::size_t currentRead = readTap(preDelayCurrent_);
+  float sendL = preLeft_[currentRead];
+  float sendR = preRight_[currentRead];
+  if (preDelayFadeRemaining_ > 0) {
+    const std::size_t targetRead = readTap(preDelayTarget_);
+    const float blend = float(kPreDelayFadeFrames - preDelayFadeRemaining_ + 1)
+                      / float(kPreDelayFadeFrames);
+    sendL += blend * (preLeft_[targetRead] - sendL);
+    sendR += blend * (preRight_[targetRead] - sendR);
+    if (--preDelayFadeRemaining_ == 0) {
+      preDelayCurrent_ = preDelayTarget_;
+      if (preDelaySamples_ != preDelayCurrent_) {
+        preDelayTarget_ = preDelaySamples_;
+        preDelayFadeRemaining_ = kPreDelayFadeFrames;
+      }
+    }
+  }
   preWrite_ = (preWrite_ + 1) % preLeft_.size();
 
   // The convolver buffers internally and spreads its own work, so this is a
   // plain per-sample call from here.
   float wetL = left_.process(sendL);
   float wetR = right_.process(sendR);
+  // Keep a malformed impulse or upstream non-finite sample out of the
+  // continuously running filter histories.
+  if (!std::isfinite(wetL)) wetL = 0.0f;
+  if (!std::isfinite(wetR)) wetR = 0.0f;
 
   // Shape the tail, not the dry signal.
-  if (lowCutActive_) {
-    wetL = lowCutL_.highPass(wetL);
-    wetR = lowCutR_.highPass(wetR);
-  }
-  if (highCutActive_) {
-    wetL = highCutL_.lowPass(wetL);
-    wetR = highCutR_.lowPass(wetR);
-  }
+  lowCutMix_ += std::clamp((lowCutActive_ ? 1.0f : 0.0f) - lowCutMix_,
+                          -kFilterBypassStep, kFilterBypassStep);
+  highCutMix_ += std::clamp((highCutActive_ ? 1.0f : 0.0f) - highCutMix_,
+                           -kFilterBypassStep, kFilterBypassStep);
+  lowCutL_.coeff += kFilterCoeffSmoothing * (lowCutCoeffTarget_ - lowCutL_.coeff);
+  lowCutR_.coeff = lowCutL_.coeff;
+  highCutL_.coeff += kFilterCoeffSmoothing * (highCutCoeffTarget_ - highCutL_.coeff);
+  highCutR_.coeff = highCutL_.coeff;
+  const float highPassedL = lowCutL_.highPass(wetL);
+  const float highPassedR = lowCutR_.highPass(wetR);
+  wetL += lowCutMix_ * (highPassedL - wetL);
+  wetR += lowCutMix_ * (highPassedR - wetR);
+  const float lowPassedL = highCutL_.lowPass(wetL);
+  const float lowPassedR = highCutR_.lowPass(wetR);
+  wetL += highCutMix_ * (lowPassedL - wetL);
+  wetR += highCutMix_ * (lowPassedR - wetR);
 
   mix_ += kMixSmoothing * (mixTarget_ - mix_);
   level_ += kMixSmoothing * (levelTarget_ - level_);

@@ -774,6 +774,21 @@ void verifyEightLineFdn()
   }
   require(peak > 0.0001f && peak < 2.0f, "8-line FDN must produce a bounded tail");
   require(stereoDifference > 0.01, "8-line FDN must produce a stereo field");
+
+  fdn.SetModulation(0.0f);
+  fdn.SetHold(false);
+  fdn.Reset();
+  std::array<pedal::StereoFrame, 1200> normal{};
+  for (std::size_t sample = 0; sample < normal.size(); ++sample) {
+    normal[sample] = fdn.Process({sample == 0 ? 1.0f : 0.0f, 0.0f});
+  }
+  fdn.SetHold(true);
+  fdn.Reset();
+  for (std::size_t sample = 0; sample < normal.size(); ++sample) {
+    const auto restored = fdn.Process({sample == 0 ? 1.0f : 0.0f, 0.0f});
+    require(restored.left == normal[sample].left && restored.right == normal[sample].right,
+            "FDN reset must release hold and restore normal decay");
+  }
 }
 
 void verifyReverbReset()

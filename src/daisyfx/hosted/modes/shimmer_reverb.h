@@ -1,6 +1,6 @@
 #pragma once
 #include "reverb_mode.h"
-#include "../dsp/delay_line_sdram.h"
+#include "../dsp/clickless_delay_line.h"
 #include "../dsp/diffuser.h"
 #include "../dsp/fdn.h"
 #include "../dsp/pitch_shifter.h"
@@ -40,8 +40,8 @@ private:
     float          buf_fdn7_[4846];
     float          buf_pitch0_[8192];
     float          buf_pitch1_[8192];
-    DelayLineSdram pre_delay_l_;
-    DelayLineSdram pre_delay_r_;
+    ClicklessDelayLine pre_delay_l_;
+    ClicklessDelayLine pre_delay_r_;
     Diffuser       diffuser_l_;
     Diffuser       diffuser_r_;
     Fdn            fdn_;
@@ -50,6 +50,7 @@ private:
     bool           hold_            = false;
     float          pitch_fb_l_      = 0.0f;  // one-sample-delayed shimmer feedback left
     float          pitch_fb_r_      = 0.0f;  // one-sample-delayed shimmer feedback right
+    float          shimmer_return_gain_ = 0.0f;
 };
 
 } // namespace pedal

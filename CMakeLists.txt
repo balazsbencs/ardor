@@ -481,6 +481,9 @@ target_link_libraries(pedal-delay-effect-quality PRIVATE ardor_daisyfx)
 add_executable(pedal-reverb-quality tests/reverb_quality.cpp)
 target_link_libraries(pedal-reverb-quality PRIVATE ardor_daisyfx)
 
+add_executable(pedal-reverb-feedback-stability tests/reverb_feedback_stability.cpp)
+target_link_libraries(pedal-reverb-feedback-stability PRIVATE ardor_daisyfx)
+
 # Analysis tools, not ctests: the quality probe emits measurements/listening
 # renders, while the benchmark records target-dependent timing distributions.
 add_executable(pedal-delay-quality tests/delay_quality.cpp)
@@ -719,6 +722,7 @@ add_test(NAME pedal-daisy-fx-catalog-smoke COMMAND pedal-daisy-fx-catalog-smoke)
 add_test(NAME pedal-manager-effect-catalog-smoke COMMAND pedal-manager-effect-catalog-smoke)
 add_test(NAME pedal-daisy-fx-smoke COMMAND pedal-daisy-fx-smoke)
 add_test(NAME pedal-hosted-dsp-unit COMMAND pedal-hosted-dsp-unit)
+add_test(NAME pedal-reverb-feedback-stability COMMAND pedal-reverb-feedback-stability)
 add_test(NAME pedal-daisy-fx-response COMMAND pedal-daisy-fx-response)
 add_test(NAME pedal-daisy-fx-automation COMMAND pedal-daisy-fx-automation)
 add_test(NAME pedal-delay-regression COMMAND pedal-delay-regression)

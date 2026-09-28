@@ -89,13 +89,12 @@ void PlateReverb::Init() {
     lfo_b_.Init(1.0f, LfoWave::Sine, SAMPLE_RATE);
     lfo_b_.SetPhaseOffset(1.5707963f);  // π/2
     lfo_b_.Reset();
-    tone_[0].Init(SAMPLE_RATE);
-    tone_[1].Init(SAMPLE_RATE);
+    tone_[0].Init(SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(SAMPLE_RATE, ToneGain::Loudness);
 
     lp_a_ = lp_b_ = 0.0f;
     last_ap7_ = last_ap8_ = 0.0f;
     bw_mid_ = bw_side_ = 0.0f;
-    pre_delay_samp_ = 0;
     decay_ = 0.5f;
     hold_  = false;
 }
@@ -118,8 +117,9 @@ void PlateReverb::Reset() {
 }
 
 void PlateReverb::Prepare(const ParamSet& params) {
-    pre_delay_samp_ = static_cast<size_t>(params.pre_delay * SAMPLE_RATE);
-    if (pre_delay_samp_ >= 24000) pre_delay_samp_ = 23999;
+    const float pre_delay_samples = std::min(params.pre_delay * SAMPLE_RATE, 23999.0f) + 1.0f;
+    pre_delay_l_.SetDelay(pre_delay_samples);
+    pre_delay_r_.SetDelay(pre_delay_samples);
 
     // RT60 → feedback coefficient
     const float calibrated_decay = params.decay * 0.90f;
@@ -159,8 +159,8 @@ StereoFrame PlateReverb::Process(float input, const ParamSet& params) {
 
 StereoFrame PlateReverb::Process(StereoFrame input, const ParamSet& params) {
     // --- Pre-delay ---
-    const float pre_l = pre_delay_l_.ReadAt(static_cast<float>(pre_delay_samp_ + 1));
-    const float pre_r = pre_delay_r_.ReadAt(static_cast<float>(pre_delay_samp_ + 1));
+    const float pre_l = pre_delay_l_.Read();
+    const float pre_r = pre_delay_r_.Read();
     pre_delay_l_.Write(input.left);
     pre_delay_r_.Write(input.right);
 

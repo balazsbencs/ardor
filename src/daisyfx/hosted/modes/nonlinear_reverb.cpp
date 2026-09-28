@@ -125,11 +125,12 @@ void NonlinearReverb::Init() {
     fdn_.SetDecay(1.0f);
     fdn_.SetDamping(0.3f);
 
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
     input_env_.Init(2.0f, 140.0f, REVERB_SAMPLE_RATE);
     shape_phase_ = 0.0f;
     input_env_slow_ = 0.0f;
+    onset_active_ = false;
     shape_gain_smooth_ = 0.0f;
     decay_rate_  = 1.0f / REVERB_SAMPLE_RATE;
     shape_ = 3;
@@ -142,11 +143,12 @@ void NonlinearReverb::Reset() {
     diffuser_l_.Reset();
     diffuser_r_.Reset();
     fdn_.Reset();
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
     input_env_.Init(2.0f, 140.0f, REVERB_SAMPLE_RATE);
     shape_phase_ = 0.0f;
     input_env_slow_ = 0.0f;
+    onset_active_ = false;
     shape_gain_smooth_ = 0.0f;
     shape_ = 3;
 }
@@ -185,9 +187,11 @@ StereoFrame NonlinearReverb::Process(StereoFrame input, const ParamSet& params) 
     const StereoFrame late = fdn_.Process(diffused);
 
     const float input_env = input_env_.Process(std::max(std::fabs(pre_l), std::fabs(pre_r)));
-    const bool onset = input_env > 0.035f && input_env > input_env_slow_ + 0.025f;
+    const bool onset = input_env > 0.001f
+        && input_env > input_env_slow_ * 1.5f + 0.0003f;
     input_env_slow_ += 0.0015f * (input_env - input_env_slow_);
-    if (onset) shape_phase_ = 0.0f;
+    if (onset && !onset_active_) shape_phase_ = 0.0f;
+    onset_active_ = onset;
 
     // Shape selection from param1
     // Six envelope shapes: cross thresholds only after leaving a small dead

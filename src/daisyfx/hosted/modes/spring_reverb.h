@@ -2,7 +2,7 @@
 #include "reverb_mode.h"
 #include "../dsp/allpass.h"
 #include "../dsp/comb_filter.h"
-#include "../dsp/delay_line_sdram.h"
+#include "../dsp/clickless_delay_line.h"
 #include "../dsp/lfo.h"
 #include "../dsp/saturation.h"
 #include "../dsp/halfband_resampler.h"
@@ -50,7 +50,7 @@ private:
     // 3 springs, 6 allpass stages each
     DelayAllpassFilter ap_[3][6];
     CombFilter         comb_[3];
-    DelayLineSdram     pre_delay_[2];
+    ClicklessDelayLine     pre_delay_[2];
     Saturation         sat_;
     // The saturator runs in the 24 kHz reverb stage, so without oversampling
     // its harmonics fold from 12 kHz — the worst case of any drive stage in the

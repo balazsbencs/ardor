@@ -118,6 +118,8 @@ private:
   std::vector<float> leftB_;
   std::vector<float> rightB_;
   std::vector<float> monoScratch_;
+  std::vector<float> bypassDryLeft_;
+  std::vector<float> bypassDryRight_;
   std::shared_ptr<FaultState> faults_;
 };
 
