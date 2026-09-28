@@ -38,8 +38,8 @@ void MagnetoReverb::Init() {
     diffuser_r_.SetModulationRate(0.2223f, REVERB_SAMPLE_RATE);
     diffuser_r_.SetModulation(2.5f);
 
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
 
     n_heads_ = 4;
     heads_seeded_ = false;
@@ -175,8 +175,7 @@ StereoFrame MagnetoReverb::Process(StereoFrame input, const ParamSet& params) {
 
     // Write input + feedback into delay.
     // One-pole LP tames broadband brightness; cap keeps the loop stable.
-    float fb = params.pre_delay;          // 0..0.95
-    if (fb > 0.85f) fb = 0.85f;
+    const float fb = std::clamp(params.pre_delay, 0.0f, 0.95f);
     const float fb_in_l = fb_sum_l / static_cast<float>(n_heads_);
     const float fb_in_r = fb_sum_r / static_cast<float>(n_heads_);
     fb_lp_l_ += 0.4f * (fb_in_l - fb_lp_l_);

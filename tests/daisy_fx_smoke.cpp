@@ -28,7 +28,8 @@ std::vector<ardor::StereoSample> renderBlock(ardor::DaisyFxProcessor& processor,
 }
 
 double controlResponseDifference(const std::string& blockType, const std::string& mode,
-                                 const std::string& key, float low, float high)
+                                 const std::string& key, float low, float high,
+                                 int frames = 16384)
 {
   const auto* descriptor = ardor::findDaisyFxDescriptor(blockType, mode);
   require(descriptor != nullptr, "control test descriptor exists");
@@ -51,7 +52,7 @@ double controlResponseDifference(const std::string& blockType, const std::string
   require(highProcessor.configure(blockType, highParams, 48000.0f, error), error);
 
   double difference = 0.0;
-  for (int i = 0; i < 16384; ++i) {
+  for (int i = 0; i < frames; ++i) {
     // Repeated note bursts exercise envelope-controlled effects as well as
     // steady-state modulation and early-reflection movement.
     const float envelope = (i % 1600) < 480 ? 1.0f : 0.0f;
@@ -774,6 +775,36 @@ int main()
   }
   require(rightOnlySpringPeak > 0.0001f,
           "one-spring reverb must respond to a right-only source");
+  processor.reset();
+  float leftOnlySpringPeak = 0.0f;
+  for (int i = 0; i < 12000; ++i) {
+    const auto sample = processor.process({i == 0 ? 1.0f : 0.0f, 0.0f});
+    leftOnlySpringPeak = std::max(leftOnlySpringPeak,
+                                  std::max(std::fabs(sample.left), std::fabs(sample.right)));
+  }
+  require(rightOnlySpringPeak > 0.7f * leftOnlySpringPeak,
+          "one-spring reverb should not attenuate right-only sources");
+
+  auto quietNonlinearParams = reverbParams;
+  quietNonlinearParams["mode"] = "nonlinear";
+  quietNonlinearParams["mix"] = 1.0f;
+  quietNonlinearParams["pre_delay"] = 0.0f;
+  quietNonlinearParams["decay"] = 0.5f;
+  quietNonlinearParams["param1"] = 0.0f;
+  require(processor.configure("reverb", quietNonlinearParams, 48000.0f, error), error);
+  double quietNoteEnergy = 0.0;
+  for (int i = 0; i < 3 * 48000; ++i) {
+    const float level = i < 4800 ? 0.25f
+                      : (i >= 2 * 48000 && i < 2 * 48000 + 4800 ? 0.01f : 0.0f);
+    const float sample = level * std::sin(6.28318530718f * 440.0f * float(i) / 48000.0f);
+    const auto output = processor.process({sample, sample});
+    if (i >= 2 * 48000 && i < 3 * 48000) {
+      quietNoteEnergy += double(output.left) * output.left
+                       + double(output.right) * output.right;
+    }
+  }
+  require(quietNoteEnergy > 1.0e-5,
+          "Nonlinear reverb should retrigger for a quiet note after its gate closes");
   const auto springSpatial = reverbSpatialMetrics("spring");
   require(std::fabs(springSpatial.correlation) < 0.65 && springSpatial.density100To200 > 0.95,
           "spring reverb must produce a dense, decorrelated pickup field");
@@ -926,10 +957,33 @@ int main()
           "spring Pre-delay must affect its response");
   require(controlResponseDifference("reverb", "spring", "param2", 0.0f, 1.0f) > 1e-3,
           "spring Springs must change the resonator bank");
+  require(controlResponseDifference("reverb", "shimmer", "mod", 0.0f, 1.0f) > 1e-3,
+          "shimmer Mod must control an audible pitched layer");
   require(controlResponseDifference("reverb", "magneto", "tone", 0.0f, 1.0f) > 1e-3,
           "magneto Tone must affect its response");
+  require(controlResponseDifference("reverb", "magneto", "pre_delay", 0.9f, 1.0f,
+                                    3 * 48000) > 1e-3,
+          "magneto Feedback must respond through its advertised upper range");
   require(controlResponseDifference("reverb", "reflections", "tone", 0.0f, 1.0f) > 1e-3,
           "reflections Tone must affect its response");
+  const auto reflectionArrival = [](float depth) {
+    const auto* descriptor = ardor::findDaisyFxDescriptor("reverb", "reflections");
+    auto params = ardor::defaultDaisyFxParams(*descriptor);
+    params["mix"] = 1.0f;
+    params["pre_delay"] = 0.0f;
+    params["param1"] = depth;
+    ardor::DaisyFxProcessor reflection;
+    std::string error;
+    require(reflection.configure("reverb", params, 48000.0f, error), error);
+    for (int frame = 0; frame < 5000; ++frame) {
+      const float impulse = frame == 0 ? 1.0f : 0.0f;
+      const auto output = reflection.process({impulse, impulse});
+      if (std::max(std::fabs(output.left), std::fabs(output.right)) > 1.0e-5f) return frame;
+    }
+    return -1;
+  };
+  require(reflectionArrival(1.0f) > reflectionArrival(0.0f) + 300,
+          "reflections Depth must move the reflection field in time");
 
   // Tone must remain audible near centre, where the former filtered/dry blend
   // changed representative guitar frequencies by less than a tenth of a dB.

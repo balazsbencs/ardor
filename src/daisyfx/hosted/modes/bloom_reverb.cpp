@@ -60,14 +60,13 @@ void BloomReverb::Init() {
     fdn_.SetDecay(3.0f);
     fdn_.SetDamping(0.25f);
 
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
     input_env_.Init(2.0f, 160.0f, REVERB_SAMPLE_RATE);
     bloom_env_       = 0.0f;
     input_env_slow_  = 0.0f;
+    onset_active_ = false;
     bloom_rate_      = 1.0f / (2.0f * REVERB_SAMPLE_RATE);
-    bloom_feedback_  = 0.0f;
-    bloom_fb_signal_ = 0.0f;
 }
 
 void BloomReverb::Reset() {
@@ -76,20 +75,25 @@ void BloomReverb::Reset() {
     diffuser_l_.Reset();
     diffuser_r_.Reset();
     fdn_.Reset();
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
     input_env_.Init(2.0f, 160.0f, REVERB_SAMPLE_RATE);
     bloom_env_       = 0.0f;
     input_env_slow_  = 0.0f;
-    bloom_fb_signal_ = 0.0f;
+    onset_active_ = false;
 }
 
 void BloomReverb::Prepare(const ParamSet& params) {
     const float delay_samples = params.pre_delay * REVERB_SAMPLE_RATE;
     pre_delay_l_.SetDelay(delay_samples < 1.0f ? 1.0f : delay_samples);
     pre_delay_r_.SetDelay(delay_samples < 1.0f ? 1.0f : delay_samples);
-    fdn_.SetDecay(params.decay);
-    fdn_.SetDampFromRt60Ratio(params.decay, 0.25f + params.tone * 0.75f);
+    // Feedback increases the tank's own loop gain by extending its RT60.
+    // Unlike an output-to-input return, this stays below unity at every
+    // setting and makes the control increase sustain as expected.
+    const float feedback = std::clamp(params.param2, 0.0f, 0.7f);
+    const float tank_decay = params.decay * (1.0f + feedback);
+    fdn_.SetDecay(tank_decay);
+    fdn_.SetDampFromRt60Ratio(tank_decay, 0.25f + params.tone * 0.75f);
     fdn_.SetModulation(params.mod * Fdn::MAX_MOD_DEPTH_SAMPLES);
     tone_[0].SetKnob(params.tone);
     tone_[1].SetKnob(params.tone);
@@ -97,7 +101,6 @@ void BloomReverb::Prepare(const ParamSet& params) {
     // ParamSet contains physical values after the adapter's one mapping pass.
     const float bloom_time_s = std::clamp(params.param1, 0.5f, 5.0f);
     bloom_rate_    = 1.0f / (bloom_time_s * REVERB_SAMPLE_RATE);
-    bloom_feedback_ = std::clamp(params.param2, 0.0f, 0.7f);
     fdn_.PrepareBlock();
 }
 
@@ -116,22 +119,16 @@ StereoFrame BloomReverb::Process(StereoFrame input, const ParamSet& /*params*/) 
     };
 
     const float input_env = input_env_.Process(std::max(std::fabs(pre_l), std::fabs(pre_r)));
-    const bool onset = input_env > 0.035f && input_env > input_env_slow_ + 0.025f;
+    const bool onset = input_env > 0.001f
+        && input_env > input_env_slow_ * 1.5f + 0.0003f;
     input_env_slow_ += 0.0015f * (input_env - input_env_slow_);
-    if (onset) bloom_env_ = 0.0f;
+    if (onset && !onset_active_) bloom_env_ = 0.0f;
+    onset_active_ = onset;
 
     // Bloom envelope rises slowly from each detected onset toward 1.
     bloom_env_ += bloom_rate_ * (1.0f - bloom_env_);
 
-    // FDN input: diffused signal + bloom-gated feedback from previous output
-    const StereoFrame fdn_in{
-        diffused.left + bloom_feedback_ * bloom_fb_signal_,
-        diffused.right + bloom_feedback_ * bloom_fb_signal_
-    };
-    const StereoFrame late = fdn_.Process(fdn_in);
-
-    // Store mono output scaled by bloom envelope for next sample's feedback
-    bloom_fb_signal_ = bloom_env_ * 0.5f * (late.left + late.right);
+    const StereoFrame late = fdn_.Process(diffused);
 
     const StereoFrame out{
         tone_[0].Process(late.left  * bloom_env_),

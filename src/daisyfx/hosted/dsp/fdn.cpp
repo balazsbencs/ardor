@@ -23,6 +23,7 @@ static constexpr float kRightOutputSigns[8] = { 1,  1, -1, -1, -1, -1,  1,  1 };
 void Fdn::Init(const Config& cfg) {
     n_lines_     = cfg.n_lines < 1 ? 1 : (cfg.n_lines > MAX_LINES ? MAX_LINES : cfg.n_lines);
     sample_rate_ = cfg.sample_rate > 0.0f ? cfg.sample_rate : 48000.0f;
+    hold_ = false;
 
     for (int i = 0; i < n_lines_; ++i) {
         const bool explicit_capacity = cfg.buffer_sizes[i] > cfg.delays[i] + 3U;
@@ -65,6 +66,7 @@ void Fdn::SetSize(float scale) {
 }
 
 void Fdn::Reset() {
+    hold_ = false;
     for (int i = 0; i < n_lines_; ++i) {
         lines_[i].Reset();
         lp_state_[i] = 0.0f;
@@ -138,6 +140,12 @@ void Fdn::SetModulation(float depth_samples) {
     if (next_depth == last_mod_depth_) return;
     last_mod_depth_ = next_depth;
     mod_depth_ = next_depth;
+}
+
+float Fdn::FeedbackHeadroom() const {
+    float maximum = 0.0f;
+    for (int i = 0; i < n_lines_; ++i) maximum = std::max(maximum, feedback_[i]);
+    return std::max(0.0f, 1.0f - maximum);
 }
 
 void Fdn::SetHold(bool hold) {

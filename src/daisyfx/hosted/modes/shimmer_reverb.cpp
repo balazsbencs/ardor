@@ -62,8 +62,8 @@ void ShimmerReverb::Init() {
     pitch_shifter_[0].SetShift(12.0f);
     pitch_shifter_[1].SetShift(7.0f);
 
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
     hold_           = false;
     pitch_fb_l_     = 0.0f;
     pitch_fb_r_     = 0.0f;
@@ -77,8 +77,8 @@ void ShimmerReverb::Reset() {
     fdn_.Reset();
     pitch_shifter_[0].Reset();
     pitch_shifter_[1].Reset();
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
     hold_           = false;
     pitch_fb_l_     = 0.0f;
     pitch_fb_r_     = 0.0f;
@@ -93,6 +93,10 @@ void ShimmerReverb::Prepare(const ParamSet& params) {
     // The Mod control is the audible shimmer send. Keep the tank's subtle
     // decorrelation independent so raising shimmer does not also add chorus.
     fdn_.SetModulation(2.5f);
+    // The pitched return is another loop; bound its injection by the tank's
+    // remaining headroom. The audible pitched output still uses full Mod.
+    shimmer_return_gain_ = std::min(0.5f * params.mod,
+                                    0.7f * fdn_.FeedbackHeadroom() * params.mod);
     tone_[0].SetKnob(params.tone);
     tone_[1].SetKnob(params.tone);
 
@@ -117,8 +121,9 @@ StereoFrame ShimmerReverb::Process(StereoFrame input, const ParamSet& params) {
     // Combine dry diffused input with previous shimmer feedback in stereo
     const float shimmer_amount = hold_ ? 0.0f : params.mod;
     StereoFrame fdn_in;
-    fdn_in.left  = diffused.left + shimmer_amount * 0.5f * pitch_fb_l_;
-    fdn_in.right = diffused.right + shimmer_amount * 0.5f * pitch_fb_r_;
+    const float return_gain = hold_ ? 0.0f : shimmer_return_gain_;
+    fdn_in.left  = diffused.left + return_gain * pitch_fb_l_;
+    fdn_in.right = diffused.right + return_gain * pitch_fb_r_;
 
     const StereoFrame late = fdn_.Process(fdn_in);
 

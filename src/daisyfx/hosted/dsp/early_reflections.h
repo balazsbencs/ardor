@@ -28,6 +28,15 @@ public:
         tap_count_ = count < MAX_TAPS ? count : MAX_TAPS;
         for (int i = 0; i < tap_count_; ++i) {
             taps_[i] = taps[i];
+            requested_delay_[i] = taps[i].delay_samples;
+            if (!seeded_) {
+                current_delay_[i] = target_delay_[i] = requested_delay_[i];
+                delay_fade_remaining_[i] = 0;
+            } else if (delay_fade_remaining_[i] == 0
+                       && current_delay_[i] != requested_delay_[i]) {
+                target_delay_[i] = requested_delay_[i];
+                delay_fade_remaining_[i] = kDelayFadeSamples;
+            }
             const float angle = (taps[i].pan + 1.0f) * 0.7853982f;
             target_l_[i] = taps[i].gain * fast_cos(angle);
             target_r_[i] = taps[i].gain * fast_sin(angle);
@@ -52,6 +61,10 @@ public:
         line_.Reset();
         seeded_ = false;
         for (auto& state : absorb_) state = 0.0f;
+        for (int i = 0; i < MAX_TAPS; ++i) {
+            current_delay_[i] = target_delay_[i] = requested_delay_[i];
+            delay_fade_remaining_[i] = 0;
+        }
     }
 
     StereoFrame Process(float input) {
@@ -71,8 +84,25 @@ public:
         for (int i = 0; i < tap_count_; ++i) {
             gain_l_[i] += kGainSlew * (target_l_[i] - gain_l_[i]);
             gain_r_[i] += kGainSlew * (target_r_[i] - gain_r_[i]);
-            // Delays are integer samples — ReadNearest is lossless vs Hermite here.
-            float s = line_.ReadNearest(static_cast<float>(taps_[i].delay_samples));
+            // Crossfade stationary integer taps when Size moves them. Jumping
+            // the read position clicks; sliding it pitch-shifts the attack.
+            float s;
+            if (delay_fade_remaining_[i] > 0) {
+                const float blend = static_cast<float>(kDelayFadeSamples - delay_fade_remaining_[i] + 1)
+                                  / static_cast<float>(kDelayFadeSamples);
+                const float old_tap = line_.ReadNearest(static_cast<float>(current_delay_[i]));
+                const float new_tap = line_.ReadNearest(static_cast<float>(target_delay_[i]));
+                s = old_tap + blend * (new_tap - old_tap);
+                if (--delay_fade_remaining_[i] == 0) {
+                    current_delay_[i] = target_delay_[i];
+                    if (requested_delay_[i] != current_delay_[i]) {
+                        target_delay_[i] = requested_delay_[i];
+                        delay_fade_remaining_[i] = kDelayFadeSamples;
+                    }
+                }
+            } else {
+                s = line_.ReadNearest(static_cast<float>(current_delay_[i]));
+            }
             // Per-tap high-frequency absorption. A real reflection loses treble
             // to both air and the surface it bounced off, and the later it
             // arrives the more it has lost. Flat taps are the main reason a
@@ -90,6 +120,7 @@ private:
     // ~20 ms at the 24 kHz reverb rate: fast enough to track a knob, slow
     // enough that a per-control-block rebuild is inaudible.
     static constexpr float kGainSlew = 0.0025f;
+    static constexpr int kDelayFadeSamples = 480;
 
     DelayLineSdram line_;
     ErTap          taps_[MAX_TAPS]{};
@@ -99,6 +130,10 @@ private:
     float          target_r_[MAX_TAPS]{};
     float          absorb_[MAX_TAPS]{};
     float          absorb_k_[MAX_TAPS]{};
+    uint16_t       current_delay_[MAX_TAPS]{};
+    uint16_t       target_delay_[MAX_TAPS]{};
+    uint16_t       requested_delay_[MAX_TAPS]{};
+    int            delay_fade_remaining_[MAX_TAPS]{};
     int            tap_count_ = 0;
     bool           seeded_ = false;
 };

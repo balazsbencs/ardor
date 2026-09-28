@@ -1,6 +1,6 @@
 #pragma once
 #include "reverb_mode.h"
-#include "../dsp/delay_line_sdram.h"
+#include "../dsp/clickless_delay_line.h"
 #include "../dsp/diffuser.h"
 #include "../dsp/fdn.h"
 #include "../dsp/tone_filter.h"
@@ -20,8 +20,8 @@ public:
     bool SupportsHold() const override { return true; }
 
 private:
-    DelayLineSdram pre_delay_l_;
-    DelayLineSdram pre_delay_r_;
+    ClicklessDelayLine pre_delay_l_;
+    ClicklessDelayLine pre_delay_r_;
     Diffuser       diffuser_l_;
     Diffuser       diffuser_r_;
     Fdn            fdn_;
@@ -29,9 +29,8 @@ private:
     EnvelopeFollower input_env_;
     float          bloom_env_         = 0.0f;
     float          input_env_slow_    = 0.0f;
+    bool           onset_active_ = false;
     float          bloom_rate_        = 0.0001f;
-    float          bloom_feedback_    = 0.0f;   // param2-derived amount
-    float          bloom_fb_signal_   = 0.0f;   // previous output fed back
 
     float buf_pre_delay_l_[24000];
     float buf_pre_delay_r_[24000];

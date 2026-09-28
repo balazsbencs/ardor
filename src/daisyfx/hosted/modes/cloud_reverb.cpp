@@ -74,8 +74,8 @@ void CloudReverb::Init() {
     fdn_.SetDecay(10.0f);
     fdn_.SetDamping(0.3f);
 
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
 }
 
 void CloudReverb::Reset() {
@@ -86,8 +86,8 @@ void CloudReverb::Reset() {
     diffuser1_l_.Reset();
     diffuser1_r_.Reset();
     fdn_.Reset();
-    tone_[0].Init(REVERB_SAMPLE_RATE);
-    tone_[1].Init(REVERB_SAMPLE_RATE);
+    tone_[0].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
+    tone_[1].Init(REVERB_SAMPLE_RATE, ToneGain::Loudness);
 }
 
 void CloudReverb::Prepare(const ParamSet& params) {
