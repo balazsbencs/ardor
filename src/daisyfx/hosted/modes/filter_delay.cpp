@@ -31,6 +31,8 @@ void FilterDelay::Init() {
     lfo_.Init(1.0f, LfoWave::Sine);
     dc_l_.Init();
     dc_r_.Init();
+    output_limit_l_.Init(SAMPLE_RATE);
+    output_limit_r_.Init(SAMPLE_RATE);
     svf_l_.Reset();
     svf_r_.Reset();
     (void)filterGTable();
@@ -45,6 +47,8 @@ void FilterDelay::Reset() {
     lfo_.Reset();
     dc_l_.Init();
     dc_r_.Init();
+    output_limit_l_.Reset();
+    output_limit_r_.Reset();
     svf_l_.Reset();
     svf_r_.Reset();
     time_transition_.Reset();
@@ -147,8 +151,8 @@ StereoFrame FilterDelay::Process(StereoFrame input, const ParamSet& params) {
     // No clip on the signal path: the soft clip that sat here put -24 dBc of
     // third harmonic on a 0.6 tone. Resonant peaks are scaled by the make-up
     // and caught by a limiter that is clean below -3 dBFS.
-    wet_l = dc_l_.Process(soft_limit_above(wet_l, 0.7f));
-    wet_r = dc_r_.Process(soft_limit_above(wet_r, 0.7f));
+    wet_l = dc_l_.Process(output_limit_l_.Process(wet_l));
+    wet_r = dc_r_.Process(output_limit_r_.Process(wet_r));
 
     return StereoFrame{wet_l, wet_r};
 }

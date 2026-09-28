@@ -6,6 +6,7 @@
 #include "../dsp/feedback_limiter.h"
 #include "../dsp/delay_line_sdram.h"
 #include "../dsp/delay_tap_transition.h"
+#include "../dsp/fast_math.h"
 #include "../config/constants.h"
 
 namespace pedal {
@@ -25,6 +26,8 @@ private:
     Svf       svf_r_;
     DcBlocker dc_l_;
     DcBlocker dc_r_;
+    AntiAliasedSoftLimit output_limit_l_;
+    AntiAliasedSoftLimit output_limit_r_;
     FeedbackLimiter fb_lim_l_;
     FeedbackLimiter fb_lim_r_;
     DcBlocker  dc_fb_l_;
