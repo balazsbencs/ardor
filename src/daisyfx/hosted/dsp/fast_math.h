@@ -135,6 +135,70 @@ private:
     double previous_integral_ = soft_clip_tanh_integral(0.0);
 };
 
+// A safety limiter that retains its native-rate, exactly clean path below the
+// knee. Once a peak approaches the knee, blend toward antiderivative
+// antialiasing. A short peak hold prevents the blend from following individual
+// waveform cycles and creating sidebands of its own.
+class AntiAliasedSoftLimit {
+public:
+    void Init(float sample_rate) noexcept {
+        hold_frames_ = static_cast<int>(sample_rate * 0.02f);
+        release_coefficient_ = std::exp(-1.0f / (sample_rate * 0.01f));
+        Reset();
+    }
+
+    void Reset() noexcept {
+        previous_ = previous_integral_ = 0.0;
+        peak_ = 0.0f;
+        hold_remaining_ = 0;
+    }
+
+    float Process(float input, float knee = 0.7f) noexcept {
+        const float magnitude = std::abs(input);
+        if (magnitude >= peak_) {
+            peak_ = magnitude;
+            hold_remaining_ = hold_frames_;
+        } else if (hold_remaining_ > 0) {
+            --hold_remaining_;
+        } else {
+            peak_ *= release_coefficient_;
+        }
+
+        const double x = input;
+        const double integral = Integral(x, knee);
+        const double delta = x - previous_;
+        const float plain = soft_limit_above(input, knee);
+        float output = plain;
+        if (peak_ > knee) {
+            const float mix = std::fmin((peak_ - knee) / (1.0f - knee), 1.0f);
+            const float antialiased = std::abs(delta) > 1.0e-5
+                ? static_cast<float>((integral - previous_integral_) / delta)
+                : soft_limit_above(static_cast<float>(0.5 * (x + previous_)), knee);
+            output += mix * (antialiased - plain);
+        }
+        previous_ = x;
+        previous_integral_ = integral;
+        return output;
+    }
+
+private:
+    static double Integral(double x, double knee) noexcept {
+        const double magnitude = std::abs(x);
+        if (magnitude <= knee) return 0.5 * x * x;
+        const double over = magnitude - knee;
+        const double range = 1.0 - knee;
+        return 0.5 * knee * knee + knee * over +
+               range * range * soft_clip_tanh_integral(over / range);
+    }
+
+    double previous_ = 0.0;
+    double previous_integral_ = 0.0;
+    float peak_ = 0.0f;
+    float release_coefficient_ = 0.0f;
+    int hold_frames_ = 0;
+    int hold_remaining_ = 0;
+};
+
 // First-order antiderivative antialiasing for x/(1+|x|). Output is divided
 // by the requested drive, so the feedback loop retains unity small-signal
 // gain while the curve compresses stronger repeats.

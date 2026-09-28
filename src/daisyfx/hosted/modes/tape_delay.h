@@ -25,6 +25,8 @@ private:
     ToneFilter filter_r_;
     AntiAliasedTapeClip sat_l_;
     AntiAliasedTapeClip sat_r_;
+    AntiAliasedSoftLimit record_limit_l_;
+    AntiAliasedSoftLimit record_limit_r_;
     DcBlocker  dc_l_;
     DcBlocker  dc_r_;
     DcBlocker  dc_fb_l_;

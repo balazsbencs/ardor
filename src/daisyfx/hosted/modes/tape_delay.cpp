@@ -24,6 +24,8 @@ void TapeDelay::Init() {
     dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
     sat_l_.Reset();
     sat_r_.Reset();
+    record_limit_l_.Init(SAMPLE_RATE);
+    record_limit_r_.Init(SAMPLE_RATE);
     env_state_l_ = env_state_r_ = 0.0f;
     tape_lp_l_ = tape_lp_r_ = 0.0f;
 }
@@ -41,6 +43,8 @@ void TapeDelay::Reset() {
     dc_fb_r_.Init(SAMPLE_RATE, DcBlocker::FEEDBACK_LOOP_CUTOFF_HZ);
     sat_l_.Reset();
     sat_r_.Reset();
+    record_limit_l_.Reset();
+    record_limit_r_.Reset();
     env_state_l_ = env_state_r_ = 0.0f;
     tape_lp_l_ = tape_lp_r_ = 0.0f;
     delay_smooth_ = -1.0f;
@@ -142,14 +146,15 @@ StereoFrame TapeDelay::Process(StereoFrame input, const ParamSet& params) {
                                           post_shelf_state_r_, env_state_r_, tape_lp_r_);
     const float feedback_l = dc_fb_l_.Process(fb_lim_l_.Process(colored_l * params.repeats));
     const float feedback_r = dc_fb_r_.Process(fb_lim_r_.Process(colored_r * params.repeats));
-    auto write = [&](float dry, float feedback, float& state, DelayLineSdram& line) {
+    auto write = [&](float dry, float feedback, float& state,
+                     AntiAliasedSoftLimit& limiter, DelayLineSdram& line) {
         // Preserve the clean record path below the knee and bound loop peaks.
-        const float value = soft_limit_above(dry + feedback, 0.7f);
+        const float value = limiter.Process(dry + feedback);
         state += aa_coef_ * (value - state);
         line.Write(value + aa_mix_ * (state - value));
     };
-    write(input.left, feedback_l, aa_state_l_, tape_line_l_);
-    write(input.right, feedback_r, aa_state_r_, tape_line_r_);
+    write(input.left, feedback_l, aa_state_l_, record_limit_l_, tape_line_l_);
+    write(input.right, feedback_r, aa_state_r_, record_limit_r_, tape_line_r_);
 
     // Apply DC blockers independently per channel
     wet_l = dc_l_.Process(colored_l) * filter_l_.LoudnessCorrection();

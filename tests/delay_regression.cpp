@@ -1,5 +1,6 @@
 #include "daisyfx/DaisyFxCatalog.h"
 #include "daisyfx/DaisyFxProcessor.h"
+#include "daisyfx/hosted/dsp/fast_math.h"
 
 #include <algorithm>
 #include <cmath>
@@ -243,6 +244,59 @@ void verifyLofiEndpoint() {
     require(oddSteps == 0, "automated maximum Crush must reach 4-bit quantization");
 }
 
+void verifySafetyLimiterSpectrum() {
+    for (const double amplitude : {0.5, 0.8, 1.2}) {
+        pedal::AntiAliasedSoftLimit limiter;
+        limiter.Init(static_cast<float>(kRate));
+        std::vector<float> output;
+        output.reserve(48000);
+        double cleanError = 0.0;
+        double peak = 0.0;
+        for (int n = 0; n < 96000; ++n) {
+            const float input = static_cast<float>(tone(n, 10000.0, amplitude));
+            const float sample = limiter.Process(input);
+            if (n >= 48000) {
+                output.push_back(sample);
+                cleanError = std::max(cleanError, std::abs(static_cast<double>(sample - input)));
+                peak = std::max(peak, std::abs(static_cast<double>(sample)));
+            }
+        }
+        require(peak <= 1.000001, "safety limiter must bound driven samples");
+        if (amplitude == 0.5) {
+            require(cleanError < 1.0e-6, "ordinary signals must remain transparent");
+        } else {
+            const double fundamental = binAmplitude(output, 10000);
+            const double alias = binAmplitude(output, 18000);
+            require(alias / fundamental < (amplitude == 0.8 ? 0.002 : 0.01),
+                    "driven safety limiter must suppress folded harmonics");
+            require(fundamental > (amplitude == 0.8 ? 0.6 : 0.8),
+                    "antialiasing must retain useful high-frequency level");
+        }
+    }
+}
+
+void verifyLimiterModes() {
+    for (const char* mode : {"filter", "tape"}) {
+        ardor::DaisyFxProcessor processor;
+        if (std::string_view(mode) == "filter") {
+            configure(processor, mode, {{"grit", 1.0f}, {"filter", 0.0f}});
+        } else {
+            configure(processor, mode, {{"grit", 0.0f}, {"filter", 0.5f}});
+        }
+        std::vector<float> output;
+        output.reserve(48000);
+        for (int n = 0; n < 96000; ++n) {
+            const float input = static_cast<float>(tone(n, 10000.0, 1.2));
+            const auto sample = processor.process({input, input});
+            if (n >= 48000) output.push_back(sample.left);
+        }
+        const double fundamental = binAmplitude(output, 10000);
+        const double alias = binAmplitude(output, 18000);
+        require(fundamental > 0.3 && alias / fundamental < 0.012,
+                "driven Filter and Tape limiters must suppress folded harmonics");
+    }
+}
+
 } // namespace
 
 int main() {
@@ -257,4 +311,6 @@ int main() {
     verifyDigitalMonoFold();
     verifyDualStereoSide();
     verifyLofiEndpoint();
+    verifySafetyLimiterSpectrum();
+    verifyLimiterModes();
 }
