@@ -455,4 +455,29 @@ describe("editorReducer", () => {
     }
     expect(capped.history.past).toHaveLength(100);
   });
+
+  it("keeps one undo step for a gesture and starts a new step for the next gesture", () => {
+    let state = createEditorState({ bank: 0, slot: 0 }, preset());
+    for (const value of [-20, -22, -24]) {
+      state = editorReducer(state, { type: "set-block-param", blockId: "block-1", key: "threshold_db", value, gesture: "drag-1" });
+    }
+    expect(state.history.past).toHaveLength(1);
+    expect(state.history.present.blocks[0].params.threshold_db).toBe(-24);
+
+    state = editorReducer(state, { type: "set-block-param", blockId: "block-1", key: "threshold_db", value: -30, gesture: "drag-2" });
+    expect(state.history.past).toHaveLength(2);
+
+    state = editorReducer(state, { type: "undo" });
+    expect(state.history.present.blocks[0].params.threshold_db).toBe(-24);
+    state = editorReducer(state, { type: "undo" });
+    expect(state.history.present.blocks[0].params.threshold_db).toBe(-18);
+  });
+
+  it("does not merge a gesture into an edit without a gesture", () => {
+    let state = createEditorState({ bank: 0, slot: 0 }, preset());
+    state = editorReducer(state, { type: "set-block-param", blockId: "block-1", key: "threshold_db", value: -20, gesture: "g" });
+    state = editorReducer(state, { type: "set-name", name: "Renamed" });
+    state = editorReducer(state, { type: "set-block-param", blockId: "block-1", key: "threshold_db", value: -21, gesture: "g" });
+    expect(state.history.past).toHaveLength(3);
+  });
 });
