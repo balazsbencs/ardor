@@ -51,6 +51,8 @@ function Probe() {
       <span data-testid="revision-match">{String(session.device?.active?.storedRevisionMatches)}</span>
       <span data-testid="token-focus">{String(session.needsTokenFocus)}</span>
       <span data-testid="reverb-ir-support">{String(session.supportsReverbIrs)}</span>
+      <span data-testid="asset-usage">{session.assetUsage ? JSON.stringify(session.assetUsage) : "undefined"}</span>
+      <button type="button" onClick={() => void session.refreshAssets("models")}>Refresh models</button>
       <span>{session.error?.message}</span>
       <button type="button" onClick={() => void session.connect("http://pedal", "secret")}>Connect</button>
       <button type="button" onClick={session.disconnect}>Disconnect</button>
@@ -81,6 +83,24 @@ describe("DeviceSessionProvider", () => {
     await expect(waitForApplyResult(client, {
       accepted: true, id: "apply-1", state: "pending", bank: 2, slot: 1,
     }, 5, 1)).rejects.toThrow("Preset apply timed out");
+  });
+
+  it("loads asset usage on connect and after an asset refresh", async () => {
+    const usage = [{ path: "models/clean.nam", presets: [{ bank: 0, slot: 0, name: "Clean" }] }];
+    const client = mockClient({ getAssetUsage: vi.fn(async () => usage) });
+    renderSession(() => client);
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    expect(await screen.findByText("connected")).toBeInTheDocument();
+    expect(screen.getByTestId("asset-usage")).toHaveTextContent(JSON.stringify(usage));
+    await userEvent.click(screen.getByRole("button", { name: "Refresh models" }));
+    await waitFor(() => expect(client.getAssetUsage).toHaveBeenCalledTimes(2));
+  });
+
+  it("leaves asset usage undefined when the transport cannot report it", async () => {
+    renderSession(() => mockClient({ getAssetUsage: undefined }));
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    expect(await screen.findByText("connected")).toBeInTheDocument();
+    expect(screen.getByTestId("asset-usage")).toHaveTextContent("undefined");
   });
 
   it("connects automatically when running as the device-hosted manager", async () => {

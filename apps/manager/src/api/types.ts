@@ -220,3 +220,6 @@ export type RecallSceneResponse = {
   sceneId: string;
   requestId: string;
 };
+
+export type AssetUse = { bank: number; slot: number; name?: string };
+export type AssetUsageEntry = { path: string; presets: AssetUse[] };

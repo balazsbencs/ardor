@@ -13,7 +13,7 @@ function sessionWith(overrides: Partial<DeviceSessionValue>): DeviceSessionValue
     status: "connected", baseUrl: "http://pedal", models: [], irs: [], reverbIrs: [], supportsReverbIrs: true,
     presets: [], needsTokenFocus: false,
     busy: { save: false, apply: false, upload: false }, connect: async () => undefined, disconnect: () => undefined,
-    selectLocation: async () => undefined, refreshAssets: async () => undefined, refreshPresets: async () => undefined,
+    selectLocation: async () => undefined, refreshAssets: async () => undefined, refreshAssetUsage: async () => undefined, refreshPresets: async () => undefined,
     saveCurrent: async () => undefined, applyCurrent: async () => undefined, uploadAsset: async () => undefined,
     ...overrides,
   };

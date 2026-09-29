@@ -16,6 +16,7 @@ import type {
   ApplyPresetStatus,
   Asset,
   AssetKind,
+  AssetUsageEntry,
   DeviceStatus,
   Preset,
   PresetSlot,
@@ -45,6 +46,7 @@ export type DeviceSessionValue = {
   models: Asset[];
   irs: Asset[];
   reverbIrs: Asset[];
+  assetUsage?: AssetUsageEntry[];
   supportsReverbIrs: boolean;
   presets: PresetSlotSummary[];
   current?: SessionPreset;
@@ -55,6 +57,7 @@ export type DeviceSessionValue = {
   disconnect(): void;
   selectLocation(location: PresetLocation): Promise<void>;
   refreshAssets(kind?: AssetKind): Promise<void>;
+  refreshAssetUsage(): Promise<void>;
   refreshPresets(): Promise<void>;
   saveCurrent(preset: Preset): Promise<PresetSlot | undefined>;
   applyCurrent(sceneId?: string): Promise<ApplyPresetResponse | undefined>;
@@ -113,6 +116,10 @@ function storedLocation(baseUrl: string): PresetLocation | undefined {
 
 function hasPreset(summaries: PresetSlotSummary[], location: PresetLocation): boolean {
   return summaries.some(({ bank, slot, exists }) => bank === location.bank && slot === location.slot && exists);
+}
+
+async function loadAssetUsage(client: ManagerTransport): Promise<AssetUsageEntry[] | undefined> {
+  return client.getAssetUsage ? client.getAssetUsage() : undefined;
 }
 
 async function loadReverbIrInventory(client: ManagerTransport): Promise<{ assets: Asset[]; supported: boolean }> {
@@ -177,6 +184,7 @@ export function DeviceSessionProvider({
   const [irs, setIrs] = useState<Asset[]>([]);
   const [reverbIrs, setReverbIrs] = useState<Asset[]>([]);
   const [supportsReverbIrs, setSupportsReverbIrs] = useState(false);
+  const [assetUsage, setAssetUsage] = useState<AssetUsageEntry[]>();
   const [presets, setPresets] = useState<PresetSlotSummary[]>([]);
   const [current, setCurrent] = useState<SessionPreset>();
   const [error, setError] = useState<Error>();
@@ -202,10 +210,11 @@ export function DeviceSessionProvider({
     const nextClient = clientFactory({ baseUrl: normalizedBaseUrl, token: token || undefined });
     try {
       const nextDevice = await nextClient.getDevice();
-      const [nextModels, nextIrs, nextReverbInventory, nextPresets] = await Promise.all([
+      const [nextModels, nextIrs, nextReverbInventory, nextUsage, nextPresets] = await Promise.all([
         nextClient.listAssets("models"),
         nextClient.listAssets("irs"),
         loadReverbIrInventory(nextClient),
+        loadAssetUsage(nextClient),
         nextClient.listPresets(),
       ]);
       const nextCurrent = await loadInitialPreset(nextClient, normalizedBaseUrl, nextDevice, nextPresets);
@@ -218,6 +227,7 @@ export function DeviceSessionProvider({
       setIrs(nextIrs);
       setReverbIrs(nextReverbInventory.assets);
       setSupportsReverbIrs(nextReverbInventory.supported);
+      setAssetUsage(nextUsage);
       setPresets(nextPresets);
       setCurrent(nextCurrent);
       setStatus("connected");
@@ -242,6 +252,7 @@ export function DeviceSessionProvider({
     setIrs([]);
     setReverbIrs([]);
     setSupportsReverbIrs(false);
+    setAssetUsage(undefined);
     setPresets([]);
     setCurrent(undefined);
     setError(undefined);
@@ -268,6 +279,12 @@ export function DeviceSessionProvider({
     if (supportsReverbIrs && (!kind || kind === "reverb-irs")) {
       setReverbIrs(await client.listAssets("reverb-irs"));
     }
+    setAssetUsage(await loadAssetUsage(client));
+  };
+
+  const refreshAssetUsage = async () => {
+    if (!client) return;
+    setAssetUsage(await loadAssetUsage(client));
   };
 
   const refreshPresets = async () => {
@@ -366,10 +383,10 @@ export function DeviceSessionProvider({
   }, [client, status]);
 
   const value = useMemo<DeviceSessionValue>(() => ({
-    status, baseUrl, device, client, models, irs, reverbIrs, supportsReverbIrs,
+    status, baseUrl, device, client, models, irs, reverbIrs, supportsReverbIrs, assetUsage,
     presets, current, error, needsTokenFocus, busy,
-    connect, disconnect, selectLocation, refreshAssets, refreshPresets, saveCurrent, applyCurrent, recallScene, uploadAsset,
-  }), [status, baseUrl, device, client, models, irs, reverbIrs, supportsReverbIrs,
+    connect, disconnect, selectLocation, refreshAssets, refreshAssetUsage, refreshPresets, saveCurrent, applyCurrent, recallScene, uploadAsset,
+  }), [status, baseUrl, device, client, models, irs, reverbIrs, supportsReverbIrs, assetUsage,
     presets, current, error, needsTokenFocus, busy]);
 
   return <DeviceSessionContext.Provider value={value}>{children}</DeviceSessionContext.Provider>;
