@@ -480,4 +480,9 @@ describe("editorReducer", () => {
     state = editorReducer(state, { type: "set-block-param", blockId: "block-1", key: "threshold_db", value: -21, gesture: "g" });
     expect(state.history.past).toHaveLength(3);
   });
+
+  it("clears the edited scene, so edits go to the preset", () => {
+    const state = editorReducer(createEditorState({ bank: 0, slot: 0 }, createEmptyPreset("Clear")), { type: "clear-scene" });
+    expect(state.editingSceneId).toBeUndefined();
+  });
 });

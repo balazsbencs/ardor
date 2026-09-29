@@ -112,14 +112,26 @@ export function usePresetEditor(): PresetEditor {
   const sceneScopeFor = (blockId: string, parameter?: string): "shared" | "scene" =>
     sceneOwns(editingScene, blockId, parameter) ? "scene" : "shared";
   const editBlockEnabled = (blockId: string, enabled: boolean) => {
-    if (editingScene && sceneScopeFor(blockId) === "scene") {
+    if (editingScene) {
+      if (!sceneOwns(editingScene, blockId)) {
+        const current = findPresetBlockInPreset(present, blockId)?.enabled ?? enabled;
+        dispatch({ type: "set-scene-scope", sceneId: editingScene.id, blockId, scope: "scene", value: current });
+      }
       dispatch({ type: "set-scene-block-enabled", sceneId: editingScene.id, blockId, value: enabled });
-    } else dispatch({ type: "toggle-block", blockId, enabled });
+      return;
+    }
+    dispatch({ type: "toggle-block", blockId, enabled });
   };
   const editParameter = (blockId: string, parameter: string, value: unknown, gesture?: string) => {
-    if (editingScene && typeof value === "number" && sceneScopeFor(blockId, parameter) === "scene") {
+    if (editingScene && typeof value === "number") {
+      if (!sceneOwns(editingScene, blockId, parameter)) {
+        const current = findPresetBlockInPreset(present, blockId)?.params[parameter];
+        dispatch({ type: "set-scene-scope", sceneId: editingScene.id, blockId, parameter, scope: "scene", value: typeof current === "number" ? current : value, gesture });
+      }
       dispatch({ type: "set-scene-parameter", sceneId: editingScene.id, blockId, parameter, value, gesture });
-    } else dispatch({ type: "set-block-param", blockId, key: parameter, value, gesture });
+      return;
+    }
+    dispatch({ type: "set-block-param", blockId, key: parameter, value, gesture });
   };
   const editWdwMix = (lane: "dry" | "wet", key: "levelDb" | "pan" | "width" | "enabled", value: number | boolean) => {
     if (editingScene?.targets.some((target) => target.target === "wdwLane"

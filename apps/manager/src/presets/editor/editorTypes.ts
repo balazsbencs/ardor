@@ -38,6 +38,7 @@ export type EditorAction =
   | { type: "load"; location: PresetLocation; preset: Preset }
   | { type: "select-block"; blockId?: string }
   | { type: "select-scene"; sceneId: string }
+  | { type: "clear-scene" }
   | { type: "enable-scenes" }
   | { type: "set-scene-name"; sceneId: string; name: string }
   | { type: "set-scene-enter-time"; sceneId: string; value: number }

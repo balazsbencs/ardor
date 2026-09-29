@@ -221,6 +221,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return state.history.present.sceneSet?.scenes.some(({ id }) => id === action.sceneId)
         ? { ...state, editingSceneId: action.sceneId }
         : state;
+    case "clear-scene":
+      return { ...state, editingSceneId: undefined };
     case "enable-scenes": {
       if (state.history.present.sceneSet) return state;
       const next = withMutation(state, (present) => enableScenes(present));
