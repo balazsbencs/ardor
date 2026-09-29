@@ -4,7 +4,7 @@ import { useEffect, useMemo, useReducer, useState } from "react";
 import { Button, IconButton, StatusBadge } from "../../components/ui";
 import { displayValue } from "../../components/ParameterSlider";
 import { useDeviceSession } from "../../connection/deviceSession";
-import type { PresetBlock, PresetSceneTarget, WdwRouting } from "../../api/types";
+import type { PresetSceneTarget, WdwRouting } from "../../api/types";
 import { allEffectDefinitions, findEffectDefinition } from "../../effects/catalog";
 import { PresetSidebar } from "../browser/PresetSidebar";
 import { BlockBrowser } from "../block-browser/BlockBrowser";
@@ -18,17 +18,7 @@ import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
 import { WdwRoutingCanvas } from "../chain/WdwRoutingCanvas";
 import { SceneWorkspaceBar, type SharedComparisonRow } from "../scenes/SceneWorkspaceBar";
 import { activeRevisionMatchesDraft } from "../scenes/sceneRevision";
-
-function blocksForScene(blocks: PresetBlock[], enabledById: Map<string, boolean>): PresetBlock[] {
-  return blocks.map((block) => ({
-    ...block,
-    enabled: enabledById.get(block.id) ?? block.enabled,
-    ...(block.lanes ? { lanes: {
-      left: { blocks: blocksForScene(block.lanes.left.blocks, enabledById) },
-      right: { blocks: blocksForScene(block.lanes.right.blocks, enabledById) },
-    } } : {}),
-  }));
-}
+import { applySceneToBlock, applySceneToBlocks, sceneOwns } from "../scenes/sceneView";
 
 export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; onConnection(): void }) {
   const session = useDeviceSession();
@@ -62,16 +52,12 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
   const sceneInputGain = editingScene?.targets.find((target) => target.target === "inputGainDb");
   const sceneInputOwned = sceneInputGain?.target === "inputGainDb";
   const displayedInputGain = sceneInputOwned ? sceneInputGain.value : present.global.inputGainDb;
-  const enabledById = useMemo(() => new Map(
-    editingScene?.targets.flatMap((target) => target.target === "blockEnabled"
-      ? [[target.blockId, target.value] as const] : []) ?? [],
-  ), [editingScene]);
-  const displayedBlocks = useMemo(() => blocksForScene(present.blocks, enabledById), [present.blocks, enabledById]);
+  const displayedBlocks = useMemo(() => applySceneToBlocks(present.blocks, editingScene), [present.blocks, editingScene]);
   const displayedWdw = useMemo<WdwRouting | undefined>(() => {
     if (!present.wdw) return undefined;
     const routing = structuredClone(present.wdw);
-    routing.dry.blocks = blocksForScene(routing.dry.blocks, enabledById);
-    routing.wet.blocks = blocksForScene(routing.wet.blocks, enabledById);
+    routing.dry.blocks = applySceneToBlocks(routing.dry.blocks, editingScene);
+    routing.wet.blocks = applySceneToBlocks(routing.wet.blocks, editingScene);
     for (const target of editingScene?.targets ?? []) {
       if (target.target !== "wdwLane") continue;
       const lane = routing[target.lane];
@@ -81,20 +67,10 @@ export function PresetWorkspace({ onAssets, onConnection }: { onAssets(): void; 
       else if (target.parameter === "width" && typeof target.value === "number") lane.width = target.value;
     }
     return routing;
-  }, [present.wdw, editingScene, enabledById]);
-  const inspectorBlock = useMemo(() => {
-    if (!selected || !editingScene) return selected;
-    const block = structuredClone(selected);
-    for (const target of editingScene.targets) {
-      if (target.target === "parameter" && target.blockId === block.id) block.params[target.parameter] = target.value;
-      else if (target.target === "blockEnabled" && target.blockId === block.id) block.enabled = target.value;
-    }
-    return block;
-  }, [selected, editingScene]);
+  }, [present.wdw, editingScene]);
+  const inspectorBlock = useMemo(() => (selected ? applySceneToBlock(selected, editingScene) : undefined), [selected, editingScene]);
   const sceneScopeFor = (blockId: string, parameter?: string): "shared" | "scene" =>
-    editingScene?.targets.some((target) => parameter !== undefined
-      ? target.target === "parameter" && target.blockId === blockId && target.parameter === parameter
-      : target.target === "blockEnabled" && target.blockId === blockId) ? "scene" : "shared";
+    sceneOwns(editingScene, blockId, parameter) ? "scene" : "shared";
   const editBlockEnabled = (blockId: string, enabled: boolean) => {
     if (editingScene && sceneScopeFor(blockId) === "scene") {
       dispatch({ type: "set-scene-block-enabled", sceneId: editingScene.id, blockId, value: enabled });
