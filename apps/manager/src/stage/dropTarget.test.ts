@@ -18,6 +18,13 @@ describe("resolveDrop", () => {
       .toEqual({ type: "move-wdw-block", lane: "wet", blockId: "n1", index: 1 });
   });
 
+  it("moves to the tail of the same list and from wet to dry", () => {
+    expect(resolveDrop({ listId: "top", index: 0 }, { listId: "top", index: 3 }, "b1"))
+      .toEqual({ type: "move-block", blockId: "b1", index: 3 });
+    expect(resolveDrop({ listId: "wdw:wet", index: 1 }, { listId: "wdw:dry", index: 0 }, "n1"))
+      .toEqual({ type: "move-wdw-block", lane: "dry", blockId: "n1", index: 0 });
+  });
+
   it("refuses moves the reducer cannot do, and no-op drops", () => {
     expect(resolveDrop({ listId: "top", index: 0 }, { listId: "lane:r1:left", index: 0 }, "b1")).toBeUndefined();
     expect(resolveDrop({ listId: "lane:r1:left", index: 0 }, { listId: "top", index: 0 }, "c1")).toBeUndefined();

@@ -58,7 +58,7 @@ function SortableCard({ block, listId, index, count, laneTag, props }: { block: 
 }
 
 function List({ listId, blocks, props, laneTag, emptyLabel }: { listId: ListId; blocks: PresetBlock[]; props: Props; laneTag?: "A" | "B" | "DRY" | "WET"; emptyLabel?: string }) {
-  const { setNodeRef } = useDroppable({ id: `list:${listId}`, data: { listId, index: blocks.length } satisfies ItemData });
+  const { setNodeRef } = useDroppable({ id: `list:${listId}`, data: { listId, index: blocks.length } satisfies ItemData, disabled: blocks.length > 0 });
   const insertLabel = (index: number) => (listId === "top" ? `Add a block at position ${index + 1}` : `Add a block to lane ${laneTag}${blocks.length ? ` at position ${index + 1}` : ""}`);
   const laneFull = listId.startsWith("lane:") && blocks.length >= MAX_LANE_BLOCKS;
   const disabled = props.maxed || laneFull;
