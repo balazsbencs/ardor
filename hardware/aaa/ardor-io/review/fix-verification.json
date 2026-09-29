@@ -1,0 +1,35 @@
+{
+  "parts": {
+    "Q501": {
+      "value": "AO3400A",
+      "mpn": "Alpha & Omega AO3400A",
+      "footprint": "Package_TO_SOT_SMD:SOT-23",
+      "datasheet": "https://www.aosmd.com/res/data_sheets/AO3400A.pdf"
+    },
+    "C501": {
+      "value": "47u / 16V",
+      "mpn": "Panasonic EEEFK1C470P",
+      "footprint": "Ardor_Capacitor:CP_Elec_Panasonic_FK_D6.3_H5.8",
+      "datasheet": "https://industrial.panasonic.com/cdbs/www-data/pdf/RDE0000/ABA0000C1181.pdf"
+    }
+  },
+  "bom_schematic_board_agree": true,
+  "c501_lands_mm": {
+    "pad": [
+      3.2,
+      1.6
+    ],
+    "pitch": 5.0,
+    "gap": 1.8
+  },
+  "critical_pin_nets_match": true,
+  "all_pad_assignments_checked": 276,
+  "all_original_pin_nets_preserved": true,
+  "erc_violations": 0,
+  "drc_violations": 0,
+  "unconnected_items": 0,
+  "schematic_parity_issues": 0,
+  "gate_voltage_nominal_V": 3.267326732673267,
+  "relay_drop_at_30mA_48mOhm_V": 0.0014399999999999999,
+  "hardware_tested": false
+}

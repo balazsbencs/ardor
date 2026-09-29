@@ -1,0 +1,111 @@
+{
+  "physical_components": 95,
+  "panel_components": 4,
+  "numbered_board_pads": 276,
+  "fresh_netlist_matches_all_board_pads": true,
+  "saved_schematic_netlist_matches_fresh": true,
+  "chassis_pins": [
+    "D204.2",
+    "C202.2",
+    "D602.2",
+    "D203.2",
+    "C203.2",
+    "D301.2",
+    "D302.2",
+    "D501.2",
+    "R101.2",
+    "D601.2"
+  ],
+  "chassis_total_track_length_mm": 128.779,
+  "chassis_width_range_mm": [
+    0.2,
+    0.6
+  ],
+  "headphone_cap_pad_straight_line_distances_mm": {
+    "U601.14 to C603.1": 4.294,
+    "U601.14 to C604.1": 2.128,
+    "U601.12 to C605.1": 2.768,
+    "U601.8 to C606.1": 2.57,
+    "U601.11 to C607.1": 2.57,
+    "U601.9 to C607.2": 2.656
+  },
+  "mounting_hole_attributes": {
+    "H2": [
+      "board_only",
+      "exclude_from_pos_files",
+      "exclude_from_bom"
+    ],
+    "H3": [
+      "board_only",
+      "exclude_from_pos_files",
+      "exclude_from_bom"
+    ],
+    "H4": [
+      "board_only",
+      "exclude_from_pos_files",
+      "exclude_from_bom"
+    ],
+    "H1": [
+      "board_only",
+      "exclude_from_pos_files",
+      "exclude_from_bom"
+    ]
+  },
+  "net_lengths_mm": {
+    "+3V3_ADC": 62.549,
+    "+3V3_PI": 30.817,
+    "+5V_A": 95.137,
+    "+5V_PI": 94.534,
+    "/04 / Audio distribution/BIAS_L": 17.902,
+    "/04 / Audio distribution/BIAS_R": 22.917,
+    "/05 / Line and amp feed/AMP_AC": 2.685,
+    "/05 / Line and amp feed/AMP_BUF": 9.842,
+    "/05 / Line and amp feed/AMP_FEED": 9.614,
+    "/05 / Line and amp feed/LINE_AC": 17.875,
+    "/05 / Line and amp feed/LINE_BUF": 10.531,
+    "/05 / Line and amp feed/LINE_DRIVE": 5.791,
+    "/06 / Stereo headphones/HP_IN_L": 9.055,
+    "/06 / Stereo headphones/HP_IN_R": 9.557,
+    "ADC_SCL": 2.154,
+    "ADC_SDA": 6.317,
+    "AUX_L": 9.518,
+    "AUX_R": 11.273,
+    "BUF_L": 36.179,
+    "BUF_R": 20.821,
+    "CHASSIS": 128.779,
+    "CPN": 2.852,
+    "CPP": 2.645,
+    "EXP_ADC": 23.454,
+    "EXP_EXC": 16.368,
+    "EXP_REF_ADC": 28.267,
+    "EXP_RING": 18.804,
+    "EXP_TIP": 15.334,
+    "EXP_WIPER": 12.302,
+    "GND": 330.341,
+    "HPVDD": 3.16,
+    "HPVSS": 2.645,
+    "HP_EN": 14.741,
+    "HP_ENABLE": 37.604,
+    "HP_L": 28.074,
+    "HP_L_RAW": 7.427,
+    "HP_R": 13.472,
+    "HP_R_RAW": 8.013,
+    "LINE_ENABLE": 36.625,
+    "LINE_JACK": 19.458,
+    "MIDI_4": 15.2,
+    "MIDI_4_F": 4.076,
+    "MIDI_5": 22.178,
+    "MIDI_A": 14.156,
+    "MIDI_K": 11.843,
+    "MIDI_OC": 5.885,
+    "MIDI_RX": 26.074,
+    "MONO_BUF": 28.419,
+    "MONO_MIX": 17.866,
+    "PI_SCL": 34.736,
+    "PI_SDA": 38.201,
+    "RELAY_GATE": 5.707,
+    "RELAY_LOW": 14.084,
+    "VREF": 33.582,
+    "VREF_DIV": 9.431
+  }
+}

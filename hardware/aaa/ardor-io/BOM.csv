@@ -1,90 +1,90 @@
 Reference,Value,MPN,Footprint,Datasheet,Assembly,Sheet,JLCPCB Part #
 J101,PI 40-PIN HEADER,Samtec SSQ-120-03-G-D (verify stack height),Connector_PinSocket_2.54mm:PinSocket_2x20_P2.54mm_Vertical,,PCB,1,
 J102,CODEC AUX L / GND / R,,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,,PCB,1,
-FB101,600R @100MHz,Murata BLM21PG601SN1D,Inductor_SMD:L_0805_2012Metric,,PCB,1,
-C101,22u / 10V X7R,,Capacitor_SMD:C_0805_2012Metric,,PCB,1,
-C102,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,1,
-FB102,600R @100MHz,Murata BLM18AG601SN1D,Resistor_SMD:R_0603_1608Metric,,PCB,1,
-C103,10u / 10V X7R,,Capacitor_SMD:C_0805_2012Metric,,PCB,1,
-C104,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,1,
-R101,0R / chassis bond,,Resistor_SMD:R_1206_3216Metric,,PCB,1,
+FB101,600R @100MHz,Murata BLM21PG601SN1D,Inductor_SMD:L_0805_2012Metric,https://www.murata.com/products/productdata/8796738977822/ENFA0005.pdf,PCB,1,C41556732
+C101,22u / 10V X7R,Murata GRM21BZ71A226ME15L,Capacitor_SMD:C_0805_2012Metric,https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2201242100_Murata-Electronics-GRM21BZ71A226ME15L_C907991.pdf,PCB,1,C907991
+C102,100n / 50V X7R,YAGEO CC0603KRX7R9BB104,Capacitor_SMD:C_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf,PCB,1,C14663
+FB102,600R @100MHz,Murata BLM18AG601SN1D,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Murata-Electronics-BLM18AG601SN1D_C19330.pdf,PCB,1,C19330
+C103,10u / 16V X7R,Samsung CL21B106KOQNNNE,Capacitor_SMD:C_0805_2012Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B106KOQNNNE_C95841.pdf,PCB,1,C95841
+C104,100n / 50V X7R,YAGEO CC0603KRX7R9BB104,Capacitor_SMD:C_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf,PCB,1,C14663
+R101,0R / chassis bond,UNI-ROYAL 1206W4F0000T5E,Resistor_SMD:R_1206_3216Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-1206W4F0000T5E_C17888.pdf,PCB,1,C17888
 J201,MIDI IN - PANEL DIN,,,,Panel / wired,2,
-FB201,600R @100MHz,Murata BLM18AG601SN1D,Resistor_SMD:R_0603_1608Metric,,PCB,2,
-R201,220R / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,2,
-FB202,600R @100MHz,Murata BLM18AG601SN1D,Resistor_SMD:R_0603_1608Metric,,PCB,2,
-D201,1N4148W,1N4148W,Diode_SMD:D_SOD-123,,PCB,2,
+FB201,600R @100MHz,Murata BLM18AG601SN1D,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Murata-Electronics-BLM18AG601SN1D_C19330.pdf,PCB,2,C19330
+R201,220R / 1%,UNI-ROYAL 0603WAF2200T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF2200T5E_C22962.pdf,PCB,2,C22962
+FB202,600R @100MHz,Murata BLM18AG601SN1D,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Murata-Electronics-BLM18AG601SN1D_C19330.pdf,PCB,2,C19330
+D201,1N4148W,ST(Semtech) 1N4148W,Diode_SMD:D_SOD-123,https://www.lcsc.com/datasheet/lcsc_datasheet_1811061725_ST-Semtech-1N4148W_C81598.pdf,PCB,2,C81598
 U201,H11L1M,onsemi H11L1M,Package_DIP:DIP-6_W7.62mm,https://www.onsemi.com/pdf/datasheet/h11l3m-d.pdf,PCB,2,
-C201,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,2,
-R202,1k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,2,
-R203,100R,,Resistor_SMD:R_0603_1608Metric,,PCB,2,
-D202,PESD5V0S1BA,Nexperia PESD5V0S1BA,Diode_SMD:D_SOD-323,https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf,PCB,2,
-C202,100p / 1kV C0G,,Capacitor_SMD:C_1206_3216Metric,,PCB,2,
-C203,100p / 1kV C0G,,Capacitor_SMD:C_1206_3216Metric,,PCB,2,
-D203,PESD24VL1BA,Nexperia PESD24VL1BA,Diode_SMD:D_SOD-323,https://assets.nexperia.com/documents/data-sheet/PESD24VL1BA.pdf,PCB,2,
-D204,PESD24VL1BA,Nexperia PESD24VL1BA,Diode_SMD:D_SOD-323,https://assets.nexperia.com/documents/data-sheet/PESD24VL1BA.pdf,PCB,2,
+C201,100n / 50V X7R,YAGEO CC0603KRX7R9BB104,Capacitor_SMD:C_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf,PCB,2,C14663
+R202,1k / 1%,UNI-ROYAL 0603WAF1001T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf,PCB,2,C21190
+R203,100R,UNI-ROYAL 0603WAF1000T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2411221126_UNI-ROYAL-Uniroyal-Elec-0603WAF1000T5E_C22775.pdf,PCB,2,C22775
+D202,PESD5V0S1BA,"Nexperia PESD5V0S1BA,115",Diode_SMD:D_SOD-323,https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf,PCB,2,C19224
+C202,100p / 1kV C0G,CCTC TCC1206COG101J102DT,Capacitor_SMD:C_1206_3216Metric,https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2304140030_CCTC-TCC1206COG101J102DT_C367316.pdf,PCB,2,C367316
+C203,100p / 1kV C0G,CCTC TCC1206COG101J102DT,Capacitor_SMD:C_1206_3216Metric,https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2304140030_CCTC-TCC1206COG101J102DT_C367316.pdf,PCB,2,C367316
+D203,PESD24VL1BA,"Nexperia PESD24VL1BA,115",Diode_SMD:D_SOD-323,https://assets.nexperia.com/documents/data-sheet/PESD24VL1BA.pdf,PCB,2,C69324
+D204,PESD24VL1BA,"Nexperia PESD24VL1BA,115",Diode_SMD:D_SOD-323,https://assets.nexperia.com/documents/data-sheet/PESD24VL1BA.pdf,PCB,2,C69324
 J301,EXPRESSION / 6.3mm TRS,,,,Panel / wired,3,
 JP301,POLARITY / 2 SHUNTS,,Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical,,PCB,3,
-R301,1k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,3,
-R302,10k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,3,
-R303,1M,,Resistor_SMD:R_0603_1608Metric,,PCB,3,
-C301,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,3,
-D303,BAT54H,"Nexperia BAT54H,115",Diode_SMD:D_SOD-123F,,PCB,3,
-D304,BAT54H,"Nexperia BAT54H,115",Diode_SMD:D_SOD-123F,,PCB,3,
-D301,PESD5V0S1BA,Nexperia PESD5V0S1BA,Diode_SMD:D_SOD-323,,PCB,3,
-D302,PESD5V0S1BA,Nexperia PESD5V0S1BA,Diode_SMD:D_SOD-323,,PCB,3,
-U301,ADS1115IDGS,TI ADS1115IDGSR,Package_SO:VSSOP-10_3x3mm_P0.5mm,https://www.ti.com/lit/ds/symlink/ads1115.pdf,PCB,3,
-R304,10k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,3,
-C302,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,3,
-C303,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,3,
-R305,33R,,Resistor_SMD:R_0603_1608Metric,,PCB,3,
-R306,33R,,Resistor_SMD:R_0603_1608Metric,,PCB,3,
-R307,2.2k / rail bleed,,Resistor_SMD:R_0603_1608Metric,,PCB,3,
-D305,BAT54H,"Nexperia BAT54H,115",Diode_SMD:D_SOD-123F,,PCB,3,
-D306,BAT54H,"Nexperia BAT54H,115",Diode_SMD:D_SOD-123F,,PCB,3,
+R301,1k / 1%,UNI-ROYAL 0603WAF1001T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf,PCB,3,C21190
+R302,10k / 1%,UNI-ROYAL 0603WAF1002T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1002T5E_C25804.pdf,PCB,3,C25804
+R303,1M,UNI-ROYAL 0603WAF1004T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1004T5E_C22935.pdf,PCB,3,C22935
+C301,100n / 50V X7R,YAGEO CC0603KRX7R9BB104,Capacitor_SMD:C_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf,PCB,3,C14663
+D303,BAT54H,"Nexperia BAT54H,115",Diode_SMD:D_SOD-123F,https://www.lcsc.com/datasheet/lcsc_datasheet_2407241029_Nexperia-BAT54H-115_C426769.pdf,PCB,3,C426769
+D304,BAT54H,"Nexperia BAT54H,115",Diode_SMD:D_SOD-123F,https://www.lcsc.com/datasheet/lcsc_datasheet_2407241029_Nexperia-BAT54H-115_C426769.pdf,PCB,3,C426769
+D301,PESD5V0S1BA,"Nexperia PESD5V0S1BA,115",Diode_SMD:D_SOD-323,https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf,PCB,3,C19224
+D302,PESD5V0S1BA,"Nexperia PESD5V0S1BA,115",Diode_SMD:D_SOD-323,https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf,PCB,3,C19224
+U301,ADS1115IDGS,TI ADS1115IDGSR,Package_SO:VSSOP-10_3x3mm_P0.5mm,https://www.ti.com/lit/ds/symlink/ads1115.pdf,PCB,3,C37593
+R304,10k / 1%,UNI-ROYAL 0603WAF1002T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1002T5E_C25804.pdf,PCB,3,C25804
+C302,100n / 50V X7R,YAGEO CC0603KRX7R9BB104,Capacitor_SMD:C_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf,PCB,3,C14663
+C303,100n / 50V X7R,YAGEO CC0603KRX7R9BB104,Capacitor_SMD:C_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf,PCB,3,C14663
+R305,33R,UNI-ROYAL 0603WAF330JT5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF330JT5E_C23140.pdf,PCB,3,C23140
+R306,33R,UNI-ROYAL 0603WAF330JT5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF330JT5E_C23140.pdf,PCB,3,C23140
+R307,2.2k / rail bleed,UNI-ROYAL 0603WAF2201T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010230_UNI-ROYAL-Uniroyal-Elec-0603WAF2201T5E_C4190.pdf,PCB,3,C4190
+D305,BAT54H,"Nexperia BAT54H,115",Diode_SMD:D_SOD-123F,https://www.lcsc.com/datasheet/lcsc_datasheet_2407241029_Nexperia-BAT54H-115_C426769.pdf,PCB,3,C426769
+D306,BAT54H,"Nexperia BAT54H,115",Diode_SMD:D_SOD-123F,https://www.lcsc.com/datasheet/lcsc_datasheet_2407241029_Nexperia-BAT54H-115_C426769.pdf,PCB,3,C426769
 C401,10u / 50V X7R,Samsung CL31B106KBHNNNE,Capacitor_SMD:C_1206_3216Metric,https://media.digikey.com/pdf/Data%20Sheets/Samsung%20PDFs/CL31B106KBHNNNE_Spec.pdf,PCB,4,C89632
-R401,100k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4,
-U401,OPA2320AIDR,TI OPA2320AIDR,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,https://www.ti.com/lit/ds/symlink/opa2320.pdf,PCB,4,
-R403,10k / 0.1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4,
+R401,100k / 1%,UNI-ROYAL 0603WAF1003T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1003T5E_C25803.pdf,PCB,4,C25803
+U401,OPA2320AIDR,TI OPA2320AIDR,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,https://www.ti.com/lit/ds/symlink/opa2320.pdf,PCB,4,C2863402
+R403,10k / 0.1%,YAGEO RT0603BRD0710KL,Resistor_SMD:R_0603_1608Metric,https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/1811082117_YAGEO-RT0603BRD0710KL_C95204.pdf,PCB,4,C95204
 C402,10u / 50V X7R,Samsung CL31B106KBHNNNE,Capacitor_SMD:C_1206_3216Metric,https://media.digikey.com/pdf/Data%20Sheets/Samsung%20PDFs/CL31B106KBHNNNE_Spec.pdf,PCB,4,C89632
-R402,100k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4,
-R404,10k / 0.1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4,
-U402,OPA2320AIDR,TI OPA2320AIDR,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,https://www.ti.com/lit/ds/symlink/opa2320.pdf,PCB,4,
-R405,10k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4,
-R406,10k / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,4,
-C403,10u / 10V X7R,,Capacitor_SMD:C_0805_2012Metric,,PCB,4,
-C404,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,4,
-C405,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,4,
-U501,OPA2320AIDR,TI OPA2320AIDR,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,https://www.ti.com/lit/ds/symlink/opa2320.pdf,PCB,5,
-C501,47u / 16V,Panasonic EEE-FK1C470R,Capacitor_SMD:CP_Elec_6.3x5.4,,PCB,5,
-R501,10k,,Resistor_SMD:R_0603_1608Metric,,PCB,5,
-R502,100R / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,5,
+R402,100k / 1%,UNI-ROYAL 0603WAF1003T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1003T5E_C25803.pdf,PCB,4,C25803
+R404,10k / 0.1%,YAGEO RT0603BRD0710KL,Resistor_SMD:R_0603_1608Metric,https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/1811082117_YAGEO-RT0603BRD0710KL_C95204.pdf,PCB,4,C95204
+U402,OPA2320AIDR,TI OPA2320AIDR,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,https://www.ti.com/lit/ds/symlink/opa2320.pdf,PCB,4,C2863402
+R405,10k / 1%,UNI-ROYAL 0603WAF1002T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1002T5E_C25804.pdf,PCB,4,C25804
+R406,10k / 1%,UNI-ROYAL 0603WAF1002T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1002T5E_C25804.pdf,PCB,4,C25804
+C403,10u / 16V X7R,Samsung CL21B106KOQNNNE,Capacitor_SMD:C_0805_2012Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B106KOQNNNE_C95841.pdf,PCB,4,C95841
+C404,100n / 50V X7R,YAGEO CC0603KRX7R9BB104,Capacitor_SMD:C_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf,PCB,4,C14663
+C405,100n / 50V X7R,YAGEO CC0603KRX7R9BB104,Capacitor_SMD:C_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf,PCB,4,C14663
+U501,OPA2320AIDR,TI OPA2320AIDR,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,https://www.ti.com/lit/ds/symlink/opa2320.pdf,PCB,5,C2863402
+C501,47u / 16V,Panasonic EEEFK1C470P,Ardor_Capacitor:CP_Elec_Panasonic_FK_D6.3_H5.8,https://industrial.panasonic.com/cdbs/www-data/pdf/RDE0000/ABA0000C1181.pdf,PCB,5,C336261
+R501,10k,UNI-ROYAL 0603WAF1002T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1002T5E_C25804.pdf,PCB,5,C25804
+R502,100R / 1%,UNI-ROYAL 0603WAF1000T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2411221126_UNI-ROYAL-Uniroyal-Elec-0603WAF1000T5E_C22775.pdf,PCB,5,C22775
 K501,G5V-1 DC5,Omron G5V-1 DC5,Relay_THT:Relay_SPDT_Omron_G5V-1,,PCB,5,
 J501,LINE OUT / 6.3mm TS,,,,Panel / wired,5,
-D501,PESD5V0S1BA,Nexperia PESD5V0S1BA,Diode_SMD:D_SOD-323,,PCB,5,
-Q501,2N7002,Nexperia 2N7002,Package_TO_SOT_SMD:SOT-23,,PCB,5,
-R503,1k,,Resistor_SMD:R_0603_1608Metric,,PCB,5,
-R504,100k,,Resistor_SMD:R_0603_1608Metric,,PCB,5,
-D502,1N4148W,1N4148W,Diode_SMD:D_SOD-123,,PCB,5,
+D501,PESD5V0S1BA,"Nexperia PESD5V0S1BA,115",Diode_SMD:D_SOD-323,https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf,PCB,5,C19224
+Q501,AO3400A,Alpha & Omega AO3400A,Package_TO_SOT_SMD:SOT-23,https://www.aosmd.com/res/data_sheets/AO3400A.pdf,PCB,5,C20917
+R503,1k,UNI-ROYAL 0603WAF1001T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf,PCB,5,C21190
+R504,100k,UNI-ROYAL 0603WAF1003T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1003T5E_C25803.pdf,PCB,5,C25803
+D502,1N4148W,ST(Semtech) 1N4148W,Diode_SMD:D_SOD-123,https://www.lcsc.com/datasheet/lcsc_datasheet_1811061725_ST-Semtech-1N4148W_C81598.pdf,PCB,5,C81598
 C502,10u / 50V X7R,Samsung CL31B106KBHNNNE,Capacitor_SMD:C_1206_3216Metric,https://media.digikey.com/pdf/Data%20Sheets/Samsung%20PDFs/CL31B106KBHNNNE_Spec.pdf,PCB,5,C89632
-R505,1k / isolation,,Resistor_SMD:R_0603_1608Metric,,PCB,5,
-R506,100k,,Resistor_SMD:R_0603_1608Metric,,PCB,5,
+R505,1k / isolation,UNI-ROYAL 0603WAF1001T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf,PCB,5,C21190
+R506,100k,UNI-ROYAL 0603WAF1003T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1003T5E_C25803.pdf,PCB,5,C25803
 J502,TO YOUR AMP CIRCUIT,,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,,PCB,5,
-C503,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,5,
+C503,100n / 50V X7R,YAGEO CC0603KRX7R9BB104,Capacitor_SMD:C_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf,PCB,5,C14663
 C601,10u / 50V X7R,Samsung CL31B106KBHNNNE,Capacitor_SMD:C_1206_3216Metric,https://media.digikey.com/pdf/Data%20Sheets/Samsung%20PDFs/CL31B106KBHNNNE_Spec.pdf,PCB,6,C89632
 C602,10u / 50V X7R,Samsung CL31B106KBHNNNE,Capacitor_SMD:C_1206_3216Metric,https://media.digikey.com/pdf/Data%20Sheets/Samsung%20PDFs/CL31B106KBHNNNE_Spec.pdf,PCB,6,C89632
-U601,TPA6132A2RTER,TI TPA6132A2RTER,Package_DFN_QFN:WQFN-16-1EP_3x3mm_P0.5mm_EP1.6x1.6mm_ThermalVias,https://www.ti.com/lit/ds/symlink/tpa6132a2.pdf,PCB,6,
-R601,1k,,Resistor_SMD:R_0603_1608Metric,,PCB,6,
-R602,100k,,Resistor_SMD:R_0603_1608Metric,,PCB,6,
-R603,2R2 / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,6,
-R604,2R2 / 1%,,Resistor_SMD:R_0603_1608Metric,,PCB,6,
+U601,TPA6132A2RTER,TI TPA6132A2RTER,Package_DFN_QFN:WQFN-16-1EP_3x3mm_P0.5mm_EP1.6x1.6mm_ThermalVias,https://www.ti.com/lit/ds/symlink/tpa6132a2.pdf,PCB,6,C69901
+R601,1k,UNI-ROYAL 0603WAF1001T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf,PCB,6,C21190
+R602,100k,UNI-ROYAL 0603WAF1003T5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1003T5E_C25803.pdf,PCB,6,C25803
+R603,2R2 / 1%,UNI-ROYAL 0603WAF220KT5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF220KT5E_C22939.pdf,PCB,6,C22939
+R604,2R2 / 1%,UNI-ROYAL 0603WAF220KT5E,Resistor_SMD:R_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF220KT5E_C22939.pdf,PCB,6,C22939
 J601,HEADPHONES / 3.5mm TRS,,,,Panel / wired,6,
-D601,PESD5V0S1BA,Nexperia PESD5V0S1BA,Diode_SMD:D_SOD-323,,PCB,6,
-D602,PESD5V0S1BA,Nexperia PESD5V0S1BA,Diode_SMD:D_SOD-323,,PCB,6,
-C603,2.2u / 10V X7R,,Capacitor_SMD:C_0805_2012Metric,,PCB,6,
-C604,100n / 16V,,Capacitor_SMD:C_0603_1608Metric,,PCB,6,
-C605,2.2u / 10V X7R,,Capacitor_SMD:C_0805_2012Metric,,PCB,6,
-C606,2.2u / 10V X7R,,Capacitor_SMD:C_0805_2012Metric,,PCB,6,
-C607,2.2u / 10V X7R,,Capacitor_SMD:C_0805_2012Metric,,PCB,6,
+D601,PESD5V0S1BA,"Nexperia PESD5V0S1BA,115",Diode_SMD:D_SOD-323,https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf,PCB,6,C19224
+D602,PESD5V0S1BA,"Nexperia PESD5V0S1BA,115",Diode_SMD:D_SOD-323,https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf,PCB,6,C19224
+C603,2.2u / 25V X7R,Samsung CL21B225KAFNNNE,Capacitor_SMD:C_0805_2012Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf,PCB,6,C19110
+C604,100n / 50V X7R,YAGEO CC0603KRX7R9BB104,Capacitor_SMD:C_0603_1608Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf,PCB,6,C14663
+C605,2.2u / 25V X7R,Samsung CL21B225KAFNNNE,Capacitor_SMD:C_0805_2012Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf,PCB,6,C19110
+C606,2.2u / 25V X7R,Samsung CL21B225KAFNNNE,Capacitor_SMD:C_0805_2012Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf,PCB,6,C19110
+C607,2.2u / 25V X7R,Samsung CL21B225KAFNNNE,Capacitor_SMD:C_0805_2012Metric,https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf,PCB,6,C19110
 J202,"TO MIDI PANEL / 4,5",,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,,PCB,2,
 J302,"TO EXP PANEL / T,R,S",,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,,PCB,3,
 J503,"TO LINE PANEL / T,S",,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,,PCB,5,

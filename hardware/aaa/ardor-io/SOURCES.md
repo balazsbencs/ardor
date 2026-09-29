@@ -24,3 +24,9 @@ KiCad's standard symbols were copied into a project-local library. The OPA2320 u
 - [Samsung CL31B106KBHNNNE specification](https://media.digikey.com/pdf/Data%20Sheets/Samsung%20PDFs/CL31B106KBHNNNE_Spec.pdf) — 10 µF, 50 V, X7R, ±10%, 1206 dimensions and assembly guidance.
 - [JLCPCB C89632](https://jlcpcb.com/partdetail/90812-CL31B106KBHNNNE/C89632) — exact Samsung part and SMT assembly sourcing, checked 8 September 2026.
 - [TI: Selecting capacitors to minimize distortion in audio applications](https://www.ti.com/lit/an/slyt796a/slyt796a.pdf) — rationale and limits of increasing ceramic coupling capacitance.
+
+## Review-fix references — checked 29 September 2026
+
+- [Alpha & Omega AO3400A datasheet](https://www.aosmd.com/res/data_sheets/AO3400A.pdf) — 30 V MOSFET; 48 mΩ maximum at 2.5 V gate drive, SOT-23 pinout.
+- [Panasonic FK series catalog](https://industrial.panasonic.com/cdbs/www-data/pdf/RDE0000/ABA0000C1181.pdf) — EEEFK1C470P selection, 6.3 × 5.8 mm case, and size D recommended 1.8 mm gap / 3.2 × 1.6 mm lands.
+- MIDI CA-033 above, page 3: the MIDI IN shield has no DC connection to receiver ground. The selected mounting arrangement therefore insulates the DIN shell from the audio-jack-bonded enclosure.

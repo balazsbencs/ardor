@@ -8,6 +8,8 @@ Open `../Ardor_IO.kicad_pro` and `../Ardor_IO.kicad_pcb` in KiCad 9.
 - Short local op-amp feedback and headphone charge-pump connections precede local Freerouting 2.4.1 routing. Both copper layers have GND pours, with stitching vias. The MIDI input island excludes GND pour and retains the original optocoupler routing isolation corridor.
 - Signal routing is nominally 0.20 mm with local 0.15 mm neckdowns; selected power/ground routes are 0.40 mm, headphone/pump routes up to 0.30 mm, and CHASSIS routes up to 0.60 mm. Widths narrow where needed to maintain clearance. Minimum clearance is 0.15 mm. Routing vias are 0.60/0.30 mm; the original U601 footprint also has 0.20 mm thermal drills.
 
+The 29 September width cleanup widened 36 whole segments and shortened 22 constrained neckdowns. Width-change junctions fell from 127 to 111, with all route centerlines and vias retained. [Review and before/after views](../review/TRACK_WIDTH_REVIEW.md) document the changes. The current PCB has 764 track segments and 66 vias.
+
 ## Labels and wiring
 
 Front silkscreen identifies connector functions and physical pin order. References remain on F.Fab for assembly. The pin numbers below refer to the board headers, not unspecified panel jack footprints.
@@ -55,8 +57,14 @@ The scripts require KiCad 9's Python `pcbnew` and wx modules. A headless machine
 5. `design/refine_copper.py` widens candidate traces, adds candidate stitching vias and snapshots package libraries. Run KiCad DRC to `routing/refine-drc.json`, then `design/check_copper.py` to reject conflicting candidates. Recheck; repeat only if needed, using the latest report.
 6. Run `design/finish_dense_ground.py` to stitch the three small Pi-header ground pockets. Run the final check below, then `design/verify_pcb.py` and `design/verify_smd_capacitors.py`. Regenerate previews after changes.
 
+The coarse widening/rollback stage can leave arbitrary mid-route width changes. Inspect and reconcile those after a rebuild. `design/track-width-cleanup.json` records the reviewed cleanup of the archived 29 September input board; its hash-checked application script is a one-time migration, not a step that can be applied to newly autorouted geometry.
+
 ```sh
 kicad-cli pcb drc --schematic-parity --all-track-errors --severity-all \
   --exit-code-violations --format json -o routing/drc.json Ardor_IO.kicad_pcb
 python3 design/verify_pcb.py
 ```
+
+## Review corrections — 29 September 2026
+
+Q501 is AO3400A. C501 is EEEFK1C470P with a local Panasonic size D footprint (3.2 × 1.6 mm pads; 1.8 mm gap). Its position and existing routes are retained; pours, previews, exported netlists and checks were refreshed. `compact.dsn` / `compact.ses` are the earlier routing exchange snapshot and predate these footprint/part corrections; the current `.kicad_pcb` is authoritative. See [fix verification](../review/FIXES.md).

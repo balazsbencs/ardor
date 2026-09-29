@@ -3,7 +3,8 @@
 Open **Ardor_IO.kicad_pro** in KiCad 9. The root schematic opens five functional sheets. **Ardor_IO.kicad_pcb** is the routed 68 × 46 mm compact board (45.7% less area than the previous 90 × 64 mm board; 60.9% less than the original 100 × 80 mm placement).
 
 - **Ardor_IO.pdf** — printable six-sheet schematic.
-- **BOM.csv** — component values, critical part numbers and footprints.
+- **BOM.csv** — component values, exact SMT manufacturer/JLCPCB part numbers and footprints.
+- **[assembly/](assembly/README.md)** — stocked JLCPCB selections, BOM/CPL and Gerbers for **two boards, top-side SMT only**, plus the separate hand-assembly list.
 - **DESIGN_NOTES.md** — wiring, GPIOs, signal levels, firmware sequence, layout guidance and production-release tests.
 - **SOURCES.md** — primary data sheets and interface references.
 - **verification/** — schematic ERC, exported netlist and connectivity audit.
@@ -18,3 +19,5 @@ Rev A is a checked engineering prototype schematic, not a bench-qualified produc
 The compact layout retains all 95 schematic components and the existing panel-harness interfaces. Connector functions/pins and testpoint signals are on front silkscreen; JP301 shunt instructions are on the back. Component references remain on F.Fab. Four M3 holes are provisional enclosure mounts, not a verified Raspberry Pi mounting pattern. Confirm mechanical fit and stack height before ordering.
 
 C401/C402/C502/C601/C602 are now 10 µF / 50 V Samsung X7R ceramic capacitors (CL31B106KBHNNNE, JLCPCB C89632) in standard 1206 footprints. See [SMD capacitor selection](routing/SMD_CAPACITORS.md).
+
+Review fixes (29 September 2026): Q501 is AO3400A; C501 is Panasonic EEEFK1C470P with manufacturer-specific local lands. The aluminium enclosure is bonded through audio jack sleeves; the MIDI input shell is insulated and unconnected. See [fix verification](review/FIXES.md) and the updated [connected single-page schematic](review/Ardor_IO_connected.pdf).

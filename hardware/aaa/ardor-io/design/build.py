@@ -3,6 +3,7 @@ import sys,uuid,math,json,csv,copy
 import sexpdata as sx
 from inspect_lib import get,key
 OUT=Path(__file__).resolve().parents[1]
+JLC_PARTS={ref:part for part in json.loads((OUT/'assembly/parts.json').read_text())['parts'] for ref in part['references']}
 S=sx.Symbol
 uid=lambda:str(uuid.uuid4())
 q=lambda x:json.dumps(str(x),ensure_ascii=False)
@@ -38,6 +39,10 @@ class Page:
  def label(self,net,p,ang=0):
   self.items.append(f'(global_label {q(net)} (shape passive) (at {p[0]} {p[1]} {ang}) (effects (font (size 1.1 1.1)) (justify {"right" if ang==180 else "left"})) (uuid {q(uid())}) (property "Intersheetrefs" "${{INTERSHEET_REFS}}" (at {p[0]} {p[1]} {ang}) (effects (font (size 1 1)) (hide yes))))')
  def add(self,lid,ref,val,x,y,rot=0,unit=1,fp='',mpn='',ds='',board=True,dnp=False):
+  selected=JLC_PARTS.get(ref);jlc=''
+  if selected:
+   assert fp==selected['footprint'],ref
+   val=selected.get('schematic_value',val);mpn=selected['bom_mpn'];ds=selected['datasheet'];jlc=selected['jlcpcb_part']
   self.used.add(lid); sym=lib[lid]; id=uid(); pins={}
   for b in sym:
    if key(b)=='symbol' and int(b[1].split('_')[-2]) in [0,unit]:
@@ -61,11 +66,11 @@ class Page:
   if lid==HP:rx,ry,vx,vy=x+16,y-23,x+16,y-20
   if lid==FLAG:rx,ry,vx,vy=x,y,x,y
   props=''
-  for pn,pv,px,py,hide in [('Reference',ref,rx,ry,lid==FLAG),('Value',val,vx,vy,lid==FLAG),('Footprint',fp,x,y,True),('Datasheet',ds,x,y,True),('MPN',mpn,x,y,True),('JLCPCB Part #','C89632' if mpn=='Samsung CL31B106KBHNNNE' else '',x,y,True)]:
+  for pn,pv,px,py,hide in [('Reference',ref,rx,ry,lid==FLAG),('Value',val,vx,vy,lid==FLAG),('Footprint',fp,x,y,True),('Datasheet',ds,x,y,True),('MPN',mpn,x,y,True),('JLCPCB Part #',jlc,x,y,True)]:
    props+=f'(property {q(pn)} {q(pv)} (at {px} {py} {rot}) (effects (font (size 1.15 1.15))'+(' (hide yes)' if hide else (' (justify left)' if lid in [R,C,CP,FB] and rot==0 else ''))+'))'
   paths=f'(instances (project "Ardor_IO" (path {q("/"+root.id+ ("/"+self.sheet_id if hasattr(self,"sheet_id") else ""))} (reference {q(ref)}) (unit {unit}))))'
   self.items.append(f'(symbol (lib_id {q(lid)}) (at {x} {y} {rot}) (unit {unit}) (in_bom {"no" if lid==FLAG else "yes"}) (on_board {"yes" if board else "no"}) (dnp {"yes" if dnp else "no"}) (uuid {q(id)}) {props} '+''.join(f'(pin {q(n)} (uuid {q(uid())}))' for n in pins)+paths+')')
-  if lid!=FLAG: bom[ref]={'Reference':ref,'Value':val,'MPN':mpn,'Footprint':fp,'Datasheet':ds,'Assembly':'DNP' if dnp else ('PCB' if board else 'Panel / wired'),'Sheet':self.num,'JLCPCB Part #':'C89632' if mpn=='Samsung CL31B106KBHNNNE' else ''}
+  if lid!=FLAG: bom[ref]={'Reference':ref,'Value':val,'MPN':mpn,'Footprint':fp,'Datasheet':ds,'Assembly':'DNP' if dnp else ('PCB' if board else 'Panel / wired'),'Sheet':self.num,'JLCPCB Part #':jlc}
   return (ref,unit)
  def p(self,o,n):return self.pins[o][str(n)][:2]
  def assign(self,o,n,net):
@@ -131,13 +136,13 @@ root.two(FB,'FB102','600R @100MHz',190.5,157.48,'+3V3_PI','+3V3_ADC',mpn='Murata
 root.cap('C103','10u / 10V X7R',228.6,160.02,'+3V3_ADC',fp=FP_C8)
 root.cap('C104','100n / 16V',266.7,160.02,'+3V3_ADC')
 root.two(R,'R101','0R / chassis bond',195.58,203.2,'GND','CHASSIS',fp='Resistor_SMD:R_1206_3216Metric')
-root.text('Bond enclosure at connector entry. Short, wide copper.\nUse one continuous PCB ground plane; place by function.\nDo not route ESD or charge-pump return through ADC/audio.\n5 V source: 4.75-5.25 V; reserve 150 mA beyond Pi/Codec.\nPi provides 3.3 V. No second supply or USB back-feed.',165,222,1.3)
+root.text('Audio jack sleeves bond GND to aluminium enclosure.\nUse one continuous PCB ground plane; place by function.\nR101 bonds TVS CHASSIS to GND; keep sleeve leads short.\n5 V source: 4.75-5.25 V; reserve 150 mA beyond Pi/Codec.\nPi provides 3.3 V. No second supply or USB back-feed.',165,222,1.3)
 for net,x in [('+5V_PI',30),('+3V3_PI',70),('GND',110),('+5V_A',150),('+3V3_ADC',190),('CHASSIS',230)]:root.flag(net,round(x/1.27)*1.27,260.35)
 # MIDI
 m.text('5-PIN DIN / FLOATING CURRENT LOOP',20,45,1.7)
 j=m.add(DIN,'J201','MIDI IN - PANEL DIN',43.18,76.2,board=False)
 m.nets(j,{'4':'MIDI_4','5':'MIDI_5','1':None,'2':None,'3':None})
-m.text('Female DIN, 180 degrees. Use contact numbers,\nnot an assumed solder-side drawing.\nPins 1, 2, 3 have NO PCB connection.\nMetal shell bonded to enclosure mechanically.',20,99,1.3)
+m.text('Female DIN, 180 degrees. Use contact numbers,\nnot an assumed solder-side drawing.\nPins 1, 2, 3 have NO PCB connection.\nInsulate DIN shell from metal enclosure; leave open.',20,99,1.3)
 m.two(FB,'FB201','600R @100MHz',104.14,66.04,'MIDI_4','MIDI_4_F',mpn='Murata BLM18AG601SN1D')
 m.two(R,'R201','220R / 1%',149.86,66.04,'MIDI_4_F','MIDI_A')
 m.two(FB,'FB202','600R @100MHz',104.14,96.52,'MIDI_5','MIDI_K',mpn='Murata BLM18AG601SN1D')
@@ -170,7 +175,7 @@ E.two(SCH,'D303','BAT54H',312.42,68.58,'+3V3_ADC','EXP_ADC',rot=0,mpn='Nexperia 
 E.two(SCH,'D304','BAT54H',312.42,99.06,'EXP_ADC','GND',rot=0,mpn='Nexperia BAT54H,115',fp='Diode_SMD:D_SOD-123F')
 E.two(TVS,'D301','PESD5V0S1BA',55.88,157.48,'EXP_TIP','CHASSIS',rot=0,mpn='Nexperia PESD5V0S1BA')
 E.two(TVS,'D302','PESD5V0S1BA',119.38,157.48,'EXP_RING','CHASSIS',rot=0,mpn='Nexperia PESD5V0S1BA')
-E.text('TVS at jack entry; R302 then clamp pair at ADC.\nR301 limits insertion/short current to <=3.5 mA.\nPassive pedals only; no powered CV source.\nCalibrate endpoints to remove pot loading error.',20,184,1.3)
+E.text('TVS at jack entry; R302 then clamp pair at ADC.\nR301 limits insertion/short current to <=3.5 mA.\nPassive pedals only; no powered CV source.\nCalibrate endpoints; pot loading remains nonlinear.',20,184,1.3)
 u=E.add(ADC,'U301','ADS1115IDGS',256.54,172.72,fp='Package_SO:VSSOP-10_3x3mm_P0.5mm',mpn='TI ADS1115IDGSR',ds='https://www.ti.com/lit/ds/symlink/ads1115.pdf')
 E.nets(u,{'1':'GND','2':None,'3':'GND','4':'EXP_ADC','5':'EXP_REF_ADC','6':'GND','7':'GND','8':'+3V3_ADC','9':'ADC_SDA','10':'ADC_SCL'})
 E.two(R,'R304','10k / 1%',175.26,231.14,'EXP_EXC','EXP_REF_ADC')
@@ -209,11 +214,11 @@ buffer(A,'U402',2,220.98,208.28,'VREF_DIV','VREF')
 for ref,x in [('U401',292.1),('U402',350.52)]:
  u=A.add(OP,ref,'OPA2320AIDR',x,205.74,unit=3,fp=FP_SO,mpn='TI OPA2320AIDR',ds='https://www.ti.com/lit/ds/symlink/opa2320.pdf');A.nets(u,{'8':'+5V_A','4':'GND'})
 A.cap('C404','100n / 16V',292.1,238.76,'+5V_A');A.cap('C405','100n / 16V',350.52,238.76,'+5V_A')
-A.text('Nominal audio target <=1.0 Vrms per AUX channel. Unity gain throughout.\nOPA2320: RRIO on 5 V, unity stable; 2.5 V bias permits bipolar audio swing.\n2.2u/100k input pole ~0.72 Hz. Keep VREF local; no large capacitor directly on buffer output.',20,252,1.3)
+A.text('Nominal audio target <=1.0 Vrms per AUX channel. Unity gain throughout.\nOPA2320: RRIO on 5 V, unity stable; 2.5 V bias permits bipolar audio swing.\n10u/100k input pole ~0.159 Hz. Keep VREF local; no large capacitor directly on buffer output.',20,252,1.3)
 # line and amp feed
 L=l;L.text('MONO LINE / DC BLOCK / STARTUP RELAY MUTE',20,45,1.7)
 buffer(L,'U501',1,50.8,71.12,'MONO_BUF','LINE_BUF')
-L.two(CP,'C501','47u / 16V',114.3,71.12,'LINE_BUF','LINE_AC',fp='Capacitor_SMD:CP_Elec_6.3x5.4',mpn='Panasonic EEE-FK1C470R')
+L.two(CP,'C501','47u / 16V',114.3,71.12,'LINE_BUF','LINE_AC',fp='Ardor_Capacitor:CP_Elec_Panasonic_FK_D6.3_H5.8',mpn='Panasonic EEEFK1C470P',ds='https://industrial.panasonic.com/cdbs/www-data/pdf/RDE0000/ABA0000C1181.pdf')
 L.two(R,'R501','10k',162.56,96.52,'LINE_AC','GND',rot=0)
 L.two(R,'R502','100R / 1%',203.2,71.12,'LINE_AC','LINE_DRIVE')
 # relay using custom imported signal relay
@@ -224,8 +229,12 @@ L.nets(k,{'2':'+5V_PI','9':'RELAY_LOW','5':'LINE_JACK','6':'LINE_JACK','1':'GND'
 j=L.add(JACK2,'J501','LINE OUT / 6.3mm TS',370.84,71.12,board=False);L.nets(j,{'T':'LINE_JACK','S':'GND'})
 L.two(TVS,'D501','PESD5V0S1BA',325.12,121.92,'LINE_JACK','CHASSIS',rot=0,mpn='Nexperia PESD5V0S1BA')
 L.text('Relay de-energized: jack tip grounded, source disconnected.\nEnergized: buffered mono reaches tip. Load >=10k.\nC501 positive faces LINE_BUF; resistor outside feedback.\nNo balanced / +4 dBu / phantom-power capability specified.',20,123,1.3)
-NM=fetch('Transistor_FET','2N7002')
-u=L.add(NM,'Q501','2N7002',220.98,165.1,fp='Package_TO_SOT_SMD:SOT-23',mpn='Nexperia 2N7002');L.nets(u,{'1':'RELAY_GATE','2':'GND','3':'RELAY_LOW'})
+NM=fetch('Transistor_FET','2N7002','AO3400A')
+for field in lib[NM]:
+ if key(field)=='property' and field[1]=='Value':field[2]='AO3400A'
+ if key(field)=='property' and field[1]=='Datasheet':field[2]='https://www.aosmd.com/res/data_sheets/AO3400A.pdf'
+ if key(field)=='property' and field[1]=='Description':field[2]='30 V N-channel MOSFET; RDS(on) max 48 mOhm at VGS=2.5 V; SOT-23 G1 S2 D3'
+u=L.add(NM,'Q501','AO3400A',220.98,165.1,fp='Package_TO_SOT_SMD:SOT-23',mpn='Alpha & Omega AO3400A',ds='https://www.aosmd.com/res/data_sheets/AO3400A.pdf');L.nets(u,{'1':'RELAY_GATE','2':'GND','3':'RELAY_LOW'})
 L.two(R,'R503','1k',134.62,162.56,'LINE_ENABLE','RELAY_GATE')
 L.two(R,'R504','100k',175.26,193.04,'RELAY_GATE','GND',rot=0)
 L.two(D,'D502','1N4148W',279.4,162.56,'+5V_PI','RELAY_LOW',rot=0,fp=FP_S,mpn='1N4148W')

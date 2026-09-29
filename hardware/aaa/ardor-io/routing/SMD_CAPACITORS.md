@@ -1,6 +1,6 @@
 # SMD audio coupling capacitors
 
-C401, C402, C502, C601 and C602 use **Samsung CL31B106KBHNNNE**, **10 µF / 50 V / X7R / ±10%**, nonpolar ceramic in **1206**. JLCPCB part number **C89632** is included in the schematic, PCB fields and BOM for these five parts. Blank JLCPCB fields on other BOM rows mean those parts have not been mapped by this change.
+C401, C402, C502, C601 and C602 use **Samsung CL31B106KBHNNNE**, **10 µF / 50 V / X7R / ±10%**, nonpolar ceramic in **1206**. JLCPCB part number **C89632** is included in the schematic, PCB fields and BOM for these five parts. The subsequent [full SMT inventory mapping](../assembly/README.md) covers all 76 SMT placements; blank JLCPCB fields now belong to hand-assembled parts, panel connectors or bare test pads.
 
 ## Selection and sourcing
 

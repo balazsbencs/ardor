@@ -1,0 +1,16 @@
+Designator,Value,MPN,Footprint,Quantity for 2 boards,Assembly
+J101,PI 40-PIN HEADER,Samtec SSQ-120-03-G-D (verify stack height),Connector_PinSocket_2.54mm:PinSocket_2x20_P2.54mm_Vertical,2,Hand solder
+J102,CODEC AUX L / GND / R,,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,2,Hand solder
+J201,MIDI IN - PANEL DIN,,,2,Panel / wire by hand
+U201,H11L1M,onsemi H11L1M,Package_DIP:DIP-6_W7.62mm,2,Hand solder
+J301,EXPRESSION / 6.3mm TRS,,,2,Panel / wire by hand
+JP301,POLARITY / 2 SHUNTS,,Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical,2,Hand solder
+K501,G5V-1 DC5,Omron G5V-1 DC5,Relay_THT:Relay_SPDT_Omron_G5V-1,2,Hand solder
+J501,LINE OUT / 6.3mm TS,,,2,Panel / wire by hand
+J502,TO YOUR AMP CIRCUIT,,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,2,Hand solder
+J601,HEADPHONES / 3.5mm TRS,,,2,Panel / wire by hand
+J202,"TO MIDI PANEL / 4,5",,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,2,Hand solder
+J302,"TO EXP PANEL / T,R,S",,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,2,Hand solder
+J503,"TO LINE PANEL / T,S",,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,2,Hand solder
+J602,"TO HP PANEL / T,R,S",,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,2,Hand solder
+JP301 shunts,2.54 mm jumper shunt,,Two shunts per JP301,4,Fit by hand
