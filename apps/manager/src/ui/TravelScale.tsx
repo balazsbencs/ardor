@@ -107,7 +107,7 @@ export function TravelScale({ control, value, family, onChange, onFocusControl, 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Home" || event.key === "End") {
       event.preventDefault();
-      onChange(event.key === "Home" ? control.minimum : control.maximum, burstGesture());
+      onChange(snapValue(control, event.key === "Home" ? control.minimum : control.maximum), burstGesture());
       return;
     }
     const moves: Record<string, [1 | -1, boolean]> = {
@@ -133,7 +133,7 @@ export function TravelScale({ control, value, family, onChange, onFocusControl, 
       <div ref={scaleRef} className="lb-scale" role="slider" tabIndex={0} aria-label={control.label}
         aria-valuemin={control.minimum} aria-valuemax={control.maximum} aria-valuenow={value} aria-valuetext={text}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
-        onKeyDown={onKeyDown} onFocus={onFocusControl} onDoubleClick={() => onChange(control.defaultValue, newGesture())}>
+        onKeyDown={onKeyDown} onFocus={onFocusControl} onDoubleClick={() => onChange(snapValue(control, control.defaultValue), newGesture())}>
         <span className="lb-scale__ticks" />
         <span className="lb-scale__track"><span className="lb-scale__fill" style={{ width: percent }} /><span className="lb-scale__thumb" style={{ left: percent }} /></span>
       </div>

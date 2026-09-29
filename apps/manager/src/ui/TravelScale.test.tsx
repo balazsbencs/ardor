@@ -40,6 +40,16 @@ describe("TravelScale", () => {
     expect(onChange.mock.calls.map(([v]) => v)).toEqual([1, 0, 0.25]);
   });
 
+  it("snaps Home, End and reset to a choice on stepped controls", () => {
+    const onChange = vi.fn();
+    render(<TravelScale control={stepped} value={0.5} family="dly" onChange={onChange} />);
+    const slider = screen.getByRole("slider", { name: "Time" });
+    fireEvent.keyDown(slider, { key: "End" });
+    fireEvent.keyDown(slider, { key: "Home" });
+    fireEvent.doubleClick(slider);
+    expect(onChange.mock.calls.map(([v]) => v)).toEqual([0.9, 0.1, 0.1]);
+  });
+
   it("sets the value from the pointer position", () => {
     const onChange = vi.fn();
     render(<TravelScale control={mix} value={0.3} family="dly" onChange={onChange} />);
