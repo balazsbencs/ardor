@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ArdorApiClient } from "../api/client";
 import { ArdorApiError } from "../api/errors";
-import type { DeviceStatus, Preset } from "../api/types";
+import type { AssetUsageEntry, DeviceStatus, Preset } from "../api/types";
 import { renderWithProviders } from "../test/render";
 import {
   DeviceSessionProvider,
@@ -41,6 +42,7 @@ function mockClient(overrides: Partial<ArdorApiClient> = {}): ArdorApiClient {
 
 function Probe() {
   const session = useDeviceSession();
+  const [refreshResult, setRefreshResult] = useState("idle");
   return (
     <div>
       <span data-testid="status">{session.status}</span>
@@ -53,6 +55,11 @@ function Probe() {
       <span data-testid="reverb-ir-support">{String(session.supportsReverbIrs)}</span>
       <span data-testid="asset-usage">{session.assetUsage ? JSON.stringify(session.assetUsage) : "undefined"}</span>
       <button type="button" onClick={() => void session.refreshAssets("models")}>Refresh models</button>
+      <button type="button" onClick={() => session.refreshAssets("models").then(
+        () => setRefreshResult("resolved"), () => setRefreshResult("rejected"))}>Refresh models checked</button>
+      <button type="button" onClick={() => session.refreshAssetUsage().then(
+        () => setRefreshResult("resolved"), () => setRefreshResult("rejected"))}>Refresh usage</button>
+      <span data-testid="refresh-result">{refreshResult}</span>
       <span>{session.error?.message}</span>
       <button type="button" onClick={() => void session.connect("http://pedal", "secret")}>Connect</button>
       <button type="button" onClick={session.disconnect}>Disconnect</button>
@@ -101,6 +108,40 @@ describe("DeviceSessionProvider", () => {
     await userEvent.click(screen.getByRole("button", { name: "Connect" }));
     expect(await screen.findByText("connected")).toBeInTheDocument();
     expect(screen.getByTestId("asset-usage")).toHaveTextContent("undefined");
+  });
+
+  it("connects with unknown asset usage when the usage request fails", async () => {
+    const client = mockClient({ getAssetUsage: vi.fn(async () => { throw new Error("404"); }) });
+    renderSession(() => client);
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    expect(await screen.findByText("connected")).toBeInTheDocument();
+    expect(screen.getByTestId("asset-usage")).toHaveTextContent("undefined");
+  });
+
+  it("resolves an asset refresh and clears usage when the usage request fails", async () => {
+    const usage = [{ path: "models/clean.nam", presets: [{ bank: 0, slot: 0, name: "Clean" }] }];
+    const getAssetUsage = vi.fn(async () => usage);
+    renderSession(() => mockClient({ getAssetUsage }));
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    expect(await screen.findByText("connected")).toBeInTheDocument();
+    expect(screen.getByTestId("asset-usage")).toHaveTextContent(JSON.stringify(usage));
+    getAssetUsage.mockImplementation(async () => { throw new Error("boom"); });
+    await userEvent.click(screen.getByRole("button", { name: "Refresh models checked" }));
+    await waitFor(() => expect(screen.getByTestId("refresh-result")).toHaveTextContent("resolved"));
+    expect(screen.getByTestId("asset-usage")).toHaveTextContent("undefined");
+  });
+
+  it("updates asset usage through refreshAssetUsage", async () => {
+    const first: AssetUsageEntry[] = [{ path: "models/a.nam", presets: [] }];
+    const second = [{ path: "models/a.nam", presets: [{ bank: 1, slot: 2, name: "X" }] }];
+    const getAssetUsage = vi.fn(async () => first);
+    renderSession(() => mockClient({ getAssetUsage }));
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    expect(await screen.findByText("connected")).toBeInTheDocument();
+    getAssetUsage.mockImplementation(async () => second);
+    await userEvent.click(screen.getByRole("button", { name: "Refresh usage" }));
+    await waitFor(() => expect(screen.getByTestId("asset-usage")).toHaveTextContent(JSON.stringify(second)));
+    expect(screen.getByTestId("refresh-result")).toHaveTextContent("resolved");
   });
 
   it("connects automatically when running as the device-hosted manager", async () => {

@@ -119,7 +119,14 @@ function hasPreset(summaries: PresetSlotSummary[], location: PresetLocation): bo
 }
 
 async function loadAssetUsage(client: ManagerTransport): Promise<AssetUsageEntry[] | undefined> {
-  return client.getAssetUsage ? client.getAssetUsage() : undefined;
+  if (!client.getAssetUsage) return undefined;
+  try {
+    return await client.getAssetUsage();
+  } catch {
+    // Usage is auxiliary: older firmware may lack the route, so treat any
+    // failure as "unknown" rather than failing the caller's operation.
+    return undefined;
+  }
 }
 
 async function loadReverbIrInventory(client: ManagerTransport): Promise<{ assets: Asset[]; supported: boolean }> {
