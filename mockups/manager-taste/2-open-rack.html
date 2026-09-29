@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Rack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Saira:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css?v=1790703660">
+<style>
+  /* Direction 2: the cutaway. Every block is open at once, so the whole
+     preset reads left to right like a rack with the covers off. No
+     inspector, no drawer: you edit a value where you see it. */
+  body { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--bar-h) auto 1fr auto; height: 100vh; height: 100dvh; overflow: hidden; }
+
+  .shelf { display: flex; align-items: stretch; gap: 10px; padding: 10px var(--gut); border-bottom: 1px solid var(--rule); background: var(--recess); }
+  .shelf__bank { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 0 14px; border: 1px solid var(--rule); background: var(--ground); min-width: 150px; text-align: left; }
+  .shelf__bank b { font: 700 20px/1 var(--f-cond); }
+  .shelf__bank span { font: 500 12px/1 var(--f-cond); letter-spacing: .1em; text-transform: uppercase; color: var(--bone-2); display: flex; gap: 6px; align-items: center; }
+  .shelf__tiles { flex: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; isolation: isolate; }
+  .shelf .tile { padding: 8px 12px; gap: 6px; flex-direction: row; align-items: center; }
+  .shelf .tile.is-edit:not(.is-live) { padding: 7px 11px; }
+  .shelf .tile__top { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .shelf .tile__name { font-size: 19px; flex: 1; }
+  .shelf .tile .strip { display: none; }
+  .shelf__tools { display: flex; align-items: center; gap: 8px; }
+
+  .rack { min-height: 0; position: relative; }
+  .rack__scroll { height: 100%; padding: 16px var(--gut) 16px; }
+  .rack__row { display: flex; align-items: stretch; gap: 0; height: 100%; min-width: max-content; }
+  .rack__row > .chain__list { align-items: stretch; height: 100%; }
+  .rack .ins { align-self: flex-start; margin: 7px 8px 0; }
+  .rackjack { flex: none; align-self: flex-start; width: 64px; height: 44px; border: 2px solid var(--bone-3); display: flex; flex-direction: column; align-items: center; justify-content: center; font: 700 14px/1 var(--f-cond); letter-spacing: .1em; }
+  .rackjack small { font: 500 10px/1.3 var(--f-cond); color: var(--muted); letter-spacing: .14em; }
+  .wire-top { flex: none; width: 14px; height: 3px; background: var(--bone-3); margin-top: 21px; align-self: flex-start; }
+
+  .rk { width: 256px; height: 100%; background: var(--plate); border: 1px solid var(--rule); display: flex; flex-direction: column; flex: none; position: relative; user-select: none; }
+  .rk.is-sel { border-color: var(--bone); box-shadow: inset 0 0 0 1px var(--bone); }
+  .rk.is-off .rk__ctls { background: repeating-linear-gradient(135deg, transparent 0 10px, rgba(255,255,255,.025) 10px 13px); }
+  .rk.is-off .rk__ctls > * { opacity: .5; }
+  .rk.is-off .blk__cap { opacity: .5; }
+  .rk.is-off .rk__name { color: var(--bone-3); }
+  .rk .blk__cap { position: relative; }
+  .rk__id { padding: 12px 12px 10px; border-bottom: 1px solid var(--rule); text-align: left; background: none; border-left: 0; border-right: 0; border-top: 0; width: 100%; }
+  .rk__name { font: 700 24px/1 var(--f-cond); text-transform: uppercase; display: block; }
+  .rk__sub { font: 500 12.5px/1.3 var(--f-body); color: var(--bone-2); display: flex; gap: 8px; margin-top: 6px; }
+  .rk__ctls { flex: 1; min-height: 0; overflow-y: auto; padding: 10px; display: grid; gap: 8px; align-content: start; scrollbar-width: thin; scrollbar-color: var(--rule-strong) transparent; }
+  .rk__ctls .ctl { background: var(--ground); }
+  .rk__ctls .choice button { height: 28px; font-size: 12px; padding: 0 8px; }
+  .rk__foot { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--rule); }
+  .rk__foot .btn { flex: 1; }
+  .rk .eq-edit .choice { display: none; }
+  .rk .eq-edit { padding: 8px 10px; }
+  .rk--out { width: 230px; }
+  .rk--out .gpanel { grid-template-columns: 1fr; }
+  .rk--out .gpanel .ctl__val { font-size: 24px; }
+
+  .rk-rig { display: flex; align-items: stretch; height: 100%; flex: none; }
+  .rk-rig__node { width: 52px; align-self: flex-start; height: 120px; border: 2px solid var(--bone-3); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font: 700 11px/1.1 var(--f-cond); letter-spacing: .12em; color: var(--bone-2); background: var(--ground); text-align: center; cursor: grab; }
+  .rk-rig__lanes { display: grid; grid-template-rows: 1fr 1fr; gap: 10px; padding: 0 6px; border-left: 3px solid var(--bone-3); border-right: 3px solid var(--bone-3); }
+  .rk-rig__lane { display: flex; align-items: stretch; min-height: 0; }
+  .rk-rig__lane .chain__list { align-items: stretch; }
+  .rk-rig__lane .rk { height: 100%; width: 220px; }
+  .rk-rig__lane .rk__foot { display: none; }
+  .rk-rig__tag { width: 28px; flex: none; display: flex; align-items: flex-start; justify-content: center; padding-top: 12px; font: 700 15px/1 var(--f-cond); color: var(--ground); }
+
+  .map { display: flex; align-items: center; gap: 12px; padding: 10px var(--gut); border-top: 1px solid var(--rule); background: var(--recess); }
+  .map__track { position: relative; flex: 1; min-width: 0; }
+  .map__track .chains-map { display: flex; gap: 3px; }
+  .map__seg { flex: 1 1 0; min-width: 0; height: 30px; border: 0; padding: 0 6px; background: var(--fam); color: var(--ground); font: 500 11px/1 var(--f-mono); text-align: left; overflow: hidden; white-space: nowrap; touch-action: pan-y; }
+  .map__seg.off { background: var(--plate-hi); color: var(--bone-3); }
+  .map__seg.is-sel { box-shadow: inset 0 0 0 2px var(--bone), inset 0 0 0 3px var(--ground); }
+  .map__win { position: absolute; top: -5px; bottom: -5px; border: 2px solid var(--bone); pointer-events: none; }
+  .map__label { font: 600 12px/1 var(--f-cond); letter-spacing: .16em; color: var(--bone-2); white-space: nowrap; }
+
+  @media (max-width: 1180px) {
+    .shelf { flex-wrap: wrap; }
+    .shelf__tiles { order: 3; flex-basis: 100%; }
+    .shelf__tools { margin-left: auto; }
+  }
+  @media (max-width: 720px) {
+    body { grid-template-rows: var(--bar-h) auto auto 1fr; }
+    .appbar .where span, .appbar .conn, .appbar .tag, .appbar .btn--sm { display: none; }
+    .shelf { padding: 8px var(--gut); gap: 8px; }
+    .shelf__bank { min-width: 0; flex: 1; padding: 8px 12px; }
+    .shelf__tiles { display: flex; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * var(--gut)); padding: 0 var(--gut); }
+    .shelf__tiles .tile { flex: 0 0 46%; }
+    .shelf__tools .lbl { display: none; }
+    .shelf__tools .seg { display: none; }
+    .map { order: -1; grid-row: 3; padding: 8px var(--gut); border-top: 0; border-bottom: 1px solid var(--rule); }
+    .map__label { display: none; }
+    .map__seg { font-size: 0; padding: 0; height: 26px; }
+    .rack { grid-row: 4; }
+    .rack__scroll { scroll-snap-type: x mandatory; padding: 12px var(--gut); }
+    .rk, .rk--out { width: calc(100vw - 2 * var(--gut) - 10px); scroll-snap-align: center; }
+    .rack .ins, .wire-top, .rackjack { display: none; }
+    .rack__row > .chain__list { gap: 10px; }
+    .rk-rig__lane .rk { width: calc(100vw - 2 * var(--gut) - 110px); }
+  }
+</style>
+</head>
+<body data-wheel="focus">
+<header class="appbar" id="bar"></header>
+<section class="shelf" id="shelf" aria-label="Bank and presets"></section>
+<main class="rack" id="rack"></main>
+<nav class="map" id="map" aria-label="Chain overview"></nav>
+
+<script src="data.js?v=1790703660"></script>
+<script src="core.js?v=1790703660"></script>
+<script src="render.js?v=1790703660"></script>
+<script src="chrome.js?v=1790703660"></script>
+<script src="interact.js?v=1790703660"></script>
+<script>
+(function () {
+  "use strict";
+  const A = window.Ardor;
+  const esc = A.esc;
+  const DEFS = A.DEFS;
+  let bankIndex = 0;
+
+  A.acts.bank = () => { bankIndex = (bankIndex + 1) % A.get().banks.length; A.repaint(); };
+  A.acts.jump = (el) => {
+    A.view({ sel: el.dataset.uid });
+    document.querySelector(`[data-rk="${CSS.escape(el.dataset.uid)}"]`)?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  };
+
+  const rk = (p, b, s, half) => {
+    const def = DEFS[b.def];
+    const on = A.isOn(p, b, s.scene);
+    const sel = s.sel === b.uid;
+    const ctls = A.controls(p, b, { scene: s.scene, compact: true, eqH: 120 });
+    return `<article class="rk ${A.famClass(b)} ${on ? "is-on" : "is-off"} ${sel ? "is-sel" : ""}" data-sort-item data-uid="${b.uid}" data-sort-handle=".blk__cap" data-rk="${b.uid}" data-fk="card-${b.uid}" tabindex="-1"
+        aria-label="${esc(A.blockName(b))}">
+      <div class="blk__cap"><span>${esc(def.cap)}</span><span class="grip">${A.icon("grip")}</span></div>
+      <button class="blk__pow" data-act="toggle" data-uid="${b.uid}" aria-label="${on ? "Bypass" : "Turn on"} ${esc(A.blockName(b))}">${A.icon("power")}</button>
+      <button class="rk__id" data-act="select" data-uid="${b.uid}"><span class="rk__name">${esc(A.blockName(b))}</span>
+        <span class="rk__sub">${b.asset ? esc(def.name) : ""}${on ? "" : '<span class="tag tag--line">OFF</span>'}</span></button>
+      <div class="rk__ctls">${ctls}</div>
+      ${half ? "" : `<div class="rk__foot"><button class="btn btn--sm" data-act="dup" data-uid="${b.uid}">${A.icon("copy")}Copy</button><button class="btn btn--sm btn--danger" data-act="remove" data-uid="${b.uid}">${A.icon("trash")}Delete</button></div>`}
+    </article>`;
+  };
+
+  const ins = (listId, at) => `<button class="ins" data-act="insert" data-list="${listId}" data-at="${at}" aria-label="Add a block here">${A.icon("plus")}</button>`;
+  const list = (p, blocks, listId, s, half) => blocks.map((b, i) => `${ins(listId, i)}${b.lanes ? rig(p, b, s) : rk(p, b, s, half)}`).join("") + ins(listId, blocks.length);
+  const rig = (p, b, s) => `<div class="rk-rig" data-sort-item data-uid="${b.uid}" data-sort-handle=".rk-rig__node">
+      <div class="rk-rig__node">${A.icon("split")}SPLIT<br>DUAL RIG</div>
+      <div class="rk-rig__lanes">${["a", "b"].map((l) => `<div class="rk-rig__lane"><span class="rk-rig__tag" style="background:var(${l === "a" ? "--util" : "--amp"})">${l.toUpperCase()}</span>
+        <div class="chain__list" data-sort-list="${b.uid}:${l}" data-axis="x">${list(p, b.lanes[l], `${b.uid}:${l}`, s, true)}</div></div>`).join("")}</div>
+      <div class="rk-rig__node">JOIN<br>L / R</div></div>`;
+
+  function shelf(s) {
+    const bank = s.banks[bankIndex];
+    return `<button class="shelf__bank" data-act="bank" title="Next bank"><b>BANK ${String(bank.n).padStart(2, "0")}</b><span>${esc(bank.name || "Empty")} ${A.icon("down")}</span></button>
+      <div class="shelf__tiles">${bank.slots.map((id, i) => A.tile(id, { fs: `FS ${i + 1}`, bank: bank.n, slot: i + 1 })).join("")}</div>
+      <div class="shelf__tools">${A.sceneSeg(A.cur())}${A.editTools()}</div>`;
+  }
+
+  function rack(s, p) {
+    return `<div class="rack__scroll scroll-x" data-keep-scroll="rack-${s.editId}" id="rackScroll"><div class="rack__row">
+      <div class="rackjack">IN<small>MONO</small></div><span class="wire-top"></span>
+      <div class="chain__list" data-sort-list="main" data-axis="x">${list(p, p.blocks, "main", s)}</div>
+      <span class="wire-top"></span>
+      <article class="rk rk--out f-cab"><div class="blk__cap"><span>Output</span></div>
+        <div class="rk__id"><span class="rk__name">Global</span><span class="rk__sub">Input, output, EXP</span></div>
+        <div class="rk__ctls">${A.globalPanel(p, { compact: true })}</div></article>
+      <span class="wire-top"></span><div class="rackjack">OUT<small>STEREO</small></div>
+    </div></div>`;
+  }
+
+  function map(s, p) {
+    const segs = A.allBlocks(p).filter((b) => !b.lanes).length;
+    const seg = (b) => `<button class="map__seg f-${DEFS[b.def].fam} ${A.isOn(p, b, s.scene) ? "" : "off"} ${s.sel === b.uid ? "is-sel" : ""}" data-act="jump" data-uid="${b.uid}" data-sort-item title="${esc(A.blockName(b))}. Drag to move.">${esc(A.blockCode(b))}</button>`;
+    const segsHtml = p.blocks.map((b) => (b.lanes ? `<button class="map__seg f-amp" data-act="jump" data-uid="${b.uid}" data-sort-item style="flex-grow:2">RIG ${b.lanes.a.length}+${b.lanes.b.length}</button>` : seg(b))).join("");
+    return `<span class="map__label">CHAIN · ${segs}</span><div class="map__track"><div class="chains-map" data-sort-list="main" data-axis="x">${segsHtml}</div><div class="map__win" id="win"></div></div>
+      <button class="btn btn--sm" data-act="insert" data-list="main" data-at="${p.blocks.length}">${A.icon("plus")}<span class="lbl">Add</span></button>`;
+  }
+
+  function syncWindow() {
+    const sc = document.getElementById("rackScroll");
+    const win = document.getElementById("win");
+    if (!sc || !win) return;
+    const f = sc.clientWidth / sc.scrollWidth;
+    win.style.left = `${(sc.scrollLeft / sc.scrollWidth) * 100}%`;
+    win.style.width = `${Math.min(1, f) * 100}%`;
+  }
+  document.addEventListener("scroll", (e) => { if (e.target.id === "rackScroll") syncWindow(); }, true);
+  addEventListener("resize", syncWindow);
+
+  A.mount((s) => {
+    const p = A.cur();
+    const bi = s.banks.findIndex((b) => b.slots.includes(s.editId));
+    if (bi >= 0 && document.body.dataset.bankInit !== "1") { bankIndex = bi; document.body.dataset.bankInit = "1"; }
+    document.getElementById("bar").innerHTML = `${A.mark()}${A.mockflag(2)}${A.presetTitle()}${A.dirtyTag()}<span class="push"></span>${A.liveState()}${A.conn()}
+      <button class="btn btn--icon btn--quiet" aria-label="Settings">${A.icon("gear")}</button>`;
+    document.getElementById("shelf").innerHTML = shelf(s);
+    document.getElementById("rack").innerHTML = rack(s, p);
+    document.getElementById("map").innerHTML = map(s, p);
+    requestAnimationFrame(syncWindow);
+  });
+})();
+</script>
+</body>
+</html>
