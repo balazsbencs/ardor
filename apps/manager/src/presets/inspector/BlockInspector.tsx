@@ -9,7 +9,7 @@ import { ParameterSlider } from "../../components/ParameterSlider";
 import { Button, IconButton, StatusBadge, Toggle } from "../../components/ui";
 import type { EqBand, EqPassFilter } from "../editor/editorTypes";
 import type { ValidationIssue } from "../editor/presetValidation";
-import { EqResponseGraph } from "./EqResponseGraph";
+import { EqResponseGraph, eqStateFor } from "./EqResponseGraph";
 
 function valueFor(block: PresetBlock, key: string, fallback: number | string | boolean): number | string | boolean {
   const value = block.params[key];
@@ -170,16 +170,7 @@ function EqControls({
   onParam(blockId: string, key: string, value: unknown): void;
 }) {
   const [activeStage, setActiveStage] = useState(1);
-  const sourceBands = Array.isArray(block.params.bands) ? block.params.bands as EqBand[] : [];
-  const bands = [0, 1, 2, 3, 4].map((index) => sourceBands[index] ?? { enabled: true, frequency_hz: [80, 250, 800, 2500, 8000][index], q: 1, gain_db: 0 });
-  const filterFrom = (key: "high_pass" | "low_pass", fallbackFrequency: number): EqPassFilter => {
-    const source = block.params[key];
-    return typeof source === "object" && source !== null && !Array.isArray(source)
-      ? { enabled: false, frequency_hz: fallbackFrequency, q: 0.70710678, slope_db_per_octave: 12, ...source } as EqPassFilter
-      : { enabled: false, frequency_hz: fallbackFrequency, q: 0.70710678, slope_db_per_octave: 12 };
-  };
-  const highPass = filterFrom("high_pass", 40);
-  const lowPass = filterFrom("low_pass", 16000);
+  const { bands, highPass, lowPass } = eqStateFor(block);
   const isPass = activeStage === 0 || activeStage === 6;
   const activeFilter = activeStage === 0 ? highPass : lowPass;
   const activeBand = Math.max(0, Math.min(4, activeStage - 1));

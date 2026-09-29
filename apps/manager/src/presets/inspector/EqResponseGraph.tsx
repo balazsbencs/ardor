@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+import type { PresetBlock } from "../../api/types";
 import type { EqBand, EqPassFilter } from "../editor/editorTypes";
 
 const WIDTH = 640;
@@ -58,7 +59,7 @@ function passResponseAt(frequency: number, filter: EqPassFilter, highPass: boole
   return 20 * Math.log10(Math.max(magnitude, 1e-12));
 }
 
-function responseAt(
+export function responseAt(
   frequency: number,
   bands: EqBand[],
   highPass: EqPassFilter,
@@ -73,6 +74,31 @@ function responseAt(
   return bandResponse
     + passResponseAt(frequency, highPass, true)
     + passResponseAt(frequency, lowPass, false);
+}
+
+export type EqState = { bands: EqBand[]; highPass: EqPassFilter; lowPass: EqPassFilter };
+
+/** The stored EQ params of a block with the defaults the inspector uses. */
+export function eqStateFor(block: PresetBlock): EqState {
+  const source = Array.isArray(block.params.bands) ? block.params.bands as EqBand[] : [];
+  const bands = [0, 1, 2, 3, 4].map((index) => source[index] ?? defaultBand(index));
+  const filterFrom = (key: "high_pass" | "low_pass", frequency: number): EqPassFilter => {
+    const value = block.params[key];
+    const base = { enabled: false, frequency_hz: frequency, q: 0.70710678, slope_db_per_octave: 12 };
+    return typeof value === "object" && value !== null && !Array.isArray(value) ? { ...base, ...value } as EqPassFilter : base;
+  };
+  return { bands, highPass: filterFrom("high_pass", 40), lowPass: filterFrom("low_pass", 16000) };
+}
+
+/** An SVG path of the response, for small previews such as the block card. */
+export function responsePath({ bands, highPass, lowPass }: EqState, width: number, height: number): string {
+  const points: string[] = [];
+  for (let i = 0; i <= 64; i += 1) {
+    const frequency = MIN_FREQUENCY * Math.pow(MAX_FREQUENCY / MIN_FREQUENCY, i / 64);
+    const gain = Math.max(MIN_GAIN, Math.min(MAX_GAIN, responseAt(frequency, bands, highPass, lowPass)));
+    points.push(`${i ? "L" : "M"}${((i / 64) * width).toFixed(1)} ${(height / 2 - (gain / MAX_GAIN) * (height / 2)).toFixed(1)}`);
+  }
+  return points.join(" ");
 }
 
 function graphPoint(event: React.PointerEvent<SVGSVGElement>): Point {
