@@ -16,3 +16,29 @@ it("loads the existing slots of the bank and uses the draft for its own slot", a
   expect(result.current.has(1)).toBe(false);
   expect(getPreset).toHaveBeenCalledTimes(1);
 });
+
+it("never returns another bank's presets while the new bank loads", async () => {
+  session.presets = [{ bank: 1, slot: 0, exists: true }, { bank: 2, slot: 0, exists: true }];
+  let release: () => void = () => undefined;
+  getPreset.mockImplementation(async (bank: number, slot: number) => {
+    if (bank === 2) await new Promise<void>((resolve) => { release = resolve; });
+    return { bank, slot, preset: make(`B${bank}S${slot}`) };
+  });
+  const { result, rerender } = renderHook(({ bank }) => useBankPresets(bank), { initialProps: { bank: 1 } });
+  await waitFor(() => expect(result.current.get(0)?.name).toBe("B1S0"));
+  rerender({ bank: 2 });
+  expect(result.current.get(0)).toBeUndefined();
+  release();
+  await waitFor(() => expect(result.current.get(0)?.name).toBe("B2S0"));
+});
+
+it("keeps the other slots when one fails to load", async () => {
+  session.presets = [{ bank: 3, slot: 0, exists: true }, { bank: 3, slot: 1, exists: true }];
+  getPreset.mockImplementation(async (bank: number, slot: number) => {
+    if (slot === 0) throw new Error("boom");
+    return { bank, slot, preset: make(`B${bank}S${slot}`) };
+  });
+  const { result } = renderHook(() => useBankPresets(3));
+  await waitFor(() => expect(result.current.get(1)?.name).toBe("B3S1"));
+  expect(result.current.has(0)).toBe(false);
+});

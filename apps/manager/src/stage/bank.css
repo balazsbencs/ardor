@@ -5,7 +5,7 @@
   font: 500 11px/1 var(--f-mono); letter-spacing: .04em; color: var(--bg); background: var(--fam);
   overflow: hidden; white-space: nowrap; text-overflow: clip;
 }
-.strip span.off { background: var(--line); color: var(--disabled); }
+.strip span.off { background: var(--plate-hi); color: var(--disabled); }
 .strip span.w2 { flex-grow: 1.5; }
 
 .tile {
