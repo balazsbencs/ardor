@@ -5,6 +5,7 @@ import { AssetLibrary } from "../assets/AssetLibrary";
 import { Button, IconButton, StatusBadge } from "../components/ui";
 import { ConnectionDialog } from "../connection/ConnectionDialog";
 import { useDeviceSession } from "../connection/deviceSession";
+import { EditorProvider } from "../presets/editor/EditorContext";
 import { PresetWorkspace } from "../presets/workspace/PresetWorkspace";
 import { normalizePalette, paletteById, paletteVariables, palettes, type PaletteId } from "../theme/accent";
 import { SurfaceProvider } from "../theme/surface";
@@ -35,7 +36,9 @@ export function AppShell({ onCloudDevices, tone3000DeviceId }: { onCloudDevices?
           <nav className="app-navigation" aria-label="App navigation"><button className={view === "workspace" ? "is-active" : ""} onClick={() => setView("workspace")}>Workspace</button><button className={view === "assets" ? "is-active" : ""} onClick={() => setView("assets")}><FolderOpen size={15} /> Assets</button></nav>
           <div className="topbar-actions">{hostedCloud && onCloudDevices && <Button variant="quiet" onClick={onCloudDevices}><ArrowLeft size={15} /> Devices</Button>}<button className="connection-status" onClick={() => setConnectionOpen(true)} aria-label={`Device: ${session.status === "connected" ? session.device?.deviceName ?? "Connected" : session.status === "error" ? "Connection error" : "Disconnected"}`} title="Open device connection"><Cable size={15} />{session.status === "connected" ? <StatusBadge tone="success">{session.device?.deviceName ?? "Connected"}</StatusBadge> : <StatusBadge tone={session.status === "error" ? "danger" : "neutral"}>{session.status === "error" ? "Connection error" : "Disconnected"}</StatusBadge>}</button><Button variant="quiet" className="palette-button" onClick={nextPalette} title="Cycle panel palette"><Palette size={16} /><span>{paletteById(palette).name}</span></Button>{!hostedCloud && <IconButton label="Open settings" onClick={() => setSettingsOpen(true)}><Settings size={17} /></IconButton>}</div>
         </header>
-        {view === "workspace" ? <PresetWorkspace onAssets={() => setView("assets")} onConnection={() => setConnectionOpen(true)} /> : <AssetLibrary tone3000DeviceId={tone3000DeviceId} />}
+        <EditorProvider>
+          {view === "workspace" ? <PresetWorkspace onAssets={() => setView("assets")} onConnection={() => setConnectionOpen(true)} /> : <AssetLibrary tone3000DeviceId={tone3000DeviceId} />}
+        </EditorProvider>
         <ConnectionDialog open={connectionOpen} onOpenChange={setConnectionOpen} />
         {!hostedCloud && settingsOpen && (
           <Suspense fallback={null}>

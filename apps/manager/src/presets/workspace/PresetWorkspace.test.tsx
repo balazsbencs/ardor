@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Preset } from "../../api/types";
 import { createBlockFromDefinition } from "../../effects/catalog";
+import { EditorProvider } from "../editor/EditorContext";
 import { PresetWorkspace } from "./PresetWorkspace";
 
 const preset: Preset = {
@@ -43,7 +44,7 @@ describe("PresetWorkspace scene save/apply semantics", () => {
   });
 
   it("reports when save succeeds but the pedal keeps playing the previous revision", async () => {
-    render(<PresetWorkspace onAssets={vi.fn()} onConnection={vi.fn()} />);
+    render(<EditorProvider><PresetWorkspace onAssets={vi.fn()} onConnection={vi.fn()} /></EditorProvider>);
     await userEvent.click(screen.getByRole("button", { name: "Save & Apply" }));
     expect(await screen.findByText(/Saved; pedal still playing the previous version/)).toHaveTextContent("DSP preparation failed");
     expect(session.saveCurrent).toHaveBeenCalled();
@@ -51,7 +52,7 @@ describe("PresetWorkspace scene save/apply semantics", () => {
   });
 
   it("shows physically formatted preset values in the shared comparison", async () => {
-    render(<PresetWorkspace onAssets={vi.fn()} onConnection={vi.fn()} />);
+    render(<EditorProvider><PresetWorkspace onAssets={vi.fn()} onConnection={vi.fn()} /></EditorProvider>);
     await userEvent.click(screen.getByRole("button", { name: "Compare" }));
     await userEvent.click(screen.getByRole("button", { name: "Shared" }));
     expect(screen.getByText("Preset · output gain")).toBeInTheDocument();
@@ -60,7 +61,7 @@ describe("PresetWorkspace scene save/apply semantics", () => {
 
   it("lets a normal preset start scene authoring in the Manager", async () => {
     session.current.preset = { ...structuredClone(preset), version: 1, sceneSet: undefined };
-    render(<PresetWorkspace onAssets={vi.fn()} onConnection={vi.fn()} />);
+    render(<EditorProvider><PresetWorkspace onAssets={vi.fn()} onConnection={vi.fn()} /></EditorProvider>);
     await userEvent.click(screen.getByRole("button", { name: "Enable scenes" }));
     expect(screen.getByRole("tab", { name: /Scene 1/ })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /^Save$/ }));
@@ -74,7 +75,7 @@ describe("PresetWorkspace scene save/apply semantics", () => {
     for (const scene of session.current.preset.sceneSet!.scenes) {
       scene.targets = [{ target: "inputGainDb", value: -6 }];
     }
-    render(<PresetWorkspace onAssets={vi.fn()} onConnection={vi.fn()} />);
+    render(<EditorProvider><PresetWorkspace onAssets={vi.fn()} onConnection={vi.fn()} /></EditorProvider>);
     const input = screen.getByRole("spinbutton", { name: "Input gain" });
     expect(input).toHaveValue(-6);
     await userEvent.clear(input);
@@ -92,7 +93,7 @@ describe("PresetWorkspace scene save/apply semantics", () => {
     for (const scene of session.current.preset.sceneSet!.scenes) {
       scene.targets = [{ target: "blockEnabled", blockId: block.id, value: false }];
     }
-    render(<PresetWorkspace onAssets={vi.fn()} onConnection={vi.fn()} />);
+    render(<EditorProvider><PresetWorkspace onAssets={vi.fn()} onConnection={vi.fn()} /></EditorProvider>);
     const chain = screen.getByRole("region", { name: "Signal chain" });
     const toggle = chain.querySelector('input[type="checkbox"]') as HTMLInputElement;
     expect(toggle).not.toBeChecked();
