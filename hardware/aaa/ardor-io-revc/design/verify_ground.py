@@ -5,13 +5,13 @@ import json
 import math
 
 import sexpdata as sx
+from routing_widths import plans
 
 ROOT = Path(__file__).resolve().parents[1]
 board_path = ROOT / 'Ardor_IO.kicad_pcb'
 board = sx.loads(board_path.read_text())
 plan = json.loads((ROOT / 'design/ground-plane-routing.json').read_text())
-width_plan = json.loads((ROOT / 'design/uniform-3v3-routing.json').read_text())
-width_changes = {change['uuid']: change for change in width_plan['changes']}
+_, _, width_changes, _ = plans()
 
 
 def key(item):
@@ -34,7 +34,7 @@ assert not {get(item, 'uuid')[1] for item in tracks} & set(plan['removed_segment
 assert len(ground_segments) + len(plan['removed_segment_uuids']) == plan['before_segment_count']
 
 # Net numbers and the generated mono-bridge UUIDs can change on regeneration.
-# Reverse the separately audited 3V3 width edits for comparison with the baseline.
+# Reverse the separately audited width edits for comparison with the baseline.
 # Everything else in every non-ground track and every via must remain identical.
 other_routing = []
 for item in tracks:
@@ -45,7 +45,7 @@ for item in tracks:
     uid = get(item, 'uuid')[1]
     if uid in width_changes:
         assert name == width_changes[uid]['net']
-        assert get(item, 'width')[1] == width_plan['target_width_mm']
+        assert get(item, 'width')[1] == width_changes[uid]['after_width_mm']
         values = [[value[0], width_changes[uid]['before_width_mm']]
                   if key(value) == 'width' else value for value in values]
     other_routing.append(sx.dumps(
@@ -71,7 +71,7 @@ report = {
     'after_ground_track_length_mm': round(remaining_length, 4),
     'removed_ground_track_length_mm': round(plan['before_length_mm'] - remaining_length, 4),
     'ground_vias_preserved': len(ground_vias),
-    'all_other_tracks_and_vias_unchanged_except_reviewed_3v3_widths': True,
+    'all_other_tracks_and_vias_unchanged_except_reviewed_widths': True,
     'retained_local_connections': plan['retained_segments'],
     'filled_ground_layers': ['F.Cu', 'B.Cu'],
     'drc_violations': 0,

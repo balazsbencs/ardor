@@ -7,7 +7,7 @@
   "after_ground_track_length_mm": 4.6505,
   "removed_ground_track_length_mm": 324.1329,
   "ground_vias_preserved": 20,
-  "all_other_tracks_and_vias_unchanged_except_reviewed_3v3_widths": true,
+  "all_other_tracks_and_vias_unchanged_except_reviewed_widths": true,
   "retained_local_connections": {
     "53dbd2e8-1548-4586-9c4b-ec8a9efa9956": "J101.20 direct connection to front ground fill; removing it leaves a starved backside thermal island.",
     "d17ad51c-be5c-4727-92c0-c23032e83c30": "J101.20 short connection to the existing ground via at 82.76, 57.44 mm.",
@@ -20,11 +20,11 @@
   "drc_violations": 0,
   "unconnected_items": 0,
   "schematic_parity_issues": 0,
-  "drc_date": "2026-09-30T07:52:59+0000",
+  "drc_date": "2026-09-30T08:12:56+0000",
   "outline_mm": [
     68,
     46
   ],
   "hardware_measured": false,
-  "board_sha256": "506bf09821215376d12b83708549b1e15edc134f72cbd6b96d69b4a431d812a3"
+  "board_sha256": "8dcc7e1493d7c498afb16a041ec4be6f5ba146ed2350bbe924693f4979fe6264"
 }

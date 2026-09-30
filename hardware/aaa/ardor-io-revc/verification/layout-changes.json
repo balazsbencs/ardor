@@ -43,5 +43,7 @@
   "reviewed_branch_stubs_removed": 48,
   "redundant_ground_segments_removed": 192,
   "uniform_3v3_width_mm": 0.2,
-  "reviewed_3v3_segments_narrowed": 37
+  "reviewed_3v3_segments_narrowed": 37,
+  "other_reviewed_width_changes": 69,
+  "chassis_width_exceptions": 25
 }

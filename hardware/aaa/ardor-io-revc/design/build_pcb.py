@@ -4,8 +4,9 @@ the fresh schematic, applies reviewed widths, removes stubs, and clears old fill
 Run refill_board.py afterwards in a separate KiCad process.
 """
 from pathlib import Path
-import gzip,xml.etree.ElementTree as ET,json,uuid
+import gzip,xml.etree.ElementTree as ET,json
 import sexpdata as sx
+from routing_widths import plans
 R=Path(__file__).resolve().parents[1];S=sx.Symbol
 key=lambda v:str(v[0]) if isinstance(v,list) and v else ''
 def get(v,name):return next((u for u in v if key(u)==name),None)
@@ -36,12 +37,14 @@ ground_plan=json.loads((R/'design/ground-plane-routing.json').read_text())
 ground_pruned=set(ground_plan['removed_segment_uuids'])
 ground_candidates={get(t,'uuid')[1]:t for t in source if key(t)=='segment'}
 assert all(u in ground_candidates and oldnames[get(ground_candidates[u],'net')[1]]=='GND' for u in ground_pruned)
-width_plan=json.loads((R/'design/uniform-3v3-routing.json').read_text())
-width_changes={change['uuid']:change for change in width_plan['changes']}
-assert len(width_changes)==len(width_plan['changes'])
+width_plan,trace_plan,width_changes,width_exceptions=plans()
+bridge_ids={item['uuid'] for item in trace_plan['mono_bridge_segments']}
+assert len(bridge_ids)==2
 for uid,change in width_changes.items():
+ if uid in bridge_ids:continue
  t=ground_candidates[uid]
- assert oldnames[get(t,'net')[1]]==change['net'] and change['net'] in width_plan['nets']
+ oldname=oldnames[get(t,'net')[1]]
+ assert merge.get(oldname,oldname)==change['net']
  assert get(t,'width')[1]==change['before_width_mm']
  assert all(get(t,name)[1:]==change[name] for name in ['start','end'])
  assert get(t,'layer')[1]==change['layer']
@@ -70,7 +73,7 @@ for item in source:
   if name not in used or get(item,'uuid')[1] in pruned|ground_pruned:continue
   net[1]=canonical[name]
   if kind=='segment' and get(item,'uuid')[1] in width_changes:
-   get(item,'width')[1]=width_plan['target_width_mm']
+   get(item,'width')[1]=width_changes[get(item,'uuid')[1]]['after_width_mm']
  if kind=='zone':
   n=get(item,'net');n[1]=netcode.get(n[1],0)
   item[:]=[v for v in item if key(v) not in ['filled_polygon','fill_segments']]
@@ -82,10 +85,13 @@ for item in source:
   get(item,'rev')[1]='C';get(item,'title')[1]='Ardor IO Rev C - budget SMT, MIDI and expression'
  kept.append(item)
 # Empty old U501 courtyard: bridge its feedback nets to the shared mono input.
-for start,end in [((97.025,72.365),(97.025,73.635)),((101.975,73.635),(101.975,74.905))]:
- kept.append([S('segment'),[S('start'),*start],[S('end'),*end],[S('width'),.25],[S('layer'),'F.Cu'],[S('net'),canonical['MONO_BUF']],[S('uuid'),str(uuid.uuid4())]])
+for bridge in trace_plan['mono_bridge_segments']:
+ change=width_changes[bridge['uuid']]
+ assert bridge['net']=='MONO_BUF' and bridge['layer']=='F.Cu'
+ assert all(bridge[name]==change[name] for name in ['start','end','before_width_mm','net','layer'])
+ kept.append([S('segment'),[S('start'),*bridge['start']],[S('end'),*bridge['end']],[S('width'),change['after_width_mm']],[S('layer'),bridge['layer']],[S('net'),canonical['MONO_BUF']],[S('uuid'),bridge['uuid']]])
 index=next(i for i,v in enumerate(kept) if key(v)=='footprint')
 kept[index:index]=[[S('net'),code,name] for name,code in sorted(canonical.items(),key=lambda n:n[1])]
 (R/'Ardor_IO.kicad_pcb').write_text(sx.dumps(kept)+'\n')
-(R/'verification/layout-changes.json').write_text(json.dumps({'removed_footprints':sorted(removed),'net_merges':merge,'buffer_bypass_connections':[['U501 old pad 2','U501 old pad 3'],['U501 old pad 6','U501 old pad 5']],'retained_outline_mm':[68,46],'reviewed_branch_stubs_removed':len(pruned),'redundant_ground_segments_removed':len(ground_pruned),'uniform_3v3_width_mm':width_plan['target_width_mm'],'reviewed_3v3_segments_narrowed':len(width_changes)},indent=2)+'\n')
+(R/'verification/layout-changes.json').write_text(json.dumps({'removed_footprints':sorted(removed),'net_merges':merge,'buffer_bypass_connections':[['U501 old pad 2','U501 old pad 3'],['U501 old pad 6','U501 old pad 5']],'retained_outline_mm':[68,46],'reviewed_branch_stubs_removed':len(pruned),'redundant_ground_segments_removed':len(ground_pruned),'uniform_3v3_width_mm':width_plan['target_width_mm'],'reviewed_3v3_segments_narrowed':len(width_plan['changes']),'other_reviewed_width_changes':len(trace_plan['changes']),'chassis_width_exceptions':len(width_exceptions)},indent=2)+'\n')
 print('Rev C board:',len(comps),'electrical footprints; removed',len(removed))
