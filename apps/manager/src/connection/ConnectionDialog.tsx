@@ -1,11 +1,14 @@
 import * as Dialog from "@radix-ui/react-dialog";
 
-import { PortalSurface } from "../theme/surface";
 import { useEffect, useRef, useState } from "react";
 
-import { useDeviceSession } from "./deviceSession";
-import { isDeviceHostedRuntime, isHostedCloudRuntime } from "../runtime/platform";
+import "../app/dialogs.css";
+import { Button } from "../components/ui";
 import { localAuthAPI } from "../localAuth/api";
+import { isDeviceHostedRuntime, isHostedCloudRuntime } from "../runtime/platform";
+import { PortalSurface } from "../theme/surface";
+import { useDeviceSession } from "./deviceSession";
+import { loginErrorMessage } from "./loginError";
 
 export function ConnectionDialog({ open, onOpenChange }: { open: boolean; onOpenChange(open: boolean): void }) {
   const session = useDeviceSession();
@@ -33,11 +36,10 @@ export function ConnectionDialog({ open, onOpenChange }: { open: boolean; onOpen
     <Dialog.Root open={open} onOpenChange={updateOpen}>
       <Dialog.Portal>
         <PortalSurface>
-        <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content aria-describedby={undefined} className="connection-dialog">
-          <p className="eyebrow">Device connection</p>
-          <Dialog.Title>Connect to Ardor</Dialog.Title>
-          <form className="connection-dialog__form" onSubmit={(event) => {
+        <Dialog.Overlay className="dlg-scrim" />
+        <Dialog.Content aria-describedby={undefined} className="dlg">
+          <Dialog.Title className="dlg__title">Connect to Ardor</Dialog.Title>
+          <form className="dlg__form" onSubmit={(event) => {
             event.preventDefault();
             connectionAttempted.current = true;
             setAuthError("");
@@ -48,7 +50,7 @@ export function ConnectionDialog({ open, onOpenChange }: { open: boolean; onOpen
                 return;
               }
               const status = await localAuthAPI.status(target);
-              if (status.state === "setup_required") throw new Error("Open the pedal address in a browser and use the code shown on its display for first-time setup.");
+              if (status.state === "setup_required") throw new Error("Open the pedal address in a browser. Enter the code from the pedal display to set up the pedal.");
               if (status.state === "disabled") {
                 await session.connect(target);
                 return;
@@ -58,29 +60,29 @@ export function ConnectionDialog({ open, onOpenChange }: { open: boolean; onOpen
             };
             void connect().catch((reason: unknown) => {
               connectionAttempted.current = false;
-              setAuthError(reason instanceof Error ? reason.message : "Could not sign in to the pedal.");
+              setAuthError(loginErrorMessage(reason));
             });
           }}>
             {managedRuntime
-              ? <p>{hostedCloud ? "This pedal is connected through Ardor Cloud" : "This manager is hosted by the Ardor device"}: <strong>{session.device?.deviceName ?? "Ardor Pedal"}</strong>.</p>
-              : <label>
-                  <span>Device URL</span>
+              ? <p className="dlg__text">{hostedCloud ? "Ardor Cloud connects this pedal" : "This manager runs on the pedal"}: <strong>{session.device?.deviceName ?? "Ardor Pedal"}</strong>.</p>
+              : <label className="dlg__field">
+                  <span className="dlg__label">Device URL</span>
                   <input aria-label="Device URL" value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} />
                 </label>}
-            {!managedRuntime && <label>
-              <span>Local username</span>
+            {!managedRuntime && <label className="dlg__field">
+              <span className="dlg__label">Local username</span>
               <input aria-label="Local username" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} />
             </label>}
-            {!managedRuntime && <label>
-              <span>Local password</span>
+            {!managedRuntime && <label className="dlg__field">
+              <span className="dlg__label">Local password</span>
               <input aria-label="Local password" autoComplete="current-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
             </label>}
-            {(authError || session.error) && <div role="alert">{authError || session.error?.message}</div>}
-            <div className="connection-dialog__actions">
-              <Dialog.Close type="button">Cancel</Dialog.Close>
-              <button type="submit" disabled={session.status === "connecting"}>
+            {(authError || session.error) && <div role="alert" className="dlg__error">{authError || session.error?.message}</div>}
+            <div className="dlg__actions">
+              <Dialog.Close asChild><Button type="button" variant="quiet">Cancel</Button></Dialog.Close>
+              <Button type="submit" variant="primary" disabled={session.status === "connecting"}>
                 {session.status === "connecting" ? "Connecting…" : managedRuntime ? "Retry connection" : "Connect"}
-              </button>
+              </Button>
             </div>
           </form>
         </Dialog.Content>

@@ -15,6 +15,21 @@ describe("ModuleDrawer", () => {
     expect(within(delay).getByText("TAPE")).toBeInTheDocument();
   });
 
+  it("lists every supported definition", () => {
+    render(<ModuleDrawer open where="" disabledIds={new Map()} onOpenChange={vi.fn()} onChoose={vi.fn()} />);
+    for (const definition of allEffectDefinitions()) {
+      expect(screen.getAllByRole("button", { name: new RegExp(definition.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) }).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("groups dynamics, EQ, wah and the widener under Dynamics and tone", () => {
+    render(<ModuleDrawer open where="" disabledIds={new Map()} onOpenChange={vi.fn()} onChoose={vi.fn()} />);
+    const utility = within(screen.getByRole("group", { name: "Dynamics and tone" }));
+    for (const name of [/Compressor/, /Noise Gate/, /Five Band Parametric EQ/, /GCB-95 Wah/, /Stereo Widener/, /Transient Shaper/]) {
+      expect(utility.getByRole("button", { name })).toBeInTheDocument();
+    }
+  });
+
   it("filters by search and picks the first match with Enter", async () => {
     const onChoose = vi.fn();
     render(<ModuleDrawer open where="" disabledIds={new Map()} onOpenChange={vi.fn()} onChoose={onChoose} />);

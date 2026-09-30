@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 export function cx(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(" ");
@@ -42,15 +42,4 @@ export function Toggle({
       <span className="sr-only">{label}</span>
     </label>
   );
-}
-
-export function NumberInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cx("number-input", className)} inputMode="decimal" {...props} />;
-}
-
-export function StatusBadge({
-  tone = "neutral",
-  children,
-}: { tone?: "neutral" | "success" | "warning" | "danger" | "info"; children: ReactNode }) {
-  return <span className={`status-badge status-badge--${tone}`}>{children}</span>;
 }

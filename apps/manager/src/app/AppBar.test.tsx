@@ -13,7 +13,7 @@ const platform = vi.hoisted(() => ({ hosted: false }));
 const session = {
   status: "connected" as const, baseUrl: "http://192.168.88.12:8080",
   current: { location: { bank: 3, slot: 1 }, preset: structuredClone(preset), exists: true },
-  device: { deviceName: "Ardor Pedal", active: { bank: 3, slot: 1, storedRevisionMatches: true }, capabilities: {} },
+  device: { deviceName: "Ardor Pedal", active: { bank: 3, slot: 1, generation: 1, storedRevisionMatches: true } as Record<string, unknown>, capabilities: {} },
   presets: [], irs: [], reverbIrs: [], models: [], busy: { save: false, apply: false, upload: false },
   saveCurrent: vi.fn(), applyCurrent: vi.fn(), refreshPresets: vi.fn(), selectLocation: vi.fn(async () => undefined),
 };
@@ -22,7 +22,10 @@ vi.mock("../runtime/platform", () => ({ isHostedCloudRuntime: () => platform.hos
 
 const props = () => ({ onView: vi.fn(), onConnection: vi.fn(), onSettings: vi.fn(), onCloudDevices: vi.fn() });
 
-beforeEach(() => { platform.hosted = false; });
+beforeEach(() => {
+  platform.hosted = false;
+  session.device.active = { bank: 3, slot: 1, generation: 1, storedRevisionMatches: true };
+});
 
 it("names the open preset and marks it MODIFIED after an edit", () => {
   const { editor } = renderWithEditor(<AppBar view="edit" {...props()} />);
@@ -47,6 +50,27 @@ it("switches views and opens Settings", async () => {
 it("shows the live state only in the Edit view", () => {
   renderWithEditor(<AppBar view="assets" {...props()} />);
   expect(screen.queryByText("LIVE ON PEDAL")).not.toBeInTheDocument();
+  expect(screen.queryByText("NOT LIVE")).not.toBeInTheDocument();
+});
+
+it("shows a status tag only, never the Save and load action", () => {
+  renderWithEditor(<AppBar view="edit" {...props()} />);
+  expect(screen.getByText("LIVE ON PEDAL")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /load/i })).not.toBeInTheDocument();
+});
+
+it("says NOT LIVE when the pedal plays another slot", () => {
+  session.device.active = { ...session.device.active, bank: 5, slot: 0 };
+  renderWithEditor(<AppBar view="edit" {...props()} />);
+  expect(screen.getByText("NOT LIVE")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /load/i })).not.toBeInTheDocument();
+});
+
+it("says NOT LIVE after an edit", () => {
+  const { editor } = renderWithEditor(<AppBar view="edit" {...props()} />);
+  act(() => editor().dispatch({ type: "set-name", name: "Glass II" }));
+  expect(screen.getByText("NOT LIVE")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /load/i })).not.toBeInTheDocument();
 });
 
 it("offers Devices instead of Settings on the hosted build", async () => {

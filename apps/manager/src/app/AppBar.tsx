@@ -4,7 +4,6 @@ import { Button, IconButton } from "../components/ui";
 import { useDeviceSession } from "../connection/deviceSession";
 import { usePresetEditorContext } from "../presets/editor/EditorContext";
 import { isHostedCloudRuntime } from "../runtime/platform";
-import { LiveState } from "../stage/LiveState";
 import { bankLabel, slotLabel } from "../ui/format";
 import { Tag } from "../ui/Tag";
 import { ConnectionPill } from "./ConnectionPill";
@@ -18,7 +17,14 @@ type Props = {
   onCloudDevices?: () => void;
 };
 
-/** Mark, Edit / Assets switch, the open preset, live state, connection and Settings. */
+/** Status only. The rail keeps the Save and load action. Lamp red marks the live preset. */
+function LiveStatus({ live }: { live: boolean }) {
+  return live
+    ? <Tag tone="live" title="The pedal plays this saved preset">LIVE ON PEDAL</Tag>
+    : <Tag tone="line" title="The pedal plays something else">NOT LIVE</Tag>;
+}
+
+/** Mark, Edit / Assets switch, the open preset, live status, connection and Settings. */
 export function AppBar({ view, onView, onConnection, onSettings, onCloudDevices }: Props) {
   const editor = usePresetEditorContext();
   const session = useDeviceSession();
@@ -41,7 +47,7 @@ export function AppBar({ view, onView, onConnection, onSettings, onCloudDevices 
       )}
       {connected && editor.dirty && <span className="appbar__dirty"><Tag tone="warn">MODIFIED</Tag></span>}
       <span className="appbar__push" />
-      {connected && view === "edit" && <span className="appbar__live"><LiveState /></span>}
+      {connected && view === "edit" && <span className="appbar__live"><LiveStatus live={editor.runtimeMatchesDraft} /></span>}
       <ConnectionPill onOpen={onConnection} />
       {hosted && onCloudDevices && <Button variant="quiet" onClick={onCloudDevices}><ArrowLeft size={15} />Devices</Button>}
       {!hosted && <IconButton label="Open settings" onClick={onSettings}><Settings size={17} /></IconButton>}

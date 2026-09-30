@@ -1,10 +1,13 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { Download, ExternalLink, LoaderCircle, X } from "lucide-react";
 
-import { Button, StatusBadge } from "../components/ui";
+import "../app/dialogs.css";
+import { Button, IconButton } from "../components/ui";
 import { PortalSurface } from "../theme/surface";
+import { Tag } from "../ui/Tag";
 import type { Tone3000Selection } from "./types";
 import { Tone3000Brand } from "./Tone3000Brand";
+import "./tone3000.css";
 
 export { Tone3000Brand };
 
@@ -45,9 +48,9 @@ export function Tone3000Dialog({
     <Dialog.Root open={phase !== "idle"} onOpenChange={(open) => { if (!open && !isWorking) onCancel(); }}>
       <Dialog.Portal>
         <PortalSurface>
-          <Dialog.Overlay className="tone3000-overlay" />
+          <Dialog.Overlay className="dlg-scrim" />
           <Dialog.Content
-            className="tone3000-dialog"
+            className="dlg tone3000-dialog"
             aria-describedby={undefined}
             onEscapeKeyDown={refuseDismiss}
             onPointerDownOutside={refuseDismiss}
@@ -57,17 +60,16 @@ export function Tone3000Dialog({
         <header className="tone3000-dialog__header">
           <Tone3000Brand />
           <Dialog.Close asChild>
-            <button className="tone3000-dialog__close" aria-label="Close TONE3000" disabled={isWorking}><X size={18} /></button>
+            <IconButton label="Close TONE3000" disabled={isWorking}><X size={18} /></IconButton>
           </Dialog.Close>
         </header>
 
         {phase === "intro" && (
           <div className="tone3000-intro">
-            <p className="eyebrow">Models from a global community</p>
             <h2>Find a new sound without leaving Ardor</h2>
-            <p>Browse TONE3000’s free library of Neural Amp Modeler captures, choose a model, and install it directly on your connected device.</p>
-            <p>Ardor supports NAM A2 captures. TONE3000 will show compatible models only.</p>
-            <p className="tone3000-dialog__fineprint">You’ll sign in securely in your browser. Ardor only receives access to the tone you choose.</p>
+            <p>Browse the free TONE3000 library of Neural Amp Modeler captures. Choose a model. Ardor installs it on the pedal.</p>
+            <p>Ardor supports NAM A2 captures. TONE3000 shows compatible models only.</p>
+            <p className="tone3000-dialog__fineprint">You sign in to TONE3000 in your browser. Ardor can use only the tone you choose.</p>
             <Button variant="primary" onClick={onContinue}>Continue to TONE3000 <ExternalLink size={15} /></Button>
           </div>
         )}
@@ -75,8 +77,8 @@ export function Tone3000Dialog({
         {(phase === "waiting" || phase === "loading") && (
           <div className="tone3000-waiting">
             <LoaderCircle className="tone3000-spinner" size={28} />
-            <h2>{phase === "waiting" ? "Choose a tone in your browser" : "Loading your selected tone"}</h2>
-            <p>{phase === "waiting" ? "This window will update when TONE3000 sends your selection back to Ardor." : "Fetching the available NAM models and creator details…"}</p>
+            <h2>{phase === "waiting" ? "Choose a tone in your browser" : "Loading the tone you chose"}</h2>
+            <p>{phase === "waiting" ? "This window updates when TONE3000 sends your selection to Ardor." : "Ardor gets the NAM models and the creator details…"}</p>
             {phase === "waiting" && <Button variant="quiet" onClick={onCancel}>Cancel</Button>}
           </div>
         )}
@@ -89,10 +91,9 @@ export function Tone3000Dialog({
             <div className="tone3000-detail__body">
               <div className="tone3000-detail__title">
                 <div>
-                  <p className="eyebrow">Selected tone pack</p>
                   <h2>{selection.tone.title}</h2>
                 </div>
-                <StatusBadge tone="info">{label(selection.tone.gear)} · NAM</StatusBadge>
+                <Tag tone="line">{label(selection.tone.gear)} · NAM</Tag>
               </div>
               <div className="tone3000-creator">
                 {selection.tone.user.avatar_url && <img src={selection.tone.user.avatar_url} alt="" loading="lazy" decoding="async" width={28} height={28} />}
@@ -100,16 +101,16 @@ export function Tone3000Dialog({
               </div>
               {selection.tone.description && <p className="tone3000-detail__description">{selection.tone.description}</p>}
               <label className="tone3000-model-field">
-                Model
+                <span>Model</span>
                 <select value={selectedModelId ?? ""} onChange={(event) => onSelectedModelId(Number(event.target.value))} disabled={phase === "installing"}>
                   {selection.models.map((model) => <option key={model.id} value={model.id}>{model.name} · {architectureLabel(model.architecture_version)} · {label(model.size)}</option>)}
                 </select>
               </label>
-              <p className="tone3000-dialog__fineprint">License: {selection.tone.license.toUpperCase()} · The installed filename keeps TONE3000 and creator attribution.</p>
+              <p className="tone3000-dialog__fineprint">License: {selection.tone.license.toUpperCase()}. The installed filename keeps the TONE3000 and creator credit.</p>
               <div className="tone3000-detail__actions">
                 <Button variant="quiet" onClick={onCancel} disabled={phase === "installing"}>Cancel</Button>
                 <Button variant="primary" onClick={onInstall} disabled={phase === "installing"}>
-                  {phase === "installing" ? <><LoaderCircle className="tone3000-spinner" size={15} /> Installing…</> : <><Download size={15} /> Install on device</>}
+                  {phase === "installing" ? <><LoaderCircle className="tone3000-spinner" size={15} /> Installing…</> : <><Download size={15} /> Install on pedal</>}
                 </Button>
               </div>
             </div>

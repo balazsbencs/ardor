@@ -8,7 +8,10 @@ const LABELS: Record<AssetKind, string> = { models: "NAM model", irs: "Cabinet I
 
 export function FilePicker({ label, kind, value, onChange, onManage }: { label?: string; kind: AssetKind; value: string; onChange(path: string): void; onManage(): void }) {
   const session = useDeviceSession();
-  const files = kind === "models" ? session.models : kind === "irs" ? session.irs : session.reverbIrs;
+  const files = kind === "models" ? session.models
+    : kind === "irs" ? session.irs
+      // A convolution reverb may still point at an installed cabinet IR, so keep that one listed.
+      : [...session.reverbIrs, ...session.irs.filter(({ path }) => path === value)];
   const missing = value !== "" && !files.some(({ path }) => path === value);
   return (
     <div className="lb-ctl lb-ctl--wide">

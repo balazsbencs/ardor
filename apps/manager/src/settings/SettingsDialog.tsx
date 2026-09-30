@@ -18,25 +18,27 @@ import {
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { UpdateStatus, WiFiSettings } from "../api/types";
-import { Button, IconButton, StatusBadge, cx } from "../components/ui";
+import "../app/dialogs.css";
+import { Button, IconButton, cx } from "../components/ui";
 import { useDeviceSession } from "../connection/deviceSession";
 import { localAuthAPI } from "../localAuth/api";
 import { isDeviceHostedRuntime } from "../runtime/platform";
 import { paletteById, palettes, paletteVariables, type PaletteId } from "../theme/accent";
+import { Tag } from "../ui/Tag";
+import "./settings.css";
 
 type SettingsSection = "appearance" | "wifi" | "data" | "updates" | "security";
 
-function wifiTone(status?: string): "neutral" | "success" | "warning" {
-  if (status === "connected") return "success";
-  if (status === "connecting" || status === "restarting") return "warning";
-  return "neutral";
+type StatusTone = "line" | "warn" | "danger";
+
+function wifiTone(status?: string): StatusTone {
+  return status === "connecting" || status === "restarting" ? "warn" : "line";
 }
 
-function updateTone(status?: string): "neutral" | "success" | "warning" | "danger" {
-  if (status === "succeeded") return "success";
+function updateTone(status?: string): StatusTone {
   if (status === "failed" || status === "rolled_back") return "danger";
-  if (status && !["idle", "available"].includes(status)) return "warning";
-  return "neutral";
+  if (status && !["idle", "available", "succeeded"].includes(status)) return "warn";
+  return "line";
 }
 
 function formatBytes(bytes: number): string {
@@ -256,15 +258,15 @@ export function SettingsDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <div className="app-shell portal-surface" data-palette={palette} style={portalStyle}>
-          <Dialog.Overlay className="dialog-overlay" />
+        <div className="portal-surface" data-palette={palette} style={portalStyle}>
+          <Dialog.Overlay className="dlg-scrim" />
           <Dialog.Content className="settings-dialog" aria-describedby="settings-description">
           <header className="settings-dialog__header">
             <span className="settings-dialog__mark"><Settings size={18} /></span>
             <div>
-              <Dialog.Title>Settings</Dialog.Title>
+              <Dialog.Title className="settings-dialog__title">Settings</Dialog.Title>
               <Dialog.Description id="settings-description">
-                Personalize Ardor Manager and configure the connected pedal.
+                Set up the manager and the connected pedal.
               </Dialog.Description>
             </div>
             <Dialog.Close asChild><IconButton label="Close settings"><X size={17} /></IconButton></Dialog.Close>
@@ -293,14 +295,14 @@ export function SettingsDialog({
               <section className="settings-panel" aria-labelledby="appearance-heading">
                 <div className="settings-panel__heading">
                   <h2 id="appearance-heading">Panel palette</h2>
-                  <p>Use the same named palette system as the pedal. LIVE is reserved for the active preset and selected parameter.</p>
+                  <p>Slate uses the pedal's Lamp Black values. Ink, Sodium and Nord match the pedal palettes of the same names. The lamp colour marks the live preset and the focused control.</p>
                 </div>
                 <div className="accent-setting">
                   <div className="accent-preview">
                     <span><Check size={16} /></span>
                     <div>
                       <strong>{paletteById(palette).name}</strong>
-                      <small>Applied to every Manager panel immediately.</small>
+                      <small>Every manager panel uses this palette now.</small>
                     </div>
                   </div>
                   <div className="palette-swatches" role="group" aria-label="Panel palette">
@@ -325,18 +327,17 @@ export function SettingsDialog({
               <section className="settings-panel" aria-labelledby="wifi-heading">
                 <div className="settings-panel__heading settings-panel__heading--with-status">
                   <div>
-                    <p className="eyebrow">Connected pedal</p>
                     <h2 id="wifi-heading">Wi-Fi</h2>
-                    <p>Credentials are stored on the pedal’s writable data partition, never in the system image.</p>
+                    <p>The pedal stores the credentials on its data partition. It never stores them in the system image.</p>
                   </div>
-                  {wifi && <StatusBadge tone={wifiTone(wifi.status)}>{wifi.status}</StatusBadge>}
+                  {wifi && <Tag tone={wifiTone(wifi.status)}>{wifi.status}</Tag>}
                 </div>
 
                 {!wifiAvailable ? (
                   <div className="settings-empty">
                     <Wifi size={24} />
                     <strong>Connect to a pedal first</strong>
-                    <p>Wi-Fi settings are sent directly to the device. Use Ethernet or the current Wi-Fi connection for initial setup.</p>
+                    <p>The manager sends Wi-Fi settings to the pedal. For first setup, use Ethernet or the current Wi-Fi connection.</p>
                   </div>
                 ) : loading ? (
                   <div className="settings-empty"><span className="settings-spinner" /><strong>Reading pedal settings…</strong></div>
@@ -386,7 +387,7 @@ export function SettingsDialog({
                         value={country}
                         onChange={(event) => setCountry(event.target.value.toUpperCase())}
                       />
-                      <small id="country-help">Two-letter code used for legal radio channels, for example HU, DE, or US.</small>
+                      <small id="country-help">Enter the two-letter code for your country, for example HU, DE or US. The pedal uses it to pick legal radio channels.</small>
                     </label>
                     {wifi?.ipAddress && <p className="wifi-address">Pedal address <strong>{wifi.ipAddress}</strong></p>}
                     {error && <div className="settings-message settings-message--error" role="alert">{error}</div>}
@@ -403,11 +404,11 @@ export function SettingsDialog({
 			  <section className="settings-panel" aria-labelledby="backup-heading">
 				<div className="settings-panel__heading">
 				  <h2 id="backup-heading">Backup & restore</h2>
-				  <p>Keep all presets, amp models, cabinet IRs, and reverb IRs together in one portable ZIP file. Wi-Fi and local access credentials are never included.</p>
+				  <p>One ZIP file holds all presets, amp models, cabinet IRs and reverb IRs. It never holds Wi-Fi or local access credentials.</p>
 				</div>
-				{!backupAvailable ? <div className="settings-empty"><Download size={24} /><strong>Connect to a compatible pedal first</strong><p>Backup files are created by the pedal and downloaded to this browser.</p></div> : <div className="backup-actions">
-				  <article><div><Download size={18} /><span><strong>Export everything</strong><small>Downloads a dated ZIP without changing the pedal.</small></span></div><Button variant="primary" disabled={Boolean(backupBusy)} onClick={() => void exportBackup()}>{backupBusy === "export" ? "Creating…" : "Download backup"}</Button></article>
-				  <article><div><Upload size={18} /><span><strong>Restore from a backup</strong><small>Validates the whole file, then replaces the current presets and assets.</small></span></div><Button variant="quiet" disabled={Boolean(backupBusy)} onClick={() => backupInput.current?.click()}>{backupBusy === "restore" ? "Restoring…" : "Choose backup…"}</Button><input ref={backupInput} className="visually-hidden" type="file" accept=".zip,application/zip" onChange={(event) => void restoreBackup(event.target.files?.[0])} /></article>
+				{!backupAvailable ? <div className="settings-empty"><Download size={24} /><strong>Connect to a compatible pedal first</strong><p>The pedal creates the backup file. This browser downloads it.</p></div> : <div className="backup-actions">
+				  <article><div><Download size={18} /><span><strong>Export everything</strong><small>Downloads a dated ZIP file. The pedal does not change.</small></span></div><Button variant="primary" disabled={Boolean(backupBusy)} onClick={() => void exportBackup()}>{backupBusy === "export" ? "Creating…" : "Download backup"}</Button></article>
+				  <article><div><Upload size={18} /><span><strong>Restore from a backup</strong><small>Checks the whole file, then replaces the current presets and assets.</small></span></div><Button variant="quiet" disabled={Boolean(backupBusy)} onClick={() => backupInput.current?.click()}>{backupBusy === "restore" ? "Restoring…" : "Choose backup…"}</Button><input ref={backupInput} className="sr-only" type="file" accept=".zip,application/zip" onChange={(event) => void restoreBackup(event.target.files?.[0])} /></article>
 				  {backupError && <div className="settings-message settings-message--error" role="alert">{backupError}</div>}
 				  {backupNotice && <div className="settings-message settings-message--success" role="status">{backupNotice}</div>}
 				</div>}
@@ -417,15 +418,15 @@ export function SettingsDialog({
                 <div className="settings-panel__heading settings-panel__heading--with-status">
                   <div>
                     <h2 id="updates-heading">Device software</h2>
-                    <p>Install signed Ardor application releases from GitHub. Presets, models, cabinet IRs, reverb IRs, Wi-Fi, and local access stay on the pedal.</p>
+                    <p>Install signed Ardor releases from GitHub. Presets, models, cabinet IRs, reverb IRs, Wi-Fi and local access stay on the pedal.</p>
                   </div>
-                  {updateStatus && <StatusBadge tone={updateTone(updateStatus.state)}>{updateStatus.state.replace(/_/g, " ")}</StatusBadge>}
+                  {updateStatus && <Tag tone={updateTone(updateStatus.state)}>{updateStatus.state.replace(/_/g, " ")}</Tag>}
                 </div>
                 {!updateAvailable ? (
                   <div className="settings-empty">
                     <Download size={24} />
                     <strong>Updates require a bootstrap image</strong>
-                    <p>This pedal does not advertise signed OTA support. Flash an OTA-capable Ardor image before installing releases here.</p>
+                    <p>This pedal does not support signed updates. Flash an Ardor image with update support, then install releases here.</p>
                   </div>
                 ) : updateBusy && !updateStatus ? (
                   <div className="settings-empty"><span className="settings-spinner" /><strong>Reading device software…</strong></div>
@@ -444,17 +445,17 @@ export function SettingsDialog({
                         {updateStatus.available.reflashRequired ? (
                           <p>{updateStatus.available.incompatibility ?? "This release changes the base system and must be flashed to the SD card."}</p>
                         ) : (
-                          <p>The signed application bundle is compatible with this pedal and ready to install.</p>
+                          <p>The signed bundle fits this pedal. It is ready to install.</p>
                         )}
                         <a href={updateStatus.available.releaseUrl} target="_blank" rel="noreferrer">Read release notes</a>
                       </div>
                     ) : updateStatus?.checkedAt ? (
-                      <p className="update-current"><Check size={16} />This pedal already has the newest compatible application release.</p>
+                      <p className="update-current"><Check size={16} />This pedal has the newest compatible release.</p>
                     ) : (
-                      <p className="update-current">Check GitHub Releases when you are ready to update. Nothing installs automatically.</p>
+                      <p className="update-current">Check GitHub Releases when you want to update. Nothing installs by itself.</p>
                     )}
                     {updateStatus && ["downloading", "verifying", "staged", "restarting", "validating"].includes(updateStatus.state) && (
-                      <div className="update-progress" role="status"><span className="settings-spinner" /><div><strong>Update in progress</strong><small>Keep the pedal powered. Manager may disconnect during restart.</small></div></div>
+                      <div className="update-progress" role="status"><span className="settings-spinner" /><div><strong>Update in progress</strong><small>Keep the pedal powered. The manager can disconnect during the restart.</small></div></div>
                     )}
                     {(updateError || updateStatus?.errorMessage) && <div className="settings-message settings-message--error" role="alert">{updateError ?? updateStatus?.errorMessage}</div>}
                     <div className="settings-panel__actions update-actions">
@@ -467,16 +468,15 @@ export function SettingsDialog({
             ) : (
               <section className="settings-panel" aria-labelledby="security-heading">
                 <div className="settings-panel__heading">
-                  <p className="eyebrow">Local device access</p>
                   <h2 id="security-heading">Security & reset</h2>
-                  <p>Local credentials are separate from the hosted Ardor account. This direct connection is intended only for a trusted LAN.</p>
+                  <p>Local credentials differ from the hosted Ardor account. Use this direct connection on a trusted network only.</p>
                 </div>
                 {error && <div className="settings-message settings-message--error" role="alert">{error}</div>}
                 {factoryNotice && <div className="settings-message settings-message--success" role="status">{factoryNotice}</div>}
                 <div className="security-actions">
                   <article><div><LogOut size={18} /><span><strong>Sign out this browser</strong><small>Ends only the current local session.</small></span></div><Button variant="quiet" disabled={securityBusy} onClick={() => void logoutLocal()}>Sign out</Button></article>
-                  <article><div><RotateCcw size={18} /><span><strong>Reset local access</strong><small>Removes the local account and all sessions, while preserving sounds and network settings.</small></span></div><Button variant="danger" disabled={securityBusy} onClick={() => void resetLocal()}>Reset access</Button></article>
-                  <article className="security-actions__factory"><div><Trash2 size={18} /><span><strong>Factory reset</strong><small>Erases all user content and Wi-Fi after physical confirmation on the pedal.</small></span></div><Button variant="danger" disabled={securityBusy || Boolean(factoryNotice)} onClick={() => void beginFactoryReset()}>Factory reset…</Button></article>
+                  <article><div><RotateCcw size={18} /><span><strong>Reset local access</strong><small>Removes the local account and all sessions. Sounds and network settings stay.</small></span></div><Button variant="danger" disabled={securityBusy} onClick={() => void resetLocal()}>Reset access</Button></article>
+                  <article className="security-actions__factory"><div><Trash2 size={18} /><span><strong>Factory reset</strong><small>Erases all user content and Wi-Fi. You confirm on the pedal.</small></span></div><Button variant="danger" disabled={securityBusy || Boolean(factoryNotice)} onClick={() => void beginFactoryReset()}>Factory reset…</Button></article>
                 </div>
               </section>
             )}

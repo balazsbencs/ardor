@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useReducer, useState, type Dispatch } from "react";
 
 import type { Preset, PresetBlock, PresetScene, PresetSceneTarget, WdwRouting } from "../../api/types";
-import { displayValue } from "../../components/ParameterSlider";
+import { displayValue } from "../../effects/display";
 import { useDeviceSession } from "../../connection/deviceSession";
 import { allEffectDefinitions, findEffectDefinition } from "../../effects/catalog";
 import type { NumberControl } from "../../effects/types";
