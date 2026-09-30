@@ -27,6 +27,8 @@ describe("shortcutFor", () => {
     dialog.setAttribute("role", "dialog");
     const inside = dialog.appendChild(document.createElement("button"));
     expect(shortcutFor(key({ key: "z", metaKey: true, target: input }))).toBeUndefined();
+    expect(shortcutFor(key({ key: "s", metaKey: true, target: input }))).toBe("save");
+    expect(shortcutFor(key({ key: "s", ctrlKey: true, target: inside }))).toBe("save");
     expect(shortcutFor(key({ key: "Escape", target: inside }))).toBeUndefined();
     expect(shortcutFor(key({ key: "b", target: slider }))).toBeUndefined();
     expect(shortcutFor(key({ key: "s", metaKey: true, target: slider }))).toBe("save");

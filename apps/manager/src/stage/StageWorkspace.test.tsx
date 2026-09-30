@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -232,5 +232,35 @@ describe("StageWorkspace keyboard shortcuts", () => {
     await userEvent.type(screen.getByRole("textbox", { name: "Preset name" }), "a");
     expect(screen.queryByRole("dialog", { name: "Add block" })).not.toBeInTheDocument();
     expect(editor().present.name).toBe("Glassa");
+  });
+
+  it("saves with Cmd+S and Ctrl+S from the preset name field, but leaves Cmd+Z to the field", async () => {
+    renderWithEditor(stage());
+    const name = screen.getByRole("textbox", { name: "Preset name" });
+    await userEvent.type(name, " II");
+    expect(fireEvent.keyDown(name, { key: "z", metaKey: true })).toBe(true);
+    expect(fireEvent.keyDown(name, { key: "s", metaKey: true })).toBe(false);
+    expect(session.saveCurrent).toHaveBeenCalledTimes(1);
+    await act(async () => undefined);
+    await userEvent.type(screen.getByRole("textbox", { name: "Preset name" }), "I");
+    expect(fireEvent.keyDown(screen.getByRole("textbox", { name: "Preset name" }), { key: "s", ctrlKey: true })).toBe(false);
+    expect(session.saveCurrent).toHaveBeenCalledTimes(2);
+  });
+
+  it("acts on the focused card in the overview with B, A and Delete", async () => {
+    session.current.preset.blocks = [blockOf("delay:tape", "d1"), blockOf("dynamics:compressor", "c1")];
+    const { editor } = renderWithEditor(stage());
+    const card = () => screen.getByRole("group", { name: /Compressor/ });
+    act(() => card().focus());
+    await userEvent.keyboard("b");
+    expect(editor().present.blocks[1].enabled).toBe(false);
+    act(() => card().focus());
+    await userEvent.keyboard("a");
+    expect(within(screen.getByRole("dialog", { name: "Add block" })).getByText(/^Insert after Compressor/)).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "Add block" })).not.toBeInTheDocument();
+    act(() => card().focus());
+    await userEvent.keyboard("{Delete}");
+    expect(editor().present.blocks.map(({ id }) => id)).toEqual(["d1"]);
   });
 });

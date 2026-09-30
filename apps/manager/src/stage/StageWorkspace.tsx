@@ -9,9 +9,10 @@ import { findEffectDefinition } from "../effects/catalog";
 import type { EffectDefinition, NumberControl } from "../effects/types";
 import { usePresetEditorContext } from "../presets/editor/EditorContext";
 import type { EditorAction } from "../presets/editor/editorTypes";
+import { findPresetBlockInPreset } from "../presets/editor/editorReducer";
 import { issuesForBlock } from "../presets/editor/presetValidation";
 import type { AddTarget, PresetEditor } from "../presets/editor/usePresetEditor";
-import { sceneOwns } from "../presets/scenes/sceneView";
+import { applySceneToBlock, sceneOwns } from "../presets/scenes/sceneView";
 import { UnsavedChangesDialog } from "../presets/workspace/UnsavedChangesDialog";
 import { BankBar } from "./BankBar";
 import { BlockDrawer } from "./BlockDrawer";
@@ -70,9 +71,16 @@ function Hints() {
   );
 }
 
+/** The selected block, else the block card with keyboard focus, as the edit scope shows it. */
+function shortcutTarget(editor: PresetEditor): PresetBlock | undefined {
+  const focused = (document.activeElement?.closest("[data-block-id]") as HTMLElement | null)?.dataset.blockId;
+  const block = findPresetBlockInPreset(editor.present, editor.editor.selectedBlockId ?? focused);
+  return block ? applySceneToBlock(block, editor.editingScene) : undefined;
+}
+
 /** Runs one shortcut against the editor. Returns false when the key should keep its default. */
 function runShortcut(shortcut: Shortcut, editor: PresetEditor, drawerOpen: boolean, close: () => void): boolean {
-  const selected = editor.inspectorBlock;
+  const selected = shortcutTarget(editor);
   switch (shortcut) {
     case "undo":
     case "redo":
@@ -132,8 +140,14 @@ export function StageWorkspace({ onManageFiles, onConnection }: { onManageFiles(
   const onKey = useRef<(event: KeyboardEvent) => void>(() => undefined);
   onKey.current = (event) => {
     const shortcut = connected ? shortcutFor(event) : undefined;
-    if (!shortcut || editor.addTarget || editor.pendingLocation) return;
-    if (runShortcut(shortcut, editor, shown !== "none", close)) event.preventDefault();
+    if (!shortcut) return;
+    const dialogOpen = Boolean(editor.addTarget || editor.pendingLocation);
+    if (shortcut === "save") {
+      event.preventDefault();
+      if (!dialogOpen) runShortcut(shortcut, editor, shown !== "none", close);
+      return;
+    }
+    if (!dialogOpen && runShortcut(shortcut, editor, shown !== "none", close)) event.preventDefault();
   };
   useEffect(() => {
     const listener = (event: KeyboardEvent) => onKey.current(event);

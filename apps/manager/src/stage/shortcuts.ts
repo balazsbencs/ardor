@@ -10,22 +10,21 @@ const PLAIN_KEYS: Record<string, Shortcut> = {
   b: "toggle", B: "toggle", a: "add", A: "add", Delete: "remove", Backspace: "remove", Escape: "close",
 };
 
-function modShortcut(key: string, shiftKey: boolean): Shortcut | undefined {
-  const lower = key.toLowerCase();
-  if (lower === "z") return shiftKey ? "redo" : "undo";
-  if (lower === "s" && !shiftKey) return "save";
-  return undefined;
-}
+const isSave = (event: KeyInput) =>
+  (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "s";
 
 /**
  * The edit screen's key map: Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z, Cmd/Ctrl+S, B, Delete, A and Escape.
- * Text fields and open dialogs keep their keys. A focused slider keeps its keys too,
- * except undo, redo and save.
+ * Cmd/Ctrl+S always saves, so the browser never opens its own Save dialog. Otherwise text fields
+ * and open dialogs keep their keys, and a focused slider keeps all but undo and redo.
  */
 export function shortcutFor(event: KeyInput): Shortcut | undefined {
+  if (isSave(event)) return "save";
   const element = event.target instanceof Element ? event.target : undefined;
   if (element?.closest(`${TEXT_FIELDS}, [role=dialog], [role=alertdialog]`)) return undefined;
-  if (event.metaKey || event.ctrlKey) return event.altKey ? undefined : modShortcut(event.key, event.shiftKey);
+  if (event.metaKey || event.ctrlKey) {
+    return !event.altKey && event.key.toLowerCase() === "z" ? (event.shiftKey ? "redo" : "undo") : undefined;
+  }
   if (event.altKey || element?.closest("[role=slider]")) return undefined;
   return PLAIN_KEYS[event.key];
 }

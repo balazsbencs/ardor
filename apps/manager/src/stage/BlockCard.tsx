@@ -60,7 +60,7 @@ export function BlockCard({ block, selected, issues, missingFile, sceneOwnsEnabl
     return <Value key={control.key} control={control} value={typeof raw === "number" ? raw : control.defaultValue} />;
   }) : [];
   return (
-    <div ref={innerRef} style={{ ...style, viewTransitionName: `block-${block.id}` }} role="group" tabIndex={0}
+    <div ref={innerRef} style={{ ...style, viewTransitionName: `block-${block.id}` }} role="group" tabIndex={0} data-block-id={block.id}
       aria-label={`${title}, ${capFor(block.type)}, ${block.enabled ? "on" : "bypassed"}`} aria-current={selected || undefined}
       className={cx("blk", `fam-${family}`, block.enabled ? "is-on" : "is-off", selected && "is-sel", dragging && "is-dragging")}
       onClick={onSelect} onKeyDown={onKeyDown}>
