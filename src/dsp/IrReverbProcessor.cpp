@@ -6,7 +6,32 @@
 
 namespace ardor {
 
+struct IrReverbKernel {
+  NonUniformConvolver::PreparedImpulse left, right;
+  IrReverbKernel* retiredNext = nullptr;
+};
+
+static_assert(std::atomic<IrReverbKernel*>::is_always_lock_free);
+
 struct IrReverbLiveParameters {
+  // One control producer and one audio consumer. Superseded pending kernels
+  // and the retired list are destroyed only by the control thread.
+  std::atomic<IrReverbKernel*> pendingKernel{nullptr};
+  std::atomic<IrReverbKernel*> retiredKernels{nullptr};
+
+  void reclaimRetired() noexcept {
+    auto* kernel = retiredKernels.exchange(nullptr, std::memory_order_acquire);
+    while (kernel) {
+      auto* next = kernel->retiredNext;
+      delete kernel;
+      kernel = next;
+    }
+  }
+  ~IrReverbLiveParameters() {
+    delete pendingKernel.load();
+    reclaimRetired();
+  }
+
   std::atomic<float> mix{0.35f};
   std::atomic<float> levelDb{0.0f};
   std::atomic<float> preDelayMs{0.0f};
@@ -16,6 +41,63 @@ struct IrReverbLiveParameters {
 };
 
 namespace {
+
+// A target may arrive midway through a scheduled partition. Three tail
+// periods plus alignment flush incomplete overlap before the audible fade.
+constexpr std::size_t kKernelWarmupFrames =
+    3 * NonUniformConvolver::TAIL_PARTITION_FRAMES
+    + NonUniformConvolver::EARLY_IMPULSE_FRAMES
+    + NonUniformConvolver::EARLY_PARTITION_FRAMES;
+constexpr std::size_t kKernelFadeFrames = 4800; // 100 ms at the 48 kHz host rate
+constexpr double kLn1000 = 6.907755278982137;
+
+// Schroeder backwards energy integration, with a -5 to -35 dB T30 fit.
+// One stereo estimate/envelope preserves the balance between the channels.
+std::optional<float> estimateRt60(const std::vector<float>& left,
+                                const std::vector<float>& right,
+                                float sampleRate, std::size_t& onset)
+{
+  const std::size_t frames = std::max(left.size(), right.size());
+  if (frames < static_cast<std::size_t>(0.1f * sampleRate)) return std::nullopt;
+  std::vector<double> energy(frames);
+  double sum = 0.0, peak = 0.0;
+  for (std::size_t i = frames; i-- > 0;) {
+    const double l = i < left.size() ? left[i] : 0.0;
+    const double r = i < right.size() ? right[i] : 0.0;
+    const double e = l * l + r * r;
+    if (!std::isfinite(e)) return std::nullopt;
+    peak = std::max(peak, e);
+    sum += e;
+    energy[i] = sum;
+  }
+  if (!(sum > 0.0)) return std::nullopt;
+  onset = 0;
+  while (onset + 1 < frames && energy[onset] - energy[onset + 1] < peak * 1e-8)
+    ++onset;
+
+  double sx = 0, sy = 0, sxx = 0, sxy = 0, syy = 0;
+  std::size_t count = 0, first = 0, last = 0;
+  for (std::size_t i = onset; i < frames; ++i) {
+    if (energy[i] <= 0.0) break;
+    const double db = 10.0 * std::log10(energy[i] / sum);
+    if (db > -5.0) continue;
+    if (db < -35.0) break;
+    const double t = static_cast<double>(i - onset) / sampleRate;
+    if (count++ == 0) first = i;
+    last = i;
+    sx += t; sy += db; sxx += t * t; sxy += t * db; syy += db * db;
+  }
+  if (count < 2 || last - first < static_cast<std::size_t>(0.025f * sampleRate))
+    return std::nullopt;
+  const double vx = count * sxx - sx * sx;
+  const double vy = count * syy - sy * sy;
+  const double cov = count * sxy - sx * sy;
+  if (!(vx > 0 && vy > 0 && cov < 0) || cov * cov / (vx * vy) < 0.98)
+    return std::nullopt;
+  const double rt60 = -60.0 * vx / cov;
+  if (!std::isfinite(rt60) || rt60 < 0.05 || rt60 > 60.0) return std::nullopt;
+  return static_cast<float>(rt60);
+}
 
 constexpr float kTwoPi = 6.28318530718f;
 constexpr float kMixSmoothing = 0.0005f;
@@ -32,8 +114,11 @@ float onePoleCoeff(float cutoffHz, float sampleRate)
 
 } // namespace
 
+IrReverbProcessor::IrReverbProcessor() = default;
+IrReverbProcessor::~IrReverbProcessor() = default;
+
 bool IrReverbProcessor::load(std::vector<float> left, std::vector<float> right,
-                             float sampleRate, std::string& error)
+                             float sampleRate, std::string& error, float reverbTimeRatio)
 {
   if (!(sampleRate > 0.0f) || !std::isfinite(sampleRate)) {
     error = "convolution reverb needs a positive sample rate";
@@ -53,6 +138,15 @@ bool IrReverbProcessor::load(std::vector<float> left, std::vector<float> right,
   // two convolvers see different input.
   if (right.empty()) right = left;
 
+  // Loading and destruction happen after the caller has stopped processing.
+  activeKernel_.reset();
+  nextKernel_.reset();
+  kernelWarmupRemaining_ = kernelFadeFrame_ = 0;
+  requestedReverbTimeRatio_ = 1.0f;
+  impulseOnset_ = 0;
+  originalRt60_ = estimateRt60(left, right, sampleRate_, impulseOnset_);
+  originalLeft_ = left;
+  originalRight_ = right;
   impulseFrames_ = std::max(left.size(), right.size());
   left_.load(std::move(left));
   right_.load(std::move(right));
@@ -85,6 +179,8 @@ bool IrReverbProcessor::load(std::vector<float> left, std::vector<float> right,
   lowCutMix_ = lowCutActive_ ? 1.0f : 0.0f;
   highCutMix_ = highCutActive_ ? 1.0f : 0.0f;
   loaded_ = true;
+  setReverbTimeRatio(reverbTimeRatio);
+  reset();
   error.clear();
   return true;
 }
@@ -92,6 +188,11 @@ bool IrReverbProcessor::load(std::vector<float> left, std::vector<float> right,
 void IrReverbProcessor::reset()
 {
   refreshLiveParameters();
+  // reset also applies the newest prepared load-time value immediately. This
+  // path can run on audio; retiring kernels must never free them here.
+  if (nextKernel_) finishKernelTransition();
+  beginKernelTransition();
+  if (nextKernel_) finishKernelTransition();
   left_.reset();
   right_.reset();
   std::fill(preLeft_.begin(), preLeft_.end(), 0.0f);
@@ -152,6 +253,62 @@ void IrReverbProcessor::setHighCutHz(float hz)
     std::isfinite(hz) ? std::clamp(hz, HIGH_CUT_MIN_HZ, HIGH_CUT_MAX_HZ) : HIGH_CUT_MAX_HZ,
     std::memory_order_relaxed);
   liveParameters_->revision.fetch_add(1, std::memory_order_release);
+}
+
+void IrReverbProcessor::setReverbTimeRatio(float ratio)
+{
+  if (!liveParameters_) return;
+  liveParameters_->reclaimRetired();
+  ratio = std::isfinite(ratio) ? std::clamp(ratio, 0.25f, 1.0f) : 1.0f;
+  if (ratio == requestedReverbTimeRatio_ || !originalRt60_) return;
+  auto left = originalLeft_;
+  auto right = originalRight_;
+  if (ratio < 1.0f) {
+    const double slope = -kLn1000 * (1.0 / ratio - 1.0) / *originalRt60_;
+    const auto shape = [&](std::vector<float>& impulse) {
+      for (std::size_t i = impulseOnset_; i < impulse.size(); ++i)
+        impulse[i] *= static_cast<float>(std::exp(slope * (i - impulseOnset_) / sampleRate_));
+    };
+    shape(left);
+    shape(right);
+  }
+  auto kernel = std::make_unique<IrReverbKernel>();
+  kernel->left = left_.prepareImpulse(left);
+  kernel->right = right_.prepareImpulse(right);
+  // Exchange transfers ownership. Only an unconsumed pending kernel can be
+  // deleted here; the audio thread retains every kernel it has taken.
+  delete liveParameters_->pendingKernel.exchange(kernel.release(), std::memory_order_acq_rel);
+  requestedReverbTimeRatio_ = ratio;
+}
+
+void IrReverbProcessor::retireKernel(IrReverbKernel* kernel) noexcept
+{
+  if (!kernel) return;
+  auto& retired = liveParameters_->retiredKernels;
+  auto* head = retired.load(std::memory_order_relaxed);
+  do {
+    kernel->retiredNext = head;
+  } while (!retired.compare_exchange_strong(head, kernel, std::memory_order_release,
+                                         std::memory_order_relaxed));
+}
+
+void IrReverbProcessor::beginKernelTransition() noexcept
+{
+  if (nextKernel_ || !liveParameters_) return;
+  if (!liveParameters_->pendingKernel.load(std::memory_order_relaxed)) return;
+  nextKernel_.reset(liveParameters_->pendingKernel.exchange(nullptr, std::memory_order_acquire));
+  if (!nextKernel_) return;
+  kernelWarmupRemaining_ = kKernelWarmupFrames;
+  kernelFadeFrame_ = 0;
+}
+
+void IrReverbProcessor::finishKernelTransition() noexcept
+{
+  left_.finishTransition();
+  right_.finishTransition();
+  retireKernel(activeKernel_.release());
+  activeKernel_.reset(nextKernel_.release());
+  kernelWarmupRemaining_ = kernelFadeFrame_ = 0;
 }
 
 void IrReverbProcessor::refreshLiveParameters() noexcept
@@ -234,8 +391,21 @@ IrReverbFrame IrReverbProcessor::processFrame(StereoSample input)
 
   // The convolver buffers internally and spreads its own work, so this is a
   // plain per-sample call from here.
-  float wetL = left_.process(sendL);
-  float wetR = right_.process(sendR);
+  beginKernelTransition();
+  const auto l = left_.processFrame(sendL, activeKernel_ ? &activeKernel_->left : nullptr,
+                                   nextKernel_ ? &nextKernel_->left : nullptr);
+  const auto r = right_.processFrame(sendR, activeKernel_ ? &activeKernel_->right : nullptr,
+                                    nextKernel_ ? &nextKernel_->right : nullptr);
+  float wetL = l.current, wetR = r.current;
+  if (nextKernel_) {
+    if (kernelWarmupRemaining_ > 0) --kernelWarmupRemaining_;
+    else {
+      const float blend = static_cast<float>(++kernelFadeFrame_) / kKernelFadeFrames;
+      wetL += blend * (l.next - wetL);
+      wetR += blend * (r.next - wetR);
+      if (kernelFadeFrame_ == kKernelFadeFrames) finishKernelTransition();
+    }
+  }
   // Keep a malformed impulse or upstream non-finite sample out of the
   // continuously running filter histories.
   if (!std::isfinite(wetL)) wetL = 0.0f;

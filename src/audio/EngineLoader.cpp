@@ -531,7 +531,8 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       }
       if (!chain.addIrReverb(block.id, std::move(left), std::move(right),
                              static_cast<float>(options.sampleRate), error,
-                             block.sceneLetRing)) {
+                             block.sceneLetRing,
+                             reverbParam(block.params, "reverbTimeRatio", 1.0f))) {
         return false;
       }
       const auto& params = block.params;
@@ -921,7 +922,8 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       }
       if (!engine.addIrReverb(block.id, std::move(left), std::move(right),
                               static_cast<float>(options.sampleRate), error,
-                              block.sceneLetRing)) {
+                              block.sceneLetRing,
+                              reverbParam(block.params, "reverbTimeRatio", 1.0f))) {
         return false;
       }
       const auto& params = block.params;

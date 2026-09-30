@@ -65,6 +65,17 @@ Preset files live under the data root in bank/slot folders, for example:
 
 Block assets inside preset JSON stay relative to that same data root, such as `models/clean.nam`, `irs/open-back.wav`, or `reverb-irs/small-room.wav`. Cabinet IRs and convolution reverb IRs use separate directories. Existing convolution presets that reference an installed `irs/` asset remain compatible, while new reverb selections use `reverb-irs/`. Absolute paths and `..` traversal are rejected. Real `.nam` models and IRs stay local and are not committed unless redistribution is allowed.
 
+Convolution reverb exposes **Reverb time** in the pedal and manager editors.
+It scales the recorded decay from 25% to 100%; 100% preserves the original IR.
+For example, a two-second decay becomes approximately one second at 50%.
+The processor estimates RT60 from the loaded stereo IR and applies a decay
+envelope without changing reflection timing, pitch, or embedded pre-delay.
+IRs shorter than 100 ms, silent impulses, and responses without a reliable
+decay estimate stay unchanged. The four-second IR cap still applies.
+Live edits crossfade using the existing convolution history. This control is
+shared across scenes; convolution-kernel preparation runs on the control thread.
+
+
 ### Scenes
 
 Version-4 presets contain four named scenes. A scene changes prepared parameter

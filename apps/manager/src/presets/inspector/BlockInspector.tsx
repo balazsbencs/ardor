@@ -75,8 +75,13 @@ export function BlockInspector({
     }
     if (control.kind === "number") {
       const value = Number(valueFor(block, control.key, control.defaultValue));
-      const slider = <ParameterSlider control={control} value={value} onChange={(next) => onParam(block.id, control.key, next)} />;
-      return scenesEnabled && sceneScopeFor && onSceneScope
+      const sharedReverbTime = block.type === "irreverb" && control.key === "reverbTimeRatio";
+      const description = sharedReverbTime
+        ? "25–100% of the original decay. Short or non-decaying IRs keep their original response."
+          + (scenesEnabled ? " Shared across scenes." : "")
+        : undefined;
+      const slider = <ParameterSlider control={control} value={value} description={description} onChange={(next) => onParam(block.id, control.key, next)} />;
+      return scenesEnabled && sceneScopeFor && onSceneScope && !sharedReverbTime
         ? <SceneScopeControl key={control.key} label={control.label} scope={sceneScopeFor(block.id, control.key)} onScope={(scope) => onSceneScope(block.id, control.key, scope, value)}>{slider}</SceneScopeControl>
         : <div key={control.key}>{slider}</div>;
     }
