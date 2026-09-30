@@ -144,4 +144,66 @@ describe("useAssetLibrary", () => {
     await act(() => result.current.library.deleteChecked());
     expect(result.current.library.error).toBe("Could not delete Clean.nam.");
   });
+  it("follows a rename in the draft and keeps the notice when the refresh fails afterwards", async () => {
+    session.refreshAssets.mockRejectedValueOnce(new Error("List unavailable"));
+    const { result } = renderLibrary();
+    act(() => result.current.editor.dispatch({ type: "set-block-param", blockId: "g1", key: "mix", value: 0.5 }));
+    let outcome: string | undefined = "unset";
+    await act(async () => { outcome = await result.current.library.rename(session.models[1], "Clean v2.nam"); });
+    expect(outcome).toBeUndefined();
+    expect(result.current.editor.present.blocks[0].asset).toBe("models/Clean v2.nam");
+    expect(result.current.library.notice).toBe("Renamed to Clean v2.nam. 2 saved presets use the new name.");
+    expect(result.current.library.error).toBe("List unavailable");
+  });
+
+  it("keeps the open file open under its new name", async () => {
+    session.client.renameAsset.mockResolvedValueOnce({ asset: { id: "Clean v2.nam", filename: "Clean v2.nam", path: "models/Clean v2.nam" }, updatedPresetCount: 0 });
+    const { result } = renderLibrary();
+    act(() => result.current.library.setOpenId("Clean.nam"));
+    await act(async () => { await result.current.library.rename(session.models[1], "Clean v2.nam"); });
+    expect(result.current.library.openId).toBe("Clean v2.nam");
+  });
+
+  it("does not mark an upload as failed when only the refresh fails", async () => {
+    session.refreshAssets.mockRejectedValueOnce(new Error("List unavailable"));
+    const { result } = renderLibrary();
+    act(() => result.current.library.enqueue([new File(["x"], "New.nam")]));
+    await waitFor(() => expect(result.current.library.error).toBe("List unavailable"));
+    expect(result.current.library.queue).toHaveLength(0);
+    expect(result.current.library.notice).toBe("New.nam uploaded to NAM models.");
+  });
+
+  it("closes the drawer when its file is deleted", async () => {
+    const { result } = renderLibrary();
+    act(() => result.current.library.setOpenId("Brown Sound.nam"));
+    act(() => result.current.library.askDelete(["Brown Sound.nam"]));
+    await act(() => result.current.library.deleteChecked());
+    expect(result.current.library.openId).toBeUndefined();
+  });
+
+  it("keeps the drawer open when the delete of its file failed", async () => {
+    session.client.deleteAsset.mockRejectedValueOnce(new Error("busy"));
+    const { result } = renderLibrary();
+    act(() => result.current.library.setOpenId("Brown Sound.nam"));
+    act(() => result.current.library.askDelete(["Brown Sound.nam"]));
+    await act(() => result.current.library.deleteChecked());
+    expect(result.current.library.openId).toBe("Brown Sound.nam");
+  });
+
+  it("clears the selection and withdraws a pending delete", () => {
+    const { result } = renderLibrary();
+    act(() => result.current.library.askDelete(["Clean.nam"]));
+    act(() => result.current.library.clearChecked());
+    expect(result.current.library.checked.size).toBe(0);
+    expect(result.current.library.confirmDelete).toBe(false);
+    act(() => result.current.library.askDelete(["Clean.nam"]));
+    act(() => result.current.library.toggleChecked("Brown Sound.nam"));
+    expect(result.current.library.confirmDelete).toBe(false);
+  });
+
+  it("announces a notice from outside, such as a TONE3000 install", () => {
+    const { result } = renderLibrary();
+    act(() => result.current.library.announce("Amp installed."));
+    expect(result.current.library.notice).toBe("Amp installed.");
+  });
 });
