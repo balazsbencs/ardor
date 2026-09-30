@@ -1,6 +1,6 @@
 """Derive Rev C from the frozen Rev 2 layout using KiCad's s-expression format.
-Preserves every retained pad/footprint and track geometry. Reassigns nets from the
-fresh schematic, removes unused blocks and reviewed stubs, and clears old fills.
+Preserves every retained pad/footprint and track centerline. Reassigns nets from
+the fresh schematic, applies reviewed widths, removes stubs, and clears old fills.
 Run refill_board.py afterwards in a separate KiCad process.
 """
 from pathlib import Path
@@ -36,6 +36,15 @@ ground_plan=json.loads((R/'design/ground-plane-routing.json').read_text())
 ground_pruned=set(ground_plan['removed_segment_uuids'])
 ground_candidates={get(t,'uuid')[1]:t for t in source if key(t)=='segment'}
 assert all(u in ground_candidates and oldnames[get(ground_candidates[u],'net')[1]]=='GND' for u in ground_pruned)
+width_plan=json.loads((R/'design/uniform-3v3-routing.json').read_text())
+width_changes={change['uuid']:change for change in width_plan['changes']}
+assert len(width_changes)==len(width_plan['changes'])
+for uid,change in width_changes.items():
+ t=ground_candidates[uid]
+ assert oldnames[get(t,'net')[1]]==change['net'] and change['net'] in width_plan['nets']
+ assert get(t,'width')[1]==change['before_width_mm']
+ assert all(get(t,name)[1:]==change[name] for name in ['start','end'])
+ assert get(t,'layer')[1]==change['layer']
 for item in source:
  kind=key(item)
  if kind=='net':continue
@@ -60,6 +69,8 @@ for item in source:
   net=get(item,'net');name=merge.get(oldnames[net[1]],oldnames[net[1]])
   if name not in used or get(item,'uuid')[1] in pruned|ground_pruned:continue
   net[1]=canonical[name]
+  if kind=='segment' and get(item,'uuid')[1] in width_changes:
+   get(item,'width')[1]=width_plan['target_width_mm']
  if kind=='zone':
   n=get(item,'net');n[1]=netcode.get(n[1],0)
   item[:]=[v for v in item if key(v) not in ['filled_polygon','fill_segments']]
@@ -76,5 +87,5 @@ for start,end in [((97.025,72.365),(97.025,73.635)),((101.975,73.635),(101.975,7
 index=next(i for i,v in enumerate(kept) if key(v)=='footprint')
 kept[index:index]=[[S('net'),code,name] for name,code in sorted(canonical.items(),key=lambda n:n[1])]
 (R/'Ardor_IO.kicad_pcb').write_text(sx.dumps(kept)+'\n')
-(R/'verification/layout-changes.json').write_text(json.dumps({'removed_footprints':sorted(removed),'net_merges':merge,'buffer_bypass_connections':[['U501 old pad 2','U501 old pad 3'],['U501 old pad 6','U501 old pad 5']],'retained_outline_mm':[68,46],'reviewed_branch_stubs_removed':len(pruned),'redundant_ground_segments_removed':len(ground_pruned)},indent=2)+'\n')
+(R/'verification/layout-changes.json').write_text(json.dumps({'removed_footprints':sorted(removed),'net_merges':merge,'buffer_bypass_connections':[['U501 old pad 2','U501 old pad 3'],['U501 old pad 6','U501 old pad 5']],'retained_outline_mm':[68,46],'reviewed_branch_stubs_removed':len(pruned),'redundant_ground_segments_removed':len(ground_pruned),'uniform_3v3_width_mm':width_plan['target_width_mm'],'reviewed_3v3_segments_narrowed':len(width_changes)},indent=2)+'\n')
 print('Rev C board:',len(comps),'electrical footprints; removed',len(removed))

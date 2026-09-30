@@ -18,4 +18,6 @@ Choose bare-board quantity separately: if fabrication starts at five boards, req
 
 This package includes the ground-plane cleanup: 192 redundant ground segments removed, three local links and 20 ground vias retained, and both copper zones refilled. The [ground audit](../verification/ground-routing-audit.json) records the verified geometry and zero DRC/connectivity findings. Board dimensions, placements, BOM and CPL remain unchanged.
 
+Both 3.3 V rails use uniform 0.20 mm tracks, checked by the [width audit](../verification/3v3-width-audit.json). The Gerbers and package hashes include this revision.
+
 Regenerate netlist/ERC/DRC and `kicad-smt-positions.csv` with KiCad 9, then run `design/export_jlcpcb_assembly.py`. It uses the saved inventory snapshot; it does not fetch stock. Refresh public stock before ordering later. These are prototype manufacturing files; audio measurements and assembled-enclosure qualification remain outstanding.

@@ -1,0 +1,35 @@
+{
+  "source_commit": "15b517a6",
+  "target_width_mm": 0.2,
+  "changed_segments": 37,
+  "route_centerlines_and_vias_unchanged": true,
+  "rails": {
+    "+3V3_PI": {
+      "segments": 15,
+      "segments_narrowed": 8,
+      "distinct_track_widths_mm": [
+        0.2
+      ],
+      "total_track_length_mm": 30.8167,
+      "assumed_copper_thickness_um": 35,
+      "sum_all_branch_track_resistances_ohm": 0.0759,
+      "screening_current_ma": 10,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.759,
+      "vias_and_ferrite_excluded_from_resistance_estimate": true
+    },
+    "+3V3_ADC": {
+      "segments": 38,
+      "segments_narrowed": 29,
+      "distinct_track_widths_mm": [
+        0.2
+      ],
+      "total_track_length_mm": 62.549,
+      "assumed_copper_thickness_um": 35,
+      "sum_all_branch_track_resistances_ohm": 0.15405,
+      "screening_current_ma": 10,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 1.5405,
+      "vias_and_ferrite_excluded_from_resistance_estimate": true
+    }
+  },
+  "board_sha256": "506bf09821215376d12b83708549b1e15edc134f72cbd6b96d69b4a431d812a3"
+}

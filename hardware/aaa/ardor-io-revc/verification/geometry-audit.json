@@ -1,11 +1,13 @@
 {
   "all_retained_footprint_and_pad_geometry_unchanged": true,
-  "all_retained_track_and_via_geometry_and_widths_unchanged": true,
+  "all_retained_track_centerlines_and_via_geometry_unchanged": true,
+  "track_widths_match_baseline_and_reviewed_3v3_plan": true,
+  "reviewed_3v3_segments_narrowed": 37,
   "zone_outlines_settings_and_isolation_keepouts_unchanged": true,
   "outline_unchanged": true,
   "original_routing_items": 830,
   "retained_routing_items": 516,
   "new_buffer_bridge_segments": 2,
   "removed_routing_items": 314,
-  "board_sha256": "a418c786828ac7ca4ebc8c914084507a591c1cb03ec5517f4fc4382f7ea40f6c"
+  "board_sha256": "506bf09821215376d12b83708549b1e15edc134f72cbd6b96d69b4a431d812a3"
 }

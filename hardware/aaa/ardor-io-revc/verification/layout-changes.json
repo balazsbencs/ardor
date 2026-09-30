@@ -41,5 +41,7 @@
     46
   ],
   "reviewed_branch_stubs_removed": 48,
-  "redundant_ground_segments_removed": 192
+  "redundant_ground_segments_removed": 192,
+  "uniform_3v3_width_mm": 0.2,
+  "reviewed_3v3_segments_narrowed": 37
 }
