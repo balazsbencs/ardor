@@ -96,4 +96,15 @@ describe("BlockDrawer", () => {
     expect(screen.getByTestId("scene-owners")).toHaveTextContent("0");
     expect(screen.queryByText("SCENE")).not.toBeInTheDocument();
   });
+
+  it("offers Create four scenes beside a scene-set-required issue", async () => {
+    const issue = { severity: "error" as const, code: "scene-set-required", message: "Preset version 4 requires a scene set." };
+    function IssueHarness() {
+      const editor = usePresetEditorContext();
+      return <>{editor.present.sceneSet && <output data-testid="has-scenes" />}<BlockDrawer block={editor.present.blocks[0]} issues={[issue]} onFocusKey={vi.fn()} onClose={onClose} onManageFiles={onManage} /></>;
+    }
+    render(<EditorProvider><IssueHarness /></EditorProvider>);
+    await userEvent.click(screen.getByRole("button", { name: "Create four scenes" }));
+    expect(screen.getByTestId("has-scenes")).toBeInTheDocument();
+  });
 });

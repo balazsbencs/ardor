@@ -58,7 +58,8 @@ export function BlockDrawer({ block, issues, focusedKey, onFocusKey, onClose, on
           <IconButton label="Close" onClick={onClose}><X size={16} /></IconButton>
         </span>
       </div>
-      {issues.length > 0 && <ul className="drawer__issues">{issues.map((issue, i) => <li key={`${issue.code}-${i}`} className={`is-${issue.severity}`}>{issue.message}</li>)}</ul>}
+      {issues.length > 0 && <ul className="drawer__issues">{issues.map((issue, i) => <li key={`${issue.code}-${i}`} className={`is-${issue.severity}`}>{issue.message}
+        {issue.code === "scene-set-required" && <Button variant="secondary" onClick={() => editor.dispatch({ type: "enable-scenes" })}>Create four scenes</Button>}</li>)}</ul>}
       {modes.length > 1 && <div className="drawer__modes"><ChoiceStrip label="Type" family={family} value={definition!.id}
         options={modes.map((m) => ({ value: m.id, label: m.name }))} onChange={(id) => editor.dispatch({ type: "change-definition", blockId: block.id, definitionId: id })} /></div>}
       {editor.present.version === 4 && SCENE_BYPASS_TYPES.includes(block.type) && <div className="drawer__modes">
