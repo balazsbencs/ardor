@@ -152,6 +152,7 @@ function normalizedControlValue(block: PresetBlock, key: string, value: unknown)
       : undefined;
   }
   if (control.kind === "toggle") return typeof value === "boolean" ? value : undefined;
+  if (control.kind === "asset") return typeof value === "string" ? value : undefined;
   return undefined;
 }
 

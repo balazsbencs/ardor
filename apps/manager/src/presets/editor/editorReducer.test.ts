@@ -109,6 +109,13 @@ describe("editorReducer", () => {
     expect(edited.selectedBlockId).toBe("block-1");
   });
 
+  it("sets a Dual Amp file path through set-block-param", () => {
+    const added = editorReducer(state(), { type: "add-block", definitionId: "dualAmp", index: 0 });
+    const amp = added.history.present.blocks.find(({ type }) => type === "dualAmp")!;
+    const edited = reduce(added, { type: "set-block-param", blockId: amp.id, key: "leftNamAsset", value: "models/x.nam" });
+    expect(edited.history.present.blocks.find(({ id }) => id === amp.id)?.params.leftNamAsset).toBe("models/x.nam");
+  });
+
   it("adds a version-2 Dual Rig and edits both child chains recursively", () => {
     const added = editorReducer(state(), { type: "add-block", definitionId: "dualRig", index: 1 });
     const rig = added.history.present.blocks.find(({ type }) => type === "dualRig");
