@@ -208,6 +208,27 @@ on this development host, with peaks 0.261 and 0.777 respectively at Resonance
 70%, Depth 90%, normalized Rate 0.15. These are reproducible synthetic examples,
 not comparisons against recordings of the pedal.
 
+## Target-device validation
+
+The model was deployed to a Raspberry Pi ARM64 device on 2026-09-30, running
+at 1.5 GHz and 48 kHz. Both modes passed standalone ALSA tests in mono and
+stereo at 64- and 128-frame periods, with no callback overruns, gaps or
+non-finite samples. Full-engine offline synthetic-guitar renders produced
+finite, distinct outputs for both modes.
+
+Adding PH-2 to the existing NAM/compressor/EQ/tape-delay chain exposed a
+Mode 2 deadline problem at 128 frames in the initial build. Sharing solver
+reciprocals, reusing the accepted OTA curve and enabling `-O3` for this source
+in GNU/Clang Release builds reduced its cost without changing the circuit
+routing, iteration limits or residual tolerances. Fast-math is not enabled.
+The combined chain then passed with zero overruns: Mode 1 averaged **2.05 ms**
+(maximum **2.30 ms**), and Mode 2 averaged **2.27 ms** (maximum **2.52 ms**),
+against a **2.67 ms** callback budget. These are short device measurements,
+not a guarantee for every input, preset or additional block; Mode 2 leaves
+limited headroom in this chain. The overload test establishes boundedness,
+not realtime performance under arbitrary overdrive. Physical-pedal listening
+and calibration remain separate from these runtime checks.
+
 ## Fidelity boundary
 
 All principal signal blocks are represented, but this remains a reduced model.

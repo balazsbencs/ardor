@@ -70,6 +70,11 @@ file(GLOB NAM_SOURCES
 # Ardor-maintained hosted Daisy FX sources. This is a source-only copy; no
 # upstream CMake module is included or linked.
 set(ARDOR_DAISYFX_HOSTED_DIR src/daisyfx/hosted)
+# Buildroot supplies -O2 even for Release. PH-2's nested nonlinear solvers need
+# the additional inlining from -O3 to retain Pi audio deadline headroom. Keep
+# ordinary IEEE floating-point rules: this does not enable fast-math.
+set_property(SOURCE ${ARDOR_DAISYFX_HOSTED_DIR}/modes/ph2_mode.cpp APPEND PROPERTY
+  COMPILE_OPTIONS "$<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:GNU,Clang>>:-O3>")
 add_library(ardor_daisyfx_runtime
   ${ARDOR_DAISYFX_HOSTED_DIR}/params/mod_param_set.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/params/mod_param_map.cpp

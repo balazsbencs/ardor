@@ -25,7 +25,7 @@ struct Pole {
 
 struct Allpass {
     Pole cap;
-    Value evaluate(float input, float g, bool ota, float& next) const;
+    Value evaluate(float input, float g, float inverse, bool ota, float& next) const;
 };
 
 struct Loop {

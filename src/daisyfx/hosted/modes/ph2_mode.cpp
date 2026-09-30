@@ -20,9 +20,13 @@ float triangle(float phase) {
 ph2::Value tanhCurve(float x) {
     if (std::abs(x) >= 3.0f) return {std::copysign(1.0f, x), 0.0f};
     const float xx = x * x;
-    const float denominator = 27.0f + 9.0f * xx;
-    return {x * (27.0f + xx) / denominator,
-            9.0f * (xx - 9.0f) * (xx - 9.0f) / (denominator * denominator)};
+    // Share one reciprocal between the value and its analytic derivative.
+    // This preserves the Padé curve while avoiding a second scalar division
+    // in every OTA/feedback trial on the target ARM CPU.
+    const float inverse = 1.0f / (27.0f + 9.0f * xx);
+    const float derivative_term = (xx - 9.0f) * inverse;
+    return {x * (27.0f + xx) * inverse,
+            9.0f * derivative_term * derivative_term};
 }
 float cleanState(float x) { return std::abs(x) < 1e-20f ? 0.0f : x; }
 }
@@ -39,23 +43,25 @@ Value rail(float input) {
 }
 
 Value Pole::lowpass(float input, float g) const {
-    const float gain = g / (1.0f + g);
-    return {(state + g * input) / (1.0f + g), gain};
+    const float inverse = 1.0f / (1.0f + g);
+    return {(state + g * input) * inverse, g * inverse};
 }
 
-Value Allpass::evaluate(float input, float g, bool ota, float& next) const {
-    auto lp = cap.lowpass(input, g);
+Value Allpass::evaluate(float input, float g, float inverse, bool ota, float& next) const {
+    Value lp{(cap.state + g * input) * inverse, g * inverse};
     if (ota) {
         // OTA differential pair: I = Iabc*tanh(Vdiff/(2*Vt)). The 68k /
         // 560-ohm summing network turns this into a nonlinear RC integrator.
         // Solve lp = state + g*scale*tanh((input-lp)/scale) by Newton.
+        auto curve = tanhCurve((input - lp.signal) / kOtaScale);
         for (int i = 0; i < 3; ++i) {
-            const auto curve = tanhCurve((input - lp.signal) / kOtaScale);
             const float residual = lp.signal - cap.state - g * kOtaScale * curve.signal;
             if (std::abs(residual) < 1e-7f) break;
             lp.signal -= residual / (1.0f + g * curve.slope);
+            curve = tanhCurve((input - lp.signal) / kOtaScale);
         }
-        const auto curve = tanhCurve((input - lp.signal) / kOtaScale);
+        // Reuse the accepted curve for the analytic slope; evaluating it
+        // again would duplicate the last trial without advancing any state.
         lp.slope = g * curve.slope / (1.0f + g * curve.slope);
     }
     next = cleanState(2.0f * lp.signal - cap.state);
@@ -73,6 +79,10 @@ float Loop::process(float input, float swept_g, float fixed_g, float beta,
     const float resonance_g = rcG(4700.0f, 1e-9f);
     const float coupling_g = rcG(68000.0f, 1e-6f);
     const float fixed_coupling_g = rcG(10000.0f, 1e-6f);
+    // Both coefficients are shared by every stage and every trial evaluation
+    // of this current-sample root. Compute their reciprocals once per loop.
+    const float swept_inverse = 1.0f / (1.0f + swept_g);
+    const float fixed_inverse = 1.0f / (1.0f + fixed_g);
     std::array<float, 10> next{};
     float coupling_next = 0.0f, fixed_next = 0.0f, chip2_next = 0.0f;
     Value phased{}, feedback{}, returned{};
@@ -91,7 +101,8 @@ float Loop::process(float input, float swept_g, float fixed_g, float beta,
                 phased.slope *= 1.0f - hp.slope;
             }
             const bool fixed = i >= fixed_index;
-            const auto stage = stages[i].evaluate(phased.signal, fixed ? fixed_g : swept_g, !fixed, next[i]);
+            const auto stage = stages[i].evaluate(phased.signal, fixed ? fixed_g : swept_g,
+                                                  fixed ? fixed_inverse : swept_inverse, !fixed, next[i]);
             phased.signal = stage.signal;
             phased.slope *= stage.slope;
         }
