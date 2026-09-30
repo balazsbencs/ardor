@@ -171,10 +171,11 @@ void PedalEngine::addCab(std::vector<float> impulse, float level, float mix, std
 }
 
 bool PedalEngine::addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
-                              float sampleRate, std::string& error, bool sceneLetRing)
+                              float sampleRate, std::string& error, bool sceneLetRing,
+                              float reverbTimeRatio)
 {
   return chain_.addIrReverb(std::move(id), std::move(left), std::move(right), sampleRate, error,
-                            sceneLetRing);
+                            sceneLetRing, reverbTimeRatio);
 }
 
 bool PedalEngine::setIrReverbParameter(const std::string& id, const std::string& key, float value)

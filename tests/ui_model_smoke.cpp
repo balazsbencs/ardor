@@ -171,6 +171,24 @@ int main()
                 std::string{blockType} + "/" + mode + " should add a block of its own type")) return 1;
     if (require(ardor::parameterPageCount(addState) > 0,
                 std::string{blockType} + "/" + mode + " should expose working controls")) return 1;
+    if (std::string{blockType} == "irreverb") {
+      const auto& block = addedBlocks.back();
+      if (require(block.params.value("reverbTimeRatio", 0.0f) == 1.0f,
+                  "new IR reverbs must preserve the original decay by default")) return 1;
+      bool foundTime = false;
+      for (std::size_t page = 0; page < ardor::parameterPageCount(addState); ++page) {
+        for (const auto& control : ardor::parameterPage(addState, page)) {
+          if (control.key != "reverbTimeRatio") continue;
+          foundTime = control.label == "Reverb time" && control.minimum == 0.25f
+            && control.maximum == 1.0f && control.formatted == "100%"
+            && control.sceneScope == ardor::UiSceneScope::Unavailable;
+          ardor::applyParameterDelta(addState, control, -50);
+        }
+      }
+      if (require(foundTime && addState.bank.presets[addState.activePreset].blocks.back()
+                    .params.value("reverbTimeRatio", 0.0f) == 0.5f,
+                  "pedal reverb time control must edit the shared stored ratio")) return 1;
+    }
   }
 
   // Tape speed is the only string choice outside the compressor's detector, and

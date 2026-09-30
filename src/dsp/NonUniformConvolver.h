@@ -12,6 +12,11 @@ namespace ardor {
 // scheduled partitions so long tails do not multiply the steady-state cost.
 class NonUniformConvolver {
 public:
+  struct PreparedImpulse {
+    ScheduledConvolver::PreparedImpulse early;
+    ScheduledConvolver::PreparedImpulse tail;
+  };
+  using Frame = ScheduledConvolver::Frame;
   static constexpr std::size_t EARLY_PARTITION_FRAMES = 128;
   static constexpr std::size_t EARLY_IMPULSE_FRAMES = 1024;
   static constexpr std::size_t TAIL_PARTITION_FRAMES = 1024;
@@ -19,6 +24,10 @@ public:
   void load(std::vector<float> impulse);
   void reset();
   float process(float input);
+  PreparedImpulse prepareImpulse(const std::vector<float>& impulse) const;
+  Frame processFrame(float input, const PreparedImpulse* current,
+                     const PreparedImpulse* next);
+  void finishTransition() noexcept;
 
   bool loaded() const noexcept { return impulseFrames_ != 0; }
   std::size_t latencyFrames() const noexcept { return EARLY_PARTITION_FRAMES; }
@@ -31,6 +40,7 @@ private:
   ScheduledConvolver early_;
   ScheduledConvolver tail_;
   std::vector<float> tailDelay_;
+  std::vector<float> nextTailDelay_;
   std::size_t tailDelayPosition_ = 0;
   std::size_t impulseFrames_ = 0;
   bool tailLoaded_ = false;

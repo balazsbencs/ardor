@@ -141,6 +141,16 @@ int main()
   require(error.find("retained tails") != std::string::npos,
           "tail-overlap rejection was not explained");
 
+  auto irTime = makePreset();
+  irTime.blocks.push_back({"room", "irreverb", true, "reverb-irs/room.wav",
+                          {{"reverbTimeRatio", 0.5f}}});
+  require(ardor::buildScenePlan(irTime, plan, error), "shared IR decay must be allowed");
+  for (auto& scene : irTime.sceneSet->scenes)
+    scene.targets.push_back({ardor::PresetSceneTargetType::Parameter, "room",
+                             "reverbTimeRatio", "", 0.5f});
+  require(!ardor::buildScenePlan(irTime, plan, error),
+          "kernel preparation must never become an audio-thread scene target");
+
   std::cout << "scene plan smoke passed\n";
   return 0;
 }

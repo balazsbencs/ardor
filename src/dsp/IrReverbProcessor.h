@@ -6,12 +6,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace ardor {
 
 struct IrReverbLiveParameters;
+struct IrReverbKernel;
 
 struct IrReverbFrame {
   StereoSample mixed;
@@ -36,8 +38,13 @@ struct IrReverbFrame {
 // it would delay the dry signal to match, which is the opposite of wanted.
 class IrReverbProcessor {
 public:
+  IrReverbProcessor();
+  ~IrReverbProcessor();
+  IrReverbProcessor(const IrReverbProcessor&) = delete;
+  IrReverbProcessor& operator=(const IrReverbProcessor&) = delete;
   // Impulses longer than this are truncated. At 48 kHz a 4 s stereo impulse
-  // uses about 8 MB across stereo impulse and history storage.
+  // uses about 10 MB including the retained original samples. A live decay
+  // edit temporarily retains additional prepared spectra during its crossfade.
   static constexpr float MAX_IMPULSE_SECONDS = 4.0f;
   static constexpr std::size_t PARTITION_FRAMES =
       NonUniformConvolver::EARLY_PARTITION_FRAMES;
@@ -49,7 +56,7 @@ public:
 
   // `right` may be empty, in which case `left` feeds both channels.
   bool load(std::vector<float> left, std::vector<float> right, float sampleRate,
-            std::string& error);
+            std::string& error, float reverbTimeRatio = 1.0f);
   void reset();
 
   void setMix(float mix);              // 0..1
@@ -57,6 +64,11 @@ public:
   void setPreDelayMs(float milliseconds);
   void setLowCutHz(float hz);          // high-pass on the wet path
   void setHighCutHz(float hz);         // low-pass on the wet path
+  // Control thread only: prepares FFT kernels and publishes a live crossfade.
+  // 1 preserves the recording; .25 quarters its estimated decay time.
+  // Short or non-decaying impulses without a reliable estimate are unchanged.
+  void setReverbTimeRatio(float ratio);
+  std::optional<float> originalRt60Seconds() const noexcept { return originalRt60_; }
 
   StereoSample process(StereoSample input);
   IrReverbFrame processFrame(StereoSample input);
@@ -77,12 +89,22 @@ private:
 
   void updateFilters();
   void refreshLiveParameters() noexcept;
+  void beginKernelTransition() noexcept;
+  void finishKernelTransition() noexcept;
+  void retireKernel(IrReverbKernel* kernel) noexcept;
 
   NonUniformConvolver left_;
   NonUniformConvolver right_;
   bool loaded_ = false;
   float sampleRate_ = 48000.0f;
   std::size_t impulseFrames_ = 0;
+  std::vector<float> originalLeft_, originalRight_;
+  std::optional<float> originalRt60_;
+  std::size_t impulseOnset_ = 0;
+  float requestedReverbTimeRatio_ = 1.0f; // control thread only
+  std::unique_ptr<IrReverbKernel> activeKernel_, nextKernel_; // audio thread only
+  std::size_t kernelWarmupRemaining_ = 0;
+  std::size_t kernelFadeFrame_ = 0;
 
   // Pre-delay sits ahead of the convolver, so its buffer only needs to cover
   // the additional delay the user asks for.

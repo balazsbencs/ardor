@@ -312,6 +312,7 @@ std::vector<ParameterControl> controlsForBlock(const UiBlock& block)
     return {
       control("mix", "Mix", 0.0f, 1.0f, 0.05f, number("mix", 0.35f), formatPercent),
       control("levelDb", "Level", -60.0f, 12.0f, 1.0f, number("levelDb", 0.0f), formatDb),
+      control("reverbTimeRatio", "Reverb time", 0.25f, 1.0f, 0.01f, number("reverbTimeRatio", 1.0f), formatPercent),
       control("preDelayMs", "Pre-delay", 0.0f, 500.0f, 1.0f, number("preDelayMs", 0.0f), formatMilliseconds),
       control("lowCutHz", "Low cut", 20.0f, 2000.0f, 10.0f, number("lowCutHz", 20.0f), formatHertz),
       control("highCutHz", "High cut", 500.0f, 20000.0f, 100.0f, number("highCutHz", 20000.0f), formatHertz),

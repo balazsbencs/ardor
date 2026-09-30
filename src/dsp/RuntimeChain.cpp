@@ -271,10 +271,11 @@ bool RuntimeChain::setCabParameter(const std::string& id, const std::string& key
 }
 
 bool RuntimeChain::addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
-                               float sampleRate, std::string& error, bool sceneLetRing)
+                               float sampleRate, std::string& error, bool sceneLetRing,
+                               float reverbTimeRatio)
 {
   auto reverb = std::make_unique<IrReverbProcessor>();
-  if (!reverb->load(std::move(left), std::move(right), sampleRate, error)) {
+  if (!reverb->load(std::move(left), std::move(right), sampleRate, error, reverbTimeRatio)) {
     return false;
   }
 
@@ -294,6 +295,7 @@ bool RuntimeChain::setIrReverbParameter(const std::string& id, const std::string
     if (block.kind != Block::Kind::IrReverb || block.id != id) continue;
     if (key == "mix") block.irReverb->setMix(value);
     else if (key == "levelDb") block.irReverb->setLevelDb(value);
+    else if (key == "reverbTimeRatio") block.irReverb->setReverbTimeRatio(value);
     else if (key == "preDelayMs") block.irReverb->setPreDelayMs(value);
     else if (key == "lowCutHz") block.irReverb->setLowCutHz(value);
     else if (key == "highCutHz") block.irReverb->setHighCutHz(value);
