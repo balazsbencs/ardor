@@ -46,6 +46,7 @@
 .chips__list--lane .chip b { font-size: 13px; }
 .chip-lane { width: 20px; display: flex; align-items: center; justify-content: center; font: 700 12px/1 var(--f-cond); color: var(--bg); background: var(--utility); }
 .chip-rig__lane + .chip-rig__lane .chip-lane { background: var(--amp); }
+.chip-lane--word { width: auto; padding: 0 5px; font-size: 11px; letter-spacing: .08em; }
 
 @media (max-width: 720px) {
   .drawer__head h2 { font-size: 28px; }

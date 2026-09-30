@@ -6,7 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Plus, Split } from "lucide-react";
 import type { KeyboardEvent } from "react";
 
-import type { PresetBlock } from "../api/types";
+import type { PresetBlock, WdwRouting } from "../api/types";
 import { cx } from "../components/ui";
 import type { EditorAction } from "../presets/editor/editorTypes";
 import { capFor, familyOf } from "../ui/family";
@@ -16,6 +16,8 @@ import "./drawer.css";
 
 type Props = {
   blocks: PresetBlock[];
+  /** WDW lanes; when given they replace the top-level chain, as on the chain stage. */
+  wdw?: WdwRouting;
   selectedId?: string;
   onSelect(id: string): void;
   onMove(action: EditorAction): void;
@@ -74,6 +76,18 @@ function Rig({ rig, props }: { rig: PresetBlock; props: Props }) {
   );
 }
 
+function Wdw({ wdw, props }: { wdw: WdwRouting; props: Props }) {
+  return (
+    <div className="chip-rig chip-rig--wdw">
+      <div className="chip-rig__head" aria-hidden="true"><Split size={16} />WDW</div>
+      <div className="chip-rig__lanes">
+        <div className="chip-rig__lane"><span className="chip-lane chip-lane--word">DRY</span><List listId="wdw:dry" blocks={wdw.dry.blocks} props={props} lane /></div>
+        <div className="chip-rig__lane"><span className="chip-lane chip-lane--word">WET</span><List listId="wdw:wet" blocks={wdw.wet.blocks} props={props} lane /></div>
+      </div>
+    </div>
+  );
+}
+
 /** The chain folded into one row of chips while a block's drawer is open. */
 export function ChipStrip(props: Props) {
   const sensors = useSensors(
@@ -92,7 +106,7 @@ export function ChipStrip(props: Props) {
     <nav className="chips" aria-label="Signal chain">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <div className="chip-jack">IN</div>
-        <List listId="top" blocks={props.blocks} props={props} />
+        {props.wdw ? <Wdw wdw={props.wdw} props={props} /> : <List listId="top" blocks={props.blocks} props={props} />}
         <button type="button" className="chip-add" aria-label="Add a block at the end" onClick={props.onAdd}><Plus size={16} /></button>
         <div className="chip-jack">OUT</div>
       </DndContext>

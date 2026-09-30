@@ -181,6 +181,18 @@ describe("StageWorkspace stage and drawer", () => {
     expect(screen.getByRole("button", { name: "Add a block at position 1" })).toBeDisabled();
   });
 
+  it("keeps the WDW lanes in the chip strip while a drawer is open", async () => {
+    session.current.preset = {
+      ...structuredClone(delayPreset), version: 3, routing: "wdw", blocks: [],
+      wdw: { dry: { enabled: true, levelDb: 0, blocks: [blockOf("dynamics:compressor", "x1")] }, wet: { enabled: true, levelDb: 0, blocks: [blockOf("delay:tape", "w1")] } },
+    } as Preset;
+    render(<AppProviders>{stage()}</AppProviders>);
+    await userEvent.click(screen.getByRole("button", { name: "Global" }));
+    const chips = screen.getByRole("navigation", { name: "Signal chain" });
+    expect(within(chips).getByRole("button", { name: /Compressor/ })).toBeInTheDocument();
+    expect(within(chips).getByRole("button", { name: /Tape Delay/ })).toBeInTheDocument();
+  });
+
   it("offers the fix for a preset-level issue in the stage head", async () => {
     session.current.preset = { ...structuredClone(delayPreset), version: 4 };
     const { editor } = renderWithEditor(stage());

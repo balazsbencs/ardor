@@ -190,7 +190,7 @@ export function StageWorkspace({ onManageFiles, onConnection }: { onManageFiles(
         ) : (
           <>
             <div className="edit__chips">
-              <ChipStrip blocks={editor.displayedBlocks} selectedId={selectedBlockId} onSelect={select} onMove={dispatch} onAdd={addAtEnd} />
+              <ChipStrip blocks={editor.displayedBlocks} wdw={present.routing === "wdw" ? editor.displayedWdw : undefined} selectedId={selectedBlockId} onSelect={select} onMove={dispatch} onAdd={addAtEnd} />
             </div>
             <StageNotices />
             {shown === "block" && editor.inspectorBlock && (
