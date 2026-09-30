@@ -12,5 +12,7 @@ a,b=tracks(old),tracks(new)
 assert all([z for z in a[u] if key(z)!='net']==[z for z in t if key(z)!='net'] for u,t in b.items() if u in a)
 assert len(set(b)-set(a))==2
 assert [v for v in old if key(v)=='gr_line']==[v for v in new if key(v)=='gr_line']
-report={'all_retained_footprint_and_pad_geometry_unchanged':True,'all_retained_track_and_via_geometry_and_widths_unchanged':True,'outline_unchanged':True,'original_routing_items':len(a),'retained_routing_items':len(set(a)&set(b)),'new_buffer_bridge_segments':2,'removed_routing_items':len(set(a)-set(b)),'board_sha256':hashlib.sha256((r/'Ardor_IO.kicad_pcb').read_bytes()).hexdigest()}
+def zones(v):return {get(z,'uuid')[1]:[u for u in z if key(u) not in ['net','filled_polygon','fill_segments']] for z in v if key(z)=='zone'}
+assert zones(old)==zones(new)
+report={'all_retained_footprint_and_pad_geometry_unchanged':True,'all_retained_track_and_via_geometry_and_widths_unchanged':True,'zone_outlines_settings_and_isolation_keepouts_unchanged':True,'outline_unchanged':True,'original_routing_items':len(a),'retained_routing_items':len(set(a)&set(b)),'new_buffer_bridge_segments':2,'removed_routing_items':len(set(a)-set(b)),'board_sha256':hashlib.sha256((r/'Ardor_IO.kicad_pcb').read_bytes()).hexdigest()}
 (r/'verification/geometry-audit.json').write_text(json.dumps(report,indent=2)+'\n');print(report)

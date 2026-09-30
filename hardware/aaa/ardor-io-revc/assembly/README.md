@@ -16,4 +16,6 @@ Choose bare-board quantity separately: if fabrication starts at five boards, req
 
 [verification.json](verification.json) checks reference coverage, part identity, packages, capacitor ratings/dielectrics, resistor tolerances, stock allowances, CPL coordinates/rotations and zero-error ERC/DRC/parity. [Connectivity audit](../verification/connectivity-audit.json) separately checks all 219 PCB pad/net assignments. [package-sha256.txt](package-sha256.txt) identifies the CAD and upload artifacts.
 
+This package includes the ground-plane cleanup: 192 redundant ground segments removed, three local links and 20 ground vias retained, and both copper zones refilled. The [ground audit](../verification/ground-routing-audit.json) records the verified geometry and zero DRC/connectivity findings. Board dimensions, placements, BOM and CPL remain unchanged.
+
 Regenerate netlist/ERC/DRC and `kicad-smt-positions.csv` with KiCad 9, then run `design/export_jlcpcb_assembly.py`. It uses the saved inventory snapshot; it does not fetch stock. Refresh public stock before ordering later. These are prototype manufacturing files; audio measurements and assembled-enclosure qualification remain outstanding.

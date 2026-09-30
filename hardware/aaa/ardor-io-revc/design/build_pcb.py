@@ -32,6 +32,10 @@ netcode={oldcode:canonical[merge.get(oldname,oldname)] for oldcode,oldname in ol
 removed=[];kept=[]
 used=set(pins.values())
 pruned=set(json.loads((R/'design/pruned-track-uuids.json').read_text()))
+ground_plan=json.loads((R/'design/ground-plane-routing.json').read_text())
+ground_pruned=set(ground_plan['removed_segment_uuids'])
+ground_candidates={get(t,'uuid')[1]:t for t in source if key(t)=='segment'}
+assert all(u in ground_candidates and oldnames[get(ground_candidates[u],'net')[1]]=='GND' for u in ground_pruned)
 for item in source:
  kind=key(item)
  if kind=='net':continue
@@ -54,7 +58,7 @@ for item in source:
      name=pins[(ref,pad[1])];get(pad,'net')[:]=[S('net'),canonical[name],name]
  if kind in ['segment','via']:
   net=get(item,'net');name=merge.get(oldnames[net[1]],oldnames[net[1]])
-  if name not in used or get(item,'uuid')[1] in pruned:continue
+  if name not in used or get(item,'uuid')[1] in pruned|ground_pruned:continue
   net[1]=canonical[name]
  if kind=='zone':
   n=get(item,'net');n[1]=netcode.get(n[1],0)
@@ -72,5 +76,5 @@ for start,end in [((97.025,72.365),(97.025,73.635)),((101.975,73.635),(101.975,7
 index=next(i for i,v in enumerate(kept) if key(v)=='footprint')
 kept[index:index]=[[S('net'),code,name] for name,code in sorted(canonical.items(),key=lambda n:n[1])]
 (R/'Ardor_IO.kicad_pcb').write_text(sx.dumps(kept)+'\n')
-(R/'verification/layout-changes.json').write_text(json.dumps({'removed_footprints':sorted(removed),'net_merges':merge,'buffer_bypass_connections':[['U501 old pad 2','U501 old pad 3'],['U501 old pad 6','U501 old pad 5']],'retained_outline_mm':[68,46],'reviewed_branch_stubs_removed':len(pruned)},indent=2)+'\n')
+(R/'verification/layout-changes.json').write_text(json.dumps({'removed_footprints':sorted(removed),'net_merges':merge,'buffer_bypass_connections':[['U501 old pad 2','U501 old pad 3'],['U501 old pad 6','U501 old pad 5']],'retained_outline_mm':[68,46],'reviewed_branch_stubs_removed':len(pruned),'redundant_ground_segments_removed':len(ground_pruned)},indent=2)+'\n')
 print('Rev C board:',len(comps),'electrical footprints; removed',len(removed))

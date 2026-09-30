@@ -40,5 +40,6 @@
     68,
     46
   ],
-  "reviewed_branch_stubs_removed": 48
+  "reviewed_branch_stubs_removed": 48,
+  "redundant_ground_segments_removed": 192
 }
