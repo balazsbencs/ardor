@@ -97,13 +97,14 @@ export function useAssetLibrary(initialKind: AssetKind = "models") {
   }, [queue]);
 
   // The server change already happened. A refresh failure is reported on its own and never undoes the notice.
-  const refreshLists = async (refreshKind: AssetKind, fallback: string) => {
+  const refreshLists = async (refreshKind: AssetKind, fallback: string, keep?: string) => {
     const { session: live } = latest.current;
     try {
       await live.refreshAssets(refreshKind);
       await live.refreshAssetUsage?.();
     } catch (failure) {
-      setError(reason(failure, fallback));
+      const message = reason(failure, fallback);
+      setError(keep ? `${keep} ${message}` : message);
     }
   };
 
@@ -165,9 +166,10 @@ export function useAssetLibrary(initialKind: AssetKind = "models") {
     }
     setOpenId((current) => (current !== undefined && deletedIds.has(current) ? undefined : current));
     setChecked(new Set());
-    if (failed.length > 0) setError(`Could not delete ${failed.join(", ")}.`);
+    const partial = failed.length > 0 ? `Could not delete ${failed.join(", ")}.` : undefined;
+    if (partial) setError(partial);
     else setNotice(`${targets.length === 1 ? targets[0].filename : `${targets.length} files`} deleted from the pedal.`);
-    await refreshLists(kind, "The file list did not refresh.");
+    await refreshLists(kind, "The file list did not refresh.", partial);
   };
 
   return {

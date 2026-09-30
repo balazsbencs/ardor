@@ -11,9 +11,10 @@ function DeleteQuestion({ targets, library }: { targets: Asset[]; library: Asset
   const it = one ? "it" : "them";
   const uses = targets.map((asset) => usedBy(library.usage, asset.path));
   const presets = [...new Set(uses.flatMap((list) => list ?? []).map(presetName))];
+  const verb = presets.length === 1 ? "uses" : "use";
   const stay = "Those presets stay saved but cannot load until you pick another file.";
   const consequence = library.usage === undefined ? `Presets that use ${it} stay saved but cannot load until you pick another file.`
-    : presets.length > 0 ? `${presets.join(", ")} use ${it}. ${stay}` : `No preset uses ${it}.`;
+    : presets.length > 0 ? `${presets.join(", ")} ${verb} ${it}. ${stay}` : `No preset uses ${it}.`;
   return (
     <div className="aconfirm" role="alertdialog" aria-label="Confirm delete">
       <Trash2 size={18} aria-hidden="true" />

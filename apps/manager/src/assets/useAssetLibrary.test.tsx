@@ -190,6 +190,15 @@ describe("useAssetLibrary", () => {
     expect(result.current.library.openId).toBe("Brown Sound.nam");
   });
 
+  it("keeps the partial delete failure when the refresh after it also fails", async () => {
+    session.client.deleteAsset.mockRejectedValueOnce(new Error("busy"));
+    session.refreshAssets.mockRejectedValueOnce(new Error("List unavailable"));
+    const { result } = renderLibrary();
+    act(() => result.current.library.askDelete(["Brown Sound.nam"]));
+    await act(() => result.current.library.deleteChecked());
+    expect(result.current.library.error).toBe("Could not delete Brown Sound.nam. List unavailable");
+  });
+
   it("clears the selection and withdraws a pending delete", () => {
     const { result } = renderLibrary();
     act(() => result.current.library.askDelete(["Clean.nam"]));

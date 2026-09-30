@@ -1,4 +1,4 @@
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -115,10 +115,35 @@ describe("AssetsView", () => {
     renderAssets();
     await userEvent.click(screen.getByRole("button", { name: "Delete Clean.nam" }));
     const rail = screen.getByRole("alertdialog", { name: "Confirm delete" });
-    expect(rail).toHaveTextContent("Glass Cathedral use it");
+    expect(rail).toHaveTextContent("Delete Clean.nam from the pedal? Glass Cathedral uses it. Those presets stay saved but cannot load until you pick another file. You cannot undo this.");
     expect(rail).toHaveTextContent("You cannot undo this.");
     await userEvent.click(within(rail).getByRole("button", { name: "Delete file" }));
     expect(session.client.deleteAsset).toHaveBeenCalledWith("models", "Clean.nam");
+  });
+
+  it("names two presets with the plural verb in the delete question", async () => {
+    session.assetUsage = [{ path: "models/Clean.nam", presets: [{ bank: 0, slot: 0, name: "Glass Cathedral" }, { bank: 1, slot: 0, name: "Doom" }] }];
+    renderAssets();
+    await userEvent.click(screen.getByRole("button", { name: "Delete Clean.nam" }));
+    expect(screen.getByRole("alertdialog", { name: "Confirm delete" })).toHaveTextContent("Glass Cathedral, Doom use it.");
+  });
+
+  it("uses the singular verb for one preset when several files are deleted", async () => {
+    renderAssets();
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select Clean.nam" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select Plexi.nam" }));
+    await userEvent.click(screen.getByRole("button", { name: "Delete 2" }));
+    expect(screen.getByRole("alertdialog", { name: "Confirm delete" })).toHaveTextContent("Glass Cathedral uses them.");
+  });
+
+  it("keeps the drawer open when Escape is pressed inside a dialog", async () => {
+    session.device.capabilities.tone3000 = true;
+    renderAssets();
+    await userEvent.click(screen.getByRole("button", { name: "Clean" }));
+    await userEvent.click(screen.getByRole("button", { name: "Browse TONE3000" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(screen.getByRole("region", { name: "Clean.nam" })).toBeInTheDocument();
   });
 
   it("cancels the delete confirmation", async () => {
@@ -313,5 +338,13 @@ describe("AssetsView", () => {
     session.status = "disconnected";
     renderAssets();
     expect(screen.getByRole("heading", { name: "Connect to manage files" })).toBeInTheDocument();
+  });
+
+  it("says files dropped while offline were not uploaded", async () => {
+    session.status = "disconnected";
+    const { onFilesTaken } = renderAssets({ pendingFiles: [new File(["x"], "Dropped.nam")] });
+    expect(await screen.findByRole("status")).toHaveTextContent("Connect to the pedal to upload files.");
+    expect(onFilesTaken).toHaveBeenCalledTimes(1);
+    expect(session.uploadAsset).not.toHaveBeenCalled();
   });
 });

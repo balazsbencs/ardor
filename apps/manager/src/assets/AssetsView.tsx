@@ -33,6 +33,7 @@ export function AssetsView({ initialKind, tone3000DeviceId, pendingFiles, onFile
   const input = useRef<HTMLInputElement>(null);
   const replaceTarget = useRef<Asset | undefined>(undefined);
   const taken = useRef<File[] | undefined>(undefined);
+  const [dropNotice, setDropNotice] = useState<string>();
   const connected = session.status === "connected";
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export function AssetsView({ initialKind, tone3000DeviceId, pendingFiles, onFile
     if (!pendingFiles || pendingFiles.length === 0 || taken.current === pendingFiles) return;
     taken.current = pendingFiles;
     if (connected) library.enqueue(pendingFiles);
+    else setDropNotice("Connect to the pedal to upload files.");
     onFilesTaken();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per handed-over batch
   }, [pendingFiles]);
@@ -74,8 +76,10 @@ export function AssetsView({ initialKind, tone3000DeviceId, pendingFiles, onFile
     if (!problem) setRenamingId(undefined);
     return problem;
   };
-  const onKeyDown = (event: KeyboardEvent) => {
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Escape") return;
+    // Portal content (dialogs) bubbles through the React tree; its Escape belongs to the dialog.
+    if (!event.currentTarget.contains(event.target as Node)) return;
     if (library.confirmDelete) library.cancelDelete();
     else if (renamingId) setRenamingId(undefined);
     else if (library.openId) closeDrawer();
@@ -85,7 +89,8 @@ export function AssetsView({ initialKind, tone3000DeviceId, pendingFiles, onFile
     return (
       <div className="assets assets--offline">
         <div className="offline"><Music2 size={32} aria-hidden="true" /><h1>Connect to manage files</h1>
-          <p>NAM models, cabinet IRs and reverb IRs live on the pedal. Connect to upload, rename or delete them.</p></div>
+          <p>NAM models, cabinet IRs and reverb IRs live on the pedal. Connect to upload, rename or delete them.</p>
+          {dropNotice && <p role="status">{dropNotice}</p>}</div>
       </div>
     );
   }
