@@ -219,15 +219,20 @@ finite, distinct outputs for both modes.
 Adding PH-2 to the existing NAM/compressor/EQ/tape-delay chain exposed a
 Mode 2 deadline problem at 128 frames in the initial build. Sharing solver
 reciprocals, reusing the accepted OTA curve and enabling `-O3` for this source
-in GNU/Clang Release builds reduced its cost without changing the circuit
-routing, iteration limits or residual tolerances. Fast-math is not enabled.
-The combined chain then passed with zero overruns: Mode 1 averaged **2.05 ms**
-(maximum **2.30 ms**), and Mode 2 averaged **2.27 ms** (maximum **2.52 ms**),
-against a **2.67 ms** callback budget. These are short device measurements,
-not a guarantee for every input, preset or additional block; Mode 2 leaves
-limited headroom in this chain. The overload test establishes boundedness,
-not realtime performance under arbitrary overdrive. Physical-pedal listening
-and calibration remain separate from these runtime checks.
+in GNU/Clang Release builds reduced its cost. Short tests passed, but a
+three-minute run still recorded two overruns. The final optimization keeps
+stage/curve helpers inline inside the current-sample root solve, removing a
+call per stage per trial on ARM. The circuit routing, iteration limits,
+residual tolerances and floating-point rules remain unchanged; fast-math is
+not enabled.
+
+The final combined-chain timing and endurance results are recorded in
+[PR #102's validation](https://github.com/balazsbencs/ardor/pull/102). Timing
+measurements are specific to the tested input, preset, sample rate and period;
+they do not guarantee sufficient headroom for an additional NAM model or
+arbitrary extra blocks. The overload test establishes boundedness, not realtime
+performance under arbitrary overdrive. Physical-pedal listening and calibration
+remain separate from these runtime checks.
 
 ## Fidelity boundary
 

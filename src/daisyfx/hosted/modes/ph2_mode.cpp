@@ -70,6 +70,11 @@ Value Allpass::evaluate(float input, float g, float inverse, bool ota, float& ne
     return output;
 }
 
+// Keep the stage/curve helpers inside this hot root solve. GCC's default
+// inlining budget otherwise leaves a call per stage per trial on ARM.
+#if defined(__GNUC__) || defined(__clang__)
+[[gnu::flatten]]
+#endif
 float Loop::process(float input, float swept_g, float fixed_g, float beta,
                     int count, bool second) {
     // IC5B / IC10A are differential amplifiers. Both have 4.7k feedback
