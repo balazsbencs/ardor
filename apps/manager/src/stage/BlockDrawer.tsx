@@ -8,6 +8,7 @@ import { usePresetEditorContext } from "../presets/editor/EditorContext";
 import type { ValidationIssue } from "../presets/editor/presetValidation";
 import { ChoiceStrip } from "../ui/ChoiceStrip";
 import { capFor, familyOf } from "../ui/family";
+import { sceneOwns } from "../presets/scenes/sceneView";
 import { Tag } from "../ui/Tag";
 import { blockTitle } from "./BlockCard";
 import { DrawerControl } from "./DrawerControl";
@@ -43,6 +44,13 @@ export function BlockDrawer({ block, issues, focusedKey, onFocusKey, onClose, on
         <span className="drawer__sub">{block.asset ? definition?.name : definition?.description}</span>
         <span className="drawer__actions">
           <SceneScope />
+          {editor.editingScene && sceneOwns(editor.editingScene, block.id) && (
+            <>
+              <Tag tone="scene">SCENE</Tag>
+              <button type="button" className="lb-ctl__share" title="All scenes use one value again"
+                onClick={() => editor.dispatch({ type: "set-scene-scope", sceneId: editor.editingScene!.id, blockId: block.id, scope: "shared", value: block.enabled })}>Share</button>
+            </>
+          )}
           <Button className="pow-big" aria-pressed={block.enabled} onClick={() => editor.editBlockEnabled(block.id, !block.enabled)}><Power size={16} />{block.enabled ? "Block on" : "Block off"}</Button>
           <IconButton label="Duplicate" onClick={() => editor.dispatch({ type: "duplicate-block", blockId: block.id })}><Copy size={16} /></IconButton>
           <IconButton label="Reset to defaults" onClick={() => editor.dispatch({ type: "reset-block", blockId: block.id })}><RotateCcw size={16} /></IconButton>

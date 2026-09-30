@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Preset } from "../api/types";
 import { EditorProvider, usePresetEditorContext } from "../presets/editor/EditorContext";
+import { createSceneSet } from "../presets/editor/presetFactory";
+import { applySceneToBlock } from "../presets/scenes/sceneView";
 import { BlockDrawer } from "./BlockDrawer";
 
 const basePreset: Preset = {
@@ -13,6 +15,7 @@ const basePreset: Preset = {
     { id: "n1", type: "nam", enabled: true, asset: "models/Clean.nam", params: { inputMode: "sum", useNano: false } },
   ],
 };
+const scenePreset: Preset = { ...basePreset, version: 4, sceneSet: createSceneSet() };
 const session = {
   status: "connected" as const, current: { location: { bank: 0, slot: 0 }, preset: structuredClone(basePreset), exists: true },
   device: { active: { bank: 0, slot: 0 }, capabilities: {} }, presets: [], irs: [], reverbIrs: [],
@@ -30,8 +33,8 @@ const onManage = vi.fn();
 
 function Harness({ id }: { id: string }) {
   const editor = usePresetEditorContext();
-  const block = editor.present.blocks.find((b) => b.id === id)!;
-  return <BlockDrawer block={block} issues={[]} onFocusKey={vi.fn()} onClose={onClose} onManageFiles={onManage} />;
+  const block = applySceneToBlock(editor.present.blocks.find((b) => b.id === id)!, editor.editingScene);
+  return <>{editor.present.sceneSet && <output data-testid="scene-owners">{editor.present.sceneSet.scenes.filter((s) => s.targets.some((t) => t.target === "blockEnabled" && t.blockId === id)).length}</output>}<BlockDrawer block={block} issues={[]} onFocusKey={vi.fn()} onClose={onClose} onManageFiles={onManage} /></>;
 }
 
 beforeEach(() => {
@@ -71,5 +74,26 @@ describe("BlockDrawer", () => {
     render(<EditorProvider><Harness id="d1" /></EditorProvider>);
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows no SCENE tag or Share beside BLOCK ON when the open scene does not own it", async () => {
+    session.current.preset = structuredClone(scenePreset);
+    render(<EditorProvider><Harness id="d1" /></EditorProvider>);
+    await userEvent.click(screen.getByRole("button", { name: /^1 Scene 1/ }));
+    expect(screen.queryByText("SCENE")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
+  });
+
+  it("lets BLOCK ON share its scene value again", async () => {
+    session.current.preset = structuredClone(scenePreset);
+    render(<EditorProvider><Harness id="d1" /></EditorProvider>);
+    await userEvent.click(screen.getByRole("button", { name: /^1 Scene 1/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Block on" }));
+    expect(screen.getByRole("button", { name: "Block off" })).toBeInTheDocument();
+    expect(screen.getByText("SCENE")).toBeInTheDocument();
+    expect(screen.getByTestId("scene-owners")).toHaveTextContent("4");
+    await userEvent.click(screen.getByRole("button", { name: "Share" }));
+    expect(screen.getByTestId("scene-owners")).toHaveTextContent("0");
+    expect(screen.queryByText("SCENE")).not.toBeInTheDocument();
   });
 });
