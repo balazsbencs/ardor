@@ -336,8 +336,8 @@ void RuntimeChain::addDaisy(std::string id, DaisyFxProcessor processor, bool sce
   block.kind = Block::Kind::Daisy;
   block.id = std::move(id);
   block.drainWhenBypassed = processor.tailFrames() > 0;
-  // Keep the reverb's 31-frame dry latency through bypass. Crossfading it
-  // against live dry produces a deep comb null near the fade midpoint.
+  // Preserve each effect's resampling latency through bypass (31 frames for
+  // hosted reverbs, 15 for PH-2). Live dry would cause a comb null mid-fade.
   block.bypassDryDelay.resize(processor.latencyFrames());
   block.sceneLetRing = sceneLetRing;
   block.daisy = std::make_unique<DaisyFxProcessor>(std::move(processor));

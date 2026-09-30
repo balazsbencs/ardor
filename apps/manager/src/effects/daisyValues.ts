@@ -123,6 +123,12 @@ const normalizedPercent = custom(percent);
 const scaledPercent = (maximum: number, curve = 0) => physical(0, maximum, curve, (value) => `${number(value, 0)}%`, 1);
 
 function modDisplay(mode: string, key: string): NumberDisplay {
+  if (mode === "phaser_ph2" && key === "p2") return choices(["Mode 1", "Mode 2"]);
+  if (mode === "phaser_ph2" && key === "p4") return choices(["Original", "Inverted"]);
+  if (mode === "phaser_ph2" && key === "speed") return physical(1 / 14, 10, 1, frequency, 0.01);
+  if (mode === "phaser_ph2" && key === "tone") return logPhysical(250, 4000, frequency, 10);
+  if (mode === "phaser_ph2" && key === "p1") return scaledPercent(100 * 10000 / 14700);
+  if (mode === "phaser_ph2") mode = "phaser";
   if (key === "speed") {
     if (mode === "vintage_trem") return physical(1, 15, 1, frequency, 0.1);
     if (mode === "destroyer") return physical(1, 48, 1, (value) => `${number(value, value < 10 ? 1 : 0)}x`, 0.1);
@@ -276,6 +282,7 @@ function delayDisplay(mode: string, key: string): NumberDisplay {
     return physical(0.05, 10, 1, frequency, 0.01);
   }
   if (key === "mod_dep") {
+    if (mode === "filter") return physical(0, 3, 0, (value) => `±${number(value, 2)} oct`, 0.01);
     if (mode === "swell") return custom(
       (value) => seconds(2.5 - 2.42 * clamp(value)),
       (value) => 2.5 - 2.42 * clamp(value),
