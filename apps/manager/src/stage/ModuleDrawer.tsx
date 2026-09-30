@@ -33,7 +33,7 @@ type ModuleDrawerProps = {
   onChoose(definition: EffectDefinition): void;
 };
 
-export function ModuleDrawer({ open, where, disabledIds, onOpenChange, onChoose }: ModuleDrawerProps) {
+function DrawerBody({ where, disabledIds, onChoose }: Pick<ModuleDrawerProps, "where" | "disabledIds" | "onChoose">) {
   const [query, setQuery] = useState("");
   const [family, setFamily] = useState<Family | "all">("all");
   const total = useMemo(() => allEffectDefinitions().length, []);
@@ -50,64 +50,72 @@ export function ModuleDrawer({ open, where, disabledIds, onOpenChange, onChoose 
     if (first) choose(first);
   };
   return (
+    <>
+      <div className="mods__head">
+        <div className="mods__title">
+          <div>
+            <Dialog.Title>Add block</Dialog.Title>
+            <p>{where}</p>
+          </div>
+          <Dialog.Close asChild>
+            <IconButton label="Close"><X size={18} /></IconButton>
+          </Dialog.Close>
+        </div>
+        <label className="search">
+          <Search size={17} />
+          <input
+            type="search"
+            aria-label="Search blocks"
+            placeholder={`Search ${total} blocks`}
+            value={query}
+            autoFocus
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") pickFirst(); }}
+          />
+        </label>
+        <div className="fams" role="group" aria-label="Families">
+          <button type="button" aria-pressed={family === "all"} onClick={() => setFamily("all")}>All</button>
+          {GROUPS.map((g) => (
+            <button key={g.family} type="button" className={`fam-${g.family}`} aria-pressed={family === g.family} onClick={() => setFamily(g.family)}>
+              {g.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mods__list">
+        {GROUPS.map((group) => {
+          const rows = definitions.filter((d) => familyOf(d.blockType) === group.family);
+          if (!rows.length) return null;
+          return (
+            <div key={group.family} role="group" aria-label={group.label}>
+              <div className="mods__grp"><span>{group.label}</span><span>{rows.length}</span></div>
+              {rows.map((d) => {
+                const reason = disabledIds.get(d.id);
+                return (
+                  <button key={d.id} type="button" className={`mod-row fam-${group.family}`} disabled={Boolean(reason)} onClick={() => choose(d)}>
+                    <span className="code">{MODULE_CODES[d.id]}</span>
+                    <span><b>{d.name}</b><small>{reason ?? d.description}</small></span>
+                    <span className="plus"><Plus size={16} /></span>
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })}
+        {definitions.length === 0 && <p className="lb-note">No block matches. Try a family name, for example delay.</p>}
+      </div>
+    </>
+  );
+}
+
+export function ModuleDrawer({ open, where, disabledIds, onOpenChange, onChoose }: ModuleDrawerProps) {
+  return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <PortalSurface>
           <Dialog.Overlay className="mods-scrim" />
           <Dialog.Content className="mods" aria-describedby={undefined}>
-            <div className="mods__head">
-              <div className="mods__title">
-                <div>
-                  <Dialog.Title>Add block</Dialog.Title>
-                  <p>{where}</p>
-                </div>
-                <Dialog.Close asChild>
-                  <IconButton label="Close"><X size={18} /></IconButton>
-                </Dialog.Close>
-              </div>
-              <label className="search">
-                <Search size={17} />
-                <input
-                  type="search"
-                  aria-label="Search blocks"
-                  placeholder={`Search ${total} blocks`}
-                  value={query}
-                  autoFocus
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") pickFirst(); }}
-                />
-              </label>
-              <div className="fams" role="group" aria-label="Families">
-                <button type="button" aria-pressed={family === "all"} onClick={() => setFamily("all")}>All</button>
-                {GROUPS.map((g) => (
-                  <button key={g.family} type="button" className={`fam-${g.family}`} aria-pressed={family === g.family} onClick={() => setFamily(g.family)}>
-                    {g.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="mods__list">
-              {GROUPS.map((group) => {
-                const rows = definitions.filter((d) => familyOf(d.blockType) === group.family);
-                if (!rows.length) return null;
-                return (
-                  <div key={group.family} role="group" aria-label={group.label}>
-                    <div className="mods__grp"><span>{group.label}</span><span>{rows.length}</span></div>
-                    {rows.map((d) => {
-                      const reason = disabledIds.get(d.id);
-                      return (
-                        <button key={d.id} type="button" className={`mod-row fam-${group.family}`} disabled={Boolean(reason)} onClick={() => choose(d)}>
-                          <span className="code">{MODULE_CODES[d.id]}</span>
-                          <span><b>{d.name}</b><small>{reason ?? d.description}</small></span>
-                          <span className="plus"><Plus size={16} /></span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-              {definitions.length === 0 && <p className="lb-note">No block matches. Try a family name, for example delay.</p>}
-            </div>
+            <DrawerBody where={where} disabledIds={disabledIds} onChoose={onChoose} />
           </Dialog.Content>
         </PortalSurface>
       </Dialog.Portal>
