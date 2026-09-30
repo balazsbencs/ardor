@@ -110,7 +110,10 @@ void sweepAndReset()
     for (int i = 0; i < 960000; ++i) {
       const float x = 0.1f * std::sin(kTwoPi * 900.0 * i / kSampleRate);
       const auto a = swept.Process({x, x}, p), b = fixed.Process({x, x}, q);
-      if (i > 480000) sum += (a.left - b.left) * (a.left - b.left);
+      if (i > 480000) {
+        const double difference = static_cast<double>(a.left) - b.left;
+        sum += difference * difference;
+      }
     }
     swept.Reset(); swept.Prepare(p);
     for (int i = 0; i < 1024; ++i) {
@@ -220,8 +223,22 @@ void nonlinearStress()
   }
 }
 
+std::filesystem::path reviewOutputPath(const std::filesystem::path& directory, const char* filename)
+{
+  // The caller supplies fixed artifact names; the directory is an explicit
+  // destination selected by the user of this standalone diagnostic CLI.
+  const auto path = directory / filename;
+  const auto status = std::filesystem::symlink_status(path);
+  require(!std::filesystem::is_symlink(status), "review output must not be a symlink");
+  require(!std::filesystem::exists(status) || std::filesystem::is_regular_file(status),
+          "review output must be a regular file");
+  return path;
+}
+
 void writeWav(const std::filesystem::path& path, const Render& audio)
 {
+  // codeql[cpp/path-injection]: explicit CLI output directory, canonicalized
+  // below; fixed artifact names are checked for symlinks and non-regular files.
   std::ofstream file(path, std::ios::binary);
   const auto word = [&](uint32_t value, int bytes) {
     for (int i = 0; i < bytes; ++i) file.put(static_cast<char>(value >> (8 * i)));
@@ -236,10 +253,17 @@ void writeWav(const std::filesystem::path& path, const Render& audio)
   require(file.good(), "write review audio");
 }
 
-void renderReview(const std::filesystem::path& directory)
+void renderReview(const std::filesystem::path& requestedDirectory)
 {
-  std::filesystem::create_directories(directory);
-  std::ofstream response(directory / "response.csv");
+  require(!requestedDirectory.empty(), "review output directory is empty");
+  std::filesystem::create_directories(requestedDirectory);
+  const auto directory = std::filesystem::canonical(requestedDirectory);
+  require(std::filesystem::is_directory(directory), "review output is not a directory");
+  const auto responsePath = reviewOutputPath(directory, "response.csv");
+  // codeql[cpp/path-injection]: user-selected destination is intentional for
+  // this standalone CLI; canonical directory and fixed, checked artifact name.
+  std::ofstream response(responsePath);
+  require(response.good(), "open review response");
   response << "mode,resonance,hz,gain_db\n";
   for (int mode : {0, 1}) for (float res : {0.0f, 0.8f}) {
     auto p = defaults("phaser_ph2"); p["depth"] = 0.0f; p["p2"] = mode; p["p1"] = res;
@@ -247,20 +271,24 @@ void renderReview(const std::filesystem::path& directory)
       const double hz = 40.0 * std::pow(300.0, j / 23.0);
       const auto out = render(p, sine(hz, 0.1f, 48000));
       double sum = 0.0;
-      for (size_t i = 24000; i < out.left.size(); ++i) sum += out.left[i] * out.left[i];
+      for (size_t i = 24000; i < out.left.size(); ++i) sum += static_cast<double>(out.left[i]) * out.left[i];
       response << mode + 1 << ',' << res << ',' << hz << ',' << db(std::sqrt(sum / 24000.0) / (0.1 / std::sqrt(2.0))) << '\n';
     }
   }
   response.close();
   auto phrase = guitarPhrase(); phrase.insert(phrase.end(), 96000, 0.0f);
-  writeWav(directory / "input.wav", {phrase, phrase});
+  // codeql[cpp/path-injection]: intentional CLI destination; canonical directory,
+  // fixed filename, and symlink/non-regular-file checks in reviewOutputPath.
+  writeWav(reviewOutputPath(directory, "input.wav"), {phrase, phrase});
   for (int mode : {0, 1}) {
     auto p = defaults("phaser_ph2"); p["p2"] = mode; p["p1"] = 0.7f;
     p["speed"] = 0.15f; p["depth"] = 0.9f;
     const auto start = std::chrono::steady_clock::now();
     const auto out = render(p, phrase);
     const double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
-    writeWav(directory / ("mode-" + std::to_string(mode + 1) + ".wav"), out);
+    // codeql[cpp/path-injection]: intentional CLI destination; canonical directory,
+    // fixed filename, and symlink/non-regular-file checks in reviewOutputPath.
+    writeWav(reviewOutputPath(directory, mode == 0 ? "mode-1.wav" : "mode-2.wav"), out);
     const double peak = *std::max_element(out.left.begin(), out.left.end(), [](float a,float b) {return std::abs(a)<std::abs(b);});
     std::printf("Mode %d guitar: %.3fs for %.1fs mono audio, RMS %.2fdBFS, peak %.4f\n",
                 mode + 1, elapsed, phrase.size() / 48000.0, rmsDb(out), std::abs(peak));
@@ -270,7 +298,10 @@ void renderReview(const std::filesystem::path& directory)
 
 int main(int argc, char** argv) {
   if (argc == 3 && std::string(argv[1]) == "--render") {
-    renderReview(argv[2]); return 0;
+    try { renderReview(argv[2]); return 0; }
+    catch (const std::exception& e) {
+      std::fprintf(stderr, "FAIL review render: %s\n", e.what()); return 1;
+    }
   }
   const std::pair<const char*, void(*)()> checks[] = {
     {"circuit response", circuitResponse}, {"compander dynamics", companderDynamics},
