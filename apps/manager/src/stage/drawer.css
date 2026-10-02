@@ -3,6 +3,20 @@
 .drawer__head { display: flex; align-items: center; gap: 14px; padding: 18px var(--gut) 14px; flex-wrap: wrap; }
 .drawer__head h2 { margin: 0; font: 700 38px/1 var(--f-cond); text-transform: uppercase; letter-spacing: .005em; }
 .drawer__sub { font: 500 15px/1 var(--f-body); color: var(--muted); }
+/* The family tag is filled with the family colour, like the card cap. */
+.drawer__fam { display: inline-flex; flex: none; }
+.drawer__fam .lb-tag { background: var(--fam); border-color: var(--fam); color: var(--bg); }
+/* A fixed value, not a control: dashed edge, as in the mockup. */
+.lb-ctl.lb-ctl--fixed { border-style: dashed; }
+.lb-ctl input[type="checkbox"] {
+  appearance: none; width: 16px; height: 16px; margin: 0 6px 0 0; vertical-align: -3px; border: 1px solid var(--line-strong);
+  border-radius: 0; background: var(--surface); display: inline-grid; place-content: center; cursor: pointer;
+}
+.lb-ctl input[type="checkbox"]::before { content: ""; width: 8px; height: 8px; background: var(--text); transform: scale(0); }
+.lb-ctl input[type="checkbox"]:checked { border-color: var(--text); }
+.lb-ctl input[type="checkbox"]:checked::before { transform: scale(1); }
+.lb-ctl input[type="checkbox"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.lb-ctl input[type="checkbox"]:disabled { opacity: .45; cursor: default; }
 .drawer__actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .drawer__modes { padding: 0 var(--gut) 12px; }
 .drawer__issues { list-style: none; margin: 0 var(--gut) 12px; padding: 0; display: grid; gap: 4px; font: 500 14px/1.4 var(--f-body); color: var(--muted); }

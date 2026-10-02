@@ -13,9 +13,9 @@ export function LiveState() {
   if (editor.dirty) {
     return (
       <Button variant="secondary" disabled={!editor.validation.canApply} onClick={() => void editor.saveAndApply()}
-        title="Saves the slot, then loads it on the pedal"><Send size={15} />Save and load</Button>
+        title="Saves the slot, then loads it on the pedal"><Send size={15} /><span className="lbl">Save and load</span></Button>
     );
   }
-  if (editor.runtimeMatchesDraft) return <Tag tone="live" title="The pedal plays this saved preset">LIVE ON PEDAL</Tag>;
-  return <Button variant="secondary" disabled={!editor.validation.canApply} onClick={() => void editor.apply()}><Send size={15} />Load on pedal</Button>;
+  if (editor.runtimeMatchesDraft) return <span className="hide-sm"><Tag tone="live" title="The pedal plays this saved preset">LIVE ON PEDAL</Tag></span>;
+  return <Button variant="secondary" disabled={!editor.validation.canApply} onClick={() => void editor.apply()}><Send size={15} /><span className="lbl">Load on pedal</span></Button>;
 }

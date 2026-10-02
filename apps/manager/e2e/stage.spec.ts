@@ -89,7 +89,9 @@ test("saves and loads a changed draft on the pedal", async ({ page }) => {
   await page.getByRole("group", { name: /^Noise Gate,/ }).focus();
   await page.keyboard.press("Alt+ArrowRight");
   await page.getByRole("button", { name: "Save and load" }).click();
-  await expect(page.getByText("LIVE ON PEDAL", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+  // The rail swaps the action for the LIVE ON PEDAL status (phones show LIVE on the bank tile instead).
+  await expect(page.getByRole("navigation", { name: "Edit actions" }).getByText("LIVE ON PEDAL", { exact: true })).toBeAttached();
+  await expect(page.getByRole("button", { name: /^(Save and load|Load on pedal)$/ })).toHaveCount(0);
   await expect(modified(page)).toBeHidden();
   expect(savedNames(pedal.state()).slice(0, 2)).toEqual(["cmp-1", "gate-1"]);
 });

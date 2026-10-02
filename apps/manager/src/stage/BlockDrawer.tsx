@@ -39,7 +39,7 @@ export function BlockDrawer({ block, issues, focusedKey, onFocusKey, onClose, on
   return (
     <section className={`drawer fam-${family}`} aria-label={`${blockTitle(block)} parameters`}>
       <div className="drawer__head">
-        <Tag tone="line">{capFor(block.type)}</Tag>
+        <span className="drawer__fam"><Tag>{capFor(block.type)}</Tag></span>
         <h2>{blockTitle(block)}</h2>
         <span className="drawer__sub">{block.asset ? definition?.name : definition?.description}</span>
         <span className="drawer__actions">

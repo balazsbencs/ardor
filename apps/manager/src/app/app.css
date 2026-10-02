@@ -101,6 +101,11 @@
   .lbl { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   .hide-sm { display: none; }
   .ctx__value { font-size: 24px; }
+  /* Compact rail. It wraps instead of hiding actions off the edge. */
+  .rail { gap: 6px; flex-wrap: wrap; overflow-x: visible; }
+  .rail .icon-button { min-width: 40px; }
+  .rail .button { padding: 0 12px; }
+  .rail__done { margin-left: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

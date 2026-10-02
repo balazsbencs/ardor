@@ -5,7 +5,8 @@
 .stagehead { display: flex; align-items: center; gap: 14px; padding: 14px var(--gut) 0; flex-wrap: wrap; }
 .stagehead h1 { margin: 0; font: 700 26px/1 var(--f-cond); letter-spacing: .06em; text-transform: uppercase; }
 .stagehead__name {
-  min-width: 0; width: min(22rem, 100%); height: 36px; padding: 0 10px;
+  min-width: 8ch; width: auto; max-width: min(22rem, 100%); height: 36px; padding: 0 10px; margin-left: -11px;
+  field-sizing: content;
   border: 1px solid transparent; border-radius: 0; background: transparent; color: var(--text);
   font: 700 22px/1 var(--f-cond); letter-spacing: .02em; text-transform: uppercase;
 }
@@ -46,11 +47,12 @@
 
 @media (max-width: 720px) {
   .stagehead h1 { font-size: 20px; }
-  .stagehead__name { width: 100%; order: 5; }
+  .stagehead__name { width: 100%; max-width: none; order: 5; }
   .stagehead__dirty { display: inline-flex; }
   .stagehead .seg { width: 100%; overflow-x: auto; }
   .edit__stage { align-items: flex-start; }
   .edit__stage .blk { --card-w: 148px; --card-h: 232px; }
   .edit__stage .blk__name { font-size: 20px; }
+  .edit__stage .blk__cap { font-size: 11px; letter-spacing: .1em; }
   .stage-hints { display: none; }
 }

@@ -32,7 +32,9 @@ export function GlobalDrawer({ onClose }: { onClose(): void }) {
   return (
     <section className="drawer fam-util" aria-label="Global">
       <div className="drawer__head">
+        <span className="drawer__fam"><Tag>GLOBAL</Tag></span>
         <h2>Global</h2>
+        <span className="drawer__sub">Input, output and expression for this preset.</span>
         <span className="drawer__actions"><SceneScope /><IconButton label="Close" onClick={onClose}><X size={16} /></IconButton></span>
       </div>
       <div className="ctlgrid">
@@ -41,7 +43,7 @@ export function GlobalDrawer({ onClose }: { onClose(): void }) {
           onShare={editingScene ? () => dispatch({ type: "set-scene-input-scope", sceneId: editingScene.id, scope: "shared" }) : undefined} />
         <TravelScale control={OUTPUT} value={present.global.outputGainDb} family="util"
           onChange={(value, gesture) => dispatch({ type: "set-global", key: "outputGainDb", value, gesture })} />
-        <div className="lb-ctl fam-util">
+        <div className="lb-ctl lb-ctl--fixed fam-util">
           <div className="lb-ctl__top"><span className="lb-ctl__label">Safety limiter</span><Tag>FIXED</Tag></div>
           <div className="lb-ctl__value"><span>-1</span><small>dBFS</small></div>
           <p className="lb-note">Protection, not a tone control. It cannot be changed.</p>

@@ -56,8 +56,8 @@ export function EditRail({ drawer, focused, onOpen, onAdd, onDone }: Props) {
       {focused && (
         <div className="ctx">
           <span><span className="ctx__label">{focused.control.label}</span><span className="ctx__value">{displayValue(focused.control, value)}</span></span>
-          <IconButton label="Fine decrease" onClick={() => fine(-1)}><ChevronLeft size={16} /></IconButton>
-          <IconButton label="Fine increase" onClick={() => fine(1)}><ChevronRight size={16} /></IconButton>
+          <IconButton label="Fine decrease" className="hide-sm" onClick={() => fine(-1)}><ChevronLeft size={16} /></IconButton>
+          <IconButton label="Fine increase" className="hide-sm" onClick={() => fine(1)}><ChevronRight size={16} /></IconButton>
           {canExpress && (
             <Button variant="secondary" className="hide-sm" onClick={() => editor.dispatch({
               type: "set-expression",
@@ -69,7 +69,7 @@ export function EditRail({ drawer, focused, onOpen, onAdd, onDone }: Props) {
       )}
       <span className="rail__push" />
       <LiveState />
-      {drawer !== "none" && <Button variant="primary" onClick={onDone}>Done</Button>}
+      {drawer !== "none" && <Button variant="primary" className="rail__done" onClick={onDone}>Done</Button>}
     </nav>
   );
 }

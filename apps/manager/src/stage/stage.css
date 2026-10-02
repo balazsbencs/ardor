@@ -14,6 +14,8 @@
   font: 700 12px/1 var(--f-cond); letter-spacing: .16em; text-transform: uppercase; cursor: grab;
 }
 .blk__grip { opacity: .55; }
+/* The cap label stops before the power button; a SCENE tag wraps to a second line inside the cap. */
+.blk__cap > span:first-child { min-width: 0; margin-right: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
 .blk__name { padding: 12px 12px 0; font: 700 23px/1 var(--f-cond); text-transform: uppercase; letter-spacing: .005em; overflow-wrap: anywhere; }
 .blk__sub { padding: 6px 12px 0; font: 500 12.5px/1.3 var(--f-body); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .blk__params { margin-top: auto; padding: 0 12px 14px; display: grid; gap: 7px; }

@@ -16,7 +16,7 @@
 .tile:hover { border-color: var(--line-strong); }
 .tile__top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .tile__tags { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
-.tile__fs { font: 600 13px/1 var(--f-cond); letter-spacing: .14em; color: var(--muted); text-transform: uppercase; }
+.tile__fs { flex: none; white-space: nowrap; font: 600 13px/1 var(--f-cond); letter-spacing: .14em; color: var(--muted); text-transform: uppercase; }
 .tile__name { font: 700 26px/1 var(--f-cond); text-transform: uppercase; letter-spacing: .005em; overflow-wrap: anywhere; }
 .tile .strip { margin-top: auto; }
 .tile.is-live { background: var(--lamp); border-color: var(--lamp); color: var(--lamp-ink); }
