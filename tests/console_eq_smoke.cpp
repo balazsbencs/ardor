@@ -25,7 +25,7 @@ float response(nlohmann::json params, float hz, float rate = 48000) {
     const float x = 0.001f * std::sin(2 * std::numbers::pi * hz * i / rate);
     const auto y = processor.process({x, 0});
     require(std::isfinite(y.left) && y.right == 0, "finite output and no stereo crosstalk");
-    if (i >= frames / 2) sum += y.left * y.left;
+    if (i >= frames / 2) sum += static_cast<double>(y.left) * y.left;
   }
   return 20 * std::log10(std::sqrt(sum / (frames / 2)) / (0.001 / std::sqrt(2.0)));
 }
@@ -101,7 +101,8 @@ int main() {
     const float x = .5f * std::sin(i * .12f);
     const auto a = normal.process({x, -x}), b = inverted.process({x, -x}), c = driven.process({x, -x});
     require(a.left == -b.left && a.right == -b.right, "polarity inverts the wet path");
-    cleanEnergy += a.left * a.left; drivenEnergy += c.left * c.left;
+    cleanEnergy += static_cast<double>(a.left) * a.left;
+    drivenEnergy += static_cast<double>(c.left) * c.left;
   }
   require(drivenEnergy < cleanEnergy * .1, "saturation compresses large signals");
   require(normal.setParameterTarget("low_db", 100), "valid controls clamp");
