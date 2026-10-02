@@ -1,0 +1,13 @@
+{
+  "+3V3": "/+3V3",
+  "+5V": "/+5V",
+  "CHASSIS": "/CHASSIS",
+  "GND": "/GND",
+  "MIDI_4": "/MIDI_4",
+  "MIDI_5": "/MIDI_5",
+  "MIDI_K": "Net-(D201-A)",
+  "MIDI_A": "Net-(D201-K)",
+  "MIDI_4_F": "Net-(FB201-Pad2)",
+  "MIDI_RX": "Net-(J101-Pin_4)",
+  "MIDI_OC": "Net-(R202-Pad2)"
+}

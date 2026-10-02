@@ -1,0 +1,307 @@
+{
+  "board_quantity": 2,
+  "assembly_scope": "Top-side SMT only. Headers, jumpers, optocoupler and relay fitted by builder.",
+  "parts": [
+    {
+      "references": [
+        "FB101"
+      ],
+      "jlcpcb_part": "C41556732",
+      "manufacturer": "Murata",
+      "mpn": "BLM21PG601SN1D",
+      "bom_mpn": "Murata BLM21PG601SN1D",
+      "footprint": "Inductor_SMD:L_0805_2012Metric",
+      "datasheet": "https://www.murata.com/products/productdata/8796738977822/ENFA0005.pdf",
+      "catalog_package": "0805",
+      "requirements": {
+        "Tolerance": "\u00b125%",
+        "Impedance @ Frequency": "600\u03a9@100MHz",
+        "Current Rating": "1.4A"
+      },
+      "catalog_attributes": {
+        "Operating Temperature": "-55\u2103~+125\u2103",
+        "Impedance @ Frequency": "600\u03a9@100MHz",
+        "Tolerance": "\u00b125%",
+        "Current Rating": "1.4A",
+        "Number of Circuits": "1",
+        "DC Resistance(DCR)": "140m\u03a9"
+      }
+    },
+    {
+      "references": [
+        "C101"
+      ],
+      "jlcpcb_part": "C45783",
+      "manufacturer": "Samsung Electro-Mechanics",
+      "mpn": "CL21A226MAQNNNE",
+      "bom_mpn": "Samsung Electro-Mechanics CL21A226MAQNNNE",
+      "footprint": "Capacitor_SMD:C_0805_2012Metric",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21A226MAQNNNE_C45783.pdf",
+      "catalog_package": "0805",
+      "requirements": {
+        "Tolerance": "\u00b120%",
+        "Capacitance": "22uF",
+        "Temperature Coefficient": "X7R",
+        "Voltage Rating": "10V",
+        "dielectric": "X5R",
+        "voltage_v": 25,
+        "tolerance_percent": 20
+      },
+      "catalog_attributes": {
+        "Voltage Rating": "25V",
+        "Tolerance": "\u00b120%",
+        "Capacitance": "22uF",
+        "Temperature Coefficient": "X5R"
+      },
+      "schematic_value": "22u / 25V X5R"
+    },
+    {
+      "references": [
+        "C102",
+        "C604"
+      ],
+      "jlcpcb_part": "C14663",
+      "manufacturer": "YAGEO",
+      "mpn": "CC0603KRX7R9BB104",
+      "bom_mpn": "YAGEO CC0603KRX7R9BB104",
+      "footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf",
+      "catalog_package": "0603",
+      "requirements": {
+        "Tolerance": "\u00b110%",
+        "Capacitance": "100nF",
+        "Temperature Coefficient": "X7R",
+        "Voltage Rating": "50V"
+      },
+      "schematic_value": "100n / 50V X7R",
+      "catalog_attributes": {
+        "Voltage Rating": "50V",
+        "Tolerance": "\u00b110%",
+        "Capacitance": "100nF",
+        "Temperature Coefficient": "X7R"
+      }
+    },
+    {
+      "references": [
+        "C601",
+        "C602"
+      ],
+      "jlcpcb_part": "C13585",
+      "manufacturer": "Samsung Electro-Mechanics",
+      "mpn": "CL31A106KBHNNNE",
+      "bom_mpn": "Samsung Electro-Mechanics CL31A106KBHNNNE",
+      "footprint": "Capacitor_SMD:C_1206_3216Metric",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL31A106KBHNNNE_C13585.pdf",
+      "catalog_package": "1206",
+      "requirements": {
+        "Tolerance": "\u00b110%",
+        "Capacitance": "10uF",
+        "Temperature Coefficient": "X7R",
+        "Voltage Rating": "50V",
+        "dielectric": "X5R",
+        "voltage_v": 50
+      },
+      "catalog_attributes": {
+        "Voltage Rating": "50V",
+        "Tolerance": "\u00b110%",
+        "Capacitance": "10uF",
+        "Temperature Coefficient": "X5R"
+      },
+      "schematic_value": "10u / 50V X5R"
+    },
+    {
+      "references": [
+        "U601"
+      ],
+      "jlcpcb_part": "C69901",
+      "manufacturer": "TI",
+      "mpn": "TPA6132A2RTER",
+      "bom_mpn": "TI TPA6132A2RTER",
+      "footprint": "Package_DFN_QFN:WQFN-16-1EP_3x3mm_P0.5mm_EP1.6x1.6mm_ThermalVias",
+      "datasheet": "https://www.ti.com/lit/ds/symlink/tpa6132a2.pdf",
+      "catalog_package": "WQFN-16-EP(3x3)",
+      "requirements": {
+        "identity": "Exact selected manufacturer part and package; original circuit type retained."
+      },
+      "catalog_attributes": {
+        "Power Supply Rejection Ratio (PSRR)": "100dB",
+        "Operating Temperature": "-40\u2103~+85\u2103",
+        "Total Harmonic Distortion + Noise (THD+N)": "0.01%",
+        "Output Power": "25mWx2@16\u03a9",
+        "Voltage - Supply": "2.3V~5.5V",
+        "Quiescent Current": "2.1mA",
+        "Features": "Automatic mute/no-noise switch\u3001Enable/shutdown function\u3001ESD protection\u3001Digitally programmable gain",
+        "Class": "Class AB",
+        "Speaker Channels": "2-Channel",
+        "Signal-to-Noise Ratio": "100dB"
+      }
+    },
+    {
+      "references": [
+        "R601"
+      ],
+      "jlcpcb_part": "C21190",
+      "manufacturer": "UNI-ROYAL",
+      "mpn": "0603WAF1001T5E",
+      "bom_mpn": "UNI-ROYAL 0603WAF1001T5E",
+      "footprint": "Resistor_SMD:R_0603_1608Metric",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf",
+      "catalog_package": "0603",
+      "requirements": {
+        "Resistance": "1k\u03a9",
+        "Tolerance": "\u00b11%",
+        "Temperature Coefficient": "\u00b1100ppm/\u2103",
+        "Power(Watts)": "100mW"
+      },
+      "catalog_attributes": {
+        "Resistance": "1k\u03a9",
+        "Operating Temperature": "-55\u2103~+155\u2103",
+        "Power(Watts)": "100mW",
+        "Type": "Thick Film Resistor",
+        "Voltage-Supply(Max)": "75V",
+        "Tolerance": "\u00b11%",
+        "Temperature Coefficient": "\u00b1100ppm/\u2103"
+      }
+    },
+    {
+      "references": [
+        "R602"
+      ],
+      "jlcpcb_part": "C25803",
+      "manufacturer": "UNI-ROYAL",
+      "mpn": "0603WAF1003T5E",
+      "bom_mpn": "UNI-ROYAL 0603WAF1003T5E",
+      "footprint": "Resistor_SMD:R_0603_1608Metric",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1003T5E_C25803.pdf",
+      "catalog_package": "0603",
+      "requirements": {
+        "Resistance": "100k\u03a9",
+        "Tolerance": "\u00b11%",
+        "Temperature Coefficient": "\u00b1100ppm/\u2103",
+        "Power(Watts)": "100mW"
+      },
+      "catalog_attributes": {
+        "Resistance": "100k\u03a9",
+        "Operating Temperature": "-55\u2103~+155\u2103",
+        "Power(Watts)": "100mW",
+        "Type": "Thick Film Resistor",
+        "Voltage-Supply(Max)": "75V",
+        "Tolerance": "\u00b11%",
+        "Temperature Coefficient": "\u00b1100ppm/\u2103"
+      }
+    },
+    {
+      "references": [
+        "R603",
+        "R604"
+      ],
+      "jlcpcb_part": "C22939",
+      "manufacturer": "UNI-ROYAL",
+      "mpn": "0603WAF220KT5E",
+      "bom_mpn": "UNI-ROYAL 0603WAF220KT5E",
+      "footprint": "Resistor_SMD:R_0603_1608Metric",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF220KT5E_C22939.pdf",
+      "catalog_package": "0603",
+      "requirements": {
+        "Resistance": "2.2\u03a9",
+        "Tolerance": "\u00b11%",
+        "Temperature Coefficient": "\u00b1400ppm/\u2103",
+        "Power(Watts)": "100mW"
+      },
+      "catalog_attributes": {
+        "Resistance": "2.2\u03a9",
+        "Operating Temperature": "-55\u2103~+155\u2103",
+        "Power(Watts)": "100mW",
+        "Type": "Thick Film Resistor",
+        "Voltage-Supply(Max)": "75V",
+        "Tolerance": "\u00b11%",
+        "Temperature Coefficient": "\u00b1400ppm/\u2103"
+      }
+    },
+    {
+      "references": [
+        "D601",
+        "D602"
+      ],
+      "jlcpcb_part": "C19224",
+      "manufacturer": "Nexperia",
+      "mpn": "PESD5V0S1BA,115",
+      "bom_mpn": "Nexperia PESD5V0S1BA,115",
+      "footprint": "Diode_SMD:D_SOD-323",
+      "datasheet": "https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf",
+      "catalog_package": "SOD-323",
+      "requirements": {
+        "identity": "Exact selected manufacturer part and package; original circuit type retained."
+      },
+      "catalog_attributes": {
+        "Operating Temperature": "-55\u2103~+150\u2103",
+        "Type": "ESD",
+        "Junction Capacitance": "35pF",
+        "Peak Pulse Power Dissipation (Ppp)": "130W@8/20us",
+        "Number of Channels": "1",
+        "level of protection": "IEC 61000-4-2\u3001IEC 61000-4-5",
+        "Clamping Voltage": "14V",
+        "Polarity": "Bidirectional",
+        "Peak Pulse Current (Ipp)": "12A@8/20us",
+        "Voltage - Breakdown": "9.5V",
+        "Reverse Stand-Off Voltage (Vrwm)": "5V",
+        "Reverse Leakage Current (Ir)": "5nA"
+      }
+    },
+    {
+      "references": [
+        "R101"
+      ],
+      "jlcpcb_part": "C17888",
+      "manufacturer": "UNI-ROYAL",
+      "mpn": "1206W4F0000T5E",
+      "bom_mpn": "UNI-ROYAL 1206W4F0000T5E",
+      "footprint": "Resistor_SMD:R_1206_3216Metric",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-1206W4F0000T5E_C17888.pdf",
+      "catalog_package": "1206",
+      "requirements": {
+        "Resistance": "0\u03a9",
+        "Tolerance": "\u00b11%",
+        "Temperature Coefficient": "\u00b1800ppm/\u2103",
+        "Power(Watts)": "250mW"
+      },
+      "catalog_attributes": {
+        "Resistance": "0\u03a9",
+        "Operating Temperature": "-55\u2103~+155\u2103",
+        "Power(Watts)": "250mW",
+        "Type": "Thick Film Resistor",
+        "Voltage-Supply(Max)": "200V",
+        "Tolerance": "\u00b11%",
+        "Temperature Coefficient": "\u00b1800ppm/\u2103"
+      }
+    },
+    {
+      "references": [
+        "C603",
+        "C605",
+        "C606",
+        "C607"
+      ],
+      "jlcpcb_part": "C19110",
+      "manufacturer": "Samsung",
+      "mpn": "CL21B225KAFNNNE",
+      "bom_mpn": "Samsung CL21B225KAFNNNE",
+      "footprint": "Capacitor_SMD:C_0805_2012Metric",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf",
+      "catalog_package": "0805",
+      "requirements": {
+        "Tolerance": "\u00b110%",
+        "Capacitance": "2.2uF",
+        "Temperature Coefficient": "X7R",
+        "Voltage Rating": "25V"
+      },
+      "schematic_value": "2.2u / 25V X7R",
+      "catalog_attributes": {
+        "Voltage Rating": "25V",
+        "Tolerance": "\u00b110%",
+        "Capacitance": "2.2uF",
+        "Temperature Coefficient": "X7R"
+      }
+    }
+  ]
+}

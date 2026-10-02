@@ -1,0 +1,1200 @@
+{
+  "name": "Ardor_Expression",
+  "title": "Passive expression pedal / I2C ADC",
+  "slug": "expression",
+  "size_mm": [
+    44,
+    34
+  ],
+  "parts": {
+    "J302": {
+      "ref": "J302",
+      "kind": "Conn_01x03",
+      "value": "EXP_TIP / EXP_RING / GND",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
+      "pcb": [
+        3,
+        13
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "8d789541-49c1-53ef-8141-28b5a3f102c2",
+      "mpn": "PinHeader_1x03_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "J101": {
+      "ref": "J101",
+      "kind": "Conn_01x04",
+      "value": "+3V3 / GND / SDA / SCL",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
+      "pcb": [
+        40,
+        12
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "b10b6431-272e-5dc7-a3e7-cae4c789d8f4",
+      "mpn": "PinHeader_1x04_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "JP301": {
+      "ref": "JP301",
+      "kind": "Conn_02x03_Odd_Even",
+      "value": "TIP/RING / TWO SHUNTS",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical",
+      "pcb": [
+        10,
+        13
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "5859d2d9-9f63-58a0-b633-9a9efe9daa96",
+      "mpn": "PinHeader_2x03_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "FB101": {
+      "ref": "FB101",
+      "kind": "FerriteBead",
+      "value": "120R@100MHz",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        27,
+        4
+      ],
+      "part": {
+        "references": [
+          "FB102",
+          "FB201",
+          "FB202"
+        ],
+        "jlcpcb_part": "C14709",
+        "manufacturer": "Murata Electronics",
+        "mpn": "BLM18PG121SN1D",
+        "bom_mpn": "Murata Electronics BLM18PG121SN1D",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Murata-Electronics-BLM18PG121SN1D_C14709.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "impedance_100mhz_ohm": 120
+        },
+        "catalog_attributes": {
+          "Operating Temperature": "-55\u2103~+125\u2103",
+          "Impedance @ Frequency": "120\u03a9@100MHz",
+          "Tolerance": "\u00b125%",
+          "Current Rating": "2A",
+          "Number of Circuits": "1",
+          "DC Resistance(DCR)": "50m\u03a9"
+        },
+        "schematic_value": "120R @100MHz"
+      },
+      "dnp": false,
+      "uuid": "42eddedc-2081-5081-8fb3-112fb79c3a9e",
+      "mpn": "Murata Electronics BLM18PG121SN1D",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Murata-Electronics-BLM18PG121SN1D_C14709.pdf"
+    },
+    "C101": {
+      "ref": "C101",
+      "kind": "C",
+      "value": "10u / 25V X5R",
+      "fp": "Capacitor_SMD:C_0805_2012Metric",
+      "pcb": [
+        31,
+        4
+      ],
+      "part": {
+        "references": [
+          "C103",
+          "C403"
+        ],
+        "jlcpcb_part": "C15850",
+        "manufacturer": "Samsung Electro-Mechanics",
+        "mpn": "CL21A106KAYNNNE",
+        "bom_mpn": "Samsung Electro-Mechanics CL21A106KAYNNNE",
+        "footprint": "Capacitor_SMD:C_0805_2012Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21A106KAYNNNE_C15850.pdf",
+        "catalog_package": "0805",
+        "requirements": {
+          "Tolerance": "\u00b110%",
+          "Capacitance": "10uF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "16V",
+          "dielectric": "X5R",
+          "voltage_v": 25
+        },
+        "schematic_value": "10u / 25V X5R",
+        "catalog_attributes": {
+          "Voltage Rating": "25V",
+          "Tolerance": "\u00b110%",
+          "Capacitance": "10uF",
+          "Temperature Coefficient": "X5R"
+        }
+      },
+      "dnp": false,
+      "uuid": "6c185af6-ff10-50a0-89e4-a5cb081e706b",
+      "mpn": "Samsung Electro-Mechanics CL21A106KAYNNNE",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21A106KAYNNNE_C15850.pdf"
+    },
+    "C102": {
+      "ref": "C102",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_SMD:C_0603_1608Metric",
+      "pcb": [
+        35,
+        4
+      ],
+      "part": {
+        "references": [
+          "C102",
+          "C104",
+          "C201",
+          "C301",
+          "C302",
+          "C303",
+          "C404",
+          "C405"
+        ],
+        "jlcpcb_part": "C14663",
+        "manufacturer": "YAGEO",
+        "mpn": "CC0603KRX7R9BB104",
+        "bom_mpn": "YAGEO CC0603KRX7R9BB104",
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "50V"
+        },
+        "schematic_value": "100n / 50V X7R",
+        "catalog_attributes": {
+          "Voltage Rating": "50V",
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R"
+        }
+      },
+      "dnp": false,
+      "uuid": "c9b9a826-693d-5bf7-9adc-72dc61813b9c",
+      "mpn": "YAGEO CC0603KRX7R9BB104",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf"
+    },
+    "R301": {
+      "ref": "R301",
+      "kind": "R",
+      "value": "1k / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        15,
+        10
+      ],
+      "part": {
+        "references": [
+          "R202",
+          "R301",
+          "R503",
+          "R505"
+        ],
+        "jlcpcb_part": "C21190",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF1001T5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF1001T5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "1k\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103",
+          "Power(Watts)": "100mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "1k\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "3c8b31fa-0dba-52d8-80eb-f47a80580304",
+      "mpn": "UNI-ROYAL 0603WAF1001T5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf"
+    },
+    "R302": {
+      "ref": "R302",
+      "kind": "R",
+      "value": "10k / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        16,
+        15
+      ],
+      "part": {
+        "references": [
+          "R302",
+          "R304",
+          "R405",
+          "R406",
+          "R501",
+          "R403",
+          "R404"
+        ],
+        "jlcpcb_part": "C25804",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF1002T5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF1002T5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1002T5E_C25804.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "10k\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103",
+          "Power(Watts)": "100mW",
+          "tolerance_percent": 1
+        },
+        "catalog_attributes": {
+          "Resistance": "10k\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "83c4c3eb-47f4-5cc9-9bfa-fe649eb3aa30",
+      "mpn": "UNI-ROYAL 0603WAF1002T5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1002T5E_C25804.pdf"
+    },
+    "R303": {
+      "ref": "R303",
+      "kind": "R",
+      "value": "1M / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        13,
+        21
+      ],
+      "part": {
+        "references": [
+          "R303"
+        ],
+        "jlcpcb_part": "C22935",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF1004T5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF1004T5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1004T5E_C22935.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "1M\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103",
+          "Power(Watts)": "100mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "1M\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "9f7bf049-a31a-5bbf-a62e-6536bf2c7e7c",
+      "mpn": "UNI-ROYAL 0603WAF1004T5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1004T5E_C22935.pdf"
+    },
+    "C301": {
+      "ref": "C301",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_SMD:C_0603_1608Metric",
+      "pcb": [
+        23,
+        14
+      ],
+      "part": {
+        "references": [
+          "C102",
+          "C104",
+          "C201",
+          "C301",
+          "C302",
+          "C303",
+          "C404",
+          "C405"
+        ],
+        "jlcpcb_part": "C14663",
+        "manufacturer": "YAGEO",
+        "mpn": "CC0603KRX7R9BB104",
+        "bom_mpn": "YAGEO CC0603KRX7R9BB104",
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "50V"
+        },
+        "schematic_value": "100n / 50V X7R",
+        "catalog_attributes": {
+          "Voltage Rating": "50V",
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R"
+        }
+      },
+      "dnp": false,
+      "uuid": "7961c31a-a9bd-5328-a6b0-dc1742638f6b",
+      "mpn": "YAGEO CC0603KRX7R9BB104",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf"
+    },
+    "R304": {
+      "ref": "R304",
+      "kind": "R",
+      "value": "10k / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        17,
+        21
+      ],
+      "part": {
+        "references": [
+          "R302",
+          "R304",
+          "R405",
+          "R406",
+          "R501",
+          "R403",
+          "R404"
+        ],
+        "jlcpcb_part": "C25804",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF1002T5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF1002T5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1002T5E_C25804.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "10k\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103",
+          "Power(Watts)": "100mW",
+          "tolerance_percent": 1
+        },
+        "catalog_attributes": {
+          "Resistance": "10k\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "92b77a3d-2913-5c2a-8e6e-fb22365260ba",
+      "mpn": "UNI-ROYAL 0603WAF1002T5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1002T5E_C25804.pdf"
+    },
+    "C302": {
+      "ref": "C302",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_SMD:C_0603_1608Metric",
+      "pcb": [
+        23,
+        20
+      ],
+      "part": {
+        "references": [
+          "C102",
+          "C104",
+          "C201",
+          "C301",
+          "C302",
+          "C303",
+          "C404",
+          "C405"
+        ],
+        "jlcpcb_part": "C14663",
+        "manufacturer": "YAGEO",
+        "mpn": "CC0603KRX7R9BB104",
+        "bom_mpn": "YAGEO CC0603KRX7R9BB104",
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "50V"
+        },
+        "schematic_value": "100n / 50V X7R",
+        "catalog_attributes": {
+          "Voltage Rating": "50V",
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R"
+        }
+      },
+      "dnp": false,
+      "uuid": "8d0be66b-d018-501e-a530-6c6802caf382",
+      "mpn": "YAGEO CC0603KRX7R9BB104",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf"
+    },
+    "U301": {
+      "ref": "U301",
+      "kind": "ADS1115IDGS",
+      "value": "ADS1115IDGSR",
+      "fp": "Package_SO:VSSOP-10_3x3mm_P0.5mm",
+      "pcb": [
+        28,
+        16
+      ],
+      "part": {
+        "references": [
+          "U301"
+        ],
+        "jlcpcb_part": "C37593",
+        "manufacturer": "TI",
+        "mpn": "ADS1115IDGSR",
+        "bom_mpn": "TI ADS1115IDGSR",
+        "footprint": "Package_SO:VSSOP-10_3x3mm_P0.5mm",
+        "datasheet": "https://www.ti.com/lit/ds/symlink/ads1115.pdf",
+        "catalog_package": "VSSOP-10",
+        "requirements": {
+          "identity": "Exact selected manufacturer part and package; original circuit type retained."
+        },
+        "catalog_attributes": {
+          "Operating Temperature": "-40\u2103~+125\u2103",
+          "Clock/Oscillator": "Built-in",
+          "Programmable Gain": "Support",
+          "differential input": "Yes",
+          "Integral non - linearity": "1LSB",
+          "Voltage - Supply": "2V~5.5V",
+          "Quiescent Current (Iq)": "500nA",
+          "ADC architecture": "Sigma-Delta",
+          "Sampling Rate": "860Hz",
+          "Features": "Multiplexers\u3001Power-on reset\u3001Integrated modulator\u3001Built-in digital filter",
+          "number of channels": "2",
+          "Voltage Reference": "Built-in",
+          "Resolution (Bits)": "16",
+          "Interface": "I2C"
+        }
+      },
+      "dnp": false,
+      "uuid": "d6a4deab-1345-59a1-85ac-f09b7678649b",
+      "mpn": "TI ADS1115IDGSR",
+      "datasheet": "https://www.ti.com/lit/ds/symlink/ads1115.pdf"
+    },
+    "C303": {
+      "ref": "C303",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_SMD:C_0603_1608Metric",
+      "pcb": [
+        29,
+        11
+      ],
+      "part": {
+        "references": [
+          "C102",
+          "C104",
+          "C201",
+          "C301",
+          "C302",
+          "C303",
+          "C404",
+          "C405"
+        ],
+        "jlcpcb_part": "C14663",
+        "manufacturer": "YAGEO",
+        "mpn": "CC0603KRX7R9BB104",
+        "bom_mpn": "YAGEO CC0603KRX7R9BB104",
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "50V"
+        },
+        "schematic_value": "100n / 50V X7R",
+        "catalog_attributes": {
+          "Voltage Rating": "50V",
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R"
+        }
+      },
+      "dnp": false,
+      "uuid": "5af27f87-ef9d-57a9-99bc-a86bc19713a7",
+      "mpn": "YAGEO CC0603KRX7R9BB104",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf"
+    },
+    "R307": {
+      "ref": "R307",
+      "kind": "R",
+      "value": "2.2k / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        32,
+        22
+      ],
+      "part": {
+        "references": [
+          "R307"
+        ],
+        "jlcpcb_part": "C4190",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF2201T5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF2201T5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010230_UNI-ROYAL-Uniroyal-Elec-0603WAF2201T5E_C4190.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "2.2k\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103",
+          "Power(Watts)": "100mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "2.2k\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "7ef25f54-0897-50b8-8091-69f5d44d14c7",
+      "mpn": "UNI-ROYAL 0603WAF2201T5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010230_UNI-ROYAL-Uniroyal-Elec-0603WAF2201T5E_C4190.pdf"
+    },
+    "D303": {
+      "ref": "D303",
+      "kind": "D_Schottky",
+      "value": "BAT54H,115",
+      "fp": "Diode_SMD:D_SOD-123F",
+      "pcb": [
+        23,
+        10
+      ],
+      "part": {
+        "references": [
+          "D303",
+          "D304",
+          "D305",
+          "D306"
+        ],
+        "jlcpcb_part": "C426769",
+        "manufacturer": "Nexperia",
+        "mpn": "BAT54H,115",
+        "bom_mpn": "Nexperia BAT54H,115",
+        "footprint": "Diode_SMD:D_SOD-123F",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2407241029_Nexperia-BAT54H-115_C426769.pdf",
+        "catalog_package": "SOD-123F",
+        "requirements": {
+          "identity": "Exact selected manufacturer part and package; original circuit type retained."
+        },
+        "catalog_attributes": {
+          "Voltage - Forward(Vf@If)": "400mV@10mA",
+          "Non-Repetitive Peak Forward Surge Current": "600mA",
+          "Voltage - DC Reverse(Vr)": "30V",
+          "Diode Configuration": "1 Independent",
+          "Current - Rectified": "200mA",
+          "Reverse Leakage Current (Ir)": "2uA@25V"
+        }
+      },
+      "dnp": false,
+      "uuid": "18184ae3-ad66-5759-9641-ca797bd1c4b3",
+      "mpn": "Nexperia BAT54H,115",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2407241029_Nexperia-BAT54H-115_C426769.pdf"
+    },
+    "D304": {
+      "ref": "D304",
+      "kind": "D_Schottky",
+      "value": "BAT54H,115",
+      "fp": "Diode_SMD:D_SOD-123F",
+      "pcb": [
+        22,
+        17
+      ],
+      "part": {
+        "references": [
+          "D303",
+          "D304",
+          "D305",
+          "D306"
+        ],
+        "jlcpcb_part": "C426769",
+        "manufacturer": "Nexperia",
+        "mpn": "BAT54H,115",
+        "bom_mpn": "Nexperia BAT54H,115",
+        "footprint": "Diode_SMD:D_SOD-123F",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2407241029_Nexperia-BAT54H-115_C426769.pdf",
+        "catalog_package": "SOD-123F",
+        "requirements": {
+          "identity": "Exact selected manufacturer part and package; original circuit type retained."
+        },
+        "catalog_attributes": {
+          "Voltage - Forward(Vf@If)": "400mV@10mA",
+          "Non-Repetitive Peak Forward Surge Current": "600mA",
+          "Voltage - DC Reverse(Vr)": "30V",
+          "Diode Configuration": "1 Independent",
+          "Current - Rectified": "200mA",
+          "Reverse Leakage Current (Ir)": "2uA@25V"
+        }
+      },
+      "dnp": false,
+      "uuid": "dece986a-ff34-5d4f-85b3-fd181049d501",
+      "mpn": "Nexperia BAT54H,115",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2407241029_Nexperia-BAT54H-115_C426769.pdf"
+    },
+    "D305": {
+      "ref": "D305",
+      "kind": "D_Schottky",
+      "value": "BAT54H,115",
+      "fp": "Diode_SMD:D_SOD-123F",
+      "pcb": [
+        19,
+        24
+      ],
+      "part": {
+        "references": [
+          "D303",
+          "D304",
+          "D305",
+          "D306"
+        ],
+        "jlcpcb_part": "C426769",
+        "manufacturer": "Nexperia",
+        "mpn": "BAT54H,115",
+        "bom_mpn": "Nexperia BAT54H,115",
+        "footprint": "Diode_SMD:D_SOD-123F",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2407241029_Nexperia-BAT54H-115_C426769.pdf",
+        "catalog_package": "SOD-123F",
+        "requirements": {
+          "identity": "Exact selected manufacturer part and package; original circuit type retained."
+        },
+        "catalog_attributes": {
+          "Voltage - Forward(Vf@If)": "400mV@10mA",
+          "Non-Repetitive Peak Forward Surge Current": "600mA",
+          "Voltage - DC Reverse(Vr)": "30V",
+          "Diode Configuration": "1 Independent",
+          "Current - Rectified": "200mA",
+          "Reverse Leakage Current (Ir)": "2uA@25V"
+        }
+      },
+      "dnp": false,
+      "uuid": "29872adf-3f17-520e-86c0-0bf29e524ce9",
+      "mpn": "Nexperia BAT54H,115",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2407241029_Nexperia-BAT54H-115_C426769.pdf"
+    },
+    "D306": {
+      "ref": "D306",
+      "kind": "D_Schottky",
+      "value": "BAT54H,115",
+      "fp": "Diode_SMD:D_SOD-123F",
+      "pcb": [
+        24,
+        24
+      ],
+      "part": {
+        "references": [
+          "D303",
+          "D304",
+          "D305",
+          "D306"
+        ],
+        "jlcpcb_part": "C426769",
+        "manufacturer": "Nexperia",
+        "mpn": "BAT54H,115",
+        "bom_mpn": "Nexperia BAT54H,115",
+        "footprint": "Diode_SMD:D_SOD-123F",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2407241029_Nexperia-BAT54H-115_C426769.pdf",
+        "catalog_package": "SOD-123F",
+        "requirements": {
+          "identity": "Exact selected manufacturer part and package; original circuit type retained."
+        },
+        "catalog_attributes": {
+          "Voltage - Forward(Vf@If)": "400mV@10mA",
+          "Non-Repetitive Peak Forward Surge Current": "600mA",
+          "Voltage - DC Reverse(Vr)": "30V",
+          "Diode Configuration": "1 Independent",
+          "Current - Rectified": "200mA",
+          "Reverse Leakage Current (Ir)": "2uA@25V"
+        }
+      },
+      "dnp": false,
+      "uuid": "9b02b809-ae8e-569b-a3cc-342e5d89dedb",
+      "mpn": "Nexperia BAT54H,115",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2407241029_Nexperia-BAT54H-115_C426769.pdf"
+    },
+    "R305": {
+      "ref": "R305",
+      "kind": "R",
+      "value": "33R / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        35,
+        13
+      ],
+      "part": {
+        "references": [
+          "R305",
+          "R306"
+        ],
+        "jlcpcb_part": "C23140",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF330JT5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF330JT5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF330JT5E_C23140.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "33\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103",
+          "Power(Watts)": "100mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "33\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "b8cb394f-b18c-5659-b58c-a93a16c24689",
+      "mpn": "UNI-ROYAL 0603WAF330JT5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF330JT5E_C23140.pdf"
+    },
+    "R306": {
+      "ref": "R306",
+      "kind": "R",
+      "value": "33R / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        35,
+        16
+      ],
+      "part": {
+        "references": [
+          "R305",
+          "R306"
+        ],
+        "jlcpcb_part": "C23140",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF330JT5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF330JT5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF330JT5E_C23140.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "33\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103",
+          "Power(Watts)": "100mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "33\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "09573a76-0a1f-5edc-8a67-0da9d1e7d07e",
+      "mpn": "UNI-ROYAL 0603WAF330JT5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF330JT5E_C23140.pdf"
+    },
+    "JP302": {
+      "ref": "JP302",
+      "kind": "Conn_01x03",
+      "value": "GND / ADDR / +3V3_A",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
+      "pcb": [
+        28,
+        26
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "496fb4aa-06e2-5a2d-aa26-d96fe318747b",
+      "mpn": "PinHeader_1x03_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "JP303": {
+      "ref": "JP303",
+      "kind": "Conn_01x02",
+      "value": "SDA_PULL / SDA",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "pcb": [
+        40,
+        23
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "f90c75dc-8cd2-5e5d-84d2-0821d771ebcf",
+      "mpn": "PinHeader_1x02_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "JP304": {
+      "ref": "JP304",
+      "kind": "Conn_01x02",
+      "value": "SCL_PULL / SCL",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "pcb": [
+        40,
+        30
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "5f45fc4b-4f1c-5715-aa0d-e7378c0b2db2",
+      "mpn": "PinHeader_1x02_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "R308": {
+      "ref": "R308",
+      "kind": "R",
+      "value": "2.2k / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        35,
+        24
+      ],
+      "part": {
+        "references": [
+          "R307"
+        ],
+        "jlcpcb_part": "C4190",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF2201T5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF2201T5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010230_UNI-ROYAL-Uniroyal-Elec-0603WAF2201T5E_C4190.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "2.2k\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103",
+          "Power(Watts)": "100mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "2.2k\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "dec0fd05-fd34-54ae-a56d-63a06cb39adf",
+      "mpn": "UNI-ROYAL 0603WAF2201T5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010230_UNI-ROYAL-Uniroyal-Elec-0603WAF2201T5E_C4190.pdf"
+    },
+    "R309": {
+      "ref": "R309",
+      "kind": "R",
+      "value": "2.2k / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        35,
+        29
+      ],
+      "part": {
+        "references": [
+          "R307"
+        ],
+        "jlcpcb_part": "C4190",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF2201T5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF2201T5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010230_UNI-ROYAL-Uniroyal-Elec-0603WAF2201T5E_C4190.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "2.2k\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103",
+          "Power(Watts)": "100mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "2.2k\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "9b12c83e-b3f3-5971-a939-061a216eca5e",
+      "mpn": "UNI-ROYAL 0603WAF2201T5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010230_UNI-ROYAL-Uniroyal-Elec-0603WAF2201T5E_C4190.pdf"
+    },
+    "D301": {
+      "ref": "D301",
+      "kind": "D_TVS",
+      "value": "PESD5V0S1BA,115",
+      "fp": "Diode_SMD:D_SOD-323",
+      "pcb": [
+        5,
+        7
+      ],
+      "part": {
+        "references": [
+          "D202",
+          "D301",
+          "D302",
+          "D501"
+        ],
+        "jlcpcb_part": "C19224",
+        "manufacturer": "Nexperia",
+        "mpn": "PESD5V0S1BA,115",
+        "bom_mpn": "Nexperia PESD5V0S1BA,115",
+        "footprint": "Diode_SMD:D_SOD-323",
+        "datasheet": "https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf",
+        "catalog_package": "SOD-323",
+        "requirements": {
+          "identity": "Exact selected manufacturer part and package; original circuit type retained."
+        },
+        "catalog_attributes": {
+          "Operating Temperature": "-55\u2103~+150\u2103",
+          "Type": "ESD",
+          "Junction Capacitance": "35pF",
+          "Peak Pulse Power Dissipation (Ppp)": "130W@8/20us",
+          "Number of Channels": "1",
+          "level of protection": "IEC 61000-4-2\u3001IEC 61000-4-5",
+          "Clamping Voltage": "14V",
+          "Polarity": "Bidirectional",
+          "Peak Pulse Current (Ipp)": "12A@8/20us",
+          "Voltage - Breakdown": "9.5V",
+          "Reverse Stand-Off Voltage (Vrwm)": "5V",
+          "Reverse Leakage Current (Ir)": "5nA"
+        }
+      },
+      "dnp": false,
+      "uuid": "43299adf-d5ea-5fda-8313-16eaaa2f97b0",
+      "mpn": "Nexperia PESD5V0S1BA,115",
+      "datasheet": "https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf"
+    },
+    "D302": {
+      "ref": "D302",
+      "kind": "D_TVS",
+      "value": "PESD5V0S1BA,115",
+      "fp": "Diode_SMD:D_SOD-323",
+      "pcb": [
+        5,
+        19
+      ],
+      "part": {
+        "references": [
+          "D202",
+          "D301",
+          "D302",
+          "D501"
+        ],
+        "jlcpcb_part": "C19224",
+        "manufacturer": "Nexperia",
+        "mpn": "PESD5V0S1BA,115",
+        "bom_mpn": "Nexperia PESD5V0S1BA,115",
+        "footprint": "Diode_SMD:D_SOD-323",
+        "datasheet": "https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf",
+        "catalog_package": "SOD-323",
+        "requirements": {
+          "identity": "Exact selected manufacturer part and package; original circuit type retained."
+        },
+        "catalog_attributes": {
+          "Operating Temperature": "-55\u2103~+150\u2103",
+          "Type": "ESD",
+          "Junction Capacitance": "35pF",
+          "Peak Pulse Power Dissipation (Ppp)": "130W@8/20us",
+          "Number of Channels": "1",
+          "level of protection": "IEC 61000-4-2\u3001IEC 61000-4-5",
+          "Clamping Voltage": "14V",
+          "Polarity": "Bidirectional",
+          "Peak Pulse Current (Ipp)": "12A@8/20us",
+          "Voltage - Breakdown": "9.5V",
+          "Reverse Stand-Off Voltage (Vrwm)": "5V",
+          "Reverse Leakage Current (Ir)": "5nA"
+        }
+      },
+      "dnp": false,
+      "uuid": "752423d6-781b-50ad-9c82-6c1b24530d13",
+      "mpn": "Nexperia PESD5V0S1BA,115",
+      "datasheet": "https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf"
+    },
+    "R101": {
+      "ref": "R101",
+      "kind": "R",
+      "value": "0R / 1%",
+      "fp": "Resistor_SMD:R_1206_3216Metric",
+      "pcb": [
+        8,
+        24
+      ],
+      "part": {
+        "references": [
+          "R101"
+        ],
+        "jlcpcb_part": "C17888",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "1206W4F0000T5E",
+        "bom_mpn": "UNI-ROYAL 1206W4F0000T5E",
+        "footprint": "Resistor_SMD:R_1206_3216Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-1206W4F0000T5E_C17888.pdf",
+        "catalog_package": "1206",
+        "requirements": {
+          "Resistance": "0\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1800ppm/\u2103",
+          "Power(Watts)": "250mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "0\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "250mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "200V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1800ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "37d889c9-e188-585d-a91c-c27ab6d83ef5",
+      "mpn": "UNI-ROYAL 1206W4F0000T5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-1206W4F0000T5E_C17888.pdf"
+    }
+  },
+  "pins": {
+    "J302.1": "EXP_TIP",
+    "J302.2": "EXP_RING",
+    "J302.3": "GND",
+    "J101.1": "+3V3",
+    "J101.2": "GND",
+    "J101.3": "SDA",
+    "J101.4": "SCL",
+    "JP301.1": "EXP_TIP",
+    "JP301.2": "EXP_RING",
+    "JP301.3": "EXP_WIPER",
+    "JP301.4": "EXP_EXC",
+    "JP301.5": "EXP_RING",
+    "JP301.6": "EXP_TIP",
+    "FB101.1": "+3V3",
+    "FB101.2": "+3V3_A",
+    "C101.1": "+3V3_A",
+    "C101.2": "GND",
+    "C102.1": "+3V3_A",
+    "C102.2": "GND",
+    "R301.1": "+3V3_A",
+    "R301.2": "EXP_EXC",
+    "R302.1": "EXP_WIPER",
+    "R302.2": "EXP_ADC",
+    "R303.1": "EXP_WIPER",
+    "R303.2": "GND",
+    "C301.1": "EXP_ADC",
+    "C301.2": "GND",
+    "R304.1": "EXP_EXC",
+    "R304.2": "EXP_REF_ADC",
+    "C302.1": "EXP_REF_ADC",
+    "C302.2": "GND",
+    "U301.1": "ADDR",
+    "U301.3": "GND",
+    "U301.4": "EXP_ADC",
+    "U301.5": "EXP_REF_ADC",
+    "U301.6": "GND",
+    "U301.7": "GND",
+    "U301.8": "+3V3_A",
+    "U301.9": "ADC_SDA",
+    "U301.10": "ADC_SCL",
+    "C303.1": "+3V3_A",
+    "C303.2": "GND",
+    "R307.1": "+3V3_A",
+    "R307.2": "GND",
+    "D303.1": "+3V3_A",
+    "D303.2": "EXP_ADC",
+    "D304.1": "EXP_ADC",
+    "D304.2": "GND",
+    "D305.1": "+3V3_A",
+    "D305.2": "EXP_REF_ADC",
+    "D306.1": "EXP_REF_ADC",
+    "D306.2": "GND",
+    "R305.1": "ADC_SCL",
+    "R305.2": "SCL",
+    "R306.1": "ADC_SDA",
+    "R306.2": "SDA",
+    "JP302.1": "GND",
+    "JP302.2": "ADDR",
+    "JP302.3": "+3V3_A",
+    "JP303.1": "SDA_PULL",
+    "JP303.2": "SDA",
+    "JP304.1": "SCL_PULL",
+    "JP304.2": "SCL",
+    "R308.1": "+3V3_A",
+    "R308.2": "SDA_PULL",
+    "R309.1": "+3V3_A",
+    "R309.2": "SCL_PULL",
+    "D301.1": "EXP_TIP",
+    "D301.2": "CHASSIS",
+    "D302.1": "EXP_RING",
+    "D302.2": "CHASSIS",
+    "R101.1": "CHASSIS",
+    "R101.2": "GND"
+  },
+  "nc": [
+    "U301.2"
+  ],
+  "routes": [],
+  "ground_vias": [
+    [
+      12,
+      5
+    ],
+    [
+      15,
+      25
+    ],
+    [
+      27,
+      20
+    ],
+    [
+      30,
+      8
+    ],
+    [
+      37,
+      5
+    ],
+    [
+      19,
+      28
+    ]
+  ],
+  "keepouts": [],
+  "notes": "Independent 3.3 V passive-pot interface. Local ADC, filtering, rail clamps, selectable polarity/address and removable I2C pull-ups."
+}

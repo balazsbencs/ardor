@@ -1,0 +1,37 @@
+{
+  "board_quantity": 2,
+  "smt_placements_per_board": 23,
+  "unique_smt_parts": 12,
+  "basic_types": 9,
+  "extended_types": 3,
+  "manual_references": [
+    "J101",
+    "J302",
+    "JP301",
+    "JP302",
+    "JP303",
+    "JP304"
+  ],
+  "stock_check_utc": "2026-10-02T14:05:56.126827+00:00",
+  "stock_reserved": false,
+  "component_cost_with_assembly_attrition_usd": 8.06,
+  "economic_extended_feeders_usd": 9.21,
+  "optional_qfn_xray_for_two_usd": 0,
+  "estimate_excludes": [
+    "PCB fabrication",
+    "assembly setup",
+    "stencil",
+    "solder joints",
+    "shipping",
+    "tax",
+    "manual parts",
+    "discounts"
+  ],
+  "placement_preview_verified": false,
+  "rotation_convention": "Native KiCad CCW; inspect manufacturer pin 1 in JLC placement preview",
+  "origin": "Absolute Gerber origin; mm; CPL Y up",
+  "hashes": {
+    "pcb_sha256": "7854444afc391207cea9871635417e69ff7ff7d3d00674f4894c03d9ab96ddf2",
+    "schematic_sha256": "3e0d5ff825c112af081065f337d4c49fcd015f99b16e18977ca784237518b9e4"
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "side": "Bottom; text is mirrored for normal reading from the back",
+  "legends": [
+    {
+      "text": "ARDOR MIX M1",
+      "position_mm": [
+        70.0,
+        78
+      ]
+    },
+    {
+      "text": "J101",
+      "position_mm": [
+        72.0,
+        57.77
+      ]
+    },
+    {
+      "text": "5V",
+      "position_mm": [
+        67.5,
+        52.73
+      ]
+    },
+    {
+      "text": "GND",
+      "position_mm": [
+        67.5,
+        55.27
+      ]
+    },
+    {
+      "text": "J102",
+      "position_mm": [
+        53.0,
+        56.96
+      ]
+    },
+    {
+      "text": "L",
+      "position_mm": [
+        57.5,
+        59.46
+      ]
+    },
+    {
+      "text": "GND",
+      "position_mm": [
+        57.5,
+        62.0
+      ]
+    },
+    {
+      "text": "R",
+      "position_mm": [
+        57.5,
+        64.54
+      ]
+    },
+    {
+      "text": "J103",
+      "position_mm": [
+        86.0,
+        57.69
+      ]
+    },
+    {
+      "text": "L",
+      "position_mm": [
+        81.5,
+        60.19
+      ]
+    },
+    {
+      "text": "GND",
+      "position_mm": [
+        81.5,
+        62.73
+      ]
+    },
+    {
+      "text": "R",
+      "position_mm": [
+        81.5,
+        65.27
+      ]
+    },
+    {
+      "text": "MONO",
+      "position_mm": [
+        81.5,
+        67.81
+      ]
+    }
+  ]
+}

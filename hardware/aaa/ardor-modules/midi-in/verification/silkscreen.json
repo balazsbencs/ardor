@@ -1,0 +1,89 @@
+{
+  "side": "Bottom; text is mirrored for normal reading from the back",
+  "legends": [
+    {
+      "text": "ARDOR MIDI M1",
+      "position_mm": [
+        67.0,
+        76
+      ]
+    },
+    {
+      "text": "J101",
+      "position_mm": [
+        80.0,
+        56.69
+      ]
+    },
+    {
+      "text": "5V",
+      "position_mm": [
+        71.5,
+        59.19
+      ]
+    },
+    {
+      "text": "3V3",
+      "position_mm": [
+        71.5,
+        61.73
+      ]
+    },
+    {
+      "text": "GND",
+      "position_mm": [
+        71.0,
+        64.27
+      ]
+    },
+    {
+      "text": "RX",
+      "position_mm": [
+        75.5,
+        66.81
+      ]
+    },
+    {
+      "text": "J202",
+      "position_mm": [
+        53.0,
+        58.23
+      ]
+    },
+    {
+      "text": "4",
+      "position_mm": [
+        57.5,
+        60.73
+      ]
+    },
+    {
+      "text": "5",
+      "position_mm": [
+        57.5,
+        63.27
+      ]
+    },
+    {
+      "text": "J203",
+      "position_mm": [
+        77.0,
+        70.23
+      ]
+    },
+    {
+      "text": "CHS",
+      "position_mm": [
+        76.5,
+        72.73
+      ]
+    },
+    {
+      "text": "GND",
+      "position_mm": [
+        76.5,
+        75.27
+      ]
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "side": "Bottom; text is mirrored for normal reading from the back",
+  "legends": [
+    {
+      "text": "ARDOR HP M1",
+      "position_mm": [
+        68.0,
+        78
+      ]
+    },
+    {
+      "text": "J101",
+      "position_mm": [
+        53.0,
+        64.96
+      ]
+    },
+    {
+      "text": "5V",
+      "position_mm": [
+        57.5,
+        67.46
+      ]
+    },
+    {
+      "text": "GND",
+      "position_mm": [
+        57.5,
+        70.0
+      ]
+    },
+    {
+      "text": "EN",
+      "position_mm": [
+        57.5,
+        72.54
+      ]
+    },
+    {
+      "text": "J102",
+      "position_mm": [
+        53.0,
+        53.96
+      ]
+    },
+    {
+      "text": "L",
+      "position_mm": [
+        57.5,
+        56.46
+      ]
+    },
+    {
+      "text": "GND",
+      "position_mm": [
+        57.5,
+        59.0
+      ]
+    },
+    {
+      "text": "R",
+      "position_mm": [
+        57.5,
+        61.54
+      ]
+    },
+    {
+      "text": "J602",
+      "position_mm": [
+        82.0,
+        56.96
+      ]
+    },
+    {
+      "text": "L",
+      "position_mm": [
+        77.5,
+        59.46
+      ]
+    },
+    {
+      "text": "R",
+      "position_mm": [
+        77.5,
+        62.0
+      ]
+    },
+    {
+      "text": "GND",
+      "position_mm": [
+        77.5,
+        64.54
+      ]
+    }
+  ]
+}

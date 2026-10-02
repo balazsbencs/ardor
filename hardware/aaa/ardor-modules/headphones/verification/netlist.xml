@@ -1,0 +1,700 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export version="E">
+  <design>
+    <source>/design/ardor-modules/headphones/Ardor_Headphones.kicad_sch</source>
+    <date>2026-10-02T15:22:56+0000</date>
+    <tool>Eeschema 9.0.2+dfsg-1</tool>
+    <sheet number="1" name="/" tstamps="/">
+      <title_block>
+        <title>Stereo headphone amplifier / optional module</title>
+        <company>Ardor</company>
+        <rev>M1</rev>
+        <date>2026-10-02</date>
+        <source>Ardor_Headphones.kicad_sch</source>
+        <comment number="1" value="Engineering prototype - bench validation required"/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+  </design>
+  <components>
+    <comp ref="C101">
+      <value>22u / 25V X5R</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21A226MAQNNNE_C45783.pdf</datasheet>
+      <fields>
+        <field name="MPN">Samsung Electro-Mechanics CL21A226MAQNNNE</field>
+        <field name="JLCPCB Part #">C45783</field>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21A226MAQNNNE_C45783.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="Samsung Electro-Mechanics CL21A226MAQNNNE"/>
+      <property name="JLCPCB Part #" value="C45783"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>10bf9472-f9d6-5ed8-9d4f-6dbaecd6e053</tstamps>
+    </comp>
+    <comp ref="C102">
+      <value>100n / 50V X7R</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <datasheet>https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf</datasheet>
+      <fields>
+        <field name="MPN">YAGEO CC0603KRX7R9BB104</field>
+        <field name="JLCPCB Part #">C14663</field>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet">https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="YAGEO CC0603KRX7R9BB104"/>
+      <property name="JLCPCB Part #" value="C14663"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>b8106419-704f-5beb-8508-a737d6ae9617</tstamps>
+    </comp>
+    <comp ref="C601">
+      <value>10u / 50V X5R</value>
+      <footprint>Capacitor_SMD:C_1206_3216Metric</footprint>
+      <datasheet>https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL31A106KBHNNNE_C13585.pdf</datasheet>
+      <fields>
+        <field name="MPN">Samsung Electro-Mechanics CL31A106KBHNNNE</field>
+        <field name="JLCPCB Part #">C13585</field>
+        <field name="Footprint">Capacitor_SMD:C_1206_3216Metric</field>
+        <field name="Datasheet">https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL31A106KBHNNNE_C13585.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="Samsung Electro-Mechanics CL31A106KBHNNNE"/>
+      <property name="JLCPCB Part #" value="C13585"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>3f7a4a80-9a1b-5667-ad85-4d520cf9b61e</tstamps>
+    </comp>
+    <comp ref="C602">
+      <value>10u / 50V X5R</value>
+      <footprint>Capacitor_SMD:C_1206_3216Metric</footprint>
+      <datasheet>https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL31A106KBHNNNE_C13585.pdf</datasheet>
+      <fields>
+        <field name="MPN">Samsung Electro-Mechanics CL31A106KBHNNNE</field>
+        <field name="JLCPCB Part #">C13585</field>
+        <field name="Footprint">Capacitor_SMD:C_1206_3216Metric</field>
+        <field name="Datasheet">https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL31A106KBHNNNE_C13585.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="Samsung Electro-Mechanics CL31A106KBHNNNE"/>
+      <property name="JLCPCB Part #" value="C13585"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>98e65e0d-80d9-5bb2-963e-79002bd0371f</tstamps>
+    </comp>
+    <comp ref="C603">
+      <value>2.2u / 25V X7R</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf</datasheet>
+      <fields>
+        <field name="MPN">Samsung CL21B225KAFNNNE</field>
+        <field name="JLCPCB Part #">C19110</field>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="Samsung CL21B225KAFNNNE"/>
+      <property name="JLCPCB Part #" value="C19110"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>fc61eb14-456b-5a31-85f5-7caa5ec4c57f</tstamps>
+    </comp>
+    <comp ref="C604">
+      <value>100n / 50V X7R</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <datasheet>https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf</datasheet>
+      <fields>
+        <field name="MPN">YAGEO CC0603KRX7R9BB104</field>
+        <field name="JLCPCB Part #">C14663</field>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet">https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="YAGEO CC0603KRX7R9BB104"/>
+      <property name="JLCPCB Part #" value="C14663"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>fbbdb847-aa9a-5907-baa7-2452cd689a94</tstamps>
+    </comp>
+    <comp ref="C605">
+      <value>2.2u / 25V X7R</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf</datasheet>
+      <fields>
+        <field name="MPN">Samsung CL21B225KAFNNNE</field>
+        <field name="JLCPCB Part #">C19110</field>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="Samsung CL21B225KAFNNNE"/>
+      <property name="JLCPCB Part #" value="C19110"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>19be30cf-1a14-5872-82ec-774aee4f4d2f</tstamps>
+    </comp>
+    <comp ref="C606">
+      <value>2.2u / 25V X7R</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf</datasheet>
+      <fields>
+        <field name="MPN">Samsung CL21B225KAFNNNE</field>
+        <field name="JLCPCB Part #">C19110</field>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="Samsung CL21B225KAFNNNE"/>
+      <property name="JLCPCB Part #" value="C19110"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>1d59593e-9838-58e7-a5c4-17014fe7ea58</tstamps>
+    </comp>
+    <comp ref="C607">
+      <value>2.2u / 25V X7R</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <datasheet>https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf</datasheet>
+      <fields>
+        <field name="MPN">Samsung CL21B225KAFNNNE</field>
+        <field name="JLCPCB Part #">C19110</field>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet">https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="Samsung CL21B225KAFNNNE"/>
+      <property name="JLCPCB Part #" value="C19110"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>862da78e-fac7-5e9c-9ada-9d50f3d28f75</tstamps>
+    </comp>
+    <comp ref="D601">
+      <value>PESD5V0S1BA,115</value>
+      <footprint>Diode_SMD:D_SOD-323</footprint>
+      <datasheet>https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf</datasheet>
+      <fields>
+        <field name="MPN">Nexperia PESD5V0S1BA,115</field>
+        <field name="JLCPCB Part #">C19224</field>
+        <field name="Footprint">Diode_SMD:D_SOD-323</field>
+        <field name="Datasheet">https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="D_TVS" description="Bidirectional transient-voltage-suppression diode"/>
+      <property name="MPN" value="Nexperia PESD5V0S1BA,115"/>
+      <property name="JLCPCB Part #" value="C19224"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="diode TVS thyrector"/>
+      <property name="ki_fp_filters" value="TO-???* *_Diode_* *SingleDiode* D_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>2e6839c3-a246-5059-9513-8b5d27f2a66a</tstamps>
+    </comp>
+    <comp ref="D602">
+      <value>PESD5V0S1BA,115</value>
+      <footprint>Diode_SMD:D_SOD-323</footprint>
+      <datasheet>https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf</datasheet>
+      <fields>
+        <field name="MPN">Nexperia PESD5V0S1BA,115</field>
+        <field name="JLCPCB Part #">C19224</field>
+        <field name="Footprint">Diode_SMD:D_SOD-323</field>
+        <field name="Datasheet">https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="D_TVS" description="Bidirectional transient-voltage-suppression diode"/>
+      <property name="MPN" value="Nexperia PESD5V0S1BA,115"/>
+      <property name="JLCPCB Part #" value="C19224"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="diode TVS thyrector"/>
+      <property name="ki_fp_filters" value="TO-???* *_Diode_* *SingleDiode* D_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>283b7118-9375-5531-9168-0448f6388da0</tstamps>
+    </comp>
+    <comp ref="FB101">
+      <value>600R@100MHz</value>
+      <footprint>Inductor_SMD:L_0805_2012Metric</footprint>
+      <datasheet>https://www.murata.com/products/productdata/8796738977822/ENFA0005.pdf</datasheet>
+      <fields>
+        <field name="MPN">Murata BLM21PG601SN1D</field>
+        <field name="JLCPCB Part #">C41556732</field>
+        <field name="Footprint">Inductor_SMD:L_0805_2012Metric</field>
+        <field name="Datasheet">https://www.murata.com/products/productdata/8796738977822/ENFA0005.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="FerriteBead" description="Ferrite bead"/>
+      <property name="MPN" value="Murata BLM21PG601SN1D"/>
+      <property name="JLCPCB Part #" value="C41556732"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="L ferrite bead inductor filter"/>
+      <property name="ki_fp_filters" value="Inductor_* L_* *Ferrite*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>c537473d-f369-596a-83a6-e8f5db8596d7</tstamps>
+    </comp>
+    <comp ref="J101">
+      <value>+5V / GND / HP_ENABLE</value>
+      <footprint>Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical</footprint>
+      <fields>
+        <field name="MPN">PinHeader_1x03_P2.54mm_Vertical</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="Conn_01x03" description="Generic connector, single row, 01x03, script generated (kicad-library-utils/schlib/autogen/connector/)"/>
+      <property name="MPN" value="PinHeader_1x03_P2.54mm_Vertical"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="connector"/>
+      <property name="ki_fp_filters" value="Connector*:*_1x??_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>5a29e538-8b57-5482-871b-432f62d6fa3a</tstamps>
+    </comp>
+    <comp ref="J102">
+      <value>AUDIO_L / GND / AUDIO_R</value>
+      <footprint>Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical</footprint>
+      <fields>
+        <field name="MPN">PinHeader_1x03_P2.54mm_Vertical</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="Conn_01x03" description="Generic connector, single row, 01x03, script generated (kicad-library-utils/schlib/autogen/connector/)"/>
+      <property name="MPN" value="PinHeader_1x03_P2.54mm_Vertical"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="connector"/>
+      <property name="ki_fp_filters" value="Connector*:*_1x??_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>465376d9-1311-5e84-a0ab-11f721bf6618</tstamps>
+    </comp>
+    <comp ref="J602">
+      <value>HP_L / HP_R / GND</value>
+      <footprint>Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical</footprint>
+      <fields>
+        <field name="MPN">PinHeader_1x03_P2.54mm_Vertical</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="Conn_01x03" description="Generic connector, single row, 01x03, script generated (kicad-library-utils/schlib/autogen/connector/)"/>
+      <property name="MPN" value="PinHeader_1x03_P2.54mm_Vertical"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="connector"/>
+      <property name="ki_fp_filters" value="Connector*:*_1x??_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>7af149cd-d2f1-5662-bea2-61c8c1db8766</tstamps>
+    </comp>
+    <comp ref="R101">
+      <value>0R / 1%</value>
+      <footprint>Resistor_SMD:R_1206_3216Metric</footprint>
+      <datasheet>https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-1206W4F0000T5E_C17888.pdf</datasheet>
+      <fields>
+        <field name="MPN">UNI-ROYAL 1206W4F0000T5E</field>
+        <field name="JLCPCB Part #">C17888</field>
+        <field name="Footprint">Resistor_SMD:R_1206_3216Metric</field>
+        <field name="Datasheet">https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-1206W4F0000T5E_C17888.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="R" description="Resistor"/>
+      <property name="MPN" value="UNI-ROYAL 1206W4F0000T5E"/>
+      <property name="JLCPCB Part #" value="C17888"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>2493e268-9378-5569-b377-7d71787454d2</tstamps>
+    </comp>
+    <comp ref="R601">
+      <value>1k / 1%</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <datasheet>https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf</datasheet>
+      <fields>
+        <field name="MPN">UNI-ROYAL 0603WAF1001T5E</field>
+        <field name="JLCPCB Part #">C21190</field>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet">https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="R" description="Resistor"/>
+      <property name="MPN" value="UNI-ROYAL 0603WAF1001T5E"/>
+      <property name="JLCPCB Part #" value="C21190"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>a954031e-48da-5f63-bd2d-b04d9302ca02</tstamps>
+    </comp>
+    <comp ref="R602">
+      <value>100k / 1%</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <datasheet>https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1003T5E_C25803.pdf</datasheet>
+      <fields>
+        <field name="MPN">UNI-ROYAL 0603WAF1003T5E</field>
+        <field name="JLCPCB Part #">C25803</field>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet">https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1003T5E_C25803.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="R" description="Resistor"/>
+      <property name="MPN" value="UNI-ROYAL 0603WAF1003T5E"/>
+      <property name="JLCPCB Part #" value="C25803"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>682fd19d-d410-50e2-94eb-056a42de87db</tstamps>
+    </comp>
+    <comp ref="R603">
+      <value>2.2R / 1%</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <datasheet>https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF220KT5E_C22939.pdf</datasheet>
+      <fields>
+        <field name="MPN">UNI-ROYAL 0603WAF220KT5E</field>
+        <field name="JLCPCB Part #">C22939</field>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet">https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF220KT5E_C22939.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="R" description="Resistor"/>
+      <property name="MPN" value="UNI-ROYAL 0603WAF220KT5E"/>
+      <property name="JLCPCB Part #" value="C22939"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>b3169cba-9d1c-5bbd-9883-e204dc1fa520</tstamps>
+    </comp>
+    <comp ref="R604">
+      <value>2.2R / 1%</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <datasheet>https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF220KT5E_C22939.pdf</datasheet>
+      <fields>
+        <field name="MPN">UNI-ROYAL 0603WAF220KT5E</field>
+        <field name="JLCPCB Part #">C22939</field>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet">https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF220KT5E_C22939.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="R" description="Resistor"/>
+      <property name="MPN" value="UNI-ROYAL 0603WAF220KT5E"/>
+      <property name="JLCPCB Part #" value="C22939"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>8de3b671-6925-51f7-baaa-98664ef7a8d9</tstamps>
+    </comp>
+    <comp ref="U601">
+      <value>TPA6132A2RTER</value>
+      <footprint>Package_DFN_QFN:WQFN-16-1EP_3x3mm_P0.5mm_EP1.6x1.6mm_ThermalVias</footprint>
+      <datasheet>https://www.ti.com/lit/ds/symlink/tpa6132a2.pdf</datasheet>
+      <fields>
+        <field name="MPN">TI TPA6132A2RTER</field>
+        <field name="JLCPCB Part #">C69901</field>
+        <field name="Footprint">Package_DFN_QFN:WQFN-16-1EP_3x3mm_P0.5mm_EP1.6x1.6mm_ThermalVias</field>
+        <field name="Datasheet">https://www.ti.com/lit/ds/symlink/tpa6132a2.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="TPA6132A2RTE" description="25mW, Stereo, DirectPath Audio Amplifier, WQFN-16"/>
+      <property name="MPN" value="TI TPA6132A2RTER"/>
+      <property name="JLCPCB Part #" value="C69901"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_Headphones.kicad_sch"/>
+      <property name="ki_keywords" value="DirectPath audio amplifier Stereo"/>
+      <property name="ki_fp_filters" value="WQFN*1EP*3x3mm*P0.5mm*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>dbd71fc0-1ef5-53ec-82eb-8b5fb16e2409</tstamps>
+    </comp>
+  </components>
+  <libparts>
+    <libpart lib="Ardor" part="C">
+      <description>Unpolarized capacitor</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>C_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">C</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Ardor" part="Conn_01x03">
+      <description>Generic connector, single row, 01x03, script generated (kicad-library-utils/schlib/autogen/connector/)</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>Connector*:*_1x??_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">Conn_01x03</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Generic connector, single row, 01x03, script generated (kicad-library-utils/schlib/autogen/connector/)</field>
+      </fields>
+      <pins>
+        <pin num="1" name="Pin_1" type="passive"/>
+        <pin num="2" name="Pin_2" type="passive"/>
+        <pin num="3" name="Pin_3" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Ardor" part="D_TVS">
+      <description>Bidirectional transient-voltage-suppression diode</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>TO-???*</fp>
+        <fp>*_Diode_*</fp>
+        <fp>*SingleDiode*</fp>
+        <fp>D_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">D_TVS</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Bidirectional transient-voltage-suppression diode</field>
+      </fields>
+      <pins>
+        <pin num="1" name="A1" type="passive"/>
+        <pin num="2" name="A2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Ardor" part="FerriteBead">
+      <description>Ferrite bead</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>Inductor_*</fp>
+        <fp>L_*</fp>
+        <fp>*Ferrite*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">FB</field>
+        <field name="Value">FerriteBead</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Ferrite bead</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Ardor" part="R">
+      <description>Resistor</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>R_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">R</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Resistor</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Ardor" part="TPA6132A2RTE">
+      <description>25mW, Stereo, DirectPath Audio Amplifier, WQFN-16</description>
+      <docs>https://www.ti.com/lit/ds/symlink/tpa6132a2.pdf</docs>
+      <footprints>
+        <fp>WQFN*1EP*3x3mm*P0.5mm*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">TPA6132A2RTE</field>
+        <field name="Footprint">Package_DFN_QFN:WQFN-16-1EP_3x3mm_P0.5mm_EP1.6x1.6mm_ThermalVias</field>
+        <field name="Datasheet">https://www.ti.com/lit/ds/symlink/tpa6132a2.pdf</field>
+        <field name="Description">25mW, Stereo, DirectPath Audio Amplifier, WQFN-16</field>
+      </fields>
+      <pins>
+        <pin num="1" name="INL-" type="input"/>
+        <pin num="2" name="INL+" type="input"/>
+        <pin num="3" name="INR+" type="input"/>
+        <pin num="4" name="INR-" type="input"/>
+        <pin num="5" name="OUTR" type="output"/>
+        <pin num="6" name="G0" type="input"/>
+        <pin num="7" name="G1" type="input"/>
+        <pin num="8" name="HPVSS" type="power_out"/>
+        <pin num="9" name="CPN" type="passive"/>
+        <pin num="10" name="PGND" type="power_in"/>
+        <pin num="11" name="CPP" type="passive"/>
+        <pin num="12" name="HPVDD" type="power_out"/>
+        <pin num="13" name="EN" type="input"/>
+        <pin num="14" name="VDD" type="power_in"/>
+        <pin num="15" name="SGND" type="power_in"/>
+        <pin num="16" name="OUTL" type="output"/>
+        <pin num="17" name="EP" type="passive"/>
+      </pins>
+    </libpart>
+  </libparts>
+  <libraries>
+    <library logical="Ardor">
+      <uri>/design/ardor-modules/headphones/Ardor.kicad_sym</uri>
+    </library>
+  </libraries>
+  <nets>
+    <net code="1" name="/+5V" class="Default">
+      <node ref="FB101" pin="1" pintype="passive"/>
+      <node ref="J101" pin="1" pinfunction="Pin_1" pintype="passive"/>
+    </net>
+    <net code="2" name="/+5V_A" class="Default">
+      <node ref="C101" pin="1" pintype="passive"/>
+      <node ref="C102" pin="1" pintype="passive"/>
+      <node ref="C603" pin="1" pintype="passive"/>
+      <node ref="C604" pin="1" pintype="passive"/>
+      <node ref="FB101" pin="2" pintype="passive"/>
+      <node ref="U601" pin="14" pinfunction="VDD" pintype="power_in"/>
+    </net>
+    <net code="3" name="/CHASSIS" class="Chassis">
+      <node ref="D601" pin="2" pinfunction="A2" pintype="passive"/>
+      <node ref="D602" pin="2" pinfunction="A2" pintype="passive"/>
+      <node ref="R101" pin="1" pintype="passive"/>
+    </net>
+    <net code="4" name="/GND" class="Ground">
+      <node ref="C101" pin="2" pintype="passive"/>
+      <node ref="C102" pin="2" pintype="passive"/>
+      <node ref="C603" pin="2" pintype="passive"/>
+      <node ref="C604" pin="2" pintype="passive"/>
+      <node ref="C605" pin="2" pintype="passive"/>
+      <node ref="C606" pin="2" pintype="passive"/>
+      <node ref="J101" pin="2" pinfunction="Pin_2" pintype="passive"/>
+      <node ref="J102" pin="2" pinfunction="Pin_2" pintype="passive"/>
+      <node ref="J602" pin="3" pinfunction="Pin_3" pintype="passive"/>
+      <node ref="R101" pin="2" pintype="passive"/>
+      <node ref="R602" pin="2" pintype="passive"/>
+      <node ref="U601" pin="10" pinfunction="PGND" pintype="power_in"/>
+      <node ref="U601" pin="15" pinfunction="SGND" pintype="power_in"/>
+      <node ref="U601" pin="17" pinfunction="EP" pintype="passive"/>
+      <node ref="U601" pin="2" pinfunction="INL+" pintype="input"/>
+      <node ref="U601" pin="3" pinfunction="INR+" pintype="input"/>
+      <node ref="U601" pin="6" pinfunction="G0" pintype="input"/>
+      <node ref="U601" pin="7" pinfunction="G1" pintype="input"/>
+    </net>
+    <net code="5" name="/HPVDD" class="Default">
+      <node ref="C605" pin="1" pintype="passive"/>
+      <node ref="U601" pin="12" pinfunction="HPVDD" pintype="power_out"/>
+    </net>
+    <net code="6" name="/HPVSS" class="Default">
+      <node ref="C606" pin="1" pintype="passive"/>
+      <node ref="U601" pin="8" pinfunction="HPVSS" pintype="power_out"/>
+    </net>
+    <net code="7" name="/HP_L" class="Default">
+      <node ref="D601" pin="1" pinfunction="A1" pintype="passive"/>
+      <node ref="J602" pin="1" pinfunction="Pin_1" pintype="passive"/>
+      <node ref="R603" pin="2" pintype="passive"/>
+    </net>
+    <net code="8" name="/HP_R" class="Default">
+      <node ref="D602" pin="1" pinfunction="A1" pintype="passive"/>
+      <node ref="J602" pin="2" pinfunction="Pin_2" pintype="passive"/>
+      <node ref="R604" pin="2" pintype="passive"/>
+    </net>
+    <net code="9" name="Net-(J101-Pin_3)" class="Default">
+      <node ref="J101" pin="3" pinfunction="Pin_3" pintype="passive"/>
+      <node ref="R601" pin="1" pintype="passive"/>
+    </net>
+    <net code="10" name="Net-(J102-Pin_1)" class="Default">
+      <node ref="C602" pin="1" pintype="passive"/>
+      <node ref="J102" pin="1" pinfunction="Pin_1" pintype="passive"/>
+    </net>
+    <net code="11" name="Net-(J102-Pin_3)" class="Default">
+      <node ref="C601" pin="1" pintype="passive"/>
+      <node ref="J102" pin="3" pinfunction="Pin_3" pintype="passive"/>
+    </net>
+    <net code="12" name="Net-(U601-CPN)" class="Default">
+      <node ref="C607" pin="2" pintype="passive"/>
+      <node ref="U601" pin="9" pinfunction="CPN" pintype="passive"/>
+    </net>
+    <net code="13" name="Net-(U601-CPP)" class="Default">
+      <node ref="C607" pin="1" pintype="passive"/>
+      <node ref="U601" pin="11" pinfunction="CPP" pintype="passive"/>
+    </net>
+    <net code="14" name="Net-(U601-EN)" class="Default">
+      <node ref="R601" pin="2" pintype="passive"/>
+      <node ref="R602" pin="1" pintype="passive"/>
+      <node ref="U601" pin="13" pinfunction="EN" pintype="input"/>
+    </net>
+    <net code="15" name="Net-(U601-INL-)" class="Default">
+      <node ref="C602" pin="2" pintype="passive"/>
+      <node ref="U601" pin="1" pinfunction="INL-" pintype="input"/>
+    </net>
+    <net code="16" name="Net-(U601-INR-)" class="Default">
+      <node ref="C601" pin="2" pintype="passive"/>
+      <node ref="U601" pin="4" pinfunction="INR-" pintype="input"/>
+    </net>
+    <net code="17" name="Net-(U601-OUTL)" class="Default">
+      <node ref="R603" pin="1" pintype="passive"/>
+      <node ref="U601" pin="16" pinfunction="OUTL" pintype="output"/>
+    </net>
+    <net code="18" name="Net-(U601-OUTR)" class="Default">
+      <node ref="R604" pin="1" pintype="passive"/>
+      <node ref="U601" pin="5" pinfunction="OUTR" pintype="output"/>
+    </net>
+  </nets>
+</export>

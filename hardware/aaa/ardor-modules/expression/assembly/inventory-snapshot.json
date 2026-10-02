@@ -1,0 +1,760 @@
+{
+  "checked_utc": "2026-10-02T14:05:56.126827+00:00",
+  "board_quantity": 2,
+  "reserved": false,
+  "source": "JLCPCB public catalogue; availability may change",
+  "parts": [
+    {
+      "componentCode": "C14709",
+      "componentModelEn": "BLM18PG121SN1D",
+      "componentBrandEn": "Murata Electronics",
+      "componentSpecificationEn": "0603",
+      "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Murata-Electronics-BLM18PG121SN1D_C14709.pdf",
+      "dataManualOfficialLink": "",
+      "assemblyMode": "smtWeld",
+      "componentProductType": 0,
+      "fixtureFlag": false,
+      "needAuditFlag": false,
+      "componentLibraryType": "base",
+      "assemblyComponentFlag": false,
+      "overseasStockCount": 1911023,
+      "canPresaleNumber": 1785429,
+      "preMinPurchaseNum": 785,
+      "lossNumber": 10,
+      "leastPatchNumber": 20,
+      "noBuyReason": null,
+      "isBuyComponent": "1",
+      "initialPrice": 0.0146,
+      "attributes": [
+        {
+          "attribute_name_en": "Operating Temperature",
+          "component_code": "C14709",
+          "attribute_value_name": "-55\u2103~+125\u2103"
+        },
+        {
+          "attribute_name_en": "Impedance @ Frequency",
+          "component_code": "C14709",
+          "attribute_value_name": "120\u03a9@100MHz"
+        },
+        {
+          "attribute_name_en": "Tolerance",
+          "component_code": "C14709",
+          "attribute_value_name": "\u00b125%"
+        },
+        {
+          "attribute_name_en": "Current Rating",
+          "component_code": "C14709",
+          "attribute_value_name": "2A"
+        },
+        {
+          "attribute_name_en": "Number of Circuits",
+          "component_code": "C14709",
+          "attribute_value_name": "1"
+        },
+        {
+          "attribute_name_en": "DC Resistance(DCR)",
+          "component_code": "C14709",
+          "attribute_value_name": "50m\u03a9"
+        }
+      ],
+      "url": "https://jlcpcb.com/partdetail/C14709",
+      "checked_utc": "2026-10-02T13:58:46.094892+00:00"
+    },
+    {
+      "componentCode": "C15850",
+      "componentModelEn": "CL21A106KAYNNNE",
+      "componentBrandEn": "Samsung Electro-Mechanics",
+      "componentSpecificationEn": "0805",
+      "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21A106KAYNNNE_C15850.pdf",
+      "dataManualOfficialLink": "",
+      "assemblyMode": "smtWeld",
+      "componentProductType": 0,
+      "fixtureFlag": false,
+      "needAuditFlag": false,
+      "componentLibraryType": "base",
+      "assemblyComponentFlag": false,
+      "overseasStockCount": 4950709,
+      "canPresaleNumber": 3742024,
+      "preMinPurchaseNum": 139,
+      "lossNumber": 10,
+      "leastPatchNumber": 20,
+      "noBuyReason": null,
+      "isBuyComponent": "1",
+      "initialPrice": 0.0651,
+      "attributes": [
+        {
+          "attribute_name_en": "Voltage Rating",
+          "component_code": "C15850",
+          "attribute_value_name": "25V"
+        },
+        {
+          "attribute_name_en": "Tolerance",
+          "component_code": "C15850",
+          "attribute_value_name": "\u00b110%"
+        },
+        {
+          "attribute_name_en": "Capacitance",
+          "component_code": "C15850",
+          "attribute_value_name": "10uF"
+        },
+        {
+          "attribute_name_en": "Temperature Coefficient",
+          "component_code": "C15850",
+          "attribute_value_name": "X5R"
+        }
+      ],
+      "url": "https://jlcpcb.com/partdetail/C15850",
+      "checked_utc": "2026-10-02T13:58:46.170932+00:00"
+    },
+    {
+      "componentCode": "C14663",
+      "componentModelEn": "CC0603KRX7R9BB104",
+      "componentBrandEn": "YAGEO",
+      "componentSpecificationEn": "0603",
+      "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf",
+      "dataManualOfficialLink": "",
+      "assemblyMode": "smtWeld",
+      "componentProductType": 0,
+      "fixtureFlag": false,
+      "needAuditFlag": false,
+      "componentLibraryType": "base",
+      "assemblyComponentFlag": false,
+      "overseasStockCount": 54196400,
+      "canPresaleNumber": 41677293,
+      "preMinPurchaseNum": 1026,
+      "lossNumber": 10,
+      "leastPatchNumber": 20,
+      "noBuyReason": null,
+      "isBuyComponent": "1",
+      "initialPrice": 0.0123,
+      "attributes": [
+        {
+          "attribute_name_en": "Voltage Rating",
+          "component_code": "C14663",
+          "attribute_value_name": "50V"
+        },
+        {
+          "attribute_name_en": "Tolerance",
+          "component_code": "C14663",
+          "attribute_value_name": "\u00b110%"
+        },
+        {
+          "attribute_name_en": "Capacitance",
+          "component_code": "C14663",
+          "attribute_value_name": "100nF"
+        },
+        {
+          "attribute_name_en": "Temperature Coefficient",
+          "component_code": "C14663",
+          "attribute_value_name": "X7R"
+        }
+      ],
+      "url": "https://jlcpcb.com/partdetail/C14663",
+      "checked_utc": "2026-10-02T13:58:45.782179+00:00"
+    },
+    {
+      "componentCode": "C21190",
+      "componentModelEn": "0603WAF1001T5E",
+      "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+      "componentSpecificationEn": "0603",
+      "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf",
+      "dataManualOfficialLink": "",
+      "assemblyMode": "smtWeld",
+      "componentProductType": 0,
+      "fixtureFlag": false,
+      "needAuditFlag": false,
+      "componentLibraryType": "base",
+      "assemblyComponentFlag": false,
+      "overseasStockCount": 21644603,
+      "canPresaleNumber": 16828546,
+      "preMinPurchaseNum": 4512,
+      "lossNumber": 10,
+      "leastPatchNumber": 20,
+      "noBuyReason": null,
+      "isBuyComponent": "1",
+      "initialPrice": 0.0026,
+      "attributes": [
+        {
+          "attribute_name_en": "Resistance",
+          "component_code": "C21190",
+          "attribute_value_name": "1k\u03a9"
+        },
+        {
+          "attribute_name_en": "Operating Temperature",
+          "component_code": "C21190",
+          "attribute_value_name": "-55\u2103~+155\u2103"
+        },
+        {
+          "attribute_name_en": "Power(Watts)",
+          "component_code": "C21190",
+          "attribute_value_name": "100mW"
+        },
+        {
+          "attribute_name_en": "Type",
+          "component_code": "C21190",
+          "attribute_value_name": "Thick Film Resistor"
+        },
+        {
+          "attribute_name_en": "Voltage-Supply(Max)",
+          "component_code": "C21190",
+          "attribute_value_name": "75V"
+        },
+        {
+          "attribute_name_en": "Tolerance",
+          "component_code": "C21190",
+          "attribute_value_name": "\u00b11%"
+        },
+        {
+          "attribute_name_en": "Temperature Coefficient",
+          "component_code": "C21190",
+          "attribute_value_name": "\u00b1100ppm/\u2103"
+        }
+      ],
+      "url": "https://jlcpcb.com/partdetail/C21190",
+      "checked_utc": "2026-10-02T14:05:55.001072+00:00"
+    },
+    {
+      "componentCode": "C25804",
+      "componentModelEn": "0603WAF1002T5E",
+      "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+      "componentSpecificationEn": "0603",
+      "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1002T5E_C25804.pdf",
+      "dataManualOfficialLink": "",
+      "assemblyMode": "smtWeld",
+      "componentProductType": 0,
+      "fixtureFlag": false,
+      "needAuditFlag": false,
+      "componentLibraryType": "base",
+      "assemblyComponentFlag": false,
+      "overseasStockCount": 23050272,
+      "canPresaleNumber": 16116166,
+      "preMinPurchaseNum": 5000,
+      "lossNumber": 10,
+      "leastPatchNumber": 20,
+      "noBuyReason": null,
+      "isBuyComponent": "1",
+      "initialPrice": 0.0018,
+      "attributes": [
+        {
+          "attribute_name_en": "Resistance",
+          "component_code": "C25804",
+          "attribute_value_name": "10k\u03a9"
+        },
+        {
+          "attribute_name_en": "Operating Temperature",
+          "component_code": "C25804",
+          "attribute_value_name": "-55\u2103~+155\u2103"
+        },
+        {
+          "attribute_name_en": "Power(Watts)",
+          "component_code": "C25804",
+          "attribute_value_name": "100mW"
+        },
+        {
+          "attribute_name_en": "Type",
+          "component_code": "C25804",
+          "attribute_value_name": "Thick Film Resistor"
+        },
+        {
+          "attribute_name_en": "Voltage-Supply(Max)",
+          "component_code": "C25804",
+          "attribute_value_name": "75V"
+        },
+        {
+          "attribute_name_en": "Tolerance",
+          "component_code": "C25804",
+          "attribute_value_name": "\u00b11%"
+        },
+        {
+          "attribute_name_en": "Temperature Coefficient",
+          "component_code": "C25804",
+          "attribute_value_name": "\u00b1100ppm/\u2103"
+        }
+      ],
+      "url": "https://jlcpcb.com/partdetail/C25804",
+      "checked_utc": "2026-10-02T13:58:48.809647+00:00"
+    },
+    {
+      "componentCode": "C22935",
+      "componentModelEn": "0603WAF1004T5E",
+      "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+      "componentSpecificationEn": "0603",
+      "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1004T5E_C22935.pdf",
+      "dataManualOfficialLink": "",
+      "assemblyMode": "smtWeld",
+      "componentProductType": 0,
+      "fixtureFlag": false,
+      "needAuditFlag": false,
+      "componentLibraryType": "base",
+      "assemblyComponentFlag": false,
+      "overseasStockCount": 6606995,
+      "canPresaleNumber": 6046688,
+      "preMinPurchaseNum": 5000,
+      "lossNumber": 10,
+      "leastPatchNumber": 20,
+      "noBuyReason": null,
+      "isBuyComponent": "1",
+      "initialPrice": 0.0019,
+      "attributes": [
+        {
+          "attribute_name_en": "Resistance",
+          "component_code": "C22935",
+          "attribute_value_name": "1M\u03a9"
+        },
+        {
+          "attribute_name_en": "Operating Temperature",
+          "component_code": "C22935",
+          "attribute_value_name": "-55\u2103~+155\u2103"
+        },
+        {
+          "attribute_name_en": "Power(Watts)",
+          "component_code": "C22935",
+          "attribute_value_name": "100mW"
+        },
+        {
+          "attribute_name_en": "Type",
+          "component_code": "C22935",
+          "attribute_value_name": "Thick Film Resistor"
+        },
+        {
+          "attribute_name_en": "Voltage-Supply(Max)",
+          "component_code": "C22935",
+          "attribute_value_name": "75V"
+        },
+        {
+          "attribute_name_en": "Tolerance",
+          "component_code": "C22935",
+          "attribute_value_name": "\u00b11%"
+        },
+        {
+          "attribute_name_en": "Temperature Coefficient",
+          "component_code": "C22935",
+          "attribute_value_name": "\u00b1100ppm/\u2103"
+        }
+      ],
+      "url": "https://jlcpcb.com/partdetail/C22935",
+      "checked_utc": "2026-10-02T13:58:49.001152+00:00"
+    },
+    {
+      "componentCode": "C37593",
+      "componentModelEn": "ADS1115IDGSR",
+      "componentBrandEn": "Texas Instruments",
+      "componentSpecificationEn": "VSSOP-10",
+      "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_1809192322_Texas-Instruments-ADS1115IDGSR_C37593.pdf",
+      "dataManualOfficialLink": "https://www.ti.com/cn/lit/gpn/ads1115",
+      "assemblyMode": "smtWeld",
+      "componentProductType": 0,
+      "fixtureFlag": false,
+      "needAuditFlag": false,
+      "componentLibraryType": "expand",
+      "assemblyComponentFlag": false,
+      "overseasStockCount": 26196,
+      "canPresaleNumber": 24420,
+      "preMinPurchaseNum": 8,
+      "lossNumber": 0,
+      "leastPatchNumber": 0,
+      "noBuyReason": null,
+      "isBuyComponent": "1",
+      "initialPrice": 1.2193,
+      "attributes": [
+        {
+          "attribute_name_en": "Operating Temperature",
+          "component_code": "C37593",
+          "attribute_value_name": "-40\u2103~+125\u2103"
+        },
+        {
+          "attribute_name_en": "Clock/Oscillator",
+          "component_code": "C37593",
+          "attribute_value_name": "Built-in"
+        },
+        {
+          "attribute_name_en": "Programmable Gain",
+          "component_code": "C37593",
+          "attribute_value_name": "Support"
+        },
+        {
+          "attribute_name_en": "differential input",
+          "component_code": "C37593",
+          "attribute_value_name": "Yes"
+        },
+        {
+          "attribute_name_en": "Integral non - linearity",
+          "component_code": "C37593",
+          "attribute_value_name": "1LSB"
+        },
+        {
+          "attribute_name_en": "Voltage - Supply",
+          "component_code": "C37593",
+          "attribute_value_name": "2V~5.5V"
+        },
+        {
+          "attribute_name_en": "Quiescent Current (Iq)",
+          "component_code": "C37593",
+          "attribute_value_name": "500nA"
+        },
+        {
+          "attribute_name_en": "ADC architecture",
+          "component_code": "C37593",
+          "attribute_value_name": "Sigma-Delta"
+        },
+        {
+          "attribute_name_en": "Sampling Rate",
+          "component_code": "C37593",
+          "attribute_value_name": "860Hz"
+        },
+        {
+          "attribute_name_en": "Features",
+          "component_code": "C37593",
+          "attribute_value_name": "Multiplexers\u3001Power-on reset\u3001Integrated modulator\u3001Built-in digital filter"
+        },
+        {
+          "attribute_name_en": "number of channels",
+          "component_code": "C37593",
+          "attribute_value_name": "2"
+        },
+        {
+          "attribute_name_en": "Voltage Reference",
+          "component_code": "C37593",
+          "attribute_value_name": "Built-in"
+        },
+        {
+          "attribute_name_en": "Resolution (Bits)",
+          "component_code": "C37593",
+          "attribute_value_name": "16"
+        },
+        {
+          "attribute_name_en": "Interface",
+          "component_code": "C37593",
+          "attribute_value_name": "I2C"
+        }
+      ],
+      "url": "https://jlcpcb.com/partdetail/C37593",
+      "checked_utc": "2026-10-02T14:05:56.126827+00:00"
+    },
+    {
+      "componentCode": "C4190",
+      "componentModelEn": "0603WAF2201T5E",
+      "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+      "componentSpecificationEn": "0603",
+      "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010230_UNI-ROYAL-Uniroyal-Elec-0603WAF2201T5E_C4190.pdf",
+      "dataManualOfficialLink": "",
+      "assemblyMode": "smtWeld",
+      "componentProductType": 0,
+      "fixtureFlag": false,
+      "needAuditFlag": false,
+      "componentLibraryType": "base",
+      "assemblyComponentFlag": false,
+      "overseasStockCount": 7604231,
+      "canPresaleNumber": 7115852,
+      "preMinPurchaseNum": 5000,
+      "lossNumber": 10,
+      "leastPatchNumber": 20,
+      "noBuyReason": null,
+      "isBuyComponent": "1",
+      "initialPrice": 0.0018,
+      "attributes": [
+        {
+          "attribute_name_en": "Resistance",
+          "component_code": "C4190",
+          "attribute_value_name": "2.2k\u03a9"
+        },
+        {
+          "attribute_name_en": "Operating Temperature",
+          "component_code": "C4190",
+          "attribute_value_name": "-55\u2103~+155\u2103"
+        },
+        {
+          "attribute_name_en": "Power(Watts)",
+          "component_code": "C4190",
+          "attribute_value_name": "100mW"
+        },
+        {
+          "attribute_name_en": "Type",
+          "component_code": "C4190",
+          "attribute_value_name": "Thick Film Resistor"
+        },
+        {
+          "attribute_name_en": "Voltage-Supply(Max)",
+          "component_code": "C4190",
+          "attribute_value_name": "75V"
+        },
+        {
+          "attribute_name_en": "Tolerance",
+          "component_code": "C4190",
+          "attribute_value_name": "\u00b11%"
+        },
+        {
+          "attribute_name_en": "Temperature Coefficient",
+          "component_code": "C4190",
+          "attribute_value_name": "\u00b1100ppm/\u2103"
+        }
+      ],
+      "url": "https://jlcpcb.com/partdetail/C4190",
+      "checked_utc": "2026-10-02T13:58:49.988701+00:00"
+    },
+    {
+      "componentCode": "C426769",
+      "componentModelEn": "BAT54H,115",
+      "componentBrandEn": "Nexperia",
+      "componentSpecificationEn": "SOD-123F",
+      "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2407241029_Nexperia-BAT54H-115_C426769.pdf",
+      "dataManualOfficialLink": "",
+      "assemblyMode": "smtWeld",
+      "componentProductType": 0,
+      "fixtureFlag": false,
+      "needAuditFlag": false,
+      "componentLibraryType": "expand",
+      "assemblyComponentFlag": false,
+      "overseasStockCount": 8145,
+      "canPresaleNumber": 8083,
+      "preMinPurchaseNum": 80,
+      "lossNumber": 4,
+      "leastPatchNumber": 5,
+      "noBuyReason": null,
+      "isBuyComponent": "1",
+      "initialPrice": 0.1438,
+      "attributes": [
+        {
+          "attribute_name_en": "Voltage - Forward(Vf@If)",
+          "component_code": "C426769",
+          "attribute_value_name": "400mV@10mA"
+        },
+        {
+          "attribute_name_en": "Non-Repetitive Peak Forward Surge Current",
+          "component_code": "C426769",
+          "attribute_value_name": "600mA"
+        },
+        {
+          "attribute_name_en": "Voltage - DC Reverse(Vr)",
+          "component_code": "C426769",
+          "attribute_value_name": "30V"
+        },
+        {
+          "attribute_name_en": "Diode Configuration",
+          "component_code": "C426769",
+          "attribute_value_name": "1 Independent"
+        },
+        {
+          "attribute_name_en": "Current - Rectified",
+          "component_code": "C426769",
+          "attribute_value_name": "200mA"
+        },
+        {
+          "attribute_name_en": "Reverse Leakage Current (Ir)",
+          "component_code": "C426769",
+          "attribute_value_name": "2uA@25V"
+        }
+      ],
+      "url": "https://jlcpcb.com/partdetail/C426769",
+      "checked_utc": "2026-10-02T13:58:49.081438+00:00"
+    },
+    {
+      "componentCode": "C23140",
+      "componentModelEn": "0603WAF330JT5E",
+      "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+      "componentSpecificationEn": "0603",
+      "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF330JT5E_C23140.pdf",
+      "dataManualOfficialLink": "",
+      "assemblyMode": "smtWeld",
+      "componentProductType": 0,
+      "fixtureFlag": false,
+      "needAuditFlag": false,
+      "componentLibraryType": "base",
+      "assemblyComponentFlag": false,
+      "overseasStockCount": 5627712,
+      "canPresaleNumber": 5184321,
+      "preMinPurchaseNum": 4512,
+      "lossNumber": 10,
+      "leastPatchNumber": 20,
+      "noBuyReason": null,
+      "isBuyComponent": "1",
+      "initialPrice": 0.0025,
+      "attributes": [
+        {
+          "attribute_name_en": "Resistance",
+          "component_code": "C23140",
+          "attribute_value_name": "33\u03a9"
+        },
+        {
+          "attribute_name_en": "Operating Temperature",
+          "component_code": "C23140",
+          "attribute_value_name": "-55\u2103~+155\u2103"
+        },
+        {
+          "attribute_name_en": "Power(Watts)",
+          "component_code": "C23140",
+          "attribute_value_name": "100mW"
+        },
+        {
+          "attribute_name_en": "Type",
+          "component_code": "C23140",
+          "attribute_value_name": "Thick Film Resistor"
+        },
+        {
+          "attribute_name_en": "Voltage-Supply(Max)",
+          "component_code": "C23140",
+          "attribute_value_name": "75V"
+        },
+        {
+          "attribute_name_en": "Tolerance",
+          "component_code": "C23140",
+          "attribute_value_name": "\u00b11%"
+        },
+        {
+          "attribute_name_en": "Temperature Coefficient",
+          "component_code": "C23140",
+          "attribute_value_name": "\u00b1100ppm/\u2103"
+        }
+      ],
+      "url": "https://jlcpcb.com/partdetail/C23140",
+      "checked_utc": "2026-10-02T13:58:49.321869+00:00"
+    },
+    {
+      "componentCode": "C19224",
+      "componentModelEn": "PESD5V0S1BA,115",
+      "componentBrandEn": "Nexperia",
+      "componentSpecificationEn": "SOD-323",
+      "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2407241027_Nexperia-PESD5V0S1BA-115_C19224.pdf",
+      "dataManualOfficialLink": "",
+      "assemblyMode": "smtWeld",
+      "componentProductType": 0,
+      "fixtureFlag": false,
+      "needAuditFlag": false,
+      "componentLibraryType": "expand",
+      "assemblyComponentFlag": false,
+      "overseasStockCount": 77183,
+      "canPresaleNumber": 74000,
+      "preMinPurchaseNum": 134,
+      "lossNumber": 6,
+      "leastPatchNumber": 20,
+      "noBuyReason": null,
+      "isBuyComponent": "1",
+      "initialPrice": 0.0857,
+      "attributes": [
+        {
+          "attribute_name_en": "Operating Temperature",
+          "component_code": "C19224",
+          "attribute_value_name": "-55\u2103~+150\u2103"
+        },
+        {
+          "attribute_name_en": "Type",
+          "component_code": "C19224",
+          "attribute_value_name": "ESD"
+        },
+        {
+          "attribute_name_en": "Junction Capacitance",
+          "component_code": "C19224",
+          "attribute_value_name": "35pF"
+        },
+        {
+          "attribute_name_en": "Peak Pulse Power Dissipation (Ppp)",
+          "component_code": "C19224",
+          "attribute_value_name": "130W@8/20us"
+        },
+        {
+          "attribute_name_en": "Number of Channels",
+          "component_code": "C19224",
+          "attribute_value_name": "1"
+        },
+        {
+          "attribute_name_en": "level of protection",
+          "component_code": "C19224",
+          "attribute_value_name": "IEC 61000-4-2\u3001IEC 61000-4-5"
+        },
+        {
+          "attribute_name_en": "Clamping Voltage",
+          "component_code": "C19224",
+          "attribute_value_name": "14V"
+        },
+        {
+          "attribute_name_en": "Polarity",
+          "component_code": "C19224",
+          "attribute_value_name": "Bidirectional"
+        },
+        {
+          "attribute_name_en": "Peak Pulse Current (Ipp)",
+          "component_code": "C19224",
+          "attribute_value_name": "12A@8/20us"
+        },
+        {
+          "attribute_name_en": "Voltage - Breakdown",
+          "component_code": "C19224",
+          "attribute_value_name": "9.5V"
+        },
+        {
+          "attribute_name_en": "Reverse Stand-Off Voltage (Vrwm)",
+          "component_code": "C19224",
+          "attribute_value_name": "5V"
+        },
+        {
+          "attribute_name_en": "Reverse Leakage Current (Ir)",
+          "component_code": "C19224",
+          "attribute_value_name": "5nA"
+        }
+      ],
+      "url": "https://jlcpcb.com/partdetail/C19224",
+      "checked_utc": "2026-10-02T14:05:54.884617+00:00"
+    },
+    {
+      "componentCode": "C17888",
+      "componentModelEn": "1206W4F0000T5E",
+      "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+      "componentSpecificationEn": "1206",
+      "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-1206W4F0000T5E_C17888.pdf",
+      "dataManualOfficialLink": "",
+      "assemblyMode": "smtWeld",
+      "componentProductType": 0,
+      "fixtureFlag": false,
+      "needAuditFlag": false,
+      "componentLibraryType": "base",
+      "assemblyComponentFlag": false,
+      "overseasStockCount": 2627464,
+      "canPresaleNumber": 2389186,
+      "preMinPurchaseNum": 1308,
+      "lossNumber": 10,
+      "leastPatchNumber": 15,
+      "noBuyReason": null,
+      "isBuyComponent": "1",
+      "initialPrice": 0.0085,
+      "attributes": [
+        {
+          "attribute_name_en": "Resistance",
+          "component_code": "C17888",
+          "attribute_value_name": "0\u03a9"
+        },
+        {
+          "attribute_name_en": "Operating Temperature",
+          "component_code": "C17888",
+          "attribute_value_name": "-55\u2103~+155\u2103"
+        },
+        {
+          "attribute_name_en": "Power(Watts)",
+          "component_code": "C17888",
+          "attribute_value_name": "250mW"
+        },
+        {
+          "attribute_name_en": "Type",
+          "component_code": "C17888",
+          "attribute_value_name": "Thick Film Resistor"
+        },
+        {
+          "attribute_name_en": "Voltage-Supply(Max)",
+          "component_code": "C17888",
+          "attribute_value_name": "200V"
+        },
+        {
+          "attribute_name_en": "Tolerance",
+          "component_code": "C17888",
+          "attribute_value_name": "\u00b11%"
+        },
+        {
+          "attribute_name_en": "Temperature Coefficient",
+          "component_code": "C17888",
+          "attribute_value_name": "\u00b1800ppm/\u2103"
+        }
+      ],
+      "url": "https://jlcpcb.com/partdetail/C17888",
+      "checked_utc": "2026-10-02T13:58:46.704635+00:00"
+    }
+  ]
+}

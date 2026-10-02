@@ -1,0 +1,89 @@
+{
+  "side": "Bottom; text is mirrored for normal reading from the back",
+  "legends": [
+    {
+      "text": "ARDOR EXPR M1",
+      "position_mm": [
+        72.0,
+        82
+      ]
+    },
+    {
+      "text": "J101",
+      "position_mm": [
+        90.0,
+        55.69
+      ]
+    },
+    {
+      "text": "3V3",
+      "position_mm": [
+        85.5,
+        58.19
+      ]
+    },
+    {
+      "text": "GND",
+      "position_mm": [
+        85.5,
+        60.73
+      ]
+    },
+    {
+      "text": "SDA",
+      "position_mm": [
+        85.5,
+        63.27
+      ]
+    },
+    {
+      "text": "SCL",
+      "position_mm": [
+        85.5,
+        65.81
+      ]
+    },
+    {
+      "text": "J302",
+      "position_mm": [
+        53.0,
+        57.96
+      ]
+    },
+    {
+      "text": "J302: 1=T 2=R 3=G",
+      "position_mm": [
+        61,
+        70
+      ]
+    },
+    {
+      "text": "JP301",
+      "position_mm": [
+        60.0,
+        57.96
+      ]
+    },
+    {
+      "text": "JP302",
+      "position_mm": [
+        80.0,
+        70.96
+      ]
+    },
+    {
+      "text": "JP303",
+      "position_mm": [
+        90.0,
+        69.23
+      ]
+    },
+    {
+      "text": "JP304",
+      "position_mm": [
+        90.0,
+        76.23
+      ]
+    }
+  ]
+}

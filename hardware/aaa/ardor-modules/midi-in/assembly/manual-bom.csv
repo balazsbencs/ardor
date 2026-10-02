@@ -1,0 +1,5 @@
+Reference,Description,Footprint,Quantity per board
+J202,PinHeader_1x02_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,1
+J101,PinHeader_1x04_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,1
+J203,PinHeader_1x02_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,1
+U201,onsemi H11L1M,Package_DIP:DIP-6_W7.62mm,1

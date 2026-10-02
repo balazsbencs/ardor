@@ -1,0 +1,103 @@
+{
+  "side": "Bottom; text is mirrored for normal reading from the back",
+  "legends": [
+    {
+      "text": "ARDOR LINE M1",
+      "position_mm": [
+        73.0,
+        82
+      ]
+    },
+    {
+      "text": "J101",
+      "position_mm": [
+        53.0,
+        53.96
+      ]
+    },
+    {
+      "text": "5V",
+      "position_mm": [
+        57.5,
+        56.46
+      ]
+    },
+    {
+      "text": "GND",
+      "position_mm": [
+        57.5,
+        59.0
+      ]
+    },
+    {
+      "text": "EN",
+      "position_mm": [
+        57.5,
+        61.54
+      ]
+    },
+    {
+      "text": "J102",
+      "position_mm": [
+        53.0,
+        66.23
+      ]
+    },
+    {
+      "text": "IN",
+      "position_mm": [
+        57.5,
+        68.73
+      ]
+    },
+    {
+      "text": "GND",
+      "position_mm": [
+        57.5,
+        71.27
+      ]
+    },
+    {
+      "text": "J502",
+      "position_mm": [
+        92.0,
+        79.77
+      ]
+    },
+    {
+      "text": "AMP",
+      "position_mm": [
+        87.5,
+        74.73
+      ]
+    },
+    {
+      "text": "GND",
+      "position_mm": [
+        87.5,
+        77.27
+      ]
+    },
+    {
+      "text": "J503",
+      "position_mm": [
+        92.0,
+        63.230000000000004
+      ]
+    },
+    {
+      "text": "OUT",
+      "position_mm": [
+        85.0,
+        65.73
+      ]
+    },
+    {
+      "text": "GND",
+      "position_mm": [
+        87.5,
+        68.27
+      ]
+    }
+  ]
+}
