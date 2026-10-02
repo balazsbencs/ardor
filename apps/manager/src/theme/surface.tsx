@@ -13,13 +13,13 @@ export function useSurface() {
 }
 
 /**
- * Radix mounts portal content on document.body, outside `.app-shell`, where none of the
+ * Radix mounts portal content on document.body, outside the app shell, where none of the
  * design tokens inherit. Every portalled dialog renders its own token scope through this.
  */
 export function PortalSurface({ children }: { children: ReactNode }) {
   const { palette } = useSurface();
   return (
-    <div className="app-shell portal-surface" data-palette={palette} style={paletteVariables(palette)}>
+    <div className="portal-surface" data-palette={palette} style={paletteVariables(palette)}>
       {children}
     </div>
   );

@@ -4,6 +4,7 @@
 .mods {
   position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100vw); z-index: 90;
   background: var(--surface); border-left: 1px solid var(--line); display: flex; flex-direction: column; color: var(--text);
+  font: 400 1rem/1.5 var(--f-body);
 }
 .mods[data-state="open"] { animation: mods-in .26s var(--ease); }
 @keyframes mods-fade { from { opacity: 0; } }
