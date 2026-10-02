@@ -48,6 +48,7 @@ function Probe() {
       <span data-testid="status">{session.status}</span>
       <span data-testid="location">{session.current ? `${session.current.location.bank}:${session.current.location.slot}` : "none"}</span>
       <span data-testid="name">{session.current?.preset.name ?? "none"}</span>
+      <span data-testid="load-id">{session.current?.loadId ?? "none"}</span>
       <span data-testid="active">{session.device?.active
         ? `${session.device.active.bank}:${session.device.active.slot}` : "none"}</span>
       <span data-testid="revision-match">{String(session.device?.active?.storedRevisionMatches)}</span>
@@ -65,6 +66,7 @@ function Probe() {
       <button type="button" onClick={session.disconnect}>Disconnect</button>
       <button type="button" onClick={() => session.current && void session.saveCurrent(session.current.preset)}>Save current</button>
       <button type="button" onClick={() => void session.recallScene?.("solo")}>Recall solo</button>
+      <button type="button" onClick={() => void session.selectLocation({ bank: 0, slot: 1 })}>Open slot 2</button>
     </div>
   );
 }
@@ -317,5 +319,19 @@ describe("DeviceSessionProvider", () => {
     await screen.findByText("connected");
     await userEvent.click(screen.getByRole("button", { name: "Recall solo" }));
     expect(recallScene).toHaveBeenCalledWith("solo", 72, expect.any(String));
+  });
+
+  it("keeps the load token on save and changes it on a real load", async () => {
+    const client = mockClient({ savePreset: vi.fn(async (bank: number, slot: number, preset: Preset) => ({ bank, slot, preset: { ...preset, name: "Saved II" } })) });
+    renderSession(() => client);
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    await screen.findByText("connected");
+    const connected = screen.getByTestId("load-id").textContent;
+    await userEvent.click(screen.getByRole("button", { name: "Save current" }));
+    await waitFor(() => expect(screen.getByTestId("name")).toHaveTextContent("Saved II"));
+    expect(screen.getByTestId("load-id").textContent).toBe(connected);
+    await userEvent.click(screen.getByRole("button", { name: "Open slot 2" }));
+    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("0:1"));
+    expect(screen.getByTestId("load-id").textContent).not.toBe(connected);
   });
 });

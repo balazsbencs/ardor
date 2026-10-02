@@ -49,16 +49,16 @@ export type EditorAction =
   | { type: "swap-scenes"; firstSceneId: string; secondSceneId: string }
   | { type: "copy-scene-row-across"; sourceSceneId: string; rowKey: string }
   | { type: "set-scene-parameter"; sceneId: string; blockId: string; parameter: string; value: number; gesture?: string }
-  | { type: "set-scene-block-enabled"; sceneId: string; blockId: string; value: boolean }
+  | { type: "set-scene-block-enabled"; sceneId: string; blockId: string; value: boolean; gesture?: string }
   | { type: "set-scene-input-gain"; sceneId: string; value: number; gesture?: string }
-  | { type: "set-scene-input-scope"; sceneId: string; scope: "shared" | "scene" }
-  | { type: "set-scene-wdw-mix"; sceneId: string; lane: "dry" | "wet"; key: "levelDb" | "pan" | "width" | "enabled"; value: number | boolean }
+  | { type: "set-scene-input-scope"; sceneId: string; scope: "shared" | "scene"; gesture?: string }
+  | { type: "set-scene-wdw-mix"; sceneId: string; lane: "dry" | "wet"; key: "levelDb" | "pan" | "width" | "enabled"; value: number | boolean; gesture?: string }
   | { type: "set-scene-scope"; sceneId: string; blockId: string; parameter?: string; scope: "shared" | "scene"; value: number | boolean; gesture?: string }
   | { type: "set-name"; name: string }
   | { type: "set-global"; key: "inputGainDb" | "outputGainDb"; value: number; gesture?: string }
   | { type: "set-routing"; routing: "serial" | "wdw" }
-  | { type: "set-wdw-mix"; lane: "dry" | "wet"; key: "levelDb" | "pan" | "width" | "enabled"; value: number | boolean }
-  | { type: "set-expression"; expression?: Preset["expression"] }
+  | { type: "set-wdw-mix"; lane: "dry" | "wet"; key: "levelDb" | "pan" | "width" | "enabled"; value: number | boolean; gesture?: string }
+  | { type: "set-expression"; expression?: Preset["expression"]; gesture?: string }
   | { type: "add-block"; definitionId: string; index: number; initialAsset?: string }
   | { type: "move-block"; blockId: string; index: number }
   | { type: "add-lane-block"; rigId: string; lane: "left" | "right"; definitionId: string; index: number; initialAsset?: string }

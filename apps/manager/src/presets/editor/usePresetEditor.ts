@@ -36,12 +36,12 @@ export type PresetEditor = {
   sceneScopeFor(blockId: string, parameter?: string): "shared" | "scene";
   editBlockEnabled(blockId: string, enabled: boolean): void;
   editParameter(blockId: string, parameter: string, value: unknown, gesture?: string): void;
-  editWdwMix(lane: "dry" | "wet", key: "levelDb" | "pan" | "width" | "enabled", value: number | boolean): void;
+  editWdwMix(lane: "dry" | "wet", key: "levelDb" | "pan" | "width" | "enabled", value: number | boolean, gesture?: string): void;
   expressionTargets: ExpressionTarget[];
   expressionTarget?: ExpressionTarget;
   expressionParameter?: NumberControl;
   enableExpression(): void;
-  patchExpression(patch: Partial<NonNullable<Preset["expression"]>>): void;
+  patchExpression(patch: Partial<NonNullable<Preset["expression"]>>, gesture?: string): void;
   addTarget?: AddTarget;
   setAddTarget(target?: AddTarget): void;
   disabledDefinitions: Map<string, string>;
@@ -62,6 +62,8 @@ export type PresetEditor = {
   presentSceneTarget(target: PresetSceneTarget, value: number | boolean): { label: string; value: string };
 };
 
+let toggleSeq = 0;
+
 export function usePresetEditor(): PresetEditor {
   const session = useDeviceSession();
   const [editor, dispatch] = useReducer(editorReducer, undefined, () => session.current
@@ -76,10 +78,11 @@ export function usePresetEditor(): PresetEditor {
   const [recallingScene, setRecallingScene] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Reload only on a real load. A save keeps the loadId, so the drawer, scene and undo history stay.
   useEffect(() => {
     if (!session.current) return;
     dispatch({ type: "load", location: session.current.location, preset: session.current.preset });
-  }, [session.current?.location.bank, session.current?.location.slot, session.current?.preset]);
+  }, [session.current?.loadId]);
 
   const present = editor.history.present;
   const validation = useMemo(() => validatePreset(present, {
@@ -113,11 +116,13 @@ export function usePresetEditor(): PresetEditor {
     sceneOwns(editingScene, blockId, parameter) ? "scene" : "shared";
   const editBlockEnabled = (blockId: string, enabled: boolean) => {
     if (editingScene) {
+      // The scope and the value share one gesture, so the first scene edit is one undo step.
+      const gesture = `scene-enabled-${++toggleSeq}`;
       if (!sceneOwns(editingScene, blockId)) {
         const current = findPresetBlockInPreset(present, blockId)?.enabled ?? enabled;
-        dispatch({ type: "set-scene-scope", sceneId: editingScene.id, blockId, scope: "scene", value: current });
+        dispatch({ type: "set-scene-scope", sceneId: editingScene.id, blockId, scope: "scene", value: current, gesture });
       }
-      dispatch({ type: "set-scene-block-enabled", sceneId: editingScene.id, blockId, value: enabled });
+      dispatch({ type: "set-scene-block-enabled", sceneId: editingScene.id, blockId, value: enabled, gesture });
       return;
     }
     dispatch({ type: "toggle-block", blockId, enabled });
@@ -133,11 +138,11 @@ export function usePresetEditor(): PresetEditor {
     }
     dispatch({ type: "set-block-param", blockId, key: parameter, value, gesture });
   };
-  const editWdwMix = (lane: "dry" | "wet", key: "levelDb" | "pan" | "width" | "enabled", value: number | boolean) => {
+  const editWdwMix = (lane: "dry" | "wet", key: "levelDb" | "pan" | "width" | "enabled", value: number | boolean, gesture?: string) => {
     if (editingScene?.targets.some((target) => target.target === "wdwLane"
         && target.lane === lane && target.parameter === key)) {
-      dispatch({ type: "set-scene-wdw-mix", sceneId: editingScene.id, lane, key, value });
-    } else dispatch({ type: "set-wdw-mix", lane, key, value });
+      dispatch({ type: "set-scene-wdw-mix", sceneId: editingScene.id, lane, key, value, gesture });
+    } else dispatch({ type: "set-wdw-mix", lane, key, value, gesture });
   };
   const expressionTargets = useMemo<ExpressionTarget[]>(() => allBlocks.flatMap((block) => {
     if (!["mod", "delay", "reverb", "dynamics", "cab", "wah"].includes(block.type)) return [];
@@ -237,9 +242,10 @@ export function usePresetEditor(): PresetEditor {
   );
   const patchExpression = (
     patch: Partial<NonNullable<typeof present.expression>>,
+    gesture?: string,
   ) => {
     if (!present.expression) return;
-    dispatch({ type: "set-expression", expression: { ...present.expression, ...patch } });
+    dispatch({ type: "set-expression", expression: { ...present.expression, ...patch }, gesture });
   };
   const enableExpression = () => {
     const target = expressionTargets[0];

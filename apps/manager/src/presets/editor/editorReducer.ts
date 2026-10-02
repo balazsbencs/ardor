@@ -343,7 +343,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         if (!target || target.target !== "blockEnabled") return undefined;
         target.value = action.value;
         return next;
-      });
+      }, state.selectedBlockId, action.gesture);
     case "set-scene-input-gain":
       if (!Number.isFinite(action.value)) return state;
       return withMutation(state, (present) => {
@@ -374,7 +374,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           }
         }
         return next;
-      });
+      }, state.selectedBlockId, action.gesture);
     case "set-scene-wdw-mix":
       if (typeof action.value === "number" && !Number.isFinite(action.value)) return state;
       if ((action.key === "pan" && action.lane !== "dry")
@@ -396,7 +396,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           target.value = clamp(action.value, minimum, maximum);
         }
         return next;
-      });
+      }, state.selectedBlockId, action.gesture);
     case "set-scene-scope":
       return withMutation(state, (present) => {
         if (!present.sceneSet) return undefined;
@@ -493,7 +493,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           lane[action.key] = clamp(action.value, minimum, maximum);
         }
         return next;
-      });
+      }, state.selectedBlockId, action.gesture);
     }
     case "set-expression":
       if (action.expression
@@ -504,7 +504,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         if (action.expression) next.expression = structuredClone(action.expression);
         else delete next.expression;
         return next;
-      });
+      }, state.selectedBlockId, action.gesture);
     case "add-block": {
       if (state.history.present.blocks.length >= 10) return state;
       let block: PresetBlock;
@@ -717,6 +717,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ...state,
         saved,
         selectedBlockId,
+        gesture: undefined,
         history: { ...state.history, present: clonePreset(action.preset), future: [] },
       };
     }

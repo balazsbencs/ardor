@@ -16,6 +16,9 @@ const MAX_GAIN = 18;
 const STAGE_COUNT = 7;
 
 type Point = { x: number; y: number };
+type Drag = { stage: number; gesture: string };
+
+let dragSeq = 0;
 type PassFilterKey = "high_pass" | "low_pass";
 
 export function frequencyForGraphX(x: number): number {
@@ -140,10 +143,11 @@ export function EqResponseGraph({
   lowPass: EqPassFilter;
   activeStage: number;
   onActiveStage(index: number): void;
-  onBandChange(index: number, patch: Partial<EqBand>): void;
-  onPassFilterChange(key: PassFilterKey, patch: Partial<EqPassFilter>): void;
+  /** gesture is one id per node drag, so the whole drag is one undo step. */
+  onBandChange(index: number, patch: Partial<EqBand>, gesture?: string): void;
+  onPassFilterChange(key: PassFilterKey, patch: Partial<EqPassFilter>, gesture?: string): void;
 }) {
-  const [dragging, setDragging] = useState<number>();
+  const [dragging, setDragging] = useState<Drag>();
   const bands = Array.from({ length: 5 }, (_, index) => sourceBands[index] ?? defaultBand(index));
   const curve = useMemo(() => Array.from({ length: 121 }, (_, index) => {
     const x = LEFT + index * (WIDTH - LEFT - RIGHT) / 120;
@@ -152,16 +156,16 @@ export function EqResponseGraph({
   }).join(" "), [bands, highPass, lowPass]);
   const stages = [highPass, ...bands, lowPass];
 
-  const editAt = (stage: number, point: Point) => {
+  const editAt = ({ stage, gesture }: Drag, point: Point) => {
     const frequency_hz = Math.round(frequencyForGraphX(point.x));
     if (stage === 0 || stage === STAGE_COUNT - 1) {
-      onPassFilterChange(stage === 0 ? "high_pass" : "low_pass", { frequency_hz });
+      onPassFilterChange(stage === 0 ? "high_pass" : "low_pass", { frequency_hz }, gesture);
       return;
     }
     onBandChange(stage - 1, {
       frequency_hz,
       gain_db: Math.round(gainForGraphY(point.y) * 2) / 2,
-    });
+    }, gesture);
   };
   const startDrag = (stage: number, event: React.PointerEvent<SVGCircleElement>) => {
     event.preventDefault();
@@ -169,7 +173,7 @@ export function EqResponseGraph({
     if (typeof event.currentTarget.setPointerCapture === "function") {
       event.currentTarget.setPointerCapture(event.pointerId);
     }
-    setDragging(stage);
+    setDragging({ stage, gesture: `eq-drag-${++dragSeq}` });
     onActiveStage(stage);
   };
   const move = (event: React.PointerEvent<SVGSVGElement>) => {

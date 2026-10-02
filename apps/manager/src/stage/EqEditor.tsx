@@ -34,8 +34,8 @@ export function EqEditor({ block, onEqBand, onParam }: Props) {
   return <div className="eq-controls lb-ctl--wide">
     <EqResponseGraph
       bands={bands} highPass={highPass} lowPass={lowPass} activeStage={activeStage} onActiveStage={setActiveStage}
-      onBandChange={(index, patch) => onEqBand(block.id, index, patch)}
-      onPassFilterChange={(key, patch) => onParam(block.id, key, { ...(key === "high_pass" ? highPass : lowPass), ...patch })}
+      onBandChange={(index, patch, gesture) => onEqBand(block.id, index, patch, gesture)}
+      onPassFilterChange={(key, patch, gesture) => onParam(block.id, key, { ...(key === "high_pass" ? highPass : lowPass), ...patch }, gesture)}
     />
     {isPass ? <fieldset className="eq-band eq-filter">
       <legend>{filterName} filter</legend>

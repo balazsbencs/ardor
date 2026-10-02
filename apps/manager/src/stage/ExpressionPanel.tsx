@@ -45,9 +45,9 @@ export function ExpressionPanel() {
         </div>
         {expressionParameter && <>
           <TravelScale control={rangeControl(expressionParameter, "Heel", expressionParameter.minimum)} value={expression.minimum} family="util"
-            onChange={(minimum) => patchExpression({ minimum })} />
+            onChange={(minimum, gesture) => patchExpression({ minimum }, gesture)} />
           <TravelScale control={rangeControl(expressionParameter, "Toe", expressionParameter.maximum)} value={expression.maximum} family="util"
-            onChange={(maximum) => patchExpression({ maximum })} />
+            onChange={(maximum, gesture) => patchExpression({ maximum }, gesture)} />
         </>}
         <div className="lb-ctl fam-util">
           <label className="lb-ctl__label">

@@ -49,4 +49,19 @@ describe("GlobalDrawer", () => {
     await userEvent.click(screen.getByRole("checkbox", { name: "Invert" }));
     expect(editor().present.expression?.inverted).toBe(true);
   });
+
+  it("makes a key burst on a lane level or on Heel one undo step", async () => {
+    const { editor } = renderWithEditor(<GlobalDrawer onClose={vi.fn()} />);
+    await userEvent.click(screen.getByRole("radio", { name: "Wet dry wet" }));
+    const steps = () => editor().editor.history.past.length;
+    let before = steps();
+    act(() => screen.getByRole("slider", { name: "Dry level" }).focus());
+    await userEvent.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}");
+    expect(steps()).toBe(before + 1);
+    await userEvent.click(screen.getByRole("checkbox", { name: "Expression pedal" }));
+    before = steps();
+    act(() => screen.getByRole("slider", { name: "Heel" }).focus());
+    await userEvent.keyboard("{ArrowRight}{ArrowRight}");
+    expect(steps()).toBe(before + 1);
+  });
 });

@@ -32,7 +32,14 @@ export type SessionPreset = {
   location: PresetLocation;
   preset: Preset;
   exists: boolean;
+  /** Changes on every real load (connect, slot select, reload). A save keeps it, so the editor keeps its state. */
+  loadId: number;
 };
+
+type LoadedPreset = Omit<SessionPreset, "loadId">;
+
+let loadSeq = 0;
+const loaded = (preset: LoadedPreset): SessionPreset => ({ ...preset, loadId: ++loadSeq });
 
 export type DeviceClientFactory = (config: ApiClientConfig) => ManagerTransport;
 
@@ -148,7 +155,7 @@ async function loadInitialPreset(
   baseUrl: string,
   device: DeviceStatus,
   summaries: PresetSlotSummary[],
-): Promise<SessionPreset> {
+): Promise<LoadedPreset> {
   if (device.active && hasPreset(summaries, device.active)) {
     try {
       const response = await client.getPreset(device.active.bank, device.active.slot);
@@ -236,7 +243,7 @@ export function DeviceSessionProvider({
       setSupportsReverbIrs(nextReverbInventory.supported);
       setAssetUsage(nextUsage);
       setPresets(nextPresets);
-      setCurrent(nextCurrent);
+      setCurrent(loaded(nextCurrent));
       setStatus("connected");
     } catch (reason) {
       const nextError = reason instanceof Error ? reason : new Error("Connection failed");
@@ -268,7 +275,7 @@ export function DeviceSessionProvider({
 
   const selectLocation = async (location: PresetLocation) => {
     if (!client || status !== "connected") return;
-    let next: SessionPreset;
+    let next: LoadedPreset;
     if (hasPreset(presets, location)) {
       const response = await client.getPreset(location.bank, location.slot);
       next = { location, preset: response.preset, exists: true };
@@ -276,7 +283,7 @@ export function DeviceSessionProvider({
       next = { location, preset: createEmptyPreset(), exists: false };
     }
     localStorage.setItem(locationKey(baseUrl), JSON.stringify(location));
-    setCurrent(next);
+    setCurrent(loaded(next));
   };
 
   const refreshAssets = async (kind?: AssetKind) => {
@@ -303,7 +310,8 @@ export function DeviceSessionProvider({
     setOperationBusy("save", true);
     try {
       const response = await client.savePreset(current.location.bank, current.location.slot, preset);
-      setCurrent({ location: current.location, preset: response.preset, exists: true });
+      // Same loadId: the editor marks the draft saved and keeps selection, scene and undo history.
+      setCurrent({ ...current, preset: response.preset, exists: true });
       setDevice((previous) => previous?.active
         && previous.active.bank === current.location.bank
         && previous.active.slot === current.location.slot

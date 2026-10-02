@@ -108,6 +108,45 @@ describe("StageWorkspace scene save and load semantics", () => {
     expect(saved.sceneSet?.scenes[1].targets[0]).toMatchObject({ value: -6 });
   });
 
+  it("keeps the drawer, the scene and the undo history after Save", async () => {
+    session.current.preset.blocks = [blockOf("delay:tape", "d1")];
+    session.saveCurrent.mockImplementationOnce(async (saved: Preset) => {
+      session.current = { ...session.current, preset: structuredClone(saved) };
+      return { bank: 0, slot: 0, preset: structuredClone(saved) };
+    });
+    render(<AppProviders>{stage()}</AppProviders>);
+    await userEvent.click(screen.getByRole("group", { name: /Tape Delay/ }));
+    await userEvent.click(screen.getByRole("button", { name: "2 Chorus" }));
+    act(() => screen.getByRole("slider", { name: "Mix" }).focus());
+    await userEvent.keyboard("{ArrowRight}");
+    await userEvent.click(screen.getByRole("button", { name: /^Save$/ }));
+    expect(session.saveCurrent).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("region", { name: "Tape Delay parameters" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "2 Chorus" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("undoes the first scene BLOCK ON edit in one step", async () => {
+    session.current.preset.blocks = [blockOf("delay:tape", "d1")];
+    const { editor } = renderWithEditor(stage());
+    await userEvent.click(screen.getByRole("group", { name: /Tape Delay/ }));
+    await userEvent.click(screen.getByRole("button", { name: "2 Chorus" }));
+    await userEvent.click(screen.getByRole("button", { name: "Block on" }));
+    expect(editor().present.sceneSet!.scenes[1].targets).toEqual([{ target: "blockEnabled", blockId: "d1", value: false }]);
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(editor().present.sceneSet!.scenes.flatMap(({ targets }) => targets)).toEqual([]);
+  });
+
+  it("undoes the first scene input gain edit in one step", async () => {
+    const { editor } = renderWithEditor(stage());
+    await userEvent.click(screen.getByRole("button", { name: "Global" }));
+    act(() => screen.getByRole("slider", { name: "Input gain" }).focus());
+    await userEvent.keyboard("{ArrowRight}");
+    expect(editor().present.sceneSet!.scenes[0].targets).toEqual([{ target: "inputGainDb", value: 0.5 }]);
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(editor().present.sceneSet!.scenes.flatMap(({ targets }) => targets)).toEqual([]);
+  });
+
   it("shows and toggles the selected scene's bypass state on the chain stage", async () => {
     const block = createBlockFromDefinition("mod:chorus", []);
     session.current.preset.blocks = [block];

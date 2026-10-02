@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Preset } from "../../api/types";
 import { createEditorState, editorReducer, isEditorDirty } from "./editorReducer";
 import type { EditorAction, EditorState } from "./editorTypes";
-import { createEmptyPreset, createWdwPreset } from "./presetFactory";
+import { createEmptyPreset, createWdwPreset, enableScenes } from "./presetFactory";
 
 function preset(): Preset {
   return {
@@ -486,6 +486,52 @@ describe("editorReducer", () => {
     state = editorReducer(state, { type: "set-name", name: "Renamed" });
     state = editorReducer(state, { type: "set-block-param", blockId: "block-1", key: "threshold_db", value: -21, gesture: "g" });
     expect(state.history.past).toHaveLength(3);
+  });
+
+  it("keeps one undo step for a WDW lane drag, in the preset and in a scene", () => {
+    let state = createEditorState({ bank: 0, slot: 0 }, createWdwPreset("Lanes"));
+    const start = state.history.present.wdw!.dry.levelDb;
+    for (const value of [-3, -4, -5]) state = editorReducer(state, { type: "set-wdw-mix", lane: "dry", key: "levelDb", value, gesture: "lane-1" });
+    expect(state.history.past).toHaveLength(1);
+    state = editorReducer(state, { type: "undo" });
+    expect(state.history.present.wdw!.dry.levelDb).toBe(start);
+
+    const scened = { ...enableScenes(createWdwPreset("Scenes"), [{ target: "wdwLane", lane: "wet", parameter: "width", value: 1 }]) };
+    state = createEditorState({ bank: 0, slot: 0 }, scened);
+    for (const value of [0.9, 0.8, 0.7]) state = editorReducer(state, { type: "set-scene-wdw-mix", sceneId: "scene-1", lane: "wet", key: "width", value, gesture: "lane-2" });
+    expect(state.history.past).toHaveLength(1);
+  });
+
+  it("keeps one undo step for an expression heel drag", () => {
+    let state = createEditorState({ bank: 0, slot: 0 }, preset());
+    const expression = { blockId: "block-2", parameter: "speed", minimum: 0, maximum: 1, inverted: false };
+    state = editorReducer(state, { type: "set-expression", expression });
+    for (const minimum of [0.1, 0.2, 0.3]) state = editorReducer(state, { type: "set-expression", expression: { ...expression, minimum }, gesture: "heel" });
+    expect(state.history.past).toHaveLength(2);
+    expect(state.history.present.expression?.minimum).toBe(0.3);
+  });
+
+  it("starts a new undo step after a save, even with the same gesture", () => {
+    let state = createEditorState({ bank: 0, slot: 0 }, preset());
+    state = editorReducer(state, { type: "set-block-param", blockId: "block-1", key: "threshold_db", value: -20, gesture: "g" });
+    state = editorReducer(state, { type: "mark-saved", preset: state.history.present });
+    expect(state.gesture).toBeUndefined();
+    state = editorReducer(state, { type: "set-block-param", blockId: "block-1", key: "threshold_db", value: -21, gesture: "g" });
+    expect(state.history.past).toHaveLength(2);
+  });
+
+  it("makes the first scene edit of BLOCK ON and input gain one undo step", () => {
+    let state = createEditorState({ bank: 0, slot: 0 }, enableScenes(preset()));
+    state = reduce(state,
+      { type: "set-scene-scope", sceneId: "scene-2", blockId: "block-1", scope: "scene", value: true, gesture: "on-1" },
+      { type: "set-scene-block-enabled", sceneId: "scene-2", blockId: "block-1", value: false, gesture: "on-1" });
+    expect(state.history.past).toHaveLength(1);
+    state = reduce(state,
+      { type: "set-scene-input-scope", sceneId: "scene-2", scope: "scene", gesture: "in-1" },
+      { type: "set-scene-input-gain", sceneId: "scene-2", value: -3, gesture: "in-1" });
+    expect(state.history.past).toHaveLength(2);
+    state = editorReducer(state, { type: "undo" });
+    expect(state.history.present.sceneSet!.scenes.every(({ targets }) => targets.every(({ target }) => target !== "inputGainDb"))).toBe(true);
   });
 
   it("clears the edited scene, so edits go to the preset", () => {

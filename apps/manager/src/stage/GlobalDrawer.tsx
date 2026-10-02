@@ -24,7 +24,8 @@ export function GlobalDrawer({ onClose }: { onClose(): void }) {
   const { present, dispatch, editingScene, sceneInputOwned, displayedWdw } = editor;
 
   const editInput = (value: number, gesture: string) => {
-    if (editingScene && !sceneInputOwned) dispatch({ type: "set-scene-input-scope", sceneId: editingScene.id, scope: "scene" });
+    // The scope and the value share the gesture, so the first scene edit is one undo step.
+    if (editingScene && !sceneInputOwned) dispatch({ type: "set-scene-input-scope", sceneId: editingScene.id, scope: "scene", gesture });
     if (editingScene) dispatch({ type: "set-scene-input-gain", sceneId: editingScene.id, value, gesture });
     else dispatch({ type: "set-global", key: "inputGainDb", value, gesture });
   };
@@ -61,9 +62,9 @@ export function GlobalDrawer({ onClose }: { onClose(): void }) {
               <h3 className="ctlgrid__lane">{title} lane</h3>
               <ChoiceStrip label={`${title} lane`} family="util" value={config.enabled}
                 options={[{ value: false, label: "Off" }, { value: true, label: "On" }]} onChange={(on) => editor.editWdwMix(lane, "enabled", on)} />
-              <TravelScale control={named(LANE_LEVEL, `${title} level`)} value={config.levelDb} family="util" onChange={(value) => editor.editWdwMix(lane, "levelDb", value)} />
+              <TravelScale control={named(LANE_LEVEL, `${title} level`)} value={config.levelDb} family="util" onChange={(value, gesture) => editor.editWdwMix(lane, "levelDb", value, gesture)} />
               <TravelScale control={named(shape, `${title} ${lane === "dry" ? "pan" : "width"}`)} value={config[shapeKey] ?? shape.defaultValue} family="util"
-                onChange={(value) => editor.editWdwMix(lane, shapeKey, value)} />
+                onChange={(value, gesture) => editor.editWdwMix(lane, shapeKey, value, gesture)} />
             </div>
           );
         })}
