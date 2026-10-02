@@ -32,6 +32,8 @@ namespace ardor {
 // two transforms. Cost per sample becomes near-flat.
 class ScheduledConvolver {
 public:
+  using PreparedImpulse = std::vector<std::vector<std::complex<float>>>;
+  struct Frame { float current; float next; };
   // `impulse` may be any length; `partitionFrames` must be a power of two.
   void load(std::vector<float> impulse, std::size_t partitionFrames);
   void reset();
@@ -43,10 +45,23 @@ public:
   // Feeds one sample and returns one sample, delayed by partitionFrames().
   float process(float input);
 
+  // Control-thread preparation, with the same length/partition geometry as
+  // load(). The FFT tables are immutable; the workspace belongs to this call.
+  PreparedImpulse prepareImpulse(const std::vector<float>& impulse) const;
+  // Two kernels share one input history during a live IR edit. The caller
+  // warms next, crossfades the returned samples, then promotes its state.
+  Frame processFrame(float input, const PreparedImpulse* current,
+                     const PreparedImpulse* next);
+  void finishTransition() noexcept;
+
 private:
   void beginPeriod();
-  void advanceSchedule();
-  void closeBlock();
+  void advanceSchedule(const PreparedImpulse& current, const PreparedImpulse* next);
+  void closeBlock(const PreparedImpulse& current, const PreparedImpulse* next);
+  void accumulate(std::size_t p, const std::vector<std::complex<float>>& x,
+                  const PreparedImpulse& current, const PreparedImpulse* next);
+  void render(std::vector<std::complex<float>>& accumulator,
+              std::vector<float>& overlap, std::vector<float>& output);
 
   std::vector<float> impulse_;
   std::size_t partition_ = 0;
@@ -64,6 +79,10 @@ private:
   std::vector<float> overlap_;
   std::vector<float> inBuffer_;
   std::vector<float> outBuffer_;
+  std::vector<std::complex<float>> nextAccumulator_;
+  std::vector<float> nextOverlap_;
+  std::vector<float> nextOutBuffer_;
+  const PreparedImpulse* transitioning_ = nullptr;
   std::size_t fill_ = 0;
 
   // Spreads partitionCount_ - 1 multiply passes over partition_ samples without

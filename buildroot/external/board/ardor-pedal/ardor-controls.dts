@@ -14,6 +14,12 @@
 				brcm,function = <0 0 0 0>;
 				brcm,pull = <2 2 2 2>; /* Active-low switches need pull-ups. */
 			};
+
+			ardor_encoder_pins: ardor_encoder_pins {
+				brcm,pins = <17 22>;
+				brcm,function = <0 0>;
+				brcm,pull = <2 2>; /* Encoder contacts switch to ground. */
+			};
 		};
 	};
 
@@ -66,6 +72,8 @@
 
 			rotary: rotary-encoder {
 				compatible = "rotary-encoder";
+				pinctrl-names = "default";
+				pinctrl-0 = <&ardor_encoder_pins>;
 				gpios = <&gpio 17 1>, <&gpio 22 1>;
 				linux,axis = <0>;
 				rotary-encoder,relative-axis;

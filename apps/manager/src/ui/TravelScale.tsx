@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useId, useRef, type KeyboardEvent, type PointerEvent } from "react";
 
 import { cx } from "../components/ui";
 import { displayValue } from "../effects/display";
@@ -55,9 +55,12 @@ export type TravelScaleProps = {
   owned?: "scene" | "shared";
   onShare?(): void;
   compact?: boolean;
+  /** Help text under the scale, read as the slider description. */
+  description?: string;
 };
 
-export function TravelScale({ control, value, family, onChange, onFocusControl, focused, owned, onShare, compact }: TravelScaleProps) {
+export function TravelScale({ control, value, family, onChange, onFocusControl, focused, owned, onShare, compact, description }: TravelScaleProps) {
+  const descriptionId = useId();
   const scaleRef = useRef<HTMLDivElement>(null);
   const gesture = useRef<{ id: string; at: number } | null>(null);
   const latest = useRef({ control, value, onChange });
@@ -132,13 +135,14 @@ export function TravelScale({ control, value, family, onChange, onFocusControl, 
           {onShare && <button type="button" className="lb-ctl__share" onClick={onShare} title="All scenes use one value again">Share</button>}</span>}
       </div>
       <div className="lb-ctl__value"><span>{number}</span>{unit && <small>{unit}</small>}</div>
-      <div ref={scaleRef} className="lb-scale" role="slider" tabIndex={0} aria-label={control.label}
+      <div ref={scaleRef} className="lb-scale" role="slider" tabIndex={0} aria-label={control.label} aria-describedby={description ? descriptionId : undefined}
         aria-valuemin={control.minimum} aria-valuemax={control.maximum} aria-valuenow={value} aria-valuetext={text}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
         onKeyDown={onKeyDown} onFocus={onFocusControl} onDoubleClick={() => onChange(snapValue(control, control.defaultValue), newGesture())}>
         <span className="lb-scale__ticks" />
         <span className="lb-scale__track"><span className="lb-scale__fill" style={{ width: percent }} /><span className="lb-scale__thumb" style={{ left: percent }} /></span>
       </div>
+      {description && <p id={descriptionId} className="lb-note">{description}</p>}
     </div>
   );
 }

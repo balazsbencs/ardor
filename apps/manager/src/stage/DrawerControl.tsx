@@ -2,6 +2,7 @@ import type { AssetKind, PresetBlock } from "../api/types";
 import type { EffectControl } from "../effects/types";
 import { usePresetEditorContext } from "../presets/editor/EditorContext";
 import { sceneOwns } from "../presets/scenes/sceneView";
+import { isSharedOnlyParameter, parameterHelp } from "../presets/scenes/sharedParameters";
 import { ChoiceStrip } from "../ui/ChoiceStrip";
 import { familyOf } from "../ui/family";
 import { TravelScale } from "../ui/TravelScale";
@@ -24,10 +25,12 @@ export function DrawerControl({ block, control: c, focusedKey, onFocusKey, onMan
   }
   if (c.kind === "number") {
     const value = valueOf(c.key, c.defaultValue);
+    const ownScene = scene && !isSharedOnlyParameter(block.type, c.key) ? scene : undefined;
     return <TravelScale control={c} value={value} family={family}
       focused={focusedKey === c.key} onFocusControl={() => onFocusKey(c.key)}
-      owned={scene ? (sceneOwns(scene, block.id, c.key) ? "scene" : "shared") : undefined}
-      onShare={scene ? () => editor.dispatch({ type: "set-scene-scope", sceneId: scene.id, blockId: block.id, parameter: c.key, scope: "shared", value }) : undefined}
+      description={parameterHelp(block.type, c.key, Boolean(editor.present.sceneSet))}
+      owned={ownScene ? (sceneOwns(ownScene, block.id, c.key) ? "scene" : "shared") : undefined}
+      onShare={ownScene ? () => editor.dispatch({ type: "set-scene-scope", sceneId: ownScene.id, blockId: block.id, parameter: c.key, scope: "shared", value }) : undefined}
       onChange={(next, gesture) => editor.editParameter(block.id, c.key, next, gesture)} />;
   }
   if (c.kind === "choice") {

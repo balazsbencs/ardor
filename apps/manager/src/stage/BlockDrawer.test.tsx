@@ -150,6 +150,18 @@ describe("BlockDrawer, ported from the old inspector", () => {
     expect(screen.getByRole("radio", { name: "Cut" })).toHaveAttribute("aria-checked", "true");
   });
 
+  it("keeps IR reverb time shared across scenes and explains its range", async () => {
+    session.current.preset = { ...structuredClone(scenePreset), blocks: [{ ...createBlockFromDefinition("irreverb", []), id: "v1" }] };
+    render(<EditorProvider><Harness id="v1" /></EditorProvider>);
+    const time = screen.getByRole("slider", { name: "Reverb time" });
+    expect(time).toHaveAttribute("aria-valuemin", "0.25");
+    expect(time).toHaveAttribute("aria-valuemax", "1");
+    expect(time).toHaveAccessibleDescription(/Short or non-decaying IRs keep their original response\. Shared across scenes\./);
+    fireEvent.keyDown(time, { key: "ArrowLeft" });
+    expect(params().reverbTimeRatio).toBeLessThan(1);
+    expect(time.closest(".lb-ctl")).not.toHaveTextContent("SCENE");
+  });
+
   it("offers the nano model and the input source as choices", async () => {
     render(<EditorProvider><Harness id="n1" /></EditorProvider>);
     const nano = screen.getByRole("radiogroup", { name: "Use nano model" });

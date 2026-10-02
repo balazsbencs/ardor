@@ -5,6 +5,7 @@
 // presets, which do not carry p3 or p4, are unchanged.
 
 #include "mod_effect_test_support.h"
+#include "daisyfx/hosted/modes/ph2_mode.h"
 
 #include <algorithm>
 #include <array>
@@ -122,6 +123,44 @@ void verifyPhaserPolarity()
   auto negative = positive;
   negative["p4"] = 1.0f;
   require(maxDifference(positive, negative) > 1e-3, "phaser Polarity must change the sound");
+}
+
+void verifyPh2ControlsAndStability()
+{
+  auto p = defaults("phaser_ph2");
+  const auto* descriptor = ardor::findDaisyFxDescriptor("mod", "phaser_ph2");
+  const auto spec = ardor::daisyFxParamControlSpec(*descriptor, descriptor->params[5]);
+  require(spec.choiceValues == std::vector<float>({0.0f, 1.0f}), "PH-2 has two modes");
+  auto mode2 = p; mode2["p2"] = 1.0f;
+  require(maxDifference(p, mode2) > 0.01, "PH-2 modes sound different");
+  for (float mode : {0.0f, 1.0f}) {
+    p["p2"] = mode;
+    auto resonant = p; resonant["p1"] = 1.0f;
+    require(maxDifference(p, resonant) > 0.001, "PH-2 Resonance changes both modes");
+    p["mix"] = 0.0f;
+    const auto dry = render(p, guitarPhrase());
+    for (size_t i = 0; i < dry.left.size(); ++i)
+      require(std::fabs(dry.left[i] - (i >= pedal::Ph2Mode::kLatencyFrames ? guitarPhrase()[i - pedal::Ph2Mode::kLatencyFrames] : 0.0f)) < 1e-6f, "PH-2 Mix zero is dry");
+    p["mix"] = 1.0f;
+    auto wide = p; wide["p3"] = 1.0f;
+    require(channelDifference(render(p, guitarPhrase())) < 1e-6, "PH-2 defaults to mono sweeps");
+    require(channelDifference(render(wide, guitarPhrase())) > 0.001, "PH-2 stereo extension works");
+  }
+  auto processor = configured(p);
+  processor.setParameterTarget("p1", 1.0f);
+  processor.setParameterTarget("depth", 1.0f);
+  for (int i = 0; i < 480000; ++i) {
+    if (i % 48000 == 0) {
+      processor.setParameterTarget("p2", (i / 48000) % 2 ? 1.0f : 0.0f);
+      processor.setParameterTarget("p4", (i / 48000) % 2 ? 0.0f : 1.0f);
+      processor.setParameterTarget("tone", (i / 48000) % 2 ? 1.0f : 0.0f);
+    }
+    const float x = i < 240000 ? 0.8f * std::sin(i * 0.057f) : 0.0f;
+    const auto y = processor.process({x, -x});
+    require(std::isfinite(y.left) && std::isfinite(y.right) &&
+            std::fabs(y.left) < 3.0f && std::fabs(y.right) < 3.0f,
+            "PH-2 remains bounded at maximum resonance and routing changes");
+  }
 }
 
 // Block-RMS envelopes of the two channels for a steady tone.
@@ -243,6 +282,7 @@ int main()
     {"flanger manual", verifyFlangerManualMovesTheSweep},
     {"stereo controls", verifyStereoControls},
     {"phaser polarity", verifyPhaserPolarity},
+    {"PH-2 controls and stability", verifyPh2ControlsAndStability},
     {"vintage trem pan", verifyVintageTremPans},
     {"pattern trem smooth and swing", verifyPatternTremSmoothAndSwing},
     {"rotary balance and spread", verifyRotaryBalanceAndSpread},

@@ -8,6 +8,7 @@ import type { NumberControl } from "../../effects/types";
 import { activeRevisionMatchesDraft } from "../scenes/sceneRevision";
 import type { SharedComparisonRow } from "../scenes/SceneWorkspaceBar";
 import { applySceneToBlock, applySceneToBlocks, sceneOwns } from "../scenes/sceneView";
+import { isSharedOnlyParameter } from "../scenes/sharedParameters";
 import { allPresetBlocksInPreset, createEditorState, editorReducer, findPresetBlockInPreset, isEditorDirty } from "./editorReducer";
 import type { EditorAction, EditorState, PresetLocation } from "./editorTypes";
 import { validatePreset, type PresetValidationResult } from "./presetValidation";
@@ -130,9 +131,10 @@ export function usePresetEditor(): PresetEditor {
     dispatch({ type: "toggle-block", blockId, enabled });
   };
   const editParameter = (blockId: string, parameter: string, value: unknown, gesture?: string) => {
-    if (editingScene && typeof value === "number") {
+    const block = findPresetBlockInPreset(present, blockId);
+    if (editingScene && typeof value === "number" && !(block && isSharedOnlyParameter(block.type, parameter))) {
       if (!sceneOwns(editingScene, blockId, parameter)) {
-        const current = findPresetBlockInPreset(present, blockId)?.params[parameter];
+        const current = block?.params[parameter];
         dispatch({ type: "set-scene-scope", sceneId: editingScene.id, blockId, parameter, scope: "scene", value: typeof current === "number" ? current : value, gesture });
       }
       dispatch({ type: "set-scene-parameter", sceneId: editingScene.id, blockId, parameter, value, gesture });

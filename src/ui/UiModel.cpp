@@ -262,6 +262,7 @@ nlohmann::json defaultIrReverbParams()
   return {
     {"mix", 0.35f},
     {"levelDb", 0.0f},
+    {"reverbTimeRatio", 1.0f},
     {"preDelayMs", 0.0f},
     {"lowCutHz", 20.0f},
     {"highCutHz", 20000.0f},
@@ -1992,6 +1993,8 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
     } else if (key == "mix") {
       value = clampFloat(value, 0.0f, 1.0f);
     }
+  } else if (block.type == "irreverb" && key == "reverbTimeRatio") {
+    value = std::isfinite(value) ? clampFloat(value, 0.25f, 1.0f) : 1.0f;
   } else if (block.type == "dualAmp" || block.type == "dualRig") {
     if (!previewIsSynchronized(state)) return;
     const bool wdw = block.type == "dualRig"
