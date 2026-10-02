@@ -170,6 +170,7 @@ target_compile_features(ardor_equalizer PUBLIC cxx_std_20)
 target_sources(ardor_equalizer PRIVATE
   src/equalizer/ParametricEqProcessor.cpp
   src/equalizer/ConsoleEqProcessor.cpp
+  src/equalizer/ConsoleSaturation.cpp
 )
 
 add_library(ardor_circuit

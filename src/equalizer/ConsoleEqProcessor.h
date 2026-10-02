@@ -2,6 +2,7 @@
 
 #include "daisyfx/DaisyFxProcessor.h"
 #include "daisyfx/hosted/dsp/halfband_resampler.h"
+#include "equalizer/ConsoleSaturation.h"
 #include "equalizer/EqParameters.h"
 #include "equalizer/ParametricEqMath.h"
 #include <array>
@@ -19,6 +20,7 @@ inline constexpr std::array<std::string_view, 7> kConsoleEqMidLabels{
 inline constexpr std::array<std::string_view, 5> kConsoleEqHighPassLabels{
   "Off", "50 Hz", "80 Hz", "160 Hz", "300 Hz"};
 inline constexpr std::array<std::string_view, 2> kConsoleEqPolarityLabels{"Normal", "Inverted"};
+inline constexpr std::array<std::string_view, 2> kConsoleEqCharacterLabels{"Clean", "Console"};
 
 struct ConsoleEqControl {
   std::string_view key, label;
@@ -26,7 +28,7 @@ struct ConsoleEqControl {
   // Switches store integer positions, including Off at position zero.
   std::span<const std::string_view> choices;
 };
-inline constexpr std::array<ConsoleEqControl, 10> kConsoleEqControls{{
+inline constexpr std::array<ConsoleEqControl, 11> kConsoleEqControls{{
   {"low_db", "Low gain", -16, 16, 0.5f, 0, {}},
   {"low_freq", "Low frequency", 0, 4, 1, 2, kConsoleEqLowLabels},
   {"mid_db", "Mid gain", -18, 18, 0.5f, 0, {}},
@@ -34,6 +36,7 @@ inline constexpr std::array<ConsoleEqControl, 10> kConsoleEqControls{{
   {"high_db", "High gain · 12 kHz", -16, 16, 0.5f, 0, {}},
   {"high_pass", "High-pass · 18 dB/oct", 0, 4, 1, 0, kConsoleEqHighPassLabels},
   {"saturation", "Saturation", 0, 1, 0.01f, 0, {}},
+  {"character", "Character", 0, 1, 1, 1, kConsoleEqCharacterLabels},
   {"output_db", "Output trim", -24, 24, 0.5f, 0, {}},
   {"polarity", "Polarity", 0, 1, 1, 0, kConsoleEqPolarityLabels},
   {"mix", "Mix", 0, 1, 0.01f, 1, {}},
@@ -41,9 +44,11 @@ inline constexpr std::array<ConsoleEqControl, 10> kConsoleEqControls{{
 nlohmann::json defaultConsoleEqParams();
 
 // Original MIT implementation. Classic 1073 control points with cookbook
-// shelves/bell, a third-order Butterworth HPF, and optional 2x tanh saturation
-// with first-order antiderivative anti-aliasing. This is a musical
-// approximation, not an emulation of a Neve circuit.
+// shelves/bell, a third-order Butterworth HPF, and optional 2x saturation (see
+// ConsoleSaturation). Character Console widens the mid at small gains, gives
+// the low shelf a slight overshoot and adds the saturation character; with zero
+// gains and no saturation both characters are identical and flat. This is a
+// musical approximation, not an emulation of a Neve circuit.
 class ConsoleEqProcessor {
 public:
   ConsoleEqProcessor() = default;
@@ -72,7 +77,7 @@ private:
   };
   struct Bank {
     std::array<std::array<Biquad, kSections>, 2> filters{};
-    std::array<int, 3> switches{};
+    std::array<int, 4> switches{};
     float process(std::size_t channel, float input);
   };
   struct Channel {
@@ -80,21 +85,15 @@ private:
     pedal::HalfbandDecimator2x down;
     std::array<float, kLatencyFrames> dry{};
     std::size_t index = 0;
-    // Antiderivative anti-aliasing history at the oversampled rate.
-    double previousInput = 0, previousIntegral = 0;
   };
   struct Targets { std::array<std::atomic<float>, kConsoleEqControls.size()> values{}; };
   void updateControls();
   void updateBank(Bank& bank);
-  void startFade(const std::array<int, 3>& switches);
-  void updateDrive(float saturation);
+  void startFade(const std::array<int, 4>& switches);
   void beginFrame();
   float processChannel(std::size_t channel, float input);
   void endFrame();
   void copyLeftToRight();
-  double residue(double x) const;
-  double residueIntegral(double x) const;
-  double shape(Channel& channel, double x) const;
 
   float sampleRate_ = 48000;
   float controlStep_ = 1, sampleStep_ = 1;
@@ -102,11 +101,13 @@ private:
   std::array<float, kConsoleEqControls.size()> current_{};
   std::array<Bank, 2> banks_{};
   std::array<Channel, 2> channels_{};
+  ConsoleSaturation saturation_;
+  std::array<ConsoleSaturation::State, 2> saturationStates_{};
   int active_ = 0;
   std::size_t controlCountdown_ = 0, fadeRemaining_ = 0, fadeLength_ = 1;
   std::size_t shortFadeFrames_ = 480, longFadeFrames_ = 1920;
   float blend_ = 0;
-  double drive_ = 0, makeup_ = 1;
+  float console_ = 1; // smoothed Character position for the saturation stage
   bool rightMirrorsLeft_ = false;
   float output_ = 1, outputTarget_ = 1, polarity_ = 1, mix_ = 1;
 };

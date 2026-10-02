@@ -113,6 +113,9 @@ void testUi() {
   require(parameterPage(state, 0)[0].formatted == "+0.5 dB", "pedal displays half-dB precision");
   require(applyParameterDelta(state, controls[1], 1), "pedal frequency switch is editable");
   require(selectedUiBlock(state)->params["low_freq"] == 3, "switch stores numeric index");
+  const auto second = parameterPage(state, 1);
+  require(second.size() == 5 && second[1].label == "Character" && second[1].formatted == "Console",
+          "pedal shows the Character switch next to Saturation");
   auto corrupt = *selectedUiBlock(state);
   corrupt.params["mid_db"] = "corrupt";
   require(blockSummaryControls(corrupt, kConsoleEqControls.size())[2].formatted == "+0.0 dB", "a corrupt stored value shows the default");
@@ -123,16 +126,19 @@ void testScenes(Preset& preset, RuntimeChain& lane) {
   PresetSceneSet scenes;
   for (auto& scene : scenes.scenes) {
     scene.targets = {{PresetSceneTargetType::Parameter, "console", "high_db", "", 6.f},
-                     {PresetSceneTargetType::Parameter, "console", "mid_freq", "", 4.f}};
+                     {PresetSceneTargetType::Parameter, "console", "mid_freq", "", 4.f},
+                     {PresetSceneTargetType::Parameter, "console", "character", "", 0.f}};
   }
   preset.sceneSet = scenes;
   ScenePlan scenePlan;
   require(buildScenePlan(preset, scenePlan, error), error);
   const auto program = makeSceneTransitionProgram(scenePlan, 1);
-  require(program.targets.size() == 2 && program.targets[1].law == SceneTransitionLaw::Stepped,
-          "scene frequency controls are stepped");
+  require(program.targets.size() == 3 && program.targets[1].law == SceneTransitionLaw::Stepped
+            && program.targets[2].law == SceneTransitionLaw::Stepped,
+          "scene frequency and Character controls are stepped");
   require(lane.applySceneTarget(program.targets[0].address, 8), "scene gain reaches processor");
   require(lane.applySceneTarget(program.targets[1].address, 5), "scene frequency reaches processor");
+  require(lane.applySceneTarget(program.targets[2].address, 0), "scene Character reaches processor");
 }
 }
 

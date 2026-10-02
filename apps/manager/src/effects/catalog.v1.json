@@ -750,6 +750,20 @@
         },
         {
           "kind": "number",
+          "key": "character",
+          "label": "Character",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 1,
+          "defaultValue": 1,
+          "unit": "plain",
+          "labels": [
+            "Clean",
+            "Console"
+          ]
+        },
+        {
+          "kind": "number",
           "key": "output_db",
           "label": "Output trim",
           "minimum": -24,

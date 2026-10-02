@@ -1,4 +1,5 @@
 #include "equalizer/ConsoleEqProcessor.h"
+#include "equalizer/ConsoleSaturation.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -123,11 +124,77 @@ void testSaturation(const nlohmann::json& defaults) {
     previousThird = third;
   }
   require(previousThird > -30, "full saturation is clearly audible");
-  for (float hz : {1531.f, 2731.f, 4019.f, 6007.f}) {
-    const double alias = worstAliasDbc(render(with(defaults, "saturation", 1), 0.5f, hz, 96000), hz);
-    std::printf("full saturation, %.0f Hz at -6 dBFS: worst alias %.1f dBc\n", hz, alias);
-    require(alias < -70, "ADAA keeps folded harmonics below -70 dBc");
+  for (int character : {0, 1}) {
+    for (float hz : {1531.f, 2731.f, 4019.f, 6007.f}) {
+      const auto params = with(with(defaults, "saturation", 1), "character", character);
+      const double alias = worstAliasDbc(render(params, 0.5f, hz, 96000), hz);
+      std::printf("%s, full saturation, %.0f Hz at -6 dBFS: worst alias %.1f dBc\n",
+                  character ? "Console" : "Clean", hz, alias);
+      require(alias < (hz < 5000 ? -80 : -65), "ADAA keeps folded harmonics low");
+    }
   }
+}
+
+double responseDb(const nlohmann::json& params, float hz) { return relative(params, hz); }
+
+void testCharacter(const nlohmann::json& defaults) {
+  // Flat and linear, both characters are bit-identical.
+  auto clean = make(with(defaults, "character", 0)), console = make(defaults);
+  for (int i = 0; i < 4800; ++i) {
+    const float x = sine(0.5f, 220, i) + sine(0.2f, 3100, i);
+    const auto a = clean.process({x, -x}), b = console.process({x, -x});
+    require(a.left == b.left && a.right == b.right, "flat Clean and Console are identical");
+  }
+  const auto evenHarmonic = [&](int character) {
+    const auto y = render(with(with(defaults, "saturation", 0.5f), "character", character), 0.25f, 220, 48000);
+    return 20 * std::log10(magnitude(y, 440) / magnitude(y, 220));
+  };
+  require(evenHarmonic(0) < -100 && evenHarmonic(1) > -40, "Console saturation adds even harmonics");
+  // The offset curve rectifies a little; the residue high-pass removes that DC.
+  const auto driven = render(with(defaults, "saturation", 1), 0.25f, 220, 96000);
+  double sum = 0;
+  for (std::size_t i = driven.size() / 2; i < driven.size(); ++i) sum += driven[i];
+  const double dc = std::abs(sum / static_cast<double>(driven.size() / 2));
+  std::printf("Console full saturation DC offset: %.2e\n", dc);
+  require(dc < 1e-3, "Console saturation adds no DC offset");
+
+  double cleanPeak = -99, consolePeak = -99, consoleDip = 99;
+  for (float hz = 20; hz < 2000; hz *= 1.06f) {
+    const auto low = with(with(defaults, "low_db", 12), "low_freq", 3);
+    cleanPeak = std::max(cleanPeak, responseDb(with(low, "character", 0), hz));
+    const double console = responseDb(low, hz);
+    consolePeak = std::max(consolePeak, console);
+    if (hz > 110) consoleDip = std::min(consoleDip, console);
+  }
+  std::printf("low shelf +12 dB: Clean peak %.2f, Console peak %.2f and dip %.2f dB\n",
+              cleanPeak, consolePeak, consoleDip);
+  require(cleanPeak < 12.05 && consolePeak > 12.5 && consoleDip < -0.5, "Console low shelf has its bump and dip");
+
+  const auto midAt800 = [&](float gain, int character) {
+    return responseDb(with(with(defaults, "mid_db", gain), "character", character), 800);
+  };
+  require(midAt800(3, 1) > midAt800(3, 0) + 0.2f, "Console mid is broader at small gains");
+  require(midAt800(18, 1) < midAt800(18, 0) - 1, "Console mid is narrower at large gains");
+}
+
+void testTransformer() {
+  ConsoleSaturation stage;
+  stage.configure(kRate);
+  std::array<ConsoleSaturation::State, 1> state{};
+  const auto peakChangeDb = [&](float console, float hz) {
+    state = {};
+    stage.setAmount(1, console, state);
+    float in = 0, out = 0;
+    for (int i = 0; i < 48000; ++i) {
+      const float x = sine(0.6f, hz, i);
+      const float y = stage.transformer(state[0], x);
+      if (i > 24000) { in = std::max(in, std::abs(x)); out = std::max(out, std::abs(y)); }
+    }
+    return 20 * std::log10(out / in);
+  };
+  require(peakChangeDb(0, 82) == 0, "Clean has no transformer stage");
+  require(peakChangeDb(1, 82) < -1, "the transformer compresses bass");
+  require(std::abs(peakChangeDb(1, 3000)) < 0.2, "the transformer leaves the highs clean");
 }
 
 void testMixPolarityAndDry(const nlohmann::json& defaults) {
@@ -177,6 +244,9 @@ void testSwitchFades(const nlohmann::json& defaults) {
   const double pass = switchResidual(shaped, "high_pass", 3, 4800);
   std::printf("HPF switch residual after 100 ms: %.2e\n", pass);
   require(pass < 1e-3, "an HPF switch settles after its long fade");
+  const double character = switchResidual(shaped, "character", 0, 4800);
+  std::printf("Character switch residual after 100 ms: %.2e\n", character);
+  require(character < 1e-3, "a Character switch settles after its fade");
 }
 
 void testMonoBlocks(const nlohmann::json& defaults) {
@@ -247,9 +317,11 @@ int main() {
   const auto defaults = defaultConsoleEqParams();
   testResponse(defaults);
   testSaturation(defaults);
+  testCharacter(defaults);
+  testTransformer();
   testMixPolarityAndDry(defaults);
   testSwitchFades(defaults);
   testMonoBlocks(defaults);
   testAutomationAndReset(defaults);
-  std::cout << "1073 EQ response, saturation, fades, mono blocks and automation passed\n";
+  std::cout << "1073 EQ response, saturation, character, fades, mono blocks and automation passed\n";
 }

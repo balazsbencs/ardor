@@ -155,6 +155,7 @@ std::optional<ParameterCapability> fixedCapability(const PresetBlock& block,
     if (key == "mid_freq") return ParameterCapability{kind, stepped, 0, 6, MidFreq};
     if (key == "high_pass") return ParameterCapability{kind, stepped, 0, 4, HighPass};
     if (key == "polarity") return ParameterCapability{kind, stepped, 0, 1, Polarity};
+    if (key == "character") return ParameterCapability{kind, stepped, 0, 1, Character};
   } else if (block.type == "distortion") {
     const auto mode = block.params.value("mode", std::string{"rat"});
     const auto kind = SceneRuntimeTargetKind::DistortionParameter;

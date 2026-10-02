@@ -80,7 +80,7 @@ enum SceneRuntimeParameter : std::uint16_t {
   HeadBump,
   Pan,
   Enabled,
-  LowDb, LowFreq, MidDb, MidFreq, HighDb, HighPass, Polarity,
+  LowDb, LowFreq, MidDb, MidFreq, HighDb, HighPass, Polarity, Character,
 };
 
 struct SceneRuntimeAddress {

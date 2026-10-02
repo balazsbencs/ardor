@@ -6,10 +6,10 @@
 namespace ardor {
 namespace {
 enum Control : std::size_t {
-  kLowDb, kLowFreq, kMidDb, kMidFreq, kHighDb, kHighPass, kSaturation, kOutputDb, kPolarity, kMix,
+  kLowDb, kLowFreq, kMidDb, kMidFreq, kHighDb, kHighPass, kSaturation, kCharacter, kOutputDb, kPolarity, kMix,
 };
 // Switch positions inside Bank::switches, and the cascade sections each owns.
-enum Switch : std::size_t { kLowSwitch, kMidSwitch, kHighPassSwitch };
+enum Switch : std::size_t { kLowSwitch, kMidSwitch, kHighPassSwitch, kCharacterSwitch };
 constexpr std::size_t kHighPassFirst = 0, kHighPassLast = 1, kLowSection = 2, kMidSection = 3;
 
 constexpr std::array<float, 5> kLowHz{0, 35, 60, 110, 220};
@@ -20,10 +20,11 @@ constexpr float kControlSmoothingHz = 10;
 constexpr float kSampleSmoothingSeconds = 0.01f;
 // A low or HPF corner settles far slower than the 10 ms used for the mid.
 constexpr float kShortFadeSeconds = 0.01f, kLongFadeSeconds = 0.04f;
-// Drive reaches 8 at full saturation. A sine peaking at kUnityLevel (-12 dBFS)
-// keeps its peak level at any drive, so saturation adds color, not a level drop.
-constexpr double kMaxDrive = 8, kUnityLevel = 0.25, kMinDrive = 1e-2;
-constexpr double kAdaaEpsilon = 1e-6;
+// Curve shapes. Console gives the low shelf a slight overshoot near its
+// corner, and a mid that is broad at small gains and narrower at large ones.
+constexpr float kCleanShelfQ = 0.70710678f, kConsoleLowShelfQ = 1.0f;
+constexpr float kCleanMidQ = 0.7f, kConsoleMidQMinimum = 0.5f, kConsoleMidQMaximum = 1.0f;
+constexpr float kMaxMidDb = 18;
 
 float safeValue(std::size_t i, float value) {
   const auto& c = kConsoleEqControls[i];
@@ -31,20 +32,11 @@ float safeValue(std::size_t i, float value) {
   return c.choices.empty() ? value : std::round(value);
 }
 float dbToGain(float db) { return std::pow(10.0f, db / 20); }
-// log(cosh(u)) without overflow, and without cancellation for small u.
-double logCosh(double u) {
-  u = std::abs(u);
-  if (u < 10) {
-    const double s = std::sinh(0.5 * u);
-    return std::log1p(2 * s * s);
-  }
-  return u - std::numbers::ln2 + std::log1p(std::exp(-2 * u));
-}
-BiquadCoefficients lowShelf(float rate, float hz, float gain) {
+BiquadCoefficients lowShelf(float rate, float hz, float gain, float q) {
   const double a = std::pow(10.0, gain / 40.0);
   const double omega = 2 * std::numbers::pi * hz / rate;
   const double cosine = std::cos(omega);
-  const double beta = std::sqrt(a) * std::sin(omega) / 0.70710678;
+  const double beta = std::sqrt(a) * std::sin(omega) / q;
   const double denominator = (a + 1) + (a - 1) * cosine + beta;
   return {
     static_cast<float>(a * ((a + 1) - (a - 1) * cosine + beta) / denominator),
@@ -101,6 +93,7 @@ bool ConsoleEqProcessor::configure(const nlohmann::json& params, float rate, std
   sampleStep_ = 1 - std::exp(-1 / (kSampleSmoothingSeconds * rate));
   shortFadeFrames_ = static_cast<std::size_t>(rate * kShortFadeSeconds);
   longFadeFrames_ = static_cast<std::size_t>(rate * kLongFadeSeconds);
+  saturation_.configure(rate);
   reset();
   return true;
 }
@@ -118,22 +111,27 @@ bool ConsoleEqProcessor::setParameterTarget(std::string_view key, float value) {
 
 void ConsoleEqProcessor::updateBank(Bank& b) {
   const auto low = b.switches[kLowSwitch], mid = b.switches[kMidSwitch], hp = b.switches[kHighPassSwitch];
+  const bool console = b.switches[kCharacterSwitch] != 0;
+  const float lowQ = console ? kConsoleLowShelfQ : kCleanShelfQ;
+  const float midQ = console ? kConsoleMidQMinimum + (kConsoleMidQMaximum - kConsoleMidQMinimum)
+    * std::abs(current_[kMidDb]) / kMaxMidDb : kCleanMidQ;
   const auto pass = hp ? makeHighPassCascade(sampleRate_, kHighPassHz[hp], 1, 18) : PassFilterCascade{};
   const std::array<BiquadCoefficients, kSections> coeffs{
     pass.sections[0], pass.sections[1],
-    low ? lowShelf(sampleRate_, kLowHz[low], current_[kLowDb]) : BiquadCoefficients{},
-    mid ? makePeakingEq(sampleRate_, kMidHz[mid], 0.7f, current_[kMidDb]) : BiquadCoefficients{},
-    makeHighShelf(sampleRate_, 12000, 0.70710678f, current_[kHighDb]),
+    low ? lowShelf(sampleRate_, kLowHz[low], current_[kLowDb], lowQ) : BiquadCoefficients{},
+    mid ? makePeakingEq(sampleRate_, kMidHz[mid], midQ, current_[kMidDb]) : BiquadCoefficients{},
+    makeHighShelf(sampleRate_, 12000, kCleanShelfQ, current_[kHighDb]),
   };
   for (auto& channel : b.filters)
     for (std::size_t i = 0; i < channel.size(); ++i) channel[i].c = coeffs[i];
 }
 
-void ConsoleEqProcessor::startFade(const std::array<int, 3>& switches) {
+void ConsoleEqProcessor::startFade(const std::array<int, 4>& switches) {
   const auto& now = banks_[active_];
   auto& next = banks_[1 - active_];
   // Sections whose switch is unchanged keep their history, so a mid change
-  // does not restart the HPF and low shelf. Changed sections start silent.
+  // does not restart the HPF and low shelf. Changed sections start silent. A
+  // Character change only reshapes the curves, so every section keeps its history.
   next = now;
   const auto restart = [&next](std::size_t first, std::size_t last) {
     for (auto& channel : next.filters)
@@ -147,38 +145,6 @@ void ConsoleEqProcessor::startFade(const std::array<int, 3>& switches) {
   next.switches = switches;
   updateBank(next);
   fadeLength_ = fadeRemaining_ = std::max<std::size_t>(1, lowCornerChanged ? longFadeFrames_ : shortFadeFrames_);
-}
-
-double ConsoleEqProcessor::residue(double x) const {
-  return makeup_ * std::tanh(drive_ * x) - x;
-}
-double ConsoleEqProcessor::residueIntegral(double x) const {
-  return makeup_ * logCosh(drive_ * x) / drive_ - 0.5 * x * x;
-}
-
-void ConsoleEqProcessor::updateDrive(float saturation) {
-  drive_ = kMaxDrive * saturation * saturation;
-  if (drive_ < kMinDrive) return;
-  makeup_ = kUnityLevel / std::tanh(drive_ * kUnityLevel);
-  // The antiderivative depends on the drive, so its history must follow it.
-  for (auto& channel : channels_) channel.previousIntegral = residueIntegral(channel.previousInput);
-}
-
-double ConsoleEqProcessor::shape(Channel& channel, double x) const {
-  if (drive_ < kMinDrive) {
-    channel.previousInput = x;
-    return x;
-  }
-  // Only the distortion residue goes through ADAA, so a light drive keeps the
-  // exact linear path and its latency.
-  const double integral = residueIntegral(x);
-  const double delta = x - channel.previousInput;
-  const double r = std::abs(delta) > kAdaaEpsilon
-    ? (integral - channel.previousIntegral) / delta
-    : residue(0.5 * (x + channel.previousInput));
-  channel.previousInput = x;
-  channel.previousIntegral = integral;
-  return x + r;
 }
 
 void ConsoleEqProcessor::updateControls() {
@@ -195,9 +161,14 @@ void ConsoleEqProcessor::updateControls() {
     if (i == kSaturation) saturationChanged = true;
   }
   outputTarget_ = dbToGain(current_[kOutputDb]);
-  if (saturationChanged) updateDrive(current_[kSaturation]);
-  const std::array<int, 3> switches{static_cast<int>(current_[kLowFreq]), static_cast<int>(current_[kMidFreq]),
-                                    static_cast<int>(current_[kHighPass])};
+  // The saturation character follows the Character switch smoothly.
+  const float console = console_;
+  console_ += controlStep_ * (current_[kCharacter] - console_);
+  if (std::abs(console_ - current_[kCharacter]) < 1e-5f) console_ = current_[kCharacter];
+  if (saturationChanged || console != console_)
+    saturation_.setAmount(current_[kSaturation], console_, saturationStates_);
+  const std::array<int, 4> switches{static_cast<int>(current_[kLowFreq]), static_cast<int>(current_[kMidFreq]),
+                                    static_cast<int>(current_[kHighPass]), static_cast<int>(current_[kCharacter])};
   // Complete the current fade before accepting another switch change. Rapid
   // automation queues the latest selection rather than repeatedly restarting.
   if (fadeRemaining_ == 0 && switches != banks_[active_].switches) startFade(switches);
@@ -224,9 +195,11 @@ float ConsoleEqProcessor::processChannel(std::size_t index, float input) {
   c.dry[c.index] = input;
   c.index = (c.index + 1) % kLatencyFrames;
   float saturated = 0;
-  for (float x : c.up.Process(input)) c.down.Push(static_cast<float>(shape(c, x)), saturated);
+  auto& state = saturationStates_[index];
+  for (float x : c.up.Process(input)) c.down.Push(static_cast<float>(saturation_.shape(state, x)), saturated);
   float wet = banks_[active_].process(index, saturated);
   if (fadeRemaining_) wet += blend_ * (banks_[1 - active_].process(index, saturated) - wet);
+  wet = saturation_.transformer(state, wet);
   // Trim and polarity act on the whole output, so Mix never cancels the dry.
   return polarity_ * output_ * ((1 - mix_) * dry + mix_ * wet);
 }
@@ -237,6 +210,7 @@ void ConsoleEqProcessor::endFrame() {
 
 void ConsoleEqProcessor::copyLeftToRight() {
   channels_[1] = channels_[0];
+  saturationStates_[1] = saturationStates_[0];
   for (auto& bank : banks_) bank.filters[1] = bank.filters[0];
   rightMirrorsLeft_ = false;
 }
@@ -276,6 +250,7 @@ void ConsoleEqProcessor::reset() {
     current_[i] = targets_->values[i].load(std::memory_order_relaxed);
   banks_ = {};
   channels_ = {};
+  saturationStates_ = {};
   // Select the even internal phase: the two FIRs then have exactly 15
   // host frames of delay, rather than a 14.5-frame fractional delay.
   for (auto& channel : channels_) {
@@ -288,10 +263,11 @@ void ConsoleEqProcessor::reset() {
   blend_ = 0;
   rightMirrorsLeft_ = false;
   banks_[0].switches = {static_cast<int>(current_[kLowFreq]), static_cast<int>(current_[kMidFreq]),
-                        static_cast<int>(current_[kHighPass])};
+                        static_cast<int>(current_[kHighPass]), static_cast<int>(current_[kCharacter])};
   updateBank(banks_[0]);
   banks_[1] = banks_[0];
-  updateDrive(current_[kSaturation]);
+  console_ = current_[kCharacter];
+  saturation_.setAmount(current_[kSaturation], console_, saturationStates_);
   output_ = outputTarget_ = dbToGain(current_[kOutputDb]);
   polarity_ = 1 - 2 * current_[kPolarity];
   mix_ = current_[kMix];

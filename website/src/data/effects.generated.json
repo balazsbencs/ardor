@@ -816,6 +816,20 @@
           "default": 0
         },
         {
+          "key": "character",
+          "label": "Character",
+          "kind": "number",
+          "unit": "plain",
+          "min": 0,
+          "max": 1,
+          "step": 1,
+          "default": "Console",
+          "choices": [
+            "Clean",
+            "Console"
+          ]
+        },
+        {
           "key": "output_db",
           "label": "Output trim",
           "kind": "number",

@@ -611,6 +611,7 @@ bool RuntimeChain::applySceneTarget(const SceneRuntimeAddress& address, float va
   case SceneRuntimeParameter::HighDb: key = "high_db"; break;
   case SceneRuntimeParameter::HighPass: key = "high_pass"; break;
   case SceneRuntimeParameter::Polarity: key = "polarity"; break;
+  case SceneRuntimeParameter::Character: key = "character"; break;
   default: return false;
   }
   if (address.kind == SceneRuntimeTargetKind::IrReverbParameter) {

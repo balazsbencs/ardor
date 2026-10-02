@@ -77,7 +77,7 @@ describe("BlockInspector", () => {
     const onParam = vi.fn();
     renderWithProviders(<BlockInspector block={block} issues={[]} models={[]} irs={[]} onToggle={() => undefined} onParam={onParam} onAsset={() => undefined} onMode={() => undefined} onEqBand={() => undefined} onReset={() => undefined} onDuplicate={() => undefined} onDelete={() => undefined} onAssets={() => undefined} />);
     expect(screen.getByRole("heading", { name: "1073 EQ" })).toBeInTheDocument();
-    expect(screen.getAllByRole("slider")).toHaveLength(10);
+    expect(screen.getAllByRole("slider")).toHaveLength(11);
     const low = screen.getByRole("combobox", { name: "Low frequency precise value" });
     expect(low).toHaveValue("2");
     await user.selectOptions(low, "4");
@@ -86,6 +86,10 @@ describe("BlockInspector", () => {
     expect(onParam).toHaveBeenCalledWith(block.id, "high_pass", 3);
     await user.selectOptions(screen.getByRole("combobox", { name: "Polarity precise value" }), "1");
     expect(onParam).toHaveBeenCalledWith(block.id, "polarity", 1);
+    const character = screen.getByRole("combobox", { name: "Character precise value" });
+    expect(character).toHaveValue("1");
+    await user.selectOptions(character, "0");
+    expect(onParam).toHaveBeenCalledWith(block.id, "character", 0);
   });
 
   it("renders the complete compressor control surface", async () => {

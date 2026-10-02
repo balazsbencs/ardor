@@ -28,13 +28,14 @@ describe("effect catalog", () => {
     expect(definition.category).toBe("utility");
     expect(defaultsForDefinition(definition.id)).toEqual({
       mode: "console_1073", low_db: 0, low_freq: 2, mid_db: 0, mid_freq: 3,
-      high_db: 0, high_pass: 0, saturation: 0, output_db: 0, polarity: 0, mix: 1,
+      high_db: 0, high_pass: 0, saturation: 0, character: 1, output_db: 0, polarity: 0, mix: 1,
     });
     for (const [key, labels] of Object.entries({
       low_freq: ["Off", "35 Hz", "60 Hz", "110 Hz", "220 Hz"],
       mid_freq: ["Off", "360 Hz", "700 Hz", "1.6 kHz", "3.2 kHz", "4.8 kHz", "7.2 kHz"],
       high_pass: ["Off", "50 Hz", "80 Hz", "160 Hz", "300 Hz"],
       polarity: ["Normal", "Inverted"],
+      character: ["Clean", "Console"],
     })) {
       const control = definition.controls.find((c) => c.kind === "number" && c.key === key);
       if (control?.kind !== "number") throw new Error(`Missing ${key}`);
