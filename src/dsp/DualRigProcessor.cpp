@@ -265,6 +265,13 @@ bool DualRigProcessor::setTransientShaperParameter(
     || (right_.chain && right_.chain->setTransientShaperParameter(id, key, value));
 }
 
+bool DualRigProcessor::setConsoleEqParameter(
+  const std::string& id, const std::string& key, float value)
+{
+  return (left_.chain && left_.chain->setConsoleEqParameter(id, key, value))
+    || (right_.chain && right_.chain->setConsoleEqParameter(id, key, value));
+}
+
 bool DualRigProcessor::setNoiseGateParameter(
   const std::string& id, const std::string& key, float value)
 {

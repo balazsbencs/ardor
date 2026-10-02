@@ -169,6 +169,7 @@ target_include_directories(ardor_equalizer PUBLIC
 target_compile_features(ardor_equalizer PUBLIC cxx_std_20)
 target_sources(ardor_equalizer PRIVATE
   src/equalizer/ParametricEqProcessor.cpp
+  src/equalizer/ConsoleEqProcessor.cpp
 )
 
 add_library(ardor_circuit
@@ -533,6 +534,9 @@ target_link_libraries(pedal-compressor-smoke PRIVATE ardor_dynamics)
 add_executable(pedal-noise-gate-smoke tests/noise_gate_smoke.cpp)
 target_link_libraries(pedal-noise-gate-smoke PRIVATE ardor_dynamics)
 
+add_executable(pedal-console-eq-smoke tests/console_eq_smoke.cpp)
+target_link_libraries(pedal-console-eq-smoke PRIVATE ardor_audio ardor_ui)
+
 add_executable(pedal-parametric-eq-smoke tests/parametric_eq_smoke.cpp)
 target_link_libraries(pedal-parametric-eq-smoke PRIVATE ardor_equalizer)
 
@@ -750,6 +754,7 @@ set_tests_properties(pedal-wah-circuit-smoke PROPERTIES WORKING_DIRECTORY ${CMAK
 add_test(NAME pedal-wah-processor-smoke COMMAND pedal-wah-processor-smoke)
 add_test(NAME pedal-compressor-smoke COMMAND pedal-compressor-smoke)
 add_test(NAME pedal-noise-gate-smoke COMMAND pedal-noise-gate-smoke)
+add_test(NAME pedal-console-eq-smoke COMMAND pedal-console-eq-smoke)
 add_test(NAME pedal-parametric-eq-smoke COMMAND pedal-parametric-eq-smoke)
 add_test(NAME pedal-runtime-chain-smoke COMMAND pedal-runtime-chain-smoke)
 add_test(NAME pedal-looper-smoke COMMAND pedal-looper-smoke)

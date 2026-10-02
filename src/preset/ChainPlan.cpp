@@ -36,7 +36,7 @@ bool isSupportedDynamicsBlock(const std::string& type, const nlohmann::json& par
 
 bool isSupportedEqBlock(const std::string& type, const nlohmann::json& params)
 {
-  return type == "eq" && isParametricEqMode(params);
+  return type == "eq" && (isParametricEqMode(params) || params.value("mode", "") == "console_1073");
 }
 
 bool isSupportedDistortionBlock(const std::string& type, const nlohmann::json& params)
@@ -151,7 +151,8 @@ ChainBlockPlan buildBlockPlan(const PresetBlock& block, const std::filesystem::p
     }
   } else if (block.type == "eq") {
     if (isSupportedEqBlock(block.type, blockPlan.params)) {
-      blockPlan.params = parametricEqParamsToJson(parametricEqParamsFromJson(blockPlan.params));
+      if (isParametricEqMode(blockPlan.params))
+        blockPlan.params = parametricEqParamsToJson(parametricEqParamsFromJson(blockPlan.params));
       blockPlan.status = ChainBlockStatus::Ready;
       ++runnableBlockCount;
     } else {

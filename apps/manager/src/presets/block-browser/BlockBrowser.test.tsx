@@ -42,7 +42,8 @@ describe("BlockBrowser", () => {
     expect(screen.getByText("GCB-95 Wah")).toBeInTheDocument();
     expect(screen.getByText("Stereo Widener")).toBeInTheDocument();
     expect(screen.getByText("Transient Shaper")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Add" })).toHaveLength(6);
+    expect(screen.getByText("1073 EQ")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Add" })).toHaveLength(7);
     expect(screen.queryByRole("button", { name: "Dynamics" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "EQ" })).not.toBeInTheDocument();
   });

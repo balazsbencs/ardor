@@ -71,6 +71,23 @@ describe("BlockInspector", () => {
     expect(onParam).toHaveBeenCalledWith(block.id, "inputMode", "left");
   });
 
+  it("edits 1073 frequencies as numeric switches with Hz labels", async () => {
+    const user = userEvent.setup();
+    const block = createBlockFromDefinition("eq:console_1073", []);
+    const onParam = vi.fn();
+    renderWithProviders(<BlockInspector block={block} issues={[]} models={[]} irs={[]} onToggle={() => undefined} onParam={onParam} onAsset={() => undefined} onMode={() => undefined} onEqBand={() => undefined} onReset={() => undefined} onDuplicate={() => undefined} onDelete={() => undefined} onAssets={() => undefined} />);
+    expect(screen.getByRole("heading", { name: "1073 EQ" })).toBeInTheDocument();
+    expect(screen.getAllByRole("slider")).toHaveLength(10);
+    const low = screen.getByRole("combobox", { name: "Low frequency precise value" });
+    expect(low).toHaveValue("2");
+    await user.selectOptions(low, "4");
+    expect(onParam).toHaveBeenCalledWith(block.id, "low_freq", 4);
+    await user.selectOptions(screen.getByRole("combobox", { name: "High-pass · 18 dB/oct precise value" }), "3");
+    expect(onParam).toHaveBeenCalledWith(block.id, "high_pass", 3);
+    await user.selectOptions(screen.getByRole("combobox", { name: "Polarity precise value" }), "1");
+    expect(onParam).toHaveBeenCalledWith(block.id, "polarity", 1);
+  });
+
   it("renders the complete compressor control surface", async () => {
     const user = userEvent.setup();
     const block = createBlockFromDefinition("dynamics:compressor", []);

@@ -580,7 +580,7 @@ func wdwBlockModeSupported(typeName string, block map[string]any) bool {
 	case "dynamics":
 		return mode == "compressor" || mode == "noise_gate" || mode == "transient_shaper"
 	case "eq":
-		return mode == "parametric_eq_5"
+		return mode == "parametric_eq_5" || mode == "console_1073"
 	case "distortion":
 		return mode == "" || mode == "rat" || mode == "big_cheese" || mode == "tape"
 	case "wah":

@@ -62,7 +62,7 @@ std::string laneToken(const UiBlock& block)
   }
   if (block.type == "irreverb") return "CONV";
   if (block.type == "stereo") return "WIDE";
-  if (block.type == "eq") return "EQ";
+  if (block.type == "eq") return block.params.value("mode", "") == "console_1073" ? "1073" : "EQ";
   if (block.type == "wah") return "WAH";
   if (block.type == "delay") return "DLY";
   if (block.type == "reverb") return "REV";

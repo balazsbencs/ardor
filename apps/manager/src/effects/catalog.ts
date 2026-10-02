@@ -1,5 +1,6 @@
 import type { PresetBlock } from "../api/types";
 import rawCatalog from "./catalog.v1.json";
+import { consoleEqDisplay } from "./consoleEqValues";
 import { daisyNormalizedStep, daisyNumberDisplay, daisyParameterLabel } from "./daisyValues";
 import type {
   AssetControl,
@@ -138,6 +139,11 @@ function definitionAt(value: unknown, path: string): EffectDefinition {
       control.display = daisyNumberDisplay(blockType, source.mode, control.key);
       control.step = daisyNormalizedStep(blockType, source.mode, control.key, control.display);
       control.label = daisyParameterLabel(blockType, source.mode, control.key, control.label);
+    }
+  }
+  if (id === "eq:console_1073") {
+    for (const control of controls) {
+      if (control.kind === "number") control.display = consoleEqDisplay(control.key);
     }
   }
   const definition: EffectDefinition = {
