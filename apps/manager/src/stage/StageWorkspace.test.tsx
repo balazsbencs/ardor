@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Preset } from "../api/types";
 import { createBlockFromDefinition } from "../effects/catalog";
@@ -40,7 +40,7 @@ const session = {
   saveCurrent: vi.fn(async (_saved: Preset) => ({ bank: 0, slot: 0, preset: scenePreset })),
   applyCurrent: vi.fn(async () => { throw new Error("DSP preparation failed"); }),
   refreshPresets: vi.fn(async () => undefined),
-  selectLocation: vi.fn(async () => undefined),
+  selectLocation: vi.fn(async (_location: { bank: number; slot: number }): Promise<void> => undefined),
   recallScene: vi.fn(async () => true),
 };
 
@@ -269,6 +269,44 @@ describe("StageWorkspace stage and drawer", () => {
     expect(screen.getByText("Preset version 4 requires a scene set.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Create four scenes" }));
     expect(editor().present.sceneSet?.scenes).toHaveLength(4);
+  });
+});
+
+describe("StageWorkspace unsaved-changes guard", () => {
+  beforeEach(() => {
+    session.current.preset = structuredClone(delayPreset);
+    session.selectLocation.mockImplementation(async (location: { bank: number; slot: number }) => {
+      session.current = { location, preset: { ...structuredClone(delayPreset), name: "Other" }, exists: true, loadId: Math.random() } as typeof session.current;
+    });
+  });
+  afterEach(() => { session.selectLocation.mockImplementation(async () => undefined); });
+
+  const editName = async () => {
+    await userEvent.type(screen.getByRole("textbox", { name: "Preset name" }), " II");
+    await userEvent.click(screen.getByRole("button", { name: "FS 2, empty slot" }));
+    return screen.getByRole("dialog", { name: "Unsaved changes" });
+  };
+
+  it("asks before it leaves a changed draft, and Cancel keeps the draft", async () => {
+    const { editor } = renderWithEditor(stage());
+    const dialog = await editName();
+    expect(session.selectLocation).not.toHaveBeenCalled();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog", { name: "Unsaved changes" })).not.toBeInTheDocument();
+    expect(editor().present.name).toBe("Glass II");
+    expect(editor().dirty).toBe(true);
+    expect(editor().editor.location).toEqual({ bank: 0, slot: 0 });
+  });
+
+  it("loads the other slot after Discard", async () => {
+    const { editor } = renderWithEditor(stage());
+    const dialog = await editName();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Discard" }));
+    expect(session.selectLocation).toHaveBeenCalledWith({ bank: 0, slot: 1 });
+    expect(session.saveCurrent).not.toHaveBeenCalled();
+    expect(editor().editor.location).toEqual({ bank: 0, slot: 1 });
+    expect(editor().present.name).toBe("Other");
+    expect(editor().dirty).toBe(false);
   });
 });
 
