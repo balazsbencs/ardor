@@ -14,12 +14,12 @@ constexpr std::size_t kMaxCodeLength = 8;
 
 // Built-in modules carry fixed codes of at most five characters, so they fit
 // the 52 px code square in the module drawer as well as the chain strip.
-constexpr std::array<std::pair<std::string_view, std::string_view>, 37> kAssetCodes = {{
+constexpr std::array<std::pair<std::string_view, std::string_view>, 38> kAssetCodes = {{
   {"RAT Distortion", "RAT"}, {"Big Cheese Fuzz", "FUZZ"}, {"Tape Machine", "TAPE"},
   {"Compressor", "CMP"}, {"Noise Gate", "GATE"}, {"Transient Shaper", "TRANS"},
   {"Five Band EQ", "EQ"}, {"GCB-95 Wah", "WAH"}, {"Stereo Widener", "WIDE"},
   {"Chorus", "CHO"}, {"Flanger", "FLNG"}, {"Rotary", "ROTRY"}, {"Vibe", "VIBE"},
-  {"Phaser", "PHASE"}, {"Vintage Trem", "TREM"}, {"Poly Octave", "OCT"},
+  {"Phaser", "PHASE"}, {"PH-2 Phaser", "PH2"}, {"Vintage Trem", "TREM"}, {"Poly Octave", "OCT"},
   {"Pattern Trem", "PTRN"}, {"Auto Swell", "SWELL"}, {"Filter", "FLTR"},
   {"Ladder Sweep", "LADDR"}, {"Formant", "FRMNT"}, {"Quadrature", "QUAD"},
   {"Destroyer", "DSTRY"}, {"Whammy", "WHAMY"}, {"Harmonizer", "HARM"},

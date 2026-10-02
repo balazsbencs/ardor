@@ -71,6 +71,7 @@ std::string laneToken(const UiBlock& block)
     if (mode == "chorus") return "CHO";
     if (mode == "vintage_trem") return "TREM";
     if (mode == "phaser") return "PHA";
+    if (mode == "phaser_ph2") return "PH2";
     if (mode == "flanger") return "FLG";
     return "MOD";
   }

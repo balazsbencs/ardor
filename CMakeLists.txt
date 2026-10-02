@@ -70,6 +70,11 @@ file(GLOB NAM_SOURCES
 # Ardor-maintained hosted Daisy FX sources. This is a source-only copy; no
 # upstream CMake module is included or linked.
 set(ARDOR_DAISYFX_HOSTED_DIR src/daisyfx/hosted)
+# Buildroot supplies -O2 even for Release. PH-2's nested nonlinear solvers need
+# the additional inlining from -O3 to retain Pi audio deadline headroom. Keep
+# ordinary IEEE floating-point rules: this does not enable fast-math.
+set_property(SOURCE ${ARDOR_DAISYFX_HOSTED_DIR}/modes/ph2_mode.cpp APPEND PROPERTY
+  COMPILE_OPTIONS "$<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:GNU,Clang>>:-O3>")
 add_library(ardor_daisyfx_runtime
   ${ARDOR_DAISYFX_HOSTED_DIR}/params/mod_param_set.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/params/mod_param_map.cpp
@@ -95,6 +100,7 @@ add_library(ardor_daisyfx_runtime
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/formant_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/pattern_trem_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/phaser_mode.cpp
+  ${ARDOR_DAISYFX_HOSTED_DIR}/modes/ph2_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/poly_octave_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/quadrature_mode.cpp
   ${ARDOR_DAISYFX_HOSTED_DIR}/modes/rotary_mode.cpp
@@ -462,6 +468,8 @@ target_link_libraries(pedal-mod-effect-quality PRIVATE ardor_daisyfx)
 
 add_executable(pedal-mod-effect-controls tests/mod_effect_controls.cpp)
 target_link_libraries(pedal-mod-effect-controls PRIVATE ardor_daisyfx)
+add_executable(pedal-ph2-quality tests/ph2_quality.cpp)
+target_link_libraries(pedal-ph2-quality PRIVATE ardor_daisyfx)
 
 add_executable(pedal-mod-effect-models tests/mod_effect_models.cpp)
 target_link_libraries(pedal-mod-effect-models PRIVATE ardor_daisyfx)
@@ -728,6 +736,7 @@ add_test(NAME pedal-daisy-fx-automation COMMAND pedal-daisy-fx-automation)
 add_test(NAME pedal-delay-regression COMMAND pedal-delay-regression)
 add_test(NAME pedal-mod-effect-quality COMMAND pedal-mod-effect-quality)
 add_test(NAME pedal-mod-effect-controls COMMAND pedal-mod-effect-controls)
+add_test(NAME pedal-ph2-quality COMMAND pedal-ph2-quality)
 add_test(NAME pedal-mod-effect-models COMMAND pedal-mod-effect-models)
 add_test(NAME pedal-pitch-effect-quality COMMAND pedal-pitch-effect-quality)
 add_test(NAME pedal-harmonizer-quality COMMAND pedal-harmonizer-quality)
