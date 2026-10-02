@@ -2,6 +2,18 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.84](https://github.com/balazsbencs/ardor/compare/v0.1.83...v0.1.84) (2026-10-02)
+
+### Features
+
+* **reverb:** add IR reverb time control with live decay crossfade ([30cf974](https://github.com/balazsbencs/ardor/commit/30cf9742395901e483831f8ce1e9728bc9f34764))
+
+## [0.1.83](https://github.com/balazsbencs/ardor/compare/v0.1.82...v0.1.83) (2026-10-02)
+
+### Features
+
+* **phaser:** add circuit-informed PH-2 Mode 1 and Mode 2 ([ccc0f86](https://github.com/balazsbencs/ardor/commit/ccc0f869ef85f9ac254e4b524d8762e8d80882e6))
+
 ## [0.1.82](https://github.com/balazsbencs/ardor/compare/v0.1.79...v0.1.82) (2026-09-28)
 
 ### Bug Fixes
