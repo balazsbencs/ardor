@@ -586,7 +586,7 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       continue;
     }
     if (block.type == "eq") {
-      if (block.params.value("mode", "") == "console_1073") {
+      if (isConsoleEqMode(block.params)) {
         ConsoleEqProcessor processor;
         if (!processor.configure(block.params, static_cast<float>(options.sampleRate), error)) return false;
         chain.addConsoleEq(block.id, std::move(processor));
@@ -991,7 +991,7 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       continue;
     }
     if (block.type == "eq") {
-      if (block.params.value("mode", "") == "console_1073") {
+      if (isConsoleEqMode(block.params)) {
         if (!engine.addConsoleEq(block.id, block.params, static_cast<float>(options.sampleRate), error)) return false;
         engine.setBlockEnabled(block.id, block.enabled);
         continue;

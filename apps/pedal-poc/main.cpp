@@ -5,6 +5,7 @@
 #include "miniaudio.h"
 
 #include "audio/EngineLoader.h"
+#include "equalizer/EqParameters.h"
 #include "audio/MiniaudioBackend.h"
 #include "audio/PresetActivation.h"
 #include "control/ControlEvents.h"
@@ -701,7 +702,7 @@ bool applyPresetParameterValue(
   if (block->type == "mod" || block->type == "delay" || block->type == "reverb") {
     return engine.setDaisyParameter(block->id, parameter, value);
   }
-  if (block->type == "eq" && block->params.value("mode", "") == "console_1073") {
+  if (block->type == "eq" && ardor::isConsoleEqMode(block->params)) {
     return engine.setConsoleEqParameter(block->id, parameter, value);
   }
   if (block->type == "dynamics") {

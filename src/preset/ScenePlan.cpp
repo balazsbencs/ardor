@@ -1,6 +1,7 @@
 #include "preset/ScenePlan.h"
 
 #include "daisyfx/DaisyFxCatalog.h"
+#include "equalizer/EqParameters.h"
 
 #include <algorithm>
 #include <cmath>
@@ -141,7 +142,7 @@ std::optional<ParameterCapability> fixedCapability(const PresetBlock& block,
       if (key == "mix") return ParameterCapability{kind, linear, 0, 1, Mix};
       if (key == "output_db") return ParameterCapability{kind, db, -24, 24, OutputDb};
     }
-  } else if (block.type == "eq" && block.params.value("mode", "") == "console_1073") {
+  } else if (block.type == "eq" && isConsoleEqMode(block.params)) {
     const auto kind = SceneRuntimeTargetKind::ConsoleEqParameter;
     const auto stepped = SceneTransitionLaw::Stepped;
     if (key == "low_db") return ParameterCapability{kind, db, -16, 16, LowDb};

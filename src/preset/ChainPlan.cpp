@@ -36,7 +36,7 @@ bool isSupportedDynamicsBlock(const std::string& type, const nlohmann::json& par
 
 bool isSupportedEqBlock(const std::string& type, const nlohmann::json& params)
 {
-  return type == "eq" && (isParametricEqMode(params) || params.value("mode", "") == "console_1073");
+  return type == "eq" && (isParametricEqMode(params) || isConsoleEqMode(params));
 }
 
 bool isSupportedDistortionBlock(const std::string& type, const nlohmann::json& params)

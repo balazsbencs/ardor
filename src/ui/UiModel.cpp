@@ -137,7 +137,7 @@ std::string assetNameForBlock(const UiState& state, const PresetBlock& block)
   if (block.type == "dynamics" && block.params.value("mode", "") == "noise_gate") {
     return "Noise Gate";
   }
-  if (block.type == "eq" && block.params.value("mode", "") == "console_1073") return "1073 EQ";
+  if (block.type == "eq" && isConsoleEqMode(block.params)) return "1073 EQ";
   if (block.type == "eq" && isParametricEqMode(block.params)) {
     return "Five Band EQ";
   }
@@ -311,7 +311,7 @@ nlohmann::json paramsWithKnownDefaults(const std::string& type, const nlohmann::
     defaults = defaultStereoWidenerParams();
   } else if (type == "irreverb") {
     defaults = defaultIrReverbParams();
-  } else if (type == "eq" && params.value("mode", "") == "console_1073") {
+  } else if (type == "eq" && isConsoleEqMode(params)) {
     defaults = defaultConsoleEqParams();
   } else if (type == "eq" && isParametricEqMode(params)) {
     return parametricEqParamsToJson(parametricEqParamsFromJson(params));
@@ -383,7 +383,7 @@ UiBlock blockFromAsset(const UiState& state, const UiAsset& asset,
       params = defaultStereoWidenerParams();
     } else if (asset.blockType == "irreverb") {
       params = defaultIrReverbParams();
-    } else if (asset.blockType == "eq" && asset.mode == "console_1073") {
+    } else if (asset.blockType == "eq" && asset.mode == kConsoleEqMode) {
       params = defaultConsoleEqParams();
     } else if (asset.blockType == "eq" && asset.mode == "parametric_eq_5") {
       params = parametricEqParamsToJson(defaultParametricEqParams());
@@ -609,7 +609,7 @@ void appendUtilityAssets(UiState& state)
   state.assets.push_back({"Noise Gate", "", "utility", "dynamics", "noise_gate", "Utility · dynamics"});
   state.assets.push_back({"Transient Shaper", "", "utility", "dynamics", "transient_shaper",
                           "Utility · attack and sustain shaping"});
-  state.assets.push_back({"1073 EQ", "", "utility", "eq", "console_1073", "Utility · three-band console EQ"});
+  state.assets.push_back({"1073 EQ", "", "utility", "eq", std::string(kConsoleEqMode), "Utility · three-band console EQ"});
   state.assets.push_back({"Five Band EQ", "", "utility", "eq", "parametric_eq_5", "Utility · HPF + 5 bands + LPF"});
   state.assets.push_back({"GCB-95 Wah", "", "utility", "wah", "gcb95", "Utility · expression-controlled wah"});
   state.assets.push_back({"Stereo Widener", "", "utility", "stereo", "", "Utility · mid/side width"});
@@ -2043,7 +2043,7 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
     else if (key == "release_ms") value = clampFloat(value, 10.0f, 2000.0f);
     else if (key == "hysteresis_db") value = clampFloat(value, 0.0f, 18.0f);
     else if (key == "sidechain_hpf_hz") value = clampFloat(value, 20.0f, 500.0f);
-  } else if (block.type == "eq" && block.params.value("mode", "") == "console_1073") {
+  } else if (block.type == "eq" && isConsoleEqMode(block.params)) {
     const auto found = std::find_if(kConsoleEqControls.begin(), kConsoleEqControls.end(),
       [&](const auto& control) { return control.key == key; });
     if (found == kConsoleEqControls.end() || !std::isfinite(value)) return;

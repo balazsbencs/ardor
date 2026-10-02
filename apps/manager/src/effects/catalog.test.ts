@@ -336,4 +336,16 @@ describe("effect catalog", () => {
     expect(() => validateEffectCatalog({ version: 1, definitions: [{ id: "broken" }] }))
       .toThrow(/definitions\[0\]\.blockType/);
   });
+
+  it("rejects switch labels that do not name every position", () => {
+    const control = {
+      kind: "number", key: "low_freq", label: "Low frequency", minimum: 0, maximum: 4,
+      step: 1, defaultValue: 2, unit: "plain", labels: ["Off", "35 Hz"],
+    };
+    const definition = {
+      id: "eq:x", blockType: "eq", name: "X", description: "X", category: "utility", controls: [control],
+    };
+    expect(() => validateEffectCatalog({ version: 1, definitions: [definition] }))
+      .toThrow(/controls\[0\]\.labels/);
+  });
 });

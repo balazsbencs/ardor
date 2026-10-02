@@ -1013,11 +1013,8 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       }
       break;
     case Block::Kind::ConsoleEq:
-      for (size_t i = 0; i < frames; ++i) {
-        const auto processed = block.consoleEq->process({currentLeft[i], currentRight[i]});
-        nextLeft[i] = processed.left;
-        nextRight[i] = processed.right;
-      }
+      block.consoleEq->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames,
+                                    currentIsStereo);
       break;
     case Block::Kind::Equalizer:
       block.equalizer->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);

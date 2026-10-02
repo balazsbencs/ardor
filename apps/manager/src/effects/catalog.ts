@@ -1,7 +1,7 @@
 import type { PresetBlock } from "../api/types";
 import rawCatalog from "./catalog.v1.json";
-import { consoleEqDisplay } from "./consoleEqValues";
 import { daisyNormalizedStep, daisyNumberDisplay, daisyParameterLabel } from "./daisyValues";
+import { labelledNumberDisplay } from "./labelledValues";
 import type {
   AssetControl,
   ChoiceControl,
@@ -74,6 +74,13 @@ function controlAt(value: unknown, path: string): EffectControl {
     if (control.defaultValue < control.minimum || control.defaultValue > control.maximum) {
       fail(`${path}.defaultValue`, "must be within the control range");
     }
+    if (source.labels !== undefined) {
+      const labels = stringArrayAt(source.labels, `${path}.labels`);
+      if (control.minimum !== 0 || control.step !== 1 || control.maximum !== labels.length - 1) {
+        fail(`${path}.labels`, "must name every integer position from zero to the maximum");
+      }
+      control.display = labelledNumberDisplay(labels);
+    }
     return control;
   }
   if (kind === "choice") {
@@ -139,11 +146,6 @@ function definitionAt(value: unknown, path: string): EffectDefinition {
       control.display = daisyNumberDisplay(blockType, source.mode, control.key);
       control.step = daisyNormalizedStep(blockType, source.mode, control.key, control.display);
       control.label = daisyParameterLabel(blockType, source.mode, control.key, control.label);
-    }
-  }
-  if (id === "eq:console_1073") {
-    for (const control of controls) {
-      if (control.kind === "number") control.display = consoleEqDisplay(control.key);
     }
   }
   const definition: EffectDefinition = {

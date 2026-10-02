@@ -327,24 +327,22 @@ std::vector<ParameterControl> controlsForBlock(const UiBlock& block)
     };
   }
 
-  if (block.type == "eq" && block.params.value("mode", "") == "console_1073") {
+  if (block.type == "eq" && isConsoleEqMode(block.params)) {
     std::vector<ParameterControl> result;
     for (const auto& c : kConsoleEqControls) {
-      const float value = std::clamp(block.params.value(c.key, c.defaultValue), c.minimum, c.maximum);
+      const auto stored = block.params.find(c.key);
+      const float value = std::clamp(stored != block.params.end() && stored->is_number()
+        ? stored->get<float>() : c.defaultValue, c.minimum, c.maximum);
       if (c.choices.empty()) {
         result.push_back(control(std::string(c.key), std::string(c.label), c.minimum, c.maximum,
           c.step, value, c.key == "mix" || c.key == "saturation" ? formatPercent : formatConsoleDb));
       } else {
         std::vector<std::string> labels;
         std::vector<float> values;
-        std::size_t begin = 0;
-        do {
-          const auto end = c.choices.find('|', begin);
-          labels.emplace_back(c.choices.substr(begin, end == std::string_view::npos ? end : end - begin));
+        for (const auto label : c.choices) {
+          labels.emplace_back(label);
           values.push_back(static_cast<float>(values.size()));
-          if (end == std::string_view::npos) break;
-          begin = end + 1;
-        } while (true);
+        }
         auto choice = choiceControl(std::string(c.key), std::string(c.label), std::move(labels),
           static_cast<std::size_t>(std::lround(value)), ParameterControlKind::NormalizedChoice);
         choice.choiceValues = std::move(values);

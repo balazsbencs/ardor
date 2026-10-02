@@ -673,7 +673,14 @@
           "maximum": 4,
           "step": 1,
           "defaultValue": 2,
-          "unit": "plain"
+          "unit": "plain",
+          "labels": [
+            "Off",
+            "35 Hz",
+            "60 Hz",
+            "110 Hz",
+            "220 Hz"
+          ]
         },
         {
           "kind": "number",
@@ -693,7 +700,16 @@
           "maximum": 6,
           "step": 1,
           "defaultValue": 3,
-          "unit": "plain"
+          "unit": "plain",
+          "labels": [
+            "Off",
+            "360 Hz",
+            "700 Hz",
+            "1.6 kHz",
+            "3.2 kHz",
+            "4.8 kHz",
+            "7.2 kHz"
+          ]
         },
         {
           "kind": "number",
@@ -713,7 +729,14 @@
           "maximum": 4,
           "step": 1,
           "defaultValue": 0,
-          "unit": "plain"
+          "unit": "plain",
+          "labels": [
+            "Off",
+            "50 Hz",
+            "80 Hz",
+            "160 Hz",
+            "300 Hz"
+          ]
         },
         {
           "kind": "number",
@@ -743,7 +766,11 @@
           "maximum": 1,
           "step": 1,
           "defaultValue": 0,
-          "unit": "plain"
+          "unit": "plain",
+          "labels": [
+            "Normal",
+            "Inverted"
+          ]
         },
         {
           "kind": "number",

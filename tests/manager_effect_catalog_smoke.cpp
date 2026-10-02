@@ -1,4 +1,5 @@
 #include "daisyfx/DaisyFxCatalog.h"
+#include "equalizer/ConsoleEqProcessor.h"
 
 #include <nlohmann/json.hpp>
 
@@ -26,6 +27,32 @@ std::string pairKey(const std::string& blockType, const std::string& mode)
   return blockType + "\n" + mode;
 }
 
+// Manager and pedal each carry the 1073 control table; they must agree on every
+// key, range, step, default and switch label.
+void requireConsoleEqMatches(const nlohmann::json& definition)
+{
+  const auto& controls = definition.at("controls");
+  require(controls.size() == ardor::kConsoleEqControls.size(), "1073 EQ control count matches");
+  for (std::size_t index = 0; index < controls.size(); ++index) {
+    const auto& manager = controls.at(index);
+    const auto& pedal = ardor::kConsoleEqControls[index];
+    const std::string key(pedal.key);
+    require(manager.value("key", std::string{}) == key, "1073 EQ key order matches: " + key);
+    require(manager.value("label", std::string{}) == pedal.label, "1073 EQ label matches: " + key);
+    require(manager.value("minimum", -1000.0f) == pedal.minimum
+              && manager.value("maximum", -1000.0f) == pedal.maximum
+              && manager.value("step", -1000.0f) == pedal.step
+              && manager.value("defaultValue", -1000.0f) == pedal.defaultValue,
+            "1073 EQ range, step and default match: " + key);
+    const auto labels = manager.value("labels", nlohmann::json::array());
+    require(labels.size() == pedal.choices.size(), "1073 EQ label count matches: " + key);
+    for (std::size_t choice = 0; choice < labels.size(); ++choice) {
+      require(labels.at(choice).get<std::string>() == pedal.choices[choice],
+              "1073 EQ switch label matches: " + key);
+    }
+  }
+}
+
 } // namespace
 
 int main()
@@ -46,6 +73,7 @@ int main()
   bool foundCompressor = false;
   bool foundNoiseGate = false;
   bool foundEq = false;
+  bool foundConsoleEq = false;
   bool foundTransientShaper = false;
   bool foundWah = false;
   bool foundDistortion = false;
@@ -57,6 +85,11 @@ int main()
     if (blockType == "dynamics" && mode == "compressor") {
       foundCompressor = definition.value("id", std::string{}) == "dynamics:compressor"
         && definition.value("category", std::string{}) == "utility";
+    }
+    if (blockType == "eq" && mode == ardor::kConsoleEqMode) {
+      foundConsoleEq = definition.value("id", std::string{}) == "eq:console_1073"
+        && definition.value("category", std::string{}) == "utility";
+      requireConsoleEqMatches(definition);
     }
     if (blockType == "eq" && mode == "parametric_eq_5") {
       foundEq = definition.value("id", std::string{}) == "eq:parametric_eq_5"
@@ -115,6 +148,7 @@ int main()
   require(foundCompressor, "manager compressor identifier matches runtime");
   require(foundNoiseGate, "manager noise gate identifier matches runtime");
   require(foundEq, "manager EQ identifier matches runtime");
+  require(foundConsoleEq, "manager 1073 EQ identifier matches runtime");
   require(foundTransientShaper, "manager transient shaper identifier matches runtime");
   require(foundWah, "manager wah identifier matches runtime");
   require(foundDistortion, "manager RAT identifier matches runtime");
