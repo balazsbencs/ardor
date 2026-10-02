@@ -97,6 +97,11 @@ public:
     processBlock(input, left, right, frames, nullptr, nullptr);
   }
   void reset();
+  // Sum of declared fixed latencies for the serial processors admitted in a
+  // WDW lane, in host frames. Bypass and mix changes preserve these delays.
+  // NAM/cab response timing and intentional effect delay/pre-delay are excluded.
+  // WDW rejects nested Dual Amp/Rig splits; this is not a split alignment policy.
+  size_t latencyFrames() const noexcept;
   size_t tailFrames() const noexcept;
   uint64_t nonFiniteBlockCount() const noexcept;
   uint64_t parallelWaitOverBudgetCount() const noexcept;

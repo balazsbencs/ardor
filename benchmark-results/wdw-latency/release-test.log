@@ -1,0 +1,29 @@
+Test project /home/bbalazs/projects/ardor/build-ci
+      Start 53: pedal-wdw-latency-regression
+      Start 25: pedal-ph2-quality
+      Start 18: pedal-hosted-dsp-unit
+      Start 38: pedal-console-eq-smoke
+ 1/12 Test #38: pedal-console-eq-smoke ............   Passed    0.66 sec
+      Start 50: pedal-wdw-pair-executor-smoke
+ 2/12 Test #50: pedal-wdw-pair-executor-smoke .....   Passed    0.23 sec
+      Start 40: pedal-runtime-chain-smoke
+ 3/12 Test #40: pedal-runtime-chain-smoke .........   Passed    0.88 sec
+      Start 51: pedal-wdw-routing-program-smoke
+ 4/12 Test #51: pedal-wdw-routing-program-smoke ...   Passed    0.09 sec
+      Start 52: pedal-wdw-routing-builder-smoke
+ 5/12 Test #52: pedal-wdw-routing-builder-smoke ...   Passed    0.12 sec
+      Start 35: pedal-wah-processor-smoke
+ 6/12 Test #35: pedal-wah-processor-smoke .........   Passed    0.11 sec
+      Start 12: pedal-scene-transition-smoke
+ 7/12 Test #12: pedal-scene-transition-smoke ......   Passed    0.01 sec
+      Start 11: pedal-scene-plan-smoke
+ 8/12 Test #11: pedal-scene-plan-smoke ............   Passed    0.01 sec
+      Start 44: pedal-engine-contract-smoke
+ 9/12 Test #44: pedal-engine-contract-smoke .......   Passed    0.02 sec
+10/12 Test #25: pedal-ph2-quality .................   Passed    8.76 sec
+11/12 Test #18: pedal-hosted-dsp-unit .............   Passed    9.00 sec
+12/12 Test #53: pedal-wdw-latency-regression ......   Passed   12.00 sec
+
+100% tests passed out of 12
+
+Total Test time (real) =  12.00 sec

@@ -1,0 +1,11 @@
+Test project /home/bbalazs/projects/ardor/build-sanitize
+    Start 53: pedal-wdw-latency-regression
+    Start 52: pedal-wdw-routing-builder-smoke
+1/3 Test #52: pedal-wdw-routing-builder-smoke ...   Passed    4.46 sec
+    Start 40: pedal-runtime-chain-smoke
+2/3 Test #40: pedal-runtime-chain-smoke .........   Passed    6.84 sec
+3/3 Test #53: pedal-wdw-latency-regression ......   Passed  133.76 sec
+
+100% tests passed out of 3
+
+Total Test time (real) = 133.76 sec
