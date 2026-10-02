@@ -2,7 +2,7 @@
 <export version="E">
   <design>
     <source>/design/ardor-modules/headphones/Ardor_Headphones.kicad_sch</source>
-    <date>2026-10-02T15:22:56+0000</date>
+    <date>2026-10-02T20:04:27+0000</date>
     <tool>Eeschema 9.0.2+dfsg-1</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
@@ -277,7 +277,7 @@
       <tstamps>c537473d-f369-596a-83a6-e8f5db8596d7</tstamps>
     </comp>
     <comp ref="J101">
-      <value>+5V / GND / HP_ENABLE</value>
+      <value>5V POWER + ENABLE INPUT</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x03_P2.54mm_Vertical</field>
@@ -297,7 +297,7 @@
       <tstamps>5a29e538-8b57-5482-871b-432f62d6fa3a</tstamps>
     </comp>
     <comp ref="J102">
-      <value>AUDIO_L / GND / AUDIO_R</value>
+      <value>STEREO AUDIO INPUT FROM SOURCE</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x03_P2.54mm_Vertical</field>
@@ -317,7 +317,7 @@
       <tstamps>465376d9-1311-5e84-a0ab-11f721bf6618</tstamps>
     </comp>
     <comp ref="J602">
-      <value>HP_L / HP_R / GND</value>
+      <value>STEREO HEADPHONE AUDIO OUTPUT</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x03_P2.54mm_Vertical</field>

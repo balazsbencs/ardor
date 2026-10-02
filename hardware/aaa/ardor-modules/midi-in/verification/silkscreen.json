@@ -2,88 +2,275 @@
   "side": "Bottom; text is mirrored for normal reading from the back",
   "legends": [
     {
-      "text": "ARDOR MIDI M1",
+      "text": "1",
       "position_mm": [
-        67.0,
-        76
-      ]
+        81.7,
+        59.19
+      ],
+      "pin_number_for": "J101.1"
+    },
+    {
+      "text": "2",
+      "position_mm": [
+        78.3,
+        61.73
+      ],
+      "pin_number_for": "J101.2"
+    },
+    {
+      "text": "3",
+      "position_mm": [
+        78.3,
+        64.27
+      ],
+      "pin_number_for": "J101.3"
+    },
+    {
+      "text": "4",
+      "position_mm": [
+        78.3,
+        66.81
+      ],
+      "pin_number_for": "J101.4"
     },
     {
       "text": "J101",
       "position_mm": [
         80.0,
         56.69
-      ]
+      ],
+      "connector_reference": "J101"
     },
     {
-      "text": "5V",
+      "text": "1",
       "position_mm": [
-        71.5,
-        59.19
-      ]
+        54.7,
+        60.73
+      ],
+      "pin_number_for": "J202.1"
     },
     {
-      "text": "3V3",
+      "text": "2",
       "position_mm": [
-        71.5,
-        61.73
-      ]
-    },
-    {
-      "text": "GND",
-      "position_mm": [
-        71.0,
-        64.27
-      ]
-    },
-    {
-      "text": "RX",
-      "position_mm": [
-        75.5,
-        66.81
-      ]
+        54.7,
+        63.27
+      ],
+      "pin_number_for": "J202.2"
     },
     {
       "text": "J202",
       "position_mm": [
         53.0,
         58.23
-      ]
+      ],
+      "connector_reference": "J202"
     },
     {
-      "text": "4",
+      "text": "1",
       "position_mm": [
-        57.5,
-        60.73
-      ]
+        79.3,
+        72.73
+      ],
+      "pin_number_for": "J203.1"
     },
     {
-      "text": "5",
+      "text": "2",
       "position_mm": [
-        57.5,
-        63.27
-      ]
+        79.3,
+        75.27
+      ],
+      "pin_number_for": "J203.2"
     },
     {
       "text": "J203",
       "position_mm": [
         77.0,
         70.23
+      ],
+      "connector_reference": "J203"
+    },
+    {
+      "text": "ARDOR MIDI M1",
+      "position_mm": [
+        67.0,
+        76.3
       ]
     },
     {
-      "text": "CHS",
+      "text": "J101 PWR IN / UART OUT\n1 5V IN  2 3V3 IN\n3 GND 0V  4 UART OUT",
       "position_mm": [
-        76.5,
-        72.73
+        67.0,
+        68.0
+      ],
+      "pin_map_for": "J101",
+      "described_pins": [
+        "J101.1",
+        "J101.2",
+        "J101.3",
+        "J101.4"
+      ],
+      "optional": true
+    },
+    {
+      "text": "J202 MIDI IN\n1 DIN4 IN  2 DIN5 IN",
+      "position_mm": [
+        61.5,
+        57.0
+      ],
+      "pin_map_for": "J202",
+      "described_pins": [
+        "J202.1",
+        "J202.2"
+      ],
+      "optional": true
+    },
+    {
+      "text": "J203 CASE BOND\n1 CASE  2 GND 0V",
+      "position_mm": [
+        65.5,
+        73.5
+      ],
+      "pin_map_for": "J203",
+      "described_pins": [
+        "J203.1",
+        "J203.2"
+      ],
+      "optional": true
+    },
+    {
+      "text": "U201.3 NC\nNO WIRE",
+      "position_mm": [
+        61.5,
+        64.0
+      ],
+      "unused_pin": "U201.3"
+    },
+    {
+      "text": "IN=INTO",
+      "position_mm": [
+        70.0,
+        64.0
       ]
     },
     {
-      "text": "GND",
+      "text": "OUT=FROM",
       "position_mm": [
-        76.5,
-        75.27
+        61.5,
+        61.5
       ]
     }
-  ]
+  ],
+  "numbered_connector_pins": {
+    "J101.1": {
+      "text": "1",
+      "position_mm": [
+        81.7,
+        59.19
+      ],
+      "pin_number_for": "J101.1"
+    },
+    "J101.2": {
+      "text": "2",
+      "position_mm": [
+        78.3,
+        61.73
+      ],
+      "pin_number_for": "J101.2"
+    },
+    "J101.3": {
+      "text": "3",
+      "position_mm": [
+        78.3,
+        64.27
+      ],
+      "pin_number_for": "J101.3"
+    },
+    "J101.4": {
+      "text": "4",
+      "position_mm": [
+        78.3,
+        66.81
+      ],
+      "pin_number_for": "J101.4"
+    },
+    "J202.1": {
+      "text": "1",
+      "position_mm": [
+        54.7,
+        60.73
+      ],
+      "pin_number_for": "J202.1"
+    },
+    "J202.2": {
+      "text": "2",
+      "position_mm": [
+        54.7,
+        63.27
+      ],
+      "pin_number_for": "J202.2"
+    },
+    "J203.1": {
+      "text": "1",
+      "position_mm": [
+        79.3,
+        72.73
+      ],
+      "pin_number_for": "J203.1"
+    },
+    "J203.2": {
+      "text": "2",
+      "position_mm": [
+        79.3,
+        75.27
+      ],
+      "pin_number_for": "J203.2"
+    }
+  },
+  "pin_maps": {
+    "J101": {
+      "text": "J101 PWR IN / UART OUT\n1 5V IN  2 3V3 IN\n3 GND 0V  4 UART OUT",
+      "position_mm": [
+        67.0,
+        68.0
+      ],
+      "pin_map_for": "J101",
+      "described_pins": [
+        "J101.1",
+        "J101.2",
+        "J101.3",
+        "J101.4"
+      ],
+      "optional": true
+    },
+    "J202": {
+      "text": "J202 MIDI IN\n1 DIN4 IN  2 DIN5 IN",
+      "position_mm": [
+        61.5,
+        57.0
+      ],
+      "pin_map_for": "J202",
+      "described_pins": [
+        "J202.1",
+        "J202.2"
+      ],
+      "optional": true
+    },
+    "J203": {
+      "text": "J203 CASE BOND\n1 CASE  2 GND 0V",
+      "position_mm": [
+        65.5,
+        73.5
+      ],
+      "pin_map_for": "J203",
+      "described_pins": [
+        "J203.1",
+        "J203.2"
+      ],
+      "optional": true
+    }
+  },
+  "unused_pins": {
+    "U201.3": "NC - LEAVE OPEN"
+  },
+  "signal_viewpoint": "IN enters this board; OUT leaves this board; I/O is both directions; GND is 0 V"
 }

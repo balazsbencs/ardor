@@ -10,7 +10,7 @@
     "J202": {
       "ref": "J202",
       "kind": "Conn_01x02",
-      "value": "MIDI_4 / MIDI_5",
+      "value": "MIDI INPUT FROM DIN SOCKET",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
       "pcb": [
         3,
@@ -25,7 +25,7 @@
     "J101": {
       "ref": "J101",
       "kind": "Conn_01x04",
-      "value": "+5V / +3V3 / GND / MIDI_RX",
+      "value": "POWER INPUT + UART OUTPUT TO\nHOST",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
       "pcb": [
         30,
@@ -40,7 +40,7 @@
     "J203": {
       "ref": "J203",
       "kind": "Conn_01x02",
-      "value": "CHASSIS / GND",
+      "value": "METAL CASE BOND + GROUND",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
       "pcb": [
         31,

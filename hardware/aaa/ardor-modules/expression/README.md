@@ -6,32 +6,42 @@ Power from an external regulated **3.3 V / 15 mA** supply budget. These figures 
 
 [Single-page schematic](review/schematic.pdf) · [Component placement](review/pcb-assembly.svg) · [Front routing](review/pcb-front.svg) · [Back routing and connector legends](review/pcb-back.svg)
 
+[Short assembly guide](ASSEMBLY.md) · [Beginner pin card](review/wiring-guide.pdf)
+
 ## Connector pins
 
 All connectors/jumpers are 2.54 mm headers. **Square pad = pin 1.** Pin numbers below are native schematic/PCB numbers, not left-to-right screen positions. Back-side text is read from the back of the physical board. The same reference names appear on multiple modules; use this board’s table. **J101 pin assignments differ between module types; harnesses are not interchangeable.**
 
-| Connector | Pin | Signal |
-|---|---|---|
-| J302 | 1 | EXP_TIP |
-| J302 | 2 | EXP_RING |
-| J302 | 3 | GND |
-| J101 | 1 | +3V3 |
-| J101 | 2 | GND |
-| J101 | 3 | SDA |
-| J101 | 4 | SCL |
-| JP301 | 1 | EXP_TIP |
-| JP301 | 2 | EXP_RING |
-| JP301 | 3 | EXP_WIPER |
-| JP301 | 4 | EXP_EXC |
-| JP301 | 5 | EXP_RING |
-| JP301 | 6 | EXP_TIP |
-| JP302 | 1 | GND |
-| JP302 | 2 | ADDR |
-| JP302 | 3 | +3V3_A |
-| JP303 | 1 | SDA_PULL |
-| JP303 | 2 | SDA |
-| JP304 | 1 | SCL_PULL |
-| JP304 | 2 | SCL |
+| Connector | Pin | Direction / function | Connect to |
+|---|---|---|---|
+| J302 | 1 | **INPUT / OUTPUT** — TRS tip: pedal wiper INPUT or excitation OUTPUT, selected by JP301. | Passive expression socket tip; not a powered CV pedal. |
+| J302 | 2 | **INPUT / OUTPUT** — TRS ring: excitation OUTPUT or pedal wiper INPUT, selected by JP301. | Passive expression socket ring; not a powered CV pedal. |
+| J302 | 3 | **GROUND** — Common 0 V return; not a signal or positive supply. | TRS sleeve; pedal pot ground and enclosure bond. |
+| J101 | 1 | **POWER INPUT** — Feed regulated 3V3 into the module. This pin does not supply power. | Positive output of the matching regulated supply. |
+| J101 | 2 | **GROUND** — Common 0 V return; not a signal or positive supply. | Host or cable ground / 0 V. |
+| J101 | 3 | **INPUT / OUTPUT** — I2C SDA data travels both ways; 3.3 V bus only. | Host I2C SDA data pin. |
+| J101 | 4 | **INPUT** — I2C clock comes from the host into this module. | Host I2C SCL clock pin. |
+| JP301 | 1 | **JUMPER** — Tip contact side of polarity selector. | Fit a shunt to pin 3 for tip-wiper mode. |
+| JP301 | 2 | **JUMPER** — Ring contact side of polarity selector. | Fit a shunt to pin 4 for tip-wiper mode. |
+| JP301 | 3 | **INPUT / JUMPER** — Pedal wiper signal enters the ADC circuit. | Shunt 1-3 for tip wiper, or 3-5 for ring wiper. |
+| JP301 | 4 | **OUTPUT / JUMPER** — Current-limited excitation goes out to the passive pedal. | Shunt 2-4 for tip wiper, or 4-6 for ring wiper. |
+| JP301 | 5 | **JUMPER** — Ring contact side of polarity selector. | Fit a shunt to pin 3 for ring-wiper mode. |
+| JP301 | 6 | **JUMPER** — Tip contact side of polarity selector. | Fit a shunt to pin 4 for ring-wiper mode. |
+| JP302 | 1 | **JUMPER** — Ground/LOW address selection terminal. | Shunt 1-2 selects address 0x48. |
+| JP302 | 2 | **CONTROL / JUMPER** — ADC address selection input; do not leave floating. | Fit ONE shunt: 1-2 or 2-3. |
+| JP302 | 3 | **JUMPER** — 3.3 V/HIGH address selection terminal, not a power connector. | Shunt 2-3 selects address 0x49. |
+| JP303 | 1 | **JUMPER** — 3.3 V through the local 2.2k pull-up resistor. | Shunt 1-2 only if the host has no SDA pull-up. |
+| JP303 | 2 | **INPUT / OUTPUT / JUMPER** — SDA data side of the pull-up jumper. | Same shunt; this is not a host cable connector. |
+| JP304 | 1 | **JUMPER** — 3.3 V through the local 2.2k pull-up resistor. | Shunt 1-2 only if the host has no SCL pull-up. |
+| JP304 | 2 | **INPUT / JUMPER** — SCL clock side of the pull-up jumper. | Same shunt; this is not a host cable connector. |
+
+**IN** enters this board. **OUT** leaves this board. **I/O** uses both directions. **GND** is the common 0 V return. **3V3** means 3.3 V.
+
+JP references are configuration jumpers. Fit shunts only; do not attach host cables.
+
+Unused component pins: **U301.2** — UNUSED ALERT - LEAVE OPEN. The factory/hand solder joint remains; do not add an external wire.
+
+H1/H2 are mounting holes. Small via holes and other component pads are not wire connectors.
 
 ## Wiring and commissioning
 

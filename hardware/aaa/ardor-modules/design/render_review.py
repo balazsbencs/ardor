@@ -1,6 +1,7 @@
 """Render vector review sheets, diagram and five one-page schematics."""
 from pathlib import Path
-import json,html,xml.etree.ElementTree as ET
+import json,html,textwrap,xml.etree.ElementTree as ET
+from interfaces import contract
 import cairosvg,pymupdf as fitz
 ROOT=Path(__file__).resolve().parents[1];ORDER=['midi-in','expression','mixer','line-out','headphones']
 NS='http://www.w3.org/2000/svg';ET.register_namespace('',NS)
@@ -24,19 +25,48 @@ for slug in ORDER:
     for i,(label,side) in enumerate([('FRONT / COPPER','front'),('BACK / VIEWED FROM BACK','back'),('TOP / COMPONENT REFERENCES','assembly')]):
         x=40+450*i;body+=text(x,147,label,17,weight='bold')+nested(f/'review'/('pcb-'+side+'.svg'),x,170,410,385)
     body+=text(40,603,'CONNECTOR PIN MAP — USE NUMBERED PADS, NOT SCREEN LEFT/RIGHT',19,weight='bold')
-    ports={}
-    for pin,net in s['pins'].items():
-        if pin.startswith('J'):
-            ref,n=pin.split('.');ports.setdefault(ref,[]).append((int(n),net))
+    guide=contract(slug,s)
+    ports={ref:[(pin['number'],pin['short']) for pin in c['pins']] for ref,c in guide['ports'].items()}
     for i,(ref,pins) in enumerate(ports.items()):
         col=i%3;row=i//3;x=40+450*col;y=642+100*row
-        body+=text(x,y,ref,18,weight='bold')
+        body+=text(x,y,ref+' / '+guide['ports'][ref]['silk'],16,weight='bold')
         lines=['  '.join(str(n)+'='+net for n,net in sorted(pins)[j:j+2]) for j in range(0,len(pins),2)]
         for j,line in enumerate(lines):body+=text(x,y+24*(j+1),line,15)
     footer=942
     body+=text(40,footer,f"SMT: {a['smt_placements_per_board']} placements; manual fit: {', '.join(a['manual_references'])}",16)
     body+=text(40,footer+25,'Check IC pin 1 / diode / electrolytic polarity in JLCPCB preview. See module README for jumpers, power and commissioning.',15)
     file=f/'review/assembly-reference.svg';file.write_text(svg(body));render(file)
+    card=text(40,55,s['title']+' / PIN GUIDE',27,weight='bold')
+    card+=text(40,94,'IN = into this board     OUT = from this board     I/O = both directions     GND = 0 V     3V3 = 3.3 V',18)
+    card+=text(40,145,'BACK / READ FROM THIS SIDE',19,weight='bold')
+    card+=nested(f/'review/pcb-back.svg',40,170,460,400)
+    card+=text(40,610,'The square connector pad is pin 1.',20,weight='bold')
+    card+=text(40,644,'Match the connector name and pin number.',17)
+    card+=text(40,675,'Connector assignments differ between modules.',17)
+    if guide['unused_pins']:
+        card+=text(40,727,'UNUSED COMPONENT PINS',18,weight='bold')
+        for j,(pin,note) in enumerate(guide['unused_pins'].items()):card+=text(40,756+j*24,pin+' / '+note,17)
+    card+=text(40,826,'H1 / H2: mounting holes; no electrical connection.',16)
+    card+=text(40,853,'Small via holes are not wire connectors.',16)
+    card+=text(40,891,'JP connectors accept shunts, not host cables.' if slug=='expression' else 'Use the connector pin table before you connect power.',16)
+    columns=[135,135]
+    for ref,c in guide['ports'].items():
+        lines=[]
+        for pin in c['pins']:
+            lines.append((str(pin['number'])+': '+pin['short']+' / '+pin['direction'],True))
+            lines.extend((line,False) for line in textwrap.wrap(pin['connect'],width=50))
+        if c['setup']:lines.extend((line,False) for line in textwrap.wrap(c['setup'],width=50))
+        titlelines=textwrap.wrap(ref+' / '+c['title'],width=40)
+        height=len(titlelines)*19+len(lines)*17+20
+        col=min(range(2),key=lambda i:columns[i]);x=550+col*420;y=columns[col]
+        assert y+height<935,(slug,ref,'Wiring card overflow')
+        card+=f'<rect x="{x-10}" y="{y-20}" width="410" height="{height}" rx="6" fill="#f5f7f8" stroke="#dce3e6"/>'
+        for titleline in titlelines:card+=text(x,y,titleline,16,weight='bold');y+=19
+        y+=4
+        for line,bold in lines:card+=text(x,y,line,14,weight='bold' if bold else 'normal');y+=17
+        columns[col]+=height+12
+    card+=text(40,963,'Use ASSEMBLY.md for the short procedure. Disconnect the power supply before solder work or jumper changes.',16)
+    file=f/'review/wiring-guide.svg';file.write_text(svg(card));render(file)
 book.save(review/'schematics.pdf');book.close()
 DATA=[
 ('midi-in','MIDI INPUT','DIN contacts 4 / 5','H11L1M receiver','3.3 V UART RX','5 V + 3.3 V; chassis terminal local','No MIDI OUT / no USB'),

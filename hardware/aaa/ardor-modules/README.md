@@ -4,6 +4,8 @@ Build only the features you need. Each folder is a complete, separately orderabl
 
 “Independent” means an external host/audio source and the listed regulated power are sufficient. It does not mean a MIDI receiver works without a UART host, or an audio output produces sound without a DAC. Local ADC, analog midrail, filtering, charge pump and protection are included wherever needed. No shared reference voltage is exported. **Host connector pin assignments differ between module types; use each guide’s pin table, not an interchangeable power harness.** Panel sockets are cabled to standard headers, making the boards independent of enclosure connector spacing.
 
+[Short assembly guides](#short-assembly-guides) · [Language reference](STE-TERMS.md)
+
 [One-page module overview](review/module-overview.pdf) · [All five schematics, one page each](review/schematics.pdf)
 
 | Module | PCB mm | External power budget | SMT / board | Two-board component model + Extended fees |
@@ -15,6 +17,18 @@ Build only the features you need. Each folder is a complete, separately orderabl
 | [Optional stereo headphones](headphones/README.md) | 36 × 30 | 5 V / 50 mA | 18 | $9.93 + $12.28 |
 
 The optional headphone board adds approximately $3.28 QFN X-ray for two assembled boards. The table is **not a total assembly quote**: PCB, setup, stencil, joints, shipping, tax and manual parts are excluded. Components use the public catalogue unit price, two-board quantities and SMT attrition/minimum-patch allowances, checked 2 October 2026. Wholesale `preMinPurchaseNum` is not treated as an assembly minimum. Extended fees use the current Economic $3.07/type model. Stock is not reserved. Ordering a subset removes unused circuits; **ordering all five separately can cost more than the integrated board because setup charges repeat**. Upload designs separately rather than as one assembled panel.
+
+## Short assembly guides
+
+Each guide gives the solder steps and wire connections in short, direct instructions. Directions refer to the module: IN goes into the board, OUT comes from the board, and I/O uses both directions. Every connector and jumper pin has a numbered map. NC means leave the pin unconnected; mounting holes and vias are not wire connectors.
+
+- [MIDI input](midi-in/ASSEMBLY.md)
+- [Expression pedal](expression/ASSEMBLY.md)
+- [Stereo buffer and mono mixer](mixer/ASSEMBLY.md)
+- [Mono line output](line-out/ASSEMBLY.md)
+- [Headphone output](headphones/ASSEMBLY.md)
+
+The short guides use ASD-STE100 Issue 9 writing rules and the project terms in [STE-TERMS.md](STE-TERMS.md). Each module also includes a printable beginner pin card with full input/output descriptions. Host connector pin assignments differ between modules; use the correct board's table. The expression JP headers accept shunts, not host cables.
 
 ## What is included
 

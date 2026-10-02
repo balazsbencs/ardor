@@ -51,7 +51,7 @@ if __name__=='__main__':
             file.write_text('\n'.join(line.rstrip() for line in file.read_text().splitlines())+'\n')
     for folder in ROOT.iterdir():
         if (folder/'verification/design.json').exists():verify(folder);manifest(folder)
-    modules={folder.name:{'electrical':json.loads((folder/'verification/validation.json').read_text()),'assembly':json.loads((folder/'assembly/assembly-validation.json').read_text())} for folder in ROOT.iterdir() if (folder/'verification/validation.json').exists()}
-    summary={'result':'PASS','kicad_version':'9.0.2','module_dependencies':[],'modules':modules,'total_smt_placements':sum(v['assembly']['smt_placements_per_board'] for v in modules.values()),'total_physical_numbered_pads':sum(v['electrical']['physical_numbered_pads'] for v in modules.values()),'hardware_tested':False,'supplier_placement_preview_verified':False}
+    modules={folder.name:{'electrical':json.loads((folder/'verification/validation.json').read_text()),'assembly':json.loads((folder/'assembly/assembly-validation.json').read_text()),'labels':json.loads((folder/'verification/label-validation.json').read_text()),'short_guide':json.loads((folder/'verification/guide-language-review.json').read_text())} for folder in ROOT.iterdir() if (folder/'verification/validation.json').exists()}
+    summary={'result':'PASS','kicad_version':'9.0.2','module_dependencies':[],'modules':modules,'total_smt_placements':sum(v['assembly']['smt_placements_per_board'] for v in modules.values()),'total_physical_numbered_pads':sum(v['electrical']['physical_numbered_pads'] for v in modules.values()),'total_numbered_connector_pins':sum(v['labels']['numbered_external_pins'] for v in modules.values()),'hardware_tested':False,'supplier_placement_preview_verified':False}
     (ROOT/'review/validation-summary.json').write_text(json.dumps(summary,indent=2)+'\n')
     manifest(ROOT)

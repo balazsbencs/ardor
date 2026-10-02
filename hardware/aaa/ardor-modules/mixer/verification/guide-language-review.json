@@ -1,0 +1,10 @@
+{
+  "reference": "ASD-STE100 Issue 9, 2025-01-15",
+  "automatic_checks": "Sentence length and common contractions only; vocabulary, grammar and meaning reviewed by author",
+  "result": "PASS",
+  "procedure_steps": 9,
+  "maximum_procedure_words": 9,
+  "maximum_description_words": 12,
+  "technical_terminology": "../STE-TERMS.md",
+  "third_party_certification": false
+}

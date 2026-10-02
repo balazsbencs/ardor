@@ -10,7 +10,7 @@
     "J302": {
       "ref": "J302",
       "kind": "Conn_01x03",
-      "value": "EXP_TIP / EXP_RING / GND",
+      "value": "PASSIVE PEDAL INPUT / EXCITATION\nOUTPUT",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
       "pcb": [
         3,
@@ -25,7 +25,7 @@
     "J101": {
       "ref": "J101",
       "kind": "Conn_01x04",
-      "value": "+3V3 / GND / SDA / SCL",
+      "value": "3V3 POWER INPUT + I2C TO HOST",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
       "pcb": [
         40,
@@ -40,7 +40,7 @@
     "JP301": {
       "ref": "JP301",
       "kind": "Conn_02x03_Odd_Even",
-      "value": "TIP/RING / TWO SHUNTS",
+      "value": "JUMPER ONLY: PEDAL POLARITY",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical",
       "pcb": [
         10,
@@ -832,7 +832,7 @@
     "JP302": {
       "ref": "JP302",
       "kind": "Conn_01x03",
-      "value": "GND / ADDR / +3V3_A",
+      "value": "JUMPER ONLY: ADC ADDRESS",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
       "pcb": [
         28,
@@ -847,7 +847,7 @@
     "JP303": {
       "ref": "JP303",
       "kind": "Conn_01x02",
-      "value": "SDA_PULL / SDA",
+      "value": "JUMPER ONLY: SDA PULLUP",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
       "pcb": [
         40,
@@ -862,7 +862,7 @@
     "JP304": {
       "ref": "JP304",
       "kind": "Conn_01x02",
-      "value": "SCL_PULL / SCL",
+      "value": "JUMPER ONLY: SCL PULLUP",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
       "pcb": [
         40,

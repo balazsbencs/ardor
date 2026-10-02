@@ -10,7 +10,7 @@
     "J102": {
       "ref": "J102",
       "kind": "Conn_01x03",
-      "value": "AUDIO_L / GND / AUDIO_R",
+      "value": "STEREO AUDIO INPUT FROM SOURCE",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
       "pcb": [
         3,
@@ -25,7 +25,7 @@
     "J101": {
       "ref": "J101",
       "kind": "Conn_01x03",
-      "value": "+5V / GND / HP_ENABLE",
+      "value": "5V POWER + ENABLE INPUT",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
       "pcb": [
         3,
@@ -40,7 +40,7 @@
     "J602": {
       "ref": "J602",
       "kind": "Conn_01x03",
-      "value": "HP_L / HP_R / GND",
+      "value": "STEREO HEADPHONE AUDIO OUTPUT",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
       "pcb": [
         32,

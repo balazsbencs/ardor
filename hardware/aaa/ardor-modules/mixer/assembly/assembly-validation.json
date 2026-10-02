@@ -28,7 +28,7 @@
   "rotation_convention": "Native KiCad CCW; inspect manufacturer pin 1 in JLC placement preview",
   "origin": "Absolute Gerber origin; mm; CPL Y up",
   "hashes": {
-    "pcb_sha256": "5a7af3c37bc2abc498231da9ec36146470f43b719c36c8f4e6d3978fa75c4332",
-    "schematic_sha256": "d3354df08d500a17181c5f4e933cb3e14734fbd27b9d86d165f6d8b16975d457"
+    "pcb_sha256": "225246b562ca8f7f9616716a0fae09edd3d63ef60c1dffe68b775e527ba0d8c8",
+    "schematic_sha256": "2b561d97d968c8667b18ebe36e9b92a2da71a9bfa36f788cb970a0f176b30241"
   }
 }

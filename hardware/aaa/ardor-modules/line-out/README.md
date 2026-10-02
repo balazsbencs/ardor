@@ -6,21 +6,27 @@ Power from an external regulated **5 V / 50 mA** supply budget. These figures re
 
 [Single-page schematic](review/schematic.pdf) · [Component placement](review/pcb-assembly.svg) · [Front routing](review/pcb-front.svg) · [Back routing and connector legends](review/pcb-back.svg)
 
+[Short assembly guide](ASSEMBLY.md) · [Beginner pin card](review/wiring-guide.pdf)
+
 ## Connector pins
 
 All connectors/jumpers are 2.54 mm headers. **Square pad = pin 1.** Pin numbers below are native schematic/PCB numbers, not left-to-right screen positions. Back-side text is read from the back of the physical board. The same reference names appear on multiple modules; use this board’s table. **J101 pin assignments differ between module types; harnesses are not interchangeable.**
 
-| Connector | Pin | Signal |
-|---|---|---|
-| J102 | 1 | AUDIO_IN |
-| J102 | 2 | GND |
-| J101 | 1 | +5V |
-| J101 | 2 | GND |
-| J101 | 3 | LINE_ENABLE |
-| J503 | 1 | LINE_JACK |
-| J503 | 2 | GND |
-| J502 | 1 | AMP_FEED |
-| J502 | 2 | GND |
+| Connector | Pin | Direction / function | Connect to |
+|---|---|---|---|
+| J101 | 1 | **POWER INPUT** — Feed regulated 5V into the module. This pin does not supply power. | Positive output of the matching regulated supply. |
+| J101 | 2 | **GROUND** — Common 0 V return; not a signal or positive supply. | Host or cable ground / 0 V. |
+| J101 | 3 | **CONTROL INPUT** — 3.3 V HIGH = on; 0 V LOW or disconnected = off. | Host control output. Keep LOW until audio and supply are stable. |
+| J102 | 1 | **INPUT** — AUDIO audio enters the module. | Mono DAC/codec audio output, <=1 Vrms. |
+| J102 | 2 | **GROUND** — Common 0 V return; not a signal or positive supply. | Host or cable ground / 0 V. |
+| J503 | 1 | **OUTPUT** — LINE audio leaves the module. | TS socket tip; line load >=10k. Grounded when relay is off. |
+| J503 | 2 | **GROUND** — Common 0 V return; not a signal or positive supply. | TS socket sleeve; enclosure bond. |
+| J502 | 1 | **OUTPUT** — AUDIO audio leaves the module. | Signal input of a separate amplifier, >=100k. NOT a speaker. |
+| J502 | 2 | **GROUND** — Common 0 V return; not a signal or positive supply. | Host or cable ground / 0 V. |
+
+**IN** enters this board. **OUT** leaves this board. **I/O** uses both directions. **GND** is the common 0 V return. **3V3** means 3.3 V.
+
+H1/H2 are mounting holes. Small via holes and other component pads are not wire connectors.
 
 ## Wiring and commissioning
 

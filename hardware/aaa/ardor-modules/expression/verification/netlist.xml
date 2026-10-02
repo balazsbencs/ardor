@@ -2,7 +2,7 @@
 <export version="E">
   <design>
     <source>/design/ardor-modules/expression/Ardor_Expression.kicad_sch</source>
-    <date>2026-10-02T15:22:58+0000</date>
+    <date>2026-10-02T20:04:28+0000</date>
     <tool>Eeschema 9.0.2+dfsg-1</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
@@ -277,7 +277,7 @@
       <tstamps>42eddedc-2081-5081-8fb3-112fb79c3a9e</tstamps>
     </comp>
     <comp ref="J101">
-      <value>+3V3 / GND / SDA / SCL</value>
+      <value>3V3 POWER INPUT + I2C TO HOST</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x04_P2.54mm_Vertical</field>
@@ -297,7 +297,8 @@
       <tstamps>b10b6431-272e-5dc7-a3e7-cae4c789d8f4</tstamps>
     </comp>
     <comp ref="J302">
-      <value>EXP_TIP / EXP_RING / GND</value>
+      <value>PASSIVE PEDAL INPUT / EXCITATION
+OUTPUT</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x03_P2.54mm_Vertical</field>
@@ -317,7 +318,7 @@
       <tstamps>8d789541-49c1-53ef-8141-28b5a3f102c2</tstamps>
     </comp>
     <comp ref="JP301">
-      <value>TIP/RING / TWO SHUNTS</value>
+      <value>JUMPER ONLY: PEDAL POLARITY</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_2x03_P2.54mm_Vertical</field>
@@ -337,7 +338,7 @@
       <tstamps>5859d2d9-9f63-58a0-b633-9a9efe9daa96</tstamps>
     </comp>
     <comp ref="JP302">
-      <value>GND / ADDR / +3V3_A</value>
+      <value>JUMPER ONLY: ADC ADDRESS</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x03_P2.54mm_Vertical</field>
@@ -357,7 +358,7 @@
       <tstamps>496fb4aa-06e2-5a2d-aa26-d96fe318747b</tstamps>
     </comp>
     <comp ref="JP303">
-      <value>SDA_PULL / SDA</value>
+      <value>JUMPER ONLY: SDA PULLUP</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x02_P2.54mm_Vertical</field>
@@ -377,7 +378,7 @@
       <tstamps>f90c75dc-8cd2-5e5d-84d2-0821d771ebcf</tstamps>
     </comp>
     <comp ref="JP304">
-      <value>SCL_PULL / SCL</value>
+      <value>JUMPER ONLY: SCL PULLUP</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x02_P2.54mm_Vertical</field>

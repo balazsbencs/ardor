@@ -10,7 +10,7 @@
     "J102": {
       "ref": "J102",
       "kind": "Conn_01x03",
-      "value": "AUDIO_L / GND / AUDIO_R",
+      "value": "STEREO AUDIO INPUT FROM SOURCE",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
       "pcb": [
         3,
@@ -25,7 +25,7 @@
     "J101": {
       "ref": "J101",
       "kind": "Conn_01x02",
-      "value": "+5V / GND",
+      "value": "5V POWER INPUT",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
       "pcb": [
         22,
@@ -40,7 +40,7 @@
     "J103": {
       "ref": "J103",
       "kind": "Conn_01x04",
-      "value": "OUT_L / GND / OUT_R / OUT_MONO",
+      "value": "BUFFERED STEREO + MONO AUDIO\nOUTPUT",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
       "pcb": [
         36,

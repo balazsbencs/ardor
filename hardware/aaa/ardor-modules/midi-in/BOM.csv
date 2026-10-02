@@ -1,7 +1,8 @@
 Reference,Value,Footprint,MPN,JLCPCB Part #,Assembly
-J202,MIDI_4 / MIDI_5,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,PinHeader_1x02_P2.54mm_Vertical,,Manual
-J101,+5V / +3V3 / GND / MIDI_RX,Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,PinHeader_1x04_P2.54mm_Vertical,,Manual
-J203,CHASSIS / GND,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,PinHeader_1x02_P2.54mm_Vertical,,Manual
+J202,MIDI INPUT FROM DIN SOCKET,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,PinHeader_1x02_P2.54mm_Vertical,,Manual
+J101,"POWER INPUT + UART OUTPUT TO
+HOST",Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,PinHeader_1x04_P2.54mm_Vertical,,Manual
+J203,METAL CASE BOND + GROUND,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,PinHeader_1x02_P2.54mm_Vertical,,Manual
 FB201,120R@100MHz,Resistor_SMD:R_0603_1608Metric,Murata Electronics BLM18PG121SN1D,C14709,SMT
 R201,220R / 1%,Resistor_SMD:R_0603_1608Metric,UNI-ROYAL 0603WAF2200T5E,C22962,SMT
 FB202,120R@100MHz,Resistor_SMD:R_0603_1608Metric,Murata Electronics BLM18PG121SN1D,C14709,SMT

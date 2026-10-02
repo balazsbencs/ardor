@@ -2,7 +2,7 @@
 <export version="E">
   <design>
     <source>/design/ardor-modules/line-out/Ardor_Line_Out.kicad_sch</source>
-    <date>2026-10-02T15:22:56+0000</date>
+    <date>2026-10-02T20:04:27+0000</date>
     <tool>Eeschema 9.0.2+dfsg-1</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
@@ -235,7 +235,7 @@
       <tstamps>763aae42-6163-541e-9edc-003c543d7d6f</tstamps>
     </comp>
     <comp ref="J101">
-      <value>+5V / GND / LINE_ENABLE</value>
+      <value>5V POWER + ENABLE INPUT</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x03_P2.54mm_Vertical</field>
@@ -255,7 +255,7 @@
       <tstamps>6febf081-939f-5651-8444-de0506d5bab1</tstamps>
     </comp>
     <comp ref="J102">
-      <value>AUDIO_IN / GND</value>
+      <value>MONO AUDIO INPUT FROM SOURCE</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x02_P2.54mm_Vertical</field>
@@ -275,7 +275,7 @@
       <tstamps>48f41057-1c94-5b53-ab81-141a33448f29</tstamps>
     </comp>
     <comp ref="J502">
-      <value>AMP_FEED / GND</value>
+      <value>AUDIO OUTPUT TO AMP INPUT</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x02_P2.54mm_Vertical</field>
@@ -295,7 +295,7 @@
       <tstamps>852e5c29-9640-5b8e-ad12-fb9d6bf99b9f</tstamps>
     </comp>
     <comp ref="J503">
-      <value>LINE_JACK / GND</value>
+      <value>LINE AUDIO OUTPUT TO TS SOCKET</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x02_P2.54mm_Vertical</field>

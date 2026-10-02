@@ -2,7 +2,7 @@
 <export version="E">
   <design>
     <source>/design/ardor-modules/mixer/Ardor_Mixer.kicad_sch</source>
-    <date>2026-10-02T15:22:56+0000</date>
+    <date>2026-10-02T20:04:27+0000</date>
     <tool>Eeschema 9.0.2+dfsg-1</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
@@ -256,7 +256,7 @@
       <tstamps>746f8aa0-4855-5df7-83bc-6aaecd046137</tstamps>
     </comp>
     <comp ref="J101">
-      <value>+5V / GND</value>
+      <value>5V POWER INPUT</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x02_P2.54mm_Vertical</field>
@@ -276,7 +276,7 @@
       <tstamps>77988f48-a546-5066-adcc-e6b9eee6f670</tstamps>
     </comp>
     <comp ref="J102">
-      <value>AUDIO_L / GND / AUDIO_R</value>
+      <value>STEREO AUDIO INPUT FROM SOURCE</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x03_P2.54mm_Vertical</field>
@@ -296,7 +296,8 @@
       <tstamps>c0658929-f587-5df1-a4fc-83e177c2f77d</tstamps>
     </comp>
     <comp ref="J103">
-      <value>OUT_L / GND / OUT_R / OUT_MONO</value>
+      <value>BUFFERED STEREO + MONO AUDIO
+OUTPUT</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x04_P2.54mm_Vertical</field>
@@ -586,7 +587,7 @@
       <property name="ki_keywords" value="dual opamp"/>
       <property name="ki_fp_filters" value="SOIC*3.9x4.9mm*P1.27mm* DIP*W7.62mm* TO*99* OnSemi*Micro8* TSSOP*3x3mm*P0.65mm* TSSOP*4.4x3mm*P0.65mm* MSOP*3x3mm*P0.65mm* SSOP*3.9x4.9mm*P0.635mm* LFCSP*2x2mm*P0.5mm* *SIP* SOIC*5.3x6.2mm*P1.27mm*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>e38ddb6f-09d3-535f-b632-e75c36e4d67d 8d1972df-6bc0-5d4e-8a36-90a01359ce16 1f66e9f3-a42e-5fcb-89dc-bc76f7bccff7</tstamps>
+      <tstamps>8d1972df-6bc0-5d4e-8a36-90a01359ce16 e38ddb6f-09d3-535f-b632-e75c36e4d67d 1f66e9f3-a42e-5fcb-89dc-bc76f7bccff7</tstamps>
     </comp>
     <comp ref="U402">
       <value>TLV9002IDR</value>

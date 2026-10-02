@@ -2,7 +2,7 @@
 <export version="E">
   <design>
     <source>/design/ardor-modules/midi-in/Ardor_MIDI.kicad_sch</source>
-    <date>2026-10-02T15:22:58+0000</date>
+    <date>2026-10-02T20:04:28+0000</date>
     <tool>Eeschema 9.0.2+dfsg-1</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
@@ -235,7 +235,8 @@
       <tstamps>67cb0a3c-4332-50ab-b338-93b27766079b</tstamps>
     </comp>
     <comp ref="J101">
-      <value>+5V / +3V3 / GND / MIDI_RX</value>
+      <value>POWER INPUT + UART OUTPUT TO
+HOST</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x04_P2.54mm_Vertical</field>
@@ -255,7 +256,7 @@
       <tstamps>966fe754-a0d0-59b5-9572-5944e9bff7ef</tstamps>
     </comp>
     <comp ref="J202">
-      <value>MIDI_4 / MIDI_5</value>
+      <value>MIDI INPUT FROM DIN SOCKET</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x02_P2.54mm_Vertical</field>
@@ -275,7 +276,7 @@
       <tstamps>0b3c9734-275d-57ae-a3c4-8f1053c0b167</tstamps>
     </comp>
     <comp ref="J203">
-      <value>CHASSIS / GND</value>
+      <value>METAL CASE BOND + GROUND</value>
       <footprint>Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical</footprint>
       <fields>
         <field name="MPN">PinHeader_1x02_P2.54mm_Vertical</field>

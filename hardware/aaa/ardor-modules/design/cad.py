@@ -4,8 +4,9 @@ Signal paths are wires. Labels are reserved for power, repeated ground and
 explicit jumper/interface branches. The exported netlist is checked separately.
 """
 from pathlib import Path
-import copy, csv, json, math, uuid
+import copy, csv, json, math, uuid, textwrap
 import sexpdata as sx
+from interfaces import INTERFACES, UNUSED, contract
 
 ROOT = Path(__file__).resolve().parents[1]
 S = sx.Symbol
@@ -26,7 +27,7 @@ class Module:
         self.routes = []; self.vias = []; self.keepouts = []
         self.text('ARDOR / INDEPENDENT FUNCTION MODULE', 16, 12, 2)
         self.text(title, 16, 20, 2.5)
-        self.text('REV M1  |  EXTERNAL HOST + REGULATED POWER  |  NO OTHER MODULE REQUIRED', 16, 29, 1.15)
+        self.text('M1  |  INDEPENDENT MODULE  |  SEE PIN GUIDE AT RIGHT', 16, 29, 1.15)
     def uuid(self):
         self.counter += 1; return uid(self.slug+'/'+str(self.counter))
     def text(self, s, x, y, size=1.2):
@@ -43,6 +44,7 @@ class Module:
                 attrs=part['catalog_attributes'];readable=attrs['Capacitance'].replace('F','')+' / '+attrs['Voltage Rating']+' '+attrs.get('Temperature Coefficient','polarized')
             if kind=='FerriteBead':readable=part['catalog_attributes']['Impedance @ Frequency'].replace('Ω','R')
             value=value or readable
+        if kind.startswith('Conn') and ref in INTERFACES[self.slug]:value='\n'.join(textwrap.wrap(INTERFACES[self.slug][ref]['title'],width=32))
         assert fp and value, ref
         x,y,*angle = sch; rot = angle[0] if angle else 0
         self.used.add(kind); pins = {}
@@ -128,6 +130,13 @@ class Module:
     def save(self):
         out=ROOT/self.slug;out.mkdir(exist_ok=True)
         for d in ['assembly','verification','review','routing']: (out/d).mkdir(exist_ok=True)
+        self.text('PIN GUIDE: IN = into this board / OUT = out / I/O = both / GND = 0 V',190,16,1.0)
+        for i,(ref,c) in enumerate(INTERFACES[self.slug].items()):
+            x=190+(i%2)*110;y=20+(i//2)*9
+            self.text(ref+' / '+c['silk'],x,y,1.2)
+            for j in range(0,len(c['pins']),2):
+                self.text('   '.join(str(p['number'])+': '+p['short'] for p in c['pins'][j:j+2]),x,y+2+(j//2)*1.8,1.2)
+        if UNUSED[self.slug]:self.text(' / '.join(pin+': '+note for pin,note in UNUSED[self.slug].items()),300,44.5,1.0)
         # All signal endpoints must be accounted for; power labels are conventional.
         for (ref,unit),pins in self.pins.items():
             for n in pins:
@@ -169,6 +178,7 @@ class Module:
         (out/'verification/project-config.json').write_text(json.dumps(pro,indent=2)+'\n')
         spec={'name':self.name,'title':self.title,'slug':self.slug,'size_mm':self.size,'parts':self.parts,'pins':self.expected,'nc':sorted(self.nc),'routes':self.routes,'ground_vias':self.vias,'keepouts':self.keepouts,'notes':self.notes}
         (out/'verification/design.json').write_text(json.dumps(spec,indent=2)+'\n')
+        (out/'verification/connector-guide.json').write_text(json.dumps(contract(self.slug,spec),indent=2)+'\n')
         bycode={}
         for ref,c in self.parts.items():
             if c['part']:

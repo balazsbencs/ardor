@@ -10,7 +10,7 @@
     "J102": {
       "ref": "J102",
       "kind": "Conn_01x02",
-      "value": "AUDIO_IN / GND",
+      "value": "MONO AUDIO INPUT FROM SOURCE",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
       "pcb": [
         3,
@@ -25,7 +25,7 @@
     "J101": {
       "ref": "J101",
       "kind": "Conn_01x03",
-      "value": "+5V / GND / LINE_ENABLE",
+      "value": "5V POWER + ENABLE INPUT",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
       "pcb": [
         3,
@@ -40,7 +40,7 @@
     "J503": {
       "ref": "J503",
       "kind": "Conn_01x02",
-      "value": "LINE_JACK / GND",
+      "value": "LINE AUDIO OUTPUT TO TS SOCKET",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
       "pcb": [
         42,
@@ -55,7 +55,7 @@
     "J502": {
       "ref": "J502",
       "kind": "Conn_01x02",
-      "value": "AMP_FEED / GND",
+      "value": "AUDIO OUTPUT TO AMP INPUT",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
       "pcb": [
         42,

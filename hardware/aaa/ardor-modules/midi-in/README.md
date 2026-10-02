@@ -6,20 +6,28 @@ Power from an external regulated **5 V / 10 mA and 3.3 V / 5 mA** supply budget.
 
 [Single-page schematic](review/schematic.pdf) · [Component placement](review/pcb-assembly.svg) · [Front routing](review/pcb-front.svg) · [Back routing and connector legends](review/pcb-back.svg)
 
+[Short assembly guide](ASSEMBLY.md) · [Beginner pin card](review/wiring-guide.pdf)
+
 ## Connector pins
 
 All connectors/jumpers are 2.54 mm headers. **Square pad = pin 1.** Pin numbers below are native schematic/PCB numbers, not left-to-right screen positions. Back-side text is read from the back of the physical board. The same reference names appear on multiple modules; use this board’s table. **J101 pin assignments differ between module types; harnesses are not interchangeable.**
 
-| Connector | Pin | Signal |
-|---|---|---|
-| J202 | 1 | MIDI_4 |
-| J202 | 2 | MIDI_5 |
-| J101 | 1 | +5V |
-| J101 | 2 | +3V3 |
-| J101 | 3 | GND |
-| J101 | 4 | MIDI_RX |
-| J203 | 1 | CHASSIS |
-| J203 | 2 | GND |
+| Connector | Pin | Direction / function | Connect to |
+|---|---|---|---|
+| J202 | 1 | **MIDI INPUT** — MIDI current-loop input, DIN contact 4. | Female DIN socket numbered contact 4. |
+| J202 | 2 | **MIDI INPUT** — MIDI current-loop return, DIN contact 5; NOT GND. | Female DIN socket numbered contact 5. |
+| J101 | 1 | **POWER INPUT** — Feed regulated 5V into the module. This pin does not supply power. | Positive output of the matching regulated supply. |
+| J101 | 2 | **POWER INPUT** — Feed regulated 3V3 into the module. This pin does not supply power. | Positive output of the matching regulated supply. |
+| J101 | 3 | **GROUND** — Common 0 V return; not a signal or positive supply. | Host or cable ground / 0 V. |
+| J101 | 4 | **OUTPUT** — 3.3 V decoded MIDI logic leaves the module; this is not a DIN MIDI output. | Host UART RX input, 31250 baud, 8-N-1. Do not connect to host TX. |
+| J203 | 1 | **BOND** — Enclosure/chassis connection, locally joined to GND through R101. | Aluminium enclosure bonding point; insulate the MIDI DIN shell. |
+| J203 | 2 | **GROUND** — Common 0 V return; not a signal or positive supply. | Host or cable ground / 0 V. |
+
+**IN** enters this board. **OUT** leaves this board. **I/O** uses both directions. **GND** is the common 0 V return. **3V3** means 3.3 V.
+
+Unused component pins: **U201.3** — NC - LEAVE OPEN. The factory/hand solder joint remains; do not add an external wire.
+
+H1/H2 are mounting holes. Small via holes and other component pads are not wire connectors.
 
 ## Wiring and commissioning
 
