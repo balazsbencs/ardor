@@ -21,6 +21,8 @@ type Props = {
   selectedId?: string;
   onSelect(id: string): void;
   onMove(action: EditorAction): void;
+  /** Why + cannot add at the end (the chain or lane is full). */
+  addBlocked?: string;
   onAdd(): void;
 };
 
@@ -107,7 +109,8 @@ export function ChipStrip(props: Props) {
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <div className="chip-jack">IN</div>
         {props.wdw ? <Wdw wdw={props.wdw} props={props} /> : <List listId="top" blocks={props.blocks} props={props} />}
-        <button type="button" className="chip-add" aria-label="Add a block at the end" onClick={props.onAdd}><Plus size={16} /></button>
+        <button type="button" className="chip-add" aria-label="Add a block at the end" disabled={props.addBlocked !== undefined}
+          title={props.addBlocked} onClick={props.onAdd}><Plus size={16} /></button>
         <div className="chip-jack">OUT</div>
       </DndContext>
     </nav>

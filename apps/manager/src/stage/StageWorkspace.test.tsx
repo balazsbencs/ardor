@@ -220,6 +220,36 @@ describe("StageWorkspace stage and drawer", () => {
     expect(screen.getByRole("button", { name: "Add a block at position 1" })).toBeDisabled();
   });
 
+  it("disables every add control and ignores A once the chain holds ten blocks", async () => {
+    session.current.preset.blocks = Array.from({ length: 10 }, (_, i) => blockOf("mod:chorus", `m${i}`));
+    render(<AppProviders>{stage()}</AppProviders>);
+    const add = screen.getByRole("button", { name: "Add block" });
+    expect(add).toBeDisabled();
+    expect(add).toHaveAttribute("title", "The chain holds 10 blocks.");
+    act(() => screen.getAllByRole("group", { name: /Chorus/ })[0].focus());
+    await userEvent.keyboard("a");
+    expect(screen.queryByRole("dialog", { name: "Add block" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole("group", { name: /Chorus/ })[0]);
+    const chipAdd = within(screen.getByRole("navigation", { name: "Signal chain" })).getByRole("button", { name: "Add a block at the end" });
+    expect(chipAdd).toBeDisabled();
+    expect(chipAdd).toHaveAttribute("title", "The chain holds 10 blocks.");
+    await userEvent.keyboard("a");
+    expect(screen.queryByRole("dialog", { name: "Add block" })).not.toBeInTheDocument();
+  });
+
+  it("disables the insert points of a WDW lane that holds ten blocks", () => {
+    session.current.preset = {
+      ...structuredClone(delayPreset), version: 3, routing: "wdw", blocks: [],
+      wdw: {
+        dry: { enabled: true, levelDb: 0, blocks: [blockOf("dynamics:compressor", "x1")] },
+        wet: { enabled: true, levelDb: 0, blocks: Array.from({ length: 10 }, (_, i) => blockOf("mod:chorus", `w${i}`)) },
+      },
+    } as Preset;
+    render(<AppProviders>{stage()}</AppProviders>);
+    expect(screen.getByRole("button", { name: "Add a block to lane WET at position 1" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add a block to lane DRY at position 1" })).toBeEnabled();
+  });
+
   it("keeps the WDW lanes in the chip strip while a drawer is open", async () => {
     session.current.preset = {
       ...structuredClone(delayPreset), version: 3, routing: "wdw", blocks: [],

@@ -24,7 +24,7 @@ export function ScenesDrawer({ onClose }: { onClose(): void }) {
         <SceneWorkspaceBar
           sceneSet={present.sceneSet}
           editingSceneId={editor.editor.editingSceneId ?? present.sceneSet.defaultSceneId}
-          liveSceneId={session.device?.active?.liveSceneId}
+          liveSceneId={editor.liveSceneId}
           recallDisabled={!runtimeMatchesDraft || !session.device?.capabilities.sceneRecall}
           recallHint={recallHint}
           recalling={editor.recallingScene}

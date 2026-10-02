@@ -57,6 +57,8 @@ export type PresetEditor = {
   actionError?: string;
   setActionError(message?: string): void;
   applied?: PresetLocation;
+  /** The pedal's live scene, only while the open slot is the live slot (scene ids repeat across presets). */
+  liveSceneId?: string;
   runtimeMatchesDraft: boolean;
   sharedComparisonRows: SharedComparisonRow[];
   presentSceneTarget(target: PresetSceneTarget, value: number | boolean): { label: string; value: string };
@@ -389,6 +391,9 @@ export function usePresetEditor(): PresetEditor {
   };
 
   const runtimeMatchesDraft = activeRevisionMatchesDraft(session.device, editor.location, dirty);
+  const active = session.device?.active;
+  const liveSceneId = active && active.bank === editor.location.bank && active.slot === editor.location.slot
+    ? active.liveSceneId : undefined;
 
   return {
     editor, dispatch, present, dirty, validation, allBlocks, editingScene, displayedBlocks, displayedWdw,
@@ -396,6 +401,6 @@ export function usePresetEditor(): PresetEditor {
     editWdwMix, expressionTargets, expressionTarget, expressionParameter, enableExpression, patchExpression,
     addTarget, setAddTarget, disabledDefinitions, selectLocation, pendingLocation, resolveNavigation, save,
     apply, saveAndApply, recallScene, saving, recallingScene, actionError, setActionError, applied,
-    runtimeMatchesDraft, sharedComparisonRows, presentSceneTarget,
+    liveSceneId, runtimeMatchesDraft, sharedComparisonRows, presentSceneTarget,
   };
 }

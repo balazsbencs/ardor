@@ -16,11 +16,13 @@ type Props = {
   drawer: "none" | "block" | "global" | "scenes";
   focused?: { blockId: string; control: NumberControl };
   onOpen(drawer: "global" | "scenes"): void;
+  /** Why Add block cannot add here (the chain or lane is full). */
+  addBlocked?: string;
   onAdd(): void;
   onDone(): void;
 };
 
-export function EditRail({ drawer, focused, onOpen, onAdd, onDone }: Props) {
+export function EditRail({ drawer, focused, onOpen, addBlocked, onAdd, onDone }: Props) {
   const editor = usePresetEditorContext();
   const fineGesture = useRef<{ key: string; id: string; at: number } | null>(null);
   const block = focused ? findPresetBlockInPreset(editor.present, focused.blockId) : undefined;
@@ -50,7 +52,7 @@ export function EditRail({ drawer, focused, onOpen, onAdd, onDone }: Props) {
       <IconButton label="Redo" disabled={editor.editor.history.future.length === 0} onClick={() => editor.dispatch({ type: "redo" })}><Redo2 size={17} /></IconButton>
       <Button variant={editor.dirty ? "primary" : "secondary"} disabled={!editor.dirty || saveBlocked || editor.saving}
         title={saveReason ?? "Save to the slot"} onClick={() => void editor.save()}><Save size={16} /><span className="lbl">Save</span></Button>
-      <Button variant="secondary" onClick={onAdd}><Plus size={16} /><span className="lbl">Add block</span></Button>
+      <Button variant="secondary" disabled={addBlocked !== undefined} title={addBlocked} onClick={onAdd}><Plus size={16} /><span className="lbl">Add block</span></Button>
       <Button variant="secondary" aria-pressed={drawer === "global"} onClick={() => onOpen("global")}><SlidersHorizontal size={16} /><span className="lbl">Global</span></Button>
       <Button variant="secondary" aria-pressed={drawer === "scenes"} onClick={() => onOpen("scenes")}><Grid2x2 size={16} /><span className="lbl">{editor.present.sceneSet ? "Scenes" : "Create scenes"}</span></Button>
       {focused && (

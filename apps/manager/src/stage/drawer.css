@@ -48,7 +48,8 @@
 .chip.is-dragging { opacity: .6; }
 .chip-jack { flex: none; width: 56px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line); background: var(--surface-muted); font: 700 14px/1 var(--f-cond); letter-spacing: .12em; }
 .chip-add { flex: none; width: 44px; border: 1px dashed var(--line-strong); background: none; display: flex; align-items: center; justify-content: center; color: var(--muted); }
-.chip-add:hover { color: var(--text); border-color: var(--muted); }
+.chip-add:hover:not(:disabled) { color: var(--text); border-color: var(--muted); }
+.chip-add:disabled { opacity: .4; cursor: not-allowed; }
 .chip-rig { display: flex; flex: none; border: 1px solid var(--line); background: var(--surface-muted); }
 .chip-rig__head { width: 54px; border: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font: 700 12px/1 var(--f-cond); letter-spacing: .12em; color: var(--muted); border-right: 1px solid var(--line); }
 .chip-rig__head[aria-current="true"] { color: var(--text); }

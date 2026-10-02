@@ -10,6 +10,7 @@ import type { AddTarget } from "../presets/editor/usePresetEditor";
 import type { EditorAction } from "../presets/editor/editorTypes";
 import type { ValidationIssue } from "../presets/editor/presetValidation";
 import { BlockCard } from "./BlockCard";
+import { CHAIN_FULL, LANE_FULL, MAX_LANE_BLOCKS, WDW_FULL } from "./chainLimits";
 import { resolveDrop, type ListId } from "./dropTarget";
 import "./stage.css";
 
@@ -29,9 +30,6 @@ type Props = {
 
 type ItemData = { listId: ListId; index: number };
 
-/** A Dual Rig lane holds at most this many blocks, as before the redesign. */
-const MAX_LANE_BLOCKS = 10;
-
 function targetFor(listId: ListId, index: number): AddTarget {
   if (listId === "top") return { kind: "top", index };
   if (listId === "wdw:dry" || listId === "wdw:wet") return { kind: "wdw", lane: listId === "wdw:dry" ? "dry" : "wet", index };
@@ -39,8 +37,9 @@ function targetFor(listId: ListId, index: number): AddTarget {
   return { kind: "lane", rigId, lane: lane as "left" | "right", index };
 }
 
-function Insert({ listId, index, disabled, label, onAdd }: { listId: ListId; index: number; disabled: boolean; label: string; onAdd(target: AddTarget): void }) {
-  return <button type="button" className="ins" disabled={disabled} aria-label={label} title="Add a block" onClick={() => onAdd(targetFor(listId, index))}><Plus size={14} strokeWidth={2.4} /></button>;
+function Insert({ listId, index, blocked, label, onAdd }: { listId: ListId; index: number; blocked?: string; label: string; onAdd(target: AddTarget): void }) {
+  return <button type="button" className="ins" disabled={blocked !== undefined} aria-label={label} title={blocked ?? "Add a block"}
+    onClick={() => onAdd(targetFor(listId, index))}><Plus size={14} strokeWidth={2.4} /></button>;
 }
 
 function SortableCard({ block, listId, index, count, laneTag, props }: { block: PresetBlock; listId: ListId; index: number; count: number; laneTag?: "A" | "B" | "DRY" | "WET"; props: Props }) {
@@ -60,17 +59,18 @@ function SortableCard({ block, listId, index, count, laneTag, props }: { block: 
 function List({ listId, blocks, props, laneTag, emptyLabel }: { listId: ListId; blocks: PresetBlock[]; props: Props; laneTag?: "A" | "B" | "DRY" | "WET"; emptyLabel?: string }) {
   const { setNodeRef } = useDroppable({ id: `list:${listId}`, data: { listId, index: blocks.length } satisfies ItemData, disabled: blocks.length > 0 });
   const insertLabel = (index: number) => (listId === "top" ? `Add a block at position ${index + 1}` : `Add a block to lane ${laneTag}${blocks.length ? ` at position ${index + 1}` : ""}`);
-  const laneFull = listId.startsWith("lane:") && blocks.length >= MAX_LANE_BLOCKS;
-  const disabled = props.maxed || laneFull;
+  // Dual Rig and WDW lanes hold 10 blocks each; the reducer drops an add past that.
+  const laneFull = listId !== "top" && blocks.length >= MAX_LANE_BLOCKS;
+  const blocked = laneFull ? LANE_FULL : props.maxed ? (props.wdw ? WDW_FULL : CHAIN_FULL) : undefined;
   return (
     <div ref={setNodeRef} className="chain__list">
       <SortableContext items={blocks.map(({ id }) => id)} strategy={horizontalListSortingStrategy}>
         {blocks.map((block, index) => <span key={block.id} className="chain__item">
-          <Insert listId={listId} index={index} disabled={disabled} label={insertLabel(index)} onAdd={props.onAdd} />
+          <Insert listId={listId} index={index} blocked={blocked} label={insertLabel(index)} onAdd={props.onAdd} />
           {block.lanes ? <Rig rig={block} props={props} /> : <SortableCard block={block} listId={listId} index={index} count={blocks.length} laneTag={laneTag} props={props} />}
         </span>)}
       </SortableContext>
-      <Insert listId={listId} index={blocks.length} disabled={disabled} label={blocks.length ? insertLabel(blocks.length) : `Add a block to lane ${laneTag}`} onAdd={props.onAdd} />
+      <Insert listId={listId} index={blocks.length} blocked={blocked} label={blocks.length ? insertLabel(blocks.length) : `Add a block to lane ${laneTag}`} onAdd={props.onAdd} />
       {!blocks.length && emptyLabel && <span className="chain__empty">{emptyLabel}</span>}
     </div>
   );

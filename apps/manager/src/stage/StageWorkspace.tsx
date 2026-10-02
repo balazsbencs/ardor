@@ -17,6 +17,7 @@ import { UnsavedChangesDialog } from "../presets/workspace/UnsavedChangesDialog"
 import { BankBar } from "./BankBar";
 import { BlockDrawer } from "./BlockDrawer";
 import { ChainStage } from "./ChainStage";
+import { addBlockedReason, MAX_SERIAL_BLOCKS, MAX_WDW_BLOCKS } from "./chainLimits";
 import { ChipStrip } from "./ChipStrip";
 import { EditRail } from "./EditRail";
 import { GlobalDrawer } from "./GlobalDrawer";
@@ -29,10 +30,6 @@ import { whereText } from "./whereText";
 import "./workspace.css";
 
 type Drawer = "none" | "block" | "global" | "scenes";
-
-/** Block limits as before the redesign; Dual Rig lanes cap themselves at 10 inside ChainStage. */
-const MAX_SERIAL_BLOCKS = 10;
-const MAX_WDW_BLOCKS = 20;
 
 function addAction(target: AddTarget, definitionId: string): EditorAction {
   if (target.kind === "lane") return { type: "add-lane-block", definitionId, rigId: target.rigId, lane: target.lane, index: target.index };
@@ -97,9 +94,12 @@ function runShortcut(shortcut: Shortcut, editor: PresetEditor, drawerOpen: boole
       editor.dispatch({ type: "remove-block", blockId: selected.id });
       close();
       return true;
-    case "add":
-      editor.setAddTarget(addTargetAfter(editor.present, selected?.id));
+    case "add": {
+      const target = addTargetAfter(editor.present, selected?.id);
+      if (addBlockedReason(editor.present, target)) return false;
+      editor.setAddTarget(target);
       return true;
+    }
     case "close":
       if (drawerOpen) close();
       return drawerOpen;
@@ -165,7 +165,8 @@ export function StageWorkspace({ onManageFiles, onConnection }: { onManageFiles(
 
   const active = session.device?.active;
   const maxed = present.routing === "wdw" ? editor.allBlocks.length >= MAX_WDW_BLOCKS : present.blocks.length >= MAX_SERIAL_BLOCKS;
-  const addAtEnd = () => editor.setAddTarget(addTargetAfter(present));
+  const endTarget = addTargetAfter(present);
+  const railTarget = addTargetAfter(present, selectedBlockId);
 
   return (
     <div className="edit">
@@ -190,7 +191,8 @@ export function StageWorkspace({ onManageFiles, onConnection }: { onManageFiles(
         ) : (
           <>
             <div className="edit__chips">
-              <ChipStrip blocks={editor.displayedBlocks} wdw={present.routing === "wdw" ? editor.displayedWdw : undefined} selectedId={selectedBlockId} onSelect={select} onMove={dispatch} onAdd={addAtEnd} />
+              <ChipStrip blocks={editor.displayedBlocks} wdw={present.routing === "wdw" ? editor.displayedWdw : undefined} selectedId={selectedBlockId} onSelect={select} onMove={dispatch}
+                addBlocked={addBlockedReason(present, endTarget)} onAdd={() => editor.setAddTarget(endTarget)} />
             </div>
             <StageNotices />
             {shown === "block" && editor.inspectorBlock && (
@@ -202,7 +204,8 @@ export function StageWorkspace({ onManageFiles, onConnection }: { onManageFiles(
           </>
         )}
       </main>
-      <EditRail drawer={shown} focused={focused} onOpen={open} onAdd={() => editor.setAddTarget(addTargetAfter(present, selectedBlockId))} onDone={close} />
+      <EditRail drawer={shown} focused={focused} onOpen={open} addBlocked={addBlockedReason(present, railTarget)}
+        onAdd={() => editor.setAddTarget(railTarget)} onDone={close} />
       <ModuleDrawer open={Boolean(editor.addTarget)} where={whereText(editor.addTarget, present)} disabledIds={editor.disabledDefinitions}
         onOpenChange={(isOpen) => { if (!isOpen) editor.setAddTarget(undefined); }} onChoose={add} />
       <UnsavedChangesDialog open={Boolean(editor.pendingLocation)} busy={editor.saving} onChoice={(choice) => void editor.resolveNavigation(choice)} />
