@@ -1,10 +1,11 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, render, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Asset, Preset } from "../api/types";
 import { EditorProvider, usePresetEditorContext } from "../presets/editor/EditorContext";
-import { useAssetLibrary } from "./useAssetLibrary";
+import { AssetQueueProvider } from "./AssetQueue";
+import { useAssetLibrary, type AssetLibrary } from "./useAssetLibrary";
 
 const asset = (filename: string, sizeBytes = 1): Asset => ({ id: filename, kind: "model", filename, path: `models/${filename}`, sizeBytes });
 const preset: Preset = {
@@ -33,7 +34,7 @@ const session = {
 };
 vi.mock("../connection/deviceSession", () => ({ useDeviceSession: () => session }));
 
-const wrapper = ({ children }: { children: ReactNode }) => <EditorProvider>{children}</EditorProvider>;
+const wrapper = ({ children }: { children: ReactNode }) => <EditorProvider><AssetQueueProvider>{children}</AssetQueueProvider></EditorProvider>;
 const renderLibrary = () => renderHook(() => ({ library: useAssetLibrary("models"), editor: usePresetEditorContext() }), { wrapper });
 
 beforeEach(() => {
@@ -137,6 +138,23 @@ describe("useAssetLibrary", () => {
     expect(result.current.library.notice).toBe("Brown Sound.nam deleted from the pedal.");
   });
 
+  it("refreshes the open kind after a bulk delete", async () => {
+    const { result } = renderLibrary();
+    act(() => result.current.library.askDelete(session.models.map(({ id }) => id)));
+    await act(() => result.current.library.deleteChecked());
+    expect(session.client.deleteAsset).toHaveBeenCalledTimes(2);
+    expect(session.refreshAssets).toHaveBeenCalledWith("models");
+    expect(session.refreshAssetUsage).toHaveBeenCalled();
+    expect(result.current.library.notice).toBe("2 files deleted from the pedal.");
+  });
+
+  it("refreshes the kind after Replace", async () => {
+    const { result } = renderLibrary();
+    act(() => result.current.library.replaceFile(session.models[1], new File(["y"], "picked.nam")));
+    await waitFor(() => expect(session.refreshAssets).toHaveBeenCalledWith("models"));
+    expect(session.uploadAsset).toHaveBeenCalledWith("models", expect.objectContaining({ name: "Clean.nam" }), true);
+  });
+
   it("names the files it could not delete", async () => {
     session.client.deleteAsset.mockRejectedValueOnce(new Error("busy"));
     const { result } = renderLibrary();
@@ -214,5 +232,21 @@ describe("useAssetLibrary", () => {
     const { result } = renderLibrary();
     act(() => result.current.library.announce("Amp installed."));
     expect(result.current.library.notice).toBe("Amp installed.");
+  });
+
+  it("keeps uploading and keeps parked conflicts when the Assets view closes", async () => {
+    let release = () => undefined as void;
+    session.uploadAsset.mockImplementationOnce(() => new Promise((resolve) => { release = () => resolve({}); }));
+    const ref: { current?: AssetLibrary } = {};
+    function Library() { ref.current = useAssetLibrary("models"); return null; }
+    const Harness = ({ open }: { open: boolean }) => (open ? <Library /> : null);
+    const { rerender } = render(<Harness open />, { wrapper });
+    act(() => ref.current!.enqueue([new File(["x"], "A.nam"), new File(["x"], "B.nam"), new File(["x"], "Clean.nam")]));
+    await waitFor(() => expect(session.uploadAsset).toHaveBeenCalledTimes(1));
+    rerender(<Harness open={false} />);
+    await act(async () => release());
+    await waitFor(() => expect(session.uploadAsset).toHaveBeenCalledWith("models", expect.objectContaining({ name: "B.nam" }), false));
+    rerender(<Harness open />);
+    await waitFor(() => expect(ref.current!.queue.map(({ file, state }) => [file.name, state])).toEqual([["Clean.nam", "conflict"]]));
   });
 });

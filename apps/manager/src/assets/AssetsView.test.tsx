@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArdorApiError } from "../api/errors";
 import type { Asset, AssetUsageEntry, Preset } from "../api/types";
 import { renderWithEditor } from "../stage/renderWithEditor";
+import { AssetQueueProvider } from "./AssetQueue";
 import { AssetsView } from "./AssetsView";
 
 const asset = (filename: string, kind: "model" | "ir" = "model", sizeBytes = 400 * 1024, dir = "models"): Asset =>
@@ -41,7 +42,7 @@ function renderAssets(props: Partial<Parameters<typeof AssetsView>[0]> = {}) {
   const onOpenPreset = vi.fn();
   const onFilesTaken = vi.fn();
   const onBack = vi.fn();
-  const view = renderWithEditor(<AssetsView onFilesTaken={onFilesTaken} onOpenPreset={onOpenPreset} onBack={onBack} {...props} />);
+  const view = renderWithEditor(<AssetQueueProvider><AssetsView onFilesTaken={onFilesTaken} onOpenPreset={onOpenPreset} onBack={onBack} {...props} /></AssetQueueProvider>);
   return { ...view, onOpenPreset, onFilesTaken, onBack };
 }
 const fileInput = () => document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -203,6 +204,26 @@ describe("AssetsView", () => {
     await waitFor(() => expect(session.uploadAsset).toHaveBeenCalledWith("models", expect.objectContaining({ name: "Next.nam" }), false));
     await userEvent.click(screen.getByRole("button", { name: "Replace" }));
     await waitFor(() => expect(session.uploadAsset).toHaveBeenCalledWith("models", expect.objectContaining({ name: "Clean.nam" }), true));
+  });
+
+  it("shows the conflicts of every kind, each with its kind", async () => {
+    renderAssets();
+    await userEvent.upload(fileInput(), [new File(["x"], "Clean.nam"), new File(["x"], "Room.wav")], { applyAccept: false });
+    const rows = await screen.findAllByRole("alert");
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent("NAM models");
+    expect(rows[0]).toHaveTextContent("Clean.nam is already on the pedal.");
+    expect(rows[1]).toHaveTextContent("Cabinet IRs");
+    expect(rows[1]).toHaveTextContent("Room.wav is already on the pedal.");
+  });
+
+  it("shows a failed upload of another kind with its kind", async () => {
+    session.uploadAsset.mockRejectedValueOnce(new Error("Disk full"));
+    renderAssets();
+    await userEvent.upload(fileInput(), [new File(["x"], "Hall2.wav")], { applyAccept: false });
+    await userEvent.click(screen.getByRole("button", { name: /NAM models/ }));
+    expect(await screen.findByText(/could not be uploaded/)).toBeInTheDocument();
+    expect(screen.getByText(/could not be uploaded/).closest(".aq")).toHaveTextContent("Cabinet IRs");
   });
 
   it("skips a conflicting file", async () => {

@@ -1,6 +1,7 @@
 import { Upload } from "lucide-react";
 import { Suspense, lazy, useEffect, useState } from "react";
 
+import { AssetQueueProvider } from "../assets/AssetQueue";
 import { AssetsView } from "../assets/AssetsView";
 import { ConnectionDialog } from "../connection/ConnectionDialog";
 import { EditorProvider, usePresetEditorContext } from "../presets/editor/EditorContext";
@@ -17,7 +18,8 @@ const SettingsDialog = lazy(() => import("../settings/SettingsDialog").then((mod
 
 type ShellProps = { tone3000DeviceId?: string; onCloudDevices?: () => void; onConnection(): void; onSettings(): void };
 
-/** The app bar and the active view. It sits inside EditorProvider so both views share one draft. */
+/** The app bar and the active view. It sits inside EditorProvider so both views share one draft,
+ * and inside AssetQueueProvider so uploads keep running in the Edit view. */
 function Shell({ tone3000DeviceId, onCloudDevices, onConnection, onSettings }: ShellProps) {
   const editor = usePresetEditorContext();
   const { view, assetKind, goto } = useAppView();
@@ -54,8 +56,10 @@ export function AppShell({ onCloudDevices, tone3000DeviceId }: { onCloudDevices?
     <SurfaceProvider value={{ palette }}>
       <div className="app-shell" data-palette={palette} style={paletteVariables(palette)}>
         <EditorProvider>
-          <Shell tone3000DeviceId={tone3000DeviceId} onCloudDevices={onCloudDevices}
-            onConnection={() => setConnectionOpen(true)} onSettings={() => setSettingsOpen(true)} />
+          <AssetQueueProvider>
+            <Shell tone3000DeviceId={tone3000DeviceId} onCloudDevices={onCloudDevices}
+              onConnection={() => setConnectionOpen(true)} onSettings={() => setSettingsOpen(true)} />
+          </AssetQueueProvider>
         </EditorProvider>
         <ConnectionDialog open={connectionOpen} onOpenChange={setConnectionOpen} />
         {!hostedCloud && settingsOpen && (

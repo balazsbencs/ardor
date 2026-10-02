@@ -64,6 +64,7 @@
 .aq--warn, .aq--bad { display: flex; gap: 12px; padding: 10px 14px; font: 500 14px/1.4 var(--f-body); color: var(--muted); }
 .aq--warn span, .aq--bad span { flex: 1; }
 .aq--warn b, .aq--bad b { color: var(--text); font-weight: 600; }
+.aq--warn .lb-tag, .aq--bad .lb-tag { height: 20px; font-size: 11px; }
 .aq--warn { border-color: var(--warning); }
 .aq--warn svg { color: var(--warning); }
 .aq--bad { border-color: var(--danger-rule); }

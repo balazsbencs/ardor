@@ -1,16 +1,16 @@
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { ArdorApiError } from "../api/errors";
 import type { Asset, AssetKind } from "../api/types";
 import { useDeviceSession } from "../connection/deviceSession";
 import { usePresetEditorContext } from "../presets/editor/EditorContext";
+import { failureReason as reason, useAssetQueue } from "./AssetQueue";
 import { missingFiles } from "./assetUsage";
-import { KIND_EXTENSIONS, KIND_LABELS, visibleAssets, type AssetSort } from "./libraryView";
+import { KIND_EXTENSIONS, visibleAssets, type AssetSort } from "./libraryView";
 import { renameDraftActions } from "./renameDraft";
-import { nextUpload, routeKind, uploadQueue } from "./uploadQueue";
+import { routeKind } from "./uploadQueue";
 
-const reason = (failure: unknown, fallback: string) => (failure instanceof Error ? failure.message : fallback);
-
+/** The Assets view state. The upload queue and the notices live in AssetQueueProvider, above the views. */
 export function useAssetLibrary(initialKind: AssetKind = "models") {
   const session = useDeviceSession();
   const editor = usePresetEditorContext();
@@ -22,10 +22,8 @@ export function useAssetLibrary(initialKind: AssetKind = "models") {
   const [sort, setSort] = useState<AssetSort>("name");
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [openId, setOpenId] = useState<string>();
-  const [queue, dispatchQueue] = useReducer(uploadQueue, []);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [notice, setNotice] = useState<string>();
-  const [error, setError] = useState<string>();
+  const { queue, dispatchQueue, notice, error, setNotice, setError, refreshLists } = useAssetQueue();
 
   const inventory = { models: session.models, irs: session.irs, reverbIrs: session.reverbIrs };
   const files = kind === "models" ? session.models : kind === "irs" ? session.irs : session.reverbIrs;
@@ -73,39 +71,6 @@ export function useAssetLibrary(initialKind: AssetKind = "models") {
     setOpenId(undefined);
     const routed = incoming.map(({ name }) => routeKind(name, kind)).find((value) => value !== undefined);
     if (routed && routed !== kind) setKind(routed);
-  };
-
-  // Uploads one waiting item at a time. Conflicts stay parked until the person resolves them.
-  useEffect(() => {
-    if (queue.some(({ state }) => state === "uploading")) return;
-    const item = nextUpload(queue);
-    if (!item) return;
-    dispatchQueue({ type: "start", id: item.id });
-    void (async () => {
-      const { session: live } = latest.current;
-      try {
-        const uploaded = await live.uploadAsset(item.kind, item.file, item.replace);
-        if (!uploaded) throw new Error(`Could not upload ${item.file.name}.`);
-        dispatchQueue({ type: "done", id: item.id });
-        setNotice(`${item.file.name} uploaded to ${KIND_LABELS[item.kind]}.`);
-        await refreshLists(item.kind, `${item.file.name} uploaded, but the file list did not refresh.`);
-      } catch (failure) {
-        dispatchQueue({ type: "failed", id: item.id });
-        setError(reason(failure, `Could not upload ${item.file.name}.`));
-      }
-    })();
-  }, [queue]);
-
-  // The server change already happened. A refresh failure is reported on its own and never undoes the notice.
-  const refreshLists = async (refreshKind: AssetKind, fallback: string, keep?: string) => {
-    const { session: live } = latest.current;
-    try {
-      await live.refreshAssets(refreshKind);
-      await live.refreshAssetUsage?.();
-    } catch (failure) {
-      const message = reason(failure, fallback);
-      setError(keep ? `${keep} ${message}` : message);
-    }
   };
 
   const replaceFile = (asset: Asset, file: File) => enqueue([new File([file], asset.filename)], true);

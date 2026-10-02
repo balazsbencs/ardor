@@ -2,8 +2,10 @@ import { AlertTriangle, Copy, Upload, X } from "lucide-react";
 
 import type { AssetKind } from "../api/types";
 import { Button } from "../components/ui";
+import { Tag } from "../ui/Tag";
 import type { missingFiles } from "./assetUsage";
 import { presetName } from "./kindInfo";
+import { KIND_LABELS } from "./libraryView";
 import type { QueueItem } from "./uploadQueue";
 
 type Missing = ReturnType<typeof missingFiles>[number];
@@ -34,7 +36,7 @@ function QueueRow({ item, onResolve, onDismiss }: {
     return (
       <div className="aq aq--bad" role={unsupported ? "alert" : undefined}>
         <X size={18} aria-hidden="true" />
-        <span><b>{name}</b> {unsupported ? "is not a .nam or .wav file. The pedal takes NAM models and WAV impulse responses." : "could not be uploaded."}</span>
+        <span>{!unsupported && <><Tag>{KIND_LABELS[item.kind]}</Tag>{" "}</>}<b>{name}</b> {unsupported ? "is not a .nam or .wav file. The pedal takes NAM models and WAV impulse responses." : "could not be uploaded."}</span>
         <Button className="abtn" variant="quiet" onClick={() => onDismiss(item.id)}>Dismiss</Button>
       </div>
     );
@@ -43,7 +45,7 @@ function QueueRow({ item, onResolve, onDismiss }: {
     return (
       <div className="aq aq--warn" role="alert">
         <Copy size={18} aria-hidden="true" />
-        <span><b>{name}</b> is already on the pedal. Replace it? Presets that use it get the new file.</span>
+        <span><Tag>{KIND_LABELS[item.kind]}</Tag> <b>{name}</b> is already on the pedal. Replace it? Presets that use it get the new file.</span>
         <Button className="abtn" onClick={() => onResolve(item.id, "skip")}>Skip</Button>
         <Button className="abtn" variant="danger" onClick={() => onResolve(item.id, "replace")}>Replace</Button>
       </div>
@@ -57,9 +59,10 @@ function QueueRow({ item, onResolve, onDismiss }: {
   );
 }
 
+/** Running uploads of the open kind, and every conflict or failure whatever its kind, so none hides. */
 export function QueueRows({ queue, kind, onResolve, onDismiss }: {
   queue: QueueItem[]; kind: AssetKind; onResolve(id: number, choice: "replace" | "skip"): void; onDismiss(id: number): void;
 }) {
-  return <>{queue.filter((item) => item.kind === kind || item.state === "rejected")
+  return <>{queue.filter((item) => item.kind === kind || item.state === "rejected" || item.state === "conflict")
     .map((item) => <QueueRow key={item.id} item={item} onResolve={onResolve} onDismiss={onDismiss} />)}</>;
 }
