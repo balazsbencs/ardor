@@ -47,4 +47,17 @@ describe("BlockCard", () => {
     expect(screen.getByText("FILE MISSING")).toBeInTheDocument();
     expect(screen.getByText("FIX")).toHaveAttribute("title", "Pick a model.");
   });
+
+  it("shows Source and Nano on a NAM card, like the mockup", () => {
+    const nam = { ...blockOf("nam", "n1"), asset: "models/Plexi.nam", params: { inputMode: "left", useNano: true } };
+    render(<BlockCard block={nam} {...props} />);
+    expect(screen.getByText("Source").parentElement).toHaveTextContent("Source Left / Mono");
+    expect(screen.getByText("Nano").parentElement).toHaveTextContent("Nano On");
+  });
+
+  it("falls back to the NAM defaults", () => {
+    render(<BlockCard block={{ ...blockOf("nam", "n1"), params: {} }} {...props} />);
+    expect(screen.getByText("Source").parentElement).toHaveTextContent("Source L+R Average");
+    expect(screen.getByText("Nano").parentElement).toHaveTextContent("Nano Off");
+  });
 });

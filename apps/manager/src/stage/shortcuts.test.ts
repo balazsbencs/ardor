@@ -35,6 +35,16 @@ describe("shortcutFor", () => {
   });
 });
 
+describe("shortcutFor on a focused slider", () => {
+  it("closes the drawer with Escape, while text fields keep their own Escape", () => {
+    const slider = document.createElement("div");
+    slider.setAttribute("role", "slider");
+    expect(shortcutFor(key({ key: "Escape", target: slider }))).toBe("close");
+    expect(shortcutFor(key({ key: "Escape", target: document.createElement("input") }))).toBeUndefined();
+    expect(shortcutFor(key({ key: "Delete", target: slider }))).toBeUndefined();
+  });
+});
+
 describe("addTargetAfter", () => {
   const global = { inputGainDb: 0, outputGainDb: 0, safetyLimitDb: -1 };
 

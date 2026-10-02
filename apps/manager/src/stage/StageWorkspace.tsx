@@ -48,7 +48,6 @@ function OfflineCard({ onConnection }: { onConnection(): void }) {
     <main className="edit edit--offline">
       <div className="offline">
         <CloudOff size={38} aria-hidden="true" />
-        <p className="offline__eyebrow">Ardor Manager</p>
         <h1>Connect to your pedal</h1>
         <p>Manage preset chains, models, cabinet IRs and reverb IRs from one desktop workspace.</p>
         <Button variant="primary" onClick={onConnection}>Connect to device</Button>

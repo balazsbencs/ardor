@@ -11,7 +11,7 @@ import type { ValidationIssue } from "../presets/editor/presetValidation";
 import { capFor, familyOf } from "../ui/family";
 import { fileStem } from "../ui/format";
 import { Tag } from "../ui/Tag";
-import { mainControls } from "./mainValues";
+import { mainControls, textValues } from "./mainValues";
 import "./stage.css";
 
 export type BlockCardProps = {
@@ -55,10 +55,13 @@ export function BlockCard({ block, selected, issues, missingFile, sceneOwnsEnabl
       onNudge(event.key === "ArrowRight" ? 1 : -1);
     } else if (event.key === "Enter" && event.target === event.currentTarget) onSelect();
   };
-  const values = definition ? mainControls(definition).map((control) => {
-    const raw = block.params[control.key];
-    return <Value key={control.key} control={control} value={typeof raw === "number" ? raw : control.defaultValue} />;
-  }) : [];
+  const values = definition ? [
+    ...mainControls(definition).map((control) => {
+      const raw = block.params[control.key];
+      return <Value key={control.key} control={control} value={typeof raw === "number" ? raw : control.defaultValue} />;
+    }),
+    ...textValues(definition, block.params).map(({ key, label, value }) => <div key={key} className="blk__p"><span>{label}</span> <b>{value}</b></div>),
+  ] : [];
   return (
     <div ref={innerRef} style={{ ...style, viewTransitionName: `block-${block.id}` }} role="group" tabIndex={0} data-block-id={block.id}
       aria-label={`${title}, ${capFor(block.type)}, ${block.enabled ? "on" : "bypassed"}`} aria-current={selected || undefined}

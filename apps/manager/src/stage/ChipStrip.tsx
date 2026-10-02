@@ -4,7 +4,7 @@ import {
 import { SortableContext, horizontalListSortingStrategy, sortableKeyboardCoordinates, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Plus, Split } from "lucide-react";
-import type { KeyboardEvent } from "react";
+import { useEffect, useRef, type KeyboardEvent } from "react";
 
 import type { PresetBlock, WdwRouting } from "../api/types";
 import { cx } from "../components/ui";
@@ -30,6 +30,16 @@ type ItemData = { listId: ListId; index: number };
 
 function Chip({ block, listId, index, count, props }: { block: PresetBlock; listId: ListId; index: number; count: number; props: Props }) {
   const sortable = useSortable({ id: block.id, data: { listId, index } satisfies ItemData });
+  const node = useRef<HTMLButtonElement | null>(null);
+  const selected = props.selectedId === block.id;
+  // On a phone the strip scrolls sideways; keep the open block in view. jsdom and old browsers lack the method.
+  useEffect(() => {
+    if (selected) node.current?.scrollIntoView?.({ inline: "nearest", block: "nearest" });
+  }, [selected]);
+  const setRef = (element: HTMLButtonElement | null) => {
+    node.current = element;
+    sortable.setNodeRef(element);
+  };
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.altKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
       event.preventDefault();
@@ -41,9 +51,9 @@ function Chip({ block, listId, index, count, props }: { block: PresetBlock; list
     sortable.listeners?.onKeyDown?.(event);
   };
   return (
-    <button type="button" ref={sortable.setNodeRef} {...sortable.attributes} {...sortable.listeners} onKeyDown={onKeyDown}
-      className={cx("chip", `fam-${familyOf(block.type)}`, props.selectedId === block.id && "is-sel", !block.enabled && "is-off", sortable.isDragging && "is-dragging")}
-      aria-current={props.selectedId === block.id ? "true" : undefined}
+    <button type="button" ref={setRef} {...sortable.attributes} {...sortable.listeners} onKeyDown={onKeyDown}
+      className={cx("chip", `fam-${familyOf(block.type)}`, selected && "is-sel", !block.enabled && "is-off", sortable.isDragging && "is-dragging")}
+      aria-current={selected ? "true" : undefined}
       style={{ transform: CSS.Transform.toString(sortable.transform), transition: sortable.transition, viewTransitionName: `block-${block.id}` }}
       onClick={() => props.onSelect(block.id)}>
       <small>{capFor(block.type)}{block.enabled ? "" : " · off"}</small><b>{blockTitle(block)}</b>

@@ -16,7 +16,7 @@ const isSave = (event: KeyInput) =>
 /**
  * The edit screen's key map: Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z, Cmd/Ctrl+S, B, Delete, A and Escape.
  * Cmd/Ctrl+S always saves, so the browser never opens its own Save dialog. Otherwise text fields
- * and open dialogs keep their keys, and a focused slider keeps all but undo and redo.
+ * and open dialogs keep their keys, and a focused slider keeps all but undo, redo and Escape.
  */
 export function shortcutFor(event: KeyInput): Shortcut | undefined {
   if (isSave(event)) return "save";
@@ -25,7 +25,8 @@ export function shortcutFor(event: KeyInput): Shortcut | undefined {
   if (event.metaKey || event.ctrlKey) {
     return !event.altKey && event.key.toLowerCase() === "z" ? (event.shiftKey ? "redo" : "undo") : undefined;
   }
-  if (event.altKey || element?.closest("[role=slider]")) return undefined;
+  if (event.altKey) return undefined;
+  if (element?.closest("[role=slider]")) return event.key === "Escape" ? "close" : undefined;
   return PLAIN_KEYS[event.key];
 }
 

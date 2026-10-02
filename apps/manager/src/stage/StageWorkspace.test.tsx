@@ -191,6 +191,7 @@ describe("StageWorkspace stage and drawer", () => {
     const onConnection = vi.fn();
     render(<AppProviders>{stage(onConnection)}</AppProviders>);
     expect(screen.getByRole("heading", { name: "Connect to your pedal" })).toBeInTheDocument();
+    expect(document.querySelector(".offline__eyebrow")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Connect to device" }));
     expect(onConnection).toHaveBeenCalled();
   });
@@ -306,6 +307,15 @@ describe("StageWorkspace keyboard shortcuts", () => {
     expect(editor().present.blocks[0]).toMatchObject({ enabled: true, params: { mix: edited } });
     await userEvent.keyboard("{Meta>}z{/Meta}");
     expect(editor().present.blocks[0].params.mix).toBe(delayPreset.blocks[0].params.mix);
+  });
+
+  it("closes the drawer with Escape from a focused slider", async () => {
+    renderWithEditor(stage());
+    await userEvent.click(screen.getByRole("group", { name: /Tape Delay/ }));
+    act(() => screen.getByRole("slider", { name: "Mix" }).focus());
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("region", { name: "Tape Delay parameters" })).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Signal chain" })).toBeInTheDocument();
   });
 
   it("leaves text fields alone", async () => {

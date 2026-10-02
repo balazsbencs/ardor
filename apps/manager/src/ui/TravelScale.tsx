@@ -77,6 +77,8 @@ export function TravelScale({ control, value, family, onChange, onFocusControl, 
     if (!element) return undefined;
     const onWheel = (event: WheelEvent) => {
       if (document.activeElement !== element) return;
+      // A sideways swipe has no deltaY; it must not lower the value, and the page may scroll.
+      if (!event.deltaY) return;
       event.preventDefault();
       const { control: c, value: v, onChange: change } = latest.current;
       change(nudge(c, v, event.deltaY < 0 ? 1 : -1, false, event.shiftKey), burstGesture());

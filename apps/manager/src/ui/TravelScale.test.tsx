@@ -70,6 +70,17 @@ describe("TravelScale", () => {
     expect(onChange.mock.calls[0][0]).toBeCloseTo(0.35);
   });
 
+  it("ignores a sideways wheel swipe", () => {
+    const onChange = vi.fn();
+    render(<TravelScale control={mix} value={0.3} family="dly" onChange={onChange} />);
+    const slider = screen.getByRole("slider", { name: "Mix" });
+    slider.focus();
+    fireEvent.wheel(slider, { deltaX: 120, deltaY: 0 });
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.wheel(slider, { deltaY: 100 });
+    expect(onChange.mock.calls[0][0]).toBeCloseTo(0.25);
+  });
+
   it("snaps stepped displays to the nearest choice", () => {
     expect(snapValue(stepped, 0.45)).toBe(0.5);
     expect(positionOf(stepped, 0.9)).toBe(1);

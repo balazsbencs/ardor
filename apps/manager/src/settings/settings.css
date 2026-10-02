@@ -32,7 +32,7 @@
 
 .accent-setting { display: grid; justify-items: start; gap: 16px; }
 .accent-preview { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 88px; padding: 16px; border: 1px solid var(--line); background: var(--surface-muted); }
-.accent-preview > span { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--line-strong); color: var(--lamp); background: var(--surface); }
+.accent-preview > span { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--line-strong); color: var(--text); background: var(--surface); }
 .accent-preview strong, .accent-preview small { display: block; }
 .accent-preview strong { font: 700 18px/1 var(--f-cond); letter-spacing: .06em; text-transform: uppercase; }
 .accent-preview small { margin-top: 4px; color: var(--muted); font-size: 14px; }
