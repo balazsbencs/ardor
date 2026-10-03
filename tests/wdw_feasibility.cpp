@@ -375,34 +375,6 @@ double percentile(std::vector<double> samples, double fraction)
   return samples[index];
 }
 
-std::optional<std::size_t> calibrateFirstArrival(ardor::RuntimeChain& chain,
-                                                 std::size_t blockSize)
-{
-  constexpr std::size_t kProbeBlocks = 256;
-  constexpr float kArrivalThreshold = 1.0e-7f;
-  std::vector<float> input(blockSize, 0.0f);
-  std::vector<float> left(blockSize, 0.0f);
-  std::vector<float> right(blockSize, 0.0f);
-  std::optional<std::size_t> arrival;
-
-  chain.reset();
-  for (std::size_t block = 0; block < kProbeBlocks && !arrival; ++block) {
-    std::fill(input.begin(), input.end(), 0.0f);
-    if (block == 0) input.front() = 1.0f;
-    chain.processBlock(input.data(), left.data(), right.data(), blockSize);
-    for (std::size_t frame = 0; frame < blockSize; ++frame) {
-      if (std::isfinite(left[frame]) && std::isfinite(right[frame])
-          && std::max(std::fabs(left[frame]), std::fabs(right[frame]))
-               > kArrivalThreshold) {
-        arrival = block * blockSize + frame;
-        break;
-      }
-    }
-  }
-  chain.reset();
-  return arrival;
-}
-
 class WdwHarness {
 public:
   WdwHarness(const Options& options, std::size_t blockSize, bool pipelined,
@@ -424,12 +396,10 @@ public:
     executorOptions.collectTiming = true;
     executorOptions.maxHoldBlocks = 1;
 
-    const auto dryLatency = calibrateFirstArrival(*dryChain_, blockSize);
-    const auto wetLatency = calibrateFirstArrival(*wetChain_, blockSize);
-    require(dryLatency.has_value(), "dry lane produced no measurable impulse arrival");
-    require(wetLatency.has_value(), "wet lane produced no measurable impulse arrival");
-    dryLatencyFrames_ = dryLatency.value_or(0);
-    wetLatencyFrames_ = wetLatency.value_or(0);
+    dryLatencyFrames_ = dryChain_->latencyFrames();
+    wetLatencyFrames_ = wetChain_->latencyFrames();
+    dryChain_->reset();
+    wetChain_->reset();
 
     ardor::WdwRoutingProgramOptions programOptions;
     programOptions.executor = executorOptions;

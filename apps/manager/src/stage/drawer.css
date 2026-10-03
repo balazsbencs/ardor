@@ -1,0 +1,71 @@
+/* Block drawer, chip strip and scene scope, ported from the manager-taste mockups. */
+.drawer { flex: 1; min-height: 0; overflow-y: auto; border-top: 4px solid var(--fam); background: var(--bg); }
+.drawer__head { display: flex; align-items: center; gap: 14px; padding: 18px var(--gut) 14px; flex-wrap: wrap; }
+.drawer__head h2 { margin: 0; font: 700 38px/1 var(--f-cond); text-transform: uppercase; letter-spacing: .005em; }
+.drawer__sub { font: 500 15px/1 var(--f-body); color: var(--muted); }
+/* The family tag is filled with the family colour, like the card cap. */
+.drawer__fam { display: inline-flex; flex: none; }
+.drawer__fam .lb-tag { background: var(--fam); border-color: var(--fam); color: var(--bg); }
+/* A fixed value, not a control: dashed edge, as in the mockup. */
+.lb-ctl.lb-ctl--fixed { border-style: dashed; }
+.lb-ctl input[type="checkbox"] {
+  appearance: none; width: 16px; height: 16px; margin: 0 6px 0 0; vertical-align: -3px; border: 1px solid var(--line-strong);
+  border-radius: 0; background: var(--surface); display: inline-grid; place-content: center; cursor: pointer;
+}
+.lb-ctl input[type="checkbox"]::before { content: ""; width: 8px; height: 8px; background: var(--text); transform: scale(0); }
+.lb-ctl input[type="checkbox"]:checked { border-color: var(--text); }
+.lb-ctl input[type="checkbox"]:checked::before { transform: scale(1); }
+.lb-ctl input[type="checkbox"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.lb-ctl input[type="checkbox"]:disabled { opacity: .45; cursor: default; }
+.drawer__actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.drawer__modes { padding: 0 var(--gut) 12px; }
+.drawer__issues { list-style: none; margin: 0 var(--gut) 12px; padding: 0; display: grid; gap: 4px; font: 500 14px/1.4 var(--f-body); color: var(--muted); }
+.drawer__issues li.is-error { color: var(--danger); }
+.drawer__issues li.is-warning { color: var(--warning); }
+.pow-big[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.ctlgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; padding: 0 var(--gut) 24px; }
+.ctlgrid__lane { grid-column: 1 / -1; margin: 6px 0 0; font: 700 16px/1 var(--f-cond); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.lb-ctl--wide { grid-column: 1 / -1; }
+.scene-note { margin: 0 var(--gut) 14px; padding: 10px 14px; border: 1px solid var(--line-strong); background: var(--surface); font: 500 14px/1.4 var(--f-body); color: var(--muted); display: flex; gap: 10px; align-items: center; }
+.scene-note b { color: var(--text); }
+.lb-missing { margin: 2px 0 6px; padding: 8px 10px; background: color-mix(in srgb, var(--warning) 10%, transparent); border: 1px solid var(--warning); font: 500 13px/1.35 var(--f-body); color: var(--muted); }
+.lb-note { margin: 2px 0 0; font: 400 13px/1.4 var(--f-body); color: var(--muted); }
+.lampdot { display: inline-block; width: 8px; height: 8px; background: var(--lamp); margin-left: 6px; vertical-align: 1px; }
+
+.chips { display: flex; align-items: stretch; gap: 6px; min-width: max-content; }
+.chips__list { display: flex; align-items: stretch; gap: 6px; }
+.chip {
+  flex: none; width: 148px; height: 54px; background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--fam);
+  padding: 4px 10px 0; text-align: left; display: flex; flex-direction: column; justify-content: center; gap: 4px; color: var(--text);
+  user-select: none; touch-action: pan-x;
+}
+.chip:hover { border-color: var(--line-strong); border-top-color: var(--fam); }
+.chip small { font: 600 10.5px/1 var(--f-cond); letter-spacing: .14em; color: var(--muted); text-transform: uppercase; white-space: nowrap; }
+.chip b { font: 700 16px/1 var(--f-cond); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip[aria-current="true"] { border: 2px solid var(--text); border-top: 4px solid var(--fam); background: var(--plate-hi); }
+.chip.is-off { background: repeating-linear-gradient(135deg, var(--surface) 0 8px, color-mix(in srgb, var(--surface) 94%, var(--text)) 8px 10px); }
+.chip.is-off b { color: var(--disabled); }
+.chip.is-dragging { opacity: .6; }
+.chip-jack { flex: none; width: 56px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line); background: var(--surface-muted); font: 700 14px/1 var(--f-cond); letter-spacing: .12em; }
+.chip-add { flex: none; width: 44px; border: 1px dashed var(--line-strong); background: none; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.chip-add:hover:not(:disabled) { color: var(--text); border-color: var(--muted); }
+.chip-add:disabled { opacity: .4; cursor: not-allowed; }
+.chip-rig { display: flex; flex: none; border: 1px solid var(--line); background: var(--surface-muted); }
+.chip-rig__head { width: 54px; border: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font: 700 12px/1 var(--f-cond); letter-spacing: .12em; color: var(--muted); border-right: 1px solid var(--line); }
+.chip-rig__head[aria-current="true"] { color: var(--text); }
+.chip-rig__lanes { display: grid; gap: 2px; padding: 2px; }
+.chip-rig__lane { display: flex; align-items: stretch; gap: 2px; }
+.chips__list--lane { gap: 2px; min-height: 24px; }
+.chips__list--lane .chip { height: 24px; width: 118px; padding: 0 8px; border-top-width: 3px; flex-direction: row; align-items: center; }
+.chips__list--lane .chip small { display: none; }
+.chips__list--lane .chip b { font-size: 13px; }
+.chip-lane { width: 20px; display: flex; align-items: center; justify-content: center; font: 700 12px/1 var(--f-cond); color: var(--bg); background: var(--utility); }
+.chip-rig__lane + .chip-rig__lane .chip-lane { background: var(--amp); }
+.chip-lane--word { width: auto; padding: 0 5px; font-size: 11px; letter-spacing: .08em; }
+
+@media (max-width: 720px) {
+  .drawer__head h2 { font-size: 28px; }
+  .drawer__actions { width: 100%; margin: 0; }
+  .ctlgrid { grid-template-columns: 1fr; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .chip { transition: none !important; } }

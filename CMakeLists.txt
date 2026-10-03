@@ -700,6 +700,18 @@ if(UNIX)
   target_link_libraries(pedal-wdw-routing-program-smoke PRIVATE pthread)
 endif()
 
+add_executable(pedal-wdw-latency-regression tests/wdw_latency_regression.cpp)
+target_link_libraries(pedal-wdw-latency-regression PRIVATE ardor_audio ardor_dsp)
+target_compile_definitions(pedal-wdw-latency-regression PRIVATE
+  ARDOR_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+  ARDOR_NAM_EXAMPLE_MODEL="${neuralampmodelercore_SOURCE_DIR}/example_models/lstm.nam")
+# Exercise console EQ when its separate feature is available, while allowing
+# the latency regression to build independently of that feature branch.
+get_target_property(wdw_equalizer_sources ardor_equalizer SOURCES)
+if("src/equalizer/ConsoleEqProcessor.cpp" IN_LIST wdw_equalizer_sources)
+  target_compile_definitions(pedal-wdw-latency-regression PRIVATE ARDOR_WDW_HAS_CONSOLE_EQ=1)
+endif()
+
 add_executable(pedal-wdw-routing-builder-smoke tests/wdw_routing_builder_smoke.cpp)
 target_link_libraries(pedal-wdw-routing-builder-smoke PRIVATE ardor_audio ardor_dsp)
 target_compile_definitions(pedal-wdw-routing-builder-smoke PRIVATE
@@ -781,6 +793,7 @@ add_test(NAME pedal-flexible-routing-engine-smoke COMMAND pedal-flexible-routing
 add_test(NAME pedal-wdw-pair-executor-smoke COMMAND pedal-wdw-pair-executor-smoke)
 add_test(NAME pedal-wdw-routing-program-smoke COMMAND pedal-wdw-routing-program-smoke)
 add_test(NAME pedal-wdw-routing-builder-smoke COMMAND pedal-wdw-routing-builder-smoke)
+add_test(NAME pedal-wdw-latency-regression COMMAND pedal-wdw-latency-regression)
 add_test(NAME pedal-tuner-smoke COMMAND pedal-tuner-smoke)
 add_test(NAME pedal-nam-processor-smoke COMMAND pedal-nam-processor-smoke)
 add_test(NAME pedal-ui-model-smoke COMMAND pedal-ui-model-smoke)

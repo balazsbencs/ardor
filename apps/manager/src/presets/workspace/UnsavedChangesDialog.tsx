@@ -1,7 +1,9 @@
 import * as Dialog from "@radix-ui/react-dialog";
 
-import type { UnsavedChoice } from "../editor/recovery";
+import "../../app/dialogs.css";
+import { Button } from "../../components/ui";
 import { PortalSurface } from "../../theme/surface";
+import type { UnsavedChoice } from "../editor/recovery";
 
 export function UnsavedChangesDialog({
   open,
@@ -16,16 +18,16 @@ export function UnsavedChangesDialog({
     <Dialog.Root open={open} onOpenChange={(nextOpen) => { if (!nextOpen && !busy) onChoice("cancel"); }}>
       <Dialog.Portal>
         <PortalSurface>
-        <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content className="connection-dialog">
-          <Dialog.Title>Unsaved changes</Dialog.Title>
-          <Dialog.Description className="connection-dialog__description">
-            Save this preset before leaving, discard the draft, or stay here.
+        <Dialog.Overlay className="dlg-scrim" />
+        <Dialog.Content className="dlg">
+          <Dialog.Title className="dlg__title">Unsaved changes</Dialog.Title>
+          <Dialog.Description className="dlg__text">
+            Save this preset before you leave. You can also discard the changes or stay here.
           </Dialog.Description>
-          <div className="connection-dialog__actions">
-            <button type="button" disabled={busy} onClick={() => onChoice("cancel")}>Cancel</button>
-            <button type="button" disabled={busy} onClick={() => onChoice("discard")}>Discard</button>
-            <button type="button" disabled={busy} onClick={() => onChoice("save")}>{busy ? "Saving…" : "Save"}</button>
+          <div className="dlg__actions">
+            <Button type="button" variant="quiet" disabled={busy} onClick={() => onChoice("cancel")}>Cancel</Button>
+            <Button type="button" variant="danger" disabled={busy} onClick={() => onChoice("discard")}>Discard</Button>
+            <Button type="button" variant="primary" disabled={busy} onClick={() => onChoice("save")}>{busy ? "Saving…" : "Save"}</Button>
           </div>
         </Dialog.Content>
         </PortalSurface>

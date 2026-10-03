@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scene Grid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Saira:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css?v=1790703660">
+<style>
+  /* Direction 4: the chain is the column head, the scenes are the rows.
+     One look answers "what changes when I press FS 3?". The control
+     lanes (EXP pedal, MIDI CC) sit under the scenes in the same grid. */
+  body { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--bar-h) auto 1fr; height: 100vh; height: 100dvh; overflow: hidden; }
+  :root { --col: 164px; --head: 196px; }
+
+  .tools { display: flex; align-items: center; gap: 10px; padding: 10px var(--gut); border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+  .tools h1 { margin: 0; font: 700 22px/1 var(--f-cond); letter-spacing: .04em; text-transform: uppercase; }
+  .tools .meta { font: 500 14px/1 var(--f-body); color: var(--muted); }
+  .tools .push { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .openin { display: flex; align-items: center; gap: 8px; font: 600 12px/1 var(--f-cond); letter-spacing: .14em; color: var(--bone-2); text-transform: uppercase; }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; min-height: 0; }
+  .grid { overflow: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: var(--rule-strong) transparent; }
+  .gtable { min-width: max-content; padding: 0 var(--gut) 40px 0; }
+  .gr { display: flex; gap: 8px; }
+  .gr + .gr { margin-top: 6px; }
+  .rh {
+    position: sticky; left: 0; z-index: 3; flex: none; width: 214px; background: var(--ground); padding: 10px 14px 10px var(--gut);
+    display: flex; flex-direction: column; justify-content: center; gap: 6px; border-right: 1px solid var(--rule);
+  }
+  .rh b { font: 700 20px/1 var(--f-cond); text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .rh small { font: 500 12.5px/1.3 var(--f-body); color: var(--bone-2); }
+  .rh .fs { font: 600 12px/1 var(--f-cond); letter-spacing: .14em; color: var(--muted); text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
+  .rh input { font: 700 20px/1 var(--f-cond); text-transform: uppercase; background: none; border: 0; border-bottom: 1px dashed transparent; width: 100%; padding: 0; }
+  .rh input:hover { border-bottom-color: var(--rule-strong); }
+  .rh input:focus { outline: none; border-bottom-color: var(--bone); }
+  .rh .recall { height: 26px; padding: 0 8px; font-size: 12px; }
+  .rh.is-live { background: var(--lamp); color: var(--lamp-ink); border-right-color: var(--lamp); }
+  .rh.is-live small, .rh.is-live .fs { color: var(--lamp-ink); }
+  .rh.is-live input { color: var(--lamp-ink); }
+  .rh.is-live .btn { background: var(--lamp-ink); color: var(--lamp); border-color: var(--lamp-ink); }
+  .rh.is-scope { box-shadow: inset 0 0 0 2px var(--bone); }
+  .rh.is-live.is-scope { box-shadow: inset 0 0 0 2px var(--lamp-ink); }
+
+  .ghead { position: sticky; top: 0; z-index: 4; background: var(--ground); padding-top: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
+  .ghead .rh { justify-content: flex-end; z-index: 5; }
+  .ghead .chain__list { gap: 8px; align-items: stretch; }
+  .ghead .blk { --card-w: var(--col); --card-h: var(--head); }
+  .ghead .blk__name { font-size: 20px; }
+  .ghead .blk.is-sel { transform: none; box-shadow: none; }
+  .lanetag { position: absolute; left: 10px; bottom: 10px; font: 700 12px/1 var(--f-cond); letter-spacing: .12em; padding: 4px 6px; color: var(--ground); }
+
+  .cell {
+    flex: none; width: var(--col); min-height: 78px; background: var(--plate); border: 1px solid var(--rule); padding: 9px 10px;
+    display: flex; flex-direction: column; gap: 5px; text-align: left; color: var(--bone); position: relative;
+  }
+  .cell:hover { border-color: var(--rule-strong); }
+  .cell.is-sel { border: 2px solid var(--bone); padding: 8px 9px; }
+  .cell.is-off { background: repeating-linear-gradient(135deg, var(--plate) 0 10px, #24282b 10px 13px); }
+  .cell .st { font: 700 12px/1 var(--f-cond); letter-spacing: .16em; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+  .cell .st::before { content: ""; width: 8px; height: 8px; background: var(--fam); }
+  .cell.is-off .st { color: var(--bone-2); }
+  .cell.is-off .st::before { background: var(--bone-3); }
+  .cell .ch { font: 500 13px/1.25 var(--f-body); color: var(--bone-2); display: flex; justify-content: space-between; gap: 6px; }
+  .cell .ch b { color: var(--bone); font-weight: 600; white-space: nowrap; }
+  .cell .ch.is-ov b::before { content: ""; display: inline-block; width: 6px; height: 6px; background: var(--bone); margin-right: 5px; vertical-align: 2px; }
+  .cell .same { font: 500 12.5px/1.2 var(--f-body); color: var(--muted); }
+  .cell.is-changed { border-top: 3px solid var(--bone); padding-top: 7px; }
+  .cell.is-sel.is-changed { padding-top: 6px; }
+  .cell--base { background: var(--recess); }
+  .cell--lane { min-height: 56px; background: var(--ground); border-style: dashed; justify-content: center; }
+  .cell--lane.has { border-style: solid; background: var(--recess); }
+  .cell--lane .ch { font-size: 12.5px; }
+  .sep { height: 18px; }
+  .sep-label { font: 600 12px/1 var(--f-cond); letter-spacing: .16em; color: var(--muted); text-transform: uppercase; padding: 6px 14px 6px var(--gut); position: sticky; left: 0; width: 214px; }
+
+  .insp { border-left: 1px solid var(--rule); background: var(--recess); display: flex; flex-direction: column; min-height: 0; }
+  .insp__head { padding: 16px 18px 12px; border-bottom: 4px solid var(--fam); display: grid; gap: 10px; }
+  .insp__head h2 { margin: 0; font: 700 28px/1 var(--f-cond); text-transform: uppercase; }
+  .insp__scope { font: 500 14px/1.35 var(--f-body); color: var(--bone-2); }
+  .insp__scope b { color: var(--bone); }
+  .insp__head .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .insp__body { overflow-y: auto; padding: 14px 18px 30px; display: grid; gap: 8px; align-content: start; }
+  .insp__body .ctl { background: var(--ground); }
+  .insp__empty { padding: 20px 18px; color: var(--bone-2); font: 400 14.5px/1.5 var(--f-body); display: grid; gap: 14px; }
+  .insp__empty h2 { margin: 0; font: 700 24px/1 var(--f-cond); text-transform: uppercase; color: var(--bone); }
+  .legend { display: grid; gap: 8px; }
+  .legend div { display: flex; gap: 10px; align-items: center; }
+  .legend i { width: 30px; height: 18px; border: 1px solid var(--rule); background: var(--plate); flex: none; }
+  .legend i.ch { border-top: 3px solid var(--bone); }
+  .legend i.off { background: repeating-linear-gradient(135deg, var(--plate) 0 5px, #2c3034 5px 7px); }
+
+  /* phone */
+  .phone { display: none; }
+  @media (max-width: 1180px) { .layout { grid-template-columns: minmax(0, 1fr) 320px; } }
+  @media (max-width: 720px) {
+    body { overflow: auto; height: auto; display: block; }
+    .appbar .where span, .appbar .conn, .appbar .mockflag, .appbar .tag { display: none; }
+    .tools, .layout { display: none; }
+    .phone { display: block; padding-bottom: 90px; }
+    .ptabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 12px var(--gut) 8px; }
+    .ptabs .btn { height: 64px; flex-direction: column; gap: 4px; align-items: flex-start; padding: 0 10px; font-size: 15px; }
+    .ptabs .btn small { font: 600 11px/1 var(--f-cond); letter-spacing: .14em; color: var(--muted); }
+    .ptabs .btn[aria-pressed="true"] { background: var(--bone); color: var(--ground); border-color: var(--bone); }
+    .ptabs .btn[aria-pressed="true"] small { color: var(--ground); }
+    .ptabs .btn.is-live { box-shadow: inset 0 -4px 0 var(--lamp); }
+    .pbase { margin: 0 var(--gut); width: calc(100% - 2 * var(--gut)); }
+    .phone .chain { padding: 14px var(--gut) 20px; }
+    .phone .blk { --card-w: 140px; --card-h: 210px; }
+    .phone .blk__name { font-size: 19px; }
+    .phone h2 { margin: 6px var(--gut) 8px; font: 700 18px/1 var(--f-cond); letter-spacing: .06em; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
+    .plist { margin: 0 var(--gut); border-top: 1px solid var(--rule); }
+    .plist button { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 4px; background: none; border: 0; border-bottom: 1px solid var(--rule); text-align: left; }
+    .plist .sq { width: 12px; height: 12px; background: var(--fam); flex: none; }
+    .plist b { font: 700 17px/1 var(--f-cond); text-transform: uppercase; flex: 1; }
+    .plist span.v { font: 600 14px/1 var(--f-body); color: var(--bone-2); }
+    .sheet { position: fixed; left: 0; right: 0; bottom: 0; max-height: 72vh; z-index: 40; background: var(--recess); border-top: 4px solid var(--fam); overflow-y: auto; box-shadow: 0 -30px 60px -20px rgba(0,0,0,.9); animation: up .28s var(--ease); }
+    @keyframes up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .sheet .insp__head { border-bottom: 1px solid var(--rule); }
+    .sheet .insp__head h2 { font-size: 24px; }
+    .pbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; gap: 8px; padding: 10px var(--gut); background: var(--ground); border-top: 1px solid var(--rule); }
+    .pbar .push { margin-left: auto; }
+  }
+</style>
+</head>
+<body>
+<header class="appbar" id="bar"></header>
+<section class="tools" id="tools"></section>
+<div class="layout"><main class="grid" id="grid" aria-label="Scenes by block"></main><aside class="insp" id="insp" aria-label="Block in scene"></aside></div>
+<div class="phone" id="phone"></div>
+
+<script src="data.js?v=1790703660"></script>
+<script src="core.js?v=1790703660"></script>
+<script src="render.js?v=1790703660"></script>
+<script src="chrome.js?v=1790703660"></script>
+<script src="interact.js?v=1790703660"></script>
+<script>
+(function () {
+  "use strict";
+  const A = window.Ardor;
+  const esc = A.esc;
+  const DEFS = A.DEFS;
+  // Demo MIDI mappings (preset.midiMappings in the real schema).
+  const midi = (p) => {
+    if (p.id !== "p11") return [];
+    const by = (code) => A.allBlocks(p).find((b) => DEFS[b.def].code === code);
+    return [
+      { uid: by("RAT")?.uid, text: "CC 64 · toggle" },
+      { uid: by("TAPE")?.uid, text: "CC 12 · Mix 0 to 50%" },
+    ].filter((m) => m.uid);
+  };
+
+  // Columns: every block in chain order. Lane blocks sit after their Dual Rig.
+  const columns = (p) => {
+    const out = [];
+    p.blocks.forEach((b) => {
+      out.push({ b, lane: null });
+      if (b.lanes) ["a", "b"].forEach((l) => b.lanes[l].forEach((x) => out.push({ b: x, lane: l })));
+    });
+    return out;
+  };
+
+  A.acts.cell = (el) => A.view({ sel: el.dataset.uid, scene: el.dataset.scene || null });
+  A.acts.recall = (el) => { A.view({ live: { presetId: A.get().editId, sceneId: el.dataset.scene } }); A.toast(`Scene ${el.dataset.n} recalled on the pedal`); };
+  A.acts.scenes = () => {
+    const p = A.cur();
+    if (p.scenes) return;
+    A.edit((pp) => ({ ...pp, scenes: ["Scene 1", "Scene 2", "Scene 3", "Scene 4"].map((name, i) => ({ id: `s${i + 1}`, name, ov: {} })) }));
+    A.toast("Four scenes created. Each starts as a copy of the preset.");
+  };
+  A.acts.copyAll = () => {
+    const s = A.get();
+    const p = A.cur();
+    const hit = A.locate(p, s.sel);
+    const sc = A.sceneOf(p, s.scene);
+    if (!hit || !sc) return;
+    const own = Object.entries(sc.ov).filter(([k]) => k.startsWith(`${hit.block.uid}:`));
+    A.edit((pp) => ({ ...pp, scenes: pp.scenes.map((x) => (x.id === sc.id ? x : { ...x, ov: { ...x.ov, ...Object.fromEntries(own) } })) }));
+    A.toast(`${A.blockName(hit.block)} values from ${sc.name} copied to all scenes`);
+  };
+  A.acts.clearBlock = () => {
+    const s = A.get();
+    const p = A.cur();
+    const sc = A.sceneOf(p, s.scene);
+    if (!sc) return;
+    A.edit((pp) => ({ ...pp, scenes: pp.scenes.map((x) => (x.id !== sc.id ? x : { ...x, ov: Object.fromEntries(Object.entries(x.ov).filter(([k]) => !k.startsWith(`${s.sel}:`))) })) }));
+  };
+  document.addEventListener("input", (ev) => {
+    const id = ev.target.dataset.scenename;
+    if (!id) return;
+    const v = ev.target.value;
+    A.edit((p) => ({ ...p, scenes: p.scenes.map((x) => (x.id === id ? { ...x, name: v } : x)) }), { record: false });
+  });
+
+  // The two main values of a block, plus any value the scene changes.
+  function cellBody(p, b, sceneId) {
+    const def = DEFS[b.def];
+    const on = A.isOn(p, b, sceneId);
+    const sc = A.sceneOf(p, sceneId);
+    const ovKeys = sc ? Object.keys(sc.ov).filter((k) => k.startsWith(`${b.uid}:`)).map((k) => k.split(":")[1]) : [];
+    const lines = [];
+    if (sceneId) {
+      ovKeys.filter((k) => k !== "on").forEach((k) => {
+        const prm = A.param(b.def, k);
+        if (prm) lines.push(`<div class="ch is-ov">${esc(prm.label)} <b>${A.fmtText(prm, sc.ov[`${b.uid}:${k}`])}</b></div>`);
+      });
+    } else if (on) {
+      A.D.mainFor(def).slice(0, 2).forEach((k) => { const prm = A.param(b.def, k); if (prm) lines.push(`<div class="ch">${esc(prm.label)} <b>${A.fmtText(prm, b.v[k])}</b></div>`); });
+    }
+    const changed = ovKeys.length > 0;
+    const state = `<span class="st">${on ? "On" : "Off"}${ovKeys.includes("on") ? '<span class="tag tag--scene">SCENE</span>' : ""}</span>`;
+    const body = lines.join("") || (sceneId && !changed ? '<span class="same">Same as preset</span>' : "");
+    return { on, changed, html: state + body };
+  }
+
+  function grid(s, p) {
+    const cols = columns(p);
+    const live = s.live.presetId === p.id ? s.live.sceneId : null;
+    const head = `<div class="gr ghead"><div class="rh"><span class="fs">Chain · ${cols.length} blocks</span><small>Drag a cap to move a block. The whole column moves.</small></div>
+      <div class="chain__list" data-sort-list="main" data-axis="x">${cols.map(({ b, lane }) => {
+        if (b.lanes) return `<div class="blk f-amp is-on ${s.sel === b.uid ? "is-sel" : ""}" data-sort-item data-uid="${b.uid}" data-sort-handle=".blk__cap" data-act="cell" tabindex="0"><div class="blk__cap"><span>Dual rig</span><span class="grip">${A.icon("grip")}</span></div><div class="blk__name">Split</div><div class="blk__params"><div class="blk__p">Lane A <b>${b.lanes.a.length} blocks</b></div><div class="blk__p">Lane B <b>${b.lanes.b.length} blocks</b></div></div></div>`;
+        const card = A.card(p, b, { sel: s.sel, scene: s.scene });
+        return lane ? card.replace("data-sort-item", "").replace(/<\/div>\s*$/, `<span class="lanetag" style="background:var(${lane === "a" ? "--util" : "--amp"})">LANE ${lane.toUpperCase()}</span></div>`) : card;
+      }).join("")}</div></div>`;
+
+    const base = `<div class="gr"><div class="rh ${!s.scene ? "is-scope" : ""}"><span class="fs">Base</span><b>Preset</b><small>Shared values. A scene changes only what it names.</small></div>
+      ${cols.map(({ b }) => { const c = cellBody(p, b, null); return `<button class="cell cell--base ${A.famClass(b)} ${c.on ? "" : "is-off"} ${s.sel === b.uid && !s.scene ? "is-sel" : ""}" data-act="cell" data-uid="${b.uid}" data-scene="">${c.html}</button>`; }).join("")}</div>`;
+
+    const scenes = p.scenes ? p.scenes.map((sc, i) => {
+      const isLive = live === sc.id;
+      return `<div class="gr"><div class="rh ${isLive ? "is-live" : ""} ${s.scene === sc.id ? "is-scope" : ""}">
+          <span class="fs">FS ${i + 1}${isLive ? '<span class="tag tag--ink">LIVE</span>' : `<button class="btn btn--sm recall" data-act="recall" data-scene="${sc.id}" data-n="${i + 1}" title="Recall on the pedal">${A.icon("send")}Recall</button>`}</span>
+          <input value="${esc(sc.name)}" data-scenename="${sc.id}" aria-label="Scene ${i + 1} name" data-fk="sn-${sc.id}">
+          <small>${A.ovCount(p, sc.id) || "No"} changes</small></div>
+        ${cols.map(({ b }) => { const c = cellBody(p, b, sc.id); return `<button class="cell ${A.famClass(b)} ${c.on ? "" : "is-off"} ${c.changed ? "is-changed" : ""} ${s.sel === b.uid && s.scene === sc.id ? "is-sel" : ""}" data-act="cell" data-uid="${b.uid}" data-scene="${sc.id}" aria-label="${esc(A.blockName(b))} in ${esc(sc.name)}">${c.html}</button>`; }).join("")}</div>`;
+    }).join("") : `<div class="gr"><div class="rh"><b>No scenes</b><small>Scenes change blocks and values inside one preset, on FS 1 to 4.</small><button class="btn btn--sm" data-act="scenes">${A.icon("grid")}Create four scenes</button></div></div>`;
+
+    const exp = p.exp;
+    const maps = midi(p);
+    const laneRow = (label, sub, fill) => `<div class="gr"><div class="rh"><b>${label}</b><small>${sub}</small></div>${cols.map(({ b }) => fill(b)).join("")}</div>`;
+    const expRow = laneRow(`${A.icon("pedal")}EXP pedal`, "One control per preset", (b) => {
+      if (exp && exp.uid === b.uid) { const prm = A.param(b.def, exp.key); return `<div class="cell cell--lane has ${A.famClass(b)}"><span class="st">${esc(prm.label)}</span><div class="ch">Heel to toe <b>${A.fmtText(prm, exp.min)} to ${A.fmtText(prm, exp.max)}</b></div></div>`; }
+      return '<div class="cell cell--lane"></div>';
+    });
+    const midiRow = laneRow(`${A.icon("midi")}MIDI CC`, "Channel 1", (b) => {
+      const m = maps.find((x) => x.uid === b.uid);
+      return m ? `<div class="cell cell--lane has ${A.famClass(b)}"><span class="st">Mapped</span><div class="ch"><b>${esc(m.text)}</b></div></div>` : '<div class="cell cell--lane"></div>';
+    });
+    return `<div class="gtable">${head}${base}<div class="sep-label">Scenes</div>${scenes}<div class="sep-label">Control</div>${expRow}${midiRow}</div>`;
+  }
+
+  function inspector(s, p) {
+    const hit = s.sel ? A.locate(p, s.sel) : null;
+    if (!hit || hit.block.lanes) {
+      return `<div class="insp__empty"><h2>Pick a cell</h2>
+        <p>Each row is a scene, each column is a block. Pick a cell to edit that block in that scene. Pick a Preset cell to edit the shared value.</p>
+        <div class="legend"><div><i></i>Same as the preset</div><div><i class="ch"></i>The scene changes a value</div><div><i class="off"></i>Block off in this scene</div></div>
+        <p>Recall sends a scene to the pedal, so you hear it. FS 1 to 4 select scenes on the pedal.</p></div>`;
+    }
+    const b = hit.block;
+    const sc = A.sceneOf(p, s.scene);
+    const on = A.isOn(p, b, s.scene);
+    const idx = sc ? p.scenes.indexOf(sc) + 1 : 0;
+    return `<div class="insp__head ${A.famClass(b)}">
+        <span class="tag" style="background:var(--fam);color:var(--ground);justify-self:start">${esc(DEFS[b.def].cap)}</span>
+        <h2>${esc(A.blockName(b))}</h2>
+        <div class="insp__scope">${sc ? `You edit <b>scene ${idx}, ${esc(sc.name)}</b>. A changed value gets a SCENE mark. Clear it to use the preset value.` : "You edit the <b>preset</b>. Scenes that do not change a value use this one."}</div>
+        <div class="row"><button class="btn btn--sm" data-act="toggle" data-uid="${b.uid}">${A.icon("power")}${on ? "Turn off" : "Turn on"}${sc ? " in scene" : ""}</button>
+          ${sc ? `<button class="btn btn--sm" data-act="copyAll">${A.icon("copy")}To all scenes</button><button class="btn btn--sm" data-act="clearBlock">${A.icon("reset")}Clear scene</button>` : ""}</div>
+      </div>
+      <div class="insp__body">${A.controls(p, b, { scene: s.scene, compact: true, eqH: 120 })}</div>`;
+  }
+
+  function phone(s, p) {
+    const live = s.live.presetId === p.id ? s.live.sceneId : null;
+    const tabs = p.scenes ? `<div class="ptabs">${p.scenes.map((sc, i) => `<button class="btn ${live === sc.id ? "is-live" : ""}" data-act="scene" data-scene="${sc.id}" aria-pressed="${s.scene === sc.id}"><small>FS ${i + 1}${live === sc.id ? " · LIVE" : ""}</small>${esc(sc.name)}</button>`).join("")}</div>
+      <button class="btn btn--sm pbase" data-act="scene" data-scene="" aria-pressed="${!s.scene}">Edit the preset values</button>` : `<div class="ptabs"><button class="btn" data-act="scenes" style="grid-column:1/-1">Create four scenes</button></div>`;
+    const sc = A.sceneOf(p, s.scene);
+    // One row per block, in chain order, with all its changes.
+    const changes = sc ? A.allBlocks(p).map((b) => {
+      const own = Object.entries(sc.ov).filter(([k]) => k.startsWith(`${b.uid}:`));
+      if (!own.length) return "";
+      const text = own.map(([k, v]) => {
+        const key = k.split(":")[1];
+        const prm = key === "on" ? null : A.param(b.def, key);
+        return prm ? `${esc(prm.label)} ${A.fmtText(prm, v)}` : v ? "On" : "Off";
+      }).join(" · ");
+      return `<button class="${A.famClass(b)}" data-act="select" data-uid="${b.uid}"><span class="sq"></span><b>${esc(A.blockName(b))}</b><span class="v">${text}</span></button>`;
+    }).join("") : "";
+    const hit = s.sel ? A.locate(p, s.sel) : null;
+    return `${tabs}
+      <div class="scroll-x" data-keep-scroll="pchain-${p.id}">${A.chain(p, { sel: s.sel, scene: s.scene })}</div>
+      ${sc ? `<h2>Changes in ${esc(sc.name)} <span class="tag tag--line">${A.ovCount(p, sc.id)}</span></h2><div class="plist">${changes || '<p class="note" style="padding:12px 0">No changes. This scene plays the preset.</p>'}</div>` : ""}
+      ${hit && !hit.block.lanes ? `<div class="sheet ${A.famClass(hit.block)}">${inspector(s, p).replace('<div class="row">', `<div class="row"><button class="btn btn--sm btn--icon" data-act="close-sel" aria-label="Close">${A.icon("close")}</button>`)}</div>` : ""}
+      ${hit ? "" : `<div class="pbar">${A.editTools()}<span class="push"></span>${A.liveState()}</div>`}`;
+  }
+
+  A.view({ sel: null, scene: null });
+  A.mount((s) => {
+    const p = A.cur();
+    document.getElementById("bar").innerHTML = `${A.mark()}${A.mockflag(4)}${A.presetTitle()}${A.dirtyTag()}<span class="push"></span>${A.liveState()}${A.conn()}
+      <button class="btn btn--icon btn--quiet" aria-label="Settings">${A.icon("gear")}</button>`;
+    document.getElementById("tools").innerHTML = `<h1>Scenes</h1><span class="meta">${p.scenes ? `4 scenes on FS 1 to 4 · ${p.scenes.reduce((n, x) => n + Object.keys(x.ov).length, 0)} changes` : "No scenes yet"}</span>
+      <span class="push"><span class="openin">Opens in <span class="seg"><button class="btn btn--sm" aria-pressed="false">Presets</button><button class="btn btn--sm" aria-pressed="true">Scenes</button></span></span>
+      <button class="btn" data-act="insert" data-list="main" data-at="${p.blocks.length}">${A.icon("plus")}Add block</button>${A.editTools()}</span>`;
+    const phoneView = matchMedia("(max-width: 720px)").matches;
+    document.getElementById("grid").innerHTML = phoneView ? "" : grid(s, p);
+    document.getElementById("insp").innerHTML = phoneView ? "" : inspector(s, p);
+    document.getElementById("phone").innerHTML = phoneView ? phone(s, p) : "";
+  });
+  matchMedia("(max-width: 720px)").addEventListener("change", () => A.repaint());
+})();
+</script>
+</body>
+</html>

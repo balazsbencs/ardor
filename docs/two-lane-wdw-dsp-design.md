@@ -228,23 +228,25 @@ There are three different latency classes and they must not be conflated:
    and a delayed wet part.  A single node's reported algorithmic latency is not
    necessarily the first-arrival latency of the complete mixed signal.
 
-The planner should expose a `RuntimeChain::latencyFrames()` metadata path for
-known serial nodes, then verify the complete lane with an offline impulse during
-plan preparation.  The calibration finds the first stable arrival of each
-lane's output and records the difference.  A preallocated fixed delay line is
-inserted on the earlier lane before the final mix.
+`RuntimeChain::latencyFrames()` sums the declared fixed delays of the prepared
+serial processors. Every latency-bearing block preserves that delay in bypass,
+so live mix and enable changes leave alignment constant. The builder inserts a
+preallocated delay on the faster lane by the difference between the two sums.
+Impulse onset and peak are test measurements, not production latency estimates:
+linear-phase FIR pre-ringing precedes the centre, and circuit filters can move
+the peak beyond the declared delay.
 
 The reported program latency is:
 
 ```text
 pairPipelineBlocks * blockSize
-  + max(aligned dry/wet first-arrival latency)
+  + max(dry/wet declared fixed latency)
 ```
 
-The dry path must be aligned to the wet lane's direct amp component, not blindly
-to the reverb tail.  If the wet lane is configured as an effect-only return,
-the planner uses that explicit mode and aligns to the effect return instead.
-The chosen mode is part of the preset contract and must be visible to offline
+The dry path is aligned to the wet lane's direct amp component. Intentional
+chorus/delay/reverb timing, including the IR reverb's wet partition delay, is
+excluded even at 100% wet mix. Cabinet/NAM response shape is also not scheduling
+latency. These semantics are independent of mix and must be visible to offline
 rendering/tests.
 
 Changing a delay time or reverb decay does not change fixed alignment.  Changing
@@ -304,7 +306,7 @@ activation contract:
 
 1. control thread parses/validates the lane plan;
 2. it loads NAMs and IRs, constructs chains, prepares every block size, warms
-   all model/convolver/effect state, calibrates alignment, and configures the
+   all model/convolver/effect state, derives alignment, and configures the
    pair workers;
 3. it verifies worker CPUs, latency, memory bounds, and admission telemetry;
 4. audio is stopped;
@@ -341,18 +343,19 @@ The builder enforces the fixed product contract before starting any worker:
 * pipelined admission requires distinct worker CPUs and rejects a worker that
   collides with the audio CPU when affinity is enabled.
 
-Preparation loads both chains, applies disabled-block state, probes each chain
-with a control-thread impulse, and places the measured first-arrival frames in
-the final mixer.  A probe that produces no finite signal fails preparation; it
-does not invent a latency or silently enable a raw path.  The builder returns a
-report containing both measured arrivals and the resulting fixed program
-latency.
+Preparation loads both chains, applies enabled/bypassed state, resets them, and
+places their declared fixed latency sums in the final mixer. Blocks omitted
+from the runtime chain contribute nothing; bypassed prepared blocks retain
+their delay. Silent lanes and long intentional wet delays do not need a probe
+signal to build. The report contains both lane sums, whether they were derived,
+and the resulting program latency. Deterministic tools can set
+`deriveLatencies = false` and supply explicit program lane latencies.
 
 `applyWdwRouting()` mirrors `applyChainPlan()`: it prepares a temporary
 `PedalEngine`, installs the complete WDW owner, copies the shared global gain
 and limiter settings, and publishes it with `replacePreparedProgram()`.  The
 `prepareAndActivateWdwDraft()` activation helper then uses the existing
-stopped-audio/backend-rejection contract.  A failed model/IR load, calibration,
+stopped-audio/backend-rejection contract.  A failed model/IR load, latency/buffer validation,
 worker setup, or backend replacement leaves the currently audible engine and
 selection unchanged.  No UI or persistent preset format depends on this seam
 yet.
@@ -371,7 +374,9 @@ yet.
   the same output sequence.
 * Pan/width: dry pan affects only the final dry contribution; wet stereo is not
   downmixed before delay/reverb.
-* Latency: calibrated dry/wet impulse arrivals differ by at most one sample.
+* Latency: declared serial sums determine compensation; bypassed/dry-mix
+  impulse copies align exactly across common audio quanta. Active effect onset
+  and peak are measured separately and need not equal the declared delay.
 * Structural rejection: invalid ordering, duplicate IDs, worker collision, and
   budget overflow fail before activation.
 * Program boundary: dry mono conversion, wet stereo preservation, declared
@@ -487,8 +492,8 @@ ThreadSanitizer.
    **The DSP-only program boundary and smoke test are now present.**
 3. Extend the feasibility harness to use the real pair executor and perform
    serial-reference/latency/audio comparisons. **The Pi harness now uses the
-   `WdwRoutingProgram` boundary, performs impulse-based first-arrival
-   calibration, and the program smoke compares direct/pipelined generations
+   `WdwRoutingProgram` boundary, sums declared fixed processor latency,
+   and the program smoke compares direct/pipelined generations
    with an independent serial reference.**
 4. Integrate the prepared program into the stopped-audio `PedalEngine` lifecycle
    and target-hardware telemetry. **The explicit WDW install/clear boundary and

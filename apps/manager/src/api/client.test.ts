@@ -106,6 +106,17 @@ describe("ArdorApiClient", () => {
     }));
   });
 
+  it("reads asset usage from the pedal", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      usage: [{ path: "models/clean.nam", presets: [{ bank: 2, slot: 1, name: "Uses model" }] }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const client = new ArdorApiClient({ baseUrl: "http://pedal.local", fetchImpl });
+    await expect(client.getAssetUsage()).resolves.toEqual([
+      { path: "models/clean.nam", presets: [{ bank: 2, slot: 1, name: "Uses model" }] },
+    ]);
+    expect(fetchImpl).toHaveBeenCalledWith("http://pedal.local/api/assets/usage", expect.anything());
+  });
+
   it("aborts JSON calls after the configured timeout", async () => {
     const fetchMock = vi.fn((_url: string | URL | Request, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
       init?.signal?.addEventListener("abort", () => reject(new DOMException("Timed out", "AbortError")));

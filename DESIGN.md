@@ -186,6 +186,50 @@ Square corners (`0`) for every panel, button, bezel, card, and chip. Borders are
 - **Docs:** sidebar with the lamp on the current page; callouts are plates (warnings get a warm tint), never a thick side border; "Advanced" sections are collapsed plates.
 - **Interactive manual:** the simulated pedal screen follows the real Lamp Black preset screen and keeps fixed device values in both themes.
 
+## Manager
+
+The manager (`apps/manager`) is the desk counterpart of the pedal screen. It uses the same Lamp Black language as the device and the website, with its own type stack and a few layout rules. The visual and interaction reference is `mockups/manager-taste/1-stage-drawer.html`. The spec is `docs/superpowers/specs/2026-09-29-manager-stage-drawer-design.md`.
+
+**Typography:** Saira Condensed (display, uppercase headings and scan labels), Saira (body), JetBrains Mono (codes and values). All three come from Fontsource. The Mono face differs from the website's IBM Plex Mono: the manager matches the device's chain strip and module codes, which use JetBrains Mono.
+
+### Surfaces
+
+- **App bar** (56 px): mark, Edit / Assets switch, the open preset with `BANK 00 · FS 1`, a MODIFIED tag, a live status tag (`LIVE ON PEDAL` or `NOT LIVE`), the connection pill, and Settings.
+- **Bank bar:** bank stepper `BANK 00` to `BANK 99` and the slot tiles `FS 1` to `FS 4`, each with its family-colour chain strip.
+- **Stage:** the overview draws the chain of device cards between IN and OUT. The drawer opens one block with large controls. Dual Rig shows SPLIT, lane A, lane B and JOIN. WDW routing shows DRY and WET lanes.
+- **Rail** (72 px): Save, Undo, Redo, Add block, Global, Scenes on the left. The live-state action and Done on the right.
+- **Assets view:** kind tiles replace the bank bar, the file list is the stage, and a file drawer opens under the list.
+- **Dialogs:** connection, settings, unsaved changes, TONE3000, and the sign-in screens. They are flat plates with square corners and a `--lift` offset shadow. Headings are Saira Condensed 700 uppercase. Dialogs carry no eyebrow label.
+
+### Rules
+
+- **One lamp.** Lamp red marks the live preset, the live scene, and the focused control. It is never a button fill or a hover colour. The app bar tag is red only when the slot is live.
+- **Family colours** tint the card cap, the chip top edge, and the code squares: amp and drive, cab, dynamics and EQ, modulation, delay, reverb.
+- **Device caps.** A card cap uses the device label from `labelForBlockType` (`src/ui/UiModel.cpp`): Neural Amp, Cab, Dual Amp, Dual Rig, Modulation, Delay, Reverb, Dynamics, EQ, Wah, Drive, Stereo.
+- **Card value pairs.** Each card shows two main values, the same pairs as the mockup.
+- **Chip strip.** When a drawer is open, the chain folds into a strip of code chips. The chip of the open block is outlined.
+- **View transition.** Opening and closing a drawer morphs the cards into chips through the View Transitions API (`src/stage/viewTransition.ts`). It falls back to no motion.
+- **Rail context.** In the drawer, the rail shows the focused control: label, value, fine minus and plus, Assign EXP, Reset.
+- **HTTP pill.** The LAN build shows `HTTP` in the connection pill. The hosted build does not.
+- **Fixed limiter.** The safety limiter is shown as fixed `-1 dBFS` protection. It is never a control.
+- **Square corners** (`border-radius: 0`) on every panel, button, card, chip, tile and input. Tints use `color-mix(in srgb, var(--token) N%, transparent)`, never a new literal colour.
+
+### Tokens
+
+`paletteVariables()` in `apps/manager/src/theme/accent.ts` sets every token on the shell and on each portalled dialog. The four palettes (Slate, Ink, Sodium, Nord) mirror the pedal palettes. Slate uses the `kSlate` values of `src/ui/LvglUiStyle.cpp`.
+
+- **Surfaces and text:** `--bg`, `--surface`, `--surface-raised`, `--surface-muted`, `--line`, `--line-strong`, `--text`, `--muted`, `--faint`, `--disabled`.
+- **Signal:** `--lamp`, `--accent`, `--accent-ink`, `--focus`, `--warning`, `--danger`, `--fault-line`, `--info`, `--success`.
+- **Family:** `--amp`, `--cabinet`, `--utility`, `--eq`, `--modulation`, `--delay`, `--reverb`, `--unknown`, `--lane-left`, `--lane-right`.
+- **Added for the manager:** `--plate-hi` (raised plate and hover), `--lamp-ink` (text on lamp red), `--danger-rule` (danger border), `--lift` (offset shadow), `--warn-ink` (text on the warning fill).
+
+### Phone
+
+- Bank tiles scroll sideways. Cards shrink to 148 by 232 px. The drawer shows one control per row.
+- The rail shows icons only. The file drawer in Assets becomes a bottom sheet.
+- The TONE3000 dialog and the settings dialog fit the screen. Settings folds its section list to icons.
+- Inputs use 16 px text so iOS does not zoom.
+
 ## Copy
 
 Site copy follows Simplified Technical English: one idea per sentence, active voice, no metaphors, no em or en dashes (ranges read "1 to 4"). Product terms stay exact: NAM, IR, Dual Rig, block, chain, lane, bank, slot, preset. Goals stay goals: "round-trip latency goal", never a measured claim.
