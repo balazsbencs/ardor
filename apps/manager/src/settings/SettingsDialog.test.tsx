@@ -22,7 +22,18 @@ describe("global settings", () => {
     expect(container.querySelector(".app-shell")).toHaveStyle("--lamp: #5fd0e8");
     expect(container.querySelector(".app-shell")).toHaveStyle("--faint: #7e8fa3");
     expect(container.querySelector(".app-shell")).toHaveStyle("--disabled: #4d5b6b");
+    expect(document.querySelector(".portal-surface")).toHaveStyle("--lamp: #5fd0e8");
+    expect(document.querySelector(".portal-surface")).not.toHaveClass("app-shell");
     expect(localStorage.getItem("ardor-manager.palette")).toBe("ink");
+  });
+
+  it("keeps the four palettes and names the Slate source", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<DeviceSessionProvider><AppShell /></DeviceSessionProvider>);
+    await user.click(screen.getByRole("button", { name: "Open settings" }));
+    for (const name of ["Slate", "Ink", "Sodium", "Nord"]) expect(await screen.findByRole("button", { name })).toBeInTheDocument();
+    expect(screen.getByText(/Slate uses the pedal's Lamp Black values\./)).toBeInTheDocument();
+    expect(document.querySelector(".eyebrow")).toBeNull();
   });
 
   it("explains that Wi-Fi setup needs a connected pedal", async () => {

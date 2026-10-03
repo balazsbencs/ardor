@@ -12,15 +12,41 @@ import {
 describe("effect catalog", () => {
   const definitions = allEffectDefinitions();
 
-  it("contains the complete unique set of 53 definitions", () => {
-    expect(definitions).toHaveLength(53);
-    expect(new Set(definitions.map(({ id }) => id)).size).toBe(53);
-    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(53);
-    expect(new Set(definitions.map(({ name }) => name)).size).toBe(53);
+  it("contains the complete unique set of 54 definitions", () => {
+    expect(definitions).toHaveLength(54);
+    expect(new Set(definitions.map(({ id }) => id)).size).toBe(54);
+    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(54);
+    expect(new Set(definitions.map(({ name }) => name)).size).toBe(54);
     expect(definitions.every(({ controls }) => controls.length > 0)).toBe(true);
     expect(definitions.filter(({ blockType }) => blockType === "mod")).toHaveLength(17);
     expect(definitions.filter(({ blockType }) => blockType === "delay")).toHaveLength(10);
     expect(definitions.filter(({ blockType }) => blockType === "reverb")).toHaveLength(12);
+  });
+
+  it("exposes 1073 EQ with musical frequency labels and silent, flat defaults", () => {
+    const definition = getEffectDefinition("eq:console_1073");
+    expect(definition.category).toBe("utility");
+    expect(defaultsForDefinition(definition.id)).toEqual({
+      mode: "console_1073", low_db: 0, low_freq: 2, mid_db: 0, mid_freq: 3,
+      high_db: 0, high_pass: 0, saturation: 0, character: 1, output_db: 0, polarity: 0, mix: 1,
+    });
+    for (const [key, labels] of Object.entries({
+      low_freq: ["Off", "35 Hz", "60 Hz", "110 Hz", "220 Hz"],
+      mid_freq: ["Off", "360 Hz", "700 Hz", "1.6 kHz", "3.2 kHz", "4.8 kHz", "7.2 kHz"],
+      high_pass: ["Off", "50 Hz", "80 Hz", "160 Hz", "300 Hz"],
+      polarity: ["Normal", "Inverted"],
+      character: ["Clean", "Console"],
+    })) {
+      const control = definition.controls.find((c) => c.kind === "number" && c.key === key);
+      if (control?.kind !== "number") throw new Error(`Missing ${key}`);
+      expect(control.display?.choices?.map((c) => c.label)).toEqual(labels);
+      labels.forEach((label, i) => {
+        expect(control.display?.format(i)).toBe(label);
+        expect(control.display?.fromInput(i)).toBe(i);
+      });
+    }
+    const block = createBlockFromDefinition(definition.id, []);
+    expect(findEffectDefinition(block)?.id).toBe(definition.id);
   });
 
   it("gives the drive pedals their own category rather than filing them under Utility", () => {
@@ -77,7 +103,7 @@ describe("effect catalog", () => {
     expect(getEffectDefinition("eq:parametric_eq_5").category).toBe("utility");
     expect(getEffectDefinition("wah:gcb95").category).toBe("utility");
     expect(getEffectDefinition("stereo:widener").category).toBe("utility");
-    expect(definitions.filter(({ category }) => category === "utility")).toHaveLength(6);
+    expect(definitions.filter(({ category }) => category === "utility")).toHaveLength(7);
   });
 
   it("keeps Daisy presets normalized while attaching physical UI displays", () => {
@@ -292,7 +318,7 @@ describe("effect catalog", () => {
       expect(findEffectDefinition(block)?.id).toBe(id);
       return { ...block, id: `block-${index + 1}` };
     });
-    expect(blocks).toHaveLength(53);
+    expect(blocks).toHaveLength(54);
   });
 
   it("chooses the next numeric block id and handles nonstandard collisions", () => {
@@ -310,5 +336,17 @@ describe("effect catalog", () => {
   it("rejects malformed catalog data with a descriptive path", () => {
     expect(() => validateEffectCatalog({ version: 1, definitions: [{ id: "broken" }] }))
       .toThrow(/definitions\[0\]\.blockType/);
+  });
+
+  it("rejects switch labels that do not name every position", () => {
+    const control = {
+      kind: "number", key: "low_freq", label: "Low frequency", minimum: 0, maximum: 4,
+      step: 1, defaultValue: 2, unit: "plain", labels: ["Off", "35 Hz"],
+    };
+    const definition = {
+      id: "eq:x", blockType: "eq", name: "X", description: "X", category: "utility", controls: [control],
+    };
+    expect(() => validateEffectCatalog({ version: 1, definitions: [definition] }))
+      .toThrow(/controls\[0\]\.labels/);
   });
 });

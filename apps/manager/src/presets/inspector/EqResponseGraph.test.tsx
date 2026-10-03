@@ -27,7 +27,7 @@ describe("EqResponseGraph", () => {
     fireEvent.pointerMove(screen.getByRole("img", { name: "EQ response graph" }), { pointerId: 1, clientX: 360, clientY: 80 });
 
     expect(onActiveStage).toHaveBeenCalledWith(3);
-    expect(onChange).toHaveBeenCalledWith(2, expect.objectContaining({ frequency_hz: expect.any(Number), gain_db: expect.any(Number) }));
+    expect(onChange).toHaveBeenCalledWith(2, expect.objectContaining({ frequency_hz: expect.any(Number), gain_db: expect.any(Number) }), expect.stringMatching(/^eq-drag-/));
     expect(onPassFilterChange).not.toHaveBeenCalled();
   });
 
@@ -36,6 +36,6 @@ describe("EqResponseGraph", () => {
     renderWithProviders(<EqResponseGraph bands={[]} highPass={{ enabled: true, frequency_hz: 80, q: 0.70710678, slope_db_per_octave: 24 }} lowPass={{ enabled: false, frequency_hz: 16000, q: 0.70710678, slope_db_per_octave: 12 }} activeStage={0} onActiveStage={() => undefined} onBandChange={() => undefined} onPassFilterChange={onPassFilterChange} />);
     fireEvent.pointerDown(screen.getByRole("button", { name: "Adjust High-pass" }), { pointerId: 1, clientX: 100, clientY: 100 });
     fireEvent.pointerMove(screen.getByRole("img", { name: "EQ response graph" }), { pointerId: 1, clientX: 180, clientY: 20 });
-    expect(onPassFilterChange).toHaveBeenCalledWith("high_pass", { frequency_hz: expect.any(Number) });
+    expect(onPassFilterChange).toHaveBeenCalledWith("high_pass", { frequency_hz: expect.any(Number) }, expect.stringMatching(/^eq-drag-/));
   });
 });

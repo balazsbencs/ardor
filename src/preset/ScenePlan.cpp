@@ -1,6 +1,7 @@
 #include "preset/ScenePlan.h"
 
 #include "daisyfx/DaisyFxCatalog.h"
+#include "equalizer/EqParameters.h"
 
 #include <algorithm>
 #include <cmath>
@@ -141,6 +142,20 @@ std::optional<ParameterCapability> fixedCapability(const PresetBlock& block,
       if (key == "mix") return ParameterCapability{kind, linear, 0, 1, Mix};
       if (key == "output_db") return ParameterCapability{kind, db, -24, 24, OutputDb};
     }
+  } else if (block.type == "eq" && isConsoleEqMode(block.params)) {
+    const auto kind = SceneRuntimeTargetKind::ConsoleEqParameter;
+    const auto stepped = SceneTransitionLaw::Stepped;
+    if (key == "low_db") return ParameterCapability{kind, db, -16, 16, LowDb};
+    if (key == "mid_db") return ParameterCapability{kind, db, -18, 18, MidDb};
+    if (key == "high_db") return ParameterCapability{kind, db, -16, 16, HighDb};
+    if (key == "output_db") return ParameterCapability{kind, db, -24, 24, OutputDb};
+    if (key == "saturation") return ParameterCapability{kind, linear, 0, 1, Saturation};
+    if (key == "mix") return ParameterCapability{kind, linear, 0, 1, Mix};
+    if (key == "low_freq") return ParameterCapability{kind, stepped, 0, 4, LowFreq};
+    if (key == "mid_freq") return ParameterCapability{kind, stepped, 0, 6, MidFreq};
+    if (key == "high_pass") return ParameterCapability{kind, stepped, 0, 4, HighPass};
+    if (key == "polarity") return ParameterCapability{kind, stepped, 0, 1, Polarity};
+    if (key == "character") return ParameterCapability{kind, stepped, 0, 1, Character};
   } else if (block.type == "distortion") {
     const auto mode = block.params.value("mode", std::string{"rat"});
     const auto kind = SceneRuntimeTargetKind::DistortionParameter;

@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stage and Drawer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Saira:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css?v=1790703660">
+<link rel="stylesheet" href="assets-view.css?v=1790703660">
+<style>
+  /* Direction 1: the device edit screen at desk size. Overview = the chain
+     stage. Open a block and the chain folds into the chip strip while the
+     parameter drawer takes the stage, exactly as on the pedal. */
+  body { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--bar-h) auto 1fr auto; height: 100vh; height: 100dvh; overflow: hidden; }
+
+  .bankbar { display: grid; grid-template-columns: auto 1fr; gap: 12px; padding: 12px var(--gut); border-bottom: 1px solid var(--rule); background: var(--recess); }
+  .bank-step { display: flex; align-items: stretch; }
+  .bank-step .btn { height: auto; }
+  .bank-step .mid { display: flex; flex-direction: column; justify-content: center; padding: 0 14px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); background: var(--ground); min-width: 132px; }
+  .bank-step .mid b { font: 700 22px/1 var(--f-cond); letter-spacing: .02em; }
+  .bank-step .mid span { font: 500 13px/1.2 var(--f-cond); letter-spacing: .08em; text-transform: uppercase; color: var(--bone-2); }
+  .bank-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; isolation: isolate; }
+  .bank-tiles .tile { padding: 10px 12px; gap: 8px; }
+  .bank-tiles .tile.is-edit:not(.is-live) { padding: 9px 11px; }
+  .bank-tiles .tile__name { font-size: 20px; }
+  .bank-tiles .strip span { height: 18px; font-size: 10px; padding: 0 4px; }
+
+  main { position: relative; min-height: 0; display: flex; flex-direction: column; }
+  .stagehead { display: flex; align-items: center; gap: 14px; padding: 14px var(--gut) 0; flex-wrap: wrap; }
+  .stagehead h1 { margin: 0; font: 700 26px/1 var(--f-cond); letter-spacing: .06em; text-transform: uppercase; }
+  .stagehead .count { font: 500 15px/1 var(--f-body); color: var(--muted); }
+  .stagehead .push { margin-left: auto; }
+
+  .stage { flex: 1; min-height: 0; display: flex; align-items: center; }
+  .stage .scroll-x { width: 100%; padding: 12px var(--gut) 20px; }
+  .stage .chain { margin: 0 auto; }
+  .stage .blk { --card-w: 188px; --card-h: 316px; }
+  .stage .blk__name { font-size: 25px; }
+  .hint { font: 500 13px/1 var(--f-body); color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; padding: 0 var(--gut) 14px; }
+  .hint span { display: inline-flex; gap: 6px; align-items: center; }
+
+  /* Drawer view */
+  .chipbar { padding: 10px var(--gut); border-bottom: 1px solid var(--rule); background: var(--recess); }
+  .drawer { flex: 1; min-height: 0; overflow-y: auto; border-top: 4px solid var(--fam); background: var(--ground); }
+  .drawer__head { display: flex; align-items: center; gap: 14px; padding: 18px var(--gut) 14px; flex-wrap: wrap; }
+  .drawer__head .fam { background: var(--fam); color: var(--ground); }
+  .drawer__head h2 { margin: 0; font: 700 38px/1 var(--f-cond); text-transform: uppercase; letter-spacing: .005em; }
+  .drawer__head .sub { font: 500 15px/1 var(--f-body); color: var(--bone-2); }
+  .drawer__head .push { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .pow-big[aria-pressed="true"] { background: var(--bone); color: var(--ground); border-color: var(--bone); }
+  .ctlgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; padding: 0 var(--gut) 24px; }
+  .scene-note { margin: 0 var(--gut) 14px; padding: 10px 14px; border: 1px solid var(--rule-strong); background: var(--plate); font: 500 14px/1.4 var(--f-body); color: var(--bone-2); display: flex; gap: 10px; align-items: center; }
+  .scene-note b { color: var(--bone); }
+
+  .rail { display: flex; align-items: center; gap: 10px; padding: 12px var(--gut); border-top: 1px solid var(--rule); background: var(--ground); flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .rail .push { margin-left: auto; }
+  .ctx { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .ctx .lbl2 { font: 600 12px/1 var(--f-cond); letter-spacing: .16em; color: var(--bone-2); text-transform: uppercase; }
+  .ctx .big { font: 700 34px/1 var(--f-cond); white-space: nowrap; }
+  .aud[aria-pressed="true"] { border-color: var(--lamp); color: var(--lamp-light); }
+
+  ::view-transition-group(*) { animation-duration: .32s; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+
+  @media (max-width: 1100px) {
+    .bank-tiles .strip { display: none; }
+  }
+  @media (max-width: 720px) {
+    .appbar .where, .appbar .conn, .appbar .tag { display: none; }
+    .viewseg .ic { display: none; }
+    .bankbar { grid-template-columns: 1fr; gap: 10px; padding: 10px var(--gut); }
+    .bank-step .mid { flex: 1; }
+    .bank-tiles { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 0 calc(-1 * var(--gut)); padding: 0 var(--gut); }
+    .bank-tiles .tile { flex: 0 0 44%; scroll-snap-align: start; }
+    .stagehead h1 { font-size: 20px; }
+    .stagehead .seg { width: 100%; overflow-x: auto; }
+    .stage { align-items: flex-start; }
+    .blk { --card-w: 148px; --card-h: 232px; }
+    .blk__name { font-size: 20px; }
+    .hint { display: none; }
+    .drawer__head h2 { font-size: 28px; }
+    .drawer__head .push { width: 100%; margin: 0; }
+    .ctlgrid { grid-template-columns: 1fr; gap: 8px; }
+    .ctl__val { font-size: 32px; }
+    .rail .lbl { display: none; }
+    .ctx .big { font-size: 24px; }
+    .rail .hide-sm { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="appbar" id="bar"></header>
+<section class="bankbar" id="banks" aria-label="Bank and presets"></section>
+<main id="main"></main>
+<nav class="rail" id="rail" aria-label="Actions"></nav>
+<input id="a-file" type="file" multiple hidden>
+
+<script src="data.js?v=1790703660"></script>
+<script src="core.js?v=1790703660"></script>
+<script src="render.js?v=1790703660"></script>
+<script src="chrome.js?v=1790703660"></script>
+<script src="interact.js?v=1790703660"></script>
+<script src="assets-view.js?v=1790703660"></script>
+<script>
+(function () {
+  "use strict";
+  const A = window.Ardor;
+  const esc = A.esc;
+  let bankIndex = 0;
+
+  // Fold the chain into the chip strip with a view transition, as the device does.
+  const withTransition = (fn) => (document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches ? document.startViewTransition(fn) : fn());
+  A.acts.select = (el) => { const uid = el.dataset.uid; if (A.get().sel === uid) return; withTransition(() => A.view({ sel: uid })); };
+  A.acts.done = () => withTransition(() => A.view({ sel: null }));
+  A.acts.global = () => withTransition(() => A.view({ sel: "__global" }));
+  A.acts.bank = (el) => { bankIndex = Math.max(0, Math.min(A.get().banks.length - 1, bankIndex + Number(el.dataset.dir))); A.repaint(); };
+  A.keys.Escape = () => {
+    if (view === "assets") return A.assetsView.escape();
+    if (A.get().sel) { A.acts.done(); return true; }
+    return false;
+  };
+
+  // Two views, as on the pedal: Edit and Assets. The hash keeps the view on reload.
+  let view = location.hash === "#assets" ? "assets" : "edit";
+  A.goto = (next, kind) => {
+    view = next;
+    if (kind) A.assetsView.setKind(kind);
+    history.replaceState(null, "", next === "assets" ? "#assets" : location.pathname);
+    if (next === "assets" && A.get().sel) A.view({ sel: null }); else A.repaint();
+  };
+  A.acts["goto-assets"] = (el) => A.goto("assets", el.dataset.kind);
+  A.acts["goto-edit"] = () => A.goto("edit");
+  addEventListener("hashchange", () => A.goto(location.hash === "#assets" ? "assets" : "edit"));
+
+  function bar() {
+    return `${A.mark()}${A.mockflag(1)}<div class="seg viewseg" role="group" aria-label="View">
+        <button class="btn btn--sm" data-act="goto-edit" aria-pressed="${view === "edit"}">${A.icon("sliders")}Edit</button>
+        <button class="btn btn--sm" data-act="goto-assets" aria-pressed="${view === "assets"}">${A.icon("folder")}Assets</button></div>
+      ${A.presetTitle()}${A.dirtyTag()}<span class="push"></span>${A.liveState()}${A.conn()}
+      <button class="btn btn--icon btn--quiet" aria-label="Settings" title="Settings">${A.icon("gear")}</button>`;
+  }
+
+  function banks(s) {
+    const bank = s.banks[bankIndex];
+    const order = [0, 1, 2, 3];
+    return `<div class="bank-step">
+        <button class="btn btn--icon" data-act="bank" data-dir="-1" aria-label="Previous bank" ${bankIndex === 0 ? "disabled" : ""}>${A.icon("left")}</button>
+        <div class="mid"><b>BANK ${String(bank.n).padStart(2, "0")}</b><span>${esc(bank.name || "Empty bank")}</span></div>
+        <button class="btn btn--icon" data-act="bank" data-dir="1" aria-label="Next bank" ${bankIndex === s.banks.length - 1 ? "disabled" : ""}>${A.icon("right")}</button>
+      </div>
+      <div class="bank-tiles">${order.map((i) => A.tile(bank.slots[i], { fs: `FS ${i + 1}`, bank: bank.n, slot: i + 1 })).join("")}</div>`;
+  }
+
+  function overview(s, p) {
+    const n = A.allBlocks(p).length;
+    return `<div class="stagehead"><h1>Edit</h1><span class="count">${n} blocks</span><span class="push"></span>${A.sceneSeg(p)}</div>
+      ${sceneNote(s, p)}
+      <div class="stage"><div class="scroll-x" data-keep-scroll="stage-${s.editId}">${A.chain(p, { sel: s.sel, scene: s.scene })}</div></div>
+      <div class="hint"><span>${A.icon("grip")} Drag a cap to move a block</span><span><b class="kbd">⌥</b><b class="kbd">←</b><b class="kbd">→</b> move the selected block</span><span><b class="kbd">B</b> bypass</span><span><b class="kbd">A</b> add after</span></div>`;
+  }
+
+  function sceneNote(s, p) {
+    if (!s.scene) return "";
+    const sc = A.sceneOf(p, s.scene);
+    return `<div class="scene-note">${A.icon("grid")}<span>You edit <b>scene ${p.scenes.indexOf(sc) + 1}, ${esc(sc.name)}</b>. Changes here apply only to this scene. ${A.ovCount(p, s.scene)} values differ from the preset.</span></div>`;
+  }
+
+  function drawer(s, p) {
+    const hit = A.locate(p, s.sel);
+    if (!hit) return overview(s, p);
+    const b = hit.block;
+    const def = A.DEFS[b.def];
+    const isGlobal = b.uid === "__global";
+    const on = A.isOn(p, b, s.scene);
+    const pos = isGlobal ? "" : `Block ${A.allBlocks(p).indexOf(A.allBlocks(p).find((x) => x.uid === b.uid)) + 1} of ${A.allBlocks(p).length}`;
+    return `<div class="chipbar scroll-x" data-keep-scroll="chips-${s.editId}">${A.chips(p, { sel: s.sel, scene: s.scene })}</div>
+      <section class="drawer ${A.famClass(b)}" aria-label="${esc(A.blockName(b))} parameters">
+        <div class="drawer__head">
+          <span class="tag fam">${esc(def.cap)}</span>
+          <h2>${isGlobal ? "Global" : esc(A.blockName(b))}</h2>
+          <span class="sub">${isGlobal ? "Input, output and expression for this preset" : `${b.asset ? `${esc(def.name)} · ` : ""}${pos}`}</span>
+          <span class="push">${A.sceneSeg(p)}
+            ${isGlobal ? "" : `<button class="btn pow-big" data-act="toggle" data-uid="${b.uid}" aria-pressed="${on}">${A.icon("power")}Block ${on ? "on" : "off"}</button>
+            <button class="btn btn--icon" data-act="dup" data-uid="${b.uid}" aria-label="Duplicate" title="Duplicate (⌘D)">${A.icon("copy")}</button>
+            <button class="btn btn--danger" data-act="remove" data-uid="${b.uid}">${A.icon("trash")}<span class="lbl">Delete</span></button>`}
+          </span>
+        </div>
+        ${sceneNote(s, p)}
+        ${isGlobal ? `<div class="ctlgrid">${A.globalPanel(p)}</div>` : `<div class="ctlgrid">${A.controls(p, b, { scene: s.scene, eqH: 180 })}</div>`}
+      </section>`;
+  }
+
+  function rail(s, p) {
+    const fc = s.focusCtl && s.sel && s.focusCtl.startsWith(`${s.sel}:`) ? s.focusCtl : null;
+    let ctx = "";
+    if (fc) {
+      const [uid, key] = fc.split(":");
+      const hit = A.locate(p, uid);
+      const prm = hit && A.param(hit.block.def, key);
+      if (prm) ctx = `<div class="ctx"><span><span class="lbl2">${esc(prm.label)}</span><br><span class="big">${esc(A.fmtText(prm, A.val(p, hit.block, key, s.scene)))}</span></span>
+        <button class="btn btn--icon hide-sm" data-act="nudge" data-d="-1" aria-label="Decrease">${A.icon("left")}</button><button class="btn btn--icon hide-sm" data-act="nudge" data-d="1" aria-label="Increase">${A.icon("right")}</button>
+        <button class="btn hide-sm" data-act="exp">${A.icon("pedal")}Assign EXP</button><button class="btn hide-sm" data-act="midi">${A.icon("midi")}MIDI learn</button></div>`;
+    }
+    return `${A.editTools()}
+      <button class="btn" data-act="insert" data-list="main" data-at="${p.blocks.length}">${A.icon("plus")}<span class="lbl">Add block</span></button>
+      <button class="btn" data-act="global" aria-pressed="${s.sel === "__global"}">${A.icon("sliders")}<span class="lbl">Global</span></button>
+      ${ctx}<span class="push"></span>
+      <button class="btn aud hide-sm" data-act="audition" aria-pressed="${s.audition}" title="When on, you hear every change on the pedal before you save">Audition ${s.audition ? "on" : "off"}</button>
+      ${s.sel ? '<button class="btn btn--primary" data-act="done">Done</button>' : ""}`;
+  }
+
+  A.acts.nudge = (el) => {
+    const s = A.get();
+    const [uid, key] = s.focusCtl.split(":");
+    const scale = document.querySelector(`.scale[data-uid="${uid}"][data-key="${key}"]`);
+    scale?.dispatchEvent(new KeyboardEvent("keydown", { key: el.dataset.d === "1" ? "ArrowRight" : "ArrowLeft", bubbles: true }));
+  };
+  A.acts.exp = () => A.toast("Move the expression pedal from heel to toe to set the range");
+  A.acts.midi = () => A.toast("Waiting for a MIDI CC. Move a controller now.");
+
+  A.view({ sel: null });
+  A.mount((s) => {
+    const p = A.cur();
+    const bi = s.banks.findIndex((b) => b.slots.includes(s.editId));
+    if (bi >= 0 && document.body.dataset.bankInit !== "1") { bankIndex = bi; document.body.dataset.bankInit = "1"; }
+    document.body.dataset.view = view;
+    document.getElementById("bar").innerHTML = bar();
+    if (view === "assets") {
+      document.getElementById("banks").innerHTML = A.assetsView.bar();
+      document.getElementById("main").innerHTML = A.assetsView.main();
+      document.getElementById("rail").innerHTML = A.assetsView.rail();
+      return;
+    }
+    document.getElementById("banks").innerHTML = banks(s);
+    document.getElementById("main").innerHTML = s.sel ? drawer(s, p) : overview(s, p);
+    document.getElementById("rail").innerHTML = rail(s, p);
+  });
+})();
+</script>
+</body>
+</html>

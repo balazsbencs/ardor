@@ -1,41 +1,66 @@
-import { ArrowLeft, Cable, FolderOpen, Palette, Settings, SlidersHorizontal } from "lucide-react";
+import { Upload } from "lucide-react";
 import { Suspense, lazy, useEffect, useState } from "react";
 
-import { AssetLibrary } from "../assets/AssetLibrary";
-import { Button, IconButton, StatusBadge } from "../components/ui";
+import { AssetQueueProvider } from "../assets/AssetQueue";
+import { AssetsView } from "../assets/AssetsView";
 import { ConnectionDialog } from "../connection/ConnectionDialog";
-import { useDeviceSession } from "../connection/deviceSession";
-import { PresetWorkspace } from "../presets/workspace/PresetWorkspace";
-import { normalizePalette, paletteById, paletteVariables, palettes, type PaletteId } from "../theme/accent";
+import { EditorProvider, usePresetEditorContext } from "../presets/editor/EditorContext";
+import { StageWorkspace } from "../stage/StageWorkspace";
+import { normalizePalette, paletteVariables, type PaletteId } from "../theme/accent";
 import { SurfaceProvider } from "../theme/surface";
 import { isHostedCloudRuntime } from "../runtime/platform";
+import { AppBar } from "./AppBar";
+import { useAppView } from "./useAppView";
+import { useFileDrop } from "./useFileDrop";
+import "./app.css";
 
 const SettingsDialog = lazy(() => import("../settings/SettingsDialog").then((module) => ({ default: module.SettingsDialog })));
 
-type View = "workspace" | "assets";
+type ShellProps = { tone3000DeviceId?: string; onCloudDevices?: () => void; onConnection(): void; onSettings(): void };
+
+/** The app bar and the active view. It sits inside EditorProvider so both views share one draft,
+ * and inside AssetQueueProvider so uploads keep running in the Edit view. */
+function Shell({ tone3000DeviceId, onCloudDevices, onConnection, onSettings }: ShellProps) {
+  const editor = usePresetEditorContext();
+  const { view, assetKind, goto } = useAppView();
+  const [pendingFiles, setPendingFiles] = useState<File[]>();
+  // Files dropped anywhere open the Assets view, which queues them once.
+  const dragging = useFileDrop((files) => { setPendingFiles(files); goto("assets", view === "assets" ? assetKind : undefined); });
+
+  return (
+    <>
+      <AppBar view={view} onView={(next) => goto(next)} onConnection={onConnection} onSettings={onSettings} onCloudDevices={onCloudDevices} />
+      {view === "edit"
+        ? <StageWorkspace onManageFiles={(kind) => goto("assets", kind)} onConnection={onConnection} />
+        : <AssetsView initialKind={assetKind} tone3000DeviceId={tone3000DeviceId} pendingFiles={pendingFiles}
+            onFilesTaken={() => setPendingFiles(undefined)} onBack={() => goto("edit")}
+            onOpenPreset={(location) => { editor.selectLocation(location); goto("edit"); }} />}
+      {dragging && (
+        <div className="adrop" role="presentation">
+          <div><Upload aria-hidden="true" /><b>Drop to upload</b>
+            <span>.nam files go to NAM models. .wav files go to {assetKind === "reverb-irs" && view === "assets" ? "Reverb IRs" : "Cabinet IRs"}.</span></div>
+        </div>
+      )}
+    </>
+  );
+}
 
 export function AppShell({ onCloudDevices, tone3000DeviceId }: { onCloudDevices?: () => void; tone3000DeviceId?: string } = {}) {
-  const session = useDeviceSession();
   const hostedCloud = isHostedCloudRuntime();
-  const [view, setView] = useState<View>("workspace");
   const [connectionOpen, setConnectionOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [palette, setPalette] = useState<PaletteId>(() => normalizePalette(localStorage.getItem("ardor-manager.palette")));
   useEffect(() => { localStorage.setItem("ardor-manager.palette", palette); }, [palette]);
-  const nextPalette = () => {
-    const index = palettes.findIndex((entry) => entry.id === palette);
-    setPalette(palettes[(index + 1) % palettes.length].id);
-  };
 
   return (
     <SurfaceProvider value={{ palette }}>
       <div className="app-shell" data-palette={palette} style={paletteVariables(palette)}>
-        <header className="app-topbar">
-          <div className="brand"><span className="brand-mark"><SlidersHorizontal size={19} /></span><span><strong>Ardor</strong><small>Manager</small></span></div>
-          <nav className="app-navigation" aria-label="App navigation"><button className={view === "workspace" ? "is-active" : ""} onClick={() => setView("workspace")}>Workspace</button><button className={view === "assets" ? "is-active" : ""} onClick={() => setView("assets")}><FolderOpen size={15} /> Assets</button></nav>
-          <div className="topbar-actions">{hostedCloud && onCloudDevices && <Button variant="quiet" onClick={onCloudDevices}><ArrowLeft size={15} /> Devices</Button>}<button className="connection-status" onClick={() => setConnectionOpen(true)} aria-label={`Device: ${session.status === "connected" ? session.device?.deviceName ?? "Connected" : session.status === "error" ? "Connection error" : "Disconnected"}`} title="Open device connection"><Cable size={15} />{session.status === "connected" ? <StatusBadge tone="success">{session.device?.deviceName ?? "Connected"}</StatusBadge> : <StatusBadge tone={session.status === "error" ? "danger" : "neutral"}>{session.status === "error" ? "Connection error" : "Disconnected"}</StatusBadge>}</button><Button variant="quiet" className="palette-button" onClick={nextPalette} title="Cycle panel palette"><Palette size={16} /><span>{paletteById(palette).name}</span></Button>{!hostedCloud && <IconButton label="Open settings" onClick={() => setSettingsOpen(true)}><Settings size={17} /></IconButton>}</div>
-        </header>
-        {view === "workspace" ? <PresetWorkspace onAssets={() => setView("assets")} onConnection={() => setConnectionOpen(true)} /> : <AssetLibrary tone3000DeviceId={tone3000DeviceId} />}
+        <EditorProvider>
+          <AssetQueueProvider>
+            <Shell tone3000DeviceId={tone3000DeviceId} onCloudDevices={onCloudDevices}
+              onConnection={() => setConnectionOpen(true)} onSettings={() => setSettingsOpen(true)} />
+          </AssetQueueProvider>
+        </EditorProvider>
         <ConnectionDialog open={connectionOpen} onOpenChange={setConnectionOpen} />
         {!hostedCloud && settingsOpen && (
           <Suspense fallback={null}>

@@ -279,10 +279,27 @@ bool PedalEngine::addTransientShaper(std::string id, const nlohmann::json& param
   return true;
 }
 
+bool PedalEngine::addConsoleEq(std::string id, const nlohmann::json& params,
+                                     float sampleRate, std::string& error)
+{
+  ConsoleEqProcessor processor;
+  if (!processor.configure(params, sampleRate, error)) {
+    return false;
+  }
+  chain_.addConsoleEq(std::move(id), std::move(processor));
+  return true;
+}
+
 bool PedalEngine::setTransientShaperParameter(const std::string& id, const std::string& key, float value)
 {
   if (wdwRouting_ && wdwRouting_->setTransientShaperParameter(id, key, value)) return true;
   return chain_.setTransientShaperParameter(id, key, value);
+}
+
+bool PedalEngine::setConsoleEqParameter(const std::string& id, const std::string& key, float value)
+{
+  if (wdwRouting_ && wdwRouting_->setConsoleEqParameter(id, key, value)) return true;
+  return chain_.setConsoleEqParameter(id, key, value);
 }
 
 bool PedalEngine::addDistortion(std::string id, const nlohmann::json& params,

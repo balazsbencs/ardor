@@ -1,0 +1,53 @@
+/* TONE3000 browser dialog. It builds on .dlg from app/dialogs.css. */
+.tone3000-brand { display: inline-flex; align-items: center; gap: 10px; }
+.tone3000-brand img { display: block; width: 130px; height: auto; padding: 3px 5px; background: var(--text); }
+.tone3000-brand small { font: 600 12px/1 var(--f-cond); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.tone3000-brand--compact img { width: 75px; }
+
+.dlg.tone3000-dialog { width: min(768px, calc(100vw - 32px)); gap: 0; padding: 0; overscroll-behavior: contain; }
+.tone3000-dialog__header {
+  position: sticky; z-index: 1; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--surface-muted);
+}
+
+.tone3000-intro, .tone3000-waiting { display: grid; justify-items: start; max-width: 34rem; gap: 12px; padding: 32px; }
+.tone3000-intro h2, .tone3000-waiting h2, .tone3000-detail__title h2 { margin: 0; font: 700 28px/1.05 var(--f-cond); letter-spacing: .04em; text-transform: uppercase; }
+.tone3000-intro p, .tone3000-waiting p { margin: 0; color: var(--muted); }
+.tone3000-intro .button { margin-top: 8px; }
+.tone3000-dialog__fineprint { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.tone3000-waiting { justify-items: center; max-width: none; padding: 48px 32px; text-align: center; }
+.tone3000-spinner { animation: tone3000-spin .8s linear infinite; }
+@keyframes tone3000-spin { to { transform: rotate(360deg); } }
+
+.tone3000-detail { display: grid; grid-template-columns: minmax(13rem, 42%) minmax(0, 1fr); }
+.tone3000-detail__image { width: 100%; height: 100%; min-height: 27rem; object-fit: cover; background: var(--surface-muted); }
+.tone3000-detail__image--empty { display: grid; place-items: center; }
+.tone3000-detail__body { display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 24px; }
+.tone3000-detail__title { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.tone3000-detail__title .lb-tag { flex: none; }
+.tone3000-creator { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
+.tone3000-creator img { width: 28px; height: 28px; object-fit: cover; }
+.tone3000-creator strong { color: var(--text); font-weight: 600; }
+.tone3000-detail__description {
+  display: -webkit-box; overflow: hidden; margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55;
+  -webkit-box-orient: vertical; -webkit-line-clamp: 6;
+}
+.tone3000-model-field { display: grid; gap: 6px; margin-top: auto; }
+.tone3000-model-field span { font: 600 12px/1 var(--f-cond); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.tone3000-model-field select {
+  width: 100%; min-width: 0; height: 40px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 0;
+  background: var(--surface-muted); color: var(--text); font: 500 15px/1 var(--f-body);
+}
+.tone3000-detail__actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+@media (max-width: 720px) {
+  .dlg.tone3000-dialog { top: auto; right: 0; bottom: 0; left: 0; width: 100%; max-height: calc(100dvh - 8px); transform: none; border-right: 0; border-bottom: 0; border-left: 0; }
+  .tone3000-dialog__header > .tone3000-brand { display: grid; gap: 4px; }
+  .tone3000-detail { grid-template-columns: 1fr; }
+  .tone3000-detail__image { min-height: 11rem; max-height: 15rem; }
+  .tone3000-intro, .tone3000-waiting { padding: 24px 16px max(24px, env(safe-area-inset-bottom)); }
+  .tone3000-detail__body { padding: 16px 16px max(16px, env(safe-area-inset-bottom)); }
+  .tone3000-detail__title { display: grid; }
+  .tone3000-model-field select { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .tone3000-spinner { animation: none; } }

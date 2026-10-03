@@ -45,6 +45,11 @@ function normalizeControl(control) {
     base.max = control.maximum;
     base.step = control.step;
     base.default = control.defaultValue;
+    // A labelled switch, such as a frequency selector, lists its positions by name.
+    if (Array.isArray(control.labels)) {
+      base.choices = control.labels;
+      base.default = control.labels[control.defaultValue] ?? control.defaultValue;
+    }
   }
   if (control.kind === 'choice') {
     const choices = control.choices ?? [];

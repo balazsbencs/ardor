@@ -3,6 +3,7 @@ import type {
   ApplyPresetStatus,
   Asset,
   AssetKind,
+  AssetUsageEntry,
   DeviceStatus,
   Preset,
   PresetSlot,
@@ -107,6 +108,11 @@ export class ArdorApiClient implements ManagerTransport {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ filename }),
     });
+  }
+
+  async getAssetUsage(): Promise<AssetUsageEntry[]> {
+    const response = await this.request<{ usage: AssetUsageEntry[] }>("/api/assets/usage");
+    return response.usage;
   }
 
   async listPresets(): Promise<PresetSlotSummary[]> {

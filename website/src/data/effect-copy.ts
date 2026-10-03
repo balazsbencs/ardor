@@ -19,6 +19,7 @@ export const effectCopy: Record<string, string> = {
   'dynamics:compressor': 'A compressor that makes loud and quiet notes more equal. It has knee, makeup gain, a sidechain high-pass filter, and a dry/wet mix.',
   'dynamics:noise_gate': 'A stereo-linked noise gate. It reduces hum and hiss when you stop playing, and it adds no latency.',
   'dynamics:transient_shaper': 'A transient shaper. It makes the pick attack and the sustain stronger or softer, at any playing level.',
+  'eq:console_1073': 'A three-band console EQ in the style of the 1073, with stepped frequencies and a high-pass filter. Saturation adds warm harmonics.',
   'eq:parametric_eq_5': 'Five parametric bands with frequency, gain, and width, plus high-pass and low-pass filters. A live graph shows the curve.',
   'stereo:widener': 'A mid/side stereo widener. It makes the stereo image wider and keeps the bass in the center, so the sound stays mono-safe.',
   'wah:gcb95': 'A circuit model of the GCB-95 wah. Move the Position control with an expression pedal for the classic sweep.',

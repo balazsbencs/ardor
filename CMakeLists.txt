@@ -169,6 +169,8 @@ target_include_directories(ardor_equalizer PUBLIC
 target_compile_features(ardor_equalizer PUBLIC cxx_std_20)
 target_sources(ardor_equalizer PRIVATE
   src/equalizer/ParametricEqProcessor.cpp
+  src/equalizer/ConsoleEqProcessor.cpp
+  src/equalizer/ConsoleSaturation.cpp
 )
 
 add_library(ardor_circuit
@@ -449,7 +451,7 @@ add_executable(pedal-daisy-fx-catalog-smoke tests/daisy_fx_catalog_smoke.cpp)
 target_link_libraries(pedal-daisy-fx-catalog-smoke PRIVATE ardor_daisyfx)
 
 add_executable(pedal-manager-effect-catalog-smoke tests/manager_effect_catalog_smoke.cpp)
-target_link_libraries(pedal-manager-effect-catalog-smoke PRIVATE ardor_daisyfx)
+target_link_libraries(pedal-manager-effect-catalog-smoke PRIVATE ardor_daisyfx ardor_equalizer)
 target_compile_definitions(pedal-manager-effect-catalog-smoke PRIVATE
   ARDOR_MANAGER_EFFECT_CATALOG="${CMAKE_CURRENT_SOURCE_DIR}/apps/manager/src/effects/catalog.v1.json"
 )
@@ -532,6 +534,17 @@ target_link_libraries(pedal-compressor-smoke PRIVATE ardor_dynamics)
 
 add_executable(pedal-noise-gate-smoke tests/noise_gate_smoke.cpp)
 target_link_libraries(pedal-noise-gate-smoke PRIVATE ardor_dynamics)
+
+add_executable(pedal-console-eq-smoke tests/console_eq_smoke.cpp)
+target_link_libraries(pedal-console-eq-smoke PRIVATE ardor_equalizer)
+
+add_executable(pedal-console-eq-integration-smoke tests/console_eq_integration_smoke.cpp)
+target_link_libraries(pedal-console-eq-integration-smoke PRIVATE ardor_audio ardor_dsp ardor_ui)
+target_compile_definitions(pedal-console-eq-integration-smoke PRIVATE
+  ARDOR_NAM_EXAMPLE_MODEL="${neuralampmodelercore_SOURCE_DIR}/example_models/lstm.nam")
+if(UNIX)
+  target_link_libraries(pedal-console-eq-integration-smoke PRIVATE pthread)
+endif()
 
 add_executable(pedal-parametric-eq-smoke tests/parametric_eq_smoke.cpp)
 target_link_libraries(pedal-parametric-eq-smoke PRIVATE ardor_equalizer)
@@ -687,6 +700,18 @@ if(UNIX)
   target_link_libraries(pedal-wdw-routing-program-smoke PRIVATE pthread)
 endif()
 
+add_executable(pedal-wdw-latency-regression tests/wdw_latency_regression.cpp)
+target_link_libraries(pedal-wdw-latency-regression PRIVATE ardor_audio ardor_dsp)
+target_compile_definitions(pedal-wdw-latency-regression PRIVATE
+  ARDOR_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+  ARDOR_NAM_EXAMPLE_MODEL="${neuralampmodelercore_SOURCE_DIR}/example_models/lstm.nam")
+# Exercise console EQ when its separate feature is available, while allowing
+# the latency regression to build independently of that feature branch.
+get_target_property(wdw_equalizer_sources ardor_equalizer SOURCES)
+if("src/equalizer/ConsoleEqProcessor.cpp" IN_LIST wdw_equalizer_sources)
+  target_compile_definitions(pedal-wdw-latency-regression PRIVATE ARDOR_WDW_HAS_CONSOLE_EQ=1)
+endif()
+
 add_executable(pedal-wdw-routing-builder-smoke tests/wdw_routing_builder_smoke.cpp)
 target_link_libraries(pedal-wdw-routing-builder-smoke PRIVATE ardor_audio ardor_dsp)
 target_compile_definitions(pedal-wdw-routing-builder-smoke PRIVATE
@@ -750,6 +775,8 @@ set_tests_properties(pedal-wah-circuit-smoke PROPERTIES WORKING_DIRECTORY ${CMAK
 add_test(NAME pedal-wah-processor-smoke COMMAND pedal-wah-processor-smoke)
 add_test(NAME pedal-compressor-smoke COMMAND pedal-compressor-smoke)
 add_test(NAME pedal-noise-gate-smoke COMMAND pedal-noise-gate-smoke)
+add_test(NAME pedal-console-eq-smoke COMMAND pedal-console-eq-smoke)
+add_test(NAME pedal-console-eq-integration-smoke COMMAND pedal-console-eq-integration-smoke)
 add_test(NAME pedal-parametric-eq-smoke COMMAND pedal-parametric-eq-smoke)
 add_test(NAME pedal-runtime-chain-smoke COMMAND pedal-runtime-chain-smoke)
 add_test(NAME pedal-looper-smoke COMMAND pedal-looper-smoke)
@@ -766,6 +793,7 @@ add_test(NAME pedal-flexible-routing-engine-smoke COMMAND pedal-flexible-routing
 add_test(NAME pedal-wdw-pair-executor-smoke COMMAND pedal-wdw-pair-executor-smoke)
 add_test(NAME pedal-wdw-routing-program-smoke COMMAND pedal-wdw-routing-program-smoke)
 add_test(NAME pedal-wdw-routing-builder-smoke COMMAND pedal-wdw-routing-builder-smoke)
+add_test(NAME pedal-wdw-latency-regression COMMAND pedal-wdw-latency-regression)
 add_test(NAME pedal-tuner-smoke COMMAND pedal-tuner-smoke)
 add_test(NAME pedal-nam-processor-smoke COMMAND pedal-nam-processor-smoke)
 add_test(NAME pedal-ui-model-smoke COMMAND pedal-ui-model-smoke)

@@ -1,0 +1,57 @@
+/* Edit view layout: bank bar, stage (chain or chips and drawer), rail. Ported from 1-stage-drawer.html. */
+.edit { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.edit__main { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+.stagehead { display: flex; align-items: center; gap: 14px; padding: 14px var(--gut) 0; flex-wrap: wrap; }
+.stagehead h1 { margin: 0; font: 700 26px/1 var(--f-cond); letter-spacing: .06em; text-transform: uppercase; }
+.stagehead__name {
+  min-width: 8ch; width: auto; max-width: min(22rem, 100%); height: 36px; padding: 0 10px; margin-left: -11px;
+  field-sizing: content;
+  border: 1px solid transparent; border-radius: 0; background: transparent; color: var(--text);
+  font: 700 22px/1 var(--f-cond); letter-spacing: .02em; text-transform: uppercase;
+}
+.stagehead__name:hover { border-color: var(--line); }
+.stagehead__name:focus-visible { border-color: var(--line-strong); background: var(--surface-muted); }
+.stagehead__count { font: 500 15px/1 var(--f-body); color: var(--muted); }
+/* The app bar carries MODIFIED on wide screens; phones hide it there, so the stage head shows it. */
+.stagehead__dirty { display: none; }
+.stagehead__push { margin-left: auto; }
+
+.stage-notices { display: grid; gap: 6px; padding: 12px var(--gut) 0; }
+.stage-notice {
+  margin: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px;
+  border: 1px solid var(--line-strong); background: var(--surface); font: 500 14px/1.4 var(--f-body); color: var(--muted);
+}
+.stage-notice.is-error { color: var(--danger); border-color: var(--danger-rule); }
+.stage-notice.is-warning { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 45%, var(--line)); }
+.stage-notice .button { margin-left: auto; height: 32px; min-height: 32px; font-size: 13px; }
+
+.edit__stage { flex: 1; min-height: 0; display: flex; align-items: center; }
+.edit__stage .chain-stage { width: 100%; padding: 12px var(--gut) 20px; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+.edit__stage .chain { margin: 0 auto; }
+.edit__stage .blk { --card-w: 188px; --card-h: 316px; }
+.edit__stage .blk__name { font-size: 25px; }
+.stage-hints { margin: 0; display: flex; gap: 14px; flex-wrap: wrap; padding: 0 var(--gut) 14px; font: 500 13px/1 var(--f-body); color: var(--muted); }
+.stage-hints span { display: inline-flex; gap: 6px; align-items: center; }
+
+.edit__chips { padding: 10px var(--gut); border-bottom: 1px solid var(--line); background: var(--surface-muted); overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+
+.edit--offline { flex: 1; display: grid; place-items: center; padding: 32px var(--gut); }
+.offline { max-width: 30rem; display: grid; justify-items: start; gap: 12px; padding: 32px; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
+.offline svg { color: var(--muted); }
+.offline h1 { margin: 0; font: 700 34px/1 var(--f-cond); text-transform: uppercase; letter-spacing: .01em; }
+.offline p { margin: 0; font: 400 15px/1.45 var(--f-body); color: var(--muted); }
+
+::view-transition-group(*) { animation-duration: .32s; animation-timing-function: var(--ease); }
+
+@media (max-width: 720px) {
+  .stagehead h1 { font-size: 20px; }
+  .stagehead__name { width: 100%; max-width: none; order: 5; }
+  .stagehead__dirty { display: inline-flex; }
+  .stagehead .seg { width: 100%; overflow-x: auto; }
+  .edit__stage { align-items: flex-start; }
+  .edit__stage .blk { --card-w: 148px; --card-h: 232px; }
+  .edit__stage .blk__name { font-size: 20px; }
+  .edit__stage .blk__cap { font-size: 11px; letter-spacing: .1em; }
+  .stage-hints { display: none; }
+}

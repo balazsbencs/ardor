@@ -29,6 +29,7 @@ enum class SceneRuntimeTargetKind : std::uint8_t {
   DistortionParameter,
   WahParameter,
   WdwLaneParameter,
+  ConsoleEqParameter,
 };
 
 enum class SceneBlockContainer : std::uint8_t {
@@ -79,6 +80,7 @@ enum SceneRuntimeParameter : std::uint16_t {
   HeadBump,
   Pan,
   Enabled,
+  LowDb, LowFreq, MidDb, MidFreq, HighDb, HighPass, Polarity, Character,
 };
 
 struct SceneRuntimeAddress {

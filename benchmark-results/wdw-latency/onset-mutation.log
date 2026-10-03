@@ -1,0 +1,3 @@
+Original onset algorithm against strengthened builder regression:
+wdw_routing_builder_smoke failed: direct builder report should contain declared lane latency
+Exit status: 1
