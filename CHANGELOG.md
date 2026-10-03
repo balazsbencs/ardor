@@ -2,6 +2,19 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.87](https://github.com/balazsbencs/ardor/compare/v0.1.85...v0.1.87) (2026-10-03)
+
+### Features
+
+* add budget Rev C IO and independent function modules ([#101](https://github.com/balazsbencs/ardor/issues/101)) ([f32ac8b](https://github.com/balazsbencs/ardor/commit/f32ac8b6f07449225f8ee353416cb1f66aa5cab7)), closes [#108](https://github.com/balazsbencs/ardor/issues/108), references [#105](https://github.com/balazsbencs/ardor/issues/105) [#106](https://github.com/balazsbencs/ardor/issues/106)
+* finalize Ardor IO hardware rev2 production package ([#100](https://github.com/balazsbencs/ardor/issues/100)) ([c324e4a](https://github.com/balazsbencs/ardor/commit/c324e4a4f4f8575ac8f0c76e82775c470e6869b5))
+
+## [0.1.85](https://github.com/balazsbencs/ardor/compare/v0.1.84...v0.1.85) (2026-10-02)
+
+### Bug Fixes
+
+* enable pull-ups for rotary encoder inputs ([0ffce22](https://github.com/balazsbencs/ardor/commit/0ffce225957e7323e76d9de8d3619a89de73dd42))
+
 ## [0.1.84](https://github.com/balazsbencs/ardor/compare/v0.1.83...v0.1.84) (2026-10-02)
 
 ### Features
