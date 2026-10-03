@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import type { NumberControl } from "../effects/types";
 import { NumberInput } from "./ui";
@@ -22,11 +22,14 @@ export function ParameterSlider({
   control,
   value,
   onChange,
+  description,
 }: {
   control: NumberControl;
   value: number;
   onChange(value: number): void;
+  description?: string;
 }) {
+  const descriptionId = useId();
   const [text, setText] = useState(inputValue(control, value));
 
   useEffect(() => setText(inputValue(control, value)), [control, value]);
@@ -58,6 +61,7 @@ export function ParameterSlider({
       <span className="parameter-slider__controls">
         <input
           aria-label={control.label}
+          aria-describedby={description ? descriptionId : undefined}
           type="range"
           min={displayChoices ? 0 : control.minimum}
           max={displayChoices ? displayChoices.length - 1 : control.maximum}
@@ -74,6 +78,7 @@ export function ParameterSlider({
           onChange={(event) => onChange(Number(event.target.value))}
         >{control.display.choices.map((choice) => <option value={choice.value} key={choice.label}>{choice.label}</option>)}</select> : <NumberInput
           aria-label={`${control.label} precise value`}
+          aria-describedby={description ? descriptionId : undefined}
           type="number"
           min={min}
           max={max}
@@ -90,6 +95,7 @@ export function ParameterSlider({
           }}
         />}
       </span>
+      {description && <small id={descriptionId} className="parameter-slider__help">{description}</small>}
     </label>
   );
 }

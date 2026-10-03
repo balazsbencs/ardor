@@ -73,12 +73,12 @@ ardor::DaisyFxProcessor makeDigitalDelay()
   return processor;
 }
 
-void verifyReverbBypassAlignment(bool blockProcessing)
+void verifyDaisyBypassAlignment(bool blockProcessing, bool ph2 = false)
 {
   ardor::DaisyFxProcessor processor;
   std::string error;
-  require(processor.configure("reverb", {
-    {"mode", "cloud"}, {"decay", 0.5f}, {"pre_delay", 0.0f},
+  require(processor.configure(ph2 ? "mod" : "reverb", {
+    {"mode", ph2 ? "phaser_ph2" : "cloud"}, {"decay", 0.5f}, {"pre_delay", 0.0f},
     {"mix", 0.0f}, {"tone", 0.5f}, {"mod", 0.0f},
     {"param1", 0.5f}, {"param2", 0.5f},
   }, 48000.0f, error), error);
@@ -114,7 +114,7 @@ void verifyReverbBypassAlignment(bool blockProcessing)
     }
   }
   require(middle / 64.0 > 0.8 * before / 992.0,
-          "reverb bypass must not phase-cancel its latency-matched dry signal");
+          "resampled effect bypass must preserve its latency-matched dry signal");
 }
 
 std::vector<float> render(ardor::RuntimeChain& chain)
@@ -131,8 +131,10 @@ std::vector<float> render(ardor::RuntimeChain& chain)
 
 int main()
 {
-  verifyReverbBypassAlignment(false);
-  verifyReverbBypassAlignment(true);
+  verifyDaisyBypassAlignment(false);
+  verifyDaisyBypassAlignment(true);
+  verifyDaisyBypassAlignment(false, true);
+  verifyDaisyBypassAlignment(true, true);
   require(near(ardor::routeNamInput(ardor::NamInputMode::Sum, 0.75f, -0.25f), 0.25f),
           "NAM sum input averages left and right without a gain increase");
   require(near(ardor::routeNamInput(ardor::NamInputMode::Left, 0.75f, -0.25f), 0.75f),

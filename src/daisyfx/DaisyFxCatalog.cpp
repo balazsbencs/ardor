@@ -268,6 +268,7 @@ pedal::ModModeId modMode(std::string_view mode)
   if (mode == "rotary") return pedal::ModModeId::Rotary;
   if (mode == "vibe") return pedal::ModModeId::Vibe;
   if (mode == "phaser") return pedal::ModModeId::Phaser;
+  if (mode == "phaser_ph2") return pedal::ModModeId::PhaserPh2;
   if (mode == "vintage_trem") return pedal::ModModeId::VintTrem;
   if (mode == "poly_octave") return pedal::ModModeId::PolyOctave;
   if (mode == "pattern_trem") return pedal::ModModeId::PatternTrem;
@@ -361,6 +362,12 @@ constexpr std::array<std::string_view, 19> kWhammyPresets{
 
 std::string formatMod(std::string_view mode, std::string_view key, float normalized)
 {
+  if (mode == "phaser_ph2" && key == "p2") return normalized < 0.5f ? "Mode 1" : "Mode 2";
+  if (mode == "phaser_ph2" && key == "p4") return normalized < 0.5f ? "Original" : "Inverted";
+  if (mode == "phaser_ph2" && key == "tone") return frequency(1000.0f * std::exp2((normalized - 0.5f) * 4.0f));
+  if (mode == "phaser_ph2" && key == "p1") return percent(normalized * (10000.0f / 14700.0f));
+  if (mode == "phaser_ph2" && key == "speed") return frequency(mappedMod(normalized, mode, pedal::mod_fx::ParamId::Speed));
+  if (mode == "phaser_ph2") mode = "phaser";
   using Id = pedal::mod_fx::ParamId;
   if (key == "speed") {
     const float physical = mappedMod(normalized, mode, Id::Speed);
@@ -576,6 +583,9 @@ const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
     rotary(),
     mod("vibe", "Vibe", "Regen", "Lag"),
     withExtras(mod("phaser", "Phaser", "Regen", "Stages", 0.5f), "Stereo", 0.5f, "Polarity", 0.0f),
+    // Internal differential mixers provide the phase cancellations. Full
+    // Mix is the complete pedal output; Stereo defaults to the mono pedal.
+    withExtras(mod("phaser_ph2", "PH-2 Phaser", "Resonance", "Mode"), "Stereo", 0.0f, "Polarity", 0.0f),
     withExtras(mod("vintage_trem", "Vintage Trem", "Shape", "Type"), "Stereo", 0.0f),
     polyOctave(),
     // Smooth 0.35 is the fixed ~2 ms edge this mode had before the control.
@@ -674,6 +684,7 @@ DaisyFxParamControlSpec daisyFxParamControlSpec(const DaisyFxDescriptor& effect,
       else if (mode == "flanger") choiceCount = 6;
       else if (mode == "rotary") choiceCount = 3;
       else if (mode == "phaser" || mode == "formant") choiceCount = 7;
+      else if (mode == "phaser_ph2") choiceCount = 2;
       else if (mode == "vintage_trem" || mode == "pattern_trem") choiceCount = 3;
       else if (mode == "filter") choiceCount = 8;
       else if (mode == "ladder_sweep") choiceCount = 2;
@@ -681,7 +692,7 @@ DaisyFxParamControlSpec daisyFxParamControlSpec(const DaisyFxDescriptor& effect,
       else if (mode == "whammy") choiceCount = 19;
       else if (mode == "harmonizer") choiceCount = 12;
     }
-    if (key == "p4" && mode == "phaser") choiceCount = 2;
+    if (key == "p4" && (mode == "phaser" || mode == "phaser_ph2")) choiceCount = 2;
     if (key == "p3" && mode == "whammy") choiceCount = 3;
     if (key == "p3" && mode == "filter") choiceCount = 4;
     if (key == "p3" && mode == "harmonizer") choiceCount = 11;

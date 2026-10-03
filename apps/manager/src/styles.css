@@ -612,3 +612,5 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .app-shell .settings-spinner,
   .app-shell .tone3000-spinner { animation: none; }
 }
+
+.parameter-slider__help { margin: 0; color: var(--text); font-size: .72rem; line-height: 1.5; }

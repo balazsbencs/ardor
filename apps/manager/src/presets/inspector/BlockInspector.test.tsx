@@ -36,6 +36,26 @@ describe("BlockInspector", () => {
     expect(onSceneBypass).toHaveBeenCalledWith(block.id, "cut");
   });
 
+  it("edits reverb time as a percentage and keeps kernel preparation shared across scenes", () => {
+    const block = createBlockFromDefinition("irreverb", []);
+    const onParam = vi.fn();
+    renderWithProviders(<BlockInspector block={block} issues={[]} models={[]} irs={[]}
+      scenesEnabled sceneScopeFor={() => "shared"} onSceneScope={vi.fn()}
+      onToggle={() => undefined} onParam={onParam} onAsset={() => undefined}
+      onMode={() => undefined} onEqBand={() => undefined} onReset={() => undefined}
+      onDuplicate={() => undefined} onDelete={() => undefined} onAssets={() => undefined} />);
+
+    const time = screen.getByRole("slider", { name: "Reverb time" });
+    expect(time).toHaveValue("1");
+    expect(time).toHaveAttribute("min", "0.25");
+    expect(time).toHaveAttribute("max", "1");
+    expect(screen.getByRole("spinbutton", { name: "Reverb time precise value" })).toHaveValue(100);
+    fireEvent.change(time, { target: { value: "0.5" } });
+    expect(onParam).toHaveBeenCalledWith(block.id, "reverbTimeRatio", 0.5);
+    expect(screen.queryByRole("group", { name: "Reverb time ownership" })).not.toBeInTheDocument();
+    expect(screen.getByText(/Short or non-decaying IRs keep their original response/)).toBeInTheDocument();
+  });
+
   it("offers the nano model as an opt-in switch", async () => {
     const user = userEvent.setup();
     const block = createBlockFromDefinition("nam", [], "models/amp.nam");

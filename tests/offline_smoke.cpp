@@ -46,10 +46,56 @@ double denseResponsePeak(const std::vector<float>& h, size_t grid)
   return peak;
 }
 
+int verifyLoadedReverbTime()
+{
+  const auto path = std::filesystem::temp_directory_path() / "ardor-reverb-time-smoke.wav";
+  std::vector<float> samples(96000 * 2);
+  for (std::size_t i = 0; i < 96000; ++i) {
+    samples[2 * i] = 0.005f * std::exp(-6.90775527898f * i / (48000.0f * 0.8f));
+    samples[2 * i + 1] = -0.5f * samples[2 * i];
+  }
+  ma_encoder_config cfg = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 2, 48000);
+  ma_encoder encoder;
+  if (require(ma_encoder_init_file(path.string().c_str(), &cfg, &encoder) == MA_SUCCESS)) return 1;
+  ma_encoder_write_pcm_frames(&encoder, samples.data(), 96000, nullptr);
+  ma_encoder_uninit(&encoder);
+
+  // Persist and parse the parameter before loading it through both the serial
+  // engine and the shared lane loader (Dual Rig / WDW).
+  ardor::Preset preset;
+  preset.name = "IR decay";
+  preset.blocks.push_back({"room", "irreverb", true, path.filename().string(),
+                           {{"mix", 1.0f}, {"reverbTimeRatio", 0.5f}}});
+  const auto restored = ardor::presetFromJson(ardor::toJson(preset));
+  const auto plan = ardor::buildChainPlan(restored, path.parent_path());
+  if (require(plan.blocks[0].params.value("reverbTimeRatio", 0.0f) == 0.5f)) return 1;
+  ardor::RuntimeChain lane;
+  ardor::PedalEngine engine;
+  std::string error;
+  if (require(ardor::prepareRuntimeChain(lane, plan.blocks, {48000, 64, 8192}, error))) return 1;
+  if (require(ardor::applyChainPlan(engine, plan, {48000, 64, 8192}, error))) return 1;
+  std::filesystem::remove(path);
+  lane.reset(); engine.reset();
+  for (int frame = 0; frame < 8192; ++frame) {
+    const float x = frame == 0 ? 1.0f : 0.0f;
+    const auto a = lane.process({x, x});
+    const auto b = engine.process(x);
+    if (frame >= 128) {
+      const float expected = 0.005f * std::exp(-6.90775527898f * (frame - 128) / (48000.0f * 0.4f));
+      if (require(std::fabs(a.left - expected) < 0.000002f
+                    && std::fabs(a.right + 0.5f * expected) < 0.000002f
+                    && std::fabs(b.first - expected) < 0.000002f
+                    && std::fabs(b.second + 0.5f * expected) < 0.000002f)) return 1;
+    }
+  }
+  return 0;
+}
+
 } // namespace
 
 int main()
 {
+  if (verifyLoadedReverbTime()) return 1;
   if (require(nam::ConfigParserRegistry::instance().has("SlimmableContainer"))) return 1;
 
   const auto wavPath = std::filesystem::temp_directory_path() / "ardor-wav-io-smoke.wav";
