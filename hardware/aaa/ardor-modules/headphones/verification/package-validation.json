@@ -1,0 +1,15 @@
+{
+  "result": "PASS",
+  "smt_bom_and_cpl_references": 18,
+  "manual_references": 3,
+  "native_placement_coordinates_match": true,
+  "absolute_mm_origin_matches_outline_and_drill": true,
+  "outline_mm": [
+    36,
+    30
+  ],
+  "fabrication_files": 12,
+  "zip_crc_and_contents_match": true,
+  "stock_reserved": false,
+  "supplier_placement_preview_verified": false
+}

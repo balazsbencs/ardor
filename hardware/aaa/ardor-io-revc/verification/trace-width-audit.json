@@ -1,0 +1,650 @@
+{
+  "source_commit": "0df5a213",
+  "audited_nets": 41,
+  "audited_track_segments": 467,
+  "audited_vias": 51,
+  "segments_changed": 69,
+  "segments_narrowed": 63,
+  "segments_widened": 6,
+  "width_junctions_before": 40,
+  "width_junctions_after": 11,
+  "junction_count_method": "Differing widths at shared same-net, same-layer segment endpoints; pad/via and filled-zone geometry excluded.",
+  "constrained_chassis_segments": 25,
+  "route_centerlines_layers_vias_and_placements_unchanged": true,
+  "assumed_copper_thickness_um": 35,
+  "resistance_estimates_exclude_vias_and_components": true,
+  "drc_violations": 0,
+  "unconnected_items": 0,
+  "schematic_parity_issues": 0,
+  "drc_date": "2026-09-30T08:12:56+0000",
+  "hardware_measured": false,
+  "nets": {
+    "+3V3_ADC": {
+      "segments": 38,
+      "width_counts_before": {
+        "0.2": 38
+      },
+      "width_counts_after": {
+        "0.2": 38
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 62.549,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.15405,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 1.5405
+    },
+    "+3V3_PI": {
+      "segments": 15,
+      "width_counts_before": {
+        "0.2": 15
+      },
+      "width_counts_after": {
+        "0.2": 15
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 30.8167,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.0759,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.759
+    },
+    "+5V_A": {
+      "segments": 41,
+      "width_counts_before": {
+        "0.15": 4,
+        "0.2": 14,
+        "0.4": 23
+      },
+      "width_counts_after": {
+        "0.2": 41
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 61.272,
+      "changed_segments": 27,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.1509,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 1.509
+    },
+    "+5V_PI": {
+      "segments": 25,
+      "width_counts_before": {
+        "0.2": 9,
+        "0.4": 16
+      },
+      "width_counts_after": {
+        "0.2": 25
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 94.5345,
+      "changed_segments": 16,
+      "screening_current_ma": 100,
+      "sum_all_branch_track_resistances_ohm": 0.23282,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 23.2825
+    },
+    "/04 / Audio distribution/BIAS_L": {
+      "segments": 9,
+      "width_counts_before": {
+        "0.2": 9
+      },
+      "width_counts_after": {
+        "0.2": 9
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 17.9017,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.04409,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.4409
+    },
+    "/04 / Audio distribution/BIAS_R": {
+      "segments": 9,
+      "width_counts_before": {
+        "0.2": 9
+      },
+      "width_counts_after": {
+        "0.2": 9
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 22.9167,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.05644,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.5644
+    },
+    "/04 / Audio distribution/BUF_L": {
+      "segments": 3,
+      "width_counts_before": {
+        "0.25": 3
+      },
+      "width_counts_after": {
+        "0.2": 3
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 8.4782,
+      "changed_segments": 3,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.02088,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.2088
+    },
+    "/04 / Audio distribution/BUF_R": {
+      "segments": 7,
+      "width_counts_before": {
+        "0.2": 6,
+        "0.25": 1
+      },
+      "width_counts_after": {
+        "0.2": 7
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 7.273,
+      "changed_segments": 1,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.01791,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.1791
+    },
+    "/05 / Line and amp feed/AMP_AC": {
+      "segments": 2,
+      "width_counts_before": {
+        "0.2": 2
+      },
+      "width_counts_after": {
+        "0.2": 2
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 2.6849,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.00661,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.0661
+    },
+    "/05 / Line and amp feed/AMP_FEED": {
+      "segments": 7,
+      "width_counts_before": {
+        "0.2": 7
+      },
+      "width_counts_after": {
+        "0.2": 7
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 9.6136,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.02368,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.2368
+    },
+    "/05 / Line and amp feed/LINE_AC": {
+      "segments": 9,
+      "width_counts_before": {
+        "0.2": 9
+      },
+      "width_counts_after": {
+        "0.2": 9
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 17.8751,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.04402,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.4402
+    },
+    "/05 / Line and amp feed/LINE_DRIVE": {
+      "segments": 2,
+      "width_counts_before": {
+        "0.2": 2
+      },
+      "width_counts_after": {
+        "0.2": 2
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 5.7905,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.01426,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.1426
+    },
+    "ADC_SCL": {
+      "segments": 2,
+      "width_counts_before": {
+        "0.2": 2
+      },
+      "width_counts_after": {
+        "0.2": 2
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 2.1539,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.0053,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.053
+    },
+    "ADC_SDA": {
+      "segments": 6,
+      "width_counts_before": {
+        "0.2": 6
+      },
+      "width_counts_after": {
+        "0.2": 6
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 6.3166,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.01556,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.1556
+    },
+    "AUX_L": {
+      "segments": 5,
+      "width_counts_before": {
+        "0.2": 5
+      },
+      "width_counts_after": {
+        "0.2": 5
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 9.5184,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.02344,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.2344
+    },
+    "AUX_R": {
+      "segments": 2,
+      "width_counts_before": {
+        "0.2": 2
+      },
+      "width_counts_after": {
+        "0.2": 2
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 11.2734,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.02776,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.2776
+    },
+    "CHASSIS": {
+      "segments": 45,
+      "width_counts_before": {
+        "0.2": 27,
+        "0.6": 18
+      },
+      "width_counts_after": {
+        "0.2": 25,
+        "0.6": 20
+      },
+      "width_junctions_after": 11,
+      "total_track_length_mm": 126.789,
+      "changed_segments": 2,
+      "screening_current_ma": null,
+      "sum_all_branch_track_resistances_ohm": 0.24912,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": null
+    },
+    "EXP_ADC": {
+      "segments": 22,
+      "width_counts_before": {
+        "0.2": 22
+      },
+      "width_counts_after": {
+        "0.2": 22
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 23.4537,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.05776,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.5776
+    },
+    "EXP_EXC": {
+      "segments": 5,
+      "width_counts_before": {
+        "0.2": 5
+      },
+      "width_counts_after": {
+        "0.2": 5
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 16.3679,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.04031,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.4031
+    },
+    "EXP_REF_ADC": {
+      "segments": 15,
+      "width_counts_before": {
+        "0.2": 15
+      },
+      "width_counts_after": {
+        "0.2": 15
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 28.2672,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.06962,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.6962
+    },
+    "EXP_RING": {
+      "segments": 8,
+      "width_counts_before": {
+        "0.2": 8
+      },
+      "width_counts_after": {
+        "0.2": 8
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 18.8038,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.04631,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.4631
+    },
+    "EXP_TIP": {
+      "segments": 10,
+      "width_counts_before": {
+        "0.2": 10
+      },
+      "width_counts_after": {
+        "0.2": 10
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 15.3341,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.03777,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.3777
+    },
+    "EXP_WIPER": {
+      "segments": 6,
+      "width_counts_before": {
+        "0.2": 6
+      },
+      "width_counts_after": {
+        "0.2": 6
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 12.302,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.0303,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.303
+    },
+    "GND": {
+      "segments": 3,
+      "width_counts_before": {
+        "0.4": 3
+      },
+      "width_counts_after": {
+        "0.4": 3
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 4.6505,
+      "changed_segments": 0,
+      "screening_current_ma": null,
+      "sum_all_branch_track_resistances_ohm": 0.00573,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": null
+    },
+    "LINE_ENABLE": {
+      "segments": 9,
+      "width_counts_before": {
+        "0.2": 9
+      },
+      "width_counts_after": {
+        "0.2": 9
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 36.6255,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.0902,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.902
+    },
+    "LINE_JACK": {
+      "segments": 11,
+      "width_counts_before": {
+        "0.2": 11
+      },
+      "width_counts_after": {
+        "0.2": 11
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 19.458,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.04792,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.4792
+    },
+    "MIDI_4": {
+      "segments": 11,
+      "width_counts_before": {
+        "0.2": 11
+      },
+      "width_counts_after": {
+        "0.2": 11
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 15.1995,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.03743,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.3743
+    },
+    "MIDI_4_F": {
+      "segments": 2,
+      "width_counts_before": {
+        "0.2": 2
+      },
+      "width_counts_after": {
+        "0.2": 2
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 4.0759,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.01004,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.1004
+    },
+    "MIDI_5": {
+      "segments": 14,
+      "width_counts_before": {
+        "0.2": 14
+      },
+      "width_counts_after": {
+        "0.2": 14
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 22.1777,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.05462,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.5462
+    },
+    "MIDI_A": {
+      "segments": 9,
+      "width_counts_before": {
+        "0.2": 9
+      },
+      "width_counts_after": {
+        "0.2": 9
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 14.1563,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.03486,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.3486
+    },
+    "MIDI_K": {
+      "segments": 5,
+      "width_counts_before": {
+        "0.2": 5
+      },
+      "width_counts_after": {
+        "0.2": 5
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 11.8433,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.02917,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.2917
+    },
+    "MIDI_OC": {
+      "segments": 5,
+      "width_counts_before": {
+        "0.2": 5
+      },
+      "width_counts_after": {
+        "0.2": 5
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 5.8852,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.01449,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.1449
+    },
+    "MIDI_RX": {
+      "segments": 9,
+      "width_counts_before": {
+        "0.2": 9
+      },
+      "width_counts_after": {
+        "0.2": 9
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 26.0735,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.06422,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.6422
+    },
+    "MONO_BUF": {
+      "segments": 28,
+      "width_counts_before": {
+        "0.2": 20,
+        "0.25": 8
+      },
+      "width_counts_after": {
+        "0.2": 28
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 50.0631,
+      "changed_segments": 8,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.1233,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 1.233
+    },
+    "MONO_MIX": {
+      "segments": 9,
+      "width_counts_before": {
+        "0.2": 9
+      },
+      "width_counts_after": {
+        "0.2": 9
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 17.8664,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.044,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.44
+    },
+    "PI_SCL": {
+      "segments": 7,
+      "width_counts_before": {
+        "0.2": 7
+      },
+      "width_counts_after": {
+        "0.2": 7
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 34.7363,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.08555,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.8555
+    },
+    "PI_SDA": {
+      "segments": 16,
+      "width_counts_before": {
+        "0.2": 16
+      },
+      "width_counts_after": {
+        "0.2": 16
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 38.2005,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.09408,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.9408
+    },
+    "RELAY_GATE": {
+      "segments": 4,
+      "width_counts_before": {
+        "0.2": 4
+      },
+      "width_counts_after": {
+        "0.2": 4
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 5.7067,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.01405,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.1405
+    },
+    "RELAY_LOW": {
+      "segments": 6,
+      "width_counts_before": {
+        "0.2": 1,
+        "0.4": 5
+      },
+      "width_counts_after": {
+        "0.2": 6
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 14.0837,
+      "changed_segments": 5,
+      "screening_current_ma": 50,
+      "sum_all_branch_track_resistances_ohm": 0.03469,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 1.7343
+    },
+    "VREF": {
+      "segments": 17,
+      "width_counts_before": {
+        "0.2": 10,
+        "0.25": 7
+      },
+      "width_counts_after": {
+        "0.2": 17
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 33.5822,
+      "changed_segments": 7,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.08271,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.8271
+    },
+    "VREF_DIV": {
+      "segments": 9,
+      "width_counts_before": {
+        "0.2": 9
+      },
+      "width_counts_after": {
+        "0.2": 9
+      },
+      "width_junctions_after": 0,
+      "total_track_length_mm": 9.4311,
+      "changed_segments": 0,
+      "screening_current_ma": 10,
+      "sum_all_branch_track_resistances_ohm": 0.02323,
+      "track_voltage_drop_upper_bound_at_screening_current_mv": 0.2323
+    }
+  },
+  "board_sha256": "8dcc7e1493d7c498afb16a041ec4be6f5ba146ed2350bbe924693f4979fe6264",
+  "mixed_width_nets_before": 7,
+  "mixed_width_nets_after": 1
+}

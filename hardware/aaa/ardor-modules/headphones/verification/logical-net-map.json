@@ -1,0 +1,20 @@
+{
+  "+5V": "/+5V",
+  "+5V_A": "/+5V_A",
+  "CHASSIS": "/CHASSIS",
+  "GND": "/GND",
+  "HPVDD": "/HPVDD",
+  "HPVSS": "/HPVSS",
+  "HP_L": "/HP_L",
+  "HP_R": "/HP_R",
+  "HP_ENABLE": "Net-(J101-Pin_3)",
+  "AUDIO_L": "Net-(J102-Pin_1)",
+  "AUDIO_R": "Net-(J102-Pin_3)",
+  "CPN": "Net-(U601-CPN)",
+  "CPP": "Net-(U601-CPP)",
+  "HP_EN": "Net-(U601-EN)",
+  "HP_IN_L": "Net-(U601-INL-)",
+  "HP_IN_R": "Net-(U601-INR-)",
+  "HP_L_RAW": "Net-(U601-OUTL)",
+  "HP_R_RAW": "Net-(U601-OUTR)"
+}

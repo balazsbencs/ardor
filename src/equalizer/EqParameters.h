@@ -2,11 +2,13 @@
 
 #include <array>
 #include <cstddef>
+#include <string_view>
 
 #include <nlohmann/json.hpp>
 
 namespace ardor {
 
+inline constexpr std::string_view kConsoleEqMode = "console_1073";
 inline constexpr std::size_t kParametricEqBandCount = 5;
 inline constexpr float kEqMinimumFrequencyHz = 20.0f;
 inline constexpr float kEqMaximumFrequencyHz = 20000.0f;
@@ -54,5 +56,6 @@ ParametricEqParams defaultParametricEqParams();
 ParametricEqParams parametricEqParamsFromJson(const nlohmann::json& params);
 nlohmann::json parametricEqParamsToJson(const ParametricEqParams& params);
 bool isParametricEqMode(const nlohmann::json& params);
+bool isConsoleEqMode(const nlohmann::json& params);
 
 } // namespace ardor

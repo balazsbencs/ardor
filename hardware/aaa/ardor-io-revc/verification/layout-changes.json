@@ -1,0 +1,49 @@
+{
+  "removed_footprints": [
+    "C503",
+    "C601",
+    "C602",
+    "C603",
+    "C604",
+    "C605",
+    "C606",
+    "C607",
+    "D601",
+    "D602",
+    "J602",
+    "R601",
+    "R602",
+    "R603",
+    "R604",
+    "TP601",
+    "U501",
+    "U601"
+  ],
+  "net_merges": {
+    "/05 / Line and amp feed/AMP_BUF": "MONO_BUF",
+    "/05 / Line and amp feed/LINE_BUF": "MONO_BUF",
+    "BUF_L": "/04 / Audio distribution/BUF_L",
+    "BUF_R": "/04 / Audio distribution/BUF_R",
+    "HP_ENABLE": "unconnected-(J101-Pin_11-Pad11)"
+  },
+  "buffer_bypass_connections": [
+    [
+      "U501 old pad 2",
+      "U501 old pad 3"
+    ],
+    [
+      "U501 old pad 6",
+      "U501 old pad 5"
+    ]
+  ],
+  "retained_outline_mm": [
+    68,
+    46
+  ],
+  "reviewed_branch_stubs_removed": 48,
+  "redundant_ground_segments_removed": 192,
+  "uniform_3v3_width_mm": 0.2,
+  "reviewed_3v3_segments_narrowed": 37,
+  "other_reviewed_width_changes": 69,
+  "chassis_width_exceptions": 25
+}

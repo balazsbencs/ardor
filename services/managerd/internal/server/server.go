@@ -18,6 +18,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -417,6 +418,27 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 				log.Printf("restart Wi-Fi after settings update: %v", err)
 			}
 		}()
+	})
+
+	mux.HandleFunc("GET /api/assets/usage", func(w http.ResponseWriter, r *http.Request) {
+		if !authorized(w, r, cfg, authStore) {
+			return
+		}
+		usage, err := presetStore.AssetUsage()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "asset_usage_failed", err.Error())
+			return
+		}
+		type entry struct {
+			Path    string             `json:"path"`
+			Presets []presets.AssetUse `json:"presets"`
+		}
+		entries := make([]entry, 0, len(usage))
+		for path, uses := range usage {
+			entries = append(entries, entry{Path: path, Presets: uses})
+		}
+		sort.Slice(entries, func(i, j int) bool { return entries[i].Path < entries[j].Path })
+		writeJSON(w, http.StatusOK, map[string]any{"usage": entries})
 	})
 
 	mux.HandleFunc("GET /api/assets/{kind}", func(w http.ResponseWriter, r *http.Request) {

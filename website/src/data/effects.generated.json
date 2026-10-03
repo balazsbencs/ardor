@@ -67,6 +67,7 @@
       "dynamics:noise_gate",
       "dynamics:transient_shaper",
       "eq:parametric_eq_5",
+      "eq:console_1073",
       "stereo:widener",
       "wah:gcb95"
     ],
@@ -80,6 +81,7 @@
       "mod:flanger",
       "mod:rotary",
       "mod:vibe",
+      "mod:phaser_ph2",
       "mod:phaser",
       "mod:vintage_trem",
       "mod:poly_octave",
@@ -220,6 +222,16 @@
           "max": 12,
           "step": 1,
           "default": 0
+        },
+        {
+          "key": "reverbTimeRatio",
+          "label": "Reverb time",
+          "kind": "number",
+          "unit": "%",
+          "min": 0.25,
+          "max": 1,
+          "step": 0.01,
+          "default": 1
         },
         {
           "key": "preDelayMs",
@@ -698,6 +710,158 @@
           "label": "parametric-eq-5",
           "kind": "parametric-eq-5",
           "unit": ""
+        }
+      ]
+    },
+    {
+      "id": "eq:console_1073",
+      "name": "1073 EQ",
+      "description": "1073-style three-band console EQ with stepped frequencies, 18 dB/oct high-pass and optional saturation.",
+      "category": "utility",
+      "blockType": "eq",
+      "mode": "console_1073",
+      "maxEnabledInGroup": null,
+      "controls": [
+        {
+          "key": "low_db",
+          "label": "Low gain",
+          "kind": "number",
+          "unit": "dB",
+          "min": -16,
+          "max": 16,
+          "step": 0.5,
+          "default": 0
+        },
+        {
+          "key": "low_freq",
+          "label": "Low frequency",
+          "kind": "number",
+          "unit": "plain",
+          "min": 0,
+          "max": 4,
+          "step": 1,
+          "default": "60 Hz",
+          "choices": [
+            "Off",
+            "35 Hz",
+            "60 Hz",
+            "110 Hz",
+            "220 Hz"
+          ]
+        },
+        {
+          "key": "mid_db",
+          "label": "Mid gain",
+          "kind": "number",
+          "unit": "dB",
+          "min": -18,
+          "max": 18,
+          "step": 0.5,
+          "default": 0
+        },
+        {
+          "key": "mid_freq",
+          "label": "Mid frequency",
+          "kind": "number",
+          "unit": "plain",
+          "min": 0,
+          "max": 6,
+          "step": 1,
+          "default": "1.6 kHz",
+          "choices": [
+            "Off",
+            "360 Hz",
+            "700 Hz",
+            "1.6 kHz",
+            "3.2 kHz",
+            "4.8 kHz",
+            "7.2 kHz"
+          ]
+        },
+        {
+          "key": "high_db",
+          "label": "High gain · 12 kHz",
+          "kind": "number",
+          "unit": "dB",
+          "min": -16,
+          "max": 16,
+          "step": 0.5,
+          "default": 0
+        },
+        {
+          "key": "high_pass",
+          "label": "High-pass · 18 dB/oct",
+          "kind": "number",
+          "unit": "plain",
+          "min": 0,
+          "max": 4,
+          "step": 1,
+          "default": "Off",
+          "choices": [
+            "Off",
+            "50 Hz",
+            "80 Hz",
+            "160 Hz",
+            "300 Hz"
+          ]
+        },
+        {
+          "key": "saturation",
+          "label": "Saturation",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0
+        },
+        {
+          "key": "character",
+          "label": "Character",
+          "kind": "number",
+          "unit": "plain",
+          "min": 0,
+          "max": 1,
+          "step": 1,
+          "default": "Console",
+          "choices": [
+            "Clean",
+            "Console"
+          ]
+        },
+        {
+          "key": "output_db",
+          "label": "Output trim",
+          "kind": "number",
+          "unit": "dB",
+          "min": -24,
+          "max": 24,
+          "step": 0.5,
+          "default": 0
+        },
+        {
+          "key": "polarity",
+          "label": "Polarity",
+          "kind": "number",
+          "unit": "plain",
+          "min": 0,
+          "max": 1,
+          "step": 1,
+          "default": "Normal",
+          "choices": [
+            "Normal",
+            "Inverted"
+          ]
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 1
         }
       ]
     },
@@ -1338,6 +1502,107 @@
           "max": 1,
           "step": 0.05,
           "default": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mod:phaser_ph2",
+      "name": "PH-2 Phaser",
+      "description": "PH-2 inspired phaser: Mode 1 uses ten stages with global resonance; Mode 2 cascades two six-stage phasers.",
+      "category": "modulation",
+      "blockType": "mod",
+      "mode": "phaser_ph2",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.35
+        },
+        {
+          "key": "depth",
+          "label": "Depth",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.7
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 1
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p1",
+          "label": "Resonance",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p2",
+          "label": "Mode",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "key": "p3",
+          "label": "Stereo",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
+        },
+        {
+          "key": "p4",
+          "label": "Polarity",
+          "kind": "number",
+          "unit": "%",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0
         }
       ]
     },
@@ -4297,13 +4562,13 @@
     }
   ],
   "counts": {
-    "total": 52,
-    "effects": 48,
+    "total": 54,
+    "effects": 50,
     "amp": 3,
     "cabinet": 1,
     "drive": 3,
-    "utility": 6,
-    "modulation": 16,
+    "utility": 7,
+    "modulation": 17,
     "delay": 10,
     "reverb": 13
   }

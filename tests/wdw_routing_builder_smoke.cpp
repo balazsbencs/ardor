@@ -98,19 +98,18 @@ int main(int argc, char** argv)
     options.program.executor.requireRealtimeScheduling = false;
     options.program.executor.requireAffinity = false;
     options.program.mix = {1.0f, 0.0f, true, 0.0f, 1.0f, false};
-    options.calibrationBlocks = 64;
-    options.calibrationThreshold = 1.0e-10f;
 
     std::unique_ptr<ardor::WdwRoutingProgram> program;
     ardor::WdwRoutingBuildReport report;
     std::string error;
     require(ardor::buildWdwRoutingProgram(dry, wet, options, program, report, error), error);
     require(program && program->prepared(), "builder did not return a prepared program");
-    require(report.latencyCalibrated
+    require(report.latencyDerived
+              && report.dryLatencyFrames == 26 && report.wetLatencyFrames == 0
               && report.totalLatencyFrames == std::max(report.dryLatencyFrames,
                                                        report.wetLatencyFrames)
               && program->latencyFrames() == report.totalLatencyFrames,
-            "direct builder report should contain calibrated lane latency");
+            "direct builder report should contain declared lane latency");
 
     std::vector<float> input(options.engine.blockSize, 0.25f);
     std::vector<float> left(input.size(), 0.0f);
@@ -127,7 +126,7 @@ int main(int argc, char** argv)
     }
 
     // A reverb's user pre-delay is intentional wet timing and must not be
-    // promoted to host-visible lane latency during first-arrival calibration.
+    // promoted to host-visible lane latency during fixed latency derivation.
     auto delayedWet = wet;
     delayedWet.blocks.pop_back();
     ardor::ChainBlockPlan delayedReverb;
@@ -140,12 +139,11 @@ int main(int argc, char** argv)
     };
     delayedWet.blocks.push_back(std::move(delayedReverb));
     auto delayedOptions = options;
-    delayedOptions.calibrationBlocks = 2048;
     program.reset();
     require(ardor::buildWdwRoutingProgram(dry, delayedWet, delayedOptions,
                                            program, report, error),
             "builder rejected a wet reverb with pre-delay: " + error);
-    require(report.wetLatencyFrames < 10000,
+    require(report.wetLatencyFrames == 0,
             "user reverb pre-delay must not become WDW lane latency");
 
     // The admission policy catches accidental cross-lane ID reuse before any

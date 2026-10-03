@@ -1,0 +1,107 @@
+{
+  "viewpoint": "Directions are relative to this board; square pad is pin 1.",
+  "abbreviations": {
+    "IN": "Into this board",
+    "OUT": "Out of this board",
+    "I/O": "Both directions",
+    "GND": "Common 0 V return",
+    "NC": "Unused; do not connect"
+  },
+  "ports": {
+    "J101": {
+      "title": "5V POWER INPUT",
+      "silk": "POWER IN",
+      "pins": [
+        {
+          "number": 1,
+          "net": "+5V",
+          "short": "5V IN",
+          "direction": "POWER INPUT",
+          "meaning": "Feed regulated 5V into the module. This pin does not supply power.",
+          "connect": "Positive output of the matching regulated supply."
+        },
+        {
+          "number": 2,
+          "net": "GND",
+          "short": "GND 0V",
+          "direction": "GROUND",
+          "meaning": "Common 0 V return; not a signal or positive supply.",
+          "connect": "Host or cable ground / 0 V."
+        }
+      ],
+      "setup": ""
+    },
+    "J102": {
+      "title": "STEREO AUDIO INPUT FROM SOURCE",
+      "silk": "AUDIO IN",
+      "pins": [
+        {
+          "number": 1,
+          "net": "AUDIO_L",
+          "short": "LEFT IN",
+          "direction": "INPUT",
+          "meaning": "LEFT audio enters the module.",
+          "connect": "DAC/codec left audio output, <=1 Vrms."
+        },
+        {
+          "number": 2,
+          "net": "GND",
+          "short": "GND 0V",
+          "direction": "GROUND",
+          "meaning": "Common 0 V return; not a signal or positive supply.",
+          "connect": "Host or cable ground / 0 V."
+        },
+        {
+          "number": 3,
+          "net": "AUDIO_R",
+          "short": "RIGHT IN",
+          "direction": "INPUT",
+          "meaning": "RIGHT audio enters the module.",
+          "connect": "DAC/codec right audio output, <=1 Vrms."
+        }
+      ],
+      "setup": ""
+    },
+    "J103": {
+      "title": "BUFFERED STEREO + MONO AUDIO OUTPUT",
+      "silk": "AUDIO OUT",
+      "pins": [
+        {
+          "number": 1,
+          "net": "OUT_L",
+          "short": "LEFT OUT",
+          "direction": "OUTPUT",
+          "meaning": "LEFT audio leaves the module.",
+          "connect": "Left line input of another device, >=10k load."
+        },
+        {
+          "number": 2,
+          "net": "GND",
+          "short": "GND 0V",
+          "direction": "GROUND",
+          "meaning": "Common 0 V return; not a signal or positive supply.",
+          "connect": "Host or cable ground / 0 V."
+        },
+        {
+          "number": 3,
+          "net": "OUT_R",
+          "short": "RIGHT OUT",
+          "direction": "OUTPUT",
+          "meaning": "RIGHT audio leaves the module.",
+          "connect": "Right line input of another device, >=10k load."
+        },
+        {
+          "number": 4,
+          "net": "OUT_MONO",
+          "short": "MONO OUT",
+          "direction": "OUTPUT",
+          "meaning": "MONO audio leaves the module.",
+          "connect": "Mono line input, >=10k load. Signal is (L+R)/2."
+        }
+      ],
+      "setup": ""
+    }
+  },
+  "unused_pins": {},
+  "mounting_holes": "H1/H2 are M2 mounting holes, not electrical connections. Small vias are not user connectors."
+}

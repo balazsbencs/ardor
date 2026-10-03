@@ -1,0 +1,314 @@
+{
+  "side": "Bottom; text is mirrored for normal reading from the back",
+  "legends": [
+    {
+      "text": "1",
+      "position_mm": [
+        54.7,
+        56.46
+      ],
+      "pin_number_for": "J101.1"
+    },
+    {
+      "text": "2",
+      "position_mm": [
+        54.7,
+        59.0
+      ],
+      "pin_number_for": "J101.2"
+    },
+    {
+      "text": "3",
+      "position_mm": [
+        54.7,
+        61.54
+      ],
+      "pin_number_for": "J101.3"
+    },
+    {
+      "text": "J101",
+      "position_mm": [
+        53.0,
+        53.96
+      ],
+      "connector_reference": "J101"
+    },
+    {
+      "text": "1",
+      "position_mm": [
+        54.7,
+        68.73
+      ],
+      "pin_number_for": "J102.1"
+    },
+    {
+      "text": "2",
+      "position_mm": [
+        54.7,
+        71.27
+      ],
+      "pin_number_for": "J102.2"
+    },
+    {
+      "text": "J102",
+      "position_mm": [
+        53.0,
+        66.23
+      ],
+      "connector_reference": "J102"
+    },
+    {
+      "text": "1",
+      "position_mm": [
+        90.3,
+        74.73
+      ],
+      "pin_number_for": "J502.1"
+    },
+    {
+      "text": "2",
+      "position_mm": [
+        90.3,
+        77.27
+      ],
+      "pin_number_for": "J502.2"
+    },
+    {
+      "text": "J502",
+      "position_mm": [
+        92.0,
+        79.77
+      ],
+      "connector_reference": "J502"
+    },
+    {
+      "text": "1",
+      "position_mm": [
+        90.3,
+        65.73
+      ],
+      "pin_number_for": "J503.1"
+    },
+    {
+      "text": "2",
+      "position_mm": [
+        90.3,
+        68.27
+      ],
+      "pin_number_for": "J503.2"
+    },
+    {
+      "text": "J503",
+      "position_mm": [
+        92.0,
+        63.23
+      ],
+      "connector_reference": "J503"
+    },
+    {
+      "text": "ARDOR LINE M1",
+      "position_mm": [
+        73.0,
+        82.3
+      ]
+    },
+    {
+      "text": "J101 PWR + ENABLE IN\n1 5V IN  2 GND 0V\n3 ENABLE IN",
+      "position_mm": [
+        63.0,
+        59.0
+      ],
+      "pin_map_for": "J101",
+      "described_pins": [
+        "J101.1",
+        "J101.2",
+        "J101.3"
+      ],
+      "optional": true
+    },
+    {
+      "text": "J102 AUDIO IN\n1 AUDIO IN  2 GND 0V",
+      "position_mm": [
+        62.5,
+        70.0
+      ],
+      "pin_map_for": "J102",
+      "described_pins": [
+        "J102.1",
+        "J102.2"
+      ],
+      "optional": true
+    },
+    {
+      "text": "J503 LINE OUT\n1 LINE OUT  2 GND 0V",
+      "position_mm": [
+        82.0,
+        67.0
+      ],
+      "pin_map_for": "J503",
+      "described_pins": [
+        "J503.1",
+        "J503.2"
+      ],
+      "optional": true
+    },
+    {
+      "text": "J502 AMP AUDIO OUT\n1 AUDIO OUT  2 GND 0V",
+      "position_mm": [
+        82.0,
+        76.0
+      ],
+      "pin_map_for": "J502",
+      "described_pins": [
+        "J502.1",
+        "J502.2"
+      ],
+      "optional": true
+    },
+    {
+      "text": "IN=INTO",
+      "position_mm": [
+        72.0,
+        65.5
+      ]
+    },
+    {
+      "text": "OUT=FROM",
+      "position_mm": [
+        73.5,
+        69.5
+      ]
+    }
+  ],
+  "numbered_connector_pins": {
+    "J101.1": {
+      "text": "1",
+      "position_mm": [
+        54.7,
+        56.46
+      ],
+      "pin_number_for": "J101.1"
+    },
+    "J101.2": {
+      "text": "2",
+      "position_mm": [
+        54.7,
+        59.0
+      ],
+      "pin_number_for": "J101.2"
+    },
+    "J101.3": {
+      "text": "3",
+      "position_mm": [
+        54.7,
+        61.54
+      ],
+      "pin_number_for": "J101.3"
+    },
+    "J102.1": {
+      "text": "1",
+      "position_mm": [
+        54.7,
+        68.73
+      ],
+      "pin_number_for": "J102.1"
+    },
+    "J102.2": {
+      "text": "2",
+      "position_mm": [
+        54.7,
+        71.27
+      ],
+      "pin_number_for": "J102.2"
+    },
+    "J502.1": {
+      "text": "1",
+      "position_mm": [
+        90.3,
+        74.73
+      ],
+      "pin_number_for": "J502.1"
+    },
+    "J502.2": {
+      "text": "2",
+      "position_mm": [
+        90.3,
+        77.27
+      ],
+      "pin_number_for": "J502.2"
+    },
+    "J503.1": {
+      "text": "1",
+      "position_mm": [
+        90.3,
+        65.73
+      ],
+      "pin_number_for": "J503.1"
+    },
+    "J503.2": {
+      "text": "2",
+      "position_mm": [
+        90.3,
+        68.27
+      ],
+      "pin_number_for": "J503.2"
+    }
+  },
+  "pin_maps": {
+    "J101": {
+      "text": "J101 PWR + ENABLE IN\n1 5V IN  2 GND 0V\n3 ENABLE IN",
+      "position_mm": [
+        63.0,
+        59.0
+      ],
+      "pin_map_for": "J101",
+      "described_pins": [
+        "J101.1",
+        "J101.2",
+        "J101.3"
+      ],
+      "optional": true
+    },
+    "J102": {
+      "text": "J102 AUDIO IN\n1 AUDIO IN  2 GND 0V",
+      "position_mm": [
+        62.5,
+        70.0
+      ],
+      "pin_map_for": "J102",
+      "described_pins": [
+        "J102.1",
+        "J102.2"
+      ],
+      "optional": true
+    },
+    "J503": {
+      "text": "J503 LINE OUT\n1 LINE OUT  2 GND 0V",
+      "position_mm": [
+        82.0,
+        67.0
+      ],
+      "pin_map_for": "J503",
+      "described_pins": [
+        "J503.1",
+        "J503.2"
+      ],
+      "optional": true
+    },
+    "J502": {
+      "text": "J502 AMP AUDIO OUT\n1 AUDIO OUT  2 GND 0V",
+      "position_mm": [
+        82.0,
+        76.0
+      ],
+      "pin_map_for": "J502",
+      "described_pins": [
+        "J502.1",
+        "J502.2"
+      ],
+      "optional": true
+    }
+  },
+  "unused_pins": {},
+  "signal_viewpoint": "IN enters this board; OUT leaves this board; I/O is both directions; GND is 0 V"
+}

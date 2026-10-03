@@ -1,0 +1,48 @@
+{
+  "ground_components_before": 5,
+  "host_ground": "J101.2",
+  "added_vias": [
+    {
+      "position_mm": [
+        62.5057,
+        66.4593
+      ],
+      "connects": [
+        "zone:0:0",
+        "U401.4:3"
+      ]
+    },
+    {
+      "position_mm": [
+        76.1699,
+        59.9194
+      ],
+      "connects": [
+        "zone:0:1",
+        "via:<pcbnew.KIID; proxy of <Swig Object of type 'KIID *' at 0x7ff8d6cdd650> >"
+      ]
+    },
+    {
+      "position_mm": [
+        71.8313,
+        59.9885
+      ],
+      "connects": [
+        "zone:0:2",
+        "via:<pcbnew.KIID; proxy of <Swig Object of type 'KIID *' at 0x7ff8d6cdd800> >"
+      ]
+    },
+    {
+      "position_mm": [
+        64.8939,
+        57.3881
+      ],
+      "connects": [
+        "zone:0:3",
+        "C404.2:1"
+      ]
+    }
+  ],
+  "removed_router_spurs": 1,
+  "removed_degenerate_segments": 1
+}

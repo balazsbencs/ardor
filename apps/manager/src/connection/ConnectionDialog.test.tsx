@@ -4,6 +4,7 @@ import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ArdorApiClient } from "../api/client";
+import { ArdorApiError } from "../api/errors";
 import type { DeviceStatus } from "../api/types";
 import { renderWithProviders } from "../test/render";
 import { ConnectionDialog } from "./ConnectionDialog";
@@ -88,5 +89,28 @@ describe("ConnectionDialog", () => {
     expect(await screen.findByText("closed")).toBeInTheDocument();
     expect(localAuthMocks.login).toHaveBeenCalledWith("owner", "long-local-password", "http://127.0.0.1:8080");
     expect(clientFactoryMock).toHaveBeenCalledWith({ baseUrl: "http://127.0.0.1:8080", token: "local-session" });
+  });
+
+  it("says the pedal refused the login on a 401", async () => {
+    localAuthMocks.status.mockResolvedValue({ state: "login_required", insecureTransport: true });
+    localAuthMocks.login.mockRejectedValue(new ArdorApiError(401, "invalid_credentials", "invalid credentials"));
+    renderWithProviders(<DialogHarness apiClient={client()} />);
+
+    await userEvent.type(screen.getByLabelText("Local username"), "owner");
+    await userEvent.type(screen.getByLabelText("Local password"), "wrong-password");
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("The pedal refused the login. Check the user name and password.");
+    expect(screen.getByText("open")).toBeInTheDocument();
+  });
+
+  it("keeps the message of any other login error", async () => {
+    localAuthMocks.status.mockResolvedValue({ state: "login_required", insecureTransport: true });
+    localAuthMocks.login.mockRejectedValue(new ArdorApiError(429, "rate_limited", "Too many attempts. Wait a minute."));
+    renderWithProviders(<DialogHarness apiClient={client()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Too many attempts. Wait a minute.");
   });
 });

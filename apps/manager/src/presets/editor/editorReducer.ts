@@ -47,15 +47,16 @@ function withMutation(
   state: EditorState,
   update: (present: Preset) => Preset | undefined,
   selectedBlockId: string | undefined = state.selectedBlockId,
+  gesture?: string,
 ): EditorState {
   const next = update(state.history.present);
   if (!next || deepEqual(next, state.history.present)) return state;
+  // One pointer drag or key burst on a control is one undo step.
+  if (gesture !== undefined && state.gesture === gesture) {
+    return { ...state, selectedBlockId, gesture, history: { ...state.history, present: next, future: [] } };
+  }
   const past = [...state.history.past, clonePreset(state.history.present)].slice(-historyLimit);
-  return {
-    ...state,
-    selectedBlockId,
-    history: { past, present: next, future: [] },
-  };
+  return { ...state, selectedBlockId, gesture, history: { past, present: next, future: [] } };
 }
 
 function finiteValue(value: unknown): boolean {
@@ -151,6 +152,7 @@ function normalizedControlValue(block: PresetBlock, key: string, value: unknown)
       : undefined;
   }
   if (control.kind === "toggle") return typeof value === "boolean" ? value : undefined;
+  if (control.kind === "asset") return typeof value === "string" ? value : undefined;
   return undefined;
 }
 
@@ -170,7 +172,7 @@ function currentEqBands(block: PresetBlock): EqBand[] {
   });
 }
 
-function setEqBand(state: EditorState, blockId: string, band: number, patch: Partial<EqBand>): EditorState {
+function setEqBand(state: EditorState, blockId: string, band: number, patch: Partial<EqBand>, gesture?: string): EditorState {
   if (!Number.isInteger(band) || band < 0 || band >= 5 || !finiteValue(patch)) return state;
   if (patch.enabled !== undefined && typeof patch.enabled !== "boolean") return state;
   const ranges: Record<string, [number, number]> = {
@@ -187,10 +189,10 @@ function setEqBand(state: EditorState, blockId: string, band: number, patch: Par
     const bands = currentEqBands(block);
     bands[band] = { ...bands[band], ...normalized } as EqBand;
     return { ...block, params: { ...block.params, bands } };
-  }));
+  }), state.selectedBlockId, gesture);
 }
 
-function setBlockParam(state: EditorState, blockId: string, key: string, value: unknown): EditorState {
+function setBlockParam(state: EditorState, blockId: string, key: string, value: unknown, gesture?: string): EditorState {
   const block = findPresetBlockInPreset(state.history.present, blockId);
   if (!block) return state;
   const normalized = normalizedControlValue(block, key, value);
@@ -198,7 +200,7 @@ function setBlockParam(state: EditorState, blockId: string, key: string, value: 
   return withMutation(state, (present) => updatedBlock(present, blockId, (candidate) => ({
     ...candidate,
     params: { ...candidate.params, [key]: structuredClone(normalized) },
-  })));
+  })), state.selectedBlockId, gesture);
 }
 
 function resetKnownParams(block: PresetBlock): PresetBlock {
@@ -220,6 +222,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return state.history.present.sceneSet?.scenes.some(({ id }) => id === action.sceneId)
         ? { ...state, editingSceneId: action.sceneId }
         : state;
+    case "clear-scene":
+      return { ...state, editingSceneId: undefined };
     case "enable-scenes": {
       if (state.history.present.sceneSet) return state;
       const next = withMutation(state, (present) => enableScenes(present));
@@ -328,7 +332,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         if (!target || target.target !== "parameter") return undefined;
         target.value = action.value;
         return next;
-      });
+      }, state.selectedBlockId, action.gesture);
     case "set-scene-block-enabled":
       return withMutation(state, (present) => {
         if (!present.sceneSet) return undefined;
@@ -339,7 +343,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         if (!target || target.target !== "blockEnabled") return undefined;
         target.value = action.value;
         return next;
-      });
+      }, state.selectedBlockId, action.gesture);
     case "set-scene-input-gain":
       if (!Number.isFinite(action.value)) return state;
       return withMutation(state, (present) => {
@@ -350,7 +354,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         if (!target || target.target !== "inputGainDb") return undefined;
         target.value = clamp(action.value, -60, 24);
         return next;
-      });
+      }, state.selectedBlockId, action.gesture);
     case "set-scene-input-scope":
       return withMutation(state, (present) => {
         if (!present.sceneSet) return undefined;
@@ -370,7 +374,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           }
         }
         return next;
-      });
+      }, state.selectedBlockId, action.gesture);
     case "set-scene-wdw-mix":
       if (typeof action.value === "number" && !Number.isFinite(action.value)) return state;
       if ((action.key === "pan" && action.lane !== "dry")
@@ -392,7 +396,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           target.value = clamp(action.value, minimum, maximum);
         }
         return next;
-      });
+      }, state.selectedBlockId, action.gesture);
     case "set-scene-scope":
       return withMutation(state, (present) => {
         if (!present.sceneSet) return undefined;
@@ -423,7 +427,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         applyShared(next.blocks) || (next.wdw && (applyShared(next.wdw.dry.blocks) || applyShared(next.wdw.wet.blocks)));
         for (const scene of next.sceneSet!.scenes) scene.targets = scene.targets.filter((target) => !matches(target));
         return next;
-      });
+      }, state.selectedBlockId, action.gesture);
     case "set-name":
       return withMutation(state, (present) => ({ ...clonePreset(present), name: action.name }));
     case "set-global": {
@@ -432,7 +436,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         const next = clonePreset(present);
         next.global[action.key] = clamp(action.value, -60, 24);
         return next;
-      });
+      }, state.selectedBlockId, action.gesture);
     }
     case "set-routing": {
       if (action.routing === state.history.present.routing) return state;
@@ -489,7 +493,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           lane[action.key] = clamp(action.value, minimum, maximum);
         }
         return next;
-      });
+      }, state.selectedBlockId, action.gesture);
     }
     case "set-expression":
       if (action.expression
@@ -500,7 +504,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         if (action.expression) next.expression = structuredClone(action.expression);
         else delete next.expression;
         return next;
-      });
+      }, state.selectedBlockId, action.gesture);
     case "add-block": {
       if (state.history.present.blocks.length >= 10) return state;
       let block: PresetBlock;
@@ -673,14 +677,14 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ...block, asset: action.asset,
       })));
     case "set-block-param":
-      return setBlockParam(state, action.blockId, action.key, action.value);
+      return setBlockParam(state, action.blockId, action.key, action.value, action.gesture);
     case "set-scene-bypass":
       return withMutation(state, (present) => updatedBlock(present, action.blockId, (block) => {
         if (!["delay", "reverb", "irreverb"].includes(block.type) || present.version !== 4) return block;
         return { ...block, sceneBypass: action.policy };
       }));
     case "set-eq-band":
-      return setEqBand(state, action.blockId, action.band, action.patch);
+      return setEqBand(state, action.blockId, action.band, action.patch, action.gesture);
     case "change-definition": {
       let target;
       try {
@@ -713,6 +717,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ...state,
         saved,
         selectedBlockId,
+        gesture: undefined,
         history: { ...state.history, present: clonePreset(action.preset), future: [] },
       };
     }
@@ -721,6 +726,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const present = state.history.past[state.history.past.length - 1];
       return {
         ...state,
+        gesture: undefined,
         history: {
           past: state.history.past.slice(0, -1),
           present: clonePreset(present),
@@ -733,6 +739,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const [present, ...future] = state.history.future;
       return {
         ...state,
+        gesture: undefined,
         history: {
           past: [...state.history.past, clonePreset(state.history.present)].slice(-historyLimit),
           present: clonePreset(present),

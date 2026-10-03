@@ -1,0 +1,400 @@
+{
+  "quantity": 2,
+  "basis": "Catalogue initial unit prices, max(fitted+loss, assembly minimum), Economic PCBA feeder fees at $3.07/type; not a quote. Original inventory 2026-09-29; Rev C 2026-09-30.",
+  "original": {
+    "parts": [
+      {
+        "code": "C41556732",
+        "quantity": 6,
+        "catalog_initial_price_usd": 0.0595,
+        "cost_usd": 0.357,
+        "extended": true
+      },
+      {
+        "code": "C907991",
+        "quantity": 5,
+        "catalog_initial_price_usd": 0.2518,
+        "cost_usd": 1.2590000000000001,
+        "extended": true
+      },
+      {
+        "code": "C14663",
+        "quantity": 30,
+        "catalog_initial_price_usd": 0.0122,
+        "cost_usd": 0.36600000000000005,
+        "extended": false
+      },
+      {
+        "code": "C19330",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0132,
+        "cost_usd": 0.264,
+        "extended": true
+      },
+      {
+        "code": "C95841",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.1047,
+        "cost_usd": 2.094,
+        "extended": true
+      },
+      {
+        "code": "C17888",
+        "quantity": 15,
+        "catalog_initial_price_usd": 0.0085,
+        "cost_usd": 0.1275,
+        "extended": false
+      },
+      {
+        "code": "C22962",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0035,
+        "cost_usd": 0.07,
+        "extended": false
+      },
+      {
+        "code": "C81598",
+        "quantity": 15,
+        "catalog_initial_price_usd": 0.0123,
+        "cost_usd": 0.1845,
+        "extended": false
+      },
+      {
+        "code": "C21190",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0026,
+        "cost_usd": 0.052,
+        "extended": false
+      },
+      {
+        "code": "C22775",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0031,
+        "cost_usd": 0.062,
+        "extended": false
+      },
+      {
+        "code": "C19224",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0857,
+        "cost_usd": 1.714,
+        "extended": true
+      },
+      {
+        "code": "C367316",
+        "quantity": 15,
+        "catalog_initial_price_usd": 0.0244,
+        "cost_usd": 0.36600000000000005,
+        "extended": true
+      },
+      {
+        "code": "C69324",
+        "quantity": 9,
+        "catalog_initial_price_usd": 0.2361,
+        "cost_usd": 2.1249000000000002,
+        "extended": true
+      },
+      {
+        "code": "C25804",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0018,
+        "cost_usd": 0.036,
+        "extended": false
+      },
+      {
+        "code": "C22935",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0019,
+        "cost_usd": 0.038,
+        "extended": false
+      },
+      {
+        "code": "C426769",
+        "quantity": 12,
+        "catalog_initial_price_usd": 0.1436,
+        "cost_usd": 1.7232,
+        "extended": true
+      },
+      {
+        "code": "C37593",
+        "quantity": 2,
+        "catalog_initial_price_usd": 1.3841,
+        "cost_usd": 2.7682,
+        "extended": true
+      },
+      {
+        "code": "C23140",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0025,
+        "cost_usd": 0.05,
+        "extended": false
+      },
+      {
+        "code": "C4190",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0018,
+        "cost_usd": 0.036,
+        "extended": false
+      },
+      {
+        "code": "C89632",
+        "quantity": 10,
+        "catalog_initial_price_usd": 0.3501,
+        "cost_usd": 3.5010000000000003,
+        "extended": true
+      },
+      {
+        "code": "C25803",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0031,
+        "cost_usd": 0.062,
+        "extended": false
+      },
+      {
+        "code": "C2863402",
+        "quantity": 6,
+        "catalog_initial_price_usd": 2.4822,
+        "cost_usd": 14.8932,
+        "extended": true
+      },
+      {
+        "code": "C95204",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0327,
+        "cost_usd": 0.654,
+        "extended": true
+      },
+      {
+        "code": "C336261",
+        "quantity": 5,
+        "catalog_initial_price_usd": 0.1898,
+        "cost_usd": 0.949,
+        "extended": true
+      },
+      {
+        "code": "C20917",
+        "quantity": 6,
+        "catalog_initial_price_usd": 0.0845,
+        "cost_usd": 0.507,
+        "extended": false
+      },
+      {
+        "code": "C69901",
+        "quantity": 2,
+        "catalog_initial_price_usd": 2.0338,
+        "cost_usd": 4.0676,
+        "extended": true
+      },
+      {
+        "code": "C22939",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0033,
+        "cost_usd": 0.066,
+        "extended": false
+      },
+      {
+        "code": "C19110",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0335,
+        "cost_usd": 0.67,
+        "extended": true
+      }
+    ],
+    "catalog_component_cost_usd": 39.06,
+    "extended_part_types": 15,
+    "economic_feeder_cost_usd": 46.05,
+    "components_plus_feeders_usd": 85.11
+  },
+  "rev_c": {
+    "parts": [
+      {
+        "code": "C41556732",
+        "quantity": 6,
+        "catalog_initial_price_usd": 0.0595,
+        "cost_usd": 0.357,
+        "extended": true
+      },
+      {
+        "code": "C45783",
+        "quantity": 2,
+        "catalog_initial_price_usd": 0.2201,
+        "cost_usd": 0.4402,
+        "extended": false
+      },
+      {
+        "code": "C14663",
+        "quantity": 26,
+        "catalog_initial_price_usd": 0.0123,
+        "cost_usd": 0.31980000000000003,
+        "extended": false
+      },
+      {
+        "code": "C14709",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0146,
+        "cost_usd": 0.292,
+        "extended": false
+      },
+      {
+        "code": "C15850",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0651,
+        "cost_usd": 1.302,
+        "extended": false
+      },
+      {
+        "code": "C17888",
+        "quantity": 15,
+        "catalog_initial_price_usd": 0.0085,
+        "cost_usd": 0.1275,
+        "extended": false
+      },
+      {
+        "code": "C22962",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0035,
+        "cost_usd": 0.07,
+        "extended": false
+      },
+      {
+        "code": "C81598",
+        "quantity": 15,
+        "catalog_initial_price_usd": 0.0123,
+        "cost_usd": 0.1845,
+        "extended": false
+      },
+      {
+        "code": "C21190",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0026,
+        "cost_usd": 0.052,
+        "extended": false
+      },
+      {
+        "code": "C22775",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0031,
+        "cost_usd": 0.062,
+        "extended": false
+      },
+      {
+        "code": "C19224",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0857,
+        "cost_usd": 1.714,
+        "extended": true
+      },
+      {
+        "code": "C367316",
+        "quantity": 15,
+        "catalog_initial_price_usd": 0.0244,
+        "cost_usd": 0.36600000000000005,
+        "extended": true
+      },
+      {
+        "code": "C69324",
+        "quantity": 9,
+        "catalog_initial_price_usd": 0.2362,
+        "cost_usd": 2.1258,
+        "extended": true
+      },
+      {
+        "code": "C25804",
+        "quantity": 24,
+        "catalog_initial_price_usd": 0.0018,
+        "cost_usd": 0.0432,
+        "extended": false
+      },
+      {
+        "code": "C22935",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0019,
+        "cost_usd": 0.038,
+        "extended": false
+      },
+      {
+        "code": "C426769",
+        "quantity": 12,
+        "catalog_initial_price_usd": 0.1437,
+        "cost_usd": 1.7244,
+        "extended": true
+      },
+      {
+        "code": "C37593",
+        "quantity": 2,
+        "catalog_initial_price_usd": 1.219,
+        "cost_usd": 2.438,
+        "extended": true
+      },
+      {
+        "code": "C23140",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0025,
+        "cost_usd": 0.05,
+        "extended": false
+      },
+      {
+        "code": "C4190",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0018,
+        "cost_usd": 0.036,
+        "extended": false
+      },
+      {
+        "code": "C13585",
+        "quantity": 10,
+        "catalog_initial_price_usd": 0.2655,
+        "cost_usd": 2.6550000000000002,
+        "extended": false
+      },
+      {
+        "code": "C25803",
+        "quantity": 20,
+        "catalog_initial_price_usd": 0.0031,
+        "cost_usd": 0.062,
+        "extended": false
+      },
+      {
+        "code": "C398360",
+        "quantity": 4,
+        "catalog_initial_price_usd": 0.1645,
+        "cost_usd": 0.658,
+        "extended": true
+      },
+      {
+        "code": "C336261",
+        "quantity": 5,
+        "catalog_initial_price_usd": 0.1899,
+        "cost_usd": 0.9495,
+        "extended": true
+      },
+      {
+        "code": "C20917",
+        "quantity": 6,
+        "catalog_initial_price_usd": 0.0846,
+        "cost_usd": 0.5075999999999999,
+        "extended": false
+      }
+    ],
+    "catalog_component_cost_usd": 16.57,
+    "extended_part_types": 8,
+    "economic_feeder_cost_usd": 24.56,
+    "components_plus_feeders_usd": 41.13
+  },
+  "estimated_components_and_feeders_reduction_usd": 43.98,
+  "excluded_costs": [
+    "bare PCB",
+    "assembly setup",
+    "stencil",
+    "solder joints",
+    "shipping",
+    "tax",
+    "fixture",
+    "manual parts",
+    "coupons",
+    "quantity price tiers"
+  ],
+  "sources": [
+    "https://jlcpcb.com/help/article/pcb-assembly-price"
+  ]
+}

@@ -3,6 +3,7 @@ import { type FormEvent, useEffect, useState } from "react";
 
 import { AppShell } from "../app/AppShell";
 import { Button } from "../components/ui";
+import { CloudShell } from "../cloud/CloudShell";
 import { DeviceSessionProvider } from "../connection/deviceSession";
 import { localAuthAPI, type LocalAuthStatus } from "./api";
 
@@ -41,24 +42,24 @@ export function LocalDeviceManager() {
     }
   }
 
-  if (!status) return <div className="app-shell cloud-loading">
-    {!error && <span className="settings-spinner" />}
+  if (!status) return <CloudShell className="cloud-loading">
+    {!error && <span className="cloud-spinner" />}
     <span>{error || "Checking local access…"}</span>
     {error && <Button variant="quiet" onClick={() => { setError(""); setSessionGeneration((value) => value + 1); }}>Retry</Button>}
-  </div>;
+  </CloudShell>;
   if (status.state === "authenticated" || status.state === "disabled") {
     return <DeviceSessionProvider key={sessionGeneration}><AppShell /></DeviceSessionProvider>;
   }
 
   const setup = status.state === "setup_required";
   return (
+    <CloudShell>
     <main className="cloud-auth local-auth">
       <section className="cloud-auth__card">
-        <div className="brand cloud-auth__brand"><span className="brand-mark"><SlidersHorizontal size={19} /></span><span><strong>Ardor</strong><small>Local Manager</small></span></div>
-        <p className="eyebrow">{setup ? "First-time setup" : "Local access"}</p>
+        <div className="cloud-brand cloud-auth__brand"><span className="cloud-brand__mark"><SlidersHorizontal size={19} /></span><span><strong>Ardor</strong><small>Local Manager</small></span></div>
         <h1>{setup ? "Protect this pedal" : "Sign in to your pedal"}</h1>
-        <p className="cloud-auth__intro">{setup ? "Choose credentials used only for this pedal. Use a different password from your Ardor hosted account." : "Enter the local username and password configured for this pedal."}</p>
-        <div className="local-auth__warning"><ShieldAlert size={19} /><span><strong>Trusted local network only</strong><small>This direct connection uses HTTP because verified HTTPS certificates are not practical for LAN device names.</small></span></div>
+        <p className="cloud-auth__intro">{setup ? "Choose a user name and password for this pedal only. Do not use the password of your Ardor hosted account." : "Enter the local user name and password of this pedal."}</p>
+        <div className="local-auth__warning"><ShieldAlert size={19} /><span><strong>Use a trusted local network only</strong><small>This direct connection uses HTTP. Verified HTTPS certificates do not work for local device names.</small></span></div>
         <form onSubmit={submit} className="cloud-form">
           {setup && <label>Code shown on pedal<span className="local-code-field"><KeyRound size={16} /><input required autoComplete="off" maxLength={9} placeholder="ABCD-EFGH" value={setupCode} onChange={(event) => setSetupCode(event.target.value)} /></span></label>}
           <label>Local username<input required autoComplete="username" minLength={3} maxLength={32} value={username} onChange={(event) => setUsername(event.target.value)} /></label>
@@ -69,5 +70,6 @@ export function LocalDeviceManager() {
         </form>
       </section>
     </main>
+    </CloudShell>
   );
 }

@@ -1,0 +1,27 @@
+/* Lamp Black type and family scopes. Colour values come from paletteVariables(). */
+:root {
+  --f-cond: "Saira Condensed", "Arial Narrow", sans-serif;
+  --f-body: "Saira", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, monospace;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --gut: 24px;
+  --bar-h: 56px;
+}
+@media (max-width: 720px) { :root { --gut: 16px; --bar-h: 52px; } }
+
+.fam-amp { --fam: var(--amp); }
+.fam-cab { --fam: var(--cabinet); }
+.fam-util { --fam: var(--utility); }
+.fam-mod { --fam: var(--modulation); }
+.fam-dly { --fam: var(--delay); }
+.fam-rev { --fam: var(--reverb); }
+.fam-unknown { --fam: var(--disabled); }
+
+.lb-tag { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; font: 700 12px/1 var(--f-cond); letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; }
+.lb-tag--warn { background: var(--warning); color: var(--warn-ink); }
+.lb-tag--live { background: var(--lamp); color: var(--lamp-ink); }
+.lb-tag--ink { background: var(--lamp-ink); color: var(--lamp); }
+.lb-tag--line { border: 1px solid var(--line-strong); color: var(--muted); height: 22px; }
+.lb-tag--danger { border: 1px solid var(--danger-rule); color: var(--danger); height: 22px; }
+.lb-tag--scene { border: 1px solid var(--muted); color: var(--text); height: 20px; font-size: 11px; padding: 0 6px; }
+.lb-kbd { font: 500 11px/1 var(--f-mono); color: var(--muted); border: 1px solid var(--line); padding: 3px 5px; background: var(--surface-muted); }

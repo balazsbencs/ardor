@@ -5,6 +5,7 @@
 #include "miniaudio.h"
 
 #include "audio/EngineLoader.h"
+#include "equalizer/EqParameters.h"
 #include "audio/MiniaudioBackend.h"
 #include "audio/PresetActivation.h"
 #include "control/ControlEvents.h"
@@ -701,6 +702,9 @@ bool applyPresetParameterValue(
   if (block->type == "mod" || block->type == "delay" || block->type == "reverb") {
     return engine.setDaisyParameter(block->id, parameter, value);
   }
+  if (block->type == "eq" && ardor::isConsoleEqMode(block->params)) {
+    return engine.setConsoleEqParameter(block->id, parameter, value);
+  }
   if (block->type == "dynamics") {
     const auto mode = block->params.value("mode", std::string{});
     if (mode == "compressor") {
@@ -1181,7 +1185,8 @@ int main(int argc, char** argv)
             // this one is the right owner. Distortion must stay on this live
             // path: promoting the first touch to a structural preview blocks
             // the rest of a slider drag while that preview is pending.
-            if (liveEngine->setTransientShaperParameter(blockId, key, value)
+            if (liveEngine->setConsoleEqParameter(blockId, key, value)
+                || liveEngine->setTransientShaperParameter(blockId, key, value)
                 || liveEngine->setDistortionParameter(blockId, key, value)
                 || liveEngine->setStereoWidenerParameter(blockId, key, value)
                 || liveEngine->setIrReverbParameter(blockId, key, value)
