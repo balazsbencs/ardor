@@ -1,0 +1,752 @@
+{
+  "name": "Ardor_MIDI",
+  "title": "Isolated MIDI input / 3.3 V UART",
+  "slug": "midi-in",
+  "size_mm": [
+    34,
+    28
+  ],
+  "parts": {
+    "J202": {
+      "ref": "J202",
+      "kind": "Conn_01x02",
+      "value": "MIDI INPUT FROM DIN SOCKET",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "pcb": [
+        3,
+        12
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "0b3c9734-275d-57ae-a3c4-8f1053c0b167",
+      "mpn": "PinHeader_1x02_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "J101": {
+      "ref": "J101",
+      "kind": "Conn_01x04",
+      "value": "POWER INPUT + UART OUTPUT TO\nHOST",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
+      "pcb": [
+        30,
+        13
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "966fe754-a0d0-59b5-9572-5944e9bff7ef",
+      "mpn": "PinHeader_1x04_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "J203": {
+      "ref": "J203",
+      "kind": "Conn_01x02",
+      "value": "METAL CASE BOND + GROUND",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "pcb": [
+        31,
+        24
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "ae8817eb-d2bb-59b8-a228-e6f5f48378e2",
+      "mpn": "PinHeader_1x02_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "FB201": {
+      "ref": "FB201",
+      "kind": "FerriteBead",
+      "value": "120R@100MHz",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        7,
+        10
+      ],
+      "part": {
+        "references": [
+          "FB102",
+          "FB201",
+          "FB202"
+        ],
+        "jlcpcb_part": "C14709",
+        "manufacturer": "Murata Electronics",
+        "mpn": "BLM18PG121SN1D",
+        "bom_mpn": "Murata Electronics BLM18PG121SN1D",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Murata-Electronics-BLM18PG121SN1D_C14709.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "impedance_100mhz_ohm": 120
+        },
+        "catalog_attributes": {
+          "Operating Temperature": "-55\u2103~+125\u2103",
+          "Impedance @ Frequency": "120\u03a9@100MHz",
+          "Tolerance": "\u00b125%",
+          "Current Rating": "2A",
+          "Number of Circuits": "1",
+          "DC Resistance(DCR)": "50m\u03a9"
+        },
+        "schematic_value": "120R @100MHz"
+      },
+      "dnp": false,
+      "uuid": "9d62e339-3ea6-5708-ae0e-5da2dde3f4b6",
+      "mpn": "Murata Electronics BLM18PG121SN1D",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Murata-Electronics-BLM18PG121SN1D_C14709.pdf"
+    },
+    "R201": {
+      "ref": "R201",
+      "kind": "R",
+      "value": "220R / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        11,
+        10
+      ],
+      "part": {
+        "references": [
+          "R201"
+        ],
+        "jlcpcb_part": "C22962",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF2200T5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF2200T5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF2200T5E_C22962.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "220\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103",
+          "Power(Watts)": "100mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "220\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "1278396f-5603-522f-b0b4-6570281f8875",
+      "mpn": "UNI-ROYAL 0603WAF2200T5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF2200T5E_C22962.pdf"
+    },
+    "FB202": {
+      "ref": "FB202",
+      "kind": "FerriteBead",
+      "value": "120R@100MHz",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        7,
+        15
+      ],
+      "part": {
+        "references": [
+          "FB102",
+          "FB201",
+          "FB202"
+        ],
+        "jlcpcb_part": "C14709",
+        "manufacturer": "Murata Electronics",
+        "mpn": "BLM18PG121SN1D",
+        "bom_mpn": "Murata Electronics BLM18PG121SN1D",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Murata-Electronics-BLM18PG121SN1D_C14709.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "impedance_100mhz_ohm": 120
+        },
+        "catalog_attributes": {
+          "Operating Temperature": "-55\u2103~+125\u2103",
+          "Impedance @ Frequency": "120\u03a9@100MHz",
+          "Tolerance": "\u00b125%",
+          "Current Rating": "2A",
+          "Number of Circuits": "1",
+          "DC Resistance(DCR)": "50m\u03a9"
+        },
+        "schematic_value": "120R @100MHz"
+      },
+      "dnp": false,
+      "uuid": "67cb0a3c-4332-50ab-b338-93b27766079b",
+      "mpn": "Murata Electronics BLM18PG121SN1D",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Murata-Electronics-BLM18PG121SN1D_C14709.pdf"
+    },
+    "U201": {
+      "ref": "U201",
+      "kind": "H11L1",
+      "value": "onsemi H11L1M",
+      "fp": "Package_DIP:DIP-6_W7.62mm",
+      "pcb": [
+        20,
+        12
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "77f6dc48-aacd-5b03-9895-8f7ea1e016ad",
+      "mpn": "onsemi H11L1M",
+      "datasheet": "https://www.onsemi.com/download/data-sheet/pdf/h11l3m-d.pdf"
+    },
+    "D201": {
+      "ref": "D201",
+      "kind": "D",
+      "value": "1N4148W",
+      "fp": "Diode_SMD:D_SOD-123",
+      "pcb": [
+        12,
+        15
+      ],
+      "part": {
+        "references": [
+          "D201",
+          "D502"
+        ],
+        "jlcpcb_part": "C81598",
+        "manufacturer": "ST(Semtech)",
+        "mpn": "1N4148W",
+        "bom_mpn": "ST(Semtech) 1N4148W",
+        "footprint": "Diode_SMD:D_SOD-123",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_1811061725_ST-Semtech-1N4148W_C81598.pdf",
+        "catalog_package": "SOD-123",
+        "requirements": {
+          "identity": "Exact selected manufacturer part and package; original circuit type retained."
+        },
+        "catalog_attributes": {
+          "Voltage - Forward(Vf@If)": "1V@50mA",
+          "Non-Repetitive Peak Forward Surge Current": "1A",
+          "Voltage - DC Reverse(Vr)": "75V",
+          "Reverse Recovery Time (trr)": "4ns",
+          "Diode Configuration": "Standalone",
+          "Current - Rectified": "150mA",
+          "Pd - Power Dissipation": "400mW",
+          "Reverse Leakage Current (Ir)": "1uA@75V"
+        }
+      },
+      "dnp": false,
+      "uuid": "e0cffa14-f55a-5b44-a79e-4d1cd4e19fb5",
+      "mpn": "ST(Semtech) 1N4148W",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_1811061725_ST-Semtech-1N4148W_C81598.pdf"
+    },
+    "C201": {
+      "ref": "C201",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_SMD:C_0603_1608Metric",
+      "pcb": [
+        26.5,
+        6
+      ],
+      "part": {
+        "references": [
+          "C102",
+          "C104",
+          "C201",
+          "C301",
+          "C302",
+          "C303",
+          "C404",
+          "C405"
+        ],
+        "jlcpcb_part": "C14663",
+        "manufacturer": "YAGEO",
+        "mpn": "CC0603KRX7R9BB104",
+        "bom_mpn": "YAGEO CC0603KRX7R9BB104",
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "50V"
+        },
+        "schematic_value": "100n / 50V X7R",
+        "catalog_attributes": {
+          "Voltage Rating": "50V",
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R"
+        }
+      },
+      "dnp": false,
+      "uuid": "05ae2ffa-f02c-5dfc-9462-dda0d080b60f",
+      "mpn": "YAGEO CC0603KRX7R9BB104",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf"
+    },
+    "C204": {
+      "ref": "C204",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_SMD:C_0603_1608Metric",
+      "pcb": [
+        27,
+        4
+      ],
+      "part": {
+        "references": [
+          "C102",
+          "C104",
+          "C201",
+          "C301",
+          "C302",
+          "C303",
+          "C404",
+          "C405"
+        ],
+        "jlcpcb_part": "C14663",
+        "manufacturer": "YAGEO",
+        "mpn": "CC0603KRX7R9BB104",
+        "bom_mpn": "YAGEO CC0603KRX7R9BB104",
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "50V"
+        },
+        "schematic_value": "100n / 50V X7R",
+        "catalog_attributes": {
+          "Voltage Rating": "50V",
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R"
+        }
+      },
+      "dnp": false,
+      "uuid": "1f07c996-cfb5-5c08-a6e6-0fa37449b131",
+      "mpn": "YAGEO CC0603KRX7R9BB104",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf"
+    },
+    "R202": {
+      "ref": "R202",
+      "kind": "R",
+      "value": "1k / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        26,
+        17
+      ],
+      "part": {
+        "references": [
+          "R202",
+          "R301",
+          "R503",
+          "R505"
+        ],
+        "jlcpcb_part": "C21190",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF1001T5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF1001T5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "1k\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103",
+          "Power(Watts)": "100mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "1k\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "7c89613d-d00c-5315-beec-401d5f5fbcc1",
+      "mpn": "UNI-ROYAL 0603WAF1001T5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf"
+    },
+    "R203": {
+      "ref": "R203",
+      "kind": "R",
+      "value": "100R / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        28,
+        20
+      ],
+      "part": {
+        "references": [
+          "R203",
+          "R502"
+        ],
+        "jlcpcb_part": "C22775",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF1000T5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF1000T5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2411221126_UNI-ROYAL-Uniroyal-Elec-0603WAF1000T5E_C22775.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "100\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103",
+          "Power(Watts)": "100mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "100\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "12f86f53-17fe-5bbf-8204-4a2073dba747",
+      "mpn": "UNI-ROYAL 0603WAF1000T5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2411221126_UNI-ROYAL-Uniroyal-Elec-0603WAF1000T5E_C22775.pdf"
+    },
+    "D202": {
+      "ref": "D202",
+      "kind": "D_TVS",
+      "value": "PESD5V0S1BA,115",
+      "fp": "Diode_SMD:D_SOD-323",
+      "pcb": [
+        4,
+        8
+      ],
+      "part": {
+        "references": [
+          "D202",
+          "D301",
+          "D302",
+          "D501"
+        ],
+        "jlcpcb_part": "C19224",
+        "manufacturer": "Nexperia",
+        "mpn": "PESD5V0S1BA,115",
+        "bom_mpn": "Nexperia PESD5V0S1BA,115",
+        "footprint": "Diode_SMD:D_SOD-323",
+        "datasheet": "https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf",
+        "catalog_package": "SOD-323",
+        "requirements": {
+          "identity": "Exact selected manufacturer part and package; original circuit type retained."
+        },
+        "catalog_attributes": {
+          "Operating Temperature": "-55\u2103~+150\u2103",
+          "Type": "ESD",
+          "Junction Capacitance": "35pF",
+          "Peak Pulse Power Dissipation (Ppp)": "130W@8/20us",
+          "Number of Channels": "1",
+          "level of protection": "IEC 61000-4-2\u3001IEC 61000-4-5",
+          "Clamping Voltage": "14V",
+          "Polarity": "Bidirectional",
+          "Peak Pulse Current (Ipp)": "12A@8/20us",
+          "Voltage - Breakdown": "9.5V",
+          "Reverse Stand-Off Voltage (Vrwm)": "5V",
+          "Reverse Leakage Current (Ir)": "5nA"
+        }
+      },
+      "dnp": false,
+      "uuid": "373b31be-ebd2-50bc-9508-f4500d3399bf",
+      "mpn": "Nexperia PESD5V0S1BA,115",
+      "datasheet": "https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf"
+    },
+    "C202": {
+      "ref": "C202",
+      "kind": "C",
+      "value": "100p / 1kV C0G",
+      "fp": "Capacitor_SMD:C_1206_3216Metric",
+      "pcb": [
+        9,
+        5
+      ],
+      "part": {
+        "references": [
+          "C202",
+          "C203"
+        ],
+        "jlcpcb_part": "C367316",
+        "manufacturer": "CCTC",
+        "mpn": "TCC1206COG101J102DT",
+        "bom_mpn": "CCTC TCC1206COG101J102DT",
+        "footprint": "Capacitor_SMD:C_1206_3216Metric",
+        "datasheet": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2304140030_CCTC-TCC1206COG101J102DT_C367316.pdf",
+        "catalog_package": "1206",
+        "requirements": {
+          "Tolerance": "\u00b15%",
+          "Capacitance": "100pF",
+          "Temperature Coefficient": "C0G",
+          "Voltage Rating": "1kV"
+        },
+        "catalog_attributes": {
+          "Voltage Rating": "1kV",
+          "Tolerance": "\u00b15%",
+          "Capacitance": "100pF",
+          "Temperature Coefficient": "C0G"
+        }
+      },
+      "dnp": false,
+      "uuid": "a25357f1-7c4d-5cc1-b4f4-acccfda46f65",
+      "mpn": "CCTC TCC1206COG101J102DT",
+      "datasheet": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2304140030_CCTC-TCC1206COG101J102DT_C367316.pdf"
+    },
+    "C203": {
+      "ref": "C203",
+      "kind": "C",
+      "value": "100p / 1kV C0G",
+      "fp": "Capacitor_SMD:C_1206_3216Metric",
+      "pcb": [
+        9,
+        21
+      ],
+      "part": {
+        "references": [
+          "C202",
+          "C203"
+        ],
+        "jlcpcb_part": "C367316",
+        "manufacturer": "CCTC",
+        "mpn": "TCC1206COG101J102DT",
+        "bom_mpn": "CCTC TCC1206COG101J102DT",
+        "footprint": "Capacitor_SMD:C_1206_3216Metric",
+        "datasheet": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2304140030_CCTC-TCC1206COG101J102DT_C367316.pdf",
+        "catalog_package": "1206",
+        "requirements": {
+          "Tolerance": "\u00b15%",
+          "Capacitance": "100pF",
+          "Temperature Coefficient": "C0G",
+          "Voltage Rating": "1kV"
+        },
+        "catalog_attributes": {
+          "Voltage Rating": "1kV",
+          "Tolerance": "\u00b15%",
+          "Capacitance": "100pF",
+          "Temperature Coefficient": "C0G"
+        }
+      },
+      "dnp": false,
+      "uuid": "38f00868-ec47-57f5-b305-729a609f04dc",
+      "mpn": "CCTC TCC1206COG101J102DT",
+      "datasheet": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2304140030_CCTC-TCC1206COG101J102DT_C367316.pdf"
+    },
+    "D203": {
+      "ref": "D203",
+      "kind": "D_TVS",
+      "value": "PESD24VL1BA,115",
+      "fp": "Diode_SMD:D_SOD-323",
+      "pcb": [
+        5,
+        4
+      ],
+      "part": {
+        "references": [
+          "D203",
+          "D204"
+        ],
+        "jlcpcb_part": "C69324",
+        "manufacturer": "Nexperia",
+        "mpn": "PESD24VL1BA,115",
+        "bom_mpn": "Nexperia PESD24VL1BA,115",
+        "footprint": "Diode_SMD:D_SOD-323",
+        "datasheet": "https://assets.nexperia.com/documents/data-sheet/PESD24VL1BA.pdf",
+        "catalog_package": "SOD-323",
+        "requirements": {
+          "identity": "Exact selected manufacturer part and package; original circuit type retained."
+        },
+        "catalog_attributes": {
+          "Operating Temperature": "-65\u2103~+150\u2103",
+          "Type": "ESD",
+          "Junction Capacitance": "1.1pF",
+          "Number of Channels": "1",
+          "Peak Pulse Power Dissipation (Ppp)": "200W@8/20us",
+          "level of protection": "IEC 61000-4-2\u3001IEC 61000-4-5",
+          "Clamping Voltage": "70V",
+          "Polarity": "Bidirectional",
+          "Peak Pulse Current (Ipp)": "3A@8/20us",
+          "Voltage - Breakdown": "25.4V",
+          "Reverse Stand-Off Voltage (Vrwm)": "24V",
+          "Reverse Leakage Current (Ir)": "1nA"
+        }
+      },
+      "dnp": false,
+      "uuid": "82aac695-bdfb-5a7f-8897-9ea392c8076a",
+      "mpn": "Nexperia PESD24VL1BA,115",
+      "datasheet": "https://assets.nexperia.com/documents/data-sheet/PESD24VL1BA.pdf"
+    },
+    "D204": {
+      "ref": "D204",
+      "kind": "D_TVS",
+      "value": "PESD24VL1BA,115",
+      "fp": "Diode_SMD:D_SOD-323",
+      "pcb": [
+        7.5,
+        24
+      ],
+      "part": {
+        "references": [
+          "D203",
+          "D204"
+        ],
+        "jlcpcb_part": "C69324",
+        "manufacturer": "Nexperia",
+        "mpn": "PESD24VL1BA,115",
+        "bom_mpn": "Nexperia PESD24VL1BA,115",
+        "footprint": "Diode_SMD:D_SOD-323",
+        "datasheet": "https://assets.nexperia.com/documents/data-sheet/PESD24VL1BA.pdf",
+        "catalog_package": "SOD-323",
+        "requirements": {
+          "identity": "Exact selected manufacturer part and package; original circuit type retained."
+        },
+        "catalog_attributes": {
+          "Operating Temperature": "-65\u2103~+150\u2103",
+          "Type": "ESD",
+          "Junction Capacitance": "1.1pF",
+          "Number of Channels": "1",
+          "Peak Pulse Power Dissipation (Ppp)": "200W@8/20us",
+          "level of protection": "IEC 61000-4-2\u3001IEC 61000-4-5",
+          "Clamping Voltage": "70V",
+          "Polarity": "Bidirectional",
+          "Peak Pulse Current (Ipp)": "3A@8/20us",
+          "Voltage - Breakdown": "25.4V",
+          "Reverse Stand-Off Voltage (Vrwm)": "24V",
+          "Reverse Leakage Current (Ir)": "1nA"
+        }
+      },
+      "dnp": false,
+      "uuid": "abedbc63-9a21-5b99-91c9-45ea5a7c2d8d",
+      "mpn": "Nexperia PESD24VL1BA,115",
+      "datasheet": "https://assets.nexperia.com/documents/data-sheet/PESD24VL1BA.pdf"
+    },
+    "R101": {
+      "ref": "R101",
+      "kind": "R",
+      "value": "0R / 1%",
+      "fp": "Resistor_SMD:R_1206_3216Metric",
+      "pcb": [
+        26,
+        24
+      ],
+      "part": {
+        "references": [
+          "R101"
+        ],
+        "jlcpcb_part": "C17888",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "1206W4F0000T5E",
+        "bom_mpn": "UNI-ROYAL 1206W4F0000T5E",
+        "footprint": "Resistor_SMD:R_1206_3216Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-1206W4F0000T5E_C17888.pdf",
+        "catalog_package": "1206",
+        "requirements": {
+          "Resistance": "0\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1800ppm/\u2103",
+          "Power(Watts)": "250mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "0\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "250mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "200V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1800ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "9e965b27-5e83-5084-bd83-ba256b2419d3",
+      "mpn": "UNI-ROYAL 1206W4F0000T5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-1206W4F0000T5E_C17888.pdf"
+    }
+  },
+  "pins": {
+    "J202.1": "MIDI_4",
+    "J202.2": "MIDI_5",
+    "J101.1": "+5V",
+    "J101.2": "+3V3",
+    "J101.3": "GND",
+    "J101.4": "MIDI_RX",
+    "J203.1": "CHASSIS",
+    "J203.2": "GND",
+    "FB201.1": "MIDI_4",
+    "FB201.2": "MIDI_4_F",
+    "R201.1": "MIDI_4_F",
+    "R201.2": "MIDI_A",
+    "FB202.1": "MIDI_5",
+    "FB202.2": "MIDI_K",
+    "U201.1": "MIDI_A",
+    "U201.2": "MIDI_K",
+    "U201.4": "MIDI_OC",
+    "U201.5": "GND",
+    "U201.6": "+5V",
+    "D201.1": "MIDI_A",
+    "D201.2": "MIDI_K",
+    "C201.1": "+5V",
+    "C201.2": "GND",
+    "C204.1": "+3V3",
+    "C204.2": "GND",
+    "R202.1": "+3V3",
+    "R202.2": "MIDI_OC",
+    "R203.1": "MIDI_OC",
+    "R203.2": "MIDI_RX",
+    "D202.1": "MIDI_4",
+    "D202.2": "MIDI_5",
+    "C202.1": "MIDI_4",
+    "C202.2": "CHASSIS",
+    "C203.1": "MIDI_5",
+    "C203.2": "CHASSIS",
+    "D203.1": "MIDI_4",
+    "D203.2": "CHASSIS",
+    "D204.1": "MIDI_5",
+    "D204.2": "CHASSIS",
+    "R101.1": "CHASSIS",
+    "R101.2": "GND"
+  },
+  "nc": [
+    "U201.3"
+  ],
+  "routes": [],
+  "ground_vias": [
+    [
+      24,
+      4
+    ],
+    [
+      31,
+      20
+    ],
+    [
+      22,
+      22
+    ],
+    [
+      28,
+      9
+    ]
+  ],
+  "keepouts": [
+    {
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          20.5,
+          0.5
+        ],
+        [
+          20.5,
+          27.5
+        ],
+        [
+          0.5,
+          27.5
+        ]
+      ],
+      "pour_only": true
+    }
+  ],
+  "notes": "Standalone DIN MIDI receiver. Supply 5 V and 3.3 V from the host. UART: 31250 baud, 8-N-1. No other module required."
+}

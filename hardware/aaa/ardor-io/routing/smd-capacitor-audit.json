@@ -1,0 +1,35 @@
+{
+  "references": [
+    "C401",
+    "C402",
+    "C502",
+    "C601",
+    "C602"
+  ],
+  "manufacturer_part": "Samsung CL31B106KBHNNNE",
+  "value": "10u / 50V X7R",
+  "jlcpcb_part": "C89632",
+  "capacitance_uF": 10,
+  "rated_voltage_V": 50,
+  "dielectric": "X7R",
+  "tolerance_percent": 10,
+  "nonpolar": true,
+  "body_nominal_mm": [
+    3.2,
+    1.6,
+    1.6
+  ],
+  "body_max_height_mm": 1.8,
+  "footprint": "Capacitor_SMD:C_1206_3216Metric",
+  "land_pad_mm": [
+    1.15,
+    1.8
+  ],
+  "pad_center_spacing_mm": 2.95,
+  "inner_gap_mm": 1.8,
+  "outer_span_mm": 4.1,
+  "body_area_reduction_percent": 90.1,
+  "smd_pads_checked": 10,
+  "bom_schematic_board_match": true,
+  "unchanged_capacitor_nets": true
+}

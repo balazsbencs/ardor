@@ -13,6 +13,7 @@ function isNormPercent(c: Control): boolean {
 }
 // Ranges read "-60 to 12 dB": a word is clearer than a dash next to a minus sign.
 function range(c: Control): string {
+  if (c.kind === 'number' && c.choices) return c.choices.join(', ');
   if (c.kind === 'number' && c.min !== undefined && c.max !== undefined) {
     if (isNormPercent(c)) return '0 to 100%';
     return c.unit ? `${c.min} to ${c.max} ${c.unit}` : `${c.min} to ${c.max}`;

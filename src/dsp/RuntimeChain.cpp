@@ -86,6 +86,7 @@ struct RuntimeChain::Block {
     Compressor,
     NoiseGate,
     TransientShaper,
+    ConsoleEq,
     Equalizer,
     Wah,
     Distortion,
@@ -103,6 +104,7 @@ struct RuntimeChain::Block {
   std::unique_ptr<CompressorProcessor> compressor;
   std::unique_ptr<NoiseGateProcessor> noiseGate;
   std::unique_ptr<TransientShaperProcessor> transientShaper;
+  std::unique_ptr<ConsoleEqProcessor> consoleEq;
   std::unique_ptr<ParametricEqProcessor> equalizer;
   std::unique_ptr<WahProcessor> wah;
   std::unique_ptr<DistortionProcessor> distortion;
@@ -422,6 +424,16 @@ void RuntimeChain::addTransientShaper(std::string id, TransientShaperProcessor p
   blocks_.push_back(std::move(block));
 }
 
+void RuntimeChain::addConsoleEq(std::string id, ConsoleEqProcessor processor)
+{
+  Block block;
+  block.kind = Block::Kind::ConsoleEq;
+  block.id = std::move(id);
+  block.consoleEq = std::make_unique<ConsoleEqProcessor>(std::move(processor));
+  block.bypassDryDelay.resize(ConsoleEqProcessor::kLatencyFrames);
+  blocks_.push_back(std::move(block));
+}
+
 bool RuntimeChain::setTransientShaperParameter(const std::string& id, const std::string& key, float value)
 {
   for (auto& block : blocks_) {
@@ -430,6 +442,18 @@ bool RuntimeChain::setTransientShaperParameter(const std::string& id, const std:
     }
     if (block.kind == Block::Kind::DualRig
         && block.dualRig->setTransientShaperParameter(id, key, value)) return true;
+  }
+  return false;
+}
+
+bool RuntimeChain::setConsoleEqParameter(const std::string& id, const std::string& key, float value)
+{
+  for (auto& block : blocks_) {
+    if (block.kind == Block::Kind::ConsoleEq && block.id == id) {
+      return block.consoleEq->setParameterTarget(key, value);
+    }
+    if (block.kind == Block::Kind::DualRig
+        && block.dualRig->setConsoleEqParameter(id, key, value)) return true;
   }
   return false;
 }
@@ -580,6 +604,14 @@ bool RuntimeChain::applySceneTarget(const SceneRuntimeAddress& address, float va
   case SceneRuntimeParameter::Saturation: key = "saturation"; break;
   case SceneRuntimeParameter::Bias: key = "bias"; break;
   case SceneRuntimeParameter::HeadBump: key = "head_bump"; break;
+  case SceneRuntimeParameter::LowDb: key = "low_db"; break;
+  case SceneRuntimeParameter::LowFreq: key = "low_freq"; break;
+  case SceneRuntimeParameter::MidDb: key = "mid_db"; break;
+  case SceneRuntimeParameter::MidFreq: key = "mid_freq"; break;
+  case SceneRuntimeParameter::HighDb: key = "high_db"; break;
+  case SceneRuntimeParameter::HighPass: key = "high_pass"; break;
+  case SceneRuntimeParameter::Polarity: key = "polarity"; break;
+  case SceneRuntimeParameter::Character: key = "character"; break;
   default: return false;
   }
   if (address.kind == SceneRuntimeTargetKind::IrReverbParameter) {
@@ -610,6 +642,9 @@ bool RuntimeChain::applySceneTarget(const SceneRuntimeAddress& address, float va
   if (address.kind == SceneRuntimeTargetKind::TransientShaperParameter)
     return block.kind == Block::Kind::TransientShaper && block.transientShaper
       && block.transientShaper->setParameterTarget(key, value);
+  if (address.kind == SceneRuntimeTargetKind::ConsoleEqParameter)
+    return block.kind == Block::Kind::ConsoleEq && block.consoleEq
+      && block.consoleEq->setParameterTarget(key, value);
   if (address.kind == SceneRuntimeTargetKind::WahParameter)
     return block.kind == Block::Kind::Wah && block.wah
       && block.wah->setParameterTarget(key, value);
@@ -761,6 +796,9 @@ StereoSample RuntimeChain::process(StereoSample input, float cabLevel, float cab
       break;
     case Block::Kind::TransientShaper:
       current = block.transientShaper->process(current);
+      break;
+    case Block::Kind::ConsoleEq:
+      current = block.consoleEq->process(current);
       break;
     case Block::Kind::Equalizer:
       block.equalizer->process(current.left, current.right);
@@ -975,6 +1013,10 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
         nextRight[i] = processed.right;
       }
       break;
+    case Block::Kind::ConsoleEq:
+      block.consoleEq->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames,
+                                    currentIsStereo);
+      break;
     case Block::Kind::Equalizer:
       block.equalizer->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);
       currentIsStereo = true;
@@ -1126,6 +1168,7 @@ std::vector<ClipStageSnapshot> RuntimeChain::takeClipDiagnostics()
     case Block::Kind::TransientShaper:
       kind = SignalStageKind::TransientShaper;
       break;
+    case Block::Kind::ConsoleEq:
     case Block::Kind::Equalizer:
       kind = SignalStageKind::Equalizer;
       break;
@@ -1181,6 +1224,7 @@ void RuntimeChain::reset()
     if (block.transientShaper) {
       block.transientShaper->reset();
     }
+    if (block.consoleEq) block.consoleEq->reset();
     if (block.equalizer) {
       block.equalizer->reset();
     }

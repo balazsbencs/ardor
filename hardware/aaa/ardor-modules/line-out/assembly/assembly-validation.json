@@ -1,0 +1,36 @@
+{
+  "board_quantity": 2,
+  "smt_placements_per_board": 22,
+  "unique_smt_parts": 15,
+  "basic_types": 11,
+  "extended_types": 4,
+  "manual_references": [
+    "J101",
+    "J102",
+    "J502",
+    "J503",
+    "K501"
+  ],
+  "stock_check_utc": "2026-10-02T14:05:55.001072+00:00",
+  "stock_reserved": false,
+  "component_cost_with_assembly_attrition_usd": 8.52,
+  "economic_extended_feeders_usd": 12.28,
+  "optional_qfn_xray_for_two_usd": 0,
+  "estimate_excludes": [
+    "PCB fabrication",
+    "assembly setup",
+    "stencil",
+    "solder joints",
+    "shipping",
+    "tax",
+    "manual parts",
+    "discounts"
+  ],
+  "placement_preview_verified": false,
+  "rotation_convention": "Native KiCad CCW; inspect manufacturer pin 1 in JLC placement preview",
+  "origin": "Absolute Gerber origin; mm; CPL Y up",
+  "hashes": {
+    "pcb_sha256": "ce05b8db9a67bc8363b3cef542cedcf35c61b003e121ce8127af5ad633dd5abb",
+    "schematic_sha256": "88e321a4a5e2e0a4883cf75421c4277df62bd630ff982e84d06f39ff35c73495"
+  }
+}

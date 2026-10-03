@@ -1,0 +1,925 @@
+{
+  "name": "Ardor_Headphones",
+  "title": "Stereo headphone amplifier / optional module",
+  "slug": "headphones",
+  "size_mm": [
+    36,
+    30
+  ],
+  "parts": {
+    "J102": {
+      "ref": "J102",
+      "kind": "Conn_01x03",
+      "value": "STEREO AUDIO INPUT FROM SOURCE",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
+      "pcb": [
+        3,
+        9
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "465376d9-1311-5e84-a0ab-11f721bf6618",
+      "mpn": "PinHeader_1x03_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "J101": {
+      "ref": "J101",
+      "kind": "Conn_01x03",
+      "value": "5V POWER + ENABLE INPUT",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
+      "pcb": [
+        3,
+        20
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "5a29e538-8b57-5482-871b-432f62d6fa3a",
+      "mpn": "PinHeader_1x03_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "J602": {
+      "ref": "J602",
+      "kind": "Conn_01x03",
+      "value": "STEREO HEADPHONE AUDIO OUTPUT",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
+      "pcb": [
+        32,
+        12
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "7af149cd-d2f1-5662-bea2-61c8c1db8766",
+      "mpn": "PinHeader_1x03_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "FB101": {
+      "ref": "FB101",
+      "kind": "FerriteBead",
+      "value": "600R@100MHz",
+      "fp": "Inductor_SMD:L_0805_2012Metric",
+      "pcb": [
+        9,
+        22
+      ],
+      "part": {
+        "references": [
+          "FB101"
+        ],
+        "jlcpcb_part": "C41556732",
+        "manufacturer": "Murata",
+        "mpn": "BLM21PG601SN1D",
+        "bom_mpn": "Murata BLM21PG601SN1D",
+        "footprint": "Inductor_SMD:L_0805_2012Metric",
+        "datasheet": "https://www.murata.com/products/productdata/8796738977822/ENFA0005.pdf",
+        "catalog_package": "0805",
+        "requirements": {
+          "Tolerance": "\u00b125%",
+          "Impedance @ Frequency": "600\u03a9@100MHz",
+          "Current Rating": "1.4A"
+        },
+        "catalog_attributes": {
+          "Operating Temperature": "-55\u2103~+125\u2103",
+          "Impedance @ Frequency": "600\u03a9@100MHz",
+          "Tolerance": "\u00b125%",
+          "Current Rating": "1.4A",
+          "Number of Circuits": "1",
+          "DC Resistance(DCR)": "140m\u03a9"
+        }
+      },
+      "dnp": false,
+      "uuid": "c537473d-f369-596a-83a6-e8f5db8596d7",
+      "mpn": "Murata BLM21PG601SN1D",
+      "datasheet": "https://www.murata.com/products/productdata/8796738977822/ENFA0005.pdf"
+    },
+    "C101": {
+      "ref": "C101",
+      "kind": "C",
+      "value": "22u / 25V X5R",
+      "fp": "Capacitor_SMD:C_0805_2012Metric",
+      "pcb": [
+        13,
+        22
+      ],
+      "part": {
+        "references": [
+          "C101"
+        ],
+        "jlcpcb_part": "C45783",
+        "manufacturer": "Samsung Electro-Mechanics",
+        "mpn": "CL21A226MAQNNNE",
+        "bom_mpn": "Samsung Electro-Mechanics CL21A226MAQNNNE",
+        "footprint": "Capacitor_SMD:C_0805_2012Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21A226MAQNNNE_C45783.pdf",
+        "catalog_package": "0805",
+        "requirements": {
+          "Tolerance": "\u00b120%",
+          "Capacitance": "22uF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "10V",
+          "dielectric": "X5R",
+          "voltage_v": 25,
+          "tolerance_percent": 20
+        },
+        "catalog_attributes": {
+          "Voltage Rating": "25V",
+          "Tolerance": "\u00b120%",
+          "Capacitance": "22uF",
+          "Temperature Coefficient": "X5R"
+        },
+        "schematic_value": "22u / 25V X5R"
+      },
+      "dnp": false,
+      "uuid": "10bf9472-f9d6-5ed8-9d4f-6dbaecd6e053",
+      "mpn": "Samsung Electro-Mechanics CL21A226MAQNNNE",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21A226MAQNNNE_C45783.pdf"
+    },
+    "C102": {
+      "ref": "C102",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_SMD:C_0603_1608Metric",
+      "pcb": [
+        17,
+        22
+      ],
+      "part": {
+        "references": [
+          "C102",
+          "C104",
+          "C201",
+          "C301",
+          "C302",
+          "C303",
+          "C404",
+          "C405"
+        ],
+        "jlcpcb_part": "C14663",
+        "manufacturer": "YAGEO",
+        "mpn": "CC0603KRX7R9BB104",
+        "bom_mpn": "YAGEO CC0603KRX7R9BB104",
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "50V"
+        },
+        "schematic_value": "100n / 50V X7R",
+        "catalog_attributes": {
+          "Voltage Rating": "50V",
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R"
+        }
+      },
+      "dnp": false,
+      "uuid": "b8106419-704f-5beb-8508-a737d6ae9617",
+      "mpn": "YAGEO CC0603KRX7R9BB104",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf"
+    },
+    "C601": {
+      "ref": "C601",
+      "kind": "C",
+      "value": "10u / 50V X5R",
+      "fp": "Capacitor_SMD:C_1206_3216Metric",
+      "pcb": [
+        10,
+        7
+      ],
+      "part": {
+        "references": [
+          "C401",
+          "C402",
+          "C502"
+        ],
+        "jlcpcb_part": "C13585",
+        "manufacturer": "Samsung Electro-Mechanics",
+        "mpn": "CL31A106KBHNNNE",
+        "bom_mpn": "Samsung Electro-Mechanics CL31A106KBHNNNE",
+        "footprint": "Capacitor_SMD:C_1206_3216Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL31A106KBHNNNE_C13585.pdf",
+        "catalog_package": "1206",
+        "requirements": {
+          "Tolerance": "\u00b110%",
+          "Capacitance": "10uF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "50V",
+          "dielectric": "X5R",
+          "voltage_v": 50
+        },
+        "catalog_attributes": {
+          "Voltage Rating": "50V",
+          "Tolerance": "\u00b110%",
+          "Capacitance": "10uF",
+          "Temperature Coefficient": "X5R"
+        },
+        "schematic_value": "10u / 50V X5R"
+      },
+      "dnp": false,
+      "uuid": "3f7a4a80-9a1b-5667-ad85-4d520cf9b61e",
+      "mpn": "Samsung Electro-Mechanics CL31A106KBHNNNE",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL31A106KBHNNNE_C13585.pdf"
+    },
+    "C602": {
+      "ref": "C602",
+      "kind": "C",
+      "value": "10u / 50V X5R",
+      "fp": "Capacitor_SMD:C_1206_3216Metric",
+      "pcb": [
+        10,
+        11
+      ],
+      "part": {
+        "references": [
+          "C401",
+          "C402",
+          "C502"
+        ],
+        "jlcpcb_part": "C13585",
+        "manufacturer": "Samsung Electro-Mechanics",
+        "mpn": "CL31A106KBHNNNE",
+        "bom_mpn": "Samsung Electro-Mechanics CL31A106KBHNNNE",
+        "footprint": "Capacitor_SMD:C_1206_3216Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL31A106KBHNNNE_C13585.pdf",
+        "catalog_package": "1206",
+        "requirements": {
+          "Tolerance": "\u00b110%",
+          "Capacitance": "10uF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "50V",
+          "dielectric": "X5R",
+          "voltage_v": 50
+        },
+        "catalog_attributes": {
+          "Voltage Rating": "50V",
+          "Tolerance": "\u00b110%",
+          "Capacitance": "10uF",
+          "Temperature Coefficient": "X5R"
+        },
+        "schematic_value": "10u / 50V X5R"
+      },
+      "dnp": false,
+      "uuid": "98e65e0d-80d9-5bb2-963e-79002bd0371f",
+      "mpn": "Samsung Electro-Mechanics CL31A106KBHNNNE",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL31A106KBHNNNE_C13585.pdf"
+    },
+    "U601": {
+      "ref": "U601",
+      "kind": "TPA6132A2RTE",
+      "value": "TPA6132A2RTER",
+      "fp": "Package_DFN_QFN:WQFN-16-1EP_3x3mm_P0.5mm_EP1.6x1.6mm_ThermalVias",
+      "pcb": [
+        18,
+        13
+      ],
+      "part": {
+        "references": [
+          "U601"
+        ],
+        "jlcpcb_part": "C69901",
+        "manufacturer": "TI",
+        "mpn": "TPA6132A2RTER",
+        "bom_mpn": "TI TPA6132A2RTER",
+        "footprint": "Package_DFN_QFN:WQFN-16-1EP_3x3mm_P0.5mm_EP1.6x1.6mm_ThermalVias",
+        "datasheet": "https://www.ti.com/lit/ds/symlink/tpa6132a2.pdf",
+        "catalog_package": "WQFN-16-EP(3x3)",
+        "requirements": {
+          "identity": "Exact selected manufacturer part and package; original circuit type retained."
+        },
+        "catalog_attributes": {
+          "Power Supply Rejection Ratio (PSRR)": "100dB",
+          "Operating Temperature": "-40\u2103~+85\u2103",
+          "Total Harmonic Distortion + Noise (THD+N)": "0.01%",
+          "Output Power": "25mWx2@16\u03a9",
+          "Voltage - Supply": "2.3V~5.5V",
+          "Quiescent Current": "2.1mA",
+          "Features": "Automatic mute/no-noise switch\u3001Enable/shutdown function\u3001ESD protection\u3001Digitally programmable gain",
+          "Class": "Class AB",
+          "Speaker Channels": "2-Channel",
+          "Signal-to-Noise Ratio": "100dB"
+        }
+      },
+      "dnp": false,
+      "uuid": "dbd71fc0-1ef5-53ec-82eb-8b5fb16e2409",
+      "mpn": "TI TPA6132A2RTER",
+      "datasheet": "https://www.ti.com/lit/ds/symlink/tpa6132a2.pdf"
+    },
+    "R601": {
+      "ref": "R601",
+      "kind": "R",
+      "value": "1k / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        10,
+        19
+      ],
+      "part": {
+        "references": [
+          "R202",
+          "R301",
+          "R503",
+          "R505"
+        ],
+        "jlcpcb_part": "C21190",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF1001T5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF1001T5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "1k\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103",
+          "Power(Watts)": "100mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "1k\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "a954031e-48da-5f63-bd2d-b04d9302ca02",
+      "mpn": "UNI-ROYAL 0603WAF1001T5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf"
+    },
+    "R602": {
+      "ref": "R602",
+      "kind": "R",
+      "value": "100k / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        10,
+        16
+      ],
+      "part": {
+        "references": [
+          "R401",
+          "R402",
+          "R504",
+          "R506"
+        ],
+        "jlcpcb_part": "C25803",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF1003T5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF1003T5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1003T5E_C25803.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "100k\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103",
+          "Power(Watts)": "100mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "100k\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1100ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "682fd19d-d410-50e2-94eb-056a42de87db",
+      "mpn": "UNI-ROYAL 0603WAF1003T5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1003T5E_C25803.pdf"
+    },
+    "R603": {
+      "ref": "R603",
+      "kind": "R",
+      "value": "2.2R / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        27,
+        8
+      ],
+      "part": {
+        "references": [
+          "R603",
+          "R604"
+        ],
+        "jlcpcb_part": "C22939",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF220KT5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF220KT5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF220KT5E_C22939.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "2.2\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1400ppm/\u2103",
+          "Power(Watts)": "100mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "2.2\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1400ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "b3169cba-9d1c-5bbd-9883-e204dc1fa520",
+      "mpn": "UNI-ROYAL 0603WAF220KT5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF220KT5E_C22939.pdf"
+    },
+    "R604": {
+      "ref": "R604",
+      "kind": "R",
+      "value": "2.2R / 1%",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "pcb": [
+        27,
+        14
+      ],
+      "part": {
+        "references": [
+          "R603",
+          "R604"
+        ],
+        "jlcpcb_part": "C22939",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "0603WAF220KT5E",
+        "bom_mpn": "UNI-ROYAL 0603WAF220KT5E",
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF220KT5E_C22939.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Resistance": "2.2\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1400ppm/\u2103",
+          "Power(Watts)": "100mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "2.2\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "100mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "75V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1400ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "8de3b671-6925-51f7-baaa-98664ef7a8d9",
+      "mpn": "UNI-ROYAL 0603WAF220KT5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF220KT5E_C22939.pdf"
+    },
+    "D601": {
+      "ref": "D601",
+      "kind": "D_TVS",
+      "value": "PESD5V0S1BA,115",
+      "fp": "Diode_SMD:D_SOD-323",
+      "pcb": [
+        29,
+        19
+      ],
+      "part": {
+        "references": [
+          "D202",
+          "D301",
+          "D302",
+          "D501"
+        ],
+        "jlcpcb_part": "C19224",
+        "manufacturer": "Nexperia",
+        "mpn": "PESD5V0S1BA,115",
+        "bom_mpn": "Nexperia PESD5V0S1BA,115",
+        "footprint": "Diode_SMD:D_SOD-323",
+        "datasheet": "https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf",
+        "catalog_package": "SOD-323",
+        "requirements": {
+          "identity": "Exact selected manufacturer part and package; original circuit type retained."
+        },
+        "catalog_attributes": {
+          "Operating Temperature": "-55\u2103~+150\u2103",
+          "Type": "ESD",
+          "Junction Capacitance": "35pF",
+          "Peak Pulse Power Dissipation (Ppp)": "130W@8/20us",
+          "Number of Channels": "1",
+          "level of protection": "IEC 61000-4-2\u3001IEC 61000-4-5",
+          "Clamping Voltage": "14V",
+          "Polarity": "Bidirectional",
+          "Peak Pulse Current (Ipp)": "12A@8/20us",
+          "Voltage - Breakdown": "9.5V",
+          "Reverse Stand-Off Voltage (Vrwm)": "5V",
+          "Reverse Leakage Current (Ir)": "5nA"
+        }
+      },
+      "dnp": false,
+      "uuid": "2e6839c3-a246-5059-9513-8b5d27f2a66a",
+      "mpn": "Nexperia PESD5V0S1BA,115",
+      "datasheet": "https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf"
+    },
+    "D602": {
+      "ref": "D602",
+      "kind": "D_TVS",
+      "value": "PESD5V0S1BA,115",
+      "fp": "Diode_SMD:D_SOD-323",
+      "pcb": [
+        29,
+        23
+      ],
+      "part": {
+        "references": [
+          "D202",
+          "D301",
+          "D302",
+          "D501"
+        ],
+        "jlcpcb_part": "C19224",
+        "manufacturer": "Nexperia",
+        "mpn": "PESD5V0S1BA,115",
+        "bom_mpn": "Nexperia PESD5V0S1BA,115",
+        "footprint": "Diode_SMD:D_SOD-323",
+        "datasheet": "https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf",
+        "catalog_package": "SOD-323",
+        "requirements": {
+          "identity": "Exact selected manufacturer part and package; original circuit type retained."
+        },
+        "catalog_attributes": {
+          "Operating Temperature": "-55\u2103~+150\u2103",
+          "Type": "ESD",
+          "Junction Capacitance": "35pF",
+          "Peak Pulse Power Dissipation (Ppp)": "130W@8/20us",
+          "Number of Channels": "1",
+          "level of protection": "IEC 61000-4-2\u3001IEC 61000-4-5",
+          "Clamping Voltage": "14V",
+          "Polarity": "Bidirectional",
+          "Peak Pulse Current (Ipp)": "12A@8/20us",
+          "Voltage - Breakdown": "9.5V",
+          "Reverse Stand-Off Voltage (Vrwm)": "5V",
+          "Reverse Leakage Current (Ir)": "5nA"
+        }
+      },
+      "dnp": false,
+      "uuid": "283b7118-9375-5531-9168-0448f6388da0",
+      "mpn": "Nexperia PESD5V0S1BA,115",
+      "datasheet": "https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf"
+    },
+    "R101": {
+      "ref": "R101",
+      "kind": "R",
+      "value": "0R / 1%",
+      "fp": "Resistor_SMD:R_1206_3216Metric",
+      "pcb": [
+        25,
+        26
+      ],
+      "part": {
+        "references": [
+          "R101"
+        ],
+        "jlcpcb_part": "C17888",
+        "manufacturer": "UNI-ROYAL",
+        "mpn": "1206W4F0000T5E",
+        "bom_mpn": "UNI-ROYAL 1206W4F0000T5E",
+        "footprint": "Resistor_SMD:R_1206_3216Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-1206W4F0000T5E_C17888.pdf",
+        "catalog_package": "1206",
+        "requirements": {
+          "Resistance": "0\u03a9",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1800ppm/\u2103",
+          "Power(Watts)": "250mW"
+        },
+        "catalog_attributes": {
+          "Resistance": "0\u03a9",
+          "Operating Temperature": "-55\u2103~+155\u2103",
+          "Power(Watts)": "250mW",
+          "Type": "Thick Film Resistor",
+          "Voltage-Supply(Max)": "200V",
+          "Tolerance": "\u00b11%",
+          "Temperature Coefficient": "\u00b1800ppm/\u2103"
+        }
+      },
+      "dnp": false,
+      "uuid": "2493e268-9378-5569-b377-7d71787454d2",
+      "mpn": "UNI-ROYAL 1206W4F0000T5E",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-1206W4F0000T5E_C17888.pdf"
+    },
+    "C603": {
+      "ref": "C603",
+      "kind": "C",
+      "value": "2.2u / 25V X7R",
+      "fp": "Capacitor_SMD:C_0805_2012Metric",
+      "pcb": [
+        20,
+        25
+      ],
+      "part": {
+        "references": [
+          "C603",
+          "C605",
+          "C606",
+          "C607"
+        ],
+        "jlcpcb_part": "C19110",
+        "manufacturer": "Samsung",
+        "mpn": "CL21B225KAFNNNE",
+        "bom_mpn": "Samsung CL21B225KAFNNNE",
+        "footprint": "Capacitor_SMD:C_0805_2012Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf",
+        "catalog_package": "0805",
+        "requirements": {
+          "Tolerance": "\u00b110%",
+          "Capacitance": "2.2uF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "25V"
+        },
+        "schematic_value": "2.2u / 25V X7R",
+        "catalog_attributes": {
+          "Voltage Rating": "25V",
+          "Tolerance": "\u00b110%",
+          "Capacitance": "2.2uF",
+          "Temperature Coefficient": "X7R"
+        }
+      },
+      "dnp": false,
+      "uuid": "fc61eb14-456b-5a31-85f5-7caa5ec4c57f",
+      "mpn": "Samsung CL21B225KAFNNNE",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf"
+    },
+    "C604": {
+      "ref": "C604",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_SMD:C_0603_1608Metric",
+      "pcb": [
+        17,
+        9
+      ],
+      "part": {
+        "references": [
+          "C102",
+          "C104",
+          "C201",
+          "C301",
+          "C302",
+          "C303",
+          "C404",
+          "C405"
+        ],
+        "jlcpcb_part": "C14663",
+        "manufacturer": "YAGEO",
+        "mpn": "CC0603KRX7R9BB104",
+        "bom_mpn": "YAGEO CC0603KRX7R9BB104",
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf",
+        "catalog_package": "0603",
+        "requirements": {
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "50V"
+        },
+        "schematic_value": "100n / 50V X7R",
+        "catalog_attributes": {
+          "Voltage Rating": "50V",
+          "Tolerance": "\u00b110%",
+          "Capacitance": "100nF",
+          "Temperature Coefficient": "X7R"
+        }
+      },
+      "dnp": false,
+      "uuid": "fbbdb847-aa9a-5907-baa7-2452cd689a94",
+      "mpn": "YAGEO CC0603KRX7R9BB104",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf"
+    },
+    "C605": {
+      "ref": "C605",
+      "kind": "C",
+      "value": "2.2u / 25V X7R",
+      "fp": "Capacitor_SMD:C_0805_2012Metric",
+      "pcb": [
+        21.5,
+        8.5
+      ],
+      "part": {
+        "references": [
+          "C603",
+          "C605",
+          "C606",
+          "C607"
+        ],
+        "jlcpcb_part": "C19110",
+        "manufacturer": "Samsung",
+        "mpn": "CL21B225KAFNNNE",
+        "bom_mpn": "Samsung CL21B225KAFNNNE",
+        "footprint": "Capacitor_SMD:C_0805_2012Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf",
+        "catalog_package": "0805",
+        "requirements": {
+          "Tolerance": "\u00b110%",
+          "Capacitance": "2.2uF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "25V"
+        },
+        "schematic_value": "2.2u / 25V X7R",
+        "catalog_attributes": {
+          "Voltage Rating": "25V",
+          "Tolerance": "\u00b110%",
+          "Capacitance": "2.2uF",
+          "Temperature Coefficient": "X7R"
+        }
+      },
+      "dnp": false,
+      "uuid": "19be30cf-1a14-5872-82ec-774aee4f4d2f",
+      "mpn": "Samsung CL21B225KAFNNNE",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf"
+    },
+    "C606": {
+      "ref": "C606",
+      "kind": "C",
+      "value": "2.2u / 25V X7R",
+      "fp": "Capacitor_SMD:C_0805_2012Metric",
+      "pcb": [
+        14,
+        16
+      ],
+      "part": {
+        "references": [
+          "C603",
+          "C605",
+          "C606",
+          "C607"
+        ],
+        "jlcpcb_part": "C19110",
+        "manufacturer": "Samsung",
+        "mpn": "CL21B225KAFNNNE",
+        "bom_mpn": "Samsung CL21B225KAFNNNE",
+        "footprint": "Capacitor_SMD:C_0805_2012Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf",
+        "catalog_package": "0805",
+        "requirements": {
+          "Tolerance": "\u00b110%",
+          "Capacitance": "2.2uF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "25V"
+        },
+        "schematic_value": "2.2u / 25V X7R",
+        "catalog_attributes": {
+          "Voltage Rating": "25V",
+          "Tolerance": "\u00b110%",
+          "Capacitance": "2.2uF",
+          "Temperature Coefficient": "X7R"
+        }
+      },
+      "dnp": false,
+      "uuid": "1d59593e-9838-58e7-a5c4-17014fe7ea58",
+      "mpn": "Samsung CL21B225KAFNNNE",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf"
+    },
+    "C607": {
+      "ref": "C607",
+      "kind": "C",
+      "value": "2.2u / 25V X7R",
+      "fp": "Capacitor_SMD:C_0805_2012Metric",
+      "pcb": [
+        22,
+        13
+      ],
+      "part": {
+        "references": [
+          "C603",
+          "C605",
+          "C606",
+          "C607"
+        ],
+        "jlcpcb_part": "C19110",
+        "manufacturer": "Samsung",
+        "mpn": "CL21B225KAFNNNE",
+        "bom_mpn": "Samsung CL21B225KAFNNNE",
+        "footprint": "Capacitor_SMD:C_0805_2012Metric",
+        "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf",
+        "catalog_package": "0805",
+        "requirements": {
+          "Tolerance": "\u00b110%",
+          "Capacitance": "2.2uF",
+          "Temperature Coefficient": "X7R",
+          "Voltage Rating": "25V"
+        },
+        "schematic_value": "2.2u / 25V X7R",
+        "catalog_attributes": {
+          "Voltage Rating": "25V",
+          "Tolerance": "\u00b110%",
+          "Capacitance": "2.2uF",
+          "Temperature Coefficient": "X7R"
+        }
+      },
+      "dnp": false,
+      "uuid": "862da78e-fac7-5e9c-9ada-9d50f3d28f75",
+      "mpn": "Samsung CL21B225KAFNNNE",
+      "datasheet": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B225KAFNNNE_C19110.pdf"
+    }
+  },
+  "pins": {
+    "J102.1": "AUDIO_L",
+    "J102.2": "GND",
+    "J102.3": "AUDIO_R",
+    "J101.1": "+5V",
+    "J101.2": "GND",
+    "J101.3": "HP_ENABLE",
+    "J602.1": "HP_L",
+    "J602.2": "HP_R",
+    "J602.3": "GND",
+    "FB101.1": "+5V",
+    "FB101.2": "+5V_A",
+    "C101.1": "+5V_A",
+    "C101.2": "GND",
+    "C102.1": "+5V_A",
+    "C102.2": "GND",
+    "C601.1": "AUDIO_R",
+    "C601.2": "HP_IN_R",
+    "C602.1": "AUDIO_L",
+    "C602.2": "HP_IN_L",
+    "U601.1": "HP_IN_L",
+    "U601.2": "GND",
+    "U601.3": "GND",
+    "U601.4": "HP_IN_R",
+    "U601.5": "HP_R_RAW",
+    "U601.6": "GND",
+    "U601.7": "GND",
+    "U601.8": "HPVSS",
+    "U601.9": "CPN",
+    "U601.10": "GND",
+    "U601.11": "CPP",
+    "U601.12": "HPVDD",
+    "U601.13": "HP_EN",
+    "U601.14": "+5V_A",
+    "U601.15": "GND",
+    "U601.16": "HP_L_RAW",
+    "U601.17": "GND",
+    "R601.1": "HP_ENABLE",
+    "R601.2": "HP_EN",
+    "R602.1": "HP_EN",
+    "R602.2": "GND",
+    "R603.1": "HP_L_RAW",
+    "R603.2": "HP_L",
+    "R604.1": "HP_R_RAW",
+    "R604.2": "HP_R",
+    "D601.1": "HP_L",
+    "D601.2": "CHASSIS",
+    "D602.1": "HP_R",
+    "D602.2": "CHASSIS",
+    "R101.1": "CHASSIS",
+    "R101.2": "GND",
+    "C603.1": "+5V_A",
+    "C603.2": "GND",
+    "C604.1": "+5V_A",
+    "C604.2": "GND",
+    "C605.1": "HPVDD",
+    "C605.2": "GND",
+    "C606.1": "HPVSS",
+    "C606.2": "GND",
+    "C607.1": "CPP",
+    "C607.2": "CPN"
+  },
+  "nc": [],
+  "routes": [],
+  "ground_vias": [
+    [
+      20.5,
+      16.5
+    ],
+    [
+      16,
+      19
+    ],
+    [
+      15,
+      13
+    ],
+    [
+      25,
+      20
+    ],
+    [
+      32,
+      26
+    ],
+    [
+      12,
+      27
+    ],
+    [
+      7,
+      15
+    ]
+  ],
+  "keepouts": [],
+  "notes": "Independent stereo headphone amplifier. External stereo DAC/codec, 5 V and enable. Charge pump and input coupling are local; no mixer required."
+}

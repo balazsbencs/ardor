@@ -414,6 +414,15 @@ bool WdwRoutingProgram::setTransientShaperParameter(const std::string& id, const
         && wetContext_->chain->setTransientShaperParameter(id, key, value));
 }
 
+bool WdwRoutingProgram::setConsoleEqParameter(const std::string& id, const std::string& key,
+                                                    float value)
+{
+  return (dryContext_ && dryContext_->chain
+          && dryContext_->chain->setConsoleEqParameter(id, key, value))
+    || (wetContext_ && wetContext_->chain
+        && wetContext_->chain->setConsoleEqParameter(id, key, value));
+}
+
 bool WdwRoutingProgram::setWahParameter(const std::string& id, const std::string& key, float value)
 {
   return (dryContext_ && dryContext_->chain

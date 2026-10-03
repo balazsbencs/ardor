@@ -1,0 +1,11 @@
+{
+  "all_board_geometry_routing_pads_zones_and_nets_unchanged": true,
+  "ignored_footprint_properties": [
+    "Value",
+    "MPN",
+    "Datasheet",
+    "JLCPCB Part #"
+  ],
+  "before_sha256": "ca7381c6bc0658d9c9c9642c1e2793fc33799a45937d4dc16bdc634dc1b90f5b",
+  "after_sha256": "89d3291abb46f41a101c247d6365aa63583288da030a5ec1447d99f73afd30f8"
+}

@@ -1,0 +1,4 @@
+(version 1)
+(rule "MIDI loop to logic: functional isolation"
+ (condition "(A.NetName == '/MIDI_4' || A.NetName == '/MIDI_5' || A.NetName == 'Net-(FB201-Pad2)' || A.NetName == 'Net-(D201-K)' || A.NetName == 'Net-(D201-A)') && B.NetName != '/MIDI_4' && B.NetName != '/MIDI_5' && B.NetName != 'Net-(FB201-Pad2)' && B.NetName != 'Net-(D201-K)' && B.NetName != 'Net-(D201-A)' && B.NetName != '/CHASSIS' && B.NetName != '' && B.NetName != 'unconnected-(U201-Pad3)'")
+ (constraint clearance (min 3mm)))

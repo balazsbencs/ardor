@@ -1,0 +1,2021 @@
+{
+  "description": "Reviewed width cleanup: preserve all route centerlines, endpoints, nets and layers; increase copper only. Run full KiCad DRC after applying and refilling.",
+  "source_board_sha256": "2c75bf77f5ba0e7bbaac66e14a3139043bc17bd5c3bcf63e1e57c4bba5288379",
+  "changes": [
+    {
+      "uuid": "3bc56a8b-c1a8-436a-a6c9-57f0e5ee51d6",
+      "original": {
+        "net": "+3V3_ADC",
+        "layer": "F.Cu",
+        "start": [
+          74.9279,
+          84.5697
+        ],
+        "end": [
+          75.2587,
+          84.9005
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            74.9279,
+            84.5697
+          ],
+          "end": [
+            75.2587,
+            84.9005
+          ],
+          "width": 0.4
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "6a2bb048-b6a5-40e5-94d6-e1cfd902a96a",
+      "original": {
+        "net": "+3V3_ADC",
+        "layer": "F.Cu",
+        "start": [
+          75.3443,
+          84.9005
+        ],
+        "end": [
+          76.1005,
+          84.9005
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            75.3443,
+            84.9005
+          ],
+          "end": [
+            76.1005,
+            84.9005
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "bffcb04c-d5f4-4ea2-b0fa-86dbc5df89d5",
+      "original": {
+        "net": "+3V3_ADC",
+        "layer": "F.Cu",
+        "start": [
+          76.1005,
+          84.9005
+        ],
+        "end": [
+          76.2,
+          85
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            76.1005,
+            84.9005
+          ],
+          "end": [
+            76.2,
+            85
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "ebfe0fd8-e8ad-4bc6-ba4f-60634c9b3fa2",
+      "original": {
+        "net": "+3V3_PI",
+        "layer": "F.Cu",
+        "start": [
+          66.0958,
+          59.6149
+        ],
+        "end": [
+          68.322,
+          59.6149
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            66.0958,
+            59.6149
+          ],
+          "end": [
+            68.322,
+            59.6149
+          ],
+          "width": 0.4
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "177374c9-afcd-4ca7-9cbc-b688a8cc8180",
+      "original": {
+        "net": "+5V_A",
+        "layer": "F.Cu",
+        "start": [
+          95,
+          83.95
+        ],
+        "end": [
+          90.7092,
+          83.95
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            95,
+            83.95
+          ],
+          "end": [
+            90.7092,
+            83.95
+          ],
+          "width": 0.4
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "ecd7ac55-25a7-4fbf-b8d0-88f4678e55e6",
+      "original": {
+        "net": "/05 / Line and amp feed/AMP_BUF",
+        "layer": "F.Cu",
+        "start": [
+          102.0447,
+          73.7047
+        ],
+        "end": [
+          101.975,
+          73.635
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            102.0447,
+            73.7047
+          ],
+          "end": [
+            101.975,
+            73.635
+          ],
+          "width": 0.25
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "d16d9cde-8e69-4850-8c0c-795a5bc435d2",
+      "original": {
+        "net": "/05 / Line and amp feed/LINE_BUF",
+        "layer": "F.Cu",
+        "start": [
+          97.5205,
+          70.5995
+        ],
+        "end": [
+          97.025,
+          71.095
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            97.5205,
+            70.5995
+          ],
+          "end": [
+            97.025,
+            71.095
+          ],
+          "width": 0.25
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "6cb4f7df-5f56-4c7a-8653-d6cc4560fc25",
+      "original": {
+        "net": "/06 / Stereo headphones/HP_IN_L",
+        "layer": "F.Cu",
+        "start": [
+          95.9762,
+          85.3746
+        ],
+        "end": [
+          97.4379,
+          85.3746
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            95.9762,
+            85.3746
+          ],
+          "end": [
+            97.4379,
+            85.3746
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "8b997966-2dde-4c13-9da8-385ea1753a56",
+      "original": {
+        "net": "/06 / Stereo headphones/HP_IN_L",
+        "layer": "F.Cu",
+        "start": [
+          97.4379,
+          85.3746
+        ],
+        "end": [
+          97.5625,
+          85.25
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            97.4379,
+            85.3746
+          ],
+          "end": [
+            97.5625,
+            85.25
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "93537c44-0a93-47ba-ae0e-1f16f75150f2",
+      "original": {
+        "net": "ADC_SDA",
+        "layer": "F.Cu",
+        "start": [
+          77.4737,
+          84.4005
+        ],
+        "end": [
+          76.2995,
+          84.4005
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            77.4737,
+            84.4005
+          ],
+          "end": [
+            76.2995,
+            84.4005
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "1f93322c-46dd-4d61-bfe9-17a4a3b45f79",
+      "original": {
+        "net": "BUF_L",
+        "layer": "F.Cu",
+        "start": [
+          78.525,
+          65.095
+        ],
+        "end": [
+          80.295,
+          63.325
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            78.525,
+            65.095
+          ],
+          "end": [
+            80.295,
+            63.325
+          ],
+          "width": 0.25
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "8d5b6363-14fa-4aec-92ba-260616989e35",
+      "original": {
+        "net": "BUF_L",
+        "layer": "F.Cu",
+        "start": [
+          80.295,
+          63.325
+        ],
+        "end": [
+          85,
+          63.325
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            80.295,
+            63.325
+          ],
+          "end": [
+            85,
+            63.325
+          ],
+          "width": 0.25
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "f8ac9557-3cff-4360-be6b-821cef8103db",
+      "original": {
+        "net": "CPN",
+        "layer": "F.Cu",
+        "start": [
+          100.438,
+          86.75
+        ],
+        "end": [
+          101,
+          86.75
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            100.438,
+            86.75
+          ],
+          "end": [
+            101,
+            86.75
+          ],
+          "width": 0.3
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "fc98ca1e-58b1-48e9-b46b-c3f0daf66dbf",
+      "original": {
+        "net": "CPN",
+        "layer": "F.Cu",
+        "start": [
+          100.438,
+          86.75
+        ],
+        "end": [
+          100.4375,
+          86.75
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            100.438,
+            86.75
+          ],
+          "end": [
+            100.4375,
+            86.75
+          ],
+          "width": 0.3
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "a37be9d7-317e-4cfc-bd31-b1f4a0af9b09",
+      "original": {
+        "net": "EXP_ADC",
+        "layer": "F.Cu",
+        "start": [
+          70.4763,
+          85.5
+        ],
+        "end": [
+          71.8,
+          85.5
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            70.4763,
+            85.5
+          ],
+          "end": [
+            71.8,
+            85.5
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "46ad2f3a-1c42-4dcb-9393-94378ee7a32a",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          76.2995,
+          85.4005
+        ],
+        "end": [
+          76.2,
+          85.5
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            76.2995,
+            85.4005
+          ],
+          "end": [
+            76.2,
+            85.5
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "670ba37c-bc11-4b09-ab44-a10f20c366e8",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          74.74,
+          56.54
+        ],
+        "end": [
+          75.14,
+          57.44
+        ],
+        "width": 0.3
+      },
+      "replacement": [
+        {
+          "start": [
+            74.74,
+            56.54
+          ],
+          "end": [
+            75.14,
+            57.44
+          ],
+          "width": 0.4
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "76be9e58-0c51-4f33-b22b-26f04ebfcfb8",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          70.4761,
+          84.2501
+        ],
+        "end": [
+          70.4761,
+          84.3315
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            70.4761,
+            84.2501
+          ],
+          "end": [
+            70.4761,
+            84.3315
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "7ffa28bd-efaf-4e09-a06d-ff809ba9a854",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          75.4491,
+          71.774
+        ],
+        "end": [
+          75.6243,
+          71.774
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            75.4491,
+            71.774
+          ],
+          "end": [
+            75.6243,
+            71.774
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "b1ea61a8-936b-4c86-8245-5b360c6d3051",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          75.349,
+          85.4005
+        ],
+        "end": [
+          76.1005,
+          85.4005
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            75.349,
+            85.4005
+          ],
+          "end": [
+            76.1005,
+            85.4005
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "d17ad51c-be5c-4727-92c0-c23032e83c30",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          82.36,
+          56.54
+        ],
+        "end": [
+          82.76,
+          57.44
+        ],
+        "width": 0.3
+      },
+      "replacement": [
+        {
+          "start": [
+            82.36,
+            56.54
+          ],
+          "end": [
+            82.76,
+            57.44
+          ],
+          "width": 0.4
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "f47674c4-59c5-427d-ac0b-65430f5fe5af",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          76.1005,
+          85.4005
+        ],
+        "end": [
+          76.2,
+          85.5
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            76.1005,
+            85.4005
+          ],
+          "end": [
+            76.2,
+            85.5
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "c46b6358-ee8b-4134-ba4b-787b82f3aaba",
+      "original": {
+        "net": "HP_R",
+        "layer": "F.Cu",
+        "start": [
+          108.2592,
+          89.4408
+        ],
+        "end": [
+          109.2223,
+          89.4408
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            108.2592,
+            89.4408
+          ],
+          "end": [
+            109.2223,
+            89.4408
+          ],
+          "width": 0.3
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "7024925d-b674-45dc-b2c3-a604273e621e",
+      "original": {
+        "net": "MIDI_5",
+        "layer": "F.Cu",
+        "start": [
+          58.6746,
+          80.4756
+        ],
+        "end": [
+          58.8498,
+          80.4756
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            58.6746,
+            80.4756
+          ],
+          "end": [
+            58.8498,
+            80.4756
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "c8644d7d-711a-4c21-ba46-2bd2bddc9afd",
+      "original": {
+        "net": "MIDI_5",
+        "layer": "F.Cu",
+        "start": [
+          58.8498,
+          80.4756
+        ],
+        "end": [
+          58.9951,
+          80.6209
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            58.8498,
+            80.4756
+          ],
+          "end": [
+            58.9951,
+            80.6209
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "8234f9c5-9768-431f-bdae-4d50f1221bbc",
+      "original": {
+        "net": "MONO_BUF",
+        "layer": "F.Cu",
+        "start": [
+          87.525,
+          71.095
+        ],
+        "end": [
+          87.525,
+          70.2398
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            87.525,
+            71.095
+          ],
+          "end": [
+            87.525,
+            70.2398
+          ],
+          "width": 0.25
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "8a83b4a3-4b71-4291-a630-e09b6a841b29",
+      "original": {
+        "net": "VREF",
+        "layer": "F.Cu",
+        "start": [
+          91.84,
+          74.27
+        ],
+        "end": [
+          92.475,
+          73.635
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            91.84,
+            74.27
+          ],
+          "end": [
+            92.475,
+            73.635
+          ],
+          "width": 0.25
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "a96d5644-cc17-4bae-994c-6202e8466c7c",
+      "original": {
+        "net": "VREF",
+        "layer": "F.Cu",
+        "start": [
+          84.7039,
+          74.27
+        ],
+        "end": [
+          91.84,
+          74.27
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            84.7039,
+            74.27
+          ],
+          "end": [
+            91.84,
+            74.27
+          ],
+          "width": 0.25
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "54f28969-b5bf-475c-8ee4-47dbe77489f0",
+      "original": {
+        "net": "/05 / Line and amp feed/AMP_BUF",
+        "layer": "F.Cu",
+        "start": [
+          103.4324,
+          73.7047
+        ],
+        "end": [
+          102.0447,
+          73.7047
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            103.4324,
+            73.7047
+          ],
+          "end": [
+            102.0447,
+            73.7047
+          ],
+          "width": 0.25
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "7f515d54-7dd9-4c19-b5cf-89340fcee808",
+      "original": {
+        "net": "ADC_SDA",
+        "layer": "F.Cu",
+        "start": [
+          76.2995,
+          84.4005
+        ],
+        "end": [
+          76.2,
+          84.5
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            76.2995,
+            84.4005
+          ],
+          "end": [
+            76.2,
+            84.5
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "36c44b86-e232-4d5d-a026-37ad9c58c481",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          77.3307,
+          85.4005
+        ],
+        "end": [
+          76.2995,
+          85.4005
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            77.3307,
+            85.4005
+          ],
+          "end": [
+            76.2995,
+            85.4005
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "4017508f-f064-4c06-a659-d202177ad6b3",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          75.6243,
+          71.774
+        ],
+        "end": [
+          75.7732,
+          71.6251
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            75.6243,
+            71.774
+          ],
+          "end": [
+            75.7732,
+            71.6251
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "a5a8702d-ac56-46e8-9ede-6c78cb657f4f",
+      "original": {
+        "net": "VREF",
+        "layer": "F.Cu",
+        "start": [
+          83,
+          75.9739
+        ],
+        "end": [
+          84.7039,
+          74.27
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            83,
+            75.9739
+          ],
+          "end": [
+            84.7039,
+            74.27
+          ],
+          "width": 0.25
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "fd790fe2-2325-4ce9-8a39-a41978219f06",
+      "original": {
+        "net": "VREF",
+        "layer": "F.Cu",
+        "start": [
+          81.2507,
+          74.2246
+        ],
+        "end": [
+          83,
+          75.9739
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            81.2507,
+            74.2246
+          ],
+          "end": [
+            83,
+            75.9739
+          ],
+          "width": 0.25
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "5e4dd9ae-87fa-414a-95a7-db394e3c677c",
+      "original": {
+        "net": "VREF",
+        "layer": "F.Cu",
+        "start": [
+          83,
+          75.9739
+        ],
+        "end": [
+          83,
+          77
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            83,
+            75.9739
+          ],
+          "end": [
+            83,
+            77
+          ],
+          "width": 0.25
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "70abc034-299e-45c3-bdb0-85bb8ff1b7cc",
+      "original": {
+        "net": "VREF",
+        "layer": "F.Cu",
+        "start": [
+          81.0519,
+          74.2246
+        ],
+        "end": [
+          81.2507,
+          74.2246
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            81.0519,
+            74.2246
+          ],
+          "end": [
+            81.2507,
+            74.2246
+          ],
+          "width": 0.25
+        }
+      ],
+      "reason": "Match the adjoining wider run; individual copper/hole clearance checked."
+    },
+    {
+      "uuid": "bbbf3488-d336-48c2-868c-b07e72b28f3d",
+      "original": {
+        "net": "GND",
+        "layer": "B.Cu",
+        "start": [
+          89.5573,
+          81.9108
+        ],
+        "end": [
+          95.5766,
+          87.9301
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            89.5573,
+            81.9108
+          ],
+          "end": [
+            90.833695,
+            83.187195
+          ],
+          "width": 0.4
+        },
+        {
+          "start": [
+            90.833695,
+            83.187195
+          ],
+          "end": [
+            95.5766,
+            87.9301
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "49572654-ebe0-4768-acc8-54e86f4eba5e",
+      "original": {
+        "net": "+3V3_ADC",
+        "layer": "B.Cu",
+        "start": [
+          80.2106,
+          83.7503
+        ],
+        "end": [
+          80.2106,
+          75.292
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            80.2106,
+            83.7503
+          ],
+          "end": [
+            80.2106,
+            79.613267
+          ],
+          "width": 0.4
+        },
+        {
+          "start": [
+            80.2106,
+            79.613267
+          ],
+          "end": [
+            80.2106,
+            75.292
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "ee10070a-ed5e-45b9-b528-2c5a1e0dde59",
+      "original": {
+        "net": "GND",
+        "layer": "B.Cu",
+        "start": [
+          62.6167,
+          93
+        ],
+        "end": [
+          68.5404,
+          87.0763
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            62.6167,
+            93
+          ],
+          "end": [
+            63.688516,
+            91.928184
+          ],
+          "width": 0.2
+        },
+        {
+          "start": [
+            63.688516,
+            91.928184
+          ],
+          "end": [
+            68.5404,
+            87.0763
+          ],
+          "width": 0.4
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "ee1f49f0-c086-4070-9153-2b3de64b005f",
+      "original": {
+        "net": "GND",
+        "layer": "B.Cu",
+        "start": [
+          116.1017,
+          85.4783
+        ],
+        "end": [
+          116.1017,
+          78.4417
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            116.1017,
+            85.4783
+          ],
+          "end": [
+            116.1017,
+            84.545058
+          ],
+          "width": 0.4
+        },
+        {
+          "start": [
+            116.1017,
+            84.545058
+          ],
+          "end": [
+            116.1017,
+            80.378889
+          ],
+          "width": 0.2
+        },
+        {
+          "start": [
+            116.1017,
+            80.378889
+          ],
+          "end": [
+            116.1017,
+            78.4417
+          ],
+          "width": 0.4
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "4557d3f7-38ef-4ce5-804b-aaf8667f32aa",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          104.4524,
+          63.2517
+        ],
+        "end": [
+          100.275,
+          67.4291
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            104.4524,
+            63.2517
+          ],
+          "end": [
+            103.797646,
+            63.906454
+          ],
+          "width": 0.2
+        },
+        {
+          "start": [
+            103.797646,
+            63.906454
+          ],
+          "end": [
+            100.275,
+            67.4291
+          ],
+          "width": 0.4
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "7181656d-a8eb-423c-b419-bf55de9a5816",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          82.36,
+          58.996
+        ],
+        "end": [
+          76.479,
+          58.996
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            82.36,
+            58.996
+          ],
+          "end": [
+            78.521979,
+            58.996
+          ],
+          "width": 0.2
+        },
+        {
+          "start": [
+            78.521979,
+            58.996
+          ],
+          "end": [
+            76.479,
+            58.996
+          ],
+          "width": 0.4
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "0bd19f37-71da-44f4-9158-11c644596f78",
+      "original": {
+        "net": "GND",
+        "layer": "B.Cu",
+        "start": [
+          116.1017,
+          70.6417
+        ],
+        "end": [
+          116.1017,
+          76.2383
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            116.1017,
+            70.6417
+          ],
+          "end": [
+            116.1017,
+            73.678889
+          ],
+          "width": 0.4
+        },
+        {
+          "start": [
+            116.1017,
+            73.678889
+          ],
+          "end": [
+            116.1017,
+            76.2383
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "3cc26d62-2f31-466c-8935-e970577cdbc9",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          91.4434,
+          68.5
+        ],
+        "end": [
+          94.7903,
+          71.8469
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            91.4434,
+            68.5
+          ],
+          "end": [
+            93.378184,
+            70.434784
+          ],
+          "width": 0.4
+        },
+        {
+          "start": [
+            93.378184,
+            70.434784
+          ],
+          "end": [
+            93.810216,
+            70.866816
+          ],
+          "width": 0.2
+        },
+        {
+          "start": [
+            93.810216,
+            70.866816
+          ],
+          "end": [
+            94.7903,
+            71.8469
+          ],
+          "width": 0.4
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "c1650c9f-6c51-408f-8772-7e205cf0af88",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          99.0383,
+          57.6417
+        ],
+        "end": [
+          94.401,
+          57.6417
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            99.0383,
+            57.6417
+          ],
+          "end": [
+            98.105058,
+            57.6417
+          ],
+          "width": 0.4
+        },
+        {
+          "start": [
+            98.105058,
+            57.6417
+          ],
+          "end": [
+            97.094942,
+            57.6417
+          ],
+          "width": 0.2
+        },
+        {
+          "start": [
+            97.094942,
+            57.6417
+          ],
+          "end": [
+            94.401,
+            57.6417
+          ],
+          "width": 0.4
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "8a0ef0b9-0fbd-480c-865c-98fac731462e",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          73.6383,
+          55.4383
+        ],
+        "end": [
+          69.66,
+          55.4383
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            73.6383,
+            55.4383
+          ],
+          "end": [
+            72.705058,
+            55.4383
+          ],
+          "width": 0.4
+        },
+        {
+          "start": [
+            72.705058,
+            55.4383
+          ],
+          "end": [
+            69.66,
+            55.4383
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "67f539bb-075b-407a-8124-46c7b6af4dff",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          69.66,
+          55.4383
+        ],
+        "end": [
+          65.6817,
+          55.4383
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            69.66,
+            55.4383
+          ],
+          "end": [
+            66.614942,
+            55.4383
+          ],
+          "width": 0.2
+        },
+        {
+          "start": [
+            66.614942,
+            55.4383
+          ],
+          "end": [
+            65.6817,
+            55.4383
+          ],
+          "width": 0.4
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "21b280d8-f2a7-4860-8bb2-a4489abd45e5",
+      "original": {
+        "net": "+5V_A",
+        "layer": "F.Cu",
+        "start": [
+          95.7552,
+          72.6861
+        ],
+        "end": [
+          95.7552,
+          68.7448
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            95.7552,
+            72.6861
+          ],
+          "end": [
+            95.7552,
+            70.687718
+          ],
+          "width": 0.2
+        },
+        {
+          "start": [
+            95.7552,
+            70.687718
+          ],
+          "end": [
+            95.7552,
+            68.7448
+          ],
+          "width": 0.4
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "ca771064-cfac-44b1-9da0-cb739877636e",
+      "original": {
+        "net": "+3V3_ADC",
+        "layer": "F.Cu",
+        "start": [
+          70.4183,
+          79.6817
+        ],
+        "end": [
+          74.0317,
+          79.6817
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            70.4183,
+            79.6817
+          ],
+          "end": [
+            71.768956,
+            79.6817
+          ],
+          "width": 0.4
+        },
+        {
+          "start": [
+            71.768956,
+            79.6817
+          ],
+          "end": [
+            74.0317,
+            79.6817
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "aa6a1223-fe8a-410f-a082-b74f20b702c1",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          87.9951,
+          58.7828
+        ],
+        "end": [
+          84.6278,
+          58.7828
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            87.9951,
+            58.7828
+          ],
+          "end": [
+            85.646009,
+            58.7828
+          ],
+          "width": 0.2
+        },
+        {
+          "start": [
+            85.646009,
+            58.7828
+          ],
+          "end": [
+            84.6278,
+            58.7828
+          ],
+          "width": 0.4
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "f194568d-f267-4de6-9d28-e3b227e861be",
+      "original": {
+        "net": "+5V_A",
+        "layer": "F.Cu",
+        "start": [
+          99.4252,
+          72.9906
+        ],
+        "end": [
+          96.0597,
+          72.9906
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            99.4252,
+            72.9906
+          ],
+          "end": [
+            98.035721,
+            72.9906
+          ],
+          "width": 0.4
+        },
+        {
+          "start": [
+            98.035721,
+            72.9906
+          ],
+          "end": [
+            96.0597,
+            72.9906
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "07d6a427-127f-4431-8663-828c8dc4f9f6",
+      "original": {
+        "net": "+3V3_ADC",
+        "layer": "F.Cu",
+        "start": [
+          69.1177,
+          80.9823
+        ],
+        "end": [
+          65.9073,
+          80.9823
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            69.1177,
+            80.9823
+          ],
+          "end": [
+            67.358772,
+            80.9823
+          ],
+          "width": 0.4
+        },
+        {
+          "start": [
+            67.358772,
+            80.9823
+          ],
+          "end": [
+            65.9073,
+            80.9823
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "b6f1b713-34c8-46cf-b205-ef2125579d45",
+      "original": {
+        "net": "CHASSIS",
+        "layer": "F.Cu",
+        "start": [
+          62.3386,
+          69.1237
+        ],
+        "end": [
+          60.2149,
+          67
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            62.3386,
+            69.1237
+          ],
+          "end": [
+            61.145342,
+            67.930442
+          ],
+          "width": 0.2
+        },
+        {
+          "start": [
+            61.145342,
+            67.930442
+          ],
+          "end": [
+            60.2149,
+            67
+          ],
+          "width": 0.6
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "d6ce65e9-8fd2-4f34-af4d-1cb4bb90906e",
+      "original": {
+        "net": "+3V3_ADC",
+        "layer": "F.Cu",
+        "start": [
+          78.7415,
+          86.2665
+        ],
+        "end": [
+          78.7415,
+          89.0835
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            78.7415,
+            86.2665
+          ],
+          "end": [
+            78.7415,
+            87.654996
+          ],
+          "width": 0.4
+        },
+        {
+          "start": [
+            78.7415,
+            87.654996
+          ],
+          "end": [
+            78.7415,
+            89.0835
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "60d1164c-6f08-4000-b292-d4249cf688a6",
+      "original": {
+        "net": "+5V_A",
+        "layer": "F.Cu",
+        "start": [
+          92.1929,
+          65.476
+        ],
+        "end": [
+          89.5632,
+          65.476
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            92.1929,
+            65.476
+          ],
+          "end": [
+            90.618201,
+            65.476
+          ],
+          "width": 0.4
+        },
+        {
+          "start": [
+            90.618201,
+            65.476
+          ],
+          "end": [
+            89.5632,
+            65.476
+          ],
+          "width": 0.15
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "d088adc0-0173-442f-b5a1-d0ca12062e6c",
+      "original": {
+        "net": "CHASSIS",
+        "layer": "F.Cu",
+        "start": [
+          65.329,
+          91.8665
+        ],
+        "end": [
+          63.0871,
+          91.8665
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            65.329,
+            91.8665
+          ],
+          "end": [
+            64.358791,
+            91.8665
+          ],
+          "width": 0.6
+        },
+        {
+          "start": [
+            64.358791,
+            91.8665
+          ],
+          "end": [
+            63.0871,
+            91.8665
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "084940b8-964a-45d2-81df-4a378f272ac0",
+      "original": {
+        "net": "CHASSIS",
+        "layer": "B.Cu",
+        "start": [
+          58.05,
+          85.2307
+        ],
+        "end": [
+          59.6293,
+          86.81
+        ],
+        "width": 0.2
+      },
+      "replacement": [
+        {
+          "start": [
+            58.05,
+            85.2307
+          ],
+          "end": [
+            58.744522,
+            85.925222
+          ],
+          "width": 0.6
+        },
+        {
+          "start": [
+            58.744522,
+            85.925222
+          ],
+          "end": [
+            59.6293,
+            86.81
+          ],
+          "width": 0.2
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    },
+    {
+      "uuid": "5cd71d72-47ec-4e13-b8a8-691b70734e37",
+      "original": {
+        "net": "GND",
+        "layer": "F.Cu",
+        "start": [
+          73.9732,
+          85.0995
+        ],
+        "end": [
+          71.8995,
+          85.0995
+        ],
+        "width": 0.15
+      },
+      "replacement": [
+        {
+          "start": [
+            73.9732,
+            85.0995
+          ],
+          "end": [
+            72.751108,
+            85.0995
+          ],
+          "width": 0.4
+        },
+        {
+          "start": [
+            72.751108,
+            85.0995
+          ],
+          "end": [
+            71.8995,
+            85.0995
+          ],
+          "width": 0.15
+        }
+      ],
+      "reason": "Keep the narrow section at its clearance obstacle; extend existing wider end(s)."
+    }
+  ]
+}

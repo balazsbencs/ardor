@@ -586,6 +586,13 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       continue;
     }
     if (block.type == "eq") {
+      if (isConsoleEqMode(block.params)) {
+        ConsoleEqProcessor processor;
+        if (!processor.configure(block.params, static_cast<float>(options.sampleRate), error)) return false;
+        chain.addConsoleEq(block.id, std::move(processor));
+        chain.setBlockEnabled(block.id, block.enabled);
+        continue;
+      }
       if (!chain.addParametricEq(block.id, parametricEqParamsFromJson(block.params),
                                  static_cast<float>(options.sampleRate), error)) {
         return false;
@@ -984,6 +991,11 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       continue;
     }
     if (block.type == "eq") {
+      if (isConsoleEqMode(block.params)) {
+        if (!engine.addConsoleEq(block.id, block.params, static_cast<float>(options.sampleRate), error)) return false;
+        engine.setBlockEnabled(block.id, block.enabled);
+        continue;
+      }
       if (!engine.addParametricEq(block.id, block.params, static_cast<float>(options.sampleRate), error)) {
         return false;
       }

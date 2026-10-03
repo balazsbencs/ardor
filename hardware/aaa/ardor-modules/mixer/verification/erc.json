@@ -1,0 +1,14 @@
+{
+    "$schema": "https://schemas.kicad.org/erc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-10-02T20:04:27+0000",
+    "kicad_version": "9.0.2",
+    "sheets": [
+        {
+            "path": "/",
+            "uuid_path": "/569c7d02-8485-5f3e-82e2-bf21626cf3be",
+            "violations": []
+        }
+    ],
+    "source": "Ardor_Mixer.kicad_sch"
+}

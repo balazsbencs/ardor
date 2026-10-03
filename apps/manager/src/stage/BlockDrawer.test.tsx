@@ -172,6 +172,24 @@ describe("BlockDrawer, ported from the old inspector", () => {
     expect(params().inputMode).toBe("left");
   });
 
+  it("edits the 1073 stepped frequencies, polarity and character", () => {
+    withBlock({ ...createBlockFromDefinition("eq:console_1073", []), id: "eq1" });
+    render(<EditorProvider><Harness id="eq1" /></EditorProvider>);
+    expect(screen.getByRole("heading", { name: "1073 EQ" })).toBeInTheDocument();
+    expect(screen.getAllByRole("slider")).toHaveLength(11);
+    const low = screen.getByRole("slider", { name: "Low frequency" });
+    expect(low).toHaveAttribute("aria-valuenow", "2");
+    expect(low).toHaveAttribute("aria-valuetext", "60 Hz");
+    fireEvent.keyDown(low, { key: "ArrowRight" });
+    expect(params().low_freq).toBe(3);
+    fireEvent.keyDown(screen.getByRole("slider", { name: "High-pass · 18 dB/oct" }), { key: "End" });
+    expect(params().high_pass).toBe(4);
+    fireEvent.keyDown(screen.getByRole("slider", { name: "Polarity" }), { key: "End" });
+    expect(params().polarity).toBe(1);
+    fireEvent.keyDown(screen.getByRole("slider", { name: "Character" }), { key: "Home" });
+    expect(params().character).toBe(0);
+  });
+
   it("renders the complete compressor control surface", async () => {
     withBlock({ ...createBlockFromDefinition("dynamics:compressor", []), id: "c1" });
     render(<EditorProvider><Harness id="c1" /></EditorProvider>);

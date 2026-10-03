@@ -25,7 +25,7 @@ describe("ModuleDrawer", () => {
   it("groups dynamics, EQ, wah and the widener under Dynamics and tone", () => {
     render(<ModuleDrawer open where="" disabledIds={new Map()} onOpenChange={vi.fn()} onChoose={vi.fn()} />);
     const utility = within(screen.getByRole("group", { name: "Dynamics and tone" }));
-    for (const name of [/Compressor/, /Noise Gate/, /Five Band Parametric EQ/, /GCB-95 Wah/, /Stereo Widener/, /Transient Shaper/]) {
+    for (const name of [/Compressor/, /Noise Gate/, /Five Band Parametric EQ/, /GCB-95 Wah/, /Stereo Widener/, /Transient Shaper/, /1073 EQ/]) {
       expect(utility.getByRole("button", { name })).toBeInTheDocument();
     }
   });

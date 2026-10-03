@@ -1,0 +1,16 @@
+{
+  "intended_non_nc_connections_checked": 199,
+  "all_physical_pad_net_assignments_checked": 219,
+  "electrical_footprints": 77,
+  "critical_invariants_checked": 14,
+  "midi_expression_gpio_and_i2c_mapping_preserved": true,
+  "headphones_and_redundant_output_buffers_absent": true,
+  "opamp_peak_load_current_at_1_vrms_ma": 0.305,
+  "required_slew_at_20khz_1_vrms_v_per_us": 0.1777,
+  "tlv9002_typical_slew_v_per_us": 2.0,
+  "mono_1pct_resistor_worst_case_weights": [
+    0.495,
+    0.505
+  ],
+  "hardware_measured": false
+}
