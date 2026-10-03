@@ -34,7 +34,9 @@ public:
   void loadIr(std::vector<float> impulse);
   void addCab(std::vector<float> impulse, float level, float mix, std::string id = "cab");
   bool addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,
-                   float sampleRate, std::string& error, bool sceneLetRing = false);
+                   float sampleRate, std::string& error, bool sceneLetRing = false,
+                   float reverbTimeRatio = 1.0f);
+  // reverbTimeRatio prepares kernels: call this setter from the control thread.
   bool setIrReverbParameter(const std::string& id, const std::string& key, float value);
   bool setCabParameter(const std::string& id, const std::string& key, float value);
   bool addStereoWidener(std::string id, float sampleRate, std::string& error);

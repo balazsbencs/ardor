@@ -32,6 +32,7 @@
 #include "modes/pattern_delay.h"
 #include "modes/pattern_trem_mode.h"
 #include "modes/phaser_mode.h"
+#include "modes/ph2_mode.h"
 #include "modes/plate_reverb.h"
 #include "modes/poly_octave_mode.h"
 #include "modes/quadrature_mode.h"
@@ -140,6 +141,7 @@ std::unique_ptr<pedal::ModMode> makeModMode(const std::string& mode, pedal::ModM
   if (mode == "rotary") { id = pedal::ModModeId::Rotary; return std::make_unique<pedal::RotaryMode>(); }
   if (mode == "vibe") { id = pedal::ModModeId::Vibe; return std::make_unique<pedal::VibeMode>(); }
   if (mode == "phaser") { id = pedal::ModModeId::Phaser; return std::make_unique<pedal::PhaserMode>(); }
+  if (mode == "phaser_ph2") { id = pedal::ModModeId::PhaserPh2; return std::make_unique<pedal::Ph2Mode>(); }
   if (mode == "vintage_trem") { id = pedal::ModModeId::VintTrem; return std::make_unique<pedal::VintageTremMode>(); }
   if (mode == "poly_octave") { id = pedal::ModModeId::PolyOctave; return std::make_unique<pedal::PolyOctaveMode>(); }
   if (mode == "pattern_trem") { id = pedal::ModModeId::PatternTrem; return std::make_unique<pedal::PatternTremMode>(); }
@@ -623,6 +625,8 @@ DaisyFxFrame DaisyFxProcessor::processFrame(StereoSample input)
 
 size_t DaisyFxProcessor::latencyFrames() const noexcept
 {
+  if (impl_ && impl_->kind == Impl::Kind::Mod && impl_->modId == pedal::ModModeId::PhaserPh2)
+    return pedal::Ph2Mode::kLatencyFrames;
   return impl_ && impl_->kind == Impl::Kind::Reverb && !impl_->nativeRateReverb()
     ? Impl::kReverbLatencyFrames : 0;
 }
@@ -636,6 +640,14 @@ size_t DaisyFxProcessor::tailFrames() const noexcept
   const auto target = [this](Impl::Target index) {
     return impl_->targets[index].load(std::memory_order_relaxed);
   };
+
+  if (impl_->kind == Impl::Kind::Mod && impl_->modId == pedal::ModModeId::PhaserPh2) {
+    // Include resampling history even at dry Mix. Mode 2's fixed resonance loop
+    // can ring independently of the user Resonance knob; allow an offline
+    // tail rather than truncating it with the other modulation algorithms.
+    return target(Impl::Mix) <= 0.0f ? pedal::Ph2Mode::kLatencyFrames
+                                   : estimatedTailFrames(3.0f);
+  }
 
   if (impl_->kind == Impl::Kind::Delay) {
     const float mix = target(Impl::Mix);

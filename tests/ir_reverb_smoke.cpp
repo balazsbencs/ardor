@@ -2,10 +2,36 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
+#include <new>
 #include <cstdio>
+#include <limits>
+#include <thread>
+#include <atomic>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+// Only audio calls enable this guard; kernel preparation on the control
+// thread is intentionally allowed to allocate and reclaim memory.
+thread_local bool auditRealtimeMemory = false;
+thread_local std::size_t realtimeAllocations = 0, realtimeDeallocations = 0;
+
+void* operator new(std::size_t size)
+{
+  if (auditRealtimeMemory) ++realtimeAllocations;
+  if (auto* ptr = std::malloc(std::max<std::size_t>(size, 1))) return ptr;
+  throw std::bad_alloc();
+}
+void* operator new[](std::size_t size) { return ::operator new(size); }
+void operator delete(void* ptr) noexcept
+{
+  if (auditRealtimeMemory && ptr) ++realtimeDeallocations;
+  std::free(ptr);
+}
+void operator delete[](void* ptr) noexcept { ::operator delete(ptr); }
+void operator delete(void* ptr, std::size_t) noexcept { ::operator delete(ptr); }
+void operator delete[](void* ptr, std::size_t) noexcept { ::operator delete(ptr); }
 
 namespace {
 
@@ -192,6 +218,157 @@ void verifyImpulseLengthIsCapped()
           "an over-long impulse must be truncated to the documented cap");
 }
 
+std::vector<float> exponentialIr(float rt60, int onset = 0)
+{
+  std::vector<float> ir(3 * 48000, 0.0f);
+  for (std::size_t i = onset; i < ir.size(); ++i)
+    ir[i] = 0.01f * std::exp(-6.90775527898f * (i - onset) / (kRate * rt60));
+  return ir;
+}
+
+void verifyReverbTimeRatio()
+{
+  constexpr float rt60 = 1.2f;
+  constexpr int onset = 2400;
+  const auto original = exponentialIr(rt60, onset);
+  auto right = original;
+  for (auto& x : right) x *= -0.5f;
+  for (float ratio : {1.0f, 0.5f, 0.25f}) {
+    ardor::IrReverbProcessor reverb;
+    std::string error;
+    require(reverb.load(original, right, kRate, error), error);
+    require(reverb.originalRt60Seconds().has_value(), "exponential tail has a measurable RT60");
+    require(std::fabs(*reverb.originalRt60Seconds() - rt60) < 0.01f,
+            "RT60 estimate must match the known exponential decay");
+    reverb.setMix(1.0f);
+    reverb.setReverbTimeRatio(ratio);
+    reverb.reset();
+    const auto rendered = renderImpulse(reverb, original.size() + 256);
+    const int delay = ardor::IrReverbProcessor::PARTITION_FRAMES;
+    for (std::size_t i = 0; i < original.size(); ++i) {
+      const float expected = i < onset ? 0.0f
+        : 0.01f * std::exp(-6.90775527898f * (i - onset) / (kRate * rt60 * ratio));
+      require(std::fabs(rendered[i + delay].left - expected) < 0.000002f,
+              "reverb time must change decay without moving reflections or pre-delay");
+      require(std::fabs(rendered[i + delay].right + 0.5f * expected) < 0.000002f,
+              "one decay envelope must preserve stereo balance and polarity");
+    }
+    // An independent slope measurement on the output, across the early/tail
+    // partition boundary, verifies that the audible decay follows the ratio.
+    const float a = rendered[onset + delay + 2400].left;
+    const float b = rendered[onset + delay + 4800].left;
+    const float measured = -6.90775527898f * 0.05f / std::log(b / a);
+    require(std::fabs(measured - rt60 * ratio) < 0.01f,
+            "rendered RT60 must track the requested ratio");
+  }
+}
+
+void verifyUnmeasurableDecayIsUnchanged()
+{
+  std::string error;
+  for (auto ir : {std::vector<float>{1.0f}, std::vector<float>(48000, 0.01f),
+                  std::vector<float>(48000, 0.0f)}) {
+    ardor::IrReverbProcessor reverb;
+    require(reverb.load(ir, {}, kRate, error), error);
+    require(!reverb.originalRt60Seconds(), "short, silent, or gated IR has no reliable RT60");
+    reverb.setMix(1.0f);
+    reverb.setReverbTimeRatio(0.25f);
+    reverb.reset();
+    const auto rendered = renderImpulse(reverb, ir.size() + 256);
+    for (std::size_t i = 0; i < ir.size(); ++i)
+      require(std::fabs(rendered[i + ardor::IrReverbProcessor::PARTITION_FRAMES].left - ir[i]) < 0.000002f,
+              "unmeasurable impulses must remain unchanged");
+  }
+}
+
+void verifyLiveDecayPreservesHistory()
+{
+  const auto ir = exponentialIr(1.2f);
+  ardor::IrReverbProcessor live, reference;
+  std::string error;
+  require(live.load(ir, {}, kRate, error), error);
+  require(reference.load(ir, {}, kRate, error), error);
+  for (auto* reverb : {&live, &reference}) reverb->setMix(1.0f);
+  reference.setReverbTimeRatio(0.5f);
+  live.reset(); reference.reset();
+  for (int frame = 0; frame < 40000; ++frame) {
+    if (frame == 6001) live.setReverbTimeRatio(0.25f);
+    // Coalesce edits that arrive during a transition, including a return to
+    // the original kernel. The last queued value must eventually be heard.
+    if (frame == 6103) live.setReverbTimeRatio(1.0f);
+    if (frame == 6104) live.setReverbTimeRatio(0.5f);
+    const float input = frame == 0 ? 1.0f : 0.0f;
+    const auto a = live.process({input, input});
+    const auto b = reference.process({input, input});
+    if (frame > 30000)
+      require(std::fabs(a.left - b.left) < 0.000002f,
+              "live decay edits must retain audio already in convolution history");
+  }
+  // Restoring unity and invalid inputs must restore the original response;
+  // clamp out-of-range values without NaNs or amplification.
+  for (float ratio : {1.0f, 2.0f, std::numeric_limits<float>::quiet_NaN()}) {
+    live.setReverbTimeRatio(ratio);
+    live.reset();
+    const auto rendered = renderImpulse(live, 8192);
+    require(std::fabs(rendered[4096].left - ir[4096 - 128]) < 0.000002f,
+            "unity and invalid ratios must reproduce the original IR");
+  }
+  live.setReverbTimeRatio(-1.0f);
+  reference.setReverbTimeRatio(0.25f);
+  live.reset(); reference.reset();
+  const auto a = renderImpulse(live, 8192), b = renderImpulse(reference, 8192);
+  require(std::fabs(a[4096].left - b[4096].left) < 0.000002f,
+          "ratios below 25 percent must clamp to 25 percent");
+}
+
+void verifyLiveDecayDoesNotClick()
+{
+  ardor::IrReverbProcessor reverb;
+  std::string error;
+  require(reverb.load(exponentialIr(1.2f), {}, kRate, error), error);
+  reverb.setMix(1.0f); reverb.reset();
+  float previous = 0.0f, maxStep = 0.0f;
+  for (int frame = 0; frame < 80000; ++frame) {
+    if (frame == 30001) reverb.setReverbTimeRatio(0.25f);
+    if (frame == 50013) reverb.setReverbTimeRatio(1.0f);
+    auditRealtimeMemory = true;
+    const float output = reverb.process({0.01f, 0.01f}).left;
+    auditRealtimeMemory = false;
+    if (frame > 30000) maxStep = std::max(maxStep, std::fabs(output - previous));
+    previous = output;
+  }
+  require(maxStep < 0.0003f, "live decay changes must crossfade without a discontinuity");
+  require(realtimeAllocations == 0 && realtimeDeallocations == 0,
+          "kernel handoff, rendering, promotion and retirement must not allocate or free on audio");
+}
+
+void verifyConcurrentDecayUpdates()
+{
+  ardor::IrReverbProcessor reverb;
+  std::string error;
+  require(reverb.load(exponentialIr(1.2f), {}, kRate, error), error);
+  reverb.setMix(1.0f); reverb.reset();
+  std::atomic<bool> started{false}, done{false};
+  std::thread control([&] {
+    while (!started.load(std::memory_order_acquire)) std::this_thread::yield();
+    for (int i = 0; i < 30; ++i) reverb.setReverbTimeRatio(i % 2 ? 1.0f : 0.25f);
+    reverb.setReverbTimeRatio(0.5f);
+    done.store(true, std::memory_order_release);
+  });
+  started.store(true, std::memory_order_release);
+  while (!done.load(std::memory_order_acquire)) {
+    const auto sample = reverb.process({0.001f, -0.001f});
+    require(std::isfinite(sample.left) && std::isfinite(sample.right),
+            "concurrent kernel preparation must leave realtime output finite");
+  }
+  control.join();
+  reverb.reset();
+  const auto rendered = renderImpulse(reverb, 8192);
+  const float expected = 0.01f * std::exp(-6.90775527898f * (4096 - 128) / (kRate * 0.6f));
+  require(std::fabs(rendered[4096].left - expected) < 0.000002f,
+          "concurrent edits must apply the latest requested decay");
+}
+
 void verifyRejectsBadInput()
 {
   ardor::IrReverbProcessor reverb;
@@ -219,6 +396,11 @@ int main()
   verifyStereoImpulsesStayIndependent();
   verifyImpulseLengthIsCapped();
   verifyRejectsBadInput();
+  verifyReverbTimeRatio();
+  verifyUnmeasurableDecayIsUnchanged();
+  verifyLiveDecayPreservesHistory();
+  verifyLiveDecayDoesNotClick();
+  verifyConcurrentDecayUpdates();
   std::printf("ir reverb smoke passed\n");
   return 0;
 }

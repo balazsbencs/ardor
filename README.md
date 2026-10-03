@@ -1,4 +1,6 @@
-# Ardor Pedal
+<h1 align="center">
+  <img src="docs/assets/ardor-logo.svg" alt="Ardor" width="720">
+</h1>
 
 Ardor is a standalone Raspberry Pi guitar-processing platform with a realtime
 audio engine, touchscreen/footswitch UI, preset storage, a browser-based manager
@@ -13,6 +15,38 @@ Display 2.
 
 The pedal is an appliance rather than a plugin host. Plugin formats and an OTA
 update workflow are outside the current scope.
+
+<p align="center">
+  <img src="website/src/assets/device/01-preset.png" alt="Preset screen with four footswitch presets, the live preset lit in red, and the master level meter" width="100%">
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="website/src/assets/device/02-edit.png" alt="Edit screen showing the signal chain: compressor, neural amp, cabinet, chorus and tape delay"></td>
+    <td width="50%"><img src="website/src/assets/device/50-looper.png" alt="Four-track looper with one track playing, one recording, one armed for overdub and one muted"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Build the chain from neural amps, cabs and effects</sub></td>
+    <td align="center"><sub>Four-track looper on the footswitches</sub></td>
+  </tr>
+</table>
+
+## What You Need
+
+To build an Ardor pedal, start with a Raspberry Pi 4 (the 1 GB model is
+enough), its USB-C power supply, and a microSD card for the Ardor image. Put
+the Raspberry Pi Codec Zero audio board on top of the Pi, and connect the 5 inch
+Raspberry Pi Touch Display 2 with its ribbon cable. A guitar cannot connect
+directly to the Codec Zero, so you also need the small Ardor guitar input buffer
+board. You can order it from JLCPCB with the parts already fitted (see
+[Guitar Input Buffer](#guitar-input-buffer)), and it runs from a normal 9 V
+guitar pedal power supply. For a complete floor pedal, add four momentary
+footswitches, one rotary knob (encoder) for the master volume, one 1/4 inch
+input jack, two 1/4 inch output jacks, and a case. You can 3D print the case
+from [`enclosure.openscad`](enclosure.openscad). You need a soldering iron for
+some basic soldering of the jacks, switches, and wires. MIDI and expression
+pedal inputs come later. The [hardware assembly guide](docs/hardware-assembly.md)
+shows all the wiring.
 
 ## Community
 
@@ -64,6 +98,17 @@ Preset files live under the data root in bank/slot folders, for example:
 - `presets/bank-000/preset-0.json`
 
 Block assets inside preset JSON stay relative to that same data root, such as `models/clean.nam`, `irs/open-back.wav`, or `reverb-irs/small-room.wav`. Cabinet IRs and convolution reverb IRs use separate directories. Existing convolution presets that reference an installed `irs/` asset remain compatible, while new reverb selections use `reverb-irs/`. Absolute paths and `..` traversal are rejected. Real `.nam` models and IRs stay local and are not committed unless redistribution is allowed.
+
+Convolution reverb exposes **Reverb time** in the pedal and manager editors.
+It scales the recorded decay from 25% to 100%; 100% preserves the original IR.
+For example, a two-second decay becomes approximately one second at 50%.
+The processor estimates RT60 from the loaded stereo IR and applies a decay
+envelope without changing reflection timing, pitch, or embedded pre-delay.
+IRs shorter than 100 ms, silent impulses, and responses without a reliable
+decay estimate stay unchanged. The four-second IR cap still applies.
+Live edits crossfade using the existing convolution history. This control is
+shared across scenes; convolution-kernel preparation runs on the control thread.
+
 
 ### Scenes
 

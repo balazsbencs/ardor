@@ -14,6 +14,7 @@ namespace mode_ranges {
     constexpr ParamRange SPEED_ROTARY    = {4.0f,   9.0f, 0.0f};
     // One LFO cycle per beat, exposed as 40..240 BPM by the host catalogs.
     constexpr ParamRange SPEED_LADDER    = {2.0f / 3.0f, 4.0f, 0.0f};
+    constexpr ParamRange SPEED_PH2       = {1.0f / 14.0f, 10.0f, 1.0f};
 }
 
 const ParamRange& get_param_range(ModModeId mode, ParamId param) {
@@ -26,6 +27,7 @@ const ParamRange& get_param_range(ModModeId mode, ParamId param) {
             case ModModeId::Quadrature:  return mode_ranges::SPEED_QUAD;
             case ModModeId::Rotary:      return mode_ranges::SPEED_ROTARY;
             case ModModeId::LadderSweep: return mode_ranges::SPEED_LADDER;
+            case ModModeId::PhaserPh2:   return mode_ranges::SPEED_PH2;
             default: break;
         }
     }

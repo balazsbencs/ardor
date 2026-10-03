@@ -144,7 +144,7 @@
           "label": "Fast Rate",
           "defaultValue": 0.540000,
           "choiceCount": 0,
-          "samples": [{"value": 0.000000, "text": "4.0 Hz"}, {"value": 0.230000, "text": "5.2 Hz"}, {"value": 0.470000, "text": "6.3 Hz"}, {"value": 0.710000, "text": "7.5 Hz"}, {"value": 1.000000, "text": "9.0 Hz"}]
+          "samples": [{"value": 0.000000, "text": "4.0 Hz"}, {"value": 0.230000, "text": "5.2 Hz"}, {"value": 0.470000, "text": "6.3 Hz"}, {"value": 0.710000, "text": "7.6 Hz"}, {"value": 1.000000, "text": "9.0 Hz"}]
         },
         {
           "key": "depth",
@@ -327,6 +327,76 @@
           "defaultValue": 0.000000,
           "choiceCount": 2,
           "samples": [{"value": 0.000000, "text": "Positive"}, {"value": 1.000000, "text": "Negative"}]
+        }
+      ]
+    },
+    {
+      "id": "mod:phaser_ph2",
+      "blockType": "mod",
+      "mode": "phaser_ph2",
+      "params": [
+        {
+          "key": "speed",
+          "label": "Speed",
+          "defaultValue": 0.350000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0.07 Hz"}, {"value": 0.230000, "text": "0.60 Hz"}, {"value": 0.470000, "text": "2.3 Hz"}, {"value": 0.710000, "text": "5.1 Hz"}, {"value": 1.000000, "text": "10.0 Hz"}]
+        },
+        {
+          "key": "depth",
+          "label": "Depth",
+          "defaultValue": 0.700000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "mix",
+          "label": "Mix",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "tone",
+          "label": "Tone",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "250 Hz"}, {"value": 0.230000, "text": "473 Hz"}, {"value": 0.470000, "text": "920 Hz"}, {"value": 0.710000, "text": "1.8 kHz"}, {"value": 1.000000, "text": "4.0 kHz"}]
+        },
+        {
+          "key": "p1",
+          "label": "Resonance",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "16%"}, {"value": 0.470000, "text": "32%"}, {"value": 0.710000, "text": "48%"}, {"value": 1.000000, "text": "68%"}]
+        },
+        {
+          "key": "p2",
+          "label": "Mode",
+          "defaultValue": 0.000000,
+          "choiceCount": 2,
+          "samples": [{"value": 0.000000, "text": "Mode 1"}, {"value": 1.000000, "text": "Mode 2"}]
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "-inf dB"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "p3",
+          "label": "Stereo",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0°"}, {"value": 0.230000, "text": "41°"}, {"value": 0.470000, "text": "85°"}, {"value": 0.710000, "text": "128°"}, {"value": 1.000000, "text": "180°"}]
+        },
+        {
+          "key": "p4",
+          "label": "Polarity",
+          "defaultValue": 0.000000,
+          "choiceCount": 2,
+          "samples": [{"value": 0.000000, "text": "Original"}, {"value": 1.000000, "text": "Inverted"}]
         }
       ]
     },
@@ -1243,7 +1313,7 @@
           "label": "Sweep Depth",
           "defaultValue": 0.000000,
           "choiceCount": 0,
-          "samples": [{"value": 0.000000, "text": "0.0 ms"}, {"value": 0.230000, "text": "7.2 ms"}, {"value": 0.470000, "text": "14.7 ms"}, {"value": 0.710000, "text": "22.2 ms"}, {"value": 1.000000, "text": "31.2 ms"}]
+          "samples": [{"value": 0.000000, "text": "±0.00 oct"}, {"value": 0.230000, "text": "±0.69 oct"}, {"value": 0.470000, "text": "±1.41 oct"}, {"value": 0.710000, "text": "±2.13 oct"}, {"value": 1.000000, "text": "±3.00 oct"}]
         },
         {
           "key": "width",
