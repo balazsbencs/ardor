@@ -90,7 +90,7 @@ void testWdwDryLane() {
   options.program.executor.requireWorkerSetup = false;
   options.program.executor.requireRealtimeScheduling = false;
   options.program.executor.requireAffinity = false;
-  options.calibrateLatencies = false;
+  options.deriveLatencies = false;
   std::unique_ptr<WdwRoutingProgram> program;
   WdwRoutingBuildReport report;
   std::string error;

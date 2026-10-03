@@ -463,6 +463,7 @@ void RuntimeChain::addWah(std::string id, WahProcessor processor)
   Block block;
   block.kind = Block::Kind::Wah;
   block.id = std::move(id);
+  block.bypassDryDelay.resize(processor.latencyFrames());
   block.wah = std::make_unique<WahProcessor>(std::move(processor));
   blocks_.push_back(std::move(block));
 }
@@ -484,6 +485,7 @@ void RuntimeChain::addDistortion(std::string id, RatProcessor processor)
   Block block;
   block.kind = Block::Kind::Distortion;
   block.id = std::move(id);
+  block.bypassDryDelay.resize(processor.latencyFrames());
   block.distortion = std::make_unique<DistortionProcessor>(std::move(processor));
   blocks_.push_back(std::move(block));
 }
@@ -493,6 +495,7 @@ void RuntimeChain::addDistortion(std::string id, CheeseProcessor processor)
   Block block;
   block.kind = Block::Kind::Distortion;
   block.id = std::move(id);
+  block.bypassDryDelay.resize(processor.latencyFrames());
   block.distortion = std::make_unique<DistortionProcessor>(std::move(processor));
   blocks_.push_back(std::move(block));
 }
@@ -502,6 +505,7 @@ void RuntimeChain::addDistortion(std::string id, TapeProcessor processor)
   Block block;
   block.kind = Block::Kind::Distortion;
   block.id = std::move(id);
+  block.bypassDryDelay.resize(processor.latencyFrames());
   block.distortion = std::make_unique<DistortionProcessor>(std::move(processor));
   blocks_.push_back(std::move(block));
 }
@@ -1109,6 +1113,18 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
 
   std::copy(currentLeft, currentLeft + frames, left);
   std::copy(currentRight, currentRight + frames, right);
+}
+
+size_t RuntimeChain::latencyFrames() const noexcept
+{
+  size_t frames = 0;
+  for (const auto& block : blocks_) {
+    // Each latency-bearing serial processor sizes this ring from its declared
+    // latency at construction. Use the same value for bypass and lane alignment
+    // so the two contracts cannot drift. Zero-latency blocks leave it empty.
+    frames += block.bypassDryDelay.size();
+  }
+  return frames;
 }
 
 uint64_t RuntimeChain::nonFiniteBlockCount() const noexcept

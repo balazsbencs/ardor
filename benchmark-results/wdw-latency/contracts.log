@@ -1,0 +1,10 @@
+halfband 2x phase=default onset=7 peak=14 group_delay=14.5
+halfband 2x phase=even onset=0 peak=15 group_delay=15
+halfband 4x phase=default onset=5 peak=22 group_delay=21.75
+halfband 4x phase=even onset=7 peak=22 group_delay=22.5
+halfband 8x phase=default onset=9 peak=25 group_delay=25.375
+halfband 8x phase=even onset=10 peak=26 group_delay=26.25
+reverb neutral adapter onset=16 peak=31
+IR reverb 500ms onset=24128 declared=0
+full-wet digital delay onset=3023 declared=0 alignment=26
+WDW latency contracts passed

@@ -19,13 +19,9 @@ struct WdwRoutingBuildOptions {
   int dryWorkerCpu = -1;
   int wetWorkerCpu = -1;
 
-  // First-arrival probing is part of preparation so the final mixer can align
-  // a short dry path with a longer cab/effect path.  Disabling it is intended
-  // only for deterministic tools that provide declared latency metadata in
-  // program.dryLatencyFrames/wetLatencyFrames.
-  bool calibrateLatencies = true;
-  std::size_t calibrationBlocks = 256;
-  float calibrationThreshold = 1.0e-7f;
+  // Derive alignment from prepared processors' declared fixed latency.
+  // Deterministic tools may disable this and supply program lane latencies.
+  bool deriveLatencies = true;
 
   WdwRoutingBuildOptions()
   {
@@ -39,11 +35,11 @@ struct WdwRoutingBuildReport {
   std::size_t dryLatencyFrames = 0;
   std::size_t wetLatencyFrames = 0;
   std::size_t totalLatencyFrames = 0;
-  bool latencyCalibrated = false;
+  bool latencyDerived = false;
 };
 
 // Validates the fixed product topology (one NAM per lane, with an optional
-// cabinet IR), prepares both RuntimeChains, probes their first-arrival latency,
+// cabinet IR), prepares both RuntimeChains, sums their declared fixed latencies,
 // and returns an immutable WdwRoutingProgram.
 // No audio-thread state is touched by this function.  On failure `program`
 // remains null and the error explains which admission rule rejected the plan.
@@ -54,7 +50,7 @@ bool buildWdwRoutingProgram(const ChainPlan& dryPlan, const ChainPlan& wetPlan,
 
 // Convenience activation helper matching applyChainPlan.  The candidate is
 // fully prepared in a temporary PedalEngine and published only after all WDW
-// validation, model/IR loading, latency calibration, and worker setup pass.
+// validation, model/IR loading, latency derivation, and worker setup pass.
 bool applyWdwRouting(PedalEngine& engine, const ChainPlan& dryPlan,
                      const ChainPlan& wetPlan,
                      const WdwRoutingBuildOptions& options,
