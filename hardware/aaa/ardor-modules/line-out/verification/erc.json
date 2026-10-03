@@ -1,0 +1,14 @@
+{
+    "$schema": "https://schemas.kicad.org/erc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-10-02T20:04:27+0000",
+    "kicad_version": "9.0.2",
+    "sheets": [
+        {
+            "path": "/",
+            "uuid_path": "/59bfda57-8323-5a56-9407-8c24f56236e1",
+            "violations": []
+        }
+    ],
+    "source": "Ardor_Line_Out.kicad_sch"
+}

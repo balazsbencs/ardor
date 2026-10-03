@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manager Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Saira:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css?v=1790703660">
+<style>
+  body { font: 400 16.5px/1.6 var(--f-body); }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 36px clamp(16px, 4vw, 40px) 110px; }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-bottom: 18px; border-bottom: 1px solid var(--rule); margin-bottom: 56px; flex-wrap: wrap; }
+  .top .mark { font-size: 22px; }
+  .top nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  h1, h2, h3 { font-family: var(--f-cond); text-transform: uppercase; margin: 0; line-height: .95; }
+  h1 { font-size: clamp(2.8rem, 1.6rem + 4vw, 5rem); font-weight: 800; margin-bottom: 20px; }
+  h2 { font-size: clamp(1.9rem, 1.3rem + 1.8vw, 2.8rem); font-weight: 700; margin: 96px 0 22px; padding-top: 18px; border-top: 2px solid var(--bone); }
+  h3 { font-size: 1.35rem; font-weight: 700; letter-spacing: .02em; }
+  .lede { color: var(--bone-2); font-size: 1.15rem; max-width: 52em; margin: 0 0 16px; }
+  p { max-width: 70ch; }
+  code { font: 500 .86em var(--f-mono); background: var(--plate); padding: 1px 5px; }
+
+  .shots { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .shots figure { margin: 0; }
+  .shots img { display: block; width: 100%; height: auto; outline: 1px solid var(--rule); }
+  .shots .ph { max-height: 620px; overflow: hidden; outline: 1px solid var(--rule); }
+  .shots .ph img { outline: 0; }
+  figcaption { margin-top: 10px; font-size: .95rem; color: var(--bone-2); }
+
+  .finds { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 28px 44px; margin-top: 40px; counter-reset: f; }
+  .find { counter-increment: f; }
+  .find h3 { display: flex; gap: 12px; margin-bottom: 8px; font-size: 1.2rem; line-height: 1.05; }
+  .find h3::before { content: counter(f); color: var(--lamp); min-width: 1.4ch; }
+  .find p { margin: 0; color: var(--bone-2); padding-left: calc(1.4ch + 12px); font-size: .98rem; }
+
+  .keep { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 0; border-top: 1px solid var(--rule); }
+  .keep div { padding: 18px 20px 18px 0; border-bottom: 1px solid var(--rule); }
+  .keep b { display: block; font: 700 1.1rem/1.1 var(--f-cond); text-transform: uppercase; letter-spacing: .02em; margin-bottom: 6px; }
+  .keep span { color: var(--bone-2); font-size: .96rem; }
+
+  .dir { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px 40px; padding: 40px 0; border-bottom: 1px solid var(--rule); align-items: start; }
+  .dir__shots { display: grid; grid-template-columns: minmax(0, 3.2fr) minmax(0, 1fr); gap: 10px; align-items: start; }
+  .dir__shots a { display: block; outline: 1px solid var(--rule); }
+  .dir__shots a:hover { outline-color: var(--bone-2); }
+  .dir__shots img { display: block; width: 100%; height: auto; }
+  .dir__n { font: 600 13px/1 var(--f-cond); letter-spacing: .18em; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
+  .dir h3 { font-size: clamp(1.8rem, 1.3rem + 1.4vw, 2.5rem); font-weight: 800; margin-bottom: 14px; }
+  .dir .thesis { font-size: 1.1rem; color: var(--bone); margin: 0 0 16px; }
+  .dir dl { display: grid; grid-template-columns: 118px 1fr; gap: 10px 16px; margin: 0 0 22px; font-size: .96rem; }
+  .dir dt { font: 600 .82rem/1.5 var(--f-cond); letter-spacing: .14em; color: var(--bone-2); text-transform: uppercase; padding-top: 2px; }
+  .dir dd { margin: 0; color: var(--bone-2); }
+  .dir dd b { color: var(--bone); font-weight: 600; }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .95rem; min-width: 820px; }
+  th { text-align: left; font: 600 .92rem var(--f-cond); text-transform: uppercase; letter-spacing: .08em; color: var(--bone-2); padding: 10px 14px 10px 0; border-bottom: 2px solid var(--bone); }
+  td { vertical-align: top; padding: 13px 14px 13px 0; border-bottom: 1px solid var(--rule); color: var(--bone-2); }
+  td:first-child { font: 700 1rem var(--f-cond); text-transform: uppercase; letter-spacing: .04em; color: var(--bone); white-space: nowrap; }
+  .demo { margin-top: 64px; padding: 18px 20px; border: 1px dashed var(--rule-strong); color: var(--bone-2); font-size: .95rem; }
+  .demo b { color: var(--bone); }
+
+  @media (max-width: 900px) {
+    .shots, .dir { grid-template-columns: minmax(0, 1fr); }
+    .shots .ph { max-width: 300px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top"><span class="mark"><i></i>Ardor Manager</span>
+    <nav aria-label="Mockups"><a class="btn btn--sm" href="1-stage-drawer.html">1 Stage and Drawer</a><a class="btn btn--sm" href="2-open-rack.html">2 Open Rack</a><a class="btn btn--sm" href="3-bank-wall.html">3 Bank Wall</a><a class="btn btn--sm" href="4-scene-grid.html">4 Scene Grid</a><a class="btn btn--sm" href="5-focus-deck.html">5 Focus Deck</a></nav>
+  </header>
+
+  <h1>Manager redesign</h1>
+  <p class="lede">Five working mockups for a full rebuild of the manager UI. All five use the Lamp Black language of the pedal and the website. The chain looks like the touch screen: the same cards, family caps, insert points and bypass hatch. In every mockup you can drag blocks to reorder them.</p>
+  <p class="lede">The mockups differ in structure: where the presets live, where you edit, and how scenes work. Open each one and use it. Drag a block, turn a value, open the module drawer, switch presets, try a phone.</p>
+
+  <h2>The current manager</h2>
+  <div class="shots">
+    <figure><img src="current/desktop.webp" alt="Current manager at 1440 by 900 with a nine-block preset" width="1440" height="900"><figcaption>Current workspace at 1440 × 900, with a nine-block preset. Captured from <code>apps/manager</code> with a mocked API.</figcaption></figure>
+    <figure><div class="ph"><img src="current/phone.webp" alt="Current manager on a 390 pixel wide phone" width="390" height="1398"></div><figcaption>The same view at 390 px wide.</figcaption></figure>
+  </div>
+  <div class="finds">
+    <div class="find"><h3>The chain shows 2.5 of 9 blocks</h3><p>At 1440 px wide, the chain panel shows two full cards. Everything else scrolls sideways inside a box.</p></div>
+    <div class="find"><h3>Cards carry no sound</h3><p>A 256 px card shows a name and an internal mode id (<code>noise_gate</code>), but no value. The pedal card shows two values.</p></div>
+    <div class="find"><h3>No family colour</h3><p>Every block looks the same. The pedal gives each family its cap colour, so you find the delay without reading.</p></div>
+    <div class="find"><h3>A quarter of the width is empty</h3><p>The inspector column says “Select a block” until you select one. Its space is lost in the most common view.</p></div>
+    <div class="find"><h3>Four ways to save</h3><p>Enable scenes, Save, Save &amp; apply, and a text-only Apply sit side by side. The difference between them is not clear.</p></div>
+    <div class="find"><h3>An error with no fix</h3><p>“Preset version 4 requires a scene set. Fix this before saving.” The panel gives no button that does the fix.</p></div>
+    <div class="find"><h3>Truncated preset names</h3><p>“GLASS...”, “EDGE OF ...”. The preset grid is 270 px wide, so names cut off. The bank picker is a number field that reads 0.</p></div>
+    <div class="find"><h3>Bank numbers differ from the pedal</h3><p>The manager says BANK 000 / SLOT 1. The pedal says BANK 01 and FS 1. One thing, two names.</p></div>
+    <div class="find"><h3>Five small buttons per card</h3><p>Left, right, copy, reset and delete, without labels, on every card. Reorder also works by drag, so the arrows repeat it.</p></div>
+    <div class="find"><h3>The phone hides the chain</h3><p>On a phone the chain starts about 1100 px down the page, after the library, the header and three settings strips.</p></div>
+  </div>
+
+  <h2>What all five keep</h2>
+  <div class="keep">
+    <div><b>The device card</b><span>Family cap, name, two main values with bars, hatch and OFF when bypassed. Selected card lifts on a hard plate, as on the pedal.</span></div>
+    <div><b>Drag to reorder</b><span>Drag a cap with a mouse. Long-press on touch. Alt and the arrow keys move the selected block. Dual Rig lanes take drops too.</span></div>
+    <div><b>One lamp</b><span>Lamp red means live: the live preset, the live scene, the control that the wheel or arrows turn. Buttons never turn red.</span></div>
+    <div><b>Module drawer</b><span>Grouped by family with code squares, the same as the pedal. It says when a new block turns another off, because one delay, one reverb and one modulation block run at a time.</span></div>
+    <div><b>Audition, then save</b><span>With audition on, you hear each change on the pedal. Save writes the slot. The header always says if the preset open is the one on the pedal.</span></div>
+    <div><b>Honest fixed parts</b><span>The −1 dBFS safety limiter shows as fixed protection, not a control. The connection pill always says HTTP, for trusted networks only.</span></div>
+    <div><b>Same names as the pedal</b><span>BANK 01, FS 1 to 4, block, chain, lane, scene. Parameter labels, ranges and units come from <code>catalog.v1.json</code>.</span></div>
+    <div><b>Undo everywhere</b><span>⌘Z and ⇧⌘Z for every edit: values, moves, deletes, slot swaps. Delete shows a toast that says how to undo.</span></div>
+  </div>
+
+  <h2>Five directions</h2>
+
+  <article class="dir">
+    <div class="dir__shots"><a href="1-stage-drawer.html"><img src="thumbs/1-desk.webp" alt="Stage and Drawer on desktop" width="1440" height="900" loading="lazy"></a><a href="1-stage-drawer.html"><img src="thumbs/1-phone.webp" alt="Stage and Drawer on a phone" width="390" height="844" loading="lazy"></a></div>
+    <div><p class="dir__n">Mockup 1</p><h3>Stage and Drawer</h3>
+      <p class="thesis">The pedal edit screen at desk size. The chain is the stage. Open a block and the chain folds into a chip strip while the parameter drawer takes the stage, as on the pedal.</p>
+      <dl><dt>Presets</dt><dd>A bank bar with the four slots above the stage.</dd>
+        <dt>Editing</dt><dd>Big device cards, then a drawer with large controls and a context rail for the focused control.</dd>
+        <dt>Try</dt><dd><b>Click Tape Delay</b> and watch the chain fold into chips. Drag a chip. Press <b>Done</b> or Esc.</dd>
+        <dt>Assets</dt><dd>An <b>Assets</b> view in the same grammar: kind tiles for NAM models, cabinet IRs and reverb IRs, the file list as the stage, a drawer per file. It shows which presets use a file, flags presets with a missing file, and has <b>Try in preset</b>. Drop files anywhere to upload.</dd>
+        <dt>Risk</dt><dd>Two modes. You cannot see all cards and all values at the same time.</dd></dl>
+      <a class="btn btn--primary" href="1-stage-drawer.html">Open mockup 1</a> <a class="btn" href="1-stage-drawer.html#assets">Open the Assets view</a></div>
+  </article>
+
+  <article class="dir">
+    <div class="dir__shots"><a href="2-open-rack.html"><img src="thumbs/2-desk.webp" alt="Open Rack on desktop" width="1440" height="900" loading="lazy"></a><a href="2-open-rack.html"><img src="thumbs/2-phone.webp" alt="Open Rack on a phone" width="390" height="844" loading="lazy"></a></div>
+    <div><p class="dir__n">Mockup 2</p><h3>Open Rack</h3>
+      <p class="thesis">The rack with the covers off. Every block is open at once, with all its controls, left to right. There is no inspector and no drawer. You change a value where you see it.</p>
+      <dl><dt>Presets</dt><dd>A shelf with the bank and four slots, next to the scene scope and undo.</dd>
+        <dt>Editing</dt><dd>Tall block modules with every parameter. The chain ends in an Output module with I/O, limiter and EXP.</dd>
+        <dt>Try</dt><dd>Drag a colour in the <b>mini-map</b> at the bottom to reorder. Open <b>Bank 02, Wide Stereo</b> for the Dual Rig lanes.</dd>
+        <dt>Risk</dt><dd>Dense. A long chain scrolls sideways, and the mini-map must carry the overview.</dd></dl>
+      <a class="btn btn--primary" href="2-open-rack.html">Open mockup 2</a></div>
+  </article>
+
+  <article class="dir">
+    <div class="dir__shots"><a href="3-bank-wall.html"><img src="thumbs/3-desk.webp" alt="Bank Wall on desktop" width="1440" height="900" loading="lazy"></a><a href="3-bank-wall.html"><img src="thumbs/3-phone.webp" alt="Bank Wall on a phone" width="390" height="844" loading="lazy"></a></div>
+    <div><p class="dir__n">Mockup 3</p><h3>Bank Wall</h3>
+      <p class="thesis">The library is the home screen. Every bank is a row of four device tiles with their chain strips. Open a tile and it pulls out of the wall into an editor, right under its own bank.</p>
+      <dl><dt>Presets</dt><dd>All banks at once. Drag a tile onto any slot to swap. Search by preset or block name, filter by family.</dd>
+        <dt>Editing</dt><dd>Inline, under the bank row: the chain, then compact controls for the selected block.</dd>
+        <dt>Try</dt><dd>Type <b>shimmer</b> in the search. Drag <b>Lead Boost</b> onto a Bank 02 slot. Name a bank.</dd>
+        <dt>Risk</dt><dd>Editing space is smaller than in the other four. It suits setlist work more than deep tone work.</dd></dl>
+      <a class="btn btn--primary" href="3-bank-wall.html">Open mockup 3</a></div>
+  </article>
+
+  <article class="dir">
+    <div class="dir__shots"><a href="4-scene-grid.html"><img src="thumbs/4-desk.webp" alt="Scene Grid on desktop" width="1440" height="900" loading="lazy"></a><a href="4-scene-grid.html"><img src="thumbs/4-phone.webp" alt="Scene Grid on a phone" width="390" height="844" loading="lazy"></a></div>
+    <div><p class="dir__n">Mockup 4</p><h3>Scene Grid</h3>
+      <p class="thesis">The chain is the column head, the scenes are the rows. One look answers “what changes when I press FS 3?”. EXP pedal and MIDI CC sit in the same grid as control lanes.</p>
+      <dl><dt>Presets</dt><dd>From the app bar. This view is about one preset and its scenes.</dd>
+        <dt>Editing</dt><dd>Pick a cell to edit that block in that scene. A changed value gets a SCENE mark and a clear button.</dd>
+        <dt>Try</dt><dd>Click the <b>Solo × Tape Delay</b> cell and turn Mix. Press <b>Recall</b> on a scene. Drag a column cap.</dd>
+        <dt>Risk</dt><dd>Best for presets with scenes. For a plain preset, the grid has one useful row.</dd></dl>
+      <a class="btn btn--primary" href="4-scene-grid.html">Open mockup 4</a></div>
+  </article>
+
+  <article class="dir">
+    <div class="dir__shots"><a href="5-focus-deck.html"><img src="thumbs/5-desk.webp" alt="Focus Deck on desktop" width="1440" height="900" loading="lazy"></a><a href="5-focus-deck.html"><img src="thumbs/5-phone.webp" alt="Focus Deck on a phone" width="390" height="844" loading="lazy"></a></div>
+    <div><p class="dir__n">Mockup 5</p><h3>Focus Deck</h3>
+      <p class="thesis">Tone work with one hand on the guitar. One block fills the stage at the scale of the pedal parameter screen. The mouse wheel turns the control under the pointer, like the encoder.</p>
+      <dl><dt>Presets</dt><dd>A side column with the four footswitch tiles (1 and 3 over 2 and 4) and the scene scope.</dd>
+        <dt>Editing</dt><dd>Large controls, A/B compare per block, a trail of recent changes, and a command bar.</dd>
+        <dt>Try</dt><dd>Press <b>⌘K</b> and type <b>delay mix</b>. Point at a control and scroll. Press <b>[</b> and <b>]</b> to step through the chain.</dd>
+        <dt>Risk</dt><dd>You see one block at a time. The chip strip is the only view of the whole chain.</dd></dl>
+      <a class="btn btn--primary" href="5-focus-deck.html">Open mockup 5</a></div>
+  </article>
+
+  <h2>Side by side</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>1 Stage and Drawer</th><th>2 Open Rack</th><th>3 Bank Wall</th><th>4 Scene Grid</th><th>5 Focus Deck</th></tr></thead>
+    <tbody>
+      <tr><td>Home view</td><td>Chain stage</td><td>All blocks open</td><td>All banks</td><td>Scenes × blocks</td><td>One block</td></tr>
+      <tr><td>Parameters</td><td>Drawer, large</td><td>Inline, compact</td><td>Under the chain, compact</td><td>Side panel, compact</td><td>Stage, largest</td></tr>
+      <tr><td>Reorder</td><td>Cards and chips</td><td>Modules and mini-map</td><td>Cards; tiles swap slots</td><td>Column caps</td><td>Chips</td></tr>
+      <tr><td>Scenes</td><td>Scope switch</td><td>Scope switch</td><td>Scope switch, pedal panel</td><td>The whole view</td><td>Scope switch</td></tr>
+      <tr><td>Phone</td><td>Card strip, then drawer</td><td>One module per swipe</td><td>2 × 2 banks, editor sheet</td><td>FS tabs, change list</td><td>Stacked controls</td></tr>
+      <tr><td>Closest to the pedal</td><td>Very close</td><td>Card family only</td><td>Preset screen</td><td>Scene screen</td><td>Parameter screen</td></tr>
+      <tr><td>Best for</td><td>Build chains</td><td>Build and tweak</td><td>Organise presets</td><td>Scenes and control</td><td>Tweak parameters</td></tr>
+    </tbody>
+  </table></div>
+  <p class="lede" style="margin-top:24px">The directions also combine. For example, the Bank Wall can be the library of any of the other four, and the Scene Grid can be a Scenes tab next to any editor.</p>
+
+  <div class="demo"><b>Demo data.</b> Preset names, NAM and IR file names, values, scenes and MIDI mappings are synthetic. Block names, families, parameter labels, ranges and the one-enabled rule come from <code>apps/manager/src/effects/catalog.v1.json</code>. Nothing is sent to a pedal. Changes live in memory and reset on reload.</div>
+</div>
+</body>
+</html>

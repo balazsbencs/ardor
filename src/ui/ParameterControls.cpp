@@ -1,6 +1,7 @@
 #include "ui/ParameterControls.h"
 
 #include "daisyfx/DaisyFxCatalog.h"
+#include "equalizer/ConsoleEqProcessor.h"
 
 #include <algorithm>
 #include <cmath>
@@ -15,6 +16,13 @@ constexpr std::size_t kControlsPerPage = 6;
 std::string formatDb(float value)
 {
   return std::to_string(static_cast<int>(std::lround(value))) + " dB";
+}
+
+std::string formatConsoleDb(float value)
+{
+  char buffer[24]{};
+  std::snprintf(buffer, sizeof(buffer), "%+.1f dB", value);
+  return buffer;
 }
 
 std::string formatPercent(float value)
@@ -317,6 +325,31 @@ std::vector<ParameterControl> controlsForBlock(const UiBlock& block)
       control("lowCutHz", "Low cut", 20.0f, 2000.0f, 10.0f, number("lowCutHz", 20.0f), formatHertz),
       control("highCutHz", "High cut", 500.0f, 20000.0f, 100.0f, number("highCutHz", 20000.0f), formatHertz),
     };
+  }
+
+  if (block.type == "eq" && isConsoleEqMode(block.params)) {
+    std::vector<ParameterControl> result;
+    for (const auto& c : kConsoleEqControls) {
+      const auto stored = block.params.find(c.key);
+      const float value = std::clamp(stored != block.params.end() && stored->is_number()
+        ? stored->get<float>() : c.defaultValue, c.minimum, c.maximum);
+      if (c.choices.empty()) {
+        result.push_back(control(std::string(c.key), std::string(c.label), c.minimum, c.maximum,
+          c.step, value, c.key == "mix" || c.key == "saturation" ? formatPercent : formatConsoleDb));
+      } else {
+        std::vector<std::string> labels;
+        std::vector<float> values;
+        for (const auto label : c.choices) {
+          labels.emplace_back(label);
+          values.push_back(static_cast<float>(values.size()));
+        }
+        auto choice = choiceControl(std::string(c.key), std::string(c.label), std::move(labels),
+          static_cast<std::size_t>(std::lround(value)), ParameterControlKind::NormalizedChoice);
+        choice.choiceValues = std::move(values);
+        result.push_back(std::move(choice));
+      }
+    }
+    return result;
   }
 
   const auto* descriptor = findDaisyFxDescriptor(block.type, block.params.value("mode", ""));

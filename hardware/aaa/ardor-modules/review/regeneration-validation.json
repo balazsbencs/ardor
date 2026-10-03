@@ -1,0 +1,57 @@
+{
+  "kicad_version": "9.0.2",
+  "freerouting_session": "frozen 2.1.0 SES",
+  "result": "PASS",
+  "modules": [
+    {
+      "module": "headphones",
+      "source_erc": 0,
+      "rebuilt_drc": 0,
+      "rebuilt_unconnected": 0,
+      "rebuilt_parity": 0,
+      "pad_positions_and_nets_identical": true,
+      "track_geometry_identical": true,
+      "via_geometry_identical": true
+    },
+    {
+      "module": "line-out",
+      "source_erc": 0,
+      "rebuilt_drc": 0,
+      "rebuilt_unconnected": 0,
+      "rebuilt_parity": 0,
+      "pad_positions_and_nets_identical": true,
+      "track_geometry_identical": true,
+      "via_geometry_identical": true
+    },
+    {
+      "module": "mixer",
+      "source_erc": 0,
+      "rebuilt_drc": 0,
+      "rebuilt_unconnected": 0,
+      "rebuilt_parity": 0,
+      "pad_positions_and_nets_identical": true,
+      "track_geometry_identical": true,
+      "via_geometry_identical": true
+    },
+    {
+      "module": "expression",
+      "source_erc": 0,
+      "rebuilt_drc": 0,
+      "rebuilt_unconnected": 0,
+      "rebuilt_parity": 0,
+      "pad_positions_and_nets_identical": true,
+      "track_geometry_identical": true,
+      "via_geometry_identical": true
+    },
+    {
+      "module": "midi-in",
+      "source_erc": 0,
+      "rebuilt_drc": 0,
+      "rebuilt_unconnected": 0,
+      "rebuilt_parity": 0,
+      "pad_positions_and_nets_identical": true,
+      "track_geometry_identical": true,
+      "via_geometry_identical": true
+    }
+  ]
+}

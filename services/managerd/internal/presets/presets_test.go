@@ -508,3 +508,116 @@ func TestStoreNormalizesLegacyEffectPlaceholders(t *testing.T) {
 		t.Fatalf("raw legacy block was not normalized on load: %#v", rawBlock)
 	}
 }
+
+func TestAssetUsageListsPresetsPerPath(t *testing.T) {
+	store := NewStore(t.TempDir())
+	first := validPreset()
+	first["name"] = "Clean"
+	first["blocks"] = []any{
+		map[string]any{"id": "nam-1", "type": "nam", "enabled": true, "asset": "models/clean.nam", "params": map[string]any{}},
+		map[string]any{"id": "cab-1", "type": "cab", "enabled": true, "asset": "irs/2x12.wav", "params": map[string]any{}},
+	}
+	second := validPreset()
+	second["name"] = "Lead"
+	second["blocks"] = []any{
+		map[string]any{"id": "nam-2", "type": "nam", "enabled": true, "asset": "models/clean.nam", "params": map[string]any{}},
+	}
+	if _, err := store.Save(0, 0, first); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Save(2, 3, second); err != nil {
+		t.Fatal(err)
+	}
+
+	usage, err := store.AssetUsage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	clean := usage["models/clean.nam"]
+	if len(clean) != 2 || clean[0] != (AssetUse{Bank: 0, Slot: 0, Name: "Clean"}) || clean[1] != (AssetUse{Bank: 2, Slot: 3, Name: "Lead"}) {
+		t.Fatalf("models/clean.nam usage = %#v", clean)
+	}
+	if cab := usage["irs/2x12.wav"]; len(cab) != 1 || cab[0].Name != "Clean" {
+		t.Fatalf("irs/2x12.wav usage = %#v", cab)
+	}
+	if len(usage) != 2 {
+		t.Fatalf("usage has %d paths, want 2: %#v", len(usage), usage)
+	}
+}
+
+func TestAssetUsageWalksDualAmpParamsDualRigLanesAndWdwLanes(t *testing.T) {
+	store := NewStore(t.TempDir())
+	dual := validPreset()
+	dual["name"] = "Dual"
+	dual["blocks"] = []any{map[string]any{
+		"id": "dual", "type": "dualAmp", "enabled": true, "asset": "",
+		"params": map[string]any{
+			"leftNamAsset": "models/left.nam", "leftIrAsset": "irs/left.wav",
+			"rightNamAsset": "models/right.nam", "rightIrAsset": "irs/right.wav",
+		},
+	}}
+	rig := validPreset()
+	rig["name"] = "Rig"
+	rig["version"] = float64(2)
+	rig["blocks"] = []any{map[string]any{
+		"id": "rig", "type": "dualRig", "enabled": true, "asset": "",
+		"params": map[string]any{"inputMode": "sum"},
+		"lanes": map[string]any{
+			"left": map[string]any{"blocks": []any{
+				map[string]any{"id": "left-nam", "type": "nam", "enabled": true, "asset": "models/left.nam", "params": map[string]any{}},
+				map[string]any{"id": "left-cab", "type": "cab", "enabled": true, "asset": "irs/rig-left.wav", "params": map[string]any{}},
+			}},
+			"right": map[string]any{"blocks": []any{
+				map[string]any{"id": "right-nam", "type": "nam", "enabled": true, "asset": "models/rig-right.nam", "params": map[string]any{}},
+				map[string]any{"id": "right-cab", "type": "cab", "enabled": true, "asset": "irs/rig-right.wav", "params": map[string]any{}},
+			}},
+		},
+	}}
+	wdw := validPreset()
+	wdw["name"] = "Wdw"
+	wdw["version"] = float64(3)
+	wdw["routing"] = "wdw"
+	wdw["blocks"] = []any{}
+	wdw["wdw"] = map[string]any{
+		"dry": map[string]any{"blocks": []any{map[string]any{
+			"id": "dry-nam", "type": "nam", "enabled": true, "asset": "models/dry.nam", "params": map[string]any{},
+		}}},
+		"wet": map[string]any{"blocks": []any{map[string]any{
+			"id": "wet-nam", "type": "nam", "enabled": true, "asset": "models/left.nam", "params": map[string]any{},
+		}}},
+	}
+	for slot, preset := range []Preset{dual, rig, wdw} {
+		if _, err := store.Save(1, slot, preset); err != nil {
+			t.Fatalf("save slot %d: %v", slot, err)
+		}
+	}
+
+	usage, err := store.AssetUsage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string][]string{
+		"models/left.nam":      {"Dual", "Rig", "Wdw"},
+		"models/right.nam":     {"Dual"},
+		"irs/left.wav":         {"Dual"},
+		"irs/right.wav":        {"Dual"},
+		"irs/rig-left.wav":     {"Rig"},
+		"models/rig-right.nam": {"Rig"},
+		"irs/rig-right.wav":    {"Rig"},
+		"models/dry.nam":       {"Wdw"},
+	}
+	if len(usage) != len(want) {
+		t.Fatalf("usage has %d paths, want %d: %#v", len(usage), len(want), usage)
+	}
+	for path, names := range want {
+		uses := usage[path]
+		if len(uses) != len(names) {
+			t.Fatalf("%s usage = %#v, want %v", path, uses, names)
+		}
+		for index, name := range names {
+			if uses[index].Name != name || uses[index].Bank != 1 {
+				t.Fatalf("%s use %d = %#v, want %s in bank 1", path, index, uses[index], name)
+			}
+		}
+	}
+}

@@ -580,7 +580,7 @@ func wdwBlockModeSupported(typeName string, block map[string]any) bool {
 	case "dynamics":
 		return mode == "compressor" || mode == "noise_gate" || mode == "transient_shaper"
 	case "eq":
-		return mode == "parametric_eq_5"
+		return mode == "parametric_eq_5" || mode == "console_1073"
 	case "distortion":
 		return mode == "" || mode == "rat" || mode == "big_cheese" || mode == "tape"
 	case "wah":
@@ -876,6 +876,75 @@ func replaceAssetInBlocks(blocks []any, oldPath, newPath string) bool {
 		}
 	}
 	return dirty
+}
+
+// AssetUse is one saved preset that references an asset path.
+type AssetUse struct {
+	Bank int    `json:"bank"`
+	Slot int    `json:"slot"`
+	Name string `json:"name,omitempty"`
+}
+
+// AssetUsage maps every asset path that a saved preset references to the
+// presets that use it. It walks the same fields as ReplaceAssetReferences.
+// Paths with no file on disk are included, so the manager can show missing
+// files.
+func (s Store) AssetUsage() (map[string][]AssetUse, error) {
+	usage := map[string][]AssetUse{}
+	for bank := 0; bank < 100; bank++ {
+		for slot := 0; slot < 4; slot++ {
+			loaded, err := s.Load(bank, slot)
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			if err != nil {
+				return nil, fmt.Errorf("load bank %d slot %d: %w", bank, slot, err)
+			}
+			seen := map[string]bool{}
+			if blocks, ok := loaded.Preset["blocks"].([]any); ok {
+				collectAssetPaths(blocks, seen)
+			}
+			if wdw, ok := loaded.Preset["wdw"].(map[string]any); ok {
+				for _, laneName := range []string{"dry", "wet"} {
+					lane, _ := wdw[laneName].(map[string]any)
+					children, _ := lane["blocks"].([]any)
+					collectAssetPaths(children, seen)
+				}
+			}
+			name, _ := loaded.Preset["name"].(string)
+			for path := range seen {
+				usage[path] = append(usage[path], AssetUse{Bank: bank, Slot: slot, Name: name})
+			}
+		}
+	}
+	return usage, nil
+}
+
+func collectAssetPaths(blocks []any, seen map[string]bool) {
+	for _, item := range blocks {
+		block, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		if asset, _ := block["asset"].(string); asset != "" {
+			seen[asset] = true
+		}
+		if block["type"] == "dualAmp" {
+			params, _ := block["params"].(map[string]any)
+			for _, key := range []string{"leftNamAsset", "leftIrAsset", "rightNamAsset", "rightIrAsset"} {
+				if asset, _ := params[key].(string); asset != "" {
+					seen[asset] = true
+				}
+			}
+		}
+		if lanes, ok := block["lanes"].(map[string]any); ok {
+			for _, laneName := range []string{"left", "right"} {
+				lane, _ := lanes[laneName].(map[string]any)
+				children, _ := lane["blocks"].([]any)
+				collectAssetPaths(children, seen)
+			}
+		}
+	}
 }
 
 func (s Store) pathFor(bank int, slot int) string {

@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ArdorApiClient } from "../api/client";
 import { ArdorApiError } from "../api/errors";
-import type { DeviceStatus, Preset } from "../api/types";
+import type { AssetUsageEntry, DeviceStatus, Preset } from "../api/types";
 import { renderWithProviders } from "../test/render";
 import {
   DeviceSessionProvider,
@@ -41,21 +42,31 @@ function mockClient(overrides: Partial<ArdorApiClient> = {}): ArdorApiClient {
 
 function Probe() {
   const session = useDeviceSession();
+  const [refreshResult, setRefreshResult] = useState("idle");
   return (
     <div>
       <span data-testid="status">{session.status}</span>
       <span data-testid="location">{session.current ? `${session.current.location.bank}:${session.current.location.slot}` : "none"}</span>
       <span data-testid="name">{session.current?.preset.name ?? "none"}</span>
+      <span data-testid="load-id">{session.current?.loadId ?? "none"}</span>
       <span data-testid="active">{session.device?.active
         ? `${session.device.active.bank}:${session.device.active.slot}` : "none"}</span>
       <span data-testid="revision-match">{String(session.device?.active?.storedRevisionMatches)}</span>
       <span data-testid="token-focus">{String(session.needsTokenFocus)}</span>
       <span data-testid="reverb-ir-support">{String(session.supportsReverbIrs)}</span>
+      <span data-testid="asset-usage">{session.assetUsage ? JSON.stringify(session.assetUsage) : "undefined"}</span>
+      <button type="button" onClick={() => void session.refreshAssets("models")}>Refresh models</button>
+      <button type="button" onClick={() => session.refreshAssets("models").then(
+        () => setRefreshResult("resolved"), () => setRefreshResult("rejected"))}>Refresh models checked</button>
+      <button type="button" onClick={() => session.refreshAssetUsage().then(
+        () => setRefreshResult("resolved"), () => setRefreshResult("rejected"))}>Refresh usage</button>
+      <span data-testid="refresh-result">{refreshResult}</span>
       <span>{session.error?.message}</span>
       <button type="button" onClick={() => void session.connect("http://pedal", "secret")}>Connect</button>
       <button type="button" onClick={session.disconnect}>Disconnect</button>
       <button type="button" onClick={() => session.current && void session.saveCurrent(session.current.preset)}>Save current</button>
       <button type="button" onClick={() => void session.recallScene?.("solo")}>Recall solo</button>
+      <button type="button" onClick={() => void session.selectLocation({ bank: 0, slot: 1 })}>Open slot 2</button>
     </div>
   );
 }
@@ -81,6 +92,58 @@ describe("DeviceSessionProvider", () => {
     await expect(waitForApplyResult(client, {
       accepted: true, id: "apply-1", state: "pending", bank: 2, slot: 1,
     }, 5, 1)).rejects.toThrow("Preset apply timed out");
+  });
+
+  it("loads asset usage on connect and after an asset refresh", async () => {
+    const usage = [{ path: "models/clean.nam", presets: [{ bank: 0, slot: 0, name: "Clean" }] }];
+    const client = mockClient({ getAssetUsage: vi.fn(async () => usage) });
+    renderSession(() => client);
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    expect(await screen.findByText("connected")).toBeInTheDocument();
+    expect(screen.getByTestId("asset-usage")).toHaveTextContent(JSON.stringify(usage));
+    await userEvent.click(screen.getByRole("button", { name: "Refresh models" }));
+    await waitFor(() => expect(client.getAssetUsage).toHaveBeenCalledTimes(2));
+  });
+
+  it("leaves asset usage undefined when the transport cannot report it", async () => {
+    renderSession(() => mockClient({ getAssetUsage: undefined }));
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    expect(await screen.findByText("connected")).toBeInTheDocument();
+    expect(screen.getByTestId("asset-usage")).toHaveTextContent("undefined");
+  });
+
+  it("connects with unknown asset usage when the usage request fails", async () => {
+    const client = mockClient({ getAssetUsage: vi.fn(async () => { throw new Error("404"); }) });
+    renderSession(() => client);
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    expect(await screen.findByText("connected")).toBeInTheDocument();
+    expect(screen.getByTestId("asset-usage")).toHaveTextContent("undefined");
+  });
+
+  it("resolves an asset refresh and clears usage when the usage request fails", async () => {
+    const usage = [{ path: "models/clean.nam", presets: [{ bank: 0, slot: 0, name: "Clean" }] }];
+    const getAssetUsage = vi.fn(async () => usage);
+    renderSession(() => mockClient({ getAssetUsage }));
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    expect(await screen.findByText("connected")).toBeInTheDocument();
+    expect(screen.getByTestId("asset-usage")).toHaveTextContent(JSON.stringify(usage));
+    getAssetUsage.mockImplementation(async () => { throw new Error("boom"); });
+    await userEvent.click(screen.getByRole("button", { name: "Refresh models checked" }));
+    await waitFor(() => expect(screen.getByTestId("refresh-result")).toHaveTextContent("resolved"));
+    expect(screen.getByTestId("asset-usage")).toHaveTextContent("undefined");
+  });
+
+  it("updates asset usage through refreshAssetUsage", async () => {
+    const first: AssetUsageEntry[] = [{ path: "models/a.nam", presets: [] }];
+    const second = [{ path: "models/a.nam", presets: [{ bank: 1, slot: 2, name: "X" }] }];
+    const getAssetUsage = vi.fn(async () => first);
+    renderSession(() => mockClient({ getAssetUsage }));
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    expect(await screen.findByText("connected")).toBeInTheDocument();
+    getAssetUsage.mockImplementation(async () => second);
+    await userEvent.click(screen.getByRole("button", { name: "Refresh usage" }));
+    await waitFor(() => expect(screen.getByTestId("asset-usage")).toHaveTextContent(JSON.stringify(second)));
+    expect(screen.getByTestId("refresh-result")).toHaveTextContent("resolved");
   });
 
   it("connects automatically when running as the device-hosted manager", async () => {
@@ -256,5 +319,19 @@ describe("DeviceSessionProvider", () => {
     await screen.findByText("connected");
     await userEvent.click(screen.getByRole("button", { name: "Recall solo" }));
     expect(recallScene).toHaveBeenCalledWith("solo", 72, expect.any(String));
+  });
+
+  it("keeps the load token on save and changes it on a real load", async () => {
+    const client = mockClient({ savePreset: vi.fn(async (bank: number, slot: number, preset: Preset) => ({ bank, slot, preset: { ...preset, name: "Saved II" } })) });
+    renderSession(() => client);
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    await screen.findByText("connected");
+    const connected = screen.getByTestId("load-id").textContent;
+    await userEvent.click(screen.getByRole("button", { name: "Save current" }));
+    await waitFor(() => expect(screen.getByTestId("name")).toHaveTextContent("Saved II"));
+    expect(screen.getByTestId("load-id").textContent).toBe(connected);
+    await userEvent.click(screen.getByRole("button", { name: "Open slot 2" }));
+    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("0:1"));
+    expect(screen.getByTestId("load-id").textContent).not.toBe(connected);
   });
 });

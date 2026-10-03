@@ -587,3 +587,38 @@ func TestRenameAssetUpdatesSavedPresetReferences(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestAssetUsageReportsPresetsPerAsset(t *testing.T) {
+	handler := New(config.Config{DataRoot: t.TempDir(), AuthEnabled: false})
+	preset := []byte(`{"version":1,"name":"Uses model","routing":"serial","global":{},"blocks":[{"id":"nam-1","type":"nam","enabled":true,"asset":"models/clean.nam","params":{}}]}`)
+	save := httptest.NewRecorder()
+	handler.ServeHTTP(save, httptest.NewRequest(http.MethodPut, "/api/presets/banks/2/slots/1", bytes.NewReader(preset)))
+	if save.Code != http.StatusOK {
+		t.Fatalf("save status=%d body=%s", save.Code, save.Body.String())
+	}
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/assets/usage", nil))
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("usage status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	var body struct {
+		Usage []struct {
+			Path    string `json:"path"`
+			Presets []struct {
+				Bank int    `json:"bank"`
+				Slot int    `json:"slot"`
+				Name string `json:"name"`
+			} `json:"presets"`
+		} `json:"usage"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if len(body.Usage) != 1 || body.Usage[0].Path != "models/clean.nam" || len(body.Usage[0].Presets) != 1 {
+		t.Fatalf("usage = %s", recorder.Body.String())
+	}
+	if got := body.Usage[0].Presets[0]; got.Bank != 2 || got.Slot != 1 || got.Name != "Uses model" {
+		t.Fatalf("usage preset = %#v", got)
+	}
+}

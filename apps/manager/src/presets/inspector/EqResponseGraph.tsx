@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+import type { PresetBlock } from "../../api/types";
 import type { EqBand, EqPassFilter } from "../editor/editorTypes";
 
 const WIDTH = 640;
@@ -15,6 +16,9 @@ const MAX_GAIN = 18;
 const STAGE_COUNT = 7;
 
 type Point = { x: number; y: number };
+type Drag = { stage: number; gesture: string };
+
+let dragSeq = 0;
 type PassFilterKey = "high_pass" | "low_pass";
 
 export function frequencyForGraphX(x: number): number {
@@ -58,7 +62,7 @@ function passResponseAt(frequency: number, filter: EqPassFilter, highPass: boole
   return 20 * Math.log10(Math.max(magnitude, 1e-12));
 }
 
-function responseAt(
+export function responseAt(
   frequency: number,
   bands: EqBand[],
   highPass: EqPassFilter,
@@ -73,6 +77,31 @@ function responseAt(
   return bandResponse
     + passResponseAt(frequency, highPass, true)
     + passResponseAt(frequency, lowPass, false);
+}
+
+export type EqState = { bands: EqBand[]; highPass: EqPassFilter; lowPass: EqPassFilter };
+
+/** The stored EQ params of a block with the defaults the inspector uses. */
+export function eqStateFor(block: PresetBlock): EqState {
+  const source = Array.isArray(block.params.bands) ? block.params.bands as EqBand[] : [];
+  const bands = [0, 1, 2, 3, 4].map((index) => source[index] ?? defaultBand(index));
+  const filterFrom = (key: "high_pass" | "low_pass", frequency: number): EqPassFilter => {
+    const value = block.params[key];
+    const base = { enabled: false, frequency_hz: frequency, q: 0.70710678, slope_db_per_octave: 12 };
+    return typeof value === "object" && value !== null && !Array.isArray(value) ? { ...base, ...value } as EqPassFilter : base;
+  };
+  return { bands, highPass: filterFrom("high_pass", 40), lowPass: filterFrom("low_pass", 16000) };
+}
+
+/** An SVG path of the response, for small previews such as the block card. */
+export function responsePath({ bands, highPass, lowPass }: EqState, width: number, height: number): string {
+  const points: string[] = [];
+  for (let i = 0; i <= 64; i += 1) {
+    const frequency = MIN_FREQUENCY * Math.pow(MAX_FREQUENCY / MIN_FREQUENCY, i / 64);
+    const gain = Math.max(MIN_GAIN, Math.min(MAX_GAIN, responseAt(frequency, bands, highPass, lowPass)));
+    points.push(`${i ? "L" : "M"}${((i / 64) * width).toFixed(1)} ${(height / 2 - (gain / MAX_GAIN) * (height / 2)).toFixed(1)}`);
+  }
+  return points.join(" ");
 }
 
 function graphPoint(event: React.PointerEvent<SVGSVGElement>): Point {
@@ -114,10 +143,11 @@ export function EqResponseGraph({
   lowPass: EqPassFilter;
   activeStage: number;
   onActiveStage(index: number): void;
-  onBandChange(index: number, patch: Partial<EqBand>): void;
-  onPassFilterChange(key: PassFilterKey, patch: Partial<EqPassFilter>): void;
+  /** gesture is one id per node drag, so the whole drag is one undo step. */
+  onBandChange(index: number, patch: Partial<EqBand>, gesture?: string): void;
+  onPassFilterChange(key: PassFilterKey, patch: Partial<EqPassFilter>, gesture?: string): void;
 }) {
-  const [dragging, setDragging] = useState<number>();
+  const [dragging, setDragging] = useState<Drag>();
   const bands = Array.from({ length: 5 }, (_, index) => sourceBands[index] ?? defaultBand(index));
   const curve = useMemo(() => Array.from({ length: 121 }, (_, index) => {
     const x = LEFT + index * (WIDTH - LEFT - RIGHT) / 120;
@@ -126,16 +156,16 @@ export function EqResponseGraph({
   }).join(" "), [bands, highPass, lowPass]);
   const stages = [highPass, ...bands, lowPass];
 
-  const editAt = (stage: number, point: Point) => {
+  const editAt = ({ stage, gesture }: Drag, point: Point) => {
     const frequency_hz = Math.round(frequencyForGraphX(point.x));
     if (stage === 0 || stage === STAGE_COUNT - 1) {
-      onPassFilterChange(stage === 0 ? "high_pass" : "low_pass", { frequency_hz });
+      onPassFilterChange(stage === 0 ? "high_pass" : "low_pass", { frequency_hz }, gesture);
       return;
     }
     onBandChange(stage - 1, {
       frequency_hz,
       gain_db: Math.round(gainForGraphY(point.y) * 2) / 2,
-    });
+    }, gesture);
   };
   const startDrag = (stage: number, event: React.PointerEvent<SVGCircleElement>) => {
     event.preventDefault();
@@ -143,7 +173,7 @@ export function EqResponseGraph({
     if (typeof event.currentTarget.setPointerCapture === "function") {
       event.currentTarget.setPointerCapture(event.pointerId);
     }
-    setDragging(stage);
+    setDragging({ stage, gesture: `eq-drag-${++dragSeq}` });
     onActiveStage(stage);
   };
   const move = (event: React.PointerEvent<SVGSVGElement>) => {

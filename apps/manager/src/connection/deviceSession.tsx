@@ -16,6 +16,7 @@ import type {
   ApplyPresetStatus,
   Asset,
   AssetKind,
+  AssetUsageEntry,
   DeviceStatus,
   Preset,
   PresetSlot,
@@ -31,7 +32,14 @@ export type SessionPreset = {
   location: PresetLocation;
   preset: Preset;
   exists: boolean;
+  /** Changes on every real load (connect, slot select, reload). A save keeps it, so the editor keeps its state. */
+  loadId: number;
 };
+
+type LoadedPreset = Omit<SessionPreset, "loadId">;
+
+let loadSeq = 0;
+const loaded = (preset: LoadedPreset): SessionPreset => ({ ...preset, loadId: ++loadSeq });
 
 export type DeviceClientFactory = (config: ApiClientConfig) => ManagerTransport;
 
@@ -45,6 +53,7 @@ export type DeviceSessionValue = {
   models: Asset[];
   irs: Asset[];
   reverbIrs: Asset[];
+  assetUsage?: AssetUsageEntry[];
   supportsReverbIrs: boolean;
   presets: PresetSlotSummary[];
   current?: SessionPreset;
@@ -55,6 +64,7 @@ export type DeviceSessionValue = {
   disconnect(): void;
   selectLocation(location: PresetLocation): Promise<void>;
   refreshAssets(kind?: AssetKind): Promise<void>;
+  refreshAssetUsage(): Promise<void>;
   refreshPresets(): Promise<void>;
   saveCurrent(preset: Preset): Promise<PresetSlot | undefined>;
   applyCurrent(sceneId?: string): Promise<ApplyPresetResponse | undefined>;
@@ -115,6 +125,17 @@ function hasPreset(summaries: PresetSlotSummary[], location: PresetLocation): bo
   return summaries.some(({ bank, slot, exists }) => bank === location.bank && slot === location.slot && exists);
 }
 
+async function loadAssetUsage(client: ManagerTransport): Promise<AssetUsageEntry[] | undefined> {
+  if (!client.getAssetUsage) return undefined;
+  try {
+    return await client.getAssetUsage();
+  } catch {
+    // Usage is auxiliary: older firmware may lack the route, so treat any
+    // failure as "unknown" rather than failing the caller's operation.
+    return undefined;
+  }
+}
+
 async function loadReverbIrInventory(client: ManagerTransport): Promise<{ assets: Asset[]; supported: boolean }> {
   try {
     return { assets: await client.listAssets("reverb-irs"), supported: true };
@@ -134,7 +155,7 @@ async function loadInitialPreset(
   baseUrl: string,
   device: DeviceStatus,
   summaries: PresetSlotSummary[],
-): Promise<SessionPreset> {
+): Promise<LoadedPreset> {
   if (device.active && hasPreset(summaries, device.active)) {
     try {
       const response = await client.getPreset(device.active.bank, device.active.slot);
@@ -177,6 +198,7 @@ export function DeviceSessionProvider({
   const [irs, setIrs] = useState<Asset[]>([]);
   const [reverbIrs, setReverbIrs] = useState<Asset[]>([]);
   const [supportsReverbIrs, setSupportsReverbIrs] = useState(false);
+  const [assetUsage, setAssetUsage] = useState<AssetUsageEntry[]>();
   const [presets, setPresets] = useState<PresetSlotSummary[]>([]);
   const [current, setCurrent] = useState<SessionPreset>();
   const [error, setError] = useState<Error>();
@@ -202,10 +224,11 @@ export function DeviceSessionProvider({
     const nextClient = clientFactory({ baseUrl: normalizedBaseUrl, token: token || undefined });
     try {
       const nextDevice = await nextClient.getDevice();
-      const [nextModels, nextIrs, nextReverbInventory, nextPresets] = await Promise.all([
+      const [nextModels, nextIrs, nextReverbInventory, nextUsage, nextPresets] = await Promise.all([
         nextClient.listAssets("models"),
         nextClient.listAssets("irs"),
         loadReverbIrInventory(nextClient),
+        loadAssetUsage(nextClient),
         nextClient.listPresets(),
       ]);
       const nextCurrent = await loadInitialPreset(nextClient, normalizedBaseUrl, nextDevice, nextPresets);
@@ -218,8 +241,9 @@ export function DeviceSessionProvider({
       setIrs(nextIrs);
       setReverbIrs(nextReverbInventory.assets);
       setSupportsReverbIrs(nextReverbInventory.supported);
+      setAssetUsage(nextUsage);
       setPresets(nextPresets);
-      setCurrent(nextCurrent);
+      setCurrent(loaded(nextCurrent));
       setStatus("connected");
     } catch (reason) {
       const nextError = reason instanceof Error ? reason : new Error("Connection failed");
@@ -242,6 +266,7 @@ export function DeviceSessionProvider({
     setIrs([]);
     setReverbIrs([]);
     setSupportsReverbIrs(false);
+    setAssetUsage(undefined);
     setPresets([]);
     setCurrent(undefined);
     setError(undefined);
@@ -250,7 +275,7 @@ export function DeviceSessionProvider({
 
   const selectLocation = async (location: PresetLocation) => {
     if (!client || status !== "connected") return;
-    let next: SessionPreset;
+    let next: LoadedPreset;
     if (hasPreset(presets, location)) {
       const response = await client.getPreset(location.bank, location.slot);
       next = { location, preset: response.preset, exists: true };
@@ -258,7 +283,7 @@ export function DeviceSessionProvider({
       next = { location, preset: createEmptyPreset(), exists: false };
     }
     localStorage.setItem(locationKey(baseUrl), JSON.stringify(location));
-    setCurrent(next);
+    setCurrent(loaded(next));
   };
 
   const refreshAssets = async (kind?: AssetKind) => {
@@ -268,6 +293,12 @@ export function DeviceSessionProvider({
     if (supportsReverbIrs && (!kind || kind === "reverb-irs")) {
       setReverbIrs(await client.listAssets("reverb-irs"));
     }
+    setAssetUsage(await loadAssetUsage(client));
+  };
+
+  const refreshAssetUsage = async () => {
+    if (!client) return;
+    setAssetUsage(await loadAssetUsage(client));
   };
 
   const refreshPresets = async () => {
@@ -279,7 +310,8 @@ export function DeviceSessionProvider({
     setOperationBusy("save", true);
     try {
       const response = await client.savePreset(current.location.bank, current.location.slot, preset);
-      setCurrent({ location: current.location, preset: response.preset, exists: true });
+      // Same loadId: the editor marks the draft saved and keeps selection, scene and undo history.
+      setCurrent({ ...current, preset: response.preset, exists: true });
       setDevice((previous) => previous?.active
         && previous.active.bank === current.location.bank
         && previous.active.slot === current.location.slot
@@ -366,10 +398,10 @@ export function DeviceSessionProvider({
   }, [client, status]);
 
   const value = useMemo<DeviceSessionValue>(() => ({
-    status, baseUrl, device, client, models, irs, reverbIrs, supportsReverbIrs,
+    status, baseUrl, device, client, models, irs, reverbIrs, supportsReverbIrs, assetUsage,
     presets, current, error, needsTokenFocus, busy,
-    connect, disconnect, selectLocation, refreshAssets, refreshPresets, saveCurrent, applyCurrent, recallScene, uploadAsset,
-  }), [status, baseUrl, device, client, models, irs, reverbIrs, supportsReverbIrs,
+    connect, disconnect, selectLocation, refreshAssets, refreshAssetUsage, refreshPresets, saveCurrent, applyCurrent, recallScene, uploadAsset,
+  }), [status, baseUrl, device, client, models, irs, reverbIrs, supportsReverbIrs, assetUsage,
     presets, current, error, needsTokenFocus, busy]);
 
   return <DeviceSessionContext.Provider value={value}>{children}</DeviceSessionContext.Provider>;

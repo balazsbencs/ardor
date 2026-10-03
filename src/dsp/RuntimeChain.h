@@ -10,6 +10,7 @@
 #include "dynamics/NoiseGateProcessor.h"
 #include "dynamics/TransientShaperProcessor.h"
 #include "equalizer/EqParameters.h"
+#include "equalizer/ConsoleEqProcessor.h"
 #include "tape/TapeProcessor.h"
 #include "cheese/CheeseProcessor.h"
 #include "rat/RatProcessor.h"
@@ -65,6 +66,7 @@ public:
   void addCompressor(std::string id, CompressorProcessor processor);
   void addNoiseGate(std::string id, NoiseGateProcessor processor);
   void addTransientShaper(std::string id, TransientShaperProcessor processor);
+  void addConsoleEq(std::string id, ConsoleEqProcessor processor);
   void addWah(std::string id, WahProcessor processor);
   void addDistortion(std::string id, RatProcessor processor);
   void addDistortion(std::string id, CheeseProcessor processor);
@@ -80,6 +82,7 @@ public:
   bool compressorGainReductionDb(const std::string& id, float& outDb) const;
   bool setNoiseGateParameter(const std::string& id, const std::string& key, float value);
   bool setTransientShaperParameter(const std::string& id, const std::string& key, float value);
+  bool setConsoleEqParameter(const std::string& id, const std::string& key, float value);
   bool setWahParameter(const std::string& id, const std::string& key, float value);
   bool setDistortionParameter(const std::string& id, const std::string& key, float value);
   bool setBlockEnabled(const std::string& id, bool enabled);

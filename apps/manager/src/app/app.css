@@ -1,0 +1,114 @@
+/* App shell, app bar, buttons and the edit rail in the Lamp Black language.
+   Ported from mockups/manager-taste/shared.css and 1-stage-drawer.html with the manager tokens. */
+
+.app-shell {
+  display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-height: 0; overflow: hidden;
+  background: var(--bg); color: var(--text); font: 400 1rem/1.5 var(--f-body);
+}
+.app-view { flex: 1; min-height: 0; overflow: auto; }
+
+/* ---------- App bar ---------- */
+.appbar {
+  flex: none; height: var(--bar-h); display: flex; align-items: center; gap: 16px;
+  padding: 0 var(--gut); border-bottom: 1px solid var(--line); background: var(--bg);
+  position: relative; z-index: 20; min-width: 0;
+}
+.mark { display: flex; align-items: center; gap: 10px; flex: none; font: 700 20px/1 var(--f-cond); letter-spacing: .06em; text-transform: uppercase; }
+.mark i { width: 14px; height: 14px; background: var(--lamp); display: block; }
+.appbar .where { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.appbar .where b { font: 700 22px/1 var(--f-cond); letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.appbar .where span { font: 500 18px/1 var(--f-cond); color: var(--muted); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.appbar__dirty { display: inline-flex; flex: none; }
+.appbar__push { margin-left: auto; }
+.appbar__live { display: inline-flex; flex: none; }
+
+.conn {
+  display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; flex: none;
+  border: 1px solid var(--line); border-radius: 0; background: var(--surface-muted);
+  font: 500 13px/1 var(--f-body); color: var(--muted); white-space: nowrap;
+}
+.conn:hover { border-color: var(--line-strong); }
+.conn__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--disabled); }
+.conn--connected .conn__dot { background: var(--modulation); box-shadow: 0 0 0 3px color-mix(in srgb, var(--modulation) 18%, transparent); }
+.conn--connecting .conn__dot { background: var(--warning); }
+.conn--error .conn__dot { background: var(--danger); }
+.conn b { color: var(--text); font-weight: 600; }
+.conn__http { font: 600 11px/1 var(--f-cond); letter-spacing: .16em; color: var(--warning); border: 1px solid var(--warning); padding: 3px 6px; }
+
+/* ---------- Buttons: .btn for segment switches, .button for components/ui ---------- */
+.btn {
+  height: 40px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid var(--line); border-radius: 0; background: var(--surface); color: var(--text);
+  font: 600 15px/1 var(--f-cond); letter-spacing: .1em; text-transform: uppercase; white-space: nowrap;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.btn:hover:not(:disabled) { background: var(--plate-hi); border-color: var(--line-strong); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: 1; color: var(--disabled); background: var(--surface); border-color: var(--line); cursor: default; }
+.btn--sm { height: 32px; padding: 0 10px; font-size: 13px; }
+.seg { display: inline-flex; min-width: 0; }
+.seg .btn + .btn { margin-left: -1px; }
+.seg .btn[aria-pressed="true"] { background: var(--plate-hi); border-color: var(--line-strong); color: var(--text); box-shadow: inset 0 -3px 0 var(--text); }
+.viewseg { flex: none; }
+
+.button {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 40px; min-height: 40px; padding: 0 16px; gap: 8px;
+  border: 1px solid var(--line); border-radius: 0; background: var(--surface); color: var(--text);
+  font: 600 15px/1 var(--f-cond); letter-spacing: .1em; text-transform: uppercase; white-space: nowrap;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.button:hover:not(:disabled) { background: var(--plate-hi); border-color: var(--line-strong); }
+.button:active:not(:disabled) { transform: translateY(1px); }
+.button:disabled { opacity: 1; color: var(--disabled); background: var(--surface); border-color: var(--line); cursor: default; }
+.icon-button {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 6px;
+  border: 1px solid var(--line); border-radius: 0; background: var(--surface); color: var(--muted);
+  transition: background .15s, border-color .15s, color .15s;
+}
+.icon-button:hover:not(:disabled) { background: var(--plate-hi); border-color: var(--line-strong); color: var(--text); }
+.button--secondary { background: var(--surface); border-color: var(--line); }
+.button--primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+.button--primary:hover:not(:disabled) { background: color-mix(in srgb, var(--text) 88%, var(--surface)); border-color: color-mix(in srgb, var(--text) 88%, var(--surface)); }
+.button--quiet { background: transparent; border-color: transparent; color: var(--muted); }
+.button--quiet:hover:not(:disabled) { background: var(--surface); color: var(--text); border-color: var(--line); }
+.button--danger { background: var(--surface); color: var(--danger); border-color: var(--danger-rule); }
+.button--danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 10%, var(--surface)); border-color: var(--danger); }
+.toggle-control { position: relative; display: inline-grid; place-items: center; width: 44px; height: 44px; }
+.toggle-control input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.toggle-control input:focus-visible + .toggle-control__track { outline: 2px solid var(--focus); outline-offset: 2px; }
+.toggle-control__track { display: flex; align-items: center; width: 32px; height: 18px; padding: 2px; background: var(--line-strong); transition: background .15s; }
+.toggle-control__thumb { width: 14px; height: 14px; background: var(--text); transition: transform .15s; }
+.toggle-control input:checked + .toggle-control__track { background: var(--text); }
+.toggle-control input:checked + .toggle-control__track .toggle-control__thumb { background: var(--surface-muted); transform: translateX(14px); }
+.pow-big[aria-pressed="true"]:hover:not(:disabled) { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+/* ---------- Edit rail ---------- */
+.rail {
+  flex: none; min-height: 72px; display: flex; align-items: center; gap: 10px; padding: 12px var(--gut);
+  border-top: 1px solid var(--line); background: var(--bg); flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+}
+.rail__push { margin-left: auto; }
+.ctx { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ctx__label { display: block; font: 600 12px/1 var(--f-cond); letter-spacing: .16em; color: var(--muted); text-transform: uppercase; }
+.ctx__value { display: block; margin-top: 4px; font: 700 34px/1 var(--f-cond); white-space: nowrap; }
+
+@media (max-width: 720px) {
+  .appbar { gap: 10px; }
+  .appbar .where, .appbar__dirty, .appbar__live, .conn b, .conn__addr { display: none; }
+  .viewseg svg { display: none; }
+  /* Icons only, but the label stays readable to screen readers. */
+  .lbl { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .hide-sm { display: none; }
+  .ctx__value { font-size: 24px; }
+  /* Compact rail. It wraps instead of hiding actions off the edge. */
+  .rail { gap: 6px; flex-wrap: wrap; overflow-x: visible; }
+  .rail .icon-button { min-width: 40px; }
+  .rail .button { padding: 0 12px; }
+  .rail__done { margin-left: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button, .icon-button, .btn, .toggle-control__track, .toggle-control__thumb { transition: none; }
+  .button:active:not(:disabled), .btn:active:not(:disabled) { transform: none; }
+}

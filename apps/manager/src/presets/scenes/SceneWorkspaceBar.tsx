@@ -2,7 +2,8 @@ import { ArrowLeftRight, Copy, GitCompareArrows, Radio, Settings2 } from "lucide
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import type { PresetSceneSet } from "../../api/types";
-import { Button, StatusBadge } from "../../components/ui";
+import { Button } from "../../components/ui";
+import { Tag } from "../../ui/Tag";
 
 type Props = {
   sceneSet: PresetSceneSet;
@@ -131,7 +132,7 @@ export function SceneWorkspaceBar(props: Props) {
       <label>Scene trim (dB)<input type="number" min={-12} max={6} step={0.1} value={selected.outputTrimDb} onChange={(event) => props.onTrim(selected.id, Number(event.target.value))} /></label>
       <label>Open preset in<select value={props.sceneSet.openIn} onChange={(event) => props.onOpenIn(event.target.value as "presets" | "scenes")}><option value="presets">Presets</option><option value="scenes">Scenes</option></select></label>
       <Button variant="quiet" disabled={props.sceneSet.defaultSceneId === selected.id} onClick={() => props.onDefault(selected.id)}>Make default</Button>
-      {props.sceneSet.defaultSceneId === selected.id && <StatusBadge tone="info">Default scene</StatusBadge>}
+      {props.sceneSet.defaultSceneId === selected.id && <Tag tone="line">Default scene</Tag>}
       <Button variant="quiet" onClick={() => setOperation({ kind: "copy", otherSceneId: otherScenes[0].id })}><Copy size={14} /> Copy to…</Button>
       <Button variant="quiet" onClick={() => setOperation({ kind: "swap", otherSceneId: otherScenes[0].id })}><ArrowLeftRight size={14} /> Swap slots…</Button>
     </div>}

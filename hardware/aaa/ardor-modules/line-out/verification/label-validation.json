@@ -1,0 +1,10 @@
+{
+  "result": "PASS",
+  "numbered_external_pins": 9,
+  "complete_pin_maps": 4,
+  "explicit_unused_pin_labels": 0,
+  "pin_numbers_point_to_nearest_matching_pad": true,
+  "all_printed_labels_present": true,
+  "directions_relative_to_module": true,
+  "all_pin_nets_match_schematic": true
+}

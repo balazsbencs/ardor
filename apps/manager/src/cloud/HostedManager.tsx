@@ -1,10 +1,12 @@
 import { Cable, KeyRound, LogOut, RefreshCw, ShieldCheck, SlidersHorizontal, Unplug, UserRound } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 
-import { Button, StatusBadge } from "../components/ui";
 import { AppShell } from "../app/AppShell";
+import { Button } from "../components/ui";
 import { DeviceSessionProvider } from "../connection/deviceSession";
+import { Tag } from "../ui/Tag";
 import { CloudTransport } from "./CloudTransport";
+import { CloudShell } from "./CloudShell";
 import { type Account, type Claim, CloudAPIError, type Device, cloudAPI } from "./api";
 
 type AuthView = "login" | "register" | "recover";
@@ -49,10 +51,9 @@ function AuthPanel({ onAuthenticated, onRegistered }: {
   return (
     <main className="cloud-auth">
       <section className="cloud-auth__card">
-        <div className="brand cloud-auth__brand"><span className="brand-mark"><SlidersHorizontal size={19} /></span><span><strong>Ardor</strong><small>Cloud Manager</small></span></div>
-        <p className="eyebrow">{view === "register" ? "Create account" : view === "recover" ? "Account recovery" : "Welcome back"}</p>
+        <div className="cloud-brand cloud-auth__brand"><span className="cloud-brand__mark"><SlidersHorizontal size={19} /></span><span><strong>Ardor</strong><small>Cloud Manager</small></span></div>
         <h1>{view === "register" ? "Set up your manager" : view === "recover" ? "Use a recovery code" : "Manage your pedals"}</h1>
-        <p className="cloud-auth__intro">Your browser connects to Ardor over HTTPS; pedals keep their own outbound encrypted connection.</p>
+        <p className="cloud-auth__intro">Your browser connects to Ardor over HTTPS. Each pedal keeps its own encrypted outbound connection.</p>
         <form onSubmit={submit} className="cloud-form">
           <label>Username<input required autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} /></label>
           {view === "recover" && <label>Recovery code<input required autoComplete="off" value={recoveryCode} onChange={(event) => setRecoveryCode(event.target.value)} /></label>}
@@ -76,9 +77,8 @@ function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone(): void }) {
     <main className="cloud-auth">
       <section className="cloud-auth__card cloud-recovery">
         <ShieldCheck size={30} />
-        <p className="eyebrow">One-time display</p>
         <h1>Save your recovery codes</h1>
-        <p className="cloud-auth__intro">Each code works once. Ardor stores only hashes and cannot show these again.</p>
+        <p className="cloud-auth__intro">Each code works once. Ardor stores hashes only. It cannot show these codes again.</p>
         <pre>{codes.join("\n")}</pre>
         <Button onClick={() => navigator.clipboard?.writeText(codes.join("\n"))}>Copy codes</Button>
         <label className="cloud-check"><input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} /> I saved these codes somewhere safe.</label>
@@ -164,34 +164,34 @@ function DeviceDashboard({ account, onSignedOut, onManage }: { account: Account;
   }
 
   return (
-    <div className="cloud-dashboard">
-      <header className="app-topbar">
-        <div className="brand"><span className="brand-mark"><SlidersHorizontal size={19} /></span><span><strong>Ardor</strong><small>Cloud Manager</small></span></div>
+    <>
+      <header className="cloud-bar">
+        <div className="cloud-brand"><span className="cloud-brand__mark"><SlidersHorizontal size={19} /></span><span><strong>Ardor</strong><small>Cloud Manager</small></span></div>
         <div className="cloud-account"><UserRound size={15} /><strong>{account.username}</strong><Button variant="quiet" disabled={busy} onClick={() => void signOut(false)}><LogOut size={15} /> Sign out</Button></div>
       </header>
       <main className="cloud-main">
-        <section className="cloud-heading"><div><p className="eyebrow">Your equipment</p><h1>Devices</h1><p>Claim a pedal once, then manage it from any signed-in browser.</p></div><Button onClick={() => void refresh()}><RefreshCw size={15} /> Refresh</Button></section>
+        <section className="cloud-heading"><div><h1>Devices</h1><p>Claim a pedal once. Then manage it from any browser where you sign in.</p></div><Button onClick={() => void refresh()}><RefreshCw size={15} /> Refresh</Button></section>
         {error && <p role="alert" className="cloud-message cloud-message--error">{error}</p>}
         <section className="cloud-claim-card">
-          <div><KeyRound size={21} /><div><h2>Claim a pedal</h2><p>Enter the code displayed on the pedal, then approve the account name physically on the device.</p></div></div>
+          <div><KeyRound size={21} /><div><h2>Claim a pedal</h2><p>Enter the code from the pedal display. Then approve the account name on the pedal.</p></div></div>
           <form onSubmit={beginClaim}><input aria-label="Claim code" required maxLength={12} placeholder="ABCD-EFGH" value={claimCode} onChange={(event) => setClaimCode(event.target.value)} /><Button type="submit" variant="primary" disabled={busy}>Continue</Button></form>
-          {claim && <p className={`cloud-message cloud-message--${claim.status === "claimed" ? "success" : claim.status === "confirm_on_device" ? "info" : "error"}`}>{claim.status === "confirm_on_device" ? "Waiting for approval on the pedal…" : claim.status === "claimed" ? "Pedal claimed successfully." : "The claim was not approved."}</p>}
+          {claim && <p className={`cloud-message cloud-message--${claim.status === "claimed" ? "success" : claim.status === "confirm_on_device" ? "info" : "error"}`}>{claim.status === "confirm_on_device" ? "Waiting for approval on the pedal…" : claim.status === "claimed" ? "The pedal is claimed." : "The claim was not approved."}</p>}
         </section>
         <section className="cloud-device-list" aria-label="Claimed devices">
-          {devices.length === 0 ? <div className="cloud-empty"><Cable size={30} /><h2>No claimed devices</h2><p>Connect a pedal to the internet and use the code shown on its display.</p></div> : devices.map((device) => (
+          {devices.length === 0 ? <div className="cloud-empty"><Cable size={30} /><h2>No claimed devices</h2><p>Connect a pedal to the internet. Then use the code on its display.</p></div> : devices.map((device) => (
             <article className="cloud-device" key={device.id}>
               <span className={`cloud-device__icon ${device.online ? "is-online" : ""}`}><Cable size={20} /></span>
               <div><strong>Ardor Pedal</strong><code>{device.id}</code></div>
-              <StatusBadge tone={device.online ? "success" : "neutral"}>{device.online ? "Online" : "Offline"}</StatusBadge>
+              <Tag tone="line">{device.online ? "Online" : "Offline"}</Tag>
               <small>{device.lastSeenAt ? `Last seen ${new Date(device.lastSeenAt).toLocaleString()}` : "Not connected yet"}</small>
               <Button variant="primary" disabled={!device.online} onClick={() => onManage(device)}>Manage presets</Button>
               <Button variant="quiet" disabled={busy} onClick={() => void unclaim(device)}><Unplug size={14} /> Unclaim</Button>
             </article>
           ))}
         </section>
-        <section className="cloud-security"><div><ShieldCheck size={20} /><span><strong>Account security</strong><small>Revoke every active browser session if you lose access to a device.</small></span></div><Button variant="danger" disabled={busy} onClick={() => void signOut(true)}>Sign out everywhere</Button></section>
+        <section className="cloud-security"><div><ShieldCheck size={20} /><span><strong>Account security</strong><small>Sign out every browser at once if you lose a device.</small></span></div><Button variant="danger" disabled={busy} onClick={() => void signOut(true)}>Sign out everywhere</Button></section>
       </main>
-    </div>
+    </>
   );
 }
 
@@ -205,15 +205,15 @@ export function HostedManager() {
     cloudAPI.me().then(setAccount).catch(() => undefined).finally(() => setChecking(false));
   }, []);
 
-  if (checking) return <div className="app-shell cloud-loading"><span className="settings-spinner" /><span>Loading Ardor Manager…</span></div>;
+  if (checking) return <CloudShell className="cloud-loading"><span className="cloud-spinner" /><span>Loading Ardor Manager…</span></CloudShell>;
   if (account && selectedDevice) {
     return <DeviceSessionProvider autoConnect connectionId={`cloud:${selectedDevice.id}`} clientFactory={() => new CloudTransport(selectedDevice.id, selectedDevice.remoteMutationsEnabled)}><AppShell onCloudDevices={() => setSelectedDevice(null)} tone3000DeviceId={selectedDevice.id} /></DeviceSessionProvider>;
   }
   return (
-    <div className="app-shell" data-palette="slate">
+    <CloudShell>
       {account && recoveryCodes ? <RecoveryCodes codes={recoveryCodes} onDone={() => setRecoveryCodes(null)} />
         : account ? <DeviceDashboard account={account} onSignedOut={() => setAccount(null)} onManage={setSelectedDevice} />
           : <AuthPanel onAuthenticated={setAccount} onRegistered={(created, codes) => { setAccount(created); setRecoveryCodes(codes); }} />}
-    </div>
+    </CloudShell>
   );
 }

@@ -1,0 +1,36 @@
+{
+  "board_mm": [
+    68.0,
+    46.0
+  ],
+  "original_board_mm": [
+    100,
+    80
+  ],
+  "area_reduction_percent": 60.9,
+  "previous_board_mm": [
+    90,
+    64
+  ],
+  "area_reduction_from_previous_percent": 45.69,
+  "schematic_components": 95,
+  "mounting_holes": 4,
+  "all_courtyards_inside_outline": true,
+  "all_components_on_front": true,
+  "pad_net_assignments_checked": 276,
+  "netlist_match": true,
+  "drc_violations": 0,
+  "unconnected_items": 0,
+  "schematic_parity_issues": 0,
+  "track_segments": 764,
+  "vias": 66,
+  "track_widths_mm": {
+    "0.15": 13,
+    "0.2": 431,
+    "0.25": 21,
+    "0.3": 42,
+    "0.4": 238,
+    "0.6": 19
+  },
+  "kicad_version": "9.0.2"
+}

@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bank Wall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Saira:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css?v=1790703660">
+<style>
+  /* Direction 3: the library is the home screen. Every bank is a row of
+     four device tiles. Drag a tile onto a slot to swap. Open a tile and it
+     pulls out of the wall into an editor, right under its own bank. */
+  body { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--bar-h) auto 1fr; height: 100vh; height: 100dvh; overflow: hidden; }
+
+  .tools { display: flex; align-items: center; gap: 10px; padding: 12px var(--gut); border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+  .tools .search { width: min(420px, 100%); height: 40px; }
+  .tools .fams button { height: 32px; }
+  .tools .count { font: 500 14px/1 var(--f-body); color: var(--muted); margin-left: auto; }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: 0; }
+  .wall { overflow-y: auto; padding: 16px var(--gut) 60px; scrollbar-width: thin; scrollbar-color: var(--rule-strong) transparent; }
+  .bankrow { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; margin-bottom: 12px; }
+  .bankrow__label { display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 0 0 0 2px; border-top: 3px solid var(--rule-strong); }
+  .bankrow__label b { font: 700 28px/1 var(--f-cond); letter-spacing: .02em; }
+  .bankrow__label input { width: 100%; background: none; border: 0; border-bottom: 1px dashed var(--rule-strong); font: 500 14px/1.4 var(--f-cond); letter-spacing: .08em; text-transform: uppercase; color: var(--bone-2); padding: 2px 0; }
+  .bankrow__label input:focus { outline: none; border-bottom-color: var(--bone); color: var(--bone); }
+  .bankrow__label input::placeholder { color: var(--bone-3); }
+  .slots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; isolation: isolate; }
+  .slots .tile { min-height: 132px; }
+  .slots .tile.is-dim { opacity: .22; }
+  .slots .tile.is-hit { box-shadow: inset 0 -4px 0 var(--bone); }
+  .bankrow.is-pedal .bankrow__label { border-top-color: var(--lamp); }
+  .newbank { width: 100%; height: 56px; border: 1px dashed var(--rule-strong); background: none; color: var(--bone-2); font: 600 15px/1 var(--f-cond); letter-spacing: .12em; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+  /* The pulled-out editor */
+  .pull { margin: -2px 0 22px 162px; background: var(--recess); border: 1px solid var(--rule-strong); border-top: 3px solid var(--bone); position: relative; }
+  .pull.is-new { animation: pull .34s var(--ease); }
+  @keyframes pull { from { clip-path: inset(0 0 100% 0); transform: translateY(-10px); } to { clip-path: inset(0 0 0 0); transform: none; } }
+  .pull::before { content: ""; position: absolute; top: -13px; width: 20px; height: 10px; background: var(--bone); clip-path: polygon(50% 0, 100% 100%, 0 100%); left: var(--notch, 60px); }
+  .pull__head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+  .pull__head input { font: 800 36px/1 var(--f-cond); text-transform: uppercase; background: none; border: 0; border-bottom: 1px dashed transparent; min-width: 0; width: 12ch; padding: 0; }
+  .pull__head input:hover { border-bottom-color: var(--rule-strong); }
+  .pull__head input:focus { outline: none; border-bottom-color: var(--bone); }
+  .pull__head .slot { font: 500 15px/1 var(--f-cond); letter-spacing: .08em; color: var(--bone-2); text-transform: uppercase; }
+  .pull__head .push { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .pull .chain { padding: 18px 16px 26px; }
+  .pull .blk { --card-w: 164px; --card-h: 240px; }
+  .pull__ctls { border-top: 4px solid var(--fam); padding: 14px 16px 18px; background: var(--ground); }
+  .pull__ctls-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .pull__ctls-head h3 { margin: 0; font: 700 28px/1 var(--f-cond); text-transform: uppercase; }
+  .pull__ctls-head .push { margin-left: auto; display: flex; gap: 8px; }
+  .pull__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+  .pull__empty { padding: 14px 16px 18px; border-top: 1px solid var(--rule); font: 500 14px/1.4 var(--f-body); color: var(--muted); }
+  .back { display: none; }
+
+  /* The pedal panel */
+  .pedal { border-left: 1px solid var(--rule); background: var(--recess); padding: 18px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+  .pedal h2 { margin: 0; font: 700 15px/1 var(--f-cond); letter-spacing: .16em; text-transform: uppercase; color: var(--bone-2); display: flex; justify-content: space-between; align-items: center; }
+  .pedal .tile { min-height: 150px; isolation: isolate; }
+  .pedal .tile__name { font-size: 34px; }
+  .fsgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .fsgrid .btn { height: 64px; flex-direction: column; gap: 4px; align-items: flex-start; padding: 0 12px; }
+  .fsgrid .btn small { font: 600 11px/1 var(--f-cond); letter-spacing: .14em; color: var(--bone-2); }
+  .fsgrid .btn[aria-pressed="true"] { background: var(--lamp); border-color: var(--lamp); color: var(--lamp-ink); }
+  .fsgrid .btn[aria-pressed="true"] small { color: var(--lamp-ink); }
+  .pedal .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pedal .note { margin: 0; }
+
+  @media (max-width: 1280px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .pedal { display: none; }
+  }
+  @media (max-width: 720px) {
+    .appbar .where, .appbar .conn { display: none; }
+    .tools { padding: 10px var(--gut); gap: 8px; }
+    .tools .fams, .tools .count { display: none; }
+    .bankrow { grid-template-columns: 1fr; gap: 8px; margin-bottom: 20px; }
+    .bankrow__label { flex-direction: row; align-items: baseline; gap: 12px; padding-top: 8px; }
+    .bankrow__label b { font-size: 22px; flex: none; }
+    .slots { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .slots .tile { min-height: 112px; }
+    .slots .tile__name { font-size: 21px; }
+    .slots .tile[data-pos="1"] { order: 3; } .slots .tile[data-pos="2"] { order: 2; } .slots .tile[data-pos="3"] { order: 4; }
+    .pull { position: fixed; inset: 0; z-index: 60; margin: 0; border: 0; overflow-y: auto; animation: sheet .3s var(--ease); }
+    .pull::before { display: none; }
+    @keyframes sheet { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .back { display: inline-flex; }
+    .pull__head input { font-size: 24px; width: 100%; order: 2; }
+    .pull__head .push { width: 100%; margin: 0; order: 3; }
+    .pull__head .seg { overflow-x: auto; max-width: 100%; }
+    .pull .blk { --card-w: 146px; --card-h: 226px; }
+    .pull__grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header class="appbar" id="bar"></header>
+<section class="tools" id="tools"></section>
+<div class="layout"><main class="wall" id="wall" data-keep-scroll="wall"></main><aside class="pedal" id="pedal" aria-label="On the pedal now"></aside></div>
+
+<script src="data.js?v=1790703660"></script>
+<script src="core.js?v=1790703660"></script>
+<script src="render.js?v=1790703660"></script>
+<script src="chrome.js?v=1790703660"></script>
+<script src="interact.js?v=1790703660"></script>
+<script>
+(function () {
+  "use strict";
+  const A = window.Ardor;
+  const esc = A.esc;
+  const DEFS = A.DEFS;
+  let query = "";
+  let fam = "all";
+  let open = !matchMedia("(max-width: 720px)").matches;
+  let lastOpen = null;
+
+  // Open or close the pulled-out editor. Clicking the open tile closes it.
+  A.acts.preset = (el) => {
+    const id = el.dataset.id;
+    if (A.get().editId === id && open) { open = false; A.repaint(); return; }
+    open = true;
+    A.selectPreset(id);
+    A.repaint();
+  };
+  A.acts.closepull = () => { open = false; A.repaint(); };
+  A.acts.newbank = () => A.set((s) => ({ ...s, banks: [...s.banks, { n: s.banks.length + 1, name: "", slots: [null, null, null, null] }] }));
+  A.acts.clearslot = () => {
+    const id = A.get().editId;
+    const name = A.cur().name;
+    A.set((s) => ({ ...s, banks: s.banks.map((b) => ({ ...b, slots: b.slots.map((x) => (x === id ? null : x)) })) }));
+    open = false;
+    A.toast(`${name} cleared from its slot. Undo with ⌘Z.`);
+  };
+  A.acts.copyslot = () => {
+    const s = A.get();
+    const src = A.cur();
+    for (const bank of s.banks) {
+      const i = bank.slots.indexOf(null);
+      if (i < 0) continue;
+      const id = `${src.id}-copy${Date.now() % 10000}`;
+      A.set((st) => ({
+        ...st,
+        presets: { ...st.presets, [id]: { ...structuredClone(src), id, name: `${src.name} 2` } },
+        banks: st.banks.map((b) => (b.n === bank.n ? { ...b, slots: b.slots.map((x, j) => (j === i ? id : x)) } : b)),
+        editId: id, sel: null,
+      }));
+      A.toast(`Copied to bank ${String(bank.n).padStart(2, "0")}, slot ${i + 1}`);
+      return;
+    }
+    A.toast("No empty slot. Add a bank first.");
+  };
+  A.acts.bankscene = (el) => { A.view({ live: { ...A.get().live, sceneId: el.dataset.scene } }); A.toast("Scene recalled on the pedal"); };
+  A.acts.fam = (el) => { fam = el.dataset.fam; A.repaint(); };
+
+  // Tile drag: drop on a slot to swap the two slots, across banks too.
+  A.onSort.tiles = ({ uid, fromList, toList, index }) => {
+    const fromN = Number(fromList.split("-")[1]);
+    const toN = Number(toList.split("-")[1]);
+    const s = A.get();
+    const fromSlot = s.banks.find((b) => b.n === fromN).slots.indexOf(uid);
+    const target = s.banks.find((b) => b.n === toN).slots[index] ?? null;
+    if (fromN === toN && fromSlot === index) return;
+    A.set((st) => ({
+      ...st,
+      banks: st.banks.map((b) => ({
+        ...b,
+        slots: b.slots.map((x, i) => {
+          if (b.n === toN && i === index) return uid;
+          if (b.n === fromN && i === fromSlot) return target;
+          return x;
+        }),
+      })),
+    }), { dirty: false });
+    const name = s.presets[uid].name;
+    A.toast(target ? `${name} swapped with ${s.presets[target].name}` : `${name} moved to bank ${String(toN).padStart(2, "0")}, slot ${index + 1}`);
+  };
+
+  document.addEventListener("input", (ev) => {
+    if (ev.target.id === "q") { query = ev.target.value; A.repaint(); }
+    if (ev.target.dataset.bankname) {
+      const n = Number(ev.target.dataset.bankname);
+      const v = ev.target.value;
+      A.set((s) => ({ ...s, banks: s.banks.map((b) => (b.n === n ? { ...b, name: v } : b)) }), { record: false, dirty: false });
+    }
+    if (ev.target.id === "pname") {
+      const v = ev.target.value;
+      A.edit((p) => ({ ...p, name: v }), { record: false });
+    }
+  });
+
+  const matches = (p) => {
+    if (!p) return !query && fam === "all";
+    const blocks = A.allBlocks(p);
+    const q = query.trim().toLowerCase();
+    const okQ = !q || p.name.toLowerCase().includes(q) || blocks.some((b) => A.blockName(b).toLowerCase().includes(q) || DEFS[b.def].code.toLowerCase().includes(q));
+    const okF = fam === "all" || blocks.some((b) => DEFS[b.def].fam === fam);
+    return okQ && okF;
+  };
+
+  function tools(s) {
+    const n = Object.keys(s.presets).length;
+    return `<label class="search">${A.icon("search")}<input id="q" type="search" value="${esc(query)}" placeholder="Find a preset or block, for example shimmer" aria-label="Find a preset or block" data-fk="q"></label>
+      <div class="fams" role="group" aria-label="Show presets that use">
+        <button data-act="fam" data-fam="all" aria-pressed="${fam === "all"}" style="--fam:var(--bone)">All</button>
+        ${A.D.FAMILIES.map((f) => `<button class="f-${f.id}" data-act="fam" data-fam="${f.id}" aria-pressed="${fam === f.id}">${f.label}</button>`).join("")}
+      </div>
+      <span class="count">${n} presets in ${s.banks.length} banks · drag a tile onto a slot to swap</span>`;
+  }
+
+  function pull(s, p) {
+    const slot = A.slotOf(p.id);
+    const hit = s.sel ? A.locate(p, s.sel) : null;
+    const b = hit?.block;
+    const isNew = lastOpen !== p.id;
+    lastOpen = p.id;
+    const ctls = b ? `<div class="pull__ctls ${A.famClass(b)}">
+        <div class="pull__ctls-head"><span class="tag" style="background:var(--fam);color:var(--ground)">${esc(DEFS[b.def].cap)}</span><h3>${esc(A.blockName(b))}</h3>
+          <span class="push"><button class="btn btn--sm" data-act="toggle" data-uid="${b.uid}">${A.icon("power")}${A.isOn(p, b, s.scene) ? "Bypass" : "Turn on"}</button>
+          <button class="btn btn--sm" data-act="dup" data-uid="${b.uid}">${A.icon("copy")}Copy</button>
+          <button class="btn btn--sm btn--danger" data-act="remove" data-uid="${b.uid}">${A.icon("trash")}Delete</button>
+          <button class="btn btn--sm btn--icon" data-act="close-sel" aria-label="Close block">${A.icon("close")}</button></span></div>
+        <div class="pull__grid">${A.controls(p, b, { scene: s.scene, compact: true, eqH: 130 })}</div></div>`
+      : `<div class="pull__empty">Select a block to edit it. Drag a cap to move a block. The chain plays left to right.</div>`;
+    return `<section class="pull ${isNew ? "is-new" : ""}" style="--notch:${(slot.slot - 1) * 25 + 11}%" aria-label="Edit ${esc(p.name)}">
+      <div class="pull__head">
+        <button class="btn btn--quiet back" data-act="closepull">${A.icon("left")}Library</button>
+        <input id="pname" value="${esc(p.name)}" aria-label="Preset name" data-fk="pname" style="width:${Math.max(6, p.name.length + 1)}ch">
+        <span class="slot">Bank ${String(slot.bank).padStart(2, "0")} · FS ${slot.slot}</span>${A.dirtyTag()}
+        <span class="push">${A.sceneSeg(p)}${A.liveState()}${A.editTools()}
+          <button class="btn btn--icon" data-act="copyslot" title="Copy to the next empty slot" aria-label="Copy preset to the next empty slot">${A.icon("copy")}</button>
+          <button class="btn btn--icon btn--danger" data-act="clearslot" title="Clear this slot" aria-label="Clear this slot">${A.icon("trash")}</button>
+          <button class="btn btn--icon btn--quiet" data-act="closepull" aria-label="Close editor" title="Close (Esc)">${A.icon("up")}</button></span>
+      </div>
+      <div class="scroll-x" data-keep-scroll="pull-${p.id}">${A.chain(p, { sel: s.sel, scene: s.scene })}</div>
+      ${ctls}
+    </section>`;
+  }
+
+  function wall(s) {
+    const p = A.cur();
+    const rows = s.banks.map((bank) => {
+      const pedal = bank.slots.includes(s.live.presetId);
+      const tiles = bank.slots.map((id, i) => {
+        const hit = matches(id ? s.presets[id] : null);
+        const dim = (query || fam !== "all") && !hit;
+        return A.tile(id, { fs: `FS ${i + 1}`, bank: bank.n, slot: i + 1, sortable: true, cls: `${dim ? "is-dim" : ""} ${hit && (query || fam !== "all") && id ? "is-hit" : ""}` })
+          .replace("<button class=\"tile", `<button data-pos="${i}" class="tile`)
+          .replace(/data-sort-item(?! data-uid)/, `data-sort-item data-uid="${id ?? ""}"`);
+      }).join("");
+      const row = `<div class="bankrow ${pedal ? "is-pedal" : ""}">
+        <div class="bankrow__label"><b>BANK ${String(bank.n).padStart(2, "0")}</b><input data-bankname="${bank.n}" value="${esc(bank.name)}" placeholder="Name this bank" aria-label="Bank ${bank.n} name" data-fk="bn-${bank.n}"></div>
+        <div class="slots" data-sort-list="bank-${bank.n}" data-sort-kind="tiles" data-sort-mode="swap">${tiles}</div></div>`;
+      return row + (open && bank.slots.includes(p.id) ? pull(s, p) : "");
+    }).join("");
+    if (!open) lastOpen = null;
+    return `${rows}<button class="newbank" data-act="newbank">${A.icon("plus")}Add bank</button>`;
+  }
+
+  function pedal(s) {
+    const lp = s.presets[s.live.presetId];
+    const slot = A.slotOf(lp.id);
+    const scenes = lp.scenes ? `<h2>Scenes <span class="tag tag--line">FS 1 to 4</span></h2><div class="fsgrid">${[0, 2, 1, 3].map((i) => {
+      const sc = lp.scenes[i];
+      return `<button class="btn" data-act="bankscene" data-scene="${sc.id}" aria-pressed="${s.live.sceneId === sc.id}"><small>FS ${i + 1}</small>${esc(sc.name)}</button>`;
+    }).join("")}</div>` : '<p class="note">This preset has no scenes.</p>';
+    return `<h2>On the pedal <span class="tag tag--line">Bank ${String(slot.bank).padStart(2, "0")}</span></h2>
+      ${A.tile(lp.id, { fs: `FS ${slot.slot}` })}
+      ${scenes}
+      <h2>Library</h2>
+      <p class="note">Presets are JSON files in bank and slot folders. A backup holds all presets and assets.</p>
+      <div class="row"><button class="btn btn--sm">${A.icon("save")}Back up</button><button class="btn btn--sm">${A.icon("folder")}Restore</button><button class="btn btn--sm">${A.icon("folder")}Assets</button></div>`;
+  }
+
+  A.keys.Escape = () => { if (A.get().sel) return false; if (open) { open = false; A.repaint(); return true; } return false; };
+
+  A.view({ sel: null });
+  A.mount((s) => {
+    const p = A.cur();
+    document.getElementById("bar").innerHTML = `${A.mark()}${A.mockflag(3)}<div class="where"><b>Library</b><span>${esc(p.name)} open</span></div><span class="push"></span>${A.conn()}
+      <button class="btn btn--icon btn--quiet" aria-label="Settings">${A.icon("gear")}</button>`;
+    if (!document.getElementById("q") || document.activeElement?.id !== "q") document.getElementById("tools").innerHTML = tools(s);
+    else document.querySelectorAll('#tools .fams button').forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.fam === fam)));
+    document.getElementById("wall").innerHTML = wall(s);
+    document.getElementById("pedal").innerHTML = pedal(s);
+  });
+})();
+</script>
+</body>
+</html>

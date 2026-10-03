@@ -3,6 +3,7 @@ import type {
   ApplyPresetStatus,
   Asset,
   AssetKind,
+  AssetUsageEntry,
   DeviceStatus,
   Preset,
   PresetSlot,
@@ -35,6 +36,8 @@ export interface ManagerTransport {
   uploadAsset(kind: AssetKind, file: File, overwrite: boolean): Promise<Asset>;
   deleteAsset(kind: AssetKind, assetId: string): Promise<void>;
   renameAsset(kind: AssetKind, assetId: string, filename: string): Promise<RenameAssetResponse>;
+  /** Optional: the hosted relay does not forward this route yet. */
+  getAssetUsage?(): Promise<AssetUsageEntry[]>;
   listPresets(): Promise<PresetSlotSummary[]>;
   getPreset(bank: number, slot: number): Promise<PresetSlot>;
   savePreset(bank: number, slot: number, preset: Preset): Promise<PresetSlot>;

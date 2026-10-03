@@ -1,0 +1,17 @@
+{
+  "ground_components_before": 2,
+  "host_ground": "J101.2",
+  "added_vias": [
+    {
+      "position_mm": [
+        65.1625,
+        53.8985
+      ],
+      "connects": [
+        "zone:0:0",
+        "C101.2:1"
+      ]
+    }
+  ],
+  "removed_router_spurs": 0
+}

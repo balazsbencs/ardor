@@ -30,6 +30,8 @@
 /apps/manager/node_modules/
 /apps/manager/dist/
 /apps/manager/dist-hosted/
+/apps/manager/test-results/
+/apps/manager/playwright-report/
 /services/managerd/ardor-managerd
 /services/controlplane/data/
 /services/controlplane/ardor-controlplane

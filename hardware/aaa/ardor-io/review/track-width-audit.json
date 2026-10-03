@@ -1,0 +1,3979 @@
+{
+  "summary": {
+    "total_junctions_with_width_change": 127,
+    "at_pad_or_via": 36,
+    "mid_route_nonbranch": 78,
+    "branch_without_pad_via": 13,
+    "by_net": {
+      "+3V3_ADC": 10,
+      "+3V3_PI": 5,
+      "+5V_A": 21,
+      "+5V_PI": 7,
+      "/05 / Line and amp feed/AMP_BUF": 1,
+      "/05 / Line and amp feed/LINE_BUF": 1,
+      "/06 / Stereo headphones/HP_IN_L": 1,
+      "ADC_SDA": 1,
+      "BUF_L": 2,
+      "BUF_R": 1,
+      "CHASSIS": 11,
+      "CPN": 1,
+      "EXP_ADC": 1,
+      "GND": 55,
+      "HP_EN": 1,
+      "HP_L": 2,
+      "HP_R": 1,
+      "MIDI_5": 2,
+      "MONO_BUF": 1,
+      "RELAY_LOW": 1,
+      "VREF": 1
+    },
+    "junctions_outside_pad_via_nonbranch_more_than_1mm_from_any_pad_or_via": 8,
+    "straight_nonbranch_outside_pad_via": 3,
+    "all_78_narrow_segments_match_width_snapshot_and_have_historical_DRC_issue": true,
+    "midroute_candidates_for_widening_individually_geometry_only": 13
+  },
+  "transitions": [
+    {
+      "net": "+3V3_ADC",
+      "layer": "F.Cu",
+      "xy": [
+        78.7415,
+        86.2665
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.1349159848564838,
+        "C303.1"
+      ],
+      "narrow_uuid": "d6ce65e9-8fd2-4f34-af4d-1cb4bb90906e",
+      "narrow_length": 2.817,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0665,
+      "obstacle": "R307.2",
+      "widened_hole_clearance": 0.6024,
+      "hole_obstacle": "via e8bcc8c7-a903-4acf-9cc0-0c22afc8abdb hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0665 mm); Pad 2 [GND] of R307 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.1349,
+      "straight": false
+    },
+    {
+      "net": "+3V3_ADC",
+      "layer": "F.Cu",
+      "xy": [
+        69.1177,
+        80.9823
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.00781113243303031,
+        "D303.1"
+      ],
+      "narrow_uuid": "07d6a427-127f-4431-8663-828c8dc4f9f6",
+      "narrow_length": 3.2104,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0573,
+      "obstacle": "R301.2",
+      "widened_hole_clearance": 1.0855,
+      "hole_obstacle": "via 0b6302bb-cace-4b90-ba28-846b3e1cec49 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0573 mm); Pad 2 [EXP_EXC] of R301 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0078,
+      "straight": false
+    },
+    {
+      "net": "+3V3_ADC",
+      "layer": "F.Cu",
+      "xy": [
+        65.9073,
+        80.9823
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.5018306235482193,
+        "R301.1"
+      ],
+      "narrow_uuid": "07d6a427-127f-4431-8663-828c8dc4f9f6",
+      "narrow_length": 3.2104,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0573,
+      "obstacle": "R301.2",
+      "widened_hole_clearance": 1.0855,
+      "hole_obstacle": "via 0b6302bb-cace-4b90-ba28-846b3e1cec49 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0573 mm); Pad 2 [EXP_EXC] of R301 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.5018,
+      "straight": false
+    },
+    {
+      "net": "+3V3_ADC",
+      "layer": "F.Cu",
+      "xy": [
+        74.9279,
+        84.5697
+      ],
+      "widths": [
+        0.15,
+        0.4
+      ],
+      "attachment": [
+        "via 59ccd412-0667-494e-a56e-bb3ecf23b87e"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.5471000000000146,
+        "U301.9"
+      ],
+      "narrow_uuid": "3bc56a8b-c1a8-436a-a6c9-57f0e5ee51d6",
+      "narrow_length": 0.4678,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1611,
+      "obstacle": "U301.9",
+      "widened_hole_clearance": 3.2938,
+      "hole_obstacle": "via 844eb8cd-34ec-4446-a413-9c4cfc18064d hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1081 mm); Track [GND] on F.Cu, length 0.2261 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1081 mm); Track [GND] on F.Cu, length 0.7515 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "+3V3_ADC",
+      "layer": "F.Cu",
+      "xy": [
+        75.2587,
+        84.9005
+      ],
+      "widths": [
+        0.15,
+        0.2
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.21733874568826317,
+        "U301.8"
+      ],
+      "narrow_uuid": "3bc56a8b-c1a8-436a-a6c9-57f0e5ee51d6",
+      "narrow_length": 0.4678,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.2611,
+      "obstacle": "U301.9",
+      "widened_hole_clearance": 3.3937,
+      "hole_obstacle": "via 844eb8cd-34ec-4446-a413-9c4cfc18064d hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1081 mm); Track [GND] on F.Cu, length 0.2261 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1081 mm); Track [GND] on F.Cu, length 0.7515 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.1678,
+      "straight": false
+    },
+    {
+      "net": "+3V3_ADC",
+      "layer": "F.Cu",
+      "xy": [
+        70.4183,
+        79.6817
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.4829868893903982,
+        "D303.1"
+      ],
+      "narrow_uuid": "ca771064-cfac-44b1-9da0-cb739877636e",
+      "narrow_length": 3.6134,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0683,
+      "obstacle": "D303.2",
+      "widened_hole_clearance": 1.3317,
+      "hole_obstacle": "via 7a0b55f5-2344-48cb-a082-32e2811a9f54 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0683 mm); Pad 2 [EXP_ADC] of D303 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.483,
+      "straight": false
+    },
+    {
+      "net": "+3V3_ADC",
+      "layer": "F.Cu",
+      "xy": [
+        74.0317,
+        79.6817
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [
+        "D305.1"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "D305.1"
+      ],
+      "narrow_uuid": "ca771064-cfac-44b1-9da0-cb739877636e",
+      "narrow_length": 3.6134,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0683,
+      "obstacle": "D303.2",
+      "widened_hole_clearance": 1.3317,
+      "hole_obstacle": "via 7a0b55f5-2344-48cb-a082-32e2811a9f54 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0683 mm); Pad 2 [EXP_ADC] of D303 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "+3V3_ADC",
+      "layer": "F.Cu",
+      "xy": [
+        75.3443,
+        84.9005
+      ],
+      "widths": [
+        0.15,
+        0.2
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.1321782972647876,
+        "U301.8"
+      ],
+      "narrow_uuid": "6a2bb048-b6a5-40e5-94d6-e1cfd902a96a",
+      "narrow_length": 0.7562,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1505,
+      "obstacle": "U301.9",
+      "widened_hole_clearance": 3.857,
+      "hole_obstacle": "via 5186d53b-5149-48ea-9b86-b3c462cc3d0a hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1000 mm); Track [GND] on F.Cu, length 0.2261 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0505 mm); Pad 9 [ADC_SDA] of U301 on F.Cu",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1381 mm); Track [GND] on F.Cu, length 0.1407 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1000 mm); Track [GND] on F.Cu, length 0.7515 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1000 mm); Track [GND] on F.Cu, length 0.1407 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1381 mm); Track [GND] on F.Cu, length 1.0312 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1127 mm); Track [ADC_SDA] on F.Cu, length 0.1407 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.1322,
+      "straight": true
+    },
+    {
+      "net": "+3V3_ADC",
+      "layer": "F.Cu",
+      "xy": [
+        78.7415,
+        89.0835
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.514813217562153,
+        "R307.1"
+      ],
+      "narrow_uuid": "d6ce65e9-8fd2-4f34-af4d-1cb4bb90906e",
+      "narrow_length": 2.817,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0665,
+      "obstacle": "R307.2",
+      "widened_hole_clearance": 0.6024,
+      "hole_obstacle": "via e8bcc8c7-a903-4acf-9cc0-0c22afc8abdb hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0665 mm); Pad 2 [GND] of R307 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.5148,
+      "straight": false
+    },
+    {
+      "net": "+3V3_ADC",
+      "layer": "B.Cu",
+      "xy": [
+        80.2106,
+        83.7503
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        10.400479410240143,
+        "U201.4"
+      ],
+      "narrow_uuid": "49572654-ebe0-4768-acc8-54e86f4eba5e",
+      "narrow_length": 8.4583,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0825,
+      "obstacle": "via 88963f46-a976-48ec-8577-aeb1fab593ff",
+      "widened_hole_clearance": 0.2325,
+      "hole_obstacle": "via 88963f46-a976-48ec-8577-aeb1fab593ff hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0825 mm); Via [PI_SDA] on F.Cu - B.Cu",
+        "Hole clearance violation (board setup constraints hole clearance 0.2500 mm; actual 0.2325 mm); Via [PI_SDA] on F.Cu - B.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 2.0093,
+      "straight": false
+    },
+    {
+      "net": "+3V3_PI",
+      "layer": "F.Cu",
+      "xy": [
+        60.6017,
+        54.1378
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.2516999999999996,
+        "J101.1"
+      ],
+      "narrow_uuid": "186f3b57-5cec-4883-9274-5d4e9ce55169",
+      "narrow_length": 1.3632,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0645,
+      "obstacle": "J101.3",
+      "widened_hole_clearance": 0.4145,
+      "hole_obstacle": "J101.3 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0645 mm); PTH pad 3 [PI_SDA] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.2517,
+      "straight": false
+    },
+    {
+      "net": "+3V3_PI",
+      "layer": "F.Cu",
+      "xy": [
+        63.3101,
+        56.2258
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.45921092318295875,
+        "J101.6"
+      ],
+      "narrow_uuid": "dabe96a6-e423-4e8a-b064-b92e972bf60f",
+      "narrow_length": 1.5897,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0625,
+      "obstacle": "J101.3",
+      "widened_hole_clearance": 0.412,
+      "hole_obstacle": "J101.3 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0613 mm); PTH pad 3 [PI_SDA] of J101",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0703 mm); PTH pad 4 [+5V_PI] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4592,
+      "straight": false
+    },
+    {
+      "net": "+3V3_PI",
+      "layer": "F.Cu",
+      "xy": [
+        63.3101,
+        56.8292
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.4531364186853769,
+        "J101.6"
+      ],
+      "narrow_uuid": "6b9380cb-b52b-4a87-a7ee-e89fa1179de4",
+      "narrow_length": 3.9396,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0525,
+      "obstacle": "J101.6",
+      "widened_hole_clearance": 0.4025,
+      "hole_obstacle": "J101.6 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0524 mm); PTH pad 6 [GND] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4531,
+      "straight": false
+    },
+    {
+      "net": "+3V3_PI",
+      "layer": "F.Cu",
+      "xy": [
+        68.322,
+        59.6149
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [
+        "via 4dad6eb8-df05-4a43-a892-19f927a108c4"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.4623398284563929,
+        "FB102.1"
+      ],
+      "narrow_uuid": "ebfe0fd8-e8ad-4bc6-ba4f-60634c9b3fa2",
+      "narrow_length": 2.2262,
+      "restored_from_snapshot": true,
+      "widened_clearance": 1.7161,
+      "obstacle": "C401.2",
+      "widened_hole_clearance": 2.3749,
+      "hole_obstacle": "J101.8 hole",
+      "previous_issues": [
+        "Items shorting two nets (nets GND and +3V3_PI); Via [GND] on F.Cu - B.Cu",
+        "Hole clearance violation (board setup constraints hole clearance 0.2500 mm; actual 0.0351 mm); Via [GND] on F.Cu - B.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": true
+    },
+    {
+      "net": "+3V3_PI",
+      "layer": "B.Cu",
+      "xy": [
+        76.0205,
+        72.6909
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        2.10537416781497,
+        "U201.5"
+      ],
+      "narrow_uuid": "758e09fc-f201-47d9-8393-ec850810f8e0",
+      "narrow_length": 3.4757,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0516,
+      "obstacle": "track bcf6817d-a39c-4a68-9b59-68aacd76fe25",
+      "widened_hole_clearance": 2.242,
+      "hole_obstacle": "via fd75fa1c-a8b6-4256-87b7-354eee9c6dd2 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0516 mm); Track [MIDI_RX] on B.Cu, length 10.1439 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.6642,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        89.6409,
+        80.001
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": true,
+      "nearest_pad": [
+        1.1920212914992279,
+        "C601.2"
+      ],
+      "narrow_uuid": "12cc9bca-c00b-4f0c-b6b0-e559b6a539af",
+      "narrow_length": 2.8931,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.076,
+      "obstacle": "C403.1",
+      "widened_hole_clearance": 1.7655,
+      "hole_obstacle": "via c7dd956a-2c9f-4125-8e78-9d2b4c748fc3 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0760 mm); Pad 1 [VREF_DIV] of C403 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 1.192,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        84.3606,
+        65.095
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [
+        "U401.8"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "U401.8"
+      ],
+      "narrow_uuid": "012c08b8-07c7-42ae-8958-99bc65b65176",
+      "narrow_length": 1.9331,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0636,
+      "obstacle": "R403.1",
+      "widened_hole_clearance": 2.8604,
+      "hole_obstacle": "via d0a054c8-339f-4f44-b785-9e8cbf10e8fb hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0636 mm); Pad 1 [BUF_L] of R403 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        88.5398,
+        60
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.08520000000000039,
+        "FB101.2"
+      ],
+      "narrow_uuid": "c90b958b-3033-42ac-9b8c-6c87a8053232",
+      "narrow_length": 1.224,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0517,
+      "obstacle": "track aa6a1223-fe8a-410f-a082-b74f20b702c1",
+      "widened_hole_clearance": 1.135,
+      "hole_obstacle": "via d0a054c8-339f-4f44-b785-9e8cbf10e8fb hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0755 mm); Track [GND] on F.Cu, length 0.4953 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0755 mm); Track [GND] on F.Cu, length 0.3475 mm",
+        "Items shorting two nets (nets GND and +5V_A); Track [GND] on F.Cu, length 3.3673 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0852,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        95,
+        83.95
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [
+        "C603.1"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "C603.1"
+      ],
+      "narrow_uuid": "177374c9-afcd-4ca7-9cbc-b688a8cc8180",
+      "narrow_length": 4.2908,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.4572,
+      "obstacle": "via 8192837a-dce2-416f-958a-a8d1998594eb",
+      "widened_hole_clearance": 0.6072,
+      "hole_obstacle": "via 8192837a-dce2-416f-958a-a8d1998594eb hole",
+      "previous_issues": [
+        "Items shorting two nets (nets +5V_A and GND); Via [GND] on F.Cu - B.Cu",
+        "Hole clearance violation (board setup constraints hole clearance 0.2500 mm; actual 0.0000 mm); Via [GND] on F.Cu - B.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        95.7552,
+        68.7448
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.30330626125547216,
+        "TP101.1"
+      ],
+      "narrow_uuid": "21b280d8-f2a7-4860-8bb2-a4489abd45e5",
+      "narrow_length": 3.9413,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0948,
+      "obstacle": "U501.1",
+      "widened_hole_clearance": 0.5014,
+      "hole_obstacle": "via 755ddfeb-abe4-4c28-a3e1-69d9760e4ab0 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0948 mm); Pad 1 [/05 / Line and amp feed/LINE_BUF] of U501 on F.Cu",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0948 mm); Pad 2 [/05 / Line and amp feed/LINE_BUF] of U501 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.3033,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        93,
+        79.535
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.45259786947669206,
+        "C403.1"
+      ],
+      "narrow_uuid": "37a08fa9-9781-4133-9fc3-7a9b098ed56e",
+      "narrow_length": 0.659,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0874,
+      "obstacle": "C403.1",
+      "widened_hole_clearance": 1.7794,
+      "hole_obstacle": "via c7dd956a-2c9f-4125-8e78-9d2b4c748fc3 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0874 mm); Pad 1 [VREF_DIV] of C403 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4526,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        83.475,
+        65.095
+      ],
+      "widths": [
+        0.15,
+        0.4
+      ],
+      "attachment": [
+        "U401.8"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "U401.8"
+      ],
+      "narrow_uuid": "7893542c-635b-4283-95b3-2bb447137a81",
+      "narrow_length": 1.0171,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0508,
+      "obstacle": "U401.7",
+      "widened_hole_clearance": 2.8283,
+      "hole_obstacle": "via 26eb53a2-8be2-46e7-8551-827ff7db6f50 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0508 mm); Pad 7 [BUF_R] of U401 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        97.2366,
+        81.7134
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.7082060575273748,
+        "C604.2"
+      ],
+      "narrow_uuid": "c24472e3-0389-4e61-84eb-95274f54fab8",
+      "narrow_length": 1.7518,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1116,
+      "obstacle": "C604.2",
+      "widened_hole_clearance": 0.9285,
+      "hole_obstacle": "via 27531cea-2bc2-4913-8d1f-f4c0831dc946 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1116 mm); Pad 2 [GND] of C604 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.7082,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        96.2268,
+        67.7268
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [
+        "TP101.1"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "TP101.1"
+      ],
+      "narrow_uuid": "51d4b46f-e2c6-4515-9d3f-b2eada3dea9e",
+      "narrow_length": 7.0018,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0982,
+      "obstacle": "C405.2",
+      "widened_hole_clearance": 3.3051,
+      "hole_obstacle": "via fa6508fa-6836-47ff-b5d5-11c1cbb92759 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0982 mm); Pad 2 [GND] of C405 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        89.225,
+        67.7268
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": true,
+      "nearest_pad": [
+        0.29820000000000846,
+        "C405.1"
+      ],
+      "narrow_uuid": "51d4b46f-e2c6-4515-9d3f-b2eada3dea9e",
+      "narrow_length": 7.0018,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0982,
+      "obstacle": "C405.2",
+      "widened_hole_clearance": 3.3051,
+      "hole_obstacle": "via fa6508fa-6836-47ff-b5d5-11c1cbb92759 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0982 mm); Pad 2 [GND] of C405 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.2982,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        92.1929,
+        65.476
+      ],
+      "widths": [
+        0.15,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.25099999999999056,
+        "C102.1"
+      ],
+      "narrow_uuid": "60d1164c-6f08-4000-b292-d4249cf688a6",
+      "narrow_length": 2.6297,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.051,
+      "obstacle": "R501.1",
+      "widened_hole_clearance": 4.5585,
+      "hole_obstacle": "via d0a054c8-339f-4f44-b785-9e8cbf10e8fb hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0240 mm); Via [GND] on F.Cu - B.Cu",
+        "Hole clearance violation (board setup constraints hole clearance 0.2500 mm; actual 0.1740 mm); Via [GND] on F.Cu - B.Cu",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0510 mm); Pad 1 [/05 / Line and amp feed/LINE_AC] of R501 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.251,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        89.225,
+        65.8142
+      ],
+      "widths": [
+        0.15,
+        0.4
+      ],
+      "attachment": [],
+      "branch": true,
+      "nearest_pad": [
+        0.7343325310677754,
+        "R501.1"
+      ],
+      "narrow_uuid": "8919c30a-f101-4002-b7f5-12ff7d6da89a",
+      "narrow_length": 5.0308,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0508,
+      "obstacle": "U401.7",
+      "widened_hole_clearance": 2.64,
+      "hole_obstacle": "via 26eb53a2-8be2-46e7-8551-827ff7db6f50 hole",
+      "previous_issues": [
+        "Items shorting two nets (nets GND and +5V_A); Via [GND] on F.Cu - B.Cu",
+        "Hole clearance violation (board setup constraints hole clearance 0.2500 mm; actual 0.0000 mm); Via [GND] on F.Cu - B.Cu",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0508 mm); Pad 7 [BUF_R] of U401 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.7343,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        93,
+        78.4141
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.45899710254115794,
+        "C403.1"
+      ],
+      "narrow_uuid": "c48e63c4-3b83-4d1d-b63e-c9eb801bfd86",
+      "narrow_length": 1.0602,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1234,
+      "obstacle": "C403.2",
+      "widened_hole_clearance": 3.4196,
+      "hole_obstacle": "via c7dd956a-2c9f-4125-8e78-9d2b4c748fc3 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1234 mm); Pad 2 [GND] of C403 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.459,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        92.7919,
+        71.095
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [
+        "U402.8"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "U402.8"
+      ],
+      "narrow_uuid": "97622fe2-807f-4a16-89bb-15c346adecd2",
+      "narrow_length": 1.3545,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0827,
+      "obstacle": "U402.7",
+      "widened_hole_clearance": 2.0058,
+      "hole_obstacle": "via 755ddfeb-abe4-4c28-a3e1-69d9760e4ab0 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0827 mm); Pad 7 [VREF] of U402 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        85.2213,
+        62.4294
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.3544000000000054,
+        "R403.2"
+      ],
+      "narrow_uuid": "984aceb2-94f1-4025-af2e-7aab192c7434",
+      "narrow_length": 0.7159,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0539,
+      "obstacle": "R403.1",
+      "widened_hole_clearance": 2.2294,
+      "hole_obstacle": "via d0a054c8-339f-4f44-b785-9e8cbf10e8fb hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0539 mm); Pad 1 [BUF_L] of R403 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.3544,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        98.9884,
+        81.7134
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.5351413033966023,
+        "C604.2"
+      ],
+      "narrow_uuid": "c24472e3-0389-4e61-84eb-95274f54fab8",
+      "narrow_length": 1.7518,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1116,
+      "obstacle": "C604.2",
+      "widened_hole_clearance": 0.9285,
+      "hole_obstacle": "via 27531cea-2bc2-4913-8d1f-f4c0831dc946 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1116 mm); Pad 2 [GND] of C604 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.5351,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        99.775,
+        82.5
+      ],
+      "widths": [
+        0.25,
+        0.4
+      ],
+      "attachment": [
+        "C604.1"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "C604.1"
+      ],
+      "narrow_uuid": "c875e2c8-2905-41af-8e5f-401178278225",
+      "narrow_length": 0.675,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1002,
+      "obstacle": "track a2ba8ddb-2af7-46e9-86ca-cf3162221c31",
+      "widened_hole_clearance": 0.8354,
+      "hole_obstacle": "via 7e41d268-6840-4fc2-a453-779ca4fb8740 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0752 mm); Track [HP_EN] on F.Cu, length 1.7119 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        99.4252,
+        72.9906
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        1.4954333342532247,
+        "U501.2"
+      ],
+      "narrow_uuid": "f194568d-f267-4de6-9d28-e3b227e861be",
+      "narrow_length": 3.3655,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1256,
+      "obstacle": "U501.2",
+      "widened_hole_clearance": 0.3583,
+      "hole_obstacle": "via 755ddfeb-abe4-4c28-a3e1-69d9760e4ab0 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1444 mm); Pad 3 [MONO_BUF] of U501 on F.Cu",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1256 mm); Pad 2 [/05 / Line and amp feed/LINE_BUF] of U501 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 1.4954,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        81.9526,
+        62.7276
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.468439739866759,
+        "C404.1"
+      ],
+      "narrow_uuid": "e4071c47-b885-4762-af73-99fa058b559b",
+      "narrow_length": 1.993,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0526,
+      "obstacle": "C404.2",
+      "widened_hole_clearance": 3.1778,
+      "hole_obstacle": "via 1b23b34a-736b-48fd-b947-e729b26ede54 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0526 mm); Pad 2 [GND] of C404 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4684,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        83.9456,
+        62.7276
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.6749148993324247,
+        "R403.1"
+      ],
+      "narrow_uuid": "e4071c47-b885-4762-af73-99fa058b559b",
+      "narrow_length": 1.993,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0526,
+      "obstacle": "C404.2",
+      "widened_hole_clearance": 3.1778,
+      "hole_obstacle": "via 1b23b34a-736b-48fd-b947-e729b26ede54 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0526 mm); Pad 2 [GND] of C404 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.6749,
+      "straight": false
+    },
+    {
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "xy": [
+        84.2438,
+        62.4294
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": true,
+      "nearest_pad": [
+        0.534211552221086,
+        "R403.2"
+      ],
+      "narrow_uuid": "e6253f6a-063e-43f9-9893-88b736c8dab0",
+      "narrow_length": 1.5841,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0812,
+      "obstacle": "R403.2",
+      "widened_hole_clearance": 1.6779,
+      "hole_obstacle": "via 1b23b34a-736b-48fd-b947-e729b26ede54 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0812 mm); Pad 2 [MONO_MIX] of R403 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.5342,
+      "straight": false
+    },
+    {
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "xy": [
+        60.6461,
+        55.3939
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.6192757221141469,
+        "J101.1"
+      ],
+      "narrow_uuid": "01ce8698-0c78-4494-b35c-7660c75c940a",
+      "narrow_length": 1.6147,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0961,
+      "obstacle": "J101.1",
+      "widened_hole_clearance": 0.4461,
+      "hole_obstacle": "J101.1 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0961 mm); PTH pad 1 [+3V3_PI] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.6193,
+      "straight": false
+    },
+    {
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "xy": [
+        83.7876,
+        57.6402
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.7145965372917166,
+        "J101.22"
+      ],
+      "narrow_uuid": "409664cb-849e-42dd-bbcf-b0115d8ad176",
+      "narrow_length": 1.2569,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0624,
+      "obstacle": "J101.22",
+      "widened_hole_clearance": 0.4124,
+      "hole_obstacle": "J101.22 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0624 mm); PTH pad 22 [unconnected-(J101-Pin_22-Pad22)] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.7146,
+      "straight": false
+    },
+    {
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "xy": [
+        82.0417,
+        55.27
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.4603041450458776,
+        "J101.20"
+      ],
+      "narrow_uuid": "5549ca6e-36f4-4857-9980-22afadc835cf",
+      "narrow_length": 1.3458,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0731,
+      "obstacle": "J101.19",
+      "widened_hole_clearance": 0.4231,
+      "hole_obstacle": "J101.19 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0731 mm); PTH pad 19 [unconnected-(J101-Pin_19-Pad19)] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4603,
+      "straight": false
+    },
+    {
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "xy": [
+        81.0901,
+        54.3184
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.46023143993854515,
+        "J101.19"
+      ],
+      "narrow_uuid": "5549ca6e-36f4-4857-9980-22afadc835cf",
+      "narrow_length": 1.3458,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0731,
+      "obstacle": "J101.19",
+      "widened_hole_clearance": 0.4231,
+      "hole_obstacle": "J101.19 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0731 mm); PTH pad 19 [unconnected-(J101-Pin_19-Pad19)] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4602,
+      "straight": false
+    },
+    {
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "xy": [
+        81.0901,
+        53.7103
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.4532579087753268,
+        "J101.19"
+      ],
+      "narrow_uuid": "a279198f-9269-42da-a01b-1d96d1cc48e1",
+      "narrow_length": 1.6938,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0529,
+      "obstacle": "J101.17",
+      "widened_hole_clearance": 0.4029,
+      "hole_obstacle": "J101.17 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0529 mm); PTH pad 17 [unconnected-(J101-Pin_17-Pad17)] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4533,
+      "straight": false
+    },
+    {
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "xy": [
+        62.04,
+        56.7388
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [
+        "J101.4"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "J101.4"
+      ],
+      "narrow_uuid": "d1464989-536b-405b-84e2-94dc1ae6a10f",
+      "narrow_length": 15.6695,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0603,
+      "obstacle": "track 44d3558b-7438-4385-972d-f11c6b0137b2",
+      "widened_hole_clearance": 1.2366,
+      "hole_obstacle": "J101.6 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0603 mm); Track [PI_SCL] on B.Cu, length 12.8754 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0603 mm); Track [PI_SCL] on B.Cu, length 4.7693 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "xy": [
+        82.6743,
+        55.27
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.4593322243262667,
+        "J101.20"
+      ],
+      "narrow_uuid": "f7f6ae6c-17e3-4e4e-aff3-e07b5098982c",
+      "narrow_length": 1.5744,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0703,
+      "obstacle": "J101.20",
+      "widened_hole_clearance": 0.4203,
+      "hole_obstacle": "J101.20 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0734 mm); PTH pad 22 [unconnected-(J101-Pin_22-Pad22)] of J101",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0703 mm); PTH pad 20 [GND] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4593,
+      "straight": false
+    },
+    {
+      "net": "/05 / Line and amp feed/AMP_BUF",
+      "layer": "F.Cu",
+      "xy": [
+        101.975,
+        73.635
+      ],
+      "widths": [
+        0.2,
+        0.25
+      ],
+      "attachment": [
+        "U501.6"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "U501.6"
+      ],
+      "narrow_uuid": "ecd7ac55-25a7-4fbf-b8d0-88f4678e55e6",
+      "narrow_length": 0.0986,
+      "restored_from_snapshot": false,
+      "widened_clearance": 0.7753,
+      "obstacle": "U501.5",
+      "widened_hole_clearance": 2.7097,
+      "hole_obstacle": "K501.5 hole",
+      "previous_issues": [],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "/05 / Line and amp feed/LINE_BUF",
+      "layer": "F.Cu",
+      "xy": [
+        97.025,
+        71.095
+      ],
+      "widths": [
+        0.2,
+        0.25
+      ],
+      "attachment": [
+        "U501.1"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "U501.1"
+      ],
+      "narrow_uuid": "d16d9cde-8e69-4850-8c0c-795a5bc435d2",
+      "narrow_length": 0.7007,
+      "restored_from_snapshot": false,
+      "widened_clearance": 1.0448,
+      "obstacle": "track 21b280d8-f2a7-4860-8bb2-a4489abd45e5",
+      "widened_hole_clearance": 2.5437,
+      "hole_obstacle": "via 755ddfeb-abe4-4c28-a3e1-69d9760e4ab0 hole",
+      "previous_issues": [],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "/06 / Stereo headphones/HP_IN_L",
+      "layer": "F.Cu",
+      "xy": [
+        95.9762,
+        85.3746
+      ],
+      "widths": [
+        0.15,
+        0.2
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        1.027079199675185,
+        "C603.1"
+      ],
+      "narrow_uuid": "6cb4f7df-5f56-4c7a-8653-d6cc4560fc25",
+      "narrow_length": 1.4617,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1504,
+      "obstacle": "U601.2",
+      "widened_hole_clearance": 0.588,
+      "hole_obstacle": "via 33664a9c-2c87-40ef-8ca3-0e85c738e7f0 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0955 mm); Track [GND] on F.Cu, length 0.5000 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0955 mm); Track [GND] on F.Cu, length 0.8875 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 1.0271,
+      "straight": false
+    },
+    {
+      "net": "ADC_SDA",
+      "layer": "F.Cu",
+      "xy": [
+        77.4737,
+        84.4005
+      ],
+      "widths": [
+        0.15,
+        0.2
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.3013000000000119,
+        "C303.2"
+      ],
+      "narrow_uuid": "93537c44-0a93-47ba-ae0e-1f16f75150f2",
+      "narrow_length": 1.1742,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1505,
+      "obstacle": "U301.10",
+      "widened_hole_clearance": 1.1321,
+      "hole_obstacle": "via 59ccd412-0667-494e-a56e-bb3ecf23b87e hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1248 mm); Track [GND] on F.Cu, length 1.3001 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.3013,
+      "straight": false
+    },
+    {
+      "net": "BUF_L",
+      "layer": "F.Cu",
+      "xy": [
+        78.525,
+        65.095
+      ],
+      "widths": [
+        0.2,
+        0.25
+      ],
+      "attachment": [
+        "U401.1"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "U401.1"
+      ],
+      "narrow_uuid": "1f93322c-46dd-4d61-bfe9-17a4a3b45f79",
+      "narrow_length": 2.5032,
+      "restored_from_snapshot": false,
+      "widened_clearance": 0.9356,
+      "obstacle": "C404.1",
+      "widened_hole_clearance": 1.8982,
+      "hole_obstacle": "via a8e113f4-9810-4660-a1eb-1c15c4b3a497 hole",
+      "previous_issues": [],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "BUF_L",
+      "layer": "F.Cu",
+      "xy": [
+        78.525,
+        66.365
+      ],
+      "widths": [
+        0.2,
+        0.25
+      ],
+      "attachment": [
+        "U401.2"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "U401.2"
+      ],
+      "narrow_uuid": "e690f61d-eb00-4f5b-baeb-d69bfb739df9",
+      "narrow_length": 1.0171,
+      "restored_from_snapshot": false,
+      "widened_clearance": 0.1258,
+      "obstacle": "U401.3",
+      "widened_hole_clearance": 3.0459,
+      "hole_obstacle": "via eb3236f8-5c55-42bf-babb-ef7bdaf27c50 hole",
+      "previous_issues": [],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "BUF_R",
+      "layer": "F.Cu",
+      "xy": [
+        83.475,
+        67.635
+      ],
+      "widths": [
+        0.2,
+        0.25
+      ],
+      "attachment": [
+        "U401.6"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "U401.6"
+      ],
+      "narrow_uuid": "9b4f618c-2df9-4265-ac16-69401d106774",
+      "narrow_length": 1.0171,
+      "restored_from_snapshot": false,
+      "widened_clearance": 0.1258,
+      "obstacle": "U401.5",
+      "widened_hole_clearance": 0.8919,
+      "hole_obstacle": "via 26eb53a2-8be2-46e7-8551-827ff7db6f50 hole",
+      "previous_issues": [],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "CHASSIS",
+      "layer": "F.Cu",
+      "xy": [
+        59.3349,
+        74.025
+      ],
+      "widths": [
+        0.2,
+        0.6
+      ],
+      "attachment": [],
+      "branch": true,
+      "nearest_pad": [
+        0.2651000000000039,
+        "C203.2"
+      ],
+      "narrow_uuid": "55f5aa6d-620a-4925-aea0-8e007ce28bcf",
+      "narrow_length": 2.1922,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0401,
+      "obstacle": "FB202.2",
+      "widened_hole_clearance": 5.0269,
+      "hole_obstacle": "via a10bd38a-41d9-493f-af81-ea12a07b0cbe hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0401 mm); Pad 2 [MIDI_K] of FB202 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.2651,
+      "straight": false
+    },
+    {
+      "net": "CHASSIS",
+      "layer": "F.Cu",
+      "xy": [
+        60.7261,
+        71.476
+      ],
+      "widths": [
+        0.2,
+        0.6
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.47291576484258213,
+        "FB202.2"
+      ],
+      "narrow_uuid": "797fd550-59bc-4c86-b158-329830d57d16",
+      "narrow_length": 1.0344,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0,
+      "obstacle": "FB202.2",
+      "widened_hole_clearance": 4.1912,
+      "hole_obstacle": "U201.2 hole",
+      "previous_issues": [
+        "Items shorting two nets (nets CHASSIS and MIDI_K); Pad 2 [MIDI_K] of FB202 on F.Cu",
+        "Front solder mask aperture bridges items with different nets; Pad 2 [MIDI_K] of FB202 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4729,
+      "straight": false
+    },
+    {
+      "net": "CHASSIS",
+      "layer": "F.Cu",
+      "xy": [
+        60.7878,
+        71.5377
+      ],
+      "widths": [
+        0.2,
+        0.6
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.47399066714474425,
+        "FB202.2"
+      ],
+      "narrow_uuid": "5d15e5c4-e4eb-4c78-831b-4d2c78f3e799",
+      "narrow_length": 1.2645,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0127,
+      "obstacle": "FB201.1",
+      "widened_hole_clearance": 2.8905,
+      "hole_obstacle": "U201.2 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0127 mm); Pad 1 [MIDI_4] of FB201 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.474,
+      "straight": false
+    },
+    {
+      "net": "CHASSIS",
+      "layer": "F.Cu",
+      "xy": [
+        58.05,
+        79
+      ],
+      "widths": [
+        0.2,
+        0.6
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        1.0908713976432527,
+        "D301.2"
+      ],
+      "narrow_uuid": "bf51f838-7398-4ca0-8f42-19d61b0bdc19",
+      "narrow_length": 1.4142,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.141,
+      "obstacle": "track c8644d7d-711a-4c21-ba46-2bd2bddc9afd",
+      "widened_hole_clearance": 2.3469,
+      "hole_obstacle": "JP301.1 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1160 mm); Track [MIDI_5] on F.Cu, length 0.1752 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1160 mm); Track [MIDI_5] on F.Cu, length 0.2055 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 1.0909,
+      "straight": false
+    },
+    {
+      "net": "CHASSIS",
+      "layer": "F.Cu",
+      "xy": [
+        61.1835,
+        91.8665
+      ],
+      "widths": [
+        0.2,
+        0.6
+      ],
+      "attachment": [
+        "D302.2"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "D302.2"
+      ],
+      "narrow_uuid": "7c09bb2e-d27a-4d23-b842-2899b1e24f24",
+      "narrow_length": 1.9036,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0,
+      "obstacle": "R101.1",
+      "widened_hole_clearance": 0.6835,
+      "hole_obstacle": "via 5e9cd8fe-236a-4d73-a8cd-92510b7a24ec hole",
+      "previous_issues": [
+        "Items shorting two nets (nets CHASSIS and GND); Pad 1 [GND] of R101 on F.Cu",
+        "Front solder mask aperture bridges items with different nets; Pad 1 [GND] of R101 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "CHASSIS",
+      "layer": "F.Cu",
+      "xy": [
+        109.8,
+        90
+      ],
+      "widths": [
+        0.2,
+        0.6
+      ],
+      "attachment": [
+        "D602.2"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "D602.2"
+      ],
+      "narrow_uuid": "b690183d-3517-42b1-b332-783a884b1c14",
+      "narrow_length": 0.9034,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0,
+      "obstacle": "via f4bb3772-0fee-45c9-a303-2ae4682cb266",
+      "widened_hole_clearance": 0.1092,
+      "hole_obstacle": "via f4bb3772-0fee-45c9-a303-2ae4682cb266 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1092 mm); Track [HP_R] on F.Cu, length 0.9631 mm",
+        "Items shorting two nets (nets CHASSIS and HP_R); Via [HP_R] on F.Cu - B.Cu",
+        "Hole clearance violation (board setup constraints hole clearance 0.2500 mm; actual 0.1092 mm); Via [HP_R] on F.Cu - B.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "CHASSIS",
+      "layer": "F.Cu",
+      "xy": [
+        60.2149,
+        67
+      ],
+      "widths": [
+        0.2,
+        0.6
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.39999999999999153,
+        "C202.2"
+      ],
+      "narrow_uuid": "b6f1b713-34c8-46cf-b205-ef2125579d45",
+      "narrow_length": 3.0034,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0,
+      "obstacle": "C202.1",
+      "widened_hole_clearance": 2.5809,
+      "hole_obstacle": "U201.1 hole",
+      "previous_issues": [
+        "Items shorting two nets (nets CHASSIS and MIDI_4); Pad 1 [MIDI_4] of C202 on F.Cu",
+        "Front solder mask aperture bridges items with different nets; Pad 1 [MIDI_4] of C202 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4,
+      "straight": false
+    },
+    {
+      "net": "CHASSIS",
+      "layer": "F.Cu",
+      "xy": [
+        65.329,
+        91.8665
+      ],
+      "widths": [
+        0.2,
+        0.6
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.7159197640843405,
+        "R101.2"
+      ],
+      "narrow_uuid": "d088adc0-0173-442f-b5a1-d0ca12062e6c",
+      "narrow_length": 2.2419,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0,
+      "obstacle": "R101.1",
+      "widened_hole_clearance": 0.8289,
+      "hole_obstacle": "via 5e9cd8fe-236a-4d73-a8cd-92510b7a24ec hole",
+      "previous_issues": [
+        "Items shorting two nets (nets GND and CHASSIS); Pad 1 [GND] of R101 on F.Cu",
+        "Front solder mask aperture bridges items with different nets; Pad 1 [GND] of R101 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.7159,
+      "straight": false
+    },
+    {
+      "net": "CHASSIS",
+      "layer": "F.Cu",
+      "xy": [
+        66.4625,
+        93
+      ],
+      "widths": [
+        0.2,
+        0.6
+      ],
+      "attachment": [
+        "R101.2"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "R101.2"
+      ],
+      "narrow_uuid": "f293f614-3a9e-4dfa-a95f-d1aeeffcfbb9",
+      "narrow_length": 2.8495,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0372,
+      "obstacle": "TP301.1",
+      "widened_hole_clearance": 3.5176,
+      "hole_obstacle": "via 5e9cd8fe-236a-4d73-a8cd-92510b7a24ec hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0372 mm); Pad 1 [EXP_ADC] of TP301 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": true
+    },
+    {
+      "net": "CHASSIS",
+      "layer": "B.Cu",
+      "xy": [
+        110.8843,
+        63.27
+      ],
+      "widths": [
+        0.2,
+        0.6
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.5040127156497777,
+        "K501.10"
+      ],
+      "narrow_uuid": "f682dbb3-6c8f-48c5-8b7d-58c9cffef271",
+      "narrow_length": 1.3328,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0,
+      "obstacle": "K501.10",
+      "widened_hole_clearance": 0.47,
+      "hole_obstacle": "K501.10 hole",
+      "previous_issues": [
+        "Items shorting two nets (nets /05 / Line and amp feed/LINE_DRIVE and CHASSIS); PTH pad 10 [/05 / Line and amp feed/LINE_DRIVE] of K501",
+        "Items shorting two nets (nets RELAY_LOW and CHASSIS); PTH pad 9 [RELAY_LOW] of K501",
+        "Rear solder mask aperture bridges items with different nets; PTH pad 10 [/05 / Line and amp feed/LINE_DRIVE] of K501",
+        "Rear solder mask aperture bridges items with different nets; PTH pad 9 [RELAY_LOW] of K501"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.504,
+      "straight": false
+    },
+    {
+      "net": "CHASSIS",
+      "layer": "B.Cu",
+      "xy": [
+        58.05,
+        85.2307
+      ],
+      "widths": [
+        0.2,
+        0.6
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        1.1253017924059736,
+        "JP301.3"
+      ],
+      "narrow_uuid": "084940b8-964a-45d2-81df-4a378f272ac0",
+      "narrow_length": 2.2335,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0102,
+      "obstacle": "JP301.3",
+      "widened_hole_clearance": 0.3602,
+      "hole_obstacle": "JP301.3 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0101 mm); PTH pad 3 [EXP_WIPER] of JP301"
+      ],
+      "nearest_pad_or_via_distance_mm": 1.1253,
+      "straight": false
+    },
+    {
+      "net": "CPN",
+      "layer": "F.Cu",
+      "xy": [
+        101,
+        86.75
+      ],
+      "widths": [
+        0.2,
+        0.3
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.125,
+        "U601.9"
+      ],
+      "narrow_uuid": "f8ac9557-3cff-4360-be6b-821cef8103db",
+      "narrow_length": 0.562,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1709,
+      "obstacle": "track 4b3a5057-6166-4951-b280-803a6a451efc",
+      "widened_hole_clearance": 0.6604,
+      "hole_obstacle": "U601.17 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0457 mm); Track [GND] on F.Cu, length 0.7629 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0457 mm); Track [GND] on F.Cu, length 0.1762 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.125,
+      "straight": false
+    },
+    {
+      "net": "EXP_ADC",
+      "layer": "F.Cu",
+      "xy": [
+        70.4763,
+        85.5
+      ],
+      "widths": [
+        0.15,
+        0.2
+      ],
+      "attachment": [],
+      "branch": true,
+      "nearest_pad": [
+        0.46565001050939475,
+        "C301.1"
+      ],
+      "narrow_uuid": "a37be9d7-317e-4cfc-bd31-b1f4a0af9b09",
+      "narrow_length": 1.3237,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.2,
+      "obstacle": "track 576be878-f8aa-49fb-934c-39f23a8bbf00",
+      "widened_hole_clearance": 1.8759,
+      "hole_obstacle": "via 844eb8cd-34ec-4446-a413-9c4cfc18064d hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1127 mm); Track [GND] on F.Cu, length 2.0737 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1127 mm); Track [GND] on F.Cu, length 0.1407 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4657,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        69.66,
+        54
+      ],
+      "widths": [
+        0.2,
+        0.3
+      ],
+      "attachment": [
+        "J101.9"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "J101.9"
+      ],
+      "narrow_uuid": "c0ef83ee-9146-4122-9e89-b26e2b64060e",
+      "narrow_length": 1.4383,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1017,
+      "obstacle": "J101.10",
+      "widened_hole_clearance": 0.4517,
+      "hole_obstacle": "J101.10 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0517 mm); PTH pad 10 [MIDI_RX] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        99.0383,
+        57.6417
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.7080390816664395,
+        "J101.34"
+      ],
+      "narrow_uuid": "c1650c9f-6c51-408f-8772-7e205cf0af88",
+      "narrow_length": 4.6373,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0517,
+      "obstacle": "J101.32",
+      "widened_hole_clearance": 0.4017,
+      "hole_obstacle": "J101.32 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0517 mm); PTH pad 32 [unconnected-(J101-Pin_32-Pad32)] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.708,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        76.7664,
+        69.225
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": true,
+      "nearest_pad": [
+        0.2914000000000101,
+        "C201.2"
+      ],
+      "narrow_uuid": "0a958411-8d1c-489c-85ca-c2fed4f9d751",
+      "narrow_length": 1.9395,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0914,
+      "obstacle": "C201.1",
+      "widened_hole_clearance": 1.8593,
+      "hole_obstacle": "via 78268083-c440-4862-bdee-1678a1a8d369 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0914 mm); Pad 1 [+5V_PI] of C201 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.2914,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        65.6817,
+        55.4383
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.7080390816664495,
+        "J101.6"
+      ],
+      "narrow_uuid": "67f539bb-075b-407a-8124-46c7b6af4dff",
+      "narrow_length": 3.9783,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0517,
+      "obstacle": "J101.10",
+      "widened_hole_clearance": 0.4017,
+      "hole_obstacle": "J101.10 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0517 mm); PTH pad 8 [unconnected-(J101-Pin_8-Pad8)] of J101",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0517 mm); PTH pad 10 [MIDI_RX] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.708,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        98.45,
+        85.75
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [
+        "U601.17"
+      ],
+      "branch": true,
+      "nearest_pad": [
+        0.0,
+        "U601.17"
+      ],
+      "narrow_uuid": "73156051-2240-43ba-a033-131198067afd",
+      "narrow_length": 0.8875,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1208,
+      "obstacle": "track 6cb4f7df-5f56-4c7a-8653-d6cc4560fc25",
+      "widened_hole_clearance": 0.8375,
+      "hole_obstacle": "via 33664a9c-2c87-40ef-8ca3-0e85c738e7f0 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0955 mm); Track [/06 / Stereo headphones/HP_IN_L] on F.Cu, length 0.1762 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0955 mm); Track [/06 / Stereo headphones/HP_IN_L] on F.Cu, length 1.4617 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        98.75,
+        85.15
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.04999999999999716,
+        "U601.17"
+      ],
+      "narrow_uuid": "d2998c28-6f02-46cb-947b-4a5c17abb918",
+      "narrow_length": 0.5875,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.15,
+      "obstacle": "track 14959d2c-d994-45d4-a866-0e7f60fec3bd",
+      "widened_hole_clearance": 0.7567,
+      "hole_obstacle": "via 33664a9c-2c87-40ef-8ca3-0e85c738e7f0 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1000 mm); Track [+5V_A] on F.Cu, length 0.8625 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.05,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        92.3554,
+        58.1946
+      ],
+      "widths": [
+        0.15,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.8127679010116604,
+        "J101.28"
+      ],
+      "narrow_uuid": "1b99dcde-b019-40f9-bd48-a618acfbaa26",
+      "narrow_length": 0.784,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1185,
+      "obstacle": "J101.28",
+      "widened_hole_clearance": 0.468,
+      "hole_obstacle": "J101.28 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1172 mm); PTH pad 28 [unconnected-(J101-Pin_28-Pad28)] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.8128,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        76.2,
+        85.5
+      ],
+      "widths": [
+        0.15,
+        0.2
+      ],
+      "attachment": [
+        "U301.7"
+      ],
+      "branch": true,
+      "nearest_pad": [
+        0.0,
+        "U301.7"
+      ],
+      "narrow_uuid": "46ad2f3a-1c42-4dcb-9393-94378ee7a32a",
+      "narrow_length": 0.1407,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1505,
+      "obstacle": "U301.8",
+      "widened_hole_clearance": 1.3262,
+      "hole_obstacle": "via 59ccd412-0667-494e-a56e-bb3ecf23b87e hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1381 mm); Track [+3V3_ADC] on F.Cu, length 0.7562 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0127 mm); Track [+3V3_ADC] on F.Cu, length 0.1407 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0505 mm); Pad 8 [+3V3_ADC] of U301 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        75.1891,
+        85.5604
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": true,
+      "nearest_pad": [
+        0.2859000000000122,
+        "U301.7"
+      ],
+      "narrow_uuid": "cb3b3a89-58e6-4e04-b4b6-17a210a0ee88",
+      "narrow_length": 0.2261,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1079,
+      "obstacle": "U301.8",
+      "widened_hole_clearance": 0.5816,
+      "hole_obstacle": "via 59ccd412-0667-494e-a56e-bb3ecf23b87e hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1081 mm); Track [+3V3_ADC] on F.Cu, length 0.4678 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1000 mm); Track [+3V3_ADC] on F.Cu, length 0.7562 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1000 mm); Track [+3V3_ADC] on F.Cu, length 0.0856 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1076 mm); Pad 8 [+3V3_ADC] of U301 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.2859,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        95.2219,
+        79
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": true,
+      "nearest_pad": [
+        0.7719000000000023,
+        "C403.2"
+      ],
+      "narrow_uuid": "4792c1aa-2424-4196-a537-5e89428c70bc",
+      "narrow_length": 2.2919,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0781,
+      "obstacle": "TP402.1",
+      "widened_hole_clearance": 1.8265,
+      "hole_obstacle": "via 27531cea-2bc2-4913-8d1f-f4c0831dc946 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0781 mm); Pad 1 [MONO_BUF] of TP402 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.7719,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        94.3995,
+        57.6402
+      ],
+      "widths": [
+        0.15,
+        0.4
+      ],
+      "attachment": [],
+      "branch": true,
+      "nearest_pad": [
+        0.43426174148752794,
+        "J101.30"
+      ],
+      "narrow_uuid": "cf87cc64-18ce-4c76-a1a1-0cc3e47925ab",
+      "narrow_length": 1.4897,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1185,
+      "obstacle": "J101.28",
+      "widened_hole_clearance": 0.468,
+      "hole_obstacle": "J101.28 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1172 mm); PTH pad 28 [unconnected-(J101-Pin_28-Pad28)] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4343,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        90.5845,
+        59.1345
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [
+        "C101.2"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "C101.2"
+      ],
+      "narrow_uuid": "d7c7adf1-406d-4607-999e-b6433a835f96",
+      "narrow_length": 1.8902,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0655,
+      "obstacle": "FB101.2",
+      "widened_hole_clearance": 1.8945,
+      "hole_obstacle": "J101.26 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0655 mm); Pad 2 [+5V_A] of FB101 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        94.401,
+        57.6417
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.43477718028624224,
+        "J101.30"
+      ],
+      "narrow_uuid": "c1650c9f-6c51-408f-8772-7e205cf0af88",
+      "narrow_length": 4.6373,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0517,
+      "obstacle": "J101.32",
+      "widened_hole_clearance": 0.4017,
+      "hole_obstacle": "J101.32 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0517 mm); PTH pad 32 [unconnected-(J101-Pin_32-Pad32)] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4348,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        77.3307,
+        85.4005
+      ],
+      "widths": [
+        0.15,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.40641347460345423,
+        "U301.7"
+      ],
+      "narrow_uuid": "36c44b86-e232-4d5d-a026-37ad9c58c481",
+      "narrow_length": 1.0312,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0505,
+      "obstacle": "U301.8",
+      "widened_hole_clearance": 0.7299,
+      "hole_obstacle": "via 38d3d012-70e3-435b-8846-1c896cea00b0 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1381 mm); Track [+3V3_ADC] on F.Cu, length 0.7562 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0127 mm); Track [+3V3_ADC] on F.Cu, length 0.1407 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0505 mm); Pad 8 [+3V3_ADC] of U301 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4064,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        73.886,
+        71.774
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.28328758877778987,
+        "U201.5"
+      ],
+      "narrow_uuid": "ee1223b2-5ad8-4039-b434-0ef5349625a5",
+      "narrow_length": 1.5631,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1292,
+      "obstacle": "R202.2",
+      "widened_hole_clearance": 1.3324,
+      "hole_obstacle": "U201.6 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1287 mm); Pad 2 [MIDI_OC] of R202 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.2833,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        94.7903,
+        71.8469
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        1.307094459366377,
+        "U501.2"
+      ],
+      "narrow_uuid": "3cc26d62-2f31-466c-8935-e970577cdbc9",
+      "narrow_length": 4.7332,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0661,
+      "obstacle": "U402.8",
+      "widened_hole_clearance": 1.5069,
+      "hole_obstacle": "via 755ddfeb-abe4-4c28-a3e1-69d9760e4ab0 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0661 mm); Pad 8 [+5V_A] of U402 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 1.3071,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        94.7903,
+        73.5005
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        1.2597000000000094,
+        "U501.3"
+      ],
+      "narrow_uuid": "810384f2-a829-44db-bb08-70738b69de91",
+      "narrow_length": 1.9863,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0516,
+      "obstacle": "via 755ddfeb-abe4-4c28-a3e1-69d9760e4ab0",
+      "widened_hole_clearance": 0.2016,
+      "hole_obstacle": "via 755ddfeb-abe4-4c28-a3e1-69d9760e4ab0 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0516 mm); Via [MONO_BUF] on F.Cu - B.Cu",
+        "Hole clearance violation (board setup constraints hole clearance 0.2500 mm; actual 0.2016 mm); Via [MONO_BUF] on F.Cu - B.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.5016,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        84.6278,
+        58.7828
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        1.4096055157444685,
+        "J101.22"
+      ],
+      "narrow_uuid": "aa6a1223-fe8a-410f-a082-b74f20b702c1",
+      "narrow_length": 3.3673,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0517,
+      "obstacle": "track 58a512a6-cc44-493f-b12c-281a5f914e8d",
+      "widened_hole_clearance": 0.7469,
+      "hole_obstacle": "via 1b23b34a-736b-48fd-b947-e729b26ede54 hole",
+      "previous_issues": [
+        "Items shorting two nets (nets +5V_A and GND); Track [+5V_A] on F.Cu, length 1.7197 mm",
+        "Items shorting two nets (nets +5V_A and GND); Track [+5V_A] on F.Cu, length 2.4194 mm",
+        "Items shorting two nets (nets GND and +5V_A); Track [+5V_A] on F.Cu, length 1.2240 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 1.4096,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        91.4434,
+        68.5
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.21839999999998838,
+        "C405.2"
+      ],
+      "narrow_uuid": "3cc26d62-2f31-466c-8935-e970577cdbc9",
+      "narrow_length": 4.7332,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0661,
+      "obstacle": "U402.8",
+      "widened_hole_clearance": 1.5069,
+      "hole_obstacle": "via 755ddfeb-abe4-4c28-a3e1-69d9760e4ab0 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0661 mm); Pad 8 [+5V_A] of U402 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.2184,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        75.7732,
+        71.6251
+      ],
+      "widths": [
+        0.15,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.3998999999999882,
+        "R202.2"
+      ],
+      "narrow_uuid": "4017508f-f064-4c06-a659-d202177ad6b3",
+      "narrow_length": 0.2106,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0624,
+      "obstacle": "R202.2",
+      "widened_hole_clearance": 1.5782,
+      "hole_obstacle": "via 78268083-c440-4862-bdee-1678a1a8d369 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0621 mm); Pad 2 [MIDI_OC] of R202 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.3999,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        100.275,
+        67.4291
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.5959000000000003,
+        "C503.2"
+      ],
+      "narrow_uuid": "4557d3f7-38ef-4ce5-804b-aaf8667f32aa",
+      "narrow_length": 5.9077,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0982,
+      "obstacle": "K501.2",
+      "widened_hole_clearance": 0.5982,
+      "hole_obstacle": "K501.2 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0982 mm); PTH pad 2 [+5V_PI] of K501"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.5959,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        95.2219,
+        76.7081
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.4122080841712849,
+        "TP402.1"
+      ],
+      "narrow_uuid": "4792c1aa-2424-4196-a537-5e89428c70bc",
+      "narrow_length": 2.2919,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0781,
+      "obstacle": "TP402.1",
+      "widened_hole_clearance": 1.8265,
+      "hole_obstacle": "via 27531cea-2bc2-4913-8d1f-f4c0831dc946 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0781 mm); Pad 1 [MONO_BUF] of TP402 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4122,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        98.076,
+        79.749
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [
+        "R602.2"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "R602.2"
+      ],
+      "narrow_uuid": "e656b999-380f-4f48-9e9b-b9d98f5dbdc2",
+      "narrow_length": 5.124,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.076,
+      "obstacle": "R603.1",
+      "widened_hole_clearance": 0.6463,
+      "hole_obstacle": "via 6c9a90e2-786c-465a-b9a1-15c892ddfdb6 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0760 mm); Pad 1 [HP_L_RAW] of R603 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        76.3058,
+        71.6251
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.40092958730572165,
+        "R202.2"
+      ],
+      "narrow_uuid": "7a78f740-3096-45cc-af77-0bb25259ec37",
+      "narrow_length": 0.6514,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0565,
+      "obstacle": "C201.1",
+      "widened_hole_clearance": 1.4422,
+      "hole_obstacle": "via 78268083-c440-4862-bdee-1678a1a8d369 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0565 mm); Pad 1 [+5V_PI] of C201 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4009,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        82.36,
+        56.54
+      ],
+      "widths": [
+        0.3,
+        0.4
+      ],
+      "attachment": [
+        "J101.20"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "J101.20"
+      ],
+      "narrow_uuid": "d17ad51c-be5c-4727-92c0-c23032e83c30",
+      "narrow_length": 0.9849,
+      "restored_from_snapshot": false,
+      "widened_clearance": 1.2716,
+      "obstacle": "J101.22",
+      "widened_hole_clearance": 1.6216,
+      "hole_obstacle": "J101.22 hole",
+      "previous_issues": [],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        82.36,
+        58.996
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": true,
+      "nearest_pad": [
+        1.6060000000000016,
+        "J101.20"
+      ],
+      "narrow_uuid": "7181656d-a8eb-423c-b419-bf55de9a5816",
+      "narrow_length": 5.881,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.054,
+      "obstacle": "TP102.1",
+      "widened_hole_clearance": 1.756,
+      "hole_obstacle": "J101.16 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0540 mm); Pad 1 [+3V3_ADC] of TP102 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 1.3069,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        71.1446,
+        85
+      ],
+      "widths": [
+        0.15,
+        0.4
+      ],
+      "attachment": [
+        "U301.3"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "U301.3"
+      ],
+      "narrow_uuid": "99d1521b-0afa-4389-ad71-c0178cb33bda",
+      "narrow_length": 0.9454,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0293,
+      "obstacle": "U301.2",
+      "widened_hole_clearance": 3.4577,
+      "hole_obstacle": "via 59ccd412-0667-494e-a56e-bb3ecf23b87e hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0293 mm); Pad 2 [unconnected-(U301-ALERT/RDY-Pad2)] of U301 on F.Cu",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0988 mm); Pad 1 [EXP_ADC] of C301 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        71.8,
+        85
+      ],
+      "widths": [
+        0.15,
+        0.4
+      ],
+      "attachment": [
+        "U301.3"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "U301.3"
+      ],
+      "narrow_uuid": "cf8ba60d-be9a-481c-a677-f788b282a418",
+      "narrow_length": 0.1407,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0505,
+      "obstacle": "U301.4",
+      "widened_hole_clearance": 2.7245,
+      "hole_obstacle": "via 59ccd412-0667-494e-a56e-bb3ecf23b87e hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1127 mm); Track [EXP_ADC] on F.Cu, length 1.3237 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0505 mm); Pad 4 [EXP_ADC] of U301 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        74.74,
+        56.54
+      ],
+      "widths": [
+        0.3,
+        0.4
+      ],
+      "attachment": [
+        "J101.14"
+      ],
+      "branch": true,
+      "nearest_pad": [
+        0.0,
+        "J101.14"
+      ],
+      "narrow_uuid": "670ba37c-bc11-4b09-ab44-a10f20c366e8",
+      "narrow_length": 0.9849,
+      "restored_from_snapshot": false,
+      "widened_clearance": 1.2716,
+      "obstacle": "J101.16",
+      "widened_hole_clearance": 1.6216,
+      "hole_obstacle": "J101.16 hole",
+      "previous_issues": [],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        73.6383,
+        55.4383
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.7080390816664395,
+        "J101.14"
+      ],
+      "narrow_uuid": "8a0ef0b9-0fbd-480c-865c-98fac731462e",
+      "narrow_length": 3.9783,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0517,
+      "obstacle": "J101.10",
+      "widened_hole_clearance": 0.4017,
+      "hole_obstacle": "J101.10 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0517 mm); PTH pad 12 [unconnected-(J101-Pin_12-Pad12)] of J101",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0517 mm); PTH pad 10 [MIDI_RX] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.708,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        95.887,
+        82.05
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.16200000000000614,
+        "C603.2"
+      ],
+      "narrow_uuid": "578904e2-8131-4b12-ae8b-1a2851b3ee8a",
+      "narrow_length": 2.7407,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0517,
+      "obstacle": "via 27531cea-2bc2-4913-8d1f-f4c0831dc946",
+      "widened_hole_clearance": 0.2017,
+      "hole_obstacle": "via 27531cea-2bc2-4913-8d1f-f4c0831dc946 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0517 mm); Via [HP_EN] on F.Cu - B.Cu",
+        "Hole clearance violation (board setup constraints hole clearance 0.2500 mm; actual 0.2017 mm); Via [HP_EN] on F.Cu - B.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.162,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        97.825,
+        80.112
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [
+        "R602.2"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "R602.2"
+      ],
+      "narrow_uuid": "578904e2-8131-4b12-ae8b-1a2851b3ee8a",
+      "narrow_length": 2.7407,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0517,
+      "obstacle": "via 27531cea-2bc2-4913-8d1f-f4c0831dc946",
+      "widened_hole_clearance": 0.2017,
+      "hole_obstacle": "via 27531cea-2bc2-4913-8d1f-f4c0831dc946 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0517 mm); Via [HP_EN] on F.Cu - B.Cu",
+        "Hole clearance violation (board setup constraints hole clearance 0.2500 mm; actual 0.2017 mm); Via [HP_EN] on F.Cu - B.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        73.9732,
+        85.0995
+      ],
+      "widths": [
+        0.15,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        1.4484072251960225,
+        "U301.3"
+      ],
+      "narrow_uuid": "5cd71d72-47ec-4e13-b8a8-691b70734e37",
+      "narrow_length": 2.0737,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0505,
+      "obstacle": "U301.4",
+      "widened_hole_clearance": 0.7419,
+      "hole_obstacle": "via 59ccd412-0667-494e-a56e-bb3ecf23b87e hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1127 mm); Track [EXP_ADC] on F.Cu, length 1.3237 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0505 mm); Pad 4 [EXP_ADC] of U301 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.7919,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        77.3307,
+        85.1443
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.4107559110044307,
+        "U301.8"
+      ],
+      "narrow_uuid": "5fba19ca-916c-489f-9627-42e8fce3d069",
+      "narrow_length": 1.3001,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1248,
+      "obstacle": "track fffa91eb-6b24-430b-b6c9-2f57484fc650",
+      "widened_hole_clearance": 0.9835,
+      "hole_obstacle": "via 38d3d012-70e3-435b-8846-1c896cea00b0 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1248 mm); Track [ADC_SDA] on F.Cu, length 1.1742 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1248 mm); Track [ADC_SDA] on F.Cu, length 0.6273 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4108,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        76.479,
+        58.996
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.11725960885396318,
+        "C104.2"
+      ],
+      "narrow_uuid": "7181656d-a8eb-423c-b419-bf55de9a5816",
+      "narrow_length": 5.881,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.054,
+      "obstacle": "TP102.1",
+      "widened_hole_clearance": 1.756,
+      "hole_obstacle": "J101.16 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0540 mm); Pad 1 [+3V3_ADC] of TP102 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.1173,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        70.4761,
+        84.2501
+      ],
+      "widths": [
+        0.15,
+        0.2
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.33781804586949543,
+        "C301.1"
+      ],
+      "narrow_uuid": "76be9e58-0c51-4f33-b22b-26f04ebfcfb8",
+      "narrow_length": 0.0814,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1992,
+      "obstacle": "C301.1",
+      "widened_hole_clearance": 4.2084,
+      "hole_obstacle": "via 59ccd412-0667-494e-a56e-bb3ecf23b87e hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0988 mm); Pad 1 [EXP_ADC] of C301 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.3378,
+      "straight": true
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        75.4491,
+        71.774
+      ],
+      "widths": [
+        0.15,
+        0.2
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.3289174589919916,
+        "R202.2"
+      ],
+      "narrow_uuid": "7ffa28bd-efaf-4e09-a06d-ff809ba9a854",
+      "narrow_length": 0.1752,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1623,
+      "obstacle": "R202.2",
+      "widened_hole_clearance": 1.6782,
+      "hole_obstacle": "via 78268083-c440-4862-bdee-1678a1a8d369 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0621 mm); Pad 2 [MIDI_OC] of R202 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.3289,
+      "straight": true
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        96.1948,
+        74.905
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [
+        "U501.4"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "U501.4"
+      ],
+      "narrow_uuid": "810384f2-a829-44db-bb08-70738b69de91",
+      "narrow_length": 1.9863,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0516,
+      "obstacle": "via 755ddfeb-abe4-4c28-a3e1-69d9760e4ab0",
+      "widened_hole_clearance": 0.2016,
+      "hole_obstacle": "via 755ddfeb-abe4-4c28-a3e1-69d9760e4ab0 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0516 mm); Via [MONO_BUF] on F.Cu - B.Cu",
+        "Hole clearance violation (board setup constraints hole clearance 0.2500 mm; actual 0.2016 mm); Via [MONO_BUF] on F.Cu - B.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        70.4761,
+        84
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": true,
+      "nearest_pad": [
+        0.5025540106566629,
+        "C301.1"
+      ],
+      "narrow_uuid": "89874d32-c09f-4c9f-815d-3088ac519dff",
+      "narrow_length": 0.2501,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1381,
+      "obstacle": "C301.1",
+      "widened_hole_clearance": 4.1134,
+      "hole_obstacle": "via 59ccd412-0667-494e-a56e-bb3ecf23b87e hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1377 mm); Pad 1 [EXP_ADC] of C301 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.5026,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        103.2,
+        79.749
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": true,
+      "nearest_pad": [
+        0.5464614482484739,
+        "R603.1"
+      ],
+      "narrow_uuid": "e656b999-380f-4f48-9e9b-b9d98f5dbdc2",
+      "narrow_length": 5.124,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.076,
+      "obstacle": "R603.1",
+      "widened_hole_clearance": 0.6463,
+      "hole_obstacle": "via 6c9a90e2-786c-465a-b9a1-15c892ddfdb6 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0760 mm); Pad 1 [HP_L_RAW] of R603 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.5465,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        75.349,
+        85.4005
+      ],
+      "widths": [
+        0.15,
+        0.2
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.12751947890468546,
+        "U301.7"
+      ],
+      "narrow_uuid": "b1ea61a8-936b-4c86-8245-5b360c6d3051",
+      "narrow_length": 0.7515,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1505,
+      "obstacle": "U301.8",
+      "widened_hole_clearance": 0.6815,
+      "hole_obstacle": "via 59ccd412-0667-494e-a56e-bb3ecf23b87e hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1081 mm); Track [+3V3_ADC] on F.Cu, length 0.4678 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1000 mm); Track [+3V3_ADC] on F.Cu, length 0.7562 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1000 mm); Track [+3V3_ADC] on F.Cu, length 0.0856 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0127 mm); Track [+3V3_ADC] on F.Cu, length 0.1407 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0505 mm); Pad 8 [+3V3_ADC] of U301 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.1275,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        98.75,
+        83.025
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.1822350725432646,
+        "C604.2"
+      ],
+      "narrow_uuid": "c012b354-c2f1-4a30-8113-a1e2ba587c29",
+      "narrow_length": 1.5375,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.15,
+      "obstacle": "track 14959d2c-d994-45d4-a866-0e7f60fec3bd",
+      "widened_hole_clearance": 0.7567,
+      "hole_obstacle": "via 33664a9c-2c87-40ef-8ca3-0e85c738e7f0 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1000 mm); Track [+5V_A] on F.Cu, length 0.7425 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1000 mm); Track [+5V_A] on F.Cu, length 0.8625 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.1822,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "F.Cu",
+      "xy": [
+        99.55,
+        86.3746
+      ],
+      "widths": [
+        0.15,
+        0.4
+      ],
+      "attachment": [
+        "U601.17",
+        "U601.17"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "U601.17"
+      ],
+      "narrow_uuid": "dccb1618-1cdd-4b96-aeb7-58a9b2916fc9",
+      "narrow_length": 0.7629,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0504,
+      "obstacle": "U601.9",
+      "widened_hole_clearance": 2.1699,
+      "hole_obstacle": "via a9a302f3-8bb8-458b-8b95-3d1ca968eb29 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0455 mm); Track [CPN] on F.Cu, length 0.0005 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0457 mm); Track [CPN] on F.Cu, length 0.5620 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0504 mm); Pad 9 [CPN] of U601 on F.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "B.Cu",
+      "xy": [
+        55.6201,
+        62
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [
+        "J102.2"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "J102.2"
+      ],
+      "narrow_uuid": "f8521cac-e717-4d82-bbbe-7af389f82717",
+      "narrow_length": 7.2832,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0673,
+      "obstacle": "J101.2",
+      "widened_hole_clearance": 0.4173,
+      "hole_obstacle": "J101.2 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0673 mm); PTH pad 2 [+5V_PI] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "B.Cu",
+      "xy": [
+        63.4294,
+        55.3894
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.7771941248664783,
+        "J101.6"
+      ],
+      "narrow_uuid": "a95bf18b-0932-4510-bb40-85b8edc4df72",
+      "narrow_length": 1.8231,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1006,
+      "obstacle": "J101.4",
+      "widened_hole_clearance": 0.4506,
+      "hole_obstacle": "J101.4 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1006 mm); PTH pad 4 [+5V_PI] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.7772,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "B.Cu",
+      "xy": [
+        116.1017,
+        70.6417
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.7080390816664395,
+        "J503.2"
+      ],
+      "narrow_uuid": "0bd19f37-71da-44f4-9158-11c644596f78",
+      "narrow_length": 5.5966,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0517,
+      "obstacle": "J502.1",
+      "widened_hole_clearance": 0.4017,
+      "hole_obstacle": "J502.1 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0517 mm); PTH pad 1 [/05 / Line and amp feed/AMP_FEED] of J502"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.708,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "B.Cu",
+      "xy": [
+        116.1017,
+        76.2383
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.6398826298626994,
+        "J502.1"
+      ],
+      "narrow_uuid": "0bd19f37-71da-44f4-9158-11c644596f78",
+      "narrow_length": 5.5966,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0517,
+      "obstacle": "J502.1",
+      "widened_hole_clearance": 0.4017,
+      "hole_obstacle": "J502.1 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0517 mm); PTH pad 1 [/05 / Line and amp feed/AMP_FEED] of J502"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.6399,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "B.Cu",
+      "xy": [
+        60.7701,
+        56.85
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.45819040642736564,
+        "J101.4"
+      ],
+      "narrow_uuid": "f8521cac-e717-4d82-bbbe-7af389f82717",
+      "narrow_length": 7.2832,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0673,
+      "obstacle": "J101.2",
+      "widened_hole_clearance": 0.4173,
+      "hole_obstacle": "J101.2 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0673 mm); PTH pad 2 [+5V_PI] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4582,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "B.Cu",
+      "xy": [
+        60.7701,
+        56.2256
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.45925951921893937,
+        "J101.4"
+      ],
+      "narrow_uuid": "a702fb64-5a14-4ebe-86c9-976bf5ca1435",
+      "narrow_length": 1.1826,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0703,
+      "obstacle": "J101.4",
+      "widened_hole_clearance": 0.4203,
+      "hole_obstacle": "J101.4 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0703 mm); PTH pad 4 [+5V_PI] of J101"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4593,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "B.Cu",
+      "xy": [
+        89.5573,
+        81.9108
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        9.247437479107395,
+        "U601.17"
+      ],
+      "narrow_uuid": "bbbf3488-d336-48c2-868c-b07e72b28f3d",
+      "narrow_length": 8.5126,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0858,
+      "obstacle": "via 8192837a-dce2-416f-958a-a8d1998594eb",
+      "widened_hole_clearance": 0.2358,
+      "hole_obstacle": "via 8192837a-dce2-416f-958a-a8d1998594eb hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0858 mm); Via [/06 / Stereo headphones/HP_IN_R] on F.Cu - B.Cu",
+        "Hole clearance violation (board setup constraints hole clearance 0.2500 mm; actual 0.2358 mm); Via [/06 / Stereo headphones/HP_IN_R] on F.Cu - B.Cu",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0858 mm); Via [/06 / Stereo headphones/HP_IN_R] on F.Cu - B.Cu",
+        "Hole clearance violation (board setup constraints hole clearance 0.2500 mm; actual 0.2358 mm); Via [/06 / Stereo headphones/HP_IN_R] on F.Cu - B.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 1.8957,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "B.Cu",
+      "xy": [
+        68.5404,
+        87.0763
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        5.234229302422995,
+        "JP301.6"
+      ],
+      "narrow_uuid": "ee10070a-ed5e-45b9-b528-2c5a1e0dde59",
+      "narrow_length": 8.3774,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1181,
+      "obstacle": "via 06508666-c95e-4359-bf97-10806ac25ee3",
+      "widened_hole_clearance": 0.2681,
+      "hole_obstacle": "via 06508666-c95e-4359-bf97-10806ac25ee3 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1181 mm); Via [CHASSIS] on F.Cu - B.Cu",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1181 mm); Track [CHASSIS] on B.Cu, length 2.5696 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.3013,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "B.Cu",
+      "xy": [
+        116.1017,
+        78.4417
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.7080390816664395,
+        "J502.2"
+      ],
+      "narrow_uuid": "ee1f49f0-c086-4070-9153-2b3de64b005f",
+      "narrow_length": 7.0366,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0517,
+      "obstacle": "J602.1",
+      "widened_hole_clearance": 0.4017,
+      "hole_obstacle": "J602.1 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0517 mm); PTH pad 1 [HP_L] of J602",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0517 mm); PTH pad 2 [HP_R] of J602"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.708,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "B.Cu",
+      "xy": [
+        96.2903,
+        87.9301
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        2.2190268362505217,
+        "U601.17"
+      ],
+      "narrow_uuid": "99ecea27-3e88-48f2-93be-ff7bef3f3175",
+      "narrow_length": 0.7137,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0746,
+      "obstacle": "via 82f65de9-9259-41fa-acc0-58700054ee66",
+      "widened_hole_clearance": 0.2246,
+      "hole_obstacle": "via 82f65de9-9259-41fa-acc0-58700054ee66 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0746 mm); Via [/06 / Stereo headphones/HP_IN_R] on F.Cu - B.Cu",
+        "Hole clearance violation (board setup constraints hole clearance 0.2500 mm; actual 0.2246 mm); Via [/06 / Stereo headphones/HP_IN_R] on F.Cu - B.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.436,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "B.Cu",
+      "xy": [
+        116.1017,
+        85.4783
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.7080390816664395,
+        "J602.3"
+      ],
+      "narrow_uuid": "ee1f49f0-c086-4070-9153-2b3de64b005f",
+      "narrow_length": 7.0366,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.0517,
+      "obstacle": "J602.1",
+      "widened_hole_clearance": 0.4017,
+      "hole_obstacle": "J602.1 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0517 mm); PTH pad 1 [HP_L] of J602",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0517 mm); PTH pad 2 [HP_R] of J602"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.708,
+      "straight": false
+    },
+    {
+      "net": "GND",
+      "layer": "B.Cu",
+      "xy": [
+        62.6167,
+        93
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [
+        "via 5e9cd8fe-236a-4d73-a8cd-92510b7a24ec"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        4.070722649604129,
+        "JP301.6"
+      ],
+      "narrow_uuid": "ee10070a-ed5e-45b9-b528-2c5a1e0dde59",
+      "narrow_length": 8.3774,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1181,
+      "obstacle": "via 06508666-c95e-4359-bf97-10806ac25ee3",
+      "widened_hole_clearance": 0.2681,
+      "hole_obstacle": "via 06508666-c95e-4359-bf97-10806ac25ee3 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1181 mm); Via [CHASSIS] on F.Cu - B.Cu",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1181 mm); Track [CHASSIS] on B.Cu, length 2.5696 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "HP_EN",
+      "layer": "F.Cu",
+      "xy": [
+        100.9605,
+        82.5201
+      ],
+      "widths": [
+        0.15,
+        0.2
+      ],
+      "attachment": [
+        "via 7e41d268-6840-4fc2-a453-779ca4fb8740"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.589520364364117,
+        "C605.1"
+      ],
+      "narrow_uuid": "a2ba8ddb-2af7-46e9-86ca-cf3162221c31",
+      "narrow_length": 1.7119,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1502,
+      "obstacle": "track 69d78ce4-128a-4505-bfd8-6d352aa24b66",
+      "widened_hole_clearance": 1.5283,
+      "hole_obstacle": "via 6c9a90e2-786c-465a-b9a1-15c892ddfdb6 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0752 mm); Track [+5V_A] on F.Cu, length 0.7425 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.0752 mm); Track [+5V_A] on F.Cu, length 0.6750 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "HP_L",
+      "layer": "B.Cu",
+      "xy": [
+        114.8622,
+        82.6017
+      ],
+      "widths": [
+        0.2,
+        0.3
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.25169999999999954,
+        "J602.1"
+      ],
+      "narrow_uuid": "92f97021-beff-4254-b1dd-135f20e7b04c",
+      "narrow_length": 1.3632,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1145,
+      "obstacle": "J602.2",
+      "widened_hole_clearance": 0.4645,
+      "hole_obstacle": "J602.2 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1145 mm); PTH pad 2 [HP_R] of J602"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.2517,
+      "straight": false
+    },
+    {
+      "net": "HP_L",
+      "layer": "B.Cu",
+      "xy": [
+        108.6165,
+        89.2517
+      ],
+      "widths": [
+        0.2,
+        0.3
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        4.444824433990342,
+        "H4."
+      ],
+      "narrow_uuid": "d8b96856-ac28-4845-badb-6b190bfb772b",
+      "narrow_length": 7.4696,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.105,
+      "obstacle": "J602.2",
+      "widened_hole_clearance": 0.2621,
+      "hole_obstacle": "via f4bb3772-0fee-45c9-a303-2ae4682cb266 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1353 mm); Track [CHASSIS] on B.Cu, length 10.9410 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1039 mm); PTH pad 2 [HP_R] of J602",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1353 mm); Via [CHASSIS] on F.Cu - B.Cu",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1121 mm); Via [HP_R] on F.Cu - B.Cu"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.3346,
+      "straight": false
+    },
+    {
+      "net": "HP_R",
+      "layer": "F.Cu",
+      "xy": [
+        108.2592,
+        89.4408
+      ],
+      "widths": [
+        0.2,
+        0.3
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.46862435438294714,
+        "D602.1"
+      ],
+      "narrow_uuid": "c46b6358-ee8b-4134-ba4b-787b82f3aaba",
+      "narrow_length": 0.9631,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.3092,
+      "obstacle": "track 1f0c345a-796d-4703-8656-cffd221af85a",
+      "widened_hole_clearance": 2.3874,
+      "hole_obstacle": "via f39d2253-4848-4c02-894d-497a49e8952d hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1092 mm); Track [CHASSIS] on F.Cu, length 0.9034 mm",
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1092 mm); Track [CHASSIS] on F.Cu, length 7.0921 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.4686,
+      "straight": false
+    },
+    {
+      "net": "MIDI_5",
+      "layer": "F.Cu",
+      "xy": [
+        58.9951,
+        80.6209
+      ],
+      "widths": [
+        0.15,
+        0.2
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.3959000000000117,
+        "D301.2"
+      ],
+      "narrow_uuid": "c8644d7d-711a-4c21-ba46-2bd2bddc9afd",
+      "narrow_length": 0.2055,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.151,
+      "obstacle": "D301.2",
+      "widened_hole_clearance": 1.9826,
+      "hole_obstacle": "JP301.1 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1160 mm); Track [CHASSIS] on F.Cu, length 1.4142 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.3959,
+      "straight": false
+    },
+    {
+      "net": "MIDI_5",
+      "layer": "F.Cu",
+      "xy": [
+        58.6746,
+        80.4756
+      ],
+      "widths": [
+        0.15,
+        0.2
+      ],
+      "attachment": [],
+      "branch": false,
+      "nearest_pad": [
+        0.29635119700237905,
+        "D301.2"
+      ],
+      "narrow_uuid": "7024925d-b674-45dc-b2c3-a604273e621e",
+      "narrow_length": 0.1752,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.151,
+      "obstacle": "D301.2",
+      "widened_hole_clearance": 2.1746,
+      "hole_obstacle": "JP301.1 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1160 mm); Track [CHASSIS] on F.Cu, length 1.4142 mm"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.2964,
+      "straight": false
+    },
+    {
+      "net": "MONO_BUF",
+      "layer": "F.Cu",
+      "xy": [
+        87.525,
+        71.095
+      ],
+      "widths": [
+        0.2,
+        0.25
+      ],
+      "attachment": [
+        "U402.1"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "U402.1"
+      ],
+      "narrow_uuid": "8234f9c5-9768-431f-bdae-4d50f1221bbc",
+      "narrow_length": 0.8552,
+      "restored_from_snapshot": false,
+      "widened_clearance": 1.1564,
+      "obstacle": "via fa6508fa-6836-47ff-b5d5-11c1cbb92759",
+      "widened_hole_clearance": 1.3063,
+      "hole_obstacle": "via fa6508fa-6836-47ff-b5d5-11c1cbb92759 hole",
+      "previous_issues": [],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": true
+    },
+    {
+      "net": "RELAY_LOW",
+      "layer": "F.Cu",
+      "xy": [
+        111.4271,
+        73.9229
+      ],
+      "widths": [
+        0.2,
+        0.4
+      ],
+      "attachment": [
+        "D502.2"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "D502.2"
+      ],
+      "narrow_uuid": "55c53b43-1c39-40f3-a809-1843a015344b",
+      "narrow_length": 2.4699,
+      "restored_from_snapshot": true,
+      "widened_clearance": 0.1471,
+      "obstacle": "K501.6",
+      "widened_hole_clearance": 0.6471,
+      "hole_obstacle": "K501.6 hole",
+      "previous_issues": [
+        "Clearance violation (netclass 'Default' clearance 0.1500 mm; actual 0.1471 mm); PTH pad 6 [LINE_JACK] of K501"
+      ],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    },
+    {
+      "net": "VREF",
+      "layer": "F.Cu",
+      "xy": [
+        92.475,
+        73.635
+      ],
+      "widths": [
+        0.2,
+        0.25
+      ],
+      "attachment": [
+        "U402.6"
+      ],
+      "branch": false,
+      "nearest_pad": [
+        0.0,
+        "U402.6"
+      ],
+      "narrow_uuid": "8a83b4a3-4b71-4291-a630-e09b6a841b29",
+      "narrow_length": 0.898,
+      "restored_from_snapshot": false,
+      "widened_clearance": 0.21,
+      "obstacle": "U402.5",
+      "widened_hole_clearance": 2.0945,
+      "hole_obstacle": "via e92ac030-f36a-4d2a-aae2-fe7d894a2d41 hole",
+      "previous_issues": [],
+      "nearest_pad_or_via_distance_mm": 0.0,
+      "straight": false
+    }
+  ],
+  "board_sha256": "2c75bf77f5ba0e7bbaac66e14a3139043bc17bd5c3bcf63e1e57c4bba5288379",
+  "method": "Exact segment endpoints; geometric pad/via containment. Widening estimates use buffered shapes and exclude filled zones; not a KiCad DRC result. Historical violations come from routing/refine-drc.json."
+}

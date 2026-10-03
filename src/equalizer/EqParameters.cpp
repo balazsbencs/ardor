@@ -178,4 +178,9 @@ bool isParametricEqMode(const nlohmann::json& params)
   return params.is_object() && params.value("mode", std::string{}) == "parametric_eq_5";
 }
 
+bool isConsoleEqMode(const nlohmann::json& params)
+{
+  return params.is_object() && params.value("mode", std::string{}) == kConsoleEqMode;
+}
+
 } // namespace ardor
