@@ -1,0 +1,6 @@
+Reference,Description,Footprint,Quantity per board
+J102,PinHeader_1x02_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,1
+J101,PinHeader_1x03_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,1
+J503,PinHeader_1x02_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,1
+J502,PinHeader_1x02_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,1
+K501,Omron G5V-1 DC5,Relay_THT:Relay_SPDT_Omron_G5V-1,1

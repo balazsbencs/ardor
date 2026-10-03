@@ -1,0 +1,6 @@
+__pycache__/
+*.kicad_prl
+*.lck
+*.bak
+core
+core.*

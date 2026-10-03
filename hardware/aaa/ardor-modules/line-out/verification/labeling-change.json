@@ -1,0 +1,8 @@
+{
+  "result": "PASS",
+  "baseline_commit": "fb163c2a53fc7caaabe9c8943edaf2fa213d386f",
+  "copper_tracks_vias_zones_outline_and_net_map_unchanged": true,
+  "footprint_and_pad_geometry_unchanged": true,
+  "smt_bom_and_cpl_byte_identical": true,
+  "change_scope": "Schematic documentation, connector Value fields, owned back silkscreen and review/package documentation"
+}

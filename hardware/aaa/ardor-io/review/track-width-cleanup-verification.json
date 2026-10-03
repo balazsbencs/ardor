@@ -1,0 +1,27 @@
+{
+  "before_board_sha256": "2c75bf77f5ba0e7bbaac66e14a3139043bc17bd5c3bcf63e1e57c4bba5288379",
+  "after_board_sha256": "89d3291abb46f41a101c247d6365aa63583288da030a5ec1447d99f73afd30f8",
+  "changed_original_segments": 58,
+  "whole_segments_widened": 36,
+  "segments_with_shortened_neckdowns": 22,
+  "width_junctions_before": 127,
+  "width_junctions_after": 111,
+  "track_segments_before": 739,
+  "track_segments_after": 764,
+  "total_centerline_length_mm_before": 1516.873147,
+  "total_centerline_length_mm_after": 1516.873147,
+  "length_widened_mm": 93.224,
+  "no_width_reductions": true,
+  "all_nontrack_geometry_and_nets_unchanged": true,
+  "procurement_properties_checked_separately": [
+    "Datasheet",
+    "JLCPCB Part #",
+    "MPN",
+    "Value"
+  ],
+  "zone_definitions_unchanged": true,
+  "all_track_changes_match_reviewed_plan": true,
+  "drc_violations": 0,
+  "unconnected_items": 0,
+  "schematic_parity_issues": 0
+}

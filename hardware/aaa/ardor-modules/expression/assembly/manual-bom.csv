@@ -1,0 +1,8 @@
+Reference,Description,Footprint,Quantity per board
+J302,PinHeader_1x03_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,1
+J101,PinHeader_1x04_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,1
+JP301,PinHeader_2x03_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical,1
+JP302,PinHeader_1x03_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,1
+JP303,PinHeader_1x02_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,1
+JP304,PinHeader_1x02_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,1
+Shunts,"2.54 mm shunt: JP301 x2, JP302 x1; JP303/304 optional x2",,5

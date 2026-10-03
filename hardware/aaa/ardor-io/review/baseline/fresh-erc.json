@@ -1,0 +1,39 @@
+{
+    "$schema": "https://schemas.kicad.org/erc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-09-29T10:56:58+0000",
+    "kicad_version": "9.0.2",
+    "sheets": [
+        {
+            "path": "/",
+            "uuid_path": "/4e737327-a0ea-4a6f-94e1-a9e1e5e3775c",
+            "violations": []
+        },
+        {
+            "path": "/02 / Isolated MIDI input/",
+            "uuid_path": "/4e737327-a0ea-4a6f-94e1-a9e1e5e3775c/d0c8f3cc-1aa3-42e6-980c-adc4d5c58aed",
+            "violations": []
+        },
+        {
+            "path": "/03 / Expression input/",
+            "uuid_path": "/4e737327-a0ea-4a6f-94e1-a9e1e5e3775c/56c5736b-4d5d-41a8-b995-670aa0ae5db9",
+            "violations": []
+        },
+        {
+            "path": "/04 / Audio distribution/",
+            "uuid_path": "/4e737327-a0ea-4a6f-94e1-a9e1e5e3775c/f1ee37b1-6584-47ff-b13b-7f0fec558166",
+            "violations": []
+        },
+        {
+            "path": "/05 / Line and amp feed/",
+            "uuid_path": "/4e737327-a0ea-4a6f-94e1-a9e1e5e3775c/4a838c18-f68d-4997-a00d-8eb855705b2e",
+            "violations": []
+        },
+        {
+            "path": "/06 / Stereo headphones/",
+            "uuid_path": "/4e737327-a0ea-4a6f-94e1-a9e1e5e3775c/60900772-43cf-4568-8928-7b6de116f7f8",
+            "violations": []
+        }
+    ],
+    "source": "Ardor_IO.kicad_sch"
+}

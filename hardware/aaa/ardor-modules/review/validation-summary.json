@@ -1,0 +1,423 @@
+{
+  "result": "PASS",
+  "kicad_version": "9.0.2",
+  "module_dependencies": [],
+  "modules": {
+    "headphones": {
+      "electrical": {
+        "result": "PASS",
+        "connected_pin_numbers": 60,
+        "explicit_no_connects": 0,
+        "physical_numbered_pads": 65,
+        "electrical_footprints": 21,
+        "mounting_holes": 2,
+        "board_size_mm": [
+          36.0,
+          30.0
+        ],
+        "functional_nets": 18,
+        "routed_nets": 17,
+        "signal_and_supply_width_mm": 0.2,
+        "chassis_width_mm": 0.6,
+        "ground_tracks": 0,
+        "vias": 15,
+        "erc_violations": 0,
+        "drc_violations": 0,
+        "unconnected_items": 0,
+        "schematic_parity_violations": 0,
+        "drc_exclusions": 0,
+        "one_sheet": true,
+        "module_dependencies": []
+      },
+      "assembly": {
+        "board_quantity": 2,
+        "smt_placements_per_board": 18,
+        "unique_smt_parts": 11,
+        "basic_types": 7,
+        "extended_types": 4,
+        "manual_references": [
+          "J101",
+          "J102",
+          "J602"
+        ],
+        "stock_check_utc": "2026-10-02T14:05:55.001072+00:00",
+        "stock_reserved": false,
+        "component_cost_with_assembly_attrition_usd": 9.93,
+        "economic_extended_feeders_usd": 12.28,
+        "optional_qfn_xray_for_two_usd": 3.28,
+        "estimate_excludes": [
+          "PCB fabrication",
+          "assembly setup",
+          "stencil",
+          "solder joints",
+          "shipping",
+          "tax",
+          "manual parts",
+          "discounts"
+        ],
+        "placement_preview_verified": false,
+        "rotation_convention": "Native KiCad CCW; inspect manufacturer pin 1 in JLC placement preview",
+        "origin": "Absolute Gerber origin; mm; CPL Y up",
+        "hashes": {
+          "pcb_sha256": "3560a76d86f5ce0a964833a304a357468e291df6906e39c6b82725b5c552f089",
+          "schematic_sha256": "483c52945391fc77df83b9479f82365273c40e560751b94d96eace29ff860aba"
+        }
+      },
+      "labels": {
+        "result": "PASS",
+        "numbered_external_pins": 9,
+        "complete_pin_maps": 3,
+        "explicit_unused_pin_labels": 0,
+        "pin_numbers_point_to_nearest_matching_pad": true,
+        "all_printed_labels_present": true,
+        "directions_relative_to_module": true,
+        "all_pin_nets_match_schematic": true
+      },
+      "short_guide": {
+        "reference": "ASD-STE100 Issue 9, 2025-01-15",
+        "automatic_checks": "Sentence length and common contractions only; vocabulary, grammar and meaning reviewed by author",
+        "result": "PASS",
+        "procedure_steps": 9,
+        "maximum_procedure_words": 15,
+        "maximum_description_words": 11,
+        "technical_terminology": "../STE-TERMS.md",
+        "third_party_certification": false
+      }
+    },
+    "line-out": {
+      "electrical": {
+        "result": "PASS",
+        "connected_pin_numbers": 66,
+        "explicit_no_connects": 0,
+        "physical_numbered_pads": 66,
+        "electrical_footprints": 27,
+        "mounting_holes": 2,
+        "board_size_mm": [
+          46.0,
+          34.0
+        ],
+        "functional_nets": 17,
+        "routed_nets": 16,
+        "signal_and_supply_width_mm": 0.2,
+        "chassis_width_mm": 0.6,
+        "ground_tracks": 0,
+        "vias": 7,
+        "erc_violations": 0,
+        "drc_violations": 0,
+        "unconnected_items": 0,
+        "schematic_parity_violations": 0,
+        "drc_exclusions": 0,
+        "one_sheet": true,
+        "module_dependencies": []
+      },
+      "assembly": {
+        "board_quantity": 2,
+        "smt_placements_per_board": 22,
+        "unique_smt_parts": 15,
+        "basic_types": 11,
+        "extended_types": 4,
+        "manual_references": [
+          "J101",
+          "J102",
+          "J502",
+          "J503",
+          "K501"
+        ],
+        "stock_check_utc": "2026-10-02T14:05:55.001072+00:00",
+        "stock_reserved": false,
+        "component_cost_with_assembly_attrition_usd": 8.52,
+        "economic_extended_feeders_usd": 12.28,
+        "optional_qfn_xray_for_two_usd": 0,
+        "estimate_excludes": [
+          "PCB fabrication",
+          "assembly setup",
+          "stencil",
+          "solder joints",
+          "shipping",
+          "tax",
+          "manual parts",
+          "discounts"
+        ],
+        "placement_preview_verified": false,
+        "rotation_convention": "Native KiCad CCW; inspect manufacturer pin 1 in JLC placement preview",
+        "origin": "Absolute Gerber origin; mm; CPL Y up",
+        "hashes": {
+          "pcb_sha256": "ce05b8db9a67bc8363b3cef542cedcf35c61b003e121ce8127af5ad633dd5abb",
+          "schematic_sha256": "88e321a4a5e2e0a4883cf75421c4277df62bd630ff982e84d06f39ff35c73495"
+        }
+      },
+      "labels": {
+        "result": "PASS",
+        "numbered_external_pins": 9,
+        "complete_pin_maps": 4,
+        "explicit_unused_pin_labels": 0,
+        "pin_numbers_point_to_nearest_matching_pad": true,
+        "all_printed_labels_present": true,
+        "directions_relative_to_module": true,
+        "all_pin_nets_match_schematic": true
+      },
+      "short_guide": {
+        "reference": "ASD-STE100 Issue 9, 2025-01-15",
+        "automatic_checks": "Sentence length and common contractions only; vocabulary, grammar and meaning reviewed by author",
+        "result": "PASS",
+        "procedure_steps": 10,
+        "maximum_procedure_words": 15,
+        "maximum_description_words": 11,
+        "technical_terminology": "../STE-TERMS.md",
+        "third_party_certification": false
+      }
+    },
+    "mixer": {
+      "electrical": {
+        "result": "PASS",
+        "connected_pin_numbers": 71,
+        "explicit_no_connects": 0,
+        "physical_numbered_pads": 71,
+        "electrical_footprints": 28,
+        "mounting_holes": 2,
+        "board_size_mm": [
+          40.0,
+          30.0
+        ],
+        "functional_nets": 19,
+        "routed_nets": 18,
+        "signal_and_supply_width_mm": 0.2,
+        "chassis_width_mm": 0.6,
+        "ground_tracks": 0,
+        "vias": 14,
+        "erc_violations": 0,
+        "drc_violations": 0,
+        "unconnected_items": 0,
+        "schematic_parity_violations": 0,
+        "drc_exclusions": 0,
+        "one_sheet": true,
+        "module_dependencies": []
+      },
+      "assembly": {
+        "board_quantity": 2,
+        "smt_placements_per_board": 25,
+        "unique_smt_parts": 9,
+        "basic_types": 7,
+        "extended_types": 2,
+        "manual_references": [
+          "J101",
+          "J102",
+          "J103"
+        ],
+        "stock_check_utc": "2026-10-02T14:05:54.842826+00:00",
+        "stock_reserved": false,
+        "component_cost_with_assembly_attrition_usd": 6.88,
+        "economic_extended_feeders_usd": 6.14,
+        "optional_qfn_xray_for_two_usd": 0,
+        "estimate_excludes": [
+          "PCB fabrication",
+          "assembly setup",
+          "stencil",
+          "solder joints",
+          "shipping",
+          "tax",
+          "manual parts",
+          "discounts"
+        ],
+        "placement_preview_verified": false,
+        "rotation_convention": "Native KiCad CCW; inspect manufacturer pin 1 in JLC placement preview",
+        "origin": "Absolute Gerber origin; mm; CPL Y up",
+        "hashes": {
+          "pcb_sha256": "225246b562ca8f7f9616716a0fae09edd3d63ef60c1dffe68b775e527ba0d8c8",
+          "schematic_sha256": "2b561d97d968c8667b18ebe36e9b92a2da71a9bfa36f788cb970a0f176b30241"
+        }
+      },
+      "labels": {
+        "result": "PASS",
+        "numbered_external_pins": 9,
+        "complete_pin_maps": 3,
+        "explicit_unused_pin_labels": 0,
+        "pin_numbers_point_to_nearest_matching_pad": true,
+        "all_printed_labels_present": true,
+        "directions_relative_to_module": true,
+        "all_pin_nets_match_schematic": true
+      },
+      "short_guide": {
+        "reference": "ASD-STE100 Issue 9, 2025-01-15",
+        "automatic_checks": "Sentence length and common contractions only; vocabulary, grammar and meaning reviewed by author",
+        "result": "PASS",
+        "procedure_steps": 9,
+        "maximum_procedure_words": 9,
+        "maximum_description_words": 12,
+        "technical_terminology": "../STE-TERMS.md",
+        "third_party_certification": false
+      }
+    },
+    "expression": {
+      "electrical": {
+        "result": "PASS",
+        "connected_pin_numbers": 73,
+        "explicit_no_connects": 1,
+        "physical_numbered_pads": 74,
+        "electrical_footprints": 29,
+        "mounting_holes": 2,
+        "board_size_mm": [
+          44.0,
+          34.0
+        ],
+        "functional_nets": 17,
+        "routed_nets": 16,
+        "signal_and_supply_width_mm": 0.2,
+        "chassis_width_mm": 0.6,
+        "ground_tracks": 0,
+        "vias": 10,
+        "erc_violations": 0,
+        "drc_violations": 0,
+        "unconnected_items": 0,
+        "schematic_parity_violations": 0,
+        "drc_exclusions": 0,
+        "one_sheet": true,
+        "module_dependencies": []
+      },
+      "assembly": {
+        "board_quantity": 2,
+        "smt_placements_per_board": 23,
+        "unique_smt_parts": 12,
+        "basic_types": 9,
+        "extended_types": 3,
+        "manual_references": [
+          "J101",
+          "J302",
+          "JP301",
+          "JP302",
+          "JP303",
+          "JP304"
+        ],
+        "stock_check_utc": "2026-10-02T14:05:56.126827+00:00",
+        "stock_reserved": false,
+        "component_cost_with_assembly_attrition_usd": 8.06,
+        "economic_extended_feeders_usd": 9.21,
+        "optional_qfn_xray_for_two_usd": 0,
+        "estimate_excludes": [
+          "PCB fabrication",
+          "assembly setup",
+          "stencil",
+          "solder joints",
+          "shipping",
+          "tax",
+          "manual parts",
+          "discounts"
+        ],
+        "placement_preview_verified": false,
+        "rotation_convention": "Native KiCad CCW; inspect manufacturer pin 1 in JLC placement preview",
+        "origin": "Absolute Gerber origin; mm; CPL Y up",
+        "hashes": {
+          "pcb_sha256": "275b912e1c7a53b8b783b1ec27e0bb61c9945835ce7be587876da12398129a20",
+          "schematic_sha256": "be1eafe9ef88acd36799dcb632f29bcf087a32b862fad2189e9f280628858131"
+        }
+      },
+      "labels": {
+        "result": "PASS",
+        "numbered_external_pins": 20,
+        "complete_pin_maps": 6,
+        "explicit_unused_pin_labels": 1,
+        "pin_numbers_point_to_nearest_matching_pad": true,
+        "all_printed_labels_present": true,
+        "directions_relative_to_module": true,
+        "all_pin_nets_match_schematic": true
+      },
+      "short_guide": {
+        "reference": "ASD-STE100 Issue 9, 2025-01-15",
+        "automatic_checks": "Sentence length and common contractions only; vocabulary, grammar and meaning reviewed by author",
+        "result": "PASS",
+        "procedure_steps": 14,
+        "maximum_procedure_words": 15,
+        "maximum_description_words": 11,
+        "technical_terminology": "../STE-TERMS.md",
+        "third_party_certification": false
+      }
+    },
+    "midi-in": {
+      "electrical": {
+        "result": "PASS",
+        "connected_pin_numbers": 41,
+        "explicit_no_connects": 1,
+        "physical_numbered_pads": 42,
+        "electrical_footprints": 18,
+        "mounting_holes": 2,
+        "board_size_mm": [
+          34.0,
+          28.0
+        ],
+        "functional_nets": 11,
+        "routed_nets": 10,
+        "signal_and_supply_width_mm": 0.2,
+        "chassis_width_mm": 0.6,
+        "ground_tracks": 0,
+        "vias": 4,
+        "erc_violations": 0,
+        "drc_violations": 0,
+        "unconnected_items": 0,
+        "schematic_parity_violations": 0,
+        "drc_exclusions": 0,
+        "one_sheet": true,
+        "module_dependencies": []
+      },
+      "assembly": {
+        "board_quantity": 2,
+        "smt_placements_per_board": 14,
+        "unique_smt_parts": 10,
+        "basic_types": 7,
+        "extended_types": 3,
+        "manual_references": [
+          "J101",
+          "J202",
+          "J203",
+          "U201"
+        ],
+        "stock_check_utc": "2026-10-02T14:05:56.104787+00:00",
+        "stock_reserved": false,
+        "component_cost_with_assembly_attrition_usd": 5.22,
+        "economic_extended_feeders_usd": 9.21,
+        "optional_qfn_xray_for_two_usd": 0,
+        "estimate_excludes": [
+          "PCB fabrication",
+          "assembly setup",
+          "stencil",
+          "solder joints",
+          "shipping",
+          "tax",
+          "manual parts",
+          "discounts"
+        ],
+        "placement_preview_verified": false,
+        "rotation_convention": "Native KiCad CCW; inspect manufacturer pin 1 in JLC placement preview",
+        "origin": "Absolute Gerber origin; mm; CPL Y up",
+        "hashes": {
+          "pcb_sha256": "4240c3eeeb8f624bde5fd3faf6e38c976ed9d8218bf8debbbd82790fb98d6fd7",
+          "schematic_sha256": "0305b3683b3e5e9afd341b5ba093eb6f5d72db82ef6d4ad47c5c93bfbc03ba3c"
+        }
+      },
+      "labels": {
+        "result": "PASS",
+        "numbered_external_pins": 8,
+        "complete_pin_maps": 3,
+        "explicit_unused_pin_labels": 1,
+        "pin_numbers_point_to_nearest_matching_pad": true,
+        "all_printed_labels_present": true,
+        "directions_relative_to_module": true,
+        "all_pin_nets_match_schematic": true
+      },
+      "short_guide": {
+        "reference": "ASD-STE100 Issue 9, 2025-01-15",
+        "automatic_checks": "Sentence length and common contractions only; vocabulary, grammar and meaning reviewed by author",
+        "result": "PASS",
+        "procedure_steps": 11,
+        "maximum_procedure_words": 16,
+        "maximum_description_words": 11,
+        "technical_terminology": "../STE-TERMS.md",
+        "third_party_certification": false
+      }
+    }
+  },
+  "total_smt_placements": 102,
+  "total_physical_numbered_pads": 318,
+  "total_numbered_connector_pins": 55,
+  "hardware_tested": false,
+  "supplier_placement_preview_verified": false
+}

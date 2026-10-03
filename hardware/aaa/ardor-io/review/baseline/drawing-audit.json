@@ -1,0 +1,7 @@
+{
+  "represented_components": 99,
+  "represented_non_nc_pins": 260,
+  "all_source_non_nc_pins_present": true,
+  "wire_geometry_no_shorts_or_signal_opens": true,
+  "note": "Pin coverage, direct wire endpoints and geometric connectivity checked. Power/ground symbols and J101 functional groups are implicit connections; manual visual review complements the checks."
+}

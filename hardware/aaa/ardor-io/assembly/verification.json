@@ -1,0 +1,21 @@
+{
+  "board_quantity": 2,
+  "smt_placements_per_board": 76,
+  "unique_smt_parts": 28,
+  "basic_parts": 13,
+  "extended_parts": 15,
+  "all_parts_stocked_above_published_minimum_and_loss_allowance": true,
+  "bom_cpl_schematic_board_reference_sets_match": true,
+  "all_mpn_footprint_datasheet_and_jlc_fields_match": true,
+  "passive_values_voltage_ratings_dielectrics_and_resistor_tolerances_checked": true,
+  "all_cpl_coordinates_and_rotations_match_kicad": true,
+  "coordinate_convention": "KiCad absolute origin: X right, Y up; no auxiliary-origin shift",
+  "jlcpcb_preview_rotations_verified": false,
+  "stock_reserved": false,
+  "order_placed": false,
+  "erc_violations": 0,
+  "drc_violations": 0,
+  "unconnected_items": 0,
+  "schematic_parity_issues": 0,
+  "board_sha256": "89d3291abb46f41a101c247d6365aa63583288da030a5ec1447d99f73afd30f8"
+}

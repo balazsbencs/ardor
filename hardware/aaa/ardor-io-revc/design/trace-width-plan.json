@@ -1,0 +1,1348 @@
+{
+  "source_commit": "0df5a213",
+  "source_board_sha256": "506bf09821215376d12b83708549b1e15edc134f72cbd6b96d69b4a431d812a3",
+  "description": "Uniform signal and normal power widths; retain wide ESD returns with explicitly constrained corridors. Exact width-only changes, preserving all centerlines, layers and vias.",
+  "target_widths_mm": {
+    "+3V3_ADC": 0.2,
+    "+3V3_PI": 0.2,
+    "+5V_A": 0.2,
+    "+5V_PI": 0.2,
+    "/04 / Audio distribution/BIAS_L": 0.2,
+    "/04 / Audio distribution/BIAS_R": 0.2,
+    "/04 / Audio distribution/BUF_L": 0.2,
+    "/04 / Audio distribution/BUF_R": 0.2,
+    "/05 / Line and amp feed/AMP_AC": 0.2,
+    "/05 / Line and amp feed/AMP_FEED": 0.2,
+    "/05 / Line and amp feed/LINE_AC": 0.2,
+    "/05 / Line and amp feed/LINE_DRIVE": 0.2,
+    "ADC_SCL": 0.2,
+    "ADC_SDA": 0.2,
+    "AUX_L": 0.2,
+    "AUX_R": 0.2,
+    "CHASSIS": 0.6,
+    "EXP_ADC": 0.2,
+    "EXP_EXC": 0.2,
+    "EXP_REF_ADC": 0.2,
+    "EXP_RING": 0.2,
+    "EXP_TIP": 0.2,
+    "EXP_WIPER": 0.2,
+    "GND": 0.4,
+    "LINE_ENABLE": 0.2,
+    "LINE_JACK": 0.2,
+    "MIDI_4": 0.2,
+    "MIDI_4_F": 0.2,
+    "MIDI_5": 0.2,
+    "MIDI_A": 0.2,
+    "MIDI_K": 0.2,
+    "MIDI_OC": 0.2,
+    "MIDI_RX": 0.2,
+    "MONO_BUF": 0.2,
+    "MONO_MIX": 0.2,
+    "PI_SCL": 0.2,
+    "PI_SDA": 0.2,
+    "RELAY_GATE": 0.2,
+    "RELAY_LOW": 0.2,
+    "VREF": 0.2,
+    "VREF_DIV": 0.2
+  },
+  "before_width_junctions": 40,
+  "after_width_junctions": 11,
+  "changes": [
+    {
+      "uuid": "00c4b18b-9500-4696-b729-2e144ceb8aa4",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        89.6409,
+        80.001
+      ],
+      "end": [
+        89.176,
+        80.001
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "119a6896-630e-44a3-a4e6-099fff13e941",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        88.5398,
+        60
+      ],
+      "end": [
+        89.0625,
+        60
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "17e56e3c-da33-4ac1-887d-48091eb1f4e0",
+      "net": "MONO_BUF",
+      "layer": "F.Cu",
+      "start": [
+        101.975,
+        73.635
+      ],
+      "end": [
+        101.975,
+        74.905
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "1b2cba1b-d1df-45a2-9d23-fe800f8e022f",
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "start": [
+        86.0271,
+        59.8797
+      ],
+      "end": [
+        83.7876,
+        57.6402
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "1f0c345a-796d-4703-8656-cffd221af85a",
+      "net": "CHASSIS",
+      "layer": "F.Cu",
+      "start": [
+        108.8966,
+        90
+      ],
+      "end": [
+        103.8817,
+        95.0149
+      ],
+      "before_width_mm": 0.2,
+      "after_width_mm": 0.6
+    },
+    {
+      "uuid": "1f93322c-46dd-4d61-bfe9-17a4a3b45f79",
+      "net": "/04 / Audio distribution/BUF_L",
+      "layer": "F.Cu",
+      "start": [
+        78.525,
+        65.095
+      ],
+      "end": [
+        80.295,
+        63.325
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "29ccd6cf-80b3-41db-b8c7-9b03f947542b",
+      "net": "RELAY_LOW",
+      "layer": "F.Cu",
+      "start": [
+        111.4271,
+        73.9229
+      ],
+      "end": [
+        111,
+        74.35
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "2cacaf0a-db3d-49aa-b58f-f3b9c13ca85e",
+      "net": "+5V_PI",
+      "layer": "F.Cu",
+      "start": [
+        86.8172,
+        59.8797
+      ],
+      "end": [
+        86.0271,
+        59.8797
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "3ba57e5d-73db-45a5-8162-366d6c175820",
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "start": [
+        60.6461,
+        55.3939
+      ],
+      "end": [
+        59.5,
+        56.54
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "3ec11c66-f477-47d8-8fb8-8f6638f3b4af",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        83.475,
+        65.095
+      ],
+      "end": [
+        84.3606,
+        65.095
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "40e63344-71c5-4d6a-9c69-042603de8e20",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        90.5125,
+        61.45
+      ],
+      "end": [
+        91,
+        61.45
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "54f28969-b5bf-475c-8ee4-47dbe77489f0",
+      "net": "MONO_BUF",
+      "layer": "F.Cu",
+      "start": [
+        103.4324,
+        73.7047
+      ],
+      "end": [
+        102.0447,
+        73.7047
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "5933a53f-2bda-48f9-8745-5e325d9bd4ec",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        90.618201,
+        65.476
+      ],
+      "end": [
+        89.5632,
+        65.476
+      ],
+      "before_width_mm": 0.15,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "5a668af0-95cc-4db7-ab59-82677c9ee8ca",
+      "net": "/04 / Audio distribution/BUF_L",
+      "layer": "F.Cu",
+      "start": [
+        78.525,
+        65.095
+      ],
+      "end": [
+        78.525,
+        66.365
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "5d968660-619c-4eb4-903b-8d4398e3520a",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        89.455,
+        69.2261
+      ],
+      "end": [
+        91.5011,
+        71.2721
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "5e4dd9ae-87fa-414a-95a7-db394e3c677c",
+      "net": "VREF",
+      "layer": "F.Cu",
+      "start": [
+        83,
+        75.9739
+      ],
+      "end": [
+        83,
+        77
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "60d1164c-6f08-4000-b292-d4249cf688a6",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        92.1929,
+        65.476
+      ],
+      "end": [
+        90.618201,
+        65.476
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "610d5e5a-fc33-4e93-973b-fd5f9146fef2",
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "start": [
+        81.0901,
+        54.3184
+      ],
+      "end": [
+        81.0901,
+        53.7103
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "63d17c04-c8d1-490f-94aa-b10fa8319a0a",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        89.225,
+        68.9961
+      ],
+      "end": [
+        89.455,
+        69.2261
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "6560380d-a6d2-429f-a666-a0a223b3775b",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        91.7672,
+        71.006
+      ],
+      "end": [
+        92.386,
+        71.006
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "6560820d-0d8c-4d49-beec-e916136b565b",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        89.176,
+        80.001
+      ],
+      "end": [
+        86.175,
+        77
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "67fcbcb7-5d56-43b7-a2f3-39fec0bd8107",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        92.1929,
+        64.8321
+      ],
+      "end": [
+        92.1929,
+        65.476
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "6b43b44e-2a2b-4b3e-9adf-4da2e5e48146",
+      "net": "MONO_BUF",
+      "layer": "F.Cu",
+      "start": [
+        97.025,
+        72.365
+      ],
+      "end": [
+        97.025,
+        73.635
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "70abc034-299e-45c3-bdb0-85bb8ff1b7cc",
+      "net": "VREF",
+      "layer": "F.Cu",
+      "start": [
+        81.0519,
+        74.2246
+      ],
+      "end": [
+        81.2507,
+        74.2246
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "76299303-2588-48c3-95d5-8c503f56ebc3",
+      "net": "+5V_PI",
+      "layer": "F.Cu",
+      "start": [
+        75.225,
+        70
+      ],
+      "end": [
+        76,
+        70.775
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "7893542c-635b-4283-95b3-2bb447137a81",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        84.1942,
+        65.8142
+      ],
+      "end": [
+        83.475,
+        65.095
+      ],
+      "before_width_mm": 0.15,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "79008637-8742-4c0b-95b4-aa456f2b8bb9",
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "start": [
+        100.3397,
+        59.8797
+      ],
+      "end": [
+        86.0271,
+        59.8797
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "8234f9c5-9768-431f-bdae-4d50f1221bbc",
+      "net": "MONO_BUF",
+      "layer": "F.Cu",
+      "start": [
+        87.525,
+        71.095
+      ],
+      "end": [
+        87.525,
+        70.2398
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "8784b47d-1c21-42f0-867d-c8f716a7bf68",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        89.225,
+        68.5
+      ],
+      "end": [
+        89.225,
+        68.9961
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "88cb880e-3d88-40e7-8a64-daf86f234300",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        89.225,
+        68.5
+      ],
+      "end": [
+        89.225,
+        67.7268
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "8919c30a-f101-4002-b7f5-12ff7d6da89a",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        89.225,
+        65.8142
+      ],
+      "end": [
+        84.1942,
+        65.8142
+      ],
+      "before_width_mm": 0.15,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "898d650a-0651-444b-8201-98797656fde3",
+      "net": "+5V_PI",
+      "layer": "F.Cu",
+      "start": [
+        73.12,
+        70
+      ],
+      "end": [
+        75.225,
+        70
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "8a83b4a3-4b71-4291-a630-e09b6a841b29",
+      "net": "VREF",
+      "layer": "F.Cu",
+      "start": [
+        91.84,
+        74.27
+      ],
+      "end": [
+        92.475,
+        73.635
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "8c40115c-c0c9-43af-bed5-e8ce9b412339",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        93,
+        78.4141
+      ],
+      "end": [
+        93,
+        79.535
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "8d5b6363-14fa-4aec-92ba-260616989e35",
+      "net": "/04 / Audio distribution/BUF_L",
+      "layer": "F.Cu",
+      "start": [
+        80.295,
+        63.325
+      ],
+      "end": [
+        85,
+        63.325
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "9172a15d-3b64-4d09-9f14-6facdb915c83",
+      "net": "MONO_BUF",
+      "layer": "F.Cu",
+      "start": [
+        87.525,
+        71.095
+      ],
+      "end": [
+        87.525,
+        72.365
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "949c838a-67c3-4db7-89cc-71f017c933d3",
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "start": [
+        62.04,
+        56.54
+      ],
+      "end": [
+        62.04,
+        56.7388
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "94d5a0de-b5fc-44ae-9483-a9f3c756a590",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        91.5011,
+        71.2721
+      ],
+      "end": [
+        91.7672,
+        71.006
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "9523c8fe-2a78-45bc-bdfb-ebada41aaad8",
+      "net": "RELAY_LOW",
+      "layer": "B.Cu",
+      "start": [
+        111.4271,
+        71.453
+      ],
+      "end": [
+        111.4271,
+        65.8871
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "95807bcb-7dd5-435e-ae16-d55f108f856a",
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "start": [
+        82.6743,
+        55.27
+      ],
+      "end": [
+        82.0417,
+        55.27
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "95982aa7-b977-4e0d-b9a2-a99ef7e6cfe3",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        89.225,
+        67.7268
+      ],
+      "end": [
+        89.225,
+        65.8142
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "9add70ac-8b98-413f-a1cc-e3b053dab87f",
+      "net": "RELAY_LOW",
+      "layer": "B.Cu",
+      "start": [
+        111.4271,
+        65.8871
+      ],
+      "end": [
+        110.08,
+        64.54
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "a5a8702d-ac56-46e8-9ede-6c78cb657f4f",
+      "net": "VREF",
+      "layer": "F.Cu",
+      "start": [
+        83,
+        75.9739
+      ],
+      "end": [
+        84.7039,
+        74.27
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "a715dd89-1bd5-4d60-a258-9ac26d243f62",
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "start": [
+        107.5401,
+        67.0801
+      ],
+      "end": [
+        105,
+        64.54
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "a96d5644-cc17-4bae-994c-6202e8466c7c",
+      "net": "VREF",
+      "layer": "F.Cu",
+      "start": [
+        84.7039,
+        74.27
+      ],
+      "end": [
+        91.84,
+        74.27
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "ad97eea8-9094-45e5-b25b-db34a62745f8",
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "start": [
+        105,
+        64.54
+      ],
+      "end": [
+        100.3397,
+        59.8797
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "af3cbf2c-b6d3-4084-aa77-5c9d60ec1165",
+      "net": "+5V_PI",
+      "layer": "F.Cu",
+      "start": [
+        111,
+        77.65
+      ],
+      "end": [
+        110.2058,
+        76.8558
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "b120b7f9-581a-4af7-8d76-d4279f84a670",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        92.25,
+        64.775
+      ],
+      "end": [
+        92.1929,
+        64.8321
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "b690183d-3517-42b1-b332-783a884b1c14",
+      "net": "CHASSIS",
+      "layer": "F.Cu",
+      "start": [
+        109.8,
+        90
+      ],
+      "end": [
+        108.8966,
+        90
+      ],
+      "before_width_mm": 0.2,
+      "after_width_mm": 0.6
+    },
+    {
+      "uuid": "b93106f1-900e-47db-a402-f1bfc99e1141",
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "start": [
+        110.2058,
+        76.8558
+      ],
+      "end": [
+        107.5401,
+        74.1901
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "c52f60bf-cb34-4cee-adb1-950c03c1f94b",
+      "net": "RELAY_LOW",
+      "layer": "F.Cu",
+      "start": [
+        111,
+        74.35
+      ],
+      "end": [
+        109.85,
+        75.5
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "cc65ccee-6387-44e0-852f-3be3a7e2db24",
+      "net": "+5V_PI",
+      "layer": "F.Cu",
+      "start": [
+        86.9375,
+        60
+      ],
+      "end": [
+        86.8172,
+        59.8797
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "cdddd7d5-86fa-499e-9162-18ea15ac8792",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        96.5,
+        68
+      ],
+      "end": [
+        96.2268,
+        67.7268
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "cebcc405-1d9d-4e9e-a640-43f436627a11",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        92.475,
+        71.095
+      ],
+      "end": [
+        92.7919,
+        71.095
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "d16d9cde-8e69-4850-8c0c-795a5bc435d2",
+      "net": "MONO_BUF",
+      "layer": "F.Cu",
+      "start": [
+        97.5205,
+        70.5995
+      ],
+      "end": [
+        97.025,
+        71.095
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "d2da28b5-aae7-4671-a056-6d50c8b8ea30",
+      "net": "MONO_BUF",
+      "layer": "F.Cu",
+      "start": [
+        97.025,
+        71.095
+      ],
+      "end": [
+        97.025,
+        72.365
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "e272f492-292f-4244-81f8-1a029c2fd62c",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        92.386,
+        71.006
+      ],
+      "end": [
+        92.475,
+        71.095
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "e32d1eef-e34b-4146-88f3-de6f811fa60e",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        89.5632,
+        65.476
+      ],
+      "end": [
+        89.225,
+        65.8142
+      ],
+      "before_width_mm": 0.15,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "e3e65c53-f310-4309-876d-06a37e6ce582",
+      "net": "/04 / Audio distribution/BUF_R",
+      "layer": "F.Cu",
+      "start": [
+        83.475,
+        67.635
+      ],
+      "end": [
+        83.475,
+        66.365
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "ecd7ac55-25a7-4fbf-b8d0-88f4678e55e6",
+      "net": "MONO_BUF",
+      "layer": "F.Cu",
+      "start": [
+        102.0447,
+        73.7047
+      ],
+      "end": [
+        101.975,
+        73.635
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "f018d83c-c2d1-4059-bb76-70e2fb886d28",
+      "net": "VREF",
+      "layer": "F.Cu",
+      "start": [
+        92.475,
+        73.635
+      ],
+      "end": [
+        92.475,
+        72.365
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "f1798898-0a78-4a1d-ae6c-2d7460f02c70",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        89.0625,
+        60
+      ],
+      "end": [
+        90.5125,
+        61.45
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "f20a837b-aa86-46a6-b224-af17a3def8ff",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        85.2213,
+        62.4294
+      ],
+      "end": [
+        84.2438,
+        62.4294
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "f4418654-80cf-4151-8697-9f7886f69f84",
+      "net": "RELAY_LOW",
+      "layer": "F.Cu",
+      "start": [
+        109.85,
+        75.5
+      ],
+      "end": [
+        107.9375,
+        75.5
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "f97964a8-11fe-4f6b-b78d-ddb3f8bbb507",
+      "net": "+5V_PI",
+      "layer": "B.Cu",
+      "start": [
+        107.5401,
+        74.1901
+      ],
+      "end": [
+        107.5401,
+        67.0801
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "fa59f0cb-f42a-4fff-b970-344aea5d7ed4",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        81.225,
+        62
+      ],
+      "end": [
+        81.9526,
+        62.7276
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "fa7a896b-311c-488d-b4dc-07ccec2f53de",
+      "net": "+5V_A",
+      "layer": "F.Cu",
+      "start": [
+        83.9456,
+        62.7276
+      ],
+      "end": [
+        84.2438,
+        62.4294
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "fd790fe2-2325-4ce9-8a39-a41978219f06",
+      "net": "VREF",
+      "layer": "F.Cu",
+      "start": [
+        81.2507,
+        74.2246
+      ],
+      "end": [
+        83,
+        75.9739
+      ],
+      "before_width_mm": 0.25,
+      "after_width_mm": 0.2
+    },
+    {
+      "uuid": "fdf21366-ff35-4033-bd65-924fe0954991",
+      "net": "+5V_PI",
+      "layer": "F.Cu",
+      "start": [
+        62.04,
+        56.54
+      ],
+      "end": [
+        59.5,
+        56.54
+      ],
+      "before_width_mm": 0.4,
+      "after_width_mm": 0.2
+    }
+  ],
+  "exceptions": [
+    {
+      "uuid": "008f58ca-b36a-4572-b768-ad5e99242f5c",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Keep the JP301-to-R101 corridor uniformly narrow between its constrained ends; avoid a short wide patch introducing two extra transitions.",
+      "obstacles": {}
+    },
+    {
+      "uuid": "13c9f2e7-254a-4f2f-b3a8-80cf50a92f3a",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "be2017df-5b49-4974-ae2f-4e2c572ca11f": "PTH pad 5 [EXP_RING] of JP301",
+        "c02910f7-f31f-47e9-8311-762fd54bf0e6": "PTH pad 6 [EXP_TIP] of JP301"
+      }
+    },
+    {
+      "uuid": "55f5aa6d-620a-4925-aea0-8e007ce28bcf",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "df644dd4-2b2a-4773-87ae-4f4d3a4e6a88": "Pad 2 [MIDI_K] of FB202 on F.Cu"
+      }
+    },
+    {
+      "uuid": "575a5366-0833-4335-9083-f0add33376d8",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "50d70fb2-4ccb-426f-862b-e5b3a05aeb28": "Via [/05 / Line and amp feed/AMP_FEED] on F.Cu - B.Cu"
+      }
+    },
+    {
+      "uuid": "5d15e5c4-e4eb-4c78-831b-4d2c78f3e799",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "ed3fd5e7-dd2c-43e7-b52b-5d834c24f158": "Pad 1 [MIDI_4] of FB201 on F.Cu"
+      }
+    },
+    {
+      "uuid": "5df725bf-abe5-4dd0-a298-c604b775310c",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "403519f3-0393-4a9c-93b2-3b4eece36be4": "PTH pad 6 [LINE_JACK] of K501"
+      }
+    },
+    {
+      "uuid": "5e22486f-37be-466e-b66e-7d02cdba9221",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "9dd04179-2879-47b3-98c4-faa62b5c490f": "Pad 1 [GND] of R101 on F.Cu"
+      }
+    },
+    {
+      "uuid": "797fd550-59bc-4c86-b158-329830d57d16",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "df644dd4-2b2a-4773-87ae-4f4d3a4e6a88": "Pad 2 [MIDI_K] of FB202 on F.Cu"
+      }
+    },
+    {
+      "uuid": "7c09bb2e-d27a-4d23-b842-2899b1e24f24",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "9dd04179-2879-47b3-98c4-faa62b5c490f": "Pad 1 [GND] of R101 on F.Cu"
+      }
+    },
+    {
+      "uuid": "7faeeee2-2b9e-47d0-9613-eab15edbae10",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "be2017df-5b49-4974-ae2f-4e2c572ca11f": "PTH pad 5 [EXP_RING] of JP301"
+      }
+    },
+    {
+      "uuid": "8dbbf5b5-69d5-47f8-b943-a5be4ca299dc",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "df644dd4-2b2a-4773-87ae-4f4d3a4e6a88": "Pad 2 [MIDI_K] of FB202 on F.Cu"
+      }
+    },
+    {
+      "uuid": "98e3f498-f82e-4384-824f-b6d27c143e34",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "ed3fd5e7-dd2c-43e7-b52b-5d834c24f158": "Pad 1 [MIDI_4] of FB201 on F.Cu"
+      }
+    },
+    {
+      "uuid": "9f6e7525-182c-410f-b468-a5146d9610d4",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "6e82aff4-0531-4668-a37c-13aa1c398609": "PTH pad 10 [/05 / Line and amp feed/LINE_DRIVE] of K501"
+      }
+    },
+    {
+      "uuid": "a5b5b05f-6c0b-48cd-9673-2d9e5c10e295",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "6e82aff4-0531-4668-a37c-13aa1c398609": "PTH pad 10 [/05 / Line and amp feed/LINE_DRIVE] of K501",
+        "5c2f155b-065d-4533-a7c2-4563e0b13702": "PTH pad 9 [RELAY_LOW] of K501"
+      }
+    },
+    {
+      "uuid": "b2e99049-8d2e-4ae6-a4bb-3a05fd7de01a",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "6e82aff4-0531-4668-a37c-13aa1c398609": "PTH pad 10 [/05 / Line and amp feed/LINE_DRIVE] of K501"
+      }
+    },
+    {
+      "uuid": "b37a4547-8f8c-4f87-9a8e-eab4f95f3ab4",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "24c90a2a-5a2b-42bf-ab9e-09cebbcd78b9": "PTH pad 3 [EXP_WIPER] of JP301",
+        "be2017df-5b49-4974-ae2f-4e2c572ca11f": "PTH pad 5 [EXP_RING] of JP301"
+      }
+    },
+    {
+      "uuid": "b6f1b713-34c8-46cf-b205-ef2125579d45",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "c2e21274-a567-488a-b1c2-9903c88fce31": "Pad 1 [MIDI_4] of C202 on F.Cu"
+      }
+    },
+    {
+      "uuid": "bf51f838-7398-4ca0-8f42-19d61b0bdc19",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "7024925d-b674-45dc-b2c3-a604273e621e": "Track [MIDI_5] on F.Cu, length 0.1752 mm",
+        "c8644d7d-711a-4c21-ba46-2bd2bddc9afd": "Track [MIDI_5] on F.Cu, length 0.2055 mm"
+      }
+    },
+    {
+      "uuid": "c22e7dee-8f71-43ee-ba3e-6a48bea9c862",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "403519f3-0393-4a9c-93b2-3b4eece36be4": "PTH pad 6 [LINE_JACK] of K501",
+        "5c2f155b-065d-4533-a7c2-4563e0b13702": "PTH pad 9 [RELAY_LOW] of K501"
+      }
+    },
+    {
+      "uuid": "c3efdb0e-784d-4ce4-8b0d-9ffe35d11db1",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "24c90a2a-5a2b-42bf-ab9e-09cebbcd78b9": "PTH pad 3 [EXP_WIPER] of JP301"
+      }
+    },
+    {
+      "uuid": "d39ce715-5dc8-401d-a97b-01152298cdea",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "9dd04179-2879-47b3-98c4-faa62b5c490f": "Pad 1 [GND] of R101 on F.Cu"
+      }
+    },
+    {
+      "uuid": "da41e061-2a20-4b57-bb6b-5974c2ee9be3",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "9af4609b-7138-47a1-ad1f-cfdf8a82a3c4": "Pad 1 [EXP_ADC] of TP301 on F.Cu"
+      }
+    },
+    {
+      "uuid": "e99dddc0-b3d6-41d5-9725-3ac470e51f30",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "ed3fd5e7-dd2c-43e7-b52b-5d834c24f158": "Pad 1 [MIDI_4] of FB201 on F.Cu"
+      }
+    },
+    {
+      "uuid": "f293f614-3a9e-4dfa-a95f-d1aeeffcfbb9",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "9af4609b-7138-47a1-ad1f-cfdf8a82a3c4": "Pad 1 [EXP_ADC] of TP301 on F.Cu"
+      }
+    },
+    {
+      "uuid": "f682dbb3-6c8f-48c5-8b7d-58c9cffef271",
+      "net": "CHASSIS",
+      "width_mm": 0.2,
+      "reason": "Maintain clearance to adjacent copper/pads or drilled holes.",
+      "obstacles": {
+        "6e82aff4-0531-4668-a37c-13aa1c398609": "PTH pad 10 [/05 / Line and amp feed/LINE_DRIVE] of K501",
+        "5c2f155b-065d-4533-a7c2-4563e0b13702": "PTH pad 9 [RELAY_LOW] of K501"
+      }
+    }
+  ],
+  "mono_bridge_segments": [
+    {
+      "uuid": "17e56e3c-da33-4ac1-887d-48091eb1f4e0",
+      "start": [
+        101.975,
+        73.635
+      ],
+      "end": [
+        101.975,
+        74.905
+      ],
+      "before_width_mm": 0.25,
+      "layer": "F.Cu",
+      "net": "MONO_BUF"
+    },
+    {
+      "uuid": "6b43b44e-2a2b-4b3e-9adf-4da2e5e48146",
+      "start": [
+        97.025,
+        72.365
+      ],
+      "end": [
+        97.025,
+        73.635
+      ],
+      "before_width_mm": 0.25,
+      "layer": "F.Cu",
+      "net": "MONO_BUF"
+    }
+  ]
+}
