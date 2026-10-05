@@ -8,6 +8,8 @@ parameter controls. This is an early beta; real DAW testing remains necessary.
 
 ## Use
 
+Download a versioned beta from [GitHub Releases](https://github.com/balazsbencs/ardor/releases).
+
 The **CLAP beta** workflow uploads Apple Silicon/macOS 15+ and Linux/x64
 artifacts after the ABI smoke test passes. Unpack the download and copy
 `Ardor.clap` to `~/Library/Audio/Plug-Ins/CLAP/` on Mac or `~/.clap/` on Linux.

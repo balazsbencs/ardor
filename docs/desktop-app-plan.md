@@ -258,6 +258,12 @@ callback does not load files or destroy engines.
 
 This first slice uses the pinned native CLAP ABI to make its thread/restart
 contract explicit, while leaving the existing DPF Whammy plugin independent.
-The embedded editor, common-rate conversion, portable embedded/relinkable assets,
-structural scene graphs, full validator pass, and real DAW verification remain
-next work. See the plugin README for exact support and validation limitations.
+Beta 2 embeds the shared LVGL editor in a native Mac Cocoa view, rendering to
+an instance-owned bitmap with Retina support and no SDL/audio-device owner.
+Live parameter changes update the running engine and per-project draft; chain
+and scene-definition edits use prepared replacements and host restarts. Native
+GUI lifecycle/input/multiple-instance checks run in Mac CI, alongside renderer
+checks on both platforms. Linux editor embedding, common-rate conversion,
+portable embedded/relinkable assets, structural scene graphs, full validator
+pass, and real DAW verification remain next work. See the plugin README for
+exact support and validation limitations.
