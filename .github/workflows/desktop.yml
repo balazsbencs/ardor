@@ -6,7 +6,7 @@ on:
     paths:
       - 'apps/ardor-desktop/**'
       - 'src/**'
-      - 'tests/desktop_session_smoke.cpp'
+      - 'tests/**'
       - 'CMakeLists.txt'
       - 'lv_conf.h'
       - '.github/workflows/desktop.yml'
@@ -15,7 +15,7 @@ on:
     paths:
       - 'apps/ardor-desktop/**'
       - 'src/**'
-      - 'tests/desktop_session_smoke.cpp'
+      - 'tests/**'
       - 'CMakeLists.txt'
       - 'lv_conf.h'
       - '.github/workflows/desktop.yml'

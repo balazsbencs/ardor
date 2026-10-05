@@ -285,7 +285,9 @@ int main()
       });
     require(activated.activated(), "backend acknowledgement should commit the prepared target");
     require(replaceCalls == 2, "successful target should reach the backend exactly once");
-    require(liveEngine.get() != originalEngine, "successful activation must replace the live engine");
+    // Loop recall already freed the initial engine. Allocators may reuse that
+    // address, so compare with the engine alive immediately before this swap.
+    require(liveEngine.get() != engineAfterRecall, "successful activation must replace the live engine");
     require(selection.bank == 4 && selection.slot == 0,
             "audio selection changes only after backend acknowledgement");
 
