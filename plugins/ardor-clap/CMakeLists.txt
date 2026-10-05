@@ -6,9 +6,46 @@ FetchContent_Declare(ardor_clap_sdk
 )
 FetchContent_MakeAvailable(ardor_clap_sdk)
 
+FetchContent_Declare(ardor_speexdsp
+  GIT_REPOSITORY https://github.com/xiph/speexdsp.git
+  GIT_TAG 1b28a0f61bc31162979e1f26f3981fc3637095c8 # SpeexDSP 1.2.1
+  SOURCE_SUBDIR ardor-resampler-only
+)
+FetchContent_MakeAvailable(ardor_speexdsp)
+# Build only the floating-point resampler. SSE is baseline on x64; all other
+# platforms use its portable scalar path.
+# Prefix its symbols so it cannot collide with a host's Speex library.
+# Upstream reset_mem clears a contiguous channels*(filter_length-1) range,
+# but channel histories have mem_alloc_size strides. Clear the whole allocated
+# history so stereo reset cannot retain the second channel or old lookahead.
+# Generate a patched copy; never modify the fetched dependency checkout.
+file(READ ${ardor_speexdsp_SOURCE_DIR}/libspeexdsp/resample.c _resampler_source)
+set(_reset_original "i<st->nb_channels*(st->filt_len-1)")
+string(FIND "${_resampler_source}" "${_reset_original}" _reset_offset)
+if(_reset_offset EQUAL -1)
+  message(FATAL_ERROR "Pinned SpeexDSP reset patch no longer matches")
+endif()
+string(REPLACE "${_reset_original}" "i<st->nb_channels*st->mem_alloc_size" _resampler_source "${_resampler_source}")
+file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/speex_resample.c CONTENT "${_resampler_source}")
+add_library(ardor_clap_resampler STATIC ${CMAKE_CURRENT_BINARY_DIR}/speex_resample.c)
+target_include_directories(ardor_clap_resampler PUBLIC ${ardor_speexdsp_SOURCE_DIR}/include/speex
+  PRIVATE ${ardor_speexdsp_SOURCE_DIR}/libspeexdsp)
+target_compile_definitions(ardor_clap_resampler PUBLIC OUTSIDE_SPEEX RANDOM_PREFIX=ardor_clap
+  PRIVATE FLOATING_POINT)
+if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
+  target_compile_definitions(ardor_clap_resampler PRIVATE USE_SSE)
+endif()
+set_target_properties(ardor_clap_resampler PROPERTIES C_VISIBILITY_PRESET hidden)
+add_library(ardor_clap_rate_adapter STATIC RateAdapter.cpp)
+target_link_libraries(ardor_clap_rate_adapter PRIVATE ardor_clap_resampler)
+target_include_directories(ardor_clap_rate_adapter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_executable(ardor-clap-rate-tests ${CMAKE_SOURCE_DIR}/tests/clap_rate_adapter.cpp)
+target_link_libraries(ardor-clap-rate-tests PRIVATE ardor_clap_rate_adapter)
+add_test(NAME ardor-clap-rate-tests COMMAND ardor-clap-rate-tests)
+
 add_library(ardor-clap MODULE ArdorClap.cpp ${CMAKE_SOURCE_DIR}/src/desktop/DesktopLibrary.cpp)
 # Keep the NAM architecture registration objects at the module boundary.
-target_link_libraries(ardor-clap PRIVATE ardor_audio ardor_dsp)
+target_link_libraries(ardor-clap PRIVATE ardor_audio ardor_dsp ardor_clap_rate_adapter)
 target_include_directories(ardor-clap PRIVATE ${ardor_clap_sdk_SOURCE_DIR}/include)
 if(ARDOR_UI_BACKEND STREQUAL "memory")
   add_library(ardor_clap_editor STATIC ClapEditor.cpp)
@@ -74,6 +111,8 @@ install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
   DESTINATION ${_notices} RENAME Ardor.txt COMPONENT clap-beta)
 install(FILES ${ardor_clap_sdk_SOURCE_DIR}/LICENSE
   DESTINATION ${_notices} RENAME CLAP.txt COMPONENT clap-beta)
+install(FILES ${ardor_speexdsp_SOURCE_DIR}/COPYING
+  DESTINATION ${_notices} RENAME SpeexDSP.txt COMPONENT clap-beta)
 install(FILES ${neuralampmodelercore_SOURCE_DIR}/LICENSE
   DESTINATION ${_notices} RENAME NeuralAmpModelerCore.txt COMPONENT clap-beta)
 install(FILES ${neuralampmodelercore_SOURCE_DIR}/Dependencies/AudioDSPTools/LICENSE
@@ -96,5 +135,6 @@ target_compile_definitions(ardor-clap-host-smoke PRIVATE
   ARDOR_NAM_EXAMPLE_MODEL="${neuralampmodelercore_SOURCE_DIR}/example_models/lstm.nam")
 set_target_properties(ardor-clap-host-smoke PROPERTIES ENABLE_EXPORTS TRUE)
 add_dependencies(ardor-clap-host-smoke ardor-clap)
+add_dependencies(ardor-clap-host-smoke ardor-clap-rate-tests)
 add_test(NAME ardor-clap-host-smoke COMMAND ardor-clap-host-smoke)
 endif()

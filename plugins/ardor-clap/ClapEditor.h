@@ -11,6 +11,7 @@ struct Callbacks {
   std::filesystem::path root;
   std::function<PedalEngine*()> engine;
   std::function<bool()> waiting;
+  std::function<double()> sampleRate;
   std::function<bool(Preset)> stage;
   std::function<void(Preset)> edited;
   std::function<bool(int)> selectPreset;
@@ -63,6 +64,7 @@ private:
   lv_obj_t* inputTrim_ = nullptr;
   lv_obj_t* outputTrim_ = nullptr;
   lv_obj_t* bypass_ = nullptr;
+  lv_obj_t* rate_ = nullptr;
   lv_obj_t* waiting_ = nullptr;
   std::vector<uint8_t> drawBuffer_, pixels_;
   lv_point_t point_{};

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <stdexcept>
 
@@ -204,6 +205,14 @@ void Canvas::tick() {
   lv_refr_now(display_);
 }
 void Canvas::refresh() {
+  if (rate_) {
+    const double rate = callbacks_.sampleRate ? callbacks_.sampleRate() : 0.;
+    if (rate > 0) {
+      char text[32]; std::snprintf(text, sizeof(text), "%.5g kHz", rate / 1000.);
+      lv_label_set_text(rate_, text);
+    }
+    else lv_label_set_text(rate_, "DAW rate");
+  }
   ui_.refresh(content_, state_);
   syncingToolbar_ = true;
   lv_dropdown_set_selected(channel_, static_cast<uint32_t>(callbacks_.control(channelId)));
@@ -289,7 +298,8 @@ void Canvas::buildToolbar() {
   lv_obj_set_pos(bypass_, 616, 4); lv_obj_set_size(bypass_, 120, 36);
   lv_obj_add_flag(bypass_, LV_OBJ_FLAG_CHECKABLE);
   lv_obj_add_event_cb(bypass_, toolbarChanged, LV_EVENT_VALUE_CHANGED, this);
-  label("48 kHz", 760);
+  rate_ = lv_label_create(toolbar_); style::setText(rate_);
+  lv_obj_set_pos(rate_, 760, 12);
 }
 void Canvas::toolbarChanged(lv_event_t* event) {
   auto& canvas = *static_cast<Canvas*>(lv_event_get_user_data(event));

@@ -2,10 +2,12 @@
 
 This is a full-chain plugin using the same engine and preset format as the
 standalone app. It is separate from the existing Whammy algorithm plugin.
-The beta supports **48 kHz DAW sessions only**. Beta 2 adds the shared Ardor
-editor in an embedded Cocoa view on Mac. Beta 3 adds a Windows x64 build with
-the same editor in a native Win32 child window. Linux still uses host-generated
-parameter controls. This is an early beta; real DAW testing remains necessary.
+Beta 4 supports DAW sample rates from **1 to 768 kHz**, including fractional
+rates. Common 44.1/48/88.2/96/176.4/192 kHz projects are covered by audio tests.
+The shared effects engine remains at 48 kHz; other host rates use streaming
+band-limited conversion. Mac and Windows include the shared Ardor editor in
+native child views. Linux uses host-generated parameter controls. This is an
+early beta; real DAW testing remains necessary.
 
 ## Use
 
@@ -14,22 +16,20 @@ Download a versioned beta from [GitHub Releases](https://github.com/balazsbencs/
 The **CLAP beta** workflow uploads Apple Silicon/macOS 15+, Windows 10/11 x64, and Linux/x64
 artifacts after the ABI smoke test passes. Unpack the download and copy
 `Ardor.clap` to `~/Library/Audio/Plug-Ins/CLAP/` on Mac or `~/.clap/` on Linux.
-Keep the accompanying license notices. Restart/rescan the DAW, create a 48 kHz
-session, and insert Ardor on an audio track. Configure the audio interface and
+Keep the accompanying license notices. Restart/rescan the DAW and insert Ardor on an audio track. Configure the audio interface and
 monitoring in the DAW. The plugin never opens its own audio device.
 
 On Windows, quit the DAW, unpack the Windows zip, and copy `Ardor.clap` to
 `%LOCALAPPDATA%\Programs\Common\CLAP\` (create the folder if needed). An
 all-users installation can use `%COMMONPROGRAMFILES%\CLAP\` instead. Keep
-the license notices, restart/rescan the DAW, and use a **48 kHz project**.
-Other rates are rejected and may sound like bypass in the host. The Windows
+the license notices and restart/rescan the DAW. The Windows
 download is a native x64 DLL with a `.clap` extension, not a Mac bundle;
 use a 64-bit CLAP-capable host. The VC runtime is linked statically, so no
 separate runtime installer is required. The Windows beta is unsigned.
 
 In REAPER, open Ardor from the track's FX window and use its normal plugin view.
 If REAPER shows the generic parameter list, toggle the **UI** button to return
-to the plugin editor after installing/rescanning beta 2. Beta 1 has no custom UI.
+to the plugin editor after installing/rescanning the current beta. Beta 1 has no custom UI.
 The editor includes the preset/chain view, effect and asset browser, live effect
 parameters, EQ controls, scenes, and an input/output trim, guitar channel and
 bypass toolbar. Trim fields support keyboard editing. NAM/IR assets come from
@@ -55,10 +55,26 @@ The main input/output buses are stereo. **Guitar input** selects Left (default),
 Right or Average as the mono guitar source; Ardor creates the stereo effects
 output. Input/output trim and bypass use smoothed gain changes. Automation event
 positions are respected; engine scene changes occur at the next 64-frame quantum.
-The host receives adapter plus prepared engine latency. Bypass passes the selected
-mono source, delayed by that same latency. Effect tails are conservatively reported
-as infinite when the preset contains blocks, until algorithm-specific bounds are
-verified. Offline rendering uses the same deterministic sequential engine.
+The host receives converter, adapter and prepared engine latency in host frames.
+Bypass passes the exact selected mono host signal, delayed by that reported latency.
+FIR group delay can be fractional; the report and dry delay round to the nearest
+host frame (up to half a frame of wet/dry timing quantization). Input trim/channel
+selection happen before conversion, output trim/bypass afterward. Five-millisecond
+control smoothing uses the host rate; scene selection follows input-converter delay
+and is applied at the next internal quantum, with transition times still at 48 kHz.
+Effect tails are conservatively reported as infinite when the preset contains blocks;
+Clean reports a finite converter-filter tail. Offline rendering uses the same
+streaming converters and deterministic sequential engine.
+
+At 48 kHz, conversion is skipped and the base adapter latency remains 64 frames
+(1.33 ms). At other common rates the base latency is about 4.7–5 ms, before any
+prepared effect latency and the DAW/interface buffers. High-rate projects still
+process effects at 48 kHz internally; they do not make Ardor's engine native 96/192
+kHz. Sample-rate changes reprepare converters during normal host reactivation.
+All filter/FIFO storage is prepared during activation; the audio callback never
+creates converters or resizes buffers. Reset clears both channel histories and
+fractional phases. The plugin restores the host thread's floating-point mode after
+using flush-to-zero during processing.
 
 **Library preset** loads one of the four slots in bank 1 of the standalone
 library. Save chains there using Ardor desktop, then select a slot in the plugin.
@@ -85,7 +101,7 @@ A missing/invalid asset rejects the replacement and retains the previous engine.
 cmake -S . -B build-clap -DARDOR_UI_BACKEND=memory \
   -DARDOR_BUILD_CLAP_PLUGIN=ON -DCMAKE_BUILD_TYPE=Release
 cmake --build build-clap --target ardor-clap-host-smoke ardor-clap-editor-smoke --parallel 3
-ctest --test-dir build-clap --output-on-failure -R '^ardor-clap-(host|editor|gui-host)-smoke$'
+ctest --test-dir build-clap --output-on-failure -R '^ardor-clap-((host|editor|gui-host)-smoke|rate-tests)$'
 cmake --install build-clap --prefix "$PWD/build-clap/stage" --component clap-beta
 ```
 
@@ -95,7 +111,7 @@ Windows, with Visual Studio 2022 C++ tools and CMake:
 cmake -S . -B build-clap -G "Visual Studio 17 2022" -A x64 `
   -DARDOR_UI_BACKEND=memory -DARDOR_BUILD_CLAP_PLUGIN=ON
 cmake --build build-clap --config Release --target ardor-clap-host-smoke ardor-clap-editor-smoke pedal-lvgl-ui-smoke --parallel 3
-ctest --test-dir build-clap -C Release --output-on-failure -R '^(ardor-clap-(host|editor|gui-host)-smoke|pedal-lvgl-ui-smoke)$'
+ctest --test-dir build-clap -C Release --output-on-failure -R '^(ardor-clap-(host|editor|gui-host)-smoke|ardor-clap-rate-tests|pedal-lvgl-ui-smoke)$'
 cmake --install build-clap --config Release --prefix build-clap/stage --component clap-beta
 ```
 
@@ -123,7 +139,7 @@ and unloading the DLL after editor teardown. CI also checks the CLAP export and
 rejects dependencies on undistributed compiler runtime DLLs before packaging.
 
 The smoke host dynamically loads the actual CLAP module and covers enumeration,
-ports/controls, lifecycle/reset, unsupported-rate rejection, varying host blocks,
+ports/controls, lifecycle/reset, invalid-rate rejection, varying host blocks,
 reported impulse latency, sequential WDW, authored/default scenes and scene restore,
 audio-level scene recall after host reset,
 independent instances, sample-offset automation,
@@ -134,16 +150,24 @@ On POSIX it tracks C++ allocations during the tested callbacks (not every alloca
 The Windows host's allocator override does not intercept allocations in the DLL.
 It uses an isolated temporary library and opens no audio devices.
 
-Local upstream `clap-validator` 0.4.1 checks are also run. The full suite currently
-reports 14 passes, 19 failures at activation because it expects rates beyond 48 kHz,
-and 11 skips; this is **not** a full validator pass. Metadata/conversion/invalid-state
-checks pass, and the smoke host verifies audio at the supported rate. The validator
-is not filtered into a misleading all-clear CI badge.
+The rate-conversion tests measure impulse latency, exact delayed bypass, stereo
+phase, passband gain through 20 kHz, rejection of a 25 kHz tone before downsampling,
+continuous frame counts and clean resets. The real module also runs a host-rate
+matrix with fixed/irregular buffers, sample-offset automation, rate changes on one
+instance, NAM plus a 48 kHz cabinet IR and delay, authored scenes, state restore and
+in-place audio. Common, boundary, nonstandard and fractional rates are included.
+
+CI runs the full upstream `clap-validator` 0.4.1 suite on all three platforms,
+using pinned release archives verified by SHA-256. Reports accompany the editor
+check artifacts; failures or warnings prevent beta packaging. Local Linux validation
+passes 33 checks with 11 skips for unimplemented optional features and no failures
+or warnings. The conversion dependency is SpeexDSP 1.2.1, built statically with
+quality 8 and its BSD license included. Its reset routine is patched in a generated
+build copy to clear the complete allocated history for each channel; the fetched
+source stays untouched.
 
 ## Next slices
 
-- Streaming conversion for common host rates (44.1/48/96 kHz), with measured
-  conversion quality and latency, then a full upstream validator pass.
 - Linux native editor embedding, preset discovery, and portable project assets.
 - Structural scene latency accounting and DAW-specific testing.
 - Public release signing/notarization, and later VST3 distribution.

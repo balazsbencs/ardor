@@ -2,6 +2,7 @@
 #include "audio/EngineLoader.h"
 #include <array>
 #include <chrono>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -15,6 +16,7 @@ struct Session {
   std::array<ardor::Preset, 4> library;
   std::array<double, 6> controls{};
   bool waiting = false;
+  double rate = 44100;
   int dirty = 0, stages = 0;
   std::filesystem::path root;
   ardor::clap_editor::Canvas* canvas = nullptr;
@@ -31,6 +33,7 @@ struct Session {
     result.root = root;
     result.engine = [this] { return &engine; };
     result.waiting = [this] { return waiting; };
+    result.sampleRate = [this] { return rate; };
     result.stage = [this](ardor::Preset next) {
       ++stages;
       if (next.name == "Reject") return false;
@@ -56,6 +59,12 @@ void capture(const ardor::clap_editor::Canvas& canvas, const char* name) {
     out.write(rgb.data(), 3);
   }
 }
+bool hasLabel(lv_obj_t* object, const char* text) {
+  if (lv_obj_check_type(object, &lv_label_class) && std::strcmp(lv_label_get_text(object), text) == 0) return true;
+  for (uint32_t i = 0; i < lv_obj_get_child_count(object); ++i)
+    if (hasLabel(lv_obj_get_child(object, i), text)) return true;
+  return false;
+}
 }
 int main() {
   const auto root = std::filesystem::temp_directory_path() / ("ardor-editor-" + std::to_string(
@@ -70,6 +79,10 @@ int main() {
       b.canvas = &second;
       require(second.display() != firstDisplay, "Editors share their display");
       first.tick(); second.tick();
+      require(hasLabel(lv_display_get_screen_active(first.display()), "44.1 kHz"), "Editor did not show actual DAW rate");
+      a.rate = 176400; first.tick();
+      require(hasLabel(lv_display_get_screen_active(first.display()), "176.4 kHz"), "Editor did not refresh after host rate change");
+      a.rate = 44100; first.tick();
       a.controls[0] = .05; b.controls[1] = .123;
       first.tick(); second.tick();
       require(a.controls[0] == .05 && b.controls[1] == .123 && !a.dirty && !b.dirty,

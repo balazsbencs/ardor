@@ -10,6 +10,7 @@
 #include <cstring>
 #include "ClapTestPlatform.h"
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <new>
 #include <limits>
@@ -114,10 +115,106 @@ struct Plugin {
     require(api && api->init(api), "Cannot create/init CLAP");
   }
   ~Plugin() { stop(); api->destroy(api); }
-  void start() { require(api->activate(api, 48000, 1, 2048), "Cannot activate CLAP"); active = true; require(api->start_processing(api), "Cannot start CLAP"); started = true; }
+  void start(double rate = 48000) { require(api->activate(api, rate, 1, 2048), "Cannot activate CLAP"); active = true; require(api->start_processing(api), "Cannot start CLAP"); started = true; }
   void stop() { if (started) api->stop_processing(api); if (active) api->deactivate(api); started = active = false; }
   template<class T> const T* ext(const char* id) { return static_cast<const T*>(api->get_extension(api, id)); }
 };
+float signal(unsigned frame, double rate) { return .05f * std::sin(2 * 3.141592653589793 * 1000 * frame / rate); }
+std::vector<float> render(Plugin& plugin, double rate, bool variable, bool impulse = false, bool automate = false, unsigned total = 16384) {
+  const std::array<unsigned, 9> sizes{1, 7, 31, 63, 64, 65, 127, 511, 2048};
+  std::vector<float> result; result.reserve(total);
+  unsigned position = 0, step = 0;
+  while (position < total) {
+    const auto count = std::min(variable ? sizes[step++ % sizes.size()] : 128u, total - position);
+    Audio audio(count);
+    for (unsigned i = 0; i < count; ++i) audio.l[i] = impulse ? (position + i == 0 ? .1f : 0) : signal(position + i, rate);
+    Events events;
+    if (automate) {
+      for (auto time : {113u, 997u, 8000u}) if (time >= position && time < position + count)
+        events.add(time == 113 ? 0 : time == 997 ? 1 : 2, time == 113 ? -6 : time == 997 ? -3 : 1, time - position);
+    }
+    audio.run(plugin.api, &events);
+    result.insert(result.end(), audio.outL.begin(), audio.outL.end()); position += count;
+  }
+  return result;
+}
+void rateMatrix(const clap_plugin_factory_t* factory, const std::filesystem::path& library) {
+  // A real 48 kHz cabinet asset verifies that host conversion does not change
+  // model/IR loading rate, and that convolution latency converts to host frames.
+  std::filesystem::create_directories(library / "irs");
+  std::ofstream wav(library / "irs/test.wav", std::ios::binary);
+  const auto number = [&wav](unsigned value, unsigned bytes) { for (unsigned i = 0; i < bytes; ++i) wav.put(static_cast<char>(value >> (8 * i))); };
+  wav.write("RIFF", 4); number(36 + 128, 4); wav.write("WAVEfmt ", 8); number(16, 4);
+  number(1, 2); number(1, 2); number(48000, 4); number(96000, 4); number(2, 2); number(16, 2);
+  wav.write("data", 4); number(128, 4); number(16384, 2); for (int i = 1; i < 64; ++i) number(0, 2); wav.close();
+  ardor::PresetStore store(library);
+  ardor::Preset cab; cab.name = "Identity cabinet";
+  cab.blocks.push_back({"cab", "cab", true, "irs/test.wav", nlohmann::json::object()});
+  store.save({0, 1}, cab);
+  ardor::Preset nam; nam.name = "NAM and cabinet with delay";
+  nam.blocks.push_back({"nam", "nam", true, "models/test.nam", nlohmann::json::object()});
+  nam.blocks.insert(nam.blocks.end(), cab.blocks.begin(), cab.blocks.end());
+  nam.blocks.push_back({"echo", "delay", true, "", {{"mode", "digital"}, {"mix", .25}}});
+  store.save({0, 2}, nam);
+  ardor::Preset scenes; scenes.version = 4; scenes.name = "Rate scene test";
+  scenes.blocks.push_back({"trem", "mod", true, "", {{"mode", "vintage_trem"}}});
+  scenes.sceneSet = ardor::PresetSceneSet{};
+  scenes.sceneSet->defaultSceneId = "s0";
+  for (int i = 0; i < 4; ++i) {
+    auto& scene = scenes.sceneSet->scenes[i]; scene.id = "s" + std::to_string(i); scene.name = scene.id;
+    scene.targets.push_back({ardor::PresetSceneTargetType::Parameter, "trem", "mix", "", i / 3.f});
+  }
+  store.save({0, 3}, scenes);
+  for (double rate : {1234.5678, 8000., 12345., 12345.678, 44100., 45678.901, 48000., 50000., 88200., 96000., 176400., 192000., 384000., 768000.}) {
+    Host host, referenceHost; Plugin p(factory, host), reference(factory, referenceHost);
+    const auto* latency = p.ext<clap_plugin_latency_t>(CLAP_EXT_LATENCY);
+    const auto* params = p.ext<clap_plugin_params_t>(CLAP_EXT_PARAMS);
+    const auto* loader = p.ext<clap_plugin_preset_load_t>(CLAP_EXT_PRESET_LOAD);
+    p.start(rate); reference.start(rate);
+    auto impulse = render(p, rate, true, true);
+    const auto peak = std::max_element(impulse.begin(), impulse.end(), [](float a, float b) { return std::abs(a) < std::abs(b); });
+    require(unsigned(peak - impulse.begin()) == latency->get(p.api), "Module impulse latency disagrees with host report");
+    p.api->reset(p.api);
+    const auto irregular = render(p, rate, true, false, true);
+    const auto fixed = render(reference, rate, false, false, true);
+    require(irregular == fixed, "Host buffer partition changed resampling or automation");
+    // Bypass remains an exact delayed host signal, independent of SRC filtering.
+    Events bypass; bypass.add(0, 0); bypass.add(1, 0); bypass.add(2, 1);
+    params->flush(p.api, &bypass.api, nullptr); p.api->reset(p.api);
+    const auto dry = render(p, rate, true);
+    for (unsigned i = 0; i < dry.size(); ++i)
+      require(dry[i] == (i < latency->get(p.api) ? 0 : signal(i - latency->get(p.api), rate)), "Bypass did not match exact host latency");
+    Events wet; wet.add(2, 0); params->flush(p.api, &wet.api, nullptr);
+    p.stop(); p.start(48000); p.stop(); p.start(rate); // rate changes on the same instance
+    const auto sceneFrames = std::max(16384u, static_cast<unsigned>(rate * .15));
+    const auto clean = render(p, rate, true, false, false, sceneFrames);
+    const auto import = [&](int slot) {
+      require(loader->from_location(p.api, CLAP_PRESET_DISCOVERY_LOCATION_FILE, clap_test::utf8(store.pathFor({0, slot})).c_str(), nullptr), "Rate-matrix preset import failed");
+      p.stop(); p.start(rate);
+    };
+    import(1);
+    const auto cabinet = render(p, rate, true, true);
+    const auto cabPeak = std::max_element(cabinet.begin(), cabinet.end(), [](float a, float b) { return std::abs(a) < std::abs(b); });
+    require(unsigned(cabPeak - cabinet.begin()) == latency->get(p.api), "Cabinet latency not converted to host samples");
+    import(2);
+    const auto amplified = render(p, rate, true);
+    require(std::any_of(amplified.begin(), amplified.end(), [](float x) { return std::abs(x) > .00001f; }), "Converted NAM/IR/delay chain produced silence");
+    require(amplified != clean, "Converted NAM/IR/delay chain sounded bypassed");
+    Stream state; require(p.ext<clap_plugin_state_t>(CLAP_EXT_STATE)->save(p.api, &state.out), "Converted project save failed");
+    require(reference.ext<clap_plugin_state_t>(CLAP_EXT_STATE)->load(reference.api, &state.in), "Converted project restore failed");
+    reference.stop(); reference.start(rate);
+    require(render(reference, rate, false) == amplified, "Restored converted NAM chain differed with another buffer size");
+    import(3);
+    // The authored dry scene must converge to the independent clean engine.
+    const auto sceneAudio = render(p, rate, true, false, false, sceneFrames);
+    for (unsigned i = sceneFrames - 2048; i < sceneAudio.size(); ++i)
+      if (std::abs(sceneAudio[i] - clean[i]) >= .00001f) { std::cerr << "Scene mismatch at rate " << rate << " frame " << i << " clean " << clean[i] << " scene " << sceneAudio[i] << "\n"; require(false, "Converted authored scene timing changed dry tone"); }
+    // In-place stereo processing is safe at converted rates.
+    Audio inPlace(2048); for (unsigned i = 0; i < 2048; ++i) inPlace.l[i] = signal(i, rate);
+    inPlace.out.data32 = inPlace.inputs.data(); inPlace.run(p.api);
+    std::cout << rate << " Hz CLAP audio/state/automation/NAM/IR/scene checks passed\n";
+  }
+}
 }
 
 int main() {
@@ -160,7 +257,9 @@ int main() {
         require(params->value_to_text(a.api, i, info.default_value, text, sizeof(text)) && params->text_to_value(a.api, i, text, &value), "Parameter text round-trip failed");
         require(value == info.default_value, "Parameter text changed the default");
       }
-      require(!a.api->activate(a.api, 44100, 1, 2048) && !a.api->activate(a.api, 96000, 1, 2048), "Unsupported rate silently ran");
+      for (double rate : {0., 999., 768001., std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity()})
+        require(!a.api->activate(a.api, rate, 1, 2048), "Invalid rate accepted");
+      require(!a.api->activate(a.api, 48000, 0, 2048) && !a.api->activate(a.api, 48000, 2, 1), "Invalid block range accepted");
       a.start(); b.start();
       const auto* latency = a.ext<clap_plugin_latency_t>(CLAP_EXT_LATENCY);
       require(latency && latency->get(a.api) == 64, "Wrong quantum latency");
@@ -269,6 +368,7 @@ int main() {
       guitar.out.data32 = guitar.inputs.data(); guitar.l[0] = std::numeric_limits<float>::quiet_NaN(); guitar.run(a.api);
       require(std::isfinite(guitar.l[0]), "In-place non-finite input escaped");
     }
+    rateMatrix(factory, library);
     entry->deinit(); clap_test::close(handle); handle = nullptr;
     clap_test::environment(env, prior ? saved.c_str() : nullptr);
     std::filesystem::remove_all(root);

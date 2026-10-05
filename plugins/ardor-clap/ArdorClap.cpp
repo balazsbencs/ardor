@@ -2,6 +2,8 @@
 #include "audio/EngineLoader.h"
 #include "desktop/DesktopLibrary.h"
 #include "preset/PresetStore.h"
+#include "RateAdapter.h"
+#include "dsp/DenormalGuard.h"
 #ifdef ARDOR_CLAP_HAS_EDITOR
 #include "ClapEditor.h"
 #endif
@@ -34,7 +36,7 @@ constexpr const char* pluginId = "org.ardor.guitar";
 const char* const features[] = {CLAP_PLUGIN_FEATURE_AUDIO_EFFECT, CLAP_PLUGIN_FEATURE_STEREO, nullptr};
 const clap_plugin_descriptor_t descriptor = {CLAP_VERSION, pluginId, "Ardor", "Ardor",
   "https://github.com/balazsbencs/ardor", "", "https://github.com/balazsbencs/ardor/issues",
-  "0.1.0 Beta 3", "Shared Ardor guitar effects engine; 48 kHz beta", features};
+  "0.1.0 Beta 4", "Shared Ardor guitar effects engine with host sample-rate conversion", features};
 
 enum Param : clap_id { InputTrim, OutputTrim, Bypass, InputChannel, LibrarySlot, Scene, Count };
 struct ParamSpec { const char* name; double low, high, initial; bool stepped; };
@@ -82,10 +84,9 @@ private:
   std::atomic<uint32_t> uiEvents_{0};
   std::atomic<int> requestedSlot_{-1};
   std::atomic<bool> callbackQueued_{false};
-  std::array<float, quantum> input_{}, left_{}, right_{}, dry_{};
-  // Dry bypass must include the same declared engine latency as wet audio.
-  std::vector<float> dryDelay_;
-  std::size_t dryPosition_ = 0, position_ = 0;
+  ardor::clap_audio::RateAdapter rateAdapter_;
+  double hostRate_ = 48000;
+  float smoothing_ = .004157998f;
   std::uint32_t latency_ = quantum, maxFrames_ = 0;
   float inputGain_ = 1, outputGain_ = 1, wetMix_ = 1;
   int appliedScene_ = -1;
@@ -164,8 +165,8 @@ private:
   static bool CLAP_ABI activate(const clap_plugin_t* p, double rate, uint32_t minimum, uint32_t maximum) noexcept
   {
     auto& s = self(p);
-    if (rate != 48000 || !minimum || maximum < minimum || maximum > INT32_MAX) {
-      s.report("Ardor CLAP beta requires a 48 kHz DAW session and a valid host block range.");
+    if (!ardor::clap_audio::RateAdapter::supports(rate) || !minimum || maximum < minimum || maximum > INT32_MAX) {
+      s.report("Ardor CLAP requires a DAW rate from 1 to 768 kHz and a valid host block range.");
       return false;
     }
     try {
@@ -179,9 +180,11 @@ private:
       }
       const auto engineLatency = s.engine_->latencyFrames();
       if (engineLatency > 48000 * 10) throw std::runtime_error("Preset latency exceeds the beta's supported bound.");
-      s.dryDelay_.assign(engineLatency, 0);
+      s.rateAdapter_.prepare(rate, static_cast<unsigned>(engineLatency));
+      s.hostRate_ = rate;
+      s.smoothing_ = static_cast<float>(1. - std::exp(-1. / (.005 * rate)));
       const auto previousLatency = s.latency_;
-      s.latency_ = static_cast<uint32_t>(quantum + engineLatency);
+      s.latency_ = s.rateAdapter_.latency();
       s.maxFrames_ = maximum;
       s.active_ = true;
       reset(p);
@@ -199,9 +202,7 @@ private:
   {
     auto& s = self(p);
     if (s.engine_) s.engine_->reset();
-    s.position_ = s.dryPosition_ = 0;
-    s.input_.fill(0); s.left_.fill(0); s.right_.fill(0); s.dry_.fill(0);
-    std::fill(s.dryDelay_.begin(), s.dryDelay_.end(), 0);
+    s.rateAdapter_.reset(static_cast<int>(s.values_[Scene].load()));
     s.inputGain_ = std::pow(10.0, s.values_[InputTrim].load() / 20);
     s.outputGain_ = std::pow(10.0, s.values_[OutputTrim].load() / 20);
     s.wetMix_ = s.values_[Bypass].load() >= .5 ? 0 : 1;
@@ -240,10 +241,24 @@ private:
     }
   }
 
+  static void engineBlock(void* context, const float* input, float* left, float* right, unsigned frames, int scene)
+  {
+    auto& s = *static_cast<Instance*>(context);
+    if (s.preset_.sceneSet && scene != s.appliedScene_) {
+      const auto duration = static_cast<uint32_t>(std::min<uint64_t>(
+        uint64_t(s.preset_.sceneSet->scenes[scene].enterTimeMs) * 48, UINT32_MAX));
+      s.engine_->tryRequestScene({s.engine_->scenePresetGeneration(), ++s.sceneRequest_, duration,
+                                 static_cast<uint8_t>(scene)});
+      s.appliedScene_ = scene;
+    }
+    s.engine_->processBlock(input, left, right, frames);
+  }
+
   static clap_process_status CLAP_ABI process(const clap_plugin_t* p, const clap_process_t* block) noexcept
   {
+    const ardor::ScopedDenormalGuard denormalGuard;
     auto& s = self(p);
-    if (!block || !s.engine_ || block->frames_count > s.maxFrames_
+    if (!block || !s.active_ || !s.engine_ || block->frames_count > s.maxFrames_
         || block->audio_inputs_count != 1 || block->audio_outputs_count != 1
         || !block->audio_inputs || !block->audio_outputs) return CLAP_PROCESS_ERROR;
     const auto& input = block->audio_inputs[0];
@@ -269,38 +284,21 @@ private:
       const double newOutputTarget = s.values_[OutputTrim].load(std::memory_order_relaxed);
       if (newInputTarget != inputTarget) { inputTarget = newInputTarget; inputGain = std::pow(10.0, inputTarget / 20); }
       if (newOutputTarget != outputTarget) { outputTarget = newOutputTarget; outputGain = std::pow(10.0, outputTarget / 20); }
-      constexpr float coefficient = .004157998f; // 5 ms at 48 kHz.
+      const float coefficient = s.smoothing_; // 5 ms at the host rate.
       s.inputGain_ += coefficient * (inputGain - s.inputGain_);
       s.outputGain_ += coefficient * (outputGain - s.outputGain_);
       const int channel = static_cast<int>(s.values_[InputChannel].load(std::memory_order_relaxed));
       const float l = input.data32[0][frame], r = input.data32[1][frame];
       const float selected = channel == 0 ? l : channel == 1 ? r : .5f * (l + r);
       const float raw = std::isfinite(selected) ? selected : 0;
-      const auto pos = s.position_;
-      const float dry = s.dry_[pos];
+      ardor::clap_audio::RateAdapter::Output converted{};
+      if (!s.rateAdapter_.tick(raw * s.inputGain_, raw, static_cast<int>(s.values_[Scene].load(std::memory_order_relaxed)),
+                             engineBlock, &s, converted)) return CLAP_PROCESS_ERROR;
+      const float dry = converted.dry;
       const float mix = s.values_[Bypass].load(std::memory_order_relaxed) >= .5 ? 0.f : 1.f;
       s.wetMix_ += coefficient * (mix - s.wetMix_);
-      output.data32[0][frame] = dry + s.wetMix_ * (s.left_[pos] * s.outputGain_ - dry);
-      output.data32[1][frame] = dry + s.wetMix_ * (s.right_[pos] * s.outputGain_ - dry);
-      s.input_[pos] = raw * s.inputGain_;
-      if (s.dryDelay_.empty()) s.dry_[pos] = raw;
-      else {
-        s.dry_[pos] = s.dryDelay_[s.dryPosition_];
-        s.dryDelay_[s.dryPosition_] = raw;
-        s.dryPosition_ = (s.dryPosition_ + 1) % s.dryDelay_.size();
-      }
-      if (++s.position_ == quantum) {
-        const int scene = static_cast<int>(s.values_[Scene].load(std::memory_order_relaxed));
-        if (s.preset_.sceneSet && scene != s.appliedScene_) {
-          const auto duration = static_cast<uint32_t>(std::min<uint64_t>(
-            uint64_t(s.preset_.sceneSet->scenes[scene].enterTimeMs) * 48, UINT32_MAX));
-          s.engine_->tryRequestScene({s.engine_->scenePresetGeneration(), ++s.sceneRequest_, duration,
-                                     static_cast<uint8_t>(scene)});
-          s.appliedScene_ = scene;
-        }
-        s.engine_->processBlock(s.input_.data(), s.left_.data(), s.right_.data(), quantum);
-        s.position_ = 0;
-      }
+      output.data32[0][frame] = dry + s.wetMix_ * (converted.left * s.outputGain_ - dry);
+      output.data32[1][frame] = dry + s.wetMix_ * (converted.right * s.outputGain_ - dry);
     }
     return CLAP_PROCESS_CONTINUE;
   }
@@ -360,6 +358,7 @@ private:
       callbacks.root = s.root_;
       callbacks.engine = [&s] { return s.pending_ ? s.pendingEngine_.get() : s.engine_.get(); };
       callbacks.waiting = [&s] { return s.active_ && s.pending_; };
+      callbacks.sampleRate = [&s] { return s.active_ ? s.hostRate_ : 0.; };
       callbacks.stage = [&s](ardor::Preset preset) { return s.stage(std::move(preset)); };
       callbacks.edited = [&s](ardor::Preset preset) {
         // The live audio callback reads preset_, never this main-thread draft.
@@ -584,7 +583,8 @@ private:
   static uint32_t CLAP_ABI tail(const clap_plugin_t* p) noexcept
   {
     // Conservative until every feedback algorithm has a verified finite bound.
-    return self(p).preset_.blocks.empty() && !self(p).preset_.wdw ? 0 : INT32_MAX;
+    const auto& s = self(p);
+    return s.preset_.blocks.empty() && !s.preset_.wdw ? s.rateAdapter_.filterTail() : INT32_MAX;
   }
   static const void* CLAP_ABI extension(const clap_plugin_t*, const char* id) noexcept
   {
