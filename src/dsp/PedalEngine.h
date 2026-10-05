@@ -133,6 +133,9 @@ public:
   void processBlock(const float* input, float* left, float* right, size_t frames);
   void reset();
   size_t tailFrames() const noexcept;
+  // Prepared serial/WDW latency, excluding the host's fixed-quantum adapter.
+  // Flexible graph hosts must account for their graph separately.
+  size_t latencyFrames() const noexcept;
 
 private:
   std::atomic<float> inputGain_{1.0f};

@@ -190,12 +190,12 @@ Exit: install-and-play and latency/recovery checks pass on named supported
 Windows/interface combinations. This phase and the plugin phase can be ordered
 according to user demand after the Mac release.
 
-### 5. Full-chain plugin
+### 5. Full-chain plugin (CLAP is the next implementation)
 
 Use the existing DPF integration as the first candidate. Its current Ardor build
 already requests `TARGETS vst3 clap`, so one wrapper can produce both formats.
-Begin validation with one format/host; choose based on beta users' DAWs. Build
-and test the other format afterward. The main engineering effort is common to
+The chosen next milestone after the Mac beta PR is CLAP. Build
+and test VST3 afterward. The main engineering effort is common to
 both, rather than the format declaration.
 
 Required work:
@@ -245,3 +245,19 @@ and plugin editor embedding are the main unknowns to resolve with prototypes.
 - [Apple microphone usage description](https://developer.apple.com/documentation/BundleResources/Information-Property-List/NSMicrophoneUsageDescription)
 - [DPF plugin targets](https://github.com/DISTRHO/DPF/blob/main/cmake/DPF-plugin.cmake)
 - [DPF plugin lifecycle and state](https://distrho.github.io/DPF/classPlugin.html)
+
+## CLAP first implementation slice
+
+The optional `plugins/ardor-clap` target now runs saved full chains through the
+shared engine in a 48 kHz DAW session. It provides host-generated controls,
+fixed-quantum buffering of arbitrary host blocks, latency reporting, sequential
+WDW, parameter scene recall, native JSON preset loading, and per-instance DAW
+state containing the complete preset plus controls. Library selection and state
+restoration prepare on the main thread and ask the host for a restart; the audio
+callback does not load files or destroy engines.
+
+This first slice uses the pinned native CLAP ABI to make its thread/restart
+contract explicit, while leaving the existing DPF Whammy plugin independent.
+The embedded editor, common-rate conversion, portable embedded/relinkable assets,
+structural scene graphs, full validator pass, and real DAW verification remain
+next work. See the plugin README for exact support and validation limitations.

@@ -1,0 +1,58 @@
+name: CLAP beta
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap_host_smoke.cpp', 'CMakeLists.txt', '.github/workflows/clap.yml']
+  push:
+    branches: [main]
+    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap_host_smoke.cpp', 'CMakeLists.txt', '.github/workflows/clap.yml']
+
+permissions:
+  contents: read
+concurrency:
+  group: clap-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plugin:
+    name: CLAP build and ABI checks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, ubuntu-24.04]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Use GitHub mirror for Eigen
+        run: git config --global url."https://github.com/eigen-mirror/eigen.git".insteadOf https://gitlab.com/libeigen/eigen
+      - name: Configure headless plugin
+        run: cmake -S . -B build-clap -DARDOR_UI_BACKEND=none -DARDOR_BUILD_CLAP_PLUGIN=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0
+      - name: Build plugin and smoke host
+        run: cmake --build build-clap --target ardor-clap-host-smoke --parallel 3
+      - name: Check CLAP lifecycle, audio, state and full NAM chain
+        run: ctest --test-dir build-clap --output-on-failure -R '^ardor-clap-host-smoke$'
+      - name: Stage beta
+        run: cmake --install build-clap --prefix "$RUNNER_TEMP/ardor-clap-beta" --component clap-beta
+      - name: Sign and package Mac plugin
+        if: runner.os == 'macOS'
+        run: |
+          codesign --force --sign - "$RUNNER_TEMP/ardor-clap-beta/Ardor.clap"
+          codesign --verify --strict "$RUNNER_TEMP/ardor-clap-beta/Ardor.clap"
+          plutil -lint "$RUNNER_TEMP/ardor-clap-beta/Ardor.clap/Contents/Info.plist"
+          mkdir -p beta
+          ditto -c -k --keepParent "$RUNNER_TEMP/ardor-clap-beta" beta/Ardor-CLAP-macOS-arm64-beta.zip
+          shasum -a 256 beta/*.zip > beta/SHA256SUMS.txt
+      - name: Package Linux development plugin
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p beta
+          tar -czf beta/Ardor-CLAP-Linux-x64-beta.tar.gz -C "$RUNNER_TEMP" ardor-clap-beta
+          sha256sum beta/*.tar.gz > beta/SHA256SUMS.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: Ardor-CLAP-beta-${{ matrix.os }}-${{ github.sha }}
+          path: beta/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0

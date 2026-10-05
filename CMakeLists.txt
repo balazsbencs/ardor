@@ -19,6 +19,12 @@ set(BUILD_SHARED_LIBS OFF)
 
 set(ARDOR_UI_BACKEND "sdl" CACHE STRING "UI backend: sdl (desktop) or fbdev (Linux/Pi)")
 
+option(ARDOR_BUILD_CLAP_PLUGIN "Build the full-chain Ardor CLAP beta" OFF)
+if(ARDOR_BUILD_CLAP_PLUGIN)
+  # DSP archives and NAM registration objects become part of a shared module.
+  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -834,4 +840,8 @@ endif()
 option(ARDOR_BUILD_WHAMMY_PLUGIN "Build the Whammy VST3/CLAP plugin" OFF)
 if(ARDOR_BUILD_WHAMMY_PLUGIN)
   add_subdirectory(plugins/whammy-vst)
+endif()
+
+if(ARDOR_BUILD_CLAP_PLUGIN)
+  add_subdirectory(plugins/ardor-clap)
 endif()
