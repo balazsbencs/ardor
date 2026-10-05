@@ -25,6 +25,10 @@
 #define LV_LINUX_FBDEV_BUFFER_COUNT 2
 #define LV_USE_EVDEV 1
 #define LV_USE_SDL 0
+#elif defined(ARDOR_UI_BACKEND_MEMORY)
+#define LV_USE_SDL 0
+#define LV_USE_LINUX_FBDEV 0
+#define LV_USE_EVDEV 0
 #else
 #define LV_USE_SDL 1
 #define LV_USE_LINUX_FBDEV 0

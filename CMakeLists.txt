@@ -17,7 +17,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(BUILD_SHARED_LIBS OFF)
 
-set(ARDOR_UI_BACKEND "sdl" CACHE STRING "UI backend: sdl (desktop) or fbdev (Linux/Pi)")
+set(ARDOR_UI_BACKEND "sdl" CACHE STRING "UI backend: sdl, fbdev, memory (embedded editor), or none")
 
 option(ARDOR_BUILD_CLAP_PLUGIN "Build the full-chain Ardor CLAP beta" OFF)
 if(ARDOR_BUILD_CLAP_PLUGIN)
@@ -65,6 +65,8 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
     target_link_libraries(lvgl PUBLIC ${SDL2_LIBRARIES})
   elseif(ARDOR_UI_BACKEND STREQUAL "fbdev")
     target_compile_definitions(lvgl PUBLIC ARDOR_UI_BACKEND_FBDEV)
+  elseif(ARDOR_UI_BACKEND STREQUAL "memory")
+    target_compile_definitions(lvgl PUBLIC ARDOR_UI_BACKEND_MEMORY)
   endif()
 endif()
 

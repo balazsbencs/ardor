@@ -3,10 +3,10 @@ name: CLAP beta
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap_host_smoke.cpp', 'CMakeLists.txt', '.github/workflows/clap.yml']
+    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap*', 'CMakeLists.txt', 'lv_conf.h', '.github/workflows/clap.yml']
   push:
     branches: [main]
-    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap_host_smoke.cpp', 'CMakeLists.txt', '.github/workflows/clap.yml']
+    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap*', 'CMakeLists.txt', 'lv_conf.h', '.github/workflows/clap.yml']
 
 permissions:
   contents: read
@@ -26,12 +26,20 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Use GitHub mirror for Eigen
         run: git config --global url."https://github.com/eigen-mirror/eigen.git".insteadOf https://gitlab.com/libeigen/eigen
-      - name: Configure headless plugin
-        run: cmake -S . -B build-clap -DARDOR_UI_BACKEND=none -DARDOR_BUILD_CLAP_PLUGIN=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0
+      - name: Configure plugin and embedded editor
+        run: cmake -S . -B build-clap -DARDOR_UI_BACKEND=memory -DARDOR_BUILD_CLAP_PLUGIN=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0
       - name: Build plugin and smoke host
-        run: cmake --build build-clap --target ardor-clap-host-smoke --parallel 3
+        run: cmake --build build-clap --target ardor-clap-host-smoke ardor-clap-editor-smoke pedal-lvgl-ui-smoke --parallel 3
       - name: Check CLAP lifecycle, audio, state and full NAM chain
-        run: ctest --test-dir build-clap --output-on-failure -R '^ardor-clap-host-smoke$'
+        env:
+          ARDOR_CLAP_SCREENSHOTS: ${{ runner.temp }}/clap-screenshots
+        run: ctest --test-dir build-clap --output-on-failure -R '^(ardor-clap-(host|editor|gui-host)-smoke|pedal-lvgl-ui-smoke)$'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: Ardor-CLAP-editor-checks-${{ matrix.os }}-${{ github.sha }}
+          path: ${{ runner.temp }}/clap-screenshots/
+          if-no-files-found: error
+          retention-days: 30
       - name: Stage beta
         run: cmake --install build-clap --prefix "$RUNNER_TEMP/ardor-clap-beta" --component clap-beta
       - name: Sign and package Mac plugin
@@ -40,6 +48,14 @@ jobs:
           codesign --force --sign - "$RUNNER_TEMP/ardor-clap-beta/Ardor.clap"
           codesign --verify --strict "$RUNNER_TEMP/ardor-clap-beta/Ardor.clap"
           plutil -lint "$RUNNER_TEMP/ardor-clap-beta/Ardor.clap/Contents/Info.plist"
+          python3 - <<'PYTHON'
+          import os, subprocess
+          binary = os.environ['RUNNER_TEMP'] + '/ardor-clap-beta/Ardor.clap/Contents/MacOS/Ardor'
+          libraries = subprocess.check_output(['otool', '-L', binary], text=True).splitlines()[1:]
+          for line in libraries:
+              path = line.strip().split(' (')[0]
+              assert path.startswith(('/System/Library/', '/usr/lib/')), path
+          PYTHON
           mkdir -p beta
           ditto -c -k --keepParent "$RUNNER_TEMP/ardor-clap-beta" beta/Ardor-CLAP-macOS-arm64-beta.zip
           (cd beta && shasum -a 256 *.zip > SHA256SUMS.txt)

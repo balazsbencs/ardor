@@ -2,6 +2,9 @@
 #include "audio/EngineLoader.h"
 #include "desktop/DesktopLibrary.h"
 #include "preset/PresetStore.h"
+#ifdef ARDOR_CLAP_HAS_EDITOR
+#include "ClapEditor.h"
+#endif
 
 #include <algorithm>
 #include <array>
@@ -24,7 +27,7 @@ constexpr const char* pluginId = "org.ardor.guitar";
 const char* const features[] = {CLAP_PLUGIN_FEATURE_AUDIO_EFFECT, CLAP_PLUGIN_FEATURE_STEREO, nullptr};
 const clap_plugin_descriptor_t descriptor = {CLAP_VERSION, pluginId, "Ardor", "Ardor",
   "https://github.com/balazsbencs/ardor", "", "https://github.com/balazsbencs/ardor/issues",
-  "0.1.0 Beta 1", "Shared Ardor guitar effects engine; 48 kHz beta", features};
+  "0.1.0 Beta 2", "Shared Ardor guitar effects engine; 48 kHz beta", features};
 
 enum Param : clap_id { InputTrim, OutputTrim, Bypass, InputChannel, LibrarySlot, Scene, Count };
 struct ParamSpec { const char* name; double low, high, initial; bool stepped; };
@@ -45,6 +48,12 @@ public:
            process, extension, onMain};
   }
   clap_plugin_t api{};
+  ~Instance() {
+#ifdef ARDOR_CLAP_HAS_EDITOR
+    nativeEditor_.reset();
+    editor_.reset();
+#endif
+  }
 
 private:
   static Instance& self(const clap_plugin_t* p) { return *static_cast<Instance*>(p->plugin_data); }
@@ -54,9 +63,16 @@ private:
   const clap_host_state_t* hostState_ = nullptr;
   std::filesystem::path root_;
   ardor::Preset preset_, pendingPreset_;
+  std::optional<ardor::Preset> editorDraft_;
+#ifdef ARDOR_CLAP_HAS_EDITOR
+  std::unique_ptr<ardor::clap_editor::Canvas> editor_;
+  std::unique_ptr<ardor::clap_editor::NativeEditor> nativeEditor_;
+#endif
   std::unique_ptr<ardor::PedalEngine> engine_, pendingEngine_;
   bool pending_ = false, active_ = false;
   std::array<std::atomic<double>, Count> values_{};
+  std::array<std::atomic<double>, Count> uiValues_{};
+  std::atomic<uint32_t> uiEvents_{0};
   std::atomic<int> requestedSlot_{-1};
   std::atomic<bool> callbackQueued_{false};
   std::array<float, quantum> input_{}, left_{}, right_{}, dry_{};
@@ -150,7 +166,10 @@ private:
         s.engine_ = std::move(s.pendingEngine_);
         s.preset_ = std::move(s.pendingPreset_);
         s.pending_ = false;
-      } else s.engine_ = s.prepare(s.preset_);
+      } else {
+        if (s.editorDraft_) s.preset_ = *s.editorDraft_;
+        s.engine_ = s.prepare(s.preset_);
+      }
       const auto engineLatency = s.engine_->latencyFrames();
       if (engineLatency > 48000 * 10) throw std::runtime_error("Preset latency exceeds the beta's supported bound.");
       s.dryDelay_.assign(engineLatency, 0);
@@ -201,6 +220,19 @@ private:
     } else values_[value.param_id].store(bounded, std::memory_order_relaxed);
   }
 
+  void emitUiEvents(const clap_output_events_t* out) noexcept {
+    if (!out || !out->try_push) return;
+    const auto events = uiEvents_.exchange(0, std::memory_order_acq_rel);
+    for (unsigned i = 0; i < Count; ++i) if (events & (1u << i)) {
+      clap_event_param_value_t event{};
+      event.header = {sizeof(event), 0, CLAP_CORE_EVENT_SPACE_ID, CLAP_EVENT_PARAM_VALUE, CLAP_EVENT_IS_LIVE};
+      event.param_id = i;
+      event.value = uiValues_[i].load(std::memory_order_acquire);
+      event.note_id = event.port_index = event.channel = event.key = -1;
+      if (!out->try_push(out, &event.header)) uiEvents_.fetch_or(1u << i, std::memory_order_release);
+    }
+  }
+
   static clap_process_status CLAP_ABI process(const clap_plugin_t* p, const clap_process_t* block) noexcept
   {
     auto& s = self(p);
@@ -212,6 +244,7 @@ private:
     if (input.channel_count != 2 || output.channel_count != 2 || !input.data32 || !output.data32
         || !input.data32[0] || !input.data32[1] || !output.data32[0] || !output.data32[1]) return CLAP_PROCESS_ERROR;
     output.constant_mask = 0;
+    s.emitUiEvents(block->out_events);
     const auto* events = block->in_events;
     const auto count = events ? events->size(events) : 0;
     uint32_t nextEvent = 0;
@@ -272,14 +305,120 @@ private:
     const int slot = s.requestedSlot_.exchange(-1, std::memory_order_acq_rel);
     if (slot < 0) return;
     try {
-      if (s.stage(s.libraryPreset(slot))) {
-        s.values_[LibrarySlot].store(slot);
-        s.values_[Scene].store(defaultScene(s.pendingPreset_));
-        s.rescan();
-        if (s.hostState_) s.hostState_->mark_dirty(s.host_);
-      } else s.rescan();
+      if (!s.selectLibrary(slot)) s.rescan();
     } catch (const std::exception& error) { s.report(error.what()); s.rescan(); }
   }
+
+  void syncEditor() {
+    editorDraft_.reset();
+#ifdef ARDOR_CLAP_HAS_EDITOR
+    if (editor_) editor_->synchronize(pending_ ? pendingPreset_ : preset_, static_cast<int>(values_[LibrarySlot].load()));
+#endif
+  }
+  bool selectLibrary(int slot) {
+    if (!stage(libraryPreset(slot))) return false;
+    values_[LibrarySlot].store(slot);
+    values_[Scene].store(defaultScene(pendingPreset_));
+    syncEditor();
+    rescan();
+    if (hostState_) hostState_->mark_dirty(host_);
+    return true;
+  }
+
+#ifdef ARDOR_CLAP_HAS_EDITOR
+  void setEditorControl(unsigned id, double value) {
+    if (id >= Count || id == LibrarySlot || !std::isfinite(value)) return;
+    value = std::clamp(value, specs[id].low, specs[id].high);
+    if (specs[id].stepped) value = std::round(value);
+    values_[id].store(value);
+    uiValues_[id].store(value, std::memory_order_release);
+    uiEvents_.fetch_or(1u << id, std::memory_order_release);
+    if (hostParams_ && hostParams_->request_flush) hostParams_->request_flush(host_);
+    if (hostState_) hostState_->mark_dirty(host_);
+  }
+  static bool CLAP_ABI guiSupported(const clap_plugin_t*, const char* api, bool floating) noexcept {
+    return api && !floating && std::strcmp(api, CLAP_WINDOW_API_COCOA) == 0;
+  }
+  static bool CLAP_ABI guiPreferred(const clap_plugin_t*, const char** api, bool* floating) noexcept {
+    if (!api || !floating) return false;
+    *api = CLAP_WINDOW_API_COCOA; *floating = false; return true;
+  }
+  static bool CLAP_ABI guiCreate(const clap_plugin_t* p, const char* api, bool floating) noexcept {
+    auto& s = self(p);
+    if (!guiSupported(p, api, floating) || s.editor_) return false;
+    try {
+      if (!s.engine_ && !s.pendingEngine_ && !s.stage(s.editorDraft_ ? *s.editorDraft_ : s.preset_)) return false;
+      ardor::clap_editor::Callbacks callbacks;
+      callbacks.root = s.root_;
+      callbacks.engine = [&s] { return s.pending_ ? s.pendingEngine_.get() : s.engine_.get(); };
+      callbacks.waiting = [&s] { return s.active_ && s.pending_; };
+      callbacks.stage = [&s](ardor::Preset preset) { return s.stage(std::move(preset)); };
+      callbacks.edited = [&s](ardor::Preset preset) {
+        // The live audio callback reads preset_, never this main-thread draft.
+        if (s.pending_) s.pendingPreset_ = preset;
+        s.editorDraft_ = std::move(preset);
+        if (s.hostState_) s.hostState_->mark_dirty(s.host_);
+      };
+      callbacks.selectPreset = [&s](int slot) { return s.selectLibrary(slot); };
+      callbacks.selectScene = [&s](int scene) { s.setEditorControl(Scene, scene); };
+      callbacks.control = [&s](unsigned id) { return id < Count ? s.values_[id].load() : 0.; };
+      callbacks.setControl = [&s](unsigned id, double value) { s.setEditorControl(id, value); };
+      std::array<ardor::Preset, 4> library;
+      for (int i = 0; i < 4; ++i) {
+        try { library[i] = s.libraryPreset(i); }
+        catch (...) { library[i].name = "Unavailable preset"; }
+      }
+      s.editor_ = std::make_unique<ardor::clap_editor::Canvas>(std::move(callbacks), library,
+        static_cast<int>(s.values_[LibrarySlot].load()), s.editorDraft_ ? *s.editorDraft_ : s.pending_ ? s.pendingPreset_ : s.preset_);
+      s.nativeEditor_ = ardor::clap_editor::createMacEditor(*s.editor_);
+      return true;
+    } catch (const std::exception& error) {
+      s.nativeEditor_.reset(); s.editor_.reset(); s.report(error.what()); return false;
+    }
+  }
+  static void CLAP_ABI guiDestroy(const clap_plugin_t* p) noexcept {
+    auto& s = self(p);
+    try { if (s.editor_) s.editor_->flushEdits(); } catch (...) {}
+    s.nativeEditor_.reset(); s.editor_.reset();
+  }
+  static bool CLAP_ABI guiScale(const clap_plugin_t*, double) noexcept { return false; }
+  static bool CLAP_ABI guiSize(const clap_plugin_t* p, uint32_t* width, uint32_t* height) noexcept {
+    auto& s = self(p);
+    if (!s.nativeEditor_ || !width || !height) return false;
+    *width = s.nativeEditor_->width(); *height = s.nativeEditor_->height(); return true;
+  }
+  static bool CLAP_ABI guiResizable(const clap_plugin_t*) noexcept { return true; }
+  static bool CLAP_ABI guiHints(const clap_plugin_t*, clap_gui_resize_hints_t* hints) noexcept {
+    if (!hints) return false;
+    *hints = {true, true, false, 0, 0}; return true;
+  }
+  static bool CLAP_ABI guiAdjust(const clap_plugin_t*, uint32_t* width, uint32_t* height) noexcept {
+    if (!width || !height) return false;
+    *width = std::clamp(*width, 960u, 1920u); *height = std::clamp(*height, 584u, 1124u); return true;
+  }
+  static bool CLAP_ABI guiResize(const clap_plugin_t* p, uint32_t width, uint32_t height) noexcept {
+    try { return self(p).nativeEditor_ && self(p).nativeEditor_->setSize(width, height); }
+    catch (...) { return false; }
+  }
+  static bool CLAP_ABI guiParent(const clap_plugin_t* p, const clap_window_t* window) noexcept {
+    if (!window || !guiSupported(p, window->api, false) || !window->cocoa) return false;
+    try { return self(p).nativeEditor_ && self(p).nativeEditor_->setParent(window->cocoa); }
+    catch (...) { return false; }
+  }
+  static bool CLAP_ABI guiTransient(const clap_plugin_t*, const clap_window_t*) noexcept { return false; }
+  static void CLAP_ABI guiTitle(const clap_plugin_t*, const char*) noexcept {}
+  static bool CLAP_ABI guiShow(const clap_plugin_t* p) noexcept {
+    try { return self(p).nativeEditor_ && self(p).nativeEditor_->show(); } catch (...) { return false; }
+  }
+  static bool CLAP_ABI guiHide(const clap_plugin_t* p) noexcept {
+    try { return self(p).nativeEditor_ && self(p).nativeEditor_->hide(); } catch (...) { return false; }
+  }
+  static const clap_plugin_gui_t& guiExtension() {
+    static const clap_plugin_gui_t gui{guiSupported, guiPreferred, guiCreate, guiDestroy, guiScale,
+      guiSize, guiResizable, guiHints, guiAdjust, guiResize, guiParent, guiTransient, guiTitle, guiShow, guiHide};
+    return gui;
+  }
+#endif
 
   static uint32_t CLAP_ABI paramCount(const clap_plugin_t*) noexcept { return Count; }
   static bool CLAP_ABI paramInfo(const clap_plugin_t*, uint32_t index, clap_param_info_t* info) noexcept
@@ -326,16 +465,23 @@ private:
     *value = specs[id].stepped ? std::round(parsed) : parsed;
     return true;
   }
-  static void CLAP_ABI flush(const clap_plugin_t* p, const clap_input_events_t* in, const clap_output_events_t*) noexcept
-  { if (in) for (uint32_t i = 0, n = in->size(in); i < n; ++i) self(p).event(in->get(in, i)); }
+  static void CLAP_ABI flush(const clap_plugin_t* p, const clap_input_events_t* in, const clap_output_events_t* out) noexcept
+  {
+    auto& s = self(p);
+    if (in) for (uint32_t i = 0, n = in->size(in); i < n; ++i) s.event(in->get(in, i));
+    s.emitUiEvents(out);
+  }
 
   static bool CLAP_ABI save(const clap_plugin_t* p, const clap_ostream_t* stream) noexcept
   {
     try {
       auto& s = self(p);
+#ifdef ARDOR_CLAP_HAS_EDITOR
+      if (s.editor_ && !s.editor_->flushEdits()) return false;
+#endif
       nlohmann::json values = nlohmann::json::array();
       for (const auto& value : s.values_) values.push_back(value.load());
-      const auto data = nlohmann::json({{"version", 1}, {"preset", ardor::toJson(s.pending_ ? s.pendingPreset_ : s.preset_)},
+      const auto data = nlohmann::json({{"version", 1}, {"preset", ardor::toJson(s.editorDraft_ ? *s.editorDraft_ : s.pending_ ? s.pendingPreset_ : s.preset_)},
                                       {"parameters", values}}).dump();
       if (!stream || !stream->write || data.size() > stateLimit) return false;
       std::size_t offset = 0;
@@ -371,6 +517,7 @@ private:
       }
       if (!s.stage(ardor::presetFromJson(json.at("preset")))) return false;
       for (std::size_t i = 0; i < Count; ++i) s.values_[i].store(values[i]);
+      s.syncEditor();
       s.rescan();
       return true;
     } catch (const std::exception& error) { s.report(error.what()); return false; }
@@ -386,6 +533,7 @@ private:
       file >> json;
       if (!s.stage(ardor::presetFromJson(json))) return false;
       s.values_[Scene].store(defaultScene(s.pendingPreset_));
+      s.syncEditor();
       s.rescan();
       if (s.hostState_) s.hostState_->mark_dirty(s.host_);
       if (const auto* host = static_cast<const clap_host_preset_load_t*>(s.host_->get_extension(s.host_, CLAP_EXT_PRESET_LOAD)))
@@ -422,6 +570,9 @@ private:
     static const clap_plugin_tail_t tailExtension{tail};
     static const clap_plugin_preset_load_t presetLoad{loadPreset};
     if (!id) return nullptr;
+#ifdef ARDOR_CLAP_HAS_EDITOR
+    if (std::strcmp(id, CLAP_EXT_GUI) == 0) return &guiExtension();
+#endif
     if (std::strcmp(id, CLAP_EXT_RENDER) == 0) return &render;
     if (std::strcmp(id, CLAP_EXT_PARAMS) == 0) return &params;
     if (std::strcmp(id, CLAP_EXT_AUDIO_PORTS) == 0) return &ports;
