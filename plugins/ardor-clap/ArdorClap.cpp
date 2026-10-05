@@ -21,13 +21,20 @@
 #include <string>
 
 namespace {
+#ifdef ARDOR_CLAP_HAS_EDITOR
+#ifdef _WIN32
+constexpr const char* windowApi = CLAP_WINDOW_API_WIN32;
+#else
+constexpr const char* windowApi = CLAP_WINDOW_API_COCOA;
+#endif
+#endif
 constexpr std::size_t quantum = 64;
 constexpr std::size_t stateLimit = 512 * 1024;
 constexpr const char* pluginId = "org.ardor.guitar";
 const char* const features[] = {CLAP_PLUGIN_FEATURE_AUDIO_EFFECT, CLAP_PLUGIN_FEATURE_STEREO, nullptr};
 const clap_plugin_descriptor_t descriptor = {CLAP_VERSION, pluginId, "Ardor", "Ardor",
   "https://github.com/balazsbencs/ardor", "", "https://github.com/balazsbencs/ardor/issues",
-  "0.1.0 Beta 2", "Shared Ardor guitar effects engine; 48 kHz beta", features};
+  "0.1.0 Beta 3", "Shared Ardor guitar effects engine; 48 kHz beta", features};
 
 enum Param : clap_id { InputTrim, OutputTrim, Bypass, InputChannel, LibrarySlot, Scene, Count };
 struct ParamSpec { const char* name; double low, high, initial; bool stepped; };
@@ -338,11 +345,11 @@ private:
     if (hostState_) hostState_->mark_dirty(host_);
   }
   static bool CLAP_ABI guiSupported(const clap_plugin_t*, const char* api, bool floating) noexcept {
-    return api && !floating && std::strcmp(api, CLAP_WINDOW_API_COCOA) == 0;
+    return api && !floating && std::strcmp(api, windowApi) == 0;
   }
   static bool CLAP_ABI guiPreferred(const clap_plugin_t*, const char** api, bool* floating) noexcept {
     if (!api || !floating) return false;
-    *api = CLAP_WINDOW_API_COCOA; *floating = false; return true;
+    *api = windowApi; *floating = false; return true;
   }
   static bool CLAP_ABI guiCreate(const clap_plugin_t* p, const char* api, bool floating) noexcept {
     auto& s = self(p);
@@ -371,7 +378,11 @@ private:
       }
       s.editor_ = std::make_unique<ardor::clap_editor::Canvas>(std::move(callbacks), library,
         static_cast<int>(s.values_[LibrarySlot].load()), s.editorDraft_ ? *s.editorDraft_ : s.pending_ ? s.pendingPreset_ : s.preset_);
+#ifdef _WIN32
+      s.nativeEditor_ = ardor::clap_editor::createWindowsEditor(*s.editor_);
+#else
       s.nativeEditor_ = ardor::clap_editor::createMacEditor(*s.editor_);
+#endif
       return true;
     } catch (const std::exception& error) {
       s.nativeEditor_.reset(); s.editor_.reset(); s.report(error.what()); return false;
@@ -382,7 +393,10 @@ private:
     try { if (s.editor_) s.editor_->flushEdits(); } catch (...) {}
     s.nativeEditor_.reset(); s.editor_.reset();
   }
-  static bool CLAP_ABI guiScale(const clap_plugin_t*, double) noexcept { return false; }
+  static bool CLAP_ABI guiScale(const clap_plugin_t* p, double scale) noexcept {
+    try { return self(p).nativeEditor_ && self(p).nativeEditor_->setScale(scale); }
+    catch (...) { return false; }
+  }
   static bool CLAP_ABI guiSize(const clap_plugin_t* p, uint32_t* width, uint32_t* height) noexcept {
     auto& s = self(p);
     if (!s.nativeEditor_ || !width || !height) return false;
@@ -393,17 +407,25 @@ private:
     if (!hints) return false;
     *hints = {true, true, false, 0, 0}; return true;
   }
-  static bool CLAP_ABI guiAdjust(const clap_plugin_t*, uint32_t* width, uint32_t* height) noexcept {
+  static bool CLAP_ABI guiAdjust(const clap_plugin_t* p, uint32_t* width, uint32_t* height) noexcept {
     if (!width || !height) return false;
-    *width = std::clamp(*width, 960u, 1920u); *height = std::clamp(*height, 584u, 1124u); return true;
+    const auto scale = self(p).nativeEditor_ ? self(p).nativeEditor_->scale() : 1.;
+    *width = std::clamp(*width, uint32_t(std::lround(960 * scale)), uint32_t(std::lround(1920 * scale)));
+    *height = std::clamp(*height, uint32_t(std::lround(584 * scale)), uint32_t(std::lround(1124 * scale))); return true;
   }
   static bool CLAP_ABI guiResize(const clap_plugin_t* p, uint32_t width, uint32_t height) noexcept {
     try { return self(p).nativeEditor_ && self(p).nativeEditor_->setSize(width, height); }
     catch (...) { return false; }
   }
   static bool CLAP_ABI guiParent(const clap_plugin_t* p, const clap_window_t* window) noexcept {
-    if (!window || !guiSupported(p, window->api, false) || !window->cocoa) return false;
-    try { return self(p).nativeEditor_ && self(p).nativeEditor_->setParent(window->cocoa); }
+    if (!window || !guiSupported(p, window->api, false)) return false;
+#ifdef _WIN32
+    auto* parent = window->win32;
+#else
+    auto* parent = window->cocoa;
+#endif
+    if (!parent) return false;
+    try { return self(p).nativeEditor_ && self(p).nativeEditor_->setParent(parent); }
     catch (...) { return false; }
   }
   static bool CLAP_ABI guiTransient(const clap_plugin_t*, const clap_window_t*) noexcept { return false; }
@@ -529,8 +551,9 @@ private:
     if (kind != CLAP_PRESET_DISCOVERY_LOCATION_FILE || !path || (key && *key)) return false;
     auto& s = self(p);
     try {
-      if (std::filesystem::file_size(path) > stateLimit) return false;
-      std::ifstream file(path);
+      const std::filesystem::path location(reinterpret_cast<const char8_t*>(path));
+      if (std::filesystem::file_size(location) > stateLimit) return false;
+      std::ifstream file(location);
       nlohmann::json json;
       file >> json;
       if (!s.stage(ardor::presetFromJson(json))) return false;

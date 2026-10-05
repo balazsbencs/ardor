@@ -3,10 +3,10 @@ name: CLAP beta
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap*', 'CMakeLists.txt', 'lv_conf.h', '.github/workflows/clap.yml']
+    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap*', 'tests/ClapTestPlatform.h', 'CMakeLists.txt', 'lv_conf.h', '.github/workflows/clap.yml']
   push:
     branches: [main]
-    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap*', 'CMakeLists.txt', 'lv_conf.h', '.github/workflows/clap.yml']
+    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap*', 'tests/ClapTestPlatform.h', 'CMakeLists.txt', 'lv_conf.h', '.github/workflows/clap.yml']
 
 permissions:
   contents: read
@@ -21,19 +21,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, ubuntu-24.04]
+        os: [macos-15, ubuntu-24.04, windows-2022]
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Use GitHub mirror for Eigen
         run: git config --global url."https://github.com/eigen-mirror/eigen.git".insteadOf https://gitlab.com/libeigen/eigen
       - name: Configure plugin and embedded editor
+        if: runner.os != 'Windows'
         run: cmake -S . -B build-clap -DARDOR_UI_BACKEND=memory -DARDOR_BUILD_CLAP_PLUGIN=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0
+      - name: Configure Windows x64 plugin and embedded editor
+        if: runner.os == 'Windows'
+        run: cmake -S . -B build-clap -G 'Visual Studio 17 2022' -A x64 -DARDOR_UI_BACKEND=memory -DARDOR_BUILD_CLAP_PLUGIN=ON
       - name: Build plugin and smoke host
-        run: cmake --build build-clap --target ardor-clap-host-smoke ardor-clap-editor-smoke pedal-lvgl-ui-smoke --parallel 3
+        run: cmake --build build-clap --config Release --target ardor-clap-host-smoke ardor-clap-editor-smoke pedal-lvgl-ui-smoke --parallel 3
       - name: Check CLAP lifecycle, audio, state and full NAM chain
         env:
           ARDOR_CLAP_SCREENSHOTS: ${{ runner.temp }}/clap-screenshots
-        run: ctest --test-dir build-clap --output-on-failure -R '^(ardor-clap-(host|editor|gui-host)-smoke|pedal-lvgl-ui-smoke)$'
+        run: ctest --test-dir build-clap -C Release --output-on-failure -R '^(ardor-clap-(host|editor|gui-host)-smoke|pedal-lvgl-ui-smoke)$'
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: Ardor-CLAP-editor-checks-${{ matrix.os }}-${{ github.sha }}
@@ -41,7 +48,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Stage beta
-        run: cmake --install build-clap --prefix "$RUNNER_TEMP/ardor-clap-beta" --component clap-beta
+        run: cmake --install build-clap --config Release --prefix "$RUNNER_TEMP/ardor-clap-beta" --component clap-beta
       - name: Sign and package Mac plugin
         if: runner.os == 'macOS'
         run: |
@@ -65,6 +72,28 @@ jobs:
           mkdir -p beta
           tar -czf beta/Ardor-CLAP-Linux-x64-beta.tar.gz -C "$RUNNER_TEMP" ardor-clap-beta
           (cd beta && sha256sum *.tar.gz > SHA256SUMS.txt)
+      - name: Verify and package Windows plugin
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $binary = Join-Path $env:RUNNER_TEMP 'ardor-clap-beta/Ardor.clap'
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $dumpbin = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find 'VC/Tools/MSVC/**/bin/Hostx64/x64/dumpbin.exe' | Select-Object -First 1
+          if (!$dumpbin -or !(Test-Path $binary)) { throw 'Windows plugin/tool missing' }
+          $exports = & $dumpbin /EXPORTS $binary
+          if ($LASTEXITCODE -ne 0 -or !($exports -match '\bclap_entry\b')) { throw 'Missing CLAP entry export' }
+          $dependencies = & $dumpbin /DEPENDENTS $binary
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect plugin dependencies' }
+          $dlls = $dependencies | ForEach-Object { if ($_ -match '^\s+([A-Za-z0-9_.-]+\.dll)\s*$') { $Matches[1] } }
+          foreach ($dll in $dlls) {
+            if ($dll -match '^(VCRUNTIME|MSVCP|libgcc|libstdc|libwinpthread)' -or !(Test-Path (Join-Path "$env:WINDIR/System32" $dll))) {
+              throw "Plugin requires an undistributed runtime: $dll"
+            }
+          }
+          New-Item -ItemType Directory -Force beta | Out-Null
+          Compress-Archive -Path "$env:RUNNER_TEMP/ardor-clap-beta" -DestinationPath beta/Ardor-CLAP-Windows-x64-beta.zip
+          $hash = (Get-FileHash beta/Ardor-CLAP-Windows-x64-beta.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  Ardor-CLAP-Windows-x64-beta.zip" | Set-Content -Encoding ascii beta/SHA256SUMS.txt
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: Ardor-CLAP-beta-${{ matrix.os }}-${{ github.sha }}

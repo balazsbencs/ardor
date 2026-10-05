@@ -83,9 +83,12 @@ public:
   virtual bool setSize(uint32_t width, uint32_t height) = 0;
   virtual bool show() = 0;
   virtual bool hide() = 0;
+  virtual bool setScale(double) { return false; }
+  virtual double scale() const { return 1; }
   virtual uint32_t width() const = 0;
   virtual uint32_t height() const = 0;
 };
 std::unique_ptr<NativeEditor> createMacEditor(Canvas& canvas);
+std::unique_ptr<NativeEditor> createWindowsEditor(Canvas& canvas);
 
 } // namespace ardor::clap_editor

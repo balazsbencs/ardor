@@ -8,7 +8,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
-#include <dlfcn.h>
+#include "ClapTestPlatform.h"
 #include <filesystem>
 #include <iostream>
 #include <new>
@@ -127,18 +127,21 @@ int main() {
 #ifdef __APPLE__
   const char* env = "HOME";
   const auto library = root / "Library/Application Support/Ardor";
+#elif defined(_WIN32)
+  const char* env = "LOCALAPPDATA";
+  const auto library = root / "Ardor";
 #else
   const char* env = "XDG_DATA_HOME";
   const auto library = root / "ardor";
 #endif
   const char* prior = std::getenv(env);
   const std::string saved = prior ? prior : "";
-  setenv(env, root.c_str(), 1);
+  clap_test::environment(env, root.string().c_str());
   void* handle = nullptr;
   try {
-    handle = dlopen(ARDOR_CLAP_BINARY, RTLD_NOW | RTLD_LOCAL);
-    require(handle, dlerror());
-    const auto* entry = static_cast<const clap_plugin_entry_t*>(dlsym(handle, "clap_entry"));
+    handle = clap_test::open(ARDOR_CLAP_BINARY);
+    require(handle, clap_test::error());
+    const auto* entry = static_cast<const clap_plugin_entry_t*>(clap_test::symbol(handle, "clap_entry"));
     require(entry && entry->init(ARDOR_CLAP_BINARY), "Missing CLAP entry");
     const auto* factory = static_cast<const clap_plugin_factory_t*>(entry->get_factory(CLAP_PLUGIN_FACTORY_ID));
     require(factory && factory->get_plugin_count(factory) == 1, "Missing factory");
@@ -212,10 +215,10 @@ int main() {
       // Host preset-load loads ordinary Ardor JSON on main, with relative assets.
       const auto* loader = a.ext<clap_plugin_preset_load_t>(CLAP_EXT_PRESET_LOAD);
       store.save({0, 2}, nam);
-      require(loader && loader->from_location(a.api, CLAP_PRESET_DISCOVERY_LOCATION_FILE, store.pathFor({0, 2}).c_str(), nullptr), "Native JSON preset-load failed");
+      require(loader && loader->from_location(a.api, CLAP_PRESET_DISCOVERY_LOCATION_FILE, clap_test::utf8(store.pathFor({0, 2})).c_str(), nullptr), "Native JSON preset-load failed");
       Stream beforeInvalid; require(state->save(a.api, &beforeInvalid.out), "Cannot snapshot prior preset");
       auto broken = nam; broken.blocks[0].asset = "models/missing.nam"; store.save({0, 3}, broken);
-      require(!loader->from_location(a.api, CLAP_PRESET_DISCOVERY_LOCATION_FILE, store.pathFor({0, 3}).c_str(), nullptr), "Missing model silently replaced chain");
+      require(!loader->from_location(a.api, CLAP_PRESET_DISCOVERY_LOCATION_FILE, clap_test::utf8(store.pathFor({0, 3})).c_str(), nullptr), "Missing model silently replaced chain");
       Stream afterInvalid; require(state->save(a.api, &afterInvalid.out) && afterInvalid.bytes == beforeInvalid.bytes,
                                    "Invalid preset changed pending/current state");
       // Parameter scenes and sequential WDW also run through the same module.
@@ -224,7 +227,7 @@ int main() {
       wdw.wdw->dry.blocks.push_back({"dry-nam", "nam", true, "models/test.nam", nlohmann::json::object()});
       wdw.wdw->wet.blocks = nam.blocks;
       store.save({0, 2}, wdw);
-      require(loader->from_location(a.api, CLAP_PRESET_DISCOVERY_LOCATION_FILE, store.pathFor({0, 2}).c_str(), nullptr), "Sequential WDW load failed");
+      require(loader->from_location(a.api, CLAP_PRESET_DISCOVERY_LOCATION_FILE, clap_test::utf8(store.pathFor({0, 2})).c_str(), nullptr), "Sequential WDW load failed");
       a.stop(); a.start(); guitar.run(a.api);
       require(latency->get(a.api) >= 64, "WDW adapter latency missing");
       ardor::Preset scenes; scenes.version = 4; scenes.name = "Scene trem";
@@ -237,7 +240,7 @@ int main() {
         scene.targets.push_back({ardor::PresetSceneTargetType::Parameter, "trem", "mix", "", i / 3.0f});
       }
       store.save({0, 2}, scenes);
-      require(loader->from_location(a.api, CLAP_PRESET_DISCOVERY_LOCATION_FILE, store.pathFor({0, 2}).c_str(), nullptr), "Parameter scene preset failed");
+      require(loader->from_location(a.api, CLAP_PRESET_DISCOVERY_LOCATION_FILE, clap_test::utf8(store.pathFor({0, 2})).c_str(), nullptr), "Parameter scene preset failed");
       a.stop(); a.start();
       params->get_value(a.api, 5, &value); require(value == 2, "Authored default scene lost on import");
       Events scene; scene.add(5, 3, 71); guitar.run(a.api, &scene);
@@ -266,14 +269,14 @@ int main() {
       guitar.out.data32 = guitar.inputs.data(); guitar.l[0] = std::numeric_limits<float>::quiet_NaN(); guitar.run(a.api);
       require(std::isfinite(guitar.l[0]), "In-place non-finite input escaped");
     }
-    entry->deinit(); dlclose(handle); handle = nullptr;
-    if (prior) setenv(env, saved.c_str(), 1); else unsetenv(env);
+    entry->deinit(); clap_test::close(handle); handle = nullptr;
+    clap_test::environment(env, prior ? saved.c_str() : nullptr);
     std::filesystem::remove_all(root);
     std::cout << "CLAP ABI, lifecycle, variable blocks, state, library and NAM checks passed\n";
     return 0;
   } catch (const std::exception& e) {
-    if (handle) dlclose(handle);
-    if (prior) setenv(env, saved.c_str(), 1); else unsetenv(env);
+    if (handle) clap_test::close(handle);
+    clap_test::environment(env, prior ? saved.c_str() : nullptr);
     std::filesystem::remove_all(root);
     std::cerr << e.what() << '\n'; return 1;
   }

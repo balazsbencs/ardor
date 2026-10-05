@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 project(ardor_pedal LANGUAGES C CXX)
 
+if(WIN32)
+  # A distributable plugin should not require a separately installed VC runtime.
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  set(CMAKE_C_STANDARD 11)
+  add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN _USE_MATH_DEFINES)
+endif()
+
 set(ARDOR_VERSION "0.0.0" CACHE STRING "Ardor release version")
 set(ARDOR_COMMIT "unknown" CACHE STRING "Ardor source commit")
 

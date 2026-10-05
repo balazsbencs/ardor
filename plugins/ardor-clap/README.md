@@ -3,19 +3,29 @@
 This is a full-chain plugin using the same engine and preset format as the
 standalone app. It is separate from the existing Whammy algorithm plugin.
 The beta supports **48 kHz DAW sessions only**. Beta 2 adds the shared Ardor
-editor in an embedded Cocoa view on Mac. Linux still uses host-generated
+editor in an embedded Cocoa view on Mac. Beta 3 adds a Windows x64 build with
+the same editor in a native Win32 child window. Linux still uses host-generated
 parameter controls. This is an early beta; real DAW testing remains necessary.
 
 ## Use
 
 Download a versioned beta from [GitHub Releases](https://github.com/balazsbencs/ardor/releases).
 
-The **CLAP beta** workflow uploads Apple Silicon/macOS 15+ and Linux/x64
+The **CLAP beta** workflow uploads Apple Silicon/macOS 15+, Windows 10/11 x64, and Linux/x64
 artifacts after the ABI smoke test passes. Unpack the download and copy
 `Ardor.clap` to `~/Library/Audio/Plug-Ins/CLAP/` on Mac or `~/.clap/` on Linux.
 Keep the accompanying license notices. Restart/rescan the DAW, create a 48 kHz
 session, and insert Ardor on an audio track. Configure the audio interface and
 monitoring in the DAW. The plugin never opens its own audio device.
+
+On Windows, quit the DAW, unpack the Windows zip, and copy `Ardor.clap` to
+`%LOCALAPPDATA%\Programs\Common\CLAP\` (create the folder if needed). An
+all-users installation can use `%COMMONPROGRAMFILES%\CLAP\` instead. Keep
+the license notices, restart/rescan the DAW, and use a **48 kHz project**.
+Other rates are rejected and may sound like bypass in the host. The Windows
+download is a native x64 DLL with a `.clap` extension, not a Mac bundle;
+use a 64-bit CLAP-capable host. The VC runtime is linked statically, so no
+separate runtime installer is required. The Windows beta is unsigned.
 
 In REAPER, open Ardor from the track's FX window and use its normal plugin view.
 If REAPER shows the generic parameter list, toggle the **UI** button to return
@@ -23,7 +33,10 @@ to the plugin editor after installing/rescanning beta 2. Beta 1 has no custom UI
 The editor includes the preset/chain view, effect and asset browser, live effect
 parameters, EQ controls, scenes, and an input/output trim, guitar channel and
 bypass toolbar. Trim fields support keyboard editing. NAM/IR assets come from
-the shared desktop library; use the desktop app to import them first.
+the shared desktop library. On Mac, use the desktop app to import them first.
+On Windows, place NAM models in `%LOCALAPPDATA%\Ardor\models`, cabinet IRs
+in `%LOCALAPPDATA%\Ardor\irs`, and reverb IRs in `%LOCALAPPDATA%\Ardor\reverb-irs`,
+then reopen the editor. Built-in effects require no imported assets.
 
 Opening the editor does not create an audio device or write library settings.
 Each plugin instance has its own editor display and project draft. Normal
@@ -76,10 +89,24 @@ ctest --test-dir build-clap --output-on-failure -R '^ardor-clap-(host|editor|gui
 cmake --install build-clap --prefix "$PWD/build-clap/stage" --component clap-beta
 ```
 
+Windows, with Visual Studio 2022 C++ tools and CMake:
+
+```powershell
+cmake -S . -B build-clap -G "Visual Studio 17 2022" -A x64 `
+  -DARDOR_UI_BACKEND=memory -DARDOR_BUILD_CLAP_PLUGIN=ON
+cmake --build build-clap --config Release --target ardor-clap-host-smoke ardor-clap-editor-smoke pedal-lvgl-ui-smoke --parallel 3
+ctest --test-dir build-clap -C Release --output-on-failure -R '^(ardor-clap-(host|editor|gui-host)-smoke|pedal-lvgl-ui-smoke)$'
+cmake --install build-clap --config Release --prefix build-clap/stage --component clap-beta
+```
+
 Use `ARDOR_UI_BACKEND=none` for a DSP-only build without editor dependencies.
 The `memory` backend renders LVGL directly to an instance-owned bitmap; it does
 not link SDL. The Mac host view uses Cocoa logical sizes and Retina backing
 pixels. UI rendering, input, timers, and DSP preparation stay on the main thread.
+The Windows host uses physical pixels and supports host-provided scaling from
+100% to 300%, including scaled resize bounds and pointer hit testing. It does
+not change the DAW's process-wide DPI-awareness policy. GDI paints the LVGL
+bitmap; a window-owned timer refreshes only while the editor is shown.
 Closing an editor deletes only its display/input/view resources; other instances
 and the audio engine keep running. Reopening restores its current project draft.
 
@@ -89,6 +116,11 @@ On Mac, a smoke DAW dynamically loads the real module and checks the CLAP GUI
 extension, unsupported APIs, native parenting/show/hide/recreate, actual mouse
 control changes, resize bounds, and multiple independent native editors. This
 checks Cocoa embedding without claiming a completed REAPER compatibility test.
+Windows CI runs the same dynamically loaded audio/state host plus a native
+Win32 host checking parenting, mouse/keyboard input, high-DPI scaling, painted
+captures, resize, hide/recreate, independent instances, parent-first destruction,
+and unloading the DLL after editor teardown. CI also checks the CLAP export and
+rejects dependencies on undistributed compiler runtime DLLs before packaging.
 
 The smoke host dynamically loads the actual CLAP module and covers enumeration,
 ports/controls, lifecycle/reset, unsupported-rate rejection, varying host blocks,
@@ -98,7 +130,8 @@ independent instances, sample-offset automation,
 short-read/write state streams, rejected state, library selection/restart, real
 NAM-plus-delay processing, project restore without the original preset file,
 native JSON preset loading, missing-model retention, and in-place processing.
-It tracks C++ allocations during the tested callbacks (not every allocator).
+On POSIX it tracks C++ allocations during the tested callbacks (not every allocator).
+The Windows host's allocator override does not intercept allocations in the DLL.
 It uses an isolated temporary library and opens no audio devices.
 
 Local upstream `clap-validator` 0.4.1 checks are also run. The full suite currently
@@ -111,9 +144,9 @@ is not filtered into a misleading all-clear CI badge.
 
 - Streaming conversion for common host rates (44.1/48/96 kHz), with measured
   conversion quality and latency, then a full upstream validator pass.
-- Linux/Windows native editor embedding, preset discovery, and portable project assets.
+- Linux native editor embedding, preset discovery, and portable project assets.
 - Structural scene latency accounting and DAW-specific testing.
-- Public release signing/notarization, and later Windows and VST3 distribution.
+- Public release signing/notarization, and later VST3 distribution.
 
 This slice uses the small pinned [CLAP C ABI](https://github.com/free-audio/clap/tree/29ffcc273be7c7c651f6c9953b99e69700e2387a)
 so the host's explicit main/audio thread contract controls preparation and restart.
