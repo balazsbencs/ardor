@@ -209,6 +209,21 @@ void rateMatrix(const clap_plugin_factory_t* factory, const std::filesystem::pat
     const auto sceneAudio = render(p, rate, true, false, false, sceneFrames);
     for (unsigned i = sceneFrames - 2048; i < sceneAudio.size(); ++i)
       if (std::abs(sceneAudio[i] - clean[i]) >= .00001f) { std::cerr << "Scene mismatch at rate " << rate << " frame " << i << " clean " << clean[i] << " scene " << sceneAudio[i] << "\n"; require(false, "Converted authored scene timing changed dry tone"); }
+    // Recall a wet scene at an actual host sample offset, then recall dry after
+    // reset. This checks delayed scene events and monotonic mailbox IDs at SRC
+    // rates, beyond just restoring the default scene's control value.
+    Events wetScene; wetScene.add(5, 3, 47);
+    Audio recall(64); recall.run(p.api, &wetScene);
+    const auto wetSceneAudio = render(p, rate, true, false, false, sceneFrames);
+    double difference = 0;
+    for (unsigned i = sceneFrames - 2048; i < sceneFrames; ++i)
+      difference += std::abs(wetSceneAudio[i] - clean[i]);
+    require(difference > .01, "Converted wet scene recall did not affect audio");
+    p.api->reset(p.api);
+    Events dryScene; dryScene.add(5, 0, 47); recall.run(p.api, &dryScene);
+    const auto recalledDry = render(p, rate, true, false, false, sceneFrames);
+    for (unsigned i = sceneFrames - 2048; i < sceneFrames; ++i)
+      require(std::abs(recalledDry[i] - clean[i]) < .00001f, "Converted dry scene recall after reset was ignored");
     // In-place stereo processing is safe at converted rates.
     Audio inPlace(2048); for (unsigned i = 0; i < 2048; ++i) inPlace.l[i] = signal(i, rate);
     inPlace.out.data32 = inPlace.inputs.data(); inPlace.run(p.api);
