@@ -180,7 +180,8 @@ private:
     s.outputGain_ = std::pow(10.0, s.values_[OutputTrim].load() / 20);
     s.wetMix_ = s.values_[Bypass].load() >= .5 ? 0 : 1;
     s.appliedScene_ = -1;
-    s.sceneRequest_ = 0;
+    // Keep request IDs monotonic: engine.reset() retains the scene controller,
+    // whose mailbox rejects IDs already applied before the host reset.
   }
 
   void event(const clap_event_header_t* event) noexcept

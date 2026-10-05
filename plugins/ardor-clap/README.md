@@ -58,6 +58,7 @@ cmake --install build-clap --prefix "$PWD/build-clap/stage" --component clap-bet
 The smoke host dynamically loads the actual CLAP module and covers enumeration,
 ports/controls, lifecycle/reset, unsupported-rate rejection, varying host blocks,
 reported impulse latency, sequential WDW, authored/default scenes and scene restore,
+audio-level scene recall after host reset,
 independent instances, sample-offset automation,
 short-read/write state streams, rejected state, library selection/restart, real
 NAM-plus-delay processing, project restore without the original preset file,

@@ -245,6 +245,23 @@ int main() {
       require(bState->load(b.api, &sceneState.in), "Scene state restore failed");
       b.stop(); b.start(); guitar.run(b.api);
       b.ext<clap_plugin_params_t>(CLAP_EXT_PARAMS)->get_value(b.api, 5, &value); require(value == 3, "Scene selection not restored");
+      // A host reset must not reuse a scene request ID. Recall mix=0 after a
+      // previous scene request and compare audio against an independent clean
+      // engine with the same host trims; control-value checks alone miss this.
+      Host cleanHost; Plugin clean(factory, cleanHost);
+      Events cleanControls; cleanControls.add(0, -6); cleanControls.add(1, -3); cleanControls.add(3, 1);
+      clean.ext<clap_plugin_params_t>(CLAP_EXT_PARAMS)->flush(clean.api, &cleanControls.api, nullptr);
+      clean.start(); b.api->reset(b.api);
+      Events dryScene; dryScene.add(5, 0);
+      Audio recalled(2048), reference(2048);
+      // Allow the effect's normal control smoothing to settle, then compare.
+      for (int pass = 0; pass < 6; ++pass) {
+        for (int i = 0; i < 2048; ++i) recalled.r[i] = reference.r[i] = .05f * std::sin((pass * 2048 + i) * .05f);
+        recalled.run(b.api, pass == 0 ? &dryScene : nullptr); reference.run(clean.api);
+        if (pass >= 4)
+          for (int i = 0; i < 2048; ++i)
+            require(std::abs(recalled.outL[i] - reference.outL[i]) < 1e-5f, "Scene recall after host reset was ignored");
+      }
       // In-place buffers and non-finite input remain bounded.
       guitar.out.data32 = guitar.inputs.data(); guitar.l[0] = std::numeric_limits<float>::quiet_NaN(); guitar.run(a.api);
       require(std::isfinite(guitar.l[0]), "In-place non-finite input escaped");
