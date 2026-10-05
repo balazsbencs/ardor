@@ -24,9 +24,22 @@ if(APPLE)
   # Install a self-contained app without absolute Homebrew dylib references.
   # Signing/notarization runs after this staging step, on the completed bundle.
   install(TARGETS ardor-desktop BUNDLE DESTINATION . COMPONENT desktop)
+  # Homebrew's SDL2 can be sdl2-compat, which dlopens SDL3 rather than linking
+  # it. BundleUtilities cannot infer that dependency from Mach-O load commands.
+  # The compat loader looks for libSDL3.dylib beside its own copied dylib.
+  find_library(ARDOR_DESKTOP_SDL3_LIBRARY NAMES SDL3
+    HINTS ${SDL2_LIBRARY_DIRS} /opt/homebrew/lib /usr/local/lib)
+  set(_ardor_desktop_runtime_plugins "")
+  if(ARDOR_DESKTOP_SDL3_LIBRARY)
+    get_filename_component(_ardor_sdl3_real "${ARDOR_DESKTOP_SDL3_LIBRARY}" REALPATH)
+    install(FILES "${_ardor_sdl3_real}" DESTINATION Ardor.app/Contents/Frameworks
+      RENAME libSDL3.dylib COMPONENT desktop)
+    set(_ardor_desktop_runtime_plugins
+      "\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/Ardor.app/Contents/Frameworks/libSDL3.dylib")
+  endif()
   install(CODE "
     include(BundleUtilities)
-    fixup_bundle(\"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/Ardor.app\" \"\" \"${SDL2_LIBRARY_DIRS}\")
+    fixup_bundle(\"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/Ardor.app\" \"${_ardor_desktop_runtime_plugins}\" \"${SDL2_LIBRARY_DIRS}\")
   " COMPONENT desktop)
 else()
   target_sources(ardor-desktop PRIVATE DesktopPlatform.cpp)
@@ -56,6 +69,11 @@ install(FILES "${CMAKE_SOURCE_DIR}/src/ui/fonts/OFL-Saira.txt"
 
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/SDL2-LICENSE.txt"
   DESTINATION "${_ardor_desktop_notices}" COMPONENT desktop)
+if(APPLE AND ARDOR_DESKTOP_SDL3_LIBRARY)
+  install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/SDL3-LICENSE.txt"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SDL2-compat-LICENSE.txt"
+    DESTINATION "${_ardor_desktop_notices}" COMPONENT desktop)
+endif()
 install(FILES "${neuralampmodelercore_SOURCE_DIR}/Dependencies/AudioDSPTools/LICENSE"
   DESTINATION "${_ardor_desktop_notices}" RENAME AudioDSPTools.txt COMPONENT desktop)
 file(GLOB _ardor_eigen_notices "${neuralampmodelercore_SOURCE_DIR}/Dependencies/eigen/COPYING.*")

@@ -68,7 +68,9 @@ cmake --install build-desktop \
 ```
 
 The result is `build-desktop/stage/Ardor.app`. Staging uses CMake BundleUtilities
-to copy runtime dependencies and adjust their install names. Signing must happen
+to copy runtime dependencies and adjust their install names. Homebrew may supply
+SDL2 through `sdl2-compat`; the app additionally bundles its dynamically loaded
+SDL3 runtime when available, with license notices. Signing must happen
 after staging because changing dylib paths changes the signed code. For local
 prototype use, ad-hoc sign the staged bundle before launching:
 
