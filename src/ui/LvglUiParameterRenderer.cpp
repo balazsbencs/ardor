@@ -484,6 +484,10 @@ void refreshParameterMappingVisual(lv_obj_t* toolbar, const ParameterControl& co
   visual->midiContext->index = controlIndex;
   styleMappingButton(visual->expressionButton, expressionSupported, expressionAssigned);
   styleMappingButton(visual->midiButton, midiSupported, midiAssigned);
+  if (!visual->expressionContext->ui->actions().showDeviceStatus) {
+    lv_obj_add_flag(visual->expressionButton, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(visual->midiButton, LV_OBJ_FLAG_HIDDEN);
+  }
 }
 
 bool expressionAssignedTo(const UiState& state, const ParameterControl& control)
@@ -1342,6 +1346,7 @@ void renderBlockPanelActions(lv_obj_t* parent, UiState& state, UiEventContext* c
   lv_obj_t* bypassMidi = lb::button(parent, "MIDI", lb::ButtonKind::Normal, kBypassMidiX,
                                     kPanelActionTop, kBypassMidiWidth);
   lv_obj_add_event_cb(bypassMidi, onBypassMidiLearnClicked, LV_EVENT_CLICKED, context);
+  if (!context->ui->actions().showDeviceStatus) lv_obj_add_flag(bypassMidi, LV_OBJ_FLAG_HIDDEN);
   lv_obj_t* remove = lb::button(parent, "Delete", lb::ButtonKind::Danger, kDeleteBlockX,
                                 kPanelActionTop, kDeleteBlockWidth);
   lv_obj_add_event_cb(remove, onDeleteSelectedBlock, LV_EVENT_CLICKED, context);
