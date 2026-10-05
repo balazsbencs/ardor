@@ -42,13 +42,13 @@ jobs:
           plutil -lint "$RUNNER_TEMP/ardor-clap-beta/Ardor.clap/Contents/Info.plist"
           mkdir -p beta
           ditto -c -k --keepParent "$RUNNER_TEMP/ardor-clap-beta" beta/Ardor-CLAP-macOS-arm64-beta.zip
-          shasum -a 256 beta/*.zip > beta/SHA256SUMS.txt
+          (cd beta && shasum -a 256 *.zip > SHA256SUMS.txt)
       - name: Package Linux development plugin
         if: runner.os == 'Linux'
         run: |
           mkdir -p beta
           tar -czf beta/Ardor-CLAP-Linux-x64-beta.tar.gz -C "$RUNNER_TEMP" ardor-clap-beta
-          sha256sum beta/*.tar.gz > beta/SHA256SUMS.txt
+          (cd beta && sha256sum *.tar.gz > SHA256SUMS.txt)
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: Ardor-CLAP-beta-${{ matrix.os }}-${{ github.sha }}
