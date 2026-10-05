@@ -112,9 +112,10 @@ int main() {
     double value = 0;
     require(params->get_value(first, 2, &value) && value == 1, "Windows mouse did not change bypass");
     require(params->get_value(second, 2, &value) && value == 0, "Editor controls leaked between instances");
-    // Edit the output trim using actual WM_CHAR and focus routing.
+    // Edit the selected trim digit with actual Windows key/focus routing.
     click(view, 545, 20);
-    SendMessageW(view, WM_CHAR, '1', 0); runLoop();
+    SendMessageW(view, WM_KEYDOWN, VK_UP, 0);
+    SendMessageW(view, WM_KEYUP, VK_UP, 0); runLoop();
     require(params->get_value(first, 1, &value) && value != 0, "Windows keyboard did not edit trim");
     click(view, 40, 615); capture(view, "clap-native-windows-edit");
     require(gui->set_scale(first, 1.5), "High-DPI scaling failed");

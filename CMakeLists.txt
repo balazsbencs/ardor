@@ -5,7 +5,10 @@ if(WIN32)
   # A distributable plugin should not require a separately installed VC runtime.
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   set(CMAKE_C_STANDARD 11)
-  add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN _USE_MATH_DEFINES)
+  add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN _USE_MATH_DEFINES UNICODE _UNICODE)
+  if(MSVC)
+    add_compile_options(/utf-8 /MP2)
+  endif()
 endif()
 
 set(ARDOR_VERSION "0.0.0" CACHE STRING "Ardor release version")
