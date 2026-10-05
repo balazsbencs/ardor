@@ -56,22 +56,26 @@ jobs:
         run: |
           codesign --verify --deep --strict "$RUNNER_TEMP/ardor-desktop-stage/Ardor.app"
           plutil -lint "$RUNNER_TEMP/ardor-desktop-stage/Ardor.app/Contents/Info.plist"
-      - name: Check staged executable startup
+      - name: Check staged executable and window startup
         timeout-minutes: 2
         run: |
           python3 - <<'PYTHON'
           import os, pathlib, subprocess
           app = pathlib.Path(os.environ['RUNNER_TEMP']) / 'ardor-desktop-stage/Ardor.app/Contents/MacOS/Ardor'
-          process = subprocess.Popen([str(app), '--help'])
-          try:
-              code = process.wait(timeout=20)
-              if code:
-                  raise SystemExit(code)
-          except subprocess.TimeoutExpired:
-              subprocess.run(['sample', str(process.pid), '3', '1', '-file', 'mac-startup-sample.txt'], timeout=10, check=False)
-              process.kill()
-              process.wait()
-              raise SystemExit('Staged app startup timed out; see startup sample artifact')
+          environment = os.environ.copy()
+          environment.update(SDL_VIDEODRIVER='dummy', SDL_VIDEO_DRIVER='dummy',
+                             SDL_RENDER_DRIVER='software', SDL_AUDIODRIVER='dummy')
+          for argument in ['--help', '--smoke-test']:
+              process = subprocess.Popen([str(app), argument], env=environment)
+              try:
+                  code = process.wait(timeout=20)
+                  if code:
+                      raise SystemExit(code)
+              except subprocess.TimeoutExpired:
+                  subprocess.run(['sample', str(process.pid), '3', '1', '-file', 'mac-startup-sample.txt'], timeout=10, check=False)
+                  process.kill()
+                  process.wait()
+                  raise SystemExit('Staged app startup timed out; see startup sample artifact')
           PYTHON
       - name: Upload startup diagnostic on failure
         if: failure()
