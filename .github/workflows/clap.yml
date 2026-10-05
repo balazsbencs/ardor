@@ -44,7 +44,7 @@ jobs:
       - name: Run full upstream CLAP validator
         run: |
           python3 - <<'PYTHON'
-          import hashlib, io, json, os, pathlib, subprocess, urllib.request, zipfile
+          import hashlib, io, json, os, pathlib, subprocess, tarfile, urllib.request, zipfile
           assets = {
               'Linux': ('ubuntu-22.04', '49edadcfb407ea0dd946ce418300e853fbd2660fa4b0d00e4f19ff8eef24ad90'),
               'macOS': ('macos-15-aarch64', '719a0248ea431718bb7c92c8a0b9a78afa0bb23d692cf452e80973fe8b89282d'),
@@ -56,6 +56,11 @@ jobs:
           assert hashlib.sha256(data).hexdigest() == expected, 'Validator archive checksum mismatch'
           root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'clap-validator'
           zipfile.ZipFile(io.BytesIO(data)).extractall(root)
+          # Unix release zips wrap a tarball; Windows contains the executable.
+          for archive in root.rglob('*.tar.gz'):
+              with tarfile.open(archive) as tar:
+                  member = next(m for m in tar.getmembers() if m.isfile() and pathlib.PurePosixPath(m.name).name == 'clap-validator')
+                  (root / 'clap-validator').write_bytes(tar.extractfile(member).read())
           executable = next(p for p in root.rglob('*') if p.name in ('clap-validator', 'clap-validator.exe') and p.is_file())
           executable.chmod(0o755)
           plugin = pathlib.Path('build-clap/plugins/ardor-clap/Ardor.clap')
@@ -72,6 +77,7 @@ jobs:
           print('Validator:', sum(r['status']['code'] == 'success' for r in results), 'passed;', sum(r['status']['code'] == 'skipped' for r in results), 'skipped')
           PYTHON
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: always()
         with:
           name: Ardor-CLAP-editor-checks-${{ matrix.os }}-${{ github.sha }}
           path: ${{ runner.temp }}/clap-screenshots/
