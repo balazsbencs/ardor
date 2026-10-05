@@ -13,7 +13,7 @@ target_include_directories(ardor-desktop PRIVATE ${SDL2_INCLUDE_DIRS})
 if(APPLE)
   enable_language(OBJCXX)
   target_sources(ardor-desktop PRIVATE DesktopPlatform.mm)
-  target_link_libraries(ardor-desktop PRIVATE "-framework AVFoundation")
+  target_link_libraries(ardor-desktop PRIVATE "-framework AVFoundation" objc)
   set_target_properties(ardor-desktop PROPERTIES
     MACOSX_BUNDLE TRUE
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in"
