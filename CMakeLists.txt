@@ -819,6 +819,16 @@ elseif(UNIX)
   target_link_libraries(audio-probe PRIVATE pthread m dl)
 endif()
 
+# A dedicated end-user desktop host. It is deliberately opt-in so device
+# firmware and developer-tool builds do not acquire desktop packaging policy.
+option(ARDOR_BUILD_DESKTOP "Build the Ardor standalone desktop application" OFF)
+if(ARDOR_BUILD_DESKTOP)
+  if(NOT ARDOR_UI_BACKEND STREQUAL "sdl")
+    message(FATAL_ERROR "ARDOR_BUILD_DESKTOP requires ARDOR_UI_BACKEND=sdl")
+  endif()
+  add_subdirectory(apps/ardor-desktop)
+endif()
+
 # Optional: VST3/CLAP wrapper around the Whammy mode for DAW testing.
 # Not part of the pedal image; pulls DPF only when explicitly enabled.
 option(ARDOR_BUILD_WHAMMY_PLUGIN "Build the Whammy VST3/CLAP plugin" OFF)

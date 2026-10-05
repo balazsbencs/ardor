@@ -1,0 +1,100 @@
+name: Desktop beta
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'apps/ardor-desktop/**'
+      - 'src/**'
+      - 'tests/desktop_session_smoke.cpp'
+      - 'CMakeLists.txt'
+      - 'lv_conf.h'
+      - '.github/workflows/desktop.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/ardor-desktop/**'
+      - 'src/**'
+      - 'tests/desktop_session_smoke.cpp'
+      - 'CMakeLists.txt'
+      - 'lv_conf.h'
+      - '.github/workflows/desktop.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mac:
+    name: Mac beta (Apple Silicon)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Use GitHub mirror for Eigen
+        run: git config --global url."https://github.com/eigen-mirror/eigen.git".insteadOf https://gitlab.com/libeigen/eigen
+      - name: Install SDL2
+        run: brew install sdl2
+      - name: Identify beta
+        run: |
+          echo "ARDOR_BETA_VERSION=0.1.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "ARDOR_BETA_NAME=Ardor-macOS-arm64-beta-${GITHUB_SHA:0:8}" >> "$GITHUB_ENV"
+      - name: Configure standalone app
+        run: cmake -S . -B build-desktop -DARDOR_UI_BACKEND=sdl -DARDOR_BUILD_DESKTOP=ON -DCMAKE_BUILD_TYPE=Release -DARDOR_VERSION="$ARDOR_BETA_VERSION" -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0
+      - name: Build app and regression checks
+        run: cmake --build build-desktop --target ardor-desktop ardor-desktop-session-smoke pedal-preset-activation-smoke pedal-lvgl-ui-smoke --parallel 3
+      - name: Test session and shared UI/activation
+        run: ctest --test-dir build-desktop --output-on-failure -R '^(ardor-desktop-session-smoke|pedal-preset-activation-smoke|pedal-lvgl-ui-smoke)$'
+      - name: Stage self-contained app
+        run: cmake --install build-desktop --prefix "$RUNNER_TEMP/ardor-desktop-stage" --component desktop
+      - name: Ad-hoc sign beta
+        run: codesign --force --deep --sign - "$RUNNER_TEMP/ardor-desktop-stage/Ardor.app"
+      - name: Verify staged bundle metadata
+        run: |
+          codesign --verify --deep --strict "$RUNNER_TEMP/ardor-desktop-stage/Ardor.app"
+          plutil -lint "$RUNNER_TEMP/ardor-desktop-stage/Ardor.app/Contents/Info.plist"
+          "$RUNNER_TEMP/ardor-desktop-stage/Ardor.app/Contents/MacOS/Ardor" --help
+      - name: Package Mac beta
+        run: |
+          mkdir -p beta
+          cp apps/ardor-desktop/BETA.txt "$RUNNER_TEMP/ardor-desktop-stage/Read me.txt"
+          printf '\nBuild: %s\nCommit: %s\n' "$ARDOR_BETA_VERSION" "$GITHUB_SHA" >> "$RUNNER_TEMP/ardor-desktop-stage/Read me.txt"
+          ln -s /Applications "$RUNNER_TEMP/ardor-desktop-stage/Applications"
+          hdiutil create -volname "Ardor beta" -srcfolder "$RUNNER_TEMP/ardor-desktop-stage" -format UDZO "beta/$ARDOR_BETA_NAME.dmg"
+          hdiutil verify "beta/$ARDOR_BETA_NAME.dmg"
+          (cd beta && shasum -a 256 "$ARDOR_BETA_NAME.dmg" > "$ARDOR_BETA_NAME.dmg.sha256")
+          cp "$RUNNER_TEMP/ardor-desktop-stage/Read me.txt" beta/README.txt
+      - name: Upload downloadable beta
+        id: beta
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ${{ env.ARDOR_BETA_NAME }}
+          path: beta/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+      - name: Add download to build summary
+        env:
+          BETA_URL: ${{ steps.beta.outputs.artifact-url }}
+        run: |
+          printf '### Mac beta\n\n[Download %s](%s)\n\nApple Silicon; native 48 kHz interface required. Ad-hoc signed, not notarized. See README.txt in the download for installation and limitations. Artifacts expire after 30 days.\n' "$ARDOR_BETA_NAME" "$BETA_URL" >> "$GITHUB_STEP_SUMMARY"
+
+  linux-session:
+    name: Desktop window and session regression checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Use GitHub mirror for Eigen
+        run: git config --global url."https://github.com/eigen-mirror/eigen.git".insteadOf https://gitlab.com/libeigen/eigen
+      - name: Install SDL2
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libsdl2-dev
+      - name: Configure and build desktop checks
+        run: |
+          cmake -S . -B build-desktop -DARDOR_UI_BACKEND=sdl -DARDOR_BUILD_DESKTOP=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-desktop --target ardor-desktop ardor-desktop-session-smoke --parallel 2
+      - name: Test session and window
+        run: ctest --test-dir build-desktop --output-on-failure -R '^ardor-desktop-(session|window)-smoke$'

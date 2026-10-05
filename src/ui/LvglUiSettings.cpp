@@ -124,6 +124,10 @@ void onUpdateInstallClicked(lv_event_t* event)
 
 void LvglUi::openSettings(UiState& state)
 {
+  if (actions_.openHostSettings) {
+    actions_.openHostSettings();
+    return;
+  }
   settingsOpen_ = true;
   settingsSection_ = 0;
   updateInstallArmed_ = false;

@@ -100,6 +100,9 @@ struct UiActions {
   std::function<void(bool)> setSceneLayer;
   std::function<bool(std::size_t, float)> updateSceneTarget;
   std::function<void()> requestSceneCapture;
+  // A desktop host supplies its own audio setup instead of pedal-only
+  // Wi-Fi, GPIO, and firmware settings. Other hosts keep the existing panel.
+  std::function<void()> openHostSettings;
 };
 
 struct UiLaneDropTarget {
