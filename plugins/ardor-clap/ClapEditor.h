@@ -67,6 +67,7 @@ private:
   std::vector<uint8_t> drawBuffer_, pixels_;
   lv_point_t point_{};
   bool pointerPressed_ = false, keyPressed_ = false, stagedPreview_ = false;
+  bool syncingToolbar_ = false;
   uint32_t key_ = 0;
   uint64_t frameRevision_ = 0, snapshotSerial_ = 0;
   int pixelWidth_ = 0, pixelHeight_ = 0;

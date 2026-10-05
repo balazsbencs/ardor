@@ -319,6 +319,7 @@ private:
     if (!stage(libraryPreset(slot))) return false;
     values_[LibrarySlot].store(slot);
     values_[Scene].store(defaultScene(pendingPreset_));
+    uiEvents_.fetch_and(~(1u << Scene));
     syncEditor();
     rescan();
     if (hostState_) hostState_->mark_dirty(host_);
@@ -517,6 +518,7 @@ private:
       }
       if (!s.stage(ardor::presetFromJson(json.at("preset")))) return false;
       for (std::size_t i = 0; i < Count; ++i) s.values_[i].store(values[i]);
+      s.uiEvents_.store(0);
       s.syncEditor();
       s.rescan();
       return true;
@@ -533,6 +535,7 @@ private:
       file >> json;
       if (!s.stage(ardor::presetFromJson(json))) return false;
       s.values_[Scene].store(defaultScene(s.pendingPreset_));
+      s.uiEvents_.fetch_and(~(1u << Scene));
       s.syncEditor();
       s.rescan();
       if (s.hostState_) s.hostState_->mark_dirty(s.host_);

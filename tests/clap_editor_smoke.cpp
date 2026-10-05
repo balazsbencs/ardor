@@ -70,6 +70,10 @@ int main() {
       b.canvas = &second;
       require(second.display() != firstDisplay, "Editors share their display");
       first.tick(); second.tick();
+      a.controls[0] = .05; b.controls[1] = .123;
+      first.tick(); second.tick();
+      require(a.controls[0] == .05 && b.controls[1] == .123 && !a.dirty && !b.dirty,
+        "Refreshing toolbar quantized host automation or dirtied project");
       require(first.frameRevision() && second.frameRevision(), "Editor did not render");
       require(!std::filesystem::exists(root), "Opening the editor rewrote the library");
       capture(first, "clap-presets");
@@ -105,6 +109,15 @@ int main() {
       require(ardor::previewIsSynchronized(first.state()), "Host restart did not complete preview");
       first.synchronize(a.library[1], 1); first.tick();
       require(first.state().activePreset == 1 && !first.state().dirty, "DAW state/preset load did not refresh editor");
+      first.state().dirty = true;
+      first.ui().actions().selectPreset(2);
+      require(first.state().navigationPrompt && first.state().activePreset == 1, "Dirty preset switched without a decision");
+      first.ui().actions().resolveNavigation(ardor::UiNavigationDecision::Cancel);
+      require(!first.state().navigationPrompt && first.state().activePreset == 1, "Cancel lost the current preset");
+      first.ui().actions().selectPreset(2);
+      first.ui().actions().resolveNavigation(ardor::UiNavigationDecision::Discard);
+      require(first.state().activePreset == 2 && !first.state().dirty && !first.state().navigationPrompt,
+        "Discard re-opened the unsaved-changes prompt instead of switching");
       require(!first.ui().actions().showTuner && !first.ui().actions().showLooper, "Unavailable device controls advertised");
     }
     first.tick(); require(first.frameRevision() > 1, "Destroying one editor broke the other");

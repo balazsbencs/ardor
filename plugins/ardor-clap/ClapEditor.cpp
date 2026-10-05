@@ -144,7 +144,7 @@ UiActions Canvas::actions() {
 }
 void Canvas::choosePreset(std::size_t slot) {
   if (slot >= 4 || callbacks_.waiting()) return;
-  if (state_.dirty && !requestPresetNavigation(state_, {0, slot})) return;
+  if (!requestPresetNavigation(state_, {0, slot})) return;
   if (!callbacks_.selectPreset(static_cast<int>(slot))) setUiStatus(state_, "Preset unavailable; check its assets", true);
 }
 bool Canvas::savePreset() {
@@ -205,11 +205,13 @@ void Canvas::tick() {
 }
 void Canvas::refresh() {
   ui_.refresh(content_, state_);
+  syncingToolbar_ = true;
   lv_dropdown_set_selected(channel_, static_cast<uint32_t>(callbacks_.control(channelId)));
   lv_spinbox_set_value(inputTrim_, static_cast<int32_t>(std::round(callbacks_.control(inputTrimId) * 10)));
   lv_spinbox_set_value(outputTrim_, static_cast<int32_t>(std::round(callbacks_.control(outputTrimId) * 10)));
   if (callbacks_.control(bypassId) >= .5) lv_obj_add_state(bypass_, LV_STATE_CHECKED);
   else lv_obj_remove_state(bypass_, LV_STATE_CHECKED);
+  syncingToolbar_ = false;
   if (callbacks_.waiting()) lv_obj_remove_flag(waiting_, LV_OBJ_FLAG_HIDDEN);
   else lv_obj_add_flag(waiting_, LV_OBJ_FLAG_HIDDEN);
 }
@@ -291,6 +293,7 @@ void Canvas::buildToolbar() {
 }
 void Canvas::toolbarChanged(lv_event_t* event) {
   auto& canvas = *static_cast<Canvas*>(lv_event_get_user_data(event));
+  if (canvas.syncingToolbar_) return;
   auto* target = lv_event_get_target_obj(event);
   const unsigned id = target == canvas.channel_ ? channelId : target == canvas.inputTrim_ ? inputTrimId
     : target == canvas.outputTrim_ ? outputTrimId : bypassId;

@@ -384,6 +384,7 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
   presetTelemetryLabel_ = lb::textLabel(root, lb::type::headerRight, presetTelemetryText(state),
                                    disabled, 0, 18);
   placeRightAligned(presetTelemetryLabel_, lb::type::headerRight, kDesignWidth - 28);
+  if (!actions_.showDeviceStatus) lv_obj_add_flag(presetTelemetryLabel_, LV_OBJ_FLAG_HIDDEN);
 
   // ---- preset map: 1 / 3 over 2 / 4 mirrors the footswitch corners ----
   for (std::size_t i = 0; i < presetCardButtons_.size(); ++i) {
