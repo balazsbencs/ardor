@@ -15,6 +15,7 @@
 #include <iostream>
 #include <memory>
 #include <new>
+#include <numeric>
 #include <stdexcept>
 #include <string_view>
 #include <vector>
@@ -322,12 +323,15 @@ void measure(const char* name, std::size_t callback, std::ostream& csv,
     throw std::runtime_error("allocation/nonfinite failure in prepared workload");
   if constexpr (requires { processor->healthy(); })
     if (!processor->healthy()) throw std::runtime_error("spectral frame rejected");
+  // Mean wall time exposes total callback demand when a scheduling change
+  // moves work between callbacks without reducing it. Keep all outliers.
+  const double meanUs = std::accumulate(times.begin(), times.end(), 0.0) / times.size();
   std::sort(times.begin(), times.end());
   const auto percentile = [&](double p) { return times[static_cast<std::size_t>(p * (times.size() - 1))]; };
   csv << name << ',' << callback << ',' << times.size() << ',' << callback / .048 << ','
       << percentile(.5) << ',' << percentile(.95) << ',' << percentile(.99) << ','
       << percentile(.999) << ',' << times.back() << ',' << allocations << ',' << preparationBytes << ',' << resetUs << ',' << maxTransforms << ','
-      << worstBlock << ',' << ((worstBlock + 1) * callback) % 512 << ',' << worstTransforms << '\n';
+      << worstBlock << ',' << ((worstBlock + 1) * callback) % 512 << ',' << worstTransforms << ',' << meanUs << '\n';
 }
 }
 
@@ -342,7 +346,7 @@ int main(int argc, char** argv) {
     } else if (argc != 1) throw std::runtime_error("usage: pedal-pog3-bench [--csv path]");
     auto& csv = file.is_open() ? static_cast<std::ostream&>(file) : std::cout;
     csv << std::fixed << std::setprecision(3)
-        << "workload,callback_frames,callbacks,budget_us,median_us,p95_us,p99_us,p999_us,max_us,callback_allocations,preparation_allocated_bytes,reset_us,max_transforms_per_callback,worst_callback_index,worst_callback_end_mod_512,worst_callback_transforms\n";
+        << "workload,callback_frames,callbacks,budget_us,median_us,p95_us,p99_us,p999_us,max_us,callback_allocations,preparation_allocated_bytes,reset_us,max_transforms_per_callback,worst_callback_index,worst_callback_end_mod_512,worst_callback_transforms,mean_us\n";
     std::vector<ardor::StereoSample> input(48000 * 4);
     std::vector<ardor::StereoSample> freezeInput(input.size());
     std::uint32_t random = 0x504f4733;
