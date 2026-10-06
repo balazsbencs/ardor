@@ -166,7 +166,10 @@ double filterLevel(float frequency, int mode, float q, float sourceHz, bool dry 
     const float x = .1 * std::sin(2 * pi * sourceHz * i / kSampleRate);
     PitchVoices voices{}; if (!dry) voices[3] = {x, -x};
     const auto y = stage.process({}, dry ? PitchStereo{x, -x} : PitchStereo{}, voices).mixed;
-    if (i > 12000) { input += x * x; output += y.left * y.left; }
+    if (i > 12000) {
+      input += static_cast<double>(x) * x;
+      output += static_cast<double>(y.left) * y.left;
+    }
   }
   return 10 * std::log10(output / input);
 }
