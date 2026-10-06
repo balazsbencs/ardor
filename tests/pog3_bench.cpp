@@ -295,6 +295,10 @@ void measure(const char* name, std::size_t callback, std::ostream& csv,
         worstTime = times[block]; worstBlock = block; worstTransforms = transforms;
       }
     }
+    // Reset clears health/deadline counters. Reject a failed measured stream
+    // before that reset can erase the evidence, outside callback timing.
+    if constexpr (requires { processor->healthy(); })
+      if (!processor->healthy()) throw std::runtime_error("measured spectral workload violated staged bounds");
     const auto resetStart = std::chrono::steady_clock::now();
     processor->reset(); // Public reset must also retain all capacities.
     resetUs = std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - resetStart).count();

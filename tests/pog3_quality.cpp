@@ -180,6 +180,57 @@ void spectralLifecycle() {
   }
 }
 
+void deferredAnalysis() {
+  using namespace ardor::pog3;
+  for (const std::size_t n : {32U, 1024U, 2048U, 4096U}) {
+    for (const std::size_t hop : {std::size_t{2}, n / 8, n / 2}) {
+      auto plan = std::make_shared<SpectralPlan>(n, hop);
+      SpectralAnalysis immediate, deferred;
+      immediate.prepare(plan); deferred.prepare(plan, true);
+      std::uint32_t random = 0x44454652;
+      // Multiple history wraps, including sanitization and a drain. Compare
+      // complete FFT bins against an independent immediate analysis, not an
+      // approximation of the transform or a tolerance that could hide skew.
+      for (std::size_t i = 0; i < 3 * n + hop + 1; ++i) {
+        random = 1664525 * random + 1013904223;
+        const float sample = i == n ? std::numeric_limits<float>::quiet_NaN()
+          : i < 2 * n ? .3f * (static_cast<double>(random) / 4294967296.0 - .5) : 0;
+        const bool now = immediate.push(sample), later = deferred.push(sample);
+        require(now == ((i + 1) % hop == 0), "immediate boundary is unchanged");
+        require(later == (i > 0 && i % hop == 0), "deferred completion is exactly one sample later");
+        require(deferred.frameCount() == i / hop, "deferred count includes only completed transforms");
+        if (now) require(deferred.spectrum().empty(), "pending window is not published as an FFT");
+        if (later) {
+          const auto expected = immediate.spectrum(), actual = deferred.spectrum();
+          require(actual.size() == n, "completed deferred spectrum has full size");
+          for (std::size_t bin = 0; bin < n; ++bin) {
+            require(std::bit_cast<std::uint32_t>(actual[bin].real()) == std::bit_cast<std::uint32_t>(expected[bin].real())
+                    && std::bit_cast<std::uint32_t>(actual[bin].imag()) == std::bit_cast<std::uint32_t>(expected[bin].imag()),
+                    "deferred FFT preserves window timestamp and every bin bit");
+          }
+        }
+      }
+      deferred.reset();
+      for (std::size_t i = 0; i < hop; ++i) require(!deferred.push(.25f), "window waits for deferred execution");
+      require(deferred.spectrum().empty(), "reset test has a pending transform");
+      deferred.reset(); deferred.reset();
+      require(!deferred.push(0) && deferred.frameCount() == 0, "reset discards pending FFT and its timeline");
+      for (std::size_t i = 1; i <= hop; ++i) {
+        if (deferred.push(0)) {
+          for (const auto value : deferred.spectrum()) require(value == std::complex<float>{}, "reset clears staged window/history");
+        }
+      }
+      require(deferred.frameCount() == 1, "deferred reset retains the preparation mode");
+    }
+  }
+  auto oneSample = std::make_shared<SpectralPlan>(32, 1);
+  SpectralAnalysis analysis; analysis.prepare(oneSample);
+  require(analysis.push(.25f), "default one-sample hop stays supported");
+  bool rejected = false;
+  try { analysis.prepare(oneSample, true); } catch (const std::invalid_argument&) { rejected = true; }
+  require(rejected && analysis.push(0), "deferred one-sample hop rejected before changing prepared state");
+}
+
 void compactSynthesis() {
   using namespace ardor::pog3;
   for (const std::size_t n : {32U, 1024U, 2048U, 4096U}) {
@@ -320,6 +371,7 @@ int main(int argc, char** argv) {
       throw std::runtime_error("usage: pedal-pog3-quality [--render directory]");
     spectralIdentity();
     spectralLifecycle();
+    deferredAnalysis();
     compactSynthesis();
     granularReference();
     if (argc == 3) renderReference(argv[2]);

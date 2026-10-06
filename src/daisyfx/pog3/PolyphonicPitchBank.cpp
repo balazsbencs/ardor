@@ -413,11 +413,13 @@ void PolyphonicPitchBank::prepare() {
   auto shortPlan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(1024, 128), interpolation);
   auto lowPlan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(4096, 512), interpolation);
   for (std::size_t channel = 0; channel < 2; ++channel) {
-    longAnalysis_[channel].prepare(longPlan->spectral);
-    shortAnalysis_[channel].prepare(shortPlan->spectral);
+    // Right FFT/peak interpretation follows one sample later; all consumers
+    // retain the original left-boundary timeline and see completed stereo pairs.
+    longAnalysis_[channel].prepare(longPlan->spectral, channel == 1);
+    shortAnalysis_[channel].prepare(shortPlan->spectral, channel == 1);
     longFrames_[channel].prepare(longPlan);
     shortFrames_[channel].prepare(shortPlan);
-    lowAnalysis_[channel].prepare(lowPlan->spectral);
+    lowAnalysis_[channel].prepare(lowPlan->spectral, channel == 1);
     lowFrames_[channel].prepare(lowPlan, 400);
     for (auto& voice : longVoices_) voice[channel].prepare(longPlan, true);
     for (auto& voice : shortVoices_) voice[channel].prepare(shortPlan);
@@ -449,6 +451,9 @@ void PolyphonicPitchBank::reset() noexcept {
   freezeReady_ = true;
   longAttackReady_ = shortAttackReady_ = true;
   longAttackActive_ = attack_.seconds() > 0;
+  lowAttackPending_ = false;
+  lowAttackSeconds_ = attack_.seconds();
+  lowInputEnd_ = 0;
   inputSamples_ = 0;
   for (auto* pair : {&longGains_, &shortGains_, &lowGains_}) for (auto& channel : *pair) channel.fill(1);
   healthy_ = true;
@@ -476,7 +481,7 @@ PitchVoices PolyphonicPitchBank::process(PitchStereo input) noexcept {
   const std::array<float, 2> source{input.left, input.right};
   if (longJob_ < 12) ++longAge_;
   if (shortJob_ < 4) ++shortAge_;
-  bool newLong = false, newShort = false, newLow = false;
+  bool newLong = false, newShort = false, newLow = false, rightLowReady = false;
   for (std::size_t channel = 0; channel < 2; ++channel) {
     for (std::size_t voice = 0; voice < kVoiceCount; ++voice) {
       float value = longVoices_[voice][channel].pop();
@@ -486,23 +491,35 @@ PitchVoices PolyphonicPitchBank::process(PitchStereo input) noexcept {
     if (longAnalysis_[channel].push(source[channel])) {
       longFrames_[channel].update(longAnalysis_[channel].spectrum());
       ++transforms_;
-      newLong = true;
+      if (channel == 0) newLong = true;
     }
     if (shortAnalysis_[channel].push(source[channel])) {
       shortFrames_[channel].update(shortAnalysis_[channel].spectrum());
       ++transforms_;
-      newShort = true;
+      if (channel == 0) newShort = true;
     }
     if (lowAnalysis_[channel].push(source[channel])) {
       lowFrames_[channel].update(lowAnalysis_[channel].spectrum());
       ++transforms_;
-      newLow = true;
+      if (channel == 0) newLow = true;
+      else rightLowReady = true;
     }
   }
-  // The small low-band model is ready at the frame boundary; long and short
-  // stereo interpretation are separate staged jobs before their render jobs.
-  // No gain array changes while jobs using that frame are still outstanding.
-  if (newLow) lowGains_ = attack_.update(lowFrames_[0], lowFrames_[1], 2, inputSamples_);
+  // Snapshot the low-band boundary's controls and timestamp. Wait for the right
+  // frame, then preserve low-before-primary Attack ordering on the next sample.
+  // No renderer consumes these gains between the boundary and completion.
+  if (newLow) {
+    lowAttackPending_ = true;
+    lowInputEnd_ = inputSamples_;
+    lowAttackSeconds_ = attack_.seconds();
+  }
+  if (lowAttackPending_ && rightLowReady) {
+    const auto currentSeconds = attack_.seconds();
+    attack_.setSeconds(lowAttackSeconds_);
+    lowGains_ = attack_.update(lowFrames_[0], lowFrames_[1], 2, lowInputEnd_);
+    attack_.setSeconds(currentSeconds);
+    lowAttackPending_ = false;
+  }
   if (newLong) {
     if (longJob_ != 12) { ++deadlineMisses_; healthy_ = false; }
     longJob_ = longAge_ = 0;
@@ -515,12 +532,14 @@ PitchVoices PolyphonicPitchBank::process(PitchStereo input) noexcept {
     shortJob_ = shortAge_ = 0;
     shortAttackReady_ = false;
   }
-  if (!longAttackReady_ && longAge_ >= 1) {
+  if (!longAttackReady_ && longAge_ >= 1
+      && longAnalysis_[0].frameCount() == longAnalysis_[1].frameCount()) {
     longGains_ = attack_.update(longFrames_[0], longFrames_[1], 0, inputSamples_ - longAge_);
     longAttackActive_ = attack_.seconds() > 0;
     longAttackReady_ = true;
   }
-  if (!shortAttackReady_ && shortAge_ >= 8) {
+  if (!shortAttackReady_ && shortAge_ >= 8
+      && shortAnalysis_[0].frameCount() == shortAnalysis_[1].frameCount()) {
     shortGains_ = attack_.update(shortFrames_[0], shortFrames_[1], 1, inputSamples_ - shortAge_);
     shortAttackReady_ = true;
   }
@@ -529,11 +548,15 @@ PitchVoices PolyphonicPitchBank::process(PitchStereo input) noexcept {
     freezeReady_ = true;
   }
   // Immutable until their next analysis event: each long frame's jobs complete
-  // by sample 251 of its 256-sample hop, each short frame's by sample 112 of 128.
+  // by sample 241 of its 256-sample hop, each short frame's by sample 113 of 128.
   // Both sets of jobs finish before the 512-hop low-band frame can change.
   // The explicit H staging makes every window start at t+1+H,
   // independently of the sample on which its bounded render job executes.
-  while (longAttackReady_ && longJob_ < 12 && 17 + longJob_ * 256 / 12 <= longAge_) {
+  // Right FFTs and stereo Attack/freeze share the first half-hop. Use four
+  // long inverses there and eight in the second half; short inverses follow
+  // their 64-sample interpretation interval. Offsets keep audio unchanged.
+  static constexpr std::array<std::size_t, 12> longDue{17, 38, 81, 102, 129, 145, 161, 177, 193, 209, 225, 241};
+  while (longAttackReady_ && longJob_ < 12 && longDue[longJob_] <= longAge_) {
     if (longAge_ >= 256) { ++deadlineMisses_; healthy_ = false; break; }
     const auto voice = longJob_ / 2, channel = longJob_ % 2;
     if (!longVoices_[voice][channel].render(longFrames_[channel], kVoiceSemitones[voice] * frameWarp_, &lowFrames_[channel],
@@ -542,7 +565,7 @@ PitchVoices PolyphonicPitchBank::process(PitchStereo input) noexcept {
                                            channel ? &longVoices_[voice][0] : nullptr)) healthy_ = false;
     ++transforms_; ++longJob_;
   }
-  while (shortAttackReady_ && shortJob_ < 4 && 16 + shortJob_ * 128 / 4 <= shortAge_) {
+  while (shortAttackReady_ && shortJob_ < 4 && 65 + shortJob_ * 16 <= shortAge_) {
     if (shortAge_ >= 128) { ++deadlineMisses_; healthy_ = false; break; }
     const auto voice = shortJob_ / 2, channel = shortJob_ % 2;
     if (!shortVoices_[voice][channel].render(shortFrames_[channel], kVoiceSemitones[voice + 4], &lowFrames_[channel],

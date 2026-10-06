@@ -1112,10 +1112,150 @@ Only its lockfile version, resolved URL and integrity change to patched 1.2.2.
 `npm ci`, `npm audit --audit-level=high` (zero vulnerabilities), type checking,
 all 739 tests in 60 files and the production Manager build pass. The existing
 bundle-size advisory remains; no device UI bundle is regenerated.
+The patched consumer also passes a bounded check of oversized/malformed indexed
+offsets and nested-offset overflow. A five-million-line offset beyond a tiny
+generated source converts within a five-second process limit, and ordinary
+mapping lookup/source reconstruction retains the original source text.
 
-The latest C++ CodeQL analysis must complete on the pushed corrections before
-the precision alerts can be described as closed. Reviewed path-alert dismissals
-are separate from that automated validation.
+All CI checks pass on security-fix commit `9987453b`. The first C++ CodeQL
+attempt failed before compilation because GitLab rejected an Eigen dependency
+clone under load; retrying only the failed job completed successfully.
+[The C++ analysis](https://github.com/balazsbencs/ardor/actions/runs/37475930333)
+marks alerts 116/117/120/121/128 **fixed**, and the PR alert readback contains
+**zero open alerts**. Alerts 108–115, 118–119 and 122–127 are separately recorded
+as reviewed false positives. Subsequent DSP commits still require their own
+fresh CI checks; this result identifies the exact validated security patch.
+
+## One-sample stereo analysis staging
+
+The bank now captures both channel windows at their original 128/256/512-hop
+boundaries, completes the left analysis immediately and transforms/interprets
+the right window on the following sample. The optional `SpectralAnalysis`
+preparation mode reuses its existing complex workspace: no second window buffer
+or FFT mathematics change. Pending work is not exposed by `spectrum()`, and a
+reset discards it. Deferred hops smaller than two are rejected before changing
+the prepared state; the ordinary one-sample-hop stream remains supported.
+
+Only left boundaries reset job ages and capture Warp. Long/short Attack require
+matching completed stereo frame counts. Low Attack waits for the right frame,
+retaining its original input-end timestamp and Attack-seconds snapshot; it still
+runs before long Attack on that next sample. This also preserves direct bank
+automation that changes Attack between the boundary and completion. Freeze
+remains at long age 9. Final long jobs run at ages
+17/38/81/102/129/145/161/177/193/209/225/241 and short jobs at 65/81/97/113.
+Four long inverses run in the first half-hop with the right analyses and stereo
+interpretation; eight run in the second half. Short inverses follow their first
+64-sample interpretation interval. Original staging offsets preserve N+H
+output latency. All old renderer jobs
+finish before either channel's workspace is overwritten at the next boundary.
+
+The foundation suite compares every real/imaginary FFT bit against an independent
+immediate analysis for N=32/1024/2048/4096 and H=2/N÷8/N÷2. It exercises startup,
+multiple history wraps, nonfinite input, drain, pending-spectrum visibility,
+pending reset and rejected preparation. A separate comparison against the
+preceding compiled bank gives bit-identical output across 65,536 samples with
+unequal stereo, all voices, all seven freeze selections, Focus/Warp, Attack
+changes on both sides of each low boundary and resets before/after deferred
+completion. All **53 raw WAV renders remain byte-identical** to M7.
+
+All **14 selected release suites pass** on the final immutable-table build
+(134.65 s), including freeze endurance and existing pitch/harmonizer/catalog/
+scene/convolver regressions. Changed production and foundation-test units
+compile without `-Wall -Wextra -Wpedantic` diagnostics. Full foundation, pitch,
+Attack and expression suites pass ASan/UBSan with leak detection and UB halt
+enabled on the final schedule (358.86 s at `-j3`). The final functional/dense/
+reset/warm-release freeze suite also passes under the same sanitizers. Completed
+logs contain no sanitizer diagnostics.
+Freeze `--quick` omits only the two long holds already exercised in release.
+This scheduling change targets bursts; it does not remove any required
+transform or establish target-device CPU admission.
+
+The benchmark additionally checks the measured stream's health and staged
+deadline state **before** reset. Its existing post-reset check alone could hide
+a failure because reset clears those counters. The check runs after callback
+timing stops; reset timing and allocation accounting retain their existing
+boundaries. A real finite, anti-phase oversized input through the pitch-bank
+workload reproduces the old probe accepting a failed stream after reset; the
+new probe rejects it explicitly before reset. Ordinary measured workloads still
+pass their health and allocation guards.
+
+Simply deferring right analysis while keeping the original inverse job dates
+reduced completed transform maxima to 8/14 per 64/128 callback, but **regressed
+tail timing**. Against a nearby old-bank run with the same corrected probe,
+64-sample expression/gliss p99 rose from 1067.232/1075.858 µs to
+1222.447/1269.960 µs. The first inverse redistribution recovered much of the
+64-sample regression but retained the 128-sample regression; neither schedule
+is the retained implementation. This is why transform count alone cannot
+certify scheduling quality. Their unedited CSVs remain ignored artifacts.
+
+The final schedule instead moves two long inverses from the first half-hop to
+the second half and moves short inverses beyond age 64. Input windows, controls,
+phase precision, per-frame addition order and output window starts remain
+unchanged. It trades callback distribution rather than reducing total FFT work.
+The due table is shared immutable static data (96 host bytes): assembly review
+found the automatic table being copied to stack every sample. Its final object
+is read-only and has no runtime initialization guard. Prepared allocation
+increases only by 64 bytes of analysis/pending-control state; no second FFT
+window is allocated.
+
+After every validation process completed, two old/new pairs ran sequentially
+with the same corrected probe and inputs. The control links the preceding bank
+(`9987453b`, production DSP identical to `ed1b0414`); the final rows use the
+retained static-table schedule. CSVs `admission-control-1/2.csv` and
+`admission-balanced-1/2.csv` retain all fourteen workload rows and every outlier.
+Times below are microseconds; periods are 1333.333/2666.667 µs at 64/128 samples.
+
+| Run | Workload | Samples | Median | p95 | p99 | p99.9 | Maximum |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Control 1 | All modes | 64 | 585.632 | 1013.370 | 1059.846 | 1106.608 | 1146.308 |
+| Control 1 | Gliss | 64 | 574.880 | 1025.333 | 1075.860 | 1107.961 | 1144.775 |
+| Control 1 | All modes | 128 | 1262.539 | 1518.957 | 1593.917 | 1640.322 | 1719.617 |
+| Control 1 | Gliss | 128 | 1379.394 | 1553.955 | 1590.712 | 1616.823 | 1620.353 |
+| Final 1 | All modes | 64 | 643.867 | 975.068 | 1047.761 | 1099.479 | 1120.333 |
+| Final 1 | Gliss | 64 | 640.496 | 1036.639 | 1088.932 | 1146.723 | 1266.427 |
+| Final 1 | All modes | 128 | 1302.249 | 1470.281 | 1534.561 | 1570.699 | 1599.021 |
+| Final 1 | Gliss | 128 | 1374.931 | 1506.627 | 1541.967 | 1596.084 | 1693.976 |
+| Control 2 | All modes | 64 | 685.653 | 1020.685 | 1076.937 | 1252.261 | 1738.591 |
+| Control 2 | Gliss | 64 | 709.987 | 1042.437 | 1107.527 | 1273.274 | 1329.195 |
+| Control 2 | All modes | 128 | 1277.092 | 1548.078 | 1685.875 | 2491.482 | 4914.683 |
+| Control 2 | Gliss | 128 | 1381.471 | 1563.971 | 1631.500 | 1687.056 | 1705.874 |
+| Final 2 | All modes | 64 | 642.875 | 979.873 | 1049.320 | 1125.952 | 1179.392 |
+| Final 2 | Gliss | 64 | 651.968 | 1038.968 | 1093.870 | 1184.396 | 1392.891 |
+| Final 2 | All modes | 128 | 1309.153 | 1490.656 | 1596.879 | 1776.364 | 1788.923 |
+| Final 2 | Gliss | 128 | 1385.979 | 1529.404 | 1618.696 | 1722.957 | 1769.730 |
+
+Both pairs show lower 128-sample expression/gliss p95 and p99 with the retained
+schedule; 64-sample expression p99 also falls in both pairs. The 64-sample gliss
+comparison is mixed: p99 rises about 1.2% in the first pair and falls about 1.2%
+in the second. Several medians rise because work is distributed differently;
+these measurements do **not** establish lower average CPU demand or a guaranteed
+speedup. The complete transforms still reach **11/16 per 64/128 callback**, as
+before, with a different mix of FFT sizes and interpretation work. The rejected
+8/14-transform schedule had worse tails despite its lower count.
+
+Prepared all-mode allocation is **2,054,654 bytes (1.960 MiB)**, only 64 bytes
+above the preceding implementation and **42,498 bytes below** the initial 2 MiB
+requested-allocation goal. Static sound and dedicated gliss request
+2,048,856/2,053,168 bytes; the bank requests 1,880,488. All rows retain **zero
+processing/control/reset allocations**; all full DSP workloads pass the new
+pre-reset health and renderer-deadline guard. These figures exclude the
+96-byte read-only due table
+and remain host allocation counters, not target RSS/ABI admission.
+
+The final gliss maximum still reaches **1392.891 µs** at 64 samples, exceeding
+the 1333.333 µs period. Other workloads retain host outliers, including the
+control's 4914.683 µs expression maximum at 128 samples. Do not discard these
+outliers or treat either pair as a target-device certificate. The 25%-of-period
+CPU goal and dependable target/combined-chain margin remain unmet.
+
+Reproduce the retained implementation's gates and timing independently:
+
+```sh
+ctest --test-dir build-ci --output-on-failure -R '^pedal-(pog3-.*|pitch-effect-quality|harmonizer-quality|daisy-fx-catalog-smoke|manager-effect-catalog-smoke|scene-plan-smoke|scheduled-convolver-smoke)$'
+ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 ctest --test-dir build-pog3-sanitize -j3 --output-on-failure -R '^pedal-pog3-(quality|pitch-quality|attack-quality|expression-quality)$'
+ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 build-pog3-sanitize/pedal-pog3-freeze-quality --quick
+build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/admission-balanced.csv
+```
 
 ## Next implementation milestone
 
@@ -1132,12 +1272,12 @@ scene and manager integration**. All seven DSP expression selections now have
 audio behavior. The initial host allocation goal is met; CPU margin, target
 memory/endurance and M3/M4/M7 fidelity limits still require work. Successful
 hold/routing tests do not satisfy target-device feasibility.
-Use the new callback timestamps to profile coincident analysis bursts before
-choosing the next optimization. A staged-analysis candidate must retain input
-timestamps and the frame's control snapshot, expose only complete FFT frames,
-and meet Attack/freeze/render consumer deadlines. Recheck latency, arbitrary
-callback partitions, allocation bounds and audible quality before admission;
-moving work does not solve excessive average demand.
+The coincident-analysis scheduling change now has exact-output evidence. Use
+its callback timestamps to profile the remaining analysis, Attack and renderer
+costs before choosing the next optimization. Preserve input timestamps, control
+snapshots, complete-frame publication and Attack/freeze/render deadlines.
+Maintain latency, arbitrary callback partitions, allocation bounds and audible
+quality gates; moving work does not solve excessive average demand.
 Resolve admission before adding the public catalog entry, then exercise actual
 physical/MIDI controls, scene cut/reset, preset/endpoints round-trips, tail/latency
 reporting and runtime ownership. No callback-period or unrelated DSP quality

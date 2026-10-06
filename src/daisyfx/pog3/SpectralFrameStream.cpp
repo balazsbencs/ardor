@@ -34,9 +34,12 @@ void SpectralPlan::transform(std::vector<std::complex<float>>& values, bool inve
   fft_.transform(values, inverse);
 }
 
-void SpectralAnalysis::prepare(std::shared_ptr<const SpectralPlan> plan) {
+void SpectralAnalysis::prepare(std::shared_ptr<const SpectralPlan> plan, bool deferTransform) {
   if (!plan) throw std::invalid_argument("POG3 analysis requires a spectral plan");
+  if (deferTransform && plan->hopSize() < 2)
+    throw std::invalid_argument("POG3 deferred analysis requires a hop of at least two samples");
   plan_ = std::move(plan);
+  deferTransform_ = deferTransform;
   history_.resize(plan_->frameSize());
   spectrum_.resize(plan_->frameSize());
   reset();
@@ -46,22 +49,34 @@ void SpectralAnalysis::reset() noexcept {
   std::fill(history_.begin(), history_.end(), 0.0f);
   std::fill(spectrum_.begin(), spectrum_.end(), std::complex<float>{});
   write_ = frameCount_ = 0;
+  pending_ = false;
   untilFrame_ = plan_ ? plan_->hopSize() : 0;
 }
 
 bool SpectralAnalysis::push(float sample) noexcept {
   if (!plan_) return false;
+  bool ready = false;
+  if (pending_) {
+    plan_->transform(spectrum_, false);
+    ++frameCount_;
+    pending_ = false;
+    ready = true;
+  }
   // A nonfinite input is never allowed to poison future windows.
   history_[write_] = std::isfinite(sample) ? sample : 0.0f;
   write_ = (write_ + 1) & (history_.size() - 1);
-  if (--untilFrame_ != 0) return false;
+  if (--untilFrame_ != 0) return ready;
   const auto window = plan_->analysisWindow();
   for (std::size_t i = 0; i < spectrum_.size(); ++i)
     spectrum_[i] = {history_[(write_ + i) & (history_.size() - 1)] * window[i], 0};
-  plan_->transform(spectrum_, false);
-  ++frameCount_;
   untilFrame_ = plan_->hopSize();
-  return true;
+  if (deferTransform_) pending_ = true;
+  else {
+    plan_->transform(spectrum_, false);
+    ++frameCount_;
+    ready = true;
+  }
+  return ready;
 }
 
 void SpectralSynthesis::prepare(std::shared_ptr<const SpectralPlan> plan, bool externalScratch,

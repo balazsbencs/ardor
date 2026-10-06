@@ -181,6 +181,9 @@ private:
   bool focusTarget_ = false, prepared_ = false, healthy_ = true;
   bool longAttackReady_ = true, shortAttackReady_ = true;
   bool longAttackActive_ = false;
+  bool lowAttackPending_ = false;
+  float lowAttackSeconds_ = 0;
+  std::int64_t lowInputEnd_ = 0;
   std::size_t transforms_ = 0;
   std::size_t longJob_ = 12, shortJob_ = 4, longAge_ = 0, shortAge_ = 0, deadlineMisses_ = 0;
 };
