@@ -7,9 +7,11 @@ are implemented, along with a spectral five-voice pitch bank, continuous Warp,
 and reversible Focus switching. Independent spectral attack and a reversible
 Dry Attack router, separate filter AD, LP/BP/HP buses, detune/doubling,
 asymmetric Spread, voice pan, and the static sound path are now implemented.
-Expression Off/Volume/Crossfade/Warp/Filter now resolve through a prepared
-processor with independent base/effective controls. Freeze/gliss and public
-integration remain pending. There is no selectable `mod/pog3` entry yet.
+All seven expression modes now resolve through a prepared processor with
+independent base/effective controls. Both freeze modes, moving-carrier gliss,
+heel/toe hysteresis and per-voice eligibility are implemented. CPU/memory
+admission, calibration/listening and public integration remain open.
+There is no selectable `mod/pog3` entry yet.
 
 Development continues in `/home/bbalazs/projects/ardor-pog3` on
 `feat/pog3-polyphonic-octave`, based on current `main`, in
@@ -24,8 +26,9 @@ workspace and its unrelated changes remain separate.
 | `src/daisyfx/pog3/SpectralFrameStream.{h,cpp}` | Shared immutable FFT/window plans, causal streaming analysis, preallocated inverse FFT and overlap-add synthesis |
 | `src/daisyfx/pog3/PolyphonicPitchBank.{h,cpp}` | Shared short/long/low analysis, bounded persistent partial tracks, fractional spectral translation, low-band reconstruction, independent stereo synthesis, continuous Warp, Focus fades, staged render jobs |
 | `src/daisyfx/pog3/PolyphonicAttack.{h,cpp}` | Linked stereo harmonic families/residual partials, fixed old/new excitation history, input-timestamp attack ages, coherent gains across resolutions |
+| `src/daisyfx/pog3/SpectralFreeze.{h,cpp}` | Fixed stereo capture/target storage, startup validity, heel/toe state machine, linked target proposals, bounded matching and partial gliss |
 | `src/daisyfx/pog3/Pog3VoiceStages.{h,cpp}` | Separate linked detector/filter AD, stereo dry/generated TPT filter buses, levels/pan, upper/dry doubling, eligible 1:3 Spread, final master, static sound-path composition |
-| `src/daisyfx/pog3/Pog3Processor.{h,cpp}` | Prepared lifecycle, immutable endpoint configuration, 33 key/index targets, 48-sample control cadence, separate base/effective values, Off/Volume/Crossfade/Warp/Filter resolution and diagnostics; unfinished freeze selections rejected |
+| `src/daisyfx/pog3/Pog3Processor.{h,cpp}` | Prepared lifecycle, immutable endpoint configuration, 33 key/index targets, 48-sample control cadence, separate base/effective values, all seven expression modes and freeze diagnostics |
 | `tests/pog3_granular_reference.h` | Five independent stereo pitch shifters using the existing Whammy/Harmonizer primitive; dry, six levels/pans, input gain, and final master |
 | `tests/pog3_controls.cpp` | Persisted index contract, both target setters, mappings, morph ownership, rejection/clamping, Warp and eligibility behavior |
 | `tests/pog3_quality.cpp` | Identity/delay/startup/drain/chunking/reset checks, isolated reference tuning, stereo/pan/gain checks, nonfinite/overflow rejection, optional WAV renders |
@@ -33,6 +36,7 @@ workspace and its unrelated changes remain separate.
 | `tests/pog3_attack_quality.cpp` | Held/new notes, shared harmonics, low bass, re-plucks, arpeggios, bends, Focus reversals, activation, exact-off dry, reset, partition invariance, optional attack WAV renders |
 | `tests/pog3_voice_stages.cpp` | AD timing/retrigger, held-tone/chord detector, sensitivity/re-plucks, filter transfer and resonance, routing eligibility, delay endpoints/queues, pan, rapid automation/partition/reset, gain/overload/recovery, optional full-path WAV renders |
 | `tests/pog3_expression_quality.cpp` | Processor key/index publication, cadence, immutable ownership, exact endpoints/units, processed-dry exclusions, 30 Warp tuning cases, Filter/envelope interaction, 7-bit mode/reverse/Focus automation, callback partitions, configuration/reset and optional expression WAV renders |
+| `tests/pog3_freeze_quality.cpp` | Stationary pitch/level/stereo, genuine moving-carrier gliss, mid-glide latch/resume, strict dry/Focus eligibility, hysteresis/Reverse, startup/silent capture, dense input/reset, partition invariance, two 60-second holds and optional freeze WAV renders |
 | `tests/pog3_artifacts.h` | Shared offline float WAV writer; preserves raw levels |
 | `tests/pog3_bench.cpp` | Prepared callback timing distributions, transform burst counts, reset cost, allocation instrumentation, CSV output |
 | `ardor_realtime_fft` | Sole CMake ownership of the existing `RealtimeFft.cpp`; shared with the existing DSP/convolver target |
@@ -83,8 +87,8 @@ tracked device binaries were not edited for this increment.
 
 ## Verified results
 
-The six baseline tests passed before the new code. All eleven currently selected
-regression tests pass:
+The six baseline tests passed before the new code. At the foundation/pitch/Attack
+checkpoint, all eleven selected regression tests passed (latest M7 results below):
 
 ```text
 pedal-scheduled-convolver-smoke
@@ -577,9 +581,9 @@ than subtracting and adding near endpoint values. The formatting helper reports
 Volume gains as dB/Mute, Warp as 0–12 semitones of extent, Filter as Hz, and
 unused scalar endpoints explicitly. It remains an off-callback UI helper.
 
-The registry retains all seven choices. This development processor **rejects
-Freeze + Gliss and Freeze + Volume** in configuration and both target setters
-until M7 implements their audio behavior; it does not treat either as Off.
+At the M6 checkpoint, the registry retained all seven choices but the development
+processor rejected Freeze + Gliss and Freeze + Volume in configuration and both
+target setters. M7 below replaces that temporary rejection with audio behavior.
 Nothing has been registered in the public factory/catalog. Key/index and
 scene-like sequential publication are tested at the processor boundary, but
 the actual physical/MIDI assignment, runtime scene dispatch and manager preset
@@ -640,26 +644,216 @@ delay-history storage is unchanged. The initial 2 MiB memory goal remains
 exceeded before held/gliss spectra; freeze must add an explicit memory inventory
 and further admission/optimization work before public integration.
 
+## Both freeze behaviors (M7 DSP)
+
+`SpectralFreeze` owns bounded audio-thread state with no callback allocation.
+After the existing Attack jobs, at primary-frame age 9, it compiles normalized
+analytic carriers from each channel's primary, short and low representations.
+Capture retains source frequency, magnitude including the current Attack gain,
+phase, frame center and live track generation. The held sound is pre-transposition;
+voice levels/pan, filters, Detune, Spread and Master remain live downstream.
+
+The representation deliberately holds resolved tonal peaks at 20 Hz–Nyquist.
+It does not preserve DC or an independent broadband/noise residual. This is an
+explicit first-version voicing/fidelity limit, especially for noisy pick attacks
+and dense unresolved material, rather than evidence of hardware equivalence.
+All three representations are captured, although Focus-on held synthesis uses
+primary/low carriers; short upper synthesis remains live. There are no extra
+analysis or inverse transforms. The long renderer jobs and low crossover remain
+unchanged, and live phase/history continues advancing underneath every hold.
+
+Each long voice/channel has independent held phase accumulators for primary
+and low carriers. A new oscillator uses its captured source phase plus the live
+transposition offset when the original track generation still exists. Subsequent
+frames integrate the output frequency, including gliss motion, rather than
+reusing a fixed complex spectrum. Matching stereo carriers within one part per
+million (or 0.1 mHz) share frequency and the transposition reference while
+retaining separate captured magnitudes/phases; this prevents indefinite drift
+between identical or unequal anti-phase inputs. Distinct stereo frequencies
+remain independent. Aliasing rejection and the 200–300 Hz crossover follow the
+live renderer. Held spectra join the same staged IFFT/OLA path.
+
+Reverse precedes the heel/toe detector. Heel enters at q≤0.015 and leaves at
+q≥0.035; toe latch enters at q≥0.985 and leaves at q≤0.965. Leaving heel requests
+the latest compiled snapshot available at that control event, then promotes it
+before the next primary renderer jobs. The snapshot cadence is 256 samples;
+its channel frame centers retain their own analysis ages, including the wider
+4096-sample low window. At startup/reset, a retained nonheel selection waits for
+full history plus a second low frame and at least 4608 samples (96 ms) since
+the first continuously audible partial. This also rejects incomplete onset
+windows after prolonged startup silence; losing audible content restarts that
+validity interval. A later deliberate heel-exit over actual silence captures a
+silent hold.
+
+Held/live mix, dry eligibility and held gain approach their targets by 256/960
+per primary update: four hops (21.33 ms) for a full transition. Existing OLA and
+the measured 48 ms primary wet delay shape the audible transition further.
+Heel and mode exit release to warm live synthesis, then clear held/goal data.
+A new heel-exit during release waits for that clearing before its queued capture.
+Reset clears held phases, spectra, pending targets, identities and counters,
+retains controls, and re-enters the first-valid-frame rule. Cut/re-enable through
+the actual runtime remains an M8 integration test.
+
+Freeze + Volume applies q exactly once to held contributions, including eligible
+processed dry. Scalar Heel/Toe endpoints are ignored in both freeze modes.
+Raw/live dry is unchanged; only Dry Attack enabled with normalized Attack
+strictly above 0.10 permits the processed unison to freeze. Focus-off uppers
+stay live at their nominal intervals; enabling Focus fades them into the
+existing held spectrum without recapture. Switching between freeze modes
+retains the capture and fades held gain; Freeze + Volume stops any active glide.
+
+Freeze + Gliss proposes targets from linked positive partial-energy changes:
+low carriers below 300 Hz and primary carriers above it avoid crossover double
+counting. The fixed threshold is 15% of current partial power with a small
+silence floor, 40 ms event coalescing, and a 2048-sample (42.67 ms) stabilization
+wait before assigning a latest snapshot. This spectral-flux proposer is an
+implementation adaptation; it is not the full harmonic-family onset scorer.
+Dense beating, noisy material and real DI still need calibration/listening.
+
+For each resolution/channel, strongest held oscillators greedily claim the
+nearest available target using symmetric relative-frequency cost, with stable
+tie order and one claim per target. Held slot identities never permute.
+Missing carriers fade out; new ones occupy inactive/tail slots and fade in.
+Capacity is 256 partials per representation/channel with bounded fallback and
+a diagnostic counter. This deterministic assignment is not an optimal chord
+voice-leading algorithm; complex reassignment remains a fidelity risk.
+Frequencies and magnitudes interpolate linearly over `0.02 × 150^q` seconds;
+changing q rescales remaining duration. Full toe pauses interpolation at its
+current state and defers target assignment. Unlatching resumes toward eligible
+pending live targets. Thus gliss moves carriers rather than crossfading two
+fixed-pitch outputs.
+
+### M7 verification and artifacts
+
+- Fifteen held-sine cases (five voices × 82.4069/196/659.3 Hz) survive replacement
+  live input. Worst settled pitch error is **0.005005 cents**, level error
+  **0.000083 dB**, and unequal anti-phase error below **3.74e−8**.
+- A −1-octave glide from 196 to 293.6648 Hz passes through **120.752 Hz**, then
+  reaches **146.833 Hz**. The intermediate carrier exceeds either endpoint's
+  measured component by **43.23 dB**. Additional tests latch during movement,
+  reject continued pitch creep, resume after unlatching, and retain distinct
+  left/right pitches and magnitudes.
+- Freeze Volume produces **0.0250002/0.0750006** amplitude at q=.25/.75 for
+  generated and eligible processed-dry paths (0.1-amplitude source). Scalar
+  endpoint settings do not alter this gain; switching modes preserves capture.
+- Startup silence, later silent capture, strict Attack .099/.100/.101 eligibility,
+  Dry Attack and Focus reversals, heel/toe jitter, Reverse, repeated reset,
+  and dense independent stereo input up to ±6 remain healthy. Timestamp-matched
+  controls give bit-identical output across 1/17/48/64/128/256-sample partitions.
+  Staged renderer deadline checks stay intact; they are separate from CPU timing.
+  A stronger startup test exposed a premature transient capture after prolonged
+  silence. The completed audible-history interval fixes it; the frozen −1 voice
+  now retains the expected 98 Hz from the first 196 Hz note.
+- Both **60-second** holds continue after input becomes silence. The 41.20345 Hz
+  sine changes by **6.43e−7 dB**; chord partials at 41.20345/65.4064/98/164.8138 Hz
+  change by at most **0.000202 dB**. Peaks are 0.050003 and 0.139643; unequal
+  anti-phase errors stay below 3.74e−8. Both retain one capture, no retargets,
+  no nonfinite output, and drain to exact silence after mode exit.
+
+Seven raw 48 kHz stereo float WAVs are generated under the ignored
+`build-ci/pog3-artifacts`: `freeze-source`, `freeze-gliss-focused`,
+`freeze-gliss-short`, `freeze-volume-live-dry`, `freeze-volume-held-dry`,
+`freeze-toe-latch`, and `freeze-off`. Source peak/RMS are 0.072651/0.027838;
+output peaks are 0.042554–0.057604. No normalization, limiting, or compensation
+is applied. These are synthetic chord performances; listening sign-off remains
+open. Reproduce with:
+
+```sh
+cmake --build build-ci -j4 --target pedal-pog3-freeze-quality pedal-pog3-bench
+build-ci/pedal-pog3-freeze-quality
+build-ci/pedal-pog3-freeze-quality --render build-ci/pog3-artifacts
+build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/freeze-processor-benchmark.csv
+ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 build-pog3-sanitize/pedal-pog3-freeze-quality --quick
+```
+
+`--quick` runs all functional/dense/reset gates and omits only the two long holds;
+`--render` generates artifacts without rerunning the quality suite. The complete
+release CTest freeze suite includes endurance by default.
+
+The host storage inventory added by M7 is explicit:
+
+| Added storage | Requested / owned bytes |
+| --- | ---: |
+| Five stereo × three-resolution snapshot sets, 256 slots each | 430,560 |
+| Freeze controller bookkeeping beyond those arrays | 360 |
+| Twelve long renderer phase stores, 512 slots × 32 bytes | 196,608 |
+| Renderer vector headers and bank ownership/control metadata | 408 |
+| Total increment over M6 | 627,936 |
+
+`FrozenPartial` is 56 bytes, `FrozenBand` 14,352 bytes and `SpectralFreeze`
+430,920 bytes on this host. The controller is lifecycle-owned heap storage;
+renderer vectors allocate during prepare, and the short renderers allocate no
+held phase stores. The existing 166,016-byte space history and FFT/analysis/
+OLA/live track/Attack storage remain part of the M6 baseline, without duplicate
+FFT plans for freeze. This inventory concerns requested C++ storage on the host,
+not allocator overhead, resident pages or target ABI sizes.
+
+A release `-fstack-usage` compile reports 2192 bytes for the target-assignment
+function itself (including its fixed index order); reset, capture and update
+report 16/112/80 bytes. These exclude nested callees and do not constitute a
+whole-callback stack bound. Large snapshot copies do not become automatic
+snapshot-sized arrays in this optimized host build.
+
+All **14 selected release suites pass** on the rebuilt final code (149.26 s),
+including both 60-second holds. The freeze suite's complete functional/dense/
+reset checks (`--quick`) and the complete expression suite pass ASan/UBSan with
+leak detection enabled. Only the two long holds are omitted from the sanitizer
+run; their release results are recorded above. Earlier M3/M4/M5 sanitizer
+evidence remains separate. The changed controller, bank, processor, freeze test
+and benchmark translation units compile without `-Wall -Wextra -Wpedantic`
+diagnostics. `git diff --check` passes.
+
+The final optimized host benchmark runs after the validation jobs finish. Its
+expression workload cycles all seven modes. A separate full-path gliss workload
+uses changing independent stereo chords, all voices, processed dry, maximum
+space/Q, toe latch and heel release/recapture. It asserts at least two captures
+and two target assignments in both warm-up and measurement. Source generation
+occurs before timing. Each row covers four seconds, 3000/1500 callbacks:
+
+| Workload | Samples | Median µs | p95 µs | p99 µs | p99.9 µs | Maximum µs | Period µs |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| All expression modes | 64 | 734.806 | 1127.360 | 1200.467 | 1394.439 | 1528.491 | 1333.333 |
+| Freeze/gliss capture and assignment | 64 | 732.361 | 1145.333 | 1196.451 | 1245.589 | 1284.949 | 1333.333 |
+| All expression modes | 128 | 1550.917 | 1825.830 | 1940.764 | 2606.969 | 3146.738 | 2666.667 |
+| Freeze/gliss capture and assignment | 128 | 1707.161 | 1852.160 | 1900.698 | 1949.402 | 1973.224 | 2666.667 |
+
+Processing, target updates, capture/assignment and reset allocate **zero** in
+the scoped probe. Full-path scheduled renderer deadlines remain intact, with
+at most 11/16 transforms per callback. Reset costs approximately 85–107 µs.
+These logical schedule counters do not measure wall-clock xruns. The expression
+maxima exceed the 64/128-sample periods by **195.158/480.071 µs**; the pitch-bank
+64-sample workload also reaches 1520.313 µs. The gliss workload's lower maxima
+do not cancel those outliers or satisfy the isolated-effect 25%-of-period goal.
+Dependable callback margin and target/combined-chain admission remain unmet.
+
+Requested preparation allocation is **2,867,694 bytes** (about **2.735 MiB**)
+for the expression workload, **2,866,208** for the dedicated gliss workload,
+**2,861,896** for the static sound path, and **2,693,528** for the pitch-bank
+wrapper. The expression total includes temporary configuration/JSON allocations;
+it is not retained memory or peak RSS. Its increase over M6 is exactly the
+627,936-byte inventory above. The static path exceeds the initial 2 MiB goal
+by **764,744 bytes** before allocator overhead. The CSV and renders remain
+ignored build artifacts. Further memory/CPU optimization is required before
+public integration; these host diagnostics do not certify hardware feasibility.
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
 place. M1 supplies an audible reference, renders, and timing/allocation evidence;
 its artifacts remain the comparison baseline for subsequent work.
 
-M3–M6's software engine and core DSP quality gates are implemented. Target-device
+M3–M7's software engine and core DSP quality gates are implemented. Target-device
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next software milestone is **M7 — both freeze behaviors**. Capture all
-three spectral representations, preserve held relative-phase evolution,
-implement genuine frequency gliss toward newly captured targets, and enforce
-heel/toe hysteresis, Focus/dry eligibility, recapture/clear/reset and 60-second
-hold stability. Both rejected expression selections must become complete audio
-behavior before exposing the block. Memory/CPU admission and M3/M4 fidelity
-limits still require work; they must not be hidden by successful routing tests.
-
-Complete M7 before M8's factory, catalog, inspector, scene, and manager
-integration. Public parameters must not expose unfinished audio behavior.
+The next work is CPU/memory admission and **M8 — factory, catalog, inspector,
+scene and manager integration**. All seven DSP expression selections now have
+audio behavior. Memory/CPU goals and M3/M4/M7 fidelity limits still require
+work; successful hold/routing tests do not satisfy target-device feasibility.
+Resolve admission before adding the public catalog entry, then exercise actual
+physical/MIDI controls, scene cut/reset, preset/endpoints round-trips, tail/latency
+reporting and runtime ownership. No callback-period or unrelated DSP quality
+change is authorized by host results.
 
 The granular reference must remain a test harness. It cannot satisfy independent
 polyphonic attack, spectral freeze, or gliss and must not become an undocumented

@@ -3,11 +3,6 @@
 #include <cmath>
 
 namespace ardor::pog3 {
-namespace {
-bool implemented(float mode) noexcept {
-  return choiceIndex(mode, 7) <= static_cast<int>(ExpressionMode::Filter);
-}
-}
 
 struct Pog3Processor::State {
   Configuration configuration;
@@ -26,6 +21,7 @@ struct Pog3Processor::State {
     path.setSoundValues(sound);
     path.setGeneratedGain(generatedGain);
     path.setWarp(warp);
+    path.setFreeze(mode, expressionPosition(base), dryFreezeEligible(sound));
   }
 };
 
@@ -39,9 +35,6 @@ bool Pog3Processor::configure(const nlohmann::json& params, float sampleRate, st
   }
   Configuration configuration;
   if (!parseConfiguration(params, configuration, error)) return false;
-  if (!implemented(configuration.base[index(Parameter::ExpressionMode)])) {
-    error = "POG3 freeze expression modes are not implemented yet"; return false;
-  }
   auto next = std::make_unique<State>();
   next->configuration = configuration;
   next->apply(configuration.base);
@@ -57,7 +50,6 @@ bool Pog3Processor::setParameterTarget(std::string_view key, float normalized) n
 }
 bool Pog3Processor::setParameterTarget(std::size_t parameterIndex, float normalized) noexcept {
   if (!std::isfinite(normalized)) return false;
-  if (parameterIndex == index(Parameter::ExpressionMode) && !implemented(normalized)) return false;
   return targets_.setTarget(parameterIndex, normalized);
 }
 void Pog3Processor::reset() noexcept {
@@ -87,5 +79,10 @@ std::size_t Pog3Processor::controlUpdates() const noexcept { return state_ ? sta
 std::size_t Pog3Processor::transformCount() const noexcept { return state_ ? state_->path.transformCount() : 0; }
 std::size_t Pog3Processor::deadlineMisses() const noexcept { return state_ ? state_->path.deadlineMisses() : 0; }
 bool Pog3Processor::healthy() const noexcept { return state_ && state_->path.healthy(); }
+SpectralFreeze::State Pog3Processor::freezeState() const noexcept { return state_ ? state_->path.freeze().state() : SpectralFreeze::State::Live; }
+bool Pog3Processor::freezeLatched() const noexcept { return state_ && state_->path.freeze().latched(); }
+std::size_t Pog3Processor::freezeCaptures() const noexcept { return state_ ? state_->path.freeze().captures() : 0; }
+std::size_t Pog3Processor::freezeTargets() const noexcept { return state_ ? state_->path.freeze().targets() : 0; }
+std::size_t Pog3Processor::freezeCapacityEvents() const noexcept { return state_ ? state_->path.freeze().capacityEvents() : 0; }
 
 } // namespace ardor::pog3

@@ -146,6 +146,8 @@ public:
   void reset() noexcept;
   bool setSoundValues(const Values& values) noexcept;
   bool setWarp(float normalized) noexcept { return bank_.setWarp(normalized); }
+  bool setFreeze(ExpressionMode mode, float position, bool dryEligible) noexcept { return bank_.setFreeze(mode, position, dryEligible); }
+  const SpectralFreeze& freeze() const noexcept { return bank_.freeze(); }
   bool setGeneratedGain(float normalized) noexcept { return stages_.setGeneratedGain(normalized); }
   VoiceStageOutput process(PitchStereo input) noexcept;
   bool healthy() const noexcept { return bank_.healthy() && stages_.recoveries() == 0; }
