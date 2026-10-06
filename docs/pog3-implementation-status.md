@@ -9,8 +9,9 @@ Dry Attack router, separate filter AD, LP/BP/HP buses, detune/doubling,
 asymmetric Spread, voice pan, and the static sound path are now implemented.
 All seven expression modes now resolve through a prepared processor with
 independent base/effective controls. Both freeze modes, moving-carrier gliss,
-heel/toe hysteresis and per-voice eligibility are implemented. CPU/memory
-admission, calibration/listening and public integration remain open.
+heel/toe hysteresis and per-voice eligibility are implemented. Prepared host
+allocation now meets the initial 2 MiB goal. CPU admission, target memory and
+combined-chain endurance, calibration/listening and public integration remain open.
 There is no selectable `mod/pog3` entry yet.
 
 Development continues in `/home/bbalazs/projects/ardor-pog3` on
@@ -836,6 +837,127 @@ by **764,744 bytes** before allocator overhead. The CSV and renders remain
 ignored build artifacts. Further memory/CPU optimization is required before
 public integration; these host diagnostics do not certify hardware feasibility.
 
+## Admission optimization after M7
+
+This increment reduces prepared storage and callback work while preserving
+the existing resolutions, 256-partial capacities, excitation epochs, 24-tap
+interpolation, staged deadlines and latency. The 33-parameter contract and
+all seven expression modes remain unchanged.
+
+### Storage and ownership
+
+| Change | Host requested storage saved, bytes |
+| --- | ---: |
+| Compact frozen partials and frequency/magnitude-only previous/goal sets | 221,280 |
+| Bounded 16-bit region indices and compact region/candidate layout | 112,464 |
+| One shared immutable interpolation table for all three pitch plans | 98,432 |
+| Live phase layout with separate byte-sized age counters | 57,344 |
+| Consume each renderer's existing spectrum as its inverse-FFT workspace | 229,376 |
+| Renderer overlap-add rings sized to N+H rather than 2N | 100,352 |
+| Additional synthesis offset metadata | −128 |
+| Storage-only checkpoint net saving | **819,120** |
+| Fixed frequency indexes for stereo/canonical Attack matching | −6,160 |
+| Final net saving against M7 | **812,960** |
+
+`FrozenPartial` is now 40 bytes, and the controller is 209,640 bytes on this
+host. Captured phase seeds were already computed as floats; continuous held
+oscillator phases remain doubles. Track generations, live phase offsets and
+alignment also retain their original precision. The previous/goal sets need
+only frequencies/magnitudes; latest/requested/held sets retain capture metadata.
+Indices narrow only where the existing N≤32768 and 256-slot bounds permit it.
+
+The renderer owns and consumes its mutable IFFT spectrum; analysis spectra
+remain independent. The general synthesis API retains its default internal
+scratch and 2N ring. External scratch and maximum staging offsets are explicit
+prepare options. Compact synthesis checks the offset before work and validates
+the entire inverse frame and pending sums before committing OLA. Tests compare
+general and compact rings bit-for-bit across repeated wrap, variable 0/H offsets,
+reset, malformed frames and inverse overflow.
+
+The expression workload now requests **2,054,734 bytes (1.960 MiB)**, a
+**28.35% reduction** from M7 and **42,418 bytes below** the initial 2 MiB goal.
+Static sound requests 2,048,936 bytes, dedicated gliss 2,053,248 and the bank
+wrapper 1,880,568. These scoped construction totals include temporary
+configuration allocations; they do not measure retained memory, peak RSS,
+allocator overhead or target ABI sizes. Existing 166,016-byte space histories
+and all three analysis resolutions remain present.
+
+### Callback work
+
+Fractional interpolation uses a direct interior loop when every tap lands
+strictly between DC and Nyquist. Edge/reflection handling retains its original
+path. Each bin sees the original addition order; the host compiler vectorizes
+the interior complex arithmetic without changing the kernel or support.
+
+Attack builds fixed, sorted frequency indexes for right-channel regions and
+primary/low canonical histories. Lower bounds skip candidates outside a
+conservatively rounded match window. The original distance predicate, stale
+history eligibility and lowest-original-slot tie rule decide matches. Histories
+refresh after their own updates and reset clears their index counts. There is
+no callback allocation or reduction of retained partial capacity.
+
+A sampling profile was unavailable on this host; an instrumented `gprof` run
+identified stereo/canonical Attack searches as a useful optimization target.
+Its percentages are diagnostic, not callback timing. A separate packed-real-FFT
+prototype passed numerical checks but regressed measured host CPU cost; it was
+removed. The shared FFT implementation and transform mathematics are unchanged
+by this increment.
+
+### Verification
+
+All **14 selected release suites pass** on the final indexed code (138.45 s),
+including both 60-second freeze holds and existing pitch/harmonizer/catalog/
+scene/convolver regressions. All **53 raw WAV artifacts are byte-identical**
+to the M7 baseline, covering the reference/foundation, pitch/Warp, Attack,
+voice stages, expression and freeze renders. No normalization or limiter was
+introduced. The changed source/test/benchmark units compile without
+`-Wall -Wextra -Wpedantic` diagnostics; `git diff --check` passes.
+
+The final full foundation, pitch, Attack and expression suites also pass
+ASan/UBSan with leak detection (365.81 s combined wall time). Final freeze
+functional/dense/reset checks pass with the same sanitizers and leak detection;
+`--quick` omits only the two long holds already exercised in release. The
+storage-only checkpoint independently passed those four suites plus functional
+freeze checks. Reproduce the final gates and timing with:
+
+```sh
+ctest --test-dir build-ci --output-on-failure -R '^pedal-(pog3-.*|pitch-effect-quality|harmonizer-quality|daisy-fx-catalog-smoke|manager-effect-catalog-smoke|scene-plan-smoke|scheduled-convolver-smoke)$'
+ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 ctest --test-dir build-pog3-sanitize -j3 --output-on-failure -R '^pedal-pog3-(quality|pitch-quality|attack-quality|expression-quality)$'
+ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 build-pog3-sanitize/pedal-pog3-freeze-quality --quick
+build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/admission-processor-benchmark.csv
+```
+
+### Final host timing
+
+The final release benchmark ran after all POG3 validation jobs finished, with
+the same four-second sources, 3000/1500 timed callbacks and precomputed input
+as M7. The ignored `admission-processor-benchmark.csv` contains every workload;
+the complete expression and dedicated gliss rows are:
+
+| Workload | Samples | Median µs | p95 µs | p99 µs | p99.9 µs | Maximum µs | Period µs |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| All expression modes | 64 | 655.996 | 1066.203 | 1127.930 | 1190.525 | 1219.011 | 1333.333 |
+| Freeze/gliss capture and assignment | 64 | 641.558 | 1094.938 | 1147.990 | 1179.767 | 1217.842 | 1333.333 |
+| All expression modes | 128 | 1318.653 | 1619.748 | 1685.918 | 1782.014 | 1850.053 | 2666.667 |
+| Freeze/gliss capture and assignment | 128 | 1492.269 | 1675.283 | 1723.497 | 1794.069 | 1961.423 | 2666.667 |
+
+All-mode median cost is **10.7%/15.0% lower** at 64/128 samples than the recorded
+M7 host run. This is a comparison of observed runs, not a controlled target
+performance guarantee. Prepared processing/control changes/reset still allocate
+**zero**, and all scheduled renderer deadlines pass, with at most 11/16
+transforms in full-path 64/128-sample callbacks. Full processor reset costs
+63.790–89.090 µs in this run.
+
+The 64-sample static path still peaks at **1354.506 µs**, and the Attack bank
+at **1386.892 µs**, exceeding its **1333.333 µs** period. The all-mode/gliss
+rows' lower maxima do not establish dependable callback margin or meet the
+isolated-effect **25%-of-period** goal (333.333/666.667 µs). An earlier indexed
+run also recorded all-mode maxima of **3439.399/6276.186 µs**, and gliss reached
+4757.814 µs at 128 samples. Those preliminary outliers remain in the ignored
+`indexed-processor-benchmark.csv`; the final run does not erase them. Interior-
+only and storage-only checkpoint CSVs also remain available. Host timing
+cannot establish target/device or combined NAM/IR chain admission.
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
@@ -846,10 +968,11 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is CPU/memory admission and **M8 — factory, catalog, inspector,
+The next work is CPU/target admission and **M8 — factory, catalog, inspector,
 scene and manager integration**. All seven DSP expression selections now have
-audio behavior. Memory/CPU goals and M3/M4/M7 fidelity limits still require
-work; successful hold/routing tests do not satisfy target-device feasibility.
+audio behavior. The initial host allocation goal is met; CPU margin, target
+memory/endurance and M3/M4/M7 fidelity limits still require work. Successful
+hold/routing tests do not satisfy target-device feasibility.
 Resolve admission before adding the public catalog entry, then exercise actual
 physical/MIDI controls, scene cut/reset, preset/endpoints round-trips, tail/latency
 reporting and runtime ownership. No callback-period or unrelated DSP quality

@@ -16,12 +16,18 @@ int harmonic(float frequency, float fundamental) noexcept {
   const int n = static_cast<int>(std::clamp(std::round(ratio), 0.0f, 9.0f));
   return n >= 1 && n <= 8 && std::fabs(ratio - n) < n * kMatch ? n : 0;
 }
+float windowMargin(float frequency, float radius) noexcept {
+  // Bounds only prune impossible matches. Leave room for float product/sum
+  // rounding; the original strict distance predicate makes the final decision.
+  return 8 * std::numeric_limits<float>::epsilon() * (std::fabs(frequency) + radius + 1);
+}
 }
 
 void PolyphonicAttack::reset() noexcept {
   for (auto& resolution : partials_) resolution = {};
   for (auto& resolution : bindings_) resolution = {};
   families_ = {};
+  canonicalCounts_ = {};
   generation_ = capacityEvents_ = 0;
 }
 
@@ -160,6 +166,19 @@ float PolyphonicAttack::gainAt(const Partial& partial, std::int64_t center) cons
   return partial.magnitude > 1e-12f ? static_cast<float>(std::clamp(audible / partial.magnitude, 0.0, 1.0)) : 0;
 }
 
+void PolyphonicAttack::indexCanonical(std::size_t resolution) noexcept {
+  if (resolution == 1) return;
+  const auto cache = resolution == 2 ? 1U : 0U;
+  auto& sorted = canonicalFrequencies_[cache]; auto& count = canonicalCounts_[cache];
+  count = 0;
+  for (std::size_t slot = 0; slot < kMaxPitchPartials; ++slot)
+    if (partials_[resolution][slot].generation)
+      sorted[count++] = {partials_[resolution][slot].frequency, static_cast<std::uint16_t>(slot)};
+  std::sort(sorted.begin(), sorted.begin() + count, [](const auto& a, const auto& b) {
+    return a.frequency == b.frequency ? a.slot < b.slot : a.frequency < b.frequency;
+  });
+}
+
 StereoAttackGains PolyphonicAttack::update(const PitchFrame& left, const PitchFrame& right,
                                          std::size_t resolution, std::int64_t inputEnd) noexcept {
   StereoAttackGains gains{};
@@ -167,6 +186,11 @@ StereoAttackGains PolyphonicAttack::update(const PitchFrame& left, const PitchFr
   if (resolution >= kResolutions || !left.frameSize() || left.frameSize() != right.frameSize()) return gains;
   const auto l = left.regions(), r = right.regions();
   rightUsed_.fill(false);
+  for (std::size_t p = 0; p < r.size(); ++p)
+    rightFrequencies_[p] = {r[p].frequencyBins * kSampleRate / right.frameSize(), static_cast<std::uint16_t>(p)};
+  std::sort(rightFrequencies_.begin(), rightFrequencies_.begin() + r.size(), [](const auto& a, const auto& b) {
+    return a.frequency == b.frequency ? a.slot < b.slot : a.frequency < b.frequency;
+  });
   const float scale = 2.0f / left.frameSize();
   std::size_t count = 0;
   for (const auto& region : l) {
@@ -176,10 +200,15 @@ StereoAttackGains PolyphonicAttack::update(const PitchFrame& left, const PitchFr
     value.track[0] = region.track; value.generation[0] = region.generation;
     float best = kMatch;
     std::size_t match = r.size();
-    for (std::size_t p = 0; p < r.size(); ++p) {
+    const float radius = kMatch * std::max(40.0f, value.frequency);
+    const float margin = windowMargin(value.frequency, radius);
+    auto candidate = std::lower_bound(rightFrequencies_.begin(), rightFrequencies_.begin() + r.size(),
+      value.frequency - radius - margin, [](const auto& entry, float frequency) { return entry.frequency < frequency; });
+    for (; candidate != rightFrequencies_.begin() + r.size() && candidate->frequency <= value.frequency + radius + margin; ++candidate) {
+      const auto p = candidate->slot;
       if (rightUsed_[p]) continue;
-      const float d = distance(r[p].frequencyBins * kSampleRate / right.frameSize(), value.frequency);
-      if (d < best) { best = d; match = p; }
+      const float d = distance(candidate->frequency, value.frequency);
+      if (d < best || (match != r.size() && d == best && p < match)) { best = d; match = p; }
     }
     if (match != r.size()) {
       const auto& other = r[match];
@@ -261,10 +290,23 @@ StereoAttackGains PolyphonicAttack::update(const PitchFrame& left, const PitchFr
       if (source != resolution) {
         const Partial* match = nullptr;
         float best = std::max(value.frequency * kMatch, kSampleRate / static_cast<float>(left.frameSize()));
-        for (const auto& canonical : partials_[source]) {
+        const auto cache = source == 2 ? 1U : 0U;
+        const auto& sorted = canonicalFrequencies_[cache];
+        const auto end = sorted.begin() + canonicalCounts_[cache];
+        const float margin = windowMargin(value.frequency, best);
+        // Keep the initial window fixed while the original nearest predicate
+        // shrinks best. Ties still choose the lowest original partial slot.
+        const float maximum = value.frequency + best + margin;
+        auto candidate = std::lower_bound(sorted.begin(), end, value.frequency - best - margin,
+          [](const auto& entry, float frequency) { return entry.frequency < frequency; });
+        std::size_t matchSlot = kMaxPitchPartials;
+        for (; candidate != end && candidate->frequency <= maximum; ++candidate) {
+          const auto& canonical = partials_[source][candidate->slot];
           if (!canonical.generation || inputEnd - canonical.seen > kRelease) continue;
           const float d = std::fabs(value.frequency - canonical.frequency);
-          if (d < best) { best = d; match = &canonical; }
+          if (d < best || (match && d == best && candidate->slot < matchSlot)) {
+            best = d; match = &canonical; matchSlot = candidate->slot;
+          }
         }
         if (match) gain = gainAt(*match, left.centerSamples());
       }
@@ -275,6 +317,7 @@ StereoAttackGains PolyphonicAttack::update(const PitchFrame& left, const PitchFr
       gains[channel][value.track[channel]] = gain;
     }
   }
+  indexCanonical(resolution);
   return gains;
 }
 
