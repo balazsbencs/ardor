@@ -12,7 +12,8 @@
 namespace ardor::pog3 {
 
 struct PitchRegion {
-  std::size_t bin = 0, first = 0, last = 0, track = 0;
+  // Plans cap N at 32768; bin boundaries and the 256 track slots fit exactly.
+  std::uint16_t bin = 0, first = 0, last = 0, track = 0;
   std::uint64_t generation = 0;
   float frequencyBins = 0;
   float magnitude = 0;
@@ -20,20 +21,32 @@ struct PitchRegion {
 
 // Off-thread preparation. The interpolation table is shared by all renderers
 // of a resolution, alongside the immutable FFT/window plan.
+class PitchInterpolation {
+public:
+  static constexpr int kRadius = 12;
+  static constexpr std::size_t kPhases = 512;
+  using Weights = std::array<float, 2 * kRadius>;
+  PitchInterpolation();
+  const Weights& weights(std::size_t phase) const noexcept { return values_[phase > kPhases ? kPhases : phase]; }
+private:
+  std::array<Weights, kPhases + 1> values_{};
+};
+
 class PitchPlan {
 public:
   static constexpr int kRadius = 12;
   static constexpr std::size_t kPhases = 512;
   using Weights = std::array<float, 2 * kRadius>;
-  explicit PitchPlan(std::shared_ptr<const SpectralPlan> spectral);
+  explicit PitchPlan(std::shared_ptr<const SpectralPlan> spectral,
+                     std::shared_ptr<const PitchInterpolation> interpolation = {});
   float lobe(float distance) const noexcept;
   const std::shared_ptr<const SpectralPlan> spectral;
   const Weights& interpolationWeights(std::size_t phase) const noexcept {
-    return interpolation_[phase > kPhases ? kPhases : phase];
+    return interpolation_->weights(phase);
   }
 
 private:
-  std::array<Weights, kPhases + 1> interpolation_{};
+  std::shared_ptr<const PitchInterpolation> interpolation_;
   std::array<float, 16 * kPhases + 1> hannLobe_{};
 };
 
@@ -83,12 +96,13 @@ public:
               float heldMix = 0, float heldGain = 1, const PitchRenderer* heldReference = nullptr) noexcept;
 
 private:
-  struct Phase { std::uint64_t generation = 0; double offset = 0; float frequency = 0, ratio = 1; unsigned age = 0; double alignment = 0; };
+  struct Phase { std::uint64_t generation = 0; double offset = 0, alignment = 0; float frequency = 0, ratio = 1; };
   std::shared_ptr<const PitchPlan> plan_;
   SpectralSynthesis synthesis_;
   std::vector<std::complex<float>> spectrum_;
   std::array<Phase, kMaxPitchPartials> phases_{};
   std::array<Phase, kMaxPitchPartials> lowPhases_{};
+  std::array<std::uint8_t, 2 * kMaxPitchPartials> phaseAges_{};
   std::array<std::complex<float>, kMaxPitchPartials> lowCarriers_{};
   struct HeldPhase { std::uint64_t id = 0; double phase = 0; std::int64_t center = 0; float frequency = 0; };
   std::vector<HeldPhase> heldPhases_;

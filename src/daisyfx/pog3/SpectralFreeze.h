@@ -10,11 +10,12 @@ namespace ardor::pog3 {
 class PitchFrame;
 
 struct FrozenPartial {
-  float frequency = 0, magnitude = 0;
-  double phase = 0;
   std::int64_t center = 0;
   std::uint64_t id = 0, liveGeneration = 0;
-  std::size_t liveTrack = 0;
+  // Capture's complex<float> argument is already a float. Continuous renderer
+  // phase accumulation remains double; only the original seed is compacted.
+  float frequency = 0, magnitude = 0, phase = 0;
+  std::uint16_t liveTrack = 0;
   bool referenceLeft = false;
 };
 struct FrozenBand {
@@ -47,11 +48,18 @@ public:
 
 private:
   using Bands = std::array<std::array<FrozenBand, 2>, 3>;
+  struct Target { float frequency = 0, magnitude = 0; };
+  struct TargetBand {
+    std::array<Target, kMaxPitchPartials> partials{};
+    std::size_t count = 0;
+  };
+  using Targets = std::array<std::array<TargetBand, 2>, 3>;
   static void capture(FrozenBand& result, const PitchFrame& source, const PartialGains& gains) noexcept;
   void beginCapture() noexcept;
   void assignTarget() noexcept;
   bool onset() const noexcept;
-  Bands latest_{}, previous_{}, requested_{}, held_{}, goal_{};
+  Bands latest_{}, requested_{}, held_{};
+  Targets previous_{}, goal_{};
   std::array<bool, kMaxPitchPartials> used_{};
   ExpressionMode mode_ = ExpressionMode::Off;
   State state_ = State::Live;

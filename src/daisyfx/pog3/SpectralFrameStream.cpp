@@ -64,11 +64,16 @@ bool SpectralAnalysis::push(float sample) noexcept {
   return true;
 }
 
-void SpectralSynthesis::prepare(std::shared_ptr<const SpectralPlan> plan) {
+void SpectralSynthesis::prepare(std::shared_ptr<const SpectralPlan> plan, bool externalScratch,
+                                std::size_t maximumStartOffset) {
   if (!plan) throw std::invalid_argument("POG3 synthesis requires a spectral plan");
+  if (maximumStartOffset == std::numeric_limits<std::size_t>::max()) maximumStartOffset = plan->frameSize();
+  if (maximumStartOffset > plan->frameSize()) throw std::invalid_argument("POG3 synthesis staging exceeds N");
   plan_ = std::move(plan);
-  scratch_.resize(plan_->frameSize());
-  overlap_.resize(plan_->frameSize() * 2);
+  maximumStartOffset_ = maximumStartOffset;
+  if (externalScratch) std::vector<std::complex<float>>{}.swap(scratch_);
+  else scratch_.resize(plan_->frameSize());
+  overlap_.resize(plan_->frameSize() + maximumStartOffset_);
   reset();
 }
 
@@ -82,29 +87,46 @@ float SpectralSynthesis::pop() noexcept {
   if (!plan_) return 0;
   const float output = overlap_[read_];
   overlap_[read_] = 0;
-  read_ = (read_ + 1) & (overlap_.size() - 1);
+  if (++read_ == overlap_.size()) read_ = 0;
   return std::isfinite(output) ? output : 0.0f;
 }
 
 bool SpectralSynthesis::addFrame(std::span<const std::complex<float>> spectrum, std::size_t startOffset) noexcept {
-  if (!plan_ || spectrum.size() != scratch_.size() || startOffset > scratch_.size()) return false;
+  if (!plan_ || scratch_.size() != plan_->frameSize() || spectrum.size() != scratch_.size()
+      || startOffset > maximumStartOffset_) return false;
   // Validate the entire frame before touching OLA; a partially invalid frame
   // must not emit the valid part or contaminate otherwise healthy histories.
   for (const auto value : spectrum)
     if (!std::isfinite(value.real()) || !std::isfinite(value.imag())) return false;
   std::copy(spectrum.begin(), spectrum.end(), scratch_.begin());
-  plan_->transform(scratch_, true);
+  return synthesize(scratch_, startOffset);
+}
+
+bool SpectralSynthesis::addFrameInPlace(std::vector<std::complex<float>>& spectrum, std::size_t startOffset) noexcept {
+  if (!plan_ || spectrum.size() != plan_->frameSize() || startOffset > maximumStartOffset_) return false;
+  for (const auto value : spectrum)
+    if (!std::isfinite(value.real()) || !std::isfinite(value.imag())) return false;
+  return synthesize(spectrum, startOffset);
+}
+
+bool SpectralSynthesis::synthesize(std::vector<std::complex<float>>& scratch, std::size_t startOffset) noexcept {
+  plan_->transform(scratch, true);
   const auto window = plan_->synthesisWindow();
   // Finite input bins can still overflow during inverse butterflies or OLA.
   // Reject the whole frame, preserving existing output, before adding any part.
-  for (std::size_t i = 0; i < scratch_.size(); ++i) {
-    const float candidate = overlap_[(read_ + startOffset + i) & (overlap_.size() - 1)]
-      + scratch_[i].real() * window[i];
-    if (!std::isfinite(scratch_[i].real()) || !std::isfinite(scratch_[i].imag())
+  const auto begin = read_ + startOffset < overlap_.size() ? read_ + startOffset : read_ + startOffset - overlap_.size();
+  auto position = begin;
+  for (std::size_t i = 0; i < scratch.size(); ++i) {
+    const float candidate = overlap_[position] + scratch[i].real() * window[i];
+    if (!std::isfinite(scratch[i].real()) || !std::isfinite(scratch[i].imag())
         || !std::isfinite(candidate)) return false;
+    if (++position == overlap_.size()) position = 0;
   }
-  for (std::size_t i = 0; i < scratch_.size(); ++i)
-    overlap_[(read_ + startOffset + i) & (overlap_.size() - 1)] += scratch_[i].real() * window[i];
+  position = begin;
+  for (std::size_t i = 0; i < scratch.size(); ++i) {
+    overlap_[position] += scratch[i].real() * window[i];
+    if (++position == overlap_.size()) position = 0;
+  }
   return true;
 }
 

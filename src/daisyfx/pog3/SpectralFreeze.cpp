@@ -69,7 +69,9 @@ void SpectralFreeze::capture(FrozenBand& out, const PitchFrame& source, const Pa
     if (region.bin & 1) carrier = -carrier;
     const float magnitude = std::abs(carrier) * gains[region.track];
     if (!std::isfinite(magnitude) || magnitude < 1e-9f) continue;
-    out.partials[out.count++] = {frequency, magnitude, std::arg(carrier), out.center, 0, region.generation, region.track};
+    out.partials[out.count++] = {.center = out.center, .liveGeneration = region.generation,
+      .frequency = frequency, .magnitude = magnitude, .phase = std::arg(carrier),
+      .liveTrack = static_cast<std::uint16_t>(region.track)};
   }
 }
 bool SpectralFreeze::onset() const noexcept {
@@ -107,7 +109,10 @@ void SpectralFreeze::assignTarget() noexcept {
   for (std::size_t r = 0; r < 3; ++r) for (std::size_t c = 0; c < 2; ++c) {
     auto& held = held_[r][c]; auto& goal = goal_[r][c];
     const auto& target = latest_[r][c];
-    goal = held; used_.fill(false);
+    goal.count = held.count;
+    for (std::size_t i = 0; i < held.count; ++i)
+      goal.partials[i] = {held.partials[i].frequency, held.partials[i].magnitude};
+    used_.fill(false);
     // Do not permute held slots: oscillator identity survives each assignment.
     std::array<std::size_t, kMaxPitchPartials> order{};
     for (std::size_t i = 0; i < held.count; ++i) order[i] = i;
@@ -133,8 +138,9 @@ void SpectralFreeze::assignTarget() noexcept {
       if (slot == kMaxPitchPartials) { ++capacityEvents_; continue; }
       if (slot == held.count) ++held.count;
       goal.count = held.count;
-      goal.partials[slot] = held.partials[slot] = target.partials[j];
-      held.partials[slot].id = goal.partials[slot].id = ++serial_;
+      held.partials[slot] = target.partials[j];
+      goal.partials[slot] = {target.partials[j].frequency, target.partials[j].magnitude};
+      held.partials[slot].id = ++serial_;
       held.partials[slot].magnitude = 0;
     }
   }
@@ -146,7 +152,12 @@ void SpectralFreeze::update(const std::array<PitchFrame, 2>& primary,
                            const StereoAttackGains& primaryGains,
                            const StereoAttackGains& shortGains,
                            const StereoAttackGains& lowGains, std::int64_t inputEnd) noexcept {
-  previous_ = latest_;
+  for (std::size_t r = 0; r < 3; ++r) for (std::size_t c = 0; c < 2; ++c) {
+    const auto& source = latest_[r][c]; auto& previous = previous_[r][c];
+    previous.count = source.count;
+    for (std::size_t i = 0; i < source.count; ++i)
+      previous.partials[i] = {source.partials[i].frequency, source.partials[i].magnitude};
+  }
   for (std::size_t c = 0; c < 2; ++c) {
     capture(latest_[0][c], primary[c], primaryGains[c]);
     capture(latest_[1][c], shortFrames[c], shortGains[c]);
