@@ -55,14 +55,16 @@ Values defaultValues() noexcept;
 int choiceIndex(float normalized, std::size_t count) noexcept;
 float physicalValue(Parameter parameter, float normalized) noexcept;
 std::string formatValue(Parameter parameter, float normalized);
+std::string formatExpressionEndpoint(ExpressionMode mode, float normalized);
 bool parseConfiguration(const nlohmann::json& params, Configuration& result, std::string& error);
 Values effectiveValues(const Configuration& config, const Values& base) noexcept;
 float expressionPosition(const Values& values) noexcept;
+float expressionEndpointValue(const Values& values) noexcept;
 float warpSemitones(std::size_t voice, float extent, bool focus) noexcept;
 bool dryFreezeEligible(const Values& values) noexcept;
 
 // Per-control publication only; a read is not an atomic whole-scene snapshot.
-// Configure/store occurs off the callback; the future processor reads at its
+// Configure/store occurs off the callback; the processor reads at its
 // control cadence. Key and index setters share exactly the same validation.
 class ParameterTargets {
 public:

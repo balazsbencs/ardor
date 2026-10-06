@@ -7,8 +7,9 @@ are implemented, along with a spectral five-voice pitch bank, continuous Warp,
 and reversible Focus switching. Independent spectral attack and a reversible
 Dry Attack router, separate filter AD, LP/BP/HP buses, detune/doubling,
 asymmetric Spread, voice pan, and the static sound path are now implemented.
-Expression/freeze routing and public integration remain pending. There
-is no selectable `mod/pog3` entry yet.
+Expression Off/Volume/Crossfade/Warp/Filter now resolve through a prepared
+processor with independent base/effective controls. Freeze/gliss and public
+integration remain pending. There is no selectable `mod/pog3` entry yet.
 
 Development continues in `/home/bbalazs/projects/ardor-pog3` on
 `feat/pog3-polyphonic-octave`, based on current `main`, in
@@ -24,16 +25,18 @@ workspace and its unrelated changes remain separate.
 | `src/daisyfx/pog3/PolyphonicPitchBank.{h,cpp}` | Shared short/long/low analysis, bounded persistent partial tracks, fractional spectral translation, low-band reconstruction, independent stereo synthesis, continuous Warp, Focus fades, staged render jobs |
 | `src/daisyfx/pog3/PolyphonicAttack.{h,cpp}` | Linked stereo harmonic families/residual partials, fixed old/new excitation history, input-timestamp attack ages, coherent gains across resolutions |
 | `src/daisyfx/pog3/Pog3VoiceStages.{h,cpp}` | Separate linked detector/filter AD, stereo dry/generated TPT filter buses, levels/pan, upper/dry doubling, eligible 1:3 Spread, final master, static sound-path composition |
+| `src/daisyfx/pog3/Pog3Processor.{h,cpp}` | Prepared lifecycle, immutable endpoint configuration, 33 key/index targets, 48-sample control cadence, separate base/effective values, Off/Volume/Crossfade/Warp/Filter resolution and diagnostics; unfinished freeze selections rejected |
 | `tests/pog3_granular_reference.h` | Five independent stereo pitch shifters using the existing Whammy/Harmonizer primitive; dry, six levels/pans, input gain, and final master |
 | `tests/pog3_controls.cpp` | Persisted index contract, both target setters, mappings, morph ownership, rejection/clamping, Warp and eligibility behavior |
 | `tests/pog3_quality.cpp` | Identity/delay/startup/drain/chunking/reset checks, isolated reference tuning, stereo/pan/gain checks, nonfinite/overflow rejection, optional WAV renders |
 | `tests/pog3_pitch_quality.cpp` | Spectral tuning/spurs/leakage, resolved and ordinary low chords, alias rejection, track continuity, Focus reversal, staged identity/deadlines, callback partitioning, Warp, overload/drain, envelope latency, close-pair diagnostic |
 | `tests/pog3_attack_quality.cpp` | Held/new notes, shared harmonics, low bass, re-plucks, arpeggios, bends, Focus reversals, activation, exact-off dry, reset, partition invariance, optional attack WAV renders |
 | `tests/pog3_voice_stages.cpp` | AD timing/retrigger, held-tone/chord detector, sensitivity/re-plucks, filter transfer and resonance, routing eligibility, delay endpoints/queues, pan, rapid automation/partition/reset, gain/overload/recovery, optional full-path WAV renders |
+| `tests/pog3_expression_quality.cpp` | Processor key/index publication, cadence, immutable ownership, exact endpoints/units, processed-dry exclusions, 30 Warp tuning cases, Filter/envelope interaction, 7-bit mode/reverse/Focus automation, callback partitions, configuration/reset and optional expression WAV renders |
 | `tests/pog3_artifacts.h` | Shared offline float WAV writer; preserves raw levels |
 | `tests/pog3_bench.cpp` | Prepared callback timing distributions, transform burst counts, reset cost, allocation instrumentation, CSV output |
 | `ardor_realtime_fft` | Sole CMake ownership of the existing `RealtimeFft.cpp`; shared with the existing DSP/convolver target |
-| `ardor_pog3` | Independent parameter/spectral/pitch/attack library; links the shared FFT without a Daisy/DSP dependency cycle |
+| `ardor_pog3` | Independent parameter/spectral/pitch/attack/voice-stage/processor library; links the shared FFT without a Daisy/DSP dependency cycle |
 
 The CMake edits retain the unrelated changes already present in the workspace.
 Existing pitch modes, catalog entries, scene indices, FFT mathematics, and
@@ -135,16 +138,18 @@ comparison harness; they do not establish polyphonic spectral pitch quality.
 ```sh
 cmake -S . -B build-ci -DARDOR_UI_BACKEND=none -DCMAKE_BUILD_TYPE=Release
 cmake --build build-ci -j 4 --target \
-  pedal-pog3-controls pedal-pog3-quality pedal-pog3-pitch-quality pedal-pog3-attack-quality pedal-pog3-voice-stages pedal-pog3-bench \
+  pedal-pog3-controls pedal-pog3-quality pedal-pog3-pitch-quality pedal-pog3-attack-quality \
+  pedal-pog3-voice-stages pedal-pog3-expression-quality pedal-pog3-bench \
   pedal-pitch-effect-quality pedal-harmonizer-quality \
   pedal-daisy-fx-catalog-smoke pedal-manager-effect-catalog-smoke \
   pedal-scene-plan-smoke pedal-scheduled-convolver-smoke pedal-poc
 ctest --test-dir build-ci --output-on-failure \
-  -R 'pedal-(pog3-controls|pog3-quality|pog3-pitch-quality|pog3-low-chord-quality|pog3-attack-quality|pog3-voice-stages|pitch-effect-quality|harmonizer-quality|daisy-fx-catalog-smoke|manager-effect-catalog-smoke|scene-plan-smoke|scheduled-convolver-smoke)$'
+  -R 'pedal-(pog3-controls|pog3-quality|pog3-pitch-quality|pog3-low-chord-quality|pog3-attack-quality|pog3-voice-stages|pog3-expression-quality|pitch-effect-quality|harmonizer-quality|daisy-fx-catalog-smoke|manager-effect-catalog-smoke|scene-plan-smoke|scheduled-convolver-smoke)$'
 build-ci/pedal-pog3-quality --render build-ci/pog3-artifacts
 build-ci/pedal-pog3-attack-quality --render build-ci/pog3-artifacts
 build-ci/pedal-pog3-voice-stages --render build-ci/pog3-artifacts
-build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/voice-stages-benchmark.csv
+build-ci/pedal-pog3-expression-quality --render build-ci/pog3-artifacts
+build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/expression-processor-benchmark.csv
 build-ci/pedal-pog3-pitch-quality --resolution-stress
 build-ci/pedal-pog3-pitch-quality --latency
 build-ci/pedal-pog3-pitch-quality --warp-onset
@@ -526,24 +531,134 @@ Further memory/CPU work and target-device combined-chain endurance are required
 before public admission; no callback-period or unrelated DSP quality change is
 authorized by these results.
 
+## Expression controller and prepared processor (M6 DSP)
+
+`Pog3Processor` owns the prepared sound path behind a lifecycle-owned state
+object. `configure` validates native 48 kHz and numeric parameters, compiles
+immutable endpoint arrays, allocates/plans off the callback, then replaces the
+previous state and target defaults. Invalid parameters/sample rate/endpoints
+leave the existing targets, audio history and cadence intact. Reconfiguration
+and reset require exclusive lifecycle ownership; no live JSON publication or
+snapshot editing occurs on the audio thread.
+
+Key and index setters use the same registry/lock-free scalar targets. The first
+sample reads them, then every 48 samples thereafter, independently of callback
+boundaries. Audio-owned `base` records consumed saved controls; `sound` records
+the resolved effective values. Neither expression evaluation nor smoothing
+writes into targets. Individual scalar atomics retain the existing last-writer
+model and do not promise an atomic whole-scene update. Reset retains current
+targets and immutable endpoints, reseeds effective controls and smoothing,
+clears every sound-path history, and restarts the control cadence.
+
+The implemented modes are:
+
+- **Off:** use base controls, smoothly restore generated gain and nominal Warp.
+- **Volume:** interpolate normalized heel/toe gains after Reverse and scale only
+  the generated bus after its filter, before Master. A 10 ms gain ramp reaches
+  exact zero/unity endpoints; even ringing is muted at zero. Dry remains
+  unchanged with Dry Attack, Dry Filter, Detune and Spread all enabled.
+- **Crossfade:** resolve only the compiled union of continuous endpoint keys in
+  normalized space. A missing endpoint retains the configured base captured at
+  configuration time. Editing an owned base control remains saved while its
+  snapshot keeps audio ownership; leaving Crossfade restores the latest base.
+  Unowned sound controls continue following their targets. No second signal
+  bank, preset reference, recursive expression configuration or JSON operation
+  is involved.
+- **Warp:** interpolate octave extent from scalar endpoints and use the bank's
+  existing 10 ms semitone-domain slew. Dry/unison never changes pitch; Focus-off
+  upper voices stay nominal, and Focus-on upper voices follow extent. Exiting
+  Warp restores nominal intervals without clearing spectra/history.
+- **Filter:** interpolate normalized/log-frequency position, replacing only
+  effective base cutoff. The independent AD still sweeps around that base;
+  cutoff bounds and existing coefficient smoothing remain in force.
+
+Scalar/snapshot heel and toe values now return the exact stored endpoint rather
+than subtracting and adding near endpoint values. The formatting helper reports
+Volume gains as dB/Mute, Warp as 0–12 semitones of extent, Filter as Hz, and
+unused scalar endpoints explicitly. It remains an off-callback UI helper.
+
+The registry retains all seven choices. This development processor **rejects
+Freeze + Gliss and Freeze + Volume** in configuration and both target setters
+until M7 implements their audio behavior; it does not treat either as Off.
+Nothing has been registered in the public factory/catalog. Key/index and
+scene-like sequential publication are tested at the processor boundary, but
+the actual physical/MIDI assignment, runtime scene dispatch and manager preset
+round-trips cannot exercise `mod/pog3` yet. Those parts of the M6 integration
+gate are explicitly deferred to M8, after complete freeze support.
+
+Across the processed-dry Volume comparison, dry sample difference is **exactly
+zero** and generated gain error is at most **1.87e−9**. Zero-gain filter tails
+mute exactly; exiting Volume restores the warm reference wet stream exactly
+after its ramp. The largest measured automation error step against the moving
+reference is **0.002686** at the stated input levels. All **30** isolated Warp
+interval cases (five voices × three extents × both Focus settings) are within
+**0.000074 cents** in the settled synthetic-sine measurement. These are routing
+checks, not a replacement for the broader M3 tuning/spur/chord evidence.
+
+Filter tests confirm Reverse, expression-derived base, positive/negative sweep
+and base return, bounded cutoff, and identical sweep timing when volume Attack
+changes. Audio is bit-identical with 1/17/48/64/128/256-sample partitions under
+matching 7-bit events, mode/Reverse/Focus changes and scene-like setters. Failed
+reconfiguration preserves the old stream; repeated reset leaves no stale audio.
+
+Seven raw float WAVs add source, Off reference, Volume, Crossfade, short/focused
+Warp, and Filter expression with 7-bit ramps and a Reverse change. Source peak
+is 0.1374, output peaks 0.0722–0.1078, with no normalization/limiting. Artifacts
+remain under the ignored build directory; listening sign-off remains open.
+
+All **13 selected release suites pass** (79.87 s). The full new expression
+suite, the changed voice-stage suite and the parameter suite pass ASan/UBSan
+with leak detection enabled (174.64 s total; expression suite 167.38 s).
+The processor, parameter, voice-stage, expression-test and benchmark translation
+units compile without `-Wall -Wextra -Wpedantic` diagnostics. Prior pitch/Attack
+sanitizer evidence remains recorded separately rather than claimed as rerun.
+
+The optimized prepared-processor workload keeps all voices/space/filter stages
+active and cycles all five implemented expression modes, 7-bit positions,
+Reverse, Focus and filter-mode/envelope changes:
+
+| Callback samples | Median µs | p95 µs | p99 µs | p99.9 µs | Maximum µs | Budget µs |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 64 | 611.127 | 1069.051 | 1136.773 | 1202.798 | 1339.538 | 1333.333 |
+| 128 | 1388.624 | 1653.416 | 1725.482 | 1781.511 | 1812.592 | 2666.667 |
+
+Prepared processing, target updates and reset allocate **zero**. Scheduled
+renderer deadlines remain intact, with at most 11/16 transforms per callback.
+Reset costs approximately 58 µs. The 64-sample maximum exceeds its period by
+**6.205 µs**; the separate Warp/Focus bank workload also reaches 1384.813 µs.
+The isolated-effect 25%-of-period target, dependable callback margin and device/
+combined-chain endurance remain unmet. This is a four-second host diagnostic
+(3,000/1,500 callbacks), not hardware certification or a reason to hide earlier
+timing outliers.
+
+Requested preparation allocation is **2,239,758 bytes** (about **2.14 MiB**),
+including processor/wrapper ownership, compiled scalar state and temporary JSON
+construction/parsing allocations in this workload. It is not a retained-memory
+or peak-RSS measurement. The sound-path-only preparation now requests 2,233,960
+bytes, 24 bytes more than M5 for the new generated-gain slew/target. Existing
+delay-history storage is unchanged. The initial 2 MiB memory goal remains
+exceeded before held/gliss spectra; freeze must add an explicit memory inventory
+and further admission/optimization work before public integration.
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
 place. M1 supplies an audible reference, renders, and timing/allocation evidence;
 its artifacts remain the comparison baseline for subsequent work.
 
-M3–M5's software engine and core quality gates are implemented. Target-device
+M3–M6's software engine and core DSP quality gates are implemented. Target-device
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next software milestone is **M6 — expression volume, morph, warp, and
-filter routing**. Resolve independent base/effective controls and compiled
-configuration endpoints, wire generated-only expression Volume and Warp,
-and verify Reverse, scene ownership, 7-bit ramps and dispatch. No audio callback
-may parse JSON, reconfigure or allocate. M7 then adds both freeze behaviors,
-including stationary phase evolution and genuine frequency gliss.
+The next software milestone is **M7 — both freeze behaviors**. Capture all
+three spectral representations, preserve held relative-phase evolution,
+implement genuine frequency gliss toward newly captured targets, and enforce
+heel/toe hysteresis, Focus/dry eligibility, recapture/clear/reset and 60-second
+hold stability. Both rejected expression selections must become complete audio
+behavior before exposing the block. Memory/CPU admission and M3/M4 fidelity
+limits still require work; they must not be hidden by successful routing tests.
 
-Complete M6–M7 before M8's factory, catalog, inspector, scene, and manager
+Complete M7 before M8's factory, catalog, inspector, scene, and manager
 integration. Public parameters must not expose unfinished audio behavior.
 
 The granular reference must remain a test harness. It cannot satisfy independent
