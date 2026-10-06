@@ -5,8 +5,9 @@ Updated: 2026-10-06. This records the implementation increments against
 contract, audible granular comparison harness, and streaming spectral foundation
 are implemented, along with a spectral five-voice pitch bank, continuous Warp,
 and reversible Focus switching. Independent spectral attack and a reversible
-Dry Attack router are now implemented. Filter, voice space, expression/freeze
-routing, and public integration remain pending. There
+Dry Attack router, separate filter AD, LP/BP/HP buses, detune/doubling,
+asymmetric Spread, voice pan, and the static sound path are now implemented.
+Expression/freeze routing and public integration remain pending. There
 is no selectable `mod/pog3` entry yet.
 
 Development continues in `/home/bbalazs/projects/ardor-pog3` on
@@ -22,11 +23,13 @@ workspace and its unrelated changes remain separate.
 | `src/daisyfx/pog3/SpectralFrameStream.{h,cpp}` | Shared immutable FFT/window plans, causal streaming analysis, preallocated inverse FFT and overlap-add synthesis |
 | `src/daisyfx/pog3/PolyphonicPitchBank.{h,cpp}` | Shared short/long/low analysis, bounded persistent partial tracks, fractional spectral translation, low-band reconstruction, independent stereo synthesis, continuous Warp, Focus fades, staged render jobs |
 | `src/daisyfx/pog3/PolyphonicAttack.{h,cpp}` | Linked stereo harmonic families/residual partials, fixed old/new excitation history, input-timestamp attack ages, coherent gains across resolutions |
+| `src/daisyfx/pog3/Pog3VoiceStages.{h,cpp}` | Separate linked detector/filter AD, stereo dry/generated TPT filter buses, levels/pan, upper/dry doubling, eligible 1:3 Spread, final master, static sound-path composition |
 | `tests/pog3_granular_reference.h` | Five independent stereo pitch shifters using the existing Whammy/Harmonizer primitive; dry, six levels/pans, input gain, and final master |
 | `tests/pog3_controls.cpp` | Persisted index contract, both target setters, mappings, morph ownership, rejection/clamping, Warp and eligibility behavior |
 | `tests/pog3_quality.cpp` | Identity/delay/startup/drain/chunking/reset checks, isolated reference tuning, stereo/pan/gain checks, nonfinite/overflow rejection, optional WAV renders |
 | `tests/pog3_pitch_quality.cpp` | Spectral tuning/spurs/leakage, resolved and ordinary low chords, alias rejection, track continuity, Focus reversal, staged identity/deadlines, callback partitioning, Warp, overload/drain, envelope latency, close-pair diagnostic |
 | `tests/pog3_attack_quality.cpp` | Held/new notes, shared harmonics, low bass, re-plucks, arpeggios, bends, Focus reversals, activation, exact-off dry, reset, partition invariance, optional attack WAV renders |
+| `tests/pog3_voice_stages.cpp` | AD timing/retrigger, held-tone/chord detector, sensitivity/re-plucks, filter transfer and resonance, routing eligibility, delay endpoints/queues, pan, rapid automation/partition/reset, gain/overload/recovery, optional full-path WAV renders |
 | `tests/pog3_artifacts.h` | Shared offline float WAV writer; preserves raw levels |
 | `tests/pog3_bench.cpp` | Prepared callback timing distributions, transform burst counts, reset cost, allocation instrumentation, CSV output |
 | `ardor_realtime_fft` | Sole CMake ownership of the existing `RealtimeFft.cpp`; shared with the existing DSP/convolver target |
@@ -132,15 +135,16 @@ comparison harness; they do not establish polyphonic spectral pitch quality.
 ```sh
 cmake -S . -B build-ci -DARDOR_UI_BACKEND=none -DCMAKE_BUILD_TYPE=Release
 cmake --build build-ci -j 4 --target \
-  pedal-pog3-controls pedal-pog3-quality pedal-pog3-pitch-quality pedal-pog3-attack-quality pedal-pog3-bench \
+  pedal-pog3-controls pedal-pog3-quality pedal-pog3-pitch-quality pedal-pog3-attack-quality pedal-pog3-voice-stages pedal-pog3-bench \
   pedal-pitch-effect-quality pedal-harmonizer-quality \
   pedal-daisy-fx-catalog-smoke pedal-manager-effect-catalog-smoke \
   pedal-scene-plan-smoke pedal-scheduled-convolver-smoke pedal-poc
 ctest --test-dir build-ci --output-on-failure \
-  -R 'pedal-(pog3-controls|pog3-quality|pog3-pitch-quality|pog3-low-chord-quality|pog3-attack-quality|pitch-effect-quality|harmonizer-quality|daisy-fx-catalog-smoke|manager-effect-catalog-smoke|scene-plan-smoke|scheduled-convolver-smoke)'
+  -R 'pedal-(pog3-controls|pog3-quality|pog3-pitch-quality|pog3-low-chord-quality|pog3-attack-quality|pog3-voice-stages|pitch-effect-quality|harmonizer-quality|daisy-fx-catalog-smoke|manager-effect-catalog-smoke|scene-plan-smoke|scheduled-convolver-smoke)$'
 build-ci/pedal-pog3-quality --render build-ci/pog3-artifacts
 build-ci/pedal-pog3-attack-quality --render build-ci/pog3-artifacts
-build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/attack-bank-benchmark.csv
+build-ci/pedal-pog3-voice-stages --render build-ci/pog3-artifacts
+build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/voice-stages-benchmark.csv
 build-ci/pedal-pog3-pitch-quality --resolution-stress
 build-ci/pedal-pog3-pitch-quality --latency
 build-ci/pedal-pog3-pitch-quality --warp-onset
@@ -414,24 +418,132 @@ The 64-sample maximum leaves only **38 µs**. This evidence does not establish
 full-block, arbitrary callback-phase, combined-chain, or target-device admission.
 The memory goal is especially tight before filter, space, and held spectra.
 
+## Filter and voice stages (M5)
+
+`Pog3SignalPath` composes input gain, the existing attack/pitch bank, Dry Attack
+selection, and `Pog3VoiceStages`. It accepts audio-owned normalized sound values;
+it does not resolve expression modes or parse configurations. M6 will own base
+versus effective controls. Input Gain occurs once before analysis and both onset
+scorers, and Master occurs once after the separate dry/generated buses.
+
+Each voice's level and center-preserving stereo pan precede its space lines.
+Hard edges fold both input channels into the selected side with equal-power
+mono gain. Only upper octaves receive doubling; the fifth receives Spread only;
+neither suboctave receives either stage. Dry Detune enables both dry space
+stages, including Spread when Detune depth is zero. Spread is a replacement
+delay, without an extra direct path: `50u` ms left / `150u` ms right. Its two
+fixed read anchors share a 10 ms fade and latest-target queue, preserving the
+1:3 relationship during automation. Zero settles to the current sample exactly,
+including values inside the shared helper's 0.01-sample deadband. Continuous
+retargeting finishes the current fade before the latest pending target.
+
+Doubling uses an 8 ms base, up to ±1.5 ms modulation, distinct upper/dry phases,
+and 0.29/0.33 Hz stereo rates. Depth increases both modulation and delayed mix
+from zero to 50%. This gradual blend is an explicit Ardor voicing adaptation,
+not an EHX measurement. Histories stay warm; zero depth is exact direct audio.
+Read movement is bounded to about 0.005005 samples/sample (under 8.7 cents),
+including depth automation. Spread adds the selected delay after pitch/Attack;
+the doubling branch contributes approximately 6.5–9.5 ms alongside direct audio.
+
+The filter detector links channel powers rather than adding signed samples.
+Fast/slow power envelopes are 2/30 ms, the sensitivity gate is −42..−66 dBFS,
+contrast is 0.8..0.08, and refractory time is 15 ms. A retained fast-envelope
+peak prevents low-note cycle and held-chord chatter. The peak releases only
+after 100 ms mean input power falls below 70% of its reference, scaling with
+that decrease. A time-only 500 ms release failed the held-chord test at maximum
+sensitivity and was replaced without relaxing that gate. This is a playing-event
+heuristic, separate from spectral Attack; dense close beats and real-pedal
+trigger calibration still need listening review.
+
+Filter AD runs finite attack (5 ms..3 s), then decay (20 ms..3 s), then returns
+exactly to zero during sustain. Re-trigger starts from the current excursion.
+Cutoff is `base * 2^(depth * AD)`, clamped to 40..20,000 Hz, with ±6-octave
+depth. Base log frequency, Q and depth smooth with a 10 ms time constant; safe
+positive filter coefficients interpolate every sample between 16-sample
+updates. Two stereo TPT filter pairs share these controls while retaining
+separate dry/generated states. LP/BP/HP mode changes fade for 10 ms; BP is
+damping-normalized. The neutral LP endpoint can fade to exact open audio;
+BP/HP never bypass. Dry Filter independently fades its own warm filter pair.
+No automatic makeup gain, clipping, or output normalization is applied.
+
+At a 1 kHz cutoff, measured LP gain at 100 Hz / 10 kHz is approximately
+−0.00044 / −42.74 dB; HP is −40.03 / −0.00023 dB. BP gain at
+100 Hz / 1 kHz / 10 kHz is −17.00 / 0 / −18.36 dB. BP's center remains
+0 dB at Q=8; LP's center rises to +18.06 dB, as expected for that resonance.
+Tests cover exact shortest AD timing, polarity/base return, unchanged filter
+timing under volume Attack, anti-phase detection, 15 held-tone cases and two
+held-chord cases with exactly one trigger, soft plucks and stronger/decaying
+re-plucks, every voice's routing, endpoint impulses, queued fades, exact pan
+edges, master mute, and Input Gain/Master application once.
+
+Rapid parameter/mode/dry-routing/space automation produces identical samples
+with 1/64/127/512-sample partitions when control timestamps match. Repeated
+reset clears active transitions, filter state and every space history. Q=8
+with inputs up to ±12 remains finite and drains without recovery. Nonfinite
+source/filter/output results are muted and counted; affected filter state is
+cleared. Prepared callback, control updates and reset retain their capacities.
+
+Eight additional raw 48 kHz float WAVs cover source, organ, upward/downward
+filter, doubling, Spread, processed dry routing, and automation. Output peaks
+are 0.0467–0.0818, source peak 0.1155; files remain in the ignored artifact
+directory. These are reproducible listening evidence, not a completed listening
+sign-off or hardware comparison.
+
+All **12 selected release suites pass** (68.48 s), including the five existing
+POG3 suites, the new voice-stage suite, and pitch/harmonizer/catalog/scene/
+scheduled-convolver regressions. The complete new voice-stage suite also passes
+ASan/UBSan with leak detection enabled. The two new translation units compile
+without `-Wall -Wextra -Wpedantic` diagnostics. Earlier M3/M4 sanitizer evidence
+above remains separate; this increment did not rerun those entire sanitizer suites.
+
+The final optimized static sound-path benchmark includes all voices, both warm
+upper variants, active Attack/dry routing, Q=8, and 10 ms updates to filter
+frequency/envelope/mode, pan, doubling and Spread, with Focus reversals:
+
+| Callback samples | Median µs | p95 µs | p99 µs | p99.9 µs | Maximum µs | Budget µs |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 64 | 597.872 | 1071.241 | 1124.998 | 1189.387 | 1210.838 | 1333.333 |
+| 128 | 1407.216 | 1660.164 | 1718.222 | 1784.302 | 1830.221 | 2666.667 |
+
+These are 3,000/1,500 callbacks over four seconds after warm-up. Callback/control/
+reset allocations are **zero**, scheduled-render deadline misses **zero**, and
+maximum transforms remain 11/16. Those logical renderer counters do not measure
+host wall-clock lateness or device xruns. A preliminary run before the final
+output-overflow guard reached **1359.249 µs** for the full 64-sample path, above
+its period. The final run also contains a **2000.758 µs** outlier in the separate
+Attack/Warp/Focus bank workload. Preserve this variability as admission evidence;
+the final static-path maximum alone does not establish dependable margin.
+
+Requested preparation allocation is **2,233,936 bytes** (about **2.13 MiB**),
+including the benchmark wrapper, owned DSP objects and allocations requested
+during preparation; it is not a peak-RSS measurement. Asymmetric Spread histories
+use 153,728 bytes, doubling histories 12,288 bytes (166,016 bytes combined), and
+the remaining increase is owned stage/control state. Reset costs approximately
+59–84 µs. The current static path exceeds the 2 MiB initial goal by **136,784
+bytes** before freeze snapshots, and its observed worst callback cost exceeds
+the plan's 25%-of-period isolated-effect target. Both targets remain unmet.
+Further memory/CPU work and target-device combined-chain endurance are required
+before public admission; no callback-period or unrelated DSP quality change is
+authorized by these results.
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
 place. M1 supplies an audible reference, renders, and timing/allocation evidence;
 its artifacts remain the comparison baseline for subsequent work.
 
-M3/M4's software engine and core quality gates are implemented. Target-device
+M3–M5's software engine and core quality gates are implemented. Target-device
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next software milestone is **M5 — filter, detune, spread, and voice pan**.
-Add the separate linked playing-event detector and triggered filter AD sweep;
-volume Attack must not change its timing. Verify LP/BP/HP, cutoff/Q bounds,
-dry-filter routing, upper-only doubling, optional dry detune/spread, suboctave
-exclusions, and exact-zero delay endpoints. Extend memory/timing evidence before
-public admission. Continue listening review of M3/M4's stated fidelity limits.
+The next software milestone is **M6 — expression volume, morph, warp, and
+filter routing**. Resolve independent base/effective controls and compiled
+configuration endpoints, wire generated-only expression Volume and Warp,
+and verify Reverse, scene ownership, 7-bit ramps and dispatch. No audio callback
+may parse JSON, reconfigure or allocate. M7 then adds both freeze behaviors,
+including stationary phase evolution and genuine frequency gliss.
 
-Complete M5–M7 before M8's factory, catalog, inspector, scene, and manager
+Complete M6–M7 before M8's factory, catalog, inspector, scene, and manager
 integration. Public parameters must not expose unfinished audio behavior.
 
 The granular reference must remain a test harness. It cannot satisfy independent
