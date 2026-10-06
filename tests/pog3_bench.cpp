@@ -331,6 +331,8 @@ int main(int argc, char** argv) {
   try {
     std::ofstream file;
     if (argc == 3 && std::string_view(argv[1]) == "--csv") {
+      // Explicit destination selected by the local benchmark operator, with
+      // the same filesystem permissions as the process. This is test-only.
       file.open(argv[2]);
       if (!file) throw std::runtime_error("cannot create benchmark CSV");
     } else if (argc != 1) throw std::runtime_error("usage: pedal-pog3-bench [--csv path]");

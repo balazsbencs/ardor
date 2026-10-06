@@ -204,7 +204,8 @@ void bendAndFocus() {
     const float x = .1 * std::sin(phase);
     const auto a = reference.process({x, -.4f * x}), b = swell.process({x, -.4f * x});
     if (i >= 48000) {
-      rawEnergy += a[4].left * a[4].left; outEnergy += b[4].left * b[4].left;
+      rawEnergy += static_cast<double>(a[4].left) * a[4].left;
+      outEnergy += static_cast<double>(b[4].left) * b[4].left;
       if (i % 4800 == 4799) {
         const double delta = 10 * std::log10(outEnergy / rawEnergy);
         worst = std::max(worst, std::fabs(delta));

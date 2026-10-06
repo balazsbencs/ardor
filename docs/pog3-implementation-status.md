@@ -1086,6 +1086,37 @@ that diagnosed allocation-probe warning, the changed benchmark compiles without
 other `-Wall -Wextra -Wpedantic` diagnostics. Production allocation behavior is
 unchanged, and the sanitizer suites above do not use this benchmark probe.
 
+## CodeQL and dependency checkpoint
+
+The five `cpp/integer-multiplication-cast-to-long` findings in the Attack,
+voice-stage and freeze quality tools are corrected by converting an operand to
+`double` before multiplying. The product now uses the accumulator's precision;
+casting a float product afterward would retain its overflow and rounding.
+The owning Attack/voice-stage tests and freeze `--warm-live` gate pass. A bounded
+standalone check also confirms that a finite large float squared overflows in
+float while the promoted double product remains finite.
+
+The sixteen `cpp/path-injection` findings were independently traced from the
+test CLI arguments to their file sinks. `--render` deliberately accepts an
+operator-selected directory with internally generated WAV names; `--csv`
+deliberately accepts an operator-selected file. These are local test executables,
+not network or privileged services, and promise no destination sandbox. Relative
+and absolute render destinations both pass a focused legitimate-use check.
+There is no violated trust boundary to repair. The findings are recorded as
+false positives with that reason in GitHub, preserving these diagnostic options;
+the comments in the code explain the contract rather than hide a tainted path.
+
+The Manager CI audit separately found `source-map-js` 1.2.1 affected by
+[GHSA-68fv-2mgg-jv7q](https://github.com/advisories/GHSA-68fv-2mgg-jv7q).
+Only its lockfile version, resolved URL and integrity change to patched 1.2.2.
+`npm ci`, `npm audit --audit-level=high` (zero vulnerabilities), type checking,
+all 739 tests in 60 files and the production Manager build pass. The existing
+bundle-size advisory remains; no device UI bundle is regenerated.
+
+The latest C++ CodeQL analysis must complete on the pushed corrections before
+the precision alerts can be described as closed. Reviewed path-alert dismissals
+are separate from that automated validation.
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in

@@ -291,7 +291,7 @@ void warmLiveRelease() {
       if (i < 8192 || i >= release + n + 2 * hop) {
         require(std::bit_cast<std::uint32_t>(live) == std::bit_cast<std::uint32_t>(actual),
                 "fully held renderer retains bit-identical warm live state for release");
-        if (i >= release + n + 2 * hop) resumedEnergy += live * live;
+        if (i >= release + n + 2 * hop) resumedEnergy += static_cast<double>(live) * live;
       }
       const float input = sine(82.4069, i) + .6f * sine(i < 16384 ? 196 : 293.6648, i);
       if (lowAnalysis.push(input)) lowFrame.update(lowAnalysis.spectrum());
