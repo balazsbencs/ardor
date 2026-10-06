@@ -1257,6 +1257,144 @@ ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 build-pog3-sanitize/pe
 build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/admission-balanced.csv
 ```
 
+## Average-demand profiling and Attack rounding refinement
+
+The preceding schedule at **c06fa3ae** passes every GitHub CI check, including
+all three CodeQL languages, the aggregate CodeQL check, C++ engine/UI, Manager
+app/daemon, documentation and dependency review. The PR merge ref has **zero
+open CodeQL alerts**. This verifies the scheduling follow-up separately from
+the earlier security-only checkpoint.
+
+### Profile and average-time diagnostics
+
+Linux `perf` and Valgrind are unavailable on this host. A separate `-O3 -pg`
+build instruments the POG3 sources and shared FFT without changing production
+compiler flags or repository build configuration. It repeats the full
+64-sample expression workload four times, including each warm-up. This is
+**diagnostic profiling, not an admission benchmark**: instrumentation, inlining,
+library attribution and 10 ms sample resolution affect the result.
+
+Its leading self-time samples are FFT 31.60%, live renderer 14.73%, pitch-frame
+interpretation 11.29%, Attack update 9.58%, Attack grouping 4.72%, synthesis
+outside the FFT 4.36%, Attack family ownership 4.22% and held renderer 3.72%.
+These point to remaining transform/render/interpretation demand rather than
+another scheduling-only change. Profile inputs/output are retained locally in
+`/tmp/pog3-cpu-profile/profile-bench.cpp`, `expression-profile.csv` and
+`expression-gprof.txt`; instrumented callback times are not used below.
+
+The ordinary benchmark appends **`mean_us`** after its existing CSV columns.
+It averages every measured callback's wall time before sorting, after the
+allocation/health checks and outside all callback timers. No outlier is dropped.
+Existing fields retain their names/order. The mean helps distinguish reduced
+overall wall-time demand from shifted callback percentiles; it still includes
+host preemption and is not a direct CPU-cycle or target-device measurement.
+All old/new comparisons use this same new probe.
+
+### Bounded nearest-harmonic calculation
+
+Attack family scoring/ownership previously called `std::round(float)` for
+all candidate pairs, including ratios that cannot match supported harmonics.
+Only rounded integers **1 through 8** can satisfy the existing predicate.
+Reject ratios outside **[0.5, 8.5)** before integer conversion, then truncate
+and increment exactly when the fractional part is at least 0.5. This retains
+half ties away from zero and the original division, strict cents tolerance,
+scoring, candidate order and family tie rules.
+
+For whole parts 1 through 8, subtracting the whole part is exact by the
+binary floating-point subtraction bound; for whole part zero it subtracts
+zero. Integer conversion stays bounded. Avoid `int(ratio + .5f)`, whose
+addition can round a just-below-half value up. No family capacity, timestamps,
+excitation histories, FFT behavior, prepared storage or callback allocation
+changes. The optimized Attack object has no `roundf` relocation, while the
+control has two call sites.
+
+A temporary comparison against the original calculation passes **2,043,230**
+cases: two million deterministic frequency/fundamental pairs plus next-float
+sweeps around half ties, strict harmonic tolerance boundaries, integer
+harmonics and the 40 Hz eligibility boundary. A separately linked old/new bank
+comparison also preserves every output bit across **65,536 samples × six
+voices × stereo**, including arbitrary boundary Attack/Warp controls, all
+expression selections, unequal stereo and resets around deferred analysis.
+These helpers are retained under `/tmp/pog3-cpu-profile`; they do not add
+production instrumentation or duplicate implementation unit tests.
+
+All **eight POG3 release suites pass** (109.13 s), including both 60-second
+freeze holds. All **21 affected Attack/expression/freeze raw WAVs** remain
+byte-identical to the M7 baseline. The other 32 artifacts were not re-rendered for this increment; their preceding
+schedule comparison remains recorded above. The changed Attack source compiles
+cleanly with `-O3 -Wall -Wextra -Wpedantic`.
+
+The full Attack and expression suites pass **ASan/UBSan with leak detection**
+(256.93 s combined wall time at `-j2`). The freeze functional/dense/reset/
+warm-release suite also passes with the same sanitizer settings; `--quick`
+omits only the two long holds already exercised in the release suite. There
+are no sanitizer diagnostics. This increment changes only Attack arithmetic
+and the offline benchmark; shared FFT and other effects are untouched.
+
+### Ordinary release timing and decision
+
+After every validation job finished, run all 14 workload/callback combinations
+in each invocation, sequentially in **control → candidate → candidate → control**
+order. Both binaries use identical `-O3 -DNDEBUG` compilation, headers, corrected
+health/allocation probe and archive order. The candidate binary is byte-identical
+to the ordinary CMake benchmark. The control links a copy of c06fa3ae's library;
+there is no profiling instrumentation in either timing binary.
+
+All 56 measured rows pass the pre-reset health/deadline checks and report
+**zero processing/control/reset allocations**. Requested preparation storage
+and maximum transform counts match between control and candidate in every row:
+all-mode **2,054,654 bytes**, and **11/16** maximum transforms at 64/128 samples.
+
+Main full-path results, in microseconds, with **every outlier retained**:
+
+| Pair | Version | Workload | Frames | Mean | p99 | Maximum |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Control | Expression | 64 | 652.729 | 1056.198 | 1154.456 |
+| 1 | Control | Gliss | 64 | 688.127 | 1091.631 | 1286.042 |
+| 1 | Control | Expression | 128 | 1308.138 | 1545.113 | 1617.242 |
+| 1 | Control | Gliss | 128 | 1386.518 | 1579.089 | 1818.241 |
+| 1 | Retained | Expression | 64 | 625.649 | 966.935 | 1020.011 |
+| 1 | Retained | Gliss | 64 | 663.144 | 1003.444 | 1189.976 |
+| 1 | Retained | Expression | 128 | 1278.984 | 1639.713 | 4410.026 |
+| 1 | Retained | Gliss | 128 | 1321.712 | 1491.424 | 1891.982 |
+| 2 | Control | Expression | 64 | 651.723 | 1048.247 | 1113.183 |
+| 2 | Control | Gliss | 64 | 689.892 | 1091.945 | 1255.548 |
+| 2 | Control | Expression | 128 | 1303.973 | 1539.712 | 1608.960 |
+| 2 | Control | Gliss | 128 | 1386.603 | 1562.737 | 1759.824 |
+| 2 | Retained | Expression | 64 | 625.216 | 965.847 | 1016.703 |
+| 2 | Retained | Gliss | 64 | 661.313 | 998.837 | 1260.829 |
+| 2 | Retained | Expression | 128 | 1250.877 | 1486.718 | 1559.297 |
+| 2 | Retained | Gliss | 128 | 1322.098 | 1492.308 | 2167.287 |
+
+Retain this refinement: the Attack-bank mean falls **4.40–4.74%**, static sound
+**4.07–4.66%**, expression **2.23–4.15%** and gliss **3.63–4.67%** across both
+callback sizes and both orders. The unaffected granular/identity controls are
+close in the reverse-order pair, whereas the first pair's 64-sample controls
+also improve 2.67–3.11%; host drift prevents assigning every observed percentage
+solely to this arithmetic change. The bank without Attack changes by −1.65%
+to +0.44% rather than matching the consistently larger Attack gains.
+
+Attack/static/gliss p99 falls in both pairs at both callback sizes. Expression
+p99 falls at 64 samples, while its 128-sample result is **mixed**: +6.12% in pair
+one and −3.44% in pair two. This is not evidence of consistently improved tails.
+The retained candidate also has **4410.026 µs** expression, **3456.486 µs** static
+and **5351.144 µs** no-Attack bank maxima at 128 samples, each above the
+2666.667 µs period. These remain in the CSVs and are not rejected as inconvenient
+samples. Even without those excursions, the expression mean is about **47–48%**
+of its callback period and gliss about **50%**, well above the **25% goal**.
+This is a modest reduction of average demand, not target/combined-chain admission.
+
+Complete unedited CSVs, including all other workload medians, percentiles,
+maxima and reset/preparation/transform diagnostics, remain under
+`build-ci/pog3-artifacts/round-{control,candidate}-{1,2}.csv` (ignored build
+artifacts). An initial control was interrupted before producing rows because
+validation was still running; it is retained as `round-control-interrupted.csv`
+and is not timing evidence. Reproduce the current benchmark with:
+
+```sh
+build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/round-retained.csv
+```
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
@@ -1272,10 +1410,12 @@ scene and manager integration**. All seven DSP expression selections now have
 audio behavior. The initial host allocation goal is met; CPU margin, target
 memory/endurance and M3/M4/M7 fidelity limits still require work. Successful
 hold/routing tests do not satisfy target-device feasibility.
-The coincident-analysis scheduling change now has exact-output evidence. Use
-its callback timestamps to profile the remaining analysis, Attack and renderer
-costs before choosing the next optimization. Preserve input timestamps, control
-snapshots, complete-frame publication and Attack/freeze/render deadlines.
+The coincident-analysis schedule and bounded Attack rounding change now have
+exact-output evidence. The diagnostic profile still identifies FFT, rendering
+and pitch-frame interpretation as the largest remaining average-demand costs.
+Use the new mean alongside callback tails to evaluate the next optimization.
+Preserve input timestamps, control snapshots, complete-frame publication and
+Attack/freeze/render deadlines.
 Maintain latency, arbitrary callback partitions, allocation bounds and audible
 quality gates; moving work does not solve excessive average demand.
 Resolve admission before adding the public catalog entry, then exercise actual

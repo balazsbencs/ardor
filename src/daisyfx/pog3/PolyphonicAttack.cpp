@@ -13,7 +13,13 @@ float distance(float a, float b) noexcept { return std::fabs(a - b) / std::max(4
 int harmonic(float frequency, float fundamental) noexcept {
   if (fundamental < 40) return 0;
   const float ratio = frequency / fundamental;
-  const int n = static_cast<int>(std::clamp(std::round(ratio), 0.0f, 9.0f));
+  // Only rounded harmonics 1..8 can match. For this positive, bounded
+  // interval, truncation plus a fractional comparison is round-to-nearest
+  // with half ties away from zero, without a library round call. Do not use
+  // int(ratio + .5f): that addition can round a value just below a half tie up.
+  if (!(ratio >= .5f && ratio < 8.5f)) return 0;
+  const int whole = static_cast<int>(ratio);
+  const int n = whole + (ratio - whole >= .5f);
   return n >= 1 && n <= 8 && std::fabs(ratio - n) < n * kMatch ? n : 0;
 }
 float windowMargin(float frequency, float radius) noexcept {
