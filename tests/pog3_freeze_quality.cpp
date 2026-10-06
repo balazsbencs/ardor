@@ -1,6 +1,7 @@
 #include "daisyfx/pog3/Pog3Processor.h"
 #include "pog3_artifacts.h"
 
+#include <bit>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -266,6 +267,46 @@ void partition() {
               "freeze/gliss/control transitions are bit-identical across callback partitions");
   }
 }
+void warmLiveRelease() {
+  // A fully held renderer must advance the same live histories as a renderer
+  // which stays audible. After old OLA drains, release must reproduce that
+  // independent live reference exactly, including notes born during the hold.
+  double resumedEnergy = 0;
+  for (const std::size_t n : {1024U, 2048U}) for (const float semitones : {-24.0f, 0.0f, 7.0f, 24.0f}) {
+    const auto hop = n / 8;
+    auto interpolation = std::make_shared<PitchInterpolation>();
+    auto plan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(n, hop), interpolation);
+    auto lowPlan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(4096, 512), interpolation);
+    SpectralAnalysis analysis, lowAnalysis;
+    analysis.prepare(plan->spectral); lowAnalysis.prepare(lowPlan->spectral);
+    PitchFrame frame, lowFrame; frame.prepare(plan); lowFrame.prepare(lowPlan, 400);
+    PitchRenderer reference, frozen; reference.prepare(plan, true); frozen.prepare(plan, true);
+    FrozenBand held{}, lowHeld{};
+    held.count = lowHeld.count = 1;
+    held.partials[0].id = 1; held.partials[0].frequency = 196; held.partials[0].magnitude = .05f;
+    lowHeld.partials[0].id = 2; lowHeld.partials[0].frequency = 82.4069f; lowHeld.partials[0].magnitude = .03f;
+    constexpr std::size_t release = 32768;
+    for (std::size_t i = 0; i < 49152; ++i) {
+      const float live = reference.pop(), actual = frozen.pop();
+      if (i < 8192 || i >= release + n + 2 * hop) {
+        require(std::bit_cast<std::uint32_t>(live) == std::bit_cast<std::uint32_t>(actual),
+                "fully held renderer retains bit-identical warm live state for release");
+        if (i >= release + n + 2 * hop) resumedEnergy += live * live;
+      }
+      const float input = sine(82.4069, i) + .6f * sine(i < 16384 ? 196 : 293.6648, i);
+      if (lowAnalysis.push(input)) lowFrame.update(lowAnalysis.spectrum());
+      if (!analysis.push(input)) continue;
+      frame.update(analysis.spectrum());
+      const float mix = i >= 8192 && i < release ? 1 : 0;
+      require(reference.render(frame, semitones, &lowFrame, hop, nullptr, nullptr, true)
+                && frozen.render(frame, semitones, &lowFrame, hop, nullptr, nullptr, true,
+                                 &held, &lowHeld, mix),
+              "held and live reference accept every staged frame");
+    }
+  }
+  require(resumedEnergy > 1, "warm release comparison exercises audible shifted and unison output");
+}
+
 void endurance() {
   for (const bool chord : {false, true}) {
     Pog3Processor p; configure(p, isolated(2));
@@ -347,9 +388,11 @@ void render(const std::filesystem::path& directory) {
 int main(int argc, char** argv) {
   try {
     if (argc == 3 && std::string_view(argv[1]) == "--render") { render(argv[2]); return 0; }
+    if (argc == 2 && std::string_view(argv[1]) == "--warm-live") { warmLiveRelease(); return 0; }
     const bool quick = argc == 2 && std::string_view(argv[1]) == "--quick";
-    if (argc != 1 && !quick) throw std::runtime_error("usage: pedal-pog3-freeze-quality [--quick | --render directory]");
+    if (argc != 1 && !quick) throw std::runtime_error("usage: pedal-pog3-freeze-quality [--quick | --warm-live | --render directory]");
     stationary(); stateAndSilence(); gliss(); eligibilityAndVolume(); toeAndReverse(); midGlideLatchAndStereo(); partition(); denseAndReset();
+    warmLiveRelease();
     if (!quick) endurance();
     std::cout << "POG3 stationary freeze, gliss, eligibility, routing and lifecycle gates passed\n"; return 0;
   }
