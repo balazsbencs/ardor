@@ -19,7 +19,7 @@ double cents(double ratio) { return 1200.0 * std::log2(ratio); }
 
 // A legal upward Warp trajectory can produce a restart just below zero. Adding
 // 8192 in float rounds that position to the excluded upper ring endpoint. The
-// declared ring ends before the NaN guard, which must never reach the output.
+// declared ring ends before a NaN sentinel, which must never reach the output.
 void verifyPitchFractionalWrap()
 {
   constexpr size_t ringSize = 8192;
