@@ -104,6 +104,11 @@ jobs:
       - name: Use GitHub mirror for Eigen
         run: git config --global url."https://github.com/eigen-mirror/eigen.git".insteadOf https://gitlab.com/libeigen/eigen
 
+      - name: Install FFTW development files
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libfftw3-dev
+
       - name: Configure headless build
         run: cmake -S . -B build-ci -DARDOR_UI_BACKEND=none -DCMAKE_BUILD_TYPE=Release
 
@@ -122,10 +127,10 @@ jobs:
       - name: Use GitHub mirror for Eigen
         run: git config --global url."https://github.com/eigen-mirror/eigen.git".insteadOf https://gitlab.com/libeigen/eigen
 
-      - name: Install SDL development files
+      - name: Install SDL and FFTW development files
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libsdl2-dev
+          sudo apt-get install --yes libsdl2-dev libfftw3-dev
 
       - name: Configure SDL build
         run: cmake -S . -B build-ui-ci -DARDOR_UI_BACKEND=sdl -DCMAKE_BUILD_TYPE=Release

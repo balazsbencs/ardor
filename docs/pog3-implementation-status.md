@@ -9,9 +9,12 @@ Dry Attack router, separate filter AD, LP/BP/HP buses, detune/doubling,
 asymmetric Spread, voice pan, and the static sound path are now implemented.
 All seven expression modes now resolve through a prepared processor with
 independent base/effective controls. Both freeze modes, moving-carrier gliss,
-heel/toe hysteresis and per-voice eligibility are implemented. Prepared host
-allocation now meets the initial 2 MiB goal. CPU admission, target memory and
-combined-chain endurance, calibration/listening and public integration remain open.
+heel/toe hysteresis and per-voice eligibility are implemented. Production FFTW
+reduces full-path mean CPU demand by 24.12–27.66%, to 31.67–35.27% of the
+callback period, still above the 25% goal. The C++ preparation counter remains
+below 2 MiB but excludes FFTW internal storage; fuller memory admission is open.
+CPU admission, target memory, combined-chain endurance, calibration/listening
+and public integration remain open.
 There is no selectable `mod/pog3` entry yet.
 
 Development continues in `/home/bbalazs/projects/ardor-pog3` on
@@ -32,7 +35,7 @@ workspace and its unrelated changes remain separate.
 | `src/daisyfx/pog3/Pog3Processor.{h,cpp}` | Prepared lifecycle, immutable endpoint configuration, 33 key/index targets, 48-sample control cadence, separate base/effective values, all seven expression modes and freeze diagnostics |
 | `tests/pog3_granular_reference.h` | Five independent stereo pitch shifters using the existing Whammy/Harmonizer primitive; dry, six levels/pans, input gain, and final master |
 | `tests/pog3_controls.cpp` | Persisted index contract, both target setters, mappings, morph ownership, rejection/clamping, Warp and eligibility behavior |
-| `tests/pog3_quality.cpp` | Shared/prepared FFT exactness across every supported size, identity/delay/startup/drain/chunking/reset, isolated reference tuning, stereo/pan/gain, nonfinite/overflow rejection and optional WAV renders |
+| `tests/pog3_quality.cpp` | Active FFTW numerical accuracy, exact shared fallback, concurrent shared-plan execution, identity/delay/startup/drain/chunking/reset, isolated reference tuning, stereo/pan/gain, nonfinite/overflow rejection and optional WAV renders |
 | `tests/pog3_pitch_quality.cpp` | Spectral tuning/spurs/leakage, resolved and ordinary low chords, alias rejection, track continuity, Focus reversal, staged identity/deadlines, callback partitioning, Warp, overload/drain, envelope latency, close-pair diagnostic |
 | `tests/pog3_attack_quality.cpp` | Held/new notes, shared harmonics, low bass, re-plucks, arpeggios, bends, Focus reversals, activation, exact-off dry, reset, partition invariance, optional attack WAV renders |
 | `tests/pog3_voice_stages.cpp` | AD timing/retrigger, held-tone/chord detector, sensitivity/re-plucks, filter transfer and resonance, routing eligibility, delay endpoints/queues, pan, rapid automation/partition/reset, gain/overload/recovery, optional full-path WAV renders |
@@ -40,13 +43,15 @@ workspace and its unrelated changes remain separate.
 | `tests/pog3_freeze_quality.cpp` | Stationary pitch/level/stereo, genuine moving-carrier gliss, mid-glide latch/resume, strict dry/Focus eligibility, hysteresis/Reverse, startup/silent capture, dense input/reset, partition invariance, two 60-second holds and optional freeze WAV renders |
 | `tests/pog3_artifacts.h` | Shared offline float WAV writer; preserves raw levels |
 | `tests/pog3_bench.cpp` | Prepared mean/percentile callback timing, transform burst counts, reset cost, allocation/health instrumentation and CSV output |
+| `tests/pog3_malloc_probe.c` | Test-only glibc C allocation/free interposer for the complete prepared benchmark; absent from DSP/application linking |
 | `src/daisyfx/hosted/dsp/pitch_shifter.cpp`, `tests/pitch_effect_quality.cpp` | Correct rounded negative ring positions before interpolation; public-API regression covers upward Warp at the ring endpoint |
 | `ardor_realtime_fft` | Sole CMake ownership of the existing `RealtimeFft.cpp`; shared with the existing DSP/convolver target |
-| `ardor_pog3` | Independent parameter/spectral/pitch/attack/voice-stage/processor library; links the shared FFT without a Daisy/DSP dependency cycle |
+| `ardor_pog3` | Independent parameter/spectral/pitch/attack/voice-stage/processor library; links single-precision FFTW and the shared fallback without a Daisy/DSP dependency cycle |
 
 The CMake edits retain the unrelated changes already present in the workspace.
 Existing catalog entries, scene indices and tracked device binaries remain
-unchanged. FFT arithmetic is preserved; the demonstrated shared granular
+unchanged. FFTW changes active transform arithmetic within the numerical/audio
+contract documented in the latest checkpoint. The demonstrated shared granular
 read-index correction is documented with its original-reader reproduction below.
 
 ## Contracts established
@@ -1617,6 +1622,39 @@ build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/dense-retained.csv
 All GitHub CI checks pass on the preceding **a3180022** revision. The new FFT
 layout and shared reader correction require their own CI run after push.
 
+## FFTW production CPU checkpoint (2026-10-06)
+
+The user accepts GPL-linked builds. Active 1024/2048/4096 plans now use immutable
+single-precision FFTW complex plans, with new-array execution on existing
+renderer/analysis vectors and exactly one 1/N inverse gain. Planning/destruction
+serialize off the callback; unsupported foundation sizes and the shared
+convolver FFT keep `RealtimeFft`. CMake/CI discover the platform `fftw3f` package;
+the Pi package selects it with AArch64 NEON and single-thread execution.
+
+The default FFTW buffered solver allocated C temporaries despite the old C++
+allocation counter reporting zero. `FFTW_NO_BUFFERING` removes that execution
+allocation. The new glibc C allocation/free CTest verifies all 14 full workloads,
+reset and control helpers, with a required-preload negative check. All nine POG3
+release suites and the affected sanitizer checks pass. Active transform accuracy
+now has an independent -110 dB numerical contract rather than requiring the
+old algorithm's float bits; impulse gain, concurrency, latency, partition,
+whole-frame rejection/recovery and existing DSP quality gates pass.
+
+Four final opposite-order runs against `59be448c` show **24.12–27.66% lower
+full-path mean demand**, now **31.67–35.27%** of the period. CPU admission is still
+unmet; host maxima retain period overruns. A separate diagnostic profile puts
+FFT at approximately 6% of processor work, with rendering at 33–38% and both
+interpretation and Attack at 20–24%. CPU effort now follows those larger costs.
+The C++ requested preparation count is **2,026,198 bytes**, excluding FFTW's
+opaque C storage. Fuller glibc heap observations exceed 2 MiB, so the previous
+C++-only goal must not be reported as complete backend memory admission.
+
+See [the FFT backend evaluation](pog3-fft-backend-evaluation.md) for plan/alignment
+ownership, the allocation finding and fix, numerical contract, complete timing
+tables and outliers, memory-accounting limits, build/license details, profile
+and the detailed next CPU steps. Historical exact-WAV/scalar measurements above
+remain checkpoints; they are not claims about the new FFTW output.
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
@@ -1627,15 +1665,17 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is CPU/target admission and **M8 — factory, catalog, inspector,
-scene and manager integration**. All seven DSP expression selections now have
-audio behavior. The initial host allocation goal is met; CPU margin, target
+The next work is **CPU admission**. **M8 — factory, catalog, inspector, scene
+and manager integration** remains blocked on feasibility. All seven DSP
+expression selections now have audio behavior. The C++ allocation counter stays
+below its original goal, while FFTW internal storage, CPU margin, target
 memory/endurance and M3/M4/M7 fidelity limits still require work. Successful
 hold/routing tests do not satisfy target-device feasibility.
-The balanced analysis schedule, bounded Attack matching and prepared FFT layout
-now have exact-output evidence; the shared granular read correction is separately
-reproduced and documented. The diagnostic profile still identifies FFT, rendering
-and pitch-frame interpretation as the largest remaining average-demand costs.
+The balanced analysis schedule and bounded Attack matching have earlier
+exact-output evidence; the shared granular read correction is separately
+reproduced and documented. FFTW uses the new numerical/audio contract described
+above. Its diagnostic profile identifies rendering, pitch-frame interpretation
+and Attack as the largest remaining average-demand costs.
 Use the new mean alongside callback tails to evaluate the next optimization.
 Preserve input timestamps, control snapshots, complete-frame publication and
 Attack/freeze/render deadlines.

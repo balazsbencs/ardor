@@ -46,6 +46,12 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
           queries: security-extended
 
+      - name: Install C++ build dependencies
+        if: matrix.language == 'c-cpp'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libfftw3-dev
+
       - name: Build C++ code
         if: matrix.language == 'c-cpp'
         run: |

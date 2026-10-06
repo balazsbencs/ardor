@@ -24,6 +24,25 @@ Implementation started on 2026-10-06. See [implementation status and measured ev
 
 **Prepared FFT and ring-reader update:** active spectral plans now prepare compact bit-reversal swap pairs and contiguous stage twiddles off the callback. FFT arithmetic/coefficient bits, phase precision, resolution, staging and latency are retained; sizes above 4096 keep the original shared FFT. Independent comparison covers 1,834,112 complex bins across every supported size and both directions. Requested all-mode host preparation falls by 14,536 bytes to **2,040,118 bytes (1.946 MiB)**. Render comparison also exposed a demonstrated shared granular reader defect: adding the ring size to a tiny negative float can round to the excluded upper endpoint. Reordering its existing normalization operations corrects that DSP read without adding callback checks. The permanent regression fails on the original reader and passes on the correction. All 53 WAVs match an original-FFT control with that corrected reader; the historical M7 baseline is preserved, with its one affected granular-reference sample documented separately. The final 18 release suites and affected sanitizer checks pass. Detailed timing and review evidence are in the status document. CPU/target/chain admission and M8 public integration remain open.
 
+**FFTW CPU checkpoint:** the user explicitly accepts GPL-linked builds. Production
+1024/2048/4096 transforms now use single-precision FFTW, immutable shared plans,
+existing per-renderer/analysis scratch and one 1/N inverse gain. Planning and
+destruction serialize off the callback. The buffered solver is disabled after
+a C allocation probe demonstrated execution temporaries; a permanent full-path
+C allocation/free regression now passes. All nine POG3 release suites and
+foundation/pitch/warm-live sanitizer checks pass. Active transform comparison
+uses a -110 dB numerical accuracy contract; previous scalar-WAV exactness is
+historical. Final opposite-order comparisons show 24.12–27.66% lower mean demand,
+with full paths at 31.67–35.27% of the period, still above 25%. FFT is now about
+6% of work; rendering, interpretation and Attack are the next measured costs.
+C++ preparation is 2,026,198 bytes but excludes internal FFTW storage, and fuller
+heap observations exceed 2 MiB. **Focus on CPU admission before other milestones.**
+Detailed evidence, dependency/license/target configuration, allocation and
+numerical contracts, memory limits and the implementing agent's next CPU tasks
+are in [the FFT backend evaluation](pog3-fft-backend-evaluation.md). This checkpoint
+supersedes the prepared scalar FFT as the active backend, with no selectable
+catalog entry or target admission yet.
+
 ## 1. Objective and instructions to the implementing agent
 
 Build one new effect, `mod/pog3`, displayed as **Poly Octave 3**, with six independently mixed and panned voices, expressive swells, a resonant envelope filter, upper-voice doubling, stereo spread, expression morphing, pitch warp, and spectral freeze. Put it in Ardor's existing modulation family so presets, expression assignments, MIDI parameter mappings, scenes, and the block browser use the established paths.
