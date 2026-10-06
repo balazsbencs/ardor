@@ -12,6 +12,9 @@
 
 namespace pog3_test {
 // Offline IEEE-float WAVs. Preserve raw peaks: no normalization or limiting.
+// The output directory is deliberately chosen by the local --render operator;
+// callers append internally generated filenames. This helper is test-only and
+// has no network or privileged service caller imposing a destination sandbox.
 template<class Stereo>
 void writeRender(const std::filesystem::path& path, const std::vector<Stereo>& frames) {
   if (frames.empty() || frames.size() > (UINT32_MAX - 48) / 8)
