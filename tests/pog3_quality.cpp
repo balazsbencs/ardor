@@ -1,6 +1,7 @@
 #include "daisyfx/pog3/SpectralFrameStream.h"
 #include "daisyfx/pog3/PolyphonicPitchBank.h"
 #include "pog3_granular_reference.h"
+#include "pog3_artifacts.h"
 
 #include <algorithm>
 #include <bit>
@@ -179,32 +180,7 @@ void spectralLifecycle() {
   }
 }
 
-void writeRender(const std::filesystem::path& path, const std::vector<ardor::StereoSample>& frames) {
-  // Small offline IEEE-float WAV writer, retaining peaks for honest comparison.
-  // No normalization, limiting, or clipping is applied to review artifacts.
-  std::ofstream file(path, std::ios::binary);
-  require(file.good(), "cannot open render " + path.string());
-  const auto word = [&](std::uint32_t value, int bytes) {
-    for (int i = 0; i < bytes; ++i) file.put(static_cast<char>((value >> (8 * i)) & 255));
-  };
-  const auto dataBytes = static_cast<std::uint32_t>(frames.size() * 8);
-  file.write("RIFF", 4); word(48 + dataBytes, 4); file.write("WAVEfmt ", 8);
-  word(16, 4); word(3, 2); word(2, 2); word(48000, 4); word(48000 * 8, 4); word(8, 2); word(32, 2);
-  file.write("fact", 4); word(4, 4); word(static_cast<std::uint32_t>(frames.size()), 4);
-  file.write("data", 4); word(dataBytes, 4);
-  double energy = 0;
-  float peak = 0;
-  for (const auto frame : frames) for (const auto sample : {frame.left, frame.right}) {
-    require(std::isfinite(sample), "render contains nonfinite sample");
-    word(std::bit_cast<std::uint32_t>(sample), 4);
-    energy += static_cast<double>(sample) * sample;
-    peak = std::max(peak, std::fabs(sample));
-  }
-  file.flush();
-  require(file.good(), "cannot write render " + path.string());
-  std::cout << path.filename().string() << " peak=" << peak
-            << " RMS=" << std::sqrt(energy / (2 * frames.size())) << '\n';
-}
+using pog3_test::writeRender;
 
 void renderSpectral(const std::filesystem::path& directory,
                     const std::vector<ardor::StereoSample>& input, bool isolated, bool warp) {
