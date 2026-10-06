@@ -5,6 +5,7 @@
 #include <complex>
 #include <cstddef>
 #include <memory>
+#include <limits>
 #include <span>
 #include <vector>
 
@@ -50,7 +51,9 @@ private:
 
 class SpectralSynthesis {
 public:
-  void prepare(std::shared_ptr<const SpectralPlan> plan);
+  // Renderers own mutable FFT scratch. Bounded staging permits an N+H ring.
+  void prepare(std::shared_ptr<const SpectralPlan> plan, bool externalScratch = false,
+               std::size_t maximumStartOffset = std::numeric_limits<std::size_t>::max());
   void reset() noexcept;
   // Call pop() once per host sample BEFORE analysis.push(). If that push
   // completes a frame, addFrame() schedules its first sample for the next
@@ -61,12 +64,16 @@ public:
   // startOffset delays the window relative to the next pop, enabling bounded
   // job staging. It must be <= N so the complete window fits the OLA ring.
   bool addFrame(std::span<const std::complex<float>> spectrum, std::size_t startOffset = 0) noexcept;
+  // Consumes caller-owned scratch; transform/rejection may modify the vector.
+  // OLA remains transactional, including inverse/accumulation overflow.
+  bool addFrameInPlace(std::vector<std::complex<float>>& spectrum, std::size_t startOffset = 0) noexcept;
 
 private:
   std::shared_ptr<const SpectralPlan> plan_;
   std::vector<std::complex<float>> scratch_;
   std::vector<float> overlap_;
-  std::size_t read_ = 0;
+  std::size_t read_ = 0, maximumStartOffset_ = 0;
+  bool synthesize(std::vector<std::complex<float>>& scratch, std::size_t startOffset) noexcept;
 };
 
 } // namespace ardor::pog3

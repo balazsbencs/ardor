@@ -18,8 +18,7 @@ float highWeight(float frequencyHz) noexcept {
 }
 }
 
-PitchPlan::PitchPlan(std::shared_ptr<const SpectralPlan> spectralPlan) : spectral(std::move(spectralPlan)) {
-  if (!spectral) throw std::invalid_argument("pitch plan requires a spectral plan");
+PitchInterpolation::PitchInterpolation() {
   // Centering the FFT removes its alternating-bin phase. The DTFT is then
   // interpolated by a windowed sinc, rather than interpolating opposing complex
   // coefficients directly. Lanczos support is fixed and prepared once.
@@ -29,11 +28,18 @@ PitchPlan::PitchPlan(std::shared_ptr<const SpectralPlan> spectralPlan) : spectra
     for (int i = 1 - kRadius; i <= kRadius; ++i) {
       const double distance = fraction - i;
       const double weight = sinc(distance) * sinc(distance / kRadius);
-      interpolation_[p][i + kRadius - 1] = static_cast<float>(weight);
+      values_[p][i + kRadius - 1] = static_cast<float>(weight);
       sum += weight;
     }
-    for (auto& weight : interpolation_[p]) weight /= static_cast<float>(sum);
+    for (auto& weight : values_[p]) weight /= static_cast<float>(sum);
   }
+}
+
+PitchPlan::PitchPlan(std::shared_ptr<const SpectralPlan> spectralPlan,
+                     std::shared_ptr<const PitchInterpolation> interpolation)
+    : spectral(std::move(spectralPlan)), interpolation_(std::move(interpolation)) {
+  if (!spectral) throw std::invalid_argument("pitch plan requires a spectral plan");
+  if (!interpolation_) interpolation_ = std::make_shared<PitchInterpolation>();
   const double n = spectral->frameSize();
   const auto dirichlet = [n](double x) {
     return std::fabs(x) < 1e-12 ? n : std::sin(kPi * x) * std::cos(kPi * x / n) / std::sin(kPi * x / n);
@@ -110,7 +116,8 @@ void PitchFrame::update(std::span<const std::complex<float>> spectrum) noexcept 
       const double denominator = a - 2 * b + c;
       frequency = k + static_cast<float>(denominator == 0 ? 0 : std::clamp(.5 * (a - c) / denominator, -.5, .5));
     }
-    candidates_[candidates++] = {k, 0, 0, 0, 0, std::clamp(frequency, 0.0f, static_cast<float>(half)), magnitude_[k]};
+    candidates_[candidates++] = {static_cast<std::uint16_t>(k), 0, 0, 0, 0,
+      std::clamp(frequency, 0.0f, static_cast<float>(half)), magnitude_[k]};
   }
   if (candidates > regions_.size()) {
     ++capacityEvents_;
@@ -160,7 +167,7 @@ void PitchFrame::update(std::span<const std::complex<float>> spectrum) noexcept 
     track.frequency = region.frequencyBins;
     track.missed = 0;
     used[match] = true;
-    region.track = match;
+    region.track = static_cast<std::uint16_t>(match);
     region.generation = track.generation;
     regions_[count_++] = region;
   }
@@ -177,7 +184,7 @@ void PitchFrame::update(std::span<const std::complex<float>> spectrum) noexcept 
 void PitchRenderer::prepare(std::shared_ptr<const PitchPlan> plan, bool allowHeld) {
   if (!plan) throw std::invalid_argument("pitch renderer requires a plan");
   plan_ = std::move(plan);
-  synthesis_.prepare(plan_->spectral);
+  synthesis_.prepare(plan_->spectral, true, plan_->spectral->hopSize());
   spectrum_.resize(plan_->spectral->frameSize());
   if (allowHeld) heldPhases_.resize(2 * kMaxPitchPartials);
   reset();
@@ -188,6 +195,7 @@ void PitchRenderer::reset() noexcept {
   std::fill(spectrum_.begin(), spectrum_.end(), std::complex<float>{});
   phases_ = {};
   lowPhases_ = {};
+  phaseAges_ = {};
   lowCarriers_ = {};
   std::fill(heldPhases_.begin(), heldPhases_.end(), HeldPhase{});
   shifted_ = false;
@@ -216,17 +224,18 @@ bool PitchRenderer::render(const PitchFrame& frame, float semitones, const Pitch
       const float frequency = static_cast<float>(region.frequencyBins * scale);
       if (frequency * kSampleRate / spectrum_.size() >= 400.0f) continue;
       auto& phase = lowPhases_[region.track];
+      auto& age = phaseAges_[kMaxPitchPartials + region.track];
       if (phase.generation != region.generation) {
         // Seed from the actual analyzed carrier. Multiplying its frequency by
         // absolute elapsed time would make a late Warp onset jump arbitrarily.
-        phase = {region.generation, 0, frequency, ratio, 0};
+        phase = {.generation = region.generation, .frequency = frequency, .ratio = ratio}; age = 0;
       } else {
         phase.offset = principal(phase.offset + .5 * hopPhase
           * ((phase.ratio - 1) * phase.frequency + (ratio - 1) * frequency));
         phase.frequency = frequency;
         phase.ratio = ratio;
       }
-      phase.age = std::min(phase.age + 1, 2U);
+      age = std::min<unsigned>(age + 1, 2);
       const float windowGain = lowAnalysis->lobe(static_cast<float>(region.bin) - region.frequencyBins)
         * lowInput.size();
       // Incoherent/noisy phase estimates can move outside the peak's main
@@ -240,26 +249,27 @@ bool PitchRenderer::render(const PitchFrame& frame, float semitones, const Pitch
       const double angle = principal(phase.offset + extrapolation);
       lowCarriers_[region.track] = amplitude
         * std::complex<float>{static_cast<float>(std::cos(angle)), static_cast<float>(std::sin(angle))}
-        * std::min(phase.age * .5f, 1.0f);
+        * std::min(age * .5f, 1.0f);
     }
   }
   for (const auto& region : frame.regions()) {
     auto& phase = phases_[region.track];
+    auto& age = phaseAges_[region.track];
     if (phase.generation != region.generation) {
-      phase = {region.generation, 0, region.frequencyBins, ratio, 0};
+      phase = {.generation = region.generation, .frequency = region.frequencyBins, .ratio = ratio}; age = 0;
     } else {
       phase.offset = principal(phase.offset + .5 * hopPhase
         * ((phase.ratio - 1) * phase.frequency + (ratio - 1) * region.frequencyBins));
       phase.frequency = region.frequencyBins;
       phase.ratio = ratio;
     }
-    phase.age = std::min(phase.age + 1, 2U);
+    age = std::min<unsigned>(age + 1, 2);
     const float shift = (ratio - 1) * region.frequencyBins;
     const float destination = ratio * region.frequencyBins;
     if (ratio != 1 && destination >= half) continue; // Drop the entire aliased region.
     // Taper the whole lobe before its support reaches the upper edge.
     const float edge = std::clamp((half - destination - 2) / 6, 0.0f, 1.0f);
-    const float fade = ratio == 1 ? 1 : std::min(phase.age * .5f, 1.0f);
+    const float fade = ratio == 1 ? 1 : std::min(age * .5f, 1.0f);
     const float high = lowAnalysis ? highWeight(region.frequencyBins * kSampleRate / spectrum_.size()) : 1;
     const float gain = high * fade * (ratio == 1 ? 1 : edge * edge * (3 - 2 * edge))
       * (gains ? (*gains)[region.track] : 1);
@@ -343,7 +353,7 @@ bool PitchRenderer::render(const PitchFrame& frame, float semitones, const Pitch
     if (heldLow) renderHeld(*heldLow, true, ratio, heldMix * heldGain, frame.centerSamples(), heldReference);
   }
   for (int j = 1; j < half; ++j) spectrum_[spectrum_.size() - j] = std::conj(spectrum_[j]);
-  return synthesis_.addFrame(spectrum_, startOffset);
+  return synthesis_.addFrameInPlace(spectrum_, startOffset);
 }
 
 void PitchRenderer::renderHeld(const FrozenBand& band, bool low, float ratio, float gain, std::int64_t center,
@@ -385,9 +395,10 @@ void PitchRenderer::renderHeld(const FrozenBand& band, bool low, float ratio, fl
 }
 
 void PolyphonicPitchBank::prepare() {
-  auto longPlan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(2048, 256));
-  auto shortPlan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(1024, 128));
-  auto lowPlan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(4096, 512));
+  auto interpolation = std::make_shared<PitchInterpolation>();
+  auto longPlan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(2048, 256), interpolation);
+  auto shortPlan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(1024, 128), interpolation);
+  auto lowPlan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(4096, 512), interpolation);
   for (std::size_t channel = 0; channel < 2; ++channel) {
     longAnalysis_[channel].prepare(longPlan->spectral);
     shortAnalysis_[channel].prepare(shortPlan->spectral);

@@ -180,6 +180,39 @@ void spectralLifecycle() {
   }
 }
 
+void compactSynthesis() {
+  using namespace ardor::pog3;
+  for (const std::size_t n : {32U, 1024U, 2048U, 4096U}) {
+    const auto hop = n / 8;
+    auto plan = std::make_shared<SpectralPlan>(n, hop);
+    SpectralAnalysis analysis; analysis.prepare(plan);
+    SpectralSynthesis reference, compact;
+    reference.prepare(plan); compact.prepare(plan, true, hop);
+    require(!compact.addFrame({}), "external-scratch synthesis rejects immutable/empty input safely");
+    std::vector<std::complex<float>> scratch(n), invalid(n);
+    std::uint32_t random = 0x434f4d50;
+    // Different ring lengths, both staged-offset edges and many ring wraps.
+    for (std::size_t i = 0; i < 19013 + 2 * n; ++i) {
+      require(compact.pop() == reference.pop(), "compact staged WOLA is bit-identical to general WOLA");
+      random = 1664525 * random + 1013904223;
+      const float x = i < 19013 ? .3f * (static_cast<double>(random) / 4294967296.0 - .5) : 0;
+      if (!analysis.push(x)) continue;
+      std::copy(analysis.spectrum().begin(), analysis.spectrum().end(), scratch.begin());
+      const auto offset = analysis.frameCount() % 2 ? 0 : hop;
+      require(reference.addFrame(analysis.spectrum(), offset) && compact.addFrameInPlace(scratch, offset),
+              "both staged synthesis paths accept complete spectra");
+      require(!compact.addFrameInPlace(scratch, hop + 1), "compact synthesis enforces its prepared staging bound");
+      invalid.back() = {std::numeric_limits<float>::quiet_NaN(), 0};
+      require(!compact.addFrameInPlace(invalid), "nonfinite external scratch preserves pending output");
+      std::fill(invalid.begin(), invalid.end(), std::complex<float>{std::numeric_limits<float>::max(), 0});
+      require(!compact.addFrameInPlace(invalid), "inverse overflow preserves compact pending output");
+      std::fill(invalid.begin(), invalid.end(), std::complex<float>{});
+    }
+    compact.reset(); compact.reset();
+    for (std::size_t i = 0; i < 2 * n; ++i) require(compact.pop() == 0, "compact repeated reset clears wrapped OLA");
+  }
+}
+
 using pog3_test::writeRender;
 
 void renderSpectral(const std::filesystem::path& directory,
@@ -287,6 +320,7 @@ int main(int argc, char** argv) {
       throw std::runtime_error("usage: pedal-pog3-quality [--render directory]");
     spectralIdentity();
     spectralLifecycle();
+    compactSynthesis();
     granularReference();
     if (argc == 3) renderReference(argv[2]);
     std::cout << "POG3 foundation/reference checks passed; spectral gates run in pedal-pog3-pitch-quality\n";
