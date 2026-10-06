@@ -65,17 +65,15 @@ void PitchFrame::prepare(std::shared_ptr<const PitchPlan> plan, float frequencyC
   const auto n = plan_->spectral->frameSize();
   peakLimit_ = std::min(n / 2, static_cast<std::size_t>(std::ceil(frequencyCeiling * n / kSampleRate)));
   const auto bins = std::min(n / 2 + 1, peakLimit_ + 2);
-  phase_.resize(bins);
   magnitude_.resize(bins);
-  previousMagnitude_.resize(bins);
+  previousSpectrum_.resize(bins);
   candidates_.resize(bins);
   reset();
 }
 
 void PitchFrame::reset() noexcept {
-  std::fill(phase_.begin(), phase_.end(), 0);
   std::fill(magnitude_.begin(), magnitude_.end(), 0);
-  std::fill(previousMagnitude_.begin(), previousMagnitude_.end(), 0);
+  std::fill(previousSpectrum_.begin(), previousSpectrum_.end(), std::complex<float>{});
   tracks_ = {};
   regions_ = {};
   spectrum_ = {};
@@ -106,8 +104,8 @@ void PitchFrame::update(std::span<const std::complex<float>> spectrum) noexcept 
         || (k < half && magnitude_[k] < magnitude_[k + 1])) continue;
     float frequency;
     if (k == 0 || k == half) frequency = static_cast<float>(k);
-    else if (previous_ && previousMagnitude_[k] > 1e-7f) {
-      const double delta = principal(std::arg(spectrum[k]) - phase_[k] - k * step);
+    else if (previous_ && std::abs(previousSpectrum_[k]) > 1e-7f) {
+      const double delta = principal(std::arg(spectrum[k]) - std::arg(previousSpectrum_[k]) - k * step);
       frequency = static_cast<float>(k + delta / step);
     } else {
       const double a = std::log(std::max(magnitude_[k - 1], 1e-20f));
@@ -177,7 +175,7 @@ void PitchFrame::update(std::span<const std::complex<float>> spectrum) noexcept 
     regions_[p].first = p == 0 ? 0 : (regions_[p - 1].bin + regions_[p].bin) / 2 + 1;
     regions_[p].last = p + 1 == count_ ? half : (regions_[p].bin + regions_[p + 1].bin) / 2;
   }
-  for (std::size_t k = 0; k < magnitude_.size(); ++k) { phase_[k] = std::arg(spectrum[k]); previousMagnitude_[k] = magnitude_[k]; }
+  std::copy_n(spectrum.begin(), previousSpectrum_.size(), previousSpectrum_.begin());
   previous_ = true;
 }
 
@@ -216,6 +214,7 @@ bool PitchRenderer::render(const PitchFrame& frame, float semitones, const Pitch
   const int half = static_cast<int>(spectrum_.size() / 2);
   const double hopPhase = kTwoPi * plan_->spectral->hopSize() / spectrum_.size();
   std::fill(spectrum_.begin(), spectrum_.end(), std::complex<float>{});
+  const bool fullyHeld = held && heldMix == 1 && !heldPhases_.empty();
   lowCarriers_ = {};
   if (lowAnalysis && !lowAnalysis->spectrum().empty()) {
     const auto lowInput = lowAnalysis->spectrum();
@@ -292,6 +291,10 @@ bool PitchRenderer::render(const PitchFrame& frame, float semitones, const Pitch
         rotationPhase += alignment * phase.alignment;
       }
     }
+    // Live generations, phase offsets, ages and low alignment stay warm for
+    // release/recapture. At a fully held endpoint their spectral contribution
+    // is exactly zero, so skip only its rotation/interpolation/scattering.
+    if (fullyHeld) continue;
     const std::complex<float> rotation{static_cast<float>(std::cos(rotationPhase)) * gain,
                                        static_cast<float>(std::sin(rotationPhase)) * gain};
     const int shiftCeil = static_cast<int>(std::ceil(shift));
@@ -303,7 +306,9 @@ bool PitchRenderer::render(const PitchFrame& frame, float semitones, const Pitch
       const auto tap = i + PitchPlan::kRadius - 1;
       const float weight = plan_->interpolationWeights(table)[tap]
         + fraction * (plan_->interpolationWeights(table + 1)[tap] - plan_->interpolationWeights(table)[tap]);
-      weights[tap] = ((shiftCeil - i) & 1) ? -weight : weight;
+      // Store in increasing destination order. The edge path below reverses
+      // its lookup to retain the original source-support traversal.
+      weights[2 * PitchPlan::kRadius - 1 - tap] = ((shiftCeil - i) & 1) ? -weight : weight;
     }
     const auto accumulate = [&](int j, std::complex<float> value) {
       if (j <= -half || j > half) return;
@@ -325,16 +330,16 @@ bool PitchRenderer::render(const PitchFrame& frame, float semitones, const Pitch
         // Every tap is inside the positive-frequency interior. Distinct
         // destinations retain the scalar accumulation order while permitting
         // vectorization; only edge support needs reflection/endpoint checks.
-        auto* destination = spectrum_.data() + k + shiftCeil + PitchPlan::kRadius - 1;
+        auto* destination = spectrum_.data() + k + shiftCeil - PitchPlan::kRadius;
         for (int tap = 0; tap < 2 * PitchPlan::kRadius; ++tap)
-          destination[-tap] += value * weights[tap];
+          destination[tap] += value * weights[tap];
       } else {
         for (int i = 1 - PitchPlan::kRadius; i <= PitchPlan::kRadius; ++i)
-          accumulate(k + shiftCeil - i, value * weights[i + PitchPlan::kRadius - 1]);
+          accumulate(k + shiftCeil - i, value * weights[PitchPlan::kRadius - i]);
       }
     }
   }
-  if (lowAnalysis && !lowAnalysis->spectrum().empty()) {
+  if (!fullyHeld && lowAnalysis && !lowAnalysis->spectrum().empty()) {
     const auto lowInput = lowAnalysis->spectrum();
     const double scale = static_cast<double>(spectrum_.size()) / lowInput.size();
     for (const auto& region : lowAnalysis->regions()) {

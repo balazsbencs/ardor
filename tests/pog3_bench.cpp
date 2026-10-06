@@ -272,6 +272,8 @@ void measure(const char* name, std::size_t callback, std::ostream& csv,
   double resetUs = 0;
   std::size_t allocations = 0;
   std::size_t maxTransforms = 0;
+  std::size_t worstBlock = 0, worstTransforms = 0;
+  double worstTime = -1;
   {
     allocation_probe::Scope scope;
     for (std::size_t block = 0; block < times.size(); ++block) {
@@ -283,8 +285,15 @@ void measure(const char* name, std::size_t callback, std::ostream& csv,
         checksum += out.left + out.right;
       }
       times[block] = std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start).count();
+      std::size_t transforms = 0;
       if constexpr (requires { processor->transformCount(); })
-        maxTransforms = std::max(maxTransforms, processor->transformCount() - previousTransforms);
+        transforms = processor->transformCount() - previousTransforms;
+      maxTransforms = std::max(maxTransforms, transforms);
+      // Preserve the worst callback's original timeline before sorting times.
+      // Diagnostics run after its timer stops, outside the measured callback.
+      if (times[block] > worstTime) {
+        worstTime = times[block]; worstBlock = block; worstTransforms = transforms;
+      }
     }
     const auto resetStart = std::chrono::steady_clock::now();
     processor->reset(); // Public reset must also retain all capacities.
@@ -313,7 +322,8 @@ void measure(const char* name, std::size_t callback, std::ostream& csv,
   const auto percentile = [&](double p) { return times[static_cast<std::size_t>(p * (times.size() - 1))]; };
   csv << name << ',' << callback << ',' << times.size() << ',' << callback / .048 << ','
       << percentile(.5) << ',' << percentile(.95) << ',' << percentile(.99) << ','
-      << percentile(.999) << ',' << times.back() << ',' << allocations << ',' << preparationBytes << ',' << resetUs << ',' << maxTransforms << '\n';
+      << percentile(.999) << ',' << times.back() << ',' << allocations << ',' << preparationBytes << ',' << resetUs << ',' << maxTransforms << ','
+      << worstBlock << ',' << ((worstBlock + 1) * callback) % 512 << ',' << worstTransforms << '\n';
 }
 }
 
@@ -326,7 +336,7 @@ int main(int argc, char** argv) {
     } else if (argc != 1) throw std::runtime_error("usage: pedal-pog3-bench [--csv path]");
     auto& csv = file.is_open() ? static_cast<std::ostream&>(file) : std::cout;
     csv << std::fixed << std::setprecision(3)
-        << "workload,callback_frames,callbacks,budget_us,median_us,p95_us,p99_us,p999_us,max_us,callback_allocations,preparation_allocated_bytes,reset_us,max_transforms_per_callback\n";
+        << "workload,callback_frames,callbacks,budget_us,median_us,p95_us,p99_us,p999_us,max_us,callback_allocations,preparation_allocated_bytes,reset_us,max_transforms_per_callback,worst_callback_index,worst_callback_end_mod_512,worst_callback_transforms\n";
     std::vector<ardor::StereoSample> input(48000 * 4);
     std::vector<ardor::StereoSample> freezeInput(input.size());
     std::uint32_t random = 0x504f4733;
