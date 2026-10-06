@@ -135,6 +135,22 @@ target_include_directories(ardor_daisyfx_runtime PUBLIC
 )
 target_compile_features(ardor_daisyfx_runtime PUBLIC cxx_std_20)
 
+add_library(ardor_realtime_fft src/dsp/RealtimeFft.cpp)
+target_include_directories(ardor_realtime_fft PUBLIC src)
+target_compile_features(ardor_realtime_fft PUBLIC cxx_std_20)
+
+add_library(ardor_pog3
+  src/daisyfx/pog3/Pog3Parameters.cpp
+  src/daisyfx/pog3/PolyphonicPitchBank.cpp
+  src/daisyfx/pog3/SpectralFrameStream.cpp
+)
+target_include_directories(ardor_pog3 PUBLIC
+  src
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies
+)
+target_compile_features(ardor_pog3 PUBLIC cxx_std_20)
+target_link_libraries(ardor_pog3 PUBLIC ardor_realtime_fft)
+
 add_library(ardor_daisyfx
   src/daisyfx/DaisyFxCatalog.cpp
   src/daisyfx/DaisyFxProcessor.cpp
@@ -248,7 +264,6 @@ add_library(ardor_dsp OBJECT
   src/dsp/SceneTransition.cpp
   src/dsp/DualAmpProcessor.cpp
   src/dsp/DualRigProcessor.cpp
-  src/dsp/RealtimeFft.cpp
   src/dsp/StereoWidenerProcessor.cpp
   src/dsp/ScheduledConvolver.cpp
   src/dsp/NonUniformConvolver.cpp
@@ -275,7 +290,7 @@ target_include_directories(ardor_dsp PUBLIC
 )
 target_compile_features(ardor_dsp PUBLIC cxx_std_20)
 target_compile_definitions(ardor_dsp PRIVATE NAM_ENABLE_A2_FAST NAM_SAMPLE_FLOAT)
-target_link_libraries(ardor_dsp PUBLIC ardor_cheese ardor_daisyfx ardor_dynamics ardor_equalizer ardor_looper ardor_rat ardor_tape ardor_wah)
+target_link_libraries(ardor_dsp PUBLIC ardor_cheese ardor_daisyfx ardor_dynamics ardor_equalizer ardor_looper ardor_rat ardor_tape ardor_wah ardor_realtime_fft)
 if(UNIX AND NOT APPLE)
   target_link_libraries(ardor_dsp PUBLIC stdc++fs)
 endif()
@@ -478,6 +493,18 @@ target_link_libraries(pedal-mod-effect-models PRIVATE ardor_daisyfx)
 
 add_executable(pedal-pitch-effect-quality tests/pitch_effect_quality.cpp)
 target_link_libraries(pedal-pitch-effect-quality PRIVATE ardor_daisyfx)
+
+add_executable(pedal-pog3-controls tests/pog3_controls.cpp)
+target_link_libraries(pedal-pog3-controls PRIVATE ardor_pog3)
+
+add_executable(pedal-pog3-quality tests/pog3_quality.cpp)
+target_link_libraries(pedal-pog3-quality PRIVATE ardor_pog3 ardor_daisyfx_runtime)
+
+add_executable(pedal-pog3-bench tests/pog3_bench.cpp)
+target_link_libraries(pedal-pog3-bench PRIVATE ardor_pog3 ardor_daisyfx_runtime)
+
+add_executable(pedal-pog3-pitch-quality tests/pog3_pitch_quality.cpp)
+target_link_libraries(pedal-pog3-pitch-quality PRIVATE ardor_pog3)
 
 add_executable(pedal-harmonizer-quality tests/harmonizer_quality.cpp)
 target_link_libraries(pedal-harmonizer-quality PRIVATE ardor_daisyfx)
@@ -764,6 +791,10 @@ add_test(NAME pedal-mod-effect-controls COMMAND pedal-mod-effect-controls)
 add_test(NAME pedal-ph2-quality COMMAND pedal-ph2-quality)
 add_test(NAME pedal-mod-effect-models COMMAND pedal-mod-effect-models)
 add_test(NAME pedal-pitch-effect-quality COMMAND pedal-pitch-effect-quality)
+add_test(NAME pedal-pog3-controls COMMAND pedal-pog3-controls)
+add_test(NAME pedal-pog3-quality COMMAND pedal-pog3-quality)
+add_test(NAME pedal-pog3-pitch-quality COMMAND pedal-pog3-pitch-quality)
+add_test(NAME pedal-pog3-low-chord-quality COMMAND pedal-pog3-pitch-quality --stress)
 add_test(NAME pedal-harmonizer-quality COMMAND pedal-harmonizer-quality)
 add_test(NAME pedal-filter-effect-quality COMMAND pedal-filter-effect-quality)
 add_test(NAME pedal-delay-effect-quality COMMAND pedal-delay-effect-quality)

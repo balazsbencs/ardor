@@ -1,0 +1,343 @@
+# Poly Octave 3 implementation status
+
+Updated: 2026-10-06. This records the implementation increments against
+[the implementation plan](pog3-effect-implementation-plan.md). The parameter
+contract, audible granular comparison harness, and streaming spectral foundation
+are implemented, along with a spectral five-voice pitch bank, continuous Warp,
+and reversible Focus switching. The complete processor's attack, filter, voice
+space, expression/freeze routing, and public integration remain pending. There
+is no selectable `mod/pog3` entry yet.
+
+## Implemented code
+
+| File / target | Responsibility |
+| --- | --- |
+| `src/daisyfx/pog3/Pog3Parameters.{h,cpp}` | Stable 33-index registry, defaults, normalized-to-physical mappings, display formatting, configuration validation, expression endpoints, Warp and dry-freeze eligibility helpers, lock-free control targets |
+| `src/daisyfx/pog3/SpectralFrameStream.{h,cpp}` | Shared immutable FFT/window plans, causal streaming analysis, preallocated inverse FFT and overlap-add synthesis |
+| `src/daisyfx/pog3/PolyphonicPitchBank.{h,cpp}` | Shared short/long/low analysis, bounded persistent partial tracks, fractional spectral translation, low-band reconstruction, independent stereo synthesis, continuous Warp, Focus fades, staged render jobs |
+| `tests/pog3_granular_reference.h` | Five independent stereo pitch shifters using the existing Whammy/Harmonizer primitive; dry, six levels/pans, input gain, and final master |
+| `tests/pog3_controls.cpp` | Persisted index contract, both target setters, mappings, morph ownership, rejection/clamping, Warp and eligibility behavior |
+| `tests/pog3_quality.cpp` | Identity/delay/startup/drain/chunking/reset checks, isolated reference tuning, stereo/pan/gain checks, nonfinite/overflow rejection, optional WAV renders |
+| `tests/pog3_pitch_quality.cpp` | Spectral tuning/spurs/leakage, resolved and ordinary low chords, alias rejection, track continuity, Focus reversal, staged identity/deadlines, callback partitioning, Warp, overload/drain, envelope latency, close-pair diagnostic |
+| `tests/pog3_bench.cpp` | Prepared callback timing distributions, transform burst counts, reset cost, allocation instrumentation, CSV output |
+| `ardor_realtime_fft` | Sole CMake ownership of the existing `RealtimeFft.cpp`; shared with the existing DSP/convolver target |
+| `ardor_pog3` | Independent parameter/streaming foundation library; links the shared FFT without a Daisy/DSP dependency cycle |
+
+The CMake edits retain the unrelated changes already present in the workspace.
+Existing pitch modes, catalog entries, scene indices, FFT mathematics, and
+tracked device binaries were not edited for this increment.
+
+## Contracts established
+
+- Numeric controls use the exact 0–32 index order and defaults in the plan.
+  Keys and indices publish through the same validation path. Index 33 and
+  nonfinite values fail; finite out-of-range values clamp to `[0,1]`.
+- Control targets use fixed, lock-free float atomics. Reading the array does not
+  promise an indivisible whole-scene snapshot. The future processor must consume
+  targets at its control cadence and implement smoothing separately.
+- Configuration parsing occurs off the callback and is transactional. Known
+  values must be numeric and finite. Unknown editor data is ignored by DSP.
+  Optional partial `crossfade_heel` / `crossfade_toe` objects use the configured
+  base for missing values. Enumerated controls and expression settings cannot
+  be morphed. Effective values preserve the original base controls.
+- Crossfade interpolation occurs in normalized space. Filter expression maps
+  the normalized heel/toe range. Reverse changes the expression coordinate.
+  These are pure control helpers; Volume, Warp, and Freeze audio routing are
+  not implemented by `effectiveValues`.
+- Warp scales the nominal semitone intervals toward unison; Focus-off upper
+  octaves remain fixed. Dry-freeze eligibility requires Dry Attack enabled and
+  normalized Attack strictly greater than `0.1`.
+- Plans are constructed off the callback. Each analysis owns its history and
+  spectrum; renderers share only the immutable plan. `push`, `pop`, `addFrame`,
+  and `reset` retain their allocated capacities.
+- Use `synthesis.pop()` before `analysis.push(sample)` for every host sample;
+  on a completed frame, call `synthesis.addFrame(analysis.spectrum())` before
+  the next sample. The analysis frame ends at the sample just pushed; its first
+  synthesized sample is scheduled for the next `pop()`.
+- This causal schedule has an exact identity delay of **N samples**, including
+  startup. At 48 kHz this is **21.333 ms** for 1024 and **42.667 ms** for 2048.
+  These are foundation identity delays, not measured production wet latency.
+  Spreading transform jobs across samples will require explicitly revising the
+  schedule and retesting its delay, as described in the plan.
+- Periodic Hann analysis windows use a synthesis normalization derived from
+  the sum of overlapping squared windows. The tested overlap factors include
+  `N/8`, `N/4`, and `N/2`; no fixed Hann gain constant is assumed.
+- Nonfinite input samples become zero history. Invalid spectrum sizes,
+  nonfinite bins, inverse FFT overflow, and OLA overflow reject the entire frame
+  before changing pending output. Repeated reset clears histories and timelines.
+
+## Verified results
+
+The six baseline tests passed before the new code. All ten currently selected
+regression tests pass:
+
+```text
+pedal-scheduled-convolver-smoke
+pedal-scene-plan-smoke
+pedal-daisy-fx-catalog-smoke
+pedal-manager-effect-catalog-smoke
+pedal-pitch-effect-quality
+pedal-pog3-controls
+pedal-pog3-quality
+pedal-pog3-pitch-quality
+pedal-pog3-low-chord-quality
+pedal-harmonizer-quality
+```
+
+The `pedal-poc` host executable also builds and links. The parameter, spectral
+pitch, and ordinary low-chord suites pass under AddressSanitizer and
+UndefinedBehaviorSanitizer; the foundation/reference suite passed in the prior
+increment. The envelope-latency diagnostic also passes under both sanitizers.
+The Warp onset regression and envelope-latency diagnostic were rerun under both
+sanitizers after final review. The new C++ files compile cleanly with
+`-Wall -Wextra -Wpedantic`.
+
+Identity tests use deterministic noise, startup and drain, impulse delay, absolute
+hop/frame timestamps, and callback partitions of 1, 17, 48, 64, 128, and 256 samples.
+Partitioned and contiguous results are exactly equal. Maximum per-sample error
+is below `1e-6`; residual RMS relative to the input ranges from **−139.91 to
+−137.10 dB**, exceeding the −90 dB gate.
+
+The granular reference's isolated 196 Hz test has these tuning errors:
+
+| Interval | Error (cents) |
+| --- | ---: |
+| −24 semitones | +0.0452 |
+| −12 semitones | −0.0644 |
+| +7 semitones | +0.0963 |
+| +12 semitones | +0.0000124 |
+| +24 semitones | −0.00504 |
+
+Additional reference checks verify immediate dry identity, centered anti-phase
+stereo, right-only input folded to hard left, exact hard-pan mute, input/master
+gain each applied once, and exact zero-master mute. These results validate the
+comparison harness; they do not establish polyphonic spectral pitch quality.
+
+## Reproducing the evidence
+
+```sh
+cmake -S . -B build-ci -DARDOR_UI_BACKEND=none -DCMAKE_BUILD_TYPE=Release
+cmake --build build-ci -j 4 --target \
+  pedal-pog3-controls pedal-pog3-quality pedal-pog3-pitch-quality pedal-pog3-bench \
+  pedal-pitch-effect-quality pedal-harmonizer-quality \
+  pedal-daisy-fx-catalog-smoke pedal-manager-effect-catalog-smoke \
+  pedal-scene-plan-smoke pedal-scheduled-convolver-smoke pedal-poc
+ctest --test-dir build-ci --output-on-failure \
+  -R 'pedal-(pog3-controls|pog3-quality|pog3-pitch-quality|pog3-low-chord-quality|pitch-effect-quality|harmonizer-quality|daisy-fx-catalog-smoke|manager-effect-catalog-smoke|scene-plan-smoke|scheduled-convolver-smoke)'
+build-ci/pedal-pog3-quality --render build-ci/pog3-artifacts
+build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/pitch-bank-benchmark.csv
+build-ci/pedal-pog3-pitch-quality --resolution-stress
+build-ci/pedal-pog3-pitch-quality --latency
+build-ci/pedal-pog3-pitch-quality --warp-onset
+```
+
+The reference portion creates ten 48 kHz stereo float WAV files: input tone, five
+isolated voices, input chord/bass onset, combined reference chord, and two 7-bit
+Warp ramps with Focus off/on. It reports raw peak and RMS without normalizing or
+limiting. The reference chord peak is about `0.1051`; the two ramp peaks are about
+`0.1114` and `0.1356`. Audio and CSV artifacts remain under the ignored build
+directory. Fourteen additional spectral WAVs cover the five isolated voices with
+both Focus settings, combined chords, and both 7-bit Warp performances. The
+combined renders use immediate dry and five generated voices at level 0.25,
+matching the reference mix. Spectral chord peaks are about 0.1158/0.1167 for
+Focus off/on; the Warp peaks are about 0.1181/0.0982. Listening review remains open.
+
+For sanitizers, configure a separate Debug build with
+`-DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'` and
+`-DCMAKE_EXE_LINKER_FLAGS='-fsanitize=address,undefined'`, then build and run the
+POG3 test targets. An additional `-O1` was used for the pitch sanitizer build;
+the full pitch suite took about six minutes under instrumentation. Performance
+measurements must use the optimized, nonsanitized build.
+
+## Foundation timing and memory baseline (M0–M2)
+
+The host evidence was captured on an Intel Core i3-8100T x86-64 system, GCC 14.2,
+Release `-O3`, ordinary IEEE float behavior. Each workload uses four seconds of
+dense stereo chord/noise input after warmup: 3000 callbacks of 64 samples or
+1500 callbacks of 128 samples. CSV includes median, p95, p99, p99.9, maximum,
+reset time, allocation counts, and maximum transforms per callback.
+
+The granular workload runs all ten shifters, including muted voices. Its
+preparation allocates **329,256 bytes**, including **327,680 bytes** of histories.
+The spectral workload runs two long and two short analyses with six long stereo
+renderers and two short stereo renderers. This represents the transform work
+during a future Focus transition, including the dry/unison renderer. Preparation
+allocates **595,696 bytes**; this is cumulative requested allocation size, including
+objects/plans, rather than a complete future processor memory inventory.
+
+One optimized host run produced the following timings (microseconds):
+
+| Workload | Callback samples | Median | p99 | Maximum | Callback budget |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Granular reference | 64 | 20.008 | 654.267 | 670.211 | 1333.333 |
+| Spectral identity / Focus transition | 64 | 7.319 | 773.602 | 821.101 | 1333.333 |
+| Granular reference | 128 | 39.839 | 677.183 | 685.761 | 2666.667 |
+| Spectral identity / Focus transition | 128 | 197.880 | 809.274 | 1039.015 | 2666.667 |
+
+Measured reset cost was 11.8–16.2 microseconds on this host. These are observed
+samples, not guaranteed worst-case execution times; repeat on the audio target.
+
+All measured processing, reset, target publication, and pure expression helper
+calls make **zero C++ allocations**, including aligned allocations. The spectral
+workload can perform **20 transforms in one callback** when both hop boundaries
+coincide. Inspect the upper percentiles and maximum, since the median often
+contains no FFT work. The reference also has synchronized grain-restart bursts.
+
+The two foundation workloads above exclude spectral pitch mapping, partial/family tracking,
+envelopes, filters, space stages, and freeze/gliss. Target-device admission,
+combined NAM/IR chains, xruns, and endurance have not been measured. Do not use
+the host identity cost as evidence that the full effect meets audio deadlines.
+
+## Spectral pitch implementation and measured adaptations
+
+The bank returns six stereo voices before levels, pan, filter, space, or master.
+Voice zero is processed unison. The future processor must use immediate input
+for unprocessed dry rather than mixing this delayed unison unconditionally.
+All DSP setters and diagnostics are audio-thread owned; external controls must
+be published through the fixed target array.
+
+The main analysis uses N=2048/H=256 and N=1024/H=128, with one analysis per
+channel/resolution. Local peaks use phase-difference instantaneous frequencies
+and bounded predictive association, retaining track generation across FFT-bin
+changes. Regions retain complex relative phase and high-band residual/noise.
+Each renderer owns its phase/OLA history. Fractional translation uses a centered
+24-tap Lanczos kernel with 512 prepared fractional phases; coefficients scatter
+into destination bins, adding colliding contributions. Below-zero analytic
+support is conjugate-reflected, and upper-edge regions are tapered/rejected.
+
+The ordinary low C-major chord initially failed badly with the original two
+windows: multiple fundamentals merged and shifted components lost up to about
+44 dB. A shared **N=4096/H=512 low-band analysis**, limited to peak interpretation
+through 400 Hz, fixes that measured defect. Its resolved partials reconstruct
+individual Hann lobes in the existing output IFFTs. A complementary 200–300 Hz
+crossover preserves primary high-band regions, with phase alignment tapering
+out by 400 Hz. This adds two shared forwards per low hop, rather than another
+IFFT for each voice. Low unpitched content is represented by these tracked
+partials; transient/noise fidelity in that band still needs listening review.
+Carrier normalization rejects incoherent phase estimates outside the peak's
+main lobe instead of dividing by a near-zero sidelobe. Frames and banks cannot
+be copied: their frame spans refer to their own analysis storage.
+
+Both upper variants remain warm at all times. Focus changes apply one reversible
+25 ms sample-based fade to the upper pair. The short path remains at nominal
++12/+24 even during Warp; the long upper path follows Warp. Lower/fifth voices
+always follow Warp. Extent slews over 10 ms; rendering integrates frequency over
+actual hops without chromatic quantization or phase resets.
+New tracks seed their pitch offset from the analyzed carrier, rather than
+absolute elapsed time. The late-onset regression warms identical periodic input
+for two different durations, then starts the same Warp gesture; all five output
+voices compare exactly (maximum sample error zero).
+
+The initial synchronous pitch workload exceeded callback budgets. Scattering
+source coefficients reduced interpolation work; renderer jobs are now spread
+within one additional hop per resolution. Long jobs complete by sample 234 of
+256, short jobs by sample 96 of 128. Input history continues separately while
+spectra/regions remain immutable until their next frame; every job completes
+before any frame it uses can change. Every window starts at `t+1+H`, regardless
+of its job's execution sample, using the synthesis stream's explicit start offset.
+There are no worker threads, queued allocations, or unbounded job lists.
+
+This revises the bank's main identity delay to **N+H**: 2304 samples / **48 ms**
+for long and 1152 samples / **24 ms** for short. The streaming foundation's
+zero-offset identity remains N. Tests verify all six collapsed-unison jobs at
+exactly N+H, zero logical deadline misses, and exactly equal output under
+1/17/48/64/128/256 callback partitions with timestamped control changes.
+
+The low-band analysis has a further latency tradeoff. An isolated +1 octave
+tone burst's energy-centroid delay measures:
+
+| Input | Focus off | Focus on |
+| --- | ---: | ---: |
+| 82.4 Hz | 60.022 ms | 72.006 ms |
+| 659.3 Hz | 24.009 ms | 48.001 ms |
+
+These are measured envelope delays for the stated synthetic burst, not one
+universal latency number. Unprocessed dry is still intended to remain immediate.
+Low-note latency must be included in the eventual listening/product decision.
+
+The spectral quality suite covers 100 nominal tone cases: five intervals, both
+Focus settings, and inputs 65.4/82.4/110/146.8/196/329.6/659.3 Hz plus detuned and
+half-bin cases. The measured worst tuning error is **0.0054 cent**, worst unwanted
+tonal spur **−63.23 dBc**, and worst original-frequency leakage **−108.74 dBc**.
+Half-Warp pitch/quality tests run with both Focus settings, including the fixed
+Focus-off uppers. Centered anti-phase input and a silent
+independent channel survive; Focus reversals preserve both warm upper histories.
+
+All shifted fundamentals survive a resolved chord/inharmonic fixture and the
+ordinary low C-major chord with/without additional harmonics. The latter's
+largest level deviation is **0.17 dB** across 60 component checks, inside the
+3 dB gate, including down-two
+collisions. Three +24 out-of-band tones (7.0013, 10.0037, and 17.0032 kHz) are
+rejected in both Focus modes. A moving
+input partial retains its identity across several FFT bins. Overload at ±12,
+rapid Focus/Warp changes, silence drain, and repeated reset pass.
+
+An explicitly separate resolution diagnostic remains an honest limitation:
+82.4069 and 87.3071 Hz together lose **8.77 and 9.23 dB** at their expected −24
+partials. The current low analysis does not separate that 4.9 Hz pair. This
+diagnostic is not reported as a passed chord gate or hidden by a loose estimator.
+
+## Current bank performance and memory (M3)
+
+The same optimized host and four-second dense stereo/noise workload, with rapid
+Warp and Focus updates, now includes the complete three-resolution pitch bank:
+
+| Callback samples | Median µs | p99 µs | Maximum µs | Budget µs | Maximum transforms in callback |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 64 | 522.291 | 1167.312 | 1320.079 | 1333.333 | 11 |
+| 128 | 1230.343 | 1721.769 | 2575.939 | 2666.667 | 16 |
+
+Requested preparation allocation is **1,913,744 bytes** (about 1.83 MiB), including
+all plans, phase histories, analyses, and both warm upper variants. Every measured
+prepared process/control/reset call allocates **zero** C++ objects. Reset takes
+about 47–48 µs on this host. All logical job-deadline counters remain zero.
+
+The extra low analysis adds two forwards at a coincident 512-sample event, for
+22 transforms in that frame's work rather than the original 20; staging spreads
+the render jobs across callbacks. Maximum observed host durations fit the stated
+budgets, but the 64-sample worst observation leaves only about **13 µs**. Attack,
+filter, space, freeze, multiple banks, and NAM/IR processing are excluded. There
+is no full-block/combined-chain/device performance certificate. Preserve the
+CSV distributions, include those later stages in the benchmark, and obtain
+target measurements before public admission. The 2 MiB full-block memory goal
+also remains open; the current bank alone consumes most of it.
+
+## Freeze implementation caution for M7
+
+The current live renderer advances a phase offset relative to the incoming
+analysis phase; live input supplies the remainder of source phase motion.
+Freezing a raw frame and repeatedly calling the live renderer unchanged would
+produce the wrong pitch. A stationary held representation must advance the full
+target synthesis phase, or explicitly advance the held source phase before
+applying the live relative-offset route. Capture/hold/gliss must include the
+4096 low-band representation as well as both primary resolutions; leaving its
+source live would let new low notes replace the captured chord. Preserve staged
+window timestamps and immutable job inputs during these mode transitions.
+Store captured carrier amplitudes independently of the old analysis-bin
+normalization: a gliss cannot change a captured frequency while retaining its
+old bin/window-gain interpretation.
+
+## Next implementation milestone
+
+M0's parameter/publication contract and M2's streaming identity gates are in
+place. M1 supplies an audible reference, renders, and timing/allocation evidence;
+its artifacts remain the comparison baseline for subsequent work.
+
+M3's software engine and core quality gates are implemented. Target-device
+admission, combined-chain endurance, and listening review remain open; the
+effect is not release-ready merely because its host tests pass.
+
+The next software milestone is **M4 — independent family/partial attack and
+triggered filter envelope**. Use all three analysis resolutions, assign common
+stereo family/event IDs from noncancelling magnitudes, and store onset ages in
+absolute input timestamps. Account for the low-band latency and stage deadlines
+when aligning events. Verify held A plus new B without global ducking, repeated
+notes, zero Attack, and dry-route eligibility. Preserve the exact unprocessed
+dry path and keep volume Attack independent of filter AD timing.
+
+Complete M4–M7 before M8's factory, catalog, inspector, scene, and manager
+integration. Public parameters must not expose unfinished audio behavior.
+
+The granular reference must remain a test harness. It cannot satisfy independent
+polyphonic attack, spectral freeze, or gliss and must not become an undocumented
+production fallback.
