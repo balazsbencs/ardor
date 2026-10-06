@@ -20,6 +20,11 @@
 #include <string_view>
 #include <vector>
 
+#if defined(ARDOR_POG3_MALLOC_PROBE)
+extern "C" void pog3_malloc_begin() __attribute__((weak));
+extern "C" void pog3_malloc_end(std::size_t*, std::size_t*) __attribute__((weak));
+#endif
+
 namespace allocation_probe {
 thread_local bool enabled = false;
 thread_local std::size_t calls = 0, bytes = 0;
@@ -277,6 +282,10 @@ void measure(const char* name, std::size_t callback, std::ostream& csv,
   double worstTime = -1;
   {
     allocation_probe::Scope scope;
+#if defined(ARDOR_POG3_MALLOC_PROBE)
+    const bool probeC = pog3_malloc_begin && pog3_malloc_end;
+    if (probeC) pog3_malloc_begin();
+#endif
     for (std::size_t block = 0; block < times.size(); ++block) {
       std::size_t previousTransforms = 0;
       if constexpr (requires { processor->transformCount(); }) previousTransforms = processor->transformCount();
@@ -303,7 +312,7 @@ void measure(const char* name, std::size_t callback, std::ostream& csv,
     const auto resetStart = std::chrono::steady_clock::now();
     processor->reset(); // Public reset must also retain all capacities.
     resetUs = std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - resetStart).count();
-    // Exercise the pure expression and Warp helpers under the same guard.
+    // Exercise the pure expression and Warp helpers under the same allocation probe.
     ardor::pog3::Configuration config;
     config.base = config.heel = config.toe = ardor::pog3::defaultValues();
     config.morphed.set(ardor::pog3::index(ardor::pog3::Parameter::DryLevel));
@@ -318,6 +327,16 @@ void measure(const char* name, std::size_t callback, std::ostream& csv,
       checksum += values[1] + ardor::pog3::warpSemitones(1, .5f, true);
     }
     allocations = allocation_probe::calls;
+#if defined(ARDOR_POG3_MALLOC_PROBE)
+    if (probeC) {
+      std::size_t cAllocations = 0, cReleases = 0;
+      pog3_malloc_end(&cAllocations, &cReleases);
+      std::cerr << name << " " << callback << " C allocations=" << cAllocations
+                << " frees=" << cReleases << '\n';
+      if (cAllocations || cReleases)
+        throw std::runtime_error("prepared processing/reset/control allocated or freed C storage");
+    }
+#endif
   }
   if (allocations || !std::isfinite(checksum))
     throw std::runtime_error("allocation/nonfinite failure in prepared workload");
@@ -338,12 +357,20 @@ void measure(const char* name, std::size_t callback, std::ostream& csv,
 int main(int argc, char** argv) {
   try {
     std::ofstream file;
+    const bool requireCProbe = argc == 2 && std::string_view(argv[1]) == "--realtime-allocation";
     if (argc == 3 && std::string_view(argv[1]) == "--csv") {
       // Explicit destination selected by the local benchmark operator, with
       // the same filesystem permissions as the process. This is test-only.
       file.open(argv[2]);
       if (!file) throw std::runtime_error("cannot create benchmark CSV");
-    } else if (argc != 1) throw std::runtime_error("usage: pedal-pog3-bench [--csv path]");
+    } else if (argc != 1 && !requireCProbe)
+      throw std::runtime_error("usage: pedal-pog3-bench [--csv path | --realtime-allocation]");
+#if defined(ARDOR_POG3_MALLOC_PROBE)
+    if (requireCProbe && (!pog3_malloc_begin || !pog3_malloc_end))
+      throw std::runtime_error("real-time C allocation probe was not loaded");
+#else
+    if (requireCProbe) throw std::runtime_error("C allocation probe requires Linux/glibc");
+#endif
     auto& csv = file.is_open() ? static_cast<std::ostream&>(file) : std::cout;
     csv << std::fixed << std::setprecision(3)
         << "workload,callback_frames,callbacks,budget_us,median_us,p95_us,p99_us,p999_us,max_us,callback_allocations,preparation_allocated_bytes,reset_us,max_transforms_per_callback,worst_callback_index,worst_callback_end_mod_512,worst_callback_transforms,mean_us\n";

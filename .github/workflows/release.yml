@@ -211,6 +211,11 @@ jobs:
         working-directory: services/managerd
         run: go test ./...
 
+      - name: Install FFTW development files
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libfftw3-dev
+
       - name: Configure headless engine
         run: cmake -S . -B build-release-check -DARDOR_UI_BACKEND=none -DCMAKE_BUILD_TYPE=Release
 
