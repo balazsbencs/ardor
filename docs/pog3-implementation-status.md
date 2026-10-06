@@ -32,20 +32,22 @@ workspace and its unrelated changes remain separate.
 | `src/daisyfx/pog3/Pog3Processor.{h,cpp}` | Prepared lifecycle, immutable endpoint configuration, 33 key/index targets, 48-sample control cadence, separate base/effective values, all seven expression modes and freeze diagnostics |
 | `tests/pog3_granular_reference.h` | Five independent stereo pitch shifters using the existing Whammy/Harmonizer primitive; dry, six levels/pans, input gain, and final master |
 | `tests/pog3_controls.cpp` | Persisted index contract, both target setters, mappings, morph ownership, rejection/clamping, Warp and eligibility behavior |
-| `tests/pog3_quality.cpp` | Identity/delay/startup/drain/chunking/reset checks, isolated reference tuning, stereo/pan/gain checks, nonfinite/overflow rejection, optional WAV renders |
+| `tests/pog3_quality.cpp` | Shared/prepared FFT exactness across every supported size, identity/delay/startup/drain/chunking/reset, isolated reference tuning, stereo/pan/gain, nonfinite/overflow rejection and optional WAV renders |
 | `tests/pog3_pitch_quality.cpp` | Spectral tuning/spurs/leakage, resolved and ordinary low chords, alias rejection, track continuity, Focus reversal, staged identity/deadlines, callback partitioning, Warp, overload/drain, envelope latency, close-pair diagnostic |
 | `tests/pog3_attack_quality.cpp` | Held/new notes, shared harmonics, low bass, re-plucks, arpeggios, bends, Focus reversals, activation, exact-off dry, reset, partition invariance, optional attack WAV renders |
 | `tests/pog3_voice_stages.cpp` | AD timing/retrigger, held-tone/chord detector, sensitivity/re-plucks, filter transfer and resonance, routing eligibility, delay endpoints/queues, pan, rapid automation/partition/reset, gain/overload/recovery, optional full-path WAV renders |
 | `tests/pog3_expression_quality.cpp` | Processor key/index publication, cadence, immutable ownership, exact endpoints/units, processed-dry exclusions, 30 Warp tuning cases, Filter/envelope interaction, 7-bit mode/reverse/Focus automation, callback partitions, configuration/reset and optional expression WAV renders |
 | `tests/pog3_freeze_quality.cpp` | Stationary pitch/level/stereo, genuine moving-carrier gliss, mid-glide latch/resume, strict dry/Focus eligibility, hysteresis/Reverse, startup/silent capture, dense input/reset, partition invariance, two 60-second holds and optional freeze WAV renders |
 | `tests/pog3_artifacts.h` | Shared offline float WAV writer; preserves raw levels |
-| `tests/pog3_bench.cpp` | Prepared callback timing distributions, transform burst counts, reset cost, allocation instrumentation, CSV output |
+| `tests/pog3_bench.cpp` | Prepared mean/percentile callback timing, transform burst counts, reset cost, allocation/health instrumentation and CSV output |
+| `src/daisyfx/hosted/dsp/pitch_shifter.cpp`, `tests/pitch_effect_quality.cpp` | Correct rounded negative ring positions before interpolation; public-API regression covers upward Warp at the ring endpoint |
 | `ardor_realtime_fft` | Sole CMake ownership of the existing `RealtimeFft.cpp`; shared with the existing DSP/convolver target |
 | `ardor_pog3` | Independent parameter/spectral/pitch/attack/voice-stage/processor library; links the shared FFT without a Daisy/DSP dependency cycle |
 
 The CMake edits retain the unrelated changes already present in the workspace.
-Existing pitch modes, catalog entries, scene indices, FFT mathematics, and
-tracked device binaries were not edited for this increment.
+Existing catalog entries, scene indices and tracked device binaries remain
+unchanged. FFT arithmetic is preserved; the demonstrated shared granular
+read-index correction is documented with its original-reader reproduction below.
 
 ## Contracts established
 
@@ -1117,14 +1119,14 @@ offsets and nested-offset overflow. A five-million-line offset beyond a tiny
 generated source converts within a five-second process limit, and ordinary
 mapping lookup/source reconstruction retains the original source text.
 
-All CI checks pass on security-fix commit `9987453b`. The first C++ CodeQL
+All CI checks pass on CI-correction commit `9987453b`. The first C++ CodeQL
 attempt failed before compilation because GitLab rejected an Eigen dependency
 clone under load; retrying only the failed job completed successfully.
 [The C++ analysis](https://github.com/balazsbencs/ardor/actions/runs/37475930333)
 marks alerts 116/117/120/121/128 **fixed**, and the PR alert readback contains
 **zero open alerts**. Alerts 108–115, 118–119 and 122–127 are separately recorded
 as reviewed false positives. Subsequent DSP commits still require their own
-fresh CI checks; this result identifies the exact validated security patch.
+fresh CI checks; this result identifies the exact validated CI correction.
 
 ## One-sample stereo analysis staging
 
@@ -1263,7 +1265,7 @@ The preceding schedule at **c06fa3ae** passes every GitHub CI check, including
 all three CodeQL languages, the aggregate CodeQL check, C++ engine/UI, Manager
 app/daemon, documentation and dependency review. The PR merge ref has **zero
 open CodeQL alerts**. This verifies the scheduling follow-up separately from
-the earlier security-only checkpoint.
+the earlier CodeQL/dependency checkpoint.
 
 ### Profile and average-time diagnostics
 
@@ -1395,6 +1397,226 @@ and is not timing evidence. Reproduce the current benchmark with:
 build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/round-retained.csv
 ```
 
+## Prepared POG3 FFT table layout
+
+### Scope and immutable preparation
+
+`SpectralPlan` now has a local prepared radix-2 layout for **N ≤ 4096**, covering
+all active 1024/2048/4096 plans. The shared `RealtimeFft` source, its public API,
+convolver, compiler flags and CMake ownership are unchanged. The shared granular
+reader correction described below is separate from this FFT layout change.
+Larger supported foundation plans, **8192/16384/32768**, retain the original
+shared implementation. FFT scaling, butterfly operations and coefficient bits
+are retained; this is a table/traversal change, not a real-FFT approximation or
+an alteration of spectral resolution.
+
+All tables are constructed off the audio thread and are immutable thereafter.
+For a power-of-two N, reversing its log2(N) bits fixes
+**2^ceil(log2(N)/2)** palindromic indices. Every other index belongs to exactly
+one swap pair. Store only those pairs in their original ascending-source order,
+using `uint16_t`; active indices are at most 4095. No per-transform reversal
+calculation, index comparison or growing vector remains. Preparation validation
+run before allocation/index conversion and still reject invalid N/H combinations.
+
+Store each stage's twiddles contiguously rather than loading the largest table
+at a stride. The half-stage lengths sum to **N−1**, and stage length L starts
+at **L/2−1**; the last valid weight index is N−2. Each prepared angle uses the
+shared FFT's original largest-table index and double arithmetic, preserving
+its rounded float coefficient. Separate compile-time forward/inverse kernels
+retain the original complex multiply/add/subtract and exact **1/N** inverse
+scaling. Standard complex overflow behavior remains intact; no relaxed floating-
+point flag, intrinsic, additional transform workspace or callback allocation
+is introduced. Synthesis still validates before transactional overlap-add.
+
+The preliminary standalone prototype preserves normal FFT output bits and
+shows roughly **23–25%** lower forward and **5–8%** lower inverse times at the
+three active sizes. Its **32768-point inverse regresses about 2.2–2.3%**, which
+is why larger plans keep the shared path. The N=32 prototype also improves;
+all smaller valid plans use the bounded layout. These microbenchmarks are
+feasibility evidence, not full-processor or target admission. Source/output
+are retained under `/tmp/pog3-dense-fft/dense-fft.h`, `compare-bench.cpp` and
+`microbench.csv`; the production path has no prototype `noinline` attribute.
+
+### Memory and lifetime review
+
+On this 64-bit host, the original reversal/twiddle storage is **12N bytes**.
+Packed swaps use **2(N−fixed) bytes**, and contiguous stage weights use
+**8(N−1) bytes**. Two additional vector descriptors add **48 bytes per plan**;
+the unused shared FFT object allocates no tables on an active dense plan.
+Across all three active sizes this reduces requested preparation storage by
+**14,536 bytes**, despite the denser coefficient tables.
+
+All-mode preparation is now **2,040,118 bytes (1.946 MiB)**, **57,034 bytes below**
+the initial 2 MiB goal. Static sound requests 2,034,320, dedicated gliss 2,038,632
+and the bank 1,865,952 bytes. No renderer, analysis, capture, phase or excitation
+capacity is reduced. Plans retain shared const ownership; values/workspaces stay
+owned by their existing analysis or renderer. The private plan layout changes,
+so every consumer is rebuilt; old/new comparison binaries use their respective
+headers and libraries rather than mixing layouts.
+
+These are requested host allocation counters, not retained RSS or target ABI
+measurements. The table trade-off depends on `sizeof(size_t)`; a 32-bit target
+has a smaller original reversal table and must be measured independently.
+The image build targets 64-bit AArch64 (`scripts/build-image-in-container.sh`),
+but no target binary or device measurement is produced by this work.
+Target memory and combined-chain admission remain open.
+
+### Exactness and quality verification
+
+The foundation suite now compares **1,834,112 complex bins** against the
+independent shared FFT, across every power of two from **32 through 32768**,
+both directions and 14 fixtures. It includes zero/signed-zero, complex and real
+noise, impulse/DC/Nyquist, Hermitian spectra, subnormals, broad exponent ranges,
+finite-overflow, NaN and infinity cases. Every finite/infinite component must
+match bits, including sign; NaN classification must match, while payloads are
+not an audio contract. The 4096/8192 boundary and small/oversized invalid
+preparation are covered. Existing foundation checks retain exact chunking,
+startup/drain/delay, deferred publication/reset, and transactional invalid-frame
+rejection with pending healthy OLA.
+
+A separate automated comparison to **a3180022** preserves every output bit
+across **65,536 samples × six voices × stereo** with arbitrary boundary
+Attack/Warp controls, all expression selections, unequal stereo and resets
+before/after deferred completion. Both raw outputs have SHA-256
+`44f2a1f5b1dd9b71f70559bbbbba7274266217c11602cafc98932b4ea46e3683`.
+The changed stream and foundation-test units compile without
+`-O3 -Wall -Wextra -Wpedantic` diagnostics.
+
+All **14 selected release suites pass** on the prepared layout (**114.44 s**),
+including both 60-second freeze holds and existing pitch/harmonizer/catalog/
+scene/convolver regressions. Full foundation and spectral-pitch ASan/UBSan tests
+pass with leak detection (**327.02 s**, `-j2`), as does the freeze warm-live
+release check. These tools check DSP indexing and undefined operations during
+validation; they add no processing checks or allocations to the release audio
+path. The changed shared reader and legacy pitch-test units also compile without
+`-O3 -Wall -Wextra -Wpedantic` diagnostics.
+
+### Granular reference mismatch and fractional ring wrapping
+
+Comparing all 53 raw WAVs initially found one differing float: right-channel
+frame **74910** of `reference-warp-focus-on.wav`. Every POG3 spectral output was
+unchanged. The granular test reference exposed an existing shared
+`PitchShifter::ReadInterp` defect because preparation changed heap placement.
+Its original loop first normalized the upper edge, then added 8192 to a tiny
+negative position. Float rounding can make that sum exactly **8192**, leaving
+the subsequent read one sample beyond the declared ring. It could therefore
+mix an unrelated adjacent value into one audio sample.
+
+A public-API reproduction uses five ordinary shifters at −24/−12/+7/+12/+24,
+8192-sample rings, 1024-sample grains and a 100 Hz, 7-bit heel-to-toe Warp
+trajectory at 48 kHz. A harmonic chord reproduces the read at **sample 74910,
+voice 4**. With a NaN sentinel after the declared ring, the new permanent
+`pitch fractional wrap` test fails on the original reader while all nine
+preceding legacy pitch checks pass. An independently compiled reproduction
+with exactly 8192 allocated samples reports the same one-past-ring read under
+ASan; the corrected reader passes ASan/UBSan and remains finite.
+
+The correction simply normalizes negative positions **before** normalizing the
+upper endpoint. The interpolation kernel, ring size, grain restart, shift
+mapping and callback allocation behavior are unchanged. The plan permits a
+shared shifter correction for a demonstrated defect; this is that case.
+
+After the correction, **52/53** WAVs remain bit-identical to the preserved M7
+baseline. The granular reference differs at just that one float: the original
+M7 value **0.012932582758367062** becomes **0.01161237247288227**. The historical
+baseline is preserved rather than overwritten. All **53/53** candidate WAVs
+are bit-identical to a freshly rendered **original-FFT control with the same
+corrected reader**. Thus the FFT layout itself retains every audio output bit.
+Comparison artifacts are in `build-ci/pog3-artifacts/dense-renders` and
+`/tmp/pog3-dense-fft/control-renders`; the original mismatch/reproduction binaries
+and logs remain under `/tmp/pog3-dense-fft`.
+
+On the final combined code, all **18 selected release suites pass (118.67 s)**:
+the eight POG3 suites plus existing pitch, harmonizer, Daisy smoke/response/
+automation/catalog, manager catalog, scene and convolver checks. This includes
+both long freeze holds and existing Whammy/Harmonizer/Chorus Detune/Shimmer
+coverage. Full legacy pitch and Daisy smoke ASan/UBSan suites pass with leak
+detection (**42.61 s**, `-j2`); the exact-ring reproduction also passes. No
+regression test or sanitizer is added to the real-time signal path.
+
+### Final callback timing with the corrected reader
+
+Four ordinary release benchmark runs execute sequentially in the order
+**control → candidate → candidate → control**, after all build, render and
+validation processes finish. Both controls use the original POG3 FFT layout
+from **a3180022**, rebuilt against its matching private plan header, and the
+**same corrected shared reader** as the candidate. Both sides use the current
+probe, `-O3 -DNDEBUG`, the same 64/128-sample inputs and all seven workloads.
+No timing instrumentation, relaxed math flags or discarded outliers are used.
+
+Across both orders and callback sizes, observed mean demand falls by
+**6.09–7.75%** for the Attack bank, **5.64–7.70%** for static sound,
+**5.54–8.19%** for expression, and **5.13–7.31%** for gliss. Identity improves
+**11.35–12.53%**; the no-Attack bank improves **6.11–8.15%**. The unchanged
+granular workload varies **−1.11% to +0.69%**, exposing ordinary host drift.
+These are host observations, not exact causal or target speedup claims.
+
+All affected p99 comparisons improve, but maxima do not uniformly improve:
+pair 2's 64-sample static maximum rises from **1171.034 to 1485.926 µs**, above
+the **1333.333 µs** callback period. Pair 1's 128-sample expression control
+maximum is **2211.164 µs**; pair 2's no-Attack control reaches **2258.158 µs**.
+Every outlier remains in its percentile, mean and CSV. Full-path candidate
+mean demand remains **43.44–46.99%** of the callback period, exceeding the
+**25% goal**. This change improves average work but does not satisfy CPU/device
+admission or make the effect selectable.
+
+All **56 workload rows** complete with zero processing/control/reset
+allocations and healthy pre-reset analysis/render counters. Maximum transform
+counts remain **11/16** for 64/128-sample bank/full-path callbacks; the separate
+identity comparison retains **20**. Preparation counters agree across both
+orders: bank/full paths save **14,536 bytes**, the two-plan identity foundation
+saves **6256 bytes**, and granular reference storage stays unchanged. Tables,
+resolution, phase/capture capacity and staged deadlines are unchanged between
+callback sizes.
+
+| Pair | Path | Frames | Mean old → new (µs) | Mean change | p99 old → new (µs) | Max old → new (µs) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | Granular | 64 | 97.354 → 97.185 | -0.17% | 658.591 → 655.565 | 672.395 → 668.668 |
+| 1 | Identity | 64 | 233.630 → 206.502 | -11.61% | 813.253 → 713.302 | 1003.388 → 855.587 |
+| 1 | Bank | 64 | 558.536 → 524.387 | -6.11% | 828.638 → 764.671 | 907.621 → 834.889 |
+| 1 | Attack bank | 64 | 568.674 → 534.023 | -6.09% | 873.626 → 815.169 | 914.648 → 890.261 |
+| 1 | Static | 64 | 620.618 → 580.978 | -6.39% | 933.998 → 865.426 | 1664.623 → 896.152 |
+| 1 | Expression | 64 | 624.392 → 589.826 | -5.54% | 962.098 → 903.726 | 1035.276 → 973.728 |
+| 1 | Gliss | 64 | 661.455 → 626.527 | -5.28% | 997.522 → 937.933 | 1157.714 → 1095.647 |
+| 1 | Granular | 128 | 193.163 → 194.498 | +0.69% | 676.340 → 678.661 | 681.357 → 687.727 |
+| 1 | Identity | 128 | 464.925 → 412.133 | -11.35% | 808.905 → 717.978 | 903.008 → 726.597 |
+| 1 | Bank | 128 | 1119.990 → 1048.534 | -6.38% | 1319.528 → 1211.037 | 1462.373 → 1277.780 |
+| 1 | Attack bank | 128 | 1140.820 → 1069.788 | -6.23% | 1291.934 → 1200.427 | 1561.226 → 1357.889 |
+| 1 | Static | 128 | 1232.028 → 1161.904 | -5.69% | 1371.339 → 1270.064 | 1402.879 → 1323.449 |
+| 1 | Expression | 128 | 1252.636 → 1179.722 | -5.82% | 1486.458 → 1396.838 | 2211.164 → 1463.187 |
+| 1 | Gliss | 128 | 1315.505 → 1248.027 | -5.13% | 1472.160 → 1387.606 | 1604.372 → 1601.668 |
+| 2 | Granular | 64 | 97.830 → 98.074 | +0.25% | 668.923 → 659.177 | 905.632 → 771.443 |
+| 2 | Identity | 64 | 235.494 → 206.631 | -12.26% | 858.110 → 714.417 | 1122.554 → 741.594 |
+| 2 | Bank | 64 | 571.374 → 524.832 | -8.15% | 919.356 → 767.110 | 1102.649 → 829.321 |
+| 2 | Attack bank | 64 | 577.365 → 532.592 | -7.75% | 939.108 → 810.457 | 1241.282 → 858.470 |
+| 2 | Static | 64 | 629.344 → 580.869 | -7.70% | 1001.345 → 864.802 | 1171.034 → 1485.926 |
+| 2 | Expression | 64 | 642.320 → 589.704 | -8.19% | 1024.995 → 904.547 | 1550.234 → 960.736 |
+| 2 | Gliss | 64 | 672.043 → 622.941 | -7.31% | 1049.661 → 934.127 | 1193.125 → 1104.911 |
+| 2 | Granular | 128 | 196.548 → 194.369 | -1.11% | 727.083 → 677.792 | 886.041 → 688.512 |
+| 2 | Identity | 128 | 472.405 → 413.210 | -12.53% | 976.411 → 721.124 | 1021.363 → 819.107 |
+| 2 | Bank | 128 | 1128.313 → 1049.453 | -6.99% | 1345.998 → 1216.273 | 2258.158 → 1267.307 |
+| 2 | Attack bank | 128 | 1140.743 → 1070.756 | -6.14% | 1299.804 → 1193.858 | 1444.442 → 1280.372 |
+| 2 | Static | 128 | 1227.744 → 1158.518 | -5.64% | 1356.511 → 1279.691 | 1642.557 → 1330.202 |
+| 2 | Expression | 128 | 1255.780 → 1178.808 | -6.13% | 1498.619 → 1394.891 | 1691.614 → 1465.699 |
+| 2 | Gliss | 128 | 1323.400 → 1248.295 | -5.68% | 1512.387 → 1387.721 | 1879.092 → 1684.278 |
+
+The CSVs retain all columns, including median/p95/p999, reset cost and worst
+callback position/transform diagnostics. Files are ignored development artifacts:
+`build-ci/pog3-artifacts/dense-{control,candidate}-{1,2}.csv`. The earlier
+`dense-preliminary-*` files precede the shared reader fix and are not final
+comparison evidence. Reproduce current validation and measurement with:
+
+```sh
+ctest --test-dir build-ci --output-on-failure -R '^pedal-(pog3-.*|pitch-effect-quality|harmonizer-(quality|smoke)|daisy-fx-(catalog-smoke|smoke|response|automation)|manager-effect-catalog-smoke|scene-plan-smoke|scheduled-convolver-smoke)$'
+ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 ctest --test-dir build-pog3-sanitize -j2 --output-on-failure -R '^pedal-pog3-(quality|pitch-quality)$'
+ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 build-pog3-sanitize/pedal-pog3-freeze-quality --warm-live
+ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 ctest --test-dir build-pog3-sanitize -j2 --output-on-failure -R '^pedal-(pitch-effect-quality|daisy-fx-smoke)$'
+build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/dense-retained.csv
+```
+
+All GitHub CI checks pass on the preceding **a3180022** revision. The new FFT
+layout and shared reader correction require their own CI run after push.
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
@@ -1410,8 +1632,9 @@ scene and manager integration**. All seven DSP expression selections now have
 audio behavior. The initial host allocation goal is met; CPU margin, target
 memory/endurance and M3/M4/M7 fidelity limits still require work. Successful
 hold/routing tests do not satisfy target-device feasibility.
-The coincident-analysis schedule and bounded Attack rounding change now have
-exact-output evidence. The diagnostic profile still identifies FFT, rendering
+The balanced analysis schedule, bounded Attack matching and prepared FFT layout
+now have exact-output evidence; the shared granular read correction is separately
+reproduced and documented. The diagnostic profile still identifies FFT, rendering
 and pitch-frame interpretation as the largest remaining average-demand costs.
 Use the new mean alongside callback tails to evaluate the next optimization.
 Preserve input timestamps, control snapshots, complete-frame publication and

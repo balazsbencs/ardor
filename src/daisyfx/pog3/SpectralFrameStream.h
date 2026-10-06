@@ -4,6 +4,7 @@
 
 #include <complex>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <limits>
 #include <span>
@@ -23,7 +24,13 @@ public:
   void transform(std::vector<std::complex<float>>& values, bool inverse) const;
 
 private:
+  // The active 1024/2048/4096 plans use contiguous stage twiddles and compact
+  // swap pairs. Larger foundation plans retain the shared FFT implementation.
   RealtimeFft fft_;
+  std::vector<std::uint16_t> fftSwaps_;
+  std::vector<std::complex<float>> fftTwiddles_;
+  template<bool Inverse>
+  void transformPrepared(std::vector<std::complex<float>>& values) const;
   std::size_t hopSize_;
   std::vector<float> window_;
   std::vector<float> synthesis_;

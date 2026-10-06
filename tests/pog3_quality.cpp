@@ -75,6 +75,64 @@ void spectralIdentity() {
   }
 }
 
+void preparedTransform() {
+  using namespace ardor::pog3;
+  std::mt19937 random(0x46544654);
+  std::uniform_real_distribution<float> uniform(-.3f, .3f);
+  std::size_t compared = 0;
+  // Independent shared implementation checks both the dense active plans and
+  // the larger fallback plans, including the 4096/8192 dispatch boundary.
+  for (std::size_t n = 32; n <= 32768; n *= 2) {
+    SpectralPlan plan(n, n / 8);
+    ardor::RealtimeFft reference; reference.prepare(n);
+    std::vector<std::complex<float>> source(n), expected(n), actual(n);
+    for (unsigned fixture = 0; fixture < 14; ++fixture) {
+      for (std::size_t i = 0; i < n; ++i) {
+        const float sign = i & 1 ? -1 : 1;
+        switch (fixture) {
+          case 0: source[i] = {}; break;
+          case 1: source[i] = {sign * 0.0f, -sign * 0.0f}; break;
+          case 2: source[i] = i == 0 ? std::complex<float>{.5f, -.25f} : std::complex<float>{}; break;
+          case 3: source[i] = {.125f, -.0625f}; break;
+          case 4: source[i] = {.25f * sign, -.125f * sign}; break;
+          case 5: source[i] = {uniform(random), uniform(random)}; break;
+          case 6: source[i] = {uniform(random), 0}; break;
+          case 7: source[i] = {uniform(random), uniform(random)}; break;
+          case 8: source[i] = {sign * std::ldexp(1.0f, -140), -sign * std::ldexp(1.0f, -135)}; break;
+          case 9: source[i] = {std::ldexp(uniform(random), static_cast<int>(i % 121) - 60),
+                              std::ldexp(uniform(random), 60 - static_cast<int>(i % 121))}; break;
+          case 10: source[i] = {std::numeric_limits<float>::max(), 0}; break;
+          case 11: source[i] = i == n / 2 ? std::complex<float>{std::numeric_limits<float>::max(), 0}
+                                        : std::complex<float>{}; break;
+          case 12: source[i] = i == n - 1 ? std::complex<float>{std::numeric_limits<float>::quiet_NaN(), 0}
+                                        : std::complex<float>{}; break;
+          default: source[i] = i == n / 3 ? std::complex<float>{0, std::numeric_limits<float>::infinity()}
+                                         : std::complex<float>{}; break;
+        }
+      }
+      if (fixture == 7) {
+        source[0] = {source[0].real(), 0}; source[n / 2] = {source[n / 2].real(), 0};
+        for (std::size_t i = 1; i < n / 2; ++i) source[n - i] = std::conj(source[i]);
+      }
+      for (bool inverse : {false, true}) {
+        expected = actual = source;
+        reference.transform(expected, inverse); plan.transform(actual, inverse);
+        bool matches = true;
+        for (std::size_t i = 0; i < n; ++i) {
+          const auto same = [](float a, float b) {
+            if (std::isnan(a)) return std::isnan(b); // NaN payloads are not an audio contract.
+            return std::bit_cast<std::uint32_t>(a) == std::bit_cast<std::uint32_t>(b);
+          };
+          matches &= same(expected[i].real(), actual[i].real()) && same(expected[i].imag(), actual[i].imag());
+        }
+        require(matches, "prepared FFT matches shared FFT including finite bits, zeros and overflow classification");
+        compared += n;
+      }
+    }
+  }
+  std::cout << "Prepared FFT: " << compared << " complex bins match shared implementation\n";
+}
+
 double measuredFrequency(const std::vector<float>& input, std::size_t skip) {
   std::vector<double> crossings;
   for (std::size_t i = skip + 1; i < input.size(); ++i)
@@ -173,7 +231,8 @@ void spectralLifecycle() {
       require(synthesis.addFrame(analysis.spectrum()), "nonfinite input becomes clean zero history");
   }
   for (std::size_t i = 0; i < 2048; ++i) require(synthesis.pop() == 0, "nonfinite input remains silent");
-  for (auto [n, h] : {std::pair{0U, 0U}, {1023U, 128U}, {1024U, 0U}, {1024U, 96U}, {1024U, 1024U}}) {
+  for (auto [n, h] : {std::pair{0U, 0U}, {16U, 2U}, {65536U, 8192U}, {1023U, 128U},
+                      {1024U, 0U}, {1024U, 96U}, {1024U, 1024U}}) {
     bool rejected = false;
     try { SpectralPlan bad(n, h); } catch (const std::invalid_argument&) { rejected = true; }
     require(rejected, "invalid spectral dimensions rejected off callback");
@@ -369,6 +428,7 @@ int main(int argc, char** argv) {
   try {
     if (argc != 1 && !(argc == 3 && std::string_view(argv[1]) == "--render"))
       throw std::runtime_error("usage: pedal-pog3-quality [--render directory]");
+    preparedTransform();
     spectralIdentity();
     spectralLifecycle();
     deferredAnalysis();
