@@ -958,6 +958,134 @@ run also recorded all-mode maxima of **3439.399/6276.186 µs**, and gliss reache
 only and storage-only checkpoint CSVs also remain available. Host timing
 cannot establish target/device or combined NAM/IR chain admission.
 
+## Further CPU refinement
+
+This increment removes redundant work from the same prepared engine. It keeps
+all FFT sizes/hops, renderer jobs, latency, partial capacities, capture metadata,
+Attack histories, 24-tap interpolation support and double phase accumulation.
+No global FFT or callback-period change is included.
+
+### Peak-only phase evaluation
+
+Pitch frames retain the previous Cartesian complex bins instead of separate
+phase/magnitude arrays. A candidate peak computes the previous bin's `hypot`
+and `atan2` only when it needs that history. Current-bin magnitudes, peak
+selection, the previous-magnitude threshold, float phase subtraction and the
+frequency estimator retain their original expressions. Keeping an owned copy
+also ensures the next analysis FFT cannot overwrite the previous coefficients.
+Invalid frames still invalidate previous history; reset clears it.
+
+The complex history uses the same per-bin sample storage as the two old float
+arrays. Removing one vector header per frame saves another **144 host bytes**:
+all-mode preparation now requests **2,054,590 bytes (1.960 MiB)**, dedicated
+gliss 2,053,104, static sound 2,048,792 and the bank wrapper 1,880,424. All-mode
+requested allocation is **42,562 bytes below 2 MiB**, and **813,104 bytes below
+M7**. These are scoped construction counters, not retained memory, peak RSS or
+target ABI measurements.
+
+### Fully held live histories
+
+When a prepared held renderer has exactly `heldMix == 1`, the live spectrum
+would be multiplied by zero. It now skips the live rotation, interpolation,
+scattering and low-band lobe reconstruction at that endpoint. Live generations,
+phase offsets, ratios, ages, low carriers and cross-resolution alignment still
+advance with the original update order. Held oscillator phases, synthesis IFFTs
+and OLA continue normally. The entire live contribution still runs during
+capture/release fades and at every intermediate mix.
+
+The new `--warm-live` quality gate compares a renderer that freezes and releases
+with an independent renderer that remains live throughout. It uses both
+1024/2048 renderer sizes, 4096 low analysis, unison and −24/+7/+24 intervals,
+and a new note played during the hold. Before the hold and after staged OLA
+drains on release, output must match **bit-for-bit**, including signed zeros;
+an energy check requires audible resumed output. This verifies warm state
+without exposing or comparing private phase arrays. The gate is included in
+both normal and `--quick` freeze suites.
+
+### Forward interpolation traversal
+
+The same 24 kernel weights are stored in increasing destination order. Interior
+scattering traverses contiguous destinations forward rather than backward.
+Each source bin still contributes once to a given interior destination, with
+the original source-bin/region addition order. The reflection/endpoint path
+retains its original traversal and reverses only the weight lookup, preserving
+the order when multiple reflected taps meet one bin. The host GCC optimization
+report now confirms **16-byte** loop vectors, versus the previous **8-byte**
+vectors. This uses portable C++ and does not require architecture intrinsics
+or relaxed floating-point compiler flags.
+
+A standalone explicit-component FFT prototype was also checked against the
+existing FFT at N=32/1024/2048/4096/32768, forward and inverse. It produced
+identical normal finite results but ran substantially slower in both ordinary
+and forced out-of-line microbenchmarks, so it was not added to the repository.
+The existing shared FFT code remains untouched.
+
+All **14 selected release suites pass** on the final code (143.80 s), including
+the new warm-release gate and both 60-second holds. All **53 raw WAVs remain
+byte-identical to M7**, covering pitch/Warp, Attack, voice stages, expression
+and freeze. The changed bank and freeze-test translation units compile without
+`-Wall -Wextra -Wpedantic` diagnostics, and `git diff --check` passes. The final
+full foundation, pitch, Attack and expression suites also pass ASan/UBSan with
+leak detection (396.41 s combined wall time). The complete functional/dense/
+reset/warm-release freeze suite passes under the same sanitizers; `--quick`
+omits only the two long holds already exercised in release.
+
+The benchmark CSV additionally records the maximum callback's original index,
+its end timestamp modulo the 512-sample low hop and its actual transform count.
+It retains every percentile and the overall maximum transform count. This
+bookkeeping runs after the callback timer stops and allocates nothing. Timestamp
+diagnostics help locate repeatable bursts; a maximum can still include host
+descheduling and is not a self-contained attribution of CPU cost. Reproduce
+the new targeted state gate and final timing with:
+
+```sh
+build-ci/pedal-pog3-freeze-quality --warm-live
+build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/refined-processor-benchmark.csv
+```
+
+The final release timing run followed completion of all validation jobs. The
+ignored `refined-processor-benchmark.csv` retains all workloads and new timeline
+columns; the complete expression and dedicated gliss rows are:
+
+| Workload | Samples | Median µs | p95 µs | p99 µs | p99.9 µs | Maximum µs | Period µs |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| All expression modes | 64 | 634.931 | 1014.233 | 1075.737 | 1267.788 | 1574.489 | 1333.333 |
+| Freeze/gliss capture and assignment | 64 | 574.209 | 1029.670 | 1079.794 | 1135.260 | 1600.727 | 1333.333 |
+| All expression modes | 128 | 1256.470 | 1518.803 | 1603.403 | 1673.535 | 1759.000 | 2666.667 |
+| Freeze/gliss capture and assignment | 128 | 1378.007 | 1557.899 | 1604.260 | 1670.554 | 1855.785 | 2666.667 |
+
+Against the preceding admission checkpoint, observed all-mode medians are
+**3.2%/4.7% lower** at 64/128 samples, and dedicated gliss medians **10.5%/7.7%
+lower**. All-mode p99 is **4.6%/4.9% lower**. These compare host runs, not a
+controlled hardware speedup guarantee. Some other workload medians increased
+between runs, and large outliers remain. The scoped processing/control/reset
+allocation count is still **zero** in all rows. Full-path scheduled renderer
+deadlines remain intact, with at most 11/16 transforms per 64/128-sample callback;
+full-processor reset takes 64.458–83.196 µs in this run.
+
+The 64-sample expression/gliss maxima exceed the 1333.333 µs callback period.
+The Attack bank also reaches **1369.163 µs** at 64 samples, and the Warp/Focus
+bank reaches **2911.778 µs** at 128 samples, exceeding its 2666.667 µs period.
+The foundation comparison harness reaches 4327.503 µs at 64 samples; this is
+retained as a host diagnostic, not a production fallback. Storage goals and
+lower medians do not satisfy dependable callback margin, the 25%-of-period
+isolated-effect goal or target/combined-chain feasibility.
+
+Several bank/static/expression maxima occur in callbacks ending at a 512-sample
+boundary, with 11/16 completed transforms. Those callbacks include coincident
+analysis events. The 64-sample gliss maximum instead ends at remainder 64 with
+five transforms. This motivates profiling/scheduling the coincident analysis
+work, while retaining the possibility of unrelated host descheduling. The
+phase-only, held-endpoint and forward-interpolation checkpoint CSVs remain
+ignored artifacts; their outliers are not replaced by this final table.
+
+The benchmark's existing malloc/free-backed replacement allocation operators
+produce GCC's `-Wmismatched-new-delete` diagnostic at `-O3 -Wall`; the same
+diagnostic is reproduced from the preceding commit's benchmark. After excluding
+that diagnosed allocation-probe warning, the changed benchmark compiles without
+other `-Wall -Wextra -Wpedantic` diagnostics. Production allocation behavior is
+unchanged, and the sanitizer suites above do not use this benchmark probe.
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
@@ -973,6 +1101,12 @@ scene and manager integration**. All seven DSP expression selections now have
 audio behavior. The initial host allocation goal is met; CPU margin, target
 memory/endurance and M3/M4/M7 fidelity limits still require work. Successful
 hold/routing tests do not satisfy target-device feasibility.
+Use the new callback timestamps to profile coincident analysis bursts before
+choosing the next optimization. A staged-analysis candidate must retain input
+timestamps and the frame's control snapshot, expose only complete FFT frames,
+and meet Attack/freeze/render consumer deadlines. Recheck latency, arbitrary
+callback partitions, allocation bounds and audible quality before admission;
+moving work does not solve excessive average demand.
 Resolve admission before adding the public catalog entry, then exercise actual
 physical/MIDI controls, scene cut/reset, preset/endpoints round-trips, tail/latency
 reporting and runtime ownership. No callback-period or unrelated DSP quality
