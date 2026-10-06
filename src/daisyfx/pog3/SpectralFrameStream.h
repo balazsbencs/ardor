@@ -32,12 +32,17 @@ private:
 class SpectralAnalysis {
 public:
   // Preparation allocates. All subsequent push/reset calls keep capacities.
-  void prepare(std::shared_ptr<const SpectralPlan> plan);
+  void prepare(std::shared_ptr<const SpectralPlan> plan, bool deferTransform = false);
   void reset() noexcept;
-  // True once per hop. A frame ends at the sample just pushed. Startup uses
-  // zero history. spectrum() remains valid until the next completed frame.
+  // True once per hop. By default a frame ends at the sample just pushed.
+  // With deferTransform (H >= 2), freeze the same window at its boundary and
+  // transform it on the following push, before consuming that next sample.
+  // Startup uses zero history. spectrum() is empty while a transform is pending;
+  // otherwise its view lasts until the next window boundary, not indefinitely.
   bool push(float sample) noexcept;
-  std::span<const std::complex<float>> spectrum() const noexcept { return spectrum_; }
+  std::span<const std::complex<float>> spectrum() const noexcept {
+    return pending_ ? std::span<const std::complex<float>>{} : spectrum_;
+  }
   std::size_t frameCount() const noexcept { return frameCount_; }
 
 private:
@@ -47,6 +52,7 @@ private:
   std::size_t write_ = 0;
   std::size_t untilFrame_ = 0;
   std::size_t frameCount_ = 0;
+  bool deferTransform_ = false, pending_ = false;
 };
 
 class SpectralSynthesis {
