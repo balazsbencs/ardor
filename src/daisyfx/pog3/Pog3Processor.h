@@ -10,7 +10,6 @@ namespace ardor::pog3 {
 // Configure and reset require exclusive lifecycle ownership. Configure compiles
 // immutable endpoints and prepares all storage off the audio callback. Setters
 // publish independent lock-free targets; process alone consumes DSP state.
-// Freeze modes are rejected until their complete implementation is available.
 class Pog3Processor {
 public:
   static constexpr std::size_t kControlPeriod = 48;
@@ -37,6 +36,11 @@ public:
   std::size_t transformCount() const noexcept;
   std::size_t deadlineMisses() const noexcept;
   bool healthy() const noexcept;
+  SpectralFreeze::State freezeState() const noexcept;
+  bool freezeLatched() const noexcept;
+  std::size_t freezeCaptures() const noexcept;
+  std::size_t freezeTargets() const noexcept;
+  std::size_t freezeCapacityEvents() const noexcept;
 
 private:
   struct State;

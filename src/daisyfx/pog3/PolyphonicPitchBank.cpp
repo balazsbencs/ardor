@@ -174,11 +174,12 @@ void PitchFrame::update(std::span<const std::complex<float>> spectrum) noexcept 
   previous_ = true;
 }
 
-void PitchRenderer::prepare(std::shared_ptr<const PitchPlan> plan) {
+void PitchRenderer::prepare(std::shared_ptr<const PitchPlan> plan, bool allowHeld) {
   if (!plan) throw std::invalid_argument("pitch renderer requires a plan");
   plan_ = std::move(plan);
   synthesis_.prepare(plan_->spectral);
   spectrum_.resize(plan_->spectral->frameSize());
+  if (allowHeld) heldPhases_.resize(2 * kMaxPitchPartials);
   reset();
 }
 
@@ -188,12 +189,14 @@ void PitchRenderer::reset() noexcept {
   phases_ = {};
   lowPhases_ = {};
   lowCarriers_ = {};
+  std::fill(heldPhases_.begin(), heldPhases_.end(), HeldPhase{});
   shifted_ = false;
 }
 
 bool PitchRenderer::render(const PitchFrame& frame, float semitones, const PitchFrame* lowAnalysis,
                            std::size_t startOffset, const PartialGains* gains, const PartialGains* lowGains,
-                           bool partialProcessing) noexcept {
+                           bool partialProcessing, const FrozenBand* held, const FrozenBand* heldLow,
+                           float heldMix, float heldGain, const PitchRenderer* heldReference) noexcept {
   if (!plan_ || frame.spectrum().size() != spectrum_.size() || !std::isfinite(semitones)) return false;
   const float ratio = std::exp2(std::clamp(semitones, -24.0f, 24.0f) / 12);
   if (ratio != 1) shifted_ = true;
@@ -334,8 +337,51 @@ bool PitchRenderer::render(const PitchFrame& frame, float semitones, const Pitch
       }
     }
   }
+  if (held && heldMix > 0 && !heldPhases_.empty()) {
+    for (int j = 0; j <= half; ++j) spectrum_[j] *= 1 - heldMix;
+    renderHeld(*held, false, ratio, heldMix * heldGain, frame.centerSamples(), heldReference);
+    if (heldLow) renderHeld(*heldLow, true, ratio, heldMix * heldGain, frame.centerSamples(), heldReference);
+  }
   for (int j = 1; j < half; ++j) spectrum_[spectrum_.size() - j] = std::conj(spectrum_[j]);
   return synthesis_.addFrame(spectrum_, startOffset);
+}
+
+void PitchRenderer::renderHeld(const FrozenBand& band, bool low, float ratio, float gain, std::int64_t center,
+                              const PitchRenderer* reference) noexcept {
+  const int half = static_cast<int>(spectrum_.size() / 2);
+  for (std::size_t i = 0; i < band.count; ++i) {
+    const auto& p = band.partials[i];
+    if (!p.id) continue;
+    auto& phase = heldPhases_[(low ? kMaxPitchPartials : 0) + i];
+    const float outputHz = p.frequency * ratio;
+    if (phase.id != p.id) {
+      double offset = 0;
+      const auto* seed = p.referenceLeft && reference ? reference : this;
+      const auto& live = low ? seed->lowPhases_[p.liveTrack] : seed->phases_[p.liveTrack];
+      if (live.generation == p.liveGeneration) offset = live.offset;
+      phase = {p.id, principal(p.phase + kTwoPi * p.frequency * (center - p.center) / kSampleRate + offset), center, outputHz};
+    } else {
+      phase.phase = principal(phase.phase + .5 * kTwoPi * (phase.frequency + outputHz) * (center - phase.center) / kSampleRate);
+      phase.center = center; phase.frequency = outputHz;
+    }
+    if (outputHz >= kSampleRate / 2) continue;
+    const float destination = outputHz * spectrum_.size() / kSampleRate;
+    const float edge = std::clamp((half - destination - 2) / 6, 0.0f, 1.0f);
+    const float weight = low ? 1 - highWeight(p.frequency) : highWeight(p.frequency);
+    const float amplitude = p.magnitude * weight * gain * (ratio == 1 ? 1 : edge * edge * (3 - 2 * edge));
+    const std::complex<float> carrier{static_cast<float>(std::cos(phase.phase)) * amplitude,
+                                      static_cast<float>(std::sin(phase.phase)) * amplitude};
+    const int first = static_cast<int>(std::floor(destination)) - 16;
+    const int last = static_cast<int>(std::ceil(destination)) + 16;
+    for (int j = first; j <= last; ++j) {
+      if (std::abs(j) >= half) continue;
+      auto value = carrier * (plan_->lobe(j - destination) * spectrum_.size());
+      if (j & 1) value = -value;
+      if (j < 0) spectrum_[-j] += std::conj(value);
+      else if (j == 0) spectrum_[0] += std::complex<float>{2 * value.real(), 0};
+      else spectrum_[j] += value;
+    }
+  }
 }
 
 void PolyphonicPitchBank::prepare() {
@@ -349,9 +395,11 @@ void PolyphonicPitchBank::prepare() {
     shortFrames_[channel].prepare(shortPlan);
     lowAnalysis_[channel].prepare(lowPlan->spectral);
     lowFrames_[channel].prepare(lowPlan, 400);
-    for (auto& voice : longVoices_) voice[channel].prepare(longPlan);
+    for (auto& voice : longVoices_) voice[channel].prepare(longPlan, true);
     for (auto& voice : shortVoices_) voice[channel].prepare(shortPlan);
   }
+  freeze_ = std::make_unique<SpectralFreeze>();
+  freeze_->setControls(freezeMode_, freezePosition_, freezeDry_);
   prepared_ = true;
   reset();
 }
@@ -373,6 +421,8 @@ void PolyphonicPitchBank::reset() noexcept {
   longAge_ = shortAge_ = 0;
   frameWarp_ = warp_;
   attack_.reset();
+  if (freeze_) freeze_->reset();
+  freezeReady_ = true;
   longAttackReady_ = shortAttackReady_ = true;
   longAttackActive_ = attack_.seconds() > 0;
   inputSamples_ = 0;
@@ -384,6 +434,11 @@ bool PolyphonicPitchBank::setWarp(float normalized) noexcept {
   if (!std::isfinite(normalized)) return false;
   warpTarget_ = std::clamp(normalized, 0.0f, 1.0f);
   return true;
+}
+bool PolyphonicPitchBank::setFreeze(ExpressionMode mode, float position, bool dryEligible) noexcept {
+  if (!std::isfinite(position) || static_cast<int>(mode) < 0 || static_cast<int>(mode) > 6) return false;
+  freezeMode_ = mode; freezePosition_ = std::clamp(position, 0.0f, 1.0f); freezeDry_ = dryEligible;
+  return !freeze_ || freeze_->setControls(mode, freezePosition_, dryEligible);
 }
 
 PitchVoices PolyphonicPitchBank::process(PitchStereo input) noexcept {
@@ -428,6 +483,7 @@ PitchVoices PolyphonicPitchBank::process(PitchStereo input) noexcept {
     if (longJob_ != 12) { ++deadlineMisses_; healthy_ = false; }
     longJob_ = longAge_ = 0;
     longAttackReady_ = false;
+    freezeReady_ = false;
     frameWarp_ = warp_; // Every renderer uses controls at this frame's timestamp.
   }
   if (newShort) {
@@ -444,6 +500,10 @@ PitchVoices PolyphonicPitchBank::process(PitchStereo input) noexcept {
     shortGains_ = attack_.update(shortFrames_[0], shortFrames_[1], 1, inputSamples_ - shortAge_);
     shortAttackReady_ = true;
   }
+  if (!freezeReady_ && longAttackReady_ && shortAttackReady_ && longAge_ >= 9) {
+    freeze_->update(longFrames_, shortFrames_, lowFrames_, longGains_, shortGains_, lowGains_, inputSamples_ - longAge_);
+    freezeReady_ = true;
+  }
   // Immutable until their next analysis event: each long frame's jobs complete
   // by sample 251 of its 256-sample hop, each short frame's by sample 112 of 128.
   // Both sets of jobs finish before the 512-hop low-band frame can change.
@@ -453,7 +513,9 @@ PitchVoices PolyphonicPitchBank::process(PitchStereo input) noexcept {
     if (longAge_ >= 256) { ++deadlineMisses_; healthy_ = false; break; }
     const auto voice = longJob_ / 2, channel = longJob_ % 2;
     if (!longVoices_[voice][channel].render(longFrames_[channel], kVoiceSemitones[voice] * frameWarp_, &lowFrames_[channel],
-                                           256 - longAge_, &longGains_[channel], &lowGains_[channel], longAttackActive_)) healthy_ = false;
+                                           256 - longAge_, &longGains_[channel], &lowGains_[channel], longAttackActive_,
+                                           &freeze_->band(0, channel), &freeze_->band(2, channel), freeze_->mix(voice), freeze_->gain(),
+                                           channel ? &longVoices_[voice][0] : nullptr)) healthy_ = false;
     ++transforms_; ++longJob_;
   }
   while (shortAttackReady_ && shortJob_ < 4 && 16 + shortJob_ * 128 / 4 <= shortAge_) {

@@ -42,11 +42,12 @@ void publicationAndLifecycle() {
   const auto saved = p.targetValues();
   require(!p.setParameterTarget(33, .3f) && !p.setParameterTarget("mix", .3f), "unknown processor targets rejected");
   require(!p.setParameterTarget(32, std::numeric_limits<float>::quiet_NaN()), "nonfinite processor target rejected");
-  require(!p.setParameterTarget("expression_mode", 5.0f / 6)
-          && !p.setParameterTarget(28, 1), "unfinished freeze modes rejected by both setters");
+  require(p.setParameterTarget("expression_mode", 5.0f / 6)
+          && p.setParameterTarget(28, 1), "freeze modes accepted by both setters");
+  target(p, Parameter::ExpressionMode, saved[index(Parameter::ExpressionMode)]);
   std::string error;
   for (const auto& invalid : {nlohmann::json{{"filter_q", "bad"}},
-       nlohmann::json{{"crossfade_toe", {{"focus", 1}}}}, nlohmann::json{{"expression_mode", 1}}}) {
+       nlohmann::json{{"crossfade_toe", {{"focus", 1}}}}, nlohmann::json{{"expression_mode", true}}}) {
     require(!p.configure(invalid, 48000, error) && !error.empty(), "invalid or unfinished configuration rejected");
     require(p.targetValues() == saved, "failed configuration retains all published targets");
   }
