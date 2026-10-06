@@ -320,6 +320,14 @@ bool PitchRenderer::render(const PitchFrame& frame, float semitones, const Pitch
       const auto value = input[k] * rotation * endpoint;
       if (position == 0) {
         accumulate(k + shiftCeil, (shiftCeil & 1) ? -value : value);
+      } else if (k + shiftCeil > PitchPlan::kRadius
+                 && k + shiftCeil + PitchPlan::kRadius - 1 < half) {
+        // Every tap is inside the positive-frequency interior. Distinct
+        // destinations retain the scalar accumulation order while permitting
+        // vectorization; only edge support needs reflection/endpoint checks.
+        auto* destination = spectrum_.data() + k + shiftCeil + PitchPlan::kRadius - 1;
+        for (int tap = 0; tap < 2 * PitchPlan::kRadius; ++tap)
+          destination[-tap] += value * weights[tap];
       } else {
         for (int i = 1 - PitchPlan::kRadius; i <= PitchPlan::kRadius; ++i)
           accumulate(k + shiftCeil - i, value * weights[i + PitchPlan::kRadius - 1]);

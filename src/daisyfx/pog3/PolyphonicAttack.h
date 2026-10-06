@@ -45,6 +45,8 @@ private:
     std::array<std::uint64_t, 2> generation{};
   };
   struct Candidate { float frequency = 0, score = 0; std::size_t partial = 0; };
+  struct FrequencyIndex { float frequency = 0; std::uint16_t slot = 0; };
+  void indexCanonical(std::size_t resolution) noexcept;
   Family* owner(float frequency, std::int64_t inputEnd) noexcept;
   void group(std::size_t count, std::int64_t inputEnd, std::int64_t onset) noexcept;
   float envelope(Partial& partial, float magnitude, std::int64_t center,
@@ -59,6 +61,10 @@ private:
   std::array<bool, kMaxPitchPartials> used_{};
   std::array<bool, kMaxPitchPartials> reserved_{};
   std::array<bool, kMaxPitchPartials> rightUsed_{};
+  std::array<FrequencyIndex, kMaxPitchPartials> rightFrequencies_{};
+  // Only low/primary histories are canonical; short history never owns them.
+  std::array<std::array<FrequencyIndex, kMaxPitchPartials>, 2> canonicalFrequencies_{};
+  std::array<std::size_t, 2> canonicalCounts_{};
   float seconds_ = 0;
   std::uint64_t generation_ = 0;
   std::size_t capacityEvents_ = 0;
