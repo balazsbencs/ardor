@@ -4,9 +4,15 @@ Updated: 2026-10-06. This records the implementation increments against
 [the implementation plan](pog3-effect-implementation-plan.md). The parameter
 contract, audible granular comparison harness, and streaming spectral foundation
 are implemented, along with a spectral five-voice pitch bank, continuous Warp,
-and reversible Focus switching. The complete processor's attack, filter, voice
-space, expression/freeze routing, and public integration remain pending. There
+and reversible Focus switching. Independent spectral attack and a reversible
+Dry Attack router are now implemented. Filter, voice space, expression/freeze
+routing, and public integration remain pending. There
 is no selectable `mod/pog3` entry yet.
+
+Development continues in `/home/bbalazs/projects/ardor-pog3` on
+`feat/pog3-polyphonic-octave`, based on current `main`, in
+[draft PR #113](https://github.com/balazsbencs/ardor/pull/113). The original
+workspace and its unrelated changes remain separate.
 
 ## Implemented code
 
@@ -15,13 +21,16 @@ is no selectable `mod/pog3` entry yet.
 | `src/daisyfx/pog3/Pog3Parameters.{h,cpp}` | Stable 33-index registry, defaults, normalized-to-physical mappings, display formatting, configuration validation, expression endpoints, Warp and dry-freeze eligibility helpers, lock-free control targets |
 | `src/daisyfx/pog3/SpectralFrameStream.{h,cpp}` | Shared immutable FFT/window plans, causal streaming analysis, preallocated inverse FFT and overlap-add synthesis |
 | `src/daisyfx/pog3/PolyphonicPitchBank.{h,cpp}` | Shared short/long/low analysis, bounded persistent partial tracks, fractional spectral translation, low-band reconstruction, independent stereo synthesis, continuous Warp, Focus fades, staged render jobs |
+| `src/daisyfx/pog3/PolyphonicAttack.{h,cpp}` | Linked stereo harmonic families/residual partials, fixed old/new excitation history, input-timestamp attack ages, coherent gains across resolutions |
 | `tests/pog3_granular_reference.h` | Five independent stereo pitch shifters using the existing Whammy/Harmonizer primitive; dry, six levels/pans, input gain, and final master |
 | `tests/pog3_controls.cpp` | Persisted index contract, both target setters, mappings, morph ownership, rejection/clamping, Warp and eligibility behavior |
 | `tests/pog3_quality.cpp` | Identity/delay/startup/drain/chunking/reset checks, isolated reference tuning, stereo/pan/gain checks, nonfinite/overflow rejection, optional WAV renders |
 | `tests/pog3_pitch_quality.cpp` | Spectral tuning/spurs/leakage, resolved and ordinary low chords, alias rejection, track continuity, Focus reversal, staged identity/deadlines, callback partitioning, Warp, overload/drain, envelope latency, close-pair diagnostic |
+| `tests/pog3_attack_quality.cpp` | Held/new notes, shared harmonics, low bass, re-plucks, arpeggios, bends, Focus reversals, activation, exact-off dry, reset, partition invariance, optional attack WAV renders |
+| `tests/pog3_artifacts.h` | Shared offline float WAV writer; preserves raw levels |
 | `tests/pog3_bench.cpp` | Prepared callback timing distributions, transform burst counts, reset cost, allocation instrumentation, CSV output |
 | `ardor_realtime_fft` | Sole CMake ownership of the existing `RealtimeFft.cpp`; shared with the existing DSP/convolver target |
-| `ardor_pog3` | Independent parameter/streaming foundation library; links the shared FFT without a Daisy/DSP dependency cycle |
+| `ardor_pog3` | Independent parameter/spectral/pitch/attack library; links the shared FFT without a Daisy/DSP dependency cycle |
 
 The CMake edits retain the unrelated changes already present in the workspace.
 Existing pitch modes, catalog entries, scene indices, FFT mathematics, and
@@ -68,7 +77,7 @@ tracked device binaries were not edited for this increment.
 
 ## Verified results
 
-The six baseline tests passed before the new code. All ten currently selected
+The six baseline tests passed before the new code. All eleven currently selected
 regression tests pass:
 
 ```text
@@ -81,6 +90,7 @@ pedal-pog3-controls
 pedal-pog3-quality
 pedal-pog3-pitch-quality
 pedal-pog3-low-chord-quality
+pedal-pog3-attack-quality
 pedal-harmonizer-quality
 ```
 
@@ -91,6 +101,10 @@ increment. The envelope-latency diagnostic also passes under both sanitizers.
 The Warp onset regression and envelope-latency diagnostic were rerun under both
 sanitizers after final review. The new C++ files compile cleanly with
 `-Wall -Wextra -Wpedantic`.
+
+On the isolated M4 branch, the full attack suite, parameter suite, low-chord
+suite, and elapsed-time Warp diagnostic also pass ASan/UBSan. The instrumented
+attack suite takes about 344 seconds; the optimized suite takes about 19 seconds.
 
 Identity tests use deterministic noise, startup and drain, impulse delay, absolute
 hop/frame timestamps, and callback partitions of 1, 17, 48, 64, 128, and 256 samples.
@@ -118,14 +132,15 @@ comparison harness; they do not establish polyphonic spectral pitch quality.
 ```sh
 cmake -S . -B build-ci -DARDOR_UI_BACKEND=none -DCMAKE_BUILD_TYPE=Release
 cmake --build build-ci -j 4 --target \
-  pedal-pog3-controls pedal-pog3-quality pedal-pog3-pitch-quality pedal-pog3-bench \
+  pedal-pog3-controls pedal-pog3-quality pedal-pog3-pitch-quality pedal-pog3-attack-quality pedal-pog3-bench \
   pedal-pitch-effect-quality pedal-harmonizer-quality \
   pedal-daisy-fx-catalog-smoke pedal-manager-effect-catalog-smoke \
   pedal-scene-plan-smoke pedal-scheduled-convolver-smoke pedal-poc
 ctest --test-dir build-ci --output-on-failure \
-  -R 'pedal-(pog3-controls|pog3-quality|pog3-pitch-quality|pog3-low-chord-quality|pitch-effect-quality|harmonizer-quality|daisy-fx-catalog-smoke|manager-effect-catalog-smoke|scene-plan-smoke|scheduled-convolver-smoke)'
+  -R 'pedal-(pog3-controls|pog3-quality|pog3-pitch-quality|pog3-low-chord-quality|pog3-attack-quality|pitch-effect-quality|harmonizer-quality|daisy-fx-catalog-smoke|manager-effect-catalog-smoke|scene-plan-smoke|scheduled-convolver-smoke)'
 build-ci/pedal-pog3-quality --render build-ci/pog3-artifacts
-build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/pitch-bank-benchmark.csv
+build-ci/pedal-pog3-attack-quality --render build-ci/pog3-artifacts
+build-ci/pedal-pog3-bench --csv build-ci/pog3-artifacts/attack-bank-benchmark.csv
 build-ci/pedal-pog3-pitch-quality --resolution-stress
 build-ci/pedal-pog3-pitch-quality --latency
 build-ci/pedal-pog3-pitch-quality --warp-onset
@@ -189,6 +204,9 @@ combined NAM/IR chains, xruns, and endurance have not been measured. Do not use
 the host identity cost as evidence that the full effect meets audio deadlines.
 
 ## Spectral pitch implementation and measured adaptations
+
+This section records M3. M4's attack, processed unison, and revised job schedule
+are described below; the M3 timings are retained as historical evidence.
 
 The bank returns six stereo voices before levels, pan, filter, space, or master.
 Voice zero is processed unison. The future processor must use immediate input
@@ -277,7 +295,7 @@ An explicitly separate resolution diagnostic remains an honest limitation:
 partials. The current low analysis does not separate that 4.9 Hz pair. This
 diagnostic is not reported as a passed chord gate or hidden by a loose estimator.
 
-## Current bank performance and memory (M3)
+## Bank performance and memory before attack (M3)
 
 The same optimized host and four-second dense stereo/noise workload, with rapid
 Warp and Focus updates, now includes the complete three-resolution pitch bank:
@@ -317,25 +335,103 @@ Store captured carrier amplitudes independently of the old analysis-bin
 normalization: a gliss cannot change a captured frequency while retaining its
 old bin/window-gain interpretation.
 
+## Independent attack and dry route (M4)
+
+The model uses up to 16 shared harmonic families and 256 residual/partial states
+per resolution, with separate bindings for each channel. Noncancelling combined
+peak magnitudes create shared identities; the renderer retains independent
+complex stereo audio. Existing bindings are reserved before allocating births,
+so a loud new observation cannot steal a quieter sustain's state.
+
+This first family scorer accepts directly supported fundamentals in 40–2000 Hz,
+with harmonic support through harmonic eight. It deliberately rejects phantom
+subharmonics instead of implementing missing-fundamental inference; that
+material keeps residual-partial envelopes. Bends update frequencies continuously.
+The 35-cent association tolerance is not a pitch quantizer.
+
+Each partial decomposes into established sustain and up to four new excitation
+epochs. A positive increment swells with `sin²(pi*x/2)` over the mapped Attack
+time; it does not reset the old component. Falling magnitudes proportionally
+release the components. A 40 ms coalescing interval groups a rising pluck; the
+per-hop rise threshold is 2%, with an absolute noise floor. Capacity counters
+report bounded fallback merges. Rapid repeated picking at long Attack settings
+can exhaust the four epochs and needs further listening review; coalescing may
+shorten the newest increment's swell. Coincident/cancelling harmonics cannot be
+perfectly separated from the mixed input.
+
+Onsets use absolute input sample dates. Short-window beat fluctuations initially
+caused false re-plucks on held chords; short paths now evaluate the resolved
+low/long excitation history at their own frame-center timestamps. Low-band
+history also controls matching long partials. This keeps Focus changes from
+restarting a note. The low representation is enabled for processed unison when
+Attack is active: a main-window region can otherwise merge low A/B and duck A.
+At Attack=0 gain is exactly one, histories stay warm, and fresh unison retains
+the full spectrum.
+
+`DryAttackRouter` supplies a reversible 20 ms route fade, with exact immediate
+stereo dry at its off endpoint. The future processor must enable it only when
+Dry Attack is on and Attack is nonzero; dry freeze's stricter 10% eligibility
+still applies separately. The helper does not introduce gain, pan, or master.
+
+Attack interpretation is staged before rendering: low at its frame boundary,
+long at age 1 sample, short at age 8. Long render jobs run at ages 17–251 and
+short at 16–112, preserving the original `t+1+H` window start and N+H identity
+delay. Cached gains and source frames remain immutable during their render jobs.
+
+The 500 ms independence gate covers all six paths, both Focus settings, isolated
+notes, shared harmonics, and the 82.4/130.8 Hz bass pair. Measurements fit held
+and new components jointly: a naive 50 ms projection leaks held bass into the
+new frequency. The tests require old level changes below 1 dB, at least 10 dB
+suppression of B's first 50 ms, and settled level within 1 dB. Re-plucks preserve
+old sustain while suppressing the positive increment. Three-note arpeggios,
+continuous bends, Focus reversals, enabling Attack over sustain, reset, and
+1/17/48/64/128/256 partitioned automation also pass. Across 36 independence
+cases, the worst held-level change is **0.205 dB**, the least first-50-ms
+suppression is **26.87 dB**, and the largest settled-level difference is
+**0.0036 dB**. Enabling Attack over an existing generated sustain changes samples
+by at most **2.98e−8**. Independent broadband noise additionally exercises
+2,081 capacity fallbacks, family bounds, silence recovery, and reset under
+sanitizers.
+
+Seven additional float WAVs pair a synthetic arpeggio with Attack-off references,
+500 ms Attack with immediate dry, and 500 ms Attack with processed dry, in both
+Focus settings. Every fader is 0.25; files are unnormalized. These illustrate the
+bank/router and do not claim a finished filter/space/master implementation.
+
+The optimized M4 benchmark includes both warm upper variants and all voices:
+
+| Workload | Callback samples | Median µs | p99 µs | Maximum µs | Budget µs |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Attack off, Warp/Focus updates | 64 | 580.910 | 1157.717 | 1293.609 | 1333.333 |
+| Attack and dry-route/Warp/Focus updates | 64 | 591.434 | 1120.523 | 1294.885 | 1333.333 |
+| Attack off, Warp/Focus updates | 128 | 1231.292 | 1657.229 | 1742.083 | 2666.667 |
+| Attack and dry-route/Warp/Focus updates | 128 | 1315.083 | 1666.134 | 1852.894 | 2666.667 |
+
+Prepared processing/control/reset allocations remain **zero**. Preparation
+requests **2,065,592 bytes** (about **1.97 MiB**); reset costs about 51–75 µs.
+Maximum transforms per callback remain 11/16 and logical deadline misses zero.
+The 64-sample maximum leaves only **38 µs**. This evidence does not establish
+full-block, arbitrary callback-phase, combined-chain, or target-device admission.
+The memory goal is especially tight before filter, space, and held spectra.
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
 place. M1 supplies an audible reference, renders, and timing/allocation evidence;
 its artifacts remain the comparison baseline for subsequent work.
 
-M3's software engine and core quality gates are implemented. Target-device
+M3/M4's software engine and core quality gates are implemented. Target-device
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next software milestone is **M4 — independent family/partial attack and
-triggered filter envelope**. Use all three analysis resolutions, assign common
-stereo family/event IDs from noncancelling magnitudes, and store onset ages in
-absolute input timestamps. Account for the low-band latency and stage deadlines
-when aligning events. Verify held A plus new B without global ducking, repeated
-notes, zero Attack, and dry-route eligibility. Preserve the exact unprocessed
-dry path and keep volume Attack independent of filter AD timing.
+The next software milestone is **M5 — filter, detune, spread, and voice pan**.
+Add the separate linked playing-event detector and triggered filter AD sweep;
+volume Attack must not change its timing. Verify LP/BP/HP, cutoff/Q bounds,
+dry-filter routing, upper-only doubling, optional dry detune/spread, suboctave
+exclusions, and exact-zero delay endpoints. Extend memory/timing evidence before
+public admission. Continue listening review of M3/M4's stated fidelity limits.
 
-Complete M4–M7 before M8's factory, catalog, inspector, scene, and manager
+Complete M5–M7 before M8's factory, catalog, inspector, scene, and manager
 integration. Public parameters must not expose unfinished audio behavior.
 
 The granular reference must remain a test harness. It cannot satisfy independent

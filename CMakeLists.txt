@@ -141,6 +141,7 @@ target_compile_features(ardor_realtime_fft PUBLIC cxx_std_20)
 
 add_library(ardor_pog3
   src/daisyfx/pog3/Pog3Parameters.cpp
+  src/daisyfx/pog3/PolyphonicAttack.cpp
   src/daisyfx/pog3/PolyphonicPitchBank.cpp
   src/daisyfx/pog3/SpectralFrameStream.cpp
 )
@@ -506,6 +507,9 @@ target_link_libraries(pedal-pog3-bench PRIVATE ardor_pog3 ardor_daisyfx_runtime)
 add_executable(pedal-pog3-pitch-quality tests/pog3_pitch_quality.cpp)
 target_link_libraries(pedal-pog3-pitch-quality PRIVATE ardor_pog3)
 
+add_executable(pedal-pog3-attack-quality tests/pog3_attack_quality.cpp)
+target_link_libraries(pedal-pog3-attack-quality PRIVATE ardor_pog3)
+
 add_executable(pedal-harmonizer-quality tests/harmonizer_quality.cpp)
 target_link_libraries(pedal-harmonizer-quality PRIVATE ardor_daisyfx)
 
@@ -795,6 +799,7 @@ add_test(NAME pedal-pog3-controls COMMAND pedal-pog3-controls)
 add_test(NAME pedal-pog3-quality COMMAND pedal-pog3-quality)
 add_test(NAME pedal-pog3-pitch-quality COMMAND pedal-pog3-pitch-quality)
 add_test(NAME pedal-pog3-low-chord-quality COMMAND pedal-pog3-pitch-quality --stress)
+add_test(NAME pedal-pog3-attack-quality COMMAND pedal-pog3-attack-quality)
 add_test(NAME pedal-harmonizer-quality COMMAND pedal-harmonizer-quality)
 add_test(NAME pedal-filter-effect-quality COMMAND pedal-filter-effect-quality)
 add_test(NAME pedal-delay-effect-quality COMMAND pedal-delay-effect-quality)
