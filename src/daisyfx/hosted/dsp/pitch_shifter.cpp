@@ -162,8 +162,10 @@ float PitchShifter::FindRestart(float nominal, float trailing_from) const {
 
 float PitchShifter::ReadInterp(float pos) const {
     const float sz = static_cast<float>(buf_size_);
-    while (pos >= sz) pos -= sz;
     while (pos < 0.0f) pos += sz;
+    // Adding the ring size to a tiny negative fraction can round to sz.
+    // Normalize the upper edge after that addition before indexing the ring.
+    while (pos >= sz) pos -= sz;
 
     // 4-point Catmull-Rom / Hermite cubic — same kernel as DelayLineSdram.
     // Stencil: [i-1, i, i+1, i+2] — all wrapped circularly.
