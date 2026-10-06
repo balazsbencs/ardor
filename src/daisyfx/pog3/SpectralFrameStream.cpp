@@ -1,6 +1,7 @@
 #include "daisyfx/pog3/SpectralFrameStream.h"
 
 #include <algorithm>
+#include <bit>
 #include <cassert>
 #include <cmath>
 #include <stdexcept>
@@ -12,10 +13,39 @@ SpectralPlan::SpectralPlan(std::size_t frameSize, std::size_t hopSize) : hopSize
   if (frameSize < 32 || frameSize > 32768 || (frameSize & (frameSize - 1)) != 0
       || hopSize == 0 || hopSize > frameSize / 2 || frameSize % hopSize != 0)
     throw std::invalid_argument("POG3 spectral plan requires a power-of-two frame and a dividing hop <= N/2");
-  fft_.prepare(frameSize);
+  constexpr double kTwoPi = 6.2831853071795864769;
+  if (frameSize > 4096) fft_.prepare(frameSize);
+  else {
+    // Reversing log2(N) bits fixes 2^ceil(log2(N)/2) palindromic indices.
+    // Every other index participates in exactly one swap. Store only those
+    // pairs, in the shared FFT's traversal order, with no callback comparison.
+    const auto fixed = std::size_t{1} << ((std::countr_zero(frameSize) + 1) / 2);
+    fftSwaps_.resize(frameSize - fixed);
+    std::size_t position = 0;
+    for (std::size_t i = 1, j = 0; i < frameSize; ++i) {
+      std::size_t bit = frameSize >> 1;
+      for (; j & bit; bit >>= 1) j ^= bit;
+      j ^= bit;
+      if (i < j) {
+        fftSwaps_[position++] = static_cast<std::uint16_t>(i);
+        fftSwaps_[position++] = static_cast<std::uint16_t>(j);
+      }
+    }
+    assert(position == fftSwaps_.size());
+    // Sum of half-stage lengths is N-1; stage len starts at len/2-1.
+    // Use the original largest-table index/arithmetic to retain each twiddle
+    // bit, rather than independently approximating smaller-stage angles.
+    fftTwiddles_.resize(frameSize - 1);
+    for (std::size_t len = 2; len <= frameSize; len <<= 1) {
+      const auto stride = frameSize / len;
+      for (std::size_t j = 0; j < len / 2; ++j) {
+        const double angle = -kTwoPi * static_cast<double>(j * stride) / static_cast<double>(frameSize);
+        fftTwiddles_[len / 2 - 1 + j] = {static_cast<float>(std::cos(angle)), static_cast<float>(std::sin(angle))};
+      }
+    }
+  }
   window_.resize(frameSize);
   synthesis_.resize(frameSize);
-  constexpr double kTwoPi = 6.2831853071795864769;
   for (std::size_t i = 0; i < frameSize; ++i)
     window_[i] = static_cast<float>(.5 - .5 * std::cos(kTwoPi * static_cast<double>(i) / frameSize));
   // Derive WOLA gain, including phase-dependent normalization at N/2 hop.
@@ -31,7 +61,33 @@ SpectralPlan::SpectralPlan(std::size_t frameSize, std::size_t hopSize) : hopSize
 
 void SpectralPlan::transform(std::vector<std::complex<float>>& values, bool inverse) const {
   assert(values.size() == frameSize());
-  fft_.transform(values, inverse);
+  if (fft_.size()) fft_.transform(values, inverse);
+  else if (inverse) transformPrepared<true>(values);
+  else transformPrepared<false>(values);
+}
+
+template<bool Inverse>
+void SpectralPlan::transformPrepared(std::vector<std::complex<float>>& values) const {
+  for (std::size_t p = 0; p < fftSwaps_.size(); p += 2)
+    std::swap(values[fftSwaps_[p]], values[fftSwaps_[p + 1]]);
+  const auto n = values.size();
+  for (std::size_t len = 2; len <= n; len <<= 1) {
+    const auto* weights = fftTwiddles_.data() + len / 2 - 1;
+    for (std::size_t i = 0; i < n; i += len) {
+      for (std::size_t j = 0; j < len / 2; ++j) {
+        auto w = weights[j];
+        if constexpr (Inverse) w = std::conj(w);
+        const auto u = values[i + j];
+        const auto v = values[i + j + len / 2] * w;
+        values[i + j] = u + v;
+        values[i + j + len / 2] = u - v;
+      }
+    }
+  }
+  if constexpr (Inverse) {
+    const float scale = 1.0f / static_cast<float>(n);
+    for (auto& value : values) value *= scale;
+  }
 }
 
 void SpectralAnalysis::prepare(std::shared_ptr<const SpectralPlan> plan, bool deferTransform) {
