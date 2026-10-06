@@ -3,6 +3,7 @@
 #include "daisyfx/pog3/Pog3Parameters.h"
 #include "daisyfx/pog3/PolyphonicAttack.h"
 #include "daisyfx/pog3/SpectralFrameStream.h"
+#include "daisyfx/pog3/SpectralFreeze.h"
 
 #include <algorithm>
 #include <array>
@@ -70,14 +71,16 @@ private:
 
 class PitchRenderer {
 public:
-  void prepare(std::shared_ptr<const PitchPlan> plan);
+  void prepare(std::shared_ptr<const PitchPlan> plan, bool allowHeld = false);
   void reset() noexcept;
   float pop() noexcept { return synthesis_.pop(); }
   // The optional 4096-resolution frame supplies resolved low-band partials
   // while the primary frame retains high-band regions/noise. No extra IFFT.
   bool render(const PitchFrame& frame, float semitones, const PitchFrame* lowAnalysis = nullptr,
               std::size_t startOffset = 0, const PartialGains* gains = nullptr,
-              const PartialGains* lowGains = nullptr, bool partialProcessing = false) noexcept;
+              const PartialGains* lowGains = nullptr, bool partialProcessing = false,
+              const FrozenBand* held = nullptr, const FrozenBand* heldLow = nullptr,
+              float heldMix = 0, float heldGain = 1, const PitchRenderer* heldReference = nullptr) noexcept;
 
 private:
   struct Phase { std::uint64_t generation = 0; double offset = 0; float frequency = 0, ratio = 1; unsigned age = 0; double alignment = 0; };
@@ -87,6 +90,10 @@ private:
   std::array<Phase, kMaxPitchPartials> phases_{};
   std::array<Phase, kMaxPitchPartials> lowPhases_{};
   std::array<std::complex<float>, kMaxPitchPartials> lowCarriers_{};
+  struct HeldPhase { std::uint64_t id = 0; double phase = 0; std::int64_t center = 0; float frequency = 0; };
+  std::vector<HeldPhase> heldPhases_;
+  void renderHeld(const FrozenBand& band, bool low, float ratio, float gain, std::int64_t center,
+                  const PitchRenderer* reference) noexcept;
   bool shifted_ = false;
 };
 
@@ -126,6 +133,8 @@ public:
   // ParameterTargets. These do not introduce a second cross-thread target bank.
   void setFocus(bool enabled) noexcept { focusTarget_ = enabled; }
   bool setWarp(float normalized) noexcept;
+  bool setFreeze(ExpressionMode mode, float position, bool dryEligible) noexcept;
+  const SpectralFreeze& freeze() const noexcept { return *freeze_; }
   bool setAttackSeconds(float seconds) noexcept { return attack_.setSeconds(seconds); }
   float attackSeconds() const noexcept { return attack_.seconds(); }
   PitchVoices process(PitchStereo input) noexcept;
@@ -144,6 +153,10 @@ private:
   std::array<std::array<PitchRenderer, 2>, kVoiceCount> longVoices_;
   std::array<std::array<PitchRenderer, 2>, 2> shortVoices_;
   PolyphonicAttack attack_;
+  std::unique_ptr<SpectralFreeze> freeze_;
+  ExpressionMode freezeMode_ = ExpressionMode::Off;
+  float freezePosition_ = 0;
+  bool freezeDry_ = false, freezeReady_ = true;
   StereoAttackGains longGains_{}, shortGains_{}, lowGains_{};
   std::int64_t inputSamples_ = 0;
   float warpTarget_ = 1, warp_ = 1, focus_ = 0;

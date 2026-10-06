@@ -77,7 +77,7 @@ public:
     if (samples_ % 480 == 0) {
       const auto step = samples_ / 480;
       (void)processor_.setParameterTarget("expression_position", step % 128 / 127.0f);
-      (void)processor_.setParameterTarget(index(Parameter::ExpressionMode), (step / 10) % 5 / 6.0f);
+      (void)processor_.setParameterTarget(index(Parameter::ExpressionMode), (step / 10) % 7 / 6.0f);
       (void)processor_.setParameterTarget(index(Parameter::ExpressionReverse), (step / 15) % 2);
       (void)processor_.setParameterTarget(index(Parameter::Focus), (step / 10) % 2);
       (void)processor_.setParameterTarget(index(Parameter::FilterEnv), step % 3 * .5f);
@@ -92,6 +92,46 @@ public:
 private:
   ardor::pog3::Pog3Processor processor_;
   std::size_t samples_ = 0;
+};
+
+// A full-path hold/gliss workload: changing dense stereo chords, all voices,
+// processed dry, space/filter, toe latch and heel release/recapture. Require
+// actual captures and assignments so allocation/timing probes exercise them.
+class FreezeGlissWorkload {
+public:
+  FreezeGlissWorkload() {
+    std::string error;
+    if (!processor_.configure({{"expression_mode", 5.0 / 6}, {"expression_position", 0}, {"focus", 1},
+        {"dry_level", .25}, {"down2_level", .25}, {"down1_level", .25}, {"fifth_level", .25},
+        {"up1_level", .25}, {"up2_level", .25}, {"attack", .11}, {"dry_attack", 1},
+        {"dry_filter", 1}, {"dry_detune", 1}, {"detune", 1}, {"spread", 1}, {"filter_q", 1}}, 48000, error))
+      throw std::runtime_error(error);
+  }
+  void reset() {
+    if (samples_ == 4 * 48000) {
+      if (processor_.freezeCaptures() < 2 || processor_.freezeTargets() < 2
+          || !processor_.healthy() || processor_.deadlineMisses())
+        throw std::runtime_error("freeze benchmark did not complete captures/targets or violated staged bounds");
+      checked_ = true;
+    }
+    processor_.reset(); samples_ = 0;
+  }
+  ardor::StereoSample process(ardor::StereoSample input) noexcept {
+    using namespace ardor::pog3;
+    if (samples_ == 14400 || samples_ == 177600)
+      (void)processor_.setParameterTarget(index(Parameter::ExpressionPosition), .65f);
+    if (samples_ == 134400) (void)processor_.setParameterTarget(index(Parameter::ExpressionPosition), 1);
+    if (samples_ == 163200) (void)processor_.setParameterTarget(index(Parameter::ExpressionPosition), 0);
+    ++samples_;
+    const auto out = processor_.process({input.left, input.right}).mixed;
+    return {out.left, out.right};
+  }
+  bool healthy() const noexcept { return checked_ && processor_.healthy() && processor_.deadlineMisses() == 0; }
+  std::size_t transformCount() const noexcept { return processor_.transformCount(); }
+private:
+  ardor::pog3::Pog3Processor processor_;
+  std::size_t samples_ = 0;
+  bool checked_ = false;
 };
 
 class StaticSoundWorkload {
@@ -288,6 +328,7 @@ int main(int argc, char** argv) {
     csv << std::fixed << std::setprecision(3)
         << "workload,callback_frames,callbacks,budget_us,median_us,p95_us,p99_us,p999_us,max_us,callback_allocations,preparation_allocated_bytes,reset_us,max_transforms_per_callback\n";
     std::vector<ardor::StereoSample> input(48000 * 4);
+    std::vector<ardor::StereoSample> freezeInput(input.size());
     std::uint32_t random = 0x504f4733;
     for (std::size_t i = 0; i < input.size(); ++i) {
       random = 1664525 * random + 1013904223;
@@ -297,6 +338,12 @@ int main(int argc, char** argv) {
         + std::sin(6.283185307179586 * 130.8128 * t) + std::sin(6.283185307179586 * 164.8138 * t)
         + std::sin(6.283185307179586 * 196 * t));
       input[i] = {chord + noise, -.73f * chord + .4f * noise};
+      const double fundamental = i < 38400 ? 82.4069 : i < 86400 ? 110 : i < 105600 ? 146.8324 : 196;
+      const float l = .04 * (std::sin(6.283185307179586 * fundamental * t)
+        + std::sin(6.283185307179586 * fundamental * 1.5 * t) + std::sin(6.283185307179586 * fundamental * 2 * t));
+      const float r = .03 * (std::sin(6.283185307179586 * fundamental * 1.25 * t)
+        + std::sin(6.283185307179586 * fundamental * 2.5 * t));
+      freezeInput[i] = {l + .1f * input[i].left, r + .1f * input[i].right};
     }
     for (const auto callback : {64U, 128U}) {
       measure<pog3_test::GranularReference>("granular_reference_10_shifters", callback, csv, input);
@@ -305,6 +352,7 @@ int main(int argc, char** argv) {
       measure<PitchBankWorkload<true>>("spectral_pitch_bank_attack_warp_focus", callback, csv, input);
       measure<StaticSoundWorkload>("static_sound_path_filter_space_pan_attack", callback, csv, input);
       measure<ExpressionWorkload>("expression_modes_filter_space_pan_attack", callback, csv, input);
+      measure<FreezeGlissWorkload>("freeze_gliss_capture_assignment_filter_space", callback, csv, freezeInput);
     }
     csv.flush();
     if (!csv) throw std::runtime_error("benchmark CSV write failed");
