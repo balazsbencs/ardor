@@ -139,6 +139,19 @@ add_library(ardor_realtime_fft src/dsp/RealtimeFft.cpp)
 target_include_directories(ardor_realtime_fft PUBLIC src)
 target_compile_features(ardor_realtime_fft PUBLIC cxx_std_20)
 
+# Single-precision FFTW is a GPL-2.0-or-later dependency of the POG3 DSP.
+# Use the platform package (Buildroot: fftw-single); never link worker-thread
+# or OpenMP FFT libraries into this real-time path. Explicit cache paths also
+# support SDKs and cross sysroots without fetching/building a host library.
+find_path(ARDOR_FFTW_INCLUDE_DIR NAMES fftw3.h REQUIRED)
+find_library(ARDOR_FFTW_LIBRARY NAMES fftw3f REQUIRED)
+add_library(ardor_fftw_single UNKNOWN IMPORTED)
+set_target_properties(ardor_fftw_single PROPERTIES
+  IMPORTED_LOCATION "${ARDOR_FFTW_LIBRARY}"
+  INTERFACE_INCLUDE_DIRECTORIES "${ARDOR_FFTW_INCLUDE_DIR}"
+)
+find_package(Threads REQUIRED)
+
 add_library(ardor_pog3
   src/daisyfx/pog3/Pog3Parameters.cpp
   src/daisyfx/pog3/Pog3Processor.cpp
@@ -153,7 +166,7 @@ target_include_directories(ardor_pog3 PUBLIC
   ${neuralampmodelercore_SOURCE_DIR}/Dependencies
 )
 target_compile_features(ardor_pog3 PUBLIC cxx_std_20)
-target_link_libraries(ardor_pog3 PUBLIC ardor_realtime_fft)
+target_link_libraries(ardor_pog3 PUBLIC ardor_realtime_fft PRIVATE ardor_fftw_single Threads::Threads)
 
 add_library(ardor_daisyfx
   src/daisyfx/DaisyFxCatalog.cpp
@@ -507,6 +520,18 @@ target_link_libraries(pedal-pog3-quality PRIVATE ardor_pog3 ardor_daisyfx_runtim
 add_executable(pedal-pog3-bench tests/pog3_bench.cpp)
 target_link_libraries(pedal-pog3-bench PRIVATE ardor_pog3 ardor_daisyfx_runtime)
 
+# FFTW allocates through C, outside the benchmark's C++ new counter. Verify
+# the complete prepared stream through a test-only libc interposer on glibc.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  include(CheckSymbolExists)
+  check_symbol_exists(__GLIBC__ "features.h" ARDOR_HAVE_GLIBC)
+  if(ARDOR_HAVE_GLIBC)
+    add_library(pedal-pog3-malloc-probe SHARED tests/pog3_malloc_probe.c)
+    target_compile_features(pedal-pog3-malloc-probe PRIVATE c_std_11)
+    target_compile_definitions(pedal-pog3-bench PRIVATE ARDOR_POG3_MALLOC_PROBE)
+  endif()
+endif()
+
 add_executable(pedal-pog3-pitch-quality tests/pog3_pitch_quality.cpp)
 target_link_libraries(pedal-pog3-pitch-quality PRIVATE ardor_pog3)
 
@@ -815,6 +840,11 @@ add_test(NAME pedal-pog3-attack-quality COMMAND pedal-pog3-attack-quality)
 add_test(NAME pedal-pog3-voice-stages COMMAND pedal-pog3-voice-stages)
 add_test(NAME pedal-pog3-expression-quality COMMAND pedal-pog3-expression-quality)
 add_test(NAME pedal-pog3-freeze-quality COMMAND pedal-pog3-freeze-quality)
+if(TARGET pedal-pog3-malloc-probe)
+  add_test(NAME pedal-pog3-realtime-allocation
+    COMMAND ${CMAKE_COMMAND} -E env "LD_PRELOAD=$<TARGET_FILE:pedal-pog3-malloc-probe>"
+      $<TARGET_FILE:pedal-pog3-bench> --realtime-allocation)
+endif()
 add_test(NAME pedal-harmonizer-quality COMMAND pedal-harmonizer-quality)
 add_test(NAME pedal-filter-effect-quality COMMAND pedal-filter-effect-quality)
 add_test(NAME pedal-delay-effect-quality COMMAND pedal-delay-effect-quality)

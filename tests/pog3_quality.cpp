@@ -14,6 +14,7 @@
 #include <random>
 #include <stdexcept>
 #include <string_view>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -80,8 +81,8 @@ void preparedTransform() {
   std::mt19937 random(0x46544654);
   std::uniform_real_distribution<float> uniform(-.3f, .3f);
   std::size_t compared = 0;
-  // Independent shared implementation checks both the dense active plans and
-  // the larger fallback plans, including the 4096/8192 dispatch boundary.
+  // FFTW changes butterfly ordering: production sizes have a numerical
+  // accuracy contract. Other sizes retain the shared FFT bit-for-bit.
   for (std::size_t n = 32; n <= 32768; n *= 2) {
     SpectralPlan plan(n, n / 8);
     ardor::RealtimeFft reference; reference.prepare(n);
@@ -117,20 +118,78 @@ void preparedTransform() {
       for (bool inverse : {false, true}) {
         expected = actual = source;
         reference.transform(expected, inverse); plan.transform(actual, inverse);
-        bool matches = true;
-        for (std::size_t i = 0; i < n; ++i) {
-          const auto same = [](float a, float b) {
-            if (std::isnan(a)) return std::isnan(b); // NaN payloads are not an audio contract.
-            return std::bit_cast<std::uint32_t>(a) == std::bit_cast<std::uint32_t>(b);
-          };
-          matches &= same(expected[i].real(), actual[i].real()) && same(expected[i].imag(), actual[i].imag());
+        const bool fftw = n == 1024 || n == 2048 || n == 4096;
+        if (!fftw) {
+          bool matches = true;
+          for (std::size_t i = 0; i < n; ++i) {
+            const auto same = [](float a, float b) {
+              if (std::isnan(a)) return std::isnan(b);
+              return std::bit_cast<std::uint32_t>(a) == std::bit_cast<std::uint32_t>(b);
+            };
+            matches &= same(expected[i].real(), actual[i].real()) && same(expected[i].imag(), actual[i].imag());
+          }
+          require(matches, "fallback FFT retains the shared implementation bits/classification");
+        } else if (fixture < 10 || fixture == 11) {
+          double energy = 0, error = 0;
+          for (std::size_t i = 0; i < n; ++i) {
+            const std::complex<double> a(actual[i].real(), actual[i].imag());
+            const std::complex<double> b(expected[i].real(), expected[i].imag());
+            require(std::isfinite(a.real()) && std::isfinite(a.imag()), "finite FFT fixture stays finite");
+            energy += std::norm(b); error += std::norm(a - b);
+          }
+          const double quantum = 32.0 * std::numeric_limits<float>::denorm_min();
+          require(error <= energy * 1e-11 + n * quantum * quantum,
+                  "FFTW relative L2 error below -110 dB (absolute rounding floor for subnormals)");
+          if (fixture == 2) {
+            // Impulse independently checks DC, sign and the single 1/N gain.
+            const auto dc = inverse ? source[0] / static_cast<float>(n) : source[0];
+            require(actual[0] == dc, "FFT impulse DC has the exact expected normalization");
+          }
+        } else {
+          // Overflow/nonfinite classification depends on butterfly ordering.
+          // Audio rejection/recovery is independently tested below through
+          // synthesis, including preservation of already pending WOLA output.
+          require(std::any_of(actual.begin(), actual.end(), [](auto value) {
+            return !std::isfinite(value.real()) || !std::isfinite(value.imag());
+          }), "overflow/nonfinite fixture is observable to frame rejection");
         }
-        require(matches, "prepared FFT matches shared FFT including finite bits, zeros and overflow classification");
         compared += n;
       }
     }
   }
-  std::cout << "Prepared FFT: " << compared << " complex bins match shared implementation\n";
+  std::cout << "Prepared FFT: " << compared << " complex bins satisfy FFT accuracy/fallback contracts\n";
+}
+
+void sharedPlanExecution() {
+  using namespace ardor::pog3;
+  for (const std::size_t n : {1024U, 2048U, 4096U}) {
+    auto plan = std::make_shared<const SpectralPlan>(n, n / 8);
+    std::vector<std::complex<float>> input(n);
+    for (std::size_t i = 0; i < n; ++i)
+      input[i] = {static_cast<float>(.2 * std::sin(kTwoPi * 17 * i / n)), .03f};
+    auto expected = input;
+    plan->transform(expected, false);
+    std::array<std::vector<std::complex<float>>, 2> results{input, input};
+    std::array<std::thread, 2> workers;
+    for (std::size_t channel = 0; channel < workers.size(); ++channel)
+      workers[channel] = std::thread([&, channel, owner = plan] {
+        for (unsigned repeat = 0; repeat < 64; ++repeat) {
+          results[channel] = input;
+          owner->transform(results[channel], false);
+        }
+      });
+    for (auto& worker : workers) worker.join();
+    require(results[0] == expected && results[1] == expected,
+            "shared immutable FFTW plan executes concurrently on independent scratch");
+    auto recovered = expected;
+    plan->transform(recovered, true);
+    double energy = 0, error = 0;
+    for (std::size_t i = 0; i < n; ++i) {
+      energy += std::norm(std::complex<double>(input[i]));
+      error += std::norm(std::complex<double>(recovered[i]) - std::complex<double>(input[i]));
+    }
+    require(error < energy * 1e-11, "complex FFTW round trip retains gain and phase below -110 dB");
+  }
 }
 
 double measuredFrequency(const std::vector<float>& input, std::size_t skip) {
@@ -429,6 +488,7 @@ int main(int argc, char** argv) {
     if (argc != 1 && !(argc == 3 && std::string_view(argv[1]) == "--render"))
       throw std::runtime_error("usage: pedal-pog3-quality [--render directory]");
     preparedTransform();
+    sharedPlanExecution();
     spectralIdentity();
     spectralLifecycle();
     deferredAnalysis();

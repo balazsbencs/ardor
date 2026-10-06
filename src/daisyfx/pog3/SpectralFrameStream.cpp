@@ -1,49 +1,91 @@
 #include "daisyfx/pog3/SpectralFrameStream.h"
 
 #include <algorithm>
-#include <bit>
 #include <cassert>
 #include <cmath>
+#include <mutex>
 #include <stdexcept>
+
+#include <fftw3.h>
 #include <utility>
 
 namespace ardor::pog3 {
+
+namespace {
+// FFTW's planner and destruction mutate global state. This mutex is used only
+// during preparation/destruction; execution never acquires it. Other FFTW
+// users added to Ardor must use the same serialization policy.
+std::mutex& fftwPlannerMutex() {
+  static std::mutex mutex;
+  return mutex;
+}
+} // namespace
+
+struct SpectralPlan::FftwPlans {
+  fftwf_plan forward = nullptr, inverse = nullptr;
+  fftwf_plan unalignedForward = nullptr, unalignedInverse = nullptr;
+  int alignment = 0;
+
+  explicit FftwPlans(std::size_t n) {
+    // Planning may overwrite its input. Ordinary vector storage also gives
+    // the planner the alignment used by our analysis/renderer workspaces.
+    std::vector<std::complex<float>> dummy(n);
+    auto* data = reinterpret_cast<fftwf_complex*>(dummy.data());
+    std::lock_guard lock(fftwPlannerMutex());
+    alignment = fftwf_alignment_of(reinterpret_cast<float*>(dummy.data()));
+    // Default MEASURE can select dft-buffered plans that allocate/free an
+    // execution buffer on every transform. Exclude that solver explicitly.
+    // The C-allocation regression checks actual execution, not just C++ new.
+    constexpr unsigned flags = FFTW_MEASURE | FFTW_NO_BUFFERING;
+    forward = fftwf_plan_dft_1d(static_cast<int>(n), data, data, FFTW_FORWARD, flags);
+    inverse = fftwf_plan_dft_1d(static_cast<int>(n), data, data, FFTW_BACKWARD, flags);
+    // The public vector API permits a different alignment class. Prepare a
+    // scalar-compatible alternative now, instead of copying, allocating or
+    // replanning on the callback. Normal aligned execution retains SIMD.
+    unalignedForward = fftwf_plan_dft_1d(static_cast<int>(n), data, data, FFTW_FORWARD,
+                                        FFTW_ESTIMATE | FFTW_UNALIGNED | FFTW_NO_BUFFERING);
+    unalignedInverse = fftwf_plan_dft_1d(static_cast<int>(n), data, data, FFTW_BACKWARD,
+                                        FFTW_ESTIMATE | FFTW_UNALIGNED | FFTW_NO_BUFFERING);
+    if (!forward || !inverse || !unalignedForward || !unalignedInverse) {
+      destroy();
+      throw std::runtime_error("POG3 FFTW planning failed");
+    }
+  }
+  ~FftwPlans() {
+    std::lock_guard lock(fftwPlannerMutex());
+    destroy();
+  }
+  FftwPlans(const FftwPlans&) = delete;
+  FftwPlans& operator=(const FftwPlans&) = delete;
+
+  void destroy() noexcept {
+    for (auto plan : {forward, inverse, unalignedForward, unalignedInverse})
+      if (plan) fftwf_destroy_plan(plan);
+    // Never call fftwf_cleanup(): it invalidates other live plans.
+  }
+  void execute(std::vector<std::complex<float>>& values, bool backwards) const noexcept {
+    auto* data = reinterpret_cast<fftwf_complex*>(values.data());
+    // FFTW 3.3.10 alignment_of is pure address arithmetic (kernel/align.c),
+    // with no planner state, allocation or synchronization.
+    const bool aligned = fftwf_alignment_of(reinterpret_cast<float*>(values.data())) == alignment;
+    const auto plan = backwards ? (aligned ? inverse : unalignedInverse)
+                                : (aligned ? forward : unalignedForward);
+    fftwf_execute_dft(plan, data, data);
+    if (backwards) {
+      const float scale = 1.0f / static_cast<float>(values.size());
+      for (auto& value : values) value *= scale;
+    }
+  }
+};
 
 SpectralPlan::SpectralPlan(std::size_t frameSize, std::size_t hopSize) : hopSize_(hopSize) {
   if (frameSize < 32 || frameSize > 32768 || (frameSize & (frameSize - 1)) != 0
       || hopSize == 0 || hopSize > frameSize / 2 || frameSize % hopSize != 0)
     throw std::invalid_argument("POG3 spectral plan requires a power-of-two frame and a dividing hop <= N/2");
   constexpr double kTwoPi = 6.2831853071795864769;
-  if (frameSize > 4096) fft_.prepare(frameSize);
-  else {
-    // Reversing log2(N) bits fixes 2^ceil(log2(N)/2) palindromic indices.
-    // Every other index participates in exactly one swap. Store only those
-    // pairs, in the shared FFT's traversal order, with no callback comparison.
-    const auto fixed = std::size_t{1} << ((std::countr_zero(frameSize) + 1) / 2);
-    fftSwaps_.resize(frameSize - fixed);
-    std::size_t position = 0;
-    for (std::size_t i = 1, j = 0; i < frameSize; ++i) {
-      std::size_t bit = frameSize >> 1;
-      for (; j & bit; bit >>= 1) j ^= bit;
-      j ^= bit;
-      if (i < j) {
-        fftSwaps_[position++] = static_cast<std::uint16_t>(i);
-        fftSwaps_[position++] = static_cast<std::uint16_t>(j);
-      }
-    }
-    assert(position == fftSwaps_.size());
-    // Sum of half-stage lengths is N-1; stage len starts at len/2-1.
-    // Use the original largest-table index/arithmetic to retain each twiddle
-    // bit, rather than independently approximating smaller-stage angles.
-    fftTwiddles_.resize(frameSize - 1);
-    for (std::size_t len = 2; len <= frameSize; len <<= 1) {
-      const auto stride = frameSize / len;
-      for (std::size_t j = 0; j < len / 2; ++j) {
-        const double angle = -kTwoPi * static_cast<double>(j * stride) / static_cast<double>(frameSize);
-        fftTwiddles_[len / 2 - 1 + j] = {static_cast<float>(std::cos(angle)), static_cast<float>(std::sin(angle))};
-      }
-    }
-  }
+  if (frameSize == 1024 || frameSize == 2048 || frameSize == 4096)
+    fftw_ = std::make_shared<const FftwPlans>(frameSize);
+  else fft_.prepare(frameSize);
   window_.resize(frameSize);
   synthesis_.resize(frameSize);
   for (std::size_t i = 0; i < frameSize; ++i)
@@ -61,33 +103,8 @@ SpectralPlan::SpectralPlan(std::size_t frameSize, std::size_t hopSize) : hopSize
 
 void SpectralPlan::transform(std::vector<std::complex<float>>& values, bool inverse) const {
   assert(values.size() == frameSize());
-  if (fft_.size()) fft_.transform(values, inverse);
-  else if (inverse) transformPrepared<true>(values);
-  else transformPrepared<false>(values);
-}
-
-template<bool Inverse>
-void SpectralPlan::transformPrepared(std::vector<std::complex<float>>& values) const {
-  for (std::size_t p = 0; p < fftSwaps_.size(); p += 2)
-    std::swap(values[fftSwaps_[p]], values[fftSwaps_[p + 1]]);
-  const auto n = values.size();
-  for (std::size_t len = 2; len <= n; len <<= 1) {
-    const auto* weights = fftTwiddles_.data() + len / 2 - 1;
-    for (std::size_t i = 0; i < n; i += len) {
-      for (std::size_t j = 0; j < len / 2; ++j) {
-        auto w = weights[j];
-        if constexpr (Inverse) w = std::conj(w);
-        const auto u = values[i + j];
-        const auto v = values[i + j + len / 2] * w;
-        values[i + j] = u + v;
-        values[i + j + len / 2] = u - v;
-      }
-    }
-  }
-  if constexpr (Inverse) {
-    const float scale = 1.0f / static_cast<float>(n);
-    for (auto& value : values) value *= scale;
-  }
+  if (fftw_) fftw_->execute(values, inverse);
+  else fft_.transform(values, inverse);
 }
 
 void SpectralAnalysis::prepare(std::shared_ptr<const SpectralPlan> plan, bool deferTransform) {

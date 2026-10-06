@@ -13,7 +13,8 @@
 namespace ardor::pog3 {
 
 // Immutable, shared by an analysis and all of its voice renderers. Construct
-// off the audio thread. FFTs use full complex workspaces, with 1/N inverse gain.
+// and destroy off the audio thread. FFTs use full complex workspaces, with
+// 1/N inverse gain. FFTW planning/destruction serialize; execution never locks.
 class SpectralPlan {
 public:
   SpectralPlan(std::size_t frameSize, std::size_t hopSize);
@@ -24,13 +25,11 @@ public:
   void transform(std::vector<std::complex<float>>& values, bool inverse) const;
 
 private:
-  // The active 1024/2048/4096 plans use contiguous stage twiddles and compact
-  // swap pairs. Larger foundation plans retain the shared FFT implementation.
+  // Only the three production resolutions use FFTW. Plans are immutable and
+  // shared; each analysis/renderer supplies its own mutable execution buffer.
+  struct FftwPlans;
+  std::shared_ptr<const FftwPlans> fftw_;
   RealtimeFft fft_;
-  std::vector<std::uint16_t> fftSwaps_;
-  std::vector<std::complex<float>> fftTwiddles_;
-  template<bool Inverse>
-  void transformPrepared(std::vector<std::complex<float>>& values) const;
   std::size_t hopSize_;
   std::vector<float> window_;
   std::vector<float> synthesis_;
