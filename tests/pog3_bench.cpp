@@ -58,23 +58,36 @@ void operator delete(void* p, std::size_t, std::align_val_t) noexcept { std::fre
 void operator delete[](void* p, std::size_t, std::align_val_t) noexcept { std::free(p); }
 
 namespace {
+template<bool AttackEnabled = false>
 class PitchBankWorkload {
 public:
-  PitchBankWorkload() { bank_.prepare(); }
-  void reset() noexcept { bank_.reset(); samples_ = 0; }
+  PitchBankWorkload() {
+    if constexpr (AttackEnabled) (void)bank_.setAttackSeconds(.5f);
+    bank_.prepare();
+  }
+  void reset() noexcept { bank_.reset(); dry_.reset(); samples_ = 0; }
   ardor::StereoSample process(ardor::StereoSample input) noexcept {
     if (samples_ % 4800 == 0) bank_.setFocus((samples_ / 4800) % 2);
     if (samples_ % 480 == 0) (void)bank_.setWarp(.25f + .75f * ((samples_ / 480) % 128) / 127.0f);
+    if constexpr (AttackEnabled) if (samples_ % 2400 == 0) {
+      const float position = ((samples_ / 2400) % 128) / 127.0f;
+      (void)bank_.setAttackSeconds(3 * position * position);
+    }
     ++samples_;
     const auto voices = bank_.process({input.left, input.right});
     ardor::StereoSample output{};
     for (const auto voice : voices) { output.left += voice.left; output.right += voice.right; }
+    if constexpr (AttackEnabled) {
+      const auto dry = dry_.process({input.left, input.right}, voices[0], bank_.attackSeconds() > 0 && (samples_ / 4800) % 2);
+      output.left += dry.left; output.right += dry.right;
+    }
     return output;
   }
   bool healthy() const noexcept { return bank_.healthy() && bank_.deadlineMisses() == 0; }
   std::size_t transformCount() const noexcept { return bank_.transformCount(); }
 private:
   ardor::pog3::PolyphonicPitchBank bank_;
+  ardor::pog3::DryAttackRouter dry_;
   std::size_t samples_ = 0;
 };
 // Transform workload only: six long and two short stereo identity renderers.
@@ -212,7 +225,8 @@ int main(int argc, char** argv) {
     for (const auto callback : {64U, 128U}) {
       measure<pog3_test::GranularReference>("granular_reference_10_shifters", callback, csv, input);
       measure<SpectralWorkload>("spectral_identity_focus_transition", callback, csv, input);
-      measure<PitchBankWorkload>("spectral_pitch_bank_warp_focus", callback, csv, input);
+      measure<PitchBankWorkload<>>("spectral_pitch_bank_warp_focus", callback, csv, input);
+      measure<PitchBankWorkload<true>>("spectral_pitch_bank_attack_warp_focus", callback, csv, input);
     }
     csv.flush();
     if (!csv) throw std::runtime_error("benchmark CSV write failed");

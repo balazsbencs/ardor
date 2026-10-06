@@ -192,14 +192,15 @@ void PitchRenderer::reset() noexcept {
 }
 
 bool PitchRenderer::render(const PitchFrame& frame, float semitones, const PitchFrame* lowAnalysis,
-                           std::size_t startOffset) noexcept {
+                           std::size_t startOffset, const PartialGains* gains, const PartialGains* lowGains,
+                           bool partialProcessing) noexcept {
   if (!plan_ || frame.spectrum().size() != spectrum_.size() || !std::isfinite(semitones)) return false;
   const float ratio = std::exp2(std::clamp(semitones, -24.0f, 24.0f) / 12);
   if (ratio != 1) shifted_ = true;
-  // A freshly prepared unison path retains the complete original spectrum.
+  // Outside partial processing, fresh unison retains the complete spectrum.
   // Returning an already shifted path to unison preserves its phase histories
   // and representation, avoiding a hard change during a Warp performance.
-  if (!shifted_) lowAnalysis = nullptr;
+  if (!shifted_ && !partialProcessing) lowAnalysis = nullptr;
   const auto input = frame.spectrum();
   const int half = static_cast<int>(spectrum_.size() / 2);
   const double hopPhase = kTwoPi * plan_->spectral->hopSize() / spectrum_.size();
@@ -257,7 +258,8 @@ bool PitchRenderer::render(const PitchFrame& frame, float semitones, const Pitch
     const float edge = std::clamp((half - destination - 2) / 6, 0.0f, 1.0f);
     const float fade = ratio == 1 ? 1 : std::min(phase.age * .5f, 1.0f);
     const float high = lowAnalysis ? highWeight(region.frequencyBins * kSampleRate / spectrum_.size()) : 1;
-    const float gain = high * fade * (ratio == 1 ? 1 : edge * edge * (3 - 2 * edge));
+    const float gain = high * fade * (ratio == 1 ? 1 : edge * edge * (3 - 2 * edge))
+      * (gains ? (*gains)[region.track] : 1);
     if (gain == 0) continue;
     double rotationPhase = phase.offset;
     if (lowAnalysis && region.frequencyBins * kSampleRate / spectrum_.size() < 400.0f) {
@@ -318,7 +320,7 @@ bool PitchRenderer::render(const PitchFrame& frame, float semitones, const Pitch
       const float frequency = static_cast<float>(region.frequencyBins * scale);
       const float low = 1 - highWeight(frequency * kSampleRate / spectrum_.size());
       if (low == 0) continue;
-      auto amplitude = lowCarriers_[region.track] * low;
+      auto amplitude = lowCarriers_[region.track] * low * (lowGains ? (*lowGains)[region.track] : 1);
       const float destination = frequency * ratio;
       const int first = static_cast<int>(std::floor(destination)) - 16;
       const int last = static_cast<int>(std::ceil(destination)) + 16;
@@ -370,6 +372,11 @@ void PolyphonicPitchBank::reset() noexcept {
   longJob_ = 12; shortJob_ = 4;
   longAge_ = shortAge_ = 0;
   frameWarp_ = warp_;
+  attack_.reset();
+  longAttackReady_ = shortAttackReady_ = true;
+  longAttackActive_ = attack_.seconds() > 0;
+  inputSamples_ = 0;
+  for (auto* pair : {&longGains_, &shortGains_, &lowGains_}) for (auto& channel : *pair) channel.fill(1);
   healthy_ = true;
 }
 
@@ -382,6 +389,7 @@ bool PolyphonicPitchBank::setWarp(float normalized) noexcept {
 PitchVoices PolyphonicPitchBank::process(PitchStereo input) noexcept {
   PitchVoices result{};
   if (!prepared_) return result;
+  ++inputSamples_;
   constexpr float step = 1.0f / 1200; // Reversible 25 ms joint upper-pair fade.
   focus_ = focusTarget_ ? std::min(1.0f, focus_ + step) : std::max(0.0f, focus_ - step);
   warp_ += .0020811647f * (warpTarget_ - warp_); // 10 ms, sample-rate based.
@@ -389,7 +397,7 @@ PitchVoices PolyphonicPitchBank::process(PitchStereo input) noexcept {
   const std::array<float, 2> source{input.left, input.right};
   if (longJob_ < 12) ++longAge_;
   if (shortJob_ < 4) ++shortAge_;
-  bool newLong = false, newShort = false;
+  bool newLong = false, newShort = false, newLow = false;
   for (std::size_t channel = 0; channel < 2; ++channel) {
     for (std::size_t voice = 0; voice < kVoiceCount; ++voice) {
       float value = longVoices_[voice][channel].pop();
@@ -409,34 +417,50 @@ PitchVoices PolyphonicPitchBank::process(PitchStereo input) noexcept {
     if (lowAnalysis_[channel].push(source[channel])) {
       lowFrames_[channel].update(lowAnalysis_[channel].spectrum());
       ++transforms_;
+      newLow = true;
     }
   }
+  // The small low-band model is ready at the frame boundary; long and short
+  // stereo interpretation are separate staged jobs before their render jobs.
+  // No gain array changes while jobs using that frame are still outstanding.
+  if (newLow) lowGains_ = attack_.update(lowFrames_[0], lowFrames_[1], 2, inputSamples_);
   if (newLong) {
     if (longJob_ != 12) { ++deadlineMisses_; healthy_ = false; }
     longJob_ = longAge_ = 0;
+    longAttackReady_ = false;
     frameWarp_ = warp_; // Every renderer uses controls at this frame's timestamp.
   }
   if (newShort) {
     if (shortJob_ != 4) { ++deadlineMisses_; healthy_ = false; }
     shortJob_ = shortAge_ = 0;
+    shortAttackReady_ = false;
+  }
+  if (!longAttackReady_ && longAge_ >= 1) {
+    longGains_ = attack_.update(longFrames_[0], longFrames_[1], 0, inputSamples_ - longAge_);
+    longAttackActive_ = attack_.seconds() > 0;
+    longAttackReady_ = true;
+  }
+  if (!shortAttackReady_ && shortAge_ >= 8) {
+    shortGains_ = attack_.update(shortFrames_[0], shortFrames_[1], 1, inputSamples_ - shortAge_);
+    shortAttackReady_ = true;
   }
   // Immutable until their next analysis event: each long frame's jobs complete
-  // by sample 234 of its 256-sample hop, each short frame's by sample 96 of 128.
+  // by sample 251 of its 256-sample hop, each short frame's by sample 112 of 128.
   // Both sets of jobs finish before the 512-hop low-band frame can change.
   // The explicit H staging makes every window start at t+1+H,
   // independently of the sample on which its bounded render job executes.
-  while (longJob_ < 12 && longJob_ * 256 / 12 <= longAge_) {
+  while (longAttackReady_ && longJob_ < 12 && 17 + longJob_ * 256 / 12 <= longAge_) {
     if (longAge_ >= 256) { ++deadlineMisses_; healthy_ = false; break; }
     const auto voice = longJob_ / 2, channel = longJob_ % 2;
-    if (!longVoices_[voice][channel].render(longFrames_[channel], kVoiceSemitones[voice] * frameWarp_, voice ? &lowFrames_[channel] : nullptr,
-                                           256 - longAge_)) healthy_ = false;
+    if (!longVoices_[voice][channel].render(longFrames_[channel], kVoiceSemitones[voice] * frameWarp_, &lowFrames_[channel],
+                                           256 - longAge_, &longGains_[channel], &lowGains_[channel], longAttackActive_)) healthy_ = false;
     ++transforms_; ++longJob_;
   }
-  while (shortJob_ < 4 && shortJob_ * 128 / 4 <= shortAge_) {
+  while (shortAttackReady_ && shortJob_ < 4 && 16 + shortJob_ * 128 / 4 <= shortAge_) {
     if (shortAge_ >= 128) { ++deadlineMisses_; healthy_ = false; break; }
     const auto voice = shortJob_ / 2, channel = shortJob_ % 2;
     if (!shortVoices_[voice][channel].render(shortFrames_[channel], kVoiceSemitones[voice + 4], &lowFrames_[channel],
-                                            128 - shortAge_)) healthy_ = false;
+                                            128 - shortAge_, &shortGains_[channel], &lowGains_[channel])) healthy_ = false;
     ++transforms_; ++shortJob_;
   }
   return result;
