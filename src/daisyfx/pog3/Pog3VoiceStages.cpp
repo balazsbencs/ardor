@@ -176,7 +176,11 @@ PitchStereo StereoDoubling::process(PitchStereo input) noexcept {
   return result;
 }
 
-Pog3VoiceStages::Pog3VoiceStages() noexcept : values_(defaultValues()) { updateTargets(); }
+Pog3VoiceStages::Pog3VoiceStages() noexcept : values_(defaultValues()) { generatedGain_.reset(1); updateTargets(); }
+bool Pog3VoiceStages::setGeneratedGain(float normalized) noexcept {
+  if (!std::isfinite(normalized)) return false;
+  generatedGainTarget_ = unit(normalized); generatedGain_.set(generatedGainTarget_); return true;
+}
 bool Pog3VoiceStages::setValues(const Values& values) noexcept {
   for (const auto value : values) if (!std::isfinite(value)) return false;
   Values validated = values;
@@ -220,6 +224,7 @@ void Pog3VoiceStages::reset() noexcept {
   updateTargets();
   inputGain_.reset(physicalValue(Parameter::InputGain, values_[index(Parameter::InputGain)]));
   master_.reset(physicalValue(Parameter::MasterLevel, values_[index(Parameter::MasterLevel)]));
+  generatedGain_.reset(generatedGainTarget_);
   for (std::size_t voice = 0; voice < kVoiceCount; ++voice) {
     level_[voice].reset(values_[index(Parameter::DryLevel) + voice]);
     // Complete the current target explicitly, retaining center/edge endpoint exactness.
@@ -317,6 +322,11 @@ VoiceStageOutput Pog3VoiceStages::process(PitchStereo detectorSource, PitchStere
   if (blend == 1) dry = filteredDry;
   else if (blend != 0) dry = {(1 - blend) * dry.left + blend * filteredDry.left,
                              (1 - blend) * dry.right + blend * filteredDry.right};
+  // Volume expression scales the generated bus after its filter, so ringing
+  // cannot leak through a settled zero-gain endpoint. Dry remains independent.
+  const float generatedGain = generatedGain_.tick();
+  if (generatedGain == 0) wet = {};
+  else if (generatedGain != 1) { wet.left *= generatedGain; wet.right *= generatedGain; }
   const float master = master_.tick();
   if (master == 0) return {};
   VoiceStageOutput result{{master * (dry.left + wet.left), master * (dry.right + wet.right)},

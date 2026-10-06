@@ -97,7 +97,7 @@ private:
 struct VoiceStageOutput { PitchStereo mixed{}, wet{}, dry{}; };
 
 // Audio-owned sound controls only. Expression ownership is resolved by the
-// future controller before setValues; this class never parses JSON or publishes
+// processor before setValues; this class never parses JSON or publishes
 // effective values back into the control targets. No allocations after prepare.
 class Pog3VoiceStages {
 public:
@@ -105,6 +105,7 @@ public:
   void prepare();
   void reset() noexcept;
   bool setValues(const Values& values) noexcept;
+  bool setGeneratedGain(float normalized) noexcept;
   PitchStereo gainInput(PitchStereo input) noexcept;
   VoiceStageOutput process(PitchStereo detectorSource, PitchStereo dry,
                            const PitchVoices& voices) noexcept;
@@ -119,7 +120,8 @@ private:
   PitchStereo filter(PitchStereo input, std::size_t bus) noexcept;
   Values values_{};
   std::array<Slew, kVoiceCount> level_, panLeft_, panRight_;
-  Slew inputGain_, master_, dryFilter_, open_;
+  Slew inputGain_, master_, dryFilter_, open_, generatedGain_;
+  float generatedGainTarget_ = 1;
   std::array<float, 3> mode_{1, 0, 0}, modeFrom_{1, 0, 0};
   int targetMode_ = 0;
   std::size_t modeRemaining_ = 0;
@@ -135,14 +137,16 @@ private:
   bool prepared_ = false;
 };
 
-// Static sound-path composition used until expression/freeze and host factory
-// integration. Input gain is applied once before analysis/onsets, Master once
-// after the separate dry/generated stages. Does not implement expression modes.
+// Sound-path composition beneath the expression controller. Input gain is
+// applied once before analysis/onsets, Master once after dry/generated stages.
+// Accepts effective sound values and scalar gain/Warp, without interpreting modes.
 class Pog3SignalPath {
 public:
   void prepare();
   void reset() noexcept;
   bool setSoundValues(const Values& values) noexcept;
+  bool setWarp(float normalized) noexcept { return bank_.setWarp(normalized); }
+  bool setGeneratedGain(float normalized) noexcept { return stages_.setGeneratedGain(normalized); }
   VoiceStageOutput process(PitchStereo input) noexcept;
   bool healthy() const noexcept { return bank_.healthy() && stages_.recoveries() == 0; }
   std::size_t transformCount() const noexcept { return bank_.transformCount(); }

@@ -172,9 +172,36 @@ bool parseConfiguration(const nlohmann::json& params, Configuration& result, std
   return true;
 }
 
+std::string formatExpressionEndpoint(ExpressionMode mode, float normalized) {
+  const float u = unit(normalized);
+  char text[64];
+  switch (mode) {
+    case ExpressionMode::Volume:
+      if (u == 0) return "Mute";
+      std::snprintf(text, sizeof text, "%.1f dB", 20 * std::log10(u));
+      break;
+    case ExpressionMode::Warp:
+      std::snprintf(text, sizeof text, "%.2f st extent", 12 * u);
+      break;
+    case ExpressionMode::Filter:
+      return formatValue(Parameter::FilterFrequency, u);
+    default: return "Unused";
+  }
+  return text;
+}
+
 float expressionPosition(const Values& values) noexcept {
   const float position = unit(values[index(Parameter::ExpressionPosition)]);
   return choiceIndex(values[index(Parameter::ExpressionReverse)], 2) ? 1 - position : position;
+}
+
+float expressionEndpointValue(const Values& values) noexcept {
+  const float heel = unit(values[index(Parameter::ExpressionHeel)]);
+  const float toe = unit(values[index(Parameter::ExpressionToe)]);
+  const float position = expressionPosition(values);
+  if (position == 0) return heel;
+  if (position == 1) return toe;
+  return heel + position * (toe - heel);
 }
 
 Values effectiveValues(const Configuration& config, const Values& base) noexcept {
@@ -183,10 +210,10 @@ Values effectiveValues(const Configuration& config, const Values& base) noexcept
   const float position = expressionPosition(base);
   if (mode == ExpressionMode::Crossfade) {
     for (std::size_t i = 0; i < values.size(); ++i)
-      if (config.morphed[i]) values[i] = config.heel[i] + position * (config.toe[i] - config.heel[i]);
+      if (config.morphed[i]) values[i] = position == 0 ? config.heel[i] : position == 1 ? config.toe[i]
+        : config.heel[i] + position * (config.toe[i] - config.heel[i]);
   } else if (mode == ExpressionMode::Filter) {
-    values[index(Parameter::FilterFrequency)] = base[index(Parameter::ExpressionHeel)]
-      + position * (base[index(Parameter::ExpressionToe)] - base[index(Parameter::ExpressionHeel)]);
+    values[index(Parameter::FilterFrequency)] = expressionEndpointValue(base);
   }
   return values;
 }

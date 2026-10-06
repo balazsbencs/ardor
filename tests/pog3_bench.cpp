@@ -1,6 +1,7 @@
 #include "daisyfx/pog3/SpectralFrameStream.h"
 #include "daisyfx/pog3/PolyphonicPitchBank.h"
 #include "daisyfx/pog3/Pog3VoiceStages.h"
+#include "daisyfx/pog3/Pog3Processor.h"
 #include "pog3_granular_reference.h"
 
 #include <algorithm>
@@ -59,6 +60,40 @@ void operator delete(void* p, std::size_t, std::align_val_t) noexcept { std::fre
 void operator delete[](void* p, std::size_t, std::align_val_t) noexcept { std::free(p); }
 
 namespace {
+class ExpressionWorkload {
+public:
+  ExpressionWorkload() {
+    std::string error;
+    if (!processor_.configure({{"dry_level", .25}, {"down2_level", .25}, {"down1_level", .25},
+      {"fifth_level", .25}, {"up1_level", .25}, {"up2_level", .25}, {"attack", .4}, {"filter_q", 1},
+      {"dry_attack", 1}, {"dry_filter", 1}, {"dry_detune", 1}, {"detune", 1}, {"spread", 1},
+      {"crossfade_heel", {{"filter_frequency", .1}, {"up1_pan", 0}, {"spread", 0}, {"detune", .1}}},
+      {"crossfade_toe", {{"filter_frequency", .9}, {"up1_pan", 1}, {"spread", 1}, {"detune", 1}}}}, 48000, error))
+      throw std::runtime_error(error);
+  }
+  void reset() noexcept { processor_.reset(); samples_ = 0; }
+  ardor::StereoSample process(ardor::StereoSample input) noexcept {
+    using namespace ardor::pog3;
+    if (samples_ % 480 == 0) {
+      const auto step = samples_ / 480;
+      (void)processor_.setParameterTarget("expression_position", step % 128 / 127.0f);
+      (void)processor_.setParameterTarget(index(Parameter::ExpressionMode), (step / 10) % 5 / 6.0f);
+      (void)processor_.setParameterTarget(index(Parameter::ExpressionReverse), (step / 15) % 2);
+      (void)processor_.setParameterTarget(index(Parameter::Focus), (step / 10) % 2);
+      (void)processor_.setParameterTarget(index(Parameter::FilterEnv), step % 3 * .5f);
+      (void)processor_.setParameterTarget(index(Parameter::FilterMode), step % 3 * .5f);
+    }
+    ++samples_;
+    const auto y = processor_.process({input.left, input.right}).mixed;
+    return {y.left, y.right};
+  }
+  bool healthy() const noexcept { return processor_.healthy() && processor_.deadlineMisses() == 0; }
+  std::size_t transformCount() const noexcept { return processor_.transformCount(); }
+private:
+  ardor::pog3::Pog3Processor processor_;
+  std::size_t samples_ = 0;
+};
+
 class StaticSoundWorkload {
 public:
   StaticSoundWorkload() {
@@ -269,6 +304,7 @@ int main(int argc, char** argv) {
       measure<PitchBankWorkload<>>("spectral_pitch_bank_warp_focus", callback, csv, input);
       measure<PitchBankWorkload<true>>("spectral_pitch_bank_attack_warp_focus", callback, csv, input);
       measure<StaticSoundWorkload>("static_sound_path_filter_space_pan_attack", callback, csv, input);
+      measure<ExpressionWorkload>("expression_modes_filter_space_pan_attack", callback, csv, input);
     }
     csv.flush();
     if (!csv) throw std::runtime_error("benchmark CSV write failed");
