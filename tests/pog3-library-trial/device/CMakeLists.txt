@@ -10,20 +10,28 @@ find_library(ARDOR_FFTW_LIBRARY NAMES fftw3f REQUIRED)
 find_path(ARDOR_JSON_INCLUDE_DIR nlohmann/json.hpp REQUIRED)
 find_package(Threads REQUIRED)
 option(ARDOR_POG3_PROFILE "Instrument standalone copies for exclusive frame-job profiling" OFF)
+option(ARDOR_POG3_CALLBACK_PROFILE "Record standalone stage events and callback-phase costs" OFF)
 option(ARDOR_POG3_EXPERIMENTAL_FREEZE "Enable deferred POG3 freeze/gliss DSP for experiments" OFF)
 set(POG3_SOURCE "${ARDOR_ROOT}/src/daisyfx/pog3")
 set(POG3_BENCH "${ARDOR_ROOT}/tests/pog3_bench.cpp")
-if(ARDOR_POG3_PROFILE)
+if(ARDOR_POG3_PROFILE AND ARDOR_POG3_CALLBACK_PROFILE)
+  message(FATAL_ERROR "Select one POG3 diagnostic profile at a time")
+endif()
+if(ARDOR_POG3_PROFILE OR ARDOR_POG3_CALLBACK_PROFILE)
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  set(POG3_PROFILE_GENERATOR "profile_sources.py")
+  if(ARDOR_POG3_CALLBACK_PROFILE)
+    set(POG3_PROFILE_GENERATOR "callback_profile_sources.py")
+  endif()
   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/profile_sources.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/${POG3_PROFILE_GENERATOR}"
     "${ARDOR_ROOT}/tests/pog3_bench.cpp"
     "${ARDOR_ROOT}/src/daisyfx/pog3/PolyphonicPitchBank.cpp"
     "${ARDOR_ROOT}/src/daisyfx/pog3/PolyphonicAttack.cpp"
     "${ARDOR_ROOT}/src/daisyfx/pog3/SpectralFreeze.cpp"
     "${ARDOR_ROOT}/src/daisyfx/pog3/SpectralFrameStream.cpp")
   set(POG3_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/profile")
-  execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/profile_sources.py"
+  execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/${POG3_PROFILE_GENERATOR}"
     "${ARDOR_ROOT}" "${POG3_SOURCE}" COMMAND_ERROR_IS_FATAL ANY)
   set(POG3_BENCH "${POG3_SOURCE}/bench.cpp")
 endif()
