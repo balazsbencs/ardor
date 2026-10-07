@@ -1,0 +1,9 @@
+phase   0: mean=1488.427, p99=1656.910, max=1709.460, over=363/375
+phase  64: mean=1541.317, p99=1808.930, max=1918.740, over=371/375
+phase 128: mean=830.985, p99=949.871, max=990.389, over=0/375
+phase 192: mean=969.739, p99=1097.610, max=1201.680, over=0/375
+phase 256: mean=1346.234, p99=1533.390, max=1643.650, over=212/375
+phase 320: mean=1371.511, p99=1628.500, max=1702.350, over=238/375
+phase 384: mean=790.772, p99=906.685, max=979.685, over=0/375
+phase 448: mean=954.392, p99=1089.870, max=1154.350, over=0/375
+All callback/stage/event accounting, render deadlines, input stamps, Attack control tags and 64/128 event identity pass.

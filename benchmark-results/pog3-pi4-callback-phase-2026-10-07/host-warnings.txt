@@ -1,0 +1,2 @@
+Python generator/parser syntax and generated bank/FFT units strict host warnings pass.
+Generated bank/FFT units strict AArch64 warnings pass. Normal ARM full benchmark matches immutable baseline byte for byte.

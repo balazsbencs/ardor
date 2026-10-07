@@ -18,8 +18,10 @@ two-source experiment is rejected: it is slower at 64 frames and has worse
 over-period counts at both sizes. A hybrid pairing only leftovers also adds too
 little repeatable CPU benefit to retain (0.440%/0.085% combined mean reductions;
 confirmation 128-frame demand regresses). Four-source batching remains in
-production. The next priority is diagnosing callback-phase job costs before
-changing renderer scheduling. The C++ preparation counter falls to 1618560 bytes
+production. A standalone callback-phase profile now identifies analysis/Attack/render
+collisions and selects a monotonic long-render redistribution for the next
+uninstrumented experiment. The profile adds no production timers or gain claim;
+see [the measured costs and ownership review](pog3-callback-phase-results.md). The C++ preparation counter falls to 1618560 bytes
 in the matched fixture, excluding immutable diagnostic storage and FFTW memory. CPU tails, complete memory/combined-chain endurance,
 calibration/listening and public integration remain open.
 There is no selectable `mod/pog3` entry yet.
