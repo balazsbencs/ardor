@@ -12,7 +12,7 @@ def read(path):
 
 def write(path, rows):
     with path.open("w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=rows[0].keys())
+        writer = csv.DictWriter(file, fieldnames=rows[0].keys(), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 

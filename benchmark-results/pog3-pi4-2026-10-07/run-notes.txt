@@ -1,0 +1,23 @@
+DSP/benchmark source commit: abbb569a516a08873c462edb757f9b58e78f1ccf
+Buildroot SDK: 2025.02.15, GCC 13.4.0
+C++ flags: -O3 -DNDEBUG -std=c++20
+FFTW: 3.3.10, single, static, NEON, -O3, no threads/OpenMP
+FFTW tar SHA-256: 56c932549852cddcfafdab3820b0200c7742675be92179e59e6215b340e26467
+Device: Raspberry Pi 4 Model B Rev 1.5, aarch64, 927620 kB reported RAM
+Kernel: Linux 6.18.37-v8 SMP PREEMPT
+Runtime configuration readback: SAMPLE_RATE=48000 BLOCK_SIZE=64 AUDIO_CPU=2
+Offline trial: 48 kHz, 64/128 frames, affinity CPU 2, SCHED_OTHER
+Governor: performance; recorded clock samples: 1500000 kHz
+Final run start: 2026-10-07 08:57:32 UTC
+Final run end: 2026-10-07 09:13:16 UTC
+Boundary temperatures: 55.017 C before / 58.913 C after
+Additional monitoring samples reached 60.374 C; not continuous peak measurement
+Numerical foundation and feature --short-hold: exit 0
+Stage receipts: 72 invocations, all exit 0
+Full suite: 2 invocations, 14 rows each, completion messages retained
+Whole runner: exit 1 from immediate post-start PID receipt race
+Service restarted by EXIT trap; external verification confirms PID 25573 and refreshed telemetry
+Committed runner adds bounded post-start PID polling; benchmark DSP is unchanged
+Initial attempt: exact Attack-off equality failed; raw specialization correction fixes it
+Both attempts restored live service; no firmware/preset/buffer/governor changes
+No live ALSA/chain/xrun admission was performed
