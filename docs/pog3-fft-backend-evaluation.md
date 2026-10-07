@@ -5,6 +5,12 @@ The user explicitly accepts GPL-linked builds. This replaces the compact scalar
 FFT introduced at `59be448c`; the shared convolver FFT is unchanged. CPU admission
 is still open, so the block remains absent from the selectable catalog.
 
+The subsequent [pitch-library screening](pog3-pitch-library-evaluation.md)
+evaluates the larger renderer/interpretation costs. It records optional library
+and Terrarium reference measurements, with an [ERB-PS2 experiment plan](pog3-erb-ps2-evaluation-plan.md)
+as the next user-selected DSP direction. No production pitch backend changes
+are implied by those screening results.
+
 ## Execution and ownership
 
 `SpectralPlan` owns immutable forward/inverse complex FFTW plans for N = 1024,
