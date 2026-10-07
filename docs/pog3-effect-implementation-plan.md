@@ -38,6 +38,18 @@ polyphonic/+24 spur gates. Required ownership/Attack/freeze and Focus costs are
 unpriced; the **full-block** 25% goal and M8 remain open. See
 [the measurements and next CPU decision](pog3-erb-cadence-cpu-results.md).
 
+**ERB Attack/freeze checkpoint:** the isolated hybrid now prices all three
+warm stereo spectral ownership paths, active Attack projected into the counted
+ERB bank, and actual freeze/gliss with eight held stereo paths. Overall host
+demand is 66.61–70.14%, rising to 82.23–87.09% during the middle held segment,
+with frequent callback overruns. Resolved-note and stationary freeze fixtures
+pass; close-note independence, raw pitch quality, live stereo phase and fade
+coherence remain open. No production renderer is replaced. See
+[the complete stage costs and DSP evidence](pog3-erb-attack-freeze-results.md).
+The user has clarified that 25% is a chain-budget planning target, not a hard
+usability limit. Compare the full FFTW processor and ERB hybrid on hardware now;
+actual callback deadlines, intended-chain margin and xruns determine admission.
+
 **M3 implementation update:** the implemented bank additionally uses shared N=4096/H=512 analysis below 400 Hz because the ordinary low-chord gate failed with two windows. Its 200–300 Hz reconstruction crossover uses the existing output IFFTs. Renderer jobs now use the explicit one-hop staging correction below. Main delays are 24/48 ms; a low-note octave envelope measured about 60/72 ms with Focus off/on. Family/attack and freeze work must include all three representations. The status document records current quality, CPU/memory results, remaining resolution limits, and the live-relative-phase caution for stationary freeze. These are measured implementation adaptations, not EHX hardware specifications.
 
 **M4 implementation update:** shared stereo families/residual partials now preserve old sustain while swelling new excitation, with low/long attack histories evaluated at each resolution's input timestamp. Processed unison uses resolved low partials when attack is active. Attack interpretation runs before staged render jobs, now completing at long age 251 and short age 112; N+H identity delay is unchanged. This first scorer requires directly supported fundamentals and keeps missing-fundamental material as residual partials. Four excitation epochs per partial have an explicit capacity fallback. See the status document for independence gates, host timing, memory, and remaining fidelity/admission limits. Filter AD remains the separate next milestone.
@@ -666,7 +678,7 @@ The existing target is a Raspberry Pi ARM64 pedal; current project notes include
 
 Measure median, p95, p99, p99.9, maximum observed callback time, frame-job bursts, and xruns. Test isolated and combined chains with a representative NAM model, cabinet/IR, this block, and normal delay/reverb as admission rules permit. Include full voice counts, stereo input, both Focus settings, two-path Focus transition, Dry Attack, maximum Spread/Q, and active freeze/gliss. Feed varied dense audio so silence and mono shortcuts do not make the benchmark misleading.
 
-Initial planning target: the new block's worst measured callback cost should consume no more than roughly 25% of the period alone, and the tested full chain should retain at least 20% observed deadline margin with no xruns during a ten-minute run. These are release gates to evaluate, not promises. If the existing chain already lacks margin, document that baseline and choose a supported configuration; do not lower unrelated NAM quality or increase period size silently.
+Updated 2026-10-07 from user steering: roughly 25% of the period alone is an initial chain-budget planning target, not a universal release gate or a prerequisite for hardware testing. A higher budget may be acceptable for the intended chain. Measure the actual target now; all callback work must meet the period deadline, and the supported full chain should initially retain at least 20% observed deadline margin with no xruns during a ten-minute thermal soak. Host percentages do not establish target-device admission. If the existing chain already lacks margin, document that baseline and choose a supported configuration; do not lower unrelated NAM quality or increase period size silently.
 
 Prepare a memory inventory covering FFT plans/tables, stereo analysis rings, six voice OLA histories, track/family states, held and gliss-target spectra, long/short transition overlap, and per-voice chorus/spread buffers. Eligible Spread alone requires approximately `4 × 2 × 7204 × 4 ≈ 230 kB` if all eight lines use equal maximum storage; asymmetric storage reduces that. The granular prototype adds about 320 KiB of history. Set a practical initial goal below 2 MiB per spectral block, then record the measured allocation total. Avoid large automatic stack objects in the audio path.
 

@@ -16,8 +16,12 @@ def main():
     parser.add_argument("--phase", choices=["timing", "allocation", "quality"], required=True)
     parser.add_argument("--probe", type=Path)
     parser.add_argument("--passes", type=int, choices=[1, 2], default=1)
-    parser.add_argument("--backends", nargs="+", choices=["ardor", "ss-default", "ss-cheap", "ss-pog3", "ss-balanced", "rb-r2", "rb-r3", "rb-live", "terrarium-48", "terrarium-80", "erb-ps2", "erb-shared-43", "erb-shared-wide", "erb-shared-lut-43", "erb-shared-lut-wide", "erb-cadence-center-8", "erb-cadence-count-4", "erb-cadence-count-8", "erb-cadence-count-16", "erb-cadence-count-32"])
+    parser.add_argument("--backends", nargs="+", choices=["ardor", "ss-default", "ss-cheap", "ss-pog3", "ss-balanced", "rb-r2", "rb-r3", "rb-live", "terrarium-48", "terrarium-80", "erb-ps2", "erb-shared-43", "erb-shared-wide", "erb-shared-lut-43", "erb-shared-lut-wide", "erb-cadence-center-8", "erb-cadence-count-4", "erb-cadence-count-8", "erb-cadence-count-16", "erb-cadence-count-32", "erb-effects-ownership-32", "erb-effects-attack-32", "erb-effects-freeze-32", "erb-effects-gliss-32"])
+    parser.add_argument("--workloads", nargs="+", choices=["static", "dynamic", "events"])
     args = parser.parse_args()
+    if args.phase == "quality" and args.workloads:
+        parser.error("--workloads selects CPU/allocation workloads only")
+    cpu_kinds = args.workloads or ["static", "dynamic"]
     if args.phase == "allocation" and not args.probe:
         parser.error("allocation phase requires --probe")
     env = os.environ.copy()
@@ -28,26 +32,26 @@ def main():
     backends = ["ardor", "ss-default", "ss-cheap", "ss-pog3", "ss-balanced", "rb-r2", "rb-r3", "rb-live"]
     cases = []
     for callback in ([128] if args.phase == "quality" else [64, 128]):
-        for kind in (["tone", "resolved", "low", "alias"] if args.phase == "quality" else ["static", "dynamic"]):
+        for kind in (["tone", "resolved", "low", "alias"] if args.phase == "quality" else cpu_kinds):
             for count in ([8] if args.phase == "quality" else [5, 8]):
                 for backend in backends:
                     if backend != "ardor" or count == 8:
                         cases.append((backend, count, callback, kind))
     for callback in ([128] if args.phase == "quality" else [64, 128]):
-        for kind in (["tone", "resolved", "low", "alias"] if args.phase == "quality" else ["static"]):
+        for kind in (["tone", "resolved", "low", "alias"] if args.phase == "quality" else [kind for kind in cpu_kinds if kind != "dynamic"]):
             for backend in ["terrarium-48", "terrarium-80"]:
                 cases.append((backend, 3, callback, kind))
     # Preserve the original 64-row library screening unless this new reference
     # is explicitly requested. Selected backends keep the same case contracts.
     if args.backends:
-        for backend in ["erb-shared-43", "erb-shared-wide", "erb-shared-lut-43", "erb-shared-lut-wide", "erb-cadence-center-8", "erb-cadence-count-4", "erb-cadence-count-8", "erb-cadence-count-16", "erb-cadence-count-32"]:
+        for backend in ["erb-shared-43", "erb-shared-wide", "erb-shared-lut-43", "erb-shared-lut-wide", "erb-cadence-center-8", "erb-cadence-count-4", "erb-cadence-count-8", "erb-cadence-count-16", "erb-cadence-count-32", "erb-effects-ownership-32", "erb-effects-attack-32", "erb-effects-freeze-32", "erb-effects-gliss-32"]:
             if backend in args.backends:
                 for callback in ([128] if args.phase == "quality" else [64, 128]):
-                    for kind in (["tone", "resolved", "low", "alias"] if args.phase == "quality" else ["static", "dynamic"]):
+                    for kind in (["tone", "resolved", "low", "alias"] if args.phase == "quality" else cpu_kinds):
                         cases.append((backend, 8, callback, kind))
         if "erb-ps2" in args.backends:
             for callback in ([128] if args.phase == "quality" else [64, 128]):
-                for kind in (["tone", "resolved", "low", "alias"] if args.phase == "quality" else ["static"]):
+                for kind in (["tone", "resolved", "low", "alias"] if args.phase == "quality" else [kind for kind in cpu_kinds if kind != "dynamic"]):
                     cases.append(("erb-ps2", 1, callback, kind))
         cases = [case for case in cases if case[0] in args.backends]
     receipts = []

@@ -1,12 +1,15 @@
 #include "daisyfx/pog3/PolyphonicPitchBank.h"
+#ifndef ARDOR_POG3_ONLY
 #include "daisyfx/hosted/dsp/band_shifter.h"
 #include "daisyfx/hosted/dsp/multirate.h"
 #include "signalsmith-stretch.h"
 #include "rubberband/RubberBandStretcher.h"
 #include "rubberband/RubberBandLiveShifter.h"
+#endif
 #include "erb_ps2_reference.h"
 #include "erb_shared_bank.h"
 #include "erb_cadence_bank.h"
+#include "erb_attack_freeze.h"
 
 #include <algorithm>
 #include <array>
@@ -44,6 +47,7 @@ struct Processor {
   virtual void reset() = 0;
   virtual void transpose(float extent) = 0;
   virtual void process(const Stereo& input, std::size_t n) = 0;
+  virtual void diagnostics() const {}
 };
 
 struct Ardor final : Processor {
@@ -65,6 +69,7 @@ struct Ardor final : Processor {
   }
 };
 
+#ifndef ARDOR_POG3_ONLY
 struct Signalsmith final : Processor {
   std::vector<std::unique_ptr<signalsmith::stretch::SignalsmithStretch<float>>> voices;
   Signalsmith(std::size_t n, const std::string& preset) : Processor(n) {
@@ -255,6 +260,8 @@ struct Terrarium final : Processor {
   }
 };
 
+#endif
+
 struct ErbPs2 final : Processor {
   pog3_trial::ErbPs2Reference reference;
   ErbPs2() : Processor(1) {}
@@ -285,6 +292,58 @@ struct ErbShared final : Processor {
 };
 
 std::unique_ptr<Processor> create(const std::string& name, std::size_t voices) {
+  if (name.starts_with("erb-effects-")) {
+    if (voices != 8) throw std::runtime_error("ERB Attack/freeze trial runs all 8 warm paths");
+    using Stage = pog3_trial::ErbAttackFreezeBank::Stage;
+    struct Adapter final : Processor {
+      pog3_trial::ErbAttackFreezeBank bank;
+      bool freeze, gliss;
+      std::size_t sample = 0, maximumHeld = 0;
+      Adapter(Stage stage, bool glide = false) : Processor(8), bank(stage), freeze(stage == Stage::Freeze), gliss(glide) {
+        bank.setAttack(stage == Stage::Ownership ? 0 : .5f); latency = 32;
+      }
+      void reset() override {
+        bank.setFreeze(ardor::pog3::ExpressionMode::FreezeVolume, 0);
+        bank.reset(); sample = faults = maximumHeld = 0;
+      }
+      void transpose(float extent) override { bank.transpose(extent); }
+      void process(const Stereo& input, std::size_t n) override {
+        for (std::size_t i = 0; i < n; ++i, ++sample) {
+          // The timed/probed run includes capture, fully-held and release work;
+          // warm live analysis/Attack and all eight ERB paths continue throughout.
+          if (freeze && sample == 48000) bank.setFreeze(gliss ? ardor::pog3::ExpressionMode::FreezeGliss : ardor::pog3::ExpressionMode::FreezeVolume, gliss ? .65f : 1);
+          if (freeze && sample == 144000) bank.setFreeze(ardor::pog3::ExpressionMode::FreezeVolume, 0);
+          const auto y = bank.process({input[0][i], input[1][i]});
+          if (freeze && sample % 256 == 32) {
+            std::size_t n = 0;
+            for (std::size_t r = 0; r < 3; ++r) for (std::size_t c = 0; c < 2; ++c)
+              n += bank.ownership().freeze.band(r, c).count;
+            maximumHeld = std::max(maximumHeld, n);
+          }
+          for (std::size_t v = 0; v < 8; ++v) {
+            output[v][0][i] = y[v][0]; output[v][1][i] = y[v][1];
+          }
+        }
+      }
+      void diagnostics() const override {
+        const auto& owner = bank.ownership();
+        std::size_t expected = 0;
+        for (const auto hop : {128U, 256U, 512U}) expected += 2 * (sample / hop) - (sample && sample % hop == 0);
+        if (owner.transforms() != expected) throw std::runtime_error("ERB ownership analysis did not remain warm");
+        if (freeze && sample == 192000 && owner.freeze.captures() != 1)
+          throw std::runtime_error("ERB freeze workload did not capture exactly once");
+        std::cerr << "ERB ownership transforms=" << owner.transforms()
+          << " families=" << owner.attack.familyCount() << " capacity_events=" << owner.capacityEvents()
+          << " captures=" << owner.freeze.captures() << " targets=" << owner.freeze.targets()
+          << " max_held_partial_slots=" << maximumHeld << '\n';
+      }
+    };
+    if (name == "erb-effects-ownership-32") return std::make_unique<Adapter>(Stage::Ownership);
+    if (name == "erb-effects-attack-32") return std::make_unique<Adapter>(Stage::Attack);
+    if (name == "erb-effects-freeze-32") return std::make_unique<Adapter>(Stage::Freeze);
+    if (name == "erb-effects-gliss-32") return std::make_unique<Adapter>(Stage::Freeze, true);
+    throw std::runtime_error("unknown ERB Attack/freeze stage");
+  }
   if (name.starts_with("erb-cadence-")) {
     if (voices != 8) throw std::runtime_error("cadence ERB trial runs all 8 warm paths");
     // Local adapter keeps the same independent warm stereo outputs.
@@ -323,14 +382,16 @@ std::unique_ptr<Processor> create(const std::string& name, std::size_t voices) {
     if (voices != 1) throw std::runtime_error("ERB-PS2 reference is octave-up only");
     return std::make_unique<ErbPs2>();
   }
+  if (name == "ardor") return std::make_unique<Ardor>(voices);
+#ifndef ARDOR_POG3_ONLY
   if (name == "terrarium-48" || name == "terrarium-80") {
     if (voices != 3) throw std::runtime_error("Terrarium reference has exactly 3 voices");
     return std::make_unique<Terrarium>(name == "terrarium-80" ? 80 : 48);
   }
-  if (name == "ardor") return std::make_unique<Ardor>(voices);
   if (name.starts_with("ss-")) return std::make_unique<Signalsmith>(voices, name);
   if (name == "rb-r2" || name == "rb-r3") return std::make_unique<Rubber>(voices, name == "rb-r3");
   if (name == "rb-live") return std::make_unique<RubberLive>(voices);
+#endif
   throw std::runtime_error("unknown processor");
 }
 
@@ -347,7 +408,15 @@ std::vector<Stereo> fixture(std::size_t callback, const std::string& kind) {
     else {
       random = 1664525 * random + 1013904223;
       noise = (static_cast<double>(random) / 4294967296.0 - .5) * .03;
-      for (double f : {82.4069, 130.8128, 164.8138, 196.}) x += .06 * std::sin(2 * pi * f * t);
+      const bool alternate = kind == "cpu-events" && (sample / 24000) % 2;
+      const std::array<double, 4> notes = alternate ? std::array<double, 4>{110., 164.8138, 220., 293.6648}
+        : std::array<double, 4>{82.4069, 130.8128, 164.8138, 196.};
+      for (double f : notes) x += .06 * std::sin(2 * pi * f * t);
+      if (kind == "cpu-events") {
+        const double age = sample % 24000;
+        const double envelope = std::min(1.0, age / 480) * std::exp(-age / 24000);
+        x *= envelope; noise *= envelope;
+      }
     }
     input[b][0][i] = x + noise; input[b][1][i] = -.73f * x + .4f * noise;
   }
@@ -432,8 +501,8 @@ void quality(const std::string& name, std::size_t count, const std::string& kind
   }
 }
 
-void benchmark(const std::string& name, std::size_t count, std::size_t callback, bool dynamic, bool probe) {
-  const auto input = fixture(callback, "cpu");
+void benchmark(const std::string& name, std::size_t count, std::size_t callback, bool dynamic, bool probe, bool events = false) {
+  const auto input = fixture(callback, events ? "cpu-events" : "cpu");
   auto processor = create(name, count);
   float extent = 1;
   auto run = [&](bool timed, std::vector<double>& times, double& checksum) {
@@ -461,22 +530,29 @@ void benchmark(const std::string& name, std::size_t count, std::size_t callback,
   }
   run(true, times, checksum);
   if (probe) pog3_malloc_end(&allocations, &frees);
+  processor->diagnostics();
   if (!std::isfinite(checksum)) throw std::runtime_error("nonfinite checksum");
   const auto mean = std::accumulate(times.begin(), times.end(), 0.0) / times.size();
   const auto overruns = std::count_if(times.begin(), times.end(), [&](double t) { return t > callback / .048; });
+  const auto segment = [&](std::size_t begin, std::size_t end) {
+    return std::accumulate(times.begin() + begin, times.begin() + end, 0.0) / (end - begin);
+  };
+  const double first = segment(0, 48000 / callback), middle = segment(48000 / callback, 144000 / callback);
+  const double last = segment(144000 / callback, times.size());
   std::sort(times.begin(), times.end());
   const auto p = [&](double fraction) { return times[static_cast<std::size_t>(fraction * (times.size() - 1))]; };
-  std::cout << "backend,voices,callback,dynamic,callbacks,mean_us,cpu_percent,p99_us,max_us,overruns,allocations,frees,faults,latency_frames,checksum\n"
+  std::cout << "backend,voices,callback,dynamic,callbacks,mean_us,cpu_percent,p99_us,max_us,overruns,allocations,frees,faults,latency_frames,checksum,first_second_mean_us,middle_two_seconds_mean_us,last_second_mean_us,workload\n"
     << name << ',' << count << ',' << callback << ',' << dynamic << ',' << times.size() << ',' << mean << ','
     << mean / (callback / .048) * 100 << ',' << p(.99) << ',' << times.back() << ',' << overruns << ','
     << (probe ? std::to_string(allocations) : "unmeasured") << ',' << (probe ? std::to_string(frees) : "unmeasured")
-    << ',' << processor->faults << ',' << processor->latency << ',' << checksum << '\n';
+    << ',' << processor->faults << ',' << processor->latency << ',' << checksum
+    << ',' << first << ',' << middle << ',' << last << ',' << (events ? "events" : dynamic ? "dynamic" : "static") << '\n';
 }
 }
 
 int main(int argc, char** argv) {
   try {
-    if (argc < 5 || argc > 6) throw std::runtime_error("usage: trial backend voices callback static|dynamic|tone|resolved|low|alias [--allocation]");
+    if (argc < 5 || argc > 6) throw std::runtime_error("usage: trial backend voices callback static|dynamic|events|tone|resolved|low|alias [--allocation]");
     const std::string name = argv[1], kind = argv[4];
     const auto voices = std::stoul(argv[2]), callback = std::stoul(argv[3]);
     if ((voices != 1 && voices != 3 && voices != 5 && voices != 8) || (callback != 64 && callback != 128)) throw std::runtime_error("use 1/3/5/8 voices and 64/128 callbacks");
@@ -486,7 +562,7 @@ int main(int argc, char** argv) {
     if (name == "erb-ps2" && kind == "dynamic") throw std::runtime_error("ERB-PS2 reference is octave-up only");
     const bool probe = argc == 6 && std::string(argv[5]) == "--allocation";
     if (argc == 6 && !probe) throw std::runtime_error("unknown option");
-    if (kind == "static" || kind == "dynamic") benchmark(name, voices, callback, kind == "dynamic", probe);
+    if (kind == "static" || kind == "dynamic" || kind == "events") benchmark(name, voices, callback, kind == "dynamic", probe, kind == "events");
     else if (kind == "tone" || kind == "resolved" || kind == "low" || kind == "alias") {
       if (probe) throw std::runtime_error("allocation mode is for CPU workloads");
       quality(name, voices, kind);

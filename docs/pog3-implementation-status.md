@@ -1798,6 +1798,20 @@ failed center-only evidence, numerical/latency tradeoffs, all CPU ranges/tails,
 retained audio metrics, reproduction and artifact hashes. The next CPU decision
 is combined required-stage cost; production DSP and M8 remain unchanged.
 
+## ERB Attack/freeze combined checkpoint (2026-10-07)
+
+**ERB Attack/freeze checkpoint:** the isolated hybrid now prices all three
+warm stereo spectral ownership paths, active Attack projected into the counted
+ERB bank, and actual freeze/gliss with eight held stereo paths. Overall host
+demand is 66.61–70.14%, rising to 82.23–87.09% during the middle held segment,
+with frequent callback overruns. Resolved-note and stationary freeze fixtures
+pass; close-note independence, raw pitch quality, live stereo phase and fade
+coherence remain open. No production renderer is replaced. See
+[the complete stage costs and DSP evidence](pog3-erb-attack-freeze-results.md).
+The user has clarified that 25% is a chain-budget planning target, not a hard
+usability limit. Compare the full FFTW processor and ERB hybrid on hardware now;
+actual callback deadlines, intended-chain margin and xruns determine admission.
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
@@ -1808,7 +1822,10 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **CPU admission**. **M8 — factory, catalog, inspector, scene
+The next work is **hardware CPU measurement**, comparing the existing full FFTW
+processor with the ERB Attack/freeze hybrid. The initial 25% planning target
+is not a prerequisite for this test or a hard rejection threshold. Admission
+depends on target callback tails, the intended chain and thermal/xrun endurance. **M8 — factory, catalog, inspector, scene
 and manager integration** remains blocked on feasibility. All seven DSP
 expression selections now have audio behavior. The C++ allocation counter stays
 below its original goal, while FFTW internal storage, CPU margin, target
