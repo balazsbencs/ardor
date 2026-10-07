@@ -1,0 +1,1 @@
+Changed bank and automation trace compile with -Wall -Wextra -Werror -pedantic on host and AArch64. Bank checked with freeze OFF and ON; ARM trace default.
