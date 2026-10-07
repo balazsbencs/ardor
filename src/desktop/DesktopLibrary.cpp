@@ -5,6 +5,9 @@
 #include <cstdlib>
 #include <fstream>
 #include <stdexcept>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 namespace ardor {
 namespace {
@@ -26,7 +29,15 @@ std::filesystem::path desktopDataRoot()
 #if defined(__APPLE__)
   return requiredEnvironmentPath("HOME") / "Library/Application Support/Ardor";
 #elif defined(_WIN32)
-  return requiredEnvironmentPath("LOCALAPPDATA") / "Ardor";
+  const auto size = GetEnvironmentVariableW(L"LOCALAPPDATA", nullptr, 0);
+  if (!size) throw std::runtime_error("Cannot locate the user library: LOCALAPPDATA is missing.");
+  std::wstring value(size, L'\0');
+  const auto copied = GetEnvironmentVariableW(L"LOCALAPPDATA", value.data(), size);
+  if (!copied || copied >= size) throw std::runtime_error("Cannot read LOCALAPPDATA.");
+  value.resize(copied);
+  const std::filesystem::path path(value);
+  if (!path.is_absolute()) throw std::runtime_error("LOCALAPPDATA must contain an absolute path.");
+  return path / "Ardor";
 #else
   const auto* xdg = std::getenv("XDG_DATA_HOME");
   if (xdg && *xdg && std::filesystem::path(xdg).is_absolute()) {

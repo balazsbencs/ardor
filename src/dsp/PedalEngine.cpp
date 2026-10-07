@@ -790,6 +790,12 @@ void PedalEngine::reset()
   else chain_.reset();
 }
 
+size_t PedalEngine::latencyFrames() const noexcept
+{
+  if (wdwRouting_) return wdwRouting_->latencyFrames();
+  return chain_.latencyFrames();
+}
+
 size_t PedalEngine::tailFrames() const noexcept
 {
   if (wdwRouting_) return wdwRouting_->tailFrames();

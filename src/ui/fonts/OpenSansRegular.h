@@ -2,4 +2,12 @@
 
 #include <lvgl.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern const lv_font_t ardor_font_open_sans_regular_18;
+
+#ifdef __cplusplus
+}
+#endif

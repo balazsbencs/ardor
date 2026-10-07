@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.20)
 project(ardor_pedal LANGUAGES C CXX)
 
+if(WIN32)
+  # A distributable plugin should not require a separately installed VC runtime.
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  set(CMAKE_C_STANDARD 11)
+  add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN _USE_MATH_DEFINES UNICODE _UNICODE)
+  if(MSVC)
+    add_compile_options(/utf-8 /MP2)
+  endif()
+endif()
+
 set(ARDOR_VERSION "0.0.0" CACHE STRING "Ardor release version")
 set(ARDOR_COMMIT "unknown" CACHE STRING "Ardor source commit")
 
@@ -17,7 +27,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(BUILD_SHARED_LIBS OFF)
 
-set(ARDOR_UI_BACKEND "sdl" CACHE STRING "UI backend: sdl (desktop) or fbdev (Linux/Pi)")
+set(ARDOR_UI_BACKEND "sdl" CACHE STRING "UI backend: sdl, fbdev, memory (embedded editor), or none")
+
+option(ARDOR_BUILD_CLAP_PLUGIN "Build the full-chain Ardor CLAP beta" OFF)
+if(ARDOR_BUILD_CLAP_PLUGIN)
+  # DSP archives and NAM registration objects become part of a shared module.
+  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
 
 include(FetchContent)
 
@@ -59,6 +75,8 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
     target_link_libraries(lvgl PUBLIC ${SDL2_LIBRARIES})
   elseif(ARDOR_UI_BACKEND STREQUAL "fbdev")
     target_compile_definitions(lvgl PUBLIC ARDOR_UI_BACKEND_FBDEV)
+  elseif(ARDOR_UI_BACKEND STREQUAL "memory")
+    target_compile_definitions(lvgl PUBLIC ARDOR_UI_BACKEND_MEMORY)
   endif()
 endif()
 
@@ -834,4 +852,8 @@ endif()
 option(ARDOR_BUILD_WHAMMY_PLUGIN "Build the Whammy VST3/CLAP plugin" OFF)
 if(ARDOR_BUILD_WHAMMY_PLUGIN)
   add_subdirectory(plugins/whammy-vst)
+endif()
+
+if(ARDOR_BUILD_CLAP_PLUGIN)
+  add_subdirectory(plugins/ardor-clap)
 endif()

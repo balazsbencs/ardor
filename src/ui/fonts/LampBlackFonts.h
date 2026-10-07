@@ -4,6 +4,10 @@
 // scripts/generate-lamp-black-fonts.sh; names are family, CSS weight and pixel size.
 #include <lvgl.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern const lv_font_t ardor_lb_cond500_12;
 extern const lv_font_t ardor_lb_cond500_22;
 extern const lv_font_t ardor_lb_cond600_12;
@@ -42,3 +46,7 @@ extern const lv_font_t ardor_lb_saira600_15;
 extern const lv_font_t ardor_lb_saira600_22;
 extern const lv_font_t ardor_lb_saira600_26;
 extern const lv_font_t ardor_lb_saira700_26;
+
+#ifdef __cplusplus
+}
+#endif

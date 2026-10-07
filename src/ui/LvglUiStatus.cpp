@@ -126,14 +126,14 @@ void LvglUi::syncStatusView(const UiState& state)
     lv_label_set_text(expressionStatusLabel_, status.c_str());
     lv_obj_set_style_text_color(expressionStatusLabel_,
       lv_color_hex(state.controlInputs.expressionConnected ? palette().family[3] : muted), 0);
-    if (live && !status.empty()) lv_obj_remove_flag(expressionStatusLabel_, LV_OBJ_FLAG_HIDDEN);
+    if (actions_.showDeviceStatus && live && !status.empty()) lv_obj_remove_flag(expressionStatusLabel_, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(expressionStatusLabel_, LV_OBJ_FLAG_HIDDEN);
   }
   if (midiStatusLabel_) {
     lv_label_set_text(midiStatusLabel_, state.controlInputs.midiConnected ? "MIDI ON" : "MIDI");
     lv_obj_set_style_text_color(midiStatusLabel_,
       lv_color_hex(state.controlInputs.midiConnected ? palette().family[3] : muted), 0);
-    if (live) lv_obj_remove_flag(midiStatusLabel_, LV_OBJ_FLAG_HIDDEN);
+    if (actions_.showDeviceStatus && live) lv_obj_remove_flag(midiStatusLabel_, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(midiStatusLabel_, LV_OBJ_FLAG_HIDDEN);
   }
   if (statusMessageLabel_) {
@@ -221,6 +221,11 @@ void renderStatusBar(LvglUi* ui, lv_obj_t* root, UiState& state,
   lv_obj_set_style_text_align(midi, LV_TEXT_ALIGN_RIGHT, 0);
   if (state.mode != UiMode::Preset) lv_obj_add_flag(midi, LV_OBJ_FLAG_HIDDEN);
   if (midiOut) *midiOut = midi;
+
+  if (!ui->actions().showDeviceStatus) {
+    for (auto* item : {telemetryLabel, master, masterScale, expression, midi})
+      lv_obj_add_flag(item, LV_OBJ_FLAG_HIDDEN);
+  }
 
   lv_obj_t* settings = lv_button_create(bar);
   lv_obj_set_size(settings, 58, 40);
