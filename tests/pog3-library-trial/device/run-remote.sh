@@ -2,6 +2,7 @@
 set -eu
 
 # Run over SSH: sh run-remote.sh UNIQUE_TMP_DIRECTORY [CPU]
+# Or: sh run-remote.sh UNIQUE_TMP_DIRECTORY CPU --full-probes PROBE...
 # The caller uploads probes and retrieves every receipt/log before cleanup.
 probe_dir=$1
 cpu=${2:-2}
@@ -47,6 +48,20 @@ fi
 # These offline loops run faster than wall-clock audio. Use SCHED_OTHER to
 # avoid Linux RT-bandwidth throttling of an unpaced FIFO loop; live ALSA/FIFO
 # deadline and xrun admission requires a later paced runtime test.
+if [ "${3:-}" = "--full-probes" ]; then
+  shift 3
+  [ "$#" -gt 0 ] || exit 2
+  printf 'probe,return_code\n' > receipt.csv
+  for probe in "$@"; do
+    result=0
+    ./pog3-device-cpu "$cpu" "./$probe" > "$probe.csv" 2> "$probe.log" || result=$?
+    printf '%s,%s\n' "$probe" "$result" >> receipt.csv
+    metadata > "device-after-$probe.txt"
+    [ "$result" = 0 ] || exit "$result"
+  done
+  metadata > device-after.txt
+  exit 0
+fi
 # Numerical tests precede timing.
 ./pog3-device-cpu "$cpu" ./pog3-device-foundation > foundation.log 2>&1
 ./pog3-device-cpu "$cpu" ./pog3-device-quality --short-hold > quality.log 2>&1

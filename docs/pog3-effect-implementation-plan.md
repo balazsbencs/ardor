@@ -62,6 +62,18 @@ See [hardware results, receipts and the next CPU work](pog3-pi4-cpu-results.md).
 The next step is target profiling and reducing average/burst work. Full-feature
 capacity, rather than the initial 25% planning target, still blocks M8.
 
+**Pi 4 optimization checkpoint:** the target frame-job profile attributes
+20–23% of full-workload time to FFT, 21–32% to live rendering and 14–18% each
+to interpretation/Attack; held rendering reaches 16% during freeze/gliss.
+An audio-range magnitude fast path with wide arithmetic for extreme values
+saves **1.04–1.47%** in a sequential, uninstrumented four-run comparison.
+All nine production DSP tests and ARM numerical checks pass. Full-path demand
+remains **100.57–113.53%**, and every full-path p99 still exceeds its period.
+This is a small optimization, not standalone or chain admission. The next
+candidate is a prepared real-input/Hermitian FFT path that preserves generic
+complex behavior, allocation/latency contracts and audio quality. See
+[the target profile, A/B evidence and implementation constraints](pog3-pi4-profile-results.md).
+
 **M3 implementation update:** the implemented bank additionally uses shared N=4096/H=512 analysis below 400 Hz because the ordinary low-chord gate failed with two windows. Its 200–300 Hz reconstruction crossover uses the existing output IFFTs. Renderer jobs now use the explicit one-hop staging correction below. Main delays are 24/48 ms; a low-note octave envelope measured about 60/72 ms with Focus off/on. Family/attack and freeze work must include all three representations. The status document records current quality, CPU/memory results, remaining resolution limits, and the live-relative-phase caution for stationary freeze. These are measured implementation adaptations, not EHX hardware specifications.
 
 **M4 implementation update:** shared stereo families/residual partials now preserve old sustain while swelling new excitation, with low/long attack histories evaluated at each resolution's input timestamp. Processed unison uses resolved low partials when attack is active. Attack interpretation runs before staged render jobs, now completing at long age 251 and short age 112; N+H identity delay is unchanged. This first scorer requires directly supported fundamentals and keeps missing-fundamental material as residual partials. Four excitation epochs per partial have an explicit capacity fallback. See the status document for independence gates, host timing, memory, and remaining fidelity/admission limits. Filter AD remains the separate next milestone.
@@ -91,8 +103,9 @@ C allocation/free regression now passes. All nine POG3 release suites and
 foundation/pitch/warm-live sanitizer checks pass. Active transform comparison
 uses a -110 dB numerical accuracy contract; previous scalar-WAV exactness is
 historical. Final opposite-order comparisons show 24.12–27.66% lower mean demand,
-with full paths at 31.67–35.27% of the period, still above 25%. FFT is now about
-6% of work; rendering, interpretation and Attack are the next measured costs.
+with full paths at 31.67–35.27% of the period, still above 25%. FFT is about
+6% of the earlier host profile; the subsequent Pi profile instead attributes
+20–23% to FFT. Use target evidence to prioritize the next changes.
 C++ preparation is 2,026,198 bytes but excludes internal FFTW storage, and fuller
 heap observations exceed 2 MiB. **Focus on CPU admission before other milestones.**
 Detailed evidence, dependency/license/target configuration, allocation and

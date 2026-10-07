@@ -10,6 +10,16 @@ namespace {
 constexpr double kPi = 3.14159265358979323846, kTwoPi = 2 * kPi;
 double principal(double phase) noexcept { return std::remainder(phase, kTwoPi); }
 double sinc(double x) noexcept { return std::fabs(x) < 1e-12 ? 1 : std::sin(kPi * x) / (kPi * x); }
+float magnitude(std::complex<float> value) noexcept {
+  // Audio-range bins avoid a per-bin hypot library call. Squared norms outside
+  // the normal float range use double: every finite float component's square
+  // fits there, including subnormals. Final float overflow is retained.
+  const float squared = value.real() * value.real() + value.imag() * value.imag();
+  if (squared >= std::numeric_limits<float>::min() && std::isfinite(squared))
+    return std::sqrt(squared);
+  const double real = value.real(), imaginary = value.imag();
+  return static_cast<float>(std::sqrt(real * real + imaginary * imaginary));
+}
 float highWeight(float frequencyHz) noexcept {
   // The low-band analysis resolves ordinary low chord fundamentals that merge
   // in the short/long main windows. Both resolutions use the same crossover.
@@ -92,7 +102,7 @@ void PitchFrame::update(std::span<const std::complex<float>> spectrum) noexcept 
   const auto half = spectrum.size() / 2;
   float maximum = 0;
   for (std::size_t k = 0; k < magnitude_.size(); ++k) {
-    magnitude_[k] = std::abs(spectrum[k]);
+    magnitude_[k] = magnitude(spectrum[k]);
     if (!std::isfinite(magnitude_[k])) { spectrum_ = {}; previous_ = false; return; }
     maximum = std::max(maximum, magnitude_[k]);
   }
@@ -104,7 +114,7 @@ void PitchFrame::update(std::span<const std::complex<float>> spectrum) noexcept 
         || (k < half && magnitude_[k] < magnitude_[k + 1])) continue;
     float frequency;
     if (k == 0 || k == half) frequency = static_cast<float>(k);
-    else if (previous_ && std::abs(previousSpectrum_[k]) > 1e-7f) {
+    else if (previous_ && magnitude(previousSpectrum_[k]) > 1e-7f) {
       const double delta = principal(std::arg(spectrum[k]) - std::arg(previousSpectrum_[k]) - k * step);
       frequency = static_cast<float>(k + delta / step);
     } else {
