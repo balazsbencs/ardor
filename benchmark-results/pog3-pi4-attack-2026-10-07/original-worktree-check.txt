@@ -1,0 +1,5 @@
+All implementation, test and documentation mutations in this task used the isolated ardor-pog3 worktree. No original-worktree or index mutation was performed. A read-only comparison to the older PR scope audit observes 4 changed/missing paths during concurrent work; no restoration or copying was attempted.
+services/managerd/internal/webui/dist/assets/SettingsDialog-D7hj6TlH.js
+services/managerd/internal/webui/dist/assets/Tone3000Dialog-BYcKbB9o.js
+services/managerd/internal/webui/dist/assets/download-Bo07HA4A.js
+services/managerd/internal/webui/dist/assets/index-AYdq7mea.js

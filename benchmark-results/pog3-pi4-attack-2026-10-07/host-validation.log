@@ -1,0 +1,2 @@
+Attack birth-slot order matches original for 528384 selections, including empty/oldest ties, reservations, intervening uses, exhaustion, reset and INT64 boundaries.
+automation_trace,passes=2,samples=81920,floats=1966080,control_events=14160,drain_per_pass=4096,experimental_freeze=0

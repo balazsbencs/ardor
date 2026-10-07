@@ -1,0 +1,1 @@
+All six generated source/header hashes reproduce from base 34bf267c with the retained generator snapshots.
