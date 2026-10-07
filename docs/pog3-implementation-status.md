@@ -15,9 +15,12 @@ work is removed and four-source accumulation is added; callback peaks still exce
 deadlines. The batching comparison observes a modest 0.94–1.28% mean reduction,
 with smaller changes also present in uninvolved controls. A subsequent uniform
 two-source experiment is rejected: it is slower at 64 frames and has worse
-over-period counts at both sizes. Four-source batching remains in production.
-The C++ preparation counter falls to 1618560 bytes in the matched fixture, excluding immutable diagnostic
-storage and FFTW memory. CPU tails, complete memory/combined-chain endurance,
+over-period counts at both sizes. A hybrid pairing only leftovers also adds too
+little repeatable CPU benefit to retain (0.440%/0.085% combined mean reductions;
+confirmation 128-frame demand regresses). Four-source batching remains in
+production. The next priority is diagnosing callback-phase job costs before
+changing renderer scheduling. The C++ preparation counter falls to 1618560 bytes
+in the matched fixture, excluding immutable diagnostic storage and FFTW memory. CPU tails, complete memory/combined-chain endurance,
 calibration/listening and public integration remain open.
 There is no selectable `mod/pog3` entry yet.
 
@@ -1924,6 +1927,17 @@ four-source batches, with exact output and matched device controls; then address
 clustered callback work. Neither uniform batching experiment establishes live
 admission. See [the rejected pair comparison and Luna next steps](pog3-scatter-pair-results.md).
 
+**Hybrid accumulation checkpoint:** pairing only interior leftovers preserves
+four-source batches and models 21.189% fewer interior destination accesses.
+Exact host/Pi renderer/full-processor traces and all eight/nine default/opt-in
+DSP suites pass. A second matched ABBA weakens the initial CPU gain: confirmation
+means improve 0.130% at 64 frames and regress 0.063% at 128; combined four-run
+means improve only 0.440%/0.085%. The worst candidate 64-frame callback increases.
+The extra production path is rejected and four-source code is retained exactly.
+Next, diagnose stage cost/counts by callback phase before adjusting renderer due
+ages, preserving original controls, frame ownership, history ordering, publication
+and N+H latency. See [both matched rounds and the detailed Luna next-step plan](pog3-scatter-hybrid-results.md).
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
@@ -1934,12 +1948,12 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **reduced-core memory-access optimization**, following the
-user's priority: keep four-source batching and evaluate pairs only for eligible
-leftovers. Uniform pair batching is rejected by the completed device comparison;
-its broader coverage performs more modeled interior accesses. Preserve exact
-output and matched-control checks. Then investigate clustered analysis/Attack/
-render work to reduce callback peaks under exact
+The next work is **reduced-core callback-peak diagnosis**, following the
+completed memory-access comparisons. Keep four-source batching; uniform pairs
+and hybrid leftovers are both rejected. The hybrid saves modeled accesses but
+adds too little repeatable CPU benefit. Measure stage costs/counts across all
+64-frame phases of the 512-sample low hop, then choose a bounded renderer
+schedule experiment under exact output and matched-control checks. Preserve
 timestamp, control-snapshot and update-order checks.
 Matched planning controls and the freeze scope decision are complete. Both freeze
 modes remain opt-in experiments; restore them only after core CPU feasibility.
