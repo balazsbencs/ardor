@@ -1719,6 +1719,45 @@ reproduction. The next CPU experiment is the shared multi-voice design in
 as a control. Full coverage, downward continuity, fifth/Warp, independent Attack
 and freeze remain extension work; production behavior and M8 are unchanged.
 
+## Shared ERB eight-path CPU checkpoint (2026-10-07)
+
+The optional ERB trial now shares analysis/magnitude across unison, five shifted
+stereo voices and two warm upper paths. Independent double phase histories
+retain downward branches, implement the true equal-tempered fifth and integrate
+moving ratios. The six long-path ratios follow Warp; the two upper short-path
+ratios remain fixed. The earlier library helper had that upper assignment
+reversed; it is corrected for new runs and recorded beside the historical CSVs.
+This matches path ratios, not the production Focus resolutions/alignment.
+
+Both the original 43-band grid and a 69-band extended 35.4829–20019.8 Hz grid
+have accurate and table-math variants. Table math approximates absolute input
+angle before differencing, avoiding constant-ratio accumulation of increment
+approximation error. Independent phase ramps/reversals, raw +12 equivalence,
+stereo/reset/partition, strict warnings and ASan+UBSan checks pass. Sixteen
+allocation invocations observe zero C callback allocation/free calls. Core
+storage is 13336/21344 bytes, with a separate 24592-byte shared table object.
+
+All 48 timing invocations finish in two opposite-order passes after heavy
+verification jobs. The limited-grid table variant costs **28.333–29.648%** of
+the period; the wide variant costs **48.628–51.945%**, before Attack/freeze and
+the remaining effect stages. Accurate phase math costs substantially more.
+No variant meets the full **25%** CPU goal. All callback outliers are retained,
+including six table-wide overruns and two unchanged-Ardor host overruns.
+
+Every exposed settled-tone interval tunes within 0.041 cents. Wide +12 tone
+gain/spur improves, but +24 spurs and polyphonic gain/unwanted partials remain
+inadequate. A center-plus-tail taper is only a heuristic; one alias fixture does
+not validate all ratios/transients. No full latency or target-device guarantee
+is claimed.
+
+See [the shared ERB report](pog3-erb-shared-cpu-results.md) for source/control
+contracts, numerical errors, all CPU ranges/tails, raw audio limitations,
+reproduction and artifact hashes. The next CPU experiment is reduced-rate
+baseband phase/magnitude estimation with full-rate carrier reconstruction, or
+appropriate multirate tiers. Retain these accurate/table implementations as
+controls; defer Attack/freeze/public integration until CPU feasibility is proved.
+Production DSP and M8 are unchanged.
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in

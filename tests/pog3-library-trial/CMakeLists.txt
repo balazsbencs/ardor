@@ -45,3 +45,7 @@ add_executable(pog3-erb-ps2-quality erb_ps2_quality.cpp)
 target_compile_features(pog3-erb-ps2-quality PRIVATE cxx_std_20)
 enable_testing()
 add_test(NAME pog3-erb-ps2-foundation COMMAND pog3-erb-ps2-quality)
+
+add_executable(pog3-erb-shared-quality erb_shared_quality.cpp)
+target_compile_features(pog3-erb-shared-quality PRIVATE cxx_std_20)
+add_test(NAME pog3-erb-shared-foundation COMMAND pog3-erb-shared-quality)
