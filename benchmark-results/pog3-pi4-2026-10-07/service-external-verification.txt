@@ -1,0 +1,6 @@
+pid=25573
+State:	S (sleeping)
+Threads:	2
+-rw-------    1 root     root           223 Oct  7 09:14 /run/ardor-pedal.telemetry
+55504
+1500000

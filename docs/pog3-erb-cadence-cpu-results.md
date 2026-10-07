@@ -241,3 +241,17 @@ coherence remain open. No production renderer is replaced. See
 The user has clarified that 25% is a chain-budget planning target, not a hard
 usability limit. Compare the full FFTW processor and ERB hybrid on hardware now;
 actual callback deadlines, intended-chain margin and xruns determine admission.
+
+## Subsequent hardware comparison
+
+**Pi 4 CPU checkpoint:** the hardware comparison is complete. The existing
+full FFTW processor consumes **101.85–115.97%** of a period across its tested
+full-feature workloads at 48 kHz / 64 and 128 frames. The ERB Attack/freeze
+hybrid consumes **186.92–192.55%** overall and **233.53–242.21%** during its held
+segment. The bare ERB bank costs 60.84–62.65% with no measured overruns, but
+is not a complete admitted block. All 72 stage rows and 28 full-suite rows are
+retained. ARM numerical checks pass after correcting exact Attack-off routing.
+The live service is restored; firmware, presets and live buffers are preserved.
+See [hardware results, receipts and the next CPU work](pog3-pi4-cpu-results.md).
+The next step is target profiling and reducing average/burst work. Full-feature
+capacity, rather than the initial 25% planning target, still blocks M8.
