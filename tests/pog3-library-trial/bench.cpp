@@ -6,6 +6,7 @@
 #include "rubberband/RubberBandLiveShifter.h"
 #include "erb_ps2_reference.h"
 #include "erb_shared_bank.h"
+#include "erb_cadence_bank.h"
 
 #include <algorithm>
 #include <array>
@@ -284,6 +285,33 @@ struct ErbShared final : Processor {
 };
 
 std::unique_ptr<Processor> create(const std::string& name, std::size_t voices) {
+  if (name.starts_with("erb-cadence-")) {
+    if (voices != 8) throw std::runtime_error("cadence ERB trial runs all 8 warm paths");
+    // Local adapter keeps the same independent warm stereo outputs.
+    auto make = []<std::size_t Stride, bool CountCycles>() -> std::unique_ptr<Processor> {
+      struct Adapter final : Processor {
+        pog3_trial::ErbCadenceBank<Stride, CountCycles> bank;
+        Adapter() : Processor(8) { latency = Stride; }
+        void reset() override { bank.reset(); faults = 0; }
+        void transpose(float extent) override { bank.setWarp(extent); }
+        void process(const Stereo& input, std::size_t n) override {
+          for (std::size_t i = 0; i < n; ++i) {
+            const auto y = bank.process({input[0][i], input[1][i]});
+            for (std::size_t v = 0; v < 8; ++v) {
+              output[v][0][i] = y[v][0]; output[v][1][i] = y[v][1];
+            }
+          }
+        }
+      };
+      return std::make_unique<Adapter>();
+    };
+    if (name == "erb-cadence-center-8") return make.template operator()<8, false>();
+    if (name == "erb-cadence-count-4") return make.template operator()<4, true>();
+    if (name == "erb-cadence-count-8") return make.template operator()<8, true>();
+    if (name == "erb-cadence-count-16") return make.template operator()<16, true>();
+    if (name == "erb-cadence-count-32") return make.template operator()<32, true>();
+    throw std::runtime_error("unknown ERB cadence");
+  }
   if (name == "erb-shared-43" || name == "erb-shared-wide" || name == "erb-shared-lut-43" || name == "erb-shared-lut-wide") {
     if (voices != 8) throw std::runtime_error("shared ERB trial runs all 8 warm paths");
     if (name == "erb-shared-lut-wide") return std::make_unique<ErbShared<true, true>>();
