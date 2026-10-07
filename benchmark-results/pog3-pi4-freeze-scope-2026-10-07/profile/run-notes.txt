@@ -1,0 +1,4 @@
+Generated-source reduced-core diagnostic, ARDOR_POG3_EXPERIMENTAL_FREEZE=OFF and ARDOR_POG3_PROFILE=ON.
+Runs after the uninstrumented comparisons with the same shared wisdom and source arithmetic.
+Freeze-update/held-render scopes have zero calls; all six dispatch sums equal FFT scope totals.
+Instrumented timing is stage attribution, not admission or gain evidence. Runner/probe return0 and PID15692 is independently verified.

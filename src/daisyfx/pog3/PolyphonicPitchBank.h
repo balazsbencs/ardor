@@ -156,7 +156,7 @@ public:
   void setFocus(bool enabled) noexcept { focusTarget_ = enabled; }
   bool setWarp(float normalized) noexcept;
   bool setFreeze(ExpressionMode mode, float position, bool dryEligible) noexcept;
-  const SpectralFreeze& freeze() const noexcept { return *freeze_; }
+  const SpectralFreeze& freeze() const noexcept;
   bool setAttackSeconds(float seconds) noexcept { return attack_.setSeconds(seconds); }
   float attackSeconds() const noexcept { return attack_.seconds(); }
   PitchVoices process(PitchStereo input) noexcept;

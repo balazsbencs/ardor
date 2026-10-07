@@ -7,20 +7,14 @@ are implemented, along with a spectral five-voice pitch bank, continuous Warp,
 and reversible Focus switching. Independent spectral attack and a reversible
 Dry Attack router, separate filter AD, LP/BP/HP buses, detune/doubling,
 asymmetric Spread, voice pan, and the static sound path are now implemented.
-All seven expression modes now resolve through a prepared processor with
-independent base/effective controls. Both freeze modes, moving-carrier gliss,
-heel/toe hysteresis and per-voice eligibility are implemented. Production FFTW
-reduces full-path mean CPU demand by 24.12–27.66%, to 31.67–35.27% of the
-callback period, still above the 25% goal. The C++ preparation counter remains
-below 2 MiB but excludes FFTW internal storage; fuller memory admission is open.
-The first Pi 4 hardware comparison now measures 101.85–115.97% period demand
-for the full processor; the ERB hybrid is more expensive.
-Real FFT/packed synthesis saves 5.83–7.48% on the Pi. Subsequent Hann-lobe
-layout and exactly-zero held reconstruction comparisons observe smaller gains.
-The latest freeze/gliss mean demand is 102.44–103.15%, and all full-path p99s
-remain over budget. Uninvolved control variation limits precise attribution of
-those small build differences. CPU admission, target memory, combined-chain endurance, calibration/listening
-and public integration remain open.
+The prepared processor supports Off, Volume, Crossfade, Warp and Filter by
+default. Both freeze modes and their gliss/hysteresis/eligibility behavior remain
+implemented in an opt-in experimental build. The matched default core now
+averages 87.04–87.97% of a Pi callback period after inactive freeze work is
+removed; callback peaks still exceed deadlines. The C++ preparation counter
+falls to 1618560 bytes in the matched fixture, excluding immutable diagnostic
+storage and FFTW memory. CPU tails, complete memory/combined-chain endurance,
+calibration/listening and public integration remain open.
 There is no selectable `mod/pog3` entry yet.
 
 Development continues in `/home/bbalazs/projects/ardor-pog3` on
@@ -1883,6 +1877,21 @@ rendering. Next, improve matched-plan comparison controls and prototype batched
 lobe/live accumulation work under the existing DSP contract.
 See [the complete held CPU evidence and next experiments](pog3-held-zero-results.md).
 
+**Reduced-core scope checkpoint:** freeze/gliss is now deferred by default;
+`ARDOR_POG3_EXPERIMENTAL_FREEZE=ON` retains both algorithms and their audio tests.
+Default Off/Volume/Crossfade/Warp/Filter preserve all existing parameter indexes
+and normalized values; unavailable modes are explicitly refused. A matched Pi
+comparison with shared FFTW wisdom saves **3.78–3.79%** by omitting inactive
+preparation, giving **87.04–87.97%** mean period demand. Peaks remain a blocker:
+64-frame over-period counts are 1152–1170 / 3000; 128-frame counts are 9–21 / 1500.
+Stationary hold is substantially cheaper than moving gliss in this matched
+workload, but both remain experimental. Default/opt-in builds pass eight/nine DSP
+suites; host/Pi live traces match byte for byte across 384,000 samples each.
+The reduced-core profile has zero freeze/held calls and attributes about 32% to
+live rendering and 18–19% each to interpretation/FFT/Attack. Next, reduce callback
+peaks under exact control/timestamp/ordering checks and optimize live accumulation.
+See [the scope decision, matched evidence and next CPU work](pog3-freeze-scope-results.md).
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
@@ -1893,25 +1902,27 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **target CPU optimization**: improve matched-plan benchmark
-controls, then prototype batched lobe evaluation and reduce live scatter memory
-traffic. Real FFT/packed synthesis, lobe layout and exactly-zero held work
-elimination are complete; see the latest checkpoints above.
+The next work is **reduced-core CPU optimization**: investigate clustered
+analysis/Attack/render work to reduce callback peaks under exact timestamp,
+control-snapshot and update-order checks, then reduce live scatter memory traffic.
+Matched planning controls and the freeze scope decision are complete. Both freeze
+modes remain opt-in experiments; restore them only after core CPU feasibility.
 The first hardware comparison is complete: tested full-feature configurations exceed standalone
 capacity at both buffer sizes. The initial 25% planning target is not a hard
 rejection threshold. Admission depends on target callback tails, the intended
 chain and thermal/xrun endurance after standalone headroom is demonstrated. **M8 — factory, catalog, inspector, scene
 and manager integration** remains blocked on feasibility. All seven DSP
-expression selections now have audio behavior. The C++ allocation counter stays
+expression selections have audio behavior in the opt-in build; the default exposes
+five supported selections while retaining the other two normalized values. The C++ allocation counter stays
 below its original goal, while FFTW internal storage, CPU margin, target
 memory/endurance and M3/M4/M7 fidelity limits still require work. Successful
 hold/routing tests do not satisfy target-device feasibility.
 The balanced analysis schedule and bounded Attack matching have earlier
 exact-output evidence; the shared granular read correction is separately
 reproduced and documented. FFTW uses the new numerical/audio contract described
-above. The Pi diagnostic profile attributes about 16–18% to FFT, 21–31% to live
-rendering, 16–18% each to interpretation and Attack, and up to 16% to held
-rendering. These are target instrumented attributions, not admission timings.
+above. The reduced-core Pi diagnostic profile attributes about 32% to live rendering,
+18–19% each to FFT, interpretation and Attack, and zero calls to freeze preparation
+or held rendering. These are target instrumented attributions, not admission timings.
 Use the new mean alongside callback tails to evaluate the next optimization.
 Preserve input timestamps, control snapshots, complete-frame publication and
 Attack/freeze/render deadlines.

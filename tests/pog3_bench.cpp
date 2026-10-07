@@ -4,6 +4,8 @@
 #include "daisyfx/pog3/Pog3Processor.h"
 #include "pog3_granular_reference.h"
 
+#include <fftw3.h>
+
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -83,7 +85,7 @@ public:
     if (samples_ % 480 == 0) {
       const auto step = samples_ / 480;
       (void)processor_.setParameterTarget("expression_position", step % 128 / 127.0f);
-      (void)processor_.setParameterTarget(index(Parameter::ExpressionMode), (step / 10) % 7 / 6.0f);
+      (void)processor_.setParameterTarget(index(Parameter::ExpressionMode), (step / 10) % (ardor::pog3::kExperimentalFreezeEnabled ? 7 : 5) / 6.0f);
       (void)processor_.setParameterTarget(index(Parameter::ExpressionReverse), (step / 15) % 2);
       (void)processor_.setParameterTarget(index(Parameter::Focus), (step / 10) % 2);
       (void)processor_.setParameterTarget(index(Parameter::FilterEnv), step % 3 * .5f);
@@ -133,6 +135,60 @@ public:
     return {out.left, out.right};
   }
   bool healthy() const noexcept { return checked_ && processor_.healthy() && processor_.deadlineMisses() == 0; }
+  std::size_t transformCount() const noexcept { return processor_.transformCount(); }
+private:
+  ardor::pog3::Pog3Processor processor_;
+  std::size_t samples_ = 0;
+  bool checked_ = false;
+};
+
+// Identical audio and sound settings isolate warm freeze preparation, a
+// stationary hold, and moving gliss. Only freeze mode/position behavior differs.
+enum class MatchedMode { Off, Hold, Gliss };
+template<MatchedMode Mode>
+class MatchedFreezeWorkload {
+public:
+  MatchedFreezeWorkload() {
+    using namespace ardor::pog3;
+    const float mode = Mode == MatchedMode::Off ? 0 : Mode == MatchedMode::Hold ? 1 : 5.0f / 6;
+    std::string error;
+    if (!processor_.configure({{"expression_mode", mode}, {"expression_position", 0}, {"focus", 1},
+        {"dry_level", .25}, {"down2_level", .25}, {"down1_level", .25}, {"fifth_level", .25},
+        {"up1_level", .25}, {"up2_level", .25}, {"attack", .11}, {"dry_attack", 1},
+        {"dry_filter", 1}, {"dry_detune", 1}, {"detune", 1}, {"spread", 1}, {"filter_q", 1}}, 48000, error))
+      throw std::runtime_error(error);
+  }
+  bool eventsValid() const noexcept {
+    if constexpr (Mode == MatchedMode::Off)
+      return processor_.freezeCaptures() == 0 && processor_.freezeTargets() == 0;
+    else if constexpr (Mode == MatchedMode::Hold)
+      return processor_.freezeCaptures() >= 2 && processor_.freezeTargets() == 0;
+    else return processor_.freezeCaptures() >= 2 && processor_.freezeTargets() >= 2;
+  }
+  void reset() {
+    if (samples_ == 4 * 48000) {
+      if (!eventsValid() || !processor_.healthy() || processor_.deadlineMisses())
+        throw std::runtime_error("matched workload did not complete expected events or staged bounds");
+      std::cerr << "matched_events,mode=" << static_cast<int>(Mode)
+                << ",captures=" << processor_.freezeCaptures() << ",targets=" << processor_.freezeTargets() << '\n';
+      checked_ = true;
+    }
+    processor_.reset(); samples_ = 0;
+  }
+  ardor::StereoSample process(ardor::StereoSample input) noexcept {
+    using namespace ardor::pog3;
+    if (samples_ == 14400 || samples_ == 177600)
+      (void)processor_.setParameterTarget(index(Parameter::ExpressionPosition), Mode == MatchedMode::Hold ? 1 : .65f);
+    if (samples_ == 134400) (void)processor_.setParameterTarget(index(Parameter::ExpressionPosition), 1);
+    if (samples_ == 163200) (void)processor_.setParameterTarget(index(Parameter::ExpressionPosition), 0);
+    ++samples_;
+    const auto output = processor_.process({input.left, input.right}).mixed;
+    return {output.left, output.right};
+  }
+  bool healthy() const noexcept {
+    return checked_ && processor_.healthy() && processor_.deadlineMisses() == 0
+      && (samples_ != 4 * 48000 || eventsValid());
+  }
   std::size_t transformCount() const noexcept { return processor_.transformCount(); }
 private:
   ardor::pog3::Pog3Processor processor_;
@@ -345,17 +401,36 @@ void measure(const char* name, std::size_t callback, std::ostream& csv,
   // Mean wall time exposes total callback demand when a scheduling change
   // moves work between callbacks without reducing it. Keep all outliers.
   const double meanUs = std::accumulate(times.begin(), times.end(), 0.0) / times.size();
+  const auto overBudget = std::count_if(times.begin(), times.end(), [callback](double time) {
+    return time > callback / .048;
+  });
   std::sort(times.begin(), times.end());
   const auto percentile = [&](double p) { return times[static_cast<std::size_t>(p * (times.size() - 1))]; };
   csv << name << ',' << callback << ',' << times.size() << ',' << callback / .048 << ','
       << percentile(.5) << ',' << percentile(.95) << ',' << percentile(.99) << ','
       << percentile(.999) << ',' << times.back() << ',' << allocations << ',' << preparationBytes << ',' << resetUs << ',' << maxTransforms << ','
-      << worstBlock << ',' << ((worstBlock + 1) * callback) % 512 << ',' << worstTransforms << ',' << meanUs << '\n';
+      << worstBlock << ',' << ((worstBlock + 1) * callback) % 512 << ',' << worstTransforms << ',' << meanUs << ',' << overBudget << '\n';
 }
 }
 
 int main(int argc, char** argv) {
   try {
+    using namespace ardor::pog3;
+    if (argc == 3 && std::string_view(argv[1]) == "--freeze-wisdom") {
+      Pog3Processor prepared;
+      std::string error;
+      if (!prepared.configure(nlohmann::json::object(), 48000, error)) throw std::runtime_error(error);
+      if (!fftwf_export_wisdom_to_filename(argv[2])) throw std::runtime_error("cannot export prepared FFTW wisdom");
+      return 0;
+    }
+    const bool matched = argc == 4 && std::string_view(argv[1]) == "--freeze-matched";
+    const bool trace = argc == 4 && std::string_view(argv[1]) == "--freeze-trace";
+    if (matched || trace) {
+      const char* wisdom = matched ? argv[3] : argv[2];
+      if (!fftwf_import_wisdom_from_filename(wisdom)) throw std::runtime_error("cannot import shared FFTW wisdom");
+    }
+    if (matched && std::string_view(argv[2]) != "forward" && std::string_view(argv[2]) != "reverse")
+      throw std::runtime_error("matched order must be forward or reverse");
     std::ofstream file;
     const bool requireCProbe = argc == 2 && std::string_view(argv[1]) == "--realtime-allocation";
     if (argc == 3 && std::string_view(argv[1]) == "--csv") {
@@ -363,8 +438,8 @@ int main(int argc, char** argv) {
       // the same filesystem permissions as the process. This is test-only.
       file.open(argv[2]);
       if (!file) throw std::runtime_error("cannot create benchmark CSV");
-    } else if (argc != 1 && !requireCProbe)
-      throw std::runtime_error("usage: pedal-pog3-bench [--csv path | --realtime-allocation]");
+    } else if (argc != 1 && !requireCProbe && !matched && !trace)
+      throw std::runtime_error("usage: pedal-pog3-bench [--csv path | --realtime-allocation | --freeze-wisdom path | --freeze-matched forward|reverse wisdom | --freeze-trace wisdom output]");
 #if defined(ARDOR_POG3_MALLOC_PROBE)
     if (requireCProbe && (!pog3_malloc_begin || !pog3_malloc_end))
       throw std::runtime_error("real-time C allocation probe was not loaded");
@@ -373,7 +448,7 @@ int main(int argc, char** argv) {
 #endif
     auto& csv = file.is_open() ? static_cast<std::ostream&>(file) : std::cout;
     csv << std::fixed << std::setprecision(3)
-        << "workload,callback_frames,callbacks,budget_us,median_us,p95_us,p99_us,p999_us,max_us,callback_allocations,preparation_allocated_bytes,reset_us,max_transforms_per_callback,worst_callback_index,worst_callback_end_mod_512,worst_callback_transforms,mean_us\n";
+        << "workload,callback_frames,callbacks,budget_us,median_us,p95_us,p99_us,p999_us,max_us,callback_allocations,preparation_allocated_bytes,reset_us,max_transforms_per_callback,worst_callback_index,worst_callback_end_mod_512,worst_callback_transforms,mean_us,over_budget_callbacks\n";
     std::vector<ardor::StereoSample> input(48000 * 4);
     std::vector<ardor::StereoSample> freezeInput(input.size());
     std::uint32_t random = 0x504f4733;
@@ -392,6 +467,45 @@ int main(int argc, char** argv) {
         + std::sin(6.283185307179586 * fundamental * 2.5 * t));
       freezeInput[i] = {l + .1f * input[i].left, r + .1f * input[i].right};
     }
+    if (trace) {
+      std::ofstream output(argv[3], std::ios::binary);
+      if (!output) throw std::runtime_error("cannot open matched trace");
+      MatchedFreezeWorkload<MatchedMode::Off> processor;
+      for (const auto sample : freezeInput) (void)processor.process(sample);
+      processor.reset();
+      for (const auto sample : freezeInput) {
+        const auto result = processor.process(sample);
+        for (const float value : {result.left, result.right})
+          output.write(reinterpret_cast<const char*>(&value), sizeof(value));
+      }
+      if (!output || !processor.healthy()) throw std::runtime_error("matched trace failed");
+      std::cerr << "matched_trace,samples=" << freezeInput.size() * 2
+                << ",experimental_freeze=" << kExperimentalFreezeEnabled << '\n';
+      return 0;
+    }
+    if (matched) {
+      const bool reverse = std::string_view(argv[2]) == "reverse";
+      for (const auto callback : reverse ? std::array<unsigned, 2>{128, 64} : std::array<unsigned, 2>{64, 128}) {
+        measure<pog3_test::GranularReference>("matched_granular_control", callback, csv, freezeInput);
+        measure<SpectralWorkload>("matched_spectral_control", callback, csv, freezeInput);
+        if constexpr (kExperimentalFreezeEnabled) {
+          if (!reverse) {
+            measure<MatchedFreezeWorkload<MatchedMode::Off>>("matched_freeze_off", callback, csv, freezeInput);
+            measure<MatchedFreezeWorkload<MatchedMode::Hold>>("matched_stationary_hold", callback, csv, freezeInput);
+            measure<MatchedFreezeWorkload<MatchedMode::Gliss>>("matched_moving_gliss", callback, csv, freezeInput);
+          } else {
+            measure<MatchedFreezeWorkload<MatchedMode::Gliss>>("matched_moving_gliss", callback, csv, freezeInput);
+            measure<MatchedFreezeWorkload<MatchedMode::Hold>>("matched_stationary_hold", callback, csv, freezeInput);
+            measure<MatchedFreezeWorkload<MatchedMode::Off>>("matched_freeze_off", callback, csv, freezeInput);
+          }
+        } else measure<MatchedFreezeWorkload<MatchedMode::Off>>("matched_freeze_off", callback, csv, freezeInput);
+      }
+      const std::string after = std::string(argv[3]) + (kExperimentalFreezeEnabled ? ".enabled." : ".disabled.") + argv[2] + ".after";
+      if (!fftwf_export_wisdom_to_filename(after.c_str())) throw std::runtime_error("cannot save post-comparison wisdom");
+      csv.flush();
+      if (!csv) throw std::runtime_error("matched CSV write failed");
+      return 0;
+    }
     for (const auto callback : {64U, 128U}) {
       measure<pog3_test::GranularReference>("granular_reference_10_shifters", callback, csv, input);
       measure<SpectralWorkload>("spectral_identity_focus_transition", callback, csv, input);
@@ -399,7 +513,8 @@ int main(int argc, char** argv) {
       measure<PitchBankWorkload<true>>("spectral_pitch_bank_attack_warp_focus", callback, csv, input);
       measure<StaticSoundWorkload>("static_sound_path_filter_space_pan_attack", callback, csv, input);
       measure<ExpressionWorkload>("expression_modes_filter_space_pan_attack", callback, csv, input);
-      measure<FreezeGlissWorkload>("freeze_gliss_capture_assignment_filter_space", callback, csv, freezeInput);
+      if constexpr (kExperimentalFreezeEnabled)
+        measure<FreezeGlissWorkload>("freeze_gliss_capture_assignment_filter_space", callback, csv, freezeInput);
     }
     csv.flush();
     if (!csv) throw std::runtime_error("benchmark CSV write failed");

@@ -1,0 +1,4 @@
+g++ -std=c++20 -O3 -Wall -Wextra -Wpedantic -Werror -fsyntax-only -Isrc -I/tmp/pog3-vector-fft/fftw-root/usr/include -I/home/bbalazs/projects/ardor/build-ci/_deps/neuralampmodelercore-src/Dependencies -isystem third_party/cycfi-q/include -DARDOR_POG3_EXPERIMENTAL_FREEZE=0 src/daisyfx/pog3/PolyphonicPitchBank.cpp src/daisyfx/pog3/Pog3Processor.cpp tests/pog3_bench.cpp tests/pog3_expression_quality.cpp
+return_code=0
+g++ -std=c++20 -O3 -Wall -Wextra -Wpedantic -Werror -fsyntax-only -Isrc -I/tmp/pog3-vector-fft/fftw-root/usr/include -I/home/bbalazs/projects/ardor/build-ci/_deps/neuralampmodelercore-src/Dependencies -isystem third_party/cycfi-q/include -DARDOR_POG3_EXPERIMENTAL_FREEZE=1 src/daisyfx/pog3/PolyphonicPitchBank.cpp src/daisyfx/pog3/Pog3Processor.cpp tests/pog3_bench.cpp tests/pog3_expression_quality.cpp
+return_code=0

@@ -109,6 +109,21 @@ rendering. Next, improve matched-plan comparison controls and prototype batched
 lobe/live accumulation work under the existing DSP contract.
 See [the complete held CPU evidence and next experiments](pog3-held-zero-results.md).
 
+**Reduced-core scope checkpoint:** freeze/gliss is now deferred by default;
+`ARDOR_POG3_EXPERIMENTAL_FREEZE=ON` retains both algorithms and their audio tests.
+Default Off/Volume/Crossfade/Warp/Filter preserve all existing parameter indexes
+and normalized values; unavailable modes are explicitly refused. A matched Pi
+comparison with shared FFTW wisdom saves **3.78–3.79%** by omitting inactive
+preparation, giving **87.04–87.97%** mean period demand. Peaks remain a blocker:
+64-frame over-period counts are 1152–1170 / 3000; 128-frame counts are 9–21 / 1500.
+Stationary hold is substantially cheaper than moving gliss in this matched
+workload, but both remain experimental. Default/opt-in builds pass eight/nine DSP
+suites; host/Pi live traces match byte for byte across 384,000 samples each.
+The reduced-core profile has zero freeze/held calls and attributes about 32% to
+live rendering and 18–19% each to interpretation/FFT/Attack. Next, reduce callback
+peaks under exact control/timestamp/ordering checks and optimize live accumulation.
+See [the scope decision, matched evidence and next CPU work](pog3-freeze-scope-results.md).
+
 **M3 implementation update:** the implemented bank additionally uses shared N=4096/H=512 analysis below 400 Hz because the ordinary low-chord gate failed with two windows. Its 200–300 Hz reconstruction crossover uses the existing output IFFTs. Renderer jobs now use the explicit one-hop staging correction below. Main delays are 24/48 ms; a low-note octave envelope measured about 60/72 ms with Focus off/on. Family/attack and freeze work must include all three representations. The status document records current quality, CPU/memory results, remaining resolution limits, and the live-relative-phase caution for stationary freeze. These are measured implementation adaptations, not EHX hardware specifications.
 
 **M4 implementation update:** shared stereo families/residual partials now preserve old sustain while swelling new excitation, with low/long attack histories evaluated at each resolution's input timestamp. Processed unison uses resolved low partials when attack is active. Attack interpretation runs before staged render jobs, now completing at long age 251 and short age 112; N+H identity delay is unchanged. This first scorer requires directly supported fundamentals and keeps missing-fundamental material as residual partials. Four excitation epochs per partial have an explicit capacity fallback. See the status document for independence gates, host timing, memory, and remaining fidelity/admission limits. Filter AD remains the separate next milestone.

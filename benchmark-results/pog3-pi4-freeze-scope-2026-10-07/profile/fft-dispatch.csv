@@ -1,0 +1,7 @@
+workload,callback_frames,complex,r2c,c2r,unaligned
+matched_granular_control,64,0,0,0,0
+matched_spectral_control,64,0,4500,15000,0
+matched_freeze_off,64,0,5247,14984,0
+matched_granular_control,128,0,0,0,0
+matched_spectral_control,128,0,4500,15000,0
+matched_freeze_off,128,0,5247,14984,0
