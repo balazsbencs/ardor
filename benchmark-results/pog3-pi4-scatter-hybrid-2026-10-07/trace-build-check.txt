@@ -1,0 +1,15 @@
+Patch reconstructs measured CPP exactly from source base.
+Diagnostic generator reproduces all three source hashes.
+Baseline ELF matches preceding four-source receipt.
+Host renderer and complete-processor byte comparisons pass; renderer fixture includes 264054 potential pair batches.
+Clean ARM build completes without overlapping build processes; all measured executables staged afterward.
+Host default/opt-in DSP suites pass 8/9; host cache restored/rebuilt with freeze OFF.
+Changed renderer/trace strict host/ARM warnings pass with both option values.
+Renderer ASan/UBSan/leak check passes; annotated ARM stack remains 528 bytes.
+First runner and six probes exit=0; seven uploaded executable hashes verified.
+Independent post-run ARM byte checks and restored-service PID check pass.
+Confirmation runner and four probes exit=0; identical executable/wisdom hashes independently checked.
+Independent confirmation service restoration PID check passes.
+Production CPP restored exactly; final default host POG3/FFT libraries and full bench match saved baseline byte for byte.
+Both target directories removed, temporary host float blobs removed, and restored service independently checked after cleanup.
+Both round summaries/wisdom audits, combined 48-row summary and host/Pi geometry regenerate byte for byte.

@@ -1,0 +1,3 @@
+four: four batches=459225, pairs=0, interior coverage=62.648%, modeled reduction from four=0.000%
+hybrid: four batches=459225, pairs=356383, interior coverage=86.957%, modeled reduction from four=21.189%
+Same source accounting, four-source batches and callback geometry; savings equal 23 accesses per pair.
