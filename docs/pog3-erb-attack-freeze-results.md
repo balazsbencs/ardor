@@ -6,7 +6,9 @@ ownership and Attack model, and freeze/gliss capture/assignment, to the
 production DSP, public integration and M8 remain unchanged. Combined freeze/gliss
 costs 66.61–70.14% host demand overall and 82.23–87.09% in the held segment, with
 frequent callback overruns. A hardware comparison is now the next CPU decision;
-the 25% planning target is not a prerequisite for running it.
+the 25% planning target is not a prerequisite for running it. The subsequent
+[Pi 4 comparison](pog3-pi4-cpu-results.md) is now complete: the full FFTW
+processor and ERB hybrid both exceed measured standalone capacity.
 
 ## What is implemented
 
@@ -227,6 +229,18 @@ Artifacts remain under `build-pog3-library-trial/erb-attack-freeze-artifacts`.
 | `allocation-1.csv` | `fd642a27e81e9f3526236908153daeed8acb2e9ece28321e3ae556ca7a4698c7` |
 
 ## Hardware decision and next work
+
+**Pi 4 CPU checkpoint:** the hardware comparison is complete. The existing
+full FFTW processor consumes **101.85–115.97%** of a period across its tested
+full-feature workloads at 48 kHz / 64 and 128 frames. The ERB Attack/freeze
+hybrid consumes **186.92–192.55%** overall and **233.53–242.21%** during its held
+segment. The bare ERB bank costs 60.84–62.65% with no measured overruns, but
+is not a complete admitted block. All 72 stage rows and 28 full-suite rows are
+retained. ARM numerical checks pass after correcting exact Attack-off routing.
+The live service is restored; firmware, presets and live buffers are preserved.
+See [hardware results, receipts and the next CPU work](pog3-pi4-cpu-results.md).
+The next step is target profiling and reducing average/burst work. Full-feature
+capacity, rather than the initial 25% planning target, still blocks M8.
 
 The user clarified that **25% is an initial chain-budget planning target, not a
 universal usability limit or a prerequisite for hardware testing**. A larger

@@ -23,6 +23,18 @@ The user has clarified that 25% is a chain-budget planning target, not a hard
 usability limit. Compare the full FFTW processor and ERB hybrid on hardware now;
 actual callback deadlines, intended-chain margin and xruns determine admission.
 
+**Pi 4 CPU checkpoint:** the hardware comparison is complete. The existing
+full FFTW processor consumes **101.85–115.97%** of a period across its tested
+full-feature workloads at 48 kHz / 64 and 128 frames. The ERB Attack/freeze
+hybrid consumes **186.92–192.55%** overall and **233.53–242.21%** during its held
+segment. The bare ERB bank costs 60.84–62.65% with no measured overruns, but
+is not a complete admitted block. All 72 stage rows and 28 full-suite rows are
+retained. ARM numerical checks pass after correcting exact Attack-off routing.
+The live service is restored; firmware, presets and live buffers are preserved.
+See [hardware results, receipts and the next CPU work](pog3-pi4-cpu-results.md).
+The next step is target profiling and reducing average/burst work. Full-feature
+capacity, rather than the initial 25% planning target, still blocks M8.
+
 This is not a production backend selection. CPU feasibility remains the gate
 before public block integration.
 
@@ -155,8 +167,8 @@ center-only shortcut fails off-band winding-count tests and is rejected.
 The 32-sample candidate costs 20.879–21.694% before required remaining work;
 it adds delay/interpolation error and retains raw polyphonic fidelity limits.
 Combined ownership/Attack/freeze is now priced in the linked checkpoint; live
-Focus alignment and other full-block stages remain unpriced. Measure hardware
-next, then compare interval
+Focus alignment and other full-block stages remain unpriced. The first hardware
+comparison is now complete; profile target costs next, then compare interval
 16/32 or band tiers on transient and alias coverage before choosing a backend.
 
 The single-voice cost must not be extrapolated to the full bank. Keep the

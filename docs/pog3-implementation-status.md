@@ -13,6 +13,8 @@ heel/toe hysteresis and per-voice eligibility are implemented. Production FFTW
 reduces full-path mean CPU demand by 24.12–27.66%, to 31.67–35.27% of the
 callback period, still above the 25% goal. The C++ preparation counter remains
 below 2 MiB but excludes FFTW internal storage; fuller memory admission is open.
+The first Pi 4 hardware comparison now measures 101.85–115.97% period demand
+for the full processor; the ERB hybrid is more expensive.
 CPU admission, target memory, combined-chain endurance, calibration/listening
 and public integration remain open.
 There is no selectable `mod/pog3` entry yet.
@@ -1812,6 +1814,20 @@ The user has clarified that 25% is a chain-budget planning target, not a hard
 usability limit. Compare the full FFTW processor and ERB hybrid on hardware now;
 actual callback deadlines, intended-chain margin and xruns determine admission.
 
+## Pi 4 CPU checkpoint (2026-10-07)
+
+**Pi 4 CPU checkpoint:** the hardware comparison is complete. The existing
+full FFTW processor consumes **101.85–115.97%** of a period across its tested
+full-feature workloads at 48 kHz / 64 and 128 frames. The ERB Attack/freeze
+hybrid consumes **186.92–192.55%** overall and **233.53–242.21%** during its held
+segment. The bare ERB bank costs 60.84–62.65% with no measured overruns, but
+is not a complete admitted block. All 72 stage rows and 28 full-suite rows are
+retained. ARM numerical checks pass after correcting exact Attack-off routing.
+The live service is restored; firmware, presets and live buffers are preserved.
+See [hardware results, receipts and the next CPU work](pog3-pi4-cpu-results.md).
+The next step is target profiling and reducing average/burst work. Full-feature
+capacity, rather than the initial 25% planning target, still blocks M8.
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
@@ -1822,10 +1838,11 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **hardware CPU measurement**, comparing the existing full FFTW
-processor with the ERB Attack/freeze hybrid. The initial 25% planning target
-is not a prerequisite for this test or a hard rejection threshold. Admission
-depends on target callback tails, the intended chain and thermal/xrun endurance. **M8 — factory, catalog, inspector, scene
+The next work is **target CPU profiling and optimization**. The first hardware
+comparison is complete: tested full-feature configurations exceed standalone
+capacity at both buffer sizes. The initial 25% planning target is not a hard
+rejection threshold. Admission depends on target callback tails, the intended
+chain and thermal/xrun endurance after standalone headroom is demonstrated. **M8 — factory, catalog, inspector, scene
 and manager integration** remains blocked on feasibility. All seven DSP
 expression selections now have audio behavior. The C++ allocation counter stays
 below its original goal, while FFTW internal storage, CPU margin, target

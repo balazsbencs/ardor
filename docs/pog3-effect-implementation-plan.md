@@ -50,6 +50,18 @@ The user has clarified that 25% is a chain-budget planning target, not a hard
 usability limit. Compare the full FFTW processor and ERB hybrid on hardware now;
 actual callback deadlines, intended-chain margin and xruns determine admission.
 
+**Pi 4 CPU checkpoint:** the hardware comparison is complete. The existing
+full FFTW processor consumes **101.85–115.97%** of a period across its tested
+full-feature workloads at 48 kHz / 64 and 128 frames. The ERB Attack/freeze
+hybrid consumes **186.92–192.55%** overall and **233.53–242.21%** during its held
+segment. The bare ERB bank costs 60.84–62.65% with no measured overruns, but
+is not a complete admitted block. All 72 stage rows and 28 full-suite rows are
+retained. ARM numerical checks pass after correcting exact Attack-off routing.
+The live service is restored; firmware, presets and live buffers are preserved.
+See [hardware results, receipts and the next CPU work](pog3-pi4-cpu-results.md).
+The next step is target profiling and reducing average/burst work. Full-feature
+capacity, rather than the initial 25% planning target, still blocks M8.
+
 **M3 implementation update:** the implemented bank additionally uses shared N=4096/H=512 analysis below 400 Hz because the ordinary low-chord gate failed with two windows. Its 200–300 Hz reconstruction crossover uses the existing output IFFTs. Renderer jobs now use the explicit one-hop staging correction below. Main delays are 24/48 ms; a low-note octave envelope measured about 60/72 ms with Focus off/on. Family/attack and freeze work must include all three representations. The status document records current quality, CPU/memory results, remaining resolution limits, and the live-relative-phase caution for stationary freeze. These are measured implementation adaptations, not EHX hardware specifications.
 
 **M4 implementation update:** shared stereo families/residual partials now preserve old sustain while swelling new excitation, with low/long attack histories evaluated at each resolution's input timestamp. Processed unison uses resolved low partials when attack is active. Attack interpretation runs before staged render jobs, now completing at long age 251 and short age 112; N+H identity delay is unchanged. This first scorer requires directly supported fundamentals and keeps missing-fundamental material as residual partials. Four excitation epochs per partial have an explicit capacity fallback. See the status document for independence gates, host timing, memory, and remaining fidelity/admission limits. Filter AD remains the separate next milestone.
