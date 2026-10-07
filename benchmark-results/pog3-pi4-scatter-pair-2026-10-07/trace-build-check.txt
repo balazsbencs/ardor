@@ -1,0 +1,9 @@
+Uncompressed patch matches measured source diff.
+Baseline ELF matches preceding four-source candidate.
+Seven measured/diagnostic executable hashes match target readback.
+Runner exit=0; all six probes exit=0.
+Independent restored service PID=1052
+Production renderer restored byte for byte to baseline; default host build restored/rebuilt.
+Temporary host/target float blobs removed; independent service PID unchanged after target cleanup.
+Patch reconstructs candidate CPP hash; diagnostic generator reproduces all three source hashes.
+Summary/geometry regeneration is byte reproducible; wisdom audit identical; 24 timing rows checked.

@@ -1,0 +1,8 @@
+live_samples=552960
+live_bytes=2211840
+live_bit_exact_equal=true
+live_sha256=d1741fb6231b92d3f3b020a98a4ddd7ebf6a14e3599e8c9bebcdb7c274a1c6f2
+full_samples=384000
+full_bytes=1536000
+full_bit_exact_equal=true
+full_sha256=740ef569d86270803d669594ea7f0e6f2f2faf0fe55a2ba2d933145e60f9ba37

@@ -1,0 +1,3 @@
+width=2: batches=1274833, batched interior=86.957%, modeled pair reduction=41.667%
+width=4: batches=459225, batched interior=62.648%, modeled pair reduction=45.028%
+Geometry agrees across callback sizes and accounts for the same source set at both widths.

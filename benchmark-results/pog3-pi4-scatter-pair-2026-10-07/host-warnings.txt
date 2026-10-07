@@ -1,0 +1,2 @@
+Host changed renderer and trace: strict warnings pass, freeze=0 and freeze=1.
+Buildroot AArch64 GCC 13.4.0 changed renderer and trace: strict warnings pass, freeze=0 and freeze=1.

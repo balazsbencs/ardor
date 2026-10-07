@@ -1,0 +1,21 @@
+Baseline: 039686625620fca743b2e75e21e4553c3ec3ab15, the retained four-source implementation.
+Candidate: rejected two-source prototype reconstructed from source.txt + candidate.patch.gz.
+Production source restored exactly to baseline after the comparison; host rebuilt with freeze OFF.
+Same benchmark source/settings/input; 4-second warmup/reset and 4-second measurement at 48 kHz.
+CPU 2, SCHED_OTHER; baseline-forward, candidate-forward, candidate-reverse, baseline-reverse.
+Runner: sh run-remote.sh /tmp/pog3-scatter-pair-20261007 2 --full-probes numerical baseline-1 candidate-1 candidate-2 baseline-2 coverage.
+Renderer/full-processor exact byte comparisons and Pi default pitch quality precede timing.
+All processes import shared wisdom; timing exports preserve its header and 57 records.
+Geometry instrumentation runs last. coverage.csv is not included in summaries/comparison.csv.
+Coverage counts model greedy width-two/width-four source traversal on the same region geometry.
+The model preserves original skips and source accounting; it does not measure memory bandwidth.
+Runner and all six probes exit zero. Service restored/independently checked/cleanup checked: PID 1052.
+No heavy target work overlaps probes. Offline over-period counts are not ALSA xruns or admission.
+All 24 uninstrumented timing rows have zero callback C++ allocations; core preparation 1618560 bytes.
+Host/Pi traces compare 552960 renderer samples and 384000 processor floats per architecture.
+Host default/opt-in DSP suites pass 8/9 tests; renderer ASan/UBSan/leak and strict host/ARM warnings pass.
+Temporary host/target float blobs and the unique target probe directory are removed after exact/hash checks.
+Only this experiment's container is stopped/removed. Buildroot and FFTW caches remain available.
+No firmware/configuration/live buffer/governor/unrelated DSP quality change is made.
+Patch SHA refers to uncompressed bytes. Generated diagnostic source hashes refer to the patched checkout.
+Run summarize.py, check_wisdom.py and summarize_coverage.py DIRECTORY to reproduce derived receipts.
