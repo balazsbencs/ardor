@@ -1,0 +1,13 @@
+Prepared FFT: 2227136 complex bins satisfy FFT accuracy/fallback contracts
+WOLA N=1024 H=128 residual=-140.666 dB
+WOLA N=1024 H=256 residual=-139.634 dB
+WOLA N=1024 H=512 residual=-137.579 dB
+WOLA N=2048 H=256 residual=-140.229 dB
+WOLA N=2048 H=512 residual=-139.186 dB
+WOLA N=2048 H=1024 residual=-137.108 dB
+Granular reference -24 st: 0.0452232 cents
+Granular reference -12 st: -0.064299 cents
+Granular reference 7 st: 0.0963251 cents
+Granular reference 12 st: -3.01956e-06 cents
+Granular reference 24 st: -0.00501398 cents
+POG3 foundation/reference checks passed; spectral gates run in pedal-pog3-pitch-quality

@@ -87,7 +87,7 @@ void preparedTransform() {
     SpectralPlan plan(n, n / 8);
     ardor::RealtimeFft reference; reference.prepare(n);
     std::vector<std::complex<float>> source(n), expected(n), actual(n);
-    for (unsigned fixture = 0; fixture < 14; ++fixture) {
+    for (unsigned fixture = 0; fixture < 17; ++fixture) {
       for (std::size_t i = 0; i < n; ++i) {
         const float sign = i & 1 ? -1 : 1;
         switch (fixture) {
@@ -107,14 +107,20 @@ void preparedTransform() {
                                         : std::complex<float>{}; break;
           case 12: source[i] = i == n - 1 ? std::complex<float>{std::numeric_limits<float>::quiet_NaN(), 0}
                                         : std::complex<float>{}; break;
-          default: source[i] = i == n / 3 ? std::complex<float>{0, std::numeric_limits<float>::infinity()}
+          case 13: source[i] = i == n / 3 ? std::complex<float>{0, std::numeric_limits<float>::infinity()}
                                          : std::complex<float>{}; break;
+          default: source[i] = {uniform(random), uniform(random)}; break;
         }
       }
-      if (fixture == 7) {
+      if (fixture == 7 || fixture >= 14) {
         source[0] = {source[0].real(), 0}; source[n / 2] = {source[n / 2].real(), 0};
         for (std::size_t i = 1; i < n / 2; ++i) source[n - i] = std::conj(source[i]);
       }
+      // Preserve general complex behavior even when just one feature breaks
+      // the real-inverse symmetry. A real-only inverse would erase these.
+      if (fixture == 14) source[n - 7] += std::complex<float>{0, .1f};
+      if (fixture == 15) source[0] += std::complex<float>{0, .3f};
+      if (fixture == 16) source[n / 2] += std::complex<float>{0, .3f};
       for (bool inverse : {false, true}) {
         expected = actual = source;
         reference.transform(expected, inverse); plan.transform(actual, inverse);
@@ -129,11 +135,13 @@ void preparedTransform() {
             matches &= same(expected[i].real(), actual[i].real()) && same(expected[i].imag(), actual[i].imag());
           }
           require(matches, "fallback FFT retains the shared implementation bits/classification");
-        } else if (fixture < 10 || fixture == 11) {
+        } else if (fixture < 10 || fixture == 11 || fixture >= 14) {
           double energy = 0, error = 0;
           for (std::size_t i = 0; i < n; ++i) {
             const std::complex<double> a(actual[i].real(), actual[i].imag());
             const std::complex<double> b(expected[i].real(), expected[i].imag());
+            if (!std::isfinite(a.real()) || !std::isfinite(a.imag()))
+              std::cerr << "FFT n=" << n << " fixture=" << fixture << " inverse=" << inverse << " bin=" << i << " actual=" << a << " expected=" << b << '\n';
             require(std::isfinite(a.real()) && std::isfinite(a.imag()), "finite FFT fixture stays finite");
             energy += std::norm(b); error += std::norm(a - b);
           }
@@ -160,35 +168,69 @@ void preparedTransform() {
   std::cout << "Prepared FFT: " << compared << " complex bins satisfy FFT accuracy/fallback contracts\n";
 }
 
+void synthesisRepresentation() {
+  using namespace ardor::pog3;
+  std::mt19937 generator(0x52324332);
+  std::uniform_real_distribution<float> uniform(-.3f, .3f);
+  for (const std::size_t n : {32U, 1024U, 2048U, 4096U}) {
+    auto plan = std::make_shared<const SpectralPlan>(n, n / 8);
+    for (const bool hermitian : {true, false}) {
+      std::vector<std::complex<float>> spectrum(n);
+      spectrum[0] = {.1f, 0}; spectrum[n / 2] = {-.2f, 0};
+      for (std::size_t i = 1; i < n / 2; ++i) {
+        spectrum[i] = {uniform(generator), uniform(generator)};
+        spectrum[n - i] = std::conj(spectrum[i]);
+      }
+      if (!hermitian) spectrum[n - 7] += std::complex<float>{0, .1f};
+      auto expected = spectrum;
+      plan->transform(expected, true);
+      SpectralSynthesis synthesis;
+      synthesis.prepare(plan, true, 0);
+      require(synthesis.addFrameInPlace(spectrum), "packed/complex synthesis frame accepted");
+      const auto window = plan->synthesisWindow();
+      for (std::size_t i = 0; i < n; ++i)
+        require(synthesis.pop() == 0.0f + expected[i].real() * window[i],
+                "synthesis matches public complex-vector inverse sample for sample");
+    }
+  }
+}
+
 void sharedPlanExecution() {
   using namespace ardor::pog3;
   for (const std::size_t n : {1024U, 2048U, 4096U}) {
     auto plan = std::make_shared<const SpectralPlan>(n, n / 8);
-    std::vector<std::complex<float>> input(n);
-    for (std::size_t i = 0; i < n; ++i)
-      input[i] = {static_cast<float>(.2 * std::sin(kTwoPi * 17 * i / n)), .03f};
-    auto expected = input;
-    plan->transform(expected, false);
-    std::array<std::vector<std::complex<float>>, 2> results{input, input};
-    std::array<std::thread, 2> workers;
-    for (std::size_t channel = 0; channel < workers.size(); ++channel)
-      workers[channel] = std::thread([&, channel, owner = plan] {
-        for (unsigned repeat = 0; repeat < 64; ++repeat) {
-          results[channel] = input;
-          owner->transform(results[channel], false);
-        }
-      });
-    for (auto& worker : workers) worker.join();
-    require(results[0] == expected && results[1] == expected,
-            "shared immutable FFTW plan executes concurrently on independent scratch");
-    auto recovered = expected;
-    plan->transform(recovered, true);
-    double energy = 0, error = 0;
-    for (std::size_t i = 0; i < n; ++i) {
-      energy += std::norm(std::complex<double>(input[i]));
-      error += std::norm(std::complex<double>(recovered[i]) - std::complex<double>(input[i]));
+    for (const bool real : {false, true}) {
+      std::vector<std::complex<float>> input(n);
+      for (std::size_t i = 0; i < n; ++i)
+        input[i] = {static_cast<float>(.2 * std::sin(kTwoPi * 17 * i / n)), real ? 0 : .03f};
+      auto expected = input;
+      plan->transform(expected, false);
+      for (const bool inverse : {false, true}) {
+        const auto& source = inverse ? expected : input;
+        auto oracle = source;
+        plan->transform(oracle, inverse);
+        std::array<std::vector<std::complex<float>>, 2> results{source, source};
+        std::array<std::thread, 2> workers;
+        for (std::size_t channel = 0; channel < workers.size(); ++channel)
+          workers[channel] = std::thread([&, channel, owner = plan] {
+            for (unsigned repeat = 0; repeat < 64; ++repeat) {
+              results[channel] = source;
+              owner->transform(results[channel], inverse);
+            }
+          });
+        for (auto& worker : workers) worker.join();
+        require(results[0] == oracle && results[1] == oracle,
+                "shared complex/real FFTW plans execute concurrently on independent scratch");
+      }
+      auto recovered = expected;
+      plan->transform(recovered, true);
+      double energy = 0, error = 0;
+      for (std::size_t i = 0; i < n; ++i) {
+        energy += std::norm(std::complex<double>(input[i]));
+        error += std::norm(std::complex<double>(recovered[i]) - std::complex<double>(input[i]));
+      }
+      require(error < energy * 1e-11, "complex/real FFTW round trip retains gain and phase below -110 dB");
     }
-    require(error < energy * 1e-11, "complex FFTW round trip retains gain and phase below -110 dB");
   }
 }
 
@@ -488,6 +530,7 @@ int main(int argc, char** argv) {
     if (argc != 1 && !(argc == 3 && std::string_view(argv[1]) == "--render"))
       throw std::runtime_error("usage: pedal-pog3-quality [--render directory]");
     preparedTransform();
+    synthesisRepresentation();
     sharedPlanExecution();
     spectralIdentity();
     spectralLifecycle();

@@ -66,7 +66,11 @@ The generator copies four DSP sources and the existing full benchmark into the
 build directory; it instruments only those copies. Nested frame-job scopes
 report calls and inclusive/exclusive microseconds to stderr. Each category's
 percentage uses the sum of measured callback durations. Renderer exclusive time
-subtracts FFT and held-render children. Uninstrumented work and timer overhead
+subtracts FFT and held-render children. FFT scopes include the internal packed
+synthesis inverse as well as the public transform entry point. A separate
+`FFT_dispatch,workload,callback,complex,r2c,c2r,unaligned` stderr row records
+actual backend invocation counts; the last count covers unaligned alternatives
+across all three transform types. Uninstrumented work and timer overhead
 remain in the residual. This measures approximate cost attribution, not CPU
 admission. Production and normal CI targets never include these timers.
 

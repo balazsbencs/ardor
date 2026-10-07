@@ -1,0 +1,11 @@
+Intermediate real FFT version, before direct packed synthesis.
+Baseline source: 23f4f9248a382aa2721d32767f3c36f9311fd640; arithmetic source patch and ELF hashes retained.
+Same Buildroot GCC 13.4.0, -O3 -DNDEBUG, static float NEON FFTW 3.3.10 archive; profiling OFF.
+Numerical foundation and full pitch suites completed before timing.
+CPU 2, SCHED_OTHER; sequential baseline-1,candidate-1,candidate-2,baseline-2.
+All 56 aggregate timing rows return 0 with zero C++ callback allocations.
+Runner returns 0 and restores a previously running service; retained PID receipt.
+This is a separate comparison from the final packed-synthesis version.
+Not an ALSA xrun, paced FIFO or full-chain endurance measurement.
+Run python3 summarize.py THIS_DIRECTORY to regenerate comparison.csv.
+candidate.patch.gz preserves the raw patch byte for byte; source.txt hashes the uncompressed patch.
