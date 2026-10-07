@@ -1,0 +1,6 @@
+Diagnostic profile of phase-major lobe plus zero-amplitude held reconstruction, run after all uninstrumented comparisons.
+ARDOR_POG3_PROFILE=ON instruments generated copies only; ordinary production/CI targets remain OFF.
+The arithmetic patch is the same as ../pog3-pi4-held-zero-2026-10-07/candidate.patch.gz against source.txt baseline.
+Nested exclusive scopes include public transform and inverseForSynthesis.
+FFT_dispatch columns: tag,workload,callback,complex,r2c,c2r,unaligned.
+Instrumented timings are stage cost attribution, not admission or optimization-gain evidence.
