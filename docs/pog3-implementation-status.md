@@ -24,11 +24,20 @@ long-render schedule is now retained: two matched Pi ABBA rounds reduce pooled
 (−0.171% mean reduction at 64, +0.229% at 128). The initial layout is rejected
 for worsening 128-frame tails; the refinement keeps the original 128-frame job
 assignment in the fixture. The 128-frame tails remain mixed and both sizes still
-exceed period. Exact automated audio and all eight/nine DSP suites pass. Next,
-profile Attack and primary interpretation internally for a work-reduction
-experiment; see [results, limitations and Luna next steps](pog3-render-schedule-results.md). The C++ preparation counter falls to 1618560 bytes
-in the matched fixture, excluding immutable diagnostic storage and FFTW memory. CPU tails, complete memory/combined-chain endurance,
-calibration/listening and public integration remain open.
+exceed period. Attack substage profiling then identifies repeated partial-table
+birth scans. A compact, lazily built birth-slot workspace is retained: two matched
+Pi ABBA rounds repeat 2.080%/2.364% lower mean demand at 64/128 and reduce pooled
+64-frame over-period callbacks by 67.865% (862 → 277/12000). Candidate demand
+remains 84.11–85.40% and callback tails still exceed periods. Original slot
+priority, histories, envelopes and timing are preserved; exact automated audio,
+a 528384-selection differential test and all nine/ten default/opt-in suites pass.
+See [Attack results and reviewed Luna next steps](pog3-attack-cpu-results.md).
+The workspace adds 4136 bytes, bringing requested C++ preparation to 1622696,
+excluding diagnostic BSS and FFTW memory. Next, separate envelope state updates
+from final gain evaluation to avoid gains immediately replaced by canonical
+matching, under exact output and ordinary matched checks. CPU tails, complete
+memory/combined-chain endurance, calibration/listening and public integration
+remain open.
 There is no selectable `mod/pog3` entry yet.
 
 Development continues in `/home/bbalazs/projects/ardor-pog3` on
@@ -43,7 +52,7 @@ workspace and its unrelated changes remain separate.
 | `src/daisyfx/pog3/Pog3Parameters.{h,cpp}` | Stable 33-index registry, defaults, normalized-to-physical mappings, display formatting, configuration validation, expression endpoints, Warp and dry-freeze eligibility helpers, lock-free control targets |
 | `src/daisyfx/pog3/SpectralFrameStream.{h,cpp}` | Shared immutable FFT/window plans, causal streaming analysis, preallocated inverse FFT and overlap-add synthesis |
 | `src/daisyfx/pog3/PolyphonicPitchBank.{h,cpp}` | Shared short/long/low analysis, bounded persistent partial tracks, fractional spectral translation, low-band reconstruction, independent stereo synthesis, continuous Warp, Focus fades, staged render jobs |
-| `src/daisyfx/pog3/PolyphonicAttack.{h,cpp}` | Linked stereo harmonic families/residual partials, fixed old/new excitation history, input-timestamp attack ages, coherent gains across resolutions |
+| `src/daisyfx/pog3/PolyphonicAttack.{h,cpp}`, `AttackBirthSlots.h` | Linked stereo harmonic families/residual partials, fixed old/new excitation history, input-timestamp attack ages, coherent gains across resolutions, compact exact-order birth allocation |
 | `src/daisyfx/pog3/SpectralFreeze.{h,cpp}` | Fixed stereo capture/target storage, startup validity, heel/toe state machine, linked target proposals, bounded matching and partial gliss |
 | `src/daisyfx/pog3/Pog3VoiceStages.{h,cpp}` | Separate linked detector/filter AD, stereo dry/generated TPT filter buses, levels/pan, upper/dry doubling, eligible 1:3 Spread, final master, static sound-path composition |
 | `src/daisyfx/pog3/Pog3Processor.{h,cpp}` | Prepared lifecycle, immutable endpoint configuration, 33 key/index targets, 48-sample control cadence, separate base/effective values, all seven expression modes and freeze diagnostics |
@@ -51,6 +60,7 @@ workspace and its unrelated changes remain separate.
 | `tests/pog3_controls.cpp` | Persisted index contract, both target setters, mappings, morph ownership, rejection/clamping, Warp and eligibility behavior |
 | `tests/pog3_quality.cpp` | Active FFTW numerical accuracy, exact shared fallback, concurrent shared-plan execution, identity/delay/startup/drain/chunking/reset, isolated reference tuning, stereo/pan/gain, nonfinite/overflow rejection and optional WAV renders |
 | `tests/pog3_pitch_quality.cpp` | Spectral tuning/spurs/leakage, resolved and ordinary low chords, alias rejection, track continuity, Focus reversal, staged identity/deadlines, callback partitioning, Warp, overload/drain, envelope latency, close-pair diagnostic |
+| `tests/pog3_attack_birth_slots.cpp` | Differential original-scan oracle for 528384 birth selections, including reservations/ties/intervening uses/reset/exhaustion and timestamp boundaries |
 | `tests/pog3_attack_quality.cpp` | Held/new notes, shared harmonics, low bass, re-plucks, arpeggios, bends, Focus reversals, activation, exact-off dry, reset, partition invariance, optional attack WAV renders |
 | `tests/pog3_voice_stages.cpp` | AD timing/retrigger, held-tone/chord detector, sensitivity/re-plucks, filter transfer and resonance, routing eligibility, delay endpoints/queues, pan, rapid automation/partition/reset, gain/overload/recovery, optional full-path WAV renders |
 | `tests/pog3_expression_quality.cpp` | Processor key/index publication, cadence, immutable ownership, exact endpoints/units, processed-dry exclusions, 30 Warp tuning cases, Filter/envelope interaction, 7-bit mode/reverse/Focus automation, callback partitions, configuration/reset and optional expression WAV renders |
@@ -1955,13 +1965,17 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **reduced-core callback-peak diagnosis**, following the
-completed memory-access comparisons. Keep four-source batching; uniform pairs
-and hybrid leftovers are both rejected. The hybrid saves modeled accesses but
-adds too little repeatable CPU benefit. Measure stage costs/counts across all
-64-frame phases of the 512-sample low hop, then choose a bounded renderer
-schedule experiment under exact output and matched-control checks. Preserve
-timestamp, control-snapshot and update-order checks.
+The next work is **avoid redundant Attack gain evaluation**, following the
+completed callback-phase, scheduling and Attack birth-slot experiments. Keep
+four-source batching, refined long-render due ages and compact birth slots;
+uniform pairs and hybrid leftovers remain rejected. Separate envelope state
+updates from final gain evaluation while retaining complete partial histories,
+then evaluate only the current or matched canonical history. Follow
+[the reviewed sequence, equivalence constraints and matched validation gates](pog3-attack-cpu-results.md).
+If that work is small, inspect harmonic-support scoring and primary interpretation.
+Preserve input/control timestamps, ownership, strict thresholds/ties, publication
+and all low/long/short update order. No gain-evaluation candidate is implemented
+yet at this checkpoint.
 Matched planning controls and the freeze scope decision are complete. Both freeze
 modes remain opt-in experiments; restore them only after core CPU feasibility.
 The first hardware comparison is complete: tested full-feature configurations exceed standalone

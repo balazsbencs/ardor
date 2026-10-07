@@ -1,0 +1,28 @@
+-- The CXX compiler identification is GNU 13.4.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /buildroot/output/host/bin/aarch64-buildroot-linux-gnu-g++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Found Python3: /buildroot/output/host/bin/python3 (found version "3.12.13") found components: Interpreter
+-- Configuring done (0.6s)
+-- Generating done (0.0s)
+-- Build files have been written to: /probe/attack-detail-build
+[ 16%] Building CXX object CMakeFiles/device_pog3.dir/ardor/src/daisyfx/pog3/Pog3Parameters.cpp.o
+[ 16%] Building CXX object CMakeFiles/device_pog3.dir/ardor/src/dsp/RealtimeFft.cpp.o
+[ 25%] Building CXX object CMakeFiles/device_pog3.dir/ardor/src/daisyfx/pog3/Pog3Processor.cpp.o
+[ 33%] Building CXX object CMakeFiles/device_pog3.dir/profile/SpectralFreeze.cpp.o
+[ 41%] Building CXX object CMakeFiles/device_pog3.dir/ardor/src/daisyfx/pog3/Pog3VoiceStages.cpp.o
+[ 50%] Building CXX object CMakeFiles/device_pog3.dir/profile/PolyphonicAttack.cpp.o
+[ 58%] Building CXX object CMakeFiles/device_pog3.dir/profile/PolyphonicPitchBank.cpp.o
+[ 66%] Building CXX object CMakeFiles/device_pog3.dir/profile/SpectralFrameStream.cpp.o
+[ 75%] Linking CXX static library libdevice_pog3.a
+/buildroot/output/host/bin/aarch64-buildroot-linux-gnu-ar: libdevice_pog3.a: error reading CMakeFiles/device_pog3.dir/profile/PolyphonicPitchBank.cpp.o: No space left on device
+make[3]: *** [CMakeFiles/device_pog3.dir/build.make:213: libdevice_pog3.a] Error 1
+make[3]: *** Deleting file 'libdevice_pog3.a'
+make[2]: *** [CMakeFiles/Makefile2:105: CMakeFiles/device_pog3.dir/all] Error 2
+make[1]: *** [CMakeFiles/Makefile2:176: CMakeFiles/pog3-device-full.dir/rule] Error 2
+make: *** [Makefile:150: pog3-device-full] Error 2
