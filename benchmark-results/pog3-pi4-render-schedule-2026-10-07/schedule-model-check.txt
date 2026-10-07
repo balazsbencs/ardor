@@ -1,0 +1,7 @@
+original 64: modeled_over=1184, p99=1702.350, max=1918.740, max_callback_work_delta=0.000000
+trial1_rejected 64: modeled_over=191, p99=1481.482, max=1681.129, max_callback_work_delta=527.129000
+refined 64: modeled_over=250, p99=1482.978, max=1681.129, max_callback_work_delta=377.592000
+original 128: modeled_over=6, p99=2628.460, max=2757.260, max_callback_work_delta=0.000000
+trial1_rejected 128: modeled_over=30, p99=2693.669, max=2882.163, max_callback_work_delta=265.685000
+refined 128: modeled_over=6, p99=2628.460, max=2757.260, max_callback_work_delta=0.000000
+Refined layout assigns every recorded long job to its original 128-frame callback. Both sizes preserve total recorded work. Cache/changed costs/instrumentation remain unmodeled.

@@ -1,0 +1,7 @@
+('matched_freeze_off', '128'): four-run mean reduction=0.228661%
+('matched_freeze_off', '64'): four-run mean reduction=-0.171175%
+('matched_granular_control', '128'): four-run mean reduction=-0.038734%
+('matched_granular_control', '64'): four-run mean reduction=0.040127%
+('matched_spectral_control', '128'): four-run mean reduction=-0.095291%
+('matched_spectral_control', '64'): four-run mean reduction=-0.901577%
+48 uninstrumented rows audited; identical wisdom/preparation and stable per-build transform-count bounds. Scheduling intentionally changes the 64-frame maximum count.
