@@ -1,0 +1,7 @@
+workload,callback_frames,enabled_two_run_mean_us,disabled_two_run_mean_us,disabled_reduction_percent
+matched_freeze_off,128,2425.189500,2333.440000,3.783189
+matched_freeze_off,64,1211.230500,1165.285000,3.793291
+matched_granular_control,128,186.941500,186.736000,0.109927
+matched_granular_control,64,93.525500,93.496000,0.031542
+matched_spectral_control,128,551.997000,547.263500,0.857523
+matched_spectral_control,64,273.962000,275.647000,-0.615049

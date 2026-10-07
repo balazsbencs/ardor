@@ -1,0 +1,15 @@
+Matched input/settings: enabled Off/warm, stationary unity-gain hold, moving unity-gain gliss; default OFF bypasses preparation.
+Base commit and compressed patch in source.txt; both flags compiled against the same source patch.
+Same Buildroot GCC 13.4.0, -O3 -DNDEBUG, static float NEON FFTW 3.3.10; profiling OFF.
+CPU 2, SCHED_OTHER; enabled-forward,disabled-forward,disabled-reverse,enabled-reverse.
+Numerical export/shared wisdom and byte comparison plus full default ARM pitch complete before timing.
+Shared wisdom is imported before preparation; all four exports retain its 57 planning records with no additions/removals.
+Run: sh run-remote.sh /tmp/pog3-freeze-scope-20261007 2 --full-probes numerical enabled-1 disabled-1 disabled-2 enabled-2.
+All 32 aggregate rows are retained. Over-period counts are timed standalone DSP demand, not ALSA xruns.
+No concurrent heavy target probes; profile follows after all comparisons.
+Previously running service PID12644 is restored; comparison receipt14853 and profile receipt15692 independently match readback.
+No firmware/application configuration/live buffer/governor/unrelated DSP quality changes.
+Trace files contain384000float samples each; cmp returns0. Hashes/logs/source retain evidence; temporary float blobs removed.
+Run python3 summarize.py DIRECTORY to regenerate summary.csv/comparison.csv.
+source.txt patch_sha256 hashes the uncompressed candidate.patch.gz contents.
+C++ preparation excludes FFTW internal memory and the209640-byte immutable inactive diagnostic descriptor.
