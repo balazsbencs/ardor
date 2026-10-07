@@ -12,8 +12,9 @@ latency, and fail the settled-tone tuning screen. Rubber Band's tested separate
 voice instances exceed the full-block CPU goal before Attack/freeze/filter/space
 work. Terrarium's shared filter-bank approach is a useful reference already
 ported in Ardor, with fewer voices and reduced source bandwidth. The next focused
-prototype is the thesis's ERB-PS2 reference; see
-[the implementation experiment plan](pog3-erb-ps2-evaluation-plan.md).
+prototype is the thesis's ERB-PS2 design; the isolated octave-up reference is now
+implemented. See [its CPU/audio checkpoint](pog3-erb-ps2-reference-results.md)
+and [the shared multi-voice experiment plan](pog3-erb-ps2-evaluation-plan.md).
 
 These observations apply to the pinned implementations, options and adapters
 below. They do not establish that every possible configuration or a fork sharing

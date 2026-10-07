@@ -40,3 +40,8 @@ target_include_directories(pog3-pitch-library-trial SYSTEM PRIVATE ../../third_p
 target_link_libraries(pog3-pitch-library-trial PRIVATE trial_rubberband
   "${ARDOR_BUILD}/libardor_pog3.a"
   "${ARDOR_BUILD}/libardor_realtime_fft.a" "${ARDOR_FFTW_LIBRARY}" Threads::Threads)
+
+add_executable(pog3-erb-ps2-quality erb_ps2_quality.cpp)
+target_compile_features(pog3-erb-ps2-quality PRIVATE cxx_std_20)
+enable_testing()
+add_test(NAME pog3-erb-ps2-foundation COMMAND pog3-erb-ps2-quality)
