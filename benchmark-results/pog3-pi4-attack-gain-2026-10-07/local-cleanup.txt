@@ -1,0 +1,1 @@
+Removed 6 own host comparison float blobs after preserving hashes/byte counts. Local immutable baseline and rejected libraries/ELFs/source caches remain; only container ardor-pog3-gain is removed. All writes use the isolated POG3 worktree and own cache/probe files; the original checkout and its index are not modified.
