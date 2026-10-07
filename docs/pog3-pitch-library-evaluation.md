@@ -15,6 +15,9 @@ ported in Ardor, with fewer voices and reduced source bandwidth. The next focuse
 prototype is the thesis's ERB-PS2 design; the isolated octave-up reference is now
 implemented. See [its CPU/audio checkpoint](pog3-erb-ps2-reference-results.md)
 and [the shared multi-voice experiment plan](pog3-erb-ps2-evaluation-plan.md).
+The [implemented eight-path CPU checkpoint](pog3-erb-shared-cpu-results.md)
+now shows that full-rate shared phase voices, even with bounded table math,
+do not retain the single octave-up CPU advantage or meet full-block admission.
 
 These observations apply to the pinned implementations, options and adapters
 below. They do not establish that every possible configuration or a fork sharing
@@ -53,8 +56,13 @@ comparable demand screening, not sample-identical control automation.
 
 Five-voice rows contain -24, -12, +7, +12, +24 stereo pitch shifts. Eight-path rows
 add processed unison and two warm upper variants, corresponding to the current
-six long plus two short stereo render paths. The long upper variants keep their
-fixed ratios while the short variants follow Warp. Ardor always runs its complete
+six long plus two short stereo render paths. The historical library run kept
+indices 4/5 fixed and moved indices 6/7.
+That reversed the production long/short upper assignment: production long
+upper paths follow Warp, and short upper paths stay fixed. The shared ERB
+checkpoint corrects the helper for subsequent runs; those earlier CSVs remain
+unchanged, including their dynamic numbers. Static results are unaffected.
+Ardor always runs its complete
 eight internal paths and publishes its six mixed voices. The trial times the
 library voices separately; it does not align/mix Focus paths or implement Attack,
 freeze/gliss, filter, detune, spread or pan for those libraries. Their costs are

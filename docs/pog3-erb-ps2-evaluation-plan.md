@@ -2,9 +2,13 @@
 
 Updated 2026-10-07. The isolated octave-up reference is implemented;
 [measured results and remaining audio limits](pog3-erb-ps2-reference-results.md)
-show 3.062–3.121% host demand for one stereo voice. The next CPU experiment is
-the shared multi-voice extension below. This is not a production backend
-selection. CPU feasibility remains the gate before public block integration.
+show 3.062–3.121% host demand for one stereo voice. The shared eight-path
+extension is also implemented: [its CPU experiment](pog3-erb-shared-cpu-results.md)
+measures 28.333–29.648% demand with table math on the limited grid and
+48.628–51.945% with wider coverage, before Attack/freeze. Neither meets CPU
+admission. The next experiment must reduce phase work, as specified below.
+This is not a production backend selection. CPU feasibility remains the gate
+before public block integration.
 
 ## Evidence and scope
 
@@ -74,6 +78,15 @@ the reference checkpoint does not complete every gate in this section.
 
 ## Extend the reference into a shared multi-voice prototype
 
+**Implemented checkpoint:** separate band/channel/voice histories now supply
+all eight warm stereo paths, true fifth ratios, integrated moving Warp and
+explicit silence reacquisition. Accurate and bounded-table phase math, both
+the original grid and an extended 69-band grid, are compared. Numerical phase,
+reference equivalence, stereo/reset/partition and callback allocation checks
+pass. Full-rate generic phase voices still miss CPU admission, and raw
+polyphonic audio remains inadequate. Source-tail tapering and matching voice
+counts do not complete the full alias/Focus/Attack/freeze contracts below.
+
 Proceed only if the reference justifies the added work with measured CPU and
 sound quality. A single octave-up result is insufficient to replace POG3.
 
@@ -90,7 +103,7 @@ sound quality. A single octave-up result is insufficient to replace POG3.
    observed input increment and ratio. Multiplying an ever-growing phase by a
    changing ratio introduces an unwanted term from ratio changes. Test ramp,
    reversal, and endpoint behavior against the current Warp contract, including
-   fixed long upper paths and shifted short Focus paths where applicable.
+   shifted long upper paths and fixed short Focus paths where applicable.
 4. Revisit analysis coverage and bandwidth for the full ratio range. The
    thesis's target range is specified for ratio 2; blindly sharing that range
    between .25 and 4 omits required source frequencies or worsens roughness.
@@ -118,6 +131,17 @@ counts alone are misleading: 43 bands at 48 kHz execute about 3.2 times as many
 band updates as 80 bands at 8 kHz, before accounting for different modulator
 work, stereo, and additional voices. This is an operation-count observation,
 not a prediction of measured processor demand.
+
+Both the single-voice and eight-path checkpoints now have measured results.
+The single-voice cost must not be extrapolated to the full bank. Keep the
+accurate shared implementation as a numerical control and the table version as
+a CPU control. Next evaluate reduced-rate baseband phase/magnitude estimation
+with full-rate carrier reconstruction, or multirate band tiers that retain
+source/output coverage. Demodulation, center-cycle accounting, anti-aliasing,
+resampling and warm moving voices must all enter the measurement. Validate
+crossing tones, transients and ratio changes against the full-rate control;
+simple real-carrier decimation loses phase-wrap information. Static integer
+algebra can be evaluated alongside that work, but cannot stand in for Warp.
 
 Use ordinary Release flags, an immutable FFTW POG3 control, identical input and
 control timelines, and sequential opposite-order timing runs after builds and
