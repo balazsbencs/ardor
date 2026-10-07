@@ -1758,6 +1758,46 @@ appropriate multirate tiers. Retain these accurate/table implementations as
 controls; defer Attack/freeze/public integration until CPU feasibility is proved.
 Production DSP and M8 are unchanged.
 
+## ERB counted-cadence CPU checkpoint (2026-10-07)
+
+The optional wide-bank candidate now counts analytic carrier winding at full
+rate with imaginary-sign crossings and their cross-product direction. Endpoint
+angles and oscillator reanchoring run every 4/8/16/32 samples. Control boundaries
+flush the preceding ratio segment, and startup captures the first meaningful
+phase before its first endpoint, preserving fractional voice phase origins.
+The center-only alternative is kept as a failed comparison: it demonstrably
+folds an off-band 5000 Hz carrier into a -1000 Hz estimate.
+
+The 32-sample counted candidate renders all eight warm stereo paths at 48 kHz
+with double recurrence state. Two opposite-order passes (**60 invocations**)
+measure **20.879–21.694%** host callback-period demand, **56.49–59.25%** below the
+matching full-rate wide table control. One retained 64-sample callback reaches
+2910.130 µs and overruns; no callback is discarded. These are **bank-only**
+costs. Required ownership, independent Attack, held/live work, additional
+analysis and warm Focus/alignment behavior are unpriced, so the full 25% goal
+must not be declared met.
+
+All three optional foundation suites, strict warning checks and cadence
+ASan+UBSan/leak checks pass. Twenty separate allocation workloads report zero
+C callback allocation/free calls and stream faults. Core storage is 51144 bytes
+at intervals 4/8/16 and 64392 at 32, plus a shared 24592-byte math table. Input
+near DC/Nyquist, off-band cycles, delayed startup, ratio ramps/reversals,
+stereo/reset and arbitrary partitions are covered. Constant-carrier worst output
+error across counted variants is 2.50022e-6; interval-32 interior interpolation error on the independent
+smooth chirp/Warp fixture is 5.55541e-4. Transient comparison against the delayed
+accurate bank retains -54.80…-41.36 dB error/reference power across voices.
+
+The candidate adds 0.667 ms reconstruction delay with extra endpoint startup;
+filter group delay remains frequency-dependent. Settled-tone tuning is within
+0.041 cents, +12 tone gain/spur is good at the tested frequency, and +24's
+-43.26 dBc spur still misses the <-45 dBc gate. Raw chord gain/partial failures
+remain; one alias fixture does not establish complete alias coverage.
+
+See [the cadence report](pog3-erb-cadence-cpu-results.md) for equations,
+failed center-only evidence, numerical/latency tradeoffs, all CPU ranges/tails,
+retained audio metrics, reproduction and artifact hashes. The next CPU decision
+is combined required-stage cost; production DSP and M8 remain unchanged.
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in

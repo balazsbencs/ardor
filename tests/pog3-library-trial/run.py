@@ -16,7 +16,7 @@ def main():
     parser.add_argument("--phase", choices=["timing", "allocation", "quality"], required=True)
     parser.add_argument("--probe", type=Path)
     parser.add_argument("--passes", type=int, choices=[1, 2], default=1)
-    parser.add_argument("--backends", nargs="+", choices=["ardor", "ss-default", "ss-cheap", "ss-pog3", "ss-balanced", "rb-r2", "rb-r3", "rb-live", "terrarium-48", "terrarium-80", "erb-ps2", "erb-shared-43", "erb-shared-wide", "erb-shared-lut-43", "erb-shared-lut-wide"])
+    parser.add_argument("--backends", nargs="+", choices=["ardor", "ss-default", "ss-cheap", "ss-pog3", "ss-balanced", "rb-r2", "rb-r3", "rb-live", "terrarium-48", "terrarium-80", "erb-ps2", "erb-shared-43", "erb-shared-wide", "erb-shared-lut-43", "erb-shared-lut-wide", "erb-cadence-center-8", "erb-cadence-count-4", "erb-cadence-count-8", "erb-cadence-count-16", "erb-cadence-count-32"])
     args = parser.parse_args()
     if args.phase == "allocation" and not args.probe:
         parser.error("allocation phase requires --probe")
@@ -40,7 +40,7 @@ def main():
     # Preserve the original 64-row library screening unless this new reference
     # is explicitly requested. Selected backends keep the same case contracts.
     if args.backends:
-        for backend in ["erb-shared-43", "erb-shared-wide", "erb-shared-lut-43", "erb-shared-lut-wide"]:
+        for backend in ["erb-shared-43", "erb-shared-wide", "erb-shared-lut-43", "erb-shared-lut-wide", "erb-cadence-center-8", "erb-cadence-count-4", "erb-cadence-count-8", "erb-cadence-count-16", "erb-cadence-count-32"]:
             if backend in args.backends:
                 for callback in ([128] if args.phase == "quality" else [64, 128]):
                     for kind in (["tone", "resolved", "low", "alias"] if args.phase == "quality" else ["static", "dynamic"]):

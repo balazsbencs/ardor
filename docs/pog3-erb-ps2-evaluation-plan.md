@@ -6,7 +6,10 @@ show 3.062–3.121% host demand for one stereo voice. The shared eight-path
 extension is also implemented: [its CPU experiment](pog3-erb-shared-cpu-results.md)
 measures 28.333–29.648% demand with table math on the limited grid and
 48.628–51.945% with wider coverage, before Attack/freeze. Neither meets CPU
-admission. The next experiment must reduce phase work, as specified below.
+admission. A subsequent [counted-cadence experiment](pog3-erb-cadence-cpu-results.md)
+reduces wide-bank demand to 20.879–21.694% at 32 samples. That is still only
+the pitch bank; the next CPU decision must price required ownership, Attack,
+freeze, additional analysis and warm Focus behavior before full admission.
 This is not a production backend selection. CPU feasibility remains the gate
 before public block integration.
 
@@ -132,10 +135,18 @@ band updates as 80 bands at 8 kHz, before accounting for different modulator
 work, stereo, and additional voices. This is an operation-count observation,
 not a prediction of measured processor demand.
 
-Both the single-voice and eight-path checkpoints now have measured results.
+The single-voice, full-rate eight-path and counted-cadence checkpoints now have
+measured results. The counted version preserves cycles at full rate while
+estimating phase/magnitude and reanchoring output oscillators less often. The
+center-only shortcut fails off-band winding-count tests and is rejected.
+The 32-sample candidate costs 20.879–21.694% before required remaining work;
+it adds delay/interpolation error and retains raw polyphonic fidelity limits.
+Measure combined ownership/Attack/freeze/Focus cost next, then compare interval
+16/32 or band tiers on transient and alias coverage before choosing a backend.
+
 The single-voice cost must not be extrapolated to the full bank. Keep the
 accurate shared implementation as a numerical control and the table version as
-a CPU control. Next evaluate reduced-rate baseband phase/magnitude estimation
+a CPU control. Further alternatives include baseband phase/magnitude estimation
 with full-rate carrier reconstruction, or multirate band tiers that retain
 source/output coverage. Demodulation, center-cycle accounting, anti-aliasing,
 resampling and warm moving voices must all enter the measurement. Validate
