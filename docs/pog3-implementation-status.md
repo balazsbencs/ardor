@@ -15,9 +15,10 @@ callback period, still above the 25% goal. The C++ preparation counter remains
 below 2 MiB but excludes FFTW internal storage; fuller memory admission is open.
 The first Pi 4 hardware comparison now measures 101.85–115.97% period demand
 for the full processor; the ERB hybrid is more expensive.
-The latest real FFT/packed-synthesis optimization saves 5.83–7.48% on the Pi.
-Static/expression mean demand is below one period; freeze/gliss still requires
-105.67–107.34%, and full-path callback tails remain over budget. CPU admission, target memory, combined-chain endurance, calibration/listening
+Real FFT/packed synthesis saves 5.83–7.48% on the Pi. The following Hann-lobe
+layout comparison observes another 1.18–2.90% full-path mean reduction;
+freeze/gliss still requires 103.26–103.90%, and all full-path p99s remain over budget.
+Control variation limits attributing that change solely to the table layout. CPU admission, target memory, combined-chain endurance, calibration/listening
 and public integration remain open.
 There is no selectable `mod/pog3` entry yet.
 
@@ -1855,9 +1856,19 @@ full ARM pitch and FFT/stream checks pass; the synthesis sample oracle matches
 the public inverse. Generic complex/extreme arithmetic remains available.
 A separate target profile confirms aligned real-plan execution and attributes
 about 16–18% to FFT, 21–32% to live rendering and up to 18% to held rendering.
-Next, test Hann-lobe table locality/held rendering with unchanged coefficient
-bits, audio gates and a fresh target comparison. M8 remains blocked.
+The Hann-lobe layout experiment follows below; M8 remains blocked.
 See [the complete real FFT evidence and next experiment](pog3-real-fft-results.md).
+
+**Hann-lobe layout checkpoint:** the same 8,193 prepared coefficients now use
+phase-major storage with unchanged interpolation bits. All 393,258 historical
+lookup comparisons, nine production DSP tests, ASan/UBSan and full ARM pitch/
+foundation checks pass. A fresh Pi ABBA observes **1.18–2.90%** lower full-path
+mean time; freeze/gliss remains **103.26–103.90%**, and all full-path p99s exceed
+their periods. The uninvolved spectral identity control also varies, so this is
+an observed build comparison, not a pure cache-locality attribution. M8 remains
+blocked. Next, test skipping zero-amplitude held reconstruction after phase
+advancement, then repeat the target comparison.
+See [the layout evidence and constraints](pog3-lobe-layout-results.md).
 
 ## Next implementation milestone
 
@@ -1869,9 +1880,9 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **target CPU optimization**, starting with Hann-lobe table
-locality and held rendering under the existing numerical/audio contract. The
-real FFT/packed-synthesis experiment is complete; see the latest checkpoint above.
+The next work is **target CPU optimization**, starting with zero-amplitude held
+reconstruction after preserving phase advancement. Real FFT/packed synthesis and
+the Hann-lobe layout experiment are complete; see the latest checkpoints above.
 The first hardware comparison is complete: tested full-feature configurations exceed standalone
 capacity at both buffer sizes. The initial 25% planning target is not a hard
 rejection threshold. Admission depends on target callback tails, the intended
@@ -1884,8 +1895,8 @@ hold/routing tests do not satisfy target-device feasibility.
 The balanced analysis schedule and bounded Attack matching have earlier
 exact-output evidence; the shared granular read correction is separately
 reproduced and documented. FFTW uses the new numerical/audio contract described
-above. The Pi diagnostic profile attributes about 20–23% to FFT, 21–32% to live
-rendering, 14–18% each to interpretation and Attack, and up to 16% to held
+above. The Pi diagnostic profile attributes about 16–18% to FFT, 21–32% to live
+rendering, 15–18% each to interpretation and Attack, and up to 18% to held
 rendering. These are target instrumented attributions, not admission timings.
 Use the new mean alongside callback tails to evaluate the next optimization.
 Preserve input timestamps, control snapshots, complete-frame publication and
