@@ -31,7 +31,7 @@ Its source tar SHA-256 is
 Buildroot's package manifest. Static linking lets the probes run from `/tmp`
 without installing FFTW on the pedal. No fast-math is enabled.
 
-Copy the five `pog3-device-*` executables and `run-remote.sh` into a unique
+Copy the `pog3-device-*` executables and `run-remote.sh` into a unique
 directory under `/tmp` on the device. Record their hashes and the source revision
 or patch identity before running. The runner **stops the live audio service**,
 tests numerical behavior, runs two sequential timing passes in opposite case
@@ -58,3 +58,29 @@ capacity, not ALSA xruns, paced FIFO behavior or complete-chain usability.
 Keep every observed tail. Test the intended live chain and thermal/xrun endurance
 after a configuration demonstrates adequate standalone margin. The original
 25% goal is a planning target, not a prerequisite for this hardware experiment.
+
+## Frame-job profiling and matched production comparisons
+
+Configure a separate build with `-DARDOR_POG3_PROFILE=ON` for diagnostic timers.
+The generator copies four DSP sources and the existing full benchmark into the
+build directory; it instruments only those copies. Nested frame-job scopes
+report calls and inclusive/exclusive microseconds to stderr. Each category's
+percentage uses the sum of measured callback durations. Renderer exclusive time
+subtracts FFT and held-render children. Uninstrumented work and timer overhead
+remain in the residual. This measures approximate cost attribution, not CPU
+admission. Production and normal CI targets never include these timers.
+
+The runner can execute uploaded full-suite probes in a caller-selected order:
+
+```sh
+sh run-remote.sh /tmp/UNIQUE_PROBE_DIRECTORY 2 --full-probes \
+  baseline-1 candidate-1 candidate-2 baseline-2
+```
+
+Build both performance probes with profiling **OFF**, using the same toolchain,
+flags and FFTW archive. Give repeated copies distinct names so every CSV/log and
+metadata receipt survives. Run required numerical checks before this timing-only
+mode; it does not run the default ERB/numerical sequence. The added
+`pog3-device-pitch-quality --magnitude-range` exercises frame magnitudes across
+the float range against the independent library norm. The normal pitch suite
+also runs this regression. Preserve both source identities and binary hashes.
