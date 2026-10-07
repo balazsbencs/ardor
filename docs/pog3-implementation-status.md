@@ -33,11 +33,17 @@ priority, histories, envelopes and timing are preserved; exact automated audio,
 a 528384-selection differential test and all nine/ten default/opt-in suites pass.
 See [Attack results and reviewed Luna next steps](pog3-attack-cpu-results.md).
 The workspace adds 4136 bytes, bringing requested C++ preparation to 1622696,
-excluding diagnostic BSS and FFTW memory. Next, separate envelope state updates
-from final gain evaluation to avoid gains immediately replaced by canonical
-matching, under exact output and ordinary matched checks. CPU tails, complete
-memory/combined-chain endurance, calibration/listening and public integration
-remain open.
+excluding diagnostic BSS and FFTW memory. A subsequent deferred-gain prototype
+avoids 34.666% of Attack gain calls and 35.081% of sine ramps, but its two Pi ABBA
+rounds yield only 0.090%/0.189% combined mean reductions at 64/128, mixed 64-frame
+results and a worse 128-frame maximum. It is rejected and original production
+Attack is restored exactly; the rebuilt ordinary ARM benchmark matches the
+immutable baseline ELF. Standalone gain counters and generator scope/signature
+handling are retained. Next, profile primary interpretation internally before
+choosing a compact track-birth snapshot or sparse-valid previous-phase cache;
+see [the rejected gain experiment and detailed next steps](pog3-attack-gain-results.md).
+CPU tails, complete memory/combined-chain endurance, calibration/listening and
+public integration remain open.
 There is no selectable `mod/pog3` entry yet.
 
 Development continues in `/home/bbalazs/projects/ardor-pog3` on
@@ -1965,17 +1971,19 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **avoid redundant Attack gain evaluation**, following the
-completed callback-phase, scheduling and Attack birth-slot experiments. Keep
-four-source batching, refined long-render due ages and compact birth slots;
-uniform pairs and hybrid leftovers remain rejected. Separate envelope state
-updates from final gain evaluation while retaining complete partial histories,
-then evaluate only the current or matched canonical history. Follow
-[the reviewed sequence, equivalence constraints and matched validation gates](pog3-attack-cpu-results.md).
-If that work is small, inspect harmonic-support scoring and primary interpretation.
-Preserve input/control timestamps, ownership, strict thresholds/ties, publication
-and all low/long/short update order. No gain-evaluation candidate is implemented
-yet at this checkpoint.
+The next work is **primary interpretation substage attribution**. Keep compact
+Attack birth slots, refined long-render due ages and four-source batching. The
+deferred Attack gain prototype passes exact output and all nine/ten DSP suites,
+but does not produce useful repeatable ordinary CPU benefit and is rejected.
+Measure magnitudes, phase/log estimation, candidate sorting, track association
+and birth scans, and final region/history work. Use actual peak/track/phase-reuse
+counts to choose either a compact track-birth snapshot or a sparse-valid previous
+phase cache; avoid calculating phase for every bin. The frame birth selector's
+combined empty/expired priority differs from Attack's empty-first rule.
+Follow [the reviewed ordering, cache-validity and matched-validation constraints](pog3-attack-gain-results.md).
+If those paths are small, inspect harmonic-support scoring. Preserve input/control
+timestamps, ownership, strict thresholds/ties, prediction keys, publication and
+low/long/short update order. No deferred-gain production path remains.
 Matched planning controls and the freeze scope decision are complete. Both freeze
 modes remain opt-in experiments; restore them only after core CPU feasibility.
 The first hardware comparison is complete: tested full-feature configurations exceed standalone

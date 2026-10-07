@@ -1,0 +1,43 @@
+[  5%] Built target ardor_realtime_fft
+[ 85%] Built target ardor_daisyfx_runtime
+[ 85%] Building CXX object CMakeFiles/ardor_pog3.dir/src/daisyfx/pog3/Pog3Processor.cpp.o
+[ 85%] Building CXX object CMakeFiles/ardor_pog3.dir/src/daisyfx/pog3/SpectralFreeze.cpp.o
+[ 90%] Building CXX object CMakeFiles/ardor_pog3.dir/src/daisyfx/pog3/Pog3VoiceStages.cpp.o
+[ 90%] Building CXX object CMakeFiles/ardor_pog3.dir/src/daisyfx/pog3/PolyphonicAttack.cpp.o
+[ 90%] Building CXX object CMakeFiles/ardor_pog3.dir/src/daisyfx/pog3/PolyphonicPitchBank.cpp.o
+[ 90%] Linking CXX static library libardor_pog3.a
+[100%] Built target ardor_pog3
+[100%] Building CXX object CMakeFiles/pedal-pog3-quality.dir/tests/pog3_quality.cpp.o
+[100%] Linking CXX executable pedal-pog3-quality
+[100%] Built target pedal-pog3-quality
+[ 25%] Built target ardor_realtime_fft
+[100%] Built target ardor_pog3
+[100%] Linking CXX executable pedal-pog3-controls
+[100%] Built target pedal-pog3-controls
+[  4%] Built target ardor_realtime_fft
+[ 80%] Built target ardor_daisyfx_runtime
+[ 95%] Built target ardor_pog3
+[ 95%] Building CXX object CMakeFiles/pedal-pog3-bench.dir/tests/pog3_bench.cpp.o
+[100%] Linking CXX executable pedal-pog3-bench
+[100%] Built target pedal-pog3-bench
+[ 20%] Built target ardor_realtime_fft
+[ 80%] Built target ardor_pog3
+[ 80%] Building CXX object CMakeFiles/pedal-pog3-pitch-quality.dir/tests/pog3_pitch_quality.cpp.o
+[100%] Linking CXX executable pedal-pog3-pitch-quality
+[100%] Built target pedal-pog3-pitch-quality
+[ 20%] Built target ardor_realtime_fft
+[ 80%] Built target ardor_pog3
+[100%] Building CXX object CMakeFiles/pedal-pog3-attack-quality.dir/tests/pog3_attack_quality.cpp.o
+[100%] Linking CXX executable pedal-pog3-attack-quality
+[100%] Built target pedal-pog3-attack-quality
+[ 20%] Built target ardor_realtime_fft
+[ 80%] Built target ardor_pog3
+[100%] Building CXX object CMakeFiles/pedal-pog3-voice-stages.dir/tests/pog3_voice_stages.cpp.o
+[100%] Linking CXX executable pedal-pog3-voice-stages
+[100%] Built target pedal-pog3-voice-stages
+[ 20%] Built target ardor_realtime_fft
+[ 80%] Built target ardor_pog3
+[100%] Building CXX object CMakeFiles/pedal-pog3-expression-quality.dir/tests/pog3_expression_quality.cpp.o
+[100%] Linking CXX executable pedal-pog3-expression-quality
+[100%] Built target pedal-pog3-expression-quality
+Built target pedal-pog3-attack-birth-slots

@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+./automation-baseline shared.wisdom > automation-baseline.f32 2> automation-baseline.log
+./automation-candidate shared.wisdom > automation-candidate.f32 2> automation-candidate.log
+cmp automation-baseline.f32 automation-candidate.f32
+./full-baseline --freeze-trace shared.wisdom full-baseline.f32 > full-baseline.stdout 2> full-baseline.log
+./full-candidate --freeze-trace shared.wisdom full-candidate.f32 > full-candidate.stdout 2> full-candidate.log
+cmp full-baseline.f32 full-candidate.f32
+sha256sum automation-baseline.f32 automation-candidate.f32 full-baseline.f32 full-candidate.f32 > trace-sha256.txt
+wc -c automation-baseline.f32 automation-candidate.f32 full-baseline.f32 full-candidate.f32 > target-trace-bytes.txt
+./pitch-candidate > pitch-candidate.log 2>&1
+for build in baseline candidate; do
+  ./profile-$build --freeze-trace shared.wisdom profile-$build.f32 > profile-$build.stdout 2> profile-$build-trace.log
+  cmp full-baseline.f32 profile-$build.f32
+done
+sha256sum profile-baseline.f32 profile-candidate.f32 >> trace-sha256.txt
+wc -c profile-baseline.f32 profile-candidate.f32 >> target-trace-bytes.txt

@@ -24,6 +24,7 @@ struct AttackRecord {
   std::uint64_t sample=0, frame=0;
   std::uint32_t resolution=0, control=0, left=0, right=0, observations=0,
                 candidates=0, families=0, births=0;
+  std::uint32_t gainCalls=0, gainRamps=0, canonicalReplacements=0;
 };
 inline std::array<AttackRecord,4096> attacks{};
 inline std::size_t attackCount=0;
@@ -57,6 +58,8 @@ inline void reportAttack(const char* workload, unsigned frames) {
     log<<"attack_counts,"<<workload<<','<<frames<<','<<a.sample<<','<<a.frame<<','
        <<a.resolution<<','<<a.control<<','<<a.left<<','<<a.right<<','<<a.observations<<','
        <<a.candidates<<','<<a.families<<','<<a.births<<'\n';
+    log<<"attack_gain_counts,"<<workload<<','<<frames<<','<<a.sample<<','<<a.frame<<','
+       <<a.resolution<<','<<a.control<<','<<a.gainCalls<<','<<a.gainRamps<<','<<a.canonicalReplacements<<'\n';
   }
   log<<"attack_receipt,"<<workload<<','<<frames<<','<<attackCount<<",overflow=0\n";
   std::cerr<<log.str();
@@ -114,20 +117,44 @@ inline void reportAttack(const char* workload, unsigned frames) {
     source = base.replace_once(source, '  reserved_.fill(false);',
         '  { ' + scope(11) + '\n  used_.fill(false);\n  reserved_.fill(false);')
     anchor = '  for (std::size_t p = 0; p < count; ++p) {\n    const auto& value = observations_[p];\n    std::size_t slot'
-    source = base.replace_once(source, anchor, '  }\n  { ' + scope(12) + '\n' + anchor)
+    birth_workspace = '  birthSlots_.reset();\n  bool birthSlotsReady = false;'
+    if birth_workspace in source:
+        # The birth flag must outlive the reservation timer's block.
+        source = base.replace_once(source, birth_workspace, '  }\n' + birth_workspace)
+        source = base.replace_once(source, anchor, '  { ' + scope(12) + '\n' + anchor)
+    else:
+        source = base.replace_once(source, anchor, '  }\n  { ' + scope(12) + '\n' + anchor)
     source = base.replace_once(source, '    const bool birth = slot == partials.size();',
         '    const bool birth = slot == partials.size();\n    if (birth && pog3_phase::currentAttack) ++pog3_phase::currentAttack->births;')
     source = base.replace_once(source, '  indexCanonical(resolution);',
         '  }\n  { ' + scope(13) + '\n  indexCanonical(resolution);\n  }\n'
         '  if (pog3_phase::currentAttack) pog3_phase::currentAttack->families=static_cast<std::uint32_t>(familyCount());')
+    # Count actual gain work separately from stage timing. Support the retained
+    # baseline and the state-update/gain-selection split for matched diagnostics.
+    gain_anchor = 'float PolyphonicAttack::gainAt(const Partial& partial, std::int64_t center) const noexcept {'
+    source = base.replace_once(source, gain_anchor,
+        gain_anchor + '\n  if (pog3_phase::currentAttack) ++pog3_phase::currentAttack->gainCalls;')
+    gain_anchor = '    const double x = std::clamp((center - excitation.onset) / duration, 0.0, 1.0);'
+    source = base.replace_once(source, gain_anchor,
+        '    if (pog3_phase::currentAttack) ++pog3_phase::currentAttack->gainRamps;\n' + gain_anchor)
+    match_anchor = '        if (match) gain = gainAt(*match, left.centerSamples());'
+    if match_anchor not in source:
+        match_anchor = '        if (match) gainPartial = match;'
+    source = base.replace_once(source, match_anchor,
+        match_anchor + '\n        if (match && pog3_phase::currentAttack) ++pog3_phase::currentAttack->canonicalReplacements;')
     if detail:
         anchor = '    std::size_t slot = partials.size();'
         source = base.replace_once(source, anchor, '    pog3_phase::MicroScope partialProbe(3);\n'+anchor)
         source = base.replace_once(source, '    auto* family = owner(value.frequency, inputEnd);',
             '    Family* family=nullptr;\n    { pog3_phase::MicroScope ownerProbe(0); family=owner(value.frequency, inputEnd); }')
         anchor = '    float gain = envelope(partial, value.magnitude, left.centerSamples(), inputEnd, sharedOnset, birth);'
-        source = base.replace_once(source, anchor,
-            '    float gain=0;\n    { pog3_phase::MicroScope envelopeProbe(1);\n'+anchor.replace('float gain =','gain =')+'\n    }')
+        if anchor in source:
+            source = base.replace_once(source, anchor,
+                '    float gain=0;\n    { pog3_phase::MicroScope envelopeProbe(1);\n'+anchor.replace('float gain =','gain =')+'\n    }')
+        else:
+            anchor = '    updateEnvelope(partial, value.magnitude, left.centerSamples(), inputEnd, sharedOnset, birth);'
+            source = base.replace_once(source, anchor,
+                '    { pog3_phase::MicroScope envelopeProbe(1);\n'+anchor+'\n    }')
         anchor = '    if (resolution != 2 && seconds_ > 0) {'
         source = base.replace_once(source, anchor, anchor+'\n      pog3_phase::MicroScope canonicalProbe(2);')
     (output / 'PolyphonicAttack.cpp').write_text('#include "callback_profile.h"\n' + source)

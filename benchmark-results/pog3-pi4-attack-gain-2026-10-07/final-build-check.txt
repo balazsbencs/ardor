@@ -1,0 +1,1 @@
+Production restored exactly to base; ordinary ARM ELF matches baseline byte for byte. Root library/test targets rebuilt freeze OFF and 9 suites registered. Candidate 9 default/10 opt-in suites and automation sanitizer passed. Target hashes identical across both rounds, service restored/read back and unique probe removed.

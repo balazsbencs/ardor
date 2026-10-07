@@ -1,0 +1,1 @@
+Ordinary full-baseline ELF matches the retained compact-birth-slot full-candidate SHA256. Default/opt-in immutable libraries and original headers saved at 4de167c before editing. New member layout is unchanged by this gain split.
