@@ -1,0 +1,6 @@
+shared_wisdom_sha256=964fddf2f8a7f7744905961489a90ceaecbb244bfd8d2d5617491c040efaa545
+records=57
+shared.wisdom.disabled.forward.after: same_header=True added=0 removed=0
+shared.wisdom.disabled.reverse.after: same_header=True added=0 removed=0
+shared.wisdom.enabled.forward.after: same_header=True added=0 removed=0
+shared.wisdom.enabled.reverse.after: same_header=True added=0 removed=0

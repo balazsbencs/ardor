@@ -10,6 +10,7 @@ find_library(ARDOR_FFTW_LIBRARY NAMES fftw3f REQUIRED)
 find_path(ARDOR_JSON_INCLUDE_DIR nlohmann/json.hpp REQUIRED)
 find_package(Threads REQUIRED)
 option(ARDOR_POG3_PROFILE "Instrument standalone copies for exclusive frame-job profiling" OFF)
+option(ARDOR_POG3_EXPERIMENTAL_FREEZE "Enable deferred POG3 freeze/gliss DSP for experiments" OFF)
 set(POG3_SOURCE "${ARDOR_ROOT}/src/daisyfx/pog3")
 set(POG3_BENCH "${ARDOR_ROOT}/tests/pog3_bench.cpp")
 if(ARDOR_POG3_PROFILE)
@@ -36,6 +37,7 @@ add_library(device_pog3 STATIC
   "${POG3_SOURCE}/PolyphonicPitchBank.cpp"
   "${POG3_SOURCE}/SpectralFrameStream.cpp")
 target_compile_features(device_pog3 PUBLIC cxx_std_20)
+target_compile_definitions(device_pog3 PUBLIC ARDOR_POG3_EXPERIMENTAL_FREEZE=$<BOOL:${ARDOR_POG3_EXPERIMENTAL_FREEZE}>)
 target_include_directories(device_pog3 PUBLIC "${ARDOR_ROOT}/src" "${ARDOR_JSON_INCLUDE_DIR}"
   PRIVATE "${ARDOR_FFTW_INCLUDE_DIR}")
 target_link_libraries(device_pog3 PUBLIC "${ARDOR_FFTW_LIBRARY}" Threads::Threads)
@@ -48,7 +50,7 @@ target_link_libraries(pog3-device-trial PRIVATE device_pog3)
 add_executable(pog3-device-full "${POG3_BENCH}"
   "${ARDOR_ROOT}/src/daisyfx/hosted/dsp/pitch_shifter.cpp")
 target_include_directories(pog3-device-full SYSTEM PRIVATE "${ARDOR_ROOT}/third_party/cycfi-q/include")
-target_include_directories(pog3-device-full PRIVATE "${ARDOR_ROOT}/tests")
+target_include_directories(pog3-device-full PRIVATE "${ARDOR_ROOT}/tests" "${ARDOR_FFTW_INCLUDE_DIR}")
 target_link_libraries(pog3-device-full PRIVATE device_pog3)
 
 add_executable(pog3-device-quality ../erb_attack_freeze_quality.cpp)

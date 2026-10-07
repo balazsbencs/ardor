@@ -35,6 +35,10 @@ bool Pog3Processor::configure(const nlohmann::json& params, float sampleRate, st
   }
   Configuration configuration;
   if (!parseConfiguration(params, configuration, error)) return false;
+  if (!kExperimentalFreezeEnabled && choiceIndex(configuration.base[index(Parameter::ExpressionMode)], 7) >= 5) {
+    error = "Freeze expression modes are unavailable in this build.";
+    return false;
+  }
   auto next = std::make_unique<State>();
   next->configuration = configuration;
   next->apply(configuration.base);
@@ -50,6 +54,8 @@ bool Pog3Processor::setParameterTarget(std::string_view key, float normalized) n
 }
 bool Pog3Processor::setParameterTarget(std::size_t parameterIndex, float normalized) noexcept {
   if (!std::isfinite(normalized)) return false;
+  if (!kExperimentalFreezeEnabled && parameterIndex == index(Parameter::ExpressionMode)
+      && choiceIndex(normalized, 7) >= 5) return false;
   return targets_.setTarget(parameterIndex, normalized);
 }
 void Pog3Processor::reset() noexcept {

@@ -152,6 +152,8 @@ set_target_properties(ardor_fftw_single PROPERTIES
 )
 find_package(Threads REQUIRED)
 
+option(ARDOR_POG3_EXPERIMENTAL_FREEZE "Enable deferred POG3 freeze/gliss DSP for experiments" OFF)
+
 add_library(ardor_pog3
   src/daisyfx/pog3/Pog3Parameters.cpp
   src/daisyfx/pog3/Pog3Processor.cpp
@@ -166,6 +168,7 @@ target_include_directories(ardor_pog3 PUBLIC
   ${neuralampmodelercore_SOURCE_DIR}/Dependencies
 )
 target_compile_features(ardor_pog3 PUBLIC cxx_std_20)
+target_compile_definitions(ardor_pog3 PUBLIC ARDOR_POG3_EXPERIMENTAL_FREEZE=$<BOOL:${ARDOR_POG3_EXPERIMENTAL_FREEZE}>)
 target_link_libraries(ardor_pog3 PUBLIC ardor_realtime_fft PRIVATE ardor_fftw_single Threads::Threads)
 
 add_library(ardor_daisyfx
@@ -518,7 +521,7 @@ add_executable(pedal-pog3-quality tests/pog3_quality.cpp)
 target_link_libraries(pedal-pog3-quality PRIVATE ardor_pog3 ardor_daisyfx_runtime)
 
 add_executable(pedal-pog3-bench tests/pog3_bench.cpp)
-target_link_libraries(pedal-pog3-bench PRIVATE ardor_pog3 ardor_daisyfx_runtime)
+target_link_libraries(pedal-pog3-bench PRIVATE ardor_pog3 ardor_daisyfx_runtime ardor_fftw_single)
 
 # FFTW allocates through C, outside the benchmark's C++ new counter. Verify
 # the complete prepared stream through a test-only libc interposer on glibc.
@@ -839,7 +842,9 @@ add_test(NAME pedal-pog3-low-chord-quality COMMAND pedal-pog3-pitch-quality --st
 add_test(NAME pedal-pog3-attack-quality COMMAND pedal-pog3-attack-quality)
 add_test(NAME pedal-pog3-voice-stages COMMAND pedal-pog3-voice-stages)
 add_test(NAME pedal-pog3-expression-quality COMMAND pedal-pog3-expression-quality)
-add_test(NAME pedal-pog3-freeze-quality COMMAND pedal-pog3-freeze-quality)
+if(ARDOR_POG3_EXPERIMENTAL_FREEZE)
+  add_test(NAME pedal-pog3-freeze-quality COMMAND pedal-pog3-freeze-quality)
+endif()
 if(TARGET pedal-pog3-malloc-probe)
   add_test(NAME pedal-pog3-realtime-allocation
     COMMAND ${CMAKE_COMMAND} -E env "LD_PRELOAD=$<TARGET_FILE:pedal-pog3-malloc-probe>"

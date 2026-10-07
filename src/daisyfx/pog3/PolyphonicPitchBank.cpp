@@ -435,11 +435,13 @@ void PolyphonicPitchBank::prepare() {
     shortFrames_[channel].prepare(shortPlan);
     lowAnalysis_[channel].prepare(lowPlan->spectral, channel == 1);
     lowFrames_[channel].prepare(lowPlan, 400);
-    for (auto& voice : longVoices_) voice[channel].prepare(longPlan, true);
+    for (auto& voice : longVoices_) voice[channel].prepare(longPlan, kExperimentalFreezeEnabled);
     for (auto& voice : shortVoices_) voice[channel].prepare(shortPlan);
   }
-  freeze_ = std::make_unique<SpectralFreeze>();
-  freeze_->setControls(freezeMode_, freezePosition_, freezeDry_);
+  if constexpr (kExperimentalFreezeEnabled) {
+    freeze_ = std::make_unique<SpectralFreeze>();
+    freeze_->setControls(freezeMode_, freezePosition_, freezeDry_);
+  }
   prepared_ = true;
   reset();
 }
@@ -478,8 +480,17 @@ bool PolyphonicPitchBank::setWarp(float normalized) noexcept {
   warpTarget_ = std::clamp(normalized, 0.0f, 1.0f);
   return true;
 }
+const SpectralFreeze& PolyphonicPitchBank::freeze() const noexcept {
+  // Diagnostic state for a build with no mutable freeze instance. Constant
+  // initialization avoids a first-use construction on the audio owner.
+  static constexpr SpectralFreeze inactive{};
+  return freeze_ ? *freeze_ : inactive;
+}
+
 bool PolyphonicPitchBank::setFreeze(ExpressionMode mode, float position, bool dryEligible) noexcept {
   if (!std::isfinite(position) || static_cast<int>(mode) < 0 || static_cast<int>(mode) > 6) return false;
+  if (!kExperimentalFreezeEnabled
+      && (mode == ExpressionMode::FreezeGliss || mode == ExpressionMode::FreezeVolume)) return false;
   freezeMode_ = mode; freezePosition_ = std::clamp(position, 0.0f, 1.0f); freezeDry_ = dryEligible;
   return !freeze_ || freeze_->setControls(mode, freezePosition_, dryEligible);
 }
@@ -557,7 +568,7 @@ PitchVoices PolyphonicPitchBank::process(PitchStereo input) noexcept {
     shortGains_ = attack_.update(shortFrames_[0], shortFrames_[1], 1, inputSamples_ - shortAge_);
     shortAttackReady_ = true;
   }
-  if (!freezeReady_ && longAttackReady_ && shortAttackReady_ && longAge_ >= 9) {
+  if (kExperimentalFreezeEnabled && !freezeReady_ && longAttackReady_ && shortAttackReady_ && longAge_ >= 9) {
     freeze_->update(longFrames_, shortFrames_, lowFrames_, longGains_, shortGains_, lowGains_, inputSamples_ - longAge_);
     freezeReady_ = true;
   }
@@ -575,8 +586,11 @@ PitchVoices PolyphonicPitchBank::process(PitchStereo input) noexcept {
     const auto voice = longJob_ / 2, channel = longJob_ % 2;
     if (!longVoices_[voice][channel].render(longFrames_[channel], kVoiceSemitones[voice] * frameWarp_, &lowFrames_[channel],
                                            256 - longAge_, &longGains_[channel], &lowGains_[channel], longAttackActive_,
-                                           &freeze_->band(0, channel), &freeze_->band(2, channel), freeze_->mix(voice), freeze_->gain(),
-                                           channel ? &longVoices_[voice][0] : nullptr)) healthy_ = false;
+                                           kExperimentalFreezeEnabled ? &freeze_->band(0, channel) : nullptr,
+                                           kExperimentalFreezeEnabled ? &freeze_->band(2, channel) : nullptr,
+                                           kExperimentalFreezeEnabled ? freeze_->mix(voice) : 0,
+                                           kExperimentalFreezeEnabled ? freeze_->gain() : 1,
+                                           kExperimentalFreezeEnabled && channel ? &longVoices_[voice][0] : nullptr)) healthy_ = false;
     ++transforms_; ++longJob_;
   }
   while (shortAttackReady_ && shortJob_ < 4 && 65 + shortJob_ * 16 <= shortAge_) {

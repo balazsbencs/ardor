@@ -27,6 +27,14 @@ inline constexpr float kSampleRate = 48000.0f;
 inline constexpr std::array<float, kVoiceCount> kVoiceSemitones{0, -24, -12, 7, 12, 24};
 
 enum class ExpressionMode { Off, Volume, Crossfade, Warp, Filter, FreezeGliss, FreezeVolume };
+// Freeze/gliss remains available for DSP experiments while CPU admission is open.
+// Reserved parameter indexes and normalized expression values stay stable.
+#if defined(ARDOR_POG3_EXPERIMENTAL_FREEZE) && ARDOR_POG3_EXPERIMENTAL_FREEZE
+inline constexpr bool kExperimentalFreezeEnabled = true;
+#else
+inline constexpr bool kExperimentalFreezeEnabled = false;
+#endif
+
 enum class Scale { Linear, Logarithmic, Attack, Pan, Choice };
 
 struct ParameterSpec {

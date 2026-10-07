@@ -1,0 +1,6 @@
+matched_enabled_preparation_bytes=2024808
+matched_disabled_preparation_bytes=1618560
+cpp_heap_reduction_bytes=406248
+immutable_inactive_descriptor_bytes=209640
+Target nm symbol: 0000000000140d50 00000000000332e8 r ardor::pog3::PolyphonicPitchBank::freeze() const::inactive
+FFTW complete storage and resident memory are not measured.

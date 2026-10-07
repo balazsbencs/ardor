@@ -1,0 +1,5 @@
+samples=384000
+bytes=1536000
+bit_exact_equal=true
+cmp_return_code=0
+sha256=f908b54b1501d2b02870782509c2809f4c4ae79b228d8c796cd731f375b05ab7

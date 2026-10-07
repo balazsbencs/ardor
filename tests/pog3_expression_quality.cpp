@@ -42,8 +42,18 @@ void publicationAndLifecycle() {
   const auto saved = p.targetValues();
   require(!p.setParameterTarget(33, .3f) && !p.setParameterTarget("mix", .3f), "unknown processor targets rejected");
   require(!p.setParameterTarget(32, std::numeric_limits<float>::quiet_NaN()), "nonfinite processor target rejected");
-  require(p.setParameterTarget("expression_mode", 5.0f / 6)
-          && p.setParameterTarget(28, 1), "freeze modes accepted by both setters");
+  require(p.setParameterTarget("expression_mode", 5.0f / 6) == kExperimentalFreezeEnabled
+          && p.setParameterTarget(28, 1) == kExperimentalFreezeEnabled,
+          "freeze setters reflect build availability");
+  if (!kExperimentalFreezeEnabled) {
+    require(p.targetValues() == saved, "unavailable mode setters retain all targets");
+    for (const float mode : {5.0f / 6, 1.0f}) {
+      std::string error;
+      require(!p.configure({{"expression_mode", mode}}, 48000, error) && !error.empty(),
+              "unavailable freeze configuration reports failure");
+      require(p.targetValues() == saved && p.healthy(), "unavailable configuration retains working processor");
+    }
+  }
   target(p, Parameter::ExpressionMode, saved[index(Parameter::ExpressionMode)]);
   std::string error;
   for (const auto& invalid : {nlohmann::json{{"filter_q", "bad"}},
