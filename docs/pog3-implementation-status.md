@@ -1655,6 +1655,41 @@ tables and outliers, memory-accounting limits, build/license details, profile
 and the detailed next CPU steps. Historical exact-WAV/scalar measurements above
 remain checkpoints; they are not claims about the new FFTW output.
 
+## Pitch-library and ERB-PS2 investigation (2026-10-06)
+
+An optional standalone trial now compares pinned Signalsmith Stretch 1.3.2,
+Rubber Band 4.0.0 and Ardor's existing Terrarium-derived filter/multirate code
+against the current FFTW pitch bank. Five/eight-path stereo workloads, static
+and moving Warp, 64/128 callbacks, separate C allocation/free observations and
+settled tone/chord/alias diagnostics expose CPU, buffering and fidelity tradeoffs.
+No dependency or renderer is added to the production build.
+
+Signalsmith's tested cheaper/larger-hop configurations reduce CPU but fail the
+tone-tuning screen; the short POG3-sized configuration also misses tuning and
+does not improve pitch-bank demand. Separate Rubber Band instances exceed the
+CPU goal before the remaining POG3 stages. Its variable-output adapters exhibit
+counted FIFO faults; the Live adapter avoids those faults but needs fixed-block
+buffering and remains too costly. These are scoped observations of the tested
+options/adapters, not claims about all implementations or future shared-analysis
+forks. The Terrarium reference has only three fixed octave outputs and reduced
+bandwidth, so its smaller cost is not full POG3 admission.
+
+The supplied ERB-PS2 thesis was retrieved in full and its technical/evaluation
+sections reviewed. Ardor's current Poly Octave mode already ports Terrarium,
+with 48 bands rather than upstream's 80; the thesis's exact constant-ERB setup
+is a distinct design. The next selected prototype reproduces its octave-up
+case, verifies filter coefficients and response, then evaluates shared analysis
+for the full ratio range. Fifth/Warp, alias suppression, independent Attack and
+freeze remain explicit extension work; a 43-band octave-up result alone would
+not replace POG3. The thesis's roughly 3 ms high-band response must not be
+reported as a bass/full-band latency guarantee or an embedded CPU measurement.
+
+See [the screening report](pog3-pitch-library-evaluation.md) for pinned inputs,
+measurement contracts, full results and reproduction, and
+[the ERB-PS2 prototype plan](pog3-erb-ps2-evaluation-plan.md) for implementation
+steps and the full-feature CPU gates. Production behavior is unchanged and M8
+remains blocked on admission.
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
