@@ -175,6 +175,13 @@ The ignored artifact directory retains CSVs, per-invocation logs and receipts:
 
 ## Next CPU experiment
 
+**Implemented continuation:** the
+[shared eight-path experiment](pog3-erb-shared-cpu-results.md) now measures both
+the original grid and extended coverage with accurate/table phase math. Its
+28.333–29.648% / 48.628–51.945% table-math costs miss the full CPU goal before
+Attack/freeze. The raw reference remains a control; lower phase-processing cost
+is the next gate rather than production integration.
+
 Follow the [multi-voice evaluation plan](pog3-erb-ps2-evaluation-plan.md): retain
 this raw reference as a control, share analysis/magnitude across the required
 voices, and measure the resulting full warm-path demand before production

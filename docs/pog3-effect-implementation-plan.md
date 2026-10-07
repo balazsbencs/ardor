@@ -15,6 +15,17 @@ Warp, Attack/freeze and full CPU admission remain open. See
 [the detailed measurements](pog3-erb-ps2-reference-results.md). Production DSP
 and public integration are unchanged.
 
+**Shared ERB CPU checkpoint:** the optional extension now renders all eight
+warm stereo paths with downward phase continuity, a true fifth and integrated
+Warp. Accurate and table-based math are tested on the original 43-band grid
+and an extended 69-band range. Table math has small measured output error but
+costs 28.333–29.648% / 48.628–51.945% on the limited/wide grids, already above
+the full 25% goal before Attack/freeze. Numerical, stereo/reset/partition and
+allocation checks pass; polyphonic gain/spur quality remains inadequate. The
+next CPU experiment must reduce phase work or use suitable multirate tiers.
+See [the measurements and continuation criteria](pog3-erb-shared-cpu-results.md).
+No production backend or public block is selected by this result.
+
 **M3 implementation update:** the implemented bank additionally uses shared N=4096/H=512 analysis below 400 Hz because the ordinary low-chord gate failed with two windows. Its 200–300 Hz reconstruction crossover uses the existing output IFFTs. Renderer jobs now use the explicit one-hop staging correction below. Main delays are 24/48 ms; a low-note octave envelope measured about 60/72 ms with Focus off/on. Family/attack and freeze work must include all three representations. The status document records current quality, CPU/memory results, remaining resolution limits, and the live-relative-phase caution for stationary freeze. These are measured implementation adaptations, not EHX hardware specifications.
 
 **M4 implementation update:** shared stereo families/residual partials now preserve old sustain while swelling new excitation, with low/long attack histories evaluated at each resolution's input timestamp. Processed unison uses resolved low partials when attack is active. Attack interpretation runs before staged render jobs, now completing at long age 251 and short age 112; N+H identity delay is unchanged. This first scorer requires directly supported fundamentals and keeps missing-fundamental material as residual partials. Four excitation epochs per partial have an explicit capacity fallback. See the status document for independence gates, host timing, memory, and remaining fidelity/admission limits. Filter AD remains the separate next milestone.

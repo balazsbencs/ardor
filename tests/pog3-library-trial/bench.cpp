@@ -5,6 +5,7 @@
 #include "rubberband/RubberBandStretcher.h"
 #include "rubberband/RubberBandLiveShifter.h"
 #include "erb_ps2_reference.h"
+#include "erb_shared_bank.h"
 
 #include <algorithm>
 #include <array>
@@ -31,7 +32,7 @@ using Outputs = std::array<Stereo, maxVoices>;
 float pitch(std::size_t voice, std::size_t count, float extent) {
   if (count == 5) return ardor::pog3::kVoiceSemitones[voice + 1] * extent;
   constexpr std::array<float, 8> semitones{0, -24, -12, 7, 12, 24, 12, 24};
-  return semitones[voice] * ((voice == 4 || voice == 5) ? 1 : extent);
+  return semitones[voice] * (voice >= 6 ? 1 : extent);
 }
 
 struct Processor {
@@ -266,7 +267,30 @@ struct ErbPs2 final : Processor {
   }
 };
 
+template<bool Wide, bool Lookup = false>
+struct ErbShared final : Processor {
+  pog3_trial::ErbSharedBank<Wide, Lookup> bank;
+  ErbShared() : Processor(8) {}
+  void reset() override { bank.reset(); faults = 0; }
+  void transpose(float extent) override { bank.setWarp(extent); }
+  void process(const Stereo& input, std::size_t n) override {
+    for (std::size_t i = 0; i < n; ++i) {
+      const auto y = bank.process({input[0][i], input[1][i]});
+      for (std::size_t v = 0; v < count; ++v) {
+        output[v][0][i] = y[v][0]; output[v][1][i] = y[v][1];
+      }
+    }
+  }
+};
+
 std::unique_ptr<Processor> create(const std::string& name, std::size_t voices) {
+  if (name == "erb-shared-43" || name == "erb-shared-wide" || name == "erb-shared-lut-43" || name == "erb-shared-lut-wide") {
+    if (voices != 8) throw std::runtime_error("shared ERB trial runs all 8 warm paths");
+    if (name == "erb-shared-lut-wide") return std::make_unique<ErbShared<true, true>>();
+    if (name == "erb-shared-lut-43") return std::make_unique<ErbShared<false, true>>();
+    if (name == "erb-shared-wide") return std::make_unique<ErbShared<true>>();
+    return std::make_unique<ErbShared<false>>();
+  }
   if (name == "erb-ps2") {
     if (voices != 1) throw std::runtime_error("ERB-PS2 reference is octave-up only");
     return std::make_unique<ErbPs2>();
