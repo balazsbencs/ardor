@@ -514,6 +514,10 @@ target_link_libraries(pedal-mod-effect-models PRIVATE ardor_daisyfx)
 add_executable(pedal-pitch-effect-quality tests/pitch_effect_quality.cpp)
 target_link_libraries(pedal-pitch-effect-quality PRIVATE ardor_daisyfx)
 
+add_executable(pedal-pog3-attack-birth-slots tests/pog3_attack_birth_slots.cpp)
+target_include_directories(pedal-pog3-attack-birth-slots PRIVATE src)
+target_compile_features(pedal-pog3-attack-birth-slots PRIVATE cxx_std_20)
+
 add_executable(pedal-pog3-controls tests/pog3_controls.cpp)
 target_link_libraries(pedal-pog3-controls PRIVATE ardor_pog3)
 
@@ -835,6 +839,7 @@ add_test(NAME pedal-mod-effect-controls COMMAND pedal-mod-effect-controls)
 add_test(NAME pedal-ph2-quality COMMAND pedal-ph2-quality)
 add_test(NAME pedal-mod-effect-models COMMAND pedal-mod-effect-models)
 add_test(NAME pedal-pitch-effect-quality COMMAND pedal-pitch-effect-quality)
+add_test(NAME pedal-pog3-attack-birth-slots COMMAND pedal-pog3-attack-birth-slots)
 add_test(NAME pedal-pog3-controls COMMAND pedal-pog3-controls)
 add_test(NAME pedal-pog3-quality COMMAND pedal-pog3-quality)
 add_test(NAME pedal-pog3-pitch-quality COMMAND pedal-pog3-pitch-quality)

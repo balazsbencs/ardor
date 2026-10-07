@@ -1,0 +1,1 @@
+Ordinary host/ARM profile and freeze switches OFF; actual Attack compile path is production source. Final root library/test targets rebuilt freeze OFF; 9 default/10 opt-in suites passed; final test list registers 9. Target ELF hashes unchanged across both rounds; service PID restored/read back and unique probe directory removed.

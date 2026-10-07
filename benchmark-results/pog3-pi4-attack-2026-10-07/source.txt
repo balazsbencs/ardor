@@ -1,0 +1,5 @@
+base=34bf267c533570aad65ab2106ef8d23a5e1b469d
+candidate=candidate.patch.gz applied to base
+freeze=OFF
+all profiling=OFF in ordinary baseline/candidate timing
+fixture=existing --freeze-matched disabled production mode; forward/reverse ABBA

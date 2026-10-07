@@ -1,0 +1,1 @@
+Ordinary baseline full-baseline SHA256 2653df8e801a8b522ff3b3fb946c592950a319571559d7a874239f7b04031227 equals the retained render-schedule full-candidate ELF. Attack, bank and all other production DSP source at 34bf267c are unchanged from that ELF.

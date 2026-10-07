@@ -34,6 +34,7 @@ void PolyphonicAttack::reset() noexcept {
   for (auto& resolution : bindings_) resolution = {};
   families_ = {};
   canonicalCounts_ = {};
+  birthSlots_.reset();
   generation_ = capacityEvents_ = 0;
 }
 
@@ -257,6 +258,8 @@ StereoAttackGains PolyphonicAttack::update(const PitchFrame& left, const PitchFr
     if (binding.source == value.generation[channel] && binding.generation
         && binding.generation == partials[binding.slot].generation) reserved_[binding.slot] = true;
   }
+  birthSlots_.reset();
+  bool birthSlotsReady = false;
   for (std::size_t p = 0; p < count; ++p) {
     const auto& value = observations_[p];
     std::size_t slot = partials.size();
@@ -268,12 +271,15 @@ StereoAttackGains PolyphonicAttack::update(const PitchFrame& left, const PitchFr
     }
     const bool birth = slot == partials.size();
     if (birth) {
-      std::int64_t oldest = std::numeric_limits<std::int64_t>::max();
-      for (std::size_t s = 0; s < partials.size(); ++s)
-        if (!used_[s] && !reserved_[s] && (!partials[s].generation || partials[s].seen < oldest)) {
-          slot = s; oldest = partials[s].seen;
-          if (!partials[s].generation) break;
-        }
+      if (!birthSlotsReady) {
+        // Surviving bindings are reserved before this loop. Other histories
+        // change only after selection, when their slot becomes used. Snapshot
+        // compact keys once; keep the original empty/oldest/index priority.
+        for (std::size_t s = 0; s < partials.size(); ++s)
+          if (!used_[s] && !reserved_[s]) birthSlots_.add(s, partials[s].generation, partials[s].seen);
+        birthSlotsReady = true;
+      }
+      slot = birthSlots_.take(used_);
       if (slot == partials.size()) { ++capacityEvents_; continue; }
       partials[slot] = {}; partials[slot].generation = ++generation_;
     }

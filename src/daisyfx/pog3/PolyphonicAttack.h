@@ -1,5 +1,7 @@
 #pragma once
 
+#include "daisyfx/pog3/AttackBirthSlots.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -60,6 +62,7 @@ private:
   std::array<Candidate, 64> candidates_{};
   std::array<bool, kMaxPitchPartials> used_{};
   std::array<bool, kMaxPitchPartials> reserved_{};
+  detail::AttackBirthSlots<kMaxPitchPartials> birthSlots_;
   std::array<bool, kMaxPitchPartials> rightUsed_{};
   std::array<FrequencyIndex, kMaxPitchPartials> rightFrequencies_{};
   // Only low/primary histories are canonical; short history never owns them.

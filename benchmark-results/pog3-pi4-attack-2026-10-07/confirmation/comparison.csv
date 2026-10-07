@@ -1,0 +1,7 @@
+workload,callback_frames,baseline_two_run_mean_us,candidate_two_run_mean_us,candidate_reduction_percent
+matched_freeze_off,128,2309.684500,2263.597000,1.995402
+matched_freeze_off,64,1153.469000,1133.167500,1.760039
+matched_granular_control,128,186.670000,186.733000,-0.033749
+matched_granular_control,64,93.440000,93.442000,-0.002140
+matched_spectral_control,128,550.801500,556.177000,-0.975941
+matched_spectral_control,64,274.840000,275.532500,-0.251965
