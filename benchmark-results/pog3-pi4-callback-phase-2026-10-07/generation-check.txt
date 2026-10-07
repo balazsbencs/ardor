@@ -1,0 +1,3 @@
+Retained generator reproduces every measured generated ARM source byte for byte.
+Normal ARM profile-OFF full benchmark rebuild equals immutable baseline byte for byte.
+Active full trace ASan/UBSan with leak checking exits zero (43,084 recorded events).

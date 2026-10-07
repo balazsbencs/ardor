@@ -1,0 +1,4 @@
+workload,callback_frames,callbacks,budget_us,median_us,p95_us,p99_us,p999_us,max_us,callback_allocations,preparation_allocated_bytes,reset_us,max_transforms_per_callback,worst_callback_index,worst_callback_end_mod_512,worst_callback_transforms,mean_us,over_budget_callbacks
+matched_events,mode=0,captures=0,targets=0
+phase_trace_events=43084
+matched_trace,samples=384000,experimental_freeze=0
