@@ -7,6 +7,13 @@ equal-tempered fifth and moving Warp. **The measured implementations do not
 meet the CPU goal**, before independent Attack, freeze, filter and space work.
 Production DSP is unchanged; M8 remains blocked on admission.
 
+**Implemented continuation:** the
+[counted-cadence CPU experiment](pog3-erb-cadence-cpu-results.md) subsequently
+reduces wide-bank demand to 20.879–21.694% using 32-sample endpoint reconstruction.
+The full-rate implementations below remain numerical/CPU controls. Required
+remaining features, callback tails and raw audio gates still prevent full
+admission; the next decision is their combined cost, not public integration.
+
 ## What is implemented
 
 `tests/pog3-library-trial/erb_shared_bank.h` adds two analysis ranges, each with

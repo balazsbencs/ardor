@@ -18,6 +18,9 @@ and [the shared multi-voice experiment plan](pog3-erb-ps2-evaluation-plan.md).
 The [implemented eight-path CPU checkpoint](pog3-erb-shared-cpu-results.md)
 now shows that full-rate shared phase voices, even with bounded table math,
 do not retain the single octave-up CPU advantage or meet full-block admission.
+The later [counted-cadence experiment](pog3-erb-cadence-cpu-results.md) reduces
+wide-bank demand to 20.879–21.694%; full required-stage cost and audio admission
+remain open.
 
 These observations apply to the pinned implementations, options and adapters
 below. They do not establish that every possible configuration or a fork sharing
