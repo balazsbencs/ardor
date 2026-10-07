@@ -1690,6 +1690,35 @@ measurement contracts, full results and reproduction, and
 steps and the full-feature CPU gates. Production behavior is unchanged and M8
 remains blocked on admission.
 
+## ERB-PS2 octave-up CPU reference (2026-10-07)
+
+The optional trial now implements the thesis's 43-band non-decimated octave-up
+grid and repeated positive-frequency pole transformation. Preparation is double
+precision; two float first-order sections share a stable rounded pole, with
+independent stereo histories and accurate double magnitude for +12 rendering.
+The analytic center-gain normalization is an explicit implementation choice;
+the author's Matlab gain code was unavailable.
+
+Two opposite-order host passes measure **3.062–3.121% of the callback period**
+for **one stereo +12 voice**, with no observed overruns and zero separately
+observed C callback allocation/free calls. Core storage is 3632 bytes, excluding
+adapter buffers and future feature histories. This is not full POG3 admission.
+The independent coefficient/complex impulse-transfer, stereo sustain/reset,
+strict warning and ASan+UBSan checks pass.
+
+The settled-tone tuning screen passes (+0.015750 cents), but the raw output
+loses roughly 12.7 dB and its -42.5943 dBc spur misses the <-45 dBc gate.
+Resolved-chord unwanted partials and close-low-pair gain imbalance remain.
+One high-frequency alias screen passes; full upward-ratio coverage is untested.
+No fixed scalar latency is claimed for the frequency-dependent filter response.
+
+See [the reference results](pog3-erb-ps2-reference-results.md) for equations,
+normalization, every retained timing row, raw audio metrics, artifact hashes and
+reproduction. The next CPU experiment is the shared multi-voice design in
+[the evaluation plan](pog3-erb-ps2-evaluation-plan.md), retaining this reference
+as a control. Full coverage, downward continuity, fifth/Warp, independent Attack
+and freeze remain extension work; production behavior and M8 are unchanged.
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in

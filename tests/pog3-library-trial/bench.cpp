@@ -4,6 +4,7 @@
 #include "signalsmith-stretch.h"
 #include "rubberband/RubberBandStretcher.h"
 #include "rubberband/RubberBandLiveShifter.h"
+#include "erb_ps2_reference.h"
 
 #include <algorithm>
 #include <array>
@@ -252,7 +253,24 @@ struct Terrarium final : Processor {
   }
 };
 
+struct ErbPs2 final : Processor {
+  pog3_trial::ErbPs2Reference reference;
+  ErbPs2() : Processor(1) {}
+  void reset() override { reference.reset(); faults = 0; }
+  void transpose(float) override {} // Octave-up only; no dynamic Warp claim.
+  void process(const Stereo& input, std::size_t n) override {
+    for (std::size_t i = 0; i < n; ++i) {
+      const auto y = reference.process({input[0][i], input[1][i]});
+      output[0][0][i] = y[0]; output[0][1][i] = y[1];
+    }
+  }
+};
+
 std::unique_ptr<Processor> create(const std::string& name, std::size_t voices) {
+  if (name == "erb-ps2") {
+    if (voices != 1) throw std::runtime_error("ERB-PS2 reference is octave-up only");
+    return std::make_unique<ErbPs2>();
+  }
   if (name == "terrarium-48" || name == "terrarium-80") {
     if (voices != 3) throw std::runtime_error("Terrarium reference has exactly 3 voices");
     return std::make_unique<Terrarium>(name == "terrarium-80" ? 80 : 48);
@@ -312,7 +330,7 @@ void quality(const std::string& name, std::size_t count, const std::string& kind
     }
     fft.transform(spectrum, false);
     constexpr std::array<float, 3> octavePitch{-24, -12, 12};
-    const double semitones = name.starts_with("terrarium-") ? octavePitch[v]
+    const double semitones = name == "erb-ps2" ? 12 : name.starts_with("terrarium-") ? octavePitch[v]
       : name == "ardor" ? ardor::pog3::kVoiceSemitones[v] : pitch(v, count, 1);
     const double ratio = std::exp2(semitones / 12);
     for (double f : frequencies) {
@@ -409,9 +427,11 @@ int main(int argc, char** argv) {
     if (argc < 5 || argc > 6) throw std::runtime_error("usage: trial backend voices callback static|dynamic|tone|resolved|low|alias [--allocation]");
     const std::string name = argv[1], kind = argv[4];
     const auto voices = std::stoul(argv[2]), callback = std::stoul(argv[3]);
-    if ((voices != 3 && voices != 5 && voices != 8) || (callback != 64 && callback != 128)) throw std::runtime_error("use 3/5/8 voices and 64/128 callbacks");
+    if ((voices != 1 && voices != 3 && voices != 5 && voices != 8) || (callback != 64 && callback != 128)) throw std::runtime_error("use 1/3/5/8 voices and 64/128 callbacks");
+    if (voices == 1 && name != "erb-ps2") throw std::runtime_error("1 voice is only for the ERB-PS2 reference");
     if (voices == 3 && !name.starts_with("terrarium-")) throw std::runtime_error("3 voices is only for the Terrarium reference");
     if (name.starts_with("terrarium-") && kind == "dynamic") throw std::runtime_error("Terrarium cannot implement continuous Warp");
+    if (name == "erb-ps2" && kind == "dynamic") throw std::runtime_error("ERB-PS2 reference is octave-up only");
     const bool probe = argc == 6 && std::string(argv[5]) == "--allocation";
     if (argc == 6 && !probe) throw std::runtime_error("unknown option");
     if (kind == "static" || kind == "dynamic") benchmark(name, voices, callback, kind == "dynamic", probe);

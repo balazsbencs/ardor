@@ -16,6 +16,7 @@ def main():
     parser.add_argument("--phase", choices=["timing", "allocation", "quality"], required=True)
     parser.add_argument("--probe", type=Path)
     parser.add_argument("--passes", type=int, choices=[1, 2], default=1)
+    parser.add_argument("--backends", nargs="+", choices=["ardor", "ss-default", "ss-cheap", "ss-pog3", "ss-balanced", "rb-r2", "rb-r3", "rb-live", "terrarium-48", "terrarium-80", "erb-ps2"])
     args = parser.parse_args()
     if args.phase == "allocation" and not args.probe:
         parser.error("allocation phase requires --probe")
@@ -36,6 +37,14 @@ def main():
         for kind in (["tone", "resolved", "low", "alias"] if args.phase == "quality" else ["static"]):
             for backend in ["terrarium-48", "terrarium-80"]:
                 cases.append((backend, 3, callback, kind))
+    # Preserve the original 64-row library screening unless this new reference
+    # is explicitly requested. Selected backends keep the same case contracts.
+    if args.backends:
+        if "erb-ps2" in args.backends:
+            for callback in ([128] if args.phase == "quality" else [64, 128]):
+                for kind in (["tone", "resolved", "low", "alias"] if args.phase == "quality" else ["static"]):
+                    cases.append(("erb-ps2", 1, callback, kind))
+        cases = [case for case in cases if case[0] in args.backends]
     receipts = []
     for pass_index in range(args.passes):
         order = cases if pass_index % 2 == 0 else list(reversed(cases))

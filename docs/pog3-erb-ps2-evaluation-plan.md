@@ -1,6 +1,9 @@
 # ERB-PS2 CPU prototype and POG3 applicability
 
-Updated 2026-10-07. This is the next DSP experiment, not a production backend
+Updated 2026-10-07. The isolated octave-up reference is implemented;
+[measured results and remaining audio limits](pog3-erb-ps2-reference-results.md)
+show 3.062–3.121% host demand for one stereo voice. The next CPU experiment is
+the shared multi-voice extension below. This is not a production backend
 selection. CPU feasibility remains the gate before public block integration.
 
 ## Evidence and scope
@@ -31,6 +34,12 @@ from the thesis specification. Neither implementation validates the exact
 ERB-PS2 design, the fifth, continuous Warp, +24, or independent-note Attack.
 
 ## Reference prototype: reproduce octave-up before extending it
+
+The published grid/pole transformation, fixed stereo storage, accurate magnitude,
+independent transfer/stereo/reset checks and static CPU/allocation screens are
+implemented. Raw gain/chord/spur screens expose failures. Sweeps, crossing tones,
+plucked transients, onset/decay and arbitrary callback partitions remain open;
+the reference checkpoint does not complete every gate in this section.
 
 1. Add an isolated test/reference processor alongside the optional library
    trial. Leave the current POG3 processor and the existing Poly Octave mode
