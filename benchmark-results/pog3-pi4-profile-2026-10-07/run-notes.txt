@@ -1,0 +1,8 @@
+Baseline DSP source: 42beeaf25e7635c5966434bc4153d6303c87019b
+Diagnostic build only: ARDOR_POG3_PROFILE=ON
+Scope copies generated before magnitude optimization.
+Compiler: Buildroot GCC 13.4.0, -O3 -DNDEBUG, FFTW 3.3.10 float NEON static
+CPU 2; unpaced SCHED_OTHER; full 14-row production benchmark.
+profile-full return_code=0, restored PID=3630; uninstrumented comparison is separate.
+Percentages are exclusive timer totals / sum of measured callback durations.
+No perf executable was present on device.

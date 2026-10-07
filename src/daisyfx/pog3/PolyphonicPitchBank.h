@@ -72,7 +72,7 @@ private:
   std::shared_ptr<const PitchPlan> plan_;
   std::vector<float> magnitude_;
   // Cartesian history has the same sample storage as phase + magnitude, but
-  // only detected peaks need the previous phase's atan2 and magnitude's hypot.
+  // only detected peaks need the previous phase's atan2 and magnitude.
   std::vector<std::complex<float>> previousSpectrum_;
   std::vector<PitchRegion> candidates_;
   std::array<PitchRegion, kMaxPitchPartials> regions_{};

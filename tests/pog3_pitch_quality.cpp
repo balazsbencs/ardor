@@ -1,6 +1,7 @@
 #include "daisyfx/pog3/PolyphonicPitchBank.h"
 
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -16,6 +17,49 @@ static_assert(!std::is_copy_constructible_v<ardor::pog3::PitchFrame>);
 static_assert(!std::is_copy_constructible_v<ardor::pog3::PolyphonicPitchBank>);
 constexpr double pi = 3.14159265358979323846;
 void require(bool condition, const char* message) { if (!condition) throw std::runtime_error(message); }
+void magnitudeRange() {
+  using namespace ardor::pog3;
+  auto plan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(64, 8));
+  PitchFrame frame;
+  frame.prepare(plan);
+  std::vector<std::complex<float>> spectrum(64);
+  std::size_t checked = 0;
+  const auto check = [&](float real, float imaginary) {
+    // Exercise the actual frame/peak path against the independent library norm.
+    spectrum[16] = {real, imaginary};
+    const float expected = std::abs(spectrum[16]);
+    frame.reset();
+    frame.update(spectrum);
+    if (!std::isfinite(expected)) {
+      require(frame.spectrum().empty(), "unrepresentable peak magnitude rejects frame");
+    } else {
+      require(!frame.spectrum().empty(), "finite magnitude retains frame across float range");
+      if (expected <= 1e-7f) require(frame.regions().empty(), "subthreshold magnitude remains silent");
+      else {
+        require(frame.regions().size() == 1 && frame.regions()[0].bin == 16,
+                "isolated peak survives magnitude calculation");
+        const auto a = std::bit_cast<std::uint32_t>(expected);
+        const auto b = std::bit_cast<std::uint32_t>(frame.regions()[0].magnitude);
+        require((a > b ? a - b : b - a) <= 1, "peak magnitude agrees within one float ulp");
+        frame.update(spectrum);
+        require(frame.regions().size() == 1 && frame.regions()[0].frequencyBins == 16,
+                "previous-frame magnitude retains stationary phase tracking");
+      }
+    }
+    ++checked;
+  };
+  for (const float value : {0.0f, std::numeric_limits<float>::denorm_min(), 1e-30f,
+                           1e-7f, .2f, 1e20f, std::numeric_limits<float>::max()}) {
+    check(value, 0); check(value, -value);
+  }
+  std::mt19937 generator(0x504f4733);
+  for (unsigned i = 0; i < 65536; ++i) {
+    const float real = std::bit_cast<float>(static_cast<std::uint32_t>(generator()));
+    const float imaginary = std::bit_cast<float>(static_cast<std::uint32_t>(generator()));
+    if (std::isfinite(real) && std::isfinite(imaginary)) check(real, imaginary);
+  }
+  std::cout << "Frame magnitude range: " << checked << " pairs passed\n";
+}
 double frequency(const std::vector<float>& signal, std::size_t skip) {
   double first = 0, last = 0;
   std::size_t count = 0;
@@ -409,11 +453,13 @@ void tones() {
 }
 int main(int argc, char** argv) {
   try {
+    if (argc == 2 && std::string_view(argv[1]) == "--magnitude-range") { magnitudeRange(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--stress") return stress() ? 0 : 1;
     if (argc == 2 && std::string_view(argv[1]) == "--resolution-stress") { resolutionStress(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--latency") { envelopeLatency(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--warp-onset") { warpTimeInvariance(); return 0; }
-    require(argc == 1, "usage: pedal-pog3-pitch-quality [--stress|--resolution-stress|--latency|--warp-onset]");
+    require(argc == 1, "usage: pedal-pog3-pitch-quality [--stress|--resolution-stress|--latency|--warp-onset|--magnitude-range]");
+    magnitudeRange();
     unity(); tones(); polyphony(); aliasing(); lifecycleAndFocus(); trackContinuity();
     stagedIdentityAndPartitioning(); warpAndOverload(); envelopeLatency(); warpTimeInvariance();
     std::cout << "Spectral pitch, Focus, staged deadlines, Warp and overload gates passed\n";

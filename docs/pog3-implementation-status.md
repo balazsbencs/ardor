@@ -1,6 +1,6 @@
 # Poly Octave 3 implementation status
 
-Updated: 2026-10-06. This records the implementation increments against
+Updated: 2026-10-07. This records the implementation increments against
 [the implementation plan](pog3-effect-implementation-plan.md). The parameter
 contract, audible granular comparison harness, and streaming spectral foundation
 are implemented, along with a spectral five-voice pitch bank, continuous Warp,
@@ -15,7 +15,8 @@ callback period, still above the 25% goal. The C++ preparation counter remains
 below 2 MiB but excludes FFTW internal storage; fuller memory admission is open.
 The first Pi 4 hardware comparison now measures 101.85–115.97% period demand
 for the full processor; the ERB hybrid is more expensive.
-CPU admission, target memory, combined-chain endurance, calibration/listening
+The latest magnitude optimization saves 1.04–1.47% on the Pi, leaving full-path
+demand at 100.57–113.53%. CPU admission, target memory, combined-chain endurance, calibration/listening
 and public integration remain open.
 There is no selectable `mod/pog3` entry yet.
 
@@ -1828,6 +1829,20 @@ See [hardware results, receipts and the next CPU work](pog3-pi4-cpu-results.md).
 The next step is target profiling and reducing average/burst work. Full-feature
 capacity, rather than the initial 25% planning target, still blocks M8.
 
+## Pi 4 magnitude optimization (2026-10-07)
+
+**Pi 4 optimization checkpoint:** the target frame-job profile attributes
+20–23% of full-workload time to FFT, 21–32% to live rendering and 14–18% each
+to interpretation/Attack; held rendering reaches 16% during freeze/gliss.
+An audio-range magnitude fast path with wide arithmetic for extreme values
+saves **1.04–1.47%** in a sequential, uninstrumented four-run comparison.
+All nine production DSP tests and ARM numerical checks pass. Full-path demand
+remains **100.57–113.53%**, and every full-path p99 still exceeds its period.
+This is a small optimization, not standalone or chain admission. The next
+candidate is a prepared real-input/Hermitian FFT path that preserves generic
+complex behavior, allocation/latency contracts and audio quality. See
+[the target profile, A/B evidence and implementation constraints](pog3-pi4-profile-results.md).
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
@@ -1838,8 +1853,10 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **target CPU profiling and optimization**. The first hardware
-comparison is complete: tested full-feature configurations exceed standalone
+The next work is **target CPU optimization**, starting with a real-input/Hermitian
+FFT experiment under the existing numerical/audio contract. The first target
+profile and magnitude optimization are complete; see the checkpoint above.
+The first hardware comparison is complete: tested full-feature configurations exceed standalone
 capacity at both buffer sizes. The initial 25% planning target is not a hard
 rejection threshold. Admission depends on target callback tails, the intended
 chain and thermal/xrun endurance after standalone headroom is demonstrated. **M8 — factory, catalog, inspector, scene
@@ -1851,8 +1868,9 @@ hold/routing tests do not satisfy target-device feasibility.
 The balanced analysis schedule and bounded Attack matching have earlier
 exact-output evidence; the shared granular read correction is separately
 reproduced and documented. FFTW uses the new numerical/audio contract described
-above. Its diagnostic profile identifies rendering, pitch-frame interpretation
-and Attack as the largest remaining average-demand costs.
+above. The Pi diagnostic profile attributes about 20–23% to FFT, 21–32% to live
+rendering, 14–18% each to interpretation and Attack, and up to 16% to held
+rendering. These are target instrumented attributions, not admission timings.
 Use the new mean alongside callback tails to evaluate the next optimization.
 Preserve input timestamps, control snapshots, complete-frame publication and
 Attack/freeze/render deadlines.

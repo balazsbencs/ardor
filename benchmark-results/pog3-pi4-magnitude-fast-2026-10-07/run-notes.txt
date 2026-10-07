@@ -1,0 +1,13 @@
+Baseline source: 42beeaf25e7635c5966434bc4153d6303c87019b
+Candidate arithmetic: candidate.patch; same benchmark source/toolchain/FFTW archive, profiling OFF.
+PolyphonicPitchBank.h later changes only its history comment; no additional arithmetic changes.
+GCC 13.4.0, -O3 -DNDEBUG; static single-precision NEON FFTW 3.3.10.
+Numerical checks completed before timing; no concurrent heavy probes on the device during final comparison.
+Sequential order baseline-1,candidate-1,candidate-2,baseline-2, all return 0.
+Runner exit 0; restored-service PID receipt 5518; external process check confirms same PID.
+CPU 2, SCHED_OTHER; sampled performance governor/1.5 GHz.
+Comparison reduction=1-mean(two candidate means)/mean(two baseline means); percentages of period use each row budget_us.
+All 56 aggregate timing rows retained; all C++ callback allocation counts zero.
+C/FFTW allocation evidence remains the host preload test; this does not measure target C allocation or complete memory.
+Offline capacity/percentiles are not ALSA xruns or a paced/full-chain endurance test.
+Run python3 summarize.py THIS_DIRECTORY to regenerate comparison.csv.
