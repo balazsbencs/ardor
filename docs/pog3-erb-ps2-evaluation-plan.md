@@ -10,6 +10,19 @@ admission. A subsequent [counted-cadence experiment](pog3-erb-cadence-cpu-result
 reduces wide-bank demand to 20.879–21.694% at 32 samples. That is still only
 the pitch bank; the next CPU decision must price required ownership, Attack,
 freeze, additional analysis and warm Focus behavior before full admission.
+
+**ERB Attack/freeze checkpoint:** the isolated hybrid now prices all three
+warm stereo spectral ownership paths, active Attack projected into the counted
+ERB bank, and actual freeze/gliss with eight held stereo paths. Overall host
+demand is 66.61–70.14%, rising to 82.23–87.09% during the middle held segment,
+with frequent callback overruns. Resolved-note and stationary freeze fixtures
+pass; close-note independence, raw pitch quality, live stereo phase and fade
+coherence remain open. No production renderer is replaced. See
+[the complete stage costs and DSP evidence](pog3-erb-attack-freeze-results.md).
+The user has clarified that 25% is a chain-budget planning target, not a hard
+usability limit. Compare the full FFTW processor and ERB hybrid on hardware now;
+actual callback deadlines, intended-chain margin and xruns determine admission.
+
 This is not a production backend selection. CPU feasibility remains the gate
 before public block integration.
 
@@ -141,7 +154,9 @@ estimating phase/magnitude and reanchoring output oscillators less often. The
 center-only shortcut fails off-band winding-count tests and is rejected.
 The 32-sample candidate costs 20.879–21.694% before required remaining work;
 it adds delay/interpolation error and retains raw polyphonic fidelity limits.
-Measure combined ownership/Attack/freeze/Focus cost next, then compare interval
+Combined ownership/Attack/freeze is now priced in the linked checkpoint; live
+Focus alignment and other full-block stages remain unpriced. Measure hardware
+next, then compare interval
 16/32 or band tiers on transient and alias coverage before choosing a backend.
 
 The single-voice cost must not be extrapolated to the full bank. Keep the
@@ -157,6 +172,7 @@ algebra can be evaluated alongside that work, but cannot stand in for Warp.
 Use ordinary Release flags, an immutable FFTW POG3 control, identical input and
 control timelines, and sequential opposite-order timing runs after builds and
 quality/allocation checks finish. Retain outliers. Adopt a backend only after
-full-path CPU meets the goal with acceptable tails and every required DSP
-behavior survives. Then verify AArch64 execution, complete memory footprint,
-combined-chain endurance and listening. Keep M8 blocked until admission.
+target full-path CPU meets actual deadlines with acceptable intended-chain
+margin and every required DSP behavior survives. The initial 25% target is a
+planning heuristic; AArch64 execution should be tested now. Complete memory
+footprint, combined-chain endurance and listening remain admission work. Keep M8 blocked until admission.

@@ -227,3 +227,17 @@ sweeps at intervals 16/32 or suitable band tiers, then resolve raw polyphonic
 gain/spur quality with realistic plucks/DI material. Low CPU and accurate settled
 tuning do not establish full POG3 behavior. No factory/catalog integration or
 production fallback is added by this checkpoint.
+
+## Subsequent Attack/freeze checkpoint
+
+**ERB Attack/freeze checkpoint:** the isolated hybrid now prices all three
+warm stereo spectral ownership paths, active Attack projected into the counted
+ERB bank, and actual freeze/gliss with eight held stereo paths. Overall host
+demand is 66.61–70.14%, rising to 82.23–87.09% during the middle held segment,
+with frequent callback overruns. Resolved-note and stationary freeze fixtures
+pass; close-note independence, raw pitch quality, live stereo phase and fade
+coherence remain open. No production renderer is replaced. See
+[the complete stage costs and DSP evidence](pog3-erb-attack-freeze-results.md).
+The user has clarified that 25% is a chain-budget planning target, not a hard
+usability limit. Compare the full FFTW processor and ERB hybrid on hardware now;
+actual callback deadlines, intended-chain margin and xruns determine admission.

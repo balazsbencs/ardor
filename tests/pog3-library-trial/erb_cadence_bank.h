@@ -167,6 +167,9 @@ class ErbCadenceBank {
 public:
   static constexpr std::size_t bandCount = 69, voiceCount = 8;
   using Frame = ErbSharedBank<true>::Frame;
+  // Channel/band/main-or-fixed-upper gain. Experimental ownership mapping.
+  using AttackGains = std::array<std::array<std::array<float, 2>, bandCount>, 2>;
+  const auto& design() const noexcept { return design_; }
   ErbCadenceBank() {
     const ErbSharedBank<true> prepared;
     design_ = prepared.design();
@@ -194,7 +197,8 @@ public:
     first_ = {}; second_ = {}; previous_ = {}; beforePrevious_ = {};
     for (auto& channel : voices_) for (auto& band : channel) band.reset();
   }
-  Frame process(std::array<float, 2> input) noexcept {
+  template<bool ApplyAttack = false>
+  Frame process(std::array<float, 2> input, const AttackGains* attack = nullptr) noexcept {
     Frame result{};
     for (std::size_t c = 0; c < 2; ++c) {
       const float difference = input[c] - beforePrevious_[c];
@@ -203,7 +207,10 @@ public:
         first_[c][k] = poles_[k] * first_[c][k] + numerators_[k] * difference;
         second_[c][k] = poles_[k] * second_[c][k] + first_[c][k];
         const auto samples = voices_[c][k].process(std::complex<double>(second_[c][k]), ratios_);
-        for (std::size_t v = 0; v < 8; ++v) result[v][c] += samples[v] * gains_[k][v];
+        for (std::size_t v = 0; v < 8; ++v) {
+          if constexpr (ApplyAttack) result[v][c] += samples[v] * gains_[k][v] * (*attack)[c][k][v >= 6];
+          else result[v][c] += samples[v] * gains_[k][v];
+        }
       }
     }
     return result;

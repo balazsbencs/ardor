@@ -53,3 +53,11 @@ add_test(NAME pog3-erb-shared-foundation COMMAND pog3-erb-shared-quality)
 add_executable(pog3-erb-cadence-quality erb_cadence_quality.cpp)
 target_compile_features(pog3-erb-cadence-quality PRIVATE cxx_std_20)
 add_test(NAME pog3-erb-cadence-foundation COMMAND pog3-erb-cadence-quality)
+
+add_executable(pog3-erb-attack-freeze-quality erb_attack_freeze_quality.cpp)
+target_compile_features(pog3-erb-attack-freeze-quality PRIVATE cxx_std_20)
+target_include_directories(pog3-erb-attack-freeze-quality PRIVATE ../../src "${ARDOR_JSON_INCLUDE_DIR}")
+target_link_libraries(pog3-erb-attack-freeze-quality PRIVATE
+  "${ARDOR_BUILD}/libardor_pog3.a" "${ARDOR_BUILD}/libardor_realtime_fft.a"
+  "${ARDOR_FFTW_LIBRARY}" Threads::Threads)
+add_test(NAME pog3-erb-attack-freeze-foundation COMMAND pog3-erb-attack-freeze-quality)
