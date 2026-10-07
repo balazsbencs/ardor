@@ -46,6 +46,11 @@ public:
   }
 
 private:
+  // Consecutive integer distances at one fractional phase share a short row.
+  // The final distance=16 coefficient sits after the 512 rows of 16 taps.
+  static constexpr std::size_t lobeIndex(std::size_t logical) noexcept {
+    return logical == 16 * kPhases ? logical : (logical % kPhases) * 16 + logical / kPhases;
+  }
   std::shared_ptr<const PitchInterpolation> interpolation_;
   std::array<float, 16 * kPhases + 1> hannLobe_{};
 };

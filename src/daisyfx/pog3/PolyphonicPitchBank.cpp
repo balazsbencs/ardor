@@ -56,7 +56,7 @@ PitchPlan::PitchPlan(std::shared_ptr<const SpectralPlan> spectralPlan,
   };
   for (std::size_t i = 0; i < hannLobe_.size(); ++i) {
     const double x = static_cast<double>(i) / kPhases;
-    hannLobe_[i] = static_cast<float>((.5 * dirichlet(x) + .25 * dirichlet(x - 1) + .25 * dirichlet(x + 1)) / n);
+    hannLobe_[lobeIndex(i)] = static_cast<float>((.5 * dirichlet(x) + .25 * dirichlet(x - 1) + .25 * dirichlet(x + 1)) / n);
   }
 }
 
@@ -65,7 +65,8 @@ float PitchPlan::lobe(float distance) const noexcept {
   const float position = std::fabs(distance) * kPhases;
   if (position >= hannLobe_.size() - 1) return 0;
   const auto i = static_cast<std::size_t>(position);
-  return hannLobe_[i] + (position - i) * (hannLobe_[i + 1] - hannLobe_[i]);
+  const float first = hannLobe_[lobeIndex(i)];
+  return first + (position - i) * (hannLobe_[lobeIndex(i + 1)] - first);
 }
 
 void PitchFrame::prepare(std::shared_ptr<const PitchPlan> plan, float frequencyCeiling) {

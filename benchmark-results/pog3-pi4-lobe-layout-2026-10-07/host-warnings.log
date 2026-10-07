@@ -1,0 +1,2 @@
+g++ -std=c++20 -O3 -Wall -Wextra -Wpedantic -Werror -fsyntax-only -Isrc -I/tmp/pog3-vector-fft/fftw-root/usr/include -I/home/bbalazs/projects/ardor/build-ci/_deps/neuralampmodelercore-src/Dependencies src/daisyfx/pog3/PolyphonicPitchBank.cpp tests/pog3_pitch_quality.cpp
+return_code=0

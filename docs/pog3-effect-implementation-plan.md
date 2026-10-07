@@ -83,9 +83,19 @@ full ARM pitch and FFT/stream checks pass; the synthesis sample oracle matches
 the public inverse. Generic complex/extreme arithmetic remains available.
 A separate target profile confirms aligned real-plan execution and attributes
 about 16–18% to FFT, 21–32% to live rendering and up to 18% to held rendering.
-Next, test Hann-lobe table locality/held rendering with unchanged coefficient
-bits, audio gates and a fresh target comparison. M8 remains blocked.
+The Hann-lobe layout experiment follows below; M8 remains blocked.
 See [the complete real FFT evidence and next experiment](pog3-real-fft-results.md).
+
+**Hann-lobe layout checkpoint:** the same 8,193 prepared coefficients now use
+phase-major storage with unchanged interpolation bits. All 393,258 historical
+lookup comparisons, nine production DSP tests, ASan/UBSan and full ARM pitch/
+foundation checks pass. A fresh Pi ABBA observes **1.18–2.90%** lower full-path
+mean time; freeze/gliss remains **103.26–103.90%**, and all full-path p99s exceed
+their periods. The uninvolved spectral identity control also varies, so this is
+an observed build comparison, not a pure cache-locality attribution. M8 remains
+blocked. Next, test skipping zero-amplitude held reconstruction after phase
+advancement, then repeat the target comparison.
+See [the layout evidence and constraints](pog3-lobe-layout-results.md).
 
 **M3 implementation update:** the implemented bank additionally uses shared N=4096/H=512 analysis below 400 Hz because the ordinary low-chord gate failed with two windows. Its 200–300 Hz reconstruction crossover uses the existing output IFFTs. Renderer jobs now use the explicit one-hop staging correction below. Main delays are 24/48 ms; a low-note octave envelope measured about 60/72 ms with Focus off/on. Family/attack and freeze work must include all three representations. The status document records current quality, CPU/memory results, remaining resolution limits, and the live-relative-phase caution for stationary freeze. These are measured implementation adaptations, not EHX hardware specifications.
 
