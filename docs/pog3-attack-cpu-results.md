@@ -182,6 +182,11 @@ readbacks pass. Probe files/float blobs are removed after retrieval.
 
 ## Next Attack work for Luna
 
+The deferred-gain step below was subsequently implemented and measured, then
+rejected for insufficient ordinary CPU benefit. Production birth-slot behavior
+remains as documented here. See
+[the gain experiment and current primary-interpretation next steps](pog3-attack-gain-results.md).
+
 Keep this birth-slot change and the current scheduling/batching as the baseline.
 The next small candidate is **avoid evaluating a partial gain that canonical
 matching immediately replaces**, before revisiting harmonic scoring.

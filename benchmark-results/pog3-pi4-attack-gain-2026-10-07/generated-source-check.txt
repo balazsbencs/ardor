@@ -1,0 +1,1 @@
+All six generated files reproduce for both baseline/rejected candidate and both coarse/detail modes from base 4de167c, the archived candidate patch, and retained generator snapshots.

@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+export TMPDIR=/home/bbalazs/.cache/ardor-pog3-device-build-20261007/compiler-tmp
+cmake -S /home/bbalazs/projects/ardor-pog3/tests/pog3-library-trial/device -B /tmp/ardor-pog3-device-build/gain-candidate-host -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-O3 -DARDOR_FFTW_INCLUDE_DIR=/tmp/pog3-vector-fft/fftw-root/usr/include -DARDOR_FFTW_LIBRARY=/usr/lib/x86_64-linux-gnu/libfftw3f.so.3 -DARDOR_JSON_INCLUDE_DIR=/home/bbalazs/projects/ardor/build-ci/_deps/neuralampmodelercore-src/Dependencies -DARDOR_POG3_PROFILE=OFF -DARDOR_POG3_CALLBACK_PROFILE=OFF -DARDOR_POG3_ATTACK_PROFILE_DETAILS=OFF -DARDOR_POG3_EXPERIMENTAL_FREEZE=OFF -DARDOR_POG3_ATTACK_PROFILE=OFF
+cmake --build /tmp/ardor-pog3-device-build/gain-candidate-host --target pog3-device-full -j2
+cmake -S /home/bbalazs/projects/ardor-pog3/tests/pog3-library-trial/device -B /tmp/ardor-pog3-device-build/gain-candidate-optin -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-O3 -DARDOR_FFTW_INCLUDE_DIR=/tmp/pog3-vector-fft/fftw-root/usr/include -DARDOR_FFTW_LIBRARY=/usr/lib/x86_64-linux-gnu/libfftw3f.so.3 -DARDOR_JSON_INCLUDE_DIR=/home/bbalazs/projects/ardor/build-ci/_deps/neuralampmodelercore-src/Dependencies -DARDOR_POG3_PROFILE=OFF -DARDOR_POG3_CALLBACK_PROFILE=OFF -DARDOR_POG3_ATTACK_PROFILE_DETAILS=OFF -DARDOR_POG3_EXPERIMENTAL_FREEZE=ON -DARDOR_POG3_ATTACK_PROFILE=OFF
+cmake --build /tmp/ardor-pog3-device-build/gain-candidate-optin --target device_pog3 -j2

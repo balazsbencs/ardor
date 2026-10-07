@@ -1,0 +1,1 @@
+2622 ordered Attack updates match both partitions and both builds; every omitted gain equals one canonical replacement. Sine-ramp counts are actual branches, not a timing estimate.

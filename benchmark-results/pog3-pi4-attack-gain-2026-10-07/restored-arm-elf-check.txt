@@ -1,0 +1,2 @@
+200257d03d52a5cbe786c0c4fbcc2c4e2696b007bd41e5dac55156daf3229258  /tmp/ardor-pog3-device-build/gain-baseline-arm/full-baseline
+200257d03d52a5cbe786c0c4fbcc2c4e2696b007bd41e5dac55156daf3229258  /tmp/ardor-pog3-device-build/gain-candidate-arm/pog3-device-full
