@@ -1,0 +1,7 @@
+live_samples=552960
+live_bytes=2211840
+live_bit_exact_equal=true
+full_samples=384000
+full_bytes=1536000
+full_bit_exact_equal=true
+Runner cmp gates and independent post-run cmp both return zero; hashes in trace-sha256.txt.

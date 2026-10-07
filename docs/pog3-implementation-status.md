@@ -9,12 +9,14 @@ Dry Attack router, separate filter AD, LP/BP/HP buses, detune/doubling,
 asymmetric Spread, voice pan, and the static sound path are now implemented.
 The prepared processor supports Off, Volume, Crossfade, Warp and Filter by
 default. Both freeze modes and their gliss/hysteresis/eligibility behavior remain
-implemented in an opt-in experimental build. The matched default core now
-averages 85.94–86.66% of a Pi callback period after inactive freeze work is
-removed and four-source accumulation is added; callback peaks still exceed
+implemented in an opt-in experimental build. The preceding matched default-core
+experiment observes 85.94–86.66% of a Pi callback period after inactive freeze
+work is removed and four-source accumulation is added; callback peaks still exceed
 deadlines. The batching comparison observes a modest 0.94–1.28% mean reduction,
-with smaller changes also present in uninvolved controls. The C++ preparation counter
-falls to 1618560 bytes in the matched fixture, excluding immutable diagnostic
+with smaller changes also present in uninvolved controls. A subsequent uniform
+two-source experiment is rejected: it is slower at 64 frames and has worse
+over-period counts at both sizes. Four-source batching remains in production.
+The C++ preparation counter falls to 1618560 bytes in the matched fixture, excluding immutable diagnostic
 storage and FFTW memory. CPU tails, complete memory/combined-chain endurance,
 calibration/listening and public integration remain open.
 There is no selectable `mod/pog3` entry yet.
@@ -1909,6 +1911,19 @@ baseline, so neither tail elimination nor live admission is established. Next,
 measure batch eligibility and try two-source coverage before schedule changes.
 See [the arithmetic, assembly and complete matched evidence](pog3-scatter-batch-results.md).
 
+**Two-source accumulation checkpoint:** the uniform pair prototype is rejected;
+four-source production code is retained. Exact host/Pi renderer/full-processor
+traces and all eight/nine default/opt-in DSP suites pass, but the fresh matched
+ABBA observes −0.731%/+0.516% mean reductions at 64/128 frames, with more
+over-period callbacks at both sizes. Uninvolved spectral controls also vary.
+Measured region geometry models 86.957%/62.648% of fractional interior sources
+batched at widths two/four, yet pairs perform about 6.11% more modeled interior
+destination accesses. The patch, diagnostic generator and complete receipts
+remain as experiment evidence. Next, try pairs only for leftovers after
+four-source batches, with exact output and matched device controls; then address
+clustered callback work. Neither uniform batching experiment establishes live
+admission. See [the rejected pair comparison and Luna next steps](pog3-scatter-pair-results.md).
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
@@ -1920,9 +1935,11 @@ admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
 The next work is **reduced-core memory-access optimization**, following the
-user's priority: measure four-source batch eligibility and try two-source
-coverage/pressure under exact output and matched-control checks. Then investigate
-clustered analysis/Attack/render work to reduce callback peaks under exact
+user's priority: keep four-source batching and evaluate pairs only for eligible
+leftovers. Uniform pair batching is rejected by the completed device comparison;
+its broader coverage performs more modeled interior accesses. Preserve exact
+output and matched-control checks. Then investigate clustered analysis/Attack/
+render work to reduce callback peaks under exact
 timestamp, control-snapshot and update-order checks.
 Matched planning controls and the freeze scope decision are complete. Both freeze
 modes remain opt-in experiments; restore them only after core CPU feasibility.
