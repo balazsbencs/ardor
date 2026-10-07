@@ -20,6 +20,7 @@ def main():
 namespace pog3_profile {
 struct Total { std::uint64_t calls=0, inclusive=0, exclusive=0; };
 inline thread_local std::array<Total,6> totals{};
+inline thread_local std::array<std::uint64_t,4> transforms{};
 struct Scope {
   static inline thread_local Scope* current=nullptr;
   Scope* parent; std::uint64_t child=0; unsigned id;
@@ -42,12 +43,26 @@ struct Scope {
     }
     for name, scopes in anchors.items():
         source = (root / "src/daisyfx/pog3" / name).read_text()
+        if name == "SpectralFrameStream.cpp":
+            anchor = "bool SpectralPlan::inverseForSynthesis(std::vector<std::complex<float>>& values) const noexcept {"
+            if anchor in source:
+                source = replace_once(source, anchor, anchor + "\n  pog3_profile::Scope profileScope(0);")
+            executions = [
+                ("fftwf_execute_dft(plan, data, data);", 0),
+                ("fftwf_execute_dft_r2c(aligned ? realForward : unalignedRealForward, packed, data);", 1),
+                ("fftwf_execute_dft_c2r(aligned ? realInverse : unalignedRealInverse, data, packed);", 2),
+            ]
+            for anchor, category in executions:
+                if anchor in source:
+                    source = replace_once(source, anchor,
+                        f"++pog3_profile::transforms[{category}];\n"
+                        "    if (!aligned) ++pog3_profile::transforms[3];\n    " + anchor)
         for anchor, category in scopes:
             source = replace_once(source, anchor, anchor + f"\n  pog3_profile::Scope profileScope({category});")
         (output / name).write_text('#include "profile_timer.h"\n' + source)
     source = (root / "tests/pog3_bench.cpp").read_text()
     anchor = "processor->reset();\n  std::vector<double> times"
-    source = replace_once(source, anchor, "processor->reset();\n  pog3_profile::totals = {};\n  std::vector<double> times")
+    source = replace_once(source, anchor, "processor->reset();\n  pog3_profile::totals = {};\n  pog3_profile::transforms = {};\n  std::vector<double> times")
     anchor = "  std::sort(times.begin(), times.end());"
     report = '''  const std::array<const char*,6> labels{"FFT","render_excluding_fft_and_held","frame_interpretation","Attack","freeze_update","held_render"};
   const double elapsed = meanUs * times.size();
@@ -57,6 +72,9 @@ struct Scope {
       << x.inclusive/1000.0 << ',' << x.exclusive/1000.0 << ','
       << 100.0*x.exclusive/1000.0/elapsed << '\\n';
   }
+  std::cerr << "FFT_dispatch," << name << ',' << callback;
+  for (const auto count : pog3_profile::transforms) std::cerr << ',' << count;
+  std::cerr << '\\n';
 '''
     source = replace_once(source, anchor, report + anchor)
     (output / "bench.cpp").write_text('#include "profile_timer.h"\n' + source)

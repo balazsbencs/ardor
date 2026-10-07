@@ -13,8 +13,10 @@
 namespace ardor::pog3 {
 
 // Immutable, shared by an analysis and all of its voice renderers. Construct
-// and destroy off the audio thread. FFTs use full complex workspaces, with
-// 1/N inverse gain. FFTW planning/destruction serialize; execution never locks.
+// and destroy off the audio thread. FFTs retain full complex workspaces, with
+// 1/N inverse gain. Real/Hermitian inputs use in-place real FFTW plans;
+// general complex input retains complex transforms. FFTW planning/destruction
+// serialize; execution never locks.
 class SpectralPlan {
 public:
   SpectralPlan(std::size_t frameSize, std::size_t hopSize);
@@ -25,6 +27,10 @@ public:
   void transform(std::vector<std::complex<float>>& values, bool inverse) const;
 
 private:
+  friend class SpectralSynthesis;
+  // Consumed synthesis scratch may stay packed after a real inverse; generic
+  // transform callers still receive the complete complex-vector representation.
+  bool inverseForSynthesis(std::vector<std::complex<float>>& values) const noexcept;
   // Only the three production resolutions use FFTW. Plans are immutable and
   // shared; each analysis/renderer supplies its own mutable execution buffer.
   struct FftwPlans;

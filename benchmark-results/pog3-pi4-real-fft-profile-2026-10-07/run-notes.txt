@@ -1,0 +1,7 @@
+Diagnostic final packed-synthesis profile, run after all uninstrumented timing.
+Same candidate DSP arithmetic, ARDOR_POG3_PROFILE=ON; generated source copies only.
+Nested exclusive scopes include public transform and inverseForSynthesis.
+FFT_dispatch columns: tag,workload,callback,complex,r2c,c2r,unaligned.
+Dispatch sums match FFT scope counts for all 14 workloads.
+Instrumented timings are not admission or optimization-gain evidence.
+Runner/probe return 0; service receipt and external verification agree.
