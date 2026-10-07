@@ -17,6 +17,53 @@ static_assert(!std::is_copy_constructible_v<ardor::pog3::PitchFrame>);
 static_assert(!std::is_copy_constructible_v<ardor::pog3::PolyphonicPitchBank>);
 constexpr double pi = 3.14159265358979323846;
 void require(bool condition, const char* message) { if (!condition) throw std::runtime_error(message); }
+void lobeLayout() {
+  using namespace ardor::pog3;
+  std::size_t checked = 0;
+  for (const std::size_t n : {1024, 2048, 4096}) {
+    PitchPlan plan(std::make_shared<SpectralPlan>(n, n / 8));
+    // Historical distance-major table and lookup: no knowledge of the new
+    // storage permutation. Exact comparisons include the interpolation seam.
+    std::array<float, 8193> reference{};
+    const double frameSize = n;
+    const auto dirichlet = [frameSize](double x) {
+      return std::fabs(x) < 1e-12 ? frameSize
+        : std::sin(pi * x) * std::cos(pi * x / frameSize) / std::sin(pi * x / frameSize);
+    };
+    for (std::size_t i = 0; i < reference.size(); ++i) {
+      const double x = static_cast<double>(i) / 512;
+      reference[i] = static_cast<float>((.5 * dirichlet(x) + .25 * dirichlet(x - 1)
+                                        + .25 * dirichlet(x + 1)) / frameSize);
+    }
+    const auto check = [&](float distance) {
+      float expected = 0;
+      if (std::isfinite(distance)) {
+        const float position = std::fabs(distance) * 512;
+        if (position < reference.size() - 1) {
+          const auto i = static_cast<std::size_t>(position);
+          expected = reference[i] + (position - i) * (reference[i + 1] - reference[i]);
+        }
+      }
+      require(std::bit_cast<std::uint32_t>(plan.lobe(distance)) == std::bit_cast<std::uint32_t>(expected),
+              "Hann lobe equals distance-major reference bit for bit");
+      ++checked;
+    };
+    for (std::size_t i = 0; i <= 8192; ++i) {
+      const float knot = static_cast<float>(i) / 512;
+      for (const float x : {knot, std::nextafter(knot, 0.0f),
+                            std::nextafter(knot, 17.0f), knot + .375f / 512}) {
+        check(x); check(-x);
+      }
+    }
+    std::mt19937 generator(0x4c4f4245);
+    std::uniform_real_distribution<float> distance(-17, 17);
+    for (unsigned i = 0; i < 65536; ++i) check(distance(generator));
+    for (const float x : {0.0f, -0.0f, std::numeric_limits<float>::denorm_min(),
+                          std::numeric_limits<float>::max(), std::numeric_limits<float>::infinity(),
+                          std::numeric_limits<float>::quiet_NaN()}) check(x);
+  }
+  std::cout << "Hann lobe layout: " << checked << " bit-exact lookups passed\n";
+}
 void magnitudeRange() {
   using namespace ardor::pog3;
   auto plan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(64, 8));
@@ -453,13 +500,14 @@ void tones() {
 }
 int main(int argc, char** argv) {
   try {
+    if (argc == 2 && std::string_view(argv[1]) == "--lobe-layout") { lobeLayout(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--magnitude-range") { magnitudeRange(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--stress") return stress() ? 0 : 1;
     if (argc == 2 && std::string_view(argv[1]) == "--resolution-stress") { resolutionStress(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--latency") { envelopeLatency(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--warp-onset") { warpTimeInvariance(); return 0; }
-    require(argc == 1, "usage: pedal-pog3-pitch-quality [--stress|--resolution-stress|--latency|--warp-onset|--magnitude-range]");
-    magnitudeRange();
+    require(argc == 1, "usage: pedal-pog3-pitch-quality [--stress|--resolution-stress|--latency|--warp-onset|--magnitude-range|--lobe-layout]");
+    lobeLayout(); magnitudeRange();
     unity(); tones(); polyphony(); aliasing(); lifecycleAndFocus(); trackContinuity();
     stagedIdentityAndPartitioning(); warpAndOverload(); envelopeLatency(); warpTimeInvariance();
     std::cout << "Spectral pitch, Focus, staged deadlines, Warp and overload gates passed\n";
