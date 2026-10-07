@@ -1,0 +1,155 @@
+Hann lobe layout: 393258 bit-exact lookups passed
+Frame magnitude range: 65064 pairs passed
+General pitch identity: -140.259 dB
+Focus=0 input=65.4 voice=1 cents=-0.00538038 spur=-76.5899 dBc amplitude=0.200495 original=-121.23 dBc
+Focus=0 input=65.4 voice=2 cents=-0.00257297 spur=-72.5202 dBc amplitude=0.199723 original=-108.7 dBc
+Focus=0 input=65.4 voice=3 cents=0.000772198 spur=-71.7836 dBc amplitude=0.199914 original=-111.897 dBc
+Focus=0 input=65.4 voice=4 cents=-0.000139269 spur=-63.2256 dBc amplitude=0.199994 original=-126.497 dBc
+Focus=0 input=65.4 voice=5 cents=0.000599327 spur=-63.9566 dBc amplitude=0.199972 original=-162.314 dBc
+Focus=0 input=82.4 voice=1 cents=-5.98775e-05 spur=-95.5006 dBc amplitude=0.200182 original=-134.28 dBc
+Focus=0 input=82.4 voice=2 cents=-2.85255e-05 spur=-92.8268 dBc amplitude=0.199784 original=-117.074 dBc
+Focus=0 input=82.4 voice=3 cents=-7.76954e-05 spur=-90.1083 dBc amplitude=0.200006 original=-113.263 dBc
+Focus=0 input=82.4 voice=4 cents=-0.000131553 spur=-89.7938 dBc amplitude=0.199998 original=-164.732 dBc
+Focus=0 input=82.4 voice=5 cents=-0.000131553 spur=-88.5154 dBc amplitude=0.200001 original=-178.348 dBc
+Focus=0 input=110 voice=1 cents=-0.000456582 spur=-84.8527 dBc amplitude=0.199907 original=-133.124 dBc
+Focus=0 input=110 voice=2 cents=0.000484707 spur=-85.1627 dBc amplitude=0.199947 original=-132.836 dBc
+Focus=0 input=110 voice=3 cents=0.000136144 spur=-84.609 dBc amplitude=0.199995 original=-143.777 dBc
+Focus=0 input=110 voice=4 cents=-3.85116e-05 spur=-75.9587 dBc amplitude=0.200001 original=-140.315 dBc
+Focus=0 input=110 voice=5 cents=-8.97581e-05 spur=-76.4909 dBc amplitude=0.199992 original=-170.528 dBc
+Focus=0 input=146.8 voice=1 cents=0.000130659 spur=-88.0873 dBc amplitude=0.200119 original=-150.539 dBc
+Focus=0 input=146.8 voice=2 cents=0.000130659 spur=-84.1763 dBc amplitude=0.199904 original=-133.206 dBc
+Focus=0 input=146.8 voice=3 cents=1.33578e-05 spur=-82.2254 dBc amplitude=0.200046 original=-131.079 dBc
+Focus=0 input=146.8 voice=4 cents=4.00065e-05 spur=-81.9242 dBc amplitude=0.20003 original=-155.64 dBc
+Focus=0 input=146.8 voice=5 cents=-1.92175e-07 spur=-78.3584 dBc amplitude=0.199982 original=-177.982 dBc
+Focus=0 input=196 voice=1 cents=3.48589e-05 spur=-98.3309 dBc amplitude=0.199892 original=-159.52 dBc
+Focus=0 input=196 voice=2 cents=8.81454e-05 spur=-94.5119 dBc amplitude=0.200026 original=-141.701 dBc
+Focus=0 input=196 voice=3 cents=-4.36359e-05 spur=-89.7877 dBc amplitude=0.200007 original=-154.159 dBc
+Focus=0 input=196 voice=4 cents=-6.62156e-05 spur=-89.577 dBc amplitude=0.199999 original=-159.229 dBc
+Focus=0 input=196 voice=5 cents=-3.30867e-05 spur=-86.3876 dBc amplitude=0.200002 original=-182.102 dBc
+Focus=0 input=329.6 voice=1 cents=0.000214425 spur=-102.427 dBc amplitude=0.199982 original=-159.2 dBc
+Focus=0 input=329.6 voice=2 cents=2.06178e-06 spur=-121.179 dBc amplitude=0.200002 original=-179.859 dBc
+Focus=0 input=329.6 voice=3 cents=8.84358e-05 spur=-119.739 dBc amplitude=0.200006 original=-153.34 dBc
+Focus=0 input=329.6 voice=4 cents=-7.66808e-05 spur=-99.0965 dBc amplitude=0.199998 original=-177.32 dBc
+Focus=0 input=329.6 voice=5 cents=-2.18922e-05 spur=-98.9385 dBc amplitude=0.200001 original=-183.848 dBc
+Focus=0 input=659.3 voice=1 cents=0.000179428 spur=-120.289 dBc amplitude=0.200013 original=-184.067 dBc
+Focus=0 input=659.3 voice=2 cents=0.00016458 spur=-125.677 dBc amplitude=0.200003 original=-174.218 dBc
+Focus=0 input=659.3 voice=3 cents=-9.97241e-05 spur=-137.324 dBc amplitude=0.200006 original=-167.767 dBc
+Focus=0 input=659.3 voice=4 cents=0.00015719 spur=-120.038 dBc amplitude=0.199999 original=-184.911 dBc
+Focus=0 input=659.3 voice=5 cents=-9.03523e-05 spur=-109.519 dBc amplitude=0.199995 original=-187.739 dBc
+Focus=0 input=196.257 voice=1 cents=0.000101733 spur=-99.9377 dBc amplitude=0.199985 original=-176.381 dBc
+Focus=0 input=196.257 voice=2 cents=0.000140836 spur=-94.8193 dBc amplitude=0.199997 original=-160.596 dBc
+Focus=0 input=196.257 voice=3 cents=-8.10293e-05 spur=-88.5145 dBc amplitude=0.200002 original=-135.98 dBc
+Focus=0 input=196.257 voice=4 cents=-3.20686e-05 spur=-90.2288 dBc amplitude=0.199997 original=-166.441 dBc
+Focus=0 input=196.257 voice=5 cents=-3.59348e-05 spur=-89.7289 dBc amplitude=0.199987 original=-181.627 dBc
+Focus=0 input=199.219 voice=1 cents=-9.17241e-05 spur=-98.1845 dBc amplitude=0.2 original=-188.393 dBc
+Focus=0 input=199.219 voice=2 cents=-2.90383e-05 spur=-92.5986 dBc amplitude=0.2 original=-182.826 dBc
+Focus=0 input=199.219 voice=3 cents=-2.28322e-05 spur=-92.215 dBc amplitude=0.2 original=-136.47 dBc
+Focus=0 input=199.219 voice=4 cents=-2.90383e-05 spur=-89.8259 dBc amplitude=0.2 original=-178.489 dBc
+Focus=0 input=199.219 voice=5 cents=5.80401e-05 spur=-149.849 dBc amplitude=0.2 original=-178.571 dBc
+Focus=0 input=210.938 voice=1 cents=9.43448e-05 spur=-92.9431 dBc amplitude=0.2 original=-185.96 dBc
+Focus=0 input=210.938 voice=2 cents=2.35862e-05 spur=-90.1848 dBc amplitude=0.199999 original=-178.763 dBc
+Focus=0 input=210.938 voice=3 cents=-2.50914e-05 spur=-90.1526 dBc amplitude=0.199997 original=-137.786 dBc
+Focus=0 input=210.938 voice=4 cents=-2.35023e-05 spur=-96.3269 dBc amplitude=0.199984 original=-176.244 dBc
+Focus=0 input=210.938 voice=5 cents=-9.4009e-05 spur=-95.576 dBc amplitude=0.199984 original=-174.24 dBc
+Focus=1 input=65.4 voice=1 cents=-0.00538038 spur=-76.5899 dBc amplitude=0.200495 original=-121.23 dBc
+Focus=1 input=65.4 voice=2 cents=-0.00257297 spur=-72.5202 dBc amplitude=0.199723 original=-108.7 dBc
+Focus=1 input=65.4 voice=3 cents=0.000772198 spur=-71.7836 dBc amplitude=0.199914 original=-111.897 dBc
+Focus=1 input=65.4 voice=4 cents=0.000217835 spur=-69.9641 dBc amplitude=0.199961 original=-125.963 dBc
+Focus=1 input=65.4 voice=5 cents=7.25493e-05 spur=-68.6049 dBc amplitude=0.200035 original=-159.233 dBc
+Focus=1 input=82.4 voice=1 cents=-5.98775e-05 spur=-95.5006 dBc amplitude=0.200182 original=-134.28 dBc
+Focus=1 input=82.4 voice=2 cents=-2.85255e-05 spur=-92.8268 dBc amplitude=0.199784 original=-117.074 dBc
+Focus=1 input=82.4 voice=3 cents=-7.76954e-05 spur=-90.1083 dBc amplitude=0.200006 original=-113.263 dBc
+Focus=1 input=82.4 voice=4 cents=9.59239e-06 spur=-93.3608 dBc amplitude=0.2 original=-165.323 dBc
+Focus=1 input=82.4 voice=5 cents=8.0165e-05 spur=-90.4406 dBc amplitude=0.199999 original=-179.478 dBc
+Focus=1 input=110 voice=1 cents=-0.000456582 spur=-84.8527 dBc amplitude=0.199907 original=-133.124 dBc
+Focus=1 input=110 voice=2 cents=0.000484707 spur=-85.1627 dBc amplitude=0.199947 original=-132.836 dBc
+Focus=1 input=110 voice=3 cents=0.000136144 spur=-84.609 dBc amplitude=0.199995 original=-143.777 dBc
+Focus=1 input=110 voice=4 cents=0.000102698 spur=-82.8685 dBc amplitude=0.19997 original=-140.506 dBc
+Focus=1 input=110 voice=5 cents=-1.92339e-05 spur=-79.4375 dBc amplitude=0.200009 original=-171.381 dBc
+Focus=1 input=146.8 voice=1 cents=0.000130659 spur=-88.0873 dBc amplitude=0.200119 original=-150.539 dBc
+Focus=1 input=146.8 voice=2 cents=0.000130659 spur=-84.1763 dBc amplitude=0.199904 original=-133.206 dBc
+Focus=1 input=146.8 voice=3 cents=1.33578e-05 spur=-82.2254 dBc amplitude=0.200046 original=-131.079 dBc
+Focus=1 input=146.8 voice=4 cents=0.000110595 spur=-85.1526 dBc amplitude=0.200024 original=-155.403 dBc
+Focus=1 input=146.8 voice=5 cents=3.01458e-05 spur=-81.8428 dBc amplitude=0.200003 original=-177.885 dBc
+Focus=1 input=196 voice=1 cents=3.48589e-05 spur=-98.3309 dBc amplitude=0.199892 original=-159.52 dBc
+Focus=1 input=196 voice=2 cents=8.81454e-05 spur=-94.5119 dBc amplitude=0.200026 original=-141.701 dBc
+Focus=1 input=196 voice=3 cents=-4.36359e-05 spur=-89.7877 dBc amplitude=0.200007 original=-154.159 dBc
+Focus=1 input=196 voice=4 cents=4.31841e-06 spur=-91.9543 dBc amplitude=0.199983 original=-159.173 dBc
+Focus=1 input=196 voice=5 cents=-0.000103576 spur=-87.8349 dBc amplitude=0.200002 original=-177.491 dBc
+Focus=1 input=329.6 voice=1 cents=0.000214425 spur=-102.427 dBc amplitude=0.199982 original=-159.2 dBc
+Focus=1 input=329.6 voice=2 cents=2.06178e-06 spur=-121.179 dBc amplitude=0.200002 original=-179.859 dBc
+Focus=1 input=329.6 voice=3 cents=8.84358e-05 spur=-119.739 dBc amplitude=0.200006 original=-153.34 dBc
+Focus=1 input=329.6 voice=4 cents=0.000119039 spur=-120.464 dBc amplitude=0.200002 original=-180.748 dBc
+Focus=1 input=329.6 voice=5 cents=-9.23577e-05 spur=-108.413 dBc amplitude=0.199994 original=-182.085 dBc
+Focus=1 input=659.3 voice=1 cents=0.000179428 spur=-120.289 dBc amplitude=0.200013 original=-184.067 dBc
+Focus=1 input=659.3 voice=2 cents=0.00016458 spur=-125.677 dBc amplitude=0.200003 original=-174.218 dBc
+Focus=1 input=659.3 voice=3 cents=-9.97241e-05 spur=-137.324 dBc amplitude=0.200006 original=-167.767 dBc
+Focus=1 input=659.3 voice=4 cents=-5.42387e-05 spur=-116.323 dBc amplitude=0.200004 original=-180.923 dBc
+Focus=1 input=659.3 voice=5 cents=-5.60027e-05 spur=-103.584 dBc amplitude=0.199987 original=-182.79 dBc
+Focus=1 input=196.257 voice=1 cents=0.000101733 spur=-99.9377 dBc amplitude=0.199985 original=-176.381 dBc
+Focus=1 input=196.257 voice=2 cents=0.000140836 spur=-94.8193 dBc amplitude=0.199997 original=-160.596 dBc
+Focus=1 input=196.257 voice=3 cents=-8.10293e-05 spur=-88.5145 dBc amplitude=0.200002 original=-135.98 dBc
+Focus=1 input=196.257 voice=4 cents=-3.20686e-05 spur=-92.5237 dBc amplitude=0.199991 original=-166.016 dBc
+Focus=1 input=196.257 voice=5 cents=0.00017554 spur=-89.8111 dBc amplitude=0.199987 original=-181.514 dBc
+Focus=1 input=199.219 voice=1 cents=-9.17241e-05 spur=-98.1845 dBc amplitude=0.2 original=-188.393 dBc
+Focus=1 input=199.219 voice=2 cents=-2.90383e-05 spur=-92.5986 dBc amplitude=0.2 original=-182.826 dBc
+Focus=1 input=199.219 voice=3 cents=-2.28322e-05 spur=-92.215 dBc amplitude=0.2 original=-136.47 dBc
+Focus=1 input=199.219 voice=4 cents=4.14833e-05 spur=-149.079 dBc amplitude=0.2 original=-184.444 dBc
+Focus=1 input=199.219 voice=5 cents=-1.24372e-05 spur=-150.087 dBc amplitude=0.2 original=-176.913 dBc
+Focus=1 input=210.938 voice=1 cents=9.43448e-05 spur=-92.9431 dBc amplitude=0.2 original=-185.96 dBc
+Focus=1 input=210.938 voice=2 cents=2.35862e-05 spur=-90.1848 dBc amplitude=0.199999 original=-178.763 dBc
+Focus=1 input=210.938 voice=3 cents=-2.50914e-05 spur=-90.1526 dBc amplitude=0.199997 original=-137.786 dBc
+Focus=1 input=210.938 voice=4 cents=-9.4009e-05 spur=-142.539 dBc amplitude=0.2 original=-178.571 dBc
+Focus=1 input=210.938 voice=5 cents=-0.000125271 spur=-145.566 dBc amplitude=0.2 original=-179.894 dBc
+Resolved chord Focus=0 voice=1 input=196 level=5.22532e-06 dB
+Resolved chord Focus=0 voice=1 input=329.628 level=-0.000876635 dB
+Resolved chord Focus=0 voice=1 input=493.883 level=-0.000300364 dB
+Resolved chord Focus=0 voice=1 input=733.31 level=-0.000851846 dB
+Resolved chord Focus=0 voice=2 input=196 level=1.31957e-06 dB
+Resolved chord Focus=0 voice=2 input=329.628 level=-8.06746e-05 dB
+Resolved chord Focus=0 voice=2 input=493.883 level=-0.000823526 dB
+Resolved chord Focus=0 voice=2 input=733.31 level=-0.000708956 dB
+Resolved chord Focus=0 voice=3 input=196 level=5.9861e-07 dB
+Resolved chord Focus=0 voice=3 input=329.628 level=-6.91028e-05 dB
+Resolved chord Focus=0 voice=3 input=493.883 level=-0.000832663 dB
+Resolved chord Focus=0 voice=3 input=733.31 level=-0.000795008 dB
+Resolved chord Focus=0 voice=4 input=196 level=-1.02449e-05 dB
+Resolved chord Focus=0 voice=4 input=329.628 level=-0.000890476 dB
+Resolved chord Focus=0 voice=4 input=493.883 level=-0.13887 dB
+Resolved chord Focus=0 voice=4 input=733.31 level=-0.00290957 dB
+Resolved chord Focus=0 voice=5 input=196 level=-2.44739e-07 dB
+Resolved chord Focus=0 voice=5 input=329.628 level=-0.012644 dB
+Resolved chord Focus=0 voice=5 input=493.883 level=-0.139788 dB
+Resolved chord Focus=0 voice=5 input=733.31 level=-0.00263795 dB
+Resolved chord Focus=1 voice=1 input=196 level=5.22532e-06 dB
+Resolved chord Focus=1 voice=1 input=329.628 level=-0.000876635 dB
+Resolved chord Focus=1 voice=1 input=493.883 level=-0.000300364 dB
+Resolved chord Focus=1 voice=1 input=733.31 level=-0.000851846 dB
+Resolved chord Focus=1 voice=2 input=196 level=1.31957e-06 dB
+Resolved chord Focus=1 voice=2 input=329.628 level=-8.06746e-05 dB
+Resolved chord Focus=1 voice=2 input=493.883 level=-0.000823526 dB
+Resolved chord Focus=1 voice=2 input=733.31 level=-0.000708956 dB
+Resolved chord Focus=1 voice=3 input=196 level=5.9861e-07 dB
+Resolved chord Focus=1 voice=3 input=329.628 level=-6.91028e-05 dB
+Resolved chord Focus=1 voice=3 input=493.883 level=-0.000832663 dB
+Resolved chord Focus=1 voice=3 input=733.31 level=-0.000795008 dB
+Resolved chord Focus=1 voice=4 input=196 level=4.23787e-07 dB
+Resolved chord Focus=1 voice=4 input=329.628 level=-0.000121296 dB
+Resolved chord Focus=1 voice=4 input=493.883 level=-6.34027e-05 dB
+Resolved chord Focus=1 voice=4 input=733.31 level=-0.000560778 dB
+Resolved chord Focus=1 voice=5 input=196 level=8.85521e-07 dB
+Resolved chord Focus=1 voice=5 input=329.628 level=-0.000528672 dB
+Resolved chord Focus=1 voice=5 input=493.883 level=-0.000369 dB
+Resolved chord Focus=1 voice=5 input=733.31 level=-0.000192142 dB
+Alias rejection input=7001.3 Focus=0: -163.077 dB
+Alias rejection input=7001.3 Focus=1: -164.44 dB
+Alias rejection input=10003.7 Focus=0: -165.951 dB
+Alias rejection input=10003.7 Focus=1: -167.75 dB
+Alias rejection input=17003.2 Focus=0: -164.93 dB
+Alias rejection input=17003.2 Focus=1: -166.873 dB
+Envelope energy centroid input=82.4 Focus=0 delay=60.0215 ms
+Envelope energy centroid input=82.4 Focus=1 delay=72.0059 ms
+Envelope energy centroid input=659.3 Focus=0 delay=24.0096 ms
+Envelope energy centroid input=659.3 Focus=1 delay=48.0009 ms
+Warp onset elapsed-time invariance maximum error=0
+Spectral pitch, Focus, staged deadlines, Warp and overload gates passed

@@ -97,6 +97,18 @@ blocked. Next, test skipping zero-amplitude held reconstruction after phase
 advancement, then repeat the target comparison.
 See [the layout evidence and constraints](pog3-lobe-layout-results.md).
 
+**Silent held reconstruction checkpoint:** exactly-zero held amplitudes now
+skip carrier/lobe reconstruction after advancing phase. Both host and Pi
+before/after traces match bit for bit across 1,376,256 samples; all nine DSP tests
+and the full ARM pitch suite pass. A fresh ABBA observes 0.87–1.18% lower
+freeze/gliss mean time, with similarly sized variation in some uninvolved paths.
+Final freeze/gliss demand remains **102.44–103.15%** and every full-path p99 is
+over period; M8 stays blocked. A subsequent profile attributes about 21–31% to
+live rendering, 16–18% each to FFT/interpretation/Attack and up to 16% to held
+rendering. Next, improve matched-plan comparison controls and prototype batched
+lobe/live accumulation work under the existing DSP contract.
+See [the complete held CPU evidence and next experiments](pog3-held-zero-results.md).
+
 **M3 implementation update:** the implemented bank additionally uses shared N=4096/H=512 analysis below 400 Hz because the ordinary low-chord gate failed with two windows. Its 200–300 Hz reconstruction crossover uses the existing output IFFTs. Renderer jobs now use the explicit one-hop staging correction below. Main delays are 24/48 ms; a low-note octave envelope measured about 60/72 ms with Focus off/on. Family/attack and freeze work must include all three representations. The status document records current quality, CPU/memory results, remaining resolution limits, and the live-relative-phase caution for stationary freeze. These are measured implementation adaptations, not EHX hardware specifications.
 
 **M4 implementation update:** shared stereo families/residual partials now preserve old sustain while swelling new excitation, with low/long attack histories evaluated at each resolution's input timestamp. Processed unison uses resolved low partials when attack is active. Attack interpretation runs before staged render jobs, now completing at long age 251 and short age 112; N+H identity delay is unchanged. This first scorer requires directly supported fundamentals and keeps missing-fundamental material as residual partials. Four excitation epochs per partial have an explicit capacity fallback. See the status document for independence gates, host timing, memory, and remaining fidelity/admission limits. Filter AD remains the separate next milestone.

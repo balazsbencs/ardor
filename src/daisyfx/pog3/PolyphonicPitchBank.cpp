@@ -403,6 +403,9 @@ void PitchRenderer::renderHeld(const FrozenBand& band, bool low, float ratio, fl
     const float edge = std::clamp((half - destination - 2) / 6, 0.0f, 1.0f);
     const float weight = low ? 1 - highWeight(p.frequency) : highWeight(p.frequency);
     const float amplitude = p.magnitude * weight * gain * (ratio == 1 ? 1 : edge * edge * (3 - 2 * edge));
+    // Silent crossover/gliss slots still advance phase above, so they re-enter
+    // the audible band on the same timeline without reconstructing zero lobes.
+    if (amplitude == 0) continue;
     const std::complex<float> carrier{static_cast<float>(std::cos(phase.phase)) * amplitude,
                                       static_cast<float>(std::sin(phase.phase)) * amplitude};
     const int first = static_cast<int>(std::floor(destination)) - 16;
