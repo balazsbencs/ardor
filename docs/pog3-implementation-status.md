@@ -15,8 +15,9 @@ callback period, still above the 25% goal. The C++ preparation counter remains
 below 2 MiB but excludes FFTW internal storage; fuller memory admission is open.
 The first Pi 4 hardware comparison now measures 101.85–115.97% period demand
 for the full processor; the ERB hybrid is more expensive.
-The latest magnitude optimization saves 1.04–1.47% on the Pi, leaving full-path
-demand at 100.57–113.53%. CPU admission, target memory, combined-chain endurance, calibration/listening
+The latest real FFT/packed-synthesis optimization saves 5.83–7.48% on the Pi.
+Static/expression mean demand is below one period; freeze/gliss still requires
+105.67–107.34%, and full-path callback tails remain over budget. CPU admission, target memory, combined-chain endurance, calibration/listening
 and public integration remain open.
 There is no selectable `mod/pog3` entry yet.
 
@@ -1843,6 +1844,21 @@ candidate is a prepared real-input/Hermitian FFT path that preserves generic
 complex behavior, allocation/latency contracts and audio quality. See
 [the target profile, A/B evidence and implementation constraints](pog3-pi4-profile-results.md).
 
+## Real FFT optimization (2026-10-07)
+
+**Real FFT checkpoint:** prepared real-input/Hermitian FFTW plans and direct
+packed-output synthesis now reduce full-path Pi mean time by **5.83–7.48%**
+against the magnitude-optimized baseline. Static/expression average demand is
+93.18–97.53%; freeze/gliss remains **105.67–107.34%**. All full-path p99s still
+exceed their periods. All nine production DSP tests, foundation ASan+UBSan,
+full ARM pitch and FFT/stream checks pass; the synthesis sample oracle matches
+the public inverse. Generic complex/extreme arithmetic remains available.
+A separate target profile confirms aligned real-plan execution and attributes
+about 16–18% to FFT, 21–32% to live rendering and up to 18% to held rendering.
+Next, test Hann-lobe table locality/held rendering with unchanged coefficient
+bits, audio gates and a fresh target comparison. M8 remains blocked.
+See [the complete real FFT evidence and next experiment](pog3-real-fft-results.md).
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
@@ -1853,9 +1869,9 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **target CPU optimization**, starting with a real-input/Hermitian
-FFT experiment under the existing numerical/audio contract. The first target
-profile and magnitude optimization are complete; see the checkpoint above.
+The next work is **target CPU optimization**, starting with Hann-lobe table
+locality and held rendering under the existing numerical/audio contract. The
+real FFT/packed-synthesis experiment is complete; see the latest checkpoint above.
 The first hardware comparison is complete: tested full-feature configurations exceed standalone
 capacity at both buffer sizes. The initial 25% planning target is not a hard
 rejection threshold. Admission depends on target callback tails, the intended

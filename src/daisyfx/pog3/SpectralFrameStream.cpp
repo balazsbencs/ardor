@@ -24,9 +24,16 @@ std::mutex& fftwPlannerMutex() {
 struct SpectralPlan::FftwPlans {
   fftwf_plan forward = nullptr, inverse = nullptr;
   fftwf_plan unalignedForward = nullptr, unalignedInverse = nullptr;
+  fftwf_plan realForward = nullptr, realInverse = nullptr;
+  fftwf_plan unalignedRealForward = nullptr, unalignedRealInverse = nullptr;
   int alignment = 0;
+  float realLimit = 0;
 
   explicit FftwPlans(std::size_t n) {
+    // Real codelets can double intermediates that the complex plan does not.
+    // Keep generous headroom for all stages; extreme generic inputs retain
+    // their original complex arithmetic rather than changing overflow behavior.
+    realLimit = std::numeric_limits<float>::max() / (2.0f * n);
     // Planning may overwrite its input. Ordinary vector storage also gives
     // the planner the alignment used by our analysis/renderer workspaces.
     std::vector<std::complex<float>> dummy(n);
@@ -46,7 +53,17 @@ struct SpectralPlan::FftwPlans {
                                         FFTW_ESTIMATE | FFTW_UNALIGNED | FFTW_NO_BUFFERING);
     unalignedInverse = fftwf_plan_dft_1d(static_cast<int>(n), data, data, FFTW_BACKWARD,
                                         FFTW_ESTIMATE | FFTW_UNALIGNED | FFTW_NO_BUFFERING);
-    if (!forward || !inverse || !unalignedForward || !unalignedInverse) {
+    // The N complex workspace has 2N floats: enough for the N+2 padding of
+    // an even-sized in-place real transform. Keep complex plans for general
+    // inputs; no shared mutable execution scratch is added to the plan.
+    auto* realData = reinterpret_cast<float*>(dummy.data());
+    realForward = fftwf_plan_dft_r2c_1d(static_cast<int>(n), realData, data, flags);
+    realInverse = fftwf_plan_dft_c2r_1d(static_cast<int>(n), data, realData, flags);
+    constexpr unsigned unalignedFlags = FFTW_ESTIMATE | FFTW_UNALIGNED | FFTW_NO_BUFFERING;
+    unalignedRealForward = fftwf_plan_dft_r2c_1d(static_cast<int>(n), realData, data, unalignedFlags);
+    unalignedRealInverse = fftwf_plan_dft_c2r_1d(static_cast<int>(n), data, realData, unalignedFlags);
+    if (!forward || !inverse || !unalignedForward || !unalignedInverse
+        || !realForward || !realInverse || !unalignedRealForward || !unalignedRealInverse) {
       destroy();
       throw std::runtime_error("POG3 FFTW planning failed");
     }
@@ -59,15 +76,49 @@ struct SpectralPlan::FftwPlans {
   FftwPlans& operator=(const FftwPlans&) = delete;
 
   void destroy() noexcept {
-    for (auto plan : {forward, inverse, unalignedForward, unalignedInverse})
+    for (auto plan : {forward, inverse, unalignedForward, unalignedInverse,
+                      realForward, realInverse, unalignedRealForward, unalignedRealInverse})
       if (plan) fftwf_destroy_plan(plan);
     // Never call fftwf_cleanup(): it invalidates other live plans.
   }
-  void execute(std::vector<std::complex<float>>& values, bool backwards) const noexcept {
+  bool execute(std::vector<std::complex<float>>& values, bool backwards,
+               bool packedInverse = false) const noexcept {
     auto* data = reinterpret_cast<fftwf_complex*>(values.data());
     // FFTW 3.3.10 alignment_of is pure address arithmetic (kernel/align.c),
     // with no planner state, allocation or synchronization.
     const bool aligned = fftwf_alignment_of(reinterpret_cast<float*>(values.data())) == alignment;
+    const auto n = values.size(), half = n / 2;
+    bool real = true;
+    if (backwards) {
+      real = values[0].imag() == 0 && values[half].imag() == 0
+        && std::fabs(values[0].real()) <= realLimit && std::fabs(values[half].real()) <= realLimit;
+      for (std::size_t k = 1; real && k < half; ++k)
+        real = values[n - k] == std::conj(values[k])
+          && std::fabs(values[k].real()) <= realLimit && std::fabs(values[k].imag()) <= realLimit;
+    } else {
+      for (const auto value : values)
+        if (value.imag() != 0 || !(std::fabs(value.real()) <= realLimit)) { real = false; break; }
+    }
+    if (real) {
+      auto* packed = reinterpret_cast<float*>(values.data());
+      if (backwards) {
+        fftwf_execute_dft_c2r(aligned ? realInverse : unalignedRealInverse, data, packed);
+        const float scale = 1.0f / static_cast<float>(n);
+        if (packedInverse) {
+          for (std::size_t i = 0; i < n; ++i) packed[i] *= scale;
+          return true;
+        }
+        // Descending expansion does not overwrite unread packed output.
+        for (std::size_t i = n; i-- > 0;) values[i] = {packed[i] * scale, 0};
+      } else {
+        // Ascending packing consumes each complex real component before a
+        // later packed write can overlap it. FFTW writes N/2+1 complex bins.
+        for (std::size_t i = 0; i < n; ++i) packed[i] = values[i].real();
+        fftwf_execute_dft_r2c(aligned ? realForward : unalignedRealForward, packed, data);
+        for (std::size_t k = 1; k < half; ++k) values[n - k] = std::conj(values[k]);
+      }
+      return false;
+    }
     const auto plan = backwards ? (aligned ? inverse : unalignedInverse)
                                 : (aligned ? forward : unalignedForward);
     fftwf_execute_dft(plan, data, data);
@@ -75,6 +126,7 @@ struct SpectralPlan::FftwPlans {
       const float scale = 1.0f / static_cast<float>(values.size());
       for (auto& value : values) value *= scale;
     }
+    return false;
   }
 };
 
@@ -105,6 +157,13 @@ void SpectralPlan::transform(std::vector<std::complex<float>>& values, bool inve
   assert(values.size() == frameSize());
   if (fftw_) fftw_->execute(values, inverse);
   else fft_.transform(values, inverse);
+}
+
+bool SpectralPlan::inverseForSynthesis(std::vector<std::complex<float>>& values) const noexcept {
+  assert(values.size() == frameSize());
+  if (fftw_) return fftw_->execute(values, true, true);
+  fft_.transform(values, true);
+  return false;
 }
 
 void SpectralAnalysis::prepare(std::shared_ptr<const SpectralPlan> plan, bool deferTransform) {
@@ -198,21 +257,24 @@ bool SpectralSynthesis::addFrameInPlace(std::vector<std::complex<float>>& spectr
 }
 
 bool SpectralSynthesis::synthesize(std::vector<std::complex<float>>& scratch, std::size_t startOffset) noexcept {
-  plan_->transform(scratch, true);
+  const bool packed = plan_->inverseForSynthesis(scratch);
+  const auto* timeDomain = reinterpret_cast<const float*>(scratch.data());
   const auto window = plan_->synthesisWindow();
   // Finite input bins can still overflow during inverse butterflies or OLA.
   // Reject the whole frame, preserving existing output, before adding any part.
   const auto begin = read_ + startOffset < overlap_.size() ? read_ + startOffset : read_ + startOffset - overlap_.size();
   auto position = begin;
   for (std::size_t i = 0; i < scratch.size(); ++i) {
-    const float candidate = overlap_[position] + scratch[i].real() * window[i];
-    if (!std::isfinite(scratch[i].real()) || !std::isfinite(scratch[i].imag())
+    const float sample = packed ? timeDomain[i] : scratch[i].real();
+    const float candidate = overlap_[position] + sample * window[i];
+    if (!std::isfinite(sample) || (!packed && !std::isfinite(scratch[i].imag()))
         || !std::isfinite(candidate)) return false;
     if (++position == overlap_.size()) position = 0;
   }
   position = begin;
   for (std::size_t i = 0; i < scratch.size(); ++i) {
-    overlap_[position] += scratch[i].real() * window[i];
+    const float sample = packed ? timeDomain[i] : scratch[i].real();
+    overlap_[position] += sample * window[i];
     if (++position == overlap_.size()) position = 0;
   }
   return true;
