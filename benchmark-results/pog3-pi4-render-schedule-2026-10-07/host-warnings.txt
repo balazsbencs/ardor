@@ -1,0 +1,1 @@
+Refined bank passes strict host/AArch64 warnings in both freeze modes; automation trace passes strict host both modes and ARM default warnings.

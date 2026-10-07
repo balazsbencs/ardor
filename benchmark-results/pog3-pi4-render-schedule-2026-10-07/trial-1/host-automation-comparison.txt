@@ -1,0 +1,2 @@
+mode=default bytes=7864320 floats=1966080 baseline_candidate_exact=true sha256=a09f771ff07309f4625c84fb6fa03b5fc117f4d02e0ed98dad986881914164db
+mode=-optin bytes=7864320 floats=1966080 baseline_candidate_exact=true sha256=82ed98e18a3b5595761129438a76b7268fb4fd085cd9f4f7de95b28620e07016

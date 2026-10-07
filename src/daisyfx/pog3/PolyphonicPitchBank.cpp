@@ -618,15 +618,16 @@ PitchVoices PolyphonicPitchBank::process(PitchStereo input) noexcept {
     freeze_->update(longFrames_, shortFrames_, lowFrames_, longGains_, shortGains_, lowGains_, inputSamples_ - longAge_);
     freezeReady_ = true;
   }
-  // Immutable until their next analysis event: each long frame's jobs complete
-  // by sample 241 of its 256-sample hop, each short frame's by sample 113 of 128.
-  // Both sets of jobs finish before the 512-hop low-band frame can change.
-  // The explicit H staging makes every window start at t+1+H,
-  // independently of the sample on which its bounded render job executes.
-  // Right FFTs and stereo Attack/freeze share the first half-hop. Use four
-  // long inverses there and eight in the second half; short inverses follow
-  // their 64-sample interpretation interval. Offsets keep audio unchanged.
-  static constexpr std::array<std::size_t, 12> longDue{17, 38, 81, 102, 129, 145, 161, 177, 193, 209, 225, 241};
+  // Frames/gains remain immutable through this hop; keep left-before-right
+  // voice history order and finish long jobs at 241 < 256, short at 113 < 128.
+  // The explicit H staging starts every window at t+1+H independently of job
+  // execution time. Keep analysis, Attack and freeze/control evaluation fixed.
+  // Profiled 64-frame phases are busiest around analysis and stereo Attack.
+  // Move long renders into the quieter middle intervals without changing the
+  // sample at which their output is published (256 - age below). Retain four
+  // long jobs in the first 128 samples and eight in the second, preserving
+  // voice/channel order and the aligned 128-frame benchmark work assignment.
+  static constexpr std::array<std::size_t, 12> longDue{65, 85, 106, 127, 129, 141, 153, 166, 178, 191, 193, 241};
   while (longAttackReady_ && longJob_ < 12 && longDue[longJob_] <= longAge_) {
     if (longAge_ >= 256) { ++deadlineMisses_; healthy_ = false; break; }
     const auto voice = longJob_ / 2, channel = longJob_ % 2;
