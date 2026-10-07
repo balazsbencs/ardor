@@ -1,0 +1,84 @@
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:35:29: missed: couldn't vectorize loop
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:35:29: missed: not vectorized: loop nest containing two or more consecutive inner loops cannot be vectorized
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:44:34: optimized: loop vectorized using 16 byte vectors
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:38:33: missed: couldn't vectorize loop
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:38:33: missed: not vectorized: control flow in loop.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:168:35: missed: couldn't vectorize loop
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:168:35: missed: not vectorized: control flow in loop.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:134:31: missed: couldn't vectorize loop
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:134:31: missed: not vectorized: control flow in loop.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:152:32: missed: not vectorized: more than one data ref in stmt: region = MEM[(const struct PitchRegion &)_347];
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:128:31: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:421:23: optimized: loop vectorized using 16 byte vectors
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:334:52: missed: couldn't vectorize loop
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:334:52: missed: not vectorized: loop nest containing two or more consecutive inner loops cannot be vectorized
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:376:52: missed: couldn't vectorize loop
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:376:52: missed: not vectorized: inner-loop count not invariant.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:378:70: missed: couldn't vectorize loop
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:378:70: missed: Loop costings may not be worthwhile.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:368:31: optimized: loop vectorized using 16 byte vectors
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:362:31: missed: couldn't vectorize loop
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:362:31: missed: not vectorized: inner-loop count not invariant.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:364:39: missed: couldn't vectorize loop
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:364:39: missed: Loop costings may not be worthwhile.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:391:31: optimized: loop vectorized using 16 byte vectors
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:394:48: missed: couldn't vectorize loop
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:394:48: missed: not vectorized: control flow in loop.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:316:63: optimized: loop vectorized using 16 byte vectors
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:351:52: missed: not vectorized: more than one data ref in stmt: coefficient = MEM[(const struct complex &)_1008];
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:351:52: missed: not vectorized: more than one data ref in stmt: coefficient = MEM[(const struct complex &)_1030];
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:351:52: missed: not vectorized: more than one data ref in stmt: coefficient = MEM[(const struct complex &)_1036];
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:374:28: missed: not vectorized: more than one data ref in stmt: MEM <float[8]> [(float *)vectp.2295_1611] = .STORE_LANES (vect_array.2329);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:374:28: missed: not vectorized: more than one data ref in stmt: MEM <float[8]> [(float *)vectp.2294_842] = .STORE_LANES (vect_array.2329);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:374:28: missed: not vectorized: more than one data ref in stmt: MEM <float[8]> [(float *)vectp.2294_1560] = .STORE_LANES (vect_array.2329);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:374:28: missed: not vectorized: more than one data ref in stmt: MEM <float[8]> [(float *)vectp.2294_1291] = .STORE_LANES (vect_array.2329);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:374:28: missed: not vectorized: more than one data ref in stmt: MEM <float[8]> [(float *)vectp.2294_1237] = .STORE_LANES (vect_array.2329);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:426:36: missed: statement clobbers memory: _443 = ardor::pog3::SpectralSynthesis::addFrameInPlace (_262, _263, startOffset_441(D));
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:260:34: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:366:28: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:380:28: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:260:34: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:366:28: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:380:28: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:260:34: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:366:28: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:380:28: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:260:34: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:380:28: missed: not vectorized: vectorization is not profitable.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:512:30: missed: statement clobbers memory: ardor::pog3::SpectralFreeze::reset (_98);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:557:39: missed: couldn't vectorize loop
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:557:39: missed: not vectorized: control flow in loop.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:557:39: missed: couldn't vectorize loop
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:557:39: missed: not vectorized: control flow in loop.
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:562:36: missed: statement clobbers memory: retval.293_236 = ardor::pog3::SpectralAnalysis::push (_198, _32);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:563:34: missed: statement clobbers memory: ardor::pog3::PitchFrame::update (_188, D.322460);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:567:37: missed: statement clobbers memory: retval.294_244 = ardor::pog3::SpectralAnalysis::push (_171, _32);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:568:35: missed: statement clobbers memory: ardor::pog3::PitchFrame::update (_246, D.322468);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:572:35: missed: statement clobbers memory: retval.295_316 = ardor::pog3::SpectralAnalysis::push (_314, _32);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:572:35: missed: statement clobbers memory: retval.295_251 = ardor::pog3::SpectralAnalysis::push (_242, _32);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:573:33: missed: statement clobbers memory: ardor::pog3::PitchFrame::update (_260, D.322476);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:590:31: missed: statement clobbers memory: this_142(D)->lowGains_ = ardor::pog3::PolyphonicAttack::update (_43, _257, _258, 2, _45);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:608:32: missed: statement clobbers memory: this_142(D)->longGains_ = ardor::pog3::PolyphonicAttack::update (_56, _271, _270, 0, _60);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:614:33: missed: statement clobbers memory: this_142(D)->shortGains_ = ardor::pog3::PolyphonicAttack::update (_65, _275, _274, 1, _69);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:640:5: optimized: basic block part vectorized using 16 byte vectors
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:478:35: missed: not vectorized: statement can throw an exception: ardor::pog3::SpectralAnalysis::prepare (_77, &D.237223, _1);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:479:36: missed: not vectorized: statement can throw an exception: ardor::pog3::SpectralAnalysis::prepare (_81, &D.237224, _1);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:480:33: missed: not vectorized: statement can throw an exception: ardor::pog3::PitchFrame::prepare (_162, &D.237347, 2.4e+4);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:481:34: missed: not vectorized: statement can throw an exception: ardor::pog3::PitchFrame::prepare (_155, &D.237354, 2.4e+4);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:482:34: missed: not vectorized: statement can throw an exception: ardor::pog3::SpectralAnalysis::prepare (_90, &D.237355, _1);
+/ardor/src/daisyfx/pog3/PolyphonicPitchBank.cpp:483:32: missed: not vectorized: statement can throw an exception: ardor::pog3::PitchFrame::prepare (_815, &D.237356, 4.0e+2);

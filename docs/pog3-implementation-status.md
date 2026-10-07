@@ -10,8 +10,10 @@ asymmetric Spread, voice pan, and the static sound path are now implemented.
 The prepared processor supports Off, Volume, Crossfade, Warp and Filter by
 default. Both freeze modes and their gliss/hysteresis/eligibility behavior remain
 implemented in an opt-in experimental build. The matched default core now
-averages 87.04–87.97% of a Pi callback period after inactive freeze work is
-removed; callback peaks still exceed deadlines. The C++ preparation counter
+averages 85.94–86.66% of a Pi callback period after inactive freeze work is
+removed and four-source accumulation is added; callback peaks still exceed
+deadlines. The batching comparison observes a modest 0.94–1.28% mean reduction,
+with smaller changes also present in uninvolved controls. The C++ preparation counter
 falls to 1618560 bytes in the matched fixture, excluding immutable diagnostic
 storage and FFTW memory. CPU tails, complete memory/combined-chain endurance,
 calibration/listening and public integration remain open.
@@ -1892,6 +1894,21 @@ live rendering and 18–19% each to interpretation/FFT/Attack. Next, reduce call
 peaks under exact control/timestamp/ordering checks and optimize live accumulation.
 See [the scope decision, matched evidence and next CPU work](pog3-freeze-scope-results.md).
 
+**Four-source accumulation checkpoint:** eligible live regions now update each
+destination once per four source bins, retaining the original contribution order.
+This reduces eligible-batch destination read/write pairs from 96 to 27, without
+changing preparation storage or edge paths. The first ARM trace caught a changed
+imaginary multiply contraction; explicit baseline contraction fixes it. Final
+host/Pi renderer and full-processor traces match byte for byte across 552,960 and
+384,000 samples respectively. Default/opt-in builds pass all eight/nine DSP
+suites. A fresh matched ABBA observes 1.280%/0.938% lower core mean demand at
+64/128 frames; uninvolved spectral means also vary 0.691%/0.769%. Candidate demand
+is 85.94–86.66%, but 64-frame over-period callbacks remain 1120–1161/3000 and
+128-frame counts 4–7/1500. The worst observed 128-frame callback is higher than
+baseline, so neither tail elimination nor live admission is established. Next,
+measure batch eligibility and try two-source coverage before schedule changes.
+See [the arithmetic, assembly and complete matched evidence](pog3-scatter-batch-results.md).
+
 ## Next implementation milestone
 
 M0's parameter/publication contract and M2's streaming identity gates are in
@@ -1902,9 +1919,11 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **reduced-core CPU optimization**: investigate clustered
-analysis/Attack/render work to reduce callback peaks under exact timestamp,
-control-snapshot and update-order checks, then reduce live scatter memory traffic.
+The next work is **reduced-core memory-access optimization**, following the
+user's priority: measure four-source batch eligibility and try two-source
+coverage/pressure under exact output and matched-control checks. Then investigate
+clustered analysis/Attack/render work to reduce callback peaks under exact
+timestamp, control-snapshot and update-order checks.
 Matched planning controls and the freeze scope decision are complete. Both freeze
 modes remain opt-in experiments; restore them only after core CPU feasibility.
 The first hardware comparison is complete: tested full-feature configurations exceed standalone

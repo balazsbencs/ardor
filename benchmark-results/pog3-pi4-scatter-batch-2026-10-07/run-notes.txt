@@ -1,0 +1,17 @@
+Baseline reduced core: 8cf4039778960a943d2762ab10983bb4f7118ec3; baseline ELF matches the preceding freeze-scope receipt.
+Candidate: source.txt and uncompressed hash of candidate.patch.gz; experimental freeze OFF, profiling OFF.
+Same benchmark source/settings/input; 4-second warmup/reset and 4-second measurement; 64/128 frames at 48 kHz.
+CPU 2, SCHED_OTHER; baseline-forward, candidate-forward, candidate-reverse, baseline-reverse.
+Same shared FFTW wisdom; all four post-process exports retain the original 57 records without additions/removals.
+Renderer/full-processor byte comparisons and complete target pitch quality pass before timing.
+Run: sh run-remote.sh /tmp/pog3-scatter-batch-2-20261007 2 --full-probes numerical baseline-1 candidate-1 candidate-2 baseline-2.
+Runner and all five probes return 0; 24 aggregate timing rows retain zero C++ callback allocations and all tails.
+No heavy target work overlaps probes. Offline over-period counts are not ALSA xruns or live-chain admission.
+Service restored: PID 20173; independent readback and cleanup readback match.
+Firmware, presets, live callback buffers, governor and unrelated DSP quality remain unchanged.
+Host and Pi exact traces: 552960 renderer samples and 384000 processor float samples per architecture.
+Temporary host/target trace blobs and both target probe directories are removed after byte/hash verification.
+The first prototype's ARM contraction mismatch and restoration are retained separately under attempt-1; no timing started there.
+Final host default/opt-in DSP suites pass 8/9 tests; host cache is restored to default OFF.
+Run summarize.py DIRECTORY and check_wisdom.py DIRECTORY to regenerate summaries and audit planning records.
+C++ preparation excludes FFTW storage and immutable inactive diagnostic storage; the ARM renderer stack grows 32 bytes (496 to 528).

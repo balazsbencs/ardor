@@ -124,6 +124,22 @@ live rendering and 18–19% each to interpretation/FFT/Attack. Next, reduce call
 peaks under exact control/timestamp/ordering checks and optimize live accumulation.
 See [the scope decision, matched evidence and next CPU work](pog3-freeze-scope-results.md).
 
+**Four-source accumulation checkpoint:** eligible live regions now update each
+destination once per four source bins, retaining the original contribution order.
+Eligible-batch destination read/write pairs fall from 96 to 27, with unchanged
+preparation storage and edge paths. The first ARM trace caught a changed
+imaginary multiply contraction; explicit baseline contraction fixes it. Final
+host/Pi renderer and full-processor traces match byte for byte across 552,960 and
+384,000 samples respectively. Default/opt-in builds pass all eight/nine DSP
+suites. A fresh matched ABBA observes 1.280%/0.938% lower core mean demand at
+64/128 frames; uninvolved spectral means also vary 0.691%/0.769%. Candidate demand
+is 85.94–86.66%, but 64-frame over-period callbacks remain 1120–1161/3000 and
+128-frame counts 4–7/1500. The worst observed 128-frame callback is higher than
+baseline, so live admission remains open. Next, follow the user's memory-access
+priority: measure batch eligibility and try two-source coverage before schedule
+changes. Keep original control/timestamp/update-order and audible gates.
+See [the arithmetic, assembly and complete matched evidence](pog3-scatter-batch-results.md).
+
 **M3 implementation update:** the implemented bank additionally uses shared N=4096/H=512 analysis below 400 Hz because the ordinary low-chord gate failed with two windows. Its 200–300 Hz reconstruction crossover uses the existing output IFFTs. Renderer jobs now use the explicit one-hop staging correction below. Main delays are 24/48 ms; a low-note octave envelope measured about 60/72 ms with Focus off/on. Family/attack and freeze work must include all three representations. The status document records current quality, CPU/memory results, remaining resolution limits, and the live-relative-phase caution for stationary freeze. These are measured implementation adaptations, not EHX hardware specifications.
 
 **M4 implementation update:** shared stereo families/residual partials now preserve old sustain while swelling new excitation, with low/long attack histories evaluated at each resolution's input timestamp. Processed unison uses resolved low partials when attack is active. Attack interpretation runs before staged render jobs, now completing at long age 251 and short age 112; N+H identity delay is unchanged. This first scorer requires directly supported fundamentals and keeps missing-fundamental material as residual partials. Four excitation epochs per partial have an explicit capacity fallback. See the status document for independence gates, host timing, memory, and remaining fidelity/admission limits. Filter AD remains the separate next milestone.
