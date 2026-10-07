@@ -1,0 +1,10 @@
+live_samples=552960
+live_bytes=2211840
+live_bit_exact_equal=true
+live_cmp_return_code=0
+live_sha256=9b6742d5ff1b65b1881c9934770c63b6bbc342776ee1b7697c11f8014785e5c9
+full_samples=384000
+full_bytes=1536000
+full_bit_exact_equal=true
+full_cmp_return_code=0
+full_sha256=f908b54b1501d2b02870782509c2809f4c4ae79b228d8c796cd731f375b05ab7

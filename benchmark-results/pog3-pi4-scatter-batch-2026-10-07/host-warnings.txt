@@ -1,0 +1,1 @@
+Changed renderer and live trace pass -Wall -Wextra -Wpedantic -Werror on host and Buildroot AArch64 GCC 13.4.0, each with ARDOR_POG3_EXPERIMENTAL_FREEZE=0 and =1.

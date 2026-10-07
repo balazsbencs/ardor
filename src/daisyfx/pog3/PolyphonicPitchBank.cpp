@@ -334,7 +334,53 @@ bool PitchRenderer::render(const PitchFrame& frame, float semitones, const Pitch
     for (int k = static_cast<int>(region.first); k <= static_cast<int>(region.last); ++k) {
       const float endpoint = k == 0 || k == half ? .5f : 1;
       const auto value = input[k] * rotation * endpoint;
-      if (position == 0) {
+      if (position != 0 && k + 3 <= static_cast<int>(region.last)
+          && k + shiftCeil > PitchPlan::kRadius
+          && k + 3 + shiftCeil + PitchPlan::kRadius - 1 < half) {
+        // Four adjacent sources share 27 destinations. Keep each destination
+        // sum local through its source contributions, in the original order,
+        // rather than loading/storing it up to four times. Only the interior
+        // takes this path; endpoint/reflection and incomplete batches stay below.
+        std::array<std::complex<float>, 4> values{value};
+        for (int source = 1; source < 4; ++source) {
+          const float sourceEndpoint = k + source == 0 || k + source == half ? .5f : 1;
+#if defined(__aarch64__)
+          // Match the existing ARM complex multiply's contraction. Unrolling
+          // otherwise lets GCC fuse the opposite imaginary summand for some
+          // sources, changing rounding despite retaining the addition order.
+          const auto coefficient = input[k + source];
+          auto rotated = std::complex<float>{
+            std::fma(coefficient.real(), rotation.real(), -(coefficient.imag() * rotation.imag())),
+            std::fma(coefficient.real(), rotation.imag(), coefficient.imag() * rotation.real())};
+          if (std::isnan(rotated.real()) || std::isnan(rotated.imag())) rotated = coefficient * rotation;
+          values[source] = rotated * sourceEndpoint;
+#else
+          values[source] = input[k + source] * rotation * sourceEndpoint;
+#endif
+        }
+        auto* destination = spectrum_.data() + k + shiftCeil - PitchPlan::kRadius;
+        for (int tap = 0; tap < 3; ++tap) {
+          auto sum = destination[tap];
+          for (int source = 0; source <= tap; ++source)
+            sum += values[source] * weights[tap - source];
+          destination[tap] = sum;
+        }
+        for (int tap = 3; tap < 2 * PitchPlan::kRadius; ++tap) {
+          auto sum = destination[tap];
+          sum += values[0] * weights[tap];
+          sum += values[1] * weights[tap - 1];
+          sum += values[2] * weights[tap - 2];
+          sum += values[3] * weights[tap - 3];
+          destination[tap] = sum;
+        }
+        for (int tap = 2 * PitchPlan::kRadius; tap < 2 * PitchPlan::kRadius + 3; ++tap) {
+          auto sum = destination[tap];
+          for (int source = tap - 2 * PitchPlan::kRadius + 1; source < 4; ++source)
+            sum += values[source] * weights[tap - source];
+          destination[tap] = sum;
+        }
+        k += 3;
+      } else if (position == 0) {
         accumulate(k + shiftCeil, (shiftCeil & 1) ? -value : value);
       } else if (k + shiftCeil > PitchPlan::kRadius
                  && k + shiftCeil + PitchPlan::kRadius - 1 < half) {
