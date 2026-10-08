@@ -1,0 +1,3 @@
+frames=5247 phase_events=844543 actual_previous_args=844543->311374
+total_arg_calls=1689086->1155917 reduction_percent=31.565533
+Original peak/track/birth/history/region/snapshot counts and both callback partitions match. Diagnostic timings excluded from ordinary retention decision.
