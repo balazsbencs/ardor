@@ -187,6 +187,9 @@ int main(int argc, char** argv)
     auto state = makeRichState();
     ardor::LvglUi ui;
     ui.build(lv_screen_active(), state);
+    ardor::updateRealtimeTelemetry(state,
+      ardor::makeRuntimeTelemetry(120, 0, 0, 7.0, 3.0, 10.0, false, 0, 0, 0, 2.5));
+    ui.refresh(lv_screen_active(), state);
     capture.save("01-preset");
   }
   // Edit chain with a selected block.
@@ -198,6 +201,9 @@ int main(int argc, char** argv)
     ui.selectBlock(state, 1);
     state.paramDrawerOpen = false;
     ui.build(lv_screen_active(), state);
+    ardor::updateRealtimeTelemetry(state,
+      ardor::makeRuntimeTelemetry(120, 0, 0, 7.0, 3.0, 10.0, false, 0, 0, 0, 2.5));
+    ui.refresh(lv_screen_active(), state);
     capture.save("02-edit");
   }
   // Edit chain scrolled to the end.

@@ -176,6 +176,9 @@ void styleKeyboard(lv_obj_t* keyboard);
 lv_obj_t* masterReadout(lv_obj_t* parent, int volume);
 void syncMasterReadout(lv_obj_t* valueLabel, int volume);
 
+// Configured block latency and live buffer use, shared across Presets and Edit.
+std::string headerTelemetryText(const UiState& state);
+
 // Edit header content, shared by the edit screen and its retained syncs.
 // "PRESET 1  CLEAN LEAD", or "SCENE 2  CHORUS" on a scene-enabled preset.
 std::string editIdentityText(const UiState& state);

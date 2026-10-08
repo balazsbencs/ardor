@@ -50,19 +50,6 @@ constexpr int kMinBank = 0;
 constexpr int kMaxBank = 99;
 constexpr std::size_t kPresetNameMaxLength = 32;
 
-std::string presetTelemetryText(const UiState& state)
-{
-  char value[96]{};
-  const double latencyMs = static_cast<double>(state.settings.audioBlockSize) / 48.0;
-  if (state.telemetry.budgetMs <= 0.0) {
-    std::snprintf(value, sizeof(value), "%.2f MS", latencyMs);
-  } else {
-    const double used = std::clamp(100.0 - state.telemetry.bufferFreePercent, 0.0, 100.0);
-    std::snprintf(value, sizeof(value), "%.2f MS  \xC2\xB7  BUFFER %.0f%%", latencyMs, used);
-  }
-  return value;
-}
-
 // "BANK 01" on the left of the header; the bank's own name, when the store
 // gives one after " - ", sits beside it in bone-2.
 std::string bankNumberText(const UiState& state)
@@ -259,7 +246,7 @@ void LvglUi::syncHeaderView(const UiState& state)
     lv_obj_set_width(masterVolumeScaleFill_, std::clamp(state.masterVolume, 0, 100) * 120 / 100);
   }
   if (presetTelemetryLabel_) {
-    lv_label_set_text(presetTelemetryLabel_, presetTelemetryText(state).c_str());
+    lv_label_set_text(presetTelemetryLabel_, lb::headerTelemetryText(state).c_str());
     placeRightAligned(presetTelemetryLabel_, lb::type::headerRight, kDesignWidth - 28);
   }
   lb::syncMasterReadout(presetMasterValueLabel_, state.masterVolume);
@@ -301,10 +288,14 @@ void LvglUi::syncHeaderView(const UiState& state)
     if (state.dirty) lv_obj_remove_flag(editModifiedLabel_, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(editModifiedLabel_, LV_OBJ_FLAG_HIDDEN);
   }
+  if (editTelemetryLabel_) {
+    lv_label_set_text(editTelemetryLabel_, lb::headerTelemetryText(state).c_str());
+    placeRightAligned(editTelemetryLabel_, lb::type::headerRight, kDesignWidth - 28);
+  }
   if (editModuleCountLabel_) {
     const auto count = lb::editCountText(state);
     lv_label_set_text(editModuleCountLabel_, count.c_str());
-    placeRightAligned(editModuleCountLabel_, lb::type::headerRight, kDesignWidth - 28);
+    placeRightAligned(editModuleCountLabel_, lb::type::headerRight, editHeaderDetailRight_);
   }
 }
 
@@ -381,7 +372,7 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
     28 + lb::textWidth(lb::type::bank, bankNumberText(state)) + 20, 13);
   // The engine publishes buffer telemetry once per second. It is secondary,
   // so it sits small in bone-3 beside the configured block latency.
-  presetTelemetryLabel_ = lb::textLabel(root, lb::type::headerRight, presetTelemetryText(state),
+  presetTelemetryLabel_ = lb::textLabel(root, lb::type::headerRight, lb::headerTelemetryText(state),
                                    disabled, 0, 18);
   placeRightAligned(presetTelemetryLabel_, lb::type::headerRight, kDesignWidth - 28);
   if (!actions_.showDeviceStatus) lv_obj_add_flag(presetTelemetryLabel_, LV_OBJ_FLAG_HIDDEN);
@@ -464,11 +455,11 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
                                   kBankPairStepWidth);
   bankDownButton_ = bankDown;
   lv_obj_add_event_cb(bankDown, onBankDownClicked, LV_EVENT_CLICKED, remember(state));
-  const int legendWidth = lb::textWidth(lb::type::pairLegend, "BANK") + 2 * kBankPairLegendPad;
+  const int legendWidth = lb::textWidth(lb::type::button, "BANK") + 2 * kBankPairLegendPad;
   lv_obj_t* bankLegend = lb::box(root, 0, lb::kRailButtonY, legendWidth, lb::kButtonHeight, bg);
   lb::setBorder(bankLegend, rule, 1,
                 static_cast<lv_border_side_t>(LV_BORDER_SIDE_TOP | LV_BORDER_SIDE_BOTTOM));
-  lb::centeredText(bankLegend, lb::type::pairLegend, "BANK", muted, 0, -1, legendWidth,
+  lb::centeredText(bankLegend, lb::type::button, "BANK", muted, 0, -1, legendWidth,
                    lb::kButtonHeight);
   lv_obj_t* bankUp = lb::button(root, "+", lb::ButtonKind::Normal, 0, lb::kRailButtonY,
                                 kBankPairStepWidth);

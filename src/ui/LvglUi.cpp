@@ -459,6 +459,7 @@ void LvglUi::refresh(lv_obj_t* root, UiState& state)
   // Text-only regions are always safe while an input device owns a widget.
   if (hasUiChange(changes, UiChange::Status) || hasUiChange(changes, UiChange::Telemetry)) {
     syncStatusView(state);
+    syncHeaderView(state);
     if (state.mode == UiMode::Tuner) {
       syncTunerView(state);
     }

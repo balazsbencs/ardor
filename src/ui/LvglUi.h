@@ -364,6 +364,8 @@ private:
   // Edit screen's own rails, mirroring the preset-screen members above.
   lv_obj_t* editModifiedLabel_ = nullptr;
   lv_obj_t* editModuleCountLabel_ = nullptr;
+  lv_obj_t* editTelemetryLabel_ = nullptr;
+  int editHeaderDetailRight_ = 0;
   lv_obj_t* saveButtonLabel_ = nullptr;
   lv_obj_t* telemetryLabel_ = nullptr;
   lv_obj_t* expressionStatusLabel_ = nullptr;
