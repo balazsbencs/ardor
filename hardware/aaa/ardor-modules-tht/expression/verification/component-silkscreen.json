@@ -1,0 +1,205 @@
+[
+  {
+    "reference": "C101",
+    "position_mm": [
+      132.0,
+      55.1
+    ]
+  },
+  {
+    "reference": "C102",
+    "position_mm": [
+      143.0,
+      57.0
+    ]
+  },
+  {
+    "reference": "C301",
+    "position_mm": [
+      104.0,
+      81.0
+    ]
+  },
+  {
+    "reference": "C302",
+    "position_mm": [
+      103.0,
+      98.0
+    ]
+  },
+  {
+    "reference": "C303",
+    "position_mm": [
+      122.5,
+      74.5
+    ]
+  },
+  {
+    "reference": "D301",
+    "position_mm": [
+      62.5,
+      64.08
+    ]
+  },
+  {
+    "reference": "D302",
+    "position_mm": [
+      62.5,
+      94.08
+    ]
+  },
+  {
+    "reference": "D303",
+    "position_mm": [
+      107.5,
+      72.38
+    ]
+  },
+  {
+    "reference": "D304",
+    "position_mm": [
+      105.0,
+      91.38
+    ]
+  },
+  {
+    "reference": "D305",
+    "position_mm": [
+      101.0,
+      107.38
+    ]
+  },
+  {
+    "reference": "D306",
+    "position_mm": [
+      110.0,
+      107.38
+    ]
+  },
+  {
+    "reference": "FB101",
+    "position_mm": [
+      117.5,
+      55.0
+    ]
+  },
+  {
+    "reference": "J101",
+    "position_mm": [
+      150.0,
+      72.81
+    ]
+  },
+  {
+    "reference": "J302",
+    "position_mm": [
+      57.5,
+      76.58
+    ]
+  },
+  {
+    "reference": "JP301",
+    "position_mm": [
+      75.0,
+      76.58
+    ]
+  },
+  {
+    "reference": "JP302",
+    "position_mm": [
+      120.0,
+      109.08
+    ]
+  },
+  {
+    "reference": "JP303",
+    "position_mm": [
+      150.0,
+      102.85
+    ]
+  },
+  {
+    "reference": "JP304",
+    "position_mm": [
+      150.0,
+      120.35
+    ]
+  },
+  {
+    "reference": "R101",
+    "position_mm": [
+      70.0,
+      107.13
+    ]
+  },
+  {
+    "reference": "R301",
+    "position_mm": [
+      87.5,
+      72.13
+    ]
+  },
+  {
+    "reference": "R302",
+    "position_mm": [
+      90.0,
+      84.63
+    ]
+  },
+  {
+    "reference": "R303",
+    "position_mm": [
+      80.0,
+      95.13
+    ]
+  },
+  {
+    "reference": "R304",
+    "position_mm": [
+      92.5,
+      102.13
+    ]
+  },
+  {
+    "reference": "R305",
+    "position_mm": [
+      140.13,
+      78.0
+    ]
+  },
+  {
+    "reference": "R306",
+    "position_mm": [
+      140.13,
+      94.0
+    ]
+  },
+  {
+    "reference": "R307",
+    "position_mm": [
+      130.0,
+      102.13
+    ]
+  },
+  {
+    "reference": "R308",
+    "position_mm": [
+      138.5,
+      107.13
+    ]
+  },
+  {
+    "reference": "R309",
+    "position_mm": [
+      137.5,
+      119.63
+    ]
+  },
+  {
+    "reference": "U301",
+    "position_mm": [
+      128.5,
+      80.0
+    ]
+  }
+]

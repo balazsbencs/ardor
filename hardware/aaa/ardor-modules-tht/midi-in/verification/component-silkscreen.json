@@ -1,0 +1,128 @@
+[
+  {
+    "reference": "C201",
+    "position_mm": [
+      111.75,
+      62.0
+    ]
+  },
+  {
+    "reference": "C202",
+    "position_mm": [
+      80.0,
+      55.0
+    ]
+  },
+  {
+    "reference": "C203",
+    "position_mm": [
+      68.0,
+      107.0
+    ]
+  },
+  {
+    "reference": "C204",
+    "position_mm": [
+      117.5,
+      57.0
+    ]
+  },
+  {
+    "reference": "D201",
+    "position_mm": [
+      80.0,
+      88.38
+    ]
+  },
+  {
+    "reference": "D202",
+    "position_mm": [
+      60.58,
+      65.0
+    ]
+  },
+  {
+    "reference": "D203",
+    "position_mm": [
+      60.58,
+      104.0
+    ]
+  },
+  {
+    "reference": "D204",
+    "position_mm": [
+      82.0,
+      108.58
+    ]
+  },
+  {
+    "reference": "FB201",
+    "position_mm": [
+      61.5,
+      75.0
+    ]
+  },
+  {
+    "reference": "FB202",
+    "position_mm": [
+      61.5,
+      95.0
+    ]
+  },
+  {
+    "reference": "J101",
+    "position_mm": [
+      125.0,
+      75.31
+    ]
+  },
+  {
+    "reference": "J202",
+    "position_mm": [
+      56.0,
+      78.35
+    ]
+  },
+  {
+    "reference": "J203",
+    "position_mm": [
+      127.5,
+      105.35
+    ]
+  },
+  {
+    "reference": "R101",
+    "position_mm": [
+      115.0,
+      107.13
+    ]
+  },
+  {
+    "reference": "R201",
+    "position_mm": [
+      80.0,
+      72.13
+    ]
+  },
+  {
+    "reference": "R202",
+    "position_mm": [
+      115.0,
+      89.63
+    ]
+  },
+  {
+    "reference": "R203",
+    "position_mm": [
+      120.0,
+      97.13
+    ]
+  },
+  {
+    "reference": "U201",
+    "position_mm": [
+      100.0,
+      74.63
+    ]
+  }
+]

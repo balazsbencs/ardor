@@ -1,0 +1,25 @@
+{
+  "result": "PASS",
+  "connected_pin_numbers": 66,
+  "explicit_no_connects": 0,
+  "physical_numbered_pads": 66,
+  "electrical_footprints": 27,
+  "mounting_holes": 2,
+  "board_size_mm": [
+    115.0,
+    85.0
+  ],
+  "functional_nets": 17,
+  "routed_nets": 16,
+  "signal_and_supply_width_mm": 0.2,
+  "chassis_width_mm": 0.6,
+  "ground_tracks": 0,
+  "vias": 1,
+  "erc_violations": 0,
+  "drc_violations": 0,
+  "unconnected_items": 0,
+  "schematic_parity_violations": 0,
+  "drc_exclusions": 0,
+  "one_sheet": true,
+  "module_dependencies": []
+}

@@ -1,0 +1,112 @@
+{
+  "viewpoint": "Directions are relative to this board; square pad is pin 1.",
+  "abbreviations": {
+    "IN": "Into this board",
+    "OUT": "Out of this board",
+    "I/O": "Both directions",
+    "GND": "Common 0 V return",
+    "NC": "Unused; do not connect"
+  },
+  "ports": {
+    "J101": {
+      "title": "5V POWER + ENABLE INPUT",
+      "silk": "PWR + ENABLE IN",
+      "pins": [
+        {
+          "number": 1,
+          "net": "+5V",
+          "short": "5V IN",
+          "direction": "POWER INPUT",
+          "meaning": "Feed regulated 5V into the module. This pin does not supply power.",
+          "connect": "Positive output of the matching regulated supply."
+        },
+        {
+          "number": 2,
+          "net": "GND",
+          "short": "GND 0V",
+          "direction": "GROUND",
+          "meaning": "Common 0 V return; not a signal or positive supply.",
+          "connect": "Host or cable ground / 0 V."
+        },
+        {
+          "number": 3,
+          "net": "HP_ENABLE",
+          "short": "ENABLE IN",
+          "direction": "CONTROL INPUT",
+          "meaning": "3.3 V HIGH = on; 0 V LOW or disconnected = off.",
+          "connect": "Host control output. Keep LOW until audio and supply are stable."
+        }
+      ],
+      "setup": ""
+    },
+    "J102": {
+      "title": "STEREO AUDIO INPUT FROM SOURCE",
+      "silk": "AUDIO IN",
+      "pins": [
+        {
+          "number": 1,
+          "net": "AUDIO_L",
+          "short": "LEFT IN",
+          "direction": "INPUT",
+          "meaning": "LEFT audio enters the module.",
+          "connect": "DAC/codec left audio output, <=1 Vrms."
+        },
+        {
+          "number": 2,
+          "net": "GND",
+          "short": "GND 0V",
+          "direction": "GROUND",
+          "meaning": "Common 0 V return; not a signal or positive supply.",
+          "connect": "Host or cable ground / 0 V."
+        },
+        {
+          "number": 3,
+          "net": "AUDIO_R",
+          "short": "RIGHT IN",
+          "direction": "INPUT",
+          "meaning": "RIGHT audio enters the module.",
+          "connect": "DAC/codec right audio output, <=1 Vrms."
+        }
+      ],
+      "setup": ""
+    },
+    "J602": {
+      "title": "STEREO HEADPHONE AUDIO OUTPUT",
+      "silk": "HEADPHONE OUT",
+      "pins": [
+        {
+          "number": 1,
+          "net": "HP_L",
+          "short": "LEFT OUT",
+          "direction": "OUTPUT",
+          "meaning": "LEFT audio leaves the module.",
+          "connect": "TRS socket tip; headphones >=32 ohm."
+        },
+        {
+          "number": 2,
+          "net": "HP_R",
+          "short": "RIGHT OUT",
+          "direction": "OUTPUT",
+          "meaning": "RIGHT audio leaves the module.",
+          "connect": "TRS socket ring; headphones >=32 ohm."
+        },
+        {
+          "number": 3,
+          "net": "GND",
+          "short": "GND 0V",
+          "direction": "GROUND",
+          "meaning": "Common 0 V return; not a signal or positive supply.",
+          "connect": "TRS socket sleeve; enclosure bond."
+        }
+      ],
+      "setup": ""
+    }
+  },
+  "unused_pins": {
+    "U601.1": "GAIN NC",
+    "U601.8": "GAIN NC",
+    "U602.1": "GAIN NC",
+    "U602.8": "GAIN NC"
+  },
+  "mounting_holes": "H1/H2 are M2 mounting holes, not electrical connections. Small vias are not user connectors."
+}

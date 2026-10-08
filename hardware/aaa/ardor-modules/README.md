@@ -16,6 +16,8 @@ Build only the features you need. Each folder is a complete, separately orderabl
 | [Mono line output with relay mute](line-out/README.md) | 46 × 34 | 5 V / 50 mA | 22 | $8.52 + $12.28 |
 | [Optional stereo headphones](headphones/README.md) | 36 × 30 | 5 V / 50 mA | 18 | $9.93 + $12.28 |
 
+For builders using an ordinary soldering iron, [T1 hand-assembly alternatives](../ardor-modules-tht/README.md) provide four entirely through-hole boards and a through-hole expression carrier for a preassembled ADS1115 breakout. Their larger layouts, component choices and headphone startup timing are documented separately.
+
 The optional headphone board adds approximately $3.28 QFN X-ray for two assembled boards. The table is **not a total assembly quote**: PCB, setup, stencil, joints, shipping, tax and manual parts are excluded. Components use the public catalogue unit price, two-board quantities and SMT attrition/minimum-patch allowances, checked 2 October 2026. Wholesale `preMinPurchaseNum` is not treated as an assembly minimum. Extended fees use the current Economic $3.07/type model. Stock is not reserved. Ordering a subset removes unused circuits; **ordering all five separately can cost more than the integrated board because setup charges repeat**. Upload designs separately rather than as one assembled panel.
 
 ## Short assembly guides

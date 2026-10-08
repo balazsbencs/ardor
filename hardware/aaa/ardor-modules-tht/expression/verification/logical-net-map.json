@@ -1,0 +1,19 @@
+{
+  "+3V3": "/+3V3",
+  "+3V3_A": "/+3V3_A",
+  "CHASSIS": "/CHASSIS",
+  "EXP_EXC": "/EXP_EXC",
+  "EXP_RING": "/EXP_RING",
+  "EXP_TIP": "/EXP_TIP",
+  "GND": "/GND",
+  "SCL": "/SCL",
+  "SDA": "/SDA",
+  "EXP_ADC": "Net-(D303-A)",
+  "EXP_REF_ADC": "Net-(D305-A)",
+  "EXP_WIPER": "Net-(JP301-Pin_3)",
+  "ADDR": "Net-(JP302-Pin_2)",
+  "SDA_PULL": "Net-(JP303-Pin_1)",
+  "SCL_PULL": "Net-(JP304-Pin_1)",
+  "ADC_SCL": "Net-(U301-SCL)",
+  "ADC_SDA": "Net-(U301-SDA)"
+}
