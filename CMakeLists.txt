@@ -923,7 +923,7 @@ if(ARDOR_BUILD_WHAMMY_PLUGIN)
 endif()
 
 # Explicit device-only diagnostic; not built or installed in the pedal image.
-option(ARDOR_BUILD_POG3_HEADROOM_PROBE "Build ALSA-paced POG3/chain headroom probe" OFF)
+option(ARDOR_BUILD_POG3_HEADROOM_PROBE "Build device POG3 headroom and live audition probes" OFF)
 if(ARDOR_BUILD_POG3_HEADROOM_PROBE)
   find_package(ALSA REQUIRED)
   add_executable(pedal-pog3-headroom EXCLUDE_FROM_ALL tests/pog3_device_headroom.cpp)
@@ -932,4 +932,7 @@ if(ARDOR_BUILD_POG3_HEADROOM_PROBE)
   target_link_libraries(pedal-pog3-headroom PRIVATE ardor_audio ardor_dsp ardor_pog3 ${ALSA_LIBRARIES})
   # Stable executable addresses allow offline attribution of sampled PCs.
   target_link_options(pedal-pog3-headroom PRIVATE -no-pie)
+  add_executable(pedal-pog3-audition EXCLUDE_FROM_ALL tests/pog3_device_audition.cpp)
+  target_include_directories(pedal-pog3-audition PRIVATE ${ALSA_INCLUDE_DIRS} ${ARDOR_FFTW_INCLUDE_DIR})
+  target_link_libraries(pedal-pog3-audition PRIVATE ardor_pog3 ${ALSA_LIBRARIES} Threads::Threads)
 endif()

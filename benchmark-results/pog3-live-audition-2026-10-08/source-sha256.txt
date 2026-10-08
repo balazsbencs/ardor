@@ -1,0 +1,4 @@
+e154d34951cc1c5dc56015a4ad4e881b1e3d3f0c62bd1c5574e21f3c02252107  tests/pog3_device_audition.cpp
+8b7d8a8c7c82fb7c5a8b6d31a3ec7f0c86538980e25775cef5cb3814983011a1  scripts/pog3-audition.sh
+0a0b1283bcc48154571e06bebe419bd7f9d6d063233cca46cad3b35709479876  scripts/pog3-audition-remote.sh
+3b2ff0b7163d0159d57f4a73f3f8ae79c5871bd17b2d2d825e3ae4b2011b62ac  /tmp/ardor-pog3-device-build/headroom-arm/pedal-pog3-audition
