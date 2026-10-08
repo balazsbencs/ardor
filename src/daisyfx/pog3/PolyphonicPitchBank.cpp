@@ -148,6 +148,7 @@ void PitchFrame::update(std::span<const std::complex<float>> spectrum) noexcept 
   std::sort(predictions.begin(), predictions.begin() + predicted, [](const auto& a, const auto& b) {
     return a.frequency == b.frequency ? a.track < b.track : a.frequency < b.frequency;
   });
+  bool birthSlotsReady = false;
   for (std::size_t p = 0; p < candidates; ++p) {
     auto region = candidates_[p];
     std::size_t match = tracks_.size();
@@ -161,13 +162,11 @@ void PitchFrame::update(std::span<const std::complex<float>> spectrum) noexcept 
     }
     bool birth = match == tracks_.size();
     if (birth) {
-      for (std::size_t t = 0; t < tracks_.size(); ++t)
-        if (!used[t] && (!tracks_[t].generation || tracks_[t].missed > 4)) { match = t; break; }
-      if (match == tracks_.size()) {
-        unsigned oldest = 0;
-        for (std::size_t t = 0; t < tracks_.size(); ++t)
-          if (!used[t] && tracks_[t].missed > oldest) { oldest = tracks_[t].missed; match = t; }
+      if (!birthSlotsReady) {
+        birthSlots_.prepare(tracks_);
+        birthSlotsReady = true;
       }
+      match = birthSlots_.take(used);
     }
     if (match == tracks_.size()) { ++capacityEvents_; continue; }
     auto& track = tracks_[match];

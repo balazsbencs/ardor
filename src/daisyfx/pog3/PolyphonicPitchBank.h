@@ -1,6 +1,7 @@
 #pragma once
 
 #include "daisyfx/pog3/Pog3Parameters.h"
+#include "daisyfx/pog3/FrameBirthSlots.h"
 #include "daisyfx/pog3/PolyphonicAttack.h"
 #include "daisyfx/pog3/SpectralFrameStream.h"
 #include "daisyfx/pog3/SpectralFreeze.h"
@@ -82,6 +83,7 @@ private:
   std::vector<PitchRegion> candidates_;
   std::array<PitchRegion, kMaxPitchPartials> regions_{};
   std::array<Track, kMaxPitchPartials> tracks_{};
+  detail::FrameBirthSlots<kMaxPitchPartials> birthSlots_;
   std::span<const std::complex<float>> spectrum_;
   std::size_t count_ = 0, capacityEvents_ = 0;
   std::uint64_t generation_ = 0;

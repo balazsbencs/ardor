@@ -213,6 +213,23 @@ empty/expired slot priority, strict prediction ties, original float phase math,
 startup/reset/invalid-frame behavior and all timestamps. See
 [complete rejection evidence and reviewed Luna next steps](pog3-attack-gain-results.md).
 
+**Frame interpretation CPU checkpoint (2026-10-08):** attribution finds nearly
+60 million long-frame birth-scan iterations. A lazy compact frame slot snapshot
+preserves combined empty/expired priority followed by descending positive missed
+age / ascending index. Original prediction keys and every published track field
+remain. Two ordinary Pi ABBA rounds repeat **4.933%/4.527%** combined mean
+reductions at 64/128; pooled 64-frame over-period counts fall **361 → 21/12000**,
+128-frame counts **17 → 0/6000**. Preparation grows **3216 bytes to 1625912**.
+Exact host/Pi frame and processor histories, a 758880-selection original-scan
+oracle, 10/11 default/opt-in DSP suites and affected sanitizer/allocation checks
+pass. Retain frame and Attack slot snapshots, refined scheduling and four-source
+rendering. Mean demand is about 80–82%; 64-frame tails still exceed the period,
+and intended-chain/live admission remains open. Next try bounded exact top-256
+peak selection (`nth_element` then the original bin sort), with cutoff/tie/history
+checks and ordinary confirmation, before sparse previous-phase caching. Freeze
+remains opt-in and public integration stays blocked. See
+[full interpretation evidence and the detailed reviewed Luna handoff](pog3-interpretation-cpu-results.md).
+
 **M3 implementation update:** the implemented bank additionally uses shared N=4096/H=512 analysis below 400 Hz because the ordinary low-chord gate failed with two windows. Its 200–300 Hz reconstruction crossover uses the existing output IFFTs. Renderer jobs now use the explicit one-hop staging correction below. Main delays are 24/48 ms; a low-note octave envelope measured about 60/72 ms with Focus off/on. Family/attack and freeze work must include all three representations. The status document records current quality, CPU/memory results, remaining resolution limits, and the live-relative-phase caution for stationary freeze. These are measured implementation adaptations, not EHX hardware specifications.
 
 **M4 implementation update:** shared stereo families/residual partials now preserve old sustain while swelling new excitation, with low/long attack histories evaluated at each resolution's input timestamp. Processed unison uses resolved low partials when attack is active. Attack interpretation runs before staged render jobs, now completing at long age 251 and short age 112; N+H identity delay is unchanged. This first scorer requires directly supported fundamentals and keeps missing-fundamental material as residual partials. Four excitation epochs per partial have an explicit capacity fallback. See the status document for independence gates, host timing, memory, and remaining fidelity/admission limits. Filter AD remains the separate next milestone.

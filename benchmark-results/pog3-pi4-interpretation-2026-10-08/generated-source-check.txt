@@ -1,0 +1,6 @@
+baseline PolyphonicPitchBank.cpp byte-exact regeneration PASS
+baseline callback_profile.h byte-exact regeneration PASS
+baseline bench.cpp byte-exact regeneration PASS
+candidate PolyphonicPitchBank.cpp byte-exact regeneration PASS
+candidate callback_profile.h byte-exact regeneration PASS
+candidate bench.cpp byte-exact regeneration PASS
