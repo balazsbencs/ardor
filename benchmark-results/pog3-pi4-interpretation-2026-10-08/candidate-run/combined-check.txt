@@ -1,0 +1,7 @@
+('matched_freeze_off', '128'): four-run mean reduction=4.527192%
+('matched_freeze_off', '64'): four-run mean reduction=4.933454%
+('matched_granular_control', '128'): four-run mean reduction=0.096091%
+('matched_granular_control', '64'): four-run mean reduction=-0.091052%
+('matched_spectral_control', '128'): four-run mean reduction=1.119231%
+('matched_spectral_control', '64'): four-run mean reduction=0.404590%
+48 ordinary rows audited; identical wisdom, zero callback C++ allocations, stable FFT bounds across builds, stable +3216-byte core preparation increase; controls unchanged.

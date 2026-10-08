@@ -1,6 +1,6 @@
 # Poly Octave 3 implementation status
 
-Updated: 2026-10-07. This records the implementation increments against
+Updated: 2026-10-08. This records the implementation increments against
 [the implementation plan](pog3-effect-implementation-plan.md). The parameter
 contract, audible granular comparison harness, and streaming spectral foundation
 are implemented, along with a spectral five-voice pitch bank, continuous Warp,
@@ -66,6 +66,7 @@ workspace and its unrelated changes remain separate.
 | `tests/pog3_controls.cpp` | Persisted index contract, both target setters, mappings, morph ownership, rejection/clamping, Warp and eligibility behavior |
 | `tests/pog3_quality.cpp` | Active FFTW numerical accuracy, exact shared fallback, concurrent shared-plan execution, identity/delay/startup/drain/chunking/reset, isolated reference tuning, stereo/pan/gain, nonfinite/overflow rejection and optional WAV renders |
 | `tests/pog3_pitch_quality.cpp` | Spectral tuning/spurs/leakage, resolved and ordinary low chords, alias rejection, track continuity, Focus reversal, staged identity/deadlines, callback partitioning, Warp, overload/drain, envelope latency, close-pair diagnostic |
+| `tests/pog3_frame_birth_slots.cpp` | Independent original frame-birth oracle: 758880 selections across bounded missed ages, combined empty/expired tiers, ties, intervening uses and exhaustion |
 | `tests/pog3_attack_birth_slots.cpp` | Differential original-scan oracle for 528384 birth selections, including reservations/ties/intervening uses/reset/exhaustion and timestamp boundaries |
 | `tests/pog3_attack_quality.cpp` | Held/new notes, shared harmonics, low bass, re-plucks, arpeggios, bends, Focus reversals, activation, exact-off dry, reset, partition invariance, optional attack WAV renders |
 | `tests/pog3_voice_stages.cpp` | AD timing/retrigger, held-tone/chord detector, sensitivity/re-plucks, filter transfer and resonance, routing eligibility, delay endpoints/queues, pan, rapid automation/partition/reset, gain/overload/recovery, optional full-path WAV renders |
@@ -83,6 +84,33 @@ Existing catalog entries, scene indices and tracked device binaries remain
 unchanged. FFTW changes active transform arithmetic within the numerical/audio
 contract documented in the latest checkpoint. The demonstrated shared granular
 read-index correction is documented with its original-reader reproduction below.
+
+## Latest CPU checkpoint — 2026-10-08
+
+Retain a second compact slot workspace for **frame track births**. It preserves
+the original combined empty/expired ascending priority, then greatest positive
+missed age / lowest index. Lazy per-frame preparation keeps original predictions,
+track generations/velocities, region publication, phase math and timestamps.
+Two ordinary matched Pi ABBA rounds show **4.933%/4.527% combined mean
+reductions at 64/128 frames** against the retained compact Attack baseline.
+Mean demand is now **80.327–81.568% / 80.505–81.210%**. Pooled over-period
+counts fall **361 → 21/12000 at 64**, **17 → 0/6000 at 128**. The candidate's
+worst 64-frame duration still exceeds its period; live intended-chain admission
+is open. Preparation grows **3216 bytes to 1625912**, excluding FFTW internals.
+
+All **10 default / 11 opt-in DSP checks** pass. Baseline/current frame fields
+match exactly for 1088 synthetic histories; the real selector equals independent
+original scans across 758880 selections. Host/Pi default processor/bank audio and
+host opt-in automation remain byte-exact; affected sanitizer, strict warnings,
+C/C++ callback allocation and target pitch checks pass. Standalone interpretation
+attribution finds nearly 60 million original long-frame birth-scan iterations;
+counts and all 5247 frame identities match across partitions/builds. Ordinary
+benchmarks, rather than instrumented stage timings, justify retention.
+
+Next, test bounded top-peak selection before phase caching. Keep frame/Attack
+slot snapshots, refined long-render ages, four-source rendering and opt-in-only
+freeze. The rejected gain split remains absent. See
+[the complete results and reviewed Luna next-step plan](pog3-interpretation-cpu-results.md).
 
 ## Contracts established
 
@@ -1971,19 +1999,19 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **primary interpretation substage attribution**. Keep compact
-Attack birth slots, refined long-render due ages and four-source batching. The
-deferred Attack gain prototype passes exact output and all nine/ten DSP suites,
-but does not produce useful repeatable ordinary CPU benefit and is rejected.
-Measure magnitudes, phase/log estimation, candidate sorting, track association
-and birth scans, and final region/history work. Use actual peak/track/phase-reuse
-counts to choose either a compact track-birth snapshot or a sparse-valid previous
-phase cache; avoid calculating phase for every bin. The frame birth selector's
-combined empty/expired priority differs from Attack's empty-first rule.
-Follow [the reviewed ordering, cache-validity and matched-validation constraints](pog3-attack-gain-results.md).
-If those paths are small, inspect harmonic-support scoring. Preserve input/control
-timestamps, ownership, strict thresholds/ties, prediction keys, publication and
-low/long/short update order. No deferred-gain production path remains.
+The next work is **bounded top-peak selection**, followed by a sparse-valid
+previous-phase cache if selection lacks repeatable benefit. Primary interpretation
+attribution is complete, and compact frame track-birth snapshots are retained:
+ordinary mean demand improves about 4.9%/4.5% with exact histories. Long candidate
+sorting still takes roughly 47–49 instrumented µs; preserve its exact top-256
+magnitude/bin membership and ascending publication. About 63% of long/short
+phase-estimation bins could reuse a preceding-frame phase, with Cartesian
+fallback and original float arithmetic retained. Follow
+[the reviewed selection/cache constraints and matched-validation plan](pog3-interpretation-cpu-results.md).
+Keep compact Attack slots, refined long-render due ages and four-source batching.
+The deferred gain prototype remains rejected. Preserve input/control timestamps,
+ownership, strict thresholds/ties, prediction keys, publication and low/long/short
+update order. Public integration stays blocked on CPU feasibility.
 Matched planning controls and the freeze scope decision are complete. Both freeze
 modes remain opt-in experiments; restore them only after core CPU feasibility.
 The first hardware comparison is complete: tested full-feature configurations exceed standalone
