@@ -1,0 +1,6 @@
+{"mode":"octave-down","focus":0,"ready":1,"finished":0,"callbacks":7536,"mean_us":2046.65,"max_us":2733.72,"over_period":2,"xruns":0,"input_peak":0.0407186,"output_peak":0.144691}
+numid=28,iface=MIXER,name='Headphone Switch'
+  ; type=BOOLEAN,access=rw------,values=2
+  : values=on,on
+255
+279bce7a08557bae5ae72d493e304e5bcfa20b8dd1d4892bb94017c66853160b  /tmp/pog3-audition-20261008/run.sh
