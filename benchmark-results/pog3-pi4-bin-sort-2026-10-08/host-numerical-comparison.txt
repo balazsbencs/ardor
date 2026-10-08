@@ -1,0 +1,22 @@
+a09f771ff07309f4625c84fb6fa03b5fc117f4d02e0ed98dad986881914164db  /tmp/ardor-pog3-device-build/binsort-automation-baseline-host.f32
+a09f771ff07309f4625c84fb6fa03b5fc117f4d02e0ed98dad986881914164db  /tmp/ardor-pog3-device-build/binsort-automation-candidate-host.f32
+ 7864320 /tmp/ardor-pog3-device-build/binsort-automation-baseline-host.f32
+ 7864320 /tmp/ardor-pog3-device-build/binsort-automation-candidate-host.f32
+15728640 total
+82ed98e18a3b5595761129438a76b7268fb4fd085cd9f4f7de95b28620e07016  /tmp/ardor-pog3-device-build/binsort-automation-baseline-optin.f32
+82ed98e18a3b5595761129438a76b7268fb4fd085cd9f4f7de95b28620e07016  /tmp/ardor-pog3-device-build/binsort-automation-candidate-optin.f32
+ 7864320 /tmp/ardor-pog3-device-build/binsort-automation-baseline-optin.f32
+ 7864320 /tmp/ardor-pog3-device-build/binsort-automation-candidate-optin.f32
+15728640 total
+workload,callback_frames,callbacks,budget_us,median_us,p95_us,p99_us,p999_us,max_us,callback_allocations,preparation_allocated_bytes,reset_us,max_transforms_per_callback,worst_callback_index,worst_callback_end_mod_512,worst_callback_transforms,mean_us,over_budget_callbacks
+workload,callback_frames,callbacks,budget_us,median_us,p95_us,p99_us,p999_us,max_us,callback_allocations,preparation_allocated_bytes,reset_us,max_transforms_per_callback,worst_callback_index,worst_callback_end_mod_512,worst_callback_transforms,mean_us,over_budget_callbacks
+740ef569d86270803d669594ea7f0e6f2f2faf0fe55a2ba2d933145e60f9ba37  /tmp/ardor-pog3-device-build/binsort-host-full-baseline.f32
+740ef569d86270803d669594ea7f0e6f2f2faf0fe55a2ba2d933145e60f9ba37  /tmp/ardor-pog3-device-build/binsort-host-full-candidate.f32
+1536000 /tmp/ardor-pog3-device-build/binsort-host-full-baseline.f32
+1536000 /tmp/ardor-pog3-device-build/binsort-host-full-candidate.f32
+3072000 total
+52d1d907da441f23bb0c03ec9c44940630fe914d0d4029b55ebcf82e9d34e710  /tmp/ardor-pog3-device-build/binsort-direct-baseline-host.bin
+52d1d907da441f23bb0c03ec9c44940630fe914d0d4029b55ebcf82e9d34e710  /tmp/ardor-pog3-device-build/binsort-direct-candidate-host.bin
+4226018 /tmp/ardor-pog3-device-build/binsort-direct-baseline-host.bin
+4226018 /tmp/ardor-pog3-device-build/binsort-direct-candidate-host.bin
+8452036 total
