@@ -2074,22 +2074,31 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **compact exact support-scoring read keys in Attack** as a
-separate CPU candidate. Skipping the redundant nonoverflow bin sort repeats
-0.912%/0.562% combined ordinary mean reductions against HEAD816, with mixed
-64-frame tails and an improving uninvolved spectral control. Exact bounded
-selection, frame/Attack birth snapshots, refined due ages and four-source
-rendering remain. Both sparse previous-phase caches and the deferred gain split
-remain rejected. Follow
-[the reviewed Attack layout handoff and bin-sort evidence](pog3-bin-sort-results.md).
-Preserve observation order/cap/index provenance, original harmonic division,
-strict thresholds, score accumulation/ties, family/partial lifetimes and all
-input/control dates. Count gather traffic and actual memory; retain only useful
-ordinary benefit. Public integration remains blocked on CPU feasibility.
+The next work is **a bounded POG3 worker-pipeline feasibility probe**, following
+[the actual-device budget, fresh PMU profile and reviewed handoff](pog3-headroom-results.md).
+The device currently uses 128 frames / 48 kHz, a 2.667 ms period. Two paced
+POG3-only runs average 2.155–2.174 ms with no xruns but one over-period callback;
+the reference vibe/NAM/EQ chain averages 0.956–0.975 ms. Both combined paced
+attempts encounter a playback xrun after 11 callbacks during warmup. Unpaced
+combined cost is 3.416–3.487 ms. Test moving POG3 to the otherwise idle CPU3 with
+an explicit, measured additional quantum of latency and strict generation
+accounting; this architecture has not yet passed a hardware test.
+
+Compact Attack support-scoring read keys are paused: grouping itself accounts
+for only 4.00% of fresh sampled DSP cycles, whereas the observed serial chain
+needs about 22.7% less total work merely to fit on average. L1 refill counts do
+not establish memory access as the dominant bottleneck. The previous bin-sort
+0.912%/0.562% mean differences remain observations with mixed tails and a larger
+improvement in an uninvolved spectral control, not isolated causal speedups.
+Exact bounded selection, compact frame/Attack birth snapshots, refined due ages,
+four-source rendering and skipped redundant sort remain. Both sparse phase
+caches and the deferred gain split remain rejected. Production DSP is unchanged
+by the new measurement probe; public integration remains CPU-gated.
 Matched planning controls and the freeze scope decision are complete. Both freeze
 modes remain opt-in experiments; restore them only after core CPU feasibility.
-The first hardware comparison is complete: tested full-feature configurations exceed standalone
-capacity at both buffer sizes. The initial 25% planning target is not a hard
+The earlier full-feature hardware comparison exceeded standalone capacity at
+both buffer sizes; the new reduced-core paced results above supersede the old
+unpaced data for this specific 128-frame workload. The initial 25% planning target is not a hard
 rejection threshold. Admission depends on target callback tails, the intended
 chain and thermal/xrun endurance after standalone headroom is demonstrated. **M8 — factory, catalog, inspector, scene
 and manager integration** remains blocked on feasibility. All seven DSP
@@ -2101,10 +2110,10 @@ hold/routing tests do not satisfy target-device feasibility.
 The balanced analysis schedule and bounded Attack matching have earlier
 exact-output evidence; the shared granular read correction is separately
 reproduced and documented. FFTW uses the new numerical/audio contract described
-above. The reduced-core Pi diagnostic profile attributes about 32% to live rendering,
-18–19% each to FFT, interpretation and Attack, and zero calls to freeze preparation
-or held rendering. These are target instrumented attributions, not admission timings.
-Use the new mean alongside callback tails to evaluate the next optimization.
+above. The earlier instrumented stage profile is historical; use the new
+exclusive hardware-PC attribution and ordinary paced timings for the next
+decision. The new probe does not qualify thermal endurance, all controls or the
+production MMAP backend. No new production DSP optimization was selected.
 Preserve input timestamps, control snapshots, complete-frame publication and
 Attack/freeze/render deadlines.
 Maintain latency, arbitrary callback partitions, allocation bounds and audible

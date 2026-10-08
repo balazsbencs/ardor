@@ -921,3 +921,15 @@ option(ARDOR_BUILD_WHAMMY_PLUGIN "Build the Whammy VST3/CLAP plugin" OFF)
 if(ARDOR_BUILD_WHAMMY_PLUGIN)
   add_subdirectory(plugins/whammy-vst)
 endif()
+
+# Explicit device-only diagnostic; not built or installed in the pedal image.
+option(ARDOR_BUILD_POG3_HEADROOM_PROBE "Build ALSA-paced POG3/chain headroom probe" OFF)
+if(ARDOR_BUILD_POG3_HEADROOM_PROBE)
+  find_package(ALSA REQUIRED)
+  add_executable(pedal-pog3-headroom EXCLUDE_FROM_ALL tests/pog3_device_headroom.cpp)
+  target_include_directories(pedal-pog3-headroom PRIVATE ${ALSA_INCLUDE_DIRS} ${ARDOR_FFTW_INCLUDE_DIR})
+  # Link DSP objects directly so NAM's static architecture registrars survive.
+  target_link_libraries(pedal-pog3-headroom PRIVATE ardor_audio ardor_dsp ardor_pog3 ${ALSA_LIBRARIES})
+  # Stable executable addresses allow offline attribution of sampled PCs.
+  target_link_options(pedal-pog3-headroom PRIVATE -no-pie)
+endif()

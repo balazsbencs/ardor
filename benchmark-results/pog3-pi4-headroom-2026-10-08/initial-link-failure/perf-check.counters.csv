@@ -1,0 +1,6 @@
+event,value,enabled_ns,running_ns
+cycles,892798,1327037,1327037
+instructions,1555007,1309129,1309129
+l1d_access,402067,1303759,1303759
+l1d_refill,2553,1300500,1300500
+branch_mispredict,3440,1296704,1296704
