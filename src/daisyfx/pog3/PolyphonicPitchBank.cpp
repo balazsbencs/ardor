@@ -130,7 +130,10 @@ void PitchFrame::update(std::span<const std::complex<float>> spectrum) noexcept 
   }
   if (candidates > regions_.size()) {
     ++capacityEvents_;
-    std::sort(candidates_.begin(), candidates_.begin() + candidates, [](const auto& a, const auto& b) {
+    // Only the exact top set is needed; its final order is established below.
+    // Unique bins break magnitude ties, retaining the original cutoff choice.
+    std::nth_element(candidates_.begin(), candidates_.begin() + regions_.size(),
+                     candidates_.begin() + candidates, [](const auto& a, const auto& b) {
       return a.magnitude == b.magnitude ? a.bin < b.bin : a.magnitude > b.magnitude;
     });
     candidates = regions_.size();

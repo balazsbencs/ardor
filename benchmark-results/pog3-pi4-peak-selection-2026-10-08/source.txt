@@ -1,0 +1,3 @@
+baseline=4e262aed0109fa5cfe31483216248fc290677671
+retained frame/Attack birth snapshots, refined due ages and four-source rendering
+freeze and every profile OFF for ordinary CPU

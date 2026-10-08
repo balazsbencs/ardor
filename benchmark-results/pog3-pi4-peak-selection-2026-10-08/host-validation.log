@@ -1,0 +1,5 @@
+[  0%] Built target ardor_realtime_fft
+[100%] Built target ardor_pog3
+automation_trace,passes=2,samples=81920,floats=1966080,control_events=14160,drain_per_pass=4096,experimental_freeze=0
+frames=1538 regions=172698 capacity-active-frames=592
+Peak selection: 810 published frames match original full sort; 255/256/257 boundaries, cutoff ties, monotone/random magnitudes, ceilings and repeated overflow passed
