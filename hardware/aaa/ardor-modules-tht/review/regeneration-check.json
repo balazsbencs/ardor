@@ -1,0 +1,92 @@
+{
+  "result": "PASS",
+  "kicad_version": "9.0.2",
+  "routing": "Frozen board.ses imported into freshly generated placements",
+  "modules": {
+    "expression": {
+      "result": "PASS",
+      "byte_identical_files": [
+        "Ardor_Expression_THT.kicad_sch",
+        "BOM.csv",
+        "README.md",
+        "assembly/accessories.csv",
+        "verification/design.json"
+      ],
+      "pcb_geometry_and_nets_identical_excluding_uuids": true,
+      "filled_copper_symmetric_difference_mm2": {
+        "F.Cu": 0.0,
+        "B.Cu": 0.0
+      },
+      "release_pcb_sha256": "46008b9810da64d20b5de82f7dfd6a458b25c3cda5f2736701cf74e7860eb61c",
+      "regenerated_native_checks": "PASS"
+    },
+    "headphones": {
+      "result": "PASS",
+      "byte_identical_files": [
+        "Ardor_Headphones_THT.kicad_sch",
+        "BOM.csv",
+        "README.md",
+        "assembly/accessories.csv",
+        "verification/design.json"
+      ],
+      "pcb_geometry_and_nets_identical_excluding_uuids": true,
+      "filled_copper_symmetric_difference_mm2": {
+        "F.Cu": 0.0,
+        "B.Cu": 0.0
+      },
+      "release_pcb_sha256": "6c4aaf47a62dd6e19c52ac8f7dc9e931a55a0878e13a9ddf0ebd98ed605dc069",
+      "regenerated_native_checks": "PASS"
+    },
+    "line-out": {
+      "result": "PASS",
+      "byte_identical_files": [
+        "Ardor_Line_Out_THT.kicad_sch",
+        "BOM.csv",
+        "README.md",
+        "assembly/accessories.csv",
+        "verification/design.json"
+      ],
+      "pcb_geometry_and_nets_identical_excluding_uuids": true,
+      "filled_copper_symmetric_difference_mm2": {
+        "F.Cu": 0.0,
+        "B.Cu": 0.0
+      },
+      "release_pcb_sha256": "ad77d113b6029e5e1382c3877070c677329bc7c0b58f5dc62f52c3e7f21083b0",
+      "regenerated_native_checks": "PASS"
+    },
+    "midi-in": {
+      "result": "PASS",
+      "byte_identical_files": [
+        "Ardor_MIDI_THT.kicad_sch",
+        "BOM.csv",
+        "README.md",
+        "assembly/accessories.csv",
+        "verification/design.json"
+      ],
+      "pcb_geometry_and_nets_identical_excluding_uuids": true,
+      "filled_copper_symmetric_difference_mm2": {
+        "F.Cu": 0.0,
+        "B.Cu": 0.0
+      },
+      "release_pcb_sha256": "491d6c0513ab8d58d02083fda378f52ad1c6e6e260f57a14e04205c5ffbec034",
+      "regenerated_native_checks": "PASS"
+    },
+    "mixer": {
+      "result": "PASS",
+      "byte_identical_files": [
+        "Ardor_Mixer_THT.kicad_sch",
+        "BOM.csv",
+        "README.md",
+        "assembly/accessories.csv",
+        "verification/design.json"
+      ],
+      "pcb_geometry_and_nets_identical_excluding_uuids": true,
+      "filled_copper_symmetric_difference_mm2": {
+        "F.Cu": 0.0,
+        "B.Cu": 0.0
+      },
+      "release_pcb_sha256": "4cd55830997e1d17c89d9f50d06b6d6e3108efae685575e760e0c966ab54cc74",
+      "regenerated_native_checks": "PASS"
+    }
+  }
+}

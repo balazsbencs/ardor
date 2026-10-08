@@ -1,0 +1,70 @@
+{
+  "source_main_commit": "755d22fe",
+  "pins_by_module": {
+    "midi-in": {
+      "J202.1": "MIDI_4",
+      "J202.2": "MIDI_5",
+      "J101.1": "+5V",
+      "J101.2": "+3V3",
+      "J101.3": "GND",
+      "J101.4": "MIDI_RX",
+      "J203.1": "CHASSIS",
+      "J203.2": "GND"
+    },
+    "expression": {
+      "J302.1": "EXP_TIP",
+      "J302.2": "EXP_RING",
+      "J302.3": "GND",
+      "J101.1": "+3V3",
+      "J101.2": "GND",
+      "J101.3": "SDA",
+      "J101.4": "SCL",
+      "JP301.1": "EXP_TIP",
+      "JP301.2": "EXP_RING",
+      "JP301.3": "EXP_WIPER",
+      "JP301.4": "EXP_EXC",
+      "JP301.5": "EXP_RING",
+      "JP301.6": "EXP_TIP",
+      "JP302.1": "GND",
+      "JP302.2": "ADDR",
+      "JP302.3": "+3V3_A",
+      "JP303.1": "SDA_PULL",
+      "JP303.2": "SDA",
+      "JP304.1": "SCL_PULL",
+      "JP304.2": "SCL"
+    },
+    "mixer": {
+      "J102.1": "AUDIO_L",
+      "J102.2": "GND",
+      "J102.3": "AUDIO_R",
+      "J101.1": "+5V",
+      "J101.2": "GND",
+      "J103.1": "OUT_L",
+      "J103.2": "GND",
+      "J103.3": "OUT_R",
+      "J103.4": "OUT_MONO"
+    },
+    "line-out": {
+      "J102.1": "AUDIO_IN",
+      "J102.2": "GND",
+      "J101.1": "+5V",
+      "J101.2": "GND",
+      "J101.3": "LINE_ENABLE",
+      "J503.1": "LINE_JACK",
+      "J503.2": "GND",
+      "J502.1": "AMP_FEED",
+      "J502.2": "GND"
+    },
+    "headphones": {
+      "J102.1": "AUDIO_L",
+      "J102.2": "GND",
+      "J102.3": "AUDIO_R",
+      "J101.1": "+5V",
+      "J101.2": "GND",
+      "J101.3": "HP_ENABLE",
+      "J602.1": "HP_L",
+      "J602.2": "HP_R",
+      "J602.3": "GND"
+    }
+  }
+}

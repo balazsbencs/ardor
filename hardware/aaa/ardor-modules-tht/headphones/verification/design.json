@@ -1,0 +1,856 @@
+{
+  "name": "Ardor_Headphones_THT",
+  "title": "Stereo headphones / LM386 / relay mute",
+  "slug": "headphones",
+  "size_mm": [
+    96,
+    84
+  ],
+  "parts": {
+    "J102": {
+      "ref": "J102",
+      "kind": "Conn_01x03",
+      "value": "STEREO AUDIO INPUT FROM SOURCE",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
+      "pcb": [
+        5,
+        22
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "81ec111c-57b4-540b-b937-31d7199a0c0c",
+      "mpn": "PinHeader_1x03_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "J101": {
+      "ref": "J101",
+      "kind": "Conn_01x03",
+      "value": "5V POWER + ENABLE INPUT",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
+      "pcb": [
+        5,
+        58
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "58117ad0-ac93-53b5-8313-bb7878fd5218",
+      "mpn": "PinHeader_1x03_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "J602": {
+      "ref": "J602",
+      "kind": "Conn_01x03",
+      "value": "STEREO HEADPHONE AUDIO OUTPUT",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
+      "pcb": [
+        90,
+        24
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "082bcc27-9f53-55d4-8f76-274530157918",
+      "mpn": "PinHeader_1x03_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "FB101": {
+      "ref": "FB101",
+      "kind": "FerriteBead",
+      "value": "800R@100MHz / WE 7427501",
+      "fp": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
+      "pcb": [
+        19,
+        74
+      ],
+      "part": {
+        "footprint": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
+        "mpn": "Wurth Elektronik 7427501",
+        "bom_mpn": "Wurth Elektronik 7427501",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.we-online.com/components/products/datasheet/7427501.pdf"
+      },
+      "dnp": false,
+      "uuid": "ac8664d2-adc5-5ce5-9a04-56c03e1e687d",
+      "mpn": "Wurth Elektronik 7427501",
+      "datasheet": "https://www.we-online.com/components/products/datasheet/7427501.pdf"
+    },
+    "C101": {
+      "ref": "C101",
+      "kind": "C_Polarized",
+      "value": "100u / 25V",
+      "fp": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
+      "pcb": [
+        41,
+        77
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
+        "mpn": "100u / 25V",
+        "bom_mpn": "100u / 25V",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "e833fde6-12af-5a68-80d5-3f3d98dd0997",
+      "mpn": "100u / 25V",
+      "datasheet": ""
+    },
+    "C102": {
+      "ref": "C102",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+      "pcb": [
+        58,
+        78
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+        "mpn": "100n / 50V X7R",
+        "bom_mpn": "100n / 50V X7R",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "94333300-ed06-5e56-b371-d7c63a61fd1c",
+      "mpn": "100n / 50V X7R",
+      "datasheet": ""
+    },
+    "C601": {
+      "ref": "C601",
+      "kind": "C",
+      "value": "1u / 63V FILM",
+      "fp": "Capacitor_THT:C_Rect_L7.2mm_W3.5mm_P5.00mm_FKS2_FKP2_MKS2_MKP2",
+      "pcb": [
+        17,
+        20
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Rect_L7.2mm_W3.5mm_P5.00mm_FKS2_FKP2_MKS2_MKP2",
+        "mpn": "1u / 63V FILM",
+        "bom_mpn": "1u / 63V FILM",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "8c4bf8fa-253b-5343-b10f-eaffc0cb0cbb",
+      "mpn": "1u / 63V FILM",
+      "datasheet": ""
+    },
+    "R611": {
+      "ref": "R611",
+      "kind": "R",
+      "value": "39k / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        28,
+        20
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "39k / 1% 0.25W",
+        "bom_mpn": "39k / 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "a3d3ed36-b20d-5b68-a1a1-1af19d66cf5f",
+      "mpn": "39k / 1% 0.25W",
+      "datasheet": ""
+    },
+    "R621": {
+      "ref": "R621",
+      "kind": "R",
+      "value": "1k / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        34,
+        30
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "1k / 1% 0.25W",
+        "bom_mpn": "1k / 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "818ac91f-a0f4-5d58-aa9d-12957b107fe8",
+      "mpn": "1k / 1% 0.25W",
+      "datasheet": ""
+    },
+    "U601": {
+      "ref": "U601",
+      "kind": "LM386_THT",
+      "value": "LM386N-1/NOPB",
+      "fp": "Package_DIP:DIP-8_W7.62mm_Socket",
+      "pcb": [
+        44,
+        20
+      ],
+      "part": {
+        "footprint": "Package_DIP:DIP-8_W7.62mm_Socket",
+        "mpn": "Texas Instruments LM386N-1/NOPB",
+        "bom_mpn": "Texas Instruments LM386N-1/NOPB",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.ti.com/lit/ds/symlink/lm386.pdf"
+      },
+      "dnp": false,
+      "uuid": "234bf83f-121d-59de-bea4-4bfda7aa918d",
+      "mpn": "Texas Instruments LM386N-1/NOPB",
+      "datasheet": "https://www.ti.com/lit/ds/symlink/lm386.pdf"
+    },
+    "C631": {
+      "ref": "C631",
+      "kind": "C_Polarized",
+      "value": "10u / 25V",
+      "fp": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
+      "pcb": [
+        45,
+        32
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
+        "mpn": "10u / 25V",
+        "bom_mpn": "10u / 25V",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "67bc7368-7960-5c4e-be00-7f31b43aaca7",
+      "mpn": "10u / 25V",
+      "datasheet": ""
+    },
+    "C641": {
+      "ref": "C641",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+      "pcb": [
+        52,
+        13
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+        "mpn": "100n / 50V X7R",
+        "bom_mpn": "100n / 50V X7R",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "1aa534aa-910b-5672-9002-25edf0ae7dbd",
+      "mpn": "100n / 50V X7R",
+      "datasheet": ""
+    },
+    "C651": {
+      "ref": "C651",
+      "kind": "C_Polarized",
+      "value": "470u / 16V",
+      "fp": "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
+      "pcb": [
+        60,
+        20
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
+        "mpn": "470u / 16V",
+        "bom_mpn": "470u / 16V",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "4674584b-d90a-5c81-abd6-b746abcc39ca",
+      "mpn": "470u / 16V",
+      "datasheet": ""
+    },
+    "R631": {
+      "ref": "R631",
+      "kind": "R",
+      "value": "2.2R / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        72,
+        20
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "2.2R / 1% 0.25W",
+        "bom_mpn": "2.2R / 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "37eecbef-9d19-52fe-b334-18d7bdb05b9f",
+      "mpn": "2.2R / 1% 0.25W",
+      "datasheet": ""
+    },
+    "R641": {
+      "ref": "R641",
+      "kind": "R",
+      "value": "1k / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        82,
+        30
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "1k / 1% 0.25W",
+        "bom_mpn": "1k / 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "88319f28-97af-55b7-8ce8-81d39b8b5e8d",
+      "mpn": "1k / 1% 0.25W",
+      "datasheet": ""
+    },
+    "R651": {
+      "ref": "R651",
+      "kind": "R",
+      "value": "10R / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        55,
+        30,
+        90
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "10R / 1% 0.25W",
+        "bom_mpn": "10R / 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "0db9d073-7a1d-5306-98ff-c5a1ee5c4406",
+      "mpn": "10R / 1% 0.25W",
+      "datasheet": ""
+    },
+    "C661": {
+      "ref": "C661",
+      "kind": "C",
+      "value": "47n / 50V FILM",
+      "fp": "Capacitor_THT:C_Rect_L7.2mm_W3.5mm_P5.00mm_FKS2_FKP2_MKS2_MKP2",
+      "pcb": [
+        62,
+        32
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Rect_L7.2mm_W3.5mm_P5.00mm_FKS2_FKP2_MKS2_MKP2",
+        "mpn": "47n / 50V FILM",
+        "bom_mpn": "47n / 50V FILM",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "b52470a4-0a61-50ab-91a2-4e5317db6132",
+      "mpn": "47n / 50V FILM",
+      "datasheet": ""
+    },
+    "D601": {
+      "ref": "D601",
+      "kind": "D_TVS",
+      "value": "SA5.0CA-E3/54",
+      "fp": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
+      "pcb": [
+        87,
+        12
+      ],
+      "part": {
+        "footprint": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
+        "mpn": "Vishay SA5.0CA-E3/54",
+        "bom_mpn": "Vishay SA5.0CA-E3/54",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.vishay.com/doc/?88378="
+      },
+      "dnp": false,
+      "uuid": "85ca6efe-d167-53dc-8250-49131b4712c3",
+      "mpn": "Vishay SA5.0CA-E3/54",
+      "datasheet": "https://www.vishay.com/doc/?88378="
+    },
+    "C602": {
+      "ref": "C602",
+      "kind": "C",
+      "value": "1u / 63V FILM",
+      "fp": "Capacitor_THT:C_Rect_L7.2mm_W3.5mm_P5.00mm_FKS2_FKP2_MKS2_MKP2",
+      "pcb": [
+        17,
+        45
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Rect_L7.2mm_W3.5mm_P5.00mm_FKS2_FKP2_MKS2_MKP2",
+        "mpn": "1u / 63V FILM",
+        "bom_mpn": "1u / 63V FILM",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "9e731d71-9bae-5882-942b-39b7e2655387",
+      "mpn": "1u / 63V FILM",
+      "datasheet": ""
+    },
+    "R612": {
+      "ref": "R612",
+      "kind": "R",
+      "value": "39k / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        28,
+        45
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "39k / 1% 0.25W",
+        "bom_mpn": "39k / 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "0d6f3359-9e54-55a1-b86e-dbccbf58916c",
+      "mpn": "39k / 1% 0.25W",
+      "datasheet": ""
+    },
+    "R622": {
+      "ref": "R622",
+      "kind": "R",
+      "value": "1k / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        34,
+        55
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "1k / 1% 0.25W",
+        "bom_mpn": "1k / 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "1622d448-919e-504d-9220-3add6e1ca3a0",
+      "mpn": "1k / 1% 0.25W",
+      "datasheet": ""
+    },
+    "U602": {
+      "ref": "U602",
+      "kind": "LM386_THT",
+      "value": "LM386N-1/NOPB",
+      "fp": "Package_DIP:DIP-8_W7.62mm_Socket",
+      "pcb": [
+        44,
+        45
+      ],
+      "part": {
+        "footprint": "Package_DIP:DIP-8_W7.62mm_Socket",
+        "mpn": "Texas Instruments LM386N-1/NOPB",
+        "bom_mpn": "Texas Instruments LM386N-1/NOPB",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.ti.com/lit/ds/symlink/lm386.pdf"
+      },
+      "dnp": false,
+      "uuid": "6943e249-7874-5ee6-935a-21e0b13bce9e",
+      "mpn": "Texas Instruments LM386N-1/NOPB",
+      "datasheet": "https://www.ti.com/lit/ds/symlink/lm386.pdf"
+    },
+    "C632": {
+      "ref": "C632",
+      "kind": "C_Polarized",
+      "value": "10u / 25V",
+      "fp": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
+      "pcb": [
+        45,
+        57
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
+        "mpn": "10u / 25V",
+        "bom_mpn": "10u / 25V",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "ab114d8a-3e3c-5fe2-b77e-8ce513bc3495",
+      "mpn": "10u / 25V",
+      "datasheet": ""
+    },
+    "C642": {
+      "ref": "C642",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+      "pcb": [
+        52,
+        38
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+        "mpn": "100n / 50V X7R",
+        "bom_mpn": "100n / 50V X7R",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "c233cc67-d1e3-52ab-a393-963a749796a9",
+      "mpn": "100n / 50V X7R",
+      "datasheet": ""
+    },
+    "C652": {
+      "ref": "C652",
+      "kind": "C_Polarized",
+      "value": "470u / 16V",
+      "fp": "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
+      "pcb": [
+        60,
+        45
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
+        "mpn": "470u / 16V",
+        "bom_mpn": "470u / 16V",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "3624f974-1e67-508e-92b7-bdbab80d2127",
+      "mpn": "470u / 16V",
+      "datasheet": ""
+    },
+    "R632": {
+      "ref": "R632",
+      "kind": "R",
+      "value": "2.2R / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        72,
+        45
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "2.2R / 1% 0.25W",
+        "bom_mpn": "2.2R / 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "ac6baf77-9df6-547e-9199-4ec96db97391",
+      "mpn": "2.2R / 1% 0.25W",
+      "datasheet": ""
+    },
+    "R642": {
+      "ref": "R642",
+      "kind": "R",
+      "value": "1k / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        85,
+        55,
+        90
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "1k / 1% 0.25W",
+        "bom_mpn": "1k / 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "a7a07646-a022-5a3f-a87c-f3ff4136175f",
+      "mpn": "1k / 1% 0.25W",
+      "datasheet": ""
+    },
+    "R652": {
+      "ref": "R652",
+      "kind": "R",
+      "value": "10R / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        55,
+        55,
+        90
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "10R / 1% 0.25W",
+        "bom_mpn": "10R / 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "e67bae05-6666-5727-a578-284be3554b95",
+      "mpn": "10R / 1% 0.25W",
+      "datasheet": ""
+    },
+    "C662": {
+      "ref": "C662",
+      "kind": "C",
+      "value": "47n / 50V FILM",
+      "fp": "Capacitor_THT:C_Rect_L7.2mm_W3.5mm_P5.00mm_FKS2_FKP2_MKS2_MKP2",
+      "pcb": [
+        62,
+        57
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Rect_L7.2mm_W3.5mm_P5.00mm_FKS2_FKP2_MKS2_MKP2",
+        "mpn": "47n / 50V FILM",
+        "bom_mpn": "47n / 50V FILM",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "9cf5ab7f-d037-5efe-906c-8a39543337d0",
+      "mpn": "47n / 50V FILM",
+      "datasheet": ""
+    },
+    "D602": {
+      "ref": "D602",
+      "kind": "D_TVS",
+      "value": "SA5.0CA-E3/54",
+      "fp": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
+      "pcb": [
+        87,
+        37
+      ],
+      "part": {
+        "footprint": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
+        "mpn": "Vishay SA5.0CA-E3/54",
+        "bom_mpn": "Vishay SA5.0CA-E3/54",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.vishay.com/doc/?88378="
+      },
+      "dnp": false,
+      "uuid": "2a1db607-13d9-5de0-8dcd-eed2eebcf6b6",
+      "mpn": "Vishay SA5.0CA-E3/54",
+      "datasheet": "https://www.vishay.com/doc/?88378="
+    },
+    "K601": {
+      "ref": "K601",
+      "kind": "G5V2_THT",
+      "value": "G5V-2-H1 DC5",
+      "fp": "Relay_THT:Relay_DPDT_Omron_G5V-2",
+      "pcb": [
+        75,
+        62
+      ],
+      "part": {
+        "footprint": "Relay_THT:Relay_DPDT_Omron_G5V-2",
+        "mpn": "Omron G5V-2-H1 DC5",
+        "bom_mpn": "Omron G5V-2-H1 DC5",
+        "jlcpcb_part": "",
+        "datasheet": "https://components.omron.com/system/files/2023-01/datasheet_pdf/K046-E1.pdf"
+      },
+      "dnp": false,
+      "uuid": "d6bb634c-c8a4-540a-b3c4-058d441eabfb",
+      "mpn": "Omron G5V-2-H1 DC5",
+      "datasheet": "https://components.omron.com/system/files/2023-01/datasheet_pdf/K046-E1.pdf"
+    },
+    "Q601": {
+      "ref": "Q601",
+      "kind": "2N3904_THT",
+      "value": "2N3904 / E-B-C",
+      "fp": "Package_TO_SOT_THT:TO-92_Inline_Wide",
+      "pcb": [
+        57,
+        69
+      ],
+      "part": {
+        "footprint": "Package_TO_SOT_THT:TO-92_Inline_Wide",
+        "mpn": "onsemi 2N3904BU",
+        "bom_mpn": "onsemi 2N3904BU",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.onsemi.com/pdf/datasheet/2n3903-d.pdf"
+      },
+      "dnp": false,
+      "uuid": "77025371-e004-596d-984f-c0fdc4f0724a",
+      "mpn": "onsemi 2N3904BU",
+      "datasheet": "https://www.onsemi.com/pdf/datasheet/2n3903-d.pdf"
+    },
+    "R601": {
+      "ref": "R601",
+      "kind": "R",
+      "value": "470R / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        35,
+        70
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "470R / 1% 0.25W",
+        "bom_mpn": "470R / 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "fc7a302c-1d24-5ad7-9e90-c2c6c2af091c",
+      "mpn": "470R / 1% 0.25W",
+      "datasheet": ""
+    },
+    "R602": {
+      "ref": "R602",
+      "kind": "R",
+      "value": "100k / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        47,
+        70,
+        90
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "100k / 1% 0.25W",
+        "bom_mpn": "100k / 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "045838e6-f165-5eae-881a-17d6638ad167",
+      "mpn": "100k / 1% 0.25W",
+      "datasheet": ""
+    },
+    "D603": {
+      "ref": "D603",
+      "kind": "D",
+      "value": "1N4148",
+      "fp": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
+      "pcb": [
+        73,
+        76
+      ],
+      "part": {
+        "footprint": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
+        "mpn": "Vishay 1N4148-TAP",
+        "bom_mpn": "Vishay 1N4148-TAP",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.vishay.com/docs/81857/1n4148.pdf"
+      },
+      "dnp": false,
+      "uuid": "afbc2806-d5b4-5fb4-aaa6-c9925ae6511a",
+      "mpn": "Vishay 1N4148-TAP",
+      "datasheet": "https://www.vishay.com/docs/81857/1n4148.pdf"
+    },
+    "R101": {
+      "ref": "R101",
+      "kind": "R",
+      "value": "0R / WIRE LINK",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        89,
+        68,
+        90
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "0R / WIRE LINK",
+        "bom_mpn": "0R / WIRE LINK",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "b39d2e6e-3751-5631-bd02-7b720a8c061f",
+      "mpn": "0R / WIRE LINK",
+      "datasheet": ""
+    }
+  },
+  "pins": {
+    "J102.1": "AUDIO_L",
+    "J102.2": "GND",
+    "J102.3": "AUDIO_R",
+    "J101.1": "+5V",
+    "J101.2": "GND",
+    "J101.3": "HP_ENABLE",
+    "J602.1": "HP_L",
+    "J602.2": "HP_R",
+    "J602.3": "GND",
+    "FB101.1": "+5V",
+    "FB101.2": "+5V_A",
+    "C101.1": "+5V_A",
+    "C101.2": "GND",
+    "C102.1": "+5V_A",
+    "C102.2": "GND",
+    "C601.1": "AUDIO_L",
+    "C601.2": "AC_L",
+    "R611.1": "AC_L",
+    "R611.2": "IN_L",
+    "R621.1": "IN_L",
+    "R621.2": "GND",
+    "U601.2": "GND",
+    "U601.3": "IN_L",
+    "U601.4": "GND",
+    "U601.5": "RAW_L",
+    "U601.6": "+5V_A",
+    "U601.7": "BYP_L",
+    "C631.1": "BYP_L",
+    "C631.2": "GND",
+    "C641.1": "+5V_A",
+    "C641.2": "GND",
+    "C651.1": "RAW_L",
+    "C651.2": "COUPLED_L",
+    "R631.1": "COUPLED_L",
+    "R631.2": "DRIVE_L",
+    "R641.1": "DRIVE_L",
+    "R641.2": "GND",
+    "R651.1": "RAW_L",
+    "R651.2": "ZOBEL_L",
+    "C661.1": "ZOBEL_L",
+    "C661.2": "GND",
+    "D601.1": "HP_L",
+    "D601.2": "CHASSIS",
+    "C602.1": "AUDIO_R",
+    "C602.2": "AC_R",
+    "R612.1": "AC_R",
+    "R612.2": "IN_R",
+    "R622.1": "IN_R",
+    "R622.2": "GND",
+    "U602.2": "GND",
+    "U602.3": "IN_R",
+    "U602.4": "GND",
+    "U602.5": "RAW_R",
+    "U602.6": "+5V_A",
+    "U602.7": "BYP_R",
+    "C632.1": "BYP_R",
+    "C632.2": "GND",
+    "C642.1": "+5V_A",
+    "C642.2": "GND",
+    "C652.1": "RAW_R",
+    "C652.2": "COUPLED_R",
+    "R632.1": "COUPLED_R",
+    "R632.2": "DRIVE_R",
+    "R642.1": "DRIVE_R",
+    "R642.2": "GND",
+    "R652.1": "RAW_R",
+    "R652.2": "ZOBEL_R",
+    "C662.1": "ZOBEL_R",
+    "C662.2": "GND",
+    "D602.1": "HP_R",
+    "D602.2": "CHASSIS",
+    "K601.1": "+5V",
+    "K601.16": "RELAY_LOW",
+    "K601.4": "HP_L",
+    "K601.13": "HP_R",
+    "K601.6": "GND",
+    "K601.11": "GND",
+    "K601.8": "DRIVE_L",
+    "K601.9": "DRIVE_R",
+    "Q601.1": "GND",
+    "Q601.2": "RELAY_BASE",
+    "Q601.3": "RELAY_LOW",
+    "R601.1": "HP_ENABLE",
+    "R601.2": "RELAY_BASE",
+    "R602.1": "RELAY_BASE",
+    "R602.2": "GND",
+    "D603.1": "+5V",
+    "D603.2": "RELAY_LOW",
+    "R101.1": "CHASSIS",
+    "R101.2": "GND"
+  },
+  "nc": [
+    "U601.1",
+    "U601.8",
+    "U602.1",
+    "U602.8"
+  ],
+  "routes": [],
+  "ground_vias": [],
+  "keepouts": [],
+  "notes": "5V stereo headphone output; through-hole assembly; approximately -6dB unloaded gain; active-high 3.3V relay enable."
+}

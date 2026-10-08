@@ -1,0 +1,621 @@
+{
+  "name": "Ardor_Line_Out_THT",
+  "title": "Mono line output / relay mute / internal amp feed / HAND ASSEMBLY",
+  "slug": "line-out",
+  "size_mm": [
+    115,
+    85
+  ],
+  "parts": {
+    "J102": {
+      "ref": "J102",
+      "kind": "Conn_01x02",
+      "value": "MONO AUDIO INPUT FROM SOURCE",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "pcb": [
+        7.5,
+        50.0
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "32361d58-9a39-55f9-92a5-215f14fb6442",
+      "mpn": "PinHeader_1x02_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "J101": {
+      "ref": "J101",
+      "kind": "Conn_01x03",
+      "value": "5V POWER + ENABLE INPUT",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
+      "pcb": [
+        7.5,
+        22.5
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "ad369f1c-8104-5fb6-8a71-428bae3dd78d",
+      "mpn": "PinHeader_1x03_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "J503": {
+      "ref": "J503",
+      "kind": "Conn_01x02",
+      "value": "LINE AUDIO OUTPUT TO TS SOCKET",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "pcb": [
+        105.0,
+        42.5
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "0003ba38-d421-53cf-8105-748efbdcb515",
+      "mpn": "PinHeader_1x02_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "J502": {
+      "ref": "J502",
+      "kind": "Conn_01x02",
+      "value": "AUDIO OUTPUT TO AMP INPUT",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "pcb": [
+        105.0,
+        65.0
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "ff7fba89-1e2f-5d1e-a3c3-404f0d93ef27",
+      "mpn": "PinHeader_1x02_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "FB101": {
+      "ref": "FB101",
+      "kind": "FerriteBead",
+      "value": "800R@100MHz / WE 7427501",
+      "fp": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
+      "pcb": [
+        22,
+        10
+      ],
+      "part": {
+        "footprint": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
+        "mpn": "Wurth Elektronik 7427501",
+        "bom_mpn": "Wurth Elektronik 7427501",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.we-online.com/components/products/datasheet/7427501.pdf"
+      },
+      "dnp": false,
+      "uuid": "b6e0711c-194d-537b-bbe2-00776c014c32",
+      "mpn": "Wurth Elektronik 7427501",
+      "datasheet": "https://www.we-online.com/components/products/datasheet/7427501.pdf"
+    },
+    "C101": {
+      "ref": "C101",
+      "kind": "C_Polarized",
+      "value": "22u / 25V polarized",
+      "fp": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
+      "pcb": [
+        39,
+        10
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
+        "mpn": "Radial electrolytic 22uF 25V, D<=6.3mm P2.5mm",
+        "bom_mpn": "Radial electrolytic 22uF 25V, D<=6.3mm P2.5mm",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "d1f1f239-7ea6-5c13-bb7c-420a09ba9ef7",
+      "mpn": "Radial electrolytic 22uF 25V, D<=6.3mm P2.5mm",
+      "datasheet": ""
+    },
+    "C102": {
+      "ref": "C102",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+      "pcb": [
+        48,
+        10
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+        "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "bom_mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "7cafe19f-0ea9-5490-b239-128464765dc8",
+      "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+      "datasheet": ""
+    },
+    "C401": {
+      "ref": "C401",
+      "kind": "C",
+      "value": "10u / 25V BIPOLAR",
+      "fp": "Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm",
+      "pcb": [
+        20.0,
+        50.0
+      ],
+      "part": {
+        "footprint": "Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm",
+        "mpn": "Nichicon UES1E100MDM",
+        "bom_mpn": "Nichicon UES1E100MDM",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf"
+      },
+      "dnp": false,
+      "uuid": "ddcc1b4a-c239-5bdb-ad5e-257b703d90be",
+      "mpn": "Nichicon UES1E100MDM",
+      "datasheet": "https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf"
+    },
+    "R401": {
+      "ref": "R401",
+      "kind": "R",
+      "value": "100kR / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        22.5,
+        60.0
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 100k\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 100k\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "14b036b0-83ad-5440-b928-a657901b8a9a",
+      "mpn": "Axial metal film 100k\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "U501": {
+      "ref": "U501",
+      "kind": "MCP6022",
+      "value": "MCP6022-I/P",
+      "fp": "Package_DIP:DIP-8_W7.62mm_Socket",
+      "pcb": [
+        35.0,
+        37.5
+      ],
+      "part": {
+        "footprint": "Package_DIP:DIP-8_W7.62mm_Socket",
+        "mpn": "Microchip MCP6022-I/P",
+        "bom_mpn": "Microchip MCP6022-I/P",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.microchip.com/content/dam/mchp/documents/APID/ProductDocuments/DataSheets/20001685E.pdf"
+      },
+      "dnp": false,
+      "uuid": "a8b39ca6-e904-5d22-82a3-dc9d709ef110",
+      "mpn": "Microchip MCP6022-I/P",
+      "datasheet": "https://www.microchip.com/content/dam/mchp/documents/APID/ProductDocuments/DataSheets/20001685E.pdf"
+    },
+    "C501": {
+      "ref": "C501",
+      "kind": "C_Polarized",
+      "value": "47u / 25V polarized",
+      "fp": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
+      "pcb": [
+        62.5,
+        30.0
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
+        "mpn": "Radial electrolytic 47uF 25V, D<=6.3mm P2.5mm",
+        "bom_mpn": "Radial electrolytic 47uF 25V, D<=6.3mm P2.5mm",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "f0adb066-5967-5f1e-989a-811053562794",
+      "mpn": "Radial electrolytic 47uF 25V, D<=6.3mm P2.5mm",
+      "datasheet": ""
+    },
+    "R501": {
+      "ref": "R501",
+      "kind": "R",
+      "value": "10kR / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        60.0,
+        47.5
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 10k\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 10k\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "9399ff19-b421-5100-ad8a-3f6726e10c1b",
+      "mpn": "Axial metal film 10k\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "R502": {
+      "ref": "R502",
+      "kind": "R",
+      "value": "100R / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        67.5,
+        17.5
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 100\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 100\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "6ea90c5b-11d5-54c0-a116-6f1e549310ae",
+      "mpn": "Axial metal film 100\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "K501": {
+      "ref": "K501",
+      "kind": "G5V-1",
+      "value": "Omron G5V-1 DC5",
+      "fp": "Relay_THT:Relay_SPDT_Omron_G5V-1",
+      "pcb": [
+        87.5,
+        22.5
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "9de75e8d-dd7f-5227-98bb-b4c59bbbd92f",
+      "mpn": "Omron G5V-1 DC5",
+      "datasheet": "https://omronfs.omron.com/en_US/ecb/products/pdf/en-g5v_1.pdf"
+    },
+    "D501": {
+      "ref": "D501",
+      "kind": "D_TVS",
+      "value": "SA5.0CA-E3/54",
+      "fp": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
+      "pcb": [
+        97.5,
+        52.5
+      ],
+      "part": {
+        "footprint": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
+        "mpn": "Vishay SA5.0CA-E3/54",
+        "bom_mpn": "Vishay SA5.0CA-E3/54",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.vishay.com/doc/?88378="
+      },
+      "dnp": false,
+      "uuid": "1d92e69b-2d2a-5175-a164-68c979d73596",
+      "mpn": "Vishay SA5.0CA-E3/54",
+      "datasheet": "https://www.vishay.com/doc/?88378="
+    },
+    "R101": {
+      "ref": "R101",
+      "kind": "R",
+      "value": "0R / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        82.5,
+        62.5
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 0\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 0\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "7eb3af18-7cad-5c4e-bc46-f8e45c7729e3",
+      "mpn": "Axial metal film 0\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "Q501": {
+      "ref": "Q501",
+      "kind": "2N3904_THT",
+      "value": "2N3904 / E-B-C",
+      "fp": "Package_TO_SOT_THT:TO-92_Inline_Wide",
+      "pcb": [
+        70.0,
+        62.5
+      ],
+      "part": {
+        "footprint": "Package_TO_SOT_THT:TO-92_Inline_Wide",
+        "mpn": "onsemi 2N3904BU",
+        "bom_mpn": "onsemi 2N3904BU",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.onsemi.com/pdf/datasheet/2n3903-d.pdf"
+      },
+      "dnp": false,
+      "uuid": "69c30aa2-ab19-5016-900a-7812f1f65941",
+      "mpn": "onsemi 2N3904BU",
+      "datasheet": "https://www.onsemi.com/pdf/datasheet/2n3903-d.pdf"
+    },
+    "R503": {
+      "ref": "R503",
+      "kind": "R",
+      "value": "470R / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        45.0,
+        72.5
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 470\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 470\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "89e70f5a-6cc3-5760-b454-3e6277cd2d9b",
+      "mpn": "Axial metal film 470\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "R504": {
+      "ref": "R504",
+      "kind": "R",
+      "value": "100kR / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        57.5,
+        62.5
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 100k\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 100k\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "64ec3840-25ce-513b-a424-76ab21e1786e",
+      "mpn": "Axial metal film 100k\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "D502": {
+      "ref": "D502",
+      "kind": "D",
+      "value": "1N4148",
+      "fp": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
+      "pcb": [
+        80.0,
+        50.0
+      ],
+      "part": {
+        "footprint": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
+        "mpn": "Vishay 1N4148-TAP",
+        "bom_mpn": "Vishay 1N4148-TAP",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.vishay.com/docs/81857/1n4148.pdf"
+      },
+      "dnp": false,
+      "uuid": "f49bb1f3-d30f-58f9-9085-655011d7723a",
+      "mpn": "Vishay 1N4148-TAP",
+      "datasheet": "https://www.vishay.com/docs/81857/1n4148.pdf"
+    },
+    "R405": {
+      "ref": "R405",
+      "kind": "R",
+      "value": "10kR / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        45.0,
+        55.0
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 10k\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 10k\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "b6a2315d-3d9a-592c-b19e-40431b828ce6",
+      "mpn": "Axial metal film 10k\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "R406": {
+      "ref": "R406",
+      "kind": "R",
+      "value": "10kR / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        45.0,
+        62.5
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 10k\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 10k\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "f11efbd9-1314-5453-8317-7cf7461bd266",
+      "mpn": "Axial metal film 10k\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "C403": {
+      "ref": "C403",
+      "kind": "C_Polarized",
+      "value": "10u / 25V polarized",
+      "fp": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
+      "pcb": [
+        35.0,
+        65.0
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
+        "mpn": "Radial electrolytic 10uF 25V, D<=6.3mm P2.5mm",
+        "bom_mpn": "Radial electrolytic 10uF 25V, D<=6.3mm P2.5mm",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "a2685906-ec6b-568a-877c-c7a2380ae12d",
+      "mpn": "Radial electrolytic 10uF 25V, D<=6.3mm P2.5mm",
+      "datasheet": ""
+    },
+    "C404": {
+      "ref": "C404",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+      "pcb": [
+        32.5,
+        22.5
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+        "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "bom_mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "0794bdd5-8c7e-5cd7-8a3b-d33f274807be",
+      "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+      "datasheet": ""
+    },
+    "C502": {
+      "ref": "C502",
+      "kind": "C",
+      "value": "10u / 25V BIPOLAR",
+      "fp": "Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm",
+      "pcb": [
+        55.0,
+        72.5
+      ],
+      "part": {
+        "footprint": "Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm",
+        "mpn": "Nichicon UES1E100MDM",
+        "bom_mpn": "Nichicon UES1E100MDM",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf"
+      },
+      "dnp": false,
+      "uuid": "47dbee5e-d51b-5cc2-b2b2-31f37a90dabd",
+      "mpn": "Nichicon UES1E100MDM",
+      "datasheet": "https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf"
+    },
+    "R505": {
+      "ref": "R505",
+      "kind": "R",
+      "value": "1kR / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        70.0,
+        75.0
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 1k\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 1k\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "a7e246f2-3019-5d9a-bf59-d84ea487acdb",
+      "mpn": "Axial metal film 1k\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "R506": {
+      "ref": "R506",
+      "kind": "R",
+      "value": "100kR / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        92.5,
+        67.5
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 100k\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 100k\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "6d93a62f-6acb-51fa-83d3-f9419e36cc4b",
+      "mpn": "Axial metal film 100k\u03a9 1% 0.25W",
+      "datasheet": ""
+    }
+  },
+  "pins": {
+    "J102.1": "AUDIO_IN",
+    "J102.2": "GND",
+    "J101.1": "+5V",
+    "J101.2": "GND",
+    "J101.3": "LINE_ENABLE",
+    "J503.1": "LINE_JACK",
+    "J503.2": "GND",
+    "J502.1": "AMP_FEED",
+    "J502.2": "GND",
+    "FB101.1": "+5V",
+    "FB101.2": "+5V_A",
+    "C101.1": "+5V_A",
+    "C101.2": "GND",
+    "C102.1": "+5V_A",
+    "C102.2": "GND",
+    "C401.1": "AUDIO_IN",
+    "C401.2": "BIAS_IN",
+    "R401.1": "BIAS_IN",
+    "R401.2": "VREF",
+    "U501.3": "BIAS_IN",
+    "U501.2": "MONO_BUF",
+    "U501.1": "MONO_BUF",
+    "C501.1": "MONO_BUF",
+    "C501.2": "LINE_AC",
+    "R501.1": "LINE_AC",
+    "R501.2": "GND",
+    "R502.1": "LINE_AC",
+    "R502.2": "LINE_DRIVE",
+    "K501.2": "+5V",
+    "K501.9": "RELAY_LOW",
+    "K501.1": "GND",
+    "K501.5": "LINE_JACK",
+    "K501.6": "LINE_JACK",
+    "K501.10": "LINE_DRIVE",
+    "D501.1": "LINE_JACK",
+    "D501.2": "CHASSIS",
+    "R101.1": "CHASSIS",
+    "R101.2": "GND",
+    "Q501.2": "RELAY_GATE",
+    "Q501.1": "GND",
+    "Q501.3": "RELAY_LOW",
+    "R503.1": "LINE_ENABLE",
+    "R503.2": "RELAY_GATE",
+    "R504.1": "RELAY_GATE",
+    "R504.2": "GND",
+    "D502.1": "+5V",
+    "D502.2": "RELAY_LOW",
+    "R405.1": "+5V_A",
+    "R405.2": "VREF_DIV",
+    "R406.1": "VREF_DIV",
+    "R406.2": "GND",
+    "C403.1": "VREF_DIV",
+    "C403.2": "GND",
+    "U501.5": "VREF_DIV",
+    "U501.6": "VREF",
+    "U501.7": "VREF",
+    "U501.8": "+5V_A",
+    "U501.4": "GND",
+    "C404.1": "+5V_A",
+    "C404.2": "GND",
+    "C502.1": "MONO_BUF",
+    "C502.2": "AMP_AC",
+    "R505.1": "AMP_AC",
+    "R505.2": "AMP_FEED",
+    "R506.1": "AMP_FEED",
+    "R506.2": "GND"
+  },
+  "nc": [],
+  "routes": [],
+  "ground_vias": [],
+  "keepouts": [],
+  "notes": "Independent 5 V mono line driver, powered-off tip grounding and internal amp feed. External audio source and 3.3 V enable; no mixer required."
+}

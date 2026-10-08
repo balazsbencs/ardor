@@ -1,0 +1,441 @@
+{
+  "name": "Ardor_MIDI_THT",
+  "title": "Isolated MIDI input / 3.3 V UART / HAND ASSEMBLY",
+  "slug": "midi-in",
+  "size_mm": [
+    85,
+    70
+  ],
+  "parts": {
+    "J202": {
+      "ref": "J202",
+      "kind": "Conn_01x02",
+      "value": "MIDI INPUT FROM DIN SOCKET",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "pcb": [
+        6,
+        33
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "af59c6bb-7e3d-512d-886c-3ceb9972e6a8",
+      "mpn": "PinHeader_1x02_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "J101": {
+      "ref": "J101",
+      "kind": "Conn_01x04",
+      "value": "POWER INPUT + UART OUTPUT TO\nHOST",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
+      "pcb": [
+        75.0,
+        32.5
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "723b14c1-25d3-5986-bf19-4734f802bbd6",
+      "mpn": "PinHeader_1x04_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "J203": {
+      "ref": "J203",
+      "kind": "Conn_01x02",
+      "value": "METAL CASE BOND + GROUND",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "pcb": [
+        77.5,
+        60.0
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "1e954521-7601-59aa-b122-ddfb1251f436",
+      "mpn": "PinHeader_1x02_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "FB201": {
+      "ref": "FB201",
+      "kind": "FerriteBead",
+      "value": "800R@100MHz / WE 7427501",
+      "fp": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
+      "pcb": [
+        18,
+        25,
+        90
+      ],
+      "part": {
+        "footprint": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
+        "mpn": "Wurth Elektronik 7427501",
+        "bom_mpn": "Wurth Elektronik 7427501",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.we-online.com/components/products/datasheet/7427501.pdf"
+      },
+      "dnp": false,
+      "uuid": "690269ab-20fe-5048-9c06-2dcbaaecb78e",
+      "mpn": "Wurth Elektronik 7427501",
+      "datasheet": "https://www.we-online.com/components/products/datasheet/7427501.pdf"
+    },
+    "R201": {
+      "ref": "R201",
+      "kind": "R",
+      "value": "220R / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        30,
+        25
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 220\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 220\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "71f8ed81-257b-5a6d-a2ca-7543b21d9b9a",
+      "mpn": "Axial metal film 220\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "FB202": {
+      "ref": "FB202",
+      "kind": "FerriteBead",
+      "value": "800R@100MHz / WE 7427501",
+      "fp": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
+      "pcb": [
+        18,
+        45,
+        90
+      ],
+      "part": {
+        "footprint": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
+        "mpn": "Wurth Elektronik 7427501",
+        "bom_mpn": "Wurth Elektronik 7427501",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.we-online.com/components/products/datasheet/7427501.pdf"
+      },
+      "dnp": false,
+      "uuid": "a983f686-48b5-5f8d-bbe4-cea4e7e1da1a",
+      "mpn": "Wurth Elektronik 7427501",
+      "datasheet": "https://www.we-online.com/components/products/datasheet/7427501.pdf"
+    },
+    "U201": {
+      "ref": "U201",
+      "kind": "H11L1",
+      "value": "onsemi H11L1M",
+      "fp": "Package_DIP:DIP-6_W7.62mm",
+      "pcb": [
+        50.0,
+        30.0
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "159cfeea-333d-5779-a995-56139f16f71f",
+      "mpn": "onsemi H11L1M",
+      "datasheet": "https://www.onsemi.com/download/data-sheet/pdf/h11l3m-d.pdf"
+    },
+    "D201": {
+      "ref": "D201",
+      "kind": "D",
+      "value": "1N4148",
+      "fp": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
+      "pcb": [
+        30,
+        41
+      ],
+      "part": {
+        "footprint": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
+        "mpn": "Vishay 1N4148-TAP",
+        "bom_mpn": "Vishay 1N4148-TAP",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.vishay.com/docs/81857/1n4148.pdf"
+      },
+      "dnp": false,
+      "uuid": "ce6d37c1-2850-5e0e-a015-becd0858feb1",
+      "mpn": "Vishay 1N4148-TAP",
+      "datasheet": "https://www.vishay.com/docs/81857/1n4148.pdf"
+    },
+    "C201": {
+      "ref": "C201",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+      "pcb": [
+        66.25,
+        15.0
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+        "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "bom_mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "9aa706ae-fbd9-54ad-8eed-515fb69a7605",
+      "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+      "datasheet": ""
+    },
+    "C204": {
+      "ref": "C204",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+      "pcb": [
+        67.5,
+        10.0
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+        "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "bom_mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "847d0511-4459-5955-9038-054af38436c9",
+      "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+      "datasheet": ""
+    },
+    "R202": {
+      "ref": "R202",
+      "kind": "R",
+      "value": "1kR / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        65.0,
+        42.5
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 1k\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 1k\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "a20cdaf5-1a91-5c0c-b3c5-6e00cbd8807b",
+      "mpn": "Axial metal film 1k\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "R203": {
+      "ref": "R203",
+      "kind": "R",
+      "value": "100R / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        70.0,
+        50.0
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 100\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 100\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "acd9ca47-cb2b-5b0e-aa31-6aa690212059",
+      "mpn": "Axial metal film 100\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "D202": {
+      "ref": "D202",
+      "kind": "D_TVS",
+      "value": "SA5.0CA-E3/54",
+      "fp": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
+      "pcb": [
+        6,
+        15,
+        90
+      ],
+      "part": {
+        "footprint": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
+        "mpn": "Vishay SA5.0CA-E3/54",
+        "bom_mpn": "Vishay SA5.0CA-E3/54",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.vishay.com/doc/?88378="
+      },
+      "dnp": false,
+      "uuid": "d4cd727c-cf86-5f25-9bcb-9bbd5785a3eb",
+      "mpn": "Vishay SA5.0CA-E3/54",
+      "datasheet": "https://www.vishay.com/doc/?88378="
+    },
+    "C202": {
+      "ref": "C202",
+      "kind": "C",
+      "value": "100p / 1kV C0G",
+      "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+      "pcb": [
+        30,
+        8
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+        "mpn": "100pF 1kV C0G disc, 5mm lead pitch",
+        "bom_mpn": "100pF 1kV C0G disc, 5mm lead pitch",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "432b9c05-a71d-5ece-a8e0-0d76918e1996",
+      "mpn": "100pF 1kV C0G disc, 5mm lead pitch",
+      "datasheet": ""
+    },
+    "C203": {
+      "ref": "C203",
+      "kind": "C",
+      "value": "100p / 1kV C0G",
+      "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+      "pcb": [
+        18,
+        60
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+        "mpn": "100pF 1kV C0G disc, 5mm lead pitch",
+        "bom_mpn": "100pF 1kV C0G disc, 5mm lead pitch",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "597fe6f5-3ef4-5b2f-b1df-609846c78603",
+      "mpn": "100pF 1kV C0G disc, 5mm lead pitch",
+      "datasheet": ""
+    },
+    "D203": {
+      "ref": "D203",
+      "kind": "D_TVS",
+      "value": "SA24CA-E3/54",
+      "fp": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
+      "pcb": [
+        6,
+        54,
+        90
+      ],
+      "part": {
+        "footprint": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
+        "mpn": "Vishay SA24CA-E3/54",
+        "bom_mpn": "Vishay SA24CA-E3/54",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.vishay.com/doc/?88378="
+      },
+      "dnp": false,
+      "uuid": "fcb9b50b-f8e3-5a06-8216-dad214d23252",
+      "mpn": "Vishay SA24CA-E3/54",
+      "datasheet": "https://www.vishay.com/doc/?88378="
+    },
+    "D204": {
+      "ref": "D204",
+      "kind": "D_TVS",
+      "value": "SA24CA-E3/54",
+      "fp": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
+      "pcb": [
+        32,
+        62
+      ],
+      "part": {
+        "footprint": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
+        "mpn": "Vishay SA24CA-E3/54",
+        "bom_mpn": "Vishay SA24CA-E3/54",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.vishay.com/doc/?88378="
+      },
+      "dnp": false,
+      "uuid": "28796cf3-a14c-55ea-9f7a-b045af558934",
+      "mpn": "Vishay SA24CA-E3/54",
+      "datasheet": "https://www.vishay.com/doc/?88378="
+    },
+    "R101": {
+      "ref": "R101",
+      "kind": "R",
+      "value": "0R / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        65.0,
+        60.0
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 0\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 0\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "d4f6f942-728f-5e7b-81b7-938916184b44",
+      "mpn": "Axial metal film 0\u03a9 1% 0.25W",
+      "datasheet": ""
+    }
+  },
+  "pins": {
+    "J202.1": "MIDI_4",
+    "J202.2": "MIDI_5",
+    "J101.1": "+5V",
+    "J101.2": "+3V3",
+    "J101.3": "GND",
+    "J101.4": "MIDI_RX",
+    "J203.1": "CHASSIS",
+    "J203.2": "GND",
+    "FB201.1": "MIDI_4",
+    "FB201.2": "MIDI_4_F",
+    "R201.1": "MIDI_4_F",
+    "R201.2": "MIDI_A",
+    "FB202.1": "MIDI_5",
+    "FB202.2": "MIDI_K",
+    "U201.1": "MIDI_A",
+    "U201.2": "MIDI_K",
+    "U201.4": "MIDI_OC",
+    "U201.5": "GND",
+    "U201.6": "+5V",
+    "D201.1": "MIDI_A",
+    "D201.2": "MIDI_K",
+    "C201.1": "+5V",
+    "C201.2": "GND",
+    "C204.1": "+3V3",
+    "C204.2": "GND",
+    "R202.1": "+3V3",
+    "R202.2": "MIDI_OC",
+    "R203.1": "MIDI_OC",
+    "R203.2": "MIDI_RX",
+    "D202.1": "MIDI_4",
+    "D202.2": "MIDI_5",
+    "C202.1": "MIDI_4",
+    "C202.2": "CHASSIS",
+    "C203.1": "MIDI_5",
+    "C203.2": "CHASSIS",
+    "D203.1": "MIDI_4",
+    "D203.2": "CHASSIS",
+    "D204.1": "MIDI_5",
+    "D204.2": "CHASSIS",
+    "R101.1": "CHASSIS",
+    "R101.2": "GND"
+  },
+  "nc": [
+    "U201.3"
+  ],
+  "routes": [],
+  "ground_vias": [],
+  "keepouts": [
+    {
+      "polygon": [
+        [
+          1.25,
+          1.25
+        ],
+        [
+          51.25,
+          1.25
+        ],
+        [
+          51.25,
+          68.75
+        ],
+        [
+          1.25,
+          68.75
+        ]
+      ],
+      "pour_only": true
+    }
+  ],
+  "notes": "Standalone DIN MIDI receiver. Supply 5 V and 3.3 V from the host. UART: 31250 baud, 8-N-1. No other module required."
+}

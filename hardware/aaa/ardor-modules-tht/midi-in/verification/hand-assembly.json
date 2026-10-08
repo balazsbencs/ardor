@@ -1,0 +1,13 @@
+{
+  "result": "PASS",
+  "board_smd_pads": 0,
+  "board_smd_footprints": 0,
+  "tht_numbered_pads": 42,
+  "minimum_component_drill_mm": 0.6,
+  "manual_parts": 18,
+  "all_manual_parts_have_front_references": true,
+  "host_and_panel_pinout_matches_m1": true,
+  "preassembled_smd_module": null,
+  "breakout_contains_smd": false,
+  "hardware_tested": false
+}
