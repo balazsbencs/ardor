@@ -4,6 +4,15 @@ Date: 2026-10-05. Repository inspected: `fb163c2a`, **including the current work
 
 Implementation started on 2026-10-06. See [implementation status and measured evidence](pog3-implementation-status.md) for the parameter contract, granular comparison harness, streaming spectral foundation, and remaining milestones.
 
+**2026-10-08 device-budget update:** pause the compact Attack support-key
+candidate. At the pedal's actual 128-frame setting, POG3 alone uses about
+2.16 ms of a 2.67 ms period; adding the reference vibe/NAM/EQ chain causes real
+xruns. The next bounded experiment is an explicit worker pipeline, with its
+latency and generation deadlines measured. Follow the
+[new headroom/profile results and Luna handoff](pog3-headroom-results.md)
+over older proposed CPU experiments below. Production DSP is unchanged by this
+measurement step; public integration and freeze/gliss admission remain pending.
+
 **Pitch-library screening update:** the optional [library CPU/audio comparison](pog3-pitch-library-evaluation.md) tests Signalsmith Stretch, Rubber Band and the existing Terrarium-derived filter bank. These candidates are not production replacements: the tested Signalsmith configurations miss the settled-tone tuning screen, and separate Rubber Band instances exceed the CPU goal. The user-selected next DSP direction is an isolated [ERB-PS2 reproduction and multi-voice evaluation](pog3-erb-ps2-evaluation-plan.md), starting with the thesis's octave-up case. Its complete POG3 behavior and CPU advantage remain unproven; current FFTW implementation/admission gates remain in force.
 
 **ERB-PS2 reference checkpoint:** the isolated 43-band stereo octave-up design

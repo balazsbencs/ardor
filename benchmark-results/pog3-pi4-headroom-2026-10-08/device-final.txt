@@ -1,0 +1,13 @@
+Linux buildroot 6.18.37-v8 #1 SMP PREEMPT Fri Sep  4 10:22:33 UTC 2026 aarch64 GNU/Linux
+9
+event=0x0004
+event=0x0003
+1ed3e6941825145fc1f216764e8bc1981a4e40224a8ef3b2150a9cda20a08cc8  /lib/libm.so.6
+9938
+access: MMAP_INTERLEAVED
+format: S32_LE
+subformat: STD
+channels: 2
+rate: 48000 (48000/1)
+period_size: 128
+buffer_size: 384
