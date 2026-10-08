@@ -1,0 +1,8 @@
+-- Configuring done (0.0s)
+-- Generating done (0.3s)
+-- Build files have been written to: /probe/headroom-arm
+[ 33%] Built target ardor_realtime_fft
+[100%] Built target ardor_pog3
+[100%] Building CXX object CMakeFiles/pedal-pog3-audition.dir/tests/pog3_device_audition.cpp.o
+[100%] Linking CXX executable pedal-pog3-audition
+[100%] Built target pedal-pog3-audition

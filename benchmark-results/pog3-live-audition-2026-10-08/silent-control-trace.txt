@@ -1,0 +1,4 @@
+{"mode":"octave-up","focus":0,"ready":1,"finished":0,"callbacks":363,"mean_us":2075.3,"max_us":2756.48,"over_period":3,"xruns":0,"input_peak":0.0107052,"output_peak":0.00749366}
+{"mode":"octave-down","focus":0,"ready":1,"finished":0,"callbacks":741,"mean_us":2075.82,"max_us":2756.48,"over_period":3,"xruns":0,"input_peak":0.00690341,"output_peak":0.00741804}
+{"mode":"blend","focus":0,"ready":1,"finished":0,"callbacks":1119,"mean_us":2075.6,"max_us":2756.48,"over_period":3,"xruns":0,"input_peak":0.00525999,"output_peak":0.00162744}
+{"mode":"blend","focus":1,"ready":1,"finished":0,"callbacks":1497,"mean_us":2076.44,"max_us":2756.48,"over_period":4,"xruns":0,"input_peak":0.0107489,"output_peak":0.0116822}

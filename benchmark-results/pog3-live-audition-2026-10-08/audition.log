@@ -1,0 +1,5 @@
+F1=dry F2=octave-up F3=octave-down F4=blend; encoder: left=Focus off, right=Focus on
+mode=octave-up focus=0
+mode=octave-down focus=0
+mode=blend focus=0
+mode=blend focus=1
