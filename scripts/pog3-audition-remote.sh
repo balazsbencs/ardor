@@ -9,12 +9,14 @@ was_running=0
 child=''
 relay=/sys/class/leds/ardor:audio-output-enable/brightness
 previous_relay=$(cat "$relay")
+previous_headphone=$(amixer -c Zero cget 'name=Headphone Switch' | sed -n 's/^  : values=//p')
 if pidof ardor-pedal > service-before.txt; then was_running=1; fi
 cleanup() {
   result=$?
   trap - EXIT HUP INT TERM
   set +e
   echo 0 > "$relay"
+  amixer -c Zero -q set 'Headphone' mute
   if [ -n "$child" ] && kill -0 "$child" 2>/dev/null; then
     kill -TERM "$child"
     wait "$child"
@@ -28,6 +30,7 @@ cleanup() {
     done
     [ "$restored" = 1 ] || result=1
   else
+    amixer -c Zero -q cset 'name=Headphone Switch' "$previous_headphone"
     echo "$previous_relay" > "$relay"
   fi
   printf '%s\n' "$result" > return-code.txt
@@ -36,6 +39,7 @@ cleanup() {
 }
 trap cleanup EXIT
 trap 'exit 130' HUP INT TERM
+[ -n "$previous_headphone" ] || { echo 'Cannot read codec output mute state.' >&2; exit 1; }
 rm -f command status.json status.tmp return-code.txt audition.pid
 date -u > started.txt
 sha256sum audition shared.wisdom > session-sha256.txt
@@ -57,6 +61,11 @@ if [ "$kind" = live ]; then
     sleep .1
   done
   [ "$ready" = 1 ] || { echo 'Audition failed to open audio.' >&2; exit 1; }
+  # Stopping the normal supervisor mutes the codec as well as the relay.
+  # PCM activity and nonzero DSP output alone do not prove audible output.
+  amixer -c Zero -q set 'Headphone' unmute
+  amixer -c Zero cget 'name=Headphone Switch' > codec-output-live.txt
+  grep -q ': values=on,on' codec-output-live.txt || { echo 'Codec output stayed muted.' >&2; exit 1; }
   echo 1 > "$relay"
 fi
 wait "$child"
