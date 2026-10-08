@@ -68,11 +68,14 @@ int main()
                 && shortPress->index == 0,
               "short left press should retain preset selection")) return 1;
 
-  const auto immediate = gesture.handle(
-    {ardor::ControlEventType::FootswitchPressed, 3, 0}, start + 100ms);
-  if (require(immediate && immediate->type == ardor::FootswitchActionType::SelectPreset
-                && immediate->index == 3,
-              "right switches should remain immediate")) return 1;
+  if (require(!gesture.handle(
+    {ardor::ControlEventType::FootswitchPressed, 3, 0}, start + 100ms),
+              "FS4 should wait to distinguish a tap from bank navigation")) return 1;
+  const auto rightTap = gesture.handle(
+    {ardor::ControlEventType::FootswitchReleased, 3, 0}, start + 150ms);
+  if (require(rightTap && rightTap->type == ardor::FootswitchActionType::SelectPreset
+                && rightTap->index == 3,
+              "a short FS4 tap should select slot 4")) return 1;
 
   gesture.configureScenes(true, true);
   if (require(!gesture.handle({ardor::ControlEventType::FootswitchPressed, 2, 0}, start),
@@ -115,59 +118,69 @@ int main()
   gesture.handle({ardor::ControlEventType::FootswitchReleased, 3, 0}, start + 2s);
 
   gesture.configureScenes(true, true, false);
-  const auto chordDisabledRight = gesture.handle(
+  const auto chordDisabledPress = gesture.handle(
     {ardor::ControlEventType::FootswitchPressed, 3, 0}, start);
+  if (require(!chordDisabledPress,
+              "FS4 should wait for release when layer chords are disabled")) return 1;
+  const auto chordDisabledRight = gesture.handle(
+    {ardor::ControlEventType::FootswitchReleased, 3, 0}, start + 50ms);
   if (require(chordDisabledRight
                 && chordDisabledRight->type == ardor::FootswitchActionType::SelectScene,
-              "disabled layer chord should restore immediate right switches")) return 1;
+              "a short FS4 tap should select scene 4")) return 1;
 
   gesture.configureScenes(false, true);
-  const auto noScenesRight = gesture.handle(
+  const auto noScenesPress = gesture.handle(
     {ardor::ControlEventType::FootswitchPressed, 3, 0}, start);
+  if (require(!noScenesPress,
+              "FS4 should wait for release when scenes are unavailable")) return 1;
+  const auto noScenesRight = gesture.handle(
+    {ardor::ControlEventType::FootswitchReleased, 3, 0}, start + 50ms);
   if (require(noScenesRight
                 && noScenesRight->type == ardor::FootswitchActionType::SelectPreset,
-              "presets without scenes should retain legacy preset switching")) return 1;
+              "a short FS4 tap should select a preset when scenes are unavailable")) return 1;
 
   gesture.configureScenes(false, false);
-  gesture.setLooperEntrySlot(2);
-  if (require(!gesture.handle({ardor::ControlEventType::FootswitchPressed, 2, 0}, start),
-              "active right preset must wait for its looper hold")) return 1;
-  if (require(!gesture.poll(start + 999ms), "looper entry must wait one second")) return 1;
-  const auto openLooper = gesture.poll(start + 1000ms);
-  if (require(openLooper && openLooper->type == ardor::FootswitchActionType::OpenLooper
-                && openLooper->index == 2,
-              "holding active preset must open Looper")) return 1;
-  if (require(!gesture.poll(start + 1500ms)
-                && !gesture.handle({ardor::ControlEventType::FootswitchReleased, 2, 0},
-                                   start + 1510ms),
-              "looper entry must fire once and suppress release selection")) return 1;
-  gesture.handle({ardor::ControlEventType::FootswitchPressed, 2, 0}, start + 2s);
-  const auto activeTap = gesture.handle(
-    {ardor::ControlEventType::FootswitchReleased, 2, 0}, start + 2050ms);
-  if (require(activeTap && activeTap->type == ardor::FootswitchActionType::SelectPreset,
-              "a short active-preset tap must retain preset selection")) return 1;
-  const auto inactiveTap = gesture.handle(
-    {ardor::ControlEventType::FootswitchPressed, 3, 0}, start + 3s);
-  if (require(inactiveTap && inactiveTap->type == ardor::FootswitchActionType::SelectPreset
-                && inactiveTap->index == 3,
-              "an inactive preset must still select immediately")) return 1;
-  gesture.handle({ardor::ControlEventType::FootswitchReleased, 3, 0}, start + 3050ms);
+  if (require(!gesture.handle({ardor::ControlEventType::FootswitchPressed, 1, 0}, start),
+              "FS2 should wait to distinguish a tap from Bank minus")) return 1;
+  if (require(!gesture.poll(start + 599ms), "Bank minus should wait for the hold threshold")) return 1;
+  const auto bankDown = gesture.poll(start + 600ms);
+  if (require(bankDown && bankDown->type == ardor::FootswitchActionType::PreviousBank,
+              "holding FS2 should request the previous bank")) return 1;
+  if (require(!gesture.poll(start + 900ms)
+                && !gesture.handle({ardor::ControlEventType::FootswitchReleased, 1, 0},
+                                   start + 910ms),
+              "Bank minus should fire once and consume the release")) return 1;
+
+  if (require(!gesture.handle({ardor::ControlEventType::FootswitchPressed, 3, 0}, start + 1s),
+              "FS4 should wait to distinguish a tap from Bank plus")) return 1;
+  if (require(!gesture.poll(start + 1599ms), "Bank plus should wait for the hold threshold")) return 1;
+  const auto bankUp = gesture.poll(start + 1600ms);
+  if (require(bankUp && bankUp->type == ardor::FootswitchActionType::NextBank,
+              "holding FS4 should request the next bank")) return 1;
+  if (require(!gesture.handle({ardor::ControlEventType::FootswitchReleased, 3, 0}, start + 1610ms),
+              "Bank plus should consume the release")) return 1;
+
+  gesture.handle({ardor::ControlEventType::FootswitchPressed, 1, 0}, start + 2s);
+  const auto shortBankSwitchTap = gesture.handle(
+    {ardor::ControlEventType::FootswitchReleased, 1, 0}, start + 2050ms);
+  if (require(shortBankSwitchTap
+                && shortBankSwitchTap->type == ardor::FootswitchActionType::SelectPreset
+                && shortBankSwitchTap->index == 1,
+              "a short FS2 tap should retain preset selection")) return 1;
 
   gesture.configureScenes(false, false);
-  gesture.setLooperEntrySlot(0);
   gesture.handle({ardor::ControlEventType::FootswitchPressed, 0, 0}, start);
   gesture.handle({ardor::ControlEventType::FootswitchPressed, 1, 0}, start + 50ms);
-  const auto chordBeforeLooper = gesture.poll(start + 1050ms);
-  if (require(chordBeforeLooper
-                && chordBeforeLooper->type == ardor::FootswitchActionType::ToggleTuner,
-              "the tuner chord must outrank an active-preset looper hold")) return 1;
+  const auto chordBeforeBank = gesture.poll(start + 1050ms);
+  if (require(chordBeforeBank
+                && chordBeforeBank->type == ardor::FootswitchActionType::ToggleTuner,
+              "the tuner chord must outrank the FS2 bank hold")) return 1;
   gesture.handle({ardor::ControlEventType::FootswitchReleased, 0, 0}, start + 1100ms);
   gesture.handle({ardor::ControlEventType::FootswitchReleased, 1, 0}, start + 1100ms);
-  gesture.setLooperEntrySlot(-1);
-  const auto noLooperEntry = gesture.handle(
+  const auto rightPreset = gesture.handle(
     {ardor::ControlEventType::FootswitchPressed, 2, 0}, start + 2s);
-  if (require(noLooperEntry && noLooperEntry->type == ardor::FootswitchActionType::SelectPreset,
-              "looper entry must be disabled away from the preset screen")) return 1;
+  if (require(rightPreset && rightPreset->type == ardor::FootswitchActionType::SelectPreset,
+              "FS3 should select its preset immediately without scene chords")) return 1;
   gesture.handle({ardor::ControlEventType::FootswitchReleased, 2, 0}, start + 2050ms);
 
   ardor::MidiStreamParser midi;
