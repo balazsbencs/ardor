@@ -2074,14 +2074,16 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The current user-selected step is **the live playing-feel audition**, prepared
-with Attack zero, direct dry/up/down/blend footswitch selection and both Focus
-settings. It is staged on the device but remains inactive until the user is
-ready to play. Quiet hardware checks and dry identity pass; subjective feel and
-physical input/output latency have not been assessed. Follow
-[the audition controls and comparison procedure](pog3-live-audition.md).
+The **live playing-feel audition is complete** with Attack zero, direct
+dry/up/down/blend footswitch selection and both Focus settings. The user reported
+that everything felt okay, with a slight delay in the tone that was barely
+noticeable. This is overall subjective acceptance of the current reduced-core
+audition; per-mode ratings and physical input/output latency remain unmeasured.
+The corrected live run completed 46,397 callbacks with zero ALSA xruns, mean
+2058.66 µs, maximum 2744.54 µs and six over-period callbacks. The normal app was
+restored after a clean stop. See [the live result and scope](pog3-live-audition.md).
 
-If the current octave response is acceptable, the next CPU work is **a bounded
+The next CPU work is **a bounded
 POG3 worker-pipeline feasibility probe**, following
 [the actual-device budget, fresh PMU profile and reviewed handoff](pog3-headroom-results.md).
 The device currently uses 128 frames / 48 kHz, a 2.667 ms period. Two paced
@@ -2090,7 +2092,8 @@ the reference vibe/NAM/EQ chain averages 0.956–0.975 ms. Both combined paced
 attempts encounter a playback xrun after 11 callbacks during warmup. Unpaced
 combined cost is 3.416–3.487 ms. Test moving POG3 to the otherwise idle CPU3 with
 an explicit, measured additional quantum of latency and strict generation
-accounting; this architecture has not yet passed a hardware test.
+accounting; this architecture has not yet passed a hardware test. Repeat the
+playing comparison with its actual added delay before accepting the pipeline.
 
 Compact Attack support-scoring read keys are paused: grouping itself accounts
 for only 4.00% of fresh sampled DSP cycles, whereas the observed serial chain

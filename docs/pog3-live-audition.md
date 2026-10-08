@@ -79,7 +79,19 @@ session log and return code before treating it as a subjective response problem.
 
 The decision remains a listening result. A dry-path identity check, offline
 envelope measurements and a quiet hardware check cannot determine playing feel.
-No subjective listening result has been collected yet.
+The 2026-10-08 live comparison is complete. The user reported that everything
+felt okay, then clarified that there was a slight delay in the tone, barely
+noticeable. All four modes and both Focus settings appear in the session log;
+the feedback is an overall judgment, not a separate rating for each combination.
+This supports continuing to the CPU worker experiment. It does not establish
+acceptance of additional pipeline latency, Attack/freeze, or the full NAM/EQ chain.
+
+The corrected live run completed 46,397 callbacks (approximately 123.7 seconds)
+with zero ALSA xruns. Mean measured DSP/conversion time was 2058.66 µs, maximum
+2744.54 µs, with six callbacks above the 2666.67 µs period. These counters are
+not a physical input/output latency measurement or long-term chain admission.
+The audition was stopped cleanly and the normal app restored with codec outputs
+and relay enabled. [Feedback and raw live receipts](../benchmark-results/pog3-live-playing-feel-2026-10-08/README.md).
 
 The first live attempt produced no audible output: stopping the normal app
 muted the codec's `Headphone Switch`, and the original runner only enabled the

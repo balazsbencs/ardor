@@ -1,0 +1,3 @@
+numid=28,iface=MIXER,name='Headphone Switch'
+  ; type=BOOLEAN,access=rw------,values=2
+  : values=on,on
