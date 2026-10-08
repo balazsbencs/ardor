@@ -1,0 +1,15 @@
+pog3-pi4-pipeline-2026-10-08/direct-1: traces and generation accounting pass; complete=False
+pog3-pi4-pipeline-2026-10-08/one-block-1: traces and generation accounting pass; complete=False
+pog3-pi4-pipeline-2026-10-08/two-block-1: traces and generation accounting pass; complete=True
+pog3-pi4-pipeline-2026-10-08/two-block-2: traces and generation accounting pass; complete=True
+pog3-pi4-pipeline-2026-10-08/one-block-2: traces and generation accounting pass; complete=False
+pog3-pi4-pipeline-2026-10-08/direct-2: traces and generation accounting pass; complete=False
+pog3-pi4-pipeline-2026-10-08/core: traces and generation accounting pass; complete=True
+pog3-pi4-pipeline-2026-10-08/chain: traces and generation accounting pass; complete=True
+pog3-pi4-pipeline-2026-10-08/two-block-soak: traces and generation accounting pass; complete=True
+raw/direct-1: traces and generation accounting pass; complete=False
+raw/pipeline-1: traces and generation accounting pass; complete=False
+raw/pipeline-2: traces and generation accounting pass; complete=False
+raw/direct-2: traces and generation accounting pass; complete=False
+raw/core: traces and generation accounting pass; complete=True
+raw/chain: traces and generation accounting pass; complete=True

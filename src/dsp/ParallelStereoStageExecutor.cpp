@@ -265,6 +265,16 @@ struct ParallelStereoStageExecutor::Impl {
   {
 #if defined(__linux__)
     const std::uint64_t completedGeneration = completed.load(std::memory_order_acquire);
+    if (options.fixedOutputDelayBlocks != 0) {
+      const auto next = submittedGeneration + 1;
+      const auto wanted = next > options.fixedOutputDelayBlocks
+        ? next - options.fixedOutputDelayBlocks : 0;
+      outputGeneration = 0;
+      if (wanted != 0 && completedGeneration >= wanted
+          && slots[static_cast<std::size_t>(wanted % slots.size())].generation == wanted)
+        outputGeneration = wanted;
+      return;
+    }
     if (completedGeneration <= outputGeneration || completedGeneration == 0) return;
     const std::size_t slot = static_cast<std::size_t>(completedGeneration % slots.size());
     // `completed` is released after the worker finishes writing the published
@@ -391,6 +401,11 @@ bool ParallelStereoStageExecutor::configure(ParallelStereoStageProcess process,
     error = "pipelined stereo stage executor requires at least two slots";
     return false;
   }
+  if (options.mode == ParallelStereoStageExecutionMode::Pipelined
+      && options.fixedOutputDelayBlocks > options.pipelineSlots) {
+    error = "fixed stereo stage delay must fit the prepared pipeline ring";
+    return false;
+  }
 
   const std::size_t slotCount = options.mode == ParallelStereoStageExecutionMode::Pipelined
     ? options.pipelineSlots : 1;
@@ -461,6 +476,14 @@ std::uint64_t ParallelStereoStageExecutor::underflowCount() const noexcept
 std::uint64_t ParallelStereoStageExecutor::submissionMissCount() const noexcept
 {
   return impl_->submissionMisses;
+}
+
+std::uint64_t ParallelStereoStageExecutor::completedGeneration() const noexcept
+{
+#if defined(__linux__)
+  if (impl_->parallel) return impl_->completed.load(std::memory_order_acquire);
+#endif
+  return impl_->outputGeneration;
 }
 
 ParallelStereoStageTimingSnapshot ParallelStereoStageExecutor::timing() const noexcept

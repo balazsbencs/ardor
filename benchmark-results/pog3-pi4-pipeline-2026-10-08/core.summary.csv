@@ -1,0 +1,2 @@
+mode,io,profile,frames,callbacks,budget_us,mean_us,thread_cpu_mean_us,p99_us,p999_us,max_us,over_period,start_gaps,capture_xruns,playback_xruns,elapsed_seconds,checksum,complete,warmup_included,worker_submitted,worker_completed,worker_consumed,worker_late,worker_submission_misses,worker_wrong_output,worker_mean_us,worker_max_us,worker_wakeup_max_us,worker_submit_to_finish_max_us,worker_over_period,additional_delay_frames
+core,alsa,none,128,5625,2666.66666667,2167.09812302,2163.69603787,2421.093,2463.388,2514.074,0,0,0,0,19.030559118,22.2248628916,1,0,0,0,0,0,0,0,0,0,0,0,0,0

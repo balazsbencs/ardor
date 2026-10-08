@@ -558,6 +558,13 @@ target_link_libraries(pedal-pog3-expression-quality PRIVATE ardor_pog3)
 add_executable(pedal-pog3-freeze-quality tests/pog3_freeze_quality.cpp)
 target_link_libraries(pedal-pog3-freeze-quality PRIVATE ardor_pog3)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  # Diagnostic strict-delay adapter; does not change production DSP routing.
+  add_executable(pedal-pog3-pipeline-quality EXCLUDE_FROM_ALL
+    tests/pog3_pipeline_quality.cpp src/dsp/ParallelStereoStageExecutor.cpp)
+  target_link_libraries(pedal-pog3-pipeline-quality PRIVATE ardor_pog3 Threads::Threads)
+endif()
+
 add_executable(pedal-harmonizer-quality tests/harmonizer_quality.cpp)
 target_link_libraries(pedal-harmonizer-quality PRIVATE ardor_daisyfx)
 

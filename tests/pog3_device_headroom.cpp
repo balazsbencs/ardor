@@ -3,6 +3,7 @@
 #include "audio/EngineLoader.h"
 #include "daisyfx/pog3/Pog3Processor.h"
 #include "dsp/DenormalGuard.h"
+#include "pog3_pipeline_probe.h"
 #include <alsa/asoundlib.h>
 #include <fftw3.h>
 #include <linux/perf_event.h>
@@ -119,18 +120,26 @@ struct Pcm {
   }
   ~Pcm(){if(handle){snd_pcm_drop(handle);snd_pcm_close(handle);}}
 };
-struct Row {double wall=0,cpu=0,gap=0;std::uint64_t start=0;unsigned captureXruns=0,playbackXruns=0,transforms=0;};
+struct Row {
+  double wall=0,cpu=0,gap=0;
+  std::uint64_t start=0;
+  unsigned captureXruns=0,playbackXruns=0,transforms=0;
+  std::uint64_t submitted=0,consumed=0;
+};
 }
 int main(int argc,char** argv){try{
-  require(argc==9,"usage: probe core|chain|combined|noop seconds none|count|sample 64|128 wisdom data-root output-prefix alsa|offline");
+  require(argc==9,"usage: probe core|chain|combined|pipeline|pipeline2|noop seconds none|count|sample 64|128 wisdom data-root output-prefix alsa|offline");
   const std::string mode=argv[1],profile=argv[3],prefix=argv[7],io=argv[8];
   const unsigned seconds=static_cast<unsigned>(std::stoul(argv[2])),block=static_cast<unsigned>(std::stoul(argv[4]));
   require(seconds>0 && seconds<=600 && (block==64 || block==128),"duration/block");
-  require(mode=="core"||mode=="chain"||mode=="combined"||mode=="noop","mode");
+  require(mode=="core"||mode=="chain"||mode=="combined"||mode=="pipeline"||mode=="pipeline2"||mode=="noop","mode");
   require(profile=="none"||profile=="count"||profile=="sample","profile");
   require(io=="alsa"||io=="offline","io");
   require(profile!="sample"||seconds<=20,"sample duration capacity");
-  const bool hasCore=mode=="core"||mode=="combined",hasChain=mode=="chain"||mode=="combined";
+  const bool pipelined=mode=="pipeline"||mode=="pipeline2";
+  const unsigned delayBlocks=mode=="pipeline2"?2:1;
+  require(!pipelined || (io=="alsa" && profile=="none"),"pipeline requires paced, ordinary timing");
+  const bool hasCore=mode=="core"||mode=="combined"||pipelined,hasChain=mode=="chain"||mode=="combined"||pipelined;
   cpu_set_t mask;CPU_ZERO(&mask);CPU_SET(2,&mask);require(sched_setaffinity(0,sizeof(mask),&mask)==0,"CPU2 affinity");
   require(fftwf_import_wisdom_from_filename(argv[5])!=0,"wisdom import");
   ardor::pog3::Pog3Processor core;
@@ -157,6 +166,13 @@ int main(int argc,char** argv){try{
   std::vector<Row> rows(warm+total);std::size_t completed=0;
   unsigned failedCapture=0,failedPlayback=0;bool profilingStarted=false;
   std::array<float,128> mono{},left{},right{};
+  std::array<float,128> inputLeft{},inputRight{};
+  const auto targets=core.targetValues();
+  std::unique_ptr<pog3_probe::Worker> worker;
+  if(pipelined){
+    worker=std::make_unique<pog3_probe::Worker>(core,warm+total);
+    require(worker->configure(block,3,true,error,delayBlocks),error);
+  }
   std::array<std::int32_t,256> captured{},silence{}; std::array<std::int32_t,768> prime{};
   Counters counters;Samples samples;
   if(profile=="count"){
@@ -178,12 +194,23 @@ int main(int argc,char** argv){try{
     unsigned captureXruns=io=="alsa"?capture.transfer(captured.data(),block,true):0;
     if(captureXruns){failedCapture=captureXruns;break;}
     if(b==warm){if(profile=="count")counters.begin();if(profile=="sample")samples.begin();profilingStarted=true;}
-    const auto start=ns(),cpuStart=ns(CLOCK_THREAD_CPUTIME_ID);const auto transforms=core.transformCount();
+    const auto start=ns(),cpuStart=ns(CLOCK_THREAD_CPUTIME_ID);
+    const auto transforms=pipelined?0:core.transformCount();
     {
       ardor::ScopedDenormalGuard guard;
       for(unsigned i=0;i<block;++i){const auto& x=input[(b*block+i)%input.size()];
-        if(hasCore){const auto y=core.process({x[0],x[1]}).mixed;left[i]=y.left;right[i]=y.right;mono[i]=.5f*(y.left+y.right);}
+        if(pipelined){inputLeft[i]=x[0];inputRight[i]=x[1];}
+        else if(hasCore){const auto y=core.process({x[0],x[1]}).mixed;left[i]=y.left;right[i]=y.right;mono[i]=.5f*(y.left+y.right);}
         else {mono[i]=x[0];left[i]=x[0];right[i]=x[1];}
+      }
+      if(pipelined){
+        if(!worker->processBlock(inputLeft.data(),inputRight.data(),left.data(),right.data(),block,targets)){
+          std::cerr<<"worker deadline: expected_generation="<<worker->expected()
+            <<" completed_at_callback="<<worker->observedCompleted()<<" callback="<<b
+            <<" callback_start_ns="<<start<<'\n';
+          break;
+        }
+        for(unsigned i=0;i<block;++i)mono[i]=.5f*(left[i]+right[i]);
       }
       if(hasChain)chain.processBlock(mono.data(),left.data(),right.data(),block);
       for(unsigned i=0;i<block;++i)checksum+=left[i]+right[i];
@@ -191,32 +218,61 @@ int main(int argc,char** argv){try{
     const auto cpuEnd=ns(CLOCK_THREAD_CPUTIME_ID),end=ns();
     unsigned playbackXruns=io=="alsa"?playback.transfer(silence.data(),block,false):0;
     rows[b]={(end-start)/1000.0,(cpuEnd-cpuStart)/1000.0,previousStart?(start-previousStart)/1000.0:0,
-      start,captureXruns,playbackXruns,static_cast<unsigned>(core.transformCount()-transforms)};
+      start,captureXruns,playbackXruns,pipelined?0:static_cast<unsigned>(core.transformCount()-transforms),
+      worker?worker->submitted():0,worker?worker->consumed():0};
     ++completed;
     previousStart=start;
     if(playbackXruns){failedPlayback=playbackXruns;break;}
   }
   if(io=="alsa"){sched_param p{};require(sched_setscheduler(0,SCHED_OTHER,&p)==0,"restore scheduler");}
+  std::uint64_t workerCompleted=0;
+  if(worker){
+    require(worker->waitForIdle(),"worker drain timeout");
+    workerCompleted=worker->completed();
+    worker->clear(); // Join before querying processor state or worker traces.
+  }
   if(profile=="count" && profilingStarted)counters.end(prefix+".counters.csv");
   if(profile=="sample" && profilingStarted)samples.end(prefix+".samples.csv");
   require(std::isfinite(checksum) && (!hasCore || (core.healthy() && core.deadlineMisses()==0)),"DSP health/checksum");
-  const bool failed=failedCapture||failedPlayback;
+  const bool failed=failedCapture||failedPlayback||(worker &&
+    (worker->late()||worker->submissionMisses()||worker->wrongOutput()||worker->capacityMisses()));
   // Preserve the lead-up to an xrun, including warmup, in the failure trace.
   // Successful runs report only the requested post-warmup measurement window.
   rows.resize(completed);
   if(!failed)rows.erase(rows.begin(),rows.begin()+warm);
   std::cerr<<"completed_callbacks="<<completed<<" warmup_callbacks="<<warm
     <<" first_capture_xrun="<<failedCapture<<" first_playback_xrun="<<failedPlayback<<'\n';
-  std::ofstream raw(prefix+".callbacks.csv");raw<<"block,wall_us,thread_cpu_us,start_gap_us,start_ns,capture_xruns,playback_xruns,transforms\n";
+  std::ofstream raw(prefix+".callbacks.csv");raw<<"block,wall_us,thread_cpu_us,start_gap_us,start_ns,capture_xruns,playback_xruns,transforms,submitted_generation,output_generation\n";
   std::vector<double> sorted;sorted.reserve(rows.size());double sum=0,cpu=0;std::uint64_t over=0,cx=0,px=0,gaps=0;
   for(std::size_t i=0;i<rows.size();++i){const auto& r=rows[i];sorted.push_back(r.wall);sum+=r.wall;cpu+=r.cpu;
     over+=r.wall>block/.048;gaps+=r.gap>1.5*block/.048;cx+=r.captureXruns;px+=r.playbackXruns;
-    raw<<i<<','<<r.wall<<','<<r.cpu<<','<<r.gap<<','<<r.start<<','<<r.captureXruns<<','<<r.playbackXruns<<','<<r.transforms<<'\n';}
+    raw<<i<<','<<r.wall<<','<<r.cpu<<','<<r.gap<<','<<r.start<<','<<r.captureXruns<<','<<r.playbackXruns<<','<<r.transforms<<','<<r.submitted<<','<<r.consumed<<'\n';}
   cx+=failedCapture;
   std::sort(sorted.begin(),sorted.end());require(bool(raw) && !sorted.empty(),"callback output/empty run");
   auto pct=[&](double p){return sorted[static_cast<std::size_t>((sorted.size()-1)*p)];};
-  std::cout<<"mode,io,profile,frames,callbacks,budget_us,mean_us,thread_cpu_mean_us,p99_us,p999_us,max_us,over_period,start_gaps,capture_xruns,playback_xruns,elapsed_seconds,checksum,complete,warmup_included\n"
+  double workerMean=0,workerMax=0,workerQueueMax=0,workerCompletionMax=0;
+  std::uint64_t workerOver=0;
+  if(worker){
+    std::ofstream jobs(prefix+".worker.csv");
+    jobs<<"generation,submitted_ns,start_ns,end_ns,wall_us,thread_cpu_us,wakeup_us,submit_to_finish_us,transforms,cpu\n";
+    std::size_t measured=0;
+    for(std::size_t g=1;g<=workerCompleted;++g){const auto& job=worker->jobs()[g];
+      const double work=(job.endNs-job.startNs)/1000.0,queue=(job.startNs-job.submittedNs)/1000.0,
+        completion=(job.endNs-job.submittedNs)/1000.0;
+      jobs<<g<<','<<job.submittedNs<<','<<job.startNs<<','<<job.endNs<<','<<work<<','<<job.cpuNs/1000.0<<','
+        <<queue<<','<<completion<<','<<job.transforms<<','<<job.cpu<<'\n';
+      require(job.cpu==3,"worker CPU assignment");
+      if(failed || g>warm){++measured;workerMean+=work;workerMax=std::max(workerMax,work);
+        workerQueueMax=std::max(workerQueueMax,queue);workerCompletionMax=std::max(workerCompletionMax,completion);
+        workerOver+=completion>block/.048;}
+    }
+    require(bool(jobs)&&measured>0,"worker trace");workerMean/=measured;
+  }
+  std::cout<<"mode,io,profile,frames,callbacks,budget_us,mean_us,thread_cpu_mean_us,p99_us,p999_us,max_us,over_period,start_gaps,capture_xruns,playback_xruns,elapsed_seconds,checksum,complete,warmup_included,worker_submitted,worker_completed,worker_consumed,worker_late,worker_submission_misses,worker_wrong_output,worker_mean_us,worker_max_us,worker_wakeup_max_us,worker_submit_to_finish_max_us,worker_over_period,additional_delay_frames\n"
     <<std::setprecision(12)<<mode<<','<<io<<','<<profile<<','<<block<<','<<rows.size()<<','<<block/.048<<','<<sum/rows.size()<<','<<cpu/rows.size()<<','
-    <<pct(.99)<<','<<pct(.999)<<','<<sorted.back()<<','<<over<<','<<gaps<<','<<cx<<','<<px<<','<<(ns()-runStart)/1e9<<','<<checksum<<','<<!failed<<','<<failed<<'\n';
+    <<pct(.99)<<','<<pct(.999)<<','<<sorted.back()<<','<<over<<','<<gaps<<','<<cx<<','<<px<<','<<(ns()-runStart)/1e9<<','<<checksum<<','<<!failed<<','<<failed
+    <<','<<(worker?worker->submitted():0)<<','<<workerCompleted<<','<<(worker?worker->consumed():0)<<','<<(worker?worker->late():0)
+    <<','<<(worker?worker->submissionMisses():0)<<','<<(worker?worker->wrongOutput():0)<<','<<workerMean<<','<<workerMax
+    <<','<<workerQueueMax<<','<<workerCompletionMax<<','<<workerOver<<','<<(pipelined?delayBlocks*block:0)<<'\n';
   return failed?3:0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

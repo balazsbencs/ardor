@@ -1,0 +1,2 @@
+worker deadline: expected_generation=8152 completed_at_callback=8151 callback=8152
+completed_callbacks=8152 warmup_callbacks=1500 first_capture_xrun=0 first_playback_xrun=0
