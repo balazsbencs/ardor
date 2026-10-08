@@ -2604,8 +2604,7 @@ int main(int argc, char** argv)
             auto telemetry = uiState.telemetry;
             telemetry.bypassed = runtime.effectsBypassed();
             ardor::updateRealtimeTelemetry(uiState, telemetry);
-            ardor::setUiStatus(uiState, "Preset " + std::to_string(args.bank) + ":"
-                                      + std::to_string(args.slot) + " active");
+            ardor::setUiStatus(uiState, {});
           }
 #endif
           continue;
