@@ -257,6 +257,19 @@ and standalone counters. Next try skipping the redundant final bin sort only for
 nonoverflow frames; retain the sort after overflowing top-256 partitioning.
 See [both rejection results and the reviewed Luna next step](pog3-phase-cache-results.md).
 
+**Nonoverflow bin-sort checkpoint (2026-10-08):** skipping the redundant
+ascending-bin sort when at most 256 peaks are appended is retained. Overflow
+keeps exact top-256 partitioning and the original bin sort; no arithmetic or
+prepared-memory change. Two ordinary Pi ABBA rounds repeat **0.912%/0.562%**
+combined mean reductions at 64/128 against HEAD816, with exact host/Pi audio,
+2498-frame histories and all 10/11 suites passing. 64 maximum and pooled period
+overruns worsen (16 → 25/12000), while p99 improves; the uninvolved spectral
+control also improves, so full stage attribution/live admission is not claimed.
+Preparation stays 1625912 bytes. Next try compact exact frequency/magnitude
+keys for Attack support scoring, preserving original division, ordering,
+thresholds, score ties and histories. Both phase caches and gain split stay
+rejected. See [the measured tradeoffs and detailed Luna handoff](pog3-bin-sort-results.md).
+
 **M3 implementation update:** the implemented bank additionally uses shared N=4096/H=512 analysis below 400 Hz because the ordinary low-chord gate failed with two windows. Its 200–300 Hz reconstruction crossover uses the existing output IFFTs. Renderer jobs now use the explicit one-hop staging correction below. Main delays are 24/48 ms; a low-note octave envelope measured about 60/72 ms with Focus off/on. Family/attack and freeze work must include all three representations. The status document records current quality, CPU/memory results, remaining resolution limits, and the live-relative-phase caution for stationary freeze. These are measured implementation adaptations, not EHX hardware specifications.
 
 **M4 implementation update:** shared stereo families/residual partials now preserve old sustain while swelling new excitation, with low/long attack histories evaluated at each resolution's input timestamp. Processed unison uses resolved low partials when attack is active. Attack interpretation runs before staged render jobs, now completing at long age 251 and short age 112; N+H identity delay is unchanged. This first scorer requires directly supported fundamentals and keeps missing-fundamental material as residual partials. Four excitation epochs per partial have an explicit capacity fallback. See the status document for independence gates, host timing, memory, and remaining fidelity/admission limits. Filter AD remains the separate next milestone.

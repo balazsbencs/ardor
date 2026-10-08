@@ -1,0 +1,4 @@
+baseline=816d1b8603b07ae7b58c2930bae124fcb185c8bd
+Production is identical to HEAD35b; immutable HEAD35b ordinary libraries/full-core ELFs reused with HEAD816 matching headers.
+Skip bin sort only at <=256 candidates; overflow partition and selected bin sort remain.
+Freeze and all profiling OFF for ordinary timing.

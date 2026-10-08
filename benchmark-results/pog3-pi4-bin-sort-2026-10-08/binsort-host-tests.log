@@ -1,0 +1,102 @@
+-- Configuring done (0.0s)
+-- Generating done (0.3s)
+-- Build files have been written to: /home/bbalazs/projects/ardor-pog3/build-ci
+[100%] Built target pedal-pog3-frame-birth-slots
+[100%] Built target pedal-pog3-attack-birth-slots
+[  0%] Built target ardor_realtime_fft
+[  0%] Building CXX object CMakeFiles/ardor_pog3.dir/src/daisyfx/pog3/PolyphonicPitchBank.cpp.o
+[ 25%] Linking CXX static library libardor_pog3.a
+[ 75%] Built target ardor_pog3
+[ 75%] Linking CXX executable pedal-pog3-controls
+[100%] Built target pedal-pog3-controls
+[  0%] Built target ardor_realtime_fft
+[ 15%] Built target ardor_pog3
+[100%] Built target ardor_daisyfx_runtime
+[100%] Linking CXX executable pedal-pog3-quality
+[100%] Built target pedal-pog3-quality
+[  0%] Built target ardor_realtime_fft
+[ 75%] Built target ardor_pog3
+[ 75%] Linking CXX executable pedal-pog3-pitch-quality
+[100%] Built target pedal-pog3-pitch-quality
+[  0%] Built target ardor_realtime_fft
+[ 75%] Built target ardor_pog3
+[100%] Linking CXX executable pedal-pog3-attack-quality
+[100%] Built target pedal-pog3-attack-quality
+[  0%] Built target ardor_realtime_fft
+[ 75%] Built target ardor_pog3
+[ 75%] Linking CXX executable pedal-pog3-voice-stages
+[100%] Built target pedal-pog3-voice-stages
+[  0%] Built target ardor_realtime_fft
+[100%] Built target ardor_pog3
+[100%] Linking CXX executable pedal-pog3-expression-quality
+[100%] Built target pedal-pog3-expression-quality
+[  0%] Built target ardor_realtime_fft
+[ 75%] Built target ardor_pog3
+[ 75%] Building CXX object CMakeFiles/pedal-pog3-freeze-quality.dir/tests/pog3_freeze_quality.cpp.o
+[100%] Linking CXX executable pedal-pog3-freeze-quality
+[100%] Built target pedal-pog3-freeze-quality
+[  0%] Built target ardor_realtime_fft
+[ 84%] Built target ardor_daisyfx_runtime
+[100%] Built target ardor_pog3
+[100%] Linking CXX executable pedal-pog3-bench
+[100%] Built target pedal-pog3-bench
+Built target pedal-pog3-malloc-probe
+-- Configuring done (0.0s)
+-- Generating done (0.3s)
+-- Build files have been written to: /home/bbalazs/projects/ardor-pog3/build-ci
+[100%] Built target pedal-pog3-frame-birth-slots
+[100%] Built target pedal-pog3-attack-birth-slots
+[  0%] Built target ardor_realtime_fft
+[  0%] Building CXX object CMakeFiles/ardor_pog3.dir/src/daisyfx/pog3/Pog3Processor.cpp.o
+[ 25%] Building CXX object CMakeFiles/ardor_pog3.dir/src/daisyfx/pog3/Pog3Parameters.cpp.o
+[ 25%] Building CXX object CMakeFiles/ardor_pog3.dir/src/daisyfx/pog3/SpectralFreeze.cpp.o
+[ 25%] Building CXX object CMakeFiles/ardor_pog3.dir/src/daisyfx/pog3/Pog3VoiceStages.cpp.o
+[ 50%] Building CXX object CMakeFiles/ardor_pog3.dir/src/daisyfx/pog3/PolyphonicAttack.cpp.o
+[ 50%] Building CXX object CMakeFiles/ardor_pog3.dir/src/daisyfx/pog3/PolyphonicPitchBank.cpp.o
+[ 50%] Building CXX object CMakeFiles/ardor_pog3.dir/src/daisyfx/pog3/SpectralFrameStream.cpp.o
+[ 75%] Linking CXX static library libardor_pog3.a
+[ 75%] Built target ardor_pog3
+[100%] Building CXX object CMakeFiles/pedal-pog3-controls.dir/tests/pog3_controls.cpp.o
+[100%] Linking CXX executable pedal-pog3-controls
+[100%] Built target pedal-pog3-controls
+[  0%] Built target ardor_realtime_fft
+[ 15%] Built target ardor_pog3
+[100%] Built target ardor_daisyfx_runtime
+[100%] Building CXX object CMakeFiles/pedal-pog3-quality.dir/tests/pog3_quality.cpp.o
+[100%] Linking CXX executable pedal-pog3-quality
+[100%] Built target pedal-pog3-quality
+[  0%] Built target ardor_realtime_fft
+[ 75%] Built target ardor_pog3
+[100%] Building CXX object CMakeFiles/pedal-pog3-pitch-quality.dir/tests/pog3_pitch_quality.cpp.o
+[100%] Linking CXX executable pedal-pog3-pitch-quality
+[100%] Built target pedal-pog3-pitch-quality
+[  0%] Built target ardor_realtime_fft
+[ 75%] Built target ardor_pog3
+[ 75%] Building CXX object CMakeFiles/pedal-pog3-attack-quality.dir/tests/pog3_attack_quality.cpp.o
+[100%] Linking CXX executable pedal-pog3-attack-quality
+[100%] Built target pedal-pog3-attack-quality
+[  0%] Built target ardor_realtime_fft
+[ 75%] Built target ardor_pog3
+[100%] Building CXX object CMakeFiles/pedal-pog3-voice-stages.dir/tests/pog3_voice_stages.cpp.o
+[100%] Linking CXX executable pedal-pog3-voice-stages
+[100%] Built target pedal-pog3-voice-stages
+[  0%] Built target ardor_realtime_fft
+[100%] Built target ardor_pog3
+[100%] Building CXX object CMakeFiles/pedal-pog3-expression-quality.dir/tests/pog3_expression_quality.cpp.o
+[100%] Linking CXX executable pedal-pog3-expression-quality
+[100%] Built target pedal-pog3-expression-quality
+[  0%] Built target ardor_realtime_fft
+[ 75%] Built target ardor_pog3
+[ 75%] Building CXX object CMakeFiles/pedal-pog3-freeze-quality.dir/tests/pog3_freeze_quality.cpp.o
+[100%] Linking CXX executable pedal-pog3-freeze-quality
+[100%] Built target pedal-pog3-freeze-quality
+[  0%] Built target ardor_realtime_fft
+[ 84%] Built target ardor_daisyfx_runtime
+[100%] Built target ardor_pog3
+[100%] Building CXX object CMakeFiles/pedal-pog3-bench.dir/tests/pog3_bench.cpp.o
+[100%] Linking CXX executable pedal-pog3-bench
+[100%] Built target pedal-pog3-bench
+Built target pedal-pog3-malloc-probe
+-- Configuring done (0.0s)
+-- Generating done (0.3s)
+-- Build files have been written to: /home/bbalazs/projects/ardor-pog3/build-ci

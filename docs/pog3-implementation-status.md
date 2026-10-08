@@ -85,7 +85,33 @@ unchanged. FFTW changes active transform arithmetic within the numerical/audio
 contract documented in the latest checkpoint. The demonstrated shared granular
 read-index correction is documented with its original-reader reproduction below.
 
-## Latest CPU checkpoint — phase-cache rejection, 2026-10-08
+## Latest CPU checkpoint — nonoverflow bin sort, 2026-10-08
+
+Retain skipping the final bin sort for at most 256 candidates: the peak scan
+already appends bins in ascending order. Overflow still uses exact top-256
+partitioning and the original bin sort. Two ordinary matched Pi ABBA rounds
+repeat lower mean demand, **0.912%/0.562% combined at 64/128** against HEAD816.
+Preparation stays **1625912 bytes**. Mean demand is
+**78.883–79.460% / 79.153–79.508%**. Highest p99 falls at both sizes, but 64
+maximum rises **1378.482 → 1457.204 µs** and pooled over-period counts rise
+**16 → 25/12000**; 128 remains **0 → 0/6000**. This is a small mean improvement
+with mixed tails. Transform-only spectral control improves too, so the full
+observed difference is not isolated to sorting. Live/chain admission remains open.
+
+All **10 default / 11 opt-in DSP suites**, affected sanitizers, strict warnings,
+exact **2498-frame / 173482-region** host/Pi traces, default audio and host
+opt-in automation pass. Existing 810-frame cutoff and 464-frequency phase-history
+oracles remain. Final ordinary host targets are rebuilt freeze OFF. Both sparse
+phase caches and the deferred gain split remain rejected.
+
+Next try compact exact frequency/magnitude read keys in Attack support scoring,
+filled after the original observation sort/cap, preserving division, strict
+thresholds, support/score ordering and family history. Measure gather traffic,
+prepared memory and ordinary CPU; do not assume a layout win. Keep both birth
+snapshots, due ages, four-source rendering and opt-in-only freeze.
+See [the reviewed ordering, measured tradeoffs and detailed Luna next step](pog3-bin-sort-results.md).
+
+## Phase-cache rejection checkpoint — 2026-10-08
 
 Two sparse exact previous-phase cache layouts are **rejected**. The per-bin
 layout raises combined ordinary mean demand **0.540%/0.497%** at 64/128 frames;
@@ -105,8 +131,8 @@ standalone actual-argument counters, alongside the existing peak/birth oracles.
 Service restoration is independently read back; only session probe directories
 and its cross-build container are removed.
 
-Next test skipping the final bin sort for nonoverflow frames, whose scan order
-is already ascending. Retain the sort after overflowing top-256 partitioning.
+Its proposed skipped nonoverflow bin-sort follow-up is now retained; see the
+latest checkpoint above.
 Keep birth snapshots, refined scheduling, four-source rendering and opt-in-only
 freeze. CPU, listening and live/chain admission remain open.
 See [both rejected layouts and the detailed Luna handoff](pog3-phase-cache-results.md).
@@ -2048,18 +2074,18 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **skip the redundant nonoverflow bin sort** as a separate
-CPU candidate. Exact bounded top-peak selection is retained after repeatable
-1.976%/0.967% ordinary mean reductions against its preceding baseline. Keep that
-partition, frame/Attack slot snapshots, refined long-render due ages and
-four-source rendering. Both sparse previous-phase cache representations are
-rejected despite a verified 31.566% reduction in argument calls: each regresses
-ordinary mean demand in its matched rounds. Production DSP/header and the
-rebuilt ARM full-core ELF match retained HEAD35b exactly. Follow
-[the reviewed sort candidate and complete phase-cache evidence](pog3-phase-cache-results.md).
-The deferred gain split also remains rejected. Preserve input/control timestamps,
-ownership, strict thresholds/ties, prediction keys, publication and low/long/short
-update order. Public integration stays blocked on CPU feasibility.
+The next work is **compact exact support-scoring read keys in Attack** as a
+separate CPU candidate. Skipping the redundant nonoverflow bin sort repeats
+0.912%/0.562% combined ordinary mean reductions against HEAD816, with mixed
+64-frame tails and an improving uninvolved spectral control. Exact bounded
+selection, frame/Attack birth snapshots, refined due ages and four-source
+rendering remain. Both sparse previous-phase caches and the deferred gain split
+remain rejected. Follow
+[the reviewed Attack layout handoff and bin-sort evidence](pog3-bin-sort-results.md).
+Preserve observation order/cap/index provenance, original harmonic division,
+strict thresholds, score accumulation/ties, family/partial lifetimes and all
+input/control dates. Count gather traffic and actual memory; retain only useful
+ordinary benefit. Public integration remains blocked on CPU feasibility.
 Matched planning controls and the freeze scope decision are complete. Both freeze
 modes remain opt-in experiments; restore them only after core CPU feasibility.
 The first hardware comparison is complete: tested full-feature configurations exceed standalone

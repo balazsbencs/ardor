@@ -137,9 +137,10 @@ void PitchFrame::update(std::span<const std::complex<float>> spectrum) noexcept 
       return a.magnitude == b.magnitude ? a.bin < b.bin : a.magnitude > b.magnitude;
     });
     candidates = regions_.size();
+    std::sort(candidates_.begin(), candidates_.begin() + candidates,
+              [](const auto& a, const auto& b) { return a.bin < b.bin; });
   }
-  std::sort(candidates_.begin(), candidates_.begin() + candidates,
-            [](const auto& a, const auto& b) { return a.bin < b.bin; });
+  // Without partitioning, the peak scan already appends bins in ascending order.
   std::array<bool, kMaxPitchPartials> used{};
   for (auto& track : tracks_) if (track.generation) track.missed = std::min(track.missed + 1, 5U);
   struct Prediction { float frequency; std::size_t track; };

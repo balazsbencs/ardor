@@ -1,0 +1,4 @@
+b866e7a329abfdd64c1a0e2bd2ba986f213439bdd50315aea79e65fb0ed8f802  /tmp/ardor-pog3-device-build/binsort-baseline-arm/libdevice_pog3.a
+476e245f7ffd0912c9068e6afecc2d5231529d819db2e88c36d836fc4953af97  /tmp/ardor-pog3-device-build/binsort-baseline-host/libdevice_pog3.a
+f464460c6753c30673e7ff289d39450a60463946223b5f9a701ac7c7c8b2e081  /tmp/ardor-pog3-device-build/binsort-baseline-optin/libdevice_pog3.a
+d6352129bcd9b7742db904d996f387a1f5bbaa0efa6deac31314fb817d9d5299  /tmp/ardor-pog3-device-build/binsort-baseline-arm/full-baseline
