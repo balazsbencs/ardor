@@ -11,6 +11,7 @@ codec during cleanup. No production DSP, installed app or saved settings changed
 
 The first attempt was stopped cleanly (exit 0) and the normal app restored before
 the corrected runner was staged. `corrected-live-readback.txt` captures the
-restarted dry audition, codec switch values, relay brightness and runner hash.
+restarted audition after a switch to octave down, codec switch values, relay
+brightness and runner hash.
 This is output-state verification; audible confirmation and playing feel still
 require user feedback. Shell syntax and `git diff --check` passed.
