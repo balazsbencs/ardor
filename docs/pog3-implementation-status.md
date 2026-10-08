@@ -85,7 +85,33 @@ unchanged. FFTW changes active transform arithmetic within the numerical/audio
 contract documented in the latest checkpoint. The demonstrated shared granular
 read-index correction is documented with its original-reader reproduction below.
 
-## Latest CPU checkpoint — exact peak selection, 2026-10-08
+## Latest CPU checkpoint — phase-cache rejection, 2026-10-08
+
+Two sparse exact previous-phase cache layouts are **rejected**. The per-bin
+layout raises combined ordinary mean demand **0.540%/0.497%** at 64/128 frames;
+the bulk-cleared double-validity layout raises it **0.559%/0.786%**. Each has
+separate matched Pi ABBA and confirmation rounds. Actual standalone diagnostics
+verify **533169 fewer previous-phase arguments**, a **31.566%** total argument
+reduction, with identical frame/track/birth work. That call reduction does not
+produce a useful CPU benefit.
+
+Production caches are removed: preparation stays **1625912 bytes** and the
+rebuilt ordinary ARM full-core ELF equals retained HEAD35b byte for byte. Both
+candidate layouts pass **10 default / 11 opt-in suites**, exact **2498 frames /
+173482 regions**, host/Pi default audio and host opt-in automation, affected
+sanitizers and strict warnings. Final restored default suites pass again. Retain
+an independent **464-frequency original Cartesian phase-history oracle** and
+standalone actual-argument counters, alongside the existing peak/birth oracles.
+Service restoration is independently read back; only session probe directories
+and its cross-build container are removed.
+
+Next test skipping the final bin sort for nonoverflow frames, whose scan order
+is already ascending. Retain the sort after overflowing top-256 partitioning.
+Keep birth snapshots, refined scheduling, four-source rendering and opt-in-only
+freeze. CPU, listening and live/chain admission remain open.
+See [both rejected layouts and the detailed Luna handoff](pog3-phase-cache-results.md).
+
+## Exact peak selection checkpoint — 2026-10-08
 
 Retain an in-place top-256 peak partition instead of the overflowing-frame full
 magnitude sort. Unique bins retain the original magnitude-tie cutoff, and the
@@ -104,8 +130,8 @@ independent original full-sort oracle over **810 published frames**, including
 are byte-exact on host/Pi, alongside default audio and host opt-in automation.
 Affected sanitizer, strict-warning, C/C++ allocation and target pitch checks pass.
 Retain both birth snapshots, refined scheduling, four-source rendering and
-opt-in-only freeze. Next measure sparse reuse of exact already-computed previous
-phases, with Cartesian fallback and immediate previous accepted-frame validity.
+opt-in-only freeze. Its proposed sparse phase-cache follow-up is now rejected;
+see the latest checkpoint above.
 See [results and the detailed reviewed Luna handoff](pog3-peak-selection-results.md).
 
 ## Frame birth CPU checkpoint — 2026-10-08
@@ -2022,15 +2048,16 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **sparse previous-phase reuse**. Exact bounded top-peak
-selection is retained after repeatable 1.976%/0.967% ordinary mean reductions.
-Keep that partition, frame/Attack slot snapshots, refined long-render due ages
-and four-source rendering. About 63% of long/short phase-estimation bins could
-reuse an already-computed phase from the previous accepted finite frame. Keep
-Cartesian fallback and the original float subtraction / double remainder math;
-measure validity traffic, actual hits and prepared storage. Follow
-[the reviewed cache and matched-validation plan](pog3-peak-selection-results.md).
-The deferred gain split remains rejected. Preserve input/control timestamps,
+The next work is **skip the redundant nonoverflow bin sort** as a separate
+CPU candidate. Exact bounded top-peak selection is retained after repeatable
+1.976%/0.967% ordinary mean reductions against its preceding baseline. Keep that
+partition, frame/Attack slot snapshots, refined long-render due ages and
+four-source rendering. Both sparse previous-phase cache representations are
+rejected despite a verified 31.566% reduction in argument calls: each regresses
+ordinary mean demand in its matched rounds. Production DSP/header and the
+rebuilt ARM full-core ELF match retained HEAD35b exactly. Follow
+[the reviewed sort candidate and complete phase-cache evidence](pog3-phase-cache-results.md).
+The deferred gain split also remains rejected. Preserve input/control timestamps,
 ownership, strict thresholds/ties, prediction keys, publication and low/long/short
 update order. Public integration stays blocked on CPU feasibility.
 Matched planning controls and the freeze scope decision are complete. Both freeze

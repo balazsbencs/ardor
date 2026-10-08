@@ -1,0 +1,27 @@
+Test project /home/bbalazs/projects/ardor-pog3/build-ci
+      Start 28: pedal-pog3-frame-birth-slots
+ 1/11 Test #28: pedal-pog3-frame-birth-slots .....   Passed    0.42 sec
+      Start 29: pedal-pog3-attack-birth-slots
+ 2/11 Test #29: pedal-pog3-attack-birth-slots ....   Passed    0.31 sec
+      Start 30: pedal-pog3-controls
+ 3/11 Test #30: pedal-pog3-controls ..............   Passed    0.00 sec
+      Start 31: pedal-pog3-quality
+ 4/11 Test #31: pedal-pog3-quality ...............   Passed    2.41 sec
+      Start 32: pedal-pog3-pitch-quality
+ 5/11 Test #32: pedal-pog3-pitch-quality .........   Passed    9.02 sec
+      Start 33: pedal-pog3-low-chord-quality
+ 6/11 Test #33: pedal-pog3-low-chord-quality .....   Passed    1.61 sec
+      Start 34: pedal-pog3-attack-quality
+ 7/11 Test #34: pedal-pog3-attack-quality ........   Passed    6.26 sec
+      Start 35: pedal-pog3-voice-stages
+ 8/11 Test #35: pedal-pog3-voice-stages ..........   Passed    0.89 sec
+      Start 36: pedal-pog3-expression-quality
+ 9/11 Test #36: pedal-pog3-expression-quality ....   Passed    4.23 sec
+      Start 37: pedal-pog3-freeze-quality
+10/11 Test #37: pedal-pog3-freeze-quality ........   Passed   20.31 sec
+      Start 38: pedal-pog3-realtime-allocation
+11/11 Test #38: pedal-pog3-realtime-allocation ...   Passed   24.96 sec
+
+100% tests passed out of 11
+
+Total Test time (real) =  70.44 sec

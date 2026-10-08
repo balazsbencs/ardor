@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+./profile-baseline-bin --freeze-matched forward shared.wisdom
+cp shared.wisdom wisdom.profile-baseline.after
