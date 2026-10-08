@@ -2074,7 +2074,15 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **a bounded POG3 worker-pipeline feasibility probe**, following
+The current user-selected step is **the live playing-feel audition**, prepared
+with Attack zero, direct dry/up/down/blend footswitch selection and both Focus
+settings. It is staged on the device but remains inactive until the user is
+ready to play. Quiet hardware checks and dry identity pass; subjective feel and
+physical input/output latency have not been assessed. Follow
+[the audition controls and comparison procedure](pog3-live-audition.md).
+
+If the current octave response is acceptable, the next CPU work is **a bounded
+POG3 worker-pipeline feasibility probe**, following
 [the actual-device budget, fresh PMU profile and reviewed handoff](pog3-headroom-results.md).
 The device currently uses 128 frames / 48 kHz, a 2.667 ms period. Two paced
 POG3-only runs average 2.155–2.174 ms with no xruns but one over-period callback;

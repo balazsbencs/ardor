@@ -1,0 +1,1 @@
+self-test passed: dry error=3.42673e-09, four modes at both Focus settings, S32 conversion and output ceiling

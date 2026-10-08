@@ -1,0 +1,10 @@
+access: MMAP_INTERLEAVED
+format: S32_LE
+subformat: STD
+channels: 2
+rate: 48000 (48000/1)
+period_size: 128
+buffer_size: 384
+255
+6846
+3b2ff0b7163d0159d57f4a73f3f8ae79c5871bd17b2d2d825e3ae4b2011b62ac  /tmp/pog3-audition-20261008/audition

@@ -1,0 +1,4 @@
+Envelope energy centroid input=82.4 Focus=0 delay=60.0215 ms
+Envelope energy centroid input=82.4 Focus=1 delay=72.0059 ms
+Envelope energy centroid input=659.3 Focus=0 delay=24.0087 ms
+Envelope energy centroid input=659.3 Focus=1 delay=48.001 ms
