@@ -117,6 +117,81 @@ void peakSelection() {
   std::cout << "Peak selection: " << checked
             << " published frames match original full sort; 255/256/257 boundaries, cutoff ties, monotone/random magnitudes, ceilings and repeated overflow passed\n";
 }
+void phaseHistory() {
+  using namespace ardor::pog3;
+  std::size_t checked = 0;
+  for (const std::size_t n : {64, 1024, 4096}) {
+    auto plan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(n, n / 8));
+    const double step = 2 * pi * (n / 8) / n;
+    for (const float ceiling : {400.0f, 24000.0f}) {
+      PitchFrame frame;
+      frame.prepare(plan, ceiling);
+      const auto limit = std::min(n / 2, static_cast<std::size_t>(std::ceil(ceiling * n / kSampleRate)));
+      const auto bin = std::min<std::size_t>(8, std::max<std::size_t>(1, limit / 2));
+      std::vector<std::complex<float>> spectrum(n), previous(n);
+      bool havePrevious = false;
+      // Original Cartesian frequency oracle: never stores previous phase or
+      // shares the candidate's validity bookkeeping.
+      const auto norm = [](std::complex<float> value) {
+        return std::sqrt(value.real() * value.real() + value.imag() * value.imag());
+      };
+      for (unsigned history = 0; history < 96; ++history) {
+        if (history % 24 == 0) { frame.reset(); havePrevious = false; }
+        if (history % 24 == 12) { frame.prepare(plan, ceiling); havePrevious = false; }
+        std::fill(spectrum.begin(), spectrum.end(), std::complex<float>{});
+        switch (history % 12) {
+        case 0: spectrum[bin] = {1, 0}; break;
+        case 1: spectrum[bin] = {1, .5f}; break;
+        case 2: spectrum[bin] = {-1, .5f}; break;
+        case 3: spectrum[bin + 1] = {2, -.5f}; break;
+        case 4: spectrum[bin] = {1, -.5f}; break;
+        case 5: spectrum[bin] = {1, .5f}; spectrum[bin + 1] = {4, 0}; break;
+        case 6: spectrum[bin] = {-1, -.5f}; break;
+        case 7: spectrum[bin] = {8e-8f, 0}; break;
+        case 8: spectrum[bin] = {-1, -0.0f}; break;
+        case 9: spectrum[bin] = {-1, 0.0f}; break;
+        case 10: spectrum[0] = {std::numeric_limits<float>::quiet_NaN(), 0}; break;
+        case 11: spectrum[bin] = {1, 0}; break;
+        }
+        if (history % 19 == 2) {
+          frame.update(std::span(spectrum).first(n - 1));
+          require(frame.spectrum().empty() && frame.regions().empty(), "wrong-size frame is not published");
+          // The original path retains its last accepted Cartesian history.
+        }
+        frame.update(spectrum);
+        if (history % 12 == 10) {
+          require(frame.spectrum().empty(), "nonfinite frame rejects phase history");
+          havePrevious = false;
+          continue;
+        }
+        for (const auto& region : frame.regions()) {
+          const auto k = region.bin;
+          float expected;
+          if (k == 0 || k == n / 2) expected = static_cast<float>(k);
+          else if (havePrevious && norm(previous[k]) > 1e-7f) {
+            const double delta = std::remainder(std::arg(spectrum[k]) - std::arg(previous[k]) - k * step, 2 * pi);
+            expected = static_cast<float>(k + delta / step);
+          } else {
+            const double a = std::log(std::max(norm(spectrum[k - 1]), 1e-20f));
+            const double b = std::log(std::max(norm(spectrum[k]), 1e-20f));
+            const double c = std::log(std::max(norm(spectrum[k + 1]), 1e-20f));
+            const double denominator = a - 2 * b + c;
+            expected = k + static_cast<float>(denominator == 0 ? 0 : std::clamp(.5 * (a - c) / denominator, -.5, .5));
+          }
+          expected = std::clamp(expected, 0.0f, static_cast<float>(n / 2));
+          require(std::bit_cast<std::uint32_t>(region.frequencyBins) == std::bit_cast<std::uint32_t>(expected),
+                  "peak frequency equals original Cartesian phase/log history bit for bit");
+          ++checked;
+        }
+        previous = spectrum;
+        havePrevious = true;
+      }
+    }
+  }
+  require(checked > 0, "phase history oracle has published peaks");
+  std::cout << "Phase history: " << checked
+            << " exact Cartesian-reference frequencies passed across hits, migration, absent/return, threshold, nonpeak, signed phase seams, wrong-size/nonfinite, reset/reprepare and ceilings\n";
+}
 void magnitudeRange() {
   using namespace ardor::pog3;
   auto plan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(64, 8));
@@ -554,14 +629,15 @@ void tones() {
 int main(int argc, char** argv) {
   try {
     if (argc == 2 && std::string_view(argv[1]) == "--lobe-layout") { lobeLayout(); return 0; }
+    if (argc == 2 && std::string_view(argv[1]) == "--phase-history") { phaseHistory(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--peak-selection") { peakSelection(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--magnitude-range") { magnitudeRange(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--stress") return stress() ? 0 : 1;
     if (argc == 2 && std::string_view(argv[1]) == "--resolution-stress") { resolutionStress(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--latency") { envelopeLatency(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--warp-onset") { warpTimeInvariance(); return 0; }
-    require(argc == 1, "usage: pedal-pog3-pitch-quality [--stress|--resolution-stress|--latency|--warp-onset|--magnitude-range|--lobe-layout|--peak-selection]");
-    lobeLayout(); magnitudeRange(); peakSelection();
+    require(argc == 1, "usage: pedal-pog3-pitch-quality [--stress|--resolution-stress|--latency|--warp-onset|--magnitude-range|--lobe-layout|--peak-selection|--phase-history]");
+    lobeLayout(); magnitudeRange(); peakSelection(); phaseHistory();
     unity(); tones(); polyphony(); aliasing(); lifecycleAndFocus(); trackContinuity();
     stagedIdentityAndPartitioning(); warpAndOverload(); envelopeLatency(); warpTimeInvariance();
     std::cout << "Spectral pitch, Focus, staged deadlines, Warp and overload gates passed\n";

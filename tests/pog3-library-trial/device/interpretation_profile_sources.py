@@ -8,7 +8,7 @@ import callback_profile_sources as base
 def main():
     root, output = map(Path, sys.argv[1:])
     base.main()
-    header = (output / 'callback_profile.h').read_text()
+    header = '#include <complex>\n' + (output / 'callback_profile.h').read_text()
     header = base.replace_once(header, 'std::array<const char*,8> labels', 'std::array<const char*,14> labels')
     header = base.replace_once(header, '"long_attack", "short_attack", "long_render", "short_render"};',
         '"long_attack", "short_attack", "long_render", "short_render",\n'
@@ -20,7 +20,7 @@ def main():
 struct FrameRecord {
   std::uint64_t sample=0, frame=0;
   std::uint32_t size=0, channel=0, bins=0, peaks=0, phase=0, logarithmic=0,
-    phaseReuse=0, predicted=0, matched=0, births=0, firstSteps=0, fallbackSteps=0, selected=0, snapshots=0, snapshotReads=0;
+    phaseReuse=0, predicted=0, matched=0, births=0, firstSteps=0, fallbackSteps=0, selected=0, snapshots=0, snapshotReads=0, currentArgs=0, previousArgs=0;
 };
 inline std::array<FrameRecord,8192> frames{};
 inline std::size_t frameCount=0;
@@ -35,6 +35,13 @@ inline std::array<std::array<bool,16385>,6> previousPhase{};
   for (auto& flags:previousPhase) flags.fill(false);
 }''')
     helper = r'''
+inline float phaseArg(std::complex<float> value,bool previous) noexcept {
+  if (enabled && currentFrame) {
+    if (previous) ++currentFrame->previousArgs;
+    else ++currentFrame->currentArgs;
+  }
+  return std::arg(value);
+}
 struct FrameScope {
   FrameRecord* record=nullptr;
   std::array<bool,16385>* validity=nullptr;
@@ -71,7 +78,7 @@ inline void reportFrame(const char* workload,unsigned callback) {
     const auto& r=frames[i];
     log<<"frame_counts,"<<workload<<','<<callback<<','<<r.sample<<','<<r.frame<<','<<r.size<<','<<r.channel<<','
       <<r.bins<<','<<r.peaks<<','<<r.phase<<','<<r.logarithmic<<','<<r.phaseReuse<<','<<r.predicted<<','
-      <<r.matched<<','<<r.births<<','<<r.firstSteps<<','<<r.fallbackSteps<<','<<r.selected<<','<<r.snapshots<<','<<r.snapshotReads<<'\n';
+      <<r.matched<<','<<r.births<<','<<r.firstSteps<<','<<r.fallbackSteps<<','<<r.selected<<','<<r.snapshots<<','<<r.snapshotReads<<','<<r.currentArgs<<','<<r.previousArgs<<'\n';
   }
   log<<"frame_receipt,"<<workload<<','<<callback<<','<<frameCount<<",overflow=0\n";
   std::cerr<<log.str();
@@ -118,6 +125,11 @@ inline void reportFrame(const char* workload,unsigned callback) {
     source=base.replace_once(source, '  // Partition every positive bin:',
         '  }\n  if (frameRecord.record) frameRecord.record->selected=static_cast<unsigned>(count_);\n  { '+scope(13)+'\n  // Partition every positive bin:')
     source=base.replace_once(source,'  previous_ = true;','  previous_ = true;\n  }')
+    source=base.replace_once(source, 'std::arg(spectrum[k])', 'pog3_phase::phaseArg(spectrum[k],false)')
+    source=base.replace_once(source, 'std::arg(previousSpectrum_[k])', 'pog3_phase::phaseArg(previousSpectrum_[k],true)')
+    if 'previousPhaseValid_[k]' in source:
+        source=base.replace_once(source, '      const float phase =',
+            '      if (frameRecord.record && reusablePhase!=phaseReusable) pog3_phase::overflow=true;\n      const float phase =')
     (output/'PolyphonicPitchBank.cpp').write_text(source)
     bench=(output/'bench.cpp').read_text();anchor='  pog3_phase::report(name, static_cast<unsigned>(callback), times);'
     bench=base.replace_once(bench,anchor,'  pog3_phase::reportFrame(name, static_cast<unsigned>(callback));\n'+anchor)

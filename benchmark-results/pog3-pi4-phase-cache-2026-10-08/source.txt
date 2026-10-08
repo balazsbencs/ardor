@@ -1,0 +1,3 @@
+baseline=35b64bca2aca6fe6ec65bd1fca8c3eac3736fa6e
+retained exact top-peak partition, both birth snapshots, refined schedule, four-source rendering
+freeze/profile OFF for ordinary CPU

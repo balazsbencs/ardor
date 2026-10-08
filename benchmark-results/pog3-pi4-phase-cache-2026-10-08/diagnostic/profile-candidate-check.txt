@@ -1,0 +1,16 @@
+phase   0: mean=1140.094, p99=1256.830, max=1289.300, over=0/375
+phase  64: mean=1109.023, p99=1241.890, max=1252.720, over=0/375
+phase 128: mean=1057.207, p99=1195.430, max=1214.410, over=0/375
+phase 192: mean=1193.774, p99=1330.110, max=1338.760, over=4/375
+phase 256: mean=998.602, p99=1129.650, max=1161.130, over=0/375
+phase 320: mean=946.208, p99=1057.760, max=1082.330, over=0/375
+phase 384: mean=1012.358, p99=1149.300, max=1172.740, over=0/375
+phase 448: mean=1172.482, p99=1320.630, max=1337.870, over=1/375
+All callback/stage/event accounting, render deadlines, input stamps, Attack control tags and 64/128 event identity pass.
+All 5247 frame records match both callback partitions; six child stages exactly account for each parent; work-count bounds pass.
+N= 1024 frames= 2999 totals bins/peaks/phase/log/reuse/predicted/matched/births/first/fallback/selected/snapshots/reads/current_args/previous_args= [1538487, 420871, 419574, 48, 264202, 553564, 398324, 22547, 0, 0, 420871, 2996, 1533952, 419574, 155372]
+reusable phase %= 62.96910676066677
+N= 2048 frames= 1499 totals bins/peaks/phase/log/reuse/predicted/matched/births/first/fallback/selected/snapshots/reads/current_args/previous_args= [1536475, 420211, 419451, 92, 264803, 382193, 266059, 116355, 0, 0, 382414, 1499, 767488, 419451, 154648]
+reusable phase %= 63.13085437869977
+N= 4096 frames= 749 totals bins/peaks/phase/log/reuse/predicted/matched/births/first/fallback/selected/snapshots/reads/current_args/previous_args= [27713, 5856, 5518, 3, 4164, 7524, 5603, 253, 0, 0, 5856, 211, 108032, 5518, 1354]
+reusable phase %= 75.46212395795578
