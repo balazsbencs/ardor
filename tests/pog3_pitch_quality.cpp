@@ -64,6 +64,59 @@ void lobeLayout() {
   }
   std::cout << "Hann lobe layout: " << checked << " bit-exact lookups passed\n";
 }
+void peakSelection() {
+  using namespace ardor::pog3;
+  std::mt19937 random(0x5045414b);
+  std::size_t checked = 0;
+  for (const std::size_t n : {1024, 2048, 32768}) {
+    auto plan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(n, n / 8));
+    for (const float ceiling : {400.0f, 24000.0f}) {
+      PitchFrame frame;
+      frame.prepare(plan, ceiling);
+      const auto limit = std::min(n / 2, static_cast<std::size_t>(std::ceil(ceiling * n / kSampleRate)));
+      for (const std::size_t requested : {0, 1, 255, 256, 257, 258, 511, 513, 8193}) {
+        const auto peaks = std::min(requested, limit / 2 + 1);
+        for (unsigned shape = 0; shape < 5; ++shape) {
+          std::vector<std::complex<float>> spectrum(n);
+          std::vector<PitchRegion> expected;
+          for (std::size_t i = 0; i < peaks; ++i) {
+            const float level = shape == 0 ? 1.0f
+              : shape == 1 ? 1.0f + i / 32.0f
+              : shape == 2 ? 1.0f + (peaks - i) / 32.0f
+              : shape == 3 ? 1.0f + (i * 17 % 5) / 4.0f
+              : 1.0f + (random() % 256) / 256.0f;
+            spectrum[2 * i] = {level, 0};
+            PitchRegion region;
+            region.bin = static_cast<std::uint16_t>(2 * i);
+            region.magnitude = std::sqrt(level * level);
+            expected.push_back(region);
+          }
+          // Independent original full-sort oracle. Inspect actual publication,
+          // rather than duplicating a partition helper from the candidate.
+          std::sort(expected.begin(), expected.end(), [](const auto& a, const auto& b) {
+            return a.magnitude == b.magnitude ? a.bin < b.bin : a.magnitude > b.magnitude;
+          });
+          if (expected.size() > 256) expected.resize(256);
+          std::sort(expected.begin(), expected.end(), [](const auto& a, const auto& b) { return a.bin < b.bin; });
+          frame.reset();
+          for (unsigned history = 0; history < 3; ++history) {
+            frame.update(spectrum);
+            require(frame.regions().size() == expected.size(), "top-peak count matches original cutoff");
+            require(frame.capacityEvents() == (history + 1) * (peaks > 256), "one capacity event per overflowing frame");
+            for (std::size_t i = 0; i < expected.size(); ++i) {
+              require(frame.regions()[i].bin == expected[i].bin, "top-peak magnitude/bin membership and order match full sort");
+              require(std::bit_cast<std::uint32_t>(frame.regions()[i].magnitude)
+                        == std::bit_cast<std::uint32_t>(expected[i].magnitude), "published peak magnitude retained");
+            }
+            ++checked;
+          }
+        }
+      }
+    }
+  }
+  std::cout << "Peak selection: " << checked
+            << " published frames match original full sort; 255/256/257 boundaries, cutoff ties, monotone/random magnitudes, ceilings and repeated overflow passed\n";
+}
 void magnitudeRange() {
   using namespace ardor::pog3;
   auto plan = std::make_shared<PitchPlan>(std::make_shared<SpectralPlan>(64, 8));
@@ -501,13 +554,14 @@ void tones() {
 int main(int argc, char** argv) {
   try {
     if (argc == 2 && std::string_view(argv[1]) == "--lobe-layout") { lobeLayout(); return 0; }
+    if (argc == 2 && std::string_view(argv[1]) == "--peak-selection") { peakSelection(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--magnitude-range") { magnitudeRange(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--stress") return stress() ? 0 : 1;
     if (argc == 2 && std::string_view(argv[1]) == "--resolution-stress") { resolutionStress(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--latency") { envelopeLatency(); return 0; }
     if (argc == 2 && std::string_view(argv[1]) == "--warp-onset") { warpTimeInvariance(); return 0; }
-    require(argc == 1, "usage: pedal-pog3-pitch-quality [--stress|--resolution-stress|--latency|--warp-onset|--magnitude-range|--lobe-layout]");
-    lobeLayout(); magnitudeRange();
+    require(argc == 1, "usage: pedal-pog3-pitch-quality [--stress|--resolution-stress|--latency|--warp-onset|--magnitude-range|--lobe-layout|--peak-selection]");
+    lobeLayout(); magnitudeRange(); peakSelection();
     unity(); tones(); polyphony(); aliasing(); lifecycleAndFocus(); trackContinuity();
     stagedIdentityAndPartitioning(); warpAndOverload(); envelopeLatency(); warpTimeInvariance();
     std::cout << "Spectral pitch, Focus, staged deadlines, Warp and overload gates passed\n";
