@@ -302,8 +302,9 @@ the live scene and audio. Returning to Scenes does not recall the default.
 Scene-enabled presets have an **Open in** setting, Scenes by default or
 Presets. Loading the preset initializes its default scene and uses that
 setting. A manual layer change lasts until the next successful preset load.
-Presets without scenes retain existing operation; the right chord is inactive
-and their switch timing is unchanged. Failed preset selection keeps the
+Presets without scenes keep the scene chord inactive. In Preset mode, FS2 and
+FS4 still select their slots on a tap and change banks on a 600 ms hold. In the
+Scenes layer all four switches recall scenes. Failed preset selection keeps the
 previous preset, scene, and layer.
 
 ### Gesture arbitration — a deliberate tradeoff

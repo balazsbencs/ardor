@@ -1723,16 +1723,26 @@ int main(int argc, char** argv)
         if (args.enableUi && ui && !ardor::previewIsSynchronized(uiState)) {
           // The physical master-volume path remains independent below, but a
           // local chain transaction must not be superseded by a footswitch
-          // preset change or tuner entry.
+          // preset/bank change or tuner entry.
           return;
         }
 #endif
-        if (action.type == ardor::FootswitchActionType::OpenLooper) {
+        if (action.type == ardor::FootswitchActionType::PreviousBank
+            || action.type == ardor::FootswitchActionType::NextBank) {
+          const int delta = action.type == ardor::FootswitchActionType::PreviousBank ? -1 : 1;
 #if defined(ARDOR_HAS_UI)
-          if (args.enableUi && ui && ui->actions().openLooper) {
-            ui->actions().openLooper();
+          if (args.enableUi && ui) {
+            if (ui->actions().changeBank) ui->actions().changeBank(delta);
+            return;
           }
 #endif
+          const int pendingBank = requestedBank.load(std::memory_order_relaxed);
+          const int currentBank = pendingBank >= 0 ? pendingBank : args.bank;
+          const int targetBank = std::clamp(currentBank + delta, 0, 99);
+          if (targetBank != currentBank) {
+            requestedBank.store(targetBank, std::memory_order_relaxed);
+            requestedSlot.store(controls.activeSlot, std::memory_order_relaxed);
+          }
           return;
         }
         if (action.type == ardor::FootswitchActionType::ToggleSceneLayer) {
@@ -1807,10 +1817,13 @@ int main(int argc, char** argv)
         if (ardor::applyControlEvent(
               controls, {ardor::ControlEventType::FootswitchPressed, action.index, 0})
             && controls.activeSlot != previousSlot) {
+          const int pendingBank = requestedBank.load(std::memory_order_relaxed);
+          const int targetBank = pendingBank >= 0 ? pendingBank : args.bank;
 #if defined(ARDOR_HAS_UI)
           if (args.enableUi && ui) {
             if (ardor::requestPresetNavigation(
-                  uiState, {args.bank, static_cast<std::size_t>(controls.activeSlot)})) {
+                  uiState, {targetBank, static_cast<std::size_t>(controls.activeSlot)})) {
+              requestedBank.store(targetBank, std::memory_order_relaxed);
               requestedSlot.store(controls.activeSlot, std::memory_order_relaxed);
             } else {
               // A dirty draft opened the confirmation prompt (or navigation
@@ -1819,9 +1832,11 @@ int main(int argc, char** argv)
               controls.activeSlot = previousSlot;
             }
           } else {
+            requestedBank.store(targetBank, std::memory_order_relaxed);
             requestedSlot.store(controls.activeSlot, std::memory_order_relaxed);
           }
 #else
+          requestedBank.store(targetBank, std::memory_order_relaxed);
           requestedSlot.store(controls.activeSlot, std::memory_order_relaxed);
 #endif
         }
@@ -2089,14 +2104,6 @@ int main(int argc, char** argv)
           }};
         }
 #endif
-        footswitchGesture.setLooperEntrySlot(
-#if defined(ARDOR_HAS_UI)
-          args.enableUi && ui && uiState.mode == ardor::UiMode::Preset && !tunerMode
-            ? activeSelection.slot : -1
-#else
-          -1
-#endif
-        );
         for (auto& inputDevice : inputDevices) {
           ardor::ControlEvent controlEvent;
           while (inputDevice.poll(controlEvent)) {

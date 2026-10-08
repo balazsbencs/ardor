@@ -91,23 +91,9 @@ public:
                             64 * kFrames * ardor::RealtimeLooper::kBytesPerMasterFrame,
                             error), "prepare looper: " + error);
 
-    // Enter exactly as a player can: hold the active preset switch on the
-    // discovered evdev node, then submit the host's OpenEmpty command.
-    ardor::FootswitchGesture presetGestures;
-    presetGestures.setLooperEntrySlot(0);
-    tree_.appendKey(0, true);
-    ardor::ControlEvent entryPress;
-    require(input_.poll(entryPress)
-              && !presetGestures.handle(entryPress, Clock::time_point{}),
-            "active preset downstroke must wait for its looper hold");
-    const auto entry = presetGestures.poll(Clock::time_point{} + 1000ms);
-    require(entry && entry->type == ardor::FootswitchActionType::OpenLooper,
-            "physical active-preset hold must request Looper mode");
-    tree_.appendKey(0, false);
-    ardor::ControlEvent entryRelease;
-    require(input_.poll(entryRelease)
-              && !presetGestures.handle(entryRelease, Clock::time_point{} + 1030ms),
-            "entry release must not select another preset");
+    // The touchscreen Looper action opens the session through this host
+    // command path. Footswitches are assigned to transport after the session
+    // opens; preset-mode holds now change banks instead.
     const auto open = controller_.openSession();
     require(open && looper_.tryEnqueue(open->command), "open session through control queue");
     block(0.0f);

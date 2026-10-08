@@ -102,9 +102,10 @@ Explicitly deferred:
 
 ### Enter
 
-The preset screen gains a `Looper` action. Foot-only entry is a one-second hold
-on the currently active preset footswitch. Holding an inactive preset switch
-continues to select that preset normally; it never enters Looper mode.
+The preset screen's `Looper` action is the only way to enter Looper mode.
+Preset-mode holds on FS2 and FS4 move to the previous or next bank after
+600 ms; a shorter tap still selects slot 2 or 4. These bank holds preserve the
+selected slot number. Looper transport gestures begin only after Looper opens.
 
 Entry is rejected while an engine preview is pending. If the active preset has
 unsaved edits, the existing Save / Discard / Cancel flow resolves them first.
@@ -582,7 +583,7 @@ surface the specific validation failure without offering Load.
 | `src/dsp/PedalEngine.{h,cpp}` | Own `RealtimeLooper`; split program, looper, master, and limiter stages; expose control/telemetry access |
 | `src/audio/PresetActivation.{h,cpp}` | Respect session lock; support prepared engine containing a loaded session |
 | `src/audio/MiniaudioBackend.{h,cpp}` | No looper DSP; retain existing engine handoff and tuner monitor; verify device recovery semantics |
-| `src/control/ControlEvents.{h,cpp}` | Active-preset hold entry and mode-aware looper/tuner gesture actions |
+| `src/control/ControlEvents.{h,cpp}` | Preset taps, FS2/FS4 bank holds, and tuner/scene chord actions |
 | `apps/pedal-poc/main.cpp` | Own `LooperController` and I/O worker; route UI/footswitch/runtime commands; enforce preset lock |
 | `src/ui/UiModel.{h,cpp}` | Add `UiMode::Looper`, looper telemetry/state, revisions, prompts, and library model |
 | `src/ui/LvglUi.{h,cpp}` | Add retained Looper layer and action callbacks |
@@ -643,8 +644,8 @@ not shared-host CTest pass/fail tests.
 
 ### Control and UI tests
 
-- Extend `tests/control_smoke.cpp` for active-preset hold, FS1+FS2 tuner
-  priority, FS2 short/clear-hold distinction, and FS3/FS4 downstroke actions.
+- Extend `tests/control_smoke.cpp` for FS2/FS4 tap-versus-bank-hold behavior,
+  FS1+FS2 tuner priority, and FS3/FS4 looper transport actions.
 - Extend `tests/ui_model_smoke.cpp` for every session/track transition,
   persistent confirmations, preset lock, and tuner return mode.
 - Extend `tests/lvgl_ui_smoke.cpp` for the 2 x 2 track field, fixed physical
