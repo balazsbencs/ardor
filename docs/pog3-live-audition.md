@@ -81,6 +81,15 @@ The decision remains a listening result. A dry-path identity check, offline
 envelope measurements and a quiet hardware check cannot determine playing feel.
 No subjective listening result has been collected yet.
 
+The first live attempt produced no audible output: stopping the normal app
+muted the codec's `Headphone Switch`, and the original runner only enabled the
+output relay. Footswitch events and nonzero DSP output were recorded, but those
+did not establish that the analog output was audible. The runner now explicitly
+unmutes the codec after PCM readiness, verifies both output switches are on,
+and then enables the relay. Cleanup mutes both before restoring the normal app;
+when no app was originally running, it restores the previous codec mute state.
+The silent preparation checks above did not cover this live unmute step.
+
 ## Implementation and validation
 
 `pedal-pog3-audition` is an optional target under
