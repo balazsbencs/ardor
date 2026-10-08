@@ -1,0 +1,1 @@
+Session-owned comparison float/frame blobs and generated Python cache removed; immutable source/library/ELF build caches retained.

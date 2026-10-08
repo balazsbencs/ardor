@@ -1,0 +1,10 @@
+  7864320 automation-baseline.f32
+  7864320 automation-candidate.f32
+ 15728640 total
+  1924784 direct-baseline.bin
+  1924784 direct-candidate.bin
+  3849568 total
+  1536000 full-baseline.f32
+  1536000 full-candidate.f32
+  3072000 total
+1536000 full-candidate-profile.f32

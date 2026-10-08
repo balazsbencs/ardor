@@ -1,0 +1,4 @@
+All 5247 immutable per-frame DSP/count records match across original and candidate.
+N=1024 original_birth_scan_iterations=2206069 candidate_snapshots=2996 snapshot_track_reads=1533952
+N=2048 original_birth_scan_iterations=59373528 candidate_snapshots=1499 snapshot_track_reads=767488
+N=4096 original_birth_scan_iterations=1821 candidate_snapshots=211 snapshot_track_reads=108032
