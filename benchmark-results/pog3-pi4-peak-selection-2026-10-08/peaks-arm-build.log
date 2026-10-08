@@ -1,0 +1,8 @@
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /probe/peaks-candidate-arm
+[ 75%] Built target device_pog3
+[100%] Built target pog3-device-full
+[ 81%] Built target device_pog3
+[100%] Built target pog3-device-pitch-quality
+[100%] Built target pog3-device-cpu

@@ -1,0 +1,4 @@
+11a4378d450799fac11f136d5fa255eb67bbd46340800dd56ba218ef7b66cdb9  /tmp/ardor-pog3-device-build/peaks-baseline-arm/full-baseline
+d6352129bcd9b7742db904d996f387a1f5bbaa0efa6deac31314fb817d9d5299  /tmp/ardor-pog3-device-build/peaks-candidate-arm/pog3-device-full
+1a93911231df911d49d859297d39fa31c71118b4af7215238c8d8da65a136d48  /tmp/ardor-pog3-device-build/peaks-baseline-host/full-baseline
+56ff2f87b7a777836c998864089531109913281292926b5d7476d2f89e6df82c  /tmp/ardor-pog3-device-build/peaks-candidate-host/pog3-device-full

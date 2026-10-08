@@ -1,0 +1,8 @@
+Host: GCC 14.2.0, Homebrew CMake, shared distro float FFTW 3.3.10.
+Target: Buildroot GCC 13.4.0, CMake 3.31, static NEON float FFTW 3.3.10.
+Own Ubuntu 24.04 container ardor-pog3-peaks; read-only SDK/source mounts,
+read-write own disk cache, compiler TMPDIR=/probe/compiler-tmp.
+All ordinary builds Release -O3/-DNDEBUG, freeze and every profile OFF.
+Only separate host opt-in numerical library/suite enables freeze.
+Baseline source/header/library/ELF saved before DSP mutation.
+Baseline ordinary ARM ELF equals preceding retained frame-birth candidate.

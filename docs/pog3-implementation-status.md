@@ -85,7 +85,30 @@ unchanged. FFTW changes active transform arithmetic within the numerical/audio
 contract documented in the latest checkpoint. The demonstrated shared granular
 read-index correction is documented with its original-reader reproduction below.
 
-## Latest CPU checkpoint — 2026-10-08
+## Latest CPU checkpoint — exact peak selection, 2026-10-08
+
+Retain an in-place top-256 peak partition instead of the overflowing-frame full
+magnitude sort. Unique bins retain the original magnitude-tie cutoff, and the
+original final bin sort preserves publication. All phase calculations still run
+before selection. Two ordinary matched Pi ABBA rounds show **1.976%/0.967%**
+combined mean reductions at 64/128 against the retained frame-birth baseline.
+Preparation stays **1625912 bytes**, excluding FFTW internals. Mean period
+demand is **79.633–80.363% / 79.728–80.693%**. Pooled 64 over-period counts
+fall **37 → 22/12000**; 128 is **0 → 0/6000** in these finite offline runs.
+p99 improves, but recorded maxima worsen slightly (1429 vs 1417 µs at 64;
+2610.037 vs 2601.685 µs at 128). Live intended-chain admission remains open.
+
+All **10 default / 11 opt-in suites** pass. The pitch suite now includes an
+independent original full-sort oracle over **810 published frames**, including
+255/256/257 boundaries and cutoff ties. **1538 frame histories / 172698 regions**
+are byte-exact on host/Pi, alongside default audio and host opt-in automation.
+Affected sanitizer, strict-warning, C/C++ allocation and target pitch checks pass.
+Retain both birth snapshots, refined scheduling, four-source rendering and
+opt-in-only freeze. Next measure sparse reuse of exact already-computed previous
+phases, with Cartesian fallback and immediate previous accepted-frame validity.
+See [results and the detailed reviewed Luna handoff](pog3-peak-selection-results.md).
+
+## Frame birth CPU checkpoint — 2026-10-08
 
 Retain a second compact slot workspace for **frame track births**. It preserves
 the original combined empty/expired ascending priority, then greatest positive
@@ -1999,17 +2022,15 @@ M3–M7's software engine and core DSP quality gates are implemented. Target-dev
 admission, combined-chain endurance, and listening review remain open; the
 effect is not release-ready merely because its host tests pass.
 
-The next work is **bounded top-peak selection**, followed by a sparse-valid
-previous-phase cache if selection lacks repeatable benefit. Primary interpretation
-attribution is complete, and compact frame track-birth snapshots are retained:
-ordinary mean demand improves about 4.9%/4.5% with exact histories. Long candidate
-sorting still takes roughly 47–49 instrumented µs; preserve its exact top-256
-magnitude/bin membership and ascending publication. About 63% of long/short
-phase-estimation bins could reuse a preceding-frame phase, with Cartesian
-fallback and original float arithmetic retained. Follow
-[the reviewed selection/cache constraints and matched-validation plan](pog3-interpretation-cpu-results.md).
-Keep compact Attack slots, refined long-render due ages and four-source batching.
-The deferred gain prototype remains rejected. Preserve input/control timestamps,
+The next work is **sparse previous-phase reuse**. Exact bounded top-peak
+selection is retained after repeatable 1.976%/0.967% ordinary mean reductions.
+Keep that partition, frame/Attack slot snapshots, refined long-render due ages
+and four-source rendering. About 63% of long/short phase-estimation bins could
+reuse an already-computed phase from the previous accepted finite frame. Keep
+Cartesian fallback and the original float subtraction / double remainder math;
+measure validity traffic, actual hits and prepared storage. Follow
+[the reviewed cache and matched-validation plan](pog3-peak-selection-results.md).
+The deferred gain split remains rejected. Preserve input/control timestamps,
 ownership, strict thresholds/ties, prediction keys, publication and low/long/short
 update order. Public integration stays blocked on CPU feasibility.
 Matched planning controls and the freeze scope decision are complete. Both freeze
