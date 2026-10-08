@@ -1,0 +1,7 @@
+workload,callback_frames,callbacks,budget_us,median_us,p95_us,p99_us,p999_us,max_us,callback_allocations,preparation_allocated_bytes,reset_us,max_transforms_per_callback,worst_callback_index,worst_callback_end_mod_512,worst_callback_transforms,mean_us,over_budget_callbacks
+matched_granular_control,128,1500,2666.667,116.389,401.352,414.407,419.593,443.296,0,329256,31.370,0,1051,0,0,186.921,0
+matched_spectral_control,128,1500,2666.667,222.889,931.278,957.704,1068.149,1162.833,0,583776,52.204,20,245,256,20,547.634,0
+matched_freeze_off,128,1500,2666.667,2140.334,2339.408,2404.111,2505.556,2513.333,0,1625912,495.500,16,691,0,16,2114.628,0
+matched_granular_control,64,3000,1333.333,57.741,340.260,348.426,357.463,359.889,0,329256,30.537,0,1951,0,0,93.363,0
+matched_spectral_control,64,3000,1333.333,41.018,904.685,927.945,967.000,1041.297,0,583776,50.481,20,943,0,20,273.010,0
+matched_freeze_off,64,3000,1333.333,1061.871,1228.833,1287.648,1353.555,1374.167,0,1625912,499.796,9,1378,192,7,1059.472,10

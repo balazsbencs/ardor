@@ -1,0 +1,4 @@
+Host GCC14.2, CMake, shared float FFTW3.3.10; target SDK GCC13.4/CMake3.31 with static NEON float FFTW3.3.10.
+Own Ubuntu24.04 container ardor-pog3-binsort, read-only buildroot_2025_02_15 SDK and source mounts, read-write disk cache. GNU Make4.4.1 copied from host; compiler TMPDIR=/probe/compiler-tmp.
+Release -O3/-DNDEBUG, freeze/profile OFF for ordinary timing; only separate host opt-in library/suite freeze ON.
+Candidate changes only one final bin-sort placement; class layout/arithmetics/storage unchanged.

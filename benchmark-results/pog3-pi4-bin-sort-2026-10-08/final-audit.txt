@@ -1,0 +1,9 @@
+First/confirmation receipts return zero; 48 ordinary rows audited.
+All 10 default / 11 opt-in suites pass; affected sanitizers and strict warnings pass.
+2498-frame/173482-region traces, 1966080-float automation and 384000-float full-core output match original separately on host/Pi; host opt-in automation matches.
+810-frame original full-sort and 464-frequency phase-history oracles pass on target.
+All four forward/reverse pairs show lower core mean at 64/128, with mixed tails and improved uninvolved spectral control.
+Target ELFs unchanged through confirmation; header/layout unchanged; core C++ preparation stays 1625912; zero callback C++ allocations; stable 9/16 FFT maxima.
+Both wisdom directories preserve same header/57 records.
+Final host rebuild is freeze OFF; production retains archived skipped-sort patch.
+Existing service restored and PID independently read back; own probe directory/container removed.

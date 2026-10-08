@@ -1,0 +1,4 @@
+baseline ('matched_freeze_off', '128'): demand 79.51–80.11%, p99 2416.630, worst 2549.278, over 0–0
+baseline ('matched_freeze_off', '64'): demand 80.01–80.32%, p99 1296.519, worst 1378.482, over 3–7
+candidate ('matched_freeze_off', '128'): demand 79.30–79.51%, p99 2426.463, worst 2517.092, over 0–0
+candidate ('matched_freeze_off', '64'): demand 79.17–79.46%, p99 1287.648, worst 1385.093, over 3–10
