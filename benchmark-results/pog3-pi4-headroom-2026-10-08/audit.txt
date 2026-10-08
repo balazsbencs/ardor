@@ -1,0 +1,16 @@
+noop-1: exit=0, callbacks=3000, trace/summary agree
+chain-1: exit=0, callbacks=11250, trace/summary agree
+core-1: exit=0, callbacks=11250, trace/summary agree
+combined-1: exit=3, callbacks=11, trace/summary agree
+combined-offline-1: exit=0, callbacks=4500, trace/summary agree
+core-sample: exit=0, callbacks=7500, trace/summary agree
+core-count: exit=0, callbacks=7500, trace/summary agree
+combined-2: exit=3, callbacks=11, trace/summary agree
+combined-offline-2: exit=0, callbacks=4500, trace/summary agree
+core-2: exit=0, callbacks=11250, trace/summary agree
+chain-2: exit=0, callbacks=11250, trace/summary agree
+equal-duration checksum match: core-1 / core-2
+equal-duration checksum match: chain-1 / chain-2
+equal-duration checksum match: combined-offline-1 / combined-offline-2
+equal-duration checksum match: core-sample / core-count
+Five positive, unmultiplexed counters; no sample loss; restored service PID recorded.

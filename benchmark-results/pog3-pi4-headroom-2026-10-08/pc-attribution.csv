@@ -1,0 +1,121 @@
+samples,percent_of_dsp_samples,symbol
+4806,19.9287,"ardor::pog3::PitchRenderer::render(ardor::pog3::PitchFrame const&, float, ardor::pog3::PitchFrame const*, unsigned long, std::array<float, 256ul> const*, std::array<float, 256ul> const*, bool, ardor::pog3::FrozenBand const*, ardor::pog3::FrozenBand const*, float, float, ardor::pog3::PitchRenderer const*)"
+2128,8.8240,"ardor::pog3::SpectralSynthesis::synthesize(std::vector<std::complex<float>, std::allocator<std::complex<float> > >&, unsigned long)"
+2049,8.4964,"ardor::pog3::PitchFrame::update(std::span<std::complex<float> const, 18446744073709551615ul>)"
+1709,7.0866,"ardor::pog3::PolyphonicAttack::update(ardor::pog3::PitchFrame const&, ardor::pog3::PitchFrame const&, unsigned long, long)"
+964,3.9973,ardor::pog3::SpectralAnalysis::push(float)
+964,3.9973,"ardor::pog3::PolyphonicAttack::group(unsigned long, long, long)"
+918,3.8066,n1bv_64
+892,3.6988,libm:__remainder_finite@GLIBC_2.17
+679,2.8156,"ardor::pog3::PolyphonicAttack::owner(float, long)"
+639,2.6497,"ardor::pog3::SpectralSynthesis::addFrameInPlace(std::vector<std::complex<float>, std::allocator<std::complex<float> > >&, unsigned long)"
+614,2.5460,libm:__atan2f_finite@GLIBC_2.17
+535,2.2184,ardor::pog3::FractionalHistory::read(float) const
+519,2.1521,n1fv_128
+493,2.0443,n1bv_128
+429,1.7789,"ardor::pog3::Pog3VoiceStages::process(ardor::pog3::PitchStereo, ardor::pog3::PitchStereo, std::array<ardor::pog3::PitchStereo, 6ul> const&)"
+415,1.7208,hc2cbdftv_2
+342,1.4181,"ardor::pog3::Pog3VoiceStages::filter(ardor::pog3::PitchStereo, unsigned long)"
+335,1.3891,libm:sincosf64@@GLIBC_2.27
+322,1.3352,q1bv_4
+315,1.3062,ardor::pog3::SpectralSynthesis::pop()
+286,1.1859,"ardor::pog3::PolyphonicAttack::gainAt(ardor::pog3::PolyphonicAttack::Partial const&, long) const"
+270,1.1196,"void std::__introsort_loop<ardor::pog3::PitchFrame::update(std::span<std::complex<float> const, 18446744073709551615ul>)::Prediction*, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::PitchFrame::update(std::span<std::complex<float> const, 18446744073709551615ul>)::{lambda(auto:1 const&, auto:2 const&)#3}> >(ardor::pog3::PitchFrame::update(std::span<std::complex<float> const, 18446744073709551615ul>)::Prediction*, ardor::pog3::PitchFrame::update(std::span<std::complex<float> const, 18446744073709551615ul>)::Prediction*, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::PitchFrame::update(std::span<std::complex<float> const, 18446744073709551615ul>)::{lambda(auto:1 const&, auto:2 const&)#3}>) [clone .isra.0]"
+227,0.9413,t2bv_4
+225,0.9330,libm:remainderf64@@GLIBC_2.27
+210,0.8708,n1fv_64
+188,0.7796,ardor::pog3::StereoDoubling::process(ardor::pog3::PitchStereo)
+188,0.7796,ardor::pog3::StereoSpread::process(ardor::pog3::PitchStereo)
+174,0.7215,hc2cfdftv_8
+174,0.7215,"void std::__introsort_loop<ardor::pog3::PolyphonicAttack::Observation*, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::PolyphonicAttack::update(ardor::pog3::PitchFrame const&, ardor::pog3::PitchFrame const&, unsigned long, long)::{lambda(auto:1 const&, auto:2 const&)#2}> >(ardor::pog3::PolyphonicAttack::Observation*, ardor::pog3::PolyphonicAttack::Observation*, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::PolyphonicAttack::update(ardor::pog3::PitchFrame const&, ardor::pog3::PitchFrame const&, unsigned long, long)::{lambda(auto:1 const&, auto:2 const&)#2}>)"
+171,0.7091,"ardor::pog3::PolyphonicAttack::envelope(ardor::pog3::PolyphonicAttack::Partial&, float, long, long, long, bool)"
+165,0.6842,ardor::pog3::PolyphonicPitchBank::process(ardor::pog3::PitchStereo)
+144,0.5971,"void std::__introsort_loop<__gnu_cxx::__normal_iterator<ardor::pog3::PitchRegion*, std::vector<ardor::pog3::PitchRegion, std::allocator<ardor::pog3::PitchRegion> > >, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::PitchFrame::update(std::span<std::complex<float> const, 18446744073709551615ul>)::{lambda(auto:1 const&, auto:2 const&)#2}> >(__gnu_cxx::__normal_iterator<ardor::pog3::PitchRegion*, std::vector<ardor::pog3::PitchRegion, std::allocator<ardor::pog3::PitchRegion> > >, __gnu_cxx::__normal_iterator<ardor::pog3::PitchRegion*, std::vector<ardor::pog3::PitchRegion, std::allocator<ardor::pog3::PitchRegion> > >, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::PitchFrame::update(std::span<std::complex<float> const, 18446744073709551615ul>)::{lambda(auto:1 const&, auto:2 const&)#2}>)"
+132,0.5474,libm:sinf64@@GLIBC_2.27
+131,0.5432,"void std::__introsort_loop<ardor::pog3::PolyphonicAttack::FrequencyIndex*, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::PolyphonicAttack::indexCanonical(unsigned long)::{lambda(auto:1 const&, auto:2 const&)#1}> >(ardor::pog3::PolyphonicAttack::FrequencyIndex*, ardor::pog3::PolyphonicAttack::FrequencyIndex*, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::PolyphonicAttack::indexCanonical(unsigned long)::{lambda(auto:1 const&, auto:2 const&)#1}>) [clone .isra.0]"
+104,0.4312,"ardor::pog3::Pog3VoiceStages::pan(ardor::pog3::PitchStereo, unsigned long)"
+103,0.4271,q1fv_4
+100,0.4147,ardor::pog3::PolyphonicAttack::indexCanonical(unsigned long)
+98,0.4064,"void std::__introsort_loop<ardor::pog3::detail::AttackBirthSlots<256ul>::Entry*, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::detail::AttackBirthSlots<256ul>::take(std::array<bool, 256ul> const&)::{lambda(auto:1 const&, auto:2 const&)#1}> >(ardor::pog3::detail::AttackBirthSlots<256ul>::Entry*, ardor::pog3::detail::AttackBirthSlots<256ul>::Entry*, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::detail::AttackBirthSlots<256ul>::take(std::array<bool, 256ul> const&)::{lambda(auto:1 const&, auto:2 const&)#1}>) [clone .isra.0]"
+85,0.3525,t2bv_2
+75,0.3110,ardor::pog3::Pog3SignalPath::process(ardor::pog3::PitchStereo)
+71,0.2944,hc2cfdftv_4
+70,0.2903,q1bv_2
+66,0.2737,"void std::__introsort_loop<ardor::pog3::PolyphonicAttack::FrequencyIndex*, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::PolyphonicAttack::update(ardor::pog3::PitchFrame const&, ardor::pog3::PitchFrame const&, unsigned long, long)::{lambda(auto:1 const&, auto:2 const&)#1}> >(ardor::pog3::PolyphonicAttack::FrequencyIndex*, ardor::pog3::PolyphonicAttack::FrequencyIndex*, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::PolyphonicAttack::update(ardor::pog3::PitchFrame const&, ardor::pog3::PitchFrame const&, unsigned long, long)::{lambda(auto:1 const&, auto:2 const&)#1}>) [clone .isra.0]"
+64,0.2654,ardor::pog3::PlayingDetector::process(ardor::pog3::PitchStereo)
+58,0.2405,main
+49,0.2032,apply_extra_iter
+43,0.1783,/lib/libc.so.6@0x98e14
+40,0.1659,apply
+33,0.1368,libm:atan2f@@GLIBC_2.17
+28,0.1161,q1fv_2
+24,0.0995,ardor::pog3::Pog3Processor::process(ardor::pog3::PitchStereo)
+18,0.0746,"ardor::pog3::Pog3VoiceStages::setValues(std::array<float, 33ul> const&)"
+15,0.0622,apply_dif
+13,0.0539,/lib/libc.so.6@0x97f04
+13,0.0539,/tmp/pog3-headroom-20261008/probe@0x8a34
+11,0.0456,libm:exp2f@@GLIBC_2.27
+10,0.0415,/tmp/pog3-headroom-20261008/probe@0x8be0
+10,0.0415,libm:tanf@@GLIBC_2.17
+9,0.0373,fftwf_execute_dft_r2c
+7,0.0290,"ardor::pog3::choiceIndex(float, unsigned long)"
+7,0.0290,/lib/libc.so.6@0x97f00
+6,0.0249,libm:hypotf@@GLIBC_2.35
+6,0.0249,ardor::pog3::ParameterTargets::read() const
+6,0.0249,/tmp/pog3-headroom-20261008/probe@0x8db4
+6,0.0249,apply_dit
+6,0.0249,fftwf_execute_dft_c2r
+5,0.0207,/lib/libc.so.6@0x97f0c
+5,0.0207,r2cf_4
+5,0.0207,"void std::__introsort_loop<ardor::pog3::PolyphonicAttack::Candidate*, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::PolyphonicAttack::group(unsigned long, long, long)::{lambda(auto:1 const&, auto:2 const&)#1}> >(ardor::pog3::PolyphonicAttack::Candidate*, ardor::pog3::PolyphonicAttack::Candidate*, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::PolyphonicAttack::group(unsigned long, long, long)::{lambda(auto:1 const&, auto:2 const&)#1}>) [clone .isra.0]"
+4,0.0166,/tmp/pog3-headroom-20261008/probe@0x8a00
+4,0.0166,fftwf_alignment_of
+4,0.0166,libm:cabsf@@GLIBC_2.17
+4,0.0166,apply_dif_dft
+4,0.0166,/lib/libc.so.6@0x97f08
+3,0.0124,[vdso]@0x354
+3,0.0124,apply_dit_dft
+3,0.0124,/tmp/pog3-headroom-20261008/probe@0x8a30
+3,0.0124,/lib/libc.so.6@0xb0f70
+3,0.0124,r2cf_8
+3,0.0124,"ardor::pog3::expressionEndpointValue(std::array<float, 33ul> const&)"
+3,0.0124,/tmp/pog3-headroom-20261008/probe@0x8be4
+3,0.0124,"ardor::pog3::expressionPosition(std::array<float, 33ul> const&)"
+2,0.0083,libm:fmodf64@@GLIBC_2.27
+2,0.0083,/lib/libc.so.6@0x97ed8
+2,0.0083,/tmp/pog3-headroom-20261008/probe@0x8a04
+2,0.0083,/tmp/pog3-headroom-20261008/probe@0x91b0
+2,0.0083,apply_r2hc
+2,0.0083,ardor::pog3::Pog3Processor::transformCount() const
+2,0.0083,/tmp/pog3-headroom-20261008/probe@0x9374
+2,0.0083,/tmp/pog3-headroom-20261008/probe@0x8990
+2,0.0083,r2cb_2
+2,0.0083,[vdso]@0x330
+2,0.0083,/lib/libc.so.6@0xb0f78
+2,0.0083,/tmp/pog3-headroom-20261008/probe@0x93a4
+2,0.0083,r2cfII_8
+1,0.0041,/lib/libc.so.6@0x97ec4
+1,0.0041,"ardor::pog3::PolyphonicPitchBank::setFreeze(ardor::pog3::ExpressionMode, float, bool)"
+1,0.0041,/tmp/pog3-headroom-20261008/probe@0x9aa0
+1,0.0041,/tmp/pog3-headroom-20261008/probe@0x9204
+1,0.0041,/lib/libc.so.6@0x97f40
+1,0.0041,/lib/libc.so.6@0x97ef4
+1,0.0041,r2cbIII_2
+1,0.0041,/lib/libc.so.6@0x97e94
+1,0.0041,/lib/libc.so.6@0x97e90
+1,0.0041,"ardor::pog3::Pog3SignalPath::setSoundValues(std::array<float, 33ul> const&)"
+1,0.0041,/lib/libc.so.6@0x97f54
+1,0.0041,[vdso]@0x378
+1,0.0041,"ardor::pog3::dryFreezeEligible(std::array<float, 33ul> const&)"
+1,0.0041,/lib/libc.so.6@0x97e00
+1,0.0041,/lib/libc.so.6@0x97fa0
+1,0.0041,/tmp/pog3-headroom-20261008/probe@0x93a0
+1,0.0041,/lib/libc.so.6@0x98dc0
+1,0.0041,"ardor::pog3::physicalValue(ardor::pog3::Parameter, float)"
+1,0.0041,ardor::pog3::PolyphonicAttack::setSeconds(float)
+1,0.0041,/lib/libc.so.6@0x98e04
+1,0.0041,/tmp/pog3-headroom-20261008/probe@0x9550
+1,0.0041,/lib/libc.so.6@0x97f20
+1,0.0041,/lib/libc.so.6@0x97f2c
+1,0.0041,/lib/libc.so.6@0x97f34
+1,0.0041,/lib/libc.so.6@0x97f1c
