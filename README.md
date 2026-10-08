@@ -627,6 +627,9 @@ the selected model is saved through the normal local asset path. The
 publishable `t3k_pub_…` client ID may be deployed on the device; never deploy a
 TONE3000 secret key. `TONE3000_BASE_URL` defaults to
 `https://www.tone3000.com` and is useful only for development overrides.
+LAN deployments preserve an existing TONE3000 configuration. If the client ID
+is missing, they restore the firmware's publishable default; set
+`TONE3000_CLIENT_ID` when deploying to override it.
 
 The Security & reset settings can sign out, reset only local access, or request
 a factory reset. Resetting local access removes the username, password hash,
