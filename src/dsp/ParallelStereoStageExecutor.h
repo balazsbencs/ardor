@@ -31,6 +31,11 @@ struct ParallelStereoStageExecutorOptions {
   double sampleRate = 0.0;
   ParallelStereoStageExecutionMode mode = ParallelStereoStageExecutionMode::Direct;
   std::size_t pipelineSlots = 2;
+  // 0 retains latest-completed behavior. With continuous accepted input, a
+  // positive value selects exactly this many callbacks of delay (or reports
+  // fallback). Missed submissions still require caller handling. The selected
+  // delay must fit in the prepared input ring.
+  std::size_t fixedOutputDelayBlocks = 0;
   int workerCpu = -1;
   int workerPriority = 69;
 
@@ -91,6 +96,9 @@ public:
   std::size_t blockSize() const noexcept;
   std::uint64_t underflowCount() const noexcept;
   std::uint64_t submissionMissCount() const noexcept;
+  // Latest fully published generation. Nonblocking; acquiring it also orders
+  // worker-written diagnostics. Does not consume output or imply a fixed delay.
+  std::uint64_t completedGeneration() const noexcept;
   ParallelStereoStageTimingSnapshot timing() const noexcept;
 
   // Control-thread lifecycle operations. reset() waits for the current worker

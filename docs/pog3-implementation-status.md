@@ -53,6 +53,15 @@ workspace and its unrelated changes remain separate.
 
 ## Implemented code
 
+The latest device milestone is a **passing fixed two-block CPU3 worker probe**:
+POG3 plus the reference serial NAM/EQ chain finishes two 30-second cases and a
+180-second case with zero xruns or pipeline misses. The longer run averages
+1160.527 µs on CPU2 and 2324.920 µs on CPU3 per 2666.667 µs period. Direct serial
+and one-block worker controls still fail. Added delay is **256 samples / 5.333 ms**;
+its playing feel and the normal MMAP/UI backend remain to be tested. This is not
+general routing or public integration. See
+[the complete results, ownership review and next steps](pog3-worker-pipeline-results.md).
+
 | File / target | Responsibility |
 | --- | --- |
 | `src/daisyfx/pog3/Pog3Parameters.{h,cpp}` | Stable 33-index registry, defaults, normalized-to-physical mappings, display formatting, configuration validation, expression endpoints, Warp and dry-freeze eligibility helpers, lock-free control targets |
@@ -2083,17 +2092,24 @@ The corrected live run completed 46,397 callbacks with zero ALSA xruns, mean
 2058.66 µs, maximum 2744.54 µs and six over-period callbacks. The normal app was
 restored after a clean stop. See [the live result and scope](pog3-live-audition.md).
 
-The next CPU work is **a bounded
-POG3 worker-pipeline feasibility probe**, following
-[the actual-device budget, fresh PMU profile and reviewed handoff](pog3-headroom-results.md).
+The **bounded worker-pipeline feasibility probe is complete** for the reference
+serial preset. The prior
+[device budget and profiling](pog3-headroom-results.md) motivated moving POG3
+to CPU3; the measured outcome is in
+[the worker results and reviewed handoff](pog3-worker-pipeline-results.md).
 The device currently uses 128 frames / 48 kHz, a 2.667 ms period. Two paced
 POG3-only runs average 2.155–2.174 ms with no xruns but one over-period callback;
 the reference vibe/NAM/EQ chain averages 0.956–0.975 ms. Both combined paced
 attempts encounter a playback xrun after 11 callbacks during warmup. Unpaced
-combined cost is 3.416–3.487 ms. Test moving POG3 to the otherwise idle CPU3 with
-an explicit, measured additional quantum of latency and strict generation
-accounting; this architecture has not yet passed a hardware test. Repeat the
-playing comparison with its actual added delay before accepting the pipeline.
+combined cost is 3.416–3.487 ms. The new one-block worker also misses strict
+generation deadlines. Two blocks pass both 30-second repeats and a 180-second
+run, with no stale replay, missed submissions, late outputs or ALSA xruns.
+The longer run has 67500 measured callbacks, mean CPU2 1160.527 µs, mean CPU3
+2324.920 µs and maximum worker submission-to-finish 2904.315 µs. Original audio
+settings and DSP are retained. Repeat the playing comparison with the actual
+**256-sample / 5.333 ms added delay**, then test the MMAP backend/UI and live
+control snapshots before accepting public integration. CPU3 is available in the
+tested serial preset; general worker-core ownership remains unresolved.
 
 Compact Attack support-scoring read keys are paused: grouping itself accounts
 for only 4.00% of fresh sampled DSP cycles, whereas the observed serial chain
@@ -2104,7 +2120,8 @@ improvement in an uninvolved spectral control, not isolated causal speedups.
 Exact bounded selection, compact frame/Attack birth snapshots, refined due ages,
 four-source rendering and skipped redundant sort remain. Both sparse phase
 caches and the deferred gain split remain rejected. Production DSP is unchanged
-by the new measurement probe; public integration remains CPU-gated.
+by the measurement probes; public integration remains gated on real-backend,
+topology and added-delay listening validation.
 Matched planning controls and the freeze scope decision are complete. Both freeze
 modes remain opt-in experiments; restore them only after core CPU feasibility.
 The earlier full-feature hardware comparison exceeded standalone capacity at
