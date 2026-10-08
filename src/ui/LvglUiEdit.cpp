@@ -561,10 +561,20 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   lb::textLabel(editModifiedLabel_, lb::type::tag, "MODIFIED", warnInk, 10, 3);
   placeModifiedTag(editPresetLabel_, editModifiedLabel_);
   if (!state.dirty) lv_obj_add_flag(editModifiedLabel_, LV_OBJ_FLAG_HIDDEN);
+  editTelemetryLabel_ = lb::textLabel(root, lb::type::headerRight,
+    lb::headerTelemetryText(state), disabled, 0, 18);
+  lv_obj_set_x(editTelemetryLabel_, kDesignWidth - 28
+    - lb::textWidth(lb::type::headerRight, lb::headerTelemetryText(state)));
+  if (!actions_.showDeviceStatus) lv_obj_add_flag(editTelemetryLabel_, LV_OBJ_FLAG_HIDDEN);
+  // Reserve room for the widest supported latency and buffer readout so
+  // telemetry updates do not move the scene controls or overlap them.
+  editHeaderDetailRight_ = kDesignWidth - 28
+    - (actions_.showDeviceStatus
+       ? lb::textWidth(lb::type::headerRight, "21.33 MS  \xC2\xB7  BUFFER 100%") + 20 : 0);
   const bool hasWdwRoute = state.bank.presets[state.activePreset].routing == "wdw";
   if (sceneSet) {
     // Scene tabs replace the block count on the right of the header.
-    const int tabsX = kDesignWidth - lb::kGutter
+    const int tabsX = editHeaderDetailRight_
       - static_cast<int>(sceneSet->scenes.size()) * (kSceneTabWidth + kSceneTabGap) + kSceneTabGap;
     for (std::size_t index = 0; index < sceneSet->scenes.size(); ++index) {
       const auto& scene = sceneSet->scenes[index];
@@ -578,9 +588,19 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
   } else {
     editModuleCountLabel_ = lb::textLabel(root, lb::type::headerRight, editCountText(state),
                                           disabled, 0, 18);
-    lv_obj_set_x(editModuleCountLabel_, kDesignWidth - 28
+    lv_obj_set_x(editModuleCountLabel_, editHeaderDetailRight_
                  - lb::textWidth(lb::type::headerRight, editCountText(state)));
   }
+
+  const int detailLeft = sceneSet
+    ? editHeaderDetailRight_ - static_cast<int>(sceneSet->scenes.size())
+        * (kSceneTabWidth + kSceneTabGap) + kSceneTabGap
+    : editHeaderDetailRight_ - lb::textWidth(lb::type::headerRight, "BLOCK 99 OF 99");
+  const int identityWidth = std::max(1, detailLeft - identityX
+    - lv_obj_get_style_width(editModifiedLabel_, LV_PART_MAIN) - 40);
+  lv_obj_set_width(editPresetLabel_, identityWidth);
+  lv_label_set_long_mode(editPresetLabel_, LV_LABEL_LONG_DOT);
+  placeModifiedTag(editPresetLabel_, editModifiedLabel_);
 
   const auto& blocks = state.bank.presets[state.activePreset].blocks;
   const auto* selectedEffect = selectedUiBlock(state);

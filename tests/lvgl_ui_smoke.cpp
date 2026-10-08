@@ -93,6 +93,17 @@ lv_obj_t* findTravelFill(lv_obj_t* card)
   return nullptr;
 }
 
+lv_obj_t* findVisibleLabel(lv_obj_t* parent, const char* text)
+{
+  if (lv_obj_has_flag(parent, LV_OBJ_FLAG_HIDDEN)) return nullptr;
+  if (lv_obj_check_type(parent, &lv_label_class)
+      && std::strcmp(lv_label_get_text(parent), text) == 0) return parent;
+  for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
+    if (auto* label = findVisibleLabel(lv_obj_get_child(parent, i), text)) return label;
+  }
+  return nullptr;
+}
+
 lv_obj_t* findSliderLabel(lv_obj_t* parent, const char* text)
 {
   for (uint32_t i = 0; i < lv_obj_get_child_count(parent); ++i) {
@@ -1999,6 +2010,8 @@ int main()
                 && lv_obj_get_height(bankUpButton) == 60
                 && lv_obj_get_height(bankDownButton) == 60,
               "preset screen should render the - BANK + pair")) return 1;
+  if (require(lv_obj_get_style_text_font(bankLegend, LV_PART_MAIN) == &ardor_lb_cond600_22,
+              "the Bank legend should match the readable 22 px rail controls")) return 1;
   if (require(masterLegend && masterValue && tunerButton
                 && lv_obj_get_width(tunerButton) >= 124
                 && lv_obj_get_height(tunerButton) == 60,
@@ -3125,6 +3138,54 @@ int main()
   if (require(!findLabel(lv_screen_active(), "0.0 dB"),
               "the gain-reduction meter should only render for compressor-mode dynamics blocks"))
     return 1;
+
+  auto editTelemetryState = ardor::makeDemoUiState();
+  ardor::enterEditMode(editTelemetryState);
+  ardor::updateRealtimeTelemetry(editTelemetryState,
+    ardor::makeRuntimeTelemetry(120, 0, 0, 7.0, 3.0, 10.0, false, 0, 0, 0, 6.0));
+  ui.build(lv_screen_active(), editTelemetryState);
+  lv_obj_update_layout(lv_screen_active());
+  lv_obj_t* editTelemetry = findVisibleLabel(lv_screen_active(), "1.33 MS  \xC2\xB7  BUFFER 60%");
+  if (require(editTelemetry,
+              "Edit should show the same live buffer readout as Presets")) return 1;
+  ui.beginParameterInteraction();
+  ardor::updateRealtimeTelemetry(editTelemetryState,
+    ardor::makeRuntimeTelemetry(120, 0, 0, 7.0, 3.0, 10.0, false, 0, 0, 0, 2.5));
+  ui.refresh(lv_screen_active(), editTelemetryState);
+  if (require(findVisibleLabel(lv_screen_active(), "1.33 MS  \xC2\xB7  BUFFER 25%") == editTelemetry,
+              "Edit buffer telemetry should update during parameter interactions")) return 1;
+  ui.endParameterInteraction();
+
+  editTelemetryState.bank.presets[editTelemetryState.activePreset].sceneSet = ardor::PresetSceneSet{};
+  auto& telemetryScenes = *editTelemetryState.bank.presets[editTelemetryState.activePreset].sceneSet;
+  telemetryScenes.defaultSceneId = "scene-1";
+  for (std::size_t i = 0; i < telemetryScenes.scenes.size(); ++i) {
+    telemetryScenes.scenes[i].id = "scene-" + std::to_string(i + 1);
+    telemetryScenes.scenes[i].name = "Scene " + std::to_string(i + 1);
+  }
+  editTelemetryState.dirty = true;
+  ui.build(lv_screen_active(), editTelemetryState);
+  lv_obj_update_layout(lv_screen_active());
+  editTelemetry = findVisibleLabel(lv_screen_active(), "1.33 MS  \xC2\xB7  BUFFER 25%");
+  lv_obj_t* lastSceneTab = findVisibleLabel(lv_screen_active(), "FS4  SCENE 4");
+  lv_obj_t* firstSceneTab = findVisibleLabel(lv_screen_active(), "FS1  SCENE 1");
+  lv_obj_t* modifiedTag = findVisibleLabel(lv_screen_active(), "MODIFIED");
+  if (require(editTelemetry && lastSceneTab && firstSceneTab && modifiedTag,
+              "scene editing should retain buffer telemetry, all tabs, and the Modified tag")) return 1;
+  lv_area_t telemetryArea{}, lastTabArea{}, firstTabArea{}, modifiedArea{};
+  lv_obj_get_coords(editTelemetry, &telemetryArea);
+  lv_obj_get_coords(lv_obj_get_parent(lastSceneTab), &lastTabArea);
+  lv_obj_get_coords(lv_obj_get_parent(firstSceneTab), &firstTabArea);
+  lv_obj_get_coords(lv_obj_get_parent(modifiedTag), &modifiedArea);
+  if (require(lastTabArea.x2 < telemetryArea.x1 && modifiedArea.x2 < firstTabArea.x1,
+              "scene tabs and Modified tag must not overlap the buffer readout")) return 1;
+
+  ardor::UiActions desktopActions;
+  desktopActions.showDeviceStatus = false;
+  ardor::LvglUi desktopUi(desktopActions);
+  desktopUi.build(lv_screen_active(), editTelemetryState);
+  if (require(!findVisibleLabel(lv_screen_active(), "1.33 MS  \xC2\xB7  BUFFER 25%"),
+              "desktop Edit should continue to hide pedal-only status readouts")) return 1;
 
   lv_display_delete(display);
   lv_deinit();
