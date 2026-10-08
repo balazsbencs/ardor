@@ -117,9 +117,10 @@ values, qualified effect bypass states, input gain, WDW lane values, and a
 post-rig trim without rebuilding the audio engine. Each scene can switch
 instantly or transition over 0.1–10 seconds.
 
-Hold footswitches 1 and 2 for 600 ms to enter or leave the dedicated Scenes
-layer. The four footswitches then recall the four scene plates. The touchscreen
-and Manager show the live scene separately from the scene being edited.
+On a scene-enabled preset, hold FS3 + FS4 for 600 ms to enter or leave the
+Scenes layer. The four footswitches then recall the four scene plates. Hold
+FS1 + FS2 for one second to open the muted tuner. The touchscreen and Manager
+show the live scene separately from the scene being edited.
 
 Qualified delay and reverb blocks offer shared **Cut** and **Let ring** bypass
 policies. Let ring stops new wet input while the existing decay continues for a
@@ -497,10 +498,13 @@ Hardware controls on Raspberry Pi use Linux input events:
 ```
 
 The app maps `KEY_F1` through `KEY_F4` to preset slots and relative encoder
-movement to master output volume. Hold the two left switches (`KEY_F1` +
-`KEY_F2`) together for one second to mute the output and open the tuner; press
-any footswitch to exit without changing presets. The touchscreen provides the
-same flow through the preset-screen Tuner button and tuner-screen Exit button.
+movement to master output volume. Tap FS1 through FS4 to select the matching
+slot. Hold FS2 for 600 ms to move down one bank, or FS4 for 600 ms to move up
+one bank; bank changes keep the current slot number. Hold the two left switches
+(`KEY_F1` + `KEY_F2`) together for one second to mute the output and open the
+tuner; press any footswitch to exit without changing presets. The touchscreen
+provides the same tuner flow through the preset-screen Tuner button and
+tuner-screen Exit button.
 
 ### Four-Track Looper
 

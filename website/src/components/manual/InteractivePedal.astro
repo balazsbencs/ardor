@@ -182,12 +182,14 @@ const presets = [
 
       <div class="try-actions">
         <button type="button" data-demo-combo>TRY FS1 + FS2</button>
-        <button type="button" data-demo-looper>HOLD ACTIVE PRESET</button>
+        <button type="button" data-demo-bank-down>TRY FS2 · BANK −</button>
+        <button type="button" data-demo-bank-up>TRY FS4 · BANK +</button>
+        <button type="button" data-demo-touch-looper>TRY TOUCH LOOPER</button>
       </div>
 
       <div class="context-note">
         <span>PHYSICAL INPUT</span>
-        <p>Click a switch, hold a number key, or use multi-touch. Hold <kbd>1</kbd> + <kbd>2</kbd> together for the tuner.</p>
+        <p>Click a switch, hold a number key, or use multi-touch. In Presets, tap FS2 or FS4 to choose its slot; hold for 600 ms to change banks. Hold <kbd>1</kbd> + <kbd>2</kbd> for the tuner.</p>
         <a href="#looper-guide">Read the beginner Looper guide</a>
       </div>
 
@@ -213,11 +215,11 @@ const presets = [
         </thead>
         <tbody>
           <tr><th>FS1</th><td>Select preset 1</td><td>Undo / redo selected track</td><td>Exit tuner</td></tr>
-          <tr><th>FS2</th><td>Select preset 2</td><td>Next track; hold 1.5 s to clear</td><td>Exit tuner</td></tr>
+          <tr><th>FS2</th><td>Tap: select slot 2. Hold 600 ms: previous bank.</td><td>Next track; hold 1.5 s to clear</td><td>Exit tuner</td></tr>
           <tr><th>FS3</th><td>Select preset 3</td><td>Record / finish / overdub</td><td>Exit tuner</td></tr>
-          <tr><th>FS4</th><td>Select preset 4</td><td>Play / mute selected track</td><td>Exit tuner</td></tr>
+          <tr><th>FS4</th><td>Tap: select slot 4. Hold 600 ms: next bank.</td><td>Play / mute selected track</td><td>Exit tuner</td></tr>
           <tr><th>FS1 + FS2</th><td>Hold 1 s: open tuner</td><td>Hold 1 s: pause and open tuner</td><td>Not used</td></tr>
-          <tr><th>Active preset</th><td>Hold 1 s: enter Looper</td><td>Preset remains locked</td><td>Not used</td></tr>
+          <tr><th>FS3 + FS4</th><td>Hold 600 ms: switch Preset / Scenes on scene-enabled presets</td><td>Not used</td><td>Not used</td></tr>
           <tr><th>Encoder</th><td>Master output volume</td><td>Master output volume</td><td>Master output volume</td></tr>
           <tr><th>Touchscreen</th><td>Bank, Edit, Tuner, Looper, Setup</td><td>Tracks, transport, save/load and exit</td><td>Exit</td></tr>
         </tbody>
@@ -1232,7 +1234,7 @@ const presets = [
     let mode: Mode = 'preset';
     let returnMode: Mode = 'preset';
     let activePreset = 2;
-    let bank = 0;
+    let bank = 1;
     let master = 72;
     let selectedTrack = 1;
     let loopRunning = true;
@@ -1243,6 +1245,7 @@ const presets = [
     let chordAttempted = false;
     let encoderDragY: number | null = null;
     const held = new Set<number>();
+    const pressedAt = new Map<number, number>();
     const tracks = new Map<number, { state: string; muted: boolean }>([
       [1, { state: 'PLAY', muted: false }],
       [2, { state: 'EMPTY', muted: false }],
@@ -1253,9 +1256,9 @@ const presets = [
     const contexts: Record<string, Context> = {
       combo: { title: 'FS1 + FS2', gesture: 'HOLD 1 SECOND', description: 'Mute the output and open the tuner. Press any footswitch to return.' },
       preset1: { title: 'FS1', gesture: 'PRESS', description: 'Select preset slot 1 in the active bank.' },
-      preset2: { title: 'FS2', gesture: 'PRESS', description: 'Select preset slot 2. Hold it for one second when it is active to enter Looper.' },
+      preset2: { title: 'FS2', gesture: 'TAP / HOLD', description: 'Tap to select slot 2. Hold for 600 ms to move to the previous bank.' },
       preset3: { title: 'FS3', gesture: 'PRESS', description: 'Select preset slot 3 in the active bank.' },
-      preset4: { title: 'FS4', gesture: 'PRESS', description: 'Select preset slot 4 in the active bank.' },
+      preset4: { title: 'FS4', gesture: 'TAP / HOLD', description: 'Tap to select slot 4. Hold for 600 ms to move to the next bank.' },
       looper1: { title: 'FS1', gesture: 'PRESS', description: 'Undo or redo the latest take on the selected track.' },
       looper2: { title: 'FS2', gesture: 'PRESS / HOLD', description: 'Press to select the next track. Hold for 1.5 seconds to clear the selected track.' },
       looper3: { title: 'FS3', gesture: 'PRESS', description: 'Start or finish the first loop, or arm one synchronized overdub.' },
@@ -1366,6 +1369,15 @@ const presets = [
       logEvent(`FS${slot}`, `Preset ${slot}`);
     }
 
+    function changeBank(delta: number) {
+      const previous = bank;
+      bank = Math.max(0, Math.min(99, bank + delta));
+      render();
+      liveResult.textContent = bank === previous
+        ? `Already at bank ${String(bank).padStart(3, '0')}`
+        : `Bank ${String(bank).padStart(3, '0')} · preset slot ${activePreset} retained`;
+    }
+
     function enterTuner(origin: Mode = mode) {
       returnMode = origin === 'looper' ? 'looper' : 'preset';
       if (origin === 'looper') loopRunning = false;
@@ -1383,7 +1395,7 @@ const presets = [
 
     function enterLooper() {
       setMode('looper', `Looper opened with preset ${activePreset} locked`);
-      logEvent(`HOLD FS${activePreset}`, 'Looper open');
+      logEvent('TOUCH LOOPER', 'Looper open');
       finishProgress('LOOPER OPEN');
     }
 
@@ -1434,6 +1446,7 @@ const presets = [
       const button = fsButtons.get(fs)!;
       if (held.has(fs)) return;
       held.add(fs);
+      pressedAt.set(fs, performance.now());
       button.classList.add('is-pressed');
       holdTriggered = false;
 
@@ -1444,7 +1457,8 @@ const presets = [
         return;
       }
 
-      if (held.has(1) && held.has(2)) {
+      if (held.has(1) && held.has(2)
+          && Math.abs(pressedAt.get(1)! - pressedAt.get(2)!) <= 150) {
         chordAttempted = true;
         setContext('combo', 'combo');
         liveResult.textContent = 'FS1 + FS2 detected · keep holding';
@@ -1457,8 +1471,18 @@ const presets = [
       setContext(key, `fs${fs}`);
       liveResult.textContent = `FS${fs} down`;
 
-      if (mode === 'preset' && fs === activePreset) {
-        beginHold(1000, `HOLD FS${fs} FOR LOOPER`, enterLooper);
+      if (mode === 'preset' && fs === 2) {
+        beginHold(600, 'HOLD FS2 FOR BANK −', () => {
+          changeBank(-1);
+          progressLabel.textContent = 'BANK − SELECTED';
+          logEvent('HOLD FS2', liveResult.textContent);
+        });
+      } else if (mode === 'preset' && fs === 4) {
+        beginHold(600, 'HOLD FS4 FOR BANK +', () => {
+          changeBank(1);
+          progressLabel.textContent = 'BANK + SELECTED';
+          logEvent('HOLD FS4', liveResult.textContent);
+        });
       } else if (mode === 'looper' && fs === 2) {
         beginHold(1500, 'HOLD FS2 TO CLEAR', clearSelectedTrack);
       } else if (mode === 'looper' && (fs === 3 || fs === 4)) {
@@ -1468,6 +1492,7 @@ const presets = [
 
     function releaseSwitch(fs: number) {
       const wasHeld = held.delete(fs);
+      pressedAt.delete(fs);
       fsButtons.get(fs)?.classList.remove('is-pressed');
       if (!wasHeld) return;
       const completed = holdTriggered;
@@ -1569,8 +1594,8 @@ const presets = [
         if (action === 'edit') setMode('edit', 'Signal chain editor open');
         if (action === 'tuner') { returnMode = 'preset'; setMode('tuner', 'Output muted · tuner opened by touch'); }
         if (action === 'looper') enterLooper();
-        if (action === 'bank-down') { bank = Math.max(0, bank - 1); render(); liveResult.textContent = `Bank ${String(bank).padStart(3, '0')}`; }
-        if (action === 'bank-up') { bank += 1; render(); liveResult.textContent = `Bank ${String(bank).padStart(3, '0')}`; }
+        if (action === 'bank-down') changeBank(-1);
+        if (action === 'bank-up') changeBank(1);
         if (action === 'tuner-exit') exitTuner();
         if (action === 'tuner-pitch') {
           tunerCents = tunerCents >= 8 ? -9 : tunerCents + 3;
@@ -1606,6 +1631,7 @@ const presets = [
       if (held.size) return;
       buttons.forEach((fs) => {
         held.add(fs);
+        pressedAt.set(fs, performance.now());
         fsButtons.get(fs)?.classList.add('is-pressed');
       });
       if (buttons.length === 2) {
@@ -1617,6 +1643,7 @@ const presets = [
         complete();
         setTimeout(() => {
           buttons.forEach((fs) => fsButtons.get(fs)?.classList.remove('is-pressed'));
+          buttons.forEach((fs) => pressedAt.delete(fs));
           held.clear();
           chordAttempted = false;
           resetProgress();
@@ -1627,9 +1654,25 @@ const presets = [
     root.querySelector<HTMLButtonElement>('[data-demo-combo]')!.addEventListener('click', () => {
       simulateHold([1, 2], 1000, 'HOLD FOR TUNER', () => enterTuner(mode));
     });
-    root.querySelector<HTMLButtonElement>('[data-demo-looper]')!.addEventListener('click', () => {
+    root.querySelector<HTMLButtonElement>('[data-demo-bank-down]')!.addEventListener('click', () => {
       if (mode !== 'preset') setMode('preset');
-      simulateHold([activePreset], 1000, `HOLD FS${activePreset} FOR LOOPER`, enterLooper);
+      simulateHold([2], 600, 'HOLD FS2 FOR BANK −', () => {
+        changeBank(-1);
+        progressLabel.textContent = 'BANK − SELECTED';
+        logEvent('HOLD FS2', liveResult.textContent);
+      });
+    });
+    root.querySelector<HTMLButtonElement>('[data-demo-bank-up]')!.addEventListener('click', () => {
+      if (mode !== 'preset') setMode('preset');
+      simulateHold([4], 600, 'HOLD FS4 FOR BANK +', () => {
+        changeBank(1);
+        progressLabel.textContent = 'BANK + SELECTED';
+        logEvent('HOLD FS4', liveResult.textContent);
+      });
+    });
+    root.querySelector<HTMLButtonElement>('[data-demo-touch-looper]')!.addEventListener('click', () => {
+      if (mode !== 'preset') setMode('preset');
+      enterLooper();
     });
 
     const keyboardHeld = new Set<number>();
