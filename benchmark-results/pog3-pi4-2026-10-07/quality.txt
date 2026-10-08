@@ -1,0 +1,51 @@
+Held recurrence seconds=4 worst absolute error=1.95558e-06
+Held different-window-center worst error=1.95622e-06
+Held endpoint-quantized moving phase worst error=2.03964e-06
+Attack anti-phase deviation=3.62918e-07
+Attack input=196/493.883 voice=0 held/early/late dB=0.0931788/-27.1998/-1.65525e-08
+Attack early projection L/R difference=-1.7546e-05 dB
+Attack input=196/493.883 voice=1 held/early/late dB=-0.030887/-49.3005/-2.86544e-08
+Attack early projection L/R difference=6.98134 dB
+Attack input=196/493.883 voice=2 held/early/late dB=0.00289913/-37.3641/7.54124e-09
+Attack early projection L/R difference=1.46233 dB
+Attack input=196/493.883 voice=3 held/early/late dB=0.00812729/-44.2153/-1.74161e-08
+Attack early projection L/R difference=0.623649 dB
+Attack input=196/493.883 voice=4 held/early/late dB=-0.00547704/-39.8709/1.17123e-07
+Attack early projection L/R difference=0.000348863 dB
+Attack input=196/493.883 voice=5 held/early/late dB=0.00548522/-41.464/1.06734e-08
+Attack early projection L/R difference=-0.000109593 dB
+Attack input=196/493.883 voice=6 held/early/late dB=-0.00427495/-36.9303/1.10257e-07
+Attack early projection L/R difference=0.000432759 dB
+Attack input=196/493.883 voice=7 held/early/late dB=0.00474164/-35.6715/1.38403e-08
+Attack early projection L/R difference=-5.70035e-05 dB
+Attack anti-phase deviation=4.35375e-07
+Attack input=82.4069/87.3071 voice=0 held/early/late dB=-4.11945/-3.28873/-11.2752
+Attack early projection L/R difference=-3.28721e-06 dB
+Attack input=82.4069/87.3071 voice=1 held/early/late dB=-4.10554/-3.37092/-12.5009
+Attack early projection L/R difference=0.0559094 dB
+Attack input=82.4069/87.3071 voice=2 held/early/late dB=-4.08321/-3.27519/-12.5049
+Attack early projection L/R difference=0.115609 dB
+Attack input=82.4069/87.3071 voice=3 held/early/late dB=-4.05498/-3.28911/-10.9211
+Attack early projection L/R difference=0.0444663 dB
+Attack input=82.4069/87.3071 voice=4 held/early/late dB=-4.09179/-3.46256/-7.0323
+Attack early projection L/R difference=-3.51174e-07 dB
+Attack input=82.4069/87.3071 voice=5 held/early/late dB=-4.15251/-3.60815/-12.1703
+Attack early projection L/R difference=-5.00965e-06 dB
+Attack input=82.4069/87.3071 voice=6 held/early/late dB=-4.08939/-3.45264/-7.04306
+Attack early projection L/R difference=-3.64655e-07 dB
+Attack input=82.4069/87.3071 voice=7 held/early/late dB=-4.15343/-3.58869/-12.1665
+Attack early projection L/R difference=-5.01162e-06 dB
+Freeze voice=0 held gain/replacement dB=7.23202e-05/-155.423
+Freeze voice=1 held gain/replacement dB=7.19746e-05/-107.005
+Freeze voice=2 held gain/replacement dB=7.21841e-05/-121.729
+Freeze voice=3 held gain/replacement dB=7.23098e-05/-148.494
+Freeze voice=4 held gain/replacement dB=7.21651e-05/-158.607
+Freeze voice=5 held gain/replacement dB=7.18826e-05/-164.122
+Freeze voice=6 held gain/replacement dB=7.21651e-05/-158.607
+Freeze voice=7 held gain/replacement dB=7.18826e-05/-164.122
+Gliss mid/settled/toe Hz=123.24/146.833/146.833 targets=1
+Freeze volume dry/q=0/0.25 unison/down-one amplitude=2.84944e-10/0.0250002
+Freeze volume dry/q=0/0.75 unison/down-one amplitude=2.84944e-10/0.0750006
+Freeze volume dry/q=1/0.25 unison/down-one amplitude=0.0250002/0.0250002
+Freeze volume dry/q=1/0.75 unison/down-one amplitude=0.0750006/0.0750006
+Attack/freeze bank fixed object bytes=984096

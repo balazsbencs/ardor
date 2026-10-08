@@ -1,0 +1,5 @@
+  7864320 automation-baseline.f32
+  7864320 automation-candidate.f32
+  1536000 full-baseline.f32
+  1536000 full-candidate.f32
+ 18800640 total

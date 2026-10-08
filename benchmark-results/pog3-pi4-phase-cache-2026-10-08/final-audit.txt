@@ -1,0 +1,8 @@
+Both candidates: first, confirmation and diagnostic receipts return zero.
+All 10/11 candidate suites and 10 restored suites pass.
+Original/candidate target ELFs unchanged through confirmation.
+Original/retained production source/header hashes match.
+Original/retained full-core ARM ELF byte comparison passes.
+Both actual phase-counter/accounting checks and 57-plan wisdom checks pass.
+Target automation freeze OFF, 2498-frame/173482-region field trace and 464-frequency oracle pass.
+Service restored; own four probe directories/container removed.

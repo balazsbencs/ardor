@@ -1,0 +1,5 @@
+baseline 64: [7, 7, 11, 12] pooled=37
+candidate 64: [5, 4, 6, 7] pooled=22
+over-period reduction 40.540541%
+baseline 128: [0, 0, 0, 0] pooled=0
+candidate 128: [0, 0, 0, 0] pooled=0

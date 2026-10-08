@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+./full-baseline --freeze-matched forward ./shared.wisdom
+cp shared.wisdom.disabled.forward.after wisdom.baseline-1.after

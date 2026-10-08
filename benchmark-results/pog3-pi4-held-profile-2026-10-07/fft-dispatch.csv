@@ -1,0 +1,15 @@
+workload,callback_frames,complex,r2c,c2r,unaligned
+granular_reference_10_shifters,64,0,0,0,0
+spectral_identity_focus_transition,64,0,4500,15000,0
+spectral_pitch_bank_warp_focus,64,0,5247,14984,0
+spectral_pitch_bank_attack_warp_focus,64,0,5247,14984,0
+static_sound_path_filter_space_pan_attack,64,0,5247,14984,0
+expression_modes_filter_space_pan_attack,64,0,5247,14984,0
+freeze_gliss_capture_assignment_filter_space,64,0,5247,14984,0
+granular_reference_10_shifters,128,0,0,0,0
+spectral_identity_focus_transition,128,0,4500,15000,0
+spectral_pitch_bank_warp_focus,128,0,5247,14984,0
+spectral_pitch_bank_attack_warp_focus,128,0,5247,14984,0
+static_sound_path_filter_space_pan_attack,128,0,5247,14984,0
+expression_modes_filter_space_pan_attack,128,0,5247,14984,0
+freeze_gliss_capture_assignment_filter_space,128,0,5247,14984,0

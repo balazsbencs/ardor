@@ -1,0 +1,3 @@
+samples=24141
+sample_lost=0 ring_bytes=579384
+completed_callbacks=9000 warmup_callbacks=1500 first_capture_xrun=0 first_playback_xrun=0

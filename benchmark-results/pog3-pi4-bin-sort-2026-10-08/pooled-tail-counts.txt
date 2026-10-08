@@ -1,0 +1,6 @@
+| Four runs per build | Frames | Mean period demand | Highest p99 µs | Worst µs | Pooled over-period callbacks |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| baseline | 128 | 79.510–80.111% | 2443.611 | 2549.278 | 0/6000 |
+| baseline | 64 | 79.712–80.320% | 1296.519 | 1378.482 | 16/12000 |
+| candidate | 128 | 79.153–79.508% | 2426.463 | 2517.092 | 0/6000 |
+| candidate | 64 | 78.883–79.460% | 1287.648 | 1457.204 | 25/12000 |

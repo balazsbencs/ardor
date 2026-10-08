@@ -135,6 +135,42 @@ target_include_directories(ardor_daisyfx_runtime PUBLIC
 )
 target_compile_features(ardor_daisyfx_runtime PUBLIC cxx_std_20)
 
+add_library(ardor_realtime_fft src/dsp/RealtimeFft.cpp)
+target_include_directories(ardor_realtime_fft PUBLIC src)
+target_compile_features(ardor_realtime_fft PUBLIC cxx_std_20)
+
+# Single-precision FFTW is a GPL-2.0-or-later dependency of the POG3 DSP.
+# Use the platform package (Buildroot: fftw-single); never link worker-thread
+# or OpenMP FFT libraries into this real-time path. Explicit cache paths also
+# support SDKs and cross sysroots without fetching/building a host library.
+find_path(ARDOR_FFTW_INCLUDE_DIR NAMES fftw3.h REQUIRED)
+find_library(ARDOR_FFTW_LIBRARY NAMES fftw3f REQUIRED)
+add_library(ardor_fftw_single UNKNOWN IMPORTED)
+set_target_properties(ardor_fftw_single PROPERTIES
+  IMPORTED_LOCATION "${ARDOR_FFTW_LIBRARY}"
+  INTERFACE_INCLUDE_DIRECTORIES "${ARDOR_FFTW_INCLUDE_DIR}"
+)
+find_package(Threads REQUIRED)
+
+option(ARDOR_POG3_EXPERIMENTAL_FREEZE "Enable deferred POG3 freeze/gliss DSP for experiments" OFF)
+
+add_library(ardor_pog3
+  src/daisyfx/pog3/Pog3Parameters.cpp
+  src/daisyfx/pog3/Pog3Processor.cpp
+  src/daisyfx/pog3/SpectralFreeze.cpp
+  src/daisyfx/pog3/Pog3VoiceStages.cpp
+  src/daisyfx/pog3/PolyphonicAttack.cpp
+  src/daisyfx/pog3/PolyphonicPitchBank.cpp
+  src/daisyfx/pog3/SpectralFrameStream.cpp
+)
+target_include_directories(ardor_pog3 PUBLIC
+  src
+  ${neuralampmodelercore_SOURCE_DIR}/Dependencies
+)
+target_compile_features(ardor_pog3 PUBLIC cxx_std_20)
+target_compile_definitions(ardor_pog3 PUBLIC ARDOR_POG3_EXPERIMENTAL_FREEZE=$<BOOL:${ARDOR_POG3_EXPERIMENTAL_FREEZE}>)
+target_link_libraries(ardor_pog3 PUBLIC ardor_realtime_fft PRIVATE ardor_fftw_single Threads::Threads)
+
 add_library(ardor_daisyfx
   src/daisyfx/DaisyFxCatalog.cpp
   src/daisyfx/DaisyFxProcessor.cpp
@@ -248,7 +284,6 @@ add_library(ardor_dsp OBJECT
   src/dsp/SceneTransition.cpp
   src/dsp/DualAmpProcessor.cpp
   src/dsp/DualRigProcessor.cpp
-  src/dsp/RealtimeFft.cpp
   src/dsp/StereoWidenerProcessor.cpp
   src/dsp/ScheduledConvolver.cpp
   src/dsp/NonUniformConvolver.cpp
@@ -275,7 +310,7 @@ target_include_directories(ardor_dsp PUBLIC
 )
 target_compile_features(ardor_dsp PUBLIC cxx_std_20)
 target_compile_definitions(ardor_dsp PRIVATE NAM_ENABLE_A2_FAST NAM_SAMPLE_FLOAT)
-target_link_libraries(ardor_dsp PUBLIC ardor_cheese ardor_daisyfx ardor_dynamics ardor_equalizer ardor_looper ardor_rat ardor_tape ardor_wah)
+target_link_libraries(ardor_dsp PUBLIC ardor_cheese ardor_daisyfx ardor_dynamics ardor_equalizer ardor_looper ardor_rat ardor_tape ardor_wah ardor_realtime_fft)
 if(UNIX AND NOT APPLE)
   target_link_libraries(ardor_dsp PUBLIC stdc++fs)
 endif()
@@ -478,6 +513,57 @@ target_link_libraries(pedal-mod-effect-models PRIVATE ardor_daisyfx)
 
 add_executable(pedal-pitch-effect-quality tests/pitch_effect_quality.cpp)
 target_link_libraries(pedal-pitch-effect-quality PRIVATE ardor_daisyfx)
+
+add_executable(pedal-pog3-frame-birth-slots tests/pog3_frame_birth_slots.cpp)
+target_include_directories(pedal-pog3-frame-birth-slots PRIVATE src)
+target_compile_features(pedal-pog3-frame-birth-slots PRIVATE cxx_std_20)
+
+add_executable(pedal-pog3-attack-birth-slots tests/pog3_attack_birth_slots.cpp)
+target_include_directories(pedal-pog3-attack-birth-slots PRIVATE src)
+target_compile_features(pedal-pog3-attack-birth-slots PRIVATE cxx_std_20)
+
+add_executable(pedal-pog3-controls tests/pog3_controls.cpp)
+target_link_libraries(pedal-pog3-controls PRIVATE ardor_pog3)
+
+add_executable(pedal-pog3-quality tests/pog3_quality.cpp)
+target_link_libraries(pedal-pog3-quality PRIVATE ardor_pog3 ardor_daisyfx_runtime)
+
+add_executable(pedal-pog3-bench tests/pog3_bench.cpp)
+target_link_libraries(pedal-pog3-bench PRIVATE ardor_pog3 ardor_daisyfx_runtime ardor_fftw_single)
+
+# FFTW allocates through C, outside the benchmark's C++ new counter. Verify
+# the complete prepared stream through a test-only libc interposer on glibc.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  include(CheckSymbolExists)
+  check_symbol_exists(__GLIBC__ "features.h" ARDOR_HAVE_GLIBC)
+  if(ARDOR_HAVE_GLIBC)
+    add_library(pedal-pog3-malloc-probe SHARED tests/pog3_malloc_probe.c)
+    target_compile_features(pedal-pog3-malloc-probe PRIVATE c_std_11)
+    target_compile_definitions(pedal-pog3-bench PRIVATE ARDOR_POG3_MALLOC_PROBE)
+  endif()
+endif()
+
+add_executable(pedal-pog3-pitch-quality tests/pog3_pitch_quality.cpp)
+target_link_libraries(pedal-pog3-pitch-quality PRIVATE ardor_pog3)
+
+add_executable(pedal-pog3-attack-quality tests/pog3_attack_quality.cpp)
+target_link_libraries(pedal-pog3-attack-quality PRIVATE ardor_pog3)
+
+add_executable(pedal-pog3-voice-stages tests/pog3_voice_stages.cpp)
+target_link_libraries(pedal-pog3-voice-stages PRIVATE ardor_pog3)
+
+add_executable(pedal-pog3-expression-quality tests/pog3_expression_quality.cpp)
+target_link_libraries(pedal-pog3-expression-quality PRIVATE ardor_pog3)
+
+add_executable(pedal-pog3-freeze-quality tests/pog3_freeze_quality.cpp)
+target_link_libraries(pedal-pog3-freeze-quality PRIVATE ardor_pog3)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  # Diagnostic strict-delay adapter; does not change production DSP routing.
+  add_executable(pedal-pog3-pipeline-quality EXCLUDE_FROM_ALL
+    tests/pog3_pipeline_quality.cpp src/dsp/ParallelStereoStageExecutor.cpp)
+  target_link_libraries(pedal-pog3-pipeline-quality PRIVATE ardor_pog3 Threads::Threads)
+endif()
 
 add_executable(pedal-harmonizer-quality tests/harmonizer_quality.cpp)
 target_link_libraries(pedal-harmonizer-quality PRIVATE ardor_daisyfx)
@@ -764,6 +850,23 @@ add_test(NAME pedal-mod-effect-controls COMMAND pedal-mod-effect-controls)
 add_test(NAME pedal-ph2-quality COMMAND pedal-ph2-quality)
 add_test(NAME pedal-mod-effect-models COMMAND pedal-mod-effect-models)
 add_test(NAME pedal-pitch-effect-quality COMMAND pedal-pitch-effect-quality)
+add_test(NAME pedal-pog3-frame-birth-slots COMMAND pedal-pog3-frame-birth-slots)
+add_test(NAME pedal-pog3-attack-birth-slots COMMAND pedal-pog3-attack-birth-slots)
+add_test(NAME pedal-pog3-controls COMMAND pedal-pog3-controls)
+add_test(NAME pedal-pog3-quality COMMAND pedal-pog3-quality)
+add_test(NAME pedal-pog3-pitch-quality COMMAND pedal-pog3-pitch-quality)
+add_test(NAME pedal-pog3-low-chord-quality COMMAND pedal-pog3-pitch-quality --stress)
+add_test(NAME pedal-pog3-attack-quality COMMAND pedal-pog3-attack-quality)
+add_test(NAME pedal-pog3-voice-stages COMMAND pedal-pog3-voice-stages)
+add_test(NAME pedal-pog3-expression-quality COMMAND pedal-pog3-expression-quality)
+if(ARDOR_POG3_EXPERIMENTAL_FREEZE)
+  add_test(NAME pedal-pog3-freeze-quality COMMAND pedal-pog3-freeze-quality)
+endif()
+if(TARGET pedal-pog3-malloc-probe)
+  add_test(NAME pedal-pog3-realtime-allocation
+    COMMAND ${CMAKE_COMMAND} -E env "LD_PRELOAD=$<TARGET_FILE:pedal-pog3-malloc-probe>"
+      $<TARGET_FILE:pedal-pog3-bench> --realtime-allocation)
+endif()
 add_test(NAME pedal-harmonizer-quality COMMAND pedal-harmonizer-quality)
 add_test(NAME pedal-filter-effect-quality COMMAND pedal-filter-effect-quality)
 add_test(NAME pedal-delay-effect-quality COMMAND pedal-delay-effect-quality)
@@ -824,4 +927,19 @@ endif()
 option(ARDOR_BUILD_WHAMMY_PLUGIN "Build the Whammy VST3/CLAP plugin" OFF)
 if(ARDOR_BUILD_WHAMMY_PLUGIN)
   add_subdirectory(plugins/whammy-vst)
+endif()
+
+# Explicit device-only diagnostic; not built or installed in the pedal image.
+option(ARDOR_BUILD_POG3_HEADROOM_PROBE "Build device POG3 headroom and live audition probes" OFF)
+if(ARDOR_BUILD_POG3_HEADROOM_PROBE)
+  find_package(ALSA REQUIRED)
+  add_executable(pedal-pog3-headroom EXCLUDE_FROM_ALL tests/pog3_device_headroom.cpp)
+  target_include_directories(pedal-pog3-headroom PRIVATE ${ALSA_INCLUDE_DIRS} ${ARDOR_FFTW_INCLUDE_DIR})
+  # Link DSP objects directly so NAM's static architecture registrars survive.
+  target_link_libraries(pedal-pog3-headroom PRIVATE ardor_audio ardor_dsp ardor_pog3 ${ALSA_LIBRARIES})
+  # Stable executable addresses allow offline attribution of sampled PCs.
+  target_link_options(pedal-pog3-headroom PRIVATE -no-pie)
+  add_executable(pedal-pog3-audition EXCLUDE_FROM_ALL tests/pog3_device_audition.cpp)
+  target_include_directories(pedal-pog3-audition PRIVATE ${ALSA_INCLUDE_DIRS} ${ARDOR_FFTW_INCLUDE_DIR})
+  target_link_libraries(pedal-pog3-audition PRIVATE ardor_pog3 ${ALSA_LIBRARIES} Threads::Threads)
 endif()

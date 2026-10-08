@@ -1,0 +1,8 @@
+Exploratory double-only candidate; not the final implementation.
+Baseline source 42beeaf25e7635c5966434bc4153d6303c87019b; candidate patch/source/ELF hashes retained.
+Order baseline-1,candidate-1,candidate-2,baseline-2; all probes returned 0.
+No useful CPU saving established by first three runs.
+IMPORTANT: baseline-2 overlapped a random-pair numerical probe (not explicitly CPU-pinned).
+Exclude baseline-2 from optimization comparisons; it remains raw evidence only.
+The final float fast-path comparison uses a fresh sequential four-probe run, with all numerical checks complete beforehand.
+Two norm-reference sources reproduce sampled arithmetic checks; compile with C++20 -O3, no fast-math.

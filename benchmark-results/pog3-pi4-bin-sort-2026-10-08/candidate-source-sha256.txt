@@ -1,0 +1,3 @@
+e5522f605e620006a69c9593c5ffa37eac25ed66713a64a02549af09d2232913  src/daisyfx/pog3/PolyphonicPitchBank.cpp
+67663715b2fc5417e1cfdf2e006d13cef41fd68acb6adde3e00b9212ebfb91cc  src/daisyfx/pog3/PolyphonicPitchBank.h
+c894359ed49f96ecd28347a0c56accce8e7ff7eb9f8b94771886034f207dd872  tests/pog3_pitch_quality.cpp

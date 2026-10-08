@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+./full-baseline --freeze-trace shared.wisdom full-baseline.f32 > full-baseline.stdout 2> full-baseline.log
+for build in baseline candidate; do
+ ./profile-$build-bin --freeze-trace shared.wisdom profile-$build.f32 > profile-$build.stdout 2> profile-$build-trace.log
+ cmp full-baseline.f32 profile-$build.f32
+ sha256sum profile-$build.f32 >> profile-trace-sha256.txt
+ wc -c profile-$build.f32 >> profile-trace-bytes.txt
+done

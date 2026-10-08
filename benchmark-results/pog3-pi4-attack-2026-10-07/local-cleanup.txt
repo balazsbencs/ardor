@@ -1,0 +1,1 @@
+Removed 9 own host comparison float blobs after retaining hashes/byte counts. Build cache moved off tmpfs to /home/bbalazs/.cache/ardor-pog3-device-build-20261007; the previous /tmp path is a symlink. Immutable libraries and build/probe binaries remain as local caches. Only container ardor-pog3-attack is removed.

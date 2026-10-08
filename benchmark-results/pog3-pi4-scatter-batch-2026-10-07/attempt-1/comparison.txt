@@ -1,0 +1,7 @@
+runner_return_code=1
+timing_started=false
+first_differing_sample=1113
+differing_samples=119844
+max_absolute_difference=7.450580596923828e-09
+service_readback_pid=19493
+Cause: GCC contracted the opposite summand of the batched imaginary complex multiply on ARM. No timing follows the failed exact-output gate.

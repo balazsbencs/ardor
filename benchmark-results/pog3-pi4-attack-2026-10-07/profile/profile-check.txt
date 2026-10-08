@@ -1,0 +1,10 @@
+phase   0: mean=1253.477, p99=1433.220, max=1470.830, over=44/375
+phase  64: mean=1326.463, p99=1585.060, max=1632.850, over=172/375
+phase 128: mean=1050.961, p99=1215.090, max=1259.960, over=0/375
+phase 192: mean=1203.096, p99=1366.110, max=1398.610, over=10/375
+phase 256: mean=1107.992, p99=1284.220, max=1336.440, over=1/375
+phase 320: mean=1162.680, p99=1439.020, max=1532.370, over=28/375
+phase 384: mean=1003.682, p99=1122.540, max=1190.960, over=0/375
+phase 448: mean=1178.292, p99=1315.260, max=1326.960, over=0/375
+All callback/stage/event accounting, render deadlines, input stamps, Attack control tags and 64/128 event identity pass.
+All 2622 Attack records match both callback partitions; six child stages exactly account for each parent; work-count bounds pass.

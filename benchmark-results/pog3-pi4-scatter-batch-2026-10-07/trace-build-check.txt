@@ -1,0 +1,1 @@
+Retained build-traces.sh reproduces both host renderer trace ELF files byte for byte.

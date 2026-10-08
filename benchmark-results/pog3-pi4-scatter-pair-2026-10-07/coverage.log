@@ -1,0 +1,16 @@
+scatter_geometry,matched_granular_control,64,2,0,0,0,0,0,0,0,0
+scatter_geometry,matched_granular_control,64,4,0,0,0,0,0,0,0,0
+scatter_geometry,matched_spectral_control,64,2,0,0,0,0,0,0,0,0
+scatter_geometry,matched_spectral_control,64,4,0,0,0,0,0,0,0,0
+matched_events,mode=0,captures=0,targets=0
+matched_events,mode=0,captures=0,targets=0
+scatter_geometry,matched_freeze_off,64,2,897496,637725,1274833,2549666,382426,81872,41049049,70370208
+scatter_geometry,matched_freeze_off,64,4,897496,637725,459225,1836900,1095192,81872,38683683,70370208
+scatter_geometry,matched_granular_control,128,2,0,0,0,0,0,0,0,0
+scatter_geometry,matched_granular_control,128,4,0,0,0,0,0,0,0,0
+scatter_geometry,matched_spectral_control,128,2,0,0,0,0,0,0,0,0
+scatter_geometry,matched_spectral_control,128,4,0,0,0,0,0,0,0,0
+matched_events,mode=0,captures=0,targets=0
+matched_events,mode=0,captures=0,targets=0
+scatter_geometry,matched_freeze_off,128,2,897496,637725,1274833,2549666,382426,81872,41049049,70370208
+scatter_geometry,matched_freeze_off,128,4,897496,637725,459225,1836900,1095192,81872,38683683,70370208

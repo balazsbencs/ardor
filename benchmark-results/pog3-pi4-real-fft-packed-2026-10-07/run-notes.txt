@@ -1,0 +1,13 @@
+Final real FFT with direct packed-output synthesis.
+Baseline source: 23f4f9248a382aa2721d32767f3c36f9311fd640; arithmetic patch and ELF hashes retained.
+Same Buildroot GCC 13.4.0, -O3 -DNDEBUG, static single-precision NEON FFTW 3.3.10 archive; profiling OFF.
+Updated foundation/public-inverse sample oracle and full pitch suite completed before timing.
+CPU 2, SCHED_OTHER; sequential baseline-1,candidate-1,candidate-2,baseline-2.
+No other heavy target probe runs during this comparison.
+All 56 aggregate timing rows return 0 with zero C++ callback allocations.
+Runner exit 0; previously running service restored; PID receipt retained.
+Host C allocation/free checks pass; target C/FFTW allocation/complete memory not measured here.
+Separate diagnostic profile follows after timing, not in the comparison.
+This is not an ALSA xrun, paced FIFO or full-chain endurance measurement.
+Run python3 summarize.py THIS_DIRECTORY to regenerate comparison.csv.
+candidate.patch.gz preserves the raw patch byte for byte; source.txt hashes the uncompressed patch.

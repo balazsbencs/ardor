@@ -1,0 +1,1 @@
+git diff --exit-code 4de167c -- src/daisyfx/pog3 passes: all production POG3 source matches the retained baseline. Restored ordinary ARM ELF is byte-identical to baseline.

@@ -1,0 +1,15 @@
+Phase-major Hann lobe table, same 8193 coefficient floats and interpolation arithmetic.
+Baseline 977a00698f58e9e48206d3c9a14cef2b7dccc970; raw source patch retained compressed byte for byte.
+Same Buildroot GCC 13.4.0, -O3 -DNDEBUG, static single-precision NEON FFTW 3.3.10 archive; profiling OFF.
+Foundation and full pitch numerical checks complete before timing.
+CPU 2, SCHED_OTHER; sequential baseline-1,candidate-1,candidate-2,baseline-2.
+Invocation: sh run-remote.sh /tmp/pog3-lobe-layout-20261007 2 --full-probes numerical baseline-1 candidate-1 candidate-2 baseline-2.
+The numerical executable runs foundation and full pitch quality, saving separate logs; its receipt precedes timing rows.
+Pre-probe live service PID independently checked: 9147.
+No other heavy target probe runs during this comparison.
+Runner stops/restores the previously running live service.
+No firmware, app configuration, clock policy, live buffers or DSP quality settings are changed.
+These unpaced standalone measurements are not ALSA xruns, paced FIFO or full-chain admission.
+Target C++ callback allocations are counted; target C/FFTW allocations and complete memory are not measured.
+Run python3 summarize.py THIS_DIRECTORY to regenerate comparison.csv.
+source.txt candidate_patch_sha256 hashes the uncompressed contents of candidate.patch.gz.

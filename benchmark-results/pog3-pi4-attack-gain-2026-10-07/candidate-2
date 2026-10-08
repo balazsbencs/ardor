@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+./full-candidate --freeze-matched reverse shared.wisdom
+cp shared.wisdom.disabled.reverse.after wisdom.candidate-2.after

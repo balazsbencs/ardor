@@ -1,0 +1,7 @@
+('matched_freeze_off', '128'): four-run mean reduction=2.364146%
+('matched_freeze_off', '64'): four-run mean reduction=2.079889%
+('matched_granular_control', '128'): four-run mean reduction=0.059824%
+('matched_granular_control', '64'): four-run mean reduction=0.037989%
+('matched_spectral_control', '128'): four-run mean reduction=-0.503522%
+('matched_spectral_control', '64'): four-run mean reduction=-0.023404%
+48 ordinary rows audited; identical wisdom, zero callback C++ allocations, stable FFT bounds across builds, preparation delta +4136 bytes only for POG3.

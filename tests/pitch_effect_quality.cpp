@@ -2,9 +2,12 @@
 // Poly Octave. Each check pins one measured defect from the pitch review.
 
 #include "mod_effect_test_support.h"
+#include "daisyfx/hosted/dsp/pitch_shifter.h"
 
+#include <array>
 #include <complex>
 #include <cstdio>
+#include <limits>
 #include <numeric>
 #include <utility>
 
@@ -13,6 +16,39 @@ namespace {
 using namespace mod_test;
 
 double cents(double ratio) { return 1200.0 * std::log2(ratio); }
+
+// A legal upward Warp trajectory can produce a restart just below zero. Adding
+// 8192 in float rounds that position to the excluded upper ring endpoint. The
+// declared ring ends before a NaN sentinel, which must never reach the output.
+void verifyPitchFractionalWrap()
+{
+  constexpr size_t ringSize = 8192;
+  constexpr std::array<float, 5> intervals{-24, -12, 7, 12, 24};
+  std::array<std::vector<float>, intervals.size()> histories;
+  std::array<pedal::PitchShifter, intervals.size()> shifters;
+  for (size_t voice = 0; voice < intervals.size(); ++voice) {
+    histories[voice].resize(ringSize + 1);
+    histories[voice][ringSize] = std::numeric_limits<float>::quiet_NaN();
+    shifters[voice].Init(histories[voice].data(), ringSize, kSampleRate, 1024);
+  }
+  for (size_t i = 0; i < 80000; ++i) {
+    if (i % 480 == 0) {
+      const float t = i / kSampleRate;
+      const float extent = std::round((t / 2) * 127) / 127;
+      for (size_t voice = 0; voice < intervals.size(); ++voice)
+        shifters[voice].SetShift(intervals[voice] * extent);
+    }
+    const double t = i / static_cast<double>(kSampleRate);
+    const double envelope = std::min(t / .005, 1.0) * std::min((4 - t) / .050, 1.0);
+    float input = 0;
+    for (double frequency : {82.4069, 130.8128, 164.8138, 196.0, 261.6256})
+      input += .025 * (std::sin(kTwoPi * frequency * t + .3)
+                      + .25 * std::sin(kTwoPi * 3 * frequency * t));
+    input = static_cast<float>(input * envelope);
+    for (auto& shifter : shifters)
+      require(std::isfinite(shifter.Process(input)), "fractional wrap must not read beyond the declared ring");
+  }
+}
 
 // Rendered level of a sub-range of the left channel, relative to a reference
 // RMS, in dB.
@@ -303,6 +339,7 @@ void verifyWhammyDetuneSwitchFiltersBothVoices()
 int main()
 {
   const std::pair<const char*, void (*)()> checks[] = {
+    {"pitch fractional wrap", verifyPitchFractionalWrap},
     {"poly octave default", verifyPolyOctaveDefaultKeepsTheNote},
     {"poly octave balance", verifyPolyOctaveVoicesAreBalanced},
     {"poly octave attack", verifyPolyOctaveAttackSwellsTheVoices},

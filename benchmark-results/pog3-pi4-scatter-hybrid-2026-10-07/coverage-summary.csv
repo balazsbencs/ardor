@@ -1,0 +1,13 @@
+workload,callback_frames,variant,regions,integer_sources,four_batches,pair_batches,single_interior_sources,edge_sources,modeled_interior_pairs,original_interior_pairs,batched_interior_percent,modeled_reduction_from_four_percent
+matched_granular_control,64,four,0,0,0,0,0,0,0,0,0,0
+matched_granular_control,64,hybrid,0,0,0,0,0,0,0,0,0,0
+matched_spectral_control,64,four,0,0,0,0,0,0,0,0,0,0
+matched_spectral_control,64,hybrid,0,0,0,0,0,0,0,0,0,0
+matched_freeze_off,64,four,897496,637725,459225,0,1095192,81872,38683683,70370208,62.648102,0.000000
+matched_freeze_off,64,hybrid,897496,637725,459225,356383,382426,81872,30486874,70370208,86.957231,21.189319
+matched_granular_control,128,four,0,0,0,0,0,0,0,0,0,0
+matched_granular_control,128,hybrid,0,0,0,0,0,0,0,0,0,0
+matched_spectral_control,128,four,0,0,0,0,0,0,0,0,0,0
+matched_spectral_control,128,hybrid,0,0,0,0,0,0,0,0,0,0
+matched_freeze_off,128,four,897496,637725,459225,0,1095192,81872,38683683,70370208,62.648102,0.000000
+matched_freeze_off,128,hybrid,897496,637725,459225,356383,382426,81872,30486874,70370208,86.957231,21.189319

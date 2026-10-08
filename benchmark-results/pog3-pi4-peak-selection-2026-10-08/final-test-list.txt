@@ -1,0 +1,13 @@
+Test project /home/bbalazs/projects/ardor-pog3/build-ci
+  Test #28: pedal-pog3-frame-birth-slots
+  Test #29: pedal-pog3-attack-birth-slots
+  Test #30: pedal-pog3-controls
+  Test #31: pedal-pog3-quality
+  Test #32: pedal-pog3-pitch-quality
+  Test #33: pedal-pog3-low-chord-quality
+  Test #34: pedal-pog3-attack-quality
+  Test #35: pedal-pog3-voice-stages
+  Test #36: pedal-pog3-expression-quality
+  Test #37: pedal-pog3-realtime-allocation
+
+Total Tests: 10

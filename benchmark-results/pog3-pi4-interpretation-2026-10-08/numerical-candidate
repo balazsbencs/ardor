@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+for build in baseline candidate; do
+  ./automation-$build shared.wisdom > automation-$build.f32 2> automation-$build.log
+  ./direct-$build shared.wisdom > direct-$build.bin 2> direct-$build.log
+  ./full-$build --freeze-trace shared.wisdom full-$build.f32 > full-$build.stdout 2> full-$build.log
+done
+for trace in automation direct full; do
+  suffix=f32
+  if [ "$trace" = direct ]; then suffix=bin; fi
+  cmp "$trace-baseline.$suffix" "$trace-candidate.$suffix"
+  sha256sum "$trace-baseline.$suffix" "$trace-candidate.$suffix" >> numerical-sha256.txt
+  wc -c "$trace-baseline.$suffix" "$trace-candidate.$suffix" >> numerical-bytes.txt
+done
+./frame-birth-test > frame-birth-test.log 2>&1
+./pitch-candidate > pitch-candidate.log 2>&1
+./full-candidate-profile --freeze-trace shared.wisdom full-candidate-profile.f32 > profile-trace.stdout 2> profile-trace.log
+cmp full-baseline.f32 full-candidate-profile.f32
+sha256sum full-candidate-profile.f32 >> numerical-sha256.txt
+wc -c full-candidate-profile.f32 >> numerical-bytes.txt

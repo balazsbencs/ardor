@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+for probe in baseline profile; do
+  ./full-$probe --freeze-trace shared.wisdom full-$probe.f32 > full-$probe.stdout 2> full-$probe.log
+done
+cmp full-baseline.f32 full-profile.f32
+sha256sum full-baseline.f32 full-profile.f32 > trace-sha256.txt
+wc -c full-baseline.f32 full-profile.f32 > trace-bytes.txt

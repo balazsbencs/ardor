@@ -1,0 +1,18 @@
+Skip exactly-zero held amplitudes only after advancing their phase state.
+Baseline source is the committed phase-major lobe checkpoint; source.txt and compressed raw core patch identify both builds.
+Baseline full ELF is copied before the second DSP change and matches the layout comparison candidate SHA256.
+Same Buildroot GCC 13.4.0, -O3 -DNDEBUG, static single-precision NEON FFTW 3.3.10 archive; profiling OFF.
+CPU 2, SCHED_OTHER; sequential baseline-1,candidate-1,candidate-2,baseline-2.
+Invocation: sh run-remote.sh /tmp/pog3-held-zero-20261007 2 --full-probes numerical baseline-1 candidate-1 candidate-2 baseline-2.
+Numerical probe compares all 1376256 fallback-renderer trace samples byte for byte, then runs the full ARM pitch suite before timing.
+No other heavy target probe runs during this comparison.
+Pre-probe live service PID independently checked: 11441.
+Runner stops/restores the previously running application; no firmware/configuration/clock policy/live buffer or unrelated DSP quality changes.
+These unpaced standalone measurements are not ALSA xruns, paced FIFO or full-chain admission.
+Target C++ callback allocations are counted; target C/FFTW allocations and complete memory are not measured.
+Run python3 summarize.py THIS_DIRECTORY to regenerate comparison.csv.
+source.txt candidate_patch_sha256 hashes the uncompressed contents of candidate.patch.gz.
+held-trace.cpp uses actual renderer/phase/OLA APIs and deterministic nonproduction FFT sizes 64/128/256, avoiding independent FFTW planner choices in the exact trace comparison.
+Its 36 cases cover main-only/low-only/combined bands, four ratios, crossover trajectories, zero magnitudes/gain, audible re-entry, DC/reflection and upper alias behavior.
+Trace hashes compare within each architecture. Host and ARM traces need not match each other.
+Large f32 trace blobs are temporary; retained source, logs, hashes and explicit cmp receipt document equality without storing generated audio.

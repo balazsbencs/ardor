@@ -1,0 +1,6 @@
+base=4de167c00694b53bd4e61d8fdba80659958d22a7
+baseline retains compact birth slots and refined render schedule
+production candidate: envelope update/gain evaluation split only
+ordinary timing uses freeze/all profiling OFF
+decision=reject gain split; restore production files exactly to base
+retained change=standalone actual gain-work counters and timer-scope/signature handling

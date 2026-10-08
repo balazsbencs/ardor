@@ -59,6 +59,9 @@ vulnerabilities should be reported privately according to
 
 - CMake 3.20+
 - C++20 compiler
+- Single-precision FFTW development files (`libfftw3-dev` on Debian/Ubuntu,
+  `brew install fftw` on macOS). Custom SDK paths can be supplied through
+  `ARDOR_FFTW_INCLUDE_DIR` and `ARDOR_FFTW_LIBRARY` at CMake configure.
 - Git access during CMake configure, for `miniaudio` and `NeuralAmpModelerCore`
 - SDL2 for the LVGL desktop simulator (`ARDOR_UI_BACKEND=sdl`)
 - macOS for desktop testing, or Linux for target-style builds
@@ -71,6 +74,10 @@ vulnerabilities should be reported privately according to
   - optional dry input WAV for offline rendering
 
 Real `.nam` and IR files are ignored by git. Keep licensed/user-provided assets local unless redistribution is allowed.
+
+The POG3 DSP links FFTW, which is GPL-2.0-or-later. Distribution of FFTW-linked
+binaries must comply with that license; the repository's MIT license does not
+cover FFTW. See [the FFT backend notes](docs/pog3-fft-backend-evaluation.md).
 
 ## Guitar Input Buffer
 

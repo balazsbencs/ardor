@@ -1,0 +1,1 @@
+Final source clarifies callback alignment in comments only. Rebuilt ordinary ARM benchmark matches the measured/staged candidate ELF byte for byte. Final host freeze OFF benchmark rebuilt successfully; eight default tests remain registered.

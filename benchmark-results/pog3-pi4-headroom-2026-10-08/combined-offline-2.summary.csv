@@ -1,0 +1,2 @@
+mode,io,profile,frames,callbacks,budget_us,mean_us,thread_cpu_mean_us,p99_us,p999_us,max_us,over_period,start_gaps,capture_xruns,playback_xruns,elapsed_seconds,checksum,complete,warmup_included
+combined,offline,none,128,4500,2666.66666667,3486.75687911,3470.22572578,3820.722,3888.056,4019.648,4500,1,0,0,20.928298783,2.43913017493,1,0

@@ -1,0 +1,19 @@
+[ 16%] Building CXX object CMakeFiles/device_pog3.dir/home/bbalazs/projects/ardor-pog3/src/daisyfx/pog3/Pog3Parameters.cpp.o
+[ 16%] Building CXX object CMakeFiles/device_pog3.dir/home/bbalazs/projects/ardor-pog3/src/dsp/RealtimeFft.cpp.o
+[ 25%] Building CXX object CMakeFiles/device_pog3.dir/home/bbalazs/projects/ardor-pog3/src/daisyfx/pog3/Pog3Processor.cpp.o
+[ 33%] Building CXX object CMakeFiles/device_pog3.dir/profile/SpectralFreeze.cpp.o
+[ 41%] Building CXX object CMakeFiles/device_pog3.dir/home/bbalazs/projects/ardor-pog3/src/daisyfx/pog3/Pog3VoiceStages.cpp.o
+[ 50%] Building CXX object CMakeFiles/device_pog3.dir/profile/PolyphonicAttack.cpp.o
+[ 58%] Building CXX object CMakeFiles/device_pog3.dir/profile/PolyphonicPitchBank.cpp.o
+[ 66%] Building CXX object CMakeFiles/device_pog3.dir/profile/SpectralFrameStream.cpp.o
+[ 75%] Linking CXX static library libdevice_pog3.a
+[ 75%] Built target device_pog3
+[ 83%] Building CXX object CMakeFiles/pog3-device-full.dir/home/bbalazs/projects/ardor-pog3/src/daisyfx/hosted/dsp/pitch_shifter.cpp.o
+[ 91%] Building CXX object CMakeFiles/pog3-device-full.dir/profile/bench.cpp.o
+/tmp/ccGA4inw.s: Assembler messages:
+/tmp/ccGA4inw.s: Fatal error: can't write 52 bytes to section .data._ZN10pog3_phase6eventsE of CMakeFiles/pog3-device-full.dir/profile/bench.cpp.o: 'No space left on device'
+/tmp/ccGA4inw.s: Fatal error: CMakeFiles/pog3-device-full.dir/profile/bench.cpp.o: No such file or directory
+gmake[3]: *** [CMakeFiles/pog3-device-full.dir/build.make:79: CMakeFiles/pog3-device-full.dir/profile/bench.cpp.o] Error 1
+gmake[2]: *** [CMakeFiles/Makefile2:169: CMakeFiles/pog3-device-full.dir/all] Error 2
+gmake[1]: *** [CMakeFiles/Makefile2:176: CMakeFiles/pog3-device-full.dir/rule] Error 2
+gmake: *** [Makefile:150: pog3-device-full] Error 2

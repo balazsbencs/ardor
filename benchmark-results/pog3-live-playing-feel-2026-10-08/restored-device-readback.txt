@@ -1,0 +1,12 @@
+22780
+access: MMAP_INTERLEAVED
+format: S32_LE
+subformat: STD
+channels: 2
+rate: 48000 (48000/1)
+period_size: 128
+buffer_size: 384
+numid=28,iface=MIXER,name='Headphone Switch'
+  ; type=BOOLEAN,access=rw------,values=2
+  : values=on,on
+255

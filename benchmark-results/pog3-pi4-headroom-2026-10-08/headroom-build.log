@@ -1,0 +1,18 @@
+[  0%] Built target ardor_circuit
+[  4%] Built target ardor_looper
+[  6%] Built target ardor_equalizer
+[ 11%] Built target ardor_rat
+[ 11%] Built target ardor_realtime_fft
+[ 16%] Built target ardor_wah
+[ 20%] Built target ardor_cheese
+[ 58%] Built target ardor_daisyfx_runtime
+[ 60%] Built target ardor_tape
+[ 65%] Built target ardor_pog3
+[ 67%] Built target ardor_daisyfx
+[ 69%] Built target ardor_dynamics
+[ 74%] Built target ardor_preset
+[ 95%] Built target ardor_dsp
+[ 97%] Built target ardor_audio
+[ 97%] Building CXX object CMakeFiles/pedal-pog3-headroom.dir/tests/pog3_device_headroom.cpp.o
+[100%] Linking CXX executable pedal-pog3-headroom
+[100%] Built target pedal-pog3-headroom

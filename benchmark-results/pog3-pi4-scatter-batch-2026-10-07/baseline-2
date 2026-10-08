@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+./full-baseline --freeze-matched reverse ./shared.wisdom
+cp shared.wisdom.disabled.reverse.after wisdom.baseline-2.after

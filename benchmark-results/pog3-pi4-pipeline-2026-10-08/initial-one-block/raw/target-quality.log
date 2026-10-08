@@ -1,0 +1,2 @@
+frames=64 exact_delayed_blocks=514 delay_ms=1.33333 allocations_checked=1 startup/drain/reset/late/shutdown=pass
+frames=128 exact_delayed_blocks=514 delay_ms=2.66667 allocations_checked=1 startup/drain/reset/late/shutdown=pass

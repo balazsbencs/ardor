@@ -1,0 +1,9 @@
+Host: GCC 14.2.0, CMake via Homebrew, shared distro float FFTW 3.3.10.
+Target: Buildroot SDK GCC 13.4.0, CMake 3.31, static NEON float FFTW 3.3.10.
+Own Ubuntu 24.04 container ardor-pog3-frame; read-only Buildroot volume and source,
+read-write session disk cache. Only own container removed after builds/checks.
+All timing builds Release -O3/-DNDEBUG, experimental freeze OFF, all profiles OFF.
+Diagnostic baseline/candidate builds INTERPRETATION_PROFILE ON exclusively.
+Baseline source/header/library/ELF preserved before candidate layout changes.
+Target baseline ELF copied from retained ordinary 4de source; HEAD c5 only adds
+diagnostics/docs/evidence. Baseline ELF SHA256 200257d03d52a5cbe786c0c4fbcc2c4e2696b007bd41e5dac55156daf3229258.

@@ -1,0 +1,23 @@
+Baseline: 01de14a2f5dcd0c1bec6603cf665c82e542f09b9; retained four-source code.
+Candidate: rejected hybrid; source.txt + decompressed candidate.patch.gz reconstructs measured source.
+All four-source batches remain first; pair only eligible interior leftovers.
+First round: numerical, baseline-forward, candidate-forward, candidate-reverse, baseline-reverse, coverage.
+Confirmation: same executable and shared wisdom hashes; baseline-forward, candidate-forward, candidate-reverse, baseline-reverse.
+Each round warms/resets/measures identical four-second input; CPU 2, SCHED_OTHER, 48 kHz, 64/128 frames.
+First runner: sh run-remote.sh /tmp/pog3-scatter-hybrid-20261007 2 --full-probes numerical baseline-1 candidate-1 candidate-2 baseline-2 coverage.
+Confirmation: sh run-remote.sh /tmp/pog3-scatter-hybrid-confirm-20261007 2 --full-probes baseline-1 candidate-1 candidate-2 baseline-2.
+Geometry instrumentation follows first-round uninstrumented timing; coverage.csv is excluded from summaries.
+Numerical byte checks and complete Pi pitch/Focus/Warp/overload gates pass before any timing.
+Same imported wisdom in both rounds; all eight timing exports preserve header and 57 records.
+48 uninstrumented rows have zero callback C++ allocations; core preparation 1618560 bytes.
+Two runners and all ten probes return zero; no heavy target work overlaps timing.
+Independent service restoration/cleanup checks: first PID 4941, confirmation PID 5411.
+Unique target probe directories and temporary host/target float blobs removed after byte/hash checks.
+Only this experiment container stopped/removed; Buildroot/FFTW build caches preserved.
+An attempted build retry overlaps package-install completion; both builds stopped, clean rebuild used for every measured executable.
+Host default/opt-in suites pass 8/9; actual renderer ASan/UBSan/leak and strict host/ARM warnings with both freeze values pass.
+Production source restored exactly to existing four-source implementation; final host rebuild uses freeze OFF.
+No firmware/configuration/live buffer/governor/unrelated DSP quality change.
+No earlier experiment timing is pooled; combined summaries use only the two identical-fixture rounds retained here.
+Patch SHA is for uncompressed bytes; recursive artifact manifest excludes itself.
+Reproduce summarize.py/check_wisdom.py for each round; summarize_confirmation.py for both; summarize_coverage.py for modeled geometry.

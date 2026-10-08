@@ -1,0 +1,26 @@
+DSP-window samples: 24116; outside: 25
+ 19.93%   4806 ardor::pog3::PitchRenderer::render(ardor::pog3::PitchFrame const&, float, ardor::pog3::PitchFrame const*, unsigned long, std::array<float, 256ul> const*, std::array<float, 256ul> const*, bool, ardor::pog3::FrozenBand const*, ardor::pog3::FrozenBand const*, float, float, ardor::pog3::PitchRenderer const*)
+  8.82%   2128 ardor::pog3::SpectralSynthesis::synthesize(std::vector<std::complex<float>, std::allocator<std::complex<float> > >&, unsigned long)
+  8.50%   2049 ardor::pog3::PitchFrame::update(std::span<std::complex<float> const, 18446744073709551615ul>)
+  7.09%   1709 ardor::pog3::PolyphonicAttack::update(ardor::pog3::PitchFrame const&, ardor::pog3::PitchFrame const&, unsigned long, long)
+  4.00%    964 ardor::pog3::SpectralAnalysis::push(float)
+  4.00%    964 ardor::pog3::PolyphonicAttack::group(unsigned long, long, long)
+  3.81%    918 n1bv_64
+  3.70%    892 libm:__remainder_finite@GLIBC_2.17
+  2.82%    679 ardor::pog3::PolyphonicAttack::owner(float, long)
+  2.65%    639 ardor::pog3::SpectralSynthesis::addFrameInPlace(std::vector<std::complex<float>, std::allocator<std::complex<float> > >&, unsigned long)
+  2.55%    614 libm:__atan2f_finite@GLIBC_2.17
+  2.22%    535 ardor::pog3::FractionalHistory::read(float) const
+  2.15%    519 n1fv_128
+  2.04%    493 n1bv_128
+  1.78%    429 ardor::pog3::Pog3VoiceStages::process(ardor::pog3::PitchStereo, ardor::pog3::PitchStereo, std::array<ardor::pog3::PitchStereo, 6ul> const&)
+  1.72%    415 hc2cbdftv_2
+  1.42%    342 ardor::pog3::Pog3VoiceStages::filter(ardor::pog3::PitchStereo, unsigned long)
+  1.39%    335 libm:sincosf64@@GLIBC_2.27
+  1.34%    322 q1bv_4
+  1.31%    315 ardor::pog3::SpectralSynthesis::pop()
+  1.19%    286 ardor::pog3::PolyphonicAttack::gainAt(ardor::pog3::PolyphonicAttack::Partial const&, long) const
+  1.12%    270 void std::__introsort_loop<ardor::pog3::PitchFrame::update(std::span<std::complex<float> const, 18446744073709551615ul>)::Prediction*, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::PitchFrame::update(std::span<std::complex<float> const, 18446744073709551615ul>)::{lambda(auto:1 const&, auto:2 const&)#3}> >(ardor::pog3::PitchFrame::update(std::span<std::complex<float> const, 18446744073709551615ul>)::Prediction*, ardor::pog3::PitchFrame::update(std::span<std::complex<float> const, 18446744073709551615ul>)::Prediction*, long, __gnu_cxx::__ops::_Iter_comp_iter<ardor::pog3::PitchFrame::update(std::span<std::complex<float> const, 18446744073709551615ul>)::{lambda(auto:1 const&, auto:2 const&)#3}>) [clone .isra.0]
+  0.94%    227 t2bv_4
+  0.93%    225 libm:remainderf64@@GLIBC_2.27
+  0.87%    210 n1fv_64

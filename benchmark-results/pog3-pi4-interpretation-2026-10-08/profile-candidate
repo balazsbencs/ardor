@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+./full-candidate-profile --freeze-matched forward shared.wisdom
+cp shared.wisdom wisdom.profile-candidate.after

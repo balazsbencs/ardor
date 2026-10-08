@@ -1,0 +1,6 @@
+samples=1376256
+bytes=5505024
+bit_exact_equal=true
+cmp_return_code=0
+baseline_sha256=7b531f57e0c91787592e99bbea45efe9f6d4be91d89b4a75d2bd4faa18044b6e
+candidate_sha256=7b531f57e0c91787592e99bbea45efe9f6d4be91d89b4a75d2bd4faa18044b6e
