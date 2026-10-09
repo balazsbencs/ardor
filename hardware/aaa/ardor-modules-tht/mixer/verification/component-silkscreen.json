@@ -1,0 +1,198 @@
+[
+  {
+    "reference": "C101",
+    "position_mm": [
+      89.0,
+      55.1
+    ]
+  },
+  {
+    "reference": "C102",
+    "position_mm": [
+      98.0,
+      57.0
+    ]
+  },
+  {
+    "reference": "C401",
+    "position_mm": [
+      70.0,
+      65.1
+    ]
+  },
+  {
+    "reference": "C402",
+    "position_mm": [
+      70.0,
+      85.1
+    ]
+  },
+  {
+    "reference": "C403",
+    "position_mm": [
+      95.0,
+      105.1
+    ]
+  },
+  {
+    "reference": "C404",
+    "position_mm": [
+      83.5,
+      64.5
+    ]
+  },
+  {
+    "reference": "C405",
+    "position_mm": [
+      131.25,
+      87.0
+    ]
+  },
+  {
+    "reference": "C407",
+    "position_mm": [
+      120.0,
+      62.6
+    ]
+  },
+  {
+    "reference": "C408",
+    "position_mm": [
+      120.0,
+      72.1
+    ]
+  },
+  {
+    "reference": "C409",
+    "position_mm": [
+      125.5,
+      97.6
+    ]
+  },
+  {
+    "reference": "FB101",
+    "position_mm": [
+      72.0,
+      55.0
+    ]
+  },
+  {
+    "reference": "J101",
+    "position_mm": [
+      105.0,
+      55.35
+    ]
+  },
+  {
+    "reference": "J102",
+    "position_mm": [
+      57.5,
+      74.08
+    ]
+  },
+  {
+    "reference": "J103",
+    "position_mm": [
+      140.0,
+      77.81
+    ]
+  },
+  {
+    "reference": "R401",
+    "position_mm": [
+      72.5,
+      74.63
+    ]
+  },
+  {
+    "reference": "R402",
+    "position_mm": [
+      72.5,
+      94.63
+    ]
+  },
+  {
+    "reference": "R403",
+    "position_mm": [
+      107.5,
+      67.13
+    ]
+  },
+  {
+    "reference": "R404",
+    "position_mm": [
+      107.5,
+      77.13
+    ]
+  },
+  {
+    "reference": "R405",
+    "position_mm": [
+      105.0,
+      109.63
+    ]
+  },
+  {
+    "reference": "R406",
+    "position_mm": [
+      120.0,
+      109.63
+    ]
+  },
+  {
+    "reference": "R407",
+    "position_mm": [
+      130.0,
+      64.63
+    ]
+  },
+  {
+    "reference": "R408",
+    "position_mm": [
+      131.0,
+      77.13
+    ]
+  },
+  {
+    "reference": "R409",
+    "position_mm": [
+      132.5,
+      107.13
+    ]
+  },
+  {
+    "reference": "R410",
+    "position_mm": [
+      124.5,
+      72.13
+    ]
+  },
+  {
+    "reference": "R411",
+    "position_mm": [
+      132.5,
+      99.63
+    ]
+  },
+  {
+    "reference": "R412",
+    "position_mm": [
+      122.5,
+      120.13
+    ]
+  },
+  {
+    "reference": "U401",
+    "position_mm": [
+      87.5,
+      73.36
+    ]
+  },
+  {
+    "reference": "U402",
+    "position_mm": [
+      117.5,
+      85.86
+    ]
+  }
+]

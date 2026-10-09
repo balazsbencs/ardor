@@ -1,0 +1,14 @@
+{
+    "$schema": "https://schemas.kicad.org/erc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-10-08T19:46:48+0000",
+    "kicad_version": "9.0.2",
+    "sheets": [
+        {
+            "path": "/",
+            "uuid_path": "/093c4ec0-0acf-58c7-b2b8-5c7267724f09",
+            "violations": []
+        }
+    ],
+    "source": "Ardor_Mixer_THT.kicad_sch"
+}

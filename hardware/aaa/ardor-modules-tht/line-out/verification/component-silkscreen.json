@@ -1,0 +1,191 @@
+[
+  {
+    "reference": "C101",
+    "position_mm": [
+      89.0,
+      55.1
+    ]
+  },
+  {
+    "reference": "C102",
+    "position_mm": [
+      98.0,
+      57.0
+    ]
+  },
+  {
+    "reference": "C401",
+    "position_mm": [
+      70.0,
+      95.1
+    ]
+  },
+  {
+    "reference": "C403",
+    "position_mm": [
+      85.0,
+      110.1
+    ]
+  },
+  {
+    "reference": "C404",
+    "position_mm": [
+      82.5,
+      69.5
+    ]
+  },
+  {
+    "reference": "C501",
+    "position_mm": [
+      112.5,
+      75.1
+    ]
+  },
+  {
+    "reference": "C502",
+    "position_mm": [
+      105.0,
+      117.6
+    ]
+  },
+  {
+    "reference": "D501",
+    "position_mm": [
+      147.5,
+      98.0
+    ]
+  },
+  {
+    "reference": "D502",
+    "position_mm": [
+      130.0,
+      97.38
+    ]
+  },
+  {
+    "reference": "FB101",
+    "position_mm": [
+      72.0,
+      55.0
+    ]
+  },
+  {
+    "reference": "J101",
+    "position_mm": [
+      57.5,
+      66.58
+    ]
+  },
+  {
+    "reference": "J102",
+    "position_mm": [
+      57.5,
+      95.35
+    ]
+  },
+  {
+    "reference": "J502",
+    "position_mm": [
+      155.0,
+      110.35
+    ]
+  },
+  {
+    "reference": "J503",
+    "position_mm": [
+      155.0,
+      87.85
+    ]
+  },
+  {
+    "reference": "K501",
+    "position_mm": [
+      137.46,
+      64.72
+    ]
+  },
+  {
+    "reference": "Q501",
+    "position_mm": [
+      120.0,
+      108.44
+    ]
+  },
+  {
+    "reference": "R101",
+    "position_mm": [
+      132.5,
+      109.63
+    ]
+  },
+  {
+    "reference": "R401",
+    "position_mm": [
+      72.5,
+      107.13
+    ]
+  },
+  {
+    "reference": "R405",
+    "position_mm": [
+      95.0,
+      102.13
+    ]
+  },
+  {
+    "reference": "R406",
+    "position_mm": [
+      95.0,
+      109.63
+    ]
+  },
+  {
+    "reference": "R501",
+    "position_mm": [
+      110.0,
+      94.63
+    ]
+  },
+  {
+    "reference": "R502",
+    "position_mm": [
+      117.5,
+      64.63
+    ]
+  },
+  {
+    "reference": "R503",
+    "position_mm": [
+      95.0,
+      119.63
+    ]
+  },
+  {
+    "reference": "R504",
+    "position_mm": [
+      107.5,
+      109.63
+    ]
+  },
+  {
+    "reference": "R505",
+    "position_mm": [
+      120.0,
+      122.13
+    ]
+  },
+  {
+    "reference": "R506",
+    "position_mm": [
+      142.5,
+      114.63
+    ]
+  },
+  {
+    "reference": "U501",
+    "position_mm": [
+      85.0,
+      80.86
+    ]
+  }
+]

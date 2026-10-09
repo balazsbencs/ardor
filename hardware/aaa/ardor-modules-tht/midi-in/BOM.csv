@@ -1,0 +1,20 @@
+Reference,Value,Footprint,Purchasing specification,Assembly
+J202,MIDI INPUT FROM DIN SOCKET,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,PinHeader_1x02_P2.54mm_Vertical,THT manual
+J101,"POWER INPUT + UART OUTPUT TO
+HOST",Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,PinHeader_1x04_P2.54mm_Vertical,THT manual
+J203,METAL CASE BOND + GROUND,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,PinHeader_1x02_P2.54mm_Vertical,THT manual
+FB201,800R@100MHz / WE 7427501,Ardor_THT:Ferrite_WE_7427501_P15.24mm,Wurth Elektronik 7427501,THT manual
+R201,220R / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 220Ω 1% 0.25W,THT manual
+FB202,800R@100MHz / WE 7427501,Ardor_THT:Ferrite_WE_7427501_P15.24mm,Wurth Elektronik 7427501,THT manual
+U201,onsemi H11L1M,Package_DIP:DIP-6_W7.62mm,onsemi H11L1M,THT manual
+D201,1N4148,Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal,Vishay 1N4148-TAP,THT manual
+C201,100n / 50V X7R,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,"100nF 50V X7R radial, 5mm lead pitch",THT manual
+C204,100n / 50V X7R,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,"100nF 50V X7R radial, 5mm lead pitch",THT manual
+R202,1kR / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 1kΩ 1% 0.25W,THT manual
+R203,100R / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 100Ω 1% 0.25W,THT manual
+D202,1.5KE6.8CA,Ardor_THT:D_TVS_DC_1.5KE_P15.24mm,DC Components 1.5KE6.8CA (HESTORE 100.430.71),THT manual
+C202,100p / 1kV C0G,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,"100pF 1kV C0G disc, 5mm lead pitch",THT manual
+C203,100p / 1kV C0G,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,"100pF 1kV C0G disc, 5mm lead pitch",THT manual
+D203,SA24CA-E3/54,Diode_THT:D_DO-15_P10.16mm_Horizontal,Vishay SA24CA-E3/54,THT manual
+D204,SA24CA-E3/54,Diode_THT:D_DO-15_P10.16mm_Horizontal,Vishay SA24CA-E3/54,THT manual
+R101,0R / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 0Ω 1% 0.25W,THT manual

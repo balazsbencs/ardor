@@ -1,0 +1,31 @@
+Reference,Value,Footprint,Purchasing specification,Assembly
+J302,"PASSIVE PEDAL INPUT / EXCITATION
+OUTPUT",Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,PinHeader_1x03_P2.54mm_Vertical,THT manual
+J101,3V3 POWER INPUT + I2C TO HOST,Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,PinHeader_1x04_P2.54mm_Vertical,THT manual
+JP301,JUMPER ONLY: PEDAL POLARITY,Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical,PinHeader_2x03_P2.54mm_Vertical,THT manual
+FB101,800R@100MHz / WE 7427501,Ardor_THT:Ferrite_WE_7427501_P15.24mm,Wurth Elektronik 7427501,THT manual
+C101,10u / 25V polarized,Capacitor_THT:CP_Radial_D6.3mm_P2.50mm,"Radial electrolytic 10uF 25V, D<=6.3mm P2.5mm",THT manual
+C102,100n / 50V X7R,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,"100nF 50V X7R radial, 5mm lead pitch",THT manual
+R301,1kR / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 1kΩ 1% 0.25W,THT manual
+R302,10kR / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 10kΩ 1% 0.25W,THT manual
+R303,1MR / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 1MΩ 1% 0.25W,THT manual
+C301,100n / 50V X7R,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,"100nF 50V X7R radial, 5mm lead pitch",THT manual
+R304,10kR / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 10kΩ 1% 0.25W,THT manual
+C302,100n / 50V X7R,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,"100nF 50V X7R radial, 5mm lead pitch",THT manual
+U301,Adafruit 1085 ADS1115 QT,Ardor_THT:Adafruit_ADS1115_1085_STEMMA_QT,Adafruit 1085 (STEMMA QT revision),Preassembled module; THT sockets
+C303,100n / 50V X7R,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,"100nF 50V X7R radial, 5mm lead pitch",THT manual
+R307,2.2kR / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 2.2kΩ 1% 0.25W,THT manual
+D303,BAT85S,Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal,Vishay BAT85S-TAP,THT manual
+D304,BAT85S,Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal,Vishay BAT85S-TAP,THT manual
+D305,BAT85S,Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal,Vishay BAT85S-TAP,THT manual
+D306,BAT85S,Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal,Vishay BAT85S-TAP,THT manual
+R305,33R / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 33Ω 1% 0.25W,THT manual
+R306,33R / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 33Ω 1% 0.25W,THT manual
+JP302,JUMPER ONLY: ADC ADDRESS,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,PinHeader_1x03_P2.54mm_Vertical,THT manual
+JP303,JUMPER ONLY: SDA PULLUP,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,PinHeader_1x02_P2.54mm_Vertical,THT manual
+JP304,JUMPER ONLY: SCL PULLUP,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,PinHeader_1x02_P2.54mm_Vertical,THT manual
+R308,2.2kR / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 2.2kΩ 1% 0.25W,THT manual
+R309,2.2kR / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 2.2kΩ 1% 0.25W,THT manual
+D301,1.5KE6.8CA,Ardor_THT:D_TVS_DC_1.5KE_P15.24mm,DC Components 1.5KE6.8CA (HESTORE 100.430.71),THT manual
+D302,1.5KE6.8CA,Ardor_THT:D_TVS_DC_1.5KE_P15.24mm,DC Components 1.5KE6.8CA (HESTORE 100.430.71),THT manual
+R101,0R / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 0Ω 1% 0.25W,THT manual

@@ -1,0 +1,5 @@
+Quantity,Purchasing specification,Use
+1,Stereo TRS headphone panel socket,Cable to J602
+2,"32 ohm dummy-load resistor, >=0.5W",Commissioning only; one per channel
+2,M2 nonconductive standoff / mounting hardware,H1/H2; choose height and screws for enclosure
+as needed,Insulated hookup wire and mating host connectors,Match the connector pin guide

@@ -1,0 +1,220 @@
+{
+  "viewpoint": "Directions are relative to this board; square pad is pin 1.",
+  "abbreviations": {
+    "IN": "Into this board",
+    "OUT": "Out of this board",
+    "I/O": "Both directions",
+    "GND": "Common 0 V return",
+    "NC": "Unused; do not connect"
+  },
+  "ports": {
+    "J302": {
+      "title": "PASSIVE PEDAL INPUT / EXCITATION OUTPUT",
+      "silk": "PASSIVE PEDAL",
+      "pins": [
+        {
+          "number": 1,
+          "net": "EXP_TIP",
+          "short": "TIP I/O",
+          "direction": "INPUT / OUTPUT",
+          "meaning": "TRS tip: pedal wiper INPUT or excitation OUTPUT, selected by JP301.",
+          "connect": "Passive expression socket tip; not a powered CV pedal."
+        },
+        {
+          "number": 2,
+          "net": "EXP_RING",
+          "short": "RING I/O",
+          "direction": "INPUT / OUTPUT",
+          "meaning": "TRS ring: excitation OUTPUT or pedal wiper INPUT, selected by JP301.",
+          "connect": "Passive expression socket ring; not a powered CV pedal."
+        },
+        {
+          "number": 3,
+          "net": "GND",
+          "short": "GND 0V",
+          "direction": "GROUND",
+          "meaning": "Common 0 V return; not a signal or positive supply.",
+          "connect": "TRS sleeve; pedal pot ground and enclosure bond."
+        }
+      ],
+      "setup": ""
+    },
+    "J101": {
+      "title": "3V3 POWER INPUT + I2C TO HOST",
+      "silk": "PWR IN / I2C",
+      "pins": [
+        {
+          "number": 1,
+          "net": "+3V3",
+          "short": "3V3 IN",
+          "direction": "POWER INPUT",
+          "meaning": "Feed regulated 3V3 into the module. This pin does not supply power.",
+          "connect": "Positive output of the matching regulated supply."
+        },
+        {
+          "number": 2,
+          "net": "GND",
+          "short": "GND 0V",
+          "direction": "GROUND",
+          "meaning": "Common 0 V return; not a signal or positive supply.",
+          "connect": "Host or cable ground / 0 V."
+        },
+        {
+          "number": 3,
+          "net": "SDA",
+          "short": "DATA I/O",
+          "direction": "INPUT / OUTPUT",
+          "meaning": "I2C SDA data travels both ways; 3.3 V bus only.",
+          "connect": "Host I2C SDA data pin."
+        },
+        {
+          "number": 4,
+          "net": "SCL",
+          "short": "CLOCK IN",
+          "direction": "INPUT",
+          "meaning": "I2C clock comes from the host into this module.",
+          "connect": "Host I2C SCL clock pin."
+        }
+      ],
+      "setup": ""
+    },
+    "JP301": {
+      "title": "JUMPER ONLY: PEDAL POLARITY",
+      "silk": "PEDAL JUMPER",
+      "pins": [
+        {
+          "number": 1,
+          "net": "EXP_TIP",
+          "short": "TIP",
+          "direction": "JUMPER",
+          "meaning": "Tip contact side of polarity selector.",
+          "connect": "Fit a shunt to pin 3 for tip-wiper mode."
+        },
+        {
+          "number": 2,
+          "net": "EXP_RING",
+          "short": "RING",
+          "direction": "JUMPER",
+          "meaning": "Ring contact side of polarity selector.",
+          "connect": "Fit a shunt to pin 4 for tip-wiper mode."
+        },
+        {
+          "number": 3,
+          "net": "EXP_WIPER",
+          "short": "PEDAL IN",
+          "direction": "INPUT / JUMPER",
+          "meaning": "Pedal wiper signal enters the ADC circuit.",
+          "connect": "Shunt 1-3 for tip wiper, or 3-5 for ring wiper."
+        },
+        {
+          "number": 4,
+          "net": "EXP_EXC",
+          "short": "EXC OUT",
+          "direction": "OUTPUT / JUMPER",
+          "meaning": "Current-limited excitation goes out to the passive pedal.",
+          "connect": "Shunt 2-4 for tip wiper, or 4-6 for ring wiper."
+        },
+        {
+          "number": 5,
+          "net": "EXP_RING",
+          "short": "RING",
+          "direction": "JUMPER",
+          "meaning": "Ring contact side of polarity selector.",
+          "connect": "Fit a shunt to pin 3 for ring-wiper mode."
+        },
+        {
+          "number": 6,
+          "net": "EXP_TIP",
+          "short": "TIP",
+          "direction": "JUMPER",
+          "meaning": "Tip contact side of polarity selector.",
+          "connect": "Fit a shunt to pin 4 for ring-wiper mode."
+        }
+      ],
+      "setup": "TIP: 1-3 + 2-4; RING: 3-5 + 4-6. Use TWO shunts; no external cable."
+    },
+    "JP302": {
+      "title": "JUMPER ONLY: ADC ADDRESS",
+      "silk": "ADDR JUMPER",
+      "pins": [
+        {
+          "number": 1,
+          "net": "GND",
+          "short": "LOW GND",
+          "direction": "JUMPER",
+          "meaning": "Ground/LOW address selection terminal.",
+          "connect": "Shunt 1-2 selects address 0x48."
+        },
+        {
+          "number": 2,
+          "net": "ADDR",
+          "short": "SELECT",
+          "direction": "CONTROL / JUMPER",
+          "meaning": "ADC address selection input; do not leave floating.",
+          "connect": "Fit ONE shunt: 1-2 or 2-3."
+        },
+        {
+          "number": 3,
+          "net": "+3V3_A",
+          "short": "HIGH 3V3",
+          "direction": "JUMPER",
+          "meaning": "3.3 V/HIGH address selection terminal, not a power connector.",
+          "connect": "Shunt 2-3 selects address 0x49."
+        }
+      ],
+      "setup": "1-2: 0x48; 2-3: 0x49. One shunt required; no external cable."
+    },
+    "JP303": {
+      "title": "JUMPER ONLY: SDA PULLUP",
+      "silk": "DATA PULLUP",
+      "pins": [
+        {
+          "number": 1,
+          "net": "SDA_PULL",
+          "short": "PULLUP",
+          "direction": "JUMPER",
+          "meaning": "3.3 V through the local 2.2k pull-up resistor.",
+          "connect": "Shunt 1-2 only if the host has no SDA pull-up."
+        },
+        {
+          "number": 2,
+          "net": "SDA",
+          "short": "DATA I/O",
+          "direction": "INPUT / OUTPUT / JUMPER",
+          "meaning": "SDA data side of the pull-up jumper.",
+          "connect": "Same shunt; this is not a host cable connector."
+        }
+      ],
+      "setup": "Fit 1-2 to enable. Remove if host already has a pull-up."
+    },
+    "JP304": {
+      "title": "JUMPER ONLY: SCL PULLUP",
+      "silk": "CLOCK PULLUP",
+      "pins": [
+        {
+          "number": 1,
+          "net": "SCL_PULL",
+          "short": "PULLUP",
+          "direction": "JUMPER",
+          "meaning": "3.3 V through the local 2.2k pull-up resistor.",
+          "connect": "Shunt 1-2 only if the host has no SCL pull-up."
+        },
+        {
+          "number": 2,
+          "net": "SCL",
+          "short": "CLOCK IN",
+          "direction": "INPUT / JUMPER",
+          "meaning": "SCL clock side of the pull-up jumper.",
+          "connect": "Same shunt; this is not a host cable connector."
+        }
+      ],
+      "setup": "Fit 1-2 to enable. Remove if host already has a pull-up."
+    }
+  },
+  "unused_pins": {
+    "U301.2": "UNUSED ALERT - LEAVE OPEN",
+    "U301.11": "BREAKOUT AVDD - LEAVE OPEN",
+    "U301.12": "BREAKOUT AGND - LEAVE OPEN"
+  },
+  "mounting_holes": "H1/H2 are M2 mounting holes, not electrical connections. Small vias are not user connectors."
+}

@@ -1,0 +1,670 @@
+{
+  "name": "Ardor_Expression_THT",
+  "title": "Passive expression pedal / I2C ADC / HAND ASSEMBLY",
+  "slug": "expression",
+  "size_mm": [
+    110,
+    85
+  ],
+  "parts": {
+    "J302": {
+      "ref": "J302",
+      "kind": "Conn_01x03",
+      "value": "PASSIVE PEDAL INPUT / EXCITATION\nOUTPUT",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
+      "pcb": [
+        7.5,
+        32.5
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "d75b14ff-2f85-55e5-9017-690f284e3a8e",
+      "mpn": "PinHeader_1x03_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "J101": {
+      "ref": "J101",
+      "kind": "Conn_01x04",
+      "value": "3V3 POWER INPUT + I2C TO HOST",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
+      "pcb": [
+        100.0,
+        30.0
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "f2228ca5-3034-557c-b364-1bedbd9f3c34",
+      "mpn": "PinHeader_1x04_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "JP301": {
+      "ref": "JP301",
+      "kind": "Conn_02x03_Odd_Even",
+      "value": "JUMPER ONLY: PEDAL POLARITY",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical",
+      "pcb": [
+        25.0,
+        32.5
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "a09f4a0e-822f-5443-88ed-c68a3b4f23f0",
+      "mpn": "PinHeader_2x03_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "FB101": {
+      "ref": "FB101",
+      "kind": "FerriteBead",
+      "value": "800R@100MHz / WE 7427501",
+      "fp": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
+      "pcb": [
+        67.5,
+        10.0
+      ],
+      "part": {
+        "footprint": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
+        "mpn": "Wurth Elektronik 7427501",
+        "bom_mpn": "Wurth Elektronik 7427501",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.we-online.com/components/products/datasheet/7427501.pdf"
+      },
+      "dnp": false,
+      "uuid": "917cc0a0-730f-5b15-a0bd-e2c165d912a3",
+      "mpn": "Wurth Elektronik 7427501",
+      "datasheet": "https://www.we-online.com/components/products/datasheet/7427501.pdf"
+    },
+    "C101": {
+      "ref": "C101",
+      "kind": "C_Polarized",
+      "value": "10u / 25V polarized",
+      "fp": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
+      "pcb": [
+        82,
+        10
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
+        "mpn": "Radial electrolytic 10uF 25V, D<=6.3mm P2.5mm",
+        "bom_mpn": "Radial electrolytic 10uF 25V, D<=6.3mm P2.5mm",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "6f9a46f3-7a93-52ad-95de-45573aa78ee0",
+      "mpn": "Radial electrolytic 10uF 25V, D<=6.3mm P2.5mm",
+      "datasheet": ""
+    },
+    "C102": {
+      "ref": "C102",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+      "pcb": [
+        93,
+        10
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+        "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "bom_mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "1067405e-1047-592f-8d83-677003f4dbdb",
+      "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+      "datasheet": ""
+    },
+    "R301": {
+      "ref": "R301",
+      "kind": "R",
+      "value": "1kR / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        37.5,
+        25.0
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 1k\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 1k\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "91295899-2bcd-5be1-8233-5467ceacddb7",
+      "mpn": "Axial metal film 1k\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "R302": {
+      "ref": "R302",
+      "kind": "R",
+      "value": "10kR / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        40.0,
+        37.5
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 10k\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 10k\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "65158fd8-2746-530d-8a43-bcb51224a0cf",
+      "mpn": "Axial metal film 10k\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "R303": {
+      "ref": "R303",
+      "kind": "R",
+      "value": "1MR / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        30,
+        48
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 1M\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 1M\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "fd395922-a2cf-543f-a109-4d8ffee0316e",
+      "mpn": "Axial metal film 1M\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "C301": {
+      "ref": "C301",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+      "pcb": [
+        54,
+        34
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+        "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "bom_mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "5bdf080d-1493-5b99-a78d-d85638db2f41",
+      "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+      "datasheet": ""
+    },
+    "R304": {
+      "ref": "R304",
+      "kind": "R",
+      "value": "10kR / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        42.5,
+        55
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 10k\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 10k\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "94ecc684-e028-5d1f-af8c-60b9e728493b",
+      "mpn": "Axial metal film 10k\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "C302": {
+      "ref": "C302",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+      "pcb": [
+        53,
+        51
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+        "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "bom_mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "13d4f325-5d25-5cde-af8f-5a29c738f80d",
+      "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+      "datasheet": ""
+    },
+    "U301": {
+      "ref": "U301",
+      "kind": "ADS1115_Module",
+      "value": "Adafruit 1085 ADS1115 QT",
+      "fp": "Ardor_THT:Adafruit_ADS1115_1085_STEMMA_QT",
+      "pcb": [
+        74,
+        41
+      ],
+      "part": {
+        "footprint": "Ardor_THT:Adafruit_ADS1115_1085_STEMMA_QT",
+        "mpn": "Adafruit 1085 (STEMMA QT revision)",
+        "bom_mpn": "Adafruit 1085 (STEMMA QT revision)",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.adafruit.com/product/1085"
+      },
+      "dnp": false,
+      "uuid": "736b17cc-8b79-5a04-a526-a19bbf2e9bc0",
+      "mpn": "Adafruit 1085 (STEMMA QT revision)",
+      "datasheet": "https://www.adafruit.com/product/1085"
+    },
+    "C303": {
+      "ref": "C303",
+      "kind": "C",
+      "value": "100n / 50V X7R",
+      "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+      "pcb": [
+        72.5,
+        27.5
+      ],
+      "part": {
+        "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
+        "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "bom_mpn": "100nF 50V X7R radial, 5mm lead pitch",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "b5b48f80-421a-555c-a138-a158b1fb3aa1",
+      "mpn": "100nF 50V X7R radial, 5mm lead pitch",
+      "datasheet": ""
+    },
+    "R307": {
+      "ref": "R307",
+      "kind": "R",
+      "value": "2.2kR / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        80.0,
+        55.0
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 2.2k\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 2.2k\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "39784409-8fe6-5b6d-8411-c64042005361",
+      "mpn": "Axial metal film 2.2k\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "D303": {
+      "ref": "D303",
+      "kind": "D_Schottky",
+      "value": "BAT85S",
+      "fp": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
+      "pcb": [
+        57.5,
+        25.0
+      ],
+      "part": {
+        "footprint": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
+        "mpn": "Vishay BAT85S-TAP",
+        "bom_mpn": "Vishay BAT85S-TAP",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.vishay.com/docs/85513/bat85s.pdf"
+      },
+      "dnp": false,
+      "uuid": "a756ebb6-5163-550d-898e-3fa5c7b043c3",
+      "mpn": "Vishay BAT85S-TAP",
+      "datasheet": "https://www.vishay.com/docs/85513/bat85s.pdf"
+    },
+    "D304": {
+      "ref": "D304",
+      "kind": "D_Schottky",
+      "value": "BAT85S",
+      "fp": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
+      "pcb": [
+        55,
+        44
+      ],
+      "part": {
+        "footprint": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
+        "mpn": "Vishay BAT85S-TAP",
+        "bom_mpn": "Vishay BAT85S-TAP",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.vishay.com/docs/85513/bat85s.pdf"
+      },
+      "dnp": false,
+      "uuid": "26d870d4-e0c2-5064-a5d2-e948ac43aee9",
+      "mpn": "Vishay BAT85S-TAP",
+      "datasheet": "https://www.vishay.com/docs/85513/bat85s.pdf"
+    },
+    "D305": {
+      "ref": "D305",
+      "kind": "D_Schottky",
+      "value": "BAT85S",
+      "fp": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
+      "pcb": [
+        47.5,
+        60.0
+      ],
+      "part": {
+        "footprint": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
+        "mpn": "Vishay BAT85S-TAP",
+        "bom_mpn": "Vishay BAT85S-TAP",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.vishay.com/docs/85513/bat85s.pdf"
+      },
+      "dnp": false,
+      "uuid": "842c174d-1ead-5d2b-8342-21841851894e",
+      "mpn": "Vishay BAT85S-TAP",
+      "datasheet": "https://www.vishay.com/docs/85513/bat85s.pdf"
+    },
+    "D306": {
+      "ref": "D306",
+      "kind": "D_Schottky",
+      "value": "BAT85S",
+      "fp": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
+      "pcb": [
+        60.0,
+        60.0
+      ],
+      "part": {
+        "footprint": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
+        "mpn": "Vishay BAT85S-TAP",
+        "bom_mpn": "Vishay BAT85S-TAP",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.vishay.com/docs/85513/bat85s.pdf"
+      },
+      "dnp": false,
+      "uuid": "5de12b33-5d96-517f-be97-ec2c77c7d608",
+      "mpn": "Vishay BAT85S-TAP",
+      "datasheet": "https://www.vishay.com/docs/85513/bat85s.pdf"
+    },
+    "R305": {
+      "ref": "R305",
+      "kind": "R",
+      "value": "33R / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        94,
+        28,
+        90
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 33\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 33\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "f9e28981-358a-57eb-af59-837e2929ccb7",
+      "mpn": "Axial metal film 33\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "R306": {
+      "ref": "R306",
+      "kind": "R",
+      "value": "33R / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        94,
+        44,
+        90
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 33\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 33\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "bff0b5ff-e1e9-58d6-b1cf-aff37f865ddb",
+      "mpn": "Axial metal film 33\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "JP302": {
+      "ref": "JP302",
+      "kind": "Conn_01x03",
+      "value": "JUMPER ONLY: ADC ADDRESS",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
+      "pcb": [
+        70.0,
+        65.0
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "f86f82aa-b96d-5af8-9bee-2b4f3a54a72d",
+      "mpn": "PinHeader_1x03_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "JP303": {
+      "ref": "JP303",
+      "kind": "Conn_01x02",
+      "value": "JUMPER ONLY: SDA PULLUP",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "pcb": [
+        100.0,
+        57.5
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "13242b3f-2656-50cd-9539-cbb226af8e56",
+      "mpn": "PinHeader_1x02_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "JP304": {
+      "ref": "JP304",
+      "kind": "Conn_01x02",
+      "value": "JUMPER ONLY: SCL PULLUP",
+      "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "pcb": [
+        100.0,
+        75.0
+      ],
+      "part": null,
+      "dnp": false,
+      "uuid": "33d91d59-4caf-5aaf-b5a9-ca3b9140d2c7",
+      "mpn": "PinHeader_1x02_P2.54mm_Vertical",
+      "datasheet": ""
+    },
+    "R308": {
+      "ref": "R308",
+      "kind": "R",
+      "value": "2.2kR / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        87.5,
+        60.0
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 2.2k\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 2.2k\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "e2c0f32e-1bf4-524c-9a06-81f289747a60",
+      "mpn": "Axial metal film 2.2k\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "R309": {
+      "ref": "R309",
+      "kind": "R",
+      "value": "2.2kR / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        87.5,
+        72.5
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 2.2k\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 2.2k\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "d93b08c8-4c48-5947-86ce-44906ed262e4",
+      "mpn": "Axial metal film 2.2k\u03a9 1% 0.25W",
+      "datasheet": ""
+    },
+    "D301": {
+      "ref": "D301",
+      "kind": "D_TVS",
+      "value": "1.5KE6.8CA",
+      "fp": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
+      "pcb": [
+        12.5,
+        17.5
+      ],
+      "part": {
+        "footprint": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
+        "mpn": "DC Components 1.5KE6.8CA (HESTORE 100.430.71)",
+        "bom_mpn": "DC Components 1.5KE6.8CA (HESTORE 100.430.71)",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.dccomponents.com/products/1.5ke.pdf"
+      },
+      "dnp": false,
+      "uuid": "77713601-cba5-5fc0-90ef-2787a68be9eb",
+      "mpn": "DC Components 1.5KE6.8CA (HESTORE 100.430.71)",
+      "datasheet": "https://www.dccomponents.com/products/1.5ke.pdf"
+    },
+    "D302": {
+      "ref": "D302",
+      "kind": "D_TVS",
+      "value": "1.5KE6.8CA",
+      "fp": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
+      "pcb": [
+        12.5,
+        47.5
+      ],
+      "part": {
+        "footprint": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
+        "mpn": "DC Components 1.5KE6.8CA (HESTORE 100.430.71)",
+        "bom_mpn": "DC Components 1.5KE6.8CA (HESTORE 100.430.71)",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.dccomponents.com/products/1.5ke.pdf"
+      },
+      "dnp": false,
+      "uuid": "065ba79c-8648-5e89-80c3-1fe9c6ad0a15",
+      "mpn": "DC Components 1.5KE6.8CA (HESTORE 100.430.71)",
+      "datasheet": "https://www.dccomponents.com/products/1.5ke.pdf"
+    },
+    "R101": {
+      "ref": "R101",
+      "kind": "R",
+      "value": "0R / 1% 0.25W",
+      "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+      "pcb": [
+        20.0,
+        60.0
+      ],
+      "part": {
+        "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
+        "mpn": "Axial metal film 0\u03a9 1% 0.25W",
+        "bom_mpn": "Axial metal film 0\u03a9 1% 0.25W",
+        "jlcpcb_part": "",
+        "datasheet": ""
+      },
+      "dnp": false,
+      "uuid": "425bbf62-0cf1-56fa-bbaa-9d64578ffdf4",
+      "mpn": "Axial metal film 0\u03a9 1% 0.25W",
+      "datasheet": ""
+    }
+  },
+  "pins": {
+    "J302.1": "EXP_TIP",
+    "J302.2": "EXP_RING",
+    "J302.3": "GND",
+    "J101.1": "+3V3",
+    "J101.2": "GND",
+    "J101.3": "SDA",
+    "J101.4": "SCL",
+    "JP301.1": "EXP_TIP",
+    "JP301.2": "EXP_RING",
+    "JP301.3": "EXP_WIPER",
+    "JP301.4": "EXP_EXC",
+    "JP301.5": "EXP_RING",
+    "JP301.6": "EXP_TIP",
+    "FB101.1": "+3V3",
+    "FB101.2": "+3V3_A",
+    "C101.1": "+3V3_A",
+    "C101.2": "GND",
+    "C102.1": "+3V3_A",
+    "C102.2": "GND",
+    "R301.1": "+3V3_A",
+    "R301.2": "EXP_EXC",
+    "R302.1": "EXP_WIPER",
+    "R302.2": "EXP_ADC",
+    "R303.1": "EXP_WIPER",
+    "R303.2": "GND",
+    "C301.1": "EXP_ADC",
+    "C301.2": "GND",
+    "R304.1": "EXP_EXC",
+    "R304.2": "EXP_REF_ADC",
+    "C302.1": "EXP_REF_ADC",
+    "C302.2": "GND",
+    "U301.1": "ADDR",
+    "U301.3": "GND",
+    "U301.4": "EXP_ADC",
+    "U301.5": "EXP_REF_ADC",
+    "U301.6": "GND",
+    "U301.7": "GND",
+    "U301.8": "+3V3_A",
+    "U301.9": "ADC_SDA",
+    "U301.10": "ADC_SCL",
+    "C303.1": "+3V3_A",
+    "C303.2": "GND",
+    "R307.1": "+3V3_A",
+    "R307.2": "GND",
+    "D303.1": "+3V3_A",
+    "D303.2": "EXP_ADC",
+    "D304.1": "EXP_ADC",
+    "D304.2": "GND",
+    "D305.1": "+3V3_A",
+    "D305.2": "EXP_REF_ADC",
+    "D306.1": "EXP_REF_ADC",
+    "D306.2": "GND",
+    "R305.1": "ADC_SCL",
+    "R305.2": "SCL",
+    "R306.1": "ADC_SDA",
+    "R306.2": "SDA",
+    "JP302.1": "GND",
+    "JP302.2": "ADDR",
+    "JP302.3": "+3V3_A",
+    "JP303.1": "SDA_PULL",
+    "JP303.2": "SDA",
+    "JP304.1": "SCL_PULL",
+    "JP304.2": "SCL",
+    "R308.1": "+3V3_A",
+    "R308.2": "SDA_PULL",
+    "R309.1": "+3V3_A",
+    "R309.2": "SCL_PULL",
+    "D301.1": "EXP_TIP",
+    "D301.2": "CHASSIS",
+    "D302.1": "EXP_RING",
+    "D302.2": "CHASSIS",
+    "R101.1": "CHASSIS",
+    "R101.2": "GND"
+  },
+  "nc": [
+    "U301.11",
+    "U301.12",
+    "U301.2"
+  ],
+  "routes": [],
+  "ground_vias": [],
+  "keepouts": [],
+  "notes": "Independent 3.3 V passive-pot interface. Local ADC, filtering, rail clamps, selectable polarity/address and removable I2C pull-ups."
+}

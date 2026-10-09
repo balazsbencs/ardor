@@ -1,0 +1,19 @@
+{
+  "+5V": "/+5V",
+  "+5V_A": "/+5V_A",
+  "CHASSIS": "/CHASSIS",
+  "GND": "/GND",
+  "VREF": "/VREF",
+  "LINE_AC": "Net-(C501-Pad2)",
+  "AMP_AC": "Net-(C502-Pad2)",
+  "LINE_JACK": "Net-(D501-A1)",
+  "RELAY_LOW": "Net-(D502-A)",
+  "LINE_ENABLE": "Net-(J101-Pin_3)",
+  "AUDIO_IN": "Net-(J102-Pin_1)",
+  "AMP_FEED": "Net-(J502-Pin_1)",
+  "LINE_DRIVE": "Net-(K501-Pad10)",
+  "RELAY_GATE": "Net-(Q501-B)",
+  "BIAS_IN": "Net-(U501A-+)",
+  "MONO_BUF": "Net-(U501A--)",
+  "VREF_DIV": "Net-(U501B-+)"
+}

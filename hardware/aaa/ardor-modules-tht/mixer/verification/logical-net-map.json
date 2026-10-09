@@ -1,0 +1,21 @@
+{
+  "+5V": "/+5V",
+  "+5V_A": "/+5V_A",
+  "GND": "/GND",
+  "VREF": "/VREF",
+  "AC_L": "Net-(C407-Pad2)",
+  "AC_R": "Net-(C408-Pad2)",
+  "AC_MONO": "Net-(C409-Pad2)",
+  "AUDIO_L": "Net-(J102-Pin_1)",
+  "AUDIO_R": "Net-(J102-Pin_3)",
+  "OUT_L": "Net-(J103-Pin_1)",
+  "OUT_R": "Net-(J103-Pin_3)",
+  "OUT_MONO": "Net-(J103-Pin_4)",
+  "BIAS_L": "Net-(U401A-+)",
+  "BUF_L": "Net-(U401A--)",
+  "BIAS_R": "Net-(U401B-+)",
+  "BUF_R": "Net-(U401B--)",
+  "MONO_MIX": "Net-(U402A-+)",
+  "MONO_BUF": "Net-(U402A--)",
+  "VREF_DIV": "Net-(U402B-+)"
+}

@@ -1,0 +1,633 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export version="E">
+  <design>
+    <source>/work/hardware/aaa/ardor-modules-tht/midi-in/Ardor_MIDI_THT.kicad_sch</source>
+    <date>2026-10-09T12:29:50+0000</date>
+    <tool>Eeschema 9.0.2+dfsg-1</tool>
+    <sheet number="1" name="/" tstamps="/">
+      <title_block>
+        <title>Isolated MIDI input / 3.3 V UART / HAND ASSEMBLY</title>
+        <company>Ardor</company>
+        <rev>T1</rev>
+        <date>2026-10-08</date>
+        <source>Ardor_MIDI_THT.kicad_sch</source>
+        <comment number="1" value="Engineering prototype - bench validation required"/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+  </design>
+  <components>
+    <comp ref="C201">
+      <value>100n / 50V X7R</value>
+      <footprint>Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm</footprint>
+      <fields>
+        <field name="MPN">100nF 50V X7R radial, 5mm lead pitch</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="100nF 50V X7R radial, 5mm lead pitch"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>9aa706ae-fbd9-54ad-8eed-515fb69a7605</tstamps>
+    </comp>
+    <comp ref="C202">
+      <value>100p / 1kV C0G</value>
+      <footprint>Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm</footprint>
+      <fields>
+        <field name="MPN">100pF 1kV C0G disc, 5mm lead pitch</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="100pF 1kV C0G disc, 5mm lead pitch"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>432b9c05-a71d-5ece-a8e0-0d76918e1996</tstamps>
+    </comp>
+    <comp ref="C203">
+      <value>100p / 1kV C0G</value>
+      <footprint>Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm</footprint>
+      <fields>
+        <field name="MPN">100pF 1kV C0G disc, 5mm lead pitch</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="100pF 1kV C0G disc, 5mm lead pitch"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>597fe6f5-3ef4-5b2f-b1df-609846c78603</tstamps>
+    </comp>
+    <comp ref="C204">
+      <value>100n / 50V X7R</value>
+      <footprint>Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm</footprint>
+      <fields>
+        <field name="MPN">100nF 50V X7R radial, 5mm lead pitch</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="100nF 50V X7R radial, 5mm lead pitch"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>847d0511-4459-5955-9038-054af38436c9</tstamps>
+    </comp>
+    <comp ref="D201">
+      <value>1N4148</value>
+      <footprint>Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal</footprint>
+      <datasheet>https://www.vishay.com/docs/81857/1n4148.pdf</datasheet>
+      <fields>
+        <field name="MPN">Vishay 1N4148-TAP</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal</field>
+        <field name="Datasheet">https://www.vishay.com/docs/81857/1n4148.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="D" description="Diode"/>
+      <property name="MPN" value="Vishay 1N4148-TAP"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="diode"/>
+      <property name="ki_fp_filters" value="TO-???* *_Diode_* *SingleDiode* D_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>ce6d37c1-2850-5e0e-a015-becd0858feb1</tstamps>
+    </comp>
+    <comp ref="D202">
+      <value>1.5KE6.8CA</value>
+      <footprint>Ardor_THT:D_TVS_DC_1.5KE_P15.24mm</footprint>
+      <datasheet>https://www.dccomponents.com/products/1.5ke.pdf</datasheet>
+      <fields>
+        <field name="MPN">DC Components 1.5KE6.8CA (HESTORE 100.430.71)</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Ardor_THT:D_TVS_DC_1.5KE_P15.24mm</field>
+        <field name="Datasheet">https://www.dccomponents.com/products/1.5ke.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="D_TVS" description="Bidirectional transient-voltage-suppression diode"/>
+      <property name="MPN" value="DC Components 1.5KE6.8CA (HESTORE 100.430.71)"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="diode TVS thyrector"/>
+      <property name="ki_fp_filters" value="TO-???* *_Diode_* *SingleDiode* D_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>d4cd727c-cf86-5f25-9bcb-9bbd5785a3eb</tstamps>
+    </comp>
+    <comp ref="D203">
+      <value>SA24CA-E3/54</value>
+      <footprint>Diode_THT:D_DO-15_P10.16mm_Horizontal</footprint>
+      <datasheet>https://www.vishay.com/doc/?88378=</datasheet>
+      <fields>
+        <field name="MPN">Vishay SA24CA-E3/54</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Diode_THT:D_DO-15_P10.16mm_Horizontal</field>
+        <field name="Datasheet">https://www.vishay.com/doc/?88378=</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="D_TVS" description="Bidirectional transient-voltage-suppression diode"/>
+      <property name="MPN" value="Vishay SA24CA-E3/54"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="diode TVS thyrector"/>
+      <property name="ki_fp_filters" value="TO-???* *_Diode_* *SingleDiode* D_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>fcb9b50b-f8e3-5a06-8216-dad214d23252</tstamps>
+    </comp>
+    <comp ref="D204">
+      <value>SA24CA-E3/54</value>
+      <footprint>Diode_THT:D_DO-15_P10.16mm_Horizontal</footprint>
+      <datasheet>https://www.vishay.com/doc/?88378=</datasheet>
+      <fields>
+        <field name="MPN">Vishay SA24CA-E3/54</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Diode_THT:D_DO-15_P10.16mm_Horizontal</field>
+        <field name="Datasheet">https://www.vishay.com/doc/?88378=</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="D_TVS" description="Bidirectional transient-voltage-suppression diode"/>
+      <property name="MPN" value="Vishay SA24CA-E3/54"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="diode TVS thyrector"/>
+      <property name="ki_fp_filters" value="TO-???* *_Diode_* *SingleDiode* D_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>28796cf3-a14c-55ea-9f7a-b045af558934</tstamps>
+    </comp>
+    <comp ref="FB201">
+      <value>800R@100MHz / WE 7427501</value>
+      <footprint>Ardor_THT:Ferrite_WE_7427501_P15.24mm</footprint>
+      <datasheet>https://www.we-online.com/components/products/datasheet/7427501.pdf</datasheet>
+      <fields>
+        <field name="MPN">Wurth Elektronik 7427501</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Ardor_THT:Ferrite_WE_7427501_P15.24mm</field>
+        <field name="Datasheet">https://www.we-online.com/components/products/datasheet/7427501.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="FerriteBead" description="Ferrite bead"/>
+      <property name="MPN" value="Wurth Elektronik 7427501"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="L ferrite bead inductor filter"/>
+      <property name="ki_fp_filters" value="Inductor_* L_* *Ferrite*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>690269ab-20fe-5048-9c06-2dcbaaecb78e</tstamps>
+    </comp>
+    <comp ref="FB202">
+      <value>800R@100MHz / WE 7427501</value>
+      <footprint>Ardor_THT:Ferrite_WE_7427501_P15.24mm</footprint>
+      <datasheet>https://www.we-online.com/components/products/datasheet/7427501.pdf</datasheet>
+      <fields>
+        <field name="MPN">Wurth Elektronik 7427501</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Ardor_THT:Ferrite_WE_7427501_P15.24mm</field>
+        <field name="Datasheet">https://www.we-online.com/components/products/datasheet/7427501.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="FerriteBead" description="Ferrite bead"/>
+      <property name="MPN" value="Wurth Elektronik 7427501"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="L ferrite bead inductor filter"/>
+      <property name="ki_fp_filters" value="Inductor_* L_* *Ferrite*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>a983f686-48b5-5f8d-bbe4-cea4e7e1da1a</tstamps>
+    </comp>
+    <comp ref="J101">
+      <value>POWER INPUT + UART OUTPUT TO
+HOST</value>
+      <footprint>Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical</footprint>
+      <fields>
+        <field name="MPN">PinHeader_1x04_P2.54mm_Vertical</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="Conn_01x04" description="Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"/>
+      <property name="MPN" value="PinHeader_1x04_P2.54mm_Vertical"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="connector"/>
+      <property name="ki_fp_filters" value="Connector*:*_1x??_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>723b14c1-25d3-5986-bf19-4734f802bbd6</tstamps>
+    </comp>
+    <comp ref="J202">
+      <value>MIDI INPUT FROM DIN SOCKET</value>
+      <footprint>Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical</footprint>
+      <fields>
+        <field name="MPN">PinHeader_1x02_P2.54mm_Vertical</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="Conn_01x02" description="Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"/>
+      <property name="MPN" value="PinHeader_1x02_P2.54mm_Vertical"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="connector"/>
+      <property name="ki_fp_filters" value="Connector*:*_1x??_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>af59c6bb-7e3d-512d-886c-3ceb9972e6a8</tstamps>
+    </comp>
+    <comp ref="J203">
+      <value>METAL CASE BOND + GROUND</value>
+      <footprint>Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical</footprint>
+      <fields>
+        <field name="MPN">PinHeader_1x02_P2.54mm_Vertical</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="Conn_01x02" description="Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"/>
+      <property name="MPN" value="PinHeader_1x02_P2.54mm_Vertical"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="connector"/>
+      <property name="ki_fp_filters" value="Connector*:*_1x??_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>1e954521-7601-59aa-b122-ddfb1251f436</tstamps>
+    </comp>
+    <comp ref="R101">
+      <value>0R / 1% 0.25W</value>
+      <footprint>Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal</footprint>
+      <fields>
+        <field name="MPN">Axial metal film 0Ω 1% 0.25W</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="R" description="Resistor"/>
+      <property name="MPN" value="Axial metal film 0Ω 1% 0.25W"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>d4f6f942-728f-5e7b-81b7-938916184b44</tstamps>
+    </comp>
+    <comp ref="R201">
+      <value>220R / 1% 0.25W</value>
+      <footprint>Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal</footprint>
+      <fields>
+        <field name="MPN">Axial metal film 220Ω 1% 0.25W</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="R" description="Resistor"/>
+      <property name="MPN" value="Axial metal film 220Ω 1% 0.25W"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>71f8ed81-257b-5a6d-a2ca-7543b21d9b9a</tstamps>
+    </comp>
+    <comp ref="R202">
+      <value>1kR / 1% 0.25W</value>
+      <footprint>Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal</footprint>
+      <fields>
+        <field name="MPN">Axial metal film 1kΩ 1% 0.25W</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="R" description="Resistor"/>
+      <property name="MPN" value="Axial metal film 1kΩ 1% 0.25W"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>a20cdaf5-1a91-5c0c-b3c5-6e00cbd8807b</tstamps>
+    </comp>
+    <comp ref="R203">
+      <value>100R / 1% 0.25W</value>
+      <footprint>Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal</footprint>
+      <fields>
+        <field name="MPN">Axial metal film 100Ω 1% 0.25W</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="R" description="Resistor"/>
+      <property name="MPN" value="Axial metal film 100Ω 1% 0.25W"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>acd9ca47-cb2b-5b0e-aa31-6aa690212059</tstamps>
+    </comp>
+    <comp ref="U201">
+      <value>onsemi H11L1M</value>
+      <footprint>Package_DIP:DIP-6_W7.62mm</footprint>
+      <datasheet>https://www.onsemi.com/download/data-sheet/pdf/h11l3m-d.pdf</datasheet>
+      <fields>
+        <field name="MPN">onsemi H11L1M</field>
+        <field name="JLCPCB Part #"/>
+        <field name="Footprint">Package_DIP:DIP-6_W7.62mm</field>
+        <field name="Datasheet">https://www.onsemi.com/download/data-sheet/pdf/h11l3m-d.pdf</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Ardor" part="H11L1" description="Schmitt Trigger Output Optocoupler, High Speed, DIP-6, 1.6mA turn on threshold"/>
+      <property name="MPN" value="onsemi H11L1M"/>
+      <property name="JLCPCB Part #" value=""/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
+      <property name="ki_keywords" value="High Speed Schmitt Optocoupler"/>
+      <property name="ki_fp_filters" value="DIP*W7.62mm* DIP*W10.16mm* SMDIP*W9.53mm*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>159cfeea-333d-5779-a995-56139f16f71f</tstamps>
+    </comp>
+  </components>
+  <libparts>
+    <libpart lib="Ardor" part="C">
+      <description>Unpolarized capacitor</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>C_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">C</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Ardor" part="Conn_01x02">
+      <description>Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>Connector*:*_1x??_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">Conn_01x02</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)</field>
+      </fields>
+      <pins>
+        <pin num="1" name="Pin_1" type="passive"/>
+        <pin num="2" name="Pin_2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Ardor" part="Conn_01x04">
+      <description>Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>Connector*:*_1x??_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">Conn_01x04</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)</field>
+      </fields>
+      <pins>
+        <pin num="1" name="Pin_1" type="passive"/>
+        <pin num="2" name="Pin_2" type="passive"/>
+        <pin num="3" name="Pin_3" type="passive"/>
+        <pin num="4" name="Pin_4" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Ardor" part="D">
+      <description>Diode</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>TO-???*</fp>
+        <fp>*_Diode_*</fp>
+        <fp>*SingleDiode*</fp>
+        <fp>D_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">D</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Diode</field>
+        <field name="Sim.Device">D</field>
+        <field name="Sim.Pins">1=K 2=A</field>
+      </fields>
+      <pins>
+        <pin num="1" name="K" type="passive"/>
+        <pin num="2" name="A" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Ardor" part="D_TVS">
+      <description>Bidirectional transient-voltage-suppression diode</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>TO-???*</fp>
+        <fp>*_Diode_*</fp>
+        <fp>*SingleDiode*</fp>
+        <fp>D_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">D_TVS</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Bidirectional transient-voltage-suppression diode</field>
+      </fields>
+      <pins>
+        <pin num="1" name="A1" type="passive"/>
+        <pin num="2" name="A2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Ardor" part="FerriteBead">
+      <description>Ferrite bead</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>Inductor_*</fp>
+        <fp>L_*</fp>
+        <fp>*Ferrite*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">FB</field>
+        <field name="Value">FerriteBead</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Ferrite bead</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Ardor" part="H11L1">
+      <description>Schmitt Trigger Output Optocoupler, High Speed, DIP-6, 1.6mA turn on threshold</description>
+      <docs>https://www.onsemi.com/pub/Collateral/H11L3M-D.PDF</docs>
+      <footprints>
+        <fp>DIP*W7.62mm*</fp>
+        <fp>DIP*W10.16mm*</fp>
+        <fp>SMDIP*W9.53mm*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">H11L1</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">https://www.onsemi.com/pub/Collateral/H11L3M-D.PDF</field>
+        <field name="Description">Schmitt Trigger Output Optocoupler, High Speed, DIP-6, 1.6mA turn on threshold</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+        <pin num="3" name="" type="no_connect"/>
+        <pin num="4" name="" type="output"/>
+        <pin num="5" name="" type="power_in"/>
+        <pin num="6" name="" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="Ardor" part="R">
+      <description>Resistor</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>R_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">R</field>
+        <field name="Footprint"/>
+        <field name="Datasheet">~</field>
+        <field name="Description">Resistor</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+  </libparts>
+  <libraries>
+    <library logical="Ardor">
+      <uri>/work/hardware/aaa/ardor-modules-tht/midi-in/Ardor.kicad_sym</uri>
+    </library>
+  </libraries>
+  <nets>
+    <net code="1" name="/+3V3" class="Default">
+      <node ref="C204" pin="1" pintype="passive"/>
+      <node ref="J101" pin="2" pinfunction="Pin_2" pintype="passive"/>
+      <node ref="R202" pin="1" pintype="passive"/>
+    </net>
+    <net code="2" name="/+5V" class="Default">
+      <node ref="C201" pin="1" pintype="passive"/>
+      <node ref="J101" pin="1" pinfunction="Pin_1" pintype="passive"/>
+      <node ref="U201" pin="6" pintype="power_in"/>
+    </net>
+    <net code="3" name="/CHASSIS" class="Chassis">
+      <node ref="C202" pin="2" pintype="passive"/>
+      <node ref="C203" pin="2" pintype="passive"/>
+      <node ref="D203" pin="2" pinfunction="A2" pintype="passive"/>
+      <node ref="D204" pin="2" pinfunction="A2" pintype="passive"/>
+      <node ref="J203" pin="1" pinfunction="Pin_1" pintype="passive"/>
+      <node ref="R101" pin="1" pintype="passive"/>
+    </net>
+    <net code="4" name="/GND" class="Ground">
+      <node ref="C201" pin="2" pintype="passive"/>
+      <node ref="C204" pin="2" pintype="passive"/>
+      <node ref="J101" pin="3" pinfunction="Pin_3" pintype="passive"/>
+      <node ref="J203" pin="2" pinfunction="Pin_2" pintype="passive"/>
+      <node ref="R101" pin="2" pintype="passive"/>
+      <node ref="U201" pin="5" pintype="power_in"/>
+    </net>
+    <net code="5" name="/MIDI_4" class="Default">
+      <node ref="C202" pin="1" pintype="passive"/>
+      <node ref="D202" pin="1" pinfunction="A1" pintype="passive"/>
+      <node ref="D203" pin="1" pinfunction="A1" pintype="passive"/>
+      <node ref="FB201" pin="1" pintype="passive"/>
+      <node ref="J202" pin="1" pinfunction="Pin_1" pintype="passive"/>
+    </net>
+    <net code="6" name="/MIDI_5" class="Default">
+      <node ref="C203" pin="1" pintype="passive"/>
+      <node ref="D202" pin="2" pinfunction="A2" pintype="passive"/>
+      <node ref="D204" pin="1" pinfunction="A1" pintype="passive"/>
+      <node ref="FB202" pin="1" pintype="passive"/>
+      <node ref="J202" pin="2" pinfunction="Pin_2" pintype="passive"/>
+    </net>
+    <net code="7" name="Net-(D201-A)" class="Default">
+      <node ref="D201" pin="2" pinfunction="A" pintype="passive"/>
+      <node ref="FB202" pin="2" pintype="passive"/>
+      <node ref="U201" pin="2" pintype="passive"/>
+    </net>
+    <net code="8" name="Net-(D201-K)" class="Default">
+      <node ref="D201" pin="1" pinfunction="K" pintype="passive"/>
+      <node ref="R201" pin="2" pintype="passive"/>
+      <node ref="U201" pin="1" pintype="passive"/>
+    </net>
+    <net code="9" name="Net-(FB201-Pad2)" class="Default">
+      <node ref="FB201" pin="2" pintype="passive"/>
+      <node ref="R201" pin="1" pintype="passive"/>
+    </net>
+    <net code="10" name="Net-(J101-Pin_4)" class="Default">
+      <node ref="J101" pin="4" pinfunction="Pin_4" pintype="passive"/>
+      <node ref="R203" pin="2" pintype="passive"/>
+    </net>
+    <net code="11" name="Net-(R202-Pad2)" class="Default">
+      <node ref="R202" pin="2" pintype="passive"/>
+      <node ref="R203" pin="1" pintype="passive"/>
+      <node ref="U201" pin="4" pintype="output"/>
+    </net>
+    <net code="12" name="unconnected-(U201-Pad3)" class="Default">
+      <node ref="U201" pin="3" pintype="no_connect"/>
+    </net>
+  </nets>
+</export>

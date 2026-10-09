@@ -1,0 +1,11 @@
+{
+  "result": "PASS",
+  "fabrication_files": 12,
+  "zip_crc_and_contents_match": true,
+  "smt_placements": 0,
+  "plated_drill_and_outline_origin_match": true,
+  "nonplated_mounting_holes": 2,
+  "pcb_sha256": "72cd6ef330da77cfef0e4efc9e87425bea901ba99f4c06dd7e34ab371022f066",
+  "schematic_sha256": "32fdf2cae7299bf53a02bdff28429a12e3cbb7c22a5e83d4be5a45bb996662ac",
+  "bom_sha256": "1435fdfe6fc3e77078e1538cd430d0225a4be4f0385a7cf679f84b69d9b6ad29"
+}

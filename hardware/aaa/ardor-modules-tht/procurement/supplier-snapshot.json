@@ -1,0 +1,1225 @@
+{
+  "checked_on": "2026-10-09",
+  "scope": "T1 hand-assembly BOMs and accessories only; excludes M1 SMD production BOMs",
+  "audited_commit": "0c4af022026dd765e34e61d4f4fbc2dfaa6a2553",
+  "source_sha256": {
+    "expression/BOM.csv": "2d340ac8f14d97934d074b3e8978c821423deeb697fa3bffa2acf30020af1e1a",
+    "headphones/BOM.csv": "7ecd15074c9b57be9ae7bacbdd089d80e328f162e2cc6d9adb6287fe6270d7f0",
+    "line-out/BOM.csv": "abb9a10ce85d5a0916212a22a6c932d8e0e28450b089ad12d0285d8298105255",
+    "midi-in/BOM.csv": "1435fdfe6fc3e77078e1538cd430d0225a4be4f0385a7cf679f84b69d9b6ad29",
+    "mixer/BOM.csv": "c6e88661d900a6503bc73ac3b88dd3038439d291936b48ca0ff0ad57f6d07d34",
+    "expression/assembly/accessories.csv": "d98c684a3321d1501d4417b1fc65534ee9b5e883fede57c87406bda607d6babf",
+    "headphones/assembly/accessories.csv": "64e92e495a7070109cba7702471d68cb6c2c6978d0a29cc4c01297429c85ff04",
+    "line-out/assembly/accessories.csv": "36d510516285e314cc85a1f4d77ffbf59e5ae9e3c776075139f6c1c2474206af",
+    "midi-in/assembly/accessories.csv": "98ca7055938fb35e948fe81baef3f247a90029a02ade8b309d87b5636c8e3570",
+    "mixer/assembly/accessories.csv": "d49e331d37499d3f73d9d0b9fd3579742baa6e5ade470eb31ec9e35d30a73e2d"
+  },
+  "component_rows": 136,
+  "accessory_rows": 22,
+  "component_assessments": {
+    "PCB and electrical review required": 4,
+    "PCB and supplier confirmation required": 1,
+    "PCB change required": 11,
+    "compatible": 64,
+    "compatible brand replacement": 6,
+    "confirm dimensions": 24,
+    "confirm supplied identity": 4,
+    "exact part": 12,
+    "no verified THT replacement": 6,
+    "wire link": 4
+  },
+  "evidence_method": "Live Hestore product/search pages; manufacturer or module-supplier datasheets where linked. Missing listing means not found, not an assertion of discontinuation. No substitutions applied to CAD.",
+  "products": {
+    "10000167": {
+      "url": "https://www.hestore.hu/prod_10000167.html",
+      "listing": "CE-10/63PHT-Y",
+      "listing_description": "Kondenzátor, elektrolit, 10µF, 63V DC, 2.5mm, Ø6.3 x 11mm, -40...105°C",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "AISHI",
+        "Szerelés": "THT",
+        "Tolerancia": "±20%",
+        "A kondenzátor típusa": "elektrolit",
+        "Kapacitás": "10µF",
+        "Üzemi feszültség": "63V DC",
+        "Kivezetési raszter": "2.5mm",
+        "Üzemi hőmérséklet": "-40...105°C",
+        "Korpusz mérete": "Ø6.3 x 11mm, Ø6.3x11mm",
+        "Élettartam": "2000h",
+        "Raktáron": "> 500",
+        "3 munkanap": "> 25000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=10099"
+      ]
+    },
+    "10020482": {
+      "url": "https://www.hestore.hu/prod_10020482.html",
+      "listing": "33 R 1%",
+      "listing_description": "Fémréteg ellenállás 0,6W",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "ROYAL OHM",
+        "Teljesítmény": "0.6W",
+        "Ellenállás": "33Ω",
+        "Szerelés": "THT",
+        "Tolerancia": "±1%",
+        "Korpusz mérete": "Ø2.5 x 6.8mm, Ø2.5x6.8mm",
+        "Ellenállás típusa": "metal film",
+        "Max. üzemi feszültség": "250V",
+        "Hőmérsékleti tényező": "50ppm/°C",
+        "Huzalkivezetés mérete": "Ø0.6 x 28mm, Ø0.6x28mm",
+        "Kivezetések": "tengelyirányú",
+        "Raktáron": "> 150",
+        "3 munkanap": "> 4000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=3592"
+      ]
+    },
+    "10022166": {
+      "url": "https://www.hestore.hu/prod_10022166.html",
+      "listing": "1,5 KE 33 CA",
+      "listing_description": "Szupresszor dióda, bipoláris, 1500W",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "DIOTEC, LITTELFUSE (HAMLIN)",
+        "Tokozás": "DO201",
+        "Teljesítmény": "1.5kW",
+        "Dióda típusa": "TVS",
+        "Szerelés": "THT",
+        "Tolerancia": "±5%",
+        "Max ellenfeszültség": "28.2V",
+        "Fajta csomagolás": "tekercs, szalag",
+        "Félvezető elemek tulajdonságai": "glass passivated",
+        "Félvezető struktúra": "kétirányú",
+        "Szivárgási áram": "1µA",
+        "Letörési feszültség": "33V",
+        "Impulzusáram max.": "33.3A",
+        "Csomagolás fajtája": "tekercs, szalag",
+        "Teljesítmény elosztás": "1.5kW",
+        "Raktáron": "> 50",
+        "3 munkanap": "> 350"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=871"
+      ]
+    },
+    "10022238": {
+      "url": "https://www.hestore.hu/prod_10022238.html",
+      "listing": "BAT85",
+      "listing_description": "Schottky dióda, 200mA / 30V",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "VISHAY",
+        "Tokozás": "DO35",
+        "Dióda típusa": "Schottky egyenirányító",
+        "Szerelés": "THT",
+        "Max ellenfeszültség": "30V",
+        "Átvezetési feszültség If-nél": "320mV, 0.8V",
+        "Vezetési áram": "1mA, 0.2A",
+        "Max. vezetési áram": "200mA, 0.3A",
+        "Fajta csomagolás": "tekercs, szalag",
+        "Félvezető struktúra": "egyetlen dióda",
+        "Impulzusáram max.": "5A",
+        "Max. vezetési feszültség": "0.8V",
+        "Csomagolás fajtája": "tekercs, szalag",
+        "Raktáron": "> 250",
+        "3 munkanap": "> 15000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=785"
+      ]
+    },
+    "10022350": {
+      "url": "https://www.hestore.hu/prod_10022350.html",
+      "listing": "ACA-115",
+      "listing_description": "3,5 mm jack aljzat, stereo, beép.,  kapcs.",
+      "catalog_facts": {
+        "RoHS": "nem",
+        "Tokozás": "SK4EB",
+        "Csatlakozó": "aljzat",
+        "Csatlakozó típusa": "stereo, Jack 3.5mm",
+        "Csatlakozó fajta": "anya",
+        "Elektromos szerelés": "THT",
+        "Mechanikai szerelés": "panelre",
+        "forma": "kikapcsolóval",
+        "Raktáron": "> 10",
+        "3 munkanap": "> 10000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=6320"
+      ]
+    },
+    "10022362": {
+      "url": "https://www.hestore.hu/prod_10022362.html",
+      "listing": "ACA-116",
+      "listing_description": "6,3 mm kapcs. jack aljzat, mono, beép.",
+      "catalog_facts": {
+        "RoHS": "nem",
+        "Tokozás": "SK2EB",
+        "Csatlakozó": "aljzat",
+        "Csatlakozó típusa": "Jack 6,3mm, mono",
+        "Mechanikai szerelés": "panelre",
+        "Térbeli orientáció": "egyenes",
+        "Szerelőfurat átmérő": "10mm",
+        "forma": "kikapcsolóval, szétkapcsoló érintkezők",
+        "Raktáron": "> 5",
+        "3 munkanap": "> 1000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=19268"
+      ]
+    },
+    "10022369": {
+      "url": "https://www.hestore.hu/prod_10022369.html",
+      "listing": "ACA-124 SZT",
+      "listing_description": "6,3 mm jack aljzat, stereo, beépíthető, nyitott",
+      "catalog_facts": {
+        "RoHS": "nem",
+        "Gyártó": "NINIGI",
+        "Tokozás": "SK3E",
+        "Csatlakozó": "aljzat",
+        "Csatlakozó típusa": "stereo, Jack 6,3mm",
+        "Csatlakozó fajta": "anya",
+        "Mechanikai szerelés": "panelre",
+        "Szerelőfurat átmérő": "9mm",
+        "forma": "nyitott",
+        "Csatlakozó fajtája": "anya",
+        "Raktáron": "> 25",
+        "3 munkanap": "> 5000"
+      },
+      "datasheet_urls": []
+    },
+    "10023064": {
+      "url": "https://www.hestore.hu/prod_10023064.html",
+      "listing": "1N4148",
+      "listing_description": "Dióda, kapcsoló, 75V, 0.2A, egyetlen dióda, DO35",
+      "catalog_facts": {
+        "Gyártói jelölés": "1N4148",
+        "RoHS": "nem",
+        "Gyártó": "FAIRCHILD SEMICONDUCTOR, ON SEMICONDUCTOR (FAIRCHILD)",
+        "Tokozás": "DO35",
+        "Dióda típusa": "kapcsoló",
+        "Szerelés": "THT",
+        "Max ellenfeszültség": "75V",
+        "Átvezetési feszültség If-nél": "1V",
+        "Vezetési áram": "0.2A",
+        "Max. vezetési áram": "200mA",
+        "Újraéledési idő": "4ns",
+        "Fajta csomagolás": "szalag, Ammo Pack, ömlesztve",
+        "Kapacitás": "4pF",
+        "Félvezető elem típusa": "dióda",
+        "Félvezető struktúra": "egyetlen dióda",
+        "Impulzusáram max.": "1A",
+        "teljesítmény elosztás": "500mW",
+        "Max. vezetési feszültség": "1V",
+        "Csomagolás fajtája": "tekercs, szalag, Ammo Pack",
+        "Teljesítmény elosztás": "500mW",
+        "Raktáron": "> 10000",
+        "3 munkanap": "> 100000",
+        "10-15 munkanap": "> 100000"
+      },
+      "datasheet_urls": []
+    },
+    "10023131": {
+      "url": "https://www.hestore.hu/prod_10023131.html",
+      "listing": "DIL06",
+      "listing_description": "Lemezes IC foglalat (Low Cost)",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "NINIGI, CONNFLY",
+        "Tokozás": "SLC06",
+        "Csatlakozó": "Lemezes",
+        "Kivezetési raszter": "2.54mm",
+        "Pinek száma": "6",
+        "Elektromos szerelés": "THT",
+        "Sorok közötti raszter": "7.62mm",
+        "IC foglalat típusa": "DIP",
+        "Foglalatok tulajdonságai": "kétoldalról szorító lemez",
+        "Raktáron": "> 1000",
+        "3 munkanap": "> 15000",
+        "10-15 munkanap": "> 25000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=3992"
+      ]
+    },
+    "10023132": {
+      "url": "https://www.hestore.hu/prod_10023132.html",
+      "listing": "DIL08",
+      "listing_description": "Lemezes IC foglalat (Low Cost)",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "NINIGI, CONNFLY",
+        "Tokozás": "SLC08",
+        "Csatlakozó": "Lemezes",
+        "Kivezetési raszter": "2.54mm",
+        "Pinek száma": "8",
+        "Elektromos szerelés": "THT",
+        "Sorok közötti raszter": "7.62mm",
+        "IC foglalat típusa": "DIP",
+        "Foglalatok tulajdonságai": "kétoldalról szorító lemez",
+        "Raktáron": "> 1000",
+        "3 munkanap": "> 100000",
+        "10-15 munkanap": "> 100000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=3993"
+      ]
+    },
+    "10023472": {
+      "url": "https://www.hestore.hu/prod_10023472.html",
+      "listing": "100 nF / 50V",
+      "listing_description": "Multilayer kond. X7R, RM2,5",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Tokozás": "KDPU",
+        "Raktáron": "> 1000",
+        "3 munkanap": "> 7500",
+        "10-15 munkanap": "> 100000"
+      },
+      "datasheet_urls": []
+    },
+    "10024031": {
+      "url": "https://www.hestore.hu/prod_10024031.html",
+      "listing": "220 R 1%",
+      "listing_description": "Fémréteg ellenállás 0,4W",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "ROYAL OHM",
+        "Teljesítmény": "0.4W",
+        "Ellenállás": "220Ω",
+        "Szerelés": "THT",
+        "Tolerancia": "±1%",
+        "Korpusz mérete": "Ø1.9 x 3.7mm, Ø1.9x3.7mm",
+        "Ellenállás típusa": "metal film",
+        "Max. üzemi feszültség": "200V",
+        "Hőmérsékleti tényező": "50ppm/°C",
+        "Huzalkivezetés mérete": "Ø0.45 x 28mm, Ø0.45x28mm",
+        "Kivezetések": "tengelyirányú",
+        "Raktáron": "> 150",
+        "3 munkanap": "> 5000"
+      },
+      "datasheet_urls": []
+    },
+    "10024359": {
+      "url": "https://www.hestore.hu/prod_10024359.html",
+      "listing": "100 R 1%",
+      "listing_description": "Fémréteg ellenállás 0,4W",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "ROYAL OHM",
+        "Teljesítmény": "0.4W",
+        "Ellenállás": "100Ω",
+        "Szerelés": "THT",
+        "Tolerancia": "±1%",
+        "Korpusz mérete": "Ø1.9 x 3.7mm, Ø1.9x3.7mm",
+        "Ellenállás típusa": "metal film",
+        "Max. üzemi feszültség": "200V",
+        "Hőmérsékleti tényező": "50ppm/°C",
+        "Huzalkivezetés mérete": "Ø0.45 x 28mm, Ø0.45x28mm",
+        "Kivezetések": "tengelyirányú",
+        "Raktáron": "> 150",
+        "3 munkanap": "> 3000"
+      },
+      "datasheet_urls": []
+    },
+    "10024361": {
+      "url": "https://www.hestore.hu/prod_10024361.html",
+      "listing": "470 R 1%",
+      "listing_description": "Fémréteg ellenállás 0,4W",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "ROYAL OHM",
+        "Teljesítmény": "0.4W",
+        "Ellenállás": "470Ω",
+        "Szerelés": "THT",
+        "Tolerancia": "±1%",
+        "Korpusz mérete": "Ø1.9 x 3.7mm, Ø1.9x3.7mm",
+        "Ellenállás típusa": "metal film",
+        "Max. üzemi feszültség": "200V",
+        "Hőmérsékleti tényező": "50ppm/°C",
+        "Huzalkivezetés mérete": "Ø0.45 x 28mm, Ø0.45x28mm",
+        "Kivezetések": "tengelyirányú",
+        "Raktáron": "> 500",
+        "3 munkanap": "> 10000"
+      },
+      "datasheet_urls": []
+    },
+    "10024375": {
+      "url": "https://www.hestore.hu/prod_10024375.html",
+      "listing": "33 R 1%",
+      "listing_description": "Fémréteg ellenállás 0,4W",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Teljesítmény": "0.4W",
+        "Ellenállás": "33Ω",
+        "Szerelés": "THT",
+        "Tolerancia": "±1%",
+        "Ellenállás típusa": "metal film",
+        "Raktáron": "> 75",
+        "3 munkanap": "> 100"
+      },
+      "datasheet_urls": []
+    },
+    "10024383": {
+      "url": "https://www.hestore.hu/prod_10024383.html",
+      "listing": "10 R 1%",
+      "listing_description": "Fémréteg ellenállás 0,4W",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Teljesítmény": "0.4W",
+        "Ellenállás": "10Ω",
+        "Szerelés": "THT",
+        "Tolerancia": "±1%",
+        "Ellenállás típusa": "metal film",
+        "Raktáron": "> 450",
+        "3 munkanap": "> 7500"
+      },
+      "datasheet_urls": []
+    },
+    "10024386": {
+      "url": "https://www.hestore.hu/prod_10024386.html",
+      "listing": "1 K 1%",
+      "listing_description": "Fémréteg ellenállás 0,4W",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "ROYAL OHM",
+        "Teljesítmény": "0.4W",
+        "Ellenállás": "1kΩ",
+        "Szerelés": "THT",
+        "Tolerancia": "±1%",
+        "Korpusz mérete": "Ø1.9 x 3.7mm, Ø1.9x3.7mm",
+        "Ellenállás típusa": "metal film",
+        "Max. üzemi feszültség": "200V",
+        "Hőmérsékleti tényező": "50ppm/°C",
+        "Huzalkivezetés mérete": "Ø0.45 x 28mm, Ø0.45x28mm",
+        "Kivezetések": "tengelyirányú",
+        "Raktáron": "> 5000",
+        "3 munkanap": "> 20000"
+      },
+      "datasheet_urls": []
+    },
+    "10024393": {
+      "url": "https://www.hestore.hu/prod_10024393.html",
+      "listing": "2,2 K 1%",
+      "listing_description": "Fémréteg ellenállás 0,4W",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Teljesítmény": "0.4W",
+        "Ellenállás": "2.2kΩ",
+        "Szerelés": "THT",
+        "Tolerancia": "±1%",
+        "Ellenállás típusa": "metal film",
+        "Raktáron": "> 100",
+        "3 munkanap": "> 7500"
+      },
+      "datasheet_urls": []
+    },
+    "10024415": {
+      "url": "https://www.hestore.hu/prod_10024415.html",
+      "listing": "20 K 1%",
+      "listing_description": "Fémréteg ellenállás 0,4W",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Teljesítmény": "0.4W",
+        "Ellenállás": "20kΩ",
+        "Szerelés": "THT",
+        "Tolerancia": "±1%",
+        "Ellenállás típusa": "metal film",
+        "Raktáron": "> 500",
+        "3 munkanap": "> 7500"
+      },
+      "datasheet_urls": []
+    },
+    "10024431": {
+      "url": "https://www.hestore.hu/prod_10024431.html",
+      "listing": "100 K 1%",
+      "listing_description": "Fémréteg ellenállás 0,4W",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "ROYAL OHM",
+        "Teljesítmény": "0.4W",
+        "Ellenállás": "100kΩ",
+        "Szerelés": "THT",
+        "Tolerancia": "±1%",
+        "Korpusz mérete": "Ø1.9 x 3.7mm, Ø1.9x3.7mm",
+        "Ellenállás típusa": "metal film",
+        "Max. üzemi feszültség": "200V",
+        "Hőmérsékleti tényező": "50ppm/°C",
+        "Huzalkivezetés mérete": "Ø0.45 x 28mm, Ø0.45x28mm",
+        "Kivezetések": "tengelyirányú",
+        "Raktáron": "> 450",
+        "3 munkanap": "> 15000",
+        "10-15 munkanap": "> 5000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=5511"
+      ]
+    },
+    "10024455": {
+      "url": "https://www.hestore.hu/prod_10024455.html",
+      "listing": "1 M 1%",
+      "listing_description": "Fémréteg ellenállás 0,4W",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Teljesítmény": "0.4W",
+        "Ellenállás": "1MΩ",
+        "Szerelés": "THT",
+        "Tolerancia": "±1%",
+        "Ellenállás típusa": "metal film",
+        "Raktáron": "> 250",
+        "3 munkanap": "> 3000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=6233"
+      ]
+    },
+    "10025387": {
+      "url": "https://www.hestore.hu/prod_10025387.html",
+      "listing": "10 K 1%",
+      "listing_description": "Fémréteg ellenállás 0,4W",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "ROYAL OHM",
+        "Teljesítmény": "0.4W",
+        "Ellenállás": "10kΩ",
+        "Szerelés": "THT",
+        "Tolerancia": "±1%",
+        "Korpusz mérete": "Ø1.9 x 3.7mm, Ø1.9x3.7mm",
+        "Ellenállás típusa": "metal film",
+        "Max. üzemi feszültség": "200V",
+        "Hőmérsékleti tényező": "50ppm/°C",
+        "Huzalkivezetés mérete": "Ø0.45 x 28mm, Ø0.45x28mm",
+        "Kivezetések": "tengelyirányú",
+        "Raktáron": "> 2000",
+        "3 munkanap": "> 25000",
+        "10-15 munkanap": "> 10000"
+      },
+      "datasheet_urls": []
+    },
+    "10026161": {
+      "url": "https://www.hestore.hu/prod_10026161.html",
+      "listing": "ZL201-40G (WWS40G)",
+      "listing_description": "Tüskesor, egyenes, tördelhető, 40 pin",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "NINIGI, CONNFLY",
+        "Tipus": "tüske",
+        "Csatlakozó": "tűs sorkapocs",
+        "Pólus": "40",
+        "Orientáció": "egyenes",
+        "Csatlakozó típusa": "tüskés",
+        "Csatlakozó fajta": "apa",
+        "Pinek száma": "40",
+        "Elektromos szerelés": "THT",
+        "Térbeli orientáció": "egyenes",
+        "Érintkező raszter": "2.54mm",
+        "Csatlakozó kivezetésrendszer": "1x40",
+        "Érintkező bevonata": "gold flash",
+        "Huzalkivezetés mérete": "hossz 3mm",
+        "Csatlakozó fajtája": "apa",
+        "Raktáron": "> 10000",
+        "3 munkanap": "> 100000",
+        "10-15 munkanap": "> 100000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=4261"
+      ]
+    },
+    "10028058": {
+      "url": "https://www.hestore.hu/prod_10028058.html",
+      "listing": "ZL262-40SG",
+      "listing_description": "Tüskesor aljzat, egyenes, 40 pin",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "NINIGI, CONNFLY",
+        "Tipus": "aljzat",
+        "Csatlakozó": "aljzat",
+        "Pólus": "40",
+        "Orientáció": "egyenes",
+        "Csatlakozó típusa": "tüskés",
+        "Csatlakozó fajta": "anya",
+        "Pinek száma": "40",
+        "Elektromos szerelés": "THT",
+        "Térbeli orientáció": "egyenes",
+        "Érintkező raszter": "2.54mm",
+        "Csatlakozó kivezetésrendszer": "1x40",
+        "Érintkező bevonata": "aranyozott",
+        "Huzalkivezetés mérete": "hossz 3.2mm",
+        "Maximális áram": "3A",
+        "Magasság": "8.5mm",
+        "Csatlakozó fajtája": "anya",
+        "Raktáron": "> 350",
+        "3 munkanap": "> 10000",
+        "10-15 munkanap": "> 20000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=3272"
+      ]
+    },
+    "10028500": {
+      "url": "https://www.hestore.hu/prod_10028500.html",
+      "listing": "470uF/16V LOW ESR & IMP.",
+      "listing_description": "Kondenzátor, elektrolit, alacsony impendanciájú, 470µF, 16V, 3.5mm, hosszú élettartam, Ø8 x 12mm, -40...105°C",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "SAMXON",
+        "Impedancia": "130mΩ",
+        "Szerelés": "THT",
+        "Tolerancia": "±20%",
+        "A kondenzátor típusa": "elektrolit, alacsony impendanciájú",
+        "Kapacitás": "470µF",
+        "Üzemi feszültség": "16V, 16V DC",
+        "Kivezetési raszter": "3.5mm",
+        "Üzemi hőmérséklet": "-40...105°C",
+        "Korpusz mérete": "Ø8 x 12mm, Ø8x12mm",
+        "Élettartam": "7000h",
+        "A kondenzátor tulajdonságai": "hosszú élettartam",
+        "Fajta kondenzátor": "alacsony impendanciájú",
+        "Raktáron": "> 200",
+        "3 munkanap": "> 5000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=23888"
+      ]
+    },
+    "10029494": {
+      "url": "https://www.hestore.hu/prod_10029494.html",
+      "listing": "ZL262-6SG",
+      "listing_description": "Tüskesor aljzat, egyenes, 6 pin",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "NINIGI, CONNFLY",
+        "Tipus": "aljzat",
+        "Csatlakozó": "aljzat",
+        "Pólus": "6",
+        "Orientáció": "egyenes",
+        "Csatlakozó típusa": "tüskés",
+        "Csatlakozó fajta": "anya",
+        "Pinek száma": "6",
+        "Elektromos szerelés": "THT",
+        "Térbeli orientáció": "egyenes",
+        "Érintkező raszter": "2.54mm",
+        "Csatlakozó kivezetésrendszer": "1x6",
+        "Érintkező bevonata": "aranyozott",
+        "Huzalkivezetés mérete": "hossz 3.2mm",
+        "Maximális áram": "3A",
+        "Magasság": "8.5mm",
+        "Csatlakozó fajtája": "anya",
+        "Raktáron": "> 500",
+        "3 munkanap": "> 50000",
+        "10-15 munkanap": "> 100000"
+      },
+      "datasheet_urls": []
+    },
+    "10029601": {
+      "url": "https://www.hestore.hu/prod_10029601.html",
+      "listing": "100uF/25V LOW ESR & IMP",
+      "listing_description": "Kondenzátor, elektrolit, alacsony impendanciájú, 100µF, 25V, 2.5mm, alacsony impendancia, Ø6.3x12mm, -40...105°C",
+      "catalog_facts": {
+        "Gyártói jelölés": "GR107V025E11RR0VH4FP0",
+        "RoHS": "igen",
+        "Gyártó": "Chengxing",
+        "Impedancia": "220mΩ",
+        "Szerelés": "THT",
+        "Tolerancia": "±20%",
+        "A kondenzátor típusa": "elektrolit, alacsony impendanciájú",
+        "Kapacitás": "100µF",
+        "Üzemi feszültség": "25V, 25V DC",
+        "Kivezetési raszter": "2.5mm",
+        "Üzemi hőmérséklet": "-40...105°C",
+        "Korpusz mérete": "Ø6.3x12mm",
+        "Élettartam": "2000h",
+        "Kondenzátor magasság - tolerancia": "1.5mm",
+        "A kondenzátor tulajdonságai": "alacsony impendancia",
+        "Üzemóra": "2000h",
+        "Fajta kondenzátor": "alacsony impendanciájú",
+        "Raktáron": "> 2000",
+        "10-15 munkanap": "> 100000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=14069"
+      ]
+    },
+    "10030715": {
+      "url": "https://www.hestore.hu/prod_10030715.html",
+      "listing": "47 uF / 50V",
+      "listing_description": "Kondenzátor, elektrolit, 47µF, 50V DC, 2.5mm, alacsony impendanciájú, Ø6.3x11mm, -40...105°C",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "Elite",
+        "Szerelés": "THT",
+        "Tolerancia": "±20%",
+        "A kondenzátor típusa": "elektrolit",
+        "Kapacitás": "47µF",
+        "Üzemi feszültség": "50V DC",
+        "Kivezetési raszter": "2.5mm",
+        "Üzemi hőmérséklet": "-40...105°C",
+        "Korpusz mérete": "Ø6.3x11mm",
+        "Élettartam": "2000h",
+        "Kondenzátorsorozat": "PF",
+        "A kondenzátor tulajdonságai": "alacsony impendanciájú",
+        "Raktáron": "> 350",
+        "3 munkanap": "> 10000"
+      },
+      "datasheet_urls": []
+    },
+    "10032786": {
+      "url": "https://www.hestore.hu/prod_10032786.html",
+      "listing": "LCBB-601 SMD",
+      "listing_description": "Ferrit gyöngy smd 0805, 2A",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "FERROCORE, YAGEO",
+        "Tokozás": "0805",
+        "Ellenállás": "100mΩ",
+        "Szerelés": "SMD",
+        "Üzemi áram": "2A",
+        "Ferrit típusa": "gyöngy",
+        "Impedancia 100MHz-nél": "600Ω",
+        "Raktáron": "> 350",
+        "10-15 munkanap": "> 100000"
+      },
+      "datasheet_urls": []
+    },
+    "10034426": {
+      "url": "https://www.hestore.hu/prod_10034426.html",
+      "listing": "G5V2-H1-5",
+      "listing_description": "Relé, DPDT, 5V DC, 1 A / 24 VDC, 0.5A / 125V AC",
+      "catalog_facts": {
+        "Gyártói jelölés": "G5V-2-H1 5VDC",
+        "RoHS": "igen",
+        "Gyártó": "OMRON OCB",
+        "Szerelés": "PCB",
+        "Kivezetési raszter": "5mm",
+        "Üzemi hőmérséklet": "-25...70°C",
+        "Külső méretek": "20.5x10.1x11.5mm",
+        "Érintkező bevonata": "aranyozott",
+        "Érintkezők DC terhelhetősége": "1 A / 24 VDC",
+        "Érintkező konfiguráció": "DPDT",
+        "Relé típusa": "elektromágneses",
+        "Tekercs névleges feszültsége": "5V DC",
+        "Max. érintkezőáram": "2A",
+        "Átkapcsolási feszültség": "max. 125V AC",
+        "Reléverzió": "miniatűr",
+        "Tekercs ellenállása": "166.7Ω",
+        "Kapcsolás ideje": "7ms",
+        "Visszakapcsolás ideje": "3ms",
+        "Tekercs teljesítményfelvétele": "150mW",
+        "Relé sorozata": "G5V-2",
+        "Érintkezők ellenállása": "100mΩ",
+        "Tekercsáram": "30mA",
+        "Érintkezők AC terhelhetősége @R": "0.5A / 125V AC",
+        "Hangszóró mérete": "PCB",
+        "Raktáron": "> 15",
+        "3 munkanap": "> 7500"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=7572"
+      ]
+    },
+    "10034608": {
+      "url": "https://www.hestore.hu/prod_10034608.html",
+      "listing": "ZL202-6G (DS1021-2*3SF1-1)",
+      "listing_description": "Tüskesor egyenes 2x3 pin, 2.54mm",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "CONNFLY",
+        "Tipus": "tüske",
+        "Csatlakozó": "tűs sorkapocs",
+        "Pólus": "2×3",
+        "Orientáció": "egyenes",
+        "Csatlakozó típusa": "tüskés",
+        "Csatlakozó fajta": "apa",
+        "Pinek száma": "6",
+        "Elektromos szerelés": "THT",
+        "Térbeli orientáció": "egyenes",
+        "Érintkező raszter": "2.54mm",
+        "Csatlakozó kivezetésrendszer": "2x3",
+        "Érintkező bevonata": "gold flash",
+        "Huzalkivezetés mérete": "hossz 3mm",
+        "Csatlakozó fajtája": "apa",
+        "Raktáron": "> 150",
+        "3 munkanap": "> 50000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=7673"
+      ]
+    },
+    "10035857": {
+      "url": "https://www.hestore.hu/prod_10035857.html",
+      "listing": "22uF / 63V",
+      "listing_description": "Kondenzátor, elektrolit, 22µF, 63V DC, 2.5mm, alacsony impendanciájú, Ø6.3x11mm, -40...105°C",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Szerelés": "THT",
+        "Tolerancia": "±20%",
+        "A kondenzátor típusa": "elektrolit",
+        "Kapacitás": "22µF",
+        "Üzemi feszültség": "63V DC",
+        "Kivezetési raszter": "2.5mm",
+        "Üzemi hőmérséklet": "-40...105°C",
+        "Korpusz mérete": "Ø6.3x11mm",
+        "A kondenzátor tulajdonságai": "alacsony impendanciájú",
+        "Raktáron": "> 250",
+        "3 munkanap": "> 10",
+        "10-15 munkanap": "> 25000"
+      },
+      "datasheet_urls": []
+    },
+    "10036639": {
+      "url": "https://www.hestore.hu/prod_10036639.html",
+      "listing": "118-RD 1x0,14 10m",
+      "listing_description": "Vezeték, sodrat, Cu, 1 x 0.14mm2, piros",
+      "catalog_facts": {
+        "Gyártói jelölés": "118-0",
+        "RoHS": "nem",
+        "Gyártó": "DONAU ELEKTRONIK",
+        "Keresztmetszet": "1 x 0.14mm2",
+        "Szigetelés színe": "piros",
+        "Fajta ér": "Cu",
+        "Az ér felépítése": "sodrat",
+        "Raktáron": "> 2",
+        "10-15 munkanap": "> 350"
+      },
+      "datasheet_urls": []
+    },
+    "10037299": {
+      "url": "https://www.hestore.hu/prod_10037299.html",
+      "listing": "MCP6022-I/P",
+      "listing_description": "Műveleti erősítő 2x, 10 MHz, rail-to-rail",
+      "catalog_facts": {
+        "Gyártó": "MICROCHIP TECHNOLOGY",
+        "Tokozás": "DIP8",
+        "Szerelés": "THT",
+        "Üzemi feszültség": "2.5...5.5V",
+        "Az integrált áramkör típusa": "műveleti erősítő",
+        "Csatornák száma": "2",
+        "Integrált áramkör tulajdonságai": "rail-to-rail",
+        "Átviteli sáv": "10MHz",
+        "Feszültségnövekedés sebessége": "7V/μs",
+        "Erősítés": "110dB",
+        "Nyugalmi áramfelvétel": "1.35mA",
+        "Bemeneti offszet feszültség": "250µV",
+        "Raktáron": "> 5",
+        "3 munkanap": "> 5000",
+        "10-15 munkanap": "> 200"
+      },
+      "datasheet_urls": []
+    },
+    "10040560": {
+      "url": "https://www.hestore.hu/prod_10040560.html",
+      "listing": "M2X10/DR111",
+      "listing_description": "Fém távtartó H=10",
+      "catalog_facts": {
+        "Gyártói jelölés": "111X10",
+        "RoHS": "igen",
+        "Gyártó": "DREMEC",
+        "Anyag": "sárgaréz",
+        "Távtartó elem típusa": "menetes távtartó hüvely",
+        "Belső menet": "M2",
+        "A távtartó elem hossza": "10mm",
+        "Hüvely alakja": "hatszögletű",
+        "Bevonat anyaga": "nikkel",
+        "Kulcs mérete": "4mm",
+        "Mechanikus elemek tulajdonságai": "kétoldalú belső menettel",
+        "Menet hosszúsága": "10mm",
+        "Raktáron": "> 50",
+        "3 munkanap": "> 2000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=11842"
+      ]
+    },
+    "10041447": {
+      "url": "https://www.hestore.hu/prod_10041447.html",
+      "listing": "2N3904-SEM",
+      "listing_description": "Tranzisztor, NPN, 40V, 200mA, bipoláris, TO92",
+      "catalog_facts": {
+        "Gyártói jelölés": "2N3904",
+        "RoHS": "igen",
+        "Gyártó": "SEMTECH",
+        "Tokozás": "TO92",
+        "Frekvencia": "300MHz",
+        "Teljesítmény": "360mW",
+        "Szerelés": "THT",
+        "Tranzisztor típusa": "NPN",
+        "Polaritás": "bipoláris",
+        "kollektor - emitter feszültség": "40V",
+        "Kollektoráram": "200mA",
+        "Csomagolás fajtája": "Ammo Pack",
+        "Teljesítmény elosztás": "625mW",
+        "Raktáron": "> 20",
+        "10-15 munkanap": "> 10000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=14196"
+      ]
+    },
+    "10041522": {
+      "url": "https://www.hestore.hu/prod_10041522.html",
+      "listing": "G5V-1 5VDC",
+      "listing_description": "Relé, SPDT, 5V DC, 0.5A / 125V AC, 1A / 24V DC",
+      "catalog_facts": {
+        "Gyártói jelölés": "G5V-1 5VDC",
+        "Gyártó": "OMRON OCB",
+        "Szerelés": "PCB",
+        "Kivezetési raszter": "2.54mm",
+        "Üzemi hőmérséklet": "-30...70°C",
+        "Korpusz mérete": "12.5x7.5x10mm",
+        "Külső méretek": "12.5x7.5x10mm",
+        "Érintkező konfiguráció": "SPDT",
+        "Relé típusa": "elektromágneses",
+        "Tekercs névleges feszültsége": "5V DC",
+        "Max. érintkezőáram": "1A",
+        "Átkapcsolási feszültség": "max. 60V DC, max. 125V AC",
+        "Reléverzió": "szubminiatűr",
+        "Tekercs ellenállása": "166.7Ω",
+        "Tekercs teljesítményfelvétele": "150mW",
+        "Relé sorozata": "G5V-1",
+        "Érintkezők ellenállása": "100mΩ",
+        "Tekercsáram": "30mA",
+        "Érintkezők DC terhelhetősége @R": "1A / 24V DC",
+        "Érintkezők AC terhelhetősége @R": "0.5A / 125V AC",
+        "Raktáron": "> 3",
+        "3 munkanap": "> 15000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=12901"
+      ]
+    },
+    "10041798": {
+      "url": "https://www.hestore.hu/prod_10041798.html",
+      "listing": "ADS1115-M",
+      "listing_description": "16 bites analog-digital konverter modul, I2C",
+      "catalog_facts": {
+        "Üzemi hőmérséklet": "-40...125°C",
+        "A mintavétel sebessége": "860SPS",
+        "Interfész": "I2C",
+        "Bemenetek száma": "4 single-ended, 2 differential",
+        "Tápfeszültség tartomány": "2...5.5V",
+        "Raktáron": "> 450",
+        "10-15 munkanap": "> 2000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=13057",
+        "https://www.hestore.hu/prod_getfile.php?id=13058",
+        "https://www.hestore.hu/prod_getfile.php?id=16090"
+      ]
+    },
+    "10041805": {
+      "url": "https://www.hestore.hu/prod_10041805.html",
+      "listing": "JUMPER-BLK",
+      "listing_description": "Fekete, nyitott végű jumper, 2.54mm raszter",
+      "catalog_facts": {
+        "Csatlakozó": "kapocs",
+        "Szín": "fekete",
+        "Csatlakozó típusa": "nyitott",
+        "Érintkező raszter": "2.54mm",
+        "Csatlakozó kivezetésrendszer": "1x2",
+        "Magasság": "6mm",
+        "Csatlakozó fajtája": "anya",
+        "Raktáron": "> 2000",
+        "10-15 munkanap": "> 2000"
+      },
+      "datasheet_urls": []
+    },
+    "10043071": {
+      "url": "https://www.hestore.hu/prod_10043071.html",
+      "listing": "1.5KE6.8CA",
+      "listing_description": "Szupresszor dióda, TVS, 1500W,",
+      "catalog_facts": {
+        "Gyártói jelölés": "1.5KE6.8CA",
+        "RoHS": "igen",
+        "Gyártó": "DC COMPONENTS",
+        "Tokozás": "DO201AE",
+        "Dióda típusa": "TVS",
+        "Szerelés": "THT",
+        "Tolerancia": "±5%",
+        "Max ellenfeszültség": "6.8V",
+        "Fajta csomagolás": "Ammo Pack",
+        "Félvezető elemek tulajdonságai": "glass passivated",
+        "Félvezető struktúra": "kétirányú",
+        "Szivárgási áram": "2mA",
+        "Letörési feszültség": "6.45...7.14V",
+        "Impulzusáram max.": "143A",
+        "teljesítmény elosztás": "1.5kW",
+        "Raktáron": "> 100",
+        "3 munkanap": "> 5000"
+      },
+      "datasheet_urls": []
+    },
+    "10043196": {
+      "url": "https://www.hestore.hu/prod_10043196.html",
+      "listing": "DZ-M2-BB-10",
+      "listing_description": "Réz távtartó, BB típus, M2, 10mm",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Anyag": "fém, sárgaréz",
+        "Kivitel": "BB",
+        "Menet": "M2",
+        "Távtartó elem típusa": "menetes távtartó hüvely",
+        "Belső menet": "M2",
+        "A távtartó elem hossza": "10mm",
+        "Hüvely alakja": "hengeres",
+        "Bevonat anyaga": "nincs",
+        "Mechanikus elemek tulajdonságai": "kétoldalú belső menettel",
+        "Menet hosszúsága": "10mm",
+        "Raktáron": "> 250",
+        "10-15 munkanap": "> 20000"
+      },
+      "datasheet_urls": []
+    },
+    "10043421": {
+      "url": "https://www.hestore.hu/prod_10043421.html",
+      "listing": "DIN-5P-180",
+      "listing_description": "5 pólusú tuchel aljzat, 180°",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Csatlakozó": "aljzat",
+        "Csatlakozó típusa": "DIN",
+        "Csatlakozó fajta": "anya",
+        "Pinek száma": "5",
+        "Elektromos szerelés": "forrasztás",
+        "Mechanikai szerelés": "panelre, csavarható",
+        "Csatlakozó kivezetésrendszer": "180°",
+        "Raktáron": "> 20",
+        "3 munkanap": "> 100"
+      },
+      "datasheet_urls": []
+    },
+    "10043531": {
+      "url": "https://www.hestore.hu/prod_10043531.html",
+      "listing": "H11L1",
+      "listing_description": "Optocsatoló, 1 csatorna, Schmitt trigger, THT, DIP6",
+      "catalog_facts": {
+        "Gyártói jelölés": "H11L1",
+        "RoHS": "igen",
+        "Gyártó": "EVERLIGHT",
+        "Tokozás": "DIP6",
+        "Szerelés": "THT",
+        "Csatornák száma": "1",
+        "Félvezető elem típusa": "optocsatoló",
+        "Fajta kimenet": "Schmitt trigger",
+        "Szigetelés feszültsége": "5kV",
+        "Optocsatoló típusa": "optocsatoló",
+        "Raktáron": "> 3",
+        "3 munkanap": "> 500",
+        "10-15 munkanap": "> 5000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=14421"
+      ]
+    },
+    "10043729": {
+      "url": "https://www.hestore.hu/prod_10043729.html",
+      "listing": "OPA1656ID",
+      "listing_description": "Műveleti erősítő, 53MHz, 2 csatorna, ±2.25...18V DC, 4.5...36V DC, SO8",
+      "catalog_facts": {
+        "Gyártói jelölés": "OPA1656ID",
+        "RoHS": "igen",
+        "Gyártó": "TEXAS INSTRUMENTS",
+        "Tokozás": "SO8",
+        "Szerelés": "SMT",
+        "Üzemi hőmérséklet": "-40...125°C",
+        "Az integrált áramkör típusa": "műveleti erősítő",
+        "Csatornák száma": "2",
+        "Átviteli sáv": "53MHz",
+        "Feszültségnövekedés sebessége": "24V/μs",
+        "Tápfeszültség tartomány": "4.5...36V DC, ± 2.25...18V DC",
+        "Raktáron": "> 10",
+        "3 munkanap": "> 1000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=14776"
+      ]
+    },
+    "10043952": {
+      "url": "https://www.hestore.hu/prod_10043952.html",
+      "listing": "YI321611U101-4R0T",
+      "listing_description": "Ferrit gyöngy, SMD 1206, 4A, 30mΩ",
+      "catalog_facts": {
+        "Gyártói jelölés": "YI321611U101-4R0T",
+        "RoHS": "igen",
+        "Tokozás": "1206",
+        "Tolerancia": "±25%",
+        "Üzemi áram": "4A",
+        "Impedancia 100MHz-nél": "100Ω",
+        "Raktáron": "> 100",
+        "10-15 munkanap": "> 25000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=14924"
+      ]
+    },
+    "10044815": {
+      "url": "https://www.hestore.hu/prod_10044815.html",
+      "listing": "100nF / 50V RM5",
+      "listing_description": "Multilayer kond. X7R, RM5",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Tokozás": "KDPU",
+        "Szerelés": "THT",
+        "A kondenzátor típusa": "MLCC",
+        "Kapacitás": "100nF",
+        "Üzemi feszültség": "50V",
+        "Kivezetési raszter": "5mm",
+        "Raktáron": "> 5000",
+        "10-15 munkanap": "> 2000"
+      },
+      "datasheet_urls": []
+    },
+    "10044974": {
+      "url": "https://www.hestore.hu/prod_10044974.html",
+      "listing": "CCH-100P/1000V",
+      "listing_description": "Kerámia kondenzátor, 100pF, 1kV, ±10%, THT, RM5mm",
+      "catalog_facts": {
+        "Gyártói jelölés": "CCH-100P/1000V",
+        "RoHS": "igen",
+        "Gyártó": "SR PASSIVES",
+        "Szerelés": "THT",
+        "Tolerancia": "±10%",
+        "A kondenzátor típusa": "kerámia",
+        "Kapacitás": "100pF",
+        "Üzemi feszültség": "1kV",
+        "Dielektrikum": "SL",
+        "Kivezetési raszter": "5mm",
+        "Raktáron": "> 500",
+        "3 munkanap": "> 15000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=15898"
+      ]
+    },
+    "10046156": {
+      "url": "https://www.hestore.hu/prod_10046156.html",
+      "listing": "SMDJ24CA",
+      "listing_description": "Dióda, TVS, 24V, kétirányú, SMD, DO214AB",
+      "catalog_facts": {
+        "Gyártói jelölés": "SMDJ24CA",
+        "RoHS": "igen",
+        "Gyártó": "LITTELFUSE (HAMLIN)",
+        "Tokozás": "DO214AB",
+        "Dióda típusa": "TVS",
+        "Szerelés": "SMD",
+        "Tolerancia": "±5%",
+        "Max ellenfeszültség": "24V",
+        "Fajta csomagolás": "tekercs, szalag",
+        "Félvezető elemek tulajdonságai": "glass passivated",
+        "Félvezető struktúra": "kétirányú",
+        "Szivárgási áram": "2µA",
+        "Letörési feszültség": "28,1V",
+        "Impulzusáram max.": "77,1A",
+        "Csúcs impulzusteljesítmény disszipáció": "3kW",
+        "Raktáron": "> 3",
+        "3 munkanap": "> 2500",
+        "10-15 munkanap": "> 5000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=16974"
+      ]
+    },
+    "10046691": {
+      "url": "https://www.hestore.hu/prod_10046691.html",
+      "listing": "ECEA1EN220XI",
+      "listing_description": "Kondenzátor, elektrolit, bipoláris, 22µF, 25V DC, Ø5x11mm, 2.5mm",
+      "catalog_facts": {
+        "Gyártói jelölés": "ECEA1EN220XI",
+        "RoHS": "igen",
+        "Gyártó": "PANASONIC",
+        "Széria": "SU",
+        "Szerelés": "THT",
+        "Tolerancia": "±20%",
+        "A kondenzátor típusa": "elektrolit",
+        "Kapacitás": "22µF",
+        "Üzemi feszültség": "25V DC",
+        "Kivezetési raszter": "2.5mm",
+        "Üzemi hőmérséklet": "-40...85°C",
+        "Korpusz mérete": "Ø5x11mm",
+        "Élettartam": "2000h",
+        "Üzemi áram": "60mA",
+        "Fajta kondenzátor": "bipoláris",
+        "Raktáron": "> 10",
+        "3 munkanap": "> 25"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=17529"
+      ]
+    },
+    "10051676": {
+      "url": "https://www.hestore.hu/prod_10051676.html",
+      "listing": "ADS1115-M2MINI",
+      "listing_description": "ADS1115 alapú, I2C-s 16 bites ADC modul, programozható erősítővel, 4 csatornás, 2.0V-5.5V",
+      "catalog_facts": {
+        "Raktáron": "> 100",
+        "10-15 munkanap": "> 2000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=23840"
+      ]
+    },
+    "10051822": {
+      "url": "https://www.hestore.hu/prod_10051822.html",
+      "listing": "NYLON-SCREW-KIT",
+      "listing_description": "Csavar készlet Raspberry Pi-hez, műanyag, M3, M2.5, fekete",
+      "catalog_facts": {
+        "Raktáron": "> 5",
+        "10-15 munkanap": "> 2000"
+      },
+      "datasheet_urls": []
+    },
+    "10052469": {
+      "url": "https://www.hestore.hu/prod_10052469.html",
+      "listing": "UES1H100MPM",
+      "listing_description": "Kondenzátor, elektrolit, bipoláris, 10µF, 50V DC, Ø8x11.5mm, 3.5mm",
+      "catalog_facts": {
+        "Gyártói jelölés": "UES1H100MPM",
+        "RoHS": "igen",
+        "Gyártó": "NICHICON",
+        "Átmérő": "8mm",
+        "Széria": "MUSE acoustic",
+        "Szerelés": "THT",
+        "Tolerancia": "±20%",
+        "A kondenzátor típusa": "elektrolit",
+        "Kapacitás": "10µF",
+        "Üzemi feszültség": "50V DC",
+        "Kivezetési raszter": "3.5mm",
+        "Üzemi hőmérséklet": "-40...85°C",
+        "Korpusz mérete": "Ø8x11.5mm",
+        "Élettartam": "1000h",
+        "A kondenzátorok alkalamzása": "audio készülékek",
+        "Magasság": "11.5mm",
+        "Fajta kondenzátor": "bipoláris",
+        "3 munkanap": "> 15000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=24516"
+      ]
+    },
+    "10052526": {
+      "url": "https://www.hestore.hu/prod_10052526.html",
+      "listing": "CT40805N101J500F3R",
+      "listing_description": "Kerámia kondenzátor, 100pF, 50V, C0G (NP0), ±5%, THT, 5mm",
+      "catalog_facts": {
+        "Gyártói jelölés": "CT40805N101J500F3R",
+        "RoHS": "igen",
+        "Gyártó": "SR PASSIVES",
+        "Szerelés": "THT",
+        "Tolerancia": "±5%",
+        "A kondenzátor típusa": "kerámia",
+        "Kapacitás": "0,1nF",
+        "Üzemi feszültség": "50V",
+        "Dielektrikum": "C0G",
+        "Kivezetési raszter": "5mm",
+        "Üzemi hőmérséklet": "-55...125°C",
+        "Raktáron": "> 500",
+        "3 munkanap": "> 10000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=24624"
+      ]
+    }
+  }
+}
