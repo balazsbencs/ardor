@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 
 namespace ardor::lvgl_ui::lb {
 namespace {
@@ -378,6 +379,19 @@ std::string editIdentityText(const UiState& state)
   return "PRESET " + std::to_string(state.activePreset + 1) + "  " + uppercase(preset.name);
 }
 
+std::string headerTelemetryText(const UiState& state)
+{
+  char value[96]{};
+  const double latencyMs = static_cast<double>(state.settings.audioBlockSize) / 48.0;
+  if (state.telemetry.budgetMs <= 0.0) {
+    std::snprintf(value, sizeof(value), "%.2f MS", latencyMs);
+  } else {
+    const double used = std::clamp(100.0 - state.telemetry.bufferFreePercent, 0.0, 100.0);
+    std::snprintf(value, sizeof(value), "%.2f MS  \xC2\xB7  BUFFER %.0f%%", latencyMs, used);
+  }
+  return value;
+}
+
 std::string editCountText(const UiState& state)
 {
   const auto count = state.bank.presets[state.activePreset].blocks.size();
@@ -392,7 +406,8 @@ void placeModifiedTag(lv_obj_t* identity, lv_obj_t* tag)
 {
   if (!identity || !tag) return;
   lv_obj_set_x(tag, lv_obj_get_style_x(identity, LV_PART_MAIN)
-                 + textWidth(type::headerSub, lv_label_get_text(identity)) + 20);
+                 + std::min(textWidth(type::headerSub, lv_label_get_text(identity)),
+                            lv_obj_get_style_width(identity, LV_PART_MAIN)) + 20);
 }
 
 } // namespace ardor::lvgl_ui::lb

@@ -31,6 +31,8 @@ Environment:
                          when deliberately reusing Buildroot's stamped output.
   ARDOR_SPLASH_LOCAL     Existing splash binary when ARDOR_SKIP_BUILD=1.
   ARDOR_LOCAL_AUTH       on, off, or preserve. Default: on
+  TONE3000_CLIENT_ID     Override the device's TONE3000 client ID. Defaults to
+                         its existing ID, or the firmware default if missing.
   ARDOR_SERVICE_LOCAL    Local pedal supervisor script. Defaults to the
                          Buildroot package's S99ardor-pedal.
   ARDOR_CA_BUNDLE_LOCAL  PEM bundle uploaded for manager HTTPS trust. Default:
@@ -105,6 +107,7 @@ tone3000_client_id="${TONE3000_CLIENT_ID:-}"
 # empty argument. Use a sentinel so the optional client ID cannot shift every
 # positional argument that follows it in the remote installer.
 tone3000_client_id_arg="${tone3000_client_id:-__ARDOR_TONE3000_CLIENT_ID_UNSET__}"
+tone3000_default_client_id=$(sed -n 's/^TONE3000_CLIENT_ID=//p' "$repo_dir/buildroot/external/board/ardor-pedal/rootfs-overlay/etc/ardor-managerd.env")
 tone3000_base_url="${TONE3000_BASE_URL:-https://www.tone3000.com}"
 ca_bundle_local="${ARDOR_CA_BUNDLE_LOCAL:-/etc/ssl/certs/ca-certificates.crt}"
 ca_bundle_remote_tmp="${ARDOR_CA_BUNDLE_REMOTE_TMP:-/tmp/ca-certificates.crt.new}"
@@ -340,7 +343,7 @@ ssh $ssh_opts -o "ControlPath=$ssh_control_path" "$ssh_target" 'sh -s' \
   "$wah_table_remote_tmp" "$wah_table_target" "$managerd_service_remote_tmp" \
   "$tone3000_client_id_arg" "$tone3000_base_url" "$ca_bundle_remote_tmp" "$ca_bundle_target" \
   "$splash_remote_tmp" "$splash_target" "$splash_service_remote_tmp" "$splash_service" \
-  "$splash_art_remote_tmp" "$splash_art_target" <<'REMOTE'
+  "$splash_art_remote_tmp" "$splash_art_target" "$tone3000_default_client_id" <<'REMOTE'
 set -eu
 
 pedal_remote_tmp=$1
@@ -357,7 +360,6 @@ wah_table_remote_tmp=$1
 wah_table_target=$2
 managerd_service_remote_tmp=$3
 tone3000_client_id=$4
-[ "$tone3000_client_id" != "__ARDOR_TONE3000_CLIENT_ID_UNSET__" ] || tone3000_client_id=
 tone3000_base_url=$5
 ca_bundle_remote_tmp=$6
 ca_bundle_target=$7
@@ -368,6 +370,7 @@ splash_service_remote_tmp=$3
 splash_service=$4
 splash_art_remote_tmp=$5
 splash_art_target=$6
+tone3000_default_client_id=$7
 remounted=0
 
 cleanup() {
@@ -418,12 +421,24 @@ mv "$ca_bundle_target.new" "$ca_bundle_target"
 if [ "$local_auth" != "preserve" ]; then
   env_tmp="$managerd_env.new"
   if [ -f "$managerd_env" ]; then
-    sed '/^ARDOR_API_AUTH=/d; /^ARDOR_API_TOKEN=/d; /^TONE3000_CLIENT_ID=/d; /^TONE3000_BASE_URL=/d' "$managerd_env" > "$env_tmp"
+    sed '/^ARDOR_API_AUTH=/d; /^ARDOR_API_TOKEN=/d' "$managerd_env" > "$env_tmp"
   else
     : > "$env_tmp"
   fi
   echo "ARDOR_API_AUTH=$local_auth" >> "$env_tmp"
+  if [ "$tone3000_client_id" = "__ARDOR_TONE3000_CLIENT_ID_UNSET__" ]; then
+    # Keep custom integrations across routine UI/binary deployments. Repair
+    # devices whose client ID was removed by an earlier deployment.
+    existing_client_id=$(sed -n 's/^TONE3000_CLIENT_ID=//p' "$env_tmp")
+    if [ -n "$existing_client_id" ]; then
+      tone3000_client_id=
+    else
+      tone3000_client_id=$tone3000_default_client_id
+    fi
+  fi
   if [ -n "$tone3000_client_id" ]; then
+    sed '/^TONE3000_CLIENT_ID=/d; /^TONE3000_BASE_URL=/d' "$env_tmp" > "$env_tmp.tone3000"
+    mv "$env_tmp.tone3000" "$env_tmp"
     echo "TONE3000_CLIENT_ID=$tone3000_client_id" >> "$env_tmp"
     echo "TONE3000_BASE_URL=$tone3000_base_url" >> "$env_tmp"
   fi
