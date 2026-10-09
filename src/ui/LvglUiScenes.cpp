@@ -150,7 +150,7 @@ void LvglUi::renderScenesMode(lv_obj_t* root, UiState& state)
     lv_obj_remove_flag(header, LV_OBJ_FLAG_SCROLLABLE);
     sceneHeaderStrips_[index] = header;
     sceneHeaderLabels_[index] = lb::textLabel(header, lb::type::footswitch,
-                                              "FS " + std::to_string(index + 1), disabled,
+                                              (actions_.showDeviceStatus ? "FS " : "SCENE ") + std::to_string(index + 1), disabled,
                                               kTilePadX - 1, kFootswitchTop - 1);
     sceneDetailLabels_[index] = lb::textLabel(card, lb::type::controlLabel, sceneDetail(scene),
                                               muted, kTilePadX - 1, kDetailTop - 1);
@@ -171,11 +171,11 @@ void LvglUi::renderScenesMode(lv_obj_t* root, UiState& state)
     x += lv_obj_get_style_width(control, LV_PART_MAIN) + lb::kGap;
   };
   railButton("EDIT", lb::ButtonKind::Primary, onSceneEditClicked);
-  railButton("TUNER", lb::ButtonKind::Normal, onSceneTunerClicked);
-  railButton("LOOPER", lb::ButtonKind::Normal, onSceneLooperClicked);
+  if (actions_.showTuner) railButton("TUNER", lb::ButtonKind::Normal, onSceneTunerClicked);
+  if (actions_.showLooper) railButton("LOOPER", lb::ButtonKind::Normal, onSceneLooperClicked);
   railButton("PRESETS", lb::ButtonKind::Normal, onPresetsClicked);
   scenesFaultLabel_ = lb::textLabel(root, lb::type::legend, "", dangerText, x + 8, 653);
-  lb::masterReadout(root, state.masterVolume);
+  if (actions_.showDeviceStatus) lb::masterReadout(root, state.masterVolume);
   syncScenesView(state);
 }
 
@@ -208,7 +208,7 @@ void LvglUi::syncScenesView(const UiState& state)
     const bool pending = state.scenes.pending && state.scenes.destinationScene == index;
     const bool live = !state.scenes.transitioning && !state.scenes.pending
       && state.scenes.currentScene == index;
-    std::string header = "FS " + std::to_string(index + 1);
+    std::string header = (actions_.showDeviceStatus ? "FS " : "SCENE ") + std::to_string(index + 1);
     if (live) header += "  ·  LIVE";
     else if (goingTo) header += "  ·  GOING TO";
     else if (pending) header += "  ·  PENDING";

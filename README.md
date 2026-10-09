@@ -256,6 +256,18 @@ Primary executables include:
 - `build-sdl/pedal-ui-sim` — desktop-only LVGL simulator
 - `build-sdl/audio-probe` — audio-device probe
 
+An opt-in standalone desktop application is being developed for Mac first.
+Configure with `-DARDOR_BUILD_DESKTOP=ON` and the SDL backend to build
+`ardor-desktop` (`Ardor.app` on Mac). See the
+[desktop prototype instructions](apps/ardor-desktop/README.md) for audio setup,
+user-library storage, validation, and current limitations.
+
+The full-chain [CLAP beta](plugins/ardor-clap/README.md) is an optional follow-up
+with `-DARDOR_BUILD_CLAP_PLUGIN=ON`. It supports 48 kHz DAW sessions and
+per-project full-chain state. Beta 2 includes the shared Ardor editor on Mac
+with `-DARDOR_UI_BACKEND=memory`; Linux uses host-generated controls. It is
+separate from the Whammy plugin.
+
 For a headless build, configure with `-DARDOR_UI_BACKEND=none`. The Pi firmware
 uses the `fbdev` backend through the Buildroot package.
 

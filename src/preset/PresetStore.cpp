@@ -9,6 +9,8 @@
 #ifndef _WIN32
 #include <fcntl.h>
 #include <unistd.h>
+#else
+#include <windows.h>
 #endif
 
 namespace ardor {
@@ -124,7 +126,14 @@ void PresetStore::save(PresetSlot slot, const Preset& preset) const
   }
 
   fsyncPath(tmp);
+#ifdef _WIN32
+  // Windows filesystem::rename cannot replace an existing preset file.
+  if (!MoveFileExW(tmp.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+    throw std::filesystem::filesystem_error("failed to replace preset", tmp, path,
+      std::error_code(static_cast<int>(GetLastError()), std::system_category()));
+#else
   std::filesystem::rename(tmp, path);
+#endif
   fsyncPath(path.parent_path());
 }
 

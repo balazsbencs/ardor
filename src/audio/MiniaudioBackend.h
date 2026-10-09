@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace ardor {
 
@@ -32,7 +34,23 @@ struct RealtimeOptions {
   // Optional Linux CPU affinity. The Buildroot image assigns the audio
   // callback and parallel-rig worker to separate Pi cores.
   int audioCpu = -1;
+  // Desktop selection resolves these identifiers again at device-open time.
+  // A missing selected device fails; it must never fall back to a microphone.
+  std::string captureDeviceId;
+  std::string playbackDeviceId;
 };
+
+struct AudioDeviceDescription {
+  std::string id;
+  std::string name;
+};
+
+struct AudioDeviceList {
+  std::vector<AudioDeviceDescription> capture;
+  std::vector<AudioDeviceDescription> playback;
+};
+
+bool enumerateAudioDevices(AudioDeviceList& devices, std::string& error);
 
 struct RealtimeStats {
   uint64_t callbacks = 0;
@@ -70,6 +88,7 @@ public:
   ~MiniaudioBackend();
 
   bool start(PedalEngine& engine, const RealtimeOptions& options);
+  const std::string& lastError() const { return lastError_; }
   // Fades the active program out, adopts a preconfigured engine at silence,
   // then fades in without stopping the device. The caller keeps the previous
   // engine alive until this returns.
@@ -93,6 +112,7 @@ public:
 private:
   std::unique_ptr<MiniaudioBackendState> state_;
   bool desiredOutputMuted_ = false; // control thread only; survives device recovery
+  std::string lastError_;
 };
 
 } // namespace ardor

@@ -1,0 +1,26 @@
+Ardor Mac beta — Apple Silicon
+
+1. Open the disk image and drag Ardor to Applications.
+2. Open Ardor. This beta is ad-hoc signed and is not notarized.
+   If macOS blocks opening it, use System Settings > Privacy & Security >
+   Open Anyway for this app, only if you trust this download.
+   Apple instructions: https://support.apple.com/102445
+3. Connect a guitar audio interface configured for native 48 kHz.
+4. In Audio setup, choose input, output, guitar channel and buffer size.
+5. Save settings and press Start audio. Approve microphone access when asked.
+
+Start with the Clean, Tremolo, Chorus or Delay presets. Audio never starts
+on launch. You do not need Homebrew, CMake or a source checkout to use this app.
+
+This is an early beta. Mac hardware latency, interface disconnection,
+sleep/wake and clean-machine installation still need user testing.
+Desktop looper, MIDI, file-picker imports and an app icon are not ready yet.
+Assets can be placed in ~/Library/Application Support/Ardor/models, irs or
+reverb-irs before launching. IRs must suit the 48 kHz engine.
+
+Your presets are stored in ~/Library/Application Support/Ardor/presets.
+Existing presets are preserved. Keep backups of presets you care about.
+Report problems: https://github.com/balazsbencs/ardor/issues
+Include the build commit, Mac model, macOS version and interface model.
+
+This image supports Apple Silicon Macs running macOS 15 or newer. Intel Macs and Windows are later targets.

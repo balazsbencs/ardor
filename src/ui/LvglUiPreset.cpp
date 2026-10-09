@@ -141,7 +141,7 @@ int layoutRow(const std::vector<lv_obj_t*>& items, int x, int gap)
 // so only its outer edges take the rail gap.
 void layoutPresetRail(const std::vector<lv_obj_t*>& items)
 {
-  if (items.size() != 7) return;
+  if (items.size() != 7) { layoutRow(items, lb::kGutter, lb::kGap); return; }
   const int pairX = layoutRow({items[0], items[1], items[2]}, lb::kGutter, lb::kGap);
   const int setupX = layoutRow({items[3], items[4], items[5]}, pairX, 0) + lb::kGap;
   lv_obj_set_x(items[6], setupX);
@@ -264,7 +264,7 @@ void LvglUi::syncHeaderView(const UiState& state)
   }
   lb::syncMasterReadout(presetMasterValueLabel_, state.masterVolume);
   if (presetBankLabel_) {
-    lv_label_set_text(presetBankLabel_, bankNumberText(state).c_str());
+    lv_label_set_text(presetBankLabel_, actions_.allowBankNavigation ? bankNumberText(state).c_str() : "BANK 1");
   }
   if (presetBankTitleLabel_ && presetBankLabel_) {
     lv_label_set_text(presetBankTitleLabel_, bankTitleText(state).c_str());
@@ -346,7 +346,7 @@ void LvglUi::stylePresetCard(const UiState& state, std::size_t index)
   lb::applyType(name, nameType, unavailable ? danger : (floods ? lampInk : text));
   lv_obj_set_y(name, lb::textTop(nameType, floods ? kLiveNameTop : kNameTop) - 1);
 
-  lv_label_set_text(presetHeaderLabels_[index], ("FS " + std::to_string(index + 1)).c_str());
+  lv_label_set_text(presetHeaderLabels_[index], ((actions_.showDeviceStatus ? "FS " : "PRESET ") + std::to_string(index + 1)).c_str());
   lv_obj_set_style_text_color(presetHeaderLabels_[index],
                               lv_color_hex(floods ? lampInk : disabled), 0);
   if (lv_obj_t* liveTag = presetHeaderStrips_[index]) {
@@ -375,7 +375,8 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
 {
   // ---- header: bank number and name on the left, latency on the right ----
   lb::header(root);
-  presetBankLabel_ = lb::textLabel(root, lb::type::bank, bankNumberText(state), text, 28, 7);
+  presetBankLabel_ = lb::textLabel(root, lb::type::bank,
+    actions_.allowBankNavigation ? bankNumberText(state) : "BANK 1", text, 28, 7);
   presetBankTitleLabel_ = lb::textLabel(root, lb::type::bankName, bankTitleText(state), muted,
     28 + lb::textWidth(lb::type::bank, bankNumberText(state)) + 20, 13);
   // The engine publishes buffer telemetry once per second. It is secondary,
@@ -383,6 +384,7 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
   presetTelemetryLabel_ = lb::textLabel(root, lb::type::headerRight, presetTelemetryText(state),
                                    disabled, 0, 18);
   placeRightAligned(presetTelemetryLabel_, lb::type::headerRight, kDesignWidth - 28);
+  if (!actions_.showDeviceStatus) lv_obj_add_flag(presetTelemetryLabel_, LV_OBJ_FLAG_HIDDEN);
 
   // ---- preset map: 1 / 3 over 2 / 4 mirrors the footswitch corners ----
   for (std::size_t i = 0; i < presetCardButtons_.size(); ++i) {
@@ -482,11 +484,21 @@ void LvglUi::renderPresetMode(lv_obj_t* root, UiState& state)
   }
   lv_obj_t* setup = lb::button(root, "SETUP", lb::ButtonKind::Normal, 0, lb::kRailButtonY);
   lv_obj_add_event_cb(setup, onSettingsClicked, LV_EVENT_PRESSED, remember(state));
-  presetRailItems_ = {edit, tuner, looper, bankDown, bankLegend, bankUp, setup};
+  presetRailItems_ = {edit};
+  if (actions_.showTuner) presetRailItems_.push_back(tuner);
+  else lv_obj_add_flag(tuner, LV_OBJ_FLAG_HIDDEN);
+  if (actions_.showLooper) presetRailItems_.push_back(looper);
+  else lv_obj_add_flag(looper, LV_OBJ_FLAG_HIDDEN);
+  if (actions_.allowBankNavigation) {
+    presetRailItems_.insert(presetRailItems_.end(), {bankDown, bankLegend, bankUp});
+  } else {
+    for (auto* item : {bankDown, bankLegend, bankUp}) lv_obj_add_flag(item, LV_OBJ_FLAG_HIDDEN);
+  }
+  presetRailItems_.push_back(setup);
   layoutPresetRail(presetRailItems_);
 
   // ---- master readout, right-aligned: legend, value, then segments ----
-  presetMasterValueLabel_ = lb::masterReadout(root, state.masterVolume);
+  presetMasterValueLabel_ = actions_.showDeviceStatus ? lb::masterReadout(root, state.masterVolume) : nullptr;
   presetMasterMeter_ = nullptr;
 }
 

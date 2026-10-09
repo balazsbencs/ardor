@@ -122,9 +122,13 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
   lv_obj_remove_flag(canvas, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_size(canvas, kDesignWidth, kDesignHeight);
 
-  lv_display_t* display = lv_obj_get_display(root);
-  const int32_t dispW = lv_display_get_horizontal_resolution(display);
-  const int32_t dispH = lv_display_get_vertical_resolution(display);
+  // Desktop hosts can place the pedal canvas below an application toolbar.
+  // Size and hit-testing use that host container rather than the whole display.
+  lv_obj_update_layout(root);
+  lv_area_t rootContent;
+  lv_obj_get_content_coords(root, &rootContent);
+  const int32_t dispW = lv_obj_get_content_width(root);
+  const int32_t dispH = lv_obj_get_content_height(root);
   const int32_t scale =
     LV_MIN((dispW * 256) / kDesignWidth, (dispH * 256) / kDesignHeight);
   const int32_t offsetX = (dispW - (kDesignWidth * scale) / 256) / 2;
@@ -136,7 +140,7 @@ void LvglUi::build(lv_obj_t* root, UiState& state)
 
   canvas_ = canvas;
   canvasScale_ = scale;
-  canvasOffset_ = {offsetX, offsetY};
+  canvasOffset_ = {rootContent.x1 + offsetX, rootContent.y1 + offsetY};
 
   const auto createLayer = [canvas]() {
     lv_obj_t* layer = lv_obj_create(canvas);

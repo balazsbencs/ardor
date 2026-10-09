@@ -1,0 +1,139 @@
+name: CLAP beta
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap*', 'tests/ClapTestPlatform.h', 'CMakeLists.txt', 'lv_conf.h', '.github/workflows/clap.yml']
+  push:
+    branches: [main]
+    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap*', 'tests/ClapTestPlatform.h', 'CMakeLists.txt', 'lv_conf.h', '.github/workflows/clap.yml']
+
+permissions:
+  contents: read
+concurrency:
+  group: clap-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plugin:
+    name: CLAP build and ABI checks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, ubuntu-24.04, windows-2022]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Use GitHub mirror for Eigen
+        run: git config --global url."https://github.com/eigen-mirror/eigen.git".insteadOf https://gitlab.com/libeigen/eigen
+      - name: Configure plugin and embedded editor
+        if: runner.os != 'Windows'
+        run: cmake -S . -B build-clap -DARDOR_UI_BACKEND=memory -DARDOR_BUILD_CLAP_PLUGIN=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0
+      - name: Configure Windows x64 plugin and embedded editor
+        if: runner.os == 'Windows'
+        run: cmake -S . -B build-clap -G 'Visual Studio 17 2022' -A x64 -DARDOR_UI_BACKEND=memory -DARDOR_BUILD_CLAP_PLUGIN=ON
+      - name: Build plugin and smoke host
+        run: cmake --build build-clap --config Release --target ardor-clap-host-smoke ardor-clap-editor-smoke pedal-lvgl-ui-smoke --parallel 3
+      - name: Check CLAP lifecycle, audio, state and full NAM chain
+        env:
+          ARDOR_CLAP_SCREENSHOTS: ${{ runner.temp }}/clap-screenshots
+        run: ctest --test-dir build-clap -C Release --output-on-failure -R '^(ardor-clap-(host|editor|gui-host)-smoke|ardor-clap-rate-tests|pedal-lvgl-ui-smoke)$'
+      - name: Run full upstream CLAP validator
+        run: |
+          python3 - <<'PYTHON'
+          import hashlib, io, json, os, pathlib, subprocess, tarfile, urllib.request, zipfile
+          assets = {
+              'Linux': ('ubuntu-22.04', '49edadcfb407ea0dd946ce418300e853fbd2660fa4b0d00e4f19ff8eef24ad90'),
+              'macOS': ('macos-15-aarch64', '719a0248ea431718bb7c92c8a0b9a78afa0bb23d692cf452e80973fe8b89282d'),
+              'Windows': ('windows', 'd935c3af0a45c3911ea2e900f4aa5d6709dac82bb485f0c4ce28648ab2cd0c10'),
+          }
+          platform, expected = assets[os.environ['RUNNER_OS']]
+          url = f'https://github.com/free-audio/clap-validator/releases/download/0.4.1/clap-validator-0.4.1-127-g152b982-{platform}.zip'
+          data = urllib.request.urlopen(url).read()
+          assert hashlib.sha256(data).hexdigest() == expected, 'Validator archive checksum mismatch'
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'clap-validator'
+          zipfile.ZipFile(io.BytesIO(data)).extractall(root)
+          # Unix release zips wrap a tarball; Windows contains the executable.
+          for archive in root.rglob('*.tar.gz'):
+              with tarfile.open(archive) as tar:
+                  member = next(m for m in tar.getmembers() if m.isfile() and pathlib.PurePosixPath(m.name).name == 'clap-validator')
+                  (root / 'clap-validator').write_bytes(tar.extractfile(member).read())
+          executable = next(p for p in root.rglob('*') if p.name in ('clap-validator', 'clap-validator.exe') and p.is_file())
+          executable.chmod(0o755)
+          plugin = pathlib.Path('build-clap/plugins/ardor-clap/Ardor.clap')
+          if os.environ['RUNNER_OS'] == 'Windows': plugin = plugin.parent / 'Release/Ardor.clap'
+          run = subprocess.run([str(executable), 'validate', '--json', str(plugin.resolve())], capture_output=True, text=True, encoding='utf-8', errors='replace')
+          output = pathlib.Path(os.environ['RUNNER_TEMP']) / 'clap-screenshots'
+          output.mkdir(exist_ok=True)
+          (output / 'validator.json').write_text(run.stdout, encoding='utf-8')
+          (output / 'validator.log').write_text(run.stderr, encoding='utf-8')
+          print(run.stderr)
+          assert run.returncode == 0, 'Full CLAP validation failed'
+          results = json.loads(run.stdout)['results']
+          assert all(r['status']['code'] in ('success', 'skipped') for r in results), 'Validator failure or warning'
+          print('Validator:', sum(r['status']['code'] == 'success' for r in results), 'passed;', sum(r['status']['code'] == 'skipped' for r in results), 'skipped')
+          PYTHON
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: always()
+        with:
+          name: Ardor-CLAP-editor-checks-${{ matrix.os }}-${{ github.sha }}
+          path: ${{ runner.temp }}/clap-screenshots/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Stage beta
+        run: cmake --install build-clap --config Release --prefix "$RUNNER_TEMP/ardor-clap-beta" --component clap-beta
+      - name: Sign and package Mac plugin
+        if: runner.os == 'macOS'
+        run: |
+          codesign --force --sign - "$RUNNER_TEMP/ardor-clap-beta/Ardor.clap"
+          codesign --verify --strict "$RUNNER_TEMP/ardor-clap-beta/Ardor.clap"
+          plutil -lint "$RUNNER_TEMP/ardor-clap-beta/Ardor.clap/Contents/Info.plist"
+          python3 - <<'PYTHON'
+          import os, subprocess
+          binary = os.environ['RUNNER_TEMP'] + '/ardor-clap-beta/Ardor.clap/Contents/MacOS/Ardor'
+          libraries = subprocess.check_output(['otool', '-L', binary], text=True).splitlines()[1:]
+          for line in libraries:
+              path = line.strip().split(' (')[0]
+              assert path.startswith(('/System/Library/', '/usr/lib/')), path
+          PYTHON
+          mkdir -p beta
+          ditto -c -k --keepParent "$RUNNER_TEMP/ardor-clap-beta" beta/Ardor-CLAP-macOS-arm64-beta.zip
+          (cd beta && shasum -a 256 *.zip > SHA256SUMS.txt)
+      - name: Package Linux development plugin
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p beta
+          tar -czf beta/Ardor-CLAP-Linux-x64-beta.tar.gz -C "$RUNNER_TEMP" ardor-clap-beta
+          (cd beta && sha256sum *.tar.gz > SHA256SUMS.txt)
+      - name: Verify and package Windows plugin
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $binary = Join-Path $env:RUNNER_TEMP 'ardor-clap-beta/Ardor.clap'
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $dumpbin = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find 'VC/Tools/MSVC/**/bin/Hostx64/x64/dumpbin.exe' | Select-Object -First 1
+          if (!$dumpbin -or !(Test-Path $binary)) { throw 'Windows plugin/tool missing' }
+          $exports = & $dumpbin /EXPORTS $binary
+          if ($LASTEXITCODE -ne 0 -or !($exports -match '\bclap_entry\b')) { throw 'Missing CLAP entry export' }
+          $dependencies = & $dumpbin /DEPENDENTS $binary
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect plugin dependencies' }
+          $dlls = $dependencies | ForEach-Object { if ($_ -match '^\s+([A-Za-z0-9_.-]+\.dll)\s*$') { $Matches[1] } }
+          foreach ($dll in $dlls) {
+            if ($dll -match '^(VCRUNTIME|MSVCP|libgcc|libstdc|libwinpthread)' -or !(Test-Path (Join-Path "$env:WINDIR/System32" $dll))) {
+              throw "Plugin requires an undistributed runtime: $dll"
+            }
+          }
+          New-Item -ItemType Directory -Force beta | Out-Null
+          Compress-Archive -Path "$env:RUNNER_TEMP/ardor-clap-beta" -DestinationPath beta/Ardor-CLAP-Windows-x64-beta.zip
+          $hash = (Get-FileHash beta/Ardor-CLAP-Windows-x64-beta.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  Ardor-CLAP-Windows-x64-beta.zip" | Set-Content -Encoding ascii beta/SHA256SUMS.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: Ardor-CLAP-beta-${{ matrix.os }}-${{ github.sha }}
+          path: beta/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0

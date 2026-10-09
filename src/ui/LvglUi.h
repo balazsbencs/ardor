@@ -100,6 +100,14 @@ struct UiActions {
   std::function<void(bool)> setSceneLayer;
   std::function<bool(std::size_t, float)> updateSceneTarget;
   std::function<void()> requestSceneCapture;
+  // A desktop host supplies its own audio setup instead of pedal-only
+  // Wi-Fi, GPIO, and firmware settings. Other hosts keep the existing panel.
+  std::function<void()> openHostSettings;
+  // Embedded hosts can omit device features they do not provide.
+  bool showTuner = true;
+  bool showLooper = true;
+  bool showDeviceStatus = true;
+  bool allowBankNavigation = true;
 };
 
 struct UiLaneDropTarget {
@@ -116,6 +124,7 @@ public:
   void refresh(lv_obj_t* root, UiState& state);
   void invalidate(UiChange changes);
   void beginInteraction() { ++activeInteractions_; }
+  bool interacting() const { return activeInteractions_ != 0; }
   void endInteraction(bool requestUiRebuild = true);
   void beginParameterInteraction() { beginInteraction(); }
   void endParameterInteraction() { endInteraction(); }

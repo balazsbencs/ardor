@@ -10,7 +10,9 @@
 #include <cerrno>
 #include <chrono>
 #include <iostream>
+#if !defined(_WIN32)
 #include <pthread.h>
+#endif
 #if defined(__linux__)
 #include <sched.h>
 #endif
@@ -140,11 +142,15 @@ void captureCallbackScheduler(MiniaudioBackendState& state)
 #endif
 
   int policy = -1;
+#if !defined(_WIN32)
   sched_param actual{};
   if (pthread_getschedparam(pthread_self(), &policy, &actual) == 0) {
     state.schedulerPolicy.store(policy, std::memory_order_relaxed);
     state.schedulerPriority.store(actual.sched_priority, std::memory_order_relaxed);
   }
+#else
+  (void)policy;
+#endif
   state.schedulerCaptured.store(true, std::memory_order_release);
 }
 
@@ -358,6 +364,71 @@ bool waitForCallbackScheduler(const MiniaudioBackendState& state)
 
 } // namespace
 
+namespace {
+
+std::string deviceIdentifier(ma_backend backend, const ma_device_info& device)
+{
+  switch (backend) {
+    case ma_backend_coreaudio: return std::string("coreaudio:") + device.id.coreaudio;
+    case ma_backend_alsa: return std::string("alsa:") + device.id.alsa;
+    case ma_backend_pulseaudio: return std::string("pulse:") + device.id.pulse;
+    case ma_backend_wasapi: {
+      // Encode UTF-16 code units, not the union's padding or locale-dependent
+      // narrow characters. The endpoint identity survives list reordering.
+      std::string id = "wasapi:";
+      constexpr char hex[] = "0123456789abcdef";
+      for (const auto unit : device.id.wasapi) {
+        if (!unit) break;
+        for (int shift = 12; shift >= 0; shift -= 4) id += hex[(unit >> shift) & 15];
+      }
+      return id;
+    }
+    default: return std::to_string(static_cast<int>(backend)) + ":" + device.name;
+  }
+}
+
+int findDevice(ma_backend backend, const ma_device_info* devices, ma_uint32 count,
+               const std::string& identifier)
+{
+  int found = -1;
+  for (ma_uint32 index = 0; index < count; ++index) {
+    if (deviceIdentifier(backend, devices[index]) != identifier) continue;
+    if (found >= 0) return -1; // Ambiguous fallback identities must not select arbitrarily.
+    found = static_cast<int>(index);
+  }
+  return found;
+}
+
+} // namespace
+
+bool enumerateAudioDevices(AudioDeviceList& devices, std::string& error)
+{
+  devices = {};
+  error.clear();
+  ma_context context{};
+  const auto initialized = ma_context_init(nullptr, 0, nullptr, &context);
+  if (initialized != MA_SUCCESS) {
+    error = std::string("Cannot initialize audio: ") + ma_result_description(initialized);
+    return false;
+  }
+  ma_device_info* playback = nullptr;
+  ma_device_info* capture = nullptr;
+  ma_uint32 playbackCount = 0, captureCount = 0;
+  const auto enumerated = ma_context_get_devices(&context, &playback, &playbackCount, &capture, &captureCount);
+  if (enumerated == MA_SUCCESS) {
+    for (ma_uint32 index = 0; index < captureCount; ++index) {
+      devices.capture.push_back({deviceIdentifier(context.backend, capture[index]), capture[index].name});
+    }
+    for (ma_uint32 index = 0; index < playbackCount; ++index) {
+      devices.playback.push_back({deviceIdentifier(context.backend, playback[index]), playback[index].name});
+    }
+  } else {
+    error = std::string("Cannot list audio interfaces: ") + ma_result_description(enumerated);
+  }
+  ma_context_uninit(&context);
+  return enumerated == MA_SUCCESS;
+}
+
 bool hasRequiredRealtimeScheduler(const RealtimeStats& stats)
 {
 #if defined(__linux__)
@@ -383,11 +454,14 @@ uint32_t captureChannelCountForInput(uint32_t inputChannel)
 
 bool MiniaudioBackend::start(PedalEngine& engine, const RealtimeOptions& options)
 {
+  lastError_.clear();
   if (options.sampleRate != 48000) {
+    lastError_ = "Ardor requires 48 kHz audio.";
     std::cerr << "Realtime audio requires a 48000 Hz sample rate.\n";
     return false;
   }
   if (options.blockSize == 0) {
+    lastError_ = "The audio buffer size must be greater than zero.";
     std::cerr << "Realtime block size must be greater than zero.\n";
     return false;
   }
@@ -417,6 +491,7 @@ bool MiniaudioBackend::start(PedalEngine& engine, const RealtimeOptions& options
   ma_context_config contextConfig = ma_context_config_init();
   contextConfig.threadPriority = ma_thread_priority_realtime;
   if (ma_context_init(nullptr, 0, &contextConfig, &state_->context) != MA_SUCCESS) {
+    lastError_ = "Cannot initialize audio. Check that your interface is connected.";
     state_.reset();
     return false;
   }
@@ -427,13 +502,25 @@ bool MiniaudioBackend::start(PedalEngine& engine, const RealtimeOptions& options
   ma_device_info* capture = nullptr;
   ma_uint32 captureCount = 0;
   if (ma_context_get_devices(&state_->context, &playback, &playbackCount, &capture, &captureCount) != MA_SUCCESS) {
+    lastError_ = "Cannot list audio interfaces. Reconnect the interface and try again.";
     stop();
     return false;
   }
 
-  if (options.captureDeviceIndex < -1 || options.playbackDeviceIndex < -1
-      || options.captureDeviceIndex >= static_cast<int>(captureCount)
-      || options.playbackDeviceIndex >= static_cast<int>(playbackCount)) {
+  const int captureIndex = options.captureDeviceId.empty() ? options.captureDeviceIndex
+    : findDevice(state_->context.backend, capture, captureCount, options.captureDeviceId);
+  const int playbackIndex = options.playbackDeviceId.empty() ? options.playbackDeviceIndex
+    : findDevice(state_->context.backend, playback, playbackCount, options.playbackDeviceId);
+  if ((!options.captureDeviceId.empty() && captureIndex < 0)
+      || (!options.playbackDeviceId.empty() && playbackIndex < 0)) {
+    lastError_ = "The selected interface is unavailable. Reconnect it or select another interface.";
+    stop();
+    return false;
+  }
+  if (captureIndex < -1 || playbackIndex < -1
+      || captureIndex >= static_cast<int>(captureCount)
+      || playbackIndex >= static_cast<int>(playbackCount)) {
+    lastError_ = "The selected audio device is unavailable.";
     std::cerr << "Invalid audio device index. Run --devices.\n";
     stop();
     return false;
@@ -449,34 +536,48 @@ bool MiniaudioBackend::start(PedalEngine& engine, const RealtimeOptions& options
   cfg.dataCallback = callback;
   cfg.notificationCallback = deviceNotification;
   cfg.pUserData = state_.get();
-  if (options.captureDeviceIndex >= 0) {
-    cfg.capture.pDeviceID = &capture[options.captureDeviceIndex].id;
+  if (captureIndex >= 0) {
+    cfg.capture.pDeviceID = &capture[captureIndex].id;
   }
-  if (options.playbackDeviceIndex >= 0) {
-    cfg.playback.pDeviceID = &playback[options.playbackDeviceIndex].id;
+  if (playbackIndex >= 0) {
+    cfg.playback.pDeviceID = &playback[playbackIndex].id;
   }
 
-  if (ma_device_init(&state_->context, &cfg, &state_->device) != MA_SUCCESS) {
+  const auto initialized = ma_device_init(&state_->context, &cfg, &state_->device);
+  if (initialized != MA_SUCCESS) {
+    lastError_ = std::string("Cannot open the selected interface: ") + ma_result_description(initialized)
+      + ". Check audio-input permission, channels, and the interface's 48 kHz setting.";
     stop();
     return false;
   }
   state_->deviceReady = true;
 
+  if (!options.captureDeviceId.empty()
+      && options.inputChannel >= state_->device.capture.internalChannels) {
+    lastError_ = "This interface does not have the selected input channel. Choose another channel in Audio setup.";
+    stop();
+    return false;
+  }
+
   if (options.requireNativeSampleRate
       && (state_->device.capture.internalSampleRate != options.sampleRate
           || state_->device.playback.internalSampleRate != options.sampleRate)) {
+    lastError_ = "Set the selected interface to 48 kHz before starting audio.";
     std::cerr << "Realtime audio requires native " << options.sampleRate
               << " Hz capture and playback; device conversion is not permitted in production.\n";
     stop();
     return false;
   }
 
-  if (ma_device_start(&state_->device) != MA_SUCCESS) {
+  const auto started = ma_device_start(&state_->device);
+  if (started != MA_SUCCESS) {
+    lastError_ = std::string("Cannot start audio: ") + ma_result_description(started);
     stop();
     return false;
   }
 
   if (!waitForCallbackScheduler(*state_)) {
+    lastError_ = "The interface did not start sending audio. Reconnect it and try again.";
     std::cerr << "Realtime audio callback did not start within 250 ms.\n";
     stop();
     return false;
@@ -499,12 +600,14 @@ bool MiniaudioBackend::start(PedalEngine& engine, const RealtimeOptions& options
 
 #if defined(__linux__)
   if (options.requireRealtimeScheduler && !hasRequiredRealtimeScheduler(realtimeStats)) {
+    lastError_ = "The required realtime scheduler is unavailable.";
     std::cerr << "Realtime audio requires SCHED_FIFO/" << kArdorRealtimePriority
               << "; grant CAP_SYS_NICE or use --allow-non-realtime for development only.\n";
     stop();
     return false;
   }
   if (options.audioCpu >= 0 && realtimeStats.affinitySetupError != 0) {
+    lastError_ = "Cannot apply the requested audio CPU affinity.";
     std::cerr << "Failed to pin realtime audio callback to CPU " << options.audioCpu << ".\n";
     stop();
     return false;
