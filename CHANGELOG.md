@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.90](https://github.com/balazsbencs/ardor/compare/v0.1.89...v0.1.90) (2026-10-09)
+
+### Features
+
+* add standalone desktop app and downloadable Mac beta builds and CLAP module ([#111](https://github.com/balazsbencs/ardor/issues/111)) ([44e3077](https://github.com/balazsbencs/ardor/commit/44e30779d0c68a9d7e624bec263b464fc99b67a8))
+
 ## [0.1.89](https://github.com/balazsbencs/ardor/compare/v0.1.87...v0.1.89) (2026-10-05)
 
 ## [0.1.87](https://github.com/balazsbencs/ardor/compare/v0.1.85...v0.1.87) (2026-10-03)
