@@ -26,6 +26,6 @@ JP303,JUMPER ONLY: SDA PULLUP,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_
 JP304,JUMPER ONLY: SCL PULLUP,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,PinHeader_1x02_P2.54mm_Vertical,THT manual
 R308,2.2kR / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 2.2kΩ 1% 0.25W,THT manual
 R309,2.2kR / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 2.2kΩ 1% 0.25W,THT manual
-D301,SA5.0CA-E3/54,Diode_THT:D_DO-15_P10.16mm_Horizontal,Vishay SA5.0CA-E3/54,THT manual
-D302,SA5.0CA-E3/54,Diode_THT:D_DO-15_P10.16mm_Horizontal,Vishay SA5.0CA-E3/54,THT manual
+D301,1.5KE6.8CA,Ardor_THT:D_TVS_DC_1.5KE_P15.24mm,DC Components 1.5KE6.8CA (HESTORE 100.430.71),THT manual
+D302,1.5KE6.8CA,Ardor_THT:D_TVS_DC_1.5KE_P15.24mm,DC Components 1.5KE6.8CA (HESTORE 100.430.71),THT manual
 R101,0R / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 0Ω 1% 0.25W,THT manual

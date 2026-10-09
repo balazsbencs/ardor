@@ -17,7 +17,7 @@
         "F.Cu": 0.0,
         "B.Cu": 0.0
       },
-      "release_pcb_sha256": "46008b9810da64d20b5de82f7dfd6a458b25c3cda5f2736701cf74e7860eb61c",
+      "release_pcb_sha256": "9028e1e16f5946a5b4ec88a9b55211d4e0d8c92c39f08aa83d2741108e506940",
       "regenerated_native_checks": "PASS"
     },
     "headphones": {
@@ -34,7 +34,7 @@
         "F.Cu": 0.0,
         "B.Cu": 0.0
       },
-      "release_pcb_sha256": "b14a4911d3e73e120b0add93ea975db0bb974ecd59392ced8d022d1d21b07a72",
+      "release_pcb_sha256": "1b737372a28b99066a3c102b18631495ad7e3db0748b6e1d9a9aad9c1f43c48b",
       "regenerated_native_checks": "PASS"
     },
     "line-out": {
@@ -51,7 +51,7 @@
         "F.Cu": 0.0,
         "B.Cu": 0.0
       },
-      "release_pcb_sha256": "ad77d113b6029e5e1382c3877070c677329bc7c0b58f5dc62f52c3e7f21083b0",
+      "release_pcb_sha256": "9b5c63454f62855ee2f4fab4f32131effc2efdcccb5b99f615988aaad99cb2b2",
       "regenerated_native_checks": "PASS"
     },
     "midi-in": {
@@ -68,7 +68,7 @@
         "F.Cu": 0.0,
         "B.Cu": 0.0
       },
-      "release_pcb_sha256": "491d6c0513ab8d58d02083fda378f52ad1c6e6e260f57a14e04205c5ffbec034",
+      "release_pcb_sha256": "72cd6ef330da77cfef0e4efc9e87425bea901ba99f4c06dd7e34ab371022f066",
       "regenerated_native_checks": "PASS"
     },
     "mixer": {

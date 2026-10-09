@@ -22,6 +22,8 @@ python3 verify_release.py
 
 Native ERC/DRC include all severities, unconnected items and schematic parity, with no exclusions. Independent drawn-wire checks, netlist-to-pad checks, connector comparison against M1, strict SMD-exception checks (only headphone U601 SOIC-8), BOM checks and Gerber/drill/archive manifests support review. Frozen footprints and symbols make the generated projects self-contained.
 
+The hand-assembly check also verifies all six DC Components 1.5KE6.8CA replacements against their purchasing specification, 15.24 mm pad spacing, minimum 1.3 mm holes and maximum 9.5 × 5.6 mm body envelope. MIDI D203/D204 must retain their SA24CA voltage rating and original package.
+
 `smd_circuits.py` and `part-catalog.json` retain the M1 circuit/value source for the four reused circuits. `modules.py` replaces their packages, purchasing metadata and relay transistor. The new headphone circuit is specified directly there. M1 routing and manufacturing data are not reused. IC replacements and the ADC breakout pin numbering are documented in `../SOURCES.md`.
 
 Run `finish_routes.py` on freshly generated placement boards: it imports the candidate routes, fills/stitches ground, removes only DRC-proven dangling leaves, restores uniform track widths and adds both component and connector legends. Repeatedly adding legends to an already labelled board is not supported. Inspect layout and prototype behavior after any change; CAD checks do not establish electrical performance.

@@ -12,7 +12,7 @@ C201,100n / 50V X7R,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,"100nF 50V X7R ra
 C204,100n / 50V X7R,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,"100nF 50V X7R radial, 5mm lead pitch",THT manual
 R202,1kR / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 1kΩ 1% 0.25W,THT manual
 R203,100R / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 100Ω 1% 0.25W,THT manual
-D202,SA5.0CA-E3/54,Diode_THT:D_DO-15_P10.16mm_Horizontal,Vishay SA5.0CA-E3/54,THT manual
+D202,1.5KE6.8CA,Ardor_THT:D_TVS_DC_1.5KE_P15.24mm,DC Components 1.5KE6.8CA (HESTORE 100.430.71),THT manual
 C202,100p / 1kV C0G,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,"100pF 1kV C0G disc, 5mm lead pitch",THT manual
 C203,100p / 1kV C0G,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,"100pF 1kV C0G disc, 5mm lead pitch",THT manual
 D203,SA24CA-E3/54,Diode_THT:D_DO-15_P10.16mm_Horizontal,Vishay SA24CA-E3/54,THT manual
