@@ -2,7 +2,7 @@
 <export version="E">
   <design>
     <source>/work/hardware/aaa/ardor-modules-tht/midi-in/Ardor_MIDI_THT.kicad_sch</source>
-    <date>2026-10-08T19:46:48+0000</date>
+    <date>2026-10-09T12:29:50+0000</date>
     <tool>Eeschema 9.0.2+dfsg-1</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
@@ -126,18 +126,18 @@
       <tstamps>ce6d37c1-2850-5e0e-a015-becd0858feb1</tstamps>
     </comp>
     <comp ref="D202">
-      <value>SA5.0CA-E3/54</value>
-      <footprint>Diode_THT:D_DO-15_P10.16mm_Horizontal</footprint>
-      <datasheet>https://www.vishay.com/doc/?88378=</datasheet>
+      <value>1.5KE6.8CA</value>
+      <footprint>Ardor_THT:D_TVS_DC_1.5KE_P15.24mm</footprint>
+      <datasheet>https://www.dccomponents.com/products/1.5ke.pdf</datasheet>
       <fields>
-        <field name="MPN">Vishay SA5.0CA-E3/54</field>
+        <field name="MPN">DC Components 1.5KE6.8CA (HESTORE 100.430.71)</field>
         <field name="JLCPCB Part #"/>
-        <field name="Footprint">Diode_THT:D_DO-15_P10.16mm_Horizontal</field>
-        <field name="Datasheet">https://www.vishay.com/doc/?88378=</field>
+        <field name="Footprint">Ardor_THT:D_TVS_DC_1.5KE_P15.24mm</field>
+        <field name="Datasheet">https://www.dccomponents.com/products/1.5ke.pdf</field>
         <field name="Description"/>
       </fields>
       <libsource lib="Ardor" part="D_TVS" description="Bidirectional transient-voltage-suppression diode"/>
-      <property name="MPN" value="Vishay SA5.0CA-E3/54"/>
+      <property name="MPN" value="DC Components 1.5KE6.8CA (HESTORE 100.430.71)"/>
       <property name="JLCPCB Part #" value=""/>
       <property name="Sheetname" value=""/>
       <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>

@@ -23,6 +23,8 @@ for folder in ROOT.iterdir():
     pad_count = 0
     smd_count = 0
     smd_refs = []
+    low_voltage_tvs = {'midi-in':['D202'], 'expression':['D301','D302'],
+                       'line-out':['D501'], 'headphones':['D601','D602'], 'mixer':[]}[folder.name]
     for ref,part in spec['parts'].items():
         fp = footprints[ref]
         is_smd = folder.name=='headphones' and ref=='U601'
@@ -56,6 +58,24 @@ for folder in ROOT.iterdir():
         alias,name = part['fp'].split(':')
         local = p.FootprintLoad(str(folder/'footprints'/(alias+'.pretty')),name)
         assert local and local.GetPadCount()==fp.GetPadCount()
+        if ref in low_voltage_tvs:
+            # Independent purchasing/package limits from the DC Components
+            # drawing: 9.5 x 5.6 mm maximum body; 1.07 mm maximum leads.
+            assert part['value']=='1.5KE6.8CA'
+            assert part['mpn']=='DC Components 1.5KE6.8CA (HESTORE 100.430.71)'
+            assert part['fp']=='Ardor_THT:D_TVS_DC_1.5KE_P15.24mm'
+            pads = list(fp.Pads())
+            assert len(pads)==2 and {a.GetNumber() for a in pads}=={'1','2'}
+            assert abs(p.ToMM((pads[0].GetPosition()-pads[1].GetPosition()).EuclideanNorm())-15.24)<1e-6
+            assert all(p.ToMM(a.GetDrillSize().x)>=1.3 for a in pads)
+            tree = sx.loads((folder/'footprints'/(alias+'.pretty')/(name+'.kicad_mod')).read_text())
+            rect = next(v for v in tree if key(v)=='fp_rect' and get(v,'layer')[1]=='F.Fab')
+            start,end = get(rect,'start')[1:],get(rect,'end')[1:]
+            assert abs(end[0]-start[0])>=9.5 and abs(end[1]-start[1])>=5.6
+            assert not any(key(v)=='fp_text' and v[2]=='K' for v in tree)
+        if folder.name=='midi-in' and ref in ['D203','D204']:
+            assert part['value']=='SA24CA-E3/54'
+            assert part['fp']=='Diode_THT:D_DO-15_P10.16mm_Horizontal'
     erc = json.loads((folder/'verification/erc.json').read_text())
     assert not [v for sheet in erc['sheets'] for v in sheet['violations']]
     if folder.name=='expression':
@@ -96,6 +116,8 @@ for folder in ROOT.iterdir():
     assert set(labels['pin_maps'])=={pin.split('.')[0] for pin in connectors}
     report = {'result':'PASS','board_smd_pads':smd_count,'board_smd_footprints':len(smd_refs),'manual_smd_references':smd_refs,'tht_numbered_pads':pad_count,
               'minimum_component_drill_mm':.6,'manual_parts':len(bom),'all_manual_parts_have_front_references':True,
+              'hestore_1_5ke6_8ca_references':low_voltage_tvs,
+              'retained_sa24ca_references':['D203','D204'] if folder.name=='midi-in' else [],
               'host_and_panel_pinout_matches_m1':True,'preassembled_smd_module':
               'Adafruit 1085 STEMMA QT ADS1115' if folder.name=='expression' else None,
               'breakout_contains_smd':folder.name=='expression','hardware_tested':False}

@@ -16,7 +16,10 @@ import smd_circuits
 
 AXIAL = 'Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal'
 DIODE = 'Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal'
-TVS = 'Diode_THT:D_DO-15_P10.16mm_Horizontal'
+TVS = 'Ardor_THT:D_TVS_DC_1.5KE_P15.24mm'
+TVS_HIGH = 'Diode_THT:D_DO-15_P10.16mm_Horizontal'
+TVS_MPN = 'DC Components 1.5KE6.8CA (HESTORE 100.430.71)'
+TVS_DATASHEET = 'https://www.dccomponents.com/products/1.5ke.pdf'
 RADIAL = 'Capacitor_THT:CP_Radial_D6.3mm_P2.50mm'
 DIP8 = 'Package_DIP:DIP-8_W7.62mm_Socket'
 SOIC8 = 'Package_SO:SOIC-8_3.9x4.9mm_P1.27mm'
@@ -60,8 +63,9 @@ def purchasing(kind, old, ref):
         return DIODE, 'BAT85S', 'Vishay BAT85S-TAP', 'https://www.vishay.com/docs/85513/bat85s.pdf'
     if kind == 'D_TVS':
         high = old and '24' in old['mpn']
-        mpn = 'SA24CA-E3/54' if high else 'SA5.0CA-E3/54'
-        return TVS, mpn, 'Vishay '+mpn, 'https://www.vishay.com/doc/?88378='
+        if high:
+            return TVS_HIGH, 'SA24CA-E3/54', 'Vishay SA24CA-E3/54', 'https://www.vishay.com/doc/?88378='
+        return TVS, '1.5KE6.8CA', TVS_MPN, TVS_DATASHEET
     if kind in ['C', 'C_Polarized']:
         cap = attrs['Capacitance']
         if cap == '100pF':
@@ -176,8 +180,8 @@ def headphones():
         two('C_Polarized','C65'+s,'ISOLATED_'+ch,'DRIVE_'+ch,(246.38,y),(58,16) if u==1 else (65,59),
             '470u / 16V','Capacitor_THT:CP_Radial_D8.0mm_P3.50mm')
         two('R','R64'+s,'DRIVE_'+ch,'GND',(287.02,y+25.4),(78,20,90) if u==1 else (82,55),'1k / 1% 0.25W',AXIAL,rot=0)
-        two('D_TVS','D60'+s,'HP_'+ch,'CHASSIS',(340.36,y+25.4),(87,12) if u==1 else (87,37),'SA5.0CA-E3/54',TVS,
-            mpn='Vishay SA5.0CA-E3/54',datasheet='https://www.vishay.com/doc/?88378=')
+        two('D_TVS','D60'+s,'HP_'+ch,'CHASSIS',(340.36,y+25.4),(85,9.5) if u==1 else (85,40),'1.5KE6.8CA',TVS,
+            mpn=TVS_MPN,datasheet=TVS_DATASHEET)
         m.link('AUDIO_'+ch,('J102','1' if ch=='L' else '3'),('C60'+s,'1'),[(43.18 if ch=='L' else 38.1,y+2.54)])
         m.link('AC_'+ch,('C60'+s,'2'),('R61'+s,'1'))
         m.link('SUM_'+ch,('R61'+s,'2'),('U601',nn,u))

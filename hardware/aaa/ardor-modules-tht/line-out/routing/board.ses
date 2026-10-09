@@ -2,56 +2,60 @@
   (base_design board)
   (placement
     (resolution um 10)
-    (component "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal"
-      (place D502 1261900 -1000000 front 0)
-    )
-    (component Capacitor_THT:CP_Radial_D6.3mm_P2.50mm
-      (place C403 837500 -1150000 front 0)
-      (place C501 1112500 -800000 front 0)
-      (place C101 877500 -600000 front 0)
-    )
-    (component "Package_TO_SOT_THT:TO-92_Inline_Wide"
-      (place Q501 1174600 -1125000 front 0)
-    )
-    (component Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal
-      (place R401 674200 -1100000 front 0)
-      (place R502 1124200 -675000 front 0)
-      (place R505 1149200 -1250000 front 0)
-      (place R503 899200 -1225000 front 0)
-      (place R101 1274200 -1125000 front 0)
-      (place R506 1374200 -1175000 front 0)
-      (place R504 1024200 -1125000 front 0)
-      (place R501 1049200 -975000 front 0)
-      (place R406 899200 -1125000 front 0)
-      (place R405 899200 -1050000 front 0)
-    )
-    (component "Relay_THT:Relay_SPDT_Omron_G5V-1"
-      (place K501 1349600 -674200 front 0)
-    )
-    (component Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical
-      (place J101 575000 -699600 front 0)
-    )
     (component Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical
       (place J503 1550000 -912300 front 0)
       (place J102 575000 -987300 front 0)
       (place J502 1550000 -1137300 front 0)
     )
-    (component Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm
-      (place C401 687500 -1000000 front 0)
-      (place C502 1037500 -1225000 front 0)
-    )
-    (component "Package_DIP:DIP-8_W7.62mm_Socket"
-      (place U501 811900 -836900 front 0)
-    )
     (component Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm
       (place C404 800000 -725000 front 0)
       (place C102 955000 -600000 front 0)
     )
+    (component "Relay_THT:Relay_SPDT_Omron_G5V-1"
+      (place K501 1349600 -674200 front 0)
+    )
+    (component Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal
+      (place R401 674200 -1100000 front 0)
+      (place R502 1124200 -675000 front 0)
+      (place R405 899200 -1050000 front 0)
+      (place R503 899200 -1225000 front 0)
+      (place R505 1149200 -1250000 front 0)
+      (place R406 899200 -1125000 front 0)
+      (place R101 1274200 -1125000 front 0)
+      (place R506 1374200 -1175000 front 0)
+      (place R504 1024200 -1125000 front 0)
+      (place R501 1049200 -975000 front 0)
+    )
     (component Ardor_THT:Ferrite_WE_7427501_P15.24mm
       (place FB101 643800 -600000 front 0)
     )
-    (component "Diode_THT:D_DO-15_P10.16mm_Horizontal"
-      (place D501 1424200 -1025000 front 0)
+    (component Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical
+      (place J101 575000 -699600 front 0)
+    )
+    (component Ardor_THT:D_TVS_DC_1.5KE_P15.24mm
+      (place D501 1398800 -1025000 front 0)
+    )
+    (component Capacitor_THT:CP_Radial_D6.3mm_P2.50mm
+      (place C501 1112500 -800000 front 0)
+      (place C403 837500 -1150000 front 0)
+      (place C101 877500 -600000 front 0)
+    )
+    (component Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm
+      (place C401 687500 -1000000 front 0)
+      (place C502 1037500 -1225000 front 0)
+    )
+    (component "Package_TO_SOT_THT:TO-92_Inline_Wide"
+      (place Q501 1174600 -1125000 front 0)
+    )
+    (component "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal"
+      (place D502 1261900 -1000000 front 0)
+    )
+    (component "Package_DIP:DIP-8_W7.62mm_Socket"
+      (place U501 811900 -836900 front 0)
+    )
+    (component MountingHole:MountingHole_2.2mm_M2
+      (place H2 1620000 -530000 front 0)
+      (place H1 530000 -1320000 front 0)
     )
   )
   (was_is
@@ -111,31 +115,31 @@
         )
         (wire
           (path F.Cu 2000
-            643800 -600000
-            575000 -668800
             575000 -699600
+            575000 -688083
           )
         )
         (wire
           (path F.Cu 2000
-            1261900 -1000000
-            1261900 -787300
+            575000 -688083
+            643800 -619283
+            643800 -600000
+          )
+        )
+        (wire
+          (path F.Cu 2000
             1349600 -699600
+            1261900 -787300
+            1261900 -1000000
           )
         )
       )
       (net /+5V_A
         (wire
-          (path B.Cu 2000
-            796200 -600000
-            877500 -600000
-          )
-        )
-        (wire
           (path F.Cu 2000
-            888100 -836900
-            888100 -610600
             877500 -600000
+            877500 -826300
+            888100 -836900
           )
         )
         (wire
@@ -154,6 +158,12 @@
         )
         (wire
           (path B.Cu 2000
+            796200 -600000
+            877500 -600000
+          )
+        )
+        (wire
+          (path B.Cu 2000
             955000 -600000
             943285 -588285
             889215 -588285
@@ -164,33 +174,25 @@
       (net /CHASSIS
         (wire
           (path B.Cu 6000
+            1551200 -1025000
+            1501395 -1074805
+            1324395 -1074805
             1274200 -1125000
-            1309179 -1090021
-            1460779 -1090021
-            1525800 -1025000
           )
         )
       )
       (net /VREF
         (wire
           (path F.Cu 2000
-            888100 -875000
-            888100 -880183
-            775800 -992483
             775800 -1100000
+            775800 -1000000
+            888100 -887700
           )
-        )
-        (wire
-          (path F.Cu 2000
-            888100 -875000
-            888100 -862300
-          )
-          (type protect)
         )
         (wire
           (path F.Cu 2000
             888100 -887700
-            888100 -875000
+            888100 -862300
           )
           (type protect)
         )
@@ -228,37 +230,23 @@
           )
         )
         (wire
-          (path F.Cu 2000
-            1424200 -1025000
-            1424200 -924990
-          )
-        )
-        (wire
-          (path F.Cu 2000
-            1424200 -924990
-            1429479 -924990
-          )
-        )
-        (wire
           (path B.Cu 2000
-            1429479 -924990
-            1525793 -924990
             1538483 -912300
-          )
-        )
-        (via "Via[0-1]_600:300_um" 1429479 -924990
-        )
-        (wire
-          (path F.Cu 2000
-            1424200 -924990
-            1424200 -799600
-            1400400 -775800
+            1425783 -1025000
+            1398800 -1025000
           )
         )
         (wire
           (path B.Cu 2000
-            1400400 -775800
             1349600 -775800
+            1400400 -775800
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            1398800 -1025000
+            1398800 -777400
+            1400400 -775800
           )
         )
       )
@@ -282,11 +270,11 @@
       (net "Net-(J101-Pin_3)"
         (wire
           (path F.Cu 2000
-            575000 -750400
-            761394 -936794
-            761394 -1101712
-            884682 -1225000
             899200 -1225000
+            885092 -1225000
+            725948 -1065856
+            725948 -901348
+            575000 -750400
           )
         )
       )
@@ -299,9 +287,9 @@
         )
         (wire
           (path B.Cu 2000
-            586517 -987300
-            599217 -1000000
             687500 -1000000
+            599217 -1000000
+            586517 -987300
           )
         )
       )
@@ -309,15 +297,15 @@
         (wire
           (path B.Cu 2000
             1250800 -1250000
-            1299200 -1250000
+            1325800 -1175000
             1374200 -1175000
           )
         )
         (wire
           (path B.Cu 2000
-            1550000 -1137300
-            1411900 -1137300
             1374200 -1175000
+            1411900 -1137300
+            1550000 -1137300
           )
         )
       )
@@ -333,27 +321,27 @@
       )
       (net "Net-(Q501-B)"
         (wire
-          (path B.Cu 2000
+          (path F.Cu 2000
+            1000800 -1225000
+            1000800 -1148400
             1024200 -1125000
-            1035544 -1113656
-            1188656 -1113656
-            1200000 -1125000
           )
         )
         (wire
-          (path F.Cu 2000
+          (path B.Cu 2000
+            1200000 -1125000
+            1188919 -1136081
+            1035281 -1136081
             1024200 -1125000
-            1024200 -1201600
-            1000800 -1225000
           )
         )
       )
       (net "Net-(U501A-+)"
         (wire
           (path B.Cu 2000
-            712500 -1000000
-            712500 -987100
             811900 -887700
+            712500 -987100
+            712500 -1000000
           )
         )
         (wire
@@ -367,9 +355,9 @@
       (net "Net-(U501A--)"
         (wire
           (path B.Cu 2000
-            811900 -836900
-            848800 -800000
             1112500 -800000
+            848800 -800000
+            811900 -836900
           )
         )
         (wire
@@ -389,23 +377,23 @@
       )
       (net "Net-(U501B-+)"
         (wire
-          (path F.Cu 2000
-            899200 -1125000
-            888100 -1113900
-            888100 -913100
-          )
-        )
-        (wire
           (path B.Cu 2000
-            1000800 -1050000
+            899200 -1125000
             974200 -1050000
-            899200 -1125000
+            1000800 -1050000
           )
         )
         (wire
           (path B.Cu 2000
-            837500 -1150000
+            899200 -1125000
             862500 -1125000
+            837500 -1150000
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            888100 -913100
+            888100 -1113900
             899200 -1125000
           )
         )

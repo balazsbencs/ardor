@@ -37,6 +37,13 @@
         "minimum_component_drill_mm": 0.6,
         "manual_parts": 18,
         "all_manual_parts_have_front_references": true,
+        "hestore_1_5ke6_8ca_references": [
+          "D202"
+        ],
+        "retained_sa24ca_references": [
+          "D203",
+          "D204"
+        ],
         "host_and_panel_pinout_matches_m1": true,
         "preassembled_smd_module": null,
         "breakout_contains_smd": false,
@@ -49,9 +56,9 @@
         "smt_placements": 0,
         "plated_drill_and_outline_origin_match": true,
         "nonplated_mounting_holes": 2,
-        "pcb_sha256": "491d6c0513ab8d58d02083fda378f52ad1c6e6e260f57a14e04205c5ffbec034",
-        "schematic_sha256": "803362ec7c594fff3fbfa1fdcb94a9eba2fca7e59409469e525d4685a0508521",
-        "bom_sha256": "28392884e84cfdc0d044ca9b504768e55d0e19123e7cb73e35306c3ff54313aa"
+        "pcb_sha256": "72cd6ef330da77cfef0e4efc9e87425bea901ba99f4c06dd7e34ab371022f066",
+        "schematic_sha256": "32fdf2cae7299bf53a02bdff28429a12e3cbb7c22a5e83d4be5a45bb996662ac",
+        "bom_sha256": "1435fdfe6fc3e77078e1538cd430d0225a4be4f0385a7cf679f84b69d9b6ad29"
       }
     },
     "headphones": {
@@ -91,6 +98,11 @@
         "minimum_component_drill_mm": 0.6,
         "manual_parts": 34,
         "all_manual_parts_have_front_references": true,
+        "hestore_1_5ke6_8ca_references": [
+          "D601",
+          "D602"
+        ],
+        "retained_sa24ca_references": [],
         "host_and_panel_pinout_matches_m1": true,
         "preassembled_smd_module": null,
         "breakout_contains_smd": false,
@@ -103,9 +115,9 @@
         "smt_placements": 1,
         "plated_drill_and_outline_origin_match": true,
         "nonplated_mounting_holes": 2,
-        "pcb_sha256": "b14a4911d3e73e120b0add93ea975db0bb974ecd59392ced8d022d1d21b07a72",
-        "schematic_sha256": "49d53af01b62c2a7e80c1df7d9c9a021417f09b09db7be90d25e5f06a3bea448",
-        "bom_sha256": "8077c55d0b188bd5a56a98cfd74c3f711db2b092a6af8c52c5a46bc3ef1dcdcf"
+        "pcb_sha256": "1b737372a28b99066a3c102b18631495ad7e3db0748b6e1d9a9aad9c1f43c48b",
+        "schematic_sha256": "e32c4ce556727a4d10abb39e2d8ff15c29214bd5b98bf4c6c9a1062d2a847c64",
+        "bom_sha256": "7ecd15074c9b57be9ae7bacbdd089d80e328f162e2cc6d9adb6287fe6270d7f0"
       }
     },
     "mixer": {
@@ -143,6 +155,8 @@
         "minimum_component_drill_mm": 0.6,
         "manual_parts": 28,
         "all_manual_parts_have_front_references": true,
+        "hestore_1_5ke6_8ca_references": [],
+        "retained_sa24ca_references": [],
         "host_and_panel_pinout_matches_m1": true,
         "preassembled_smd_module": null,
         "breakout_contains_smd": false,
@@ -177,7 +191,7 @@
         "signal_and_supply_width_mm": 0.2,
         "chassis_width_mm": 0.6,
         "ground_tracks": 0,
-        "vias": 1,
+        "vias": 0,
         "erc_violations": 0,
         "drc_violations": 0,
         "unconnected_items": 0,
@@ -195,6 +209,10 @@
         "minimum_component_drill_mm": 0.6,
         "manual_parts": 27,
         "all_manual_parts_have_front_references": true,
+        "hestore_1_5ke6_8ca_references": [
+          "D501"
+        ],
+        "retained_sa24ca_references": [],
         "host_and_panel_pinout_matches_m1": true,
         "preassembled_smd_module": null,
         "breakout_contains_smd": false,
@@ -207,9 +225,9 @@
         "smt_placements": 0,
         "plated_drill_and_outline_origin_match": true,
         "nonplated_mounting_holes": 2,
-        "pcb_sha256": "ad77d113b6029e5e1382c3877070c677329bc7c0b58f5dc62f52c3e7f21083b0",
-        "schematic_sha256": "c6d07d7f13adfc40c2165df0d6049dc9dde9646464582fb1f15846186a693295",
-        "bom_sha256": "7229b4d64c87a075feefb91607279c13e4240a93d9b7bba71ab06c6a230c438b"
+        "pcb_sha256": "9b5c63454f62855ee2f4fab4f32131effc2efdcccb5b99f615988aaad99cb2b2",
+        "schematic_sha256": "91c6fa9a85504b5a9bbf6af2c8b2e9fe9bc3396fe9ab3d7996416c1b00bc2595",
+        "bom_sha256": "abb9a10ce85d5a0916212a22a6c932d8e0e28450b089ad12d0285d8298105255"
       }
     },
     "expression": {
@@ -247,6 +265,11 @@
         "minimum_component_drill_mm": 0.6,
         "manual_parts": 29,
         "all_manual_parts_have_front_references": true,
+        "hestore_1_5ke6_8ca_references": [
+          "D301",
+          "D302"
+        ],
+        "retained_sa24ca_references": [],
         "host_and_panel_pinout_matches_m1": true,
         "preassembled_smd_module": "Adafruit 1085 STEMMA QT ADS1115",
         "breakout_contains_smd": true,
@@ -259,9 +282,9 @@
         "smt_placements": 0,
         "plated_drill_and_outline_origin_match": true,
         "nonplated_mounting_holes": 2,
-        "pcb_sha256": "46008b9810da64d20b5de82f7dfd6a458b25c3cda5f2736701cf74e7860eb61c",
-        "schematic_sha256": "7502813cb4f9c53329d85cd19bc5ecc9eaf27b9a80b7ab3b1dc6a108e84dd5a9",
-        "bom_sha256": "edb9860a41ad781b13655b77f86c378b88a2e71e85e5ad2a248400bde8ba4a43"
+        "pcb_sha256": "9028e1e16f5946a5b4ec88a9b55211d4e0d8c92c39f08aa83d2741108e506940",
+        "schematic_sha256": "b7f02ca9850fad1bda50bb2334b7b8b25c8da8d3b17f7110283857483d5efbe5",
+        "bom_sha256": "2d340ac8f14d97934d074b3e8978c821423deeb697fa3bffa2acf30020af1e1a"
       }
     }
   },

@@ -7,6 +7,11 @@
   "minimum_component_drill_mm": 0.6,
   "manual_parts": 29,
   "all_manual_parts_have_front_references": true,
+  "hestore_1_5ke6_8ca_references": [
+    "D301",
+    "D302"
+  ],
+  "retained_sa24ca_references": [],
   "host_and_panel_pinout_matches_m1": true,
   "preassembled_smd_module": "Adafruit 1085 STEMMA QT ADS1115",
   "breakout_contains_smd": true,

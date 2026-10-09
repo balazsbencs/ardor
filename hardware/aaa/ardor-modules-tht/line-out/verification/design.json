@@ -274,23 +274,23 @@
     "D501": {
       "ref": "D501",
       "kind": "D_TVS",
-      "value": "SA5.0CA-E3/54",
-      "fp": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
+      "value": "1.5KE6.8CA",
+      "fp": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
       "pcb": [
         97.5,
         52.5
       ],
       "part": {
-        "footprint": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
-        "mpn": "Vishay SA5.0CA-E3/54",
-        "bom_mpn": "Vishay SA5.0CA-E3/54",
+        "footprint": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
+        "mpn": "DC Components 1.5KE6.8CA (HESTORE 100.430.71)",
+        "bom_mpn": "DC Components 1.5KE6.8CA (HESTORE 100.430.71)",
         "jlcpcb_part": "",
-        "datasheet": "https://www.vishay.com/doc/?88378="
+        "datasheet": "https://www.dccomponents.com/products/1.5ke.pdf"
       },
       "dnp": false,
       "uuid": "1d92e69b-2d2a-5175-a164-68c979d73596",
-      "mpn": "Vishay SA5.0CA-E3/54",
-      "datasheet": "https://www.vishay.com/doc/?88378="
+      "mpn": "DC Components 1.5KE6.8CA (HESTORE 100.430.71)",
+      "datasheet": "https://www.dccomponents.com/products/1.5ke.pdf"
     },
     "R101": {
       "ref": "R101",

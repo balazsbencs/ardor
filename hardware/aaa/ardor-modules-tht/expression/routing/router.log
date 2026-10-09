@@ -1,8 +1,10 @@
-2026-10-08 19:36:49.622 INFO   Freerouting v2.1.0 (build-date: 2025-04-12)
-2026-10-08 19:36:51.090 INFO   [BF9934\51E7E6] Job 'BF9934\51E7E6' started at 2026-10-08T19:36:51.090115599Z
-2026-10-08 19:36:51.678 INFO   New version available: v2.5.0
-2026-10-08 19:36:52.928 INFO   [BF9934\51E7E6] Auto-router pass #1 on board 'd0008ad7760d2afc256f0157d6e9bbd0' was completed in 1.53 seconds with the score of 983.28, using 0.63 CPU seconds and 155 MB memory.
-2026-10-08 19:36:52.994 INFO   [BF9934\51E7E6] Auto-router pass #2 on board '897d666cccf167b52d6c2d04fa31448c' was completed in 0.01 seconds with the score of 983.28, using 0.63 CPU seconds and 155 MB memory.
+2026-10-09 12:28:20.874 INFO   Freerouting v2.1.0 (build-date: 2025-04-12)
+2026-10-09 12:28:20.976 WARN   No default constructor found for field: currentLocale
+2026-10-09 12:28:20.977 INFO   Settings were loaded from freerouting.json
+2026-10-09 12:28:23.028 INFO   [ECD088\79861E] Job 'ECD088\79861E' started at 2026-10-09T12:28:23.027745994Z
+2026-10-09 12:28:23.486 INFO   New version available: v2.5.0
+2026-10-09 12:28:26.231 INFO   [ECD088\79861E] Auto-router pass #1 on board '078236775548024b23448a324018867f' was completed in 2.68 seconds with the score of 983.20, using 2.35 CPU seconds and 435 MB memory.
+2026-10-09 12:28:26.349 INFO   [ECD088\79861E] Auto-router pass #2 on board '6614d34251430edc4ff398990a648d28' was completed in 0.01 seconds with the score of 983.20, using 2.35 CPU seconds and 435 MB memory.
 {
   "host": "KiCad's Pcbnew,9.0.2+dfsg-1",
   "unit": "mm",
@@ -25,17 +27,17 @@
     "signal_count": 2
   },
   "items": {
-    "total_count": 558,
+    "total_count": 548,
     "trace_count": 54,
     "via_count": 0,
     "conduction_area_count": 2,
     "drill_item_count": 76,
     "pin_count": 0,
-    "component_count": 425,
-    "other_count": 1
+    "component_count": 411,
+    "other_count": 5
   },
   "components": {
-    "total_count": 29
+    "total_count": 31
   },
   "pads": {
     "total_count": 76
@@ -51,12 +53,12 @@
   "traces": {
     "total_count": 54,
     "total_segment_count": 104,
-    "total_length": 6992.534,
-    "total_weighted_length": 2.1838106E7,
-    "average_length": 129.49136,
-    "total_vertical_length": 2425.57,
-    "total_horizontal_length": 1371.267,
-    "total_angled_length": 1570.0165
+    "total_length": 7025.543,
+    "total_weighted_length": 2.1960542E7,
+    "average_length": 130.10265,
+    "total_vertical_length": 1720.46,
+    "total_horizontal_length": 1239.458,
+    "total_angled_length": 2081.6016
   },
   "bends": {
     "total_count": 50,

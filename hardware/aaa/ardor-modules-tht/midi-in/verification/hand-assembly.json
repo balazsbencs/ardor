@@ -7,6 +7,13 @@
   "minimum_component_drill_mm": 0.6,
   "manual_parts": 18,
   "all_manual_parts_have_front_references": true,
+  "hestore_1_5ke6_8ca_references": [
+    "D202"
+  ],
+  "retained_sa24ca_references": [
+    "D203",
+    "D204"
+  ],
   "host_and_panel_pinout_matches_m1": true,
   "preassembled_smd_module": null,
   "breakout_contains_smd": false,

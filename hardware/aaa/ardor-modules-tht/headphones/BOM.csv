@@ -13,7 +13,7 @@ C661,100p / 50V C0G,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,100p / 50V C0G,TH
 R631,10R / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,10R / 1% 0.25W,THT manual
 C651,470u / 16V,Capacitor_THT:CP_Radial_D8.0mm_P3.50mm,470u / 16V,THT manual
 R641,1k / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,1k / 1% 0.25W,THT manual
-D601,SA5.0CA-E3/54,Diode_THT:D_DO-15_P10.16mm_Horizontal,Vishay SA5.0CA-E3/54,THT manual
+D601,1.5KE6.8CA,Ardor_THT:D_TVS_DC_1.5KE_P15.24mm,DC Components 1.5KE6.8CA (HESTORE 100.430.71),THT manual
 C602,10u / 25V BIPOLAR,Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm,Nichicon UES1E100MDM,THT manual
 R612,20k / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,20k / 1% 0.25W,THT manual
 R652,10k / 1% 0.25W / UPRIGHT,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P2.54mm_Vertical,10k / 1% 0.25W / UPRIGHT,THT manual
@@ -21,7 +21,7 @@ C662,100p / 50V C0G,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,100p / 50V C0G,TH
 R632,10R / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,10R / 1% 0.25W,THT manual
 C652,470u / 16V,Capacitor_THT:CP_Radial_D8.0mm_P3.50mm,470u / 16V,THT manual
 R642,1k / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,1k / 1% 0.25W,THT manual
-D602,SA5.0CA-E3/54,Diode_THT:D_DO-15_P10.16mm_Horizontal,Vishay SA5.0CA-E3/54,THT manual
+D602,1.5KE6.8CA,Ardor_THT:D_TVS_DC_1.5KE_P15.24mm,DC Components 1.5KE6.8CA (HESTORE 100.430.71),THT manual
 C641,100n / 50V X7R / P2.5mm,Capacitor_THT:C_Disc_D3.8mm_W2.6mm_P2.50mm,"100nF 50V X7R radial, D<=3.8mm W<=2.6mm P2.5mm",THT manual
 R621,10k / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,10k / 1% 0.25W,THT manual
 R622,10k / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,10k / 1% 0.25W,THT manual

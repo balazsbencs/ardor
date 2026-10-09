@@ -13,7 +13,7 @@ C501,47u / 25V polarized,Capacitor_THT:CP_Radial_D6.3mm_P2.50mm,"Radial electrol
 R501,10kR / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 10kΩ 1% 0.25W,THT manual
 R502,100R / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 100Ω 1% 0.25W,THT manual
 K501,Omron G5V-1 DC5,Relay_THT:Relay_SPDT_Omron_G5V-1,Omron G5V-1 DC5,THT manual
-D501,SA5.0CA-E3/54,Diode_THT:D_DO-15_P10.16mm_Horizontal,Vishay SA5.0CA-E3/54,THT manual
+D501,1.5KE6.8CA,Ardor_THT:D_TVS_DC_1.5KE_P15.24mm,DC Components 1.5KE6.8CA (HESTORE 100.430.71),THT manual
 R101,0R / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 0Ω 1% 0.25W,THT manual
 Q501,2N3904 / E-B-C,Package_TO_SOT_THT:TO-92_Inline_Wide,onsemi 2N3904BU,THT manual
 R503,470R / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 470Ω 1% 0.25W,THT manual
