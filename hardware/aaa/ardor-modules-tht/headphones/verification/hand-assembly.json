@@ -1,10 +1,13 @@
 {
   "result": "PASS",
-  "board_smd_pads": 0,
-  "board_smd_footprints": 0,
-  "tht_numbered_pads": 94,
+  "board_smd_pads": 8,
+  "board_smd_footprints": 1,
+  "manual_smd_references": [
+    "U601"
+  ],
+  "tht_numbered_pads": 76,
   "minimum_component_drill_mm": 0.6,
-  "manual_parts": 36,
+  "manual_parts": 34,
   "all_manual_parts_have_front_references": true,
   "host_and_panel_pinout_matches_m1": true,
   "preassembled_smd_module": null,

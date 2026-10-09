@@ -3,5 +3,5 @@
   "host_ground": "J101.2",
   "added_vias": [],
   "removed_router_spurs": 0,
-  "removed_degenerate_segments": 0
+  "removed_degenerate_segments": 1
 }

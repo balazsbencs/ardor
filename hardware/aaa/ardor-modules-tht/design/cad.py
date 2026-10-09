@@ -59,9 +59,8 @@ class Module:
             if rot in [90,270] or kind.startswith('D') and rot==0: rx,ry,vx,vy=x,y-7,x,y-4
             else: rx,ry,vx,vy=x+4,y-1.5,x+4,y+1.5
         else: rx,ry,vx,vy=x,y-17,x,y-14
-        if kind in ['TLV9002','MCP6022']: rx,ry,vx,vy=x,y-10,x,y-7
+        if kind in ['TLV9002','MCP6022','OPA1656']: rx,ry,vx,vy=x,y-10,x,y-7
         if unit==3: rx,ry,vx,vy=x+8,y-1.5,x+8,y+1.5
-        if kind=='LM386_THT':rx,ry,vx,vy=x,y-19,x,y-16
         if kind=='G5V2_THT':rx,ry,vx,vy=x,y-22,x,y-19
         if kind=='G5V-1':rx,ry,vx,vy=x,y-24,x,y-21
         if kind=='H11L1': rx,ry,vx,vy=x+25.4,y-17,x+25.4,y-14
@@ -168,7 +167,7 @@ class Module:
         defs=[];lib=[]
         for kind in sorted(self.used):
             sym=copy.deepcopy(LIB[kind]);lib.append(sx.dumps(sym));sym[1]='Ardor:'+kind;defs.append(sx.dumps(sym))
-        sch=f'(kicad_sch (version 20250114) (generator "eeschema") (uuid {q(self.id)}) (paper "A3") (title_block (title {q(self.title)}) (date "2026-10-08") (rev "T1") (company "Ardor") (comment 1 "Engineering prototype - bench validation required")) (lib_symbols '+''.join(defs)+')'+''.join(self.items)+'(sheet_instances (path "/" (page "1"))))'
+        sch=f'(kicad_sch (version 20250114) (generator "eeschema") (uuid {q(self.id)}) (paper "A3") (title_block (title {q(self.title)}) (date {q("2026-10-09" if self.slug=="headphones" else "2026-10-08")}) (rev "T1") (company "Ardor") (comment 1 "Engineering prototype - bench validation required")) (lib_symbols '+''.join(defs)+')'+''.join(self.items)+'(sheet_instances (path "/" (page "1"))))'
         (out/(self.name+'.kicad_sch')).write_text(sch+'\n')
         (out/'Ardor.kicad_sym').write_text('(kicad_symbol_lib (version 20241209) (generator "kicad_symbol_editor")'+''.join(lib)+')\n')
         (out/'sym-lib-table').write_text('(sym_lib_table (version 7) (lib (name "Ardor") (type "KiCad") (uri "${KIPRJMOD}/Ardor.kicad_sym") (options "") (descr "Local module symbols")))\n')

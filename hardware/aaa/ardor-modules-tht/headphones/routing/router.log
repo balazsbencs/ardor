@@ -1,8 +1,10 @@
-2026-10-08 19:36:37.214 INFO   Freerouting v2.1.0 (build-date: 2025-04-12)
-2026-10-08 19:36:39.166 INFO   [8FFA55\2F8979] Job '8FFA55\2F8979' started at 2026-10-08T19:36:39.166600775Z
-2026-10-08 19:36:39.955 INFO   New version available: v2.5.0
-2026-10-08 19:36:42.596 INFO   [8FFA55\2F8979] Auto-router pass #1 on board 'fd595de7d16a2d4f55af8e207f882b87' was completed in 2.90 seconds with the score of 982.00, using 2.48 CPU seconds and 522 MB memory.
-2026-10-08 19:36:42.658 INFO   [8FFA55\2F8979] Auto-router pass #2 on board '69d6f323d6c30fcd0e18d0d1e3be03e8' was completed in 0.01 seconds with the score of 982.00, using 2.48 CPU seconds and 522 MB memory.
+2026-10-09 05:06:19.032 INFO   Freerouting v2.1.0 (build-date: 2025-04-12)
+2026-10-09 05:06:19.118 WARN   No default constructor found for field: currentLocale
+2026-10-09 05:06:19.119 INFO   Settings were loaded from freerouting.json
+2026-10-09 05:06:20.539 INFO   [72EBDC\9FBED2] Job '72EBDC\9FBED2' started at 2026-10-09T05:06:20.539599194Z
+2026-10-09 05:06:21.058 INFO   New version available: v2.5.0
+2026-10-09 05:06:23.060 INFO   [72EBDC\9FBED2] Auto-router pass #1 on board '3bed6b2fe982493708a1ceb17275b1a9' was completed in 2.17 seconds with the score of 980.86, using 1.81 CPU seconds and 482 MB memory.
+2026-10-09 05:06:23.112 INFO   [72EBDC\9FBED2] Auto-router pass #2 on board 'b5010d0da0327a1ea0f433d657d00ff8' was completed in 0.01 seconds with the score of 980.86, using 1.81 CPU seconds and 482 MB memory.
 {
   "host": "KiCad's Pcbnew,9.0.2+dfsg-1",
   "unit": "mm",
@@ -25,43 +27,43 @@
     "signal_count": 2
   },
   "items": {
-    "total_count": 1178,
-    "trace_count": 45,
+    "total_count": 1032,
+    "trace_count": 53,
     "via_count": 0,
     "conduction_area_count": 2,
-    "drill_item_count": 94,
+    "drill_item_count": 84,
     "pin_count": 0,
-    "component_count": 1036,
-    "other_count": 1
+    "component_count": 888,
+    "other_count": 5
   },
   "components": {
     "total_count": 36
   },
   "pads": {
-    "total_count": 94
+    "total_count": 84
   },
   "nets": {
-    "total_count": 29,
+    "total_count": 22,
     "class_count": 4
   },
   "connections": {
-    "maximum_count": 112,
+    "maximum_count": 117,
     "incomplete_count": 0
   },
   "traces": {
-    "total_count": 45,
-    "total_segment_count": 100,
-    "total_length": 7514.404,
-    "total_weighted_length": 2.3860718E7,
-    "average_length": 166.98676,
-    "total_vertical_length": 2643.289,
-    "total_horizontal_length": 1008.958,
-    "total_angled_length": 1924.7472
+    "total_count": 53,
+    "total_segment_count": 118,
+    "total_length": 8309.842,
+    "total_weighted_length": 2.4215578E7,
+    "average_length": 156.78947,
+    "total_vertical_length": 2518.792,
+    "total_horizontal_length": 2375.783,
+    "total_angled_length": 1955.8527
   },
   "bends": {
-    "total_count": 55,
-    "90_degree_count": 0,
-    "45_degree_count": 55,
+    "total_count": 65,
+    "90_degree_count": 9,
+    "45_degree_count": 56,
     "other_angle_count": 0
   },
   "vias": {

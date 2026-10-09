@@ -68,7 +68,7 @@ INTERFACES={
  'J101':port('5V POWER + ENABLE INPUT','PWR + ENABLE IN',[power(1,'+5V','5V'),ground(2),enable(3,'HP_ENABLE')]),
  'J102':port('STEREO AUDIO INPUT FROM SOURCE','AUDIO IN',[audio(1,'AUDIO_L','LEFT',connect='DAC/codec left audio output, <=1 Vrms.'),ground(2),audio(3,'AUDIO_R','RIGHT',connect='DAC/codec right audio output, <=1 Vrms.')]),
  'J602':port('STEREO HEADPHONE AUDIO OUTPUT','HEADPHONE OUT',[audio(1,'HP_L','LEFT',True,'TRS socket tip; headphones >=32 ohm.'),audio(2,'HP_R','RIGHT',True,'TRS socket ring; headphones >=32 ohm.'),ground(3,connect='TRS socket sleeve; enclosure bond.')])}}
-UNUSED={'midi-in':{'U201.3':'NC - LEAVE OPEN'},'expression':{'U301.2':'UNUSED ALERT - LEAVE OPEN','U301.11':'BREAKOUT AVDD - LEAVE OPEN','U301.12':'BREAKOUT AGND - LEAVE OPEN'},'mixer':{},'line-out':{},'headphones':{'U601.1':'GAIN NC','U601.8':'GAIN NC','U602.1':'GAIN NC','U602.8':'GAIN NC'}}
+UNUSED={'midi-in':{'U201.3':'NC - LEAVE OPEN'},'expression':{'U301.2':'UNUSED ALERT - LEAVE OPEN','U301.11':'BREAKOUT AVDD - LEAVE OPEN','U301.12':'BREAKOUT AGND - LEAVE OPEN'},'mixer':{},'line-out':{},'headphones':{}}
 def contract(slug,spec):
     ports=INTERFACES[slug];external={k:v for k,v in spec['pins'].items() if k.startswith('J')}
     described={ref+'.'+str(p['number']):p['net'] for ref,c in ports.items() for p in c['pins']}

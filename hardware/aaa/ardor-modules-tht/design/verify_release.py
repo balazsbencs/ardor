@@ -25,9 +25,14 @@ for folder in ROOT.iterdir():
     validation = json.loads((folder/'verification/validation.json').read_text())
     hand = json.loads((folder/'verification/hand-assembly.json').read_text())
     assert validation['result']==hand['result']=='PASS'
+    if folder.name=='headphones':
+        assert json.loads((folder/'verification/headphone-circuit.json').read_text())['result']=='PASS'
     d = json.loads((folder/'verification/drc.json').read_text())
     assert not d['violations'] and not d['unconnected_items'] and not d['schematic_parity']
-    assert not list(csv.DictReader((folder/'assembly/kicad-smt-positions.csv').open()))
+    placements = list(csv.DictReader((folder/'assembly/kicad-smt-positions.csv').open()))
+    assert len(placements)==hand['board_smd_footprints']
+    if placements:
+        assert folder.name=='headphones' and placements[0]['Ref']=='U601'
     files = sorted((folder/'assembly/gerbers').iterdir())
     assert len(files)==12
     outline = next(p for p in files if 'Edge_Cuts' in p.name).read_text()
@@ -49,7 +54,7 @@ for folder in ROOT.iterdir():
         for file in files:
             assert z.read(file.name)==file.read_bytes()
     report = {'result':'PASS','fabrication_files':12,'zip_crc_and_contents_match':True,
-              'smt_placements':0,'plated_drill_and_outline_origin_match':True,'nonplated_mounting_holes':2,
+              'smt_placements':len(placements),'plated_drill_and_outline_origin_match':True,'nonplated_mounting_holes':2,
               'pcb_sha256':sha(folder/(s['name']+'.kicad_pcb')),
               'schematic_sha256':sha(folder/(s['name']+'.kicad_sch')),
               'bom_sha256':sha(folder/'BOM.csv')}
@@ -58,8 +63,9 @@ for folder in ROOT.iterdir():
     manifest(folder)
     print(folder.name,'bare-board package PASS')
 summary = {'result':'PASS','kicad_version':'9.0.2','modules':modules,
-           'total_numbered_component_pads':sum(m['hand_assembly']['tht_numbered_pads'] for m in modules.values()),
+           'total_numbered_component_pads':sum(m['hand_assembly']['tht_numbered_pads']+m['hand_assembly']['board_smd_pads'] for m in modules.values()),
            'total_manual_components':sum(m['hand_assembly']['manual_parts'] for m in modules.values()),
-           'board_smd_pads':0,'board_smd_footprints':0,'preassembled_smd_breakouts':1,'hardware_tested':False}
+           'board_smd_pads':sum(m['hand_assembly']['board_smd_pads'] for m in modules.values()),
+           'board_smd_footprints':sum(m['hand_assembly']['board_smd_footprints'] for m in modules.values()),'preassembled_smd_breakouts':1,'hardware_tested':False}
 (ROOT/'review/validation-summary.json').write_text(json.dumps(summary,indent=2)+'\n')
 manifest(ROOT)

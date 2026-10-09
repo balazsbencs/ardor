@@ -13,13 +13,14 @@ python3 route.py /absolute/path/to/freerouting-2.1.0.jar
 python3 finish_routes.py
 python3 verify.py
 python3 verify_hand_assembly.py
+python3 verify_headphones.py
 python3 export_manufacturing.py
 python3 generate_guides.py
 python3 render_review.py
 python3 verify_release.py
 ```
 
-Native ERC/DRC include all severities, unconnected items and schematic parity, with no exclusions. Independent drawn-wire checks, netlist-to-pad checks, connector comparison against M1, zero SMD-pad checks, BOM checks and Gerber/drill/archive manifests support review. Frozen footprints and symbols make the generated projects self-contained.
+Native ERC/DRC include all severities, unconnected items and schematic parity, with no exclusions. Independent drawn-wire checks, netlist-to-pad checks, connector comparison against M1, strict SMD-exception checks (only headphone U601 SOIC-8), BOM checks and Gerber/drill/archive manifests support review. Frozen footprints and symbols make the generated projects self-contained.
 
 `smd_circuits.py` and `part-catalog.json` retain the M1 circuit/value source for the four reused circuits. `modules.py` replaces their packages, purchasing metadata and relay transistor. The new headphone circuit is specified directly there. M1 routing and manufacturing data are not reused. IC replacements and the ADC breakout pin numbering are documented in `../SOURCES.md`.
 
