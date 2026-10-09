@@ -33,6 +33,8 @@ Two 10 Ω output resistors sit outside the feedback loops, before the 470 µF DC
 
 Open the `.kicad_pro` in the desired folder. Use `BOM.csv` plus `assembly/accessories.csv` for manual shopping and the ZIP under `assembly/` for a bare PCB order. Do not use M1's SMT BOM/CPL for these boards. Front silkscreen identifies every builder-fitted part; back silkscreen provides connector numbers and wiring legends. Native schematic PDFs and front/back/assembly views are under `review/`.
 
+The [Hestore purchasing audit](procurement/README.md) covers every component and assembly accessory, with dated stock, candidate links and replacement limitations. Several candidates require supplier confirmation or PCB changes; the audit does not change these BOMs or manufacturing files.
+
 [Printable assembly overview](review/module-overview.pdf) · [All five schematics](review/schematics.pdf)
 
 These are **unbuilt engineering prototypes**. CAD checks establish connectivity, geometry and the documented hand-assembly package choices; they do not establish measured audio quality, ESD performance or startup behavior. Each module guide includes commissioning steps. See [engineering review](review/REVIEW.md), [validation summary](review/validation-summary.json), [design regeneration](design/README.md) and [component sources and substitutions](SOURCES.md).
