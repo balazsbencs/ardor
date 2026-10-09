@@ -102,11 +102,6 @@
       "setup": ""
     }
   },
-  "unused_pins": {
-    "U601.1": "GAIN NC",
-    "U601.8": "GAIN NC",
-    "U602.1": "GAIN NC",
-    "U602.8": "GAIN NC"
-  },
+  "unused_pins": {},
   "mounting_holes": "H1/H2 are M2 mounting holes, not electrical connections. Small vias are not user connectors."
 }

@@ -32,6 +32,7 @@
         "result": "PASS",
         "board_smd_pads": 0,
         "board_smd_footprints": 0,
+        "manual_smd_references": [],
         "tht_numbered_pads": 42,
         "minimum_component_drill_mm": 0.6,
         "manual_parts": 18,
@@ -56,17 +57,17 @@
     "headphones": {
       "electrical": {
         "result": "PASS",
-        "connected_pin_numbers": 90,
-        "explicit_no_connects": 4,
-        "physical_numbered_pads": 94,
-        "electrical_footprints": 36,
+        "connected_pin_numbers": 84,
+        "explicit_no_connects": 0,
+        "physical_numbered_pads": 84,
+        "electrical_footprints": 34,
         "mounting_holes": 2,
         "board_size_mm": [
           96.0,
           84.0
         ],
-        "functional_nets": 25,
-        "routed_nets": 24,
+        "functional_nets": 22,
+        "routed_nets": 21,
         "signal_and_supply_width_mm": 0.2,
         "chassis_width_mm": 0.6,
         "ground_tracks": 0,
@@ -81,11 +82,14 @@
       },
       "hand_assembly": {
         "result": "PASS",
-        "board_smd_pads": 0,
-        "board_smd_footprints": 0,
-        "tht_numbered_pads": 94,
+        "board_smd_pads": 8,
+        "board_smd_footprints": 1,
+        "manual_smd_references": [
+          "U601"
+        ],
+        "tht_numbered_pads": 76,
         "minimum_component_drill_mm": 0.6,
-        "manual_parts": 36,
+        "manual_parts": 34,
         "all_manual_parts_have_front_references": true,
         "host_and_panel_pinout_matches_m1": true,
         "preassembled_smd_module": null,
@@ -96,12 +100,12 @@
         "result": "PASS",
         "fabrication_files": 12,
         "zip_crc_and_contents_match": true,
-        "smt_placements": 0,
+        "smt_placements": 1,
         "plated_drill_and_outline_origin_match": true,
         "nonplated_mounting_holes": 2,
-        "pcb_sha256": "6c4aaf47a62dd6e19c52ac8f7dc9e931a55a0878e13a9ddf0ebd98ed605dc069",
-        "schematic_sha256": "08bffa4aa7c109e869ca928a3dc2ee965a7f11c0d09ed87c67cb5668d5532196",
-        "bom_sha256": "ce0eb73972a5cb4ba75826ed88a0add5981e5979bc04d08e38c35a2a2944684e"
+        "pcb_sha256": "b14a4911d3e73e120b0add93ea975db0bb974ecd59392ced8d022d1d21b07a72",
+        "schematic_sha256": "49d53af01b62c2a7e80c1df7d9c9a021417f09b09db7be90d25e5f06a3bea448",
+        "bom_sha256": "8077c55d0b188bd5a56a98cfd74c3f711db2b092a6af8c52c5a46bc3ef1dcdcf"
       }
     },
     "mixer": {
@@ -134,6 +138,7 @@
         "result": "PASS",
         "board_smd_pads": 0,
         "board_smd_footprints": 0,
+        "manual_smd_references": [],
         "tht_numbered_pads": 71,
         "minimum_component_drill_mm": 0.6,
         "manual_parts": 28,
@@ -185,6 +190,7 @@
         "result": "PASS",
         "board_smd_pads": 0,
         "board_smd_footprints": 0,
+        "manual_smd_references": [],
         "tht_numbered_pads": 66,
         "minimum_component_drill_mm": 0.6,
         "manual_parts": 27,
@@ -236,6 +242,7 @@
         "result": "PASS",
         "board_smd_pads": 0,
         "board_smd_footprints": 0,
+        "manual_smd_references": [],
         "tht_numbered_pads": 76,
         "minimum_component_drill_mm": 0.6,
         "manual_parts": 29,
@@ -258,10 +265,10 @@
       }
     }
   },
-  "total_numbered_component_pads": 349,
-  "total_manual_components": 138,
-  "board_smd_pads": 0,
-  "board_smd_footprints": 0,
+  "total_numbered_component_pads": 339,
+  "total_manual_components": 136,
+  "board_smd_pads": 8,
+  "board_smd_footprints": 1,
   "preassembled_smd_breakouts": 1,
   "hardware_tested": false
 }

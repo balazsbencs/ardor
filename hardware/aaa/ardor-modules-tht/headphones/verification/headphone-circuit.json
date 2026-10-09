@@ -1,0 +1,39 @@
+{
+  "result": "PASS",
+  "source": "Native netlist values/connectivity and physical PCB copper",
+  "ideal_linear_calculations_only": true,
+  "hardware_tested": false,
+  "minimum_common_mode_upper_margin_V_5pct_supply_1pct_divider": 0.0997650000000001,
+  "fixed_local_front_layer_segments_preserved": 17,
+  "decoupling_supply_track_length_mm": 3.9786492682818877,
+  "channels": {
+    "left": {
+      "unloaded_midband_gain": -0.5,
+      "loaded_midband_gain_32ohm": -0.3780718336483932,
+      "ideal_power_mW_at_1Vrms_32ohm": 4.466822231195572,
+      "peak_output_current_mA_including_bleeder": 17.243246648972523,
+      "input_highpass_Hz": 0.7957747154594768,
+      "output_highpass_Hz_32ohm": 8.257646968931546,
+      "feedback_lowpass_Hz": 159154.94309189534,
+      "response_relative_midband_dB": {
+        "20": -0.690479809262414,
+        "1000": -0.00047032921647994407,
+        "20000": -0.06804592269967372
+      }
+    },
+    "right": {
+      "unloaded_midband_gain": -0.5,
+      "loaded_midband_gain_32ohm": -0.3780718336483932,
+      "ideal_power_mW_at_1Vrms_32ohm": 4.466822231195572,
+      "peak_output_current_mA_including_bleeder": 17.243246648972523,
+      "input_highpass_Hz": 0.7957747154594768,
+      "output_highpass_Hz_32ohm": 8.257646968931546,
+      "feedback_lowpass_Hz": 159154.94309189534,
+      "response_relative_midband_dB": {
+        "20": -0.690479809262414,
+        "1000": -0.00047032921647994407,
+        "20000": -0.06804592269967372
+      }
+    }
+  }
+}

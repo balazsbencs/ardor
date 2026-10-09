@@ -2,6 +2,7 @@
   "result": "PASS",
   "board_smd_pads": 0,
   "board_smd_footprints": 0,
+  "manual_smd_references": [],
   "tht_numbered_pads": 71,
   "minimum_component_drill_mm": 0.6,
   "manual_parts": 28,

@@ -21,16 +21,33 @@ for folder in ROOT.iterdir():
     assert set(bom)==set(spec['parts'])
     footprints = {f.GetReference():f for f in board.GetFootprints()}
     pad_count = 0
+    smd_count = 0
+    smd_refs = []
     for ref,part in spec['parts'].items():
         fp = footprints[ref]
-        assert fp.GetAttributes() & p.FP_THROUGH_HOLE, (folder.name,ref,'not THT')
-        assert not fp.GetAttributes() & p.FP_SMD
+        is_smd = folder.name=='headphones' and ref=='U601'
+        if is_smd:
+            assert fp.GetAttributes() & p.FP_SMD
+            assert not fp.GetAttributes() & p.FP_THROUGH_HOLE
+            assert part['fp']=='Package_SO:SOIC-8_3.9x4.9mm_P1.27mm'
+            assert part['mpn']=='Texas Instruments OPA1656ID'
+            assert bom[ref]['Assembly']=='SMD manual / SOIC-8 1.27mm pitch'
+            smd_refs.append(ref)
+        else:
+            assert fp.GetAttributes() & p.FP_THROUGH_HOLE, (folder.name,ref,'not THT')
+            assert not fp.GetAttributes() & p.FP_SMD
         for pad in fp.Pads():
             if pad.GetNumber():
-                assert pad.GetAttribute()==p.PAD_ATTRIB_PTH
-                assert p.ToMM(pad.GetDrillSize().x)>=.6
-                assert pad.IsOnLayer(p.F_Cu) and pad.IsOnLayer(p.B_Cu)
-                pad_count += 1
+                if is_smd:
+                    assert pad.GetAttribute()==p.PAD_ATTRIB_SMD
+                    assert pad.GetDrillSize().x==0 and pad.IsOnLayer(p.F_Cu)
+                    assert not pad.IsOnLayer(p.B_Cu)
+                    smd_count += 1
+                else:
+                    assert pad.GetAttribute()==p.PAD_ATTRIB_PTH
+                    assert p.ToMM(pad.GetDrillSize().x)>=.6
+                    assert pad.IsOnLayer(p.F_Cu) and pad.IsOnLayer(p.B_Cu)
+                    pad_count += 1
         assert bom[ref]['Footprint']==part['fp']
         assert bom[ref]['Value']==part['value']
         assert part['mpn']==bom[ref]['Purchasing specification']
@@ -61,19 +78,26 @@ for folder in ROOT.iterdir():
         assert spec['pins']['K601.4']=='HP_L' and spec['pins']['K601.13']=='HP_R'
         assert spec['pins']['K601.6']=='GND' and spec['pins']['K601.11']=='GND'
         assert spec['pins']['K601.8']=='DRIVE_L' and spec['pins']['K601.9']=='DRIVE_R'
-        for ref in ['U601','U602']:
-            assert spec['parts'][ref]['mpn']=='Texas Instruments LM386N-1/NOPB'
-            assert {ref+'.1',ref+'.8'}<=set(spec['nc'])
+        assert not spec['nc'] and 'U602' not in footprints
+        assert smd_count==8 and smd_refs==['U601']
+        pads = {a.GetNumber():a for a in footprints['U601'].Pads()}
+        assert set(pads)==set('12345678')
+        for a,b in [('1','2'),('2','3'),('3','4'),('5','6'),('6','7'),('7','8')]:
+            assert abs(p.ToMM((pads[a].GetPosition()-pads[b].GetPosition()).y))==1.27
+        assert spec['pins']['U601.8']=='+5V_A' and spec['pins']['U601.4']=='GND'
+        assert spec['pins']['U601.3']==spec['pins']['U601.5']=='VREF'
+        assert spec['pins']['U601.2']=='SUM_L' and spec['pins']['U601.6']=='SUM_R'
+        assert spec['pins']['U601.1']=='RAW_L' and spec['pins']['U601.7']=='RAW_R'
         assert spec['parts']['K601']['mpn']=='Omron G5V-2-H1 DC5'
     silk = json.loads((folder/'verification/component-silkscreen.json').read_text())
     assert {v['reference'] for v in silk}==set(spec['parts'])
     labels = json.loads((folder/'verification/silkscreen.json').read_text())
     assert set(labels['numbered_connector_pins'])==set(connectors)
     assert set(labels['pin_maps'])=={pin.split('.')[0] for pin in connectors}
-    report = {'result':'PASS','board_smd_pads':0,'board_smd_footprints':0,'tht_numbered_pads':pad_count,
+    report = {'result':'PASS','board_smd_pads':smd_count,'board_smd_footprints':len(smd_refs),'manual_smd_references':smd_refs,'tht_numbered_pads':pad_count,
               'minimum_component_drill_mm':.6,'manual_parts':len(bom),'all_manual_parts_have_front_references':True,
               'host_and_panel_pinout_matches_m1':True,'preassembled_smd_module':
               'Adafruit 1085 STEMMA QT ADS1115' if folder.name=='expression' else None,
               'breakout_contains_smd':folder.name=='expression','hardware_tested':False}
     (folder/'verification/hand-assembly.json').write_text(json.dumps(report,indent=2)+'\n')
-    print(folder.name,'THT and interface checks PASS',pad_count,'pads')
+    print(folder.name,'hand assembly and interface checks PASS',pad_count,'THT pads',smd_count,'SOIC pads')

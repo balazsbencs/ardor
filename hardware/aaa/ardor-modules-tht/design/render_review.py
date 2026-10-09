@@ -20,7 +20,7 @@ def nested(file,x,y,w,h):
 review = ROOT/'review'
 review.mkdir(exist_ok=True)
 book = fitz.open()
-body = text(35,50,'ARDOR T1 / HAND-ASSEMBLED MODULES',30)+text(35,83,'Four all-THT circuits + one THT carrier for a preassembled ADS1115 breakout',18)
+body = text(35,50,'ARDOR T1 / HAND-ASSEMBLED MODULES',30)+text(35,83,'Three all-THT circuits; expression uses ADS1115 breakout; headphones use one SOIC-8',18)
 for i,slug in enumerate(ORDER):
     folder = ROOT/slug
     s = json.loads((folder/'verification/design.json').read_text())
@@ -38,7 +38,7 @@ for i,slug in enumerate(ORDER):
     body += text(x,y,slug.upper().replace('-',' '),22)
     body += text(x,y+28,f'{w} x {h} mm / {len(s["parts"])} manual parts',17)
     body += nested(folder/'review/pcb-assembly.svg',x,y+45,410,325)
-body += text(955,615,'All carrier pads: through-hole',20)
+body += text(955,615,'Headphones: OPA1656 SOIC-8',20)
 body += text(955,650,'Expression: Adafruit 1085 QT',20)
 body += text(955,685,'Headphones: 5 V / 150 mA',20)
 body += text(955,720,'Enable LOW at startup >=5 s',20)

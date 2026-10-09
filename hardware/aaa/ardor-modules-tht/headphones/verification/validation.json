@@ -1,16 +1,16 @@
 {
   "result": "PASS",
-  "connected_pin_numbers": 90,
-  "explicit_no_connects": 4,
-  "physical_numbered_pads": 94,
-  "electrical_footprints": 36,
+  "connected_pin_numbers": 84,
+  "explicit_no_connects": 0,
+  "physical_numbered_pads": 84,
+  "electrical_footprints": 34,
   "mounting_holes": 2,
   "board_size_mm": [
     96.0,
     84.0
   ],
-  "functional_nets": 25,
-  "routed_nets": 24,
+  "functional_nets": 22,
+  "routed_nets": 21,
   "signal_and_supply_width_mm": 0.2,
   "chassis_width_mm": 0.6,
   "ground_tracks": 0,

@@ -74,11 +74,26 @@ def build(folder):
         a,c=pad(ref,n),pad(other,m);assert a.GetNetCode()==c.GetNetCode()
         pts=[a.GetPosition(),*[pt(xy) for xy in via],c.GetPosition()]
         for start,end in zip(pts,pts[1:]):
-            t=p.PCB_TRACK(b);t.SetStart(start);t.SetEnd(end);t.SetLayer(p.F_Cu);t.SetWidth(mm(width));t.SetNet(a.GetNet());b.Add(t)
+            t=p.PCB_TRACK(b);t.SetStart(start);t.SetEnd(end);t.SetLayer(p.F_Cu);t.SetWidth(mm(width));t.SetNet(a.GetNet())
+            if folder.name=='headphones':t.SetLocked(True)
+            b.Add(t)
     # Buffer feedback loops stay local, outside autorouter changes.
     for ref,c in spec['parts'].items():
         if c['kind'] in ['TLV9002','MCP6022']:
             track(ref,1,ref,2);track(ref,6,ref,7)
+    # OPA1656 feedback and bypass connections are fixed local front-layer
+    # routes. Keep the summing nodes compact; the router handles long harness,
+    # relay and AC-coupled output connections outside these loops.
+    if folder.name=='headphones':
+        track('U601',2,'R651',2)
+        track('U601',1,'R651',1,[(41.525,28),(36.23,28)])
+        track('R651',1,'C661',1)
+        track('U601',2,'C661',2,[(44,31.865),(44,24)])
+        track('U601',6,'R652',2)
+        track('U601',7,'R652',1,[(48,31.865),(48,30.5),(53.5,30.5),(53.5,32.5)])
+        track('R652',1,'C662',1)
+        track('R652',2,'C662',2)
+        track('U601',8,'C641',1)
     # Export route-only DSN before pour keepouts; the router handles copper,
     # while the final KiCad rules independently enforce isolation and geometry.
     p.SaveBoard(str(folder/'routing/placement.kicad_pcb'),b)

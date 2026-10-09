@@ -122,7 +122,7 @@
       "text": "J102 AUDIO IN\n1 LEFT IN  2 GND 0V\n3 RIGHT IN",
       "position_mm": [
         64.5,
-        73.5
+        72.0
       ],
       "pin_map_for": "J102",
       "described_pins": [
@@ -136,7 +136,7 @@
       "text": "J602 HEADPHONE OUT\n1 LEFT OUT  2 RIGHT OUT\n3 GND 0V",
       "position_mm": [
         129.5,
-        74.0
+        72.0
       ],
       "pin_map_for": "J602",
       "described_pins": [
@@ -147,49 +147,17 @@
       "optional": true
     },
     {
-      "text": "U601.1 NC\nNO WIRE",
-      "position_mm": [
-        85.5,
-        67.5
-      ],
-      "unused_pin": "U601.1"
-    },
-    {
-      "text": "U601.8 NC\nNO WIRE",
-      "position_mm": [
-        102.5,
-        69.0
-      ],
-      "unused_pin": "U601.8"
-    },
-    {
-      "text": "U602.1 NC\nNO WIRE",
-      "position_mm": [
-        85.5,
-        92.5
-      ],
-      "unused_pin": "U602.1"
-    },
-    {
-      "text": "U602.8 NC\nNO WIRE",
-      "position_mm": [
-        102.5,
-        94.0
-      ],
-      "unused_pin": "U602.8"
-    },
-    {
       "text": "IN=INTO",
       "position_mm": [
-        101.5,
-        91.5
+        98.0,
+        93.0
       ]
     },
     {
       "text": "OUT=FROM",
       "position_mm": [
-        95.0,
-        89.0
+        100.0,
+        91.0
       ]
     }
   ],
@@ -286,7 +254,7 @@
       "text": "J102 AUDIO IN\n1 LEFT IN  2 GND 0V\n3 RIGHT IN",
       "position_mm": [
         64.5,
-        73.5
+        72.0
       ],
       "pin_map_for": "J102",
       "described_pins": [
@@ -300,7 +268,7 @@
       "text": "J602 HEADPHONE OUT\n1 LEFT OUT  2 RIGHT OUT\n3 GND 0V",
       "position_mm": [
         129.5,
-        74.0
+        72.0
       ],
       "pin_map_for": "J602",
       "described_pins": [
@@ -311,11 +279,6 @@
       "optional": true
     }
   },
-  "unused_pins": {
-    "U601.1": "GAIN NC",
-    "U601.8": "GAIN NC",
-    "U602.1": "GAIN NC",
-    "U602.8": "GAIN NC"
-  },
+  "unused_pins": {},
   "signal_viewpoint": "IN enters this board; OUT leaves this board; I/O is both directions; GND is 0 V"
 }
