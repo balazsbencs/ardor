@@ -185,6 +185,7 @@ struct UiPreviewSnapshot {
 struct UiPreviewTransaction {
   UiPreviewSnapshot rollback;
   std::string operation;
+  bool notifyOnSuccess = true;
 };
 
 struct UiClipDebugTelemetry {
@@ -398,7 +399,8 @@ bool resetSelectedEqPassFilter(UiState& state, EqPassFilterKind kind);
 
 bool previewIsSynchronized(const UiState& state);
 UiPreviewSnapshot captureUiPreviewSnapshot(const UiState& state);
-bool queuePreview(UiState& state, UiPreviewSnapshot rollback, std::string operation);
+bool queuePreview(UiState& state, UiPreviewSnapshot rollback, std::string operation,
+                  bool notifyOnSuccess = true);
 const UiPreviewTransaction* pendingStructuralPreview(const UiState& state);
 void completeStructuralPreview(UiState& state);
 void failStructuralPreview(UiState& state, std::string error);

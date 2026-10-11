@@ -510,13 +510,14 @@ const UiBlock* selectedWdwRig(const UiState& state)
 }
 
 bool queuePreviewOrDeferWdw(UiState& state, UiPreviewSnapshot rollback,
-                           std::string operation, const UiBlock* rig)
+                           std::string operation, const UiBlock* rig,
+                           bool notifyOnSuccess = true)
 {
   if (rig && isWdwRig(*rig) && !wdwRouteReadyForPreview(state, *rig)) {
     setUiStatus(state, "WDW draft updated - finish both NAM lanes before preview");
     return false;
   }
-  return queuePreview(state, std::move(rollback), std::move(operation));
+  return queuePreview(state, std::move(rollback), std::move(operation), notifyOnSuccess);
 }
 
 std::string bankName(int bank)
@@ -2052,7 +2053,7 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
         block.params["modelParameters"] = nlohmann::json::object();
       block.params["modelParameters"][name] = value;
       state.dirty = true;
-      queuePreviewOrDeferWdw(state, rollback, "update " + block.assetName, selectedWdwRig(state));
+      queuePreviewOrDeferWdw(state, rollback, "update " + block.assetName, selectedWdwRig(state), false);
       markUiChanged(state, UiChange::Header | UiChange::Parameters);
       return;
     }
@@ -2132,7 +2133,7 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
   state.dirty = true;
   if (previewRollback) {
     const auto* rig = block.type == "dualRig" ? &block : selectedWdwRig(state);
-    queuePreviewOrDeferWdw(state, *previewRollback, "update " + block.assetName, rig);
+    queuePreviewOrDeferWdw(state, *previewRollback, "update " + block.assetName, rig, false);
   }
   markUiChanged(state, UiChange::Header | UiChange::Parameters);
 }
@@ -2184,7 +2185,7 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
   block.params[key] = std::move(value);
   state.dirty = true;
   const auto* rig = block.type == "dualRig" ? &block : selectedWdwRig(state);
-  queuePreviewOrDeferWdw(state, previewRollback, "update " + block.assetName, rig);
+  queuePreviewOrDeferWdw(state, previewRollback, "update " + block.assetName, rig, false);
   markUiChanged(state, UiChange::Header | UiChange::Parameters);
 }
 
@@ -2273,10 +2274,11 @@ UiPreviewSnapshot captureUiPreviewSnapshot(const UiState& state)
   return previewSnapshot(state);
 }
 
-bool queuePreview(UiState& state, UiPreviewSnapshot rollback, std::string operation)
+bool queuePreview(UiState& state, UiPreviewSnapshot rollback, std::string operation,
+                  bool notifyOnSuccess)
 {
   if (!previewIsSynchronized(state)) return false;
-  state.pendingPreview = UiPreviewTransaction{std::move(rollback), std::move(operation)};
+  state.pendingPreview = UiPreviewTransaction{std::move(rollback), std::move(operation), notifyOnSuccess};
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
   return true;
 }
@@ -2288,8 +2290,9 @@ const UiPreviewTransaction* pendingStructuralPreview(const UiState& state)
 
 void completeStructuralPreview(UiState& state)
 {
+  const bool notifyOnSuccess = state.pendingPreview && state.pendingPreview->notifyOnSuccess;
   state.pendingPreview.reset();
-  setUiStatus(state, "Chain updated");
+  if (notifyOnSuccess) setUiStatus(state, "Chain updated");
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters | UiChange::Drawers);
 }
 

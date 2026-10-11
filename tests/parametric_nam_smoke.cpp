@@ -4,6 +4,7 @@
 #include "ui/ParameterControls.h"
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <cmath>
 #include <fstream>
 #include <stdexcept>
@@ -17,7 +18,9 @@ float difference(const std::vector<float>& a, const std::vector<float>& b) {
 }
 }
 int main() {
-  const auto model = std::filesystem::path{ARDOR_SOURCE_DIR}/"assets/nam/Ardor-Parametric-Overdrive-Demo.nam";
+  const auto source = std::filesystem::path{std::getenv("ARDOR_TEST_SOURCE_DIR") ? std::getenv("ARDOR_TEST_SOURCE_DIR") : ARDOR_SOURCE_DIR};
+  const auto example = std::getenv("ARDOR_TEST_NAM_EXAMPLE_MODEL") ? std::getenv("ARDOR_TEST_NAM_EXAMPLE_MODEL") : ARDOR_NAM_EXAMPLE_MODEL;
+  const auto model = source/"assets/nam/Ardor-Parametric-Overdrive-Demo.nam";
   ardor::NamProcessor low, high, bright, chunked;
   require(low.load(model,48000,64,1,std::nullopt,{{"Drive",0},{"Tone",5}}),"demo loads with controls");
   require(high.load(model,48000,64,1,std::nullopt,{{"Drive",10},{"Tone",5}}),"high drive loads");
@@ -40,7 +43,7 @@ int main() {
   const auto root=std::filesystem::temp_directory_path()/std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
   std::filesystem::create_directories(root/"models");
   std::filesystem::copy_file(model,root/"models/overdrive.nam");
-  std::filesystem::copy_file(ARDOR_NAM_EXAMPLE_MODEL,root/"models/amp.nam");
+  std::filesystem::copy_file(example,root/"models/amp.nam");
   // A switch is encoded as two independent one-hot inputs. Exercise a small
   // recurrent network with known weights, not a UI-only parameter fixture.
   nlohmann::json spec={{"version","1.0.0"},{"architecture","ConcatLSTM"},{"sample_rate",48000},
@@ -78,7 +81,7 @@ int main() {
   require(difference(a,b)>0.01,"WaveNet condition channels affect audio");
   wave["weights"]={0.0};write(root/"models/wave-short.nam",wave);
   require(!low.load(root/"models/wave-short.nam",48000,64),"reject truncated WaveNet weights before reading them");
-  const auto clone = std::filesystem::path{ARDOR_SOURCE_DIR}/"assets/nam/clone-overdrive.nam";
+  const auto clone = source/"assets/nam/clone-overdrive.nam";
   std::filesystem::copy_file(clone,root/"models/clone.nam");
   nlohmann::json cloneDocument; std::ifstream(clone) >> cloneDocument;
   for (float tier : {0.0f, 1.0f}) {
@@ -102,7 +105,7 @@ int main() {
   // Golden samples come from the fork's generic Eigen WaveNet, independently
   // constructed from the unmodified release weights (provenance beside fixture).
   nlohmann::json references;
-  std::ifstream(std::filesystem::path{ARDOR_SOURCE_DIR}/"tests/fixtures/clone-overdrive-reference.json") >> references;
+  std::ifstream(source/"tests/fixtures/clone-overdrive-reference.json") >> references;
   for (size_t tier = 0; tier < references.size(); ++tier) {
     require(low.load(clone,48000,64,tier==0 ? 0.0f : 1.0f),"Clone default controls load");
     low.processBlock(input.data(),a.data(),input.size());
@@ -149,6 +152,21 @@ int main() {
   require(std::any_of(controls.begin(),controls.end(),[](const auto& c){return c.key=="model:Drive" && c.value==7;}),"native controls restore saved values");
   const auto roundtrip=ardor::activePresetToPreset(ui);
   require(roundtrip.blocks[0].params["modelParameters"]["Tone"]==3,"native roundtrip preserves parameters");
+  ardor::setUiStatus(ui, "Saved preset");
+  const auto statusRevision = ui.revisions.status;
+  ardor::setSelectedBlockParam(ui, "model:Drive", 8);
+  require(ardor::pendingStructuralPreview(ui), "learned control still queues audio preview");
+  ardor::completeStructuralPreview(ui);
+  require(ui.revisions.status == statusRevision && ui.statusMessage == "Saved preset",
+          "learned control success does not trigger a toast");
+  require(ardor::activePresetToPreset(ui).blocks[0].params["modelParameters"]["Drive"] == 8,
+          "silent control preview retains the new value");
+  ardor::setSelectedBlockParam(ui, "model:Drive", 9);
+  ardor::failStructuralPreview(ui, "test failure");
+  require(ui.statusIsError && ui.statusMessage == "Could not apply chain: test failure",
+          "failed control preview still explains the error");
+  require(ardor::activePresetToPreset(ui).blocks[0].params["modelParameters"]["Drive"] == 8,
+          "failed control preview restores the audible value");
   auto clonePreset=preset;
   clonePreset.blocks[0].asset="models/clone.nam";
   clonePreset.blocks[0].params={{"useNano",true},{"modelParameters",{{"Gain",0.8},{"Tone",0.1}}}};
