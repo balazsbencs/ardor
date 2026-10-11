@@ -99,9 +99,13 @@ int main(int argc, char** argv) try {
     auto loadStart=std::chrono::steady_clock::now();
     engine.setSampleRate(48000); engine.prepareBlockSize(frames);
     for(int index=0;index<count;++index)
+      // codeql[cpp/path-injection]: this standalone benchmark intentionally reads
+      // the operator's CLI-selected model; it has no remote input or service role.
       if(!engine.loadNam(model,48000,frames,"nam-"+std::to_string(index),tier,
                          ardor::NamInputMode::Sum,std::nullopt,parameters))
         throw std::runtime_error("NAM load failed: "+model.string());
+    // codeql[cpp/path-injection]: the optional amp is another intentional CLI
+    // input to this standalone benchmark, running with the operator's privileges.
     if(!amp.empty() && !engine.loadNam(amp,48000,frames,"amp",ampTier))
       throw std::runtime_error("amp load failed: "+amp.string());
     if(cab) {
