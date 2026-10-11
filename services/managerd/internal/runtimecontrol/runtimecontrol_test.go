@@ -64,6 +64,32 @@ func TestReadApplyStatusRejectsUnsafeIDs(t *testing.T) {
 	}
 }
 
+func TestApplyCommandsRetainZeroBankAndSlot(t *testing.T) {
+	for _, selection := range [][2]int{{0, 0}, {0, 3}, {98, 0}} {
+		root := t.TempDir()
+		if _, err := QueueApplyPresetWithID(root, selection[0], selection[1]); err != nil {
+			t.Fatal(err)
+		}
+		directory := filepath.Join(root, "runtime", "commands")
+		body, err := os.ReadFile(filepath.Join(directory, mustOnlyEntry(t, directory)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		// The C++ consumer defaults missing fields to -1 and rejects them.
+		// Decoding into Command alone would conceal missing zero-valued fields.
+		var payload map[string]any
+		if err := json.Unmarshal(body, &payload); err != nil {
+			t.Fatal(err)
+		}
+		for index, key := range []string{"bank", "slot"} {
+			value, present := payload[key]
+			if !present || value != float64(selection[index]) {
+				t.Fatalf("selection %v: missing or incorrect %s in %s", selection, key, body)
+			}
+		}
+	}
+}
+
 func TestQueueSceneRecallUsesEphemeralCommandChannel(t *testing.T) {
 	root := t.TempDir()
 	if err := QueueSceneRecall(root, 42, "scene-solo", "request-1"); err != nil {
