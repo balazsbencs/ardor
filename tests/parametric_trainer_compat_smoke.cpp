@@ -13,14 +13,14 @@ namespace {
 void require(bool condition, const std::string& message) { if (!condition) throw std::runtime_error(message); }
 }
 int main() {
-  const auto source = std::filesystem::path{ARDOR_SOURCE_DIR}/"tests/fixtures/parametric-trainer-a2.json";
-  nlohmann::json fixture; std::ifstream(source) >> fixture;
+  const auto source = std::filesystem::path{ARDOR_SOURCE_DIR};
+  nlohmann::json fixture; std::ifstream(source/"tests/fixtures/parametric-trainer-a2.json") >> fixture;
   nlohmann::json dualFixture;
-  std::ifstream(std::filesystem::path{ARDOR_SOURCE_DIR}/"tests/fixtures/parametric-trainer-a2-dual.json") >> dualFixture;
+  std::ifstream(source/"tests/fixtures/parametric-trainer-a2-dual.json") >> dualFixture;
   require(fixture.at("input") == dualFixture.at("input"), "fixtures share the reference input");
   for (const auto& model : dualFixture.at("models")) fixture["models"].push_back(model);
   nlohmann::json filmFixture;
-  std::ifstream(std::filesystem::path{ARDOR_SOURCE_DIR}/"tests/fixtures/parametric-trainer-film.json") >> filmFixture;
+  std::ifstream(source/"tests/fixtures/parametric-trainer-film.json") >> filmFixture;
   require(fixture.at("input") == filmFixture.at("input"), "FiLM fixtures share the reference input");
   for (const auto& model : filmFixture.at("models")) fixture["models"].push_back(model);
   const auto input = fixture.at("input").get<std::vector<float>>();

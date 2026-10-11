@@ -4,7 +4,6 @@
 #include "ui/ParameterControls.h"
 #include <algorithm>
 #include <chrono>
-#include <cstdlib>
 #include <cmath>
 #include <fstream>
 #include <stdexcept>
@@ -18,8 +17,8 @@ float difference(const std::vector<float>& a, const std::vector<float>& b) {
 }
 }
 int main() {
-  const auto source = std::filesystem::path{std::getenv("ARDOR_TEST_SOURCE_DIR") ? std::getenv("ARDOR_TEST_SOURCE_DIR") : ARDOR_SOURCE_DIR};
-  const auto example = std::getenv("ARDOR_TEST_NAM_EXAMPLE_MODEL") ? std::getenv("ARDOR_TEST_NAM_EXAMPLE_MODEL") : ARDOR_NAM_EXAMPLE_MODEL;
+  const auto source = std::filesystem::path{ARDOR_SOURCE_DIR};
+  const auto example = ARDOR_NAM_EXAMPLE_MODEL;
   const auto model = source/"assets/nam/Ardor-Parametric-Overdrive-Demo.nam";
   ardor::NamProcessor low, high, bright, chunked;
   require(low.load(model,48000,64,1,std::nullopt,{{"Drive",0},{"Tone",5}}),"demo loads with controls");
