@@ -18,8 +18,8 @@ const (
 type Command struct {
 	ID         string `json:"id,omitempty"`
 	Type       string `json:"type"`
-	Bank       int    `json:"bank,omitempty"`
-	Slot       int    `json:"slot,omitempty"`
+	Bank       int    `json:"bank"`
+	Slot       int    `json:"slot"`
 	Generation uint64 `json:"generation,omitempty"`
 	SceneID    string `json:"sceneId,omitempty"`
 	RequestID  string `json:"requestId,omitempty"`
