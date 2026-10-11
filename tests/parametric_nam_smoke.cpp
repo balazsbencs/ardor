@@ -177,6 +177,17 @@ int main() {
   require(std::any_of(cloneControls.begin(),cloneControls.end(),[](const auto& c){return c.key=="useNano" && c.value==1;}),"native FiLM exposes compact tier");
   const auto cloneRoundtrip=ardor::activePresetToPreset(ui);
   require(cloneRoundtrip.blocks[0].params["modelParameters"]["Tone"]==0.1 && cloneRoundtrip.blocks[0].params["useNano"]==true,"FiLM preset roundtrip retains values and tier");
+  const auto sizeControl=std::find_if(cloneControls.begin(),cloneControls.end(),[](const auto& c){return c.key=="useNano";});
+  const auto beforeSizeStatus=ui.revisions.status;
+  require(ardor::applyParameterDelta(ui,*sizeControl,-1),"native pedal size selector changes Nano to Standard");
+  require(ardor::pendingStructuralPreview(ui),"native pedal tier change queues an audio preview");
+  ardor::completeStructuralPreview(ui);
+  const auto standardClone=ardor::activePresetToPreset(ui);
+  require(standardClone.blocks[0].params["useNano"]==false
+    && standardClone.blocks[0].params["modelParameters"]==cloneRoundtrip.blocks[0].params["modelParameters"],
+    "native tier change preserves learned controls");
+  require(ui.revisions.status==beforeSizeStatus,"native tier change is silent on success");
+  require(ardor::applyPreset(engine,standardClone,root,options,error),"native Standard pedal selection applies: "+error);
   ardor::Preset wdw; wdw.version=3; wdw.routing="wdw"; wdw.name="Parametric WDW";
   wdw.wdw=ardor::WdwRouting{};
   wdw.wdw->dry.blocks={{"dry-amp","nam",true,"models/amp.nam",nlohmann::json::object()}};

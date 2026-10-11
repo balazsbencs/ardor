@@ -2155,7 +2155,8 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
     && block.params.value("mode", "") == "tape"
     && key == "speed" && value.is_string()
     && (value == "15" || value == "30");
-  const bool namNanoValue = block.type == "nam" && key == "useNano" && value.is_boolean();
+  const bool namNanoValue = (block.type == "nam" || block.type == "namPedal")
+    && key == "useNano" && value.is_boolean();
   const bool namInputValue = (block.type == "nam" || block.type == "namPedal") && key == "inputMode" && value.is_string()
     && (value == "sum" || value == "left" || value == "right");
   const bool dualAmpInputValue = block.type == "dualAmp" && key == "inputMode" && value.is_string()
