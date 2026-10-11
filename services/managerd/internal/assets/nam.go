@@ -56,15 +56,21 @@ type namDocument struct {
 	} `json:"metadata"`
 }
 
-func readNAMInfo(path string) *NAMInfo {
-	file, err := os.Open(path)
+func readNAMInfo(directory, filename string) *NAMInfo {
+	unreadable := &NAMInfo{GearType: "amp", Error: "Cannot read NAM document."}
+	root, err := os.OpenRoot(directory)
 	if err != nil {
-		return nil
+		return unreadable
+	}
+	defer root.Close()
+	file, err := root.Open(filename)
+	if err != nil {
+		return unreadable
 	}
 	defer file.Close()
 	var document namDocument
 	if json.NewDecoder(file).Decode(&document) != nil || document.Architecture == "" {
-		return nil
+		return &NAMInfo{GearType: "amp", Error: "Invalid NAM document."}
 	}
 	return describeNAM(&document, 0)
 }

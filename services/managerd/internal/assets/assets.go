@@ -86,7 +86,7 @@ func (s Store) List(kind Kind) ([]Info, error) {
 			Path: s.rel(kind, entry.Name()), SizeBytes: stat.Size(),
 		}
 		if kind == KindModel {
-			info.NAM = readNAMInfo(filepath.Join(dir, entry.Name()))
+			info.NAM = readNAMInfo(dir, entry.Name())
 		}
 		infos = append(infos, info)
 	}
@@ -140,7 +140,7 @@ func (s Store) Save(kind Kind, filename string, r io.Reader, overwrite bool) (In
 	}
 	info := Info{ID: safe, Kind: jsonKind(kind), Filename: safe, Path: s.rel(kind, safe), SizeBytes: stat.Size()}
 	if kind == KindModel {
-		info.NAM = readNAMInfo(filepath.Join(s.dir(kind), safe))
+		info.NAM = readNAMInfo(s.dir(kind), safe)
 	}
 	return info, nil
 }
@@ -184,7 +184,7 @@ func (s Store) Rename(kind Kind, id, filename string) (Info, error) {
 	}
 	info := Info{ID: safe, Kind: jsonKind(kind), Filename: safe, Path: s.rel(kind, safe), SizeBytes: stat.Size()}
 	if kind == KindModel {
-		info.NAM = readNAMInfo(filepath.Join(s.dir(kind), safe))
+		info.NAM = readNAMInfo(s.dir(kind), safe)
 	}
 	return info, nil
 }

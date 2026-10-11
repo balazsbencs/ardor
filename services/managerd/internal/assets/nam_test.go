@@ -9,6 +9,40 @@ import (
 	"testing"
 )
 
+func TestNAMMetadataConfinesReadsAndLabelsMalformedFiles(t *testing.T) {
+	parent := t.TempDir()
+	models := filepath.Join(parent, "models")
+	if err := os.Mkdir(models, 0700); err != nil {
+		t.Fatal(err)
+	}
+	document := []byte(`{"architecture":"LSTM","version":"0.7.0","sample_rate":48000,"config":{}}`)
+	for _, filename := range []string{filepath.Join(models, "valid.nam"), filepath.Join(parent, "outside.nam")} {
+		if err := os.WriteFile(filename, document, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if info := readNAMInfo(models, "valid.nam"); !info.Supported {
+		t.Fatalf("valid model metadata: %+v", info)
+	}
+	for _, filename := range []string{"../outside.nam", filepath.Join(parent, "outside.nam")} {
+		if info := readNAMInfo(models, filename); info.Supported || info.Error == "" {
+			t.Fatalf("read escaped model directory: %+v", info)
+		}
+	}
+	if err := os.Symlink(filepath.Join(parent, "outside.nam"), filepath.Join(models, "escape.nam")); err != nil {
+		t.Fatal(err)
+	}
+	if info := readNAMInfo(models, "escape.nam"); info.Supported || info.Error == "" {
+		t.Fatalf("read followed external symlink: %+v", info)
+	}
+	if err := os.WriteFile(filepath.Join(models, "malformed.nam"), []byte("{invalid json"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if info := readNAMInfo(models, "malformed.nam"); info.Supported || info.Error == "" {
+		t.Fatalf("malformed model missing error: %+v", info)
+	}
+}
+
 func TestTrainerA2Exports(t *testing.T) {
 	bytes, err := os.ReadFile("../../../../tests/fixtures/parametric-trainer-a2.json")
 	if err != nil {
@@ -193,7 +227,7 @@ func TestParametricNAMMetadata(t *testing.T) {
 			if err := os.WriteFile(path, []byte(doc), 0600); err != nil {
 				t.Fatal(err)
 			}
-			metadata := readNAMInfo(path)
+			metadata := readNAMInfo(filepath.Dir(path), filepath.Base(path))
 			if metadata == nil || metadata.Supported || metadata.Error == "" || len(metadata.Parameters) != 0 {
 				t.Fatalf("invalid model advertised controls: %+v", metadata)
 			}
