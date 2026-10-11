@@ -1,5 +1,7 @@
 #pragma once
 
+#include "json.hpp"
+
 #include "ClipDiagnostics.h"
 #include "FlexibleRoutingProgram.h"
 #include "RuntimeChain.h"
@@ -24,7 +26,8 @@ public:
   bool loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
                std::string id = "nam", float slimmableSize = 1.0f,
                NamInputMode inputMode = NamInputMode::Sum,
-               std::optional<float> inputReferenceLevelDbU = std::nullopt);
+               std::optional<float> inputReferenceLevelDbU = std::nullopt,
+              const nlohmann::json& modelParameters = nlohmann::json::object());
   bool addDualAmp(std::string id, DualAmpLaneConfig left, DualAmpLaneConfig right,
                   NamInputMode inputMode, double sampleRate, int maxBlockSize,
                   bool requestParallel, int workerCpu, std::string& error);

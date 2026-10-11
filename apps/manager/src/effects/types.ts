@@ -57,6 +57,7 @@ export type EffectControl = NumberControl | ChoiceControl | ToggleControl | Asse
 
 export type EffectDefinition = {
   id: string;
+  assetPath?: string;
   blockType: string;
   mode?: string;
   name: string;

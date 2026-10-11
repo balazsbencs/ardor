@@ -44,6 +44,12 @@
       "dualAmp",
       "dualRig"
     ],
+    "drive": [
+      "namPedal",
+      "distortion:rat",
+      "distortion:big_cheese",
+      "distortion:tape"
+    ],
     "cabinet": [
       "cab"
     ],
@@ -70,11 +76,6 @@
       "eq:console_1073",
       "stereo:widener",
       "wah:gcb95"
-    ],
-    "drive": [
-      "distortion:rat",
-      "distortion:big_cheese",
-      "distortion:tape"
     ],
     "modulation": [
       "mod:chorus",
@@ -117,6 +118,44 @@
       "blockType": "nam",
       "mode": null,
       "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "key": "asset",
+          "label": "NAM model",
+          "kind": "asset",
+          "unit": "",
+          "assetKind": "models",
+          "assetLabel": "NAM capture (.nam)"
+        },
+        {
+          "key": "inputMode",
+          "label": "Input source",
+          "kind": "choice",
+          "unit": "",
+          "choices": [
+            "L+R Average",
+            "Left / Mono",
+            "Right"
+          ],
+          "default": "L+R Average"
+        },
+        {
+          "key": "useNano",
+          "label": "Use nano model",
+          "kind": "toggle",
+          "unit": "",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "namPedal",
+      "name": "Neural Pedal",
+      "description": "A parametric neural pedal model with controls learned by the network.",
+      "category": "drive",
+      "blockType": "namPedal",
+      "mode": null,
+      "maxEnabledInGroup": null,
       "controls": [
         {
           "key": "asset",
@@ -4562,11 +4601,11 @@
     }
   ],
   "counts": {
-    "total": 54,
-    "effects": 50,
+    "total": 55,
+    "effects": 51,
     "amp": 3,
     "cabinet": 1,
-    "drive": 3,
+    "drive": 4,
     "utility": 7,
     "modulation": 17,
     "delay": 10,

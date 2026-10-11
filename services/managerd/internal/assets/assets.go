@@ -21,11 +21,12 @@ const (
 )
 
 type Info struct {
-	ID        string `json:"id"`
-	Kind      string `json:"kind"`
-	Filename  string `json:"filename"`
-	Path      string `json:"path"`
-	SizeBytes int64  `json:"sizeBytes"`
+	ID        string   `json:"id"`
+	Kind      string   `json:"kind"`
+	Filename  string   `json:"filename"`
+	Path      string   `json:"path"`
+	SizeBytes int64    `json:"sizeBytes"`
+	NAM       *NAMInfo `json:"nam,omitempty"`
 }
 
 type Store struct {
@@ -80,10 +81,14 @@ func (s Store) List(kind Kind) ([]Info, error) {
 		if err != nil {
 			return nil, err
 		}
-		infos = append(infos, Info{
+		info := Info{
 			ID: entry.Name(), Kind: jsonKind(kind), Filename: entry.Name(),
 			Path: s.rel(kind, entry.Name()), SizeBytes: stat.Size(),
-		})
+		}
+		if kind == KindModel {
+			info.NAM = readNAMInfo(filepath.Join(dir, entry.Name()))
+		}
+		infos = append(infos, info)
 	}
 	sort.Slice(infos, func(i, j int) bool { return infos[i].Filename < infos[j].Filename })
 	return infos, nil
@@ -133,7 +138,11 @@ func (s Store) Save(kind Kind, filename string, r io.Reader, overwrite bool) (In
 	if err != nil {
 		return Info{}, err
 	}
-	return Info{ID: safe, Kind: jsonKind(kind), Filename: safe, Path: s.rel(kind, safe), SizeBytes: stat.Size()}, nil
+	info := Info{ID: safe, Kind: jsonKind(kind), Filename: safe, Path: s.rel(kind, safe), SizeBytes: stat.Size()}
+	if kind == KindModel {
+		info.NAM = readNAMInfo(filepath.Join(s.dir(kind), safe))
+	}
+	return info, nil
 }
 
 func (s Store) Delete(kind Kind, id string) error {
@@ -173,7 +182,11 @@ func (s Store) Rename(kind Kind, id, filename string) (Info, error) {
 			return Info{}, err
 		}
 	}
-	return Info{ID: safe, Kind: jsonKind(kind), Filename: safe, Path: s.rel(kind, safe), SizeBytes: stat.Size()}, nil
+	info := Info{ID: safe, Kind: jsonKind(kind), Filename: safe, Path: s.rel(kind, safe), SizeBytes: stat.Size()}
+	if kind == KindModel {
+		info.NAM = readNAMInfo(filepath.Join(s.dir(kind), safe))
+	}
+	return info, nil
 }
 
 func (s Store) dir(kind Kind) string {

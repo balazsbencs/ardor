@@ -93,7 +93,7 @@ describe("effect catalog", () => {
     expect(tape.controls).toContainEqual(
       expect.objectContaining({ kind: "choice", key: "speed", defaultValue: "15" }),
     );
-    expect(definitions.filter(({ category }) => category === "drive")).toHaveLength(3);
+    expect(definitions.filter(({ category }) => category === "drive")).toHaveLength(4);
   });
 
   it("groups compressor, noise gate, transient shaper, EQ, wah, and the stereo widener under Utility", () => {

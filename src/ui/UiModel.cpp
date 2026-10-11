@@ -3,6 +3,7 @@
 
 #include "daisyfx/DaisyFxCatalog.h"
 #include "preset/ScenePlan.h"
+#include "preset/NamMetadata.h"
 #include "ui/ParameterControls.h"
 
 #include <algorithm>
@@ -10,6 +11,8 @@
 #include <cmath>
 #include <exception>
 #include <filesystem>
+#include <fstream>
+#include <unordered_set>
 #include <iomanip>
 #include <limits>
 #include <sstream>
@@ -36,6 +39,7 @@ namespace {
 
 std::string labelForBlockType(const std::string& type)
 {
+  if (type == "namPedal") return "Neural Pedal";
   if (type == "nam") {
     return "Neural Amp";
   }
@@ -277,6 +281,8 @@ nlohmann::json paramsWithKnownDefaults(const std::string& type, const nlohmann::
   nlohmann::json defaults = nlohmann::json::object();
   if (const auto* descriptor = findDaisyFxDescriptor(type, params.value("mode", ""))) {
     defaults = defaultDaisyFxParams(*descriptor);
+  } else if (type == "namPedal") {
+    defaults = {{"inputMode", "sum"}};
   } else if (type == "nam" && !params.contains("quality")) {
     defaults = {{"inputMode", "sum"}, {"useNano", false}};
   } else if (type == "dualAmp") {
@@ -357,8 +363,8 @@ UiBlock blockFromAsset(const UiState& state, const UiAsset& asset,
   std::string label = asset.name;
   nlohmann::json params = nlohmann::json::object();
   if (asset.type == "amps") {
-    type = "nam";
-    label = "Neural Amp";
+    type = asset.blockType == "namPedal" ? "namPedal" : "nam";
+    label = labelForBlockType(type);
   } else if (asset.type == "cabs") {
     type = "cab";
     label = "Cab";
@@ -392,7 +398,10 @@ UiBlock blockFromAsset(const UiState& state, const UiAsset& asset,
     }
   }
   params = paramsWithKnownDefaults(type, params);
-  return {nextBlockId(allBlocks), type, label, asset.name, asset.path, true, params};
+  UiBlock block{nextBlockId(allBlocks), type, label, asset.name, asset.path, true, params};
+  block.modelParameterSpecs = asset.modelParameterSpecs;
+  block.modelSlimmable = asset.modelSlimmable;
+  return block;
 }
 
 UiBlock makeEmptyDualRig(const std::vector<UiBlock>& allBlocks)
@@ -417,10 +426,10 @@ const char* wdwLaneName(std::size_t lane)
 bool wdwBlockAllowed(const UiBlock& block, std::size_t lane)
 {
   if (lane == 0) {
-    return block.type == "nam" || block.type == "cab" || block.type == "dynamics"
+    return block.type == "nam" || block.type == "namPedal" || block.type == "cab" || block.type == "dynamics"
       || block.type == "eq" || block.type == "distortion" || block.type == "wah";
   }
-  return block.type == "nam" || block.type == "cab" || block.type == "mod"
+  return block.type == "nam" || block.type == "namPedal" || block.type == "cab" || block.type == "mod"
     || block.type == "delay" || block.type == "reverb" || block.type == "irreverb"
     || block.type == "stereo";
 }
@@ -573,7 +582,35 @@ void appendAssetsFrom(UiState& state, const std::filesystem::path& dir, const st
       continue;
     }
     const auto relative = relativePath.generic_string();
-    state.assets.push_back({entry.path().stem().string(), relative, type, blockType, "", subtitle});
+    UiAsset asset{entry.path().stem().string(), relative, type, blockType, "", subtitle};
+    if (ext == ".nam") {
+      bool parametricDocument = false;
+      try {
+        std::ifstream stream(entry.path());
+        const auto uploaded = nlohmann::json::parse(stream);
+        parametricDocument = uploaded.contains("embedded_parametric");
+        const auto& document = playableNamDocument(uploaded);
+        const auto architecture = document.value("architecture", std::string{});
+        parametricDocument |= architecture == "ConcatLSTM" || architecture == "ConcatWaveNet"
+          || architecture == "ParametricWaveNet" || architecture == "HyperWaveNet"
+          || document.value("config", nlohmann::json::object()).contains("params")
+          || document.value("config", nlohmann::json::object()).contains("parametric");
+        if (architecture == "SlimmableContainer") {
+          for (const auto& tier : document.at("config").at("submodels"))
+            parametricDocument |= tier.at("model").value("architecture", std::string{}) == "ParametricWaveNet";
+        }
+        const auto specs = namParameterSpecs(document);
+        if (!specs.empty()) {
+          asset.modelParameterSpecs = specs;
+          asset.modelSlimmable = document.at("architecture") == "SlimmableContainer"
+            && document.at("config").at("submodels").size() > 1;
+          const bool pedal = document.value("metadata", nlohmann::json::object()).value("gear_type", std::string{}) == "pedal";
+          asset.blockType = pedal ? "namPedal" : "nam";
+          asset.subtitle = pedal ? "Pedal · parametric neural model" : "Amp · parametric neural model";
+        }
+      } catch (const std::exception&) { if (parametricDocument) continue; }
+    }
+    state.assets.push_back(std::move(asset));
   }
 }
 
@@ -1857,6 +1894,12 @@ void replaceActivePreset(UiState& state, const Preset& preset)
                       source.asset,
                       source.enabled,
                       paramsWithKnownDefaults(source.type, source.params)};
+    for (const auto& asset : state.assets) {
+      if (asset.path == source.asset) {
+        converted.modelParameterSpecs = asset.modelParameterSpecs;
+        converted.modelSlimmable = asset.modelSlimmable;
+      }
+    }
     for (std::size_t lane = 0; lane < converted.lanes.size(); ++lane) {
       for (const auto& child : source.lanes[lane]) converted.lanes[lane].push_back(self(self, child));
     }
@@ -1994,6 +2037,27 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
   auto* selected = selectedUiBlock(state);
   if (!selected) return;
   auto& block = *selected;
+  if ((block.type == "nam" || block.type == "namPedal") && key.starts_with("model:")) {
+    if (!previewIsSynchronized(state) || !std::isfinite(value)) return;
+    const auto name = key.substr(6);
+    const auto asset = std::find_if(state.assets.begin(), state.assets.end(), [&](const auto& a) { return a.path == block.assetPath; });
+    if (asset == state.assets.end()) return;
+    for (const auto& spec : asset->modelParameterSpecs) {
+      if (spec.value("name", std::string{}) != name) continue;
+      value = std::clamp(value, spec.at("min").get<float>(), spec.at("max").get<float>());
+      if (spec.value("type", std::string{"continuous"}) == "switch") value = std::round(value);
+      const auto rollback = previewSnapshot(state);
+      rememberBlockEdit(state);
+      if (!block.params.contains("modelParameters") || !block.params["modelParameters"].is_object())
+        block.params["modelParameters"] = nlohmann::json::object();
+      block.params["modelParameters"][name] = value;
+      state.dirty = true;
+      queuePreviewOrDeferWdw(state, rollback, "update " + block.assetName, selectedWdwRig(state));
+      markUiChanged(state, UiChange::Header | UiChange::Parameters);
+      return;
+    }
+    return;
+  }
   if (block.type == "cab") {
     if (key == "levelDb") {
       value = clampFloat(value, -60.0f, 12.0f);
@@ -2091,7 +2155,7 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
     && key == "speed" && value.is_string()
     && (value == "15" || value == "30");
   const bool namNanoValue = block.type == "nam" && key == "useNano" && value.is_boolean();
-  const bool namInputValue = block.type == "nam" && key == "inputMode" && value.is_string()
+  const bool namInputValue = (block.type == "nam" || block.type == "namPedal") && key == "inputMode" && value.is_string()
     && (value == "sum" || value == "left" || value == "right");
   const bool dualAmpInputValue = block.type == "dualAmp" && key == "inputMode" && value.is_string()
     && (value == "sum" || value == "left" || value == "right");

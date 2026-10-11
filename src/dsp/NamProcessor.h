@@ -1,5 +1,7 @@
 #pragma once
 
+#include "json.hpp"
+
 #include <filesystem>
 #include <memory>
 #include <cstddef>
@@ -21,7 +23,8 @@ public:
   // 0 is the nano tier and 1 is the full tier; non-slim models ignore it.
   bool load(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
             float slimmableSize = 1.0f,
-            std::optional<float> inputReferenceLevelDbU = std::nullopt);
+            std::optional<float> inputReferenceLevelDbU = std::nullopt,
+              const nlohmann::json& modelParameters = nlohmann::json::object());
   float process(float input);
   void processBlock(const float* input, float* output, size_t frames);
   void clear();

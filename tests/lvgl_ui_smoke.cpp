@@ -435,7 +435,7 @@ int main()
               "NAM input routing should persist its string value")) return 1;
   if (require(namNano != namControls.end()
                 && namNano->kind == ardor::ParameterControlKind::Toggle
-                && namNano->formatted == "Off",
+                && namNano->label == "Model size" && namNano->formatted == "Standard",
               "NAM page should expose a full-default nano switch")) return 1;
   if (require(ardor::applyParameterDelta(namState, *namNano, 1),
               "NAM nano switch should apply")) return 1;

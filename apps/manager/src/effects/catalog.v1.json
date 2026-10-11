@@ -49,6 +49,51 @@
       ]
     },
     {
+      "id": "namPedal",
+      "blockType": "namPedal",
+      "name": "Neural Pedal",
+      "description": "A parametric neural pedal model with controls learned by the network.",
+      "category": "drive",
+      "aliases": [
+        "parametric NAM",
+        "overdrive",
+        "pedal"
+      ],
+      "controls": [
+        {
+          "kind": "asset",
+          "label": "NAM model",
+          "assetKind": "models"
+        },
+        {
+          "kind": "choice",
+          "key": "inputMode",
+          "label": "Input source",
+          "choices": [
+            {
+              "value": "sum",
+              "label": "L+R Average"
+            },
+            {
+              "value": "left",
+              "label": "Left / Mono"
+            },
+            {
+              "value": "right",
+              "label": "Right"
+            }
+          ],
+          "defaultValue": "sum"
+        },
+        {
+          "kind": "toggle",
+          "key": "useNano",
+          "label": "Use nano model",
+          "defaultValue": false
+        }
+      ]
+    },
+    {
       "id": "cab",
       "blockType": "cab",
       "name": "Cabinet IR",

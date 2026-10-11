@@ -30,6 +30,8 @@ struct UiAsset {
   // Drawer list secondary line, e.g. "Modulation · 6 controls". Empty is fine
   // -- the row just shows the name.
   std::string subtitle;
+  nlohmann::json modelParameterSpecs = nlohmann::json::array();
+  bool modelSlimmable = false;
 };
 
 struct UiBlock {
@@ -41,6 +43,8 @@ struct UiBlock {
   bool enabled = true;
   nlohmann::json params = nlohmann::json::object();
   std::array<std::vector<UiBlock>, 2> lanes;
+  nlohmann::json modelParameterSpecs = nlohmann::json::array();
+  bool modelSlimmable = false;
 };
 
 struct UiPreset {

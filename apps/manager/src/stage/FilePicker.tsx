@@ -19,7 +19,7 @@ export function FilePicker({ label, kind, value, onChange, onManage }: { label?:
         <button type="button" className="lb-ctl__share" onClick={onManage}><FolderOpen size={12} /> Manage files</button></div>
       {missing && <p className="lb-missing">{value.split("/").pop()} is not on the pedal. Pick another file, or upload it in Assets.</p>}
       <div className="lb-choice" role="radiogroup" aria-label={label ?? LABELS[kind]}>
-        {files.map((file) => <button key={file.id} type="button" role="radio" aria-checked={file.path === value} onClick={() => onChange(file.path)}>{fileStem(file.filename)}</button>)}
+        {files.map((file) => <button disabled={file.nam?.supported === false} title={file.nam?.error} key={file.id} type="button" role="radio" aria-checked={file.path === value} onClick={() => onChange(file.path)}>{fileStem(file.filename)}</button>)}
         {files.length === 0 && <span className="lb-note">No files yet. Use Manage files to upload one.</span>}
       </div>
     </div>

@@ -127,12 +127,13 @@ void PedalEngine::setSampleRate(double sampleRate)
 
 bool PedalEngine::loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
                           std::string id, float slimmableSize, NamInputMode inputMode,
-                          std::optional<float> inputReferenceLevelDbU)
+                          std::optional<float> inputReferenceLevelDbU,
+                          const nlohmann::json& modelParameters)
 {
   setSampleRate(sampleRate);
   prepareBlockSize(static_cast<size_t>(std::max(1, maxBlockSize)));
   return chain_.addNam(modelPath, sampleRate, maxBlockSize, std::move(id), slimmableSize,
-                       inputMode, inputReferenceLevelDbU);
+                       inputMode, inputReferenceLevelDbU, modelParameters);
 }
 
 bool PedalEngine::addDualAmp(std::string id, DualAmpLaneConfig left, DualAmpLaneConfig right,

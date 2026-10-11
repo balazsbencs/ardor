@@ -11,6 +11,7 @@
 /reverb-irs/*
 !/reverb-irs/.gitkeep
 *.nam
+!/assets/nam/*.nam
 *.wav
 *.aiff
 *.flac

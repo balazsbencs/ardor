@@ -184,11 +184,12 @@ void RuntimeChain::clear()
 
 bool RuntimeChain::addNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
                           std::string id, float slimmableSize, NamInputMode inputMode,
-                          std::optional<float> inputReferenceLevelDbU)
+                          std::optional<float> inputReferenceLevelDbU,
+                          const nlohmann::json& modelParameters)
 {
   auto nam = std::make_unique<NamProcessor>();
   if (!nam->load(modelPath, sampleRate, maxBlockSize, slimmableSize,
-                 inputReferenceLevelDbU)) {
+                 inputReferenceLevelDbU, modelParameters)) {
     return false;
   }
   Block block;

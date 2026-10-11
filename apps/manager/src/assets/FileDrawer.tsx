@@ -12,7 +12,7 @@ import { RenameForm } from "./RenameForm";
 import { useUsedPresets } from "./useUsedPresets";
 import "../stage/drawer.css";
 
-const TYPE_KIND: Record<string, AssetKind> = { nam: "models", cab: "irs", irreverb: "reverb-irs" };
+const TYPE_KIND: Record<string, AssetKind> = { nam: "models", namPedal: "models", cab: "irs", irreverb: "reverb-irs" };
 
 function TryInPreset({ asset, kind }: { asset: Asset; kind: AssetKind }) {
   const editor = usePresetEditorContext();
@@ -77,6 +77,11 @@ export function FileDrawer({ asset, kind, usage, renaming, onRenameStart, onRena
           <IconButton label="Close" onClick={onClose}><X size={16} aria-hidden="true" /></IconButton>
         </div>
       </div>
+      {asset.nam?.parameters?.length ? <div className="ausers">
+        <h3>Parametric {asset.nam.gearType}</h3>
+        <p className="lb-note">{asset.nam.parameters.map((p) => p.name).join(", ")}. Add this model by name from Add block.</p>
+      </div> : null}
+      {asset.nam && !asset.nam.supported && <p className="lb-missing" role="alert">{asset.nam.error}</p>}
       {renaming && <RenameForm key={asset.id} asset={asset} extension={info.extension} usedCount={uses?.length}
         onSubmit={onRenameSubmit} onCancel={onRenameCancel} />}
       {uses && <UsedIn uses={uses} block={info.block} onOpenPreset={onOpenPreset} />}

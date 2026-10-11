@@ -3,11 +3,14 @@
 #include "NAM/dsp.h"
 #include "NAM/get_dsp.h"
 #include "NAM/slimmable.h"
+#include "namparam/parametric_container.h"
+#include "preset/NamMetadata.h"
 
 #include <algorithm>
 #include <cmath>
 #include <exception>
 #include <iostream>
+#include <fstream>
 
 namespace {
 // Matches the NAM plugin convention; normalizes model output to a consistent level.
@@ -20,10 +23,37 @@ NamProcessor::NamProcessor() = default;
 NamProcessor::~NamProcessor() = default;
 
 bool NamProcessor::load(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
-                        float slimmableSize, std::optional<float> inputReferenceLevelDbU)
+                        float slimmableSize, std::optional<float> inputReferenceLevelDbU,
+                        const nlohmann::json& modelParameters)
 {
   try {
-    model_ = nam::get_dsp(modelPath);
+    std::ifstream stream(modelPath);
+    const auto uploaded = nlohmann::json::parse(stream);
+    const auto& document = playableNamDocument(uploaded);
+    const auto specs = namParameterSpecs(document);
+    if (!specs.empty()) {
+      model_ = nam::ardor_parametric::create(document);
+      auto* controls = dynamic_cast<nam::IParametricControl*>(model_.get());
+      if (!modelParameters.is_object()) throw std::runtime_error("modelParameters must be an object");
+      auto values = std::vector<float>(controls->GetParams().begin(), controls->GetParams().end());
+      for (auto it = modelParameters.begin(); it != modelParameters.end(); ++it) {
+        const auto& specs = controls->GetParamSpecs();
+        const auto found = std::find_if(specs.begin(), specs.end(), [&](const auto& spec) { return spec.name == it.key(); });
+        if (found == specs.end() || !it.value().is_number())
+          throw std::runtime_error("Unknown or invalid NAM parameter: " + it.key());
+        const float value = it.value().get<float>();
+        if (!std::isfinite(value) || value < found->min || value > found->max)
+          throw std::runtime_error("NAM parameter out of range: " + it.key());
+        values[static_cast<size_t>(found - specs.begin())] = value;
+      }
+      controls->SetParams(values);
+    } else {
+      model_ = nam::get_dsp(document);
+      if (!modelParameters.is_object() || !modelParameters.empty())
+        throw std::runtime_error("Snapshot NAM models do not accept modelParameters");
+    }
+    if (model_->NumInputChannels() != 1 || model_->NumOutputChannels() != 1)
+      throw std::runtime_error("Ardor NAM blocks require mono audio input and output");
   } catch (const std::exception& e) {
     std::cerr << "Failed to load NAM model: " << e.what() << "\n";
     model_.reset();
@@ -52,7 +82,13 @@ bool NamProcessor::load(const std::filesystem::path& modelPath, double sampleRat
   if (auto* slim = dynamic_cast<nam::SlimmableModel*>(model_.get())) {
     slim->SetSlimmableSize(slimmableSize_);
   }
-  model_->ResetAndPrewarm(sampleRate, maxBlockSize_);
+  try {
+    model_->ResetAndPrewarm(sampleRate, maxBlockSize_);
+  } catch (const std::exception& e) {
+    std::cerr << "Failed to prepare NAM model: " << e.what() << "\n";
+    model_.reset();
+    return false;
+  }
   // ponytail: prewarm once on load; bypass/reset calls must stay cheap in the audio callback.
   model_->SetPrewarmOnReset(false);
 

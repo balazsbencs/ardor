@@ -3,7 +3,9 @@ import { Plus, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { IconButton } from "../components/ui";
-import { allEffectDefinitions } from "../effects/catalog";
+import type { Asset } from "../api/types";
+import { fileStem } from "../ui/format";
+import { allEffectDefinitions, getEffectDefinition } from "../effects/catalog";
 import type { EffectDefinition } from "../effects/types";
 import { PortalSurface } from "../theme/surface";
 import { familyOf, type Family } from "../ui/family";
@@ -26,6 +28,7 @@ const matches = (definition: EffectDefinition, query: string) =>
     .includes(query.toLowerCase());
 
 type ModuleDrawerProps = {
+  models?: Asset[];
   open: boolean;
   where: string;
   disabledIds: Map<string, string>;
@@ -33,13 +36,18 @@ type ModuleDrawerProps = {
   onChoose(definition: EffectDefinition): void;
 };
 
-function DrawerBody({ where, disabledIds, onChoose }: Pick<ModuleDrawerProps, "where" | "disabledIds" | "onChoose">) {
+function DrawerBody({ where, disabledIds, onChoose, models = [] }: Pick<ModuleDrawerProps, "where" | "disabledIds" | "onChoose" | "models">) {
   const [query, setQuery] = useState("");
   const [family, setFamily] = useState<Family | "all">("all");
-  const total = useMemo(() => allEffectDefinitions().length, []);
+  const available = useMemo(() => [...allEffectDefinitions(), ...models.filter((asset) => asset.nam?.supported && asset.nam.parameters?.length).map((asset) => ({
+    ...getEffectDefinition(asset.nam!.gearType === "pedal" ? "namPedal" : "nam"),
+    assetPath: asset.path, name: fileStem(asset.filename),
+    description: `Parametric ${asset.nam!.gearType} · ${asset.nam!.parameters!.map((p) => p.name).join(", ")}`,
+  }))], [models]);
+  const total = available.length;
   const definitions = useMemo(
-    () => allEffectDefinitions().filter((d) => (family === "all" || familyOf(d.blockType) === family) && matches(d, query)),
-    [family, query],
+    () => available.filter((d) => (family === "all" || familyOf(d.blockType) === family) && matches(d, query)),
+    [available, family, query],
   );
   const choose = (definition: EffectDefinition) => {
     onChoose(definition);
@@ -92,7 +100,7 @@ function DrawerBody({ where, disabledIds, onChoose }: Pick<ModuleDrawerProps, "w
               {rows.map((d) => {
                 const reason = disabledIds.get(d.id);
                 return (
-                  <button key={d.id} type="button" className={`mod-row fam-${group.family}`} disabled={Boolean(reason)} onClick={() => choose(d)}>
+                  <button key={d.assetPath ?? d.id} type="button" className={`mod-row fam-${group.family}`} disabled={Boolean(reason)} onClick={() => choose(d)}>
                     <span className="code">{MODULE_CODES[d.id]}</span>
                     <span><b>{d.name}</b><small>{reason ?? d.description}</small></span>
                     <span className="plus"><Plus size={16} /></span>
@@ -108,14 +116,14 @@ function DrawerBody({ where, disabledIds, onChoose }: Pick<ModuleDrawerProps, "w
   );
 }
 
-export function ModuleDrawer({ open, where, disabledIds, onOpenChange, onChoose }: ModuleDrawerProps) {
+export function ModuleDrawer({ open, where, disabledIds, onOpenChange, onChoose, models }: ModuleDrawerProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <PortalSurface>
           <Dialog.Overlay className="mods-scrim" />
           <Dialog.Content className="mods" aria-describedby={undefined}>
-            <DrawerBody where={where} disabledIds={disabledIds} onChoose={onChoose} />
+            <DrawerBody models={models} where={where} disabledIds={disabledIds} onChoose={onChoose} />
           </Dialog.Content>
         </PortalSurface>
       </Dialog.Portal>

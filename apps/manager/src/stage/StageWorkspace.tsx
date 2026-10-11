@@ -31,10 +31,10 @@ import "./workspace.css";
 
 type Drawer = "none" | "block" | "global" | "scenes";
 
-function addAction(target: AddTarget, definitionId: string): EditorAction {
-  if (target.kind === "lane") return { type: "add-lane-block", definitionId, rigId: target.rigId, lane: target.lane, index: target.index };
-  if (target.kind === "wdw") return { type: "add-wdw-block", definitionId, lane: target.lane, index: target.index };
-  return { type: "add-block", definitionId, index: target.index };
+function addAction(target: AddTarget, definitionId: string, initialAsset?: string): EditorAction {
+  if (target.kind === "lane") return { type: "add-lane-block", definitionId, initialAsset, rigId: target.rigId, lane: target.lane, index: target.index };
+  if (target.kind === "wdw") return { type: "add-wdw-block", definitionId, initialAsset, lane: target.lane, index: target.index };
+  return { type: "add-block", definitionId, initialAsset, index: target.index };
 }
 
 function focusedControl(block: PresetBlock | undefined, key: string | undefined) {
@@ -132,7 +132,7 @@ export function StageWorkspace({ onManageFiles, onConnection }: { onManageFiles(
     setDrawer(next);
   });
   const add = (definition: EffectDefinition) => {
-    dispatch(addAction(editor.addTarget ?? addTargetAfter(present), definition.id));
+    dispatch(addAction(editor.addTarget ?? addTargetAfter(present), definition.id, definition.assetPath));
     editor.setAddTarget(undefined);
   };
 
@@ -205,7 +205,7 @@ export function StageWorkspace({ onManageFiles, onConnection }: { onManageFiles(
       </main>
       <EditRail drawer={shown} focused={focused} onOpen={open} addBlocked={addBlockedReason(present, railTarget)}
         onAdd={() => editor.setAddTarget(railTarget)} onDone={close} />
-      <ModuleDrawer open={Boolean(editor.addTarget)} where={whereText(editor.addTarget, present)} disabledIds={editor.disabledDefinitions}
+      <ModuleDrawer models={session.models} open={Boolean(editor.addTarget)} where={whereText(editor.addTarget, present)} disabledIds={editor.disabledDefinitions}
         onOpenChange={(isOpen) => { if (!isOpen) editor.setAddTarget(undefined); }} onChoose={add} />
       <UnsavedChangesDialog open={Boolean(editor.pendingLocation)} busy={editor.saving} onChoice={(choice) => void editor.resolveNavigation(choice)} />
     </div>
