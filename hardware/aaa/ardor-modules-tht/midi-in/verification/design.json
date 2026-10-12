@@ -3,8 +3,8 @@
   "title": "Isolated MIDI input / 3.3 V UART / HAND ASSEMBLY",
   "slug": "midi-in",
   "size_mm": [
-    85,
-    70
+    58,
+    42
   ],
   "parts": {
     "J202": {
@@ -13,8 +13,8 @@
       "value": "MIDI INPUT FROM DIN SOCKET",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
       "pcb": [
-        6,
-        33
+        4,
+        26
       ],
       "part": null,
       "dnp": false,
@@ -28,8 +28,8 @@
       "value": "POWER INPUT + UART OUTPUT TO\nHOST",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
       "pcb": [
-        75.0,
-        32.5
+        55,
+        11.5
       ],
       "part": null,
       "dnp": false,
@@ -43,8 +43,8 @@
       "value": "METAL CASE BOND + GROUND",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
       "pcb": [
-        77.5,
-        60.0
+        55,
+        35
       ],
       "part": null,
       "dnp": false,
@@ -58,8 +58,8 @@
       "value": "800R@100MHz / WE 7427501",
       "fp": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
       "pcb": [
-        18,
-        25,
+        14,
+        12,
         90
       ],
       "part": {
@@ -80,8 +80,9 @@
       "value": "220R / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        30,
-        25
+        29,
+        16,
+        90
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -101,8 +102,8 @@
       "value": "800R@100MHz / WE 7427501",
       "fp": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
       "pcb": [
-        18,
-        45,
+        22,
+        12,
         90
       ],
       "part": {
@@ -123,8 +124,8 @@
       "value": "onsemi H11L1M",
       "fp": "Package_DIP:DIP-6_W7.62mm",
       "pcb": [
-        50.0,
-        30.0
+        36,
+        18
       ],
       "part": null,
       "dnp": false,
@@ -138,8 +139,8 @@
       "value": "1N4148",
       "fp": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
       "pcb": [
-        30,
-        41
+        35,
+        7
       ],
       "part": {
         "footprint": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
@@ -159,8 +160,8 @@
       "value": "100n / 50V X7R",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        66.25,
-        15.0
+        43,
+        24
       ],
       "part": {
         "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
@@ -180,8 +181,8 @@
       "value": "100n / 50V X7R",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        67.5,
-        10.0
+        51,
+        24
       ],
       "part": {
         "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
@@ -201,8 +202,9 @@
       "value": "1kR / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        65.0,
-        42.5
+        47,
+        14,
+        90
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -222,8 +224,8 @@
       "value": "100R / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        70.0,
-        50.0
+        47,
+        29
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -243,8 +245,8 @@
       "value": "1.5KE6.8CA",
       "fp": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
       "pcb": [
-        6,
-        15,
+        5,
+        12,
         90
       ],
       "part": {
@@ -265,8 +267,8 @@
       "value": "100p / 1kV C0G",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        30,
-        8
+        12,
+        35
       ],
       "part": {
         "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
@@ -286,8 +288,8 @@
       "value": "100p / 1kV C0G",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        18,
-        60
+        24,
+        35
       ],
       "part": {
         "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
@@ -304,45 +306,44 @@
     "D203": {
       "ref": "D203",
       "kind": "D_TVS",
-      "value": "SA24CA-E3/54",
-      "fp": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
+      "value": "SMDJ24CA",
+      "fp": "Ardor_THT:D_SMC_Bidirectional_Handsolder",
       "pcb": [
-        6,
-        54,
-        90
+        12,
+        28
       ],
       "part": {
-        "footprint": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
-        "mpn": "Vishay SA24CA-E3/54",
-        "bom_mpn": "Vishay SA24CA-E3/54",
+        "footprint": "Ardor_THT:D_SMC_Bidirectional_Handsolder",
+        "mpn": "Littelfuse SMDJ24CA (HESTORE 100.461.56)",
+        "bom_mpn": "Littelfuse SMDJ24CA (HESTORE 100.461.56)",
         "jlcpcb_part": "",
-        "datasheet": "https://www.vishay.com/doc/?88378="
+        "datasheet": "https://www.hestore.hu/prod_getfile.php?id=16974"
       },
       "dnp": false,
       "uuid": "fcb9b50b-f8e3-5a06-8216-dad214d23252",
-      "mpn": "Vishay SA24CA-E3/54",
-      "datasheet": "https://www.vishay.com/doc/?88378="
+      "mpn": "Littelfuse SMDJ24CA (HESTORE 100.461.56)",
+      "datasheet": "https://www.hestore.hu/prod_getfile.php?id=16974"
     },
     "D204": {
       "ref": "D204",
       "kind": "D_TVS",
-      "value": "SA24CA-E3/54",
-      "fp": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
+      "value": "SMDJ24CA",
+      "fp": "Ardor_THT:D_SMC_Bidirectional_Handsolder",
       "pcb": [
-        32,
-        62
+        24,
+        28
       ],
       "part": {
-        "footprint": "Diode_THT:D_DO-15_P10.16mm_Horizontal",
-        "mpn": "Vishay SA24CA-E3/54",
-        "bom_mpn": "Vishay SA24CA-E3/54",
+        "footprint": "Ardor_THT:D_SMC_Bidirectional_Handsolder",
+        "mpn": "Littelfuse SMDJ24CA (HESTORE 100.461.56)",
+        "bom_mpn": "Littelfuse SMDJ24CA (HESTORE 100.461.56)",
         "jlcpcb_part": "",
-        "datasheet": "https://www.vishay.com/doc/?88378="
+        "datasheet": "https://www.hestore.hu/prod_getfile.php?id=16974"
       },
       "dnp": false,
       "uuid": "28796cf3-a14c-55ea-9f7a-b045af558934",
-      "mpn": "Vishay SA24CA-E3/54",
-      "datasheet": "https://www.vishay.com/doc/?88378="
+      "mpn": "Littelfuse SMDJ24CA (HESTORE 100.461.56)",
+      "datasheet": "https://www.hestore.hu/prod_getfile.php?id=16974"
     },
     "R101": {
       "ref": "R101",
@@ -350,8 +351,8 @@
       "value": "0R / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        65.0,
-        60.0
+        38,
+        35
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -418,20 +419,36 @@
     {
       "polygon": [
         [
-          1.25,
-          1.25
+          0.5,
+          0.5
         ],
         [
-          51.25,
-          1.25
+          42,
+          0.5
         ],
         [
-          51.25,
-          68.75
+          42,
+          11
         ],
         [
-          1.25,
-          68.75
+          36,
+          11
+        ],
+        [
+          36,
+          25
+        ],
+        [
+          32,
+          25
+        ],
+        [
+          32,
+          38
+        ],
+        [
+          0.5,
+          38
         ]
       ],
       "pour_only": true

@@ -5,7 +5,7 @@
   "smt_placements": 1,
   "plated_drill_and_outline_origin_match": true,
   "nonplated_mounting_holes": 2,
-  "pcb_sha256": "1b737372a28b99066a3c102b18631495ad7e3db0748b6e1d9a9aad9c1f43c48b",
-  "schematic_sha256": "e32c4ce556727a4d10abb39e2d8ff15c29214bd5b98bf4c6c9a1062d2a847c64",
-  "bom_sha256": "7ecd15074c9b57be9ae7bacbdd089d80e328f162e2cc6d9adb6287fe6270d7f0"
+  "pcb_sha256": "e07ebde2f632b39bbcb808a987f2a83e0249ef27361410d22539c131524f7e85",
+  "schematic_sha256": "135a5dfce71826242df34eabd00a446330a7537b6bbe79f8417e0de26f0a9668",
+  "bom_sha256": "7f8f51415a1d2918792d091047a194829e9a52538ad19da9881a656494398453"
 }

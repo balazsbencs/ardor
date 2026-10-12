@@ -5,7 +5,7 @@ J602,STEREO HEADPHONE AUDIO OUTPUT,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.
 FB101,800R@100MHz / WE 7427501,Ardor_THT:Ferrite_WE_7427501_P15.24mm,Wurth Elektronik 7427501,THT manual
 C101,100u / 25V,Capacitor_THT:CP_Radial_D6.3mm_P2.50mm,100u / 25V,THT manual
 C102,100n / 50V X7R,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,100n / 50V X7R,THT manual
-C601,10u / 25V BIPOLAR,Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm,Nichicon UES1E100MDM,THT manual
+C601,10u / 50V BIPOLAR,Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm,Nichicon UES1H100MPM (HESTORE 100.524.69),THT manual
 R611,20k / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,20k / 1% 0.25W,THT manual
 U601,OPA1656ID,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,Texas Instruments OPA1656ID,SMD manual / SOIC-8 1.27mm pitch
 R651,10k / 1% 0.25W / UPRIGHT,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P2.54mm_Vertical,10k / 1% 0.25W / UPRIGHT,THT manual
@@ -14,7 +14,7 @@ R631,10R / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizont
 C651,470u / 16V,Capacitor_THT:CP_Radial_D8.0mm_P3.50mm,470u / 16V,THT manual
 R641,1k / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,1k / 1% 0.25W,THT manual
 D601,1.5KE6.8CA,Ardor_THT:D_TVS_DC_1.5KE_P15.24mm,DC Components 1.5KE6.8CA (HESTORE 100.430.71),THT manual
-C602,10u / 25V BIPOLAR,Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm,Nichicon UES1E100MDM,THT manual
+C602,10u / 50V BIPOLAR,Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm,Nichicon UES1H100MPM (HESTORE 100.524.69),THT manual
 R612,20k / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,20k / 1% 0.25W,THT manual
 R652,10k / 1% 0.25W / UPRIGHT,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P2.54mm_Vertical,10k / 1% 0.25W / UPRIGHT,THT manual
 C662,100p / 50V C0G,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,100p / 50V C0G,THT manual

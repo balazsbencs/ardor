@@ -11,8 +11,8 @@
         "electrical_footprints": 18,
         "mounting_holes": 2,
         "board_size_mm": [
-          85.0,
-          70.0
+          58.0,
+          42.0
         ],
         "functional_nets": 11,
         "routed_nets": 10,
@@ -30,20 +30,24 @@
       },
       "hand_assembly": {
         "result": "PASS",
-        "board_smd_pads": 0,
-        "board_smd_footprints": 0,
-        "manual_smd_references": [],
-        "tht_numbered_pads": 42,
+        "board_smd_pads": 4,
+        "board_smd_footprints": 2,
+        "manual_smd_references": [
+          "D203",
+          "D204"
+        ],
+        "tht_numbered_pads": 38,
         "minimum_component_drill_mm": 0.6,
         "manual_parts": 18,
         "all_manual_parts_have_front_references": true,
         "hestore_1_5ke6_8ca_references": [
           "D202"
         ],
-        "retained_sa24ca_references": [
+        "hestore_smdj24ca_references": [
           "D203",
           "D204"
         ],
+        "hestore_ues1h100mpm_references": [],
         "host_and_panel_pinout_matches_m1": true,
         "preassembled_smd_module": null,
         "breakout_contains_smd": false,
@@ -53,12 +57,12 @@
         "result": "PASS",
         "fabrication_files": 12,
         "zip_crc_and_contents_match": true,
-        "smt_placements": 0,
+        "smt_placements": 2,
         "plated_drill_and_outline_origin_match": true,
         "nonplated_mounting_holes": 2,
-        "pcb_sha256": "72cd6ef330da77cfef0e4efc9e87425bea901ba99f4c06dd7e34ab371022f066",
-        "schematic_sha256": "32fdf2cae7299bf53a02bdff28429a12e3cbb7c22a5e83d4be5a45bb996662ac",
-        "bom_sha256": "1435fdfe6fc3e77078e1538cd430d0225a4be4f0385a7cf679f84b69d9b6ad29"
+        "pcb_sha256": "83f3d9989320c62942be3e35130962b49bd75144bf391ec62b29ce96e424971a",
+        "schematic_sha256": "5723dbe8fb00ed26a4f778c7dc419663bc814086c6f5413ffed6032b1ac251bb",
+        "bom_sha256": "53c66f9927e7f7e79a3882ab0b0cae53b81ff6327b90c7fb08f3f57c2cc563ef"
       }
     },
     "headphones": {
@@ -70,8 +74,8 @@
         "electrical_footprints": 34,
         "mounting_holes": 2,
         "board_size_mm": [
-          96.0,
-          84.0
+          76.0,
+          58.0
         ],
         "functional_nets": 22,
         "routed_nets": 21,
@@ -102,7 +106,11 @@
           "D601",
           "D602"
         ],
-        "retained_sa24ca_references": [],
+        "hestore_smdj24ca_references": [],
+        "hestore_ues1h100mpm_references": [
+          "C601",
+          "C602"
+        ],
         "host_and_panel_pinout_matches_m1": true,
         "preassembled_smd_module": null,
         "breakout_contains_smd": false,
@@ -115,9 +123,9 @@
         "smt_placements": 1,
         "plated_drill_and_outline_origin_match": true,
         "nonplated_mounting_holes": 2,
-        "pcb_sha256": "1b737372a28b99066a3c102b18631495ad7e3db0748b6e1d9a9aad9c1f43c48b",
-        "schematic_sha256": "e32c4ce556727a4d10abb39e2d8ff15c29214bd5b98bf4c6c9a1062d2a847c64",
-        "bom_sha256": "7ecd15074c9b57be9ae7bacbdd089d80e328f162e2cc6d9adb6287fe6270d7f0"
+        "pcb_sha256": "e07ebde2f632b39bbcb808a987f2a83e0249ef27361410d22539c131524f7e85",
+        "schematic_sha256": "135a5dfce71826242df34eabd00a446330a7537b6bbe79f8417e0de26f0a9668",
+        "bom_sha256": "7f8f51415a1d2918792d091047a194829e9a52538ad19da9881a656494398453"
       }
     },
     "mixer": {
@@ -129,15 +137,15 @@
         "electrical_footprints": 28,
         "mounting_holes": 2,
         "board_size_mm": [
-          100.0,
-          75.0
+          70.0,
+          48.0
         ],
         "functional_nets": 19,
         "routed_nets": 18,
         "signal_and_supply_width_mm": 0.2,
         "chassis_width_mm": 0.6,
         "ground_tracks": 0,
-        "vias": 0,
+        "vias": 1,
         "erc_violations": 0,
         "drc_violations": 0,
         "unconnected_items": 0,
@@ -156,7 +164,14 @@
         "manual_parts": 28,
         "all_manual_parts_have_front_references": true,
         "hestore_1_5ke6_8ca_references": [],
-        "retained_sa24ca_references": [],
+        "hestore_smdj24ca_references": [],
+        "hestore_ues1h100mpm_references": [
+          "C401",
+          "C402",
+          "C407",
+          "C408",
+          "C409"
+        ],
         "host_and_panel_pinout_matches_m1": true,
         "preassembled_smd_module": null,
         "breakout_contains_smd": false,
@@ -169,9 +184,9 @@
         "smt_placements": 0,
         "plated_drill_and_outline_origin_match": true,
         "nonplated_mounting_holes": 2,
-        "pcb_sha256": "4cd55830997e1d17c89d9f50d06b6d6e3108efae685575e760e0c966ab54cc74",
-        "schematic_sha256": "9867fbf6c5814527df8fc68164bc6ce265c31ae994d8f616c154d2eb5faad746",
-        "bom_sha256": "c6e88661d900a6503bc73ac3b88dd3038439d291936b48ca0ff0ad57f6d07d34"
+        "pcb_sha256": "44ce7243a559dc8e7ea155902b4c975b4e98ad3ea62e7967ce88c40ad81c5904",
+        "schematic_sha256": "892bbc6c35c61dd5e15dca15f2d04026b18eca44fa210f424b0c588d477b7f94",
+        "bom_sha256": "b22d4f77c523c5b7193d9231fdb22d7230a0d425cd63ba5636b72f141f88fe12"
       }
     },
     "line-out": {
@@ -183,8 +198,8 @@
         "electrical_footprints": 27,
         "mounting_holes": 2,
         "board_size_mm": [
-          115.0,
-          85.0
+          70.0,
+          50.0
         ],
         "functional_nets": 17,
         "routed_nets": 16,
@@ -212,7 +227,11 @@
         "hestore_1_5ke6_8ca_references": [
           "D501"
         ],
-        "retained_sa24ca_references": [],
+        "hestore_smdj24ca_references": [],
+        "hestore_ues1h100mpm_references": [
+          "C401",
+          "C502"
+        ],
         "host_and_panel_pinout_matches_m1": true,
         "preassembled_smd_module": null,
         "breakout_contains_smd": false,
@@ -225,29 +244,29 @@
         "smt_placements": 0,
         "plated_drill_and_outline_origin_match": true,
         "nonplated_mounting_holes": 2,
-        "pcb_sha256": "9b5c63454f62855ee2f4fab4f32131effc2efdcccb5b99f615988aaad99cb2b2",
-        "schematic_sha256": "91c6fa9a85504b5a9bbf6af2c8b2e9fe9bc3396fe9ab3d7996416c1b00bc2595",
-        "bom_sha256": "abb9a10ce85d5a0916212a22a6c932d8e0e28450b089ad12d0285d8298105255"
+        "pcb_sha256": "4c5eff125730685f594f856e4a2e96fcb0cce580ccb33f4964ef6cefddfc361c",
+        "schematic_sha256": "60c399046d7430b8983ba7cbd3ad25d45068c352978d9aa968a63fe9603626c9",
+        "bom_sha256": "3fc47b7d06b3d47773662190b484183367a31da2a157ca302af7c1f228b50562"
       }
     },
     "expression": {
       "electrical": {
         "result": "PASS",
         "connected_pin_numbers": 73,
-        "explicit_no_connects": 3,
-        "physical_numbered_pads": 76,
+        "explicit_no_connects": 1,
+        "physical_numbered_pads": 74,
         "electrical_footprints": 29,
         "mounting_holes": 2,
         "board_size_mm": [
-          110.0,
-          85.0
+          72.0,
+          50.0
         ],
         "functional_nets": 17,
         "routed_nets": 16,
         "signal_and_supply_width_mm": 0.2,
         "chassis_width_mm": 0.6,
         "ground_tracks": 0,
-        "vias": 0,
+        "vias": 1,
         "erc_violations": 0,
         "drc_violations": 0,
         "unconnected_items": 0,
@@ -261,7 +280,7 @@
         "board_smd_pads": 0,
         "board_smd_footprints": 0,
         "manual_smd_references": [],
-        "tht_numbered_pads": 76,
+        "tht_numbered_pads": 74,
         "minimum_component_drill_mm": 0.6,
         "manual_parts": 29,
         "all_manual_parts_have_front_references": true,
@@ -269,9 +288,10 @@
           "D301",
           "D302"
         ],
-        "retained_sa24ca_references": [],
+        "hestore_smdj24ca_references": [],
+        "hestore_ues1h100mpm_references": [],
         "host_and_panel_pinout_matches_m1": true,
-        "preassembled_smd_module": "Adafruit 1085 STEMMA QT ADS1115",
+        "preassembled_smd_module": "ADS1115-M HESTORE 100.417.98; single ten-pin row",
         "breakout_contains_smd": true,
         "hardware_tested": false
       },
@@ -282,16 +302,16 @@
         "smt_placements": 0,
         "plated_drill_and_outline_origin_match": true,
         "nonplated_mounting_holes": 2,
-        "pcb_sha256": "9028e1e16f5946a5b4ec88a9b55211d4e0d8c92c39f08aa83d2741108e506940",
-        "schematic_sha256": "b7f02ca9850fad1bda50bb2334b7b8b25c8da8d3b17f7110283857483d5efbe5",
-        "bom_sha256": "2d340ac8f14d97934d074b3e8978c821423deeb697fa3bffa2acf30020af1e1a"
+        "pcb_sha256": "678cce0b481a574929bf589fb4a280d3d4bbbc14b70f0ea71f1b9522999fe9a2",
+        "schematic_sha256": "b56f3d80ec13c55a035e78517ce0509bd265c90400118fc3683e069ccea16b97",
+        "bom_sha256": "9c4fb32be795adafbf8acb64881b6d7a1a6137cac445d2432026020ce19761ea"
       }
     }
   },
-  "total_numbered_component_pads": 339,
+  "total_numbered_component_pads": 337,
   "total_manual_components": 136,
-  "board_smd_pads": 8,
-  "board_smd_footprints": 1,
+  "board_smd_pads": 12,
+  "board_smd_footprints": 3,
   "preassembled_smd_breakouts": 1,
   "hardware_tested": false
 }

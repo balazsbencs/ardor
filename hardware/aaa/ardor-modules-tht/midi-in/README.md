@@ -1,10 +1,12 @@
 # Isolated MIDI input / 3.3 V UART / HAND ASSEMBLY
 
-T1 hand-assembly PCB: 85 × 70 mm. **Unbuilt engineering prototype.**
+T1.1 compact hand-assembly PCB: 58 × 42 mm. **Unbuilt engineering prototype.**
 
 [KiCad project](Ardor_MIDI_THT.kicad_pro) · [Manual BOM](BOM.csv) · [Schematic](review/schematic.pdf) · [Bare-board Gerbers](assembly/Ardor_MIDI_THT-Gerbers.zip)
 
 Use a female five-pin DIN panel socket. Wire numbered DIN contact 4 to J202.1 and contact 5 to J202.2. Leave DIN 1/2/3 and shell unwired; insulate the socket shell. Bond the enclosure to J203.1. Do not treat MIDI contact 5 as ground. Fit the exact H11L1M optocoupler; other optocouplers have different switching thresholds or pinouts.
+
+D203/D204 are **Littelfuse SMDJ24CA**, the agreed pair of large hand-solderable **SMC / DO-214AB** TVS parts. Fit them first with flux and an ordinary iron; the two broad terminal pads are accessible. Either orientation is valid for the bidirectional CA version. All other builder-fitted components are through-hole. D202 remains DC Components 1.5KE6.8CA; the two higher-voltage SMDJ24CA positions must not be populated with that low-voltage part.
 
 Supply 5 V / 10 mA and 3.3 V / 5 mA. Set the host UART to 31250 baud, 8-N-1. J101.4 is a 3.3 V output into the host RX input.
 
@@ -39,7 +41,7 @@ Directions are relative to this board. Standard header square pads identify pin 
 
 ## Assembly and files
 
-Fit low-profile axial parts first, then sockets/headers and radial capacitors. Match diode bands, electrolytic polarity and IC notches to the PCB. Install the ICs or ADC breakout last. H1/H2 are 2.2 mm nonplated M2 mounting holes, not electrical terminals. Check enclosure clearance and capacitor/socket height: these boards are larger than M1.
+Solder and inspect D203/D204 SMC parts first, then fit low-profile axial parts, sockets/headers and radial capacitors. Match D201 band and IC orientation. H1/H2 are 2.2 mm nonplated M2 mounting holes, not electrical terminals. Check enclosure clearance and capacitor/socket height. T1.1 compacts the layouts; hole positions differ from T1 and M1.
 
 Use the manual BOM and the bare-board Gerber/drill ZIP. There is no SMT assembly order. Front silkscreen shows component references; the front fabrication drawing shows package outlines and orientation; use the BOM for values. Back silk includes port functions and pin numbers. Native checks and package manifests are under `verification/`; they do not replace prototype measurements.
 

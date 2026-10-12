@@ -1,26 +1,26 @@
-2026-10-09 12:29:57.667 INFO   Freerouting v2.1.0 (build-date: 2025-04-12)
-2026-10-09 12:29:57.738 WARN   No default constructor found for field: currentLocale
-2026-10-09 12:29:57.739 INFO   Settings were loaded from freerouting.json
-2026-10-09 12:29:59.239 INFO   [402D54\A17415] Job '402D54\A17415' started at 2026-10-09T12:29:59.238953721Z
-2026-10-09 12:29:59.875 INFO   New version available: v2.5.0
-2026-10-09 12:30:01.575 INFO   [402D54\A17415] Auto-router pass #1 on board '3c708c06b05218c3e814a3c5abfaa487' was completed in 1.96 seconds with the score of 974.10 (1 unrouted), using 1.94 CPU seconds and 554 MB memory.
-2026-10-09 12:30:01.806 INFO   [402D54\A17415] Auto-router pass #2 on board '0108498f5c72fe7614298aca52d5800c' was completed in 0.20 seconds with the score of 980.68, using 1.94 CPU seconds and 554 MB memory.
-2026-10-09 12:30:01.868 INFO   [402D54\A17415] Auto-router pass #3 on board 'fba970a41c77d15bfa16458f9db0cd5f' was completed in 0.01 seconds with the score of 980.68, using 1.94 CPU seconds and 554 MB memory.
+2026-10-12 12:53:11.583 INFO   Freerouting v2.1.0 (build-date: 2025-04-12)
+2026-10-12 12:53:11.685 WARN   No default constructor found for field: currentLocale
+2026-10-12 12:53:11.687 INFO   Settings were loaded from freerouting.json
+2026-10-12 12:53:13.416 INFO   [EAF989\EB13E3] Job 'EAF989\EB13E3' started at 2026-10-12T12:53:13.416334506Z
+2026-10-12 12:53:14.451 INFO   New version available: v2.5.0
+2026-10-12 12:53:17.151 INFO   [EAF989\EB13E3] Auto-router pass #1 on board 'ce9854cbd198de689f4a1080514c0a91' was completed in 3.13 seconds with the score of 975.11 (1 unrouted), using 2.16 CPU seconds and 447 MB memory.
+2026-10-12 12:53:17.373 INFO   [EAF989\EB13E3] Auto-router pass #2 on board 'dd59bf0f6e4076d1673807ca722cd8bf' was completed in 0.14 seconds with the score of 983.12, using 2.16 CPU seconds and 447 MB memory.
+2026-10-12 12:53:17.433 INFO   [EAF989\EB13E3] Auto-router pass #3 on board '4b49f75902ee63d14b910e980f6d7e3d' was completed in 0.01 seconds with the score of 983.12, using 2.16 CPU seconds and 447 MB memory.
 {
   "host": "KiCad's Pcbnew,9.0.2+dfsg-1",
   "unit": "mm",
   "board": {
     "bounding_box": {
-      "x": 1461.0,
+      "x": 1261.0,
       "y": -499.0,
       "width": 499.0,
-      "height": -1341.0
+      "height": -1081.0
     },
     "size": {
       "x": 0.0,
       "y": 0.0,
-      "width": 962.0,
-      "height": 842.0
+      "width": 762.0,
+      "height": 582.0
     }
   },
   "layers": {
@@ -28,8 +28,8 @@
     "signal_count": 2
   },
   "items": {
-    "total_count": 1014,
-    "trace_count": 53,
+    "total_count": 1012,
+    "trace_count": 51,
     "via_count": 0,
     "conduction_area_count": 2,
     "drill_item_count": 84,
@@ -48,18 +48,18 @@
     "class_count": 4
   },
   "connections": {
-    "maximum_count": 117,
+    "maximum_count": 115,
     "incomplete_count": 0
   },
   "traces": {
-    "total_count": 53,
-    "total_segment_count": 114,
-    "total_length": 8434.059,
-    "total_weighted_length": 2.462733E7,
-    "average_length": 159.1332,
-    "total_vertical_length": 2224.492,
-    "total_horizontal_length": 2305.566,
-    "total_angled_length": 2030.5199
+    "total_count": 51,
+    "total_segment_count": 112,
+    "total_length": 7156.061,
+    "total_weighted_length": 2.0507896E7,
+    "average_length": 140.31493,
+    "total_vertical_length": 1684.098,
+    "total_horizontal_length": 2238.911,
+    "total_angled_length": 2553.73
   },
   "bends": {
     "total_count": 61,

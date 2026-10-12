@@ -1,6 +1,6 @@
 Quantity,Purchasing specification,Use
-2,Female 1x06 2.54mm socket strip,U301; rows 12.7mm apart
-2,Male 1x06 2.54mm header strip,ADC breakout; may be supplied with Adafruit 1085
+1,Female 1x10 2.54mm socket strip,U301; single row; select height for module/enclosure clearance
+1,Male 1x10 2.54mm straight header strip,ADS1115-M breakout; may be supplied with module
 3,2.54mm jumper shunt,Two for JP301 and one for JP302
 2,Optional additional 2.54mm jumper shunt,JP303/JP304; leave off initially
 1,TRS expression panel socket,Cable to J302

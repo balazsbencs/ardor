@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-folders = [p for p in ROOT.iterdir() if (p/'verification/design.json').exists()]
+folders = [ROOT/slug for slug in sys.argv[1:]] or [p for p in ROOT.iterdir() if (p/'verification/design.json').exists()]
 def native(script,folder):
     subprocess.run(['xvfb-run','-a',sys.executable,str(ROOT/'design'/script),folder.name],check=True)
 for folder in folders:

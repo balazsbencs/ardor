@@ -2,14 +2,14 @@
 <export version="E">
   <design>
     <source>/work/hardware/aaa/ardor-modules-tht/expression/Ardor_Expression_THT.kicad_sch</source>
-    <date>2026-10-09T12:29:51+0000</date>
+    <date>2026-10-12T13:26:13+0000</date>
     <tool>Eeschema 9.0.2+dfsg-1</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
         <title>Passive expression pedal / I2C ADC / HAND ASSEMBLY</title>
         <company>Ardor</company>
-        <rev>T1</rev>
-        <date>2026-10-08</date>
+        <rev>T1.1</rev>
+        <date>2026-10-12</date>
         <source>Ardor_Expression_THT.kicad_sch</source>
         <comment number="1" value="Engineering prototype - bench validation required"/>
         <comment number="2" value=""/>
@@ -122,7 +122,7 @@
       <property name="ki_keywords" value="cap capacitor"/>
       <property name="ki_fp_filters" value="C_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>b5b48f80-421a-555c-a138-a158b1fb3aa1</tstamps>
+      <tstamps>108139dd-68e6-557f-ad0a-84f251980c67</tstamps>
     </comp>
     <comp ref="D301">
       <value>1.5KE6.8CA</value>
@@ -143,7 +143,7 @@
       <property name="ki_keywords" value="diode TVS thyrector"/>
       <property name="ki_fp_filters" value="TO-???* *_Diode_* *SingleDiode* D_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>77713601-cba5-5fc0-90ef-2787a68be9eb</tstamps>
+      <tstamps>795f858d-68e7-5cd6-8235-ac423a0a5b48</tstamps>
     </comp>
     <comp ref="D302">
       <value>1.5KE6.8CA</value>
@@ -164,7 +164,7 @@
       <property name="ki_keywords" value="diode TVS thyrector"/>
       <property name="ki_fp_filters" value="TO-???* *_Diode_* *SingleDiode* D_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>065ba79c-8648-5e89-80c3-1fe9c6ad0a15</tstamps>
+      <tstamps>24d707a7-db6c-5071-b6f3-1a17ac4e19b2</tstamps>
     </comp>
     <comp ref="D303">
       <value>BAT85S</value>
@@ -185,7 +185,7 @@
       <property name="ki_keywords" value="diode Schottky"/>
       <property name="ki_fp_filters" value="TO-???* *_Diode_* *SingleDiode* D_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>a756ebb6-5163-550d-898e-3fa5c7b043c3</tstamps>
+      <tstamps>808fff17-d134-588a-ab10-1d6fdadfcd64</tstamps>
     </comp>
     <comp ref="D304">
       <value>BAT85S</value>
@@ -206,7 +206,7 @@
       <property name="ki_keywords" value="diode Schottky"/>
       <property name="ki_fp_filters" value="TO-???* *_Diode_* *SingleDiode* D_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>26d870d4-e0c2-5064-a5d2-e948ac43aee9</tstamps>
+      <tstamps>7c067328-ebab-55db-9046-aae3a7ac0b13</tstamps>
     </comp>
     <comp ref="D305">
       <value>BAT85S</value>
@@ -227,7 +227,7 @@
       <property name="ki_keywords" value="diode Schottky"/>
       <property name="ki_fp_filters" value="TO-???* *_Diode_* *SingleDiode* D_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>842c174d-1ead-5d2b-8342-21841851894e</tstamps>
+      <tstamps>23307fc2-957a-5a91-abb1-e87988ded829</tstamps>
     </comp>
     <comp ref="D306">
       <value>BAT85S</value>
@@ -248,7 +248,7 @@
       <property name="ki_keywords" value="diode Schottky"/>
       <property name="ki_fp_filters" value="TO-???* *_Diode_* *SingleDiode* D_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>5de12b33-5d96-517f-be97-ec2c77c7d608</tstamps>
+      <tstamps>e7ae6798-c876-51d0-8c87-d0671234bfc4</tstamps>
     </comp>
     <comp ref="FB101">
       <value>800R@100MHz / WE 7427501</value>
@@ -350,7 +350,7 @@ OUTPUT</value>
       <property name="ki_keywords" value="connector"/>
       <property name="ki_fp_filters" value="Connector*:*_1x??_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>f86f82aa-b96d-5af8-9bee-2b4f3a54a72d</tstamps>
+      <tstamps>e274d926-e3e6-5f19-bbe1-fef33f280fa4</tstamps>
     </comp>
     <comp ref="JP303">
       <value>JUMPER ONLY: SDA PULLUP</value>
@@ -370,7 +370,7 @@ OUTPUT</value>
       <property name="ki_keywords" value="connector"/>
       <property name="ki_fp_filters" value="Connector*:*_1x??_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>13242b3f-2656-50cd-9539-cbb226af8e56</tstamps>
+      <tstamps>f86f82aa-b96d-5af8-9bee-2b4f3a54a72d</tstamps>
     </comp>
     <comp ref="JP304">
       <value>JUMPER ONLY: SCL PULLUP</value>
@@ -390,7 +390,7 @@ OUTPUT</value>
       <property name="ki_keywords" value="connector"/>
       <property name="ki_fp_filters" value="Connector*:*_1x??_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>33d91d59-4caf-5aaf-b5a9-ca3b9140d2c7</tstamps>
+      <tstamps>5dedf417-735c-5836-a13f-fb5ce455505d</tstamps>
     </comp>
     <comp ref="R101">
       <value>0R / 1% 0.25W</value>
@@ -410,7 +410,7 @@ OUTPUT</value>
       <property name="ki_keywords" value="R res resistor"/>
       <property name="ki_fp_filters" value="R_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>425bbf62-0cf1-56fa-bbaa-9d64578ffdf4</tstamps>
+      <tstamps>d4916f41-83fd-55ce-91c5-369327dc43ee</tstamps>
     </comp>
     <comp ref="R301">
       <value>1kR / 1% 0.25W</value>
@@ -510,7 +510,7 @@ OUTPUT</value>
       <property name="ki_keywords" value="R res resistor"/>
       <property name="ki_fp_filters" value="R_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>f9e28981-358a-57eb-af59-837e2929ccb7</tstamps>
+      <tstamps>e39d5174-be3a-51f2-a45c-97db26190620</tstamps>
     </comp>
     <comp ref="R306">
       <value>33R / 1% 0.25W</value>
@@ -530,7 +530,7 @@ OUTPUT</value>
       <property name="ki_keywords" value="R res resistor"/>
       <property name="ki_fp_filters" value="R_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>bff0b5ff-e1e9-58d6-b1cf-aff37f865ddb</tstamps>
+      <tstamps>8cd559b1-cf95-5705-9b76-ecb66fa12465</tstamps>
     </comp>
     <comp ref="R307">
       <value>2.2kR / 1% 0.25W</value>
@@ -550,7 +550,7 @@ OUTPUT</value>
       <property name="ki_keywords" value="R res resistor"/>
       <property name="ki_fp_filters" value="R_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>39784409-8fe6-5b6d-8411-c64042005361</tstamps>
+      <tstamps>d1cf08aa-0262-5422-98ba-f6734e52cb69</tstamps>
     </comp>
     <comp ref="R308">
       <value>2.2kR / 1% 0.25W</value>
@@ -570,7 +570,7 @@ OUTPUT</value>
       <property name="ki_keywords" value="R res resistor"/>
       <property name="ki_fp_filters" value="R_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>e2c0f32e-1bf4-524c-9a06-81f289747a60</tstamps>
+      <tstamps>85286af0-1263-5799-a75f-ce8bf335de5f</tstamps>
     </comp>
     <comp ref="R309">
       <value>2.2kR / 1% 0.25W</value>
@@ -590,38 +590,43 @@ OUTPUT</value>
       <property name="ki_keywords" value="R res resistor"/>
       <property name="ki_fp_filters" value="R_*"/>
       <sheetpath names="/" tstamps="/"/>
-      <tstamps>d93b08c8-4c48-5947-86ce-44906ed262e4</tstamps>
+      <tstamps>96219ecd-d901-501d-9516-861c06592c52</tstamps>
     </comp>
     <comp ref="U301">
-      <value>Adafruit 1085 ADS1115 QT</value>
-      <footprint>Ardor_THT:Adafruit_ADS1115_1085_STEMMA_QT</footprint>
-      <datasheet>https://www.adafruit.com/product/1085</datasheet>
+      <value>ADS1115-M</value>
+      <footprint>Ardor_THT:ADS1115_M_HESTORE_10041798</footprint>
+      <datasheet>https://www.hestore.hu/prod_getfile.php?id=16090</datasheet>
       <fields>
-        <field name="MPN">Adafruit 1085 (STEMMA QT revision)</field>
+        <field name="MPN">ADS1115-M (HESTORE 100.417.98)</field>
         <field name="JLCPCB Part #"/>
-        <field name="Footprint">Ardor_THT:Adafruit_ADS1115_1085_STEMMA_QT</field>
-        <field name="Datasheet">https://www.adafruit.com/product/1085</field>
+        <field name="Footprint">Ardor_THT:ADS1115_M_HESTORE_10041798</field>
+        <field name="Datasheet">https://www.hestore.hu/prod_getfile.php?id=16090</field>
         <field name="Description"/>
       </fields>
-      <libsource lib="Ardor" part="ADS1115_Module" description="Preassembled ADC breakout, two 6-pin rows; numbered by ADC functions"/>
-      <property name="MPN" value="Adafruit 1085 (STEMMA QT revision)"/>
+      <libsource lib="Ardor" part="ADS1115_Module" description="Ultra-Small, Low-Power, I2C-Compatible, 860-SPS, 16-Bit ADCs With Internal Reference, Oscillator, and Programmable Comparator, VSSOP-10"/>
+      <property name="MPN" value="ADS1115-M (HESTORE 100.417.98)"/>
       <property name="JLCPCB Part #" value=""/>
       <property name="Sheetname" value=""/>
       <property name="Sheetfile" value="Ardor_Expression_THT.kicad_sch"/>
+      <property name="ki_keywords" value="16 bit 4 channel I2C ADC"/>
+      <property name="ki_fp_filters" value="TSSOP*3x3mm*P0.5mm*"/>
       <sheetpath names="/" tstamps="/"/>
       <tstamps>736b17cc-8b79-5a04-a526-a19bbf2e9bc0</tstamps>
     </comp>
   </components>
   <libparts>
     <libpart lib="Ardor" part="ADS1115_Module">
-      <description>Preassembled ADC breakout, two 6-pin rows; numbered by ADC functions</description>
-      <docs>https://www.adafruit.com/product/1085</docs>
+      <description>Ultra-Small, Low-Power, I2C-Compatible, 860-SPS, 16-Bit ADCs With Internal Reference, Oscillator, and Programmable Comparator, VSSOP-10</description>
+      <docs>http://www.ti.com/lit/ds/symlink/ads1113.pdf</docs>
+      <footprints>
+        <fp>TSSOP*3x3mm*P0.5mm*</fp>
+      </footprints>
       <fields>
         <field name="Reference">U</field>
-        <field name="Value">Adafruit 1085 ADS1115 QT</field>
-        <field name="Footprint">Ardor_THT:Adafruit_ADS1115_1085_STEMMA_QT</field>
-        <field name="Datasheet">https://www.adafruit.com/product/1085</field>
-        <field name="Description">Preassembled ADC breakout, two 6-pin rows; numbered by ADC functions</field>
+        <field name="Value">ADS1115IDGS</field>
+        <field name="Footprint">Package_SO:TSSOP-10_3x3mm_P0.5mm</field>
+        <field name="Datasheet">http://www.ti.com/lit/ds/symlink/ads1113.pdf</field>
+        <field name="Description">Ultra-Small, Low-Power, I2C-Compatible, 860-SPS, 16-Bit ADCs With Internal Reference, Oscillator, and Programmable Comparator, VSSOP-10</field>
       </fields>
       <pins>
         <pin num="1" name="ADDR" type="input"/>
@@ -634,8 +639,6 @@ OUTPUT</value>
         <pin num="8" name="VDD" type="power_in"/>
         <pin num="9" name="SDA" type="bidirectional"/>
         <pin num="10" name="SCL" type="input"/>
-        <pin num="11" name="AVDD_NC" type="passive"/>
-        <pin num="12" name="AGND_NC" type="passive"/>
       </pins>
     </libpart>
     <libpart lib="Ardor" part="C">
@@ -947,14 +950,8 @@ OUTPUT</value>
       <node ref="R306" pin="1" pintype="passive"/>
       <node ref="U301" pin="9" pinfunction="SDA" pintype="bidirectional"/>
     </net>
-    <net code="18" name="unconnected-(U301-AGND_NC-Pad12)" class="Default">
-      <node ref="U301" pin="12" pinfunction="AGND_NC" pintype="passive+no_connect"/>
-    </net>
-    <net code="19" name="unconnected-(U301-ALERT/RDY-Pad2)" class="Default">
+    <net code="18" name="unconnected-(U301-ALERT/RDY-Pad2)" class="Default">
       <node ref="U301" pin="2" pinfunction="ALERT/RDY" pintype="output+no_connect"/>
-    </net>
-    <net code="20" name="unconnected-(U301-AVDD_NC-Pad11)" class="Default">
-      <node ref="U301" pin="11" pinfunction="AVDD_NC" pintype="passive+no_connect"/>
     </net>
   </nets>
 </export>

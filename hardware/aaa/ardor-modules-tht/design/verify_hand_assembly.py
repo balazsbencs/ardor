@@ -27,13 +27,18 @@ for folder in ROOT.iterdir():
                        'line-out':['D501'], 'headphones':['D601','D602'], 'mixer':[]}[folder.name]
     for ref,part in spec['parts'].items():
         fp = footprints[ref]
-        is_smd = folder.name=='headphones' and ref=='U601'
+        is_smd = (folder.name=='headphones' and ref=='U601') or (folder.name=='midi-in' and ref in ['D203','D204'])
         if is_smd:
             assert fp.GetAttributes() & p.FP_SMD
             assert not fp.GetAttributes() & p.FP_THROUGH_HOLE
-            assert part['fp']=='Package_SO:SOIC-8_3.9x4.9mm_P1.27mm'
-            assert part['mpn']=='Texas Instruments OPA1656ID'
-            assert bom[ref]['Assembly']=='SMD manual / SOIC-8 1.27mm pitch'
+            if folder.name=='headphones':
+                assert part['fp']=='Package_SO:SOIC-8_3.9x4.9mm_P1.27mm'
+                assert part['mpn']=='Texas Instruments OPA1656ID'
+                assert bom[ref]['Assembly']=='SMD manual / SOIC-8 1.27mm pitch'
+            else:
+                assert part['fp']=='Ardor_THT:D_SMC_Bidirectional_Handsolder'
+                assert part['mpn']=='Littelfuse SMDJ24CA (HESTORE 100.461.56)'
+                assert bom[ref]['Assembly']=='SMD manual / SMC large two-terminal package'
             smd_refs.append(ref)
         else:
             assert fp.GetAttributes() & p.FP_THROUGH_HOLE, (folder.name,ref,'not THT')
@@ -74,21 +79,46 @@ for folder in ROOT.iterdir():
             assert abs(end[0]-start[0])>=9.5 and abs(end[1]-start[1])>=5.6
             assert not any(key(v)=='fp_text' and v[2]=='K' for v in tree)
         if folder.name=='midi-in' and ref in ['D203','D204']:
-            assert part['value']=='SA24CA-E3/54'
-            assert part['fp']=='Diode_THT:D_DO-15_P10.16mm_Horizontal'
+            assert part['value']=='SMDJ24CA'
+            pads=list(fp.Pads())
+            assert {a.GetNumber() for a in pads}=={'1','2'}
+            assert abs(p.ToMM((pads[0].GetPosition()-pads[1].GetPosition()).EuclideanNorm())-6.8)<1e-6
+            assert all((p.ToMM(a.GetSize().x),p.ToMM(a.GetSize().y))==(3.3,2.5) for a in pads)
+            tree=sx.loads((folder/'footprints'/(alias+'.pretty')/(name+'.kicad_mod')).read_text())
+            rect=next(v for v in tree if key(v)=='fp_rect' and get(v,'layer')[1]=='F.Fab')
+            start,end=get(rect,'start')[1:],get(rect,'end')[1:]
+            assert end[0]-start[0]>=7.11 and end[1]-start[1]>=6.22
+            assert not any(key(v)=='fp_text' and v[2]=='K' for v in tree)
+        if 'BIPOLAR' in part['value']:
+            assert part['value']=='10u / 50V BIPOLAR'
+            assert part['mpn']=='Nichicon UES1H100MPM (HESTORE 100.524.69)'
+            assert part['fp']=='Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm'
+            pads=list(fp.Pads())
+            assert abs(p.ToMM((pads[0].GetPosition()-pads[1].GetPosition()).EuclideanNorm())-3.5)<1e-6
+            assert all(p.ToMM(a.GetDrillSize().x)>=.8 for a in pads)
+            tree=sx.loads((folder/'footprints'/(alias+'.pretty')/(name+'.kicad_mod')).read_text())
+            circle=next(v for v in tree if key(v)=='fp_circle' and get(v,'layer')[1]=='F.Fab')
+            assert abs(get(circle,'end')[1]-get(circle,'center')[1])*2>=8.5
+            assert not any(key(v)=='fp_text' and v[2]=='+' for v in tree)
     erc = json.loads((folder/'verification/erc.json').read_text())
     assert not [v for sheet in erc['sheets'] for v in sheet['violations']]
     if folder.name=='expression':
         fp = footprints['U301']
-        expected = {'8':(-6.35,6.35),'3':(-3.81,6.35),'10':(-1.27,6.35),'9':(1.27,6.35),
-                    '1':(3.81,6.35),'2':(6.35,6.35),'11':(-6.35,-6.35),'7':(-3.81,-6.35),
-                    '6':(-1.27,-6.35),'5':(1.27,-6.35),'4':(3.81,-6.35),'12':(6.35,-6.35)}
+        # Independent top-view header order from Hestore drawing 16090:
+        # VDD GND SCL SDA ADDR ALRT A0 A1 A2 A3.
+        expected = dict(zip(['8','3','10','9','1','2','4','5','6','7'],
+                            [(round(-11.43+i*2.54,2),0) for i in range(10)]))
         origin = fp.GetPosition()
         for pad in fp.Pads():
             delta = pad.GetPosition()-origin
             assert (round(p.ToMM(delta.x),2),round(p.ToMM(delta.y),2))==expected[pad.GetNumber()]
-        assert set(spec['nc'])=={'U301.2','U301.11','U301.12'}
-        assert spec['parts']['U301']['mpn']=='Adafruit 1085 (STEMMA QT revision)'
+        assert set(spec['nc'])=={'U301.2'}
+        assert spec['parts']['U301']['mpn']=='ADS1115-M (HESTORE 100.417.98)'
+        assert spec['parts']['U301']['fp']=='Ardor_THT:ADS1115_M_HESTORE_10041798'
+        assert fp.GetPadCount()==10
+        for pin,net in {'8':'+3V3_A','3':'GND','10':'ADC_SCL','9':'ADC_SDA',
+                        '1':'ADDR','4':'EXP_ADC','5':'EXP_REF_ADC','6':'GND','7':'GND'}.items():
+            assert spec['pins']['U301.'+pin]==net
     if folder.name in ['line-out','headphones']:
         ref = 'Q501' if folder.name=='line-out' else 'Q601'
         assert spec['parts'][ref]['mpn']=='onsemi 2N3904BU'
@@ -111,15 +141,25 @@ for folder in ROOT.iterdir():
         assert spec['parts']['K601']['mpn']=='Omron G5V-2-H1 DC5'
     silk = json.loads((folder/'verification/component-silkscreen.json').read_text())
     assert {v['reference'] for v in silk}==set(spec['parts'])
+    actual={t.GetText():t for t in board.GetDrawings()
+            if isinstance(t,p.PCB_TEXT) and t.GetLayer()==p.F_SilkS and t.GetText() in spec['parts']}
+    assert set(actual)==set(spec['parts'])
+    for record in silk:
+        text=actual[record['reference']]
+        xy=[p.ToMM(v) for v in [text.GetPosition().x,text.GetPosition().y]]
+        assert max(abs(a-b) for a,b in zip(xy,record['position_mm']))<=.000051
+        assert text.GetTextAngle().AsDegrees()==record['angle_degrees']
+        assert p.ToMM(text.GetTextSize().x)>=.9 and p.ToMM(text.GetTextSize().y)>=.9
     labels = json.loads((folder/'verification/silkscreen.json').read_text())
     assert set(labels['numbered_connector_pins'])==set(connectors)
     assert set(labels['pin_maps'])=={pin.split('.')[0] for pin in connectors}
     report = {'result':'PASS','board_smd_pads':smd_count,'board_smd_footprints':len(smd_refs),'manual_smd_references':smd_refs,'tht_numbered_pads':pad_count,
               'minimum_component_drill_mm':.6,'manual_parts':len(bom),'all_manual_parts_have_front_references':True,
               'hestore_1_5ke6_8ca_references':low_voltage_tvs,
-              'retained_sa24ca_references':['D203','D204'] if folder.name=='midi-in' else [],
+              'hestore_smdj24ca_references':['D203','D204'] if folder.name=='midi-in' else [],
+              'hestore_ues1h100mpm_references':[ref for ref,part in spec['parts'].items() if 'BIPOLAR' in part['value']],
               'host_and_panel_pinout_matches_m1':True,'preassembled_smd_module':
-              'Adafruit 1085 STEMMA QT ADS1115' if folder.name=='expression' else None,
+              'ADS1115-M HESTORE 100.417.98; single ten-pin row' if folder.name=='expression' else None,
               'breakout_contains_smd':folder.name=='expression','hardware_tested':False}
     (folder/'verification/hand-assembly.json').write_text(json.dumps(report,indent=2)+'\n')
-    print(folder.name,'hand assembly and interface checks PASS',pad_count,'THT pads',smd_count,'SOIC pads')
+    print(folder.name,'hand assembly and interface checks PASS',pad_count,'THT pads',smd_count,'SMD pads')

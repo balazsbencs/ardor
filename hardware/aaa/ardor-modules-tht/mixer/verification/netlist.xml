@@ -2,14 +2,14 @@
 <export version="E">
   <design>
     <source>/work/hardware/aaa/ardor-modules-tht/mixer/Ardor_Mixer_THT.kicad_sch</source>
-    <date>2026-10-08T19:46:48+0000</date>
+    <date>2026-10-12T13:26:12+0000</date>
     <tool>Eeschema 9.0.2+dfsg-1</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
         <title>Stereo buffer / mono average / AC outputs / HAND ASSEMBLY</title>
         <company>Ardor</company>
-        <rev>T1</rev>
-        <date>2026-10-08</date>
+        <rev>T1.1</rev>
+        <date>2026-10-12</date>
         <source>Ardor_Mixer_THT.kicad_sch</source>
         <comment number="1" value="Engineering prototype - bench validation required"/>
         <comment number="2" value=""/>
@@ -65,18 +65,18 @@
       <tstamps>13bf10f8-1876-59a2-9301-fda8dc0d2778</tstamps>
     </comp>
     <comp ref="C401">
-      <value>10u / 25V BIPOLAR</value>
-      <footprint>Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm</footprint>
+      <value>10u / 50V BIPOLAR</value>
+      <footprint>Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm</footprint>
       <datasheet>https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf</datasheet>
       <fields>
-        <field name="MPN">Nichicon UES1E100MDM</field>
+        <field name="MPN">Nichicon UES1H100MPM (HESTORE 100.524.69)</field>
         <field name="JLCPCB Part #"/>
-        <field name="Footprint">Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm</field>
+        <field name="Footprint">Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm</field>
         <field name="Datasheet">https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf</field>
         <field name="Description"/>
       </fields>
       <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
-      <property name="MPN" value="Nichicon UES1E100MDM"/>
+      <property name="MPN" value="Nichicon UES1H100MPM (HESTORE 100.524.69)"/>
       <property name="JLCPCB Part #" value=""/>
       <property name="Sheetname" value=""/>
       <property name="Sheetfile" value="Ardor_Mixer_THT.kicad_sch"/>
@@ -86,18 +86,18 @@
       <tstamps>f41c3b1c-30a3-52a7-9312-03973a5211c6</tstamps>
     </comp>
     <comp ref="C402">
-      <value>10u / 25V BIPOLAR</value>
-      <footprint>Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm</footprint>
+      <value>10u / 50V BIPOLAR</value>
+      <footprint>Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm</footprint>
       <datasheet>https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf</datasheet>
       <fields>
-        <field name="MPN">Nichicon UES1E100MDM</field>
+        <field name="MPN">Nichicon UES1H100MPM (HESTORE 100.524.69)</field>
         <field name="JLCPCB Part #"/>
-        <field name="Footprint">Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm</field>
+        <field name="Footprint">Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm</field>
         <field name="Datasheet">https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf</field>
         <field name="Description"/>
       </fields>
       <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
-      <property name="MPN" value="Nichicon UES1E100MDM"/>
+      <property name="MPN" value="Nichicon UES1H100MPM (HESTORE 100.524.69)"/>
       <property name="JLCPCB Part #" value=""/>
       <property name="Sheetname" value=""/>
       <property name="Sheetfile" value="Ardor_Mixer_THT.kicad_sch"/>
@@ -167,18 +167,18 @@
       <tstamps>a572600a-c713-5776-a55f-38d4245252f5</tstamps>
     </comp>
     <comp ref="C407">
-      <value>10u / 25V BIPOLAR</value>
-      <footprint>Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm</footprint>
+      <value>10u / 50V BIPOLAR</value>
+      <footprint>Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm</footprint>
       <datasheet>https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf</datasheet>
       <fields>
-        <field name="MPN">Nichicon UES1E100MDM</field>
+        <field name="MPN">Nichicon UES1H100MPM (HESTORE 100.524.69)</field>
         <field name="JLCPCB Part #"/>
-        <field name="Footprint">Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm</field>
+        <field name="Footprint">Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm</field>
         <field name="Datasheet">https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf</field>
         <field name="Description"/>
       </fields>
       <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
-      <property name="MPN" value="Nichicon UES1E100MDM"/>
+      <property name="MPN" value="Nichicon UES1H100MPM (HESTORE 100.524.69)"/>
       <property name="JLCPCB Part #" value=""/>
       <property name="Sheetname" value=""/>
       <property name="Sheetfile" value="Ardor_Mixer_THT.kicad_sch"/>
@@ -188,18 +188,18 @@
       <tstamps>7116b5a0-7a53-5052-825b-7ff6aed7cac0</tstamps>
     </comp>
     <comp ref="C408">
-      <value>10u / 25V BIPOLAR</value>
-      <footprint>Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm</footprint>
+      <value>10u / 50V BIPOLAR</value>
+      <footprint>Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm</footprint>
       <datasheet>https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf</datasheet>
       <fields>
-        <field name="MPN">Nichicon UES1E100MDM</field>
+        <field name="MPN">Nichicon UES1H100MPM (HESTORE 100.524.69)</field>
         <field name="JLCPCB Part #"/>
-        <field name="Footprint">Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm</field>
+        <field name="Footprint">Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm</field>
         <field name="Datasheet">https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf</field>
         <field name="Description"/>
       </fields>
       <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
-      <property name="MPN" value="Nichicon UES1E100MDM"/>
+      <property name="MPN" value="Nichicon UES1H100MPM (HESTORE 100.524.69)"/>
       <property name="JLCPCB Part #" value=""/>
       <property name="Sheetname" value=""/>
       <property name="Sheetfile" value="Ardor_Mixer_THT.kicad_sch"/>
@@ -209,18 +209,18 @@
       <tstamps>219c7f8a-8a21-5639-ab0a-8045a0104c5d</tstamps>
     </comp>
     <comp ref="C409">
-      <value>10u / 25V BIPOLAR</value>
-      <footprint>Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm</footprint>
+      <value>10u / 50V BIPOLAR</value>
+      <footprint>Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm</footprint>
       <datasheet>https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf</datasheet>
       <fields>
-        <field name="MPN">Nichicon UES1E100MDM</field>
+        <field name="MPN">Nichicon UES1H100MPM (HESTORE 100.524.69)</field>
         <field name="JLCPCB Part #"/>
-        <field name="Footprint">Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm</field>
+        <field name="Footprint">Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm</field>
         <field name="Datasheet">https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf</field>
         <field name="Description"/>
       </fields>
       <libsource lib="Ardor" part="C" description="Unpolarized capacitor"/>
-      <property name="MPN" value="Nichicon UES1E100MDM"/>
+      <property name="MPN" value="Nichicon UES1H100MPM (HESTORE 100.524.69)"/>
       <property name="JLCPCB Part #" value=""/>
       <property name="Sheetname" value=""/>
       <property name="Sheetfile" value="Ardor_Mixer_THT.kicad_sch"/>

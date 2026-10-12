@@ -17,7 +17,12 @@
         "F.Cu": 0.0,
         "B.Cu": 0.0
       },
-      "release_pcb_sha256": "9028e1e16f5946a5b4ec88a9b55211d4e0d8c92c39f08aa83d2741108e506940",
+      "filled_copper_max_boundary_drift_mm": {
+        "F.Cu": 0.0,
+        "B.Cu": 0.0
+      },
+      "filled_copper_coordinate_tolerance_mm": 2e-06,
+      "release_pcb_sha256": "678cce0b481a574929bf589fb4a280d3d4bbbc14b70f0ea71f1b9522999fe9a2",
       "regenerated_native_checks": "PASS"
     },
     "headphones": {
@@ -34,7 +39,12 @@
         "F.Cu": 0.0,
         "B.Cu": 0.0
       },
-      "release_pcb_sha256": "1b737372a28b99066a3c102b18631495ad7e3db0748b6e1d9a9aad9c1f43c48b",
+      "filled_copper_max_boundary_drift_mm": {
+        "F.Cu": 0.0,
+        "B.Cu": 0.0
+      },
+      "filled_copper_coordinate_tolerance_mm": 2e-06,
+      "release_pcb_sha256": "e07ebde2f632b39bbcb808a987f2a83e0249ef27361410d22539c131524f7e85",
       "regenerated_native_checks": "PASS"
     },
     "line-out": {
@@ -51,7 +61,12 @@
         "F.Cu": 0.0,
         "B.Cu": 0.0
       },
-      "release_pcb_sha256": "9b5c63454f62855ee2f4fab4f32131effc2efdcccb5b99f615988aaad99cb2b2",
+      "filled_copper_max_boundary_drift_mm": {
+        "F.Cu": 0.0,
+        "B.Cu": 0.0
+      },
+      "filled_copper_coordinate_tolerance_mm": 2e-06,
+      "release_pcb_sha256": "4c5eff125730685f594f856e4a2e96fcb0cce580ccb33f4964ef6cefddfc361c",
       "regenerated_native_checks": "PASS"
     },
     "midi-in": {
@@ -66,9 +81,14 @@
       "pcb_geometry_and_nets_identical_excluding_uuids": true,
       "filled_copper_symmetric_difference_mm2": {
         "F.Cu": 0.0,
-        "B.Cu": 0.0
+        "B.Cu": 1.364703368163787e-07
       },
-      "release_pcb_sha256": "72cd6ef330da77cfef0e4efc9e87425bea901ba99f4c06dd7e34ab371022f066",
+      "filled_copper_max_boundary_drift_mm": {
+        "F.Cu": 0.0,
+        "B.Cu": 1.3456146905248547e-06
+      },
+      "filled_copper_coordinate_tolerance_mm": 2e-06,
+      "release_pcb_sha256": "83f3d9989320c62942be3e35130962b49bd75144bf391ec62b29ce96e424971a",
       "regenerated_native_checks": "PASS"
     },
     "mixer": {
@@ -85,7 +105,12 @@
         "F.Cu": 0.0,
         "B.Cu": 0.0
       },
-      "release_pcb_sha256": "4cd55830997e1d17c89d9f50d06b6d6e3108efae685575e760e0c966ab54cc74",
+      "filled_copper_max_boundary_drift_mm": {
+        "F.Cu": 0.0,
+        "B.Cu": 0.0
+      },
+      "filled_copper_coordinate_tolerance_mm": 2e-06,
+      "release_pcb_sha256": "44ce7243a559dc8e7ea155902b4c975b4e98ad3ea62e7967ce88c40ad81c5904",
       "regenerated_native_checks": "PASS"
     }
   }

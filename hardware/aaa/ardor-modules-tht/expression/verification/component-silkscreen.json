@@ -2,204 +2,233 @@
   {
     "reference": "C101",
     "position_mm": [
-      132.0,
-      55.1
-    ]
+      85.5,
+      91.6
+    ],
+    "angle_degrees": 90
   },
   {
     "reference": "C102",
     "position_mm": [
-      143.0,
-      57.0
-    ]
+      94.5,
+      85.0
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "C301",
     "position_mm": [
-      104.0,
-      81.0
-    ]
+      96.5,
+      78.5
+    ],
+    "angle_degrees": 90
   },
   {
     "reference": "C302",
     "position_mm": [
-      103.0,
-      98.0
-    ]
+      111.0,
+      75.0
+    ],
+    "angle_degrees": 90
   },
   {
     "reference": "C303",
     "position_mm": [
-      122.5,
-      74.5
-    ]
+      81.0,
+      75.5
+    ],
+    "angle_degrees": 90
   },
   {
     "reference": "D301",
     "position_mm": [
-      62.5,
-      63.0
-    ]
+      57.0,
+      52.0
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "D302",
     "position_mm": [
-      62.5,
-      93.0
-    ]
+      64.0,
+      80.925
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "D303",
     "position_mm": [
-      107.5,
-      72.38
-    ]
+      91.0,
+      80.38
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "D304",
     "position_mm": [
-      105.0,
-      91.38
-    ]
+      84.0025,
+      84.88
+    ],
+    "angle_degrees": 90
   },
   {
     "reference": "D305",
     "position_mm": [
-      101.0,
-      107.38
-    ]
+      109.0,
+      82.88
+    ],
+    "angle_degrees": 90
   },
   {
     "reference": "D306",
     "position_mm": [
-      110.0,
-      107.38
-    ]
+      103.0,
+      89.275
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "FB101",
     "position_mm": [
-      117.5,
-      55.0
-    ]
+      76.0,
+      90.5
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "J101",
     "position_mm": [
-      150.0,
-      72.81
-    ]
+      119.255,
+      67.6
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "J302",
     "position_mm": [
-      57.5,
-      76.58
-    ]
+      54.0,
+      65.82
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "JP301",
     "position_mm": [
-      75.0,
-      76.58
-    ]
+      63.0,
+      65.82
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "JP302",
     "position_mm": [
-      120.0,
-      109.08
-    ]
+      118.5,
+      84.08
+    ],
+    "angle_degrees": 90
   },
   {
     "reference": "JP303",
     "position_mm": [
-      150.0,
-      102.85
-    ]
+      110.44,
+      88.35
+    ],
+    "angle_degrees": 90
   },
   {
     "reference": "JP304",
     "position_mm": [
-      150.0,
-      120.35
-    ]
+      112.0,
+      92.195
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R101",
     "position_mm": [
-      70.0,
-      107.13
-    ]
+      60.0,
+      89.4765
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R301",
     "position_mm": [
-      87.5,
-      72.13
-    ]
+      73.0,
+      59.3658
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R302",
     "position_mm": [
-      90.0,
-      84.63
-    ]
+      73.0,
+      74.63
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R303",
     "position_mm": [
-      80.0,
-      95.13
-    ]
+      68.5,
+      75.13
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R304",
     "position_mm": [
-      92.5,
-      102.13
-    ]
+      76.4,
+      58.7158
+    ],
+    "angle_degrees": 90
   },
   {
     "reference": "R305",
     "position_mm": [
-      140.13,
-      78.0
-    ]
+      113.48,
+      63.0
+    ],
+    "angle_degrees": 90
   },
   {
     "reference": "R306",
     "position_mm": [
-      140.13,
-      94.0
-    ]
+      113.13,
+      75.5
+    ],
+    "angle_degrees": 90
   },
   {
     "reference": "R307",
     "position_mm": [
-      130.0,
-      102.13
-    ]
+      74.5,
+      56.13
+    ],
+    "angle_degrees": 90
   },
   {
     "reference": "R308",
     "position_mm": [
-      138.5,
-      107.13
-    ]
+      98.5,
+      89.13
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R309",
     "position_mm": [
-      137.5,
-      119.63
-    ]
+      107.5,
+      97.13
+    ],
+    "angle_degrees": 90
   },
   {
     "reference": "U301",
     "position_mm": [
-      128.5,
-      80.0
-    ]
+      96.0,
+      56.5
+    ],
+    "angle_degrees": 90
   }
 ]

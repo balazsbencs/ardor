@@ -2,14 +2,14 @@
 <export version="E">
   <design>
     <source>/work/hardware/aaa/ardor-modules-tht/midi-in/Ardor_MIDI_THT.kicad_sch</source>
-    <date>2026-10-09T12:29:50+0000</date>
+    <date>2026-10-12T13:26:12+0000</date>
     <tool>Eeschema 9.0.2+dfsg-1</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
         <title>Isolated MIDI input / 3.3 V UART / HAND ASSEMBLY</title>
         <company>Ardor</company>
-        <rev>T1</rev>
-        <date>2026-10-08</date>
+        <rev>T1.1</rev>
+        <date>2026-10-12</date>
         <source>Ardor_MIDI_THT.kicad_sch</source>
         <comment number="1" value="Engineering prototype - bench validation required"/>
         <comment number="2" value=""/>
@@ -147,18 +147,18 @@
       <tstamps>d4cd727c-cf86-5f25-9bcb-9bbd5785a3eb</tstamps>
     </comp>
     <comp ref="D203">
-      <value>SA24CA-E3/54</value>
-      <footprint>Diode_THT:D_DO-15_P10.16mm_Horizontal</footprint>
-      <datasheet>https://www.vishay.com/doc/?88378=</datasheet>
+      <value>SMDJ24CA</value>
+      <footprint>Ardor_THT:D_SMC_Bidirectional_Handsolder</footprint>
+      <datasheet>https://www.hestore.hu/prod_getfile.php?id=16974</datasheet>
       <fields>
-        <field name="MPN">Vishay SA24CA-E3/54</field>
+        <field name="MPN">Littelfuse SMDJ24CA (HESTORE 100.461.56)</field>
         <field name="JLCPCB Part #"/>
-        <field name="Footprint">Diode_THT:D_DO-15_P10.16mm_Horizontal</field>
-        <field name="Datasheet">https://www.vishay.com/doc/?88378=</field>
+        <field name="Footprint">Ardor_THT:D_SMC_Bidirectional_Handsolder</field>
+        <field name="Datasheet">https://www.hestore.hu/prod_getfile.php?id=16974</field>
         <field name="Description"/>
       </fields>
       <libsource lib="Ardor" part="D_TVS" description="Bidirectional transient-voltage-suppression diode"/>
-      <property name="MPN" value="Vishay SA24CA-E3/54"/>
+      <property name="MPN" value="Littelfuse SMDJ24CA (HESTORE 100.461.56)"/>
       <property name="JLCPCB Part #" value=""/>
       <property name="Sheetname" value=""/>
       <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>
@@ -168,18 +168,18 @@
       <tstamps>fcb9b50b-f8e3-5a06-8216-dad214d23252</tstamps>
     </comp>
     <comp ref="D204">
-      <value>SA24CA-E3/54</value>
-      <footprint>Diode_THT:D_DO-15_P10.16mm_Horizontal</footprint>
-      <datasheet>https://www.vishay.com/doc/?88378=</datasheet>
+      <value>SMDJ24CA</value>
+      <footprint>Ardor_THT:D_SMC_Bidirectional_Handsolder</footprint>
+      <datasheet>https://www.hestore.hu/prod_getfile.php?id=16974</datasheet>
       <fields>
-        <field name="MPN">Vishay SA24CA-E3/54</field>
+        <field name="MPN">Littelfuse SMDJ24CA (HESTORE 100.461.56)</field>
         <field name="JLCPCB Part #"/>
-        <field name="Footprint">Diode_THT:D_DO-15_P10.16mm_Horizontal</field>
-        <field name="Datasheet">https://www.vishay.com/doc/?88378=</field>
+        <field name="Footprint">Ardor_THT:D_SMC_Bidirectional_Handsolder</field>
+        <field name="Datasheet">https://www.hestore.hu/prod_getfile.php?id=16974</field>
         <field name="Description"/>
       </fields>
       <libsource lib="Ardor" part="D_TVS" description="Bidirectional transient-voltage-suppression diode"/>
-      <property name="MPN" value="Vishay SA24CA-E3/54"/>
+      <property name="MPN" value="Littelfuse SMDJ24CA (HESTORE 100.461.56)"/>
       <property name="JLCPCB Part #" value=""/>
       <property name="Sheetname" value=""/>
       <property name="Sheetfile" value="Ardor_MIDI_THT.kicad_sch"/>

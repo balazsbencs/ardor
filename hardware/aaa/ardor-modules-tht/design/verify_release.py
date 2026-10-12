@@ -32,7 +32,7 @@ for folder in ROOT.iterdir():
     placements = list(csv.DictReader((folder/'assembly/kicad-smt-positions.csv').open()))
     assert len(placements)==hand['board_smd_footprints']
     if placements:
-        assert folder.name=='headphones' and placements[0]['Ref']=='U601'
+        assert {v['Ref'] for v in placements}==({'U601'} if folder.name=='headphones' else {'D203','D204'} if folder.name=='midi-in' else set())
     files = sorted((folder/'assembly/gerbers').iterdir())
     assert len(files)==12
     outline = next(p for p in files if 'Edge_Cuts' in p.name).read_text()

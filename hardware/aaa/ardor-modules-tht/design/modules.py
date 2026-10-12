@@ -1,4 +1,4 @@
-"""T1 hand-assembly circuits. OPA1656 SOIC-8 is the sole loose SMD exception.
+"""T1 hand-assembly circuits; OPA1656 and two large SMC TVS exceptions.
 
 Reuse M1's independently checked drawn circuits for MIDI, expression, mixer
 and line output. Change packages and the relay transistor, not the interfaces.
@@ -13,11 +13,12 @@ import sexpdata as sx
 import cad
 from cad import ROOT, Module, LIB, CAT, S, key, get
 import smd_circuits
+from compact_layouts import SIZES, PLACEMENTS, MIDI_POUR_KEEPOUT
 
 AXIAL = 'Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal'
 DIODE = 'Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal'
 TVS = 'Ardor_THT:D_TVS_DC_1.5KE_P15.24mm'
-TVS_HIGH = 'Diode_THT:D_DO-15_P10.16mm_Horizontal'
+TVS_HIGH = 'Ardor_THT:D_SMC_Bidirectional_Handsolder'
 TVS_MPN = 'DC Components 1.5KE6.8CA (HESTORE 100.430.71)'
 TVS_DATASHEET = 'https://www.dccomponents.com/products/1.5ke.pdf'
 RADIAL = 'Capacitor_THT:CP_Radial_D6.3mm_P2.50mm'
@@ -25,8 +26,7 @@ DIP8 = 'Package_DIP:DIP-8_W7.62mm_Socket'
 SOIC8 = 'Package_SO:SOIC-8_3.9x4.9mm_P1.27mm'
 FEEDBACK = 'Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P2.54mm_Vertical'
 DISC = 'Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm'
-BIPOLAR = 'Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm'
-SCALE = 2.5
+BIPOLAR = 'Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm'
 
 
 def rename(sym, name):
@@ -45,6 +45,9 @@ def prepare_symbols():
     for sym in extra:
         if key(sym) == 'symbol':
             LIB[sym[1]] = sym
+    # Single-row Hestore carrier exposes the ten ADC functions, without the
+    # Adafruit-specific AVDD/AGND connector terminals.
+    LIB['ADS1115_Module'] = rename(LIB['ADS1115IDGS'], 'ADS1115_Module')
 
 
 def purchasing(kind, old, ref):
@@ -64,7 +67,7 @@ def purchasing(kind, old, ref):
     if kind == 'D_TVS':
         high = old and '24' in old['mpn']
         if high:
-            return TVS_HIGH, 'SA24CA-E3/54', 'Vishay SA24CA-E3/54', 'https://www.vishay.com/doc/?88378='
+            return TVS_HIGH, 'SMDJ24CA', 'Littelfuse SMDJ24CA (HESTORE 100.461.56)', 'https://www.hestore.hu/prod_getfile.php?id=16974'
         return TVS, '1.5KE6.8CA', TVS_MPN, TVS_DATASHEET
     if kind in ['C', 'C_Polarized']:
         cap = attrs['Capacitance']
@@ -73,7 +76,7 @@ def purchasing(kind, old, ref):
         if cap == '100nF':
             return 'Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm', '100n / 50V X7R', '100nF 50V X7R radial, 5mm lead pitch', ''
         if ref in ['C401','C402','C407','C408','C409','C502']:
-            return 'Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm', '10u / 25V BIPOLAR', 'Nichicon UES1E100MDM', 'https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf'
+            return BIPOLAR, '10u / 50V BIPOLAR', 'Nichicon UES1H100MPM (HESTORE 100.524.69)', 'https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf'
         cap = '47uF' if ref == 'C501' else cap
         return RADIAL, cap.replace('F','')+' / 25V polarized', 'Radial electrolytic '+cap+' 25V, D<=6.3mm P2.5mm', ''
     if kind == 'TLV9002':
@@ -81,14 +84,14 @@ def purchasing(kind, old, ref):
     if kind == 'AO3400A':
         return 'Package_TO_SOT_THT:TO-92_Inline_Wide', '2N3904 / E-B-C', 'onsemi 2N3904BU', 'https://www.onsemi.com/pdf/datasheet/2n3903-d.pdf'
     if kind == 'ADS1115IDGS':
-        return 'Ardor_THT:Adafruit_ADS1115_1085_STEMMA_QT', 'Adafruit 1085 ADS1115 QT', 'Adafruit 1085 (STEMMA QT revision)', 'https://www.adafruit.com/product/1085'
+        return 'Ardor_THT:ADS1115_M_HESTORE_10041798', 'ADS1115-M', 'ADS1115-M (HESTORE 100.417.98)', 'https://www.hestore.hu/prod_getfile.php?id=16090'
     return None
 
 
 class THTModule(Module):
     def __init__(self, slug, name, title, size, notes):
         super().__init__(slug, name+'_THT', title+' / HAND ASSEMBLY',
-                         tuple(round(v*SCALE) for v in size), notes)
+                         SIZES[slug], notes)
 
     def add(self, kind, ref, nets, sch, pcb, proto=None, value=None, fp=None, unit=1, dnp=False):
         old = CAT.get(proto or ref)
@@ -101,7 +104,6 @@ class THTModule(Module):
                 nets = {'2':nets['1'], '1':nets['2'], '3':nets['3']}
             if kind == 'ADS1115IDGS':
                 kind = 'ADS1115_Module'
-                nets = {**nets, '11':None, '12':None}
             if kind == 'TLV9002':
                 kind = 'MCP6022'
             if kind == 'C' and 'polarized' in value:
@@ -111,25 +113,12 @@ class THTModule(Module):
             CAT[catalog_key] = dict(footprint=fp, mpn=mpn, bom_mpn=mpn,
                                    jlcpcb_part='', datasheet=datasheet)
             proto = catalog_key
-        scaled = [round(pcb[0]*SCALE,4), round(pcb[1]*SCALE,4), *pcb[2:]]
-        adjustments = {
-            'midi-in': {'J202':[6,33], 'FB201':[18,25,90], 'FB202':[18,45,90],
-                        'R201':[30,25], 'D201':[30,41], 'D202':[6,15,90],
-                        'D203':[6,54,90], 'D204':[32,62], 'C202':[30,8], 'C203':[18,60]},
-            'expression': {'U301':[74,41], 'R305':[94,28,90], 'R306':[94,44,90],
-                           'D304':[55,44], 'C301':[54,34], 'R303':[30,48],
-                           'R304':[42.5,55], 'C101':[82,10], 'C102':[93,10], 'C302':[53,51]},
-            'mixer': {'FB101':[22,10], 'C101':[39,10], 'C102':[48,10], 'R406':[70,62.5]},
-            'line-out': {'FB101':[22,10], 'C101':[39,10], 'C102':[48,10]},
-        }
-        scaled = adjustments.get(self.slug,{}).get(ref,scaled)
-        return super().add(kind, ref, nets, sch, scaled, proto=proto,
+        return super().add(kind, ref, nets, sch, PLACEMENTS[self.slug][ref], proto=proto,
                            value=value, fp=fp, unit=unit, dnp=dnp)
 
     def save(self):
         self.vias = []  # THT ground pads already connect both ground planes.
-        self.keepouts = [{**k,'polygon':[[round(x*SCALE,4),round(y*SCALE,4)] for x,y in k['polygon']]}
-                         for k in self.keepouts]
+        self.keepouts = [{'polygon': MIDI_POUR_KEEPOUT, 'pour_only': True}] if self.slug=='midi-in' else []
         super().save()
         write_bom(self)
 
@@ -142,24 +131,23 @@ def write_bom(module):
         for ref,c in module.parts.items():
             writer.writerow([ref,c['value'],c['fp'],c['mpn'],
                 'Preassembled module; THT sockets' if ref=='U301' and module.slug=='expression' else
-                'SMD manual / SOIC-8 1.27mm pitch' if module.slug=='headphones' and ref=='U601' else 'THT manual'])
+                'SMD manual / SOIC-8 1.27mm pitch' if module.slug=='headphones' and ref=='U601' else
+                'SMD manual / SMC large two-terminal package' if module.slug=='midi-in' and ref in ['D203','D204'] else 'THT manual'])
 
 
 def headphones():
-    m = Module('headphones','Ardor_Headphones_THT','Stereo headphones / OPA1656 / relay mute', (96,84),
+    m = Module('headphones','Ardor_Headphones_THT','Stereo headphones / OPA1656 / relay mute', SIZES['headphones'],
                '5V stereo headphone output; one hand-soldered SOIC-8; -0.5 unloaded inverting gain; active-high 3.3V relay enable.')
     def add(kind,ref,nets,sch,pcb,value,fp,mpn='',datasheet='',unit=1):
-        pcb = {'FB101':[19,74], 'C101':[41,77], 'C102':[58,78],
-               'R601':[35,70], 'R602':[47,70,90], 'Q601':[57,69],
-               'D603':[73,76], 'R101':[89,68,90], 'R642':[85,55,90]}.get(ref,pcb)
+        pcb = PLACEMENTS['headphones'][ref]
         catalog_key = 'headphones/'+ref
         CAT[catalog_key] = dict(footprint=fp,mpn=mpn or value,bom_mpn=mpn or value,jlcpcb_part='',datasheet=datasheet)
         return m.add(kind,ref,nets,sch,pcb,proto=catalog_key,value=value,fp=fp,unit=unit)
     def two(kind,ref,a,b,sch,pcb,value,fp,rot=90,mpn='',datasheet=''):
         return add(kind,ref,{'1':a,'2':b},(*sch,rot),pcb,value,fp,mpn,datasheet)
-    m.conn('J102',['AUDIO_L','GND','AUDIO_R'],(25.4,66.04),(5,22),rot=180)
-    m.conn('J101',['+5V','GND','HP_ENABLE'],(25.4,205.74),(5,58),rot=180)
-    m.conn('J602',['HP_L','HP_R','GND'],(383.54,81.28),(90,24))
+    m.conn('J102',['AUDIO_L','GND','AUDIO_R'],(25.4,66.04),PLACEMENTS['headphones']['J102'],rot=180)
+    m.conn('J101',['+5V','GND','HP_ENABLE'],(25.4,205.74),PLACEMENTS['headphones']['J101'],rot=180)
+    m.conn('J602',['HP_L','HP_R','GND'],(383.54,81.28),PLACEMENTS['headphones']['J602'])
     two('FerriteBead','FB101','+5V','+5V_A',(55.88,246.38),(24,66),
         '800R@100MHz / WE 7427501','Ardor_THT:Ferrite_WE_7427501_P15.24mm',
         mpn='Wurth Elektronik 7427501',datasheet='https://www.we-online.com/components/products/datasheet/7427501.pdf')
@@ -169,7 +157,7 @@ def headphones():
         s='1' if ch=='L' else '2'
         pn,nn,on = ('3','2','1') if u==1 else ('5','6','7')
         two('C','C60'+s,'AUDIO_'+ch,'AC_'+ch,(60.96,y+2.54),(16,31.23) if u==1 else (73,32.5),
-            '10u / 25V BIPOLAR',BIPOLAR,mpn='Nichicon UES1E100MDM',datasheet='https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf')
+            '10u / 50V BIPOLAR',BIPOLAR,mpn='Nichicon UES1H100MPM (HESTORE 100.524.69)',datasheet='https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf')
         two('R','R61'+s,'AC_'+ch,'SUM_'+ch,(93.98,y+2.54),(27.5,31.23) if u==1 else (61,32.5,180),'20k / 1% 0.25W',AXIAL)
         add('OPA1656','U601',{pn:'VREF',nn:'SUM_'+ch,on:'RAW_'+ch},(152.4,y),(44,32.5),
             'OPA1656ID',SOIC8,'Texas Instruments OPA1656ID','https://www.ti.com/lit/ds/symlink/opa1656.pdf',unit=u)

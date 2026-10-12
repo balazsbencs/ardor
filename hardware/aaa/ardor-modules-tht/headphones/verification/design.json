@@ -3,8 +3,8 @@
   "title": "Stereo headphones / OPA1656 / relay mute",
   "slug": "headphones",
   "size_mm": [
-    96,
-    84
+    76,
+    58
   ],
   "parts": {
     "J102": {
@@ -13,7 +13,7 @@
       "value": "STEREO AUDIO INPUT FROM SOURCE",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
       "pcb": [
-        5,
+        3,
         22
       ],
       "part": null,
@@ -28,8 +28,8 @@
       "value": "5V POWER + ENABLE INPUT",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
       "pcb": [
-        5,
-        58
+        3,
+        39
       ],
       "part": null,
       "dnp": false,
@@ -43,8 +43,8 @@
       "value": "STEREO HEADPHONE AUDIO OUTPUT",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
       "pcb": [
-        90,
-        24
+        73,
+        22
       ],
       "part": null,
       "dnp": false,
@@ -58,8 +58,8 @@
       "value": "800R@100MHz / WE 7427501",
       "fp": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
       "pcb": [
-        19,
-        74
+        15,
+        51
       ],
       "part": {
         "footprint": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
@@ -79,8 +79,8 @@
       "value": "100u / 25V",
       "fp": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
       "pcb": [
-        41,
-        77
+        29,
+        53
       ],
       "part": {
         "footprint": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
@@ -100,8 +100,8 @@
       "value": "100n / 50V X7R",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        58,
-        78
+        39,
+        53
       ],
       "part": {
         "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
@@ -118,22 +118,22 @@
     "C601": {
       "ref": "C601",
       "kind": "C",
-      "value": "10u / 25V BIPOLAR",
-      "fp": "Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm",
+      "value": "10u / 50V BIPOLAR",
+      "fp": "Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm",
       "pcb": [
-        16,
-        31.23
+        9,
+        11
       ],
       "part": {
-        "footprint": "Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm",
-        "mpn": "Nichicon UES1E100MDM",
-        "bom_mpn": "Nichicon UES1E100MDM",
+        "footprint": "Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm",
+        "mpn": "Nichicon UES1H100MPM (HESTORE 100.524.69)",
+        "bom_mpn": "Nichicon UES1H100MPM (HESTORE 100.524.69)",
         "jlcpcb_part": "",
         "datasheet": "https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf"
       },
       "dnp": false,
       "uuid": "8c4bf8fa-253b-5343-b10f-eaffc0cb0cbb",
-      "mpn": "Nichicon UES1E100MDM",
+      "mpn": "Nichicon UES1H100MPM (HESTORE 100.524.69)",
       "datasheet": "https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf"
     },
     "R611": {
@@ -142,8 +142,8 @@
       "value": "20k / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        27.5,
-        31.23
+        12.5,
+        21.23
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -163,8 +163,8 @@
       "value": "OPA1656ID",
       "fp": "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",
       "pcb": [
-        44,
-        32.5
+        29,
+        22.5
       ],
       "part": {
         "footprint": "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",
@@ -184,8 +184,8 @@
       "value": "10k / 1% 0.25W / UPRIGHT",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P2.54mm_Vertical",
       "pcb": [
-        37.5,
-        31.23
+        22.5,
+        21.23
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P2.54mm_Vertical",
@@ -205,8 +205,8 @@
       "value": "100p / 50V C0G",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        37.5,
-        24
+        22.5,
+        14
       ],
       "part": {
         "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
@@ -226,8 +226,8 @@
       "value": "10R / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        31,
-        18,
+        16,
+        8,
         90
       ],
       "part": {
@@ -248,8 +248,8 @@
       "value": "470u / 16V",
       "fp": "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
       "pcb": [
-        58,
-        16
+        45,
+        9
       ],
       "part": {
         "footprint": "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
@@ -269,9 +269,8 @@
       "value": "1k / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        78,
-        20,
-        90
+        48,
+        33
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -291,8 +290,8 @@
       "value": "1.5KE6.8CA",
       "fp": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
       "pcb": [
-        85,
-        9.5
+        65,
+        9
       ],
       "part": {
         "footprint": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
@@ -309,22 +308,22 @@
     "C602": {
       "ref": "C602",
       "kind": "C",
-      "value": "10u / 25V BIPOLAR",
-      "fp": "Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm",
+      "value": "10u / 50V BIPOLAR",
+      "fp": "Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm",
       "pcb": [
-        73,
-        32.5
+        58,
+        23
       ],
       "part": {
-        "footprint": "Ardor_THT:CP_Bipolar_D6.3mm_P2.50mm",
-        "mpn": "Nichicon UES1E100MDM",
-        "bom_mpn": "Nichicon UES1E100MDM",
+        "footprint": "Ardor_THT:CP_Bipolar_Nichicon_D8.0mm_P3.50mm",
+        "mpn": "Nichicon UES1H100MPM (HESTORE 100.524.69)",
+        "bom_mpn": "Nichicon UES1H100MPM (HESTORE 100.524.69)",
         "jlcpcb_part": "",
         "datasheet": "https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf"
       },
       "dnp": false,
       "uuid": "76ab078b-92dd-5496-87f8-44f637b4d543",
-      "mpn": "Nichicon UES1E100MDM",
+      "mpn": "Nichicon UES1H100MPM (HESTORE 100.524.69)",
       "datasheet": "https://www.nichicon.co.jp/english/products/pdfs/e-ues.pdf"
     },
     "R612": {
@@ -333,8 +332,8 @@
       "value": "20k / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        61,
-        32.5,
+        46,
+        22.5,
         180
       ],
       "part": {
@@ -355,8 +354,8 @@
       "value": "10k / 1% 0.25W / UPRIGHT",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P2.54mm_Vertical",
       "pcb": [
-        50.5,
-        32.5,
+        35.5,
+        22.5,
         180
       ],
       "part": {
@@ -377,8 +376,8 @@
       "value": "100p / 50V C0G",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        50.5,
-        39,
+        35.5,
+        29,
         180
       ],
       "part": {
@@ -399,8 +398,9 @@
       "value": "10R / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        61,
-        50
+        38,
+        42,
+        90
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -420,8 +420,8 @@
       "value": "470u / 16V",
       "fp": "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
       "pcb": [
-        65,
-        59
+        46,
+        41
       ],
       "part": {
         "footprint": "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
@@ -441,9 +441,8 @@
       "value": "1k / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        85,
-        55,
-        90
+        65,
+        37
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -463,8 +462,8 @@
       "value": "1.5KE6.8CA",
       "fp": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
       "pcb": [
-        85,
-        40
+        65,
+        31
       ],
       "part": {
         "footprint": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
@@ -484,8 +483,8 @@
       "value": "100n / 50V X7R / P2.5mm",
       "fp": "Capacitor_THT:C_Disc_D3.8mm_W2.6mm_P2.50mm",
       "pcb": [
-        50,
-        27.5,
+        35,
+        17.5,
         90
       ],
       "part": {
@@ -506,8 +505,8 @@
       "value": "10k / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        33,
-        53
+        13,
+        33
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -527,8 +526,8 @@
       "value": "10k / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        56,
-        53
+        20,
+        27
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -548,8 +547,8 @@
       "value": "47u / 25V",
       "fp": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
       "pcb": [
-        44,
-        50
+        29,
+        38
       ],
       "part": {
         "footprint": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
@@ -569,8 +568,8 @@
       "value": "100n / 50V X7R",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        43,
-        41
+        27,
+        32
       ],
       "part": {
         "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
@@ -590,8 +589,9 @@
       "value": "G5V-2-H1 DC5",
       "fp": "Relay_THT:Relay_DPDT_Omron_G5V-2",
       "pcb": [
-        75,
-        62
+        62,
+        45,
+        90
       ],
       "part": {
         "footprint": "Relay_THT:Relay_DPDT_Omron_G5V-2",
@@ -611,8 +611,8 @@
       "value": "2N3904 / E-B-C",
       "fp": "Package_TO_SOT_THT:TO-92_Inline_Wide",
       "pcb": [
-        57,
-        69
+        47.5,
+        51
       ],
       "part": {
         "footprint": "Package_TO_SOT_THT:TO-92_Inline_Wide",
@@ -632,8 +632,8 @@
       "value": "470R / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        35,
-        70
+        16,
+        40
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -653,9 +653,8 @@
       "value": "100k / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        47,
-        70,
-        90
+        18,
+        45
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -675,8 +674,8 @@
       "value": "1N4148",
       "fp": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
       "pcb": [
-        73,
-        76
+        57,
+        55
       ],
       "part": {
         "footprint": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
@@ -696,9 +695,8 @@
       "value": "0R / WIRE LINK",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        89,
-        68,
-        90
+        69,
+        55
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
