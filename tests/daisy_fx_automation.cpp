@@ -22,12 +22,14 @@ ardor::StereoSample inputAt(int frame)
   return {left, right};
 }
 
-void renderAutomation(ardor::DaisyFxProcessor& processor, const std::string& label, int& frame)
+void renderAutomation(ardor::DaisyFxProcessor& processor, const std::string& label, int& frame,
+                      float inputScale = 1.0f)
 {
   float previousLeft = 0.0f;
   float previousRight = 0.0f;
   for (int i = 0; i < 384; ++i, ++frame) {
-    const auto output = processor.process(inputAt(frame));
+    const auto input = inputAt(frame);
+    const auto output = processor.process({input.left * inputScale, input.right * inputScale});
     require(std::isfinite(output.left) && std::isfinite(output.right), label + " automation must remain finite");
     require(std::fabs(output.left) < 4.0f && std::fabs(output.right) < 4.0f,
             label + " automation must remain bounded");
@@ -126,10 +128,16 @@ int main()
             descriptor.mode + ": " + error);
     int frame = 0;
     for (const auto& param : descriptor.params) {
-      require(processor.setParameterTarget(param.key, 0.0f), descriptor.mode + " must accept " + param.key);
-      renderAutomation(processor, descriptor.mode + "/" + param.key + " low", frame);
-      require(processor.setParameterTarget(param.key, 1.0f), descriptor.mode + " must accept " + param.key);
-      renderAutomation(processor, descriptor.mode + "/" + param.key + " high", frame);
+      const auto control = ardor::daisyFxParamControlSpec(descriptor, param);
+      const float low = control.choiceValues.empty() ? 0 : control.choiceValues.front();
+      const float high = control.choiceValues.empty() ? 1 : control.choiceValues.back();
+      // Retain cumulative endpoint automation, including summed voice/gain
+      // extremes. POG3 needs headroom for those intentionally exposed gains.
+      const float inputScale = descriptor.mode == "pog3" ? 0.05f : 1.0f;
+      require(processor.setParameterTarget(param.key, low), descriptor.mode + " must accept " + param.key);
+      renderAutomation(processor, descriptor.mode + "/" + param.key + " low", frame, inputScale);
+      require(processor.setParameterTarget(param.key, high), descriptor.mode + " must accept " + param.key);
+      renderAutomation(processor, descriptor.mode + "/" + param.key + " high", frame, inputScale);
       if (descriptor.blockType == "reverb" && param.key != "mix") {
         verifyReverbAutomationContinuity(descriptor, param.key);
       }
