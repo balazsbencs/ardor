@@ -38,7 +38,10 @@ def main():
     if platform.machine().lower() in ("x86_64", "amd64"):
         command += ["-DENABLE_SSE=ON", "-DENABLE_SSE2=ON"]
     if platform.system() == "Windows":
-        command += ["-A", "x64"]
+        # Match Ardor's self-contained /MT plugin, including FFTW's C objects.
+        # FFTW's old project minimum otherwise leaves CMP0091 in OLD mode.
+        command += ["-A", "x64", "-DCMAKE_POLICY_DEFAULT_CMP0091=NEW",
+                    "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>"]
     subprocess.run(command, check=True)
     subprocess.run(["cmake", "--build", str(build), "--config", "Release", "--parallel", "3"], check=True)
     subprocess.run(["cmake", "--install", str(build), "--config", "Release"], check=True)
