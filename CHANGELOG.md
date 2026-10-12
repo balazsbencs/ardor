@@ -2,6 +2,13 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.94](https://github.com/balazsbencs/ardor/compare/v0.1.90...v0.1.94) (2026-10-12)
+
+### Bug Fixes
+
+* enlarge Bank label and show buffer telemetry while editing ([eebaeb6](https://github.com/balazsbencs/ardor/commit/eebaeb6f6973ec36f73d1ee876e367a77825f400))
+* preserve Tone3000 integration and silence preset switch toast ([cee8b2a](https://github.com/balazsbencs/ardor/commit/cee8b2a627f43081722e48757908146e318d035b))
+
 ## [0.1.90](https://github.com/balazsbencs/ardor/compare/v0.1.89...v0.1.90) (2026-10-09)
 
 ### Features
