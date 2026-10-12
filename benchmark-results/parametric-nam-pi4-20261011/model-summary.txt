@@ -1,0 +1,30 @@
+NAM benchmark summary
+
+tier      frames  quantum   cases  mean CPU (median/worst)  worst p99.9  misses  slowest model
+--------- ------ --------- ------ ------------------------- ------------ ------- -------------
+fixed         32   0.667ms      6    30.45%/ 66.26%       83.56%       0 auto-2.nam
+fixed         64   1.333ms      6    26.27%/ 62.77%       80.42%       0 auto-2.nam
+fixed        128   2.667ms      6    23.76%/ 69.29%       81.86%       0 auto-2.nam
+full          32   0.667ms     14    37.57%/ 59.51%       67.16%       0 clone-overdrive.nam
+full          64   1.333ms     14    33.83%/ 57.92%       62.91%       0 clone-overdrive.nam
+full         128   2.667ms     14    32.73%/ 57.20%       62.81%       0 clone-overdrive.nam
+nano          32   0.667ms     14     8.64%/ 27.86%       31.73%       0 a2-dual-0.nam
+nano          64   1.333ms     14     8.51%/ 23.81%       26.89%       0 a2-dual-0.nam
+nano         128   2.667ms     14     8.32%/ 21.09%       24.40%       0 a2-dual-0.nam
+
+Viability rule: zero measured misses and worst model p99.9 <= 70.0% of quantum.
+  fixed: no tested quantum passes the rule.
+  full: smallest passing compute quantum is 32 frames (0.667 ms).
+  nano: smallest passing compute quantum is 32 frames (0.667 ms).
+
+Ten hottest cases by p99.9 budget
+  fixed  32f mean= 66.26% p99.9= 83.56% max=  626.87us  auto-2.nam
+  fixed 128f mean= 69.29% p99.9= 81.86% max= 2241.11us  auto-2.nam
+  fixed  64f mean= 62.77% p99.9= 80.42% max= 1133.59us  auto-2.nam
+  full   32f mean= 59.51% p99.9= 67.16% max=  551.92us  clone-overdrive.nam
+  full   32f mean= 59.19% p99.9= 64.00% max=  534.32us  film-dual-0.nam
+  full   64f mean= 57.92% p99.9= 62.91% max=  916.26us  clone-overdrive.nam
+  full  128f mean= 57.20% p99.9= 62.81% max= 1715.87us  clone-overdrive.nam
+  full   64f mean= 57.27% p99.9= 62.78% max=  912.35us  film-dual-0.nam
+  full  128f mean= 56.71% p99.9= 61.98% max= 1691.98us  film-dual-0.nam
+  fixed  32f mean= 47.07% p99.9= 58.91% max=  512.28us  a2-standard-0.nam

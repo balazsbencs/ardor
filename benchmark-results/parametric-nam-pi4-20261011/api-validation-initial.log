@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/home/bbalazs/projects/ardor/scripts/validate-parametric-device.py", line 134, in <module>
+    main()
+    ~~~~^^
+  File "/home/bbalazs/projects/ardor/scripts/validate-parametric-device.py", line 113, in main
+    apply(slot)
+    ~~~~~^^^^^^
+  File "/home/bbalazs/projects/ardor/scripts/validate-parametric-device.py", line 54, in apply
+    status = request('GET', '/api/runtime/apply/'+queued['id'])
+  File "/home/bbalazs/projects/ardor/scripts/validate-parametric-device.py", line 37, in request
+    assert status == expected, (method, path, status, result)
+           ^^^^^^^^^^^^^^^^^^
+AssertionError: ('GET', '/api/runtime/apply/apply-1791746667489564892', 202, {'id': 'apply-1791746667489564892', 'state': 'pending', 'bank': 98, 'slot': 0, 'updatedAt': '2026-10-11T19:24:27.489568466Z'})

@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "platform": "x86_64 host; not Pi timing",
+  "files": 12,
+  "tier_cases": 27,
+  "blocks_per_case": 50,
+  "finite_checksums": true
+}

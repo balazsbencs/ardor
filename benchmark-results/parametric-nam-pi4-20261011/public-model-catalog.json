@@ -1,0 +1,899 @@
+[
+  {
+    "file": "american-blonde.nam",
+    "url": "https://github.com/mrgeneko/NAMix/releases/download/v0.6.6/american-blonde.nam",
+    "sha256": "69431c3f22af6ad5533f49b82e88ce24edcef6f38d18311891441b84d8a748e1",
+    "bytes": 470868,
+    "metadata": {
+      "date": {
+        "year": 2026,
+        "month": 8,
+        "day": 30,
+        "hour": 18,
+        "minute": 7,
+        "second": 52
+      },
+      "loudness": -18.0,
+      "input_level_dbu": -0.7918498096410906,
+      "name": "American Blonde (EQ Only, Drive 0.5)",
+      "gear_make": null,
+      "gear_model": "American Blonde (EQ Only, Drive 0.5)",
+      "gear_type": "pedal",
+      "gain": 1.237154443315838,
+      "modeled_by": "Gene Ko"
+    },
+    "architecture": "SlimmableContainer",
+    "tiers": [
+      {
+        "boundary": 0.5,
+        "architecture": "ParametricWaveNet",
+        "channels": 5,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Bass",
+            "min": 0.25,
+            "max": 0.75,
+            "default": 0.5
+          },
+          {
+            "name": "Mids",
+            "min": 0.25,
+            "max": 0.75,
+            "default": 0.5
+          },
+          {
+            "name": "Treble",
+            "min": 0.25,
+            "max": 0.75,
+            "default": 0.5
+          }
+        ]
+      },
+      {
+        "boundary": 1.0,
+        "architecture": "ParametricWaveNet",
+        "channels": 9,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Bass",
+            "min": 0.25,
+            "max": 0.75,
+            "default": 0.5
+          },
+          {
+            "name": "Mids",
+            "min": 0.25,
+            "max": 0.75,
+            "default": 0.5
+          },
+          {
+            "name": "Treble",
+            "min": 0.25,
+            "max": 0.75,
+            "default": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "anxiety-drive.nam",
+    "url": "https://github.com/mrgeneko/NAMix/releases/download/v0.6.6/anxiety-drive.nam",
+    "sha256": "947902e8d8a2f51fee585ef8f458ee798c353861c6e0d77408fa6543b831ebd2",
+    "bytes": 351427,
+    "metadata": {
+      "date": {
+        "year": 2026,
+        "month": 8,
+        "day": 29,
+        "hour": 20,
+        "minute": 41,
+        "second": 50
+      },
+      "loudness": -18.0,
+      "input_level_dbu": -0.7918498096410906,
+      "name": "Anxiety Drive LP",
+      "gear_make": null,
+      "gear_model": "Anxiety Drive LP",
+      "gear_type": "pedal",
+      "gain": 0.448757747599485,
+      "modeled_by": "Gene Ko"
+    },
+    "architecture": "SlimmableContainer",
+    "tiers": [
+      {
+        "boundary": 0.5,
+        "architecture": "ParametricWaveNet",
+        "channels": 4,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Gain",
+            "min": 0.1,
+            "max": 1.0,
+            "default": 0.55
+          },
+          {
+            "name": "Tone",
+            "min": 0.2,
+            "max": 0.8,
+            "default": 0.5
+          }
+        ]
+      },
+      {
+        "boundary": 1.0,
+        "architecture": "ParametricWaveNet",
+        "channels": 8,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Gain",
+            "min": 0.1,
+            "max": 1.0,
+            "default": 0.55
+          },
+          {
+            "name": "Tone",
+            "min": 0.2,
+            "max": 0.8,
+            "default": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "brit-in-a-box.nam",
+    "url": "https://github.com/mrgeneko/NAMix/releases/download/v0.6.6/brit-in-a-box.nam",
+    "sha256": "904e74fa126cb1128773f235aaf965aaf093b11ba7d5ce4ebc3130b19e9d3ec4",
+    "bytes": 374548,
+    "metadata": {
+      "date": {
+        "year": 2026,
+        "month": 8,
+        "day": 10,
+        "hour": 8,
+        "minute": 30,
+        "second": 46
+      },
+      "loudness": -18.0,
+      "input_level_dbu": -0.7918498096410906,
+      "name": "Brit Amp in a Box",
+      "gear_make": "Brit Amp in a Box",
+      "gear_model": "Brit Amp in a Box",
+      "gear_type": "pedal",
+      "gain": 0.9228603929048294,
+      "modeled_by": "Gene Ko"
+    },
+    "architecture": "SlimmableContainer",
+    "tiers": [
+      {
+        "boundary": 0.5,
+        "architecture": "ParametricWaveNet",
+        "channels": 4,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Gain",
+            "min": 0.05,
+            "max": 1.0,
+            "default": 0.525
+          },
+          {
+            "name": "Bass",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          },
+          {
+            "name": "Mids",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          },
+          {
+            "name": "Treble",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          }
+        ]
+      },
+      {
+        "boundary": 1.0,
+        "architecture": "ParametricWaveNet",
+        "channels": 8,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Gain",
+            "min": 0.05,
+            "max": 1.0,
+            "default": 0.525
+          },
+          {
+            "name": "Bass",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          },
+          {
+            "name": "Mids",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          },
+          {
+            "name": "Treble",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "british-800-preamp.nam",
+    "url": "https://github.com/mrgeneko/NAMix/releases/download/v0.6.6/british-800-preamp.nam",
+    "sha256": "ede9f8af0fc3d101139153d9f260f37230c9965150dd2dce17967d73b22c7672",
+    "bytes": 340211,
+    "metadata": {
+      "date": {
+        "year": 2026,
+        "month": 8,
+        "day": 6,
+        "hour": 6,
+        "minute": 58,
+        "second": 9
+      },
+      "loudness": -18.0,
+      "input_level_dbu": -5.99184980964109,
+      "name": "British 800 Preamp",
+      "gear_model": "British 800 Preamp",
+      "gear_type": "amp",
+      "gain": 1.0399824494533128,
+      "modeled_by": "Gene Ko"
+    },
+    "architecture": "SlimmableContainer",
+    "tiers": [
+      {
+        "boundary": 0.5,
+        "architecture": "ParametricWaveNet",
+        "channels": 4,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Gain",
+            "min": 0.1,
+            "max": 1.0,
+            "default": 0.55
+          }
+        ]
+      },
+      {
+        "boundary": 1.0,
+        "architecture": "ParametricWaveNet",
+        "channels": 8,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Gain",
+            "min": 0.1,
+            "max": 1.0,
+            "default": 0.55
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "cali-duo-reverb-85watt.nam",
+    "url": "https://github.com/mrgeneko/NAMix/releases/download/v0.6.6/cali-duo-reverb-85watt.nam",
+    "sha256": "c35561817487c9eed50baddd389add1d7ec3b0fa4f57fed874f80580d6dc4de3",
+    "bytes": 785767,
+    "metadata": {
+      "date": {
+        "year": 2026,
+        "month": 8,
+        "day": 27,
+        "hour": 20,
+        "minute": 26,
+        "second": 51
+      },
+      "loudness": -18.0,
+      "input_level_dbu": -0.7918498096410906,
+      "name": "Cali Duo Reverb 85 watt",
+      "gear_make": "Cali Duo Reverb 85 watt",
+      "gear_model": "Cali Duo Reverb 85 watt",
+      "gear_type": "amp",
+      "modeled_by": "Gene Ko",
+      "gain": 0.2928653161727995
+    },
+    "architecture": "SlimmableContainer",
+    "tiers": [
+      {
+        "boundary": 0.25,
+        "architecture": "ParametricWaveNet",
+        "channels": 4,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Volume",
+            "min": 0.1,
+            "max": 1.0,
+            "default": 0.55
+          }
+        ]
+      },
+      {
+        "boundary": 0.5,
+        "architecture": "ParametricWaveNet",
+        "channels": 5,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Volume",
+            "min": 0.1,
+            "max": 1.0,
+            "default": 0.55
+          }
+        ]
+      },
+      {
+        "boundary": 0.75,
+        "architecture": "ParametricWaveNet",
+        "channels": 8,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Volume",
+            "min": 0.1,
+            "max": 1.0,
+            "default": 0.55
+          }
+        ]
+      },
+      {
+        "boundary": 1.0,
+        "architecture": "ParametricWaveNet",
+        "channels": 9,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Volume",
+            "min": 0.1,
+            "max": 1.0,
+            "default": 0.55
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "clone-overdrive.nam",
+    "url": "https://github.com/mrgeneko/NAMix/releases/download/v0.6.6/clone-overdrive.nam",
+    "sha256": "61bb3f25d07920d0fbe8711542df2e585c21ab20d77332816a0de0d66ea148bb",
+    "bytes": 350737,
+    "metadata": {
+      "date": {
+        "year": 2026,
+        "month": 7,
+        "day": 31,
+        "hour": 15,
+        "minute": 47,
+        "second": 35
+      },
+      "loudness": -18.0,
+      "input_level_dbu": -0.7918498096410906,
+      "name": "Clone Overdrive",
+      "gear_model": "Clone Overdrive",
+      "gear_type": "pedal",
+      "gain": 12.59612175764707,
+      "modeled_by": "Gene Ko"
+    },
+    "architecture": "SlimmableContainer",
+    "tiers": [
+      {
+        "boundary": 0.5,
+        "architecture": "ParametricWaveNet",
+        "channels": 4,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Gain",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          },
+          {
+            "name": "Tone",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          }
+        ]
+      },
+      {
+        "boundary": 1.0,
+        "architecture": "ParametricWaveNet",
+        "channels": 8,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Gain",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          },
+          {
+            "name": "Tone",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "dirty-hamster.nam",
+    "url": "https://github.com/mrgeneko/NAMix/releases/download/v0.6.6/dirty-hamster.nam",
+    "sha256": "afb315270292bd0580151393c1cbeb144d9fe38c033fbd09e8d7c79db0929f1f",
+    "bytes": 352414,
+    "metadata": {
+      "date": {
+        "year": 2026,
+        "month": 8,
+        "day": 21,
+        "hour": 4,
+        "minute": 59,
+        "second": 47
+      },
+      "loudness": -18.0,
+      "input_level_dbu": -0.7918498096410906,
+      "name": "Dirty Hamster",
+      "gear_make": "Dirty Hamster",
+      "gear_model": "Dirty Hamster",
+      "gear_type": "pedal",
+      "gain": 0.4202685789645216,
+      "modeled_by": "Gene Ko"
+    },
+    "architecture": "SlimmableContainer",
+    "tiers": [
+      {
+        "boundary": 0.5,
+        "architecture": "ParametricWaveNet",
+        "channels": 4,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Distortion",
+            "min": 0.1,
+            "max": 0.95,
+            "default": 0.525
+          },
+          {
+            "name": "Filter",
+            "min": 0.1,
+            "max": 0.9,
+            "default": 0.5
+          }
+        ]
+      },
+      {
+        "boundary": 1.0,
+        "architecture": "ParametricWaveNet",
+        "channels": 8,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Distortion",
+            "min": 0.1,
+            "max": 0.95,
+            "default": 0.525
+          },
+          {
+            "name": "Filter",
+            "min": 0.1,
+            "max": 0.9,
+            "default": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "green-mids-overdrive.nam",
+    "url": "https://github.com/mrgeneko/NAMix/releases/download/v0.6.6/green-mids-overdrive.nam",
+    "sha256": "e23f849c5f5d2f4c5f8c04cb4829d6486f57b4963235a3b8caacdef46b778402",
+    "bytes": 351345,
+    "metadata": {
+      "date": {
+        "year": 2026,
+        "month": 7,
+        "day": 31,
+        "hour": 19,
+        "minute": 1,
+        "second": 6
+      },
+      "loudness": -18.0,
+      "input_level_dbu": -0.7918498096410906,
+      "name": "Green Mids Overdrive",
+      "gear_model": "Green Mids Overdrive",
+      "gear_type": "pedal",
+      "gain": 5.571588986432019,
+      "modeled_by": "Gene Ko"
+    },
+    "architecture": "SlimmableContainer",
+    "tiers": [
+      {
+        "boundary": 0.5,
+        "architecture": "ParametricWaveNet",
+        "channels": 4,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Drive",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          },
+          {
+            "name": "Tone",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          }
+        ]
+      },
+      {
+        "boundary": 1.0,
+        "architecture": "ParametricWaveNet",
+        "channels": 8,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Drive",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          },
+          {
+            "name": "Tone",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "large-muffin.nam",
+    "url": "https://github.com/mrgeneko/NAMix/releases/download/v0.6.6/large-muffin.nam",
+    "sha256": "17b2c1211368d7c9a882526ac50e8fc72aea643294ff14e1e940333eb8d67980",
+    "bytes": 435969,
+    "metadata": {
+      "date": {
+        "year": 2026,
+        "month": 7,
+        "day": 17,
+        "hour": 21,
+        "minute": 28,
+        "second": 2
+      },
+      "loudness": -18.0,
+      "name": "Large Muffin",
+      "gear_model": "Large Muffin",
+      "gear_type": "pedal",
+      "gain": 0.5986345475806547,
+      "modeled_by": "Gene Ko",
+      "input_level_dbu": 0.0
+    },
+    "architecture": "SlimmableContainer",
+    "tiers": [
+      {
+        "boundary": 0.333333,
+        "architecture": "ParametricWaveNet",
+        "channels": 3,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Sustain",
+            "min": 0.001,
+            "max": 1.0,
+            "default": 0.5005
+          },
+          {
+            "name": "Tone",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          }
+        ]
+      },
+      {
+        "boundary": 0.666667,
+        "architecture": "ParametricWaveNet",
+        "channels": 5,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Sustain",
+            "min": 0.001,
+            "max": 1.0,
+            "default": 0.5005
+          },
+          {
+            "name": "Tone",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          }
+        ]
+      },
+      {
+        "boundary": 1.0,
+        "architecture": "ParametricWaveNet",
+        "channels": 8,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Sustain",
+            "min": 0.001,
+            "max": 1.0,
+            "default": 0.5005
+          },
+          {
+            "name": "Tone",
+            "min": 0.0,
+            "max": 1.0,
+            "default": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "special-bundle-overdrive-183-jazz-channel.nam",
+    "url": "https://github.com/mrgeneko/NAMix/releases/download/v0.6.6/special-bundle-overdrive-183-jazz-channel.nam",
+    "sha256": "6a78562af287e9f5a795fe12c6273f065e7a28c65193a7595670871ae3e3a551",
+    "bytes": 575373,
+    "metadata": {
+      "date": {
+        "year": 2026,
+        "month": 8,
+        "day": 10,
+        "hour": 8,
+        "minute": 37,
+        "second": 3
+      },
+      "loudness": -18.0,
+      "input_level_dbu": -0.7918498096410906,
+      "name": "Special Bundle Overdrive 183 Jazz Channel",
+      "gear_model": "Special Bundle Overdrive 183 Jazz Channel",
+      "gear_type": "amp",
+      "gain": 0.6428558979241118,
+      "modeled_by": "Gene Ko"
+    },
+    "architecture": "SlimmableContainer",
+    "tiers": [
+      {
+        "boundary": 0.5,
+        "architecture": "ParametricWaveNet",
+        "channels": 4,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Volume",
+            "min": 0.1,
+            "max": 0.9,
+            "default": 0.5
+          },
+          {
+            "name": "Master Volume",
+            "min": 0.1,
+            "max": 0.9,
+            "default": 0.5
+          }
+        ]
+      },
+      {
+        "boundary": 1.0,
+        "architecture": "ParametricWaveNet",
+        "channels": 8,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Volume",
+            "min": 0.1,
+            "max": 0.9,
+            "default": 0.5
+          },
+          {
+            "name": "Master Volume",
+            "min": 0.1,
+            "max": 0.9,
+            "default": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "special-bundle-overdrive-183-rock-channel.nam",
+    "url": "https://github.com/mrgeneko/NAMix/releases/download/v0.6.6/special-bundle-overdrive-183-rock-channel.nam",
+    "sha256": "019a2d34471eef64fc5fec646cd50a8b4ccf7eb11a9691c3d96dbeea679e6eeb",
+    "bytes": 351874,
+    "metadata": {
+      "date": {
+        "year": 2026,
+        "month": 8,
+        "day": 7,
+        "hour": 10,
+        "minute": 49,
+        "second": 12
+      },
+      "loudness": -18.0,
+      "input_level_dbu": -0.7918498096410906,
+      "name": "Special Bundle Overdrive 183 Rock Channel",
+      "gear_model": "Special Bundle Overdrive 183 Rock Channel",
+      "gear_type": "amp",
+      "gain": 0.6406350995790455,
+      "modeled_by": "Gene Ko"
+    },
+    "architecture": "SlimmableContainer",
+    "tiers": [
+      {
+        "boundary": 0.5,
+        "architecture": "ParametricWaveNet",
+        "channels": 4,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Volume",
+            "min": 0.1,
+            "max": 0.9,
+            "default": 0.5
+          },
+          {
+            "name": "Master Volume",
+            "min": 0.1,
+            "max": 0.9,
+            "default": 0.5
+          }
+        ]
+      },
+      {
+        "boundary": 1.0,
+        "architecture": "ParametricWaveNet",
+        "channels": 8,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Volume",
+            "min": 0.1,
+            "max": 0.9,
+            "default": 0.5
+          },
+          {
+            "name": "Master Volume",
+            "min": 0.1,
+            "max": 0.9,
+            "default": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "vinny-iii-drive.nam",
+    "url": "https://github.com/mrgeneko/NAMix/releases/download/v0.6.6/vinny-iii-drive.nam",
+    "sha256": "d9c831afea9e66cd5fad5e72924439b296bddb9bf8421008bbbbb3f66e1d22d2",
+    "bytes": 363438,
+    "metadata": {
+      "date": {
+        "year": 2026,
+        "month": 8,
+        "day": 17,
+        "hour": 13,
+        "minute": 14,
+        "second": 36
+      },
+      "loudness": -18.0,
+      "input_level_dbu": -0.7918498096410906,
+      "name": "Vinny III Drive",
+      "gear_make": "Vinny III Drive",
+      "gear_model": "Vinny III Drive",
+      "gear_type": "pedal",
+      "gain": 1.6744198272552953,
+      "modeled_by": "Gene Ko"
+    },
+    "architecture": "SlimmableContainer",
+    "tiers": [
+      {
+        "boundary": 0.5,
+        "architecture": "ParametricWaveNet",
+        "channels": 4,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Gain",
+            "min": 0.1,
+            "max": 1.0,
+            "default": 0.55
+          },
+          {
+            "name": "Bass",
+            "min": 0.2,
+            "max": 0.8,
+            "default": 0.5
+          },
+          {
+            "name": "Treble",
+            "min": 0.2,
+            "max": 0.8,
+            "default": 0.5
+          }
+        ]
+      },
+      {
+        "boundary": 1.0,
+        "architecture": "ParametricWaveNet",
+        "channels": 8,
+        "schema": 1,
+        "head": "skip",
+        "parameters": [
+          {
+            "name": "Gain",
+            "min": 0.1,
+            "max": 1.0,
+            "default": 0.55
+          },
+          {
+            "name": "Bass",
+            "min": 0.2,
+            "max": 0.8,
+            "default": 0.5
+          },
+          {
+            "name": "Treble",
+            "min": 0.2,
+            "max": 0.8,
+            "default": 0.5
+          }
+        ]
+      }
+    ]
+  }
+]

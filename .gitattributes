@@ -1,1 +1,3 @@
 services/managerd/internal/webui/dist/** linguist-generated=true -diff
+benchmark-results/parametric-nam-pi4-20261011/**/*.log linguist-generated=true whitespace=-blank-at-eol,-blank-at-eof
+benchmark-results/parametric-nam-pi4-20261011/**/*.txt whitespace=-blank-at-eol,-blank-at-eof

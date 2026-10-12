@@ -1,0 +1,2 @@
+Failed to load NAM model: [json.exception.parse_error.101] parse error at line 1, column 1: attempting to parse an empty input; check that your input string or stream contains the expected JSON
+wdw_routing_builder_smoke failed: failed to load dual rig NAM: /buildroot/output/build/ardor-pedal-1.0/_deps/neuralampmodelercore-src/example_models/lstm.nam

@@ -1,0 +1,109 @@
+{
+  "passed": true,
+  "observations": [
+    {
+      "viewport": "desktop",
+      "kind": "clone",
+      "passed": true,
+      "params": {
+        "inputMode": "sum",
+        "modelParameters": {
+          "Gain": 1,
+          "Tone": 0
+        },
+        "useNano": true
+      }
+    },
+    {
+      "viewport": "desktop",
+      "kind": "concat",
+      "passed": true,
+      "params": {
+        "inputMode": "sum",
+        "modelParameters": {
+          "Drive": 10,
+          "Mode": 1
+        },
+        "useNano": true
+      }
+    },
+    {
+      "viewport": "desktop",
+      "kind": "film",
+      "passed": true,
+      "params": {
+        "inputMode": "sum",
+        "modelParameters": {
+          "Drive": 10,
+          "Tone": -5
+        },
+        "useNano": true
+      }
+    },
+    {
+      "viewport": "desktop",
+      "kind": "synthetic",
+      "passed": true,
+      "params": {
+        "inputMode": "sum",
+        "modelParameters": {
+          "Drive": 10,
+          "Tone": 0
+        },
+        "useNano": false
+      }
+    },
+    {
+      "viewport": "phone",
+      "kind": "clone",
+      "passed": true,
+      "params": {
+        "inputMode": "sum",
+        "modelParameters": {
+          "Gain": 1,
+          "Tone": 0
+        },
+        "useNano": true
+      }
+    },
+    {
+      "viewport": "phone",
+      "kind": "concat",
+      "passed": true,
+      "params": {
+        "inputMode": "sum",
+        "modelParameters": {
+          "Drive": 10,
+          "Mode": 1
+        },
+        "useNano": true
+      }
+    },
+    {
+      "viewport": "phone",
+      "kind": "film",
+      "passed": true,
+      "params": {
+        "inputMode": "sum",
+        "modelParameters": {
+          "Drive": 10,
+          "Tone": -5
+        },
+        "useNano": true
+      }
+    },
+    {
+      "viewport": "phone",
+      "kind": "synthetic",
+      "passed": true,
+      "params": {
+        "inputMode": "sum",
+        "modelParameters": {
+          "Drive": 10,
+          "Tone": 0
+        },
+        "useNano": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+Failed to load NAM model: NAM parameter out of range: Drive
+Failed to load NAM model: Unknown or invalid NAM parameter: Missing
+Model expects 48000 Hz, runtime is 44100 Hz
+Failed to load NAM model: ConcatConditioner switch parameter 'Mode' must be an integer index within [0, 1]
+Failed to load NAM model: Unsupported parametric NAM version or sample rate
+Failed to load NAM model: [json.exception.out_of_range.403] key 'sample_rate' not found
+Failed to load NAM model: ConcatLSTM expected 28 weights, got 1.
+Failed to load NAM model: Unsupported parametric NAM version or sample rate
+Failed to load NAM model: ConcatWaveNet weight count does not match its config
+Clone tier 0 gain difference 0.00542807 tone difference 0.0456359
+Clone tier 1 gain difference 0.00457616 tone difference 0.0412389
+Failed to load NAM model: ParametricA2FastModel: weight stream exhausted
+Failed to load NAM model: ParametricA2FastModel: 1 trailing weights
+Failed to load NAM model: Unsupported FiLM NAM schema; requires schema 1 and skip head
+Failed to load NAM model: Unsupported FiLM NAM schema; requires schema 1 and skip head
+Failed to load NAM model: Unsupported FiLM NAM schema; requires schema 1 and skip head
+Failed to load NAM model: Unsupported FiLM NAM schema; requires schema 1 and skip head
+Failed to load NAM model: NAM tiers must share parameter definitions
+Failed to load NAM model: Invalid NAM tier boundaries
+parametric NAM audio, controls, routing and native roundtrip passed
+a2-standard block 13 max Python error 2.16067e-07
+a2-standard block 64 max Python error 2.16067e-07
+a2-standard block 13 max Python error 3.57628e-07
+a2-standard block 64 max Python error 3.57628e-07
+a2-standard block 13 max Python error 5.36442e-07
+a2-standard block 64 max Python error 5.36442e-07
+a2-nano block 13 max Python error 3.72529e-07
+a2-nano block 64 max Python error 3.72529e-07
+a2-nano block 13 max Python error 5.81145e-07
+a2-nano block 64 max Python error 5.81145e-07
+a2-nano block 13 max Python error 6.78003e-07
+a2-nano block 64 max Python error 6.78003e-07
+auto block 13 max Python error 4.76837e-07
+auto block 64 max Python error 5.58794e-07
+auto block 13 max Python error 8.34465e-07
+auto block 64 max Python error 9.98378e-07
+auto block 13 max Python error 6.03497e-07
+auto block 64 max Python error 7.00355e-07
+auto block 13 max Python error 8.34465e-07
+auto block 64 max Python error 9.98378e-07
+auto block 13 max Python error 4.76837e-07
+auto block 64 max Python error 4.91738e-07
+auto block 13 max Python error 4.17233e-07
+auto block 64 max Python error 3.72529e-07
+auto block 13 max Python error 4.17233e-07
+auto block 64 max Python error 3.72529e-07
+a2-nano block 13 max Python error 2.23517e-07
+a2-nano block 64 max Python error 2.23517e-07
+a2-nano block 13 max Python error 2.30968e-07
+a2-nano block 64 max Python error 2.30968e-07
+a2-nano block 13 max Python error 2.98023e-07
+a2-nano block 64 max Python error 2.98023e-07
+a2-nano block 13 max Python error 2.38419e-07
+a2-nano block 64 max Python error 2.68221e-07
+a2-nano block 13 max Python error 4.47035e-07
+a2-nano block 64 max Python error 5.06639e-07
+a2-nano block 13 max Python error 3.27826e-07
+a2-nano block 64 max Python error 3.27826e-07
+a2-dual block 13 max Python error 2.23517e-07
+a2-dual block 64 max Python error 2.23517e-07
+a2-dual block 13 max Python error 1.86265e-07
+a2-dual block 64 max Python error 1.86265e-07
+a2-dual block 13 max Python error 1.86265e-07
+a2-dual block 64 max Python error 1.86265e-07
+a2-dual block 13 max Python error 1.86265e-07
+a2-dual block 64 max Python error 1.86265e-07
+a2-dual block 13 max Python error 2.5332e-07
+a2-dual block 64 max Python error 2.5332e-07
+a2-dual block 13 max Python error 2.08616e-07
+a2-dual block 64 max Python error 2.08616e-07
+a2-dual block 13 max Python error 2.08616e-07
+a2-dual block 64 max Python error 2.08616e-07
+a2-dual block 13 max Python error 1.3411e-07
+a2-dual block 64 max Python error 1.3411e-07
+a2-dual block 13 max Python error 2.38419e-07
+a2-dual block 64 max Python error 2.38419e-07
+a2-dual block 13 max Python error 1.56462e-07
+a2-dual block 64 max Python error 1.56462e-07
+a2-dual block 13 max Python error 2.38419e-07
+a2-dual block 64 max Python error 2.38419e-07
+a2-dual block 13 max Python error 1.93715e-07
+a2-dual block 64 max Python error 1.93715e-07
+a2-dual block 13 max Python error 1.63913e-07
+a2-dual block 64 max Python error 1.63913e-07
+a2-dual block 13 max Python error 1.63913e-07
+a2-dual block 64 max Python error 1.63913e-07
+Failed to load NAM model: NAM tiers must share parameter definitions
+Failed to load NAM model: NAM tiers must share architecture, version and sample rate
+Failed to load NAM model: NAM tiers must share gear type and input calibration
+Failed to load NAM model: Invalid NAM tier boundaries
+Failed to load NAM model: Unsupported parametric NAM container family, version or sample rate
+Failed to load NAM model: ConcatWaveNet weight count does not match its config
+film-dual block 13 max Python error 7.95349e-07
+film-dual block 64 max Python error 8.40053e-07
+film-dual block 13 max Python error 8.12113e-07
+film-dual block 64 max Python error 8.56817e-07
+film-dual block 13 max Python error 7.96281e-07
+film-dual block 64 max Python error 8.40984e-07
+film-dual block 13 max Python error 8.43313e-07
+film-dual block 64 max Python error 8.20961e-07
+film-dual block 13 max Python error 9.36911e-07
+film-dual block 64 max Python error 9.5088e-07
+film-dual block 13 max Python error 7.71135e-07
+film-dual block 64 max Python error 7.76723e-07
+film-dual block 13 max Python error 2.05636e-06
+film-dual block 64 max Python error 1.98185e-06
+film-dual block 13 max Python error 1.80304e-06
+film-dual block 64 max Python error 1.8701e-06
+film-dual block 13 max Python error 1.85519e-06
+film-dual block 64 max Python error 1.9148e-06
+film-dual block 13 max Python error 1.51992e-06
+film-dual block 64 max Python error 1.61678e-06
+film-dual block 13 max Python error 1.44169e-06
+film-dual block 64 max Python error 1.59442e-06
+film-dual block 13 max Python error 1.9446e-06
+film-dual block 64 max Python error 1.78814e-06
+Failed to load NAM model: NAM tiers must share parameter definitions
+Failed to load NAM model: NAM tiers must share architecture, version and sample rate
+Failed to load NAM model: Unsupported FiLM NAM schema; requires schema 1 and skip head
+Failed to load NAM model: Invalid NAM tier boundaries
+Failed to load NAM model: Unsupported parametric NAM container family, version or sample rate
+Failed to load NAM model: ParametricA2FastModel: weight stream exhausted
+film-nano block 13 max Python error 5.75557e-07
+film-nano block 64 max Python error 5.68107e-07
+film-nano block 13 max Python error 5.81145e-07
+film-nano block 64 max Python error 5.81145e-07
+film-nano block 13 max Python error 6.31437e-07
+film-nano block 64 max Python error 6.31437e-07
+film-nano block 13 max Python error 4.74975e-07
+film-nano block 64 max Python error 4.67524e-07
+film-nano block 13 max Python error 5.57862e-07
+film-nano block 64 max Python error 5.57862e-07
+film-nano block 13 max Python error 4.95464e-07
+film-nano block 64 max Python error 4.95464e-07

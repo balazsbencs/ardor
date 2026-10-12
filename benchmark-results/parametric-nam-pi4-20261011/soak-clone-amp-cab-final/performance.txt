@@ -1,0 +1,36 @@
+Ardor pedal performance probe
+  pid:        17390
+  command:    /tmp/ardor-hw-20261011/bin/ardor-hw-pedal --realtime --bank 0 --slot 0 --data-root /tmp/ardor-hw-20261011/data --sample-rate 48000 --block-size 128 --capture-device -1 --playback-device -1 --audio-cpu 2 --parallel-rigs --rig-worker-cpu 3 --wdw-dry-worker-cpu 0 --wdw-wet-worker-cpu 1 --telemetry-file /tmp/ardor-hw-20261011/results/soak-clone-amp-cab-final/telemetry.txt --clip-debug --ui 
+  sample:     600s (1s interval)
+  temperature at start: 52.6 C
+  CPU clock at start:   1500 MHz
+
+Sampling........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+
+Per-core utilization
+  core   busy     headroom
+  CPU0     1.6%     98.4%
+  CPU1     1.6%     98.4%
+  CPU2    56.9%     43.1%
+  CPU3     1.5%     98.5%
+
+Ardor threads
+  role       tid     CPU%   last  affinity  policy/prio  migrations
+  UI/main    17390     2.7%   0     0-3       OTHER/0         497
+  audio      17408    56.6%   2     2         FIFO/70        0
+  TOTAL      -        59.3%
+
+Audio callback telemetry
+  callbacks:       226680 during sample
+  callback time:   avg 1.44 ms ( 53.9% budget), max 2.27 ms, budget 2.67 ms
+  deadline faults: callback_over=0 gaps=0 worker_over=0
+  DSP faults:      nonfinite=0 block_mismatch=0 bypassed=0
+  AUDIO HEALTH: PASS
+
+Scheduling checks
+  PASS audio: TID 17408, CPU 2, FIFO/70
+  IDLE worker: parallel mode is configured; activate a Dual Amp/Rig preset to create the CPU 3 thread
+
+Thermal: start 52.6 C, end 56.0 C, sampled max 57.9 C
+CPU clock range: 1500-1500 MHz
+RESULT: PASS

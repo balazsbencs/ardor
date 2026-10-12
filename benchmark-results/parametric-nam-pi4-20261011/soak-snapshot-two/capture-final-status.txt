@@ -1,0 +1,10 @@
+state: SETUP
+owner_pid   : 30004
+trigger_time: 8378.933985930
+tstamp      : 0.000000000
+delay       : 0
+avail       : 0
+avail_max   : 188
+-----
+hw_ptr      : 8243072
+appl_ptr    : 8243072

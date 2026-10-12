@@ -1,0 +1,74 @@
+Callback scheduler: SCHED_FIFO (1), priority 70, CPU 2
+Realtime started: client 48000 Hz, block 64, input channel 0, native capture 48000 Hz/64, playback 48000 Hz/64
+Control input active on "/dev/input/event1"
+Control input active on "/dev/input/event0"
+callbacks=6 over=0 over%=0.00 gaps=0 max=0.01ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.26% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.0dBFS output=-52.9dBFS
+callbacks=758 over=0 over%=0.00 gaps=0 max=0.01ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.7dBFS output=-52.6dBFS
+callbacks=1510 over=0 over%=0.00 gaps=0 max=0.01ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.0dBFS output=-52.9dBFS
+callbacks=2262 over=0 over%=0.00 gaps=0 max=0.01ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.5dBFS output=-52.4dBFS
+callbacks=3014 over=0 over%=0.00 gaps=0 max=0.02ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.33% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.9dBFS output=-52.8dBFS
+callbacks=3767 over=0 over%=0.00 gaps=0 max=0.02ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.6dBFS output=-52.6dBFS
+callbacks=4519 over=0 over%=0.00 gaps=0 max=0.02ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.8dBFS output=-52.8dBFS
+callbacks=5271 over=0 over%=0.00 gaps=0 max=0.02ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.8dBFS output=-52.7dBFS
+callbacks=6023 over=0 over%=0.00 gaps=0 max=0.02ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.8dBFS output=-52.7dBFS
+callbacks=6775 over=0 over%=0.00 gaps=0 max=0.02ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.7dBFS output=-52.6dBFS
+callbacks=7528 over=0 over%=0.00 gaps=0 max=0.02ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.7dBFS output=-52.7dBFS
+callbacks=8280 over=0 over%=0.00 gaps=0 max=0.02ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.7dBFS output=-52.7dBFS
+callbacks=9032 over=0 over%=0.00 gaps=0 max=0.02ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.7dBFS output=-52.7dBFS
+callbacks=9784 over=0 over%=0.00 gaps=0 max=0.02ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.6dBFS output=-52.6dBFS
+callbacks=10536 over=0 over%=0.00 gaps=0 max=0.02ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.8dBFS output=-52.7dBFS
+callbacks=11288 over=0 over%=0.00 gaps=0 max=0.02ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.7dBFS output=-52.7dBFS
+callbacks=12040 over=0 over%=0.00 gaps=0 max=0.02ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.8dBFS output=-52.7dBFS
+callbacks=12793 over=0 over%=0.00 gaps=0 max=0.02ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.8dBFS output=-52.8dBFS
+callbacks=13545 over=0 over%=0.00 gaps=0 max=0.02ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.8dBFS output=-52.7dBFS
+callbacks=14297 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.7dBFS output=-52.6dBFS
+callbacks=15049 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.35% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.8dBFS output=-52.7dBFS
+callbacks=15801 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.30% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.8dBFS output=-52.7dBFS
+callbacks=16553 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.5dBFS output=-52.4dBFS
+callbacks=17306 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.6dBFS output=-52.6dBFS
+callbacks=18058 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.9dBFS output=-52.9dBFS
+callbacks=18810 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.35% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.9dBFS output=-52.8dBFS
+callbacks=19562 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.8dBFS output=-52.7dBFS
+callbacks=20315 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.8dBFS output=-52.8dBFS
+callbacks=21067 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.7dBFS output=-52.7dBFS
+callbacks=21819 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.0dBFS output=-52.9dBFS
+callbacks=22571 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.7dBFS output=-52.7dBFS
+callbacks=23324 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.9dBFS output=-52.9dBFS
+callbacks=24076 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.9dBFS output=-52.8dBFS
+callbacks=24828 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.9dBFS output=-52.8dBFS
+callbacks=25581 over=0 over%=0.00 gaps=0 max=0.04ms avg=0.01ms recent_avg=0.01ms budget=1.33ms buffer_free=99.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.7dBFS output=-52.7dBFS

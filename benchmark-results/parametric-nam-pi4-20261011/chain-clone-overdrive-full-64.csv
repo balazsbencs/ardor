@@ -1,0 +1,12 @@
+# mlockall=ok
+# benchmark=ardor-nam-chain-v1
+# sample_rate=48000
+# cpu=2
+# input=alternating silence, harmonic/noise at 0.02 and 0.2 peak
+# parameters={}
+# build_type=Release
+# compiler=GNU 13.4.0
+# compile_flags=-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -O2 -g0 -D_FORTIFY_SOURCE=1 -O2 -DNDEBUG
+model,amp_model,amp_tier,tier,nam_count,cab_frames,block_frames,iterations,load_ms,rss_kib,mean_us,p50_us,p99_us,p999_us,max_us,deadline_misses,mean_budget_pct,p999_budget_pct,max_budget_pct,nonfinite,peak,checksum
+"clone-overdrive.nam","",1.000000,1.000000,1,0,64,3000,98.904092,7964,768.768029,766.926000,799.055000,847.834000,903.777000,0,57.657602,63.587550,67.783275,0,0.040761,-0.167995
+"clone-overdrive.nam","",1.000000,1.000000,2,0,64,3000,196.113000,8756,1574.382969,1568.111000,1668.963000,1800.796000,1806.815000,3000,118.078723,135.059700,135.511125,0,0.028099,-0.069259

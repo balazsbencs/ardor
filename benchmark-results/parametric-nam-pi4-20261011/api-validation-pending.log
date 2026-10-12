@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/home/bbalazs/projects/ardor/scripts/validate-parametric-device.py", line 135, in <module>
+    main()
+    ~~~~^^
+  File "/home/bbalazs/projects/ardor/scripts/validate-parametric-device.py", line 114, in main
+    apply(slot)
+    ~~~~~^^^^^^
+  File "/home/bbalazs/projects/ardor/scripts/validate-parametric-device.py", line 62, in apply
+    raise AssertionError('apply timeout')
+AssertionError: apply timeout

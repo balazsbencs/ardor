@@ -263,6 +263,11 @@ browser tests cover saving/restoring the included pedal on desktop and phone.
 Still outside this release: HyperWaveNet, FiLM LoRA/schema 2 and residual heads,
 other forks' parametric architectures,
 per-scene learned control values, MIDI/expression control of learned parameters,
-live manager parameter messages, arbitrary model-rate resampling, hardware
-capture training in Ardor, and Raspberry Pi CPU/latency qualification. Existing
-CPU measurements for snapshot models do not establish parametric performance.
+live manager parameter messages, arbitrary model-rate resampling, and hardware
+capture training in Ardor.
+
+[Pi 4 hardware validation](parametric-nam-pi4-validation-2026-10-11.md) covers
+ARM numerical compatibility, real manager uploads/apply, full-chain capacity,
+Codec Zero timing and stability. Capacity depends on the model: the tested
+Standard parametric A2 chains fit one model; compact tiers allow more. Read the
+report for complete configurations, headroom and measurement limits.

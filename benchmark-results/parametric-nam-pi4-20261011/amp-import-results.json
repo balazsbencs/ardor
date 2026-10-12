@@ -1,0 +1,71 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "method": "POST",
+      "path": "/api/assets/models",
+      "status": 201
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/97/slots/0",
+      "status": 200
+    },
+    {
+      "asset": {
+        "id": "Hardware_FiLM_amp.nam",
+        "kind": "model",
+        "filename": "Hardware_FiLM_amp.nam",
+        "path": "models/Hardware_FiLM_amp.nam",
+        "sizeBytes": 50337,
+        "nam": {
+          "architecture": "ParametricWaveNet",
+          "version": "0.7.0",
+          "gearType": "amp",
+          "parameters": [
+            {
+              "name": "Drive",
+              "min": 0,
+              "max": 10,
+              "default": 5,
+              "type": "continuous"
+            },
+            {
+              "name": "Tone",
+              "min": -5,
+              "max": 5,
+              "default": 0,
+              "type": "continuous"
+            }
+          ],
+          "supported": true
+        }
+      },
+      "preset": {
+        "version": 1,
+        "name": "Hardware FiLM amp",
+        "routing": "serial",
+        "blocks": [
+          {
+            "id": "amp",
+            "type": "nam",
+            "enabled": true,
+            "asset": "models/Hardware_FiLM_amp.nam",
+            "params": {
+              "useNano": false,
+              "modelParameters": {
+                "Drive": 10,
+                "Tone": -5
+              }
+            }
+          }
+        ],
+        "global": {
+          "inputGainDb": 0,
+          "outputGainDb": -30,
+          "safetyLimitDb": -1
+        }
+      }
+    }
+  ]
+}

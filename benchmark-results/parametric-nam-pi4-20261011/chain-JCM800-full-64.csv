@@ -1,0 +1,13 @@
+# mlockall=ok
+# benchmark=ardor-nam-chain-v1
+# sample_rate=48000
+# cpu=2
+# input=alternating silence, harmonic/noise at 0.02 and 0.2 peak
+# parameters={}
+# build_type=Release
+# compiler=GNU 13.4.0
+# compile_flags=-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -O2 -g0 -D_FORTIFY_SOURCE=1 -O2 -DNDEBUG
+model,amp_model,amp_tier,tier,nam_count,cab_frames,block_frames,iterations,load_ms,rss_kib,mean_us,p50_us,p99_us,p999_us,max_us,deadline_misses,mean_budget_pct,p999_budget_pct,max_budget_pct,nonfinite,peak,checksum
+"JCM800.nam","",1.000000,1.000000,1,0,64,3000,72.993222,8552,455.109508,453.555000,486.222000,522.945000,588.963000,0,34.133213,39.220875,44.172225,0,0.305163,0.345233
+"JCM800.nam","",1.000000,1.000000,2,0,64,3000,142.869111,9528,944.843202,941.037000,1025.871000,1105.741000,1180.815000,0,70.863240,82.930575,88.561125,0,0.419671,-1.882964
+"JCM800.nam","",1.000000,1.000000,3,0,64,3000,212.581629,9332,1485.391550,1479.426000,1600.981000,1697.481000,1753.759000,3000,111.404366,127.311075,131.531925,0,0.421606,-6.243355

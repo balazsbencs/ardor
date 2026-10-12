@@ -1,0 +1,36 @@
+Ardor pedal performance probe
+  pid:        12038
+  command:    /tmp/ardor-hw-20261011/bin/ardor-hw-pedal --realtime --bank 0 --slot 0 --data-root /tmp/ardor-hw-20261011/data --sample-rate 48000 --block-size 128 --capture-device -1 --playback-device -1 --audio-cpu 2 --parallel-rigs --rig-worker-cpu 3 --wdw-dry-worker-cpu 0 --wdw-wet-worker-cpu 1 --telemetry-file /tmp/ardor-hw-20261011/results/overload/telemetry.txt --clip-debug 
+  sample:     20s (1s interval)
+  temperature at start: 53.1 C
+  CPU clock at start:   1500 MHz
+
+Sampling....................
+
+Per-core utilization
+  core   busy     headroom
+  CPU0     0.8%     99.2%
+  CPU1     0.3%     99.7%
+  CPU2     0.5%     99.5%
+  CPU3     0.4%     99.6%
+
+Ardor threads
+  role       tid     CPU%   last  affinity  policy/prio  migrations
+  UI/main    12038     0.3%   0     0-3       OTHER/0         22
+  audio      12056     2.0%   2     2         FIFO/70        0
+  TOTAL      -         2.3%
+
+Audio callback telemetry
+  callbacks:       7475 during sample
+  callback time:   avg 0.03 ms (  1.1% budget), max 3.30 ms, budget 2.67 ms
+  deadline faults: callback_over=9 gaps=1 worker_over=0
+  DSP faults:      nonfinite=0 block_mismatch=0 bypassed=1
+  AUDIO HEALTH: FAIL
+
+Scheduling checks
+  PASS audio: TID 12056, CPU 2, FIFO/70
+  IDLE worker: parallel mode is configured; activate a Dual Amp/Rig preset to create the CPU 3 thread
+
+Thermal: start 53.1 C, end 53.6 C, sampled max 53.6 C
+CPU clock range: 1500-1500 MHz
+RESULT: FAIL (1 check(s))
