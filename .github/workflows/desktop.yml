@@ -79,7 +79,7 @@ jobs:
           PYTHON
       - name: Upload startup diagnostic on failure
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: mac-startup-diagnostic
           path: mac-startup-sample.txt
@@ -96,7 +96,7 @@ jobs:
           cp "$RUNNER_TEMP/ardor-desktop-stage/Read me.txt" beta/README.txt
       - name: Upload downloadable beta
         id: beta
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ env.ARDOR_BETA_NAME }}
           path: beta/
