@@ -1,14 +1,15 @@
 {
-  "checked_on": "2026-10-09",
+  "checked_on": "2026-10-12",
   "scope": "T1 hand-assembly BOMs and accessories only; excludes M1 SMD production BOMs",
-  "audited_commit": "0c4af022026dd765e34e61d4f4fbc2dfaa6a2553",
+  "source_revision": "Compact T1.1, reviewed 12 October 2026; source_sha256 identifies exact BOM/accessory inputs",
+  "starting_commit": "4a10add88d18e5eebba28fd34ffaddf8a2e3b47d",
   "source_sha256": {
-    "expression/BOM.csv": "2d340ac8f14d97934d074b3e8978c821423deeb697fa3bffa2acf30020af1e1a",
-    "headphones/BOM.csv": "7ecd15074c9b57be9ae7bacbdd089d80e328f162e2cc6d9adb6287fe6270d7f0",
-    "line-out/BOM.csv": "abb9a10ce85d5a0916212a22a6c932d8e0e28450b089ad12d0285d8298105255",
-    "midi-in/BOM.csv": "1435fdfe6fc3e77078e1538cd430d0225a4be4f0385a7cf679f84b69d9b6ad29",
-    "mixer/BOM.csv": "c6e88661d900a6503bc73ac3b88dd3038439d291936b48ca0ff0ad57f6d07d34",
-    "expression/assembly/accessories.csv": "d98c684a3321d1501d4417b1fc65534ee9b5e883fede57c87406bda607d6babf",
+    "expression/BOM.csv": "9c4fb32be795adafbf8acb64881b6d7a1a6137cac445d2432026020ce19761ea",
+    "headphones/BOM.csv": "7f8f51415a1d2918792d091047a194829e9a52538ad19da9881a656494398453",
+    "line-out/BOM.csv": "3fc47b7d06b3d47773662190b484183367a31da2a157ca302af7c1f228b50562",
+    "midi-in/BOM.csv": "53c66f9927e7f7e79a3882ab0b0cae53b81ff6327b90c7fb08f3f57c2cc563ef",
+    "mixer/BOM.csv": "b22d4f77c523c5b7193d9231fdb22d7230a0d425cd63ba5636b72f141f88fe12",
+    "expression/assembly/accessories.csv": "8dd505b6a2a849b7b0657aa24b3303dcc2c9a0f711c4865ca683b9e0fd33e78d",
     "headphones/assembly/accessories.csv": "64e92e495a7070109cba7702471d68cb6c2c6978d0a29cc4c01297429c85ff04",
     "line-out/assembly/accessories.csv": "36d510516285e314cc85a1f4d77ffbf59e5ae9e3c776075139f6c1c2474206af",
     "midi-in/assembly/accessories.csv": "98ca7055938fb35e948fe81baef3f247a90029a02ade8b309d87b5636c8e3570",
@@ -17,18 +18,17 @@
   "component_rows": 136,
   "accessory_rows": 22,
   "component_assessments": {
-    "PCB and electrical review required": 4,
-    "PCB and supplier confirmation required": 1,
-    "PCB change required": 11,
+    "PCB and electrical review required": 2,
+    "PCB change required": 2,
     "compatible": 64,
     "compatible brand replacement": 6,
     "confirm dimensions": 24,
-    "confirm supplied identity": 4,
-    "exact part": 12,
+    "confirm supplied identity": 5,
+    "exact part": 23,
     "no verified THT replacement": 6,
     "wire link": 4
   },
-  "evidence_method": "Live Hestore product/search pages; manufacturer or module-supplier datasheets where linked. Missing listing means not found, not an assertion of discontinuation. No substitutions applied to CAD.",
+  "evidence_method": "Live Hestore product pages refreshed 12 October 2026; earlier catalog searches for remaining gaps; manufacturer/module-supplier datasheets where linked. Missing listing means not found, not discontinued. T1.1 adopts ADS1115-M, UES1H100MPM and SMDJ24CA; other proposed substitutions remain conditional.",
   "products": {
     "10000167": {
       "url": "https://www.hestore.hu/prod_10000167.html",
@@ -47,7 +47,7 @@
         "Korpusz mérete": "Ø6.3 x 11mm, Ø6.3x11mm",
         "Élettartam": "2000h",
         "Raktáron": "> 500",
-        "3 munkanap": "> 25000"
+        "3 munkanap": "> 50000"
       },
       "datasheet_urls": [
         "https://www.hestore.hu/prod_getfile.php?id=10099"
@@ -70,39 +70,11 @@
         "Hőmérsékleti tényező": "50ppm/°C",
         "Huzalkivezetés mérete": "Ø0.6 x 28mm, Ø0.6x28mm",
         "Kivezetések": "tengelyirányú",
-        "Raktáron": "> 150",
+        "Raktáron": "> 100",
         "3 munkanap": "> 4000"
       },
       "datasheet_urls": [
         "https://www.hestore.hu/prod_getfile.php?id=3592"
-      ]
-    },
-    "10022166": {
-      "url": "https://www.hestore.hu/prod_10022166.html",
-      "listing": "1,5 KE 33 CA",
-      "listing_description": "Szupresszor dióda, bipoláris, 1500W",
-      "catalog_facts": {
-        "RoHS": "igen",
-        "Gyártó": "DIOTEC, LITTELFUSE (HAMLIN)",
-        "Tokozás": "DO201",
-        "Teljesítmény": "1.5kW",
-        "Dióda típusa": "TVS",
-        "Szerelés": "THT",
-        "Tolerancia": "±5%",
-        "Max ellenfeszültség": "28.2V",
-        "Fajta csomagolás": "tekercs, szalag",
-        "Félvezető elemek tulajdonságai": "glass passivated",
-        "Félvezető struktúra": "kétirányú",
-        "Szivárgási áram": "1µA",
-        "Letörési feszültség": "33V",
-        "Impulzusáram max.": "33.3A",
-        "Csomagolás fajtája": "tekercs, szalag",
-        "Teljesítmény elosztás": "1.5kW",
-        "Raktáron": "> 50",
-        "3 munkanap": "> 350"
-      },
-      "datasheet_urls": [
-        "https://www.hestore.hu/prod_getfile.php?id=871"
       ]
     },
     "10022238": {
@@ -164,7 +136,7 @@
         "Térbeli orientáció": "egyenes",
         "Szerelőfurat átmérő": "10mm",
         "forma": "kikapcsolóval, szétkapcsoló érintkezők",
-        "Raktáron": "> 5",
+        "Raktáron": "> 50",
         "3 munkanap": "> 1000"
       },
       "datasheet_urls": [
@@ -186,8 +158,8 @@
         "Szerelőfurat átmérő": "9mm",
         "forma": "nyitott",
         "Csatlakozó fajtája": "anya",
-        "Raktáron": "> 25",
-        "3 munkanap": "> 5000"
+        "Raktáron": "> 10",
+        "3 munkanap": "> 4000"
       },
       "datasheet_urls": []
     },
@@ -216,7 +188,7 @@
         "Max. vezetési feszültség": "1V",
         "Csomagolás fajtája": "tekercs, szalag, Ammo Pack",
         "Teljesítmény elosztás": "500mW",
-        "Raktáron": "> 10000",
+        "Raktáron": "> 7500",
         "3 munkanap": "> 100000",
         "10-15 munkanap": "> 100000"
       },
@@ -260,9 +232,9 @@
         "Sorok közötti raszter": "7.62mm",
         "IC foglalat típusa": "DIP",
         "Foglalatok tulajdonságai": "kétoldalról szorító lemez",
-        "Raktáron": "> 1000",
+        "Raktáron": "> 500",
         "3 munkanap": "> 100000",
-        "10-15 munkanap": "> 100000"
+        "10-15 munkanap": "> 50000"
       },
       "datasheet_urls": [
         "https://www.hestore.hu/prod_getfile.php?id=3993"
@@ -298,7 +270,7 @@
         "Hőmérsékleti tényező": "50ppm/°C",
         "Huzalkivezetés mérete": "Ø0.45 x 28mm, Ø0.45x28mm",
         "Kivezetések": "tengelyirányú",
-        "Raktáron": "> 150",
+        "Raktáron": "> 25",
         "3 munkanap": "> 5000"
       },
       "datasheet_urls": []
@@ -358,7 +330,7 @@
         "Szerelés": "THT",
         "Tolerancia": "±1%",
         "Ellenállás típusa": "metal film",
-        "Raktáron": "> 75",
+        "Raktáron": "> 50",
         "3 munkanap": "> 100"
       },
       "datasheet_urls": []
@@ -528,6 +500,37 @@
         "https://www.hestore.hu/prod_getfile.php?id=4261"
       ]
     },
+    "10028054": {
+      "url": "https://www.hestore.hu/prod_10028054.html",
+      "listing": "ZL262-10SG",
+      "listing_description": "Tüskesor aljzat, egyenes, 2.54mm, 10pin",
+      "catalog_facts": {
+        "RoHS": "igen",
+        "Gyártó": "NINIGI, CONNFLY",
+        "Tipus": "aljzat",
+        "Csatlakozó": "aljzat",
+        "Pólus": "10",
+        "Orientáció": "egyenes",
+        "Csatlakozó típusa": "tüskés",
+        "Csatlakozó fajta": "anya",
+        "Pinek száma": "10",
+        "Elektromos szerelés": "THT",
+        "Térbeli orientáció": "egyenes",
+        "Érintkező raszter": "2.54mm",
+        "Csatlakozó kivezetésrendszer": "1x10",
+        "Érintkező bevonata": "aranyozott",
+        "Huzalkivezetés mérete": "hossz 3.2mm",
+        "Maximális áram": "3A",
+        "Magasság": "8.5mm",
+        "Csatlakozó fajtája": "anya",
+        "Raktáron": "> 450",
+        "3 munkanap": "> 50000",
+        "10-15 munkanap": "> 20000"
+      },
+      "datasheet_urls": [
+        "https://www.hestore.hu/prod_getfile.php?id=3270"
+      ]
+    },
     "10028058": {
       "url": "https://www.hestore.hu/prod_10028058.html",
       "listing": "ZL262-40SG",
@@ -578,41 +581,12 @@
         "Élettartam": "7000h",
         "A kondenzátor tulajdonságai": "hosszú élettartam",
         "Fajta kondenzátor": "alacsony impendanciájú",
-        "Raktáron": "> 200",
+        "Raktáron": "> 150",
         "3 munkanap": "> 5000"
       },
       "datasheet_urls": [
         "https://www.hestore.hu/prod_getfile.php?id=23888"
       ]
-    },
-    "10029494": {
-      "url": "https://www.hestore.hu/prod_10029494.html",
-      "listing": "ZL262-6SG",
-      "listing_description": "Tüskesor aljzat, egyenes, 6 pin",
-      "catalog_facts": {
-        "RoHS": "igen",
-        "Gyártó": "NINIGI, CONNFLY",
-        "Tipus": "aljzat",
-        "Csatlakozó": "aljzat",
-        "Pólus": "6",
-        "Orientáció": "egyenes",
-        "Csatlakozó típusa": "tüskés",
-        "Csatlakozó fajta": "anya",
-        "Pinek száma": "6",
-        "Elektromos szerelés": "THT",
-        "Térbeli orientáció": "egyenes",
-        "Érintkező raszter": "2.54mm",
-        "Csatlakozó kivezetésrendszer": "1x6",
-        "Érintkező bevonata": "aranyozott",
-        "Huzalkivezetés mérete": "hossz 3.2mm",
-        "Maximális áram": "3A",
-        "Magasság": "8.5mm",
-        "Csatlakozó fajtája": "anya",
-        "Raktáron": "> 500",
-        "3 munkanap": "> 50000",
-        "10-15 munkanap": "> 100000"
-      },
-      "datasheet_urls": []
     },
     "10029601": {
       "url": "https://www.hestore.hu/prod_10029601.html",
@@ -714,7 +688,7 @@
         "Érintkezők AC terhelhetősége @R": "0.5A / 125V AC",
         "Hangszóró mérete": "PCB",
         "Raktáron": "> 15",
-        "3 munkanap": "> 7500"
+        "3 munkanap": "> 5000"
       },
       "datasheet_urls": [
         "https://www.hestore.hu/prod_getfile.php?id=7572"
@@ -803,8 +777,8 @@
         "Erősítés": "110dB",
         "Nyugalmi áramfelvétel": "1.35mA",
         "Bemeneti offszet feszültség": "250µV",
-        "Raktáron": "> 5",
-        "3 munkanap": "> 5000",
+        "Raktáron": "> 1",
+        "3 munkanap": "> 4000",
         "10-15 munkanap": "> 200"
       },
       "datasheet_urls": []
@@ -851,8 +825,8 @@
         "Kollektoráram": "200mA",
         "Csomagolás fajtája": "Ammo Pack",
         "Teljesítmény elosztás": "625mW",
-        "Raktáron": "> 20",
-        "10-15 munkanap": "> 10000"
+        "Beérkezés alatt": "> 200",
+        "10-15 munkanap": "> 15000"
       },
       "datasheet_urls": [
         "https://www.hestore.hu/prod_getfile.php?id=14196"
@@ -900,7 +874,7 @@
         "Interfész": "I2C",
         "Bemenetek száma": "4 single-ended, 2 differential",
         "Tápfeszültség tartomány": "2...5.5V",
-        "Raktáron": "> 450",
+        "Raktáron": "> 350",
         "10-15 munkanap": "> 2000"
       },
       "datasheet_urls": [
@@ -1119,45 +1093,6 @@
       },
       "datasheet_urls": [
         "https://www.hestore.hu/prod_getfile.php?id=16974"
-      ]
-    },
-    "10046691": {
-      "url": "https://www.hestore.hu/prod_10046691.html",
-      "listing": "ECEA1EN220XI",
-      "listing_description": "Kondenzátor, elektrolit, bipoláris, 22µF, 25V DC, Ø5x11mm, 2.5mm",
-      "catalog_facts": {
-        "Gyártói jelölés": "ECEA1EN220XI",
-        "RoHS": "igen",
-        "Gyártó": "PANASONIC",
-        "Széria": "SU",
-        "Szerelés": "THT",
-        "Tolerancia": "±20%",
-        "A kondenzátor típusa": "elektrolit",
-        "Kapacitás": "22µF",
-        "Üzemi feszültség": "25V DC",
-        "Kivezetési raszter": "2.5mm",
-        "Üzemi hőmérséklet": "-40...85°C",
-        "Korpusz mérete": "Ø5x11mm",
-        "Élettartam": "2000h",
-        "Üzemi áram": "60mA",
-        "Fajta kondenzátor": "bipoláris",
-        "Raktáron": "> 10",
-        "3 munkanap": "> 25"
-      },
-      "datasheet_urls": [
-        "https://www.hestore.hu/prod_getfile.php?id=17529"
-      ]
-    },
-    "10051676": {
-      "url": "https://www.hestore.hu/prod_10051676.html",
-      "listing": "ADS1115-M2MINI",
-      "listing_description": "ADS1115 alapú, I2C-s 16 bites ADC modul, programozható erősítővel, 4 csatornás, 2.0V-5.5V",
-      "catalog_facts": {
-        "Raktáron": "> 100",
-        "10-15 munkanap": "> 2000"
-      },
-      "datasheet_urls": [
-        "https://www.hestore.hu/prod_getfile.php?id=23840"
       ]
     },
     "10051822": {

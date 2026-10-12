@@ -212,9 +212,7 @@
     }
   },
   "unused_pins": {
-    "U301.2": "UNUSED ALERT - LEAVE OPEN",
-    "U301.11": "BREAKOUT AVDD - LEAVE OPEN",
-    "U301.12": "BREAKOUT AGND - LEAVE OPEN"
+    "U301.2": "UNUSED ALERT - LEAVE OPEN"
   },
   "mounting_holes": "H1/H2 are M2 mounting holes, not electrical connections. Small vias are not user connectors."
 }

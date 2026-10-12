@@ -2,190 +2,217 @@
   {
     "reference": "C101",
     "position_mm": [
-      89.0,
-      55.1
-    ]
+      83.5,
+      53.1
+    ],
+    "angle_degrees": 90
   },
   {
     "reference": "C102",
     "position_mm": [
-      98.0,
-      57.0
-    ]
+      85.48,
+      63.0
+    ],
+    "angle_degrees": 90
   },
   {
     "reference": "C401",
     "position_mm": [
-      70.0,
-      95.1
-    ]
+      62.0,
+      68.475
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "C403",
     "position_mm": [
       85.0,
-      110.1
-    ]
+      81.58
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "C404",
     "position_mm": [
-      82.5,
-      69.5
-    ]
+      77.0,
+      60.48
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "C501",
     "position_mm": [
-      112.5,
-      75.1
-    ]
+      95.0,
+      61.5795
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "C502",
     "position_mm": [
-      105.0,
-      117.6
-    ]
+      63.0,
+      85.475
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "D501",
     "position_mm": [
-      147.5,
-      98.0
-    ]
+      105.0,
+      86.925
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "D502",
     "position_mm": [
-      130.0,
-      97.38
-    ]
+      108.0,
+      76.73
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "FB101",
     "position_mm": [
-      72.0,
-      55.0
-    ]
+      58.0,
+      52.0
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "J101",
     "position_mm": [
-      57.5,
-      66.58
-    ]
+      53.0,
+      54.58
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "J102",
     "position_mm": [
-      57.5,
-      95.35
-    ]
+      53.0,
+      70.1995
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "J502",
     "position_mm": [
-      155.0,
-      110.35
-    ]
+      117.0,
+      92.67
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "J503",
     "position_mm": [
-      155.0,
-      87.85
-    ]
+      117.0,
+      77.155
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "K501",
     "position_mm": [
-      137.46,
-      64.72
-    ]
+      108.96,
+      58.2565
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "Q501",
     "position_mm": [
-      120.0,
-      108.44
-    ]
+      96.0,
+      79.1941
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R101",
     "position_mm": [
-      132.5,
-      109.63
-    ]
+      105.0,
+      95.48
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R401",
     "position_mm": [
-      72.5,
-      107.13
-    ]
+      67.485,
+      79.63
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R405",
     "position_mm": [
-      95.0,
-      102.13
-    ]
+      74.0,
+      82.478
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R406",
     "position_mm": [
-      95.0,
-      109.63
-    ]
+      86.0,
+      76.44
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R501",
     "position_mm": [
-      110.0,
-      94.63
-    ]
+      95.0,
+      72.475
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R502",
     "position_mm": [
-      117.5,
-      64.63
-    ]
+      96.0,
+      53.13
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R503",
     "position_mm": [
-      95.0,
-      119.63
-    ]
+      58.925,
+      85.475
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R504",
     "position_mm": [
-      107.5,
-      109.63
-    ]
+      88.0,
+      94.435
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R505",
     "position_mm": [
-      120.0,
-      122.13
-    ]
+      74.0,
+      95.48
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "R506",
     "position_mm": [
-      142.5,
-      114.63
-    ]
+      74.0,
+      88.4625
+    ],
+    "angle_degrees": 0
   },
   {
     "reference": "U501",
     "position_mm": [
-      85.0,
-      80.86
-    ]
+      72.5,
+      63.36
+    ],
+    "angle_degrees": 90
   }
 ]

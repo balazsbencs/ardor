@@ -42,13 +42,23 @@ fps={f.GetReference():f for f in b.GetFootprints()}
 refs=sorted(guide['ports'],key=lambda r:(r!='JP301',r))
 for ref in refs:
     f=fps[ref];pads=sorted([a for a in f.Pads() if a.GetNumber()],key=lambda a:int(a.GetNumber()));xs=[p.ToMM(a.GetPosition().x) for a in pads];xmid=(min(xs)+max(xs))/2
+    ys=[p.ToMM(a.GetPosition().y) for a in pads]
     for a in pads:
         x,y=p.ToMM(a.GetPosition().x),p.ToMM(a.GetPosition().y);direction=(-1 if x<xmid else 1) if max(xs)-min(xs)>1 else (1 if xmid<50+w/2 else -1)
         candidates=[(x+direction*d,y+dy) for dy in [0,-.25,.25,-.5,.5] for d in [1.7,1.9,2.1,2.3]]
         candidates += [(x-direction*d,y) for d in [1.7,1.9,2.1,2.3]]
+        if max(ys)-min(ys)<1 and max(xs)-min(xs)>1:
+            # Rotated one-row headers need markers above/below the pads;
+            # left/right markers would fall on the adjacent terminal.
+            vertical=1 if y<50+h/2 else -1
+            candidates=[(x+dx,y+vertical*d) for dx in [0,-.25,.25,-.5,.5]
+                        for d in [1.7,1.9,2.1,2.3]]
+            candidates += [(x,y-vertical*d) for d in [1.7,1.9,2.1,2.3]]
         name=ref+'.'+a.GetNumber();numbers[name]=label(a.GetNumber(),candidates,meta={'pin_number_for':name})
     ys=[p.ToMM(a.GetPosition().y) for a in pads]
     candidates=[(xmid+dx,y) for y in [min(ys)-2.5,max(ys)+2.5,min(ys)-3.5,max(ys)+3.5] for dx in [0,-2,2,-4,4]]
+    candidates += [(xmid+dx,(min(ys)+max(ys))/2+dy)
+                   for dx in [-3.5,3.5,-4.5,4.5,-5.5,5.5] for dy in [0,-1.5,1.5]]
     label(ref,candidates,meta={'connector_reference':ref})
 # Reserve the module identity near an edge, then fit complete referenced pin maps.
 title={'midi-in':'ARDOR MIDI T1','expression':'ARDOR EXPR T1','mixer':'ARDOR MIX T1','line-out':'ARDOR LINE T1','headphones':'ARDOR HP T1'}[folder.name]

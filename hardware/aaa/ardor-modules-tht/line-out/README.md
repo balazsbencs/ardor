@@ -1,10 +1,10 @@
 # Mono line output / relay mute / internal amp feed / HAND ASSEMBLY
 
-T1 hand-assembly PCB: 115 × 85 mm. **Unbuilt engineering prototype.**
+T1.1 compact hand-assembly PCB: 70 × 50 mm. **Unbuilt engineering prototype.**
 
 [KiCad project](Ardor_Line_Out_THT.kicad_pro) · [Manual BOM](BOM.csv) · [Schematic](review/schematic.pdf) · [Bare-board Gerbers](assembly/Ardor_Line_Out_THT-Gerbers.zip)
 
-Supply 5 V / 50 mA. Fit MCP6022-I/P, **onsemi 2N3904BU** (E1/B2/C3), and **Omron G5V-1 DC5**. The 470 Ω base resistor means LINE_ENABLE draws approximately 5 mA from a 3.3 V HIGH; confirm the host GPIO can source this current. Fit a banded 1N4148 flyback diode, cathode toward +5 V. C501 is polarized: its positive end goes toward the audio buffer. C401/C502 are bipolar.
+Supply 5 V / 50 mA. Fit MCP6022-I/P, **onsemi 2N3904BU** (E1/B2/C3), and **Omron G5V-1 DC5**. The 470 Ω base resistor means LINE_ENABLE draws approximately 5 mA from a 3.3 V HIGH; confirm the host GPIO can source this current. Fit a banded 1N4148 flyback diode, cathode toward +5 V. C501 is polarized: its positive end goes toward the audio buffer. C401/C502 are **Nichicon UES1H100MPM, 10 µF / 50 V bipolar**, with 3.5 mm lead pitch, maximum 8.5 mm diameter and 12.5 mm height. Either orientation is valid for those two parts.
 
 The mono input limit is 1 Vrms. The line output requires at least 10 kΩ load; the internal AMP_FEED requires at least 100 kΩ. J502 carries a signal for an external amplifier; it cannot drive a speaker. Relay OFF grounds the panel tip and disconnects the source. Relay ON connects the AC-coupled line signal. This is a mute, not true bypass. The internal amp feed is not relay-muted.
 
@@ -47,7 +47,7 @@ Audio signal only. Never connect a speaker here.
 
 ## Assembly and files
 
-Fit low-profile axial parts first, then sockets/headers and radial capacitors. Match diode bands, electrolytic polarity and IC notches to the PCB. Install the ICs or ADC breakout last. H1/H2 are 2.2 mm nonplated M2 mounting holes, not electrical terminals. Check enclosure clearance and capacitor/socket height: these boards are larger than M1.
+Fit low-profile axial parts first, then sockets/headers and radial capacitors. Match diode bands, electrolytic polarity and IC notches to the PCB. Install the ICs or ADC breakout last. H1/H2 are 2.2 mm nonplated M2 mounting holes, not electrical terminals. Check enclosure clearance and capacitor/socket height. T1.1 compacts the layouts; hole positions differ from T1 and M1.
 
 Use the manual BOM and the bare-board Gerber/drill ZIP. There is no SMT assembly order. Front silkscreen shows component references; the front fabrication drawing shows package outlines and orientation; use the BOM for values. Back silk includes port functions and pin numbers. Native checks and package manifests are under `verification/`; they do not replace prototype measurements.
 

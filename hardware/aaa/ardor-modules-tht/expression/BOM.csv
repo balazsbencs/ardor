@@ -12,7 +12,7 @@ R303,1MR / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizont
 C301,100n / 50V X7R,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,"100nF 50V X7R radial, 5mm lead pitch",THT manual
 R304,10kR / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 10kΩ 1% 0.25W,THT manual
 C302,100n / 50V X7R,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,"100nF 50V X7R radial, 5mm lead pitch",THT manual
-U301,Adafruit 1085 ADS1115 QT,Ardor_THT:Adafruit_ADS1115_1085_STEMMA_QT,Adafruit 1085 (STEMMA QT revision),Preassembled module; THT sockets
+U301,ADS1115-M,Ardor_THT:ADS1115_M_HESTORE_10041798,ADS1115-M (HESTORE 100.417.98),Preassembled module; THT sockets
 C303,100n / 50V X7R,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,"100nF 50V X7R radial, 5mm lead pitch",THT manual
 R307,2.2kR / 1% 0.25W,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,Axial metal film 2.2kΩ 1% 0.25W,THT manual
 D303,BAT85S,Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal,Vishay BAT85S-TAP,THT manual

@@ -8,7 +8,14 @@
   "manual_parts": 28,
   "all_manual_parts_have_front_references": true,
   "hestore_1_5ke6_8ca_references": [],
-  "retained_sa24ca_references": [],
+  "hestore_smdj24ca_references": [],
+  "hestore_ues1h100mpm_references": [
+    "C401",
+    "C402",
+    "C407",
+    "C408",
+    "C409"
+  ],
   "host_and_panel_pinout_matches_m1": true,
   "preassembled_smd_module": null,
   "breakout_contains_smd": false,

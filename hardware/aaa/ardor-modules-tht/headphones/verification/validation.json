@@ -6,8 +6,8 @@
   "electrical_footprints": 34,
   "mounting_holes": 2,
   "board_size_mm": [
-    96.0,
-    84.0
+    76.0,
+    58.0
   ],
   "functional_nets": 22,
   "routed_nets": 21,

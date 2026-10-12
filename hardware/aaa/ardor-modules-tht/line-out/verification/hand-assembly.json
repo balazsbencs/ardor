@@ -10,7 +10,11 @@
   "hestore_1_5ke6_8ca_references": [
     "D501"
   ],
-  "retained_sa24ca_references": [],
+  "hestore_smdj24ca_references": [],
+  "hestore_ues1h100mpm_references": [
+    "C401",
+    "C502"
+  ],
   "host_and_panel_pinout_matches_m1": true,
   "preassembled_smd_module": null,
   "breakout_contains_smd": false,

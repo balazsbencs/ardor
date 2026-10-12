@@ -4,111 +4,111 @@
     {
       "text": "1",
       "position_mm": [
-        103.3,
-        58.73
+        54.7,
+        55.73
       ],
       "pin_number_for": "J101.1"
     },
     {
       "text": "2",
       "position_mm": [
-        103.3,
-        61.27
+        54.7,
+        58.27
       ],
       "pin_number_for": "J101.2"
     },
     {
       "text": "J101",
       "position_mm": [
-        105.0,
-        56.23
+        53.0,
+        53.23
       ],
       "connector_reference": "J101"
     },
     {
       "text": "1",
       "position_mm": [
-        59.2,
-        77.46
+        54.7,
+        69.46
       ],
       "pin_number_for": "J102.1"
     },
     {
       "text": "2",
       "position_mm": [
-        59.2,
-        80.0
+        54.7,
+        72.0
       ],
       "pin_number_for": "J102.2"
     },
     {
       "text": "3",
       "position_mm": [
-        59.2,
-        82.54
+        54.7,
+        74.54
       ],
       "pin_number_for": "J102.3"
     },
     {
       "text": "J102",
       "position_mm": [
-        57.5,
-        74.96
+        53.0,
+        66.96
       ],
       "connector_reference": "J102"
     },
     {
       "text": "1",
       "position_mm": [
-        138.3,
-        81.19
+        104.69,
+        92.1
       ],
       "pin_number_for": "J103.1"
     },
     {
       "text": "2",
       "position_mm": [
-        138.3,
-        83.73
+        107.23,
+        92.1
       ],
       "pin_number_for": "J103.2"
     },
     {
       "text": "3",
       "position_mm": [
-        138.3,
-        86.27
+        109.77,
+        92.1
       ],
       "pin_number_for": "J103.3"
     },
     {
       "text": "4",
       "position_mm": [
-        138.3,
-        88.81
+        112.31,
+        92.1
       ],
       "pin_number_for": "J103.4"
     },
     {
       "text": "J103",
       "position_mm": [
-        140.0,
-        78.69
+        106.5,
+        96.5
       ],
       "connector_reference": "J103"
     },
     {
       "text": "ARDOR MIX T1",
       "position_mm": [
-        100.0,
-        123.3
+        85.0,
+        51.8
       ]
     },
     {
       "text": "J103 AUDIO OUT\n1 LEFT OUT  2 GND 0V\n3 RIGHT OUT  4 MONO OUT",
       "position_mm": [
-        129.0,
-        85.0
+        95.5,
+        84.0
       ],
       "pin_map_for": "J103",
       "described_pins": [
@@ -122,8 +122,8 @@
     {
       "text": "J102 AUDIO IN\n1 LEFT IN  2 GND 0V\n3 RIGHT IN",
       "position_mm": [
-        67.0,
-        81.0
+        62.5,
+        75.5
       ],
       "pin_map_for": "J102",
       "described_pins": [
@@ -136,8 +136,8 @@
     {
       "text": "J101 POWER IN\n1 5V IN  2 GND 0V",
       "position_mm": [
-        96.5,
-        57.5
+        61.5,
+        54.0
       ],
       "pin_map_for": "J101",
       "described_pins": [
@@ -149,15 +149,15 @@
     {
       "text": "IN=INTO",
       "position_mm": [
-        100.0,
-        87.5
+        85.0,
+        75.0
       ]
     },
     {
       "text": "OUT=FROM",
       "position_mm": [
-        100.0,
-        85.5
+        85.5,
+        71.0
       ]
     }
   ],
@@ -165,72 +165,72 @@
     "J101.1": {
       "text": "1",
       "position_mm": [
-        103.3,
-        58.73
+        54.7,
+        55.73
       ],
       "pin_number_for": "J101.1"
     },
     "J101.2": {
       "text": "2",
       "position_mm": [
-        103.3,
-        61.27
+        54.7,
+        58.27
       ],
       "pin_number_for": "J101.2"
     },
     "J102.1": {
       "text": "1",
       "position_mm": [
-        59.2,
-        77.46
+        54.7,
+        69.46
       ],
       "pin_number_for": "J102.1"
     },
     "J102.2": {
       "text": "2",
       "position_mm": [
-        59.2,
-        80.0
+        54.7,
+        72.0
       ],
       "pin_number_for": "J102.2"
     },
     "J102.3": {
       "text": "3",
       "position_mm": [
-        59.2,
-        82.54
+        54.7,
+        74.54
       ],
       "pin_number_for": "J102.3"
     },
     "J103.1": {
       "text": "1",
       "position_mm": [
-        138.3,
-        81.19
+        104.69,
+        92.1
       ],
       "pin_number_for": "J103.1"
     },
     "J103.2": {
       "text": "2",
       "position_mm": [
-        138.3,
-        83.73
+        107.23,
+        92.1
       ],
       "pin_number_for": "J103.2"
     },
     "J103.3": {
       "text": "3",
       "position_mm": [
-        138.3,
-        86.27
+        109.77,
+        92.1
       ],
       "pin_number_for": "J103.3"
     },
     "J103.4": {
       "text": "4",
       "position_mm": [
-        138.3,
-        88.81
+        112.31,
+        92.1
       ],
       "pin_number_for": "J103.4"
     }
@@ -239,8 +239,8 @@
     "J103": {
       "text": "J103 AUDIO OUT\n1 LEFT OUT  2 GND 0V\n3 RIGHT OUT  4 MONO OUT",
       "position_mm": [
-        129.0,
-        85.0
+        95.5,
+        84.0
       ],
       "pin_map_for": "J103",
       "described_pins": [
@@ -254,8 +254,8 @@
     "J102": {
       "text": "J102 AUDIO IN\n1 LEFT IN  2 GND 0V\n3 RIGHT IN",
       "position_mm": [
-        67.0,
-        81.0
+        62.5,
+        75.5
       ],
       "pin_map_for": "J102",
       "described_pins": [
@@ -268,8 +268,8 @@
     "J101": {
       "text": "J101 POWER IN\n1 5V IN  2 GND 0V",
       "position_mm": [
-        96.5,
-        57.5
+        61.5,
+        54.0
       ],
       "pin_map_for": "J101",
       "described_pins": [

@@ -6,15 +6,15 @@
   "electrical_footprints": 28,
   "mounting_holes": 2,
   "board_size_mm": [
-    100.0,
-    75.0
+    70.0,
+    48.0
   ],
   "functional_nets": 19,
   "routed_nets": 18,
   "signal_and_supply_width_mm": 0.2,
   "chassis_width_mm": 0.6,
   "ground_tracks": 0,
-  "vias": 0,
+  "vias": 1,
   "erc_violations": 0,
   "drc_violations": 0,
   "unconnected_items": 0,

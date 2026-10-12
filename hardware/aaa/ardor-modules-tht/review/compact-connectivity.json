@@ -1,0 +1,39 @@
+{
+  "result": "PASS",
+  "comparison_commit": "4a10add88d18e5eebba28fd34ffaddf8a2e3b47d",
+  "modules": {
+    "midi-in": {
+      "result": "PASS",
+      "retained_pin_net_partitions_identical": true,
+      "removed_adaptor_only_pins": [],
+      "net_partitions": 12
+    },
+    "expression": {
+      "result": "PASS",
+      "retained_pin_net_partitions_identical": true,
+      "removed_adaptor_only_pins": [
+        "U301.11",
+        "U301.12"
+      ],
+      "net_partitions": 18
+    },
+    "mixer": {
+      "result": "PASS",
+      "retained_pin_net_partitions_identical": true,
+      "removed_adaptor_only_pins": [],
+      "net_partitions": 19
+    },
+    "line-out": {
+      "result": "PASS",
+      "retained_pin_net_partitions_identical": true,
+      "removed_adaptor_only_pins": [],
+      "net_partitions": 17
+    },
+    "headphones": {
+      "result": "PASS",
+      "retained_pin_net_partitions_identical": true,
+      "removed_adaptor_only_pins": [],
+      "net_partitions": 22
+    }
+  }
+}

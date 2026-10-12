@@ -1,0 +1,20 @@
+{
+  "result": "PASS",
+  "previous_size_mm": [
+    96,
+    84
+  ],
+  "size_mm": [
+    76,
+    58
+  ],
+  "previous_area_mm2": 8064,
+  "area_mm2": 4408,
+  "area_reduction_percent": 45.34,
+  "embedded_courtyards_checked": 36,
+  "courtyard_overlaps": 0,
+  "courtyards_inside_outline_with_0_25mm_margin": true,
+  "minimum_courtyard_gap_mm": 0.4588,
+  "assembly_courtyard_area_fraction": 0.3733,
+  "hardware_tested": false
+}

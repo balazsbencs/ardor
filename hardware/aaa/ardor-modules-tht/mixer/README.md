@@ -1,10 +1,10 @@
 # Stereo buffer / mono average / AC outputs / HAND ASSEMBLY
 
-T1 hand-assembly PCB: 100 × 75 mm. **Unbuilt engineering prototype.**
+T1.1 compact hand-assembly PCB: 70 × 48 mm. **Unbuilt engineering prototype.**
 
 [KiCad project](Ardor_Mixer_THT.kicad_pro) · [Manual BOM](BOM.csv) · [Schematic](review/schematic.pdf) · [Bare-board Gerbers](assembly/Ardor_Mixer_THT-Gerbers.zip)
 
-Supply 5 V / 10 mA. Fit **MCP6022-I/P** DIP-8 amplifiers; TLV9002 SOIC parts from M1 do not fit. Use bipolar 10 µF coupling capacitors C401/C402/C407/C408/C409. C101 and C403 are ordinary polarized radial capacitors, positive on pad 1.
+Supply 5 V / 10 mA. Fit **MCP6022-I/P** DIP-8 amplifiers; TLV9002 SOIC parts from M1 do not fit. Use **Nichicon UES1H100MPM, 10 µF / 50 V bipolar**, for C401/C402/C407/C408/C409. The 3.5 mm-pitch footprints reserve the manufacturer's maximum 8.5 mm body diameter; maximum can height is 12.5 mm. Either orientation is valid. C101 and C403 are ordinary polarized radial capacitors, positive on pad 1.
 
 Inputs are line-level, no greater than 1 Vrms per channel. Outputs drive loads of at least 10 kΩ. OUT_MONO is `(LEFT + RIGHT) / 2`; all three outputs are AC-coupled. Feeding only one channel gives half its amplitude at the mono output. Feed both channels for a full-level mono source. The board is not an instrument preamp or headphone amplifier.
 
@@ -40,7 +40,7 @@ Directions are relative to this board. Standard header square pads identify pin 
 
 ## Assembly and files
 
-Fit low-profile axial parts first, then sockets/headers and radial capacitors. Match diode bands, electrolytic polarity and IC notches to the PCB. Install the ICs or ADC breakout last. H1/H2 are 2.2 mm nonplated M2 mounting holes, not electrical terminals. Check enclosure clearance and capacitor/socket height: these boards are larger than M1.
+Fit low-profile axial parts first, then sockets/headers and radial capacitors. Match diode bands, electrolytic polarity and IC notches to the PCB. Install the ICs or ADC breakout last. H1/H2 are 2.2 mm nonplated M2 mounting holes, not electrical terminals. Check enclosure clearance and capacitor/socket height. T1.1 compacts the layouts; hole positions differ from T1 and M1.
 
 Use the manual BOM and the bare-board Gerber/drill ZIP. There is no SMT assembly order. Front silkscreen shows component references; the front fabrication drawing shows package outlines and orientation; use the BOM for values. Back silk includes port functions and pin numbers. Native checks and package manifests are under `verification/`; they do not replace prototype measurements.
 

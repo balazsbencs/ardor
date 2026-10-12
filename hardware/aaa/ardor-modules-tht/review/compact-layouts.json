@@ -1,0 +1,109 @@
+{
+  "result": "PASS",
+  "reviewed_revision": "T1.1",
+  "modules": {
+    "midi-in": {
+      "result": "PASS",
+      "previous_size_mm": [
+        85,
+        70
+      ],
+      "size_mm": [
+        58,
+        42
+      ],
+      "previous_area_mm2": 5950,
+      "area_mm2": 2436,
+      "area_reduction_percent": 59.06,
+      "embedded_courtyards_checked": 20,
+      "courtyard_overlaps": 0,
+      "courtyards_inside_outline_with_0_25mm_margin": true,
+      "minimum_courtyard_gap_mm": 0.45,
+      "assembly_courtyard_area_fraction": 0.401,
+      "hardware_tested": false
+    },
+    "expression": {
+      "result": "PASS",
+      "previous_size_mm": [
+        110,
+        85
+      ],
+      "size_mm": [
+        72,
+        50
+      ],
+      "previous_area_mm2": 9350,
+      "area_mm2": 3600,
+      "area_reduction_percent": 61.5,
+      "embedded_courtyards_checked": 31,
+      "courtyard_overlaps": 0,
+      "courtyards_inside_outline_with_0_25mm_margin": true,
+      "minimum_courtyard_gap_mm": 0.11,
+      "assembly_courtyard_area_fraction": 0.4682,
+      "hardware_tested": false
+    },
+    "mixer": {
+      "result": "PASS",
+      "previous_size_mm": [
+        100,
+        75
+      ],
+      "size_mm": [
+        70,
+        48
+      ],
+      "previous_area_mm2": 7500,
+      "area_mm2": 3360,
+      "area_reduction_percent": 55.2,
+      "embedded_courtyards_checked": 30,
+      "courtyard_overlaps": 0,
+      "courtyards_inside_outline_with_0_25mm_margin": true,
+      "minimum_courtyard_gap_mm": 0.2225,
+      "assembly_courtyard_area_fraction": 0.4119,
+      "hardware_tested": false
+    },
+    "line-out": {
+      "result": "PASS",
+      "previous_size_mm": [
+        115,
+        85
+      ],
+      "size_mm": [
+        70,
+        50
+      ],
+      "previous_area_mm2": 9775,
+      "area_mm2": 3500,
+      "area_reduction_percent": 64.19,
+      "embedded_courtyards_checked": 29,
+      "courtyard_overlaps": 0,
+      "courtyards_inside_outline_with_0_25mm_margin": true,
+      "minimum_courtyard_gap_mm": 0.01,
+      "assembly_courtyard_area_fraction": 0.3698,
+      "hardware_tested": false
+    },
+    "headphones": {
+      "result": "PASS",
+      "previous_size_mm": [
+        96,
+        84
+      ],
+      "size_mm": [
+        76,
+        58
+      ],
+      "previous_area_mm2": 8064,
+      "area_mm2": 4408,
+      "area_reduction_percent": 45.34,
+      "embedded_courtyards_checked": 36,
+      "courtyard_overlaps": 0,
+      "courtyards_inside_outline_with_0_25mm_margin": true,
+      "minimum_courtyard_gap_mm": 0.4588,
+      "assembly_courtyard_area_fraction": 0.3733,
+      "hardware_tested": false
+    }
+  },
+  "total_previous_area_mm2": 40639,
+  "total_area_mm2": 17304,
+  "hardware_tested": false
+}

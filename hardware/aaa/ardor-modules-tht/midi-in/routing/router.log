@@ -1,25 +1,25 @@
-2026-10-09 12:28:20.873 INFO   Freerouting v2.1.0 (build-date: 2025-04-12)
-2026-10-09 12:28:20.973 WARN   No default constructor found for field: currentLocale
-2026-10-09 12:28:20.974 INFO   Settings were loaded from freerouting.json
-2026-10-09 12:28:22.437 INFO   [299769\2E03C9] Job '299769\2E03C9' started at 2026-10-09T12:28:22.437464367Z
-2026-10-09 12:28:23.496 INFO   New version available: v2.5.0
-2026-10-09 12:28:24.767 INFO   [299769\2E03C9] Auto-router pass #1 on board '1346edd986924e95daea2d54f5ef26aa' was completed in 1.77 seconds with the score of 980.41, using 1.03 CPU seconds and 151 MB memory.
-2026-10-09 12:28:24.873 INFO   [299769\2E03C9] Auto-router pass #2 on board '8aad698ca08f172cda7c5994ce340a71' was completed in 0.03 seconds with the score of 980.41, using 1.03 CPU seconds and 151 MB memory.
+2026-10-12 12:57:56.500 INFO   Freerouting v2.1.0 (build-date: 2025-04-12)
+2026-10-12 12:57:56.570 WARN   No default constructor found for field: currentLocale
+2026-10-12 12:57:56.571 INFO   Settings were loaded from freerouting.json
+2026-10-12 12:57:57.870 INFO   [A2B6CE\958F14] Job 'A2B6CE\958F14' started at 2026-10-12T12:57:57.869862421Z
+2026-10-12 12:57:58.452 INFO   New version available: v2.5.0
+2026-10-12 12:57:59.394 INFO   [A2B6CE\958F14] Auto-router pass #1 on board 'c3a81ee4bd5f160c3928de57a4d4c3b1' was completed in 1.24 seconds with the score of 987.19, using 0.48 CPU seconds and 90 MB memory.
+2026-10-12 12:57:59.488 INFO   [A2B6CE\958F14] Auto-router pass #2 on board '68e16fdc6d4b693b8d1f6ef4538a3639' was completed in 0.01 seconds with the score of 987.19, using 0.48 CPU seconds and 90 MB memory.
 {
   "host": "KiCad's Pcbnew,9.0.2+dfsg-1",
   "unit": "mm",
   "board": {
     "bounding_box": {
-      "x": 1351.0,
+      "x": 1081.0,
       "y": -499.0,
       "width": 499.0,
-      "height": -1201.0
+      "height": -921.0
     },
     "size": {
       "x": 0.0,
       "y": 0.0,
-      "width": 852.0,
-      "height": 702.0
+      "width": 582.0,
+      "height": 422.0
     }
   },
   "layers": {
@@ -27,13 +27,13 @@
     "signal_count": 2
   },
   "items": {
-    "total_count": 262,
-    "trace_count": 35,
+    "total_count": 245,
+    "trace_count": 34,
     "via_count": 0,
     "conduction_area_count": 2,
     "drill_item_count": 42,
     "pin_count": 0,
-    "component_count": 178,
+    "component_count": 162,
     "other_count": 5
   },
   "components": {
@@ -47,23 +47,23 @@
     "class_count": 4
   },
   "connections": {
-    "maximum_count": 67,
+    "maximum_count": 66,
     "incomplete_count": 0
   },
   "traces": {
-    "total_count": 35,
+    "total_count": 34,
     "total_segment_count": 64,
-    "total_length": 4958.9834,
-    "total_weighted_length": 1.7589444E7,
-    "average_length": 141.68526,
-    "total_vertical_length": 2320.345,
-    "total_horizontal_length": 605.707,
-    "total_angled_length": 1272.9365
+    "total_length": 3082.0273,
+    "total_weighted_length": 9782597.0,
+    "average_length": 90.64786,
+    "total_vertical_length": 1257.181,
+    "total_horizontal_length": 753.397,
+    "total_angled_length": 707.8609
   },
   "bends": {
-    "total_count": 29,
-    "90_degree_count": 0,
-    "45_degree_count": 29,
+    "total_count": 30,
+    "90_degree_count": 3,
+    "45_degree_count": 27,
     "other_angle_count": 0
   },
   "vias": {

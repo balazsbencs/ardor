@@ -4,39 +4,39 @@
     {
       "text": "1",
       "position_mm": [
-        56.7,
-        105.46
+        54.7,
+        86.46
       ],
       "pin_number_for": "J101.1"
     },
     {
       "text": "2",
       "position_mm": [
-        56.7,
-        108.0
+        54.7,
+        89.0
       ],
       "pin_number_for": "J101.2"
     },
     {
       "text": "3",
       "position_mm": [
-        56.7,
-        110.54
+        54.7,
+        91.54
       ],
       "pin_number_for": "J101.3"
     },
     {
       "text": "J101",
       "position_mm": [
-        55.0,
-        102.96
+        53.0,
+        83.96
       ],
       "connector_reference": "J101"
     },
     {
       "text": "1",
       "position_mm": [
-        56.7,
+        54.7,
         69.46
       ],
       "pin_number_for": "J102.1"
@@ -44,7 +44,7 @@
     {
       "text": "2",
       "position_mm": [
-        56.7,
+        54.7,
         72.0
       ],
       "pin_number_for": "J102.2"
@@ -52,7 +52,7 @@
     {
       "text": "3",
       "position_mm": [
-        56.7,
+        54.7,
         74.54
       ],
       "pin_number_for": "J102.3"
@@ -60,7 +60,7 @@
     {
       "text": "J102",
       "position_mm": [
-        55.0,
+        53.0,
         66.96
       ],
       "connector_reference": "J102"
@@ -68,47 +68,47 @@
     {
       "text": "1",
       "position_mm": [
-        138.3,
-        71.46
+        121.3,
+        69.46
       ],
       "pin_number_for": "J602.1"
     },
     {
       "text": "2",
       "position_mm": [
-        138.3,
-        74.0
+        121.3,
+        72.0
       ],
       "pin_number_for": "J602.2"
     },
     {
       "text": "3",
       "position_mm": [
-        138.3,
-        76.54
+        121.3,
+        74.54
       ],
       "pin_number_for": "J602.3"
     },
     {
       "text": "J602",
       "position_mm": [
-        140.0,
-        68.96
+        123.0,
+        66.96
       ],
       "connector_reference": "J602"
     },
     {
       "text": "ARDOR HP T1",
       "position_mm": [
-        98.0,
-        132.3
+        88.0,
+        106.3
       ]
     },
     {
       "text": "J101 PWR + ENABLE IN\n1 5V IN  2 GND 0V\n3 ENABLE IN",
       "position_mm": [
-        65.0,
-        108.0
+        63.0,
+        86.5
       ],
       "pin_map_for": "J101",
       "described_pins": [
@@ -121,8 +121,8 @@
     {
       "text": "J102 AUDIO IN\n1 LEFT IN  2 GND 0V\n3 RIGHT IN",
       "position_mm": [
-        64.5,
-        72.0
+        62.5,
+        68.0
       ],
       "pin_map_for": "J102",
       "described_pins": [
@@ -135,8 +135,8 @@
     {
       "text": "J602 HEADPHONE OUT\n1 LEFT OUT  2 RIGHT OUT\n3 GND 0V",
       "position_mm": [
-        129.5,
-        72.0
+        112.5,
+        69.5
       ],
       "pin_map_for": "J602",
       "described_pins": [
@@ -149,15 +149,15 @@
     {
       "text": "IN=INTO",
       "position_mm": [
-        98.0,
-        93.0
+        88.0,
+        77.0
       ]
     },
     {
       "text": "OUT=FROM",
       "position_mm": [
-        100.0,
-        91.0
+        88.0,
+        81.0
       ]
     }
   ],
@@ -165,31 +165,31 @@
     "J101.1": {
       "text": "1",
       "position_mm": [
-        56.7,
-        105.46
+        54.7,
+        86.46
       ],
       "pin_number_for": "J101.1"
     },
     "J101.2": {
       "text": "2",
       "position_mm": [
-        56.7,
-        108.0
+        54.7,
+        89.0
       ],
       "pin_number_for": "J101.2"
     },
     "J101.3": {
       "text": "3",
       "position_mm": [
-        56.7,
-        110.54
+        54.7,
+        91.54
       ],
       "pin_number_for": "J101.3"
     },
     "J102.1": {
       "text": "1",
       "position_mm": [
-        56.7,
+        54.7,
         69.46
       ],
       "pin_number_for": "J102.1"
@@ -197,7 +197,7 @@
     "J102.2": {
       "text": "2",
       "position_mm": [
-        56.7,
+        54.7,
         72.0
       ],
       "pin_number_for": "J102.2"
@@ -205,7 +205,7 @@
     "J102.3": {
       "text": "3",
       "position_mm": [
-        56.7,
+        54.7,
         74.54
       ],
       "pin_number_for": "J102.3"
@@ -213,24 +213,24 @@
     "J602.1": {
       "text": "1",
       "position_mm": [
-        138.3,
-        71.46
+        121.3,
+        69.46
       ],
       "pin_number_for": "J602.1"
     },
     "J602.2": {
       "text": "2",
       "position_mm": [
-        138.3,
-        74.0
+        121.3,
+        72.0
       ],
       "pin_number_for": "J602.2"
     },
     "J602.3": {
       "text": "3",
       "position_mm": [
-        138.3,
-        76.54
+        121.3,
+        74.54
       ],
       "pin_number_for": "J602.3"
     }
@@ -239,8 +239,8 @@
     "J101": {
       "text": "J101 PWR + ENABLE IN\n1 5V IN  2 GND 0V\n3 ENABLE IN",
       "position_mm": [
-        65.0,
-        108.0
+        63.0,
+        86.5
       ],
       "pin_map_for": "J101",
       "described_pins": [
@@ -253,8 +253,8 @@
     "J102": {
       "text": "J102 AUDIO IN\n1 LEFT IN  2 GND 0V\n3 RIGHT IN",
       "position_mm": [
-        64.5,
-        72.0
+        62.5,
+        68.0
       ],
       "pin_map_for": "J102",
       "described_pins": [
@@ -267,8 +267,8 @@
     "J602": {
       "text": "J602 HEADPHONE OUT\n1 LEFT OUT  2 RIGHT OUT\n3 GND 0V",
       "position_mm": [
-        129.5,
-        72.0
+        112.5,
+        69.5
       ],
       "pin_map_for": "J602",
       "described_pins": [

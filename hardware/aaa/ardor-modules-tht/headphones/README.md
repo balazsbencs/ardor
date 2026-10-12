@@ -1,6 +1,6 @@
 # Stereo headphones / OPA1656 / relay mute
 
-T1 hand-assembly PCB: 96 × 84 mm. **Unbuilt engineering prototype.**
+T1.1 compact hand-assembly PCB: 76 × 58 mm. **Unbuilt engineering prototype.**
 
 [KiCad project](Ardor_Headphones_THT.kicad_pro) · [Manual BOM](BOM.csv) · [Schematic](review/schematic.pdf) · [Bare-board Gerbers](assembly/Ardor_Headphones_THT-Gerbers.zip)
 
@@ -8,7 +8,7 @@ Supply regulated **5 V ±5% / 150 mA** and use 32–300 Ω headphones. Fit one *
 
 Input limit is 1 Vrms per channel. The 20 kΩ input and 10 kΩ feedback resistors give **−0.5 unloaded gain**. Both channels invert polarity together. The 10 kΩ feedback resistors R651/R652 stand upright with **2.54 mm lead spacing**; bend the upper lead back down and keep the loop short. They are axial parts in vertical footprints, unlike the other resistors at 10.16 mm pitch. Fit 100 pF C0G feedback capacitors C661/C662. R621/R622 and C631/C632 generate a filtered 2.5 V bias. Both op-amp inputs stay at this bias, within the restricted common-mode range; do not convert this to a noninverting circuit. C641 is the local 100 nF bypass, **2.5 mm pitch, body ≤3.8 mm diameter and ≤2.6 mm thick**. Trim its leads close to the PCB.
 
-R631/R632 provide **10 Ω output isolation before the coupling capacitors**, outside the feedback loops. C651/C652 are 470 µF / 16 V, positive toward the amplifiers, body ≤8 mm diameter and 3.5 mm lead spacing. C601/C602 are 10 µF **bipolar** input capacitors; C631 is 47 µF polarized with positive toward VREF. Calculated midband gain into 32 Ω is about −0.378, or approximately 4.5 mW/channel at 1 Vrms input. These are ideal circuit calculations, not measured clean-power ratings. The OPA1656's typical ±100 mA short-circuit current is not a low-distortion headphone-drive guarantee. Both channels remain powered when muted.
+R631/R632 provide **10 Ω output isolation before the coupling capacitors**, outside the feedback loops. C651/C652 are 470 µF / 16 V, positive toward the amplifiers, body ≤8 mm diameter and 3.5 mm lead spacing. C601/C602 are **Nichicon UES1H100MPM, 10 µF / 50 V bipolar**, with 3.5 mm pitch, maximum 8.5 mm diameter and 12.5 mm height; either orientation is valid. C631 is 47 µF polarized with positive toward VREF. Calculated midband gain into 32 Ω is about −0.378, or approximately 4.5 mW/channel at 1 Vrms input. These are ideal circuit calculations, not measured clean-power ratings. The OPA1656's typical ±100 mA short-circuit current is not a low-distortion headphone-drive guarantee. Both channels remain powered when muted.
 
 **Keep HP_ENABLE LOW for at least five seconds after stable supply/audio; mute before powering down.** HIGH is 3.3 V and draws approximately 5 mA. This timing is supplied by the host, not an onboard timer. R641/R642 are 1 kΩ bleeders which charge the coupling capacitors while the relay grounds the panel channels. Switching early can produce a loud transient. The relay commons are panel left/right, NC contacts ground them, and NO contacts select the AC-coupled audio.
 
@@ -44,7 +44,7 @@ Directions are relative to this board. Standard header square pads identify pin 
 
 ## Assembly and files
 
-Solder and inspect U601 SOIC-8 first; no IC socket is used. Then fit upright feedback resistors, other axial parts, headers and radial capacitors. Match diode bands, electrolytic polarity and IC orientation to the PCB. H1/H2 are 2.2 mm nonplated M2 mounting holes, not electrical terminals. Check enclosure clearance and capacitor/socket height: these boards are larger than M1.
+Solder and inspect U601 SOIC-8 first; no IC socket is used. Then fit upright feedback resistors, other axial parts, headers and radial capacitors. Match diode bands, electrolytic polarity and IC orientation to the PCB. H1/H2 are 2.2 mm nonplated M2 mounting holes, not electrical terminals. Check enclosure clearance and capacitor/socket height. T1.1 compacts the layouts; hole positions differ from T1 and M1.
 
 Use the manual BOM and the bare-board Gerber/drill ZIP. There is no SMT assembly order. Front silkscreen shows component references; the front fabrication drawing shows package outlines and orientation; use the BOM for values. Back silk includes port functions and pin numbers. Native checks and package manifests are under `verification/`; they do not replace prototype measurements.
 
