@@ -48,6 +48,14 @@ std::string csv(const std::string& value) {
   for (char c:value) { if(c=='"') result+='"'; result+=c; }
   return result+'"';
 }
+std::filesystem::path modelFile(const std::filesystem::path& input) {
+  // CLI-selected files are intentional inputs to this standalone diagnostic.
+  // Resolve symlinks and reject directories/devices before neural model loading.
+  const auto path=std::filesystem::canonical(input);
+  if(!std::filesystem::is_regular_file(path) || path.extension()!=".nam")
+    throw std::runtime_error("model must be a regular .nam file: "+path.string());
+  return path;
+}
 }
 
 int main(int argc, char** argv) try {
@@ -81,6 +89,8 @@ int main(int argc, char** argv) try {
     else model=argument;
   }
   if(model.empty()) throw std::runtime_error("model required");
+  model=modelFile(model);
+  if(!amp.empty()) amp=modelFile(amp);
 #if defined(__linux__)
   cpu_set_t affinity; CPU_ZERO(&affinity); CPU_SET(cpu,&affinity);
   if(sched_setaffinity(0,sizeof(affinity),&affinity)) throw std::runtime_error("CPU affinity failed");
