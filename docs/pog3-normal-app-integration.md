@@ -23,12 +23,25 @@ resetting histories. Destruction joins before releasing worker-owned state.
 The callback never waits, allocates, replans or performs FFTW file access.
 
 Startup emits exactly the prepared common delay of silence. A missing due
-output, rejected submission or wrong quantum increments the exposed worker
-fault count and latches silence until reset/preset replacement. No stale replay
-or direct callback fallback is accepted as a passing performance run. This
-conservative fault policy remains a draft limitation: automatic user-visible
-recovery from a worker deadline failure is future work. Full-app validation
-checks absolute zero faults as well as performance-script deltas.
+output or rejected submission increments the exposed fault count. The block
+fades from its last output sample to **256-sample-delayed dry input** over 128
+samples, keeping the rest of the chain audible. The callback stops submissions
+and observes completion of all outstanding jobs without waiting. At the next
+new input generation the worker resets only its own core, applies the newest
+input-dated targets and resumes. Pre-fault publications are discarded during
+the fresh pipeline's startup. Processed output fades back in over 960 samples
+(20 ms). Other effects, scene state, live controls and the looper are preserved.
+
+One automatic restart is allowed per explicit processor reset/preset load. A
+second failure leaves POG3 in delayed dry bypass with a clear on-device status
+asking for preset reload. An invalid host quantum goes directly to that bypass;
+it cannot be fixed by restarting the DSP. Fault counts remain visible after
+successful recovery; telemetry adds `pog3_recoveries` and `pog3_bypassed`.
+The performance probe rejects a latched POG3 bypass even when fault counts no
+longer increase. Recovery never qualifies a missed deadline as a successful
+performance run. No stale processed block is replayed, no work migrates back
+to the audio caller, and no core reset or queue wait happens on that caller.
+Full-app qualification still requires absolute zero faults.
 
 Local block bypass keeps the common delay, crossfades and continues draining
 prepared blocks. POG3 uses modulation cut/crossfade rather than the scalar
@@ -86,16 +99,20 @@ performance check. Buildroot installs both the seed and existing FFTW license.
 
 [Raw timing, selected presets, adapter checks and deployment receipt](../benchmark-results/pog3-normal-app-2026-10-12/README.md)
 contain the evidence. Presets/settings and the original workspace are preserved.
-This remains a draft: long thermal endurance, broader effects/parameter load,
-32/64-frame live throughput and deferred freeze/calibration work are not certified.
+A subsequent ten-minute run exercises heavier Attack, Focus, Warp and filter
+settings, followed by scene transitions and local bypass/resume, with zero
+faults. See [recovery, CI and endurance evidence](pog3-recovery-results.md).
+This remains a draft: dense playing at these extremes, arbitrary additional
+effects, 32/64-frame live throughput and deferred freeze/calibration are not
+certified.
 
 ## Installed development build
 
 The normal `/usr/bin/ardor-pedal` and `/usr/bin/ardor-managerd` are deployed as
-`0.0.0-pog3.dev.20261012 (d9c0baba)`. The existing service configuration, data
+`0.0.0-pog3.dev.20261012 (44f4c950)`. The existing service configuration, data
 root, credentials and updater state remain in place. A device backup of both
 previous executables is retained at
-`/opt/ardor-pedal/pog3-deploy-backup-20261012-d9c0baba`. The deployment checks
+`/opt/ardor-pedal/pog3-deploy-backup-20261012-44f4c950`. The deployment checks
 served manager assets for the new effect, exact installed binary hashes,
 48k/128/384 MMAP audio, advancing fault-free callbacks, codec `on,on`, relay
 `255`, and byte-for-byte unchanged preset/settings files. Root is remounted

@@ -1,0 +1,155 @@
+Test project /home/bbalazs/projects/ardor-pog3/build-ci
+      Start  1: pedal-pog3-hosted-quality
+ 1/75 Test  #1: pedal-pog3-hosted-quality ..............   Passed    0.53 sec
+      Start  2: pedal-stereo-widener-smoke
+ 2/75 Test  #2: pedal-stereo-widener-smoke .............   Passed    0.02 sec
+      Start  3: pedal-transient-shaper-smoke
+ 3/75 Test  #3: pedal-transient-shaper-smoke ...........   Passed    0.08 sec
+      Start  4: pedal-rat-smoke
+ 4/75 Test  #4: pedal-rat-smoke ........................   Passed    1.10 sec
+      Start  5: pedal-tape-smoke
+ 5/75 Test  #5: pedal-tape-smoke .......................   Passed    3.76 sec
+      Start  6: pedal-cheese-smoke
+ 6/75 Test  #6: pedal-cheese-smoke .....................   Passed    0.86 sec
+      Start  7: pedal-harmonizer-smoke
+ 7/75 Test  #7: pedal-harmonizer-smoke .................   Passed    0.71 sec
+      Start  8: pedal-scheduled-convolver-smoke
+ 8/75 Test  #8: pedal-scheduled-convolver-smoke ........   Passed    0.21 sec
+      Start  9: pedal-ir-reverb-smoke
+ 9/75 Test  #9: pedal-ir-reverb-smoke ..................   Passed    1.70 sec
+      Start 10: pedal-offline-smoke
+10/75 Test #10: pedal-offline-smoke ....................   Passed    0.59 sec
+      Start 11: pedal-preset-smoke
+11/75 Test #11: pedal-preset-smoke .....................   Passed    0.01 sec
+      Start 12: pedal-scene-plan-smoke
+12/75 Test #12: pedal-scene-plan-smoke .................   Passed    0.00 sec
+      Start 13: pedal-scene-transition-smoke
+13/75 Test #13: pedal-scene-transition-smoke ...........   Passed    0.00 sec
+      Start 14: pedal-preset-activation-smoke
+14/75 Test #14: pedal-preset-activation-smoke ..........   Passed    0.20 sec
+      Start 15: pedal-runtime-commands-smoke
+15/75 Test #15: pedal-runtime-commands-smoke ...........   Passed    0.00 sec
+      Start 16: pedal-daisy-fx-catalog-smoke
+16/75 Test #16: pedal-daisy-fx-catalog-smoke ...........   Passed    0.00 sec
+      Start 17: pedal-manager-effect-catalog-smoke
+17/75 Test #17: pedal-manager-effect-catalog-smoke .....   Passed    0.00 sec
+      Start 18: pedal-daisy-fx-smoke
+18/75 Test #18: pedal-daisy-fx-smoke ...................   Passed    1.13 sec
+      Start 19: pedal-hosted-dsp-unit
+19/75 Test #19: pedal-hosted-dsp-unit ..................   Passed    7.92 sec
+      Start 20: pedal-reverb-feedback-stability
+20/75 Test #20: pedal-reverb-feedback-stability ........   Passed    2.77 sec
+      Start 21: pedal-daisy-fx-response
+21/75 Test #21: pedal-daisy-fx-response ................   Passed    4.00 sec
+      Start 22: pedal-daisy-fx-automation
+22/75 Test #22: pedal-daisy-fx-automation ..............   Passed    1.12 sec
+      Start 23: pedal-delay-regression
+23/75 Test #23: pedal-delay-regression .................   Passed    0.35 sec
+      Start 24: pedal-mod-effect-quality
+24/75 Test #24: pedal-mod-effect-quality ...............   Passed    2.70 sec
+      Start 25: pedal-mod-effect-controls
+25/75 Test #25: pedal-mod-effect-controls ..............   Passed    2.77 sec
+      Start 26: pedal-ph2-quality
+26/75 Test #26: pedal-ph2-quality ......................   Passed    7.93 sec
+      Start 27: pedal-mod-effect-models
+27/75 Test #27: pedal-mod-effect-models ................   Passed    0.47 sec
+      Start 28: pedal-pitch-effect-quality
+28/75 Test #28: pedal-pitch-effect-quality .............   Passed   18.24 sec
+      Start 29: pedal-pog3-frame-birth-slots
+29/75 Test #29: pedal-pog3-frame-birth-slots ...........   Passed    0.42 sec
+      Start 30: pedal-pog3-attack-birth-slots
+30/75 Test #30: pedal-pog3-attack-birth-slots ..........   Passed    0.31 sec
+      Start 31: pedal-pog3-controls
+31/75 Test #31: pedal-pog3-controls ....................   Passed    0.00 sec
+      Start 32: pedal-pog3-quality
+32/75 Test #32: pedal-pog3-quality .....................   Passed    2.43 sec
+      Start 33: pedal-pog3-pitch-quality
+33/75 Test #33: pedal-pog3-pitch-quality ...............   Passed    8.95 sec
+      Start 34: pedal-pog3-low-chord-quality
+34/75 Test #34: pedal-pog3-low-chord-quality ...........   Passed    1.61 sec
+      Start 35: pedal-pog3-attack-quality
+35/75 Test #35: pedal-pog3-attack-quality ..............   Passed    6.24 sec
+      Start 36: pedal-pog3-voice-stages
+36/75 Test #36: pedal-pog3-voice-stages ................   Passed    0.88 sec
+      Start 37: pedal-pog3-expression-quality
+37/75 Test #37: pedal-pog3-expression-quality ..........   Passed    4.23 sec
+      Start 38: pedal-pog3-realtime-allocation
+38/75 Test #38: pedal-pog3-realtime-allocation .........   Passed   18.60 sec
+      Start 39: pedal-harmonizer-quality
+39/75 Test #39: pedal-harmonizer-quality ...............   Passed    0.94 sec
+      Start 40: pedal-filter-effect-quality
+40/75 Test #40: pedal-filter-effect-quality ............   Passed    4.64 sec
+      Start 41: pedal-delay-effect-quality
+41/75 Test #41: pedal-delay-effect-quality .............   Passed    5.32 sec
+      Start 42: pedal-wah-netlist-smoke
+42/75 Test #42: pedal-wah-netlist-smoke ................   Passed    0.00 sec
+      Start 43: pedal-wah-dk-smoke
+43/75 Test #43: pedal-wah-dk-smoke .....................   Passed    0.06 sec
+      Start 44: pedal-wah-table-smoke
+44/75 Test #44: pedal-wah-table-smoke ..................   Passed    0.12 sec
+      Start 45: pedal-wah-circuit-smoke
+45/75 Test #45: pedal-wah-circuit-smoke ................   Passed    1.42 sec
+      Start 46: pedal-wah-processor-smoke
+46/75 Test #46: pedal-wah-processor-smoke ..............   Passed    0.06 sec
+      Start 47: pedal-compressor-smoke
+47/75 Test #47: pedal-compressor-smoke .................   Passed    0.01 sec
+      Start 48: pedal-noise-gate-smoke
+48/75 Test #48: pedal-noise-gate-smoke .................   Passed    0.00 sec
+      Start 49: pedal-console-eq-smoke
+49/75 Test #49: pedal-console-eq-smoke .................   Passed    5.76 sec
+      Start 50: pedal-console-eq-integration-smoke
+50/75 Test #50: pedal-console-eq-integration-smoke .....   Passed    0.01 sec
+      Start 51: pedal-parametric-eq-smoke
+51/75 Test #51: pedal-parametric-eq-smoke ..............   Passed    0.00 sec
+      Start 52: pedal-runtime-chain-smoke
+52/75 Test #52: pedal-runtime-chain-smoke ..............   Passed    0.48 sec
+      Start 53: pedal-looper-smoke
+53/75 Test #53: pedal-looper-smoke .....................   Passed    0.00 sec
+      Start 54: pedal-looper-e2e
+54/75 Test #54: pedal-looper-e2e .......................   Passed    0.00 sec
+      Start 55: pedal-looper-store-smoke
+55/75 Test #55: pedal-looper-store-smoke ...............   Passed    0.00 sec
+      Start 56: pedal-engine-contract-smoke
+56/75 Test #56: pedal-engine-contract-smoke ............   Passed    0.00 sec
+      Start 57: pedal-parallel-lane-executor-smoke
+57/75 Test #57: pedal-parallel-lane-executor-smoke .....   Passed    0.00 sec
+      Start 58: pedal-parallel-lane-mixer-smoke
+58/75 Test #58: pedal-parallel-lane-mixer-smoke ........   Passed    0.00 sec
+      Start 59: pedal-flexible-routing-graph-smoke
+59/75 Test #59: pedal-flexible-routing-graph-smoke .....   Passed    0.01 sec
+      Start 60: pedal-flexible-routing-program-smoke
+60/75 Test #60: pedal-flexible-routing-program-smoke ...   Passed    0.00 sec
+      Start 61: pedal-flexible-routing-engine-smoke
+61/75 Test #61: pedal-flexible-routing-engine-smoke ....   Passed    0.01 sec
+      Start 62: pedal-wdw-pair-executor-smoke
+62/75 Test #62: pedal-wdw-pair-executor-smoke ..........   Passed    0.22 sec
+      Start 63: pedal-wdw-routing-program-smoke
+63/75 Test #63: pedal-wdw-routing-program-smoke ........   Passed    0.04 sec
+      Start 64: pedal-wdw-routing-builder-smoke
+64/75 Test #64: pedal-wdw-routing-builder-smoke ........   Passed    0.06 sec
+      Start 65: pedal-wdw-latency-regression
+65/75 Test #65: pedal-wdw-latency-regression ...........   Passed    4.59 sec
+      Start 66: pedal-tuner-smoke
+66/75 Test #66: pedal-tuner-smoke ......................   Passed    0.00 sec
+      Start 67: pedal-nam-processor-smoke
+67/75 Test #67: pedal-nam-processor-smoke ..............   Passed    0.01 sec
+      Start 68: pedal-ui-model-smoke
+68/75 Test #68: pedal-ui-model-smoke ...................   Passed    0.01 sec
+      Start 69: pedal-preset-chain-strip-smoke
+69/75 Test #69: pedal-preset-chain-strip-smoke .........   Passed    0.00 sec
+      Start 70: pedal-global-settings-smoke
+70/75 Test #70: pedal-global-settings-smoke ............   Passed    0.00 sec
+      Start 71: pedal-eq-editor-model-smoke
+71/75 Test #71: pedal-eq-editor-model-smoke ............   Passed    0.00 sec
+      Start 72: pedal-preset-cli-smoke
+72/75 Test #72: pedal-preset-cli-smoke .................   Passed    0.02 sec
+      Start 73: pedal-preset-reload-stress
+73/75 Test #73: pedal-preset-reload-stress .............   Passed    0.07 sec
+      Start 74: pedal-control-smoke
+74/75 Test #74: pedal-control-smoke ....................   Passed    0.00 sec
+      Start 75: pedal-devices-indexed
+75/75 Test #75: pedal-devices-indexed ..................   Passed    0.01 sec
+
+100% tests passed out of 75
+
+Total Test time (real) = 126.83 sec

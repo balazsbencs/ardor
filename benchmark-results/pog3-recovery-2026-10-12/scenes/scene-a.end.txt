@@ -1,0 +1,1 @@
+callbacks=18503 over=0 over%=0.00 gaps=0 max=1.54ms avg=1.18ms recent_avg=1.19ms budget=2.67ms buffer_free=55.37% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 pog3_recoveries=0 pog3_bypassed=0 nonfinite=0 block_mismatch=0

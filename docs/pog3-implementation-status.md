@@ -2085,6 +2085,18 @@ and N+H latency. See [both matched rounds and the detailed Luna next-step plan](
 
 ## Next implementation milestone
 
+**Current milestone (2026-10-12):** M8 factory/catalog/native editor/manager/
+scene integration is implemented for one POG3 in a serial chain at 128 frames.
+The integrated playing feel is accepted, all CI checks pass on `44f4c950`, and
+the normal app is deployed. The ten-minute MMAP/UI run and the corrected scene
+check have zero callback/worker/DSP faults. The worker now has delayed dry
+continuity, one automatic restart and an explicit bypass after a repeated
+failure. See [recovery and endurance results](pog3-recovery-results.md).
+Remaining work is dense-input/load qualification, smaller live quanta and
+deferred freeze/calibration. The older feasibility discussion below describes
+the earlier direct serial architecture; its integration blockers are superseded
+by the bounded CPU3 worker and current hardware evidence.
+
 M0's parameter/publication contract and M2's streaming identity gates are in
 place. M1 supplies an audible reference, renders, and timing/allocation evidence;
 its artifacts remain the comparison baseline for subsequent work.
