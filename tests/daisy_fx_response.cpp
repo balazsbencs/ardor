@@ -18,13 +18,15 @@ void renderEndpoint(const ardor::DaisyFxDescriptor& descriptor, float endpoint)
 {
   auto params = ardor::defaultDaisyFxParams(descriptor);
   for (const auto& param : descriptor.params) {
-    params[param.key] = endpoint;
+    const auto control = ardor::daisyFxParamControlSpec(descriptor, param);
+    params[param.key] = control.choiceValues.empty() ? endpoint
+      : endpoint == 0 ? control.choiceValues.front() : control.choiceValues.back();
   }
 
   ardor::DaisyFxProcessor processor;
   std::string error;
-  require(processor.configure(descriptor.blockType, params, 48000.0f, error),
-          descriptor.mode + ": " + error);
+  const bool configured = processor.configure(descriptor.blockType, params, 48000.0f, error);
+  require(configured, descriptor.mode + ": " + error);
 
   constexpr int kFrames = 3 * 48000;
   float peak = 0.0f;
@@ -32,7 +34,11 @@ void renderEndpoint(const ardor::DaisyFxDescriptor& descriptor, float endpoint)
     // Continuous anti-phase stimulus exercises the stereo paths and gives
     // envelope-driven effects a realistic trigger rather than a one-sample
     // impulse. It remains comfortably below full scale at the input.
-    const float input = 0.45f * std::sin(6.28318530718f * 219.0f * static_cast<float>(i) / 48000.0f);
+    // POG3 exposes six summed voices, 3x input gain, 2x master and resonant
+    // filtering. Reserve input headroom rather than treating that gain as
+    // an unstable unity-gain modulation effect. Keep the output bound intact.
+    const float amplitude = descriptor.mode == "pog3" ? 0.02f : 0.45f;
+    const float input = amplitude * std::sin(6.28318530718f * 219.0f * static_cast<float>(i) / 48000.0f);
     const auto output = processor.process({input, -input});
     require(std::isfinite(output.left) && std::isfinite(output.right),
             descriptor.mode + " endpoint render must remain finite");

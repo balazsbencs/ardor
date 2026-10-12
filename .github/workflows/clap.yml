@@ -3,10 +3,10 @@ name: CLAP beta
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap*', 'tests/ClapTestPlatform.h', 'CMakeLists.txt', 'lv_conf.h', '.github/workflows/clap.yml']
+    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap*', 'tests/ClapTestPlatform.h', 'CMakeLists.txt', 'scripts/build-fftw-single.py', 'third_party/fftw/**', 'lv_conf.h', '.github/workflows/clap.yml']
   push:
     branches: [main]
-    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap*', 'tests/ClapTestPlatform.h', 'CMakeLists.txt', 'lv_conf.h', '.github/workflows/clap.yml']
+    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap*', 'tests/ClapTestPlatform.h', 'CMakeLists.txt', 'scripts/build-fftw-single.py', 'third_party/fftw/**', 'lv_conf.h', '.github/workflows/clap.yml']
 
 permissions:
   contents: read
@@ -29,6 +29,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Use GitHub mirror for Eigen
         run: git config --global url."https://github.com/eigen-mirror/eigen.git".insteadOf https://gitlab.com/libeigen/eigen
+      - name: Build static single-precision FFTW
+        run: python3 scripts/build-fftw-single.py --prefix "$RUNNER_TEMP/ardor-fftw3f"
       - name: Configure plugin and embedded editor
         if: runner.os != 'Windows'
         run: cmake -S . -B build-clap -DARDOR_UI_BACKEND=memory -DARDOR_BUILD_CLAP_PLUGIN=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0

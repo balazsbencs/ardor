@@ -119,6 +119,8 @@ install(FILES ${neuralampmodelercore_SOURCE_DIR}/Dependencies/AudioDSPTools/LICE
   DESTINATION ${_notices} RENAME AudioDSPTools.txt COMPONENT clap-beta)
 file(GLOB _eigen_notices "${neuralampmodelercore_SOURCE_DIR}/Dependencies/eigen/COPYING.*")
 install(FILES ${_eigen_notices} DESTINATION ${_notices}/Eigen COMPONENT clap-beta)
+install(FILES "${CMAKE_SOURCE_DIR}/third_party/fftw/COPYING"
+  DESTINATION ${_notices} RENAME FFTW.txt COMPONENT clap-beta)
 install(FILES ${CMAKE_SOURCE_DIR}/third_party/cycfi-q/LICENSE
   DESTINATION ${_notices} RENAME cycfi-q.txt COMPONENT clap-beta)
 install(FILES ${CMAKE_SOURCE_DIR}/src/daisyfx/hosted/UPSTREAM_LICENSE

@@ -8,6 +8,8 @@ on:
       - 'src/**'
       - 'tests/**'
       - 'CMakeLists.txt'
+      - 'scripts/build-fftw-single.py'
+      - 'third_party/fftw/**'
       - 'lv_conf.h'
       - '.github/workflows/desktop.yml'
   push:
@@ -17,6 +19,8 @@ on:
       - 'src/**'
       - 'tests/**'
       - 'CMakeLists.txt'
+      - 'scripts/build-fftw-single.py'
+      - 'third_party/fftw/**'
       - 'lv_conf.h'
       - '.github/workflows/desktop.yml'
 
@@ -38,6 +42,8 @@ jobs:
         run: git config --global url."https://github.com/eigen-mirror/eigen.git".insteadOf https://gitlab.com/libeigen/eigen
       - name: Install SDL2
         run: brew install sdl2
+      - name: Build static single-precision FFTW
+        run: python3 scripts/build-fftw-single.py --prefix "$RUNNER_TEMP/ardor-fftw3f"
       - name: Identify beta
         run: |
           echo "ARDOR_BETA_VERSION=0.1.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
@@ -120,6 +126,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes libsdl2-dev
+      - name: Build static single-precision FFTW
+        run: python3 scripts/build-fftw-single.py --prefix "$RUNNER_TEMP/ardor-fftw3f"
       - name: Configure and build desktop checks
         run: |
           cmake -S . -B build-desktop -DARDOR_UI_BACKEND=sdl -DARDOR_BUILD_DESKTOP=ON -DCMAKE_BUILD_TYPE=Release

@@ -59,6 +59,8 @@ install(FILES "${neuralampmodelercore_SOURCE_DIR}/LICENSE"
   DESTINATION "${_ardor_desktop_notices}" RENAME NeuralAmpModelerCore.txt COMPONENT desktop)
 install(FILES "${lvgl_SOURCE_DIR}/LICENCE.txt"
   DESTINATION "${_ardor_desktop_notices}" RENAME LVGL.txt COMPONENT desktop)
+install(FILES "${CMAKE_SOURCE_DIR}/third_party/fftw/COPYING"
+  DESTINATION "${_ardor_desktop_notices}" RENAME FFTW.txt COMPONENT desktop)
 install(FILES "${CMAKE_SOURCE_DIR}/third_party/cycfi-q/LICENSE"
   DESTINATION "${_ardor_desktop_notices}" RENAME cycfi-q.txt COMPONENT desktop)
 install(FILES "${CMAKE_SOURCE_DIR}/src/daisyfx/hosted/UPSTREAM_LICENSE"
