@@ -156,12 +156,17 @@ func (s Store) Delete(kind Kind, id string) error {
 // preset references must replace Info.Path with the returned path as part of
 // the same management operation.
 func (s Store) Rename(kind Kind, id, filename string) (Info, error) {
-	if id == "" || filepath.Base(id) != id || strings.Contains(id, "..") {
+	if id == "" || filepath.Base(id) != id || strings.ContainsAny(id, "/\\") || strings.Contains(id, "..") {
 		return Info{}, errors.New("invalid asset id")
 	}
 	safe, err := SanitizeFilename(filename, kind)
 	if err != nil {
 		return Info{}, err
+	}
+	// Rename IDs use the same single-component contract as Delete. Check both
+	// separators explicitly, independent of the host's filepath conventions.
+	if strings.ContainsAny(safe, "/\\") || strings.Contains(safe, "..") {
+		return Info{}, errors.New("invalid asset filename")
 	}
 	oldPath := filepath.Join(s.dir(kind), id)
 	stat, err := os.Stat(oldPath)

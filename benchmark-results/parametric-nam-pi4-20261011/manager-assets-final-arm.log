@@ -1,0 +1,77 @@
+=== RUN   TestSanitizeFilename
+--- PASS: TestSanitizeFilename (0.00s)
+=== RUN   TestStoreSaveListDelete
+--- PASS: TestStoreSaveListDelete (0.00s)
+=== RUN   TestStoreRename
+--- PASS: TestStoreRename (0.00s)
+=== RUN   TestRenameRejectsInvalidComponents
+--- PASS: TestRenameRejectsInvalidComponents (0.00s)
+=== RUN   TestNAMMetadataConfinesReadsAndLabelsMalformedFiles
+--- PASS: TestNAMMetadataConfinesReadsAndLabelsMalformedFiles (0.00s)
+=== RUN   TestTrainerA2Exports
+--- PASS: TestTrainerA2Exports (0.07s)
+=== RUN   TestCombinedTrainerA2Export
+=== RUN   TestCombinedTrainerA2Export/rate
+=== RUN   TestCombinedTrainerA2Export/family
+=== RUN   TestCombinedTrainerA2Export/boundary
+=== RUN   TestCombinedTrainerA2Export/gear
+=== RUN   TestCombinedTrainerA2Export/calibration
+=== RUN   TestCombinedTrainerA2Export/controls
+=== RUN   TestCombinedTrainerA2Export/version
+--- PASS: TestCombinedTrainerA2Export (0.11s)
+    --- PASS: TestCombinedTrainerA2Export/rate (0.01s)
+    --- PASS: TestCombinedTrainerA2Export/family (0.01s)
+    --- PASS: TestCombinedTrainerA2Export/boundary (0.01s)
+    --- PASS: TestCombinedTrainerA2Export/gear (0.01s)
+    --- PASS: TestCombinedTrainerA2Export/calibration (0.01s)
+    --- PASS: TestCombinedTrainerA2Export/controls (0.01s)
+    --- PASS: TestCombinedTrainerA2Export/version (0.01s)
+=== RUN   TestTrainerFiLMExports
+--- PASS: TestTrainerFiLMExports (0.07s)
+=== RUN   TestParametricNAMMetadata
+=== RUN   TestParametricNAMMetadata/duplicate
+=== RUN   TestParametricNAMMetadata/missingDefault
+=== RUN   TestParametricNAMMetadata/switchDefault
+=== RUN   TestParametricNAMMetadata/switchRange
+=== RUN   TestParametricNAMMetadata/unsupported
+=== RUN   TestParametricNAMMetadata/version
+=== RUN   TestParametricNAMMetadata/sampleRate
+=== RUN   TestParametricNAMMetadata/missingRate
+--- PASS: TestParametricNAMMetadata (0.00s)
+    --- PASS: TestParametricNAMMetadata/duplicate (0.00s)
+    --- PASS: TestParametricNAMMetadata/missingDefault (0.00s)
+    --- PASS: TestParametricNAMMetadata/switchDefault (0.00s)
+    --- PASS: TestParametricNAMMetadata/switchRange (0.00s)
+    --- PASS: TestParametricNAMMetadata/unsupported (0.00s)
+    --- PASS: TestParametricNAMMetadata/version (0.00s)
+    --- PASS: TestParametricNAMMetadata/sampleRate (0.00s)
+    --- PASS: TestParametricNAMMetadata/missingRate (0.00s)
+=== RUN   TestPublishedFiLMNAMMetadata
+=== RUN   TestPublishedFiLMNAMMetadata/mixedTier
+=== RUN   TestPublishedFiLMNAMMetadata/schema
+=== RUN   TestPublishedFiLMNAMMetadata/lora
+=== RUN   TestPublishedFiLMNAMMetadata/condition
+=== RUN   TestPublishedFiLMNAMMetadata/coverage
+=== RUN   TestPublishedFiLMNAMMetadata/tierControls
+=== RUN   TestPublishedFiLMNAMMetadata/partialLayers
+=== RUN   TestPublishedFiLMNAMMetadata/tooManyControls
+=== RUN   TestPublishedFiLMNAMMetadata/head
+=== RUN   TestPublishedFiLMNAMMetadata/width
+=== RUN   TestPublishedFiLMNAMMetadata/version
+=== RUN   TestPublishedFiLMNAMMetadata/sampleRate
+=== RUN   TestPublishedFiLMNAMMetadata/boundary
+--- PASS: TestPublishedFiLMNAMMetadata (0.16s)
+    --- PASS: TestPublishedFiLMNAMMetadata/mixedTier (0.01s)
+    --- PASS: TestPublishedFiLMNAMMetadata/schema (0.01s)
+    --- PASS: TestPublishedFiLMNAMMetadata/lora (0.01s)
+    --- PASS: TestPublishedFiLMNAMMetadata/condition (0.01s)
+    --- PASS: TestPublishedFiLMNAMMetadata/coverage (0.01s)
+    --- PASS: TestPublishedFiLMNAMMetadata/tierControls (0.01s)
+    --- PASS: TestPublishedFiLMNAMMetadata/partialLayers (0.01s)
+    --- PASS: TestPublishedFiLMNAMMetadata/tooManyControls (0.01s)
+    --- PASS: TestPublishedFiLMNAMMetadata/head (0.01s)
+    --- PASS: TestPublishedFiLMNAMMetadata/width (0.01s)
+    --- PASS: TestPublishedFiLMNAMMetadata/version (0.01s)
+    --- PASS: TestPublishedFiLMNAMMetadata/sampleRate (0.01s)
+    --- PASS: TestPublishedFiLMNAMMetadata/boundary (0.01s)
+PASS
