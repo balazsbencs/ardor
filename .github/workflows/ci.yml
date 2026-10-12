@@ -101,6 +101,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Check device performance probe
+        run: |
+          sh -n scripts/device-performance-remote.sh
+          python3 tests/device_performance_probe_smoke.py
+
       - name: Use GitHub mirror for Eigen
         run: git config --global url."https://github.com/eigen-mirror/eigen.git".insteadOf https://gitlab.com/libeigen/eigen
 
