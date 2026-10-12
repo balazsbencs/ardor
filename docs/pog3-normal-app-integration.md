@@ -88,3 +88,20 @@ performance check. Buildroot installs both the seed and existing FFTW license.
 contain the evidence. Presets/settings and the original workspace are preserved.
 This remains a draft: long thermal endurance, broader effects/parameter load,
 32/64-frame live throughput and deferred freeze/calibration work are not certified.
+
+## Installed development build
+
+The normal `/usr/bin/ardor-pedal` and `/usr/bin/ardor-managerd` are deployed as
+`0.0.0-pog3.dev.20261012 (d9c0baba)`. The existing service configuration, data
+root, credentials and updater state remain in place. A device backup of both
+previous executables is retained at
+`/opt/ardor-pedal/pog3-deploy-backup-20261012-d9c0baba`. The deployment checks
+served manager assets for the new effect, exact installed binary hashes,
+48k/128/384 MMAP audio, advancing fault-free callbacks, codec `on,on`, relay
+`255`, and byte-for-byte unchanged preset/settings files. Root is remounted
+read-only afterward. The receipt is retained with the test evidence.
+
+The base image release metadata is deliberately unchanged: the About screen
+may still show the base image's 0.1.54 metadata. The executable `--version` and
+recorded hashes identify this experimental app deployment. Keep the current
+128-frame audio setting for the qualified live configuration.
