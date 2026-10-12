@@ -1,0 +1,60 @@
+[
+  {
+    "attack": 0,
+    "focus": 0,
+    "filter_env": 0.5,
+    "detune": 0.2,
+    "spread": 0.1,
+    "expression_mode": 0
+  },
+  {
+    "attack": 1,
+    "dry_attack": 1,
+    "focus": 0,
+    "filter_q": 1,
+    "filter_mode": 0.5,
+    "filter_frequency": 0.6,
+    "filter_env": 0.85,
+    "filter_attack": 0.05,
+    "filter_decay": 0.2,
+    "trigger_sensitivity": 0.8,
+    "detune": 1,
+    "spread": 1,
+    "dry_detune": 1,
+    "expression_mode": 0
+  },
+  {
+    "attack": 0.75,
+    "dry_attack": 0,
+    "focus": 1,
+    "filter_q": 0.75,
+    "filter_env": 0.2,
+    "dry_filter": 1,
+    "detune": 0.6,
+    "spread": 0.65,
+    "expression_mode": 0.5,
+    "expression_heel": 0.1,
+    "expression_toe": 0.8,
+    "expression_position": 0.75
+  },
+  {
+    "attack": 0.5,
+    "dry_attack": 1,
+    "focus": 1,
+    "filter_q": 1,
+    "filter_mode": 1,
+    "filter_frequency": 0.8,
+    "filter_env": 0.9,
+    "filter_attack": 0,
+    "filter_decay": 0,
+    "trigger_sensitivity": 1,
+    "detune": 1,
+    "spread": 1,
+    "dry_detune": 1,
+    "dry_filter": 1,
+    "expression_mode": 0.6666666666666666,
+    "expression_heel": 0.1,
+    "expression_toe": 0.95,
+    "expression_position": 0.85
+  }
+]

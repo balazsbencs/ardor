@@ -1,0 +1,23 @@
+source_commit=44f4c950
+backup=/opt/ardor-pedal/pog3-deploy-backup-20261012-44f4c950
+audio_pid=17379 manager_pid=17348
+ardor-pedal 0.0.0-pog3.dev.20261012 (44f4c950)
+ardor-managerd 0.0.0-pog3.dev.20261012 (44f4c950) updater 1.0.0
+7dc2423e9f1036db671c9786e18fb7f8e24ab9b3444413b7e3edf4da85ed0e36  /usr/bin/ardor-pedal
+39aef6fbf318d6252c3062d3dafe0b5075689c44e70a0e2dfc21f863db0cbc25  /usr/bin/ardor-managerd
+964fddf2f8a7f7744905961489a90ceaecbb244bfd8d2d5617491c040efaa545  /usr/share/ardor-pedal/pog3-fftw.wisdom
+callbacks=1617 over=0 over%=0.00 gaps=0 max=1.34ms avg=0.99ms recent_avg=1.02ms budget=2.67ms buffer_free=61.56% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 pog3_recoveries=0 pog3_bypassed=0 nonfinite=0 block_mismatch=0
+access: MMAP_INTERLEAVED
+format: S32_LE
+subformat: STD
+channels: 2
+rate: 48000 (48000/1)
+period_size: 128
+buffer_size: 384
+numid=28,iface=MIXER,name='Headphone Switch'
+  ; type=BOOLEAN,access=rw------,values=2
+  : values=on,on
+relay=255
+presets_and_settings=unchanged
+root_mount=ro,relatime
+manager_catalog=Poly Octave 3 available
