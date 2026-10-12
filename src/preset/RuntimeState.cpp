@@ -77,6 +77,8 @@ std::string formatRuntimeTelemetry(const RuntimeTelemetry& telemetry)
       << " worker_over=" << telemetry.parallelWaitOverBudget
       << " worker_underflow=" << telemetry.parallelUnderflows
       << " worker_submit_miss=" << telemetry.parallelSubmissionMisses
+      << " pog3_recoveries=" << telemetry.pog3Recoveries
+      << " pog3_bypassed=" << telemetry.pog3Bypassed
       << " nonfinite=" << telemetry.nonFiniteBlocks
       << " block_mismatch=" << telemetry.blockSizeMismatches;
   return out.str();

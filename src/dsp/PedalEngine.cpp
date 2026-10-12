@@ -620,6 +620,11 @@ uint64_t PedalEngine::parallelUnderflowCount() const noexcept
   return chain_.workerUnderflowCount() + (wdwRouting_ ? wdwRouting_->pairUnderflowCount() : 0);
 }
 
+pog3::RecoverySnapshot PedalEngine::pog3Recovery() const noexcept
+{
+  return chain_.pog3Recovery();
+}
+
 uint64_t PedalEngine::parallelSubmissionMissCount() const noexcept
 {
   return wdwRouting_ ? wdwRouting_->pairSubmissionMissCount() : 0;

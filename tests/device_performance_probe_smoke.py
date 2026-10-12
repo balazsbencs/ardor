@@ -43,6 +43,18 @@ class TelemetryHealth(unittest.TestCase):
         self.assertIn('underflow=9', result.stdout)
         self.assertIn('AUDIO HEALTH: FAIL', result.stdout)
 
+    def test_pog3_bypass_cannot_pass_with_unchanged_fault_counters(self):
+        self.start['pog3_bypassed'] = 1
+        self.end['pog3_bypassed'] = 1
+        result = health(self.start, self.end)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn('POG3 bypass:     1', result.stdout)
+
+    def test_recovered_fault_during_sample_still_fails(self):
+        self.end.update(worker_underflow=3, pog3_recoveries=1, pog3_bypassed=0)
+        result = health(self.start, self.end)
+        self.assertEqual(result.returncode, 1, result.stderr)
+
     def test_submission_miss_fails_health(self):
         self.end['worker_submit_miss'] = 1
         result = health(self.start, self.end)

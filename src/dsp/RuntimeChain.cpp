@@ -1165,6 +1165,15 @@ uint64_t RuntimeChain::workerUnderflowCount() const noexcept
   return count;
 }
 
+pog3::RecoverySnapshot RuntimeChain::pog3Recovery() const noexcept
+{
+  // EngineLoader admits one POG3 in a serial chain only.
+  for (const auto& block : blocks_) {
+    if (block.daisy && block.daisy->isPog3()) return block.daisy->pog3Recovery();
+  }
+  return {};
+}
+
 std::string RuntimeChain::firstNonFiniteBlockId() const
 {
   const int index = faults_->firstIndex.load(std::memory_order_relaxed);
