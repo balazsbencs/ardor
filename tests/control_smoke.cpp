@@ -118,15 +118,16 @@ int main()
   gesture.handle({ardor::ControlEventType::FootswitchReleased, 3, 0}, start + 2s);
 
   gesture.configureScenes(true, true, false);
-  const auto chordDisabledPress = gesture.handle(
-    {ardor::ControlEventType::FootswitchPressed, 3, 0}, start);
-  if (require(!chordDisabledPress,
-              "FS4 should wait for release when layer chords are disabled")) return 1;
   const auto chordDisabledRight = gesture.handle(
-    {ardor::ControlEventType::FootswitchReleased, 3, 0}, start + 50ms);
+    {ardor::ControlEventType::FootswitchPressed, 3, 0}, start);
   if (require(chordDisabledRight
-                && chordDisabledRight->type == ardor::FootswitchActionType::SelectScene,
-              "a short FS4 tap should select scene 4")) return 1;
+                && chordDisabledRight->type == ardor::FootswitchActionType::SelectScene
+                && chordDisabledRight->index == 3,
+              "disabled layer chords should select scene 4 immediately")) return 1;
+  if (require(!gesture.poll(start + 1s)
+                && !gesture.handle({ardor::ControlEventType::FootswitchReleased, 3, 0},
+                                   start + 1050ms),
+              "holding scene 4 should not navigate banks or repeat scene selection")) return 1;
 
   gesture.configureScenes(false, true);
   const auto noScenesPress = gesture.handle(
@@ -167,6 +168,25 @@ int main()
                 && shortBankSwitchTap->type == ardor::FootswitchActionType::SelectPreset
                 && shortBankSwitchTap->index == 1,
               "a short FS2 tap should retain preset selection")) return 1;
+
+  for (const int first : {1, 3}) {
+    const int second = first == 1 ? 3 : 1;
+    gesture.configureScenes(false, false);
+    gesture.handle({ardor::ControlEventType::FootswitchPressed, first, 0}, start);
+    gesture.handle({ardor::ControlEventType::FootswitchPressed, second, 0}, start + 50ms);
+    if (require(!gesture.poll(start + 1s),
+                "overlapping bank switches should cancel both bank holds")) return 1;
+    if (require(!gesture.handle({ardor::ControlEventType::FootswitchReleased, first, 0},
+                               start + 1050ms)
+                  && !gesture.handle({ardor::ControlEventType::FootswitchReleased, second, 0},
+                                     start + 1100ms),
+                "cancelled bank holds should consume both releases")) return 1;
+    gesture.handle({ardor::ControlEventType::FootswitchPressed, first, 0}, start + 2s);
+    const auto rearmedBank = gesture.poll(start + 2600ms);
+    if (require(rearmedBank && rearmedBank->type == (first == 1
+                  ? ardor::FootswitchActionType::PreviousBank : ardor::FootswitchActionType::NextBank),
+                "bank holds should rearm after both cancelled switches are released")) return 1;
+  }
 
   gesture.configureScenes(false, false);
   gesture.handle({ardor::ControlEventType::FootswitchPressed, 0, 0}, start);
