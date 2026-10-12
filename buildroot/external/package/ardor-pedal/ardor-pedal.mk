@@ -19,6 +19,8 @@ define ARDOR_PEDAL_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 0755 $(@D)/pedal-poc $(TARGET_DIR)/usr/bin/ardor-pedal
 	$(INSTALL) -D -m 0644 $(FFTW_SINGLE_DIR)/COPYING \
 		$(TARGET_DIR)/usr/share/licenses/fftw-single/COPYING
+	$(INSTALL) -D -m 0644 $(ARDOR_PEDAL_SITE)/assets/pog3/fftw-neon.wisdom \
+		$(TARGET_DIR)/usr/share/ardor-pedal/pog3-fftw.wisdom
 	$(INSTALL) -D -m 0755 $(@D)/ardor-splash $(TARGET_DIR)/usr/bin/ardor-splash
 	$(INSTALL) -D -m 0644 $(BR2_EXTERNAL_ARDOR_PEDAL_PATH)/package/ardor-pedal/ardor-splash-1280x720.rgb565 \
 		$(TARGET_DIR)/usr/share/ardor-pedal/ardor-splash.rgb565

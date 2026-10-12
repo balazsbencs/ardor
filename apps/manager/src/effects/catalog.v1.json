@@ -714,7 +714,7 @@
         {
           "kind": "number",
           "key": "high_db",
-          "label": "High gain \u00b7 12 kHz",
+          "label": "High gain · 12 kHz",
           "minimum": -16,
           "maximum": 16,
           "step": 0.5,
@@ -724,7 +724,7 @@
         {
           "kind": "number",
           "key": "high_pass",
-          "label": "High-pass \u00b7 18 dB/oct",
+          "label": "High-pass · 18 dB/oct",
           "minimum": 0,
           "maximum": 4,
           "step": 1,
@@ -1883,6 +1883,353 @@
           "step": 0.05,
           "unit": "percent",
           "defaultValue": 1.0
+        }
+      ]
+    },
+    {
+      "id": "mod:pog3",
+      "blockType": "mod",
+      "mode": "pog3",
+      "name": "Poly Octave 3",
+      "description": "Polyphonic octave voices with independent levels and pan, spectral Attack, filter envelope, detune, Spread and expression control. One block in a serial chain.",
+      "category": "modulation",
+      "aliases": [
+        "pog3",
+        "poly octave 3",
+        "polyphonic octave"
+      ],
+      "constraintGroup": "pog3",
+      "maxEnabledInGroup": 1,
+      "controls": [
+        {
+          "kind": "number",
+          "key": "input_gain",
+          "label": "Input Gain",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.2
+        },
+        {
+          "kind": "number",
+          "key": "dry_level",
+          "label": "Dry",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 1.0
+        },
+        {
+          "kind": "number",
+          "key": "down2_level",
+          "label": "−2 Oct",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "down1_level",
+          "label": "−1 Oct",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.3
+        },
+        {
+          "kind": "number",
+          "key": "fifth_level",
+          "label": "+5th",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "up1_level",
+          "label": "+1 Oct",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.25
+        },
+        {
+          "kind": "number",
+          "key": "up2_level",
+          "label": "+2 Oct",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "dry_pan",
+          "label": "Dry Pan",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "down2_pan",
+          "label": "−2 Pan",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "down1_pan",
+          "label": "−1 Pan",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "fifth_pan",
+          "label": "+5th Pan",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "up1_pan",
+          "label": "+1 Pan",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "up2_pan",
+          "label": "+2 Pan",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "master_level",
+          "label": "Master",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "attack",
+          "label": "Attack",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "dry_attack",
+          "label": "Dry Attack",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "filter_frequency",
+          "label": "Filter",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 1.0
+        },
+        {
+          "kind": "number",
+          "key": "filter_mode",
+          "label": "Filter Type",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "filter_q",
+          "label": "Resonance",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "filter_env",
+          "label": "Envelope",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "filter_attack",
+          "label": "Sweep Attack",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "filter_decay",
+          "label": "Sweep Decay",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "trigger_sensitivity",
+          "label": "Sensitivity",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.5
+        },
+        {
+          "kind": "number",
+          "key": "dry_filter",
+          "label": "Dry Filter",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "detune",
+          "label": "Detune",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "spread",
+          "label": "Spread",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "dry_detune",
+          "label": "Dry Detune / Spread",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "focus",
+          "label": "Focus",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "expression_mode",
+          "label": "Expression",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "expression_position",
+          "label": "Pedal",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 1.0
+        },
+        {
+          "kind": "number",
+          "key": "expression_heel",
+          "label": "Heel",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.0
+        },
+        {
+          "kind": "number",
+          "key": "expression_toe",
+          "label": "Toe",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 1.0
+        },
+        {
+          "kind": "number",
+          "key": "expression_reverse",
+          "label": "Reverse",
+          "minimum": 0,
+          "maximum": 1,
+          "step": 0.01,
+          "unit": "percent",
+          "defaultValue": 0.0
         }
       ]
     },

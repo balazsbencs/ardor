@@ -1,6 +1,6 @@
 # Poly Octave 3 implementation status
 
-Updated: 2026-10-08. This records the implementation increments against
+Updated: 2026-10-12. This records the implementation increments against
 [the implementation plan](pog3-effect-implementation-plan.md). The parameter
 contract, audible granular comparison harness, and streaming spectral foundation
 are implemented, along with a spectral five-voice pitch bank, continuous Warp,
@@ -42,9 +42,18 @@ immutable baseline ELF. Standalone gain counters and generator scope/signature
 handling are retained. Next, profile primary interpretation internally before
 choosing a compact track-birth snapshot or sparse-valid previous-phase cache;
 see [the rejected gain experiment and detailed next steps](pog3-attack-gain-results.md).
-CPU tails, complete memory/combined-chain endurance, calibration/listening and
-public integration remain open.
-There is no selectable `mod/pog3` entry yet.
+The normal app now exposes `mod/pog3` as **Poly Octave 3**, with all 33 controls
+in the native editor and manager. The full fbdev/MMAP app passed four 30-second
+serial POG3 + Vibe + NAM + EQ device checks at 48 kHz / 128 frames / 384 ALSA
+frames, including live preset replacement: zero callback overruns, gaps,
+worker misses, nonfinite output or quantum mismatches. The user listened during
+this integrated, unmuted run and reported: “I think it sounds great.” This
+includes the fixed 256-sample / 5.333 ms worker delay. One POG3 in a serial chain
+is admitted; multiple instances, Dual Amp/Rig and WDW combinations are rejected
+before preparation. Freeze remains OFF. Broader parameter extremes, extended
+thermal endurance and 32/64-frame device performance remain open; those quanta
+have exact host/device offline adapter and allocation coverage. See
+[normal app integration and deployment](pog3-normal-app-integration.md).
 
 Development continues in `/home/bbalazs/projects/ardor-pog3` on
 `feat/pog3-polyphonic-octave`, based on current `main`, in
@@ -58,8 +67,9 @@ POG3 plus the reference serial NAM/EQ chain finishes two 30-second cases and a
 180-second case with zero xruns or pipeline misses. The longer run averages
 1160.527 µs on CPU2 and 2324.920 µs on CPU3 per 2666.667 µs period. Direct serial
 and one-block worker controls still fail. Added delay is **256 samples / 5.333 ms**;
-its playing feel and the normal MMAP/UI backend remain to be tested. This is not
-general routing or public integration. See
+its normal MMAP/UI backend and integrated playing feel are now checked in the
+October 12 milestone below. The original probe remains limited to its serial
+fixture; the public integration likewise reserves one standalone POG3 worker. See
 [the complete results, ownership review and next steps](pog3-worker-pipeline-results.md).
 
 | File / target | Responsibility |

@@ -14,7 +14,7 @@ constexpr std::size_t kMaxCodeLength = 8;
 
 // Built-in modules carry fixed codes of at most five characters, so they fit
 // the 52 px code square in the module drawer as well as the chain strip.
-constexpr std::array<std::pair<std::string_view, std::string_view>, 39> kAssetCodes = {{
+constexpr std::array<std::pair<std::string_view, std::string_view>, 40> kAssetCodes = {{
   {"RAT Distortion", "RAT"}, {"Big Cheese Fuzz", "FUZZ"}, {"Tape Machine", "TAPE"},
   {"Compressor", "CMP"}, {"Noise Gate", "GATE"}, {"Transient Shaper", "TRANS"},
   {"1073 EQ", "1073"}, {"Five Band EQ", "EQ"}, {"GCB-95 Wah", "WAH"}, {"Stereo Widener", "WIDE"},
@@ -22,7 +22,7 @@ constexpr std::array<std::pair<std::string_view, std::string_view>, 39> kAssetCo
   {"Phaser", "PHASE"}, {"PH-2 Phaser", "PH2"}, {"Vintage Trem", "TREM"}, {"Poly Octave", "OCT"},
   {"Pattern Trem", "PTRN"}, {"Auto Swell", "SWELL"}, {"Filter", "FLTR"},
   {"Ladder Sweep", "LADDR"}, {"Formant", "FRMNT"}, {"Quadrature", "QUAD"},
-  {"Destroyer", "DSTRY"}, {"Whammy", "WHAMY"}, {"Harmonizer", "HARM"},
+  {"Destroyer", "DSTRY"}, {"Whammy", "WHAMY"}, {"Harmonizer", "HARM"}, {"Poly Octave 3", "POG3"},
   {"Room Reverb", "ROOM"}, {"Hall Reverb", "HALL"}, {"Plate Reverb", "PLATE"},
   {"Spring Reverb", "SPRNG"}, {"Bloom Reverb", "BLOOM"}, {"Cloud Reverb", "CLOUD"},
   {"Shimmer Reverb", "SHIMR"}, {"Chorale Reverb", "CHORL"}, {"Nonlinear Reverb", "NONLN"},

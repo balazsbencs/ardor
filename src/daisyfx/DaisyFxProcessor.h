@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -27,7 +28,8 @@ public:
   DaisyFxProcessor& operator=(DaisyFxProcessor&&) noexcept;
 
   bool configure(const std::string& blockType, const nlohmann::json& params,
-                 float sampleRate, std::string& error);
+                 float sampleRate, std::string& error, std::size_t blockSize = 0,
+                 int workerCpu = -1, bool realtimeWorker = false);
   // Control-thread safe: publishes a normalized continuous target. The audio
   // thread consumes it at the vendor's existing 48-sample control cadence.
   bool setParameterTarget(std::string_view key, float normalized);
@@ -35,6 +37,11 @@ public:
   void reset();
   StereoSample process(StereoSample input);
   DaisyFxFrame processFrame(StereoSample input);
+  void processBlock(const float* left, const float* right, float* outputLeft,
+                    float* outputRight, std::size_t frames);
+  bool isPog3() const noexcept;
+  std::uint64_t workerUnderflowCount() const noexcept;
+  std::uint64_t workerCompletedGeneration() const noexcept;
   // Algorithmic latency introduced by the 48 kHz <-> 24 kHz reverb boundary.
   // Native-rate reverbs report zero. Hosts can use this for chain alignment.
   size_t latencyFrames() const noexcept;

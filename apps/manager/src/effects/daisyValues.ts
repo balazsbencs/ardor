@@ -344,10 +344,40 @@ function reverbDisplay(mode: string, key: string): NumberDisplay {
 }
 
 export function daisyNumberDisplay(blockType: string, mode: string, key: string): NumberDisplay | undefined {
+  if (blockType === "mod" && mode === "pog3") return pog3Display(key);
   if (blockType === "mod") return modDisplay(mode, key);
   if (blockType === "delay") return delayDisplay(mode, key);
   if (blockType === "reverb") return reverbDisplay(mode, key);
   return undefined;
+}
+
+function pog3Display(key: string): NumberDisplay {
+  const switchLabels: Record<string, string[]> = {
+    filter_mode: ["Low-pass", "Band-pass", "High-pass"],
+    expression_mode: ["Off", "Volume", "Crossfade", "Warp", "Filter"],
+  };
+  const toggles = ["dry_attack", "dry_filter", "dry_detune", "focus", "expression_reverse"];
+  if (switchLabels[key] || toggles.includes(key)) {
+    const labels = switchLabels[key] ?? ["Off", "On"];
+    const intervals = key === "expression_mode" ? 6 : labels.length - 1;
+    return mappedChoices(labels, labels.map((_, i) => i / intervals),
+      (value) => Math.min(labels.length - 1, Math.round(value * intervals)));
+  }
+  if (key.endsWith("_pan")) return physical(-1, 1, 0, (value) =>
+    Math.abs(value) < .005 ? "Center" : `${value < 0 ? "L" : "R"} ${Math.round(Math.abs(value) * 100)}%`, .01);
+  if (key === "input_gain") return physical(.5, 3, 0, (value) => `${value.toFixed(2)}x`, .01);
+  if (key === "master_level") return physical(0, 2, 0,
+    (value) => value === 0 ? "Mute" : `${(20 * Math.log10(value)).toFixed(1)} dB`, .01);
+  if (key === "filter_frequency") return logPhysical(40, 20000, (value) => `${value.toFixed(0)} Hz`, 1);
+  if (key === "filter_q") return logPhysical(.70710678, 8, (value) => `Q ${value.toFixed(2)}`, .01);
+  if (key === "filter_env") return physical(-6, 6, 0, (value) =>
+    Math.abs(value) < .00001 ? "Off" : `${value > 0 ? "+" : ""}${value.toFixed(2)} oct`, .01);
+  const time = (value: number) => value === 0 ? "Off" : `${value.toFixed(0)} ms`;
+  if (key === "attack") return physical(0, 3000, 1, time, 1);
+  if (key === "spread") return physical(0, 150, 0, time, 1);
+  if (key === "filter_attack") return logPhysical(5, 3000, time, 1);
+  if (key === "filter_decay") return logPhysical(20, 3000, time, 1);
+  return normalizedPercent;
 }
 
 export function daisyNormalizedStep(blockType: string, mode: string, key: string, display?: NumberDisplay): number {

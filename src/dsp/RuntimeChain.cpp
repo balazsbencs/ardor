@@ -343,7 +343,9 @@ void RuntimeChain::addDaisy(std::string id, DaisyFxProcessor processor, bool sce
   // Preserve each effect's resampling latency through bypass (31 frames for
   // hosted reverbs, 15 for PH-2). Live dry would cause a comb null mid-fade.
   block.bypassDryDelay.resize(processor.latencyFrames());
-  block.sceneLetRing = sceneLetRing;
+  // POG3 uses the modulation crossfade/cut policy. Its worker must always
+  // receive complete blocks, including while a local bypass drains the core.
+  block.sceneLetRing = sceneLetRing && !processor.isPog3();
   block.daisy = std::make_unique<DaisyFxProcessor>(std::move(processor));
   blocks_.push_back(std::move(block));
 }
@@ -899,7 +901,12 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
         if (block.irReverb) {
           for (size_t i = 0; i < frames; ++i) (void)block.irReverb->process({});
         } else if (block.daisy) {
-          for (size_t i = 0; i < frames; ++i) (void)block.daisy->process({});
+          if (block.daisy->isPog3()) {
+            std::fill_n(monoScratch_.data(), frames, 0.0f);
+            block.daisy->processBlock(monoScratch_.data(), monoScratch_.data(), nextLeft, nextRight, frames);
+          } else {
+            for (size_t i = 0; i < frames; ++i) (void)block.daisy->process({});
+          }
         }
       }
       std::copy(bypassLeft, bypassLeft + frames, nextLeft);
@@ -971,6 +978,11 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       currentIsStereo = true;
       break;
     case Block::Kind::Daisy:
+      if (!renderLetRing) {
+        block.daisy->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);
+        currentIsStereo = true;
+        break;
+      }
       for (size_t i = 0; i < frames; ++i) {
         if (renderLetRing && block.tailFramesRemaining > 0) {
           const StereoSample dry{currentLeft[i], currentRight[i]};
@@ -1143,6 +1155,13 @@ uint64_t RuntimeChain::parallelWaitOverBudgetCount() const noexcept
       count += block.dualRig->parallelWaitOverBudgetCount();
     }
   }
+  return count;
+}
+
+uint64_t RuntimeChain::workerUnderflowCount() const noexcept
+{
+  uint64_t count = 0;
+  for (const auto& block : blocks_) if (block.daisy) count += block.daisy->workerUnderflowCount();
   return count;
 }
 
