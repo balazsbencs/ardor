@@ -78,6 +78,36 @@ int main()
     std::string error;
     require(ardor::applyPreset(*liveEngine, tremPreset("Active"), root, options, error), error);
 
+    auto pogPreset = tremPreset("POG3", "pog3");
+    require(ardor::preflightPreset(pogPreset, root, options, error), error);
+    ardor::PedalEngine pogEngine;
+    require(ardor::applyPreset(pogEngine, pogPreset, root, options, error), error);
+    requireFiniteOutput(pogEngine, "serial POG3 factory");
+    auto twoPogs = pogPreset;
+    twoPogs.blocks.push_back({"pog-2", "mod", false, "", {{"mode", "pog3"}}});
+    require(!ardor::preflightPreset(twoPogs, root, options, error)
+              && !ardor::applyPreset(pogEngine, twoPogs, root, options, error),
+            "a second POG3 must be rejected even when initially disabled");
+    auto splitPog = pogPreset;
+    splitPog.blocks.push_back({"split", "dualRig", true, "", {}});
+    require(!ardor::preflightPreset(splitPog, root, options, error)
+              && error.find("serial chain") != std::string::npos,
+            "POG3 must reserve the standalone worker rather than share a split worker");
+    auto wdwPog = pogPreset;
+    wdwPog.version = 3;
+    wdwPog.routing = "wdw";
+    wdwPog.wdw.emplace();
+    wdwPog.wdw->wet.blocks = std::move(wdwPog.blocks);
+    require(!ardor::preflightPreset(wdwPog, root, options, error)
+              && !ardor::applyPreset(pogEngine, wdwPog, root, options, error),
+            "WDW POG3 must fail the same routing admission before preparation");
+    auto freezePog = pogPreset;
+    freezePog.blocks[0].params["expression_mode"] = 1.0f;
+#if !ARDOR_POG3_EXPERIMENTAL_FREEZE
+    require(!ardor::preflightPreset(freezePog, root, options, error),
+            "default app must reject reserved experimental freeze choices");
+#endif
+
     ardor::PedalEngine sceneEngine;
     require(ardor::applyPreset(sceneEngine, sceneTremPreset(), root, options, error), error);
     require(sceneEngine.scenesPrepared() && sceneEngine.scenePresetGeneration() != 0,

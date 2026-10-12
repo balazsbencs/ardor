@@ -1,0 +1,37 @@
+Ardor pedal performance probe
+  pid:        22818
+  command:    ./ardor-pedal --realtime --ui --data-root /tmp/pog3-app-20261012/data --bank 0 --slot 0 --sample-rate 48000 --block-size 128 --parallel-rigs --audio-cpu 2 --rig-worker-cpu 3 --wdw-dry-worker-cpu 0 --wdw-wet-worker-cpu 1 --telemetry-file /tmp/pog3-app-20261012/telemetry.txt --clip-debug 
+  sample:     30s (1s interval)
+  temperature at start: 60.4 C
+  CPU clock at start:   1500 MHz
+
+Sampling..............................
+
+Per-core utilization
+  core   busy     headroom
+  CPU0     2.4%     97.6%
+  CPU1     2.8%     97.2%
+  CPU2    47.4%     52.6%
+  CPU3    82.9%     17.1%
+
+Ardor threads
+  role       tid     CPU%   last  affinity  policy/prio  migrations
+  UI/main    22818     3.9%   0     0-3       OTHER/0         53
+  audio      22913    47.5%   2     2         FIFO/70        0
+  TOTAL      -        51.4%
+
+Audio callback telemetry
+  callbacks:       11275 during sample
+  callback time:   avg 1.17 ms ( 43.8% budget), max 1.64 ms, budget 2.67 ms
+  deadline faults: callback_over=0 gaps=0 worker_over=0
+  worker faults:   underflow=0 submit_miss=0
+  DSP faults:      nonfinite=0 block_mismatch=0 bypassed=0
+  AUDIO HEALTH: PASS
+
+Scheduling checks
+  PASS audio: TID 22913, CPU 2, FIFO/70
+  PASS worker: TID 23440, CPU 3, FIFO/69
+
+Thermal: start 60.4 C, end 61.3 C, sampled max 61.3 C
+CPU clock range: 1500-1500 MHz
+RESULT: PASS

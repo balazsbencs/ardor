@@ -1,6 +1,7 @@
 #include "daisyfx/DaisyFxProcessor.h"
 
 #include "daisyfx/DaisyFxCatalog.h"
+#include "daisyfx/pog3/Pog3Hosted.h"
 
 #include "audio/stereo_frame.h"
 #include "config/delay_mode_id.h"
@@ -191,6 +192,7 @@ std::unique_ptr<pedal::ReverbMode> makeReverbMode(const std::string& mode, pedal
 } // namespace
 
 struct DaisyFxProcessor::Impl {
+  std::unique_ptr<pog3::Pog3Hosted> pog;
   enum class Kind { None, Mod, Delay, Reverb };
   // P3 and P4 exist only for modulation modes that declare them. Delays use
   // P3 for Width. Reverbs use the first seven.
@@ -405,7 +407,8 @@ DaisyFxProcessor::DaisyFxProcessor(DaisyFxProcessor&&) noexcept = default;
 DaisyFxProcessor& DaisyFxProcessor::operator=(DaisyFxProcessor&&) noexcept = default;
 
 bool DaisyFxProcessor::configure(const std::string& blockType, const nlohmann::json& params,
-                                 float sampleRate, std::string& error)
+                                 float sampleRate, std::string& error, std::size_t blockSize,
+                                 int workerCpu, bool realtimeWorker)
 {
   error.clear();
   // The hosted vendor implementation has fixed 48 kHz delay lengths, LFO
@@ -439,6 +442,12 @@ bool DaisyFxProcessor::configure(const std::string& blockType, const nlohmann::j
   };
 
   if (blockType == "mod") {
+    if (mode == "pog3") {
+      next->pog = std::make_unique<pog3::Pog3Hosted>();
+      if (!next->pog->configure(params, sampleRate, blockSize, workerCpu, realtimeWorker, error)) return false;
+      impl_ = std::move(next);
+      return true;
+    }
     pedal::ModModeId modeId{};
     next->mod = makeModMode(mode, modeId);
     if (!next->mod) {
@@ -509,6 +518,7 @@ bool DaisyFxProcessor::configure(const std::string& blockType, const nlohmann::j
 
 bool DaisyFxProcessor::setParameterTarget(std::string_view key, float normalized)
 {
+  if (impl_ && impl_->pog) return impl_->pog->setTarget(key, normalized);
   if (!impl_ || !std::isfinite(normalized)) {
     return false;
   }
@@ -532,6 +542,7 @@ bool DaisyFxProcessor::setParameterTarget(std::string_view key, float normalized
 
 bool DaisyFxProcessor::setParameterTarget(std::size_t parameterIndex, float normalized)
 {
+  if (impl_ && impl_->pog) return impl_->pog->setTarget(parameterIndex, normalized);
   if (!impl_ || parameterIndex >= Impl::Count || !std::isfinite(normalized)) return false;
   if (parameterIndex >= Impl::P3 && impl_->kind != Impl::Kind::Mod
       && !(parameterIndex == Impl::P3 && impl_->kind == Impl::Kind::Delay)) return false;
@@ -542,6 +553,7 @@ bool DaisyFxProcessor::setParameterTarget(std::size_t parameterIndex, float norm
 
 void DaisyFxProcessor::reset()
 {
+  if (impl_ && impl_->pog) { impl_->pog->reset(); return; }
   if (impl_) impl_->reset();
 }
 
@@ -550,8 +562,36 @@ StereoSample DaisyFxProcessor::process(StereoSample input)
   return processFrame(input).mixed;
 }
 
+void DaisyFxProcessor::processBlock(const float* left, const float* right,
+                                    float* outputLeft, float* outputRight, std::size_t frames)
+{
+  if (impl_ && impl_->pog) {
+    impl_->pog->processBlock(left, right, outputLeft, outputRight, frames);
+    return;
+  }
+  for (std::size_t i = 0; i < frames; ++i) {
+    const auto output = process({left[i], right[i]});
+    outputLeft[i] = output.left; outputRight[i] = output.right;
+  }
+}
+
+bool DaisyFxProcessor::isPog3() const noexcept { return impl_ && impl_->pog; }
+std::uint64_t DaisyFxProcessor::workerUnderflowCount() const noexcept
+{
+  return impl_ && impl_->pog ? impl_->pog->underflows() : 0;
+}
+
+std::uint64_t DaisyFxProcessor::workerCompletedGeneration() const noexcept
+{
+  return impl_ && impl_->pog ? impl_->pog->completedGeneration() : 0;
+}
+
 DaisyFxFrame DaisyFxProcessor::processFrame(StereoSample input)
 {
+  if (impl_ && impl_->pog) {
+    const auto frame = impl_->pog->process({input.left, input.right});
+    return {{frame.mixed.left, frame.mixed.right}, {frame.wet.left, frame.wet.right}};
+  }
   if (!impl_) return {input, {}};
   // The vendor effects expect Prepare() at their 48-frame control interval.
   // Ardor's 64-frame audio quantum must not change those time constants.
@@ -625,6 +665,7 @@ DaisyFxFrame DaisyFxProcessor::processFrame(StereoSample input)
 
 size_t DaisyFxProcessor::latencyFrames() const noexcept
 {
+  if (impl_ && impl_->pog) return impl_->pog->latencyFrames();
   if (impl_ && impl_->kind == Impl::Kind::Mod && impl_->modId == pedal::ModModeId::PhaserPh2)
     return pedal::Ph2Mode::kLatencyFrames;
   return impl_ && impl_->kind == Impl::Kind::Reverb && !impl_->nativeRateReverb()
@@ -633,6 +674,7 @@ size_t DaisyFxProcessor::latencyFrames() const noexcept
 
 size_t DaisyFxProcessor::tailFrames() const noexcept
 {
+  if (impl_ && impl_->pog) return 3 * 48000 + 4096;
   if (!impl_) {
     return 0;
   }

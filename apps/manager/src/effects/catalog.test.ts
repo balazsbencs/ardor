@@ -12,13 +12,13 @@ import {
 describe("effect catalog", () => {
   const definitions = allEffectDefinitions();
 
-  it("contains the complete unique set of 54 definitions", () => {
-    expect(definitions).toHaveLength(54);
-    expect(new Set(definitions.map(({ id }) => id)).size).toBe(54);
-    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(54);
-    expect(new Set(definitions.map(({ name }) => name)).size).toBe(54);
+  it("contains the complete unique set of 55 definitions", () => {
+    expect(definitions).toHaveLength(55);
+    expect(new Set(definitions.map(({ id }) => id)).size).toBe(55);
+    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(55);
+    expect(new Set(definitions.map(({ name }) => name)).size).toBe(55);
     expect(definitions.every(({ controls }) => controls.length > 0)).toBe(true);
-    expect(definitions.filter(({ blockType }) => blockType === "mod")).toHaveLength(17);
+    expect(definitions.filter(({ blockType }) => blockType === "mod")).toHaveLength(18);
     expect(definitions.filter(({ blockType }) => blockType === "delay")).toHaveLength(10);
     expect(definitions.filter(({ blockType }) => blockType === "reverb")).toHaveLength(12);
   });
@@ -112,7 +112,12 @@ describe("effect catalog", () => {
       // modulation modes may append the optional p3 and p4.
       const keys = definition.controls.map((control) => ("key" in control ? control.key : undefined));
       expect(keys.slice(0, 7)).toHaveLength(7);
-      if (definition.blockType === "mod") {
+      if (definition.mode === "pog3") {
+        expect(keys).toHaveLength(33);
+        expect(keys.slice(0, 7)).toEqual(["input_gain", "dry_level", "down2_level", "down1_level", "fifth_level", "up1_level", "up2_level"]);
+        expect(keys[13]).toBe("master_level");
+        expect(keys[32]).toBe("expression_reverse");
+      } else if (definition.blockType === "mod") {
         expect(keys.slice(0, 7)).toEqual(["speed", "depth", "mix", "tone", "p1", "p2", "level"]);
         expect(keys.slice(7)).toEqual(["p3", "p4"].slice(0, keys.length - 7));
       } else if (definition.blockType === "delay") {
@@ -318,7 +323,7 @@ describe("effect catalog", () => {
       expect(findEffectDefinition(block)?.id).toBe(id);
       return { ...block, id: `block-${index + 1}` };
     });
-    expect(blocks).toHaveLength(54);
+    expect(blocks).toHaveLength(55);
   });
 
   it("chooses the next numeric block id and handles nonstandard collisions", () => {

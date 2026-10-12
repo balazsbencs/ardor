@@ -19,7 +19,7 @@ const categories = new Set<EffectCategory>([
 const units = new Set<NumberControl["unit"]>(["percent", "db", "ms", "hz", "ratio", "plain"]);
 const assetKinds = new Set<AssetControl["assetKind"]>(["models", "irs", "reverb-irs"]);
 const constraintGroups = new Set<NonNullable<EffectDefinition["constraintGroup"]>>([
-  "nam", "cab", "mod", "delay", "reverb",
+  "nam", "cab", "mod", "pog3", "delay", "reverb",
 ]);
 
 function fail(path: string, message: string): never {

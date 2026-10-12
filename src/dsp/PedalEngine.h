@@ -42,7 +42,8 @@ public:
   bool addStereoWidener(std::string id, float sampleRate, std::string& error);
   bool setStereoWidenerParameter(const std::string& id, const std::string& key, float value);
   bool addDaisyFx(std::string id, const std::string& blockType, const nlohmann::json& params,
-                  float sampleRate, std::string& error, bool sceneLetRing = false);
+                  float sampleRate, std::string& error, bool sceneLetRing = false,
+                  int workerCpu = -1, bool realtimeWorker = false);
   bool addCompressor(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool addNoiseGate(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);
   bool addTransientShaper(std::string id, const nlohmann::json& params, float sampleRate, std::string& error);

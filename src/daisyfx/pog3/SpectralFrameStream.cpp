@@ -39,6 +39,15 @@ struct SpectralPlan::FftwPlans {
     std::vector<std::complex<float>> dummy(n);
     auto* data = reinterpret_cast<fftwf_complex*>(dummy.data());
     std::lock_guard lock(fftwPlannerMutex());
+#if defined(__aarch64__) && defined(__linux__)
+    // The pedal installs the same NEON planning seed used for device timing.
+    // Import only during serialized preparation, never during FFT execution.
+    static const bool wisdomImported = [] {
+      fftwf_import_wisdom_from_filename("/usr/share/ardor-pedal/pog3-fftw.wisdom");
+      return true;
+    }();
+    (void)wisdomImported;
+#endif
     alignment = fftwf_alignment_of(reinterpret_cast<float*>(dummy.data()));
     // Default MEASURE can select dft-buffered plans that allocate/free an
     // execution buffer on every transform. Exclude that solver explicitly.

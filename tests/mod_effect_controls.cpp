@@ -28,6 +28,13 @@ void verifyDescriptorIndexesAreStable()
                                              "p2", "level", "p3", "p4"};
   for (const auto& descriptor : ardor::daisyFxCatalog()) {
     if (descriptor.kind != ardor::DaisyFxKind::Mod) continue;
+    if (descriptor.mode == "pog3") {
+      require(descriptor.params.size() == 33, "POG3 has its independent 33 scene indexes");
+      require(descriptor.params.front().key == "input_gain"
+           && descriptor.params[13].key == "master_level"
+           && descriptor.params.back().key == "expression_reverse", "POG3 index contract");
+      continue;
+    }
     require(descriptor.params.size() >= 7 && descriptor.params.size() <= kKeys.size(),
             descriptor.mode + " has an unexpected control count");
     for (size_t i = 0; i < descriptor.params.size(); ++i) {

@@ -170,9 +170,15 @@ set_target_properties(ardor_fftw_single PROPERTIES
 )
 find_package(Threads REQUIRED)
 
+add_library(ardor_parallel_stereo src/dsp/ParallelStereoStageExecutor.cpp)
+target_include_directories(ardor_parallel_stereo PUBLIC src)
+target_compile_features(ardor_parallel_stereo PUBLIC cxx_std_20)
+target_link_libraries(ardor_parallel_stereo PUBLIC Threads::Threads)
+
 option(ARDOR_POG3_EXPERIMENTAL_FREEZE "Enable deferred POG3 freeze/gliss DSP for experiments" OFF)
 
 add_library(ardor_pog3
+  src/daisyfx/pog3/Pog3Hosted.cpp
   src/daisyfx/pog3/Pog3Parameters.cpp
   src/daisyfx/pog3/Pog3Processor.cpp
   src/daisyfx/pog3/SpectralFreeze.cpp
@@ -187,7 +193,7 @@ target_include_directories(ardor_pog3 PUBLIC
 )
 target_compile_features(ardor_pog3 PUBLIC cxx_std_20)
 target_compile_definitions(ardor_pog3 PUBLIC ARDOR_POG3_EXPERIMENTAL_FREEZE=$<BOOL:${ARDOR_POG3_EXPERIMENTAL_FREEZE}>)
-target_link_libraries(ardor_pog3 PUBLIC ardor_realtime_fft PRIVATE ardor_fftw_single Threads::Threads)
+target_link_libraries(ardor_pog3 PUBLIC ardor_realtime_fft ardor_parallel_stereo PRIVATE ardor_fftw_single Threads::Threads)
 
 add_library(ardor_daisyfx
   src/daisyfx/DaisyFxCatalog.cpp
@@ -198,7 +204,7 @@ target_include_directories(ardor_daisyfx PUBLIC
   ${neuralampmodelercore_SOURCE_DIR}/Dependencies
 )
 target_compile_features(ardor_daisyfx PUBLIC cxx_std_20)
-target_link_libraries(ardor_daisyfx PUBLIC ardor_daisyfx_runtime)
+target_link_libraries(ardor_daisyfx PUBLIC ardor_daisyfx_runtime ardor_pog3)
 
 add_library(ardor_dynamics
   src/dynamics/CompressorProcessor.cpp
@@ -311,7 +317,6 @@ add_library(ardor_dsp OBJECT
   src/dsp/PedalEngine.cpp
   src/dsp/ParallelLaneExecutor.cpp
   src/dsp/ParallelLaneMixer.cpp
-  src/dsp/ParallelStereoStageExecutor.cpp
   src/dsp/WdwPairExecutor.cpp
   src/dsp/WdwRoutingProgram.cpp
   src/dsp/FlexibleRoutingGraph.cpp
@@ -552,6 +557,9 @@ target_link_libraries(pedal-pog3-bench PRIVATE ardor_pog3 ardor_daisyfx_runtime 
 # FFTW allocates through C, outside the benchmark's C++ new counter. Verify
 # the complete prepared stream through a test-only libc interposer on glibc.
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_executable(pedal-pog3-hosted-quality tests/pog3_hosted_quality.cpp)
+  target_link_libraries(pedal-pog3-hosted-quality PRIVATE ardor_daisyfx)
+  add_test(NAME pedal-pog3-hosted-quality COMMAND pedal-pog3-hosted-quality)
   include(CheckSymbolExists)
   check_symbol_exists(__GLIBC__ "features.h" ARDOR_HAVE_GLIBC)
   if(ARDOR_HAVE_GLIBC)
@@ -579,7 +587,7 @@ target_link_libraries(pedal-pog3-freeze-quality PRIVATE ardor_pog3)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   # Diagnostic strict-delay adapter; does not change production DSP routing.
   add_executable(pedal-pog3-pipeline-quality EXCLUDE_FROM_ALL
-    tests/pog3_pipeline_quality.cpp src/dsp/ParallelStereoStageExecutor.cpp)
+    tests/pog3_pipeline_quality.cpp)
   target_link_libraries(pedal-pog3-pipeline-quality PRIVATE ardor_pog3 Threads::Threads)
 endif()
 

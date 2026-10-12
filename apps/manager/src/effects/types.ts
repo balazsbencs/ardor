@@ -63,7 +63,7 @@ export type EffectDefinition = {
   description: string;
   category: EffectCategory;
   aliases?: string[];
-  constraintGroup?: "nam" | "cab" | "mod" | "delay" | "reverb";
+  constraintGroup?: "nam" | "cab" | "mod" | "pog3" | "delay" | "reverb";
   maxEnabledInGroup?: number;
   controls: EffectControl[];
 };

@@ -5,6 +5,7 @@
 
 #include "daisyfx/DaisyFxCatalog.h"
 #include "daisyfx/DaisyFxProcessor.h"
+#include "daisyfx/pog3/Pog3Parameters.h"
 #include "dsp/DualAmpProcessor.h"
 #include "dsp/DualRigProcessor.h"
 #include "dynamics/CompressorProcessor.h"
@@ -27,6 +28,42 @@ namespace {
 std::atomic<std::uint64_t> nextSceneGeneration{
   static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
     std::chrono::system_clock::now().time_since_epoch()).count())};
+
+template<class Block>
+void inspectPogBlocks(const std::vector<Block>& blocks, std::size_t& count, bool& split)
+{
+  for (const auto& block : blocks) {
+    if (block.type == "mod" && block.params.value("mode", std::string{}) == "pog3") ++count;
+    split = split || block.type == "dualAmp" || block.type == "dualRig";
+    for (const auto& lane : block.lanes) inspectPogBlocks(lane, count, split);
+  }
+}
+
+bool validatePogTopology(const ChainPlan& plan, std::string& error)
+{
+  std::size_t count = 0; bool split = false;
+  inspectPogBlocks(plan.blocks, count, split);
+  if (count > 1 || (count && split)) {
+    error = "Poly Octave 3 supports one block in a serial chain with standalone NAM";
+    return false;
+  }
+  return true;
+}
+
+bool validatePogRouting(const Preset& preset, std::string& error)
+{
+  std::size_t count = 0; bool split = false;
+  inspectPogBlocks(preset.blocks, count, split);
+  if (preset.wdw) {
+    inspectPogBlocks(preset.wdw->dry.blocks, count, split);
+    inspectPogBlocks(preset.wdw->wet.blocks, count, split);
+  }
+  if (count > 1 || (count && (split || preset.routing != "serial"))) {
+    error = "Poly Octave 3 supports one block in a serial chain with standalone NAM";
+    return false;
+  }
+  return true;
+}
 
 const char* statusName(ChainBlockStatus status)
 {
@@ -198,6 +235,14 @@ WdwRoutingBuildOptions wdwBuildOptions(const EngineLoadOptions& options,
 
 bool validateDaisyParameters(const ChainBlockPlan& block, std::string& error)
 {
+  if (block.type == "mod" && block.params.value("mode", std::string{}) == "pog3") {
+    pog3::Configuration configuration;
+    if (!pog3::parseConfiguration(block.params, configuration, error)) return false;
+    if (!pog3::kExperimentalFreezeEnabled && pog3::choiceIndex(
+          configuration.base[pog3::index(pog3::Parameter::ExpressionMode)], 7) >= 5) {
+      error = "Freeze modes are not available in Poly Octave 3"; return false;
+    }
+  }
   const auto* descriptor = findDaisyFxDescriptor(block.type, block.params.value("mode", ""));
   if (!descriptor) {
     error = "unsupported Daisy effect: " + block.type + "/" + block.params.value("mode", "");
@@ -500,7 +545,9 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       if (!validateDaisyParameters(block, error)) return false;
       DaisyFxProcessor processor;
       if (!processor.configure(block.type, block.params,
-                               static_cast<float>(options.sampleRate), error)) {
+                               static_cast<float>(options.sampleRate), error, options.blockSize,
+                               options.parallelRigs ? options.rigWorkerCpu : -1,
+                               options.parallelRigs && options.rigWorkerCpu >= 0)) {
         return false;
       }
       chain.addDaisy(block.id, std::move(processor), block.sceneLetRing);
@@ -668,6 +715,7 @@ bool makeDualRigLane(const ChainBlockPlan& block, std::size_t laneIndex,
 bool preflightChainPlan(const ChainPlan& plan, const EngineLoadOptions& options, std::string& error)
 {
   error.clear();
+  if (!validatePogTopology(plan, error)) return false;
   if (!validateLoadOptions(options, error)) {
     return false;
   }
@@ -959,7 +1007,8 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
     if (block.type == "mod" || block.type == "delay" || block.type == "reverb") {
       if (!engine.addDaisyFx(block.id, block.type, block.params,
                              static_cast<float>(options.sampleRate), error,
-                             block.sceneLetRing)) {
+                             block.sceneLetRing, options.parallelRigs ? options.rigWorkerCpu : -1,
+                             options.parallelRigs && options.rigWorkerCpu >= 0)) {
         return false;
       }
       stereoEstablished = true;
@@ -1048,6 +1097,7 @@ bool applyChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLoad
 bool preflightPreset(const Preset& preset, const std::filesystem::path& dataRoot,
                      const EngineLoadOptions& options, std::string& error)
 {
+  if (!validatePogRouting(preset, error)) return false;
   try {
     if (preset.sceneSet) {
       ScenePlan scenePlan;
@@ -1096,6 +1146,7 @@ bool preflightPresetSlot(const PresetStore& store, PresetSlot slot,
 bool applyPreset(PedalEngine& engine, const Preset& preset, const std::filesystem::path& dataRoot,
                  const EngineLoadOptions& options, std::string& error)
 {
+  if (!validatePogRouting(preset, error)) return false;
   std::optional<SceneTransitionProgram> sceneProgram;
   if (preset.sceneSet) {
     ScenePlan scenePlan;

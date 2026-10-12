@@ -527,6 +527,244 @@
       ]
     },
     {
+      "id": "mod:pog3",
+      "blockType": "mod",
+      "mode": "pog3",
+      "params": [
+        {
+          "key": "input_gain",
+          "label": "Input Gain",
+          "defaultValue": 0.200000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0.50x"}, {"value": 0.230000, "text": "1.08x"}, {"value": 0.470000, "text": "1.67x"}, {"value": 0.710000, "text": "2.28x"}, {"value": 1.000000, "text": "3.00x"}]
+        },
+        {
+          "key": "dry_level",
+          "label": "Dry",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "down2_level",
+          "label": "−2 Oct",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "down1_level",
+          "label": "−1 Oct",
+          "defaultValue": 0.300000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "fifth_level",
+          "label": "+5th",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "up1_level",
+          "label": "+1 Oct",
+          "defaultValue": 0.250000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "up2_level",
+          "label": "+2 Oct",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "dry_pan",
+          "label": "Dry Pan",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "L 100%"}, {"value": 0.230000, "text": "L 54%"}, {"value": 0.470000, "text": "L 6%"}, {"value": 0.710000, "text": "R 42%"}, {"value": 1.000000, "text": "R 100%"}]
+        },
+        {
+          "key": "down2_pan",
+          "label": "−2 Pan",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "L 100%"}, {"value": 0.230000, "text": "L 54%"}, {"value": 0.470000, "text": "L 6%"}, {"value": 0.710000, "text": "R 42%"}, {"value": 1.000000, "text": "R 100%"}]
+        },
+        {
+          "key": "down1_pan",
+          "label": "−1 Pan",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "L 100%"}, {"value": 0.230000, "text": "L 54%"}, {"value": 0.470000, "text": "L 6%"}, {"value": 0.710000, "text": "R 42%"}, {"value": 1.000000, "text": "R 100%"}]
+        },
+        {
+          "key": "fifth_pan",
+          "label": "+5th Pan",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "L 100%"}, {"value": 0.230000, "text": "L 54%"}, {"value": 0.470000, "text": "L 6%"}, {"value": 0.710000, "text": "R 42%"}, {"value": 1.000000, "text": "R 100%"}]
+        },
+        {
+          "key": "up1_pan",
+          "label": "+1 Pan",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "L 100%"}, {"value": 0.230000, "text": "L 54%"}, {"value": 0.470000, "text": "L 6%"}, {"value": 0.710000, "text": "R 42%"}, {"value": 1.000000, "text": "R 100%"}]
+        },
+        {
+          "key": "up2_pan",
+          "label": "+2 Pan",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "L 100%"}, {"value": 0.230000, "text": "L 54%"}, {"value": 0.470000, "text": "L 6%"}, {"value": 0.710000, "text": "R 42%"}, {"value": 1.000000, "text": "R 100%"}]
+        },
+        {
+          "key": "master_level",
+          "label": "Master",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "Mute"}, {"value": 0.230000, "text": "-6.7 dB"}, {"value": 0.470000, "text": "-0.5 dB"}, {"value": 0.710000, "text": "3.0 dB"}, {"value": 1.000000, "text": "6.0 dB"}]
+        },
+        {
+          "key": "attack",
+          "label": "Attack",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "Off"}, {"value": 0.230000, "text": "159 ms"}, {"value": 0.470000, "text": "663 ms"}, {"value": 0.710000, "text": "1512 ms"}, {"value": 1.000000, "text": "3000 ms"}]
+        },
+        {
+          "key": "dry_attack",
+          "label": "Dry Attack",
+          "defaultValue": 0.000000,
+          "choiceCount": 2,
+          "samples": [{"value": 0.000000, "text": "Off"}, {"value": 1.000000, "text": "On"}]
+        },
+        {
+          "key": "filter_frequency",
+          "label": "Filter",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "40 Hz"}, {"value": 0.230000, "text": "167 Hz"}, {"value": 0.470000, "text": "742 Hz"}, {"value": 0.710000, "text": "3299 Hz"}, {"value": 1.000000, "text": "20000 Hz"}]
+        },
+        {
+          "key": "filter_mode",
+          "label": "Filter Type",
+          "defaultValue": 0.000000,
+          "choiceCount": 3,
+          "samples": [{"value": 0.000000, "text": "Low-pass"}, {"value": 0.500000, "text": "Band-pass"}, {"value": 1.000000, "text": "High-pass"}]
+        },
+        {
+          "key": "filter_q",
+          "label": "Resonance",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "Q 0.71"}, {"value": 0.230000, "text": "Q 1.24"}, {"value": 0.470000, "text": "Q 2.21"}, {"value": 0.710000, "text": "Q 3.96"}, {"value": 1.000000, "text": "Q 8.00"}]
+        },
+        {
+          "key": "filter_env",
+          "label": "Envelope",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "-6.00 oct"}, {"value": 0.230000, "text": "-3.24 oct"}, {"value": 0.470000, "text": "-0.36 oct"}, {"value": 0.710000, "text": "+2.52 oct"}, {"value": 1.000000, "text": "+6.00 oct"}]
+        },
+        {
+          "key": "filter_attack",
+          "label": "Sweep Attack",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "5 ms"}, {"value": 0.230000, "text": "22 ms"}, {"value": 0.470000, "text": "101 ms"}, {"value": 0.710000, "text": "469 ms"}, {"value": 1.000000, "text": "3000 ms"}]
+        },
+        {
+          "key": "filter_decay",
+          "label": "Sweep Decay",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "20 ms"}, {"value": 0.230000, "text": "63 ms"}, {"value": 0.470000, "text": "211 ms"}, {"value": 0.710000, "text": "702 ms"}, {"value": 1.000000, "text": "3000 ms"}]
+        },
+        {
+          "key": "trigger_sensitivity",
+          "label": "Sensitivity",
+          "defaultValue": 0.500000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "dry_filter",
+          "label": "Dry Filter",
+          "defaultValue": 0.000000,
+          "choiceCount": 2,
+          "samples": [{"value": 0.000000, "text": "Off"}, {"value": 1.000000, "text": "On"}]
+        },
+        {
+          "key": "detune",
+          "label": "Detune",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "spread",
+          "label": "Spread",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "Off"}, {"value": 0.230000, "text": "35 ms"}, {"value": 0.470000, "text": "70 ms"}, {"value": 0.710000, "text": "106 ms"}, {"value": 1.000000, "text": "150 ms"}]
+        },
+        {
+          "key": "dry_detune",
+          "label": "Dry Detune / Spread",
+          "defaultValue": 0.000000,
+          "choiceCount": 2,
+          "samples": [{"value": 0.000000, "text": "Off"}, {"value": 1.000000, "text": "On"}]
+        },
+        {
+          "key": "focus",
+          "label": "Focus",
+          "defaultValue": 0.000000,
+          "choiceCount": 2,
+          "samples": [{"value": 0.000000, "text": "Off"}, {"value": 1.000000, "text": "On"}]
+        },
+        {
+          "key": "expression_mode",
+          "label": "Expression",
+          "defaultValue": 0.000000,
+          "choiceCount": 5,
+          "samples": [{"value": 0.000000, "text": "Off"}, {"value": 0.166667, "text": "Volume"}, {"value": 0.333333, "text": "Crossfade"}, {"value": 0.500000, "text": "Warp"}, {"value": 0.666667, "text": "Filter"}]
+        },
+        {
+          "key": "expression_position",
+          "label": "Pedal",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "expression_heel",
+          "label": "Heel",
+          "defaultValue": 0.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "expression_toe",
+          "label": "Toe",
+          "defaultValue": 1.000000,
+          "choiceCount": 0,
+          "samples": [{"value": 0.000000, "text": "0%"}, {"value": 0.230000, "text": "23%"}, {"value": 0.470000, "text": "47%"}, {"value": 0.710000, "text": "71%"}, {"value": 1.000000, "text": "100%"}]
+        },
+        {
+          "key": "expression_reverse",
+          "label": "Reverse",
+          "defaultValue": 0.000000,
+          "choiceCount": 2,
+          "samples": [{"value": 0.000000, "text": "Off"}, {"value": 1.000000, "text": "On"}]
+        }
+      ]
+    },
+    {
       "id": "mod:pattern_trem",
       "blockType": "mod",
       "mode": "pattern_trem",

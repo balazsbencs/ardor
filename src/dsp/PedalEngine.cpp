@@ -211,10 +211,11 @@ bool PedalEngine::setStereoWidenerParameter(const std::string& id, const std::st
 }
 
 bool PedalEngine::addDaisyFx(std::string id, const std::string& blockType, const nlohmann::json& params,
-                             float sampleRate, std::string& error, bool sceneLetRing)
+                             float sampleRate, std::string& error, bool sceneLetRing,
+                             int workerCpu, bool realtimeWorker)
 {
   DaisyFxProcessor processor;
-  if (!processor.configure(blockType, params, sampleRate, error)) {
+  if (!processor.configure(blockType, params, sampleRate, error, blockSize_, workerCpu, realtimeWorker)) {
     return false;
   }
   chain_.addDaisy(std::move(id), std::move(processor), sceneLetRing);
@@ -616,7 +617,7 @@ uint64_t PedalEngine::parallelWaitOverBudgetCount() const noexcept
 
 uint64_t PedalEngine::parallelUnderflowCount() const noexcept
 {
-  return wdwRouting_ ? wdwRouting_->pairUnderflowCount() : 0;
+  return chain_.workerUnderflowCount() + (wdwRouting_ ? wdwRouting_->pairUnderflowCount() : 0);
 }
 
 uint64_t PedalEngine::parallelSubmissionMissCount() const noexcept

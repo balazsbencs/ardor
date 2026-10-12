@@ -1,0 +1,3 @@
+frames=32 delay=256 worst_error=0 key/index/automation/startup/drain/reset/fault=pass
+frames=64 delay=256 worst_error=0 key/index/automation/startup/drain/reset/fault=pass
+frames=128 delay=256 worst_error=0 key/index/automation/startup/drain/reset/fault=pass

@@ -1,4 +1,5 @@
 #include "daisyfx/DaisyFxCatalog.h"
+#include "daisyfx/pog3/Pog3Parameters.h"
 
 #include "daisyfx/hosted/config/delay_mode_id.h"
 #include "daisyfx/hosted/config/mod_mode_id.h"
@@ -588,6 +589,12 @@ const std::vector<DaisyFxDescriptor>& daisyFxCatalog()
     withExtras(mod("phaser_ph2", "PH-2 Phaser", "Resonance", "Mode"), "Stereo", 0.0f, "Polarity", 0.0f),
     withExtras(mod("vintage_trem", "Vintage Trem", "Shape", "Type"), "Stereo", 0.0f),
     polyOctave(),
+    [] {
+      DaisyFxDescriptor effect{DaisyFxKind::Mod, "mod", "pog3", "Poly Octave 3", {}};
+      for (const auto& parameter : pog3::parameterSpecs())
+        effect.params.push_back({std::string(parameter.key), std::string(parameter.label), parameter.defaultValue});
+      return effect;
+    }(),
     // Smooth 0.35 is the fixed ~2 ms edge this mode had before the control.
     withExtras(mod("pattern_trem", "Pattern Trem", "Pattern", "Division", 1.0f, "Tempo"),
                "Smooth", 0.35f, "Swing", 0.0f),
@@ -658,6 +665,10 @@ std::string formatDaisyFxParamValue(const DaisyFxDescriptor& effect,
                                     const DaisyFxParamDescriptor& param,
                                     float normalized)
 {
+  if (effect.mode == "pog3") {
+    const auto parameter = pog3::findParameter(param.key);
+    return parameter ? pog3::formatValue(*parameter, normalized) : std::string{};
+  }
   normalized = std::clamp(normalized, 0.0f, 1.0f);
   switch (effect.kind) {
     case DaisyFxKind::Mod: return formatMod(effect.mode, param.key, normalized);
@@ -670,6 +681,20 @@ std::string formatDaisyFxParamValue(const DaisyFxDescriptor& effect,
 DaisyFxParamControlSpec daisyFxParamControlSpec(const DaisyFxDescriptor& effect,
                                                 const DaisyFxParamDescriptor& param)
 {
+  if (effect.mode == "pog3") {
+    const auto parameter = pog3::findParameter(param.key);
+    if (!parameter) return {};
+    const auto& spec = pog3::parameterSpecs()[pog3::index(*parameter)];
+    DaisyFxParamControlSpec controls;
+    if (spec.choices) {
+      const auto count = *parameter == pog3::Parameter::ExpressionMode
+        && !pog3::kExperimentalFreezeEnabled ? std::size_t{5} : spec.choices;
+      controls.step = 1;
+      for (std::size_t i = 0; i < count; ++i)
+        controls.choiceValues.push_back(static_cast<float>(i) / (spec.choices - 1));
+    }
+    return controls;
+  }
   const auto& mode = effect.mode;
   const auto& key = param.key;
   std::size_t choiceCount = 0;

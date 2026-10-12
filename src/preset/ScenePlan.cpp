@@ -183,6 +183,8 @@ std::optional<ParameterCapability> capabilityFor(const PresetBlock& block,
                                                   std::string_view key)
 {
   if (block.type == "mod" || block.type == "delay" || block.type == "reverb") {
+    if (block.type == "mod" && block.params.value("mode", "") == "pog3"
+        && key == "expression_mode") return std::nullopt;
     // Delay time changes can alter buffer/read-head behavior and stay shared
     // until that processor has an explicit click-free scene transition.
     if (block.type == "delay" && key == "time") return std::nullopt;

@@ -108,6 +108,7 @@ public:
   size_t tailFrames() const noexcept;
   uint64_t nonFiniteBlockCount() const noexcept;
   uint64_t parallelWaitOverBudgetCount() const noexcept;
+  uint64_t workerUnderflowCount() const noexcept;
   std::string firstNonFiniteBlockId() const;
   // Atomically consumes peaks and overload-frame counts accumulated since the
   // previous call. Snapshot allocation happens only on the calling/control
