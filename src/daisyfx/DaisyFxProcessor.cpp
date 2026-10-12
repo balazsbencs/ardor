@@ -581,6 +581,11 @@ std::uint64_t DaisyFxProcessor::workerUnderflowCount() const noexcept
   return impl_ && impl_->pog ? impl_->pog->underflows() : 0;
 }
 
+pog3::RecoverySnapshot DaisyFxProcessor::pog3Recovery() const noexcept
+{
+  return impl_ && impl_->pog ? impl_->pog->recovery() : pog3::RecoverySnapshot{};
+}
+
 std::uint64_t DaisyFxProcessor::workerCompletedGeneration() const noexcept
 {
   return impl_ && impl_->pog ? impl_->pog->completedGeneration() : 0;

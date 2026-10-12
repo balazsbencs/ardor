@@ -286,6 +286,7 @@ if [ "$telemetry_ready" = 1 ]; then
   maximum_ms=$(telemetry_metric "$tmp_dir/telemetry.end" max)
   budget_ms=$(telemetry_metric "$tmp_dir/telemetry.end" budget)
   bypassed=$(telemetry_metric "$tmp_dir/telemetry.end" bypassed)
+  pog3_bypassed=$(telemetry_metric "$tmp_dir/telemetry.end" pog3_bypassed)
 
   callback_delta=$((callbacks_end - callbacks_start))
   over_delta=$((over_end - over_start))
@@ -325,13 +326,15 @@ if [ "$telemetry_ready" = 1 ]; then
     "$over_delta" "$gap_delta" "$worker_over_delta"
   printf "  worker faults:   underflow=%s submit_miss=%s\n" \
     "$underflow_delta" "$submit_miss_delta"
+  printf "  POG3 bypass:     %s\n" "$pog3_bypassed"
   printf "  DSP faults:      nonfinite=%s block_mismatch=%s bypassed=%s\n" \
     "$nonfinite_delta" "$mismatch_delta" "$bypassed"
 
   if [ "$counters_reset" -ne 0 ] || [ "$over_delta" -gt 0 ] || [ "$gap_delta" -gt 0 ] \
       || [ "$worker_over_delta" -gt 0 ] || [ "$nonfinite_delta" -gt 0 ] \
       || [ "$underflow_delta" -gt 0 ] || [ "$submit_miss_delta" -gt 0 ] \
-      || [ "$mismatch_delta" -gt 0 ] || [ "$bypassed" -ne 0 ]; then
+      || [ "$mismatch_delta" -gt 0 ] || [ "$bypassed" -ne 0 ] \
+      || [ "$pog3_bypassed" -ne 0 ]; then
     echo "  AUDIO HEALTH: FAIL"
     telemetry_failures=1
   else

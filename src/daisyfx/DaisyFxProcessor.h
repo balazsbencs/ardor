@@ -1,5 +1,7 @@
 #pragma once
 
+#include "daisyfx/pog3/Pog3Recovery.h"
+
 #include <nlohmann/json.hpp>
 
 #include <cstddef>
@@ -41,6 +43,7 @@ public:
                     float* outputRight, std::size_t frames);
   bool isPog3() const noexcept;
   std::uint64_t workerUnderflowCount() const noexcept;
+  pog3::RecoverySnapshot pog3Recovery() const noexcept;
   std::uint64_t workerCompletedGeneration() const noexcept;
   // Algorithmic latency introduced by the 48 kHz <-> 24 kHz reverb boundary.
   // Native-rate reverbs report zero. Hosts can use this for chain alignment.

@@ -158,6 +158,7 @@ struct ParallelStereoStageExecutor::Impl {
 
   void workerMain()
   {
+    pthread_setname_np(pthread_self(), "ardor-stereo");
     const bool setup = configureWorkerScheduling();
     setupSucceeded.store(setup, std::memory_order_relaxed);
     setupComplete.store(true, std::memory_order_release);

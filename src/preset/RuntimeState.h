@@ -20,6 +20,8 @@ struct RuntimeTelemetry {
   uint64_t parallelWaitOverBudget = 0;
   uint64_t parallelUnderflows = 0;
   uint64_t parallelSubmissionMisses = 0;
+  uint64_t pog3Recoveries = 0;
+  bool pog3Bypassed = false;
   bool parallelWorkersReady = true;
   uint64_t nonFiniteBlocks = 0;
   uint64_t blockSizeMismatches = 0;

@@ -104,6 +104,7 @@ public:
   uint64_t nonFiniteBlockCount() const noexcept;
   uint64_t parallelWaitOverBudgetCount() const noexcept;
   uint64_t parallelUnderflowCount() const noexcept;
+  pog3::RecoverySnapshot pog3Recovery() const noexcept;
   uint64_t parallelSubmissionMissCount() const noexcept;
   bool parallelWorkersReady() const noexcept;
   std::string firstNonFiniteBlockId() const;

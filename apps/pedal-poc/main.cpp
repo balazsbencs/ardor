@@ -1511,6 +1511,8 @@ int main(int argc, char** argv)
       uint64_t previousOverBudget = 0;
       double previousTotalProcessingMs = 0.0;
       uint64_t previousNonFiniteBlocks = 0;
+      const ardor::PedalEngine* previousRecoveryEngine = nullptr;
+      ardor::pog3::RecoverySnapshot previousPogRecovery;
 #if defined(__linux__)
       std::vector<ardor::LinuxInputDevice> inputDevices;
       const auto controlDevicePaths = args.controlDevices.empty()
@@ -2619,6 +2621,36 @@ int main(int argc, char** argv)
         if (now >= nextTelemetry) {
           nextTelemetry = now + std::chrono::seconds(1);
           const auto stats = backend.stats();
+          const auto pogRecovery = liveEngine->pog3Recovery();
+          if (previousRecoveryEngine != liveEngine.get()
+              || pogRecovery.faults < previousPogRecovery.faults) {
+            previousRecoveryEngine = liveEngine.get();
+            previousPogRecovery = {};
+          }
+          if (pogRecovery.faults != previousPogRecovery.faults
+              || pogRecovery.recoveries != previousPogRecovery.recoveries
+              || pogRecovery.state != previousPogRecovery.state) {
+            std::string message;
+            bool isError = false;
+            if (pogRecovery.state == ardor::pog3::RecoveryState::Bypassed) {
+              message = "POG3 bypassed after a processing fault; reload the preset";
+              isError = true;
+            } else if (pogRecovery.state == ardor::pog3::RecoveryState::Waiting
+                       || pogRecovery.state == ardor::pog3::RecoveryState::Restarting) {
+              message = "POG3 worker late; recovering";
+            } else if (pogRecovery.recoveries > previousPogRecovery.recoveries) {
+              message = "POG3 recovered after a worker deadline miss";
+            }
+            if (!message.empty()) {
+              std::cerr << message << "\n";
+#if defined(ARDOR_HAS_UI)
+              if (args.enableUi && ui) ardor::setUiStatus(uiState, message, isError);
+#else
+              (void)isError;
+#endif
+            }
+            previousPogRecovery = pogRecovery;
+          }
           const auto nonFiniteBlocks = liveEngine->nonFiniteBlockCount();
           if (nonFiniteBlocks != previousNonFiniteBlocks) {
             previousNonFiniteBlocks = nonFiniteBlocks;
@@ -2643,7 +2675,7 @@ int main(int argc, char** argv)
           previousOverBudget = stats.overBudget;
           previousTotalProcessingMs = stats.totalProcessingMs;
           liveEngine->setEffectsBypassed(runtime.effectsBypassed());
-          const auto telemetry = ardor::makeRuntimeTelemetry(stats.callbacks, stats.overBudget, stats.callbackGaps,
+          auto telemetry = ardor::makeRuntimeTelemetry(stats.callbacks, stats.overBudget, stats.callbackGaps,
                                                              stats.maxMs, stats.averageMs, stats.budgetMs,
                                                              runtime.effectsBypassed(),
                                                              liveEngine->parallelWaitOverBudgetCount(),
@@ -2653,6 +2685,8 @@ int main(int argc, char** argv)
                                                              liveEngine->parallelUnderflowCount(),
                                                              liveEngine->parallelSubmissionMissCount(),
                                                              liveEngine->parallelWorkersReady());
+          telemetry.pog3Recoveries = pogRecovery.recoveries;
+          telemetry.pog3Bypassed = pogRecovery.state == ardor::pog3::RecoveryState::Bypassed;
           std::cerr << ardor::formatRuntimeTelemetry(telemetry) << "\n";
           publishRuntimeTelemetry(args.telemetryFile, telemetry);
           if (args.clipDebug) {
