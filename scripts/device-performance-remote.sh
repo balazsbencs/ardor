@@ -274,6 +274,10 @@ if [ "$telemetry_ready" = 1 ]; then
   gaps_end=$(telemetry_metric "$tmp_dir/telemetry.end" gaps)
   worker_over_start=$(telemetry_metric "$tmp_dir/telemetry.start" worker_over)
   worker_over_end=$(telemetry_metric "$tmp_dir/telemetry.end" worker_over)
+  underflow_start=$(telemetry_metric "$tmp_dir/telemetry.start" worker_underflow)
+  underflow_end=$(telemetry_metric "$tmp_dir/telemetry.end" worker_underflow)
+  submit_miss_start=$(telemetry_metric "$tmp_dir/telemetry.start" worker_submit_miss)
+  submit_miss_end=$(telemetry_metric "$tmp_dir/telemetry.end" worker_submit_miss)
   nonfinite_start=$(telemetry_metric "$tmp_dir/telemetry.start" nonfinite)
   nonfinite_end=$(telemetry_metric "$tmp_dir/telemetry.end" nonfinite)
   mismatch_start=$(telemetry_metric "$tmp_dir/telemetry.start" block_mismatch)
@@ -287,11 +291,14 @@ if [ "$telemetry_ready" = 1 ]; then
   over_delta=$((over_end - over_start))
   gap_delta=$((gaps_end - gaps_start))
   worker_over_delta=$((worker_over_end - worker_over_start))
+  underflow_delta=$((${underflow_end:-0} - ${underflow_start:-0}))
+  submit_miss_delta=$((${submit_miss_end:-0} - ${submit_miss_start:-0}))
   nonfinite_delta=$((nonfinite_end - nonfinite_start))
   mismatch_delta=$((mismatch_end - mismatch_start))
   counters_reset=0
   if [ "$callback_delta" -lt 0 ] || [ "$over_delta" -lt 0 ] \
       || [ "$gap_delta" -lt 0 ] || [ "$worker_over_delta" -lt 0 ] \
+      || [ "$underflow_delta" -lt 0 ] || [ "$submit_miss_delta" -lt 0 ] \
       || [ "$nonfinite_delta" -lt 0 ] || [ "$mismatch_delta" -lt 0 ]; then
     echo "  INVALID: telemetry counters reset during the sample"
     telemetry_failures=1
@@ -299,6 +306,8 @@ if [ "$telemetry_ready" = 1 ]; then
     over_delta=0
     gap_delta=0
     worker_over_delta=0
+    underflow_delta=0
+    submit_miss_delta=0
     nonfinite_delta=0
     mismatch_delta=0
     counters_reset=1
@@ -314,11 +323,14 @@ if [ "$telemetry_ready" = 1 ]; then
     "$average_ms" "$average_budget_percent" "$maximum_ms" "$budget_ms"
   printf "  deadline faults: callback_over=%s gaps=%s worker_over=%s\n" \
     "$over_delta" "$gap_delta" "$worker_over_delta"
+  printf "  worker faults:   underflow=%s submit_miss=%s\n" \
+    "$underflow_delta" "$submit_miss_delta"
   printf "  DSP faults:      nonfinite=%s block_mismatch=%s bypassed=%s\n" \
     "$nonfinite_delta" "$mismatch_delta" "$bypassed"
 
   if [ "$counters_reset" -ne 0 ] || [ "$over_delta" -gt 0 ] || [ "$gap_delta" -gt 0 ] \
       || [ "$worker_over_delta" -gt 0 ] || [ "$nonfinite_delta" -gt 0 ] \
+      || [ "$underflow_delta" -gt 0 ] || [ "$submit_miss_delta" -gt 0 ] \
       || [ "$mismatch_delta" -gt 0 ] || [ "$bypassed" -ne 0 ]; then
     echo "  AUDIO HEALTH: FAIL"
     telemetry_failures=1
