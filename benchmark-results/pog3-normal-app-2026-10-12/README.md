@@ -25,3 +25,12 @@ excluded from this directory. The deployment receipt identifies the installed
 source/binary hashes and output state separately from this pre-deploy run.
 
 See [integration details and limits](../../docs/pog3-normal-app-integration.md).
+
+`run-validation.sh` records the actual service restoration and audible test
+sequence. Its temporary data root requires copies of the existing serial test
+preset/model/global settings, plus POG3 voice-level variations in bank 0 slots
+0–3; those private inputs are not distributed. `deploy-normal-app.sh` is the
+executed deployment/rollback procedure, requiring the matching app, manager,
+FFTW seed and license in its staging directory. It installs no test preset.
+The development executable version reports source `d9c0baba`; subsequent
+commits record evidence only. Base image/update metadata stays unchanged.
