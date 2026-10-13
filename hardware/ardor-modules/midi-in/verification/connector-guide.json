@@ -1,0 +1,101 @@
+{
+  "viewpoint": "Directions are relative to this board; square pad is pin 1.",
+  "abbreviations": {
+    "IN": "Into this board",
+    "OUT": "Out of this board",
+    "I/O": "Both directions",
+    "GND": "Common 0 V return",
+    "NC": "Unused; do not connect"
+  },
+  "ports": {
+    "J202": {
+      "title": "MIDI INPUT FROM DIN SOCKET",
+      "silk": "MIDI IN",
+      "pins": [
+        {
+          "number": 1,
+          "net": "MIDI_4",
+          "short": "DIN4 IN",
+          "direction": "MIDI INPUT",
+          "meaning": "MIDI current-loop input, DIN contact 4.",
+          "connect": "Female DIN socket numbered contact 4."
+        },
+        {
+          "number": 2,
+          "net": "MIDI_5",
+          "short": "DIN5 IN",
+          "direction": "MIDI INPUT",
+          "meaning": "MIDI current-loop return, DIN contact 5; NOT GND.",
+          "connect": "Female DIN socket numbered contact 5."
+        }
+      ],
+      "setup": ""
+    },
+    "J101": {
+      "title": "POWER INPUT + UART OUTPUT TO HOST",
+      "silk": "PWR IN / UART OUT",
+      "pins": [
+        {
+          "number": 1,
+          "net": "+5V",
+          "short": "5V IN",
+          "direction": "POWER INPUT",
+          "meaning": "Feed regulated 5V into the module. This pin does not supply power.",
+          "connect": "Positive output of the matching regulated supply."
+        },
+        {
+          "number": 2,
+          "net": "+3V3",
+          "short": "3V3 IN",
+          "direction": "POWER INPUT",
+          "meaning": "Feed regulated 3V3 into the module. This pin does not supply power.",
+          "connect": "Positive output of the matching regulated supply."
+        },
+        {
+          "number": 3,
+          "net": "GND",
+          "short": "GND 0V",
+          "direction": "GROUND",
+          "meaning": "Common 0 V return; not a signal or positive supply.",
+          "connect": "Host or cable ground / 0 V."
+        },
+        {
+          "number": 4,
+          "net": "MIDI_RX",
+          "short": "UART OUT",
+          "direction": "OUTPUT",
+          "meaning": "3.3 V decoded MIDI logic leaves the module; this is not a DIN MIDI output.",
+          "connect": "Host UART RX input, 31250 baud, 8-N-1. Do not connect to host TX."
+        }
+      ],
+      "setup": ""
+    },
+    "J203": {
+      "title": "METAL CASE BOND + GROUND",
+      "silk": "CASE BOND",
+      "pins": [
+        {
+          "number": 1,
+          "net": "CHASSIS",
+          "short": "CASE",
+          "direction": "BOND",
+          "meaning": "Enclosure/chassis connection, locally joined to GND through R101.",
+          "connect": "Aluminium enclosure bonding point; insulate the MIDI DIN shell."
+        },
+        {
+          "number": 2,
+          "net": "GND",
+          "short": "GND 0V",
+          "direction": "GROUND",
+          "meaning": "Common 0 V return; not a signal or positive supply.",
+          "connect": "Host or cable ground / 0 V."
+        }
+      ],
+      "setup": ""
+    }
+  },
+  "unused_pins": {
+    "U201.3": "NC - LEAVE OPEN"
+  },
+  "mounting_holes": "H1/H2 are M2 mounting holes, not electrical connections. Small vias are not user connectors."
+}

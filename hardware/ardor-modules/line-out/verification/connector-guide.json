@@ -1,0 +1,114 @@
+{
+  "viewpoint": "Directions are relative to this board; square pad is pin 1.",
+  "abbreviations": {
+    "IN": "Into this board",
+    "OUT": "Out of this board",
+    "I/O": "Both directions",
+    "GND": "Common 0 V return",
+    "NC": "Unused; do not connect"
+  },
+  "ports": {
+    "J101": {
+      "title": "5V POWER + ENABLE INPUT",
+      "silk": "PWR + ENABLE IN",
+      "pins": [
+        {
+          "number": 1,
+          "net": "+5V",
+          "short": "5V IN",
+          "direction": "POWER INPUT",
+          "meaning": "Feed regulated 5V into the module. This pin does not supply power.",
+          "connect": "Positive output of the matching regulated supply."
+        },
+        {
+          "number": 2,
+          "net": "GND",
+          "short": "GND 0V",
+          "direction": "GROUND",
+          "meaning": "Common 0 V return; not a signal or positive supply.",
+          "connect": "Host or cable ground / 0 V."
+        },
+        {
+          "number": 3,
+          "net": "LINE_ENABLE",
+          "short": "ENABLE IN",
+          "direction": "CONTROL INPUT",
+          "meaning": "3.3 V HIGH = on; 0 V LOW or disconnected = off.",
+          "connect": "Host control output. Keep LOW until audio and supply are stable."
+        }
+      ],
+      "setup": ""
+    },
+    "J102": {
+      "title": "MONO AUDIO INPUT FROM SOURCE",
+      "silk": "AUDIO IN",
+      "pins": [
+        {
+          "number": 1,
+          "net": "AUDIO_IN",
+          "short": "AUDIO IN",
+          "direction": "INPUT",
+          "meaning": "AUDIO audio enters the module.",
+          "connect": "Mono DAC/codec audio output, <=1 Vrms."
+        },
+        {
+          "number": 2,
+          "net": "GND",
+          "short": "GND 0V",
+          "direction": "GROUND",
+          "meaning": "Common 0 V return; not a signal or positive supply.",
+          "connect": "Host or cable ground / 0 V."
+        }
+      ],
+      "setup": ""
+    },
+    "J503": {
+      "title": "LINE AUDIO OUTPUT TO TS SOCKET",
+      "silk": "LINE OUT",
+      "pins": [
+        {
+          "number": 1,
+          "net": "LINE_JACK",
+          "short": "LINE OUT",
+          "direction": "OUTPUT",
+          "meaning": "LINE audio leaves the module.",
+          "connect": "TS socket tip; line load >=10k. Grounded when relay is off."
+        },
+        {
+          "number": 2,
+          "net": "GND",
+          "short": "GND 0V",
+          "direction": "GROUND",
+          "meaning": "Common 0 V return; not a signal or positive supply.",
+          "connect": "TS socket sleeve; enclosure bond."
+        }
+      ],
+      "setup": ""
+    },
+    "J502": {
+      "title": "AUDIO OUTPUT TO AMP INPUT",
+      "silk": "AMP AUDIO OUT",
+      "pins": [
+        {
+          "number": 1,
+          "net": "AMP_FEED",
+          "short": "AUDIO OUT",
+          "direction": "OUTPUT",
+          "meaning": "AUDIO audio leaves the module.",
+          "connect": "Signal input of a separate amplifier, >=100k. NOT a speaker."
+        },
+        {
+          "number": 2,
+          "net": "GND",
+          "short": "GND 0V",
+          "direction": "GROUND",
+          "meaning": "Common 0 V return; not a signal or positive supply.",
+          "connect": "Host or cable ground / 0 V."
+        }
+      ],
+      "setup": "Audio signal only. Never connect a speaker here."
+    }
+  },
+  "unused_pins": {},
+  "mounting_holes": "H1/H2 are M2 mounting holes, not electrical connections. Small vias are not user connectors."
+}
