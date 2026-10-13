@@ -79,6 +79,11 @@ The touchscreen module drawer also recognizes supported parametric models and
 shows learned controls. Touchscreen changes queue a prepared preset preview.
 Definitions come from the actual model asset, not from untrusted preset metadata.
 
+The Assets **Try in preset** shortcut uses an existing matching Neural Amp or
+Neural Pedal block. It does not replace an amp with a pedal model automatically;
+if no matching block exists, add the model by name from **Add block**. Unsupported
+models retain their error message and cannot be selected by this shortcut.
+
 Changing the selected model clears the old model controls. Reset to defaults
 removes saved control overrides. Model filenames still follow normal asset
 rename, usage, backup and restore behavior.
@@ -258,7 +263,19 @@ one-hot switch; both concat architectures; block-size independence; reset and
 preset restoration; a pedal before a snapshot amp; native drawer metadata; and
 malformed controls/weights. Asset-store tests verify upload, list and rename
 metadata. Manager tests verify discovery, edits, reset and model replacement;
-browser tests cover saving/restoring the included pedal on desktop and phone.
+browser tests cover concat combined exports, the open demo, published FiLM
+pedals and a FiLM amp on desktop and phone, including learned values, tier
+restoration and the amp save/load acknowledgement. Web validation rejects invalid
+control ranges, fractional switch values, unknown controls, malformed control maps
+and unsupported models. Replacing a parametric file with a fixed model also blocks
+stale learned values before Apply.
+Assets shortcut tests verify matching amp/pedal blocks, Undo, and preservation of
+the other block.
+
+The web-manager follow-up passed 755 unit tests and 16 mocked browser cases
+across desktop and phone, plus typechecking, hosted/device builds and the manager
+daemon tests. These browser cases complement the real Pi manager workflows in
+the hardware report; they do not establish additional audio performance limits.
 
 Still outside this release: HyperWaveNet, FiLM LoRA/schema 2 and residual heads,
 other forks' parametric architectures,

@@ -103,3 +103,41 @@ test("adds Clone Overdrive with FiLM controls and restores its compact tier", as
   await expect(page.getByRole("radiogroup", { name: "Model size" }).getByRole("radio", { name: "Nano", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByRole("slider", { name: "Tone", exact: true })).toHaveAttribute("aria-valuenow", "0");
 });
+
+
+test("adds a FiLM amp with learned controls and saves/loads the selected tier", async ({ page }) => {
+  const fixture = JSON.parse(readFileSync(new URL("../../../tests/fixtures/parametric-trainer-film.json", import.meta.url), "utf8"));
+  const model = fixture.models.find((entry: { label: string }) => entry.label === "film-dual").model;
+  model.metadata = { ...model.metadata, gear_type: "amp" };
+  const state = defaultState();
+  state.presets["0:0"].blocks = [];
+  state.assets.models.push({ id: "Trainer FiLM Amp.nam", kind: "model", filename: "Trainer FiLM Amp.nam",
+    path: "models/Trainer FiLM Amp.nam", sizeBytes: 10000,
+    nam: { architecture: model.architecture, version: model.version, gearType: "amp", supported: true, slimmable: true,
+      parameters: model.config.submodels[0].model.config.parametric.parameters } });
+  const pedal = await mockApi(page, state);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  await expect(page.getByRole("textbox", { name: "Preset name" })).toHaveValue("Glass Cathedral");
+  await page.getByRole("button", { name: "Add block", exact: true }).filter({ visible: true }).first().click();
+  await page.getByRole("searchbox", { name: "Search blocks" }).fill("Trainer FiLM Amp");
+  await page.getByRole("button", { name: /Trainer FiLM Amp/ }).click();
+  await page.getByRole("group", { name: /^Trainer FiLM Amp,/ }).click();
+  await page.getByRole("slider", { name: "Drive", exact: true }).press("End");
+  await page.getByRole("slider", { name: "Tone", exact: true }).press("Home");
+  await page.getByRole("radiogroup", { name: "Model size" }).getByRole("radio", { name: "Nano", exact: true }).click();
+  const applyResponse = page.waitForResponse((response) => response.url().includes("/api/runtime/apply/") && response.ok());
+  await page.getByRole("button", { name: "Save and load", exact: true }).filter({ visible: true }).click();
+  await expect.poll(() => pedal.state().presets["0:0"].blocks[0]).toMatchObject({
+    type: "nam", asset: "models/Trainer FiLM Amp.nam", params: { useNano: true, modelParameters: { Drive: 10, Tone: -5 } },
+  });
+  expect(await (await applyResponse).json()).toMatchObject({ state: "applied", bank: 0, slot: 0 });
+  await page.reload();
+  await page.getByRole("group", { name: /^Trainer FiLM Amp,/ }).click();
+  await expect(page.getByRole("slider", { name: "Drive", exact: true })).toHaveAttribute("aria-valuenow", "10");
+  await expect(page.getByRole("slider", { name: "Tone", exact: true })).toHaveAttribute("aria-valuenow", "-5");
+  await expect(page.getByRole("radiogroup", { name: "Model size" }).getByRole("radio", { name: "Nano", exact: true })).toHaveAttribute("aria-checked", "true");
+  expect(errors).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+});

@@ -77,3 +77,18 @@ it("lists uploaded parametric models by name and selects the model asset", async
   await userEvent.type(screen.getByRole("searchbox", { name: "Search blocks" }), "Open OD{Enter}");
   expect(onChoose).toHaveBeenCalledWith(expect.objectContaining({ id: "namPedal", assetPath: "models/od.nam" }));
 });
+
+it("classifies named amps and pedals, respects the amp slot, and excludes unsupported models", () => {
+  const onChoose = vi.fn();
+  const makeModel = (name: string, gearType: "amp" | "pedal", supported = true) => ({
+    id: name + ".nam", kind: "model" as const, filename: name + ".nam", path: `models/${name}.nam`, sizeBytes: 1,
+    nam: { architecture: "ParametricWaveNet", version: "0.7.0", gearType, supported, slimmable: true,
+      parameters: [{ name: "Gain", min: 0, max: 1, default: 0.5, type: "continuous" as const }] },
+  });
+  render(<ModuleDrawer open where="" disabledIds={new Map([["nam", "Disable the existing amp first"]])}
+    onOpenChange={vi.fn()} onChoose={onChoose}
+    models={[makeModel("Public Amp", "amp"), makeModel("Public Pedal", "pedal"), makeModel("Unsupported Model", "pedal", false)]} />);
+  expect(screen.getByRole("button", { name: /Public Amp/ })).toBeDisabled();
+  expect(screen.getByRole("button", { name: /Public Pedal/ })).toBeEnabled();
+  expect(screen.queryByRole("button", { name: /Unsupported Model/ })).not.toBeInTheDocument();
+});

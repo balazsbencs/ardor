@@ -16,13 +16,18 @@ const TYPE_KIND: Record<string, AssetKind> = { nam: "models", namPedal: "models"
 
 function TryInPreset({ asset, kind }: { asset: Asset; kind: AssetKind }) {
   const editor = usePresetEditorContext();
-  const block = editor.allBlocks.find((candidate) => TYPE_KIND[candidate.type] === kind);
+  const modelType = asset.nam?.gearType === "pedal" ? "namPedal" : "nam";
+  const block = editor.allBlocks.find((candidate) => kind === "models"
+    ? candidate.type === modelType
+    : TYPE_KIND[candidate.type] === kind);
   const name = editor.present.name;
   const inUse = block?.asset === asset.path;
+  const unsupported = asset.nam?.supported === false;
+  const blockName = kind === "models" ? (modelType === "namPedal" ? "Neural Pedal" : "Neural Amp") : KIND_INFO[kind].block;
   // "Try in preset" is an editor edit, so Undo takes it back. File changes on the pedal are not undoable.
   return (
-    <Button variant={inUse ? "secondary" : "primary"} disabled={!block || inUse}
-      title={block ? undefined : `${name} has no ${KIND_INFO[kind].block} block`}
+    <Button variant={inUse ? "secondary" : "primary"} disabled={!block || inUse || unsupported}
+      title={unsupported ? asset.nam?.error ?? "This model is not supported." : block ? undefined : `${name} has no ${blockName} block`}
       onClick={() => block && editor.dispatch({ type: "set-block-asset", blockId: block.id, asset: asset.path })}>
       <Send size={15} aria-hidden="true" />{inUse ? `In ${name}` : `Try in ${name}`}
     </Button>
