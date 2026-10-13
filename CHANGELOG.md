@@ -2,11 +2,52 @@
 
 All notable changes are generated from Conventional Commit messages.
 
-## [0.1.98](https://github.com/balazsbencs/ardor/compare/v0.1.97...v0.1.98) (2026-10-13)
+## [0.1.99](https://github.com/balazsbencs/ardor/compare/v0.1.97...v0.1.99) (2026-10-13)
 
 ### Features
 
 * **pedal:** use FS2 and FS4 for bank navigation ([101f52b](https://github.com/balazsbencs/ardor/commit/101f52bacb7929aafb3ba61d716ffad323943168))
+* **pog3:** add filter and per-voice space stages ([9850875](https://github.com/balazsbencs/ardor/commit/9850875239a2b4161063bbdd860d5c9781e42463))
+* **pog3:** add independent spectral attack and dry routing ([fa91f87](https://github.com/balazsbencs/ardor/commit/fa91f875e020494e3fc0b3fc0ee9c9d1c1af882c))
+* **pog3:** add prepared expression controller and routing ([d0e7b0a](https://github.com/balazsbencs/ardor/commit/d0e7b0a46084ef50e81805ef85258327b9f48ed7))
+* **pog3:** add spectral freeze and moving-carrier gliss ([a982411](https://github.com/balazsbencs/ardor/commit/a982411922461720ae8de73539b1323c3836e71d))
+* **pog3:** add spectral octave bank and implementation plan ([dc703e3](https://github.com/balazsbencs/ardor/commit/dc703e3aab886008f7b57ad399885321e1ef343c))
+* **pog3:** defer freeze and benchmark the reduced core ([efcfaf9](https://github.com/balazsbencs/ardor/commit/efcfaf9a1a6d978851208ab7ac837640b36ba497))
+* **pog3:** integrate the prepared octave worker into the pedal app ([3f0e701](https://github.com/balazsbencs/ardor/commit/3f0e701ff335aa30f54aa82423ac243dfcd17d0a))
+* **pog3:** validate fixed-delay CPU worker pipeline on pedal ([3d79b2c](https://github.com/balazsbencs/ardor/commit/3d79b2c32fc425183e658859788f0ddc51d7669c))
+
+### Bug Fixes
+
+* include worker underflows in device audio health checks ([31bc161](https://github.com/balazsbencs/ardor/commit/31bc1614ce9d4b13706e39407be6c34073d54d93))
+* **pitch:** normalize rounded negative ring positions before reading ([6683879](https://github.com/balazsbencs/ardor/commit/6683879cc42909b57893b5a945870381f1e9e949))
+* **pog3:** correct CodeQL metrics and refresh audited dependency ([121b8f4](https://github.com/balazsbencs/ardor/commit/121b8f4ee4b6ba999eaab3b885d335e48fb44864))
+* **pog3:** match the Windows plugin static runtime in FFTW ([377c888](https://github.com/balazsbencs/ardor/commit/377c888c36805421bea6aa00227d2923c56b914f))
+* **pog3:** recover one late worker and keep the serial chain audible ([6e6582f](https://github.com/balazsbencs/ardor/commit/6e6582f28dd97164cd919b029451d5628f9c0e8d))
+* **pog3:** unmute codec output for live audition ([16ef4bb](https://github.com/balazsbencs/ardor/commit/16ef4bbb15cdd479f1b0d787b17baedb139a8aa4))
+* **pog3:** validate supported controls and supply FFTW to desktop CI ([91fac42](https://github.com/balazsbencs/ardor/commit/91fac425766f80a0ee9c6539f66cd6c43761e28f))
+* retain zero bank and slot in runtime apply commands ([d2043e6](https://github.com/balazsbencs/ardor/commit/d2043e60a8aef0f2443ca43209d9365ecb542741))
+
+### Performance Improvements
+
+* **pog3:** avoid round calls in bounded Attack matching ([8524286](https://github.com/balazsbencs/ardor/commit/852428609e2089e042d5d7c5762721fdbdc3415f))
+* **pog3:** batch four live spectral source bins ([b4048ac](https://github.com/balazsbencs/ardor/commit/b4048ac9cb3f2c511ff6dc3e84a35fe6f8e86fa0))
+* **pog3:** compact prepared storage without changing audio ([621729a](https://github.com/balazsbencs/ardor/commit/621729a086e8593ca8a0b3e70d8d3657e0c28905))
+* **pog3:** evaluate pair batching and retain four-source traversal ([8ef7365](https://github.com/balazsbencs/ardor/commit/8ef73658de47389b2efe5f02d4b250750ed46dc4))
+* **pog3:** measure and reject deferred Attack gain evaluation ([022be9a](https://github.com/balazsbencs/ardor/commit/022be9aeb1fff4a707e4f20458cdcbb24a854eb0))
+* **pog3:** measure hybrid leftovers and prioritize callback peaks ([ed937f0](https://github.com/balazsbencs/ardor/commit/ed937f012d4c60cf91a5469dd4bfe17be9c8562d))
+* **pog3:** partition exact top peaks with matched Pi evidence ([b892e7e](https://github.com/balazsbencs/ardor/commit/b892e7e0bb638bdb95162d2a097dca9bc0828165))
+* **pog3:** prepare compact swaps and contiguous FFT stages ([4f5d572](https://github.com/balazsbencs/ardor/commit/4f5d572b8ee0072099e255bdd4893422fcb30dcb))
+* **pog3:** prune partial searches and vectorize interior taps ([3fdb0fd](https://github.com/balazsbencs/ardor/commit/3fdb0fd7fc439d72e46bc484eb507bf0de98d6c4))
+* **pog3:** reduce frame magnitude cost on Pi 4 ([88264d8](https://github.com/balazsbencs/ardor/commit/88264d8a775c88000fa26d93071961830f44d5ba))
+* **pog3:** reduce phase and held rendering work ([12c927c](https://github.com/balazsbencs/ardor/commit/12c927c4cb61a163a7b2195350bc89c2cc6be5d4))
+* **pog3:** reuse compact Attack birth-slot ordering ([010b370](https://github.com/balazsbencs/ardor/commit/010b3707a491272a1735998fb8c5414af9c634eb))
+* **pog3:** skip bin sorting without peak overflow ([40b42c3](https://github.com/balazsbencs/ardor/commit/40b42c38016fbc2273b49afebaab89ea456bb8a1))
+* **pog3:** skip silent held lobes after phase advancement ([3075078](https://github.com/balazsbencs/ardor/commit/3075078dd64053ffec0fc2f2c1bdb3d266bd40be))
+* **pog3:** snapshot frame birth slots with matched Pi evidence ([5e32560](https://github.com/balazsbencs/ardor/commit/5e32560cbfce4d2b4afa9455029bc2bef11ec973))
+* **pog3:** stage stereo analysis and balance weighted frame jobs ([5ea936e](https://github.com/balazsbencs/ardor/commit/5ea936e31cf2decb36620f604be29deeb6b9a7ba))
+* **pog3:** transpose Hann lobes and retain Pi comparison ([709c502](https://github.com/balazsbencs/ardor/commit/709c5025296d88f3208cc77411718e119e123216))
+* **pog3:** use prepared single-precision FFTW plans ([a16bf91](https://github.com/balazsbencs/ardor/commit/a16bf91a13f7726ef92061dedb7ffeca9a1c60cb))
+* **pog3:** use real FFTs and packed synthesis on Pi 4 ([8a31cc6](https://github.com/balazsbencs/ardor/commit/8a31cc61d55322905fa53ff7476d83395359cc27))
 
 ## [0.1.97](https://github.com/balazsbencs/ardor/compare/v0.1.95...v0.1.97) (2026-10-12)
 
