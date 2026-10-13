@@ -12,11 +12,11 @@ import {
 describe("effect catalog", () => {
   const definitions = allEffectDefinitions();
 
-  it("contains the complete unique set of 55 definitions", () => {
-    expect(definitions).toHaveLength(55);
-    expect(new Set(definitions.map(({ id }) => id)).size).toBe(55);
-    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(55);
-    expect(new Set(definitions.map(({ name }) => name)).size).toBe(55);
+  it("contains the complete unique set of 56 definitions", () => {
+    expect(definitions).toHaveLength(56);
+    expect(new Set(definitions.map(({ id }) => id)).size).toBe(56);
+    expect(new Set(definitions.map(({ blockType, mode }) => `${blockType}:${mode ?? ""}`)).size).toBe(56);
+    expect(new Set(definitions.map(({ name }) => name)).size).toBe(56);
     expect(definitions.every(({ controls }) => controls.length > 0)).toBe(true);
     expect(definitions.filter(({ blockType }) => blockType === "mod")).toHaveLength(18);
     expect(definitions.filter(({ blockType }) => blockType === "delay")).toHaveLength(10);
@@ -323,7 +323,7 @@ describe("effect catalog", () => {
       expect(findEffectDefinition(block)?.id).toBe(id);
       return { ...block, id: `block-${index + 1}` };
     });
-    expect(blocks).toHaveLength(55);
+    expect(blocks).toHaveLength(56);
   });
 
   it("chooses the next numeric block id and handles nonstandard collisions", () => {
