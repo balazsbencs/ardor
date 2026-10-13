@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.98](https://github.com/balazsbencs/ardor/compare/v0.1.97...v0.1.98) (2026-10-13)
+
+### Features
+
+* **pedal:** use FS2 and FS4 for bank navigation ([101f52b](https://github.com/balazsbencs/ardor/commit/101f52bacb7929aafb3ba61d716ffad323943168))
+
 ## [0.1.97](https://github.com/balazsbencs/ardor/compare/v0.1.95...v0.1.97) (2026-10-12)
 
 ## [0.1.95](https://github.com/balazsbencs/ardor/compare/v0.1.94...v0.1.95) (2026-10-12)
