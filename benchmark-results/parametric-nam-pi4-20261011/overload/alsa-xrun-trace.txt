@@ -1,0 +1,15 @@
+# tracer: function
+#
+# entries-in-buffer/entries-written: 3/3   #P:4
+#
+#                                _-----=> irqs-off/BH-disabled
+#                               / _----=> need-resched
+#                              | / _---=> hardirq/softirq
+#                              || / _--=> preempt-depth
+#                              ||| / _-=> migrate-disable
+#                              |||| /     delay
+#           TASK-PID     CPU#  |||||  TIMESTAMP  FUNCTION
+#              | |         |   |||||     |         |
+          <idle>-0       [000] d.s2.  5795.310122: __snd_pcm_xrun <-snd_pcm_update_state
+          <idle>-0       [000] d.s2.  5796.356676: __snd_pcm_xrun <-snd_pcm_update_state
+          <idle>-0       [000] d.s2.  5797.406024: __snd_pcm_xrun <-snd_pcm_update_state

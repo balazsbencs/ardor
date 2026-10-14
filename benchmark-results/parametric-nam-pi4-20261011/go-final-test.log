@@ -1,0 +1,20 @@
+?   	ardor.local/managerd/cmd/ardor-managerd	[no test files]
+ok  	ardor.local/managerd/cmd/ardor-ota-tool	(cached)
+?   	ardor.local/managerd/cmd/ardor-updater	[no test files]
+ok  	ardor.local/managerd/internal/assets	(cached)
+ok  	ardor.local/managerd/internal/backup	(cached)
+ok  	ardor.local/managerd/internal/buildinfo	(cached)
+ok  	ardor.local/managerd/internal/cloudagent	0.540s
+ok  	ardor.local/managerd/internal/config	(cached)
+ok  	ardor.local/managerd/internal/deviceclaim	(cached)
+ok  	ardor.local/managerd/internal/deviceidentity	(cached)
+ok  	ardor.local/managerd/internal/discovery	(cached)
+ok  	ardor.local/managerd/internal/localauth	(cached)
+ok  	ardor.local/managerd/internal/presets	(cached)
+ok  	ardor.local/managerd/internal/reset	(cached)
+ok  	ardor.local/managerd/internal/runtimecontrol	0.003s
+ok  	ardor.local/managerd/internal/server	0.238s
+ok  	ardor.local/managerd/internal/timesync	(cached)
+ok  	ardor.local/managerd/internal/update	(cached)
+?   	ardor.local/managerd/internal/webui	[no test files]
+ok  	ardor.local/managerd/internal/wifi	(cached)

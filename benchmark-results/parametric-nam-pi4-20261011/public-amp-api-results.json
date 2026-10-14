@@ -1,0 +1,260 @@
+{
+  "passed": true,
+  "asset": {
+    "id": "Hardware_British_800_Preamp.nam",
+    "kind": "model",
+    "filename": "Hardware_British_800_Preamp.nam",
+    "path": "models/Hardware_British_800_Preamp.nam",
+    "sizeBytes": 340211,
+    "nam": {
+      "architecture": "SlimmableContainer",
+      "version": "0.7.0",
+      "gearType": "amp",
+      "parameters": [
+        {
+          "name": "Gain",
+          "min": 0.1,
+          "max": 1,
+          "default": 0.55,
+          "type": "continuous"
+        }
+      ],
+      "slimmable": true,
+      "supported": true
+    }
+  },
+  "results": [
+    {
+      "method": "POST",
+      "path": "/api/assets/models",
+      "status": 201
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/96/slots/0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/presets/banks/96/slots/0",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/96/slots/0/apply",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781803943864339",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781803943864339",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781803943864339",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781803943864339",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781803943864339",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781803943864339",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781803943864339",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/device",
+      "status": 200
+    },
+    {
+      "applied": true,
+      "slot": 0,
+      "parameters": {
+        "useNano": true,
+        "modelParameters": {
+          "Gain": 0.1
+        }
+      },
+      "milliseconds": 674.1511602886021,
+      "active": {
+        "bank": 96,
+        "slot": 0,
+        "name": "Hardware public amp 0",
+        "revision": "8599ac25e0aec9d9ecbd4ceb680e7a589d8f4708a86c87c1d08d4e5ca3babef7",
+        "storedRevisionMatches": true
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/96/slots/1",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/presets/banks/96/slots/1",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/96/slots/1/apply",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781805642319783",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781805642319783",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/device",
+      "status": 200
+    },
+    {
+      "applied": true,
+      "slot": 1,
+      "parameters": {
+        "useNano": false,
+        "modelParameters": {
+          "Gain": 1
+        }
+      },
+      "milliseconds": 162.974223960191,
+      "active": {
+        "bank": 96,
+        "slot": 1,
+        "name": "Hardware public amp 1",
+        "revision": "85e5558b34ceef6a6e43193e114eb76c82ae0db42a06b7715ed9d04fa6a2b178",
+        "storedRevisionMatches": true
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/96/slots/2",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/presets/banks/96/slots/2",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/96/slots/2/apply",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781806826428875",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781806826428875",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781806826428875",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/device",
+      "status": 200
+    },
+    {
+      "applied": true,
+      "slot": 2,
+      "parameters": {
+        "useNano": false,
+        "modelParameters": {
+          "Gain": 0.1
+        }
+      },
+      "milliseconds": 249.20845311135054,
+      "active": {
+        "bank": 96,
+        "slot": 2,
+        "name": "Hardware public amp 2",
+        "revision": "c87af4657fb1b32553a75221fa72b2dd202d402b675896622cd1d9cedf4567e6",
+        "storedRevisionMatches": true
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/96/slots/3",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/presets/banks/96/slots/3",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/96/slots/3/apply",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781808093022726",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781808093022726",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781808093022726",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/device",
+      "status": 200
+    },
+    {
+      "applied": true,
+      "slot": 3,
+      "parameters": {
+        "useNano": true,
+        "modelParameters": {
+          "Gain": 1
+        }
+      },
+      "milliseconds": 250.86637074127793,
+      "active": {
+        "bank": 96,
+        "slot": 3,
+        "name": "Hardware public amp 3",
+        "revision": "024b496921d5e1cd7fe51e3baf4094b323cd7529600c4747d4f3f85ba72a1942",
+        "storedRevisionMatches": true
+      }
+    }
+  ]
+}

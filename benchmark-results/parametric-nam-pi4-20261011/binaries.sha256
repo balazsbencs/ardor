@@ -1,0 +1,12 @@
+78b74efc59ca3446e13969b8eb6873799c7a3c0f5569a80bef618048dac1ff57  /tmp/ardor-hw-20261011/bin/ardor-hw-managerd
+65a24b258fc4033d6a12176e41aee26e67c4c0bc071db8c0cf3532ce97fb1f35  /tmp/ardor-hw-20261011/bin/ardor-hw-pedal
+ef7405397612fd41fca880f287c1abd83817d998b11ae2134bf3233a90f72422  /tmp/ardor-hw-20261011/bin/managerd-assets.test
+b2d2432cdc445d3d23c8371f2e22703454b1bb2b1805211f70f94da887a3e9e0  /tmp/ardor-hw-20261011/bin/managerd-presets.test
+5a297df6eb26de8573a0b46c4927361b2b340c02f901c16f5a6a54f77d773089  /tmp/ardor-hw-20261011/bin/managerd-runtimecontrol.test
+bdf167882e226520b6cb99f88c481ddc1dfbac79d2f10b050a73ac0bb237cb43  /tmp/ardor-hw-20261011/bin/pedal-lvgl-ui-smoke
+300c83d0dbe71826cbd9c649f19e9614804f1877998796d4cd17dcb53b536990  /tmp/ardor-hw-20261011/bin/pedal-nam-bench
+b0f940f650a4d3599f8f4400aecc3e9e2d2c5e9e55ce9fb0bc09c20f6cec6cba  /tmp/ardor-hw-20261011/bin/pedal-nam-chain-bench
+bc4e850b939384e687ea8211b80b938f11d00d7c3759c396660b38a5a6d3c9a5  /tmp/ardor-hw-20261011/bin/pedal-parametric-nam-smoke
+62e8e039644cc30873b0e04b91cd26fa38a3194c391bb66bd358c58fc0a6d65b  /tmp/ardor-hw-20261011/bin/pedal-parametric-trainer-compat-smoke
+930e84ed5ea5951fc35b04d4efeb58b8ec008670033dfdea1f2d7ad296d8996a  /tmp/ardor-hw-20261011/bin/pedal-preset-reload-stress
+e6a6b239c4b608beba7dca9a41a84187b6e0c1e7de2b9aee22560de5ee133794  /tmp/ardor-hw-20261011/bin/pedal-wdw-routing-builder-smoke

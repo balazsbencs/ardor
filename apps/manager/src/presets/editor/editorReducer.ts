@@ -208,7 +208,8 @@ function resetKnownParams(block: PresetBlock): PresetBlock {
   if (!definition) return block;
   return {
     ...block,
-    params: { ...block.params, ...defaultsForDefinition(definition.id) },
+    params: { ...Object.fromEntries(Object.entries(block.params).filter(([key]) =>
+      !(key === "modelParameters" && (block.type === "nam" || block.type === "namPedal")))), ...defaultsForDefinition(definition.id) },
   };
 }
 
@@ -675,6 +676,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case "set-block-asset":
       return withMutation(state, (present) => updatedBlock(present, action.blockId, (block) => ({
         ...block, asset: action.asset,
+        params: (block.type === "nam" || block.type === "namPedal") && block.asset !== action.asset
+          ? Object.fromEntries(Object.entries(block.params).filter(([key]) => key !== "modelParameters")) : block.params,
       })));
     case "set-block-param":
       return setBlockParam(state, action.blockId, action.key, action.value, action.gesture);

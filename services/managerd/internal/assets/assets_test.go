@@ -114,3 +114,28 @@ func TestStoreRename(t *testing.T) {
 		t.Fatal("expected mismatched extension to fail")
 	}
 }
+
+func TestRenameRejectsInvalidComponents(t *testing.T) {
+	root := t.TempDir()
+	store := NewStore(root)
+	if _, err := store.Save(KindModel, "Original.nam", strings.NewReader("original"), false); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"../Original.nam", `..\Original.nam`, "/Original.nam", `folder\Original.nam`, "folder/Original.nam"} {
+		if _, err := store.Rename(KindModel, id, "Renamed.nam"); err == nil {
+			t.Fatalf("accepted invalid id %q", id)
+		}
+	}
+	if _, err := store.Rename(KindModel, "Original.nam", "Cannot..Manage.nam"); err == nil {
+		t.Fatal("accepted filename that cannot later be addressed by Rename/Delete")
+	}
+	bytes, err := os.ReadFile(filepath.Join(root, "models", "Original.nam"))
+	if err != nil || string(bytes) != "original" {
+		t.Fatalf("invalid requests changed original asset: %q, %v", bytes, err)
+	}
+	// Client-side paths are sanitized before the stored component is checked.
+	info, err := store.Rename(KindModel, "Original.nam", `folder\Valid Name.nam`)
+	if err != nil || info.Filename != "Valid_Name.nam" {
+		t.Fatalf("valid sanitized rename: %+v, %v", info, err)
+	}
+}

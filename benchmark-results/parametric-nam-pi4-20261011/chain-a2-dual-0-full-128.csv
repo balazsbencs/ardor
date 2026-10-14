@@ -1,0 +1,13 @@
+# mlockall=ok
+# benchmark=ardor-nam-chain-v1
+# sample_rate=48000
+# cpu=2
+# input=alternating silence, harmonic/noise at 0.02 and 0.2 peak
+# parameters={}
+# build_type=Release
+# compiler=GNU 13.4.0
+# compile_flags=-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -O2 -g0 -D_FORTIFY_SOURCE=1 -O2 -DNDEBUG
+model,amp_model,amp_tier,tier,nam_count,cab_frames,block_frames,iterations,load_ms,rss_kib,mean_us,p50_us,p99_us,p999_us,max_us,deadline_misses,mean_budget_pct,p999_budget_pct,max_budget_pct,nonfinite,peak,checksum
+"a2-dual-0.nam","",1.000000,1.000000,1,0,128,3000,83.128833,8788,1254.699479,1243.537000,1428.222000,1552.667000,1669.315000,0,47.051230,58.225012,62.599313,0,0.138142,-367.038170
+"a2-dual-0.nam","",1.000000,1.000000,2,0,128,3000,167.787334,10404,2932.115594,2901.759000,3202.463000,3343.629000,3357.833000,3000,109.954335,125.386087,125.918738,0,0.131145,-389.476305
+"a2-dual-0.nam","",1.000000,1.000000,3,0,128,3000,245.144130,12004,4415.257187,4378.481000,4778.241000,4943.185000,4996.111000,3000,165.572144,185.369438,187.354163,0,0.130474,-391.052613

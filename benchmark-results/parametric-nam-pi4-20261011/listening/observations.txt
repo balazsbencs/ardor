@@ -1,0 +1,126 @@
+2026-10-11T20:06:51Z
+{"bank":99,"name":"CLONE HIGH DRIVE","slot":2}
+callbacks=20233 over=0 over%=0.00 gaps=0 max=1.96ms avg=1.20ms recent_avg=1.34ms budget=2.67ms buffer_free=49.82% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:06:53Z
+{"bank":99,"name":"CLONE HIGH DRIVE","slot":2}
+callbacks=20990 over=0 over%=0.00 gaps=0 max=1.96ms avg=1.20ms recent_avg=1.42ms budget=2.67ms buffer_free=46.83% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:06:55Z
+{"bank":99,"name":"CLONE HIGH DRIVE","slot":2}
+callbacks=21742 over=0 over%=0.00 gaps=0 max=1.97ms avg=1.21ms recent_avg=1.32ms budget=2.67ms buffer_free=50.33% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:06:57Z
+{"bank":99,"name":"CLONE HIGH DRIVE","slot":2}
+callbacks=22494 over=0 over%=0.00 gaps=0 max=1.97ms avg=1.21ms recent_avg=1.32ms budget=2.67ms buffer_free=50.38% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:06:59Z
+{"bank":99,"name":"CLONE HIGH DRIVE","slot":2}
+callbacks=23248 over=0 over%=0.00 gaps=0 max=1.97ms avg=1.22ms recent_avg=1.32ms budget=2.67ms buffer_free=50.33% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:01Z
+{"bank":99,"name":"CLONE HIGH DRIVE","slot":2}
+callbacks=24001 over=0 over%=0.00 gaps=0 max=1.97ms avg=1.22ms recent_avg=1.32ms budget=2.67ms buffer_free=50.36% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:03Z
+{"bank":99,"name":"CLONE HIGH DRIVE","slot":2}
+callbacks=24754 over=0 over%=0.00 gaps=0 max=1.97ms avg=1.22ms recent_avg=1.32ms budget=2.67ms buffer_free=50.39% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:05Z
+{"bank":99,"name":"CLONE HIGH DRIVE","slot":2}
+callbacks=25508 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.23ms recent_avg=1.32ms budget=2.67ms buffer_free=50.35% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:07Z
+{"bank":99,"name":"CLONE HIGH DRIVE","slot":2}
+callbacks=26259 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.23ms recent_avg=1.35ms budget=2.67ms buffer_free=49.32% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:09Z
+{"bank":99,"name":"CLONE LOW DRIVE","slot":1}
+callbacks=27016 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.23ms recent_avg=1.36ms budget=2.67ms buffer_free=48.89% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:11Z
+{"bank":99,"name":"CLONE LOW DRIVE","slot":1}
+callbacks=27767 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.24ms recent_avg=1.34ms budget=2.67ms buffer_free=49.78% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:13Z
+{"bank":99,"name":"CLONE LOW DRIVE","slot":1}
+callbacks=28519 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.24ms recent_avg=1.33ms budget=2.67ms buffer_free=50.19% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:15Z
+{"bank":99,"name":"CLONE LOW DRIVE","slot":1}
+callbacks=28895 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.24ms recent_avg=1.33ms budget=2.67ms buffer_free=50.24% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:17Z
+{"bank":99,"name":"CLONE LOW DRIVE","slot":1}
+callbacks=29702 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.24ms recent_avg=1.42ms budget=2.67ms buffer_free=46.75% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:19Z
+{"bank":99,"name":"CLONE LOW DRIVE","slot":1}
+callbacks=30455 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.24ms recent_avg=1.33ms budget=2.67ms buffer_free=50.05% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:21Z
+{"bank":99,"name":"CLONE LOW DRIVE","slot":1}
+callbacks=31206 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.25ms recent_avg=1.39ms budget=2.67ms buffer_free=47.93% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:23Z
+{"bank":99,"name":"CLONE LOW DRIVE","slot":1}
+callbacks=31959 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.25ms recent_avg=1.40ms budget=2.67ms buffer_free=47.37% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:25Z
+{"bank":99,"name":"CLONE LOW DRIVE","slot":1}
+callbacks=32717 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.25ms recent_avg=1.33ms budget=2.67ms buffer_free=50.18% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:27Z
+{"bank":99,"name":"CLONE LOW DRIVE","slot":1}
+callbacks=33484 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.26ms recent_avg=1.37ms budget=2.67ms buffer_free=48.75% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:29Z
+{"bank":99,"name":"CLONE LOW DRIVE","slot":1}
+callbacks=34237 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.26ms recent_avg=1.35ms budget=2.67ms buffer_free=49.52% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:31Z
+{"bank":99,"name":"CLONE LOW DRIVE","slot":1}
+callbacks=34990 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.26ms recent_avg=1.34ms budget=2.67ms buffer_free=49.91% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:33Z
+{"bank":99,"name":"CLONE LOW DRIVE","slot":1}
+callbacks=35743 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.26ms recent_avg=1.33ms budget=2.67ms buffer_free=50.04% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:35Z
+{"bank":99,"name":"CLONE LOW DRIVE","slot":1}
+callbacks=36496 over=0 over%=0.00 gaps=0 max=2.16ms avg=1.26ms recent_avg=1.34ms budget=2.67ms buffer_free=49.65% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:37Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=37249 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.27ms recent_avg=1.36ms budget=2.67ms buffer_free=49.04% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:39Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=38003 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.27ms recent_avg=1.32ms budget=2.67ms buffer_free=50.48% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:41Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=38753 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.27ms recent_avg=1.33ms budget=2.67ms buffer_free=50.20% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:43Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=39505 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.27ms recent_avg=1.32ms budget=2.67ms buffer_free=50.65% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:45Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=40256 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.27ms recent_avg=1.32ms budget=2.67ms buffer_free=50.57% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:47Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=41007 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.27ms recent_avg=1.32ms budget=2.67ms buffer_free=50.63% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:49Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=41759 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.27ms recent_avg=1.32ms budget=2.67ms buffer_free=50.69% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:51Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=42509 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.27ms recent_avg=1.31ms budget=2.67ms buffer_free=50.74% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:53Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=43636 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.27ms recent_avg=1.32ms budget=2.67ms buffer_free=50.64% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:55Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=44388 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.28ms recent_avg=1.32ms budget=2.67ms buffer_free=50.68% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:57Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=45139 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.28ms recent_avg=1.31ms budget=2.67ms buffer_free=50.76% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:07:59Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=45890 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.28ms recent_avg=1.32ms budget=2.67ms buffer_free=50.57% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:08:01Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=46642 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.28ms recent_avg=1.32ms budget=2.67ms buffer_free=50.64% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:08:03Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=47394 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.28ms recent_avg=1.31ms budget=2.67ms buffer_free=50.84% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:08:05Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=48144 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.28ms recent_avg=1.31ms budget=2.67ms buffer_free=50.71% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:08:07Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=48896 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.28ms recent_avg=1.32ms budget=2.67ms buffer_free=50.66% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:08:09Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=49647 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.28ms recent_avg=1.32ms budget=2.67ms buffer_free=50.66% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:08:11Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=50398 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.28ms recent_avg=1.32ms budget=2.67ms buffer_free=50.62% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+2026-10-11T20:08:13Z
+{"bank":99,"name":"CLONE BRIGHT","slot":3}
+callbacks=50774 over=0 over%=0.00 gaps=0 max=2.24ms avg=1.28ms recent_avg=1.32ms budget=2.67ms buffer_free=50.55% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0

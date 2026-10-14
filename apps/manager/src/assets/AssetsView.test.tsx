@@ -51,6 +51,7 @@ const namBlockAsset = (editor: ReturnType<typeof renderAssets>["editor"]) => edi
 beforeEach(() => {
   vi.clearAllMocks();
   session.status = "connected";
+  session.current.preset = structuredClone(preset);
   session.assetUsage = usage;
   session.supportsReverbIrs = true;
   session.device.capabilities.tone3000 = false;
@@ -84,6 +85,46 @@ describe("AssetsView", () => {
     expect(namBlockAsset(editor)).toBe("models/Plexi.nam");
     act(() => editor().dispatch({ type: "undo" }));
     expect(namBlockAsset(editor)).toBe("models/Clean.nam");
+  });
+
+  it.each(["pedal", "amp"] as const)("tries a %s model in the matching block and preserves the other model", async (gearType) => {
+    const model = { ...asset("Parametric.nam"), nam: {
+      architecture: "ParametricWaveNet", version: "0.7.0", gearType, supported: true,
+      parameters: [{ name: "Gain", min: 0, max: 1, default: 0.5, type: "continuous" as const }],
+    } };
+    session.models.push(model);
+    session.current.preset.blocks = [
+      { id: "pedal", type: "namPedal", enabled: true, asset: "models/OldPedal.nam", params: { modelParameters: { Drive: 8 } } },
+      { id: "amp", type: "nam", enabled: true, asset: "models/Clean.nam", params: { modelParameters: { Volume: 4 } } },
+    ];
+    // The mismatched block comes first, reproducing the old generic-model lookup.
+    if (gearType === "pedal") session.current.preset.blocks.reverse();
+    const before = structuredClone(session.current.preset.blocks);
+    const { editor } = renderAssets();
+    await userEvent.click(screen.getByRole("button", { name: "Parametric" }));
+    await userEvent.click(screen.getByRole("button", { name: /Try in/ }));
+    const changedType = gearType === "pedal" ? "namPedal" : "nam";
+    expect(editor().present.blocks.find((b) => b.type === changedType)).toMatchObject({ asset: model.path, params: {} });
+    expect(editor().present.blocks.find((b) => b.type !== changedType)).toEqual(before.find((b) => b.type !== changedType));
+    act(() => editor().dispatch({ type: "undo" }));
+    expect(editor().present.blocks).toEqual(before);
+  });
+
+  it("does not replace an amp when trying a pedal without a Neural Pedal block", async () => {
+    session.models.push({ ...asset("Pedal.nam"), nam: { architecture: "ConcatLSTM", version: "1.0.0", gearType: "pedal", supported: true } });
+    const { editor } = renderAssets();
+    await userEvent.click(screen.getByRole("button", { name: "Pedal" }));
+    expect(screen.getByRole("button", { name: /Try in/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Try in/ })).toHaveAttribute("title", "Glass Cathedral has no Neural Pedal block");
+    expect(namBlockAsset(editor)).toBe("models/Clean.nam");
+  });
+
+  it("prevents trying an unsupported model and shows its error", async () => {
+    session.models.push({ ...asset("Unsupported.nam"), nam: { architecture: "HyperWaveNet", version: "1.0.0", gearType: "amp", supported: false, error: "Unsupported NAM architecture." } });
+    renderAssets();
+    await userEvent.click(screen.getByRole("button", { name: "Unsupported" }));
+    expect(screen.getByRole("button", { name: /Try in/ })).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent("Unsupported NAM architecture.");
   });
 
   it("shows In <preset> when the block already uses the file, and explains a missing block", async () => {

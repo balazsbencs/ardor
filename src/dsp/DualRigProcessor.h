@@ -35,6 +35,7 @@ public:
                     float* outputLeft, float* outputRight, std::size_t frames);
   void process(float inputLeft, float inputRight, float& outputLeft, float& outputRight);
   bool setDaisyParameter(const std::string& id, const std::string& key, float normalized);
+  bool setNamParameter(const std::string& id, const std::string& name, float value);
   bool setCompressorParameter(const std::string& id, const std::string& key, float value);
   bool compressorGainReductionDb(const std::string& id, float& outDb) const;
   bool setNoiseGateParameter(const std::string& id, const std::string& key, float value);

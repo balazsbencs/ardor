@@ -47,6 +47,7 @@ lv_point_t reorderIndicatorPosition(std::size_t blockCount, std::size_t source,
 
 std::string laneToken(const UiBlock& block)
 {
+  if (block.type == "namPedal") return "PNAM";
   if (block.type == "nam") return "NAM";
   if (block.type == "cab") return "IR";
   if (block.type == "dynamics") {
