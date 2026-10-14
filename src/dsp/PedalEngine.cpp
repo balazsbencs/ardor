@@ -223,6 +223,12 @@ bool PedalEngine::addDaisyFx(std::string id, const std::string& blockType, const
   return true;
 }
 
+bool PedalEngine::setNamParameter(const std::string& id, const std::string& name, float value)
+{
+  if (wdwRouting_ && wdwRouting_->setNamParameter(id, name, value)) return true;
+  return chain_.setNamParameter(id, name, value);
+}
+
 bool PedalEngine::setDaisyParameter(const std::string& id, const std::string& key, float normalized)
 {
   if (wdwRouting_ && wdwRouting_->setDaisyParameter(id, key, normalized)) return true;

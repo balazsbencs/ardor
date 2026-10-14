@@ -351,6 +351,17 @@ void RuntimeChain::addDaisy(std::string id, DaisyFxProcessor processor, bool sce
   blocks_.push_back(std::move(block));
 }
 
+bool RuntimeChain::setNamParameter(const std::string& id, const std::string& name, float value)
+{
+  for (auto& block : blocks_) {
+    if (block.kind == Block::Kind::Nam && block.id == id)
+      return block.nam->setParameterTarget(name, value);
+    if (block.kind == Block::Kind::DualRig
+        && block.dualRig->setNamParameter(id, name, value)) return true;
+  }
+  return false;
+}
+
 bool RuntimeChain::setDaisyParameter(const std::string& id, const std::string& key, float normalized)
 {
   for (auto& block : blocks_) {

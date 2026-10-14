@@ -2,18 +2,148 @@
 #include "audio/EngineLoader.h"
 #include "ui/UiModel.h"
 #include "ui/ParameterControls.h"
+#include "namparam/parametric_container.h"
+#include "NAM/slimmable.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <fstream>
 #include <stdexcept>
 #include <iostream>
+#include <limits>
+#include <thread>
+#include <atomic>
+#include <array>
+#include <cstdlib>
+#include <new>
+
+// Only live setter/audio calls enable this guard. Model loading is allowed to allocate.
+thread_local bool auditRealtimeMemory = false;
+thread_local size_t realtimeAllocations = 0, realtimeDeallocations = 0;
+void* operator new(size_t size) {
+  if (auditRealtimeMemory) ++realtimeAllocations;
+  if (auto* ptr = std::malloc(std::max<size_t>(size, 1))) return ptr;
+  throw std::bad_alloc();
+}
+void* operator new[](size_t size) { return ::operator new(size); }
+void operator delete(void* ptr) noexcept {
+  if (auditRealtimeMemory && ptr) ++realtimeDeallocations;
+  std::free(ptr);
+}
+void operator delete[](void* ptr) noexcept { ::operator delete(ptr); }
+void operator delete(void* ptr, size_t) noexcept { ::operator delete(ptr); }
+void operator delete[](void* ptr, size_t) noexcept { ::operator delete(ptr); }
 
 namespace {
 void require(bool ok, const std::string& message) { if (!ok) throw std::runtime_error(message); }
 void write(const std::filesystem::path& path, const nlohmann::json& document) { std::ofstream(path) << document; }
 float difference(const std::vector<float>& a, const std::vector<float>& b) {
   float sum = 0; for (size_t i=0; i<a.size(); ++i) sum += std::fabs(a[i]-b[i]); return sum/a.size();
+}
+
+void checkLiveRamp(const std::filesystem::path& path)
+{
+  // A one-layer, memoryless network makes the control trajectory observable
+  // without a guitar waveform or recurrent-state transients hiding zipper noise.
+  ardor::NamProcessor moving, chunked, baseline, target;
+  for (auto* processor : {&moving, &baseline})
+    require(processor->load(path, 48000, 64, 1, std::nullopt, {{"Drive", 0}}), "ramp start loads");
+  require(chunked.load(path, 48000, 13, 1, std::nullopt, {{"Drive", 0}}), "small ramp blocks load");
+  require(target.load(path, 48000, 64, 1, std::nullopt, {{"Drive", 10}}), "ramp destination loads");
+  const float start = baseline.process(0.05f), end = target.process(0.05f);
+  require(std::fabs(end - start) > 0.01f, "test network exposes learned control");
+  require(!moving.setParameterTarget("Missing", 1)
+    && !moving.setParameterTarget("Drive", 11)
+    && !moving.setParameterTarget("Drive", std::numeric_limits<float>::quiet_NaN()), "invalid live values rejected");
+  require(moving.setParameterTarget("Drive", 10) && chunked.setParameterTarget("Drive", 10), "live targets accepted");
+  std::vector<float> input(12000, 0.05f), output(input.size()), other(input.size());
+  moving.processBlock(input.data(), output.data(), 1000);
+  chunked.processBlock(input.data(), other.data(), 1000);
+  require(std::fabs(output.front() - start) < 0.000001f, "first changed sample retains original value");
+  require(moving.setParameterTarget("Drive", 3) && chunked.setParameterTarget("Drive", 3), "mid-ramp retarget accepted");
+  moving.processBlock(input.data() + 1000, output.data() + 1000, input.size() - 1000);
+  chunked.processBlock(input.data() + 1000, other.data() + 1000, input.size() - 1000);
+  float peakStep = 0;
+  for (size_t i = 1; i < output.size(); ++i)
+    peakStep = std::max(peakStep, std::fabs(output[i] - output[i - 1]));
+  require(peakStep < std::fabs(end - start) / 1000, "ramp and retarget avoid abrupt output steps");
+  require(difference(output, other) < 0.00001f, "live ramp timing is independent of host block size");
+  require(target.setParameterTarget("Drive", 3), "comparison target accepted");
+  target.reset(); // reset must retain the newest committed live target
+  require(std::fabs(output.back() - target.process(0.05f)) < 0.000001f, "ramp settles exactly at latest target");
+  std::cout << "Live concat ramp peak step " << peakStep << " versus full jump " << std::fabs(end - start) << "\n";
+}
+
+void checkConcurrentTargets(const std::filesystem::path& path, const std::string& name,
+                            float maximum, float tier)
+{
+  ardor::NamProcessor processor;
+  require(processor.load(path, 48000, 64, tier), "concurrent model loads");
+  std::atomic<bool> finished{false};
+  bool finite = true;
+  size_t audioAllocations = 0, audioDeallocations = 0;
+  std::thread audio([&] {
+    std::array<float, 64> input{}, output{};
+    auditRealtimeMemory = true;
+    for (size_t block = 0; block < 256 || !finished.load(std::memory_order_acquire); ++block) {
+      for (size_t i = 0; i < input.size(); ++i) input[i] = 0.1f * std::sin((block * 64 + i) * 0.17f);
+      processor.processBlock(input.data(), output.data(), input.size());
+      for (float sample : output) finite &= std::isfinite(sample);
+    }
+    auditRealtimeMemory = false;
+    audioAllocations = realtimeAllocations;
+    audioDeallocations = realtimeDeallocations;
+  });
+  bool accepted = true;
+  const auto start = std::chrono::steady_clock::now();
+  realtimeAllocations = realtimeDeallocations = 0;
+  auditRealtimeMemory = true;
+  for (size_t i = 0; i < 100000; ++i)
+    accepted &= processor.setParameterTarget(name, maximum * static_cast<float>(i % 101) / 100.0f);
+  auditRealtimeMemory = false;
+  const auto elapsed = std::chrono::steady_clock::now() - start;
+  finished.store(true, std::memory_order_release);
+  audio.join();
+  require(accepted && finite, "concurrent parameter sweeps remain valid and finite");
+  require(audioAllocations == 0 && audioDeallocations == 0
+    && realtimeAllocations == 0 && realtimeDeallocations == 0, "live setters and audio processing must not allocate or free C++ storage");
+  std::cout << "Live target " << name << " tier " << tier << " mean "
+    << std::chrono::duration<double, std::micro>(elapsed).count() / 100000 << " us\n";
+}
+
+void checkLiveFilmHistory(const std::filesystem::path& path, float tier)
+{
+  nlohmann::json document;
+  std::ifstream(path) >> document;
+  auto reference = nam::ardor_parametric::create(document);
+  dynamic_cast<nam::SlimmableModel&>(*reference).SetSlimmableSize(tier);
+  reference->ResetAndPrewarm(48000, 64);
+  auto& controls = dynamic_cast<nam::IParametricControl&>(*reference);
+  ardor::NamProcessor processor;
+  require(processor.load(path, 48000, 64, tier), "live FiLM reference loads");
+  std::array<float, 64> input{}, actual{}, expected{};
+  std::array<float, 2> values{0.5f, 0.5f};
+  float error = 0;
+  for (size_t block = 0; block < 384; ++block) {
+    if (block == 9 || block == 37 || block == 45 || block == 80) {
+      values[0] = block == 9 ? 1.0f : 0.2f;
+      values[1] = block == 37 ? 0.9f : 0.1f;
+      require(processor.setParameterTarget("Gain", values[0])
+        && processor.setParameterTarget("Tone", values[1]), "FiLM live retargets accepted");
+      controls.SetParams(values);
+    }
+    for (size_t i = 0; i < input.size(); ++i) input[i] = 0.1f * std::sin((block * 64 + i) * 0.17f);
+    float* in[] = {input.data()};
+    float* out[] = {expected.data()};
+    reference->process(in, out, 64);
+    processor.processBlock(input.data(), actual.data(), 64);
+    for (size_t i = 0; i < actual.size(); ++i) {
+      require(std::isfinite(actual[i]), "live FiLM output remains finite");
+      error = std::max(error, std::fabs(actual[i] - expected[i]));
+    }
+  }
+  require(error < 0.000001f, "live FiLM matches uninterrupted smoothed DSP without resets");
+  std::cout << "Live FiLM tier " << tier << " uninterrupted reference error " << error << "\n";
 }
 }
 int main() {
@@ -57,6 +187,10 @@ int main() {
   require(high.load(root/"models/switch.nam",48000,64,1,std::nullopt,{{"Mode",1}}),"alternate switch loads");
   low.processBlock(input.data(),a.data(),input.size());high.processBlock(input.data(),b.data(),input.size());
   require(difference(a,b)>0.01f,"one-hot switch must affect audio");
+  require(!low.setParameterTarget("Mode", 0.5f), "live switches reject fractional indices");
+  require(low.setParameterTarget("Mode", 1), "live switch accepts exact option");
+  low.processBlock(input.data(), a.data(), input.size());
+  require(difference(a,b)<0.00001f, "live switch retains exact one-hot conditioning");
   require(!low.load(root/"models/switch.nam",48000,64,1,std::nullopt,{{"Mode",0.5}}),"reject fractional switches");
   auto wrongRate = spec;
   wrongRate["sample_rate"] = 44100; write(root/"models/rate.nam",wrongRate);
@@ -78,9 +212,15 @@ int main() {
   require(high.load(root/"models/wave.nam",48000,64,1,std::nullopt,{{"Drive",10}}),"ConcatWaveNet controls load");
   low.processBlock(input.data(),a.data(),input.size()); high.processBlock(input.data(),b.data(),input.size());
   require(difference(a,b)>0.01,"WaveNet condition channels affect audio");
+  checkLiveRamp(root/"models/wave.nam");
   wave["weights"]={0.0};write(root/"models/wave-short.nam",wave);
   require(!low.load(root/"models/wave-short.nam",48000,64),"reject truncated WaveNet weights before reading them");
   const auto clone = source/"assets/nam/clone-overdrive.nam";
+  checkConcurrentTargets(model, "Drive", 10, 1);
+  checkConcurrentTargets(clone, "Gain", 1, 0);
+  checkConcurrentTargets(clone, "Gain", 1, 1);
+  checkLiveFilmHistory(clone, 0);
+  checkLiveFilmHistory(clone, 1);
   std::filesystem::copy_file(clone,root/"models/clone.nam");
   nlohmann::json cloneDocument; std::ifstream(clone) >> cloneDocument;
   for (float tier : {0.0f, 1.0f}) {
@@ -143,6 +283,16 @@ int main() {
   require(ardor::applyPreset(engine,preset,root,options,error),"pedal before snapshot amp applies: "+error);
   ardor::RuntimeChain chain;
   require(ardor::prepareRuntimeChain(chain,ardor::buildChainPlan(preset,root).blocks,options,error),"pedal+amp lane applies: "+error);
+  require(engine.setNamParameter("od", "Drive", 8) && chain.setNamParameter("od", "Tone", 4), "serial controls reach the live pedal");
+  require(!engine.setNamParameter("amp", "Drive", 8) && !chain.setNamParameter("missing", "Drive", 8), "snapshot and missing blocks reject learned controls");
+  ardor::Preset dual;
+  dual.version = 2;
+  dual.blocks = {{"rig", "dualRig", true, "", nlohmann::json::object()}};
+  dual.blocks[0].lanes[0] = {{"left-od", "namPedal", true, "models/overdrive.nam", nlohmann::json::object()}};
+  dual.blocks[0].lanes[1] = {{"right-od", "namPedal", true, "models/overdrive.nam", nlohmann::json::object()}};
+  require(ardor::applyPreset(engine, dual, root, options, error), "live Dual Rig prepares: " + error);
+  require(engine.setNamParameter("left-od", "Drive", 8)
+    && engine.setNamParameter("right-od", "Tone", 4), "live controls reach both Dual Rig children");
   auto ui=ardor::makeDemoUiState();ardor::loadAssetsFromDataRoot(ui,root);ardor::replaceActivePreset(ui,preset);
   const auto asset=std::find_if(ui.assets.begin(),ui.assets.end(),[](const auto& a){return a.path=="models/overdrive.nam";});
   require(asset!=ui.assets.end() && asset->blockType=="namPedal","native drawer classifies parametric pedal");
@@ -154,17 +304,20 @@ int main() {
   ardor::setUiStatus(ui, "Saved preset");
   const auto statusRevision = ui.revisions.status;
   ardor::setSelectedBlockParam(ui, "model:Drive", 8);
-  require(ardor::pendingStructuralPreview(ui), "learned control still queues audio preview");
-  ardor::completeStructuralPreview(ui);
+  require(!ardor::pendingStructuralPreview(ui), "learned control must not rebuild the chain");
   require(ui.revisions.status == statusRevision && ui.statusMessage == "Saved preset",
           "learned control success does not trigger a toast");
   require(ardor::activePresetToPreset(ui).blocks[0].params["modelParameters"]["Drive"] == 8,
-          "silent control preview retains the new value");
+          "live control edit retains the new value");
   ardor::setSelectedBlockParam(ui, "model:Drive", 9);
+  require(!ardor::pendingStructuralPreview(ui), "repeated learned edits remain immediately available");
+  auto fallback = ardor::captureUiPreviewSnapshot(ui);
+  ardor::setSelectedBlockParam(ui, "model:Drive", 10);
+  require(ardor::queuePreview(ui, fallback, "failed live control", false), "failed live updates can fall back to prepared preview");
   ardor::failStructuralPreview(ui, "test failure");
   require(ui.statusIsError && ui.statusMessage == "Could not apply chain: test failure",
           "failed control preview still explains the error");
-  require(ardor::activePresetToPreset(ui).blocks[0].params["modelParameters"]["Drive"] == 8,
+  require(ardor::activePresetToPreset(ui).blocks[0].params["modelParameters"]["Drive"] == 9,
           "failed control preview restores the audible value");
   auto clonePreset=preset;
   clonePreset.blocks[0].asset="models/clone.nam";
@@ -199,6 +352,9 @@ int main() {
       "native WDW lane must admit a neural pedal before its amp");
     auto stored=ardor::activePresetToPreset(wdwUi);
     require(ardor::applyPreset(engine,stored,root,options,error),"WDW neural pedal applies: "+error);
+    const auto pedalId = stored.wdw ? (lane == 0 ? stored.wdw->dry.blocks[0].id : stored.wdw->wet.blocks[0].id)
+      : stored.blocks[0].lanes[lane][0].id;
+    require(engine.setNamParameter(pedalId, "Drive", 8), "live controls reach each WDW lane");
   }
   std::filesystem::remove_all(root);
   std::cout<<"parametric NAM audio, controls, routing and native roundtrip passed\n";

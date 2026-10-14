@@ -6,6 +6,7 @@
 #include <memory>
 #include <cstddef>
 #include <optional>
+#include <string_view>
 #include <vector>
 
 namespace nam {
@@ -30,6 +31,10 @@ public:
   void clear();
   void reset();
   bool loaded() const;
+  // Control-thread mailbox. The audio thread commits targets between blocks;
+  // the model's conditioner smooths continuous controls without resetting history.
+  // May overlap processing, but not load(), clear(), or destruction.
+  bool setParameterTarget(std::string_view name, float value);
 
   // Returns tier breakpoints if the model is a SlimmableContainer; empty otherwise.
   std::vector<double> slimmableSizeBreakpoints() const;
@@ -40,6 +45,9 @@ public:
   float inputCalibrationGain() const noexcept { return inputCalibrationGain_; }
 
 private:
+  struct LiveParameters;
+  void refreshLiveParameters();
+  std::unique_ptr<LiveParameters> liveParameters_;
   std::unique_ptr<nam::DSP> model_;
   std::vector<float> input_{0.0f};
   std::vector<float> output_{0.0f};

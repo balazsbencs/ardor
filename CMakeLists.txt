@@ -765,6 +765,7 @@ set(ARDOR_PARAMETRIC_TEST_EXAMPLE_MODEL "${neuralampmodelercore_SOURCE_DIR}/exam
 add_executable(pedal-parametric-nam-smoke tests/parametric_nam_smoke.cpp)
 target_link_libraries(pedal-parametric-nam-smoke PRIVATE ardor_audio ardor_ui)
 target_compile_definitions(pedal-parametric-nam-smoke PRIVATE
+  NAM_SAMPLE_FLOAT
   ARDOR_SOURCE_DIR="${ARDOR_PARAMETRIC_TEST_SOURCE_DIR}"
   ARDOR_NAM_EXAMPLE_MODEL="${ARDOR_PARAMETRIC_TEST_EXAMPLE_MODEL}")
 add_test(NAME pedal-parametric-nam-smoke COMMAND pedal-parametric-nam-smoke)

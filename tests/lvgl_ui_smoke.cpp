@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -712,7 +713,8 @@ int main()
   rejectedEqUi.focusEqBandField(ardor::EqBandField::Gain);
   if (require(rejectedEqUi.applyFocusedParameterDelta(rejectedEqState, 2)
                 && ardor::selectedParametricEqParams(rejectedEqState).bands[0] != rejectedEqBefore
-                && ardor::pendingStructuralPreview(rejectedEqState),
+                && ardor::pendingStructuralPreview(rejectedEqState)
+                && !ardor::pendingStructuralPreview(rejectedEqState)->notifyOnSuccess,
               "rejected live EQ updates should promote to a full preview")) return 1;
   completePreview(rejectedEqState);
 
@@ -754,6 +756,7 @@ int main()
   rejectedDaisyUi.focusParameter("depth");
   if (require(rejectedDaisyUi.applyFocusedParameterDelta(rejectedDaisyState, 1)
                 && rejectedDaisyState.pendingPreview.has_value()
+                && !rejectedDaisyState.pendingPreview->notifyOnSuccess
                 && rejectedDaisyState.pendingPreview->rollback.preset
                      .blocks[rejectedDaisyState.selectedBlock].params == rejectedDaisyParams,
               "rejected live controls should snapshot the pre-edit state for preview rollback")) return 1;
@@ -841,6 +844,50 @@ int main()
                 && liveTapeUpdates == 2 && liveTapeKey == "saturation"
                 && !ardor::pendingStructuralPreview(tapeState),
               "Tape Machine slider movement should remain on the live block-parameter path")) return 1;
+
+  auto learnedState = ardor::makeDemoUiState();
+  ardor::UiAsset learnedAsset{"Live OD", "models/live-od.nam", "model", "namPedal"};
+  learnedAsset.modelParameterSpecs = nlohmann::json::array({
+    {{"name", "Drive"}, {"min", 0}, {"max", 10}, {"default", 5}, {"type", "continuous"}},
+  });
+  learnedState.assets.push_back(learnedAsset);
+  ardor::appendAssetBlock(learnedState, learnedState.assets.size() - 1);
+  completePreview(learnedState);
+  const auto learnedIndex = learnedState.bank.presets[learnedState.activePreset].blocks.size() - 1;
+  int learnedUpdates = 0;
+  float lastLearnedValue = 0;
+  ardor::UiActions learnedActions;
+  learnedActions.updateBlockParameter = [&](const std::string&, const std::string& key, float value) {
+    if (key != "model:Drive") return false;
+    ++learnedUpdates;
+    lastLearnedValue = value;
+    return true;
+  };
+  ardor::LvglUi learnedUi(learnedActions);
+  learnedUi.selectBlock(learnedState, learnedIndex);
+  learnedUi.focusParameter("model:Drive");
+  const auto learnedStatus = learnedState.revisions.status;
+  const auto learnedChain = learnedState.revisions.chain;
+  if (require(learnedUi.applyFocusedParameterDelta(learnedState, 1)
+      && learnedUi.applyFocusedParameterDelta(learnedState, 1)
+      && learnedUpdates == 2 && std::fabs(lastLearnedValue - 5.2f) < 0.00001f
+      && !ardor::pendingStructuralPreview(learnedState)
+      && learnedState.revisions.status == learnedStatus
+      && learnedState.revisions.chain == learnedChain,
+      "learned slider edits update the live model repeatedly without toast or chain rebuild")) return 1;
+  auto rejectedLearnedState = learnedState;
+  const auto learnedParams = rejectedLearnedState.bank.presets[rejectedLearnedState.activePreset].blocks[learnedIndex].params;
+  learnedActions.updateBlockParameter = [](const std::string&, const std::string&, float) { return false; };
+  ardor::LvglUi rejectedLearnedUi(learnedActions);
+  rejectedLearnedUi.focusParameter("model:Drive");
+  if (require(rejectedLearnedUi.applyFocusedParameterDelta(rejectedLearnedState, 1)
+      && ardor::pendingStructuralPreview(rejectedLearnedState)
+      && !ardor::pendingStructuralPreview(rejectedLearnedState)->notifyOnSuccess,
+      "rejected learned targets use a silent prepared fallback")) return 1;
+  ardor::failStructuralPreview(rejectedLearnedState, "live target missing");
+  if (require(rejectedLearnedState.statusIsError
+      && rejectedLearnedState.bank.presets[rejectedLearnedState.activePreset].blocks[learnedIndex].params == learnedParams,
+      "failed learned fallback restores the audible controls and reports the error")) return 1;
 
   if (require(ardor::parameterPage(state, 0).size() <= 6, "page must contain <= six sliders")) return 1;
   if (require(ardor::parameterPageCount(state) == 2, "seven params should use two slider pages")) return 1;

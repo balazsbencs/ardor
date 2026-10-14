@@ -67,7 +67,7 @@ bool LvglUi::updateSelectedEqBand(UiState& state, EqBandParams params, bool requ
     state.dirty = dirtyBefore;
     auto previewRollback = captureUiPreviewSnapshot(state);
     setSelectedEqBand(state, bandIndex, after);
-    if (queuePreview(state, previewRollback, "update " + blockName + " EQ")) {
+    if (queuePreview(state, previewRollback, "update " + blockName + " EQ", false)) {
       invalidate(UiChange::Parameters | UiChange::Header);
       return true;
     }
@@ -101,7 +101,7 @@ bool LvglUi::updateSelectedEqPassFilter(UiState& state, EqPassFilterParams param
     state.dirty = dirtyBefore;
     auto previewRollback = captureUiPreviewSnapshot(state);
     setSelectedEqPassFilter(state, kind, after);
-    if (queuePreview(state, previewRollback, "update " + blockName + " filter")) {
+    if (queuePreview(state, previewRollback, "update " + blockName + " filter", false)) {
       invalidate(UiChange::Parameters | UiChange::Header);
       return true;
     }
@@ -181,6 +181,12 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
         }
       }
       if (!sceneOwned) {
+      if (state.paramTarget == UiParamTarget::Block && control.key.starts_with("model:")) {
+        const auto* block = selectedUiBlock(state);
+        liveUpdateSucceeded = block && actions_.updateBlockParameter
+          && actions_.updateBlockParameter(block->id, control.key,
+               block->params.at("modelParameters").at(control.key.substr(6)).get<float>());
+      }
       if (state.paramTarget == UiParamTarget::Globals && actions_.updateGlobalGains) {
         const auto& global = state.bank.presets[state.activePreset].global;
         actions_.updateGlobalGains(global.inputGainDb, global.outputGainDb);
@@ -235,6 +241,7 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
                 || control.key == "wetLevelDb" || control.key == "wetWidth");
           const bool coveredAbove = block.type == "mod" || block.type == "delay"
             || block.type == "reverb" || block.type == "wah" || block.type == "cab"
+            || control.key.starts_with("model:")
             || (block.type == "dynamics" && (mode == "compressor" || mode == "noise_gate"));
           if (!coveredAbove && !wdwMixParameter && block.params.contains(control.key)
               && block.params[control.key].is_number()) {
@@ -285,7 +292,7 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
         auto previewRollback = captureUiPreviewSnapshot(state);
         selected->params = std::move(paramsAfter);
         state.dirty = true;
-        if (queuePreview(state, previewRollback, "update " + selectedName)) {
+        if (queuePreview(state, previewRollback, "update " + selectedName, false)) {
           invalidate(UiChange::Parameters | UiChange::Header);
           return true;
         }

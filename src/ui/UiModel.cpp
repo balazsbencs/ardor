@@ -2047,13 +2047,13 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
       if (spec.value("name", std::string{}) != name) continue;
       value = std::clamp(value, spec.at("min").get<float>(), spec.at("max").get<float>());
       if (spec.value("type", std::string{"continuous"}) == "switch") value = std::round(value);
-      const auto rollback = previewSnapshot(state);
       rememberBlockEdit(state);
       if (!block.params.contains("modelParameters") || !block.params["modelParameters"].is_object())
         block.params["modelParameters"] = nlohmann::json::object();
       block.params["modelParameters"][name] = value;
       state.dirty = true;
-      queuePreviewOrDeferWdw(state, rollback, "update " + block.assetName, selectedWdwRig(state), false);
+      // Learned controls use the live parameter callback, like other numeric
+      // effects. Rebuilding the chain here loses history and blocks slider drags.
       markUiChanged(state, UiChange::Header | UiChange::Parameters);
       return;
     }

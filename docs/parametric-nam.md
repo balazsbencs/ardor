@@ -76,8 +76,17 @@ block loads parametric files at their exported defaults; edit model controls in 
 standalone NAM block or a Dual Rig child block instead.
 
 The touchscreen module drawer also recognizes supported parametric models and
-shows learned controls. Touchscreen changes queue a prepared preset preview.
+shows learned controls. Touchscreen and encoder edits send targets to the running
+model without rebuilding the chain, resetting its history, or showing a success
+toast. A lock-free mailbox transfers targets to the audio thread between blocks.
+Concat continuous controls use the existing 200 ms sample ramp; FiLM controls use
+the existing 100 ms smoothing time constant. Retargeting preserves the current
+trajectory. Switches retain exact discrete options rather than interpolating
+untrained switch states. These ramps smooth control changes, not model/tier swaps.
 Definitions come from the actual model asset, not from untrusted preset metadata.
+If a live runtime target is unavailable, a prepared preset preview provides
+recovery; failed recovery restores the previous values and still reports an error.
+Web-manager edits continue to require **Save and load**.
 
 The Assets **Try in preset** shortcut uses an existing matching Neural Amp or
 Neural Pedal block. It does not replace an amp with a pedal model automatically;
@@ -276,6 +285,20 @@ The web-manager follow-up passed 755 unit tests and 16 mocked browser cases
 across desktop and phone, plus typechecking, hosted/device builds and the manager
 daemon tests. These browser cases complement the real Pi manager workflows in
 the hardware report; they do not establish additional audio performance limits.
+
+Native control regressions cover repeated live edits without chain/status
+invalidation, silent recovery and rollback, continuous concat ramps with
+mid-ramp retargeting and different host block sizes, exact switch values,
+concurrent control/audio updates, FiLM output against an uninterrupted DSP
+reference in both tiers, and serial/Dual Rig/WDW dispatch.
+
+The 2026-10-14 Release host build passed all 79 C++ tests. The live-update checks
+accepted 300,000 targets while audio ran, with finite output and zero audited C++
+allocations/deallocations in setters or audio processing. Both Clone FiLM tiers
+matched an uninterrupted reference exactly during edits. A controlled one-layer
+concat test measured a maximum adjacent-sample change of `1.25989e-5` versus a
+full-range jump of `0.152159`, including mid-ramp retargeting. These are host
+regressions, not a fresh Pi listening or audio-interface measurement.
 
 Still outside this release: HyperWaveNet, FiLM LoRA/schema 2 and residual heads,
 other forks' parametric architectures,

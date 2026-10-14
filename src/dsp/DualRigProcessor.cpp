@@ -238,6 +238,12 @@ void DualRigProcessor::process(float inputLeft, float inputRight,
   outputRight = processLaneSample(right_, true, mono);
 }
 
+bool DualRigProcessor::setNamParameter(const std::string& id, const std::string& name, float value)
+{
+  return (left_.chain && left_.chain->setNamParameter(id, name, value))
+    || (right_.chain && right_.chain->setNamParameter(id, name, value));
+}
+
 bool DualRigProcessor::setDaisyParameter(
   const std::string& id, const std::string& key, float normalized)
 {
