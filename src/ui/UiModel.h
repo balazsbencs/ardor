@@ -389,7 +389,8 @@ bool setSelectedBlockEnabledLive(UiState& state, bool enabled);
 void setActiveInputGainDb(UiState& state, float db);
 void setActiveOutputGainDb(UiState& state, float db);
 void setMasterVolume(UiState& state, int volume);
-void setSelectedBlockParam(UiState& state, const std::string& key, float value);
+// Returns false when the edit is refused; callers must not dispatch it live.
+bool setSelectedBlockParam(UiState& state, const std::string& key, float value);
 void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann::json value);
 ParametricEqParams selectedParametricEqParams(const UiState& state);
 bool setSelectedEqBand(UiState& state, std::size_t bandIndex, EqBandParams params);

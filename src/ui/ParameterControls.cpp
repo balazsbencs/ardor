@@ -507,8 +507,7 @@ bool applyParameterDelta(UiState& state, const ParameterControl& control, int de
   if (control.key.starts_with("model:")) {
     const float next = std::clamp(control.value + control.step * delta, control.minimum, control.maximum);
     if (next == control.value) return false;
-    setSelectedBlockParam(state, control.key, next);
-    return true;
+    return setSelectedBlockParam(state, control.key, next);
   }
   if (control.kind != ParameterControlKind::Continuous) {
     const auto selected = static_cast<std::size_t>(std::clamp(

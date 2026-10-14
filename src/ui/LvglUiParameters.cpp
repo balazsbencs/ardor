@@ -183,9 +183,15 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
       if (!sceneOwned) {
       if (state.paramTarget == UiParamTarget::Block && control.key.starts_with("model:")) {
         const auto* block = selectedUiBlock(state);
-        liveUpdateSucceeded = block && actions_.updateBlockParameter
-          && actions_.updateBlockParameter(block->id, control.key,
-               block->params.at("modelParameters").at(control.key.substr(6)).get<float>());
+        // Consume focused input even if storage is missing; never send a
+        // nonexistent value or fall through to the encoder's master volume.
+        if (!block) return true;
+        const auto values = block->params.find("modelParameters");
+        if (values == block->params.end() || !values->is_object()) return true;
+        const auto stored = values->find(control.key.substr(6));
+        if (stored == values->end() || !stored->is_number()) return true;
+        liveUpdateSucceeded = actions_.updateBlockParameter
+          && actions_.updateBlockParameter(block->id, control.key, stored->get<float>());
       }
       if (state.paramTarget == UiParamTarget::Globals && actions_.updateGlobalGains) {
         const auto& global = state.bank.presets[state.activePreset].global;

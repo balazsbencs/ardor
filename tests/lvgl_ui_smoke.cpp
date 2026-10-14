@@ -875,6 +875,43 @@ int main()
       && learnedState.revisions.status == learnedStatus
       && learnedState.revisions.chain == learnedChain,
       "learned slider edits update the live model repeatedly without toast or chain rebuild")) return 1;
+  for (const std::string type : {"nam", "namPedal"}) {
+    for (bool storedControl : {false, true}) {
+      auto pendingState = learnedState;
+      auto& block = pendingState.bank.presets[pendingState.activePreset].blocks[learnedIndex];
+      block.type = type;
+      if (!storedControl) block.params.erase("modelParameters");
+      ardor::LvglUi pendingUi(learnedActions);
+      pendingUi.selectBlock(pendingState, learnedIndex);
+      pendingUi.focusParameter("inputMode");
+      if (require(pendingUi.applyFocusedParameterDelta(pendingState, 1)
+          && ardor::pendingStructuralPreview(pendingState),
+          "Input source change should queue a prepared preview")) return 1;
+      const auto paramsBefore = block.params;
+      const auto statusBefore = pendingState.revisions.status;
+      const auto parameterRevision = pendingState.revisions.parameters;
+      const auto updatesBefore = learnedUpdates;
+      pendingUi.focusParameter("model:Drive");
+      // The UI consumes focused input even when the edit is refused, so an
+      // encoder turn cannot fall through to the master-volume handler.
+      if (require(pendingUi.applyFocusedParameterDelta(pendingState, 1)
+          && learnedUpdates == updatesBefore && block.params == paramsBefore
+          && ardor::pendingStructuralPreview(pendingState)
+          && pendingState.revisions.parameters == parameterRevision
+          && pendingState.revisions.status == statusBefore,
+          "pending preview must block untouched and saved learned controls without dispatch or mutation")) return 1;
+      const auto controls = ardor::parameterPage(pendingState, 0);
+      const auto drive = std::find_if(controls.begin(), controls.end(), [](const auto& control) {
+        return control.key == "model:Drive";
+      });
+      if (require(drive != controls.end() && !ardor::applyParameterDelta(pendingState, *drive, 1),
+          "learned delta must report failure while its edit is blocked")) return 1;
+      completePreview(pendingState);
+      if (require(pendingUi.applyFocusedParameterDelta(pendingState, 1)
+          && learnedUpdates == updatesBefore + 1 && block.params.contains("modelParameters"),
+          "learned controls should resume live updates after preview completion")) return 1;
+    }
+  }
   auto rejectedLearnedState = learnedState;
   const auto learnedParams = rejectedLearnedState.bank.presets[rejectedLearnedState.activePreset].blocks[learnedIndex].params;
   learnedActions.updateBlockParameter = [](const std::string&, const std::string&, float) { return false; };

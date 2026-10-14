@@ -2033,16 +2033,16 @@ void setMasterVolume(UiState& state, int volume)
   markUiChanged(state, UiChange::Header);
 }
 
-void setSelectedBlockParam(UiState& state, const std::string& key, float value)
+bool setSelectedBlockParam(UiState& state, const std::string& key, float value)
 {
   auto* selected = selectedUiBlock(state);
-  if (!selected) return;
+  if (!selected) return false;
   auto& block = *selected;
   if ((block.type == "nam" || block.type == "namPedal") && key.starts_with("model:")) {
-    if (!previewIsSynchronized(state) || !std::isfinite(value)) return;
+    if (!previewIsSynchronized(state) || !std::isfinite(value)) return false;
     const auto name = key.substr(6);
     const auto asset = std::find_if(state.assets.begin(), state.assets.end(), [&](const auto& a) { return a.path == block.assetPath; });
-    if (asset == state.assets.end()) return;
+    if (asset == state.assets.end()) return false;
     for (const auto& spec : asset->modelParameterSpecs) {
       if (spec.value("name", std::string{}) != name) continue;
       value = std::clamp(value, spec.at("min").get<float>(), spec.at("max").get<float>());
@@ -2055,9 +2055,9 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
       // Learned controls use the live parameter callback, like other numeric
       // effects. Rebuilding the chain here loses history and blocks slider drags.
       markUiChanged(state, UiChange::Header | UiChange::Parameters);
-      return;
+      return true;
     }
-    return;
+    return false;
   }
   if (block.type == "cab") {
     if (key == "levelDb") {
@@ -2068,7 +2068,7 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
   } else if (block.type == "irreverb" && key == "reverbTimeRatio") {
     value = std::isfinite(value) ? clampFloat(value, 0.25f, 1.0f) : 1.0f;
   } else if (block.type == "dualAmp" || block.type == "dualRig") {
-    if (!previewIsSynchronized(state)) return;
+    if (!previewIsSynchronized(state)) return false;
     const bool wdw = block.type == "dualRig"
       && block.params.value("routing", std::string{}) == "wdw";
     if (key == "leftCabLevelDb" || key == "rightCabLevelDb"
@@ -2082,7 +2082,7 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
     } else if (wdw && key == "wetWidth") {
       value = clampFloat(value, 0.0f, 1.0f);
     } else {
-      return;
+      return false;
     }
   } else if (const auto* descriptor = findDaisyFxDescriptor(block.type, block.params.value("mode", ""))) {
     for (const auto& param : descriptor->params) {
@@ -2111,7 +2111,7 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
   } else if (block.type == "eq" && isConsoleEqMode(block.params)) {
     const auto found = std::find_if(kConsoleEqControls.begin(), kConsoleEqControls.end(),
       [&](const auto& control) { return control.key == key; });
-    if (found == kConsoleEqControls.end() || !std::isfinite(value)) return;
+    if (found == kConsoleEqControls.end() || !std::isfinite(value)) return false;
     value = clampFloat(value, found->minimum, found->maximum);
     if (!found->choices.empty()) value = std::round(value);
   } else if (block.type == "wah") {
@@ -2119,13 +2119,12 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
     else if (key == "level") value = clampFloat(value, -24.0f, 24.0f);
   }
   if (selectedParameterSceneScope(state, key) == UiSceneScope::ThisScene) {
-    updateSelectedSceneTargetValue(state, key, value);
-    return;
+    return updateSelectedSceneTargetValue(state, key, value);
   }
   const auto existing = block.params.find(key);
   if ((block.type == "dualAmp" || block.type == "dualRig")
       && existing != block.params.end() && existing->is_number()
-      && existing->get<float>() == value) return;
+      && existing->get<float>() == value) return false;
   const auto previewRollback = (block.type == "dualAmp" || block.type == "dualRig")
     ? std::optional<UiPreviewSnapshot>{previewSnapshot(state)} : std::nullopt;
   if (block.type == "dualAmp" || block.type == "dualRig") rememberBlockEdit(state);
@@ -2136,6 +2135,7 @@ void setSelectedBlockParam(UiState& state, const std::string& key, float value)
     queuePreviewOrDeferWdw(state, *previewRollback, "update " + block.assetName, rig, false);
   }
   markUiChanged(state, UiChange::Header | UiChange::Parameters);
+  return true;
 }
 
 void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann::json value)
