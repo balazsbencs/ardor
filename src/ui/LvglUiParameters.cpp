@@ -30,6 +30,35 @@ const EqPassFilterParams& passFilterForStage(const ParametricEqParams& params, s
   return stage == kEqHighPassStage ? params.highPass : params.lowPass;
 }
 
+std::string parameterViewSignature(const UiState& state, std::size_t page, bool editingEq)
+{
+  const auto* selected = selectedUiBlock(state);
+  const auto& scenes = state.bank.presets[state.activePreset].sceneSet;
+  std::string signature = editingEq ? "eq:parametric"
+    : state.paramTarget == UiParamTarget::Globals ? "globals:" + std::to_string(page)
+    : selected ? "block:" + selected->type + ":"
+        + selected->params.value("mode", std::string{}) + ":" + std::to_string(page)
+    : "none";
+  signature += scenes ? ":scenes:" + std::to_string(scenes->scenes[state.editingScene].targets.size())
+                      : ":shared";
+  if (!editingEq) {
+    // Models of the same block type can expose different controls. Reusing a
+    // stock NAM panel for a learned model used to recurse between rebuild and
+    // sync forever on a count mismatch. Equal counts can also hide incompatible
+    // widget kinds or switch choices. Key the panel by its complete layout,
+    // excluding current values so live edits still retain their widgets.
+    auto layout = nlohmann::json::array();
+    for (const auto& control : parameterPage(state, page)) {
+      layout.push_back({{"key", control.key}, {"label", control.label},
+        {"kind", static_cast<int>(control.kind)}, {"min", control.minimum},
+        {"max", control.maximum}, {"step", control.step},
+        {"choices", control.choices}, {"choiceValues", control.choiceValues}});
+    }
+    signature += ":layout:" + layout.dump();
+  }
+  return signature;
+}
+
 } // namespace
 
 void LvglUi::toggleExpressionAssignment(UiState& state, const ParameterControl& control)
@@ -523,18 +552,7 @@ void LvglUi::rebuildParameterView(UiState& state)
   if (editingEq) {
     selectEqStage(selectedEqStage_);
   }
-  const auto& sceneSet = state.bank.presets[state.activePreset].sceneSet;
-  const std::string sceneSignature = sceneSet
-    ? ":scenes:" + std::to_string(sceneSet->scenes[state.editingScene].targets.size()) : ":shared";
-  const std::string signature = (editingEq
-    ? "eq:parametric"
-    : (state.paramTarget == UiParamTarget::Globals
-        ? "globals:" + std::to_string(parameterPage_)
-        : (selected
-            ? "block:" + selected->type + ":"
-                + selected->params.value("mode", std::string{}) + ":"
-                + std::to_string(parameterPage_)
-            : "none"))) + sceneSignature;
+  const auto signature = parameterViewSignature(state, parameterPage_, editingEq);
 
   for (auto& [key, view] : parameterViews_) {
     (void) key;
@@ -627,18 +645,7 @@ void LvglUi::syncParameterView(UiState& state)
   const auto* selected = selectedUiBlock(state);
   const bool editingEq = state.paramTarget == UiParamTarget::Block
     && selected && selected->type == "eq" && isParametricEqMode(selected->params);
-  const auto& sceneSet = state.bank.presets[state.activePreset].sceneSet;
-  const std::string sceneSignature = sceneSet
-    ? ":scenes:" + std::to_string(sceneSet->scenes[state.editingScene].targets.size()) : ":shared";
-  const std::string signature = (editingEq
-    ? "eq:parametric"
-    : (state.paramTarget == UiParamTarget::Globals
-        ? "globals:" + std::to_string(parameterPage_)
-        : (selected
-            ? "block:" + selected->type + ":"
-                + selected->params.value("mode", std::string{}) + ":"
-                + std::to_string(parameterPage_)
-            : "none"))) + sceneSignature;
+  const auto signature = parameterViewSignature(state, parameterPage_, editingEq);
   if (signature != renderedParameterSignature_) {
     rebuildParameterView(state);
     return;
