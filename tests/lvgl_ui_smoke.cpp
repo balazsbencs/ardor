@@ -982,6 +982,69 @@ int main()
   if (require(glyphBitmap, "Open Sans glyphs should render in LVGL")) return 1;
 
   lv_display_t* display = lv_display_create(1280, 720);
+  {
+    // Opening a stock amp first must not lend its two-control panel to a
+    // parametric amp selected later from the drawer. Refresh retains panels;
+    // build() would clear the cache and hide this crash.
+    auto modelState = ardor::makeDemoUiState();
+    ardor::Preset snapshot;
+    snapshot.name = "Snapshot controls";
+    snapshot.blocks.push_back({"snapshot", "nam", true, "models/snapshot.nam", nlohmann::json::object()});
+    ardor::replaceActivePreset(modelState, snapshot);
+    ardor::enterEditMode(modelState);
+    ardor::LvglUi modelUi;
+    modelUi.selectBlock(modelState, 0);
+    modelUi.build(lv_screen_active(), modelState);
+    if (require(ardor::parameterPage(modelState, 0).size() == 2,
+                "snapshot amp should cache its two-control panel")) return 1;
+
+    ardor::UiAsset model{"Bassman controls", "models/bassman.nam", "amps", "nam"};
+    model.modelParameterSpecs = nlohmann::json::array({
+      {{"name", "Gain"}, {"min", 1}, {"max", 10}, {"default", 5}, {"type", "continuous"}},
+      {{"name", "Mode"}, {"min", 0}, {"max", 7}, {"default", 2}, {"type", "switch"},
+       {"enum_names", {"Bass / Deep Off", "Bass / Deep On", "Normal / Bright Off", "Normal / Bright On",
+                       "Jumped / Deep Off / Bright Off", "Jumped / Deep Off / Bright On",
+                       "Jumped / Deep On / Bright Off", "Jumped / Deep On / Bright On"}}},
+    });
+    modelState.assets.push_back(model);
+    ardor::Preset empty;
+    empty.name = "Fresh capture preset";
+    ardor::replaceActivePreset(modelState, empty);
+    ardor::enterEditMode(modelState);
+    ardor::openBlockDrawer(modelState);
+    modelUi.refresh(lv_screen_active(), modelState);
+    lv_obj_update_layout(lv_screen_active());
+    auto* modelLabel = findLabel(lv_screen_active(), "BASSMAN CONTROLS");
+    if (require(modelLabel != nullptr, "parametric amp should appear in the drawer")) return 1;
+    auto* modelButton = lv_obj_get_parent(modelLabel);
+    lv_obj_send_event(modelButton, LV_EVENT_CLICKED, nullptr);
+    if (require(ardor::pendingStructuralPreview(modelState) != nullptr,
+                "choosing the model should request a real structural preview")) return 1;
+    modelUi.refresh(lv_screen_active(), modelState);
+    completePreview(modelState);
+    modelUi.refresh(lv_screen_active(), modelState);
+    lv_obj_update_layout(lv_screen_active());
+    if (require(findSliderLabel(lv_screen_active(), "GAIN")
+                  && findSliderLabel(lv_screen_active(), "MODE")
+                  && ardor::parameterPage(modelState, 0).size() == 3,
+                "parametric amp should replace the cached snapshot control layout")) return 1;
+
+    // Equal control counts are not enough either: another NAM can replace
+    // the Mode picker with a continuous knob, or have different choices.
+    modelState.assets.back().modelParameterSpecs[1] = {
+      {"name", "Tone"}, {"min", 0}, {"max", 10}, {"default", 5}, {"type", "continuous"}};
+    ardor::markUiChanged(modelState, ardor::UiChange::Assets | ardor::UiChange::Parameters);
+    modelUi.refresh(lv_screen_active(), modelState);
+    lv_obj_update_layout(lv_screen_active());
+    auto* toneLabel = findSliderLabel(lv_screen_active(), "TONE");
+    if (require(toneLabel && findTravelFill(lv_obj_get_parent(toneLabel)),
+                "same-count NAM schemas must select the correct continuous widget")) return 1;
+    modelState.assets.back().modelParameterSpecs = model.modelParameterSpecs;
+    ardor::markUiChanged(modelState, ardor::UiChange::Assets | ardor::UiChange::Parameters);
+    modelUi.refresh(lv_screen_active(), modelState);
+    if (require(findSliderLabel(lv_screen_active(), "MODE"),
+                "returning to the switch schema should restore its retained panel")) return 1;
+  }
   const char* screenshotPath = std::getenv("ARDOR_UI_SCREENSHOT");
   const char* editScreenshotPath = std::getenv("ARDOR_UI_EDIT_SCREENSHOT");
   const char* scenesScreenshotPath = std::getenv("ARDOR_UI_SCENES_SCREENSHOT");
