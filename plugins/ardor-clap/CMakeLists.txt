@@ -47,6 +47,7 @@ add_library(ardor-clap MODULE ArdorClap.cpp ${CMAKE_SOURCE_DIR}/src/desktop/Desk
 # Keep the NAM architecture registration objects at the module boundary.
 target_link_libraries(ardor-clap PRIVATE ardor_audio ardor_dsp ardor_clap_rate_adapter)
 target_include_directories(ardor-clap PRIVATE ${ardor_clap_sdk_SOURCE_DIR}/include)
+target_compile_definitions(ardor-clap PRIVATE ARDOR_CLAP_VERSION="${ARDOR_VERSION}")
 if(ARDOR_UI_BACKEND STREQUAL "memory")
   add_library(ardor_clap_editor STATIC ClapEditor.cpp)
   target_link_libraries(ardor_clap_editor PUBLIC ardor_ui ardor_audio)

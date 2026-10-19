@@ -5,5 +5,6 @@
 <key>CFBundleIdentifier</key><string>org.ardor.guitar.clap</string>
 <key>CFBundleName</key><string>Ardor</string>
 <key>CFBundlePackageType</key><string>BNDL</string>
-<key>CFBundleShortVersionString</key><string>0.1.0</string>
+<key>CFBundleShortVersionString</key><string>@ARDOR_VERSION@</string>
+<key>CFBundleVersion</key><string>@ARDOR_VERSION@</string>
 </dict></plist>

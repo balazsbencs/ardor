@@ -11,10 +11,15 @@ early beta; real DAW testing remains necessary.
 
 ## Use
 
-Download a versioned beta from [GitHub Releases](https://github.com/balazsbencs/ardor/releases).
+Download a versioned CLAP beta from the main [GitHub Releases](https://github.com/balazsbencs/ardor/releases),
+alongside the device firmware. Each release includes Mac, Windows and Linux packages
+named `Ardor-CLAP-<version>-<platform>-beta`, with a SHA-256 checksum for each archive.
+The plugin is still a beta; its version matches the containing Ardor release.
 
-The **CLAP beta** workflow uploads Apple Silicon/macOS 15+, Windows 10/11 x64, and Linux/x64
-artifacts after the ABI smoke test passes. Unpack the download and copy
+The **CLAP beta** workflow also uploads Apple Silicon/macOS 15+, Windows 10/11 x64,
+and Linux/x64 artifacts for PR and manual builds. The main release reuses these
+build, smoke-test, full-validator and packaging steps, and waits for all three
+platforms before publishing. Unpack the download and copy
 `Ardor.clap` to `~/Library/Audio/Plug-Ins/CLAP/` on Mac or `~/.clap/` on Linux.
 Keep the accompanying license notices. Restart/rescan the DAW and insert Ardor on an audio track. Configure the audio interface and
 monitoring in the DAW. The plugin never opens its own audio device.
