@@ -1,0 +1,7 @@
+Simple mixer control 'Headphone',0
+  Capabilities: volume pswitch
+  Playback channels: Front Left - Front Right
+  Capture channels: Front Left - Front Right
+  Limits: 0 - 63
+  Front Left: 49 [78%] [-8.00dB] Playback [on]
+  Front Right: 49 [78%] [-8.00dB] Playback [on]

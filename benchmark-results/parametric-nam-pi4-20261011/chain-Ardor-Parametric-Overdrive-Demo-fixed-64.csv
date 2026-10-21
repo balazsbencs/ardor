@@ -1,0 +1,15 @@
+# mlockall=ok
+# benchmark=ardor-nam-chain-v1
+# sample_rate=48000
+# cpu=2
+# input=alternating silence, harmonic/noise at 0.02 and 0.2 peak
+# parameters={}
+# build_type=Release
+# compiler=GNU 13.4.0
+# compile_flags=-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -O2 -g0 -D_FORTIFY_SOURCE=1 -O2 -DNDEBUG
+model,amp_model,amp_tier,tier,nam_count,cab_frames,block_frames,iterations,load_ms,rss_kib,mean_us,p50_us,p99_us,p999_us,max_us,deadline_misses,mean_budget_pct,p999_budget_pct,max_budget_pct,nonfinite,peak,checksum
+"Ardor-Parametric-Overdrive-Demo.nam","",1.000000,1.000000,1,0,64,3000,42.730796,7204,116.360884,116.222000,121.352000,128.129000,131.704000,0,8.727066,9.609675,9.877800,0,0.241804,6.931467
+"Ardor-Parametric-Overdrive-Demo.nam","",1.000000,1.000000,8,0,64,3000,332.548870,7204,882.658214,881.593000,906.130000,927.167000,1008.333000,0,66.199366,69.537525,75.624975,0,0.266339,280.452013
+"Ardor-Parametric-Overdrive-Demo.nam","",1.000000,1.000000,9,0,64,3000,373.983815,7204,992.430922,991.241000,1015.741000,1045.482000,1128.407000,0,74.432319,78.411150,84.630525,0,0.263911,281.613432
+"Ardor-Parametric-Overdrive-Demo.nam","",1.000000,1.000000,12,0,64,3000,500.757166,7276,1324.816586,1323.259000,1347.889000,1371.963000,1460.371000,201,99.361244,102.897225,109.527825,0,0.265126,283.906487
+"Ardor-Parametric-Overdrive-Demo.nam","",1.000000,1.000000,13,0,64,3000,543.724296,7276,1440.342281,1438.130000,1466.111000,1529.704000,1573.481000,3000,108.025671,114.727800,118.011075,0,0.263252,283.644894

@@ -21,11 +21,12 @@ const (
 )
 
 type Info struct {
-	ID        string `json:"id"`
-	Kind      string `json:"kind"`
-	Filename  string `json:"filename"`
-	Path      string `json:"path"`
-	SizeBytes int64  `json:"sizeBytes"`
+	ID        string   `json:"id"`
+	Kind      string   `json:"kind"`
+	Filename  string   `json:"filename"`
+	Path      string   `json:"path"`
+	SizeBytes int64    `json:"sizeBytes"`
+	NAM       *NAMInfo `json:"nam,omitempty"`
 }
 
 type Store struct {
@@ -80,10 +81,14 @@ func (s Store) List(kind Kind) ([]Info, error) {
 		if err != nil {
 			return nil, err
 		}
-		infos = append(infos, Info{
+		info := Info{
 			ID: entry.Name(), Kind: jsonKind(kind), Filename: entry.Name(),
 			Path: s.rel(kind, entry.Name()), SizeBytes: stat.Size(),
-		})
+		}
+		if kind == KindModel {
+			info.NAM = readNAMInfo(dir, entry.Name())
+		}
+		infos = append(infos, info)
 	}
 	sort.Slice(infos, func(i, j int) bool { return infos[i].Filename < infos[j].Filename })
 	return infos, nil
@@ -133,7 +138,11 @@ func (s Store) Save(kind Kind, filename string, r io.Reader, overwrite bool) (In
 	if err != nil {
 		return Info{}, err
 	}
-	return Info{ID: safe, Kind: jsonKind(kind), Filename: safe, Path: s.rel(kind, safe), SizeBytes: stat.Size()}, nil
+	info := Info{ID: safe, Kind: jsonKind(kind), Filename: safe, Path: s.rel(kind, safe), SizeBytes: stat.Size()}
+	if kind == KindModel {
+		info.NAM = readNAMInfo(s.dir(kind), safe)
+	}
+	return info, nil
 }
 
 func (s Store) Delete(kind Kind, id string) error {
@@ -147,12 +156,17 @@ func (s Store) Delete(kind Kind, id string) error {
 // preset references must replace Info.Path with the returned path as part of
 // the same management operation.
 func (s Store) Rename(kind Kind, id, filename string) (Info, error) {
-	if id == "" || filepath.Base(id) != id || strings.Contains(id, "..") {
+	if id == "" || filepath.Base(id) != id || strings.ContainsAny(id, "/\\") || strings.Contains(id, "..") {
 		return Info{}, errors.New("invalid asset id")
 	}
 	safe, err := SanitizeFilename(filename, kind)
 	if err != nil {
 		return Info{}, err
+	}
+	// Rename IDs use the same single-component contract as Delete. Check both
+	// separators explicitly, independent of the host's filepath conventions.
+	if strings.ContainsAny(safe, "/\\") || strings.Contains(safe, "..") {
+		return Info{}, errors.New("invalid asset filename")
 	}
 	oldPath := filepath.Join(s.dir(kind), id)
 	stat, err := os.Stat(oldPath)
@@ -173,7 +187,11 @@ func (s Store) Rename(kind Kind, id, filename string) (Info, error) {
 			return Info{}, err
 		}
 	}
-	return Info{ID: safe, Kind: jsonKind(kind), Filename: safe, Path: s.rel(kind, safe), SizeBytes: stat.Size()}, nil
+	info := Info{ID: safe, Kind: jsonKind(kind), Filename: safe, Path: s.rel(kind, safe), SizeBytes: stat.Size()}
+	if kind == KindModel {
+		info.NAM = readNAMInfo(s.dir(kind), safe)
+	}
+	return info, nil
 }
 
 func (s Store) dir(kind Kind) string {

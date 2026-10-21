@@ -37,8 +37,10 @@ export function DrawerControl({ block, control: c, focusedKey, onFocusKey, onMan
     return <ChoiceStrip label={c.label} family={family} value={valueOf(c.key, c.defaultValue)} options={c.choices} onChange={(value) => editor.editParameter(block.id, c.key, value)} />;
   }
   if (c.kind === "toggle") {
-    return <ChoiceStrip label={c.label} family={family} value={valueOf(c.key, c.defaultValue)}
-      options={[{ value: false, label: "Off" }, { value: true, label: "On" }]} onChange={(value) => editor.editParameter(block.id, c.key, value)} />;
+    const modelSize = c.key === "useNano" && (block.type === "nam" || block.type === "namPedal");
+    return <ChoiceStrip label={modelSize ? "Model size" : c.label} family={family} value={valueOf(c.key, c.defaultValue)}
+      options={[{ value: false, label: modelSize ? "Standard" : "Off" }, { value: true, label: modelSize ? "Nano" : "On" }]}
+      onChange={(value) => editor.editParameter(block.id, c.key, value)} />;
   }
   return <EqEditor block={block}
     onEqBand={(id, band, patch, gesture) => editor.dispatch({ type: "set-eq-band", blockId: id, band, patch, gesture })}

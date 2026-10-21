@@ -44,13 +44,15 @@ jobs:
 
           if git diff --quiet "$BEFORE_SHA" "$GITHUB_SHA" -- \
             .github/workflows/release.yml \
+            .github/workflows/clap.yml \
             CMakeLists.txt \
             lv_conf.h \
             src third_party plugins assets \
             apps/audio-probe apps/pedal-poc apps/manager \
             services/managerd protocol/cloud \
             buildroot \
-            scripts/build-image.sh scripts/build-image-in-container.sh; then
+            scripts/build-image.sh scripts/build-image-in-container.sh \
+            scripts/build-fftw-single.py; then
             echo 'changed=false' >> "$GITHUB_OUTPUT"
           else
             echo 'changed=true' >> "$GITHUB_OUTPUT"
@@ -224,6 +226,13 @@ jobs:
           cmake --build build-release-check --parallel 2
           ctest --test-dir build-release-check --output-on-failure
 
+  clap:
+    name: Build CLAP release packages
+    needs: prepare
+    uses: ./.github/workflows/clap.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+
   firmware:
     name: Build Raspberry Pi image
     needs:
@@ -394,10 +403,36 @@ jobs:
       - manager-checks
       - firmware
       - device-checks
+      - clap
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
+      - name: Download tested CLAP release packages
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: Ardor-CLAP-beta-*-${{ github.sha }}
+          path: artifacts/clap
+          merge-multiple: true
+
+      - name: Verify and upload CLAP packages to the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        working-directory: artifacts/clap
+        shell: bash
+        run: |
+          assets=()
+          prefix="Ardor-CLAP-$RELEASE_VERSION"
+          for archive in "$prefix-macOS-arm64-beta.zip" "$prefix-Windows-x64-beta.zip" "$prefix-Linux-x64-beta.tar.gz"; do
+            test -s "$archive"
+            test -s "$archive.sha256"
+            sha256sum --check "$archive.sha256"
+            assets+=("$archive" "$archive.sha256")
+          done
+          gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" "${assets[@]}" --clobber
+
       - name: Publish the completed release
         env:
           GH_TOKEN: ${{ github.token }}

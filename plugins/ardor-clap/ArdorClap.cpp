@@ -36,7 +36,7 @@ constexpr const char* pluginId = "org.ardor.guitar";
 const char* const features[] = {CLAP_PLUGIN_FEATURE_AUDIO_EFFECT, CLAP_PLUGIN_FEATURE_STEREO, nullptr};
 const clap_plugin_descriptor_t descriptor = {CLAP_VERSION, pluginId, "Ardor", "Ardor",
   "https://github.com/balazsbencs/ardor", "", "https://github.com/balazsbencs/ardor/issues",
-  "0.1.0 Beta 4", "Shared Ardor guitar effects engine with host sample-rate conversion", features};
+  ARDOR_CLAP_VERSION " Beta 4", "Shared Ardor guitar effects engine with host sample-rate conversion", features};
 
 enum Param : clap_id { InputTrim, OutputTrim, Bypass, InputChannel, LibrarySlot, Scene, Count };
 struct ParamSpec { const char* name; double low, high, initial; bool stepped; };

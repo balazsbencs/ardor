@@ -1,0 +1,20 @@
+Failed to load NAM model: NAM parameter out of range: Drive
+Failed to load NAM model: Unknown or invalid NAM parameter: Missing
+Model expects 48000 Hz, runtime is 44100 Hz
+Failed to load NAM model: ConcatConditioner switch parameter 'Mode' must be an integer index within [0, 1]
+Failed to load NAM model: Unsupported parametric NAM version or sample rate
+Failed to load NAM model: [json.exception.out_of_range.403] key 'sample_rate' not found
+Failed to load NAM model: ConcatLSTM expected 28 weights, got 1.
+Failed to load NAM model: Unsupported parametric NAM version or sample rate
+Failed to load NAM model: ConcatWaveNet weight count does not match its config
+Clone tier 0 gain difference 0.00542807 tone difference 0.0456359
+Clone tier 1 gain difference 0.00457616 tone difference 0.0412389
+Failed to load NAM model: ParametricA2FastModel: weight stream exhausted
+Failed to load NAM model: ParametricA2FastModel: 1 trailing weights
+Failed to load NAM model: Unsupported FiLM NAM schema; requires schema 1 and skip head
+Failed to load NAM model: Unsupported FiLM NAM schema; requires schema 1 and skip head
+Failed to load NAM model: Unsupported FiLM NAM schema; requires schema 1 and skip head
+Failed to load NAM model: Unsupported FiLM NAM schema; requires schema 1 and skip head
+Failed to load NAM model: NAM tiers must share parameter definitions
+Failed to load NAM model: Invalid NAM tier boundaries
+parametric NAM audio, controls, routing and native roundtrip passed

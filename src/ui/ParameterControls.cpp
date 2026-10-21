@@ -13,6 +13,13 @@ namespace {
 
 constexpr std::size_t kControlsPerPage = 6;
 
+std::string formatPlain(float value)
+{
+  char buffer[24]{};
+  std::snprintf(buffer, sizeof(buffer), "%.2f", value);
+  return buffer;
+}
+
 std::string formatDb(float value)
 {
   return std::to_string(static_cast<int>(std::lround(value))) + " dB";
@@ -117,12 +124,16 @@ std::vector<ParameterControl> controlsFor(const UiState& state)
 
   const auto* selected = selectedUiBlock(state);
   if (!selected) return {};
-  return controlsForBlock(*selected);
+  auto displayed = *selected;
+  for (const auto& asset : state.assets) {
+    if (asset.path == selected->assetPath) { displayed.modelParameterSpecs = asset.modelParameterSpecs; displayed.modelSlimmable = asset.modelSlimmable; }
+  }
+  return controlsForBlock(displayed);
 }
 
 std::vector<ParameterControl> controlsForBlock(const UiBlock& block)
 {
-  if (block.type == "nam") {
+  if (block.type == "nam" || block.type == "namPedal") {
     bool useNano = false;
     const auto explicitPreference = block.params.find("useNano");
     const auto legacyQuality = block.params.find("quality");
@@ -133,12 +144,30 @@ std::vector<ParameterControl> controlsForBlock(const UiBlock& block)
     }
     const auto inputMode = block.params.value("inputMode", std::string{"sum"});
     const std::size_t inputModeIndex = inputMode == "left" ? 1 : inputMode == "right" ? 2 : 0;
-    return {
+    std::vector<ParameterControl> result{
       choiceControl("inputMode", "Input source", {"L+R Average", "Left / Mono", "Right"},
                     inputModeIndex, ParameterControlKind::Choice),
-      choiceControl("useNano", "Use nano model", {"Off", "On"}, useNano ? 1 : 0,
+      choiceControl("useNano", "Model size", {"Standard", "Nano"}, useNano ? 1 : 0,
                     ParameterControlKind::Toggle),
     };
+    if (!block.modelSlimmable && (block.type == "namPedal" || !block.modelParameterSpecs.empty())) result.pop_back();
+    auto values = block.params.value("modelParameters", nlohmann::json::object());
+    if (!values.is_object()) values = nlohmann::json::object();
+    for (const auto& spec : block.modelParameterSpecs) {
+      const auto name = spec.at("name").get<std::string>();
+      const float value = values.value(name, spec.at("default").get<float>());
+      const auto key = "model:" + name;
+      if (spec.value("type", std::string{"continuous"}) == "switch") {
+        auto item = choiceControl(key, name, spec.at("enum_names").get<std::vector<std::string>>(),
+          static_cast<std::size_t>(std::max(0.0f, value)), ParameterControlKind::NormalizedChoice);
+        for (std::size_t i = 0; i < item.choices.size(); ++i) item.choiceValues.push_back(static_cast<float>(i));
+        result.push_back(std::move(item));
+      } else {
+        const float low = spec.at("min").get<float>(), high = spec.at("max").get<float>();
+        result.push_back(control(key, name, low, high, (high-low)/100.0f, value, formatPlain));
+      }
+    }
+    return result;
   }
 
   if (block.type == "cab") {
@@ -429,9 +458,12 @@ std::vector<ParameterControl> blockSummaryControls(const UiBlock& block, std::si
 std::vector<ParameterControl> blockSummaryControls(const UiState& state, const UiBlock& block,
                                                    std::size_t count)
 {
-  const auto& set = state.bank.presets[state.activePreset].sceneSet;
-  if (!set || state.editingScene >= set->scenes.size()) return blockSummaryControls(block, count);
   UiBlock displayed = block;
+  for (const auto& asset : state.assets) {
+    if (asset.path == block.assetPath) { displayed.modelParameterSpecs = asset.modelParameterSpecs; displayed.modelSlimmable = asset.modelSlimmable; }
+  }
+  const auto& set = state.bank.presets[state.activePreset].sceneSet;
+  if (!set || state.editingScene >= set->scenes.size()) return blockSummaryControls(displayed, count);
   applySceneTargets(set->scenes[state.editingScene], displayed);
   return blockSummaryControls(displayed, count);
 }
@@ -472,6 +504,11 @@ bool applyParameterDelta(UiState& state, const ParameterControl& control, int de
 
   const auto* selectedBlock = selectedUiBlock(state);
   if (!selectedBlock) return false;
+  if (control.key.starts_with("model:")) {
+    const float next = std::clamp(control.value + control.step * delta, control.minimum, control.maximum);
+    if (next == control.value) return false;
+    return setSelectedBlockParam(state, control.key, next);
+  }
   if (control.kind != ParameterControlKind::Continuous) {
     const auto selected = static_cast<std::size_t>(std::clamp(
       static_cast<int>(std::lround(control.value)) + delta, 0,

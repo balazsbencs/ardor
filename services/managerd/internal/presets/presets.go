@@ -539,7 +539,7 @@ func ValidateRunnableAt(preset Preset, dataRoot string) error {
 			id, _ := block["id"].(string)
 			asset := ""
 			switch typeName {
-			case "nam", "cab", "irreverb":
+			case "nam", "namPedal", "cab", "irreverb":
 				asset, _ = block["asset"].(string)
 			case "wah":
 				asset = "assets/wah/gcb95.wahtable"
@@ -561,13 +561,13 @@ func ValidateRunnableAt(preset Preset, dataRoot string) error {
 func wdwBlockAllowed(laneName, typeName string) bool {
 	if laneName == "dry" {
 		switch typeName {
-		case "nam", "cab", "dynamics", "eq", "distortion", "wah":
+		case "nam", "namPedal", "cab", "dynamics", "eq", "distortion", "wah":
 			return true
 		}
 		return false
 	}
 	switch typeName {
-	case "nam", "cab", "mod", "delay", "reverb", "irreverb", "stereo":
+	case "nam", "namPedal", "cab", "mod", "delay", "reverb", "irreverb", "stereo":
 		return true
 	}
 	return false

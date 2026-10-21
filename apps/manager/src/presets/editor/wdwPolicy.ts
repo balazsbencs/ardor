@@ -2,8 +2,8 @@ import type { PresetBlock } from "../../api/types";
 
 export type WdwLaneName = "dry" | "wet";
 
-const dryBlockTypes = new Set(["nam", "cab", "dynamics", "eq", "distortion", "wah"]);
-const wetBlockTypes = new Set(["nam", "cab", "mod", "delay", "reverb", "irreverb", "stereo"]);
+const dryBlockTypes = new Set(["nam", "namPedal", "cab", "dynamics", "eq", "distortion", "wah"]);
+const wetBlockTypes = new Set(["nam", "namPedal", "cab", "mod", "delay", "reverb", "irreverb", "stereo"]);
 
 /** The fixed WDW topology admits drive/amp work on Dry and stereo time work on Wet. */
 export function isWdwBlockAllowed(lane: WdwLaneName, blockOrType: PresetBlock | string): boolean {

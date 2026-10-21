@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = 4173;
+const PORT = Number(process.env.ARDOR_MANAGER_E2E_PORT ?? 4173);
 const BASE_URL = `http://localhost:${PORT}`;
 
 /** End-to-end tests against the Vite dev server in device-hosted mode, with the pedal API mocked per test (e2e/mockApi.ts). */

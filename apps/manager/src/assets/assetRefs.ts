@@ -2,7 +2,7 @@ import type { Asset, AssetKind, Preset, PresetBlock } from "../api/types";
 
 export type AssetRef = { blockId: string; path: string; kind: AssetKind };
 
-const KIND_BY_TYPE: Record<string, AssetKind> = { nam: "models", cab: "irs", irreverb: "reverb-irs" };
+const KIND_BY_TYPE: Record<string, AssetKind> = { nam: "models", namPedal: "models", cab: "irs", irreverb: "reverb-irs" };
 const DUAL_AMP_KEYS: Array<[string, AssetKind]> = [["leftNamAsset", "models"], ["leftIrAsset", "irs"], ["rightNamAsset", "models"], ["rightIrAsset", "irs"]];
 
 function walk(blocks: PresetBlock[], out: AssetRef[]): AssetRef[] {

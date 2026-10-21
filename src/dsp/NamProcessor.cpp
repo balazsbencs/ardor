@@ -3,11 +3,16 @@
 #include "NAM/dsp.h"
 #include "NAM/get_dsp.h"
 #include "NAM/slimmable.h"
+#include "namparam/parametric_container.h"
+#include "preset/NamMetadata.h"
 
 #include <algorithm>
+#include <atomic>
+#include <cstdint>
 #include <cmath>
 #include <exception>
 #include <iostream>
+#include <fstream>
 
 namespace {
 // Matches the NAM plugin convention; normalizes model output to a consistent level.
@@ -16,14 +21,52 @@ constexpr double kTargetLoudnessDb = -18.0;
 
 namespace ardor {
 
+struct NamProcessor::LiveParameters {
+  nam::IParametricControl* controls = nullptr;
+  std::vector<nam::ParamSpec> specs;
+  std::unique_ptr<std::atomic<float>[]> targets;
+  std::vector<float> values; // audio-thread scratch, allocated on load
+  std::atomic<std::uint64_t> revision{0};
+  std::uint64_t consumedRevision = 0;
+};
+static_assert(std::atomic<float>::is_always_lock_free);
+
 NamProcessor::NamProcessor() = default;
 NamProcessor::~NamProcessor() = default;
 
 bool NamProcessor::load(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
-                        float slimmableSize, std::optional<float> inputReferenceLevelDbU)
+                        float slimmableSize, std::optional<float> inputReferenceLevelDbU,
+                        const nlohmann::json& modelParameters)
 {
+  liveParameters_.reset();
   try {
-    model_ = nam::get_dsp(modelPath);
+    std::ifstream stream(modelPath);
+    const auto uploaded = nlohmann::json::parse(stream);
+    const auto& document = playableNamDocument(uploaded);
+    const auto specs = namParameterSpecs(document);
+    if (!specs.empty()) {
+      model_ = nam::ardor_parametric::create(document);
+      auto* controls = dynamic_cast<nam::IParametricControl*>(model_.get());
+      if (!modelParameters.is_object()) throw std::runtime_error("modelParameters must be an object");
+      auto values = std::vector<float>(controls->GetParams().begin(), controls->GetParams().end());
+      for (auto it = modelParameters.begin(); it != modelParameters.end(); ++it) {
+        const auto& specs = controls->GetParamSpecs();
+        const auto found = std::find_if(specs.begin(), specs.end(), [&](const auto& spec) { return spec.name == it.key(); });
+        if (found == specs.end() || !it.value().is_number())
+          throw std::runtime_error("Unknown or invalid NAM parameter: " + it.key());
+        const float value = it.value().get<float>();
+        if (!std::isfinite(value) || value < found->min || value > found->max)
+          throw std::runtime_error("NAM parameter out of range: " + it.key());
+        values[static_cast<size_t>(found - specs.begin())] = value;
+      }
+      controls->SetParams(values);
+    } else {
+      model_ = nam::get_dsp(document);
+      if (!modelParameters.is_object() || !modelParameters.empty())
+        throw std::runtime_error("Snapshot NAM models do not accept modelParameters");
+    }
+    if (model_->NumInputChannels() != 1 || model_->NumOutputChannels() != 1)
+      throw std::runtime_error("Ardor NAM blocks require mono audio input and output");
   } catch (const std::exception& e) {
     std::cerr << "Failed to load NAM model: " << e.what() << "\n";
     model_.reset();
@@ -52,7 +95,13 @@ bool NamProcessor::load(const std::filesystem::path& modelPath, double sampleRat
   if (auto* slim = dynamic_cast<nam::SlimmableModel*>(model_.get())) {
     slim->SetSlimmableSize(slimmableSize_);
   }
-  model_->ResetAndPrewarm(sampleRate, maxBlockSize_);
+  try {
+    model_->ResetAndPrewarm(sampleRate, maxBlockSize_);
+  } catch (const std::exception& e) {
+    std::cerr << "Failed to prepare NAM model: " << e.what() << "\n";
+    model_.reset();
+    return false;
+  }
   // ponytail: prewarm once on load; bypass/reset calls must stay cheap in the audio callback.
   model_->SetPrewarmOnReset(false);
 
@@ -72,7 +121,45 @@ bool NamProcessor::load(const std::filesystem::path& modelPath, double sampleRat
     inputCalibrationGain_ = static_cast<float>(std::pow(10.0, deltaDb / 20.0));
   }
 
+  if (auto* controls = dynamic_cast<nam::IParametricControl*>(model_.get())) {
+    auto live = std::make_unique<LiveParameters>();
+    live->controls = controls;
+    live->specs = controls->GetParamSpecs();
+    live->values.assign(controls->GetParams().begin(), controls->GetParams().end());
+    live->targets = std::make_unique<std::atomic<float>[]>(live->values.size());
+    for (size_t i = 0; i < live->values.size(); ++i) live->targets[i].store(live->values[i]);
+    liveParameters_ = std::move(live);
+  }
+
   return true;
+}
+
+bool NamProcessor::setParameterTarget(std::string_view name, float value)
+{
+  if (!liveParameters_ || !std::isfinite(value)) return false;
+  auto& live = *liveParameters_;
+  for (size_t i = 0; i < live.specs.size(); ++i) {
+    const auto& spec = live.specs[i];
+    if (spec.name != name) continue;
+    if (value < spec.min || value > spec.max
+        || (spec.type == "switch" && value != std::round(value))) return false;
+    live.targets[i].store(value, std::memory_order_relaxed);
+    live.revision.fetch_add(1, std::memory_order_release);
+    return true;
+  }
+  return false;
+}
+
+void NamProcessor::refreshLiveParameters()
+{
+  if (!liveParameters_) return;
+  auto& live = *liveParameters_;
+  const auto revision = live.revision.load(std::memory_order_acquire);
+  if (revision == live.consumedRevision) return;
+  for (size_t i = 0; i < live.values.size(); ++i)
+    live.values[i] = live.targets[i].load(std::memory_order_relaxed);
+  live.controls->SetParams(live.values);
+  live.consumedRevision = revision;
 }
 
 float NamProcessor::process(float input)
@@ -81,6 +168,7 @@ float NamProcessor::process(float input)
     return input;
   }
 
+  refreshLiveParameters();
   input_[0] = input * inputCalibrationGain_;
   float* in[] = {input_.data()};
   float* out[] = {output_.data()};
@@ -97,6 +185,7 @@ void NamProcessor::processBlock(const float* input, float* output, size_t frames
 
   size_t offset = 0;
   while (offset < frames) {
+    refreshLiveParameters();
     const size_t chunk = std::min<size_t>(static_cast<size_t>(maxBlockSize_), frames - offset);
     const float calibrationGain = inputCalibrationGain_;
     if (calibrationGain == 1.0f) {
@@ -117,6 +206,7 @@ void NamProcessor::processBlock(const float* input, float* output, size_t frames
 
 void NamProcessor::clear()
 {
+  liveParameters_.reset();
   model_.reset();
   input_.assign(1, 0.0f);
   output_.assign(1, 0.0f);
@@ -134,6 +224,7 @@ void NamProcessor::reset()
     return;
   }
 
+  refreshLiveParameters();
   model_->Reset(sampleRate_, maxBlockSize_);
 }
 

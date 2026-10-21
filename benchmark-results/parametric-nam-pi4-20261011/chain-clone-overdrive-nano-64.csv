@@ -1,0 +1,15 @@
+# mlockall=ok
+# benchmark=ardor-nam-chain-v1
+# sample_rate=48000
+# cpu=2
+# input=alternating silence, harmonic/noise at 0.02 and 0.2 peak
+# parameters={}
+# build_type=Release
+# compiler=GNU 13.4.0
+# compile_flags=-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -O2 -g0 -D_FORTIFY_SOURCE=1 -O2 -DNDEBUG
+model,amp_model,amp_tier,tier,nam_count,cab_frames,block_frames,iterations,load_ms,rss_kib,mean_us,p50_us,p99_us,p999_us,max_us,deadline_misses,mean_budget_pct,p999_budget_pct,max_budget_pct,nonfinite,peak,checksum
+"clone-overdrive.nam","",1.000000,0.000000,1,0,64,3000,39.666019,7964,183.514289,183.297000,192.852000,205.055000,234.167000,0,13.763572,15.379125,17.562525,0,0.042227,-0.205729
+"clone-overdrive.nam","",1.000000,0.000000,4,0,64,3000,159.132648,10316,774.570509,771.704000,846.704000,948.463000,991.574000,0,58.092788,71.134725,74.368050,0,0.024740,0.371255
+"clone-overdrive.nam","",1.000000,0.000000,5,0,64,3000,194.366389,11100,1001.806078,998.500000,1098.593000,1197.833000,1258.167000,0,75.135456,89.837475,94.362525,0,0.025816,0.137977
+"clone-overdrive.nam","",1.000000,0.000000,7,0,64,3000,271.382666,12664,1474.178417,1473.593000,1575.537000,1684.463000,1723.482000,3000,110.563381,126.334725,129.261150,0,0.025659,-0.234914
+"clone-overdrive.nam","",1.000000,0.000000,8,0,64,3000,307.099593,13444,1718.428435,1720.055000,1830.111000,1885.352000,1898.241000,3000,128.882133,141.401400,142.368075,0,0.026119,-0.096228

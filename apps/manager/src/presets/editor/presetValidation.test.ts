@@ -461,3 +461,44 @@ describe("preset validation", () => {
     expect(firstBlockingIssue(result)).toBe(result.issues[0]);
   });
 });
+
+
+describe("parametric NAM preset validation", () => {
+  const model: Asset = { id: "controls.nam", kind: "model", filename: "controls.nam", path: "models/controls.nam", sizeBytes: 1,
+    nam: { architecture: "ConcatLSTM", version: "1.0.0", gearType: "pedal", supported: true,
+      parameters: [
+        { name: "Drive", min: 0, max: 10, default: 5, type: "continuous" },
+        { name: "Mode", min: 0, max: 1, default: 0, type: "switch", enum_names: ["Soft", "Hard"] },
+      ] } };
+  const inventory: AssetInventory = { models: [model], irs: [], reverbIrs: [] };
+  function presetWith(parameters: unknown): Preset {
+    const block = createBlockFromDefinition("namPedal", []);
+    block.asset = model.path;
+    block.params.modelParameters = parameters;
+    return validPreset([block]);
+  }
+  it("accepts stored continuous/switch controls and omitted values using model defaults", () => {
+    expect(validatePreset(presetWith({ Drive: 10, Mode: 1 }), inventory)).toMatchObject({ canSave: true, canApply: true });
+    expect(validatePreset(presetWith({}), inventory)).toMatchObject({ canApply: true });
+  });
+  it.each([
+    ["range", { Drive: 11 }], ["switch", { Mode: 0.5 }], ["unknown", { Unknown: 1 }],
+    ["nonfinite", { Drive: Number.NaN }], ["shape", []], ["null", null],
+  ])("blocks applying invalid learned controls: %s", (_reason, values) => {
+    const result = validatePreset(presetWith(values), inventory);
+    expect(result.canApply).toBe(false);
+    expect(result.issues).toContainEqual(expect.objectContaining({ code: "parameter-type", field: "params.modelParameters" }));
+  });
+  it("blocks stale learned values after a file is replaced by a fixed model", () => {
+    const fixed: Asset = { ...model, nam: { architecture: "WaveNet", version: "0.5.0", gearType: "amp", supported: true } };
+    const fixedInventory = { ...inventory, models: [fixed] };
+    expect(validatePreset(presetWith({ Drive: 8 }), fixedInventory).canApply).toBe(false);
+    expect(validatePreset(presetWith({}), fixedInventory).canApply).toBe(true);
+  });
+  it("blocks unsupported models with the model's error", () => {
+    const unsupported: Asset = { ...model, nam: { ...model.nam!, supported: false, error: "Unsupported FiLM schema." } };
+    const result = validatePreset(presetWith({}), { ...inventory, models: [unsupported] });
+    expect(result.canApply).toBe(false);
+    expect(result.issues).toContainEqual(expect.objectContaining({ message: "Unsupported FiLM schema." }));
+  });
+});

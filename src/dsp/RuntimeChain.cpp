@@ -184,11 +184,12 @@ void RuntimeChain::clear()
 
 bool RuntimeChain::addNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
                           std::string id, float slimmableSize, NamInputMode inputMode,
-                          std::optional<float> inputReferenceLevelDbU)
+                          std::optional<float> inputReferenceLevelDbU,
+                          const nlohmann::json& modelParameters)
 {
   auto nam = std::make_unique<NamProcessor>();
   if (!nam->load(modelPath, sampleRate, maxBlockSize, slimmableSize,
-                 inputReferenceLevelDbU)) {
+                 inputReferenceLevelDbU, modelParameters)) {
     return false;
   }
   Block block;
@@ -348,6 +349,17 @@ void RuntimeChain::addDaisy(std::string id, DaisyFxProcessor processor, bool sce
   block.sceneLetRing = sceneLetRing && !processor.isPog3();
   block.daisy = std::make_unique<DaisyFxProcessor>(std::move(processor));
   blocks_.push_back(std::move(block));
+}
+
+bool RuntimeChain::setNamParameter(const std::string& id, const std::string& name, float value)
+{
+  for (auto& block : blocks_) {
+    if (block.kind == Block::Kind::Nam && block.id == id)
+      return block.nam->setParameterTarget(name, value);
+    if (block.kind == Block::Kind::DualRig
+        && block.dualRig->setNamParameter(id, name, value)) return true;
+  }
+  return false;
 }
 
 bool RuntimeChain::setDaisyParameter(const std::string& id, const std::string& key, float normalized)

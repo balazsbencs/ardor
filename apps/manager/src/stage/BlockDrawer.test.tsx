@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Preset } from "../api/types";
+import type { Asset, Preset } from "../api/types";
 import { createBlockFromDefinition } from "../effects/catalog";
 import { EditorProvider, usePresetEditorContext } from "../presets/editor/EditorContext";
 import { createSceneSet } from "../presets/editor/presetFactory";
@@ -24,7 +24,7 @@ const session = {
   models: [
     { id: "m1", kind: "model", filename: "Clean.nam", path: "models/Clean.nam", sizeBytes: 1 },
     { id: "m2", kind: "model", filename: "Lead.nam", path: "models/Lead.nam", sizeBytes: 1 },
-  ],
+  ] as Asset[],
   busy: { save: false, apply: false, upload: false },
   saveCurrent: vi.fn(), applyCurrent: vi.fn(), refreshPresets: vi.fn(), selectLocation: vi.fn(async () => undefined),
 };
@@ -41,6 +41,10 @@ function Harness({ id }: { id: string }) {
 
 beforeEach(() => {
   session.current.preset = structuredClone(basePreset);
+  session.models = [
+    { id: "m1", kind: "model", filename: "Clean.nam", path: "models/Clean.nam", sizeBytes: 1 },
+    { id: "m2", kind: "model", filename: "Lead.nam", path: "models/Lead.nam", sizeBytes: 1 },
+  ];
   session.irs = [];
   session.reverbIrs = [];
   onClose.mockReset();
@@ -164,9 +168,9 @@ describe("BlockDrawer, ported from the old inspector", () => {
 
   it("offers the nano model and the input source as choices", async () => {
     render(<EditorProvider><Harness id="n1" /></EditorProvider>);
-    const nano = screen.getByRole("radiogroup", { name: "Use nano model" });
-    expect(within(nano).getByRole("radio", { name: "Off" })).toHaveAttribute("aria-checked", "true");
-    await userEvent.click(within(nano).getByRole("radio", { name: "On" }));
+    const nano = screen.getByRole("radiogroup", { name: "Model size" });
+    expect(within(nano).getByRole("radio", { name: "Standard" })).toHaveAttribute("aria-checked", "true");
+    await userEvent.click(within(nano).getByRole("radio", { name: "Nano" }));
     expect(params().useNano).toBe(true);
     await userEvent.click(within(screen.getByRole("radiogroup", { name: "Input source" })).getByRole("radio", { name: "Left / Mono" }));
     expect(params().inputMode).toBe("left");
@@ -266,5 +270,32 @@ describe("BlockDrawer, ported from the old inspector", () => {
     expect(screen.getAllByText("SCENE").length).toBeGreaterThan(0);
     await userEvent.click(screen.getAllByRole("button", { name: "Share" })[0]);
     expect(screen.queryByText("SCENE")).not.toBeInTheDocument();
+  });
+});
+
+
+describe("learned NAM controls", () => {
+  it("edits continuous and switch values, resets them, and clears them when changing models", async () => {
+    session.models[0].nam = {
+      architecture: "ConcatLSTM", version: "1.0.0", gearType: "amp", supported: true,
+      parameters: [
+        { name: "Drive", min: 0, max: 10, default: 5, type: "continuous" },
+        { name: "Mode", min: 0, max: 1, default: 0, type: "switch", enum_names: ["Soft", "Hard"] },
+      ],
+    };
+    render(<EditorProvider><Harness id="n1" /></EditorProvider>);
+    const drive = screen.getByRole("slider", { name: "Drive" });
+    expect(screen.queryByRole("checkbox", { name: /nano/i })).not.toBeInTheDocument();
+    expect(drive).toHaveAttribute("aria-valuenow", "5");
+    fireEvent.keyDown(drive, { key: "End" });
+    await userEvent.click(screen.getByRole("radio", { name: "Hard" }));
+    expect(JSON.parse(screen.getByTestId("params").textContent!).modelParameters).toEqual({ Drive: 10, Mode: 1 });
+    await userEvent.click(screen.getByRole("button", { name: "Reset to defaults" }));
+    expect(screen.getByRole("slider", { name: "Drive" })).toHaveAttribute("aria-valuenow", "5");
+    expect(screen.getByRole("radio", { name: "Soft" })).toHaveAttribute("aria-checked", "true");
+    fireEvent.keyDown(screen.getByRole("slider", { name: "Drive" }), { key: "End" });
+    await userEvent.click(screen.getByRole("radio", { name: "Lead" }));
+    expect(JSON.parse(screen.getByTestId("params").textContent!).modelParameters).toBeUndefined();
+    expect(screen.queryByRole("slider", { name: "Drive" })).not.toBeInTheDocument();
   });
 });

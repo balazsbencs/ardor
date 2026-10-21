@@ -1,0 +1,74 @@
+Callback scheduler: SCHED_FIFO (1), priority 70, CPU 2
+Realtime started: client 48000 Hz, block 128, input channel 0, native capture 48000 Hz/128, playback 48000 Hz/128
+Control input active on "/dev/input/event1"
+Control input active on "/dev/input/event0"
+callbacks=3 over=0 over%=0.00 gaps=0 max=0.46ms avg=0.40ms recent_avg=0.40ms budget=2.67ms buffer_free=84.86% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-23.4dBFS nam:nam-0=-33.9dBFS output=-65.8dBFS
+callbacks=379 over=0 over%=0.00 gaps=0 max=0.46ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.48% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.2dBFS output=-64.2dBFS
+callbacks=755 over=0 over%=0.00 gaps=0 max=0.46ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.48% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.2dBFS output=-64.2dBFS
+callbacks=1131 over=0 over%=0.00 gaps=0 max=0.46ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.47% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.2dBFS output=-64.1dBFS
+callbacks=1507 over=0 over%=0.00 gaps=0 max=0.47ms avg=0.36ms recent_avg=0.37ms budget=2.67ms buffer_free=86.22% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.2dBFS output=-64.2dBFS
+callbacks=1883 over=0 over%=0.00 gaps=0 max=0.47ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.45% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.2dBFS nam:nam-0=-32.2dBFS output=-64.2dBFS
+callbacks=2260 over=0 over%=0.00 gaps=0 max=0.47ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.46% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.2dBFS nam:nam-0=-32.2dBFS output=-64.2dBFS
+callbacks=2636 over=0 over%=0.00 gaps=0 max=0.47ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.47% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.2dBFS nam:nam-0=-32.2dBFS output=-64.2dBFS
+callbacks=3012 over=0 over%=0.00 gaps=0 max=0.47ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.46% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.2dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=3388 over=0 over%=0.00 gaps=0 max=0.47ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.44% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.2dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=3764 over=0 over%=0.00 gaps=0 max=0.47ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.45% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.2dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=4140 over=0 over%=0.00 gaps=0 max=0.47ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.47% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.2dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=4516 over=0 over%=0.00 gaps=0 max=0.47ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.47% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=4892 over=0 over%=0.00 gaps=0 max=0.47ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.48% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=5268 over=0 over%=0.00 gaps=0 max=0.47ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.44% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=5644 over=0 over%=0.00 gaps=0 max=0.47ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.46% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=6020 over=0 over%=0.00 gaps=0 max=0.47ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.46% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=6396 over=0 over%=0.00 gaps=0 max=0.47ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.46% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.2dBFS output=-64.2dBFS
+callbacks=6772 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.46% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=7148 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.44% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=7525 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.46% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=7901 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.43% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=8277 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.42% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=8653 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.34% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=9029 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.32% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.2dBFS nam:nam-0=-32.3dBFS output=-64.2dBFS
+callbacks=9405 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.35% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.1dBFS nam:nam-0=-32.2dBFS output=-64.2dBFS
+callbacks=9781 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.33% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.0dBFS nam:nam-0=-32.2dBFS output=-64.2dBFS
+callbacks=10157 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.33% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.0dBFS nam:nam-0=-32.2dBFS output=-64.1dBFS
+callbacks=10533 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.34% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.0dBFS nam:nam-0=-32.2dBFS output=-64.1dBFS
+callbacks=10909 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.33% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.9dBFS nam:nam-0=-32.2dBFS output=-64.1dBFS
+callbacks=11286 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.33% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.9dBFS nam:nam-0=-32.1dBFS output=-64.1dBFS
+callbacks=11662 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.37% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.9dBFS nam:nam-0=-32.2dBFS output=-64.1dBFS
+callbacks=12038 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.37% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.9dBFS nam:nam-0=-32.2dBFS output=-64.1dBFS
+callbacks=12414 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.35% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-21.0dBFS nam:nam-0=-32.2dBFS output=-64.1dBFS
+callbacks=12790 over=0 over%=0.00 gaps=0 max=0.50ms avg=0.36ms recent_avg=0.36ms budget=2.67ms buffer_free=86.37% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+levels input=-20.9dBFS nam:nam-0=-32.1dBFS output=-64.1dBFS

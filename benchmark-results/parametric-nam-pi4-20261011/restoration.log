@@ -1,0 +1,180 @@
+/opt/ardor-pedal/presets/bank-002/preset-0.json: OK
+/opt/ardor-pedal/presets/bank-002/preset-3.json: OK
+/opt/ardor-pedal/presets/bank-002/preset-2.json: OK
+/opt/ardor-pedal/presets/bank-002/preset-1.json: OK
+/opt/ardor-pedal/presets/bank-001/preset-0.json: OK
+/opt/ardor-pedal/presets/bank-001/preset-3.json: OK
+/opt/ardor-pedal/presets/bank-001/preset-2.json: OK
+/opt/ardor-pedal/presets/bank-001/preset-1.json: OK
+/opt/ardor-pedal/presets/bank-000/preset-0.json: OK
+/opt/ardor-pedal/presets/bank-000/preset-3.json: OK
+/opt/ardor-pedal/presets/bank-000/preset-2.json: OK
+/opt/ardor-pedal/presets/bank-000/preset-1.json: OK
+/opt/ardor-pedal/settings/global.json: OK
+bac7586876709a0b3ed6782da3457f43d9f04611deaa4562724e1a0f5cb87649  /usr/bin/ardor-pedal
+9071160debde3e92cd5fe319bde431d2d70037dc79edb08d0f0b311f00dbf50f  /etc/ardor-pedal.env
+{"bank":0,"name":"Init","slot":0}
+access: MMAP_INTERLEAVED
+format: S32_LE
+subformat: STD
+channels: 2
+rate: 48000 (48000/1)
+period_size: 128
+buffer_size: 384
+callbacks=506 over=0 over%=0.00 gaps=0 max=1.32ms avg=1.00ms recent_avg=0.99ms budget=2.67ms buffer_free=62.82% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+255
+Simple mixer control 'Headphone',0
+  Capabilities: volume pswitch
+  Playback channels: Front Left - Front Right
+  Capture channels: Front Left - Front Right
+  Limits: 0 - 63
+  Front Left: 49 [78%] [-8.00dB] Playback [on]
+  Front Right: 49 [78%] [-8.00dB] Playback [on]
+PID   COMMAND
+    1 init
+    2 [kthreadd]
+    3 [pool_workqueue_]
+    4 [kworker/R-rcu_g]
+    5 [kworker/R-sync_]
+    6 [kworker/R-kvfre]
+    7 [kworker/R-slub_]
+    8 [kworker/R-netns]
+   10 [kworker/0:0H-ev]
+   13 [kworker/R-mm_pe]
+   14 [ksoftirqd/0]
+   15 [rcu_preempt]
+   16 [rcu_exp_par_gp_]
+   17 [rcu_exp_gp_kthr]
+   18 [migration/0]
+   19 [cpuhp/0]
+   20 [cpuhp/1]
+   21 [migration/1]
+   22 [ksoftirqd/1]
+   25 [cpuhp/2]
+   26 [migration/2]
+   27 [ksoftirqd/2]
+   29 [kworker/2:0H-kb]
+   30 [cpuhp/3]
+   31 [migration/3]
+   32 [ksoftirqd/3]
+   34 [kworker/3:0H-ev]
+   35 [kdevtmpfs]
+   36 [kworker/R-inet_]
+   37 [rcu_tasks_kthre]
+   38 [rcu_tasks_rude_]
+   39 [rcu_tasks_trace]
+   40 [kauditd]
+   42 [khungtaskd]
+   43 [oom_reaper]
+   45 [kworker/R-write]
+   46 [kcompactd0]
+   47 [kworker/R-kbloc]
+   48 [kworker/R-blkcg]
+   49 [kworker/R-kinte]
+   51 [kworker/u16:3-k]
+   52 [watchdogd]
+   54 [kworker/R-quota]
+   55 [kworker/0:1H-mm]
+   56 [kworker/R-rpcio]
+   57 [kworker/R-xprti]
+   58 [kswapd0]
+   59 [kworker/R-nfsio]
+   60 [kworker/R-kthro]
+   61 [kworker/u17:0-b]
+   70 [kworker/1:1H-kb]
+   74 [irq/27-aerdrv]
+   75 [hwrng]
+   76 [kworker/R-iscsi]
+   77 [kworker/R-nvme-]
+   78 [kworker/R-nvme-]
+   79 [kworker/R-nvme-]
+   82 [kworker/R-DWC N]
+   84 [kworker/R-uas]
+   85 [vchiq-slot/0]
+   86 [vchiq-recy/0]
+   87 [vchiq-sync/0]
+   88 [kworker/3:1H-kb]
+   93 [kworker/u16:4-e]
+   94 [kworker/R-sdhci]
+   95 [irq/41-mmc0]
+   98 [kworker/R-mmc_c]
+   99 [jbd2/mmcblk0p2-]
+  100 [kworker/R-ext4-]
+  104 [jbd2/mmcblk0p3-]
+  105 [kworker/R-ext4-]
+  222 /sbin/syslogd -n
+  226 /sbin/klogd -n
+  237 /sbin/udevd -d
+  257 [kworker/1:2H]
+  258 [irq/42-rotary-e]
+  259 [irq/43-rotary-e]
+  261 [vchiq-keep/0]
+  262 [SMIO]
+  264 [kworker/2:2H]
+  265 [kworker/R-mmal-]
+  268 [irq/49-feb00000]
+  269 [kworker/R-mmal-]
+  270 [kworker/R-mmal-]
+  271 [kworker/R-mmal-]
+  272 [kworker/R-mmal-]
+  273 [kworker/R-mmal-]
+  275 [kworker/R-mmal-]
+  277 [kworker/R-cfg80]
+  278 [kworker/R-brcmf]
+  279 [brcmf_wdog/mmc1]
+  294 [kworker/u17:1-h]
+  296 [kworker/R-v3d_b]
+  297 [kworker/R-v3d_r]
+  298 [kworker/R-v3d_t]
+  299 [kworker/R-v3d_c]
+  300 [kworker/R-v3d_c]
+  301 [kworker/R-v3d_c]
+  303 [irq/52-vc4 hdmi]
+  304 [irq/53-vc4 hdmi]
+  305 [cec-vc4-hdmi-0]
+  306 [irq/54-vc4 hdmi]
+  307 [irq/55-vc4 hdmi]
+  308 [irq/56-vc4 hdmi]
+  309 [irq/57-vc4 hdmi]
+  310 [cec-vc4-hdmi-1]
+  311 [irq/58-vc4 hdmi]
+  312 [irq/59-vc4 hdmi]
+  313 [card1-crtc0]
+  314 [card1-crtc1]
+  315 [card1-crtc2]
+  316 [card1-crtc3]
+  317 [card1-crtc4]
+  318 [card1-crtc5]
+  345 udhcpc -t1 -A3 -b -R -O search -O staticroutes -p /var/run/udhcpc.eth0.pid -i eth0 -x hostname:buildroot
+  352 /usr/sbin/wpa_supplicant -B -i wlan0 -c /opt/ardor-pedal/wifi/wpa_supplicant.conf -P /run/wpa_supplicant-wlan0.pid
+  370 /sbin/udhcpc -b -i wlan0 -p /run/udhcpc-wlan0.pid
+  379 /usr/sbin/crond -f
+  385 [kworker/R-mld]
+  386 [kworker/R-ipv6_]
+  387 sshd: /usr/sbin/sshd [listener] 0 of 10-100 startups
+  400 /usr/bin/ardor-managerd
+ 4237 sshd-session: root [priv]
+ 4257 sshd-session: root@notty
+ 8994 [kworker/u16:1-k]
+13421 [kworker/2:4-eve]
+14417 [kworker/2:0-the]
+14419 [kworker/0:0-the]
+14861 [kworker/2:2-mm_]
+14923 [kworker/0:1-the]
+15048 [kworker/2:3-mm_]
+15407 [kworker/0:2-the]
+15536 [kworker/3:2-the]
+15857 [kworker/0:3-eve]
+15858 [kworker/1:1-the]
+15865 [kworker/1:2-mm_]
+16888 [kworker/0:4-eve]
+16909 [kworker/3:1-mm_]
+17741 [kworker/1:3-eve]
+17845 /bin/sh /etc/init.d/S99ardor-pedal run
+17866 /usr/bin/ardor-pedal --realtime --ui --data-root /opt/ardor-pedal --bank 0 --slot 0 --sample-rate 48000 --block-size 128 --ir-samples 8192 --capture-device -1 --playback-device -1 --input-channel 0 --output-channel both --parallel-rigs --audio-cpu 2 --rig-worker-cpu 3 --wdw-dry-worker-cpu 0 --wdw-wet-worker-cpu 1 --telemetry-file /run/ardor-pedal.telemetry --midi-device /dev/ttyAMA4 --midi-channel omni --midi-tuner-cc 20 --expression-device auto --expression-min-raw 0 --expression-max-raw 26400 --expression-smoothing 0.25 --expression-deadband 0.002
+17879 sh -s
+17887 ps -eo pid,args
+29297 [kworker/1:4-eve]
+30540 [kworker/3:4-the]
+30848 [kworker/1:0-the]
+31805 [kworker/3:0-eve]

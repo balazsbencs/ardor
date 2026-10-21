@@ -89,6 +89,14 @@ seed_missing_assets() {
     mkdir -p "$(dirname "$target")"
     cp "$file" "$target"
   done
+  model_src=/usr/share/ardor-pedal/models
+  if [ -d "$model_src" ]; then
+    mkdir -p "$DATA_ROOT/models"
+    find "$model_src" -type f | while read -r file; do
+      target="$DATA_ROOT/models/${file##*/}"
+      [ -f "$target" ] || cp "$file" "$target"
+    done
+  fi
 }
 
 touchscreen_ready() {

@@ -26,6 +26,11 @@ cp "${BOARD_DIR}/wifi/README.txt" "${DATA_SEED}/wifi/README.txt"
 cp "${BOARD_DIR}/../../../../assets/wah/gcb95.wahtable" \
    "${DATA_SEED}/assets/wah/gcb95.wahtable"
 
+cp "${BOARD_DIR}/../../../../assets/nam/"*.nam "${DATA_SEED}/models/"
+cp "${BOARD_DIR}/../../../../assets/nam/LICENSE" "${DATA_SEED}/models/Ardor-Demo-LICENSE.txt"
+cp "${BOARD_DIR}/../../../../assets/nam/Clone-Overdrive-LICENSE.txt" "${DATA_SEED}/models/"
+cp "${BOARD_DIR}/../../../../assets/nam/README.md" "${DATA_SEED}/models/README.md"
+
 # A build may supply a WPA configuration as a read-only Docker secret. Put it
 # only on the writable data partition, never in the Git tree or root filesystem.
 WIFI_CONFIG="${ARDOR_WIFI_CONFIG:-}"
