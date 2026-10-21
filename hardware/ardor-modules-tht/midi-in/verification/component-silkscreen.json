@@ -1,0 +1,146 @@
+[
+  {
+    "reference": "C201",
+    "position_mm": [
+      93.0,
+      71.48
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "C202",
+    "position_mm": [
+      57.5,
+      83.675
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "C203",
+    "position_mm": [
+      69.3375,
+      82.5
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "C204",
+    "position_mm": [
+      101.0,
+      71.48
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "D201",
+    "position_mm": [
+      85.0,
+      54.38
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "D202",
+    "position_mm": [
+      52.0,
+      54.5
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "D203",
+    "position_mm": [
+      62.0,
+      73.4765
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "D204",
+    "position_mm": [
+      74.0,
+      73.4765
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "FB201",
+    "position_mm": [
+      59.5,
+      62.0
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "FB202",
+    "position_mm": [
+      68.0,
+      55.5
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "J101",
+    "position_mm": [
+      102.45,
+      55.31
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "J202",
+    "position_mm": [
+      54.0,
+      72.155
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "J203",
+    "position_mm": [
+      105.0,
+      81.1975
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "R101",
+    "position_mm": [
+      88.0,
+      82.43
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "R201",
+    "position_mm": [
+      76.4625,
+      66.0
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "R202",
+    "position_mm": [
+      94.46,
+      64.0
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "R203",
+    "position_mm": [
+      97.0,
+      81.54
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "U201",
+    "position_mm": [
+      86.0,
+      62.98
+    ],
+    "angle_degrees": 0
+  }
+]

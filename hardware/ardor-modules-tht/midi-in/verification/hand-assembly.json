@@ -1,0 +1,25 @@
+{
+  "result": "PASS",
+  "board_smd_pads": 4,
+  "board_smd_footprints": 2,
+  "manual_smd_references": [
+    "D203",
+    "D204"
+  ],
+  "tht_numbered_pads": 38,
+  "minimum_component_drill_mm": 0.6,
+  "manual_parts": 18,
+  "all_manual_parts_have_front_references": true,
+  "hestore_1_5ke6_8ca_references": [
+    "D202"
+  ],
+  "hestore_smdj24ca_references": [
+    "D203",
+    "D204"
+  ],
+  "hestore_ues1h100mpm_references": [],
+  "host_and_panel_pinout_matches_m1": true,
+  "preassembled_smd_module": null,
+  "breakout_contains_smd": false,
+  "hardware_tested": false
+}

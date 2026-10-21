@@ -1,0 +1,234 @@
+[
+  {
+    "reference": "C101",
+    "position_mm": [
+      85.5,
+      91.6
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "C102",
+    "position_mm": [
+      94.5,
+      85.0
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "C301",
+    "position_mm": [
+      96.5,
+      78.5
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "C302",
+    "position_mm": [
+      111.0,
+      75.0
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "C303",
+    "position_mm": [
+      81.0,
+      75.5
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "D301",
+    "position_mm": [
+      57.0,
+      52.0
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "D302",
+    "position_mm": [
+      64.0,
+      80.925
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "D303",
+    "position_mm": [
+      91.0,
+      80.38
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "D304",
+    "position_mm": [
+      84.0025,
+      84.88
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "D305",
+    "position_mm": [
+      109.0,
+      82.88
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "D306",
+    "position_mm": [
+      103.0,
+      89.275
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "FB101",
+    "position_mm": [
+      76.0,
+      90.5
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "J101",
+    "position_mm": [
+      119.255,
+      67.6
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "J302",
+    "position_mm": [
+      54.0,
+      65.82
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "JP301",
+    "position_mm": [
+      63.0,
+      65.82
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "JP302",
+    "position_mm": [
+      118.5,
+      84.08
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "JP303",
+    "position_mm": [
+      110.44,
+      88.35
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "JP304",
+    "position_mm": [
+      112.0,
+      92.195
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "R101",
+    "position_mm": [
+      60.0,
+      89.4765
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "R301",
+    "position_mm": [
+      73.0,
+      59.3658
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "R302",
+    "position_mm": [
+      73.0,
+      74.63
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "R303",
+    "position_mm": [
+      68.5,
+      75.13
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "R304",
+    "position_mm": [
+      76.4,
+      58.7158
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "R305",
+    "position_mm": [
+      113.48,
+      63.0
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "R306",
+    "position_mm": [
+      113.13,
+      75.5
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "R307",
+    "position_mm": [
+      74.5,
+      56.13
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "R308",
+    "position_mm": [
+      98.5,
+      89.13
+    ],
+    "angle_degrees": 0
+  },
+  {
+    "reference": "R309",
+    "position_mm": [
+      107.5,
+      97.13
+    ],
+    "angle_degrees": 90
+  },
+  {
+    "reference": "U301",
+    "position_mm": [
+      96.0,
+      56.5
+    ],
+    "angle_degrees": 90
+  }
+]
