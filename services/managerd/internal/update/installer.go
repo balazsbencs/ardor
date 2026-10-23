@@ -57,18 +57,20 @@ type Installer struct {
 func (installer Installer) Apply(ctx context.Context, requestPath string) (err error) {
 	request, manifest, publicKey, err := loadInstallRequest(requestPath)
 	if err != nil {
+		// Verification can fail before the transaction starts. Surface that
+		// failure instead of leaving the launcher's "downloading" state forever.
+		root := filepath.Clean(request.SystemRoot)
+		if filepath.IsAbs(root) && root != "/" {
+			if _, lockErr := os.Stat(filepath.Join(root, "update", "lock")); errors.Is(lockErr, os.ErrNotExist) {
+				setOperationFailure(root, err)
+			}
+		}
 		return err
 	}
 	systemRoot := filepath.Clean(request.SystemRoot)
 	if systemRoot == "." || systemRoot == "/" {
 		return errors.New("unsafe OTA system root")
 	}
-	rolledBack := false
-	defer func() {
-		if err != nil && !rolledBack {
-			setOperationFailure(systemRoot, err)
-		}
-	}()
 	lockPath := filepath.Join(systemRoot, "update", "lock")
 	if err := os.MkdirAll(filepath.Dir(lockPath), 0o700); err != nil {
 		return err
@@ -82,6 +84,12 @@ func (installer Installer) Apply(ctx context.Context, requestPath string) (err e
 	}
 	_ = lock.Close()
 	defer os.Remove(lockPath)
+	rolledBack := false
+	defer func() {
+		if err != nil && !rolledBack {
+			setOperationFailure(systemRoot, err)
+		}
+	}()
 	setOperationState(systemRoot, "downloading", "", "")
 
 	downloadDirectory := filepath.Join(systemRoot, "update", "downloads")

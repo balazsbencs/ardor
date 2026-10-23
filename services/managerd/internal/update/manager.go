@@ -165,6 +165,15 @@ func (manager *Manager) Check(ctx context.Context) (Status, error) {
 		manager.mu.Unlock()
 		return status, errors.New(status.ErrorMessage)
 	}
+	if !manager.checking {
+		manager.restoreStatus()
+	}
+	switch manager.status.State {
+	case "downloading", "verifying", "staged", "restarting", "validating":
+		status := cloneStatus(manager.status)
+		manager.mu.Unlock()
+		return status, errors.New("an update installation is already running")
+	}
 	if manager.checking {
 		status := cloneStatus(manager.status)
 		manager.mu.Unlock()
