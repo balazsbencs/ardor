@@ -419,6 +419,7 @@ lv_point_t LvglUi::toCanvas(lv_point_t displayPoint) const
 
 void LvglUi::refresh(lv_obj_t* root, UiState& state)
 {
+  pollUpdateRequest();
   const auto now = std::chrono::steady_clock::now();
   if (!highlightedBlockId_.empty() && now >= highlightUntil_) {
     highlightedBlockId_.clear();

@@ -9,6 +9,7 @@
 #include <chrono>
 #include <cstddef>
 #include <functional>
+#include <future>
 #include <list>
 #include <optional>
 #include <string>
@@ -93,6 +94,7 @@ struct UiActions {
   std::function<void()> loadLooper;
   std::function<void(const std::string&)> loadLooperSet;
   std::function<void(const std::string&)> deleteLooperSet;
+  // Update callbacks run on a worker; only the returned status reaches the UI thread.
   std::function<bool(DeviceUpdateStatus&, std::string&)> readUpdateStatus;
   std::function<bool(DeviceUpdateStatus&, std::string&)> checkForUpdate;
   std::function<bool(const std::string&, DeviceUpdateStatus&, std::string&)> installUpdate;
@@ -334,6 +336,13 @@ private:
   bool wifiPasswordVisible_ = false;
   std::string settingsMessage_;
   bool settingsMessageIsError_ = false;
+  struct UpdateResult { DeviceUpdateStatus status; std::string error; bool success = false; };
+  std::future<UpdateResult> updateRequest_;
+  std::string updateRequestKind_;
+  std::chrono::steady_clock::time_point nextUpdatePoll_{};
+  void startUpdateRequest(std::string kind,
+    std::function<bool(DeviceUpdateStatus&, std::string&)> action);
+  void pollUpdateRequest();
   DeviceUpdateStatus updateStatus_;
   bool updateInstallArmed_ = false;
   lv_obj_t* masterVolumeLabel_ = nullptr;

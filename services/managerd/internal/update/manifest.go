@@ -19,7 +19,7 @@ const (
 	ManifestSchemaVersion = 1
 	TargetRaspberryPi4    = "raspberry-pi-4"
 	ArchitectureAArch64   = "aarch64"
-	UpdaterVersion        = "1.0.0"
+	UpdaterVersion        = "1.0.1"
 	maxManifestBytes      = 64 << 10
 )
 

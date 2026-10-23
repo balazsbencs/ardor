@@ -1,0 +1,20 @@
+?   	ardor.local/managerd/cmd/ardor-managerd	[no test files]
+ok  	ardor.local/managerd/cmd/ardor-ota-tool	0.009s
+?   	ardor.local/managerd/cmd/ardor-updater	[no test files]
+ok  	ardor.local/managerd/internal/assets	0.178s
+ok  	ardor.local/managerd/internal/backup	0.009s
+ok  	ardor.local/managerd/internal/buildinfo	0.008s
+ok  	ardor.local/managerd/internal/cloudagent	0.554s
+ok  	ardor.local/managerd/internal/config	0.002s
+ok  	ardor.local/managerd/internal/deviceclaim	1.003s
+ok  	ardor.local/managerd/internal/deviceidentity	0.006s
+ok  	ardor.local/managerd/internal/discovery	0.003s
+ok  	ardor.local/managerd/internal/localauth	0.357s
+ok  	ardor.local/managerd/internal/presets	0.013s
+ok  	ardor.local/managerd/internal/reset	0.168s
+ok  	ardor.local/managerd/internal/runtimecontrol	0.017s
+ok  	ardor.local/managerd/internal/server	0.238s
+ok  	ardor.local/managerd/internal/timesync	0.015s
+ok  	ardor.local/managerd/internal/update	13.201s
+?   	ardor.local/managerd/internal/webui	[no test files]
+ok  	ardor.local/managerd/internal/wifi	0.007s

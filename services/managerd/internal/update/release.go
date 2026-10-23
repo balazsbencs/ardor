@@ -29,19 +29,20 @@ type ReleaseClient struct {
 }
 
 type Selection struct {
-	Version         string          `json:"version"`
-	Tag             string          `json:"tag"`
-	ReleaseURL      string          `json:"releaseUrl"`
-	ReleaseNotes    string          `json:"releaseNotes,omitempty"`
-	BundleURL       string          `json:"bundleUrl"`
-	ManifestURL     string          `json:"manifestUrl"`
-	SignatureURL    string          `json:"signatureUrl"`
-	Manifest        json.RawMessage `json:"manifest"`
-	Signature       string          `json:"signature"`
-	BundleSize      int64           `json:"bundleSize"`
-	BundleSHA256    string          `json:"bundleSha256"`
-	ReflashRequired bool            `json:"reflashRequired"`
-	Incompatibility string          `json:"incompatibility,omitempty"`
+	Version      string `json:"version"`
+	Tag          string `json:"tag"`
+	ReleaseURL   string `json:"releaseUrl"`
+	ReleaseNotes string `json:"releaseNotes,omitempty"`
+	BundleURL    string `json:"bundleUrl"`
+	ManifestURL  string `json:"manifestUrl"`
+	SignatureURL string `json:"signatureUrl"`
+	// Keep signed bytes opaque: JSON embedding would alter whitespace and invalidate the signature.
+	Manifest        []byte `json:"manifest"`
+	Signature       string `json:"signature"`
+	BundleSize      int64  `json:"bundleSize"`
+	BundleSHA256    string `json:"bundleSha256"`
+	ReflashRequired bool   `json:"reflashRequired"`
+	Incompatibility string `json:"incompatibility,omitempty"`
 }
 
 type githubRelease struct {

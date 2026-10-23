@@ -133,12 +133,8 @@ void LvglUi::openSettings(UiState& state)
   updateInstallArmed_ = false;
   audioBlockSizeDraft_ = state.settings.audioBlockSize;
   settingsMessage_.clear();
-  if (actions_.readUpdateStatus) {
-    std::string error;
-    if (!actions_.readUpdateStatus(updateStatus_, error) && !error.empty()) {
-      settingsMessage_ = error;
-      settingsMessageIsError_ = true;
-    }
+  if (actions_.readUpdateStatus && !updateRequest_.valid()) {
+    startUpdateRequest("status", actions_.readUpdateStatus);
   }
   viewsInitialized_ = false;
 }
@@ -161,24 +157,74 @@ void LvglUi::showSettingsSection(UiState&, std::size_t section)
   viewsInitialized_ = false;
 }
 
+void LvglUi::startUpdateRequest(std::string kind,
+  std::function<bool(DeviceUpdateStatus&, std::string&)> action)
+{
+  if (updateRequest_.valid() || !action) return;
+  updateRequestKind_ = std::move(kind);
+  updateRequest_ = std::async(std::launch::async, [action = std::move(action), status = updateStatus_]() mutable {
+    UpdateResult result{std::move(status), {}, false};
+    try {
+      result.success = action(result.status, result.error);
+    } catch (const std::exception& error) {
+      result.error = error.what();
+    } catch (...) {
+      result.error = "Update request failed";
+    }
+    return result;
+  });
+  viewsInitialized_ = false;
+}
+
+void LvglUi::pollUpdateRequest()
+{
+  if (updateRequest_.valid()
+      && updateRequest_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+    auto result = updateRequest_.get();
+    // A status read may fail briefly while Manager restarts. Keep the last
+    // known installation state and retry, without touching LVGL on the worker.
+    if (result.success) updateStatus_ = std::move(result.status);
+    settingsMessageIsError_ = !result.success;
+    if (!result.success) {
+      settingsMessage_ = result.error.empty() ? "Could not contact update service" : result.error;
+    } else if (!updateStatus_.errorMessage.empty()) {
+      settingsMessage_ = updateStatus_.errorMessage;
+      settingsMessageIsError_ = true;
+    } else if (updateRequestKind_ == "check") {
+      settingsMessage_ = updateStatus_.availableVersion.empty()
+        ? "This pedal is up to date" : "A new Ardor release is available";
+    } else if (updateRequestKind_ == "install") {
+      settingsMessage_ = "Update started - keep the pedal powered";
+    } else if (updateStatus_.state == "succeeded") {
+      settingsMessage_ = "Update installed successfully";
+    }
+    nextUpdatePoll_ = std::chrono::steady_clock::now() + std::chrono::seconds(1);
+    viewsInitialized_ = false;
+  }
+  const auto& phase = updateStatus_.state;
+  const bool installing = phase == "downloading" || phase == "verifying" || phase == "staged"
+    || phase == "restarting" || phase == "validating";
+  if (settingsOpen_ && installing && !updateRequest_.valid()
+      && std::chrono::steady_clock::now() >= nextUpdatePoll_) {
+    startUpdateRequest("status", actions_.readUpdateStatus);
+  }
+}
+
 void LvglUi::checkForUpdate(UiState&)
 {
+  const auto& phase = updateStatus_.state;
+  if (updateRequest_.valid() || phase == "downloading" || phase == "verifying"
+      || phase == "staged" || phase == "restarting" || phase == "validating") return;
   updateInstallArmed_ = false;
-  std::string error;
-  if (!actions_.checkForUpdate || !actions_.checkForUpdate(updateStatus_, error)) {
-    settingsMessage_ = error.empty() ? "Could not check for updates" : error;
-    settingsMessageIsError_ = true;
-  } else {
-    settingsMessage_ = updateStatus_.availableVersion.empty()
-      ? "This pedal is up to date" : "A new Ardor release is available";
-    settingsMessageIsError_ = false;
-  }
-  viewsInitialized_ = false;
+  settingsMessage_ = "Checking for updates...";
+  settingsMessageIsError_ = false;
+  startUpdateRequest("check", actions_.checkForUpdate);
 }
 
 void LvglUi::installUpdate(UiState&)
 {
-  if (updateStatus_.availableVersion.empty() || updateStatus_.reflashRequired) return;
+  if (updateRequest_.valid() || updateStatus_.state != "available"
+      || updateStatus_.availableVersion.empty() || updateStatus_.reflashRequired) return;
   if (!updateInstallArmed_) {
     updateInstallArmed_ = true;
     settingsMessage_ = "Audio will mute and the pedal will restart. Tap confirm to continue.";
@@ -187,16 +233,11 @@ void LvglUi::installUpdate(UiState&)
     return;
   }
   updateInstallArmed_ = false;
-  std::string error;
-  if (!actions_.installUpdate
-      || !actions_.installUpdate(updateStatus_.availableVersion, updateStatus_, error)) {
-    settingsMessage_ = error.empty() ? "Could not start the update" : error;
-    settingsMessageIsError_ = true;
-  } else {
-    settingsMessage_ = "Update started - keep the pedal powered";
-    settingsMessageIsError_ = false;
-  }
-  viewsInitialized_ = false;
+  const auto action = actions_.installUpdate;
+  const auto version = updateStatus_.availableVersion;
+  startUpdateRequest("install", [action, version](DeviceUpdateStatus& status, std::string& error) {
+    return action && action(version, status, error);
+  });
 }
 
 void LvglUi::selectAudioBlockSize(UiState&, std::size_t optionIndex)
@@ -667,10 +708,10 @@ void LvglUi::renderSettingsView(lv_obj_t* root, UiState& state)
     lv_obj_t* check = lb::button(content, "Check for updates", lb::ButtonKind::Normal,
                                  kSettingsPad, actionY);
     lv_obj_add_event_cb(check, onUpdateCheckClicked, LV_EVENT_PRESSED, remember(state));
-    if (!updateStatus_.enabled || !actions_.checkForUpdate) lv_obj_add_state(check, LV_STATE_DISABLED);
+    if (!updateStatus_.enabled || !actions_.checkForUpdate || updateRequest_.valid() || updateInProgress) lv_obj_add_state(check, LV_STATE_DISABLED);
 
     if (!updateStatus_.availableVersion.empty() && !updateStatus_.reflashRequired
-        && updateStatus_.state == "available") {
+        && updateStatus_.state == "available" && !updateRequest_.valid()) {
       const std::string installLegend = updateInstallArmed_ ? "Confirm install" : "Install & restart";
       const int installWidth = lb::buttonWidth("Install & restart");
       lv_obj_t* install = lb::button(content, installLegend, lb::ButtonKind::Primary,

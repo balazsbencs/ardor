@@ -15,6 +15,7 @@
 #include <functional>
 #include <iostream>
 #include <optional>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -2287,11 +2288,21 @@ int main()
   if (require(stepperIsAligned(midiChannelTitle)
                 && stepperIsAligned(findLabel(lv_screen_active(), "TUNER ON/OFF CC")),
               "MIDI and tuner steppers should share symmetric padding and centered controls")) return 1;
+  // Update service calls run on a worker; pump completion on the UI thread.
+  const auto awaitUpdateLabel = [&](const char* label) {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    do {
+      ui.refresh(lv_screen_active(), state);
+      if (findLabel(lv_screen_active(), label)) return;
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    } while (std::chrono::steady_clock::now() < deadline);
+  };
   lv_obj_t* updatesSectionLabel = findLabel(lv_screen_active(), "UPDATES");
   if (require(updatesSectionLabel, "settings should expose an Updates section")) return 1;
   lv_obj_send_event(lv_obj_get_parent(updatesSectionLabel), LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
+  awaitUpdateLabel("1.2.3");
   if (require(findLabel(lv_screen_active(), "INSTALLED VERSION")
                 && findLabel(lv_screen_active(), "1.2.3")
                 && findLabel(lv_screen_active(), "CHECK FOR UPDATES"),
@@ -2300,6 +2311,7 @@ int main()
                     LV_EVENT_PRESSED, nullptr);
   ui.refresh(lv_screen_active(), state);
   lv_obj_update_layout(lv_screen_active());
+  awaitUpdateLabel("INSTALL & RESTART");
   if (require(findLabel(lv_screen_active(), "ARDOR 1.3.0")
                 && findLabel(lv_screen_active(), "INSTALL & RESTART"),
               "a compatible release should expose an install action")) return 1;

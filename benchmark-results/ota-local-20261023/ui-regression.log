@@ -1,0 +1,4 @@
+open settings: 0ms
+check update: 0ms
+confirm install: 0ms
+OTA UI remains responsive and polls the installation

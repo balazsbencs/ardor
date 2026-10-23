@@ -85,6 +85,7 @@ bool managerUpdateRequest(const std::string& method, const std::string& path,
   if (socketFd < 0) { error = "Update service is unavailable"; return false; }
   timeval timeout{20, 0};
   setsockopt(socketFd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+  setsockopt(socketFd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
   sockaddr_in address{};
   address.sin_family = AF_INET;
   address.sin_port = htons(8080);
@@ -96,7 +97,7 @@ bool managerUpdateRequest(const std::string& method, const std::string& path,
     "X-Ardor-Device-UI: 1\r\nContent-Type: application/json\r\nContent-Length: "
     + std::to_string(body.size()) + "\r\n\r\n" + body;
   for (std::size_t sent = 0; sent < request.size();) {
-    const auto count = ::send(socketFd, request.data() + sent, request.size() - sent, 0);
+    const auto count = ::send(socketFd, request.data() + sent, request.size() - sent, MSG_NOSIGNAL);
     if (count <= 0) { ::close(socketFd); error = "Could not contact update service"; return false; }
     sent += static_cast<std::size_t>(count);
   }
