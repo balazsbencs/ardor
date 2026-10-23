@@ -1,0 +1,9 @@
+Test project /home/bbalazs/projects/ardor/build-lvgl-test
+    Start 76: pedal-lvgl-ui-smoke
+1/2 Test #76: pedal-lvgl-ui-smoke ..............   Passed    2.50 sec
+    Start 77: pedal-ota-ui-regression
+2/2 Test #77: pedal-ota-ui-regression ..........   Passed    3.74 sec
+
+100% tests passed out of 2
+
+Total Test time (real) =   6.25 sec

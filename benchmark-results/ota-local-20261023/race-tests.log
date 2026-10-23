@@ -1,0 +1,3 @@
+ok  	ardor.local/managerd/internal/update	14.538s	coverage: 71.6% of statements
+ok  	ardor.local/managerd/internal/server	1.557s	coverage: 46.4% of statements
+ok  	ardor.local/managerd/cmd/ardor-ota-tool	1.037s	coverage: 56.1% of statements

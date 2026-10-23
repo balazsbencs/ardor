@@ -411,10 +411,13 @@ if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   )
   file(GLOB ARDOR_LAMP_BLACK_FONTS CONFIGURE_DEPENDS src/ui/fonts/lamp/*.c)
   target_sources(ardor_ui PRIVATE ${ARDOR_LAMP_BLACK_FONTS})
-  target_link_libraries(ardor_ui PUBLIC lvgl)
+  target_link_libraries(ardor_ui PUBLIC lvgl Threads::Threads)
 
   add_executable(pedal-lvgl-ui-smoke tests/lvgl_ui_smoke.cpp)
   target_link_libraries(pedal-lvgl-ui-smoke PRIVATE ardor_ui)
+
+  add_executable(pedal-ota-ui-regression tests/ota_ui_regression.cpp)
+  target_link_libraries(pedal-ota-ui-regression PRIVATE ardor_ui Threads::Threads)
 
   # Renders every screen to PPM for visual review; not a ctest.
   add_executable(pedal-lvgl-ui-screenshots tests/lvgl_ui_screenshots.cpp)
@@ -931,6 +934,7 @@ add_test(NAME pedal-global-settings-smoke COMMAND pedal-global-settings-smoke)
 add_test(NAME pedal-eq-editor-model-smoke COMMAND pedal-eq-editor-model-smoke)
 if(NOT ARDOR_UI_BACKEND STREQUAL "none")
   add_test(NAME pedal-lvgl-ui-smoke COMMAND pedal-lvgl-ui-smoke)
+  add_test(NAME pedal-ota-ui-regression COMMAND pedal-ota-ui-regression)
   add_test(NAME pedal-cloud-claim-overlay-smoke COMMAND pedal-cloud-claim-overlay-smoke)
 endif()
 add_test(NAME pedal-preset-cli-smoke COMMAND pedal-preset-cli-smoke)
